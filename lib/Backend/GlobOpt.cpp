@@ -16338,9 +16338,37 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             )
            )
         {
-            eliminatedLowerBoundCheck = true;
-            eliminatedUpperBoundCheck = true;
-            canBailOutOnArrayAccessHelperCall = false;
+            // Unless we're in asm.js (where it is guaranteed that virtual typed array accesses cannot read/write beyond 4GB),
+            // check the range of the index to make sure we won't access beyond the reserved memory beforing eliminating bounds
+            // checks in jitted code.
+            if (!GetIsAsmJSFunc())
+            {
+                IR::RegOpnd * idxOpnd = baseOwnerIndir->GetIndexOpnd();
+                if (idxOpnd)
+                {
+                    StackSym * idxSym = idxOpnd->m_sym->IsTypeSpec() ? idxOpnd->m_sym->GetVarEquivSym(nullptr) : idxOpnd->m_sym;
+                    Value * idxValue = FindValue(idxSym);
+                    IntConstantBounds idxConstantBounds;
+                    if (idxValue && idxValue->GetValueInfo()->TryGetIntConstantBounds(&idxConstantBounds))
+                    {
+                        BYTE indirScale = Lowerer::GetArrayIndirScale(baseValueType);
+                        int32 upperBound = idxConstantBounds.UpperBound();
+                        int32 lowerBound = idxConstantBounds.LowerBound();
+                        if (lowerBound >= 0 && ((static_cast<uint64>(upperBound) << indirScale) < MAX_ASMJS_ARRAYBUFFER_LENGTH))
+                        {
+                            eliminatedLowerBoundCheck = true;
+                            eliminatedUpperBoundCheck = true;
+                            canBailOutOnArrayAccessHelperCall = false;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                eliminatedLowerBoundCheck = true;
+                eliminatedUpperBoundCheck = true;
+                canBailOutOnArrayAccessHelperCall = false;
+            }
         }
     }
 
