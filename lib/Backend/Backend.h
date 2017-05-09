@@ -144,6 +144,8 @@ enum IRDumpFlags
 #include "ValueRelativeOffset.h"
 #include "IntBounds.h"
 #include "InductionVariable.h"
+#include "ValueInfo.h"
+#include "GlobOptBlockData.h"
 #include "GlobOpt.h"
 #include "GlobOptIntBounds.h"
 #include "QueuedFullJitWorkItem.h"
