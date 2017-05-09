@@ -71,7 +71,7 @@ var tests = [
         body: function () {
             var i = 0;
             var a = [];
-            assert.throws(function () { eval('x'); }, ReferenceError, "x is not available before for-of loop", "'x' is undefined");
+            assert.throws(function () { eval('x'); }, ReferenceError, "x is not available before for-of loop", "'x' is not defined");
 
             for (let x of simpleIterator) {
                 a.push(x);
@@ -83,7 +83,7 @@ var tests = [
 
             assert.areEqual([0, 1, 2], a, "verify the correct number of iterations occurred");
 
-            assert.throws(function () { eval('x'); }, ReferenceError, "x is not available after for-of loop", "'x' is undefined");
+            assert.throws(function () { eval('x'); }, ReferenceError, "x is not available after for-of loop", "'x' is not defined");
         }
     },
     {
@@ -101,7 +101,7 @@ var tests = [
             /*
             var i = 0;
             var a = [];
-            assert.throws(function () { eval('x'); }, ReferenceError, "x is not available before for-of loop", "'x' is undefined");
+            assert.throws(function () { eval('x'); }, ReferenceError, "x is not available before for-of loop", "'x' is not defined");
 
             for (const x of simpleIterator) {
                 a.push(x);
@@ -112,7 +112,7 @@ var tests = [
 
             assert.areEqual([0, 1, 2], a, "verify the correct number of iterations occurred");
 
-            assert.throws(function () { eval('x'); }, ReferenceError, "x is not available after for-of loop", "'x' is undefined");
+            assert.throws(function () { eval('x'); }, ReferenceError, "x is not available after for-of loop", "'x' is not defined");
             */
        }
     },

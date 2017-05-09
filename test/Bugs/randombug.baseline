@@ -91,7 +91,7 @@ passed
 Test case 38
 passed
 Test case 40
-ReferenceError: 'undefinedFunction' is undefined
+ReferenceError: 'undefinedFunction' is not defined
 	at eval code (eval code:1:22)
 	at testRuntimeError (randombug.js:458:9)
 	at test31 (randombug.js:462:5)

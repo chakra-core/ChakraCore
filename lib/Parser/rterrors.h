@@ -112,7 +112,7 @@ RT_ERROR_MSG(JSERR_NeedString, 5005, "'%s' is not a string", "String expected", 
 RT_ERROR_MSG(JSERR_NeedDate, 5006, "'%s' is not a date object", "Date object expected", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_NeedObject, 5007, "'%s' is null or not an object", "Object expected", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_CantAssignTo, 5008, "", "Invalid left-hand side in assignment", kjstReferenceError, 0)
-RT_ERROR_MSG(JSERR_UndefVariable, 5009, "'%s' is undefined", "Undefined identifier", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_UndefVariable, 5009, "'%s' is not defined", "Undefined identifier", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_NeedBoolean, 5010, "'%s' is not a boolean", "Boolean expected", kjstTypeError, 0)
 
 // This is the legacy error code for JScript.

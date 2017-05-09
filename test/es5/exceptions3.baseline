@@ -1,17 +1,17 @@
- Array.prototype.sort.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is undefined
- Array.prototype.slice.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is undefined
- Array.prototype.shift.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is undefined
- Array.prototype.reverse.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is undefined
- Array.prototype.push.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is undefined
- Array.prototype.pop.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is undefined
- Array.prototype.join.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is undefined
- Object.prototype.propertyIsEnumerable.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is undefined
+ Array.prototype.sort.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is not defined
+ Array.prototype.slice.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is not defined
+ Array.prototype.shift.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is not defined
+ Array.prototype.reverse.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is not defined
+ Array.prototype.push.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is not defined
+ Array.prototype.pop.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is not defined
+ Array.prototype.join.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is not defined
+ Object.prototype.propertyIsEnumerable.call(document);; throws;;   -expected: es3 TypeError ::: ReferenceError: 'document' is not defined
  delete this; ends without error; 
  var xnew = new Object(); var y = new xnew(); throws;;   -expected: es3, es5 TypeError ::: TypeError: Object doesn't support this action
  var x = new Object(); var y = x.ffm; ends without error; 
 var x = new Object(); x.ff() throws;;   -expected: es3, es5 TypeError ::: TypeError: Object doesn't support property or method 'ff'
-var x = function f(){return "inner";}();   -expected: es3, es5 R3eferenceError ::: ReferenceError: 'ff' is undefined
-call to undefined fg() throws;   -expected: es3 - TypeError, es5-ReferenceError ::: ReferenceError: 'fg' is undefined
+var x = function f(){return "inner";}();   -expected: es3, es5 R3eferenceError ::: ReferenceError: 'ff' is not defined
+call to undefined fg() throws;   -expected: es3 - TypeError, es5-ReferenceError ::: ReferenceError: 'fg' is not defined
  call to an non function object ooj();;;   -expected: es3, es5 TypeError ::: TypeError: Function expected
  o_undef();;;   -expected: es3, es5 TypeError ::: TypeError: Object expected
  o_null();;;   -expected: es3, es5 TypeError ::: TypeError: Object expected

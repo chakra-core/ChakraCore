@@ -53,6 +53,6 @@ stack          = (string)  URIError
 toString()     = URIError
 
 RegExpError
-ReferenceError: 'RegExpError' is undefined
+ReferenceError: 'RegExpError' is not defined
 ConversionError
-ReferenceError: 'ConversionError' is undefined
+ReferenceError: 'ConversionError' is not defined
