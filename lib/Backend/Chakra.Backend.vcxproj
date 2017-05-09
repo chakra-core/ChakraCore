@@ -215,6 +215,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ServerThreadContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FixedFieldInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionCodeGenJitTimeData.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBlockData.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ValueInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -255,6 +257,7 @@
     <ClInclude Include="FunctionCodeGenJitTimeData.h" />
     <ClInclude Include="FunctionJITRuntimeInfo.h" />
     <ClInclude Include="FunctionJITTimeInfo.h" />
+    <ClInclude Include="GlobOptBlockData.h" />
     <ClInclude Include="IRBaseTypeList.h" />
     <ClInclude Include="IRBuilderAsmJs.h" />
     <ClInclude Include="BackendOpCodeAttrAsmJs.h" />
@@ -427,6 +430,7 @@
     <ClInclude Include="SymTable.h" />
     <ClInclude Include="SwitchIRBuilder.h" />
     <ClInclude Include="TempTracker.h" />
+    <ClInclude Include="ValueInfo.h" />
     <ClInclude Include="ValueRelativeOffset.h" />
   </ItemGroup>
   <ItemGroup>
