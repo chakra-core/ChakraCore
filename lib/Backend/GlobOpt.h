@@ -1616,6 +1616,7 @@ public:
     static bool             DoArrayMissingValueCheckHoist(Func *const func);
     static bool             DoArraySegmentHoist(const ValueType baseValueType, Func *const func);
     static bool             DoArrayLengthHoist(Func *const func);
+    static bool             DoEliminateArrayAccessHelperCall(Func* func);
     static bool             DoTypedArrayTypeSpec(Func* func);
     static bool             DoNativeArrayTypeSpec(Func* func);
     static bool             IsSwitchOptEnabled(Func* func);

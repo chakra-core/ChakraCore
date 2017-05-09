@@ -16874,16 +16874,18 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                 const IR::AutoReuseOpnd autoReuseReg(reg, m_func);
                 InsertMove(reg, src, stElem);
 
+                bool bailOutOnHelperCall = stElem->HasBailOutInfo() && (stElem->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall);
+
                 // Convert to float, and assign to indirOpnd
                 if (baseValueType.IsLikelyOptimizedVirtualTypedArray())
                 {
                     IR::RegOpnd* dstReg = IR::RegOpnd::New(indirOpnd->GetType(), this->m_func);
-                    m_lowererMD.EmitLoadFloat(dstReg, reg, stElem);
+                    m_lowererMD.EmitLoadFloat(dstReg, reg, stElem, bailOutOnHelperCall);
                     InsertMove(indirOpnd, dstReg, stElem);
                 }
                 else
                 {
-                    m_lowererMD.EmitLoadFloat(indirOpnd, reg, stElem);
+                    m_lowererMD.EmitLoadFloat(indirOpnd, reg, stElem, bailOutOnHelperCall);
                 }
 
             }

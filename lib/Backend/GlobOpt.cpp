@@ -20054,6 +20054,12 @@ GlobOpt::DoArrayLengthHoist() const
 }
 
 bool
+GlobOpt::DoEliminateArrayAccessHelperCall(Func *const func)
+{
+    return DoArrayCheckHoist(func);
+}
+
+bool
 GlobOpt::DoEliminateArrayAccessHelperCall() const
 {
     return doEliminateArrayAccessHelperCall;
