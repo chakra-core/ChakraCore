@@ -507,6 +507,8 @@ HELPERCALL(SetHomeObj,          Js::JavascriptOperators::OP_SetHomeObj,         
 HELPERCALL(LdHomeObjProto,      Js::JavascriptOperators::OP_LdHomeObjProto,     0)
 HELPERCALL(LdFuncObjProto,      Js::JavascriptOperators::OP_LdFuncObjProto,     0)
 
+HELPERCALL(ImportCall,          Js::JavascriptOperators::OP_ImportCall,         0)
+
 HELPERCALL(ResumeYield,   Js::JavascriptOperators::OP_ResumeYield,   AttrCanThrow)
 
 #include "ExternalHelperMethodList.h"

@@ -861,8 +861,9 @@ private:
 
     bool IsImportOrExportStatementValidHere();
 
-    template<bool buildAST> ParseNodePtr ParseImportDeclaration();
+    template<bool buildAST> ParseNodePtr ParseImport();
     template<bool buildAST> void ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma = false);
+    template<bool buildAST> ParseNodePtr ParseImportCall();
 
     template<bool buildAST> ParseNodePtr ParseExportDeclaration();
     template<bool buildAST> ParseNodePtr ParseDefaultExportClause();

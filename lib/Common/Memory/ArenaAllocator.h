@@ -21,6 +21,12 @@ namespace Memory
 #define Adelete(alloc, obj) AllocatorDelete(ArenaAllocator, alloc, obj)
 #define AdeletePlus(alloc, size, obj) AllocatorDeletePlus(ArenaAllocator, alloc, size, obj)
 #define AdeleteArray(alloc, count, obj) AllocatorDeleteArray(ArenaAllocator, alloc, count, obj)
+#define AdeleteUnlessNull(alloc, obj) \
+    if (obj != nullptr) \
+    { \
+        Adelete(alloc, obj); \
+        obj = nullptr; \
+    }
 
 
 #define AnewNoThrow(alloc,T,...) AllocatorNewNoThrow(ArenaAllocator, alloc, T, __VA_ARGS__)

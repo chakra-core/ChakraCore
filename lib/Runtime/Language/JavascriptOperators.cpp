@@ -9639,6 +9639,112 @@ CommonNumber:
         return superCtor;
     }
 
+    Var JavascriptOperators::OP_ImportCall(__in JavascriptFunction *function, __in Var specifier, __in ScriptContext* scriptContext)
+    {
+        ModuleRecordBase *moduleRecordBase = nullptr;
+        SourceTextModuleRecord *moduleRecord = nullptr;
+
+        FunctionBody* parentFuncBody = function->GetFunctionBody();
+        JavascriptString *specifierString = nullptr;
+
+        try
+        {
+            specifierString = JavascriptConversion::ToString(specifier, scriptContext);
+        }
+        catch (const JavascriptException &err)
+        {
+            Var errorObject = err.GetAndClear()->GetThrownObject(scriptContext);
+            AssertMsg(errorObject != nullptr, "OP_ImportCall: null error object thrown by ToString(specifier)");
+            if (errorObject != nullptr)
+            {
+                return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, errorObject, scriptContext);
+            }
+
+            Throw::InternalError();
+        }
+
+        DWORD_PTR dwReferencingSourceContext = parentFuncBody->GetHostSourceContext();
+        if (!parentFuncBody->IsES6ModuleCode() && dwReferencingSourceContext == Js::Constants::NoHostSourceContext)
+        {
+            // import() called from eval
+            if (parentFuncBody->GetUtf8SourceInfo()->GetCallerUtf8SourceInfo() == nullptr)
+            {
+                JavascriptError *error = scriptContext->GetLibrary()->CreateError();
+                JavascriptError::SetErrorMessageProperties(error, E_FAIL, _u("Unable to locate active script or module that calls import()"), scriptContext);
+                return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, error, scriptContext);
+            }
+
+            dwReferencingSourceContext = parentFuncBody->GetUtf8SourceInfo()->GetCallerUtf8SourceInfo()->GetSourceContextInfo()->dwHostSourceContext;
+
+            if (dwReferencingSourceContext == Js::Constants::NoHostSourceContext)
+            {
+                // Walk the call stack if caller function is neither module code nor having host source context
+
+                JavascriptFunction* caller = nullptr;
+                Js::JavascriptStackWalker walker(scriptContext);
+                walker.GetCaller(&caller);
+
+                do
+                {
+                    if (walker.GetCaller(&caller) && caller != nullptr && caller->IsScriptFunction())
+                    {
+                        parentFuncBody = caller->GetFunctionBody();
+                        dwReferencingSourceContext = parentFuncBody->GetHostSourceContext();
+                    }
+                    else
+                    {
+                        JavascriptError *error = scriptContext->GetLibrary()->CreateError();
+                        JavascriptError::SetErrorMessageProperties(error, E_FAIL, _u("Unable to locate active script or module that calls import()"), scriptContext);
+                        return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, error, scriptContext);
+                    }
+
+                } while (!parentFuncBody->IsES6ModuleCode() && dwReferencingSourceContext == Js::Constants::NoHostSourceContext);
+            }
+        }
+
+        LPCOLESTR moduleName = specifierString->GetSz();
+        HRESULT hr = 0;
+
+        if (parentFuncBody->IsES6ModuleCode())
+        {
+            SourceTextModuleRecord *referenceModuleRecord = parentFuncBody->GetScriptContext()->GetLibrary()->GetModuleRecord(parentFuncBody->GetModuleID());
+            BEGIN_LEAVE_SCRIPT(scriptContext);
+            BEGIN_TRANSLATE_TO_HRESULT(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+            hr = scriptContext->GetHostScriptContext()->FetchImportedModule(referenceModuleRecord, moduleName, &moduleRecordBase);
+            END_TRANSLATE_EXCEPTION_TO_HRESULT(hr);
+            END_LEAVE_SCRIPT(scriptContext);
+        }
+        else
+        {
+            Assert(dwReferencingSourceContext != Js::Constants::NoHostSourceContext);
+            BEGIN_LEAVE_SCRIPT(scriptContext);
+            BEGIN_TRANSLATE_TO_HRESULT(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+            hr = scriptContext->GetHostScriptContext()->FetchImportedModuleFromScript(dwReferencingSourceContext, moduleName, &moduleRecordBase);
+            END_TRANSLATE_EXCEPTION_TO_HRESULT(hr);
+            END_LEAVE_SCRIPT(scriptContext);
+        }
+
+        if (FAILED(hr))
+        {
+            Js::JavascriptError *error = scriptContext->GetLibrary()->CreateURIError();
+            JavascriptError::SetErrorMessageProperties(error, hr, moduleName, scriptContext);
+            return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, error, scriptContext);
+        }
+
+        moduleRecord = SourceTextModuleRecord::FromHost(moduleRecordBase);
+
+        if (moduleRecord->GetErrorObject() != nullptr)
+        {
+            return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, moduleRecord->GetErrorObject(), scriptContext, moduleRecord);
+        }
+        else if (moduleRecord->WasEvaluated())
+        {
+            return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(true, moduleRecord->GetNamespace(), scriptContext, moduleRecord);
+        }
+
+        return moduleRecord->PostProcessDynamicModuleImport();
+    }
+
     Var JavascriptOperators::ScopedLdHomeObjFuncObjHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext)
     {
         ScriptFunction *instance = ScriptFunction::FromVar(scriptFunction);

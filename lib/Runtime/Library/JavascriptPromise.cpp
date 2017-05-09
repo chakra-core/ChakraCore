@@ -1863,4 +1863,16 @@ namespace Js
 
         return args[0];
     }
+
+    //static
+    JavascriptPromise* JavascriptPromise::CreateEnginePromise(ScriptContext *scriptContext)
+    {
+        JavascriptPromiseResolveOrRejectFunction *resolve = nullptr;
+        JavascriptPromiseResolveOrRejectFunction *reject = nullptr;
+
+        JavascriptPromise *promise = scriptContext->GetLibrary()->CreatePromise();
+        JavascriptPromise::InitializePromise(promise, &resolve, &reject, scriptContext);
+
+        return promise;
+    }
 } // namespace Js

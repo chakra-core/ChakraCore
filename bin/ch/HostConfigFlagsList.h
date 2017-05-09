@@ -11,5 +11,6 @@ FLAG(int,  InspectMaxStringLength,          "Max string length to dump in locals
 FLAG(BSTR, Serialized,                      "If source is UTF8, deserializes from bytecode file", NULL)
 FLAG(bool, OOPJIT,                          "Run JIT in a separate process", false)
 FLAG(bool, EnsureCloseJITServer,            "JIT process will be force closed when ch is terminated", true)
+FLAG(bool, AsyncModuleLoad,                 "Silence host error output for module load failures to enable promise testing", false)
 #undef FLAG
 #endif

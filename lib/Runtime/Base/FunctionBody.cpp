@@ -203,6 +203,11 @@ namespace Js
         scriptContext->GetDebugContext()->RegisterFunction(this, pszTitle);
     }
 
+    bool ParseableFunctionInfo::IsES6ModuleCode() const
+    {
+        return (GetGrfscr() & fscrIsModuleCode) == fscrIsModuleCode;
+    }
+
     // Given an offset into the source buffer, determine if the end of this SourceInfo
     // lies after the given offset.
     bool
@@ -3171,7 +3176,7 @@ namespace Js
 
     Js::RootObjectBase * FunctionBody::LoadRootObject() const
     {
-        if ((this->GetGrfscr() & fscrIsModuleCode) == fscrIsModuleCode || this->GetModuleID() == kmodGlobal)
+        if (this->IsES6ModuleCode() || this->GetModuleID() == kmodGlobal)
         {
             return JavascriptOperators::OP_LdRoot(this->GetScriptContext());
         }
