@@ -102,7 +102,7 @@ set _HadFailures=0
 
   pushd %_TestDir%\logs
   findstr /sp failed rl.results.log > summary.log
-  findstr /sip failed nativetests.log > summary.log
+  findstr /sip failed nativetests.log >> summary.log
   rem Echo to stderr so that VSO includes the output in the build summary
   type summary.log 1>&2
   popd
