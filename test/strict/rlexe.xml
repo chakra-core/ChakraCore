@@ -232,7 +232,6 @@
     <default>
       <files>05.arguments.js</files>
       <baseline>05.arguments.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -546,14 +545,12 @@
     <default>
       <files>19.function.js</files>
       <baseline>19.function.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>19.function_sm.js</files>
       <baseline>19.function_sm.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>

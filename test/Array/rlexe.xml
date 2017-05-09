@@ -84,14 +84,12 @@
     <default>
       <files>SliceandConcatAlterOriginalArrayBug.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags></tags>
     </default>
   </test>
   <test>
     <default>
       <compile-flags>-ForceArrayBTree -maxinterpretcount:1 -maxsimplejitruncount:2</compile-flags>
       <files>rawLastUsedSegmentBugInFloatArray.js</files>
-      <tags></tags>
     </default>
   </test>
   <test>

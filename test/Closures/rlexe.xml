@@ -57,7 +57,6 @@
     <default>
       <files>closure-funcexpr-eval.js</files>
       <baseline>closure-funcexpr-eval-3.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>

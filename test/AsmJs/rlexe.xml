@@ -717,7 +717,6 @@
     <default>
       <files>argoutcapturebug.js</files>
       <baseline>argoutcapturebug.baseline</baseline>
-      <tags></tags>
       <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
@@ -754,7 +753,6 @@
     <default>
       <files>negZero.js</files>
       <baseline>negZero.baseline</baseline>
-      <tags></tags>
       <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>

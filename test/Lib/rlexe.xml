@@ -28,7 +28,6 @@
     <default>
       <files>noargs.js</files>
       <baseline>noargs_2.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>

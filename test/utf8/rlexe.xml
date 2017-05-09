@@ -16,7 +16,7 @@
   <test>
     <default>
       <files>OS_2977448.js</files>
-      <tags>fail_mutators,exclude_winglob,BugFix</tags>
+      <tags>exclude_winglob,BugFix</tags>
     </default>
   </test>
   <test>

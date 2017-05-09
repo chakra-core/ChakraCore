@@ -4,7 +4,6 @@
     <default>
       <files>constructor.js</files>
       <baseline>constructor.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
