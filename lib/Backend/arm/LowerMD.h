@@ -236,7 +236,9 @@ public:
             template <bool verify = false>
             static void         Legalize(IR::Instr *const instr, bool fPostRegAlloc = false);
 
-            IR::Opnd*           IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr);
+            IR::Instr *         NegZeroBranching(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* brLabel, bool branchIfNeg0);
+            IR::Instr *         BranchIfNotNegZero(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* isNotNeg0Label) { return NegZeroBranching(opnd, instr, isNotNeg0Label, false); }
+            IR::Instr *         BranchIfNegZero(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* isNeg0Label) { return NegZeroBranching(opnd, instr, isNeg0Label, true); }
             void                GenerateFastInlineBuiltInMathAbs(IR::Instr *callInstr);
             void                GenerateFastInlineBuiltInMathFloor(IR::Instr *callInstr);
             void                GenerateFastInlineBuiltInMathCeil(IR::Instr *callInstr);

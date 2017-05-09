@@ -7844,18 +7844,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, doneLabel, instr->m_func));
 
                 instr->InsertBefore(labelNegZeroCheckHelper);
-
-                IR::Opnd* isNegZero;
-                if(min)
-                {
-                    isNegZero =  IsOpndNegZero(src2, instr);
-                }
-                else
-                {
-                    isNegZero =  IsOpndNegZero(src1, instr);
-                }
-
-                this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrEq_A, doneLabel, instr);
+                BranchIfNotNegZero(min ? src2 : src1, instr, doneLabel);
 
                 this->m_lowerer->InsertMove(dst, src2, instr);
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, doneLabel, instr->m_func));
@@ -8036,8 +8025,7 @@ LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
     if(instr->ShouldCheckForNegativeZero())
     {
         IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
-        isNegZero = this->IsOpndNegZero(src, instr);
-        this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrNeq_A, bailoutLabel, instr);
+        BranchIfNegZero(src, instr, bailoutLabel);
         instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, doneLabel, instr->m_func));
     }
 
@@ -8138,9 +8126,7 @@ LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
         this->m_lowerer->InsertCompareBranch(floatOpnd, negOne, Js::OpCode::BrNotGe_A, doneLabel, instr);
         this->m_lowerer->InsertCompareBranch(floatOpnd, zeroReg, Js::OpCode::BrNotGe_A, bailoutLabel, instr);
 
-        isNegZero = this->IsOpndNegZero(src, instr);
-
-        this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrNeq_A, bailoutLabel, instr);
+        BranchIfNegZero(src, instr, bailoutLabel);
         instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, doneLabel, instr->m_func));
     }
 
@@ -8245,9 +8231,7 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
         this->m_lowerer->InsertCompareBranch(src, negPointFive, Js::OpCode::BrNotGe_A, doneLabel, instr);
         this->m_lowerer->InsertCompareBranch(src, zeroReg, Js::OpCode::BrNotGe_A, bailoutLabel, instr);
 
-        isNegZero = this->IsOpndNegZero(src, instr);
-
-        this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrNeq_A, bailoutLabel, instr);
+        BranchIfNegZero(src, instr, bailoutLabel);
         instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, doneLabel, instr->m_func));
     }
 
@@ -8270,7 +8254,7 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     doneLabel->InsertAfter(movInstr);
 }
 
-IR::Opnd* LowererMD::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)
+IR::Instr* LowererMD::NegZeroBranching(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* brLabel, bool branchIfNeg0)
 {
     IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
 
@@ -8278,8 +8262,8 @@ IR::Opnd* LowererMD::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)
     IR::Instr * helperCallInstr = IR::Instr::New(Js::OpCode::Call, isNegZero, this->m_func);
     instr->InsertBefore(helperCallInstr);
     this->ChangeToHelperCall(helperCallInstr, IR::HelperIsNegZero);
-
-    return isNegZero;
+    IR::Opnd* zeroCnst = IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func);
+    return this->m_lowerer->InsertCompareBranch(isNegZero, zeroCnst, branchIfNeg0 ? Js::OpCode::BrNeq_A : Js::OpCode::BrEq_A, brLabel, instr);
 }
 
 IR::Instr *

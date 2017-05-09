@@ -184,7 +184,10 @@ public:
             void            GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMethod helperMethod);
             void            HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod helperMethodFloat, IR::JnHelperMethod helperMethodDouble);
             void            GenerateFastInlineBuiltInMathAbs(IR::Instr* instr);
-            void            GenerateFastInlineBuiltInMathPow(IR::Instr* instr);      
+            void            GenerateFastInlineBuiltInMathPow(IR::Instr* instr);
+            IR::Instr *     NegZeroBranching(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* brLabel, bool branchIfNeg0);
+            IR::Instr *     BranchIfNotNegZero(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* isNotNeg0Label) { return NegZeroBranching(opnd, instr, isNotNeg0Label, false); }
+            IR::Instr *     BranchIfNegZero(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* isNeg0Label) { return NegZeroBranching(opnd, instr, isNeg0Label, true); }
             IR::Instr *     CloneSlowPath(IR::Instr * instrEndFloatRange, IR::Instr * instrInsert);
             bool            IsCloneDone(IR::Instr * instr, BVSparse<JitArenaAllocator> *bvTmps);
             IR::Instr *     EnsureAdjacentArgs(IR::Instr * instrArg);
