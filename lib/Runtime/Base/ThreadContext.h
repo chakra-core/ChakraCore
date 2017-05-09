@@ -133,6 +133,30 @@ extern "C" void* MarkerForExternalDebugStep();
                 }\
         }
 
+#define LEAVE_SCRIPT_IF(scriptContext, condition, block) \
+        if (condition) \
+        { \
+            BEGIN_LEAVE_SCRIPT(scriptContext); \
+            block \
+            END_LEAVE_SCRIPT(scriptContext); \
+        } \
+        else \
+        { \
+            block \
+        }
+
+#define ENTER_SCRIPT_IF(scriptContext, doCleanup, isCallRoot, hasCaller, condition, block) \
+        if (condition) \
+        { \
+            BEGIN_ENTER_SCRIPT(scriptContext, doCleanup, isCallRoot, hasCaller); \
+            block \
+            END_ENTER_SCRIPT(scriptContext, doCleanup, isCallRoot, hasCaller); \
+        } \
+        else \
+        { \
+            block \
+        }
+
 #define BEGIN_LEAVE_SCRIPT(scriptContext) \
         LEAVE_SCRIPT_START_EX(scriptContext, /* stackProbe */ true, /* leaveForHost */ true, /* isFPUControlRestoreNeeded */ false)
 

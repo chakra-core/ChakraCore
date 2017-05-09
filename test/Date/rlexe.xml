@@ -58,7 +58,6 @@
     <default>
       <files>MillisecondTruncationCheckAfterCopyConstructor.js</files>
       <baseline>MillisecondTruncationCheckAfterCopyConstructor.es6.baseline</baseline>
-      <tags></tags>
     </default>
   </test>
   <test>

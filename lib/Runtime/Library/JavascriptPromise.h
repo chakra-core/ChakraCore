@@ -442,6 +442,8 @@ namespace Js
         static Var TryCallResolveOrRejectHandler(Var handler, Var value, ScriptContext* scriptContext);
         static Var TryRejectWithExceptionObject(JavascriptExceptionObject* exceptionObject, Var handler, ScriptContext* scriptContext);
 
+        static JavascriptPromise* CreateEnginePromise(ScriptContext *scriptContext);
+
         Var Resolve(Var resolution, ScriptContext* scriptContext);
         Var Reject(Var resolution, ScriptContext* scriptContext);
 

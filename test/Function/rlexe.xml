@@ -28,7 +28,6 @@
     <default>
       <files>arguments2.js</files>
       <baseline>arguments2.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -228,21 +227,18 @@
     <default>
       <files>toString.js</files>
       <baseline>toString.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>funcExpr.js</files>
       <baseline>funcExpr5.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>moreFuncExpr.js</files>
       <baseline>moreFuncExpr3.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -250,21 +246,18 @@
       <files>moreFuncExpr.js</files>
       <baseline>moreFuncExpr3.baseline</baseline>
       <compile-flags>-forceundodefer</compile-flags>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>evenMoreFuncExpr3.js</files>
       <baseline>evenMoreFuncExpr3.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>someMoreFuncExpr.js</files>
       <baseline>someMoreFuncExpr3.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>

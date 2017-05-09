@@ -2844,6 +2844,20 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
         }
 
+        case Js::OpCode::ImportCall:
+        {
+            IR::Opnd *src1Opnd = instr->UnlinkSrc1();
+            IR::Opnd *functionObjOpnd = nullptr;
+            m_lowererMD.LoadFunctionObjectOpnd(instr, functionObjOpnd);
+
+            LoadScriptContext(instr);
+            m_lowererMD.LoadHelperArgument(instr, src1Opnd);
+            m_lowererMD.LoadHelperArgument(instr, functionObjOpnd);
+            m_lowererMD.ChangeToHelperCall(instr, IR::HelperImportCall);
+
+            break;
+        }
+
         case Js::OpCode::SetComputedNameVar:
         {
             IR::Opnd *src2Opnd = instr->UnlinkSrc2();

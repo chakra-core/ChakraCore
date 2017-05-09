@@ -300,6 +300,7 @@ EXDEF2_WMS(XXtoA1Mem,               ScopedLdHomeObj,            OP_ScopedLdHomeO
 EXDEF2_WMS(XXtoA1Mem,               ScopedLdFuncObj,            OP_ScopedLdFuncObj)
 EXDEF2_WMS(A1toA1Mem,               LdHomeObjProto,             JavascriptOperators::OP_LdHomeObjProto)
 EXDEF2_WMS(A1toA1Mem,               LdFuncObjProto,             JavascriptOperators::OP_LdFuncObjProto)
+EXDEF2_WMS(A1toA1Mem,               ImportCall,                 OP_ImportCall)
 EXDEF2_WMS(A2toXX,                  SetHomeObj,                 JavascriptOperators::OP_SetHomeObj)
   DEF2_WMS(A1toA1Mem,               StrictLdThis,               JavascriptOperators::OP_StrictGetThis)
   DEF2_WMS(A1I1toA1Mem,             ProfiledLdThis,             PROFILEDOP(OP_ProfiledLdThis, JavascriptOperators::OP_GetThisNoFastPath))

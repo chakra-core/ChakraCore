@@ -10803,6 +10803,15 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         {
             byteCodeGenerator->EmitSuperCall(funcInfo, pnode, fReturnValue);
         }
+        else if (pnode->sxCall.pnodeTarget->nop == knopImport)
+        {
+            ParseNodePtr args = pnode->sxCall.pnodeArgs;
+            Assert(CountArguments(args) == 2); // import() takes one argument
+            Emit(args, byteCodeGenerator, funcInfo, false);
+            funcInfo->ReleaseLoc(args);
+            funcInfo->AcquireLoc(pnode);
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::ImportCall, pnode->location, args->location);
+        }
         else
         {
             if (pnode->sxCall.isApplyCall && funcInfo->GetApplyEnclosesArgs())

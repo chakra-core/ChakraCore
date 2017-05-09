@@ -253,6 +253,7 @@ var testRunner = function testRunner() {
                 ++passedTestCount;
             } else {
                 helpers.writeln("FAILED");
+                testRunner.asyncTestErr(testIndex, "RUN FAILED");
             }
             ++executedTestCount;
         },
@@ -268,7 +269,7 @@ var testRunner = function testRunner() {
             asyncTest.resolve[testIndex][testCount] = 0;
         },
 
-        prepareAsyncCode: function prepareAsyncCode(source, shouldFail) {
+        prepareAsyncCode: function prepareAsyncCode(source, shouldFail, explicitAsyncTestExit) {
             var testIndex = asyncTest.testIndex;
             if (typeof shouldFail == "undefined" || shouldFail == false) {
                 _hasAsyncTestPromise = true;
@@ -277,14 +278,29 @@ var testRunner = function testRunner() {
                     asyncTest.resolve[testIndex].push(resolve);
                 });
                 asyncTest.promise[testIndex].push(promise);
-                return `testRunner.asyncTestBegin(${testIndex}, ${testCount}); ${source};\ntestRunner.asyncTestEnd(${testIndex}, ${testCount});`;
+                return explicitAsyncTestExit ?
+                    `
+                    var _asyncEnter = ()=>{ testRunner.asyncTestBegin(${testIndex}, ${testCount}); };
+                    var _asyncExit = ()=>{ testRunner.asyncTestEnd(${testIndex}, ${testCount}); };
+                    _asyncEnter();
+                    ${source};
+                    `  :
+                    `
+                    testRunner.asyncTestBegin(${testIndex}, ${testCount});
+                    ${source};
+                    testRunner.asyncTestEnd(${testIndex}, ${testCount});
+                    `;
             } else {
                 return source;
             }
         },
 
-        LoadModule : function LoadModule(source, context, shouldFail) {
-            return WScript.LoadModule(testRunner.prepareAsyncCode(source, shouldFail), context);
+        LoadModule : function LoadModule(source, context, shouldFail, explicitAsyncTestExit) {
+            return WScript.LoadModule(testRunner.prepareAsyncCode(source, shouldFail, explicitAsyncTestExit), context);
+        },
+
+        LoadScript : function LoadScript(source, context, shouldFail, explicitAsyncTestExit) {
+            return WScript.LoadScript(testRunner.prepareAsyncCode(source, shouldFail, explicitAsyncTestExit));
         }
     };
     return testRunner;

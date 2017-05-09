@@ -41,13 +41,18 @@ export { genfoo as genfoo2, genbar, genbar as genbar2 };
 
 export default function () { return 'default'; };
 
-var mutatingExportTarget = function() { return 'before'; };
+var mutatingExportTarget;
+function resetMutatingExportTarget() {
+    mutatingExportTarget = function() { return 'before'; };
+    return 'ok';
+}
 function changeMutatingExportTarget() {
     mutatingExportTarget = function() { return 'after'; };
     return 'ok';
 }
+resetMutatingExportTarget();
 
-export { mutatingExportTarget as target, changeMutatingExportTarget as changeTarget };
+export { mutatingExportTarget as target, changeMutatingExportTarget as changeTarget, resetMutatingExportTarget as reset};
 
 var exportedAsKeyword = 'ModuleComplexExports';
 export { exportedAsKeyword as export };

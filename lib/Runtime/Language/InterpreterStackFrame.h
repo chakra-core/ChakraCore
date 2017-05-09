@@ -727,6 +727,7 @@ namespace Js
         template <LayoutSize layoutSize,bool profiled> const byte * OP_ProfiledLoopBodyStart(const byte *ip);
         template <typename T> void OP_ApplyArgs(const unaligned OpLayoutT_Reg5<T> * playout);
         template <class T> void OP_EmitTmpRegCount(const unaligned OpLayoutT_Unsigned1<T> * ip);
+        Var OP_ImportCall(Var specifier, ScriptContext *scriptContext);
 
         HeapArgumentsObject * CreateEmptyHeapArgumentsObject(ScriptContext* scriptContext);
         void TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext, bool hasNonSimpleParam, bool isScopeObjRestored);

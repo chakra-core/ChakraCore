@@ -203,6 +203,11 @@ namespace Js
         scriptContext->GetDebugContext()->RegisterFunction(this, pszTitle);
     }
 
+    bool ParseableFunctionInfo::IsES6ModuleCode() const
+    {
+        return (GetGrfscr() & fscrIsModuleCode) == fscrIsModuleCode;
+    }
+
     // Given an offset into the source buffer, determine if the end of this SourceInfo
     // lies after the given offset.
     bool
@@ -853,10 +858,23 @@ namespace Js
 
         if (!PHASE_FORCE(Js::RedeferralPhase, this) && !PHASE_STRESS(Js::RedeferralPhase, this))
         {
-            uint tmpThreshold;
-            auto fn = [&](){ tmpThreshold = 0xFFFFFFFF; };
-            tmpThreshold = UInt32Math::Mul(inactiveThreshold, this->GetCompileCount(), fn);
-            if (this->GetInactiveCount() < tmpThreshold)
+            uint compileCount = this->GetCompileCount();
+            if (compileCount >= (uint)CONFIG_FLAG(RedeferralCap))
+            {
+                return false;
+            }
+            // Redeferral threshold is k^x, where x is the number of previous compiles.
+            bool overflow = false;
+            uint currentThreshold = inactiveThreshold;
+            if (compileCount > 1)
+            {
+                currentThreshold = JavascriptNumber::DirectPowIntInt(&overflow, inactiveThreshold, compileCount);
+            }
+            if (overflow)
+            {
+                currentThreshold = 0xFFFFFFFF;
+            }
+            if (this->GetInactiveCount() < currentThreshold)
             {
                 return false;
             }
@@ -3158,7 +3176,7 @@ namespace Js
 
     Js::RootObjectBase * FunctionBody::LoadRootObject() const
     {
-        if ((this->GetGrfscr() & fscrIsModuleCode) == fscrIsModuleCode || this->GetModuleID() == kmodGlobal)
+        if (this->IsES6ModuleCode() || this->GetModuleID() == kmodGlobal)
         {
             return JavascriptOperators::OP_LdRoot(this->GetScriptContext());
         }
