@@ -8497,17 +8497,22 @@ LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
 #elif _M_IX86
         if (dst->IsInt64())
         {
-            //    movd low_bits, xmm1
-            //    shufps xmm1, xmm1, 1
-            //    movd high_bits, xmm1
+            //    movd xmm2, xmm1
+            //    movd low_bits, xmm2
+            //    shufps xmm2, xmm2, 1
+            //    movd high_bits, xmm2
             Assert(src->IsFloat64());
             Int64RegPair dstPair = m_lowerer->FindOrCreateInt64Pair(dst);
 
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dstPair.low, src, m_func));
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, src, src, IR::IntConstOpnd::New(1, TyInt8, m_func, true), m_func));
+            // shufps modifies the register, we shouldn't change the source here
+            IR::RegOpnd* tmpDouble = IR::RegOpnd::New(TyFloat64, m_func);
+            this->CreateAssign(tmpDouble, src, instr);
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dstPair.low, tmpDouble, m_func));
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, tmpDouble, tmpDouble, IR::IntConstOpnd::New(1, TyInt8, m_func, true), m_func));
             instr->m_opcode = Js::OpCode::MOVD;
             instr->UnlinkDst();
             instr->SetDst(dstPair.high);
+            instr->ReplaceSrc1(tmpDouble);
         }
         else
         {
@@ -9057,11 +9062,8 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     m_lowerer->InsertLabel(true, instr);
                     // JB $bailoutLabel
                     this->m_lowerer->InsertBranch(Js::OpCode::JB, bailoutLabel, instr);
-                    IR::Opnd* isNegZero = this->lowererMDArch.IsOpndNegZero(src, instr);
-                    // if isNegZero(src) J $bailoutLabel
-                    this->m_lowerer->InsertTestBranch(isNegZero, isNegZero, Js::OpCode::BrNeq_A, bailoutLabel, instr);
-                    // else J $skipRoundSd
-                    this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
+                    // if isNegZero(src) J $bailoutLabel else J $skipRoundSd
+                    NegZeroBranching(src, instr, bailoutLabel, skipRoundSd);
                     negZeroCheckDone = true;
                 }
                 // $setZero:
@@ -9158,21 +9160,12 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 if(instr->ShouldCheckForNegativeZero() && !negZeroCheckDone)
                 {
                     IR::LabelInstr * convertToInt = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-                    IR::Opnd * checkNegZeroOpnd;
+                    IR::Opnd * checkNegZeroOpnd = isNotCeil ? src : roundedFloat;
 
-                    if(isNotCeil)
-                    {
-                        checkNegZeroOpnd = src;
-                    }
-                    else
-                    {
-                        checkNegZeroOpnd = roundedFloat;
-                    }
                     this->m_lowerer->InsertCompareBranch(checkNegZeroOpnd, zero, Js::OpCode::BrNeq_A, convertToInt, instr);
 
-                    IR::Opnd* isNegZero = this->lowererMDArch.IsOpndNegZero(checkNegZeroOpnd, instr);
+                    NegZeroBranching(checkNegZeroOpnd, instr, bailoutLabel, convertToInt);
 
-                    this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrNeq_A, bailoutLabel, instr);
                     instr->InsertBefore(convertToInt);
                 }
 
@@ -9301,17 +9294,9 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JP, labelNaNHelper, instr->m_func));
 
-                IR::Opnd* isNegZero;
-                if(min)
-                {
-                    isNegZero = this->lowererMDArch.IsOpndNegZero(src2, instr);
-                }
-                else
-                {
-                    isNegZero =  this->lowererMDArch.IsOpndNegZero(src1, instr);
-                }
-
-                this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrEq_A, doneLabel, instr);
+                IR::LabelInstr *isNeg0Label = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+                NegZeroBranching(min ? src2 : src1, instr, isNeg0Label, doneLabel);
+                instr->InsertBefore(isNeg0Label);
 
                 this->m_lowerer->InsertMove(dst, src2, instr);
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, doneLabel, instr->m_func));
@@ -9497,6 +9482,56 @@ void LowererMD::GenerateFastInlineBuiltInMathPow(IR::Instr* instr)
 #endif
 
     ChangeToHelperCall(instr, directPowHelper, nullptr, bailoutOpnd);
+}
+
+IR::Instr *
+LowererMD::NegZeroBranching(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* isNeg0Label, IR::LabelInstr* isNotNeg0Label)
+{
+    bool is32Bits = opnd->IsFloat32();
+    IRType regType = is32Bits ? TyUint32 : TyUint64;
+
+    // Use UInt64 comparison between the opnd to check and negative zero constant.
+    // For this we have to convert opnd which is a double to uint64.
+
+    // MOV intOpnd, src
+    IR::RegOpnd *intOpnd = IR::RegOpnd::New(regType, this->m_func);
+    IR::Instr *mov = IR::Instr::New(Js::OpCode::Ld_A, intOpnd, opnd, this->m_func);
+    instr->InsertBefore(mov);
+    LowerReinterpretPrimitive(mov);
+
+#if _M_IX86
+    if (!is32Bits)
+    {
+        // For 64bits comparisons on x86 we need to check 2 registers
+        // CMP intOpnd.high, (k_NegZero >> 32).i32
+        // BRNEQ isNotNeg0Label
+        // CMP intOpnd.low, k_NegZero.i32
+        // BREQ isNeg0Label
+        // JMP isNotNeg0Label
+        Int64RegPair dstPair = m_lowerer->FindOrCreateInt64Pair(intOpnd);
+        const uint32 high64NegZero = Js::NumberConstants::k_NegZero >> 32;
+        const uint32 low64NegZero = Js::NumberConstants::k_NegZero & UINT32_MAX;
+        IR::IntConstOpnd *negZeroHighOpnd = IR::IntConstOpnd::New(high64NegZero, TyUint32, m_func);
+        IR::IntConstOpnd *negZeroLowOpnd = IR::IntConstOpnd::New(low64NegZero, TyUint32, m_func);
+        m_lowerer->InsertCompareBranch(dstPair.high, negZeroHighOpnd, Js::OpCode::BrNeq_A, isNotNeg0Label, instr);
+        m_lowerer->InsertCompareBranch(dstPair.low, negZeroLowOpnd, Js::OpCode::BrEq_A, isNeg0Label, instr);
+    }
+    else
+#endif
+    {
+#if _M_IX86
+        IR::IntConstOpnd *negZeroOpnd = IR::IntConstOpnd::New(Js::NumberConstants::k_Float32NegZero, regType, this->m_func);
+#else
+        IR::IntConstOpnd *negZeroOpnd = IR::IntConstOpnd::New(is32Bits ? Js::NumberConstants::k_Float32NegZero : Js::NumberConstants::k_NegZero, regType, this->m_func);
+#endif
+        // CMP intOpnd, k_NegZero
+        // BREQ isNeg0Label
+        // JMP isNotNeg0Label
+        m_lowerer->InsertCompareBranch(intOpnd, negZeroOpnd, Js::OpCode::BrEq_A, isNeg0Label, instr);
+    }
+    IR::Instr* jmpNotNegZero = IR::BranchInstr::New(Js::OpCode::JMP, isNotNeg0Label, instr->m_func);
+    instr->InsertBefore(jmpNotNegZero);
+    return jmpNotNegZero;
 }
 
 void

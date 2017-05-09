@@ -9418,7 +9418,7 @@ Int64RegPair Lowerer::FindOrCreateInt64Pair(IR::Opnd* reg)
 
     EnsureInt64RegPairMap();
     StackSym* stackSym = reg->GetStackSym();
-    if (!stackSym || !this->m_func->GetJITFunctionBody()->IsWasmFunction())
+    if (!stackSym)
     {
         AssertMsg(UNREACHED, "Invalid int64 operand type");
         Js::Throw::FatalInternalError();
