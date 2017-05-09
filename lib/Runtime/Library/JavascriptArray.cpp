@@ -3066,7 +3066,7 @@ namespace Js
             }
 
             if (pDestArray && JavascriptArray::IsDirectAccessArray(aItem) && JavascriptArray::IsDirectAccessArray(pDestArray)
-                && BigIndex(idxDest + JavascriptArray::FromVar(aItem)->length).IsSmallIndex()) // Fast path
+                && BigIndex(idxDest + JavascriptArray::FromVar(aItem)->length).IsSmallIndex() && !JavascriptArray::FromVar(aItem)->IsFillFromPrototypes()) // Fast path
             {
                 if (JavascriptNativeIntArray::Is(aItem))
                 {
@@ -3200,10 +3200,11 @@ namespace Js
         for (uint idxArg = 0; idxArg < args.Info.Count; idxArg++)
         {
             Var aItem = args[idxArg];
+            BOOL isConcatSpreadable = false;
 
             if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
-                JS_REENTRANT(jsReentLock, BOOL isConcatSpreadable = JavascriptOperators::IsConcatSpreadable(aItem));
+                JS_REENTRANT(jsReentLock, isConcatSpreadable = JavascriptOperators::IsConcatSpreadable(aItem));
                 if (!JavascriptNativeIntArray::Is(pDestArray))
                 {
                     ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
@@ -3222,7 +3223,7 @@ namespace Js
                 }
             }
 
-            if (JavascriptNativeIntArray::Is(aItem)) // Fast path
+            if (JavascriptNativeIntArray::Is(aItem) && !JavascriptNativeIntArray::FromVar(aItem)->IsFillFromPrototypes()) // Fast path
             {
                 JavascriptNativeIntArray* pItemArray = JavascriptNativeIntArray::FromVar(aItem);
                 
@@ -3258,7 +3259,9 @@ namespace Js
             else
             {
                 JavascriptArray *pVarDestArray = JavascriptNativeIntArray::ConvertToVarArray(pDestArray);
-                JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest));
+                BigIndex length;
+                JS_REENTRANT(jsReentLock, length = OP_GetLength(aItem, scriptContext),
+                    ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, isConcatSpreadable, length));
                 return pVarDestArray;
             }
         }
@@ -3276,10 +3279,11 @@ namespace Js
         for (uint idxArg = 0; idxArg < args.Info.Count; idxArg++)
         {
             Var aItem = args[idxArg];
+            BOOL isConcatSpreadable = false;
 
             if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
-                JS_REENTRANT(jsReentLock, BOOL isConcatSpreadable = JavascriptOperators::IsConcatSpreadable(aItem));
+                JS_REENTRANT(jsReentLock, isConcatSpreadable = JavascriptOperators::IsConcatSpreadable(aItem));
                 if (!JavascriptNativeFloatArray::Is(pDestArray))
                 {
                     ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
@@ -3299,10 +3303,10 @@ namespace Js
                 }
             }
 
-            bool converted;
+            bool converted = false;
             if (JavascriptArray::IsAnyArray(aItem) || remoteTypeIds[idxArg] == TypeIds_Array)
             {
-                if (JavascriptNativeIntArray::Is(aItem)) // Fast path
+                if (JavascriptNativeIntArray::Is(aItem) && !JavascriptArray::FromVar(aItem)->IsFillFromPrototypes()) // Fast path
                 {
                     JavascriptNativeIntArray *pIntArray = JavascriptNativeIntArray::FromVar(aItem);
                     
@@ -3310,7 +3314,7 @@ namespace Js
 
                     idxDest = idxDest + pIntArray->length;
                 }
-                else if (JavascriptNativeFloatArray::Is(aItem))
+                else if (JavascriptNativeFloatArray::Is(aItem) && !JavascriptArray::FromVar(aItem)->IsFillFromPrototypes())
                 {
                     JavascriptNativeFloatArray* pItemArray = JavascriptNativeFloatArray::FromVar(aItem);
 
@@ -3322,7 +3326,9 @@ namespace Js
                 {
                     JavascriptArray *pVarDestArray = JavascriptNativeFloatArray::ConvertToVarArray(pDestArray);
 
-                    JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest));
+                    BigIndex length;
+                    JS_REENTRANT(jsReentLock, length = OP_GetLength(aItem, scriptContext),
+                        ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, isConcatSpreadable, length));
 
                     return pVarDestArray;
                 }
