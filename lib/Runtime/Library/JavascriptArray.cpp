@@ -407,6 +407,7 @@ namespace Js
         InitArrayFlags(DynamicObjectFlags::InitialArrayValue);
         SetHeadAndLastUsedSegment(DetermineInlineHeadSegmentPointer<JavascriptArray, 0, false>(this));
         head->size = size;
+        head->CheckLengthvsSize();
         Var fill = Js::JavascriptArray::MissingItem;
         for (uint i = 0; i < size; i++)
         {
@@ -428,6 +429,7 @@ namespace Js
     {
         SetHeadAndLastUsedSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, false>(this));
         head->size = size;
+        head->CheckLengthvsSize();
         ((SparseArraySegment<int32>*)head)->FillSegmentBuffer(0, size);
     }
 
@@ -445,6 +447,7 @@ namespace Js
     {
         SetHeadAndLastUsedSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, false>(this));
         head->size = size;
+        head->CheckLengthvsSize();
         ((SparseArraySegment<double>*)head)->FillSegmentBuffer(0, size);
     }
 
@@ -1604,8 +1607,8 @@ namespace Js
             int32 ival;
 
             // The old segment will have size/2 and length capped by the new size.
-            seg->size >>= 1;
-            if (seg == intArray->head || seg->length > (seg->size >>= 1))
+            uint32 newSegSize = seg->size >> 1;
+            if (seg == intArray->head || seg->length > (newSegSize >> 1))
             {
                 // Some live elements are being pushed out of this segment, so allocate a new one.
                 SparseArraySegment<double> *newSeg =
@@ -1638,6 +1641,9 @@ namespace Js
             }
             else
             {
+                seg->size = newSegSize >> 1;
+                seg->CheckLengthvsSize();
+
                 // Now convert the contents that will remain in the old segment.
                 for (i = seg->length - 1; i >= 0; i--)
                 {
@@ -1874,7 +1880,7 @@ namespace Js
 
             // Shrink?
             uint32 growFactor = sizeof(Var) / sizeof(int32);
-            if ((growFactor != 1 && (seg == intArray->head || seg->length > (seg->size /= growFactor))) ||
+            if ((growFactor != 1 && (seg == intArray->head || seg->length > (seg->size / growFactor))) ||
                 (seg->next == nullptr && SparseArraySegmentBase::IsLeafSegment(seg, recycler)))
             {
                 // Some live elements are being pushed out of this segment, so allocate a new one.
@@ -1911,6 +1917,9 @@ namespace Js
             }
             else
             {
+                seg->size = seg->size / growFactor;
+                seg->CheckLengthvsSize();
+
                 // Now convert the contents that will remain in the old segment.
                 // Walk backward in case we're growing the element size.
                 for (i = seg->length - 1; i >= 0; i--)
@@ -2713,6 +2722,7 @@ namespace Js
                     this->ClearElements(next, newSegmentLength);
                     next->next = nullptr;
                     next->length = newSegmentLength;
+                    next->CheckLengthvsSize();
                     break;
                 }
                 else
@@ -2914,6 +2924,7 @@ namespace Js
                 if(itemIndex - next->left == next->length - 1)
                 {
                     --next->length;
+                    next->CheckLengthvsSize();
                 }
                 else if(next == head)
                 {
@@ -5519,6 +5530,7 @@ Case0:
                 }
                 memmove(head->elements + offset, next->elements, next->length * sizeof(T));
                 head->length = offset + next->length;
+                head->CheckLengthvsSize();
                 pArr->head = head;
             }
             head->next = next->next;
@@ -5763,6 +5775,7 @@ Case0:
         // Fill the newly created sliced array
         js_memcpy_s(pnewHeadSeg->elements, sizeof(T) * newLen, headSeg->elements + start, sizeof(T) * newLen);
         pnewHeadSeg->length = newLen;
+        pnewHeadSeg->CheckLengthvsSize();
 
         Assert(pnewHeadSeg->length <= pnewHeadSeg->size);
         // Prototype lookup for missing elements
@@ -6277,6 +6290,7 @@ Case0:
                     ValidateSegment(startSeg);
 #endif
                     JS_REENTRANT(jsReentLock, hybridSort(startSeg->elements, startSeg->length, &cvInfo));
+                    startSeg->CheckLengthvsSize();
                 }
                 else
                 {
@@ -6313,6 +6327,7 @@ Case0:
                 else
                 {
                     JS_REENTRANT(jsReentLock, sort(allElements->elements, &allElements->length, scriptContext));
+                    allElements->CheckLengthvsSize();
                 }
 
                 head = allElements;
@@ -6362,6 +6377,7 @@ Case0:
                 ((SparseArraySegment<Var>*)head)->elements[i] = undefined;
             }
             head->length = newLength;
+            head->CheckLengthvsSize();
         }
         SetHasNoMissingValues();
         this->InvalidateLastUsedSegment();
@@ -6694,6 +6710,7 @@ Case0:
                     seg->Truncate(seg->left + newHeadLen); // set end elements to null so that when we introduce null elements we are safe
                 }
                 seg->length = newHeadLen;
+                seg->CheckLengthvsSize();
             }
             // Copy the new elements
             if (insertLen > 0)
@@ -6922,6 +6939,7 @@ Case0:
                     memmove(startSeg->elements, startSeg->elements + headDeleteLen, sizeof(T) * (startSeg->length - headDeleteLen));
                     startSeg->left = startSeg->left + headDeleteLen; // We are moving the left ahead to point to the right index
                     startSeg->length = startSeg->length - headDeleteLen;
+                    startSeg->CheckLengthvsSize();
                     startSeg->Truncate(startSeg->left + startSeg->length);
                     startSeg->EnsureSizeInBound(); // Just truncated, size might exceed next.left
                 }
@@ -6981,6 +6999,7 @@ Case0:
                 }
                 *prevPrevSeg = segInsert;
                 segInsert->length = start + insertLen - segInsert->left;
+                segInsert->CheckLengthvsSize();
             }
             else
             {
@@ -7428,6 +7447,7 @@ Case0:
         memmove(head->elements + unshiftElements, head->elements, sizeof(T) * pArr->head->length);
         uint32 oldHeadLength = head->length;
         head->length += unshiftElements;
+        head->CheckLengthvsSize();
 
         /* Set head segment as the last used segment */
         pArr->InvalidateLastUsedSegment();
@@ -7498,8 +7518,6 @@ Case0:
 
                 Assert(pArr->length <= MaxArrayLength - unshiftElements);
 
-                SparseArraySegmentBase* renumberSeg = pArr->head->next;
-
                 bool isIntArray = false;
                 bool isFloatArray = false;
 
@@ -7530,17 +7548,6 @@ Case0:
                     }
                 }
 
-                while (renumberSeg)
-                {
-                    renumberSeg->left += unshiftElements;
-                    if (renumberSeg->next == nullptr)
-                    {
-                        // last segment can shift its left + size beyond MaxArrayLength, so truncate if so
-                        renumberSeg->EnsureSizeInBound();
-                    }
-                    renumberSeg = renumberSeg->next;
-                }
-
                 if (isIntArray)
                 {
                     UnshiftHelper<int32>(pArr, unshiftElements, args.Values);
@@ -7552,6 +7559,19 @@ Case0:
                 else
                 {
                     UnshiftHelper<Var>(pArr, unshiftElements, args.Values);
+                }
+
+                SparseArraySegmentBase* renumberSeg = pArr->head->next;
+
+                while (renumberSeg)
+                {
+                    renumberSeg->left += unshiftElements;
+                    if (renumberSeg->next == nullptr)
+                    {
+                        // last segment can shift its left + size beyond MaxArrayLength, so truncate if so
+                        renumberSeg->EnsureSizeInBound();
+                    }
+                    renumberSeg = renumberSeg->next;
                 }
 
                 pArr->InvalidateLastUsedSegment();
@@ -11143,6 +11163,7 @@ Case0:
         dst->left = src->left;
         dst->length = src->length;
         dst->size = src->size;
+        dst->CheckLengthvsSize();
         dst->next = src->next;
 
         js_memcpy_s(dst->elements, sizeof(T) * dst->size, src->elements, sizeof(T) * src->size);

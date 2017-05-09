@@ -5600,6 +5600,7 @@ CommonNumber:
         if(count > segment->length)
         {
             segment->length = count;
+            segment->CheckLengthvsSize();
         }
         js_memcpy_s(segment->elements, sizeof(Var) * segment->length, vars->elements, sizeof(Var) * count);
 
@@ -5616,6 +5617,7 @@ CommonNumber:
         if(count > segment->length)
         {
             segment->length = count;
+            segment->CheckLengthvsSize();
         }
         js_memcpy_s(segment->elements, sizeof(int32) * segment->length, ints->elements, sizeof(int32) * count);
     }
@@ -5630,6 +5632,7 @@ CommonNumber:
         if(count > segment->length)
         {
             segment->length = count;
+            segment->CheckLengthvsSize();
         }
         js_memcpy_s(segment->elements, sizeof(double) * segment->length, doubles->elements, sizeof(double) * count);
     }
