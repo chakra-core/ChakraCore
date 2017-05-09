@@ -1257,7 +1257,7 @@ void LowererMD::ChangeToShift(IR::Instr *const instr, const bool needFlags)
     }
 }
 
-void LowererMD::ChangeToMul(IR::Instr *const instr, bool hasOverflowCheck)
+void LowererMD::ChangeToIMul(IR::Instr *const instr, bool hasOverflowCheck)
 {
     // If non-32 bit overflow check is needed, we have to use the IMUL form.
     if (hasOverflowCheck && !instr->ShouldCheckFor32BitOverflow() && instr->ShouldCheckForNon32BitOverflow())
@@ -1272,8 +1272,29 @@ void LowererMD::ChangeToMul(IR::Instr *const instr, bool hasOverflowCheck)
         {
             // MOV reg, imm
             temp2 = IR::RegOpnd::New(TyInt32, instr->m_func);
+
+            IR::Opnd * src2 = instr->GetSrc2();
+            bool dontEncode = false;
+            if (src2->IsHelperCallOpnd())
+            {
+                dontEncode = true;
+            }
+            else if (src2->IsIntConstOpnd() || src2->IsAddrOpnd())
+            {
+                dontEncode = src2->IsIntConstOpnd() ? src2->AsIntConstOpnd()->m_dontEncode : src2->AsAddrOpnd()->m_dontEncode;
+            }
+            else if (src2->IsInt64ConstOpnd())
+            {
+                dontEncode = false;
+            }
+            else
+            {
+                AssertMsg(false, "Unexpected immediate opnd");
+                throw Js::OperationAbortedException();
+            }
+
             instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, temp2,
-                IR::IntConstOpnd::New((IntConstType)instr->GetSrc2()->GetImmediateValue(instr->m_func), TyInt32, instr->m_func, true),
+                IR::IntConstOpnd::New((IntConstType)instr->GetSrc2()->GetImmediateValue(instr->m_func), TyInt32, instr->m_func, dontEncode),
                 instr->m_func));
         }
         // eax = IMUL eax, reg
@@ -2061,7 +2082,7 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
                 if (!instr->isInlineeEntryInstr)
                 {
                     Assert(forms & L_Reg);
-                    IR::IntConstOpnd * newIntOpnd = IR::IntConstOpnd::New(intOpnd->GetValue(), intOpnd->GetType(), instr->m_func, true);
+                    IR::IntConstOpnd * newIntOpnd = intOpnd->Copy(instr->m_func)->AsIntConstOpnd();
                     IR::IndirOpnd * indirOpnd = instr->m_func->GetTopFunc()->GetConstantAddressIndirOpnd(intOpnd->GetValue(), newIntOpnd, IR::AddrOpndKindConstantAddress, TyMachPtr, Js::OpCode::MOV);
                     if (HoistLargeConstant(indirOpnd, src, instr))
                     {
@@ -2125,7 +2146,7 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
                 Assert(!instr->isInlineeEntryInstr);
                 Assert(forms & L_Reg);
                 // TODO: michhol, remove cast after making m_address intptr
-                IR::AddrOpnd * newAddrOpnd = IR::AddrOpnd::New(addrOpnd->m_address, addrOpnd->GetAddrOpndKind(), instr->m_func, true);
+                IR::AddrOpnd * newAddrOpnd = addrOpnd->Copy(instr->m_func)->AsAddrOpnd();
                 IR::IndirOpnd * indirOpnd = instr->m_func->GetTopFunc()->GetConstantAddressIndirOpnd((intptr_t)addrOpnd->m_address, newAddrOpnd, addrOpnd->GetAddrOpndKind(), TyMachPtr, Js::OpCode::MOV);
                 if (HoistLargeConstant(indirOpnd, src, instr))
                 {
@@ -7236,7 +7257,7 @@ LowererMD::LowerInt4MulWithBailOut(
     // Lower the instruction
     if (!simplifiedMul)
     {
-        LowererMD::ChangeToMul(instr, needsOverflowCheck);
+        LowererMD::ChangeToIMul(instr, needsOverflowCheck);
     }
 
     const auto insertBeforeInstr = checkForNegativeZeroLabel ? checkForNegativeZeroLabel : bailOutLabel;

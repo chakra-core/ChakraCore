@@ -50,7 +50,7 @@ public:
     static void             ChangeToAdd(IR::Instr *const instr, const bool needFlags);
     static void             ChangeToSub(IR::Instr *const instr, const bool needFlags);
     static void             ChangeToShift(IR::Instr *const instr, const bool needFlags);
-    static void             ChangeToMul(IR::Instr *const instr, const bool hasOverflowCheck = false);
+    static void             ChangeToIMul(IR::Instr *const instr, const bool hasOverflowCheck = false);
     static const uint16     GetFormalParamOffset();
     static const Js::OpCode MDUncondBranchOpcode;
     static const Js::OpCode MDExtend32Opcode;

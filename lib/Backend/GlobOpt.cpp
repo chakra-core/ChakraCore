@@ -16014,7 +16014,7 @@ GlobOpt::AttachBoundsCheckData(IR::Instr* instr, IR::Opnd* lowerBound, IR::Opnd*
     instr->SetSrc2(upperBound);
     if (offset != 0)
     {
-        instr->SetDst(IR::IntConstOpnd::New(offset, TyInt32, instr->m_func, true));
+        instr->SetDst(IR::IntConstOpnd::New(offset, TyInt32, instr->m_func));
     }
     return instr;
 }
@@ -17307,8 +17307,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                                 : IR::IntConstOpnd::New(
                                     hoistInfo.IndexConstantBounds().LowerBound(),
                                     TyInt32,
-                                    instr->m_func,
-                                    true);
+                                    instr->m_func);
                             lowerBound->SetIsJITOptimizedReg(true);
                             IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
                             upperBound->SetIsJITOptimizedReg(true);
@@ -17456,7 +17455,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                 {
                     IR::Opnd* lowerBound = baseOwnerIndir->GetIndexOpnd()
                         ? static_cast<IR::Opnd *>(baseOwnerIndir->GetIndexOpnd())
-                        : IR::IntConstOpnd::New(baseOwnerIndir->GetOffset(), TyInt32, instr->m_func, true);
+                        : IR::IntConstOpnd::New(baseOwnerIndir->GetOffset(), TyInt32, instr->m_func);
                     lowerBound->SetIsJITOptimizedReg(true);
                     IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
                     upperBound->SetIsJITOptimizedReg(true);
@@ -21406,7 +21405,7 @@ GlobOpt::GenerateInductionVariableChangeForMemOp(Loop *loop, byte unroll, IR::In
         {
             sizeOpnd = IR::RegOpnd::New(TyUint32, this->func);
 
-            IR::Opnd *unrollOpnd = IR::IntConstOpnd::New(unroll, type, localFunc, true);
+            IR::Opnd *unrollOpnd = IR::IntConstOpnd::New(unroll, type, localFunc);
 
             InsertInstr(IR::Instr::New(Js::OpCode::Mul_I4,
                 sizeOpnd,
@@ -21419,7 +21418,7 @@ GlobOpt::GenerateInductionVariableChangeForMemOp(Loop *loop, byte unroll, IR::In
     else
     {
         uint size = (loopCount->LoopCountMinusOneConstantValue() + 1)  * unroll;
-        sizeOpnd = IR::IntConstOpnd::New(size, IRType::TyUint32, localFunc, true);
+        sizeOpnd = IR::IntConstOpnd::New(size, IRType::TyUint32, localFunc);
     }
     loop->memOpInfo->inductionVariableOpndPerUnrollMap->Add(unroll, sizeOpnd);
     return sizeOpnd;
