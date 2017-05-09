@@ -139,26 +139,30 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
     //
     if (fopen_s(&file, filename, "rb") != 0)
     {
-#ifdef _WIN32
-        DWORD lastError = GetLastError();
-        char16 wszBuff[512];
-        fprintf(stderr, "Error in opening file '%s' ", filename);
-        wszBuff[0] = 0;
-        if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
-            nullptr,
-            lastError,
-            0,
-            wszBuff,
-            _countof(wszBuff),
-            nullptr))
+        if (!HostConfigFlags::flags.AsyncModuleLoadIsEnabled)
         {
-            fwprintf(stderr, _u(": %s"), wszBuff);
-        }
-        fwprintf(stderr, _u("\n"));
+#ifdef _WIN32
+            DWORD lastError = GetLastError();
+            char16 wszBuff[512];
+            fprintf(stderr, "Error in opening file '%s' ", filename);
+            wszBuff[0] = 0;
+            if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+                nullptr,
+                lastError,
+                0,
+                wszBuff,
+                _countof(wszBuff),
+                nullptr))
+            {
+                fwprintf(stderr, _u(": %s"), wszBuff);
+            }
+            fwprintf(stderr, _u("\n"));
 #elif defined(_POSIX_VERSION)
-        fprintf(stderr, "Error in opening file: ");
-        perror(filename);
+            fprintf(stderr, "Error in opening file: ");
+            perror(filename);
 #endif
+        }
+
         IfFailGo(E_FAIL);
     }
 

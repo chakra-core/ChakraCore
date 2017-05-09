@@ -1739,6 +1739,7 @@ namespace JsRTApiTest
         REQUIRE(JsInitializeModuleRecord(nullptr, specifier, &requestModule) == JsNoError);
         successTest.mainModule = requestModule;
         REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleCallback, Success_FIMC) == JsNoError);
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleFromScriptCallback, Success_FIMC) == JsNoError);
         REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_NotifyModuleReadyCallback, Succes_NMRC) == JsNoError);
 
         JsValueRef errorObject = JS_INVALID_REFERENCE;
@@ -1834,6 +1835,7 @@ namespace JsRTApiTest
         REQUIRE(JsInitializeModuleRecord(nullptr, specifier, &requestModule) == JsNoError);
         reentrantParseData.mainModule = requestModule;
         REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleCallback, ReentrantParse_FIMC) == JsNoError);
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleFromScriptCallback, ReentrantParse_FIMC) == JsNoError);
         REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_NotifyModuleReadyCallback, ReentrantParse_NMRC) == JsNoError);
 
         JsValueRef errorObject = JS_INVALID_REFERENCE;
@@ -1913,6 +1915,7 @@ namespace JsRTApiTest
         REQUIRE(JsInitializeModuleRecord(nullptr, specifier, &requestModule) == JsNoError);
         reentrantNoErrorParseData.mainModule = requestModule;
         REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleCallback, reentrantNoErrorParse_FIMC) == JsNoError);
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleFromScriptCallback, reentrantNoErrorParse_FIMC) == JsNoError);
         REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_NotifyModuleReadyCallback, reentrantNoErrorParse_NMRC) == JsNoError);
 
         JsValueRef errorObject = JS_INVALID_REFERENCE;

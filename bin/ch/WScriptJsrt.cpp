@@ -304,14 +304,22 @@ JsErrorCode WScriptJsrt::InitializeModuleInfo(JsValueRef specifier, JsModuleReco
 {
     JsErrorCode errorCode = JsNoError;
     errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_FetchImportedModuleCallback, (void*)WScriptJsrt::FetchImportedModule);
+
     if (errorCode == JsNoError)
     {
-        errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_NotifyModuleReadyCallback, (void*)WScriptJsrt::NotifyModuleReadyCallback);
+        errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_FetchImportedModuleFromScriptCallback, (void*)WScriptJsrt::FetchImportedModuleFromScript);
+
+        if (errorCode == JsNoError)
+        {
+            errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_NotifyModuleReadyCallback, (void*)WScriptJsrt::NotifyModuleReadyCallback);
+
+            if (errorCode == JsNoError)
+            {
+                errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_HostDefined, specifier);
+            }
+        }
     }
-    if (errorCode == JsNoError)
-    {
-        errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_HostDefined, specifier);
-    }
+
     IfJsrtErrorFailLogAndRetErrorCode(errorCode);
     return JsNoError;
 }
@@ -351,9 +359,10 @@ JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileConten
     JsValueRef errorObject = JS_INVALID_REFERENCE;
 
     // ParseModuleSource is sync, while additional fetch & evaluation are async.
+    unsigned int fileContentLength = (fileContent == nullptr) ? 0 : (unsigned int)strlen(fileContent);
     errorCode = ChakraRTInterface::JsParseModuleSource(requestModule, dwSourceCookie, (LPBYTE)fileContent,
-        (unsigned int)strlen(fileContent), JsParseModuleSourceFlags_DataIsUTF8, &errorObject);
-    if ((errorCode != JsNoError) && errorObject != JS_INVALID_REFERENCE)
+        fileContentLength, JsParseModuleSourceFlags_DataIsUTF8, &errorObject);
+    if ((errorCode != JsNoError) && errorObject != JS_INVALID_REFERENCE && fileContent != nullptr)
     {
         ChakraRTInterface::JsSetException(errorObject);
         return errorCode;
@@ -875,8 +884,22 @@ bool WScriptJsrt::Initialize()
     IfJsrtErrorFail(CreatePropertyIdFromString("console", &consoleName), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(global, consoleName, console, true), false);
 
+    IfJsrtErrorFail(InitializeModuleCallbacks(), false);
+
 Error:
     return hr == S_OK;
+}
+
+JsErrorCode WScriptJsrt::InitializeModuleCallbacks()
+{
+    JsModuleRecord moduleRecord = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = ChakraRTInterface::JsInitializeModuleRecord(nullptr, nullptr, &moduleRecord);
+    if (errorCode == JsNoError)
+    {
+        errorCode = InitializeModuleInfo(nullptr, moduleRecord);
+    }
+
+    return errorCode;
 }
 
 bool WScriptJsrt::Uninitialize()
@@ -1217,7 +1240,12 @@ HRESULT WScriptJsrt::ModuleMessage::Call(LPCSTR fileName)
             hr = Helpers::LoadScriptFromFile(specifierStr.GetString(), fileContent);
             if (FAILED(hr))
             {
-                fprintf(stderr, "Couldn't load file.\n");
+                if (!HostConfigFlags::flags.AsyncModuleLoadIsEnabled)
+                {
+                    fprintf(stderr, "Couldn't load file.\n");
+                }
+
+                LoadScript(nullptr, specifierStr.GetString(), nullptr, "module", true, WScriptJsrt::FinalizeFree);
             }
             else
             {
@@ -1228,12 +1256,8 @@ HRESULT WScriptJsrt::ModuleMessage::Call(LPCSTR fileName)
     return errorCode;
 }
 
-// Callback from chakracore to fetch dependent module. In the test harness,
-// we are not doing any translation, just treat the specifier as fileName.
-// While this call will come back directly from ParseModuleSource, the additional
-// task are treated as Promise that will be executed later.
-JsErrorCode WScriptJsrt::FetchImportedModule(_In_ JsModuleRecord referencingModule,
-    _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord)
+JsErrorCode WScriptJsrt::FetchImportedModuleHelper(JsModuleRecord referencingModule,
+    JsValueRef specifier, __out JsModuleRecord* dependentModuleRecord)
 {
     JsModuleRecord moduleRecord = JS_INVALID_REFERENCE;
     AutoString specifierStr;
@@ -1265,6 +1289,27 @@ JsErrorCode WScriptJsrt::FetchImportedModule(_In_ JsModuleRecord referencingModu
         *dependentModuleRecord = moduleRecord;
     }
     return errorCode;
+}
+
+// Callback from chakracore to fetch dependent module. In the test harness,
+// we are not doing any translation, just treat the specifier as fileName.
+// While this call will come back directly from ParseModuleSource, the additional
+// task are treated as Promise that will be executed later.
+JsErrorCode WScriptJsrt::FetchImportedModule(_In_ JsModuleRecord referencingModule,
+    _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord)
+{
+    return FetchImportedModuleHelper(referencingModule, specifier, dependentModuleRecord);
+}
+
+// Callback from chakracore to fetch module dynamically during runtime. In the test harness,
+// we are not doing any translation, just treat the specifier as fileName.
+// While this call will come back directly from runtime script or module code, the additional
+// task can be scheduled asynchronously that executed later.
+JsErrorCode WScriptJsrt::FetchImportedModuleFromScript(_In_ JsSourceContext dwReferencingSourceContext,
+    _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord)
+{
+    // ch.exe assumes all imported source files are located at .
+    return FetchImportedModuleHelper(nullptr, specifier, dependentModuleRecord);
 }
 
 // Callback from chakraCore when the module resolution is finished, either successfuly or unsuccessfully.

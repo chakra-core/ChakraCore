@@ -369,6 +369,7 @@ JsErrorCode SetContextAPIWrapper(JsrtContext* newContext, Fn fn)
         return JsErrorOutOfMemory;
     }
     CATCH_OTHER_EXCEPTIONS(errorCode)
+    AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
     JsrtContext::TrySetCurrent(oldContext);
     return errorCode;
 }

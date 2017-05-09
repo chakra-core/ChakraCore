@@ -2094,6 +2094,7 @@ namespace Js
         DeferredFunctionStub *GetDeferredStubs() const { return static_cast<DeferredFunctionStub *>(this->GetAuxPtr(AuxPointerType::DeferredStubs)); }
         void SetDeferredStubs(DeferredFunctionStub *stub) { this->SetAuxPtr(AuxPointerType::DeferredStubs, stub); }
         void RegisterFuncToDiag(ScriptContext * scriptContext, char16 const * pszTitle);
+        bool IsES6ModuleCode() const;
 
     protected:
         static HRESULT MapDeferredReparseError(HRESULT& hrParse, const CompileScriptException& se);

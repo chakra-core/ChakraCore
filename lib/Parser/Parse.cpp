@@ -2435,11 +2435,36 @@ bool Parser::IsImportOrExportStatementValidHere()
         && this->m_tryCatchOrFinallyDepth == 0;
 }
 
+template<bool buildAST> ParseNodePtr Parser::ParseImportCall()
+{
+    m_pscan->Scan();
+    ParseNodePtr specifier = ParseExpr<buildAST>(koplCma, nullptr, /* fAllowIn */FALSE, /* fAllowEllipsis */FALSE);
+    if (m_token.tk != tkRParen)
+    {
+        Error(ERRnoRparen);
+    }
+
+    m_pscan->Scan();
+    return CreateCallNode(knopCall, CreateNodeWithScanner<knopImport>(), specifier);
+}
+
 template<bool buildAST>
-ParseNodePtr Parser::ParseImportDeclaration()
+ParseNodePtr Parser::ParseImport()
 {
     Assert(m_scriptContext->GetConfig()->IsES6ModuleEnabled());
     Assert(m_token.tk == tkIMPORT);
+
+    RestorePoint parsedImport;
+    m_pscan->Capture(&parsedImport);
+    m_pscan->Scan();
+
+    // import()
+    if (m_token.tk == tkLParen)
+    {
+        return ParseImportCall<buildAST>();
+    }
+
+    m_pscan->SeekTo(parsedImport);
 
     if (!IsImportOrExportStatementValidHere())
     {
@@ -3220,6 +3245,23 @@ LFunction :
         if (m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
         {
             pnode = ParseSuper<buildAST>(pnode, !!fAllowCall);
+        }
+        else
+        {
+            goto LUnknown;
+        }
+        break;
+
+    case tkIMPORT:
+        if (m_scriptContext->GetConfig()->IsES6ModuleEnabled())
+        {
+            m_pscan->Scan();
+            if (m_token.tk == tkLParen)
+            {
+                return ParseImportCall<buildAST>();
+            }
+
+            Error(ERRnoLparen);
         }
         else
         {
@@ -10112,12 +10154,7 @@ LGetJumpStatement:
         goto LNeedTerminator;
 
     case tkIMPORT:
-        if (!(m_grfscr & fscrIsModuleCode))
-        {
-            goto LDefaultToken;
-        }
-
-        pnode = ParseImportDeclaration<buildAST>();
+        pnode = ParseImport<buildAST>();
 
         goto LNeedTerminator;
 
