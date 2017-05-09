@@ -561,5 +561,5 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool n
     char * buffer = (alloc->*AllocFunc)(AllocSizeMath::Add(plusSize, byteSize));
 
     // This seems to generate the most compact code
-    return buffer + (buffer > 0 ? plusSize : (size_t)buffer);
+    return buffer + ((uintptr_t)buffer > 0 ? plusSize : (size_t)buffer);
 }
