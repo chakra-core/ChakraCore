@@ -125,8 +125,8 @@ namespace Js
         {
             mov eax, lu1
             mul lu2
-                mov ebx, pluHi
-                mov DWORD PTR[ebx], edx
+            mov ebx, pluHi
+            mov DWORD PTR[ebx], edx
         }
 #else //!I386_ASM
         DWORDLONG llu = UInt32x32To64(lu1, lu2);
