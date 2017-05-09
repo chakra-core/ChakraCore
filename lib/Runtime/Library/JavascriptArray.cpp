@@ -5192,6 +5192,42 @@ Case0:
         }
     }
 
+    template <typename T>
+    void JavascriptArray::CopyHeadIfInlinedHeadSegment(JavascriptArray *array, Recycler *recycler)
+    {
+        SparseArraySegmentBase* inlineHeadSegment = nullptr;
+        bool hasInlineSegment = false;
+
+        if (JavascriptNativeArray::Is(array))
+        {
+            if (JavascriptNativeFloatArray::Is(array))
+            {
+                inlineHeadSegment = DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>((JavascriptNativeFloatArray*)array);
+            }
+            else if (JavascriptNativeIntArray::Is(array))
+            {
+                inlineHeadSegment = DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>((JavascriptNativeIntArray*)array);
+            }
+            Assert(inlineHeadSegment);
+            hasInlineSegment = (array->head == (SparseArraySegment<T>*)inlineHeadSegment);
+        }
+        else
+        {
+            hasInlineSegment = HasInlineHeadSegment(array->head->length);
+        }
+
+        if (hasInlineSegment)
+        {
+            SparseArraySegment<T>* headSeg = (SparseArraySegment<T>*)array->head;
+
+            SparseArraySegment<T>* newHeadSeg = SparseArraySegment<T>::template AllocateSegmentImpl<false>(recycler,
+                headSeg->left, headSeg->length, headSeg->size, headSeg->next);
+
+            newHeadSeg = SparseArraySegment<T>::CopySegment(recycler, newHeadSeg, headSeg->left, headSeg, headSeg->left, headSeg->length);
+            newHeadSeg->next = headSeg->next;
+            array->head = newHeadSeg;
+        }
+    }
 
     Var JavascriptArray::EntryReverse(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -5289,7 +5325,6 @@ Case0:
             // Note : since we are reversing the whole segment below - the functionality is not spec compliant already.
             length = pArr->length;
 
-            SparseArraySegmentBase* seg = pArr->head;
             SparseArraySegmentBase *prevSeg = nullptr;
             SparseArraySegmentBase *nextSeg = nullptr;
             SparseArraySegmentBase *pinPrevSeg = nullptr;
@@ -5305,6 +5340,27 @@ Case0:
             {
                 isFloatArray = true;
             }
+
+            // During the loop below we are going to reverse the segments list. The head segment will become the last segment.
+            // We have to verify that the current head segment is not the inilined segement, otherwise due to shuffling below, the inlined segment will no longer
+            // be the head and that can create issue down the line. Create new segment if it is an inilined segment.
+            if (pArr->head && pArr->head->next)
+            {
+                if (isIntArray)
+                {
+                    CopyHeadIfInlinedHeadSegment<int32>(pArr, recycler);
+                }
+                else if (isFloatArray)
+                {
+                    CopyHeadIfInlinedHeadSegment<double>(pArr, recycler);
+                }
+                else
+                {
+                    CopyHeadIfInlinedHeadSegment<Var>(pArr, recycler);
+                }
+            }
+
+            SparseArraySegmentBase* seg = pArr->head;
 
             while (seg)
             {
