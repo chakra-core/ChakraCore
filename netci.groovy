@@ -20,7 +20,6 @@ def msbuildTypeMap = [
 def machineTypeToOSTagMap = [
     'Windows 7': 'Windows 7',
     'Windows_NT': 'Windows',
-    'Ubuntu14.04': 'Ubuntu14.04',
     'Ubuntu16.04': 'Ubuntu',
     'OSX': 'OSX'
 ]
@@ -214,7 +213,7 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
             Utilities.addGithubPushTrigger(newJob)
         }
 
-        Utilities.setMachineAffinity(newJob, 'Ubuntu14.04', 'latest-or-auto')
+        Utilities.setMachineAffinity(newJob, 'Ubuntu16.04', 'latest-or-auto')
     }
 }
 
