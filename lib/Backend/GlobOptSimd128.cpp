@@ -308,7 +308,7 @@ GlobOpt::Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, cons
         valueOpnd = instr->GetSrc1();
 
         // St(arr, index, value). Make sure value can be Simd128 type-spec'd
-        doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(FindValue(valueOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type(), simdFuncSignature->args[2]);
+        doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(FindValue(&this->currentBlock->globOptData, valueOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type(), simdFuncSignature->args[2]);
     }
     else
     {
@@ -317,7 +317,7 @@ GlobOpt::Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, cons
 
     // array and index operands should have been type-specialized in OptArraySrc: ValueTypes should be definite at this point. If not, don't type-spec.
     // We can be in a loop prepass, where opnd ValueInfo is not set yet. Get the ValueInfo from the Value Table instead.
-    ValueType baseOpndType = FindValue(baseOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
+    ValueType baseOpndType = FindValue(&this->currentBlock->globOptData, baseOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
     
     if (IsLoopPrePass())
     {
@@ -325,7 +325,7 @@ GlobOpt::Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, cons
         // indexOpnd might be missing if loading from [0]
         if (indexOpnd != nullptr)
         {
-            ValueType indexOpndType = FindValue(indexOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
+            ValueType indexOpndType = FindValue(&this->currentBlock->globOptData, indexOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
             doTypeSpec = doTypeSpec && indexOpndType.IsLikelyInt();
         }
     }
@@ -334,7 +334,7 @@ GlobOpt::Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, cons
         doTypeSpec = doTypeSpec && (baseOpndType.IsObject() && baseOpndType.IsTypedArray());
         if (indexOpnd != nullptr)
         {
-            ValueType indexOpndType = FindValue(indexOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
+            ValueType indexOpndType = FindValue(&this->currentBlock->globOptData, indexOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
             doTypeSpec = doTypeSpec && indexOpndType.IsInt();
         }
     }

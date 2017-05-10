@@ -777,7 +777,7 @@ void GlobOpt::TrackIntSpecializedAddSubConstant(
             ValueNumber srcValueNumber;
             if(isPostfixIncDecPattern)
             {
-                Value *const value = FindValue(sym);
+                Value *const value = FindValue(&this->currentBlock->globOptData, sym);
                 Assert(value);
                 srcValueNumber = value->GetValueNumber();
             }
@@ -785,7 +785,7 @@ void GlobOpt::TrackIntSpecializedAddSubConstant(
             {
                 srcValueNumber = addSubConstantInfo->SrcValue()->GetValueNumber();
             }
-            InductionVariableSet *const inductionVariables = blockData.inductionVariables;
+            InductionVariableSet *const inductionVariables = currentBlock->globOptData.inductionVariables;
             Assert(inductionVariables);
             InductionVariable *inductionVariable;
             if(!inductionVariables->TryGetReference(sym->m_id, &inductionVariable))
@@ -889,7 +889,7 @@ void GlobOpt::TrackIntSpecializedAddSubConstant(
     Assert(instr->m_prev->GetDst()->AsRegOpnd()->m_sym == instr->GetSrc1()->AsRegOpnd()->m_sym);
 
     InductionVariable *inductionVariable;
-    AssertVerify(blockData.inductionVariables->TryGetReference(instr->GetDst()->AsRegOpnd()->m_sym->m_id, &inductionVariable));
+    AssertVerify(currentBlock->globOptData.inductionVariables->TryGetReference(instr->GetDst()->AsRegOpnd()->m_sym->m_id, &inductionVariable));
     inductionVariable->SetSymValueNumber(dstValue->GetValueNumber());
 }
 
@@ -902,7 +902,7 @@ void GlobOpt::CloneBoundCheckHoistBlockData(
     Assert(DoBoundCheckHoist());
     Assert(toBlock);
     Assert(toData);
-    Assert(toData == &toBlock->globOptData || toData == &blockData);
+    //Assert(toData == &toBlock->globOptData || toData == &currentBlock->globOptData);
     Assert(fromBlock);
     Assert(fromData);
     Assert(fromData == &fromBlock->globOptData);
@@ -955,7 +955,7 @@ void GlobOpt::MergeBoundCheckHoistBlockData(
     Assert(DoBoundCheckHoist());
     Assert(toBlock);
     Assert(toData);
-    Assert(toData == &toBlock->globOptData || toData == &blockData);
+    //Assert(toData == &toBlock->globOptData || toData == &currentBlock->globOptData);
     Assert(fromBlock);
     Assert(fromData);
     Assert(fromData == &fromBlock->globOptData);
@@ -1143,7 +1143,7 @@ void GlobOpt::SetInductionVariableValueNumbers(GlobOptBlockData *const blockData
 {
     Assert(DoBoundCheckHoist());
     Assert(IsLoopPrePass());
-    Assert(blockData == &this->blockData);
+    //Assert(blockData == &this->currentBlock->globOptData);
     Assert(blockData->inductionVariables);
 
     // Now that all values have been merged, update value numbers in the induction variable info.
@@ -1176,7 +1176,7 @@ void GlobOpt::FinalizeInductionVariables(Loop *const loop, GlobOptBlockData *con
     Assert(loop->GetHeadBlock() == currentBlock);
     Assert(loop->inductionVariables);
     Assert(currentBlock->isLoopHeader);
-    Assert(headerData == &this->blockData);
+    //Assert(headerData == &this->currentBlock->globOptData);
 
     // Clean up induction variables and for each, install a relationship between its values inside and outside the loop.
     GlobHashTable *const symToValueMap = headerData->symToValueMap;
@@ -1383,14 +1383,14 @@ void GlobOpt::DetermineLoopCount(Loop *const loop)
         }
 
         StackSym *const inductionVariableVarSym = inductionVariable.Sym();
-        if(!IsInt32TypeSpecialized(inductionVariableVarSym, &blockData))
+        if(!IsInt32TypeSpecialized(inductionVariableVarSym, &currentBlock->globOptData))
         {
             inductionVariable.SetChangeIsIndeterminate();
             continue;
         }
         Assert(IsInt32TypeSpecialized(inductionVariableVarSym, &landingPadBlockData));
 
-        Value *const inductionVariableValue = FindValue(inductionVariableVarSym);
+        Value *const inductionVariableValue = FindValue(&this->currentBlock->globOptData, inductionVariableVarSym);
         if(!inductionVariableValue)
         {
             inductionVariable.SetChangeIsIndeterminate();
@@ -1427,7 +1427,7 @@ void GlobOpt::DetermineLoopCount(Loop *const loop)
                         continue;
                     }
 
-                    Value *const boundBaseValue = FindValue(currentBoundBaseVarSym);
+                    Value *const boundBaseValue = FindValue(&this->currentBlock->globOptData, currentBoundBaseVarSym);
                     const ValueNumber boundBaseValueNumber = bound.BaseValueNumber();
                     if(!boundBaseValue || boundBaseValue->GetValueNumber() != boundBaseValueNumber)
                     {
@@ -1899,7 +1899,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         const int indexConstantValue = indexConstantBounds.LowerBound();
         Assert(indexConstantValue != IntConstMax);
         const IntBoundCheck *compatibleBoundCheck;
-        if(blockData.availableIntBoundChecks->TryGetReference(
+        if(currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                 IntBoundCheckCompatibilityId(ZeroValueNumber, headSegmentLengthValue->GetValueNumber()),
                 &compatibleBoundCheck))
         {
@@ -2029,7 +2029,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         ValueNumber lowerHoistBlockIndexValueNumber = InvalidValueNumber;
         int lowerBoundOffset = 0;
         if(searchingLower &&
-            blockData.availableIntBoundChecks->TryGetReference(
+            currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                 IntBoundCheckCompatibilityId(ZeroValueNumber, indexValue->GetValueNumber()),
                 &lowerBoundCheck))
         {
@@ -2051,7 +2051,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         ValueNumber upperHoistBlockIndexValueNumber = InvalidValueNumber;
         int upperBoundOffset = 0;
         if(searchingUpper &&
-            blockData.availableIntBoundChecks->TryGetReference(
+            currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                 IntBoundCheckCompatibilityId(indexValue->GetValueNumber(), headSegmentLengthValue->GetValueNumber()),
                 &upperBoundCheck))
         {
@@ -2074,7 +2074,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
             searchingUpper = searchingUpper && indexBounds->RelativeUpperBounds().Count() != 0;
             if(searchingLower || searchingUpper)
             {
-                for(auto it = blockData.availableIntBoundChecks->GetIterator(); it.IsValid(); it.MoveNext())
+                for(auto it = currentBlock->globOptData.availableIntBoundChecks->GetIterator(); it.IsValid(); it.MoveNext())
                 {
                     const IntBoundCheck &boundCheck = it.CurrentValue();
 
@@ -2652,7 +2652,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
                         _u("Found constant upper bound %d, looking for a compatible bound check\n"),
                         indexConstantBound);
                     const IntBoundCheck *boundCheck;
-                    if(blockData.availableIntBoundChecks->TryGetReference(
+                    if(currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                             IntBoundCheckCompatibilityId(ZeroValueNumber, headSegmentLengthValue->GetValueNumber()),
                             &boundCheck))
                     {
@@ -2947,7 +2947,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
             // See if a compatible bound check is already available
             TRACE_PHASE_VERBOSE(Js::Phase::BoundCheckHoistPhase, 3, _u("Looking for a compatible bound check\n"));
             const IntBoundCheck *boundCheck;
-            if(blockData.availableIntBoundChecks->TryGetReference(
+            if(currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                     IntBoundCheckCompatibilityId(ZeroValueNumber, headSegmentLengthValue->GetValueNumber()),
                     &boundCheck))
             {
@@ -3041,7 +3041,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         TRACE_PHASE_VERBOSE(Js::Phase::BoundCheckHoistPhase, 3, _u("Looking for a compatible bound check\n"));
         const ValueNumber indexLoopCountBasedBoundBaseValueNumber = indexLoopCountBasedBoundBaseValue->GetValueNumber();
         const IntBoundCheck *boundCheck;
-        if(blockData.availableIntBoundChecks->TryGetReference(
+        if(currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                 maxMagnitudeChange < 0
                     ?   IntBoundCheckCompatibilityId(
                             ZeroValueNumber,
