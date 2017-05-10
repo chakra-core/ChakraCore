@@ -744,7 +744,7 @@ public:
 
     bool                GetThisOrParentInlinerHasArguments() const { return thisOrParentInlinerHasArguments; }
 
-    bool                GetHasStackArgs()
+    bool                GetHasStackArgs() const
     {
                         bool isStackArgOptDisabled = false;
                         if (HasProfileInfo())
