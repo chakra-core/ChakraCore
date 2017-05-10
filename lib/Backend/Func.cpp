@@ -786,7 +786,7 @@ Func::GetHasLocalVarChangedOffset()
 }
 
 bool
-Func::IsJitInDebugMode()
+Func::IsJitInDebugMode() const
 {
     return m_workItem->IsJitInDebugMode();
 }
