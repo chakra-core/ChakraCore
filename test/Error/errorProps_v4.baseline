@@ -15,7 +15,7 @@ RangeError.prototype
     number	  isOwn = false	 value = undefined
     description	  isOwn = false	 value = undefined
 ConversionError.prototype
-ReferenceError: 'ConversionError' is undefined
+ReferenceError: 'ConversionError' is not defined
 
 Error
   ToString = function Error() { [native code] }
@@ -97,7 +97,7 @@ new ReferenceError("I'm a reference error")
 	at Global code (errorprops.js:80:1)
     number	  isOwn = false	 value = undefined
     description	  isOwn = false	 value = undefined
-ReferenceError: 'RegExpError' is undefined
+ReferenceError: 'RegExpError' is not defined
 
 new TypeError()
   ToString = TypeError
@@ -141,11 +141,11 @@ new TypeError("With a undef name")
     name	  isOwn = true	 value = undefined
 
 Runtime TypeError()
-  ToString = ReferenceError: 'boo' is undefined
+  ToString = ReferenceError: 'boo' is not defined
   Properties = 
     name	  isOwn = false	 value = ReferenceError
-    message	  isOwn = true	 value = 'boo' is undefined
-    stack	  isOwn = true	 value = ReferenceError: 'boo' is undefined
+    message	  isOwn = true	 value = 'boo' is not defined
+    stack	  isOwn = true	 value = ReferenceError: 'boo' is not defined
 	at Global code (errorprops.js:111:5)
     number	  isOwn = true	 value = -2146823279
-    description	  isOwn = true	 value = 'boo' is undefined
+    description	  isOwn = true	 value = 'boo' is not defined

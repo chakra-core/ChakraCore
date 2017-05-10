@@ -22,7 +22,7 @@ TypeError (-2146823281): Object expected
 --- Test case: implicit global, do delete: false ---
 
 safeCall(function(){g0();});
-ReferenceError (-2146823279): 'g0' is undefined
+ReferenceError (-2146823279): 'g0' is not defined
 
 safeCall(function(){g1=undefined;g1();});
 TypeError (-2146823281): Object expected
@@ -40,58 +40,58 @@ TypeError (-2146823286): Function expected
 --- Test case: implicit global, do delete: true ---
 
 safeCall(function(){g6=undefined;delete g6;g6();});
-ReferenceError (-2146823279): 'g6' is undefined
+ReferenceError (-2146823279): 'g6' is not defined
 
 safeCall(function(){g7=null;delete g7;g7();});
-ReferenceError (-2146823279): 'g7' is undefined
+ReferenceError (-2146823279): 'g7' is not defined
 
 safeCall(function(){g8=1;delete g8;g8();});
-ReferenceError (-2146823279): 'g8' is undefined
+ReferenceError (-2146823279): 'g8' is not defined
 
 safeCall(function(){g9={};delete g9;g9();});
-ReferenceError (-2146823279): 'g9' is undefined
+ReferenceError (-2146823279): 'g9' is not defined
 
 
 --- Test case: global using window, do delete: false ---
 
 Only valid in IE:
 safeCall(function(){window.g10();});
-ReferenceError (-2146823279): 'window' is undefined
+ReferenceError (-2146823279): 'window' is not defined
 
 Only valid in IE:
 safeCall(function(){window.g11=undefined;window.g11();});
-ReferenceError (-2146823279): 'window' is undefined
+ReferenceError (-2146823279): 'window' is not defined
 
 Only valid in IE:
 safeCall(function(){window.g12=null;window.g12();});
-ReferenceError (-2146823279): 'window' is undefined
+ReferenceError (-2146823279): 'window' is not defined
 
 Only valid in IE:
 safeCall(function(){window.g13=1;window.g13();});
-ReferenceError (-2146823279): 'window' is undefined
+ReferenceError (-2146823279): 'window' is not defined
 
 Only valid in IE:
 safeCall(function(){window.g14={};window.g14();});
-ReferenceError (-2146823279): 'window' is undefined
+ReferenceError (-2146823279): 'window' is not defined
 
 
 --- Test case: global using window, do delete: true ---
 
 Only valid in IE:
 safeCall(function(){window.g16=undefined;delete window.g16;window.g16();});
-ReferenceError (-2146823279): 'window' is undefined
+ReferenceError (-2146823279): 'window' is not defined
 
 Only valid in IE:
 safeCall(function(){window.g17=null;delete window.g17;window.g17();});
-ReferenceError (-2146823279): 'window' is undefined
+ReferenceError (-2146823279): 'window' is not defined
 
 Only valid in IE:
 safeCall(function(){window.g18=1;delete window.g18;window.g18();});
-ReferenceError (-2146823279): 'window' is undefined
+ReferenceError (-2146823279): 'window' is not defined
 
 Only valid in IE:
 safeCall(function(){window.g19={};delete window.g19;window.g19();});
-ReferenceError (-2146823279): 'window' is undefined
+ReferenceError (-2146823279): 'window' is not defined
 
 
 --- Test case: global using this, do delete: false ---

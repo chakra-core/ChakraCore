@@ -1,3 +1,3 @@
-ReferenceError: 'f' is undefined
+ReferenceError: 'f' is not defined
 	at Anonymous function() (fieldhoist6.js:13:5)
 	at Global code (fieldhoist6.js:7:2)

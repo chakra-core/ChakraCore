@@ -1,4 +1,4 @@
 1
-ReferenceError: 'w' is undefined
+ReferenceError: 'w' is not defined
 	at test() (directglofield_dictionarytypehandler.js:32:9)
 	at Global code (directglofield_dictionarytypehandler.js:50:1)

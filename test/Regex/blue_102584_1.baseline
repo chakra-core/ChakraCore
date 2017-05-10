@@ -26,8 +26,8 @@ a
 a
 
 
-expected : 'o' is undefined
-expected : 'o' is undefined
+expected : 'o' is not defined
+expected : 'o' is not defined
 expected : Function.prototype.apply: argument is not an Object
 expected : Function.prototype.apply: argument is not an Object
 
