@@ -508,9 +508,47 @@ CHAKRA_API
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
 CHAKRA_API
-JsCreatePromise(
-    _Out_ JsValueRef *promise,
-    _Out_ JsValueRef *resolveFunction,
-    _Out_ JsValueRef *rejectFunction);
+    JsCreatePromise(
+        _Out_ JsValueRef *promise,
+        _Out_ JsValueRef *resolveFunction,
+        _Out_ JsValueRef *rejectFunction);
+
+/// <summary>
+///     A weak reference to a JavaScript value.
+/// </summary>
+/// <remarks>
+///     A value with only weak references is available for garbage-collection. A strong reference
+///     to the value (<c>JsValueRef</c>) may be obtained from a weak reference if the value happens
+///     to still be available.
+/// </remarks>
+typedef JsRef JsWeakRef;
+
+/// <summary>
+///     Creates a weak reference to a value.
+/// </summary>
+/// <param name="value">The value to be referenced.</param>
+/// <param name="weakRef">Weak reference to the value.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCreateWeakReference(
+        _In_ JsValueRef value,
+        _Out_ JsWeakRef* weakRef);
+
+/// <summary>
+///     Gets a strong reference to the value referred to by a weak reference.
+/// </summary>
+/// <param name="weakRef">A weak reference.</param>
+/// <param name="value">Reference to the value, or <c>JS_INVALID_REFERENCE</c> if the value is
+///     no longer available.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsGetWeakReferenceValue(
+        _In_ JsWeakRef weakRef,
+        _Out_ JsValueRef* value);
+
 #endif // CHAKRACOREBUILD_
 #endif // _CHAKRACORE_H_
