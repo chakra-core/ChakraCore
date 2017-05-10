@@ -1415,6 +1415,7 @@ IntConstOpnd::New(IntConstType value, IRType type, Func *func, bool dontEncode)
 
 IR::Opnd* IntConstOpnd::NewFromType(int64 value, IRType type, Func* func)
 {
+    AssertMsg(func->GetJITFunctionBody()->IsWasmFunction(), "Only WebAssembly functions should have int64 const operands. Use IntConstOpnd for size_t type");
     if (IRType_IsInt64(type))
     {
         return Int64ConstOpnd::New(value, type, func);

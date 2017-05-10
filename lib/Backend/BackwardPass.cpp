@@ -5585,13 +5585,13 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
             {
                 Assert(dstSym);
                 Assert(instr->GetSrc1());
-                Assert(instr->GetSrc1()->IsRegOpnd() || instr->GetSrc1()->IsIntConstOpnd());
+                Assert(instr->GetSrc1()->IsRegOpnd() || instr->GetSrc1()->IsImmediateOpnd());
                 Assert(instr->GetSrc2());
-                Assert(instr->GetSrc2()->IsRegOpnd() || instr->GetSrc2()->IsIntConstOpnd());
+                Assert(instr->GetSrc2()->IsRegOpnd() || instr->GetSrc2()->IsImmediateOpnd());
 
                 if (instr->ignoreNegativeZero ||
-                    (instr->GetSrc1()->IsIntConstOpnd() && instr->GetSrc1()->AsIntConstOpnd()->GetValue() != 0) ||
-                    (instr->GetSrc2()->IsIntConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0))
+                    (instr->GetSrc1()->IsImmediateOpnd() && instr->GetSrc1()->GetImmediateValue(func) != 0) ||
+                    (instr->GetSrc2()->IsImmediateOpnd() && instr->GetSrc2()->GetImmediateValue(func) != 0))
                 {
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());

@@ -6430,6 +6430,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
 
     // Constant prop?
     int32 intConstantValue;
+    int64 int64ConstantValue;
     if (valueInfo->TryGetIntConstantValue(&intConstantValue))
     {
         if (PHASE_OFF(Js::ConstPropPhase, this->func))
@@ -6587,6 +6588,21 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
                 opnd = nullptr;
             }
             break;
+        }
+        return opnd;
+    }
+    else if (valueInfo->TryGetIntConstantValue(&int64ConstantValue, false))
+    {
+        if (PHASE_OFF(Js::ConstPropPhase, this->func))
+        {
+            return opnd;
+        }
+
+        if (this->func->GetJITFunctionBody()->IsWasmFunction() && opnd->IsInt64())
+        {
+            IR::Int64ConstOpnd *intOpnd = IR::Int64ConstOpnd::New(int64ConstantValue, TyInt64, instr->m_func);
+            GOPT_TRACE_OPND(opnd, _u("Constant prop %lld (value:%lld)\n"), intOpnd->GetImmediateValue(instr->m_func), int64ConstantValue);
+            opnd = instr->ReplaceSrc(opnd, intOpnd);
         }
         return opnd;
     }
