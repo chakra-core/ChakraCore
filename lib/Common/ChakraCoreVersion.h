@@ -54,8 +54,8 @@
 // * Does not add anything to the file description
 
 // ChakraCore RELEASE and PRERELEASE flags
-#define CHAKRA_CORE_VERSION_RELEASE 0
-#define CHAKRA_CORE_VERSION_PRERELEASE 0
+#define CHAKRA_CORE_VERSION_RELEASE 1
+#define CHAKRA_CORE_VERSION_PRERELEASE 1
 
 // Chakra RELEASE flag
 // Mostly redundant with CHAKRA_CORE_VERSION_RELEASE,
