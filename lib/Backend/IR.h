@@ -284,6 +284,8 @@ public:
     bool            CanHaveArgOutChain() const;
     bool            HasEmptyArgOutChain(IR::Instr** startCallInstrOut = nullptr);
     bool            HasFixedFunctionAddressTarget() const;
+    // Return whether the instruction transfer value from the src to the dst for copy prop
+    bool            TransfersSrcValue();
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     const char *    GetBailOutKindName() const;
@@ -435,9 +437,9 @@ public:
     FixedFieldInfo* GetFixedFunction() const;
     uint       GetArgOutCount(bool getInterpreterArgOutCount);
     IR::PropertySymOpnd *GetPropertySymOpnd() const;
-    bool       CallsAccessor(IR::PropertySymOpnd* methodOpnd = nullptr);
-    bool       CallsGetter(IR::PropertySymOpnd* methodOpnd = nullptr);
-    bool       CallsSetter(IR::PropertySymOpnd* methodOpnd = nullptr);
+    bool       CallsAccessor(IR::PropertySymOpnd * methodOpnd = nullptr);
+    bool       CallsGetter();
+    bool       CallsSetter();
     bool       UsesAllFields();
     void       MoveArgs(bool generateByteCodeCapture = false);
     void       Move(IR::Instr* insertInstr);
