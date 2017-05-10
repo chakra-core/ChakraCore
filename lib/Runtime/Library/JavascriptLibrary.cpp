@@ -1712,10 +1712,7 @@ namespace Js
         ScriptContext* scriptContext = arrayPrototype->GetScriptContext();
         JavascriptLibrary* library = arrayPrototype->GetLibrary();
 
-        if (scriptContext->IsJsBuiltInEnabled())
-        {
-            library->EnsureBuiltInEngineIsReady();
-        }
+        library->EnsureBuiltInEngineIsReady();
 
         library->AddMember(arrayPrototype, PropertyIds::constructor, library->arrayConstructor);
 
@@ -5169,7 +5166,7 @@ namespace Js
             {
                 builtInExtension->InjectJsBuiltInLibraryCode(scriptContext);
             };
-            InitializeBuiltInForPrototypes(builtInInitializer);
+            scriptContext->GetLibrary()->InitializeBuiltInForPrototypes(builtInInitializer);
         }
     }
 

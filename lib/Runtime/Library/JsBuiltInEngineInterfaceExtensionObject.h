@@ -11,7 +11,7 @@ namespace Js
     public:
         JsBuiltInEngineInterfaceExtensionObject(ScriptContext* scriptContext);
         void Initialize();
-        void InjectJsBuiltInLibraryCode(_In_ ScriptContext * scriptContext);
+        void InjectJsBuiltInLibraryCode(ScriptContext * scriptContext);
 
         static void __cdecl InitializeJsBuiltInNativeInterfaces(DynamicObject* intlNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
@@ -34,7 +34,7 @@ namespace Js
 
         Field(bool) wasInitialized;
 
-        void EnsureJsBuiltInByteCode(_In_ ScriptContext * scriptContext);
+        void EnsureJsBuiltInByteCode(ScriptContext * scriptContext);
 
         static DynamicObject* GetPrototypeFromName(Js::PropertyIds propertyId, ScriptContext* scriptContext);
         static Var EntryJsBuiltIn_RegisterFunction(RecyclableObject* function, CallInfo callInfo, ...);
