@@ -249,6 +249,7 @@ namespace Js
         static uint32 GetOffsetOfSlots() { return offsetof(ConcatStringMulti, m_slots); }
     protected:
         Field(uint) slotCount;
+        Field(uint) __alignment;
         Field(JavascriptString*) m_slots[];   // These contain the child nodes.
 
 #if DBG
