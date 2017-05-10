@@ -1,41 +1,41 @@
 check1: Test0(); #undefined
 check2: Test0('hello'); #undefined
 check3: F_Test0(); @'F_Test0' is not defined
-function F_Test1()
-{
-    write(F_Test1);
+function F_Test1()
+{
+    write(F_Test1);
 }
 check4: Test1(); #undefined
-function F_Test1()
-{
-    write(F_Test1);
+function F_Test1()
+{
+    write(F_Test1);
 }
 check5: Test1('hello'); #undefined
 check6: F_Test1(); @'F_Test1' is not defined
-function F_Test2()
-{
-    write(F_Test2);
-    F_Test2 = 100;
-    write(F_Test2);
+function F_Test2()
+{
+    write(F_Test2);
+    F_Test2 = 100;
+    write(F_Test2);
 }
-function F_Test2()
-{
-    write(F_Test2);
-    F_Test2 = 100;
-    write(F_Test2);
+function F_Test2()
+{
+    write(F_Test2);
+    F_Test2 = 100;
+    write(F_Test2);
 }
 check7: Test2(); #undefined
-function F_Test2()
-{
-    write(F_Test2);
-    F_Test2 = 100;
-    write(F_Test2);
+function F_Test2()
+{
+    write(F_Test2);
+    F_Test2 = 100;
+    write(F_Test2);
 }
-function F_Test2()
-{
-    write(F_Test2);
-    F_Test2 = 100;
-    write(F_Test2);
+function F_Test2()
+{
+    write(F_Test2);
+    F_Test2 = 100;
+    write(F_Test2);
 }
 check8: Test2('hello'); #undefined
 check9: F_Test2(); @'F_Test2' is not defined
@@ -93,14 +93,14 @@ check30: F_Test9(); @'F_Test9' is not defined
 check31: Test10(); #undefined
 check32: Test10('hello'); #undefined
 check33: F_Test10(); @'F_Test10' is not defined
-Test11: function F_Test11()
-{
-    eval('write("Test11: " + F_Test11)');
+Test11: function F_Test11()
+{
+    eval('write("Test11: " + F_Test11)');
 }
 check34: Test11(); #undefined
-Test11: function F_Test11()
-{
-    eval('write("Test11: " + F_Test11)');
+Test11: function F_Test11()
+{
+    eval('write("Test11: " + F_Test11)');
 }
 check35: Test11('hello'); #undefined
 check36: F_Test11(); @'F_Test11' is not defined
@@ -109,68 +109,68 @@ check37: Test12(); #undefined
 Test12: function F_Test12(){eval('write("Test12: " + F_Test12)');}
 check38: Test12('hello'); #undefined
 check39: F_Test12(); @'F_Test12' is not defined
-Test13: function F_Test13()
-{
-    write("Test13: " + F_Test13);
-    eval("F_Test13 = 100");
-    write("Test13: " + F_Test13);
+Test13: function F_Test13()
+{
+    write("Test13: " + F_Test13);
+    eval("F_Test13 = 100");
+    write("Test13: " + F_Test13);
 }
-Test13: function F_Test13()
-{
-    write("Test13: " + F_Test13);
-    eval("F_Test13 = 100");
-    write("Test13: " + F_Test13);
+Test13: function F_Test13()
+{
+    write("Test13: " + F_Test13);
+    eval("F_Test13 = 100");
+    write("Test13: " + F_Test13);
 }
 check40: Test13(); #undefined
-Test13: function F_Test13()
-{
-    write("Test13: " + F_Test13);
-    eval("F_Test13 = 100");
-    write("Test13: " + F_Test13);
+Test13: function F_Test13()
+{
+    write("Test13: " + F_Test13);
+    eval("F_Test13 = 100");
+    write("Test13: " + F_Test13);
 }
-Test13: function F_Test13()
-{
-    write("Test13: " + F_Test13);
-    eval("F_Test13 = 100");
-    write("Test13: " + F_Test13);
+Test13: function F_Test13()
+{
+    write("Test13: " + F_Test13);
+    eval("F_Test13 = 100");
+    write("Test13: " + F_Test13);
 }
 check41: Test13('hello'); #undefined
 check42: F_Test13(); @'F_Test13' is not defined
-Test14: function F_Test14()
-{
-    write("Test14: " + F_Test14);
-    eval("var F_Test14 = 100;");
-    write("Test14: " + F_Test14);
+Test14: function F_Test14()
+{
+    write("Test14: " + F_Test14);
+    eval("var F_Test14 = 100;");
+    write("Test14: " + F_Test14);
 }
 Test14: 100
 check43: Test14(); #undefined
-Test14: function F_Test14()
-{
-    write("Test14: " + F_Test14);
-    eval("var F_Test14 = 100;");
-    write("Test14: " + F_Test14);
+Test14: function F_Test14()
+{
+    write("Test14: " + F_Test14);
+    eval("var F_Test14 = 100;");
+    write("Test14: " + F_Test14);
 }
 Test14: 100
 check44: Test14('hello'); #undefined
 check45: F_Test14(); @'F_Test14' is not defined
-Test15: function F_Test15()
-{
-    write("Test15: " + F_Test15);
-    eval("var F_Test15;");
-    write("Test15: " + F_Test15);
-    eval("F_Test15 = 100;");
-    write("Test15: " + F_Test15);
+Test15: function F_Test15()
+{
+    write("Test15: " + F_Test15);
+    eval("var F_Test15;");
+    write("Test15: " + F_Test15);
+    eval("F_Test15 = 100;");
+    write("Test15: " + F_Test15);
 }
 Test15: undefined
 Test15: 100
 check46: Test15(); #undefined
-Test15: function F_Test15()
-{
-    write("Test15: " + F_Test15);
-    eval("var F_Test15;");
-    write("Test15: " + F_Test15);
-    eval("F_Test15 = 100;");
-    write("Test15: " + F_Test15);
+Test15: function F_Test15()
+{
+    write("Test15: " + F_Test15);
+    eval("var F_Test15;");
+    write("Test15: " + F_Test15);
+    eval("F_Test15 = 100;");
+    write("Test15: " + F_Test15);
 }
 Test15: undefined
 Test15: 100
@@ -207,64 +207,64 @@ Test19: 100
 check59: Test19('hello'); #undefined
 check60: F_Test19(); @'F_Test19' is not defined
 10
-function F_Test20()
-{
-  function inner20()
-  {
-      eval("var F_Test20 = 10");
-      write(F_Test20);   
-  } 
-  inner20();
-  WScript.Echo(F_Test20);
-  return 0;
+function F_Test20()
+{
+  function inner20()
+  {
+      eval("var F_Test20 = 10");
+      write(F_Test20);   
+  } 
+  inner20();
+  WScript.Echo(F_Test20);
+  return 0;
 }
 check61: Test20(); #0
 10
-function F_Test20()
-{
-  function inner20()
-  {
-      eval("var F_Test20 = 10");
-      write(F_Test20);   
-  } 
-  inner20();
-  WScript.Echo(F_Test20);
-  return 0;
+function F_Test20()
+{
+  function inner20()
+  {
+      eval("var F_Test20 = 10");
+      write(F_Test20);   
+  } 
+  inner20();
+  WScript.Echo(F_Test20);
+  return 0;
 }
 check62: Test20('hello'); #0
 check63: F_Test20(); @'F_Test20' is not defined
-function y() {
-            var a = function b() {
-                eval("WScript.Echo(y)");
-                eval("y = 'legacy only'");
-                eval("WScript.Echo(y)");
-            }
-            a();
+function y() {
+            var a = function b() {
+                eval("WScript.Echo(y)");
+                eval("y = 'legacy only'");
+                eval("WScript.Echo(y)");
+            }
+            a();
         }
-function y() {
-            var a = function b() {
-                eval("WScript.Echo(y)");
-                eval("y = 'legacy only'");
-                eval("WScript.Echo(y)");
-            }
-            a();
+function y() {
+            var a = function b() {
+                eval("WScript.Echo(y)");
+                eval("y = 'legacy only'");
+                eval("WScript.Echo(y)");
+            }
+            a();
         }
 check64: Test21(); #undefined
-function y() {
-            var a = function b() {
-                eval("WScript.Echo(y)");
-                eval("y = 'legacy only'");
-                eval("WScript.Echo(y)");
-            }
-            a();
+function y() {
+            var a = function b() {
+                eval("WScript.Echo(y)");
+                eval("y = 'legacy only'");
+                eval("WScript.Echo(y)");
+            }
+            a();
         }
-function y() {
-            var a = function b() {
-                eval("WScript.Echo(y)");
-                eval("y = 'legacy only'");
-                eval("WScript.Echo(y)");
-            }
-            a();
+function y() {
+            var a = function b() {
+                eval("WScript.Echo(y)");
+                eval("y = 'legacy only'");
+                eval("WScript.Echo(y)");
+            }
+            a();
         }
 check65: Test21('hello'); #undefined
 check66: F_Test21(); @'F_Test21' is not defined
