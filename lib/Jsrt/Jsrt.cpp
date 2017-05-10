@@ -2895,6 +2895,8 @@ CHAKRA_API JsCreateWeakReference(
     _Out_ JsWeakRef* weakRef)
 {
     VALIDATE_JSREF(value);
+    PARAM_NOT_NULL(weakRef);
+    *weakRef = nullptr;
 
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
@@ -2904,6 +2906,11 @@ CHAKRA_API JsCreateWeakReference(
         }
 
         Recycler* recycler = threadContext->GetRecycler();
+        if (recycler->IsInObjectBeforeCollectCallback())
+        {
+            return JsErrorInObjectBeforeCollectCallback;
+        }
+
         Memory::RecyclerWeakReference<char>* recyclerWeakReference =
             recycler->CreateWeakReferenceHandle<char>(reinterpret_cast<char*>(value));
         *weakRef = reinterpret_cast<JsWeakRef>(recyclerWeakReference);
@@ -2916,9 +2923,12 @@ CHAKRA_API JsGetWeakReferenceValue(
     _Out_ JsValueRef* value)
 {
     VALIDATE_JSREF(weakRef);
+    PARAM_NOT_NULL(value);
+    *value = JS_INVALID_REFERENCE;
 
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
-        Memory::RecyclerWeakReference<char>* recyclerWeakReference = reinterpret_cast<Memory::RecyclerWeakReference<char>*>(weakRef);
+        Memory::RecyclerWeakReference<char>* recyclerWeakReference =
+            reinterpret_cast<Memory::RecyclerWeakReference<char>*>(weakRef);
         *value = reinterpret_cast<JsValueRef>(recyclerWeakReference->Get());
         return JsNoError;
     });
