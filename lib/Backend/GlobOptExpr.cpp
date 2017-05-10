@@ -315,7 +315,7 @@ GlobOpt::CSEAddInstr(
         // with the int constant value.
         StackSym *const constStackSym = GetOrCreateTaggedIntConstantStackSym(intConstantValue);
         instr->HoistSrc1(Js::OpCode::Ld_A, RegNOREG, constStackSym);
-        SetValue(&blockData, dstVal, constStackSym);
+        SetValue(&currentBlock->globOptData, dstVal, constStackSym);
     }
 
     // We have a candidate.  Add it to the exprToValueMap.
@@ -715,8 +715,8 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
     {
         // we don't want to CSE ExtendArgs, only the operation using them. To do that, we mimic CSE by transferring the symStore valueInfo to the dst.
         IR::Opnd *dst = instr->GetDst();
-        Value *dstVal = this->FindValue(symStore);
-        this->SetValue(&this->blockData, dstVal, dst);
+        Value *dstVal = this->FindValue(&this->currentBlock->globOptData, symStore);
+        this->SetValue(&this->currentBlock->globOptData, dstVal, dst);
         dst->AsRegOpnd()->m_sym->CopySymAttrs(symStore->AsStackSym());
         return false;
     }
@@ -808,7 +808,7 @@ GlobOpt::ProcessArrayValueKills(IR::Instr *instr)
     // These array helpers may change A.length (and A[i] could be A.length)...
     case Js::OpCode::InlineArrayPush:
     case Js::OpCode::InlineArrayPop:
-        this->blockData.liveArrayValues->ClearAll();
+        this->currentBlock->globOptData.liveArrayValues->ClearAll();
         break;
 
     case Js::OpCode::CallDirect:
@@ -820,14 +820,14 @@ GlobOpt::ProcessArrayValueKills(IR::Instr *instr)
             case IR::HelperArray_Shift:
             case IR::HelperArray_Unshift:
             case IR::HelperArray_Splice:
-                this->blockData.liveArrayValues->ClearAll();
+                this->currentBlock->globOptData.liveArrayValues->ClearAll();
                 break;
         }
         break;
     default:
         if (instr->UsesAllFields())
         {
-            this->blockData.liveArrayValues->ClearAll();
+            this->currentBlock->globOptData.liveArrayValues->ClearAll();
         }
         break;
     }
