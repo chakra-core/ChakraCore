@@ -117,9 +117,9 @@ namespace Js
         }
         catch (const JavascriptException& err)
         {
-            auto ex = err.GetAndClear();
+            Js::JavascriptExceptionObject* ex = err.GetAndClear();
             ex->GetScriptContext();
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_BuiltInNotAvailable);
+            JavascriptError::ThrowTypeError(ex->GetScriptContext(), JSERR_BuiltInNotAvailable);
         }
     }
 
@@ -158,7 +158,7 @@ namespace Js
             SRCINFO *hsi = scriptContext->AddHostSrcInfo(&si);
             uint32 flags = fscrIsLibraryCode | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
 
-            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_builtin, nullptr, &this->jsBuiltInByteCode);
+            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_jsbuiltin, nullptr, &this->jsBuiltInByteCode);
 
             IfFailAssertMsgAndThrowHr(hr, "Failed to deserialize JsBuiltIn.js bytecode - very probably the bytecode needs to be rebuilt.");
         }
