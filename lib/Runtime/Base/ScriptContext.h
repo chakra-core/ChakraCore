@@ -892,6 +892,8 @@ private:
         void EnsureSourceContextInfoMap();
         void EnsureDynamicSourceContextInfoMap();
 
+        void AddToEvalMapHelper(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript);
+
         uint moduleSrcInfoCount;
 #ifdef RUNTIME_DATA_COLLECTION
         time_t createTime;
