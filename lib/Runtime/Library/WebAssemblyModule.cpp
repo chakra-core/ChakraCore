@@ -34,6 +34,7 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_signaturesCount(0),
     m_startFuncIndex(Js::Constants::UninitializedValue),
     m_binaryBuffer(binaryBuffer),
+    m_binaryBufferLength(binaryBufferLength),
     m_customSections(nullptr)
 {
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
