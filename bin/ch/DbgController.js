@@ -56,7 +56,7 @@ var controllerObj = (function () {
     }
 
     filterLog = (function () {
-        var parentFilter = { "this": 1, "locals": 1 };
+        var parentFilter = { "this": 1, "locals": 1, "globals": 1 };
         var filter = {};
 
         // Discard all known globals to reduce baseline noise.
