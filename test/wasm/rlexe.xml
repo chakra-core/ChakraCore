@@ -214,4 +214,12 @@
     <tags>exclude_amd64</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>cse.js</files>
+    <baseline>baselines/cse.baseline</baseline>
+    <compile-flags>-wasm -maic:0 -testtrace:cse:2.0-99.999</compile-flags>
+    <tags>exclude_jshost,exclude_win7,exclude_nonative</tags>
+  </default>
+</test>
 </regress-exe>
