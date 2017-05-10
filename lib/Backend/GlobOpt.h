@@ -327,8 +327,6 @@ private:
     BVSparse<JitArenaAllocator> *  argumentsEquivBv;
     BVSparse<JitArenaAllocator> *  callerEquivBv;
 
-    GlobOptBlockData            blockData;
-
     BVSparse<JitArenaAllocator> *   changedSymsAfterIncBailoutCandidate;
 
     JitArenaAllocator *             alloc;
@@ -416,7 +414,7 @@ private:
     void                    FieldPRE(Loop *loop);
     void                    MergePredBlocksValueMaps(BasicBlock *block);
     void                    NulloutBlockData(GlobOptBlockData *data);
-    void                    InitBlockData();
+    void                    InitBlockData(GlobOptBlockData* data);
     void                    ReuseBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData);
     void                    CopyBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData);
     void                    CloneBlockData(BasicBlock *const toBlock, BasicBlock *const fromBlock);
@@ -456,7 +454,7 @@ private:
     Value *                 ValueNumberTransferDst(IR::Instr *const instr, Value *src1Val);
     bool                    IsSafeToTransferInPrePass(IR::Opnd *src, Value *srcValue);
     Value *                 ValueNumberTransferDstInPrepass(IR::Instr *const instr, Value *const src1Val);
-    Value *                 FindValue(Sym *sym);
+    Value *                 FindValue(GlobOptBlockData* blockData, Sym *sym);
     Value *                 FindValue(GlobHashTable *valueNumberMap, Sym *sym);
     ValueNumber             FindValueNumber(GlobHashTable *valueNumberMap, Sym *sym);
     Value *                 FindValueFromHashTable(GlobHashTable *valueNumberMap, SymID symId);
@@ -884,7 +882,7 @@ private:
     void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, BasicBlock* block = nullptr, bool updateExistingValue = false);
     void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, GlobOptBlockData *blockData, bool updateExistingValue = false);
     void                    KillObjectType(StackSym *objectSym, BVSparse<JitArenaAllocator>* liveFields = nullptr);
-    void                    KillAllObjectTypes(BVSparse<JitArenaAllocator>* liveFields = nullptr);
+    void                    KillAllObjectTypes(GlobOptBlockData* blockData, BVSparse<JitArenaAllocator>* liveFields = nullptr);
     void                    EndFieldLifetime(IR::SymOpnd *symOpnd);
     PropertySym *           CopyPropPropertySymObj(IR::SymOpnd *opnd, IR::Instr *instr);
     static bool             NeedsTypeCheckBailOut(const IR::Instr *instr, IR::PropertySymOpnd *propertySymOpnd, bool isStore, bool* pIsTypeCheckProtected, IR::BailOutKind *pBailOutKind);
