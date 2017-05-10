@@ -87,7 +87,7 @@
 #include "Library/WebAssemblyInstance.h"
 
 #include "Language/JavascriptStackWalker.h"
-
+#include "Language/CacheOperators.h"
 // .inl files
 #include "Library/JavascriptString.inl"
 #include "Library/ConcatString.inl"

@@ -56,7 +56,8 @@ namespace Js
         PropertyIndex propertyIndex = (PropertyIndex)-1;
         JavascriptString* propertyString = nullptr;
         PropertyId propertyId = Constants::NoProperty;
-        Assert(!this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), propertyIndex, &propertyString, &propertyId, nullptr, this, this, EnumeratorFlags::None));
+        PropertyValueInfo info;
+        Assert(!this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), propertyIndex, &propertyString, &propertyId, nullptr, this, this, EnumeratorFlags::None, nullptr, &info));
 #endif
 
         this->hasNoEnumerableProperties = true;

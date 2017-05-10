@@ -256,8 +256,6 @@ namespace Js
         memset(byteCodeHistogram, 0, sizeof(byteCodeHistogram));
 #endif
 
-        memset(propertyStrings, 0, sizeof(PropertyStringMap*)* 80);
-
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
         this->allocId = threadContext->GetScriptContextCount();
 #endif
@@ -797,12 +795,12 @@ namespace Js
             return NULL;
         }
         const uint i = PropertyStringMap::PStrMapIndex(ch1);
-        if (propertyStrings[i] == NULL)
+        if (this->Cache()->propertyStrings[i] == NULL)
         {
             return NULL;
         }
         const uint j = PropertyStringMap::PStrMapIndex(ch2);
-        return propertyStrings[i]->strLen2[j];
+        return this->Cache()->propertyStrings[i]->strLen2[j];
     }
 
     void ScriptContext::FindPropertyRecord(JavascriptString *pstName, PropertyRecord const ** propertyRecord)
@@ -1205,6 +1203,7 @@ namespace Js
 #endif
 #endif
 
+        ClearArray(this->Cache()->propertyStrings, 80);
         this->Cache()->dynamicRegexMap =
             RegexPatternMruMap::New(
                 recycler,
@@ -1546,8 +1545,8 @@ namespace Js
 
     void ScriptContext::InitPropertyStringMap(int i)
     {
-        propertyStrings[i] = AnewStruct(GeneralAllocator(), PropertyStringMap);
-        memset(propertyStrings[i]->strLen2, 0, sizeof(PropertyString*)* 80);
+        this->Cache()->propertyStrings[i] = RecyclerNewStruct(GetRecycler(), PropertyStringMap);
+        ClearArray(this->Cache()->propertyStrings[i]->strLen2, 80);
     }
 
     void ScriptContext::TrackPid(const PropertyRecord* propertyRecord)
@@ -1593,17 +1592,17 @@ namespace Js
     {
         const char16* buf = propString->GetBuffer();
         const uint i = PropertyStringMap::PStrMapIndex(buf[0]);
-        if (propertyStrings[i] == NULL)
+        if (this->Cache()->propertyStrings[i] == NULL)
         {
             InitPropertyStringMap(i);
         }
         const uint j = PropertyStringMap::PStrMapIndex(buf[1]);
-        if (propertyStrings[i]->strLen2[j] == NULL && !isClosed)
+        if (this->Cache()->propertyStrings[i]->strLen2[j] == NULL && !isClosed)
         {
-            propertyStrings[i]->strLen2[j] = GetLibrary()->CreatePropertyString(propString, this->GeneralAllocator());
+            this->Cache()->propertyStrings[i]->strLen2[j] = GetLibrary()->CreatePropertyString(propString);
             this->TrackPid(propString);
         }
-        return propertyStrings[i]->strLen2[j];
+        return this->Cache()->propertyStrings[i]->strLen2[j];
     }
 
     PropertyString* ScriptContext::CachePropertyString2(const PropertyRecord* propString)
@@ -1665,10 +1664,28 @@ namespace Js
             }
             if (string)
             {
-                PropertyCache const* cache = string->GetPropertyCache();
-                if (cache->type == type)
+                PolymorphicInlineCache * cache = string->GetLdElemInlineCache();
+                PropertyCacheOperationInfo info;
+                if (cache->PretendTryGetProperty(type, &info))
                 {
-                    string->ClearPropertyCache();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+                    if (PHASE_TRACE1(PropertyStringCachePhase))
+                    {
+                        Output::Print(_u("PropertyString '%s' : Invalidating LdElem cache for type %p\n"), string->GetString(), type);
+                    }
+#endif
+                    cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].Clear();
+                }
+                cache = string->GetStElemInlineCache();
+                if (cache->PretendTrySetProperty(type, type, &info))
+                {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+                    if (PHASE_TRACE1(PropertyStringCachePhase))
+                    {
+                        Output::Print(_u("PropertyString '%s' : Invalidating StElem cache for type %p\n"), string->GetString(), type);
+                    }
+#endif
+                    cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].Clear();
                 }
             }
         }
@@ -5566,26 +5583,8 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         if (PHASE_STATS1(Js::PolymorphicInlineCachePhase))
         {
             Output::Print(_u("%s,%s,%s,%s,%s,%s,%s,%s,%s\n"), _u("Function"), _u("Property"), _u("Kind"), _u("Accesses"), _u("Misses"), _u("Miss Rate"), _u("Collisions"), _u("Collision Rate"), _u("Slot Count"));
-            cacheDataMap->Map([this](Js::PolymorphicInlineCache const *cache, CacheData *data) {
-                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                uint total = data->hits + data->misses;
-                char16 const *propName = this->threadContext->GetPropertyName(data->propertyId)->GetBuffer();
-
-                wchar funcName[1024];
-
-                swprintf_s(funcName, _u("%s (%s)"), cache->functionBody->GetExternalDisplayName(), cache->functionBody->GetDebugNumberSet(debugStringBuffer));
-
-                Output::Print(_u("%s,%s,%s,%d,%d,%f,%d,%f,%d\n"),
-                    funcName,
-                    propName,
-                    data->isGetCache ? _u("get") : _u("set"),
-                    total,
-                    data->misses,
-                    static_cast<float>(data->misses) / total,
-                    data->collisions,
-                    static_cast<float>(data->collisions) / total,
-                    cache->GetSize()
-                    );
+            cacheDataMap->Map([this](Js::PolymorphicInlineCache const *cache, InlineCacheData *data) {
+                cache->PrintStats(data);
             });
         }
 #endif
@@ -5756,10 +5755,10 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             BindReference(cacheDataMap);
         }
 
-        CacheData *data = NULL;
+        InlineCacheData *data = NULL;
         if (!cacheDataMap->TryGetValue(cache, &data))
         {
-            data = Anew(GeneralAllocator(), CacheData);
+            data = Anew(GeneralAllocator(), InlineCacheData);
             cacheDataMap->Item(cache, data);
             data->isGetCache = isGetter;
             data->propertyId = propertyId;

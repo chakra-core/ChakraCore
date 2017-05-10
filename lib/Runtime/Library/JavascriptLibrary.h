@@ -52,8 +52,20 @@ namespace Js
         Field(int) validPropStrings;
     };
 
+    struct PropertyStringMap
+    {
+        Field(PropertyString*) strLen2[80];
+
+        inline static uint PStrMapIndex(char16 ch)
+        {
+            Assert(ch >= '0' && ch <= 'z');
+            return ch - '0';
+        }
+    };
+
     struct Cache
     {
+        Field(PropertyStringMap*) propertyStrings[80];
         Field(JavascriptString *) lastNumberToStringRadix10String;
         Field(EnumeratedObjectCache) enumObjCache;
         Field(JavascriptString *) lastUtcTimeFromStrString;
@@ -1064,7 +1076,6 @@ namespace Js
         template<> JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[1]) const; // Specialization for empty string
         template<> JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[2]) const; // Specialization for single-char strings
         PropertyString* CreatePropertyString(const Js::PropertyRecord* propertyRecord);
-        PropertyString* CreatePropertyString(const Js::PropertyRecord* propertyRecord, ArenaAllocator *arena);
 
         JavascriptVariantDate* CreateVariantDate(const double value);
 

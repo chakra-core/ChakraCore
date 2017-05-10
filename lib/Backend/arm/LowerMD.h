@@ -118,7 +118,6 @@ public:
             bool            GenerateFastShiftLeft(IR::Instr * instrShift);
             bool            GenerateFastShiftRight(IR::Instr * instrShift);
             void            GenerateFastBrS(IR::BranchInstr *brInstr);
-            IR::IndirOpnd * GenerateFastElemIStringIndexCommon(IR::Instr * instr, bool isStore, IR::IndirOpnd *indirOpnd, IR::LabelInstr * labelHelper);
             void            GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMethod helperMethod);
             void            HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod helperMethodFloat, IR::JnHelperMethod helperMethodDouble) { Assert(UNREACHED); } // only for asm.js
             IR::Opnd *      CreateStackArgumentsSlotOpnd();

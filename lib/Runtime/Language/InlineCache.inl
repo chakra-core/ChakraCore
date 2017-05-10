@@ -560,7 +560,7 @@ namespace Js
         if (PHASE_STATS1(Js::PolymorphicInlineCachePhase))
         {
             bool collision = !result && !isEmpty;
-            this->functionBody->GetScriptContext()->LogCacheUsage(this, /*isGet*/ true, propertyId, result, collision);
+            GetScriptContext()->LogCacheUsage(this, /*isGet*/ true, propertyId, result, collision);
         }
 #endif
 
@@ -620,7 +620,7 @@ namespace Js
         if (PHASE_STATS1(Js::PolymorphicInlineCachePhase))
         {
             bool collision = !result && !isEmpty;
-            this->functionBody->GetScriptContext()->LogCacheUsage(this, /*isGet*/ false, propertyId, result, collision);
+            GetScriptContext()->LogCacheUsage(this, /*isGet*/ false, propertyId, result, collision);
         }
 #endif
 

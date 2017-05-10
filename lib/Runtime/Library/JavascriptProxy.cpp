@@ -557,7 +557,7 @@ namespace Js
         PropertyValueInfo::SetNoCache(info, this);
         PropertyValueInfo::DisablePrototypeCache(info, this); // We can't cache prototype property either
         auto fn = [&](RecyclableObject* object)-> BOOL {
-            return JavascriptOperators::GetPropertyWPCache(originalInstance, object, propertyNameString, value, requestContext, nullptr);
+            return JavascriptOperators::GetPropertyWPCache(originalInstance, object, propertyNameString, value, requestContext, info);
         };
         auto getPropertyId = [&]()->PropertyId{
             const PropertyRecord* propertyRecord;
@@ -1838,13 +1838,8 @@ namespace Js
             }
             case SetPropertyTrapKind::SetPropertyWPCacheKind:
             {
-                Var name = GetName(requestContext, propertyId);
-                if (!JavascriptString::Is(name) || !VirtualTableInfo<Js::PropertyString>::HasVirtualTable(JavascriptString::FromVar(name)))
-                {
-                    name = nullptr;
-                }
-                return JavascriptOperators::SetPropertyWPCache(receiver, targetObj, propertyId, newValue, requestContext,
-                    static_cast<Js::PropertyString*>(name), PropertyOperationFlags::PropertyOperation_None);
+                PropertyValueInfo propertyValueInfo;
+                return JavascriptOperators::SetPropertyWPCache(receiver, targetObj, propertyId, newValue, requestContext, PropertyOperationFlags::PropertyOperation_None, &propertyValueInfo);
             }
             default:
                 Assert(FALSE);

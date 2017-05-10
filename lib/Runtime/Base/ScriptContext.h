@@ -122,6 +122,22 @@ enum LoadScriptFlag
     LoadScriptFlag_ExternalArrayBuffer = 0x100          // for ExternalArrayBuffer
 };
 
+#ifdef INLINE_CACHE_STATS
+// Used to store inline cache stats
+
+struct InlineCacheData
+{
+    uint hits;
+    uint misses;
+    uint collisions;
+    bool isGetCache;
+    Js::PropertyId propertyId;
+
+    InlineCacheData() : hits(0), misses(0), collisions(0), isGetCache(false), propertyId(Js::PropertyIds::_none) { }
+};
+
+#endif
+
 class HostScriptContext
 {
 public:
@@ -367,18 +383,6 @@ namespace Js
 #endif
     };
 
-    struct PropertyStringMap
-    {
-        PropertyString* strLen2[80];
-
-        inline static uint PStrMapIndex(char16 ch)
-        {
-            Assert(ch >= '0' && ch <= 'z');
-            return ch - '0';
-        }
-    };
-
-
     /*
     * This class caches jitted func address ranges.
     * This is to facilitate WER scenarios to use this cache for checking native addresses.
@@ -542,7 +546,6 @@ namespace Js
         InlineCache * GetToStringInlineCache() const { return toStringInlineCache; }
 
     private:
-        PropertyStringMap* propertyStrings[80];
 
         JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
 
@@ -717,23 +720,9 @@ public:
 
 #endif
 #ifdef INLINE_CACHE_STATS
-        // Used to store inline cache stats
-
-        struct CacheData
-        {
-            uint hits;
-            uint misses;
-            uint collisions;
-            bool isGetCache;
-            Js::PropertyId propertyId;
-
-            CacheData() : hits(0), misses(0), collisions(0), isGetCache(false), propertyId(Js::PropertyIds::_none) { }
-        };
-
         // This is a strongly referenced dictionary, since we want to know hit rates for dead caches.
-        typedef JsUtil::BaseDictionary<const Js::PolymorphicInlineCache*, CacheData*, Recycler> CacheDataMap;
+        typedef JsUtil::BaseDictionary<const Js::PolymorphicInlineCache*, InlineCacheData*, Recycler> CacheDataMap;
         CacheDataMap *cacheDataMap;
-
         void LogCacheUsage(Js::PolymorphicInlineCache *cache, bool isGet, Js::PropertyId propertyId, bool hit, bool collision);
 #endif
 

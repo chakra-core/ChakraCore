@@ -24,6 +24,23 @@ namespace Js
 
     void PropertyValueInfo::SetCacheInfo(
         PropertyValueInfo* info,
+        PropertyString *const propertyString,
+        PolymorphicInlineCache *const polymorphicInlineCache,
+        bool allowResizing)
+    {
+        Assert(info);
+        Assert(polymorphicInlineCache);
+
+        info->functionBody = nullptr;
+        info->propertyString = propertyString;
+        info->inlineCache = nullptr;
+        info->polymorphicInlineCache = polymorphicInlineCache;
+        info->inlineCacheIndex = Js::Constants::NoInlineCacheIndex;
+        info->allowResizingPolymorphicInlineCache = allowResizing;
+    }
+
+    void PropertyValueInfo::SetCacheInfo(
+        PropertyValueInfo* info,
         FunctionBody *const functionBody,
         InlineCache *const inlineCache,
         const InlineCacheIndex inlineCacheIndex,

@@ -576,6 +576,7 @@ public:
 };
 
 #define InlineCacheAuxSlotTypeTag 4
+#define MinPropertyStringInlineCacheSize 1
 #define MinPolymorphicInlineCacheSize 4
 #define MaxPolymorphicInlineCacheSize 32
 

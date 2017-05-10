@@ -6105,12 +6105,12 @@ namespace Js
 #endif
             )
         {
-            PolymorphicInlineCache * polymorphicInlineCache = CreatePolymorphicInlineCache(index, PolymorphicInlineCache::GetInitialSize());
+            PolymorphicInlineCache * polymorphicInlineCache = CreatePolymorphicInlineCache(index, MinPolymorphicInlineCacheSize);
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             if (PHASE_VERBOSE_TRACE1(Js::PolymorphicInlineCachePhase))
             {
                 this->DumpFullFunctionName();
-                Output::Print(_u(": New PIC, index = %d, size = %d\n"), index, PolymorphicInlineCache::GetInitialSize());
+                Output::Print(_u(": New PIC, index = %d, size = %d\n"), index, MinPolymorphicInlineCacheSize);
             }
 
 #endif
@@ -6119,7 +6119,7 @@ namespace Js
 #endif
             PHASE_PRINT_INTRUSIVE_TESTTRACE1(
                 Js::PolymorphicInlineCachePhase,
-                _u("TestTrace PIC:  New, Function %s (%s), 0x%x, index = %d, size = %d\n"), this->GetDisplayName(), this->GetDebugNumberSet(debugStringBuffer), polymorphicInlineCache, index, PolymorphicInlineCache::GetInitialSize());
+                _u("TestTrace PIC:  New, Function %s (%s), 0x%x, index = %d, size = %d\n"), this->GetDisplayName(), this->GetDebugNumberSet(debugStringBuffer), polymorphicInlineCache, index, MinPolymorphicInlineCacheSize);
 
             uint indexInPolymorphicCache = polymorphicInlineCache->GetInlineCacheIndexForType(inlineCache->GetType());
             inlineCache->CopyTo(propertyId, m_scriptContext, &(polymorphicInlineCache->GetInlineCaches()[indexInPolymorphicCache]));
@@ -6168,7 +6168,7 @@ namespace Js
     PolymorphicInlineCache * FunctionBody::CreatePolymorphicInlineCache(uint index, uint16 size)
     {
         Recycler * recycler = this->m_scriptContext->GetRecycler();
-        PolymorphicInlineCache * newPolymorphicInlineCache = PolymorphicInlineCache::New(size, this);
+        PolymorphicInlineCache * newPolymorphicInlineCache = FunctionBodyPolymorphicInlineCache::New(size, this);
         this->polymorphicInlineCaches.SetInlineCache(recycler, this, index, newPolymorphicInlineCache);
         return newPolymorphicInlineCache;
     }

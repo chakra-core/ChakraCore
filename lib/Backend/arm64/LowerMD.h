@@ -110,7 +110,6 @@ public:
               bool            GenerateFastShiftLeft(IR::Instr * instrShift) { __debugbreak(); return 0; }
               bool            GenerateFastShiftRight(IR::Instr * instrShift) { __debugbreak(); return 0; }
               void            GenerateFastBrS(IR::BranchInstr *brInstr) { __debugbreak(); }
-              IR::IndirOpnd * GenerateFastElemIStringIndexCommon(IR::Instr * instr, bool isStore, IR::IndirOpnd *indirOpnd, IR::LabelInstr * labelHelper) { __debugbreak(); return 0; }
               void            GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMethod helperMethod) { __debugbreak(); }
               void            HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod helperMethodFloat, IR::JnHelperMethod helperMethodDouble) { __debugbreak(); }
               IR::Opnd *      CreateStackArgumentsSlotOpnd() { __debugbreak(); return 0; }

@@ -17,9 +17,9 @@
 #define PolymorphicInlineCacheShift 6 // On 64 bit architectures, the least 6 significant bits of a DynamicTypePointer is 0
 #endif
 
-// TODO: OOP JIT, move equiv set to backend?
 // forward decl
 class JITType;
+struct InlineCacheData;
 template <class TAllocator> class JITTypeHolderBase;
 typedef JITTypeHolderBase<void> JITTypeHolder;
 typedef JITTypeHolderBase<Recycler> RecyclerJITTypeHolder;
@@ -310,8 +310,8 @@ namespace Js
             PropertyCacheOperationInfo *const operationInfo,
             const PropertyOperationFlags propertyOperationFlags = PropertyOperation_None);
 
-        bool PretendTryGetProperty(Type *const type, PropertyCacheOperationInfo * operationInfo);
-        bool PretendTrySetProperty(Type *const type, Type *const oldType, PropertyCacheOperationInfo * operationInfo);
+        bool PretendTryGetProperty(Type *const type, PropertyCacheOperationInfo * operationInfo) const;
+        bool PretendTrySetProperty(Type *const type, Type *const oldType, PropertyCacheOperationInfo * operationInfo) const;
 
         void Clear();
         template <class TAllocator>
@@ -364,8 +364,7 @@ namespace Js
     CompileAssert(sizeof(InlineCache) == sizeof(InlineCacheAllocator::CacheLayout));
     CompileAssert(offsetof(InlineCache, invalidationListSlotPtr) == offsetof(InlineCacheAllocator::CacheLayout, strongRef));
 
-    struct JitTimePolymorphicInlineCache;
-    struct PolymorphicInlineCache sealed : public FinalizableObject
+    class PolymorphicInlineCache _ABSTRACT : public FinalizableObject
     {
 #ifdef INLINE_CACHE_STATS
         friend class Js::ScriptContext;
@@ -374,39 +373,32 @@ namespace Js
     public:
         static const bool IsPolymorphic = true;
 
-    private:
+    protected:
         FieldNoBarrier(InlineCache *) inlineCaches;
-        Field(FunctionBody *) functionBody;
         Field(uint16) size;
         Field(bool) ignoreForEquivalentObjTypeSpec;
         Field(bool) cloneForJitTimeUse;
 
         Field(int32) inlineCachesFillInfo;
 
-        // DList chaining all polymorphic inline caches of a FunctionBody together.
-        // Since PolymorphicInlineCache is a leaf object, these references do not keep
-        // the polymorphic inline caches alive. When a PolymorphicInlineCache is finalized,
-        // it removes itself from the list and deletes its inline cache array.
-        Field(PolymorphicInlineCache *) next;
-        Field(PolymorphicInlineCache *) prev;
-
-        PolymorphicInlineCache(InlineCache * inlineCaches, uint16 size, FunctionBody * functionBody)
-            : inlineCaches(inlineCaches), functionBody(functionBody), size(size), ignoreForEquivalentObjTypeSpec(false), cloneForJitTimeUse(true), inlineCachesFillInfo(0), next(nullptr), prev(nullptr)
+        PolymorphicInlineCache(InlineCache * inlineCaches, uint16 size)
+            : inlineCaches(inlineCaches), size(size), ignoreForEquivalentObjTypeSpec(false), cloneForJitTimeUse(true), inlineCachesFillInfo(0)
         {
-            Assert((size == 0 && inlineCaches == nullptr) ||
-                (inlineCaches != nullptr && size >= MinPolymorphicInlineCacheSize && size <= MaxPolymorphicInlineCacheSize));
         }
 
     public:
-        static PolymorphicInlineCache * New(uint16 size, FunctionBody * functionBody);
 
-        static uint16 GetInitialSize() { return MinPolymorphicInlineCacheSize; }
         bool CanAllocateBigger() { return GetSize() < MaxPolymorphicInlineCacheSize; }
         static uint16 GetNextSize(uint16 currentSize)
         {
             if (currentSize == MaxPolymorphicInlineCacheSize)
             {
                 return 0;
+            }
+            else if (currentSize == MinPropertyStringInlineCacheSize)
+            {
+                CompileAssert(MinPropertyStringInlineCacheSize < MinPolymorphicInlineCacheSize);
+                return MinPolymorphicInlineCacheSize;
             }
             else
             {
@@ -421,7 +413,6 @@ namespace Js
 
         InlineCache * GetInlineCaches() const { return inlineCaches; }
         uint16 GetSize() const { return size; }
-        PolymorphicInlineCache * GetNext() { return next; }
         bool GetIgnoreForEquivalentObjTypeSpec() const { return this->ignoreForEquivalentObjTypeSpec; }
         void SetIgnoreForEquivalentObjTypeSpec(bool value) { this->ignoreForEquivalentObjTypeSpec = value; }
         bool GetCloneForJitTimeUse() const { return this->cloneForJitTimeUse; }
@@ -429,8 +420,8 @@ namespace Js
         uint32 GetInlineCachesFillInfo() { return this->inlineCachesFillInfo; }
         void UpdateInlineCachesFillInfo(uint32 index, bool set);
         bool IsFull();
+        void Clear(Type * type);
 
-        virtual void Finalize(bool isShutdown) override;
         virtual void Dispose(bool isShutdown) override { };
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
@@ -507,6 +498,14 @@ namespace Js
             return (((size_t)type) >> PolymorphicInlineCacheShift) & (GetSize() - 1);
         }
 
+#ifdef INLINE_CACHE_STATS
+        virtual void PrintStats(InlineCacheData *data) const = 0;
+        virtual ScriptContext* GetScriptContext() const = 0;
+#endif
+
+        static uint32 GetOffsetOfSize() { return offsetof(Js::PolymorphicInlineCache, size); }
+        static uint32 GetOffsetOfInlineCaches() { return offsetof(Js::PolymorphicInlineCache, inlineCaches); }
+
     private:
         uint GetNextInlineCacheIndex(uint index) const
         {
@@ -538,6 +537,62 @@ namespace Js
             return count;
         }
 #endif
+    };
+
+
+    class FunctionBodyPolymorphicInlineCache sealed : public PolymorphicInlineCache
+    {
+    private:
+        FunctionBody * functionBody;
+
+        // DList chaining all polymorphic inline caches of a FunctionBody together.
+        // Since PolymorphicInlineCache is a leaf object, these references do not keep
+        // the polymorphic inline caches alive. When a PolymorphicInlineCache is finalized,
+        // it removes itself from the list and deletes its inline cache array.
+        // We maintain this linked list of polymorphic caches because when we allocate a larger cache,
+        // the old one might still be used by some code on the stack.  Consequently, we can't release
+        // the inline cache array back to the arena allocator.
+        FunctionBodyPolymorphicInlineCache * next;
+        FunctionBodyPolymorphicInlineCache * prev;
+
+        FunctionBodyPolymorphicInlineCache(InlineCache * inlineCaches, uint16 size, FunctionBody * functionBody)
+            : PolymorphicInlineCache(inlineCaches, size), functionBody(functionBody), next(nullptr), prev(nullptr)
+        {
+            Assert((size == 0 && inlineCaches == nullptr) ||
+                (inlineCaches != nullptr && size >= MinPolymorphicInlineCacheSize && size <= MaxPolymorphicInlineCacheSize));
+        }
+    public:
+        static FunctionBodyPolymorphicInlineCache * New(uint16 size, FunctionBody * functionBody);
+
+#ifdef INLINE_CACHE_STATS
+        virtual void PrintStats(InlineCacheData *data) const override;
+        virtual ScriptContext* GetScriptContext() const override;
+#endif
+
+        virtual void Finalize(bool isShutdown) override;
+    };
+
+    class ScriptContextPolymorphicInlineCache sealed : public PolymorphicInlineCache
+    {
+    private:
+        Field(JavascriptLibrary*) javascriptLibrary;
+
+        ScriptContextPolymorphicInlineCache(InlineCache * inlineCaches, uint16 size, JavascriptLibrary * javascriptLibrary)
+            : PolymorphicInlineCache(inlineCaches, size), javascriptLibrary(javascriptLibrary)
+        {
+            Assert((size == 0 && inlineCaches == nullptr) ||
+                (inlineCaches != nullptr && size >= MinPropertyStringInlineCacheSize && size <= MaxPolymorphicInlineCacheSize));
+        }
+
+    public:
+        static ScriptContextPolymorphicInlineCache * New(uint16 size, JavascriptLibrary * javascriptLibrary);
+
+#ifdef INLINE_CACHE_STATS
+        virtual void PrintStats(InlineCacheData *data) const override;
+        virtual ScriptContext* GetScriptContext() const override;
+#endif
+
+        virtual void Finalize(bool isShutdown) override;
     };
 
 #if ENABLE_NATIVE_CODEGEN

@@ -47,7 +47,7 @@ namespace Js
     }
 
     BOOL PathTypeHandlerBase::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName, PropertyId* propertyId,
-        PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
+        PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -74,16 +74,15 @@ namespace Js
                 PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
                 *propertyStringName = propertyString;
 
-                uint16 inlineOrAuxSlotIndex;
-                bool isInlineSlot;
-                PropertyIndexToInlineOrAuxSlotIndex(index, &inlineOrAuxSlotIndex, &isInlineSlot);
-
-                propertyString->UpdateCache(type, inlineOrAuxSlotIndex, isInlineSlot,
-                    !FixPropsOnPathTypes() || (this->GetPathLength() < this->typePath->GetMaxInitializedLength() && !this->typePath->GetIsFixedFieldAt(index, this->GetPathLength())));
-
+                PropertyValueInfo::SetCacheInfo(info, propertyString, propertyString->GetLdElemInlineCache(), false);
+                PropertyValueInfo::Set(info, instance, index);
+                if (FixPropsOnPathTypes() && (index >= this->typePath->GetMaxInitializedLength() || this->typePath->GetIsFixedFieldAt(index, GetPathLength())))
+                {
+                    PropertyValueInfo::DisableStoreFieldCache(info);
+                }
                 return TRUE;
             }
-
+            PropertyValueInfo::SetNoCache(info, instance);
             return FALSE;
         }
 
@@ -99,13 +98,15 @@ namespace Js
 
         PathTypeHandlerBase* pathTypeToEnumerate = (PathTypeHandlerBase*)typeHandlerToEnumerate;
 
-        BOOL found = pathTypeToEnumerate->FindNextProperty(scriptContext, index, propertyStringName, propertyId, attributes, typeToEnumerate, typeToEnumerate, flags);
+        BOOL found = pathTypeToEnumerate->FindNextProperty(scriptContext, index, propertyStringName, propertyId, attributes, typeToEnumerate, typeToEnumerate, flags, instance, info);
 
         // We got a property from previous type, but this property may have been deleted
         if (found == TRUE && this->GetPropertyIndex(*propertyId) == Js::Constants::NoSlot)
         {
+            PropertyValueInfo::SetNoCache(info, instance);
             return FALSE;
         }
+        PropertyValueInfo::SetNoCache(info, instance);
 
         return found;
     }

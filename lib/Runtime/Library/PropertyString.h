@@ -6,61 +6,52 @@
 
 namespace Js
 {
-    struct PropertyCache
-    {
-        Field(Type*) type;
-        union
-        {
-            struct
-            {
-                uint16 preventdataSlotIndexFalseRef;
-                uint16 dataSlotIndex;
-            };
-            intptr_t ptrSlot1;
-        };
-        union
-        {
-            struct
-            {
-                uint16 preventFlagsFalseRef;
-                bool isInlineSlot;
-                bool isStoreFieldEnabled;
-            };
-            intptr_t ptrSlot2;
-        };
-        intptr_t blank;
-    };
-
-    CompileAssert(sizeof(PropertyCache) == sizeof(InlineCacheAllocator::CacheLayout));
-    CompileAssert(offsetof(PropertyCache, blank) == offsetof(InlineCacheAllocator::CacheLayout, strongRef));
-
     class PropertyString : public JavascriptString
     {
     protected:
-        Field(PropertyCache*) propCache;
-        Field(const Js::PropertyRecord*) m_propertyRecord;
+        Field(int) hitRate;
+        Field(PolymorphicInlineCache*) ldElemInlineCache;
+        Field(PolymorphicInlineCache*) stElemInlineCache;
+        Field(const Js::PropertyRecord*) propertyRecord;
+
         DEFINE_VTABLE_CTOR(PropertyString, JavascriptString);
         DECLARE_CONCRETE_STRING_CLASS;
 
         PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord);
     public:
-        PropertyCache const * GetPropertyCache() const;
-        void ClearPropertyCache();
-        Js::PropertyRecord const * GetPropertyRecord() const { return m_propertyRecord; }
+        PolymorphicInlineCache * GetLdElemInlineCache() const;
+        PolymorphicInlineCache * GetStElemInlineCache() const;
+        Js::PropertyRecord const * GetPropertyRecord() const { return this->propertyRecord; }
+        PolymorphicInlineCache * CreateBiggerPolymorphicInlineCache(bool isLdElem);
+        void LogCacheMiss();
+        int GetHitRate() const { return this->hitRate; };
+        void LogCacheHit() { ++this->hitRate; };
+        bool ShouldUseCache() const;
+
         static PropertyString* New(StaticType* type, const Js::PropertyRecord* propertyRecord, Recycler *recycler);
-        static PropertyString* New(StaticType* type, const Js::PropertyRecord* propertyRecord, ArenaAllocator *arena);
-        void UpdateCache(Type * type, uint16 dataSlotIndex, bool isInlineSlot, bool isStoreFieldEnabled);
-        void ClearCache() { propCache->type = nullptr; }
 
         virtual void const * GetOriginalStringReference() override;
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
-        virtual bool IsArenaAllocPropertyString() { return false; }
 
-        static uint32 GetOffsetOfPropertyCache() { return offsetof(PropertyString, propCache); }
+        static uint32 GetOffsetOfLdElemInlineCache() { return offsetof(PropertyString, ldElemInlineCache); }
+        static uint32 GetOffsetOfStElemInlineCache() { return offsetof(PropertyString, stElemInlineCache); }
+        static uint32 GetOffsetOfHitRate() { return offsetof(PropertyString, hitRate); }
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        void DumpCache(bool ldElemCache)
+        {
+            PolymorphicInlineCache * cache = ldElemCache ? GetLdElemInlineCache() : GetStElemInlineCache();
+            Output::Print(_u("PropertyCache HitRate: %i; types: "), this->hitRate);
+            for (uint i = 0; i < cache->GetSize(); ++i)
+            {
+                Output::Print(_u("%p,"), cache->GetInlineCaches()[i].GetType());
+            }
+            Output::Print(_u("\n"));
+        }
+#endif
 #if ENABLE_TTD
         //Get the associated property id for this string if there is on (e.g. it is a propertystring otherwise return Js::PropertyIds::_none)
-        virtual Js::PropertyId TryGetAssociatedPropertyId() const override { return this->m_propertyRecord->GetPropertyId(); }
+        virtual Js::PropertyId TryGetAssociatedPropertyId() const override { return this->propertyRecord->GetPropertyId(); }
 #endif
 
     public:
@@ -68,14 +59,5 @@ namespace Js
         {
             return VTableValue::VtablePropertyString;
         }
-    };
-
-    class ArenaAllocPropertyString sealed : public PropertyString
-    {
-        friend PropertyString;
-    protected:
-        ArenaAllocPropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord);
-    public:
-        virtual bool IsArenaAllocPropertyString() override { return true; }
     };
 }
