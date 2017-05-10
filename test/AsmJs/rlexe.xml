@@ -844,4 +844,11 @@
       <compile-flags>-forcedeferparse -testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>constbrbug.js</files>
+      <baseline>constbrbug.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -maic:0</compile-flags>
+    </default>
+  </test>
 </regress-exe>
