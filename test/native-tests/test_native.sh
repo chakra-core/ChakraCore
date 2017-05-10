@@ -87,9 +87,6 @@ RUN "test-char16"
 # test-static-native
 RUN "test-static-native"
 
-# test-weakref
-RUN "test-weakref"
-
 # shared lib tests
 LIB_DIR="$(dirname ${CH_DIR})"
 if [[ `uname -a` =~ "Darwin" ]]; then
