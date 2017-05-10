@@ -5999,7 +5999,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
             }
         }
     }
-    else if ((GlobOpt::TransferSrcValue(instr) || OpCodeAttr::CanCSE(instr->m_opcode)) && (opnd == instr->GetSrc1() || opnd == instr->GetSrc2()))
+    else if ((instr->TransfersSrcValue() || OpCodeAttr::CanCSE(instr->m_opcode)) && (opnd == instr->GetSrc1() || opnd == instr->GetSrc2()))
     {
         if (sym->IsPropertySym())
         {
@@ -6106,22 +6106,6 @@ GlobOpt::TryOptimizeInstrWithFixedDataProperty(IR::Instr ** const pInstr)
     {
         instr->TryOptimizeInstrWithFixedDataProperty(&instr, this);
     }
-}
-
-bool
-GlobOpt::TransferSrcValue(IR::Instr * instr)
-{
-    // Return whether the instruction transfers a value to the destination.
-    // This is used to determine whether we should generate a value for the src so that it will
-    // match with the dst for copy prop.
-
-    // No point creating an unknown value for the src of a binary instr, as the dst will just be a different
-    // Don't create value for instruction without dst as well. The value doesn't go anywhere.
-
-    // if (src2 == nullptr) Disable copy prop for ScopedLdFld/ScopeStFld, etc., consider enabling that in the future
-    // Consider: Add opcode attribute to indicate whether the opcode would use the value or not
-
-    return instr->GetDst() != nullptr && instr->GetSrc2() == nullptr && !OpCodeAttr::DoNotTransfer(instr->m_opcode) && !instr->CallsAccessor();
 }
 
 Value*
@@ -6614,7 +6598,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
     }
 
     // We should have dealt with field hoist already
-    Assert(!GlobOpt::TransferSrcValue(instr) || !opndSym->IsPropertySym() ||
+    Assert(!instr->TransfersSrcValue() || !opndSym->IsPropertySym() ||
         !this->IsHoistedPropertySym(opndSym->AsPropertySym()));
 
     StackSym *copySym = this->GetCopyPropSym(opndSym, val);
@@ -7168,7 +7152,7 @@ GlobOpt::HoistConstantLoadAndPropagateValueBackward(Js::Var varConst, IR::Instr 
 {
     if (this->IsLoopPrePass() ||
         ((this->currentBlock == this->func->m_fg->blockList) &&
-        TransferSrcValue(origInstr)))
+        origInstr->TransfersSrcValue()))
     {
         return value;
     }
