@@ -433,6 +433,7 @@ HELPERCALL(SaveAllRegistersNoSse2AndBranchBailOut, nullptr, 0)
 
 //Helpers for inlining built-ins
 HELPERCALL(Array_Concat, Js::JavascriptArray::EntryConcat, 0)
+HELPERCALL(Array_IndexOf, Js::JavascriptArray::EntryIndexOf, 0)
 HELPERCALL(Array_Includes, Js::JavascriptArray::EntryIncludes, 0)
 HELPERCALL(Array_Join, Js::JavascriptArray::EntryJoin, 0)
 HELPERCALL(Array_LastIndexOf, Js::JavascriptArray::EntryLastIndexOf, 0)

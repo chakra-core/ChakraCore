@@ -38,7 +38,7 @@ if %errorlevel% neq 0 (
 )
 popd
 
-pushd lib\Runtime\Library\BuiltIn
+pushd lib\Runtime\Library\JsBuiltIn
 call GenByteCode.cmd
 if %errorlevel% neq 0 (
   echo There was an error when regenerating bytecode header.
@@ -70,7 +70,7 @@ if %errorlevel% neq 0 (
 popd
 
 :: Generate BuiltIn NoJIT Bytecodes using ch.exe (NoJIT)
-pushd lib\Runtime\Library\BuiltIn
+pushd lib\Runtime\Library\JsBuiltIn
 call GenByteCode.cmd -nojit
 if %errorlevel% neq 0 (
   echo There was an error when regenerating bytecode header for NoJIT.

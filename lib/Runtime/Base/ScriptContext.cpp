@@ -5748,9 +5748,9 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return false;
     }
 
-    bool ScriptContext::IsBuiltInEnabled()
+    bool ScriptContext::IsJsBuiltInEnabled()
     {
-        return GetConfig()->IsBuiltInEnabled();
+        return GetConfig()->IsJsBuiltInEnabled();
     }
 
 

@@ -4,10 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 #include "EngineInterfaceObject.h"
-#include "BuiltInEngineInterfaceExtensionObject.h"
+#include "JsBuiltInEngineInterfaceExtensionObject.h"
 #include "Types/DeferredTypeHandler.h"
 
-#ifdef ENABLE_BUILTIN_OBJECT
+#ifdef ENABLE_JS_BUILTINS
 #include "ByteCode/ByteCodeSerializer.h"
 #include "errstr.h"
 #include "ByteCode/ByteCodeDumper.h"
@@ -18,15 +18,15 @@
 
 #if DISABLE_JIT
 #if TARGET_64
-#include "BuiltIn/BuiltIn.js.nojit.bc.64b.h"
+#include "JsBuiltIn/JsBuiltIn.js.nojit.bc.64b.h"
 #else
-#include "BuiltIn/BuiltIn.js.nojit.bc.32b.h"
+#include "JsBuiltIn/JsBuiltIn.js.nojit.bc.32b.h"
 #endif // TARGET_64
 #else
 #if TARGET_64
-#include "BuiltIn/BuiltIn.js.bc.64b.h"
+#include "JsBuiltIn/JsBuiltIn.js.bc.64b.h"
 #else
-#include "BuiltIn/BuiltIn.js.bc.32b.h"
+#include "JsBuiltIn/JsBuiltIn.js.bc.32b.h"
 #endif // TARGET_64
 #endif // DISABLE_JIT
 
@@ -39,25 +39,25 @@
     JavascriptError::MapAndThrowError(scriptContext, hr); \
     } \
 
-#endif // ENABLE_BUILTIN_OBJECT
+#endif // ENABLE_JS_BUILTINS
 
 namespace Js
 {
-#ifdef ENABLE_BUILTIN_OBJECT
+#ifdef ENABLE_JS_BUILTINS
 
-    BuiltInEngineInterfaceExtensionObject::BuiltInEngineInterfaceExtensionObject(ScriptContext * scriptContext) :
-        EngineExtensionObjectBase(EngineInterfaceExtensionKind_BuiltIn, scriptContext),
-        builtInByteCode(nullptr),
+    JsBuiltInEngineInterfaceExtensionObject::JsBuiltInEngineInterfaceExtensionObject(ScriptContext * scriptContext) :
+        EngineExtensionObjectBase(EngineInterfaceExtensionKind_JsBuiltIn, scriptContext),
+        jsBuiltInByteCode(nullptr),
         wasInitialized(false)
     {
     }
 
-    NoProfileFunctionInfo BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_RegisterFunction(FORCE_NO_WRITE_BARRIER_TAG(BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_RegisterFunction));
+    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterFunction));
 
-    NoProfileFunctionInfo BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_Internal_ToLengthFunction(FORCE_NO_WRITE_BARRIER_TAG(BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_Internal_ToLengthFunction));
-    NoProfileFunctionInfo BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_Internal_ToIntegerFunction(FORCE_NO_WRITE_BARRIER_TAG(BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_Internal_ToIntegerFunction));
+    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToLengthFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToLengthFunction));
+    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToIntegerFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToIntegerFunction));
 
-    void BuiltInEngineInterfaceExtensionObject::Initialize()
+    void JsBuiltInEngineInterfaceExtensionObject::Initialize()
     {
         if (wasInitialized)
         {
@@ -66,30 +66,30 @@ namespace Js
 
         JavascriptLibrary* library = scriptContext->GetLibrary();
         DynamicObject* commonObject = library->GetEngineInterfaceObject()->GetCommonNativeInterfaces();
-        if (scriptContext->IsBuiltInEnabled())
+        if (scriptContext->IsJsBuiltInEnabled())
         {
             Assert(library->GetEngineInterfaceObject() != nullptr);
             this->builtInNativeInterfaces = DynamicObject::New(library->GetRecycler(),
                 DynamicType::New(scriptContext, TypeIds_Object, commonObject, nullptr,
-                    DeferredTypeHandler<InitializeBuiltInNativeInterfaces>::GetDefaultInstance()));
-            library->AddMember(library->GetEngineInterfaceObject(), Js::PropertyIds::BuiltIn, this->builtInNativeInterfaces);
+                    DeferredTypeHandler<InitializeJsBuiltInNativeInterfaces>::GetDefaultInstance()));
+            library->AddMember(library->GetEngineInterfaceObject(), Js::PropertyIds::JsBuiltIn, this->builtInNativeInterfaces);
         }
 
         wasInitialized = true;
     }
 
-    void BuiltInEngineInterfaceExtensionObject::InjectBuiltInLibraryCode(ScriptContext * scriptContext)
+    void JsBuiltInEngineInterfaceExtensionObject::InjectJsBuiltInLibraryCode(ScriptContext * scriptContext)
     {
-        if (this->builtInByteCode != nullptr)
+        if (this->jsBuiltInByteCode != nullptr)
         {
             return;
         }
 
         try {
-            this->EnsureBuiltInByteCode(scriptContext);
-            Assert(builtInByteCode != nullptr);
+            this->EnsureJsBuiltInByteCode(scriptContext);
+            Assert(jsBuiltInByteCode != nullptr);
 
-            Js::ScriptFunction *function = scriptContext->GetLibrary()->CreateScriptFunction(builtInByteCode->GetNestedFunctionForExecution(0));
+            Js::ScriptFunction *function = scriptContext->GetLibrary()->CreateScriptFunction(jsBuiltInByteCode->GetNestedFunctionForExecution(0));
 
             // If we are profiling, we need to register the script to the profiler callback, so the script compiled event will be sent.
             if (scriptContext->IsProfiling())
@@ -123,30 +123,30 @@ namespace Js
         }
     }
 
-    void BuiltInEngineInterfaceExtensionObject::InitializeBuiltInNativeInterfaces(DynamicObject * builtInNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    void JsBuiltInEngineInterfaceExtensionObject::InitializeJsBuiltInNativeInterfaces(DynamicObject * builtInNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(builtInNativeInterfaces, mode, 16);
 
         ScriptContext* scriptContext = builtInNativeInterfaces->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::registerFunction, &BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_RegisterFunction, 2);
+        library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::registerFunction, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterFunction, 2);
 
         builtInNativeInterfaces->SetHasNoEnumerableProperties(true);
     }
 
 #if DBG
-    void BuiltInEngineInterfaceExtensionObject::DumpByteCode()
+    void JsBuiltInEngineInterfaceExtensionObject::DumpByteCode()
     {
         Output::Print(_u("Dumping Built In Byte Code:"));
-        this->EnsureBuiltInByteCode(scriptContext);
-        Js::ByteCodeDumper::DumpRecursively(builtInByteCode);
+        this->EnsureJsBuiltInByteCode(scriptContext);
+        Js::ByteCodeDumper::DumpRecursively(jsBuiltInByteCode);
     }
 #endif // DBG
 
-    void BuiltInEngineInterfaceExtensionObject::EnsureBuiltInByteCode(ScriptContext * scriptContext)
+    void JsBuiltInEngineInterfaceExtensionObject::EnsureJsBuiltInByteCode(ScriptContext * scriptContext)
     {
-        if (this->builtInByteCode == nullptr)
+        if (this->jsBuiltInByteCode == nullptr)
         {
             SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(Js::Constants::NoHostSourceContext, NULL);
 
@@ -158,13 +158,13 @@ namespace Js
             SRCINFO *hsi = scriptContext->AddHostSrcInfo(&si);
             uint32 flags = fscrIsLibraryCode | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
 
-            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_builtin, nullptr, &this->builtInByteCode);
+            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_builtin, nullptr, &this->jsBuiltInByteCode);
 
-            IfFailAssertMsgAndThrowHr(hr, "Failed to deserialize BuiltIn.js bytecode - very probably the bytecode needs to be rebuilt.");
+            IfFailAssertMsgAndThrowHr(hr, "Failed to deserialize JsBuiltIn.js bytecode - very probably the bytecode needs to be rebuilt.");
         }
     }
 
-    DynamicObject* BuiltInEngineInterfaceExtensionObject::GetPrototypeFromName(Js::PropertyIds propertyId, ScriptContext* scriptContext)
+    DynamicObject* JsBuiltInEngineInterfaceExtensionObject::GetPrototypeFromName(Js::PropertyIds propertyId, ScriptContext* scriptContext)
     {
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
@@ -181,7 +181,7 @@ namespace Js
         }
     }
 
-    Var BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_RegisterFunction(RecyclableObject* function, CallInfo callInfo, ...)
+    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterFunction(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
@@ -217,9 +217,18 @@ namespace Js
         // Link the function to the prototype.
         ScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateScriptFunction(func->GetFunctionProxy());
         scriptFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(argumentsCount), PropertyConfigurable, nullptr);
+        scriptFunction->SetPropertyWithAttributes(PropertyIds::arguments, scriptContext->GetLibrary()->GetNull(), PropertyConfigurable, nullptr);
+        scriptFunction->SetPropertyWithAttributes(PropertyIds::caller, scriptContext->GetLibrary()->GetNull(), PropertyConfigurable, nullptr);
+        scriptFunction->SetPropertyWithAttributes(PropertyIds::prototype, scriptContext->GetLibrary()->GetUndefined(), PropertyConfigurable, nullptr);
+
+        if (scriptFunction->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled())
+        {
+            scriptFunction->SetPropertyWithAttributes(PropertyIds::name, methodName, PropertyConfigurable, nullptr);
+        }
+
         scriptContext->GetLibrary()->AddMember(prototype, functionIdentifier, scriptFunction);
 
-        if (functionIdentifier == PropertyIds::indexOf) 
+        if (functionIdentifier == PropertyIds::indexOf)
         {
             // Special case for Intl who requires to call the non-overriden (by the user) IndexOf function.
             scriptContext->GetLibrary()->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), Js::PropertyIds::builtInJavascriptArrayEntryIndexOf, scriptFunction);
@@ -229,14 +238,14 @@ namespace Js
         return scriptContext->GetLibrary()->GetUndefined();
     }
 
-    Var BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_Internal_ToLengthFunction(RecyclableObject * function, CallInfo callInfo, ...)
+    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToLengthFunction(RecyclableObject * function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         Assert(args.Info.Count >= 2);
         return JavascriptNumber::ToVar(JavascriptConversion::ToLength(args.Values[1], scriptContext), scriptContext);
     }
 
-    Var BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_Internal_ToIntegerFunction(RecyclableObject * function, CallInfo callInfo, ...)
+    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToIntegerFunction(RecyclableObject * function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         Assert(args.Info.Count >= 2);
@@ -254,5 +263,5 @@ namespace Js
         return JavascriptNumber::ToVarNoCheck(JavascriptConversion::ToInteger(value, scriptContext), scriptContext);
     }
 
-#endif // ENABLE_BUILTIN_OBJECT
+#endif // ENABLE_JS_BUILTINS
 }

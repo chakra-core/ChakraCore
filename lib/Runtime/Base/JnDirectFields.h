@@ -162,7 +162,7 @@ ENTRY(blink)
 ENTRY(bold)
 ENTRY2(boolean_, _u("boolean")) // "boolean" cannot be an identifier in C++ so using "boolean_" instead
 ENTRY(Boolean)
-ENTRY(BuiltIn)
+ENTRY(JsBuiltIn)
 ENTRY(call)
 ENTRY(CanvasPixelArray)
 ENTRY(cast)

@@ -172,7 +172,7 @@ namespace Js
         friend class ExternalLibraryBase;
         friend class ActiveScriptExternalLibrary;
         friend class IntlEngineInterfaceExtensionObject;
-        friend class BuiltInEngineInterfaceExtensionObject;
+        friend class JsBuiltInEngineInterfaceExtensionObject;
         friend class ChakraHostScriptContext;
 #ifdef ENABLE_PROJECTION
         friend class ProjectionExternalLibrary;
@@ -784,7 +784,7 @@ namespace Js
         void InitializeIntlForNumberPrototype();
 #endif
 
-#ifdef ENABLE_BUILTIN_OBJECT
+#ifdef ENABLE_JS_BUILTINS
         template <class Fn>
         void InitializeBuiltInForPrototypes(Fn fn);
 

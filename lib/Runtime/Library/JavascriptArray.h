@@ -265,6 +265,7 @@ namespace Js
         static Var EntryEvery(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFilter(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryForEach(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryIndexOf(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIncludes(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJoin(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryLastIndexOf(RecyclableObject* function, CallInfo callInfo, ...);

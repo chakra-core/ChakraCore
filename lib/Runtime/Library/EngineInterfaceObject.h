@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_BUILTIN_OBJECT) || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS) || defined(ENABLE_PROJECTION)
 
 namespace Js
 {
@@ -12,7 +12,7 @@ namespace Js
 
     enum EngineInterfaceExtensionKind
     {
-        EngineInterfaceExtensionKind_BuiltIn = 0,
+        EngineInterfaceExtensionKind_JsBuiltIn = 0,
         EngineInterfaceExtensionKind_Intl = 1,
         EngineInterfaceExtensionKind_WinRTPromise = 2,
         MaxEngineInterfaceExtensionKind = EngineInterfaceExtensionKind_WinRTPromise
@@ -143,4 +143,4 @@ namespace Js
     };
 }
 
-#endif // ENABLE_INTL_OBJECT || ENABLE_BUILTIN_OBJECT || ENABLE_PROJECTION
+#endif // ENABLE_INTL_OBJECT || ENABLE_JS_BUILTINS || ENABLE_PROJECTION

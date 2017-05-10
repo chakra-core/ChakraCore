@@ -114,3 +114,5 @@ WScript.Echo(undefinedValues.indexOf(undefined));
 
 undefinedValues.length = 8;
 WScript.Echo(undefinedValues.indexOf(undefined));
+
+WScript.Echo(Array.prototype.indexOf.prototype === undefined);

@@ -118,7 +118,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyTable.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyEnvironment.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WabtInterface.cpp" />
-    <ClCompile Include="BuiltInEngineInterfaceExtensionObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsBuiltInEngineInterfaceExtensionObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -253,11 +253,11 @@
     <ClInclude Include="WebAssemblyTable.h" />
     <ClInclude Include="WebAssemblyEnvironment.h" />
     <ClInclude Include="WabtInterface.h" />
-    <ClInclude Include="BuiltInEngineInterfaceExtensionObject.h" />
-    <ClInclude Include="BuiltIn\BuiltIn.js.bc.32b.h" />
-    <ClInclude Include="BuiltIn\BuiltIn.js.bc.64b.h" />
-    <ClInclude Include="BuiltIn\BuiltIn.js.nojit.bc.32b.h" />
-    <ClInclude Include="BuiltIn\BuiltIn.js.nojit.bc.64b.h" />
+    <ClInclude Include="JsBuiltInEngineInterfaceExtensionObject.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.32b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.64b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.32b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />
@@ -272,7 +272,7 @@
     <None Include="amd64\JavascriptFunctionA.S">
       <Filter>amd64</Filter>
     </None>
-    <None Include="BuiltIn\BuiltIn.js" />
+    <None Include="JsBuiltIn\JsBuiltIn.js" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="arm">
