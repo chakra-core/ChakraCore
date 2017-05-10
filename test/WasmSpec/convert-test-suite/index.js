@@ -37,6 +37,7 @@ const argv = require("yargs")
         "binary",
         "call",
         "call_indirect",
+        "chakra_i32",
         "chakra_i64",
         "conversions",
         "fac",
@@ -114,6 +115,7 @@ function main() {
           if (err) {
             return reject(err);
           }
+          console.log(`Generated ${testPath}`);
           return resolve(testPath);
         });
       }))));
