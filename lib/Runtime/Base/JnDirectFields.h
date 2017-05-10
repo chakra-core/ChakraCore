@@ -302,6 +302,7 @@ ENTRY(maximum)
 ENTRY(element)
 ENTRY(low)
 ENTRY(high)
+ENTRY(arrayBuffer)
 // wabt
 ENTRY(wabt)
 ENTRY(convertWast2Wasm)

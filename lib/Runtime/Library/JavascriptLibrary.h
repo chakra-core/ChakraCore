@@ -445,6 +445,9 @@ namespace Js
 
 #ifdef ENABLE_WASM
         Field(DynamicObject*) webAssemblyObject;
+        Field(JavascriptFunction*) webAssemblyQueryResponseFunction;
+        Field(JavascriptFunction*) webAssemblyCompileFunction;
+        Field(JavascriptFunction*) webAssemblyInstantiateBoundFunction;
 #endif
 
         // SIMD_JS
@@ -783,6 +786,11 @@ namespace Js
         DynamicType * GetWebAssemblyInstanceType()  const { return webAssemblyInstanceType; }
         DynamicType * GetWebAssemblyMemoryType() const { return webAssemblyMemoryType; }
         DynamicType * GetWebAssemblyTableType() const { return webAssemblyTableType; }
+#ifdef ENABLE_WASM
+        JavascriptFunction* GetWebAssemblyQueryResponseFunction() const { return webAssemblyQueryResponseFunction; }
+        JavascriptFunction* GetWebAssemblyCompileFunction() const { return webAssemblyCompileFunction; }
+        JavascriptFunction* GetWebAssemblyInstantiateBoundFunction() const { return webAssemblyInstantiateBoundFunction; }
+#endif
 
         // SIMD_JS
         DynamicType * GetSIMDBool8x16TypeDynamic()  const { return simdBool8x16TypeDynamic;  }

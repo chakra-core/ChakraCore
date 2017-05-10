@@ -7,8 +7,6 @@
 
 #ifdef ENABLE_WASM
 #include "../WasmReader/WasmReaderPch.h"
-// Included for AsmJsDefaultEntryThunk
-#include "Language/InterpreterStackFrame.h"
 namespace Js
 {
 

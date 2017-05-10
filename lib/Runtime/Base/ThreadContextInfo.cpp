@@ -12,9 +12,12 @@
 
 ThreadContextInfo::ThreadContextInfo() :
     m_isAllJITCodeInPreReservedRegion(true),
-    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined),
     m_isClosed(false)
 {
+    for (int i = 0; i <= WellKnownHostType_Last; ++i)
+    {
+        wellKnownHostTypeIds[i] = Js::TypeIds_Undefined;
+    }
 }
 
 #if ENABLE_NATIVE_CODEGEN

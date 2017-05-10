@@ -42,7 +42,7 @@ public:
     CustomHeap::OOPCodePageAllocators  * GetCodePageAllocators();
     SectionAllocWrapper * GetSectionAllocator();
     void UpdateNumericPropertyBV(BVSparseNode * newProps);
-    void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
+    void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeIds[WellKnownHostType_HTMLAllCollection] = typeId; }
     void AddRef();
     void Release();
     void Close();

@@ -390,6 +390,7 @@ RT_ERROR_MSG(WASMERR_WasmLinkError, 7019, "%s", "Linking failed.", kjstWebAssemb
 RT_ERROR_MSG(JSERR_OutOfBoundString, 7020, "", "String length is out of bound", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_InvalidIterableObject, 7021, "%s : Invalid iterable object", "Invalid iterable object", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_InvalidIteratorObject, 7022, "%s : Invalid iterator object", "Invalid iterator object", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_NeedResponse, 7023, "%s is not a Reponse", "Response expected", kjstTypeError, 0)
 
 // Wabt Errors
 RT_ERROR_MSG(WABTERR_WabtError, 7200, "%s", "Wabt Error.", kjstTypeError, 0)

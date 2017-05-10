@@ -5,6 +5,16 @@
 
 #pragma once
 
+// Keep in sync with WellKnownType in scriptdirect.idl
+
+typedef enum WellKnownHostType
+{
+    WellKnownHostType_HTMLAllCollection = 0,
+    WellKnownHostType_Response = 1,
+    WellKnownHostType_Last = WellKnownHostType_Response,
+    WellKnownHostType_Invalid = WellKnownHostType_Last + 1
+} WellKnownHostType;
+
 class ThreadContextInfo
 {
 public:
@@ -99,7 +109,7 @@ public:
 
     virtual bool IsNumericProperty(Js::PropertyId propertyId) = 0;
 
-    bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeHTMLAllCollectionTypeId; }
+    bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeIds[WellKnownHostType_HTMLAllCollection]; }
 
     bool IsCFGEnabled();
     bool IsClosed();
@@ -117,7 +127,7 @@ protected:
 
     UCrtC99MathApis ucrtC99MathApis;
 
-    Js::TypeId wellKnownHostTypeHTMLAllCollectionTypeId;
+    Js::TypeId wellKnownHostTypeIds[WellKnownHostType_Last + 1];
 
     bool m_isAllJITCodeInPreReservedRegion;
     bool m_isClosed;
