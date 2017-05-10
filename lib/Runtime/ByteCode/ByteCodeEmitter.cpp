@@ -11,6 +11,7 @@ void EmitAssignment(ParseNode *asgnNode, ParseNode *lhs, Js::RegSlot rhsLocation
 void EmitLoad(ParseNode *rhs, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitCall(ParseNode* pnode, Js::RegSlot rhsLocation, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, BOOL fReturnValue, BOOL fEvaluateComponents, BOOL fHasNewTarget, Js::RegSlot overrideThisLocation = Js::Constants::NoRegister);
 void EmitSuperFieldPatch(FuncInfo* funcInfo, ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator);
+void EmitYield(Js::RegSlot inputLocation, Js::RegSlot resultLocation, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Js::RegSlot yieldStarIterator = Js::Constants::NoRegister);
 
 void EmitUseBeforeDeclaration(Symbol *sym, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitUseBeforeDeclarationRuntimeError(ByteCodeGenerator *byteCodeGenerator, Js::RegSlot location);
@@ -3357,6 +3358,18 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
                 // Mark the beginning of the body scope so that new scope slots can be created.
                 this->Writer()->Empty(Js::OpCode::BeginBodyScope);
             }
+        }
+
+        // If the function has non simple parameter list, the params needs to be evaluated when the generator object is created
+        // (that is when the function is called). This yield opcode is to mark the  begining of the function body.
+        // TODO: Inserting a yield should have almost no impact on perf as it is a direct return from the function. But this needs
+        // to be verified. Ideally if the function has simple parameter list then we can avoid inserting the opcode and the additional call.
+        if (pnode->sxFnc.IsGenerator())
+        {
+            Js::RegSlot tempReg = funcInfo->AcquireTmpRegister();
+            EmitYield(funcInfo->AssignUndefinedConstRegister(), tempReg, this, funcInfo);
+            m_writer.Reg1(Js::OpCode::Unused, tempReg);
+            funcInfo->ReleaseTmpRegister(tempReg);
         }
 
         // Emit all scope-wide function definitions before emitting function bodies
@@ -10154,8 +10167,7 @@ void ByteCodeGenerator::EmitTryBlockHeadersAfterYield()
     }
 }
 
-void EmitYield(Js::RegSlot inputLocation, Js::RegSlot resultLocation, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo,
-    Js::RegSlot yieldStarIterator = Js::Constants::NoRegister)
+void EmitYield(Js::RegSlot inputLocation, Js::RegSlot resultLocation, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Js::RegSlot yieldStarIterator)
 {
     // If the bytecode emitted by this function is part of 'yield*', inputLocation is the object
     // returned by the iterable's next/return/throw method. Otherwise, it is the yielded value.
