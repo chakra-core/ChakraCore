@@ -178,6 +178,7 @@ public:
     JitProfilingInstr * AsJitProfilingInstr();
     bool            IsProfiledInstr() const;
     ProfiledInstr * AsProfiledInstr();
+    ProfiledInstr const * AsProfiledInstr() const;
     bool            IsProfiledLabelInstr() const;
     ProfiledLabelInstr * AsProfiledLabelInstr();
     bool            IsPragmaInstr() const;
@@ -284,6 +285,8 @@ public:
     bool            CanHaveArgOutChain() const;
     bool            HasEmptyArgOutChain(IR::Instr** startCallInstrOut = nullptr);
     bool            HasFixedFunctionAddressTarget() const;
+    // Return whether the instruction transfer value from the src to the dst for copy prop
+    bool            TransfersSrcValue() const;
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     const char *    GetBailOutKindName() const;
@@ -435,9 +438,9 @@ public:
     FixedFieldInfo* GetFixedFunction() const;
     uint       GetArgOutCount(bool getInterpreterArgOutCount);
     IR::PropertySymOpnd *GetPropertySymOpnd() const;
-    bool       CallsAccessor(IR::PropertySymOpnd* methodOpnd = nullptr);
-    bool       CallsGetter(IR::PropertySymOpnd* methodOpnd = nullptr);
-    bool       CallsSetter(IR::PropertySymOpnd* methodOpnd = nullptr);
+    bool       CallsAccessor(IR::PropertySymOpnd const* methodOpnd = nullptr) const;
+    bool       CallsGetter(IR::PropertySymOpnd const* methodOpnd = nullptr) const;
+    bool       CallsSetter(IR::PropertySymOpnd const* methodOpnd = nullptr) const;
     bool       UsesAllFields();
     void       MoveArgs(bool generateByteCodeCapture = false);
     void       Move(IR::Instr* insertInstr);
@@ -590,6 +593,10 @@ public:
         Js::FldInfo &FldInfo()
         {
             return reinterpret_cast<Js::FldInfo &>(fldInfoData);
+        }
+        Js::FldInfo const &FldInfo() const
+        {
+            return reinterpret_cast<Js::FldInfo const &>(fldInfoData);
         }
     } u;
 

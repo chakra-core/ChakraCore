@@ -387,9 +387,6 @@ public:
 
     void                    Optimize();
 
-    // Return whether the instruction transfer value from the src to the dst for copy prop
-    static bool             TransferSrcValue(IR::Instr * instr);
-
     // Function used by the backward pass as well.
     // GlobOptBailout.cpp
     static void             TrackByteCodeSymUsed(IR::Instr * instr, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed, PropertySym **pPropertySym);

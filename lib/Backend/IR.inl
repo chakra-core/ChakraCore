@@ -187,6 +187,14 @@ Instr::AsProfiledInstr()
     return reinterpret_cast<ProfiledInstr *>(this);
 }
 
+inline ProfiledInstr const *
+Instr::AsProfiledInstr() const
+{
+    AssertMsg(this->IsProfiledInstr(), "Bad call to AsProfiledInstr()");
+
+    return reinterpret_cast<ProfiledInstr const *>(this);
+}
+
 inline bool
 Instr::IsProfiledLabelInstr() const
 {

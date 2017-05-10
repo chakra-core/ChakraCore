@@ -3399,7 +3399,7 @@ BackwardPass::ProcessNoImplicitCallDef(IR::Instr *const instr)
             // field holds the value, which is up to the StFld when going backwards.
             (src->IsRegOpnd() && dst->GetValueType().IsArrayOrObjectWithArray())
         ) ||
-        !GlobOpt::TransferSrcValue(instr))
+        !instr->TransfersSrcValue())
     {
         return;
     }
@@ -4212,7 +4212,7 @@ BackwardPass::ProcessSymUse(Sym * sym, bool isRegOpndUse, BOOLEAN isNonByteCodeU
 
         Assert((block->fieldHoistCandidates != nullptr) == this->DoFieldHoistCandidates());
 
-        if (block->fieldHoistCandidates && GlobOpt::TransferSrcValue(this->currentInstr))
+        if (block->fieldHoistCandidates && this->currentInstr->TransfersSrcValue())
         {
             // If the instruction doesn't transfer the src value to dst, it will not be copyprop'd
             // So we can't hoist those.

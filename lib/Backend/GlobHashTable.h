@@ -27,7 +27,7 @@ public:
 class Key
 {
 public:
-    static uint Get(Sym *sym) { return static_cast<uint>(sym->m_id); }
+    static uint Get(Sym const *sym) { return static_cast<uint>(sym->m_id); }
     static uint Get(ExprHash hash) { return static_cast<uint>(hash); }
 };
 
@@ -210,7 +210,7 @@ public:
         return NULL;
     }
 
-    HashBucket * GetBucket(uint key)
+    HashBucket * GetBucket(uint key) const
     {
         uint hash = this->Hash(key);
         // Assumes sorted lists
@@ -360,7 +360,7 @@ public:
         }
     }
 
-    ValueHashTable *Copy()
+    ValueHashTable *Copy() const
     {
         ValueHashTable *newTable = ValueHashTable::New(this->alloc, this->tableSize);
 
@@ -388,7 +388,7 @@ public:
     }
 
 #if DBG_DUMP
-    void Dump()
+    void Dump() const
     {
         FOREACH_GLOBHASHTABLE_ENTRY(bucket, this)
         {
@@ -401,7 +401,7 @@ public:
         NEXT_GLOBHASHTABLE_ENTRY;
     }
 
-    void Dump(void (*valueDump)(TData))
+    void Dump(void (*valueDump)(TData)) const
     {
         Output::Print(_u("\n-------------------------------------------------------------------------------------------------\n"));
         FOREACH_GLOBHASHTABLE_ENTRY(bucket, this)
@@ -433,7 +433,7 @@ protected:
         }
     }
 private:
-    uint         Hash(uint key) { return (key % this->tableSize); }
+    uint         Hash(uint key) const { return (key % this->tableSize); }
 
 #if PROFILE_DICTIONARY
     DictionaryStats *stats;

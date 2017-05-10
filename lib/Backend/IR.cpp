@@ -3237,6 +3237,21 @@ bool Instr::HasFixedFunctionAddressTarget() const
         this->GetSrc1()->AsAddrOpnd()->m_isFunction;
 }
 
+bool IR::Instr::TransfersSrcValue() const
+{
+    // Return whether the instruction transfers a value to the destination.
+    // This is used to determine whether we should generate a value for the src so that it will
+    // match with the dst for copy prop.
+
+    // No point creating an unknown value for the src of a binary instr, as the dst will just be a different
+    // Don't create value for instruction without dst as well. The value doesn't go anywhere.
+
+    // if (src2 == nullptr) Disable copy prop for ScopedLdFld/ScopeStFld, etc., consider enabling that in the future
+    // Consider: Add opcode attribute to indicate whether the opcode would use the value or not
+
+    return this->GetDst() != nullptr && this->GetSrc2() == nullptr && !OpCodeAttr::DoNotTransfer(this->m_opcode) && !this->CallsAccessor();
+}
+
 
 void Instr::MoveArgs(bool generateByteCodeCapture)
 {
@@ -3462,7 +3477,7 @@ PropertySymOpnd *Instr::GetPropertySymOpnd() const
     return nullptr;
 }
 
-bool Instr::CallsAccessor(IR::PropertySymOpnd* methodOpnd)
+bool Instr::CallsAccessor(IR::PropertySymOpnd const* methodOpnd) const
 {
     if (methodOpnd)
     {
@@ -3473,7 +3488,7 @@ bool Instr::CallsAccessor(IR::PropertySymOpnd* methodOpnd)
     return CallsGetter() || CallsSetter();
 }
 
-bool Instr::CallsSetter(IR::PropertySymOpnd* methodOpnd)
+bool Instr::CallsSetter(IR::PropertySymOpnd const* methodOpnd) const
 {
     return
         this->IsProfiledInstr() &&
@@ -3481,7 +3496,7 @@ bool Instr::CallsSetter(IR::PropertySymOpnd* methodOpnd)
         ((this->AsProfiledInstr()->u.FldInfo().flags & Js::FldInfo_FromAccessor) != 0);
 }
 
-bool Instr::CallsGetter(IR::PropertySymOpnd* methodOpnd)
+bool Instr::CallsGetter(IR::PropertySymOpnd const* methodOpnd) const
 {
     return
         this->IsProfiledInstr() &&

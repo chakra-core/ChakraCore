@@ -1645,7 +1645,7 @@ GlobOpt::FieldHoistOptSrc(IR::Opnd *opnd, IR::Instr *instr, PropertySym * proper
     {
         return false;
     }
-    if (!GlobOpt::TransferSrcValue(instr) || instr->m_opcode == Js::OpCode::LdMethodFromFlags)
+    if (!instr->TransfersSrcValue() || instr->m_opcode == Js::OpCode::LdMethodFromFlags)
     {
         // Instructions like typeof don't transfer value of the field, we can't hoist those right now.
         return false;
@@ -1702,7 +1702,7 @@ GlobOpt::FieldHoistOptDst(IR::Instr * instr, PropertySym * propertySym, Value * 
 bool
 GlobOpt::CopyPropHoistedFields(PropertySym * sym, IR::Opnd ** ppOpnd, IR::Instr * instr)
 {
-    Assert(GlobOpt::TransferSrcValue(instr));
+    Assert(instr->TransfersSrcValue());
     if (!this->blockData.liveFields->Test(sym->m_id))
     {
         // Not live
@@ -1736,7 +1736,7 @@ GlobOpt::CopyPropHoistedFields(PropertySym * sym, IR::Opnd ** ppOpnd, IR::Instr 
 void
 GlobOpt::ReloadFieldHoistStackSym(IR::Instr * instr, PropertySym * propertySym)
 {
-    Assert(GlobOpt::TransferSrcValue(instr));
+    Assert(instr->TransfersSrcValue());
     StackSym * fieldHoistSym;
     Loop * loop = this->FindFieldHoistStackSym(this->currentBlock->loop, propertySym->m_id, &fieldHoistSym, instr);
 
@@ -2020,7 +2020,7 @@ GlobOpt::AssertCanCopyPropOrCSEFieldLoad(IR::Instr * instr)
     // We need to have another opcode for the hoisted version to avoid the exception and bailout.
 
     // Consider: Theoretically, we can copy prop/field hoist ScopedLdFld/ScopedStFld
-    // but GlobOtp::TransferSrcValue blocks that now, and copy prop into that instruction is not supported yet.
+    // but Instr::TransferSrcValue blocks that now, and copy prop into that instruction is not supported yet.
     Assert(instr->m_opcode == Js::OpCode::LdSlot || instr->m_opcode == Js::OpCode::LdSlotArr
         || instr->m_opcode == Js::OpCode::LdFld || instr->m_opcode == Js::OpCode::LdFldForCallApplyTarget
         || instr->m_opcode == Js::OpCode::LdRootFld  || instr->m_opcode == Js::OpCode::LdSuperFld
