@@ -114,6 +114,7 @@ function main() {
           if (err) {
             return reject(err);
           }
+          console.log(`Generated ${testPath}`);
           return resolve(testPath);
         });
       }))));
