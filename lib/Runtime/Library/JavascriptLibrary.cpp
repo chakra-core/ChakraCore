@@ -1712,7 +1712,9 @@ namespace Js
         ScriptContext* scriptContext = arrayPrototype->GetScriptContext();
         JavascriptLibrary* library = arrayPrototype->GetLibrary();
 
+#ifdef ENABLE_JS_BUILTINS
         library->EnsureBuiltInEngineIsReady();
+#endif
 
         library->AddMember(arrayPrototype, PropertyIds::constructor, library->arrayConstructor);
 

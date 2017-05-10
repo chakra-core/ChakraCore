@@ -69,10 +69,10 @@ namespace Js
         if (scriptContext->IsJsBuiltInEnabled())
         {
             Assert(library->GetEngineInterfaceObject() != nullptr);
-            this->builtInNativeInterfaces = DynamicObject::New(library->GetRecycler(),
+            builtInNativeInterfaces = DynamicObject::New(library->GetRecycler(),
                 DynamicType::New(scriptContext, TypeIds_Object, commonObject, nullptr,
                     DeferredTypeHandler<InitializeJsBuiltInNativeInterfaces>::GetDefaultInstance()));
-            library->AddMember(library->GetEngineInterfaceObject(), Js::PropertyIds::JsBuiltIn, this->builtInNativeInterfaces);
+            library->AddMember(library->GetEngineInterfaceObject(), Js::PropertyIds::JsBuiltIn, builtInNativeInterfaces);
         }
 
         wasInitialized = true;
@@ -80,13 +80,13 @@ namespace Js
 
     void JsBuiltInEngineInterfaceExtensionObject::InjectJsBuiltInLibraryCode(ScriptContext * scriptContext)
     {
-        if (this->jsBuiltInByteCode != nullptr)
+        if (jsBuiltInByteCode != nullptr)
         {
             return;
         }
 
         try {
-            this->EnsureJsBuiltInByteCode(scriptContext);
+            EnsureJsBuiltInByteCode(scriptContext);
             Assert(jsBuiltInByteCode != nullptr);
 
             Js::ScriptFunction *function = scriptContext->GetLibrary()->CreateScriptFunction(jsBuiltInByteCode->GetNestedFunctionForExecution(0));
@@ -138,15 +138,15 @@ namespace Js
 #if DBG
     void JsBuiltInEngineInterfaceExtensionObject::DumpByteCode()
     {
-        Output::Print(_u("Dumping Built In Byte Code:"));
-        this->EnsureJsBuiltInByteCode(scriptContext);
+        Output::Print(_u("Dumping JS Built Ins Byte Code:\r"));
+        EnsureJsBuiltInByteCode(scriptContext);
         Js::ByteCodeDumper::DumpRecursively(jsBuiltInByteCode);
     }
 #endif // DBG
 
     void JsBuiltInEngineInterfaceExtensionObject::EnsureJsBuiltInByteCode(ScriptContext * scriptContext)
     {
-        if (this->jsBuiltInByteCode == nullptr)
+        if (jsBuiltInByteCode == nullptr)
         {
             SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(Js::Constants::NoHostSourceContext, NULL);
 
@@ -158,7 +158,7 @@ namespace Js
             SRCINFO *hsi = scriptContext->AddHostSrcInfo(&si);
             uint32 flags = fscrIsLibraryCode | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
 
-            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_jsbuiltin, nullptr, &this->jsBuiltInByteCode);
+            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_jsbuiltin, nullptr, &jsBuiltInByteCode);
 
             IfFailAssertMsgAndThrowHr(hr, "Failed to deserialize JsBuiltIn.js bytecode - very probably the bytecode needs to be rebuilt.");
         }
@@ -219,7 +219,9 @@ namespace Js
         scriptFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(argumentsCount), PropertyConfigurable, nullptr);
         scriptFunction->SetPropertyWithAttributes(PropertyIds::arguments, scriptContext->GetLibrary()->GetNull(), PropertyConfigurable, nullptr);
         scriptFunction->SetPropertyWithAttributes(PropertyIds::caller, scriptContext->GetLibrary()->GetNull(), PropertyConfigurable, nullptr);
-        scriptFunction->SetPropertyWithAttributes(PropertyIds::prototype, scriptContext->GetLibrary()->GetUndefined(), PropertyConfigurable, nullptr);
+
+        scriptFunction->SetConfigurable(PropertyIds::prototype, true);
+        scriptFunction->DeleteProperty(PropertyIds::prototype, Js::PropertyOperationFlags::PropertyOperation_None);
 
         if (scriptFunction->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled())
         {
