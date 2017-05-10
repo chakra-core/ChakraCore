@@ -34,7 +34,7 @@ typedef struct {} TTDRecorder;
             {  \
                 return JsErrorWrongRuntime;  \
             }  \
-            p = Js::CrossSite::MarshalVar(scriptContext, __obj); \
+            p = Js::CrossSite::MarshalVar(scriptContext, __obj, true); \
         }
 
 #define VALIDATE_INCOMING_RUNTIME_HANDLE(p) \
@@ -408,8 +408,8 @@ void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptEx
 #else
 #define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) false
 
-#define PERFORM_JSRT_TTD_RECORD_ACTION(CTX, ACTION_CODE, ...) 
-#define PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(CTX, RESULT) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION(CTX, ACTION_CODE, ...)
+#define PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(CTX, RESULT)
 
-#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX)
 #endif
