@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeGlobalTestFunc": "function <large string>"
     },
     "arguments": {
@@ -15,19 +12,11 @@
     "globals": {
       "gA": "number 1",
       "gConstB": "number 2",
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeGlobalTestFunc": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "gC": "number 3",
       "gD": "number 4",
       "blockScopeGlobalTestFunc": "function <large string>"
@@ -43,11 +32,6 @@
       "gConstB": "number 2",
       "gC": "number 3",
       "gD": "number 4",
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeGlobalTestFunc": "function <large string>"
     }
   }

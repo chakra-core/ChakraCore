@@ -55,51 +55,6 @@
       }
     },
     "globals": {
-      "WScript": {
-        "#__proto__": "Object {...}",
-        "Echo": "function Echo",
-        "Quit": "function Quit",
-        "LoadScriptFile": "function LoadScriptFile",
-        "LoadScript": "function LoadScript",
-        "LoadModule": "function LoadModule",
-        "SetTimeout": "function SetTimeout",
-        "ClearTimeout": "function ClearTimeout",
-        "Attach": "function Attach",
-        "Detach": "function Detach",
-        "DumpFunctionPosition": "function <large string>",
-        "RequestAsyncBreak": "function <large string>",
-        "LoadBinaryFile": "function LoadBinaryFile",
-        "LoadTextFile": "function LoadTextFile",
-        "Flag": "function Flag",
-        "Edit": "function Edit",
-        "Platform": "Object {...}",
-        "Arguments": "Array []"
-      },
-      "print": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string print",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
