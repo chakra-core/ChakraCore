@@ -18551,11 +18551,17 @@ Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
     RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
 }
 
+// Generate a fast path for the "in" operator that check quickly if we have an array or not and if the index of the data is contained in the array's length.
 void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
 {
     // operator "foo in bar"
     IR::Opnd* src1 = instr->GetSrc1(); // foo
     IR::Opnd* src2 = instr->GetSrc2(); // bar
+
+    if (!src2->GetValueType().IsLikelyArray() || !src2->GetValueType().HasNoMissingValues())
+    {
+        return;
+    }
 
     IR::LabelInstr* helperLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
     IR::LabelInstr* doneLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
@@ -18614,8 +18620,12 @@ void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
     IR::Opnd* headSegmentLengthOpnd = IR::IndirOpnd::New(headSegmentOpnd, Js::SparseArraySegmentBase::GetOffsetOfLength(), TyUint32, m_func);
     autoReuseHeadSegmentLengthOpnd.Initialize(headSegmentLengthOpnd, m_func);
 
-    InsertCompare(src1Untagged, headSegmentLengthOpnd, instr);
-    InsertBranch(Js::OpCode::BrGe_A /* >= */, true /* isUnsigned */, helperLabel, instr);
+    InsertCompareBranch(
+        src1Untagged,
+        headSegmentLengthOpnd,
+        Js::OpCode::BrGe_A,
+        helperLabel,
+        instr);
 
     InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue), instr);
     InsertBranch(Js::OpCode::Br, doneLabel, instr);

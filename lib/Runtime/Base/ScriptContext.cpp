@@ -9,6 +9,7 @@
 #include "DebugWriter.h"
 #include "RegexStats.h"
 
+#include "ConfigFlagsList.h"
 #include "ByteCode/ByteCodeApi.h"
 #include "Library/ProfileString.h"
 #include "Debug/DiagHelperMethodWrapper.h"
@@ -5750,7 +5751,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     bool ScriptContext::IsJsBuiltInEnabled()
     {
-        return GetConfig()->IsJsBuiltInEnabled();
+        return CONFIG_FLAG(JsBuiltIn);
     }
 
 

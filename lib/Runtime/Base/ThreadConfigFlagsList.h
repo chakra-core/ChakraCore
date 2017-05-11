@@ -7,7 +7,6 @@
 FLAG(IsCollectGarbageEnabled, CollectGarbage)
 FLAG(IsErrorStackTraceEnabled, errorStackTrace)
 FLAG(IsES6UnicodeVerboseEnabled, ES6UnicodeVerbose)
-FLAG_RELEASE(IsJsBuiltInEnabled, JsBuiltIn)
 FLAG_RELEASE(IsIntlEnabled, Intl)
 FLAG_RELEASE(IsES6SpeciesEnabled, ES6Species)
 FLAG_RELEASE(IsES6ClassAndExtendsEnabled, ES6Classes)

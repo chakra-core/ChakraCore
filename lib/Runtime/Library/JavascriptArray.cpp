@@ -3827,7 +3827,6 @@ namespace Js
     // Array.prototype.indexOf as defined in ES6.0 (final) Section 22.1.3.11
     Var JavascriptArray::EntryIndexOf(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        //return nullptr;
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         
         ARGUMENTS(args, callInfo);

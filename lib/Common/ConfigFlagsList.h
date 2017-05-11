@@ -968,7 +968,7 @@ FLAGNR(Boolean, CollectGarbage        , "Enable CollectGarbage API", DEFAULT_CON
 FLAGR (Boolean, Intl                  , "Intl object support", DEFAULT_CONFIG_Intl)
 FLAGNR(Boolean, IntlBuiltIns          , "Intl built-in function support", DEFAULT_CONFIG_IntlBuiltIns)
 
-FLAGR (Boolean, JsBuiltIn             , "JS Built-in function support", DEFAULT_CONFIG_JsBuiltIn)
+FLAGNR(Boolean, JsBuiltIn             , "JS Built-in function support", DEFAULT_CONFIG_JsBuiltIn)
 
 FLAGNR(Boolean, LdChakraLib           , "Access to the Chakra internal library with the __chakraLibrary keyword", DEFAULT_CONFIG_LdChakraLib)
 // ES6 (BLUE+1) features/flags

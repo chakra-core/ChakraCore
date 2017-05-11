@@ -2951,7 +2951,7 @@ namespace Js
         // Find out an offset falls within the range. returns TRUE if found.
         BOOL GetBranchOffsetWithin(uint start, uint end, StatementAdjustmentRecord* record);
         bool GetLineCharOffset(int byteCodeOffset, ULONG* line, LONG* charOffset, bool canAllocateLineCache = true);
-        bool GetLineCharOffsetFromStartChar(int startCharOfStatement, ULONG* _line, LONG* _charOffset, bool canAllocateLineCache = true, bool canDumpLibraryCode = false);
+        bool GetLineCharOffsetFromStartChar(int startCharOfStatement, ULONG* _line, LONG* _charOffset, bool canAllocateLineCache = true);
 
         // Given bytecode position, returns the start position of the statement and length of the statement.
         bool GetStatementIndexAndLengthAt(int byteCodeOffset, UINT32* statementIndex, UINT32* statementLength);

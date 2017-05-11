@@ -3018,9 +3018,9 @@ namespace Js
         return this->GetLineCharOffsetFromStartChar(startCharOfStatement, _line, _charOffset, canAllocateLineCache);
     }
 
-    bool FunctionBody::GetLineCharOffsetFromStartChar(int startCharOfStatement, ULONG* _line, LONG* _charOffset, bool canAllocateLineCache /*= true*/, bool canDumpLibraryCode /*= false*/)
+    bool FunctionBody::GetLineCharOffsetFromStartChar(int startCharOfStatement, ULONG* _line, LONG* _charOffset, bool canAllocateLineCache /*= true*/)
     {
-        Assert(canDumpLibraryCode || !this->GetUtf8SourceInfo()->GetIsLibraryCode());
+        Assert(!this->GetUtf8SourceInfo()->GetIsLibraryCode());
 
         // The following adjusts for where the script is within the document
         ULONG line = this->GetHostStartLine();
@@ -4354,7 +4354,7 @@ namespace Js
             AssertMsg(false, "Non-matching start of document");
         }
 
-        GetLineCharOffsetFromStartChar(cchStartOffset, &line, &col, false /*canAllocateLineCache*/, true /*canDumpLibraryCode*/);
+        GetLineCharOffsetFromStartChar(cchStartOffset, &line, &col, false /*canAllocateLineCache*/);
 
         if (sourceInfo->GetSourceHolder() != ISourceHolder::GetEmptySourceHolder())
         {
