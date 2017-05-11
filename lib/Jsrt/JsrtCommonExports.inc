@@ -116,4 +116,6 @@
     JsCreatePropertyId
     JsCopyPropertyId
     JsCreatePromise
+    JsCreateWeakReference
+    JsGetWeakReferenceValue
 #endif
