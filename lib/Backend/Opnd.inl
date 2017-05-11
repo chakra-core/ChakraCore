@@ -71,12 +71,28 @@ Opnd::AsSymOpnd()
     return reinterpret_cast<SymOpnd *>(this);
 }
 
+inline const SymOpnd *
+Opnd::AsSymOpnd() const
+{
+    AssertMsg(this->IsSymOpnd(), "Bad call to AsSymOpnd() const");
+
+    return reinterpret_cast<const SymOpnd*>(this);
+}
+
 inline PropertySymOpnd *
 Opnd::AsPropertySymOpnd()
 {
     AssertMsg(this->IsSymOpnd() && this->AsSymOpnd()->IsPropertySymOpnd(), "Bad call to AsPropertySymOpnd()");
 
     return reinterpret_cast<PropertySymOpnd *>(this);
+}
+
+inline const PropertySymOpnd *
+Opnd::AsPropertySymOpnd() const
+{
+    AssertMsg(this->IsSymOpnd() && this->AsSymOpnd()->IsPropertySymOpnd(), "Bad call to AsPropertySymOpnd() const");
+
+    return reinterpret_cast<const PropertySymOpnd *>(this);
 }
 
 ///----------------------------------------------------------------------------
@@ -99,28 +115,20 @@ Opnd::IsRegOpnd() const
 ///
 ///----------------------------------------------------------------------------
 
-inline const RegOpnd *
-Opnd::AsRegOpnd() const
-{
-    AssertMsg(this->IsRegOpnd(), "Bad call to AsRegOpnd()");
-
-    return reinterpret_cast<const RegOpnd *>(this);
-}
-
-///----------------------------------------------------------------------------
-///
-/// Opnd::AsRegOpnd
-///
-///     Use this opnd as a RegOpnd.
-///
-///----------------------------------------------------------------------------
-
 inline RegOpnd *
 Opnd::AsRegOpnd()
 {
     AssertMsg(this->IsRegOpnd(), "Bad call to AsRegOpnd()");
 
     return reinterpret_cast<RegOpnd *>(this);
+}
+
+inline const RegOpnd *
+Opnd::AsRegOpnd() const
+{
+    AssertMsg(this->IsRegOpnd(), "Bad call to AsRegOpnd() const");
+
+    return reinterpret_cast<const RegOpnd *>(this);
 }
 
 ///----------------------------------------------------------------------------
@@ -145,9 +153,17 @@ Opnd::IsRegBVOpnd() const
 inline RegBVOpnd *
 Opnd::AsRegBVOpnd()
 {
-    AssertMsg(this->IsRegBVOpnd(), "Bad call to AsRegOpnd()");
+    AssertMsg(this->IsRegBVOpnd(), "Bad call to AsRegBVOpnd()");
 
     return reinterpret_cast<RegBVOpnd *>(this);
+}
+
+inline const RegBVOpnd *
+Opnd::AsRegBVOpnd() const
+{
+    AssertMsg(this->IsRegBVOpnd(), "Bad call to AsRegBVOpnd() const");
+
+    return reinterpret_cast<const RegBVOpnd *>(this);
 }
 
 ///----------------------------------------------------------------------------
@@ -178,6 +194,14 @@ Opnd::AsIntConstOpnd()
     return reinterpret_cast<IntConstOpnd *>(this);
 }
 
+inline const IntConstOpnd *
+Opnd::AsIntConstOpnd() const
+{
+    AssertMsg(this->IsIntConstOpnd(), "Bad call to AsIntConstOpnd() const");
+
+    return reinterpret_cast<const IntConstOpnd *>(this);
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Opnd::IsInt64ConstOpnd
@@ -203,6 +227,13 @@ Opnd::AsInt64ConstOpnd()
 {
     AssertMsg(this->IsInt64ConstOpnd(), "Bad call to AsInt64ConstOpnd()");
     return reinterpret_cast<Int64ConstOpnd *>(this);
+}
+
+inline const Int64ConstOpnd *
+Opnd::AsInt64ConstOpnd() const
+{
+    AssertMsg(this->IsInt64ConstOpnd(), "Bad call to AsInt64ConstOpnd() const");
+    return reinterpret_cast<const Int64ConstOpnd *>(this);
 }
 
 
@@ -234,11 +265,33 @@ Opnd::AsFloatConstOpnd()
     return reinterpret_cast<FloatConstOpnd *>(this);
 }
 
+inline const FloatConstOpnd *
+Opnd::AsFloatConstOpnd() const
+{
+    AssertMsg(this->IsFloatConstOpnd(), "Bad call to AsFloatConstOpnd() const");
+
+    return reinterpret_cast<const FloatConstOpnd *>(this);
+}
+
+///----------------------------------------------------------------------------
+///
+/// Opnd::IsSimd128ConstOpnd
+///
+///----------------------------------------------------------------------------
+
 inline bool
 Opnd::IsSimd128ConstOpnd() const
 {
     return GetKind() == OpndKindSimd128Const;
 }
+
+///----------------------------------------------------------------------------
+///
+/// Opnd::AsSimd128ConstOpnd
+///
+///     Use this opnd as a Simd128ConstOpnd.
+///
+///----------------------------------------------------------------------------
 
 inline Simd128ConstOpnd *
 Opnd::AsSimd128ConstOpnd()
@@ -246,6 +299,14 @@ Opnd::AsSimd128ConstOpnd()
     AssertMsg(this->IsSimd128ConstOpnd(), "Bad call to AsSimd128ConstOpnd()");
 
     return reinterpret_cast<Simd128ConstOpnd *>(this);
+}
+
+inline const Simd128ConstOpnd *
+Opnd::AsSimd128ConstOpnd() const
+{
+    AssertMsg(this->IsSimd128ConstOpnd(), "Bad call to AsSimd128ConstOpnd() const");
+
+    return reinterpret_cast<const Simd128ConstOpnd *>(this);
 }
 
 ///----------------------------------------------------------------------------
@@ -276,6 +337,14 @@ Opnd::AsHelperCallOpnd()
     return reinterpret_cast<HelperCallOpnd *>(this);
 }
 
+inline const HelperCallOpnd *
+Opnd::AsHelperCallOpnd() const
+{
+    AssertMsg(this->IsHelperCallOpnd(), "Bad call to AsHelperCallOpnd() const");
+
+    return reinterpret_cast<const HelperCallOpnd *>(this);
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Opnd::IsAddrOpnd
@@ -302,6 +371,14 @@ Opnd::AsAddrOpnd()
     AssertMsg(this->IsAddrOpnd(), "Bad call to AsAddrOpnd()");
 
     return reinterpret_cast<AddrOpnd *>(this);
+}
+
+inline const AddrOpnd *
+Opnd::AsAddrOpnd() const
+{
+    AssertMsg(this->IsAddrOpnd(), "Bad call to AsAddrOpnd() const");
+
+    return reinterpret_cast<const AddrOpnd *>(this);
 }
 
 ///----------------------------------------------------------------------------
@@ -332,6 +409,14 @@ Opnd::AsIndirOpnd()
     return reinterpret_cast<IndirOpnd *>(this);
 }
 
+inline const IndirOpnd *
+Opnd::AsIndirOpnd() const
+{
+    AssertMsg(this->IsIndirOpnd(), "Bad call to AsIndirOpnd() const");
+
+    return reinterpret_cast<const IndirOpnd *>(this);
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Opnd::IsMemRefOpnd
@@ -360,11 +445,33 @@ Opnd::AsMemRefOpnd()
     return reinterpret_cast<MemRefOpnd *>(this);
 }
 
+inline const MemRefOpnd *
+Opnd::AsMemRefOpnd() const
+{
+    AssertMsg(this->IsMemRefOpnd(), "Bad call to AsMemRefOpnd() const");
+
+    return reinterpret_cast<const MemRefOpnd *>(this);
+}
+
+///----------------------------------------------------------------------------
+///
+/// Opnd::IsLabelOpnd
+///
+///----------------------------------------------------------------------------
+
 inline bool
 Opnd::IsLabelOpnd() const
 {
     return GetKind() == OpndKindLabel;
 }
+
+///----------------------------------------------------------------------------
+///
+/// Opnd::AsLabelOpnd
+///
+///     Use this opnd as a LabelOpnd.
+///
+///----------------------------------------------------------------------------
 
 inline LabelOpnd *
 Opnd::AsLabelOpnd()
@@ -372,6 +479,14 @@ Opnd::AsLabelOpnd()
     AssertMsg(this->IsLabelOpnd(), "Bad call to AsLabelOpnd()");
 
     return reinterpret_cast<LabelOpnd *>(this);
+}
+
+inline const LabelOpnd *
+Opnd::AsLabelOpnd() const
+{
+    AssertMsg(this->IsLabelOpnd(), "Bad call to AsLabelOpnd() const");
+
+    return reinterpret_cast<const LabelOpnd *>(this);
 }
 
 ///----------------------------------------------------------------------------
@@ -457,6 +572,12 @@ RegOpnd::SetReg(RegNum reg)
 ///----------------------------------------------------------------------------
 
 inline RegOpnd *
+IndirOpnd::GetBaseOpnd()
+{
+    return this->m_baseOpnd;
+}
+
+inline RegOpnd const *
 IndirOpnd::GetBaseOpnd() const
 {
     return this->m_baseOpnd;
@@ -470,6 +591,12 @@ IndirOpnd::GetBaseOpnd() const
 
 inline RegOpnd *
 IndirOpnd::GetIndexOpnd()
+{
+    return m_indexOpnd;
+}
+
+inline RegOpnd const *
+IndirOpnd::GetIndexOpnd() const
 {
     return m_indexOpnd;
 }

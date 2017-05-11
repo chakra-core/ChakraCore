@@ -33,6 +33,14 @@ Sym::AsStackSym()
     return reinterpret_cast<StackSym *>(this);
 }
 
+inline StackSym const *
+Sym::AsStackSym() const
+{
+    AssertMsg(this->IsStackSym(), "Bad call to AsStackSym() const");
+
+    return reinterpret_cast<StackSym const *>(this);
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Sym::IsStackSym
@@ -59,6 +67,14 @@ Sym::AsPropertySym()
     AssertMsg(this->IsPropertySym(), "Bad call to AsPropertySym()");
 
     return reinterpret_cast<PropertySym *>(this);
+}
+
+inline PropertySym const *
+Sym::AsPropertySym() const
+{
+    AssertMsg(this->IsPropertySym(), "Bad call to AsPropertySym() const");
+
+    return reinterpret_cast<PropertySym const *>(this);
 }
 
 ///----------------------------------------------------------------------------

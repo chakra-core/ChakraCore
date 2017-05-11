@@ -302,12 +302,13 @@ public:
     }
 
     ValueNumber GetValueNumber() const { return this->valueNumber; }
-    ValueInfo * GetValueInfo() const { return this->valueInfo; }
+    ValueInfo * GetValueInfo() { return this->valueInfo; }
+    ValueInfo const * GetValueInfo() const { return this->valueInfo; }
     ValueInfo * ShareValueInfo() const { this->valueInfo->SetIsShared(); return this->valueInfo; }
 
     void        SetValueInfo(ValueInfo * newValueInfo) { Assert(newValueInfo); this->valueInfo = newValueInfo; }
 
-    Value *     Copy(JitArenaAllocator * allocator, ValueNumber newValueNumber) { return Value::New(allocator, newValueNumber, this->ShareValueInfo()); }
+    Value *     Copy(JitArenaAllocator * allocator, ValueNumber newValueNumber) const { return Value::New(allocator, newValueNumber, this->ShareValueInfo()); }
 
 #if DBG_DUMP
     _NOINLINE void Dump() const { Output::Print(_u("0x%X  ValueNumber: %3d,  -> "), this, this->valueNumber);  this->valueInfo->Dump(); }
