@@ -834,7 +834,7 @@ GlobOpt::ProcessArrayValueKills(IR::Instr *instr)
 }
 
 bool
-GlobOpt::NeedBailOnImplicitCallForCSE(BasicBlock *block, bool isForwardPass)
+GlobOpt::NeedBailOnImplicitCallForCSE(BasicBlock const *block, bool isForwardPass)
 {
     return isForwardPass && block->globOptData.hasCSECandidates;
 }

@@ -853,6 +853,18 @@ StackSym::GetVarEquivSym(Func *func)
 }
 
 StackSym *
+StackSym::GetVarEquivSym_NoCreate()
+{
+    return this->GetTypeEquivSym_NoCreate(TyVar);
+}
+
+StackSym const *
+StackSym::GetVarEquivSym_NoCreate() const
+{
+    return this->GetTypeEquivSym_NoCreate(TyVar);
+}
+
+StackSym *
 StackSym::GetTypeEquivSym(IRType type, Func *func)
 {
     Assert(this->m_type != type);
@@ -895,6 +907,46 @@ StackSym::GetTypeEquivSym(IRType type, Func *func)
     return sym;
 }
 
+StackSym *
+StackSym::GetTypeEquivSym_NoCreate(IRType type)
+{
+    Assert(this->m_type != type);
+
+    StackSym *sym = this->m_equivNext;
+    int i = 1;
+    while (sym != this)
+    {
+        Assert(i <= 5); // circular of at most 6 syms : var, f64, i32, simd128I4, simd128F4, simd128D2
+        if (sym->m_type == type)
+        {
+            return sym;
+        }
+        sym = sym->m_equivNext;
+        i++;
+    }
+    return nullptr;
+}
+
+StackSym const *
+StackSym::GetTypeEquivSym_NoCreate(IRType type) const
+{
+    Assert(this->m_type != type);
+
+    StackSym *sym = this->m_equivNext;
+    int i = 1;
+    while (sym != this)
+    {
+        Assert(i <= 5); // circular of at most 6 syms : var, f64, i32, simd128I4, simd128F4, simd128D2
+        if (sym->m_type == type)
+        {
+            return sym;
+        }
+        sym = sym->m_equivNext;
+        i++;
+    }
+    return nullptr;
+}
+
 StackSym *StackSym::GetVarEquivStackSym_NoCreate(Sym *const sym)
 {
     Assert(sym);
@@ -907,7 +959,24 @@ StackSym *StackSym::GetVarEquivStackSym_NoCreate(Sym *const sym)
     StackSym *stackSym = sym->AsStackSym();
     if(stackSym->IsTypeSpec())
     {
-        stackSym = stackSym->GetVarEquivSym(nullptr);
+        stackSym = stackSym->GetVarEquivSym_NoCreate();
+    }
+    return stackSym;
+}
+
+StackSym const *StackSym::GetVarEquivStackSym_NoCreate(Sym const * const sym)
+{
+    Assert(sym);
+
+    if(!sym->IsStackSym())
+    {
+        return nullptr;
+    }
+
+    StackSym const *stackSym = sym->AsStackSym();
+    if(stackSym->IsTypeSpec())
+    {
+        stackSym = stackSym->GetVarEquivSym_NoCreate();
     }
     return stackSym;
 }

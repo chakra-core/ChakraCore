@@ -28,7 +28,7 @@ class Key
 {
 public:
     static uint Get(Sym const *sym) { return static_cast<uint>(sym->m_id); }
-    static uint Get(ExprHash hash) { return static_cast<uint>(hash); }
+    static uint Get(ExprHash hash)  { return static_cast<uint>(hash); }
 };
 
 #define FOREACH_GLOBHASHTABLE_ENTRY(bucket, hashTable) \
@@ -192,6 +192,25 @@ public:
     }
 
     TElement * Get(uint key)
+    {
+        uint hash = this->Hash(key);
+        // Assumes sorted lists
+        FOREACH_SLISTBASE_ENTRY(HashBucket, bucket, &this->table[hash])
+        {
+            if (Key::Get(bucket.value) <= key)
+            {
+                if (Key::Get(bucket.value) == key)
+                {
+                    return &(bucket.element);
+                }
+                break;
+            }
+        } NEXT_SLISTBASE_ENTRY;
+
+        return NULL;
+    }
+
+    TElement const * Get(uint key) const
     {
         uint hash = this->Hash(key);
         // Assumes sorted lists

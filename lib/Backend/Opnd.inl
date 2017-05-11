@@ -71,12 +71,28 @@ Opnd::AsSymOpnd()
     return reinterpret_cast<SymOpnd *>(this);
 }
 
+inline SymOpnd const *
+Opnd::AsSymOpnd() const
+{
+    AssertMsg(this->IsSymOpnd(), "Bad call to AsSymOpnd()");
+
+    return reinterpret_cast<SymOpnd const*>(this);
+}
+
 inline PropertySymOpnd *
 Opnd::AsPropertySymOpnd()
 {
     AssertMsg(this->IsSymOpnd() && this->AsSymOpnd()->IsPropertySymOpnd(), "Bad call to AsPropertySymOpnd()");
 
     return reinterpret_cast<PropertySymOpnd *>(this);
+}
+
+inline PropertySymOpnd const *
+Opnd::AsPropertySymOpnd() const
+{
+    AssertMsg(this->IsSymOpnd() && this->AsSymOpnd()->IsPropertySymOpnd(), "Bad call to AsPropertySymOpnd()");
+
+    return reinterpret_cast<PropertySymOpnd const *>(this);
 }
 
 ///----------------------------------------------------------------------------
@@ -332,6 +348,14 @@ Opnd::AsIndirOpnd()
     return reinterpret_cast<IndirOpnd *>(this);
 }
 
+inline IndirOpnd const *
+Opnd::AsIndirOpnd() const
+{
+    AssertMsg(this->IsIndirOpnd(), "Bad call to AsIndirOpnd()");
+
+    return reinterpret_cast<IndirOpnd const*>(this);
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Opnd::IsMemRefOpnd
@@ -457,6 +481,12 @@ RegOpnd::SetReg(RegNum reg)
 ///----------------------------------------------------------------------------
 
 inline RegOpnd *
+IndirOpnd::GetBaseOpnd()
+{
+    return this->m_baseOpnd;
+}
+
+inline RegOpnd const *
 IndirOpnd::GetBaseOpnd() const
 {
     return this->m_baseOpnd;
@@ -470,6 +500,12 @@ IndirOpnd::GetBaseOpnd() const
 
 inline RegOpnd *
 IndirOpnd::GetIndexOpnd()
+{
+    return m_indexOpnd;
+}
+
+inline RegOpnd const *
+IndirOpnd::GetIndexOpnd() const
 {
     return m_indexOpnd;
 }

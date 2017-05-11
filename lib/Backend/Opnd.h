@@ -171,14 +171,17 @@ public:
     HelperCallOpnd *    AsHelperCallOpnd();
     bool                IsSymOpnd() const;
     SymOpnd *           AsSymOpnd();
+    SymOpnd const *     AsSymOpnd() const;
     PropertySymOpnd *   AsPropertySymOpnd();
+    PropertySymOpnd const * AsPropertySymOpnd() const;
     bool                IsRegOpnd() const;
-    const RegOpnd *     AsRegOpnd() const;
     RegOpnd *           AsRegOpnd();
+    RegOpnd const *     AsRegOpnd() const;
     bool                IsAddrOpnd() const;
     AddrOpnd *          AsAddrOpnd();
     bool                IsIndirOpnd() const;
     IndirOpnd *         AsIndirOpnd();
+    IndirOpnd const *   AsIndirOpnd() const;
     bool                IsLabelOpnd() const;
     LabelOpnd *         AsLabelOpnd();
     bool                IsMemRefOpnd() const;
@@ -1467,13 +1470,14 @@ public:
     bool                    IsEqualInternal(Opnd *opnd);
     void                    FreeInternal(Func * func);
 
-    RegOpnd *               GetBaseOpnd() const;
+    RegOpnd *               GetBaseOpnd();
+    RegOpnd const *         GetBaseOpnd() const;
     void                    SetBaseOpnd(RegOpnd *baseOpnd);
     RegOpnd *               UnlinkBaseOpnd();
     void                    ReplaceBaseOpnd(RegOpnd *newBase);
     RegOpnd *               GetIndexOpnd();
+    RegOpnd const *         GetIndexOpnd() const;
     void                    SetIndexOpnd(RegOpnd *indexOpnd);
-    RegOpnd *               GetIndexOpnd() const;
     RegOpnd *               UnlinkIndexOpnd();
     void                    ReplaceIndexOpnd(RegOpnd *newIndex);
     int32                   GetOffset() const;

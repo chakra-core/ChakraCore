@@ -44,8 +44,10 @@ public:
 
     bool        IsStackSym() const;
     StackSym *  AsStackSym();
+    StackSym const *  AsStackSym() const;
     bool        IsPropertySym() const;
     PropertySym *  AsPropertySym();
+    PropertySym const *  AsPropertySym() const;
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     void Dump(IRDumpFlags flags, const ValueType valueType = ValueType::Uninitialized);
@@ -160,9 +162,12 @@ public:
     bool            IsUint64() const { return this->GetType() == TyUint64; }
 
     StackSym *      GetVarEquivSym(Func *func);
+    StackSym *      GetVarEquivSym_NoCreate();
+    StackSym const * GetVarEquivSym_NoCreate() const;
     bool            IsVar() const { return this->GetType() == TyVar; }
     bool            IsTypeSpec() const { return this->m_isTypeSpec; }
-    static StackSym *GetVarEquivStackSym_NoCreate(Sym *const sym);
+    static StackSym *GetVarEquivStackSym_NoCreate(Sym * sym);
+    static StackSym const *GetVarEquivStackSym_NoCreate(Sym const * const sym);
 
     bool            HasByteCodeRegSlot() const { return m_hasByteCodeRegSlot; }
     Func *          GetByteCodeFunc() const;
@@ -190,6 +195,8 @@ public:
 
 private:
     StackSym *      GetTypeEquivSym(IRType type, Func *func);
+    StackSym *      GetTypeEquivSym_NoCreate(IRType type);
+    StackSym const * GetTypeEquivSym_NoCreate(IRType type) const;
 #if DBG
     void            VerifyConstFlags() const;
 #endif
