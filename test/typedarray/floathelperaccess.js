@@ -1,4 +1,8 @@
-	var evil_array = new Array(0x38/*dataview type id*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+var evil_array = new Array(0x38/*dataview type id*/, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	g_lo = 0;
 	g_hi = 0;
 	var b = [1.1,2.2];

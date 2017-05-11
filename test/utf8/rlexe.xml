@@ -32,7 +32,7 @@
   <test>
     <default>
       <files>bugGH2656.js</files>
-      <compile-flags>-args summary</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
 </regress-exe>
