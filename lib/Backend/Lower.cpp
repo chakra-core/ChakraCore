@@ -17923,10 +17923,7 @@ Lowerer::GenerateFastInlineIsArray(IR::Instr * instr)
     Assert(instr->m_opcode == Js::OpCode::CallDirect);
 
     IR::Opnd * dst = instr->GetDst();
-    if (!dst)
-    {
-        return;
-    }
+    Assert(dst);
 
     //CallDirect src2
     IR::Opnd * linkOpnd = instr->GetSrc2();
@@ -17963,13 +17960,13 @@ Lowerer::GenerateFastInlineIsArray(IR::Instr * instr)
     }
 
     //  MOV typeOpnd, [opnd + offset(type)]
-    IR::RegOpnd *typeOpnd = IR::RegOpnd::New(TyMachReg, m_func);
+    IR::RegOpnd *typeOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
     const IR::AutoReuseOpnd autoReuseTypeOpnd(typeOpnd, m_func);
-    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(src, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, m_func);
+    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(src, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, m_func);
     InsertMove(typeOpnd, indirOpnd, insertInstr);
 
     //  MOV typeIdOpnd, [typeOpnd + offset(typeId)]
-    IR::RegOpnd *typeIdOpnd = IR::RegOpnd::New(TyMachReg, m_func);
+    IR::RegOpnd *typeIdOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
     const IR::AutoReuseOpnd autoReuseTypeIdOpnd(typeIdOpnd, m_func);
     indirOpnd = IR::IndirOpnd::New(typeOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, m_func);
     InsertMove(typeIdOpnd, indirOpnd, insertInstr);
