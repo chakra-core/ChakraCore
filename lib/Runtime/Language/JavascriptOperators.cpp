@@ -3725,7 +3725,7 @@ CommonNumber:
                 goto TaggedIntIndex;
             }
         }
-        else if (JavascriptString::Is(index)) // fastpath for PropertyStrings
+        else if (JavascriptString::Is(index) && RecyclableObject::Is(instance)) // fastpath for PropertyStrings
         {
             temp = JavascriptString::FromVar(index);
             Assert(temp->GetScriptContext() == scriptContext);

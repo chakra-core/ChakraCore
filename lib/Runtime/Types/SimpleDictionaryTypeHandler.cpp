@@ -643,7 +643,7 @@ namespace Js
                         PropertyValueInfo::SetCacheInfo(info, propertyString, propertyString->GetLdElemInlineCache(), false);
                         SetPropertyValueInfo(info, instance, descriptor.propertyIndex, descriptor.Attributes);
 
-                        if (descriptor.isFixed)
+                        if (!descriptor.isInitialized || descriptor.isFixed)
                         {
                             PropertyValueInfo::DisableStoreFieldCache(info);
                         }
