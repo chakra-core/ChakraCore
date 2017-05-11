@@ -232,7 +232,6 @@ namespace Js
     JavascriptString * DynamicObjectPropertyEnumerator::MoveAndGetNextNoCache(PropertyId& propertyId, PropertyAttributes * attributes)
     {
         JavascriptString* propertyString = nullptr;
-
         BigPropertyIndex newIndex = this->objectIndex;
         PropertyValueInfo info;
         RecyclableObject * startingObject = this->object;
@@ -247,12 +246,14 @@ namespace Js
                 // No more properties
                 newIndex--;
                 propertyString = nullptr;
+                PropertyValueInfo::ClearCacheInfo(&info);
                 break;
             }
         } while (Js::IsInternalPropertyId(propertyId));
 
         if (info.GetPropertyString() != nullptr && info.GetPropertyString()->ShouldUseCache())
         {
+            Assert(propertyString == info.GetPropertyString());
             CacheOperators::CachePropertyRead(startingObject, this->object, false, propertyId, false, &info, scriptContext);
             if (info.IsStoreFieldCacheEnabled() && info.IsWritable() && ((info.GetFlags() & (InlineCacheGetterFlag | InlineCacheSetterFlag)) == 0))
             {

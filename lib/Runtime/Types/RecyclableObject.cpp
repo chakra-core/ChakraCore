@@ -84,6 +84,7 @@ namespace Js
             info->functionBody = nullptr;
             info->inlineCache = nullptr;
             info->polymorphicInlineCache = nullptr;
+            info->propertyString = nullptr;
             info->inlineCacheIndex = Constants::NoInlineCacheIndex;
             info->allowResizingPolymorphicInlineCache = true;
         }
