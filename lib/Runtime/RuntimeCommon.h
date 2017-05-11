@@ -53,14 +53,14 @@ namespace Js
     #define PropertyLet             0x40
     #define PropertyConst           0x80
     // No more flags will fit unless PropertyAttributes is bumped up to a short instead of char
-    #define PropertyBuiltInMethodDefaults (PropertyConfigurable|PropertyWritable)
-    #define PropertyDynamicTypeDefaults (PropertyConfigurable|PropertyWritable|PropertyEnumerable)
-    #define PropertyLetDefaults   (PropertyEnumerable|PropertyConfigurable|PropertyWritable|PropertyLet)
-    #define PropertyConstDefaults (PropertyEnumerable|PropertyConfigurable|PropertyConst)
-    #define PropertyDeletedDefaults (PropertyDeleted | PropertyWritable | PropertyConfigurable)
-    #define PropertyNoRedecl        (PropertyLet | PropertyConst)
-    #define PropertyClassMemberDefaults (PropertyConfigurable|PropertyWritable)
-    #define PropertyModuleNamespaceDefault (PropertyEnumerable|PropertyWritable)
+    #define PropertyBuiltInMethodDefaults   (PropertyConfigurable|PropertyWritable)
+    #define PropertyDynamicTypeDefaults     (PropertyConfigurable|PropertyWritable|PropertyEnumerable)
+    #define PropertyLetDefaults             (PropertyEnumerable|PropertyConfigurable|PropertyWritable|PropertyLet)
+    #define PropertyConstDefaults           (PropertyEnumerable|PropertyConfigurable|PropertyConst)
+    #define PropertyDeletedDefaults         (PropertyDeleted|PropertyWritable|PropertyConfigurable)
+    #define PropertyNoRedecl                (PropertyLet|PropertyConst)
+    #define PropertyClassMemberDefaults     (PropertyConfigurable|PropertyWritable)
+    #define PropertyModuleNamespaceDefault  (PropertyEnumerable|PropertyWritable)
 
     BEGIN_ENUM_UINT(InternalPropertyIds)
 #define INTERNALPROPERTY(n) n,
@@ -94,7 +94,7 @@ namespace Js
                                                          // (no accessors or non-writable properties)
     #define PropertyTypesWritableDataOnlyDetection 0x20  // Set on each call to DynamicTypeHandler::SetHasOnlyWritableDataProperties.
     #define PropertyTypesInlineSlotCapacityLocked  0x40  // Indicates that the inline slot capacity has been shrunk already and shouldn't be touched again.
-    #define PropertyTypesAll                       0x70
+    #define PropertyTypesAll                       (PropertyTypesWritableDataOnly|PropertyTypesWritableDataOnlyDetection|PropertyTypesInlineSlotCapacityLocked)
     typedef unsigned char PropertyTypes;                 // Holds flags that represent general information about the types of properties
                                                          // handled by a type handler.
     BEGIN_ENUM_UINT(JavascriptHint)
