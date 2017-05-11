@@ -102,6 +102,37 @@ namespace JsRTApiTest
         JsRTApiTest::RunWithAttributes(JsRTApiTest::ReferenceCountingTest);
     }
 
+    void WeakReferenceTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        JsValueRef valueRef = JS_INVALID_REFERENCE;
+        REQUIRE(JsCreateString("test", strlen("test"), &valueRef) == JsNoError);
+
+        JsWeakRef weakRef = JS_INVALID_REFERENCE;
+        REQUIRE(JsCreateWeakReference(valueRef, &weakRef) == JsNoError);
+
+        // JsGetWeakReferenceValue should return the original value reference.
+        JsValueRef valueRefFromWeakRef = JS_INVALID_REFERENCE;
+        CHECK(JsGetWeakReferenceValue(weakRef, &valueRefFromWeakRef) == JsNoError);
+        CHECK(valueRefFromWeakRef != JS_INVALID_REFERENCE);
+        CHECK(valueRefFromWeakRef == valueRef);
+
+        // Clear the references on the stack, so that the value will be GC'd.
+        valueRef = JS_INVALID_REFERENCE;
+        valueRefFromWeakRef = JS_INVALID_REFERENCE;
+
+        CHECK(JsCollectGarbage(runtime) == JsNoError);
+
+        // JsGetWeakReferenceValue should return an invalid reference after the value was GC'd.
+        JsValueRef valueRefAfterGC = JS_INVALID_REFERENCE;
+        CHECK(JsGetWeakReferenceValue(weakRef, &valueRefAfterGC) == JsNoError);
+        CHECK(valueRefAfterGC == JS_INVALID_REFERENCE);
+    }
+
+    TEST_CASE("ApiTest_WeakReferenceTest", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::WeakReferenceTest);
+    }
+
     void ObjectsAndPropertiesTest1(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
     {
         JsValueRef object = JS_INVALID_REFERENCE;
