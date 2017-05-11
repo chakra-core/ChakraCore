@@ -302,11 +302,11 @@ public:
 
     BasicBlock * GetNext()
     {
-        BasicBlock *block = this;
+        BasicBlock *block = this->next;
 
-        do {
+        while (block && block->isDeleted) {
             block = block->next;
-        } while (block && block->isDeleted);
+        }
 
         return block;
     }
@@ -737,7 +737,7 @@ public:
     void                SetImplicitCallFlags(Js::ImplicitCallFlags flags);
     Js::LoopFlags GetLoopFlags() const { return loopFlags; }
     void SetLoopFlags(Js::LoopFlags val) { loopFlags = val; }
-    bool                CanHoistInvariants();
+    bool                CanHoistInvariants() const;
     bool                CanDoFieldCopyProp();
     bool                CanDoFieldHoist();
     void                SetHasCall();

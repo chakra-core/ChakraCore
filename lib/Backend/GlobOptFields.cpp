@@ -1238,7 +1238,7 @@ GlobOpt::IsHoistablePropertySym(SymID symId) const
 }
 
 bool
-GlobOpt::HasHoistableFields(BasicBlock * basicBlock)
+GlobOpt::HasHoistableFields(BasicBlock const * basicBlock)
 {
     return HasHoistableFields(&basicBlock->globOptData);
 }

@@ -364,7 +364,7 @@ bool ValueInfo::IsGreaterThanOrEqualTo_NoConverse(
             return src2Offset <= 0;
         }
 
-        ValueInfo *const src1ValueInfo = src1Value->GetValueInfo();
+        ValueInfo const * const src1ValueInfo = src1Value->GetValueInfo();
         if (src1ValueInfo->structureKind == ValueStructureKind::IntBounded)
         {
             const IntBounds *const bounds = src1ValueInfo->AsIntBounded()->Bounds();
@@ -398,7 +398,7 @@ bool ValueInfo::IsLessThanOrEqualTo_NoConverse(
             return src2Offset >= 0;
         }
 
-        ValueInfo *const src1ValueInfo = src1Value->GetValueInfo();
+        ValueInfo const * const src1ValueInfo = src1Value->GetValueInfo();
         if (src1ValueInfo->structureKind == ValueStructureKind::IntBounded)
         {
             const IntBounds *const bounds = src1ValueInfo->AsIntBounded()->Bounds();
