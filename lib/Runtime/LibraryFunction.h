@@ -62,7 +62,7 @@ LIBRARY_FUNCTION(Math,          Tan,                1,    BIF_TypeSpecUnaryToFlo
 LIBRARY_FUNCTION(JavascriptArray,         Concat,             15,   BIF_UseSrc0 | BIF_VariableArgsNumber              , JavascriptArray::EntryInfo::Concat)
 LIBRARY_FUNCTION(JavascriptArray,         IndexOf,            2,    BIF_UseSrc0                                       , JavascriptArray::EntryInfo::IndexOf)
 LIBRARY_FUNCTION(JavascriptArray,         Includes,           2,    BIF_UseSrc0                                       , JavascriptArray::EntryInfo::Includes)
-LIBRARY_FUNCTION(JavascriptArray,         IsArray,            1,    BIF_VariableArgsNumber                            , JavascriptArray::EntryInfo::IsArray)
+LIBRARY_FUNCTION(JavascriptArray,         IsArray,            1,    BIF_None                                          , JavascriptArray::EntryInfo::IsArray)
 LIBRARY_FUNCTION(JavascriptArray,         Join,               2,    BIF_UseSrc0 | BIF_VariableArgsNumber              , JavascriptArray::EntryInfo::Join)
 LIBRARY_FUNCTION(JavascriptArray,         LastIndexOf,        3,    BIF_UseSrc0 | BIF_VariableArgsNumber              , JavascriptArray::EntryInfo::LastIndexOf)
 LIBRARY_FUNCTION(JavascriptArray,         Reverse,            1,    BIF_UseSrc0 | BIF_IgnoreDst                       , JavascriptArray::EntryInfo::Reverse)

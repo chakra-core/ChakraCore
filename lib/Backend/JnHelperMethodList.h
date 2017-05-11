@@ -449,6 +449,7 @@ HELPERCALL(Array_Shift, Js::JavascriptArray::EntryShift, 0)
 HELPERCALL(Array_Slice, Js::JavascriptArray::EntrySlice, 0)
 HELPERCALL(Array_Splice, Js::JavascriptArray::EntrySplice, 0)
 HELPERCALL(Array_Unshift, Js::JavascriptArray::EntryUnshift, 0)
+HELPERCALL(Array_IsArray, Js::JavascriptArray::EntryIsArray, 0)
 
 HELPERCALL(String_Concat, Js::JavascriptString::EntryConcat, 0)
 HELPERCALL(String_CharCodeAt, Js::JavascriptString::EntryCharCodeAt, 0)

@@ -871,6 +871,7 @@ public:
         case Js::BuiltinFunction::JavascriptArray_Push:
         case Js::BuiltinFunction::JavascriptString_Replace:
         case Js::BuiltinFunction::JavascriptObject_HasOwnProperty:
+        case Js::BuiltinFunction::JavascriptArray_IsArray:
             return true;
 
         default:
