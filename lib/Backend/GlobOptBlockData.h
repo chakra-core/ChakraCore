@@ -100,6 +100,7 @@ typedef JsUtil::BaseDictionary<StackSym *, StackLiteralInitFldData, JitArenaAllo
 
 class GlobOptBlockData
 {
+    friend class GlobOpt; // REMOVE IN FUTURE COMMIT IN CHANGESET - USED FOR INITIALIZERS
 public:
     GlobOptBlockData(Func *func) :
         symToValueMap(nullptr),
@@ -130,7 +131,8 @@ public:
         hasCSECandidates(false),
         curFunc(func),
         hasDataRef(nullptr),
-        stackLiteralInitFldDataMap(nullptr)
+        stackLiteralInitFldDataMap(nullptr),
+        globOpt(nullptr)
     {
     }
 
@@ -161,6 +163,8 @@ public:
     BVSparse<JitArenaAllocator> *           argObjSyms;
     BVSparse<JitArenaAllocator> *           maybeTempObjectSyms;
     BVSparse<JitArenaAllocator> *           canStoreTempObjectSyms;
+
+    // This is the func that this block comes from, so the inlinee if from an inlined function
     Func *                                  curFunc;
 
     // 'valuesToKillOnCalls' includes values whose value types need to be killed upon a call. Upon a call, the value types of
@@ -187,6 +191,8 @@ public:
 
 private:
     bool *                                  hasDataRef;
+
+    GlobOpt *                               globOpt;
 
 public:
     void OnDataInitialized(JitArenaAllocator *const allocator)
