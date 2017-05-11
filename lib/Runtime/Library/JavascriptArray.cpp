@@ -5220,6 +5220,7 @@ Case0:
         {
             SparseArraySegment<T>* headSeg = (SparseArraySegment<T>*)array->head;
 
+            AnalysisAssert(headSeg);
             SparseArraySegment<T>* newHeadSeg = SparseArraySegment<T>::template AllocateSegmentImpl<false>(recycler,
                 headSeg->left, headSeg->length, headSeg->size, headSeg->next);
 
