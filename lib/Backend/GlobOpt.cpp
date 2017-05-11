@@ -178,6 +178,7 @@ public:
 
     PREVENT_COPY(AutoRestoreVal);
 };
+
 GlobOpt::GlobOpt(Func * func)
     : func(func),
     intConstantToStackSymMap(nullptr),
@@ -538,8 +539,6 @@ GlobOpt::ForwardPass()
 
     END_CODEGEN_PHASE(this->func, Js::ForwardPhase);
 }
-
-
 
 void
 GlobOpt::OptBlock(BasicBlock *block)
@@ -1491,6 +1490,8 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
 void
 GlobOpt::NulloutBlockData(GlobOptBlockData *data)
 {
+    data->globOpt = this;
+
     data->symToValueMap = nullptr;
     data->exprToValueMap = nullptr;
     data->liveFields = nullptr;
@@ -1530,6 +1531,8 @@ GlobOpt::NulloutBlockData(GlobOptBlockData *data)
 void
 GlobOpt::InitBlockData(GlobOptBlockData* data)
 {
+    data->globOpt = this;
+
     JitArenaAllocator *const alloc = this->alloc;
 
     data->symToValueMap = GlobHashTable::New(alloc, 64);
@@ -1577,6 +1580,8 @@ GlobOpt::InitBlockData(GlobOptBlockData* data)
 void
 GlobOpt::ReuseBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
 {
+    toData->globOpt = fromData->globOpt;
+
     // Reuse dead map
     toData->symToValueMap = fromData->symToValueMap;
     toData->exprToValueMap = fromData->exprToValueMap;
@@ -1628,6 +1633,8 @@ GlobOpt::ReuseBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
 void
 GlobOpt::CopyBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
 {
+    toData->globOpt = fromData->globOpt;
+
     toData->symToValueMap = fromData->symToValueMap;
     toData->exprToValueMap = fromData->exprToValueMap;
     toData->liveFields = fromData->liveFields;
@@ -1673,6 +1680,8 @@ void GlobOpt::CloneBlockData(BasicBlock *const toBlock, GlobOptBlockData *const 
 {
     GlobOptBlockData *const fromData = &fromBlock->globOptData;
     JitArenaAllocator *const alloc = this->alloc;
+
+    toData->globOpt = fromData->globOpt;
 
     toData->symToValueMap = fromData->symToValueMap->Copy();
     toData->exprToValueMap = fromData->exprToValueMap->Copy();
