@@ -7,6 +7,95 @@ class BackwardPass;
 class LoopCount;
 class GlobOpt;
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS && DBG_DUMP
+
+#define GOPT_TRACE_OPND(opnd, ...) \
+    if (PHASE_TRACE(Js::GlobOptPhase, this->func) && !this->IsLoopPrePass()) \
+    { \
+        Output::Print(_u("TRACE: ")); \
+        opnd->Dump(); \
+        Output::Print(_u(" : ")); \
+        Output::Print(__VA_ARGS__); \
+        Output::Flush(); \
+    }
+#define GOPT_TRACE(...) \
+    if (PHASE_TRACE(Js::GlobOptPhase, this->func) && !this->IsLoopPrePass()) \
+    { \
+        Output::Print(_u("TRACE: ")); \
+        Output::Print(__VA_ARGS__); \
+        Output::Flush(); \
+    }
+
+#define GOPT_TRACE_INSTRTRACE(instr) \
+    if (PHASE_TRACE(Js::GlobOptPhase, this->func) && !this->IsLoopPrePass()) \
+    { \
+        instr->Dump(); \
+        Output::Flush(); \
+    }
+
+#define GOPT_TRACE_INSTR(instr, ...) \
+    if (PHASE_TRACE(Js::GlobOptPhase, this->func) && !this->IsLoopPrePass()) \
+    { \
+        Output::Print(_u("TRACE: ")); \
+        Output::Print(__VA_ARGS__); \
+        instr->Dump(); \
+        Output::Flush(); \
+    }
+
+#define GOPT_TRACE_BLOCK(block, before) \
+    this->Trace(block, before); \
+    Output::Flush();
+
+// TODO: OOP JIT, add back line number
+#define TRACE_PHASE_INSTR(phase, instr, ...) \
+    if(PHASE_TRACE(phase, this->func)) \
+    { \
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]; \
+        Output::Print( \
+            _u("Function %s (%s)"), \
+            this->func->GetJITFunctionBody()->GetDisplayName(), \
+            this->func->GetDebugNumberSet(debugStringBuffer)); \
+        if(this->func->IsLoopBody()) \
+        { \
+            Output::Print(_u(", loop %u"), this->func->GetWorkItem()->GetLoopNumber()); \
+        } \
+        if(instr->m_func != this->func) \
+        { \
+            Output::Print( \
+                _u(", Inlinee %s (%s)"), \
+                instr->m_func->GetJITFunctionBody()->GetDisplayName(), \
+                instr->m_func->GetDebugNumberSet(debugStringBuffer)); \
+        } \
+        Output::Print(_u(" - %s\n    "), Js::PhaseNames[phase]); \
+        instr->Dump(); \
+        Output::Print(_u("    ")); \
+        Output::Print(__VA_ARGS__); \
+        Output::Flush(); \
+    }
+
+#define TRACE_PHASE_INSTR_VERBOSE(phase, instr, ...) \
+    if(CONFIG_FLAG(Verbose)) \
+    { \
+        TRACE_PHASE_INSTR(phase, instr, __VA_ARGS__); \
+    }
+
+#define TRACE_TESTTRACE_PHASE_INSTR(phase, instr, ...) \
+    TRACE_PHASE_INSTR(phase, instr, __VA_ARGS__); \
+    TESTTRACE_PHASE_INSTR(phase, instr, __VA_ARGS__);
+
+#else   // ENABLE_DEBUG_CONFIG_OPTIONS && DBG_DUMP
+
+#define GOPT_TRACE(...)
+#define GOPT_TRACE_OPND(opnd, ...)
+#define GOPT_TRACE_INSTRTRACE(instr)
+#define GOPT_TRACE_INSTR(instr, ...)
+#define GOPT_TRACE_BLOCK(block, before)
+#define TRACE_PHASE_INSTR(phase, instr, ...)
+#define TRACE_PHASE_INSTR_VERBOSE(phase, instr, ...)
+#define TRACE_TESTTRACE_PHASE_INSTR(phase, instr, ...) TESTTRACE_PHASE_INSTR(phase, instr, __VA_ARGS__);
+
+#endif  // ENABLE_DEBUG_CONFIG_OPTIONS && DBG_DUMP
+
 class IntMathExprAttributes : public ExprAttributes
 {
 private:
@@ -395,7 +484,7 @@ public:
 
     IR::ByteCodeUsesInstr * ConvertToByteCodeUses(IR::Instr * isntr);
     bool GetIsAsmJSFunc()const{ return isAsmJSFunc; };
-    BOOLEAN                 IsArgumentsOpnd(IR::Opnd* opnd);
+    BOOLEAN                 IsArgumentsOpnd(IR::Opnd const* opnd) const;
 private:
     bool                    IsLoopPrePass() const { return this->prePassLoop != nullptr; }
     void                    OptBlock(BasicBlock *block);
@@ -440,11 +529,11 @@ private:
     IR::Instr *             SetTypeCheckBailOut(IR::Opnd *opnd, IR::Instr *instr, BailOutInfo *bailOutInfo);
     void                    OptArguments(IR::Instr *Instr);
     void                    TrackInstrsForScopeObjectRemoval(IR::Instr * instr);
-    bool                    AreFromSameBytecodeFunc(IR::RegOpnd* src1, IR::RegOpnd* dst);
-    void                    TrackArgumentsSym(IR::RegOpnd* opnd);
-    void                    ClearArgumentsSym(IR::RegOpnd* opnd);
-    BOOLEAN                 TestAnyArgumentsSym();
-    BOOLEAN                 IsArgumentsSymID(SymID id, const GlobOptBlockData& blockData);
+    bool                    AreFromSameBytecodeFunc(IR::RegOpnd const* src1, IR::RegOpnd const* dst) const;
+    void                    TrackArgumentsSym(IR::RegOpnd const* opnd);
+    void                    ClearArgumentsSym(IR::RegOpnd const* opnd);
+    BOOLEAN                 TestAnyArgumentsSym() const;
+    BOOLEAN                 IsArgumentsSymID(SymID id, const GlobOptBlockData& blockData) const;
     Value *                 ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val);
     Value *                 ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal);
     ValueType               GetPrepassValueTypeForDst(const ValueType desiredValueType, IR::Instr *const instr, Value *const src1Value, Value *const src2Value, bool *const isValueInfoPreciseRef = nullptr) const;
@@ -477,8 +566,8 @@ private:
     ValueNumber             NewValueNumber();
     Value *                 NewValue(ValueInfo *const valueInfo);
     Value *                 NewValue(const ValueNumber valueNumber, ValueInfo *const valueInfo);
-    Value *                 CopyValue(Value *const value);
-    Value *                 CopyValue(Value *const value, const ValueNumber valueNumber);
+    Value *                 CopyValue(Value const *const value);
+    Value *                 CopyValue(Value const *const value, const ValueNumber valueNumber);
 
     Value *                 NewGenericValue(const ValueType valueType);
     Value *                 NewGenericValue(const ValueType valueType, IR::Opnd *const opnd);
@@ -609,7 +698,7 @@ private:
     void                    ProcessValueKills(IR::Instr *const instr);
     void                    ProcessValueKills(BasicBlock *const block, GlobOptBlockData *const blockData);
     void                    ProcessValueKillsForLoopHeaderAfterBackEdgeMerge(BasicBlock *const block, GlobOptBlockData *const blockData);
-    bool                    NeedBailOnImplicitCallForLiveValues(BasicBlock *const block, const bool isForwardPass) const;
+    bool                    NeedBailOnImplicitCallForLiveValues(BasicBlock const * const block, const bool isForwardPass) const;
     IR::Instr*              CreateBoundsCheckInstr(IR::Opnd* lowerBound, IR::Opnd* upperBound, int offset, Func* func);
     IR::Instr*              CreateBoundsCheckInstr(IR::Opnd* lowerBound, IR::Opnd* upperBound, int offset, IR::BailOutKind bailoutkind, BailOutInfo* bailoutInfo, Func* func);
     IR::Instr*              AttachBoundsCheckData(IR::Instr* instr, IR::Opnd* lowerBound, IR::Opnd* upperBound, int offset);
@@ -644,7 +733,7 @@ public:
 
 private:
     bool                    IsOperationThatLikelyKillsJsArraysWithNoMissingValues(IR::Instr *const instr);
-    bool                    NeedBailOnImplicitCallForArrayCheckHoist(BasicBlock *const block, const bool isForwardPass) const;
+    bool                    NeedBailOnImplicitCallForArrayCheckHoist(BasicBlock const * const block, const bool isForwardPass) const;
 
 private:
     bool                    PrepareForIgnoringIntOverflow(IR::Instr *const instr);
@@ -679,28 +768,28 @@ private:
     void                    TypeSpecializeSimd128Dst(IRType type, IR::Instr *instr, Value *valToTransfer, Value *const src1Value, Value **pDstVal);
     void                    ToSimd128Dst(IRType toType, IR::Instr *instr, IR::RegOpnd *dst, BasicBlock *block);
 
-    static BOOL             IsInt32TypeSpecialized(Sym *sym, BasicBlock *block);
-    static BOOL             IsInt32TypeSpecialized(Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsSwitchInt32TypeSpecialized(IR::Instr * instr, BasicBlock * block);
-    static BOOL             IsFloat64TypeSpecialized(Sym *sym, BasicBlock *block);
-    static BOOL             IsFloat64TypeSpecialized(Sym *sym, GlobOptBlockData *data);
+    static BOOL             IsInt32TypeSpecialized(Sym const * sym, BasicBlock const * block);
+    static BOOL             IsInt32TypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
+    static BOOL             IsSwitchInt32TypeSpecialized(IR::Instr const * instr, BasicBlock const * block);
+    static BOOL             IsFloat64TypeSpecialized(Sym const * sym, BasicBlock const * block);
+    static BOOL             IsFloat64TypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
     // SIMD_JS
-    static BOOL             IsSimd128TypeSpecialized(Sym *sym, BasicBlock *block);
-    static BOOL             IsSimd128TypeSpecialized(Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsSimd128TypeSpecialized(IRType type, Sym *sym, BasicBlock *block);
-    static BOOL             IsSimd128TypeSpecialized(IRType type, Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsSimd128F4TypeSpecialized(Sym *sym, BasicBlock *block);
-    static BOOL             IsSimd128F4TypeSpecialized(Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsSimd128I4TypeSpecialized(Sym *sym, BasicBlock *block);
-    static BOOL             IsSimd128I4TypeSpecialized(Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsLiveAsSimd128(Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsLiveAsSimd128F4(Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsLiveAsSimd128I4(Sym *sym, GlobOptBlockData *data);
+    static BOOL             IsSimd128TypeSpecialized(Sym const * sym, BasicBlock const * block);
+    static BOOL             IsSimd128TypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
+    static BOOL             IsSimd128TypeSpecialized(IRType type, Sym const * sym, BasicBlock const * block);
+    static BOOL             IsSimd128TypeSpecialized(IRType type, Sym const * sym, GlobOptBlockData const * data);
+    static BOOL             IsSimd128F4TypeSpecialized(Sym const * sym, BasicBlock const * block);
+    static BOOL             IsSimd128F4TypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
+    static BOOL             IsSimd128I4TypeSpecialized(Sym const * sym, BasicBlock const * block);
+    static BOOL             IsSimd128I4TypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
+    static BOOL             IsLiveAsSimd128(Sym const * sym, GlobOptBlockData const * data);
+    static BOOL             IsLiveAsSimd128F4(Sym const * sym, GlobOptBlockData const * data);
+    static BOOL             IsLiveAsSimd128I4(Sym const * sym, GlobOptBlockData const * data);
 
-    static BOOL             IsTypeSpecialized(Sym *sym, BasicBlock *block);
-    static BOOL             IsTypeSpecialized(Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsLive(Sym *sym, BasicBlock *block);
-    static BOOL             IsLive(Sym *sym, GlobOptBlockData *data);
+    static BOOL             IsTypeSpecialized(Sym const * sym, BasicBlock const * block);
+    static BOOL             IsTypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
+    static BOOL             IsLive(Sym const * sym, BasicBlock const * block);
+    static BOOL             IsLive(Sym const * sym, GlobOptBlockData const * data);
     void                    MakeLive(StackSym *const sym, GlobOptBlockData *const blockData, const bool lossy) const;
     void                    OptConstFoldBr(bool test, IR::Instr *instr, Value * intTypeSpecSrc1Val = nullptr, Value * intTypeSpecSrc2Val = nullptr);
     void                    PropagateIntRangeForNot(int32 minimum, int32 maximum, int32 *pNewMin, int32 * pNewMax);
@@ -717,24 +806,24 @@ private:
     void                    HoistInvariantValueInfo(ValueInfo *const invariantValueInfoToHoist, Value *const valueToUpdate, BasicBlock *const targetBlock);
     void                    OptHoistUpdateValueType(Loop* loop, IR::Instr* instr, IR::Opnd* srcOpnd, Value *const srcVal);
 public:
-    static bool             IsTypeSpecPhaseOff(Func* func);
-    static bool             DoAggressiveIntTypeSpec(Func* func);
-    static bool             DoLossyIntTypeSpec(Func* func);
-    static bool             DoFloatTypeSpec(Func* func);
-    static bool             DoStringTypeSpec(Func* func);
-    static bool             DoArrayCheckHoist(Func *const func);
-    static bool             DoArrayMissingValueCheckHoist(Func *const func);
-    static bool             DoArraySegmentHoist(const ValueType baseValueType, Func *const func);
-    static bool             DoArrayLengthHoist(Func *const func);
+    static bool             IsTypeSpecPhaseOff(Func const * func);
+    static bool             DoAggressiveIntTypeSpec(Func const * func);
+    static bool             DoLossyIntTypeSpec(Func const * func);
+    static bool             DoFloatTypeSpec(Func const * func);
+    static bool             DoStringTypeSpec(Func const * func);
+    static bool             DoArrayCheckHoist(Func const * const func);
+    static bool             DoArrayMissingValueCheckHoist(Func const * const func);
+    static bool             DoArraySegmentHoist(const ValueType baseValueType, Func const * const func);
+    static bool             DoArrayLengthHoist(Func const * const func);
     static bool             DoEliminateArrayAccessHelperCall(Func* func);
-    static bool             DoTypedArrayTypeSpec(Func* func);
-    static bool             DoNativeArrayTypeSpec(Func* func);
-    static bool             IsSwitchOptEnabled(Func* func);
-    static bool             DoInlineArgsOpt(Func* func);
+    static bool             DoTypedArrayTypeSpec(Func const * func);
+    static bool             DoNativeArrayTypeSpec(Func const * func);
+    static bool             IsSwitchOptEnabled(Func const * func);
+    static bool             DoInlineArgsOpt(Func const * func);
     static bool             IsPREInstrCandidateLoad(Js::OpCode opcode);
     static bool             IsPREInstrCandidateStore(Js::OpCode opcode);
     static bool             ImplicitCallFlagsAllowOpts(Loop * loop);
-    static bool             ImplicitCallFlagsAllowOpts(Func *func);
+    static bool             ImplicitCallFlagsAllowOpts(Func const * func);
 
 private:
     bool                    DoConstFold() const;
@@ -746,7 +835,7 @@ private:
     bool                    DoFloatTypeSpec() const;
     bool                    DoStringTypeSpec() const { return GlobOpt::DoStringTypeSpec(this->func); }
     bool                    DoArrayCheckHoist() const;
-    bool                    DoArrayCheckHoist(const ValueType baseValueType, Loop* loop, IR::Instr *const instr = nullptr) const;
+    bool                    DoArrayCheckHoist(const ValueType baseValueType, Loop* loop, IR::Instr const * const instr = nullptr) const;
     bool                    DoArrayMissingValueCheckHoist() const;
     bool                    DoArraySegmentHoist(const ValueType baseValueType) const;
     bool                    DoTypedArraySegmentLengthHoist(Loop *const loop) const;
@@ -754,7 +843,7 @@ private:
     bool                    DoEliminateArrayAccessHelperCall() const;
     bool                    DoTypedArrayTypeSpec() const { return GlobOpt::DoTypedArrayTypeSpec(this->func); }
     bool                    DoNativeArrayTypeSpec() const { return GlobOpt::DoNativeArrayTypeSpec(this->func); }
-    bool                    DoLdLenIntSpec(IR::Instr *const instr, const ValueType baseValueType) const;
+    bool                    DoLdLenIntSpec(IR::Instr * const instr, const ValueType baseValueType);
     bool                    IsSwitchOptEnabled() const { return GlobOpt::IsSwitchOptEnabled(this->func); }
     bool                    DoPathDependentValues() const;
     bool                    DoTrackRelativeIntBounds() const;
@@ -792,11 +881,11 @@ private:
     static void             MarkNonByteCodeUsed(IR::Instr * instr);
     static void             MarkNonByteCodeUsed(IR::Opnd * opnd);
 
-    bool                    IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value *src1Val, Value *src2Val);
-    bool                    IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value *src1Val, Value *src2Val, BasicBlock * block, bool hasLiveFields, bool mayNeedImplicitCallBailOut, bool isForwardPass);
+    bool                    IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, Value const * src2Val) const;
+    bool                    IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, Value const * src2Val, BasicBlock const * block, bool hasLiveFields, bool mayNeedImplicitCallBailOut, bool isForwardPass) const;
     static bool             IsTypeCheckProtected(const IR::Instr * instr);
-    static bool             MayNeedBailOnImplicitCall(const IR::Instr * instr, Value *src1Val, Value *src2Val);
-    static bool             MaySrcNeedBailOnImplicitCall(IR::Opnd * opnd, Value *val);
+    static bool             MayNeedBailOnImplicitCall(IR::Instr const * instr, Value const * src1Val, Value const * src2Val);
+    static bool             MaySrcNeedBailOnImplicitCall(IR::Opnd const * opnd, Value const * val);
 
     void                    GenerateBailAfterOperation(IR::Instr * *const pInstr, IR::BailOutKind kind);
 public:
@@ -845,7 +934,7 @@ private:
     void                    CopyStoreFieldHoistStackSym(IR::Instr * storeFldInstr, PropertySym * sym, Value * src1Val);
     Value *                 CreateFieldSrcValue(PropertySym * sym, PropertySym * originalSym, IR::Opnd **ppOpnd, IR::Instr * instr);
 
-    static bool             HasHoistableFields(BasicBlock * block);
+    static bool             HasHoistableFields(BasicBlock const * block);
     static bool             HasHoistableFields(GlobOptBlockData const * globOptData);
     bool                    IsHoistablePropertySym(SymID symId) const;
     bool                    NeedBailOnImplicitCallWithFieldOpts(Loop *loop, bool hasLiveFields) const;
@@ -900,23 +989,23 @@ private:
     bool                    CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSrc1Val, Value **pSrc2Val, Value **pSrc1IndirIndexVal, bool intMathExprOnly = false);
     bool                    GetHash(IR::Instr *instr, Value *src1Val, Value *src2Val, ExprAttributes exprAttributes, ExprHash *pHash);
     void                    ProcessArrayValueKills(IR::Instr *instr);
-    static bool             NeedBailOnImplicitCallForCSE(BasicBlock *block, bool isForwardPass);
+    static bool             NeedBailOnImplicitCallForCSE(BasicBlock const *block, bool isForwardPass);
     bool                    DoCSE();
     bool                    CanCSEArrayStore(IR::Instr *instr);
 
 #if DBG_DUMP
-    void                    Dump();
-    void                    DumpSymToValueMap();
-    void                    DumpSymToValueMap(GlobHashTable* symToValueMap);
-    void                    DumpSymToValueMap(BasicBlock *block);
+    void                    Dump() const;
+    void                    DumpSymToValueMap() const;
+    void                    DumpSymToValueMap(GlobHashTable* symToValueMap) const;
+    void                    DumpSymToValueMap(BasicBlock const * block) const;
     static void             DumpSym(Sym *sym);
     void                    DumpSymVal(int index);
 
-    void                    Trace(BasicBlock * basicBlock, bool before);
-    void                    TraceSettings();
+    void                    Trace(BasicBlock * basicBlock, bool before) const;
+    void                    TraceSettings() const;
 #endif
 
-    bool                    IsWorthSpecializingToInt32Branch(IR::Instr * instr, Value * src1Val, Value * src2Val);
+    bool                    IsWorthSpecializingToInt32Branch(IR::Instr const * instr, Value const * src1Val, Value const * src2Val) const;
 
     bool                    TryOptConstFoldBrFalse(IR::Instr *const instr, Value *const srcValue, const int32 min, const int32 max);
     bool                    TryOptConstFoldBrEqual(IR::Instr *const instr, const bool branchOnEqual, Value *const src1Value, const int32 min1, const int32 max1, Value *const src2Value, const int32 min2, const int32 max2);
@@ -956,3 +1045,10 @@ private:
 
     friend class InvariantBlockBackwardIterator;
 };
+
+template<>
+ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value)
+{
+    Assert(value);
+    return value->GetValueNumber();
+}
