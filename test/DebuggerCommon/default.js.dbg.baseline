@@ -9952,9 +9952,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -9969,19 +9966,11 @@
       "b": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10003,11 +9992,6 @@
       "c": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
@@ -10016,9 +10000,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10040,19 +10021,11 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10079,11 +10052,6 @@
       "d": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
@@ -10092,9 +10060,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10109,19 +10074,11 @@
       "b": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10137,11 +10094,6 @@
       "c": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
@@ -10150,9 +10102,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10167,19 +10116,11 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10199,11 +10140,6 @@
       "c": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
@@ -10212,9 +10148,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10230,19 +10163,11 @@
       "b": "number 11"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10272,11 +10197,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
@@ -10285,9 +10205,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10302,19 +10219,11 @@
       "b": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10343,11 +10252,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
@@ -10356,9 +10260,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10380,11 +10281,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
@@ -10401,9 +10297,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10437,11 +10330,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
@@ -10462,9 +10350,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10484,19 +10369,11 @@
       "c": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10517,19 +10394,11 @@
       "c": "number 11"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10554,11 +10423,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
@@ -10567,9 +10431,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10589,19 +10450,11 @@
       "c": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10629,19 +10482,11 @@
       "d": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10669,11 +10514,6 @@
       "d": "number 1"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "glob": "Object {...}"
     }
   },

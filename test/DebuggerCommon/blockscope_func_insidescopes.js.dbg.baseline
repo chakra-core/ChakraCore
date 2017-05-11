@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>"
     },
     "locals": {
@@ -21,19 +18,11 @@
       "x": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>"
     },
     "arguments": {
@@ -62,19 +51,11 @@
       "x": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>"
     },
     "arguments": {
@@ -103,19 +84,11 @@
       "x": "number 1"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>"
     },
     "arguments": {
@@ -144,11 +117,6 @@
       "x": "number 1"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>"
     }
   }

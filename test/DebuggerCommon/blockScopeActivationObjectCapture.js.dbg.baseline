@@ -30,11 +30,6 @@
       "level_0_identifier_0": "string level0"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "verify": "function function verify(){}",
       "Run": "function <large string>"
     }
@@ -51,9 +46,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "verify": "function function verify(){}",
       "Run": "function <large string>"
     },
@@ -80,11 +72,6 @@
       "level2Func": "function <large string>"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "verify": "function function verify(){}",
       "Run": "function <large string>"
     }

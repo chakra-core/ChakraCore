@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Call": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>",
@@ -19,11 +16,6 @@
       "z": "number 1"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Call": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>",
@@ -32,9 +24,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Call": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>",
@@ -56,11 +45,6 @@
       "z": "number 2"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Call": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>",

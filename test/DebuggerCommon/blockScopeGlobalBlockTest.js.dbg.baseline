@@ -1,31 +1,9 @@
 [
   {
-    "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}"
-    },
+    "this": {},
     "locals": {
       "b": "number 2",
-      "a": "number 1",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      }
+      "a": "number 1"
     },
     "globals": {}
   },
@@ -42,10 +20,7 @@
   {
     "this": "Object {...}",
     "locals": {
-      "a": "number 1",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}"
+      "a": "number 1"
     }
   }
 ]
