@@ -1135,6 +1135,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     if (body->HasDynamicProfileInfo())
     {
+        if (jitWriteData.disableArrayCheckHoist)
+        {
+            body->GetAnyDynamicProfileInfo()->DisableArrayCheckHoist(workItem->Type() == JsLoopBodyWorkItemType);
+        }
         if (jitWriteData.disableAggressiveIntTypeSpec)
         {
             body->GetAnyDynamicProfileInfo()->DisableAggressiveIntTypeSpec(workItem->Type() == JsLoopBodyWorkItemType);

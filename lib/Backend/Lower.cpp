@@ -12858,7 +12858,7 @@ void Lowerer::LowerBoundCheck(IR::Instr *const instr)
             true,
             addResultOpnd,
             rightOpnd,
-            offsetOpnd ? offsetOpnd->UseWithNewType(TyInt32, func) : IR::IntConstOpnd::New(offset, TyInt32, func, true),
+            offsetOpnd ? offsetOpnd->UseWithNewType(TyInt32, func) : IR::IntConstOpnd::New(offset, TyInt32, func),
             insertBeforeInstr);
         InsertBranch(LowererMD::MDOverflowBranchOpcode, bailOutLabel, insertBeforeInstr);
 
@@ -12870,7 +12870,7 @@ void Lowerer::LowerBoundCheck(IR::Instr *const instr)
     // $bailOut:
     if(!rightOpnd)
     {
-        rightOpnd = IR::IntConstOpnd::New(offset, TyInt32, func, true);
+        rightOpnd = IR::IntConstOpnd::New(offset, TyInt32, func);
     }
     InsertCompareBranch(leftOpnd, rightOpnd, compareOpCode, doUnsignedCompare, skipBailOutLabel, insertBeforeInstr);
 }
@@ -16874,16 +16874,18 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                 const IR::AutoReuseOpnd autoReuseReg(reg, m_func);
                 InsertMove(reg, src, stElem);
 
+                bool bailOutOnHelperCall = stElem->HasBailOutInfo() && (stElem->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall);
+
                 // Convert to float, and assign to indirOpnd
                 if (baseValueType.IsLikelyOptimizedVirtualTypedArray())
                 {
                     IR::RegOpnd* dstReg = IR::RegOpnd::New(indirOpnd->GetType(), this->m_func);
-                    m_lowererMD.EmitLoadFloat(dstReg, reg, stElem);
+                    m_lowererMD.EmitLoadFloat(dstReg, reg, stElem, bailOutOnHelperCall);
                     InsertMove(indirOpnd, dstReg, stElem);
                 }
                 else
                 {
-                    m_lowererMD.EmitLoadFloat(indirOpnd, reg, stElem);
+                    m_lowererMD.EmitLoadFloat(indirOpnd, reg, stElem, bailOutOnHelperCall);
                 }
 
             }
@@ -20569,7 +20571,7 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
         // If it's not zero, then it's either 1, in which case it's true, or it's something else, in which
         // case the two will compare as inequal
         InsertCompareBranch(
-            IR::IntConstOpnd::New((((IntConstType)1) << Js::VarTag_Shift) + Js::AtomTag, IRType::TyVar, this->m_func),
+            IR::IntConstOpnd::New((((IntConstType)1) << Js::VarTag_Shift) + Js::AtomTag, IRType::TyVar, this->m_func, true),
             srcInt->AsRegOpnd(),
             Js::OpCode::BrNeq_A,
             isBranchNotCompare ? inequalResultTarget : forceInequal, // in the case of branching, we can go straight to the inequal target; for compares, we need to load the value
@@ -23889,7 +23891,7 @@ void Lowerer::GenerateSingleCharStrJumpTableLookup(IR::Instr * instr)
 
     // CMP charOpnd, lastCaseIndex - baseCaseIndex
     // JA defaultLabel
-    InsertCompareBranch(charOpnd, IR::IntConstOpnd::New(multiBrInstr->m_lastCaseValue - multiBrInstr->m_baseCaseValue, TyUint32, func, true),
+    InsertCompareBranch(charOpnd, IR::IntConstOpnd::New(multiBrInstr->m_lastCaseValue - multiBrInstr->m_baseCaseValue, TyUint32, func),
         Js::OpCode::BrGt_A, true, defaultLabelInstr, instr);
 
     instr->UnlinkSrc1();

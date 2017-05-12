@@ -78,21 +78,21 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction);
 
     public:
-        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var argument, JavascriptFunction* resolve = NULL, JavascriptFunction* reject = NULL, bool isReject = false);
+        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var argument, Var resolve = nullptr, Var reject = nullptr, bool isReject = false);
 
         inline static bool Is(Var var);
         inline static JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* FromVar(Var var);
 
         JavascriptGenerator* GetGenerator();
-        JavascriptFunction* GetReject();
-        JavascriptFunction* GetResolve();
+        Var GetReject();
+        Var GetResolve();
         bool GetIsReject();
         Var GetArgument();
 
     private:
         JavascriptGenerator* generator;
-        JavascriptFunction* reject;
-        JavascriptFunction* resolve;
+        Var reject;
+        Var resolve;
         bool isReject;
         Var argument;
 
@@ -466,7 +466,7 @@ namespace Js
         JavascriptPromiseReactionList* rejectReactions;
 
     private :
-        static void AsyncSpawnStep(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction, JavascriptGenerator* gen, JavascriptFunction* resolve, JavascriptFunction* reject);
+        static void AsyncSpawnStep(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction, JavascriptGenerator* gen, Var resolve, Var reject);
 
 #if ENABLE_TTD
     public:

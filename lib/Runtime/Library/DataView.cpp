@@ -666,6 +666,14 @@ namespace Js
         return FALSE;
     }
 
+    void DataView::ClearLengthAndBufferOnDetach()
+    {
+        AssertMsg(this->GetArrayBuffer()->IsDetached(), "Array buffer should be detached if we're calling this method");
+
+        this->length = 0;
+        this->buffer = nullptr;
+    }
+
 #ifdef _M_ARM
     // Provide template specialization (only) for memory access at unaligned float/double address which causes data alignment exception otherwise.
     template<>

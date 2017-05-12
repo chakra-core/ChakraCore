@@ -144,6 +144,12 @@ JITTimeProfileInfo::DisableAggressiveIntTypeSpec(bool isLoopBody)
 }
 
 void
+JITTimeProfileInfo::DisableArrayCheckHoist(bool isLoopBody)
+{
+    m_profileData.flags |= isLoopBody ? Flags_disableArrayCheckHoist_jitLoopBody : Flags_disableArrayCheckHoist;
+}
+
+void
 JITTimeProfileInfo::DisableStackArgOpt()
 {
     m_profileData.flags |= Flags_disableStackArgOpt;
