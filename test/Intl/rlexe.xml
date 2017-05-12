@@ -3,28 +3,26 @@
   <test>
     <default>
       <files>Collator.js</files>
-      <compile-flags>-Intl</compile-flags>
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
   <test>
     <default>
       <files>CollatorOptions.js</files>
-      <compile-flags>-Intl -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
       <tags>Intl</tags>
     </default>
   </test>
   <test>
     <default>
       <files>DateTimeFormatOptions.js</files>
-      <compile-flags>-Intl -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
       <tags>Intl</tags>
     </default>
   </test>
   <test>
     <default>
       <files>NumberFormat.js</files>
-      <compile-flags>-Intl</compile-flags>
       <baseline>NumberFormat.baseline</baseline>
       <tags>Intl,exclude_winglob</tags>
     </default>
@@ -32,7 +30,7 @@
   <test>
     <default>
       <files>NumberFormatOptions.js</files>
-      <compile-flags>-Intl -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
       <tags>Intl</tags>
     </default>
   </test>
@@ -40,7 +38,7 @@
     <default>
       <!-- Variant of test to run on Win10 -->
       <files>NumberFormatOptionsImplSpecific-Win10.js</files>
-      <compile-flags>-Intl -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
       <tags>Intl,exclude_winBlue,exclude_win8,exclude_win7</tags>
     </default>
   </test>
@@ -48,7 +46,7 @@
     <default>
       <!-- Variant of test to run on WinBlue and earlier -->
       <files>NumberFormatOptionsImplSpecific-WinBlue.js</files>
-      <compile-flags>-Intl -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
       <tags>Intl,exclude_win10</tags>
     </default>
   </test>
@@ -56,21 +54,20 @@
   <test>
     <default>
       <files>GetCanonicalLocales.js</files>
-      <compile-flags>-Intl -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
   <test>
     <default>
       <files>SupportedLocalesOf.js</files>
-      <compile-flags>-Intl -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
   <test>
     <default>
       <files>IntlHiddenInternals.js</files>
-      <compile-flags>-Intl</compile-flags>
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
@@ -78,14 +75,12 @@
     <default>
       <files>IntlTaintingTests.js</files>
       <baseline>IntlTaintingTests.baseline</baseline>
-      <compile-flags>-Intl</compile-flags>
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
 
   <test>
     <default>
-      <compile-flags>-Intl</compile-flags>
       <files>IntlBuiltIns.js</files>
       <tags>Intl,exclude_winglob</tags>
     </default>
@@ -96,7 +91,7 @@
       <!-- TODO (doilij) investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames -->
       <files>IntlInternalsHiddenFromExceptionStackTest.js</files>
       <baseline>IntlInternalsHiddenFromExceptionStackTest.baseline</baseline>
-      <compile-flags>-Intl -ExtendedErrorStackForTestHost-</compile-flags>
+      <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
@@ -105,7 +100,7 @@
       <!-- TODO (doilij) investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames -->
       <files>IntlInternalsHiddenFromFirstChanceExceptionStackTest.js</files>
       <baseline>IntlInternalsHiddenFromFirstChanceExceptionStackTest.baseline</baseline>
-      <compile-flags>-Intl -ExtendedErrorStackForTestHost-</compile-flags>
+      <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
