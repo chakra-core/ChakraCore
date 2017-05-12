@@ -34,7 +34,7 @@ typedef struct {} TTDRecorder;
             {  \
                 return JsErrorWrongRuntime;  \
             }  \
-            p = Js::CrossSite::MarshalVar(scriptContext, __obj, true); \
+            p = Js::CrossSite::MarshalVar(scriptContext, __obj); \
         }
 
 #define VALIDATE_INCOMING_RUNTIME_HANDLE(p) \
