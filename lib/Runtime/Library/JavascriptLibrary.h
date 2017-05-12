@@ -375,9 +375,17 @@ namespace Js
         Field(JavascriptString*) emptyString;
         Field(JavascriptString*) quotesString;
         Field(JavascriptString*) whackString;
+        Field(JavascriptString*) objectArgumentsDisplayString;
+        Field(JavascriptString*) objectArrayDisplayString;
+        Field(JavascriptString*) objectBooleanDisplayString;
+        Field(JavascriptString*) objectDateDisplayString;
+        Field(JavascriptString*) objectErrorDisplayString;
+        Field(JavascriptString*) objectFunctionDisplayString;
         Field(JavascriptString*) objectDisplayString;
+        Field(JavascriptString*) objectNumberDisplayString;
+        Field(JavascriptString*) objectRegExpDisplayString;
+        Field(JavascriptString*) objectStringDisplayString;
         Field(JavascriptString*) stringTypeDisplayString;
-        Field(JavascriptString*) errorDisplayString;
         Field(JavascriptString*) functionPrefixString;
         Field(JavascriptString*) generatorFunctionPrefixString;
         Field(JavascriptString*) asyncFunctionPrefixString;
@@ -647,8 +655,16 @@ namespace Js
         JavascriptString* GetTrueDisplayString() { return trueDisplayString; }
         JavascriptString* GetFalseDisplayString() { return falseDisplayString; }
         JavascriptString* GetObjectDisplayString() { return objectDisplayString; }
+        JavascriptString* GetObjectArgumentsDisplayString() { return objectArgumentsDisplayString; }
+        JavascriptString* GetObjectArrayDisplayString() { return objectArrayDisplayString; }
+        JavascriptString* GetObjectBooleanDisplayString() { return objectBooleanDisplayString; }
+        JavascriptString* GetObjectDateDisplayString() { return objectDateDisplayString; }
+        JavascriptString* GetObjectErrorDisplayString() { return objectErrorDisplayString; }
+        JavascriptString* GetObjectFunctionDisplayString() { return objectFunctionDisplayString; }
+        JavascriptString* GetObjectNumberDisplayString() { return objectNumberDisplayString; }
+        JavascriptString* GetObjectRegExpDisplayString() { return objectRegExpDisplayString; }
+        JavascriptString* GetObjectStringDisplayString() { return objectStringDisplayString; }
         JavascriptString* GetStringTypeDisplayString() { return stringTypeDisplayString; }
-        JavascriptString* GetErrorDisplayString() const { return errorDisplayString; }
         JavascriptString* GetFunctionPrefixString() { return functionPrefixString; }
         JavascriptString* GetGeneratorFunctionPrefixString() { return generatorFunctionPrefixString; }
         JavascriptString* GetAsyncFunctionPrefixString() { return asyncFunctionPrefixString; }

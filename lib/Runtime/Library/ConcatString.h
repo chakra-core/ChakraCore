@@ -6,6 +6,31 @@
 
 namespace Js
 {
+    class LiteralStringWithPropertyStringPtr : public LiteralString
+    {
+    private:
+        PropertyString * propertyString;
+
+    public:
+        PropertyString * GetPropertyString() const;
+        void SetPropertyString(PropertyString * propStr);
+
+        template <typename StringType> static LiteralStringWithPropertyStringPtr * ConvertString(StringType * originalString);
+
+        static uint GetOffsetOfPropertyString() { return offsetof(LiteralStringWithPropertyStringPtr, propertyString); }
+
+    protected:
+        LiteralStringWithPropertyStringPtr(StaticType* stringTypeStatic);
+        DEFINE_VTABLE_CTOR(LiteralStringWithPropertyStringPtr, LiteralString);
+        DECLARE_CONCRETE_STRING_CLASS;
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableLiteralStringWithPropertyStringPtr;
+        }
+    };
+
     // Base class for concat strings.
     // Concat string is a virtual string, or a non-leaf node in concat string tree.
     // It does not hold characters by itself but has one or more child nodes.
@@ -224,6 +249,7 @@ namespace Js
         static uint32 GetOffsetOfSlots() { return offsetof(ConcatStringMulti, m_slots); }
     protected:
         Field(uint) slotCount;
+        Field(uint) __alignment;
         Field(JavascriptString*) m_slots[];   // These contain the child nodes.
 
 #if DBG

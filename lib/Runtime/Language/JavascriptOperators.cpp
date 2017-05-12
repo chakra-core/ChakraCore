@@ -3730,9 +3730,18 @@ CommonNumber:
             temp = JavascriptString::FromVar(index);
             Assert(temp->GetScriptContext() == scriptContext);
 
+            PropertyString * propertyString = nullptr;
             if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(temp))
             {
-                PropertyString * propertyString = (PropertyString*)temp;
+                propertyString = (PropertyString*)temp;
+            }
+            else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(temp))
+            {
+                LiteralStringWithPropertyStringPtr * str = (LiteralStringWithPropertyStringPtr *)temp;
+                propertyString = str->GetPropertyString();
+            }
+            if(propertyString != nullptr)
+            {
                 RecyclableObject* object = nullptr;
                 if (FALSE == JavascriptOperators::GetPropertyObject(instance, scriptContext, &object))
                 {
@@ -4443,12 +4452,30 @@ CommonNumber:
 
         // fastpath for PropertyStrings only if receiver == object
         if (!TaggedInt::Is(index) && JavascriptString::Is(index) &&
-            VirtualTableInfo<Js::PropertyString>::HasVirtualTable(JavascriptString::FromVar(index)))
+            (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(index) || VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(index)))
         {
-            propertyString = (PropertyString *)JavascriptString::FromVar(index);
+            if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(index))
+            {
+                LiteralStringWithPropertyStringPtr * str = (LiteralStringWithPropertyStringPtr *)index;
+                propertyString = str->GetPropertyString();
+                if (propertyString == nullptr)
+                {
+                    scriptContext->GetOrAddPropertyRecord(str->GetString(), str->GetLength(), &propertyRecord);
+                    propertyString = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
+                    str->SetPropertyString(propertyString);
+                }
+                else
+                {
+                    propertyRecord = propertyString->GetPropertyRecord();
+                }
 
+            }
+            else
+            {
+                propertyString = (PropertyString*)index;
+                propertyRecord = propertyString->GetPropertyRecord();
+            }
             Assert(propertyString->GetScriptContext() == scriptContext);
-            propertyRecord = propertyString->GetPropertyRecord();
 
             if (propertyRecord->IsNumeric())
             {
