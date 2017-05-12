@@ -9164,6 +9164,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
                     this->m_lowerer->InsertCompareBranch(checkNegZeroOpnd, zero, Js::OpCode::BrNeq_A, convertToInt, instr);
 
+                    m_lowerer->InsertLabel(true, instr);
                     NegZeroBranching(checkNegZeroOpnd, instr, bailoutLabel, convertToInt);
 
                     instr->InsertBefore(convertToInt);
