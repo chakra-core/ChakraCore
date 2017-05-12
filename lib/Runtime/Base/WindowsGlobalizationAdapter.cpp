@@ -364,8 +364,6 @@ namespace Js
         return retVal;
     }
 
-        // OK for timeZoneId to get truncated as it would pass incomplete timeZoneId below which
-        // will be rejected by globalization dll
     HRESULT WindowsGlobalizationAdapter::NormalizeLanguageTag(_In_ ScriptContext* scriptContext, _In_z_ PCWSTR languageTag, HSTRING *result)
     {
         HRESULT hr;
@@ -385,6 +383,8 @@ namespace Js
         HSTRING_HEADER timeZoneHeader;
 
         // Construct HSTRING of timeZoneId passed
+        // OK for timeZoneId to get truncated as it would pass incomplete timeZoneId below which
+        // will be rejected by globalization dll
         IfFailThrowHr(GetWindowsGlobalizationLibrary(scriptContext)->WindowsCreateStringReference(timeZoneId, static_cast<UINT32>(wcslen(timeZoneId)), &timeZoneHeader, &timeZone));
 
         // The warning is timeZone could be '0'. This is valid scenario and in that case, ChangeTimeZone() would

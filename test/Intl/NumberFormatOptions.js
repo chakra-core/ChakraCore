@@ -12,7 +12,8 @@ var tests = [
             assert.areEqual(new Intl.NumberFormat("en-US", { minimumSignificantDigits: 2, maximumSignificantDigits: 2 }).format(2.131), "2.1", "max: fewer than input");
             assert.areEqual(new Intl.NumberFormat("en-US", { minimumSignificantDigits: 2, maximumSignificantDigits: 3 }).format(2.1), "2.1", "min: same as input");
             assert.areEqual(new Intl.NumberFormat("en-US", { minimumSignificantDigits: 3, maximumSignificantDigits: 3 }).format(2.1), "2.10", "min: more than input");
-            assert.areEqual(new Intl.NumberFormat("en-US", { minimumSignificantDigits: 3, maximumSignificantDigits: 3 }).format(123.1), "123", "max: fewer than input - no decimal");
+            assert.areEqual(new Intl.NumberFormat("en-US", { minimumSignificantDigits: 3, maximumSignificantDigits: 3 }).format(123.1), "123", "max: fewer than input; no decimal point");
+            assert.areEqual(new Intl.NumberFormat("en-US", { minimumSignificantDigits: 3, maximumSignificantDigits: 3, style: "decimal" }).format(123.1), "123", "style: decimal; no decimal point");
 
             assert.areEqual(new Intl.NumberFormat("en-US", { minimumSignificantDigits: 3, maximumSignificantDigits: 3, minimumIntegerDigits: 5, minimumFractionDigits: 5, maximumFractionDigits: 5 }).format(123.1), "123",
                 "sigfigs(min=max=3); int(min=5); fraction(min=max=5) -- maximumSignificantDigits takes precedence over min digits");
