@@ -641,6 +641,7 @@ namespace Js
         template <typename T> void OP_ApplyArgs(const unaligned OpLayoutT_Reg5<T> * playout);
         template <class T> void OP_EmitTmpRegCount(const unaligned OpLayoutT_Unsigned1<T> * ip);
 
+        void TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext);
         Var InnerScopeFromIndex(uint32 index) const;
         void SetInnerScopeFromIndex(uint32 index, Var scope);
         void OP_NewInnerScopeSlots(uint index, uint count, int scopeIndex, ScriptContext *scriptContext, FunctionBody *functionBody);

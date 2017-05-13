@@ -1729,7 +1729,17 @@ void Parser::BindPidRefsInScopeImpl(IdentPtr pid, Symbol *sym, int blockId, uint
             continue;
         }
         ref->SetSym(sym);
+        
         this->RemovePrevPidRef(pid, lastRef);
+
+        if (ref->IsAssignment())
+        {
+            sym->PromoteAssignmentState();
+            if (m_currentNodeFunc && sym->GetIsFormal())
+            {
+                m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);                
+            }
+        }
 
         if (ref->IsModuleExport())
         {
@@ -8075,7 +8085,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 {
                     Error(JSERR_CantAssignTo);
                 }
-
+                TrackAssignment<buildAST>(pnodeT, &operandToken, ichMin, m_pscan->IchLimTok());
                 if (buildAST)
                 {
                     if (IsStrictMode() && pnodeT->nop == knopName)
@@ -8230,6 +8240,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 Error(JSERR_CantAssignTo);
             }
+            TrackAssignment<buildAST>(pnode, &term, ichMin, m_pscan->IchLimTok());
             fCanAssign = FALSE;
             if (buildAST)
             {
@@ -8277,7 +8288,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binary operators. We also need to special case the left
                 // operand - it should only be a LeftHandSideExpression.
                 Assert(ParseNode::Grfnop(nop) & fnopAsg || nop == knopFncDecl);
-
+                TrackAssignment<buildAST>(pnode, &term, ichMin, m_pscan->IchLimTok());
                 if (buildAST)
                 {
                     if (IsStrictMode() && pnode->nop == knopName)
@@ -8497,6 +8508,46 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     }
 
     return pnode;
+}
+
+template<bool buildAST>
+void Parser::TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken, charcount_t ichMin, charcount_t ichLim)
+{
+    if (buildAST)
+    {
+        Assert(pnodeT != NULL);
+        if (pnodeT->nop == knopName)
+        {
+            PidRefStack *ref = pnodeT->sxPid.pid->GetTopRef();
+            Assert(ref);
+            ref->TrackAssignment(pnodeT->ichMin, pnodeT->ichLim);
+        }
+    }
+    else
+    {
+        Assert(pToken != NULL);
+        if (pToken->tk == tkID)
+        {
+            PidRefStack *ref = pToken->pid->GetTopRef();
+            Assert(ref);
+            ref->TrackAssignment(ichMin, ichLim);
+        }
+    }
+}
+
+void PidRefStack::TrackAssignment(charcount_t ichMin, charcount_t ichLim)
+{
+    if (this->isAsg)
+    {
+        if (this->GetIchMin() <= ichMin)
+        {
+            return;
+        }
+        Assert(ichMin <= this->GetIchMin() && this->GetIchLim() <= ichLim);
+    }
+
+    this->isAsg = true;
+    this->span.Set(ichMin, ichLim);
 }
 
 void PnPid::SetSymRef(PidRefStack *ref)
@@ -8729,6 +8780,10 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                 if (pnodeThis && pnodeThis->sxVar.pnodeInit != nullptr)
                 {
                     pnodeThis->sxVar.sym->PromoteAssignmentState();
+                    if (m_currentNodeFunc && pnodeThis->sxVar.sym->GetIsFormal())
+                    {
+                        m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);
+                    }
                 }
             }
             else if (declarationType == tkCONST /*pnodeThis->nop == knopConstDecl*/
@@ -11189,9 +11244,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
 
         // Append block as body of pnodeProg
         FinishParseBlock(pnodeBlock);
-
     }
-
     catch(ParseExceptionObject& e)
     {
         m_err.m_hr = e.GetError();

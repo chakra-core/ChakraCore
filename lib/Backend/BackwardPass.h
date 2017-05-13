@@ -33,6 +33,7 @@ private:
     bool ProcessBailOutInfo(IR::Instr * instr, bool preOpBailout);
     bool ProcessBailOutInfo(IR::Instr * instr);
     void ProcessPendingPreOpBailOutInfo(IR::Instr *const currentInstr);
+    void MarkScopeObjectSymAsByteCodeSymUse(BailOutInfo * bailOutInfo, Func * func, Func * topFunc);
     void ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo);
     void ProcessBailOutArgObj(BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed);
     void ProcessBailOutConstants(BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed, BVSparse<JitArenaAllocator>* argSymsBv);

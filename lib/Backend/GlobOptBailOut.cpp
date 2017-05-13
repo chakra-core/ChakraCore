@@ -687,7 +687,7 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
     bailOutInfo->liveFloat64Syms = block->globOptData.liveFloat64Syms->CopyNew(this->func->m_alloc);
     // SIMD_JS
     bailOutInfo->liveSimd128F4Syms = block->globOptData.liveSimd128F4Syms->CopyNew(this->func->m_alloc);
-    bailOutInfo->liveSimd128I4Syms = block->globOptData.liveSimd128I4Syms->CopyNew(this->func->m_alloc);
+    bailOutInfo->liveSimd128I4Syms = block->globOptData.liveSimd128I4Syms->CopyNew(this->func->m_alloc);  
 
     // The live int32 syms in the bailout info are only the syms resulting from lossless conversion to int. If the int32 value
     // was created from a lossy conversion to int, the original var value cannot be re-materialized from the int32 value. So, the

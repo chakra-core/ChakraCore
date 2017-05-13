@@ -112,6 +112,11 @@ namespace Js
             return this->formalCount;
         }
 
+        void SetFormalCount(uint32 value)
+        {
+            this->formalCount = value;
+        }
+
         ES5HeapArgumentsObject* ConvertToUnmappedArgumentsObject(bool overwriteArgsUsingFrameObject = true);
 
     private:
@@ -122,7 +127,9 @@ namespace Js
         BOOL IsFormalArgument(PropertyId propertyId);
         BOOL IsFormalArgument(PropertyId propertyId, uint32* pIndex);    // Checks whether property is numeric, and on success sets that index.
         BOOL IsArgumentDeleted(uint32 index) const;
+    public:
         const ActivationObject* const GetFrameObject() { return frameObject; }
+        void SetFrameObject(ActivationObject * value) { frameObject = value; }
     };
 
     // ES5 version of the HeapArgumentsObject: support for attributes on formal arguments.

@@ -178,6 +178,7 @@ LowererMDArch::LoadStackArgPtr(IR::Instr * instrArgPtr)
 IR::Instr *
 LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
 {
+    // s8 = isStackArgOptimization
     // s7 = formals are let decls
     // s6 = memory context
     // s5 = local frame instance
@@ -190,6 +191,10 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
     ASSERT_INLINEE_FUNC(instrArgs);
     Func *func = instrArgs->m_func;
     IR::Instr *instrPrev = instrArgs->m_prev;
+
+    // s8 = isStackArgOptimization
+    IR::Opnd * isStackArgOpt = IR::IntConstOpnd::New((IntConstType)((func->GetHasStackArgs() && this->m_func->GetHasStackArgs()) ? TRUE : FALSE), TyUint8, func);
+    this->LoadHelperArgument(instrArgs, isStackArgOpt);
 
     // s7 = formals are let decls
     IR::Opnd * formalsAreLetDecls = IR::IntConstOpnd::New((IntConstType)(instrArgs->m_opcode == Js::OpCode::LdLetHeapArgsCached), TyUint8, func);
@@ -284,7 +289,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force /* = false */,
     Func *func = instrArgs->m_func;
 
     IR::Instr *instrPrev = instrArgs->m_prev;
-    if (!force && func->GetHasStackArgs() && this->m_func->GetHasStackArgs())
+    if (!force && func->GetHasStackArgs() && this->m_func->GetHasStackArgs() && instrArgs->m_func->GetJnFunction()->GetInParamsCount() == 1)
     {
         // The initial args slot value is zero. (TODO: it should be possible to dead-store the LdHeapArgs in this case.)
         instrArgs->m_opcode = Js::OpCode::MOV;
@@ -293,6 +298,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force /* = false */,
     }
     else
     {
+        // s8 = IsStackArgsOpt
         // s7 = formals are let decls
         // s6 = memory context
         // s5 = array of property ID's
@@ -301,6 +307,9 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force /* = false */,
         // s2 = actual argument count
         // s1 = current function
         // dst = JavascriptOperators::LoadHeapArguments(s1, s2, s3, s4, s5, s6, s7)
+        
+        // s8 = IsStackArgsOpt
+        this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New((!force && func->GetHasStackArgs() && this->m_func->GetHasStackArgs()) ? TRUE : FALSE, TyUint8, func));
 
         // s7 = formals are let decls
         this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(instrArgs->m_opcode == Js::OpCode::LdLetHeapArguments ? TRUE : FALSE, TyUint8, func));
