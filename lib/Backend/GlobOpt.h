@@ -274,8 +274,6 @@ namespace JsUtil
     };
 };
 
-typedef SList<GlobHashBucket*, JitArenaAllocator> PRECandidatesList;
-
 typedef JsUtil::BaseDictionary<IntConstType, StackSym *, JitArenaAllocator> IntConstantToStackSymMap;
 typedef JsUtil::BaseDictionary<IntConstType, Value *, JitArenaAllocator> IntConstantToValueMap;
 
@@ -378,6 +376,8 @@ public:
     PREVENT_ASSIGN(InvariantBlockBackwardIterator);
 };
 
+class FlowGraph;
+
 class GlobOpt
 {
 private:
@@ -389,6 +389,8 @@ private:
 #if DBG
     friend class ObjectTempVerify;
 #endif
+    friend class GlobOptBlockData;
+    friend class BasicBlock;
 
 private:
     SparseArray<Value>       *  byteCodeConstantValueArray;
@@ -484,7 +486,6 @@ public:
 
     IR::ByteCodeUsesInstr * ConvertToByteCodeUses(IR::Instr * isntr);
     bool GetIsAsmJSFunc()const{ return isAsmJSFunc; };
-    BOOLEAN                 IsArgumentsOpnd(IR::Opnd const* opnd) const;
 private:
     bool                    IsLoopPrePass() const { return this->prePassLoop != nullptr; }
     void                    OptBlock(BasicBlock *block);
@@ -493,27 +494,15 @@ private:
     void                    OptLoops(Loop *loop);
     void                    TailDupPass();
     bool                    TryTailDup(IR::BranchInstr *tailBranch);
-    void                    CleanUpValueMaps();
     PRECandidatesList *     FindBackEdgePRECandidates(BasicBlock *block, JitArenaAllocator *alloc);
-    PRECandidatesList *     RemoveUnavailableCandidates(BasicBlock *block, PRECandidatesList *candidates, JitArenaAllocator *alloc);
     PRECandidatesList *     FindPossiblePRECandidates(Loop *loop, JitArenaAllocator *alloc);
     void                    PreloadPRECandidates(Loop *loop, PRECandidatesList *candidates);
     BOOL                    PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate);
     void                    SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *propertySym, PropertySym *originalPropertySym);
     void                    FieldPRE(Loop *loop);
-    void                    MergePredBlocksValueMaps(BasicBlock *block);
-    void                    NulloutBlockData(GlobOptBlockData *data);
-    void                    InitBlockData(GlobOptBlockData* data);
-    void                    ReuseBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData);
-    void                    CopyBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData);
     void                    CloneBlockData(BasicBlock *const toBlock, BasicBlock *const fromBlock);
-    void                    CloneBlockData(BasicBlock *const toBlock, GlobOptBlockData *const toData, BasicBlock *const fromBlock);
     void                    CloneValues(BasicBlock *const toBlock, GlobOptBlockData *toData, GlobOptBlockData *fromData);
 
-    template <typename CaptureList, typename CapturedItemsAreEqual>
-    void                    MergeCapturedValues(GlobOptBlockData * toData, SListBase<CaptureList>* toList, SListBase<CaptureList> * fromList, CapturedItemsAreEqual itemsAreEqual);
-    void                    MergeBlockData(GlobOptBlockData *toData, BasicBlock *toBlock, BasicBlock *fromBlock, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge, bool forceTypeSpecOnLoopHeader);
-    void                    DeleteBlockData(GlobOptBlockData *data);
     void                    TryReplaceLdLen(IR::Instr *& instr);
     IR::Instr *             OptInstr(IR::Instr *&instr, bool* isInstrCleared);
     Value*                  OptDst(IR::Instr **pInstr, Value *dstVal, Value *src1Val, Value *src2Val, Value *dstIndirIndexVal, Value *src1IndirIndexVal);
@@ -530,10 +519,6 @@ private:
     void                    OptArguments(IR::Instr *Instr);
     void                    TrackInstrsForScopeObjectRemoval(IR::Instr * instr);
     bool                    AreFromSameBytecodeFunc(IR::RegOpnd const* src1, IR::RegOpnd const* dst) const;
-    void                    TrackArgumentsSym(IR::RegOpnd const* opnd);
-    void                    ClearArgumentsSym(IR::RegOpnd const* opnd);
-    BOOLEAN                 TestAnyArgumentsSym() const;
-    BOOLEAN                 IsArgumentsSymID(SymID id, const GlobOptBlockData& blockData) const;
     Value *                 ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val);
     Value *                 ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal);
     ValueType               GetPrepassValueTypeForDst(const ValueType desiredValueType, IR::Instr *const instr, Value *const src1Value, Value *const src2Value, bool *const isValueInfoPreciseRef = nullptr) const;
@@ -543,25 +528,8 @@ private:
     Value *                 ValueNumberTransferDst(IR::Instr *const instr, Value *src1Val);
     bool                    IsSafeToTransferInPrePass(IR::Opnd *src, Value *srcValue);
     Value *                 ValueNumberTransferDstInPrepass(IR::Instr *const instr, Value *const src1Val);
-    Value *                 FindValue(GlobOptBlockData* blockData, Sym *sym);
-    Value *                 FindValue(GlobHashTable *valueNumberMap, Sym *sym);
-    ValueNumber             FindValueNumber(GlobHashTable *valueNumberMap, Sym *sym);
-    Value *                 FindValueFromHashTable(GlobHashTable *valueNumberMap, SymID symId);
-    ValueNumber             FindPropertyValueNumber(GlobHashTable *valueNumberMap, SymID symId);
-    Value *                 FindPropertyValue(GlobHashTable *valueNumberMap, SymID symId);
-    Value *                 FindObjectTypeValue(StackSym* typeSym);
-    Value *                 FindObjectTypeValue(StackSym* typeSym, GlobHashTable *valueNumberMap);
-    Value *                 FindObjectTypeValue(SymID typeSymId, GlobHashTable *valueNumberMap);
-    Value *                 FindObjectTypeValue(StackSym* typeSym, BasicBlock* block);
-    Value*                  FindObjectTypeValue(SymID typeSymId, BasicBlock* block);
-    Value *                 FindObjectTypeValue(StackSym* typeSym, GlobHashTable *valueNumberMap, BVSparse<JitArenaAllocator>* liveFields);
-    Value *                 FindObjectTypeValue(SymID typeSymId, GlobHashTable *valueNumberMap, BVSparse<JitArenaAllocator>* liveFields);
-    Value *                 FindFuturePropertyValue(PropertySym *const propertySym);
     IR::Opnd *              CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *parentIndirOpnd = nullptr);
     IR::Opnd *              CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copySym, IR::IndirOpnd *parentIndirOpnd = nullptr);
-    StackSym *              GetCopyPropSym(Sym * sym, Value * val);
-    StackSym *              GetCopyPropSym(BasicBlock * block, Sym * sym, Value * val);
-    void                    MarkTempLastUse(IR::Instr *instr, IR::RegOpnd *regOpnd);
 
     ValueNumber             NewValueNumber();
     Value *                 NewValue(ValueInfo *const valueInfo);
@@ -591,12 +559,6 @@ private:
     StackSym *              GetOrCreateTaggedIntConstantStackSym(const int32 intConstantValue) const;
     Sym *                   SetSymStore(ValueInfo *valueInfo, Sym *sym);
     void                    SetSymStoreDirect(ValueInfo *valueInfo, Sym *sym);
-    void                    SetChangedSym(SymID symId);
-    Value *                 InsertNewValue(Value *val, IR::Opnd *opnd);
-    Value *                 InsertNewValue(GlobOptBlockData * blockData, Value *val, IR::Opnd *opnd);
-    Value *                 SetValue(GlobOptBlockData * blockData, Value *val, IR::Opnd *opnd);
-    void                    SetValue(GlobOptBlockData * blockData, Value *val, Sym * sym);
-    void                    SetValueToHashTable(GlobHashTable * valueNumberMap, Value *val, Sym *sym);
     IR::Instr *             TypeSpecialization(IR::Instr *instr, Value **pSrc1Val, Value **pSrc2Val, Value **pDstVal, bool *redoTypeSpecRef, bool *const forceInvariantHoistingRef);
 
 #ifdef ENABLE_SIMDJS
@@ -711,7 +673,7 @@ private:
     void                    DetectUnknownChangesToInductionVariables(GlobOptBlockData *const blockData);
     void                    SetInductionVariableValueNumbers(GlobOptBlockData *const blockData);
     void                    FinalizeInductionVariables(Loop *const loop, GlobOptBlockData *const headerData);
-    bool                    DetermineSymBoundOffsetOrValueRelativeToLandingPad(StackSym *const sym, const bool landingPadValueIsLowerBound, ValueInfo *const valueInfo, const IntBounds *const bounds, GlobHashTable *const landingPadSymToValueMap, int *const boundOffsetOrValueRef);
+    bool                    DetermineSymBoundOffsetOrValueRelativeToLandingPad(StackSym *const sym, const bool landingPadValueIsLowerBound, ValueInfo *const valueInfo, const IntBounds *const bounds, GlobOptBlockData *const landingPadGlobOptBlockData, int *const boundOffsetOrValueRef);
 
 private:
     void                    DetermineDominatingLoopCountableBlock(Loop *const loop, BasicBlock *const headerBlock);
@@ -731,6 +693,8 @@ private:
 public:
     JsArrayKills            CheckJsArrayKills(IR::Instr *const instr);
 
+    GlobOptBlockData const * GetCurrentBlockData() const;
+
 private:
     bool                    IsOperationThatLikelyKillsJsArraysWithNoMissingValues(IR::Instr *const instr);
     bool                    NeedBailOnImplicitCallForArrayCheckHoist(BasicBlock const * const block, const bool isForwardPass) const;
@@ -741,12 +705,6 @@ private:
 
     void                    PreLowerCanonicalize(IR::Instr *instr, Value **pSrc1Val, Value **pSrc2Val);
     void                    ProcessKills(IR::Instr *instr);
-    void                    MergeValueMaps(GlobOptBlockData *toData, BasicBlock *toBlock, BasicBlock *fromBlock, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge);
-    Value *                 MergeValues(Value *toDataValueMap, Value *fromDataValueMap, Sym *fromDataSym, GlobOptBlockData *toData, GlobOptBlockData *fromData, bool isLoopBackEdge, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge);
-    ValueInfo *             MergeValueInfo(Value *toDataVal, Value *fromDataVal, Sym *fromDataSym, GlobOptBlockData *fromData, bool isLoopBackEdge, bool sameValueNumber, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge);
-    ValueInfo *             MergeLikelyIntValueInfo(Value *toDataVal, Value *fromDataVal, const ValueType newValueType);
-    JsTypeValueInfo *       MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, JsTypeValueInfo * fromValueInfo, bool isLoopBackEdge, bool sameValueNumber);
-    ValueInfo *             MergeArrayValueInfo(const ValueType mergedValueType, const ArrayValueInfo *const toDataValueInfo, const ArrayValueInfo *const fromDataValueInfo, Sym *const arraySym, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge);
     void                    InsertCloneStrs(BasicBlock *toBlock, GlobOptBlockData *toData, GlobOptBlockData *fromData);
     void                    InsertValueCompensation(BasicBlock *const predecessor, const SymToValueInfoMap &symsRequiringCompensationToMergedValueInfoMap);
     IR::Instr *             ToVarUses(IR::Instr *instr, IR::Opnd *opnd, bool isDst, Value *val);
@@ -768,29 +726,6 @@ private:
     void                    TypeSpecializeSimd128Dst(IRType type, IR::Instr *instr, Value *valToTransfer, Value *const src1Value, Value **pDstVal);
     void                    ToSimd128Dst(IRType toType, IR::Instr *instr, IR::RegOpnd *dst, BasicBlock *block);
 
-    static BOOL             IsInt32TypeSpecialized(Sym const * sym, BasicBlock const * block);
-    static BOOL             IsInt32TypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
-    static BOOL             IsSwitchInt32TypeSpecialized(IR::Instr const * instr, BasicBlock const * block);
-    static BOOL             IsFloat64TypeSpecialized(Sym const * sym, BasicBlock const * block);
-    static BOOL             IsFloat64TypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
-    // SIMD_JS
-    static BOOL             IsSimd128TypeSpecialized(Sym const * sym, BasicBlock const * block);
-    static BOOL             IsSimd128TypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
-    static BOOL             IsSimd128TypeSpecialized(IRType type, Sym const * sym, BasicBlock const * block);
-    static BOOL             IsSimd128TypeSpecialized(IRType type, Sym const * sym, GlobOptBlockData const * data);
-    static BOOL             IsSimd128F4TypeSpecialized(Sym const * sym, BasicBlock const * block);
-    static BOOL             IsSimd128F4TypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
-    static BOOL             IsSimd128I4TypeSpecialized(Sym const * sym, BasicBlock const * block);
-    static BOOL             IsSimd128I4TypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
-    static BOOL             IsLiveAsSimd128(Sym const * sym, GlobOptBlockData const * data);
-    static BOOL             IsLiveAsSimd128F4(Sym const * sym, GlobOptBlockData const * data);
-    static BOOL             IsLiveAsSimd128I4(Sym const * sym, GlobOptBlockData const * data);
-
-    static BOOL             IsTypeSpecialized(Sym const * sym, BasicBlock const * block);
-    static BOOL             IsTypeSpecialized(Sym const * sym, GlobOptBlockData const * data);
-    static BOOL             IsLive(Sym const * sym, BasicBlock const * block);
-    static BOOL             IsLive(Sym const * sym, GlobOptBlockData const * data);
-    void                    MakeLive(StackSym *const sym, GlobOptBlockData *const blockData, const bool lossy) const;
     void                    OptConstFoldBr(bool test, IR::Instr *instr, Value * intTypeSpecSrc1Val = nullptr, Value * intTypeSpecSrc2Val = nullptr);
     void                    PropagateIntRangeForNot(int32 minimum, int32 maximum, int32 *pNewMin, int32 * pNewMax);
     void                    PropagateIntRangeBinary(IR::Instr *instr, int32 min1, int32 max1,
@@ -995,9 +930,7 @@ private:
 #if DBG_DUMP
     void                    Dump() const;
     void                    DumpSymToValueMap() const;
-    void                    DumpSymToValueMap(GlobHashTable* symToValueMap) const;
     void                    DumpSymToValueMap(BasicBlock const * block) const;
-    static void             DumpSym(Sym *sym);
     void                    DumpSymVal(int index);
 
     void                    Trace(BasicBlock * basicBlock, bool before) const;
@@ -1037,8 +970,6 @@ private:
     IR::Instr *             TrackMarkTempObject(IR::Instr * instrStart, IR::Instr * instrEnd);
     void                    TrackTempObjectSyms(IR::Instr * instr, IR::RegOpnd * opnd);
     IR::Instr *             GenerateBailOutMarkTempObjectIfNeeded(IR::Instr * instr, IR::Opnd * opnd, bool isDst);
-
-    void                    KillStateForGeneratorYield();
 
     static void             InstantiateForceInlinedMembers_GlobOptIntBounds();
 

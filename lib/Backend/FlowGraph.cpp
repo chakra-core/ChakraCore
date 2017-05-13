@@ -2596,7 +2596,7 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
         */
         Js::OpCode opcode = instr->m_opcode;
         if (opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt(this->func) &&
-            globOpt->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
+            globOpt->GetCurrentBlockData()->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
         {
             IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr);
             byteCodeUsesInstr->SetNonOpndSymbol(instr->m_func->GetScopeObjSym()->m_id);
@@ -3405,36 +3405,274 @@ ObjWriteGuardBucket::Dump() const
 #endif
 
 void
-GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
+BasicBlock::CleanUpValueMaps()
 {
-    Assert(!this->isCallHelper);
-    // We keep a local temporary copy for the merge
-    GlobOptBlockData blockData(block->globOptData.curFunc);
-
-    if (!this->isRecursiveCallOnLandingPad)
+    // Don't do cleanup if it's been done recently.
+    // Landing pad could get optimized twice...
+    // We want the same info out the first and second time. So always cleanup.
+    // Increasing the cleanup threshold count for asmjs to 500
+    uint cleanupCount = (!this->globOptData.globOpt->GetIsAsmJSFunc()) ? CONFIG_FLAG(GoptCleanupThreshold) : CONFIG_FLAG(AsmGoptCleanupThreshold);
+    if (!this->IsLandingPad() && this->globOptData.globOpt->instrCountSinceLastCleanUp < cleanupCount)
     {
-        this->NulloutBlockData(&blockData);
+        return;
+    }
+    this->globOptData.globOpt->instrCountSinceLastCleanUp = 0;
+
+    JitArenaAllocator* tempAlloc = this->globOptData.globOpt->tempAlloc;
+
+    GlobHashTable *thisTable = this->globOptData.symToValueMap;
+    BVSparse<JitArenaAllocator> deadSymsBv(tempAlloc);
+    BVSparse<JitArenaAllocator> keepAliveSymsBv(tempAlloc);
+    BVSparse<JitArenaAllocator> availableValueNumbers(tempAlloc);
+    availableValueNumbers.Copy(this->globOptData.globOpt->byteCodeConstantValueNumbersBv);
+    BVSparse<JitArenaAllocator> *upwardExposedUses = this->upwardExposedUses;
+    BVSparse<JitArenaAllocator> *upwardExposedFields = this->upwardExposedFields;
+    bool isInLoop = !!this->loop;
+
+    BVSparse<JitArenaAllocator> symsInCallSequence(tempAlloc);
+    SListBase<IR::Opnd *> * callSequence = this->globOptData.callSequence;
+    if (callSequence && !callSequence->Empty())
+    {
+        FOREACH_SLISTBASE_ENTRY(IR::Opnd *, opnd, callSequence)
+        {
+            StackSym * sym = opnd->GetStackSym();
+            symsInCallSequence.Set(sym->m_id);
+        }
+    }
+    NEXT_SLISTBASE_ENTRY;
+
+    for (uint i = 0; i < thisTable->tableSize; i++)
+    {
+        FOREACH_SLISTBASE_ENTRY_EDITING(GlobHashBucket, bucket, &thisTable->table[i], iter)
+        {
+            bool isSymUpwardExposed = upwardExposedUses->Test(bucket.value->m_id) || upwardExposedFields->Test(bucket.value->m_id);
+            if (!isSymUpwardExposed && symsInCallSequence.Test(bucket.value->m_id))
+            {
+                // Don't remove/shrink sym-value pair if the sym is referenced in callSequence even if the sym is dead according to backward data flow.
+                // This is possible in some edge cases that an infinite loop is involved when evaluating parameter for a function (between StartCall and Call),
+                // there is no backward data flow into the infinite loop block, but non empty callSequence still populates to it in this (forward) pass
+                // which causes error when looking up value for the syms in callSequence (cannot find the value).
+                // It would cause error to fill out the bailout information for the loop blocks.
+                // Remove dead syms from callSequence has some risk because there are various associated counters which need to be consistent.
+                continue;
+            }
+            // Make sure symbol was created before backward pass.
+            // If symbols isn't upward exposed, mark it as dead.
+            // If a symbol was copy-prop'd in a loop prepass, the upwardExposedUses info could be wrong.  So wait until we are out of the loop before clearing it.
+            if ((SymID)bucket.value->m_id <= this->globOptData.globOpt->maxInitialSymID && !isSymUpwardExposed
+                && (!isInLoop || !this->globOptData.globOpt->prePassCopyPropSym->Test(bucket.value->m_id)))
+            {
+                Value *val = bucket.element;
+                ValueInfo *valueInfo = val->GetValueInfo();
+
+                Sym * sym = bucket.value;
+                Sym *symStore = valueInfo->GetSymStore();
+
+                if (symStore && symStore == bucket.value)
+                {
+                    // Keep constants around, as we don't know if there will be further uses
+                    if (!bucket.element->GetValueInfo()->IsVarConstant() && !bucket.element->GetValueInfo()->HasIntConstantValue())
+                    {
+                        // Symbol may still be a copy-prop candidate.  Wait before deleting it.
+                        deadSymsBv.Set(bucket.value->m_id);
+
+                        // Make sure the type sym is added to the dead syms vector as well, because type syms are
+                        // created in backward pass and so their symIds > maxInitialSymID.
+                        if (sym->IsStackSym() && sym->AsStackSym()->HasObjectTypeSym())
+                        {
+                            deadSymsBv.Set(sym->AsStackSym()->GetObjectTypeSym()->m_id);
+                        }
+                    }
+                    availableValueNumbers.Set(val->GetValueNumber());
+                }
+                else
+                {
+                    // Make sure the type sym is added to the dead syms vector as well, because type syms are
+                    // created in backward pass and so their symIds > maxInitialSymID. Perhaps we could remove
+                    // it explicitly here, but would it work alright with the iterator?
+                    if (sym->IsStackSym() && sym->AsStackSym()->HasObjectTypeSym())
+                    {
+                        deadSymsBv.Set(sym->AsStackSym()->GetObjectTypeSym()->m_id);
+                    }
+
+                    // Not a copy-prop candidate; delete it right away.
+                    iter.RemoveCurrent(thisTable->alloc);
+                    this->globOptData.liveInt32Syms->Clear(sym->m_id);
+                    this->globOptData.liveLossyInt32Syms->Clear(sym->m_id);
+                    this->globOptData.liveFloat64Syms->Clear(sym->m_id);
+                }
+            }
+            else
+            {
+                Sym * sym = bucket.value;
+
+                if (sym->IsPropertySym() && !this->globOptData.liveFields->Test(sym->m_id))
+                {
+                    // Remove propertySyms which are not live anymore.
+                    iter.RemoveCurrent(thisTable->alloc);
+                    this->globOptData.liveInt32Syms->Clear(sym->m_id);
+                    this->globOptData.liveLossyInt32Syms->Clear(sym->m_id);
+                    this->globOptData.liveFloat64Syms->Clear(sym->m_id);
+                }
+                else
+                {
+                    // Look at the copy-prop candidate. We don't want to get rid of the data for a symbol which is
+                    // a copy-prop candidate.
+                    Value *val = bucket.element;
+                    ValueInfo *valueInfo = val->GetValueInfo();
+
+                    Sym *symStore = valueInfo->GetSymStore();
+
+                    if (symStore && symStore != bucket.value)
+                    {
+                        keepAliveSymsBv.Set(symStore->m_id);
+                        if (symStore->IsStackSym() && symStore->AsStackSym()->HasObjectTypeSym())
+                        {
+                            keepAliveSymsBv.Set(symStore->AsStackSym()->GetObjectTypeSym()->m_id);
+                        }
+                    }
+                    availableValueNumbers.Set(val->GetValueNumber());
+                }
+            }
+        } NEXT_SLISTBASE_ENTRY_EDITING;
+    }
+
+    deadSymsBv.Minus(&keepAliveSymsBv);
+
+    // Now cleanup exprToValueMap table
+    ExprHashTable *thisExprTable = this->globOptData.exprToValueMap;
+    bool oldHasCSECandidatesValue = this->globOptData.hasCSECandidates;  // Could be false if none need bailout.
+    this->globOptData.hasCSECandidates = false;
+
+    for (uint i = 0; i < thisExprTable->tableSize; i++)
+    {
+        FOREACH_SLISTBASE_ENTRY_EDITING(ExprHashBucket, bucket, &thisExprTable->table[i], iter)
+        {
+            ExprHash hash = bucket.value;
+            ValueNumber src1ValNum = hash.GetSrc1ValueNumber();
+            ValueNumber src2ValNum = hash.GetSrc2ValueNumber();
+
+            // If src1Val or src2Val are not available anymore, no point keeping this CSE candidate
+            bool removeCurrent = false;
+            if ((src1ValNum && !availableValueNumbers.Test(src1ValNum))
+                || (src2ValNum && !availableValueNumbers.Test(src2ValNum)))
+            {
+                removeCurrent = true;
+            }
+            else
+            {
+                // If we are keeping this value, make sure we also keep the symStore in the value table
+                removeCurrent = true; // Remove by default, unless it's set to false later below.
+                Value *val = bucket.element;
+                if (val)
+                {
+                    Sym *symStore = val->GetValueInfo()->GetSymStore();
+                    if (symStore)
+                    {
+                        Value *symStoreVal = this->globOptData.FindValue(symStore);
+
+                        if (symStoreVal && symStoreVal->GetValueNumber() == val->GetValueNumber())
+                        {
+                            removeCurrent = false;
+                            deadSymsBv.Clear(symStore->m_id);
+                            if (symStore->IsStackSym() && symStore->AsStackSym()->HasObjectTypeSym())
+                            {
+                                deadSymsBv.Clear(symStore->AsStackSym()->GetObjectTypeSym()->m_id);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if(removeCurrent)
+            {
+                iter.RemoveCurrent(thisExprTable->alloc);
+            }
+            else
+            {
+                this->globOptData.hasCSECandidates = oldHasCSECandidatesValue;
+            }
+        } NEXT_SLISTBASE_ENTRY_EDITING;
+    }
+
+    FOREACH_BITSET_IN_SPARSEBV(dead_id, &deadSymsBv)
+    {
+        thisTable->Clear(dead_id);
+    }
+    NEXT_BITSET_IN_SPARSEBV;
+
+    if (!deadSymsBv.IsEmpty())
+    {
+        if (this->func->IsJitInDebugMode())
+        {
+            // Do not remove non-temp local vars from liveVarSyms (i.e. do not let them become dead).
+            // We will need to restore all initialized/used so far non-temp local during bail out.
+            // (See BackwardPass::ProcessBailOutInfo)
+            Assert(this->func->m_nonTempLocalVars);
+            BVSparse<JitArenaAllocator> tempBv(tempAlloc);
+            tempBv.Minus(&deadSymsBv, this->func->m_nonTempLocalVars);
+            this->globOptData.liveVarSyms->Minus(&tempBv);
+#if DBG
+            tempBv.And(this->globOptData.liveInt32Syms, this->func->m_nonTempLocalVars);
+            AssertMsg(tempBv.IsEmpty(), "Type spec is disabled under debugger. How come did we get a non-temp local in liveInt32Syms?");
+            tempBv.And(this->globOptData.liveLossyInt32Syms, this->func->m_nonTempLocalVars);
+            AssertMsg(tempBv.IsEmpty(), "Type spec is disabled under debugger. How come did we get a non-temp local in liveLossyInt32Syms?");
+            tempBv.And(this->globOptData.liveFloat64Syms, this->func->m_nonTempLocalVars);
+            AssertMsg(tempBv.IsEmpty(), "Type spec is disabled under debugger. How come did we get a non-temp local in liveFloat64Syms?");
+#endif
+        }
+        else
+        {
+            this->globOptData.liveVarSyms->Minus(&deadSymsBv);
+        }
+
+        this->globOptData.liveInt32Syms->Minus(&deadSymsBv);
+        this->globOptData.liveLossyInt32Syms->Minus(&deadSymsBv);
+        this->globOptData.liveFloat64Syms->Minus(&deadSymsBv);
+    }
+
+    JitAdelete(this->globOptData.globOpt->alloc, upwardExposedUses);
+    this->upwardExposedUses = nullptr;
+    JitAdelete(this->globOptData.globOpt->alloc, upwardExposedFields);
+    this->upwardExposedFields = nullptr;
+    if (this->cloneStrCandidates)
+    {
+        JitAdelete(this->globOptData.globOpt->alloc, this->cloneStrCandidates);
+        this->cloneStrCandidates = nullptr;
+    }
+}
+
+void
+BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
+{
+    Assert(!globOpt->isCallHelper);
+    // We keep a local temporary copy for the merge
+    GlobOptBlockData blockData(this->globOptData.curFunc);
+
+    if (!globOpt->isRecursiveCallOnLandingPad)
+    {
+        blockData.NullOutBlockData(globOpt, globOpt->func);
     }
     else
     {
         // If we are going over the landing pad again after field PRE, just start again
         // with the value table where we left off.
-        this->CopyBlockData(&blockData, &block->globOptData);
+        blockData.CopyBlockData(&this->globOptData);
         return;
     }
 
-    BVSparse<JitArenaAllocator> symsRequiringCompensation(tempAlloc);
+    BVSparse<JitArenaAllocator> symsRequiringCompensation(globOpt->tempAlloc);
     {
-        BVSparse<JitArenaAllocator> symsCreatedForMerge(tempAlloc);
+        BVSparse<JitArenaAllocator> symsCreatedForMerge(globOpt->tempAlloc);
         bool forceTypeSpecOnLoopHeader = true;
-        FOREACH_PREDECESSOR_BLOCK(pred, block)
+        FOREACH_PREDECESSOR_BLOCK(pred, this)
         {
             if (pred->globOptData.callSequence && pred->globOptData.callSequence->Empty())
             {
-                JitAdelete(this->alloc, pred->globOptData.callSequence);
+                JitAdelete(globOpt->alloc, pred->globOptData.callSequence);
                 pred->globOptData.callSequence = nullptr;
             }
-            if (block->isLoopHeader && this->IsLoopPrePass() && this->prePassLoop == block->loop && block->loop->IsDescendentOrSelf(pred->loop))
+            if (this->isLoopHeader && globOpt->IsLoopPrePass() && globOpt->prePassLoop == this->loop && this->loop->IsDescendentOrSelf(pred->loop))
             {
                 // Loop back-edge.
                 // First pass on loop runs optimistically, without doing transforms.
@@ -3446,7 +3684,7 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
             PathDependentInfoToRestore pathDependentInfoToRestore;
             if (pathDependentInfo)
             {
-                pathDependentInfoToRestore = UpdatePathDependentInfo(pathDependentInfo);
+                pathDependentInfoToRestore = globOpt->UpdatePathDependentInfo(pathDependentInfo);
             }
 
             Assert(pred->GetDataUseCount());
@@ -3455,24 +3693,23 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
             if (blockData.symToValueMap == nullptr)
             {
                 // Only one edge?
-                if (pred->GetSuccList()->HasOne() && block->GetPredList()->HasOne() && block->loop == nullptr)
+                if (pred->GetSuccList()->HasOne() && this->GetPredList()->HasOne() && this->loop == nullptr)
                 {
-                    this->ReuseBlockData(&blockData, &pred->globOptData);
+                    blockData.ReuseBlockData(&pred->globOptData);
 
                     // Don't need to restore the old value info
                     pathDependentInfoToRestore.Clear();
                 }
                 else
                 {
-                    this->CloneBlockData(currentBlock, &blockData, pred);
+                    blockData.CloneBlockData(this, pred);
                 }
             }
             else
             {
-                const bool isLoopPrePass = IsLoopPrePass();
-                this->MergeBlockData(
-                    &blockData,
-                    block,
+                const bool isLoopPrePass = globOpt->IsLoopPrePass();
+                blockData.MergeBlockData(
+                    this,
                     pred,
                     isLoopPrePass ? nullptr : &symsRequiringCompensation,
                     isLoopPrePass ? nullptr : &symsCreatedForMerge,
@@ -3483,8 +3720,8 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
             // Restore the value for the next edge
             if (pathDependentInfo)
             {
-                RestorePathDependentInfo(pathDependentInfo, pathDependentInfoToRestore);
-                __edge->ClearPathDependentInfo(this->alloc);
+                globOpt->RestorePathDependentInfo(pathDependentInfo, pathDependentInfoToRestore);
+                __edge->ClearPathDependentInfo(globOpt->alloc);
             }
 
         } NEXT_PREDECESSOR_BLOCK;
@@ -3494,42 +3731,42 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
     if (blockData.symToValueMap == nullptr)
     {
         Assert(blockData.hoistableFields == nullptr);
-        this->InitBlockData(&blockData);
+        blockData.InitBlockData(globOpt, globOpt->func);
     }
     else if (blockData.hoistableFields)
     {
-        Assert(TrackHoistableFields());
-        blockData.hoistableFields->And(block->globOptData.liveFields);
+        Assert(globOpt->TrackHoistableFields());
+        blockData.hoistableFields->And(this->globOptData.liveFields);
     }
 
-    if (!this->DoObjTypeSpec())
+    if (!globOpt->DoObjTypeSpec())
     {
         // Object type specialization is off, but if copy prop is on (e.g., /force:fieldhoist) we're not clearing liveFields,
         // so we may be letting type syms slip through this block.
-        this->KillAllObjectTypes(&block->globOptData);
+        globOpt->KillAllObjectTypes(&this->globOptData);
     }
 
-    this->CopyBlockData(&block->globOptData, &blockData);
+    this->globOptData.CopyBlockData(&blockData);
 
-    if (this->IsLoopPrePass())
+    if (globOpt->IsLoopPrePass())
     {
-        Assert(block->loop);
+        Assert(this->loop);
 
-        if(DoBoundCheckHoist())
+        if(globOpt->DoBoundCheckHoist())
         {
-            SetInductionVariableValueNumbers(&blockData);
+            globOpt->SetInductionVariableValueNumbers(&blockData);
         }
 
-        if (block->isLoopHeader && this->rootLoopPrePass == block->loop)
+        if (this->isLoopHeader && globOpt->rootLoopPrePass == this->loop)
         {
             // Capture bail out info in case we have optimization that needs it
-            Assert(block->loop->bailOutInfo == nullptr);
-            IR::Instr * firstInstr = block->GetFirstInstr();
-            block->loop->bailOutInfo = JitAnew(this->func->m_alloc, BailOutInfo,
+            Assert(this->loop->bailOutInfo == nullptr);
+            IR::Instr * firstInstr = this->GetFirstInstr();
+            this->loop->bailOutInfo = JitAnew(globOpt->func->m_alloc, BailOutInfo,
                 firstInstr->GetByteCodeOffset(), firstInstr->m_func);
-            this->FillBailOutInfo(block, block->loop->bailOutInfo);
+            globOpt->FillBailOutInfo(this, this->loop->bailOutInfo);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            block->loop->bailOutInfo->bailOutOpcode = Js::OpCode::LoopBodyStart;
+            this->loop->bailOutInfo->bailOutOpcode = Js::OpCode::LoopBodyStart;
 #endif
         }
 
@@ -3543,17 +3780,16 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
     // Clean up the syms requiring compensation by checking the final value in the merged block to see if the sym still requires
     // compensation. All the while, create a mapping from sym to value info in the merged block. This dictionary helps avoid a
     // value lookup in the merged block per predecessor.
-    SymToValueInfoMap symsRequiringCompensationToMergedValueInfoMap(tempAlloc);
+    SymToValueInfoMap symsRequiringCompensationToMergedValueInfoMap(globOpt->tempAlloc);
     if(!symsRequiringCompensation.IsEmpty())
     {
         const SymTable *const symTable = func->m_symTable;
-        GlobHashTable *const symToValueMap = blockData.symToValueMap;
         FOREACH_BITSET_IN_SPARSEBV(id, &symsRequiringCompensation)
         {
             Sym *const sym = symTable->Find(id);
             Assert(sym);
 
-            Value *const value = FindValue(symToValueMap, sym);
+            Value *const value = blockData.FindValue(sym);
             if(!value)
             {
                 continue;
@@ -3573,8 +3809,9 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
         symsRequiringCompensation.ClearAll();
     }
 
-    if (block->isLoopHeader)
+    if (this->isLoopHeader)
     {
+        BVSparse<JitArenaAllocator> * tempBv = globOpt->tempBv;
         // Values on the back-edge in the prepass may be conservative for syms defined in the loop, and type specialization in
         // the prepass is not reflective of the value, but rather, is used to determine whether the sym should be specialized
         // around the loop. Additionally, some syms that are used before defined in the loop may be specialized in the loop
@@ -3582,10 +3819,9 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
         // specialize the corresponding value infos in the loop header too.
 
         Assert(tempBv->IsEmpty());
-        Loop *const loop = block->loop;
+        Loop *const loop = this->loop;
         SymTable *const symTable = func->m_symTable;
-        GlobHashTable *const symToValueMap = blockData.symToValueMap;
-        JitArenaAllocator *const alloc = this->alloc;
+        JitArenaAllocator *const alloc = globOpt->alloc;
 
         // Int-specialized syms
         tempBv->Or(loop->likelyIntSymsUsedBeforeDefined, loop->symsDefInLoop);
@@ -3595,12 +3831,12 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
         {
             StackSym *const varSym = symTable->FindStackSym(id);
             Assert(varSym);
-            Value *const value = FindValue(symToValueMap, varSym);
+            Value *const value = blockData.FindValue(varSym);
             Assert(value);
             ValueInfo *const valueInfo = value->GetValueInfo();
             if(!valueInfo->IsInt())
             {
-                ChangeValueInfo(nullptr, value, valueInfo->SpecializeToInt32(alloc));
+                globOpt->ChangeValueInfo(nullptr, value, valueInfo->SpecializeToInt32(alloc));
             }
         } NEXT_BITSET_IN_SPARSEBV;
 
@@ -3622,27 +3858,27 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
             StackSym *const typeSpecSym = varSym->GetFloat64EquivSym(nullptr);
             if(!typeSpecSym ||
                 typeSpecSym->m_requiresBailOnNotNumber ||
-                !IsFloat64TypeSpecialized(varSym, &landingPadBlockData))
+                !landingPadBlockData.IsFloat64TypeSpecialized(varSym))
             {
-                Value *const value = FindValue(symToValueMap, varSym);
+                Value *const value = blockData.FindValue(varSym);
                 if(value)
                 {
                     ValueInfo *const valueInfo = value->GetValueInfo();
                     if(!valueInfo->IsNumber())
                     {
-                        ChangeValueInfo(block, value, valueInfo->SpecializeToFloat64(alloc));
+                        globOpt->ChangeValueInfo(this, value, valueInfo->SpecializeToFloat64(alloc));
                     }
                 }
                 else
                 {
-                    SetValue(&block->globOptData, NewGenericValue(ValueType::Float), varSym);
+                    this->globOptData.SetValue(globOpt->NewGenericValue(ValueType::Float), varSym);
                 }
             }
         } NEXT_BITSET_IN_SPARSEBV;
 
         // SIMD_JS
         // Simd128 type-spec syms
-        BVSparse<JitArenaAllocator> tempBv2(this->tempAlloc);
+        BVSparse<JitArenaAllocator> tempBv2(globOpt->tempAlloc);
 
         // For syms we made alive in loop header because of hoisting, use-before-def, or def in Loop body, set their valueInfo to definite.
         // Make live on header AND in one of forceSimd128* or likelySimd128* vectors.
@@ -3664,20 +3900,20 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
                 typeSpecSym = varSym->GetSimd128F4EquivSym(nullptr);
 
 
-                if (!typeSpecSym || !IsSimd128F4TypeSpecialized(varSym, &landingPadBlockData))
+                if (!typeSpecSym || !landingPadBlockData.IsSimd128F4TypeSpecialized(varSym))
                 {
-                    Value *const value = FindValue(symToValueMap, varSym);
+                    Value *const value = blockData.FindValue(varSym);
                     if (value)
                     {
                         ValueInfo *const valueInfo = value->GetValueInfo();
                         if (!valueInfo->IsSimd128Float32x4())
                         {
-                            ChangeValueInfo(block, value, valueInfo->SpecializeToSimd128F4(alloc));
+                            globOpt->ChangeValueInfo(this, value, valueInfo->SpecializeToSimd128F4(alloc));
                         }
                     }
                     else
                     {
-                        SetValue(&block->globOptData, NewGenericValue(ValueType::GetSimd128(ObjectType::Simd128Float32x4), varSym), varSym);
+                        this->globOptData.SetValue(globOpt->NewGenericValue(ValueType::GetSimd128(ObjectType::Simd128Float32x4), varSym), varSym);
                     }
                 }
             }
@@ -3685,20 +3921,20 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
             {
 
                 typeSpecSym = varSym->GetSimd128I4EquivSym(nullptr);
-                if (!typeSpecSym || !IsSimd128I4TypeSpecialized(varSym, &landingPadBlockData))
+                if (!typeSpecSym || !landingPadBlockData.IsSimd128I4TypeSpecialized(varSym))
                 {
-                    Value *const value = FindValue(symToValueMap, varSym);
+                    Value *const value = blockData.FindValue(varSym);
                     if (value)
                     {
                         ValueInfo *const valueInfo = value->GetValueInfo();
                         if (!valueInfo->IsSimd128Int32x4())
                         {
-                            ChangeValueInfo(block, value, valueInfo->SpecializeToSimd128I4(alloc));
+                            globOpt->ChangeValueInfo(this, value, valueInfo->SpecializeToSimd128I4(alloc));
                         }
                     }
                     else
                     {
-                        SetValue(&block->globOptData, NewGenericValue(ValueType::GetSimd128(ObjectType::Simd128Int32x4), varSym), varSym);
+                        this->globOptData.SetValue(globOpt->NewGenericValue(ValueType::GetSimd128(ObjectType::Simd128Int32x4), varSym), varSym);
                     }
                 }
             }
@@ -3717,21 +3953,21 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
     // can only do this if we are the first successor of that block, since the previous successors
     // would have already been processed.  Instead, we'll need to break the edge and insert a block
     // (airlock block) to put in the conversion code.
-    Assert(this->tempBv->IsEmpty());
+    Assert(globOpt->tempBv->IsEmpty());
 
-    BVSparse<JitArenaAllocator> tempBv2(this->tempAlloc);
-    BVSparse<JitArenaAllocator> tempBv3(this->tempAlloc);
-    BVSparse<JitArenaAllocator> tempBv4(this->tempAlloc);
+    BVSparse<JitArenaAllocator> tempBv2(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> tempBv3(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> tempBv4(globOpt->tempAlloc);
 
     // SIMD_JS
-    BVSparse<JitArenaAllocator> simd128F4SymsToUnbox(this->tempAlloc);
-    BVSparse<JitArenaAllocator> simd128I4SymsToUnbox(this->tempAlloc);
+    BVSparse<JitArenaAllocator> simd128F4SymsToUnbox(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> simd128I4SymsToUnbox(globOpt->tempAlloc);
 
-    FOREACH_PREDECESSOR_EDGE_EDITING(edge, block, iter)
+    FOREACH_PREDECESSOR_EDGE_EDITING(edge, this, iter)
     {
         BasicBlock *pred = edge->GetPred();
 
-        if (pred->loop && pred->loop->GetHeadBlock() == block)
+        if (pred->loop && pred->loop->GetHeadBlock() == this)
         {
             pred->DecrementDataUseCount();
             // Skip loop back-edges. We will handle these when we get to the exit blocks.
@@ -3750,11 +3986,11 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
         tempBv2.Minus(blockData.liveLossyInt32Syms, pred->globOptData.liveInt32Syms);
 
         // Lossless int in the merged block, and no lossless int in the predecessor - need a lossless conversion to int
-        tempBv3.Minus(blockData.liveInt32Syms, block->globOptData.liveLossyInt32Syms);
-        this->tempBv->Minus(pred->globOptData.liveInt32Syms, pred->globOptData.liveLossyInt32Syms);
-        tempBv3.Minus(this->tempBv);
+        tempBv3.Minus(blockData.liveInt32Syms, this->globOptData.liveLossyInt32Syms);
+        globOpt->tempBv->Minus(pred->globOptData.liveInt32Syms, pred->globOptData.liveLossyInt32Syms);
+        tempBv3.Minus(globOpt->tempBv);
 
-        this->tempBv->Minus(blockData.liveVarSyms, pred->globOptData.liveVarSyms);
+        globOpt->tempBv->Minus(blockData.liveVarSyms, pred->globOptData.liveVarSyms);
         tempBv4.Minus(blockData.liveFloat64Syms, pred->globOptData.liveFloat64Syms);
 
         bool symIVNeedsSpecializing = (symIV && !pred->globOptData.liveInt32Syms->Test(symIV->m_id) && !tempBv3.Test(symIV->m_id));
@@ -3764,7 +4000,7 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
         simd128I4SymsToUnbox.Minus(blockData.liveSimd128I4Syms, pred->globOptData.liveSimd128I4Syms);
 
 
-        if (!this->tempBv->IsEmpty() ||
+        if (!globOpt->tempBv->IsEmpty() ||
             !tempBv2.IsEmpty() ||
             !tempBv3.IsEmpty() ||
             !tempBv4.IsEmpty() ||
@@ -3782,15 +4018,20 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
             // to do the appropriate conversions only on the exit path (preferring not to do the conversions inside the loop).
             // If, on the other hand, the predecessor always flows into the current block, then it always exits, so we don't need
             // an airlock block and can just do the conversions in the predecessor.
-            if (pred->GetSuccList()->Head()->GetSucc() != block ||
-                (pred->loop && pred->loop->parent == block->loop && pred->GetSuccList()->Count() > 1))
+            if (pred->GetSuccList()->Head()->GetSucc() != this||
+                (pred->loop && pred->loop->parent == this->loop && pred->GetSuccList()->Count() > 1))
             {
                 BasicBlock *airlockBlock = nullptr;
                 if (!orgPred)
                 {
-                    GOPT_TRACE(_u("Inserting airlock block to convert syms to var between block %d and %d\n"),
-                        pred->GetBlockNum(), block->GetBlockNum());
-                    airlockBlock = this->func->m_fg->InsertAirlockBlock(edge);
+                    if (PHASE_TRACE(Js::GlobOptPhase, this->func) && !globOpt->IsLoopPrePass())
+                    {
+                        Output::Print(_u("TRACE: "));
+                        Output::Print(_u("Inserting airlock block to convert syms to var between block %d and %d\n"),
+                            pred->GetBlockNum(), this->GetBlockNum());
+                        Output::Flush();
+                    }
+                    airlockBlock = globOpt->func->m_fg->InsertAirlockBlock(edge);
                 }
                 else
                 {
@@ -3799,57 +4040,57 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
                     pred->DecrementDataUseCount();
                     airlockBlock->isAirLockCompensationBlock = false; // This is airlock block now. So remove the attribute.
                 }
-                this->CloneBlockData(airlockBlock, pred);
+                globOpt->CloneBlockData(airlockBlock, pred);
 
                 pred = airlockBlock;
             }
-            if (!this->tempBv->IsEmpty())
+            if (!globOpt->tempBv->IsEmpty())
             {
-                this->ToVar(this->tempBv, pred);
+                globOpt->ToVar(globOpt->tempBv, pred);
             }
             if (!tempBv2.IsEmpty())
             {
-                this->ToInt32(&tempBv2, pred, true /* lossy */);
+                globOpt->ToInt32(&tempBv2, pred, true /* lossy */);
             }
             if (!tempBv3.IsEmpty())
             {
-                this->ToInt32(&tempBv3, pred, false /* lossy */);
+                globOpt->ToInt32(&tempBv3, pred, false /* lossy */);
             }
             if (!tempBv4.IsEmpty())
             {
-                this->ToFloat64(&tempBv4, pred);
+                globOpt->ToFloat64(&tempBv4, pred);
             }
             if (symIVNeedsSpecializing)
             {
-                this->tempBv->ClearAll();
-                this->tempBv->Set(symIV->m_id);
-                this->ToInt32(this->tempBv, pred, false /* lossy */);
+                globOpt->tempBv->ClearAll();
+                globOpt->tempBv->Set(symIV->m_id);
+                globOpt->ToInt32(globOpt->tempBv, pred, false /* lossy */);
             }
             if(symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
             {
-                InsertValueCompensation(pred, symsRequiringCompensationToMergedValueInfoMap);
+                globOpt->InsertValueCompensation(pred, symsRequiringCompensationToMergedValueInfoMap);
             }
 
             // SIMD_JS
             if (!simd128F4SymsToUnbox.IsEmpty())
             {
-                this->ToTypeSpec(&simd128F4SymsToUnbox, pred, TySimd128F4, IR::BailOutSimd128F4Only);
+                globOpt->ToTypeSpec(&simd128F4SymsToUnbox, pred, TySimd128F4, IR::BailOutSimd128F4Only);
             }
 
             if (!simd128I4SymsToUnbox.IsEmpty())
             {
-                this->ToTypeSpec(&simd128I4SymsToUnbox, pred, TySimd128I4, IR::BailOutSimd128I4Only);
+                globOpt->ToTypeSpec(&simd128I4SymsToUnbox, pred, TySimd128I4, IR::BailOutSimd128I4Only);
             }
         }
     } NEXT_PREDECESSOR_EDGE_EDITING;
 
-    FOREACH_PREDECESSOR_EDGE(edge, block)
+    FOREACH_PREDECESSOR_EDGE(edge, this)
     {
         // Peak Memory optimization:
         // These are in an arena, but putting them on the free list greatly reduces
         // the peak memory used by the global optimizer for complex flow graphs.
         BasicBlock *pred = edge->GetPred();
-        if (!block->isLoopHeader || block->loop != pred->loop)
+        if (!this->isLoopHeader || this->loop != pred->loop)
         {
             // Skip airlock compensation block as we are not going to walk this block.
             if (pred->isAirLockCompensationBlock)
@@ -3859,187 +4100,74 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
                 pred = (pred->GetPredList()->Head())->GetPred();
             }
 
-            if (pred->DecrementDataUseCount() == 0 && (!block->loop || block->loop->landingPad != pred))
+            if (pred->DecrementDataUseCount() == 0 && (!this->loop || this->loop->landingPad != pred))
             {
-                if (!(pred->GetSuccList()->HasOne() && block->GetPredList()->HasOne() && block->loop == nullptr))
+                if (!(pred->GetSuccList()->HasOne() && this->GetPredList()->HasOne() && this->loop == nullptr))
                 {
-                    this->DeleteBlockData(&pred->globOptData);
+                    pred->globOptData.DeleteBlockData();
                 }
                 else
                 {
-                    this->NulloutBlockData(&pred->globOptData);
+                    pred->globOptData.NullOutBlockData(globOpt, globOpt->func);
                 }
             }
         }
     } NEXT_PREDECESSOR_EDGE;
 
-    this->tempBv->ClearAll();
-    Assert(!this->IsLoopPrePass());   // We already early return if we are in prepass
+    globOpt->tempBv->ClearAll();
+    Assert(!globOpt->IsLoopPrePass());   // We already early return if we are in prepass
 
-    if (block->isLoopHeader)
+    if (this->isLoopHeader)
     {
-        Loop *const loop = block->loop;
+        Loop *const loop = this->loop;
 
         // Save values live on loop entry, such that we can adjust the state of the
         // values on the back-edge to match.
-        loop->varSymsOnEntry = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
-        loop->varSymsOnEntry->Copy(block->globOptData.liveVarSyms);
+        loop->varSymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->varSymsOnEntry->Copy(this->globOptData.liveVarSyms);
 
-        loop->int32SymsOnEntry = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
-        loop->int32SymsOnEntry->Copy(block->globOptData.liveInt32Syms);
+        loop->int32SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->int32SymsOnEntry->Copy(this->globOptData.liveInt32Syms);
 
-        loop->lossyInt32SymsOnEntry = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
-        loop->lossyInt32SymsOnEntry->Copy(block->globOptData.liveLossyInt32Syms);
+        loop->lossyInt32SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->lossyInt32SymsOnEntry->Copy(this->globOptData.liveLossyInt32Syms);
 
-        loop->float64SymsOnEntry = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
-        loop->float64SymsOnEntry->Copy(block->globOptData.liveFloat64Syms);
+        loop->float64SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->float64SymsOnEntry->Copy(this->globOptData.liveFloat64Syms);
 
         // SIMD_JS
-        loop->simd128F4SymsOnEntry = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
-        loop->simd128F4SymsOnEntry->Copy(block->globOptData.liveSimd128F4Syms);
+        loop->simd128F4SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->simd128F4SymsOnEntry->Copy(this->globOptData.liveSimd128F4Syms);
 
-        loop->simd128I4SymsOnEntry = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
-        loop->simd128I4SymsOnEntry->Copy(block->globOptData.liveSimd128I4Syms);
+        loop->simd128I4SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->simd128I4SymsOnEntry->Copy(this->globOptData.liveSimd128I4Syms);
 
 
-        loop->liveFieldsOnEntry = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
-        loop->liveFieldsOnEntry->Copy(block->globOptData.liveFields);
+        loop->liveFieldsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->liveFieldsOnEntry->Copy(this->globOptData.liveFields);
 
-        if(DoBoundCheckHoist() && loop->inductionVariables)
+        if(globOpt->DoBoundCheckHoist() && loop->inductionVariables)
         {
-            FinalizeInductionVariables(loop, &blockData);
-            if(DoLoopCountBasedBoundCheckHoist())
+            globOpt->FinalizeInductionVariables(loop, &blockData);
+            if(globOpt->DoLoopCountBasedBoundCheckHoist())
             {
-                DetermineDominatingLoopCountableBlock(loop, block);
+                globOpt->DetermineDominatingLoopCountableBlock(loop, this);
             }
         }
     }
-    else if (!block->loop)
+    else if (!this->loop)
     {
-        block->SetDataUseCount(block->GetSuccList()->Count());
+        this->SetDataUseCount(this->GetSuccList()->Count());
     }
-    else if(block == block->loop->dominatingLoopCountableBlock)
+    else if(this == this->loop->dominatingLoopCountableBlock)
     {
-        DetermineLoopCount(block->loop);
+        globOpt->DetermineLoopCount(this->loop);
     }
 }
 
 void GlobOpt::CloneBlockData(BasicBlock *const toBlock, BasicBlock *const fromBlock)
 {
-    CloneBlockData(toBlock, &toBlock->globOptData, fromBlock);
-}
-
-void GlobOpt::CloneBlockData(BasicBlock *const toBlock, GlobOptBlockData *const toData, BasicBlock *const fromBlock)
-{
-    GlobOptBlockData *const fromData = &fromBlock->globOptData;
-    JitArenaAllocator *const alloc = this->alloc;
-
-    toData->globOpt = fromData->globOpt;
-
-    toData->symToValueMap = fromData->symToValueMap->Copy();
-    toData->exprToValueMap = fromData->exprToValueMap->Copy();
-
-    // Clone the values as well to allow for flow-sensitive ValueInfo
-    this->CloneValues(toBlock, toData, fromData);
-
-    if(DoBoundCheckHoist())
-    {
-        CloneBoundCheckHoistBlockData(toBlock, toData, fromBlock, fromData);
-    }
-
-    toData->liveFields = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    toData->liveFields->Copy(fromData->liveFields);
-
-    toData->liveArrayValues = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    toData->liveArrayValues->Copy(fromData->liveArrayValues);
-
-    if (fromData->maybeWrittenTypeSyms)
-    {
-        toData->maybeWrittenTypeSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-        toData->maybeWrittenTypeSyms->Copy(fromData->maybeWrittenTypeSyms);
-    }
-
-    toData->isTempSrc = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    toData->isTempSrc->Copy(fromData->isTempSrc);
-
-    toData->liveVarSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    toData->liveVarSyms->Copy(fromData->liveVarSyms);
-
-    toData->liveInt32Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    toData->liveInt32Syms->Copy(fromData->liveInt32Syms);
-
-    toData->liveLossyInt32Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    toData->liveLossyInt32Syms->Copy(fromData->liveLossyInt32Syms);
-
-    toData->liveFloat64Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    toData->liveFloat64Syms->Copy(fromData->liveFloat64Syms);
-
-    // SIMD_JS
-    toData->liveSimd128F4Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    toData->liveSimd128F4Syms->Copy(fromData->liveSimd128F4Syms);
-
-    toData->liveSimd128I4Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    toData->liveSimd128I4Syms->Copy(fromData->liveSimd128I4Syms);
-
-    if (TrackHoistableFields())
-    {
-        if (fromData->hoistableFields)
-        {
-            toData->hoistableFields = fromData->hoistableFields->CopyNew(alloc);
-        }
-    }
-
-    if (TrackArgumentsObject() && fromData->argObjSyms)
-    {
-        toData->argObjSyms = fromData->argObjSyms->CopyNew(alloc);
-    }
-    if (fromData->maybeTempObjectSyms && !fromData->maybeTempObjectSyms->IsEmpty())
-    {
-        toData->maybeTempObjectSyms = fromData->maybeTempObjectSyms->CopyNew(alloc);
-        if (fromData->canStoreTempObjectSyms && !fromData->canStoreTempObjectSyms->IsEmpty())
-        {
-            toData->canStoreTempObjectSyms = fromData->canStoreTempObjectSyms->CopyNew(alloc);
-        }
-    }
-    else
-    {
-        Assert(fromData->canStoreTempObjectSyms == nullptr || fromData->canStoreTempObjectSyms->IsEmpty());
-    }
-
-    toData->curFunc = fromData->curFunc;
-    if (fromData->callSequence != nullptr)
-    {
-        toData->callSequence = JitAnew(alloc, SListBase<IR::Opnd *>);
-        fromData->callSequence->CopyTo(alloc, *(toData->callSequence));
-    }
-    else
-    {
-        toData->callSequence = nullptr;
-    }
-
-    toData->startCallCount = fromData->startCallCount;
-    toData->argOutCount = fromData->argOutCount;
-    toData->totalOutParamCount = fromData->totalOutParamCount;
-    toData->inlinedArgOutCount = fromData->inlinedArgOutCount;
-    toData->hasCSECandidates = fromData->hasCSECandidates;
-
-    // Although we don't need the data on loop pre pass, we need to do it for the loop header
-    // because we capture the loop header bailout on loop prepass
-    if (fromData->stackLiteralInitFldDataMap != nullptr &&
-        (!this->IsLoopPrePass() || (toBlock->isLoopHeader && toBlock->loop == this->rootLoopPrePass)))
-    {
-        toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap->Clone();
-    }
-    else
-    {
-        toData->stackLiteralInitFldDataMap = nullptr;
-    }
-
-    toData->changedSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    toData->changedSyms->Copy(fromData->changedSyms);
-
-    Assert(fromData->HasData());
-    toData->OnDataInitialized(alloc);
+    toBlock->globOptData.CloneBlockData(toBlock, fromBlock);
 }
 
 void
@@ -4096,472 +4224,6 @@ GlobOpt::CloneValues(BasicBlock *const toBlock, GlobOptBlockData *toData, GlobOp
     valuesCreatedForClone->Clear();
 
     ProcessValueKills(toBlock, toData);
-}
-
-template <typename CapturedList, typename CapturedItemsAreEqual>
-void
-GlobOpt::MergeCapturedValues(
-    GlobOptBlockData * toData,
-    SListBase<CapturedList> * toList,
-    SListBase<CapturedList> * fromList,
-    CapturedItemsAreEqual itemsAreEqual)
-{
-    typename SListBase<CapturedList>::Iterator iterTo(toList);
-    typename SListBase<CapturedList>::Iterator iterFrom(fromList);
-    bool hasTo = iterTo.Next();
-    bool hasFrom = fromList == nullptr ? false : iterFrom.Next();
-
-    // to be conservative, only copy the captured value for common sym Ids
-    // in from and to CapturedList, mark all non-common sym Ids for re-capture
-    while (hasFrom && hasTo)
-    {
-        Sym * symFrom = iterFrom.Data().Key();
-        Sym * symTo = iterTo.Data().Key();
-
-        if (symFrom->m_id < symTo->m_id)
-        {
-            toData->changedSyms->Set(symFrom->m_id);
-            hasFrom = iterFrom.Next();
-        }
-        else if(symFrom->m_id > symTo->m_id)
-        {
-            toData->changedSyms->Set(symTo->m_id);
-            hasTo = iterTo.Next();
-        }
-        else
-        {
-            if (!itemsAreEqual(&iterFrom.Data(), &iterTo.Data()))
-            {
-                toData->changedSyms->Set(symTo->m_id);
-            }
-
-            hasFrom = iterFrom.Next();
-            hasTo = iterTo.Next();
-        }
-    }
-    bool hasRemain = hasFrom || hasTo;
-    if (hasRemain)
-    {
-        typename SListBase<CapturedList>::Iterator iterRemain(hasFrom ? iterFrom : iterTo);
-        do
-        {
-            Sym * symRemain = iterRemain.Data().Key();
-            toData->changedSyms->Set(symRemain->m_id);
-            hasRemain = iterRemain.Next();
-        } while (hasRemain);
-    }
-}
-
-void
-GlobOpt::MergeBlockData(
-    GlobOptBlockData *toData,
-    BasicBlock *toBlock,
-    BasicBlock *fromBlock,
-    BVSparse<JitArenaAllocator> *const symsRequiringCompensation,
-    BVSparse<JitArenaAllocator> *const symsCreatedForMerge,
-    bool forceTypeSpecOnLoopHeader)
-{
-    GlobOptBlockData *fromData = &(fromBlock->globOptData);
-
-    if(DoBoundCheckHoist())
-    {
-        // Do this before merging values so that it can see whether a sym's value was changed on one side or the other
-        MergeBoundCheckHoistBlockData(toBlock, toData, fromBlock, fromData);
-    }
-
-    bool isLoopBackEdge = toBlock->isLoopHeader;
-    this->MergeValueMaps(toData, toBlock, fromBlock, symsRequiringCompensation, symsCreatedForMerge);
-
-    this->InsertCloneStrs(toBlock, toData, fromData);
-
-    toData->liveFields->And(fromData->liveFields);
-    toData->liveArrayValues->And(fromData->liveArrayValues);
-    toData->isTempSrc->And(fromData->isTempSrc);
-    toData->hasCSECandidates &= fromData->hasCSECandidates;
-
-    if (toData->capturedValues == nullptr)
-    {
-        toData->capturedValues = fromData->capturedValues;
-        toData->changedSyms->Or(fromData->changedSyms);
-    }
-    else
-    {
-        MergeCapturedValues(
-            toData,
-            &toData->capturedValues->constantValues,
-            fromData->capturedValues == nullptr ? nullptr : &fromData->capturedValues->constantValues,
-            [&](ConstantStackSymValue * symValueFrom, ConstantStackSymValue * symValueTo)
-            {
-                return symValueFrom->Value().IsEqual(symValueTo->Value());
-            });
-
-        MergeCapturedValues(
-            toData,
-            &toData->capturedValues->copyPropSyms,
-            fromData->capturedValues == nullptr ? nullptr : &fromData->capturedValues->copyPropSyms,
-            [&](CopyPropSyms * copyPropSymFrom, CopyPropSyms * copyPropSymTo)
-            {
-                if (copyPropSymFrom->Value()->m_id == copyPropSymTo->Value()->m_id)
-                {
-                    Value * val = FindValue(fromData, copyPropSymFrom->Key());
-                    Value * copyVal = FindValue(fromData, copyPropSymTo->Key());
-                    return (val != nullptr && copyVal != nullptr &&
-                        val->GetValueNumber() == copyVal->GetValueNumber());
-                }
-                return false;
-            });
-    }
-
-    if (fromData->maybeWrittenTypeSyms)
-    {
-        if (toData->maybeWrittenTypeSyms == nullptr)
-        {
-            toData->maybeWrittenTypeSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
-            toData->maybeWrittenTypeSyms->Copy(fromData->maybeWrittenTypeSyms);
-        }
-        else
-        {
-            toData->maybeWrittenTypeSyms->Or(fromData->maybeWrittenTypeSyms);
-        }
-    }
-
-    {
-        // - Keep the var sym live if any of the following is true:
-        //     - The var sym is live on both sides
-        //     - The var sym is the only live sym that contains the lossless value of the sym on a side (that is, the lossless
-        //       int32 sym is not live, and the float64 sym is not live on that side), and the sym of any type is live on the
-        //       other side
-        //     - On a side, the var and float64 syms are live, the lossless int32 sym is not live, the sym's merged value is
-        //       likely int, and the sym of any type is live on the other side. Since the value is likely int, it may be
-        //       int-specialized (with lossless conversion) later. Keeping only the float64 sym live requires doing a lossless
-        //       conversion from float64 to int32, with bailout if the value of the float is not a true 32-bit integer. Checking
-        //       that is costly, and if the float64 sym is converted back to var, it does not become a tagged int, causing a
-        //       guaranteed bailout if a lossless conversion to int happens later. Keep the var sym live to preserve its
-        //       tagged-ness so that it can be int-specialized while avoiding unnecessary bailouts.
-        // - Keep the int32 sym live if it's live on both sides
-        //     - Mark the sym as lossy if it's lossy on any side
-        // - Keep the float64 sym live if it's live on a side and the sym of a specialized lossless type is live on the other
-        //   side
-        //
-        // fromData.temp =
-        //     (fromData.var - (fromData.int32 - fromData.lossyInt32)) &
-        //     (toData.var | toData.int32 | toData.float64)
-        // toData.temp =
-        //     (toData.var - (toData.int32 - toData.lossyInt32)) &
-        //     (fromData.var | fromData.int32 | fromData.float64)
-        // toData.var =
-        //     (fromData.var & toData.var) |
-        //     (fromData.temp - fromData.float64) |
-        //     (toData.temp - toData.float64) |
-        //     (fromData.temp & fromData.float64 | toData.temp & toData.float64) & (value ~ int)
-        //
-        // toData.float64 =
-        //     fromData.float64 & ((toData.int32 - toData.lossyInt32) | toData.float64) |
-        //     toData.float64 & ((fromData.int32 - fromData.lossyInt32) | fromData.float64)
-        // toData.int32 &= fromData.int32
-        // toData.lossyInt32 = (fromData.lossyInt32 | toData.lossyInt32) & toData.int32
-
-        BVSparse<JitArenaAllocator> tempBv1(this->tempAlloc);
-        BVSparse<JitArenaAllocator> tempBv2(this->tempAlloc);
-
-        if (isLoopBackEdge && forceTypeSpecOnLoopHeader)
-        {
-            Loop *const loop = toBlock->loop;
-
-            // Force to lossless int32:
-            // forceLosslessInt32 =
-            //     ((fromData.int32 - fromData.lossyInt32) - (toData.int32 - toData.lossyInt32)) &
-            //     loop.likelyIntSymsUsedBeforeDefined &
-            //     toData.var
-            tempBv1.Minus(fromData->liveInt32Syms, fromData->liveLossyInt32Syms);
-            tempBv2.Minus(toData->liveInt32Syms, toData->liveLossyInt32Syms);
-            tempBv1.Minus(&tempBv2);
-            tempBv1.And(loop->likelyIntSymsUsedBeforeDefined);
-            tempBv1.And(toData->liveVarSyms);
-            toData->liveInt32Syms->Or(&tempBv1);
-            toData->liveLossyInt32Syms->Minus(&tempBv1);
-
-            if(DoLossyIntTypeSpec())
-            {
-                // Force to lossy int32:
-                // forceLossyInt32 = (fromData.int32 - toData.int32) & loop.symsUsedBeforeDefined & toData.var
-                tempBv1.Minus(fromData->liveInt32Syms, toData->liveInt32Syms);
-                tempBv1.And(loop->symsUsedBeforeDefined);
-                tempBv1.And(toData->liveVarSyms);
-                toData->liveInt32Syms->Or(&tempBv1);
-                toData->liveLossyInt32Syms->Or(&tempBv1);
-            }
-
-            // Force to float64:
-            // forceFloat64 =
-            //     fromData.float64 & loop.forceFloat64 |
-            //     (fromData.float64 - toData.float64) & loop.likelyNumberSymsUsedBeforeDefined
-            tempBv1.And(fromData->liveFloat64Syms, loop->forceFloat64SymsOnEntry);
-            toData->liveFloat64Syms->Or(&tempBv1);
-            tempBv1.Minus(fromData->liveFloat64Syms, toData->liveFloat64Syms);
-            tempBv1.And(loop->likelyNumberSymsUsedBeforeDefined);
-            toData->liveFloat64Syms->Or(&tempBv1);
-
-            // Force to Simd128 type:
-            // if live on the backedge and we are hoisting the operand.
-            // or if live on the backedge only and used before def in the loop.
-            tempBv1.And(fromData->liveSimd128F4Syms, loop->forceSimd128F4SymsOnEntry);
-            toData->liveSimd128F4Syms->Or(&tempBv1);
-            tempBv1.Minus(fromData->liveSimd128F4Syms, toData->liveSimd128F4Syms);
-            tempBv1.And(loop->likelySimd128F4SymsUsedBeforeDefined);
-            toData->liveSimd128F4Syms->Or(&tempBv1);
-
-            tempBv1.And(fromData->liveSimd128I4Syms, loop->forceSimd128I4SymsOnEntry);
-            toData->liveSimd128I4Syms->Or(&tempBv1);
-            tempBv1.Minus(fromData->liveSimd128I4Syms, toData->liveSimd128I4Syms);
-            tempBv1.And(loop->likelySimd128I4SymsUsedBeforeDefined);
-            toData->liveSimd128I4Syms->Or(&tempBv1);
-        }
-
-        BVSparse<JitArenaAllocator> simdSymsToVar(this->tempAlloc);
-        {
-            // SIMD_JS
-            // If we have simd128 type-spec sym live as one type on one side, but not of same type on the other, we look at the merged ValueType.
-            // If it's Likely the simd128 type, we choose to keep the type-spec sym (compensate with a FromVar), if the following is true:
-            //     - We are not in jitLoopBody. Introducing a FromVar for compensation extends bytecode syms lifetime. If the value
-            //       is actually dead, and we enter the loop-body after bailing out from SimpleJit, the value will not be restored in
-            //       the bailout code.
-            //     - Value was never Undefined/Null. Avoid unboxing of possibly uninitialized values.
-            //     - Not loop back-edge. To keep unboxed value, the value has to be used-before def in the loop-body. This is done
-            //       separately in forceSimd128*SymsOnEntry and included in loop-header.
-
-            // Live syms as F4 on one edge only
-            tempBv1.Xor(fromData->liveSimd128F4Syms, toData->liveSimd128F4Syms);
-            FOREACH_BITSET_IN_SPARSEBV(id, &tempBv1)
-            {
-                StackSym *const stackSym = this->func->m_symTable->FindStackSym(id);
-                Assert(stackSym);
-                Value *const value = this->FindValue(toData->symToValueMap, stackSym);
-                ValueInfo * valueInfo = value ? value->GetValueInfo() : nullptr;
-
-                // There are two possible representations for Simd128F4 Value: F4 or Var.
-                // If the merged ValueType is LikelySimd128F4, then on the edge where F4 is dead,  Var must be alive.
-                // Unbox to F4 type-spec sym.
-                if (
-                    valueInfo && valueInfo->IsLikelySimd128Float32x4() &&
-                    !valueInfo->HasBeenUndefined() && !valueInfo->HasBeenNull() &&
-                    !isLoopBackEdge && !func->IsLoopBody()
-                   )
-                {
-                    toData->liveSimd128F4Syms->Set(id);
-                }
-                else
-                {
-                    // If live on both edges, box it.
-                    if (IsLive(stackSym, fromData) && IsLive(stackSym, toData))
-                    {
-                        simdSymsToVar.Set(id);
-                    }
-                    // kill F4 sym
-                    toData->liveSimd128F4Syms->Clear(id);
-                }
-            } NEXT_BITSET_IN_SPARSEBV;
-
-            // Same for I4
-            tempBv1.Xor(fromData->liveSimd128I4Syms, toData->liveSimd128I4Syms);
-            FOREACH_BITSET_IN_SPARSEBV(id, &tempBv1)
-            {
-                StackSym *const stackSym = this->func->m_symTable->FindStackSym(id);
-                Assert(stackSym);
-                Value *const value = this->FindValue(toData->symToValueMap, stackSym);
-                ValueInfo * valueInfo = value ? value->GetValueInfo() : nullptr;
-                if (
-                    valueInfo && valueInfo->IsLikelySimd128Int32x4() &&
-                    !valueInfo->HasBeenUndefined() && !valueInfo->HasBeenNull() &&
-                    !isLoopBackEdge && !func->IsLoopBody()
-                   )
-                {
-                    toData->liveSimd128I4Syms->Set(id);
-                }
-                else
-                {
-                    if (IsLive(stackSym, fromData) && IsLive(stackSym, toData))
-                    {
-                        simdSymsToVar.Set(id);
-                    }
-                    toData->liveSimd128I4Syms->Clear(id);
-                }
-            } NEXT_BITSET_IN_SPARSEBV;
-        }
-
-        {
-            BVSparse<JitArenaAllocator> tempBv3(this->tempAlloc);
-
-            // fromData.temp =
-            //     (fromData.var - (fromData.int32 - fromData.lossyInt32)) &
-            //     (toData.var | toData.int32 | toData.float64)
-            tempBv2.Minus(fromData->liveInt32Syms, fromData->liveLossyInt32Syms);
-            tempBv1.Minus(fromData->liveVarSyms, &tempBv2);
-            tempBv2.Or(toData->liveVarSyms, toData->liveInt32Syms);
-            tempBv2.Or(toData->liveFloat64Syms);
-            tempBv1.And(&tempBv2);
-
-            // toData.temp =
-            //     (toData.var - (toData.int32 - toData.lossyInt32)) &
-            //     (fromData.var | fromData.int32 | fromData.float64)
-            tempBv3.Minus(toData->liveInt32Syms, toData->liveLossyInt32Syms);
-            tempBv2.Minus(toData->liveVarSyms, &tempBv3);
-            tempBv3.Or(fromData->liveVarSyms, fromData->liveInt32Syms);
-            tempBv3.Or(fromData->liveFloat64Syms);
-            tempBv2.And(&tempBv3);
-
-            {
-                BVSparse<JitArenaAllocator> tempBv4(this->tempAlloc);
-
-                // fromData.temp & fromData.float64 | toData.temp & toData.float64
-                tempBv3.And(&tempBv1, fromData->liveFloat64Syms);
-                tempBv4.And(&tempBv2, toData->liveFloat64Syms);
-                tempBv3.Or(&tempBv4);
-            }
-
-            //     (fromData.temp - fromData.float64) |
-            //     (toData.temp - toData.float64)
-            tempBv1.Minus(fromData->liveFloat64Syms);
-            tempBv2.Minus(toData->liveFloat64Syms);
-            tempBv1.Or(&tempBv2);
-
-            // toData.var =
-            //     (fromData.var & toData.var) |
-            //     (fromData.temp - fromData.float64) |
-            //     (toData.temp - toData.float64)
-            toData->liveVarSyms->And(fromData->liveVarSyms);
-            toData->liveVarSyms->Or(&tempBv1);
-
-            // toData.var |=
-            //     (fromData.temp & fromData.float64 | toData.temp & toData.float64) & (value ~ int)
-            FOREACH_BITSET_IN_SPARSEBV(id, &tempBv3)
-            {
-                StackSym *const stackSym = this->func->m_symTable->FindStackSym(id);
-                Assert(stackSym);
-                Value *const value = this->FindValue(toData->symToValueMap, stackSym);
-                if(value)
-                {
-                    ValueInfo *const valueInfo = value->GetValueInfo();
-                    if(valueInfo->IsInt() || (valueInfo->IsLikelyInt() && DoAggressiveIntTypeSpec()))
-                    {
-                        toData->liveVarSyms->Set(id);
-                    }
-                }
-            } NEXT_BITSET_IN_SPARSEBV;
-
-            // SIMD_JS
-            // Simd syms that need boxing
-            toData->liveVarSyms->Or(&simdSymsToVar);
-        }
-
-        //     fromData.float64 & ((toData.int32 - toData.lossyInt32) | toData.float64)
-        tempBv1.Minus(toData->liveInt32Syms, toData->liveLossyInt32Syms);
-        tempBv1.Or(toData->liveFloat64Syms);
-        tempBv1.And(fromData->liveFloat64Syms);
-
-        //     toData.float64 & ((fromData.int32 - fromData.lossyInt32) | fromData.float64)
-        tempBv2.Minus(fromData->liveInt32Syms, fromData->liveLossyInt32Syms);
-        tempBv2.Or(fromData->liveFloat64Syms);
-        tempBv2.And(toData->liveFloat64Syms);
-
-        // toData.float64 =
-        //     fromData.float64 & ((toData.int32 - toData.lossyInt32) | toData.float64) |
-        //     toData.float64 & ((fromData.int32 - fromData.lossyInt32) | fromData.float64)
-        toData->liveFloat64Syms->Or(&tempBv1, &tempBv2);
-
-        // toData.int32 &= fromData.int32
-        // toData.lossyInt32 = (fromData.lossyInt32 | toData.lossyInt32) & toData.int32
-        toData->liveInt32Syms->And(fromData->liveInt32Syms);
-        toData->liveLossyInt32Syms->Or(fromData->liveLossyInt32Syms);
-        toData->liveLossyInt32Syms->And(toData->liveInt32Syms);
-    }
-
-    if (TrackHoistableFields() && HasHoistableFields(fromData))
-    {
-        if (toData->hoistableFields)
-        {
-            toData->hoistableFields->Or(fromData->hoistableFields);
-        }
-        else
-        {
-            toData->hoistableFields = fromData->hoistableFields->CopyNew(this->alloc);
-        }
-    }
-
-    if (TrackArgumentsObject())
-    {
-        if (!toData->argObjSyms->Equal(fromData->argObjSyms))
-        {
-            CannotAllocateArgumentsObjectOnStack();
-        }
-    }
-
-    if (fromData->maybeTempObjectSyms && !fromData->maybeTempObjectSyms->IsEmpty())
-    {
-        if (toData->maybeTempObjectSyms)
-        {
-            toData->maybeTempObjectSyms->Or(fromData->maybeTempObjectSyms);
-        }
-        else
-        {
-            toData->maybeTempObjectSyms = fromData->maybeTempObjectSyms->CopyNew(this->alloc);
-        }
-
-        if (fromData->canStoreTempObjectSyms && !fromData->canStoreTempObjectSyms->IsEmpty())
-        {
-            if (toData->canStoreTempObjectSyms)
-            {
-                // Both need to be temp object
-                toData->canStoreTempObjectSyms->And(fromData->canStoreTempObjectSyms);
-            }
-        }
-        else if (toData->canStoreTempObjectSyms)
-        {
-            toData->canStoreTempObjectSyms->ClearAll();
-        }
-    }
-    else
-    {
-        Assert(!fromData->canStoreTempObjectSyms || fromData->canStoreTempObjectSyms->IsEmpty());
-        if (toData->canStoreTempObjectSyms)
-        {
-            toData->canStoreTempObjectSyms->ClearAll();
-        }
-    }
-
-    Assert(toData->curFunc == fromData->curFunc);
-    Assert((toData->callSequence == nullptr && fromData->callSequence == nullptr) || toData->callSequence->Equals(*(fromData->callSequence)));
-    Assert(toData->startCallCount == fromData->startCallCount);
-    Assert(toData->argOutCount == fromData->argOutCount);
-    Assert(toData->totalOutParamCount == fromData->totalOutParamCount);
-    Assert(toData->inlinedArgOutCount == fromData->inlinedArgOutCount);
-
-    // stackLiteralInitFldDataMap is a union of the stack literal from two path.
-    // Although we don't need the data on loop prepass, we need to do it for the loop header
-    // because we capture the loop header bailout on loop prepass.
-    if (fromData->stackLiteralInitFldDataMap != nullptr &&
-        (!this->IsLoopPrePass() || (toBlock->isLoopHeader && toBlock->loop == this->rootLoopPrePass)))
-    {
-        if (toData->stackLiteralInitFldDataMap == nullptr)
-        {
-            toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap->Clone();
-        }
-        else
-        {
-            StackLiteralInitFldDataMap * toMap = toData->stackLiteralInitFldDataMap;
-            fromData->stackLiteralInitFldDataMap->Map([toMap](StackSym * stackSym, StackLiteralInitFldData const& data)
-            {
-                if (toMap->AddNew(stackSym, data) == -1)
-                {
-                    // If there is an existing data for the stackSym, both path should match
-                    DebugOnly(StackLiteralInitFldData const * currentData);
-                    Assert(toMap->TryGetReference(stackSym, &currentData));
-                    Assert(currentData->currentInitFldCount == data.currentInitFldCount);
-                    Assert(currentData->propIds == data.propIds);
-                }
-            });
-        }
-    }
 }
 
 PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitArenaAllocator *alloc)
@@ -4627,7 +4289,7 @@ PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitAre
             }
 
             BasicBlock *landingPad = loop->landingPad;
-            Value *landingPadValue = this->FindValue(landingPad->globOptData.symToValueMap, propertySym);
+            Value *landingPadValue = landingPad->globOptData.FindValue(propertySym);
 
             if (!landingPadValue)
             {
@@ -4677,13 +4339,13 @@ void GlobOpt::InsertCloneStrs(BasicBlock *toBlock, GlobOptBlockData *toData, Glo
                 continue;
             }
 
-            Value * landingPadValue = FindValue(landingPad->globOptData.symToValueMap, sym);
+            Value * landingPadValue = landingPad->globOptData.FindValue(sym);
             if (landingPadValue == nullptr)
             {
                 continue;
             }
 
-            Value * loopValue = FindValue(fromData->symToValueMap, sym);
+            Value * loopValue = fromData->FindValue(sym);
             if (loopValue == nullptr)
             {
                 continue;
@@ -4712,117 +4374,5 @@ void GlobOpt::InsertCloneStrs(BasicBlock *toBlock, GlobOptBlockData *toData, Glo
         }
         NEXT_BITSET_IN_SPARSEBV;
         tempBv->ClearAll();
-    }
-}
-
-void
-GlobOpt::MergeValueMaps(
-    GlobOptBlockData *toData,
-    BasicBlock *toBlock,
-    BasicBlock *fromBlock,
-    BVSparse<JitArenaAllocator> *const symsRequiringCompensation,
-    BVSparse<JitArenaAllocator> *const symsCreatedForMerge)
-{
-    GlobOptBlockData *fromData = &(fromBlock->globOptData);
-    bool isLoopBackEdge = toBlock->isLoopHeader;
-    Loop *loop = toBlock->loop;
-    bool isLoopPrepass = (loop && this->prePassLoop == loop);
-
-    Assert(valuesCreatedForMerge->Count() == 0);
-    DebugOnly(ValueSetByValueNumber mergedValues(tempAlloc, 64));
-
-    BVSparse<JitArenaAllocator> *const mergedValueTypesTrackedForKills = tempBv;
-    Assert(mergedValueTypesTrackedForKills->IsEmpty());
-    toData->valuesToKillOnCalls->Clear(); // the tracking will be reevaluated based on merged value types
-
-    GlobHashTable *thisTable = toData->symToValueMap;
-    GlobHashTable *otherTable = fromData->symToValueMap;
-    for (uint i = 0; i < thisTable->tableSize; i++)
-    {
-        SListBase<GlobHashBucket>::Iterator iter2(&otherTable->table[i]);
-        iter2.Next();
-        FOREACH_SLISTBASE_ENTRY_EDITING(GlobHashBucket, bucket, &thisTable->table[i], iter)
-        {
-            while (iter2.IsValid() && bucket.value->m_id < iter2.Data().value->m_id)
-            {
-                iter2.Next();
-            }
-            Value *newValue = nullptr;
-
-            if (iter2.IsValid() && bucket.value->m_id == iter2.Data().value->m_id)
-            {
-                newValue =
-                    MergeValues(
-                        bucket.element,
-                        iter2.Data().element,
-                        iter2.Data().value,
-                        toData,
-                        fromData,
-                        isLoopBackEdge,
-                        symsRequiringCompensation,
-                        symsCreatedForMerge);
-            }
-            if (newValue == nullptr)
-            {
-                iter.RemoveCurrent(thisTable->alloc);
-                continue;
-            }
-            else
-            {
-#if DBG
-                // Ensure that only one value per value number is produced by merge. Byte-code constant values are reused in
-                // multiple blocks without cloning, so exclude those value numbers.
-                {
-                    Value *const previouslyMergedValue = mergedValues.Lookup(newValue->GetValueNumber());
-                    if (previouslyMergedValue)
-                    {
-                        if (!byteCodeConstantValueNumbersBv->Test(newValue->GetValueNumber()))
-                        {
-                            Assert(newValue == previouslyMergedValue);
-                        }
-                    }
-                    else
-                    {
-                        mergedValues.Add(newValue);
-                    }
-                }
-#endif
-
-                TrackMergedValueForKills(newValue, toData, mergedValueTypesTrackedForKills);
-                bucket.element = newValue;
-            }
-            iter2.Next();
-        } NEXT_SLISTBASE_ENTRY_EDITING;
-
-        if (isLoopPrepass && !this->rootLoopPrePass->allFieldsKilled)
-        {
-            while (iter2.IsValid())
-            {
-                iter2.Next();
-            }
-        }
-    }
-
-    valuesCreatedForMerge->Clear();
-    DebugOnly(mergedValues.Reset());
-    mergedValueTypesTrackedForKills->ClearAll();
-
-    toData->exprToValueMap->And(fromData->exprToValueMap);
-
-    ProcessValueKills(toBlock, toData);
-
-    bool isLastLoopBackEdge = false;
-
-    if (isLoopBackEdge)
-    {
-        ProcessValueKillsForLoopHeaderAfterBackEdgeMerge(toBlock, toData);
-
-        BasicBlock *lastBlock = nullptr;
-        FOREACH_PREDECESSOR_BLOCK(pred, toBlock)
-        {
-            Assert(!lastBlock || pred->GetBlockNum() > lastBlock->GetBlockNum());
-            lastBlock = pred;
-        }NEXT_PREDECESSOR_BLOCK;
-        isLastLoopBackEdge = (lastBlock == fromBlock);
     }
 }
