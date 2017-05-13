@@ -274,7 +274,8 @@ GlobOpt::Optimize()
     if (!func->DoGlobOpt())
     {
         this->lengthEquivBv = nullptr;
-        argumentsEquivBv = nullptr;
+        this->argumentsEquivBv = nullptr;
+        this->callerEquivBv = nullptr;
 
         // Still need to run the dead store phase to calculate the live reg on back edge
         this->BackwardPass(Js::DeadStorePhase);
@@ -284,7 +285,8 @@ GlobOpt::Optimize()
 
     {
         this->lengthEquivBv = this->func->m_symTable->m_propertyEquivBvMap->Lookup(Js::PropertyIds::length, nullptr); // Used to kill live "length" properties
-        argumentsEquivBv = func->m_symTable->m_propertyEquivBvMap->Lookup(Js::PropertyIds::arguments, nullptr); // Used to kill live "arguments" properties
+        this->argumentsEquivBv = func->m_symTable->m_propertyEquivBvMap->Lookup(Js::PropertyIds::arguments, nullptr); // Used to kill live "arguments" properties
+        this->callerEquivBv = func->m_symTable->m_propertyEquivBvMap->Lookup(Js::PropertyIds::caller, nullptr); // Used to kill live "caller" properties
 
         // The backward phase needs the glob opt's allocator to allocate the propertyTypeValueMap
         // in GlobOpt::EnsurePropertyTypeValue and ranges of instructions where int overflow may be ignored.

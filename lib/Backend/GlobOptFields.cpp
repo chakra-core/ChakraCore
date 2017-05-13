@@ -539,9 +539,10 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::InlineeEnd:
         Assert(!instr->UsesAllFields());
 
-        // Kill all live 'arguments' fields, as 'inlineeFunction.arguments' cannot be copy-propped across different instances of
-        // the same inlined function.
+        // Kill all live 'arguments' and 'caller' fields, as 'inlineeFunction.arguments' and 'inlineeFunction.caller' 
+        // cannot be copy-propped across different instances of the same inlined function.
         KillLiveFields(argumentsEquivBv, bv);
+        KillLiveFields(callerEquivBv, bv);
         break;
 
     case Js::OpCode::CallDirect:
