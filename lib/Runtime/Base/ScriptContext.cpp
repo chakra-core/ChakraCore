@@ -2721,7 +2721,10 @@ if (!sourceList)
                 Assert(hr2 != E_FAIL);   // Omitting HRESULT
             }
 
-            if (!this->IsClosed())
+            // Let's find out on what conditions it fails
+            RAISE_FATAL_INTERNAL_ERROR_IFFAILED(hr);
+
+            if (SUCCEEDED(hr) && !this->IsClosed())
             {
                 HRESULT hrEntryPointUpdate = S_OK;
                 BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
@@ -2779,7 +2782,7 @@ if (!sourceList)
         else
         {
             // Let's find out on what conditions it fails
-            RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr);
+            RAISE_FATAL_INTERNAL_ERROR_IFFAILED(hr);
         }
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerAttached: done 0x%p, hr = 0x%X\n"), this, hr);
@@ -2818,7 +2821,7 @@ if (!sourceList)
             // Force a reparse so that indirect function caches are updated.
             hr = this->GetDebugContext()->RundownSourcesAndReparse(/*shouldPerformSourceRundown*/ false, /*shouldReparseFunctions*/ true);
             // Let's find out on what conditions it fails
-            RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr);
+            RAISE_FATAL_INTERNAL_ERROR_IFFAILED(hr);
 
             // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
             this->UpdateRecyclerFunctionEntryPointsForDebugger();
@@ -2826,7 +2829,7 @@ if (!sourceList)
         else
         {
             // Let's find out on what conditions it fails
-            RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr);
+            RAISE_FATAL_INTERNAL_ERROR_IFFAILED(hr);
         }
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerDetached: done 0x%p, hr = 0x%X\n"), this, hr);

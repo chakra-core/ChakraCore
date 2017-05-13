@@ -229,7 +229,7 @@ namespace Js {
     {
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-#define RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr) if (hr != S_OK) Js::Throw::FatalInternalError();
+#define RAISE_FATAL_INTERNAL_ERROR_IFFAILED(hr) if (hr != S_OK) Js::Throw::FatalInternalError();
 #else
-#define RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr)
+#define RAISE_FATAL_INTERNAL_ERROR_IFFAILED(hr)
 #endif
