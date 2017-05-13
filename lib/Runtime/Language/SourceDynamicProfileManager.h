@@ -40,7 +40,7 @@ namespace Js
 
     private:
         friend class DynamicProfileInfo;
-        Recycler* recycler;
+        FieldNoBarrier(Recycler*) recycler;
 
 #ifdef DYNAMIC_PROFILE_STORAGE
         void SaveDynamicProfileInfo(LocalFunctionId functionId, DynamicProfileInfo * dynamicProfileInfo);
@@ -56,12 +56,14 @@ namespace Js
 
     //------ Private data members -------- /
     private:
-        bool isNonCachableScript;                    // Indicates if this script can be cached in WININET
-        IActiveScriptDataCache* profileDataCache;    // WININET based cache to store profile info
-        BVFixed* startupFunctions;                   // Bit vector representing functions that are executed at startup
-        BVFixed const * cachedStartupFunctions;      // Bit vector representing functions executed at startup that are loaded from a persistent or in-memory cache
-                                                     // It's not modified but used as an input for deferred parsing/bytecodegen
-        JsUtil::BaseDictionary<LocalFunctionId, DynamicProfileInfo *, Recycler, PowerOf2SizePolicy> dynamicProfileInfoMap;
+        Field(bool) isNonCachableScript;                    // Indicates if this script can be cached in WININET
+        Field(IActiveScriptDataCache*) profileDataCache;    // WININET based cache to store profile info
+        Field(BVFixed*) startupFunctions;                   // Bit vector representing functions that are executed at startup
+        Field(BVFixed const *) cachedStartupFunctions;      // Bit vector representing functions executed at startup that are loaded from a persistent or in-memory cache
+                                                            // It's not modified but used as an input for deferred parsing/bytecodegen
+        typedef JsUtil::BaseDictionary<LocalFunctionId, DynamicProfileInfo *, Recycler, PowerOf2SizePolicy>
+            DynamicProfileInfoMapType;
+        Field(DynamicProfileInfoMapType) dynamicProfileInfoMap;
 
         static const uint MAX_FUNCTION_COUNT = 10000;  // Consider data corrupt if there are more functions than this
 

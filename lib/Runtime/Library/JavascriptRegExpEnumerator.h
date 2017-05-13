@@ -9,9 +9,9 @@ namespace Js
     class JavascriptRegExpEnumerator : public JavascriptEnumerator
     {
     private:
-        JavascriptRegExpConstructor* regExpObject;
-        uint index;
-        EnumeratorFlags flags;
+        Field(JavascriptRegExpConstructor*) regExpObject;
+        Field(uint) index;
+        Field(EnumeratorFlags) flags;
     protected:
         DEFINE_VTABLE_CTOR(JavascriptRegExpEnumerator, JavascriptEnumerator);
 

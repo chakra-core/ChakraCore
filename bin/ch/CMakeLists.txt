@@ -23,6 +23,10 @@ set_target_properties(ch
 
 include_directories(..)
 
+if(CC_TARGETS_AMD64)
+    set(Wasm_dep ../../lib/WasmReader)
+endif()
+
 target_include_directories (ch
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
   ../ChakraCore
@@ -30,6 +34,7 @@ target_include_directories (ch
   ../../lib/Jsrt
   ../../lib/Runtime
   ../../lib/Parser
+  ${Wasm_dep}
   )
 
 if(STATIC_LIBRARY)
@@ -56,9 +61,7 @@ if(STATIC_LIBRARY)
   set(lib_target "${lib_target}"
     -Wl,-undefined,error
     ${LINKER_START_GROUP}
-    Chakra.Pal
-    Chakra.Common.Core
-    Chakra.Jsrt
+    ChakraCoreStatic
     ${LINKER_END_GROUP}
     dl
     ${ICULIB}
@@ -69,7 +72,12 @@ if(STATIC_LIBRARY)
       "-framework CoreFoundation"
       "-framework Security"
       )
-  endif() # Linux ?
+  elseif (NOT CC_TARGET_OS_ANDROID)
+    set(lib_target "${lib_target}"
+      "pthread"
+      )
+  endif()
+
 else() # // shared library below
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE")
 
@@ -78,7 +86,7 @@ else() # // shared library below
   endif()
 
   set(lib_target
-    PRIVATE Chakra.Pal
+    PRIVATE Chakra.Pal.Singular
     PRIVATE Chakra.Common.Codex.Singular
     PRIVATE Chakra.Runtime.PlatformAgnostic.Singular
     )
@@ -87,6 +95,8 @@ endif()
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(lib_target "${lib_target}"
     -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/ch.version
+    # reduce link time memory usage
+    -Xlinker --no-keep-memory
     )
 elseif(CC_TARGET_OS_OSX)
   if(CC_TARGETS_X86)
@@ -97,12 +107,15 @@ elseif(CC_TARGET_OS_OSX)
 endif()
 
 
-target_link_libraries (ch ${lib_target})
+target_link_libraries (ch
+  ${lib_target}
+  ${CC_LTO_ENABLED}
+  )
 
 if(NOT CC_XCODE_PROJECT)
   # Add a post build event to the ch target
   # which executes a command to copy ch to
-  # BuildLinux for convenience
+  # out/{BUILD_TYPE}/ for convenience
   add_custom_command(TARGET ch POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CHAKRACORE_BINARY_DIR}/bin/ch/ch"

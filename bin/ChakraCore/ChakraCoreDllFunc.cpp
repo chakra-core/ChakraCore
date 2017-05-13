@@ -178,8 +178,4 @@ HRESULT JsInitializeJITServer(
 {
     return E_NOTIMPL;
 }
-HRESULT JsShutdownJITServer()
-{
-    return E_NOTIMPL;
-}
 #endif

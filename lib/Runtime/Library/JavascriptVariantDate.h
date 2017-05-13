@@ -13,7 +13,7 @@ namespace Js
     class JavascriptVariantDate : public RecyclableObject
     {
     private:
-        double value; // the double form of the value of a VT_DATE variant.
+        Field(double) value; // the double form of the value of a VT_DATE variant.
 
         static JavascriptString* ConvertVariantDateToStr(
             double dbl,

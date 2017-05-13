@@ -12,6 +12,24 @@ namespace Js
     {
     }
 
+    JavascriptGenerator* JavascriptGenerator::New(Recycler* recycler, DynamicType* generatorType, Arguments& args, ScriptFunction* scriptFunction)
+    {
+#if GLOBAL_ENABLE_WRITE_BARRIER
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            JavascriptGenerator* obj = RecyclerNewFinalized(
+                recycler, JavascriptGenerator, generatorType, args, scriptFunction);
+            recycler->RegisterPendingWriteBarrierBlock(obj->args.Values, obj->args.Info.Count * sizeof(Var));
+            recycler->RegisterPendingWriteBarrierBlock(&obj->args.Values, sizeof(Var*));
+            return obj;
+        }
+        else
+#endif
+        {
+            return RecyclerNew(recycler, JavascriptGenerator, generatorType, args, scriptFunction);
+        }
+    }
+
     bool JavascriptGenerator::Is(Var var)
     {
         return JavascriptOperators::GetTypeId(var) == TypeIds_Generator;
@@ -23,6 +41,35 @@ namespace Js
 
         return static_cast<JavascriptGenerator*>(var);
     }
+
+    void JavascriptGenerator::SetFrame(InterpreterStackFrame* frame, size_t bytes)
+    {
+        Assert(this->frame == nullptr);
+        this->frame = frame;
+#if GLOBAL_ENABLE_WRITE_BARRIER
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            this->GetScriptContext()->GetRecycler()->RegisterPendingWriteBarrierBlock(frame, bytes);
+        }
+#endif
+    }
+
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    void JavascriptGenerator::Finalize(bool isShutdown)
+    {
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && !isShutdown)
+        {
+            if (this->frame)
+            {
+                this->GetScriptContext()->GetRecycler()->UnRegisterPendingWriteBarrierBlock(this->frame);
+            }
+            if (this->args.Values)
+            {
+                this->GetScriptContext()->GetRecycler()->UnRegisterPendingWriteBarrierBlock(this->args.Values);
+            }
+        }
+    }
+#endif
 
     Var JavascriptGenerator::CallGenerator(ResumeYieldData* yieldData, const char16* apiNameForErrorMessage)
     {

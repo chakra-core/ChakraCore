@@ -20,10 +20,10 @@ namespace Js
     {
     protected:
         friend class ForInObjectEnumerator;
-        DynamicObjectPropertyEnumerator propertyEnumerator;
-        JavascriptEnumerator* currentEnumerator;
-        JavascriptEnumerator* prefixEnumerator;
-        JavascriptEnumerator* arrayEnumerator;
+        Field(DynamicObjectPropertyEnumerator) propertyEnumerator;
+        Field(JavascriptEnumerator*) currentEnumerator;
+        Field(JavascriptEnumerator*) prefixEnumerator;
+        Field(JavascriptEnumerator*) arrayEnumerator;
 
         Var MoveAndGetNextFromEnumerator(PropertyId& propertyId, PropertyAttributes* attributes);
     public:

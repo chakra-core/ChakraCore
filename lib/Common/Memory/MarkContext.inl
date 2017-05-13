@@ -74,9 +74,23 @@ void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 #else
         void * candidate = *(static_cast<void * volatile *>(obj));
 #endif
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
+        {
+            this->parentRef = obj;
+        }
+#endif
         Mark<parallel, interior, doSpecialMark>(candidate, parentObject);
         obj++;
     } while (obj != objEnd);
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
+    {
+        this->parentRef = nullptr;
+    }
+#endif
 
 #if DBG_DUMP
     if (recycler->forceTraceMark || recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::MarkPhase))

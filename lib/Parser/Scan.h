@@ -173,9 +173,10 @@ protected:
     static void RestoreMultiUnits(size_t multiUnits) { }
     static size_t CharacterOffsetToUnitOffset(EncodedCharPtr start, EncodedCharPtr current, EncodedCharPtr last, charcount_t offset) { return offset; }
 
-    static void ConvertToUnicode(__out_ecount_full(cch) LPOLESTR pch, charcount_t cch, EncodedCharPtr pu)
+    static void ConvertToUnicode(__out_ecount_full(cch) LPOLESTR pch, charcount_t cch, EncodedCharPtr start, EncodedCharPtr end)
     {
-        js_memcpy_s(pch, cch * sizeof(OLECHAR), pu, cch * sizeof(OLECHAR));
+        Unused(end);
+        js_memcpy_s(pch, cch * sizeof(OLECHAR), start, cch * sizeof(OLECHAR));
     }
 
 public:
@@ -290,10 +291,10 @@ protected:
         return utf8::CharacterIndexToByteIndex(start, currentUnitOffset, offset, decodeOptions);
     }
 
-    void ConvertToUnicode(__out_ecount_full(cch) LPOLESTR pch, charcount_t cch, EncodedCharPtr pu)
+    void ConvertToUnicode(__out_ecount_full(cch) LPOLESTR pch, charcount_t cch, EncodedCharPtr start, EncodedCharPtr end)
     {
         m_decodeOptions = (utf8::DecodeOptions)(m_decodeOptions & ~utf8::doSecondSurrogatePair);
-        utf8::DecodeInto(pch, pu, cch, m_decodeOptions);
+        utf8::DecodeUnitsInto(pch, start, end, m_decodeOptions);
     }
 
 
@@ -326,17 +327,17 @@ typedef HRESULT (*CommentCallback)(void *data, OLECHAR firstChar, OLECHAR second
 // Restore point defined using a relative offset rather than a pointer.
 struct RestorePoint
 {
-    charcount_t m_ichMinTok;
-    charcount_t m_ichMinLine;
-    size_t m_cMinTokMultiUnits;
-    size_t m_cMinLineMultiUnits;
-    charcount_t m_line;
-    uint functionIdIncrement;
-    size_t lengthDecr;
-    BOOL m_fHadEol;
+    Field(charcount_t) m_ichMinTok;
+    Field(charcount_t) m_ichMinLine;
+    Field(size_t) m_cMinTokMultiUnits;
+    Field(size_t) m_cMinLineMultiUnits;
+    Field(charcount_t) m_line;
+    Field(uint) functionIdIncrement;
+    Field(size_t) lengthDecr;
+    Field(BOOL) m_fHadEol;
 
 #ifdef DEBUG
-    size_t m_cMultiUnits;
+    Field(size_t) m_cMultiUnits;
 #endif
 
     RestorePoint()

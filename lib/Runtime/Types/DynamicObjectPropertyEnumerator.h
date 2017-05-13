@@ -9,32 +9,33 @@ namespace Js
     class DynamicObjectPropertyEnumerator
     {
     private:
-        ScriptContext * scriptContext;
-        DynamicObject * object;
-        DynamicType * initialType;              // for snapshot enumeration
-        BigPropertyIndex objectIndex;
-        BigPropertyIndex initialPropertyCount;
-        int enumeratedCount;
+        Field(ScriptContext *) scriptContext;
+        Field(DynamicObject *) object;
+        Field(DynamicType *) initialType;              // for snapshot enumeration
+        Field(BigPropertyIndex) objectIndex;
+        Field(BigPropertyIndex) initialPropertyCount;
+        Field(int) enumeratedCount;
 
-        EnumeratorFlags flags;
+        Field(EnumeratorFlags) flags;
 
         struct CachedData
         {
-            ScriptContext * scriptContext;
-            PropertyString ** strings;
-            BigPropertyIndex * indexes;
-            PropertyAttributes * attributes;
-            int cachedCount;
-            int propertyCount;
-            bool completed;
-            bool enumNonEnumerable;
-            bool enumSymbols;
-        } *cachedData;
+            Field(ScriptContext *) scriptContext;
+            Field(Field(PropertyString*)*) strings;
+            Field(BigPropertyIndex *) indexes;
+            Field(PropertyAttributes *) attributes;
+            Field(int) cachedCount;
+            Field(int) propertyCount;
+            Field(bool) completed;
+            Field(bool) enumNonEnumerable;
+            Field(bool) enumSymbols;
+        };
+        Field(CachedData *) cachedData;
 
         DynamicType * GetTypeToEnumerate() const;
         JavascriptString * MoveAndGetNextWithCache(PropertyId& propertyId, PropertyAttributes* attributes);
         JavascriptString * MoveAndGetNextNoCache(PropertyId& propertyId, PropertyAttributes * attributes);
-        
+
         void Initialize(DynamicType * type, CachedData * data, Js::BigPropertyIndex initialPropertyCount);
     public:
         DynamicObject * GetObject() const { return object; }
@@ -59,14 +60,14 @@ namespace Js
         static uint32 GetOffsetOfInitialPropertyCount() { return offsetof(DynamicObjectPropertyEnumerator, initialPropertyCount); }
         static uint32 GetOffsetOfEnumeratedCount() { return offsetof(DynamicObjectPropertyEnumerator, enumeratedCount); }
         static uint32 GetOffsetOfCachedData() { return offsetof(DynamicObjectPropertyEnumerator, cachedData); }
-        static uint32 GetOffsetOfFlags() { return offsetof(DynamicObjectPropertyEnumerator, flags); 
+        static uint32 GetOffsetOfFlags() { return offsetof(DynamicObjectPropertyEnumerator, flags);
         }
         static uint32 GetOffsetOfCachedDataStrings() { return offsetof(CachedData, strings); }
         static uint32 GetOffsetOfCachedDataIndexes() { return offsetof(CachedData, indexes); }
         static uint32 GetOffsetOfCachedDataPropertyCount() { return offsetof(CachedData, propertyCount); }
         static uint32 GetOffsetOfCachedDataCachedCount() { return offsetof(CachedData, cachedCount); }
         static uint32 GetOffsetOfCachedDataPropertyAttributes() { return offsetof(CachedData, attributes); }
-        static uint32 GetOffsetOfCachedDataCompleted() { return offsetof(CachedData, completed); }        
+        static uint32 GetOffsetOfCachedDataCompleted() { return offsetof(CachedData, completed); }
         static uint32 GetOffsetOfCachedDataEnumNonEnumerable() { return offsetof(CachedData, enumNonEnumerable); }
     };
 };

@@ -2041,6 +2041,7 @@ NativeCodeGenerator::UpdateJITState()
 
         if (scriptContext->GetThreadContext()->JITNeedsPropUpdate())
         {
+            typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
             CompileAssert(sizeof(BVSparseNode) == sizeof(BVSparseNodeIDL));
             BVSparseNodeIDL * bvHead = (BVSparseNodeIDL*)scriptContext->GetThreadContext()->GetJITNumericProperties()->head;
             HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), bvHead);
@@ -2986,7 +2987,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
 #endif
 
         uint objTypeSpecFldInfoCount = objTypeSpecFldInfoList->Count();
-        jitTimeData->SetGlobalObjTypeSpecFldInfoArray(RecyclerNewArray(recycler, Js::ObjTypeSpecFldInfo*, objTypeSpecFldInfoCount), objTypeSpecFldInfoCount);
+        jitTimeData->SetGlobalObjTypeSpecFldInfoArray(RecyclerNewArray(recycler, Field(Js::ObjTypeSpecFldInfo*), objTypeSpecFldInfoCount), objTypeSpecFldInfoCount);
         uint propertyInfoId = objTypeSpecFldInfoCount - 1;
         FOREACH_SLISTCOUNTED_ENTRY(Js::ObjTypeSpecFldInfo*, info, objTypeSpecFldInfoList)
         {

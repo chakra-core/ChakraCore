@@ -134,7 +134,7 @@ namespace Js
     {
         FunctionBody *funcBody = mFunction->GetFuncBody();
         funcBody->CreateConstantTable();
-        Var* table = funcBody->GetConstTable();
+        auto table = funcBody->GetConstTable();
         byte* tableEnd = (byte*)(table + funcBody->GetConstantCount());
 
         WAsmJs::TypedConstSourcesInfo constSourcesInfo = mFunction->GetTypedRegisterAllocator().GetConstSourceInfos();

@@ -933,8 +933,8 @@ StringCommon:
                     return scriptContext->GetLibrary()->GetNegativeInfinite();
                 }
 
-                if (((Js::SparseArraySegmentBase*)argsArray->GetHead())->next != nullptr || !argsArray->HasNoMissingValues() ||
-                    ((Js::SparseArraySegmentBase*)argsArray->GetHead())->length != len)
+                if (argsArray->GetHead()->next != nullptr || !argsArray->HasNoMissingValues() ||
+                    argsArray->GetHead()->length != len)
                 {
                     return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
                 }
@@ -991,8 +991,8 @@ StringCommon:
                     return scriptContext->GetLibrary()->GetPositiveInfinite();
                 }
 
-                if (((Js::SparseArraySegmentBase*)argsArray->GetHead())->next != nullptr || !argsArray->HasNoMissingValues() ||
-                    ((Js::SparseArraySegmentBase*)argsArray->GetHead())->length != len)
+                if (argsArray->GetHead()->next != nullptr || !argsArray->HasNoMissingValues() ||
+                    argsArray->GetHead()->length != len)
                 {
                     return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
                 }

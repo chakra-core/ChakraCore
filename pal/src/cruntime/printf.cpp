@@ -62,6 +62,7 @@ Parameters:
   Flags
     - padding style flags (PRINTF_FORMAT_FLAGS)
 *******************************************************************************/
+__attribute__((no_instrument_function))
 BOOL Internal_AddPaddingA(LPSTR *Out, INT Count, LPSTR In,
                                  INT Padding, INT Flags)
 {
@@ -139,6 +140,7 @@ Parameters:
   Prefix
     - the prefix for the current format option
 *******************************************************************************/
+__attribute__((no_instrument_function))
 void PAL_printf_arg_remover(va_list *ap, INT Width, INT Precision, INT Type, INT Prefix)
 {
     /* remove arg and precision if needed */
@@ -176,6 +178,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_printf(
@@ -203,6 +206,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_fprintf(PAL_FILE *stream,const char *format,...)
@@ -228,6 +232,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_wprintf(
@@ -257,6 +262,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_vprintf(
@@ -282,6 +288,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 PALAPIV
 wsprintfA(
@@ -310,6 +317,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 PALAPIV
 wsprintfW(
@@ -339,6 +347,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 _snprintf(
@@ -370,6 +379,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 _snwprintf(
@@ -400,6 +410,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_fwprintf(
@@ -458,6 +469,7 @@ Notes:
         return false;                                                                           \
     }
 
+__attribute__((no_instrument_function))
 static BOOL Internal_ScanfExtractFormatA(LPCSTR *Fmt, LPSTR Out, int iOutSize, LPBOOL Store,
                                          LPINT Width, LPINT Prefix, LPINT Type)
 {
@@ -779,6 +791,7 @@ Function:
 
   -- see Internal_ScanfExtractFormatA above
 *******************************************************************************/
+__attribute__((no_instrument_function))
 static BOOL Internal_ScanfExtractFormatW(LPCWSTR *Fmt, LPSTR Out, int iOutSize, LPBOOL Store,
                                          LPINT Width, LPINT Prefix, LPINT Type)
 {
@@ -1076,6 +1089,7 @@ Parameters:
   ap
     - stdarg parameter list
 *******************************************************************************/
+__attribute__((no_instrument_function))
 int PAL_vsscanf(LPCSTR Buffer, LPCSTR Format, va_list ap)
 {
     INT Length = 0;
@@ -1250,6 +1264,7 @@ Function:
 
   -- see PAL_vsscanf above
 *******************************************************************************/
+__attribute__((no_instrument_function))
 int PAL_wvsscanf(LPCWSTR Buffer, LPCWSTR Format, va_list ap)
 {
     INT Length = 0;
@@ -1488,6 +1503,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_sscanf(
@@ -1516,6 +1532,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_sprintf(
@@ -1545,6 +1562,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_swprintf(
@@ -1573,6 +1591,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_swscanf(
@@ -1602,6 +1621,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_vsprintf(char *buffer,
@@ -1629,6 +1649,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 _vsnprintf(char *buffer,
@@ -1658,6 +1679,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_vswprintf(char16_t *buffer,
@@ -1685,6 +1707,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 _vsnwprintf(char16_t *buffer,
@@ -1733,6 +1756,7 @@ Function:
 
 --*/
 
+__attribute__((no_instrument_function))
 static int SscanfFloatCheckExponent(LPCSTR buff, LPCSTR floatFmt,
                                       void * voidPtr, int * pn)
 {

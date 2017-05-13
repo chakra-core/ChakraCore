@@ -793,7 +793,8 @@ private:
             }
         }
 
-        static void SetMatched(PNode& node)
+        template <class P>
+        static void SetMatched(P& node)
         {
             SetNext(node, 0);
         }
@@ -803,7 +804,8 @@ private:
             return !!(reinterpret_cast<UINT_PTR>(node) & 1);
         }
 
-        static void SetNext(PNode& node, int next)
+        template <class P>
+        static void SetNext(P& node, int next)
         {
             UINT_PTR value = (static_cast<UINT_PTR>(next) << 1) | 1;
             node = reinterpret_cast<PNode>(value);

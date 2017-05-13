@@ -10,14 +10,23 @@
   <test>
     <default>
       <files>unicode_digit_as_identifier_should_work.js</files>
-      <baseline />
       <tags>exclude_serialized,bugfix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>surrogatepair.js</files>
-      <baseline />
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bugGH2386.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>unicode_sequence_serialized.js</files>
+      <compile-flags>-forceserialized -oopjit-</compile-flags>
     </default>
   </test>
 </regress-exe>

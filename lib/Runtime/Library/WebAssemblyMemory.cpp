@@ -139,9 +139,21 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
         return -1;
     }
 
-    ArrayBuffer * newBuffer = m_buffer->TransferInternal(newBytes);
-    m_buffer = newBuffer;
+    ArrayBuffer * newBuffer = nullptr;
+    JavascriptExceptionObject* caughtExceptionObject = nullptr;
+    try
+    {
+        newBuffer = m_buffer->TransferInternal(newBytes);
+    }
+    catch (const JavascriptException& err)
+    {
+        caughtExceptionObject = err.GetAndClear();
+        Assert(caughtExceptionObject && caughtExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject());
+        return -1;
+    }
 
+    Assert(newBuffer);
+    m_buffer = newBuffer;
     CompileAssert(ArrayBuffer::MaxArrayBufferLength / WebAssembly::PageSize <= INT32_MAX);
     return (int32)oldPageCount;
 }

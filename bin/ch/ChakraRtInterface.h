@@ -67,7 +67,7 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtDiagGetStackProperties)(unsigned int stackFrameIndex, JsValueRef * properties);
     typedef JsErrorCode(WINAPI *JsrtDiagGetProperties)(unsigned int objectHandle, unsigned int fromCount, unsigned int totalCount, JsValueRef * propertiesObject);
     typedef JsErrorCode(WINAPI *JsrtDiagGetObjectFromHandle)(unsigned int handle, JsValueRef * handleObject);
-    typedef JsErrorCode(WINAPI *JsrtDiagEvaluateUtf8)(const char * expression, unsigned int stackFrameIndex, JsValueRef * evalResult);
+    typedef JsErrorCode(WINAPI *JsrtDiagEvaluate)(JsValueRef expression, unsigned int stackFrameIndex, JsParseScriptAttributes parseAttributes, JsValueRef * evalResult);
 
     typedef JsErrorCode(WINAPI *JsrtRun)(JsValueRef script, JsSourceContext sourceContext, JsValueRef sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef *result);
     typedef JsErrorCode(WINAPI *JsrtParse)(JsValueRef script, JsSourceContext sourceContext, JsValueRef sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef *result);
@@ -158,7 +158,7 @@ struct JsAPIHooks
     JsrtDiagGetStackProperties pfJsrtDiagGetStackProperties;
     JsrtDiagGetProperties pfJsrtDiagGetProperties;
     JsrtDiagGetObjectFromHandle pfJsrtDiagGetObjectFromHandle;
-    JsrtDiagEvaluateUtf8 pfJsrtDiagEvaluateUtf8;
+    JsrtDiagEvaluate pfJsrtDiagEvaluate;
 
     JsrtRun pfJsrtRun;
     JsrtParse pfJsrtParse;
@@ -187,6 +187,8 @@ struct JsAPIHooks
     JsrtTTDMoveToTopLevelEventPtr pfJsrtTTDMoveToTopLevelEvent;
     JsrtTTDReplayExecutionPtr pfJsrtTTDReplayExecution;
 };
+
+LPCSTR GetChakraDllName();
 
 class ChakraRTInterface
 {
@@ -308,7 +310,7 @@ public:
     static JsErrorCode WINAPI JsDoubleToNumber(double doubleValue, JsValueRef* value) { return HOOK_JS_API(DoubleToNumber(doubleValue, value)); }
     static JsErrorCode WINAPI JsGetExternalData(JsValueRef object, void **data) { return HOOK_JS_API(GetExternalData(object, data)); }
     static JsErrorCode WINAPI JsCreateArray(unsigned int length, JsValueRef *result) { return HOOK_JS_API(CreateArray(length, result)); }
-    static JsErrorCode WINAPI JsCreateArrayBuffer(unsigned int byteLength, JsValueRef *result) { return m_jsApiHooks.pfJsrtCreateArrayBuffer(byteLength, result); }
+    static JsErrorCode WINAPI JsCreateArrayBuffer(unsigned int byteLength, JsValueRef *result) { return HOOK_JS_API(CreateArrayBuffer(byteLength, result)); }
     static JsErrorCode WINAPI JsGetArrayBufferStorage(JsValueRef instance, BYTE **buffer, unsigned int *bufferLength) { return HOOK_JS_API(GetArrayBufferStorage(instance, buffer, bufferLength)); }
     static JsErrorCode WINAPI JsCreateError(JsValueRef message, JsValueRef *error) { return HOOK_JS_API(CreateError(message, error)); }
     static JsErrorCode WINAPI JsHasException(bool *hasException) { return HOOK_JS_API(HasException(hasException)); }
@@ -337,16 +339,16 @@ public:
     static JsErrorCode WINAPI JsDiagGetStackProperties(unsigned int stackFrameIndex, JsValueRef * properties) { return HOOK_JS_API(DiagGetStackProperties(stackFrameIndex, properties)); }
     static JsErrorCode WINAPI JsDiagGetProperties(unsigned int objectHandle, unsigned int fromCount, unsigned int totalCount, JsValueRef * propertiesObject) { return HOOK_JS_API(DiagGetProperties(objectHandle, fromCount, totalCount, propertiesObject)); }
     static JsErrorCode WINAPI JsDiagGetObjectFromHandle(unsigned int handle, JsValueRef * handleObject) { return HOOK_JS_API(DiagGetObjectFromHandle(handle, handleObject)); }
-    static JsErrorCode WINAPI JsDiagEvaluateUtf8(const char * expression, unsigned int stackFrameIndex, JsValueRef * evalResult) { return HOOK_JS_API(DiagEvaluateUtf8(expression, stackFrameIndex, evalResult)); }
+    static JsErrorCode WINAPI JsDiagEvaluate(JsValueRef expression, unsigned int stackFrameIndex, JsParseScriptAttributes parseAttributes, JsValueRef * evalResult) { return HOOK_JS_API(DiagEvaluate(expression, stackFrameIndex, parseAttributes, evalResult)); }
     static JsErrorCode WINAPI JsParseModuleSource(JsModuleRecord requestModule, JsSourceContext sourceContext, byte* sourceText, unsigned int sourceLength, JsParseModuleSourceFlags sourceFlag, JsValueRef* exceptionValueRef) {
-        return m_jsApiHooks.pfJsrtParseModuleSource(requestModule, sourceContext, sourceText, sourceLength, sourceFlag, exceptionValueRef);
+        return HOOK_JS_API(ParseModuleSource(requestModule, sourceContext, sourceText, sourceLength, sourceFlag, exceptionValueRef));
     }
-    static JsErrorCode WINAPI JsModuleEvaluation(JsModuleRecord requestModule, JsValueRef* result) { return m_jsApiHooks.pfJsrtModuleEvaluation(requestModule, result); }
+    static JsErrorCode WINAPI JsModuleEvaluation(JsModuleRecord requestModule, JsValueRef* result) { return HOOK_JS_API(ModuleEvaluation(requestModule, result)); }
     static JsErrorCode WINAPI JsInitializeModuleRecord(JsModuleRecord referencingModule, JsValueRef normalizedSpecifier, JsModuleRecord* moduleRecord) {
-        return m_jsApiHooks.pfJsrtInitializeModuleRecord(referencingModule, normalizedSpecifier, moduleRecord);
+        return HOOK_JS_API(InitializeModuleRecord(referencingModule, normalizedSpecifier, moduleRecord));
     }
-    static JsErrorCode WINAPI JsSetModuleHostInfo(JsModuleRecord requestModule, JsModuleHostInfoKind moduleHostInfo, void* hostInfo) { return m_jsApiHooks.pfJsrtSetModuleHostInfo(requestModule, moduleHostInfo, hostInfo); }
-    static JsErrorCode WINAPI JsGetModuleHostInfo(JsModuleRecord requestModule, JsModuleHostInfoKind moduleHostInfo, void** hostInfo) { return m_jsApiHooks.pfJsrtGetModuleHostInfo(requestModule, moduleHostInfo, hostInfo); }
+    static JsErrorCode WINAPI JsSetModuleHostInfo(JsModuleRecord requestModule, JsModuleHostInfoKind moduleHostInfo, void* hostInfo) { return HOOK_JS_API(SetModuleHostInfo(requestModule, moduleHostInfo, hostInfo)); }
+    static JsErrorCode WINAPI JsGetModuleHostInfo(JsModuleRecord requestModule, JsModuleHostInfoKind moduleHostInfo, void** hostInfo) { return HOOK_JS_API(GetModuleHostInfo(requestModule, moduleHostInfo, hostInfo)); }
 
     static JsErrorCode WINAPI JsTTDCreateRecordRuntime(JsRuntimeAttributes attributes, const byte* infoUri, size_t infoUriCount, size_t snapInterval, size_t snapHistoryLength, JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, TTDOpenResourceStreamCallback openResourceStream, JsTTDReadBytesFromStreamCallback readBytesFromStream, JsTTDWriteBytesToStreamCallback writeBytesToStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) {  return HOOK_JS_API(TTDCreateRecordRuntime(attributes, infoUri, infoUriCount, snapInterval, snapHistoryLength, writeInitializeFunction, openResourceStream, readBytesFromStream, writeBytesToStream, flushAndCloseStream, threadService, runtime)); }
     static JsErrorCode WINAPI JsTTDCreateReplayRuntime(JsRuntimeAttributes attributes, const byte* infoUri, size_t infoUriCount, JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, TTDOpenResourceStreamCallback openResourceStream, JsTTDReadBytesFromStreamCallback readBytesFromStream, JsTTDWriteBytesToStreamCallback writeBytesToStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return HOOK_JS_API(TTDCreateReplayRuntime(attributes, infoUri, infoUriCount, false, writeInitializeFunction, openResourceStream, readBytesFromStream, writeBytesToStream, flushAndCloseStream, threadService, runtime)); }

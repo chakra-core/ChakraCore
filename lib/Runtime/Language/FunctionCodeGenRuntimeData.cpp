@@ -8,7 +8,7 @@
 namespace Js
 {
     FunctionCodeGenRuntimeData::FunctionCodeGenRuntimeData(FunctionBody *const functionBody)
-        : functionBody(functionBody), inlinees(nullptr), next(0)
+        : functionBody(functionBody), inlinees(nullptr), next(nullptr)
     {
     }
 
@@ -72,7 +72,7 @@ namespace Js
         Assert(inlinee == functionBody);
         if (!inlinees)
         {
-            inlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, functionBody->GetProfiledCallSiteCount());
+            inlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenRuntimeData*), functionBody->GetProfiledCallSiteCount());
         }
         inlinees[profiledCallSiteId] = this;
     }
@@ -88,7 +88,7 @@ namespace Js
 
         if (!inlinees)
         {
-            inlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, functionBody->GetProfiledCallSiteCount());
+            inlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenRuntimeData *), functionBody->GetProfiledCallSiteCount());
         }
         const auto inlineeData = inlinees[profiledCallSiteId];
 
@@ -143,7 +143,7 @@ namespace Js
 
         if (!ldFldInlinees)
         {
-            ldFldInlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, functionBody->GetInlineCacheCount());
+            ldFldInlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenRuntimeData *), functionBody->GetInlineCacheCount());
         }
         const auto inlineeData = ldFldInlinees[inlineCacheIndex];
         if (!inlineeData)

@@ -8,7 +8,7 @@
 #include "TestHooks.h"
 
 #ifdef __APPLE__
-// dummy usage of JSRT to force export JSRT on dylib
+// dummy usage of some Jsrt to force export Jsrt on dylib
 #include "ChakraCore.h"
 void DummyJSRTCall()
 {
@@ -16,6 +16,7 @@ void DummyJSRTCall()
     JsRuntimeAttributes attr;
     JsCreateRuntime(attr, nullptr, runtime);
     JsDiagStartDebugging(runtime, nullptr, nullptr);
+    JsInitializeModuleRecord(nullptr, nullptr, nullptr);
 }
 #endif
 
@@ -31,4 +32,4 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
     return TRUE;
 }
 
-static_assert(__LINE__ == 34, "You shouldn't add anything to this file or ChakraCoreDllFunc.cpp. Please consider again!");
+static_assert(__LINE__ == 35, "You shouldn't add anything to this file or ChakraCoreDllFunc.cpp. Please consider again!");

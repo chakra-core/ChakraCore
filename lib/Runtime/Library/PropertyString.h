@@ -8,7 +8,7 @@ namespace Js
 {
     struct PropertyCache
     {
-        Type * type;
+        Field(Type*) type;
         union
         {
             struct
@@ -37,8 +37,8 @@ namespace Js
     class PropertyString : public JavascriptString
     {
     protected:
-        PropertyCache* propCache;
-        const Js::PropertyRecord* m_propertyRecord;
+        Field(PropertyCache*) propCache;
+        Field(const Js::PropertyRecord*) m_propertyRecord;
         DEFINE_VTABLE_CTOR(PropertyString, JavascriptString);
         DECLARE_CONCRETE_STRING_CLASS;
 

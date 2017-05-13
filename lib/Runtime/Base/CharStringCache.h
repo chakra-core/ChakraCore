@@ -18,7 +18,6 @@ namespace Js
         // For JIT
         static const char16 CharStringCacheSize = 0x80; /*range of ASCII 7-bit chars*/
         static DWORD GetCharStringCacheAOffset() { return offsetof(CharStringCache, charStringCacheA); }
-        const PropertyString * const * GetCharStringCacheA() const { return charStringCacheA; }
 
         static JavascriptString* GetStringForChar(CharStringCache *charStringCache, char16 c) { return charStringCache->GetStringForChar(c); }
         static JavascriptString* GetStringForCharCodePoint(CharStringCache *charStringCache, codepoint_t c)
@@ -27,9 +26,10 @@ namespace Js
         }
 
     private:
-        PropertyString * charStringCacheA[CharStringCacheSize];
+        Field(PropertyString *) charStringCacheA[CharStringCacheSize];
+
         typedef JsUtil::BaseDictionary<char16, JavascriptString *, Recycler, PowerOf2SizePolicy> CharStringCacheMap;
-        CharStringCacheMap * charStringCache;
+        Field(CharStringCacheMap *) charStringCache;
 
         friend class CharStringCacheValidator;
     };

@@ -23,6 +23,11 @@ ChakraRTInterface::ArgInfo* ChakraRTInterface::m_argInfo = nullptr;
 TestHooks ChakraRTInterface::m_testHooks = { 0 };
 JsAPIHooks ChakraRTInterface::m_jsApiHooks = { 0 };
 
+LPCSTR GetChakraDllName()
+{
+    return chakraDllName;
+}
+
 // Wrapper functions to abstract out loading ChakraCore
 // and resolving its symbols
 // Currently, these functions resolve to the PAL on Linux
@@ -49,15 +54,8 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
 #ifndef CHAKRA_STATIC_LIBRARY
     HINSTANCE library = nullptr;
 
-    char filename[_MAX_PATH];
-    char drive[_MAX_DRIVE];
-    char dir[_MAX_DIR];
-
-    char modulename[_MAX_PATH];
-    GetModuleFileNameA(NULL, modulename, _MAX_PATH);
-    _splitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
-    _makepath_s(filename, drive, dir, chakraDllName, nullptr);
-    LPCSTR dllName = filename;
+    char dllName[_MAX_PATH];
+    GetBinaryPathWithFileNameA(dllName, _MAX_PATH, chakraDllName);
 
     library = LoadChakraCore(dllName);
     *outLibrary = library;
@@ -136,7 +134,7 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtDiagGetStackProperties = (JsAPIHooks::JsrtDiagGetStackProperties)GetChakraCoreSymbol(library, "JsDiagGetStackProperties");
     m_jsApiHooks.pfJsrtDiagGetProperties = (JsAPIHooks::JsrtDiagGetProperties)GetChakraCoreSymbol(library, "JsDiagGetProperties");
     m_jsApiHooks.pfJsrtDiagGetObjectFromHandle = (JsAPIHooks::JsrtDiagGetObjectFromHandle)GetChakraCoreSymbol(library, "JsDiagGetObjectFromHandle");
-    m_jsApiHooks.pfJsrtDiagEvaluateUtf8 = (JsAPIHooks::JsrtDiagEvaluateUtf8)GetChakraCoreSymbol(library, "JsDiagEvaluateUtf8");
+    m_jsApiHooks.pfJsrtDiagEvaluate = (JsAPIHooks::JsrtDiagEvaluate)GetChakraCoreSymbol(library, "JsDiagEvaluate");
     m_jsApiHooks.pfJsrtRun = (JsAPIHooks::JsrtRun)GetChakraCoreSymbol(library, "JsRun");
     m_jsApiHooks.pfJsrtParse = (JsAPIHooks::JsrtParse)GetChakraCoreSymbol(library, "JsParse");
     m_jsApiHooks.pfJsrtSerialize = (JsAPIHooks::JsrtSerialize)GetChakraCoreSymbol(library, "JsSerialize");

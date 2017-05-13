@@ -198,32 +198,32 @@ namespace Js
     {
     }
 
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RaiseAssert(IntlEngineInterfaceExtensionObject::EntryIntl_RaiseAssert);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_IsWellFormedLanguageTag(IntlEngineInterfaceExtensionObject::EntryIntl_IsWellFormedLanguageTag);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_NormalizeLanguageTag(IntlEngineInterfaceExtensionObject::EntryIntl_NormalizeLanguageTag);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleLookup(IntlEngineInterfaceExtensionObject::EntryIntl_ResolveLocaleLookup);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleBestFit(IntlEngineInterfaceExtensionObject::EntryIntl_ResolveLocaleBestFit);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultLocale(IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultLocale);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetExtensions(IntlEngineInterfaceExtensionObject::EntryIntl_GetExtensions);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CompareString(IntlEngineInterfaceExtensionObject::EntryIntl_CompareString);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CurrencyDigits(IntlEngineInterfaceExtensionObject::EntryIntl_CurrencyDigits);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatNumber(IntlEngineInterfaceExtensionObject::EntryIntl_FormatNumber);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RaiseAssert(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_RaiseAssert));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_IsWellFormedLanguageTag(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_IsWellFormedLanguageTag));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_NormalizeLanguageTag(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_NormalizeLanguageTag));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleLookup(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_ResolveLocaleLookup));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleBestFit(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_ResolveLocaleBestFit));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultLocale(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultLocale));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetExtensions(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_GetExtensions));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CompareString(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_CompareString));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CurrencyDigits(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_CurrencyDigits));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatNumber(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_FormatNumber));
 
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CacheNumberFormat(IntlEngineInterfaceExtensionObject::EntryIntl_CacheNumberFormat);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CreateDateTimeFormat(IntlEngineInterfaceExtensionObject::EntryIntl_CreateDateTimeFormat);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CacheNumberFormat(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_CacheNumberFormat));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CreateDateTimeFormat(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_CreateDateTimeFormat));
 
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatDateTime(IntlEngineInterfaceExtensionObject::EntryIntl_FormatDateTime);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ValidateAndCanonicalizeTimeZone(IntlEngineInterfaceExtensionObject::EntryIntl_ValidateAndCanonicalizeTimeZone);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultTimeZone(IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultTimeZone);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatDateTime(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_FormatDateTime));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ValidateAndCanonicalizeTimeZone(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_ValidateAndCanonicalizeTimeZone));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultTimeZone(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultTimeZone));
 
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RegisterBuiltInFunction(IntlEngineInterfaceExtensionObject::EntryIntl_RegisterBuiltInFunction);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetHiddenObject(IntlEngineInterfaceExtensionObject::EntryIntl_GetHiddenObject);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_SetHiddenObject(IntlEngineInterfaceExtensionObject::EntryIntl_SetHiddenObject);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RegisterBuiltInFunction(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_RegisterBuiltInFunction));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetHiddenObject(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_GetHiddenObject));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_SetHiddenObject(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_SetHiddenObject));
 
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_GetArrayLength(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_GetArrayLength);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_SetPrototype(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_SetPrototype);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_RegexMatch(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_RegexMatch);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_CallInstanceFunction(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_CallInstanceFunction);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_GetArrayLength(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_GetArrayLength));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_SetPrototype(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_SetPrototype));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_RegexMatch(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_RegexMatch));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_CallInstanceFunction(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_CallInstanceFunction));
 
     WindowsGlobalizationAdapter* IntlEngineInterfaceExtensionObject::GetWindowsGlobalizationAdapter(_In_ ScriptContext * scriptContext)
     {

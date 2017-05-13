@@ -464,6 +464,7 @@ class JitArenaAllocator : public ArenaAllocator
     // Throughput improvement in the backend is substantial with this freeList.
 
 private:
+    typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
     BVSparseNode *bvFreeList;
 
 public:

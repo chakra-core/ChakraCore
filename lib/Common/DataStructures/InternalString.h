@@ -8,13 +8,15 @@ namespace Js
 {
     class InternalString
     {
-        charcount_t m_charLength;
-        unsigned char m_offset;
-        const char16* m_content;
+        Field(charcount_t) m_charLength;
+        Field(unsigned char) m_offset;
+        Field(const char16*) m_content;
 
     public:
-        InternalString() : m_charLength(0), m_content(NULL), m_offset(0) { };
+        InternalString() : m_charLength(0), m_content(nullptr), m_offset(0) { };
         InternalString(const char16* content, DECLSPEC_GUARD_OVERFLOW charcount_t charLength, unsigned char offset = 0);
+        InternalString(const char16* content, _no_write_barrier_tag, DECLSPEC_GUARD_OVERFLOW charcount_t charLength, unsigned char offset = 0);
+
         static InternalString* New(ArenaAllocator* alloc, const char16* content, DECLSPEC_GUARD_OVERFLOW charcount_t length);
         static InternalString* New(Recycler* recycler, const char16* content, DECLSPEC_GUARD_OVERFLOW charcount_t length);
         static InternalString* NewNoCopy(ArenaAllocator* alloc, const char16* content, DECLSPEC_GUARD_OVERFLOW charcount_t length);

@@ -170,29 +170,34 @@ set(SOURCES
 )
 
 add_library(Chakra.Pal
-  STATIC
+  OBJECT
   ${SOURCES}
   ${PLATFORM_SOURCES}
   ${ARCH_SOURCES}
 )
 
-if(CC_TARGET_OS_OSX)
-  target_link_libraries(Chakra.Pal
-    "-framework CoreFoundation"
-    "-framework Security"
+if (NOT STATIC_LIBRARY)
+  add_library(Chakra.Pal.Singular
+    STATIC
+    ${SOURCES}
+    ${PLATFORM_SOURCES}
+    ${ARCH_SOURCES}
   )
-else() # Linux
+
+  if(CC_TARGET_OS_OSX)
+    target_link_libraries(Chakra.Pal.Singular
+      "-framework CoreFoundation"
+      "-framework Security"
+      )
+  endif()
+
   if (NOT CC_TARGET_OS_ANDROID)
     set(PTHREAD pthread)
   endif()
 
-  target_link_libraries(Chakra.Pal
+  target_link_libraries(Chakra.Pal.Singular
     ${PTHREAD}
     dl
-  )
-  if(CC_TARGET_OS_ANDROID)
-      add_custom_command(TARGET Chakra.Pal POST_BUILD
-          COMMAND ${ANDROID_TOOLCHAIN_DIR}/bin/ranlib ${CMAKE_CURRENT_BINARY_DIR}/libChakra.Pal.a
-      )
-  endif()
+    ${CC_LTO_ENABLED}
+    )
 endif()

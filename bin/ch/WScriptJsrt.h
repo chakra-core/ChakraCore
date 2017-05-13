@@ -8,6 +8,7 @@ class WScriptJsrt
 {
 public:
     static bool Initialize();
+    static bool Uninitialize();
 
     class CallbackMessage : public MessageBase
     {

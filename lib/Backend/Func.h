@@ -1010,6 +1010,10 @@ private:
 #if DBG
     VtableHashMap * vtableMap;
 #endif
+#ifdef RECYCLER_WRITE_BARRIER_JIT
+public:
+    Lowerer* m_lowerer;
+#endif
 };
 
 class AutoCodeGenPhase

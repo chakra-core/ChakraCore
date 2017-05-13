@@ -351,7 +351,7 @@ ServerScriptContext::Release()
     }
 }
 
-Js::Var*
+Field(Js::Var)*
 ServerScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex)
 {
     Assert(m_moduleRecords.ContainsKey(moduleIndex));
@@ -370,7 +370,7 @@ ServerScriptContext::AddModuleRecordInfo(unsigned int moduleId, __int64 localExp
 {
     Js::ServerSourceTextModuleRecord* record = HeapNewStructZ(Js::ServerSourceTextModuleRecord);
     record->moduleId = moduleId;
-    record->localExportSlotsAddr = (Js::Var*)localExportSlotsAddr;
+    record->localExportSlotsAddr = (Field(Js::Var)*)localExportSlotsAddr;
     m_moduleRecords.Add(moduleId, record);
 }
 

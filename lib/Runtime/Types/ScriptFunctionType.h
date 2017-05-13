@@ -18,7 +18,8 @@ namespace Js
         ScriptFunctionType(ScriptContext* scriptContext, RecyclableObject* prototype,
             JavascriptMethod entryPoint, ProxyEntryPointInfo * entryPointInfo, DynamicTypeHandler * typeHandler,
             bool isLocked, bool isShared);
-        ProxyEntryPointInfo * entryPointInfo;
+
+        Field(ProxyEntryPointInfo *) entryPointInfo;
 
         friend class ScriptFunction;
         friend class JavascriptLibrary;

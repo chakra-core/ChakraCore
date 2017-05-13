@@ -146,7 +146,7 @@ JITTimeWorkItem::GetInlineePolymorphicInlineCacheInfo(intptr_t funcBodyAddr)
 {
     for (uint i = 0; i < m_workItemData->inlineeInfoCount; ++i)
     {
-        if (m_workItemData->inlineeInfo[i].functionBodyAddr == funcBodyAddr)
+        if (m_workItemData->inlineeInfo[i].functionBodyAddr == (void*)funcBodyAddr)
         {
             return (JITTimePolymorphicInlineCacheInfo *)&m_workItemData->inlineeInfo[i];
         }

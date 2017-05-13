@@ -18,6 +18,12 @@ StackBackTrace::StackBackTrace(ULONG framesToCaptureLater) : requestedFramesToCa
 {
 }
 
+StackBackTrace *
+StackBackTrace::Capture(char* buffer, size_t bufSize, ULONG framesToSkip)
+{
+    return new (buffer) StackBackTrace(framesToSkip, (ULONG)(bufSize - offsetof(StackBackTrace, stackBackTrace)) / sizeof(void*));
+}
+
 // This can be called multiple times, together with Create, in which case we will use (overwrite) same buffer.
 ULONG StackBackTrace::Capture(ULONG framesToSkip)
 {
@@ -28,9 +34,10 @@ ULONG StackBackTrace::Capture(ULONG framesToSkip)
 size_t
 StackBackTrace::Print()
 {
-    DbgHelpSymbolManager::EnsureInitialized();
-
     size_t retValue = 0;
+
+#ifdef DBGHELP_SYMBOL_MANAGER
+    DbgHelpSymbolManager::EnsureInitialized();
 
     for(ULONG i = 0; i < this->framesCount; i++)
     {
@@ -39,8 +46,28 @@ StackBackTrace::Print()
         retValue += DbgHelpSymbolManager::PrintSymbol(address);
         retValue += Output::Print(_u("\n"));
     }
+#else
+    char** f = backtrace_symbols(this->stackBackTrace, this->framesCount);
+    if (f)
+    {
+        for (ULONG i = 0; i < this->framesCount; i++)
+        {
+            retValue += Output::Print(_u(" %S\n"), f[i]);
+        }
+        free(f);
+    }
+#endif
 
     retValue += Output::Print(_u("\n"));
     return retValue;
 }
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+static uint _s_trace_ring_id = 0;
+uint _trace_ring_next_id()
+{
+    return InterlockedIncrement(&_s_trace_ring_id);
+}
+#endif  // ENABLE_DEBUG_CONFIG_OPTIONS
+
 #endif

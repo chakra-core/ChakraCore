@@ -8,7 +8,7 @@ namespace Js
     class WithScopeObject : public RecyclableObject
     {
         private:
-            RecyclableObject *wrappedObject;
+            Field(RecyclableObject *) wrappedObject;
 
             void AssertAndFailFast() { AssertMsg(false, "This function should not be invoked"); Js::Throw::InternalError(); }
         protected:

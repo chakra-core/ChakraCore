@@ -57,6 +57,15 @@ public:
         , m_int64RegPairMap(nullptr)
 #endif
     {
+#ifdef RECYCLER_WRITE_BARRIER_JIT
+        m_func->m_lowerer = this;
+#endif
+    }
+    ~Lowerer()
+    {
+#ifdef RECYCLER_WRITE_BARRIER_JIT
+        m_func->m_lowerer = nullptr;
+#endif
     }
 
     void Lower();
@@ -327,7 +336,7 @@ private:
 public:
     static IR::LabelInstr *     InsertLabel(const bool isHelper, IR::Instr *const insertBeforeInstr);
 
-    static IR::Instr *          InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr, bool generateWriteBarrier = false);
+    static IR::Instr *          InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr, bool generateWriteBarrier = true);
     static IR::Instr *          InsertMoveWithBarrier(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
 #if _M_X64
     static IR::Instr *          InsertMoveBitCast(IR::Opnd *const dst, IR::Opnd *const src1, IR::Instr *const insertBeforeInstr);
@@ -520,11 +529,16 @@ private:
     void            GenerateRecyclerAlloc(IR::JnHelperMethod allocHelper, size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, bool inOpHelper = false);
 
     template <typename ArrayType>
-    IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool isArrayObjCtor = false);
+    IR::RegOpnd *   GenerateArrayAllocHelper(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool isArrayObjCtor, bool isNoArgs);
+    template <typename ArrayType>
+    IR::RegOpnd *   GenerateArrayLiteralsAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed);
+    template <typename ArrayType>
+    IR::RegOpnd *   GenerateArrayObjectsAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool isNoArgs);
+
     template <typename ArrayType>
     IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, IR::Opnd * sizeOpnd, Js::ArrayCallSiteInfo * arrayInfo);
 
-    void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length, IR::LabelInstr* labelDone);
+    void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length, IR::LabelInstr* labelDone, bool isNoArgs);
 
     template <typename ArrayType>
     void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, IR::LabelInstr* helperLabel, IR::LabelInstr* labelDone, IR::Opnd* lengthOpnd, uint32 offsetOfCallSiteIndex, uint32 offsetOfWeakFuncRef);

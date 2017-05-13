@@ -20,7 +20,7 @@ namespace Js
     public:
         WebAssemblyEnvironment(WebAssemblyModule* module);
 
-        Var* GetStartPtr() const { return start; }
+        Var* GetStartPtr() const { return (Var*)PointerValue(start); }
 
         AsmJsScriptFunction* GetWasmFunction(uint32 index) const;
         void SetWasmFunction(uint32 index, AsmJsScriptFunction* func);
@@ -33,15 +33,15 @@ namespace Js
         void SetGlobalValue(class Wasm::WasmGlobal* global, Wasm::WasmConstLitNode cnst);
 
     private:
-        WebAssemblyModule* module;
-        Var* start;
-        Var* end;
+        Field(WebAssemblyModule*) module;
+        Field(Field(Var)*) start;
+        Field(Field(Var)*) end;
         // Precalculated pointer from ptr using the offsets
-        Var* memory;
-        Var* imports;
-        Var* functions;
-        Var* table;
-        Var* globals;
+        Field(Field(Var)*) memory;
+        Field(Field(Var)*) imports;
+        Field(Field(Var)*) functions;
+        Field(Field(Var)*) table;
+        Field(Field(Var)*) globals;
 
     private:
         template<typename T> void CheckPtrIsValid(intptr_t ptr) const;

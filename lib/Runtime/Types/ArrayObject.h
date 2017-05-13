@@ -18,7 +18,7 @@ namespace Js
     class ArrayObject : public DynamicObject
     {
     protected:
-        uint32 length;
+        Field(uint32) length;
 
     protected:
         DEFINE_VTABLE_CTOR_ABSTRACT(ArrayObject, DynamicObject);

@@ -12,8 +12,15 @@ namespace Js
     typedef SList<ModuleRecordBase*> ExportModuleRecordList;
     struct ModuleNameRecord
     {
-        ModuleRecordBase* module;
-        PropertyId bindingName;
+        ModuleNameRecord(const ModuleNameRecord& other)
+            :module(other.module), bindingName(other.bindingName)
+        {}
+        ModuleNameRecord(ModuleRecordBase* module, PropertyId bindingName) 
+            :module(module), bindingName(bindingName) 
+        {}
+        ModuleNameRecord() {}
+        Field(ModuleRecordBase*) module;
+        Field(PropertyId) bindingName;
     };
     typedef SList<ModuleNameRecord> ResolveSet;
 
@@ -40,9 +47,9 @@ namespace Js
         virtual bool IsSourceTextModuleRecord() { return false; }
 
     protected:
-        uint32 magicNumber;
-        ModuleNamespace* namespaceObject;
-        bool wasEvaluated;
-        JavascriptLibrary* javascriptLibrary;
+        Field(uint32) magicNumber;
+        Field(ModuleNamespace*) namespaceObject;
+        Field(bool) wasEvaluated;
+        Field(JavascriptLibrary*) javascriptLibrary;
     };
 }

@@ -82,4 +82,4 @@
 (assert_return (invoke "fac-rec-named" (i64.const 25)) (i64.const 7034535277573963776))
 (assert_return (invoke "fac-iter-named" (i64.const 25)) (i64.const 7034535277573963776))
 (assert_return (invoke "fac-opt" (i64.const 25)) (i64.const 7034535277573963776))
-(assert_trap (invoke "fac-rec" (i64.const 1073741824)) "call stack exhausted")
+(assert_exhaustion (invoke "fac-rec" (i64.const 1073741824)) "call stack exhausted")

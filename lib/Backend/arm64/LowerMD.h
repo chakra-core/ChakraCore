@@ -264,7 +264,7 @@ public:
               static void GenerateLdLocalFldFromFlagInlineCache(IR::Instr * instrLdFld, IR::RegOpnd * opndBase, IR::Opnd * opndDst, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot) { __debugbreak(); }
               static void GenerateStFldFromLocalInlineCache(IR::Instr * instrStFld, IR::RegOpnd * opndBase, IR::Opnd * opndSrc, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot) { __debugbreak(); }
 
-              static void ChangeToWriteBarrierAssign(IR::Instr * assignInstr) { __debugbreak(); }
+              static IR::Instr * ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func) { __debugbreak(); }
 
               int                 GetHelperArgsCount() { __debugbreak(); return 0; }
               void                ResetHelperArgsCount() { __debugbreak(); }

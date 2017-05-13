@@ -16,6 +16,9 @@
 ;; (module (memory 1) (data (get_global 0) "a") (global i32 (i32.const 0)))
 ;; (module (memory 1) (data (get_global $g) "a") (global $g i32 (i32.const 0)))
 
+(assert_invalid (module (memory 0) (memory 0)) "multiple memories")
+(assert_invalid (module (memory (import "spectest" "memory") 0) (memory 0)) "multiple memories")
+
 (module (memory (data)) (func (export "memsize") (result i32) (current_memory)))
 (assert_return (invoke "memsize") (i32.const 0))
 (module (memory (data "")) (func (export "memsize") (result i32) (current_memory)))
@@ -26,6 +29,31 @@
 (assert_invalid (module (data (i32.const 0))) "unknown memory")
 (assert_invalid (module (data (i32.const 0) "")) "unknown memory")
 (assert_invalid (module (data (i32.const 0) "x")) "unknown memory")
+
+(assert_invalid
+  (module (func (drop (f32.load (i32.const 0)))))
+  "unknown memory"
+)
+(assert_invalid
+  (module (func (f32.store (f32.const 0) (i32.const 0))))
+  "unknown memory"
+)
+(assert_invalid
+  (module (func (drop (i32.load8_s (i32.const 0)))))
+  "unknown memory"
+)
+(assert_invalid
+  (module (func (i32.store8 (i32.const 0) (i32.const 0))))
+  "unknown memory"
+)
+(assert_invalid
+  (module (func (drop (current_memory))))
+  "unknown memory"
+)
+(assert_invalid
+  (module (func (drop (grow_memory (i32.const 0)))))
+  "unknown memory"
+)
 
 (assert_invalid
   (module (memory 1) (data (i64.const 0)))
@@ -50,7 +78,19 @@
   "data segment does not fit"
 )
 (assert_unlinkable
+  (module (memory 0 1) (data (i32.const 0) "a"))
+  "data segment does not fit"
+)
+(assert_unlinkable
   (module (memory 1 2) (data (i32.const 0) "a") (data (i32.const 98304) "b"))
+  "data segment does not fit"
+)
+(assert_unlinkable
+  (module (memory 0 0) (data (i32.const 1) ""))
+  "data segment does not fit"
+)
+(assert_unlinkable
+  (module (memory 1) (data (i32.const 0x12000) ""))
   "data segment does not fit"
 )
 ;; This seems to cause a time-out on Travis.
@@ -64,7 +104,7 @@
 )
 
 (module (memory 0 0) (data (i32.const 0) ""))
-(module (memory 0 0) (data (i32.const 1) ""))
+(module (memory 1 1) (data (i32.const 0x10000) ""))
 (module (memory 1 2) (data (i32.const 0) "abc") (data (i32.const 0) "def"))
 (module (memory 1 2) (data (i32.const 3) "ab") (data (i32.const 0) "de"))
 (module

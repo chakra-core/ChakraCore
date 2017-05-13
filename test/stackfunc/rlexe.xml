@@ -276,7 +276,7 @@
     <default>
       <files>nested_escape.js</files>
       <baseline>nested_escape.deferparse.baseline</baseline>
-      <compile-flags>-testtrace:stackfunc -off:simpleJit -Force:Deferparse -on:stackfunc</compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -Force:Deferparse -off:DisableStackFuncOnDeferredEscape</compile-flags>
       <tags>exclude_fre,exclude_dynapogo</tags>
     </default>
   </test>

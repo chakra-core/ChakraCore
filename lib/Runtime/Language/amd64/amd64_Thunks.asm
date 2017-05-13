@@ -8,6 +8,7 @@ include ksamd64.inc
 
 ifdef _CONTROL_FLOW_GUARD
     extrn __guard_check_icall_fptr:QWORD
+    extrn __guard_dispatch_icall_fptr:QWORD
 endif
 
 ifdef _ENABLE_DYNAMIC_THUNKS
@@ -355,12 +356,6 @@ align 16
         call ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z
         ; rax = target function address
 
-ifdef _CONTROL_FLOW_GUARD
-        mov     rcx, rax
-        ; it is guaranteed that icall check will preserve rcx
-        call    [__guard_check_icall_fptr]
-        mov     rax, rcx ; restore entry point to rax
-endif
         add rsp, 20h
 
         ; move first 4 arguments into registers.
@@ -418,9 +413,12 @@ endif
         pop rsi
         pop rdi
 
+ifdef _CONTROL_FLOW_GUARD
+        call    [__guard_dispatch_icall_fptr]
+else
         ; call entry point
         call rax
-
+endif
         ; Var BoxAsmJsReturnValue(ScriptFunction* func, int intRetVal, double doubleRetVal, float floatRetVal)
         mov rcx, rsi
         mov rdx, rax

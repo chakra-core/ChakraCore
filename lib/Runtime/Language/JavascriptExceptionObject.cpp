@@ -173,7 +173,7 @@ namespace Js
     LPCWSTR JavascriptExceptionContext::StackFrame::GetFunctionName() const
     {
         return IsScriptFunction() ?
-            GetFunctionBody()->GetExternalDisplayName() : this->name;
+            GetFunctionBody()->GetExternalDisplayName() : PointerValue(this->name);
     }
 
     // Get function name with arguments info. Used by script WER.

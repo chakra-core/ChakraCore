@@ -9,15 +9,19 @@ namespace Js
     class SimplePropertyDescriptor
     {
     public:
-        SimplePropertyDescriptor() : Id(NULL), preventFalseReference(NULL) { Attributes = PropertyDynamicTypeDefaults; }
+        SimplePropertyDescriptor() : Id(nullptr), preventFalseReference(nullptr) { Attributes = PropertyDynamicTypeDefaults; }
         SimplePropertyDescriptor(const PropertyRecord* id) : Id(id), preventFalseReference(NULL) { Attributes = PropertyDynamicTypeDefaults; }
         SimplePropertyDescriptor(const PropertyRecord* id, PropertyAttributes attributes) : Id(id), preventFalseReference(NULL) { Attributes = attributes; }
 
-        const PropertyRecord* Id;
+        SimplePropertyDescriptor(const PropertyRecord* id, _no_write_barrier_tag, PropertyAttributes attributes)
+            : Id(NO_WRITE_BARRIER_TAG(id)), preventFalseReference(NULL)
+        { Attributes = attributes; }
+
+        Field(const PropertyRecord*) Id;
         union
         {
-            PropertyAttributes Attributes;
-            void* preventFalseReference; // SimplePropertyDescriptor can be declared on stack. Always zero out to avoid this becoming a memory address reference.
+            Field(PropertyAttributes) Attributes;
+            FieldNoBarrier(void*) preventFalseReference; // SimplePropertyDescriptor can be declared on stack. Always zero out to avoid this becoming a memory address reference.
         };
     };
 

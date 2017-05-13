@@ -127,22 +127,52 @@
 #define ENABLE_SCRIPT_DEBUGGING
 
 // GC features
+#define BUCKETIZE_MEDIUM_ALLOCATIONS 1              // *** TODO: Won't build if disabled currently
+#define SMALLBLOCK_MEDIUM_ALLOC 1                   // *** TODO: Won't build if disabled currently
+#define LARGEHEAPBLOCK_ENCODING 1                   // Large heap block metadata encoding
+#define IDLE_DECOMMIT_ENABLED 1                     // Idle Decommit
+#define RECYCLER_PAGE_HEAP                          // PageHeap support
 
-// Concurrent and Partial GC are disabled on non-Windows builds
-// xplat-todo: re-enable this in the future
-// These are disabled because these GC features depend on hardware
-// write-watch support that the Windows Memory Manager provides.
 #ifdef _WIN32
 #define SYSINFO_IMAGE_BASE_AVAILABLE 1
 #define ENABLE_CONCURRENT_GC 1
+#define SUPPORT_WIN32_SLIST 1
+#define ENABLE_JS_ETW                               // ETW support
+#else
+#define SYSINFO_IMAGE_BASE_AVAILABLE 0
+#define ENABLE_CONCURRENT_GC 1
+#define SUPPORT_WIN32_SLIST 0
+#endif
+
+
+#if ENABLE_CONCURRENT_GC
+// Write-barrier refers to a software write barrier implementation using a card table.
+// Write watch refers to a hardware backed write-watch feature supported by the Windows memory manager.
+// Both are used for detecting changes to memory for concurrent and partial GC.
+// RECYCLER_WRITE_BARRIER controls the former, RECYCLER_WRITE_WATCH controls the latter.
+// GLOBAL_ENABLE_WRITE_BARRIER controls the smart pointer wrapper at compile time, every Field annotation on the
+// recycler allocated class will take effect if GLOBAL_ENABLE_WRITE_BARRIER is 1, otherwise only the class declared
+// with FieldWithBarrier annotations use the WriteBarrierPtr<>, see WriteBarrierMacros.h and RecyclerPointers.h for detail
+#define RECYCLER_WRITE_BARRIER                      // Write Barrier support
+#ifdef _WIN32
+#define RECYCLER_WRITE_WATCH                        // Support hardware write watch
+#endif
+
+#ifdef RECYCLER_WRITE_BARRIER
+#if !GLOBAL_ENABLE_WRITE_BARRIER
+#ifdef _WIN32
+#define GLOBAL_ENABLE_WRITE_BARRIER 0
+#else
+#define GLOBAL_ENABLE_WRITE_BARRIER 1
+#endif
+#endif
+#endif
+
 #define ENABLE_PARTIAL_GC 1
 #define ENABLE_BACKGROUND_PAGE_ZEROING 1
 #define ENABLE_BACKGROUND_PAGE_FREEING 1
 #define ENABLE_RECYCLER_TYPE_TRACKING 1
-#define ENABLE_JS_ETW                               // ETW support
 #else
-#define SYSINFO_IMAGE_BASE_AVAILABLE 0
-#define ENABLE_CONCURRENT_GC 0
 #define ENABLE_PARTIAL_GC 0
 #define ENABLE_BACKGROUND_PAGE_ZEROING 0
 #define ENABLE_BACKGROUND_PAGE_FREEING 0
@@ -152,13 +182,6 @@
 #if ENABLE_BACKGROUND_PAGE_ZEROING && !ENABLE_BACKGROUND_PAGE_FREEING
 #error "Background page zeroing can't be turned on if freeing pages in the background is disabled"
 #endif
-
-#define BUCKETIZE_MEDIUM_ALLOCATIONS 1              // *** TODO: Won't build if disabled currently
-#define SMALLBLOCK_MEDIUM_ALLOC 1                   // *** TODO: Won't build if disabled currently
-#define LARGEHEAPBLOCK_ENCODING 1                   // Large heap block metadata encoding
-#define RECYCLER_WRITE_BARRIER                      // Write Barrier support
-#define IDLE_DECOMMIT_ENABLED 1                     // Idle Decommit
-#define RECYCLER_PAGE_HEAP                          // PageHeap support
 
 // JIT features
 
@@ -461,8 +484,7 @@
 
 // xplat-todo: Depends on C++ type-info
 // enable later on non-VC++ compilers
-
-#ifdef _WIN32
+#ifndef __APPLE__
 #define PROFILE_RECYCLER_ALLOC
 // Needs to compile in debug mode
 // Just needs strings converted
@@ -491,15 +513,22 @@
 #define ARENA_MEMORY_VERIFY
 #define SEPARATE_ARENA
 
-// xplat-todo: This depends on C++ type-tracking
-// Need to re-enable on non-VC++ compilers
-#ifdef _WIN32
-#define HEAP_TRACK_ALLOC
+#ifndef _WIN32
+#ifdef _X64_OR_ARM64
+#define MAX_NATURAL_ALIGNMENT sizeof(ULONGLONG)
+#define MEMORY_ALLOCATION_ALIGNMENT 16
+#else
+#define MAX_NATURAL_ALIGNMENT sizeof(DWORD)
+#define MEMORY_ALLOCATION_ALIGNMENT 8
+#endif
 #endif
 
+// xplat: on apple looks typeid(char16_t) does not work, hit error: Undefined symbols for architecture x86_64: "typeinfo for char16_t"
+#ifndef __APPLE__
+#define HEAP_TRACK_ALLOC
 #define CHECK_MEMORY_LEAK
 #define LEAK_REPORT
-
+#endif
 
 #define PROJECTION_METADATA_TRACE
 #define ERROR_TRACE
@@ -594,8 +623,11 @@
 #define ASMJS_PLAT
 #endif
 
-#if defined(ASMJS_PLAT) && defined(_WIN32)
+#if defined(ASMJS_PLAT)
+// xplat-todo: once all the wasm tests are passing on xplat, enable it for release builds
+#if defined(_WIN32) || (defined(__clang__) && defined(ENABLE_DEBUG_CONFIG_OPTIONS))
 #define ENABLE_WASM
+#endif
 #endif
 
 #if _M_IX86
@@ -634,11 +666,8 @@
 #define ENABLE_TRACE
 #endif
 
-// xplat-todo: Capture stack backtrace on non-win32 platforms
-#ifdef _WIN32
 #if DBG || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT) || defined(TRACK_DISPATCH) || defined(ENABLE_TRACE) || defined(RECYCLER_PAGE_HEAP)
 #define STACK_BACK_TRACE
-#endif
 #endif
 
 // ENABLE_DEBUG_STACK_BACK_TRACE is for capturing stack back trace for debug only.
@@ -648,7 +677,9 @@
 #endif
 
 #if defined(STACK_BACK_TRACE) || defined(CONTROL_FLOW_GUARD_LOGGER)
+#ifdef _WIN32
 #define DBGHELP_SYMBOL_MANAGER
+#endif
 #endif
 
 #if defined(TRACK_DISPATCH) || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
@@ -659,9 +690,7 @@
 // HEAP_TRACK_ALLOC and RECYCLER_STATS
 #if defined(LEAK_REPORT) || defined(CHECK_MEMORY_LEAK)
 #define RECYCLER_DUMP_OBJECT_GRAPH
-#ifdef _WIN32
 #define HEAP_TRACK_ALLOC
-#endif
 #define RECYCLER_STATS
 #endif
 
@@ -677,9 +706,6 @@
 
 
 #if defined(HEAP_TRACK_ALLOC) || defined(PROFILE_RECYCLER_ALLOC)
-#ifndef _WIN32
-#error "Not yet supported on non-VC++ compiler"
-#endif
 
 #define TRACK_ALLOC
 #define TRACE_OBJECT_LIFETIME           // track a particular object's lifetime

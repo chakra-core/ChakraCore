@@ -99,40 +99,12 @@ ShutdownCommon()
     return status;
 }
 
-__declspec(dllexport)
-HRESULT
-JsShutdownJITServer()
-{
-    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-
-    if (JITManager::GetJITManager()->IsConnected())
-    {
-        // if client is hosting jit process directly, call to remotely shutdown
-        return JITManager::GetJITManager()->Shutdown();
-    }
-    else
-    {
-        return ShutdownCommon();
-    }
-}
-
 HRESULT
 ServerShutdown(
     /* [in] */ handle_t binding)
 {
     return ShutdownCommon();
 }
-
-HRESULT
-ServerCleanupProcess(
-    /* [in] */ handle_t binding,
-    /* [in] */ intptr_t processHandle)
-{
-    ServerContextManager::CleanUpForProcess((HANDLE)processHandle);
-    CloseHandle((HANDLE)processHandle);
-    return S_OK;
-}
-
 
 void
 __RPC_USER PTHREADCONTEXT_HANDLE_rundown(__RPC__in PTHREADCONTEXT_HANDLE phContext)
@@ -147,7 +119,7 @@ __RPC_USER PSCRIPTCONTEXT_HANDLE_rundown(__RPC__in PSCRIPTCONTEXT_HANDLE phConte
     ServerCleanupScriptContext(nullptr, &phContext);
 }
 
-#pragma warning(push)  
+#pragma warning(push)
 #pragma warning(disable:6387 28196) // PREFast does not understand the out context can be null here
 HRESULT
 ServerInitializeThreadContext(
@@ -174,6 +146,7 @@ ServerInitializeThreadContext(
     }
     catch (Js::OutOfMemoryException)
     {
+        CloseHandle((HANDLE)threadContextData->processHandle);
         return E_OUTOFMEMORY;
     }
 
@@ -215,7 +188,7 @@ ServerInitializeScriptContext(
         return S_OK;
     });
 }
-#pragma warning(pop) 
+#pragma warning(pop)
 
 HRESULT
 ServerCleanupThreadContext(
@@ -250,7 +223,7 @@ HRESULT
 ServerUpdatePropertyRecordMap(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    /* [in] */ __RPC__in BVSparseNodeIDL * updatedPropsBVHead)
+    /* [in] */ __RPC__in_opt BVSparseNodeIDL * updatedPropsBVHead)
 {
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer(threadContextInfoAddress);
 
@@ -262,6 +235,7 @@ ServerUpdatePropertyRecordMap(
 
     return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
     {
+        typedef ServerThreadContext::BVSparseNode BVSparseNode;
         CompileAssert(sizeof(BVSparseNode) == sizeof(BVSparseNodeIDL));
         threadContextInfo->UpdateNumericPropertyBV((BVSparseNode*)updatedPropsBVHead);
 
@@ -727,42 +701,6 @@ void ServerContextManager::UnRegisterThreadContext(ServerThreadContext* threadCo
             iter.RemoveCurrent();
         }
         iter.MoveNext();
-    }
-}
-
-void ServerContextManager::CleanUpForProcess(HANDLE hProcess)
-{
-    // there might be multiple thread context(webworker)
-    AutoCriticalSection autoCS(&cs);
-
-    auto iterScriptCtx = scriptContexts.GetIteratorWithRemovalSupport();
-    while (iterScriptCtx.IsValid())
-    {
-        ServerScriptContext* scriptContext = iterScriptCtx.Current().Key();
-        if (scriptContext->GetThreadContext()->GetProcessHandle() == hProcess)
-        {
-            if (!scriptContext->IsClosed())
-            {
-                scriptContext->Close();
-            }
-            iterScriptCtx.RemoveCurrent();
-        }
-        iterScriptCtx.MoveNext();
-    }
-
-    auto iterThreadCtx = threadContexts.GetIteratorWithRemovalSupport();
-    while (iterThreadCtx.IsValid())
-    {
-        ServerThreadContext* threadContext = iterThreadCtx.Current().Key();
-        if (threadContext->GetProcessHandle() == hProcess)
-        {
-            if (!threadContext->IsClosed())
-            {
-                threadContext->Close();
-            }
-            iterThreadCtx.RemoveCurrent();
-        }
-        iterThreadCtx.MoveNext();
     }
 }
 

@@ -29,7 +29,6 @@ namespace Js
         virtual ArrayBuffer * GetAsArrayBuffer() = 0;
         virtual SharedArrayBuffer * GetAsSharedArrayBuffer() { return nullptr; }
         virtual void AddParent(ArrayBufferParent* parent) { }
-        virtual void RemoveParent(ArrayBufferParent* parent) { }
         virtual bool IsDetached() { return false; }
         virtual uint32 GetByteLength() const = 0;
         virtual BYTE* GetBuffer() const = 0;
@@ -122,7 +121,6 @@ namespace Js
         static int GetBufferOffset() { return offsetof(ArrayBuffer, buffer); }
 
         virtual void AddParent(ArrayBufferParent* parent) override;
-        virtual void RemoveParent(ArrayBufferParent* parent) override;
 #if _WIN64
         //maximum 2G -1  for amd64
         static const uint32 MaxArrayBufferLength = 0x7FFFFFFF;
@@ -130,6 +128,8 @@ namespace Js
         // maximum 1G to avoid arithmetic overflow.
         static const uint32 MaxArrayBufferLength = 1 << 30;
 #endif
+        static const uint32 ParentsCleanupThreshold = 1000;
+
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) { return false; }
         virtual bool IsArrayBuffer() override { return true; }
         virtual bool IsSharedArrayBuffer() override { return false; }
@@ -146,18 +146,27 @@ namespace Js
         static uint32 GetIndexFromVar(Js::Var arg, uint32 length, ScriptContext* scriptContext);
 
         //In most cases, the ArrayBuffer will only have one parent
-        RecyclerWeakReference<ArrayBufferParent>* primaryParent;
-        JsUtil::List<RecyclerWeakReference<ArrayBufferParent>*>* otherParents;
+        Field(RecyclerWeakReference<ArrayBufferParent>*) primaryParent;
 
+        struct OtherParents :public SList<RecyclerWeakReference<ArrayBufferParent>*, Recycler>
+        {
+            OtherParents(Recycler* recycler)
+                :SList<RecyclerWeakReference<ArrayBufferParent>*, Recycler>(recycler), increasedCount(0)
+            {
+            }
+            uint increasedCount;
+        };
 
-        BYTE  *buffer;             // Points to a heap allocated RGBA buffer, can be null
-        uint32 bufferLength;       // Number of bytes allocated
+        Field(OtherParents*) otherParents;
+
+        FieldNoBarrier(BYTE*) buffer;             // Points to a heap allocated RGBA buffer, can be null
+        Field(uint32) bufferLength;       // Number of bytes allocated
 
         // When an ArrayBuffer is detached, the TypedArray and DataView objects pointing to it must be made aware,
         // for this purpose the ArrayBuffer needs to hold WeakReferences to them
-        bool isDetached;
-        bool mIsAsmJsBuffer;
-        bool isBufferCleared;
+        Field(bool) isDetached;
+        Field(bool) mIsAsmJsBuffer;
+        Field(bool) isBufferCleared;
 
     };
 
@@ -167,7 +176,7 @@ namespace Js
         friend ArrayBufferBase;
 
     private:
-        ArrayBufferBase* arrayBuffer;
+        Field(ArrayBufferBase*) arrayBuffer;
 
     protected:
         DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBufferParent, ArrayObject);
@@ -177,15 +186,6 @@ namespace Js
             arrayBuffer(arrayBuffer)
         {
             arrayBuffer->AddParent(this);
-        }
-
-        void ClearArrayBuffer()
-        {
-            if (this->arrayBuffer != nullptr)
-            {
-                this->arrayBuffer->RemoveParent(this);
-                this->arrayBuffer = nullptr;
-            }
         }
 
     public:
@@ -221,13 +221,13 @@ namespace Js
             //throw out of memory
             if (!address)
             {
-                Js::Throw::OutOfMemory();
+                return nullptr;
             }
             LPVOID arrayAddress = VirtualAlloc(address, length, MEM_COMMIT, PAGE_READWRITE);
             if (!arrayAddress)
             {
                 VirtualFree(address, 0, MEM_RELEASE);
-                Js::Throw::OutOfMemory();
+                return nullptr;
             }
             return arrayAddress;
 #else

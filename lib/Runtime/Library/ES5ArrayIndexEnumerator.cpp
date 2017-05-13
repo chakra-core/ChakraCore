@@ -26,7 +26,12 @@ namespace Js
                 }
                 if (index == descriptorIndex || !GetArray()->IsValidDescriptorToken(descriptorValidationToken))
                 {
-                    descriptorIndex = GetArray()->GetNextDescriptor(index, &descriptor, &descriptorValidationToken);
+                    Js::IndexPropertyDescriptor * pResultDescriptor = nullptr;
+                    void* tmpDescriptorValidationToken = nullptr;
+                    descriptorIndex = GetArray()->GetNextDescriptor(
+                        index, &pResultDescriptor, &tmpDescriptorValidationToken);
+                    this->descriptor = pResultDescriptor;
+                    this->descriptorValidationToken = tmpDescriptorValidationToken;
                 }
 
                 index = min(dataIndex, descriptorIndex);

@@ -3263,7 +3263,7 @@ StoreCommon:
     }
 
     template <LayoutSize layoutSize>
-    inline void ByteCodeWriter::Data::EncodeOpCode(uint16 op, ByteCodeWriter* writer)
+    void ByteCodeWriter::Data::EncodeOpCode(uint16 op, ByteCodeWriter* writer)
     {
         CompileAssert(layoutSize != SmallLayout);
         DebugOnly(const uint offset = currentOffset);

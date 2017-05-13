@@ -30,7 +30,6 @@ JITManager::JITManager() :
     m_rpcBindingHandle(nullptr),
     m_oopJitEnabled(false),
     m_isJITServer(false),
-    m_targetHandle(nullptr),
     m_serverHandle(nullptr),
     m_jitConnectionId()
 {
@@ -38,10 +37,6 @@ JITManager::JITManager() :
 
 JITManager::~JITManager()
 {
-    if (m_targetHandle)
-    {
-        CleanupProcess();
-    }
     if (m_rpcBindingHandle)
     {
         RpcBindingFree(&m_rpcBindingHandle);
@@ -192,7 +187,7 @@ bool
 JITManager::IsConnected() const
 {
     Assert(IsOOPJITEnabled());
-    return m_rpcBindingHandle != nullptr && m_targetHandle != nullptr;
+    return m_rpcBindingHandle != nullptr;
 }
 
 HANDLE
@@ -213,23 +208,11 @@ JITManager::IsOOPJITEnabled() const
     return m_oopJitEnabled;
 }
 
-HANDLE
-JITManager::GetJITTargetHandle() const
-{
-    if (!IsOOPJITEnabled())
-    {
-        return GetCurrentProcess();
-    }
-    Assert(m_targetHandle != nullptr);
-    return m_targetHandle;
-}
-
 HRESULT
 JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* serverSecurityDescriptor, __in UUID connectionUuid)
 {
     Assert(IsOOPJITEnabled());
     Assert(m_rpcBindingHandle == nullptr);
-    Assert(m_targetHandle == nullptr);
     Assert(m_serverHandle == nullptr);
 
     HRESULT hr = E_FAIL;
@@ -246,12 +229,6 @@ JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* server
         goto FailureCleanup;
     }
 
-    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), jitProcessHandle, &m_targetHandle, 0, FALSE, DUPLICATE_SAME_ACCESS))
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto FailureCleanup;
-    }
-
     hr = CreateBinding(jitProcessHandle, serverSecurityDescriptor, &connectionUuid, &m_rpcBindingHandle);
     if (FAILED(hr))
     {
@@ -263,11 +240,6 @@ JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* server
     return hr;
 
 FailureCleanup:
-    if (m_targetHandle)
-    {
-        CloseHandle(m_targetHandle);
-        m_targetHandle = nullptr;
-    }
     if (m_serverHandle)
     {
         CloseHandle(m_serverHandle);
@@ -283,28 +255,6 @@ FailureCleanup:
 }
 
 HRESULT
-JITManager::CleanupProcess()
-{
-    Assert(JITManager::IsOOPJITEnabled());
-    Assert(m_targetHandle != nullptr);
-
-    HRESULT hr = E_FAIL;
-    RpcTryExcept
-    {
-        hr = ClientCleanupProcess(m_rpcBindingHandle, (intptr_t)m_targetHandle);
-    }
-    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
-    }
-    RpcEndExcept;
-
-    m_targetHandle = nullptr;
-
-    return hr;
-}
-
-HRESULT
 JITManager::Shutdown()
 {
     // this is special case of shutdown called when runtime process is a parent of the server process
@@ -312,8 +262,6 @@ JITManager::Shutdown()
     HRESULT hr = S_OK;
     Assert(IsOOPJITEnabled());
     Assert(m_rpcBindingHandle != nullptr);
-
-    CleanupProcess();
 
     RpcTryExcept
     {
@@ -485,7 +433,7 @@ JITManager::SetWellKnownHostTypeId(
 HRESULT
 JITManager::UpdatePropertyRecordMap(
     __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    __in BVSparseNodeIDL * updatedPropsBVHead)
+    __in_opt BVSparseNodeIDL * updatedPropsBVHead)
 {
     Assert(IsOOPJITEnabled());
 

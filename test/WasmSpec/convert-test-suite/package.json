@@ -13,6 +13,8 @@
     "js-beautify": "^1.6.3",
     "sexpr-plus": "^7.0.0",
     "string-argv": "0.0.2",
-    "yargs": "^4.7.1"
+    "which": "^1.2.12",
+    "yargs": "^4.7.1",
+    "slash": "^1.0.0"
   }
 }

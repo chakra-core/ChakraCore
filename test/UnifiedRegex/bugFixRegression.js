@@ -432,7 +432,9 @@ var str = "";
 for (var i = 0; i < 500; i++)
     str += "a";
 
+
 exec(/(?!(.)+)/, str);
+
 
 // WOOB1137532
 exec(/a^|b/, "ab");

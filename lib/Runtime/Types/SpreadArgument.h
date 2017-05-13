@@ -9,10 +9,10 @@ namespace Js
     class SpreadArgument : public DynamicObject
     {
     private:
-        Var iterable;
-        RecyclableObject* iterator;
+        Field(Var) iterable;
+        Field(RecyclableObject*) iterator;
         typedef JsUtil::List<Var, Recycler> VarList;
-        VarList* iteratorIndices;
+        Field(VarList*) iteratorIndices;
 
         void AssertAndFailFast() { AssertMsg(false, "This function should not be invoked"); Js::Throw::InternalError();}
     protected:

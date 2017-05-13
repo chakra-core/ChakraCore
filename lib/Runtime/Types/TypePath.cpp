@@ -47,16 +47,18 @@ namespace Js {
 
     PropertyIndex TypePath::LookupInline(PropertyId propId,int typePathLength)
     {
-        if (propId == Constants::NoProperty) {
+        if (propId == Constants::NoProperty)
+        {
            return Constants::NoSlot;
         }
+
         PropertyIndex propIndex = Constants::NoSlot;
-        if (this->GetData()->map.TryGetValue(propId, &propIndex,
-                static_cast<const PropertyRecord **>(assignments))) {
-            if (propIndex<typePathLength) {
-                return propIndex;
-            }
+        if (this->GetData()->map.TryGetValue(propId, &propIndex, assignments) &&
+            propIndex < typePathLength)
+        {
+            return propIndex;
         }
+
         return Constants::NoSlot;
     }
 
@@ -110,7 +112,7 @@ namespace Js {
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
-            Output::Print(_u("FixedFields: TypePath::Branch: singleton: 0x%p(0x%p)\n"), this->singletonInstance, this->singletonInstance->Get());
+            Output::Print(_u("FixedFields: TypePath::Branch: singleton: 0x%p(0x%p)\n"), PointerValue(this->singletonInstance), this->singletonInstance->Get());
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -139,7 +141,7 @@ namespace Js {
 
         clonedPath->GetData()->pathLength = (uint8)currentPathLength;
         memcpy(&clonedPath->GetData()->map, &this->GetData()->map, sizeof(TinyDictionary) + currentPathLength);
-        memcpy(clonedPath->assignments, this->assignments, sizeof(PropertyRecord *) * currentPathLength);
+        CopyArray(clonedPath->assignments, currentPathLength, this->assignments, currentPathLength);
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         // Copy fixed field info
@@ -184,7 +186,7 @@ namespace Js {
 
     }
 
-    int TypePath::Data::Add(const PropertyRecord* propId, const PropertyRecord ** assignments)
+    int TypePath::Data::Add(const PropertyRecord* propId, Field(const PropertyRecord *)* assignments)
     {
         uint currentPathLength = this->pathLength;
         Assert(currentPathLength < this->pathSize);
@@ -214,7 +216,7 @@ namespace Js {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddInternal: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -241,7 +243,7 @@ namespace Js {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddBlankFieldAt: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -283,7 +285,7 @@ namespace Js {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddSingletonInstanceFieldAt: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -312,7 +314,7 @@ namespace Js {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddSingletonInstanceFieldAt: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)

@@ -18,7 +18,7 @@ namespace Js
     private:
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptError);
 
-        ErrorTypeEnum m_errorType;
+        Field(ErrorTypeEnum) m_errorType;
 
     protected:
         DEFINE_VTABLE_CTOR(JavascriptError, DynamicObject);
@@ -62,6 +62,7 @@ namespace Js
             static FunctionInfo NewURIErrorInstance;
             static FunctionInfo NewWebAssemblyCompileErrorInstance;
             static FunctionInfo NewWebAssemblyRuntimeErrorInstance;
+            static FunctionInfo NewWebAssemblyLinkErrorInstance;
 #ifdef ENABLE_PROJECTION
             static FunctionInfo NewWinRTErrorInstance;
 #endif
@@ -77,6 +78,7 @@ namespace Js
         static Var NewURIErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewWebAssemblyCompileErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewWebAssemblyRuntimeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var NewWebAssemblyLinkErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
 #ifdef ENABLE_PROJECTION
         static Var NewWinRTErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
@@ -105,6 +107,7 @@ namespace Js
         THROW_ERROR_DECL(ThrowURIError)
         THROW_ERROR_DECL(ThrowWebAssemblyCompileError)
         THROW_ERROR_DECL(ThrowWebAssemblyRuntimeError)
+        THROW_ERROR_DECL(ThrowWebAssemblyLinkError)
 
 #undef THROW_ERROR_DECL
         static void __declspec(noreturn) ThrowDispatchError(ScriptContext* scriptContext, HRESULT hCode, PCWSTR message);
@@ -155,11 +158,11 @@ namespace Js
 
     private:
 
-        BOOL isExternalError;
-        BOOL isPrototype;
-        bool isStackPropertyRedefined;
-        char16 const * originalRuntimeErrorMessage;
-        JavascriptExceptionObject *exceptionObject;
+        Field(BOOL) isExternalError;
+        Field(BOOL) isPrototype;
+        Field(bool) isStackPropertyRedefined;
+        Field(char16 const *) originalRuntimeErrorMessage;
+        Field(JavascriptExceptionObject *) exceptionObject;
 
 #ifdef ERROR_TRACE
         static void Trace(const char16 *form, ...) // const

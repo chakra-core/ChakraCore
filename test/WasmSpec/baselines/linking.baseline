@@ -1,5 +1,5 @@
-(10) linking.wast:28: assert_unlinkable module linking.3.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
-(11) linking.wast:32: assert_unlinkable module linking.4.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
-(63) linking.wast:160: assert_unlinkable module linking.10.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
-(85) linking.wast:233: assert_unlinkable module linking.15.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
-77/81 tests passed.
+(66) linking.wast:180: assert_trap($Mt.call(i32:7)) failed. Should have had an error
+(68) linking.wast:192: assert_trap($Mt.call(i32:7)) failed. Should have had an error
+(92) linking.wast:273: assert_return($Mm.load(i32:0) == i32:0) failed. Returned 97
+(94) linking.wast:285: assert_return($Mm.load(i32:0) == i32:0) failed. Returned 97
+85/89 tests passed.

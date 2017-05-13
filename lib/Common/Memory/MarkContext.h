@@ -109,6 +109,11 @@ private:
 
     void OnObjectMarked(void* object, void* parent);
 #endif
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+public:
+    void* parentRef;
+#endif
 };
 
 

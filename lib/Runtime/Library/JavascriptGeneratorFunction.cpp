@@ -6,8 +6,12 @@
 
 namespace Js
 {
-    FunctionInfo JavascriptGeneratorFunction::functionInfo(&JavascriptGeneratorFunction::EntryGeneratorFunctionImplementation, (FunctionInfo::Attributes)(FunctionInfo::DoNotProfile | FunctionInfo::ErrorOnNew));
-    FunctionInfo JavascriptAsyncFunction::functionInfo(&JavascriptGeneratorFunction::EntryAsyncFunctionImplementation, (FunctionInfo::Attributes)(FunctionInfo::DoNotProfile | FunctionInfo::ErrorOnNew));
+    FunctionInfo JavascriptGeneratorFunction::functionInfo(
+        FORCE_NO_WRITE_BARRIER_TAG(JavascriptGeneratorFunction::EntryGeneratorFunctionImplementation),
+        (FunctionInfo::Attributes)(FunctionInfo::DoNotProfile | FunctionInfo::ErrorOnNew));
+    FunctionInfo JavascriptAsyncFunction::functionInfo(
+        FORCE_NO_WRITE_BARRIER_TAG(JavascriptGeneratorFunction::EntryAsyncFunctionImplementation),
+        (FunctionInfo::Attributes)(FunctionInfo::DoNotProfile | FunctionInfo::ErrorOnNew));
 
     JavascriptGeneratorFunction::JavascriptGeneratorFunction(DynamicType* type)
         : ScriptFunctionBase(type, &functionInfo),
@@ -115,9 +119,9 @@ namespace Js
 
         // InterpreterStackFrame takes a pointer to the args, so copy them to the recycler heap
         // and use that buffer for this InterpreterStackFrame.
-        Var* argsHeapCopy = RecyclerNewArray(scriptContext->GetRecycler(), Var, stackArgs.Info.Count);
-        js_memcpy_s(argsHeapCopy, sizeof(Var) * stackArgs.Info.Count, stackArgs.Values, sizeof(Var) * stackArgs.Info.Count);
-        Arguments heapArgs(callInfo, argsHeapCopy);
+        Field(Var)* argsHeapCopy = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), stackArgs.Info.Count);
+        CopyArray(argsHeapCopy, stackArgs.Info.Count, stackArgs.Values, stackArgs.Info.Count);
+        Arguments heapArgs(callInfo, (Var*)argsHeapCopy);
 
         DynamicObject* prototype = scriptContext->GetLibrary()->CreateGeneratorConstructorPrototypeObject();
         JavascriptGenerator* generator = scriptContext->GetLibrary()->CreateGenerator(heapArgs, generatorFunction->scriptFunction, prototype);
@@ -140,9 +144,9 @@ namespace Js
 
         // InterpreterStackFrame takes a pointer to the args, so copy them to the recycler heap
         // and use that buffer for this InterpreterStackFrame.
-        Var* argsHeapCopy = RecyclerNewArray(scriptContext->GetRecycler(), Var, stackArgs.Info.Count);
-        js_memcpy_s(argsHeapCopy, sizeof(Var) * stackArgs.Info.Count, stackArgs.Values, sizeof(Var) * stackArgs.Info.Count);
-        Arguments heapArgs(callInfo, argsHeapCopy);
+        Field(Var)* argsHeapCopy = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), stackArgs.Info.Count);
+        CopyArray(argsHeapCopy, stackArgs.Info.Count, stackArgs.Values, stackArgs.Info.Count);
+        Arguments heapArgs(callInfo, (Var*)argsHeapCopy);
 
         JavascriptExceptionObject* e = nullptr;
         JavascriptPromiseResolveOrRejectFunction* resolve;

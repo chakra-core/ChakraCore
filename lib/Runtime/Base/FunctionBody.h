@@ -84,9 +84,9 @@ namespace Js
         friend class PropertyGuardValidator;
 
     private:
-        intptr_t value; // value is address of Js::Type
+        Field(intptr_t) value; // value is address of Js::Type
 #if DBG
-        bool wasReincarnated = false;
+        Field(bool) wasReincarnated = false;
 #endif
     public:
         static PropertyGuard* New(Recycler* recycler) { return RecyclerNewLeaf(recycler, Js::PropertyGuard); }
@@ -276,7 +276,7 @@ namespace Js
     class PolymorphicCacheUtilizationArray
     {
     private:
-        byte *utilArray;
+        Field(byte *) utilArray;
 
     public:
         PolymorphicCacheUtilizationArray()
@@ -292,9 +292,9 @@ namespace Js
     class PolymorphicInlineCacheInfo sealed
     {
     private:
-        InlineCachePointerArray<PolymorphicInlineCache> polymorphicInlineCaches;
-        PolymorphicCacheUtilizationArray polymorphicCacheUtilizationArray;
-        FunctionBody * functionBody;
+        Field(InlineCachePointerArray<PolymorphicInlineCache>) polymorphicInlineCaches;
+        Field(PolymorphicCacheUtilizationArray) polymorphicCacheUtilizationArray;
+        Field(FunctionBody *) functionBody;
 
     public:
         PolymorphicInlineCacheInfo(FunctionBody * functionBody)
@@ -311,8 +311,10 @@ namespace Js
     class EntryPointPolymorphicInlineCacheInfo sealed
     {
     private:
-        PolymorphicInlineCacheInfo selfInfo;
-        SListCounted<PolymorphicInlineCacheInfo*, Recycler> inlineeInfo;
+        Field(PolymorphicInlineCacheInfo) selfInfo;
+
+        typedef SListCounted<PolymorphicInlineCacheInfo*, Recycler> PolymorphicInlineCacheInfoListType;
+        Field(PolymorphicInlineCacheInfoListType) inlineeInfo;
 
         static void SetPolymorphicInlineCache(PolymorphicInlineCacheInfo * polymorphicInlineCacheInfo, FunctionBody * functionBody, uint index, PolymorphicInlineCache * polymorphicInlineCache, byte polyCacheUtil);
 
@@ -341,21 +343,21 @@ namespace Js
 #ifdef FIELD_ACCESS_STATS
     struct FieldAccessStats
     {
-        uint totalInlineCacheCount;
-        uint noInfoInlineCacheCount;
-        uint monoInlineCacheCount;
-        uint emptyMonoInlineCacheCount;
-        uint polyInlineCacheCount;
-        uint nullPolyInlineCacheCount;
-        uint emptyPolyInlineCacheCount;
-        uint ignoredPolyInlineCacheCount;
-        uint highUtilPolyInlineCacheCount;
-        uint lowUtilPolyInlineCacheCount;
-        uint equivPolyInlineCacheCount;
-        uint nonEquivPolyInlineCacheCount;
-        uint disabledPolyInlineCacheCount;
-        uint clonedMonoInlineCacheCount;
-        uint clonedPolyInlineCacheCount;
+        Field(uint) totalInlineCacheCount;
+        Field(uint) noInfoInlineCacheCount;
+        Field(uint) monoInlineCacheCount;
+        Field(uint) emptyMonoInlineCacheCount;
+        Field(uint) polyInlineCacheCount;
+        Field(uint) nullPolyInlineCacheCount;
+        Field(uint) emptyPolyInlineCacheCount;
+        Field(uint) ignoredPolyInlineCacheCount;
+        Field(uint) highUtilPolyInlineCacheCount;
+        Field(uint) lowUtilPolyInlineCacheCount;
+        Field(uint) equivPolyInlineCacheCount;
+        Field(uint) nonEquivPolyInlineCacheCount;
+        Field(uint) disabledPolyInlineCacheCount;
+        Field(uint) clonedMonoInlineCacheCount;
+        Field(uint) clonedPolyInlineCacheCount;
 
         FieldAccessStats() :
             totalInlineCacheCount(0), noInfoInlineCacheCount(0), monoInlineCacheCount(0), emptyMonoInlineCacheCount(0),
@@ -378,7 +380,7 @@ namespace Js
     public:
         // These are public because we don't manage them nor their consistency;
         // the user of this class does.
-        Js::JavascriptMethod jsMethod;
+        FieldNoBarrier(Js::JavascriptMethod) jsMethod;
 
         ProxyEntryPointInfo(Js::JavascriptMethod jsMethod, ThreadContext* context = nullptr):
             ExpirableObject(context),
@@ -402,14 +404,14 @@ namespace Js
 
     struct TypeGuardTransferData
     {
-        unsigned int propertyGuardCount;
-        TypeGuardTransferEntryIDL* entries;
+        Field(unsigned int) propertyGuardCount;
+        FieldNoBarrier(TypeGuardTransferEntryIDL*) entries;
     };
 
     struct CtorCacheTransferData
     {
-        unsigned int ctorCachesCount;
-        CtorCacheTransferEntryIDL ** entries;
+        Field(unsigned int) ctorCachesCount;
+        FieldNoBarrier(CtorCacheTransferEntryIDL **) entries;
     };
 
 
@@ -433,51 +435,51 @@ namespace Js
         };
 
         // The following fields are packed into a 32-bit/64-bit, and the tag to avoid fals positive.
-        const bool          tag : 1;
-        bool                isLoopBody : 1;
-        bool                hasJittedStackClosure : 1;
-        bool                isAsmJsFunction : 1; // true if entrypoint is for asmjs function
-        State               state; // Single state member so users can query state w/o a lock
+        Field(const bool)          tag : 1;
+        Field(bool)                isLoopBody : 1;
+        Field(bool)                hasJittedStackClosure : 1;
+        Field(bool)                isAsmJsFunction : 1; // true if entrypoint is for asmjs function
+        Field(State)               state; // Single state member so users can query state w/o a lock
 #if ENABLE_NATIVE_CODEGEN
-        BYTE                pendingInlinerVersion;
-        ImplicitCallFlags   pendingImplicitCallFlags;
-        uint32              pendingPolymorphicCacheState;
+        Field(BYTE)                pendingInlinerVersion;
+        Field(ImplicitCallFlags)   pendingImplicitCallFlags;
+        Field(uint32)              pendingPolymorphicCacheState;
 
         class JitTransferData
         {
             friend EntryPointInfo;
 
         private:
-            TypeRefSet* jitTimeTypeRefs;
+            Field(TypeRefSet*) jitTimeTypeRefs;
 
-            PinnedTypeRefsIDL* runtimeTypeRefs;
+            Field(PinnedTypeRefsIDL*) runtimeTypeRefs;
 
 
-            int propertyGuardCount;
+            Field(int) propertyGuardCount;
             // This is a dynamically sized array of dynamically sized TypeGuardTransferEntries.  It's heap allocated by the JIT
             // thread and lives until entry point is installed, at which point it is explicitly freed.
-            TypeGuardTransferEntry* propertyGuardsByPropertyId;
-            size_t propertyGuardsByPropertyIdPlusSize;
+            FieldNoBarrier(TypeGuardTransferEntry*) propertyGuardsByPropertyId;
+            Field(size_t) propertyGuardsByPropertyIdPlusSize;
 
             // This is a dynamically sized array of dynamically sized CtorCacheGuardTransferEntry.  It's heap allocated by the JIT
             // thread and lives until entry point is installed, at which point it is explicitly freed.
-            CtorCacheGuardTransferEntry* ctorCacheGuardsByPropertyId;
-            size_t ctorCacheGuardsByPropertyIdPlusSize;
+            FieldNoBarrier(CtorCacheGuardTransferEntry*) ctorCacheGuardsByPropertyId;
+            Field(size_t) ctorCacheGuardsByPropertyIdPlusSize;
 
-            int equivalentTypeGuardCount;
-            int lazyBailoutPropertyCount;
+            Field(int) equivalentTypeGuardCount;
+            Field(int) lazyBailoutPropertyCount;
             // This is a dynamically sized array of JitEquivalentTypeGuards. It's heap allocated by the JIT thread and lives
             // until entry point is installed, at which point it is explicitly freed. We need it during installation so as to
             // swap the cache associated with each guard from the heap to the recycler (so the types in the cache are kept alive).
-            JitEquivalentTypeGuard** equivalentTypeGuards;
-            Js::PropertyId* lazyBailoutProperties;
-            NativeCodeData* jitTransferRawData;
-            EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
-            TypeGuardTransferData typeGuardTransferData;
-            CtorCacheTransferData ctorCacheTransferData;
+            FieldNoBarrier(JitEquivalentTypeGuard**) equivalentTypeGuards;
+            FieldNoBarrier(Js::PropertyId*) lazyBailoutProperties;
+            FieldNoBarrier(NativeCodeData*) jitTransferRawData;
+            FieldNoBarrier(EquivalentTypeGuardOffsets*) equivalentTypeGuardOffsets;
+            Field(TypeGuardTransferData) typeGuardTransferData;
+            Field(CtorCacheTransferData) ctorCacheTransferData;
 
-            bool falseReferencePreventionBit;
-            bool isReady;
+            Field(bool) falseReferencePreventionBit;
+            Field(bool) isReady;
 
         public:
             JitTransferData():
@@ -526,73 +528,73 @@ namespace Js
             void EnsureJitTimeTypeRefs(Recycler* recycler);
         };
 
-        NativeCodeData * inProcJITNaticeCodedata;
-        char* nativeDataBuffer;
+        Field(NativeCodeData *) inProcJITNaticeCodedata;
+        FieldNoBarrier(char*) nativeDataBuffer;
         union
         {
-            Js::JavascriptNumber** numberArray;
-            CodeGenNumberChunk* numberChunks;
+            Field(Field(JavascriptNumber*)*) numberArray;
+            Field(CodeGenNumberChunk*) numberChunks;
         };
-        XProcNumberPageSegment* numberPageSegments;
+        Field(XProcNumberPageSegment*) numberPageSegments;
 
-        SmallSpanSequence *nativeThrowSpanSequence;
+        FieldNoBarrier(SmallSpanSequence *) nativeThrowSpanSequence;
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<FunctionBody>*, Recycler, PowerOf2SizePolicy> WeakFuncRefSet;
-        WeakFuncRefSet *weakFuncRefSet;
+        Field(WeakFuncRefSet *) weakFuncRefSet;
         // Need to keep strong references to the guards here so they don't get collected while the entry point is alive.
         typedef JsUtil::BaseDictionary<Js::PropertyId, PropertyGuard*, Recycler, PowerOf2SizePolicy> SharedPropertyGuardDictionary;
-        SharedPropertyGuardDictionary* sharedPropertyGuards;
+        Field(SharedPropertyGuardDictionary*) sharedPropertyGuards;
         typedef JsUtil::List<LazyBailOutRecord, HeapAllocator> BailOutRecordMap;
-        BailOutRecordMap* bailoutRecordMap;
+        Field(BailOutRecordMap*) bailoutRecordMap;
 
         // This array holds fake weak references to type property guards. We need it to zero out the weak references when the
         // entry point is finalized and the guards are about to be freed. Otherwise, if one of the guards was to be invalidated
         // from the thread context, we would AV trying to access freed memory. Note that the guards themselves are allocated by
         // NativeCodeData::Allocator and are kept alive by the data field. The weak references are recycler allocated, and so
         // the array must be recycler allocated also, so that the recycler doesn't collect the weak references.
-        FakePropertyGuardWeakReference** propertyGuardWeakRefs;
-        EquivalentTypeCache* equivalentTypeCaches;
-        EntryPointInfo ** registeredEquivalentTypeCacheRef;
+        Field(Field(FakePropertyGuardWeakReference*)*) propertyGuardWeakRefs;
+        Field(EquivalentTypeCache*) equivalentTypeCaches;
+        Field(EntryPointInfo **) registeredEquivalentTypeCacheRef;
 
-        int propertyGuardCount;
-        int equivalentTypeCacheCount;
+        Field(int) propertyGuardCount;
+        Field(int) equivalentTypeCacheCount;
 
-        uint inlineeFrameOffsetArrayOffset;
-        uint inlineeFrameOffsetArrayCount;
+        Field(uint) inlineeFrameOffsetArrayOffset;
+        Field(uint) inlineeFrameOffsetArrayCount;
 
         typedef SListCounted<ConstructorCache*, Recycler> ConstructorCacheList;
-        ConstructorCacheList* constructorCaches;
+        Field(ConstructorCacheList*) constructorCaches;
 
-        EntryPointPolymorphicInlineCacheInfo * polymorphicInlineCacheInfo;
+        Field(EntryPointPolymorphicInlineCacheInfo *) polymorphicInlineCacheInfo;
 
         // This field holds any recycler allocated references that must be kept alive until
         // we install the entry point.  It is freed at that point, so anything that must survive
         // until the EntryPointInfo itself goes away, must be copied somewhere else.
-        JitTransferData* jitTransferData;
+        Field(JitTransferData*) jitTransferData;
 
         // If we pin types this array contains strong references to types, otherwise it holds weak references.
-        void **runtimeTypeRefs;
+        Field(Field(void*)*) runtimeTypeRefs;
      protected:
 #if PDATA_ENABLED
-        XDataAllocation * xdataInfo;
+        Field(XDataAllocation *) xdataInfo;
 #endif
 #endif // ENABLE_NATIVE_CODEGEN
 
-        CodeGenWorkItem * workItem;
-        Js::JavascriptMethod nativeAddress;
-        ptrdiff_t codeSize;
+        Field(CodeGenWorkItem *) workItem;
+        FieldNoBarrier(Js::JavascriptMethod) nativeAddress;
+        Field(ptrdiff_t) codeSize;
 
     protected:
-        JavascriptLibrary* library;
+        Field(JavascriptLibrary*) library;
 #if ENABLE_NATIVE_CODEGEN
         typedef JsUtil::List<NativeOffsetInlineeFramePair, HeapAllocator> InlineeFrameMap;
-        InlineeFrameMap*   inlineeFrameMap;
+        Field(InlineeFrameMap*)   inlineeFrameMap;
 #endif
 #if ENABLE_DEBUG_STACK_BACK_TRACE
-        StackBackTrace*    cleanupStack;
+        FieldNoBarrier(StackBackTrace*) cleanupStack;  // NoCheckHeapAllocator
 #endif
     public:
-        uint frameHeight;
-        bool nativeEntryPointProcessed;
+        Field(uint) frameHeight;
+        Field(bool) nativeEntryPointProcessed;
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     public:
@@ -608,12 +610,12 @@ namespace Js
             CleanUpForFinalize
         };
     private:
-        CleanupReason cleanupReason;
+        Field(CleanupReason) cleanupReason;
 #endif
 
 #ifdef FIELD_ACCESS_STATS
     private:
-        FieldAccessStatsPtr fieldAccessStats;
+        Field(FieldAccessStatsPtr) fieldAccessStats;
 #endif
 
     public:
@@ -629,7 +631,7 @@ namespace Js
             Assert(numberPageSegments == nullptr);
             numberChunks = chunks;
         }
-        void SetNumberArray(Js::JavascriptNumber** array)
+        void SetNumberArray(Field(Js::JavascriptNumber*)* array)
         {
             Assert(numberPageSegments != nullptr);
             numberArray = array;
@@ -994,68 +996,69 @@ namespace Js
         void DoLazyBailout(BYTE** addressOfReturnAddress, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord);
 #endif
 #if DBG_DUMP
-     public:
+    public:
 #elif defined(VTUNE_PROFILING)
-     private:
+    private:
 #endif
 #if DBG_DUMP || defined(VTUNE_PROFILING)
-         // NativeOffsetMap is public for DBG_DUMP, private for VTUNE_PROFILING
-         struct NativeOffsetMap
-         {
+        // NativeOffsetMap is public for DBG_DUMP, private for VTUNE_PROFILING
+        struct NativeOffsetMap
+        {
             uint32 statementIndex;
             regex::Interval nativeOffsetSpan;
-         };
+        };
 
-     private:
-         JsUtil::List<NativeOffsetMap, HeapAllocator> nativeOffsetMaps;
-     public:
-         void RecordNativeMap(uint32 offset, uint32 statementIndex);
+    private:
+        typedef JsUtil::List<NativeOffsetMap, HeapAllocator> NativeOffsetMapListType;
+        Field(NativeOffsetMapListType) nativeOffsetMaps;
+    public:
+        void RecordNativeMap(uint32 offset, uint32 statementIndex);
 
-         int GetNativeOffsetMapCount() const;
+        int GetNativeOffsetMapCount() const;
 #endif
 
 #if DBG_DUMP && ENABLE_NATIVE_CODEGEN
-         void DumpNativeOffsetMaps();
-         void DumpNativeThrowSpanSequence();
-         NativeOffsetMap* GetNativeOffsetMap(int index)
-         {
+        void DumpNativeOffsetMaps();
+        void DumpNativeThrowSpanSequence();
+        NativeOffsetMap* GetNativeOffsetMap(int index)
+        {
              Assert(index >= 0);
              Assert(index < GetNativeOffsetMapCount());
 
              return &nativeOffsetMaps.Item(index);
-         }
+        }
 #endif
 
 #ifdef VTUNE_PROFILING
 
-     public:
-         uint PopulateLineInfo(void* pLineInfo, FunctionBody* body);
+    public:
+        uint PopulateLineInfo(void* pLineInfo, FunctionBody* body);
 
 #endif
 
     protected:
-        void* validationCookie;
+        Field(void*) validationCookie;
     };
 
     class FunctionEntryPointInfo : public EntryPointInfo
     {
     public:
-        FunctionProxy * functionProxy;
-        FunctionEntryPointInfo* nextEntryPoint;
+        Field(FunctionProxy *) functionProxy;
+        Field(FunctionEntryPointInfo*) nextEntryPoint;
 
         // The offset on the native stack, from which the locals are located (Populated at RegAlloc phase). Used for debug purpose.
-        int32 localVarSlotsOffset;
+        Field(int32) localVarSlotsOffset;
         // The offset which stores that any of the locals are changed from the debugger.
-        int32 localVarChangedOffset;
-        uint entryPointIndex;
+        Field(int32) localVarChangedOffset;
+        Field(uint) entryPointIndex;
 
-        uint32 callsCount;
-        uint32 lastCallsCount;
+        Field(uint32) callsCount;
+        Field(uint32) lastCallsCount;
 
     private:
-        ExecutionMode jitMode;
-        FunctionEntryPointInfo* mOldFunctionEntryPointInfo; // strong ref to oldEntryPointInfo(Int or TJ) in asm to ensure we don't collect it before JIT is completed
-        bool       mIsTemplatizedJitMode; // true only if in TJ mode, used only for debugging
+        Field(ExecutionMode) jitMode;
+        Field(FunctionEntryPointInfo*) mOldFunctionEntryPointInfo; // strong ref to oldEntryPointInfo(Int or TJ) in asm to ensure we don't collect it before JIT is completed
+        Field(bool)       mIsTemplatizedJitMode; // true only if in TJ mode, used only for debugging
     public:
         FunctionEntryPointInfo(FunctionProxy * functionInfo, Js::JavascriptMethod method, ThreadContext* context, void* validationCookie);
 
@@ -1100,9 +1103,9 @@ namespace Js
     class LoopEntryPointInfo : public EntryPointInfo
     {
     public:
-        LoopHeader* loopHeader;
-        uint jittedLoopIterationsSinceLastBailout; // number of times the loop iterated in the jitted code before bailing out
-        uint totalJittedLoopIterations; // total number of times the loop has iterated in the jitted code for this entry point for a particular invocation of the loop
+        Field(LoopHeader*) loopHeader;
+        Field(uint) jittedLoopIterationsSinceLastBailout; // number of times the loop iterated in the jitted code before bailing out
+        Field(uint) totalJittedLoopIterations; // total number of times the loop has iterated in the jitted code for this entry point for a particular invocation of the loop
         LoopEntryPointInfo(LoopHeader* loopHeader, Js::JavascriptLibrary* library, void* validationCookie) :
             EntryPointInfo(nullptr, library, validationCookie, /*threadContext*/ nullptr, /*isLoopBody*/ true),
             loopHeader(loopHeader),
@@ -1156,9 +1159,9 @@ namespace Js
 #endif
     private:
 #ifdef BGJIT_STATS
-        bool used;
+        Field(bool) used;
 #endif
-        bool       mIsTemplatizedJitMode;
+        Field(bool)       mIsTemplatizedJitMode;
     };
 
     typedef RecyclerWeakReference<FunctionEntryPointInfo> FunctionEntryPointWeakRef;
@@ -1171,19 +1174,19 @@ namespace Js
     struct LoopHeader
     {
     private:
-        LoopEntryPointList* entryPoints;
+        Field(LoopEntryPointList*) entryPoints;
 
     public:
-        uint startOffset;
-        uint endOffset;
-        uint interpretCount;
-        uint profiledLoopCounter;
-        bool isNested;
-        bool isInTry;
-        FunctionBody * functionBody;
+        Field(uint) startOffset;
+        Field(uint) endOffset;
+        Field(uint) interpretCount;
+        Field(uint) profiledLoopCounter;
+        Field(bool) isNested;
+        Field(bool) isInTry;
+        Field(FunctionBody *) functionBody;
 
 #if DBG_DUMP
-        uint nativeCount;
+        Field(uint) nativeCount;
 #endif
         static const uint NoLoop = (uint)-1;
 
@@ -1268,7 +1271,7 @@ namespace Js
         template <class DebugSite, class Fn>
         HRESULT MapEntryPoints(DebugSite site, Fn fn) const // external debugging version
         {
-            return Map(site, this->entryPoints, [&](int index, LoopEntryPointInfo * entryPoint)
+            return Map(site, PointerValue(this->entryPoints), [&](int index, LoopEntryPointInfo * entryPoint)
             {
                 if (entryPoint != nullptr)
                 {
@@ -1295,10 +1298,14 @@ namespace Js
 
     };
 
+    // ----------------------------------------------------------------------------
+    // SWB-TODO: Below explicitly uses write barrier. Move top code to new header file.
+    //
+
     class FunctionProxy;
 
-    typedef FunctionInfo** FunctionInfoArray;
-    typedef FunctionInfo** FunctionInfoPtrPtr;
+    typedef FieldWithBarrier(FunctionInfo*)* FunctionInfoArray;
+    typedef FieldWithBarrier(FunctionInfo*)* FunctionInfoPtrPtr;
 
     //
     // FunctionProxy represents a user defined function
@@ -1349,12 +1356,12 @@ namespace Js
 
         typedef AuxPtrs<FunctionProxy, AuxPointerType> AuxPtrsT;
         friend AuxPtrsT;
-        WriteBarrierPtr<AuxPtrsT> auxPtrs;
+        FieldWithBarrier(AuxPtrsT*) auxPtrs;
         void* GetAuxPtr(AuxPointerType e) const;
         void* GetAuxPtrWithLock(AuxPointerType e) const;
         void SetAuxPtr(AuxPointerType e, void* ptr);
 
-        FunctionInfo *functionInfo;
+        FieldWithBarrier(FunctionInfo *) functionInfo;
 
     public:
         enum SetDisplayNameFlags
@@ -1384,7 +1391,7 @@ namespace Js
         void SetLocalFunctionId(LocalFunctionId functionId);
 
         ParseableFunctionInfo* GetParseableFunctionInfo() const;
-        ParseableFunctionInfo** GetParseableFunctionInfoRef() const;
+        void SetParseableFunctionInfo(ParseableFunctionInfo* func);
         DeferDeserializeFunctionInfo* GetDeferDeserializeFunctionInfo() const;
         FunctionBody * GetFunctionBody() const;
 
@@ -1453,7 +1460,7 @@ namespace Js
         template <typename Fn>
         void MapFunctionObjectTypes(Fn func);
 
-        static uint GetOffsetOfDeferredPrototypeType() { return offsetof(Js::FunctionProxy, deferredPrototypeType); }
+        static uint GetOffsetOfDeferredPrototypeType() { return static_cast<uint>(offsetof(Js::FunctionProxy, deferredPrototypeType)); }
         static Js::ScriptFunctionType * EnsureFunctionProxyDeferredPrototypeType(FunctionProxy * proxy)
         {
             return proxy->EnsureDeferredPrototypeType();
@@ -1480,6 +1487,8 @@ namespace Js
         // this is also now being used for function.name.
         const char16* GetShortDisplayName(charcount_t * shortNameLength);
 
+        bool GetDisplayNameIsRecyclerAllocated() { return m_displayNameIsRecyclerAllocated; }
+
         bool IsJitLoopBodyPhaseEnabled() const
         {
             // Consider: Allow JitLoopBody in generator functions for loops that do not yield.
@@ -1503,22 +1512,26 @@ namespace Js
 
     protected:
         // Static method(s)
-        static void SetDisplayName(const char16* srcName, WriteBarrierPtr<const char16>* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
+        static bool SetDisplayName(const char16* srcName, FieldWithBarrier(const char16*)* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
         static bool SetDisplayName(const char16* srcName, const char16** destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
         static bool IsConstantFunctionName(const char16* srcName);
 
     protected:
-        NoWriteBarrierPtr<ScriptContext>  m_scriptContext;   // Memory context for this function body
-        WriteBarrierPtr<Utf8SourceInfo> m_utf8SourceInfo;
-        // WriteBarrier-TODO: Consider changing this to NoWriteBarrierPtr, and skip tagging- also, tagging is likely unnecessary since that pointer in question is likely not resolvable
-        WriteBarrierPtr<ScriptFunctionType> deferredPrototypeType;
-        WriteBarrierPtr<ProxyEntryPointInfo> m_defaultEntryPointInfo; // The default entry point info for the function proxy
+        FieldNoBarrier(ScriptContext*) m_scriptContext;   // Memory context for this function body
+        FieldWithBarrier(Utf8SourceInfo*) m_utf8SourceInfo;
+        FieldWithBarrier(ScriptFunctionType*) deferredPrototypeType;
+        FieldWithBarrier(ProxyEntryPointInfo*) m_defaultEntryPointInfo; // The default entry point info for the function proxy
 
-        NoWriteBarrierField<uint> m_functionNumber;  // Per thread global function number
+        FieldWithBarrier(uint) m_functionNumber;  // Per thread global function number
 
-        bool m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
-        bool m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
-        bool m_canBeDeferred : 1;
+        FieldWithBarrier(bool) m_tag11 : 1;
+
+        FieldWithBarrier(bool) m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
+        FieldWithBarrier(bool) m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
+        FieldWithBarrier(bool) m_canBeDeferred : 1;
+        FieldWithBarrier(bool) m_displayNameIsRecyclerAllocated : 1;
+
+
         void CleanupFunctionProxyCounters()
         {
             PERF_COUNTER_DEC(Code, TotalFunction);
@@ -1671,11 +1684,11 @@ namespace Js
         GetFunctionInfo()->SetAttributes(attributes);
     }
 
-    inline ParseableFunctionInfo** FunctionProxy::GetParseableFunctionInfoRef() const
+    inline void FunctionProxy::SetParseableFunctionInfo(ParseableFunctionInfo* func)
     {
         Assert(GetFunctionInfo());
         Assert(GetFunctionInfo()->GetFunctionProxy() == this);
-        return GetFunctionInfo()->GetParseableFunctionInfoRef();
+        GetFunctionInfo()->SetParseableFunctionInfo(func);
     }
 
     inline bool FunctionProxy::IsLambda() const
@@ -1766,12 +1779,12 @@ namespace Js
         virtual uint GetShortDisplayNameOffset() const { return m_displayShortNameOffset; }
         LPCWSTR GetSourceInfo(int& lineNumber, int& columnNumber) const;
     private:
-        const byte* m_functionBytes;
-        ByteCodeCache* m_cache;
-        const char16 * m_displayName;  // Optional name
-        uint m_displayNameLength;
-        uint m_displayShortNameOffset;
-        NativeModule *m_nativeModule;
+        FieldWithBarrier(const byte*) m_functionBytes;
+        FieldWithBarrier(ByteCodeCache*) m_cache;
+        FieldWithBarrier(const char16 *) m_displayName;  // Optional name
+        FieldWithBarrier(uint) m_displayNameLength;
+        FieldWithBarrier(uint) m_displayShortNameOffset;
+        FieldWithBarrier(NativeModule *) m_nativeModule;
     };
 
     class ParseableFunctionInfo: public FunctionProxy
@@ -1801,10 +1814,12 @@ namespace Js
     public:
         struct NestedArray
         {
-            NestedArray(uint32 count) :nestedCount(count) {}
-            uint32 nestedCount;
-            FunctionInfo* functionInfoArray[0];
+            NestedArray(uint32 count): nestedCount(count) {}
+
+            FieldWithBarrier(uint32) nestedCount;
+            FieldWithBarrier(FunctionInfo*) functionInfoArray[];
         };
+
         template<typename Fn>
         void ForEachNestedFunc(Fn fn)
         {
@@ -1980,6 +1995,8 @@ namespace Js
         void SetReparsed(bool set) { m_reparsed = set; }
         bool GetExternalDisplaySourceName(BSTR* sourceName);
 
+        bool EndsAfter(size_t offset) const;
+
         void SetDoBackendArgumentsOptimization(bool set)
         {
             m_doBackendArgumentsOptimization = set;
@@ -2083,60 +2100,66 @@ namespace Js
             }
         }
 
-        bool m_hasBeenParsed : 1;       // Has function body been parsed- true for actual function bodies, false for deferparse
-        bool m_isDeclaration : 1;
-        bool m_isAccessor : 1;          // Function is a property getter or setter
-        bool m_isStaticNameFunction : 1;
-        bool m_isNamedFunctionExpression : 1;
-        bool m_isNameIdentifierRef  : 1;
-        bool m_isClassMember : 1;
-        bool m_isStrictMode : 1;
-        bool m_isAsmjsMode : 1;
-        bool m_isAsmJsFunction : 1;
-        bool m_isWasmFunction : 1;
-        bool m_isGlobalFunc : 1;
-        bool m_doBackendArgumentsOptimization : 1;
-        bool m_doScopeObjectCreation : 1;
-        bool m_usesArgumentsObject : 1;
-        bool m_isEval : 1;              // Source code is in 'eval'
-        bool m_isDynamicFunction : 1;   // Source code is in 'Function'
-        bool m_hasImplicitArgIns : 1;
-        bool m_dontInline : 1;            // Used by the JIT's inliner
+        FieldWithBarrier(bool) m_tag21 : 1;
+        FieldWithBarrier(bool) m_hasBeenParsed : 1;       // Has function body been parsed- true for actual function bodies, false for deferparse
+        FieldWithBarrier(bool) m_isDeclaration : 1;
+        FieldWithBarrier(bool) m_isAccessor : 1;          // Function is a property getter or setter
+        FieldWithBarrier(bool) m_isStaticNameFunction : 1;
+        FieldWithBarrier(bool) m_isNamedFunctionExpression : 1;
+        FieldWithBarrier(bool) m_isNameIdentifierRef  : 1;
+        FieldWithBarrier(bool) m_isClassMember : 1;
+        // 8 bits from last tag
+
+        FieldWithBarrier(bool) m_isStrictMode : 1;
+        FieldWithBarrier(bool) m_isAsmjsMode : 1;
+        FieldWithBarrier(bool) m_isAsmJsFunction : 1;
+        FieldWithBarrier(bool) m_isWasmFunction : 1;
+        FieldWithBarrier(bool) m_isGlobalFunc : 1;
+        FieldWithBarrier(bool) m_doBackendArgumentsOptimization : 1;
+        FieldWithBarrier(bool) m_doScopeObjectCreation : 1;
+        FieldWithBarrier(bool) m_usesArgumentsObject : 1;
+        // 16 bits from last tag
+
+        FieldWithBarrier(bool) m_isEval : 1;              // Source code is in 'eval'
+        FieldWithBarrier(bool) m_isDynamicFunction : 1;   // Source code is in 'Function'
+        FieldWithBarrier(bool) m_hasImplicitArgIns : 1;
+        FieldWithBarrier(bool) m_dontInline : 1;            // Used by the JIT's inliner
 
         // Indicates if the function has been reparsed for debug attach/detach scenario.
-        bool m_reparsed : 1;
+        FieldWithBarrier(bool) m_reparsed : 1;
 
         // This field is not required for deferred parsing but because our thunks can't handle offsets > 128 bytes
         // yet, leaving this here for now. We can look at optimizing the function info and function proxy structures some
         // more and also fix our thunks to handle 8 bit offsets
 
-        NoWriteBarrierField<bool> m_utf8SourceHasBeenSet;          // start of UTF8-encoded source
-        NoWriteBarrierField<uint> m_sourceIndex;             // index into the scriptContext's list of saved sources
+        FieldWithBarrier(bool) m_utf8SourceHasBeenSet;          // start of UTF8-encoded source
+        FieldWithBarrier(uint) m_sourceIndex;             // index into the scriptContext's list of saved sources
 #if DYNAMIC_INTERPRETER_THUNK
-        void* m_dynamicInterpreterThunk;  // Unique 'thunk' for every interpreted function - used for ETW symbol decoding.
+        FieldNoBarrier(void*) m_dynamicInterpreterThunk;  // Unique 'thunk' for every interpreted function - used for ETW symbol decoding.
 #endif
-        NoWriteBarrierField<uint> m_cbStartOffset;         // pUtf8Source is this many bytes from the start of the scriptContext's source buffer.
+        FieldWithBarrier(uint) m_cbStartOffset;         // pUtf8Source is this many bytes from the start of the scriptContext's source buffer.
 
         // This is generally the same as m_cchStartOffset unless the buffer has a BOM
 
 #define DEFINE_PARSEABLE_FUNCTION_INFO_FIELDS 1
+#define DECLARE_TAG_FIELD(type, name, serializableType) Field(type) name
 #define CURRENT_ACCESS_MODIFIER protected:
 #include "SerializableFunctionFields.h"
 
-        ULONG m_lineNumber;
-        ULONG m_columnNumber;
-        WriteBarrierPtr<const char16> m_displayName;  // Optional name
-        uint m_displayNameLength;
-        WriteBarrierPtr<PropertyRecordList> m_boundPropertyRecords;
-        WriteBarrierPtr<NestedArray> nestedArray;
+        FieldWithBarrier(ULONG) m_lineNumber;
+        FieldWithBarrier(ULONG) m_columnNumber;
+        FieldWithBarrier(const char16*) m_displayName;  // Optional name
+        FieldWithBarrier(uint) m_displayNameLength;
+        FieldWithBarrier(PropertyRecordList*) m_boundPropertyRecords;
+        FieldWithBarrier(NestedArray*) nestedArray;
 
     public:
 #if DBG
-        bool m_wasEverAsmjsMode; // has m_isAsmjsMode ever been true
-        NoWriteBarrierField<Js::LocalFunctionId> deferredParseNextFunctionId;
+        FieldWithBarrier(bool) m_wasEverAsmjsMode; // has m_isAsmjsMode ever been true
+        FieldWithBarrier(Js::LocalFunctionId) deferredParseNextFunctionId;
 #endif
 #if DBG
-        NoWriteBarrierField<UINT> scopeObjectSize; // If the scope is an activation object - its size
+        FieldWithBarrier(UINT) scopeObjectSize; // If the scope is an activation object - its size
 #endif
     };
 
@@ -2225,7 +2248,7 @@ namespace Js
             };
 
             typedef CompactCounters<FunctionBody> CounterT;
-            CounterT counters;
+            FieldWithBarrier(CounterT) counters;
 
             uint32 GetCountField(FunctionBody::CounterFields fieldEnum) const
             {
@@ -2249,9 +2272,9 @@ namespace Js
                     return RecyclerNew(recycler, StatementMap);
                 }
 
-                regex::Interval sourceSpan;
-                regex::Interval byteCodeSpan;
-                bool isSubexpression;
+                FieldWithBarrier(regex::Interval) sourceSpan;
+                FieldWithBarrier(regex::Interval) byteCodeSpan;
+                FieldWithBarrier(bool) isSubexpression;
             };
 
             // The type of StatementAdjustmentRecord.
@@ -2326,10 +2349,10 @@ namespace Js
             {
                 // Contains statement adjustment data:
                 // For given bytecode, following statement needs an adjustment, see StatementAdjustmentType for details.
-                StatementAdjustmentRecordList* m_statementAdjustmentRecords;
+                FieldWithBarrier(StatementAdjustmentRecordList*) m_statementAdjustmentRecords;
 
                 // Contain data about entry/exit of blocks that cause processing in different interpreter stack frame, such as try or catch.
-                CrossFrameEntryExitRecordList* m_crossFrameBlockEntryExisRecords;
+                FieldWithBarrier(CrossFrameEntryExitRecordList*) m_crossFrameBlockEntryExisRecords;
 
                 AuxStatementData();
             };
@@ -2341,16 +2364,16 @@ namespace Js
                 friend class ByteCodeBufferBuilder;
 
             public:
-                SmallSpanSequence * pSpanSequence;
+                FieldNoBarrier(SmallSpanSequence*) pSpanSequence;
 
-                RegSlot         frameDisplayRegister;   // this register slot cannot be 0 so we use that sentinel value to indicate invalid
-                RegSlot         objectRegister;         // this register slot cannot be 0 so we use that sentinel value to indicate invalid
-                WriteBarrierPtr<ScopeObjectChain> pScopeObjectChain;
-                WriteBarrierPtr<ByteBlock> m_probeBackingBlock; // NULL if no Probes, otherwise a copy of the unmodified the byte-codeblock //Delay
-                int32 m_probeCount;             // The number of installed probes (such as breakpoints).
+                FieldWithBarrier(RegSlot)         frameDisplayRegister;   // this register slot cannot be 0 so we use that sentinel value to indicate invalid
+                FieldWithBarrier(RegSlot)         objectRegister;         // this register slot cannot be 0 so we use that sentinel value to indicate invalid
+                FieldWithBarrier(ScopeObjectChain*) pScopeObjectChain;
+                FieldWithBarrier(ByteBlock*) m_probeBackingBlock;  // NULL if no Probes, otherwise a copy of the unmodified the byte-codeblock //Delay
+                FieldWithBarrier(int32) m_probeCount;             // The number of installed probes (such as breakpoints).
 
                 // List of bytecode offset for the Branch bytecode.
-                WriteBarrierPtr<AuxStatementData> m_auxStatementData;
+                FieldWithBarrier(AuxStatementData*) m_auxStatementData;
 
                 SourceInfo():
                     frameDisplayRegister(0),
@@ -2365,18 +2388,18 @@ namespace Js
             };
 
     private:
-        WriteBarrierPtr<ByteBlock> byteCodeBlock;               // Function byte-code for script functions
-        WriteBarrierPtr<FunctionEntryPointList> entryPoints;
-        WriteBarrierPtr<Var> m_constTable;
-        WriteBarrierPtr<void*> inlineCaches;
-        InlineCachePointerArray<PolymorphicInlineCache> polymorphicInlineCaches; // Contains the latest polymorphic inline caches
-        WriteBarrierPtr<PropertyId> cacheIdToPropertyIdMap;
+        FieldWithBarrier(ByteBlock*) byteCodeBlock;                // Function byte-code for script functions
+        FieldWithBarrier(FunctionEntryPointList*) entryPoints;
+        FieldWithBarrier(Field(Var)*) m_constTable;
+        FieldWithBarrier(void**) inlineCaches;
+        FieldWithBarrier(InlineCachePointerArray<PolymorphicInlineCache>) polymorphicInlineCaches; // Contains the latest polymorphic inline caches
+        FieldWithBarrier(PropertyId*) cacheIdToPropertyIdMap;
 
 #if DBG
 #define InlineCacheTypeNone         0x00
 #define InlineCacheTypeInlineCache  0x01
 #define InlineCacheTypeIsInst       0x02
-            WriteBarrierPtr<byte> m_inlineCacheTypes;
+            FieldWithBarrier(byte*) m_inlineCacheTypes;
 #endif
     public:
         PropertyId * GetCacheIdToPropertyIdMap()
@@ -2385,15 +2408,15 @@ namespace Js
         }
         static DWORD GetAsmJsTotalLoopCountOffset() { return offsetof(FunctionBody, m_asmJsTotalLoopCount); }
 #if DBG
-        int m_DEBUG_executionCount;     // Count of outstanding on InterpreterStackFrame
-        bool m_nativeEntryPointIsInterpreterThunk; // NativeEntry entry point is in fact InterpreterThunk.
+        FieldWithBarrier(int) m_DEBUG_executionCount;     // Count of outstanding on InterpreterStackFrame
+        FieldWithBarrier(bool) m_nativeEntryPointIsInterpreterThunk; // NativeEntry entry point is in fact InterpreterThunk.
                                                    // Set by bgjit in OutOfMemory scenario during codegen.
 #endif
 
 //#if ENABLE_DEBUG_CONFIG_OPTIONS //TODO: need this?
-        NoWriteBarrierField<uint> regAllocStoreCount;
-        NoWriteBarrierField<uint> regAllocLoadCount;
-        NoWriteBarrierField<uint> callCountStats;
+        FieldWithBarrier(uint) regAllocStoreCount;
+        FieldWithBarrier(uint) regAllocLoadCount;
+        FieldWithBarrier(uint) callCountStats;
 //#endif
 
         // >>>>>>WARNING! WARNING!<<<<<<<<<<
@@ -2401,12 +2424,12 @@ namespace Js
         // If you add compile-time attributes to this set, be sure to add them to the attributes that are
         // copied in FunctionBody::Clone
         //
-        SourceInfo m_sourceInfo; // position of the source
+        FieldWithBarrier(SourceInfo) m_sourceInfo; // position of the source
 
         // Data needed by profiler:
-        NoWriteBarrierField<uint> m_uScriptId; // Delay //Script Block it belongs to. This is function no. of the global function created by engine for each block
+        FieldWithBarrier(uint) m_uScriptId; // Delay //Script Block it belongs to. This is function no. of the global function created by engine for each block
 #if DBG
-        NoWriteBarrierField<int> m_iProfileSession; // Script profile session the meta data of this function is reported to.
+        FieldWithBarrier(int) m_iProfileSession; // Script profile session the meta data of this function is reported to.
 #endif // DEBUG
 
         // R0 is reserved for the return value, R1 for the root object
@@ -2417,106 +2440,116 @@ namespace Js
         static const int LocalsChangeDirtyValue = 1;
 
 #define DEFINE_FUNCTION_BODY_FIELDS 1
+#define DECLARE_TAG_FIELD(type, name, serializableType) Field(type) name
 #define CURRENT_ACCESS_MODIFIER public:
 #include "SerializableFunctionFields.h"
 
     private:
-        bool m_tag : 1;                     // Used to tag the low bit to prevent possible GC false references
-        bool m_nativeEntryPointUsed : 1;    // Code might have been generated but not yet used.
-        bool hasDoneLoopBodyCodeGen : 1;    // Code generated for loop body, but not necessary available to execute yet.
-        bool m_isFuncRegistered : 1;
-        bool m_isFuncRegisteredToDiag : 1; // Mentions the function's context is registered with diagprobe.
-        bool funcEscapes : 1;
-        bool m_hasBailoutInstrInJittedCode : 1; // Indicates whether function has bailout instructions. Valid only if hasDoneCodeGen is true
-        bool m_pendingLoopHeaderRelease : 1; // Indicates whether loop headers need to be released
-        bool hasExecutionDynamicProfileInfo : 1;
+        FieldWithBarrier(uint) inactiveCount;
 
-        bool cleanedUp: 1;
-        bool sourceInfoCleanedUp: 1;
-        bool dontRethunkAfterBailout : 1;
-        bool disableInlineApply : 1;
-        bool disableInlineSpread : 1;
-        bool hasHotLoop: 1;
-        bool wasCalledFromLoop : 1;
-        bool hasNestedLoop : 1;
-        bool recentlyBailedOutOfJittedLoopBody : 1;
-        bool m_firstFunctionObject: 1;
-        bool m_inlineCachesOnFunctionObject: 1;
+        // aligned with 8
+        FieldWithBarrier(bool) m_tag32 : 1;
+        FieldWithBarrier(bool) m_nativeEntryPointUsed : 1;    // Code might have been generated but not yet used.
+        FieldWithBarrier(bool) hasDoneLoopBodyCodeGen : 1;    // Code generated for loop body, but not necessary available to execute yet.
+        FieldWithBarrier(bool) m_isFuncRegistered : 1;
+        FieldWithBarrier(bool) m_isFuncRegisteredToDiag : 1; // Mentions the function's context is registered with diagprobe.
+        FieldWithBarrier(bool) funcEscapes : 1;
+        FieldWithBarrier(bool) m_hasBailoutInstrInJittedCode : 1; // Indicates whether function has bailout instructions. Valid only if hasDoneCodeGen is true
+        FieldWithBarrier(bool) m_pendingLoopHeaderRelease : 1; // Indicates whether loop headers need to be released
+        // 8 bits from last tag
+
+        FieldWithBarrier(bool) hasExecutionDynamicProfileInfo : 1;
+        FieldWithBarrier(bool) cleanedUp: 1;
+        FieldWithBarrier(bool) sourceInfoCleanedUp: 1;
+        FieldWithBarrier(bool) dontRethunkAfterBailout : 1;
+        FieldWithBarrier(bool) disableInlineApply : 1;
+        FieldWithBarrier(bool) disableInlineSpread : 1;
+        FieldWithBarrier(bool) hasHotLoop: 1;
+        FieldWithBarrier(bool) wasCalledFromLoop : 1;
+        // 16 bits from last tag
+
+        FieldWithBarrier(bool) hasNestedLoop : 1;
+        FieldWithBarrier(bool) recentlyBailedOutOfJittedLoopBody : 1;
+        FieldWithBarrier(bool) m_firstFunctionObject: 1;
+        FieldWithBarrier(bool) m_inlineCachesOnFunctionObject: 1;
         // Used for the debug re-parse. Saves state of function on the first parse, and restores it on a reparse. The state below is either dependent on
         // the state of the script context, or on other factors like whether it was defer parsed or not.
-        bool m_hasSetIsObject : 1;
+        FieldWithBarrier(bool) m_hasSetIsObject : 1;
         // Used for the debug purpose, this info will be stored (in the non-debug mode), when a function has all locals marked as non-local-referenced.
         // So when we got to no-refresh debug mode, and try to re-use the same function body we can then enforce all locals to be non-local-referenced.
-        bool m_hasAllNonLocalReferenced : 1;
-        bool m_hasFunExprNameReference : 1;
-        bool m_ChildCallsEval : 1;
-        bool m_CallsEval : 1;
-        bool m_hasReferenceableBuiltInArguments : 1;
-        bool m_isParamAndBodyScopeMerged : 1;
+        FieldWithBarrier(bool) m_hasAllNonLocalReferenced : 1;
+        FieldWithBarrier(bool) m_hasFunExprNameReference : 1;
+        FieldWithBarrier(bool) m_ChildCallsEval : 1;
+        // 24 bits from last tag
 
+        FieldWithBarrier(bool) m_CallsEval : 1;
+        FieldWithBarrier(bool) m_hasReferenceableBuiltInArguments : 1;
+        FieldWithBarrier(bool) m_isParamAndBodyScopeMerged : 1;
         // Used in the debug purpose. This is to avoid setting all locals to non-local-referenced, multiple times for each child function.
-        bool m_hasDoneAllNonLocalReferenced : 1;
-
+        FieldWithBarrier(bool) m_hasDoneAllNonLocalReferenced : 1;
         // Used by the script profiler, once the function compiled is sent this will be set to true.
-        bool m_hasFunctionCompiledSent : 1;
+        FieldWithBarrier(bool) m_hasFunctionCompiledSent : 1;
+        FieldWithBarrier(bool) m_isFromNativeCodeModule : 1;
+        FieldWithBarrier(bool) m_isPartialDeserializedFunction : 1;
+        FieldWithBarrier(bool) m_isAsmJsScheduledForFullJIT : 1;
+        // 32 bits from last tag
 
-        bool m_isFromNativeCodeModule : 1;
-        bool m_isPartialDeserializedFunction : 1;
-        bool m_isAsmJsScheduledForFullJIT : 1;
-        bool m_hasLocalClosureRegister : 1;
-        bool m_hasParamClosureRegister : 1;
-        bool m_hasLocalFrameDisplayRegister : 1;
-        bool m_hasEnvRegister : 1;
-        bool m_hasThisRegisterForEventHandler : 1;
-        bool m_hasFirstInnerScopeRegister : 1;
-        bool m_hasFuncExprScopeRegister : 1;
-        bool m_hasFirstTmpRegister : 1;
-        bool m_hasActiveReference : 1;
+        FieldWithBarrier(bool) m_tag33 : 1;
+        FieldWithBarrier(bool) m_hasLocalClosureRegister : 1;
+        FieldWithBarrier(bool) m_hasParamClosureRegister : 1;
+        FieldWithBarrier(bool) m_hasLocalFrameDisplayRegister : 1;
+        FieldWithBarrier(bool) m_hasEnvRegister : 1;
+        FieldWithBarrier(bool) m_hasThisRegisterForEventHandler : 1;
+        FieldWithBarrier(bool) m_hasFirstInnerScopeRegister : 1;
+        FieldWithBarrier(bool) m_hasFuncExprScopeRegister : 1;
+        // 8 bits from last tag
+
+        FieldWithBarrier(bool) m_hasFirstTmpRegister : 1;
+        FieldWithBarrier(bool) m_hasActiveReference : 1;
 #if DBG
-        bool m_isSerialized : 1;
+        FieldWithBarrier(bool) m_isSerialized : 1;
 #endif
 #ifdef PERF_COUNTERS
-        bool m_isDeserializedFunction : 1;
+        FieldWithBarrier(bool) m_isDeserializedFunction : 1;
 #endif
 #if DBG
         // Indicates that nested functions can be allocated on the stack (but may not be)
-        bool m_canDoStackNestedFunc : 1;
+        FieldWithBarrier(bool) m_canDoStackNestedFunc : 1;
 #endif
 
 #if DBG
-        bool initializedExecutionModeAndLimits : 1;
+        FieldWithBarrier(bool) initializedExecutionModeAndLimits : 1;
 #endif
 
 #ifdef IR_VIEWER
         // whether IR Dump is enabled for this function (used by parseIR)
-        bool m_isIRDumpEnabled : 1;
-        WriteBarrierPtr<Js::DynamicObject> m_irDumpBaseObject;
+        FieldWithBarrier(bool) m_isIRDumpEnabled : 1;
+        FieldWithBarrier(Js::DynamicObject*) m_irDumpBaseObject;
 #endif /* IR_VIEWER */
 
-        NoWriteBarrierField<uint8> bailOnMisingProfileCount;
-        NoWriteBarrierField<uint8> bailOnMisingProfileRejitCount;
+        FieldWithBarrier(uint8) bailOnMisingProfileCount;
+        FieldWithBarrier(uint8) bailOnMisingProfileRejitCount;
 
-        NoWriteBarrierField<byte> inlineDepth; // Used by inlining to avoid recursively inlining functions excessively
+        FieldWithBarrier(byte) inlineDepth; // Used by inlining to avoid recursively inlining functions excessively
 
-        NoWriteBarrierField<ExecutionMode> executionMode;
-        NoWriteBarrierField<uint16> interpreterLimit;
-        NoWriteBarrierField<uint16> autoProfilingInterpreter0Limit;
-        NoWriteBarrierField<uint16> profilingInterpreter0Limit;
-        NoWriteBarrierField<uint16> autoProfilingInterpreter1Limit;
-        NoWriteBarrierField<uint16> simpleJitLimit;
-        NoWriteBarrierField<uint16> profilingInterpreter1Limit;
-        NoWriteBarrierField<uint16> fullJitThreshold;
-        NoWriteBarrierField<uint16> fullJitRequeueThreshold;
-        NoWriteBarrierField<uint16> committedProfiledIterations;
+        FieldWithBarrier(ExecutionMode) executionMode;
+        FieldWithBarrier(uint16) interpreterLimit;
+        FieldWithBarrier(uint16) autoProfilingInterpreter0Limit;
+        FieldWithBarrier(uint16) profilingInterpreter0Limit;
+        FieldWithBarrier(uint16) autoProfilingInterpreter1Limit;
+        FieldWithBarrier(uint16) simpleJitLimit;
+        FieldWithBarrier(uint16) profilingInterpreter1Limit;
+        FieldWithBarrier(uint16) fullJitThreshold;
+        FieldWithBarrier(uint16) fullJitRequeueThreshold;
+        FieldWithBarrier(uint16) committedProfiledIterations;
 
-        NoWriteBarrierField<uint> m_depth; // Indicates how many times the function has been entered (so increases by one on each recursive call, decreases by one when we're done)
-        NoWriteBarrierField<uint> inactiveCount;
+        FieldWithBarrier(uint) m_depth; // Indicates how many times the function has been entered (so increases by one on each recursive call, decreases by one when we're done)
 
-        uint32 interpretedCount;
-        uint32 lastInterpretedCount;
-        uint32 loopInterpreterLimit;
-        uint32 debuggerScopeIndex;
-        uint32 savedPolymorphicCacheState;
+        FieldWithBarrier(uint32) interpretedCount;
+        FieldWithBarrier(uint32) lastInterpretedCount;
+        FieldWithBarrier(uint32) loopInterpreterLimit;
+        FieldWithBarrier(uint32) debuggerScopeIndex;
+        FieldWithBarrier(uint32) savedPolymorphicCacheState;
 
         // >>>>>>WARNING! WARNING!<<<<<<<<<<
         //
@@ -2524,22 +2557,22 @@ namespace Js
         // copied in FunctionBody::Clone
         //
 
-        NoWriteBarrierPtr<Js::ByteCodeCache> byteCodeCache;  // Not GC allocated so naked pointer
+        FieldNoBarrier(Js::ByteCodeCache*) byteCodeCache;   // Not GC allocated so naked pointer
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         static bool shareInlineCaches;
 #endif
-        WriteBarrierPtr<FunctionEntryPointInfo> defaultFunctionEntryPointInfo;
+        FieldWithBarrier(FunctionEntryPointInfo*) defaultFunctionEntryPointInfo;
 
 #if ENABLE_PROFILE_INFO
-        WriteBarrierPtr<DynamicProfileInfo> dynamicProfileInfo;
+        FieldWithBarrier(DynamicProfileInfo*) dynamicProfileInfo;
 #endif
 
 
         // select dynamic profile info saved off when we codegen and later
         // used for rejit decisions (see bailout.cpp)
-        NoWriteBarrierField<BYTE> savedInlinerVersion;
+        FieldWithBarrier(BYTE) savedInlinerVersion;
 #if ENABLE_NATIVE_CODEGEN
-        NoWriteBarrierField<ImplicitCallFlags> savedImplicitCallsFlags;
+        FieldWithBarrier(ImplicitCallFlags) savedImplicitCallsFlags;
 #endif
 
         FunctionBody(ScriptContext* scriptContext, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount, Utf8SourceInfo* sourceInfo,
@@ -2586,7 +2619,7 @@ namespace Js
 #endif
             );
 
-        static FunctionBody * NewFromParseableFunctionInfo(ParseableFunctionInfo * info);
+        static FunctionBody * NewFromParseableFunctionInfo(ParseableFunctionInfo * info, PropertyRecordList *boundPropertyRecords);
 
         FunctionEntryPointInfo * GetEntryPointInfo(int index) const;
         FunctionEntryPointInfo * TryGetEntryPointInfo(int index) const;
@@ -2596,7 +2629,7 @@ namespace Js
         bool IsActiveFunction(ActiveFunctionSet * pActiveFuncs) const;
         bool TestAndUpdateActiveFunctions(ActiveFunctionSet * pActiveFuncs) const;
         void UpdateActiveFunctionSet(ActiveFunctionSet * pActiveFuncs, FunctionCodeGenRuntimeData *callSiteData) const;
-        void UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *parentData, FunctionCodeGenRuntimeData **dataSet, uint count) const;
+        void UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *parentData, Field(FunctionCodeGenRuntimeData*)* dataSet, uint count) const;
         uint GetInactiveCount() const { return inactiveCount; }
         void SetInactiveCount(uint count) { inactiveCount = count; }
         void IncrInactiveCount(uint increment);
@@ -2888,8 +2921,6 @@ namespace Js
 
         bool HasGeneratedFromByteCodeCache() const { return this->byteCodeCache != nullptr; }
 
-        bool EndsAfter(size_t offset) const;
-
         void TrackLoad(int ichMin);
 
         SmallSpanSequence* GetStatementMapSpanSequence() const { return m_sourceInfo.pSpanSequence; }
@@ -2904,12 +2935,12 @@ namespace Js
         StatementMapList * GetStatementMaps() const { return static_cast<StatementMapList *>(this->GetAuxPtrWithLock(AuxPointerType::StatementMaps)); }
         void SetStatementMaps(StatementMapList *pStatementMaps) { this->SetAuxPtr(AuxPointerType::StatementMaps, pStatementMaps); }
 
-        FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::CodeGenGetSetRuntimeData)); }
-        FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeDataWithLock() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenGetSetRuntimeData)); }
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenGetSetRuntimeData() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtr(AuxPointerType::CodeGenGetSetRuntimeData)); }
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenGetSetRuntimeDataWithLock() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenGetSetRuntimeData)); }
         void SetCodeGenGetSetRuntimeData(FunctionCodeGenRuntimeData** codeGenGetSetRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenGetSetRuntimeData, codeGenGetSetRuntimeData); }
 
-        FunctionCodeGenRuntimeData ** GetCodeGenRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::CodeGenRuntimeData)); }
-        FunctionCodeGenRuntimeData ** GetCodeGenRuntimeDataWithLock() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenRuntimeData)); }
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenRuntimeData() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtr(AuxPointerType::CodeGenRuntimeData)); }
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenRuntimeDataWithLock() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenRuntimeData)); }
         void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenRuntimeData, codeGenRuntimeData); }
 
         template <typename TStatementMapList>
@@ -3006,7 +3037,7 @@ namespace Js
         bool IsSimpleJitOriginalEntryPoint() const;
 
 #if DYNAMIC_INTERPRETER_THUNK
-        static BYTE GetOffsetOfDynamicInterpreterThunk() { return offsetof(FunctionBody, m_dynamicInterpreterThunk); }
+        static BYTE GetOffsetOfDynamicInterpreterThunk() { return static_cast<BYTE>(offsetof(FunctionBody, m_dynamicInterpreterThunk)); }
         void* GetDynamicInterpreterEntryPoint() const
         {
             return m_dynamicInterpreterThunk;
@@ -3305,8 +3336,8 @@ namespace Js
         void RecordStrictNullDisplayConstant(RegSlot location);
         void InitConstantSlots(Var *dstSlots);
         Var GetConstantVar(RegSlot location);
-        Js::Var* GetConstTable() const { return this->m_constTable; }
-        void SetConstTable(Js::Var* constTable) { this->m_constTable = constTable; }
+        Field(Js::Var)* GetConstTable() const { return this->m_constTable; }
+        void SetConstTable(Field(Js::Var)* constTable) { this->m_constTable = constTable; }
 
         void MarkScript(ByteBlock * pblkByteCode, ByteBlock * pblkAuxiliaryData, ByteBlock* auxContextBlock,
             uint byteCodeCount, uint byteCodeInLoopCount, uint byteCodeWithoutLDACount);
@@ -3368,7 +3399,7 @@ namespace Js
 
         void ResetInlineCaches();
         PolymorphicInlineCache * CreatePolymorphicInlineCache(uint index, uint16 size);
-        uint32 m_asmJsTotalLoopCount;
+        FieldWithBarrier(uint32) m_asmJsTotalLoopCount;
     public:
         void CreateCacheIdToPropertyIdMap();
         void CreateCacheIdToPropertyIdMap(uint rootObjectLoadInlineCacheStart, uint rootObjectLoadMethodInlineCacheStart, uint rootObjectStoreInlineCacheStart,
@@ -3405,12 +3436,12 @@ namespace Js
     public:
         uint NewObjectLiteral();
         void AllocateObjectLiteralTypeArray();
-        DynamicType ** GetObjectLiteralTypeRef(uint index);
-        DynamicType ** GetObjectLiteralTypeRefWithLock(uint index);
+        Field(DynamicType*)* GetObjectLiteralTypeRef(uint index);
+        Field(DynamicType*)* GetObjectLiteralTypeRefWithLock(uint index);
         uint NewLiteralRegex();
         void AllocateLiteralRegexArray();
-        UnifiedRegex::RegexPattern **GetLiteralRegexes() const { return static_cast<UnifiedRegex::RegexPattern **>(this->GetAuxPtr(AuxPointerType::LiteralRegexes)); }
-        UnifiedRegex::RegexPattern **GetLiteralRegexesWithLock() const { return static_cast<UnifiedRegex::RegexPattern **>(this->GetAuxPtrWithLock(AuxPointerType::LiteralRegexes)); }
+        Field(UnifiedRegex::RegexPattern*)* GetLiteralRegexes() const { return static_cast<Field(UnifiedRegex::RegexPattern*)*>(this->GetAuxPtr(AuxPointerType::LiteralRegexes)); }
+        Field(UnifiedRegex::RegexPattern*)* GetLiteralRegexesWithLock() const { return static_cast<Field(UnifiedRegex::RegexPattern*)*>(this->GetAuxPtrWithLock(AuxPointerType::LiteralRegexes)); }
         void SetLiteralRegexs(UnifiedRegex::RegexPattern ** literalRegexes) { this->SetAuxPtr(AuxPointerType::LiteralRegexes, literalRegexes); }
         UnifiedRegex::RegexPattern *GetLiteralRegex(const uint index);
         UnifiedRegex::RegexPattern *GetLiteralRegexWithLock(const uint index);
@@ -3429,8 +3460,8 @@ namespace Js
         AsmJsModuleInfo* AllocateAsmJsModuleInfo();
 #endif
         void SetLiteralRegex(const uint index, UnifiedRegex::RegexPattern *const pattern);
-        DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
-        DynamicType** GetObjectLiteralTypesWithLock() const { return static_cast<DynamicType**>(this->GetAuxPtrWithLock(AuxPointerType::ObjLiteralTypes)); }
+        Field(DynamicType*)* GetObjectLiteralTypes() const { return static_cast<Field(DynamicType*)*>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
+        Field(DynamicType*)* GetObjectLiteralTypesWithLock() const { return static_cast<Field(DynamicType*)*>(this->GetAuxPtrWithLock(AuxPointerType::ObjLiteralTypes)); }
     private:
         void ResetLiteralRegexes();
         void ResetObjectLiteralTypes();
@@ -3718,7 +3749,7 @@ namespace Js
         static uint const ScopeMetadataSlotIndex = 1;    // Either a FunctionBody* or DebuggerScope*
         static uint const FirstSlotIndex = 2;
     public:
-        ScopeSlots(Var* slotArray) : slotArray(slotArray)
+        ScopeSlots(Var* slotArray) : slotArray((Field(Var)*)slotArray)
         {
         }
 
@@ -3730,13 +3761,13 @@ namespace Js
         FunctionInfo* GetFunctionInfo()
         {
             Assert(IsFunctionScopeSlotArray());
-            return (FunctionInfo*)(slotArray[ScopeMetadataSlotIndex]);
+            return (FunctionInfo*)PointerValue(slotArray[ScopeMetadataSlotIndex]);
         }
 
         DebuggerScope* GetDebuggerScope()
         {
             Assert(!IsFunctionScopeSlotArray());
-            return (DebuggerScope*)(slotArray[ScopeMetadataSlotIndex]);
+            return (DebuggerScope*)PointerValue(slotArray[ScopeMetadataSlotIndex]);
         }
 
         Var GetScopeMetadataRaw() const
@@ -3797,7 +3828,7 @@ namespace Js
         }
 
     private:
-        Var* slotArray;
+        Field(Field(Var)*) slotArray;
     };
 
 
@@ -3839,14 +3870,14 @@ namespace Js
         static ScopeType GetScopeType(void* scope);
 
     private:
-        bool tag;              // Tag it so that the NativeCodeGenerator::IsValidVar would not think this is var
-        bool strictMode;
-        uint16 length;
+        FieldWithBarrier(bool) tag;              // Tag it so that the NativeCodeGenerator::IsValidVar would not think this is var
+        FieldWithBarrier(bool) strictMode;
+        FieldWithBarrier(uint16) length;
 
 #if defined(_M_X64_OR_ARM64)
-        uint32 unused;
+        FieldWithBarrier(uint32) unused;
 #endif
-        void* scopes[];
+        FieldWithBarrier(void*) scopes[];
     };
 #pragma region Function Body helper classes
 #pragma region Debugging related source classes
@@ -3988,10 +4019,10 @@ namespace Js
     // and list of formals args if user has not used the arguments object in the script for the current function
     struct PropertyIdOnRegSlotsContainer
     {
-        PropertyId * propertyIdsForRegSlots;
-        uint length;
+        FieldWithBarrier(PropertyId *) propertyIdsForRegSlots;
+        FieldWithBarrier(uint) length;
 
-        PropertyIdArray * propertyIdsForFormalArgs;
+        FieldWithBarrier(PropertyIdArray *) propertyIdsForFormalArgs;
 
         PropertyIdOnRegSlotsContainer();
         static PropertyIdOnRegSlotsContainer * New(Recycler * recycler);
@@ -4122,9 +4153,9 @@ namespace Js
         // For with scope:  Has 1 property that represents the scoped object.
         // For catch scope: Has 1 property that represents the exception object.
         // For block scope: Has 0-n properties that represent let/const variables in that scope.
-        DebuggerScopePropertyList* scopeProperties;
-        DiagExtraScopesType scopeType; // The type of scope being represented (With, Catch, or Block scope).
-        DebuggerScope* siblingScope;  // Valid only when current scope is slot/activationobject and symbols are on direct regslot
+        FieldWithBarrier(DebuggerScopePropertyList*) scopeProperties;
+        FieldWithBarrier(DiagExtraScopesType) scopeType; // The type of scope being represented (With, Catch, or Block scope).
+        FieldWithBarrier(DebuggerScope*) siblingScope;  // Valid only when current scope is slot/activationobject and symbols are on direct regslot
         static const int InvalidScopeIndex = -1;
     private:
         int GetScopeDepth() const;
@@ -4132,10 +4163,10 @@ namespace Js
         void EnsurePropertyListIsAllocated();
 
     private:
-        DebuggerScope* parentScope;
-        regex::Interval range; // The start and end byte code writer offsets used when comparing where the debugger is currently stopped at (breakpoint location).
-        RegSlot scopeLocation;
-        Recycler* recycler;
+        FieldWithBarrier(DebuggerScope*) parentScope;
+        FieldWithBarrier(regex::Interval) range; // The start and end byte code writer offsets used when comparing where the debugger is currently stopped at (breakpoint location).
+        FieldWithBarrier(RegSlot) scopeLocation;
+        FieldWithBarrier(Recycler*) recycler;
     };
 
     class ScopeObjectChain
@@ -4157,7 +4188,7 @@ namespace Js
         bool TryGetDebuggerScopePropertyInfo(PropertyId propertyId, RegSlot location, int offset, bool* isPropertyInDebuggerScope, bool *isConst, bool* isInDeadZone);
 
         // List of all Scope Objects in a function. Scopes are added to this list as when they are created in bytecode gen part.
-        ScopeObjectChainList* pScopeChain;
+        FieldWithBarrier(ScopeObjectChainList*) pScopeChain;
     };
 #pragma endregion
 } // namespace Js
