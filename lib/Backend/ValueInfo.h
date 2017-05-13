@@ -55,6 +55,8 @@ public:
     {
         return JitAnew(alloc, ValueInfo, type, ValueStructureKind::Generic);
     }
+    static ValueInfo *      MergeLikelyIntValueInfo(JitArenaAllocator* alloc, Value *toDataVal, Value *fromDataVal, const ValueType newValueType);
+    static ValueInfo *      NewIntRangeValueInfo(JitArenaAllocator* alloc, int32 min, int32 max, bool wasNegativeZeroPreventedByBailout);
 
     const ValueType &       Type() const { return *this; }
     ValueType &             Type() { return *this; }

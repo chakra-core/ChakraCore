@@ -12,7 +12,7 @@ GlobOpt::CaptureCopyPropValue(BasicBlock * block, Sym * sym, Value * val, SListB
         return;
     }
 
-    StackSym * copyPropSym = this->GetCopyPropSym(block, sym, val);
+    StackSym * copyPropSym = block->globOptData.GetCopyPropSym(sym, val);
     if (copyPropSym != nullptr)
     {
         bailOutCopySymsIter.InsertNodeBefore(this->func->m_alloc, sym->AsStackSym(), copyPropSym);
@@ -174,7 +174,7 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
             {
                 if (!sym->AsStackSym()->HasArgSlotNum())
                 {
-                    val = FindValue(&this->currentBlock->globOptData, sym);
+                    val = this->currentBlock->globOptData.FindValue(sym);
                     if (val != nullptr)
                     {
                         CaptureCopyPropValue(block, sym, val, bailOutCopySymsIter);
@@ -196,7 +196,7 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
             if (symIdBucket != nullptr)
             {
                 Sym * symIdSym = symIdBucket->value;
-                val = FindValue(&this->currentBlock->globOptData, symIdSym);
+                val = this->currentBlock->globOptData.FindValue(symIdSym);
                 if (val != nullptr)
                 {
                     CaptureCopyPropValue(block, symIdSym, val, bailOutCopySymsIter);
@@ -741,9 +741,9 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
             {
                 if (PHASE_ON(Js::CopyPropPhase, func))
                 {
-                    Value* value = FindValue(&this->currentBlock->globOptData, argSym);
+                    Value* value = this->currentBlock->globOptData.FindValue(argSym);
 
-                    StackSym * copyPropSym = this->GetCopyPropSym(this->currentBlock, argSym, value);
+                    StackSym * copyPropSym = this->currentBlock->globOptData.GetCopyPropSym(argSym, value);
                     if (copyPropSym)
                     {
                         argSym = copyPropSym;
@@ -957,9 +957,9 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
                 else
                 {
                     sym = opnd->GetStackSym();
-                    Assert(FindValue(&this->currentBlock->globOptData, sym));
+                    Assert(this->currentBlock->globOptData.FindValue(sym));
                     // StackSym args need to be re-captured
-                    this->SetChangedSym(sym->m_id);
+                    this->currentBlock->globOptData.SetChangedSym(sym->m_id);
                 }
 
                 Assert(totalOutParamCount != 0);
