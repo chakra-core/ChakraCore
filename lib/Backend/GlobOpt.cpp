@@ -6601,6 +6601,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
             return opnd;
         }
 
+        Assert(this->func->GetJITFunctionBody()->IsWasmFunction());
         if (this->func->GetJITFunctionBody()->IsWasmFunction() && opnd->IsInt64())
         {
             IR::Int64ConstOpnd *intOpnd = IR::Int64ConstOpnd::New(int64ConstantValue, TyInt64, instr->m_func);
