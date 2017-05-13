@@ -8482,18 +8482,32 @@ void LowererMD::GenerateIsJsObjectTest(IR::RegOpnd* instanceReg, IR::Instr* inse
     insertInstr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JLE, labelHelper, this->m_func));
 }
 
-IR::Instr *
-LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
+void
+LowererMD::EmitReinterpretPrimitive(IR::Opnd* dst, IR::Opnd* src, IR::Instr* insertBeforeInstr)
 {
-    IR::Opnd* dst = instr->GetDst();
-    IR::Opnd* src = instr->GetSrc1();
-    if ((dst->IsInt64() && src->IsFloat64()) ||
-        (dst->IsFloat64() && src->IsInt64()))
+    Assert(dst && src);
+    Assert(dst->GetSize() == src->GetSize());
+    Assert(dst->GetType() != src->GetType());
+    if (
+        // Additional runtime check to prevent unknown behavior
+        (dst->GetSize() != src->GetSize()) ||
+        // There is nothing to do in this case
+        (dst->GetType() == src->GetType())
+    )
+    {
+        Lowerer::InsertMove(dst, src, insertBeforeInstr);
+        return;
+    }
+
+    auto LegalizeInsert = [insertBeforeInstr](IR::Instr* instr)
+    {
+        Legalize(instr);
+        insertBeforeInstr->InsertBefore(instr);
+    };
+    if (dst->GetSize() == 8)
     {
 #if _M_AMD64
-        instr->m_opcode = Js::OpCode::MOVQ;
-        Legalize(instr);
-        return instr;
+        LegalizeInsert(IR::Instr::New(Js::OpCode::MOVQ, dst, src, m_func));
 #elif _M_IX86
         if (dst->IsInt64())
         {
@@ -8506,13 +8520,10 @@ LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
 
             // shufps modifies the register, we shouldn't change the source here
             IR::RegOpnd* tmpDouble = IR::RegOpnd::New(TyFloat64, m_func);
-            this->CreateAssign(tmpDouble, src, instr);
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dstPair.low, tmpDouble, m_func));
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, tmpDouble, tmpDouble, IR::IntConstOpnd::New(1, TyInt8, m_func, true), m_func));
-            instr->m_opcode = Js::OpCode::MOVD;
-            instr->UnlinkDst();
-            instr->SetDst(dstPair.high);
-            instr->ReplaceSrc1(tmpDouble);
+            this->CreateAssign(tmpDouble, src, insertBeforeInstr);
+            LegalizeInsert(IR::Instr::New(Js::OpCode::MOVD, dstPair.low, tmpDouble, m_func));
+            LegalizeInsert(IR::Instr::New(Js::OpCode::SHUFPS, tmpDouble, tmpDouble, IR::IntConstOpnd::New(1, TyInt8, m_func, true), m_func));
+            LegalizeInsert(IR::Instr::New(Js::OpCode::MOVD, dstPair.high, tmpDouble, m_func));
         }
         else
         {
@@ -8521,23 +8532,40 @@ LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
             //    shufps xmm0, xmm1, (0 | 2 << 2 | 0 << 4 | 1 << 6);
             //    shufps xmm0, xmm0, (0 | 2 << 2 | 3 << 4 | 3 << 6);
             Assert(src->IsInt64());
+            Assert(dst->IsFloat64());
             Int64RegPair srcPair = m_lowerer->FindOrCreateInt64Pair(src);
 
             IR::RegOpnd* tmpDouble = IR::RegOpnd::New(TyFloat64, m_func);
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dst, srcPair.low, m_func));
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, tmpDouble, srcPair.high, m_func));
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, dst, tmpDouble, IR::IntConstOpnd::New((0 | 2 << 2 | 0 << 4 | 1 << 6), TyInt8, m_func, true), m_func));
-            instr->m_opcode = Js::OpCode::SHUFPS;
-            instr->ReplaceSrc1(dst);
-            instr->SetSrc2(IR::IntConstOpnd::New((0 | 2 << 2 | 3 << 4 | 3 << 6), TyInt8, m_func, true));
+            LegalizeInsert(IR::Instr::New(Js::OpCode::MOVD, dst, srcPair.low, m_func));
+            LegalizeInsert(IR::Instr::New(Js::OpCode::MOVD, tmpDouble, srcPair.high, m_func));
+            LegalizeInsert(IR::Instr::New(Js::OpCode::SHUFPS, dst, tmpDouble, IR::IntConstOpnd::New((0 | 2 << 2 | 0 << 4 | 1 << 6), TyInt8, m_func, true), m_func));
+            LegalizeInsert(IR::Instr::New(Js::OpCode::SHUFPS, dst, dst, IR::IntConstOpnd::New((0 | 2 << 2 | 3 << 4 | 3 << 6), TyInt8, m_func, true), m_func));
         }
-        return instr;
 #endif
+    }
+    else if (dst->GetSize() == 4)
+    {
+        // 32bit reinterprets
+        LegalizeInsert(IR::Instr::New(Js::OpCode::MOVD, dst, src, m_func));
+    }
+    else
+    {
+        Assert(UNREACHED);
+    }
 }
-    // 32bit reinterprets
-    instr->m_opcode = Js::OpCode::MOVD;
-    Legalize(instr);
-    return instr;
+
+void LowererMD::EmitReinterpretFloatToInt(IR::Opnd* dst, IR::Opnd* src, IR::Instr* insertBeforeInstr)
+{
+    Assert(dst->IsInt32() || dst->IsUInt32() || dst->IsInt64());
+    Assert(src->IsFloat());
+    EmitReinterpretPrimitive(dst, src, insertBeforeInstr);
+}
+
+void LowererMD::EmitReinterpretIntToFloat(IR::Opnd* dst, IR::Opnd* src, IR::Instr* insertBeforeInstr)
+{
+    Assert(dst->IsFloat());
+    Assert(src->IsInt32() || src->IsUInt32() || src->IsInt64());
+    EmitReinterpretPrimitive(dst, src, insertBeforeInstr);
 }
 
 IR::Instr *
@@ -9488,6 +9516,7 @@ void LowererMD::GenerateFastInlineBuiltInMathPow(IR::Instr* instr)
 IR::Instr *
 LowererMD::NegZeroBranching(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* isNeg0Label, IR::LabelInstr* isNotNeg0Label)
 {
+    Assert(opnd->IsFloat());
     bool is32Bits = opnd->IsFloat32();
     IRType regType = is32Bits ? TyUint32 : TyUint64;
 
@@ -9496,9 +9525,7 @@ LowererMD::NegZeroBranching(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* is
 
     // MOV intOpnd, src
     IR::RegOpnd *intOpnd = IR::RegOpnd::New(regType, this->m_func);
-    IR::Instr *mov = IR::Instr::New(Js::OpCode::Ld_A, intOpnd, opnd, this->m_func);
-    instr->InsertBefore(mov);
-    LowerReinterpretPrimitive(mov);
+    EmitReinterpretFloatToInt(intOpnd, opnd, instr);
 
 #if _M_IX86
     if (!is32Bits)
@@ -9521,16 +9548,16 @@ LowererMD::NegZeroBranching(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* is
 #endif
     {
 #if _M_IX86
-        IR::IntConstOpnd *negZeroOpnd = IR::IntConstOpnd::New(Js::NumberConstants::k_Float32NegZero, regType, this->m_func);
+        IR::IntConstOpnd *negZeroOpnd = IR::IntConstOpnd::New(Js::NumberConstants::k_Float32NegZero, regType, m_func);
 #else
-        IR::IntConstOpnd *negZeroOpnd = IR::IntConstOpnd::New(is32Bits ? Js::NumberConstants::k_Float32NegZero : Js::NumberConstants::k_NegZero, regType, this->m_func);
+        IR::IntConstOpnd *negZeroOpnd = IR::IntConstOpnd::New(is32Bits ? Js::NumberConstants::k_Float32NegZero : Js::NumberConstants::k_NegZero, regType, m_func);
 #endif
         // CMP intOpnd, k_NegZero
         // BREQ isNeg0Label
         // JMP isNotNeg0Label
         m_lowerer->InsertCompareBranch(intOpnd, negZeroOpnd, Js::OpCode::BrEq_A, isNeg0Label, instr);
     }
-    IR::Instr* jmpNotNegZero = IR::BranchInstr::New(Js::OpCode::JMP, isNotNeg0Label, instr->m_func);
+    IR::Instr* jmpNotNegZero = IR::BranchInstr::New(Js::OpCode::JMP, isNotNeg0Label, m_func);
     instr->InsertBefore(jmpNotNegZero);
     return jmpNotNegZero;
 }
