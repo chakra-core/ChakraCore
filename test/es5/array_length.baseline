@@ -90,7 +90,7 @@ TypeError : Cannot redefine non-configurable property 'length'
 
 
 18. newLen < oldLen, oldLen writable: false
-TypeError : Cannot modify non-writable property 'length'
+TypeError : Cannot redefine non-configurable property 'length'
   length: 3
   0,1,2
   0,1,2

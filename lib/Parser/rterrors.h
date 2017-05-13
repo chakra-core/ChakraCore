@@ -194,7 +194,7 @@ RT_ERROR_MSG(JSERR_PropertyDescriptor_Invalid, 5076, "Invalid descriptor for pro
 
 RT_ERROR_MSG(JSERR_DefineProperty_NotExtensible, 5077, "Cannot define property '%s': object is not extensible", "Cannot define property: object is not extensible", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_DefineProperty_NotConfigurable, 5078, "Cannot redefine non-configurable property '%s'", "Cannot redefine non-configurable property", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_DefineProperty_NotWritable, 5079, "Cannot modify non-writable property '%s'", "Cannot modify non-writable property", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_DefineProperty_NotWritable, 5079, "Cannot redefine non-configurable property '%s'", "Cannot redefine non-configurable property", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_DefineProperty_LengthNotWritable, 5080, "Cannot modify property '%s': 'length' is not writable", "Cannot modify property: 'length' is not writable", kjstTypeError, 0) // {Locked="\'length\'"}
 RT_ERROR_MSG(JSERR_DefineProperty_Default, 5081, "Cannot define property '%s'", "Cannot define property", kjstTypeError, 0)
 

@@ -160,7 +160,7 @@ TypeError : Object.defineProperty: argument is not an Object
 
 5. Test String with String object
   0 a
-TypeError : Cannot modify non-writable property '1'
+TypeError : Cannot redefine non-configurable property '1'
 TypeError : Cannot redefine non-configurable property '2'
   6 6
   7 7
