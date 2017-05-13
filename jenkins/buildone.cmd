@@ -6,8 +6,10 @@
 @echo off
 setlocal
 
-REM set TEMP and TMP to a new temp folder under the WORKSPACE and create it
-set TEMP=%WORKSPACE%\TEMP
+REM set TEMP and TMP to a new temp folder under the parent of WORKSPACE and create it
+pushd %WORKSPACE%\..\
+set TEMP=%CD%\TEMP
+popd
 set TMP=%TEMP%
 REM create the TMP folder if it doesn't exist
 if not exist %TEMP% (
