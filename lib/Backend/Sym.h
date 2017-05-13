@@ -50,9 +50,9 @@ public:
     PropertySym const *  AsPropertySym() const;
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-    void Dump(IRDumpFlags flags, const ValueType valueType = ValueType::Uninitialized);
-    void Dump(const ValueType valueType = ValueType::Uninitialized);
-    void DumpSimple();
+    void Dump(IRDumpFlags flags, const ValueType valueType = ValueType::Uninitialized) const;
+    void Dump(const ValueType valueType = ValueType::Uninitialized) const;
+    void DumpSimple() const;
 #endif
 #if DBG_DUMP
     // Having a VTable helps the VS debugger determine which derived class we have
