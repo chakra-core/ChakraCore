@@ -1221,9 +1221,9 @@ void GlobOpt::TrackIntSpecializedAddSubConstant(
             // also track that it is equal to (the value of 'b') - 2.
             Value *const value = addSubConstantInfo->SrcValue();
             const ValueInfo *const valueInfo = value->GetValueInfo();
-            Assert(valueInfo->IsInt());
+            Assert(valueInfo->IsLikelyInt());
             IntConstantBounds constantBounds;
-            AssertVerify(valueInfo->TryGetIntConstantBounds(&constantBounds));
+            AssertVerify(valueInfo->TryGetIntConstantBounds(&constantBounds, true));
             IntBounds *const bounds =
                 GetIntBoundsToUpdate(
                     valueInfo,

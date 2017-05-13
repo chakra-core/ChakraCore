@@ -27,6 +27,12 @@
   </test>
   <test>
     <default>
+      <files>bug6228026.js</files>
+      <compile-flags>-mic:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug469.js</files>
       <compile-flags>-maxinterpretcount:1 -bgjit- -loopinterpretcount:1 -force:fixdataprops -off:aggressiveinttypespec -off:bailonnoprofile</compile-flags>
     </default>
