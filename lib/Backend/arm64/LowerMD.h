@@ -192,7 +192,6 @@ public:
               IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg) { __debugbreak(); return 0; }
               IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg) { __debugbreak(); return 0; }
               IR::Instr *         LowerToFloat(IR::Instr *instr) { __debugbreak(); return 0; }
-              IR::Instr *         LowerReinterpretPrimitive(IR::Instr* instr) { __debugbreak(); return 0; }
        static IR::BranchInstr *   LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNaN = false) { __debugbreak(); return 0; }
               void                ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone, IR::Instr * instInsert) { __debugbreak(); }
               void                CheckOverflowOnFloatToInt32(IR::Instr* instr, IR::Opnd* intOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone) { __debugbreak(); }
@@ -205,6 +204,7 @@ public:
               void                EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
               void                EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
               void                EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
+              void                EmitReinterpretPrimitive(IR::Opnd* dst, IR::Opnd* src, IR::Instr* insertBeforeInstr) { __debugbreak(); }
               void                GenerateTruncWithCheck(IR::Instr * instr) { __debugbreak(); }
               static IR::Instr *  InsertConvertFloat64ToInt32(const RoundMode roundMode, IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr) { __debugbreak(); return 0; }
               void                EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr) { __debugbreak(); }
@@ -232,7 +232,6 @@ public:
               template <bool verify = false>
               static void         Legalize(IR::Instr *const instr, bool fPostRegAlloc = false) { __debugbreak(); }
 
-              IR::Opnd*           IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr) { __debugbreak(); return 0; }
               void                GenerateFastInlineBuiltInMathAbs(IR::Instr *callInstr) { __debugbreak(); }
               void                GenerateFastInlineBuiltInMathFloor(IR::Instr *callInstr) { __debugbreak(); }
               void                GenerateFastInlineBuiltInMathCeil(IR::Instr *callInstr) { __debugbreak(); }

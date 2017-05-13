@@ -708,7 +708,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::Reinterpret_Prim:
-            instrPrev = LowerReinterpretPrimitive(instr);
+            LowerReinterpretPrimitive(instr);
             break;
 
         case Js::OpCode::InlineMathMin:
@@ -9418,7 +9418,7 @@ Int64RegPair Lowerer::FindOrCreateInt64Pair(IR::Opnd* reg)
 
     EnsureInt64RegPairMap();
     StackSym* stackSym = reg->GetStackSym();
-    if (!stackSym || !this->m_func->GetJITFunctionBody()->IsWasmFunction())
+    if (!stackSym)
     {
         AssertMsg(UNREACHED, "Invalid int64 operand type");
         Js::Throw::FatalInternalError();
@@ -18920,12 +18920,12 @@ Lowerer::GenerateFastInlineMathImul(IR::Instr* instr)
     instr->Remove();
 }
 
-IR::Instr *
+void
 Lowerer::LowerReinterpretPrimitive(IR::Instr* instr)
 {
     Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
     IR::Opnd* src1 = instr->GetSrc1();
-    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* dst =  instr->GetDst();
 
     Assert(dst->GetSize() == src1->GetSize());
     Assert((dst->IsFloat32() && src1->IsInt32()) ||
@@ -18933,7 +18933,8 @@ Lowerer::LowerReinterpretPrimitive(IR::Instr* instr)
            (dst->IsInt64() && src1->IsFloat64()) ||
            (dst->IsFloat64() && src1->IsInt64()) );
 
-    return m_lowererMD.LowerReinterpretPrimitive(instr);
+    m_lowererMD.EmitReinterpretPrimitive(dst, src1, instr);
+    instr->Remove();
 }
 
 void
