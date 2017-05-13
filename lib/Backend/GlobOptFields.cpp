@@ -373,7 +373,7 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * 
             indexOpnd &&
             (
                 indexOpnd->m_sym->m_isNotInt ||
-                (inGlobOpt && !indexOpnd->GetValueType().IsNumber() && !IsTypeSpecialized(indexOpnd->m_sym, &currentBlock->globOptData))
+                (inGlobOpt && !indexOpnd->GetValueType().IsNumber() && !currentBlock->globOptData.IsTypeSpecialized(indexOpnd->m_sym))
             )
         ))
     {
@@ -647,14 +647,14 @@ GlobOpt::PreparePrepassFieldHoisting(Loop * loop)
 
         FOREACH_BITSET_IN_SPARSEBV(index, liveInFieldHoistCandidates)
         {
-            if (this->FindValueFromHashTable(landingPad->globOptData.symToValueMap, index) == nullptr)
+            if (landingPad->globOptData.FindValueFromMapDirect((SymID)index) == nullptr)
             {
                 // Create initial values if we don't have one already for live fields
                 Value * newValue = this->NewGenericValue(ValueType::Uninitialized);
                 Value * oldValue = CopyValue(newValue, newValue->GetValueNumber());
                 Sym *sym = this->func->m_symTable->Find(index);
-                this->SetValue(&landingPad->globOptData, oldValue, sym);
-                this->SetValue(&this->currentBlock->globOptData, newValue, sym);
+                landingPad->globOptData.SetValue(oldValue, sym);
+                this->currentBlock->globOptData.SetValue(newValue, sym);
             }
         }
         NEXT_BITSET_IN_SPARSEBV;
@@ -671,8 +671,8 @@ GlobOpt::PreparePrepassFieldHoisting(Loop * loop)
         Value * newValue = this->NewGenericValue(ValueType::Uninitialized);
         Value * oldValue = CopyValue(newValue, newValue->GetValueNumber());
         Sym *sym = this->func->m_symTable->Find(index);
-        this->SetValue(&landingPad->globOptData, oldValue, sym);
-        this->SetValue(&this->currentBlock->globOptData, newValue, sym);
+        landingPad->globOptData.SetValue(oldValue, sym);
+        this->currentBlock->globOptData.SetValue(newValue, sym);
 
         StackSym* objectSym = sym->AsPropertySym()->m_stackSym;
         if (objectSym->HasObjectTypeSym())
@@ -821,13 +821,13 @@ GlobOpt::PrepareFieldHoisting(Loop * loop)
             continue;
         }
 
-        Assert(GlobOpt::IsLive(propertySym->m_stackSym, landingPad));
+        Assert(landingPad->globOptData.IsLive(propertySym->m_stackSym));
 
         if (fieldHoistCandidates->Test(symId))
         {
             // Hoist non-live field in
-            Value * oldValue = this->FindValueFromHashTable(landingPad->globOptData.symToValueMap, symId);
-            Value * newValue = this->FindValueFromHashTable(this->currentBlock->globOptData.symToValueMap, symId);
+            Value * oldValue = landingPad->globOptData.FindValueFromMapDirect(symId);
+            Value * newValue = this->currentBlock->globOptData.FindValueFromMapDirect(symId);
             HoistFieldLoad(propertySym, loop, instr, oldValue, newValue);
             continue;
         }
@@ -844,11 +844,11 @@ GlobOpt::PrepareFieldHoisting(Loop * loop)
 
         // If the value is live in, we shouldn't have a hoisted symbol already
         Assert(!this->IsHoistedPropertySym(symId, loop->parent));
-        Value * oldValue = this->FindPropertyValue(landingPad->globOptData.symToValueMap, symId);
+        Value * oldValue = landingPad->globOptData.FindPropertyValue(symId);
         AssertMsg(oldValue != nullptr, "We should have created an initial value for the field");
         ValueInfo *oldValueInfo = oldValue->GetValueInfo();
 
-        Value * newValue = this->FindPropertyValue(this->currentBlock->globOptData.symToValueMap, symId);
+        Value * newValue = this->currentBlock->globOptData.FindPropertyValue(symId);
 
         // The value of the loop isn't invariant, we need to create a value to hold the field through the loop
 
@@ -868,7 +868,7 @@ GlobOpt::PrepareFieldHoisting(Loop * loop)
         else
         {
             // This should be looking at the landingPad's value
-            Sym * copySym = this->GetCopyPropSym(landingPad, nullptr, oldValue);
+            Sym * copySym = landingPad->globOptData.GetCopyPropSym(nullptr, oldValue);
 
             if (copySym != nullptr)
             {
@@ -1075,8 +1075,8 @@ GlobOpt::FinishOptHoistedPropOps(Loop * loop)
 
                     // We've cleared the live bits for types that are purely hoisted (not live into the loop),
                     // so we can't use FindObjectTypeValue here.
-                    Value* landingPadValue = FindValueFromHashTable(loop->landingPad->globOptData.symToValueMap, typeSym->m_id);
-                    Value* headerValue = FindValueFromHashTable(loop->GetHeadBlock()->globOptData.symToValueMap, typeSym->m_id);
+                    Value* landingPadValue = loop->landingPad->globOptData.FindValueFromMapDirect(typeSym->m_id);
+                    Value* headerValue = loop->GetHeadBlock()->globOptData.FindValueFromMapDirect(typeSym->m_id);
                     isHoistedTypeValue = landingPadValue != nullptr && loop->fieldHoistCandidateTypes->Test(typeSym->m_id);
                     isTypeInvariant = landingPadValue != nullptr && headerValue != nullptr && landingPadValue->GetValueNumber() == headerValue->GetValueNumber();
                 }
@@ -1106,12 +1106,12 @@ GlobOpt::FinishOptHoistedPropOps(Loop * loop)
                     StackSym* typeSym = opnd->AsPropertySymOpnd()->GetObjectTypeSym();
 
                     // If we changed the type value in the landing pad, we must have set it live there.
-                    Value* landingPadValue = FindObjectTypeValue(typeSym->m_id, loop->landingPad);
+                    Value* landingPadValue = loop->landingPad->globOptData.FindObjectTypeValue(typeSym);
                     Assert(landingPadValue != nullptr && landingPadValue->GetValueInfo()->IsJsType());
 
                     // But in the loop header we may have only a value with the live bit still cleared,
                     // so we can't use FindObjectTypeValue here.
-                    Value* headerValue = FindValueFromHashTable(loop->GetHeadBlock()->globOptData.symToValueMap, typeSym->m_id);
+                    Value* headerValue = loop->GetHeadBlock()->globOptData.FindValueFromMapDirect(typeSym->m_id);
                     Assert(headerValue != nullptr && headerValue->GetValueInfo()->IsJsType());
 
                     Assert(!isHoistedTypeValue || landingPadValue->GetValueNumber() == headerValue->GetValueNumber());
@@ -1192,12 +1192,12 @@ GlobOpt::HoistFieldLoadValue(Loop * loop, Value * newValue, SymID symId, Js::OpC
         // This should pass the sym directly.
         Sym *sym = this->func->m_symTable->Find(symId);
 
-        this->SetValue(&this->currentBlock->globOptData, newValue, sym);
+        this->currentBlock->globOptData.SetValue(newValue, sym);
         Assert(newValue->GetValueInfo()->GetSymStore() == newStackSym);
     }
     else
     {
-        this->SetValue(&this->currentBlock->globOptData, newValue, newStackSym);
+        this->currentBlock->globOptData.SetValue(newValue, newStackSym);
         this->SetSymStoreDirect(newValue->GetValueInfo(), newStackSym);
     }
 
@@ -1431,8 +1431,7 @@ GlobOpt::GenerateHoistFieldLoad(PropertySym * sym, Loop * loop, IR::Instr * inst
         // insensitive info is copied.
         IR::PropertySymOpnd * newPropertySymOpnd = srcPropertySymOpnd->CopyWithoutFlowSensitiveInfo(loopTopFunc);
         Assert(newPropertySymOpnd->GetObjTypeSpecFlags() == 0);
-        Value *const propertyOwnerValueInLandingPad =
-            FindValue(loop->landingPad->globOptData.symToValueMap, srcPropertySymOpnd->GetObjectSym());
+        Value *const propertyOwnerValueInLandingPad = loop->landingPad->globOptData.FindValue(srcPropertySymOpnd->GetObjectSym());
         if(propertyOwnerValueInLandingPad)
         {
             newPropertySymOpnd->SetPropertyOwnerValueType(propertyOwnerValueInLandingPad->GetValueInfo()->Type());
@@ -1493,7 +1492,7 @@ GlobOpt::GenerateHoistFieldLoad(PropertySym * sym, Loop * loop, IR::Instr * inst
             newValue = NewGenericValue(profiledFieldType, newDst);
         }
 
-        this->SetValue(&this->currentBlock->globOptData, newValue, sym);
+        this->currentBlock->globOptData.SetValue(newValue, sym);
         if(hoistValue)
         {
             // The field value is invariant through the loop. Since we're updating its value to a more precise value, hoist the
@@ -1501,15 +1500,15 @@ GlobOpt::GenerateHoistFieldLoad(PropertySym * sym, Loop * loop, IR::Instr * inst
             Assert(loop == currentBlock->loop);
             Assert(landingPad == loop->landingPad);
             oldValue = CopyValue(newValue, newValue->GetValueNumber());
-            SetValue(&landingPad->globOptData, oldValue, sym);
+            landingPad->globOptData.SetValue(oldValue, sym);
         }
     }
 
     newInstr->GetDst()->SetValueType(oldValue->GetValueInfo()->Type());
     newInstr->GetSrc1()->SetValueType(oldValue->GetValueInfo()->Type());
-    this->SetValue(&loop->landingPad->globOptData, oldValue, newStackSym);
+    loop->landingPad->globOptData.SetValue(oldValue, newStackSym);
 
-    this->SetValue(&this->currentBlock->globOptData, newValue, newStackSym);
+    this->currentBlock->globOptData.SetValue(newValue, newStackSym);
     instr->GetSrc1()->SetValueType(newValue->GetValueInfo()->Type());
 
     loop->hasHoistedFields = true;
@@ -1544,7 +1543,7 @@ GlobOpt::GenerateHoistFieldLoad(PropertySym * sym, Loop * loop, IR::Instr * inst
     if (!landingPad->globOptData.liveVarSyms->Test(propertyBase->m_id))
     {
         IR::RegOpnd *newOpnd = IR::RegOpnd::New(propertyBase, TyVar, instr->m_func);
-        this->ToVar(newInstr, newOpnd, landingPad, this->FindValue(&this->currentBlock->globOptData, propertyBase), false);
+        this->ToVar(newInstr, newOpnd, landingPad, this->currentBlock->globOptData.FindValue(propertyBase), false);
     }
 
     if (landingPad->globOptData.canStoreTempObjectSyms && landingPad->globOptData.canStoreTempObjectSyms->Test(propertyBase->m_id))
@@ -1603,7 +1602,7 @@ GlobOpt::CreateFieldSrcValue(PropertySym * sym, PropertySym * originalSym, IR::O
         {
             // We don't clear the value when we kill the field.
             // Clear it to make sure we don't use the old value.
-            this->currentBlock->globOptData.symToValueMap->Clear(sym->m_id);
+            this->currentBlock->globOptData.ClearSymValue(sym);
             return nullptr;
         }
     }
@@ -1616,8 +1615,8 @@ GlobOpt::CreateFieldSrcValue(PropertySym * sym, PropertySym * originalSym, IR::O
     {
         // We don't clear the value when we kill the field.
         // Clear it to make sure we don't use the old value.
-        this->currentBlock->globOptData.symToValueMap->Clear(sym->m_id);
-        this->currentBlock->globOptData.symToValueMap->Clear(originalSym->m_id);
+        this->currentBlock->globOptData.ClearSymValue(sym);
+        this->currentBlock->globOptData.ClearSymValue(originalSym);
     }
 
     Assert((*ppOpnd)->AsSymOpnd()->m_sym == sym || this->IsLoopPrePass());
@@ -1787,7 +1786,7 @@ GlobOpt::ReloadFieldHoistStackSym(IR::Instr * instr, PropertySym * propertySym)
         this->currentBlock->globOptData.liveFields->Clear(propertySym->m_id);
 
         // If we have to reload, we don't know the value, kill the old value for the fieldHoistSym.
-        this->currentBlock->globOptData.symToValueMap->Clear(fieldHoistSym->m_id);
+        this->currentBlock->globOptData.ClearSymValue(fieldHoistSym);
 
         // No IR transformations in the prepass.
         return;
@@ -1854,7 +1853,7 @@ GlobOpt::CopyStoreFieldHoistStackSym(IR::Instr * storeFldInstr, PropertySym * sy
     Value * dstVal = this->CopyValue(src1Val);
     TrackCopiedValueForKills(dstVal);
     this->SetSymStoreDirect(dstVal->GetValueInfo(), copySym);
-    this->SetValue(&this->currentBlock->globOptData, dstVal, copySym);
+    this->currentBlock->globOptData.SetValue(dstVal, copySym);
 
     // Copy the type specialized sym as well, in case we have a use for them
     bool neededCopySymDef = false;
@@ -2261,7 +2260,7 @@ GlobOpt::KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecia
             // protected by this access.
             continue;
         }
-        Value *value = this->FindObjectTypeValue(symId, block);
+        Value *value = block->globOptData.FindObjectTypeValue(symId);
         if (value)
         {
             JsTypeValueInfo *valueInfo = value->GetValueInfo()->AsJsType();
@@ -2357,7 +2356,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
     if (!makeChanges)
     {
         typeCheckSeqFlagsBefore = opnd->GetTypeCheckSeqFlags();
-        valueBefore = FindObjectTypeValue(typeSym, block);
+        valueBefore = block->globOptData.FindObjectTypeValue(typeSym);
         if (valueBefore != nullptr)
         {
             Assert(valueBefore->GetValueInfo() != nullptr && valueBefore->GetValueInfo()->IsJsType());
@@ -2366,7 +2365,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
     }
 #endif
 
-    Value *value = this->FindObjectTypeValue(typeSym, block);
+    Value *value = block->globOptData.FindObjectTypeValue(typeSym);
     JsTypeValueInfo* valueInfo = value != nullptr ? value->GetValueInfo()->AsJsType() : nullptr;
 
     if (consumeType && valueInfo != nullptr)
@@ -2647,7 +2646,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
         uint16 typeCheckSeqFlagsAfter = opnd->GetTypeCheckSeqFlags();
         Assert(typeCheckSeqFlagsBefore == typeCheckSeqFlagsAfter);
 
-        Value* valueAfter = FindObjectTypeValue(typeSym, block);
+        Value* valueAfter = block->globOptData.FindObjectTypeValue(typeSym);
         Assert(valueBefore == valueAfter);
         if (valueAfter != nullptr)
         {
@@ -2741,7 +2740,7 @@ GlobOpt::ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr)
 
             StackSym* objSym = dstOpnd->AsRegOpnd()->m_sym;
             StackSym* dstTypeSym = EnsureObjectTypeSym(objSym);
-            Assert(this->FindValue(&this->currentBlock->globOptData, dstTypeSym) == nullptr);
+            Assert(this->currentBlock->globOptData.FindValue(dstTypeSym) == nullptr);
 
             SetObjectTypeFromTypeSym(dstTypeSym, ctorCache->GetType(), nullptr);
         }
@@ -2759,7 +2758,7 @@ GlobOpt::ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr)
             !srcOpnd->AsRegOpnd()->m_sym->IsTypeSpec() && srcOpnd->AsRegOpnd()->m_sym->HasObjectTypeSym())
         {
             StackSym *srcTypeSym = srcOpnd->AsRegOpnd()->m_sym->GetObjectTypeSym();
-            newValue = this->FindValue(&this->currentBlock->globOptData, srcTypeSym);
+            newValue = this->currentBlock->globOptData.FindValue(srcTypeSym);
         }
 
         if (newValue == nullptr)
@@ -2767,7 +2766,7 @@ GlobOpt::ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr)
             if (dstOpnd->AsRegOpnd()->m_sym->HasObjectTypeSym())
             {
                 StackSym * typeSym = dstOpnd->AsRegOpnd()->m_sym->GetObjectTypeSym();
-                this->currentBlock->globOptData.symToValueMap->Clear(typeSym->m_id);
+                this->currentBlock->globOptData.ClearSymValue(typeSym);
             }
         }
         else
@@ -2779,7 +2778,7 @@ GlobOpt::ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr)
                 typeSym = nullptr;
             }
             typeSym = EnsureObjectTypeSym(dstOpnd->AsRegOpnd()->m_sym);
-            this->SetValue(&this->currentBlock->globOptData, newValue, typeSym);
+            this->currentBlock->globOptData.SetValue(newValue, typeSym);
         }
     }
 }
@@ -2924,7 +2923,7 @@ GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, Value* value, BasicBlock* b
         block = this->currentBlock;
     }
 
-    SetValue(&block->globOptData, value, typeSym);
+    block->globOptData.SetValue(value, typeSym);
     block->globOptData.liveFields->Set(typeSymId);
 }
 
@@ -2953,7 +2952,7 @@ GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, J
 
     if (updateExistingValue)
     {
-        Value* value = FindValueFromHashTable(blockData->symToValueMap, typeSymId);
+        Value* value = blockData->FindValueFromMapDirect(typeSymId);
 
         // If we're trying to update an existing value, the value better exist. We only do this when updating a generic
         // value created during loop pre-pass for field hoisting, so we expect the value info to still be blank.
@@ -2967,7 +2966,7 @@ GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, J
         JsTypeValueInfo* valueInfo = JsTypeValueInfo::New(this->alloc, type, typeSet);
         this->SetSymStoreDirect(valueInfo, typeSym);
         Value* value = NewValue(valueInfo);
-        SetValue(blockData, value, typeSym);
+        blockData->SetValue(value, typeSym);
     }
 
     blockData->liveFields->Set(typeSymId);
@@ -3033,11 +3032,11 @@ GlobOpt::CopyPropPropertySymObj(IR::SymOpnd *symOpnd, IR::Instr *instr)
 
     StackSym *objSym = propertySym->m_stackSym;
 
-    Value * val = this->FindValue(&this->currentBlock->globOptData, objSym);
+    Value * val = this->currentBlock->globOptData.FindValue(objSym);
 
     if (val && !PHASE_OFF(Js::ObjPtrCopyPropPhase, this->func))
     {
-        StackSym *copySym = this->GetCopyPropSym(objSym, val);
+        StackSym *copySym = this->currentBlock->globOptData.GetCopyPropSym(objSym, val);
         if (copySym != nullptr)
         {
             PropertySym *newProp = PropertySym::FindOrCreate(
@@ -3123,7 +3122,7 @@ GlobOpt::UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr)
 
     IR::PropertySymOpnd * propertySymOpnd = opnd->AsPropertySymOpnd();
     StackSym * objectSym = propertySymOpnd->GetObjectSym();
-    Value * objVal = this->FindValue(&this->currentBlock->globOptData, objectSym);
+    Value * objVal = this->currentBlock->globOptData.FindValue(objectSym);
     if (!objVal)
     {
         return;
@@ -3144,7 +3143,7 @@ GlobOpt::UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr)
 
     StackSym * typeSym = propertySymOpnd->GetObjectTypeSym();
     Assert(typeSym);
-    Value * typeValue = this->FindObjectTypeValue(typeSym, currentBlock);
+    Value * typeValue = currentBlock->globOptData.FindObjectTypeValue(typeSym);
     if (!typeValue)
     {
         return;

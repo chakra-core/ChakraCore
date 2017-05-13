@@ -708,6 +708,102 @@ ValueInfo::GetIntValMinMax(int *pMin, int *pMax, bool doAggressiveIntTypeSpec)
     return false;
 }
 
+ValueInfo *
+ValueInfo::MergeLikelyIntValueInfo(JitArenaAllocator* alloc, Value *toDataVal, Value *fromDataVal, ValueType const newValueType)
+{
+    Assert(newValueType.IsLikelyInt());
+
+    ValueInfo *const toDataValueInfo = toDataVal->GetValueInfo();
+    ValueInfo *const fromDataValueInfo = fromDataVal->GetValueInfo();
+    Assert(toDataValueInfo != fromDataValueInfo);
+
+    bool wasNegativeZeroPreventedByBailout;
+    if(newValueType.IsInt())
+    {
+        int32 toDataIntConstantValue, fromDataIntConstantValue;
+        if (toDataValueInfo->TryGetIntConstantValue(&toDataIntConstantValue) &&
+            fromDataValueInfo->TryGetIntConstantValue(&fromDataIntConstantValue) &&
+            toDataIntConstantValue == fromDataIntConstantValue)
+        {
+            // A new value number must be created to register the fact that the value has changed. Otherwise, if the value
+            // changed inside a loop, the sym may look invariant on the loop back-edge (and hence not turned into a number
+            // value), and its constant value from the first iteration may be incorrectly propagated after the loop.
+            return IntConstantValueInfo::New(alloc, toDataIntConstantValue);
+        }
+
+        wasNegativeZeroPreventedByBailout =
+            toDataValueInfo->WasNegativeZeroPreventedByBailout() ||
+            fromDataValueInfo->WasNegativeZeroPreventedByBailout();
+    }
+    else
+    {
+        wasNegativeZeroPreventedByBailout = false;
+    }
+
+    const IntBounds *const toDataValBounds =
+        toDataValueInfo->IsIntBounded() ? toDataValueInfo->AsIntBounded()->Bounds() : nullptr;
+    const IntBounds *const fromDataValBounds =
+        fromDataValueInfo->IsIntBounded() ? fromDataValueInfo->AsIntBounded()->Bounds() : nullptr;
+    if(toDataValBounds || fromDataValBounds)
+    {
+        const IntBounds *mergedBounds;
+        if(toDataValBounds && fromDataValBounds)
+        {
+            mergedBounds = IntBounds::Merge(toDataVal, toDataValBounds, fromDataVal, fromDataValBounds);
+        }
+        else
+        {
+            IntConstantBounds constantBounds;
+            if(toDataValBounds)
+            {
+                mergedBounds =
+                    fromDataValueInfo->TryGetIntConstantBounds(&constantBounds, true)
+                        ? IntBounds::Merge(toDataVal, toDataValBounds, fromDataVal, constantBounds)
+                        : nullptr;
+            }
+            else
+            {
+                Assert(fromDataValBounds);
+                mergedBounds =
+                    toDataValueInfo->TryGetIntConstantBounds(&constantBounds, true)
+                        ? IntBounds::Merge(fromDataVal, fromDataValBounds, toDataVal, constantBounds)
+                        : nullptr;
+            }
+        }
+
+        if(mergedBounds)
+        {
+            if(mergedBounds->RequiresIntBoundedValueInfo(newValueType))
+            {
+                return IntBoundedValueInfo::New(newValueType, mergedBounds, wasNegativeZeroPreventedByBailout, alloc);
+            }
+            mergedBounds->Delete();
+        }
+    }
+
+    if(newValueType.IsInt())
+    {
+        int32 min1, max1, min2, max2;
+        toDataValueInfo->GetIntValMinMax(&min1, &max1, false);
+        fromDataValueInfo->GetIntValMinMax(&min2, &max2, false);
+        return ValueInfo::NewIntRangeValueInfo(alloc, min(min1, min2), max(max1, max2), wasNegativeZeroPreventedByBailout);
+    }
+
+    return ValueInfo::New(alloc, newValueType);
+}
+
+ValueInfo * ValueInfo::NewIntRangeValueInfo(JitArenaAllocator * alloc, int32 min, int32 max, bool wasNegativeZeroPreventedByBailout)
+{
+    if (min == max)
+    {
+        // Since int constant values are const-propped, negative zero tracking does not track them, and so it's okay to ignore
+        // 'wasNegativeZeroPreventedByBailout'
+        return IntConstantValueInfo::New(alloc, max);
+    }
+
+    return IntRangeValueInfo::New(alloc, min, max, wasNegativeZeroPreventedByBailout);
+}
+
 #if DBG_DUMP
 void ValueInfo::Dump()
 {

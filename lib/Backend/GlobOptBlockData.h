@@ -98,9 +98,12 @@ struct StackLiteralInitFldData
 
 typedef JsUtil::BaseDictionary<StackSym *, StackLiteralInitFldData, JitArenaAllocator> StackLiteralInitFldDataMap;
 
+typedef SList<GlobHashBucket*, JitArenaAllocator> PRECandidatesList;
+
 class GlobOptBlockData
 {
-    friend class GlobOpt; // REMOVE IN FUTURE COMMIT IN CHANGESET - USED FOR INITIALIZERS
+    friend class FlowGraph;
+    friend class BasicBlock;
 public:
     GlobOptBlockData(Func *func) :
         symToValueMap(nullptr),
@@ -217,16 +220,16 @@ public:
 
     void OnDataDeleted()
     {
-        if(hasDataRef)
+        if (hasDataRef)
             *hasDataRef = false;
         OnDataUnreferenced();
     }
 
     bool HasData()
     {
-        if(!hasDataRef)
+        if (!hasDataRef)
             return false;
-        if(*hasDataRef)
+        if (*hasDataRef)
             return true;
         OnDataUnreferenced();
         return false;
@@ -246,4 +249,98 @@ public:
             return nullptr;
         }
     }
+
+    // Functions pulled out of GlobOpt.cpp
+
+    // Initialization/copying/moving
+public:
+    void                    NullOutBlockData(GlobOpt* globOpt, Func* func);
+    void                    InitBlockData(GlobOpt* globOpt, Func* func);
+    void                    ReuseBlockData(GlobOptBlockData *fromData);
+    void                    CopyBlockData(GlobOptBlockData *fromData);
+    void                    DeleteBlockData();
+    void                    CloneBlockData(BasicBlock *const toBlock, BasicBlock *const fromBlock);
+
+public:
+    void                    RemoveUnavailableCandidates(PRECandidatesList *candidates);
+
+    // Merging functions
+public:
+    void                    MergeBlockData(BasicBlock *toBlockContext, BasicBlock *fromBlock, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge, bool forceTypeSpecOnLoopHeader);
+private:
+    template <typename CaptureList, typename CapturedItemsAreEqual>
+    void                    MergeCapturedValues(SListBase<CaptureList>* toList, SListBase<CaptureList> * fromList, CapturedItemsAreEqual itemsAreEqual);
+    void                    MergeValueMaps(BasicBlock *toBlock, BasicBlock *fromBlock, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge);
+    Value *                 MergeValues(Value *toDataValue, Value *fromDataValue, Sym *fromDataSym, bool isLoopBackEdge, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge);
+    ValueInfo *             MergeValueInfo(Value *toDataVal, Value *fromDataVal, Sym *fromDataSym, bool isLoopBackEdge, bool sameValueNumber, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge);
+    JsTypeValueInfo *       MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, JsTypeValueInfo * fromValueInfo, bool isLoopBackEdge, bool sameValueNumber);
+    ValueInfo *             MergeArrayValueInfo(const ValueType mergedValueType, const ArrayValueInfo *const toDataValueInfo, const ArrayValueInfo *const fromDataValueInfo, Sym *const arraySym, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge);
+
+    // Argument Tracking
+public:
+    void                    TrackArgumentsSym(IR::RegOpnd const* opnd);
+    void                    ClearArgumentsSym(IR::RegOpnd const* opnd);
+    BOOL                    TestAnyArgumentsSym() const;
+    BOOL                    IsArgumentsSymID(SymID id) const;
+    BOOL                    IsArgumentsOpnd(IR::Opnd const* opnd) const;
+private:
+
+    // Value Tracking
+public:
+    Value *                 FindValue(Sym *sym);
+    Value *                 FindValueFromMapDirect(SymID symId);
+    Value *                 FindPropertyValue(SymID symId);
+    Value *                 FindObjectTypeValue(StackSym* typeSym);
+    Value *                 FindObjectTypeValue(SymID typeSymId);
+    Value *                 FindFuturePropertyValue(PropertySym *const propertySym);
+
+    StackSym *              GetCopyPropSym(Sym * sym, Value * val);
+
+    Value *                 InsertNewValue(Value *val, IR::Opnd *opnd);
+    Value *                 SetValue(Value *val, IR::Opnd *opnd);
+    void                    SetValue(Value *val, Sym * sym);
+
+    void                    ClearSymValue(Sym *sym);
+
+private:
+    void                    SetValueToHashTable(GlobHashTable * valueNumberMap, Value *val, Sym *sym);
+
+    // Temp Tracking
+public:
+    void                    MarkTempLastUse(IR::Instr *instr, IR::RegOpnd *regOpnd);
+private:
+
+    // Liveness Tracking
+public:
+    void                    MakeLive(StackSym *sym, const bool lossy);
+
+    // Checks if the symbol is live in this block under any type
+    bool                    IsLive(Sym const * sym) const;
+    bool                    IsTypeSpecialized(Sym const * sym) const;
+    bool                    IsSwitchInt32TypeSpecialized(IR::Instr const * instr) const;
+    bool                    IsInt32TypeSpecialized(Sym const * sym) const;
+    bool                    IsFloat64TypeSpecialized(Sym const * sym) const;
+    // SIMD_JS
+    bool                    IsSimd128TypeSpecialized(Sym const * sym) const;
+    bool                    IsSimd128TypeSpecialized(IRType type, Sym const * sym) const;
+    bool                    IsSimd128F4TypeSpecialized(Sym const * sym) const;
+    bool                    IsSimd128I4TypeSpecialized(Sym const * sym) const;
+    bool                    IsLiveAsSimd128(Sym const * sym) const;
+    bool                    IsLiveAsSimd128F4(Sym const * sym) const;
+    bool                    IsLiveAsSimd128I4(Sym const * sym) const;
+
+    // Changed Symbol Tracking
+public:
+    void                    SetChangedSym(SymID symId);
+private:
+
+    // Other
+public:
+    void                    KillStateForGeneratorYield();
+
+    // Debug
+public:
+    void                    DumpSymToValueMap() const;
+private:
+    static void             DumpSym(Sym *sym);
 };

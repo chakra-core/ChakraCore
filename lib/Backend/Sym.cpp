@@ -1051,7 +1051,7 @@ PropertySym::FindOrCreate(SymID stackSymID, int32 propertyId, uint32 propertyIdI
 ///----------------------------------------------------------------------------
 
 void
-Sym::Dump(IRDumpFlags flags, const ValueType valueType)
+Sym::Dump(IRDumpFlags flags, const ValueType valueType) const
 {
     bool const AsmDumpMode = flags & IRDumpFlags_AsmDumpMode;
     bool const SimpleForm = !!(flags & IRDumpFlags_SimpleForm);
@@ -1069,7 +1069,7 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
     }
     else if (this->IsStackSym())
     {
-        StackSym *stackSym = this->AsStackSym();
+        StackSym const *stackSym = this->AsStackSym();
 
         if (stackSym->IsArgSlotSym())
         {
@@ -1139,7 +1139,7 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
             }
             else
             {
-                StackSym *varSym = stackSym->GetVarEquivSym(nullptr);
+                StackSym const *varSym = stackSym->GetVarEquivSym_NoCreate();
                 if (varSym)
                 {
                     Output::Print(_u("(s%d)"), varSym->m_id);
@@ -1157,7 +1157,7 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
     }
     else if (this->IsPropertySym())
     {
-        PropertySym *propertySym = this->AsPropertySym();
+        PropertySym const *propertySym = this->AsPropertySym();
 
         if (!SimpleForm)
         {
@@ -1201,13 +1201,13 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
 
 
 void
-Sym::Dump(const ValueType valueType)
+Sym::Dump(const ValueType valueType) const
 {
     this->Dump(IRDumpFlags_None, valueType);
 }
 
 void
-Sym::DumpSimple()
+Sym::DumpSimple() const
 {
     this->Dump(IRDumpFlags_SimpleForm);
 }

@@ -330,8 +330,14 @@ public:
 
     bool IsLandingPad();
 
-#if DBG_DUMP
+    // GlobOpt Stuff
+public:
+    void         MergePredBlocksValueMaps(GlobOpt* globOptState);
+private:
+    void         CleanUpValueMaps();
 
+#if DBG_DUMP
+public:
     void DumpHeader(bool insertCR = true);
     void Dump();
 
