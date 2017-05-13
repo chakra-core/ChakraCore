@@ -24,7 +24,7 @@ const cliArgs = WScript.Arguments || [];
 WScript.Flag("-wasmI64");
 
 if (cliArgs.length < 1) {
-  print("usage: <exe> spec.js -args <filename.json> [start index] [end index] [-v] [-nt] -endargs");
+  print("usage: <exe> spec.js -args <filename.json> [start index] [end index] [-verbose] [-nt] -endargs");
   WScript.quit(0);
 }
 
