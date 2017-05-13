@@ -943,6 +943,14 @@ namespace Js
             {
                 return scriptContext->GetLibrary()->GetNegativeZero();
             }
+            if(x <= -(1 / Math::EPSILON + 1) || x >= (1 / Math::EPSILON + 1))
+            {
+                return JavascriptNumber::ToVarNoCheck(x, scriptContext);
+            }
+            if(x == 0.5 - Math::EPSILON / 4)
+            {
+                return JavascriptNumber::ToVarIntCheck(0.0, scriptContext);
+            }
 
             return Math::FloorDouble(x+0.5, scriptContext);
         }
