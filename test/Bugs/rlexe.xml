@@ -400,4 +400,9 @@
       <compile-flags>-mic:1 -off:simplejit -oopjit- -bgjit-</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug11026788.js</files>
+    </default>
+  </test>
 </regress-exe>

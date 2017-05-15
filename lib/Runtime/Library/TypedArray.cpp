@@ -1052,6 +1052,14 @@ namespace Js
 
     }
 
+    void TypedArrayBase::ClearLengthAndBufferOnDetach()
+    {
+        AssertMsg(IsDetachedBuffer(), "Array buffer should be detached if we're calling this method");
+
+        this->length = 0;
+        this->buffer = nullptr;
+    }
+
     Var TypedArrayBase::EntryGetterBuffer(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);

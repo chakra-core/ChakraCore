@@ -6149,7 +6149,7 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
 }
 
 IR::RegOpnd *
-LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr)
+LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, bool bailOutOnHelperCall)
 {
     IR::LabelInstr *labelDone;
     IR::Instr *instr;
@@ -6169,6 +6169,23 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr)
     {
         // We're done
         return nullptr;
+    }
+
+    if (bailOutOnHelperCall)
+    {
+        if(!GlobOpt::DoEliminateArrayAccessHelperCall(this->m_func))
+        {
+            // Array access helper call removal is already off for some reason. Prevent trying to rejit again
+            // because it won't help and the same thing will happen again. Just abort jitting this function.
+            if(PHASE_TRACE(Js::BailOutPhase, this->m_func))
+            {
+                Output::Print(_u("    Aborting JIT because EliminateArrayAccessHelperCall is already off\n"));
+                Output::Flush();
+            }
+            throw Js::OperationAbortedException();
+        }
+
+        throw Js::RejitException(RejitReason::ArrayAccessHelperCallEliminationDisabled);
     }
 
     IR::Opnd *memAddress = dst;
@@ -7391,19 +7408,19 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed,
             // Known to be non-integer. If we are required to bail out on helper call, just re-jit.
             if (!doFloatToIntFastPath && bailOutOnHelper)
             {
-                if(!GlobOpt::DoAggressiveIntTypeSpec(this->m_func))
+                if(!GlobOpt::DoEliminateArrayAccessHelperCall(this->m_func))
                 {
-                    // Aggressive int type specialization is already off for some reason. Prevent trying to rejit again
+                    // Array access helper call removal is already off for some reason. Prevent trying to rejit again
                     // because it won't help and the same thing will happen again. Just abort jitting this function.
                     if(PHASE_TRACE(Js::BailOutPhase, this->m_func))
                     {
-                        Output::Print(_u("    Aborting JIT because AggressiveIntTypeSpec is already off\n"));
+                        Output::Print(_u("    Aborting JIT because EliminateArrayAccessHelperCall is already off\n"));
                         Output::Flush();
                     }
                     throw Js::OperationAbortedException();
                 }
 
-                throw Js::RejitException(RejitReason::AggressiveIntTypeSpecDisabled);
+                throw Js::RejitException(RejitReason::ArrayAccessHelperCallEliminationDisabled);
             }
         }
         else

@@ -38,7 +38,7 @@ namespace Js
         return toReturn;
     }
 
-    void ArrayBuffer::ClearParentsLength(ArrayBufferParent* parent)
+    void ArrayBuffer::DetachBufferFromParent(ArrayBufferParent* parent)
     {
         if (parent == nullptr)
         {
@@ -48,23 +48,158 @@ namespace Js
         switch (JavascriptOperators::GetTypeId(parent))
         {
         case TypeIds_Int8Array:
+                if (Int8VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Int8VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Int8Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Int8VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Int8Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Uint8Array:
+                if (Uint8VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Uint8VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Uint8Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Uint8VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Uint8Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Uint8ClampedArray:
+                if (Uint8ClampedVirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Uint8ClampedVirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Uint8ClampedArray>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Uint8ClampedVirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Uint8ClampedArray>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Int16Array:
+                if (Int16VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Int16VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Int16Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Int16VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Int16Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Uint16Array:
+                if (Uint16VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Uint16VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Uint16Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Uint16VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Uint16Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Int32Array:
+                if (Int32VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Int32VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Int32Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Int32VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Int32Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Uint32Array:
+                if (Uint32VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Uint32VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Uint32Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Uint32VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Uint32Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Float32Array:
+                if (Float32VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Float32VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Float32Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Float32VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Float32Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Float64Array:
+                if (Float64VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Float64VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Float64Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Float64VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Float64Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Int64Array:
         case TypeIds_Uint64Array:
         case TypeIds_CharArray:
         case TypeIds_BoolArray:
-            TypedArrayBase::FromVar(parent)->length = 0;
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
             break;
 
         case TypeIds_DataView:
-            DataView::FromVar(parent)->length = 0;
+                DataView::FromVar(parent)->ClearLengthAndBufferOnDetach();
             break;
 
         default:
@@ -90,14 +225,14 @@ namespace Js
 
         if (this->primaryParent != nullptr)
         {
-            this->ClearParentsLength(this->primaryParent->Get());
+            this->DetachBufferFromParent(this->primaryParent->Get());
         }
 
         if (this->otherParents != nullptr)
         {
             this->otherParents->Map([&](RecyclerWeakReference<ArrayBufferParent>* item)
             {
-                this->ClearParentsLength(item->Get());
+                this->DetachBufferFromParent(item->Get());
             });
         }
 

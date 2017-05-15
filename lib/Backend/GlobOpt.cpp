@@ -16007,7 +16007,7 @@ GlobOpt::AttachBoundsCheckData(IR::Instr* instr, IR::Opnd* lowerBound, IR::Opnd*
     instr->SetSrc2(upperBound);
     if (offset != 0)
     {
-        instr->SetDst(IR::IntConstOpnd::New(offset, TyInt32, instr->m_func, true));
+        instr->SetDst(IR::IntConstOpnd::New(offset, TyInt32, instr->m_func));
     }
     return instr;
 }
@@ -16331,9 +16331,37 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             )
            )
         {
-            eliminatedLowerBoundCheck = true;
-            eliminatedUpperBoundCheck = true;
-            canBailOutOnArrayAccessHelperCall = false;
+            // Unless we're in asm.js (where it is guaranteed that virtual typed array accesses cannot read/write beyond 4GB),
+            // check the range of the index to make sure we won't access beyond the reserved memory beforing eliminating bounds
+            // checks in jitted code.
+            if (!GetIsAsmJSFunc())
+            {
+                IR::RegOpnd * idxOpnd = baseOwnerIndir->GetIndexOpnd();
+                if (idxOpnd)
+                {
+                    StackSym * idxSym = idxOpnd->m_sym->IsTypeSpec() ? idxOpnd->m_sym->GetVarEquivSym(nullptr) : idxOpnd->m_sym;
+                    Value * idxValue = FindValue(idxSym);
+                    IntConstantBounds idxConstantBounds;
+                    if (idxValue && idxValue->GetValueInfo()->TryGetIntConstantBounds(&idxConstantBounds))
+                    {
+                        BYTE indirScale = Lowerer::GetArrayIndirScale(baseValueType);
+                        int32 upperBound = idxConstantBounds.UpperBound();
+                        int32 lowerBound = idxConstantBounds.LowerBound();
+                        if (lowerBound >= 0 && ((static_cast<uint64>(upperBound) << indirScale) < MAX_ASMJS_ARRAYBUFFER_LENGTH))
+                        {
+                            eliminatedLowerBoundCheck = true;
+                            eliminatedUpperBoundCheck = true;
+                            canBailOutOnArrayAccessHelperCall = false;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                eliminatedLowerBoundCheck = true;
+                eliminatedUpperBoundCheck = true;
+                canBailOutOnArrayAccessHelperCall = false;
+            }
         }
     }
 
@@ -17300,8 +17328,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                                 : IR::IntConstOpnd::New(
                                     hoistInfo.IndexConstantBounds().LowerBound(),
                                     TyInt32,
-                                    instr->m_func,
-                                    true);
+                                    instr->m_func);
                             lowerBound->SetIsJITOptimizedReg(true);
                             IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
                             upperBound->SetIsJITOptimizedReg(true);
@@ -17449,7 +17476,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                 {
                     IR::Opnd* lowerBound = baseOwnerIndir->GetIndexOpnd()
                         ? static_cast<IR::Opnd *>(baseOwnerIndir->GetIndexOpnd())
-                        : IR::IntConstOpnd::New(baseOwnerIndir->GetOffset(), TyInt32, instr->m_func, true);
+                        : IR::IntConstOpnd::New(baseOwnerIndir->GetOffset(), TyInt32, instr->m_func);
                     lowerBound->SetIsJITOptimizedReg(true);
                     IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
                     upperBound->SetIsJITOptimizedReg(true);
@@ -20047,6 +20074,12 @@ GlobOpt::DoArrayLengthHoist() const
 }
 
 bool
+GlobOpt::DoEliminateArrayAccessHelperCall(Func *const func)
+{
+    return DoArrayCheckHoist(func);
+}
+
+bool
 GlobOpt::DoEliminateArrayAccessHelperCall() const
 {
     return doEliminateArrayAccessHelperCall;
@@ -21393,7 +21426,7 @@ GlobOpt::GenerateInductionVariableChangeForMemOp(Loop *loop, byte unroll, IR::In
         {
             sizeOpnd = IR::RegOpnd::New(TyUint32, this->func);
 
-            IR::Opnd *unrollOpnd = IR::IntConstOpnd::New(unroll, type, localFunc, true);
+            IR::Opnd *unrollOpnd = IR::IntConstOpnd::New(unroll, type, localFunc);
 
             InsertInstr(IR::Instr::New(Js::OpCode::Mul_I4,
                 sizeOpnd,
@@ -21406,7 +21439,7 @@ GlobOpt::GenerateInductionVariableChangeForMemOp(Loop *loop, byte unroll, IR::In
     else
     {
         uint size = (loopCount->LoopCountMinusOneConstantValue() + 1)  * unroll;
-        sizeOpnd = IR::IntConstOpnd::New(size, IRType::TyUint32, localFunc, true);
+        sizeOpnd = IR::IntConstOpnd::New(size, IRType::TyUint32, localFunc);
     }
     loop->memOpInfo->inductionVariableOpndPerUnrollMap->Add(unroll, sizeOpnd);
     return sizeOpnd;

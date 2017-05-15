@@ -573,6 +573,8 @@ namespace Js
 
         virtual int32 HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm, ScriptContext * scriptContext);
 
+        template<typename T>
+        static void CopyHeadIfInlinedHeadSegment(JavascriptArray *array, Recycler *recycler);
 
         template<typename T>
         static void ArraySpliceHelper(JavascriptArray* pNewArr, JavascriptArray* pArr, uint32 start, uint32 deleteLen,

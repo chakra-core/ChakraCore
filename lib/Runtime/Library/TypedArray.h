@@ -157,6 +157,7 @@ namespace Js
         uint32 GetBytesPerElement() const { return BYTES_PER_ELEMENT; }
         byte*  GetByteBuffer() const { return buffer; };
         bool IsDetachedBuffer() const { return this->GetArrayBuffer()->IsDetached(); }
+        void ClearLengthAndBufferOnDetach();
         static Var CommonSet(Arguments& args);
         static Var CommonSubarray(Arguments& args);
 

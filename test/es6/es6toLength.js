@@ -12,12 +12,12 @@ var tests = [
        {
             var c = [];
             c[0] = 1;
-            c[4294967293] = 2;
+            c[100] = 2;
             var oNeg = { length : -1, 0 : 3, 1: 4, [Symbol.isConcatSpreadable] : true};
             c = c.concat(oNeg);
             assert.areEqual(1, c[0], "confirm indices of array concated to did not change")
-            assert.areEqual(2, c[4294967293], "confirm indices of array concated to did not change");
-            assert.areEqual(undefined, c[4294967294], "Length of oNeg is coerced to 0 nothing is concated here");
+            assert.areEqual(2, c[100], "confirm indices of array concated to did not change");
+            assert.areEqual(undefined, c[101], "Length of oNeg is coerced to 0 nothing is concated here");
        }
    },
    {
