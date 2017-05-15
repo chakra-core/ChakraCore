@@ -1326,6 +1326,7 @@ FLAGNR(Boolean,     PageHeapAllocStack,   "Capture alloc stack under page heap m
 FLAGNR(Boolean,     PageHeapFreeStack,    "Capture free stack under page heap mode", DEFAULT_CONFIG_PageHeapFreeStack)
 FLAGNR(NumberRange, PageHeapBucketNumber, "Bucket numbers to be used for page heap allocations", )
 FLAGNR(Number,      PageHeapBlockType,    "Type of blocks to use page heap for", DEFAULT_CONFIG_PageHeapBlockType)
+FLAGNR(Boolean,     PageHeapDecommitGuardPage, "Decommit page heap guard page", true)
 #endif
 #ifdef RECYCLER_NO_PAGE_REUSE
 FLAGNR(Boolean, RecyclerNoPageReuse,     "Do not reuse page in recycler", false)

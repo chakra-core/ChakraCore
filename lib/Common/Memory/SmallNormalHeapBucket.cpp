@@ -236,7 +236,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
                 heapBlock->template SweepObjects<SweepMode_ConcurrentPartial>(recycler);
 
                 // page heap mode should never reach here, so don't check pageheap enabled or not
-                if (heapBlock->template HasFreeObject<false>())
+                if (heapBlock->HasFreeObject())
                 {
                     // We have pre-existing free objects, so put this in the partialSweptHeapBlockList
                     heapBlock->SetNextBlock(this->partialSweptHeapBlockList);

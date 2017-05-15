@@ -664,9 +664,7 @@ private:
     bool AreFreeListBucketsEmpty();
 };
 
-#if DBG
-bool IsAll(char* buffer, size_t size, char c);
-#endif
+bool IsAll(byte* buffer, size_t size, byte c);
 
 class InlineCacheAllocator : public InlineCacheAllocatorInfo, public ArenaAllocatorBase<InlineCacheAllocatorTraits>
 {

@@ -10,7 +10,7 @@
 // Page heap mode is supported currently only in the Recycler
 // Defining here so that other allocators can take advantage of this
 // in the future
-enum PageHeapMode
+enum PageHeapMode : byte
 {
     PageHeapModeOff = 0,   // No Page heap
     PageHeapModeBlockStart = 1,   // Allocate the object at the beginning of the page
@@ -23,6 +23,10 @@ enum PageHeapMode
 
 #if DBG || defined(RECYCLER_FREE_MEM_FILL)
 #define DbgMemFill 0XFE
+#endif
+
+#ifdef RECYCLER_PAGE_HEAP
+#define PageHeapMemFill 0XF0
 #endif
 
 namespace Memory

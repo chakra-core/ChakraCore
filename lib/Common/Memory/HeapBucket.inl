@@ -75,12 +75,3 @@ HeapBucketT<TBlockType>::ExplicitFree(void* object, size_t sizeCat)
     // Don't fill memory fill pattern here since we're still pretending like the object
     // is allocated to other parts of the GC.
 }
-
-#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
-inline
-Recycler *
-HeapBucket::GetRecycler() const
-{
-    return this->heapInfo->recycler;
-}
-#endif

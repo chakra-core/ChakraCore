@@ -333,7 +333,7 @@ public:
     virtual BOOL IsValidObject(void* objectAddress) = 0;
 
     virtual byte* GetRealAddressFromInterior(void* interiorAddress) = 0;
-    virtual size_t GetObjectSize(void* object) = 0;
+    virtual size_t GetObjectSize(void* object) const = 0;
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) = 0;
     virtual bool TestObjectMarkedBit(void* objectAddress) = 0;
     virtual void SetObjectMarkedBit(void* objectAddress) = 0;
@@ -521,7 +521,6 @@ public:
     uint GetObjectWordCount() const { return this->objectSize / sizeof(void *); }
     uint GetPageCount() const;
 
-    template<bool checkPageHeap=true>
     bool HasFreeObject() const
     {
         return freeObjectList != nullptr;
@@ -610,7 +609,7 @@ public:
     byte* GetRealAddressFromInterior(void* interiorAddress) override sealed;
     bool TestObjectMarkedBit(void* objectAddress) override sealed;
     void SetObjectMarkedBit(void* objectAddress) override;
-    virtual size_t GetObjectSize(void* object) override { return objectSize; }
+    virtual size_t GetObjectSize(void* object) const override { return objectSize; }
 
     uint GetMarkCountForSweep();
     SweepState Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount = 0, bool hasPendingDispose = false);

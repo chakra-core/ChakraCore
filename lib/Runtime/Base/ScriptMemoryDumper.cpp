@@ -170,7 +170,7 @@ void ScriptMemoryDumper::DumpLargeHeapBlock(LargeHeapBlock* heapBlock)
 
     for (uint32 i = 0; i < heapBlock->allocCount; i++)
     {
-        Memory::LargeObjectHeader* heapHeader = heapBlock->GetHeader(i);
+        Memory::LargeObjectHeader* heapHeader = heapBlock->GetHeaderByIndex(i);
         if (heapHeader != nullptr)
         {
             current.activeObjectCount++;
