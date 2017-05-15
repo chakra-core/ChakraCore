@@ -776,6 +776,7 @@ typedef struct NativeDataBuffer
 // Fields that JIT modifies
 typedef struct JITOutputIDL
 {
+    boolean disableArrayCheckHoist;
     boolean disableAggressiveIntTypeSpec;
     boolean disableInlineApply;
     boolean disableInlineSpread;
@@ -787,8 +788,6 @@ typedef struct JITOutputIDL
     boolean hasBailoutInstr;
 
     boolean hasJittedStackClosure;
-
-    IDL_PAD1(0)
 
     unsigned short pdataCount;
     unsigned short xdataSize;

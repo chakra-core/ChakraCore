@@ -406,4 +406,9 @@
       <compile-flags> -maxsimplejitruncount:1 -maxinterpretcount:1 </compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug11026788.js</files>
+    </default>
+  </test>
 </regress-exe>

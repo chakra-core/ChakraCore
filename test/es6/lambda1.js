@@ -477,6 +477,29 @@ var tests = [
             var l = async() => (async() => ('str'));
             assert.areEqual("async() => (async() => ('str'))", '' + l, "Nested async lambda should be correct");
         }
+    },
+    {
+        name: "Lambda consisting of assignment expression should have correct source string",
+        body: function () {
+            var l = () => a = (123)
+            assert.areEqual('() => a = (123)', '' + l, "Lambda to string should include the parens wrapping the return expression");
+            
+            var l = () => a = (('๏บบ'))
+            assert.areEqual("() => a = (('๏บบ'))", '' + l, "Multi-byte characters should not break the string");
+            
+            var s = "() => a = ('\u{20ac}')";
+            var l = eval(s);
+            assert.areEqual(s, '' + l, "Unicode byte sequences should not break the string");
+            
+            var l = async() => a = ({});
+            assert.areEqual('async() => a = ({})', '' + l, "Async lambda should also be correct");
+            
+            var l = () => a = (() => b = (123))
+            assert.areEqual('() => a = (() => b = (123))', '' + l, "Nested lambda to string should be correct");
+            
+            var l = async() => a = (async() => b = ('str'));
+            assert.areEqual("async() => a = (async() => b = ('str'))", '' + l, "Nested async lambda should be correct");
+        }
     }
 ];
 

@@ -325,6 +325,11 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
                 workItem->GetJITFunctionBody()->GetProfileInfo()->DisableSwitchOpt();
                 outputData->disableSwitchOpt = TRUE;
             }
+            else if (ex.Reason() == RejitReason::ArrayCheckHoistDisabled || ex.Reason() == RejitReason::ArrayAccessHelperCallEliminationDisabled)
+            {
+                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableArrayCheckHoist(func.IsLoopBody());
+                outputData->disableArrayCheckHoist = TRUE;
+            }
             else
             {
                 Assert(ex.Reason() == RejitReason::TrackIntOverflowDisabled);

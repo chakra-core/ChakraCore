@@ -1009,8 +1009,8 @@ namespace Js
         JavascriptGenerator* gen = asyncSpawnExecutorFunction->GetGenerator();
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction = library->CreatePromiseAsyncSpawnStepArgumentExecutorFunction(EntryJavascriptPromiseAsyncSpawnStepNextExecutorFunction, gen, varCallArgs);
 
-        Assert(JavascriptFunction::Is(resolve) && JavascriptFunction::Is(reject));
-        AsyncSpawnStep(nextFunction, gen, JavascriptFunction::FromVar(resolve), JavascriptFunction::FromVar(reject));
+        Assert(JavascriptConversion::IsCallable(resolve) && JavascriptConversion::IsCallable(reject));
+        AsyncSpawnStep(nextFunction, gen, resolve, reject);
 
         return undefinedVar;
     }
@@ -1054,8 +1054,8 @@ namespace Js
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepExecutorFunction = JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::FromVar(function);
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* functionArg;
         JavascriptGenerator* gen = asyncSpawnStepExecutorFunction->GetGenerator();
-        JavascriptFunction* reject = asyncSpawnStepExecutorFunction->GetReject();
-        JavascriptFunction* resolve = asyncSpawnStepExecutorFunction->GetResolve();
+        Var reject = asyncSpawnStepExecutorFunction->GetReject();
+        Var resolve = asyncSpawnStepExecutorFunction->GetResolve();
 
         if (asyncSpawnStepExecutorFunction->GetIsReject())
         {
@@ -1071,9 +1071,9 @@ namespace Js
         return undefinedVar;
     }
 
-    void JavascriptPromise::AsyncSpawnStep(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction, JavascriptGenerator* gen, JavascriptFunction* resolve, JavascriptFunction* reject)
+    void JavascriptPromise::AsyncSpawnStep(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction, JavascriptGenerator* gen, Var resolve, Var reject)
     {
-        ScriptContext* scriptContext = resolve->GetScriptContext();
+        ScriptContext* scriptContext = gen->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
         Var undefinedVar = library->GetUndefined();
 
@@ -1105,7 +1105,12 @@ namespace Js
         {
             // finished with success, resolve the promise
             value = JavascriptOperators::GetProperty(next, PropertyIds::value, scriptContext);
-            CALL_FUNCTION(scriptContext->GetThreadContext(), resolve, CallInfo(CallFlags_Value, 2), undefinedVar, value);
+            if (!JavascriptConversion::IsCallable(resolve))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+            }
+            CALL_FUNCTION(scriptContext->GetThreadContext(), RecyclableObject::FromVar(resolve), CallInfo(CallFlags_Value, 2), undefinedVar, value);
+
             return;
         }
 
@@ -1118,11 +1123,19 @@ namespace Js
         Var promiseVar = CALL_FUNCTION(scriptContext->GetThreadContext(), promiseResolve, CallInfo(CallFlags_Value, 2), library->GetPromiseConstructor(), value);
         JavascriptPromise* promise = FromVar(promiseVar);
 
-        JavascriptFunction* promiseThen = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(promise, PropertyIds::then, scriptContext));
-        CALL_FUNCTION(scriptContext->GetThreadContext(), promiseThen, CallInfo(CallFlags_Value, 2), promise, successFunction);
+        Var promiseThen = JavascriptOperators::GetProperty(promise, PropertyIds::then, scriptContext);
+        if (!JavascriptConversion::IsCallable(promiseThen))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+        }
+        CALL_FUNCTION(scriptContext->GetThreadContext(), RecyclableObject::FromVar(promiseThen), CallInfo(CallFlags_Value, 2), promise, successFunction);
 
-        JavascriptFunction* promiseCatch = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(promise, PropertyIds::catch_, scriptContext));
-        CALL_FUNCTION(scriptContext->GetThreadContext(), promiseCatch, CallInfo(CallFlags_Value, 2), promise, failFunction);
+        Var promiseCatch = JavascriptOperators::GetProperty(promise, PropertyIds::catch_, scriptContext);
+        if (!JavascriptConversion::IsCallable(promiseCatch))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+        }
+        CALL_FUNCTION(scriptContext->GetThreadContext(), RecyclableObject::FromVar(promiseCatch), CallInfo(CallFlags_Value, 2), promise, failFunction);
     }
 
 #if ENABLE_TTD
@@ -1435,7 +1448,7 @@ namespace Js
     }
 #endif
 
-    JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var argument, JavascriptFunction* resolve, JavascriptFunction* reject, bool isReject)
+    JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var argument, Var resolve, Var reject, bool isReject)
         : RuntimeFunction(type, functionInfo), generator(generator), argument(argument), resolve(resolve), reject(reject), isReject(isReject)
     { }
 
@@ -1464,12 +1477,12 @@ namespace Js
         return this->generator;
     }
 
-    JavascriptFunction* JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::GetResolve()
+    Var JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::GetResolve()
     {
         return this->resolve;
     }
 
-    JavascriptFunction* JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::GetReject()
+    Var JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::GetReject()
     {
         return this->reject;
     }

@@ -40,6 +40,7 @@ public:
     void DisableStackArgOpt();
     void DisableSwitchOpt();
     void DisableTrackCompoundedIntOverflow();
+    void DisableArrayCheckHoist(bool isLoopBody);
 
     bool IsModulusOpByPowerOf2(Js::ProfileId profileId) const;
     bool IsAggressiveIntTypeSpecDisabled(const bool isJitLoopBody) const;

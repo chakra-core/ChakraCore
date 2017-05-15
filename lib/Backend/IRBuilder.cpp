@@ -4879,14 +4879,14 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
             // The property ID array needs to be both relocatable and available (so we can
             // get the slot capacity), so we need to just pass the offset to lower and let
             // lower take it from there...
-            srcOpnd = IR::IntConstOpnd::New(auxInsn->Offset, TyUint32, m_func, true);
+            srcOpnd = IR::IntConstOpnd::New(auxInsn->Offset, TyUint32, m_func);
             dstOpnd = this->BuildDstOpnd(dstRegSlot);
             dstOpnd->SetValueType(ValueType::GetObject(ObjectType::UninitializedObject));
             instr = IR::Instr::New(newOpcode, dstOpnd, srcOpnd, m_func);
 
             // Because we're going to be making decisions based off the value, we have to defer
             // this until we get to lowering.
-            instr->SetSrc2(IR::IntConstOpnd::New(literalObjectId, TyUint32, m_func, true));
+            instr->SetSrc2(IR::IntConstOpnd::New(literalObjectId, TyUint32, m_func));
 
             if (dstOpnd->m_sym->m_isSingleDef)
             {

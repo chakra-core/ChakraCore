@@ -94,7 +94,7 @@ namespace Js
         // typed array.
         DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBuffer, ArrayBufferBase);
     private:
-        void ClearParentsLength(ArrayBufferParent* parent);
+        void DetachBufferFromParent(ArrayBufferParent* parent);
     public:
         template <typename FreeFN>
         class ArrayBufferDetachedState : public ArrayBufferDetachedStateBase

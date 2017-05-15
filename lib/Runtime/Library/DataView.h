@@ -50,6 +50,7 @@ namespace Js
         }
 
         uint32 GetByteOffset() const { return byteOffset; }
+        void ClearLengthAndBufferOnDetach();
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetInt8(RecyclableObject* function, CallInfo callInfo, ...);

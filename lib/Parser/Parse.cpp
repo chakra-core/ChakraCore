@@ -7124,12 +7124,15 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
 
     ArenaAllocator tempAllocator(_u("ClassMemberNames"), m_nodeAllocator.GetPageAllocator(), Parser::OutOfMemory);
 
+    size_t cbMinConstructor = 0;
     ParseNodePtr pnodeClass = nullptr;
     if (buildAST)
     {
         pnodeClass = CreateNode(knopClassDecl);
 
         CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Class, m_scriptContext);
+
+        cbMinConstructor = m_pscan->IecpMinTok();
     }
 
     m_pscan->Scan();
@@ -7422,9 +7425,11 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
         }
     }
 
+    size_t cbLimConstructor = 0;
     if (buildAST)
     {
         pnodeClass->ichLim = m_pscan->IchLimTok();
+        cbLimConstructor = m_pscan->IecpLimTok();
     }
 
     if (!hasConstructor)
@@ -7459,8 +7464,8 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
 
     if (buildAST)
     {
-        pnodeConstructor->sxFnc.cbMin = pnodeClass->ichMin;
-        pnodeConstructor->sxFnc.cbLim = pnodeClass->ichLim;
+        pnodeConstructor->sxFnc.cbMin = cbMinConstructor;
+        pnodeConstructor->sxFnc.cbLim = cbLimConstructor;
         pnodeConstructor->ichMin = pnodeClass->ichMin;
         pnodeConstructor->ichLim = pnodeClass->ichLim;
 
@@ -8469,7 +8474,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         {
             // Parse the operand, make a new node, and look for more
             IdentToken token;
-            pnodeT = ParseExpr<buildAST>(opl, NULL, fAllowIn, FALSE, pNameHint, &hintLength, &hintOffset, &token);
+            pnodeT = ParseExpr<buildAST>(opl, NULL, fAllowIn, FALSE, pNameHint, &hintLength, &hintOffset, &token, false, nullptr, plastRParen);
 
             // Detect nested function escapes of the pattern "o.f = function(){...}" or "o[s] = function(){...}".
             // Doing so in the parser allows us to disable stack-nested-functions in common cases where an escape

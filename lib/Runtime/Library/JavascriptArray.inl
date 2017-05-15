@@ -142,6 +142,7 @@ namespace Js
                 head->length = length;
             }
             head->size = size;
+            head->CheckLengthvsSize();
         }
         else
         {
@@ -257,6 +258,7 @@ namespace Js
         // a variable until it is fully initialized, there is no way for script code to use the array while it still has missing
         // values.
         array->head->length = length;
+        array->head->CheckLengthvsSize();
         return array;
     }
 
@@ -421,6 +423,7 @@ namespace Js
             }
 
             seg->length = offset + 1;
+            seg->CheckLengthvsSize();
             const uint32 itemIndex = seg->left + offset;
             if (this->length <= itemIndex)
             {
@@ -461,6 +464,7 @@ namespace Js
             }
 
             seg->length = offset + 1;
+            seg->CheckLengthvsSize();
             const uint32 itemIndex = seg->left + offset;
             if (this->length <= itemIndex)
             {
@@ -715,6 +719,7 @@ SECOND_PASS:
             {
                 current = SparseArraySegment<T>::From(head)->GrowByMin(recycler, startIndex + length - head->size);
                 current->length = endIndex + 1;
+                current->CheckLengthvsSize();
                 head = current;
                 SetHasNoMissingValues(false);
             }
@@ -724,6 +729,7 @@ SECOND_PASS:
                 current = SparseArraySegment<T>::AllocateSegment(recycler, startIndex, length, (SparseArraySegment<T> *)nullptr);
                 LinkSegments((Js::SparseArraySegment<T>*)startPrev, current);
                 current->length = length;
+                current->CheckLengthvsSize();
                 if (current == head)
                 {
                     Assert(startIndex == 0);
@@ -762,6 +768,7 @@ SECOND_PASS:
                         }
                     }
                     current->length = startOffset + length;
+                    current->CheckLengthvsSize();
                 }
                 else
                 {
@@ -784,6 +791,7 @@ SECOND_PASS:
                         }
                     }
                     current->length = current->length >  (startOffset + length) ? current->length : (startOffset + length);
+                    current->CheckLengthvsSize();
                 }
             }
             else if ((startIndex + 1) <= startSeg->left)
@@ -792,6 +800,7 @@ SECOND_PASS:
                 {
                     current = SparseArraySegment<T>::From(head)->GrowByMin(recycler, startIndex + length - head->size);
                     current->length = endIndex + 1;
+                    current->CheckLengthvsSize();
                     head = current;
                 }
                 else
@@ -804,6 +813,7 @@ SECOND_PASS:
                         SetHasNoMissingValues();
                     }
                     current->length = length;
+                    current->CheckLengthvsSize();
                 }
             }
             else
@@ -823,6 +833,7 @@ SECOND_PASS:
                     }
                 }
                 current->length = startOffset + length;
+                current->CheckLengthvsSize();
             }
 
             startSeg = current;
@@ -854,6 +865,7 @@ SECOND_PASS:
                                 ((Js::SparseArraySegment<T>*)endSeg)->elements + endOffset + 1, growby);
                             LinkSegments((Js::SparseArraySegment<T>*)startPrev, current);
                             current->length = startOffset + length + growby;
+                            current->CheckLengthvsSize();
                         }
                         if (current == head && HasNoMissingValues())
                         {
@@ -885,6 +897,7 @@ SECOND_PASS:
                             }
                         }
                         current->length = endIndex + growby + 1;
+                        current->CheckLengthvsSize();
                         current->next = endSeg->next;
                     }
                     else
@@ -1036,6 +1049,7 @@ SECOND_PASS:
             if (length > head->length)
             {
                 head->length = length;
+                head->CheckLengthvsSize();
             }
 
             if (!HasNoMissingValues())
@@ -1396,6 +1410,7 @@ SECOND_PASS:
                 current = SparseArraySegment<T>::From(head)->GrowByMin(recycler, itemIndex + 1 - head->size);
                 current->elements[itemIndex] = newValue;
                 current->length =  itemIndex + 1;
+                current->CheckLengthvsSize();
 
                 head = current;
 
@@ -1505,6 +1520,7 @@ SECOND_PASS:
             DebugOnly(VerifyNotNeedMarshal(iValue));
             current->elements[indexInt] = iValue;
             current->length =  indexInt + 1;
+            current->CheckLengthvsSize();
             // There is only a head segment in this condition A segment map is not necessary
             // and most likely invalid at this point. Also we are setting the head and lastUsedSegment
             // to the same segment. Precedent in the rest of the code base dictates the use of
