@@ -1515,6 +1515,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::ReleaseSegment(TSegmen
     if (disablePageReuse)
     {
         Assert(this->processHandle == GetCurrentProcess());
+#pragma prefast(suppress:6250, "Calling 'VirtualFree' without the MEM_RELEASE flag might free memory but not address descriptors (VADs).")
         VirtualFree(segment->GetAddress(), segment->GetPageCount() * AutoSystemInfo::PageSize, MEM_DECOMMIT);
         return;
     }
@@ -1548,6 +1549,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::ReleasePages(__in void
     if (disablePageReuse)
     {
         Assert(this->processHandle == GetCurrentProcess());
+#pragma prefast(suppress:6250, "Calling 'VirtualFree' without the MEM_RELEASE flag might free memory but not address descriptors (VADs).")
         VirtualFree(address, pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
         return;
     }

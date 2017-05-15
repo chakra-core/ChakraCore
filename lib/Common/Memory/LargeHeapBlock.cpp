@@ -359,6 +359,7 @@ LargeHeapBlock::ReleasePages(Recycler * recycler)
 #endif
                 )
             {
+#pragma prefast(suppress:6250, "Calling 'VirtualFree' without the MEM_RELEASE flag might free memory but not address descriptors (VADs).")
                 VirtualFree((char*)pageHeapData->objectPageAddr, this->pageCount* AutoSystemInfo::PageSize, MEM_DECOMMIT);
                 RECYCLER_PERF_COUNTER_SUB(LargeHeapBlockPageSize, pageCount * AutoSystemInfo::PageSize);
                 this->segment = nullptr;
