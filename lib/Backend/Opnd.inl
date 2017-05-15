@@ -234,6 +234,33 @@ Opnd::AsFloatConstOpnd()
     return reinterpret_cast<FloatConstOpnd *>(this);
 }
 
+///----------------------------------------------------------------------------
+///
+/// Opnd::IsFloat32ConstOpnd
+///
+///----------------------------------------------------------------------------
+
+inline bool
+Opnd::IsFloat32ConstOpnd() const
+{
+    return GetKind() == OpndKindFloat32Const;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Opnd::AsFloat32ConstOpnd
+///
+///     Use this opnd as a FloatConstOpnd.
+///
+///----------------------------------------------------------------------------
+
+inline Float32ConstOpnd *
+Opnd::AsFloat32ConstOpnd()
+{
+    AssertMsg(this->IsFloat32ConstOpnd(), "Bad call to AsFloat32ConstOpnd()");
+    return reinterpret_cast<Float32ConstOpnd *>(this);
+}
+
 inline bool
 Opnd::IsSimd128ConstOpnd() const
 {

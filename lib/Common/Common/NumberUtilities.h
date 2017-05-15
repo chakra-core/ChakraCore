@@ -96,7 +96,11 @@ namespace Js
         static bool IsSpecial(double value, uint64 nSpecial);
         static uint64 ToSpecial(double value);
         static uint32 ToSpecial(float value);
+#ifdef _WIN32
+        static float __vectorcall ReinterpretBits(int value);
+#else
         static float ReinterpretBits(int value);
+#endif
         static double ReinterpretBits(int64 value);
 
         // Convert a given UINT16 into its corresponding string.

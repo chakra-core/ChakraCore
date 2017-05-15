@@ -761,6 +761,11 @@ StackSym::GetConstOpnd() const
         defInstr->m_opcode = Js::OpCode::Ld_A;
 
     }
+    else if (src1->IsFloat32ConstOpnd())
+    {
+        Assert(this->IsFloatConst());
+        Assert(defInstr->m_opcode == Js::OpCode::LdC_F8_R8 || LowererMD::IsAssign(defInstr));
+    }
     else if (src1->IsAddrOpnd())
     {
         Assert(defInstr->m_opcode == Js::OpCode::Ld_A || LowererMD::IsAssign(defInstr) || defInstr->m_opcode == Js::OpCode::ArgOut_A_InlineBuiltIn);

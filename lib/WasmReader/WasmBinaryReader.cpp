@@ -558,9 +558,11 @@ void WasmBinaryReader::ConstNode()
         m_funcState.count += len;
         break;
     case WasmTypes::F32:
-        m_currentNode.cnst.f32 = ReadConst<float>();
+    {
+        m_currentNode.cnst.i32 = ReadConst<int>();
         m_funcState.count += sizeof(float);
         break;
+    }
     case WasmTypes::F64:
         m_currentNode.cnst.f64 = ReadConst<double>();
         m_funcState.count += sizeof(double);

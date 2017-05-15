@@ -29,13 +29,14 @@ Js::DynamicObject * IRtoJSObjectBuilder::CreateIntConstOpnd(Js::ScriptContext *s
 
 Js::DynamicObject * IRtoJSObjectBuilder::CreateFloatConstOpnd(Js::ScriptContext *scriptContext, IR::Opnd *opnd)
 {
-    if (!opnd || !opnd->IsFloatConstOpnd())
+    if (!opnd || !opnd->IsFloatConstOpnd() || !opnd->IsFloat32ConstOpnd())
     {
         return NULL;
     }
-
-    IR::FloatConstOpnd *op = opnd->AsFloatConstOpnd();
-    FloatConstType value = op->m_value;
+   
+    FloatConstType value = (opnd->IsFloatConstOpnd()) ?
+        opnd->AsFloatConstOpnd()->m_value :
+        opnd->AsFloat32ConstOpnd()->m_value;
 
     Js::Var valueVar = Js::JavascriptNumber::New(value, scriptContext);
 
@@ -224,6 +225,7 @@ Js::DynamicObject * IRtoJSObjectBuilder::CreateOpnd(Js::ScriptContext *scriptCon
         opObject = CreateIntConstOpnd(scriptContext, opnd);
         break;
 
+    case IR::OpndKind::OpndKindFloat32Const:
     case IR::OpndKind::OpndKindFloatConst:
         opObject = CreateFloatConstOpnd(scriptContext, opnd);
         break;
