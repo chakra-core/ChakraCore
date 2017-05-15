@@ -22,6 +22,7 @@ add_library (Chakra.Backend OBJECT
     FunctionJITTimeInfo.cpp
     GlobOpt.cpp
     GlobOptBailOut.cpp
+    GlobOptBlockInfo.cpp
     GlobOptExpr.cpp
     GlobOptFields.cpp
     GlobOptIntBounds.cpp
@@ -73,6 +74,7 @@ add_library (Chakra.Backend OBJECT
     Sym.cpp
     SymTable.cpp
     TempTracker.cpp
+    ValueInfo.cpp
     ValueRelativeOffset.cpp
     amd64/EncoderMD.cpp
     amd64/LinearScanMD.cpp
