@@ -81,6 +81,11 @@ namespace Js
         JavascriptFunction* GetPromiseThen() const { return promiseThenFunction; }
         JavascriptFunction* GetJSONStringify() const { return jsonStringifyFunction; }
         JavascriptFunction* GetObjectFreeze() const { return objectFreezeFunction; }
+        JavascriptFunction* GetDebugEval() const { return debugEval; }
+        JavascriptFunction* GetStackTraceFunction() const { return getStackTrace; }
+#ifdef EDIT_AND_CONTINUE
+        JavascriptFunction* GetEditSource() const { return editSource; }
+#endif
 
         JavascriptFunction* GetArrayPrototypeForEachFunction() const { return arrayPrototypeForEachFunction; }
         JavascriptFunction* GetArrayPrototypeKeysFunction() const { return arrayPrototypeKeysFunction; }
@@ -195,6 +200,7 @@ namespace Js
         Field(JavascriptFunction*) promiseThenFunction;
         Field(JavascriptFunction*) jsonStringifyFunction;
         Field(JavascriptFunction*) objectFreezeFunction;
+
         Field(DynamicObject*) mathObject;
         // SIMD_JS
         Field(DynamicObject*) simdObject;
@@ -304,5 +310,11 @@ namespace Js
         virtual void Finalize(bool isShutdown) override;
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
+    protected:
+        Field(JavascriptFunction*) debugEval;
+        Field(JavascriptFunction*) getStackTrace;
+#ifdef EDIT_AND_CONTINUE
+        Field(JavascriptFunction*) editSource;
+#endif
     };
 }
