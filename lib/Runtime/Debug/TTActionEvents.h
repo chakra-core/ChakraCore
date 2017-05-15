@@ -484,6 +484,7 @@ namespace TTD
         void AllocateFunctionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         void HostProcessExitAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void GetAndClearExceptionWithMetadataAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void SetExceptionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 

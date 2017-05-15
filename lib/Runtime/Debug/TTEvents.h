@@ -135,6 +135,7 @@ namespace TTD
             AllocateFunctionActionTag,
 
             HostExitProcessTag,
+            GetAndClearExceptionWithMetadataActionTag,
             GetAndClearExceptionActionTag,
             SetExceptionActionTag,
 
