@@ -106,7 +106,7 @@ struct PageHeapData
     char* objectAddress;
     char* objectEndAddr;
     char* objectPageAddr;    
-    char* lastMarkedBy;
+    const char* lastMarkedBy;
 #ifdef STACK_BACK_TRACE
     StackBackTrace* pageHeapAllocStack;
     StackBackTrace* pageHeapFreeStack;
