@@ -976,10 +976,3 @@ private:
 
     friend class InvariantBlockBackwardIterator;
 };
-
-template<>
-ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value)
-{
-    Assert(value);
-    return value->GetValueNumber();
-}
