@@ -27,6 +27,7 @@
 *.vcxproj.user
 *.vspscc
 *.wrn
+.vs/
 
 # Visual Studio Extensions
 *.vadbg
@@ -36,7 +37,6 @@
 build_*.err
 build_*.log
 build_*.wrn
-Build/.vs/
 Build/ipch/
 Build/swum-cache.txt
 Build/VCBuild.NoJIT/
