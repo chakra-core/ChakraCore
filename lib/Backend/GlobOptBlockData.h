@@ -106,7 +106,6 @@ typedef SList<GlobHashBucket*, JitArenaAllocator> PRECandidatesList;
 
 class GlobOptBlockData
 {
-    friend class FlowGraph;
     friend class BasicBlock;
 public:
     GlobOptBlockData(Func *func) :
