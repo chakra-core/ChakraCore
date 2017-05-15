@@ -50,6 +50,7 @@ set(CRLIB_SOURCE_CODES
     JavascriptDate.cpp
     JavascriptError.cpp
     # JavascriptErrorDebug.cpp
+    JavascriptExceptionMetadata.cpp
     JavascriptExternalFunction.cpp
     JavascriptFunction.cpp
     JavascriptGenerator.cpp

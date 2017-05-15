@@ -551,6 +551,7 @@ namespace TTD
 
         //Record GetAndClearException
         void RecordJsRTHostExitProcess(TTDJsRTActionResultAutoRecorder& actionPopper, int32 exitCode);
+        void RecordJsRTGetAndClearExceptionWithMetadata(TTDJsRTActionResultAutoRecorder& actionPopper);
         void RecordJsRTGetAndClearException(TTDJsRTActionResultAutoRecorder& actionPopper);
         void RecordJsRTSetException(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, bool propagateToDebugger);
 

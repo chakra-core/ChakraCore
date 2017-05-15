@@ -764,6 +764,9 @@ namespace JsRTApiTest
     {
         bool value;
         JsValueRef exception = JS_INVALID_REFERENCE;
+        JsValueRef exceptionMetadata = JS_INVALID_REFERENCE;
+        JsValueRef metadataValue = JS_INVALID_REFERENCE;
+        JsPropertyIdRef property = JS_INVALID_REFERENCE;
         JsValueType type;
 
         REQUIRE(JsHasException(&value) == JsNoError);
@@ -782,6 +785,84 @@ namespace JsRTApiTest
         REQUIRE(JsSetException(exception) == JsNoError);
         REQUIRE(JsHasException(&value) == JsNoError);
         CHECK(value == true);
+
+        REQUIRE(JsGetAndClearExceptionWithMetadata(&exceptionMetadata) == JsNoError);
+        REQUIRE(JsHasException(&value) == JsNoError);
+        CHECK(value == false);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("exception"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        CHECK(metadataValue == exception);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("line"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+        CHECK(type == JsNumber);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("column"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+        CHECK(type == JsNumber);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("length"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+        CHECK(type == JsNumber);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("url"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+        CHECK(type == JsString);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("source"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+        CHECK(type == JsString);
+
+
+        REQUIRE(JsHasException(&value) == JsNoError);
+        CHECK(value == false);
+        REQUIRE(JsGetAndClearExceptionWithMetadata(&exceptionMetadata) == JsErrorInvalidArgument);
+        CHECK(exceptionMetadata == JS_INVALID_REFERENCE);
+
+
+        REQUIRE(JsRunScript(_u("@ bad syntax"), JS_SOURCE_CONTEXT_NONE, _u(""), nullptr) == JsErrorScriptCompile);
+        REQUIRE(JsHasException(&value) == JsNoError);
+        CHECK(value == true);
+
+        REQUIRE(JsGetAndClearExceptionWithMetadata(&exceptionMetadata) == JsNoError);
+        REQUIRE(JsHasException(&value) == JsNoError);
+        CHECK(value == false);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("exception"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+        CHECK(type == JsError);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("line"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+        CHECK(type == JsNumber);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("column"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+        CHECK(type == JsNumber);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("length"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+        CHECK(type == JsNumber);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("url"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+        CHECK(type == JsString);
+
+        REQUIRE(JsGetPropertyIdFromName(_u("source"), &property) == JsNoError);
+        REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+        REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+        CHECK(type == JsString);
     }
 
     TEST_CASE("ApiTest_ExceptionHandlingTest", "[ApiTest]")

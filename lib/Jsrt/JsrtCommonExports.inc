@@ -118,4 +118,5 @@
     JsCreatePromise
     JsCreateWeakReference
     JsGetWeakReferenceValue
+    JsGetAndClearExceptionWithMetadata
 #endif

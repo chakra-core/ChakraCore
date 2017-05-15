@@ -822,11 +822,10 @@ namespace Js
         }
     }
 
-    JavascriptError* JavascriptError::CreateFromCompileScriptException(ScriptContext* scriptContext, CompileScriptException* cse)
+    JavascriptError* JavascriptError::CreateFromCompileScriptException(ScriptContext* scriptContext, CompileScriptException* cse, const WCHAR * sourceUrl)
     {
         HRESULT hr = cse->ei.scode;
         Js::JavascriptError * error = Js::JavascriptError::MapParseError(scriptContext, hr);
-        const Js::PropertyRecord *record;
         Var value;
 
         if (cse->ei.bstrDescription)
@@ -838,15 +837,13 @@ namespace Js
         if (cse->hasLineNumberInfo)
         {
             value = JavascriptNumber::New(cse->line, scriptContext);
-            scriptContext->GetOrAddPropertyRecord(_u("line"), &record);
-            JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::line, value, scriptContext);
         }
 
         if (cse->hasLineNumberInfo)
         {
             value = JavascriptNumber::New(cse->ichMin - cse->ichMinLine, scriptContext);
-            scriptContext->GetOrAddPropertyRecord(_u("column"), &record);
-            JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::column, value, scriptContext);
         }
 
         if (cse->hasLineNumberInfo)
@@ -860,6 +857,13 @@ namespace Js
             value = JavascriptString::NewCopySz(cse->bstrLine, scriptContext);
             JavascriptOperators::OP_SetProperty(error, PropertyIds::source, value, scriptContext);
         }
+
+        if (sourceUrl != nullptr)
+        {
+            value = JavascriptString::NewCopySz(sourceUrl, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::url, value, scriptContext);
+        }
+
         return error;
     }
 

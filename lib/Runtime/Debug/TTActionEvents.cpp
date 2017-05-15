@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
 
+#include "Library/JavascriptExceptionMetadata.h"
+
 #if ENABLE_TTD
 
 namespace TTD
@@ -390,6 +392,52 @@ namespace TTD
             throw TTDebuggerAbortException::CreateAbortEndOfLog(_u("End of log reached with Host Process Exit -- returning to top-level."));
         }
 
+        void GetAndClearExceptionWithMetadataAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
+        {
+            TTD_REPLAY_ACTIVE_CONTEXT(executeContext);
+
+            HRESULT hr = S_OK;
+            Js::JavascriptExceptionObject *recordedException = nullptr;
+
+            BEGIN_TRANSLATE_OOM_TO_HRESULT
+                if (ctx->HasRecordedException())
+                {
+                    recordedException = ctx->GetAndClearRecordedException();
+                }
+            END_TRANSLATE_OOM_TO_HRESULT(hr)
+
+            Js::Var exception = nullptr;
+            if (recordedException != nullptr)
+            {
+                exception = recordedException->GetThrownObject(nullptr);
+            }
+
+            if (exception != nullptr)
+            {
+                Js::ScriptContext * scriptContext = executeContext->GetActiveScriptContext();
+                Js::Var exceptionMetadata = Js::JavascriptExceptionMetadata::CreateMetadataVar(scriptContext);
+
+                Js::FunctionBody *functionBody = recordedException->GetFunctionBody();
+
+                Js::JavascriptOperators::OP_SetProperty(exceptionMetadata, Js::PropertyIds::exception, exception, scriptContext);
+
+                if (functionBody == nullptr)
+                {
+                    // This is probably a parse error. We can get the error location metadata from the thrown object.
+                    Js::JavascriptExceptionMetadata::PopulateMetadataFromCompileException(exceptionMetadata, exception, scriptContext);
+                }
+                else
+                {
+                    if (!Js::JavascriptExceptionMetadata::PopulateMetadataFromException(exceptionMetadata, recordedException, scriptContext))
+                    {
+                        return;
+                    }
+                }
+
+                JsRTActionHandleResultForReplay<JsRTResultOnlyAction, EventKind::GetAndClearExceptionWithMetadataActionTag>(executeContext, evt, exceptionMetadata);
+            }
+        }
+
         void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
         {
             TTD_REPLAY_ACTIVE_CONTEXT(executeContext);
@@ -398,7 +446,10 @@ namespace TTD
             Js::JavascriptExceptionObject *recordedException = nullptr;
 
             BEGIN_TRANSLATE_OOM_TO_HRESULT
-              recordedException = ctx->GetAndClearRecordedException();
+                if (ctx->HasRecordedException())
+                {
+                    recordedException = ctx->GetAndClearRecordedException();
+                }
             END_TRANSLATE_OOM_TO_HRESULT(hr)
 
             Js::Var exception = nullptr;

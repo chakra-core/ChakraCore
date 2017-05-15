@@ -12,6 +12,7 @@
 #include "ByteCode/ByteCodeSerializer.h"
 #include "Common/ByteSwap.h"
 #include "Library/DataView.h"
+#include "Library/JavascriptExceptionMetadata.h"
 #include "Library/JavascriptSymbol.h"
 #include "Library/JavascriptPromise.h"
 #include "Base/ThreadContextTlsEntry.h"
@@ -855,7 +856,7 @@ CHAKRA_API JsSetContextData(_In_ JsContextRef context, _In_ void *data)
     END_JSRT_NO_EXCEPTION
 }
 
-void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptException * se)
+void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptException * se, const WCHAR * sourceUrl)
 {
     HRESULT hr = se->ei.scode;
     if (hr == E_OUTOFMEMORY || hr == VBSERR_OutOfMemory || hr == VBSERR_OutOfStack || hr == ERRnoMemory)
@@ -863,7 +864,7 @@ void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptEx
         Js::Throw::OutOfMemory();
     }
 
-    Js::JavascriptError* error = Js::JavascriptError::CreateFromCompileScriptException(scriptContext, se);
+    Js::JavascriptError* error = Js::JavascriptError::CreateFromCompileScriptException(scriptContext, se, sourceUrl);
 
     Js::JavascriptExceptionObject * exceptionObject = RecyclerNew(scriptContext->GetRecycler(),
         Js::JavascriptExceptionObject, error, scriptContext, nullptr);
@@ -2544,7 +2545,10 @@ CHAKRA_API JsGetAndClearException(_Out_ JsValueRef *exception)
     Js::JavascriptExceptionObject *recordedException = nullptr;
 
     BEGIN_TRANSLATE_OOM_TO_HRESULT
-      recordedException = scriptContext->GetAndClearRecordedException();
+      if (scriptContext->HasRecordedException())
+      {
+          recordedException = scriptContext->GetAndClearRecordedException();
+      }
     END_TRANSLATE_OOM_TO_HRESULT(hr)
 
     if (hr == E_OUTOFMEMORY)
@@ -2999,7 +3003,7 @@ JsErrorCode RunScriptCore(JsValueRef scriptSource, const byte *script, size_t cb
         {
             PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
-            HandleScriptCompileError(scriptContext, &se);
+            HandleScriptCompileError(scriptContext, &se, sourceUrl);
             return JsErrorScriptCompile;
         }
 
@@ -4590,4 +4594,92 @@ CHAKRA_API JsGetWeakReferenceValue(
     });
 }
 
+CHAKRA_API JsGetAndClearExceptionWithMetadata(_Out_ JsValueRef *metadata)
+{
+    PARAM_NOT_NULL(metadata);
+    *metadata = nullptr;
+
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+
+    if (currentContext == nullptr)
+    {
+        return JsErrorNoCurrentContext;
+    }
+
+    Js::ScriptContext *scriptContext = currentContext->GetScriptContext();
+    Assert(scriptContext != nullptr);
+
+    if (scriptContext->GetRecycler() && scriptContext->GetRecycler()->IsHeapEnumInProgress())
+    {
+        return JsErrorHeapEnumInProgress;
+    }
+    else if (scriptContext->GetThreadContext()->IsInThreadServiceCallback())
+    {
+        return JsErrorInThreadServiceCallback;
+    }
+
+    if (scriptContext->GetThreadContext()->IsExecutionDisabled())
+    {
+        return JsErrorInDisabledState;
+    }
+
+    HRESULT hr = S_OK;
+    Js::JavascriptExceptionObject *recordedException = nullptr;
+
+    BEGIN_TRANSLATE_OOM_TO_HRESULT
+        if (scriptContext->HasRecordedException())
+        {
+            recordedException = scriptContext->GetAndClearRecordedException();
+        }
+    END_TRANSLATE_OOM_TO_HRESULT(hr)
+
+    if (hr == E_OUTOFMEMORY)
+    {
+        recordedException = scriptContext->GetThreadContext()->GetRecordedException();
+    }
+    if (recordedException == nullptr)
+    {
+        return JsErrorInvalidArgument;
+    }
+
+    Js::Var exception = recordedException->GetThrownObject(nullptr);
+
+    if (exception == nullptr)
+    {
+        // TODO: How does this early bailout impact TTD?
+        return JsErrorInvalidArgument;
+    }
+
+    return ContextAPIWrapper<false>([&](Js::ScriptContext* scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        Js::Var exceptionMetadata = Js::JavascriptExceptionMetadata::CreateMetadataVar(scriptContext);
+        Js::JavascriptOperators::OP_SetProperty(exceptionMetadata, Js::PropertyIds::exception, exception, scriptContext);
+
+        Js::FunctionBody *functionBody = recordedException->GetFunctionBody();
+        if (functionBody == nullptr)
+        {
+            // This is probably a parse error. We can get the error location metadata from the thrown object.
+            Js::JavascriptExceptionMetadata::PopulateMetadataFromCompileException(exceptionMetadata, exception, scriptContext);
+        }
+        else
+        {
+            if (!Js::JavascriptExceptionMetadata::PopulateMetadataFromException(exceptionMetadata, recordedException, scriptContext))
+            {
+                return JsErrorInvalidArgument;
+            }
+        }
+
+        *metadata = exceptionMetadata;
+
+#if ENABLE_TTD
+        if (hr != E_OUTOFMEMORY)
+        {
+            PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTGetAndClearExceptionWithMetadata);
+            PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, metadata);
+        }
+#endif
+
+
+        return JsNoError;
+    });
+}
 #endif // CHAKRACOREBUILD_

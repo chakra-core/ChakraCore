@@ -373,7 +373,7 @@ JsErrorCode SetContextAPIWrapper(JsrtContext* newContext, Fn fn)
     return errorCode;
 }
 
-void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptException * se);
+void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptException * se, const WCHAR * sourceUrl = nullptr);
 
 #if DBG
 #define _PREPARE_RETURN_NO_EXCEPTION __debugCheckNoException.hasException = false;
