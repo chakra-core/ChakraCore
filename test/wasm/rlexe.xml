@@ -229,7 +229,7 @@
     <!-- Todo:: Remove -off:cse once bugs have been worked out
     Issue: https://github.com/Microsoft/ChakraCore/issues/2975 -->
     <compile-flags>-wasm -off:cse</compile-flags>
-    <tags>exclude_jshost,exclude_win7</tags>
+    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
   </default>
 </test>
 </regress-exe>
