@@ -13399,7 +13399,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                 if (idxOpnd)
                 {
                     StackSym * idxSym = idxOpnd->m_sym->IsTypeSpec() ? idxOpnd->m_sym->GetVarEquivSym(nullptr) : idxOpnd->m_sym;
-                    Value * idxValue = FindValue(idxSym);
+                    Value * idxValue = this->currentBlock->globOptData.FindValue(idxSym);
                     IntConstantBounds idxConstantBounds;
                     if (idxValue && idxValue->GetValueInfo()->TryGetIntConstantBounds(&idxConstantBounds))
                     {
