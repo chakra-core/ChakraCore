@@ -488,7 +488,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         if (inGlobOpt)
         {
             AddToPropertiesWrittenTo(sym->AsPropertySym()->m_propertyId);
-            this->KillAllObjectTypes(&this->currentBlock->globOptData, bv);
+            this->KillAllObjectTypes(bv);
         }
         break;
 
@@ -501,7 +501,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         if (inGlobOpt)
         {
             AddToPropertiesWrittenTo(sym->AsPropertySym()->m_propertyId);
-            this->KillAllObjectTypes(&this->currentBlock->globOptData, bv);
+            this->KillAllObjectTypes(bv);
         }
         break;
 
@@ -2998,21 +2998,10 @@ GlobOpt::KillObjectType(StackSym* objectSym, BVSparse<JitArenaAllocator>* liveFi
 }
 
 void
-GlobOpt::KillAllObjectTypes(GlobOptBlockData *blockData, BVSparse<JitArenaAllocator>* liveFields)
+GlobOpt::KillAllObjectTypes(BVSparse<JitArenaAllocator>* liveFields)
 {
-    if (this->objectTypeSyms)
+    if (this->objectTypeSyms && liveFields)
     {
-        if (liveFields == nullptr)
-        {
-            liveFields = blockData->liveFields;
-        }
-
-        if (liveFields == nullptr)
-        {
-            // if the blockData doesn't have it either, return
-            return;
-        }
-
         liveFields->Minus(this->objectTypeSyms);
     }
 }
