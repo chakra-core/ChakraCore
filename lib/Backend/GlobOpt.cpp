@@ -16490,6 +16490,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
     Value *headSegmentLengthValue = nullptr;
     IntConstantBounds headSegmentLengthConstantBounds;
 
+#if ENABLE_FAST_ARRAYBUFFER
     if (baseValueType.IsLikelyOptimizedVirtualTypedArray() && !Js::IsSimd128LoadStore(instr->m_opcode) /*Always extract bounds for SIMD */)
     {
         if (isProfilableStElem ||
@@ -16533,6 +16534,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             }
         }
     }
+#endif
 
     if(needsBoundChecks && DoBoundCheckElimination())
     {
