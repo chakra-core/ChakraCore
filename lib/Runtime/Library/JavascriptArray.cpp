@@ -5235,7 +5235,8 @@ Case0:
 
         if (hasInlineSegment)
         {
-            SparseArraySegment<T>* headSeg = (SparseArraySegment<T>*)array->head;
+            SparseArraySegmentBase* headSegBase = array->head;
+            SparseArraySegment<T>* headSeg = (SparseArraySegment<T>*)headSegBase;
 
             AnalysisAssert(headSeg);
             SparseArraySegment<T>* newHeadSeg = SparseArraySegment<T>::template AllocateSegmentImpl<false>(recycler,
