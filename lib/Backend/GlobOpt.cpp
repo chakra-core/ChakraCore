@@ -6596,7 +6596,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
     }
     else if (valueInfo->TryGetIntConstantValue(&int64ConstantValue, false))
     {
-        if (PHASE_OFF(Js::ConstPropPhase, this->func))
+        if (PHASE_OFF(Js::ConstPropPhase, this->func) || !PHASE_ON(Js::Int64ConstPropPhase, this->func))
         {
             return opnd;
         }
