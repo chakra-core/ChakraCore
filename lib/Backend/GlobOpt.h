@@ -1132,7 +1132,8 @@ public:
 };
 
 typedef JsUtil::BaseDictionary<IntConstType, StackSym *, JitArenaAllocator> IntConstantToStackSymMap;
-typedef JsUtil::BaseDictionary<IntConstType, Value *, JitArenaAllocator> IntConstantToValueMap;
+typedef JsUtil::BaseDictionary<int32, Value *, JitArenaAllocator> IntConstantToValueMap;
+typedef JsUtil::BaseDictionary<int64, Value *, JitArenaAllocator> Int64ConstantToValueMap;
 
 typedef JsUtil::BaseDictionary<Js::Var, Value *, JitArenaAllocator> AddrConstantToValueMap;
 typedef JsUtil::BaseDictionary<Js::InternalString, Value *, JitArenaAllocator> StringConstantToValueMap;
@@ -1253,6 +1254,7 @@ private:
     // Global bitvectors
     IntConstantToStackSymMap *  intConstantToStackSymMap;
     IntConstantToValueMap*      intConstantToValueMap;
+    Int64ConstantToValueMap*    int64ConstantToValueMap;
     AddrConstantToValueMap *    addrConstantToValueMap;
     StringConstantToValueMap *  stringConstantToValueMap;
 #if DBG
@@ -1435,7 +1437,7 @@ private:
     Value *                 GetIntConstantValue(const int32 intConst, IR::Instr * instr, IR::Opnd *const opnd = nullptr);
     Value *                 GetIntConstantValue(const int64 intConst, IR::Instr * instr, IR::Opnd *const opnd = nullptr);
     Value *                 NewIntConstantValue(const int32 intConst, IR::Instr * instr, bool isTaggable);
-    Value *                 NewInt64ConstantValue(const int64 intConst);
+    Value *                 NewInt64ConstantValue(const int64 intConst, IR::Instr * instr);
     ValueInfo *             NewIntRangeValueInfo(const int32 min, const int32 max, const bool wasNegativeZeroPreventedByBailout);
     ValueInfo *             NewIntRangeValueInfo(const ValueInfo *const originalValueInfo, const int32 min, const int32 max) const;
     Value *                 NewIntRangeValue(const int32 min, const int32 max, const bool wasNegativeZeroPreventedByBailout, IR::Opnd *const opnd = nullptr);
@@ -1845,7 +1847,7 @@ private:
     void                    RemoveFlowEdgeToCatchBlock(IR::Instr * instr);
 
     void                    CSEAddInstr(BasicBlock *block, IR::Instr *instr, Value *dstVal, Value *src1Val, Value *src2Val, Value *dstIndirIndexVal, Value *src1IndirIndexVal);
-    void                    OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val);
+    void                    OptimizeChecks(IR::Instr * const instr);
     bool                    CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSrc1Val, Value **pSrc2Val, Value **pSrc1IndirIndexVal, bool intMathExprOnly = false);
     bool                    GetHash(IR::Instr *instr, Value *src1Val, Value *src2Val, ExprAttributes exprAttributes, ExprHash *pHash);
     void                    ProcessArrayValueKills(IR::Instr *instr);

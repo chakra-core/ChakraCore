@@ -1,0 +1,3 @@
+ --- CSE (foo_i32[0]): Add_I4
+ --- CSE (foo_i64[0]): Add_I4
+PASSED

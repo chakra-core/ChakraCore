@@ -214,4 +214,22 @@
     <tags>exclude_amd64</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>cse.js</files>
+    <baseline>baselines/cse.baseline</baseline>
+    <compile-flags>-wasm -maic:0 -testtrace:cse:2.0-99.999</compile-flags>
+    <tags>exclude_jshost,exclude_win7,exclude_interpreted</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>unsigned.js</files>
+    <baseline>baselines/unsigned.baseline</baseline>
+    <!-- Todo:: Remove -off:cse once bugs have been worked out
+    Issue: https://github.com/Microsoft/ChakraCore/issues/2975 -->
+    <compile-flags>-wasm -off:cse</compile-flags>
+    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
+  </default>
+</test>
 </regress-exe>

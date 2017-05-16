@@ -841,15 +841,32 @@ LowererMD::LowerRet(IR::Instr * retInstr)
             regType = TyInt64;
 #ifdef _M_IX86
             regType = TyInt32;
-            Int64RegPair srcPair = m_lowerer->FindOrCreateInt64Pair(retInstr->GetSrc1()->AsRegOpnd());
+            {
+                IR::Opnd* lowOpnd = nullptr;
+                IR::Opnd* highOpnd = nullptr;
+                if (retInstr->GetSrc1()->IsRegOpnd())
+                {
+                    Int64RegPair srcPair = m_lowerer->FindOrCreateInt64Pair(retInstr->GetSrc1()->AsRegOpnd());
+                    lowOpnd = srcPair.low;
+                    highOpnd = srcPair.high;
+                }
+                else if (retInstr->GetSrc1()->IsImmediateOpnd())
+                {
+                    int64 value = retInstr->GetSrc1()->GetImmediateValue(m_func);
+                    lowOpnd = IR::IntConstOpnd::New(value & UINT_MAX, regType, m_func);
+                    highOpnd = IR::IntConstOpnd::New(value >> 32, regType, m_func);
+                }
+                else
+                {
+                    Assert(UNREACHED);
+                }
+                retInstr->UnlinkSrc1();
+                retInstr->SetSrc1(lowOpnd);
 
-            retInstr->UnlinkSrc1();
-            retInstr->SetSrc1(srcPair.low);
-
-            // Mov high bits to edx
-            IR::RegOpnd* regEdx = IR::RegOpnd::New(nullptr, RegEDX, TyInt32, this->m_func);
-            IR::Instr* movHighInstr = IR::Instr::New(Js::OpCode::Ld_I4, regEdx, srcPair.high, this->m_func);
-            retInstr->InsertBefore(ChangeToAssign(movHighInstr));
+                // Mov high bits to edx
+                IR::RegOpnd* regEdx = IR::RegOpnd::New(nullptr, RegEDX, regType, this->m_func);
+                Lowerer::InsertMove(regEdx, highOpnd, retInstr);
+            }
 #endif
             break;
         }
@@ -2107,7 +2124,7 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
 #ifdef _M_X64
             {
                 IR::Int64ConstOpnd * int64Opnd = src->AsInt64ConstOpnd();
-                if ((forms & L_Imm32) && ((TySize[src->GetType()] != 8) ||
+                if ((forms & L_Imm32) && ((src->GetSize() != 8) ||
                     (!instr->isInlineeEntryInstr && Math::FitsInDWord(int64Opnd->GetValue()))))
                 {
                     // the immediate fits in 32-bit, no need to hoist
@@ -2808,8 +2825,7 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
         {
             opnd = IR::IntConstOpnd::New(0, TyInt32, this->m_func);
         }
-        newInstr = IR::Instr::New(Js::OpCode::MOV, tmp, opnd, this->m_func);
-        done->InsertBefore(newInstr);
+        m_lowerer->InsertMove(tmp, opnd, done);
     }
 
     Js::OpCode cmpOp;
@@ -2833,6 +2849,7 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
     newInstr->SetSrc1(src1);
     newInstr->SetSrc2(src2);
     done->InsertBefore(newInstr);
+    LowererMD::Legalize(newInstr);
 
     if (isFloatSrc)
     {

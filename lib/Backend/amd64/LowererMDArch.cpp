@@ -2264,6 +2264,7 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
 
     case Js::OpCode::Mul_I4:
         instr->m_opcode = Js::OpCode::IMUL2;
+        legalize = true;
         break;
 
     case Js::OpCode::Div_I4:

@@ -472,6 +472,8 @@ GlobOpt::ForwardPass()
     this->intConstantToStackSymMap = &localIntConstantToStackSymMap;
     IntConstantToValueMap localIntConstantToValueMap(alloc);
     this->intConstantToValueMap = &localIntConstantToValueMap;
+    Int64ConstantToValueMap localInt64ConstantToValueMap(alloc);
+    this->int64ConstantToValueMap = &localInt64ConstantToValueMap;
     AddrConstantToValueMap localAddrConstantToValueMap(alloc);
     this->addrConstantToValueMap = &localAddrConstantToValueMap;
     StringConstantToValueMap localStringConstantToValueMap(alloc);
@@ -501,6 +503,7 @@ GlobOpt::ForwardPass()
     this->noImplicitCallUsesToInsert = nullptr;
     this->intConstantToStackSymMap = nullptr;
     this->intConstantToValueMap = nullptr;
+    this->int64ConstantToValueMap = nullptr;
     this->addrConstantToValueMap = nullptr;
     this->stringConstantToValueMap = nullptr;
 #if DBG
@@ -5028,7 +5031,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 
     MarkArgumentsUsedForBranch(instr);
     CSEOptimize(this->currentBlock, &instr, &src1Val, &src2Val, &src1IndirIndexVal);
-    OptimizeChecks(instr, src1Val, src2Val);
+    OptimizeChecks(instr);
     OptArraySrc(&instr);
     OptNewScObject(&instr, src1Val);
 
@@ -6430,6 +6433,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
 
     // Constant prop?
     int32 intConstantValue;
+    int64 int64ConstantValue;
     if (valueInfo->TryGetIntConstantValue(&intConstantValue))
     {
         if (PHASE_OFF(Js::ConstPropPhase, this->func))
@@ -6587,6 +6591,23 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
                 opnd = nullptr;
             }
             break;
+        }
+        return opnd;
+    }
+    else if (valueInfo->TryGetIntConstantValue(&int64ConstantValue, false))
+    {
+        if (PHASE_OFF(Js::ConstPropPhase, this->func) || !PHASE_ON(Js::Int64ConstPropPhase, this->func))
+        {
+            return opnd;
+        }
+
+        Assert(this->func->GetJITFunctionBody()->IsWasmFunction());
+        if (this->func->GetJITFunctionBody()->IsWasmFunction() && opnd->IsInt64())
+        {
+            IR::Int64ConstOpnd *intOpnd = IR::Int64ConstOpnd::New(int64ConstantValue, opnd->GetType(), instr->m_func);
+            GOPT_TRACE_OPND(opnd, _u("Constant prop %lld (value:%lld)\n"), intOpnd->GetImmediateValue(instr->m_func), int64ConstantValue);
+            this->CaptureByteCodeSymUses(instr);
+            opnd = instr->ReplaceSrc(opnd, intOpnd);
         }
         return opnd;
     }
@@ -6935,16 +6956,56 @@ Value *
 GlobOpt::GetIntConstantValue(const int64 intConst, IR::Instr * instr, IR::Opnd *const opnd)
 {
     Assert(instr->m_func->GetJITFunctionBody()->IsWasmFunction());
-    Value *value = NewInt64ConstantValue(intConst);
+
+    Value *value = nullptr;
+    Value *const cachedValue = this->int64ConstantToValueMap->Lookup(intConst, nullptr);
+
+    if (cachedValue)
+    {
+        // The cached value could be from a different block since this is a global (as opposed to a per-block) cache. Since
+        // values are cloned for each block, we can't use the same value object. We also can't have two values with the same
+        // number in one block, so we can't simply copy the cached value either. And finally, there is no deterministic and fast
+        // way to determine if a value with the same value number exists for this block. So the best we can do with a global
+        // cache is to check the sym-store's value in the current block to see if it has a value with the same number.
+        // Otherwise, we have to create a new value with a new value number.
+        Sym *const symStore = cachedValue->GetValueInfo()->GetSymStore();
+        if (symStore && IsLive(symStore, &blockData))
+        {
+
+            Value *const symStoreValue = FindValue(symStore);
+            int64 symStoreIntConstantValue;
+            if (symStoreValue &&
+                symStoreValue->GetValueNumber() == cachedValue->GetValueNumber() &&
+                symStoreValue->GetValueInfo()->TryGetInt64ConstantValue(&symStoreIntConstantValue, false) &&
+                symStoreIntConstantValue == intConst)
+            {
+                value = symStoreValue;
+            }
+        }
+    }
+
+    if (!value)
+    {
+        value = NewInt64ConstantValue(intConst, instr);
+    }
+
     return this->InsertNewValue(value, opnd);
 }
 
 Value *
-GlobOpt::NewInt64ConstantValue(const int64 intConst)
+GlobOpt::NewInt64ConstantValue(const int64 intConst, IR::Instr* instr)
 {
-    //TODO: to implement int64 VN caching we need liveness info
-    //We need caching for CSE
     Value * value = NewValue(Int64ConstantValueInfo::New(this->alloc, intConst));
+    this->int64ConstantToValueMap->Item(intConst, value);
+
+    if (!value->GetValueInfo()->GetSymStore() &&
+        (instr->m_opcode == Js::OpCode::LdC_A_I4 || instr->m_opcode == Js::OpCode::Ld_I4))
+    {
+        StackSym * sym = instr->GetDst()->GetStackSym();
+        Assert(sym && !sym->IsTypeSpec());
+        SetValue(&this->currentBlock->globOptData, value, sym);
+        this->currentBlock->globOptData.liveVarSyms->Set(sym->m_id);
+    }
     return value;
 }
 
@@ -18860,6 +18921,9 @@ swap_srcs:
     case Js::OpCode::NewRegEx:
     case Js::OpCode::Ld_A:
     case Js::OpCode::Ld_I4:
+    case Js::OpCode::TrapIfMinIntOverNegOne:
+    case Js::OpCode::TrapIfTruncOverflow:
+    case Js::OpCode::TrapIfZero:
     case Js::OpCode::FromVar:
     case Js::OpCode::Conv_Prim:
     case Js::OpCode::LdC_A_I4:
@@ -18925,6 +18989,10 @@ swap_srcs:
     {
         IR::Instr *newInstr = instr->HoistSrc1(Js::OpCode::Ld_I4);
         ToInt32Dst(newInstr, newInstr->GetDst()->AsRegOpnd(), this->currentBlock);
+    }
+    else if (src1->IsInt64ConstOpnd())
+    {
+        instr->HoistSrc1(Js::OpCode::Ld_I4);
     }
     else
     {

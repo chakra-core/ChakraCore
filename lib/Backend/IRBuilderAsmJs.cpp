@@ -2408,7 +2408,10 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
     case Js::OpCodeAsmJs::Div_Check_Int:
     {
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
-        src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+        if (newOpcode == Js::OpCodeAsmJs::Div_Check_Int)
+        {
+            src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+        }
         instr = IR::Instr::New(Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     }

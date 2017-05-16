@@ -6,7 +6,7 @@
 
 namespace Wasm
 {
-const uint64 specialDivLeftValue = (uint64)1 << 63;
+const uint64 specialDivLeftValue = (uint64)LONGLONG_MIN;
 
 template<>
 inline int64 WasmMath::Rem( int64 aLeft, int64 aRight )
