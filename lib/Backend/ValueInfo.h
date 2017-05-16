@@ -321,8 +321,6 @@ public:
 #endif
 };
 
-template<> inline ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value);
-
 template<> inline
 ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value)
 {

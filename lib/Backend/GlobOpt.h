@@ -695,7 +695,8 @@ private:
 public:
     JsArrayKills            CheckJsArrayKills(IR::Instr *const instr);
 
-    GlobOptBlockData const * GetCurrentBlockData() const;
+    GlobOptBlockData const * CurrentBlockData() const;
+    GlobOptBlockData * CurrentBlockData();
 
 private:
     bool                    IsOperationThatLikelyKillsJsArraysWithNoMissingValues(IR::Instr *const instr);
@@ -909,7 +910,7 @@ private:
     void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, BasicBlock* block = nullptr, bool updateExistingValue = false);
     void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, GlobOptBlockData *blockData, bool updateExistingValue = false);
     void                    KillObjectType(StackSym *objectSym, BVSparse<JitArenaAllocator>* liveFields = nullptr);
-    void                    KillAllObjectTypes(GlobOptBlockData* blockData, BVSparse<JitArenaAllocator>* liveFields = nullptr);
+    void                    KillAllObjectTypes(BVSparse<JitArenaAllocator>* liveFields = nullptr);
     void                    EndFieldLifetime(IR::SymOpnd *symOpnd);
     PropertySym *           CopyPropPropertySymObj(IR::SymOpnd *opnd, IR::Instr *instr);
     static bool             NeedsTypeCheckBailOut(const IR::Instr *instr, IR::PropertySymOpnd *propertySymOpnd, bool isStore, bool* pIsTypeCheckProtected, IR::BailOutKind *pBailOutKind);

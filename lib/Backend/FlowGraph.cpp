@@ -2596,7 +2596,7 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
         */
         Js::OpCode opcode = instr->m_opcode;
         if (opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt(this->func) &&
-            globOpt->GetCurrentBlockData()->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
+            globOpt->CurrentBlockData()->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
         {
             IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr);
             byteCodeUsesInstr->SetNonOpndSymbol(instr->m_func->GetScopeObjSym()->m_id);
@@ -3743,7 +3743,7 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
     {
         // Object type specialization is off, but if copy prop is on (e.g., /force:fieldhoist) we're not clearing liveFields,
         // so we may be letting type syms slip through this block.
-        globOpt->KillAllObjectTypes(&this->globOptData);
+        globOpt->KillAllObjectTypes(this->globOptData.liveFields);
     }
 
     this->globOptData.CopyBlockData(&blockData);
