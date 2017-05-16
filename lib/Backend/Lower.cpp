@@ -18787,7 +18787,7 @@ void Lowerer::GenerateTruncWithCheck(IR::Instr* instr)
     }
     else
     {
-        Assert(instr->GetDst()->IsInt64() || instr->GetDst()->GetType() == TyUint64);
+        Assert(instr->GetDst()->IsInt64());
         LoadScriptContext(instr);
 
         if (instr->GetSrc1()->IsFloat32())
@@ -18799,7 +18799,7 @@ void Lowerer::GenerateTruncWithCheck(IR::Instr* instr)
             m_lowererMD.LoadDoubleHelperArgument(instr, instr->GetSrc1());
         }
         IR::JnHelperMethod helperList[2][2] = { IR::HelperF32TOI64, IR::HelperF32TOU64, IR::HelperF64TOI64 ,IR::HelperF64TOU64 };
-        IR::JnHelperMethod helper = helperList[instr->GetSrc1()->GetType() - TyFloat32][instr->GetDst()->GetType() == TyUint64];
+        IR::JnHelperMethod helper = helperList[instr->GetSrc1()->GetType() != TyFloat32][instr->GetDst()->GetType() == TyUint64];
         instr->UnlinkSrc1();
         this->m_lowererMD.ChangeToHelperCall(instr, helper);
     }
@@ -23896,8 +23896,8 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
         if (needsMinOverNeg1Check)
         {
             Assert(minIntLabel);
-            Assert(!src2->IsIntConstOpnd() || src2->AsIntConstOpnd()->GetValue() == -1);
-            if (!src2->IsIntConstOpnd())
+            Assert(!src2->IsImmediateOpnd() || src2->GetImmediateValue(m_func) == -1);
+            if (!src2->IsImmediateOpnd())
             {
                 InsertCompareBranch(src2, IR::IntConstOpnd::NewFromType(-1, src2->GetType(), m_func), Js::OpCode::BrNeq_A, divLabel, divLabel);
             }

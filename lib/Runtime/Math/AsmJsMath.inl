@@ -114,7 +114,13 @@ namespace Js
     template<>
     inline int AsmJsMath::Rem<int>( int aLeft, int aRight )
     {
-        return ((aRight == 0) || (aLeft == (1<<31) && aRight == -1)) ? 0 : aLeft % aRight;
+        return ((aRight == 0) || (aLeft == INT_MIN && aRight == -1)) ? 0 : aLeft % aRight;
+    }
+
+    template<>
+    inline int64 AsmJsMath::Rem<int64>(int64 aLeft, int64 aRight)
+    {
+        return ((aRight == 0) || (aLeft == LONGLONG_MIN && aRight == -1)) ? 0 : aLeft % aRight;
     }
 
     template<>

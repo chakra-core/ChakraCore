@@ -5031,7 +5031,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 
     MarkArgumentsUsedForBranch(instr);
     CSEOptimize(this->currentBlock, &instr, &src1Val, &src2Val, &src1IndirIndexVal);
-    OptimizeChecks(instr, src1Val, src2Val);
+    OptimizeChecks(instr);
     OptArraySrc(&instr);
     OptNewScObject(&instr, src1Val);
 
@@ -6604,7 +6604,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
         Assert(this->func->GetJITFunctionBody()->IsWasmFunction());
         if (this->func->GetJITFunctionBody()->IsWasmFunction() && opnd->IsInt64())
         {
-            IR::Int64ConstOpnd *intOpnd = IR::Int64ConstOpnd::New(int64ConstantValue, TyInt64, instr->m_func);
+            IR::Int64ConstOpnd *intOpnd = IR::Int64ConstOpnd::New(int64ConstantValue, opnd->GetType(), instr->m_func);
             GOPT_TRACE_OPND(opnd, _u("Constant prop %lld (value:%lld)\n"), intOpnd->GetImmediateValue(instr->m_func), int64ConstantValue);
             this->CaptureByteCodeSymUses(instr);
             opnd = instr->ReplaceSrc(opnd, intOpnd);
@@ -18921,6 +18921,9 @@ swap_srcs:
     case Js::OpCode::NewRegEx:
     case Js::OpCode::Ld_A:
     case Js::OpCode::Ld_I4:
+    case Js::OpCode::TrapIfMinIntOverNegOne:
+    case Js::OpCode::TrapIfTruncOverflow:
+    case Js::OpCode::TrapIfZero:
     case Js::OpCode::FromVar:
     case Js::OpCode::Conv_Prim:
     case Js::OpCode::LdC_A_I4:
@@ -18986,6 +18989,10 @@ swap_srcs:
     {
         IR::Instr *newInstr = instr->HoistSrc1(Js::OpCode::Ld_I4);
         ToInt32Dst(newInstr, newInstr->GetDst()->AsRegOpnd(), this->currentBlock);
+    }
+    else if (src1->IsInt64ConstOpnd())
+    {
+        instr->HoistSrc1(Js::OpCode::Ld_I4);
     }
     else
     {

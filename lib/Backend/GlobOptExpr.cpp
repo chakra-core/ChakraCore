@@ -369,20 +369,18 @@ static void TransformIntoUnreachable(IntConstType errorCode, IR::Instr* instr)
 }
 
 void
-GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
+GlobOpt::OptimizeChecks(IR::Instr * const instr)
 {
-    int val = 0;
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+
     switch (instr->m_opcode)
     {
     case Js::OpCode::TrapIfZero:
-        if (instr->GetDst()->IsInt64())
+        if (src1 && src1->IsImmediateOpnd())
         {
-            return; //don't try to optimize i64 division since we are using helpers anyways for now
-        }
-
-        if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&val))
-        {
-            if (val)
+            int64 val = src1->GetImmediateValue(func);
+            if (val != 0)
             {
                 instr->m_opcode = Js::OpCode::Ld_I4;
             }
@@ -396,15 +394,12 @@ GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
         break;
     case Js::OpCode::TrapIfMinIntOverNegOne:
     {
-        if (instr->GetDst()->IsInt64())
-        {
-            return; //don't try to optimize i64 division since we are using helpers anyways for now
-        }
-
         int checksLeft = 2;
-        if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&val))
+        if (src1 && src1->IsImmediateOpnd())
         {
-            if (val != INT_MIN)
+            int64 val = src1->GetImmediateValue(func);
+            bool isMintInt = src1->GetSize() == 8 ? val == LONGLONG_MIN : (int32)val == INT_MIN;
+            if (!isMintInt)
             {
                 instr->m_opcode = Js::OpCode::Ld_I4;
             }
@@ -412,11 +407,12 @@ GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
             {
                 checksLeft--;
             }
-
         }
-        if (src2Val && src2Val->GetValueInfo()->TryGetIntConstantValue(&val))
+        if (src2 && src2->IsImmediateOpnd())
         {
-            if (val != -1)
+            int64 val = src2->GetImmediateValue(func);
+            bool isNegOne = src2->GetSize() == 8 ? val == -1 : (int32)val == -1;
+            if (!isNegOne)
             {
                 instr->m_opcode = Js::OpCode::Ld_I4;
             }
@@ -429,16 +425,19 @@ GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
         if (!checksLeft)
         {
             TransformIntoUnreachable(VBSERR_Overflow, instr);
-            instr->UnlinkSrc2();
+            instr->FreeSrc2();
             InsertByteCodeUses(instr);
             RemoveCodeAfterNoFallthroughInstr(instr); //remove dead code
+        }
+        else if (instr->m_opcode == Js::OpCode::Ld_I4)
+        {
+            instr->FreeSrc2();
         }
         break;
     }
     default:
         return;
     }
-
 }
 
 bool

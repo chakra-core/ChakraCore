@@ -2124,7 +2124,7 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
 #ifdef _M_X64
             {
                 IR::Int64ConstOpnd * int64Opnd = src->AsInt64ConstOpnd();
-                if ((forms & L_Imm32) && ((TySize[src->GetType()] != 8) ||
+                if ((forms & L_Imm32) && ((src->GetSize() != 8) ||
                     (!instr->isInlineeEntryInstr && Math::FitsInDWord(int64Opnd->GetValue()))))
                 {
                     // the immediate fits in 32-bit, no need to hoist
