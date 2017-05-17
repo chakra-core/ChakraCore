@@ -35,6 +35,7 @@ namespace Js
         WebAssemblyArrayBuffer * GetBuffer() const;
         uint GetInitialLength() const;
         uint GetMaximumLength() const;
+        uint GetCurrentMemoryPages() const;
 
         int32 GrowInternal(uint32 deltaPages);
         static int32 GrowHelper(Js::WebAssemblyMemory * memory, uint32 deltaPages);

@@ -16,6 +16,8 @@ WebAssemblyMemory::WebAssemblyMemory(WebAssemblyArrayBuffer* buffer, uint32 init
     m_initial(initial),
     m_maximum(maximum)
 {
+    Assert(m_buffer);
+    Assert(m_buffer->GetByteLength() >= UInt32Math::Mul<WebAssembly::PageSize>(initial));
 }
 
 /* static */
@@ -213,6 +215,12 @@ uint
 WebAssemblyMemory::GetMaximumLength() const
 {
     return m_maximum;
+}
+
+uint
+WebAssemblyMemory::GetCurrentMemoryPages() const
+{
+    return m_buffer->GetByteLength() / WebAssembly::PageSize;
 }
 
 } // namespace Js

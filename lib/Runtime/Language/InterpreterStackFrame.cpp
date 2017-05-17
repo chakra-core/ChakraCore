@@ -3042,13 +3042,6 @@ namespace Js
         if (func->GetFunctionBody()->IsWasmFunction())
         {
             WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
-            Var * val = nullptr;
-            if (wasmMem != nullptr)
-            {
-                val = (Var*)((BYTE*)wasmMem + WebAssemblyMemory::GetOffsetOfArrayBuffer());
-            }
-            m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = val;
-
             m_signatures = func->GetFunctionBody()->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetSignatures();
             m_wasmMemory = wasmMem;
         }
@@ -7917,10 +7910,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     int InterpreterStackFrame::OP_GetMemorySize()
     {
-#ifdef ASMJS_PLAT
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
-        return arr ? arr->GetByteLength() >> 16 : 0;
+#ifdef ENABLE_WASM
+        return (int)m_wasmMemory->GetCurrentMemoryPages();
 #else
+        Assert(UNREACHED);
         return 0;
 #endif
     }
@@ -7928,10 +7921,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     int InterpreterStackFrame::OP_GrowMemory(int32 delta)
     {
 #ifdef ENABLE_WASM
-        int32 oldPageCount = m_wasmMemory->GrowInternal((uint32)delta);
-
-        SetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister, m_wasmMemory->GetBuffer());
-        return oldPageCount;
+        return m_wasmMemory->GrowInternal((uint32)delta);
 #else
         Assert(UNREACHED);
         return 0;
@@ -8595,8 +8585,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_LdArrWasm(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint64 index = playout->Offset + (uint64)GetRegRawInt(playout->SlotIndex);
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
+        WebAssemblyArrayBuffer* arr = m_wasmMemory->GetBuffer();
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_ArrayIndexOutOfRange);
@@ -8640,8 +8630,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_StArrWasm(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint64 index = playout->Offset + (uint64)GetRegRawInt(playout->SlotIndex);
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
+        WebAssemblyArrayBuffer* arr = m_wasmMemory->GetBuffer();
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_ArrayIndexOutOfRange);

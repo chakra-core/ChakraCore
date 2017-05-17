@@ -272,6 +272,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         {
             Wasm::WasmExport* wasmExport = m_module->GetExport(iExport);
             if (wasmExport  &&
+                wasmExport->kind == ExternalKinds::Function &&
                 wasmExport->nameLength > 0 &&
                 m_module->GetFunctionIndexType(wasmExport->index) == FunctionIndexTypes::Function &&
                 wasmExport->index == wasmInfo->GetNumber())

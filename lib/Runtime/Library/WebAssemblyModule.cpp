@@ -344,7 +344,15 @@ WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage)
 
     if (maxPage < minPage)
     {
-        throw Wasm::WasmCompilationException(_u("Memory: MaxPage (%d) must be greater than MinPage (%d)"), maxPage, minPage);
+        throw Wasm::WasmCompilationException(_u("Memory: MaxPage (%u) must be greater than MinPage (%u)"), maxPage, minPage);
+    }
+    auto minPageTooBig = [minPage] {
+        throw Wasm::WasmCompilationException(_u("Memory: Unable to allocate minimum pages (%u)"), minPage);
+    };
+    uint32 minBytes = UInt32Math::Mul<WebAssembly::PageSize>(minPage, minPageTooBig);
+    if (minBytes > ArrayBuffer::MaxArrayBufferLength)
+    {
+        minPageTooBig();
     }
     m_hasMemory = true;
     m_memoryInitSize = minPage;
