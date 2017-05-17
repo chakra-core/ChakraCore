@@ -177,7 +177,7 @@ void IntBounds::SetBound(
     Assert(baseValue->GetValueNumber() != myValueNumber);
 
     // Aggressively merge the constant lower or upper bound of the base value, adjusted by the offset
-    ValueInfo *const baseValueInfo = baseValue->GetValueInfo();
+    ValueInfo const * const baseValueInfo = baseValue->GetValueInfo();
     int constantBoundBase;
     const bool success =
         Lower
@@ -263,7 +263,7 @@ bool IntBounds::SetIsNot(const Value *const value, const bool isExplicit)
 {
     Assert(value);
 
-    ValueInfo *const valueInfo = value->GetValueInfo();
+    ValueInfo const *const valueInfo = value->GetValueInfo();
     Assert(valueInfo->IsLikelyInt());
 
     int constantValue;
@@ -341,7 +341,7 @@ bool IntBounds::IsGreaterThanOrEqualTo(const Value *const value, const int offse
 {
     Assert(value);
 
-    ValueInfo *const valueInfo = value->GetValueInfo();
+    ValueInfo const * const valueInfo = value->GetValueInfo();
     int constantBoundBase;
     const bool success = valueInfo->TryGetIntConstantUpperBound(&constantBoundBase, true);
     Assert(success);
@@ -359,7 +359,7 @@ bool IntBounds::IsLessThanOrEqualTo(const Value *const value, const int offset) 
 {
     Assert(value);
 
-    ValueInfo *const valueInfo = value->GetValueInfo();
+    ValueInfo const * const valueInfo = value->GetValueInfo();
     int constantBoundBase;
     const bool success = valueInfo->TryGetIntConstantLowerBound(&constantBoundBase, true);
     Assert(success);
@@ -386,7 +386,7 @@ const IntBounds *IntBounds::Add(
 
     // Determine whether the new constant upper bound was established explicitly
     bool wasConstantUpperBoundEstablishedExplicitly = false;
-    ValueInfo *const baseValueInfo = baseValue->GetValueInfo();
+    ValueInfo const * const baseValueInfo = baseValue->GetValueInfo();
     const IntBounds *const baseBounds = baseValueInfo->IsIntBounded() ? baseValueInfo->AsIntBounded()->Bounds() : nullptr;
     if(baseBounds && baseBounds->WasConstantUpperBoundEstablishedExplicitly())
     {

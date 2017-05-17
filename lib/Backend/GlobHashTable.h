@@ -27,8 +27,8 @@ public:
 class Key
 {
 public:
-    static uint Get(Sym *sym) { return static_cast<uint>(sym->m_id); }
-    static uint Get(ExprHash hash) { return static_cast<uint>(hash); }
+    static uint Get(Sym const *sym) { return static_cast<uint>(sym->m_id); }
+    static uint Get(ExprHash hash)  { return static_cast<uint>(hash); }
 };
 
 #define FOREACH_GLOBHASHTABLE_ENTRY(bucket, hashTable) \

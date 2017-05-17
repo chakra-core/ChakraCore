@@ -12,7 +12,7 @@ GlobOpt::CaptureCopyPropValue(BasicBlock * block, Sym * sym, Value * val, SListB
         return;
     }
 
-    StackSym * copyPropSym = this->GetCopyPropSym(block, sym, val);
+    StackSym * copyPropSym = block->globOptData.GetCopyPropSym(sym, val);
     if (copyPropSym != nullptr)
     {
         bailOutCopySymsIter.InsertNodeBefore(this->func->m_alloc, sym->AsStackSym(), copyPropSym);
@@ -174,7 +174,7 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
             {
                 if (!sym->AsStackSym()->HasArgSlotNum())
                 {
-                    val = FindValue(sym);
+                    val = this->currentBlock->globOptData.FindValue(sym);
                     if (val != nullptr)
                     {
                         CaptureCopyPropValue(block, sym, val, bailOutCopySymsIter);
@@ -196,7 +196,7 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
             if (symIdBucket != nullptr)
             {
                 Sym * symIdSym = symIdBucket->value;
-                val = FindValue(symIdSym);
+                val = this->currentBlock->globOptData.FindValue(symIdSym);
                 if (val != nullptr)
                 {
                     CaptureCopyPropValue(block, symIdSym, val, bailOutCopySymsIter);
@@ -258,7 +258,7 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
 void
 GlobOpt::CaptureArguments(BasicBlock *block, BailOutInfo * bailOutInfo, JitArenaAllocator *allocator)
 {
-    FOREACH_BITSET_IN_SPARSEBV(id, this->blockData.argObjSyms)
+    FOREACH_BITSET_IN_SPARSEBV(id, this->currentBlock->globOptData.argObjSyms)
     {
         StackSym * stackSym = this->func->m_symTable->FindStackSym(id);
         Assert(stackSym != nullptr);
@@ -451,12 +451,12 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         Assert(instr->GetDst()->IsRegOpnd());
         Assert(instr->GetDst()->AsRegOpnd()->m_sym->m_isSingleDef);
 
-        if (this->blockData.callSequence == nullptr)
+        if (this->currentBlock->globOptData.callSequence == nullptr)
         {
-            this->blockData.callSequence = JitAnew(this->alloc, SListBase<IR::Opnd *>);
-            this->currentBlock->globOptData.callSequence = this->blockData.callSequence;
+            this->currentBlock->globOptData.callSequence = JitAnew(this->alloc, SListBase<IR::Opnd *>);
+            this->currentBlock->globOptData.callSequence = this->currentBlock->globOptData.callSequence;
         }
-        this->blockData.callSequence->Prepend(this->alloc, instr->GetDst());
+        this->currentBlock->globOptData.callSequence->Prepend(this->alloc, instr->GetDst());
 
         this->currentBlock->globOptData.totalOutParamCount += instr->GetArgOutCount(/*getInterpreterArgOutCount*/ true);
         this->currentBlock->globOptData.startCallCount++;
@@ -464,7 +464,7 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         break;
     case Js::OpCode::BytecodeArgOutCapture:
         {
-            this->blockData.callSequence->Prepend(this->alloc, instr->GetDst());
+            this->currentBlock->globOptData.callSequence->Prepend(this->alloc, instr->GetDst());
             this->currentBlock->globOptData.argOutCount++;
             break;
         }
@@ -480,14 +480,14 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         if (opnd->IsSymOpnd())
         {
             Assert(!this->isCallHelper);
-            Assert(!this->blockData.callSequence->Empty());
+            Assert(!this->currentBlock->globOptData.callSequence->Empty());
             StackSym* stackSym = opnd->AsSymOpnd()->m_sym->AsStackSym();
 
             // These scenarios are already tracked using BytecodeArgOutCapture,
             // and we don't want to be tracking ArgOut_A_FixupForStackArgs as these are only visible to the JIT and we should not be restoring them upon bailout.
             if (!stackSym->m_isArgCaptured && instr->m_opcode != Js::OpCode::ArgOut_A_FixupForStackArgs)
             {
-                this->blockData.callSequence->Prepend(this->alloc, instr->GetDst());
+                this->currentBlock->globOptData.callSequence->Prepend(this->alloc, instr->GetDst());
                 this->currentBlock->globOptData.argOutCount++;
             }
             Assert(stackSym->IsArgSlotSym());
@@ -518,9 +518,9 @@ GlobOpt::TrackCalls(IR::Instr * instr)
     }
 
     case Js::OpCode::InlineeStart:
-        Assert(instr->m_func->GetParentFunc() == this->blockData.curFunc);
+        Assert(instr->m_func->GetParentFunc() == this->currentBlock->globOptData.curFunc);
         Assert(instr->m_func->GetParentFunc());
-        this->blockData.curFunc = instr->m_func;
+        this->currentBlock->globOptData.curFunc = instr->m_func;
         this->currentBlock->globOptData.curFunc = instr->m_func;
 
         this->func->UpdateMaxInlineeArgOutCount(this->currentBlock->globOptData.inlinedArgOutCount);
@@ -741,9 +741,9 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
             {
                 if (PHASE_ON(Js::CopyPropPhase, func))
                 {
-                    Value* value = FindValue(argSym);
+                    Value* value = this->currentBlock->globOptData.FindValue(argSym);
 
-                    StackSym * copyPropSym = this->GetCopyPropSym(this->currentBlock, argSym, value);
+                    StackSym * copyPropSym = this->currentBlock->globOptData.GetCopyPropSym(argSym, value);
                     if (copyPropSym)
                     {
                         argSym = copyPropSym;
@@ -809,11 +809,11 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
 
 void GlobOpt::EndTrackingOfArgObjSymsForInlinee()
 {
-    Assert(this->blockData.curFunc->GetParentFunc());
-    if (this->blockData.curFunc->argObjSyms && TrackArgumentsObject())
+    Assert(this->currentBlock->globOptData.curFunc->GetParentFunc());
+    if (this->currentBlock->globOptData.curFunc->argObjSyms && TrackArgumentsObject())
     {
         BVSparse<JitArenaAllocator> * tempBv = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
-        tempBv->Minus(this->blockData.curFunc->argObjSyms, this->blockData.argObjSyms);
+        tempBv->Minus(this->currentBlock->globOptData.curFunc->argObjSyms, this->currentBlock->globOptData.argObjSyms);
         if(!tempBv->IsEmpty())
         {
             // This means there are arguments object symbols in the current function which are not in the current block.
@@ -823,13 +823,13 @@ void GlobOpt::EndTrackingOfArgObjSymsForInlinee()
         }
         else
         {
-            Assert(this->blockData.argObjSyms->OrNew(this->blockData.curFunc->argObjSyms)->Equal(this->blockData.argObjSyms));
-            this->blockData.argObjSyms->Minus(this->blockData.curFunc->argObjSyms);
+            Assert(this->currentBlock->globOptData.argObjSyms->OrNew(this->currentBlock->globOptData.curFunc->argObjSyms)->Equal(this->currentBlock->globOptData.argObjSyms));
+            this->currentBlock->globOptData.argObjSyms->Minus(this->currentBlock->globOptData.curFunc->argObjSyms);
         }
         JitAdelete(this->tempAlloc, tempBv);
     }
-    this->blockData.curFunc = this->blockData.curFunc->GetParentFunc();
-    this->currentBlock->globOptData.curFunc = this->blockData.curFunc;
+    this->currentBlock->globOptData.curFunc = this->currentBlock->globOptData.curFunc->GetParentFunc();
+    this->currentBlock->globOptData.curFunc = this->currentBlock->globOptData.curFunc;
 }
 
 void GlobOpt::EndTrackCall(IR::Instr* instr)
@@ -839,19 +839,19 @@ void GlobOpt::EndTrackCall(IR::Instr* instr)
         || instr->m_opcode == Js::OpCode::InlineArrayPop || instr->m_opcode == Js::OpCode::EndCallForPolymorphicInlinee);
 
     Assert(!this->isCallHelper);
-    Assert(!this->blockData.callSequence->Empty());
+    Assert(!this->currentBlock->globOptData.callSequence->Empty());
 
 
 #if DBG
     uint origArgOutCount = this->currentBlock->globOptData.argOutCount;
 #endif
-    while (this->blockData.callSequence->Head()->GetStackSym()->HasArgSlotNum())
+    while (this->currentBlock->globOptData.callSequence->Head()->GetStackSym()->HasArgSlotNum())
     {
         this->currentBlock->globOptData.argOutCount--;
-        this->blockData.callSequence->RemoveHead(this->alloc);
+        this->currentBlock->globOptData.callSequence->RemoveHead(this->alloc);
     }
-    StackSym * sym = this->blockData.callSequence->Head()->AsRegOpnd()->m_sym->AsStackSym();
-    this->blockData.callSequence->RemoveHead(this->alloc);
+    StackSym * sym = this->currentBlock->globOptData.callSequence->Head()->AsRegOpnd()->m_sym->AsStackSym();
+    this->currentBlock->globOptData.callSequence->RemoveHead(this->alloc);
 
 #if DBG
     Assert(sym->m_isSingleDef);
@@ -957,9 +957,9 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
                 else
                 {
                     sym = opnd->GetStackSym();
-                    Assert(FindValue(sym));
+                    Assert(this->currentBlock->globOptData.FindValue(sym));
                     // StackSym args need to be re-captured
-                    this->SetChangedSym(sym->m_id);
+                    this->currentBlock->globOptData.SetChangedSym(sym->m_id);
                 }
 
                 Assert(totalOutParamCount != 0);
@@ -1100,7 +1100,7 @@ GlobOpt::MayNeedBailOut(Loop * loop) const
 }
 
 bool
-GlobOpt::MaySrcNeedBailOnImplicitCall(IR::Opnd * opnd, Value *val)
+GlobOpt::MaySrcNeedBailOnImplicitCall(IR::Opnd const * opnd, Value const * val)
 {
     switch (opnd->GetKind())
     {
@@ -1121,7 +1121,7 @@ GlobOpt::MaySrcNeedBailOnImplicitCall(IR::Opnd * opnd, Value *val)
     case IR::OpndKindSym:
         if (opnd->AsSymOpnd()->IsPropertySymOpnd())
         {
-            IR::PropertySymOpnd* propertySymOpnd = opnd->AsSymOpnd()->AsPropertySymOpnd();
+            IR::PropertySymOpnd const * propertySymOpnd = opnd->AsSymOpnd()->AsPropertySymOpnd();
             if (!propertySymOpnd->MayHaveImplicitCall())
             {
                 return false;
@@ -1134,16 +1134,16 @@ GlobOpt::MaySrcNeedBailOnImplicitCall(IR::Opnd * opnd, Value *val)
 }
 
 bool
-GlobOpt::IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value *src1Val, Value *src2Val)
+GlobOpt::IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, Value const * src2Val) const
 {
     Assert(!this->IsLoopPrePass());
 
     return this->IsImplicitCallBailOutCurrentlyNeeded(instr, src1Val, src2Val, this->currentBlock,
-        (!this->blockData.liveFields->IsEmpty()), !this->currentBlock->IsLandingPad(), true);
+        (!this->currentBlock->globOptData.liveFields->IsEmpty()), !this->currentBlock->IsLandingPad(), true);
 }
 
 bool
-GlobOpt::IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value *src1Val, Value *src2Val, BasicBlock * block, bool hasLiveFields, bool mayNeedImplicitCallBailOut, bool isForwardPass)
+GlobOpt::IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, Value const * src2Val, BasicBlock const * block, bool hasLiveFields, bool mayNeedImplicitCallBailOut, bool isForwardPass) const
 {
     if (mayNeedImplicitCallBailOut &&
         !instr->CallsAccessor() &&
@@ -1237,7 +1237,7 @@ GlobOpt::NeedsTypeCheckBailOut(const IR::Instr *instr, IR::PropertySymOpnd *prop
 }
 
 bool
-GlobOpt::MayNeedBailOnImplicitCall(const IR::Instr * instr, Value *src1Val, Value *src2Val)
+GlobOpt::MayNeedBailOnImplicitCall(IR::Instr const * instr, Value const * src1Val, Value const * src2Val)
 {
     if (!instr->HasAnyImplicitCalls())
     {
@@ -1294,7 +1294,7 @@ GlobOpt::MayNeedBailOnImplicitCall(const IR::Instr * instr, Value *src1Val, Valu
         return true;
     }
 
-    IR::Opnd * opnd = instr->GetDst();
+    IR::Opnd const * opnd = instr->GetDst();
 
     if (opnd)
     {
@@ -1315,7 +1315,7 @@ GlobOpt::MayNeedBailOnImplicitCall(const IR::Instr * instr, Value *src1Val, Valu
 
             if (opnd->AsSymOpnd()->IsPropertySymOpnd())
             {
-                IR::PropertySymOpnd* propertySymOpnd = opnd->AsSymOpnd()->AsPropertySymOpnd();
+                IR::PropertySymOpnd const * propertySymOpnd = opnd->AsSymOpnd()->AsPropertySymOpnd();
                 if (!propertySymOpnd->MayHaveImplicitCall())
                 {
                     return false;

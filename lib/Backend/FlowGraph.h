@@ -302,11 +302,11 @@ public:
 
     BasicBlock * GetNext()
     {
-        BasicBlock *block = this;
+        BasicBlock *block = this->next;
 
-        do {
+        while (block && block->isDeleted) {
             block = block->next;
-        } while (block && block->isDeleted);
+        }
 
         return block;
     }
@@ -330,8 +330,14 @@ public:
 
     bool IsLandingPad();
 
-#if DBG_DUMP
+    // GlobOpt Stuff
+public:
+    void         MergePredBlocksValueMaps(GlobOpt* globOptState);
+private:
+    void         CleanUpValueMaps();
 
+#if DBG_DUMP
+public:
     void DumpHeader(bool insertCR = true);
     void Dump();
 
@@ -737,7 +743,7 @@ public:
     void                SetImplicitCallFlags(Js::ImplicitCallFlags flags);
     Js::LoopFlags GetLoopFlags() const { return loopFlags; }
     void SetLoopFlags(Js::LoopFlags val) { loopFlags = val; }
-    bool                CanHoistInvariants();
+    bool                CanHoistInvariants() const;
     bool                CanDoFieldCopyProp();
     bool                CanDoFieldHoist();
     void                SetHasCall();
