@@ -31,7 +31,7 @@
       <AdditionalOptions>%(AdditionalOptions) -sal_local</AdditionalOptions>
     </Midl>
     <ClCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);_CHAKRACOREBUILD;NOMINMAX;USE_EDGEMODE_JSRT</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);NOMINMAX;USE_EDGEMODE_JSRT</PreprocessorDefinitions>
       <!-- Some of our STDMETHOD can throw
            TODO: Code review STDMETHOD and separate out API that can throw and those that can't -->
       <PreprocessorDefinitions>%(PreprocessorDefinitions);COM_STDMETHOD_CAN_THROW</PreprocessorDefinitions>

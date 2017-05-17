@@ -8,6 +8,13 @@
 #include "Warnings.h"
 #include "ChakraCoreVersion.h"
 
+#if defined(NTBUILD) && defined(_CHAKRACOREBUILD)
+#error NTBUILD and _CHAKRACOREBUILD cannot be both defined
+#endif
+#if !defined(NTBUILD) && !defined(_CHAKRACOREBUILD)
+#error Either NTBUILD or _CHAKRACOREBUILD must be defined
+#endif
+
 //----------------------------------------------------------------------------------------------------
 // Default debug/fretest/release flags values
 //  - Set the default values of debug/fretest/release flags if it is not set by the command line

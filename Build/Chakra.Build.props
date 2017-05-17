@@ -16,6 +16,7 @@
     <ClCompile>
       <PreprocessorDefinitions>
         %(PreprocessorDefinitions);
+        _CHAKRACOREBUILD;
         _WIN32_WINNT=$(Win32_WinNTVersion);
         WINVER=$(Win32_WinNTVersion);
         WIN32_LEAN_AND_MEAN=1
@@ -51,6 +52,10 @@
       <!-- ======== For Code Coverage ======== -->
       <Optimization Condition="'$(ENABLE_CODECOVERAGE)'=='true'">Disabled</Optimization>
     </ClCompile>
+
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);_CHAKRACOREBUILD</PreprocessorDefinitions>
+    </ResourceCompile>
 
     <Link>
       <!-- ======== For Code Coverage ======== -->
