@@ -645,10 +645,15 @@ public:
 #ifdef RECYCLER_PAGE_HEAP
     // Keeping as constant in case we want to tweak the value here
     // Set to 0 so that the tool can do the filtering instead of the runtime
+#if DBG
+    static const int s_numFramesToSkipForPageHeapAlloc = 10;
+    static const int s_numFramesToSkipForPageHeapFree = 0;
+    static const int s_numFramesToCaptureForPageHeap = 32;
+#else
     static const int s_numFramesToSkipForPageHeapAlloc = 0;
     static const int s_numFramesToSkipForPageHeapFree = 0;
-
     static const int s_numFramesToCaptureForPageHeap = 32;
+#endif
 #endif
 
     uint Cookie;
@@ -775,13 +780,15 @@ private:
     DListBase<ArenaData*> externalGuestArenaList;    // guest arenas are scanned for roots
 
 #ifdef RECYCLER_PAGE_HEAP
+    bool isPageHeapEnabled;
+    bool capturePageHeapAllocStack;
+    bool capturePageHeapFreeStack;
+
     inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
     template<ObjectInfoBits attributes>
     bool IsPageHeapEnabled(size_t size);
     inline bool ShouldCapturePageHeapAllocStack() const { return capturePageHeapAllocStack; }
-    bool isPageHeapEnabled;
-    bool capturePageHeapAllocStack;
-    bool capturePageHeapFreeStack;
+    void VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size, ObjectInfoBits attributes);
 #else
     inline const bool IsPageHeapEnabled() const { return false; }
     inline bool ShouldCapturePageHeapAllocStack() const { return false; }
@@ -1472,10 +1479,6 @@ private:
     {
         return AllocWithAttributes<WeakReferenceEntryBits, /* nothrow = */ false>(size);
     }
-#if DBG
-    template <ObjectInfoBits attributes>
-    void VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size);
-#endif
 
     bool NeedDisposeTimed()
     {
@@ -2005,9 +2008,14 @@ public:
     void* GetObjectAddress() const { return m_address; }
 
 #ifdef RECYCLER_PAGE_HEAP
-    bool IsPageHeapAlloc()
+    bool IsPageHeapAlloc() const
     {
         return isUsingLargeHeapBlock && ((LargeHeapBlock*)m_heapBlock)->InPageHeapMode();
+    }
+    void PageHeapLockPages() const
+    {
+        Assert(IsPageHeapAlloc());
+        ((LargeHeapBlock*)m_heapBlock)->PageHeapLockPages();
     }
 #endif
 
@@ -2079,8 +2087,6 @@ public:
         Recycler* recycler = this->m_recycler;
         if (recycler->IsPageHeapEnabled() && recycler->ShouldCapturePageHeapFreeStack())
         {
-            Assert(recycler->IsPageHeapEnabled());
-
 #ifdef STACK_BACK_TRACE
             if (this->isUsingLargeHeapBlock)
             {
@@ -2159,7 +2165,7 @@ public:
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override { Assert(false); return false; }
     virtual byte* GetRealAddressFromInterior(void* interiorAddress) override { Assert(false); return nullptr; }
-    virtual size_t GetObjectSize(void* object) override { Assert(false); return 0; }
+    virtual size_t GetObjectSize(void* object) const override { Assert(false); return 0; }
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override { Assert(false); return false; }
     virtual bool TestObjectMarkedBit(void* objectAddress) override { Assert(false); return false; }
     virtual void SetObjectMarkedBit(void* objectAddress) override { Assert(false); }

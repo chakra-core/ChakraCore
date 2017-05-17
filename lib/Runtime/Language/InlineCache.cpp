@@ -384,7 +384,7 @@ namespace Js
     void InlineCache::Clear()
     {
 #if DBG
-        if (!IsAll((char*)this, sizeof(InlineCache), '\0'))
+        if (!IsAll((byte*)this, sizeof(InlineCache), 0))
 #endif
         {
             memset(this, 0, sizeof(InlineCache));
@@ -1347,7 +1347,7 @@ namespace Js
     void IsInstInlineCache::Clear()
     {
 #if DBG
-        if (!IsAll((char*)this, sizeof(IsInstInlineCache), '\0'))
+        if (!IsAll((byte*)this, sizeof(IsInstInlineCache), 0))
 #endif
         {
             memset(this, 0, sizeof(IsInstInlineCache));

@@ -159,9 +159,7 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::TransferDisposedObjects()
         HeapBlockList::ForEach(currentPendingDisposeList, [=](TBlockType * heapBlock)
         {
             heapBlock->TransferDisposedObjects();
-
-            // in pageheap, we actually always have free object
-            Assert(heapBlock->template HasFreeObject<false>());
+            Assert(heapBlock->HasFreeObject());
         });
 
         // For partial collect, dispose will modify the object, and we

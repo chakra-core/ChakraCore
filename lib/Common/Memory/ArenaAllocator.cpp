@@ -1134,10 +1134,10 @@ void InlineCacheAllocator::CheckIsAllZero(bool lockdown)
             // will be debug pattern filled (specifically, at least their weak reference slots).
             // All other caches must be zeroed out (again, at least their weak reference slots).
 #ifdef ARENA_MEMORY_VERIFY
-            Assert(IsAll((char*)weakRefBytes, sizeof(cache->weakRefs), '\0') 
-                || IsAll((char*)weakRefBytes, sizeof(cache->weakRefs), InlineCacheFreeListPolicy::DbgFreeMemFill));
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0) 
+                || IsAll(weakRefBytes, sizeof(cache->weakRefs), InlineCacheFreeListPolicy::DbgFreeMemFill));
 #else
-            Assert(IsAll((char*)weakRefBytes, sizeof(cache->weakRefs), '\0'));
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0));
 #endif
         }
 
@@ -1160,10 +1160,10 @@ void InlineCacheAllocator::CheckIsAllZero(bool lockdown)
             char* weakRefBytes = (char *)cache->weakRefs;
 
 #ifdef ARENA_MEMORY_VERIFY
-            Assert(IsAll((char*)weakRefBytes, sizeof(cache->weakRefs), '\0')
-                || IsAll((char*)weakRefBytes, sizeof(cache->weakRefs), InlineCacheFreeListPolicy::DbgFreeMemFill));
+            Assert(IsAll((byte*)weakRefBytes, sizeof(cache->weakRefs), 0)
+                || IsAll((byte*)weakRefBytes, sizeof(cache->weakRefs), InlineCacheFreeListPolicy::DbgFreeMemFill));
 #else
-            Assert(IsAll((char*)weakRefBytes, sizeof(cache->weakRefs), '\0'));
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0));
 #endif
         }
         if (lockdown)
@@ -1184,10 +1184,10 @@ void InlineCacheAllocator::CheckIsAllZero(bool lockdown)
         {
             unsigned char* weakRefBytes = (unsigned char *)cache->weakRefs;
 #ifdef ARENA_MEMORY_VERIFY
-            Assert(IsAll((char*)weakRefBytes, sizeof(cache->weakRefs), '\0')
-                || IsAll((char*)weakRefBytes, sizeof(cache->weakRefs), InlineCacheFreeListPolicy::DbgFreeMemFill));
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0)
+                || IsAll(weakRefBytes, sizeof(cache->weakRefs), InlineCacheFreeListPolicy::DbgFreeMemFill));
 #else
-            Assert(IsAll((char*)weakRefBytes, sizeof(cache->weakRefs), '\0'));
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0));
 #endif
         }
 
@@ -1477,20 +1477,20 @@ void InlineCacheAllocator::CheckIsAllZero()
     BigBlock *blockp = this->bigBlocks;
     while (blockp != NULL)
     {
-        Assert(IsAll(blockp->GetBytes(), blockp->currentByte, '\0'));
+        Assert(IsAll((byte*)blockp->GetBytes(), blockp->currentByte, 0));
         blockp = blockp->nextBigBlock;
     }
     blockp = this->fullBlocks;
     while (blockp != NULL)
     {
-        Assert(IsAll(blockp->GetBytes(), blockp->currentByte, '\0'));
+        Assert(IsAll((byte*)blockp->GetBytes(), blockp->currentByte, 0));
         blockp = blockp->nextBigBlock;
     }
 
     ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
     while (memoryBlock != nullptr)
     {
-        Assert(IsAll(memoryBlock->GetBytes(), memoryBlock->nbytes, '\0'));
+        Assert(IsAll((byte*)memoryBlock->GetBytes(), memoryBlock->nbytes, 0'));
         memoryBlock = memoryBlock->next;
     }
 }
@@ -1534,7 +1534,7 @@ void CacheAllocator::CheckIsAllZero(bool lockdown)
     BigBlock *blockp = this->bigBlocks;
     while (blockp != NULL)
     {
-        Assert(IsAll(blockp->GetBytes(), blockp->currentByte, '\0'));
+        Assert(IsAll((byte*)blockp->GetBytes(), blockp->currentByte, 0));
         if (lockdown)
         {
             DWORD oldProtect;
@@ -1546,7 +1546,7 @@ void CacheAllocator::CheckIsAllZero(bool lockdown)
     blockp = this->fullBlocks;
     while (blockp != NULL)
     {
-        Assert(IsAll(blockp->GetBytes(), blockp->currentByte, '\0'));
+        Assert(IsAll((byte*)blockp->GetBytes(), blockp->currentByte, 0));
         if (lockdown)
         {
             DWORD oldProtect;
@@ -1558,7 +1558,7 @@ void CacheAllocator::CheckIsAllZero(bool lockdown)
     ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
     while (memoryBlock != nullptr)
     {
-        Assert(IsAll(memoryBlock->GetBytes(), memoryBlock->nbytes, '\0'));
+        Assert(IsAll((byte*)memoryBlock->GetBytes(), memoryBlock->nbytes, 0));
         if (lockdown)
         {
             DWORD oldProtect;
@@ -1645,10 +1645,8 @@ namespace Memory
     template class ArenaAllocatorBase<StandAloneFreeListPolicy>;
     template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
 
-#if DBG
-    bool IsAll(char* buffer, size_t size, char c)
+    bool IsAll(byte* buffer, size_t size, byte c)
     {
         return size == 0 || ((*buffer == c) && (size == 1 || memcmp(buffer, buffer + 1, size - 1) == 0));
     }
-#endif
 }

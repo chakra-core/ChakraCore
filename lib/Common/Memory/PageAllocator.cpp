@@ -1511,13 +1511,12 @@ void
 PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::ReleaseSegment(TSegment * segment)
 {
     ASSERT_THREAD();
-#if defined(RECYCLER_MEMORY_VERIFY) || defined(ARENA_MEMORY_VERIFY)
+#ifdef RECYCLER_NO_PAGE_REUSE
     if (disablePageReuse)
     {
         Assert(this->processHandle == GetCurrentProcess());
-        DWORD oldProtect;
-        BOOL vpresult = VirtualProtect(segment->GetAddress(), segment->GetPageCount() * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
-        Assert(vpresult && oldProtect == PAGE_READWRITE);
+#pragma prefast(suppress:6250, "Calling 'VirtualFree' without the MEM_RELEASE flag might free memory but not address descriptors (VADs).")
+        VirtualFree(segment->GetAddress(), segment->GetPageCount() * AutoSystemInfo::PageSize, MEM_DECOMMIT);
         return;
     }
 #endif
@@ -1546,13 +1545,12 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::ReleasePages(__in void
     ASSERT_THREAD();
     Assert(!this->HasMultiThreadAccess());
 
-#if defined(RECYCLER_MEMORY_VERIFY) || defined(ARENA_MEMORY_VERIFY)
+#ifdef RECYCLER_NO_PAGE_REUSE
     if (disablePageReuse)
     {
         Assert(this->processHandle == GetCurrentProcess());
-        DWORD oldProtect;
-        BOOL vpresult = VirtualProtect(address, pageCount * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
-        Assert(vpresult && oldProtect == PAGE_READWRITE);
+#pragma prefast(suppress:6250, "Calling 'VirtualFree' without the MEM_RELEASE flag might free memory but not address descriptors (VADs).")
+        VirtualFree(address, pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
         return;
     }
 #endif

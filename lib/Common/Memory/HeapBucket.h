@@ -20,8 +20,8 @@ public:
     // Temporary data for Sweep list consistency checks
     bool expectFull;
     bool expectDispose;
-    SmallHeapBlockT<TBlockAttributes> * nextAllocableBlockHead;
     bool hasSetupVerifyListConsistencyData;
+    SmallHeapBlockT<TBlockAttributes> * nextAllocableBlockHead;
 
     template <typename TBlockAttributes>
     void SetupVerifyListConsistencyData(SmallHeapBlockT<TBlockAttributes>* block, bool expectFull, bool expectDispose)
@@ -90,9 +90,7 @@ public:
         return isPageHeapEnabled && ((attributes & ClientTrackableObjectBits) == 0);
     }
 #endif
-#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
     Recycler * GetRecycler() const;
-#endif
 
     template <typename TBlockType>
     friend class SmallHeapBlockAllocator;
