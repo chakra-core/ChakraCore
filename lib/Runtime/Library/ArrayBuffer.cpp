@@ -736,7 +736,7 @@ namespace Js
         return IsValidAsmJsBufferLengthAlgo(length, forceCheck);
     }
 
-    bool JavascriptArrayBuffer::IsValidVirtualBufferLength(uint length)
+    bool JavascriptArrayBuffer::IsValidVirtualBufferLength(uint length) const
     {
 #if ENABLE_FAST_ARRAYBUFFER
         return !PHASE_OFF1(Js::TypedArrayVirtualPhase) && IsValidAsmJsBufferLengthAlgo(length, true);
@@ -995,7 +995,7 @@ namespace Js
         return result;
     }
 
-    bool WebAssemblyArrayBuffer::IsValidVirtualBufferLength(uint length)
+    bool WebAssemblyArrayBuffer::IsValidVirtualBufferLength(uint length) const
     {
 #if ENABLE_FAST_ARRAYBUFFER
         return true;

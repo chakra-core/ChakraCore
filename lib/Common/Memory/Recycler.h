@@ -2318,9 +2318,21 @@ class TypeAllocatorFunc<Recycler, T *> : public _RecyclerAllocatorFunc<_Recycler
 #endif
 
 // Dummy class to choose the allocation function
-class RecyclerLeafAllocator;
-class RecyclerNonLeafAllocator;
-class RecyclerWriteBarrierAllocator;
+class RecyclerLeafAllocator
+{
+public:
+    static const bool FakeZeroLengthArray = true;
+};
+class RecyclerNonLeafAllocator
+{
+public:
+    static const bool FakeZeroLengthArray = true;
+};
+class RecyclerWriteBarrierAllocator
+{
+public:
+    static const bool FakeZeroLengthArray = true;
+};
 
 // Choose RecyclerLeafAllocator / RecyclerNonLeafAllocator based on "bool isLeaf"
 template <bool isLeaf>

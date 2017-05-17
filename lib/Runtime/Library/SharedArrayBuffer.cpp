@@ -23,6 +23,17 @@ namespace Js
     }
 #endif
 
+    long SharedContents::AddRef()
+    {
+        return InterlockedIncrement(&refCount);
+    }
+    long SharedContents::Release()
+    {
+        long ret = InterlockedDecrement(&refCount);
+        AssertOrFailFastMsg(ret >= 0, "Buffer already freed");
+        return ret;
+    }
+
     void SharedContents::Cleanup()
     {
         Assert(refCount == 0);
@@ -38,7 +49,10 @@ namespace Js
 
         if (indexToWaiterList != nullptr)
         {
-            indexToWaiterList->Map([](uint index, WaiterList *waiters) {
+            // TODO: the map should be empty here?
+            // or we need to wake all the waiters from current context?
+            indexToWaiterList->Map([](uint index, WaiterList *waiters)
+            {
                 if (waiters != nullptr)
                 {
                     waiters->Cleanup();
@@ -223,115 +237,111 @@ namespace Js
         return JavascriptOperators::GetTypeId(aValue) == TypeIds_SharedArrayBuffer;
     }
 
-    DetachedStateBase* SharedArrayBuffer::GetSharableState(Var object)
-    {
-        Assert(SharedArrayBuffer::Is(object));
-        SharedArrayBuffer * sab = SharedArrayBuffer::FromVar(object);
-        SharedContents * contents = sab->GetSharedContents();
-
-#if ENABLE_FAST_ARRAYBUFFER
-        if (sab->IsValidVirtualBufferLength(contents->bufferLength))
-        {
-            return HeapNew(SharableState, contents, ArrayBufferAllocationType::MemAlloc);
-        }
-        else
-        {
-            return HeapNew(SharableState, contents, ArrayBufferAllocationType::Heap);
-        }
-#else
-        return HeapNew(SharableState, contents, ArrayBufferAllocationType::Heap);
-#endif
-    }
-
-    SharedArrayBuffer* SharedArrayBuffer::NewFromSharedState(DetachedStateBase* state, JavascriptLibrary *library)
-    {
-        Assert(state->GetTypeId() == TypeIds_SharedArrayBuffer);
-
-        SharableState* sharableState = static_cast<SharableState *>(state);
-        if (sharableState->allocationType == ArrayBufferAllocationType::Heap || sharableState->allocationType == ArrayBufferAllocationType::MemAlloc)
-        {
-            return library->CreateSharedArrayBuffer(sharableState->contents);
-        }
-
-        Assert(false);
-        return nullptr;
-    }
-
-    template <class Allocator>
-    SharedArrayBuffer::SharedArrayBuffer(uint32 length, DynamicType * type, Allocator allocator) :
+    SharedArrayBuffer::SharedArrayBuffer(uint32 length, DynamicType * type) :
         ArrayBufferBase(type), sharedContents(nullptr)
     {
         BYTE * buffer = nullptr;
         if (length > MaxSharedArrayBufferLength)
         {
-            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_FunctionArgument_Invalid);
+            // http://tc39.github.io/ecmascript_sharedmem/shmem.html#DataTypesValues.SpecTypes.DataBlocks.CreateSharedByteDataBlock
+            // Let db be a new Shared Data Block value consisting of size bytes.
+            // If it is impossible to create such a Shared Data Block, throw a RangeError exception.
+            JavascriptError::ThrowRangeError(GetScriptContext(), JSERR_FunctionArgument_Invalid);
         }
-        else if (length > 0)
-        {
-            Recycler* recycler = GetType()->GetLibrary()->GetRecycler();
-            if (recycler->ReportExternalMemoryAllocation(length))
-            {
-                buffer = (BYTE*)allocator(length);
-                if (buffer == nullptr)
-                {
-                    recycler->ReportExternalMemoryFree(length);
-                }
-            }
 
+        Recycler* recycler = GetType()->GetLibrary()->GetRecycler();
+
+        auto alloc = [this](uint len)->BYTE* 
+        {
+#if ENABLE_FAST_ARRAYBUFFER
+            if (this->IsValidVirtualBufferLength(len))
+            {
+                return (BYTE*)AsmJsVirtualAllocator(len);
+            }
+            else
+#endif
+            {
+                return HeapNewNoThrowArray(BYTE, len);
+            }
+        };
+
+        if (recycler->ReportExternalMemoryAllocation(length))
+        {
+            buffer = alloc(length);
             if (buffer == nullptr)
             {
                 recycler->CollectNow<CollectOnTypedArrayAllocation>();
 
-                if (recycler->ReportExternalMemoryAllocation(length))
-                {
-                    buffer = (BYTE*)allocator(length);
-                    if (buffer == nullptr)
-                    {
-                        recycler->ReportExternalMemoryFailure(length);
-                    }
-                }
-                else
-                {
-                    JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-                }
-            }
-
-            if (buffer != nullptr)
-            {
-                ZeroMemory(buffer, length);
-                sharedContents = HeapNew(SharedContents, buffer, length);
-                if (sharedContents == nullptr)
+                buffer = alloc(length);
+                if (buffer == nullptr)
                 {
                     recycler->ReportExternalMemoryFailure(length);
-
-                    // What else could we do?
                     JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
                 }
-#if DBG
-                sharedContents->AddAgent((DWORD_PTR)GetScriptContext());
+            }
+        }
+        else
+        {
+            JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+        }
+
+        Assert(buffer != nullptr);
+        ZeroMemory(buffer, length);
+        sharedContents = HeapNewNoThrow(SharedContents, buffer, length);
+        if (sharedContents == nullptr)
+        {
+#if ENABLE_FAST_ARRAYBUFFER
+            //AsmJS Virtual Free
+            if (this->IsValidVirtualBufferLength(length))
+            {
+                FreeMemAlloc(buffer);
+            }
+            else
 #endif
+            {
+                HeapDeleteArray(length, buffer);
             }
 
-        }
-    }
+            recycler->ReportExternalMemoryFailure(length);
 
-    SharedArrayBuffer::SharedArrayBuffer(SharedContents * contents, DynamicType * type) :
-        ArrayBufferBase(type), sharedContents(contents)
-    {
-        if (sharedContents == nullptr || sharedContents->bufferLength > MaxSharedArrayBufferLength)
-        {
-            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_FunctionArgument_Invalid);
+            JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
         }
-        InterlockedIncrement(&sharedContents->refCount);
 #if DBG
         sharedContents->AddAgent((DWORD_PTR)GetScriptContext());
 #endif
     }
 
+    SharedArrayBuffer::SharedArrayBuffer(SharedContents * contents, DynamicType * type) :
+        ArrayBufferBase(type), sharedContents(nullptr)
+    {
+        if (contents == nullptr || contents->bufferLength > MaxSharedArrayBufferLength)
+        {
+            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_FunctionArgument_Invalid);
+        }
+
+        if (contents->AddRef() > 1)
+        {
+            sharedContents = contents;
+        }
+        else 
+        {
+            Js::Throw::FatalInternalError();
+        }
+#if DBG
+        sharedContents->AddAgent((DWORD_PTR)GetScriptContext());
+#endif
+    }
+
+    CriticalSection SharedArrayBuffer::csSharedArrayBuffer;
+
     WaiterList *SharedArrayBuffer::GetWaiterList(uint index)
     {
         if (sharedContents != nullptr)
         {
+            // REVIEW: only lock creating the map and pass the lock to the map?
+            //         use one lock per instance?
+            AutoCriticalSection autoCS(&csSharedArrayBuffer);
+
             if (sharedContents->indexToWaiterList == nullptr)
             {
                 sharedContents->indexToWaiterList = HeapNew(IndexToWaitersMap, &HeapAllocator::Instance);
@@ -373,7 +383,7 @@ namespace Js
     }
 
     JavascriptSharedArrayBuffer::JavascriptSharedArrayBuffer(uint32 length, DynamicType * type) :
-        SharedArrayBuffer(length, type, (IsValidVirtualBufferLength(length)) ? AsmJsVirtualAllocator : malloc)
+        SharedArrayBuffer(length, type)
     {
     }
     JavascriptSharedArrayBuffer::JavascriptSharedArrayBuffer(SharedContents *sharedContents, DynamicType * type) :
@@ -385,7 +395,6 @@ namespace Js
     {
         Recycler* recycler = type->GetScriptContext()->GetRecycler();
         JavascriptSharedArrayBuffer* result = RecyclerNewFinalized(recycler, JavascriptSharedArrayBuffer, length, type);
-        Assert(result);
         recycler->AddExternalMemoryUsage(length);
         return result;
     }
@@ -394,16 +403,10 @@ namespace Js
     {
         Recycler* recycler = type->GetScriptContext()->GetRecycler();
         JavascriptSharedArrayBuffer* result = RecyclerNewFinalized(recycler, JavascriptSharedArrayBuffer, sharedContents, type);
-        Assert(result != nullptr);
-        if (sharedContents != nullptr)
-        {
-            // REVIEW : why do we need to increase this? it is the same memory we are sharing.
-            recycler->AddExternalMemoryUsage(sharedContents->bufferLength);
-        }
         return result;
     }
 
-    bool JavascriptSharedArrayBuffer::IsValidVirtualBufferLength(uint length)
+    bool SharedArrayBuffer::IsValidVirtualBufferLength(uint length) const
     {
 #if ENABLE_FAST_ARRAYBUFFER
         /*
@@ -432,24 +435,21 @@ namespace Js
             return;
         }
 
-        uint ref = InterlockedDecrement(&sharedContents->refCount);
+        uint ref = sharedContents->Release();
         if (ref == 0)
         {
 #if ENABLE_FAST_ARRAYBUFFER
             //AsmJS Virtual Free
-            //TOD - see if isBufferCleared need to be added for free too
-            if (IsValidVirtualBufferLength(sharedContents->bufferLength) && !sharedContents->isBufferCleared)
+            if (this->IsValidVirtualBufferLength(sharedContents->bufferLength))
             {
                 FreeMemAlloc(sharedContents->buffer);
-                sharedContents->isBufferCleared = true;
             }
             else
-            {
-                free(sharedContents->buffer);
-            }
-#else
-            free(sharedContents->buffer);
 #endif
+            {
+                HeapDeleteArray(sharedContents->bufferLength, sharedContents->buffer);
+            }
+                        
             Recycler* recycler = GetType()->GetLibrary()->GetRecycler();
             recycler->ReportExternalMemoryFree(sharedContents->bufferLength);
 

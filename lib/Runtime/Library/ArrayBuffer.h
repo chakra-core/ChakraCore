@@ -77,7 +77,7 @@ namespace Js
         virtual void AddParent(ArrayBufferParent* parent) { }
         virtual uint32 GetByteLength() const = 0;
         virtual BYTE* GetBuffer() const = 0;
-        virtual bool IsValidVirtualBufferLength(uint length) { return false; }
+        virtual bool IsValidVirtualBufferLength(uint length) const { return false; };
 
         static bool Is(Var value);
         static ArrayBufferBase* FromVar(Var value);
@@ -255,7 +255,7 @@ namespace Js
 
         static bool IsValidAsmJsBufferLengthAlgo(uint length, bool forceCheck);
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) override;
-        virtual bool IsValidVirtualBufferLength(uint length) override;
+        virtual bool IsValidVirtualBufferLength(uint length) const override;
 
         virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
 
@@ -286,7 +286,7 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WebAssemblyArrayBuffer);
     public:
         static WebAssemblyArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
-        virtual bool IsValidVirtualBufferLength(uint length) override;
+        virtual bool IsValidVirtualBufferLength(uint length) const override;
         virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
     };
 
