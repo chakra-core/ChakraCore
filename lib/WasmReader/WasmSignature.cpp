@@ -186,16 +186,24 @@ WasmSignature::WriteSignatureToString(_Out_writes_(maxlen) char16* out, uint32 m
 {
     AssertOrFailFast(out != nullptr);
     uint32 numwritten = 0;
-    numwritten += swprintf_s(out+numwritten, maxlen-numwritten, _u("("));
+    numwritten += _snwprintf_s(out+numwritten, maxlen-numwritten, _TRUNCATE, _u("("));
     for (uint i = 0; i < this->GetParamCount(); i++)
     {
         if (i != 0)
         {
-            numwritten += swprintf_s(out+numwritten, maxlen-numwritten, _u(", "));
+            numwritten += _snwprintf_s(out+numwritten, maxlen-numwritten, _TRUNCATE, _u(", "));
         }
-        numwritten += swprintf_s(out+numwritten, maxlen-numwritten, _u("%ls"), WasmTypes::GetTypeName(this->GetParam(i)));
+        numwritten += _snwprintf_s(out+numwritten, maxlen-numwritten, _TRUNCATE, _u("%ls"), WasmTypes::GetTypeName(this->GetParam(i)));
     }
-    numwritten += swprintf_s(out+numwritten, maxlen-numwritten, _u(")->%ls"), WasmTypes::GetTypeName(this->GetResultType()));
+    if (numwritten >= maxlen-12) {
+        // null out the last 12 characters so we can properly end it 
+        for (int i = 1; i <= 12; i++) {
+            *(out + maxlen - i) = 0;
+        }
+        numwritten -= 12;
+        numwritten += _snwprintf_s(out + numwritten, maxlen - numwritten, _TRUNCATE, _u("..."));
+    }
+    numwritten += _snwprintf_s(out + numwritten, maxlen - numwritten, _TRUNCATE, _u(")->%ls"), WasmTypes::GetTypeName(this->GetResultType()));
     return numwritten;
 }
 
@@ -204,7 +212,7 @@ WasmSignature::Dump()
 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     char16 buf[512] = { 0 };
-    this->WriteSignatureToString(buf, 511);
+    this->WriteSignatureToString(buf, 512);
     Output::Print(buf);
 #endif
 }
