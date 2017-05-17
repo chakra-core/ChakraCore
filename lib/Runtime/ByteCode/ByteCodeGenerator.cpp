@@ -2280,7 +2280,7 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
         {
             Assert(false);
         }
-        UInt16Math::Inc(pos);
+        ArgSlotMath::Inc(pos);
     };
 
     // We process rest separately because the number of in args needs to exclude rest.
@@ -2440,7 +2440,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
         // Process the formal arguments, even if there's no AST for the body, to support Function.length.
         Js::ArgSlot pos = 1;
         // We skip the rest parameter here because it is not counted towards the in arg count.
-        MapFormalsWithoutRest(pnode, [&](ParseNode *pnode) { UInt16Math::Inc(pos); });
+        MapFormalsWithoutRest(pnode, [&](ParseNode *pnode) { ArgSlotMath::Inc(pos); });
         byteCodeGenerator->SetNumberOfInArgs(pos);
         return funcInfo;
     }

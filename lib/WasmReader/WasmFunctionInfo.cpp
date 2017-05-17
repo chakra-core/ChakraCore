@@ -23,9 +23,9 @@ WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc, WasmSignature* signat
     , importedFunctionReference(nullptr)
 #endif
 {
-    for (uint32 i = 0; i < signature->GetParamCount(); ++i)
+    for (Js::ArgSlot i = 0; i < signature->GetParamCount(); ++i)
     {
-        m_locals.Add(Wasm::Local(signature->GetParam(i)));
+        m_locals.Add(signature->GetParam(i));
     }
 }
 
@@ -48,12 +48,6 @@ WasmFunctionInfo::GetLocal(uint index) const
     return WasmTypes::Limit;
 }
 
-Local
-WasmFunctionInfo::GetParam(uint index) const
-{
-    return m_signature->GetParam(index);
-}
-
 WasmTypes::WasmType
 WasmFunctionInfo::GetResultType() const
 {
@@ -66,7 +60,7 @@ WasmFunctionInfo::GetLocalCount() const
     return m_locals.Count();
 }
 
-uint32
+Js::ArgSlot
 WasmFunctionInfo::GetParamCount() const
 {
     return m_signature->GetParamCount();

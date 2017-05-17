@@ -70,7 +70,7 @@ namespace Js
         PnFnc func = node->sxFnc;
         ParseNode* first = func.pnodeParams;
         // throws OOM on uint16 overflow
-        for( ParseNode* pnode = first; pnode; pnode = pnode->sxVar.pnodeNext, UInt16Math::Inc(numformals));
+        for( ParseNode* pnode = first; pnode; pnode = pnode->sxVar.pnodeNext, ArgSlotMath::Inc(numformals));
         return first;
     }
 
