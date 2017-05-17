@@ -139,6 +139,9 @@ public:
         tailBlock(nullptr),
         loopList(nullptr),
         catchLabelStack(nullptr),
+        finallyLabelStack(nullptr),
+        leaveNullLabelStack(nullptr),
+        regToFinallyEndMap(nullptr),
         hasBackwardPassInfo(false),
         hasLoop(false),
         implicitCallFlags(Js::ImplicitCall_HasNoInfo)
@@ -149,7 +152,7 @@ public:
     void Destroy(void);
 
     void         RunPeeps();
-    BasicBlock * AddBlock(IR::Instr * firstInstr, IR::Instr * lastInstr, BasicBlock * nextBlock);
+    BasicBlock * AddBlock(IR::Instr * firstInstr, IR::Instr * lastInstr, BasicBlock * nextBlock, BasicBlock *prevBlock = nullptr);
     FlowEdge *   AddEdge(BasicBlock * predBlock, BasicBlock * succBlock);
     BasicBlock * InsertCompensationCodeForBlockMove(FlowEdge * edge, // Edge where compensation code needs to be inserted
                                                     bool insertCompensationBlockToLoopList = false,
@@ -166,7 +169,12 @@ public:
     static void  SafeRemoveInstr(IR::Instr *instr);
     void         SortLoopLists();
     FlowEdge *   FindEdge(BasicBlock *predBlock, BasicBlock *succBlock);
-
+    IR::LabelInstr * DeleteLeaveChainBlocks(IR::BranchInstr *leaveInstr, IR::Instr * &instrPrev);
+    bool         IsEarlyExitFromFinally(IR::BranchInstr *leaveInstr, Region *currentRegion, Region *branchTargetRegion, IR::Instr *&instrPrev, IR::LabelInstr *&exitLabel);
+    bool         Dominates(Region *finallyRegion, Region *exitLabelRegion);
+    bool         DoesExitLabelDominate(IR::BranchInstr *leaveInstr);
+    void         InsertEdgeFromFinallyToEarlyExit(BasicBlock * finallyEndBlock, IR::LabelInstr * exitLabel);
+    BasicBlock * FindInfiniteLoop(BasicBlock * finallyBlock);
 #if DBG_DUMP
     void         Dump();
     void         Dump(bool verbose, const char16 *form);
@@ -177,6 +185,10 @@ public:
     BasicBlock *              tailBlock;
     Loop *                    loopList;
     SList<IR::LabelInstr*> *  catchLabelStack;
+    SList<IR::LabelInstr*> *  finallyLabelStack;
+    SList<IR::LabelInstr*> *  leaveNullLabelStack;
+    typedef JsUtil::BaseDictionary<Region *, BasicBlock *, JitArenaAllocator> RegionToFinallyEndMapType;
+    RegionToFinallyEndMapType * regToFinallyEndMap;
     bool                      hasBackwardPassInfo;
     bool                      hasLoop;
     Js::ImplicitCallFlags     implicitCallFlags;
@@ -186,7 +198,10 @@ private:
     void        BuildLoop(BasicBlock *headBlock, BasicBlock *tailBlock, Loop *parentLoop = nullptr);
     void        WalkLoopBlocks(BasicBlock *block, Loop *loop, JitArenaAllocator *tempAlloc);
     void        AddBlockToLoop(BasicBlock *block, Loop *loop);
-    void        UpdateRegionForBlock(BasicBlock *block, Region **blockToRegion);
+    bool        IsEHTransitionInstr(IR::Instr *instr);
+    BasicBlock * GetPredecessorForRegionPropagation(BasicBlock *block);
+    void        UpdateRegionForBlock(BasicBlock *block);
+    void        UpdateRegionForBlockFromEHPred(BasicBlock *block, bool reassign = false);
     Region *    PropagateRegionFromPred(BasicBlock *block, BasicBlock *predBlock, Region *predRegion, IR::Instr * &tryInstr);
     IR::Instr * PeepCm(IR::Instr *instr);
     IR::Instr * PeepTypedCm(IR::Instr *instr);

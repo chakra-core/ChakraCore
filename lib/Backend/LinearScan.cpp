@@ -187,7 +187,7 @@ LinearScan::RegAlloc()
         }
         else if (instr->IsBranchInstr())
         {
-            if (this->func->HasTry() && this->func->DoOptimizeTryCatch())
+            if (this->func->HasTry() && this->func->DoOptimizeTry())
             {
                 this->ProcessEHRegionBoundary(instr);
             }
@@ -206,8 +206,7 @@ LinearScan::RegAlloc()
             if (this->currentRegion)
             {
                 RegionType curRegType = this->currentRegion->GetType();
-                Assert(curRegType != RegionTypeFinally); //Finally regions are not optimized yet
-                if (curRegType == RegionTypeTry || curRegType == RegionTypeCatch)
+                if (curRegType == RegionTypeTry || curRegType == RegionTypeCatch || curRegType == RegionTypeFinally)
                 {
                     this->func->hasBailoutInEHRegion = true;
                 }
@@ -1005,7 +1004,7 @@ LinearScan::NeedsWriteThrough(StackSym * sym)
 bool
 LinearScan::NeedsWriteThroughForEH(StackSym * sym)
 {
-    if (!this->func->HasTry() || !this->func->DoOptimizeTryCatch() || !sym->HasByteCodeRegSlot())
+    if (!this->func->HasTry() || !this->func->DoOptimizeTry() || !sym->HasByteCodeRegSlot())
     {
         return false;
     }
@@ -1351,7 +1350,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     if (this->func->HasTry())
     {
         RegionType currentRegionType = this->currentRegion->GetType();
-        if (currentRegionType == RegionTypeTry || currentRegionType == RegionTypeCatch)
+        if (currentRegionType == RegionTypeTry || currentRegionType == RegionTypeCatch || currentRegionType == RegionTypeFinally)
         {
             bailOutInfo->bailOutRecord->ehBailoutData = this->currentRegion->ehBailoutData;
         }
@@ -2239,7 +2238,7 @@ LinearScan::RecordUse(Lifetime * lifetime, IR::Instr * instr, IR::RegOpnd * regO
     // have real accurate flow info for the later.
     if ((regOpnd && regOpnd->m_sym->IsConst())
           || (
-                 (this->func->HasTry() && !this->func->DoOptimizeTryCatch()) &&
+                 (this->func->HasTry() && !this->func->DoOptimizeTry()) &&
                  this->IsInLoop() &&
                  lifetime->lastUseLabel != this->lastLabel &&
                  this->liveOnBackEdgeSyms->Test(lifetime->sym->m_id) &&
@@ -2279,7 +2278,7 @@ void LinearScan::RecordLoopUse(Lifetime *lifetime, RegNum reg)
         return;
     }
 
-    if (this->func->HasTry() && !this->func->DoOptimizeTryCatch())
+    if (this->func->HasTry() && !this->func->DoOptimizeTry())
     {
         return;
     }
@@ -3122,8 +3121,8 @@ void
 LinearScan::ProcessEHRegionBoundary(IR::Instr * instr)
 {
     Assert(instr->IsBranchInstr());
-    Assert(instr->m_opcode != Js::OpCode::TryFinally); // finallys are not supported for optimization yet.
-    if (instr->m_opcode != Js::OpCode::TryCatch && instr->m_opcode != Js::OpCode::Leave)
+
+    if (instr->m_opcode != Js::OpCode::TryCatch && instr->m_opcode != Js::OpCode::TryFinally && instr->m_opcode != Js::OpCode::Leave)
     {
         return;
     }
@@ -3275,7 +3274,7 @@ LinearScan::InsertStores(Lifetime *lifetime, RegNum reg, IR::Instr *insertionIns
     uint localStoreCost = LinearScan::GetUseSpillCost(this->loopNest, (this->currentOpHelperBlock != nullptr));
 
     // Is it cheaper to spill all the defs we've seen so far or just insert a store at the current point?
-    if ((this->func->HasTry() && !this->func->DoOptimizeTryCatch()) || localStoreCost >= lifetime->allDefsCost)
+    if ((this->func->HasTry() && !this->func->DoOptimizeTry()) || localStoreCost >= lifetime->allDefsCost)
     {
         // Insert a store for each def point we've seen so far
         FOREACH_SLIST_ENTRY(IR::Instr *, instr, &(lifetime->defList))
@@ -3856,7 +3855,7 @@ LinearScan::GetUseSpillCost(uint loopNest, BOOL isInHelperBlock)
 void
 LinearScan::ProcessSecondChanceBoundary(IR::BranchInstr *branchInstr)
 {
-    if (this->func->HasTry() && !this->func->DoOptimizeTryCatch())
+    if (this->func->HasTry() && !this->func->DoOptimizeTry())
     {
         return;
     }
@@ -3946,7 +3945,7 @@ LinearScan::ProcessSecondChanceBoundaryHelper(IR::BranchInstr *branchInstr, IR::
 void
 LinearScan::ProcessSecondChanceBoundary(IR::LabelInstr *labelInstr)
 {
-    if (this->func->HasTry() && !this->func->DoOptimizeTryCatch())
+    if (this->func->HasTry() && !this->func->DoOptimizeTry())
     {
         return;
     }
@@ -4718,7 +4717,7 @@ IR::Instr * LinearScan::TryHoistLoad(IR::Instr *instr, Lifetime *lifetime)
         return insertInstr;
     }
 
-    if ((this->func->HasTry() && !this->func->DoOptimizeTryCatch()) || (this->currentRegion && this->currentRegion->GetType() != RegionTypeRoot))
+    if ((this->func->HasTry() && !this->func->DoOptimizeTry()) || (this->currentRegion && this->currentRegion->GetType() != RegionTypeRoot))
     {
         return insertInstr;
     }

@@ -474,6 +474,7 @@ private:
     IR::Instr *     LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper = false);
     IR::Instr *     LowerBailOnException(IR::Instr* instr);
     void            LowerReinterpretPrimitive(IR::Instr* instr);
+    IR::Instr *     LowerBailOnEarlyExit(IR::Instr* instr);
 
     void            LowerOneBailOutKind(IR::Instr *const instr, const IR::BailOutKind bailOutKindToLower, const bool isInHelperBlock, const bool preserveBailOutKindInInstr = false);
 

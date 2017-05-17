@@ -96,4 +96,16 @@
       <baseline>101832.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>early1.js</files>
+      <baseline>early1.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>early2.js</files>
+      <baseline>early2.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

@@ -6741,6 +6741,7 @@ void EmitTopLevelFinally(Js::ByteCodeLabel finallyLabel,
 
     byteCodeGenerator->Writer()->Br(afterFinallyBlockLabel);
     byteCodeGenerator->Writer()->MarkLabel(finallyLabel);
+    byteCodeGenerator->Writer()->Empty(Js::OpCode::Finally);
 
     ByteCodeGenerator::TryScopeRecord tryRecForFinally(Js::OpCode::ResumeFinally, finallyLabel, yieldExceptionLocation, yieldOffsetLocation);
     if (isCoroutine)
@@ -11873,6 +11874,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
         byteCodeGenerator->Writer()->Br(pnode->sxStmt.breakLabel);
         byteCodeGenerator->Writer()->MarkLabel(finallyLabel);
+        byteCodeGenerator->Writer()->Empty(Js::OpCode::Finally);
 
         ByteCodeGenerator::TryScopeRecord tryRecForFinally(Js::OpCode::ResumeFinally, finallyLabel, regException, regOffset);
         if (funcInfo->byteCodeFunction->IsCoroutine())

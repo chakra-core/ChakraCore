@@ -448,6 +448,7 @@ public:
 #endif
 
 private:
+    Js::JavascriptExceptionObject * pendingFinallyException;
     bool noScriptScope;
 
     Js::DebugManager * debugManager;
@@ -1260,6 +1261,16 @@ public:
     // NoScriptScope
     void SetNoScriptScope(bool noScriptScope) { this->noScriptScope = noScriptScope; }
     bool IsNoScriptScope() { return this->noScriptScope; }
+
+    void SetPendingFinallyException(Js::JavascriptExceptionObject * exceptionObj)
+    {
+        pendingFinallyException = exceptionObj;
+    }
+
+    Js::JavascriptExceptionObject * GetPendingFinallyException()
+    {
+        return pendingFinallyException;
+    }
 
     Js::EntryPointInfo ** RegisterEquivalentTypeCacheEntryPoint(Js::EntryPointInfo * entryPoint);
     void UnregisterEquivalentTypeCacheEntryPoint(Js::EntryPointInfo ** entryPoint);

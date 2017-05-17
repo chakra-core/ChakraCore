@@ -706,7 +706,7 @@ namespace Js
         void OP_TryCatch(const unaligned OpLayoutBr* playout);
         void ProcessCatch();
         int ProcessFinally();
-        void ProcessTryCatchBailout(EHBailoutData * innermostEHBailoutData, uint32 tryNestingDepth);
+        void ProcessTryHandlerBailout(EHBailoutData * innermostEHBailoutData, uint32 tryNestingDepth);
         void OP_TryFinally(const unaligned OpLayoutBr* playout);
         void OP_TryFinallyWithYield(const byte* ip, Js::JumpOffset jumpOffset, Js::RegSlot regException, Js::RegSlot regOffset);
         void OP_ResumeCatch();

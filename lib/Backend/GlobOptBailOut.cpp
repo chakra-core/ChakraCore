@@ -984,7 +984,7 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
 
                 bailOutInfo->startCallFunc[startCallNumber] = sym->m_instrDef->m_func;
 #ifdef _M_IX86
-                if (this->currentRegion && this->currentRegion->GetType() == RegionTypeTry)
+                if (this->currentRegion && (this->currentRegion->GetType() == RegionTypeTry || this->currentRegion->GetType() == RegionTypeFinally))
                 {
                     // For a bailout in argument evaluation from an EH region, the esp is offset by the TryCatch helper�s frame. So, the argouts are not actually pushed at the
                     // offsets stored in the bailout record, which are relative to ebp. Need to restore the argouts from the actual value of esp before calling the Bailout helper.
@@ -1358,6 +1358,12 @@ GlobOpt::GenerateBailAfterOperation(IR::Instr * *const pInstr, IR::BailOutKind k
     uint32 currentOffset = instr->GetByteCodeOffset();
     while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
         nextInstr->GetByteCodeOffset() == currentOffset)
+    {
+        nextInstr = nextInstr->GetNextRealInstrOrLabel();
+    }
+    // This can happen due to break block removal
+    while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
+        nextInstr->GetByteCodeOffset() < currentOffset)
     {
         nextInstr = nextInstr->GetNextRealInstrOrLabel();
     }
