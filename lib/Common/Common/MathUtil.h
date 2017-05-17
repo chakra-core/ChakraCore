@@ -100,6 +100,12 @@ public:
         return ((size + (alignment-1)) & ~(alignment-1));
     }
 
+    template <typename T>
+    static bool IsAligned(T size, T alignment)
+    {
+        return (size & (alignment - 1)) == 0;
+    }
+
     template <typename T, class Func>
     static T AlignOverflowCheck(T size, T alignment, __inout Func& overflowFn)
     {

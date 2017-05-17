@@ -1896,7 +1896,7 @@ void IRBuilderAsmJs::BuildArgOut(IR::Opnd* srcOpnd, uint32 dstRegSlot, uint32 of
     StackSym * symDst = nullptr;
     if (type == TyVar)
     {
-        symDst = m_func->m_symTable->GetArgSlotSym(UInt16Math::Add(dstArgSlot, 1));
+        symDst = m_func->m_symTable->GetArgSlotSym(ArgSlotMath::Add(dstArgSlot, 1));
         IR::Opnd * tmpDst = IR::RegOpnd::New(StackSym::New(m_func), TyVar, m_func);
 
         IR::Instr * instr = IR::Instr::New(Js::OpCode::ToVar, tmpDst, srcOpnd, m_func);

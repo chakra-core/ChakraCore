@@ -1091,7 +1091,7 @@ namespace Js
         else
         {
             // args size + 1 pointer
-            const ArgSlot argByteSize = UInt16Math::Add(sym->GetArgByteSize(argCount), sizeof(Var));
+            const ArgSlot argByteSize = ArgSlotMath::Add(sym->GetArgByteSize(argCount), sizeof(Var));
             mWriter.AsmStartCall(callOpCode[funcOpCode][StartCallIndex], argByteSize);
         }
         AutoArrayPtr<AsmJsType> types(nullptr, 0);
@@ -1224,16 +1224,16 @@ namespace Js
             throw AsmJsCompilationException( _u("Function %s returns different type"), funcName->Psz() );
         }
 
-        const ArgSlot argByteSize = UInt16Math::Add(sym->GetArgByteSize(argCount), sizeof(Var));
+        const ArgSlot argByteSize = ArgSlotMath::Add(sym->GetArgByteSize(argCount), sizeof(Var));
         // +1 is for function object
-        ArgSlot runtimeArg = UInt16Math::Add(argCount, 1);
+        ArgSlot runtimeArg = ArgSlotMath::Add(argCount, 1);
         if (funcOpCode == 1) // for non import functions runtimeArg is calculated from argByteSize
         {
             runtimeArg = (ArgSlot)(::ceil((double)(argByteSize / sizeof(Var)))) + 1;
         }
 
         // +1 is for return address
-        maxDepthForLevel += UInt16Math::Add(runtimeArg, 1);
+        maxDepthForLevel += ArgSlotMath::Add(runtimeArg, 1);
 
         // Make sure we have enough memory allocated for OutParameters
         if (mNestedCallCount > 1)
