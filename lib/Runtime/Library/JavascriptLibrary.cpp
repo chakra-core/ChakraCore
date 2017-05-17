@@ -6185,12 +6185,12 @@ namespace Js
         return arr;
     }
 
-    Js::ArrayBuffer* JavascriptLibrary::CreateWebAssemblyArrayBuffer(uint32 length)
+    Js::WebAssemblyArrayBuffer* JavascriptLibrary::CreateWebAssemblyArrayBuffer(uint32 length)
     {
         return WebAssemblyArrayBuffer::Create(nullptr, length, arrayBufferType);
     }
 
-    Js::ArrayBuffer* JavascriptLibrary::CreateWebAssemblyArrayBuffer(byte* buffer, uint32 length)
+    Js::WebAssemblyArrayBuffer* JavascriptLibrary::CreateWebAssemblyArrayBuffer(byte* buffer, uint32 length)
     {
         return WebAssemblyArrayBuffer::Create(buffer, length, arrayBufferType);
     }

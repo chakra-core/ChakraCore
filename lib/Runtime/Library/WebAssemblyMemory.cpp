@@ -10,7 +10,7 @@
 namespace Js
 {
 
-WebAssemblyMemory::WebAssemblyMemory(ArrayBuffer * buffer, uint32 initial, uint32 maximum, DynamicType * type) :
+WebAssemblyMemory::WebAssemblyMemory(WebAssemblyArrayBuffer* buffer, uint32 initial, uint32 maximum, DynamicType * type) :
     DynamicObject(type),
     m_buffer(buffer),
     m_initial(initial),
@@ -144,11 +144,11 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
         return -1;
     }
 
-    ArrayBuffer * newBuffer = nullptr;
+    WebAssemblyArrayBuffer * newBuffer = nullptr;
     JavascriptExceptionObject* caughtExceptionObject = nullptr;
     try
     {
-        newBuffer = m_buffer->TransferInternal(newBytes);
+        newBuffer = m_buffer->GrowMemory(newBytes);
     }
     catch (const JavascriptException& err)
     {
@@ -157,7 +157,7 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
         return -1;
     }
 
-    Assert(newBuffer);
+    AssertOrFailFast(newBuffer);
     m_buffer = newBuffer;
     CompileAssert(ArrayBuffer::MaxArrayBufferLength / WebAssembly::PageSize <= INT32_MAX);
     return (int32)oldPageCount;
@@ -193,21 +193,11 @@ WebAssemblyMemory *
 WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
-    ArrayBuffer* buffer;
-#if ENABLE_FAST_ARRAYBUFFER
-    if (CONFIG_FLAG(WasmFastArray))
-    {
-        buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
-    }
-    else
-#endif
-    {
-        buffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
-    }
+    WebAssemblyArrayBuffer* buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
     return RecyclerNewFinalized(scriptContext->GetRecycler(), WebAssemblyMemory, buffer, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyMemoryType());
 }
 
-ArrayBuffer *
+WebAssemblyArrayBuffer*
 WebAssemblyMemory::GetBuffer() const
 {
     return m_buffer;
