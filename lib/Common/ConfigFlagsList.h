@@ -587,11 +587,8 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
 #define DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors (true)
 
-#ifdef COMPILE_DISABLE_ESSharedArrayBuffer
-#define DEFAULT_CONFIG_ESSharedArrayBuffer     (false)
-#else
-#define DEFAULT_CONFIG_ESSharedArrayBuffer     (false)
-#endif
+#define DEFAULT_CONFIG_ESSharedArrayBuffer     (true)
+
 #define DEFAULT_CONFIG_ES6Verbose              (false)
 #define DEFAULT_CONFIG_ES6All                  (false)
 // ES6 DEFAULT BEHAVIOR

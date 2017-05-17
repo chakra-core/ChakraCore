@@ -231,6 +231,7 @@ struct AllocatorInfo
 template <typename TAllocator>
 struct ForceNonLeafAllocator
 {
+    static const bool FakeZeroLengthArray = true;
     typedef TAllocator AllocatorType;
 };
 
@@ -239,6 +240,7 @@ template <typename TAllocator>
 struct ForceLeafAllocator
 {
     typedef TAllocator AllocatorType;
+    static const bool FakeZeroLengthArray = true;
 };
 
 // Optional AllocatorDelete flags
@@ -386,16 +388,19 @@ void DestructArray(size_t count, T* obj)
 template <typename TAllocator, typename T>
 void DeleteArray(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, size_t count, T * obj)
 {
-    if (count == 0)
+    if (count == 0 && AllocatorInfo<TAllocator, T>::AllocatorType::FakeZeroLengthArray)
     {
         return;
     }
 
-    DestructArray(count, obj);
+    if (count != 0)
+    {
+        DestructArray(count, obj);
 
-    // DeleteArray can only be called when an array is allocated successfully.
-    // So the add should never overflow
-    Assert(count * sizeof(T) / count == sizeof(T));
+        // DeleteArray can only be called when an array is allocated successfully.
+        // So the add should never overflow
+        Assert(count * sizeof(T) / count == sizeof(T));
+    }
 
     auto freeFunc = AllocatorInfo<TAllocator, T>::AllocatorFunc::GetFreeFunc();
     (allocator->*freeFunc)((void *)obj, sizeof(T) * count);
