@@ -342,7 +342,7 @@ namespace Js
             }
             else
             {
-                directEntryPoint = (JavascriptMethod)entryPoint->GetNativeAddress();
+                directEntryPoint = entryPoint->GetNativeEntrypoint();
             }
 
             entryPoint->jsMethod = directEntryPoint;

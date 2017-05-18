@@ -1117,12 +1117,22 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     if (!CONFIG_FLAG(OOPCFGRegistration))
     {
-        scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
+        if (jitWriteData.thunkAddress)
+        {
+            scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.thunkAddress);
+        }
+        else
+        {
+            scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
+        }
+    }
+    if (workItem->Type() == JsLoopBodyWorkItemType)
+    {
+        Assert(jitWriteData.thunkAddress == NULL);
+        ((JsLoopBodyCodeGen*)workItem)->SetCodeAddress(jitWriteData.codeAddress);
     }
 
-    workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
-
-    workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize);
+    workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.thunkAddress, (Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize);
 
     if (jitWriteData.hasBailoutInstr != FALSE)
     {
@@ -1519,7 +1529,7 @@ NativeCodeGenerator::CheckAsmJsCodeGen(Js::ScriptFunction * function)
         {
             Output::Print(_u("Codegen not done yet for function: %s, Entrypoint is CheckAsmJsCodeGenThunk\n"), function->GetFunctionBody()->GetDisplayName());
         }
-        return reinterpret_cast<Js::Var>(entryPoint->GetNativeAddress());
+        return reinterpret_cast<Js::Var>(entryPoint->GetNativeEntrypoint());
     }
     if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
     {
@@ -1593,7 +1603,7 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
              || (
                     functionBody->GetSimpleJitEntryPointInfo() &&
                     originalEntryPoint ==
-                        reinterpret_cast<Js::JavascriptMethod>(functionBody->GetSimpleJitEntryPointInfo()->GetNativeAddress())
+                        reinterpret_cast<Js::JavascriptMethod>(functionBody->GetSimpleJitEntryPointInfo()->GetNativeEntrypoint())
                 )
             ) ||
             functionBody->GetDefaultFunctionEntryPointInfo()->entryPointIndex > function->GetFunctionEntryPointInfo()->entryPointIndex);
@@ -1662,7 +1672,7 @@ NativeCodeGenerator::CheckCodeGenDone(
         scriptContext->GetNativeCodeGenerator()->SetNativeEntryPoint(
             entryPointInfo,
             functionBody,
-            reinterpret_cast<Js::JavascriptMethod>(entryPointInfo->GetNativeAddress()));
+            entryPointInfo->GetNativeEntrypoint());
         jsMethod = entryPointInfo->jsMethod;
 
         Assert(!functionBody->NeedEnsureDynamicProfileInfo() || jsMethod == Js::DynamicProfileInfo::EnsureDynamicProfileInfoThunk);
@@ -1981,7 +1991,6 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
         {
             Js::FunctionEntryPointInfo* entryPointInfo = static_cast<Js::FunctionEntryPointInfo*>(functionCodeGen->GetEntryPoint());
             entryPointInfo->SetJitMode(jitMode);
-            Assert(workItem->GetCodeAddress() != NULL);
             entryPointInfo->SetCodeGenDone();
         }
         else
@@ -2026,10 +2035,10 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
 
         if (succeeded)
         {
-            Assert(workItem->GetCodeAddress() != NULL);
+            Assert(loopBodyCodeGen->GetCodeAddress() != NULL);
 
             uint loopNum = loopBodyCodeGen->GetJITData()->loopNumber;
-            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);
+            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)loopBodyCodeGen->GetCodeAddress(), loopNum);
             entryPoint->SetCodeGenDone();
         }
         else
@@ -2048,7 +2057,6 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
     else
     {
         AssertMsg(false, "Unknown work item type");
-        AssertMsg(workItem->GetCodeAddress() == NULL, "No other types should have native entry point for now.");
     }
 }
 
@@ -3132,14 +3140,14 @@ NativeCodeGenerator::EnterScriptStart()
 }
 
 void
-FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, Js::JavascriptMethod address)
+FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress)
 {
     if (!scriptContext->GetNativeCodeGenerator())
     {
         return;
     }
 
-    scriptContext->GetNativeCodeGenerator()->QueueFreeNativeCodeGenAllocation((void*)address);
+    scriptContext->GetNativeCodeGenerator()->QueueFreeNativeCodeGenAllocation((void*)codeAddress, (void*)thunkAddress);
 }
 
 bool TryReleaseNonHiPriWorkItem(Js::ScriptContext* scriptContext, CodeGenWorkItem* workItem)
@@ -3170,22 +3178,29 @@ bool NativeCodeGenerator::TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem)
 }
 
 void
-NativeCodeGenerator::FreeNativeCodeGenAllocation(void* address)
+NativeCodeGenerator::FreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress)
 {
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         ThreadContext * context = this->scriptContext->GetThreadContext();
-        HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
+        HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)codeAddress, (intptr_t)thunkAddress);
         JITManager::HandleServerCallResult(hr, RemoteCallType::MemFree);
     }
     else if(this->backgroundAllocators)
     {
-        this->backgroundAllocators->emitBufferManager.FreeAllocation(address);
+        this->backgroundAllocators->emitBufferManager.FreeAllocation(codeAddress);
+        
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+        if (thunkAddress)
+        {
+            this->scriptContext->GetThreadContext()->GetJITThunkEmitter()->FreeThunk((uintptr_t)thunkAddress);
+        }
+#endif
     }
 }
 
 void
-NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
+NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* codeAddress, void * thunkAddress)
 {
     ASSERT_THREAD();
 
@@ -3197,35 +3212,48 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
     if (!JITManager::GetJITManager()->IsOOPJITEnabled() || !CONFIG_FLAG(OOPCFGRegistration))
     {
         //DeRegister Entry Point for CFG
-        ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(address, false);
+        if (thunkAddress)
+        {
+            ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(thunkAddress, false);
+        }
+        else
+        {
+            ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(codeAddress, false);
+        }
     }
 
-    if ((!JITManager::GetJITManager()->IsOOPJITEnabled() && !this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator()->IsInRange((void*)address)) ||
-        (JITManager::GetJITManager()->IsOOPJITEnabled() && !PreReservedVirtualAllocWrapper::IsInRange((void*)this->scriptContext->GetThreadContext()->GetPreReservedRegionAddr(), (void*)address)))
+    if ((!JITManager::GetJITManager()->IsOOPJITEnabled() && !this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator()->IsInRange((void*)codeAddress)) ||
+        (JITManager::GetJITManager()->IsOOPJITEnabled() && !PreReservedVirtualAllocWrapper::IsInRange((void*)this->scriptContext->GetThreadContext()->GetPreReservedRegionAddr(), (void*)codeAddress)))
     {
-        this->scriptContext->GetJitFuncRangeCache()->RemoveFuncRange((void*)address);
+        this->scriptContext->GetJitFuncRangeCache()->RemoveFuncRange((void*)codeAddress);
     }
     // OOP JIT will always queue a job
 
     // The foreground allocators may have been used
-    if(this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.FreeAllocation(address))
+    if(this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.FreeAllocation(codeAddress))
     {
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+        if (thunkAddress)
+        {
+            this->scriptContext->GetThreadContext()->GetJITThunkEmitter()->FreeThunk((uintptr_t)thunkAddress);
+        }
+#endif
         return;
     }
 
     // The background allocators were used. Queue a job to free the allocation from the background thread.
-    this->freeLoopBodyManager.QueueFreeLoopBodyJob(address);
+    this->freeLoopBodyManager.QueueFreeLoopBodyJob(codeAddress, thunkAddress);
 }
 
-void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* codeAddress)
+void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* codeAddress, void * thunkAddress)
 {
     Assert(!this->isClosed);
 
-    FreeLoopBodyJob* job = HeapNewNoThrow(FreeLoopBodyJob, this, codeAddress);
+    FreeLoopBodyJob* job = HeapNewNoThrow(FreeLoopBodyJob, this, codeAddress, thunkAddress);
 
     if (job == nullptr)
     {
-        FreeLoopBodyJob stackJob(this, codeAddress, false /* heapAllocated */);
+        FreeLoopBodyJob stackJob(this, codeAddress, thunkAddress, false /* heapAllocated */);
 
         {
             AutoOptionalCriticalSection lock(Processor()->GetCriticalSection());

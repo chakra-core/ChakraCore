@@ -12,7 +12,6 @@ CodeGenWorkItem::CodeGenWorkItem(
     bool isJitInDebugMode,
     CodeGenWorkItemType type)
     : JsUtil::Job(manager)
-    , codeAddress(NULL)
     , functionBody(functionBody)
     , entryPointInfo(entryPointInfo)
     , recyclableData(nullptr)
@@ -209,7 +208,7 @@ void CodeGenWorkItem::OnWorkItemProcessFail(NativeCodeGenerator* codeGen)
 #if DBG
         this->allocation->allocation->isNotExecutableBecauseOOM = true;
 #endif
-        codeGen->FreeNativeCodeGenAllocation(this->allocation->allocation->address);
+        codeGen->FreeNativeCodeGenAllocation(this->allocation->allocation->address, nullptr);
     }
 }
 

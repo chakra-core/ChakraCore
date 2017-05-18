@@ -285,14 +285,15 @@ HRESULT
 JITManager::InitializeThreadContext(
     __in ThreadContextDataIDL * data,
     __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    __out intptr_t * prereservedRegionAddr)
+    __out intptr_t * prereservedRegionAddr,
+    __out intptr_t * jitThunkAddr)
 {
     Assert(IsOOPJITEnabled());
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientInitializeThreadContext(m_rpcBindingHandle, data, threadContextInfoAddress, prereservedRegionAddr);
+        hr = ClientInitializeThreadContext(m_rpcBindingHandle, data, threadContextInfoAddress, prereservedRegionAddr, jitThunkAddr);
     }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
@@ -540,14 +541,15 @@ JITManager::CloseScriptContext(
 HRESULT
 JITManager::FreeAllocation(
     __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    __in intptr_t address)
+    __in intptr_t codeAddress,
+    __in intptr_t thunkAddress)
 {
     Assert(IsOOPJITEnabled());
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientFreeAllocation(m_rpcBindingHandle, threadContextInfoAddress, address);
+        hr = ClientFreeAllocation(m_rpcBindingHandle, threadContextInfoAddress, codeAddress, thunkAddress);
     }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
