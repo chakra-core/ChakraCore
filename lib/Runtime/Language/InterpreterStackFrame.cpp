@@ -8601,6 +8601,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_LdArrWasm(const unaligned T* playout)
     {
+#ifdef ENABLE_WASM
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
         WebAssemblyArrayBuffer* arr = m_wasmMemory->GetBuffer();
@@ -8628,6 +8629,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         case ArrayBufferView::ViewType::TYPE_UINT32_TO_INT64 : SetRegRaw<int64>(playout->Value, (int64)*(uint32*)(buffer + index)); return;
         default:Assert(UNREACHED);
         }
+#else
+        Assert(UNREACHED);
+#endif
     }
     template <class T>
     void InterpreterStackFrame::OP_LdArrConstIndex(const unaligned T* playout)
@@ -8646,6 +8650,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_StArrWasm(const unaligned T* playout)
     {
+#ifdef ENABLE_WASM
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
         WebAssemblyArrayBuffer* arr = m_wasmMemory->GetBuffer();
@@ -8673,6 +8678,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         case ArrayBufferView::ViewType::TYPE_UINT32_TO_INT64: *(uint32*)(buffer + index) = (uint32) (GetRegRaw<int64>(playout->Value)); return;
         default:Assert(UNREACHED);
         }
+#else
+        Assert(UNREACHED);
+#endif
     }
     template <class T>
     void InterpreterStackFrame::OP_StArrConstIndex(const unaligned T* playout)
