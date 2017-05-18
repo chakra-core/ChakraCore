@@ -5060,7 +5060,10 @@ namespace Js
                 GetReg(playout->Instance),
                 GetReg(playout->Element),
                 m_functionBody,
-                playout->profileId));
+                playout->profileId,
+                (m_flags & InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall) != 0));
+
+        m_flags &= ~InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall;
 
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
@@ -5094,6 +5097,8 @@ namespace Js
         {
             element = JavascriptOperators::OP_GetElementI(instance, GetReg(playout->Element), GetScriptContext());
         }
+
+        m_flags &= ~InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall;
 
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
@@ -5133,6 +5138,8 @@ namespace Js
             JavascriptOperators::OP_SetElementI(instance, varIndex, value, GetScriptContext(), flags);
         }
 
+        m_flags &= ~InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall;
+
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
     }
@@ -5153,7 +5160,10 @@ namespace Js
             GetReg(playout->Value),
             m_functionBody,
             playout->profileId,
-            flags);
+            flags,
+            (m_flags & InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall) != 0);
+
+        m_flags &= ~InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall;
 
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
