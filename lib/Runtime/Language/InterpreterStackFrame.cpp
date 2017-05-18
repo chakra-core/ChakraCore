@@ -3044,6 +3044,7 @@ namespace Js
             WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
             m_signatures = func->GetFunctionBody()->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetSignatures();
             m_wasmMemory = wasmMem;
+            m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = nullptr;
         }
         else
 #endif
@@ -7972,6 +7973,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
@@ -7993,6 +7995,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdLdArrConstIndex(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         const uint32 index = playout->SlotIndex;
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
@@ -8014,6 +8017,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdStArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
@@ -8033,6 +8037,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdStArrConstIndex(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         const uint32 index = playout->SlotIndex;
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
@@ -8475,6 +8480,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_StArr(uint32 index, RegSlot regSlot)
     {
         CompileAssert(Js::ArrayBufferView::TYPE_COUNT == (sizeof(InterpreterStackFrame::StArrFunc) / sizeof(InterpreterStackFrame::ArrFunc)));
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         if (index < arr->GetByteLength())
         {
@@ -8556,6 +8562,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_LdArr(uint32 index, RegSlot regSlot)
     {
         CompileAssert(Js::ArrayBufferView::TYPE_COUNT == (sizeof(InterpreterStackFrame::LdArrFunc) / sizeof(InterpreterStackFrame::ArrFunc)));
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
         ArrayType val = index < (arr->GetByteLength()) ? *(ArrayType*)(buffer + index) : GetArrayViewOverflowVal<ArrayType>();
