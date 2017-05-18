@@ -1547,6 +1547,10 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 
     newInstance->ehBailoutData = bailOutRecord->ehBailoutData;
     newInstance->OrFlags(Js::InterpreterStackFrameFlags_FromBailOut);
+    if (bailOutKind == IR::BailOutOnArrayAccessHelperCall)
+    {
+        newInstance->OrFlags(Js::InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall);
+    }
 
     ThreadContext *threadContext = newInstance->GetScriptContext()->GetThreadContext();
 

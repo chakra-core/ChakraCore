@@ -25,7 +25,8 @@ namespace Js
         InterpreterStackFrameFlags_WithinCatchBlock = 2,
         InterpreterStackFrameFlags_WithinFinallyBlock = 4,
         InterpreterStackFrameFlags_FromBailOut = 8,
-        InterpreterStackFrameFlags_ProcessingBailOutFromEHCode = 0x10,
+        InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall = 0x10,
+        InterpreterStackFrameFlags_ProcessingBailOutFromEHCode = 0x20,
         InterpreterStackFrameFlags_All = 0xFFFF,
     };
 

@@ -11,7 +11,8 @@ namespace Js
         const Var base,
         const Var varIndex,
         FunctionBody *const functionBody,
-        const ProfileId profileId)
+        const ProfileId profileId,
+        bool didArrayAccessHelperCall)
     {
         Assert(base);
         Assert(varIndex);
@@ -43,6 +44,11 @@ namespace Js
         TypeId arrayTypeId;
         JavascriptArray *const array =
             JavascriptArray::GetArrayForArrayOrObjectWithArray(base, &isObjectWithArray, &arrayTypeId);
+
+        if (didArrayAccessHelperCall)
+        {
+            ldElemInfo.neededHelperCall = true;
+        }
 
         do // while(false)
         {
@@ -191,7 +197,7 @@ namespace Js
         FunctionBody *const functionBody,
         const ProfileId profileId)
     {
-        ProfiledStElem(base, varIndex, value, functionBody, profileId, PropertyOperation_None);
+        ProfiledStElem(base, varIndex, value, functionBody, profileId, PropertyOperation_None, false);
     }
 
     void ProfilingHelpers::ProfiledStElem(
@@ -200,7 +206,8 @@ namespace Js
         const Var value,
         FunctionBody *const functionBody,
         const ProfileId profileId,
-        const PropertyOperationFlags flags)
+        const PropertyOperationFlags flags,
+        bool didArrayAccessHelperCall)
     {
         Assert(base);
         Assert(varIndex);
@@ -271,11 +278,21 @@ namespace Js
             {
                 length = headSegmentLength;
                 bool isVirtual = (VirtualTableInfoBase::GetVirtualTable(base) == ValueType::GetVirtualTypedArrayVtable(arrayTypeId));
-                stElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();
+                stElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();        
+                if (!TaggedNumber::Is(value) && !JavascriptNumber::Is_NoTaggedIntCheck(value))
+                {
+                    // Non-number stored to a typed array. A helper call will be needed to convert the value.
+                    stElemInfo.neededHelperCall = true;
+                }
             }
             else
             {
                 break;
+            }
+
+            if (didArrayAccessHelperCall)
+            {
+                stElemInfo.neededHelperCall = true;
             }
 
             if(!TaggedInt::Is(varIndex))
