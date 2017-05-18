@@ -2364,8 +2364,9 @@ void Recycler::ResetPartialHeuristicCounters()
 void
 Recycler::ScheduleNextCollection()
 {
-    this->tickCountNextCollection = ::GetTickCount() + RecyclerHeuristic::TickCountCollection;
-    this->tickCountNextFinishCollection = ::GetTickCount() + RecyclerHeuristic::TickCountFinishCollection;
+    DWORD tick = ::GetTickCount();
+    this->tickCountNextCollection = tick + RecyclerHeuristic::TickCountCollection;
+    this->tickCountNextFinishCollection = tick + RecyclerHeuristic::TickCountFinishCollection;
 }
 
 #if ENABLE_CONCURRENT_GC
@@ -7987,7 +7988,7 @@ Recycler::VerifyMarkStack()
     }
 }
 
-bool 
+bool
 Recycler::VerifyMark(void * target)
 {
     return VerifyMark(nullptr, target);
