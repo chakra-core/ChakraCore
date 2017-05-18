@@ -38,7 +38,7 @@ function testTransfer(buffer) {
 
 
 
-function test({init, max} = {}) {
+function test({init, max, checkOOM} = {}) {
   if (verbose) {
     print(`Testing memory {init: ${init|0}, max: ${max}}`);
   }
@@ -54,7 +54,18 @@ function test({init, max} = {}) {
     print(moduleTxt);
   }
   const module = new WebAssembly.Module(WebAssembly.wabt.convertWast2Wasm(moduleTxt));
-  const {exports: {grow, current, load, store, mem}} = new WebAssembly.Instance(module);
+  let instance;
+  try {
+    instance = new WebAssembly.Instance(module);
+  } catch (e) {
+    if (!checkOOM || !e.message.includes("Failed to create WebAssembly.Memory")) {
+      print(`FAILED. failed to instanciate module with error: ${e}`);
+    } else if (verbose) {
+      print(e.message);
+    }
+    return;
+  }
+  const {exports: {grow, current, load, store, mem}} = instance;
   function testReadWrite(index, value, currentSize) {
     const shouldTrap = index < 0 || (index + 4) > currentSize;
     const commonMsg = op => `trap on ${op}(${index}, ${value})`;
@@ -95,12 +106,12 @@ function test({init, max} = {}) {
   }
   function run(delta) {
     testTransfer(mem.buffer);
-    let beforePages = current();
-    let growRes = grow(delta);
+    const beforePages = current();
+    const growRes = grow(delta);
     if (growRes !== -1 && growRes !== beforePages) {
       print(`FAILED. Expected grow(${delta}) to return ${beforePages}`);
     }
-    let afterPages = current();
+    const afterPages = current();
     if (growRes !== -1 && beforePages + delta !== afterPages) {
       print(`FAILED. Expected to have ${beforePages + delta} pages. Got ${afterPages} pages`);
     }
@@ -117,10 +128,10 @@ function test({init, max} = {}) {
     testReadWrite(1, 7, currentSize);
     testTransfer(mem.buffer);
     testReadWrite(1, 7, currentSize);
-    testReadWrite(currentSize-4, 457, currentSize);
-    testReadWrite(currentSize-3, -98745, currentSize);
-    testReadWrite(currentSize-2, 786452, currentSize);
-    testReadWrite(currentSize-1, -1324, currentSize);
+    testReadWrite(currentSize - 4, 457, currentSize);
+    testReadWrite(currentSize - 3, -98745, currentSize);
+    testReadWrite(currentSize - 2, 786452, currentSize);
+    testReadWrite(currentSize - 1, -1324, currentSize);
     testReadWrite(currentSize, 123, currentSize);
     testTransfer(mem.buffer);
   }
@@ -135,7 +146,7 @@ test({init: 0, max: 5});
 test({init: 0, max: 10});
 test({init: 5});
 test({init: 5, max: 10});
-test({init: 1 << 14});
+test({init: 1 << 14, checkOOM: true});
 try {
   test({init: 1 << 15});
   print("Failed. Expected an error when allocating WebAssembly.Memory too big");
