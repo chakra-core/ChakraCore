@@ -260,6 +260,8 @@ namespace Js
 
         virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
 
+        template<typename Func>
+        void ReportDifferentialAllocation(uint32 newBufferLength, Func reportFailureFn);
         void ReportDifferentialAllocation(uint32 newBufferLength);
 
     protected:

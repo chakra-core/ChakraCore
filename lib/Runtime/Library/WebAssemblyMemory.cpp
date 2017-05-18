@@ -151,6 +151,10 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
     try
     {
         newBuffer = m_buffer->GrowMemory(newBytes);
+        if (newBuffer == nullptr)
+        {
+            return -1;
+        }
     }
     catch (const JavascriptException& err)
     {
@@ -159,7 +163,6 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
         return -1;
     }
 
-    AssertOrFailFast(newBuffer);
     m_buffer = newBuffer;
     CompileAssert(ArrayBuffer::MaxArrayBufferLength / WebAssembly::PageSize <= INT32_MAX);
     return (int32)oldPageCount;
@@ -194,8 +197,15 @@ WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callIn
 WebAssemblyMemory *
 WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
+    // This shouldn't overflow since we checked in the module, but just to be safe
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
     WebAssemblyArrayBuffer* buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
+    Assert(buffer);
+    if (byteLength > 0 && buffer->GetByteLength() == 0)
+    {
+        // Failed to allocate buffer
+        return nullptr;
+    }
     return RecyclerNewFinalized(scriptContext->GetRecycler(), WebAssemblyMemory, buffer, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyMemoryType());
 }
 

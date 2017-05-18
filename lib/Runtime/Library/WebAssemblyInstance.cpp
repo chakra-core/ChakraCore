@@ -463,6 +463,10 @@ void WebAssemblyInstance::ValidateTableAndMemory(WebAssemblyModule * wasmModule,
     else
     {
         mem = wasmModule->CreateMemory();
+        if (mem == nullptr)
+        {
+            JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_MemoryCreateFailed);
+        }
         env->SetMemory(0, mem);
     }
     ArrayBuffer * buffer = mem->GetBuffer();
