@@ -21,6 +21,8 @@ inside eval: this.name = global object
 42
 42
 [object Object]
+pass direct
+pass indirect
 Custom eval:
 arg 0 = 'x[i][0] = 2;'
 2

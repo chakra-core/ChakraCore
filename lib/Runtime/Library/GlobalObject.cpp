@@ -596,7 +596,8 @@ namespace Js
         char16 const * sourceString = argString->GetSz();
         charcount_t sourceLen = argString->GetLength();
         FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
-        if (!scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript))
+        bool found = scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript);
+        if (!found || (!isIndirect && pfuncScript->GetEnvironment() != &NullFrameDisplay))
         {
             uint32 grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
 
@@ -608,7 +609,10 @@ namespace Js
             pfuncScript = library->GetGlobalObject()->EvalHelper(scriptContext, argString->GetSz(), argString->GetLength(), moduleID,
                 grfscr, Constants::EvalCode, doRegisterDocument, isIndirect, strictMode);
 
-            scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
+            if (!found)
+            {
+                scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
+            }
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -743,7 +747,7 @@ namespace Js
             pfuncScript->InvalidateCachedScopeChain();
         }
         Var varResult = CALL_FUNCTION(scriptContext->GetThreadContext(), pfuncScript, CallInfo(CallFlags_Eval, 1), varThis);
-        pfuncScript->SetEnvironment(nullptr);
+        pfuncScript->SetEnvironment((FrameDisplay*)&NullFrameDisplay);
         return varResult;
     }
 
