@@ -69,7 +69,7 @@ namespace Js
             }
             else
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("buffer"));
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedArrayBufferObject, _u("buffer"));
             }
         }
 
