@@ -69,7 +69,7 @@ namespace Js
             }
             else
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("buffer"));
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedArrayBufferObject, _u("buffer"));
             }
         }
 
@@ -83,7 +83,7 @@ namespace Js
         //5.    If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
         if (arrayBuffer->IsDetached())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
         }
 
         //6.    Let bufferByteLength be the value of buffer's[[ArrayBufferByteLength]] internal slot.
