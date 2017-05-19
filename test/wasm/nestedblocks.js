@@ -54,7 +54,7 @@ while (inc !== 0) {
     }
   }
 
-  if (blocks > 10000 || blocks < 0) {
+  if (blocks > 100000 || blocks < 0) {
     print(`FAILED. Nested blocks reached ${blocks} blocks deep. Expected an error by now`);
     break;
   }
