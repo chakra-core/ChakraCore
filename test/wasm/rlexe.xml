@@ -243,7 +243,7 @@
   <default>
     <files>superlongsignaturemismatch.js</files>
     <compile-flags>-wasm</compile-flags>
-    <tags>exclude_xplat</tags>
+    <tags>exclude_xplat,exclude_jshost,exclude_win7</tags>
   </default>
 </test>
 </regress-exe>
