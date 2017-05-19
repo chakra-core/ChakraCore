@@ -110,6 +110,20 @@ alias();
 // bug 1147044
 eval("with ({}) (function fibonacci() {})();"); 
 
+// Test recursive evals to make sure closure environments remain intact
+var flg = 0;
+function TestDirect() {
+  var func = "if(flg == 0) { flg = 1; eval(func); (function(a){(function(){if (a !== undefined) throw 0;})()})(); WScript.Echo('pass direct')}";
+  eval(func);
+}
+TestDirect();
+
+var func = "if(flg == 1) { flg = 2; this.eval(func); (function(a){(function(){if (a !== undefined) throw 0;})()})(); WScript.Echo('pass indirect');}";
+function TestIndirect() {
+  this.eval(func);
+}
+TestIndirect();
+
 // 8. Set up a custom eval that indirectly calls built-in eval, evoke it, and verify the effect.
 var q = eval;
 var eval = function(s) {
