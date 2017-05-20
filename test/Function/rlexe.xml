@@ -63,8 +63,9 @@
     <default>
       <files>argumentsLimits.js</files>
       <baseline>argumentsLimits.baseline</baseline>
-      <!-- this test takes a long time with dynapogo on chk build -->
-      <tags>exclude_chk</tags>
+      <!-- this test takes a long time with dynapogo on chk build-->
+      <!-- it's pretty slow on test builds too though-->
+      <tags>exclude_chk,Slow</tags>
     </default>
   </test>
   <test>
