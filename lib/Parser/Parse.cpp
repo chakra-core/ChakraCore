@@ -6657,7 +6657,7 @@ void Parser::ParseExpressionLambdaBody(ParseNodePtr pnodeLambda)
         pnodeLambda->sxFnc.pnodeScopes->ichLim = pnodeRet->ichLim;
 
         pnodeLambda->sxFnc.pnodeBody = nullptr;
-        AddToNodeList(&pnodeLambda->sxFnc.pnodeBody, &lastNodeRef, pnodeLambda->sxFnc.pnodeScopes);
+        AddToNodeList(&pnodeLambda->sxFnc.pnodeBody, &lastNodeRef, pnodeRet);
 
         // Append an EndCode node.
         ParseNodePtr end = CreateNodeWithScanner<knopEndCode>(pnodeRet->ichLim);
