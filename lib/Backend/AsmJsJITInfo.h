@@ -18,11 +18,11 @@ public:
     int Get##name##TmpCount() const     { return m_data.typedSlotInfos[WAsmJs::##type].tmpCount; }\
     int Get##name##VarCount() const     { return m_data.typedSlotInfos[WAsmJs::##type].varCount; }
 
-    TYPED_SLOT_INFO_GETTER(Double, FLOAT64);
-    TYPED_SLOT_INFO_GETTER(Float, FLOAT32);
-    TYPED_SLOT_INFO_GETTER(Int, INT32);
-    TYPED_SLOT_INFO_GETTER(Int64, INT64);
-    TYPED_SLOT_INFO_GETTER(Simd, SIMD);
+    TYPED_SLOT_INFO_GETTER(Double, FLOAT64)
+    TYPED_SLOT_INFO_GETTER(Float, FLOAT32)
+    TYPED_SLOT_INFO_GETTER(Int, INT32)
+    TYPED_SLOT_INFO_GETTER(Int64, INT64)
+    TYPED_SLOT_INFO_GETTER(Simd, SIMD)
 
     int GetTotalSizeInBytes() const;
     Js::ArgSlot GetArgCount() const;
