@@ -166,23 +166,21 @@ namespace Js
     {
         Assert(copyFromScope != nullptr);
         DynamicObject* consoleScope = this->GetConsoleScope(scriptContext);
-        Js::RecyclableObject* recyclableObject = Js::RecyclableObject::FromVar(copyFromScope);
 
-        uint32 newPropCount = recyclableObject->GetPropertyCount();
+        uint32 newPropCount = copyFromScope->GetPropertyCount();
         for (uint32 i = 0; i < newPropCount; i++)
         {
-            Js::PropertyId propertyId = recyclableObject->GetPropertyId((Js::PropertyIndex)i);
+            Js::PropertyId propertyId = copyFromScope->GetPropertyId((Js::PropertyIndex)i);
             // For deleted properties we won't have a property id
             if (propertyId != Js::Constants::NoProperty)
             {
-                Js::PropertyValueInfo propertyValueInfo;
-                Var propertyValue;
-                BOOL gotPropertyValue = recyclableObject->GetProperty(recyclableObject, propertyId, &propertyValue, &propertyValueInfo, scriptContext);
+                PropertyDescriptor propertyDescriptor;
+                BOOL gotPropertyValue = JavascriptOperators::GetOwnPropertyDescriptor(copyFromScope, propertyId, scriptContext, &propertyDescriptor);
                 AssertMsg(gotPropertyValue, "DebugManager::UpdateConsoleScope Should have got valid value?");
 
                 OUTPUT_TRACE(Js::ConsoleScopePhase, _u("Adding property '%s'\n"), scriptContext->GetPropertyName(propertyId)->GetBuffer());
 
-                BOOL updateSuccess = consoleScope->SetPropertyWithAttributes(propertyId, propertyValue, propertyValueInfo.GetAttributes(), &propertyValueInfo);
+                BOOL updateSuccess = JavascriptOperators::SetPropertyDescriptor(consoleScope, propertyId, propertyDescriptor);
                 AssertMsg(updateSuccess, "DebugManager::UpdateConsoleScope Unable to update property value. Am I missing a scenario?");
             }
         }
