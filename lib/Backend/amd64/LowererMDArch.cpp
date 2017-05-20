@@ -2186,32 +2186,6 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
 }
 
 void
-LowererMDArch::EmitPtrInstr(IR::Instr *instr)
-{
-    bool legalize = false;
-    switch (instr->m_opcode)
-    {
-    case Js::OpCode::Add_Ptr:
-        LowererMD::ChangeToAdd(instr, false /* needFlags */);
-        legalize = true;
-        break;
-
-    default:
-        AssertMsg(UNREACHED, "Un-implemented ptr opcode");
-    }
-    // OpEq's
-
-    if (legalize)
-    {
-        LowererMD::Legalize(instr);
-    }
-    else
-    {
-        LowererMD::MakeDstEquSrc1(instr);
-    }
-}
-
-void
 LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
 {
     IR::Opnd *dst       = instr->GetDst();

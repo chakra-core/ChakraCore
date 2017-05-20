@@ -112,7 +112,6 @@ public:
     IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr);
     IR::Instr *         LowerInt64Assign(IR::Instr * instr);
     static void         EmitInt4Instr(IR::Instr *instr, bool signExtend = false);
-    static void         EmitPtrInstr(IR::Instr *instr);
     void                EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32 = false, bool isHelper = false);
     void                EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
     void                EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);

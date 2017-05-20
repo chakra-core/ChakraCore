@@ -1123,9 +1123,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::Div_I4:
             this->LowerDivI4(instr);
             break;
-        case Js::OpCode::Add_Ptr:
-            m_lowererMD.EmitPtrInstr(instr);
-            break;
 
         case Js::OpCode::Typeof:
             m_lowererMD.LowerTypeof(instr);
@@ -23899,7 +23896,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
         {
             InsertMove(dst, IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
         }
-    InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
+         InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
     }
 
 
