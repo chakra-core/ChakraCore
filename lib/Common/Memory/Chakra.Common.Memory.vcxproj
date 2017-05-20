@@ -36,7 +36,6 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Allocator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)amd64\XDataAllocator.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
       <!-- Since there are more then one XDataAllocator.cpp, we need to set them output into different directory, even when they are ExcludedFromBuild -->
