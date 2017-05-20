@@ -532,9 +532,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
     }
 
     AssertMsg(startCallInstr->m_opcode == Js::OpCode::StartCall ||
-              startCallInstr->m_opcode == Js::OpCode::LoweredStartCall ||
-              startCallInstr->m_opcode == Js::OpCode::StartCallAsmJsE ||
-              startCallInstr->m_opcode == Js::OpCode::StartCallAsmJsI,
+              startCallInstr->m_opcode == Js::OpCode::LoweredStartCall,
               "Problem with arg chain.");
     AssertMsg(startCallInstr->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == argCount ||
               m_func->GetJITFunctionBody()->IsAsmJsMode(),
