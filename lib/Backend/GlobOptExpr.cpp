@@ -79,7 +79,6 @@ GlobOpt::GetHash(IR::Instr *instr, Value *src1Val, Value *src2Val, ExprAttribute
         // Copy-prop should handle these
         return false;
     case Js::OpCode::Add_I4:
-    case Js::OpCode::Add_Ptr:
         opcode = Js::OpCode::Add_A;
         break;
     case Js::OpCode::Sub_I4:
@@ -259,7 +258,6 @@ GlobOpt::CSEAddInstr(
     case Js::OpCode::Sub_I4:
     case Js::OpCode::Div_I4:
     case Js::OpCode::Rem_I4:
-    case Js::OpCode::Add_Ptr:
     case Js::OpCode::ShrU_I4:
     {
         // Can't CSE and Add where overflow doesn't matter (and no bailout) with one where it does matter... Record whether int

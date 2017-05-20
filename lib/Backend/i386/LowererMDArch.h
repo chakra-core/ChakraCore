@@ -77,7 +77,6 @@ public:
             void                GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSize);
             void                EmitInt64Instr(IR::Instr *instr);
             static void         EmitInt4Instr(IR::Instr *instr);
-            static void         EmitPtrInstr(IR::Instr *instr);
             void                EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32 = false, bool isHelper = false);
             void                EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void                EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);

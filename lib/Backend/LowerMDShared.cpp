@@ -7571,7 +7571,6 @@ LowererMD::MakeDstEquSrc1(IR::Instr *const instr)
             case Js::OpCode::Or_I4:
             case Js::OpCode::Xor_I4:
             case Js::OpCode::And_I4:
-            case Js::OpCode::Add_Ptr:
             case Js::OpCode::ADD:
             case Js::OpCode::IMUL2:
             case Js::OpCode::OR:
@@ -7596,12 +7595,6 @@ LowererMD::MakeDstEquSrc1(IR::Instr *const instr)
     instr->InsertBefore(mov);
     ChangeToAssign(mov);
     instr->SetSrc1(instr->GetDst());
-}
-
-void
-LowererMD::EmitPtrInstr(IR::Instr *instr)
-{
-    LowererMDArch::EmitPtrInstr(instr);
 }
 
 void
