@@ -62,8 +62,6 @@ MACRO(                  ExtendedLargeLayoutPrefix,Empty,    OpByteCodeOnly)
 MACRO(                  Nop,                        Empty,          None)       // No operation (Default value = 0)
 MACRO(                  StartCall,          StartCall,      OpSideEffect)
 MACRO_BACKEND_ONLY(     LoweredStartCall,   StartCall,      OpSideEffect)       // StartCall instruction after it's been lowered
-MACRO_BACKEND_ONLY(     StartCallAsmJsI,    StartCall,      OpSideEffect)       // StartCall instruction for asm.js internal calls
-MACRO_BACKEND_ONLY(     StartCallAsmJsE,    StartCall,      OpSideEffect)       // StartCall instruction for calls from asm.js to javascript
 MACRO(                  Break,              Empty,          OpSideEffect)       // Break into debugger
 MACRO_EXTEND(           InvalidOpCode,      Empty,          None)               // Inserted in a dead call sequence, should not be present after GlobOpt
 
