@@ -54,7 +54,7 @@ PRINT_USAGE() {
     echo "     --sanitize=CHECKS Build with clang -fsanitize checks,"
     echo "                       e.g. undefined,signed-integer-overflow."
     echo " -t, --test-build      Test build. Enables test flags on a release build."
-    echo "     --target-os[=S]   Target OS"
+    echo "     --target[=S]      Target OS (i.e. android)"
     echo "     --target-path[=S] Output path for compiled binaries. Default: out/"
     echo "     --trace           Enables experimental built-in trace."
     echo "     --xcode           Generate XCode project."
