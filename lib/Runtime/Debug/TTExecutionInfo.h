@@ -185,6 +185,10 @@ namespace TTD
         // - Step back *into* possible if either case is true
         TTLastReturnLocationInfo m_lastReturnLocation;
 
+        //Always keep the last exception location as well -- even if it is caught
+        bool m_lastExceptionPropagating;
+        TTDebuggerSourceLocation m_lastExceptionLocation; 
+
         //A flag indicating if we want to break on the entry to the user code 
         bool m_breakOnFirstUserCode;
 
@@ -237,7 +241,7 @@ namespace TTD
         void PopCallEvent(Js::JavascriptFunction* function, Js::Var result);
         void PopCallEventException(Js::JavascriptFunction* function);
 
-        void ClearExceptionFrames();
+        void ProcessCatchInfoForLastExecutedStatements();
 
         //Set that we want to break on the execution of the first user code
         void SetBreakOnFirstUserCode();
@@ -295,6 +299,7 @@ namespace TTD
         //Get the last (uncaught or just caught) exception time/position for the debugger -- if the last return action was an exception and we have not made any additional calls
         //Otherwise get the last statement executed call time/position for the debugger
         void GetLastExecutedTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const;
+        void GetLastExceptionTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const;
 
         //Ensure the call stack is clear and counters are zeroed appropriately
         void ResetCallStackForTopLevelCall(int64 topLevelCallbackEventTime);
