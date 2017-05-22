@@ -2620,7 +2620,7 @@ namespace Js
             size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsAddrReg( RegESP, 8, RegXMM0 ) );
             size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsRegAddr( RegXMM0, RegEBP, leftOffset ) );
             size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsAddrReg( RegESP, 0, RegXMM0 ) );
-            void* ptr = (double (*)(double,double)) AsmJsMath::Rem < double > ;
+            void* ptr = (double (*)(double,double)) AsmJsMath::RemChecked<double>;
             size += MOV::EncodeInstruction<int>( buffer, InstrParamsRegImm<int32>(RegEAX,(int)ptr) );
             size += CALL::EncodeInstruction<int>( buffer, InstrParamsReg(RegEAX) );
 
