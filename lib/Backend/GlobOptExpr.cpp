@@ -256,7 +256,9 @@ GlobOpt::CSEAddInstr(
     case Js::OpCode::Neg_I4:
     case Js::OpCode::Add_I4:
     case Js::OpCode::Sub_I4:
+    case Js::OpCode::DivU_I4:
     case Js::OpCode::Div_I4:
+    case Js::OpCode::RemU_I4:
     case Js::OpCode::Rem_I4:
     case Js::OpCode::ShrU_I4:
     {

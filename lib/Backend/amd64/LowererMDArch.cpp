@@ -2239,9 +2239,11 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
         legalize = true;
         break;
 
+    case Js::OpCode::DivU_I4:
     case Js::OpCode::Div_I4:
         instr->SinkDst(Js::OpCode::MOV, RegRAX);
         goto idiv_common;
+    case Js::OpCode::RemU_I4:
     case Js::OpCode::Rem_I4:
         instr->SinkDst(Js::OpCode::MOV, RegRDX);
 idiv_common:
@@ -2250,6 +2252,7 @@ idiv_common:
             if (isUnsigned)
             {
                 Assert(instr->GetSrc2()->IsUnsigned());
+                Assert(instr->m_opcode == Js::OpCode::RemU_I4 || instr->m_opcode == Js::OpCode::DivU_I4);
                 instr->m_opcode = Js::OpCode::DIV;
             }
             else

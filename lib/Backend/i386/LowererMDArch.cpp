@@ -1981,7 +1981,6 @@ LowererMDArch::EmitInt64Instr(IR::Instr *instr)
         return callInstr;
     };
 
-    IR::JnHelperMethod helperSigned = IR::HelperInvalid, helperUnsigned = IR::HelperInvalid;
     Js::OpCode cmOpCode, lowOpCode, highOpCode;
     switch (instr->m_opcode)
     {
@@ -2021,54 +2020,48 @@ binopCommon:
         break;
     }
     case Js::OpCode::ShrU_I4:
-        helperSigned = IR::HelperDirectMath_Int64ShrU;
-        goto helperCommon;
+        instr = LowerToHelper(IR::HelperDirectMath_Int64ShrU);
+        break;
+
     case Js::OpCode::Shr_I4:
-        helperSigned = IR::HelperDirectMath_Int64Shr;
-        goto helperCommon;
+        instr = LowerToHelper(IR::HelperDirectMath_Int64Shr);
+        break;
     case Js::OpCode::Shl_I4:
-        helperSigned = IR::HelperDirectMath_Int64Shl;
-        goto helperCommon;
+        instr = LowerToHelper(IR::HelperDirectMath_Int64Shl);
+        break;
     case Js::OpCode::Rol_I4:
-        helperSigned = IR::HelperDirectMath_Int64Rol;
-        goto helperCommon;
+        instr = LowerToHelper(IR::HelperDirectMath_Int64Rol);
+        break;
     case Js::OpCode::Ror_I4:
-        helperSigned = IR::HelperDirectMath_Int64Ror;
-        goto helperCommon;
+        instr = LowerToHelper(IR::HelperDirectMath_Int64Ror);
+        break;
     case Js::OpCode::InlineMathClz:
-        helperSigned = IR::HelperDirectMath_Int64Clz;
-        goto helperCommon;
+        instr = LowerToHelper(IR::HelperDirectMath_Int64Clz);
+        break;
     case Js::OpCode::Ctz:
-        helperSigned = IR::HelperDirectMath_Int64Ctz;
-        goto helperCommon;
+        instr = LowerToHelper(IR::HelperDirectMath_Int64Ctz);
+        break;
     case Js::OpCode::PopCnt:
-        helperSigned = IR::HelperPopCnt64;
-        goto helperCommon;
+        instr = LowerToHelper(IR::HelperPopCnt64);
+        break;
     case Js::OpCode::Mul_I4:
-        helperSigned = IR::HelperDirectMath_Int64Mul;
-        goto helperCommon;
+        instr = LowerToHelper(IR::HelperDirectMath_Int64Mul);
+        break;
+    case Js::OpCode::DivU_I4:
+        this->lowererMD->m_lowerer->LoadScriptContext(instr);
+        instr = LowerToHelper(IR::HelperDirectMath_Int64DivU);
+        break;
     case Js::OpCode::Div_I4:
-        helperUnsigned = IR::HelperDirectMath_Int64DivU;
-        helperSigned = IR::HelperDirectMath_Int64DivS;
         this->lowererMD->m_lowerer->LoadScriptContext(instr);
-        goto helperCommon;
+        instr = LowerToHelper(IR::HelperDirectMath_Int64DivS);
+        break;
+    case Js::OpCode::RemU_I4:
+        this->lowererMD->m_lowerer->LoadScriptContext(instr);
+        instr = LowerToHelper(IR::HelperDirectMath_Int64RemU);
+        break;
     case Js::OpCode::Rem_I4:
-        helperUnsigned = IR::HelperDirectMath_Int64RemU;
-        helperSigned = IR::HelperDirectMath_Int64RemS;
         this->lowererMD->m_lowerer->LoadScriptContext(instr);
-helperCommon:
-        Assert(dst && src1);
-        if (IRType_IsUnsignedInt(src1->GetType()) && helperUnsigned != IR::HelperInvalid)
-        {
-            Assert(!src2 || IRType_IsUnsignedInt(src2->GetType()));
-            instr = LowerToHelper(helperUnsigned);
-        }
-        else
-        {
-            Assert(helperSigned != IR::HelperInvalid);
-            Assert(IRType_IsSignedInt(src1->GetType()) && (!src2 || IRType_IsSignedInt(src2->GetType())));
-            instr = LowerToHelper(helperSigned);
-        }
+        instr = LowerToHelper(IR::HelperDirectMath_Int64RemS);
         break;
     case Js::OpCode::BrTrue_I4:
         cmOpCode = Js::OpCode::CmEq_I4;
@@ -2184,15 +2177,18 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr)
         instr->m_opcode = Js::OpCode::IMUL2;
         break;
 
+    case Js::OpCode::DivU_I4:
     case Js::OpCode::Div_I4:
         instr->SinkDst(Js::OpCode::MOV, RegEAX);
         goto idiv_common;
+    case Js::OpCode::RemU_I4:
     case Js::OpCode::Rem_I4:
         instr->SinkDst(Js::OpCode::MOV, RegEDX);
 idiv_common:
-        if (instr->GetSrc1()->GetType() == TyUint32)
+        if (instr->GetSrc1()->IsUInt32())
         {
-            Assert(instr->GetSrc2()->GetType() == TyUint32);
+            Assert(instr->GetSrc2()->IsUInt32());
+            Assert(instr->m_opcode == Js::OpCode::RemU_I4 || instr->m_opcode == Js::OpCode::DivU_I4);
             instr->m_opcode = Js::OpCode::DIV;
         }
         else
@@ -2203,7 +2199,7 @@ idiv_common:
         regEDX = IR::RegOpnd::New(TyInt32, instr->m_func);
         regEDX->SetReg(RegEDX);
 
-        if (instr->GetSrc1()->GetType() == TyUint32)
+        if (instr->GetSrc1()->IsUInt32())
         {
             // we need to ensure that register allocator doesn't muck about with edx
             instr->HoistSrc2(Js::OpCode::MOV, RegECX);

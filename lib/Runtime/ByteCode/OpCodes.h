@@ -213,13 +213,15 @@ MACRO_BACKEND_ONLY(     Add_I4,             Empty,          OpTempNumberSources|
 MACRO_BACKEND_ONLY(     Sub_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 Arithmetic '-' (subtract)
 MACRO_BACKEND_ONLY(     Mul_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 Arithmetic '*'
 MACRO_BACKEND_ONLY(     Div_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 Arithmetic '/'
+MACRO_BACKEND_ONLY(     DivU_I4,            Empty,          OpTempNumberSources|OpCanCSE)                                    // uint32 Arithmetic '/'
 MACRO_BACKEND_ONLY(     Rem_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 Arithmetic '%'
+MACRO_BACKEND_ONLY(     RemU_I4,            Empty,          OpTempNumberSources|OpCanCSE)                                    // uint32 Arithmetic '%'
 MACRO_BACKEND_ONLY(     And_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 Bitwise '&'
 MACRO_BACKEND_ONLY(     Or_I4,              Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 Bitwise '|'
 MACRO_BACKEND_ONLY(     Xor_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 Bitwise '^'
 MACRO_BACKEND_ONLY(     Shl_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 Shift '<<' (signed, truncate)
 MACRO_BACKEND_ONLY(     Shr_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 Shift '>>' (signed, truncate)
-MACRO_BACKEND_ONLY(     ShrU_I4,            Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 Shift '>>>'(unsigned, truncate)
+MACRO_BACKEND_ONLY(     ShrU_I4,            Empty,          OpTempNumberSources|OpCanCSE)                                    // uint32 Shift '>>>'(unsigned, truncate)
 MACRO_BACKEND_ONLY(     Rol_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 rol (signed)
 MACRO_BACKEND_ONLY(     Ror_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 ror (signed)
 
