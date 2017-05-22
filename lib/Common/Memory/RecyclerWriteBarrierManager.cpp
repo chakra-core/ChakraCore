@@ -279,8 +279,24 @@ X64WriteBarrierCardTableManager::Initialize()
         LPVOID cardTableSpace = ::VirtualAlloc(NULL, _cardTableNumEntries, MEM_RESERVE, PAGE_READWRITE);
         if (!cardTableSpace) // Crash Early with a meaningful message. Otherwise the behavior is undefined.
         {
-            fprintf(stderr, "Out of Memory\n"); fflush(stderr);
-            abort();
+#ifndef _WIN32
+            constexpr uint64_t __32GB__ = (uint64_t)(32 * 1024) * (uint64_t)(1024 * 1024);
+            // valgrind ? aim below 32GB
+            if (maxUmProcessAddressSpace >= __32GB__)
+            {
+                // minus 64KB to reserve enough space for 64KB alignment fix under PAL VirtualAlloc
+                uint64_t maxUmProcessAddressSpace32GB = __32GB__ - (64 * 1024);
+                _cardTableNumEntries = Math::Align<size_t>(maxUmProcessAddressSpace32GB / AutoSystemInfo::PageSize,
+                    AutoSystemInfo::PageSize) /* s_writeBarrierPageSize */;
+                cardTableSpace = ::VirtualAlloc(NULL, _cardTableNumEntries, MEM_RESERVE, PAGE_READWRITE);
+            }
+#endif
+
+            if (!cardTableSpace)
+            {
+                fprintf(stderr, "Out of Memory\n"); fflush(stderr);
+                abort();
+            }
         }
 
         _cardTable = (BYTE*) cardTableSpace;
