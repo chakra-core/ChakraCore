@@ -2396,9 +2396,6 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         instr = IR::Instr::New(Js::OpCode::Sub_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
 
-    case Js::OpCodeAsmJs::Mul_UInt:
-        src1Opnd->SetType(TyUint32);
-        src2Opnd->SetType(TyUint32);
     case Js::OpCodeAsmJs::Mul_Int:
         instr = IR::Instr::New(Js::OpCode::Mul_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
