@@ -781,12 +781,7 @@ SCCLiveness::FoldIndir(IR::Instr *instr, IR::Opnd *opnd)
         {
             return false;
         }
-        int32 newOffset = 0;
-        if(!Int32Math::Add(offset,indir->GetOffset(), &newOffset))
-        {
-            return false;
-        }
-        indir->SetOffset(newOffset);
+        indir->SetOffset(offset);
         indir->SetIndexOpnd(nullptr);
     }
 

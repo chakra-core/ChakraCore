@@ -82,8 +82,8 @@ Lowerer::TryShiftAdd(IR::Instr *instrAdd, IR::Opnd * opndFold, IR::Opnd * opndAd
         switch (constVal)
         {
         case 1:
-scale = 0;
-break;
+            scale = 0;
+            break;
         case 2:
             scale = 1;
             break;
