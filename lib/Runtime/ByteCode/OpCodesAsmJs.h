@@ -151,7 +151,6 @@ MACRO_WMS       ( Ror_Int                    , Int3            , None           
 MACRO_WMS       ( PopCnt_Int                 , Int2            , None            )
 
 // Unsigned int math
-MACRO_WMS       ( Mul_UInt                   , Int3            , None            ) // uint32 Arithmetic '*'
 MACRO_WMS       ( Div_UInt                   , Int3            , None            ) // uint32 Arithmetic '/'
 MACRO_WMS       ( Div_Check_UInt             , Int3            , None            ) // (checked) uint32 Arithmetic '/'
 MACRO_WMS       ( Rem_UInt                   , Int3            , None            ) // uint32 Arithmetic '%'

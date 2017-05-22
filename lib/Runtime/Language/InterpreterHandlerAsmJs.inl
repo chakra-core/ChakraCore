@@ -120,7 +120,6 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( I2toI1Mem        , Ror_Int      , Wasm::WasmMath::Ror                                )
   DEF2_WMS( I1toI1Mem        , PopCnt_Int   , ::Math::PopCnt32                                   )
 
-  DEF2_WMS( I2toI1Mem        , Mul_UInt     , AsmJsMath::Mul<uint>                               )
   DEF2_WMS( I2toI1Mem        , Div_UInt     , AsmJsMath::Div<uint>                               )
   DEF2_WMS( I2toI1Mem        , Rem_UInt     , AsmJsMath::Rem<uint>                               )
 
