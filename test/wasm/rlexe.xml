@@ -243,14 +243,14 @@
   <default>
     <files>memory.js</files>
     <compile-flags>-wasm -ArrayBufferTransfer</compile-flags>
-    <tags>exclude_jshost,exclude_win7</tags>
+    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
   </default>
 </test>
 <test>
   <default>
     <files>memory.js</files>
     <compile-flags>-wasm -ArrayBufferTransfer -wasmfastarray-</compile-flags>
-    <tags>exclude_jshost,exclude_win7</tags>
+    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
   </default>
 </test>
 <test>
