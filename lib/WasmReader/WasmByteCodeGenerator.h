@@ -208,6 +208,7 @@ namespace Wasm
         void EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst);
         WasmConstLitNode GetZeroCnst();
 
+        void EnsureStackAvailable();
         void EnregisterLocals();
         void ReleaseLocation(EmitInfo* info);
 

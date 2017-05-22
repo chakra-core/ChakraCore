@@ -812,8 +812,18 @@ WasmBytecodeGenerator::GetZeroCnst()
 }
 
 void
+WasmBytecodeGenerator::EnsureStackAvailable()
+{
+    if (!ThreadContext::IsCurrentStackAvailable(Js::Constants::MinStackCompile))
+    {
+        throw WasmCompilationException(_u("Maximum supported nested blocks reached"));
+    }
+}
+
+void
 WasmBytecodeGenerator::EmitBlockCommon(BlockInfo* blockInfo, bool* endOnElse /*= nullptr*/)
 {
+    EnsureStackAvailable();
     bool canResetUnreachable = !IsUnreachable();
     WasmOp op;
     EnterEvalStackScope();
