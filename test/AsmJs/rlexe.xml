@@ -807,6 +807,11 @@
   </test>
   <test>
     <default>
+      <files>unsigned.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>asmjscctx.js</files>
       <baseline>asmjscctx.baseline</baseline>
       <compile-flags>-testtrace:asmjs</compile-flags>
