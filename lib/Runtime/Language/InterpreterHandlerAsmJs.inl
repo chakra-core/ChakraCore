@@ -109,8 +109,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( I2toI1Mem        , Mul_Int      , AsmJsMath::Mul<int>                                )
   DEF2_WMS( I2toI1Mem        , Div_Int      , AsmJsMath::DivChecked<int>                         )
   DEF2_WMS( I2toI1Mem        , Rem_Int      , AsmJsMath::RemChecked<int>                         )
-  DEF2_WMS( I2toI1Ctx        , Div_Check_Int, (OP_DivOverflow<int, &AsmJsMath::DivUnsafe<int>>)  )
-  DEF2_WMS( I2toI1Ctx        , Rem_Check_Int, (OP_DivRemCheck<int, &AsmJsMath::RemUnsafe<int>>)  )
+  DEF2_WMS( I2toI1Ctx        , Div_Trap_Int, (OP_DivOverflow<int, &AsmJsMath::DivUnsafe<int>>)  )
+  DEF2_WMS( I2toI1Ctx        , Rem_Trap_Int, (OP_DivRemCheck<int, &AsmJsMath::RemUnsafe<int>>)  )
   DEF2_WMS( I2toI1Mem        , And_Int      , AsmJsMath::And                                     )
   DEF2_WMS( I2toI1Mem        , Or_Int       , AsmJsMath::Or                                      )
   DEF2_WMS( I2toI1Mem        , Xor_Int      , AsmJsMath::Xor                                     )
@@ -129,15 +129,15 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
 // Unsigned Int32 Math
   DEF2_WMS( I2toI1Mem        , Div_UInt     , AsmJsMath::DivChecked<uint32>                            )
   DEF2_WMS( I2toI1Mem        , Rem_UInt     , AsmJsMath::RemChecked<uint32>                            )
-  DEF2_WMS( I2toI1Ctx        , Div_Check_UInt, (OP_DivRemCheck<uint32, &AsmJsMath::DivUnsafe<uint32>>) )
-  DEF2_WMS( I2toI1Ctx        , Rem_Check_UInt, (OP_DivRemCheck<uint32, &AsmJsMath::RemUnsafe<uint32>>) )
+  DEF2_WMS( I2toI1Ctx        , Div_Trap_UInt, (OP_DivRemCheck<uint32, &AsmJsMath::DivUnsafe<uint32>>) )
+  DEF2_WMS( I2toI1Ctx        , Rem_Trap_UInt, (OP_DivRemCheck<uint32, &AsmJsMath::RemUnsafe<uint32>>) )
 
 // Int64 Math
   DEF2_WMS( L2toL1Mem        , Add_Long     , AsmJsMath::Add<int64>)
   DEF2_WMS( L2toL1Mem        , Sub_Long     , AsmJsMath::Sub<int64>)
   DEF2_WMS( L2toL1Mem        , Mul_Long     , AsmJsMath::Mul<int64>)
-  DEF2_WMS( L2toL1Ctx        , Div_Long     , (OP_DivOverflow<int64,  &AsmJsMath::DivUnsafe<int64>>) )
-  DEF2_WMS( L2toL1Ctx        , Rem_Long     , (OP_DivRemCheck<int64,  &AsmJsMath::RemUnsafe<int64>>)    )
+  DEF2_WMS( L2toL1Ctx        , Div_Trap_Long, (OP_DivOverflow<int64,  &AsmJsMath::DivUnsafe<int64>>) )
+  DEF2_WMS( L2toL1Ctx        , Rem_Trap_Long, (OP_DivRemCheck<int64,  &AsmJsMath::RemUnsafe<int64>>)    )
   DEF2_WMS( L2toL1Mem        , And_Long     , AsmJsMath::And<int64>)
   DEF2_WMS( L2toL1Mem        , Or_Long      , AsmJsMath::Or<int64>)
   DEF2_WMS( L2toL1Mem        , Xor_Long     , AsmJsMath::Xor<int64>)
@@ -151,8 +151,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( L1toL1Mem        , PopCnt_Long  , Wasm::WasmMath::PopCnt<int64>)
 
 // Unsigned Int64 Math
-  DEF2_WMS( L2toL1Ctx        , Div_ULong    , (OP_DivRemCheck<uint64, &AsmJsMath::DivUnsafe<uint64>>)   )
-  DEF2_WMS( L2toL1Ctx        , Rem_ULong    , (OP_DivRemCheck<uint64, &AsmJsMath::RemUnsafe<uint64>>)   )
+  DEF2_WMS( L2toL1Ctx        , Div_Trap_ULong, (OP_DivRemCheck<uint64, &AsmJsMath::DivUnsafe<uint64>>)   )
+  DEF2_WMS( L2toL1Ctx        , Rem_Trap_ULong, (OP_DivRemCheck<uint64, &AsmJsMath::RemUnsafe<uint64>>)   )
 
 // Double Math
   DEF2_WMS( D1toD1Mem        , Neg_Db       , AsmJsMath::Neg<double>                             )
