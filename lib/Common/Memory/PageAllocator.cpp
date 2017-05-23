@@ -627,9 +627,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::GetMaxAllocPageCount()
 
 template<typename TVirtualAlloc, typename TSegment, typename TPageSegment>
 PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::PageAllocatorBase(AllocationPolicyManager * policyManager,
-#ifndef JD_PRIVATE
     Js::ConfigFlagsTable& flagTable,
-#endif
     PageAllocatorType type,
     uint maxFreePageCount, bool zeroPages,
 #if ENABLE_BACKGROUND_PAGE_FREEING
@@ -638,9 +636,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::PageAllocatorBase(Allo
     uint maxAllocPageCount, uint secondaryAllocPageCount,
     bool stopAllocationOnOutOfMemory, bool excludeGuardPages, HANDLE processHandle, bool enableWriteBarrier) :
     policyManager(policyManager),
-#ifndef JD_PRIVATE
     pageAllocatorFlagTable(flagTable),
-#endif
     maxFreePageCount(maxFreePageCount),
     freePageCount(0),
     allocFlags(0),

@@ -5,9 +5,7 @@
 #include "CommonMemoryPch.h"
 
 IdleDecommitPageAllocator::IdleDecommitPageAllocator(AllocationPolicyManager * policyManager, PageAllocatorType type,
-#ifndef JD_PRIVATE
     Js::ConfigFlagsTable& flagTable,
-#endif
     uint maxFreePageCount, uint maxIdleFreePageCount,
     bool zeroPages,
 #if ENABLE_BACKGROUND_PAGE_FREEING 
@@ -19,11 +17,7 @@ IdleDecommitPageAllocator::IdleDecommitPageAllocator(AllocationPolicyManager * p
     hasDecommitTimer(false),
     hadDecommitTimer(false),
 #endif
-    PageAllocator(policyManager,
-#ifndef JD_PRIVATE
-        flagTable,
-#endif
-    type, maxFreePageCount, zeroPages,
+    PageAllocator(policyManager, flagTable, type, maxFreePageCount, zeroPages,
 #if ENABLE_BACKGROUND_PAGE_FREEING
     backgroundPageQueue,
 #endif        
