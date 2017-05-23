@@ -303,6 +303,10 @@ while [[ $# -gt 0 ]]; do
         VALGRIND="-DENABLE_VALGRIND_SH=1"
         ;;
 
+    -y | -Y)
+        ALWAYS_YES=1
+        ;;
+
     *)
         echo "Unknown option $1"
         PRINT_USAGE
