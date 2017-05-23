@@ -547,6 +547,10 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "../WasmReader/WasmReader.h"
 
+#include "Language/AsmJsTypes.h"
+#include "Language/AsmJsModule.h"
+#include "Language/AsmJs.h"
+
 //
 // .inl files
 //
