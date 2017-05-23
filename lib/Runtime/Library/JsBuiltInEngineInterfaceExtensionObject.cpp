@@ -217,11 +217,17 @@ namespace Js
         // Link the function to the prototype.
         ScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateScriptFunction(func->GetFunctionProxy());
         scriptFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(argumentsCount), PropertyConfigurable, nullptr);
-        scriptFunction->SetPropertyWithAttributes(PropertyIds::arguments, scriptContext->GetLibrary()->GetNull(), PropertyConfigurable, nullptr);
-        scriptFunction->SetPropertyWithAttributes(PropertyIds::caller, scriptContext->GetLibrary()->GetNull(), PropertyConfigurable, nullptr);
 
         scriptFunction->SetConfigurable(PropertyIds::prototype, true);
         scriptFunction->DeleteProperty(PropertyIds::prototype, Js::PropertyOperationFlags::PropertyOperation_None);
+
+        scriptFunction->SetPropertyWithAttributes(PropertyIds::arguments, scriptContext->GetLibrary()->GetNull(), PropertyConfigurable, nullptr);
+        scriptFunction->SetConfigurable(PropertyIds::arguments, true);
+        scriptFunction->DeleteProperty(PropertyIds::arguments, Js::PropertyOperationFlags::PropertyOperation_AllowUndecl);
+
+        scriptFunction->SetPropertyWithAttributes(PropertyIds::caller, scriptContext->GetLibrary()->GetNull(), PropertyConfigurable, nullptr);
+        scriptFunction->SetConfigurable(PropertyIds::caller, true);
+        scriptFunction->DeleteProperty(PropertyIds::caller, Js::PropertyOperationFlags::PropertyOperation_AllowUndecl);
 
         if (scriptFunction->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled())
         {
