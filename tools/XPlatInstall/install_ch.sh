@@ -111,7 +111,7 @@ PRINT $SUCCESS_COLOR "] Download completed"
 CHECK_EXT_FAIL()
 {
     if [[ $? != 0 ]]; then
-        PRINT $ERROR_COLOR "] Extracting the compressed file is failed."
+        PRINT $ERROR_COLOR "] Extracting the compressed file failed."
         PRINT $DEFAULT_COLOR "] ${___}"
         rm -rf ChakraCoreFiles/
         rm -rf chakracore.tar.gz
