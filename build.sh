@@ -303,6 +303,10 @@ while [[ $# -gt 0 ]]; do
         VALGRIND="-DENABLE_VALGRIND_SH=1"
         ;;
 
+    -y | -Y)
+        ALWAYS_YES=1
+        ;;
+
     *)
         echo "Unknown option $1"
         PRINT_USAGE
@@ -375,10 +379,26 @@ if [[ ${#_VERBOSE} > 0 ]]; then
 fi
 
 # if LTO build is enabled and cc-toolchain/clang was compiled, use it instead
-if [[ $HAS_LTO == 1 && -f cc-toolchain/build/bin/clang++ ]]; then
-    SELF=`pwd`
-    _CXX="$SELF/cc-toolchain/build/bin/clang++"
-    _CC="$SELF/cc-toolchain/build/bin/clang"
+if [[ $HAS_LTO == 1 ]]; then
+    if [[ -f cc-toolchain/build/bin/clang++ ]]; then
+        SELF=`pwd`
+        _CXX="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang++"
+        _CC="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang"
+    else
+        # Linux LD possibly doesn't support LLVM LTO, check.. and compile clang if not
+        if [[ $OS_LINUX == 1 ]]; then
+            if [[ ! `ld -v` =~ 'GNU gold' ]]; then
+                $CHAKRACORE_DIR/tools/compile_clang.sh
+                if [[ $? != 0 ]]; then
+                  echo -e "tools/compile_clang.sh has failed.\n"
+                  echo "Try with 'sudo' ?"
+                  exit 1
+                fi
+                _CXX="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang++"
+                _CC="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang"
+            fi
+        fi
+    fi
 fi
 
 if [ "${HAS_LTO}${OS_LINUX}" == "11" ]; then
