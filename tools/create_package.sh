@@ -82,7 +82,7 @@ echo -e "\n***** Third Party Notices [ for PreBuilt Binaries ] *****\n" >> out/C
 cat tools/XPlatInstall/BINARY-DIST-ONLY-NOTICES.txt >> out/ChakraCoreFiles/LICENSE
 # sample
 cp "tools/XPlatInstall/sample/README.md"  out/ChakraCoreFiles/sample/README.md
-cp "tools/XPlatInstall/sample/Makefile.txt"   out/ChakraCoreFiles/sample/Makefile
+cp "tools/XPlatInstall/sample/Makefile"   out/ChakraCoreFiles/sample/Makefile
 cp "tools/XPlatInstall/sample/sample.cpp.txt" out/ChakraCoreFiles/sample/sample.cpp
 
 ## Test
@@ -97,7 +97,16 @@ IF_ERROR_EXIT $? "CH binary test failed"
 pushd out/ > /dev/null
 PACKAGE_FILE="cc_${HOST_OS}_x64_${CHAKRA_VERSION}.tar.gz"
 tar -czf "${PACKAGE_FILE}" ChakraCoreFiles/
+mkdir -p temp/ChakraCoreFiles/
+cp "${PACKAGE_FILE}" temp/chakracore.tar.gz
+cd temp
+SHASUM_FILE="cc_${HOST_OS}_x64_${CHAKRA_VERSION}_s.tar.gz"
+shasum -a 512256 chakracore.tar.gz > ChakraCoreFiles/shasum
+tar -czf "$SHASUM_FILE" ChakraCoreFiles
+mv $SHASUM_FILE ../
+cd ..
+rm -rf temp/
 popd > /dev/null
 
 ## Credits
-echo -e "\nPackage file is ready at ${GREEN_COLOR}${PACKAGE_FILE}${DEFAULT_COLOR}"
+echo -e "\nPackage & Shasum files are ready under ${GREEN_COLOR}out/${DEFAULT_COLOR}"
