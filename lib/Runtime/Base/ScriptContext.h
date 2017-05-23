@@ -454,7 +454,6 @@ namespace Js
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
         typedef HRESULT (*GetDocumentContextFunction)(
-            ScriptContext *pContext,
             Js::FunctionBody *pFunctionBody,
             IDebugDocumentContext **ppDebugDocumentContext);
         GetDocumentContextFunction GetDocumentContext;
