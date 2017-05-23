@@ -130,6 +130,26 @@ Initialize()
     /*Firstly initiate a lastError */
     SetLastError(ERROR_GEN_FAILURE);
 
+    // prevent un-reasonable stack limits. (otherwise affects mmap calls later)
+#if !defined(__IOS__) && !defined(__ANDROID__)
+#ifdef _AMD64_
+    const rlim_t maxStackSize = 8 * 1024 * 1024;   // CC Max stack size
+#else
+    const rlim_t maxStackSize = 2 * 1024 * 1024;   // CC Max stack size
+#endif
+    struct rlimit rl;
+    int err = getrlimit(RLIMIT_STACK, &rl);
+    if (!err)
+    {
+        if (rl.rlim_cur > maxStackSize)
+        {
+            rl.rlim_cur = maxStackSize;
+            err = setrlimit(RLIMIT_STACK, &rl);
+            _ASSERTE(err == 0 && "Well, the environment has a strange stack limit \
+              and setrlimit call failed to fix that");
+        }
+    }
+#endif // !__IOS__ && !__ANDROID__
     CriticalSectionSubSysInitialize();
 
     if(NULL == init_critsec)
