@@ -6683,7 +6683,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                     this->ProcessTryHandlerBailout(ehBailoutData->child, --tryNestingDepth);
                 }
 
-                Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+                if (catchOffset != 0)
+                {
+                    Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+                }
 
                 if (this->IsInDebugMode())
                 {
