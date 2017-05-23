@@ -17441,7 +17441,35 @@ GlobOpt::PreOptPeep(IR::Instr *instr)
         }
         RemoveCodeAfterNoFallthroughInstr(instr);
     }
-
+    if (this->func->HasFinally())
+    {
+        IR::Opnd * dst = instr->GetDst();
+        // When there is an early return in try finally, we have to execute the finally block before returning
+        // So we add edges from early return block to finally block and finally block back to early return block.
+        //
+        // If an instruction assigning to s0 is type specialized and s0 already exists in bytecodeUpwardExposedUsed
+        // While populating bailout info, we will end up using the type specialized symbol instead of s0 even for pre opt bailout
+        // Because we don't differentiate between pre-op bailout and post-op bailout while populating bailout info
+        // The type specialized symbol gets added on bytecodeUpwardExposed used, due to this gets added to upwardExposedUsed
+        // If this instruction was in a loop, gets added to liveOnBackEdge syms
+        //
+        // This causes asserts in register allocator, when it extends the lifetime of the type specialized symbol to the entire loop
+        //
+        // This is a problem only with try-finallys
+        // For non-EH functions, the early return block gets moved out of the loop due to break block removal
+        // With try finallys, these blocks are not moved out due to the early return -> finally and finally -> early return edges
+        //
+        // This happens only with return s0 symbol, because we avoid creating new temporary destination register for the s0 case
+        if (dst && dst->GetSym() && dst->GetSym()->m_id == 0 && !dst->AsRegOpnd()->IsArrayRegOpnd() && instr->m_opcode != Js::OpCode::Ld_A)
+        {
+            IR::RegOpnd *newDst = dst->AsRegOpnd()->Copy(this->func)->AsRegOpnd();
+            newDst->m_sym = StackSym::New(dst->GetType(), this->func);
+            IR::Opnd *oldDst = instr->UnlinkDst();
+            instr->SetDst(newDst);
+            IR::Instr *ld = IR::Instr::New(Js::OpCode::Ld_A, oldDst, newDst, this->func);
+            instr->InsertAfter(ld);
+        }
+    }
     return instr;
 }
 
