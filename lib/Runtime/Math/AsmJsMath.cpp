@@ -31,7 +31,7 @@ namespace Js
     template<>
     int32 AsmJsMath::DivChecked<int32>(int32 aLeft, int32 aRight)
     {
-        return aRight == 0 ? 0 : (aLeft == INT_MIN && aRight == -1) ? aLeft : aLeft / aRight;
+        return aRight == 0 ? 0 : (aLeft == INT_MIN && aRight == -1) ? INT_MIN : aLeft / aRight;
     }
     template<> int32 AsmJsMath::RemUnsafe<int32>(int32 aLeft, int32 aRight) { return aLeft % aRight; }
     template<>
@@ -52,7 +52,7 @@ namespace Js
     template<>
     uint32 AsmJsMath::RemChecked<uint32>(uint32 aLeft, uint32 aRight)
     {
-        return ((aRight == 0) || (aLeft == INT_MIN && aRight == -1)) ? 0 : aLeft % aRight;
+        return aRight == 0 ? 0 : (aLeft == INT_MIN && aRight == -1) ? INT_MIN : aLeft % aRight;
     }
 
     // Int64
@@ -61,7 +61,7 @@ namespace Js
     template<>
     int64 AsmJsMath::DivChecked<int64>(int64 aLeft, int64 aRight)
     {
-        return ((aRight == 0) || (aLeft == LONGLONG_MIN && aRight == -1)) ? aLeft : aLeft / aRight;
+        return aRight == 0 ? 0 : (aLeft == LONGLONG_MIN && aRight == -1) ? LONGLONG_MIN : aLeft / aRight;
     }
     template<> int64 AsmJsMath::RemUnsafe<int64>(int64 aLeft, int64 aRight) { return aLeft % aRight; }
     template<>
@@ -76,12 +76,12 @@ namespace Js
     template<>
     uint64 AsmJsMath::DivChecked<uint64>(uint64 aLeft, uint64 aRight)
     {
-        return ((aRight == 0)) ? 0 : aLeft / aRight;
+        return aRight == 0 ? 0 : aLeft / aRight;
     }
     template<> uint64 AsmJsMath::RemUnsafe<uint64>(uint64 aLeft, uint64 aRight) { return aLeft % aRight; }
     template<>
     uint64 AsmJsMath::RemChecked<uint64>(uint64 aLeft, uint64 aRight)
     {
-        return ((aRight == 0) || (aLeft == LONGLONG_MIN && aRight == -1)) ? 0 : aLeft % aRight;
+        return aRight == 0 ? 0 : (aLeft == LONGLONG_MIN && aRight == -1) ? LONGLONG_MIN : aLeft % aRight;
     }
 }
