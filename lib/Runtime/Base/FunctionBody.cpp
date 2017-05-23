@@ -4761,7 +4761,7 @@ namespace Js
         PROFILER_SCRIPT_TYPE type = IsDynamicScript() ? PROFILER_SCRIPT_TYPE_DYNAMIC : PROFILER_SCRIPT_TYPE_USER;
 
         IDebugDocumentContext *pDebugDocumentContext = nullptr;
-        this->m_scriptContext->GetDocumentContext(this->m_scriptContext, this, &pDebugDocumentContext);
+        this->m_scriptContext->GetDocumentContext(this, &pDebugDocumentContext);
 
         HRESULT hr = m_scriptContext->OnScriptCompiled((PROFILER_TOKEN) this->GetUtf8SourceInfo()->GetSourceInfoId(), type, pDebugDocumentContext);
 
@@ -4777,7 +4777,7 @@ namespace Js
         const char16 *pwszName = GetExternalDisplayName();
 
         IDebugDocumentContext *pDebugDocumentContext = nullptr;
-        this->m_scriptContext->GetDocumentContext(this->m_scriptContext, this, &pDebugDocumentContext);
+        this->m_scriptContext->GetDocumentContext(this, &pDebugDocumentContext);
 
         SetHasFunctionCompiledSent(true);
 
