@@ -52,7 +52,6 @@ GET_OS()
     exit
 }
 
-
 GET_LATEST()
 {
     GET_OS
@@ -61,12 +60,13 @@ GET_LATEST()
     CHAKRA_VERSION=$(curl -k -s -SL "https://aka.ms/chakracore/version")
 
     if [[ "$CHAKRA_VERSION" == *"Error"* ]]; then
-        PRINT $ERROR_COLOR "] Download Failed. Do you have an Internet connection?"
+        PRINT $ERROR_COLOR "] Please ensure you are connected to the internet and try again."
         exit 1
     fi
 
     PRINT $SUCCESS_COLOR "] Found ChakraCore ${CHAKRA_VERSION//_/.} for ${CURRENT_OS}"
-    BINARY_NAME="https://aka.ms/chakracore/${BINARY_NAME}_${CHAKRA_VERSION}.tar.gz"
+    BINARY_NAME="https://aka.ms/chakracore/${BINARY_NAME}_${CHAKRA_VERSION}"
+    SHASUM_NAME="${BINARY_NAME}_s"
 }
 
 PRINT $DEFAULT_COLOR "ChakraCore Installation Script 0.1b\n"
@@ -75,11 +75,11 @@ PRINT $DEFAULT_COLOR "Visit https://aka.ms/WhatIs/ChakraCore for more informatio
 GET_LATEST
 
 PRINT $DEFAULT_COLOR "----------------------------------------------------------------"
-PRINT $SUCCESS_COLOR   "\nThis script will download ChakraCore from"
-PRINT $DEFAULT_COLOR "${BINARY_NAME}\n"
+PRINT $SUCCESS_COLOR   "\nThis script will download & execute ChakraCore binary"
+PRINT $DEFAULT_COLOR "located at ${BINARY_NAME}\n"
 PRINT $DEFAULT_COLOR "----------------------------------------------------------------"
 PRINT $DEFAULT_COLOR "If you don't agree, press Ctrl+C to terminate"
-read -t 10 -p "Hit ENTER to continue (or wait 10 seconds)"
+read -t 20 -p "Hit ENTER to continue (or wait 20 seconds)"
 
 if [ -d "./ChakraCoreFiles" ]; then
     PRINT $ERROR_COLOR "] Found 'ChakraCoreFiles' folder on the current path."
@@ -87,28 +87,64 @@ if [ -d "./ChakraCoreFiles" ]; then
     exit 1
 fi
 
+CHECK_DOWNLOAD_FAIL()
+{
+    if [[ $? != 0 ]]; then
+        PRINT $ERROR_COLOR "] Download failed."
+        PRINT $DEFAULT_COLOR "] ${___}"
+        exit 1
+    fi
+}
+
 PRINT $DEFAULT_COLOR "\n] Downloading ChakraCore"
 PRINT $SUCCESS_COLOR "] ${BINARY_NAME}"
-
 ___=$(curl -kSL -o "chakracore.tar.gz" "${BINARY_NAME}" 2>&1)
+CHECK_DOWNLOAD_FAIL
 
-if [[ $? != 0 ]]; then
-    PRINT $ERROR_COLOR "] Download failed."
-    PRINT $DEFAULT_COLOR "] ${___}"
-    exit 1
-fi
+PRINT $DEFAULT_COLOR "\n] Downloading ChakraCore shasum"
+PRINT $SUCCESS_COLOR "] ${SHASUM_NAME}"
+___=$(curl -kSL -o "chakracore_s.tar.gz" "${SHASUM_NAME}" 2>&1)
+CHECK_DOWNLOAD_FAIL
 
 PRINT $SUCCESS_COLOR "] Download completed"
 
-___=$(tar -xzf chakracore.tar.gz 2>&1)
+CHECK_EXT_FAIL()
+{
+    if [[ $? != 0 ]]; then
+        PRINT $ERROR_COLOR "] Extracting the compressed file failed."
+        PRINT $DEFAULT_COLOR "] ${___}"
+        rm -rf ChakraCoreFiles/
+        rm -rf chakracore.tar.gz
+        rm -rf chakracore_s.tar.gz
+        exit 1
+    fi
+}
 
-if [[ $? != 0 ]]; then
-    PRINT $ERROR_COLOR "] Extracting the compressed file is failed."
-    PRINT $DEFAULT_COLOR "] ${___}"
-    rm -rf ChakraCoreFiles/
+___=$(tar -xzf chakracore_s.tar.gz 2>&1)
+CHECK_EXT_FAIL
+
+SUM1=`shasum -a 512256 chakracore.tar.gz`
+SUM2=`cat ChakraCoreFiles/shasum`
+SUM1="${SUM1}@"
+SUM2="${SUM2}@"
+
+if [[ ! $SUM1 =~ $SUM2 ]]; then
+    PRINT $ERROR_COLOR "] Corrupted binary package."
+    PRINT $DEFAULT_COLOR "] Check your network connection."
+    PRINT $ERROR_COLOR "] If you suspect there is some other problem,\
+ https://github.com/Microsoft/ChakraCore#contact-us"
     rm -rf chakracore.tar.gz
+    rm -rf chakracore_s.tar.gz
+    rm -rf ChakraCoreFiles/
     exit 1
 fi
+
+rm -rf chakracore_s.tar.gz
+
+PRINT $SUCCESS_COLOR "] ChakraCore package SHASUM matches"
+
+___=$(tar -xzf chakracore.tar.gz 2>&1)
+CHECK_EXT_FAIL
 
 rm -rf chakracore.tar.gz
 
