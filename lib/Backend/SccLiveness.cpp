@@ -786,25 +786,26 @@ SCCLiveness::FoldIndir(IR::Instr *instr, IR::Opnd *opnd)
     }
 
     IR::RegOpnd *base = indir->GetBaseOpnd();
-    if (!base || !base->m_sym || !base->m_sym->IsConst() || base->m_sym->IsIntConst() || base->m_sym->IsFloatConst())
+    uint8 *constValue = nullptr;
+    if (base)
     {
-        return false;
-    }
-
-    uint8 *constValue = static_cast<uint8 *>(base->m_sym->GetConstAddress());
-    if(indir->GetOffset() != 0)
-    {
-        if(indir->GetOffset() < 0 ? constValue + indir->GetOffset() > constValue : constValue + indir->GetOffset() < constValue)
+        if (!base->m_sym || !base->m_sym->IsConst() || base->m_sym->IsIntConst() || base->m_sym->IsFloatConst())
         {
             return false;
         }
-        constValue += indir->GetOffset();
+        constValue = static_cast<uint8 *>(base->m_sym->GetConstAddress());
+        if (indir->GetOffset() < 0 ? constValue + indir->GetOffset() > constValue : constValue + indir->GetOffset() < constValue)
+        {
+            return false;
+        }
     }
+    constValue += indir->GetOffset();
 
 #ifdef _M_X64
     // Encoding only allows 32bits worth
     if(!Math::FitsInDWord((size_t)constValue))
     {
+        Assert(base != nullptr);
         return false;
     }
 #endif
