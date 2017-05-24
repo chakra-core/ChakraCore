@@ -191,8 +191,7 @@ BackwardPass::DoTrackCompoundedIntOverflow() const
 {
     return
         !PHASE_OFF(Js::TrackCompoundedIntOverflowPhase, func) &&
-        DoTrackIntOverflow() &&
-        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
+        DoTrackIntOverflow() && !func->IsTrackCompoundedIntOverflowDisabled();
 }
 
 bool
