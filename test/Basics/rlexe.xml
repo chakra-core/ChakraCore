@@ -7,14 +7,12 @@
       <compile-flags>-Intl-</compile-flags>
     </default>
   </test>
-  <!--
   <test>
     <default>
       <files>ScriptFunctionToStrings.js</files>
-      <compile-flags>-ES6Generators -ES6Classes -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
-  -->
   <test>
     <default>
       <files>DomProperties.js</files>
