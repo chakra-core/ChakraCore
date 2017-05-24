@@ -25,6 +25,10 @@ namespace Wasm
             F32 = 3,
             F64 = 4,
             M128 = 5,
+            B2 = 6,
+            B4 = 7,
+            B8 = 8,
+            B16 = 9,
             Limit,
             Any
         };

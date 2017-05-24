@@ -5,17 +5,27 @@
 
 
 //temporary until 64x2 types are implemented
-#ifndef FOREACH_SIMD_TYPE
-#define FOREACH_SIMD_TYPE(V) \
-    V(M128, F)
+
+#ifndef FOREACH_BOOL_SIMD_TYPE_W_BASE
+#define FOREACH_BOOL_SIMD_TYPE_W_BASE(V) \
+    V(B2, I)     \
+    V(B4, I)     \
+    V(B8, I)     \
+    V(B16, I)
 #endif
 
 #ifndef FOREACH_SIMD_TYPE_W_BASE
 #define FOREACH_SIMD_TYPE_W_BASE(V) \
     V(M128, F)   \
-    V(M128, I)
+    V(M128, I)   \
+    FOREACH_BOOL_SIMD_TYPE_W_BASE(V)
 #endif
 
+#ifndef FOREACH_SIMD_TYPE
+#define FOREACH_SIMD_TYPE(V) \
+    V(M128, F) \
+    FOREACH_BOOL_SIMD_TYPE_W_BASE(V)
+#endif
 
 
 #ifndef WASM_SIMD_BUILD_OPCODE
@@ -33,6 +43,10 @@ FOREACH_SIMD_TYPE_W_BASE(SIMD_ALL)
 #undef SIMD_ALL
 #undef SIMD_BUILD
 #undef SIMD_EXTRACT
+
+#define SIMD_COMP(TYPE, BASE) WASM_SIGNATURE(TYPE##_##M128X2, 3, WasmTypes::##TYPE, WasmTypes::M128, WasmTypes::M128)
+    FOREACH_BOOL_SIMD_TYPE_W_BASE(SIMD_COMP)
+#undef SIMD_COMP
 
 WASM_SIGNATURE(M128X3, 3, WasmTypes::M128, WasmTypes::M128, WasmTypes::M128)
 WASM_SIGNATURE(M128_M128_I, 3, WasmTypes::M128, WasmTypes::M128, WasmTypes::I32)
@@ -55,13 +69,13 @@ WASM_SIMD_BUILD_OPCODE(I4Build, 0x10b, M128_I, Simd128_IntsToI4, 4, false)
 WASM_SIMD_BUILD_OPCODE(I8Build, 0x10c, M128_I, Simd128_IntsToI8, 8, false)
 WASM_SIMD_BUILD_OPCODE(I16Build, 0x10d, M128_I, Simd128_IntsToI16, 16, false)
 WASM_MISC_OPCODE(B2Build, 0x10e, Limit, true)
-WASM_SIMD_BUILD_OPCODE(B4Build, 0x10f, M128_I, Simd128_IntsToB4, 4, false)
-WASM_SIMD_BUILD_OPCODE(B8Build, 0x110, M128_I, Simd128_IntsToB8, 8, false)
-WASM_SIMD_BUILD_OPCODE(B16Build, 0x111, M128_I, Simd128_IntsToB16, 16, false)
+WASM_SIMD_BUILD_OPCODE(B4Build, 0x10f, B4_I, Simd128_IntsToB4, 4, false)
+WASM_SIMD_BUILD_OPCODE(B8Build, 0x110, B8_I, Simd128_IntsToB8, 8, false)
+WASM_SIMD_BUILD_OPCODE(B16Build, 0x111, B16_I, Simd128_IntsToB16, 16, false)
 WASM_MISC_OPCODE(F2Build, 0x112, Limit, true)
 WASM_SIMD_BUILD_OPCODE(F4Build, 0x113, M128_F, Simd128_FloatsToF4, 4, false)
 WASM_MISC_OPCODE(B16Splat, 0x114, Limit, true)
-WASM_BINARY_OPCODE(B16ExtractLane, 0x115, I_M128_I, Simd128_ExtractLane_B16, false)
+WASM_BINARY_OPCODE(B16ExtractLane, 0x115, I_B16_I, Simd128_ExtractLane_B16, false)
 WASM_MISC_OPCODE(B16And, 0x116, Limit, true)
 WASM_MISC_OPCODE(B16Or, 0x117, Limit, true)
 WASM_MISC_OPCODE(B16Xor, 0x118, Limit, true)
@@ -69,7 +83,7 @@ WASM_MISC_OPCODE(B16Not, 0x119, Limit, true)
 WASM_MISC_OPCODE(B16AnyTrue, 0x11a, Limit, true)
 WASM_MISC_OPCODE(B16AllTrue, 0x11b, Limit, true)
 WASM_MISC_OPCODE(B8Splat, 0x11c, Limit, true)
-WASM_BINARY_OPCODE(B8ExtractLane, 0x11d, I_M128_I, Simd128_ExtractLane_B8, false)
+WASM_BINARY_OPCODE(B8ExtractLane, 0x11d, I_B8_I, Simd128_ExtractLane_B8, false)
 WASM_MISC_OPCODE(B8And, 0x11e, Limit, true)
 WASM_MISC_OPCODE(B8Or, 0x11f, Limit, true)
 WASM_MISC_OPCODE(B8Xor, 0x120, Limit, true)
@@ -77,7 +91,7 @@ WASM_MISC_OPCODE(B8Not, 0x121, Limit, true)
 WASM_MISC_OPCODE(B8AnyTrue, 0x122, Limit, true)
 WASM_MISC_OPCODE(B8AllTrue, 0x123, Limit, true)
 WASM_MISC_OPCODE(B4Splat, 0x124, Limit, true)
-WASM_BINARY_OPCODE(B4ExtractLane, 0x125, I_M128_I, Simd128_ExtractLane_B4, false)
+WASM_BINARY_OPCODE(B4ExtractLane, 0x125, I_B4_I, Simd128_ExtractLane_B4, false)
 WASM_MISC_OPCODE(B4And, 0x126, Limit, true)
 WASM_MISC_OPCODE(B4Or, 0x127, Limit, true)
 WASM_MISC_OPCODE(B4Xor, 0x128, Limit, true)
@@ -115,16 +129,16 @@ WASM_MISC_OPCODE(I16And, 0x147, Limit, true)
 WASM_MISC_OPCODE(I16Or, 0x148, Limit, true)
 WASM_MISC_OPCODE(I16Xor, 0x149, Limit, true)
 WASM_MISC_OPCODE(I16Not, 0x14a, Limit, true)
-WASM_MISC_OPCODE(I16Eq, 0x14b, Limit, true)
-WASM_MISC_OPCODE(I16Ne, 0x14c, Limit, true)
-WASM_MISC_OPCODE(I16LtS, 0x14d, Limit, true)
-WASM_MISC_OPCODE(I16LtU, 0x14e, Limit, true)
-WASM_MISC_OPCODE(I16LeS, 0x14f, Limit, true)
-WASM_MISC_OPCODE(I16LeU, 0x150, Limit, true)
-WASM_MISC_OPCODE(I16GtS, 0x151, Limit, true)
-WASM_MISC_OPCODE(I16GtU, 0x152, Limit, true)
-WASM_MISC_OPCODE(I16GeS, 0x153, Limit, true)
-WASM_MISC_OPCODE(I16GeU, 0x154, Limit, true)
+WASM_BINARY_OPCODE(I16Eq, 0x14b, B16_M128X2, Simd128_Eq_I16, false)
+WASM_BINARY_OPCODE(I16Ne, 0x14c, B16_M128X2, Simd128_Neq_I16, false)
+WASM_BINARY_OPCODE(I16LtS, 0x14d, B16_M128X2, Simd128_Lt_I16, false)
+WASM_BINARY_OPCODE(I16LtU, 0x14e, B16_M128X2, Simd128_Lt_U16, false)
+WASM_BINARY_OPCODE(I16LeS, 0x14f, B16_M128X2, Simd128_LtEq_I16, false)
+WASM_BINARY_OPCODE(I16LeU, 0x150, B16_M128X2, Simd128_LtEq_U16, false)
+WASM_BINARY_OPCODE(I16GtS, 0x151, B16_M128X2, Simd128_Gt_I16, false)
+WASM_BINARY_OPCODE(I16GtU, 0x152, B16_M128X2, Simd128_Gt_U16, false)
+WASM_BINARY_OPCODE(I16GeS, 0x153, B16_M128X2, Simd128_GtEq_I16, false)
+WASM_BINARY_OPCODE(I16GeU, 0x154, B16_M128X2, Simd128_GtEq_U16, false)
 WASM_MISC_OPCODE(I16Load, 0x155, Limit, true)
 WASM_MISC_OPCODE(I16Store, 0x156, Limit, true)
 WASM_MISC_OPCODE(I8ReinterpretI16, 0x157, Limit, true)
@@ -150,16 +164,16 @@ WASM_MISC_OPCODE(I8And, 0x16a, Limit, true)
 WASM_MISC_OPCODE(I8Or, 0x16b, Limit, true)
 WASM_MISC_OPCODE(I8Xor, 0x16c, Limit, true)
 WASM_MISC_OPCODE(I8Not, 0x16d, Limit, true)
-WASM_MISC_OPCODE(I8Eq, 0x16e, Limit, true)
-WASM_MISC_OPCODE(I8Ne, 0x16f, Limit, true)
-WASM_MISC_OPCODE(I8LtS, 0x170, Limit, true)
-WASM_MISC_OPCODE(I8LtU, 0x171, Limit, true)
-WASM_MISC_OPCODE(I8LeS, 0x172, Limit, true)
-WASM_MISC_OPCODE(I8LeU, 0x173, Limit, true)
-WASM_MISC_OPCODE(I8GtS, 0x174, Limit, true)
-WASM_MISC_OPCODE(I8GtU, 0x175, Limit, true)
-WASM_MISC_OPCODE(I8GeS, 0x176, Limit, true)
-WASM_MISC_OPCODE(I8GeU, 0x177, Limit, true)
+WASM_BINARY_OPCODE(I8Eq, 0x16e, B8_M128X2, Simd128_Eq_I8, false)
+WASM_BINARY_OPCODE(I8Ne, 0x16f, B8_M128X2, Simd128_Neq_I8, false)
+WASM_BINARY_OPCODE(I8LtS, 0x170, B8_M128X2, Simd128_Lt_I8, false)
+WASM_BINARY_OPCODE(I8LtU, 0x171, B8_M128X2, Simd128_Lt_U8, false)
+WASM_BINARY_OPCODE(I8LeS, 0x172, B8_M128X2, Simd128_LtEq_I8, false)
+WASM_BINARY_OPCODE(I8LeU, 0x173, B8_M128X2, Simd128_LtEq_U8, false)
+WASM_BINARY_OPCODE(I8GtS, 0x174, B8_M128X2, Simd128_Gt_I8, false)
+WASM_BINARY_OPCODE(I8GtU, 0x175, B8_M128X2, Simd128_Gt_U8, false)
+WASM_BINARY_OPCODE(I8GeS, 0x176, B8_M128X2, Simd128_GtEq_I8, false)
+WASM_BINARY_OPCODE(I8GeU, 0x177, B8_M128X2, Simd128_GtEq_U8, false)
 WASM_MISC_OPCODE(I8Load, 0x178, Limit, true)
 WASM_MISC_OPCODE(I8Store, 0x179, Limit, true)
 WASM_MISC_OPCODE(I4ReinterpretI16, 0x17a, Limit, true)
@@ -180,16 +194,16 @@ WASM_MISC_OPCODE(I4And, 0x188, Limit, true)
 WASM_MISC_OPCODE(I4Or, 0x189, Limit, true)
 WASM_MISC_OPCODE(I4Xor, 0x18a, Limit, true)
 WASM_MISC_OPCODE(I4Not, 0x18b, Limit, true)
-WASM_MISC_OPCODE(I4Eq, 0x18c, Limit, true)
-WASM_MISC_OPCODE(I4Ne, 0x18d, Limit, true)
-WASM_MISC_OPCODE(I4LtS, 0x18e, Limit, true)
-WASM_MISC_OPCODE(I4LtU, 0x18f, Limit, true)
-WASM_MISC_OPCODE(I4LeS, 0x190, Limit, true)
-WASM_MISC_OPCODE(I4LeU, 0x191, Limit, true)
-WASM_MISC_OPCODE(I4GtS, 0x192, Limit, true)
-WASM_MISC_OPCODE(I4GtU, 0x193, Limit, true)
-WASM_MISC_OPCODE(I4GeS, 0x194, Limit, true)
-WASM_MISC_OPCODE(I4GeU, 0x195, Limit, true)
+WASM_BINARY_OPCODE(I4Eq, 0x18c, B4_M128X2, Simd128_Eq_I4, false)
+WASM_BINARY_OPCODE(I4Ne, 0x18d, B4_M128X2, Simd128_Neq_I4, false)
+WASM_BINARY_OPCODE(I4LtS, 0x18e, B4_M128X2, Simd128_Lt_I4, false)
+WASM_BINARY_OPCODE(I4LtU, 0x18f, B4_M128X2, Simd128_Lt_U4, false)
+WASM_BINARY_OPCODE(I4LeS, 0x190, B4_M128X2, Simd128_LtEq_I4, false)
+WASM_BINARY_OPCODE(I4LeU, 0x191, B4_M128X2, Simd128_LtEq_U4, false)
+WASM_BINARY_OPCODE(I4GtS, 0x192, B4_M128X2, Simd128_Gt_I4, false)
+WASM_BINARY_OPCODE(I4GtU, 0x193, B4_M128X2, Simd128_Gt_U4, false)
+WASM_BINARY_OPCODE(I4GeS, 0x194, B4_M128X2, Simd128_GtEq_I4, false)
+WASM_BINARY_OPCODE(I4GeU, 0x195, B4_M128X2, Simd128_GtEq_U4, false)
 WASM_MISC_OPCODE(I4Load, 0x196, Limit, true)
 WASM_MISC_OPCODE(I4Store, 0x197, Limit, true)
 WASM_MISC_OPCODE(I4Load1, 0x198, Limit, true)
@@ -200,11 +214,11 @@ WASM_MISC_OPCODE(I4Store2, 0x19c, Limit, true)
 WASM_MISC_OPCODE(I4Store3, 0x19d, Limit, true)
 WASM_MISC_OPCODE(I4TruncS, 0x19e, Limit, true)
 WASM_MISC_OPCODE(I4TruncU, 0x19f, Limit, true)
-WASM_MISC_OPCODE(I2ReinterpretI16, 0x1a0, Limit, true)
-WASM_MISC_OPCODE(I2ReinterpretI8, 0x1a1, Limit, true)
-WASM_MISC_OPCODE(I2ReinterpretI4, 0x1a2, Limit, true)
-WASM_MISC_OPCODE(I2ReinterpretF4, 0x1a3, Limit, true)
-WASM_MISC_OPCODE(I2ReinterpretF2, 0x1a4, Limit, true)
+WASM_MISC_OPCODE(I2ReinterpretI16, 0x1a0, Limit, true) //REMOVE, NOT IN SPEC
+WASM_MISC_OPCODE(I2ReinterpretI8, 0x1a1, Limit, true)  //REMOVE, NOT IN SPEC
+WASM_MISC_OPCODE(I2ReinterpretI4, 0x1a2, Limit, true)  //REMOVE, NOT IN SPEC
+WASM_MISC_OPCODE(I2ReinterpretF4, 0x1a3, Limit, true)  //REMOVE, NOT IN SPEC
+WASM_MISC_OPCODE(I2ReinterpretF2, 0x1a4, Limit, true)  //REMOVE, NOT IN SPEC
 WASM_MISC_OPCODE(I2Splat, 0x1a5, Limit, true)
 WASM_MISC_OPCODE(I2ExtractLane, 0x1a6, Limit, true)
 WASM_MISC_OPCODE(I2Add, 0x1a7, Limit, true)
@@ -232,11 +246,11 @@ WASM_MISC_OPCODE(I2Load, 0x1bc, Limit, true)
 WASM_MISC_OPCODE(I2Store, 0x1bd, Limit, true)
 WASM_MISC_OPCODE(I2TruncS, 0x1be, Limit, true)
 WASM_MISC_OPCODE(I2TruncU, 0x1bf, Limit, true)
-WASM_MISC_OPCODE(F4ReinterpretI16, 0x1c0, Limit, true)
-WASM_MISC_OPCODE(F4ReinterpretI8, 0x1c1, Limit, true)
-WASM_MISC_OPCODE(F4ReinterpretI4, 0x1c2, Limit, true)
-WASM_MISC_OPCODE(F4ReinterpretI2, 0x1c3, Limit, true)
-WASM_MISC_OPCODE(F4ReinterpretF2, 0x1c4, Limit, true)
+WASM_MISC_OPCODE(F4ReinterpretI16, 0x1c0, Limit, true)    //REMOVE, NOT IN SPEC
+WASM_MISC_OPCODE(F4ReinterpretI8, 0x1c1, Limit, true)    //REMOVE, NOT IN SPEC
+WASM_MISC_OPCODE(F4ReinterpretI4, 0x1c2, Limit, true)    //REMOVE, NOT IN SPEC
+WASM_MISC_OPCODE(F4ReinterpretI2, 0x1c3, Limit, true)    //REMOVE, NOT IN SPEC
+WASM_MISC_OPCODE(F4ReinterpretF2, 0x1c4, Limit, true)    //REMOVE, NOT IN SPEC
 WASM_MISC_OPCODE(F4Splat, 0x1c5, Limit, true)
 WASM_BINARY_OPCODE(F4ExtractLane, 0x1c6, F_M128_I, Simd128_ExtractLane_F4, false)
 WASM_BINARY_OPCODE(F4Add, 0x1c7, M128X3, Simd128_Add_F4, false)
@@ -247,12 +261,12 @@ WASM_MISC_OPCODE(F4And, 0x1cb, Limit, true)
 WASM_MISC_OPCODE(F4Or, 0x1cc, Limit, true)
 WASM_MISC_OPCODE(F4Xor, 0x1cd, Limit, true)
 WASM_MISC_OPCODE(F4Not, 0x1ce, Limit, true)
-WASM_MISC_OPCODE(F4Eq, 0x1cf, Limit, true)
-WASM_MISC_OPCODE(F4Ne, 0x1d0, Limit, true)
-WASM_MISC_OPCODE(F4Lt, 0x1d1, Limit, true)
-WASM_MISC_OPCODE(F4Le, 0x1d2, Limit, true)
-WASM_MISC_OPCODE(F4Gt, 0x1d3, Limit, true)
-WASM_MISC_OPCODE(F4Ge, 0x1d4, Limit, true)
+WASM_BINARY_OPCODE(F4Eq, 0x1cf, B4_M128X2, Simd128_Eq_F4, false)
+WASM_BINARY_OPCODE(F4Ne, 0x1d0, B4_M128X2, Simd128_Neq_F4, false)
+WASM_BINARY_OPCODE(F4Lt, 0x1d1, B4_M128X2, Simd128_Lt_F4, false)
+WASM_BINARY_OPCODE(F4Le, 0x1d2, B4_M128X2, Simd128_LtEq_F4, false)
+WASM_BINARY_OPCODE(F4Gt, 0x1d3, B4_M128X2, Simd128_Gt_F4, false)
+WASM_BINARY_OPCODE(F4Ge, 0x1d4, B4_M128X2, Simd128_GtEq_F4, false)
 WASM_MISC_OPCODE(F4Load, 0x1d5, Limit, true)
 WASM_MISC_OPCODE(F4Store, 0x1d6, Limit, true)
 WASM_MISC_OPCODE(F4Load1, 0x1d7, Limit, true)
