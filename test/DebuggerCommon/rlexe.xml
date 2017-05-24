@@ -34,7 +34,7 @@
       <compile-flags>-dbgbaseline:ES6_intl_stepinto.js.dbg.baseline -Intl</compile-flags>
       <baseline>ES6_intl_stepinto.js.baseline</baseline>
       <!-- xplat-todo: enable back [intl support] -->
-      <tags>exclude_winglob,exclude_xplat</tags>
+      <tags>exclude_winglob,exclude_xplat,Intl</tags>
     </default>
   </test>
   <test>
