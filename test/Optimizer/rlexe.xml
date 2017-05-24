@@ -1360,6 +1360,11 @@
   </test>
   <test>
     <default>
+      <files>nonequivpoly.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>memop-upperbound.js</files>
       <baseline>memop-upperbound.baseline</baseline>
       <compile-flags>-lic:1 -off:nativearray</compile-flags>
