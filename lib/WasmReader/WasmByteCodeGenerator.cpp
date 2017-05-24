@@ -120,8 +120,8 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
     case WasmTypes::F32: return Js::AsmJsVarType::Float;
     case WasmTypes::F64: return Js::AsmJsVarType::Double;
     case WasmTypes::M128:  return Js::AsmJsVarType::Float32x4;
-    case WasmTypes::B2: return Js::AsmJsVarType::Float32x4; //@TODO: add AsmJsVarType for bool types for signature checking of imported functions
-    case WasmTypes::B4: return Js::AsmJsVarType::Float32x4;
+    case WasmTypes::B2: return Js::AsmJsVarType::Float32x4; //@TODO: outside WASM it doesn't seem to matter which JS type we use; 
+    case WasmTypes::B4: return Js::AsmJsVarType::Float32x4; //reconsider if there are any issues later
     case WasmTypes::B8: return Js::AsmJsVarType::Float32x4;
     case WasmTypes::B16: return Js::AsmJsVarType::Float32x4;
     default:
