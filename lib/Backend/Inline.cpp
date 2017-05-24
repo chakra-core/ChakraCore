@@ -2575,6 +2575,11 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
         return callInstr;
     }
 
+    if (!applyTargetInfo)
+    {
+        return callInstr;
+    }
+
     bool safeThis = false;
     if (TryOptimizeCallInstrWithFixedMethod(callInstr, applyTargetInfo, false /*isPolymorphic*/, false /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/, safeThis /*unused here*/))
     {
