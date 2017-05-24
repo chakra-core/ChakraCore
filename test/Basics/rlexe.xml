@@ -10,10 +10,11 @@
   <!--
   <test>
     <default>
-      <files>ie12ScriptFunctionToStrings.js</files>
+      <files>ScriptFunctionToStrings.js</files>
       <compile-flags>-ES6Generators -ES6Classes -args summary -endargs</compile-flags>
     </default>
-  </test>-->
+  </test>
+  -->
   <test>
     <default>
       <files>DomProperties.js</files>
