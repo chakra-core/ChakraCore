@@ -851,4 +851,11 @@
       <compile-flags>-testtrace:asmjs -maic:0</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>lambda.js</files>
+      <baseline>lambda.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

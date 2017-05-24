@@ -399,6 +399,10 @@ HRESULT Parser::ParseSourceInternal(
     {
         hr = e.GetError();
     }
+    catch (Js::AsmJsParseException&)
+    {
+        hr = JSERR_AsmJsCompileError;
+    }
 
     if (FAILED(hr))
     {
@@ -5244,6 +5248,15 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
         if (isTopLevelDeferredFunc || (m_InAsmMode && m_deferAsmJs))
         {
+#ifdef ASMJS_PLAT
+            if (m_InAsmMode && fLambda)
+            {
+                // asm.js doesn't support lambda functions
+                Js::AsmJSCompiler::OutputError(m_scriptContext, _u("Lambda functions are not supported."));
+                Js::AsmJSCompiler::OutputError(m_scriptContext, _u("Asm.js compilation failed."));
+                throw Js::AsmJsParseException();
+            }
+#endif
             AssertMsg(!fLambda, "Deferring function parsing of a function does not handle lambda syntax");
             fDeferred = true;
 
