@@ -56,8 +56,16 @@ WScript.Echo("Code before <!-- LineTerminator --> is reachable"); <!-- WScript.E
 /* Multi
    Line
    Comment */ --> WScript.Echo("Code after */ --> is unreachable");
-WScript.Echo("Code before /* */ --> is reachable"); /* Comment */ --> WScript.Echo("Code after /* */ --> is unreachable");
-WScript.Echo("Code before /* */--> is reachable"); /* Comment */--> WScript.Echo("Code after /* */--> is unreachable"); // No WhiteSpaceSequence
+assert.throws(function () { eval('/* */ --> WScript.Echo("Code after /* */ --> is parsed");'); }, SyntaxError, "MultiLineComment without a line terminator throws a syntax error",                         "Syntax error");
+assert.throws(function () { eval('/* */--> WScript.Echo("Code after /* */--> is parsed");'); },   SyntaxError, "MultiLineComment without a line terminator and whitespace sequence throws a syntax error", "Syntax error");
+{
+    let x = 0;
+    if (x/* */--> -1) {
+        assert.areEqual(-1, x, "MultiLineComment without a line terminator does not parse --> as a HTML comment");
+    } else {
+        WScript.Echo('MultiLineComment without a line terminator test is broken!');
+    }
+}
 
 // Post-decrement with a greater-than comparison does not get interpreted as a comment
 var a = 1; a-->a; WScript.Echo("Code after post-decrement with a greater-than comparison (-->) is reachable");
