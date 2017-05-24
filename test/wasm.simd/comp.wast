@@ -1,8 +1,8 @@
-
 ;;-------------------------------------------------------------------------------------------------------
-;; Copyright (C) Microsoft. All rights reserved.
+;; Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 ;; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 ;;-------------------------------------------------------------------------------------------------------
+
 (module
     (func $convert_b32x4_to_i32
         (param b32x4) (result i32) (local i32 i32)
