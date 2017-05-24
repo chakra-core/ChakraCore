@@ -26,20 +26,6 @@ namespace Js{
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Buffer bytelength is smaller than constant accesses"));
             return false;
         }
-        if (info->GetUsesChangeHeap())
-        {
-            if (buffer->GetByteLength() < 0x1000000)
-            {
-                Output::Print(_u("Asm.js Runtime Error : Buffer bytelength is not a valid size for asm.js\n"));
-                return false;
-            }
-            if (info->GetMaxHeapAccess() >= 0x1000000)
-            {
-                Output::Print(_u("Asm.js Runtime Error : Cannot have such large constant accesses\n"));
-                return false;
-            }
-        }
-
         if (!buffer->IsValidAsmJsBufferLength(buffer->GetByteLength(), true))
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Buffer bytelength is not a valid size for asm.js"));

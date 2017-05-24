@@ -27,7 +27,6 @@
 #define MaybeTodo( expr ) AssertMsg( !(expr), "Unhandled scenario in asm.js" )
 
 namespace Js {
-    Var AsmJsChangeHeapBuffer(RecyclableObject * function, CallInfo callInfo, ...);
 
 #pragma warning (suppress: 25057) // Suppress unannotated buffer warning
     void * UnboxAsmJsArguments(ScriptFunction* func, Var * origArgs, char * argDst, CallInfo callInfo);

@@ -1732,11 +1732,13 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
     }
     if (m_asmFuncInfo->UsesHeapBuffer())
     {
-        // if heap buffer can change, then we will insert reload after each call
-        if (!m_asmFuncInfo->IsHeapBufferConst())
+        // heap buffer can change for wasm
+#ifdef ENABLE_WASM
+        if (m_func->GetJITFunctionBody()->IsWasmFunction())
         {
             BuildHeapBufferReload(offset);
         }
+#endif
         // after foreign function call, we need to make sure that the heap hasn't been detached
         if (newOpcode == Js::OpCodeAsmJs::Call)
         {

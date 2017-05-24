@@ -873,7 +873,6 @@ namespace Js
         Field(Wasm::WasmReaderInfo*) mWasmReaderInfo;
         Field(WebAssemblyModule*) mWasmModule;
 #endif
-        Field(bool) mIsHeapBufferConst;
         Field(bool) mUsesHeapBuffer;
 
         Field(FunctionBody*) asmJsModuleFunctionBody;
@@ -892,7 +891,6 @@ namespace Js
                               mWasmModule(nullptr),
 #endif
                               mUsesHeapBuffer(false),
-                              mIsHeapBufferConst(false),
                               mArgType(nullptr),
                               mArgSizes(nullptr) {}
         // the key is the bytecode address
@@ -920,9 +918,6 @@ namespace Js
         inline void SetReturnType(AsmJsRetType val) { mReturnType = val; }
         inline ArgSlot GetArgByteSize() const{return mArgByteSize;}
         inline void SetArgByteSize(ArgSlot val) { mArgByteSize = val; }
-
-        inline void SetIsHeapBufferConst(bool val) { mIsHeapBufferConst = val; }
-        inline bool IsHeapBufferConst() const{ return mIsHeapBufferConst; }
 
         inline void SetUsesHeapBuffer(bool val) { mUsesHeapBuffer = val; }
         inline bool UsesHeapBuffer() const{ return mUsesHeapBuffer; }
