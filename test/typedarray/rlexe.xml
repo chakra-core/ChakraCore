@@ -139,7 +139,7 @@
     </default>
   </test>
   <!--
-Below test fails with difference in space. Investigate the cause and re-enable them
+Below test fails with difference in space. Investigate the cause and re-enable them (Microsoft/ChakraCore#3038)
 <test>
     <default>
         <files>crossthread.js</files>

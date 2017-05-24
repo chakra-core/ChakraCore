@@ -368,6 +368,7 @@
     </default>
   </test>
   <!--
+  Microsoft/ChakraCore#3009
   <test>
     <default>
       <compile-flags>-hostType:2</compile-flags>
@@ -375,12 +376,12 @@
       <baseline>Enumerator-deprecated.baseline</baseline>
     </default>
   </test>
-
   <test>
     <default>
       <compile-flags>-hostType:3</compile-flags>
       <files>Enumerator-WebViewHost.js</files>
       <baseline>Enumerator-WebViewHost.baseline</baseline>
+      TODO remove this tag, as it appears to be unused now
       <tags>exclude_inprocdebug</tags>
     </default>
   </test>

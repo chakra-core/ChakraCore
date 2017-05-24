@@ -560,7 +560,7 @@
           <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError -lic:1</compile-flags>
       </default>
   </test>
-  <!-- too slow to run in interpreter
+  <!-- too slow to run in interpreter (Microsoft/ChakraCore#3031)
   <test>
       <default>
           <files>testLoadStore-2.js</files>
@@ -571,7 +571,7 @@
   </test>
   -->
 
-  <!-- currently too slow. Enable with globOpt support.
+  <!-- currently too slow. Enable with globOpt support. (Microsoft/ChakraCore#3032)
   <test>
   <default>
           <files>testLoadStore-2.js</files>
@@ -645,7 +645,7 @@
           <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError -lic:1</compile-flags>
       </default>
   </test>
-  <!-- too slow to run in interpreter
+  <!-- too slow to run in interpreter (Microsoft/ChakraCore#3031)
   <test>
       <default>
           <files>testResizeLoadStore-2.js</files>
@@ -663,7 +663,7 @@
               <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -on:simplejit -mic:1 -lic:1</compile-flags>
           </default>
   </test>
-  <!-- Disabled due to bug in TypeSpec
+  <!-- Disabled due to bug in TypeSpec (Microsoft/ChakraCore#3033)
   <test>
           <default>
               <files>testResizeLoadStore-2.js</files>

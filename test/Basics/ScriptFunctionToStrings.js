@@ -89,7 +89,7 @@ var tests = [
             assert.areEqual("setter(v){}", oSet.set.toString(), "the name should be setter");
         }
     },
-    /* TODO fix and re-enable this test case
+    /* TODO fix and re-enable this test case (Microsoft/ChakraCore#3008)
     {
         name: "class constructor test",
         body: function ()
@@ -112,6 +112,7 @@ var tests = [
         name: "shorthand method function test",
         body: function ()
         {
+            // TODO update this test after fixing output (see Microsoft/ChakraCore#2914: Incorrect Function toString for methods declared with string in brackets)
             var o = { ['f']() { }, g() { } };
             assert.areEqual("f() { }", o.f.toString());
         }
