@@ -1230,7 +1230,7 @@ PAL_wmemcmp(
         const char16_t *string2,
         size_t count)
 {
-    size_t i;
+    size_t i, wi = 0;
     int diff = 0;
 
     PERF_ENTRY(wmemcmp);
@@ -1241,7 +1241,13 @@ PAL_wmemcmp(
 
     if (string1 == string2) return diff;
 
-    for (i = 0; i < count; i++)
+    constexpr size_t blockSize = sizeof(size_t) / sizeof(char16_t);
+    const     size_t *num1     = (const size_t*)(string1);
+    const     size_t *num2     = (const size_t*)(string2);
+
+    while( (count > blockSize * wi) && num1[wi] == num2[wi] ) ++wi;
+
+    for (i = blockSize * wi; i < count; ++i)
     {
         diff = string1[i] - string2[i];
         if (diff != 0)
@@ -1249,6 +1255,7 @@ PAL_wmemcmp(
             break;
         }
     }
+
     LOGEXIT("wmemcmp returning int %d\n", diff);
     PERF_EXIT(wmemcmp);
     return diff;

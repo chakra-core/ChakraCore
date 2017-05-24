@@ -311,60 +311,6 @@ static void FreeTHREAD(CPalThread *pThread)
 
 /*++
 Function:
-  THREADGetThreadProcessId
-
-returns the process owner ID of the indicated hThread
---*/
-DWORD
-THREADGetThreadProcessId(
-    HANDLE hThread
-    // UNIXTODO Should take pThread parameter here (modify callers)
-    )
-{
-    CPalThread *pThread;
-    CPalThread *pTargetThread;
-    IPalObject *pobjThread = NULL;
-    PAL_ERROR palError = NO_ERROR;
-
-    DWORD dwProcessId = 0;
-
-    pThread = InternalGetCurrentThread();
-
-    palError = InternalGetThreadDataFromHandle(
-        pThread,
-        hThread,
-        0,
-        &pTargetThread,
-        &pobjThread
-        );
-
-    if (NO_ERROR != palError)
-    {
-        if (!pThread->IsDummy())
-        {
-            dwProcessId = GetCurrentProcessId();
-        }
-        else
-        {
-            ASSERT("Dummy thread passed to THREADGetProcessId\n");
-        }
-
-        if (NULL != pobjThread)
-        {
-           pobjThread->ReleaseReference(pThread);
-        }
-    }
-    else
-    {
-        ERROR("Couldn't retreive the hThread:%p pid owner !\n", hThread);
-    }
-
-
-    return dwProcessId;
-}
-
-/*++
-Function:
   GetThreadId
 
 See MSDN doc.
@@ -426,12 +372,6 @@ GetCurrentThreadId(
 
     PERF_ENTRY(GetCurrentThreadId);
     ENTRY("GetCurrentThreadId()\n");
-
-    //
-    // TODO: should do perf test to see how this compares
-    // with calling InternalGetCurrentThread (i.e., is our lookaside
-    // cache faster on average than pthread_self?)
-    //
 
     dwThreadId = (DWORD)THREADSilentGetCurrentThreadId();
 
@@ -2833,12 +2773,6 @@ int CorUnix::CThreadMachExceptionHandlers::GetIndexOfHandler(exception_mask_t bm
 }
 
 #endif // HAVE_MACH_EXCEPTIONS
-
-#ifndef __APPLE__
-#define THREAD_LOCAL thread_local
-#else
-#define THREAD_LOCAL _Thread_local
-#endif
 
 #ifndef __IOS__
 static THREAD_LOCAL ULONG_PTR s_cachedHighLimit = 0;
