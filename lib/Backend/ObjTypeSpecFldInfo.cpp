@@ -222,7 +222,10 @@ FixedFieldInfo *
 ObjTypeSpecFldInfo::GetFixedFieldIfAvailableAsFixedFunction()
 {
     Assert(HasFixedValue());
-    Assert(IsMono() || (IsPoly() && !DoesntHaveEquivalence()));
+    if (IsPoly() && DoesntHaveEquivalence())
+    {
+        return nullptr;
+    }
     Assert(GetFixedFieldInfoArray());
     if (GetFixedFieldInfoArray()[0].GetFuncInfoAddr() != 0)
     {
