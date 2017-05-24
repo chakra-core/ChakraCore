@@ -27,6 +27,11 @@
   </test>
   <test>
     <default>
+      <files>isarrbug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug469.js</files>
       <compile-flags>-maxinterpretcount:1 -bgjit- -loopinterpretcount:1 -force:fixdataprops -off:aggressiveinttypespec -off:bailonnoprofile</compile-flags>
     </default>
