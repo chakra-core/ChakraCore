@@ -1947,7 +1947,9 @@ LIdentifier:
                 token = tkDec;
                 if (!m_fIsModuleCode)
                 {
-                    if ('>' == this->PeekFirst(p, last) && (m_fHadEol || seenDelimitedCommentEnd)) // --> HTMLCloseComment
+                    // https://tc39.github.io/ecma262/#prod-annexB-MultiLineComment
+                    // If there was a new line in the multi-line comment, the text after --> is a comment.
+                    if ('>' == this->PeekFirst(p, last) && m_fHadEol)
                     {
                         goto LSkipLineComment;
                     }
