@@ -2776,7 +2776,7 @@ namespace Js
                 // TODO: add more runtime checks here
                 FunctionInfoPtrPtr functionInfo = m_functionBody->GetNestedFuncReference(i);
 
-                AsmJsScriptFunction* scriptFuncObj = (AsmJsScriptFunction*)ScriptFunction::OP_NewScFunc(pDisplay, functionInfo);
+                AsmJsScriptFunction* scriptFuncObj = AsmJsScriptFunction::OP_NewAsmJsFunc(pDisplay, functionInfo);
                 localModuleFunctions[modFunc.location] = scriptFuncObj;
 
                 if (scriptFuncObj->GetDynamicType()->GetEntryPoint() == DefaultDeferredDeserializeThunk)

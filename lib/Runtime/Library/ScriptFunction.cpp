@@ -103,18 +103,6 @@ namespace Js
             }
             return pfuncScriptWithInlineCache;
         }
-        else if(functionProxy->IsFunctionBody() && functionProxy->GetFunctionBody()->GetIsAsmJsFunction())
-        {
-            AsmJsScriptFunction* asmJsFunc = scriptContext->GetLibrary()->CreateAsmJsScriptFunction(functionProxy);
-            asmJsFunc->SetEnvironment(environment);
-
-            Assert(!hasSuperReference);
-            asmJsFunc->SetHasSuperReference(hasSuperReference);
-
-            JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(asmJsFunc, EtwTrace::GetFunctionId(functionProxy)));
-
-            return asmJsFunc;
-        }
         else
         {
             ScriptFunction* pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(functionProxy);
@@ -679,6 +667,27 @@ namespace Js
     {
         Assert(AsmJsScriptFunction::Is(func));
         return reinterpret_cast<AsmJsScriptFunction *>(func);
+    }
+
+    AsmJsScriptFunction * AsmJsScriptFunction::OP_NewAsmJsFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef)
+    {
+        AssertMsg(infoRef != nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
+        FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();
+        AssertMsg(functionProxy != nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
+
+        ScriptContext* scriptContext = functionProxy->GetScriptContext();
+
+        bool hasSuperReference = functionProxy->HasSuperReference();
+
+        AsmJsScriptFunction* asmJsFunc = scriptContext->GetLibrary()->CreateAsmJsScriptFunction(functionProxy);
+        asmJsFunc->SetEnvironment(environment);
+
+        Assert(!hasSuperReference);
+        asmJsFunc->SetHasSuperReference(hasSuperReference);
+
+        JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(asmJsFunc, EtwTrace::GetFunctionId(functionProxy)));
+
+        return asmJsFunc;
     }
 
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :

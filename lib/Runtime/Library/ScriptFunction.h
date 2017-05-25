@@ -125,6 +125,7 @@ namespace Js
         static bool Is(Var func);
         static bool IsWasmScriptFunction(Var func);
         static AsmJsScriptFunction* FromVar(Var func);
+        static AsmJsScriptFunction * OP_NewAsmJsFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
         void SetModuleMemory(Field(Var)* mem) { m_moduleMemory = mem; }
         Field(Var)* GetModuleMemory() const { return m_moduleMemory; }
