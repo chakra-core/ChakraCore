@@ -520,7 +520,7 @@
           <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -on:simplejit -mic:1 -lic:1</compile-flags>
       </default>
   </test>
-  <!-- too slow
+  <!-- too slow (Microsoft/ChakraCore#3036)
   <test>
       <default>
           <files>testResizeLoadStore-2.js</files>
@@ -562,7 +562,7 @@
           <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -on:simplejit -mic:1 -lic:1</compile-flags>
       </default>
   </test>
-  <!-- too slow
+  <!-- too slow (Microsoft/ChakraCore#3036)
   <test>
       <default>
           <files>testResizeLoadStore.js</files>

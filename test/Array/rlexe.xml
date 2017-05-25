@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -388,7 +388,6 @@
       <baseline>array_indexOf.baseline</baseline>
     </default>
   </test>
-
   <test>
     <default>
       <files>array_indexOf.js</files>
@@ -632,49 +631,51 @@
     </default>
   </test>
   <test>
-     <default>
-        <files>memset.js</files>
-        <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -off:inline -mmoc:0</compile-flags>
-     </default>
+    <default>
+      <files>memset.js</files>
+      <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -off:inline -mmoc:0</compile-flags>
+    </default>
   </test>
   <test>
-     <default>
-        <files>memset_invariant.js</files>
-        <tags>Slow</tags>
-        <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody</compile-flags>
-     </default>
+    <default>
+      <files>memset_invariant.js</files>
+      <tags>Slow</tags>
+      <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody</compile-flags>
+    </default>
   </test>
   <!--
-   <test>
-     <default>
-        <files>memset_simd.js</files>
-        <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody -simdjs -simd128typespec</compile-flags>
-     </default>
-  </test>
--->
+  TODO fix and re-enable, or remove this test (disabled in 91e0e9128)
+  Microsoft/ChakraCore#2977
   <test>
-     <default>
-        <files>memset2.js</files>
-        <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -mmoc:0</compile-flags>
-     </default>
+    <default>
+      <files>memset_simd.js</files>
+      <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody -simdjs -simd128typespec</compile-flags>
+    </default>
   </test>
+  -->
   <test>
-     <default>
-        <files>memcopy.js</files>
-        <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -off:inline -off:globopt:1.18-1.30 -mmoc:0</compile-flags>
-     </default>
+    <default>
+      <files>memset2.js</files>
+      <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -mmoc:0</compile-flags>
+    </default>
   </test>
   <test>
-     <default>
-        <files>memcopy.js</files>
-        <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -off:inline -off:globopt:1.18-1.30 -mmoc:0 -args float -endargs</compile-flags>
-     </default>
+    <default>
+      <files>memcopy.js</files>
+      <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -off:inline -off:globopt:1.18-1.30 -mmoc:0</compile-flags>
+    </default>
   </test>
   <test>
-     <default>
-        <files>memcopy_length_bug.js</files>
-        <compile-flags>-bgjit- -lic:0</compile-flags>
-     </default>
+    <default>
+      <files>memcopy.js</files>
+      <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -off:inline -off:globopt:1.18-1.30 -mmoc:0 -args float -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>memcopy_length_bug.js</files>
+      <compile-flags>-bgjit- -lic:0</compile-flags>
+    </default>
   </test>
   <test>
     <default>
@@ -684,40 +685,40 @@
     </default>
   </test>
   <test>
-     <default>
-        <files>memop_alias.js</files>
-        <compile-flags>-mic:1 -off:simplejit -off:jitloopbody -mmoc:0</compile-flags>
-     </default>
+    <default>
+      <files>memop_alias.js</files>
+      <compile-flags>-mic:1 -off:simplejit -off:jitloopbody -mmoc:0</compile-flags>
+    </default>
   </test>
   <test>
-     <default>
-        <files>memop_field.js</files>
-        <compile-flags>-mic:1 -off:simplejit -mmoc:0</compile-flags>
-     </default>
+    <default>
+      <files>memop_field.js</files>
+      <compile-flags>-mic:1 -off:simplejit -mmoc:0</compile-flags>
+    </default>
   </test>
   <test>
-     <default>
-        <files>memop_slot.js</files>
-        <compile-flags>-mic:1 -off:simplejit -mmoc:0</compile-flags>
-     </default>
+    <default>
+      <files>memop_slot.js</files>
+      <compile-flags>-mic:1 -off:simplejit -mmoc:0</compile-flags>
+    </default>
   </test>
   <test>
-     <default>
-        <files>memop_bounds_check.js</files>
-        <compile-flags>-mic:1 -off:simplejit -mmoc:0</compile-flags>
-     </default>
+    <default>
+      <files>memop_bounds_check.js</files>
+      <compile-flags>-mic:1 -off:simplejit -mmoc:0</compile-flags>
+    </default>
   </test>
   <test>
-     <default>
-        <files>bug4587739.js</files>
-        <compile-flags>-mic:1 -off:simplejit</compile-flags>
-     </default>
+    <default>
+      <files>bug4587739.js</files>
+      <compile-flags>-mic:1 -off:simplejit</compile-flags>
+    </default>
   </test>
   <test>
-     <default>
-        <files>bug8159763.js</files>
-        <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:bailonnoprofile</compile-flags>
-     </default>
+    <default>
+      <files>bug8159763.js</files>
+      <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:bailonnoprofile</compile-flags>
+    </default>
   </test>
   <test>
     <default>
@@ -732,8 +733,8 @@
     </default>
   </test>
   <test>
-     <default>
-        <files>array_conv_src.js</files>
-     </default>
+    <default>
+      <files>array_conv_src.js</files>
+    </default>
   </test>
 </regress-exe>

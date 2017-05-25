@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -74,7 +74,7 @@
         <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
-  <!-- Disabled until we can resolve failures on Windows Server 2012 R2
+  <!-- Disabled until we can resolve failures on Windows Server 2012 R2 (Microsoft/ChakraCore#3030)
 <test>
     <default>
         <files>toLocaleString.js</files>

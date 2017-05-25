@@ -32,9 +32,8 @@
     <default>
       <files>ES6_intl_stepinto.js</files>
       <compile-flags>-dbgbaseline:ES6_intl_stepinto.js.dbg.baseline -Intl</compile-flags>
-      <baseline>ES6_intl_stepinto.js.baseline</baseline>
-      <!-- xplat-todo: enable back [intl support] -->
-      <tags>exclude_winglob,exclude_xplat</tags>
+      <!-- xplat-todo: enable on xplat when Intl is supported on xplat (Microsoft/ChakraCore#2919) -->
+      <tags>exclude_winglob,exclude_xplat,Intl</tags>
     </default>
   </test>
   <test>
@@ -213,7 +212,7 @@
       <files>ES6_intl_simple_attach.js</files>
       <compile-flags>-dbgbaseline:ES6_intl_simple_attach.js.dbg.baseline -Intl</compile-flags>
       <baseline>ES6_intl_simple_attach.js.baseline</baseline>
-      <!-- xplat-todo: enable back [intl support] -->
+      <!-- xplat-todo: enable on xplat when Intl is supported on xplat (Microsoft/ChakraCore#2919) -->
       <tags>exclude_winglob,exclude_xplat</tags>
     </default>
   </test>
@@ -286,7 +285,7 @@
     <default>
       <files>ES6_intl_stepinto_libexpandos.js</files>
       <compile-flags>-debuglaunch -dbgbaseline:ES6_intl_stepinto_libexpandos.js.dbg.baseline -Intl</compile-flags>
-      <!-- xplat-todo: enable back [intl support] -->
+      <!-- xplat-todo: enable on xplat when Intl is supported on xplat (Microsoft/ChakraCore#2919) -->
       <tags>exclude_winglob,exclude_xplat</tags>
     </default>
   </test>
@@ -506,7 +505,7 @@
     <default>
       <files>attachdetach-delaycapture.js</files>
       <compile-flags>-dbgbaseline:attachdetach-delaycapture.js.dbg.baseline</compile-flags>
-      <!-- xplat-todo: enable back - investigate [background job thread fails] -->
+      <!-- xplat-todo: enable back - investigate [background job thread fails] (Microsoft/ChakraCore#3012) -->
       <tags>BugFix,exclude_xplat</tags>
     </default>
   </test>
@@ -1153,7 +1152,7 @@
     <default>
       <files>returnedvaluetests1.js</files>
       <compile-flags>-dbgbaseline:returnedvaluetests1.js.dbg.baseline</compile-flags>
-      <!-- xplat-todo: enable back [intl support] -->
+      <!-- xplat-todo: enable on xplat when Intl is supported on xplat (Microsoft/ChakraCore#2919) -->
       <tags>exclude_dynapogo,exclude_serialized,exclude_xplat</tags>
     </default>
   </test>
@@ -1161,7 +1160,7 @@
     <default>
       <files>returnedvaluetests2.js</files>
       <compile-flags>-debugLaunch -dbgbaseline:returnedvaluetests2.js.dbg.baseline</compile-flags>
-      <!-- xplat-todo: enable back [intl support] -->
+      <!-- xplat-todo: enable on xplat when Intl is supported on xplat (Microsoft/ChakraCore#2919) -->
       <tags>exclude_dynapogo,exclude_serialized,exclude_xplat</tags>
     </default>
   </test>
@@ -1255,7 +1254,7 @@
     <default>
       <files>TypedArray.js</files>
       <compile-flags>-ES6Species -debuglaunch -dbgbaseline:typedarray.js.dbg.baseline -InspectMaxStringLength:200</compile-flags>
-      <!-- xplat-todo: G.H #2064 -->
+      <!-- xplat-todo: Microsoft/ChakraCore#2064 -->
       <tags>exclude_xplat</tags>
     </default>
   </test>
