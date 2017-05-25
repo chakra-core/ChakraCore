@@ -18101,7 +18101,7 @@ Lowerer::GenerateFastInlineIsArray(IR::Instr * instr)
     else
     {
         src = IR::RegOpnd::New(argsOpnd[1]->GetType(), m_func);
-        InsertMove(src, argsOpnd[1], instr);
+        InsertMove(src, argsOpnd[1], insertInstr);
     }
 
     IR::LabelInstr *checkNotArrayLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, valueType.IsLikelyArray());
