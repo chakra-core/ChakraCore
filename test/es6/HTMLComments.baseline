@@ -8,6 +8,4 @@ Code before CRPS--> is reachable
 Code before <!-- is reachable
 Code before <!-- --> is reachable
 Code before <!-- LineTerminator --> is reachable
-Code before /* */ --> is reachable
-Code before /* */--> is reachable
 Code after post-decrement with a greater-than comparison (-->) is reachable
