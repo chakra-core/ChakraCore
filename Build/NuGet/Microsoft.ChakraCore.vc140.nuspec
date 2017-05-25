@@ -11,7 +11,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <developmentDependency>true</developmentDependency>
     <description>ChakraCore is the core part of the Chakra Javascript engine that powers Microsoft Edge.</description>
-    <releaseNotes>https://github.com/Microsoft/ChakraCore/wiki/Release-Notes</releaseNotes>
+    <releaseNotes>https://github.com/Microsoft/ChakraCore/wiki/Roadmap#release-notes</releaseNotes>
     <copyright>Copyright (C) 2016 Microsoft</copyright>
     <language>en-US</language>
     <tags>Chakra,ChakraCore,javascript,js,ecmascript,compiler,platform,oss,opensource,native,nativepackage,C++,vc140</tags>
