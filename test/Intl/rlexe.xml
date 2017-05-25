@@ -21,12 +21,14 @@
     </default>
   </test>
   <test>
+    <!-- Make NumberFormat.js expected output more general to support different implementations. (Microsoft/ChakraCore#3014) -->
     <default>
       <files>NumberFormat.js</files>
       <baseline>NumberFormat.baseline</baseline>
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
+  <!-- Combine NumberFormatOptions*.js by making expected output more general. (Microsoft/ChakraCore#3014) -->
   <test>
     <default>
       <files>NumberFormatOptions.js</files>

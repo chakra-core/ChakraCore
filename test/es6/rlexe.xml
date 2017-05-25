@@ -1296,7 +1296,7 @@
   <default>
     <files>await-futreserved-only-in-modules.js</files>
     <compile-flags>-ES6Module</compile-flags>
-    <tags>exclude_dynapogo, exclude_xplat</tags>
+    <tags>exclude_dynapogo,exclude_xplat</tags>
   </default>
 </test>
 <test>

@@ -34,6 +34,4 @@ WScript.DumpFunctionPosition(blah);
 WScript.DumpFunctionPosition(JSON.stringify);
 WScript.DumpFunctionPosition(eval);
 
-// Shouldn't get functionPosition of library code
-WScript.DumpFunctionPosition(Intl.DateTimeFormat);
 WScript.Echo("pass");

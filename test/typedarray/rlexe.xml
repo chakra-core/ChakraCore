@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -139,7 +139,7 @@
     </default>
   </test>
   <!--
-Below test fails with difference in space. Investigate the cause and re-enable them
+Below test fails with difference in space. Investigate the cause and re-enable them (Microsoft/ChakraCore#3038)
 <test>
     <default>
         <files>crossthread.js</files>

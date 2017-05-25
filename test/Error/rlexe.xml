@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -55,7 +55,7 @@
       <files>CallNonFunction.js</files>
       <baseline>CallNonFunction_3.baseline</baseline>
       <tags>exclude_native,exclude_dynapogo</tags>
-      <!-- one of the error is different in JIT'ed code -->
+      <!-- one of the error is different in JIT'ed code (Microsoft/ChakraCore#3011) -->
     </default>
   </test>
   <test>

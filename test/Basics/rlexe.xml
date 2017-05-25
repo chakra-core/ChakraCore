@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -7,13 +7,12 @@
       <compile-flags>-Intl-</compile-flags>
     </default>
   </test>
-  <!--
   <test>
     <default>
-      <files>ie12ScriptFunctionToStrings.js</files>
-      <compile-flags>-ES6Generators -ES6Classes -args summary -endargs</compile-flags>
+      <files>ScriptFunctionToStrings.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
-  </test>-->
+  </test>
   <test>
     <default>
       <files>DomProperties.js</files>
@@ -369,6 +368,7 @@
     </default>
   </test>
   <!--
+  Microsoft/ChakraCore#3009
   <test>
     <default>
       <compile-flags>-hostType:2</compile-flags>
@@ -376,12 +376,12 @@
       <baseline>Enumerator-deprecated.baseline</baseline>
     </default>
   </test>
-
   <test>
     <default>
       <compile-flags>-hostType:3</compile-flags>
       <files>Enumerator-WebViewHost.js</files>
       <baseline>Enumerator-WebViewHost.baseline</baseline>
+      TODO remove this tag, as it appears to be unused now
       <tags>exclude_inprocdebug</tags>
     </default>
   </test>

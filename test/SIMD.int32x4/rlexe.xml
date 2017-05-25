@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -37,7 +37,6 @@
     </default>
   </test>
 
-
   <test>
     <default>
       <files>testAndOrXor.js</files>
@@ -253,7 +252,7 @@
       <compile-flags>-Simdjs</compile-flags>
     </default>
   </test>
-  <!-->
+  <!-- Fix and re-enable or remove (Microsoft/ChakraCore#3034)
   <test>
     <default>
       <files>testShuffle.js</files>
@@ -261,15 +260,7 @@
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
-  <test>
-    <default>
-      <files>testShuffle.js</files>
-      <baseline>testShuffle.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
-    </default>
-  </test>
--->
-
+  -->
 
   <test>
     <default>
@@ -292,7 +283,7 @@
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
-  
+
   <test>
     <default>
       <files>testStore.js</files>

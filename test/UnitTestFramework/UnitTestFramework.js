@@ -10,6 +10,7 @@
 //     if (this.WScript && this.WScript.LoadScriptFile) { // Check for running in ch
 //         this.WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 //     }
+//
 //   How to define and run tests:
 //     var tests = [ { name: "test name 1", body: function () {} }, ...];
 //     testRunner.run(tests);
@@ -25,11 +26,16 @@
 //     example: testRunner.LoadModule(source, 'samethread', false);
 //
 //   How to use assert:
-//     assert.areEqual(expected, actual, "those two should be equal");
+//     assert.areEqual(expected, actual, "those two should be equal (i.e. deep equality of objects using ===)");
 //     assert.areNotEqual(expected, actual, "those two should NOT be equal");
-//     assert.fail("error");
-//     assert.throws(function, SyntaxError);
+//     assert.areAlmostEqual(expected, actual, "those two should be almost equal, numerically (allows difference by epsilon)");
+//     assert.isTrue(actual, "actual should be true");
+//     assert.isFalse(actual, "actual should be false");
+//     assert.isUndefined(actual, "actual should be undefined");
+//     assert.isNotUndefined(actual, "actual should not be undefined");
+//     assert.throws(function, SyntaxError, "function should throw (in this case, specifically a SyntaxError with fooMessage", "fooMessage");
 //     assert.doesNotThrow(function, "this function should not throw anything");
+//     assert.fail("error");
 //
 //   Some useful helpers:
 //     helpers.writeln("works in both", "console", "and", "browser);

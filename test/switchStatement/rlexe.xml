@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -94,7 +94,7 @@
     </default>
   </test>
   <!--
-Disabled -testtrace cases to eliminate maintenance headache
+Disabled -testtrace cases to eliminate maintenance headache (Microsoft/ChakraCore#3037)
 <test>
    <default>
       <files>moreSwitches1_1.js</files>
