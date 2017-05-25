@@ -16,13 +16,16 @@
     V(M128, I)
 #endif
 
-
 #ifndef WASM_LANE_OPCODE
 #define WASM_LANE_OPCODE(opname, opcode, sig, nyi) WASM_OPCODE(opname, opcode, sig, nyi)
 #endif
 
 #ifndef WASM_EXTRACTLANE_OPCODE
 #define WASM_EXTRACTLANE_OPCODE(opname, opcode, sig, asmjsop, nyi) WASM_LANE_OPCODE(opname, opcode, sig, nyi)
+#endif
+
+#ifndef WASM_REPLACELANE_OPCODE
+#define WASM_REPLACELANE_OPCODE(opname, opcode, sig, asmjsop, nyi) WASM_LANE_OPCODE(opname, opcode, sig, nyi)
 #endif
 
 #ifndef WASM_SIMD_BUILD_OPCODE
@@ -57,11 +60,11 @@ WASM_SIGNATURE(M128_M128, 2, WasmTypes::M128, WasmTypes::M128)
 WASM_MISC_OPCODE(M128Const, 0x100, Limit, false)
 WASM_SIMD_MEMREAD_OPCODE(M128Load, 0x101, M128_I, Simd128_LdArr_F4, Js::ArrayBufferView::TYPE_FLOAT32, 16, false)
 WASM_SIMD_MEMSTORE_OPCODE(M128Store, 0x102, M128_I, Simd128_StArr_F4, Js::ArrayBufferView::TYPE_FLOAT32, 16, false)
-WASM_MISC_OPCODE(I16Splat, 0x103, Limit, true)
-WASM_MISC_OPCODE(I8Splat, 0x104, Limit, true)
-WASM_MISC_OPCODE(I4Splat, 0x105, Limit, true)
+WASM_UNARY__OPCODE(I16Splat, 0x103, M128_I, Simd128_Splat_I16, false)
+WASM_UNARY__OPCODE(I8Splat, 0x104, M128_I, Simd128_Splat_I8, false)
+WASM_UNARY__OPCODE(I4Splat, 0x105, M128_I, Simd128_Splat_I4, false)
 WASM_MISC_OPCODE(I2Splat, 0x106, Limit, true)
-WASM_MISC_OPCODE(F4Splat, 0x107, Limit, true)
+WASM_UNARY__OPCODE(F4Splat, 0x107, M128_F, Simd128_Splat_F4, false)
 WASM_MISC_OPCODE(F2Splat, 0x108, Limit, true)
 WASM_EXTRACTLANE_OPCODE(I16ExtractLaneS, 0x109, I_M128, Simd128_ExtractLane_I16, false)
 WASM_EXTRACTLANE_OPCODE(I16ExtractLaneU, 0x10a, I_M128, Simd128_ExtractLane_U16, false)
@@ -71,11 +74,11 @@ WASM_EXTRACTLANE_OPCODE(I4ExtractLane, 0x10d, I_M128, Simd128_ExtractLane_I4, fa
 WASM_MISC_OPCODE(I2ExtractLane, 0x10e, Limit, true)
 WASM_EXTRACTLANE_OPCODE(F4ExtractLane, 0x10f, I_M128, Simd128_ExtractLane_F4, false)
 WASM_MISC_OPCODE(F2ExtractLane, 0x110, Limit, true)
-WASM_MISC_OPCODE(I16ReplaceLane, 0x111, Limit, true)
-WASM_MISC_OPCODE(I8ReplaceLane, 0x112, Limit, true)
-WASM_MISC_OPCODE(I4ReplaceLane, 0x113, Limit, true)
+WASM_REPLACELANE_OPCODE(I16ReplaceLane, 0x111, M128_I, Simd128_ReplaceLane_I16, false)
+WASM_REPLACELANE_OPCODE(I8ReplaceLane, 0x112, M128_I, Simd128_ReplaceLane_I8, false)
+WASM_REPLACELANE_OPCODE(I4ReplaceLane, 0x113, M128_I, Simd128_ReplaceLane_I4, false)
 WASM_MISC_OPCODE(I2ReplaceLane, 0x114, Limit, true)
-WASM_MISC_OPCODE(F4ReplaceLane, 0x115, Limit, true)
+WASM_REPLACELANE_OPCODE(F4ReplaceLane, 0x115, M128_F, Simd128_ReplaceLane_F4, false)
 WASM_MISC_OPCODE(F2ReplaceLane, 0x116, Limit, true)
 WASM_MISC_OPCODE(V8X16Shuffle, 0x117, Limit, true)
 WASM_MISC_OPCODE(I16Add, 0x118, Limit, true)
@@ -89,9 +92,9 @@ WASM_MISC_OPCODE(I2Sub, 0x11f, Limit, true)
 WASM_MISC_OPCODE(I16Mul, 0x120, Limit, true)
 WASM_MISC_OPCODE(I8Mul, 0x121, Limit, true)
 WASM_MISC_OPCODE(I4Mul, 0x122, Limit, true)
-WASM_MISC_OPCODE(I16Neg, 0x123, Limit, true)
-WASM_MISC_OPCODE(I8Neg, 0x124, Limit, true)
-WASM_MISC_OPCODE(I4Neg, 0x125, Limit, true)
+WASM_UNARY__OPCODE(I16Neg, 0x123, M128_M128, Simd128_Neg_I16, false)
+WASM_UNARY__OPCODE(I8Neg, 0x124, M128_M128, Simd128_Neg_I8, false)
+WASM_UNARY__OPCODE(I4Neg, 0x125, M128_M128, Simd128_Neg_I4,  false)
 WASM_MISC_OPCODE(I2Neg, 0x126, Limit, true)
 WASM_MISC_OPCODE(I16AddSaturateS, 0x127, Limit, true)
 WASM_MISC_OPCODE(I16AddSaturateU, 0x128, Limit, true)
@@ -168,7 +171,7 @@ WASM_MISC_OPCODE(I4GeS, 0x16e, Limit, true)
 WASM_MISC_OPCODE(I4GeU, 0x16f, Limit, true)
 WASM_MISC_OPCODE(F4Ge, 0x170, Limit, true)
 WASM_MISC_OPCODE(F2Ge, 0x171, Limit, true)
-WASM_MISC_OPCODE(F4Neg, 0x172, Limit, true)
+WASM_UNARY__OPCODE(F4Neg, 0x172, M128_M128, Simd128_Neg_F4, false)
 WASM_MISC_OPCODE(F2Neg, 0x173, Limit, true)
 WASM_MISC_OPCODE(F4Abs, 0x174, Limit, true)
 WASM_MISC_OPCODE(F2Abs, 0x175, Limit, true)
@@ -200,3 +203,4 @@ WASM_MISC_OPCODE(I2TruncU, 0x18b, Limit, true)
 #undef WASM_EXTRACTLANE_OPCODE
 #undef WASM_SIMD_MEMREAD_OPCODE
 #undef WASM_SIMD_MEMSTORE_OPCODE
+#undef WASM_REPLACELANE_OPCODE
