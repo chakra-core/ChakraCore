@@ -2597,6 +2597,7 @@ namespace Js
                                 // We need to special-case RegExp constructor here because it has some special properties (above) and some
                                 // special enumerable properties which should all show up in the debugger.
                                 JavascriptRegExpConstructor* regExp = scriptContext->GetLibrary()->GetRegExpConstructor();
+                                Js::JavascriptFunction* jsFunction = Js::JavascriptFunction::FromVar(object);
 
                                 if (regExp == object)
                                 {
@@ -2612,7 +2613,7 @@ namespace Js
                                         InsertItem(originalObject, object, propertyId, isConst, isUnscoped, &pMethodsGroupWalker);
                                     }
                                 }
-                                else if (Js::JavascriptFunction::FromVar(object)->IsScriptFunction() || Js::JavascriptFunction::FromVar(object)->IsBoundFunction())
+                                else if ((jsFunction->IsScriptFunction() && !jsFunction->IsJsBuiltIn()) || jsFunction->IsBoundFunction())
                                 {
                                     // Adding special property length for the ScriptFunction, like it is done in JavascriptFunction::GetSpecialNonEnumerablePropertyName
                                     InsertItem(originalObject, object, PropertyIds::length, true/*not editable*/, false /*isUnscoped*/, &pMethodsGroupWalker);
