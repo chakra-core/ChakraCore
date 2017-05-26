@@ -153,6 +153,7 @@ do { \
 #include "ChakraRtInterface.h"
 #include "HostConfigFlags.h"
 #include "MessageQueue.h"
+#include "RuntimeThreadData.h"
 #include "WScriptJsrt.h"
 #include "Debugger.h"
 

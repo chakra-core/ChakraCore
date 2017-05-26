@@ -5,39 +5,6 @@
 #pragma once
 #include <list>
 
-class ThreadData
-{
-public:
-    ThreadData();
-    ~ThreadData();
-    HANDLE hevntInitialScriptCompleted;
-    HANDLE hevntReceivedBroadcast;
-    HANDLE hevntShutdown;
-    HANDLE hSemaphore;
-    JsSharedArrayBufferContent sharedContent;
-    JsValueRef receiveBroadcastCallbackFunc;
-
-
-    JsRuntimeHandle runtime;
-    JsContextRef context;
-
-
-    std::string initialSource;
-
-    ThreadData* parent;
-    
-    std::list<ThreadData*> children;
-
-    CRITICAL_SECTION csReportQ;
-    std::list<std::string> reportQ;
-
-    bool leaving;
-
-
-    DWORD ThreadProc();
-
-};
-
 class WScriptJsrt
 {
 public:

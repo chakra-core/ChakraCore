@@ -3,8 +3,8 @@
   <test>
     <default>
       <compile-flags>-$262</compile-flags>
+      <tags>exclude_xplat</tags>
       <files>$262test.js</files>
-      <baseline>$262test.baseline</baseline>
     </default>
   </test>
 </regress-exe>
