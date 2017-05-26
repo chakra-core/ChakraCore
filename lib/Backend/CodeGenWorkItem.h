@@ -186,9 +186,6 @@ public:
 
     QueuedFullJitWorkItem *GetQueuedFullJitWorkItem() const;
     QueuedFullJitWorkItem *EnsureQueuedFullJitWorkItem();
-
-private:
-    bool ShouldSpeculativelyJit() const;
 };
 
 struct JsFunctionCodeGen sealed : public CodeGenWorkItem

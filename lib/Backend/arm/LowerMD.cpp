@@ -6416,22 +6416,6 @@ LowererMD::LoadStackAddress(StackSym *sym, IR::RegOpnd* regDst)
 }
 
 void
-LowererMD::EmitPtrInstr(IR::Instr *instr)
-{
-    switch (instr->m_opcode)
-    {
-    case Js::OpCode::Add_Ptr:
-        LowererMD::ChangeToAdd(instr, false /* needFlags */);
-        break;
-
-    default:
-        AssertMsg(UNREACHED, "Un-implemented ptr opcode");
-    }
-
-    LegalizeMD::LegalizeInstr(instr, false);
-}
-
-void
 LowererMD::EmitInt4Instr(IR::Instr *instr)
 {
     IR::Instr * newInstr;

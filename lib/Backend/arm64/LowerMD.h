@@ -137,7 +137,6 @@ public:
               void            GenerateFunctionObjectTest(IR::Instr * callInstr, IR::RegOpnd  *functionObjOpnd, bool isHelper, IR::LabelInstr* afterCallLabel = nullptr) { __debugbreak(); }
 
        static void            EmitInt4Instr(IR::Instr *instr) { __debugbreak(); }
-       static void            EmitPtrInstr(IR::Instr *instr) { __debugbreak(); }
               void            EmitLoadVar(IR::Instr *instr, bool isFromUint32 = false, bool isHelper = false) { __debugbreak(); }
               bool            EmitLoadInt32(IR::Instr *instr, bool conversionFromObjectAllowed, bool bailOutOnHelper = false, IR::LabelInstr * labelBailOut = nullptr) { __debugbreak(); return 0; }
               IR::Instr *     LowerInt64Assign(IR::Instr * instr) { __debugbreak(); return nullptr; }

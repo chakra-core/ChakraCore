@@ -612,7 +612,6 @@ private:
     bool                    TryTypeSpecializeUnaryToFloatHelper(IR::Instr** pInstr, Value** pSrc1Val, Value* const src1OriginalVal, Value **pDstVal);
     bool                    TypeSpecializeBailoutExpectedInteger(IR::Instr* instr, Value* src1Val, Value** dstVal);
     bool                    TypeSpecializeStElem(IR::Instr **pInstr, Value *src1Val, Value **pDstVal);
-    bool                    TryGetIntConstIndexValue(IR::Instr *instr, IR::IndirOpnd *indirOpnd, bool checkSym, int32 *pValue, bool *isNotInt);
     bool                    ShouldExpectConventionalArrayIndexValue(IR::IndirOpnd *const indirOpnd);
     ValueType               GetDivValueType(IR::Instr* instr, Value* src1Val, Value* src2Val, bool specialize);
 
@@ -632,7 +631,6 @@ private:
     bool                    InspectInstrForMemSetCandidate(Loop* loop, IR::Instr* instr, struct MemSetEmitData* emitData, bool& errorInInstr);
     bool                    InspectInstrForMemCopyCandidate(Loop* loop, IR::Instr* instr, struct MemCopyEmitData* emitData, bool& errorInInstr);
     bool                    ValidateMemOpCandidates(Loop * loop, _Out_writes_(iEmitData) struct MemOpEmitData** emitData, int& iEmitData);
-    void                    HoistHeadSegmentForMemOp(IR::Instr *instr, IR::ArrayRegOpnd *arrayRegOpnd, IR::Instr *insertBeforeInstr);
     void                    EmitMemop(Loop * loop, LoopCount *loopCount, const struct MemOpEmitData* emitData);
     IR::Opnd*               GenerateInductionVariableChangeForMemOp(Loop *loop, byte unroll, IR::Instr *insertBeforeInstr = nullptr);
     IR::RegOpnd*            GenerateStartIndexOpndForMemop(Loop *loop, IR::Opnd *indexOpnd, IR::Opnd *sizeOpnd, bool isInductionVariableChangeIncremental, bool bIndexAlreadyChanged, IR::Instr *insertBeforeInstr = nullptr);
@@ -975,8 +973,6 @@ private:
     IR::Instr *             TrackMarkTempObject(IR::Instr * instrStart, IR::Instr * instrEnd);
     void                    TrackTempObjectSyms(IR::Instr * instr, IR::RegOpnd * opnd);
     IR::Instr *             GenerateBailOutMarkTempObjectIfNeeded(IR::Instr * instr, IR::Opnd * opnd, bool isDst);
-
-    static void             InstantiateForceInlinedMembers_GlobOptIntBounds();
 
     friend class InvariantBlockBackwardIterator;
 };

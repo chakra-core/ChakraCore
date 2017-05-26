@@ -62,8 +62,6 @@ MACRO(                  ExtendedLargeLayoutPrefix,Empty,    OpByteCodeOnly)
 MACRO(                  Nop,                        Empty,          None)       // No operation (Default value = 0)
 MACRO(                  StartCall,          StartCall,      OpSideEffect)
 MACRO_BACKEND_ONLY(     LoweredStartCall,   StartCall,      OpSideEffect)       // StartCall instruction after it's been lowered
-MACRO_BACKEND_ONLY(     StartCallAsmJsI,    StartCall,      OpSideEffect)       // StartCall instruction for asm.js internal calls
-MACRO_BACKEND_ONLY(     StartCallAsmJsE,    StartCall,      OpSideEffect)       // StartCall instruction for calls from asm.js to javascript
 MACRO(                  Break,              Empty,          OpSideEffect)       // Break into debugger
 MACRO_EXTEND(           InvalidOpCode,      Empty,          None)               // Inserted in a dead call sequence, should not be present after GlobOpt
 
@@ -168,7 +166,6 @@ MACRO(                  Ret,                Empty,          OpSideEffect|OpUseAl
 MACRO_WMS(              Yield,              Reg2,           OpSideEffect|OpUseAllFields)                        // Yield from generator function
 MACRO_WMS(              ResumeYield,        Reg2,           OpSideEffect)
 MACRO_WMS(              ResumeYieldStar,    Reg3,           OpSideEffect)
-MACRO_EXTEND_WMS(       AsyncSpawn,         Reg3,           OpSideEffect|OpUseAllFields)
 
 // Unary operations
 MACRO_WMS(              Incr_A,             Reg2,           OpTempNumberProducing|OpOpndHasImplicitCall|OpDoNotTransfer|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpPostOpDbgBailOut|OpProducesNumber)     // Increment
@@ -225,8 +222,6 @@ MACRO_BACKEND_ONLY(     Shr_I4,             Empty,          OpTempNumberSources|
 MACRO_BACKEND_ONLY(     ShrU_I4,            Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 Shift '>>>'(unsigned, truncate)
 MACRO_BACKEND_ONLY(     Rol_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 rol (signed)
 MACRO_BACKEND_ONLY(     Ror_I4,             Empty,          OpTempNumberSources|OpCanCSE)                                    // int32 ror (signed)
-
-MACRO_BACKEND_ONLY(     Add_Ptr,            Empty,          OpTempNumberSources|OpCanCSE)                                    // ptr Arithmetic '+'
 
 // Comparison
 MACRO_WMS(              CmEq_A,             Reg3,           OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources|OpCanCSE)                          // Compare if '=='  (general equals)
