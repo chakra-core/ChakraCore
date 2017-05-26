@@ -90,7 +90,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="$262.js" />
+    <None Include="262.js" />
     <None Include="ch.def" />
   </ItemGroup>
   <ItemGroup>

@@ -920,8 +920,9 @@ bool WScriptJsrt::Initialize()
 
     if (HostConfigFlags::flags.$262)
     {
+        // OSX does build does not support $262 as filename
         const char* $262 =
-            #include "$262.js"
+            #include "262.js"
             ;
 
         JsValueRef $262ScriptRef;
