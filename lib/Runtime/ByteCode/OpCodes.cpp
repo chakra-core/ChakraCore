@@ -14,7 +14,6 @@
 
 #include "OpCodes.h"
 
-
 #ifdef ASMJS_PLAT
 // Make sure all basic opcode with no one byte layout fits in a byte.
 #define MACRO(opcode, layout, attr) CompileAssert((uint)Js::OpCodeAsmJs::opcode <= BYTE_MAX);
