@@ -722,6 +722,7 @@ namespace Js
         DynamicType * GetPromiseType() const { return promiseType; }
 
         DynamicType * GetWebAssemblyModuleType()  const { return webAssemblyModuleType; }
+        DynamicObject* GetWebAssemblyModulePrototype()  const { return webAssemblyModulePrototype; }
         DynamicType * GetWebAssemblyInstanceType()  const { return webAssemblyInstanceType; }
         DynamicType * GetWebAssemblyMemoryType() const { return webAssemblyMemoryType; }
         DynamicType * GetWebAssemblyTableType() const { return webAssemblyTableType; }

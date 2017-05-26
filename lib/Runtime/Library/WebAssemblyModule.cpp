@@ -212,6 +212,14 @@ WebAssemblyModule::CreateModule(
     AutoProfilingPhase wasmPhase(scriptContext, Js::WasmBytecodePhase);
     Unused(wasmPhase);
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    PropertyRecord const * propertyRecord = nullptr;;
+    scriptContext->GetOrAddPropertyRecord(_u("deferred"), lstrlen(_u("deferred")), &propertyRecord);
+    Var value = JavascriptOperators::GetProperty(scriptContext->GetLibrary()->GetWebAssemblyModulePrototype(), propertyRecord->GetPropertyId(), scriptContext);
+    bool forceDeffered = !JavascriptOperators::IsUndefined(value);
+    bool forceDeferredValue = JavascriptConversion::ToBool(value, scriptContext);
+#endif
+
     WebAssemblyModule * webAssemblyModule = nullptr;
     Wasm::WasmReaderInfo * readerInfo = nullptr;
     Js::FunctionBody * currentBody = nullptr;
@@ -233,7 +241,15 @@ WebAssemblyModule::CreateModule(
         for (uint i = 0; i < webAssemblyModule->GetWasmFunctionCount(); ++i)
         {
             currentBody = webAssemblyModule->GetWasmFunctionInfo(i)->GetBody();
-            if (!PHASE_OFF(WasmDeferredPhase, currentBody))
+            bool doDeferred = !PHASE_OFF(WasmDeferredPhase, currentBody);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            if (forceDeffered)
+            {
+                doDeferred = forceDeferredValue;
+            }
+#endif
+
+            if (doDeferred)
             {
                 continue;
             }
