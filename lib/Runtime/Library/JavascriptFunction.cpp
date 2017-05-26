@@ -2387,6 +2387,16 @@ LABEL1:
             );
     }
 
+    void JavascriptFunction::SetIsJsBuiltIn()
+    {
+        isJsBuiltIn = true;
+    }
+
+    bool JavascriptFunction::IsJsBuiltIn()
+    {
+        return isJsBuiltIn;
+    }
+
     PropertyQueryFlags JavascriptFunction::HasPropertyQuery(PropertyId propertyId)
     {
         switch (propertyId)

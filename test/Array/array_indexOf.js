@@ -15,6 +15,8 @@ for(i=-3; i < 15;i++)
    }
 }
 
+WScript.Echo(x.indexOf(-0, -0));
+
 var b = function(){};
 b.prototype = Array.prototype;
 
@@ -104,3 +106,14 @@ gap[5] = 4;
 WScript.Echo(gap.indexOf(4));
 delete Array.prototype[2]
 WScript.Echo(gap.indexOf(4));
+
+var undefinedValues = [];
+undefinedValues[9] = "abc";
+undefinedValues[10] = undefined;
+WScript.Echo(undefinedValues.indexOf(undefined));
+
+undefinedValues.length = 8;
+WScript.Echo(undefinedValues.indexOf(undefined));
+
+WScript.Echo(Array.prototype.indexOf.prototype === undefined);
+WScript.Echo("prototype" in Array.prototype.indexOf)
