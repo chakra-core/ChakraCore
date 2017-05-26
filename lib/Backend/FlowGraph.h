@@ -174,7 +174,6 @@ public:
     bool         Dominates(Region *finallyRegion, Region *exitLabelRegion);
     bool         DoesExitLabelDominate(IR::BranchInstr *leaveInstr);
     void         InsertEdgeFromFinallyToEarlyExit(BasicBlock * finallyEndBlock, IR::LabelInstr * exitLabel);
-    BasicBlock * FindInfiniteLoop(BasicBlock * finallyBlock);
 #if DBG_DUMP
     void         Dump();
     void         Dump(bool verbose, const char16 *form);

@@ -6332,7 +6332,6 @@ GlobOpt::OptConstPeep(IR::Instr *instr, IR::Opnd *constSrc, Value **pDstVal, Val
         }
         // fall-through
 
-    case Js::OpCode::Add_Ptr:
     case Js::OpCode::Add_I4:
         if (value != 0)
         {
@@ -15684,7 +15683,6 @@ GlobOpt::PreLowerCanonicalize(IR::Instr *instr, Value **pSrc1Val, Value **pSrc2V
     case Js::OpCode::Or_I4:
     case Js::OpCode::Xor_I4:
     case Js::OpCode::Add_I4:
-    case Js::OpCode::Add_Ptr:
 swap_srcs:
         if (!instr->GetSrc2()->IsImmediateOpnd())
         {

@@ -532,9 +532,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
     }
 
     AssertMsg(startCallInstr->m_opcode == Js::OpCode::StartCall ||
-              startCallInstr->m_opcode == Js::OpCode::LoweredStartCall ||
-              startCallInstr->m_opcode == Js::OpCode::StartCallAsmJsE ||
-              startCallInstr->m_opcode == Js::OpCode::StartCallAsmJsI,
+              startCallInstr->m_opcode == Js::OpCode::LoweredStartCall,
               "Problem with arg chain.");
     AssertMsg(startCallInstr->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == argCount ||
               m_func->GetJITFunctionBody()->IsAsmJsMode(),
@@ -2183,32 +2181,6 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
 {
     this->lowererMD->ChangeToAssign(instr);
     return instr;
-}
-
-void
-LowererMDArch::EmitPtrInstr(IR::Instr *instr)
-{
-    bool legalize = false;
-    switch (instr->m_opcode)
-    {
-    case Js::OpCode::Add_Ptr:
-        LowererMD::ChangeToAdd(instr, false /* needFlags */);
-        legalize = true;
-        break;
-
-    default:
-        AssertMsg(UNREACHED, "Un-implemented ptr opcode");
-    }
-    // OpEq's
-
-    if (legalize)
-    {
-        LowererMD::Legalize(instr);
-    }
-    else
-    {
-        LowererMD::MakeDstEquSrc1(instr);
-    }
 }
 
 void
