@@ -3,6 +3,40 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
+#include <list>
+
+class ThreadData
+{
+public:
+    ThreadData();
+    ~ThreadData();
+    HANDLE hevntInitialScriptCompleted;
+    HANDLE hevntReceivedBroadcast;
+    HANDLE hevntShutdown;
+    HANDLE hSemaphore;
+    JsSharedArrayBufferContent sharedContent;
+    JsValueRef receiveBroadcastCallbackFunc;
+
+
+    JsRuntimeHandle runtime;
+    JsContextRef context;
+
+
+    std::string initialSource;
+
+    ThreadData* parent;
+    
+    std::list<ThreadData*> children;
+
+    CRITICAL_SECTION csReportQ;
+    std::list<std::string> reportQ;
+
+    bool leaving;
+
+
+    DWORD ThreadProc();
+
+};
 
 class WScriptJsrt
 {
@@ -117,6 +151,13 @@ private:
     static JsValueRef CALLBACK LoadBinaryFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef CALLBACK LoadTextFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef CALLBACK FlagCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+
+    static JsValueRef CALLBACK BroadcastCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK RecieveBroadcastCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK ReportCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK GetReportCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK LeavingCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK SleepCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
 
     static JsErrorCode FetchImportedModuleHelper(JsModuleRecord referencingModule, JsValueRef specifier, __out JsModuleRecord* dependentModuleRecord);
 
