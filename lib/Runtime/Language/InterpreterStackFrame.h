@@ -76,6 +76,25 @@ namespace Js
             bool bailedOut;
             bool bailedOutOfInlinee;
         };
+
+        struct AsmJsReturnStruct
+        {
+#ifdef ASMJS_PLAT
+            int32 i;
+            int64 l;
+            float f;
+            double d;
+            AsmJsSIMDValue simd;
+
+            template<typename T> T GetRetVal();
+            template<> int32 GetRetVal<int32>() { return i; }
+            template<> int64 GetRetVal<int64>() { return l; }
+            template<> float GetRetVal<float>() { return f; }
+            template<> double GetRetVal<double>() { return d; }
+            template<> X86SIMDValue GetRetVal<X86SIMDValue>() { return X86SIMDValue::ToX86SIMDValue(simd); }
+#endif
+        };
+
     private:
         ByteCodeReader m_reader;        // Reader for current function
         int m_inSlotsCount;             // Count of actual incoming parameters to this function
@@ -293,8 +312,6 @@ namespace Js
         DWORD_PTR GetStackAddress() const;
         void* GetAddressOfReturnAddress() const;
 
-        template <typename T>
-        static T GetAsmJsRetVal(InterpreterStackFrame* instance);
 #if _M_IX86
         static int GetRetType(JavascriptFunction* func);
         static int GetAsmJsArgSize(AsmJsCallStackLayout * stack);
@@ -322,7 +339,7 @@ namespace Js
 #else
         _NOINLINE static Var InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
-        static Var InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, const bool isAsmJs = false);
+        static Var InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, AsmJsReturnStruct* asmReturn = nullptr);
     private:
 #if DYNAMIC_INTERPRETER_THUNK
         static JavascriptMethod EnsureDynamicInterpreterThunk(Js::ScriptFunction * function);
@@ -623,7 +640,6 @@ namespace Js
         template <class T> inline void OP_LdArrFunc(const unaligned T* playout);
         template <class T> inline void OP_LdArrWasmFunc(const unaligned T* playout);
         template <class T> inline void OP_CheckSignature(const unaligned T* playout);
-        template <class T> inline void OP_ReturnDb(const unaligned T* playout);
         template<typename T> T GetArrayViewOverflowVal();
         template <typename ArrayType, typename RegType = ArrayType> inline void OP_StArr( uint32 index, RegSlot value );
         template <class T> inline Var OP_LdAsmJsSlot(Var instance, const unaligned T* playout );

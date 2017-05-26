@@ -832,6 +832,12 @@
   </test>
   <test>
     <default>
+      <files>lotsOfLocals.js</files>
+      <tags>exclude_chk</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>params.js</files>
       <baseline>params.baseline</baseline>
       <!-- TODO:: Add flag -EnableFatalErrorOnOOM- once the test reaches release/1.6 -->
