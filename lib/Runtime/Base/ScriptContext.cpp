@@ -158,6 +158,8 @@ namespace Js
         , rejitStatsMap(nullptr)
         , bailoutReasonCounts(nullptr)
         , bailoutReasonCountsCap(nullptr)
+        , rejitReasonCounts(nullptr)
+        , rejitReasonCountsCap(nullptr)
 #endif
 #ifdef ENABLE_BASIC_TELEMETRY
         , telemetry(nullptr)
@@ -5490,7 +5492,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #if defined(FLAG) || defined(FLAG_REGOVR_EXP)
                 Configuration::Global.flags.Verbose &&
 #endif
-                rejitStatsMap != NULL)
+                rejitStatsMap != nullptr)
             {
                 // Aggregated data
                 Output::Print(_u("%-30s %14s %14s\n"), _u("Function (#),"), _u("Bailout Count,"), _u("Rejit Count"));

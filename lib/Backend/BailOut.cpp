@@ -2247,17 +2247,15 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         auto bailoutReasonCountsCap = scriptContext->bailoutReasonCountsCap;
         if (bailoutReasonCountsCap != nullptr)
         {
-            if (bailoutReasonCountsCap->ContainsKey(bailOutKind)) {
-                if (!bailoutReasonCountsCap->ContainsKey(bailOutKind))
-                {
-                    bailoutReasonCountsCap->Item(bailOutKind, 1);
-                }
-                else
-                {
-                    uint val = bailoutReasonCountsCap->Item(bailOutKind);
-                    ++val;
-                    bailoutReasonCountsCap->Item(bailOutKind, val);
-                }
+            if (!bailoutReasonCountsCap->ContainsKey(bailOutKind))
+            {
+                bailoutReasonCountsCap->Item(bailOutKind, 1);
+            }
+            else
+            {
+                uint val = bailoutReasonCountsCap->Item(bailOutKind);
+                ++val;
+                bailoutReasonCountsCap->Item(bailOutKind, val);
             }
         }
     }
