@@ -96,6 +96,10 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
     bool ShouldJitFunction(Js::FunctionBody* body, uint interpretedCount)
     {
 #if ENABLE_NATIVE_CODEGEN
+        if (CONFIG_ISENABLED(Js::ForceNativeFlag))
+        {
+            return true;
+        }
         const bool noJit = PHASE_OFF(Js::BackEndPhase, body) ||
             PHASE_OFF(Js::FullJitPhase, body) ||
             body->GetScriptContext()->GetConfig()->IsNoNative() ||
