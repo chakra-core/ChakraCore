@@ -109,9 +109,15 @@
 
       <!-- Always set the checksum -->
       <AdditionalOptions>%(AdditionalOptions) /release</AdditionalOptions>
+      <!-- Ignore Linker warning: This object file does not define any previously undefined public symbols -->
+      <AdditionalOptions>%(AdditionalOptions) /ignore:4221</AdditionalOptions>
       <!-- ======== For Code Covearge ======== -->
       <AdditionalOptions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">%(AdditionalOptions) /DEBUGTYPE:CV,FIXUP</AdditionalOptions>
     </Link>
+    <Lib>
+      <!-- Ignore Linker warning: This object file does not define any previously undefined public symbols -->
+      <AdditionalOptions>%(AdditionalOptions) /ignore:4221</AdditionalOptions>
+    </Lib>
   </ItemDefinitionGroup>
 
   <!--Optimization flags-->
