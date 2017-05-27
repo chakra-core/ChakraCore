@@ -16,7 +16,7 @@
 
       <!--Disable midl timestamps wherever possible, razzle build already have this-->
       <AdditionalOptions Condition="'$(BuildingWithBuildExe)'!='true'">%(AdditionalOptions) /no_stamp</AdditionalOptions>
-      
+
       <SuppressStartupBanner>true</SuppressStartupBanner>
 
       <!-- Other defaults -->
@@ -25,7 +25,7 @@
 
       <!-- ======== makefiledef ======== -->
       <AdditionalOptions>%(AdditionalOptions) -sal</AdditionalOptions>
-      
+
       <!-- ======== sources.inc ======== -->
       <!-- generates SAL annotations for our interface -->
       <AdditionalOptions>%(AdditionalOptions) -sal_local</AdditionalOptions>
@@ -40,10 +40,10 @@
 
       <!-- Add any preprocessor definitions passed using msbuild environment -->
       <PreprocessorDefinitions Condition="'$(AdditionalPreprocessorDefinitions)'!=''">%(PreprocessorDefinitions);$(AdditionalPreprocessorDefinitions)</PreprocessorDefinitions>
-      
+
       <!-- MIDL generate code uses this define -->
       <PreprocessorDefinitions Condition="'$(Platform)'=='ARM'">%(PreprocessorDefinitions);_ARM_</PreprocessorDefinitions>
-            
+
       <!-- /W4 -->
       <WarningLevel>Level4</WarningLevel>
       <!-- /WX -->
@@ -102,7 +102,13 @@
 
       <!-- Always set the checksum -->
       <AdditionalOptions>%(AdditionalOptions) /release</AdditionalOptions>
+      <!-- Ignore Linker warning: This object file does not define any previously undefined public symbols -->
+      <AdditionalOptions>%(AdditionalOptions) /ignore:4221</AdditionalOptions>
     </Link>
+    <Lib>
+      <!-- Ignore Linker warning: This object file does not define any previously undefined public symbols -->
+      <AdditionalOptions>%(AdditionalOptions) /ignore:4221</AdditionalOptions>
+    </Lib>
   </ItemDefinitionGroup>
   <!-- chk build flags -->
   <ItemDefinitionGroup Condition="'$(OptimizedBuild)'!='true'">
