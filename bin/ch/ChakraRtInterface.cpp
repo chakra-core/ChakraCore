@@ -146,6 +146,7 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtSerialize = (JsAPIHooks::JsrtSerialize)GetChakraCoreSymbol(library, "JsSerialize");
     m_jsApiHooks.pfJsrtRunSerialized = (JsAPIHooks::JsrtRunSerialized)GetChakraCoreSymbol(library, "JsRunSerialized");
     m_jsApiHooks.pfJsrtCreateString = (JsAPIHooks::JsrtCreateString)GetChakraCoreSymbol(library, "JsCreateString");
+    m_jsApiHooks.pfJsrtCreateStringUtf16 = (JsAPIHooks::JsrtCreateStringUtf16)GetChakraCoreSymbol(library, "JsCreateStringUtf16");
     m_jsApiHooks.pfJsrtCopyString = (JsAPIHooks::JsrtCopyString)GetChakraCoreSymbol(library, "JsCopyString");
     m_jsApiHooks.pfJsrtCreatePropertyId = (JsAPIHooks::JsrtCreatePropertyId)GetChakraCoreSymbol(library, "JsCreatePropertyId");
     m_jsApiHooks.pfJsrtCreateExternalArrayBuffer = (JsAPIHooks::JsrtCreateExternalArrayBuffer)GetChakraCoreSymbol(library, "JsCreateExternalArrayBuffer");

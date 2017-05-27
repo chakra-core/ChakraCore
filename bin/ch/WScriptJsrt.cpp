@@ -808,14 +808,6 @@ bool WScriptJsrt::Initialize()
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadTextFile", LoadTextFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Flag", FlagCallback));
 
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Broadcast", BroadcastCallback));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "RecieveBroadcast", RecieveBroadcastCallback));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Report", ReportCallback));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetReport", GetReportCallback));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Leaving", LeavingCallback));
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Sleep", SleepCallback));
-
-
     // ToDo Remove
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Edit", EmptyCallback));
 
@@ -920,13 +912,21 @@ bool WScriptJsrt::Initialize()
 
     if (HostConfigFlags::flags.$262)
     {
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Broadcast", BroadcastCallback));
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "RecieveBroadcast", RecieveBroadcastCallback));
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Report", ReportCallback));
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetReport", GetReportCallback));
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Leaving", LeavingCallback));
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Sleep", SleepCallback));
+
+
         // OSX does build does not support $262 as filename
-        const char* $262 =
+        const wchar_t $262[] =
             #include "262.js"
             ;
 
         JsValueRef $262ScriptRef;
-        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString($262, strlen($262), &$262ScriptRef));
+        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateStringUtf16((uint16_t*)$262, wcslen($262), &$262ScriptRef));
 
         JsValueRef fname;
         IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString("$262", strlen("$262"), &fname));

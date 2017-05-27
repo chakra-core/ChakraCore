@@ -80,6 +80,8 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtRunSerialized)(JsValueRef buffer, JsSerializedLoadScriptCallback scriptLoadCallback, JsSourceContext sourceContext, JsValueRef sourceUrl, JsValueRef * result);
     typedef JsErrorCode(WINAPI *JsrtCopyString)(JsValueRef value, char* buffer, size_t bufferSize, size_t* written);
     typedef JsErrorCode(WINAPI *JsrtCreateString)(const char *content, size_t length, JsValueRef *value);
+    typedef JsErrorCode(WINAPI *JsrtCreateStringUtf16)(const uint16_t *content, size_t length, JsValueRef *value);
+    
     typedef JsErrorCode(WINAPI *JsrtCreateExternalArrayBuffer)(void *data, unsigned int byteLength, JsFinalizeCallback finalizeCallback, void *callbackState, JsValueRef *result);
     typedef JsErrorCode(WINAPI *JsrtCreatePropertyId)(const char *name, size_t length, JsPropertyIdRef *propertyId);
 
@@ -173,6 +175,7 @@ struct JsAPIHooks
     JsrtSerialize pfJsrtSerialize;
     JsrtRunSerialized pfJsrtRunSerialized;
     JsrtCreateString pfJsrtCreateString;
+    JsrtCreateStringUtf16 pfJsrtCreateStringUtf16;
     JsrtCopyString pfJsrtCopyString;
     JsrtCreatePropertyId pfJsrtCreatePropertyId;
     JsrtCreateExternalArrayBuffer pfJsrtCreateExternalArrayBuffer;
@@ -398,6 +401,7 @@ public:
     static JsErrorCode WINAPI JsRunSerialized(JsValueRef buffer, JsSerializedLoadScriptCallback scriptLoadCallback, JsSourceContext sourceContext, JsValueRef sourceUrl, JsValueRef * result) { return HOOK_JS_API(RunSerialized(buffer, scriptLoadCallback, sourceContext, sourceUrl, result)); }
     static JsErrorCode WINAPI JsCopyString(JsValueRef value, char* buffer, size_t bufferSize, size_t* written) { return HOOK_JS_API(CopyString(value, buffer, bufferSize, written)); }
     static JsErrorCode WINAPI JsCreateString(const char *content, size_t length, JsValueRef *value) { return HOOK_JS_API(CreateString(content, length, value)); }
+    static JsErrorCode WINAPI JsCreateStringUtf16(const uint16_t *content, size_t length, JsValueRef *value) { return HOOK_JS_API(CreateStringUtf16(content, length, value)); }
     static JsErrorCode WINAPI JsCreatePropertyId(const char *name, size_t length, JsPropertyIdRef *propertyId) { return HOOK_JS_API(CreatePropertyId(name, length, propertyId)); }
     static JsErrorCode WINAPI JsCreateExternalArrayBuffer(void *data, unsigned int byteLength, JsFinalizeCallback finalizeCallback, void *callbackState, JsValueRef *result)  { return HOOK_JS_API(CreateExternalArrayBuffer(data, byteLength, finalizeCallback, callbackState, result)); }
 };
