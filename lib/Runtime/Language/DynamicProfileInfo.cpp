@@ -2244,7 +2244,7 @@ IR::BailOutKind IR::EquivalentToMonoTypeCheckBailOutKind(IR::BailOutKind kind)
     }
 }
 
-#if ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_CONFIG_OPTIONS || defined(REJIT_STATS)
 const char *const BailOutKindNames[] =
 {
 #define BAIL_OUT_KIND_LAST(n)               "" STRINGIZE(n) ""
@@ -2252,6 +2252,7 @@ const char *const BailOutKindNames[] =
 #define BAIL_OUT_KIND_VALUE_LAST(n, v)      BAIL_OUT_KIND_LAST(n)
 #define BAIL_OUT_KIND_VALUE(n, v)           BAIL_OUT_KIND(n)
 #include "BailOutKind.h"
+#undef BAIL_OUT_KIND_LAST
 };
 
 IR::BailOutKind const BailOutKindValidBits[] =
@@ -2259,7 +2260,6 @@ IR::BailOutKind const BailOutKindValidBits[] =
 #define BAIL_OUT_KIND(n, bits)               (IR::BailOutKind)bits,
 #define BAIL_OUT_KIND_VALUE_LAST(n, v)
 #define BAIL_OUT_KIND_VALUE(n, v)
-#define BAIL_OUT_KIND_LAST(n)
 #include "BailOutKind.h"
 };
 

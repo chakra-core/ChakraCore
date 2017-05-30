@@ -2218,6 +2218,13 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         if (profileInfo->GetRejitCount() >= 100 ||
             (profileInfo->GetBailOutOffsetForLastRejit() == actualBailOutOffset && function->IsNewEntryPointAvailable()))
         {
+#ifdef REJIT_STATS
+            Js::ScriptContext* scriptContext = executeFunction->GetScriptContext();
+            if (scriptContext->rejitReasonCountsCap != nullptr)
+            {
+                scriptContext->rejitReasonCountsCap[rejitReason]++;
+            }
+#endif
             reThunk = true;
             rejitReason = RejitReason::None;
         }
@@ -2233,9 +2240,24 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         RejitReasonNames[rejitReason], reThunk ? trueString : falseString);
 
 #ifdef REJIT_STATS
-    if(PHASE_STATS(Js::ReJITPhase, executeFunction))
+    executeFunction->GetScriptContext()->LogBailout(executeFunction, bailOutKind);
+    if (bailOutRecord->bailOutCount > 500)
     {
-        executeFunction->GetScriptContext()->LogBailout(executeFunction, bailOutKind);
+        Js::ScriptContext* scriptContext = executeFunction->GetScriptContext();
+        auto bailoutReasonCountsCap = scriptContext->bailoutReasonCountsCap;
+        if (bailoutReasonCountsCap != nullptr)
+        {
+            if (!bailoutReasonCountsCap->ContainsKey(bailOutKind))
+            {
+                bailoutReasonCountsCap->Item(bailOutKind, 1);
+            }
+            else
+            {
+                uint val = bailoutReasonCountsCap->Item(bailOutKind);
+                ++val;
+                bailoutReasonCountsCap->Item(bailOutKind, val);
+            }
+        }
     }
 #endif
 
@@ -2255,10 +2277,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
     else if (rejitReason != RejitReason::None)
     {
 #ifdef REJIT_STATS
-        if(PHASE_STATS(Js::ReJITPhase, executeFunction))
-        {
-            executeFunction->GetScriptContext()->LogRejit(executeFunction, rejitReason);
-        }
+        executeFunction->GetScriptContext()->LogRejit(executeFunction, rejitReason);
 #endif
         executeFunction->ClearDontRethunkAfterBailout();
 
@@ -2570,19 +2589,13 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
         ::GetBailOutKindName(bailOutKind), RejitReasonNames[rejitReason]);
 
 #ifdef REJIT_STATS
-    if(PHASE_STATS(Js::ReJITPhase, executeFunction))
-    {
-        executeFunction->GetScriptContext()->LogBailout(executeFunction, bailOutKind);
-    }
+    executeFunction->GetScriptContext()->LogBailout(executeFunction, bailOutKind);
 #endif
 
     if (rejitReason != RejitReason::None)
     {
 #ifdef REJIT_STATS
-        if(PHASE_STATS(Js::ReJITPhase, executeFunction))
-        {
-            executeFunction->GetScriptContext()->LogRejit(executeFunction, rejitReason);
-        }
+        executeFunction->GetScriptContext()->LogRejit(executeFunction, rejitReason);
 #endif
         // Single bailout triggers re-JIT of loop body. the actual codegen scheduling of the new
         // loop body happens in the interpreter
