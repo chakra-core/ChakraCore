@@ -707,7 +707,9 @@ public:
         RejitStatsMap* rejitStatsMap;
 
         BailoutStatsMap *bailoutReasonCounts;
+        BailoutStatsMap *bailoutReasonCountsCap;
         uint *rejitReasonCounts;
+        uint *rejitReasonCountsCap;
 #endif
 #ifdef ENABLE_BASIC_TELEMETRY
 
