@@ -255,6 +255,9 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #if GLOBAL_ENABLE_WRITE_BARRIER
     , pendingWriteBarrierBlockMap(&HeapAllocator::Instance)
 #endif
+#ifdef PROFILE_RECYCLER_ALLOC
+    , trackerCriticalSection(nullptr)
+#endif
 {
 #ifdef RECYCLER_MARK_TRACK
     this->markMap = NoCheckHeapNew(MarkMap, &NoCheckHeapAllocator::Instance, 163, &markMapCriticalSection);
@@ -574,7 +577,7 @@ Recycler::~Recycler()
         });
         NoCheckHeapDelete(this->trackerDictionary);
         this->trackerDictionary = nullptr;
-        ::DeleteCriticalSection(&trackerCriticalSection);
+        delete(trackerCriticalSection);
     }
 #endif
 
@@ -7249,7 +7252,7 @@ void Recycler::VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size, ObjectI
         if (heapBlock->IsLargeHeapBlock())
         {
             LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
-            if (largeHeapBlock->InPageHeapMode() 
+            if (largeHeapBlock->InPageHeapMode()
 #ifdef RECYCLER_NO_PAGE_REUSE
                 && !largeHeapBlock->GetPageAllocator(this)->IsPageReuseDisabled()
 #endif
@@ -7614,9 +7617,8 @@ Recycler::InitializeProfileAllocTracker()
     if (DoProfileAllocTracker())
     {
         trackerDictionary = NoCheckHeapNew(TypeInfotoTrackerItemMap, &NoCheckHeapAllocator::Instance, 163);
-
+        trackerCriticalSection = new CriticalSection(1000);
 #pragma prefast(suppress:6031, "InitializeCriticalSectionAndSpinCount always succeed since Vista. No need to check return value");
-        InitializeCriticalSectionAndSpinCount(&trackerCriticalSection, 1000);
     }
 
     nextAllocData.Clear();
@@ -7699,9 +7701,9 @@ void* Recycler::TrackAlloc(void* object, size_t size, const TrackAllocData& trac
     if (this->trackerDictionary != nullptr)
     {
         Assert(nextAllocData.IsEmpty()); // should have been cleared
-        EnterCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Enter();
         TrackAllocCore(object, size, trackAllocData);
-        LeaveCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Leave();
     }
     return object;
 }
@@ -7712,7 +7714,7 @@ Recycler::TrackIntegrate(__in_ecount(blockSize) char * blockAddress, size_t bloc
     if (this->trackerDictionary != nullptr)
     {
         Assert(nextAllocData.IsEmpty()); // should have been cleared
-        EnterCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Enter();
 
         char * address = blockAddress;
         char * blockEnd = blockAddress + blockSize;
@@ -7722,7 +7724,7 @@ Recycler::TrackIntegrate(__in_ecount(blockSize) char * blockAddress, size_t bloc
             address += allocSize;
         }
 
-        LeaveCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Leave();
     }
 }
 
@@ -7730,7 +7732,7 @@ BOOL Recycler::TrackFree(const char* address, size_t size)
 {
     if (this->trackerDictionary != nullptr)
     {
-        EnterCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Enter();
         TrackerData * data = GetTrackerData((char *)address);
         if (data != nullptr)
         {
@@ -7762,7 +7764,7 @@ BOOL Recycler::TrackFree(const char* address, size_t size)
                 Assert(false);
             }
         }
-        LeaveCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Leave();
     }
     return true;
 }
@@ -7791,14 +7793,14 @@ Recycler::TrackUnallocated(__in char* address, __in  char *endAddress, size_t si
     {
         if (this->trackerDictionary != nullptr)
         {
-            EnterCriticalSection(&trackerCriticalSection);
+            trackerCriticalSection->Enter();
             while (address + sizeCat <= endAddress)
             {
                 Assert(GetTrackerData(address) == nullptr);
                 SetTrackerData(address, &TrackerData::EmptyData);
                 address += sizeCat;
             }
-            LeaveCriticalSection(&trackerCriticalSection);
+            trackerCriticalSection->Leave();
         }
     }
 }
@@ -8035,7 +8037,7 @@ Recycler::VerifyMarkStack()
     }
 }
 
-bool 
+bool
 Recycler::VerifyMark(void * target)
 {
     return VerifyMark(nullptr, target);

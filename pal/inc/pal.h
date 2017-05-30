@@ -6878,6 +6878,8 @@ ULONG_PTR __stdcall GetCurrentSP();
 
 #ifdef  __cplusplus
 }
+
+#include "CCSpinLock.hpp"
 #endif
 
 #endif // __PAL_H__
