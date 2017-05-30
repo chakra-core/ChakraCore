@@ -181,53 +181,39 @@ WasmSignature::FromIDL(WasmSignatureIDL* sig)
     return reinterpret_cast<WasmSignature*>(sig);
 }
 
+uint32
+WasmSignature::WriteSignatureToString(_Out_writes_(maxlen) char16* out, uint32 maxlen)
+{
+    AssertOrFailFast(out != nullptr);
+    uint32 numwritten = 0;
+    numwritten += _snwprintf_s(out+numwritten, maxlen-numwritten, _TRUNCATE, _u("("));
+    for (uint i = 0; i < this->GetParamCount(); i++)
+    {
+        if (i != 0)
+        {
+            numwritten += _snwprintf_s(out+numwritten, maxlen-numwritten, _TRUNCATE, _u(", "));
+        }
+        numwritten += _snwprintf_s(out+numwritten, maxlen-numwritten, _TRUNCATE, _u("%ls"), WasmTypes::GetTypeName(this->GetParam(i)));
+    }
+    if (numwritten >= maxlen-12) {
+        // null out the last 12 characters so we can properly end it 
+        for (int i = 1; i <= 12; i++) {
+            *(out + maxlen - i) = 0;
+        }
+        numwritten -= 12;
+        numwritten += _snwprintf_s(out + numwritten, maxlen - numwritten, _TRUNCATE, _u("..."));
+    }
+    numwritten += _snwprintf_s(out + numwritten, maxlen - numwritten, _TRUNCATE, _u(")->%ls"), WasmTypes::GetTypeName(this->GetResultType()));
+    return numwritten;
+}
+
 void
 WasmSignature::Dump()
 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    Output::Print(_u("("));
-    for(uint32 i = 0; i < this->GetParamCount(); i++)
-    {
-        if(i != 0)
-        {
-            Output::Print(_u(", "));
-        }
-        switch(this->GetParam(i)) {
-            case WasmTypes::WasmType::Void:
-                Output::Print(_u("void"));
-                break;
-            case WasmTypes::WasmType::I32:
-                Output::Print(_u("i32"));
-                break;
-            case WasmTypes::WasmType::I64:
-                Output::Print(_u("i64"));
-                break;
-            case WasmTypes::WasmType::F32:
-                Output::Print(_u("f32"));
-                break;
-            case WasmTypes::WasmType::F64:
-                Output::Print(_u("f64"));
-                break;
-        }
-    }
-    Output::Print(_u(") -> "));
-    switch(this->GetResultType()) {
-        case WasmTypes::WasmType::Void:
-            Output::Print(_u("void"));
-            break;
-        case WasmTypes::WasmType::I32:
-            Output::Print(_u("i32"));
-            break;
-        case WasmTypes::WasmType::I64:
-            Output::Print(_u("i64"));
-            break;
-        case WasmTypes::WasmType::F32:
-            Output::Print(_u("f32"));
-            break;
-        case WasmTypes::WasmType::F64:
-            Output::Print(_u("f64"));
-            break;
-    }
+    char16 buf[512] = { 0 };
+    this->WriteSignatureToString(buf, 512);
+    Output::Print(buf);
 #endif
 }
 
