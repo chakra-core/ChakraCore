@@ -5,6 +5,10 @@
     <Win32_WinNTVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win7)'">0x0601</Win32_WinNTVersion>
     <Win32_WinNTVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win8)'">0x0602</Win32_WinNTVersion>
     <Win32_WinNTVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win10)'">0x0A00</Win32_WinNTVersion>
+
+    <!-- Always use Platform SDK for core builds -->
+    <EventManifestXmlPath Condition="'$(TargetPlatformVersion)'=='8.1'">$(WindowsSdkDir)Include\um</EventManifestXmlPath>
+    <EventManifestXmlPath Condition="'$(TargetPlatformVersion)'!='8.1'">$(WindowsSdkDir)Include\$(TargetPlatformVersion)\um</EventManifestXmlPath>
   </PropertyGroup>
   <PropertyGroup>
     <NoThrowNewLib>nothrownew.obj</NoThrowNewLib>
