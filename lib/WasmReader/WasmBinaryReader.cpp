@@ -35,6 +35,32 @@ uint32 GetTypeByteSize(WasmType type)
     }
 }
 
+char16 const * GetTypeName(WasmType type)
+{
+    char16 const* typestring = _u("unknown");
+    switch (type) {
+    case WasmTypes::WasmType::Void:
+        typestring = _u("void");
+        break;
+    case WasmTypes::WasmType::I32:
+        typestring = _u("i32");
+        break;
+    case WasmTypes::WasmType::I64:
+        typestring = _u("i64");
+        break;
+    case WasmTypes::WasmType::F32:
+        typestring = _u("f32");
+        break;
+    case WasmTypes::WasmType::F64:
+        typestring = _u("f64");
+        break;
+    default:
+        Assert(false);
+        break;
+    }
+    return typestring;
+}
+
 } // namespace WasmTypes
 
 WasmTypes::WasmType 

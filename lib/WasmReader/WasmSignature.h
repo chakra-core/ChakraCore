@@ -31,6 +31,7 @@ public:
 
     static uint GetOffsetOfShortSig() { return offsetof(WasmSignature, m_shortSig); }
 
+    uint32 WriteSignatureToString(_Out_writes_(maxlen) char16 *out, uint32 maxlen);
     void Dump();
 private:
     Field(WasmTypes::WasmType) m_resultType;
