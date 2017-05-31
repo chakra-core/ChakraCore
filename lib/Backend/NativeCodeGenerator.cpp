@@ -1117,7 +1117,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     if (!CONFIG_FLAG(OOPCFGRegistration))
     {
-        scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
+        scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)(jitWriteData.codeAddress & ~1));
     }
 
     workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
