@@ -734,6 +734,13 @@
   </test>
   <test>
     <default>
+      <files>bug_12044876.js</files>
+        <compile-flags>-forcearraybtree</compile-flags>
+        <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>array_conv_src.js</files>
     </default>
   </test>
