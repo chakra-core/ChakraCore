@@ -20,8 +20,7 @@ WasmSignature::WasmSignature() :
 {
 }
 
-void
-WasmSignature::AllocateParams(uint32 count, Recycler * recycler)
+void WasmSignature::AllocateParams(uint32 count, Recycler* recycler)
 {
     if (count > 0)
     {
@@ -30,8 +29,7 @@ WasmSignature::AllocateParams(uint32 count, Recycler * recycler)
     m_paramsCount = count;
 }
 
-void
-WasmSignature::SetParam(WasmTypes::WasmType type, uint32 index)
+void WasmSignature::SetParam(WasmTypes::WasmType type, uint32 index)
 {
     if (index >= GetParamCount())
     {
@@ -40,22 +38,19 @@ WasmSignature::SetParam(WasmTypes::WasmType type, uint32 index)
     m_params[index] = Local(type);
 }
 
-void
-WasmSignature::SetResultType(WasmTypes::WasmType type)
+void WasmSignature::SetResultType(WasmTypes::WasmType type)
 {
     Assert(m_resultType == WasmTypes::Void);
     m_resultType = type;
 }
 
-void
-WasmSignature::SetSignatureId(uint32 id)
+void WasmSignature::SetSignatureId(uint32 id)
 {
     Assert(m_id == Js::Constants::UninitializedValue);
     m_id = id;
 }
 
-Local
-WasmSignature::GetParam(uint32 index) const
+Local WasmSignature::GetParam(uint32 index) const
 {
     if (index >= GetParamCount())
     {
@@ -64,32 +59,27 @@ WasmSignature::GetParam(uint32 index) const
     return m_params[index];
 }
 
-WasmTypes::WasmType
-WasmSignature::GetResultType() const
+WasmTypes::WasmType WasmSignature::GetResultType() const
 {
     return m_resultType;
 }
 
-uint32
-WasmSignature::GetParamCount() const
+uint32 WasmSignature::GetParamCount() const
 {
     return m_paramsCount;
 }
 
-uint32
-WasmSignature::GetSignatureId() const
+uint32 WasmSignature::GetSignatureId() const
 {
     return m_id;
 }
 
-size_t
-WasmSignature::GetShortSig() const
+size_t WasmSignature::GetShortSig() const
 {
     return m_shortSig;
 }
 
-bool
-WasmSignature::IsEquivalent(const WasmSignature* sig) const
+bool WasmSignature::IsEquivalent(const WasmSignature* sig) const
 {
     if (m_shortSig != Js::Constants::InvalidSignature)
     {
@@ -130,8 +120,7 @@ uint32 WasmSignature::GetParamSize(uint32 index) const
     }
 }
 
-void
-WasmSignature::FinalizeSignature()
+void WasmSignature::FinalizeSignature()
 {
     Assert(m_paramSize == Js::Constants::UninitializedValue);
     Assert(m_shortSig == Js::Constants::InvalidSignature);
@@ -159,14 +148,12 @@ WasmSignature::FinalizeSignature()
     }
 }
 
-uint32
-WasmSignature::GetParamsSize() const
+uint32 WasmSignature::GetParamsSize() const
 {
     return m_paramSize;
 }
 
-WasmSignature *
-WasmSignature::FromIDL(WasmSignatureIDL* sig)
+WasmSignature* WasmSignature::FromIDL(WasmSignatureIDL* sig)
 {
     // must update WasmSignatureIDL when changing WasmSignature
     CompileAssert(sizeof(Wasm::WasmSignature) == sizeof(WasmSignatureIDL));
@@ -181,8 +168,7 @@ WasmSignature::FromIDL(WasmSignatureIDL* sig)
     return reinterpret_cast<WasmSignature*>(sig);
 }
 
-uint32
-WasmSignature::WriteSignatureToString(_Out_writes_(maxlen) char16* out, uint32 maxlen)
+uint32 WasmSignature::WriteSignatureToString(_Out_writes_(maxlen) char16* out, uint32 maxlen)
 {
     AssertOrFailFast(out != nullptr);
     uint32 numwritten = 0;
@@ -207,8 +193,7 @@ WasmSignature::WriteSignatureToString(_Out_writes_(maxlen) char16* out, uint32 m
     return numwritten;
 }
 
-void
-WasmSignature::Dump()
+void WasmSignature::Dump()
 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     char16 buf[512] = { 0 };

@@ -40,7 +40,7 @@ namespace Wasm
     class WasmBinaryReader : public WasmReaderBase
     {
     public:
-        WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, const byte* source, size_t length);
+        WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule* module, const byte* source, size_t length);
 
         void InitializeReader();
         SectionHeader ReadNextSection();
@@ -118,7 +118,7 @@ namespace Wasm
             READER_STATE_FUNCTION,
             READER_STATE_MODULE
         } m_readerState;
-        Js::WebAssemblyModule * m_module;
+        Js::WebAssemblyModule* m_module;
 #if DBG_DUMP
         typedef JsUtil::BaseHashSet<WasmOp, ArenaAllocator, PowerOf2SizePolicy> OpSet;
         OpSet* m_ops;

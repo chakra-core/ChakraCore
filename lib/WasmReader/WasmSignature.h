@@ -12,7 +12,7 @@ class WasmSignature
 public:
     WasmSignature();
 
-    void AllocateParams(uint32 count, Recycler * recycler);
+    void AllocateParams(uint32 count, Recycler* recycler);
     void SetParam(WasmTypes::WasmType type, uint32 index);
     void SetResultType(WasmTypes::WasmType type);
     void SetSignatureId(uint32 id);
@@ -27,7 +27,7 @@ public:
     size_t GetShortSig() const;
 
     bool IsEquivalent(const WasmSignature* sig) const;
-    static WasmSignature * FromIDL(WasmSignatureIDL* sig);
+    static WasmSignature* FromIDL(WasmSignatureIDL* sig);
 
     static uint32 GetOffsetOfShortSig() { return offsetof(WasmSignature, m_shortSig); }
 

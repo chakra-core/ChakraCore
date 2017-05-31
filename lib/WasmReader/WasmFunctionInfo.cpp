@@ -10,7 +10,7 @@
 namespace Wasm
 {
 
-WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc, WasmSignature* signature, uint32 number) : 
+WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator* alloc, WasmSignature* signature, uint32 number) : 
     m_alloc(alloc),
     m_signature(signature),
     m_body(nullptr),
@@ -29,8 +29,7 @@ WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc, WasmSignature* signat
     }
 }
 
-void
-WasmFunctionInfo::AddLocal(WasmTypes::WasmType type, uint32 count)
+void WasmFunctionInfo::AddLocal(WasmTypes::WasmType type, uint32 count)
 {
     for (uint32 i = 0; i < count; ++i)
     {
@@ -38,8 +37,7 @@ WasmFunctionInfo::AddLocal(WasmTypes::WasmType type, uint32 count)
     }
 }
 
-Local
-WasmFunctionInfo::GetLocal(uint32 index) const
+Local WasmFunctionInfo::GetLocal(uint32 index) const
 {
     if (index < GetLocalCount())
     {
@@ -48,30 +46,25 @@ WasmFunctionInfo::GetLocal(uint32 index) const
     return WasmTypes::Limit;
 }
 
-Local
-WasmFunctionInfo::GetParam(uint32 index) const
+Local WasmFunctionInfo::GetParam(uint32 index) const
 {
     return m_signature->GetParam(index);
 }
 
-WasmTypes::WasmType
-WasmFunctionInfo::GetResultType() const
+WasmTypes::WasmType WasmFunctionInfo::GetResultType() const
 {
     return m_signature->GetResultType();
 }
 
-uint32
-WasmFunctionInfo::GetLocalCount() const
+uint32 WasmFunctionInfo::GetLocalCount() const
 {
     return m_locals.Count();
 }
 
-uint32
-WasmFunctionInfo::GetParamCount() const
+uint32 WasmFunctionInfo::GetParamCount() const
 {
     return m_signature->GetParamCount();
 }
-
 
 } // namespace Wasm
 #endif // ENABLE_WASM
