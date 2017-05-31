@@ -13,8 +13,8 @@
 #if DBG_DUMP
 uint32 opId = 0;
 uint32 lastOpId = 1;
-#define DebugPrintOp(op) if (PHASE_TRACE(Js::WasmReaderPhase, GetFunctionBody())) { PrintOpBegin(op); }
-#define DebugPrintOpEnd() if (PHASE_TRACE(Js::WasmReaderPhase, GetFunctionBody())) { PrintOpEnd(); }
+#define DebugPrintOp(op) if (PHASE_TRACE(Js::WasmBytecodePhase, GetFunctionBody())) { PrintOpBegin(op); }
+#define DebugPrintOpEnd() if (PHASE_TRACE(Js::WasmBytecodePhase, GetFunctionBody())) { PrintOpEnd(); }
 #else
 #define DebugPrintOp(op)
 #define DebugPrintOpEnd()
@@ -431,12 +431,12 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
 void
 WasmBytecodeGenerator::GenerateFunction()
 {
-    TRACE_WASM_DECODER(_u("GenerateFunction %u \n"), m_funcInfo->GetNumber());
+    TRACE_WASM_BYTECODE(_u("GenerateFunction %u \n"), m_funcInfo->GetNumber());
     if (PHASE_OFF(Js::WasmBytecodePhase, GetFunctionBody()))
     {
         throw WasmCompilationException(_u("Compilation skipped"));
     }
-    Js::AutoProfilingPhase functionProfiler(m_scriptContext, Js::WasmFunctionBodyPhase);
+    Js::AutoProfilingPhase functionProfiler(m_scriptContext, Js::WasmBytecodePhase);
     Unused(functionProfiler);
 
     m_maxArgOutDepth = 0;
