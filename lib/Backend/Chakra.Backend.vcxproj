@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -217,6 +217,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionCodeGenJitTimeData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBlockData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ValueInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITThunkEmitter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -390,6 +391,7 @@
     <ClInclude Include="IRViewer.h" />
     <ClInclude Include="IRType.h" />
     <ClInclude Include="IRTypeList.h" />
+    <ClInclude Include="JITThunkEmitter.h" />
     <ClInclude Include="ObjTypeSpecFldInfo.h" />
     <ClInclude Include="JITOutput.h" />
     <ClInclude Include="JITRecyclableObject.h" />

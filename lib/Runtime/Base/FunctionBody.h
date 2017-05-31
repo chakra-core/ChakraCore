@@ -581,6 +581,7 @@ namespace Js
 
         Field(CodeGenWorkItem *) workItem;
         FieldNoBarrier(Js::JavascriptMethod) nativeAddress;
+        FieldNoBarrier(Js::JavascriptMethod) thunkAddress;
         Field(ptrdiff_t) codeSize;
 
     protected:
@@ -844,11 +845,12 @@ namespace Js
             this->state = CodeGenPending;
         }
 
-        void SetCodeGenRecorded(Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize)
+        void SetCodeGenRecorded(Js::JavascriptMethod thunkAddress, Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize)
         {
             Assert(this->GetState() == CodeGenQueued);
             Assert(codeSize > 0);
             this->nativeAddress = nativeAddress;
+            this->thunkAddress = thunkAddress;
             this->codeSize = codeSize;
             this->state = CodeGenRecorded;
 
@@ -895,6 +897,20 @@ namespace Js
 
             // !! this is illegal, however (by design) `IsInNativeAddressRange` (right above) needs it
             return reinterpret_cast<DWORD_PTR>(this->nativeAddress);
+        }
+
+        Js::JavascriptMethod GetThunkAddress() const
+        {
+            Assert(this->GetState() == CodeGenRecorded || this->GetState() == CodeGenDone);
+
+            return this->thunkAddress;
+        }
+
+        Js::JavascriptMethod GetNativeEntrypoint() const
+        {
+            Assert(this->GetState() == CodeGenRecorded || this->GetState() == CodeGenDone || this->isAsmJsFunction);
+
+            return this->thunkAddress ? this->thunkAddress : this->nativeAddress;
         }
 
         ptrdiff_t GetCodeSize() const

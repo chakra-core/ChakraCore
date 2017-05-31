@@ -1418,7 +1418,7 @@ private:
         }
 
     public:
-        void FreeFunctionEntryPoint(Js::JavascriptMethod method);
+        void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);
 
     private:
         uint CloneSource(Utf8SourceInfo* info);

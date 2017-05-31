@@ -177,6 +177,9 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     thunkPageAllocators(allocationPolicyManager, /* allocXData */ false, /* virtualAllocator */ nullptr, GetCurrentProcess()),
 #endif
     codePageAllocators(allocationPolicyManager, ALLOC_XDATA, GetPreReservedVirtualAllocator(), GetCurrentProcess()),
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+    jitThunkEmitter(this, &VirtualAllocWrapper::Instance , GetCurrentProcess()),
+#endif
 #endif
     dynamicObjectEnumeratorCacheMap(&HeapAllocator::Instance, 16),
     //threadContextFlags(ThreadContextFlagNoFlag),
@@ -2009,7 +2012,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
         }
     }
 
-    HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
+    HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr, &m_jitThunkStartAddr);
     JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
 
     return m_remoteThreadContextInfo != nullptr;

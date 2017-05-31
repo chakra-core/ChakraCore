@@ -40,6 +40,7 @@ add_library (Chakra.Backend OBJECT
     InliningHeuristics.cpp
     IntBounds.cpp
     InterpreterThunkEmitter.cpp
+    JITThunkEmitter.cpp
     JITOutput.cpp
     JITTimeConstructorCache.cpp
     JITTimeFunctionBody.cpp
