@@ -521,7 +521,7 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
     char16 moduleName[_MAX_PATH];
     if (!GetModuleFileName(0, moduleName, _MAX_PATH))
     {
-        AssertMsg(FALSE, "Get executable file name failed");
+        AssertMsg(FALSE, "Get filename of the current executable failed");
     }
     _wsplitpath_s(moduleName, nullptr, 0, nullptr, 0, fileName, _MAX_PATH, nullptr, 0);
     if (_wcsicmp(fileName, _u("WWAHost")) == 0 ||
