@@ -57,6 +57,7 @@
     <ClInclude Include="WasmDataSegment.h" />
     <ClInclude Include="WasmElementSegment.h" />
     <ClInclude Include="WasmFunctionInfo.h" />
+    <ClInclude Include="WasmLimits.h" />
     <ClInclude Include="WasmReader.h" />
     <ClInclude Include="WasmReaderBase.h" />
     <ClInclude Include="WasmReaderPch.h" />

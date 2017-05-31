@@ -235,7 +235,7 @@ WasmModuleGenerator::GenerateModule()
     }
 #endif
     // If we see a FunctionSignatures section we need to see a FunctionBodies section
-    if (visitedSections.Test(bSectFunctionSignatures) && !visitedSections.Test(bSectFunctionBodies))
+    if (visitedSections.Test(bSectFunction) && !visitedSections.Test(bSectFunctionBodies))
     {
         throw WasmCompilationException(_u("Missing required section: %s"), SectionInfo::All[bSectFunctionBodies].name);
     }
