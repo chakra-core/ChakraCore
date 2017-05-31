@@ -117,13 +117,12 @@ WebAssemblyTable::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
         deltaVar = args[1];
     }
     uint32 delta = WebAssembly::ToNonWrappingUint32(deltaVar, scriptContext);
-    if ((uint64)table->m_currentLength + delta > (uint64)table->m_maxLength)
+    uint32 newLength = 0;
+    if (UInt32Math::Add(table->m_currentLength, delta, &newLength) || newLength > table->m_maxLength)
     {
         JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
-    CompileAssert(sizeof(table->m_maxLength) == sizeof(uint32));
 
-    uint32 newLength = table->m_currentLength + delta;
     Field(Var) * newValues = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), newLength);
     CopyArray(newValues, newLength, table->m_values, table->m_currentLength);
 
