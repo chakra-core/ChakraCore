@@ -27,7 +27,7 @@ public:
     size_t GetShortSig() const;
 
     bool IsEquivalent(const WasmSignature* sig) const;
-    static WasmSignature * FromIDL(WasmSignatureIDL* sig);
+    static WasmSignature* FromIDL(WasmSignatureIDL* sig);
 
     static uint32 GetOffsetOfShortSig() { return offsetof(WasmSignature, m_shortSig); }
 

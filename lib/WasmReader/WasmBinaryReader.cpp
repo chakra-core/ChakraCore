@@ -36,9 +36,9 @@ uint32 GetTypeByteSize(WasmType type)
     }
 }
 
-char16 const * GetTypeName(WasmType type)
+const char16 * GetTypeName(WasmType type)
 {
-    char16 const* typestring = _u("unknown");
+    const char16* typestring = _u("unknown");
     switch (type) {
     case WasmTypes::WasmType::Void:
         typestring = _u("void");
@@ -64,8 +64,7 @@ char16 const * GetTypeName(WasmType type)
 
 } // namespace WasmTypes
 
-WasmTypes::WasmType 
-LanguageTypes::ToWasmType(int8 binType)
+WasmTypes::WasmType LanguageTypes::ToWasmType(int8 binType)
 {
     switch (binType)
     {
@@ -78,13 +77,12 @@ LanguageTypes::ToWasmType(int8 binType)
     }
 }
 
-bool
-FunctionIndexTypes::CanBeExported(FunctionIndexTypes::Type funcType)
+bool FunctionIndexTypes::CanBeExported(FunctionIndexTypes::Type funcType)
 {
     return funcType == FunctionIndexTypes::Function || funcType == FunctionIndexTypes::ImportThunk;
 }
 
-WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, const byte* source, size_t length) :
+WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule* module, const byte* source, size_t length) :
     m_module(module),
     m_curFuncEnd(nullptr),
     m_alloc(alloc),
@@ -104,16 +102,14 @@ void WasmBinaryReader::InitializeReader()
     m_readerState = READER_STATE_UNKNOWN;
 }
 
-void
-WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
+void WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
 {
     va_list argptr;
     va_start(argptr, msg);
     throw WasmCompilationException(msg, argptr);
 }
 
-SectionHeader
-WasmBinaryReader::ReadNextSection()
+SectionHeader WasmBinaryReader::ReadNextSection()
 {
     while (true)
     {
@@ -137,8 +133,7 @@ WasmBinaryReader::ReadNextSection()
     }
 }
 
-bool
-WasmBinaryReader::ProcessCurrentSection()
+bool WasmBinaryReader::ProcessCurrentSection()
 {
     Assert(m_currentSection.code != bSectLimit);
     TRACE_WASM_SECTION(_u("Process section %s"), SectionInfo::All[m_currentSection.code].name);
@@ -196,8 +191,7 @@ WasmBinaryReader::ProcessCurrentSection()
     return m_pc == m_currentSection.end;
 }
 
-SectionHeader
-WasmBinaryReader::ReadSectionHeader()
+SectionHeader WasmBinaryReader::ReadSectionHeader()
 {
     SectionHeader header;
     header.start = m_pc;
@@ -232,15 +226,14 @@ WasmBinaryReader::ReadSectionHeader()
 }
 
 #if DBG_DUMP
-void
-WasmBinaryReader::PrintOps()
+void WasmBinaryReader::PrintOps()
 {
     int count = m_ops->Count();
     if (count == 0)
     {
         return;
     }
-    WasmOp * ops = HeapNewArray(WasmOp, count);
+    WasmOp* ops = HeapNewArray(WasmOp, count);
 
     auto iter = m_ops->GetIterator();
     int i = 0;
@@ -278,8 +271,7 @@ WasmBinaryReader::PrintOps()
 
 #endif
 
-void
-WasmBinaryReader::ReadFunctionHeaders()
+void WasmBinaryReader::ReadFunctionHeaders()
 {
     uint32 len;
     uint32 entries = LEB128(len);
@@ -365,8 +357,7 @@ bool WasmBinaryReader::IsCurrentFunctionCompleted() const
     return m_pc == m_curFuncEnd;
 }
 
-WasmOp
-WasmBinaryReader::ReadExpr()
+WasmOp WasmBinaryReader::ReadExpr()
 {
     WasmOp op = m_currentNode.op = (WasmOp)*m_pc++;
     ++m_funcState.count;
@@ -451,8 +442,7 @@ WasmBinaryReader::ReadExpr()
     return op;
 }
 
-void
-WasmBinaryReader::ValidateModuleHeader()
+void WasmBinaryReader::ValidateModuleHeader()
 {
     uint32 bytesLeft = (uint32)(m_end - m_pc);
     if (bytesLeft > Limits::GetMaxModuleSize())
@@ -482,8 +472,7 @@ WasmBinaryReader::ValidateModuleHeader()
     }
 }
 
-void
-WasmBinaryReader::CallNode()
+void WasmBinaryReader::CallNode()
 {
     uint32 length = 0;
 
@@ -498,8 +487,7 @@ WasmBinaryReader::CallNode()
     m_currentNode.call.num = funcNum;
 }
 
-void
-WasmBinaryReader::CallIndirectNode()
+void WasmBinaryReader::CallIndirectNode()
 {
     uint32 length = 0;
 
@@ -528,16 +516,14 @@ void WasmBinaryReader::BlockNode()
 }
 
 // control flow
-void
-WasmBinaryReader::BrNode()
+void WasmBinaryReader::BrNode()
 {
     uint32 len = 0;
     m_currentNode.br.depth = LEB128(len);
     m_funcState.count += len;
 }
 
-void
-WasmBinaryReader::BrTableNode()
+void WasmBinaryReader::BrTableNode()
 {
     uint32 len = 0;
     m_currentNode.brTable.numTargets = LEB128(len);
@@ -557,8 +543,7 @@ WasmBinaryReader::BrTableNode()
     m_funcState.count += len;
 }
 
-void
-WasmBinaryReader::MemNode()
+void WasmBinaryReader::MemNode()
 {
     uint32 len = 0;
 
@@ -572,8 +557,7 @@ WasmBinaryReader::MemNode()
 }
 
 // Locals/Globals
-void
-WasmBinaryReader::VarNode()
+void WasmBinaryReader::VarNode()
 {
     uint32 length;
     m_currentNode.var.num = LEB128(length);
@@ -606,21 +590,17 @@ void WasmBinaryReader::ConstNode()
     }
 }
 
-bool
-WasmBinaryReader::EndOfFunc()
+bool WasmBinaryReader::EndOfFunc()
 {
     return m_funcState.count >= m_funcState.size;
 }
 
-bool
-WasmBinaryReader::EndOfModule()
+bool WasmBinaryReader::EndOfModule()
 {
     return (m_pc >= m_end);
 }
 
-// readers
-void
-WasmBinaryReader::ReadMemorySection(bool isImportSection)
+void WasmBinaryReader::ReadMemorySection(bool isImportSection)
 {
     uint32 length = 0;
     uint32 count;
@@ -644,8 +624,7 @@ WasmBinaryReader::ReadMemorySection(bool isImportSection)
     }
 }
 
-void
-WasmBinaryReader::ReadSignatureTypeSection()
+void WasmBinaryReader::ReadSignatureTypeSection()
 {
     uint32 len = 0;
     const uint32 numTypes = LEB128(len);
@@ -660,7 +639,7 @@ WasmBinaryReader::ReadSignatureTypeSection()
     {
         TRACE_WASM_DECODER(_u("Signature #%u"), i);
 
-        WasmSignature * sig = m_module->GetSignature(i);
+        WasmSignature* sig = m_module->GetSignature(i);
         sig->SetSignatureId(i);
         int8 form = ReadConst<int8>();
         if (form != LanguageTypes::func)
@@ -696,8 +675,7 @@ WasmBinaryReader::ReadSignatureTypeSection()
     }
 }
 
-void
-WasmBinaryReader::ReadFunctionSignatures()
+void WasmBinaryReader::ReadFunctionSignatures()
 {
     uint32 len = 0;
     uint32 nFunctions = LEB128(len);
@@ -849,8 +827,7 @@ void WasmBinaryReader::ReadTableSection(bool isImportSection)
     }
 }
 
-void
-WasmBinaryReader::ReadElementSection()
+void WasmBinaryReader::ReadElementSection()
 {
     uint32 length = 0;
     uint32 numSegments = LEB128(length);
@@ -882,7 +859,7 @@ WasmBinaryReader::ReadElementSection()
             ThrowDecodingError(_u("too many table elements"));
         }
 
-        WasmElementSegment *eSeg = Anew(m_alloc, WasmElementSegment, m_alloc, index, initExpr, numElem);
+        WasmElementSegment*eSeg = Anew(m_alloc, WasmElementSegment, m_alloc, index, initExpr, numElem);
 
         for (uint32 iElem = 0; iElem < numElem; ++iElem)
         {
@@ -898,8 +875,7 @@ WasmBinaryReader::ReadElementSection()
     }
 }
 
-void
-WasmBinaryReader::ReadDataSection()
+void WasmBinaryReader::ReadDataSection()
 {
     uint32 len = 0;
     const uint32 numSegments = LEB128(len);
@@ -925,15 +901,14 @@ WasmBinaryReader::ReadDataSection()
 
         //uint32 offset = initExpr.cnst.i32;
         uint32 dataByteLen = LEB128(len);
-        WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, initExpr, dataByteLen, m_pc);
+        WasmDataSegment* dseg = Anew(m_alloc, WasmDataSegment, m_alloc, initExpr, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
         m_pc += dataByteLen;
         m_module->SetDataSeg(dseg, i);
     }
 }
 
-void
-WasmBinaryReader::ReadNameSection()
+void WasmBinaryReader::ReadNameSection()
 {
     uint32 len = 0;
     uint32 numFuncNames = LEB128(len);
@@ -962,8 +937,7 @@ WasmBinaryReader::ReadNameSection()
     }
 }
 
-void
-WasmBinaryReader::ReadGlobalSection()
+void WasmBinaryReader::ReadGlobalSection()
 {
     uint32 len = 0;
     uint32 numGlobals = LEB128(len);
@@ -1003,8 +977,7 @@ WasmBinaryReader::ReadGlobalSection()
     }
 }
 
-void
-WasmBinaryReader::ReadCustomSection()
+void WasmBinaryReader::ReadCustomSection()
 {
     CustomSection customSection;
     customSection.name = m_currentSection.name;
@@ -1021,8 +994,7 @@ WasmBinaryReader::ReadCustomSection()
     m_pc = m_currentSection.end;
 }
 
-const char16*
-WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
+const char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
 {
     uint32 rawNameLength = LEB128(length);
     if (rawNameLength > Limits::GetMaxStringSize())
@@ -1048,8 +1020,7 @@ WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
     return contents;
 }
 
-void
-WasmBinaryReader::ReadImportSection()
+void WasmBinaryReader::ReadImportSection()
 {
     uint32 len = 0;
     uint32 numImports = LEB128(len);
@@ -1111,8 +1082,7 @@ WasmBinaryReader::ReadImportSection()
     }
 }
 
-void
-WasmBinaryReader::ReadStartFunction()
+void WasmBinaryReader::ReadStartFunction()
 {
     uint32 len = 0;
     uint32 id = LEB128(len);
@@ -1130,8 +1100,7 @@ WasmBinaryReader::ReadStartFunction()
 }
 
 template<typename MaxAllowedType>
-MaxAllowedType
-WasmBinaryReader::LEB128(uint32 &length, bool sgn)
+MaxAllowedType WasmBinaryReader::LEB128(uint32 &length, bool sgn)
 {
     MaxAllowedType result = 0;
     uint32 shamt = 0;
@@ -1193,8 +1162,7 @@ WasmBinaryReader::LEB128(uint32 &length, bool sgn)
 
 // Signed LEB128
 template<>
-int32
-WasmBinaryReader::SLEB128(uint32 &length)
+int32 WasmBinaryReader::SLEB128(uint32 &length)
 {
     int32 result = LEB128<uint32>(length, true);
 
@@ -1203,8 +1171,7 @@ WasmBinaryReader::SLEB128(uint32 &length)
 }
 
 template<>
-int64
-WasmBinaryReader::SLEB128(uint32 &length)
+int64 WasmBinaryReader::SLEB128(uint32 &length)
 {
     int64 result = LEB128<uint64>(length, true);
 
@@ -1212,8 +1179,7 @@ WasmBinaryReader::SLEB128(uint32 &length)
     return result;
 }
 
-WasmNode
-WasmBinaryReader::ReadInitExpr(bool isOffset)
+WasmNode WasmBinaryReader::ReadInitExpr(bool isOffset)
 {
     if (m_readerState != READER_STATE_MODULE)
     {
@@ -1292,8 +1258,7 @@ T WasmBinaryReader::ReadConst()
     return value;
 }
 
-uint8
-WasmBinaryReader::ReadVarUInt7()
+uint8 WasmBinaryReader::ReadVarUInt7()
 {
     return ReadConst<uint8>() & 0x7F;
 }
@@ -1310,15 +1275,13 @@ bool WasmBinaryReader::ReadMutableValue()
     }
 }
 
-WasmTypes::WasmType
-WasmBinaryReader::ReadWasmType(uint32& length)
+WasmTypes::WasmType WasmBinaryReader::ReadWasmType(uint32& length)
 {
     length = 1;
     return LanguageTypes::ToWasmType(ReadConst<int8>());
 }
 
-void
-WasmBinaryReader::CheckBytesLeft(uint32 bytesNeeded)
+void WasmBinaryReader::CheckBytesLeft(uint32 bytesNeeded)
 {
     uint32 bytesLeft = (uint32)(m_end - m_pc);
     if (bytesNeeded > bytesLeft)
@@ -1328,7 +1291,5 @@ WasmBinaryReader::CheckBytesLeft(uint32 bytesNeeded)
 }
 
 } // namespace Wasm
-
-#undef TRACE_WASM_DECODER
 
 #endif // ENABLE_WASM
