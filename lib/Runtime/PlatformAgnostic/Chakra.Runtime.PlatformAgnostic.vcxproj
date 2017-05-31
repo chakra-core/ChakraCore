@@ -8,7 +8,6 @@
     <RootNamespace>JS</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>Chakra.Runtime.PlatformAgnostic</ProjectName>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
