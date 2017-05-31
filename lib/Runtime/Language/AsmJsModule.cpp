@@ -190,12 +190,15 @@ namespace Js
         // Create export module proxy
         asmInfo->SetExportFunctionIndex(mExportFuncIndex);
         asmInfo->SetExportsCount(mExports.Count());
-        for (int i = 0; i < mExports.Count(); i++)
+        auto exportIter = mExports.GetIterator();
+
+        for(int exportIndex = 0; exportIter.IsValid(); ++exportIndex)
         {
-            AsmJsModuleExport& exMod = mExports.Item(i);
-            auto ex = asmInfo->GetExport(i);
+            const AsmJsModuleExport& exMod = exportIter.CurrentValue();
+            auto ex = asmInfo->GetExport(exportIndex);
             *ex.id = exMod.id;
             *ex.location = exMod.location;
+            exportIter.MoveNext();
         }
 
         int iVar = 0, iVarImp = 0, iFunc = 0, iFuncImp = 0;
@@ -2345,12 +2348,21 @@ namespace Js
 
     bool AsmJsModuleCompiler::AddExport( PropertyName name, RegSlot location )
     {
-        AsmJsModuleExport ex;
-        ex.id = name->GetPropertyId();
-        ex.location = location;
-
-        // return is < 0 if count overflowed 31bits
-        return mExports.Add( ex ) >= 0;
+        AsmJsModuleExport * foundExport;
+        if (mExports.TryGetReference(name->GetPropertyId(), &foundExport))
+        {
+            AsmJSCompiler::OutputMessage(GetScriptContext(), DEIT_GENERAL, _u("Warning: redefining export"));
+            foundExport->location = location;
+            return true;
+        }
+        else
+        {
+            AsmJsModuleExport ex;
+            ex.id = name->GetPropertyId();
+            ex.location = location;
+            return mExports.Add(ex.id, ex) >= 0;
+            // return is < 0 if count overflowed 31bits
+        }
     }
 
     bool AsmJsModuleCompiler::SetExportFunc( AsmJsFunc* func )
