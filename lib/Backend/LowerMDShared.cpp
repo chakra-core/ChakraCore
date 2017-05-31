@@ -2861,6 +2861,7 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
     {
         IR::LabelInstr* skipLow = IR::LabelInstr::New(Js::OpCode::Label, m_func);
         newInstr = IR::BranchInstr::New(Js::OpCode::JNE, skipLow, this->m_func);
+        newInstr->AsBranchInstr()->m_areCmpRegisterFlagsUsedLater = true;
         done->InsertBefore(newInstr);
 
         newInstr = IR::Instr::New(cmpOp, this->m_func);
