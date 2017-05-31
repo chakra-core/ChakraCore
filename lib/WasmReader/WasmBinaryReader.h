@@ -29,6 +29,12 @@ namespace Wasm
         const char16* name;
     };
 
+    struct SectionLimits
+    {
+        uint32 initial;
+        uint32 maximum;
+    };
+
     static const unsigned int binaryVersion = 0x1;
 
     class WasmBinaryReader : public WasmReaderBase
@@ -67,17 +73,17 @@ namespace Wasm
         void ValidateModuleHeader();
         SectionHeader ReadSectionHeader();
         void ReadMemorySection(bool isImportSection);
-        void ReadSignatures();
-        void ReadFunctionsSignatures();
+        void ReadSignatureTypeSection();
+        void ReadFunctionSignatures();
         void ReadFunctionHeaders();
-        void ReadExportTable();
+        void ReadExportSection();
         void ReadTableSection(bool isImportSection);
-        void ReadDataSegments();
-        void ReadImportEntries();
+        void ReadDataSection();
+        void ReadImportSection();
         void ReadStartFunction();
-        void ReadNamesSection();
+        void ReadNameSection();
         void ReadElementSection();
-        void ReadGlobalsSection();
+        void ReadGlobalSection();
         void ReadCustomSection();
 
         // Primitive reader
@@ -91,6 +97,7 @@ namespace Wasm
         template<typename MaxAllowedType = INT>
         MaxAllowedType SLEB128(UINT &length);
         WasmNode ReadInitExpr(bool isOffset = false);
+        SectionLimits ReadSectionLimits(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg);
 
         void CheckBytesLeft(UINT bytesNeeded);
         bool EndOfFunc();
