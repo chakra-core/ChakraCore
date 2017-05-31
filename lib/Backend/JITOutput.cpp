@@ -224,18 +224,39 @@ JITOutput::FinalizeNativeCode()
     if (JITManager::GetJITManager()->IsJITServer())
     {
         m_func->GetOOPCodeGenAllocators()->emitBufferManager.CompletePreviousAllocation(m_oopAlloc);
+#if defined(_CONTROL_FLOW_GUARD)
+#if _M_IX86 || _M_X64
+        if (m_func->GetThreadContextInfo()->IsCFGEnabled() && !m_func->IsLoopBody())
+        {
+            m_outputData->thunkAddress = m_func->GetOOPThreadContext()->GetJITThunkEmitter()->CreateThunk(m_outputData->codeAddress);
+        }
+#endif
+#endif
     }
     else
 #endif
     {
         m_func->GetInProcCodeGenAllocators()->emitBufferManager.CompletePreviousAllocation(m_inProcAlloc);
-
         m_func->GetInProcJITEntryPointInfo()->SetInProcJITNativeCodeData(m_func->GetNativeCodeDataAllocator()->Finalize());
         m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetRawData(m_func->GetTransferDataAllocator()->Finalize());
 #if !FLOATVAR
         CodeGenNumberChunk * numberChunks = m_func->GetNumberAllocator()->Finalize();
         m_func->GetInProcJITEntryPointInfo()->SetNumberChunks(numberChunks);
 #endif
+
+#if defined(_CONTROL_FLOW_GUARD)
+#if _M_IX86 || _M_X64
+        if (m_func->GetThreadContextInfo()->IsCFGEnabled() && !m_func->IsLoopBody())
+        {
+            m_outputData->thunkAddress = m_func->GetInProcThreadContext()->GetJITThunkEmitter()->CreateThunk(m_outputData->codeAddress);
+        }
+#endif
+#endif
+    }
+
+    if (!m_outputData->thunkAddress && CONFIG_FLAG(OOPCFGRegistration))
+    {
+        m_func->GetThreadContextInfo()->SetValidCallTargetForCFG((PVOID)m_outputData->codeAddress);
     }
 }
 

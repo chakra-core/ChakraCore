@@ -174,6 +174,7 @@ enum IRDumpFlags
 #include "Encoder.h"
 #include "EmitBuffer.h"
 #include "InterpreterThunkEmitter.h"
+#include "JITThunkEmitter.h"
 #include "InliningHeuristics.h"
 #include "InliningDecider.h"
 #include "Inline.h"

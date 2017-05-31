@@ -34,7 +34,8 @@ public:
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
         __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __out intptr_t *prereservedRegionAddr);
+        __out intptr_t * prereservedRegionAddr,
+        __out intptr_t * jitThunkAddr);
 
     HRESULT CleanupThreadContext(
         __inout PPTHREADCONTEXT_HANDLE threadContextInfoAddress);
@@ -79,7 +80,8 @@ public:
 
     HRESULT FreeAllocation(
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __in intptr_t address);
+        __in intptr_t codeAddress,
+        __in intptr_t thunkAddress);
 
     HRESULT SetIsPRNGSeeded(
         __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
@@ -149,7 +151,8 @@ public:
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
         __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __out intptr_t *prereservedRegionAddr)
+        __out intptr_t *prereservedRegionAddr,
+        __out intptr_t * jitThunkAddr)
         { Assert(false); return E_FAIL; }
 
     HRESULT DecommitInterpreterBufferManager(
@@ -199,7 +202,8 @@ public:
 
     HRESULT FreeAllocation(
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __in intptr_t address)
+        __in intptr_t codeAddress,
+        __in intptr_t thunkAddress)
         { Assert(false); return E_FAIL; }
 
     HRESULT SetIsPRNGSeeded(

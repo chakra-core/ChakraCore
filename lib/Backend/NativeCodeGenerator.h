@@ -101,10 +101,10 @@ public:
     void UpdateQueueForDebugMode();
     bool IsBackgroundJIT() const;
     void EnterScriptStart();
-    void FreeNativeCodeGenAllocation(void* address);
+    void FreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress);
     bool TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem);
 
-    void QueueFreeNativeCodeGenAllocation(void* address);
+    void QueueFreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress);
 
     bool IsClosed() { return isClosed; }
     void AddWorkItem(CodeGenWorkItem* workItem);
@@ -197,15 +197,17 @@ private:
     class FreeLoopBodyJob: public JsUtil::Job
     {
     public:
-        FreeLoopBodyJob(JsUtil::JobManager *const manager, void* address, bool isHeapAllocated = true):
+        FreeLoopBodyJob(JsUtil::JobManager *const manager, void* codeAddress, void* thunkAddress, bool isHeapAllocated = true):
           JsUtil::Job(manager),
-          codeAddress(address),
+          codeAddress(codeAddress),
+          thunkAddress(thunkAddress),
           heapAllocated(isHeapAllocated)
         {
         }
 
         bool heapAllocated;
         void* codeAddress;
+        void* thunkAddress;
     };
 
     class FreeLoopBodyJobManager sealed: public WaitableJobManager
@@ -274,7 +276,7 @@ private:
             FreeLoopBodyJob* freeLoopBodyJob = static_cast<FreeLoopBodyJob*>(job);
 
             // Free Loop Body
-            nativeCodeGen->FreeNativeCodeGenAllocation(freeLoopBodyJob->codeAddress);
+            nativeCodeGen->FreeNativeCodeGenAllocation(freeLoopBodyJob->codeAddress, freeLoopBodyJob->thunkAddress);
 
             return true;
         }
@@ -297,7 +299,7 @@ private:
             }
         }
 
-        void QueueFreeLoopBodyJob(void* codeAddress);
+        void QueueFreeLoopBodyJob(void* codeAddress, void* thunkAddress);
 
     private:
         NativeCodeGenerator* nativeCodeGen;

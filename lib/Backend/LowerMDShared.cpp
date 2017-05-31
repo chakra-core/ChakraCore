@@ -5778,68 +5778,45 @@ LowererMD::GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInse
 void
 LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeInstr)
 {
-    //PreReserve segment at this point, as we will definitely using this segment for JITted code(in almost all cases)
-    //This is for CFG check optimization
-    IR::LabelInstr * callLabelInstr = nullptr;
-    char * preReservedRegionStartAddress = nullptr;
-
-    if (m_func->CanAllocInPreReservedHeapPageSegment())
+    bool useJITTrampoline = m_func->GetThreadContextInfo()->IsCFGEnabled();
+    IR::LabelInstr * callLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * cfgLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, m_func, useJITTrampoline);
+    uintptr_t jitThunkStartAddress = NULL;
+    if (useJITTrampoline)
     {
-        char* endAddressOfSegment = nullptr;
 #if ENABLE_OOP_NATIVE_CODEGEN
         if (m_func->IsOOPJIT())
         {
-            PreReservedSectionAllocWrapper * preReservedAllocator = m_func->GetOOPThreadContext()->GetPreReservedSectionAllocator();
-            preReservedRegionStartAddress = (char *)preReservedAllocator->EnsurePreReservedRegion();
-            if (preReservedRegionStartAddress != nullptr)
-            {
-                endAddressOfSegment = (char*)preReservedAllocator->GetPreReservedEndAddress();
-            }
+            OOPJITThunkEmitter * jitThunkEmitter = m_func->GetOOPThreadContext()->GetJITThunkEmitter();
+            jitThunkStartAddress = jitThunkEmitter->EnsureInitialized();
         }
         else
 #endif
         {
-            PreReservedVirtualAllocWrapper * preReservedVirtualAllocator = m_func->GetInProcThreadContext()->GetPreReservedVirtualAllocator();
-            preReservedRegionStartAddress = (char *)preReservedVirtualAllocator->EnsurePreReservedRegion();
-            if (preReservedRegionStartAddress != nullptr)
-            {
-                endAddressOfSegment = (char*)preReservedVirtualAllocator->GetPreReservedEndAddress();
-            }
-
+            InProcJITThunkEmitter * jitThunkEmitter = m_func->GetInProcThreadContext()->GetJITThunkEmitter();
+            jitThunkStartAddress = jitThunkEmitter->EnsureInitialized();
         }
-        if (preReservedRegionStartAddress != nullptr)
+        if (jitThunkStartAddress)
         {
-
-            int32 segmentSize = (int32) (endAddressOfSegment - preReservedRegionStartAddress);
+            uintptr_t endAddressOfSegment = jitThunkStartAddress + InProcJITThunkEmitter::TotalThunkSize;
 
             // Generate instructions for local Pre-Reserved Segment Range check
 
             IR::AddrOpnd * endAddressOfSegmentConstOpnd = IR::AddrOpnd::New(endAddressOfSegment, IR::AddrOpndKindDynamicMisc, m_func);
             IR::RegOpnd *resultOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-#if _M_IX86
-            //resultOpnd = endAddressOfSegmentConstOpnd - entryPointOpnd
-            IR::Instr* subInstr = IR::Instr::New(Js::OpCode::Sub_I4, resultOpnd, endAddressOfSegmentConstOpnd, entryPointOpnd, m_func);
-            insertBeforeInstr->InsertBefore(subInstr);
-            this->EmitInt4Instr(subInstr);
-#elif _M_X64
-            //MOV resultOpnd, endAddressOfSegment
-            //resultOpnd = resultOpnd - entryPointOpnd
 
-            IR::Instr   *movInstr = IR::Instr::New(Js::OpCode::MOV, resultOpnd, endAddressOfSegmentConstOpnd, this->m_func);
-            insertBeforeInstr->InsertBefore(movInstr);
-            IR::Instr* subInstr = IR::Instr::New(Js::OpCode::SUB, resultOpnd, resultOpnd, entryPointOpnd, m_func);
-            insertBeforeInstr->InsertBefore(subInstr);
-#endif
-            //CMP subResultOpnd, segmentSize
-            //JL $callLabelInstr:
-
-            AssertMsg((size_t) segmentSize == (size_t) (endAddressOfSegment - preReservedRegionStartAddress), "Need a bigger datatype for segmentSize?");
-            IR::IntConstOpnd * segmentSizeOpnd = IR::IntConstOpnd::New(segmentSize, IRType::TyInt32, m_func, true);
-            callLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-            this->m_lowerer->InsertCompareBranch(resultOpnd, segmentSizeOpnd, Js::OpCode::JBE, callLabelInstr, insertBeforeInstr);
+            // resultOpnd = SUB endAddressOfSegmentConstOpnd, entryPointOpnd
+            // CMP resultOpnd, TotalThunkSize
+            // JAE $cfgLabel
+            // AND entryPointOpnd,  ~(ThunkSize-1)
+            // JMP $callLabel
+            m_lowerer->InsertSub(false, resultOpnd, endAddressOfSegmentConstOpnd, entryPointOpnd, insertBeforeInstr);
+            m_lowerer->InsertCompareBranch(resultOpnd, IR::IntConstOpnd::New(InProcJITThunkEmitter::TotalThunkSize, TyMachReg, m_func, true), Js::OpCode::BrGe_A, true, cfgLabelInstr, insertBeforeInstr);
+            m_lowerer->InsertAnd(entryPointOpnd, entryPointOpnd, IR::IntConstOpnd::New(InProcJITThunkEmitter::ThunkAlignmentMask, TyMachReg, m_func, true), insertBeforeInstr);
+            m_lowerer->InsertBranch(Js::OpCode::Br, callLabelInstr, insertBeforeInstr);
         }
     }
-
+    insertBeforeInstr->InsertBefore(cfgLabelInstr);
     //MOV  ecx, entryPoint
     IR::RegOpnd * entryPointRegOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
 #if _M_IX86
@@ -5871,7 +5848,7 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
     //CALL cfg(rax)
     insertBeforeInstr->InsertBefore(cfgCallInstr);
 
-    if (preReservedRegionStartAddress != nullptr)
+    if (jitThunkStartAddress)
     {
         Assert(callLabelInstr);
 #if DBG
