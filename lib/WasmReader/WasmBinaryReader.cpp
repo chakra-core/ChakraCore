@@ -19,7 +19,7 @@ namespace WasmTypes
 bool IsLocalType(WasmTypes::WasmType type)
 {
     // Check if type in range ]Void,Limit[
-    return (uint)(type - 1) < (WasmTypes::Limit - 1);
+    return (uint32)(type - 1) < (WasmTypes::Limit - 1);
 }
 
 uint32 GetTypeByteSize(WasmType type)
@@ -203,7 +203,7 @@ WasmBinaryReader::ReadSectionHeader()
     header.start = m_pc;
     header.code = bSectLimit;
 
-    UINT len = 0;
+    uint32 len = 0;
     CompileAssert(sizeof(SectionCode) == sizeof(uint8));
     SectionCode sectionId = (SectionCode)ReadVarUInt7();
 
@@ -212,7 +212,7 @@ WasmBinaryReader::ReadSectionHeader()
         ThrowDecodingError(_u("Invalid known section opcode %u"), sectionId);
     }
 
-    UINT32 sectionSize = LEB128(len);
+    uint32 sectionSize = LEB128(len);
     header.end = m_pc + sectionSize;
     CheckBytesLeft(sectionSize);
 
@@ -460,8 +460,8 @@ WasmBinaryReader::ValidateModuleHeader()
         ThrowDecodingError(_u("Module too big"));
     }
 
-    uint32 magicNumber = ReadConst<UINT32>();
-    uint32 version = ReadConst<UINT32>();
+    uint32 magicNumber = ReadConst<uint32>();
+    uint32 version = ReadConst<uint32>();
     TRACE_WASM_DECODER(_u("Module Header: Magic 0x%x, Version %u"), magicNumber, version);
     if (magicNumber != 0x6d736100)
     {
@@ -485,9 +485,9 @@ WasmBinaryReader::ValidateModuleHeader()
 void
 WasmBinaryReader::CallNode()
 {
-    UINT length = 0;
+    uint32 length = 0;
 
-    UINT32 funcNum = LEB128(length);
+    uint32 funcNum = LEB128(length);
     m_funcState.count += length;
     FunctionIndexTypes::Type funcType = m_module->GetFunctionIndexType(funcNum);
     if (funcType == FunctionIndexTypes::Invalid)
@@ -501,9 +501,9 @@ WasmBinaryReader::CallNode()
 void
 WasmBinaryReader::CallIndirectNode()
 {
-    UINT length = 0;
+    uint32 length = 0;
 
-    UINT32 funcNum = LEB128(length);
+    uint32 funcNum = LEB128(length);
     // Reserved value currently unused
     ReadConst<uint8>();
     if (!m_module->HasTable() && !m_module->HasTableImport())
@@ -531,7 +531,7 @@ void WasmBinaryReader::BlockNode()
 void
 WasmBinaryReader::BrNode()
 {
-    UINT len = 0;
+    uint32 len = 0;
     m_currentNode.br.depth = LEB128(len);
     m_funcState.count += len;
 }
@@ -539,16 +539,16 @@ WasmBinaryReader::BrNode()
 void
 WasmBinaryReader::BrTableNode()
 {
-    UINT len = 0;
+    uint32 len = 0;
     m_currentNode.brTable.numTargets = LEB128(len);
     if (m_currentNode.brTable.numTargets > Limits::GetMaxBrTableElems())
     {
         ThrowDecodingError(_u("br_table too big"));
     }
     m_funcState.count += len;
-    m_currentNode.brTable.targetTable = AnewArray(m_alloc, UINT32, m_currentNode.brTable.numTargets);
+    m_currentNode.brTable.targetTable = AnewArray(m_alloc, uint32, m_currentNode.brTable.numTargets);
 
-    for (UINT32 i = 0; i < m_currentNode.brTable.numTargets; i++)
+    for (uint32 i = 0; i < m_currentNode.brTable.numTargets; i++)
     {
         m_currentNode.brTable.targetTable[i] = LEB128(len);
         m_funcState.count += len;
@@ -560,7 +560,7 @@ WasmBinaryReader::BrTableNode()
 void
 WasmBinaryReader::MemNode()
 {
-    uint len = 0;
+    uint32 len = 0;
 
     // flags
     const uint32 flags = LEB128(len);
@@ -575,7 +575,7 @@ WasmBinaryReader::MemNode()
 void
 WasmBinaryReader::VarNode()
 {
-    UINT length;
+    uint32 length;
     m_currentNode.var.num = LEB128(length);
     m_funcState.count += length;
 }
@@ -584,7 +584,7 @@ WasmBinaryReader::VarNode()
 template <WasmTypes::WasmType localType>
 void WasmBinaryReader::ConstNode()
 {
-    UINT len = 0;
+    uint32 len = 0;
     switch (localType)
     {
     case WasmTypes::I32:
@@ -592,7 +592,7 @@ void WasmBinaryReader::ConstNode()
         m_funcState.count += len;
         break;
     case WasmTypes::I64:
-        m_currentNode.cnst.i64 = SLEB128<INT64>(len);
+        m_currentNode.cnst.i64 = SLEB128<int64>(len);
         m_funcState.count += len;
         break;
     case WasmTypes::F32:
@@ -622,8 +622,8 @@ WasmBinaryReader::EndOfModule()
 void
 WasmBinaryReader::ReadMemorySection(bool isImportSection)
 {
-    UINT length = 0;
-    UINT32 count;
+    uint32 length = 0;
+    uint32 count;
     if (isImportSection)
     {
         count = 1;
@@ -669,11 +669,11 @@ WasmBinaryReader::ReadSignatureTypeSection()
         }
 
         uint32 paramCount32 = LEB128(len);
-        if (paramCount > Limits::GetMaxFunctionParams())
+        if (paramCount > Limits::GetMaxFunctionParams() || paramCount > UINT16_MAX)
         {
             ThrowDecodingError(_u("Too many arguments in signature"));
         }
-        WasmTypes::WasmType type;
+
         Js::ArgSlot paramCount = (Js::ArgSlot)paramCount32;
         sig->AllocateParams(paramCount, m_module->GetRecycler());
         for (Js::ArgSlot j = 0; j < paramCount; j++)
@@ -699,7 +699,7 @@ WasmBinaryReader::ReadSignatureTypeSection()
 void
 WasmBinaryReader::ReadFunctionSignatures()
 {
-    UINT len = 0;
+    uint32 len = 0;
     uint32 nFunctions = LEB128(len);
 
     uint32 totalFunctions = 0;
@@ -901,7 +901,7 @@ WasmBinaryReader::ReadElementSection()
 void
 WasmBinaryReader::ReadDataSection()
 {
-    UINT len = 0;
+    uint32 len = 0;
     const uint32 numSegments = LEB128(len);
     if (numSegments > Limits::GetMaxDataSegments())
     {
@@ -915,7 +915,7 @@ WasmBinaryReader::ReadDataSection()
 
     for (uint32 i = 0; i < numSegments; ++i)
     {
-        UINT32 index = LEB128(len);
+        uint32 index = LEB128(len);
         if (index != 0 || !(m_module->HasMemory() || m_module->HasMemoryImport()))
         {
             ThrowDecodingError(_u("Unknown memory index %u"), index);
@@ -923,8 +923,8 @@ WasmBinaryReader::ReadDataSection()
         TRACE_WASM_DECODER(_u("Data Segment #%u"), i);
         WasmNode initExpr = ReadInitExpr(true);
 
-        //UINT32 offset = initExpr.cnst.i32;
-        UINT32 dataByteLen = LEB128(len);
+        //uint32 offset = initExpr.cnst.i32;
+        uint32 dataByteLen = LEB128(len);
         WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, initExpr, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
         m_pc += dataByteLen;
@@ -935,28 +935,28 @@ WasmBinaryReader::ReadDataSection()
 void
 WasmBinaryReader::ReadNameSection()
 {
-    UINT len = 0;
-    UINT numFuncNames = LEB128(len);
+    uint32 len = 0;
+    uint32 numFuncNames = LEB128(len);
 
     if (numFuncNames > Limits::GetMaxFunctions())
     {
         ThrowDecodingError(_u("Too many function names"));
     }
 
-    for (UINT i = 0; i < numFuncNames; ++i)
+    for (uint32 i = 0; i < numFuncNames; ++i)
     {
-        UINT fnNameLen = 0;
+        uint32 fnNameLen = 0;
         WasmFunctionInfo* funsig = m_module->GetWasmFunctionInfo(i);
         const char16* name = ReadInlineName(len, fnNameLen);
         funsig->SetName(name, fnNameLen);
-        UINT numLocals = LEB128(len);
+        uint32 numLocals = LEB128(len);
         if (numLocals != funsig->GetLocalCount())
         {
             ThrowDecodingError(_u("num locals mismatch in names section"));
         }
-        for (UINT j = 0; j < numLocals; ++j)
+        for (uint32 j = 0; j < numLocals; ++j)
         {
-            UINT localNameLen = 0;
+            uint32 localNameLen = 0;
             ReadInlineName(len, localNameLen);
         }
     }
@@ -965,8 +965,8 @@ WasmBinaryReader::ReadNameSection()
 void
 WasmBinaryReader::ReadGlobalSection()
 {
-    UINT len = 0;
-    UINT numGlobals = LEB128(len);
+    uint32 len = 0;
+    uint32 numGlobals = LEB128(len);
 
     uint32 totalGlobals = 0;
     if (UInt32Math::Add(numGlobals, m_module->GetGlobalCount(), &totalGlobals) || totalGlobals > Limits::GetMaxGlobals())
@@ -974,7 +974,7 @@ WasmBinaryReader::ReadGlobalSection()
         ThrowDecodingError(_u("Too many globals"));
     }
 
-    for (UINT i = 0; i < numGlobals; ++i)
+    for (uint32 i = 0; i < numGlobals; ++i)
     {
         WasmTypes::WasmType type = ReadWasmType(len);
         bool isMutable = ReadMutableValue();
@@ -1024,7 +1024,7 @@ WasmBinaryReader::ReadCustomSection()
 const char16*
 WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
 {
-    uint rawNameLength = LEB128(length);
+    uint32 rawNameLength = LEB128(length);
     if (rawNameLength > Limits::GetMaxStringSize())
     {
         ThrowDecodingError(_u("Name too long"));
@@ -1131,16 +1131,16 @@ WasmBinaryReader::ReadStartFunction()
 
 template<typename MaxAllowedType>
 MaxAllowedType
-WasmBinaryReader::LEB128(UINT &length, bool sgn)
+WasmBinaryReader::LEB128(uint32 &length, bool sgn)
 {
     MaxAllowedType result = 0;
-    uint shamt = 0;
+    uint32 shamt = 0;
     byte b = 0;
     length = 1;
-    uint maxReads = sizeof(MaxAllowedType) == 4 ? 5 : 10;
+    uint32 maxReads = sizeof(MaxAllowedType) == 4 ? 5 : 10;
     CompileAssert(sizeof(MaxAllowedType) == 4 || sizeof(MaxAllowedType) == 8);
 
-    for (uint i = 0; i < maxReads; i++, length++)
+    for (uint32 i = 0; i < maxReads; i++, length++)
     {
         CheckBytesLeft(1);
         b = *m_pc++;
@@ -1193,20 +1193,20 @@ WasmBinaryReader::LEB128(UINT &length, bool sgn)
 
 // Signed LEB128
 template<>
-INT
-WasmBinaryReader::SLEB128(UINT &length)
+int32
+WasmBinaryReader::SLEB128(uint32 &length)
 {
-    INT result = LEB128<UINT>(length, true);
+    int32 result = LEB128<uint32>(length, true);
 
     TRACE_WASM_LEB128(_u("Binary decoder: SLEB128 length = %u, value = %d (0x%x)"), length, result, result);
     return result;
 }
 
 template<>
-INT64
-WasmBinaryReader::SLEB128(UINT &length)
+int64
+WasmBinaryReader::SLEB128(uint32 &length)
 {
-    INT64 result = LEB128<UINT64>(length, true);
+    int64 result = LEB128<uint64>(length, true);
 
     TRACE_WASM_LEB128(_u("Binary decoder: SLEB128 length = %u, value = %lld (0x%llx)"), length, result, result);
     return result;
@@ -1318,9 +1318,9 @@ WasmBinaryReader::ReadWasmType(uint32& length)
 }
 
 void
-WasmBinaryReader::CheckBytesLeft(UINT bytesNeeded)
+WasmBinaryReader::CheckBytesLeft(uint32 bytesNeeded)
 {
-    UINT bytesLeft = (UINT)(m_end - m_pc);
+    uint32 bytesLeft = (uint32)(m_end - m_pc);
     if (bytesNeeded > bytesLeft)
     {
         ThrowDecodingError(_u("Out of file: Needed: %d, Left: %d"), bytesNeeded, bytesLeft);

@@ -35,7 +35,7 @@ namespace Wasm
         uint32 maximum;
     };
 
-    static const unsigned int binaryVersion = 0x1;
+    static const uint32 binaryVersion = 0x1;
 
     class WasmBinaryReader : public WasmReaderBase
     {
@@ -57,7 +57,7 @@ namespace Wasm
     private:
         struct ReaderState
         {
-            UINT32 count; // current entry
+            uint32 count; // current entry
             size_t size;  // number of entries
         };
 
@@ -92,21 +92,21 @@ namespace Wasm
         uint8 ReadVarUInt7();
         bool ReadMutableValue();
         const char16* ReadInlineName(uint32& length, uint32& nameLength);
-        template<typename MaxAllowedType = UINT>
-        MaxAllowedType LEB128(UINT &length, bool sgn = false);
-        template<typename MaxAllowedType = INT>
-        MaxAllowedType SLEB128(UINT &length);
+        template<typename MaxAllowedType = uint32>
+        MaxAllowedType LEB128(uint32 &length, bool sgn = false);
+        template<typename MaxAllowedType = int32>
+        MaxAllowedType SLEB128(uint32 &length);
         WasmNode ReadInitExpr(bool isOffset = false);
         SectionLimits ReadSectionLimits(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg);
 
-        void CheckBytesLeft(UINT bytesNeeded);
+        void CheckBytesLeft(uint32 bytesNeeded);
         bool EndOfFunc();
         bool EndOfModule();
         DECLSPEC_NORETURN void ThrowDecodingError(const char16* msg, ...);
         Wasm::WasmTypes::WasmType ReadWasmType(uint32& length);
 
         ArenaAllocator* m_alloc;
-        uint m_funcNumber;
+        uint32 m_funcNumber;
         const byte* m_start, *m_end, *m_pc, *m_curFuncEnd;
         SectionHeader m_currentSection;
         ReaderState m_funcState;   // func AST level
