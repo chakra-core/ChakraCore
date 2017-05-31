@@ -429,6 +429,13 @@ var tests = [
                 assert.areEqual(globalObject, globalEvalLambdaThisWithNestedEval(), "globalEvalLambdaThisWithNestedEval() should equal the global object");
                 assert.areEqual(globalObject, globalEvalNestedEvalLambdaThis(), "globalEvalNestedEvalLambdaThis() should equal the global object");
                 assert.areEqual(globalObject, globalEvalNestedEvalLambdaThisWithNestedEval(), "globalEvalNestedEvalLambdaThisWithNestedEval() should equal the global object");
+
+                this.x = 10;
+                with ({x : 100}) {
+                    lambdaInsideWithEval = (s) => eval(s);
+                    assert.areEqual(10, lambdaInsideWithEval("this.x"), "Arrow function should be able to access this variable within eval");
+                    assert.areEqual(100, x, "Property access on the with construct should work with eval and arrow in the body");
+                }
             }
 
             test.call(thisVal);

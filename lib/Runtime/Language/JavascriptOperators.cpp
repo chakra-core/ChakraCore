@@ -1913,7 +1913,7 @@ CommonNumber:
         for (int i = 0; i < length; i += 1)
         {
             Var value;
-            DynamicObject *obj = DynamicObject::FromVar(pScope->GetItem(i));
+            RecyclableObject *obj = RecyclableObject::FromVar(pScope->GetItem(i));
             if (JavascriptOperators::GetProperty(obj, Js::PropertyIds::_lexicalThisSlotSymbol, &value, scriptContext))
             {
                 return value;
