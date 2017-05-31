@@ -55,7 +55,7 @@ WasmSignature::SetSignatureId(uint32 id)
 }
 
 Local
-WasmSignature::GetParam(uint index) const
+WasmSignature::GetParam(uint32 index) const
 {
     if (index >= GetParamCount())
     {
@@ -104,7 +104,7 @@ WasmSignature::IsEquivalent(const WasmSignature* sig) const
     return false;
 }
 
-uint32 WasmSignature::GetParamSize(uint index) const
+uint32 WasmSignature::GetParamSize(uint32 index) const
 {
     switch (GetParam(index))
     {
@@ -187,7 +187,7 @@ WasmSignature::WriteSignatureToString(_Out_writes_(maxlen) char16* out, uint32 m
     AssertOrFailFast(out != nullptr);
     uint32 numwritten = 0;
     numwritten += _snwprintf_s(out+numwritten, maxlen-numwritten, _TRUNCATE, _u("("));
-    for (uint i = 0; i < this->GetParamCount(); i++)
+    for (uint32 i = 0; i < this->GetParamCount(); i++)
     {
         if (i != 0)
         {

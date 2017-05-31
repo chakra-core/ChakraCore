@@ -11,8 +11,8 @@
 #include "EmptyWasmByteCodeWriter.h"
 
 #if DBG_DUMP
-uint opId = 0;
-uint lastOpId = 1;
+uint32 opId = 0;
+uint32 lastOpId = 1;
 #define DebugPrintOp(op) if (PHASE_TRACE(Js::WasmReaderPhase, GetFunctionBody())) { PrintOpBegin(op); }
 #define DebugPrintOpEnd() if (PHASE_TRACE(Js::WasmReaderPhase, GetFunctionBody())) { PrintOpEnd(); }
 #else
@@ -196,7 +196,7 @@ WasmModuleGenerator::GenerateModule()
         Assert(info->GetBody());
         if (PHASE_TRACE(Js::WasmInOutPhase, info->GetBody()))
         {
-            uint index = m_module->GetWasmFunctionCount();
+            uint32 index = m_module->GetWasmFunctionCount();
             WasmFunctionInfo* newInfo = m_module->AddWasmFunctionInfo(info->GetSignature());
             if (!firstThunk)
             {
@@ -334,7 +334,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     info->SetWasmSignature(wasmInfo->GetSignature());
     Js::ArgSlot argSizeLength = max(paramCount, 3ui16);
     info->SetArgSizeArrayLength(argSizeLength);
-    uint* argSizeArray = RecyclerNewArrayLeafZ(m_recycler, uint, argSizeLength);
+    uint32* argSizeArray = RecyclerNewArrayLeafZ(m_recycler, uint32, argSizeLength);
     info->SetArgsSizesArray(argSizeArray);
 
     if (paramCount > 0)
@@ -424,7 +424,7 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
     GetReader()->SeekToFunctionBody(m_funcInfo);
 
     // Use binary size to estimate bytecode size
-    const long astSize = readerInfo->m_funcInfo->m_readerInfo.size;
+    const uint32 astSize = readerInfo->m_funcInfo->m_readerInfo.size;
     m_writer->InitData(&m_alloc, astSize);
 }
 
@@ -493,7 +493,7 @@ WasmBytecodeGenerator::EnregisterLocals()
     m_locals = AnewArray(&m_alloc, WasmLocal, nLocals);
 
     m_funcInfo->GetBody()->SetFirstTmpReg(nLocals);
-    for (uint i = 0; i < nLocals; ++i)
+    for (uint32 i = 0; i < nLocals; ++i)
     {
         WasmTypes::WasmType type = m_funcInfo->GetLocal(i);
         WasmRegisterSpace * regSpace = GetRegisterSpace(type);
@@ -670,7 +670,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
 EmitInfo
 WasmBytecodeGenerator::EmitGetGlobal()
 {
-    uint globalIndex = GetReader()->m_currentNode.var.num;
+    uint32 globalIndex = GetReader()->m_currentNode.var.num;
     WasmGlobal* global = m_module->GetGlobal(globalIndex);
 
     WasmTypes::WasmType type = global->GetType();
@@ -700,7 +700,7 @@ WasmBytecodeGenerator::EmitGetGlobal()
 EmitInfo
 WasmBytecodeGenerator::EmitSetGlobal()
 {
-    uint globalIndex = GetReader()->m_currentNode.var.num;
+    uint32 globalIndex = GetReader()->m_currentNode.var.num;
     WasmGlobal* global = m_module->GetGlobal(globalIndex);
     Js::RegSlot slot = m_module->GetOffsetForGlobal(global);
 
@@ -729,7 +729,7 @@ WasmBytecodeGenerator::EmitSetGlobal()
 EmitInfo
 WasmBytecodeGenerator::EmitGetLocal()
 {
-    uint localIndex = GetReader()->m_currentNode.var.num;
+    uint32 localIndex = GetReader()->m_currentNode.var.num;
     if (m_funcInfo->GetLocalCount() <= localIndex)
     {
         throw WasmCompilationException(_u("%u is not a valid local"), localIndex);
@@ -750,7 +750,7 @@ WasmBytecodeGenerator::EmitGetLocal()
 EmitInfo
 WasmBytecodeGenerator::EmitSetLocal(bool tee)
 {
-    uint localNum = GetReader()->m_currentNode.var.num;
+    uint32 localNum = GetReader()->m_currentNode.var.num;
     if (localNum >= m_funcInfo->GetLocalCount())
     {
         throw WasmCompilationException(_u("%u is not a valid local"), localNum);
@@ -876,7 +876,7 @@ WasmBytecodeGenerator::EmitLoop()
     Js::ByteCodeLabel loopHeadLabel = m_writer->DefineLabel();
     Js::ByteCodeLabel loopLandingPadLabel = m_writer->DefineLabel();
 
-    uint loopId = m_writer->EnterLoop(loopHeadLabel);
+    uint32 loopId = m_writer->EnterLoop(loopHeadLabel);
 
     // Internally we create a block for loop to exit, but semantically, they don't exist so pop it
     BlockInfo implicitBlockInfo = PushLabel(loopTailLabel);
@@ -907,8 +907,8 @@ template<WasmOp wasmOp>
 EmitInfo
 WasmBytecodeGenerator::EmitCall()
 {
-    uint funcNum = Js::Constants::UninitializedValue;
-    uint signatureId = Js::Constants::UninitializedValue;
+    uint32 funcNum = Js::Constants::UninitializedValue;
+    uint32 signatureId = Js::Constants::UninitializedValue;
     WasmSignature * calleeSignature = nullptr;
     EmitInfo indirectIndexInfo;
     const bool isImportCall = GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::Import;
@@ -1076,7 +1076,7 @@ WasmBytecodeGenerator::EmitCall()
     // track stack requirements for out params
 
     // + 1 for return address
-    uint maxDepthForLevel = args + 1;
+    uint32 maxDepthForLevel = args + 1;
     if (maxDepthForLevel > m_maxArgOutDepth)
     {
         m_maxArgOutDepth = maxDepthForLevel;
@@ -1123,9 +1123,9 @@ WasmBytecodeGenerator::EmitIfElseExpr()
 void
 WasmBytecodeGenerator::EmitBrTable()
 {
-    const uint numTargets = GetReader()->m_currentNode.brTable.numTargets;
-    const UINT* targetTable = GetReader()->m_currentNode.brTable.targetTable;
-    const UINT defaultEntry = GetReader()->m_currentNode.brTable.defaultTarget;
+    const uint32 numTargets = GetReader()->m_currentNode.brTable.numTargets;
+    const uint32* targetTable = GetReader()->m_currentNode.brTable.targetTable;
+    const uint32 defaultEntry = GetReader()->m_currentNode.brTable.defaultTarget;
 
     // Compile scrutinee
     EmitInfo scrutineeInfo = PopEvalStack(WasmTypes::I32, _u("br_table expression must be of type i32"));
@@ -1147,9 +1147,9 @@ WasmBytecodeGenerator::EmitBrTable()
 
 
     // Compile cases
-    for (uint i = 0; i < numTargets; i++)
+    for (uint32 i = 0; i < numTargets; i++)
     {
-        uint target = targetTable[i];
+        uint32 target = targetTable[i];
         YieldToBlock(target, yieldInfo);
         Js::ByteCodeLabel targetLabel = GetLabel(target);
         m_writer->AsmBrReg1Const1(Js::OpCodeAsmJs::Case_IntConst, targetLabel, scrutineeInfo.location, i);
@@ -1232,8 +1232,8 @@ WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* s
     SetUsesMemory(0);
 
     const uint32 mask = Js::ArrayBufferView::ViewMask[viewType];
-    const uint alignment = GetReader()->m_currentNode.mem.alignment;
-    const uint offset = GetReader()->m_currentNode.mem.offset;
+    const uint32 alignment = GetReader()->m_currentNode.mem.alignment;
+    const uint32 offset = GetReader()->m_currentNode.mem.offset;
 
     if ((mask << 1) & (1 << alignment))
     {
@@ -1342,7 +1342,7 @@ WasmBytecodeGenerator::EmitSelect()
 void
 WasmBytecodeGenerator::EmitBr()
 {
-    UINT depth = GetReader()->m_currentNode.br.depth;
+    uint32 depth = GetReader()->m_currentNode.br.depth;
 
     if (ShouldYieldToBlock(depth))
     {
@@ -1360,7 +1360,7 @@ WasmBytecodeGenerator::EmitBr()
 EmitInfo
 WasmBytecodeGenerator::EmitBrIf()
 {
-    UINT depth = GetReader()->m_currentNode.br.depth;
+    uint32 depth = GetReader()->m_currentNode.br.depth;
 
     EmitInfo conditionInfo = PopEvalStack(WasmTypes::I32, _u("br_if condition must have i32 type"));
     ReleaseLocation(&conditionInfo);
@@ -1490,7 +1490,7 @@ WasmBytecodeGenerator::PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo
 }
 
 void
-WasmBytecodeGenerator::YieldToBlock(uint relativeDepth, EmitInfo expr)
+WasmBytecodeGenerator::YieldToBlock(uint32 relativeDepth, EmitInfo expr)
 {
     BlockInfo blockInfo = GetBlockInfo(relativeDepth);
     YieldToBlock(blockInfo, expr);
@@ -1516,15 +1516,15 @@ void WasmBytecodeGenerator::YieldToBlock(BlockInfo blockInfo, EmitInfo expr)
 }
 
 bool
-WasmBytecodeGenerator::ShouldYieldToBlock(uint relativeDepth) const
+WasmBytecodeGenerator::ShouldYieldToBlock(uint32 relativeDepth) const
 {
     return GetBlockInfo(relativeDepth).HasYield();
 }
 
 Wasm::BlockInfo
-WasmBytecodeGenerator::GetBlockInfo(uint relativeDepth) const
+WasmBytecodeGenerator::GetBlockInfo(uint32 relativeDepth) const
 {
-    if (relativeDepth >= (uint)m_blockInfos.Count())
+    if (relativeDepth >= (uint32)m_blockInfos.Count())
     {
         throw WasmCompilationException(_u("Invalid branch target"));
     }
@@ -1532,7 +1532,7 @@ WasmBytecodeGenerator::GetBlockInfo(uint relativeDepth) const
 }
 
 Js::ByteCodeLabel
-WasmBytecodeGenerator::GetLabel(uint relativeDepth)
+WasmBytecodeGenerator::GetLabel(uint32 relativeDepth)
 {
     return GetBlockInfo(relativeDepth).label;
 }
@@ -1614,7 +1614,7 @@ void WasmBytecodeGenerator::SetUnreachableState(bool isUnreachable)
     {
         // Replace the current stack with the any type
         Assert(!m_evalStack.Empty());
-        uint popped = 0;
+        uint32 popped = 0;
         while (m_evalStack.Top().type != WasmTypes::Limit)
         {
             EmitInfo info = m_evalStack.Pop();
@@ -1630,7 +1630,7 @@ void WasmBytecodeGenerator::SetUnreachableState(bool isUnreachable)
 }
 
 void
-WasmBytecodeGenerator::SetUsesMemory(uint memoryIndex)
+WasmBytecodeGenerator::SetUsesMemory(uint32 memoryIndex)
 {
     // Only support one memory at this time
     Assert(memoryIndex == 0);

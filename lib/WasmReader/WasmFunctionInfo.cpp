@@ -30,16 +30,16 @@ WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc, WasmSignature* signat
 }
 
 void
-WasmFunctionInfo::AddLocal(WasmTypes::WasmType type, uint count)
+WasmFunctionInfo::AddLocal(WasmTypes::WasmType type, uint32 count)
 {
-    for (uint i = 0; i < count; ++i)
+    for (uint32 i = 0; i < count; ++i)
     {
         m_locals.Add(Wasm::Local(type));
     }
 }
 
 Local
-WasmFunctionInfo::GetLocal(uint index) const
+WasmFunctionInfo::GetLocal(uint32 index) const
 {
     if (index < GetLocalCount())
     {
@@ -49,7 +49,7 @@ WasmFunctionInfo::GetLocal(uint index) const
 }
 
 Local
-WasmFunctionInfo::GetParam(uint index) const
+WasmFunctionInfo::GetParam(uint32 index) const
 {
     return m_signature->GetParam(index);
 }
