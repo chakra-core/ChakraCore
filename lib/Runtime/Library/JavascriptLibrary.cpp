@@ -5948,7 +5948,10 @@ namespace Js
             return false;
         }
 
-        Assert(lengthLeft != 0 && lengthRight != 0);
+        AssertOrFailFast(lengthLeft != 0 && lengthRight != 0);
+
+        JS_REENTRANCY_LOCK(reentrancyLock, arrayLeft->GetScriptContext()->GetThreadContext());
+        Unused(reentrancyLock);
 
         // Change to the set of raw strings.
         varLeft = Js::JavascriptOperators::OP_GetProperty(arrayLeft, Js::PropertyIds::raw, arrayLeft->GetScriptContext());
@@ -5958,13 +5961,15 @@ namespace Js
         arrayRight = Js::ES5Array::FromVar(varRight);
 
         // Length of the raw strings should be the same as the cooked string literals.
-        Assert(lengthLeft == arrayLeft->GetLength());
-        Assert(lengthRight == arrayRight->GetLength());
+        AssertOrFailFast(lengthLeft == arrayLeft->GetLength());
+        AssertOrFailFast(lengthRight == arrayRight->GetLength());
 
         for (uint32 i = 0; i < lengthLeft; i++)
         {
-            arrayLeft->DirectGetItemAt(i, &varLeft);
-            arrayRight->DirectGetItemAt(i, &varRight);
+            BOOL hasLeft = arrayLeft->DirectGetItemAt(i, &varLeft);
+            AssertOrFailFast(hasLeft);
+            BOOL hasRight = arrayRight->DirectGetItemAt(i, &varRight);
+            AssertOrFailFast(hasRight);
 
             // If the strings at this index are not equal, the callsite objects are not equal.
             if (!Js::JavascriptString::Equals(varLeft, varRight))
@@ -5991,7 +5996,7 @@ namespace Js
         Js::Var var = Js::JavascriptOperators::OP_GetProperty(callsite, Js::PropertyIds::raw, callsite->GetScriptContext());
         Js::ES5Array* rawArray = Js::ES5Array::FromVar(var);
 
-        Assert(rawArray->GetLength() > 0);
+        AssertOrFailFast(rawArray->GetLength() > 0);
 
         rawArray->DirectGetItemAt(0, &var);
         Js::JavascriptString* str = Js::JavascriptString::FromVar(var);
@@ -6001,7 +6006,8 @@ namespace Js
         {
             hash ^= DefaultComparer<const char16*>::GetHashCode(_u("${}"));
 
-            rawArray->DirectGetItemAt(i, &var);
+            BOOL hasItem = rawArray->DirectGetItemAt(i, &var);
+            AssertOrFailFast(hasItem);
             str = Js::JavascriptString::FromVar(var);
             hash ^= DefaultComparer<const char16*>::GetHashCode(str->GetSz());
         }
