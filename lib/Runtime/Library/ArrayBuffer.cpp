@@ -970,15 +970,14 @@ namespace Js
 #endif
         Assert(allocator == WasmVirtualAllocator);
         // Make sure we always have a buffer even if the length is 0
-        if (buffer == nullptr)
+        if (buffer == nullptr && length == 0)
         {
             // We want to allocate an empty buffer using virtual memory
-            Assert(length == 0);
             buffer = (BYTE*)allocator(0);
-            if (buffer == nullptr)
-            {
-                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-            }
+        }
+        if (buffer == nullptr)
+        {
+            JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
         }
     }
 
