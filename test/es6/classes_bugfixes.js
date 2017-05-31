@@ -350,6 +350,32 @@ var tests = [
         assert.areEqual('B1', B.n1(), "static method.call()");
     }
   },
+  {
+    name: "Issue3054: NULL pointer crash when calling constructor with Proxy new_target",
+    body: function () {
+        var result = "";
+        class B {
+            constructor() {
+                assert.areEqual(P, new.target, "B(): new.target === P");
+                result += "b";
+            }
+        }
+
+        class A extends B {
+            constructor() {
+                assert.areEqual(P, new.target, "A(): new.target === P");
+                result += "a";
+                super();
+                result += "c";
+            }
+        }
+
+        var P = new Proxy(B, {});
+        Reflect.construct(A, [], P);
+
+        assert.areEqual('abc', result, "result == 'abc'");
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
