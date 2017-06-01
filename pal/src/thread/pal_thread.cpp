@@ -357,6 +357,7 @@ GetThreadId(
     return dwThreadId;
 }
 
+static THREAD_LOCAL DWORD cachedCurrentThreadId = 0;
 /*++
 Function:
   GetCurrentThreadId
@@ -368,6 +369,7 @@ PALAPI
 GetCurrentThreadId(
             VOID)
 {
+    if (cachedCurrentThreadId != 0) return cachedCurrentThreadId;
     DWORD dwThreadId;
 
     PERF_ENTRY(GetCurrentThreadId);
@@ -378,6 +380,7 @@ GetCurrentThreadId(
     LOGEXIT("GetCurrentThreadId returns DWORD %#x\n", dwThreadId);
     PERF_EXIT(GetCurrentThreadId);
 
+    cachedCurrentThreadId = dwThreadId;
     return dwThreadId;
 }
 
