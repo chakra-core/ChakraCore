@@ -58,7 +58,7 @@
         ole32.lib
     </RLCommonLinkDependencies>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(OptimizedBuild)'!='true'">
+  <PropertyGroup Condition="'$(DebugBuild)'=='true'">
     <ChakraCommonLinkDependencies>
         $(ChakraCommonLinkDependencies);
         dbghelp.lib;
