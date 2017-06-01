@@ -5760,19 +5760,21 @@ namespace Js
             return false;
         }
 
+        JS_REENTRANCY_LOCK(reentrancyLock, callsite->GetScriptContext()->GetThreadContext());
+        Unused(reentrancyLock);
+
         element = Js::JavascriptOperators::OP_GetProperty(callsite, Js::PropertyIds::raw, callsite->GetScriptContext());
         Js::ES5Array* rawArray = Js::ES5Array::FromVar(element);
 
         // Length of the raw strings should be the same as the cooked string literals.
-        Assert(length == rawArray->GetLength());
+        AssertOrFailFast(length != 0 && length == rawArray->GetLength());
 
         x = x->sxStrTemplate.pnodeStringRawLiterals;
 
-        Assert(length != 0);
-
         for (uint32 i = 0; i < length - 1; i++)
         {
-            rawArray->DirectGetItemAt(i, &element);
+            BOOL hasElem = rawArray->DirectGetItemAt(i, &element);
+            AssertOrFailFast(hasElem);
             str = Js::JavascriptString::FromVar(element);
 
             Assert(x->nop == knopList);
@@ -5797,7 +5799,8 @@ namespace Js
 
         // There should be one more string in the callsite array - and the final string in the ParseNode
 
-        rawArray->DirectGetItemAt(length - 1, &element);
+        BOOL hasLastElem = rawArray->DirectGetItemAt(length - 1, &element);
+        AssertOrFailFast(hasLastElem);
         str = Js::JavascriptString::FromVar(element);
 
         Assert(x->nop == knopStr);
@@ -5991,6 +5994,8 @@ namespace Js
         {
             return hash;
         }
+        JS_REENTRANCY_LOCK(reentrancyLock, obj->GetScriptContext()->GetThreadContext());
+        Unused(reentrancyLock);
 
         Js::ES5Array* callsite = Js::ES5Array::FromVar(obj);
         Js::Var var = Js::JavascriptOperators::OP_GetProperty(callsite, Js::PropertyIds::raw, callsite->GetScriptContext());
