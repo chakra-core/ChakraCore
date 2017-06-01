@@ -427,7 +427,7 @@ LSlowPath:
     size_t DecodeUnitsIntoAndNullTerminate(char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
     {
         size_t result = DecodeUnitsInto(buffer, pbUtf8, pbEnd, options);
-        buffer[(int)result] = 0;
+        buffer[result] = 0;
         return result;
     }
 
