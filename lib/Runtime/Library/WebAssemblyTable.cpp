@@ -6,6 +6,7 @@
 #include "RuntimeLibraryPch.h"
 
 #ifdef ENABLE_WASM
+#include "WasmLimits.h"
 
 namespace Js
 {
@@ -68,7 +69,7 @@ WebAssemblyTable::NewInstance(RecyclableObject* function, CallInfo callInfo, ...
     Var initVar = JavascriptOperators::OP_GetProperty(tableDescriptor, PropertyIds::initial, scriptContext);
     uint32 initial = WebAssembly::ToNonWrappingUint32(initVar, scriptContext);
 
-    uint32 maximum = UINT_MAX;
+    uint32 maximum = Wasm::Limits::GetMaxTableSize();
     if (JavascriptOperators::OP_HasProperty(tableDescriptor, PropertyIds::maximum, scriptContext))
     {
         Var maxVar = JavascriptOperators::OP_GetProperty(tableDescriptor, PropertyIds::maximum, scriptContext);
@@ -212,6 +213,10 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
 WebAssemblyTable *
 WebAssemblyTable::Create(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
+    if (initial > Wasm::Limits::GetMaxTableSize() || maximum > Wasm::Limits::GetMaxTableSize())
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid);
+    }
     Field(Var) * values = nullptr;
     if (initial > 0)
     {
