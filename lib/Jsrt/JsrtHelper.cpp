@@ -12,6 +12,8 @@
 #include "jsrtHelper.h"
 #include "Base/ThreadContextTlsEntry.h"
 
+#include "Base/VTuneChakraProfile.h"
+
 #ifdef DYNAMIC_PROFILE_STORAGE
 #include "Language/DynamicProfileStorage.h"
 #endif
@@ -143,6 +145,9 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
 
     #ifdef ENABLE_JS_ETW
         EtwTrace::Register();
+    #endif
+    #ifdef VTUNE_PROFILING
+        VTuneChakraProfile::Register();
     #endif
         ValueType::Initialize();
         ThreadContext::GlobalInitialize();
