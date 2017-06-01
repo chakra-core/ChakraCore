@@ -2390,8 +2390,15 @@ IR::Instr* LowererMD::Simd128LowerInt32x4FromFloat32x4(IR::Instr *instr)
     // CMPLTPS tmp, src, tmp2
     // MOVMSKPS mask2, tmp
     // OR mask1, mask1, mask2
+    // check for NaNs 
+    // CMPEQPS tmp, src
+    // MOVMSKPS mask2, tmp
+    // NOT mask2
+    // AND mask2, 0x00000F
+    // OR mask1, mask2
+    //
     // CMP mask1, 0
-    // JNE $doneLabel
+    // JEQ $doneLabel
     newInstr = IR::Instr::New(Js::OpCode::MOVAPS, tmp2, IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetX86TwoPower31F4Addr(), TySimd128I4, m_func), m_func);
     insertInstr->InsertBefore(newInstr);
     Legalize(newInstr);
@@ -2403,7 +2410,6 @@ IR::Instr* LowererMD::Simd128LowerInt32x4FromFloat32x4(IR::Instr *instr)
     newInstr = IR::Instr::New(Js::OpCode::MOVAPS, tmp2, IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetX86NegTwoPower31F4Addr(), TySimd128I4, m_func), m_func);
     insertInstr->InsertBefore(newInstr);
     Legalize(newInstr);
-
     newInstr = IR::Instr::New(Js::OpCode::CMPLTPS, tmp, src, tmp2, m_func);
     insertInstr->InsertBefore(newInstr);
     Legalize(newInstr);
@@ -2411,6 +2417,22 @@ IR::Instr* LowererMD::Simd128LowerInt32x4FromFloat32x4(IR::Instr *instr)
     insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::MOVMSKPS, mask2, tmp, m_func));
 
     insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::OR, mask1, mask1, mask2, m_func));
+
+#ifdef ENABLE_WASM    
+    if (m_func->GetJITFunctionBody()->IsWasmFunction()) 
+    {
+        newInstr = IR::Instr::New(Js::OpCode::CMPEQPS, tmp, src, src, m_func);
+        insertInstr->InsertBefore(newInstr);
+        Legalize(newInstr);
+        insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::MOVMSKPS, mask2, tmp, m_func));
+        insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::NOT, mask2, mask2, m_func));
+        newInstr = IR::Instr::New(Js::OpCode::AND, mask2, mask2, IR::IntConstOpnd::New(0x00000F, TyInt32, m_func), m_func);
+        insertInstr->InsertBefore(newInstr);
+        Legalize(newInstr);
+        insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::OR, mask1, mask1, mask2, m_func));
+    }
+#endif
+
     newInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
     newInstr->SetSrc1(mask1);
     newInstr->SetSrc2(IR::IntConstOpnd::New(0, TyInt32, m_func));
@@ -2443,6 +2465,28 @@ IR::Instr* LowererMD::Simd128LowerUint32x4FromFloat32x4(IR::Instr *instr)
     two_31_i4_mask = IR::RegOpnd::New(TySimd128I4, m_func);
     tmp = IR::RegOpnd::New(TySimd128F4, m_func);
     tmp2 = IR::RegOpnd::New(TySimd128F4, m_func);
+
+    // check for NaNs 
+    // CMPEQPS tmp, src
+    // MOVMSKPS mask2, tmp
+    // AND mask2, 0x00000F
+    // JNE throw
+#ifdef ENABLE_WASM    
+    if (m_func->GetJITFunctionBody()->IsWasmFunction())
+    {
+        newInstr = IR::Instr::New(Js::OpCode::CMPEQPS, tmp, src, src, m_func);
+        instr->InsertBefore(newInstr);
+        Legalize(newInstr);
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVMSKPS, mask, tmp, m_func));
+        newInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
+        newInstr->SetSrc1(mask); 
+        newInstr->SetSrc2(IR::IntConstOpnd::New(0x0000000F, TyInt32, m_func));
+        instr->InsertBefore(newInstr);
+        Legalize(newInstr);
+        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNE, throwLabel, m_func));
+    }
+#endif
+
     // any lanes <= -1.0 ?
     // CMPLEPS tmp, src, [X86_ALL_FLOAT32_NEG_ONES]
     // MOVMSKPS mask, tmp
@@ -2461,6 +2505,7 @@ IR::Instr* LowererMD::Simd128LowerUint32x4FromFloat32x4(IR::Instr *instr)
     newInstr->SetSrc2(IR::IntConstOpnd::New(0, TyInt32, m_func));
     instr->InsertBefore(newInstr);
     Legalize(newInstr);
+
 
     instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNE, throwLabel, m_func));
 
