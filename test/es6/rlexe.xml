@@ -126,12 +126,14 @@
       <baseline>proto_basic.baseline</baseline>
     </default>
   </test>
+  <!-- Microsoft/ChakraCore#2667 - Fix and Re-enable flaky test proto_disable.js
   <test>
     <default>
       <files>proto_disable.js</files>
       <baseline>proto_disable.baseline</baseline>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>proto_initializer.js</files>
