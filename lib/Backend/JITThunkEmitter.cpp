@@ -226,6 +226,9 @@ template <> inline
 void
 JITThunkEmitter<VirtualAllocWrapper>::ProtectPage(void * address)
 {
+#if defined(ENABLE_JIT_CLAMP)
+    AutoEnableDynamicCodeGen enableCodeGen(true);
+#endif
     DWORD oldProtect;
     BOOL result = VirtualProtectEx(this->processHandle, address, ThunkSize, PAGE_EXECUTE, &oldProtect);
     AssertOrFailFast(result && oldProtect == PAGE_EXECUTE_READWRITE);
@@ -235,6 +238,9 @@ template <> inline
 void
 JITThunkEmitter<VirtualAllocWrapper>::UnprotectPage(void * address)
 {
+#if defined(ENABLE_JIT_CLAMP)
+    AutoEnableDynamicCodeGen enableCodeGen(true);
+#endif
     DWORD oldProtect;
     BOOL result = VirtualProtectEx(this->processHandle, address, ThunkSize, PAGE_EXECUTE_READWRITE, &oldProtect);
     AssertOrFailFast(result && oldProtect == PAGE_EXECUTE);
