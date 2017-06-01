@@ -2078,6 +2078,7 @@ namespace Js
                         limit = JavascriptArray::MaxArrayLength;
                     }
                     seg->size = min(newSize, limit - seg->left);
+                    seg->CheckLengthvsSize();
                 }
             }
             uint32 i;
@@ -7653,6 +7654,8 @@ Case0:
 
                 Assert(pArr->length <= MaxArrayLength - unshiftElements);
 
+                SparseArraySegmentBase* renumberSeg = pArr->head->next;
+
                 bool isIntArray = false;
                 bool isFloatArray = false;
 
@@ -7683,21 +7686,6 @@ Case0:
                     }
                 }
 
-                if (isIntArray)
-                {
-                    UnshiftHelper<int32>(pArr, unshiftElements, args.Values);
-                }
-                else if (isFloatArray)
-                {
-                    UnshiftHelper<double>(pArr, unshiftElements, args.Values);
-                }
-                else
-                {
-                    UnshiftHelper<Var>(pArr, unshiftElements, args.Values);
-                }
-
-                SparseArraySegmentBase* renumberSeg = pArr->head->next;
-
                 while (renumberSeg)
                 {
                     renumberSeg->left += unshiftElements;
@@ -7707,6 +7695,26 @@ Case0:
                         renumberSeg->EnsureSizeInBound();
                     }
                     renumberSeg = renumberSeg->next;
+                }
+
+                try
+                {
+                    if (isIntArray)
+                    {
+                        UnshiftHelper<int32>(pArr, unshiftElements, args.Values);
+                    }
+                    else if (isFloatArray)
+                    {
+                        UnshiftHelper<double>(pArr, unshiftElements, args.Values);
+                    }
+                    else
+                    {
+                        UnshiftHelper<Var>(pArr, unshiftElements, args.Values);
+                    }
+                }
+                catch (...)
+                {
+                    Js::Throw::FatalInternalError();
                 }
 
                 pArr->InvalidateLastUsedSegment();
