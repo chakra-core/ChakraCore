@@ -260,4 +260,28 @@
     <tags>exclude_xplat,exclude_jshost,exclude_win7</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>limits.js</files>
+    <compile-flags>-wasm -args --no-verbose --end 4 -endargs</compile-flags>
+    <timeout>300</timeout>
+    <tags>exclude_xplat,exclude_jshost,exclude_win7,exclude_chk,exclude_dynapogo,exclude_x86,Slow</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>limits.js</files>
+    <compile-flags>-wasm -args --no-verbose --start 4 --end 12 -endargs</compile-flags>
+    <timeout>300</timeout>
+    <tags>exclude_xplat,exclude_jshost,exclude_win7,exclude_chk,exclude_dynapogo,exclude_x86,Slow</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>limits.js</files>
+    <compile-flags>-wasm -args --no-verbose --start 12 -endargs</compile-flags>
+    <timeout>300</timeout>
+    <tags>exclude_xplat,exclude_jshost,exclude_win7,exclude_chk,exclude_dynapogo,exclude_x86,Slow</tags>
+  </default>
+</test>
 </regress-exe>
