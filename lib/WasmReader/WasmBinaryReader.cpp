@@ -648,7 +648,7 @@ void WasmBinaryReader::ReadSignatureTypeSection()
         }
 
         uint32 paramCount32 = LEB128(len);
-        if (paramCount > Limits::GetMaxFunctionParams() || paramCount > UINT16_MAX)
+        if (paramCount32 > Limits::GetMaxFunctionParams() || paramCount32 > UINT16_MAX)
         {
             ThrowDecodingError(_u("Too many arguments in signature"));
         }
