@@ -12,7 +12,7 @@ var $262 = {
         `
         $262 = {
           agent:{
-            receiveBroadcast: function(callback){ WScript.RecieveBroadcast(callback); },
+            receiveBroadcast: function(callback){ WScript.ReceiveBroadcast(callback); },
             report: function(value){ WScript.Report(value); },
             leaving: function(){ WScript.Leaving(); }
           }
