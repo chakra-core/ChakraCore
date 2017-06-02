@@ -37,7 +37,7 @@ protected:
 #if ENABLE_CONCURRENT_GC
     void SweepPendingObjects(RecyclerSweep& recyclerSweep);
     template <SweepMode mode>
-    static TBlockType * SweepPendingObjects(Recycler * recycler, TBlockType * list);
+    TBlockType * SweepPendingObjects(Recycler * recycler, TBlockType * list);
 #endif
     void Sweep(RecyclerSweep& recyclerSweep);
 #if ENABLE_PARTIAL_GC
@@ -45,7 +45,7 @@ protected:
 
     template <class Fn>
     static void SweepPartialReusePages(RecyclerSweep& recyclerSweep, TBlockType * heapBlockList,
-        TBlockType *& reuseBlocklist, TBlockType *&unusedBlockList, Fn callBack);
+        TBlockType *& reuseBlocklist, TBlockType *&unusedBlockList, bool allocationsAllowedDuringConcurrentSweep, Fn callBack);
     void SweepPartialReusePages(RecyclerSweep& recyclerSweep);
     void FinishPartialCollect(RecyclerSweep * recyclerSweep);
 

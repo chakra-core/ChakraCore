@@ -1573,6 +1573,10 @@ private:
     void SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep);
     void FinishSweep(RecyclerSweep& recyclerSweep);
 
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    void FinishConcurrentSweep();
+#endif
+
     bool FinishDisposeObjects();
     template <CollectionFlags flags>
     bool FinishDisposeObjectsWrapped();
@@ -1626,6 +1630,8 @@ private:
     BOOL IsConcurrentFindRootState() const;
     BOOL IsConcurrentExecutingState() const;
     BOOL IsConcurrentSweepExecutingState() const;
+    BOOL IsConcurrentSweepSetupState() const;
+    BOOL IsConcurrentSweepState() const;
     BOOL IsConcurrentState() const;
     BOOL InConcurrentSweep()
     {
@@ -1659,6 +1665,7 @@ private:
     BOOL WaitForConcurrentThread(DWORD waitTime);
     void FlushBackgroundPages();
     BOOL FinishConcurrentCollect(CollectionFlags flags);
+    void FinishTransferSwept(CollectionFlags flags);
     BOOL FinishConcurrentCollectWrapped(CollectionFlags flags);
     void BackgroundMark();
     void BackgroundResetMarks();

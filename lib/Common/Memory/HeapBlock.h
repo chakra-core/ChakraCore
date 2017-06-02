@@ -353,6 +353,15 @@ public:
 #endif
 };
 
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+template <typename TBlockType>
+struct HeapBlockSListItem {
+    // SLIST_ENTRY needs to be the first element in the structure to avoid calculating offset with the SList API calls.
+    SLIST_ENTRY itemEntry;
+    TBlockType * itemHeapBlock;
+};
+#endif
+
 enum SweepMode
 {
     SweepMode_InThread,
@@ -694,7 +703,7 @@ protected:
     void CheckFreeBitVector(bool isCollecting);
 #endif
 
-    SmallHeapBlockBitVector * EnsureFreeBitVector();
+    SmallHeapBlockBitVector * EnsureFreeBitVector(bool isCollecting = true);
     SmallHeapBlockBitVector * BuildFreeBitVector();
     ushort BuildFreeBitVector(SmallHeapBlockBitVector * bv);
 

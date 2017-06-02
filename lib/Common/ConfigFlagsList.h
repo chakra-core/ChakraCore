@@ -1318,6 +1318,7 @@ FLAGNR(Boolean, RecyclerForceMarkInterior, "Force all the mark as interior", DEF
 #if ENABLE_CONCURRENT_GC
 FLAGNR(Number,  RecyclerPriorityBoostTimeout, "Adjust priority boost timeout", 5000)
 FLAGNR(Number,  RecyclerThreadCollectTimeout, "Adjust thread collect timeout", 1000)
+FLAGRA(Boolean, EnableConcurrentSweepAlloc, ecsa, "Turns off the feature to allow allocations during concurrent sweep.", true)
 #endif
 #ifdef RECYCLER_PAGE_HEAP
 FLAGNR(Number,      PageHeap,             "Use full page for heap allocations", DEFAULT_CONFIG_PageHeap)
