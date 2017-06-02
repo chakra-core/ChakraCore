@@ -858,4 +858,11 @@
       <compile-flags>-testtrace:asmjs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>exports.js</files>
+      <baseline>exports.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
