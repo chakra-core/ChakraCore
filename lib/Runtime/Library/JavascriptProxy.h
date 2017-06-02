@@ -204,7 +204,7 @@ namespace Js
 
     private:
         JavascriptFunction* GetMethodHelper(PropertyId methodId, ScriptContext* requestContext);
-        Var GetValueFromDescriptor(RecyclableObject* instance, PropertyDescriptor propertyDescriptor, ScriptContext* requestContext);
+        Var GetValueFromDescriptor(Var instance, PropertyDescriptor propertyDescriptor, ScriptContext* requestContext);
         static Var GetName(ScriptContext* requestContext, PropertyId propertyId);
 
         static BOOL TestIntegrityLevel(IntegrityLevel integrityLevel, RecyclableObject* obj, ScriptContext* scriptContext);

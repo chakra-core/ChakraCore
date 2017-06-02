@@ -545,7 +545,7 @@ namespace Js
         }
         else if (result.IsFromProxy())
         {
-            *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
+            *value = GetValueFromDescriptor(originalInstance, result, requestContext);
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags(foundProperty);
     }
@@ -572,7 +572,7 @@ namespace Js
         }
         else if (result.IsFromProxy())
         {
-            *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
+            *value = GetValueFromDescriptor(originalInstance, result, requestContext);
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags(foundProperty);
     }
@@ -623,7 +623,7 @@ namespace Js
         }
         else if (result.IsFromProxy())
         {
-            *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
+            *value = GetValueFromDescriptor(originalInstance, result, requestContext);
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags(foundProperty);
     }
@@ -886,7 +886,7 @@ namespace Js
         }
         else if (result.IsFromProxy())
         {
-            *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
+            *value = GetValueFromDescriptor(originalInstance, result, requestContext);
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags(foundProperty);
     }
@@ -909,7 +909,7 @@ namespace Js
         }
         else if (result.IsFromProxy())
         {
-            *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
+            *value = GetValueFromDescriptor(originalInstance, result, requestContext);
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags(foundProperty);
     }
@@ -1940,7 +1940,7 @@ namespace Js
         return JavascriptFunction::FromVar(varMethod);
     }
 
-    Var JavascriptProxy::GetValueFromDescriptor(RecyclableObject* instance, PropertyDescriptor propertyDescriptor, ScriptContext* requestContext)
+    Var JavascriptProxy::GetValueFromDescriptor(Var instance, PropertyDescriptor propertyDescriptor, ScriptContext* requestContext)
     {
         if (propertyDescriptor.ValueSpecified())
         {
