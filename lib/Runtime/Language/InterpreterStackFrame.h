@@ -224,6 +224,7 @@ namespace Js
         template <class T> void OP_SimdStArrConstIndex(const unaligned T* playout);
         template <class T> void OP_SimdInt32x4FromFloat32x4(const unaligned T* playout);
         template <class T> void OP_SimdUint32x4FromFloat32x4(const unaligned T* playout);
+        template <class T> void OP_WasmSimdConst(const unaligned T* playout);
 
         template <class T> void OP_SimdInt16x8(const unaligned T* playout);
         template <class T> void OP_SimdInt8x16(const unaligned T* playout);

@@ -435,8 +435,8 @@ WasmOp WasmBinaryReader::ReadOpCode()
             ThrowDecodingError(_u("WebAssembly SIMD support is not enabled"));
         }
 
-        UINT len;
-        UINT32 extOpCode = LEB128(len);
+        uint32 len;
+        uint32 extOpCode = LEB128(len) + wbM128Const;
         Assert((WasmOp)(extOpCode) == extOpCode);
         op = (WasmOp)extOpCode;
         m_funcState.count += len;
@@ -636,7 +636,7 @@ WasmBinaryReader::BrTableNode()
 void
 WasmBinaryReader::LaneNode()
 {
-    m_currentNode.lane.lane_index = ReadConst<uint8>();
+    m_currentNode.lane.index = ReadConst<uint8>();
     m_funcState.count++;
 }
 

@@ -785,10 +785,10 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         IR::Instr* pInstr = nullptr;
         IR::RegOpnd* tmp = IR::RegOpnd::New(TyInt8, m_func);
 
-        // cmp      dst, -1
+        // cmp      dst, 0
         pInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
         pInstr->SetSrc1(dst->UseWithNewType(laneType, m_func));
-        pInstr->SetSrc2(IR::IntConstOpnd::New(-1, laneType, m_func, true));
+        pInstr->SetSrc2(IR::IntConstOpnd::New(0, laneType, m_func, true));
         instr->InsertBefore(pInstr);
         Legalize(pInstr);
 
@@ -797,8 +797,8 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         instr->InsertBefore(pInstr);
         Legalize(pInstr);
 
-        // sete     tmp(TyInt8)
-        pInstr = IR::Instr::New(Js::OpCode::SETE, tmp, tmp, m_func);
+        // setne     tmp(TyInt8)
+        pInstr = IR::Instr::New(Js::OpCode::SETNE, tmp, tmp, m_func);
         instr->InsertBefore(pInstr);
         Legalize(pInstr);
 
