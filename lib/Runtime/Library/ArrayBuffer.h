@@ -220,13 +220,13 @@ namespace Js
             //throw out of memory
             if (!address)
             {
-                Js::Throw::OutOfMemory();
+                return nullptr;
             }
             LPVOID arrayAddress = VirtualAlloc(address, length, MEM_COMMIT, PAGE_READWRITE);
             if (!arrayAddress)
             {
                 VirtualFree(address, 0, MEM_RELEASE);
-                Js::Throw::OutOfMemory();
+                return nullptr;
             }
             return arrayAddress;
 #else

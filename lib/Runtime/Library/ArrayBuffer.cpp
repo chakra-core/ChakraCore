@@ -335,6 +335,11 @@ namespace Js
         }
 
         RecyclableObject* newArr = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
+        Assert(ArrayBuffer::Is(newArr));
+        if (byteLength > 0 && !ArrayBuffer::FromVar(newArr)->GetByteLength())
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_FunctionArgument_Invalid);
+        }
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
         {
@@ -852,6 +857,10 @@ namespace Js
         if (newBufferLength == 0 || this->bufferLength == 0)
         {
             newArrayBuffer = GetLibrary()->CreateArrayBuffer(newBufferLength);
+            if (newBufferLength > 0 && !newArrayBuffer->GetByteLength())
+            {
+                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+            }
         }
         else
         {
@@ -871,7 +880,7 @@ namespace Js
                         LPVOID newMem = VirtualAlloc(this->buffer + this->bufferLength, newBufferLength - this->bufferLength, MEM_COMMIT, PAGE_READWRITE);
                         if (!newMem)
                         {
-                            recycler->ReportExternalMemoryFailure(newBufferLength);
+                            recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
                             JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
                         }
                     }
@@ -883,7 +892,7 @@ namespace Js
                     newBuffer = (BYTE*)malloc(newBufferLength);
                     if (!newBuffer)
                     {
-                        recycler->ReportExternalMemoryFailure(newBufferLength);
+                        recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
                         JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
                     }
                     MemCpyZero(newBuffer, newBufferLength, this->buffer, this->bufferLength);
@@ -895,6 +904,11 @@ namespace Js
                 {
                     // we are transferring from an unoptimized buffer, but new length can be optimized, so move to that
                     newBuffer = (BYTE*)JavascriptArrayBuffer::AllocWrapper(newBufferLength);
+                    if (!newBuffer)
+                    {
+                        recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
+                        JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+                    }
                     MemCpyZero(newBuffer, newBufferLength, this->buffer, this->bufferLength);
                 }
                 else if (newBufferLength != this->bufferLength)
@@ -903,7 +917,7 @@ namespace Js
                     newBuffer = ReallocZero(this->buffer, this->bufferLength, newBufferLength);
                     if (!newBuffer)
                     {
-                        recycler->ReportExternalMemoryFailure(newBufferLength);
+                        recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
                         JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
                     }
                 }
