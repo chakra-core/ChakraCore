@@ -14,11 +14,10 @@ namespace Wasm
 
         void AddLocal(WasmTypes::WasmType type, uint count = 1);
         Local GetLocal(uint index) const;
-        Local GetParam(uint index) const;
         WasmTypes::WasmType GetResultType() const;
 
         uint32 GetLocalCount() const;
-        uint32 GetParamCount() const;
+        Js::ArgSlot GetParamCount() const;
 
         void SetName(const char16* name, uint32 nameLength) { m_name = name; m_nameLength = nameLength; }
         const char16* GetName() const { return m_name; }

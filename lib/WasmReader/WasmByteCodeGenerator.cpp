@@ -325,11 +325,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     info->SetWasmReaderInfo(readerInfo);
     info->SetWebAssemblyModule(m_module);
 
-    if (wasmInfo->GetParamCount() >= Js::Constants::InvalidArgSlot)
-    {
-        Js::Throw::OutOfMemory();
-    }
-    Js::ArgSlot paramCount = (Js::ArgSlot)wasmInfo->GetParamCount();
+    Js::ArgSlot paramCount = wasmInfo->GetParamCount();
     info->SetArgCount(paramCount);
     info->SetWasmSignature(wasmInfo->GetSignature());
     Js::ArgSlot argSizeLength = max(paramCount, 3ui16);
@@ -349,39 +345,13 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         // overwrite default value in this case
         body->SetHasImplicitArgIns(false);
     }
-    Js::ArgSlot paramSize = 0;
     for (Js::ArgSlot i = 0; i < paramCount; ++i)
     {
-        WasmTypes::WasmType type = wasmInfo->GetParam(i);
+        WasmTypes::WasmType type = wasmInfo->GetSignature()->GetParam(i);
         info->SetArgType(WasmToAsmJs::GetAsmJsVarType(type), i);
-        uint16 size = 0;
-        switch (type)
-        {
-        case WasmTypes::F32:
-        case WasmTypes::I32:
-            CompileAssert(sizeof(float) == sizeof(int32));
-#ifdef _M_X64
-            // on x64, we always alloc (at least) 8 bytes per arguments
-            size = sizeof(void*);
-#elif _M_IX86
-            size = sizeof(int32);
-#else
-            Assert(UNREACHED);
-#endif
-            break;
-        case WasmTypes::F64:
-        case WasmTypes::I64:
-            CompileAssert(sizeof(double) == sizeof(int64));
-            size = sizeof(int64);
-            break;
-        default:
-            Assume(UNREACHED);
-        }
-        argSizeArray[i] = size;
-        // REVIEW: reduce number of checked adds
-        paramSize = UInt16Math::Add(paramSize, size);
+        argSizeArray[i] = wasmInfo->GetSignature()->GetParamSize(i);
     }
-    info->SetArgByteSize(paramSize);
+    info->SetArgByteSize(wasmInfo->GetSignature()->GetParamsSize());
     info->SetReturnType(WasmToAsmJs::GetAsmJsReturnType(wasmInfo->GetResultType()));
 }
 
@@ -929,43 +899,51 @@ WasmBytecodeGenerator::EmitCall()
         Assume(UNREACHED);
     }
 
+    const auto argOverflow = []
+    {
+        throw WasmCompilationException(_u("Argument size too big"));
+    };
+
     // emit start call
     Js::ArgSlot argSize;
     Js::OpCodeAsmJs startCallOp;
     if (isImportCall)
     {
-        argSize = (Js::ArgSlot)(calleeSignature->GetParamCount() * sizeof(Js::Var));
+        argSize = ArgSlotMath::Mul(calleeSignature->GetParamCount(), sizeof(Js::Var), argOverflow);
         startCallOp = Js::OpCodeAsmJs::StartCall;
     }
     else
     {
         startCallOp = Js::OpCodeAsmJs::I_StartCall;
-        argSize = (Js::ArgSlot)calleeSignature->GetParamsSize();
+        argSize = calleeSignature->GetParamsSize();
     }
     // Add return value
-    argSize += sizeof(Js::Var);
-
-    if (argSize >= UINT16_MAX)
+    argSize = ArgSlotMath::Add(argSize, sizeof(Js::Var), argOverflow);
+    if (!Math::IsAligned<Js::ArgSlot>(argSize, sizeof(Js::Var)))
     {
-        throw WasmCompilationException(_u("Argument size too big"));
+        AssertMsg(UNREACHED, "Wasm argument size should always be Var aligned");
+        throw WasmCompilationException(_u("Internal Error"));
     }
 
     m_writer->AsmStartCall(startCallOp, argSize);
 
-    uint32 nArgs = calleeSignature->GetParamCount();
-    //copy args into a list so they could be generated in the right order (FIFO)
-    JsUtil::List<EmitInfo, ArenaAllocator> argsList(&m_alloc);
-    for (uint32 i = 0; i < nArgs; i++)
-    {
-        argsList.Add(PopEvalStack(calleeSignature->GetParam(nArgs - i - 1), _u("Call argument does not match formal type")));
-    }
-    Assert((uint32)argsList.Count() == nArgs);
+    Js::ArgSlot nArgs = calleeSignature->GetParamCount();
 
-    // Size of the this pointer (aka undefined)
-    int32 argsBytesLeft = sizeof(Js::Var);
-    for (uint32 i = 0; i < nArgs; ++i)
+    // copy args into a list so they could be generated in the right order (FIFO)
+    EmitInfo* argsList = AnewArray(&m_alloc, EmitInfo, nArgs);
+    for (int i = int(nArgs) - 1; i >= 0; --i)
     {
-        EmitInfo info = argsList.Item(nArgs - i - 1);
+        EmitInfo info = PopEvalStack(calleeSignature->GetParam((Js::ArgSlot)i), _u("Call argument does not match formal type"));
+        // We can release the location of the arguments now, because we won't create new temps between start/call
+        ReleaseLocation(&info);
+        argsList[i] = info;
+    }
+
+    // Skip the this pointer (aka undefined)
+    uint32 argLoc = 1;
+    for (Js::ArgSlot i = 0; i < nArgs; ++i)
+    {
+        EmitInfo info = argsList[i];
 
         Js::OpCodeAsmJs argOp = Js::OpCodeAsmJs::Nop;
         switch (info.type)
@@ -990,26 +968,27 @@ WasmBytecodeGenerator::EmitCall()
                 argOp = Js::OpCodeAsmJs::ArgOut_Int;
                 break;
             }
+            // Fall through
         default:
             throw WasmCompilationException(_u("Unknown argument type %u"), info.type);
         }
-        //argSize
-
-        if (argsBytesLeft < 0 || (argsBytesLeft % sizeof(Js::Var)) != 0)
-        {
-            throw WasmCompilationException(_u("Error while emitting call arguments"));
-        }
-        Js::RegSlot argLoc = argsBytesLeft / sizeof(Js::Var);
-        argsBytesLeft += isImportCall ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
 
         m_writer->AsmReg2(argOp, argLoc, info.location);
+
+        // Calculated next argument Js::Var location
+        if (isImportCall)
+        {
+            ++argLoc;
+        }
+        else
+        {
+            const Js::ArgSlot currentArgSize = calleeSignature->GetParamSize(i);
+            Assert(Math::IsAligned<Js::ArgSlot>(currentArgSize, sizeof(Js::Var)));
+            argLoc += currentArgSize / sizeof(Js::Var);
+        }
     }
 
-    //registers need to be released from higher ordinals to lower
-    for (uint32 i = 0; i < nArgs; i++)
-    {
-        ReleaseLocation(&(argsList.Item(i)));
-    }
+    AdeleteArray(&m_alloc, nArgs, argsList);
 
     // emit call
     switch (wasmOp)
@@ -1030,17 +1009,19 @@ WasmBytecodeGenerator::EmitCall()
         Assume(UNREACHED);
     }
 
-    // calculate number of RegSlots the arguments consume
+    // calculate number of RegSlots(Js::Var) the call consumes
     Js::ArgSlot args;
     Js::OpCodeAsmJs callOp = Js::OpCodeAsmJs::Nop;
     if (isImportCall)
     {
-        args = (Js::ArgSlot)(calleeSignature->GetParamCount() + 1);
+        args = calleeSignature->GetParamCount();
+        ArgSlotMath::Inc(args, argOverflow);
         callOp = Js::OpCodeAsmJs::Call;
     }
     else
     {
-        args = (Js::ArgSlot)(::ceil((double)(argSize / sizeof(Js::Var))));
+        Assert(Math::IsAligned<Js::ArgSlot>(argSize, sizeof(Js::Var)));
+        args = argSize / sizeof(Js::Var);
         callOp = Js::OpCodeAsmJs::I_Call;
     }
 
@@ -1056,13 +1037,13 @@ WasmBytecodeGenerator::EmitCall()
         switch (retInfo.type)
         {
         case WasmTypes::F32:
-            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
+            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::Ld_Flt;
             break;
         case WasmTypes::F64:
-            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTD : Js::OpCodeAsmJs::I_Conv_VTD;
+            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTD : Js::OpCodeAsmJs::Ld_Db;
             break;
         case WasmTypes::I32:
-            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
+            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::Ld_Int;
             break;
         case WasmTypes::I64:
             convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTL : Js::OpCodeAsmJs::Ld_Long;
