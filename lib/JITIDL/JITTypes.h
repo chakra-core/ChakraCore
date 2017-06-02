@@ -413,15 +413,15 @@ typedef struct TypedSlotInfo
 
 typedef struct AsmJsDataIDL
 {
-    boolean isHeapBufferConst;
     boolean usesHeapBuffer;
+    IDL_PAD1(0)
     unsigned short argByteSize;
     unsigned short argCount;
-    IDL_PAD2(0)
+    IDL_PAD2(1)
     int retType;
     int totalSizeInBytes;
     unsigned int wasmSignatureCount;
-    X64_PAD4(1)
+    X64_PAD4(2)
     TypedSlotInfo typedSlotInfos[5];
     CHAKRA_PTR wasmSignaturesBaseAddr;
     IDL_DEF([size_is(wasmSignatureCount)]) WasmSignatureIDL *  wasmSignatures;

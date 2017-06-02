@@ -315,7 +315,6 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     body->SetIsAsmJsFunction(true);
     body->SetIsAsmjsMode(true);
     body->SetIsWasmFunction(true);
-    body->GetAsmJsFunctionInfo()->SetIsHeapBufferConst(false);
 
     WasmReaderInfo* readerInfo = RecyclerNew(m_recycler, WasmReaderInfo);
     readerInfo->m_funcInfo = wasmInfo;

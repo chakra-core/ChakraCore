@@ -23,18 +23,7 @@ function foo(stdlib, imports, heap)
     var impb = imports.d|0;
     var U8 =stdlib.Uint8Array;
     var HEAPU8 =new stdlib.Uint8Array(heap);
-    
-    function ch(b2)
-    {
-        if(len(b2) & 0xffffff || len(b2) <= 0xffffff || len(b2) > 0x80000000)
-            return false;
-        HEAP32=new I32(b2);
-        i8=new I8(b2);
-        HEAPU8=new U8(b2);
-        heap=b2;
-        return true
-    }
-    
+
     function f(param)
     {
         param = param|0;
@@ -57,7 +46,7 @@ function foo(stdlib, imports, heap)
         return +impa;
     }
     var table1 = [f, g, f, g];
-    return {fExp:f, gExp:g, ch:ch};
+    return {fExp:f, gExp:g};
 }
 this['byteLength'] = Function.prototype.call.bind(Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength').get);
 var buffer = new ArrayBuffer(1<<24);
@@ -69,8 +58,6 @@ function testFunc(m)
 {
     print("testFunc");
     print(Math.round(m.fExp(1)));
-    print(Math.round(m.gExp(2)));
-    print(m.ch(new ArrayBuffer(1<<25)));
     print(Math.round(m.gExp(2)));
 }
 testFunc(module1);

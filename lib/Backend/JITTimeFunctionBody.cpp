@@ -264,7 +264,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->asmJsData->argTypeArray = (byte*)asmFuncInfo->GetArgTypeArray();
         jitBody->asmJsData->argByteSize = asmFuncInfo->GetArgByteSize();
         jitBody->asmJsData->retType = asmFuncInfo->GetReturnType().which();
-        jitBody->asmJsData->isHeapBufferConst = asmFuncInfo->IsHeapBufferConst();
         jitBody->asmJsData->usesHeapBuffer = asmFuncInfo->UsesHeapBuffer();
         jitBody->asmJsData->totalSizeInBytes = asmFuncInfo->GetTotalSizeinBytes();
 
