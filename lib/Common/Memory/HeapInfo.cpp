@@ -1171,6 +1171,39 @@ HeapInfo::SweepPendingObjects(RecyclerSweep& recyclerSweep)
 }
 #endif
 
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+void HeapInfo::StartAllocationsDuringConcurrentSweep()
+{
+    for (uint i = 0; i < HeapConstants::BucketCount; i++)
+    {
+        heapBuckets[i].StartAllocationDuringConcurrentSweep();
+    }
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
+    for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
+    {
+        mediumHeapBuckets[i].StartAllocationDuringConcurrentSweep();
+    }
+#endif
+}
+
+void
+HeapInfo::FinishConcurrentSweep()
+{
+    for (uint i = 0; i < HeapConstants::BucketCount; i++)
+    {
+        heapBuckets[i].FinishConcurrentSweep();
+    }
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
+    for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
+    {
+        mediumHeapBuckets[i].FinishConcurrentSweep();
+    }
+#endif
+}
+#endif
+
 #if ENABLE_CONCURRENT_GC
 void
 HeapInfo::TransferPendingHeapBlocks(RecyclerSweep& recyclerSweep)
