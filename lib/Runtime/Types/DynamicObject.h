@@ -73,7 +73,7 @@ namespace Js
         friend class ScriptFunction; // for ReplaceType;
         friend class JSON::JSONParser; //for ReplaceType
         friend class ModuleNamespace; // for slot setting.
-
+        friend class WebAssemblyInstance;
 #if ENABLE_OBJECT_SOURCE_TRACKING
     public:
         //Field for tracking object allocation 
