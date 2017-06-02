@@ -4855,7 +4855,11 @@ Recycler::FinalizeConcurrent(bool restoreState)
     }
 
     this->threadService = nullptr;
-    this->concurrentThread = nullptr;
+    if (concurrentThread != NULL)
+    {
+        CloseHandle(concurrentThread);
+        this->concurrentThread = nullptr;
+    }
 }
 
 bool
@@ -4987,10 +4991,6 @@ Recycler::ShutdownThread()
         Assert(concurrentThread != NULL || threadService->HasCallback());
 
         FinalizeConcurrent(false);
-        if (concurrentThread)
-        {
-            CloseHandle(concurrentThread);
-        }
     }
 }
 
@@ -5002,10 +5002,6 @@ Recycler::DisableConcurrent()
         Assert(concurrentThread != NULL || threadService->HasCallback());
 
         FinalizeConcurrent(true);
-        if (concurrentThread)
-        {
-            CloseHandle(concurrentThread);
-        }
         this->collectionState = CollectionStateNotCollecting;
     }
 }
