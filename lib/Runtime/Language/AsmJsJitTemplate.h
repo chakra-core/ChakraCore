@@ -9,7 +9,7 @@
 namespace Js
 {
 
-    void AsmJsCommonEntryPoint(Js::ScriptFunction* func, void* savedEbp);
+    void AsmJsCommonEntryPoint(Js::ScriptFunction* func, void* localSlot, void* args);
 
     namespace AsmJsJitTemplate
     {
