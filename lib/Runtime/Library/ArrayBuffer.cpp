@@ -895,7 +895,9 @@ namespace Js
         return newArrayBuffer;
     }
 
-    void JavascriptArrayBuffer::ReportDifferentialAllocation(uint32 newBufferLength)
+
+    template<typename Func>
+    void Js::JavascriptArrayBuffer::ReportDifferentialAllocation(uint32 newBufferLength, Func reportFailureFn)
     {
         Recycler* recycler = this->GetRecycler();
 
@@ -912,7 +914,7 @@ namespace Js
                     recycler->CollectNow<CollectOnTypedArrayAllocation>();
                     if (!recycler->ReportExternalMemoryAllocation(newBufferLength - this->bufferLength))
                     {
-                        JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+                        reportFailureFn();
                     }
                 }
             }
@@ -922,6 +924,15 @@ namespace Js
                 recycler->ReportExternalMemoryFree(this->bufferLength - newBufferLength);
             }
         }
+    }
+
+
+    void JavascriptArrayBuffer::ReportDifferentialAllocation(uint32 newBufferLength)
+    {
+        ScriptContext* scriptContext = GetScriptContext();
+        ReportDifferentialAllocation(newBufferLength, [scriptContext] {
+            JavascriptError::ThrowOutOfMemoryError(scriptContext);
+        });
     }
 
 #if ENABLE_TTD
@@ -950,32 +961,41 @@ namespace Js
 #endif
 
 
-
-    WebAssemblyArrayBuffer::WebAssemblyArrayBuffer(uint32 length, DynamicType * type) :
-#ifndef ENABLE_FAST_ARRAYBUFFER
-        // Treat as a normal JavascriptArrayBuffer
-        JavascriptArrayBuffer(length, type) {}
-#else
-        JavascriptArrayBuffer(length, type, WasmVirtualAllocator)
+    template<typename Allocator>
+    Js::WebAssemblyArrayBuffer::WebAssemblyArrayBuffer(uint32 length, DynamicType * type, Allocator allocator):
+        JavascriptArrayBuffer(length, type, allocator)
     {
+#ifndef ENABLE_FAST_ARRAYBUFFER
+        CompileAssert(UNREACHED);
+#endif
+        Assert(allocator == WasmVirtualAllocator);
         // Make sure we always have a buffer even if the length is 0
-        if (buffer == nullptr)
+        if (buffer == nullptr && length == 0)
         {
             // We want to allocate an empty buffer using virtual memory
-            Assert(length == 0);
-            buffer = (BYTE*)WasmVirtualAllocator(0);
-            if (buffer == nullptr)
-            {
-                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-            }
+            buffer = (BYTE*)allocator(0);
+        }
+        if (buffer == nullptr)
+        {
+            JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
         }
     }
-#endif
+
+    // Treat as a normal JavascriptArrayBuffer
+    WebAssemblyArrayBuffer::WebAssemblyArrayBuffer(uint32 length, DynamicType * type) :
+        JavascriptArrayBuffer(length, type, malloc)
+    {
+    }
 
     WebAssemblyArrayBuffer::WebAssemblyArrayBuffer(byte* buffer, uint32 length, DynamicType * type):
         JavascriptArrayBuffer(buffer, length, type)
     {
-
+#if ENABLE_FAST_ARRAYBUFFER
+        if (CONFIG_FLAG(WasmFastArray) && buffer == nullptr)
+        {
+            JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+        }
+#endif
     }
 
     WebAssemblyArrayBuffer* WebAssemblyArrayBuffer::Create(byte* buffer, uint32 length, DynamicType * type)
@@ -988,7 +1008,16 @@ namespace Js
         }
         else
         {
-            result = RecyclerNewFinalized(recycler, WebAssemblyArrayBuffer, length, type);
+#if ENABLE_FAST_ARRAYBUFFER
+            if (CONFIG_FLAG(WasmFastArray))
+            {
+                result = RecyclerNewFinalized(recycler, WebAssemblyArrayBuffer, length, type, WasmVirtualAllocator);
+            }
+            else
+#endif
+            {
+                result = RecyclerNewFinalized(recycler, WebAssemblyArrayBuffer, length, type);
+            }
         }
         Assert(result);
         recycler->AddExternalMemoryUsage(length);
@@ -998,38 +1027,78 @@ namespace Js
     bool WebAssemblyArrayBuffer::IsValidVirtualBufferLength(uint length) const
     {
 #if ENABLE_FAST_ARRAYBUFFER
-        return true;
+        return CONFIG_FLAG(WasmFastArray);
 #else
         return false;
 #endif
     }
 
-    ArrayBuffer * WebAssemblyArrayBuffer::TransferInternal(uint32 newBufferLength)
+    WebAssemblyArrayBuffer* WebAssemblyArrayBuffer::GrowMemory(uint32 newBufferLength)
     {
-#if ENABLE_FAST_ARRAYBUFFER
-        ReportDifferentialAllocation(newBufferLength);
-        Assert(this->buffer);
-
-        AssertMsg(newBufferLength > this->bufferLength, "The only supported scenario in WebAssembly is to grow the memory");
-        if (newBufferLength > this->bufferLength)
+        if (newBufferLength <= this->bufferLength)
         {
+            Assert(UNREACHED);
+            JavascriptError::ThrowTypeError(GetScriptContext(), WASMERR_BufferGrowOnly);
+        }
+
+        bool failedReport = false;
+        const auto reportFailedFn = [&failedReport] { failedReport = true; };
+
+        WebAssemblyArrayBuffer* newArrayBuffer = nullptr;
+#if ENABLE_FAST_ARRAYBUFFER
+        if (CONFIG_FLAG(WasmFastArray))
+        {
+            AssertOrFailFast(this->buffer);
+            ReportDifferentialAllocation(newBufferLength, reportFailedFn);
+            if (failedReport)
+            {
+                return nullptr;
+            }
+
             LPVOID newMem = VirtualAlloc(this->buffer + this->bufferLength, newBufferLength - this->bufferLength, MEM_COMMIT, PAGE_READWRITE);
             if (!newMem)
             {
                 Recycler* recycler = this->GetRecycler();
                 recycler->ReportExternalMemoryFailure(newBufferLength);
-                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+                return nullptr;
             }
+            newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(this->buffer, newBufferLength);
         }
-        ArrayBuffer* newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(this->buffer, newBufferLength);
+        else
+#endif
+        if (this->GetByteLength() == 0)
+        {
+            newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(newBufferLength);
+        }
+        else
+        {
+            ReportDifferentialAllocation(newBufferLength, reportFailedFn);
+            if (failedReport)
+            {
+                return nullptr;
+            }
+            byte* newBuffer = ReallocZero(this->buffer, this->bufferLength, newBufferLength);
+            if (!newBuffer)
+            {
+                this->GetRecycler()->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
+                return nullptr;
+            }
+            newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(newBuffer, newBufferLength);
+        }
+
+        if (!newArrayBuffer || !newArrayBuffer->GetByteLength())
+        {
+            return nullptr;
+        }
 
         AutoDiscardPTR<Js::ArrayBufferDetachedStateBase> state(DetachAndGetState());
         state->MarkAsClaimed();
-
         return newArrayBuffer;
-#else
-        return JavascriptArrayBuffer::TransferInternal(newBufferLength);
-#endif
+    }
+
+    ArrayBuffer * WebAssemblyArrayBuffer::TransferInternal(uint32 newBufferLength)
+    {
+        JavascriptError::ThrowTypeError(GetScriptContext(), WASMERR_CantDetach);
     }
 
     ProjectionArrayBuffer::ProjectionArrayBuffer(uint32 length, DynamicType * type) :

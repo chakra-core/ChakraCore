@@ -365,6 +365,9 @@ RT_ERROR_MSG(JSERR_CantDeleteNonConfigProp, 5666, "Cannot delete non-configurabl
 RT_ERROR_MSG(JSERR_CantRedefineProp, 5667, "Cannot redefine property '%s'", "Cannot redefine property", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_FunctionArgument_NeedArrayLike, 5668, "%s: argument is not an array or array-like object", "Array or array-like object expected", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_FatalMemoryExhaustion, 5669, "", "Encountered a non-recoverable OOM", kjstError, 0)
+RT_ERROR_MSG(JSERR_OutOfBoundString, 5670, "", "String length is out of bound", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_InvalidIterableObject, 5671, "%s : Invalid iterable object", "Invalid iterable object", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_InvalidIteratorObject, 5672, "%s : Invalid iterator object", "Invalid iterator object", kjstTypeError, 0)
 
 // WebAssembly Errors
 RT_ERROR_MSG(WASMERR_WasmCompileError, 7000, "%s", "Compilation failed.", kjstWebAssemblyCompileError, 0)
@@ -387,11 +390,11 @@ RT_ERROR_MSG(WASMERR_TableIndexOutOfRange, 7016, "", "Table index is out of rang
 RT_ERROR_MSG(WASMERR_ArrayIndexOutOfRange, 7017, "", "Memory index is out of range", kjstWebAssemblyRuntimeError, 0)
 RT_ERROR_MSG(WASMERR_InvalidInstantiateArgument, 7018, "", "Invalid arguments to instantiate", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_WasmLinkError, 7019, "%s", "Linking failed.", kjstWebAssemblyLinkError, 0)
-RT_ERROR_MSG(JSERR_OutOfBoundString, 7020, "", "String length is out of bound", kjstRangeError, 0)
-RT_ERROR_MSG(JSERR_InvalidIterableObject, 7021, "%s : Invalid iterable object", "Invalid iterable object", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_InvalidIteratorObject, 7022, "%s : Invalid iterator object", "Invalid iterator object", kjstTypeError, 0)
-RT_ERROR_MSG(WASMERR_NeedResponse, 7023, "%s is not a Reponse", "Response expected", kjstTypeError, 0)
-RT_ERROR_MSG(WASMERR_LinkSignatureMismatch, 7024, "Cannot link import %s in link table due to a signature mismatch", "Function called with invalid signature", kjstWebAssemblyRuntimeError, 0)
+RT_ERROR_MSG(WASMERR_NeedResponse, 7020, "%s is not a Reponse", "Response expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_CantDetach, 7021, "", "Not allowed to detach WebAssembly.Memory buffer", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_BufferGrowOnly, 7022, "", "WebAssembly.Memory can only grow", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_LinkSignatureMismatch, 7023, "Cannot link import %s in link table due to a signature mismatch", "Function called with invalid signature", kjstWebAssemblyRuntimeError, 0)
+RT_ERROR_MSG(WASMERR_MemoryCreateFailed, 7024, "", "Failed to create WebAssembly.Memory", kjstTypeError, 0)
 
 // Wabt Errors
 RT_ERROR_MSG(WABTERR_WabtError, 7200, "%s", "Wabt Error.", kjstTypeError, 0)
