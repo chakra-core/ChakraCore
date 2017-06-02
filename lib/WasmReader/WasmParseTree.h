@@ -101,7 +101,6 @@ namespace Wasm
         uint lane_index;
     };
 
-
     struct WasmVarNode
     {
         uint num;

@@ -7851,7 +7851,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {
-        //Output::Print(_u("accessing offset %d and dataWidth %d\n"), playout->Offset, playout->DataWidth);
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = ((uint32) GetRegRawInt(playout->SlotIndex) + playout->Offset /* WASM only */) & ArrayBufferView::ViewMask[playout->ViewType];
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
@@ -7863,7 +7862,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
         }
-        AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + (uint32)index);
+        AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value;
 
         value = SIMDUtils::SIMDLdData(data, dataWidth);
@@ -7895,7 +7894,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdStArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        //const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
         const uint64 index = ((uint32)GetRegRawInt(playout->SlotIndex) + playout->Offset /* WASM only */) & ArrayBufferView::ViewMask[playout->ViewType];
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
@@ -7906,7 +7904,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
         }
-        AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + (uint32)index);
+        AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
         SIMDUtils::SIMDStData(data, value, dataWidth);
     }
@@ -7962,6 +7960,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         SetRegRawSimd(playout->U4_0, result);
     }
 
+    template <class T>
+    void InterpreterStackFrame::OP_WasmSimdConst(const unaligned T* playout)
+    {
+        AsmJsSIMDValue result{ playout->C1, playout->C2, playout->C3, playout->C4 };
+        SetRegRawSimd(playout->F4_0, result);
+    }
+    
     template <class T>
     void InterpreterStackFrame::OP_SimdInt16x8(const unaligned T* playout)
     {

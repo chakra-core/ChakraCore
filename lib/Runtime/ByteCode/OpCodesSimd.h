@@ -209,7 +209,7 @@ MACRO_SIMD_EXTEND_WMS(Simd128_Not_B16         , Bool8x16_2                  , No
 MACRO_SIMD_EXTEND_WMS(Simd128_Neg_U4          , Uint32x4_2                  , None, None, 0)
 MACRO_SIMD_EXTEND_WMS(Simd128_Neg_U8          , Uint16x8_2                  , None, None, 0)
 MACRO_SIMD_EXTEND_WMS(Simd128_Neg_U16         , Uint8x16_2                  , None, None, 0)
-MACRO_SIMD_BACKEND_ONLY(Simd128_LdC           , Empty                       , None, OpCanCSE) // Load Simd128 const stack slot
+MACRO_SIMD_EXTEND_WMS(Simd128_LdC             , Float32x4_IntConst4         , None, OpCanCSE, 0) // Load Simd128 const stack slot
 
 #if 0
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS(Simd128_Ld_D2, Float64x2_2, None, None)

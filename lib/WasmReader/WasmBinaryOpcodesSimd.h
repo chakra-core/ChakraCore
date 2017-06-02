@@ -54,7 +54,7 @@ WASM_SIGNATURE(M128X3, 3, WasmTypes::M128, WasmTypes::M128, WasmTypes::M128)
 WASM_SIGNATURE(M128_I_M128, 3, WasmTypes::M128, WasmTypes::M128, WasmTypes::I32)
 WASM_SIGNATURE(M128_M128, 2, WasmTypes::M128, WasmTypes::M128)
 
-WASM_MISC_OPCODE(M128Const, 0x100, Limit, true)
+WASM_MISC_OPCODE(M128Const, 0x100, Limit, false)
 WASM_SIMD_MEMREAD_OPCODE(M128Load, 0x101, M128_I, Simd128_LdArr_F4, Js::ArrayBufferView::TYPE_FLOAT32, 16, false)
 WASM_SIMD_MEMSTORE_OPCODE(M128Store, 0x102, M128_I, Simd128_StArr_F4, Js::ArrayBufferView::TYPE_FLOAT32, 16, false)
 WASM_MISC_OPCODE(I16Splat, 0x103, Limit, true)

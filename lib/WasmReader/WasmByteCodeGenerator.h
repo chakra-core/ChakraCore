@@ -155,9 +155,6 @@ namespace Wasm
         void EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst);
         WasmConstLitNode GetZeroCnst();
 
-        EmitInfo EmitLoadIntConstIntoReg(uint val);
-        EmitInfo EmitLoadFloatConstIntoReg(uint val);
-
         void EnregisterLocals();
         void ReleaseLocation(EmitInfo* info);
 

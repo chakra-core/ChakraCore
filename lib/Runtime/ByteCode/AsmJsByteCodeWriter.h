@@ -51,6 +51,7 @@ namespace Js
         IMP_IWASM void AsmReg17(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
             RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16);
         IMP_IWASM void AsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType, uint32 offset = 0);
+        IMP_IWASM void WasmSimdConst(OpCodeAsmJs op, RegSlot R0, int C0, int C1, int C2, int C3);
 
 #ifdef WASM_BYTECODE_WRITER
         // We don't want to expose api not in IWasmByteCodeWriter, but it's easier to compile them anyway
@@ -70,6 +71,7 @@ namespace Js
     private:
         void AsmJsUnsigned1(OpCodeAsmJs op, uint C1);
         template <typename SizePolicy> bool TryWriteAsmReg1(OpCodeAsmJs op, RegSlot R0);
+        template <typename SizePolicy> bool TryWriteFloat32x4_IntConst4(OpCodeAsmJs op, RegSlot R0, int C1, int C2, int C3, int C4);
         template <typename SizePolicy> bool TryWriteAsmReg2(OpCodeAsmJs op, RegSlot R0, RegSlot R1);
         template <typename SizePolicy> bool TryWriteAsmReg3(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2);
         template <typename SizePolicy> bool TryWriteAsmReg4(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3);
