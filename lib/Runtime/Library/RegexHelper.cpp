@@ -1392,8 +1392,9 @@ namespace Js
     {
         CharCount indexMatched = JavascriptString::strstr(input, match, true);
         ScriptContext* scriptContext = replacefn->GetScriptContext();
-        Assert(match->GetScriptContext() == scriptContext);
-        Assert(input->GetScriptContext() == scriptContext);
+        // These asserts are incorrect. Disable for now and fix up for the next release.
+        // Assert(match->GetScriptContext() == scriptContext);
+        // Assert(input->GetScriptContext() == scriptContext);
 
         if (indexMatched != CharCountFlag)
         {
