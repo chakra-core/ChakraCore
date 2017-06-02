@@ -560,35 +560,6 @@
           <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError -lic:1</compile-flags>
       </default>
   </test>
-  <!-- too slow to run in interpreter (Microsoft/ChakraCore#3031)
-  <test>
-      <default>
-          <files>testLoadStore-2.js</files>
-          <baseline>testLoadStore-2.baseline</baseline>
-          <tags>exclude_dynapogo,exclude_ship</tags>
-          <compile-flags>-on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError -on:AsmJsInterpreter -off:fulljit -off:backend</compile-flags>
-      </default>
-  </test>
-  -->
-
-  <!-- currently too slow. Enable with globOpt support. (Microsoft/ChakraCore#3032)
-  <test>
-  <default>
-          <files>testLoadStore-2.js</files>
-          <baseline>testLoadStore-2.baseline</baseline>
-          <tags>exclude_dynapogo,exclude_ship</tags>
-          <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError</compile-flags>
-      </default>
-  </test>
-  <test>
-  <default>
-          <files>testLoadStore-2.js</files>
-          <baseline>testLoadStore-2.baseline</baseline>
-          <tags>exclude_dynapogo,exclude_ship</tags>
-          <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError</compile-flags>
-      </default>
-  </test>
-  -->
   <test>
       <default>
           <files>testLoadStore.js</files>
@@ -804,7 +775,6 @@
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:asmjs -testtrace:asmjsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
    </test>
-
     <test>
         <default>
             <files>testMisc.js</files>
