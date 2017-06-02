@@ -393,8 +393,8 @@ typedef struct WasmSignatureIDL
 {
     int resultType;
     unsigned int id;
-    unsigned int paramSize;
-    unsigned int paramsCount;
+    unsigned short paramSize;
+    unsigned short paramsCount;
     CHAKRA_PTR shortSig;
     IDL_DEF([size_is(paramsCount)]) int * params;
 } WasmSignatureIDL;

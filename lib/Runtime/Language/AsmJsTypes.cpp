@@ -1007,7 +1007,7 @@ namespace Js
             argSize = (ArgSlot)MachPtr;
         }
 
-        mArgByteSize = UInt16Math::Add(mArgByteSize, argSize);
+        mArgByteSize = ArgSlotMath::Add(mArgByteSize, argSize);
         mArgSizes[index] = argSize;
     }
 

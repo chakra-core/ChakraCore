@@ -486,7 +486,7 @@ WebAssemblyModule::AttachCustomInOutTracingReader(Wasm::WasmFunctionInfo* func, 
         customReader->AddNode(nameNode);
     }
 
-    for (uint32 iParam = 0; iParam < signature->GetParamCount(); iParam++)
+    for (Js::ArgSlot iParam = 0; iParam < signature->GetParamCount(); iParam++)
     {
         Wasm::WasmNode node;
         node.op = Wasm::wbGetLocal;
@@ -604,7 +604,7 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     Wasm::WasmFunctionInfo* funcInfo = AddWasmFunctionInfo(signature);
     // Create the custom reader to generate the import thunk
     Wasm::WasmCustomReader* customReader = Anew(&m_alloc, Wasm::WasmCustomReader, &m_alloc);
-    for (uint32 iParam = 0; iParam < signature->GetParamCount(); iParam++)
+    for (uint32 iParam = 0; iParam < (uint32)signature->GetParamCount(); iParam++)
     {
         Wasm::WasmNode node;
         node.op = Wasm::wbGetLocal;

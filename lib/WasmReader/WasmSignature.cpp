@@ -13,7 +13,7 @@ namespace Wasm
 WasmSignature::WasmSignature() :
     m_resultType(WasmTypes::Void),
     m_id(Js::Constants::UninitializedValue),
-    m_paramSize(Js::Constants::UninitializedValue),
+    m_paramSize(Js::Constants::InvalidArgSlot),
     m_params(nullptr),
     m_paramsCount(0),
     m_shortSig(Js::Constants::InvalidSignature)
@@ -21,7 +21,7 @@ WasmSignature::WasmSignature() :
 }
 
 void
-WasmSignature::AllocateParams(uint32 count, Recycler * recycler)
+WasmSignature::AllocateParams(Js::ArgSlot count, Recycler * recycler)
 {
     if (count > 0)
     {
@@ -31,11 +31,11 @@ WasmSignature::AllocateParams(uint32 count, Recycler * recycler)
 }
 
 void
-WasmSignature::SetParam(WasmTypes::WasmType type, uint32 index)
+WasmSignature::SetParam(WasmTypes::WasmType type, Js::ArgSlot index)
 {
     if (index >= GetParamCount())
     {
-        throw WasmCompilationException(_u("Parameter %d out of range (max %d)"), index, GetParamCount());
+        throw WasmCompilationException(_u("Parameter %u out of range (max %u)"), index, GetParamCount());
     }
     m_params[index] = Local(type);
 }
@@ -55,11 +55,11 @@ WasmSignature::SetSignatureId(uint32 id)
 }
 
 Local
-WasmSignature::GetParam(uint index) const
+WasmSignature::GetParam(Js::ArgSlot index) const
 {
     if (index >= GetParamCount())
     {
-        throw WasmCompilationException(_u("Parameter %d out of range (max %d)"), index, GetParamCount());
+        throw WasmCompilationException(_u("Parameter %u out of range (max %u)"), index, GetParamCount());
     }
     return m_params[index];
 }
@@ -70,7 +70,7 @@ WasmSignature::GetResultType() const
     return m_resultType;
 }
 
-uint32
+Js::ArgSlot
 WasmSignature::GetParamCount() const
 {
     return m_paramsCount;
@@ -104,7 +104,7 @@ WasmSignature::IsEquivalent(const WasmSignature* sig) const
     return false;
 }
 
-uint32 WasmSignature::GetParamSize(uint index) const
+Js::ArgSlot WasmSignature::GetParamSize(Js::ArgSlot index) const
 {
     switch (GetParam(index))
     {
@@ -133,13 +133,16 @@ uint32 WasmSignature::GetParamSize(uint index) const
 void
 WasmSignature::FinalizeSignature()
 {
-    Assert(m_paramSize == Js::Constants::UninitializedValue);
+    Assert(m_paramSize == Js::Constants::InvalidArgSlot);
     Assert(m_shortSig == Js::Constants::InvalidSignature);
-
+    const Js::ArgSlot paramCount = GetParamCount();
     m_paramSize = 0;
-    for (uint32 i = 0; i < GetParamCount(); ++i)
+    for (Js::ArgSlot i = 0; i < paramCount; ++i)
     {
-        m_paramSize += GetParamSize(i);
+        if (ArgSlotMath::Add(m_paramSize, GetParamSize(i), &m_paramSize))
+        {
+            throw WasmCompilationException(_u("Argument size too big"));
+        }
     }
 
     CompileAssert(Local::Limit - 1 <= 4);
@@ -147,11 +150,11 @@ WasmSignature::FinalizeSignature()
 
     // 3 bits for result type, 2 for each arg
     // we don't need to reserve a sentinel bit because there is no result type with value of 7
-    int sigSize = 3 + 2 * GetParamCount();
+    uint32 sigSize = ((uint32)paramCount) * 2 + 3;
     if (sigSize <= sizeof(m_shortSig) << 3)
     {
         m_shortSig = (m_shortSig << 3) | m_resultType;
-        for (uint32 i = 0; i < GetParamCount(); ++i)
+        for (Js::ArgSlot i = 0; i < paramCount; ++i)
         {
             // we can use 2 bits per arg by dropping void
             m_shortSig = (m_shortSig << 2) | (m_params[i] - 1);
@@ -159,7 +162,7 @@ WasmSignature::FinalizeSignature()
     }
 }
 
-uint32
+Js::ArgSlot
 WasmSignature::GetParamsSize() const
 {
     return m_paramSize;
@@ -187,7 +190,7 @@ WasmSignature::WriteSignatureToString(_Out_writes_(maxlen) char16* out, uint32 m
     AssertOrFailFast(out != nullptr);
     uint32 numwritten = 0;
     numwritten += _snwprintf_s(out+numwritten, maxlen-numwritten, _TRUNCATE, _u("("));
-    for (uint i = 0; i < this->GetParamCount(); i++)
+    for (Js::ArgSlot i = 0; i < this->GetParamCount(); i++)
     {
         if (i != 0)
         {

@@ -2112,7 +2112,7 @@ namespace Js
         ScriptFunction * function = (ScriptFunction*)stack->functionObject;
         Var* paramsAddr = stack->args;
         int  flags = CallFlags_Value;
-        ArgSlot nbArgs = UInt16Math::Add(function->GetFunctionBody()->GetAsmJsFunctionInfo()->GetArgCount(), 1);
+        ArgSlot nbArgs = ArgSlotMath::Add(function->GetFunctionBody()->GetAsmJsFunctionInfo()->GetArgCount(), 1);
         CallInfo callInfo((CallFlags)flags, nbArgs);
         ArgumentReader args(&callInfo, paramsAddr);
         void* returnAddress = _ReturnAddress();
@@ -2235,7 +2235,7 @@ namespace Js
     {
         Js::ScriptFunction * function = Js::ScriptFunction::FromVar(layout->functionObject);
         int  flags = CallFlags_Value;
-        ArgSlot nbArgs = UInt16Math::Add(function->GetFunctionBody()->GetAsmJsFunctionInfo()->GetArgCount(), 1);
+        ArgSlot nbArgs = ArgSlotMath::Add(function->GetFunctionBody()->GetAsmJsFunctionInfo()->GetArgCount(), 1);
 
         CallInfo callInfo((CallFlags)flags, nbArgs);
         ArgumentReader args(&callInfo, (Var*)layout->args);
@@ -3017,11 +3017,11 @@ namespace Js
                 break;
             }
 
-            // Make sure slots are aligned for this type
-            Assert(::Math::Align<intptr_t>((intptr_t)destination, (intptr_t)WAsmJs::GetTypeByteSize(type)) == (intptr_t)destination);
             byte* source = constTable + typeInfo->constSrcByteOffset;
             if (typeInfo->constCount > 0 && source != destination)
             {
+                // Make sure slots are aligned for this type
+                Assert(::Math::Align<intptr_t>((intptr_t)destination, (intptr_t)WAsmJs::GetTypeByteSize(type)) == (intptr_t)destination);
                 Assert(typeInfo->constSrcByteOffset != Js::Constants::InvalidOffset);
                 uint constByteSize = typeInfo->constCount * WAsmJs::GetTypeByteSize(type);
                 memmove_s(destination, constByteSize, source, constByteSize);

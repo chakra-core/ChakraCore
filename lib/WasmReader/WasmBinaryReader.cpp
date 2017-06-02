@@ -653,7 +653,7 @@ WasmBinaryReader::ReadSignatures()
     const uint32 count = LEB128(len);
     m_module->SetSignatureCount(count);
     // signatures table
-    for (UINT32 i = 0; i < count; i++)
+    for (uint32 i = 0; i < count; i++)
     {
         TRACE_WASM_DECODER(_u("Signature #%u"), i);
 
@@ -664,17 +664,23 @@ WasmBinaryReader::ReadSignatures()
         {
             ThrowDecodingError(_u("Unexpected type form 0x%X"), form);
         }
-        UINT32 paramCount = LEB128(len);
-        WasmTypes::WasmType type;
+
+        uint32 paramCount32 = LEB128(len);
+        if (paramCount32 >= UINT16_MAX)
+        {
+            throw WasmCompilationException(_u("Too many arguments"));
+        }
+        Js::ArgSlot paramCount = (Js::ArgSlot)paramCount32;
         sig->AllocateParams(paramCount, m_module->GetRecycler());
 
-        for (UINT32 j = 0; j < paramCount; j++)
+        WasmTypes::WasmType type;
+        for (Js::ArgSlot j = 0; j < paramCount; j++)
         {
             type = ReadWasmType(len);
             sig->SetParam(type, j);
         }
 
-        UINT32 resultCount = LEB128(len);
+        uint32 resultCount = LEB128(len);
         if (resultCount != 0 && resultCount != 1)
         {
             ThrowDecodingError(_u("Unexpected result count %u"), resultCount);
