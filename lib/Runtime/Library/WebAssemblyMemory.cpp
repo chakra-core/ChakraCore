@@ -10,12 +10,14 @@
 namespace Js
 {
 
-WebAssemblyMemory::WebAssemblyMemory(ArrayBuffer * buffer, uint32 initial, uint32 maximum, DynamicType * type) :
+WebAssemblyMemory::WebAssemblyMemory(WebAssemblyArrayBuffer* buffer, uint32 initial, uint32 maximum, DynamicType * type) :
     DynamicObject(type),
     m_buffer(buffer),
     m_initial(initial),
     m_maximum(maximum)
 {
+    Assert(m_buffer);
+    Assert(m_buffer->GetByteLength() >= UInt32Math::Mul<WebAssembly::PageSize>(initial));
 }
 
 /* static */
@@ -144,11 +146,15 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
         return -1;
     }
 
-    ArrayBuffer * newBuffer = nullptr;
+    WebAssemblyArrayBuffer * newBuffer = nullptr;
     JavascriptExceptionObject* caughtExceptionObject = nullptr;
     try
     {
-        newBuffer = m_buffer->TransferInternal(newBytes);
+        newBuffer = m_buffer->GrowMemory(newBytes);
+        if (newBuffer == nullptr)
+        {
+            return -1;
+        }
     }
     catch (const JavascriptException& err)
     {
@@ -157,7 +163,6 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
         return -1;
     }
 
-    Assert(newBuffer);
     m_buffer = newBuffer;
     CompileAssert(ArrayBuffer::MaxArrayBufferLength / WebAssembly::PageSize <= INT32_MAX);
     return (int32)oldPageCount;
@@ -192,22 +197,19 @@ WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callIn
 WebAssemblyMemory *
 WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
+    // This shouldn't overflow since we checked in the module, but just to be safe
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
-    ArrayBuffer* buffer;
-#if ENABLE_FAST_ARRAYBUFFER
-    if (CONFIG_FLAG(WasmFastArray))
+    WebAssemblyArrayBuffer* buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
+    Assert(buffer);
+    if (byteLength > 0 && buffer->GetByteLength() == 0)
     {
-        buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
-    }
-    else
-#endif
-    {
-        buffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
+        // Failed to allocate buffer
+        return nullptr;
     }
     return RecyclerNewFinalized(scriptContext->GetRecycler(), WebAssemblyMemory, buffer, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyMemoryType());
 }
 
-ArrayBuffer *
+WebAssemblyArrayBuffer*
 WebAssemblyMemory::GetBuffer() const
 {
     return m_buffer;
@@ -223,6 +225,12 @@ uint
 WebAssemblyMemory::GetMaximumLength() const
 {
     return m_maximum;
+}
+
+uint
+WebAssemblyMemory::GetCurrentMemoryPages() const
+{
+    return m_buffer->GetByteLength() / WebAssembly::PageSize;
 }
 
 } // namespace Js
