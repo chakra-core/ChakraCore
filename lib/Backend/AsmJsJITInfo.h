@@ -36,7 +36,6 @@ public:
     intptr_t GetWasmSignatureAddr(uint index) const;
 #endif
 
-    bool IsHeapBufferConst() const;
     bool UsesHeapBuffer() const;
     bool AccessNeedsBoundCheck(uint offset) const;
 

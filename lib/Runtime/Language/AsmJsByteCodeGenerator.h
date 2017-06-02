@@ -58,7 +58,6 @@ namespace Js
         ByteCodeGenerator* mByteCodeGenerator;
         AsmJsByteCodeWriter mWriter;
         int mNestedCallCount;
-        bool mIsCallLegal;
     public:
         AsmJSByteCodeGenerator(AsmJsFunc* func, AsmJsModuleCompiler* compiler);
         static void EmitEmptyByteCode(FuncInfo* funcInfo, ByteCodeGenerator* byteCodeGen, ParseNode* funcNode);

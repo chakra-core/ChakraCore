@@ -78,16 +78,10 @@ namespace Js
             FunctionBody* functionBody = func->GetFuncBody();
             AsmJsFunctionInfo* asmInfo = functionBody->AllocateAsmJsFunctionInfo();
 
-            if (i == 0 && mUsesChangeHeap)
-            {
-                continue;
-            }
-
             if (!asmInfo->Init(func))
             {
                 return false;
             }
-            asmInfo->SetIsHeapBufferConst(!mUsesChangeHeap);
             asmInfo->SetUsesHeapBuffer(mUsesHeapBuffer);
 
             functionBody->CheckAndSetOutParamMaxDepth(func->GetMaxArgOutDepth());
@@ -166,7 +160,6 @@ namespace Js
         asmInfo->SetModuleMemory(mModuleMemory);
         asmInfo->SetAsmMathBuiltinUsed(mAsmMathBuiltinUsedBV);
         asmInfo->SetAsmArrayBuiltinUsed(mAsmArrayBuiltinUsedBV);
-        asmInfo->SetUsesChangeHeap(mUsesChangeHeap);
         asmInfo->SetMaxHeapAccess(mMaxHeapAccess);
 
         if (IsSimdjsEnabled())
@@ -654,12 +647,6 @@ namespace Js
         // Check if this function requires a bigger Ast
         UpdateMaxAstSize(fncNode->sxFnc.astSize);
 
-        if (funcIndex == 0 && CheckChangeHeap(func))
-        {
-            fncNode->sxFnc.pnodeBody = NULL;
-            return true;
-        }
-
         if (!SetupFunctionArguments(func, pnodeBody))
         {
             // failure message will be printed by SetupFunctionArguments
@@ -1109,137 +1096,6 @@ namespace Js
         }
         // Error allocating a new function
         return nullptr;
-    }
-
-    bool AsmJsModuleCompiler::CheckChangeHeap(AsmJsFunc * func)
-    {
-        ParseNode * fncNode = func->GetFncNode();
-        ParseNode * pnodeBody = fncNode->sxFnc.pnodeBody;
-        ParseNode * pnodeArgs = fncNode->sxFnc.pnodeParams;
-
-        // match AST for changeHeap function.
-        // it must be defined in the following format (names/whitespace can differ):
-        //function changeHeap(newBuffer)
-        //{
-        //  if (byteLength(newBuffer) & 0xffffff ||
-        //      byteLength(newBuffer) <= 0xffffff ||
-        //      byteLength(newBuffer) >  0x80000000)
-        //      return false;
-        //  heap32 = new Int32Array(newBuffer);
-        //  ...
-        //  buffer = newBuffer;
-        //  return true;
-        //}
-
-        // ensure function
-        if (pnodeBody->nop != knopList || !pnodeArgs || pnodeArgs->nop != knopVarDecl)
-        {
-            return false;
-        }
-
-        // ensure if expression
-        ParseNode * ifNode = pnodeBody->sxBin.pnode1;
-        if (ifNode->nop != knopIf || ifNode->sxIf.pnodeFalse)
-        {
-            return false;
-        }
-
-        // validate "byteLength(newBuffer) >  0x80000000"
-        ParseNode * orNode = ifNode->sxIf.pnodeCond;
-        if (orNode->nop != knopLogOr || orNode->sxBin.pnode1->nop != knopLogOr)
-        {
-            return false;
-        }
-        ParseNode * cond = orNode->sxBin.pnode2;
-        if (cond->nop != knopGt || !CheckByteLengthCall(cond->sxBin.pnode1, pnodeArgs) || cond->sxBin.pnode2->nop != knopFlt || cond->sxBin.pnode2->sxFlt.dbl != 2147483648.0 || !cond->sxBin.pnode2->sxFlt.maybeInt)
-        {
-            return false;
-        }
-
-        // validate "byteLength(newBuffer) <= 0xffffff"
-        orNode = orNode->sxBin.pnode1;
-        cond = orNode->sxBin.pnode2;
-        if (cond->nop != knopLe || !CheckByteLengthCall(cond->sxBin.pnode1, pnodeArgs) || cond->sxBin.pnode2->nop != knopInt || cond->sxBin.pnode2->sxInt.lw != 0x00ffffff)
-        {
-            return false;
-        }
-
-        // validate "byteLength(newBuffer) & 0xffffff"
-        cond = orNode->sxBin.pnode1;
-        if (cond->nop != knopAnd || !CheckByteLengthCall(cond->sxBin.pnode1, pnodeArgs) || cond->sxBin.pnode2->nop != knopInt || cond->sxBin.pnode2->sxInt.lw != 0x00ffffff)
-        {
-            return false;
-        }
-        // validate "return false;"
-        cond = ifNode->sxIf.pnodeTrue;
-        if (!cond || cond->nop != knopReturn || cond->sxReturn.pnodeExpr->nop != knopFalse)
-        {
-            return false;
-        }
-
-        // validate heap32 = new Int32Array(newBuffer); etc.
-        while (!mArrayViews.Empty())
-        {
-            // all views that were instantiated must be replaced in the order which they were instantiated
-            AsmJsArrayView * requiredArrayView = mArrayViews.Dequeue();
-            pnodeBody = pnodeBody->sxBin.pnode2;
-            if (pnodeBody->nop != knopList)
-            {
-                return false;
-            }
-            ParseNode * assignNode = pnodeBody->sxBin.pnode1;
-            if (assignNode->nop != knopAsg || assignNode->sxBin.pnode1->nop != knopName)
-            {
-                return false;
-            }
-            // validate left hand side
-            AsmJsSymbol * actualArraySym = LookupIdentifier(assignNode->sxBin.pnode1->name());
-            if (requiredArrayView != actualArraySym)
-            {
-                return false;
-            }
-
-            ParseNode * callNode = assignNode->sxBin.pnode2;
-            // validate correct argument is passed
-            if (callNode->nop != knopNew || !callNode->sxCall.pnodeArgs || callNode->sxCall.pnodeArgs->nop != knopName || callNode->sxCall.pnodeArgs->name()->GetPropertyId() != pnodeArgs->name()->GetPropertyId() || callNode->sxCall.pnodeTarget->nop != knopName)
-            {
-                return false;
-            }
-            // validate correct function is being called
-            AsmJsSymbol * callTargetSym = LookupIdentifier(callNode->sxCall.pnodeTarget->name());
-            if (!callTargetSym || callTargetSym->GetSymbolType() != AsmJsSymbol::TypedArrayBuiltinFunction)
-            {
-                return false;
-            }
-            if (requiredArrayView->GetViewType() != callTargetSym->Cast<AsmJsTypedArrayFunction>()->GetViewType())
-            {
-                return false;
-            }
-        }
-        pnodeBody = pnodeBody->sxBin.pnode2;
-        if (pnodeBody->nop != knopList)
-        {
-            return false;
-        }
-
-        // validate buffer = newBuffer;
-        ParseNode * assign = pnodeBody->sxBin.pnode1;
-        if (assign->nop != knopAsg || assign->sxBin.pnode1->nop != knopName || !mBufferArgName || mBufferArgName->GetPropertyId() != assign->sxBin.pnode1->name()->GetPropertyId() ||
-            assign->sxBin.pnode2->nop != knopName || pnodeArgs->name()->GetPropertyId() != assign->sxBin.pnode2->name()->GetPropertyId())
-        {
-            return false;
-        }
-        // validate return true;
-        pnodeBody = pnodeBody->sxBin.pnode2;
-        if (pnodeBody->nop != knopList || pnodeBody->sxBin.pnode2->nop != knopEndCode ||
-            pnodeBody->sxBin.pnode1->nop != knopReturn || !pnodeBody->sxBin.pnode1->sxReturn.pnodeExpr || pnodeBody->sxBin.pnode1->sxReturn.pnodeExpr->nop != knopTrue)
-        {
-            return false;
-        }
-        // now we should flag this module as containing changeHeap method
-        mUsesChangeHeap = true;
-        AsmJSByteCodeGenerator::EmitEmptyByteCode(func->GetFuncInfo(), GetByteCodeGenerator(), fncNode);
-        return true;
     }
 
     bool AsmJsModuleCompiler::CheckByteLengthCall(ParseNode * callNode, ParseNode * bufferDecl)
@@ -1959,7 +1815,6 @@ namespace Js
         , mCompileTimeLastTick(GetTick())
         , mMaxAstSize(0)
         , mArrayViews(&mAllocator)
-        , mUsesChangeHeap(false)
         , mUsesHeapBuffer(false)
         , mMaxHeapAccess(0)
 #if DBG
