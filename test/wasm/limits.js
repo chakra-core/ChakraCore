@@ -25,6 +25,8 @@ const MaxFunctionSize = 128 * 1024;
 
 /* global assert,testRunner */ // eslint rule
 WScript.LoadScriptFile("../UnitTestFrameWork/UnitTestFrameWork.js");
+WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-constants.js");
+WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-module-builder.js");
 WScript.Flag("-off:wasmdeferred");
 
 function compile(moduleStr) {
@@ -32,47 +34,25 @@ function compile(moduleStr) {
   return new WebAssembly.Module(buf);
 }
 
-function leb128(number) {
-  if (number === 0) return String.fromCharCode(0);
-  if (number < 0) throw new Error("SLEB128 not supported");
-  let res = "";
-  while (number > 0) {
-    var value = number & 0x7f;
-    number >>= 7;
-    if (number > 0) {
-      value |= 0x80;
-    }
-    res += String.fromCharCode(value);
-  }
-  return res;
-}
-
-function createView(bytes) {
-  const buffer = new ArrayBuffer(bytes.length);
-  const view = new Uint8Array(buffer);
-  for (let i = 0; i < bytes.length; ++i) {
-    view[i] = bytes.charCodeAt(i);
-  }
-  return view;
-}
-const moduleHeader = "\x00\x61\x73\x6d\x01\x00\x00\x00";
+const notTooLongName = "a".repeat(MaxStringSize);
+const tooLongName = "a".repeat(MaxStringSize + 1);
 
 function makeLimitTests(opt) {
   return [{
     name: "valid: " + opt.name,
     validTest: true,
     body() {
-      assert.doesNotThrow(() => compile(`(module
-        ${opt.makeModule(opt.limit)}
-      )`), `WebAssembly should allow up to ${opt.limit} ${opt.type}`);
+      const builder = new WasmModuleBuilder();
+      opt.makeModule(builder, opt.limit);
+      assert.doesNotThrow(() => new WebAssembly.Module(builder.toBuffer()), `WebAssembly should allow up to ${opt.limit} ${opt.type}`);
     }
   }, {
     name: "invalid: " + opt.name,
     invalidTest: true,
     body() {
-      assert.throws(() => compile(`(module
-        ${opt.makeModule(opt.limit + 1)}
-      )`), WebAssembly.CompileError, `WebAssembly should not allow ${opt.limit + 1} ${opt.type}`, opt.errorMsg);
+      const builder = new WasmModuleBuilder();
+      opt.makeModule(builder, opt.limit + 1);
+      assert.throws(() => new WebAssembly.Module(builder.toBuffer()), WebAssembly.CompileError, `WebAssembly should not allow ${opt.limit + 1} ${opt.type}`, opt.errorMsg);
     }
   }];
 }
@@ -84,7 +64,7 @@ const tests = [
     limit: MaxTypes,
     type: "types",
     errorMsg: "Too many signatures",
-    makeModule: limit => (new Array(limit)).fill("(type (func))").join("\n")
+    makeModule: (builder, limit) => {for (let i = 0; i < limit; ++i) {builder.addType(kSig_v_v);}}
   }),
   // Tests 2,3
   ...makeLimitTests({
@@ -92,7 +72,10 @@ const tests = [
     limit: MaxFunctions,
     type: "functions",
     errorMsg: "Too many functions",
-    makeModule: limit => (new Array(limit)).fill("(func)").join("\n")
+    makeModule: (builder, limit) => {
+      const typeIndex = builder.addType(kSig_v_v);
+      for (let i = 0; i < limit; ++i) {builder.addFunction(null, typeIndex).end();}
+    }
   }),
   // Tests 4,5
   ...makeLimitTests({
@@ -100,7 +83,10 @@ const tests = [
     limit: MaxImports,
     type: "imports",
     errorMsg: "Too many imports",
-    makeModule: limit => (new Array(limit)).fill(`(import "" "" (func))`).join("\n"),
+    makeModule: (builder, limit) => {
+      const typeIndex = builder.addType(kSig_v_v);
+      for (let i = 0; i < limit; ++i) {builder.addImport("", "", typeIndex);}
+    }
   }),
   // Tests 6,7
   ...makeLimitTests({
@@ -108,7 +94,10 @@ const tests = [
     limit: MaxExports,
     type: "exports",
     errorMsg: "Too many exports",
-    makeModule: limit => "(func $f)\n" + (new Array(limit)).fill("").map((_, i) => `(export "a${i}" (func $f))`).join("\n"),
+    makeModule: (builder, limit) => {
+      builder.addFunction(null, kSig_v_v).end();
+      for (let i = 0; i < limit; ++i) {builder.addExport("" + i, 0);}
+    }
   }),
   // Tests 8,9
   ...makeLimitTests({
@@ -116,7 +105,7 @@ const tests = [
     limit: MaxGlobals,
     type: "globals",
     errorMsg: "Too many globals",
-    makeModule: limit => (new Array(limit)).fill(`(global i32 (i32.const 0))`).join("\n"),
+    makeModule: (builder, limit) => {for (let i = 0; i < limit; ++i) {builder.addGlobal(kWasmI32, /* mutable */ false);}}
   }),
   // Tests 10,11
   ...makeLimitTests({
@@ -124,7 +113,10 @@ const tests = [
     limit: MaxDataSegments,
     type: "data segments",
     errorMsg: "Too many data segments",
-    makeModule: limit => "(memory 0)" + (new Array(limit)).fill(`(data (i32.const 0) "")`).join("\n"),
+    makeModule: (builder, limit) => {
+      builder.addMemory(0);
+      for (let i = 0; i < limit; ++i) {builder.addDataSegment(0, "");}
+    }
   }),
   // Tests 12,13
   ...makeLimitTests({
@@ -132,7 +124,12 @@ const tests = [
     limit: MaxElementSegments,
     type: "element segments",
     errorMsg: "Too many element segments",
-    makeModule: limit => "(table 0 anyfunc) (func $f1)" + (new Array(limit)).fill(`(elem (i32.const 0) $f1)`).join("\n"),
+    makeModule: (builder, limit) => {
+      builder.addFunction(null, kSig_v_v).end();
+      builder.setFunctionTableLength(1);
+      builder.function_table_inits.length = limit;
+      builder.function_table_inits.fill({base: 0, is_global: false, array: [0]})
+    }
   }),
   // Test 14
   {
@@ -153,22 +150,130 @@ const tests = [
       assert.throws(() => compile(`(module (table 0 ${MaxTableSize + 1} anyfunc))`), WebAssembly.CompileError, "table too big");
     }
   },
+  // Test 15
   {
-    name: "test long names",
+    name: "test custom sections with long names",
     body() {
-      const customSectionId = "\x00";
-      const view = createView(`${moduleHeader}${customSectionId}${leb128(MaxStringSize+3)}${leb128(MaxStringSize)}${"a".repeat(MaxStringSize)}"b"`);
-      assert.doesNotThrow(() => new WebAssembly.Module(view));
+      function makeCustomSection(name) {
+        const customSection = new Binary();
+        customSection.emit_section(0, section => {
+          section.emit_string(name)
+          section.emit_string("payload")
+        });
+        const builder = new WasmModuleBuilder();
+        builder.addExplicitSection(customSection);
+        return new WebAssembly.Module(builder.toBuffer());
+      }
+      assert.doesNotThrow(() => makeCustomSection(notTooLongName));
+      assert.throws(() => makeCustomSection(tooLongName), WebAssembly.CompileError, "Name too long");
     }
-  }
-// MaxStringSize
-// MaxFunctionLocals
-// MaxFunctionParams
-// MaxBrTableElems
-// MaxMemoryInitialPages
-// MaxMemoryMaximumPages
-// MaxModuleSize
-// MaxFunctionSize
+  },
+  // Test 16
+  {
+    name: "test exports with long names",
+    body() {
+      function makeExportName(name)
+      {
+        const builder = new WasmModuleBuilder();
+        builder
+          .addFunction(name, kSig_v_v)
+          .exportFunc()
+          .end();
+        return new WebAssembly.Module(builder.toBuffer());
+      }
+      assert.doesNotThrow(() => makeExportName(notTooLongName));
+      assert.throws(() => makeExportName(tooLongName), WebAssembly.CompileError, "Name too long");
+    }
+  },
+  // Test 17
+  {
+    name: "test imports with long names",
+    body() {
+      function makeImportName(name)
+      {
+        const builder = new WasmModuleBuilder();
+        builder.addImport(name, 'b', kSig_v_v);
+        return new WebAssembly.Module(builder.toBuffer());
+      }
+      assert.doesNotThrow(() => makeImportName(notTooLongName));
+      assert.throws(() => makeImportName(tooLongName), WebAssembly.CompileError, "Name too long");
+    }
+  },
+  // Test 18
+  {
+    name: "test Name section with long names",
+    body() {
+      function makeName(name)
+      {
+        const builder = new WasmModuleBuilder();
+        builder
+          .addFunction(notTooLongName, kSig_v_v)
+          .end();
+        return new WebAssembly.Module(builder.toBuffer());
+      }
+      assert.doesNotThrow(() => makeName(notTooLongName));
+      // todo:: enable test once we start using the Name section
+      // assert.throws(() => makeName(tooLongName), WebAssembly.CompileError, "Name too long");
+    }
+  },
+  // Tests 19,20
+  ...makeLimitTests({
+    name: "test max function locals",
+    limit: MaxFunctionLocals,
+    type: "locals",
+    makeModule: (builder, limit) => {
+      builder.addFunction(null, kSig_v_v).addLocals({i32_count: limit}).end();
+    }
+  }),
+  // Tests 21,22
+  ...makeLimitTests({
+    name: "test max function params",
+    limit: MaxFunctionParams,
+    type: "params",
+    errorMsg: "Too many arguments in signature",
+    makeModule: (builder, limit) => {
+      builder.addFunction(null, {params: (new Array(limit)).fill(kWasmI32), results: []}).end();
+    }
+  }),
+  // Tests 23
+  {
+    name: "test max memory pages",
+    body() {
+      assert.doesNotThrow(() => new WebAssembly.Memory({initial: MaxMemoryInitialPages}));
+      assert.doesNotThrow(() => new WebAssembly.Memory({initial: MaxMemoryInitialPages, maximum: MaxMemoryMaximumPages}));
+      assert.doesNotThrow(() => new WebAssembly.Memory({maximum: MaxMemoryMaximumPages}));
+      assert.throws(() => new WebAssembly.Memory({initial: MaxMemoryInitialPages + 1}));
+      assert.throws(() => new WebAssembly.Memory({initial: MaxMemoryInitialPages + 1, maximum: MaxMemoryMaximumPages + 1}));
+      assert.throws(() => new WebAssembly.Memory({maximum: MaxMemoryMaximumPages + 1}));
+
+      assert.doesNotThrow(() => compile(`(module (memory ${MaxMemoryInitialPages}))`));
+      assert.doesNotThrow(() => compile(`(module (memory ${MaxMemoryInitialPages} ${MaxMemoryMaximumPages}))`));
+      assert.doesNotThrow(() => compile(`(module (memory 0 ${MaxMemoryMaximumPages}))`));
+      assert.throws(() => compile(`(module (memory ${MaxMemoryInitialPages + 1}))`), WebAssembly.CompileError, "Minimum memory size too big");
+      assert.throws(() => compile(`(module (memory ${MaxMemoryInitialPages + 1} ${MaxMemoryMaximumPages + 1}))`), WebAssembly.CompileError, "Minimum memory size too big");
+      assert.throws(() => compile(`(module (memory 0 ${MaxMemoryMaximumPages + 1}))`), WebAssembly.CompileError, "Maximum memory size too big");
+    }
+  },
+  // Tests 24
+  {
+    name: "test max module size",
+    body() {
+      assert.throws(() => new WebAssembly.Module(new ArrayBuffer(MaxModuleSize)), WebAssembly.CompileError, "Malformed WASM module header");
+      assert.throws(() => new WebAssembly.Module(new ArrayBuffer(MaxModuleSize + 1)), WebAssembly.CompileError, "Module too big");
+    }
+  },
+  // Tests 25,26
+  ...makeLimitTests({
+    name: "test max function size",
+    limit: MaxFunctionSize,
+    type: "size",
+    errorMsg: "Function body too big",
+    makeModule: (builder, limit) => {
+      // limit -1 (number of locals byte) -1 (endOpCode)
+      builder.addFunction(null, kSig_v_v).addBody((new Array(limit - 2)).fill(kExprNop)).end();
+    }
+  }),
+  // todo:: test MaxBrTableElems
 ];
 
 WScript.LoadScriptFile("../UnitTestFrameWork/yargs.js");

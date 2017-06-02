@@ -853,13 +853,12 @@ void WasmBinaryReader::ReadElementSection()
         WasmNode initExpr = ReadInitExpr(true);
         uint32 numElem = LEB128(length);
 
-        uint32 totalElements = 0;
-        if (UInt32Math::Add(m_module->GetElementSegCount(), numElem, &totalElements) || totalElements > Limits::GetMaxTableSize())
+        if (numElem > Limits::GetMaxTableSize())
         {
-            ThrowDecodingError(_u("too many table elements"));
+            ThrowDecodingError(_u("Too many table element"));
         }
 
-        WasmElementSegment*eSeg = Anew(m_alloc, WasmElementSegment, m_alloc, index, initExpr, numElem);
+        WasmElementSegment* eSeg = Anew(m_alloc, WasmElementSegment, m_alloc, index, initExpr, numElem);
 
         for (uint32 iElem = 0; iElem < numElem; ++iElem)
         {
@@ -869,7 +868,7 @@ void WasmBinaryReader::ReadElementSection()
             {
                 ThrowDecodingError(_u("Invalid function to insert in the table %u"), elem);
             }
-            eSeg->AddElement(elem, *m_module);
+            eSeg->AddElement(elem);
         }
         m_module->SetElementSeg(eSeg, i);
     }
@@ -898,9 +897,8 @@ void WasmBinaryReader::ReadDataSection()
         }
         TRACE_WASM_DECODER(_u("Data Segment #%u"), i);
         WasmNode initExpr = ReadInitExpr(true);
-
-        //uint32 offset = initExpr.cnst.i32;
         uint32 dataByteLen = LEB128(len);
+
         WasmDataSegment* dseg = Anew(m_alloc, WasmDataSegment, m_alloc, initExpr, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
         m_pc += dataByteLen;

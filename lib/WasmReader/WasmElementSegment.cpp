@@ -19,18 +19,18 @@ namespace Wasm
         m_elems(nullptr)
     {}
 
-    void WasmElementSegment::Init(const Js::WebAssemblyModule& module)
+    void WasmElementSegment::Init()
     {
         Assert(m_numElem > 0);
         m_elems = AnewArray(m_alloc, uint32, m_numElem);
         memset(m_elems, Js::Constants::UninitializedValue, m_numElem * sizeof(uint32));
     }
 
-    void WasmElementSegment::AddElement(const uint32 funcIndex, const Js::WebAssemblyModule& module)
+    void WasmElementSegment::AddElement(const uint32 funcIndex)
     {
         if (m_elems == nullptr)
         {
-            Init(module);
+            Init();
         }
         Assert(m_elemIdx < m_numElem);
         m_elems[m_elemIdx++] = funcIndex;

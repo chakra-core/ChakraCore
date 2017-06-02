@@ -12,7 +12,7 @@ namespace Wasm
     {
     public:
         WasmElementSegment(ArenaAllocator* alloc, const uint32 index, const WasmNode initExpr, const uint32 numElem);
-        void AddElement(const uint32 funcIndex, const Js::WebAssemblyModule& module);
+        void AddElement(const uint32 funcIndex);
         uint32 GetElement(const uint32 tableIndex) const;
         uint32 GetNumElements() const { return m_numElem; }
         WasmNode GetOffsetExpr() const { return m_offsetExpr; }
@@ -25,6 +25,6 @@ namespace Wasm
         uint32 m_elemIdx;
         uint32* m_elems;
 
-        void Init(const Js::WebAssemblyModule& module);
+        void Init();
     };
 } // Namespace Wasm
