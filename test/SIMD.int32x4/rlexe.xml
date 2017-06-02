@@ -252,16 +252,6 @@
       <compile-flags>-Simdjs</compile-flags>
     </default>
   </test>
-  <!-- Fix and re-enable or remove (Microsoft/ChakraCore#3034)
-  <test>
-    <default>
-      <files>testShuffle.js</files>
-      <baseline>testShuffle.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
-    </default>
-  </test>
-  -->
-
   <test>
     <default>
       <files>testWithLane.js</files>
