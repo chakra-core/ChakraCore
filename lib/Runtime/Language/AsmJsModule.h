@@ -139,7 +139,7 @@ namespace Js {
         typedef JsUtil::BaseDictionary<PropertyId, AsmJsSymbol*, ArenaAllocator> ModuleEnvironment;
         typedef JsUtil::List<AsmJsFunc*, ArenaAllocator> ModuleFunctionArray;
         typedef JsUtil::List<AsmJsFunctionTable*, ArenaAllocator> ModuleFunctionTableArray;
-        typedef JsUtil::List<AsmJsModuleExport, ArenaAllocator> ModuleExportArray;
+        typedef JsUtil::BaseDictionary<PropertyId, AsmJsModuleExport, ArenaAllocator> ModuleExportMap;
         typedef JsUtil::Queue<AsmJsArrayView *, ArenaAllocator> ModuleArrayViewList;
         typedef WAsmJs::RegisterSpace ModuleIntVars;
         typedef WAsmJs::RegisterSpace ModuleDoubleVars;
@@ -185,7 +185,7 @@ namespace Js {
         ModuleSIMDVars                  mSimdVarSpace;
         BVStatic<ASMSIMD_BUILTIN_SIZE>  mAsmSimdBuiltinUsedBV;
 
-        ModuleExportArray               mExports;
+        ModuleExportMap                 mExports;
         RegSlot                         mExportFuncIndex; // valid only if export object is empty
         ModuleFunctionTableArray        mFunctionTableArray;
         int                             mVarImportCount;
