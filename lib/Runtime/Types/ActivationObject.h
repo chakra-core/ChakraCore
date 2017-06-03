@@ -116,7 +116,8 @@ namespace Js
 
         static bool Is(void* instance)
         {
-            return VirtualTableInfo<Js::ConsoleScopeActivationObject>::HasVirtualTable(instance);
+            return VirtualTableInfo<ConsoleScopeActivationObject>::HasVirtualTable(instance)
+                || VirtualTableInfo<CrossSiteObject<ConsoleScopeActivationObject>>::HasVirtualTable(instance);
         }
 
 #if ENABLE_TTD
