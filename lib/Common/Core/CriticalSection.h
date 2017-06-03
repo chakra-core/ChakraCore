@@ -9,18 +9,20 @@ class CriticalSection
 public:
     CriticalSection(DWORD spincount = 0)
     {
+        cs = new CRITICAL_SECTION;
 #pragma prefast(suppress:6031, "InitializeCriticalSectionAndSpinCount always succeed since Vista. No need to check return value");
-        ::InitializeCriticalSectionAndSpinCount(&cs, spincount);
+        ::InitializeCriticalSectionAndSpinCount((CRITICAL_SECTION*)cs, spincount);
     }
-    ~CriticalSection() { ::DeleteCriticalSection(&cs); }
-    BOOL TryEnter() { return ::TryEnterCriticalSection(&cs); }
-    void Enter() { ::EnterCriticalSection(&cs); }
-    void Leave() { ::LeaveCriticalSection(&cs); }
+    ~CriticalSection() { ::DeleteCriticalSection((CRITICAL_SECTION*)cs); delete (CRITICAL_SECTION*)cs; }
+    BOOL TryEnter() { return ::TryEnterCriticalSection((CRITICAL_SECTION*)cs); }
+    void Enter() { ::EnterCriticalSection((CRITICAL_SECTION*)cs); }
+    void Leave() { ::LeaveCriticalSection((CRITICAL_SECTION*)cs); }
 #if DBG
-    bool IsLocked() const { return cs.OwningThread == (HANDLE)::GetCurrentThreadId(); }
+    bool IsLocked() const { return ((CRITICAL_SECTION*)cs)->OwningThread == (HANDLE)::GetCurrentThreadId(); }
 #endif
 private:
-    CRITICAL_SECTION cs;
+    void *cs;
+//    CRITICAL_SECTION cs;
 };
 
 //FakeCriticalSection mimics CriticalSection apis
@@ -102,4 +104,3 @@ public:
 private:
     SyncObject * cs;
 };
-
