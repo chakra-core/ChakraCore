@@ -102,7 +102,7 @@ You can build ChakraCore on Windows 7 SP1 or above, and Windows Server 2008 R2 o
 
 More details in [Building ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Building-ChakraCore).
 
-Alternatively, you can get pre-built ChakraCore binaries from our [NuGet Packages](https://github.com/Microsoft/ChakraCore/wiki/NuGet-Packages).
+Alternatively, see [Getting ChakraCore binaries](https://github.com/Microsoft/ChakraCore/wiki/Getting-ChakraCore-binaries) for pre-built ChakraCore binaries.
 
 ## Using ChakraCore
 

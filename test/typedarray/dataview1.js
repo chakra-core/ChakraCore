@@ -153,6 +153,6 @@ TestDataViewConstructorWithOffset();
 TestDataViewConstructorWithOffsetAndLength();
 assert.throws(TestDataViewConstructorCalledWithoutNew, TypeError, "", "DataView: cannot be called without the new keyword");
 assert.throws(TestDataViewConstructorCalledWithoutArguments, TypeError, "", "Required argument buffer in DataView method is not specified");
-assert.throws(TestDataViewCostructorCalledWithJavascriptArray, TypeError, "", "Required argument buffer in DataView method is not specified");
+assert.throws(TestDataViewCostructorCalledWithJavascriptArray, TypeError, "", "buffer is not an ArrayBuffer");
 assert.throws(TestDataViewCostructorOffsetBeyondArrayBufferByteLength, RangeError, "", "DataView constructor argument byteOffset is invalid");
 assert.throws(TestDataViewCostructorOffsetPlusLengthBeyondArrayBufferByteLength, RangeError, "", "DataView constructor argument byteLength is invalid");

@@ -44,4 +44,4 @@ function TestDataViewCostructorDetachedBuffer()
     var dataView8 = new DataView(arrayBufferToDetach);
 }
 
-assert.throws(TestDataViewCostructorDetachedBuffer, TypeError, "", "'this' is not a DataView object");
+assert.throws(TestDataViewCostructorDetachedBuffer, TypeError, "", "The ArrayBuffer is detached.");
