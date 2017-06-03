@@ -171,13 +171,10 @@ Var WebAssemblyModule::EntryCustomSections(RecyclableObject* function, CallInfo 
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
     }
-    if (args.Info.Count < 3)
-    {
-        JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedString, _u("sectionName"));
-    }
+    Var sectionNameVar = args.Info.Count > 2 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
 
     WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
-    JavascriptString * sectionName = JavascriptConversion::ToString(args[2], scriptContext);
+    JavascriptString * sectionName = JavascriptConversion::ToString(sectionNameVar, scriptContext);
     const char16* sectionNameBuf = sectionName->GetString();
     charcount_t sectionNameLength = sectionName->GetLength();
 
