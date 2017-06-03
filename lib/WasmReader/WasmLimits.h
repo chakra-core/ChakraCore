@@ -16,7 +16,7 @@ namespace Wasm {
         static const uint32 MaxGlobals = 1000000;
         static const uint32 MaxDataSegments = 100000;
         static const uint32 MaxElementSegments = 10000000;
-        static const uint32 MaxTableSize = 10000000;
+        static const uint32 MaxTableSize = DEFAULT_CONFIG_WasmMaxTableSize;
 
         static const uint32 MaxStringSize = 100000;
         static const uint32 MaxFunctionLocals = 50000;
@@ -36,7 +36,7 @@ namespace Wasm {
         static uint32 GetMaxGlobals() { return MaxGlobals; }
         static uint32 GetMaxDataSegments() { return MaxDataSegments; }
         static uint32 GetMaxElementSegments() { return MaxElementSegments; }
-        static uint32 GetMaxTableSize() { return MaxTableSize; }
+        static uint32 GetMaxTableSize() { return CONFIG_FLAG(WasmMaxTableSize); }
         static uint32 GetMaxStringSize() { return MaxStringSize; }
         static uint32 GetMaxFunctionLocals() { return MaxFunctionLocals; }
         static uint32 GetMaxFunctionParams() { return MaxFunctionParams; }

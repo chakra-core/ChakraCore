@@ -395,6 +395,7 @@ RT_ERROR_MSG(WASMERR_CantDetach, 7021, "", "Not allowed to detach WebAssembly.Me
 RT_ERROR_MSG(WASMERR_BufferGrowOnly, 7022, "", "WebAssembly.Memory can only grow", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_LinkSignatureMismatch, 7023, "Cannot link import %s in link table due to a signature mismatch", "Function called with invalid signature", kjstWebAssemblyRuntimeError, 0)
 RT_ERROR_MSG(WASMERR_MemoryCreateFailed, 7024, "", "Failed to create WebAssembly.Memory", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_NeedInstanceObject, 7025, "%s is not a WebAssembly.Instance", "WebAssembly.Instance object expected", kjstWebAssemblyRuntimeError, 0)
 
 // Wabt Errors
 RT_ERROR_MSG(WABTERR_WabtError, 7200, "%s", "Wabt Error.", kjstTypeError, 0)
