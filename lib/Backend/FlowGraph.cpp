@@ -3354,8 +3354,6 @@ FlowGraph::RemoveBlock(BasicBlock *block, GlobOpt * globOpt, bool tailDuping)
         {
             Assert(instr->IsLabelInstr());
             instr->AsLabelInstr()->m_isLoopTop = false;
-            instr->AsLabelInstr()->SetRegion(nullptr);
-            instr->AsLabelInstr()->m_hasNonBranchRef = false;
         }
         else
         {
