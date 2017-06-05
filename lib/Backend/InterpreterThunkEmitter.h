@@ -101,10 +101,10 @@ private:
 #endif
 
     /* ------private helpers -----------*/
-    void NewThunkBlock();
+    bool NewThunkBlock();
 
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
-    void NewOOPJITThunkBlock();
+    bool NewOOPJITThunkBlock();
 #endif
 
     static void EncodeInterpreterThunk(

@@ -1766,6 +1766,20 @@ namespace Js
 #endif
 
 #if DYNAMIC_INTERPRETER_THUNK
+#pragma optimize("", off)
+#ifdef ASMJS_PLAT
+    void InterpreterStackFrame::StaticInterpreterAsmThunk(RecyclableObject* function, ...)
+    {
+        InterpreterAsmThunk((AsmJsCallStackLayout*)&function);
+    }
+#endif
+
+    Var InterpreterStackFrame::StaticInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        return InterpreterThunk((JavascriptCallStackLayout*)&function);
+    }
+#pragma optimize("", on)
+
     Var InterpreterStackFrame::InterpreterThunk(JavascriptCallStackLayout* layout)
     {
         Js::ScriptFunction * function = Js::ScriptFunction::FromVar(layout->functionObject);
@@ -1775,6 +1789,7 @@ namespace Js
         return InterpreterHelper(function, args, localReturnAddress, localAddressOfReturnAddress);
     }
 #else
+
 #pragma optimize("", off)
     Var InterpreterStackFrame::InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {

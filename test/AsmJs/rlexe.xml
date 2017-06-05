@@ -101,6 +101,13 @@
   </test>
   <test>
     <default>
+      <files>FunctionCalls.js</files>
+      <baseline>FunctionCalls.baseline</baseline>
+      <compile-flags>-ForceStaticInterpreterThunk -testtrace:asmjs -simdjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>functiontablecalls.js</files>
       <baseline>functiontablecalls.baseline</baseline>
       <compile-flags>-testtrace:asmjs -simdjs</compile-flags>

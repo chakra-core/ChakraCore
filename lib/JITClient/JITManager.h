@@ -109,7 +109,7 @@ public:
 
 
     static JITManager * GetJITManager();
-    static void HandleServerCallResult(HRESULT hr, RemoteCallType callType);
+    static bool HandleServerCallResult(HRESULT hr, RemoteCallType callType);
 private:
     JITManager();
     ~JITManager();
@@ -237,8 +237,7 @@ public:
 
     static JITManager * GetJITManager()
         { return &s_jitManager; }
-    static void HandleServerCallResult(HRESULT hr, RemoteCallType callType) { Assert(UNREACHED); }
-
+    static bool HandleServerCallResult(HRESULT hr, RemoteCallType callType) { Assert(UNREACHED); }
 private:
     static JITManager s_jitManager;
 };

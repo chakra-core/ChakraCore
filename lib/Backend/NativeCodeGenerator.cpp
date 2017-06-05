@@ -1597,6 +1597,7 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
         Assert(functionBody->GetDefaultEntryPointInfo() == function->GetEntryPointInfo() &&
             (
                 originalEntryPoint == DefaultEntryThunk
+             || originalEntryPoint == Js::InterpreterStackFrame::StaticInterpreterThunk
              || scriptContext->IsDynamicInterpreterThunk(originalEntryPoint)
              || originalEntryPoint_IS_ProfileDeferredParsingThunk
              || originalEntryPoint == DefaultDeferredParsingThunk
@@ -3673,14 +3674,14 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
 }
 
 #if _WIN32
-void
+bool
 JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
 {
     // handle the normal hresults
     switch (hr)
     {
     case S_OK:
-        return;
+        return true;
     case E_ABORT:
         throw Js::OperationAbortedException();
     case E_OUTOFMEMORY:
@@ -3720,15 +3721,16 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
         // inform job manager that JIT work item has been cancelled
         throw Js::OperationAbortedException();
     case RemoteCallType::HeapQuery:
-    case RemoteCallType::ThunkCreation:
         Js::Throw::OutOfMemory();
+    case RemoteCallType::ThunkCreation:
     case RemoteCallType::StateUpdate:
     case RemoteCallType::MemFree:
         // if server process is gone, we can ignore failures updating its state
-        return;
+        return false;
     default:
         Assert(UNREACHED);
         RpcFailure_fatal_error(hr);
     }
+    return false;
 }
 #endif
