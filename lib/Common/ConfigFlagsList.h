@@ -34,12 +34,13 @@ PHASE(All)
     PHASE(Delay)
         PHASE(Speculation)
         PHASE(GatherCodeGenData)
-    PHASE(WasmBytecode)
-        PHASE(WasmParser)
+    PHASE(Wasm)
+        // Wasm frontend
+        PHASE(WasmBytecode)
         PHASE(WasmReader)
-        PHASE(WasmSection)
-        PHASE(WasmLEB128)
-        PHASE(WasmFunctionBody)
+            PHASE(WasmSection)
+            PHASE(WasmLEB128)
+        // Wasm features per functions
         PHASE(WasmDeferred)
         PHASE(WasmValidatePrejit)
         PHASE(WasmInOut) // Trace input and output of wasm calls

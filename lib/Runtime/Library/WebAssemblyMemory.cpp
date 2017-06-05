@@ -6,6 +6,7 @@
 #include "RuntimeLibraryPch.h"
 
 #ifdef ENABLE_WASM
+#include "WasmLimits.h"
 
 namespace Js
 {
@@ -63,7 +64,7 @@ WebAssemblyMemory::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     Var initVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::initial, scriptContext);
     uint32 initial = WebAssembly::ToNonWrappingUint32(initVar, scriptContext);
 
-    uint32 maximum = UINT_MAX;
+    uint32 maximum = Wasm::Limits::GetMaxMemoryMaximumPages();
     if (JavascriptOperators::OP_HasProperty(memoryDescriptor, PropertyIds::maximum, scriptContext))
     {
         Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::maximum, scriptContext);
@@ -197,6 +198,10 @@ WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callIn
 WebAssemblyMemory *
 WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
+    if (initial > Wasm::Limits::GetMaxMemoryInitialPages() || maximum > Wasm::Limits::GetMaxMemoryMaximumPages())
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid);
+    }
     // This shouldn't overflow since we checked in the module, but just to be safe
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
     WebAssemblyArrayBuffer* buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);

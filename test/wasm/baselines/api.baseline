@@ -129,7 +129,7 @@ Test 4 passed. Expected Error: TypeError: Object expected
 Test 5 passed. Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
 Test 6 passed. Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
 Test 7 passed. Expected Error: WebAssemblyLinkError: Function expected
-Test 8 passed. Expected Error: WebAssemblyLinkError: Cannot link import fn2()->f32 to fn2()->i32 in link table due to a signature mismatch
+Test 8 passed. Expected Error: WebAssemblyLinkError: Cannot link import test.fn.Thunk[0]()->i32 to fn2()->f32 in link table due to a signature mismatch
 Test 9 passed. Expected Error: WebAssemblyLinkError: WebAssembly.Memory object expected
 Test 10 passed. Expected Error: WebAssemblyLinkError: WebAssembly.Memory object expected
 Test 11 passed. Expected Error: WebAssemblyLinkError: WebAssembly.Memory object expected

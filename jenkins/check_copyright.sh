@@ -39,6 +39,7 @@ git diff --name-only `git merge-base origin/$ghprbTargetBranch HEAD` HEAD |
     grep -v -E '\.man$' |
     grep -v -E 'lib/wabt/.*' |
     grep -v -E 'test/WasmSpec/.*$' |
+    grep -v -E 'test/UnitTestFramework/yargs.js$' |
     grep -v -E 'test/benchmarks/.*\.js$' |
     grep -v -E 'test/benchmarks/.*\.js_c$' |
     grep -v -E 'bin/External/.*$' |

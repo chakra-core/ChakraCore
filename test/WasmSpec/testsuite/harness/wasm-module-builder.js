@@ -74,7 +74,9 @@ class Binary extends Array {
     // Emit section length.
     this.emit_u32v(section.length);
     // Copy the temporary buffer.
-    this.push(...section);
+    for (let i = 0; i < section.length; ++i) {
+      this.push(section[i]);
+    }
   }
 }
 
@@ -107,6 +109,7 @@ class WasmFunctionBuilder {
   }
 
   end() {
+    this.body.push(kExprEnd);
     return this.module;
   }
 }
@@ -336,9 +339,10 @@ class WasmModuleBuilder {
       if (debug) print("emitting memory @ " + binary.length);
       binary.emit_section(kMemorySectionCode, section => {
         section.emit_u8(1);  // one memory entry
-        section.emit_u32v(kResizableMaximumFlag);
+        const has_max = wasm.memory.max !== undefined;
+        section.emit_u32v(has_max ? kResizableMaximumFlag : 0);
         section.emit_u32v(wasm.memory.min);
-        section.emit_u32v(wasm.memory.max);
+        if (has_max) section.emit_u32v(wasm.memory.max);
       });
     }
 
@@ -426,9 +430,9 @@ class WasmModuleBuilder {
       binary.emit_section(kElementSectionCode, section => {
         var inits = wasm.function_table_inits;
         section.emit_u32v(inits.length);
-        section.emit_u8(0); // table index
 
         for (let init of inits) {
+          section.emit_u8(0); // table index
           if (init.is_global) {
             section.emit_u8(kExprGetGlobal);
           } else {

@@ -12,8 +12,8 @@ namespace Wasm
     public:
         WasmFunctionInfo(ArenaAllocator* alloc, WasmSignature* signature, uint32 number);
 
-        void AddLocal(WasmTypes::WasmType type, uint count = 1);
-        Local GetLocal(uint index) const;
+        void AddLocal(WasmTypes::WasmType type, uint32 count = 1);
+        Local GetLocal(uint32 index) const;
         WasmTypes::WasmType GetResultType() const;
 
         uint32 GetLocalCount() const;

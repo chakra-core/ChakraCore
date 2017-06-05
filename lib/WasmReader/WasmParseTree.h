@@ -22,7 +22,7 @@ namespace Wasm
         };
         bool IsLocalType(WasmTypes::WasmType type);
         uint32 GetTypeByteSize(WasmType type);
-        char16 const* GetTypeName(WasmType type);
+        const char16* GetTypeName(WasmType type);
     }
 
     namespace ExternalKinds
@@ -82,7 +82,7 @@ namespace Wasm
 
     struct WasmVarNode
     {
-        uint num;
+        uint32 num;
         union
         {
             LPCUTF8 exportName;
