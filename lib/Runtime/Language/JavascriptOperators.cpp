@@ -5958,7 +5958,10 @@ CommonNumber:
 
     Var JavascriptOperators::NewScObjectNoCtor(Var instance, ScriptContext * requestContext)
     {
-        return NewScObjectNoCtorCommon(instance, requestContext, false);
+        // We can still call into NewScObjectNoCtor variations in JIT code for performance; however for proxy we don't
+        // really need the new object as the trap will handle the "this" pointer separately. pass back nullptr to ensure
+        // failure in invalid case.
+        return (JavascriptProxy::Is(instance)) ? nullptr : NewScObjectNoCtorCommon(instance, requestContext, false);
     }
 
     Var JavascriptOperators::NewScObjectNoCtorCommon(Var instance, ScriptContext* requestContext, bool isBaseClassConstructorNewScObject)
@@ -5979,13 +5982,6 @@ CommonNumber:
     {
         ScriptContext* functionScriptContext = function->GetScriptContext();
 
-        if (JavascriptProxy::Is(function))
-        {
-            // We can still call into NewScObjectNoCtor variations in JIT code for performance; however for proxy we don't
-            // really need the new object as the trap will handle the "this" pointer separately. pass back nullptr to ensure
-            // failure in invalid case.
-            return  nullptr;
-        }
         RecyclableObject * prototype = JavascriptOperators::GetPrototypeObject(function, functionScriptContext);
         prototype = RecyclableObject::FromVar(CrossSite::MarshalVar(requestContext, prototype));
         Var object = requestContext->GetLibrary()->CreateObject(prototype);
