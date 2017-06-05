@@ -164,7 +164,7 @@ DbCheckPostLower::Check()
 #endif
             }
             Assert(!LowererMD::IsAssign(instr) || instr->GetDst()->GetSize() == instr->GetSrc1()->GetSize());
-            Assert(instr->m_opcode != Js::OpCode::CMP || instr->GetSrc1()->GetType() == instr->GetSrc1()->GetType());
+            Assert(instr->m_opcode != Js::OpCode::CMP || instr->GetSrc1()->GetSize() == instr->GetSrc2()->GetSize());
 
             switch (instr->m_opcode)
             {

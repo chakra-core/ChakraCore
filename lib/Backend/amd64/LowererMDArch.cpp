@@ -1131,7 +1131,7 @@ LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
     // Compare index + memop access length and array buffer length, and generate RuntimeError if greater
     IR::Opnd *cmpOpnd = IR::RegOpnd::New(TyUint64, m_func);
     Lowerer::InsertAdd(true, cmpOpnd, indexOpnd, IR::IntConstOpnd::New(addrOpnd->GetSize(), TyUint64, m_func), helperLabel);
-    lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGt_A, true, helperLabel, helperLabel);
+    lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd->UseWithNewType(TyUint64, m_func), Js::OpCode::BrGt_A, true, helperLabel, helperLabel);
 
     lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, WASMERR_ArrayIndexOutOfRange, IR::HelperOp_WebAssemblyRuntimeError);
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);

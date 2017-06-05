@@ -4337,7 +4337,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     }
 
     lengthOpnd = GenerateUntagVar(lengthOpnd->AsRegOpnd(), helperLabel, instr);
-    IR::Opnd* upperBound = IR::IntConstOpnd::New(8, TyUint8, func, true);
+    IR::Opnd* upperBound = IR::IntConstOpnd::New(8, lengthOpnd->GetType(), func, true);
     InsertCompare(lengthOpnd, upperBound, instr);
     InsertBranch(Js::OpCode::BrGt_A, true /* isUnsigned */, helperLabel, instr);
     headOpnd = GenerateArrayAlloc<ArrayType>(instr, lengthOpnd, arrayInfo);
@@ -8608,7 +8608,7 @@ Lowerer::LowerAddLeftDeadForString(IR::Instr *instr)
 
     // if lastBlockInfo.charLength < lastBlockInfo.charCapacity
     IR::IndirOpnd *indirCharLength = IR::IndirOpnd::New(opndLeft->AsRegOpnd(), (int32)Js::CompoundString::GetOffsetOfLastBlockInfo()+ (int32)Js::CompoundString::GetOffsetOfLastBlockInfoCharLength(), TyMachPtr, m_func);
-    IR::RegOpnd *charLengthOpnd = IR::RegOpnd::New(TyUint32, this->m_func);
+    IR::RegOpnd *charLengthOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     InsertMove(charLengthOpnd, indirCharLength, insertBeforeInstr);
     InsertCompareBranch(charLengthOpnd, IR::IndirOpnd::New(opndLeft->AsRegOpnd(), (int32)Js::CompoundString::GetOffsetOfLastBlockInfo() + (int32)Js::CompoundString::GetOffsetOfLastBlockInfoCharCapacity(), TyMachPtr, m_func), Js::OpCode::BrGe_A, labelHelper, insertBeforeInstr);
 
@@ -12863,6 +12863,7 @@ void Lowerer::LowerBoundCheck(IR::Instr *const instr)
         InsertBranch(LowererMD::MDOverflowBranchOpcode, bailOutLabel, insertBeforeInstr);
 
         rightOpnd = addResultOpnd;
+        leftOpnd = leftOpnd->UseWithNewType(TyMachReg, func);
     }
 
     //     cmp  left, right
@@ -16111,7 +16112,7 @@ Lowerer::GenerateFastStringLdElem(IR::Instr * ldElem, IR::LabelInstr * labelHelp
     IR::RegOpnd * charOpnd = IR::RegOpnd::New(TyUint32, this->m_func);
     const IR::AutoReuseOpnd autoReuseCharOpnd(charOpnd, m_func);
     InsertMove(charOpnd, charIndirOpnd, ldElem);
-    InsertCompareBranch(charOpnd, IR::IntConstOpnd::New(Js::CharStringCache::CharStringCacheSize, TyUint16, this->m_func),
+    InsertCompareBranch(charOpnd, IR::IntConstOpnd::New(Js::CharStringCache::CharStringCacheSize, TyUint32, this->m_func),
         Js::OpCode::BrGe_A, true, labelHelper, ldElem);
 
     // Load the string from the cache
@@ -17809,7 +17810,7 @@ Lowerer::GenerateGetSingleCharString(IR::RegOpnd * charCodeOpnd, IR::Opnd * resu
     Assert(Js::JavascriptLibrary::GetCharStringCacheAOffset() == Js::JavascriptLibrary::GetCharStringCacheOffset());
     InsertMove(cacheRegOpnd, this->LoadLibraryValueOpnd(instr, LibraryValue::ValueCharStringCache), instr);
 
-    InsertCompareBranch(charCodeOpnd, IR::IntConstOpnd::New(Js::CharStringCache::CharStringCacheSize, TyUint32, this->m_func), Js::OpCode::BrGe_A, true, labelWCharStringCheck, instr);
+    InsertCompareBranch(charCodeOpnd, IR::IntConstOpnd::New(Js::CharStringCache::CharStringCacheSize, charCodeOpnd->GetType(), this->m_func), Js::OpCode::BrGe_A, true, labelWCharStringCheck, instr);
     InsertMove(resultOpnd, IR::IndirOpnd::New(cacheRegOpnd, charCodeOpnd, this->m_lowererMD.GetDefaultIndirScale(), TyVar, instr->m_func), instr);
 
     InsertTestBranch(resultOpnd, resultOpnd, Js::OpCode::BrEq_A, labelHelper, instr);
@@ -19427,7 +19428,7 @@ Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr *labelFa
         {
             // Load actuals count, LoadHeapArguments will reuse the generated instructions here
             IR::Instr      *loadInputParamCountInstr = this->m_lowererMD.LoadInputParamCount(ldElem, -1 /* don't include 'this' while counting actuals. */);
-            actualParamOpnd = loadInputParamCountInstr->GetDst()->AsRegOpnd();
+            actualParamOpnd = loadInputParamCountInstr->GetDst()->AsRegOpnd()->UseWithNewType(TyInt32, func);
         }
 
         if (hasIntConstIndex)
