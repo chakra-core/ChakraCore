@@ -9,7 +9,7 @@
 
 namespace Wasm
 {
-    WasmElementSegment::WasmElementSegment(ArenaAllocator * alloc, const UINT32 index, const WasmNode initExpr, const UINT32 numElem) :
+    WasmElementSegment::WasmElementSegment(ArenaAllocator* alloc, const uint32 index, const WasmNode initExpr, const uint32 numElem) :
         m_alloc(alloc),
         m_index(index),
         m_offsetExpr(initExpr),
@@ -19,27 +19,24 @@ namespace Wasm
         m_elems(nullptr)
     {}
 
-    void
-    WasmElementSegment::Init(const Js::WebAssemblyModule& module)
+    void WasmElementSegment::Init()
     {
         Assert(m_numElem > 0);
-        m_elems = AnewArray(m_alloc, UINT32, m_numElem);
-        memset(m_elems, Js::Constants::UninitializedValue, m_numElem * sizeof(UINT32));
+        m_elems = AnewArray(m_alloc, uint32, m_numElem);
+        memset(m_elems, Js::Constants::UninitializedValue, m_numElem * sizeof(uint32));
     }
 
-    void
-    WasmElementSegment::AddElement(const UINT32 funcIndex, const Js::WebAssemblyModule& module)
+    void WasmElementSegment::AddElement(const uint32 funcIndex)
     {
         if (m_elems == nullptr)
         {
-            Init(module);
+            Init();
         }
         Assert(m_elemIdx < m_numElem);
         m_elems[m_elemIdx++] = funcIndex;
     }
 
-    UINT32
-    WasmElementSegment::GetElement(const UINT32 tableIndex) const
+    uint32 WasmElementSegment::GetElement(const uint32 tableIndex) const
     {
         Assert(m_elems != nullptr);
         return m_elems[tableIndex];

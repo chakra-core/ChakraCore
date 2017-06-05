@@ -20,7 +20,7 @@ namespace Wasm
     {
 #include "WasmSections.h"
         bSectLimit,
-        bsectLastKnownSection = bSectDataSegments
+        bsectLastKnownSection = bSectData
     };
 
     struct SectionInfo

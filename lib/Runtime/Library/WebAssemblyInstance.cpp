@@ -295,7 +295,7 @@ void WebAssemblyInstance::LoadImports(
                     wasmModule->GetWasmFunctionInfo(counter)->GetSignature()->WriteSignatureToString(importargs, 512);
                     char16 exportargs[512] = { 0 };
                     func->GetSignature()->WriteSignatureToString(exportargs, 512);
-                    _snwprintf_s(temp, 2048, _TRUNCATE, _u("%ls%ls to %ls%ls"), import->importName, importargs, import->importName, exportargs);
+                    _snwprintf_s(temp, 2048, _TRUNCATE, _u("%ls%ls to %ls%ls"), func->GetDisplayName()->GetString(), exportargs, import->importName, importargs);
                     // this makes a copy of the error message buffer, so it's fine to not worry about clean-up
                     JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_LinkSignatureMismatch, temp);
                 }
@@ -321,7 +321,7 @@ void WebAssemblyInstance::LoadImports(
                 }
                 if (mem->GetMaximumLength() > wasmModule->GetMemoryMaxSize())
                 {
-                    throw Wasm::WasmCompilationException(_u("Imported memory maximum size (%u) is larger than declared (%u)"),mem->GetMaximumLength(), wasmModule->GetMemoryMaxSize());
+                    throw Wasm::WasmCompilationException(_u("Imported memory maximum size (%u) is larger than declared (%u)"), mem->GetMaximumLength(), wasmModule->GetMemoryMaxSize());
                 }
                 env->SetMemory(counter, mem);
             }

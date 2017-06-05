@@ -17,6 +17,7 @@
     <ClInclude Include="WasmReaderBase.h" />
     <ClInclude Include="WasmCustomReader.h" />
     <ClInclude Include="EmptyWasmByteCodeWriter.h" />
+    <ClInclude Include="WasmLimits.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmBytecodeGenerator.cpp" />
