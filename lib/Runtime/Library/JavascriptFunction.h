@@ -100,7 +100,6 @@ namespace Js
         static JavascriptFunction* FromVar(Var aValue);
         Var CallFunction(Arguments args);
         Var CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript);
-        Var CallRootFunctionInternal(Arguments args, ScriptContext * scriptContext, bool inScript);
 #ifdef ASMJS_PLAT
         template <typename T>
         static T CallAsmJsFunction(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv);
@@ -121,6 +120,8 @@ namespace Js
 #endif
         template <bool doStackProbe>
         static Var CallFunction(RecyclableObject* obj, JavascriptMethod entryPoint, Arguments args);
+        static Var CallRootFunction(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript);
+        static Var CallRootFunctionInternal(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript);
         static Var CallSpreadFunction(RecyclableObject* obj, Arguments args, const Js::AuxArray<uint32> *spreadIndices);
         static uint32 GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static void SpreadArgs(const Arguments args, Arguments& destArgs, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
