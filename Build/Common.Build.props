@@ -134,7 +134,7 @@
   </ItemDefinitionGroup>
   
     <!-- chk build flags -->  
-  <ItemDefinitionGroup Condition="'$(OptimizedBuild)'!='true'">
+  <ItemDefinitionGroup Condition="'$(DebugBuild)'=='true'">
     <ClCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);_DEBUG;DBG;DBG_DUMP</PreprocessorDefinitions>
     </ClCompile>
@@ -146,7 +146,7 @@
     </Midl>
   </ItemDefinitionGroup>
   <!-- fre and fretest build flags -->
-  <ItemDefinitionGroup Condition="'$(OptimizedBuild)'=='true'">
+  <ItemDefinitionGroup Condition="'$(DebugBuild)'!='true'">
     <ClCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);NDEBUG</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Test'">%(PreprocessorDefinitions);ENABLE_DEBUG_CONFIG_OPTIONS=1</PreprocessorDefinitions>
