@@ -8,8 +8,9 @@
 # This script is mainly for CI only. In case you have ChakraCore is compiled for multiple
 # targets, this script may fail to test all of them. Use runtests.py instead.
 
-test_path=`dirname "$0"`
-
+pushd `dirname $0` > /dev/null
+test_path=`pwd -P`
+popd > /dev/null
 build_type=
 binary_path=
 release_build=0
@@ -52,9 +53,8 @@ else
     fi
 fi
 
-RES=$(pwd)
-CH_ABSOLUTE_PATH="$RES/${test_path}/../out/${binary_path}/ch"
-RES=$(cd $RES/$test_path/native-tests; ./test_native.sh ${CH_ABSOLUTE_PATH} ${binary_path} 2>&1)
+CH_ABSOLUTE_PATH="${test_path}/../out/${binary_path}/ch"
+RES=$(cd $test_path/native-tests; ./test_native.sh ${CH_ABSOLUTE_PATH} ${binary_path} 2>&1)
 if [[ $? != 0 ]]; then
     echo "Error: Native tests failed"
     echo -e "$RES"
