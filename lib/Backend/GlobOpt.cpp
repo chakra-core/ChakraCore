@@ -13494,6 +13494,12 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             }
             else
             {
+                if (!baseOwnerIndir)
+                {
+                    Assert(instr->m_opcode == Js::OpCode::InlineArrayPush ||
+                        instr->m_opcode == Js::OpCode::InlineArrayPop ||
+                        instr->m_opcode == Js::OpCode::LdLen_A)
+                }
                 eliminatedLowerBoundCheck = true;
                 eliminatedUpperBoundCheck = true;
                 canBailOutOnArrayAccessHelperCall = false;
