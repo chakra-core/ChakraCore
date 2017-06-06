@@ -13470,7 +13470,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             // Unless we're in asm.js (where it is guaranteed that virtual typed array accesses cannot read/write beyond 4GB),
             // check the range of the index to make sure we won't access beyond the reserved memory beforing eliminating bounds
             // checks in jitted code.
-            if (!GetIsAsmJSFunc())
+            if (!GetIsAsmJSFunc() && baseOwnerIndir)
             {
                 IR::RegOpnd * idxOpnd = baseOwnerIndir->GetIndexOpnd();
                 if (idxOpnd)
@@ -13494,6 +13494,12 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             }
             else
             {
+                if (!baseOwnerIndir)
+                {
+                    Assert(instr->m_opcode == Js::OpCode::InlineArrayPush ||
+                        instr->m_opcode == Js::OpCode::InlineArrayPop ||
+                        instr->m_opcode == Js::OpCode::LdLen_A);
+                }
                 eliminatedLowerBoundCheck = true;
                 eliminatedUpperBoundCheck = true;
                 canBailOutOnArrayAccessHelperCall = false;
