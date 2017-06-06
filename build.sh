@@ -79,7 +79,9 @@ script (at your own risk)"
     echo ""
 }
 
-CHAKRACORE_DIR=`dirname $0`
+pushd `dirname $0` > /dev/null
+CHAKRACORE_DIR=`pwd -P`
+popd > /dev/null
 _CXX=""
 _CC=""
 _VERBOSE=""
