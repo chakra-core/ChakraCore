@@ -70,14 +70,6 @@
   </test>
   <test>
     <default>
-      <files>toPrimitiveJitBug654983.js</files>
-      <compile-flags>-trace:bailout</compile-flags>
-      <!-- This test sometimes fails with bailout trace output.  Pending investigation in bug OS 5244610. -->
-      <tags>fail</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>es6IsConcatSpreadable.js</files>
       <compile-flags>-es6tolength -args summary -endargs</compile-flags>
     </default>
