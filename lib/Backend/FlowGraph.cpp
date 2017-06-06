@@ -452,6 +452,31 @@ FlowGraph::Build(void)
     } NEXT_BLOCK_ALL;
     AssertMsg(blockNum == this->blockCount, "Block count is out of whack");
 
+#if DBG_DUMP
+    if (PHASE_DUMP(Js::FGBuildPhase, this->GetFunc()))
+    {
+        if (assignRegionsBeforeGlobopt)
+        {
+            Output::Print(_u("Before adding early exit edges\n"));
+            FOREACH_BLOCK_ALL(block, this)
+            {
+                block->DumpHeader(true);
+                Region *region = block->GetFirstInstr()->AsLabelInstr()->GetRegion();
+                if (region)
+                {
+                    const char16 * regMap[] = { _u("RegionTypeInvalid"),
+                        _u("RegionTypeRoot"),
+                        _u("RegionTypeTry"),
+                        _u("RegionTypeCatch"),
+                        _u("RegionTypeFinally") };
+                    Output::Print(_u("Region %p RegionParent %p RegionType %s\n"), region, region->GetParent(), regMap[region->GetType()]);
+                }
+            } NEXT_BLOCK_ALL;
+            this->func->Dump();
+        }
+    }
+#endif
+
     if (this->finallyLabelStack)
     {
         Assert(this->finallyLabelStack->Empty());
@@ -535,17 +560,19 @@ FlowGraph::Build(void)
     } NEXT_BLOCK_ALL;
 
     this->FindLoops();
+
 #if DBG_DUMP
     if (PHASE_DUMP(Js::FGBuildPhase, this->GetFunc()))
     {
         if (assignRegionsBeforeGlobopt)
         {
-            Output::Print(_u("Before CanonicalizeLoops\n"));
+            Output::Print(_u("After adding early exit edges/Before CanonicalizeLoops\n"));
             FOREACH_BLOCK_ALL(block, this)
             {
                 block->DumpHeader(true);
                 Region *region = block->GetFirstInstr()->AsLabelInstr()->GetRegion();
-                if (region) {
+                if (region)
+                {
                     const char16 * regMap[] = { _u("RegionTypeInvalid"),
                         _u("RegionTypeRoot"),
                         _u("RegionTypeTry"),
@@ -554,9 +581,11 @@ FlowGraph::Build(void)
                     Output::Print(_u("Region %p RegionParent %p RegionType %s\n"), region, region->GetParent(), regMap[region->GetType()]);
                 }
             } NEXT_BLOCK_ALL;
+            this->func->Dump();
         }
     }
 #endif
+
     bool breakBlocksRelocated = this->CanonicalizeLoops();
 
     blockNum = 0;
@@ -578,26 +607,29 @@ FlowGraph::Build(void)
     } NEXT_BLOCK_ALL;
 #endif
 
-#if DBG
-    FOREACH_BLOCK_ALL(block, this)
+#if DBG_DUMP
+    if (PHASE_DUMP(Js::FGBuildPhase, this->GetFunc()))
     {
-        if (PHASE_DUMP(Js::FGBuildPhase, this->GetFunc()))
+        if (assignRegionsBeforeGlobopt)
         {
-            if (assignRegionsBeforeGlobopt)
+            Output::Print(_u("After CanonicalizeLoops\n"));
+            FOREACH_BLOCK_ALL(block, this)
             {
                 block->DumpHeader(true);
                 Region *region = block->GetFirstInstr()->AsLabelInstr()->GetRegion();
-                if (region) {
+                if (region)
+                {
                     const char16 * regMap[] = { _u("RegionTypeInvalid"),
-                        _u("RegionTypeRoot"),
-                        _u("RegionTypeTry"),
-                        _u("RegionTypeCatch"),
-                        _u("RegionTypeFinally") };
+                    _u("RegionTypeRoot"),
+                    _u("RegionTypeTry"),
+                    _u("RegionTypeCatch"),
+                    _u("RegionTypeFinally") };
                     Output::Print(_u("Region %p RegionParent %p RegionType %s\n"), region, region->GetParent(), regMap[region->GetType()]);
                 }
-            }
+            } NEXT_BLOCK_ALL;
+            this->func->Dump();
         }
-    } NEXT_BLOCK_ALL;
+    }
 #endif
 
     if (breakBlocksRelocated)
