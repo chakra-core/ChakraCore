@@ -2449,7 +2449,7 @@ template<bool buildAST> ParseNodePtr Parser::ParseImportCall()
     }
 
     m_pscan->Scan();
-    return CreateCallNode(knopCall, CreateNodeWithScanner<knopImport>(), specifier);
+    return buildAST ? CreateCallNode(knopCall, CreateNodeWithScanner<knopImport>(), specifier) : nullptr;
 }
 
 template<bool buildAST>
