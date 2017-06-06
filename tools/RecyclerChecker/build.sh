@@ -17,7 +17,9 @@ echo "  --llvm-config=PATH  llvm-config executable"
 echo ""
 }
 
-SCRIPT_DIR=`dirname $0`
+pushd `dirname $0` > /dev/null
+SCRIPT_DIR=`pwd -P`
+popd > /dev/null
 CLANG_INC=
 CXX_COMPILER=
 LLVM_CONFIG=
