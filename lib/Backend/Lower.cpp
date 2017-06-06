@@ -24676,7 +24676,7 @@ Lowerer::InsertReturnThunkForRegion(Region* region, IR::LabelInstr* restoreLabel
         if (region->IsNonExceptingFinally())
         {
             Assert(region->GetParent()->GetType() != RegionTypeRoot);
-            Region *ancestor = region->GetFirstAncestorOfNonExceptingFinallyParent();
+            Region *ancestor = region->GetParent()->GetFirstAncestorOfNonExceptingFinallyParent();
             Assert(ancestor && !ancestor->IsNonExceptingFinally());
             if (ancestor->GetType() != RegionTypeRoot)
             {
