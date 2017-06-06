@@ -13498,7 +13498,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                 {
                     Assert(instr->m_opcode == Js::OpCode::InlineArrayPush ||
                         instr->m_opcode == Js::OpCode::InlineArrayPop ||
-                        instr->m_opcode == Js::OpCode::LdLen_A)
+                        instr->m_opcode == Js::OpCode::LdLen_A);
                 }
                 eliminatedLowerBoundCheck = true;
                 eliminatedUpperBoundCheck = true;
