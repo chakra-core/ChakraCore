@@ -3763,7 +3763,7 @@ namespace Js
             if (length.IsSmallIndex() || length.IsUint32Max())
             {
                 uint32 len = length.IsUint32Max() ? MaxArrayLength : length.GetSmallIndex();
-                int32 index = pArr->HeadSegmentIndexOfHelper(search, fromIndex, len, includesAlgorithm, scriptContext);
+                JS_REENTRANT(jsReentLock, int32 index = pArr->HeadSegmentIndexOfHelper(search, fromIndex, len, includesAlgorithm, scriptContext));
 
                 // If we found the search value in the head segment, or if we determined there is no need to search other segments,
                 // we stop right here.
