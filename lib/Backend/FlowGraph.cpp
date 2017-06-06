@@ -515,6 +515,9 @@ FlowGraph::Build(void)
                     Assert(currentLabel->GetRegion()->GetMatchingTryRegion()->GetMatchingFinallyRegion(false) == currentLabel->GetRegion());
                     // Convert Leave to Br because we execute non-excepting Finally in native code
                     instr->m_opcode = Js::OpCode::Br;
+#if DBG
+                    instr->AsBranchInstr()->m_leaveConvToBr = true;
+#endif
                 }
             }
             else if (instr->m_opcode == Js::OpCode::Finally)
@@ -1724,18 +1727,22 @@ FlowGraph::Destroy(void)
                         Assert(region->GetType() == RegionTypeTry || region->GetType() == RegionTypeCatch || region->GetType() == RegionTypeFinally);
                         break;
                     case Js::OpCode::Br:
-                        if (region->GetType() == RegionTypeCatch && region != predRegion)
+                        if (predBlock->GetLastInstr()->AsBranchInstr()->m_leaveConvToBr)
+                        {
+                            // Leave converted to Br in finally region
+                            AssertMsg(region == predRegion->GetParent(), "Bad region prop in finally");
+                        }
+                        else if (region->GetType() == RegionTypeCatch && region != predRegion)
                         {
                             AssertMsg(predRegion->GetType() == RegionTypeTry, "Bad region type for the try");
                         }
                         else if (region->GetType() == RegionTypeFinally && region != predRegion)
                         {
-                            // When we add edge from finally to early exit, and break block removal moves the edge into finally region, we can end up with an edge between finally and non eh region
+                            AssertMsg(predRegion->GetType() == RegionTypeTry, "Bad region type for the try");
                         }
                         else
                         {
-                            // Leave's within non excepting finallys that are not early exit edges are converted to br
-                            AssertMsg((predRegion->IsNonExceptingFinally() && region == predRegion->GetParent()) || region == predRegion, "Bad region propagation through interior block");
+                            AssertMsg(region == predRegion, "Bad region propagation through interior block");
                         }
                         break;
                     default:

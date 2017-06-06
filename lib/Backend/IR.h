@@ -739,6 +739,7 @@ public:
 #if DBG
     bool                 m_isMultiBranch;
     bool                 m_isHelperToNonHelperBranch;
+    bool                 m_leaveConvToBr;
 #endif
 
 public:
@@ -751,6 +752,7 @@ public:
     {
 #if DBG
         m_isMultiBranch = false;
+        m_leaveConvToBr = false;
 #endif
     }
 
