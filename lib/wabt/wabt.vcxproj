@@ -27,6 +27,10 @@
         $(MSBuildThisFileDirectory)\chakra\windows;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>
+        %(DisableSpecificWarnings);
+        4996; <!-- Call to 'std::move' with parameters that may be unsafe; could also disable with -D_SCL_SECURE_NO_WARNINGS -->
+      </DisableSpecificWarnings>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
