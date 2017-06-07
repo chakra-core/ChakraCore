@@ -720,6 +720,7 @@ ENTRY(MissingProperty)
 ENTRY(winglob)
 //Built In
 ENTRY(__chakraLibrary)
+ENTRY(registerChakraLibraryFunction)
 ENTRY(registerFunction)
 ENTRY(className)
 ENTRY(methodName)

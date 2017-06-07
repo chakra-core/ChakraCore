@@ -42,7 +42,7 @@ namespace Js
         // Need a constructor cache on every function (script and native) to avoid extra checks on the fast path, if the function isn't fixed.
         Field(ConstructorCache*) constructorCache;
 
-        Field(bool) isJsBuiltIn;
+        Field(bool) isJsBuiltInCode;
 
     protected:
 
@@ -184,7 +184,7 @@ namespace Js
         virtual inline BOOL IsConstructor() const;
         bool HasRestrictedProperties() const;
 
-        void SetIsJsBuiltIn();
+        void SetIsJsBuiltInCode();
         bool IsJsBuiltIn();
 
         ConstructorCache* GetConstructorCache() { Assert(this->constructorCache != nullptr); return this->constructorCache; }

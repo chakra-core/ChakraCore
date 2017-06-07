@@ -3599,7 +3599,7 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
         bool isConstructorCall = false;
         bool isPolymorphicCall = false;
 
-        if (!inliningDecider.HasCallSiteInfo(inlineeFunctionBody, profiledCallSiteId))
+        if (!inlineeFunctionBody->IsJsBuiltInCode() && !inliningDecider.HasCallSiteInfo(inlineeFunctionBody, profiledCallSiteId))
         {
             //There is no callsite information. We should hit bailonnoprofile for these callsites. Ignore.
             continue;

@@ -69,7 +69,7 @@ bool InliningDecider::InlineIntoInliner(Js::FunctionBody *const inliner) const
         return false;
     }
 
-    if (!Js::DynamicProfileInfo::HasCallSiteInfo(inliner))
+    if (!inliner->IsJsBuiltInCode() && !inliner->GetAnyDynamicProfileInfo()->HasCallSiteInfo(inliner))
     {
         INLINE_TESTTRACE(_u("INLINING: Skip Inline: No call site info\tCaller: %s (#%d)\n"), inliner->GetDisplayName(),
             inliner->GetDebugNumberSet(debugStringBuffer));
@@ -498,7 +498,7 @@ bool InliningDecider::GetBuiltInInfoCommon(
         *returnType = ValueType::Boolean;
         goto CallDirectCommon;
 
-    case Js::JavascriptBuiltInFunction::JavascriptArray_IndexOf:
+    //case Js::JavascriptBuiltInFunction::JavascriptArray_IndexOf:
     case Js::JavascriptBuiltInFunction::JavascriptArray_LastIndexOf:
     case Js::JavascriptBuiltInFunction::JavascriptArray_Unshift:
     case Js::JavascriptBuiltInFunction::JavascriptString_CharCodeAt:

@@ -3046,7 +3046,7 @@ namespace Js
 
     bool FunctionBody::GetLineCharOffsetFromStartChar(int startCharOfStatement, ULONG* _line, LONG* _charOffset, bool canAllocateLineCache /*= true*/)
     {
-        Assert(!this->GetUtf8SourceInfo()->GetIsLibraryCode());
+        //Assert(!this->GetUtf8SourceInfo()->GetIsLibraryCode());
 
         // The following adjusts for where the script is within the document
         ULONG line = this->GetHostStartLine();
