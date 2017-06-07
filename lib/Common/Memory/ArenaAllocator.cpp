@@ -1113,6 +1113,26 @@ void InlineCacheFreeListPolicy::Release(void * policy)
 #if DBG
 void InlineCacheAllocator::CheckIsAllZero(bool lockdown)
 {
+    ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
+    while (memoryBlock != nullptr)
+    {
+        Assert(memoryBlock->nbytes % sizeof(CacheLayout) == 0);
+        ArenaMemoryBlock * next = memoryBlock->next;
+        CacheLayout* endPtr = (CacheLayout*)(memoryBlock->GetBytes() + memoryBlock->nbytes);
+        for (CacheLayout* cache = (CacheLayout*)memoryBlock->GetBytes(); cache < endPtr; cache++)
+        {
+            unsigned char* weakRefBytes = (unsigned char *)cache->weakRefs;
+#ifdef ARENA_MEMORY_VERIFY
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0)
+                || IsAll(weakRefBytes, sizeof(cache->weakRefs), InlineCacheFreeListPolicy::DbgFreeMemFill));
+#else
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0));
+#endif
+        }
+
+        memoryBlock = next;
+    }
+
     if (verifiedAllZeroAndLockedDown && lockdown)
     {
         return;
@@ -1174,31 +1194,6 @@ void InlineCacheAllocator::CheckIsAllZero(bool lockdown)
         bigBlock = bigBlock->nextBigBlock;
     }
 
-    ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
-    while (memoryBlock != nullptr)
-    {
-        Assert(memoryBlock->nbytes % sizeof(CacheLayout) == 0);
-        ArenaMemoryBlock * next = memoryBlock->next;
-        CacheLayout* endPtr = (CacheLayout*)(memoryBlock->GetBytes() + memoryBlock->nbytes);
-        for (CacheLayout* cache = (CacheLayout*)memoryBlock->GetBytes(); cache < endPtr; cache++)
-        {
-            unsigned char* weakRefBytes = (unsigned char *)cache->weakRefs;
-#ifdef ARENA_MEMORY_VERIFY
-            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0)
-                || IsAll(weakRefBytes, sizeof(cache->weakRefs), InlineCacheFreeListPolicy::DbgFreeMemFill));
-#else
-            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0));
-#endif
-        }
-
-        if (lockdown)
-        {
-            DWORD oldProtect;
-            VirtualProtect(memoryBlock->GetBytes(), memoryBlock->nbytes, PAGE_READONLY, &oldProtect);
-        }
-        memoryBlock = next;
-    }
-
     if (lockdown)
     {
         verifiedAllZeroAndLockedDown = true;
@@ -1227,13 +1222,6 @@ void InlineCacheAllocator::Unlock()
             bigBlock = bigBlock->nextBigBlock;
         }
 
-        ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
-        while (memoryBlock != nullptr)
-        {
-            DWORD oldProtect;
-            VirtualProtect(memoryBlock->GetBytes(), memoryBlock->nbytes, PAGE_READWRITE, &oldProtect);
-            memoryBlock = memoryBlock->next;
-        }
         verifiedAllZeroAndLockedDown = false;
     }
 }
@@ -1526,6 +1514,13 @@ void InlineCacheAllocator::ZeroAll()
 #if DBG
 void CacheAllocator::CheckIsAllZero(bool lockdown)
 {
+    ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
+    while (memoryBlock != nullptr)
+    {
+        Assert(IsAll((byte*)memoryBlock->GetBytes(), memoryBlock->nbytes, 0));
+        memoryBlock = memoryBlock->next;
+    }
+
     if (verifiedAllZeroAndLockedDown && lockdown)
     {
         return;
@@ -1555,18 +1550,6 @@ void CacheAllocator::CheckIsAllZero(bool lockdown)
         blockp = blockp->nextBigBlock;
     }
 
-    ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
-    while (memoryBlock != nullptr)
-    {
-        Assert(IsAll((byte*)memoryBlock->GetBytes(), memoryBlock->nbytes, 0));
-        if (lockdown)
-        {
-            DWORD oldProtect;
-            VirtualProtect(memoryBlock->GetBytes(), memoryBlock->nbytes, PAGE_READONLY, &oldProtect);
-        }
-        memoryBlock = memoryBlock->next;
-    }
-
     if (lockdown)
     {
         verifiedAllZeroAndLockedDown = true;
@@ -1594,13 +1577,6 @@ void CacheAllocator::Unlock()
             bigBlock = bigBlock->nextBigBlock;
         }
 
-        ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
-        while (memoryBlock != nullptr)
-        {
-            DWORD oldProtect;
-            VirtualProtect(memoryBlock->GetBytes(), memoryBlock->nbytes, PAGE_READWRITE, &oldProtect);
-            memoryBlock = memoryBlock->next;
-        }
         verifiedAllZeroAndLockedDown = false;
     }
 }
