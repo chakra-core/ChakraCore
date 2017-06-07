@@ -87,7 +87,8 @@ Region::GetFirstAncestorOfNonExceptingFinallyParent()
     }
 
     Assert(ancestor);
-    return ancestor->GetType() == RegionTypeRoot ? ancestor : ancestor->GetParent();
+    // Null check added to avoid prefast warning only
+    return ancestor ? (ancestor->GetType() == RegionTypeRoot ? ancestor : ancestor->GetParent()) : nullptr;
 }
 
 // Return first ancestor which is not a non exception finally
