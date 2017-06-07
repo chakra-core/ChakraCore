@@ -17460,7 +17460,7 @@ GlobOpt::PreOptPeep(IR::Instr *instr)
         // With try finallys, these blocks are not moved out due to the early return -> finally and finally -> early return edges
         //
         // This happens only with return s0 symbol, because we avoid creating new temporary destination register for the s0 case
-        if (dst && dst->GetSym() && dst->GetSym()->m_id == 0 && !dst->AsRegOpnd()->IsArrayRegOpnd() && instr->m_opcode != Js::OpCode::Ld_A)
+        if (dst && dst->GetSym() && dst->GetSym()->m_id == 0 && instr->m_opcode != Js::OpCode::Ld_A)
         {
             IR::RegOpnd *newDst = dst->AsRegOpnd()->Copy(this->func)->AsRegOpnd();
             newDst->m_sym = StackSym::New(dst->GetType(), this->func);
