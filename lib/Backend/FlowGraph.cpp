@@ -692,6 +692,7 @@ void FlowGraph::InsertEdgeFromFinallyToEarlyExit(BasicBlock *finallyEndBlock, IR
         leaveLabel->InsertBefore(brLabel);
 
         IR::BranchInstr *brToExit = IR::BranchInstr::New(Js::OpCode::BrOnException, exitLabel, this->func);
+        brToExit->m_brFinallyToEarlyExit = true;
         leaveLabel->InsertBefore(brToExit);
 
         this->AddBlock(brLabel, brToExit, finallyEndBlock->GetNext(), finallyEndBlock /*prevBlock*/);
@@ -703,6 +704,7 @@ void FlowGraph::InsertEdgeFromFinallyToEarlyExit(BasicBlock *finallyEndBlock, IR
     {
         // If the Leave/LeaveNull at the end of finally was preceeded by a Label, we reuse the block inserting BrOnException to early exit in it
         IR::BranchInstr *brToExit = IR::BranchInstr::New(Js::OpCode::BrOnException, exitLabel, this->func);
+        brToExit->m_brFinallyToEarlyExit = true;
         leaveLabel->InsertBefore(brToExit);
         this->AddEdge(finallyEndBlock, exitLabel->GetBasicBlock());
     }
@@ -1765,7 +1767,8 @@ FlowGraph::Destroy(void)
                         Assert(!this->func->DoGlobOpt());
                         break;
                     case Js::OpCode::BrOnNoException:
-                        Assert(region->GetType() == RegionTypeTry || region->GetType() == RegionTypeCatch || region->GetType() == RegionTypeFinally);
+                        Assert(region->GetType() == RegionTypeTry || region->GetType() == RegionTypeCatch || region->GetType() == RegionTypeFinally ||
+                            (predRegion->GetType() == RegionTypeFinally && predBlock->GetLastInstr()->AsBranchInstr()->m_brFinallyToEarlyExit));
                         break;
                     case Js::OpCode::Br:
                         if (predBlock->GetLastInstr()->AsBranchInstr()->m_leaveConvToBr)
@@ -1896,6 +1899,10 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block)
         IR::LabelInstr * finallyLabel = this->leaveNullLabelToFinallyLabelMap->Item(block->GetFirstInstr()->AsLabelInstr());
         Assert(finallyLabel);
         region = finallyLabel->GetRegion();
+        if (this->regToFinallyEndMap)
+        {
+            regToFinallyEndMap->Item(region, block);
+        }
     }
     else
     {
@@ -1952,7 +1959,7 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block)
 void
 FlowGraph::UpdateRegionForBlockFromEHPred(BasicBlock * block, bool reassign)
 {
-    Region *region;
+    Region *region = nullptr;
     Region * predRegion = nullptr;
     IR::Instr * tryInstr = nullptr;
     IR::Instr * firstInstr = block->GetFirstInstr();
@@ -1979,6 +1986,18 @@ FlowGraph::UpdateRegionForBlockFromEHPred(BasicBlock * block, bool reassign)
         IR::LabelInstr * finallyLabel = this->leaveNullLabelToFinallyLabelMap->Item(block->GetFirstInstr()->AsLabelInstr());
         Assert(finallyLabel);
         region = finallyLabel->GetRegion();
+        if (this->regToFinallyEndMap)
+        {
+            regToFinallyEndMap->Item(region, block);
+        }
+    }
+    else if (block->GetPredList()->Count() == 1)
+    {
+        BasicBlock *predBlock = block->GetPredList()->Head()->GetPred();
+        AssertMsg(predBlock->GetBlockNum() < this->blockCount, "Misnumbered block at teardown time?");
+        predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
+        Assert(predRegion);
+        region = this->PropagateRegionFromPred(block, predBlock, predRegion, tryInstr);
     }
     else
     {
@@ -1986,7 +2005,6 @@ FlowGraph::UpdateRegionForBlockFromEHPred(BasicBlock * block, bool reassign)
         // Since we do break block remval after region propagation, we cannot pick the first predecessor which has an assigned region
         // If there is a eh transitioning pred, we pick that
         // There cannot be more than one eh transitioning pred (?)
-        region = nullptr;
         BasicBlock *ehPred = this->GetPredecessorForRegionPropagation(block);
         if (ehPred)
         {
@@ -2001,14 +2019,20 @@ FlowGraph::UpdateRegionForBlockFromEHPred(BasicBlock * block, bool reassign)
                 predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
                 if (predRegion != nullptr)
                 {
-                    if (predBlock->GetLastInstr()->m_opcode == Js::OpCode::BrOnException && predRegion->IsNonExceptingFinally())
+                    if ((predBlock->GetLastInstr()->m_opcode == Js::OpCode::BrOnException || predBlock->GetLastInstr()->m_opcode == Js::OpCode::BrOnNoException) &&
+                        predBlock->GetLastInstr()->AsBranchInstr()->m_brFinallyToEarlyExit)
                     {
-                        // early exit
+                        Assert(predRegion->IsNonExceptingFinally());
+                        // BrOnException from finally region to early exit
+                        // Skip this edge
                         continue;
                     }
-                    if (predBlock->GetLastInstr()->m_opcode == Js::OpCode::BrOnException && predRegion->IsNonExceptingFinally())
+                    if (predBlock->GetLastInstr()->m_opcode == Js::OpCode::Br &&
+                        predBlock->GetLastInstr()->GetPrevRealInstr()->m_opcode == Js::OpCode::BrOnNoException)
                     {
-                        // early exit
+                        Assert(predBlock->GetLastInstr()->GetPrevRealInstr()->AsBranchInstr()->m_brFinallyToEarlyExit);
+                        Assert(predRegion->IsNonExceptingFinally());
+                        // BrOnException from finally region to early exit changed to BrOnNoException and Br during break block removal
                         continue;
                     }
                     region = this->PropagateRegionFromPred(block, predBlock, predRegion, tryInstr);
@@ -2017,14 +2041,12 @@ FlowGraph::UpdateRegionForBlockFromEHPred(BasicBlock * block, bool reassign)
             }
             NEXT_PREDECESSOR_BLOCK;
         }
-        if (!region)
-        {
-            Assert(reassign && (block->GetPredList()->Count() == 0 || block->firstInstr->AsLabelInstr()->GetRegion()));
-        }
     }
 
+    Assert(region || block->GetPredList()->Count() == 0 || block->firstInstr->AsLabelInstr()->GetRegion());
+
     if (region)
-    {
+    { 
         if (!region->ehBailoutData)
         {
             region->AllocateEHBailoutData(this->func, tryInstr);

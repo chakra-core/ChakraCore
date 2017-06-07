@@ -2569,10 +2569,12 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         else
         {
             // We add BrOnException from a finally region to early exit
-            this->RemoveFlowEdgeToFinallyOnExceptionBlock(instr);
-            *isInstrRemoved = true;
-            this->currentBlock->RemoveInstr(instr);
-            return instrNext;
+            if (this->RemoveFlowEdgeToFinallyOnExceptionBlock(instr))
+            {
+                *isInstrRemoved = true;
+                this->currentBlock->RemoveInstr(instr);
+                return instrNext;
+            }
         }
     }
     else if (instr->m_opcode == Js::OpCode::BrOnNoException)
@@ -17606,10 +17608,17 @@ GlobOpt::RemoveFlowEdgeToCatchBlock(IR::Instr * instr)
     }
 }
 
-void
+bool
 GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
 {
     Assert(instr->IsBranchInstr());
+
+    if (instr->m_opcode == Js::OpCode::BrOnNoException && instr->AsBranchInstr()->m_brFinallyToEarlyExit)
+    {
+        // We add edge from finally to early exit block
+        // We should not remove this edge
+        return false;
+    }
 
     BasicBlock * finallyBlock = nullptr;
     BasicBlock * predBlock = nullptr;
@@ -17617,7 +17626,6 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
     {
         finallyBlock = instr->AsBranchInstr()->GetTarget()->GetBasicBlock();
         predBlock = this->currentBlock;
-        Assert(finallyBlock && predBlock);
     }
     else
     {
@@ -17636,7 +17644,7 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
             if (!(nextLabel->m_next->IsBranchInstr() && nextLabel->m_next->AsBranchInstr()->IsUnconditional()))
             {
                 // Already processed in loop prepass
-                return;
+                return false;
             }
             BasicBlock * nextBlock = nextLabel->GetBasicBlock();
             IR::BranchInstr * branchTofinallyBlockOrEarlyExit = nextLabel->m_next->AsBranchInstr();
@@ -17646,17 +17654,16 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
         }
     }
 
-    if (finallyBlock && predBlock)
+    Assert(finallyBlock && predBlock);
+    if (this->func->m_fg->FindEdge(predBlock, finallyBlock))
     {
-        if (this->func->m_fg->FindEdge(predBlock, finallyBlock))
+        predBlock->RemoveDeadSucc(finallyBlock, this->func->m_fg);
+        if (predBlock == this->currentBlock)
         {
-            predBlock->RemoveDeadSucc(finallyBlock, this->func->m_fg);
-            if (predBlock == this->currentBlock)
-            {
-                predBlock->DecrementDataUseCount();
-            }
+            predBlock->DecrementDataUseCount();
         }
     }
+    return true;
 }
 
 IR::Instr *
