@@ -659,7 +659,8 @@ namespace Js
         }
         return func->CallRootFunction(args, scriptContext, true);
     }
-    Var JavascriptFunction::CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript)
+
+    Var JavascriptFunction::CallRootFunction(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript)
     {
         Var ret = nullptr;
 
@@ -669,7 +670,7 @@ namespace Js
             Js::FaultInjection::pfnHandleAV = JavascriptFunction::CallRootEventFilter;
             __try
             {
-                ret = CallRootFunctionInternal(args, scriptContext, inScript);
+                ret = JavascriptFunction::CallRootFunctionInternal(obj, args, scriptContext, inScript);
             }
             __finally
             {
@@ -685,7 +686,7 @@ namespace Js
         // xplat: JavascriptArrayBuffer::AllocWrapper is disabled on cross-platform
         // (IsValidVirtualBufferLength always returns false).
         // SEH and ResumeForOutOfBoundsArrayRefs are not needed.
-        ret = CallRootFunctionInternal(args, scriptContext, inScript);
+        ret = JavascriptFunction::CallRootFunctionInternal(obj, args, scriptContext, inScript);
 #else
         if (scriptContext->GetThreadContext()->GetAbnormalExceptionCode() != 0)
         {
@@ -695,12 +696,12 @@ namespace Js
 
         // mark volatile, because otherwise VC will incorrectly optimize away load in the finally block
         volatile uint32 exceptionCode = 0;
-        EXCEPTION_POINTERS exceptionInfo = {0};
+        EXCEPTION_POINTERS exceptionInfo = { 0 };
         __try
         {
             __try
             {
-                ret = CallRootFunctionInternal(args, scriptContext, inScript);
+                ret = JavascriptFunction::CallRootFunctionInternal(obj, args, scriptContext, inScript);
             }
             __except (
                 exceptionInfo = *GetExceptionInformation(),
@@ -724,7 +725,8 @@ namespace Js
         Assert(ret);
         return ret;
     }
-    Var JavascriptFunction::CallRootFunctionInternal(Arguments args, ScriptContext * scriptContext, bool inScript)
+
+    Var JavascriptFunction::CallRootFunctionInternal(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript)
     {
 #if DBG
         if (IsInAssert != 0)
@@ -737,7 +739,7 @@ namespace Js
         if (inScript)
         {
             Assert(!(args.Info.Flags & CallFlags_New));
-            return JavascriptFunction::CallFunction<true>(this, GetEntryPoint(), args);
+            return JavascriptFunction::CallFunction<true>(obj, obj->GetEntryPoint(), args);
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -757,7 +759,7 @@ namespace Js
 
         JavascriptExceptionObject* pExceptionObject = NULL;
         bool hasCaller = scriptContext->GetHostScriptContext() ? !!scriptContext->GetHostScriptContext()->HasCaller() : false;
-        Assert(scriptContext == GetScriptContext());
+        Assert(scriptContext == obj->GetScriptContext());
         BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, hasCaller)
         {
             scriptContext->VerifyAlive(true);
@@ -765,8 +767,8 @@ namespace Js
             {
                 varResult =
                     args.Info.Flags & CallFlags_New ?
-                    CallAsConstructor(this, /* overridingNewTarget = */nullptr, args, scriptContext) :
-                    CallFunction<true>(this, this->GetEntryPoint(), args);
+                    CallAsConstructor(obj, /* overridingNewTarget = */nullptr, args, scriptContext) :
+                    CallFunction<true>(obj, obj->GetEntryPoint(), args);
 
                 // A recent compiler bug 150148 can incorrectly eliminate catch block, temporary workaround
                 if (threadContext == NULL)
@@ -788,6 +790,11 @@ namespace Js
 
         Assert(varResult != nullptr);
         return varResult;
+    }
+
+    Var JavascriptFunction::CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript)
+    {
+        return JavascriptFunction::CallRootFunction(this, args, scriptContext, inScript);
     }
 
 #if DBG
