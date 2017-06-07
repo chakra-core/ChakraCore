@@ -1245,7 +1245,7 @@ PAL_wmemcmp(
     const     size_t *num1     = (const size_t*)(string1);
     const     size_t *num2     = (const size_t*)(string2);
 
-    while( (count > blockSize * wi) && num1[wi] == num2[wi] ) ++wi;
+    while( (count > blockSize * (wi + 1)) && num1[wi] == num2[wi] ) ++wi;
 
     for (i = blockSize * wi; i < count; ++i)
     {
