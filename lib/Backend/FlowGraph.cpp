@@ -933,6 +933,7 @@ Loop::InsertLandingPad(FlowGraph *fg)
 
     landingPadLabel->SetBasicBlock(landingPad);
     landingPadLabel->SetRegion(headBlock->GetFirstInstr()->AsLabelInstr()->GetRegion());
+    landingPadLabel->m_hasNonBranchRef = headBlock->GetFirstInstr()->AsLabelInstr()->m_hasNonBranchRef;
     landingPad->SetBlockNum(fg->blockCount++);
     landingPad->SetFirstInstr(landingPadLabel);
     landingPad->SetLastInstr(landingPadLabel);
@@ -1768,6 +1769,10 @@ FlowGraph::Destroy(void)
                         break;
                     case Js::OpCode::BrOnNoException:
                         Assert(region->GetType() == RegionTypeTry || region->GetType() == RegionTypeCatch || region->GetType() == RegionTypeFinally ||
+                            // A BrOnException from finally to early exit can be converted to BrOnNoException and Br
+                            // The Br block maybe a common successor block for early exit along with the BrOnNoException block
+                            // Region from Br block will be picked up from a predecessor which is not BrOnNoException due to early exit
+                            // See test0() in test/EH/tryfinallytests.js
                             (predRegion->GetType() == RegionTypeFinally && predBlock->GetLastInstr()->AsBranchInstr()->m_brFinallyToEarlyExit));
                         break;
                     case Js::OpCode::Br:
@@ -1782,11 +1787,13 @@ FlowGraph::Destroy(void)
                         }
                         else if (region->GetType() == RegionTypeFinally && region != predRegion)
                         {
-                            AssertMsg(predRegion->GetType() == RegionTypeTry, "Bad region type for the try");
+                            // We may be left with edges from finally region to early exit
+                            AssertMsg(predRegion->IsNonExceptingFinally() || predRegion->GetType() == RegionTypeTry, "Bad region type for the try");
                         }
                         else
                         {
-                            AssertMsg(region == predRegion, "Bad region propagation through interior block");
+                            // We may be left with edges from finally region to early exit
+                            AssertMsg(predRegion->IsNonExceptingFinally() || region == predRegion, "Bad region propagation through interior block");
                         }
                         break;
                     default:
@@ -1895,7 +1902,6 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block)
         // If a LeaveNull block had only BrOnException edges from predecessor
         // We will end up in inaccurate region propagation if we propagate from the predecessor edges
         // So pick up the finally region from the map
-        Assert(this->leaveNullLabelToFinallyLabelMap->ContainsKey(block->GetFirstInstr()->AsLabelInstr()));
         IR::LabelInstr * finallyLabel = this->leaveNullLabelToFinallyLabelMap->Item(block->GetFirstInstr()->AsLabelInstr());
         Assert(finallyLabel);
         region = finallyLabel->GetRegion();
@@ -1939,7 +1945,11 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block)
             labelInstr->m_hasNonBranchRef = true;
         }
 
-        if (region && this->func->HasFinally() && region->GetType() == RegionTypeRoot && !labelInstr->m_hasNonBranchRef)
+        // One of the pred blocks maybe an eh region, in that case it is important to mark this label's m_hasNonBranchRef
+        // If not later in codegen, this label can get deleted. And during SccLiveness, region is propagated to newly created labels in lowerer from the previous label's region
+        // We can end up assigning an eh region to a label in a non eh region. And if there is a bailout in such a region, bad things will happen in the interpreter :)
+        // See test2() in tryfinallytests.js
+        if (region && region->GetType() == RegionTypeRoot && !labelInstr->m_hasNonBranchRef)
         {
             FOREACH_PREDECESSOR_BLOCK(predBlock, block)
             {
@@ -2440,7 +2450,7 @@ FlowGraph::InsertCompensationCodeForBlockMove(FlowEdge * edge,  bool insertToLoo
 
     bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
         (this->func->IsSimpleJit() && this->func->hasBailout));
-    // MGTODO : maybe we can just set the pred region instead of calling Propagate function ?
+
     if (assignRegionsBeforeGlobopt)
     {
         UpdateRegionForBlockFromEHPred(compBlock);

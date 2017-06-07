@@ -113,4 +113,9 @@
       <baseline>tryfinallybug0.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>tryfinallytests.js</files>
+    </default>
+  </test>
 </regress-exe>

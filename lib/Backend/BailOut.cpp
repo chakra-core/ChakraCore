@@ -1095,6 +1095,9 @@ Js::Var BailOutRecord::BailOut(BailOutRecord const * bailOutRecord)
     Js::JavascriptCallStackLayout *const layout = bailOutRecord->GetStackLayout();
     Js::ScriptFunction * function = (Js::ScriptFunction *)layout->functionObject;
 
+    Assert(function->GetScriptContext()->GetThreadContext()->GetPendingFinallyException() == nullptr ||
+        bailOutRecord->bailOutKind == IR::BailOutOnException);
+
     if (bailOutRecord->bailOutKind == IR::BailOutOnImplicitCalls)
     {
         function->GetScriptContext()->GetThreadContext()->CheckAndResetImplicitCallAccessorFlag();

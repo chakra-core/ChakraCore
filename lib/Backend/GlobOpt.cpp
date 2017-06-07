@@ -17617,6 +17617,11 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
     {
         // We add edge from finally to early exit block
         // We should not remove this edge
+        // If a loop has continue, and we add edge in finally to continue
+        // Break block removal can move all continues inside the loop to branch to the continue added within finally
+        // If we get rid of this edge, then loop may loose all backedges
+        // Ideally, doing tail duplication before globopt would enable us to remove these edges, but since we do it after globopt, keep it this way for now
+        // See test1() in core/test/tryfinallytests.js
         return false;
     }
 
@@ -17643,9 +17648,9 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
         {
             if (!(nextLabel->m_next->IsBranchInstr() && nextLabel->m_next->AsBranchInstr()->IsUnconditional()))
             {
-                // Already processed in loop prepass
                 return false;
             }
+
             BasicBlock * nextBlock = nextLabel->GetBasicBlock();
             IR::BranchInstr * branchTofinallyBlockOrEarlyExit = nextLabel->m_next->AsBranchInstr();
             IR::LabelInstr * finallyBlockLabelOrEarlyExitLabel = branchTofinallyBlockOrEarlyExit->GetTarget();
