@@ -17467,6 +17467,7 @@ GlobOpt::PreOptPeep(IR::Instr *instr)
             IR::Opnd *oldDst = instr->UnlinkDst();
             instr->SetDst(newDst);
             IR::Instr *ld = IR::Instr::New(Js::OpCode::Ld_A, oldDst, newDst, this->func);
+            oldDst->SetIsJITOptimizedReg(true);
             instr->InsertAfter(ld);
         }
     }
