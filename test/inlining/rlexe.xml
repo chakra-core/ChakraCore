@@ -10,28 +10,52 @@
   <test>
     <default>
       <files>linenumber1.js</files>
-      <tags>fail</tags>
       <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_arm</tags>
       <baseline>linenumber1.baseline</baseline>
+      <tags>exclude_arm</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>linenumber1.js</files>
+      <!-- Variant of test without -force:inline to ensure output is the same -->
+      <!-- <compile-flags>-force:inline</compile-flags> -->
+      <baseline>linenumber1.baseline</baseline>
+      <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
     <default>
       <files>linenumber2.js</files>
-      <tags>fail</tags>
       <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_arm</tags>
       <baseline>linenumber2.baseline</baseline>
+      <tags>exclude_arm</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>linenumber2.js</files>
+      <!-- Variant of test without -force:inline to ensure output is the same -->
+      <!-- <compile-flags>-force:inline</compile-flags> -->
+      <baseline>linenumber2.baseline</baseline>
+      <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
     <default>
       <files>linenumber3.js</files>
-      <tags>fail</tags>
       <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_arm</tags>
       <baseline>linenumber3.baseline</baseline>
+      <tags>exclude_arm</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>linenumber3.js</files>
+      <!-- Variant of test without -force:inline to ensure output is the same -->
+      <!-- <compile-flags>-force:inline</compile-flags> -->
+      <baseline>linenumber3.baseline</baseline>
+      <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
