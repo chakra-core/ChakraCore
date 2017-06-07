@@ -295,7 +295,6 @@
     <default>
       <files>es5array_arrayproto_opt.js</files>
       <baseline>es5array_arrayproto_opt.baseline</baseline>
-      <tags>fail</tags>
     </default>
   </test>
   <test>
