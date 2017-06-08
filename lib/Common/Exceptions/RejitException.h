@@ -24,7 +24,7 @@ namespace Js
 
         const char *ReasonName() const
         {
-            return RejitReasonNames[reason];
+            return RejitReasonNames[static_cast<byte>(reason)];
         }
     };
 }

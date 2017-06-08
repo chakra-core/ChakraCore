@@ -15598,7 +15598,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
     // This can happen for Neg_A if it needs to bail out on negative zero, and perhaps other cases as well. It's too late to fix
     // the problem (overflows may already be ignored), so handle it by bailing out at compile-time and disabling tracking int
     // overflow.
-    Assert(!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
+    Assert(!func->IsTrackCompoundedIntOverflowDisabled());
 
     if(PHASE_TRACE(Js::BailOutPhase, this->func))
     {
@@ -15616,7 +15616,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
         Output::Flush();
     }
 
-    if(func->HasProfileInfo() && func->GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled())
+    if(func->IsTrackCompoundedIntOverflowDisabled())
     {
         // Tracking int overflows is already off for some reason. Prevent trying to rejit again because it won't help and the
         // same thing will happen again and cause an infinite loop. Just abort jitting this function.
@@ -17012,7 +17012,7 @@ bool
 GlobOpt::IsSwitchOptEnabled(Func const * func)
 {
     Assert(func->IsTopFunc());
-    return !PHASE_OFF(Js::SwitchOptPhase, func) && (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsSwitchOptDisabled()) && !IsTypeSpecPhaseOff(func)
+    return !PHASE_OFF(Js::SwitchOptPhase, func) && !func->IsSwitchOptDisabled() && !IsTypeSpecPhaseOff(func)
         && func->DoGlobOpt() && !func->HasTry();
 }
 
@@ -17040,7 +17040,7 @@ GlobOpt::DoAggressiveIntTypeSpec(Func const * func)
     return
         !PHASE_OFF(Js::AggressiveIntTypeSpecPhase, func) &&
         !IsTypeSpecPhaseOff(func) &&
-        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsAggressiveIntTypeSpecDisabled(func->IsLoopBody()));
+        !func->IsAggressiveIntTypeSpecDisabled();
 }
 
 bool
@@ -17131,7 +17131,7 @@ GlobOpt::DoArrayCheckHoist(Func const * const func)
     Assert(func->IsTopFunc());
     return
         !PHASE_OFF(Js::ArrayCheckHoistPhase, func) &&
-        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody())) &&
+        !func->IsArrayCheckHoistDisabled() &&
         !func->IsJitInDebugMode() && // StElemI fast path is not allowed when in debug mode, so it cannot have bailout
         func->DoGlobOptsForGeneratorFunc();
 }
@@ -17889,7 +17889,7 @@ GlobOpt::TraceSettings() const
     Output::Print(_u("    FloatTypeSpec: %s\r\n"), this->DoFloatTypeSpec() ? _u("enabled") : _u("disabled"));
     Output::Print(_u("    AggressiveIntTypeSpec: %s\r\n"), this->DoAggressiveIntTypeSpec() ? _u("enabled") : _u("disabled"));
     Output::Print(_u("    LossyIntTypeSpec: %s\r\n"), this->DoLossyIntTypeSpec() ? _u("enabled") : _u("disabled"));
-    Output::Print(_u("    ArrayCheckHoist: %s\r\n"),  (this->func->HasProfileInfo() && this->func->GetReadOnlyProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody())) ? _u("disabled") : _u("enabled"));
+    Output::Print(_u("    ArrayCheckHoist: %s\r\n"),  this->func->IsArrayCheckHoistDisabled() ? _u("disabled") : _u("enabled"));
     Output::Print(_u("    ImplicitCallFlags: %s\r\n"), Js::DynamicProfileInfo::GetImplicitCallFlagsString(this->func->m_fg->implicitCallFlags));
     for (Loop * loop = this->func->m_fg->loopList; loop != NULL; loop = loop->next)
     {
