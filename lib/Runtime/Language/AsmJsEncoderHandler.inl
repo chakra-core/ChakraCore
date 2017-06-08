@@ -121,7 +121,6 @@ EXDEF3    ( CUSTOM     , InvalidOpCode     , OP_Empty                , Empty    
   DEF3_WMS( INT3       , Shr_Int           , Shr_Int                 , Int3          )
   DEF3_WMS( INT3       , Shr_UInt          , Shr_UInt                , Int3          )
 
-  DEF3_WMS( INT3       , Mul_UInt          , Mul_UInt                , Int3          )
   DEF3_WMS( INT3       , Div_UInt          , Div_UInt                , Int3          )
   DEF3_WMS( INT3       , Rem_UInt          , Rem_UInt                , Int3          )
 

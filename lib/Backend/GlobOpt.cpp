@@ -8273,7 +8273,6 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
     IR::Instr *&instr = *pInstr;
     int32 min1 = INT32_MIN, max1 = INT32_MAX, min2 = INT32_MIN, max2 = INT32_MAX, newMin, newMax, tmp;
     Js::OpCode opcode;
-    IR::Opnd *src1, *src2;
     Value *&src1Val = *pSrc1Val;
     Value *&src2Val = *pSrc2Val;
 
@@ -8589,6 +8588,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                 src2Lossy = false;
 
                 opcode = Js::OpCode::Div_I4;
+                Assert(!instr->GetSrc1()->IsUnsigned());
                 bailOutKind |= IR::BailOnDivResultNotInt;
                 if (max2 >= 0 && min2 <= 0)
                 {
@@ -9215,7 +9215,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
             }
             case Js::OpCode::Rem_A:
             {
-                src2 = instr->GetSrc2();
+                IR::Opnd* src2 = instr->GetSrc2();
                 if (!this->IsLoopPrePass() && min2 == max2 && min1 >= 0)
                 {
                     int32 value = min2;
@@ -9309,6 +9309,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                     newMax = max(newMin, newMax);
                 }
                 opcode = Js::OpCode::Rem_I4;
+                Assert(!instr->GetSrc1()->IsUnsigned());
                 break;
             }
 
@@ -9599,12 +9600,12 @@ LOutsideSwitch:
     }
 
     // Make sure the srcs are specialized
-    src1 = instr->GetSrc1();
+    IR::Opnd* src1 = instr->GetSrc1();
     this->ToInt32(instr, src1, this->currentBlock, src1ValueToSpecialize, nullptr, src1Lossy);
 
     if (!skipSrc2)
     {
-        src2 = instr->GetSrc2();
+        IR::Opnd* src2 = instr->GetSrc2();
         this->ToInt32(instr, src2, this->currentBlock, src2ValueToSpecialize, nullptr, src2Lossy);
     }
 
