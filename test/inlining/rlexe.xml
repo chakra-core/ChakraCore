@@ -12,7 +12,7 @@
       <files>linenumber1.js</files>
       <compile-flags>-force:inline</compile-flags>
       <baseline>linenumber1.baseline</baseline>
-      <tags>exclude_arm</tags>
+      <tags>exclude_arm,exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -21,7 +21,7 @@
       <!-- Variant of test without -force:inline to ensure output is the same -->
       <!-- <compile-flags>-force:inline</compile-flags> -->
       <baseline>linenumber1.baseline</baseline>
-      <tags>exclude_arm</tags>
+      <tags>exclude_arm,exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -29,7 +29,7 @@
       <files>linenumber2.js</files>
       <compile-flags>-force:inline</compile-flags>
       <baseline>linenumber2.baseline</baseline>
-      <tags>exclude_arm</tags>
+      <tags>exclude_arm,exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -38,7 +38,7 @@
       <!-- Variant of test without -force:inline to ensure output is the same -->
       <!-- <compile-flags>-force:inline</compile-flags> -->
       <baseline>linenumber2.baseline</baseline>
-      <tags>exclude_arm</tags>
+      <tags>exclude_arm,exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -46,7 +46,7 @@
       <files>linenumber3.js</files>
       <compile-flags>-force:inline</compile-flags>
       <baseline>linenumber3.baseline</baseline>
-      <tags>exclude_arm</tags>
+      <tags>exclude_arm,exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -55,7 +55,7 @@
       <!-- Variant of test without -force:inline to ensure output is the same -->
       <!-- <compile-flags>-force:inline</compile-flags> -->
       <baseline>linenumber3.baseline</baseline>
-      <tags>exclude_arm</tags>
+      <tags>exclude_arm,exclude_jshost</tags>
     </default>
   </test>
   <test>
