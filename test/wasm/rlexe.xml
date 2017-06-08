@@ -89,6 +89,7 @@
     <files>basic.js</files>
     <baseline>basic.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
+    <tags>exclude_xplat</tags>
   </default>
 </test>
 <test>
