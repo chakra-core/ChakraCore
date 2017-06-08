@@ -1046,6 +1046,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::Add_I4:
         case Js::OpCode::Sub_I4:
         case Js::OpCode::Mul_I4:
+        case Js::OpCode::RemU_I4:
         case Js::OpCode::Rem_I4:
         case Js::OpCode::Or_I4:
         case Js::OpCode::Xor_I4:
@@ -1091,7 +1092,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             else
             {
-                if (instr->m_opcode == Js::OpCode::Rem_I4)
+                if (instr->m_opcode == Js::OpCode::Rem_I4 || instr->m_opcode == Js::OpCode::RemU_I4)
                 {
                     // fast path
                     this->GenerateSimplifiedInt4Rem(instr);
@@ -1120,6 +1121,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instr->m_opcode = Js::OpCode::Ld_I4; //to simplify handling of i32/i64
             instrPrev = instr; //re-evaluate -- let Ld_I4 handler to properly lower the operand.
             break;
+        case Js::OpCode::DivU_I4:
         case Js::OpCode::Div_I4:
             this->LowerDivI4(instr);
             break;
@@ -23482,7 +23484,7 @@ Lowerer::GenerateSimplifiedInt4Rem(
     IR::LabelInstr *const skipBailOutLabel) const
 {
     Assert(remInstr);
-    Assert(remInstr->m_opcode == Js::OpCode::Rem_I4);
+    Assert(remInstr->m_opcode == Js::OpCode::Rem_I4 || remInstr->m_opcode == Js::OpCode::RemU_I4);
 
     auto *dst = remInstr->GetDst(), *src1 = remInstr->GetSrc1(), *src2 = remInstr->GetSrc2();
 
@@ -23851,9 +23853,11 @@ void
 Lowerer::LowerDivI4Common(IR::Instr * instr)
 {
     Assert(instr);
-    Assert(instr->m_opcode == Js::OpCode::Rem_I4 || instr->m_opcode == Js::OpCode::Div_I4);
+    Assert((instr->m_opcode == Js::OpCode::Rem_I4 || instr->m_opcode == Js::OpCode::Div_I4) ||
+        (instr->m_opcode == Js::OpCode::RemU_I4 || instr->m_opcode == Js::OpCode::DivU_I4));
     Assert(m_func->GetJITFunctionBody()->IsAsmJsMode());
 
+    const bool isRem = instr->m_opcode == Js::OpCode::Rem_I4 || instr->m_opcode == Js::OpCode::RemU_I4;
     // MIN_INT/-1 path is only needed for signed operations
 
     //       TEST src2, src2
@@ -23896,7 +23900,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
         {
             InsertMove(dst, IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
         }
-         InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
+        InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
     }
 
 
@@ -23907,7 +23911,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
         int64 intMin = IRType_IsInt64(src1->GetType()) ? LONGLONG_MIN : INT_MIN;
         IR::Instr* overflowReg3 = IR::Instr::FindSingleDefInstr(Js::OpCode::TrapIfMinIntOverNegOne, instr->GetSrc1());
         bool needsMinOverNeg1Check = true;
-        if (isWasmFunc && instr->m_opcode != Js::OpCode::Rem_I4)
+        if (isWasmFunc && !isRem)
         {
             needsMinOverNeg1Check = overflowReg3 != nullptr;
         }
@@ -23947,7 +23951,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
             }
             else
             {
-                InsertMove(dst, instr->m_opcode == Js::OpCode::Div_I4 ? src1 : IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
+                InsertMove(dst, !isRem ? src1 : IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
             }
             InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
         }
@@ -23961,7 +23965,7 @@ void
 Lowerer::LowerRemI4(IR::Instr * instr)
 {
     Assert(instr);
-    Assert(instr->m_opcode == Js::OpCode::Rem_I4);
+    Assert(instr->m_opcode == Js::OpCode::Rem_I4 || instr->m_opcode == Js::OpCode::RemU_I4);
     if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         LowerDivI4Common(instr);
@@ -23987,7 +23991,7 @@ void
 Lowerer::LowerDivI4(IR::Instr * instr)
 {
     Assert(instr);
-    Assert(instr->m_opcode == Js::OpCode::Div_I4);
+    Assert(instr->m_opcode == Js::OpCode::Div_I4 || instr->m_opcode == Js::OpCode::DivU_I4);
 
 #ifdef _M_IX86
     if (

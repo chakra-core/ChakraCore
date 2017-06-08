@@ -3747,7 +3747,6 @@ template <typename T>
 bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
 {
     T value = 0;
-    bool check = true;
     switch (this->m_opcode)
     {
 #define BINARY_U(OPCODE,HANDLER) \
@@ -3768,7 +3767,6 @@ bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
         BINARY_U(CmUnGt_I4, Js::AsmJsMath::CmpGt)
         BINARY_U(CmUnLe_I4, Js::AsmJsMath::CmpLe)
         BINARY_U(CmUnGe_I4, Js::AsmJsMath::CmpGe)
-        //
         BINARY(Add_I4, Js::AsmJsMath::Add)
         BINARY(Sub_I4, Js::AsmJsMath::Sub)
         BINARY(Mul_I4, Js::AsmJsMath::Mul)
@@ -3778,25 +3776,10 @@ bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
         BINARY(Shl_I4, Wasm::WasmMath::Shl)
         BINARY(Shr_I4, Wasm::WasmMath::Shr)
         BINARY_U(ShrU_I4, Wasm::WasmMath::ShrU)
-        case Js::OpCode::Div_I4:
-            check = GetSrc1()->IsUnsigned() || !(src1Const == SignedTypeTraits<T>::MinValue && src2Const == -1);
-        case Js::OpCode::Rem_I4:
-        if (check && (src2Const != 0))
-        {
-            if (GetSrc1()->IsUnsigned())
-            {
-                value = m_opcode == Js::OpCode::Div_I4 ?
-                    Js::AsmJsMath::Div<typename SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const) :
-                    Js::AsmJsMath::Rem<typename SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const);
-            }
-            else
-            {
-                value = m_opcode == Js::OpCode::Div_I4 ?
-                    Js::AsmJsMath::Div<T>(src1Const, src2Const) :
-                    Js::AsmJsMath::Rem<T>(src1Const, src2Const);
-            }
-        }
-        break;
+        BINARY(Div_I4, Js::AsmJsMath::DivChecked)
+        BINARY_U(DivU_I4, Js::AsmJsMath::DivChecked)
+        BINARY(Rem_I4, Js::AsmJsMath::RemChecked)
+        BINARY_U(RemU_I4, Js::AsmJsMath::RemChecked)
         default:
             return false;
 #undef BINARY

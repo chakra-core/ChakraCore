@@ -6445,10 +6445,14 @@ LowererMD::EmitInt4Instr(IR::Instr *instr)
         instr->m_opcode = Js::OpCode::MUL;
         break;
 
+    case Js::OpCode::DivU_I4:
+        AssertMsg(UNREACHED, "Unsigned div NYI");
     case Js::OpCode::Div_I4:
         instr->m_opcode = Js::OpCode::SDIV;
         break;
 
+    case Js::OpCode::RemU_I4:
+        AssertMsg(UNREACHED, "Unsigned rem NYI");
     case Js::OpCode::Rem_I4:
         instr->m_opcode = Js::OpCode::REM;
         break;

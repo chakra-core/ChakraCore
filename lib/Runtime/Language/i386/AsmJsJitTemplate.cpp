@@ -2264,80 +2264,6 @@ namespace Js
             return size;
         }
 
-        int Mul_UInt::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int leftOffset, int rightOffset )
-        {
-            X86TemplateData* templateData = GetTemplateData( context );
-            int size = 0;
-            targetOffset -= templateData->GetBaseOffSet();
-            leftOffset -= templateData->GetBaseOffSet();
-            rightOffset -= templateData->GetBaseOffSet();
-
-            RegNum reg1, reg2;
-            const int reg1Found = templateData->FindRegWithStackOffset<int>( reg1, rightOffset, 1<<RegEDX );
-            const int reg2Found = templateData->FindRegWithStackOffset<int>( reg2, leftOffset, 1<<RegEDX );
-
-            size += XOR::EncodeInstruction<int>( buffer, InstrParams2Reg(RegEDX,RegEDX) );
-            switch( reg1Found & ( reg2Found << 1 ) )
-            {
-            case 0: // none found
-                reg1 = RegEAX;
-                size += MOV::EncodeInstruction<int>( buffer, InstrParamsRegAddr( reg1, RegEBP, leftOffset ) );
-                templateData->SetStackInfo( reg1, leftOffset );
-                size += MUL::EncodeInstruction<int>( buffer, InstrParamsAddr(RegEBP, rightOffset) );
-                break;
-            case 1: // found 2
-                if( reg2 == RegEAX )
-                {
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsAddr(RegEBP, leftOffset) );
-                }
-                else
-                {
-                    size += MOV::EncodeInstruction<int>( buffer, InstrParamsRegAddr( RegEAX, RegEBP, leftOffset ) );
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsReg(reg2) );
-                }
-                break;
-            case 2: // found 1
-                if( reg1 == RegEAX )
-                {
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsAddr(RegEBP, rightOffset) );
-                }
-                else
-                {
-                    size += MOV::EncodeInstruction<int>( buffer, InstrParamsRegAddr( RegEAX, RegEBP, rightOffset ) );
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsReg(reg1) );
-                }
-                break;
-            case 3: // found both
-                if( reg1 == RegEAX )
-                {
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsReg(reg2) );
-                }
-                else if( reg2 == RegEAX )
-                {
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsReg(reg1) );
-                }
-                else
-                {
-                    size += MOV::EncodeInstruction<int>( buffer, InstrParams2Reg( RegEAX, reg1 ) );
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsReg(reg2) );
-                }
-                break;
-            default:
-                __assume( false );
-            }
-
-            size += TEST::EncodeInstruction<int>( buffer, InstrParams2Reg( RegEDX, RegEDX ) );
-            JumpRelocation reloc;
-            EncodingHelpers::EncodeShortJump<JE>( buffer, reloc, &size );
-            size += XOR::EncodeInstruction<int>( buffer, InstrParams2Reg( RegEAX, RegEAX ) );
-            reloc.ApplyReloc<int8>();
-            templateData->InvalidateReg( RegEDX );
-
-            size += EncodingHelpers::SetStackReg<int>( buffer, templateData, targetOffset , RegEAX);
-
-            return size;
-        }
-
         int Div_UInt::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int leftOffset, int rightOffset )
         {
             X86TemplateData* templateData = GetTemplateData( context );
@@ -2667,7 +2593,7 @@ namespace Js
             size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsAddrReg( RegESP, 8, RegXMM0 ) );
             size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsRegAddr( RegXMM0, RegEBP, leftOffset ) );
             size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsAddrReg( RegESP, 0, RegXMM0 ) );
-            void* ptr = (double (*)(double,double)) AsmJsMath::Rem < double > ;
+            void* ptr = (double (*)(double,double)) AsmJsMath::RemChecked<double>;
             size += MOV::EncodeInstruction<int>( buffer, InstrParamsRegImm<int32>(RegEAX,(int)ptr) );
             size += CALL::EncodeInstruction<int>( buffer, InstrParamsReg(RegEAX) );
 
