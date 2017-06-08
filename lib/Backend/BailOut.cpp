@@ -2222,7 +2222,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
             Js::ScriptContext* scriptContext = executeFunction->GetScriptContext();
             if (scriptContext->rejitReasonCountsCap != nullptr)
             {
-                scriptContext->rejitReasonCountsCap[rejitReason]++;
+                scriptContext->rejitReasonCountsCap[static_cast<byte>(rejitReason)]++;
             }
 #endif
             reThunk = true;
