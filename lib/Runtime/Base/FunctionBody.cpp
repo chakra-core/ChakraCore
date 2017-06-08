@@ -1268,7 +1268,8 @@ namespace Js
     {
         bool isInterpreterThunk = this->GetOriginalEntryPoint_Unchecked() == DefaultEntryThunk;
 #if DYNAMIC_INTERPRETER_THUNK
-        isInterpreterThunk = isInterpreterThunk || IsDynamicInterpreterThunk();
+        bool isStaticInterpreterThunk = this->GetOriginalEntryPoint_Unchecked() == InterpreterStackFrame::StaticInterpreterThunk;
+        isInterpreterThunk = isInterpreterThunk || isStaticInterpreterThunk || IsDynamicInterpreterThunk();
 #endif
         return isInterpreterThunk;
     }
@@ -3644,7 +3645,10 @@ namespace Js
             {
                 this->SetOriginalEntryPoint(this->m_scriptContext->GetNextDynamicInterpreterThunk(&this->m_dynamicInterpreterThunk));
             }
-            JS_ETW(EtwTrace::LogMethodInterpreterThunkLoadEvent(this));
+            if (this->m_dynamicInterpreterThunk != nullptr)
+            {
+                JS_ETW(EtwTrace::LogMethodInterpreterThunkLoadEvent(this));
+            }
         }
         else
         {

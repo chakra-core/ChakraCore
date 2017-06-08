@@ -93,6 +93,13 @@
 </test>
 <test>
   <default>
+    <files>basic.js</files>
+    <baseline>basic.baseline</baseline>
+    <compile-flags>-ForceStaticInterpreterThunk -wasm</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
     <files>table.js</files>
     <baseline>table.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
