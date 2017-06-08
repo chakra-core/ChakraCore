@@ -317,12 +317,14 @@ namespace Js
 #endif
 
 #ifdef ASMJS_PLAT
+        static void StaticInterpreterAsmThunk(RecyclableObject* function, ...);
         static void InterpreterAsmThunk(AsmJsCallStackLayout* layout);
 #endif
 
 #if DYNAMIC_INTERPRETER_THUNK
         static Var DelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
         _NOINLINE static Var InterpreterThunk(JavascriptCallStackLayout* layout);
+        _NOINLINE static Var StaticInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
 #else
         _NOINLINE static Var InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
 #endif

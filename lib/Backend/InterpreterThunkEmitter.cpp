@@ -319,7 +319,15 @@ BYTE* InterpreterThunkEmitter::GetNextThunk(PVOID* ppDynamicInterpreterThunk)
         {
             return AllocateFromFreeList(ppDynamicInterpreterThunk);
         }
-        NewThunkBlock();
+        if (!NewThunkBlock())
+        {
+#ifdef ASMJS_PLAT
+            return this->isAsmInterpreterThunk ? (BYTE*)&Js::InterpreterStackFrame::StaticInterpreterAsmThunk : (BYTE*)&Js::InterpreterStackFrame::StaticInterpreterThunk;
+#else
+            Assert(!this->isAsmInterpreterThunk);
+            return (BYTE*)&Js::InterpreterStackFrame::StaticInterpreterThunk;
+#endif
+        }
     }
 
     Assert(this->thunkBuffer != nullptr);
@@ -351,13 +359,17 @@ void* InterpreterThunkEmitter::ConvertToEntryPoint(PVOID dynamicInterpreterThunk
     return entryPoint;
 }
 
-void InterpreterThunkEmitter::NewThunkBlock()
+bool InterpreterThunkEmitter::NewThunkBlock()
 {
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
+    if (CONFIG_FLAG(ForceStaticInterpreterThunk))
+    {
+        return false;
+    }
+
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        NewOOPJITThunkBlock();
-        return;
+        return NewOOPJITThunkBlock();
     }
 #endif
 
@@ -412,10 +424,11 @@ void InterpreterThunkEmitter::NewThunkBlock()
 #endif
     this->thunkBuffer = buffer;
     this->thunkCount = count;
+    return true;
 }
 
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
-void InterpreterThunkEmitter::NewOOPJITThunkBlock()
+bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
 {
     if (!JITManager::GetJITManager()->IsConnected())
     {
@@ -426,8 +439,10 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
 
     InterpreterThunkOutputIDL thunkOutput;
     HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(this->scriptContext->GetRemoteScriptAddr(), &thunkInput, &thunkOutput);
-    JITManager::HandleServerCallResult(hr, RemoteCallType::ThunkCreation);
-
+    if (!JITManager::HandleServerCallResult(hr, RemoteCallType::ThunkCreation))
+    {
+        return false;
+    }
 
     BYTE* buffer = (BYTE*)thunkOutput.mappedBaseAddr;
 
@@ -448,6 +463,7 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
 
     this->thunkBuffer = (BYTE*)thunkOutput.mappedBaseAddr;
     this->thunkCount = thunkOutput.thunkCount;
+    return true;
 }
 #endif
 
