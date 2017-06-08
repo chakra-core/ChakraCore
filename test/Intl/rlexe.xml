@@ -90,7 +90,7 @@
 
   <test>
     <default>
-      <!-- TODO (doilij) investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames -->
+      <!-- TODO investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames (Microsoft/ChakraCore#3130) -->
       <files>IntlInternalsHiddenFromExceptionStackTest.js</files>
       <baseline>IntlInternalsHiddenFromExceptionStackTest.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
@@ -99,7 +99,7 @@
   </test>
   <test>
     <default>
-      <!-- TODO (doilij) investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames -->
+      <!-- TODO investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames (Microsoft/ChakraCore#3130) -->
       <files>IntlInternalsHiddenFromFirstChanceExceptionStackTest.js</files>
       <baseline>IntlInternalsHiddenFromFirstChanceExceptionStackTest.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
