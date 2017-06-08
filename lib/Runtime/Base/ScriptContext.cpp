@@ -5694,15 +5694,16 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             }
         }
     }
-    void ScriptContext::LogRejit(Js::FunctionBody *body, uint reason)
+    void ScriptContext::LogRejit(Js::FunctionBody *body, RejitReason reason)
     {
-        Assert(reason < NumRejitReasons);
-        rejitReasonCounts[reason]++;
+        byte reasonIndex = static_cast<byte>(reason);
+        Assert(reasonIndex < NumRejitReasons);
+        rejitReasonCounts[reasonIndex]++;
 
 #if defined(FLAG) || defined(FLAG_REGOVR_EXP)
         if (Js::Configuration::Global.flags.Verbose)
         {
-            LogDataForFunctionBody(body, reason, true);
+            LogDataForFunctionBody(body, reasonIndex, true);
         }
 #endif
     }

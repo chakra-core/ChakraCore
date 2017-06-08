@@ -57,6 +57,36 @@ JITOutput::RecordThrowMap(Js::ThrowMapEntry * throwMap, uint mapCount)
     m_outputData->throwMapCount = mapCount;
 }
 
+bool
+JITOutput::IsTrackCompoundedIntOverflowDisabled() const
+{
+    return m_outputData->disableTrackCompoundedIntOverflow != FALSE;
+}
+
+bool
+JITOutput::IsArrayCheckHoistDisabled() const
+{
+    return m_outputData->disableArrayCheckHoist != FALSE;
+}
+
+bool
+JITOutput::IsStackArgOptDisabled() const
+{
+    return m_outputData->disableStackArgOpt != FALSE;
+}
+
+bool
+JITOutput::IsSwitchOptDisabled() const
+{
+    return m_outputData->disableSwitchOpt != FALSE;
+}
+
+bool
+JITOutput::IsAggressiveIntTypeSpecDisabled() const
+{
+    return m_outputData->disableAggressiveIntTypeSpec != FALSE;
+}
+
 uint16
 JITOutput::GetArgUsedForBranch() const
 {

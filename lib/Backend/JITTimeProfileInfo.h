@@ -36,12 +36,6 @@ public:
 
     uint16 GetConstantArgInfo(Js::ProfileId callSiteId) const;
 
-    void DisableAggressiveIntTypeSpec(bool isLoopBody);
-    void DisableStackArgOpt();
-    void DisableSwitchOpt();
-    void DisableTrackCompoundedIntOverflow();
-    void DisableArrayCheckHoist(bool isLoopBody);
-
     bool IsModulusOpByPowerOf2(Js::ProfileId profileId) const;
     bool IsAggressiveIntTypeSpecDisabled(const bool isJitLoopBody) const;
     bool IsSwitchOptDisabled() const;

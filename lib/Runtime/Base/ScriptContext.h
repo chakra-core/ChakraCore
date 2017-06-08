@@ -699,7 +699,7 @@ public:
 
         void LogDataForFunctionBody(Js::FunctionBody *body, uint idx, bool isRejit);
 
-        void LogRejit(Js::FunctionBody *body, uint reason);
+        void LogRejit(Js::FunctionBody *body, RejitReason reason);
         void LogBailout(Js::FunctionBody *body, uint kind);
 
         // Used to centrally collect stats for all function bodies.

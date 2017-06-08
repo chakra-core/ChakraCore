@@ -299,42 +299,35 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         catch (Js::RejitException ex)
         {
             // The work item needs to be rejitted, likely due to some optimization that was too aggressive
-            if (ex.Reason() == RejitReason::AggressiveIntTypeSpecDisabled)
+            switch (ex.Reason())
             {
-                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableAggressiveIntTypeSpec(func.IsLoopBody());
+            case RejitReason::AggressiveIntTypeSpecDisabled:
                 outputData->disableAggressiveIntTypeSpec = TRUE;
-            }
-            else if (ex.Reason() == RejitReason::InlineApplyDisabled)
-            {
+                break;
+            case RejitReason::InlineApplyDisabled:
                 workItem->GetJITFunctionBody()->DisableInlineApply();
                 outputData->disableInlineApply = TRUE;
-            }
-            else if (ex.Reason() == RejitReason::InlineSpreadDisabled)
-            {
+                break;
+            case RejitReason::InlineSpreadDisabled:
                 workItem->GetJITFunctionBody()->DisableInlineSpread();
                 outputData->disableInlineSpread = TRUE;
-            }
-            else if (ex.Reason() == RejitReason::DisableStackArgOpt)
-            {
-                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableStackArgOpt();
+                break;
+            case RejitReason::DisableStackArgOpt:
                 outputData->disableStackArgOpt = TRUE;
-            }
-            else if (ex.Reason() == RejitReason::DisableSwitchOptExpectingInteger ||
-                ex.Reason() == RejitReason::DisableSwitchOptExpectingString)
-            {
-                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableSwitchOpt();
+                break;
+            case RejitReason::DisableSwitchOptExpectingInteger:
+            case RejitReason::DisableSwitchOptExpectingString:
                 outputData->disableSwitchOpt = TRUE;
-            }
-            else if (ex.Reason() == RejitReason::ArrayCheckHoistDisabled || ex.Reason() == RejitReason::ArrayAccessHelperCallEliminationDisabled)
-            {
-                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableArrayCheckHoist(func.IsLoopBody());
+                break;
+            case RejitReason::ArrayCheckHoistDisabled:
+            case RejitReason::ArrayAccessHelperCallEliminationDisabled:
                 outputData->disableArrayCheckHoist = TRUE;
-            }
-            else
-            {
-                Assert(ex.Reason() == RejitReason::TrackIntOverflowDisabled);
-                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableTrackCompoundedIntOverflow();
+                break;
+            case RejitReason::TrackIntOverflowDisabled:
                 outputData->disableTrackCompoundedIntOverflow = TRUE;
+                break;
+            default:
+                Assume(UNREACHED);
             }
 
             if (PHASE_TRACE(Js::ReJITPhase, &func))
@@ -983,6 +976,36 @@ void Func::InitLocalClosureSyms()
                                    this->DoStackFrameDisplay() ? (Js::RegSlot)-1 : regSlot,
                                    this);
     }
+}
+
+bool
+Func::IsTrackCompoundedIntOverflowDisabled() const
+{
+    return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled()) || m_output.IsTrackCompoundedIntOverflowDisabled();
+}
+
+bool
+Func::IsArrayCheckHoistDisabled() const
+{
+    return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsArrayCheckHoistDisabled(IsLoopBody())) || m_output.IsArrayCheckHoistDisabled();
+}
+
+bool
+Func::IsStackArgOptDisabled() const
+{
+    return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsStackArgOptDisabled()) || m_output.IsStackArgOptDisabled();
+}
+
+bool
+Func::IsSwitchOptDisabled() const
+{
+    return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsSwitchOptDisabled()) || m_output.IsSwitchOptDisabled();
+}
+
+bool
+Func::IsAggressiveIntTypeSpecDisabled() const
+{
+    return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsAggressiveIntTypeSpecDisabled(IsLoopBody())) || m_output.IsAggressiveIntTypeSpecDisabled();
 }
 
 bool Func::CanAllocInPreReservedHeapPageSegment ()
