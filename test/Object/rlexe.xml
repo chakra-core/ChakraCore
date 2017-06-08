@@ -298,7 +298,6 @@
       <files>stackobject_dependency.js</files>
       <baseline />
       <compile-flags>-off:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -379,7 +378,6 @@
       <files>stackobject_dependency.js</files>
       <baseline />
       <compile-flags>-off:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -387,7 +385,6 @@
       <files>stackobject_dependency.js</files>
       <baseline />
       <compile-flags>-off:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
