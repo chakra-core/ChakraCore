@@ -45,6 +45,10 @@
     JsCreateArray
     JsCreateArrayBuffer
     JsCreateExternalArrayBuffer
+    JsCreateSharedArrayBuffer
+    JsGetSharedArrayBufferContent
+    JsSharedContentAddRef
+    JsSharedContentRelease
     JsCreateTypedArray
     JsCreateDataView
     JsGetTypedArrayInfo

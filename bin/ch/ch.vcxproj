@@ -57,6 +57,7 @@
     <ClInclude Include="HostConfigFlagsList.h" />
     <ClInclude Include="JITProcessManager.h" />
     <ClInclude Include="MessageQueue.h" />
+    <ClInclude Include="RuntimeThreadData.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="WScriptJsrt.h" />
   </ItemGroup>
@@ -68,6 +69,7 @@
     <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="HostConfigFlags.cpp" />
     <ClCompile Include="JITProcessManager.cpp" />
+    <ClCompile Include="RuntimeThreadData.cpp" />
     <ClCompile Include="WScriptJsrt.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -88,6 +90,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="262.js" />
     <None Include="ch.def" />
   </ItemGroup>
   <ItemGroup>

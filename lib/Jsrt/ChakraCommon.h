@@ -350,6 +350,15 @@ typedef unsigned short uint16_t;
     typedef void *JsRef;
 
     /// <summary>
+    ///     A reference to an object owned by the SharedArrayBuffer.
+    /// </summary>
+    /// <remarks>
+    ///     This represents SharedContents which is heap allocated object, it can be passed through 
+    ///     different runtimes to share the underlying buffer.
+    /// </remarks>
+    typedef void *JsSharedArrayBufferContent;
+
+    /// <summary>
     ///     An invalid reference.
     /// </summary>
 #ifdef __cplusplus
@@ -2061,6 +2070,74 @@ typedef unsigned short uint16_t;
             _In_ JsValueRef dataView,
             _Outptr_result_bytebuffer_(*bufferLength) ChakraBytePtr *buffer,
             _Out_ unsigned int *bufferLength);
+
+    /// <summary>
+    ///     Creates a Javascript SharedArrayBuffer object with shared content get from JsGetSharedArrayBufferContent.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="sharedContents">
+    ///     The storage object of a SharedArrayBuffer which can be shared between multiple thread.
+    /// </param>
+    /// <param name="result">The new SharedArrayBuffer object.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsCreateSharedArrayBuffer(
+            _In_ JsSharedArrayBufferContent sharedContents,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Get the storage object from a SharedArrayBuffer.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="sharedArrayBuffer">The SharedArrayBuffer object.</param>
+    /// <param name="sharedContents">
+    ///     The storage object of a SharedArrayBuffer which can be shared between multiple thread.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetSharedArrayBufferContent(
+            _In_ JsValueRef sharedArrayBuffer,
+            _Out_ JsSharedArrayBufferContent *sharedContents);
+
+    /// <summary>
+    ///     Increase the reference count on a SharedArrayBuffer storage object.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="sharedContents">
+    ///     The storage object of a SharedArrayBuffer which can be shared between multiple thread.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSharedContentAddRef(
+            _In_ JsSharedArrayBufferContent sharedContents);
+
+    /// <summary>
+    ///     Decrease the reference count on a SharedArrayBuffer storage object.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="sharedContents">
+    ///     The storage object of a SharedArrayBuffer which can be shared between multiple thread.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSharedContentRelease(
+            _In_ JsSharedArrayBufferContent sharedContents);
 
     /// <summary>
     ///     Invokes a function.

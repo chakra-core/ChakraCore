@@ -101,8 +101,12 @@ var tests = [{
                         
                         assert.throws(() => atomicFunction.op(view), RangeError, "Calling "+atomicFunction.fullname+" with 1 param only is not valid", atomicFunction.fullname+": function called with too few arguments");
                         assert.throws(() => atomicFunction.op(view, 0), RangeError, "Calling "+atomicFunction.fullname+" with 2 params only is not valid", atomicFunction.fullname+": function called with too few arguments");
-                        [undefined, -1, 1.1, "hi", NaN, {}, Infinity, -Infinity].forEach(function (index) {
-                            assert.throws(() => atomicFunction.op(view, index, 1), RangeError, "Only positive interger allowed, not " + index, "Access index is out of range");
+                        [undefined, 1.1, "hi", NaN, {}].forEach(function (index) {
+                            atomicFunction.op(view, index, 1);
+                        });
+                        
+                        [-1, Infinity, -Infinity].forEach(function (index) {
+                           assert.throws(() => atomicFunction.op(view, index, 1), RangeError, "Only positive interger allowed, not " + index, "Access index is out of range");
                         });
                         
                         assert.throws(() => atomicFunction.op(view, elements, 1), RangeError, "index is out of bound " + elements, "Access index is out of range");
@@ -131,7 +135,11 @@ var tests = [{
                     assert.throws(() => Atomics.compareExchange(view), RangeError, "Calling Atomics.compareExchange with 1 param only is not valid", "Atomics.compareExchange: function called with too few arguments");
                     assert.throws(() => Atomics.compareExchange(view, 0), RangeError, "Calling Atomics.compareExchange with 2 params only is not valid", "Atomics.compareExchange: function called with too few arguments");
                     assert.throws(() => Atomics.compareExchange(view, 0, 0), RangeError, "Calling Atomics.compareExchange with 3 params only is not valid", "Atomics.compareExchange: function called with too few arguments");
-                    [undefined, -1, 1.1, "hi", NaN, {}, Infinity, -Infinity].forEach(function (index) {
+                    [undefined, 1.1, "hi", NaN, {}].forEach(function (index) {
+                        Atomics.compareExchange(view, index, 0, 0);
+                    });
+                    
+                    [-1, Infinity, -Infinity].forEach(function (index) {
                         assert.throws(() => Atomics.compareExchange(view, index, 0, 0), RangeError, "Only positive interger allowed not, " + index, "Access index is out of range");
                     });
                     
@@ -150,7 +158,11 @@ var tests = [{
                     var view = new item.ctor(sab, offset * item.ctor.BYTES_PER_ELEMENT, length);
                     
                     assert.throws(() => Atomics.load(view), RangeError, "Calling Atomics.load with 1 param only is not valid", "Atomics.load: function called with too few arguments");
-                    [undefined, -1, 1.1, "hi", NaN, {}, Infinity, -Infinity].forEach(function (index) {
+                    [undefined, 1.1, "hi", NaN, {}].forEach(function (index) {
+                        Atomics.load(view, index);
+                    });
+                    
+                    [-1, Infinity, -Infinity].forEach(function (index) {
                         assert.throws(() => Atomics.load(view, index), RangeError, "Only positive interger allowed, not " + index, "Access index is out of range");
                     });
                     
@@ -169,7 +181,11 @@ var tests = [{
                 
                 assert.throws(() => Atomics.wait(view), RangeError, "Calling Atomics.wait with 1 param only is not valid", "Atomics.wait: function called with too few arguments");
                 assert.throws(() => Atomics.wait(view, 0), RangeError, "Calling Atomics.wait with 1 param only is not valid", "Atomics.wait: function called with too few arguments");
-                [undefined, -1, 1.1, "hi", NaN, {}, Infinity, -Infinity].forEach(function (index) {
+                [undefined, 1.1, "hi", NaN, {}].forEach(function (index) {
+                    Atomics.wait(view, index, 1);
+                });
+                
+                [-1, Infinity, -Infinity].forEach(function (index) {
                     assert.throws(() => Atomics.wait(view, index, 0), RangeError, "Only positive interger allowed, not " + index, "Access index is out of range");
                 });
                 
@@ -186,7 +202,11 @@ var tests = [{
                 var view = new Int32Array(sab, offset * Int32Array.BYTES_PER_ELEMENT, length);
                 
                 assert.throws(() => Atomics.wake(view), RangeError, "Calling Atomics.wake with 1 param only is not valid", "Atomics.wake: function called with too few arguments");
-                [undefined, -1, 1.1, "hi", NaN, {}, Infinity, -Infinity].forEach(function (index) {
+                [undefined, 1.1, "hi", NaN, {}].forEach(function (index) {
+                    Atomics.wake(view, index, 1);
+                });
+                
+                [-1, Infinity, -Infinity].forEach(function (index) {
                     assert.throws(() => Atomics.wake(view, index, 1), RangeError, "Only positive interger allowed, not " + index, "Access index is out of range");
                 });
                 

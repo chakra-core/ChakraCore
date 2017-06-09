@@ -9,6 +9,7 @@ namespace Js
 #if DBG
     void SharedContents::AddAgent(DWORD_PTR agent)
     {
+        AutoCriticalSection autoCS(&csAgent);
         if (allowedAgents == nullptr)
         {
             allowedAgents = HeapNew(SharableAgents, &HeapAllocator::Instance);
@@ -19,6 +20,7 @@ namespace Js
 
     bool SharedContents::IsValidAgent(DWORD_PTR agent)
     {
+        AutoCriticalSection autoCS(&csAgent);
         return allowedAgents != nullptr && allowedAgents->Contains(agent);
     }
 #endif
@@ -40,10 +42,13 @@ namespace Js
         buffer = nullptr;
         bufferLength = 0;
 #if DBG
-        if (allowedAgents != nullptr)
         {
-            HeapDelete(allowedAgents);
-            allowedAgents = nullptr;
+            AutoCriticalSection autoCS(&csAgent);
+            if (allowedAgents != nullptr)
+            {
+                HeapDelete(allowedAgents);
+                allowedAgents = nullptr;
+            }
         }
 #endif
 
