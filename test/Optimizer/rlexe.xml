@@ -718,7 +718,7 @@
     <default>
       <files>test102.js</files>
       <compile-flags>-minInterpretCount:4 -maxInterpretCount:4 -off:simpleJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -726,7 +726,7 @@
       <files>test103.js</files>
       <baseline>test103.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:objTypeSpec</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -734,7 +734,7 @@
       <files>test104.js</files>
       <baseline>test104.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -force:jitLoopBody</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -742,7 +742,7 @@
       <files>test105.js</files>
       <baseline>test105.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:aggressiveIntTypeSpec -off:fieldHoist</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -754,63 +754,63 @@
     <default>
       <files>test107.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:lossyIntTypeSpec -force:jitLoopBody</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test108.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test109.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:aggressiveIntTypeSpec -off:lossyIntTypeSpec</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test110.js</files>
       <compile-flags>-bgJit- -minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -loopInterpretCount:0 -off:aggressiveIntTypeSpec -off:lossyIntTypeSpec</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test111.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -force:rejit -force:deferparse</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test112.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:typedArrayTypeSpec</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test113.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:arrayMissingValueCheckHoist</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test115.js</files>
       <compile-flags>-args bailout -endArgs</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test116.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -818,7 +818,7 @@
       <files>test117.js</files>
       <baseline>test117.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:eliminateArrayAccessHelperCall</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -826,7 +826,7 @@
       <files>test118.js</files>
       <baseline>test118.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -834,28 +834,28 @@
       <files>test119.js</files>
       <baseline>test119.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test120.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test121.js</files>
       <compile-flags>-bgJit- -loopInterpretCount:1</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test122.js</files>
       <compile-flags>-bgJit- -maxInterpretCount:2 -loopInterpretCount:1</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -863,28 +863,28 @@
       <files>test123.js</files>
       <baseline>test123.baseline</baseline>
       <compile-flags>-bgJit- -loopInterpretCount:1</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test124.js</files>
       <compile-flags>-bgJit- -loopInterpretCount:1 -maxInterpretCount:2 -maxSimpleJitRunCount:0 -forceSerialized</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test125.js</files>
       <compile-flags>-forceNative -off:fullJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test126.js</files>
       <compile-flags>-bgJit- -fullJitAfter:1</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -897,35 +897,35 @@
       <files>test128.js</files>
       <baseline>test128.baseline</baseline>
       <compile-flags>-noNative</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test129.js</files>
       <compile-flags>-bgJit- -loopInterpretCount:1</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test130.js</files>
       <compile-flags>-bgJit- -fullJitAfter:1 -off:fieldHoist -force:deferParse</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test131.js</files>
       <compile-flags>-bgJit- -fullJitAfter:1 -off:fieldCopyProp</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test132.js</files>
       <compile-flags>-bgJit- -fullJitAfter:1 -off:eliminateArrayAccessHelperCall</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -933,7 +933,7 @@
       <files>test133.js</files>
       <baseline>test133.baseline</baseline>
       <compile-flags>-bgJit- -fullJitAfter:1 -loopInterpretCount:1</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -941,7 +941,7 @@
       <files>test134.js</files>
       <baseline>test134.baseline</baseline>
       <compile-flags>-bgJit- -fullJitAfter:1</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -954,28 +954,28 @@
       <files>test136.js</files>
       <baseline>test136.baseline</baseline>
       <compile-flags>-bgJit- -off:simpleJit -loopInterpretCount:1 -off:nativeArray -off:jsArraySegmentHoist -off:arrayMissingValueCheckHoist</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test137.js</files>
       <compile-flags>-bgJit- -simpleJitAfter:1 -fullJitAfter:3 -loopInterpretCount:1</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test138.js</files>
       <compile-flags>-bgJit- -bgJitDelay:0 -loopInterpretCount:50</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test138.js</files>
       <compile-flags>-bgJit- -bgJitDelay:0</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -983,28 +983,28 @@
       <files>test139.js</files>
       <baseline>test139.baseline</baseline>
       <compile-flags>-bgJit- -off:simpleJit -fullJitAfter:2</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test140.js</files>
       <compile-flags>-bgJit- -off:simpleJit -fullJitAfter:1</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test141.js</files>
       <compile-flags>-bgJit- -off:simpleJit -fullJitAfter:2 -on:simulatePolyCacheWithOneTypeForFunction:1 -simulatePolyCacheWithOneTypeForInlineCacheIndex:3</compile-flags>
-      <tags>exclude_dynapogo,exclude_fre,exclude_ship</tags>
+      <tags>exclude_dynapogo,exclude_fre</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test142.js</files>
       <compile-flags>-bgJit- -off:simpleJit -fullJitAfter:2</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1013,21 +1013,21 @@
       <baseline>test143.baseline</baseline>
       <compile-flags>-bgJit- -off:simpleJit -loopInterpretCount:1 -testTrace:arrayCheckHoist</compile-flags>
       <!-- ch.exe doesn't output entire baseline before exiting; -testTrace flush issue? -->
-      <tags>exclude_dynapogo,exclude_ship,exclude_forceserialized</tags>
+      <tags>exclude_dynapogo,exclude_forceserialized</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test144.js</files>
       <compile-flags>-bgJit- -off:simpleJit -fullJitAfter:1 -off:arrayCheckHoist</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>test145.js</files>
       <compile-flags>-bgJit- -off:simpleJit -fullJitAfter:1 -force:deferParse</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1058,7 +1058,7 @@
       <files>marktempnumberontempobjects.js</files>
       <baseline>marktempnumberontempobjects.baseline</baseline>
       <compile-flags>-fja:2 -off:simplejit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1086,7 +1086,7 @@
       <files>Overflow_MaxInterpret.js</files>
       <baseline>Overflow_MaxInterpret.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1100,7 +1100,6 @@
       <files>LossyLosslessInt32.js</files>
       <baseline>LossyLosslessInt32.baseline</baseline>
       <compile-flags>-off:aggressiveIntTypeSpec</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -1121,7 +1120,6 @@
       <files>AggressiveIntTypeSpec.js</files>
       <baseline>AggressiveIntTypeSpec.baseline</baseline>
       <compile-flags>-off:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -1129,7 +1127,7 @@
       <files>AggressiveIntTypeSpec_Off_MaxInterpret.js</files>
       <baseline>AggressiveIntTypeSpec_Off_MaxInterpret.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:aggressiveIntTypeSpec</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1137,7 +1135,7 @@
       <files>FloatTypeSpec_MaxInterpret.js</files>
       <baseline>FloatTypeSpec_MaxInterpret.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:copyProp -off:inline</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1145,7 +1143,7 @@
       <files>NativeArray_MaxInterpret_OffArrayMissingValueCheckHoist.js</files>
       <baseline>NativeArray_MaxInterpret_OffArrayMissingValueCheckHoist.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:arrayMissingValueCheckHoist</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1170,7 +1168,6 @@
       <files>copyprop.js</files>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
       <baseline>copyprop.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -1178,7 +1175,6 @@
       <files>dead.js</files>
       <compile-flags>-force:inlinecandidate</compile-flags>
       <baseline>dead.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -1203,7 +1199,7 @@
       <files>ArrayCheckHoist.js</files>
       <baseline>ArrayCheckHoist_NoBailout.baseline</baseline>
       <compile-flags>-noNative -dynamicprofilecache:profile.dpl.ArrayCheckHoist.js</compile-flags>
-      <tags>exclude_dynapogo,exclude_serialized,exclude_default,exclude_ship,Slow</tags>
+      <tags>exclude_dynapogo,exclude_serialized,exclude_default,Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
@@ -1212,7 +1208,7 @@
       <files>ArrayCheckHoist.js</files>
       <baseline>ArrayCheckHoist_Bailout.baseline</baseline>
       <compile-flags>-off:arrayCheckHoist -args bailout -endArgs -dynamicprofileinput:profile.dpl.ArrayCheckHoist.js</compile-flags>
-      <tags>exclude_interpreted,exclude_ship,exclude_serialized,Slow</tags>
+      <tags>exclude_interpreted,exclude_serialized,Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
@@ -1221,7 +1217,7 @@
       <files>ArrayCheckHoist.js</files>
       <baseline>ArrayCheckHoist_Bailout.baseline</baseline>
       <compile-flags>-args bailout -endArgs -off:fieldHoist -off:fieldCopyProp -off:objTypeSpec -dynamicprofileinput:profile.dpl.ArrayCheckHoist.js</compile-flags>
-      <tags>exclude_interpreted,exclude_ship,exclude_serialized,Slow</tags>
+      <tags>exclude_interpreted,exclude_serialized,Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
@@ -1230,7 +1226,7 @@
       <files>ArrayCheckHoist.js</files>
       <baseline>ArrayCheckHoist_Bailout.baseline</baseline>
       <compile-flags>-args bailout -endArgs -dynamicprofileinput:profile.dpl.ArrayCheckHoist.js</compile-flags>
-      <tags>exclude_interpreted,exclude_ship,exclude_serialized,Slow</tags>
+      <tags>exclude_interpreted,exclude_serialized,Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
@@ -1239,7 +1235,7 @@
       <files>BoundCheckElimination.js</files>
       <baseline>BoundCheckElimination.baseline</baseline>
       <compile-flags>-bgJit- -minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:bailOnNoProfile -testTrace:boundCheckElimination -testTrace:boundCheckHoist</compile-flags>
-      <tags>exclude_dynapogo,exclude_serialized,exclude_default,exclude_ship</tags>
+      <tags>exclude_dynapogo,exclude_serialized,exclude_default</tags>
     </default>
   </test>
   <test>
@@ -1247,7 +1243,7 @@
       <files>Miscellaneous_MaxInterpret.js</files>
       <baseline>Miscellaneous_MaxInterpret.baseline</baseline>
       <compile-flags>-bgJit- -minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1255,14 +1251,14 @@
       <files>Miscellaneous_LoopInterpret.js</files>
       <baseline>Miscellaneous_LoopInterpret.baseline</baseline>
       <compile-flags>-bgJit- -loopInterpretCount:1</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>Miscellaneous_ForceJitLoopBody.js</files>
       <compile-flags>-bgJit- -force:jitLoopBody</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1294,7 +1290,7 @@
     <default>
       <files>bailonnoprofile_objtypespecstore.js</files>
       <compile-flags>-recyclerverify:run -off:simplejit -maxinterpretcount:2</compile-flags>
-      <tags>exclude_ship,exclude_fre,exclude_dynapogo</tags>
+      <tags>exclude_fre,exclude_dynapogo</tags>
       <baseline />
     </default>
   </test>

@@ -79,7 +79,6 @@
     <default>
       <files>label1.js</files>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -95,7 +94,7 @@
       <files>label2.js</files>
       <baseline>label2.baseline</baseline>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -111,7 +110,7 @@
       <files>label3.js</files>
       <baseline>label3.baseline</baseline>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -127,7 +126,7 @@
       <files>label4.js</files>
       <baseline>label4.baseline</baseline>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -143,7 +142,7 @@
       <files>label5.js</files>
       <baseline>label5.baseline</baseline>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -159,7 +158,7 @@
       <files>label6.js</files>
       <baseline>label6.baseline</baseline>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>

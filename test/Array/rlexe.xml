@@ -162,21 +162,19 @@
     <default>
       <files>bug612012.js</files>
       <compile-flags>-maxinterpretcount:1 -loopinterpretcount:1 -force:fieldhoist -ForceArrayBTree -oopjit-</compile-flags>
-      <tags>exclude_ship,exclude_serialized</tags>
+      <tags>exclude_serialized</tags>
     </default>
   </test>
   <test>
     <default>
       <files>SegmentMapFlagResetInJSArrayConstructor.js</files>
       <compile-flags> -maxinterpretcount:1 -maxsimplejitruncount:2  -ForceArrayBTree</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>LastUsedSegmentHasNULLElement.js</files>
       <compile-flags> -maxinterpretcount:1 -maxsimplejitruncount:2  -ForceArrayBTree</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>

@@ -183,7 +183,7 @@
       <files>CompoundString.js</files>
       <baseline>CompoundString.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship,Slow</tags>
+      <tags>exclude_dynapogo,Slow</tags>
     </default>
   </test>
   <test>
