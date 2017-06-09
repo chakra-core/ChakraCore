@@ -87,7 +87,6 @@
       <files>alignment.js</files>
       <compile-flags>-off:inline -checkalignment</compile-flags>
       <baseline />
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>

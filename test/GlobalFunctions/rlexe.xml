@@ -29,7 +29,6 @@
       <files>evalDeferred.js</files>
       <baseline>evalDeferred.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>

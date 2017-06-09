@@ -211,7 +211,7 @@
     <default>
       <files>SIMDExtendArgCSE.js</files>
       <baseline>SIMDExtendArgCSE.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_ship,require_backend,require_simd</tags>
+      <tags>exclude_dynapogo,require_backend,require_simd</tags>
       <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError</compile-flags>
     </default>
   </test>
@@ -309,7 +309,7 @@
     <default>
       <files>b208_asmjs.js</files>
       <baseline>b208_asmjs.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_ship,require_backend,require_simd</tags>
+      <tags>exclude_dynapogo,require_backend,require_simd</tags>
       <compile-flags>-simdjs -AsmJsStopOnError</compile-flags>
     </default>
   </test>
@@ -317,7 +317,7 @@
     <default>
       <files>b208_asmjs.js</files>
       <baseline>b208_asmjs.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_ship,require_backend,require_simd</tags>
+      <tags>exclude_dynapogo,require_backend,require_simd</tags>
       <compile-flags> -bgjit- -simdjs -simd128typespec -asmjs- -mic:1 -lic:1 -off:simplejit</compile-flags>
     </default>
   </test>
@@ -325,7 +325,7 @@
     <default>
       <files>testSimdManyVars.js</files>
       <baseline>testSimdManyVars.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_ship,require_backend,require_simd</tags>
+      <tags>exclude_dynapogo,require_backend,require_simd</tags>
       <compile-flags> -simdjs -asmjs -off:backend -testtrace:asmjs</compile-flags>
     </default>
   </test>
@@ -333,7 +333,7 @@
     <default>
       <files>b95.js</files>
       <baseline>b95.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_ship,require_backend,require_simd</tags>
+      <tags>exclude_dynapogo,require_backend,require_simd</tags>
       <compile-flags>-simdjs -testtrace:asmjs  -asmjs</compile-flags>
     </default>
   </test>
@@ -341,7 +341,7 @@
     <default>
       <files>b108.js</files>
       <baseline>b108.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_ship,require_backend,require_simd</tags>
+      <tags>exclude_dynapogo,require_backend,require_simd</tags>
       <compile-flags>-simdjs  -asmjs -testtrace:asmjs -asmjsstoponerror</compile-flags>
     </default>
   </test>

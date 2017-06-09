@@ -63,7 +63,7 @@
       <files>InlineConstructors.js</files>
       <baseline>InlineConstructors.baseline</baseline>
       <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_ship,exclude_arm,Slow</tags>
+      <tags>exclude_arm,Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
@@ -72,14 +72,13 @@
       <files>InlinedConstructorBailout.js</files>
       <baseline>InlinedConstructorBailout.baseline</baseline>
       <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>inliningWithArguments.js</files>
       <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_ship,exclude_arm</tags>
+      <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
@@ -110,7 +109,7 @@
       <files>linenumber4.js</files>
       <baseline>linenumber4.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit -loopinterpretcount:0 -force:inline -bgjit-</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -118,7 +117,7 @@
       <files>Miscellaneous_MaxInterpret.js</files>
       <baseline>Miscellaneous_MaxInterpret.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -force:inline</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -131,14 +130,12 @@
       <files>bug515849.js</files>
       <baseline>bug515849.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -msjrc:0 -force:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>inlineBuiltIns.js</files>
       <compile-flags> -maxInterpretCount:1 -msjrc:0 </compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>

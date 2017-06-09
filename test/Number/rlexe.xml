@@ -39,7 +39,6 @@
       <files>NoSse.js</files>
       <baseline>NoSse.baseline</baseline>
       <compile-flags>-sse:0</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>

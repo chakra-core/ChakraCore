@@ -4,77 +4,66 @@
     <default>
       <files>allIIntCases.js</files>
       <baseline>allIIntCases.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>emptyCases.js</files>
       <baseline>emptyCases.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>moreSwitches1.js</files>
       <baseline>moreSwitches1.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>moreSwitches2.js</files>
       <baseline>moreSwitches2.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>switchMathExp.js</files>
       <baseline>switchMathExp.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>allStringCases.js</files>
       <baseline>allStringCases.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>stringAndNonStrings.js</files>
       <baseline>stringAndNonStrings.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>repeatIntCases.js</files>
       <baseline>repeatIntCases.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>emptyStringCases.js</files>
       <baseline>emptyStringCases.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>repeatStringCases.js</files>
       <baseline>repeatStringCases.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>loopAndRetarget.js</files>
       <baseline>loopAndRetarget.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -82,7 +71,6 @@
       <files>implicitCallSwitchExpr.js</files>
       <baseline>implicitCallSwitchExpr.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit -bgjit- -loopinterpretcount:0</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -90,7 +78,6 @@
       <files>simpleSwitch.js</files>
       <baseline>simpleSwitch.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <!--
@@ -100,7 +87,7 @@ Disabled -testtrace cases to eliminate maintenance headache (Microsoft/ChakraCor
       <files>moreSwitches1_1.js</files>
       <baseline>moreSwitches1_1.baseline</baseline>
       <compile-flags>-testtrace:bailout -testtrace:rejit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
    </default>
    <condition order="1" type="include">
           <target>arm</target>
@@ -115,7 +102,7 @@ Disabled -testtrace cases to eliminate maintenance headache (Microsoft/ChakraCor
       <files>nonIntCases.js</files>
       <baseline>nonIntCases.baseline</baseline>
       <compile-flags>-testtrace:bailout -testtrace:rejit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
    </default>
    <condition order="1" type="include">
           <target>arm</target>
@@ -130,7 +117,7 @@ Disabled -testtrace cases to eliminate maintenance headache (Microsoft/ChakraCor
       <files>stringBailOut.js</files>
       <baseline>stringBailOut.baseline</baseline>
       <compile-flags>-testtrace:bailout -testtrace:rejit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
    </default>
 </test>
 
@@ -139,7 +126,7 @@ Disabled -testtrace cases to eliminate maintenance headache (Microsoft/ChakraCor
       <files>intBailOut.js</files>
       <baseline>intBailOut.baseline</baseline>
       <compile-flags>-testtrace:bailout -testtrace:rejit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
    </default>
    <condition order="1" type="include">
       <target>arm</target>
@@ -159,7 +146,7 @@ Disabled -testtrace cases to eliminate maintenance headache (Microsoft/ChakraCor
     <default>
       <files>BugFixRegression_MaxInterpret.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -167,7 +154,6 @@ Disabled -testtrace cases to eliminate maintenance headache (Microsoft/ChakraCor
       <files>amd64JScriptNumberRegression.js</files>
       <baseline>amd64JScriptNumberRegression.baseline</baseline>
       <compile-flags>-maxInterpretCount:1 -off:simpleJit -off:aggressiveinttypespec</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
