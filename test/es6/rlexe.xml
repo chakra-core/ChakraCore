@@ -1415,7 +1415,7 @@
   <default>
     <files>bug_issue_3076.js</files>
     <compile-flags>-force:deferparse</compile-flags>
-    <tags>BugFix</tags>
+    <tags>BugFix,exclude_sanitize_address</tags>
   </default>
 </test>
 <test>
