@@ -326,7 +326,7 @@ if [[ $SHOULD_EMBED_ICU == 1 ]]; then
         echo -e "\nThis script will download ICU-LIB from\n${ICU_URL}\n"
         echo "It is licensed to you by its publisher, not Microsoft."
         echo "Microsoft is not responsible for the software."
-        echo "Your installation and use of ICU-LIB is subject to the publisher’s terms available here:"
+        echo "Your installation and use of ICU-LIB is subject to the publisher's terms available here:"
         echo -e "http://www.unicode.org/copyright.html#License\n"
         echo -e "----------------------------------------------------------------\n"
         echo "If you don't agree, press Ctrl+C to terminate"
