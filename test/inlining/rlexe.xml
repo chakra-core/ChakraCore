@@ -160,7 +160,7 @@
     <default>
       <files>polyInliningFixedMethods.js</files>
       <baseline>polyInliningFixedMethods.baseline</baseline>
-      <compile-flags>-maxInterpretCount:1 -maxSimpleJitRunCount:1 -extendederrorstackfortesthost</compile-flags>
+      <compile-flags>-maxInterpretCount:1 -maxSimpleJitRunCount:1 -ExtendedErrorStackForTestHost</compile-flags>
     </default>
   </test>
   <test>
@@ -262,7 +262,7 @@
   <test>
     <default>
       <files>stackTrace.js</files>
-      <compile-flags>-extendederrorstackfortesthost</compile-flags>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
       <baseline>stackTrace.baseline</baseline>
     </default>
   </test>
