@@ -6334,9 +6334,8 @@ namespace Js
         // Byte code generation failed for this function. Revert any intermediate state being tracked in the function body, in
         // case byte code generation is attempted again for this function body.
 
-#if DBG
-        this->UnlockCounters();
-#endif
+        DebugOnly(this->UnlockCounters());
+
         ResetInlineCaches();
         ResetObjectLiteralTypes();
         ResetLiteralRegexes();
@@ -6374,9 +6373,9 @@ namespace Js
         // pass may have failed, we need to restore state that is tracked on the function body by the visit pass.
         // Note: do not reset literal regexes if the function has already been compiled (e.g., is a parsed function enclosed by a
         // redeferred function) as we will not use the count of literals anyway, and the counters may be accessed by the background thread.
-#if DBG
-        this->UnlockCounters();
-#endif
+
+        DebugOnly(this->UnlockCounters());
+
         if (this->byteCodeBlock == nullptr)
         {
             ResetLiteralRegexes();
@@ -7937,9 +7936,8 @@ namespace Js
         {
             return;
         }
-#if DBG
-        this->UnlockCounters();
-#endif
+
+        DebugOnly(this->UnlockCounters());
 
         CleanupRecyclerData(isScriptContextClosing, false /* capture entry point cleanup stack trace */);
         CleanUpForInCache(isScriptContextClosing);
@@ -7978,9 +7976,7 @@ namespace Js
 
         this->cleanedUp = true;
 
-#if DBG
-        this->LockDownCounters();
-#endif
+        DebugOnly(this->LockDownCounters());
     }
 
 
