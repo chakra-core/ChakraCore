@@ -12,5 +12,6 @@ FLAG(BSTR, Serialized,                      "If source is UTF8, deserializes fro
 FLAG(bool, OOPJIT,                          "Run JIT in a separate process", false)
 FLAG(bool, EnsureCloseJITServer,            "JIT process will be force closed when ch is terminated", true)
 FLAG(bool, AsyncModuleLoad,                 "Silence host error output for module load failures to enable promise testing", false)
+FLAG(bool, $262,                            "load $262 harness", false)
 #undef FLAG
 #endif

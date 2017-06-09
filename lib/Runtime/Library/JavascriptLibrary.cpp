@@ -1843,6 +1843,11 @@ namespace Js
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::wake, &AtomicsObject::EntryInfo::Wake, 3);
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::xor_, &AtomicsObject::EntryInfo::Xor, 3);
 
+        if (atomicsObject->GetScriptContext()->GetConfig()->IsES6ToStringTagEnabled())
+        {
+            library->AddMember(atomicsObject, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Atomics")), PropertyConfigurable);
+        }
+        
         atomicsObject->SetHasNoEnumerableProperties(true);
     }
 

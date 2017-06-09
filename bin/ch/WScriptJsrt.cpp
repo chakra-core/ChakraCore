@@ -370,6 +370,7 @@ JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileConten
     return JsNoError;
 }
 
+
 JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
     LPCSTR fileContent, LPCSTR scriptInjectType, bool isSourceModule, JsFinalizeCallback finalizeCallback)
 {
@@ -472,6 +473,29 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
 
         // Set the context back to the old one
         ChakraRTInterface::JsSetCurrentContext(currentContext);
+    }
+    else if (strcmp(scriptInjectType, "crossthread") == 0)
+    {
+        if (GetRuntimeThreadLocalData().threadData == nullptr) 
+        {
+            GetRuntimeThreadLocalData().threadData = new RuntimeThreadData();
+        }
+
+        RuntimeThreadData* child = new RuntimeThreadData();
+        child->initialSource = fileContent;
+        GetRuntimeThreadLocalData().threadData->children.push_back(child);
+        child->parent = GetRuntimeThreadLocalData().threadData;
+                
+        // TODO: need to add a switch in case we don't need to wait for 
+        // child initial script completion
+        ResetEvent(GetRuntimeThreadLocalData().threadData->hevntInitialScriptCompleted);
+
+        ::CreateThread(NULL, NULL, [](void* param) -> DWORD
+        {
+            return ((RuntimeThreadData*)param)->ThreadProc();
+        }, (void*)child, NULL, NULL);
+
+        WaitForSingleObject(GetRuntimeThreadLocalData().threadData->hevntInitialScriptCompleted, INFINITE);
     }
     else
     {
@@ -886,6 +910,30 @@ bool WScriptJsrt::Initialize()
 
     IfJsrtErrorFail(InitializeModuleCallbacks(), false);
 
+    if (HostConfigFlags::flags.$262)
+    {
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Broadcast", BroadcastCallback));
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "ReceiveBroadcast", ReceiveBroadcastCallback));
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Report", ReportCallback));
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetReport", GetReportCallback));
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Leaving", LeavingCallback));
+        IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Sleep", SleepCallback));
+
+
+        // OSX does build does not support $262 as filename
+        const wchar_t $262[] =
+            #include "262.js"
+            ;
+
+        JsValueRef $262ScriptRef;
+        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateStringUtf16((uint16_t*)$262, _countof($262), &$262ScriptRef));
+
+        JsValueRef fname;
+        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString("$262", strlen("$262"), &fname));
+        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsRun($262ScriptRef, WScriptJsrt::GetNextSourceContext(), fname, JsParseScriptAttributeNone, nullptr));
+
+    }
+
 Error:
     return hr == S_OK;
 }
@@ -908,6 +956,31 @@ bool WScriptJsrt::Uninitialize()
     // "operator delete" / global HeapAllocator::Instance. Clear it manually here
     // to avoid worrying about global destructor order.
     moduleRecordMap.clear();
+
+    if (GetRuntimeThreadLocalData().threadData && !GetRuntimeThreadLocalData().threadData->children.empty())
+    {
+        LONG count = (LONG)GetRuntimeThreadLocalData().threadData->children.size();
+        GetRuntimeThreadLocalData().threadData->hSemaphore = CreateSemaphore(NULL, 0, count, NULL);
+        
+        //Clang does not support "for each" yet
+        for(auto i = GetRuntimeThreadLocalData().threadData->children.begin(); i!= GetRuntimeThreadLocalData().threadData->children.end(); i++)
+        {
+            auto child = *i;
+            if (child->leaving)
+            {
+                ReleaseSemaphore(GetRuntimeThreadLocalData().threadData->hSemaphore, 1, NULL);
+            }
+            else
+            {
+                SetEvent(child->hevntShutdown);
+            }
+        }
+
+        WaitForSingleObject(GetRuntimeThreadLocalData().threadData->hSemaphore, INFINITE);
+        CloseHandle(GetRuntimeThreadLocalData().threadData->hSemaphore);
+        GetRuntimeThreadLocalData().threadData->hSemaphore = INVALID_HANDLE_VALUE;
+    }
+
     return true;
 }
 
@@ -1032,6 +1105,166 @@ JsValueRef __stdcall WScriptJsrt::FlagCallback(JsValueRef callee, bool isConstru
         ChakraRTInterface::SetConfigFlags(2, argv, nullptr);
     }
 #endif
+
+Error:
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::BroadcastCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+
+    if (argumentCount > 1)
+    {
+        if (GetRuntimeThreadLocalData().threadData)
+        {
+            ChakraRTInterface::JsGetSharedArrayBufferContent(arguments[1], &GetRuntimeThreadLocalData().threadData->sharedContent);
+
+            LONG count = (LONG)GetRuntimeThreadLocalData().threadData->children.size();
+            GetRuntimeThreadLocalData().threadData->hSemaphore = CreateSemaphore(NULL, 0, count, NULL);
+            //Clang does not support "for each" yet
+            for (auto i = GetRuntimeThreadLocalData().threadData->children.begin(); i != GetRuntimeThreadLocalData().threadData->children.end(); i++)
+            {
+                auto child = *i;
+                SetEvent(child->hevntReceivedBroadcast);
+            }
+
+            WaitForSingleObject(GetRuntimeThreadLocalData().threadData->hSemaphore, INFINITE);
+            CloseHandle(GetRuntimeThreadLocalData().threadData->hSemaphore);
+            GetRuntimeThreadLocalData().threadData->hSemaphore = INVALID_HANDLE_VALUE;
+
+
+            ChakraRTInterface::JsReleaseSharedArrayBufferContentHandle(GetRuntimeThreadLocalData().threadData->sharedContent);
+        }
+    }
+
+Error:
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::ReceiveBroadcastCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+
+    if (argumentCount > 1)
+    {
+        if (GetRuntimeThreadLocalData().threadData)
+        {
+            if (GetRuntimeThreadLocalData().threadData->receiveBroadcastCallbackFunc)
+            {
+                ChakraRTInterface::JsRelease(GetRuntimeThreadLocalData().threadData->receiveBroadcastCallbackFunc, nullptr);
+            }
+            GetRuntimeThreadLocalData().threadData->receiveBroadcastCallbackFunc = arguments[1];
+            ChakraRTInterface::JsAddRef(GetRuntimeThreadLocalData().threadData->receiveBroadcastCallbackFunc, nullptr);
+        }
+    }
+
+Error:
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::ReportCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+
+    if (argumentCount > 1)
+    {
+        JsValueRef stringRef;
+        ChakraRTInterface::JsConvertValueToString(arguments[1], &stringRef);
+
+        AutoString autoStr(stringRef);
+
+        if (autoStr.GetError() == JsNoError)
+        {
+            std::string str(autoStr.GetString());
+
+            if (GetRuntimeThreadLocalData().threadData && GetRuntimeThreadLocalData().threadData->parent)
+            {
+                EnterCriticalSection(&GetRuntimeThreadLocalData().threadData->parent->csReportQ);
+                GetRuntimeThreadLocalData().threadData->parent->reportQ.push_back(str);
+                LeaveCriticalSection(&GetRuntimeThreadLocalData().threadData->parent->csReportQ);
+            }
+        }
+    }
+
+Error:
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::GetReportCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetNullValue(&returnValue));
+
+    if (argumentCount > 0)
+    {
+        if (GetRuntimeThreadLocalData().threadData)
+        {
+            EnterCriticalSection(&GetRuntimeThreadLocalData().threadData->csReportQ);
+
+            if (GetRuntimeThreadLocalData().threadData->reportQ.size() > 0)
+            {
+                auto str = GetRuntimeThreadLocalData().threadData->reportQ.front();
+                GetRuntimeThreadLocalData().threadData->reportQ.pop_front();
+                ChakraRTInterface::JsCreateString(str.c_str(), str.size(), &returnValue);
+            }
+            LeaveCriticalSection(&GetRuntimeThreadLocalData().threadData->csReportQ);
+        }
+    }
+
+Error:
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::LeavingCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+
+    if (argumentCount > 0)
+    {
+        if (GetRuntimeThreadLocalData().threadData)
+        {
+            GetRuntimeThreadLocalData().threadData->leaving = true;
+        }
+    }
+
+Error:
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::SleepCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+
+    if (argumentCount > 1)
+    {
+        double timeout = 0.0;
+        ChakraRTInterface::JsNumberToDouble(arguments[1], &timeout);
+        Sleep((DWORD)timeout);
+    }
 
 Error:
     return returnValue;

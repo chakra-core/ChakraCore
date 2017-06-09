@@ -172,7 +172,10 @@ namespace Js
 
         void Dispose(bool isShutdown) override
         {
-            instance->Release();
+            if (!isShutdown)
+            {
+                instance->Release();
+            }
         }
         void Mark(Recycler * recycler) override
         {

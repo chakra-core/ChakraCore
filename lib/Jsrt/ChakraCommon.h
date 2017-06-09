@@ -2062,6 +2062,7 @@ typedef unsigned short uint16_t;
             _Outptr_result_bytebuffer_(*bufferLength) ChakraBytePtr *buffer,
             _Out_ unsigned int *bufferLength);
 
+
     /// <summary>
     ///     Invokes a function.
     /// </summary>
