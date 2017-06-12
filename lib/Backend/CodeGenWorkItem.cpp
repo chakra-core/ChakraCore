@@ -25,9 +25,6 @@ CodeGenWorkItem::CodeGenWorkItem(
     , irViewerRequestContext(nullptr)
 #endif
 {
-#if DBG
-    functionBody->LockDownCounters();
-#endif
     this->jitData = {0};
     // work item data
     this->jitData.type = type;
