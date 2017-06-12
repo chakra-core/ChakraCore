@@ -4,5 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 
 function TrimStackTracePath(line) {
-    return line && line.replace(/\(.+(\\test\\|\\unittest\\).[^\\/]*./ig, "(");
+    if (line) {
+        line = line.replace(/ \(.+([\\\/]test[\\\/]|[\\\/]unittest[\\\/]).[^\\\/]*./ig, " (");
+        // normalize output by replacing leading whitespace (\s+) of each stack line (starting with 'at ') with 3 spaces (to preserve current baselines)
+        line = line.replace(/^\s+at /gm, '   at ');
+    }
+    return line;
 }
