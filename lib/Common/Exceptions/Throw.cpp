@@ -181,6 +181,9 @@ namespace Js {
         HANDLE hTempFile;
         DWORD retVal;
 
+        char stack[64 * sizeof(void*)];
+        StackBackTrace::Capture(stack, _countof(stack))->Print();
+        
         if (filePath == NULL)
         {
             retVal = GetTempPath(MAX_PATH, tempFilePath);
