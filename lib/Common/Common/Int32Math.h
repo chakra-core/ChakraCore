@@ -16,3 +16,15 @@ public:
     static bool Shr(int32 left, int32 right, int32 *pResult);
     static bool ShrU(int32 left, int32 right, int32 *pResult);
 };
+
+template <>
+inline bool Math::IncImpl<int32>(int32 val, int32 *pResult)
+{
+    return Int32Math::Inc(val, pResult);
+}
+
+template <>
+inline bool Math::AddImpl<int32>(int32 left, int32 right, int32 *pResult)
+{
+    return Int32Math::Add(left, right, pResult);
+}

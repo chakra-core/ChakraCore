@@ -16,7 +16,7 @@ namespace Js
     DictionaryTypeHandlerBase<T>* DictionaryTypeHandlerBase<T>::CreateTypeHandlerForArgumentsInStrictMode(Recycler * recycler, ScriptContext * scriptContext)
     {
         DictionaryTypeHandlerBase<T> * dictTypeHandler = New(recycler, 8, 0, 0);
-        
+
         dictTypeHandler->Add(scriptContext->GetPropertyName(Js::PropertyIds::caller), PropertyWritable, scriptContext);
         dictTypeHandler->Add(scriptContext->GetPropertyName(Js::PropertyIds::callee), PropertyWritable, scriptContext);
         dictTypeHandler->Add(scriptContext->GetPropertyName(Js::PropertyIds::length), PropertyBuiltInMethodDefaults, scriptContext);
@@ -374,7 +374,7 @@ namespace Js
     {
         Assert(this->GetSlotCapacity() <= MaxPropertyIndexSize);   // slotCapacity should never exceed MaxPropertyIndexSize
         Assert(nextPropertyIndex < this->GetSlotCapacity());       // nextPropertyIndex must be ready
-        T index = nextPropertyIndex++;
+        T index = ::Math::PostInc(nextPropertyIndex);
 
         DictionaryPropertyDescriptor<T> descriptor(index, attributes);
         Assert((!isFixed && !usedAsFixed) || (!IsInternalPropertyId(propertyId->GetPropertyId()) && this->singletonInstance != nullptr));
@@ -1670,8 +1670,8 @@ namespace Js
 
         getter = CanonicalizeAccessor(getter, library);
         setter = CanonicalizeAccessor(setter, library);
-        T getterIndex = nextPropertyIndex++;
-        T setterIndex = nextPropertyIndex++;
+        T getterIndex = ::Math::PostInc(nextPropertyIndex);
+        T setterIndex = ::Math::PostInc(nextPropertyIndex);
         DictionaryPropertyDescriptor<T> newDescriptor(getterIndex, setterIndex);
         if (this->GetSlotCapacity() <= nextPropertyIndex)
         {
@@ -1898,8 +1898,9 @@ namespace Js
         // A Dictionary type is expected to have more properties
         // grow exponentially rather linearly to avoid the realloc and moves,
         // however use a small exponent to avoid waste
-        int newSlotCapacity = (nextPropertyIndex + 1);
-        newSlotCapacity += (newSlotCapacity>>2);
+        int newSlotCapacity;
+        newSlotCapacity = ::Math::Add(nextPropertyIndex, (T)1);
+        newSlotCapacity = ::Math::Add(newSlotCapacity, newSlotCapacity >> 2);
         if (newSlotCapacity > MaxPropertyIndexSize)
         {
             newSlotCapacity = MaxPropertyIndexSize;
@@ -2099,7 +2100,7 @@ namespace Js
             this->EnsureSlotCapacity(instance);
         }
 
-        T index = nextPropertyIndex++;
+        T index = ::Math::PostInc(nextPropertyIndex);
         DictionaryPropertyDescriptor<T> newDescriptor(index, attributes);
 
         // DictionaryTypeHandlers are not supposed to be shared.
