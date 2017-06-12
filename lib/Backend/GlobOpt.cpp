@@ -3514,7 +3514,6 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
     if (val)
     {
         ValueType valueType(val->GetValueInfo()->Type());
-#if 0
         if (valueType.IsLikelyNativeArray() && !valueType.IsObject() && instr->IsProfiledInstr())
         {
             // See if we have profile data for the array type
@@ -3554,7 +3553,6 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 ChangeValueType(this->currentBlock, CurrentBlockData()->FindValue(opnd->AsRegOpnd()->m_sym), valueType, false);
             }
         }
-#endif
         opnd->SetValueType(valueType);
 
         if(!IsLoopPrePass() && opnd->IsSymOpnd() && valueType.IsDefinite())
