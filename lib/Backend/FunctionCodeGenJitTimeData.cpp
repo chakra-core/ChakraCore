@@ -8,7 +8,7 @@
 #if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
-    FunctionCodeGenJitTimeData::FunctionCodeGenJitTimeData(FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, bool isInlined) :
+    FunctionCodeGenJitTimeData::FunctionCodeGenJitTimeData(FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, Var globalThis, uint16 profiledIterations, bool isInlined) :
         functionInfo(functionInfo), entryPointInfo(entryPoint), globalObjTypeSpecFldInfoCount(0), globalObjTypeSpecFldInfoArray(nullptr),
         weakFuncRef(nullptr), inlinees(nullptr), inlineeCount(0), ldFldInlineeCount(0), isInlined(isInlined), isAggressiveInliningEnabled(false),
 #ifdef FIELD_ACCESS_STATS
@@ -16,12 +16,36 @@ namespace Js
 #endif
         next(nullptr),
         ldFldInlinees(nullptr),
-        globalThisObject(GetFunctionBody() && GetFunctionBody()->GetByteCode() ? GetFunctionBody()->GetScriptContext()->GetLibrary()->GetGlobalObject()->ToThis() : 0),
-        profiledIterations(GetFunctionBody() && GetFunctionBody()->GetByteCode() ? GetFunctionBody()->GetProfiledIterations() : 0),
+        globalThisObject(globalThis),
+        profiledIterations(profiledIterations),
         sharedPropertyGuards(nullptr),
         sharedPropertyGuardCount(0)
     {
     }
+
+    FunctionCodeGenJitTimeData* FunctionCodeGenJitTimeData::New(Recycler* recycler, FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, bool isInlined)
+    {
+        Var globalThis = nullptr;
+        uint16 profiledIterations = 0;
+        FunctionProxy *proxy = functionInfo->GetFunctionProxy();
+        if (proxy && proxy->IsFunctionBody())
+        {
+            FunctionBody* functionBody = proxy->GetFunctionBody();
+            if (functionBody)
+            {
+                if (functionBody->GetByteCode())
+                {
+                    globalThis = functionBody->GetScriptContext()->GetLibrary()->GetGlobalObject()->ToThis();
+                    profiledIterations = functionBody->GetProfiledIterations();
+                }
+
+                DebugOnly(functionBody->LockDownCounters());
+            }
+        }
+
+        return RecyclerNew(recycler, FunctionCodeGenJitTimeData, functionInfo, entryPoint, globalThis, profiledIterations, isInlined);
+    }
+
 
     uint16 FunctionCodeGenJitTimeData::GetProfiledIterations() const
     {
@@ -98,7 +122,7 @@ namespace Js
         FunctionCodeGenJitTimeData *inlineeData = nullptr;
         if (!inlinees[profiledCallSiteId])
         {
-            inlineeData = RecyclerNew(recycler, FunctionCodeGenJitTimeData, inlinee, nullptr /* entryPoint */, isInlined);
+            inlineeData = FunctionCodeGenJitTimeData::New(recycler, inlinee, nullptr /* entryPoint */, isInlined);
             inlinees[profiledCallSiteId] = inlineeData;
             if (++inlineeCount == 0)
             {
@@ -107,7 +131,7 @@ namespace Js
         }
         else
         {
-            inlineeData = RecyclerNew(recycler, FunctionCodeGenJitTimeData, inlinee, nullptr /* entryPoint */, isInlined);
+            inlineeData = FunctionCodeGenJitTimeData::New(recycler, inlinee, nullptr /* entryPoint */, isInlined);
             // This is polymorphic, chain the data.
             inlineeData->next = inlinees[profiledCallSiteId];
             inlinees[profiledCallSiteId] = inlineeData;
@@ -131,7 +155,7 @@ namespace Js
             ldFldInlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenJitTimeData*), GetFunctionBody()->GetInlineCacheCount());
         }
 
-        const auto inlineeData = RecyclerNew(recycler, FunctionCodeGenJitTimeData, inlinee, nullptr);
+        const auto inlineeData = FunctionCodeGenJitTimeData::New(recycler, inlinee, nullptr);
         Assert(!ldFldInlinees[inlineCacheIndex]);
         ldFldInlinees[inlineCacheIndex] = inlineeData;
         if (++ldFldInlineeCount == 0)

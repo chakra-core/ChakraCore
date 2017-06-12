@@ -57,6 +57,8 @@ namespace Js
         // The profiled iterations need to be determined at the time of gathering code gen data on the main thread
         Field(const uint16) profiledIterations;
 
+        FunctionCodeGenJitTimeData(FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, Var globalThis, uint16 profiledIterations, bool isInlined = true);
+
 #ifdef FIELD_ACCESS_STATS
     public:
         Field(FieldAccessStatsPtr) inlineCacheStats;
@@ -66,7 +68,8 @@ namespace Js
 #endif
 
     public:
-        FunctionCodeGenJitTimeData(FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, bool isInlined = true);
+
+        static FunctionCodeGenJitTimeData* New(Recycler* recycler, FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, bool isInlined = true);
 
     public:
         Field(BVFixed *) inlineesBv;
