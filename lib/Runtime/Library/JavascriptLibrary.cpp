@@ -5351,6 +5351,7 @@ namespace Js
 
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toLength, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToLengthFunction, 1);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toInteger, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToIntegerFunction, 1);
+        library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::isArray, &JavascriptArray::EntryInfo::IsArray, 1);
         library->AddMember(chakraLibraryObject, PropertyIds::Object, library->objectConstructor);
 
         chakraLibraryObject->SetHasNoEnumerableProperties(true);
