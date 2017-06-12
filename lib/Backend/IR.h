@@ -131,9 +131,6 @@ protected:
 #if DBG_DUMP
         globOptInstrString(nullptr),
 #endif
-#if _CONTROL_FLOW_GUARD_SHADOW_STACK
-        isFsBased(false),
-#endif
         dstIsTempNumber(false),
         dstIsTempNumberTransferred(false),
         dstIsTempObject(false),
