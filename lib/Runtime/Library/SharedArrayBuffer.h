@@ -10,7 +10,6 @@ namespace Js
 {
 
     class WaiterList;
-
     typedef JsUtil::List<DWORD_PTR, HeapAllocator> SharableAgents;
     typedef JsUtil::BaseDictionary<uint, WaiterList *, HeapAllocator> IndexToWaitersMap;
 
@@ -31,6 +30,7 @@ namespace Js
 #if DBG
         // This is mainly used for validation purpose as the wait/wake APIs should be used on the agents (Workers) among which this buffer is shared.
         SharableAgents *allowedAgents;
+        CriticalSection csAgent;
         void AddAgent(DWORD_PTR agent);
         bool IsValidAgent(DWORD_PTR agent);
 #endif

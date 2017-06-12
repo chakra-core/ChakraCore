@@ -6,6 +6,7 @@ set(ch_source_files
   Helpers.cpp
   HostConfigFlags.cpp
   WScriptJsrt.cpp
+  RuntimeThreadData.cpp
   )
 
 if (STATIC_LIBRARY)

@@ -27,6 +27,15 @@
 
 typedef void* JsModuleRecord;
 
+/// <summary>
+///     A reference to an object owned by the SharedArrayBuffer.
+/// </summary>
+/// <remarks>
+///     This represents SharedContents which is heap allocated object, it can be passed through 
+///     different runtimes to share the underlying buffer.
+/// </remarks>
+typedef void *JsSharedArrayBufferContentHandle;
+
 typedef enum JsParseModuleSourceFlags
 {
     JsParseModuleSourceFlags_DataIsUTF16LE = 0x00000000,
@@ -598,6 +607,59 @@ CHAKRA_API
     JsGetWeakReferenceValue(
         _In_ JsWeakRef weakRef,
         _Out_ JsValueRef* value);
+
+/// <summary>
+///     Creates a Javascript SharedArrayBuffer object with shared content get from JsGetSharedArrayBufferContent.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="sharedContents">
+///     The storage object of a SharedArrayBuffer which can be shared between multiple thread.
+/// </param>
+/// <param name="result">The new SharedArrayBuffer object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateSharedArrayBufferWithSharedContent(
+    _In_ JsSharedArrayBufferContentHandle sharedContents,
+    _Out_ JsValueRef *result);
+
+/// <summary>
+///     Get the storage object from a SharedArrayBuffer.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="sharedArrayBuffer">The SharedArrayBuffer object.</param>
+/// <param name="sharedContents">
+///     The storage object of a SharedArrayBuffer which can be shared between multiple thread.
+///     User should call JsReleaseSharedArrayBufferContentHandle after finished using it.
+/// </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsGetSharedArrayBufferContent(
+    _In_ JsValueRef sharedArrayBuffer,
+    _Out_ JsSharedArrayBufferContentHandle *sharedContents);
+
+/// <summary>
+///     Decrease the reference count on a SharedArrayBuffer storage object.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="sharedContents">
+///     The storage object of a SharedArrayBuffer which can be shared between multiple thread.
+/// </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsReleaseSharedArrayBufferContentHandle(
+    _In_ JsSharedArrayBufferContentHandle sharedContents);
 
 #endif // CHAKRACOREBUILD_
 #endif // _CHAKRACORE_H_
