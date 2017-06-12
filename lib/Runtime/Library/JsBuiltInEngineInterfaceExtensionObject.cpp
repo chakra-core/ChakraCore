@@ -177,9 +177,6 @@ namespace Js
         case PropertyIds::String:
             return library->stringPrototype;
 
-        case PropertyIds::Uint8Array:
-            return library->Uint8ArrayPrototype;
-
         case PropertyIds::__chakraLibrary:
             return library->GetChakraLib();
 
@@ -206,7 +203,7 @@ namespace Js
         DynamicObject* chakraLibraryObject = GetPrototypeFromName(PropertyIds::__chakraLibrary, scriptContext);
         PropertyIds functionIdentifier = JavascriptOperators::GetPropertyId(methodName, scriptContext);
 
-        // Link the function to the prototype.
+        // Link the function to __chakraLibrary.
         ScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateScriptFunction(func->GetFunctionProxy());
 
         if (scriptFunction->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled())
