@@ -63,6 +63,7 @@ public:
     bool IsLoopImplicitCallInfoDisabled() const;
     bool IsPowIntIntTypeSpecDisabled() const;
     bool IsTagCheckDisabled() const;
+    bool IsOptimizeTryFinallyDisabled() const;
 
 private:
     enum ProfileDataFlags : int64
@@ -103,7 +104,8 @@ private:
         Flags_disableStackArgOpt = 1ll << 32,
         Flags_disableLoopImplicitCallInfo = 1ll << 33,
         Flags_disablePowIntIntTypeSpec = 1ll << 34,
-        Flags_disableTagCheck = 1ll << 35
+        Flags_disableTagCheck = 1ll << 35,
+        Flags_disableOptimizeTryFinally = 1ll << 36
     };
 
     Js::ProfileId GetProfiledArrayCallSiteCount() const;

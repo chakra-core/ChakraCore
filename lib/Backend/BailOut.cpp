@@ -2199,6 +2199,20 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                     profileInfo->DisablePowIntIntTypeSpec();
                     rejitReason = RejitReason::PowIntIntTypeSpecDisabled;
                 }
+                break;
+            }
+            case IR::BailOutOnEarlyExit:
+            {
+                if (profileInfo->IsOptimizeTryFinallyDisabled())
+                {
+                    reThunk = true;
+                }
+                else
+                {
+                    profileInfo->DisableOptimizeTryFinally();
+                    rejitReason = RejitReason::OptimizeTryFinallyDisabled;
+                }
+                break;
             }
         }
 

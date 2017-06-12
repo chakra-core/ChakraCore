@@ -517,6 +517,7 @@ namespace Js
             Field(bool) disableLoopImplicitCallInfo : 1;
             Field(bool) disableStackArgOpt : 1;
             Field(bool) disableTagCheck : 1;
+            Field(bool) disableOptimizeTryFinally : 1;
         };
         Field(Bits) bits;
 
@@ -814,6 +815,8 @@ namespace Js
         void DisablePowIntIntTypeSpec() { this->bits.disablePowIntIntTypeSpec = true; }
         bool IsTagCheckDisabled() const { return bits.disableTagCheck; }
         void DisableTagCheck() { this->bits.disableTagCheck = true; }
+        bool IsOptimizeTryFinallyDisabled() const { return bits.disableOptimizeTryFinally; }
+        void DisableOptimizeTryFinally() { this->bits.disableOptimizeTryFinally = true; }
 
         static bool IsCallSiteNoInfo(Js::LocalFunctionId functionId) { return functionId == CallSiteNoInfo; }
         int IncRejitCount() { return this->rejitCount++; }
