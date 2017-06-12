@@ -89,10 +89,6 @@ private:
 
     static const BYTE Epilog[];
 
-#if _CONTROL_FLOW_GUARD_SHADOW_STACK
-    static const BYTE InterpreterThunkRFG[];
-    static const BYTE EpilogRFG[];
-#endif
 
     static const BYTE PageCount = 1;
 #if defined(_M_X64)

@@ -1868,13 +1868,6 @@ LABEL1:
         // Read first  byte - check for prefix
         BYTE* beginPc = pc;
 
-#if _CONTROL_FLOW_GUARD_SHADOW_STACK
-        // skip first byte if it's 0x64 (fs-based mem access)
-        if (*pc == 0x64)
-        {
-            pc++;
-        }
-#endif
 
         if (((*pc) == 0x0F2) || ((*pc) == 0x0F3))
         {
