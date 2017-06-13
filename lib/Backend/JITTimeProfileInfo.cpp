@@ -135,6 +135,7 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->flags |= profileInfo->IsLoopImplicitCallInfoDisabled() ? Flags_disableLoopImplicitCallInfo : 0;
     data->flags |= profileInfo->IsPowIntIntTypeSpecDisabled() ? Flags_disablePowIntIntTypeSpec : 0;
     data->flags |= profileInfo->IsTagCheckDisabled() ? Flags_disableTagCheck : 0;
+    data->flags |= profileInfo->IsOptimizeTryFinallyDisabled() ? Flags_disableOptimizeTryFinally : 0;
 }
 
 const Js::LdElemInfo *
@@ -480,6 +481,12 @@ bool
 JITTimeProfileInfo::IsTagCheckDisabled() const
 {
     return TestFlag(Flags_disableTagCheck);
+}
+
+bool
+JITTimeProfileInfo::IsOptimizeTryFinallyDisabled() const
+{
+    return TestFlag(Flags_disableOptimizeTryFinally);
 }
 
 bool
