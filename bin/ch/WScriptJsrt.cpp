@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
+#include <vector>
 
 #if defined(_X86_) || defined(_M_IX86)
 #define CPU_ARCH_TEXT "x86"
@@ -490,7 +491,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
         // child initial script completion
         ResetEvent(GetRuntimeThreadLocalData().threadData->hevntInitialScriptCompleted);
 
-        ::CreateThread(NULL, NULL, [](void* param) -> DWORD
+        child->hThread = ::CreateThread(NULL, NULL, [](void* param) -> DWORD
         {
             return ((RuntimeThreadData*)param)->ThreadProc();
         }, (void*)child, NULL, NULL);
@@ -960,25 +961,23 @@ bool WScriptJsrt::Uninitialize()
     if (GetRuntimeThreadLocalData().threadData && !GetRuntimeThreadLocalData().threadData->children.empty())
     {
         LONG count = (LONG)GetRuntimeThreadLocalData().threadData->children.size();
-        GetRuntimeThreadLocalData().threadData->hSemaphore = CreateSemaphore(NULL, 0, count, NULL);
+        std::vector<HANDLE> childrenHandles;
         
         //Clang does not support "for each" yet
         for(auto i = GetRuntimeThreadLocalData().threadData->children.begin(); i!= GetRuntimeThreadLocalData().threadData->children.end(); i++)
         {
             auto child = *i;
-            if (child->leaving)
-            {
-                ReleaseSemaphore(GetRuntimeThreadLocalData().threadData->hSemaphore, 1, NULL);
-            }
-            else
-            {
-                SetEvent(child->hevntShutdown);
-            }
+            childrenHandles.push_back(child->hThread);
+            SetEvent(child->hevntShutdown);
         }
 
-        WaitForSingleObject(GetRuntimeThreadLocalData().threadData->hSemaphore, INFINITE);
-        CloseHandle(GetRuntimeThreadLocalData().threadData->hSemaphore);
-        GetRuntimeThreadLocalData().threadData->hSemaphore = INVALID_HANDLE_VALUE;
+        DWORD waitRet = WaitForMultipleObjects(count, &childrenHandles[0], TRUE, INFINITE);
+        Assert(waitRet == WAIT_OBJECT_0);
+
+        for (auto i = GetRuntimeThreadLocalData().threadData->children.begin(); i != GetRuntimeThreadLocalData().threadData->children.end(); i++)
+        {
+            delete *i;
+        }
     }
 
     return true;
