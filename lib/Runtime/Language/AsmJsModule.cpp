@@ -407,28 +407,24 @@ namespace Js
             if (pnode->sxCall.pnodeTarget->nop == knopName)
             {
                 AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(pnode->sxCall.pnodeTarget->name());
-                if (funcDecl && funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
+                if (AsmJsMathFunction::IsFround(funcDecl))
                 {
-                    AsmJsMathFunction* mathFunc = funcDecl->Cast<AsmJsMathFunction>();
-                    if (mathFunc->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround)
+                    switch (pnode->sxCall.pnodeArgs->nop)
                     {
-                        switch (pnode->sxCall.pnodeArgs->nop)
+                    case knopFlt:
+                        func->AddConst<float>((float)pnode->sxCall.pnodeArgs->sxFlt.dbl);
+                        evalArgs = false;
+                        break;
+                    case knopInt:
+                        func->AddConst<float>((float)pnode->sxCall.pnodeArgs->sxInt.lw);
+                        evalArgs = false;
+                        break;
+                    case knopNeg:
+                        if (pnode->sxCall.pnodeArgs->sxUni.pnode1->nop == knopInt && pnode->sxCall.pnodeArgs->sxUni.pnode1->sxInt.lw == 0)
                         {
-                        case knopFlt:
-                            func->AddConst<float>((float)pnode->sxCall.pnodeArgs->sxFlt.dbl);
+                            func->AddConst<float>(-0.0f);
                             evalArgs = false;
                             break;
-                        case knopInt:
-                            func->AddConst<float>((float)pnode->sxCall.pnodeArgs->sxInt.lw);
-                            evalArgs = false;
-                            break;
-                        case knopNeg:
-                            if (pnode->sxCall.pnodeArgs->sxUni.pnode1->nop == knopInt && pnode->sxCall.pnodeArgs->sxUni.pnode1->sxInt.lw == 0)
-                            {
-                                func->AddConst<float>(-0.0f);
-                                evalArgs = false;
-                                break;
-                            }
                         }
                     }
                 }
@@ -767,8 +763,7 @@ namespace Js
 
                 if (funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
                 {
-                    AsmJsMathFunction* mathFunc = funcDecl->Cast<AsmJsMathFunction>();
-                    if (!(mathFunc && mathFunc->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround))
+                    if (!AsmJsMathFunction::IsFround(funcDecl))
                     {
                         return Fail(rhs, _u("call should be for fround"));
                     }
@@ -829,8 +824,6 @@ namespace Js
     {
         ParseNodePtr pnode = func->GetBodyNode();
         MathBuiltin mathBuiltin;
-        AsmJsMathFunction* mathFunc = nullptr;
-        AsmJsSIMDFunction* simdFunc = nullptr;
         AsmJsSIMDValue simdValue;
         simdValue.Zero();
         // define all variables
@@ -858,8 +851,8 @@ namespace Js
                 ParseNode* pnodeInit = decl->sxVar.pnodeInit;
                 AsmJsSymbol * declSym = nullptr;
 
-                mathFunc = nullptr;
-                simdFunc = nullptr;
+                bool isFroundInit = false;
+                AsmJsSIMDFunction* simdFunc = nullptr;
 
                 if (!pnodeInit)
                 {
@@ -887,15 +880,11 @@ namespace Js
 
                     if (funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
                     {
-                        mathFunc = funcDecl->Cast<AsmJsMathFunction>();
-                        if (!(mathFunc && mathFunc->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround))
+                        if (!AsmJsMathFunction::IsFround(funcDecl) || !ParserWrapper::IsFroundNumericLiteral(pnodeInit->sxCall.pnodeArgs))
                         {
                             return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                         }
-                        if (!ParserWrapper::IsFroundNumericLiteral(pnodeInit->sxCall.pnodeArgs))
-                        {
-                            return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
-                        }
+                        isFroundInit = true;
                     }
                     else if (IsSimdjsEnabled() && funcDecl->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
                     {
@@ -905,6 +894,10 @@ namespace Js
                         {
                             return Fail(varNode, _u("Invalid SIMD local declaration"));
                         }
+                    }
+                    else
+                    {
+                        return Fail(varNode, _u("Unknown function call on var declaration"));
                     }
                 }
                 else if (pnodeInit->nop != knopInt && pnodeInit->nop != knopFlt)
@@ -998,7 +991,7 @@ namespace Js
                 }
                 else if (pnodeInit->nop == knopCall)
                 {
-                    if (mathFunc)
+                    if (isFroundInit)
                     {
                         var->SetVarType(AsmJsVarType::Float);
                         var->SetLocation(func->AcquireRegister<float>());
@@ -2648,7 +2641,7 @@ namespace Js
             {
                 switch (asmSlot->builtinMathFunc)
                 {
-#define ASMJS_MATH_FUNC_NAMES(name, propertyName) \
+#define ASMJS_MATH_FUNC_NAMES(name, propertyName, funcInfo) \
                         case AsmJSMathBuiltin_##name: \
                             value = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::##propertyName, scriptContext); \
                             break;

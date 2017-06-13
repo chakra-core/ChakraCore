@@ -803,6 +803,11 @@ namespace Js
         return mOverload && mOverload->SupportsMathCall(argCount, args, op, retType);
     }
 
+    bool AsmJsMathFunction::IsFround(AsmJsFunctionDeclaration* sym)
+    {
+        return sym && sym->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction && sym->Cast<AsmJsMathFunction>()->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround;
+    }
+
     WAsmJs::RegisterSpace*
         AllocateRegisterSpace(ArenaAllocator* alloc, WAsmJs::Types type)
     {
