@@ -2430,7 +2430,16 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
                 break;
 
             case IR::BailOutOnNotNativeArray:
-                rejitReason = RejitReason::ExpectingNativeArray;
+                // REVIEW: We have an issue with array profile info.  The info on the type of array we have won't
+                //         get fixed by rejitting.  For now, just give up after 50 rejits.
+                if (loopHeader->GetRejitCount() >= 50)
+                {
+                    rejitReason = RejitReason::None;
+                }
+                else
+                {
+                    rejitReason = RejitReason::ExpectingNativeArray;
+                }
                 break;
 
             case IR::BailOutConvertedNativeArray:
@@ -2601,6 +2610,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
         // loop body happens in the interpreter
         loopHeader->interpretCount = executeFunction->GetLoopInterpretCount(loopHeader) - 2;
         loopHeader->CreateEntryPoint();
+        loopHeader->IncRejitCount();
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if(PHASE_TRACE(Js::ReJITPhase, executeFunction))
