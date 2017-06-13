@@ -82,13 +82,13 @@
 // Even if it builds, it may not work properly. Disable at your own risk
 
 // Config options
+#define CONFIG_PARSE_CONFIG_FILE 1
+
 #ifdef _WIN32
 #define CONFIG_CONSOLE_AVAILABLE 1
-#define CONFIG_PARSE_CONFIG_FILE 1
 #define CONFIG_RICH_TRACE_FORMAT 1
 #else
 #define CONFIG_CONSOLE_AVAILABLE 0
-#define CONFIG_PARSE_CONFIG_FILE 0
 #define CONFIG_RICH_TRACE_FORMAT 0
 #endif
 
