@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
+<!-- issue #3149
   <test>
     <default>
       <compile-flags>-$262</compile-flags>
@@ -7,4 +8,5 @@
       <files>$262test.js</files>
     </default>
   </test>
+-->
 </regress-exe>
