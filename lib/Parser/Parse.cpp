@@ -2465,7 +2465,10 @@ ParseNodePtr Parser::ParseImport()
     // import()
     if (m_token.tk == tkLParen)
     {
-        return ParseImportCall<buildAST>();
+        ParseNodePtr pnode = ParseImportCall<buildAST>();
+        BOOL fCanAssign;
+        IdentToken token;
+        return ParsePostfixOperators<buildAST>(pnode, TRUE, FALSE, FALSE, &fCanAssign, &token);
     }
 
     m_pscan->SeekTo(parsedImport);
@@ -3260,12 +3263,8 @@ LFunction :
         if (m_scriptContext->GetConfig()->IsES6ModuleEnabled())
         {
             m_pscan->Scan();
-            if (m_token.tk == tkLParen)
-            {
-                return ParseImportCall<buildAST>();
-            }
-
-            Error(ERRnoLparen);
+            ChkCurTokNoScan(tkLParen, ERRnoLparen);
+            pnode = ParseImportCall<buildAST>();
         }
         else
         {

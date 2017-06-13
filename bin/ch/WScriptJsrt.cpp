@@ -362,7 +362,7 @@ JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileConten
     unsigned int fileContentLength = (fileContent == nullptr) ? 0 : (unsigned int)strlen(fileContent);
     errorCode = ChakraRTInterface::JsParseModuleSource(requestModule, dwSourceCookie, (LPBYTE)fileContent,
         fileContentLength, JsParseModuleSourceFlags_DataIsUTF8, &errorObject);
-    if ((errorCode != JsNoError) && errorObject != JS_INVALID_REFERENCE && fileContent != nullptr)
+    if ((errorCode != JsNoError) && errorObject != JS_INVALID_REFERENCE && fileContent != nullptr && !HostConfigFlags::flags.IgnoreScriptErrorCode)
     {
         ChakraRTInterface::JsSetException(errorObject);
         return errorCode;
@@ -1275,6 +1275,11 @@ bool WScriptJsrt::PrintException(LPCSTR fileName, JsErrorCode jsErrorCode)
     LPCWSTR errorTypeString = ConvertErrorCodeToMessage(jsErrorCode);
     JsValueRef exception;
     ChakraRTInterface::JsGetAndClearException(&exception);
+    if (HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
+    {
+        return false;
+    }
+
     if (exception != nullptr)
     {
         if (jsErrorCode == JsErrorCode::JsErrorScriptCompile || jsErrorCode == JsErrorCode::JsErrorScriptException)
@@ -1473,7 +1478,7 @@ HRESULT WScriptJsrt::ModuleMessage::Call(LPCSTR fileName)
             hr = Helpers::LoadScriptFromFile(specifierStr.GetString(), fileContent);
             if (FAILED(hr))
             {
-                if (!HostConfigFlags::flags.AsyncModuleLoadIsEnabled)
+                if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
                 {
                     fprintf(stderr, "Couldn't load file.\n");
                 }
@@ -1558,6 +1563,12 @@ JsErrorCode WScriptJsrt::NotifyModuleReadyCallback(_In_opt_ JsModuleRecord refer
         {
             fileName.Initialize(specifier);
         }
+
+        if (HostConfigFlags::flags.TraceHostCallbackIsEnabled)
+        {
+            printf("NotifyModuleReadyCallback(exception) %s\n", fileName.GetString());
+        }
+
         PrintException(*fileName, JsErrorScriptException);
     }
     else
