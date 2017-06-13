@@ -184,7 +184,17 @@ while [[ $# -gt 0 ]]; do
 
     --icu=*)
         ICU_PATH=$1
-        ICU_PATH="-DICU_INCLUDE_PATH_SH=${ICU_PATH:6}"
+        ICU_PATH="${ICU_PATH:6}"
+        if [[ ! -d ${ICU_PATH} ]]; then
+            if [[ -d "${CHAKRACORE_DIR}/${ICU_PATH}" ]]; then
+                ICU_PATH="${CHAKRACORE_DIR}/${ICU_PATH}"
+            else
+                # if ICU_PATH is given, do not fallback to no-icu
+                echo "!!! couldn't find ICU at $ICU_PATH"
+                exit 1
+            fi
+        fi
+        ICU_PATH="-DICU_INCLUDE_PATH_SH=${ICU_PATH}"
         ;;
 
     --libs-only)
