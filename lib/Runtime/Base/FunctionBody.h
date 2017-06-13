@@ -1192,6 +1192,9 @@ namespace Js
         Field(uint) endOffset;
         Field(uint) interpretCount;
         Field(uint) profiledLoopCounter;
+#if ENABLE_NATIVE_CODEGEN
+        Field(uint) rejitCount;
+#endif
         Field(bool) isNested;
         Field(bool) isInTry;
         Field(FunctionBody *) functionBody;
@@ -1296,6 +1299,8 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         int CreateEntryPoint();
         void ReleaseEntryPoints();
+        void IncRejitCount() { ++rejitCount; }
+        uint GetRejitCount() { return rejitCount; }
 #endif
 
         void ResetInterpreterCount()
