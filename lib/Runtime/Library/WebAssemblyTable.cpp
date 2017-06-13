@@ -127,10 +127,11 @@ WebAssemblyTable::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
     Field(Var) * newValues = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), newLength);
     CopyArray(newValues, newLength, table->m_values, table->m_currentLength);
 
+    uint32 oldLength = table->m_currentLength;
     table->m_values = newValues;
     table->m_currentLength = newLength;
 
-    return scriptContext->GetLibrary()->GetUndefined();
+    return JavascriptNumber::ToVar(oldLength, scriptContext);
 }
 
 Var
@@ -213,9 +214,9 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
 WebAssemblyTable *
 WebAssemblyTable::Create(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
-    if (initial > Wasm::Limits::GetMaxTableSize() || maximum > Wasm::Limits::GetMaxTableSize())
+    if (initial > maximum || initial > Wasm::Limits::GetMaxTableSize() || maximum > Wasm::Limits::GetMaxTableSize())
     {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid);
+        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
     Field(Var) * values = nullptr;
     if (initial > 0)

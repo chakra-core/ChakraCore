@@ -136,11 +136,6 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
     const uint32 oldPageCount = oldBytes / WebAssembly::PageSize;
     Assert(oldBytes % WebAssembly::PageSize == 0);
 
-    if (deltaBytes == 0)
-    {
-        return (int32)oldPageCount;
-    }
-
     const uint32 newPageCount = oldPageCount + deltaPages;
     if (newPageCount > m_maximum)
     {
@@ -198,9 +193,9 @@ WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callIn
 WebAssemblyMemory *
 WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
-    if (initial > Wasm::Limits::GetMaxMemoryInitialPages() || maximum > Wasm::Limits::GetMaxMemoryMaximumPages())
+    if (initial > maximum || initial > Wasm::Limits::GetMaxMemoryInitialPages() || maximum > Wasm::Limits::GetMaxMemoryMaximumPages())
     {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid);
+        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
     // This shouldn't overflow since we checked in the module, but just to be safe
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);

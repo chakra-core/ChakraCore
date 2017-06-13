@@ -180,7 +180,6 @@ async function testModuleCustomSection(baseModule) {
   console.log("\nWebAssembly.Module.customSections tests");
   await testInvalidCases([
     ...(invalidModules.map(b => () => WebAssembly.Module.customSections(b))),
-    () => WebAssembly.Module.customSections(baseModule),
     () => WebAssembly.Module.customSections(baseModule, {toString() {throw new Error("Doesn't support toString");}}),
     () => WebAssembly.Module.customSections(baseModule, Symbol()),
   ]);
