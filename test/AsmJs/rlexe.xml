@@ -845,6 +845,11 @@
   </test>
   <test>
     <default>
+      <files>bug9883547.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>constFoldTests.js</files>
       <compile-flags>-asmjs -maic:0</compile-flags>
     </default>

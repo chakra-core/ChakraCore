@@ -57,6 +57,24 @@ bool IRType_IsSimd128(IRType type)
     return type >= TySimd128F4 && type <= TySimd128D2;
 }
 
+IRType IRType_EnsureSigned(IRType type)
+{
+    if (IRType_IsUnsignedInt(type))
+    {
+        return (IRType)(type - (TyUint8 - TyInt8));
+    }
+    return type;
+}
+
+IRType IRType_EnsureUnsigned(IRType type)
+{
+    if (IRType_IsSignedInt(type))
+    {
+        return (IRType)(type + (TyUint8 - TyInt8));
+    }
+    return type;
+}
+
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
 void IRType_Dump(IRType type)
 {
