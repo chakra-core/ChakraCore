@@ -12,6 +12,9 @@ const verbose = options.indexOf("-verbose") !== -1;
 const self = this;
 const setTimeout = WScript.SetTimeout;
 const clearTimeout = WScript.ClearTimeout;
+
+WScript.Flag(`-wasmMaxTableSize:${(Math.pow(2,32)-1)|0}`);
+
 self.addEventListener = function() {};
 
 class ConsoleTestEnvironment {
@@ -82,7 +85,7 @@ function reportResult(tests, harness_status) {
   }
   const testsReport = tests.map(test => {
     const stack = verbose ? test.stack : "";
-    return `${status_text[test.status]} ${test.name} ${get_assertion(test)} ${test.message || ""}${stack}`;
+    return `${status_text[test.status]} ${test.name} ${get_assertion(test)} ${test.message || ""}${stack ? "\n" + stack : stack}`;
   });
   console.log(`Harness Status: ${status_text_harness[harness_status.status]}
 Found ${tests.length} tests: ${Object.keys(status_number).map(key => `${key} = ${status_number[key]}`).join(" ")}

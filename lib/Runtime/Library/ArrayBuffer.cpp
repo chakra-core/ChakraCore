@@ -1035,11 +1035,12 @@ namespace Js
 
     WebAssemblyArrayBuffer* WebAssemblyArrayBuffer::GrowMemory(uint32 newBufferLength)
     {
-        if (newBufferLength <= this->bufferLength)
+        if (newBufferLength < this->bufferLength)
         {
             Assert(UNREACHED);
             JavascriptError::ThrowTypeError(GetScriptContext(), WASMERR_BufferGrowOnly);
         }
+        uint32 growSize = newBufferLength - this->bufferLength;
 
         bool failedReport = false;
         const auto reportFailedFn = [&failedReport] { failedReport = true; };
@@ -1055,12 +1056,15 @@ namespace Js
                 return nullptr;
             }
 
-            LPVOID newMem = VirtualAlloc(this->buffer + this->bufferLength, newBufferLength - this->bufferLength, MEM_COMMIT, PAGE_READWRITE);
-            if (!newMem)
+            if (growSize > 0)
             {
-                Recycler* recycler = this->GetRecycler();
-                recycler->ReportExternalMemoryFailure(newBufferLength);
-                return nullptr;
+                LPVOID newMem = VirtualAlloc(this->buffer + this->bufferLength, growSize, MEM_COMMIT, PAGE_READWRITE);
+                if (!newMem)
+                {
+                    Recycler* recycler = this->GetRecycler();
+                    recycler->ReportExternalMemoryFailure(newBufferLength);
+                    return nullptr;
+                }
             }
             newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(this->buffer, newBufferLength);
         }
@@ -1068,7 +1072,14 @@ namespace Js
 #endif
         if (this->GetByteLength() == 0)
         {
-            newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(newBufferLength);
+            if (growSize > 0)
+            {
+                newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(newBufferLength);
+            }
+            else
+            {
+                newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(this->buffer, 0);
+            }
         }
         else
         {
@@ -1086,7 +1097,7 @@ namespace Js
             newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(newBuffer, newBufferLength);
         }
 
-        if (!newArrayBuffer || !newArrayBuffer->GetByteLength())
+        if (!newArrayBuffer || newArrayBuffer->GetByteLength() != newBufferLength)
         {
             return nullptr;
         }

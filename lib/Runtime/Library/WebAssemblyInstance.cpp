@@ -32,7 +32,8 @@ Var GetImportVariable(Wasm::WasmImport* wi, ScriptContext* ctx, Var ffi)
 
 WebAssemblyInstance::WebAssemblyInstance(WebAssemblyModule * wasmModule, DynamicType * type) :
     DynamicObject(type),
-    m_module(wasmModule)
+    m_module(wasmModule),
+    m_exports(nullptr)
 {
 }
 
@@ -87,6 +88,31 @@ WebAssemblyInstance::NewInstance(RecyclableObject* function, CallInfo callInfo, 
     return CreateInstance(module, importObject);
 }
 
+Var
+WebAssemblyInstance::GetterExports(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    ScriptContext* scriptContext = function->GetScriptContext();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+
+    if (args.Info.Count == 0 || !WebAssemblyInstance::Is(args[0]))
+    {
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedInstanceObject);
+    }
+
+    WebAssemblyInstance* instance = WebAssemblyInstance::FromVar(args[0]);
+    Js::Var exports = instance->m_exports;
+    if (!exports || !DynamicObject::Is(exports))
+    {
+        Assert(UNREACHED);
+        exports = scriptContext->GetLibrary()->GetUndefined();
+    }
+    return exports;
+}
+
 WebAssemblyInstance *
 WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject)
 {
@@ -119,8 +145,7 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
             AssertMsg(UNREACHED, "By spec, we should not have any exceptions possible here");
             throw;
         }
-        Js::Var exportsNamespace = BuildObject(module, scriptContext, &environment);
-        JavascriptOperators::OP_SetProperty(newInstance, PropertyIds::exports, exportsNamespace, scriptContext);
+        newInstance->m_exports = BuildObject(module, scriptContext, &environment);
     }
     catch (Wasm::WasmCompilationException& e)
     {
@@ -150,11 +175,19 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
         {
             continue;
         }
-        AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(wasmModule->GetWasmFunctionInfo(i)->GetBody());
-        FunctionBody* body = funcObj->GetFunctionBody();
+        Wasm::WasmFunctionInfo* wasmFuncInfo = wasmModule->GetWasmFunctionInfo(i);
+        FunctionBody* body = wasmFuncInfo->GetBody();
+        AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(body);
         funcObj->SetModuleMemory((Field(Var)*)env->GetStartPtr());
         funcObj->SetSignature(body->GetAsmJsFunctionInfo()->GetWasmSignature());
         funcObj->SetEnvironment(frameDisplay);
+
+        // Todo:: need to fix issue #2452 before we can do this,
+        // otherwise we'll change the type of the functions and cause multiple instance to not share jitted code
+        //Wasm::WasmSignature* sig = wasmFuncInfo->GetSignature();
+        //funcObj->SetPropertyWithAttributes(PropertyIds::length, JavascriptNumber::ToVar(sig->GetParamCount(), ctx), PropertyNone, nullptr);
+        //funcObj->SetPropertyWithAttributes(PropertyIds::name, JavascriptConversion::ToString(JavascriptNumber::ToVar(i, ctx), ctx), PropertyNone, nullptr);
+
         env->SetWasmFunction(i, funcObj);
 
         if (!PHASE_OFF(WasmDeferredPhase, body))
@@ -200,7 +233,7 @@ void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, ScriptCon
 
 Var WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptContext* scriptContext, WebAssemblyEnvironment* env)
 {
-    Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
+    Js::Var exportsNamespace = scriptContext->GetLibrary()->CreateObject(scriptContext->GetLibrary()->GetNull());
     for (uint32 iExport = 0; iExport < wasmModule->GetExportCount(); ++iExport)
     {
         Wasm::WasmExport* wasmExport = wasmModule->GetExport(iExport);
@@ -250,6 +283,7 @@ Var WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptConte
             JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), obj, scriptContext);
         }
     }
+    DynamicObject::FromVar(exportsNamespace)->PreventExtensions();
     return exportsNamespace;
 }
 
