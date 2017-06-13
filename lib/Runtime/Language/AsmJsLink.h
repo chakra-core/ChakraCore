@@ -19,6 +19,8 @@ namespace Js{
 #ifdef ENABLE_SIMDJS
         static bool CheckSimdLibraryMethod(ScriptContext* scriptContext, const Var asmSimdObject, const AsmJsSIMDBuiltinFunction simdBuiltin);
 #endif
+        static bool CheckIsBuiltinFunction(ScriptContext* scriptContext, const Var object, PropertyId propertyId, const FunctionInfo& funcInfo);
+        static bool CheckIsBuiltinValue(ScriptContext* scriptContext, const Var object, PropertyId propertyId, double value);
     };
 }
 #endif
