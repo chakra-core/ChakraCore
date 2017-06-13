@@ -2252,7 +2252,7 @@ void ThreadContext::SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::
 {
     AssertMsg(wellKnownType <= WellKnownHostType_Last, "ThreadContext::SetWellKnownHostTypeId called on unknown type");
 
-    if (wellKnownType <= WellKnownHostType_Last)
+    if (wellKnownType >= 0 && wellKnownType <= WellKnownHostType_Last)
     {
         this->wellKnownHostTypeIds[wellKnownType] = typeId;
 #if ENABLE_NATIVE_CODEGEN
