@@ -253,7 +253,7 @@ namespace Js
 
         if (info.GetPropertyString() != nullptr && info.GetPropertyString()->ShouldUseCache())
         {
-            Assert(propertyString == info.GetPropertyString());
+            Assert(info.IsNoCache() || propertyString == info.GetPropertyString());
             CacheOperators::CachePropertyRead(startingObject, this->object, false, propertyId, false, &info, scriptContext);
             if (info.IsStoreFieldCacheEnabled() && info.IsWritable() && ((info.GetFlags() & (InlineCacheGetterFlag | InlineCacheSetterFlag)) == 0))
             {
