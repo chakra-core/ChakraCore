@@ -12,6 +12,10 @@
 #define ASMJS_MATH_CONST_NAMES(name, propertyName, value)
 #endif
 
+#ifndef ASMJS_MATH_DOUBLE_CONST_NAMES
+#define ASMJS_MATH_DOUBLE_CONST_NAMES(name, propertyName, value) ASMJS_MATH_CONST_NAMES(name, propertyName, value)
+#endif
+
 #ifndef ASMJS_ARRAY_NAMES
 #define ASMJS_ARRAY_NAMES(name, propertyName)
 #endif
@@ -57,19 +61,19 @@ ASMJS_MATH_FUNC_NAMES(sqrt,     sqrt,   Math::EntryInfo::Sqrt   )
 ASMJS_MATH_FUNC_NAMES(abs,      abs,    Math::EntryInfo::Abs    )
 ASMJS_MATH_FUNC_NAMES(atan2,    atan2,  Math::EntryInfo::Atan2  )
 ASMJS_MATH_FUNC_NAMES(imul,     imul,   Math::EntryInfo::Imul   )
-ASMJS_MATH_FUNC_NAMES(fround,   fround, Math::EntryInfo::Clz32  )
+ASMJS_MATH_FUNC_NAMES(fround,   fround, Math::EntryInfo::Fround )
 ASMJS_MATH_FUNC_NAMES(min,      min,    Math::EntryInfo::Min    )
 ASMJS_MATH_FUNC_NAMES(max,      max,    Math::EntryInfo::Max    )
-ASMJS_MATH_FUNC_NAMES(clz32,    clz32,  Math::EntryInfo::Fround )
+ASMJS_MATH_FUNC_NAMES(clz32,    clz32,  Math::EntryInfo::Clz32  )
 
-ASMJS_MATH_CONST_NAMES(e,        E,        Math::E       )
-ASMJS_MATH_CONST_NAMES(ln10,     LN10,     Math::LN10    )
-ASMJS_MATH_CONST_NAMES(ln2,      LN2,      Math::LN2     )
-ASMJS_MATH_CONST_NAMES(log2e,    LOG2E,    Math::LOG2E   )
-ASMJS_MATH_CONST_NAMES(log10e,   LOG10E,   Math::LOG10E  )
-ASMJS_MATH_CONST_NAMES(pi,       PI,       Math::PI      )
-ASMJS_MATH_CONST_NAMES(sqrt1_2,  SQRT1_2,  Math::SQRT1_2 )
-ASMJS_MATH_CONST_NAMES(sqrt2,    SQRT2,    Math::SQRT2   )
+ASMJS_MATH_DOUBLE_CONST_NAMES(e,        E,        Math::E       )
+ASMJS_MATH_DOUBLE_CONST_NAMES(ln10,     LN10,     Math::LN10    )
+ASMJS_MATH_DOUBLE_CONST_NAMES(ln2,      LN2,      Math::LN2     )
+ASMJS_MATH_DOUBLE_CONST_NAMES(log2e,    LOG2E,    Math::LOG2E   )
+ASMJS_MATH_DOUBLE_CONST_NAMES(log10e,   LOG10E,   Math::LOG10E  )
+ASMJS_MATH_DOUBLE_CONST_NAMES(pi,       PI,       Math::PI      )
+ASMJS_MATH_DOUBLE_CONST_NAMES(sqrt1_2,  SQRT1_2,  Math::SQRT1_2 )
+ASMJS_MATH_DOUBLE_CONST_NAMES(sqrt2,    SQRT2,    Math::SQRT2   )
 ASMJS_MATH_CONST_NAMES(infinity, Infinity, 0             )
 ASMJS_MATH_CONST_NAMES(nan,      NaN,      0             )
 
@@ -453,6 +457,7 @@ ASMJS_SIMD_MARKERS(Uint8x16_End) // just a marker
 // help the caller to undefine all the macros
 #undef ASMJS_MATH_FUNC_NAMES
 #undef ASMJS_MATH_CONST_NAMES
+#undef ASMJS_MATH_DOUBLE_CONST_NAMES
 #undef ASMJS_ARRAY_NAMES
 #undef ASMJS_TYPED_ARRAY_NAMES
 #undef ASMJS_SIMD_NAMES

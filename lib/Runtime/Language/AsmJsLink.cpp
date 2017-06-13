@@ -200,7 +200,7 @@ namespace Js{
 #define ASMJS_MATH_FUNC_NAMES(name, propertyName, funcInfo) case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_##name: \
             return CheckIsBuiltinFunction(scriptContext, asmMathObject, PropertyIds::##propertyName, funcInfo);
 #include "AsmJsBuiltInNames.h"
-#define ASMJS_MATH_CONST_NAMES(name, propertyName, value) case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_##name: \
+#define ASMJS_MATH_DOUBLE_CONST_NAMES(name, propertyName, value) case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_##name: \
             return CheckIsBuiltinValue(scriptContext, asmMathObject, PropertyIds::##propertyName, value);
 #include "AsmJsBuiltInNames.h"
         default:
