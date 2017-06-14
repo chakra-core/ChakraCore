@@ -59,18 +59,30 @@ bool IRType_IsSimd128(IRType type)
 
 IRType IRType_EnsureSigned(IRType type)
 {
+    CompileAssert(TyUint8 > TyInt8);
+    CompileAssert((TyUint8 - TyInt8) == (TyUint16 - TyInt16));
+    CompileAssert((TyUint8 - TyInt8) == (TyUint32 - TyInt32));
+    CompileAssert((TyUint8 - TyInt8) == (TyUint64 - TyInt64));
     if (IRType_IsUnsignedInt(type))
     {
-        return (IRType)(type - (TyUint8 - TyInt8));
+        IRType signedType = (IRType)(type - (TyUint8 - TyInt8));
+        Assert(IRType_IsSignedInt(signedType));
+        return signedType;
     }
     return type;
 }
 
 IRType IRType_EnsureUnsigned(IRType type)
 {
+    CompileAssert(TyUint8 > TyInt8);
+    CompileAssert((TyUint8 - TyInt8) == (TyUint16 - TyInt16));
+    CompileAssert((TyUint8 - TyInt8) == (TyUint32 - TyInt32));
+    CompileAssert((TyUint8 - TyInt8) == (TyUint64 - TyInt64));
     if (IRType_IsSignedInt(type))
     {
-        return (IRType)(type + (TyUint8 - TyInt8));
+        IRType unsignedType = (IRType)(type + (TyUint8 - TyInt8));
+        Assert(IRType_IsUnsignedInt(unsignedType));
+        return unsignedType;
     }
     return type;
 }
