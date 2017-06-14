@@ -53,7 +53,7 @@ namespace Js
         ScriptContext *scriptContext = function->GetScriptContext();
 
         AssertOrFailFast(RecyclableObject::Is(function->m_prototypeForIterator));
-        DynamicObject *prototype = static_cast<DynamicObject*>(function->m_prototypeForIterator);
+        DynamicObject *prototype = static_cast<DynamicObject*>(PointerValue(function->m_prototypeForIterator));
         Js::DynamicType *type = scriptContext->GetLibrary()->CreateObjectTypeNoCache(prototype, TypeIds_ExternalIterator);
 
         AssertOrFailFast(function->m_extraByteCount >= sizeof(void*));
