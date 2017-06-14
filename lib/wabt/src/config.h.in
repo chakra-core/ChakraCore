@@ -41,6 +41,8 @@
 #cmakedefine01 COMPILER_IS_GNU
 #cmakedefine01 COMPILER_IS_MSVC
 
+#cmakedefine01 WITH_EXCEPTIONS
+
 #define SIZEOF_SIZE_T @SIZEOF_SIZE_T@
 #define SIZEOF_INT @SIZEOF_INT@
 #define SIZEOF_LONG @SIZEOF_LONG@
@@ -119,8 +121,8 @@
 
 #elif COMPILER_IS_MSVC
 
+#include <cstring>
 #include <intrin.h>
-#include <string.h>
 
 #define WABT_UNUSED
 #define WABT_WARN_UNUSED _Check_return_
@@ -240,7 +242,7 @@ __inline unsigned __int64 __popcnt64(unsigned __int64 value) {
 #define wabt_snprintf snprintf
 #elif COMPILER_IS_MSVC
 /* can't just use _snprintf because it doesn't always null terminate */
-#include <stdarg.h>
+#include <cstdarg>
 int wabt_snprintf(char* str, size_t size, const char* format, ...);
 #else
 #error no snprintf
@@ -263,6 +265,37 @@ typedef int ssize_t;
 #else
 #error no strcasecmp
 #endif
+#endif
+
+#if COMPILER_IS_MSVC && defined(_M_X64)
+// MSVC on x64 generates uint64 -> float conversions but doesn't do
+// round-to-nearest-ties-to-even, which is required by WebAssembly.
+#include <emmintrin.h>
+__inline double wabt_convert_uint64_to_double(unsigned __int64 x) {
+  __m128d result = _mm_setzero_pd();
+  if (x & 0x8000000000000000ULL) {
+    result = _mm_cvtsi64_sd(result, (x >> 1) | (x & 1));
+    result = _mm_add_sd(result, result);
+  } else {
+    result = _mm_cvtsi64_sd(result, x);
+  }
+  return _mm_cvtsd_f64(result);
+}
+
+__inline float wabt_convert_uint64_to_float(unsigned __int64 x) {
+  __m128 result = _mm_setzero_ps();
+  if (x & 0x8000000000000000ULL) {
+    result = _mm_cvtsi64_ss(result, (x >> 1) | (x & 1));
+    result = _mm_add_ss(result, result);
+  } else {
+    result = _mm_cvtsi64_ss(result, x);
+  }
+  return _mm_cvtss_f32(result);
+}
+
+#else
+#define wabt_convert_uint64_to_double(x) static_cast<double>(x)
+#define wabt_convert_uint64_to_float(x) static_cast<float>(x)
 #endif
 
 #endif /* WABT_CONFIG_H_ */

@@ -16,11 +16,11 @@
 
 #include "literal.h"
 
-#include <assert.h>
-#include <errno.h>
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cerrno>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
 
 #define HEX_DIGIT_BITS 4
 
@@ -376,7 +376,7 @@ static void parse_float_infinity(const char* s,
   } else if (*s == '+') {
     s++;
   }
-  assert(string_starts_with(s, end, "infinity"));
+  assert(string_starts_with(s, end, "inf"));
   *out_bits = make_float(is_neg, F32_MAX_EXP, 0);
 }
 
@@ -428,7 +428,7 @@ void write_float_hex(char* out, size_t size, uint32_t bits) {
   /* 1234567890123456 */
   /* -0x#.######p-### */
   /* -nan:0x###### */
-  /* -infinity */
+  /* -inf */
   char buffer[WABT_MAX_FLOAT_HEX];
   char* p = buffer;
   bool is_neg = (bits >> F32_SIGN_SHIFT);
@@ -440,8 +440,8 @@ void write_float_hex(char* out, size_t size, uint32_t bits) {
   if (exp == F32_MAX_EXP) {
     /* infinity or nan */
     if (sig == 0) {
-      strcpy(p, "infinity");
-      p += 8;
+      strcpy(p, "inf");
+      p += 3;
     } else {
       strcpy(p, "nan");
       p += 3;
@@ -716,7 +716,7 @@ static void parse_double_infinity(const char* s,
   } else if (*s == '+') {
     s++;
   }
-  assert(string_starts_with(s, end, "infinity"));
+  assert(string_starts_with(s, end, "inf"));
   *out_bits = make_double(is_neg, F64_MAX_EXP, 0);
 }
 
@@ -769,7 +769,7 @@ void write_double_hex(char* out, size_t size, uint64_t bits) {
   /* 123456789012345678901234 */
   /* -0x#.#############p-#### */
   /* -nan:0x############# */
-  /* -infinity */
+  /* -inf */
   char buffer[WABT_MAX_DOUBLE_HEX];
   char* p = buffer;
   bool is_neg = (bits >> F64_SIGN_SHIFT);
@@ -781,8 +781,8 @@ void write_double_hex(char* out, size_t size, uint64_t bits) {
   if (exp == F64_MAX_EXP) {
     /* infinity or nan */
     if (sig == 0) {
-      strcpy(p, "infinity");
-      p += 8;
+      strcpy(p, "inf");
+      p += 3;
     } else {
       strcpy(p, "nan");
       p += 3;

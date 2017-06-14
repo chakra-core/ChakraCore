@@ -21,54 +21,63 @@
 
 #include "common.h"
 
+#include <memory>
+#include <vector>
+
 namespace wabt {
 
-struct Writer {
-  void* user_data;
-  Result (*write_data)(size_t offset,
-                       const void* data,
-                       size_t size,
-                       void* user_data);
-  Result (*move_data)(size_t dst_offset,
-                      size_t src_offset,
-                      size_t size,
-                      void* user_data);
-};
-
 struct OutputBuffer {
-  char* start;
-  size_t size;
-  size_t capacity;
+  Result WriteToFile(const char* filename) const;
+
+  size_t size() const { return data.size(); }
+
+  std::vector<uint8_t> data;
 };
 
-struct MemoryWriter {
-  Writer base;
-  OutputBuffer buf;
+class Writer {
+ public:
+  virtual ~Writer() {}
+  virtual Result WriteData(size_t offset, const void* data, size_t size) = 0;
+  virtual Result MoveData(size_t dst_offset,
+                          size_t src_offset,
+                          size_t size) = 0;
 };
 
-struct FileWriter {
-  Writer base;
-  FILE* file;
-  size_t offset;
+class MemoryWriter : public Writer {
+ public:
+  MemoryWriter();
+  explicit MemoryWriter(std::unique_ptr<OutputBuffer>);
+
+  OutputBuffer& output_buffer() { return *buf_; }
+  std::unique_ptr<OutputBuffer> ReleaseOutputBuffer();
+
+  virtual Result WriteData(size_t offset, const void* data, size_t size);
+  virtual Result MoveData(size_t dst_offset, size_t src_offset, size_t size);
+
+ private:
+  std::unique_ptr<OutputBuffer> buf_;
 };
 
-/* FileWriter */
-Result init_file_writer(FileWriter* writer, const char* filename);
-void init_file_writer_existing(FileWriter* writer, FILE* file);
-void close_file_writer(FileWriter* writer);
+class FileWriter : public Writer {
+  WABT_DISALLOW_COPY_AND_ASSIGN(FileWriter);
 
-/* MemoryWriter */
-Result init_mem_writer(MemoryWriter* writer);
-/* Passes ownership of the buffer to writer */
-Result init_mem_writer_existing(MemoryWriter* writer, OutputBuffer* buf);
-void steal_mem_writer_output_buffer(MemoryWriter* writer,
-                                    OutputBuffer* out_buf);
-void close_mem_writer(MemoryWriter* writer);
+ public:
+  explicit FileWriter(const char* filename);
+  explicit FileWriter(FILE* file);
+  FileWriter(FileWriter&&);
+  FileWriter& operator=(FileWriter&&);
+  ~FileWriter();
 
-/* OutputBuffer */
-void init_output_buffer(OutputBuffer* buf, size_t initial_capacity);
-Result write_output_buffer_to_file(OutputBuffer* buf, const char* filename);
-void destroy_output_buffer(OutputBuffer* buf);
+  bool is_open() const { return file_ != nullptr; }
+
+  virtual Result WriteData(size_t offset, const void* data, size_t size);
+  virtual Result MoveData(size_t dst_offset, size_t src_offset, size_t size);
+
+ private:
+  FILE* file_;
+  size_t offset_;
+  bool should_close_;
+};
 
 }  // namespace wabt
 

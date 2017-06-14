@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 WebAssembly Community Group participants
+ * Copyright 2017 WebAssembly Community Group participants
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef WABT_BINARY_READER_AST_H_
-#define WABT_BINARY_READER_AST_H_
+#ifndef WABT_UTF8_H_
+#define WABT_UTF8_H_
 
-#include "common.h"
+#include <stdlib.h>
 
 namespace wabt {
 
-struct Module;
-struct ReadBinaryOptions;
+bool is_valid_utf8(const char* s, size_t length);
 
-Result read_binary_ast(const void* data,
-                       size_t size,
-                       const struct ReadBinaryOptions* options,
-                       BinaryErrorHandler*,
-                       struct Module* out_module);
+}  // namespace wabt
 
-} // namespace wabt
-
-#endif /* WABT_BINARY_READER_AST_H_ */
+#endif // WABT_UTF8_H_

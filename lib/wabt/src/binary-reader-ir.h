@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef WABT_AST_PARSER_H_
-#define WABT_AST_PARSER_H_
+#ifndef WABT_BINARY_READER_IR_H_
+#define WABT_BINARY_READER_IR_H_
 
-#include "ast-lexer.h"
 #include "common.h"
 
 namespace wabt {
 
-struct Script;
+struct Module;
+struct ReadBinaryOptions;
+class BinaryErrorHandler;
 
-Result parse_ast(AstLexer* lexer,
-                 struct Script** out_script,
-                 SourceErrorHandler*);
+Result read_binary_ir(const void* data,
+                      size_t size,
+                      const ReadBinaryOptions* options,
+                      BinaryErrorHandler*,
+                      Module* out_module);
 
-}  // namespace wabt
+} // namespace wabt
 
-#endif /* WABT_AST_PARSER_H_ */
+#endif /* WABT_BINARY_READER_IR_H_ */

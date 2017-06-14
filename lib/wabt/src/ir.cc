@@ -14,135 +14,145 @@
  * limitations under the License.
  */
 
-#include "ast.h"
+#include "ir.h"
 
-#include <assert.h>
-#include <stddef.h>
+#include <cassert>
+#include <cstddef>
 
 namespace wabt {
 
-int get_index_from_var(const BindingHash* hash, const Var* var) {
-  if (var->type == VarType::Name)
-    return hash->find_index(var->name);
-  return static_cast<int>(var->index);
+bool FuncSignature::operator==(const FuncSignature& rhs) const {
+  return param_types == rhs.param_types && result_types == rhs.result_types;
 }
 
-Export* get_export_by_name(const Module* module, const StringSlice* name) {
-  int index = module->export_bindings.find_index(*name);
-  if (index == -1)
+const Export* Module::GetExport(const StringSlice& name) const {
+  Index index = export_bindings.FindIndex(name);
+  if (index >= exports.size())
     return nullptr;
-  return module->exports[index];
+  return exports[index];
 }
 
-int get_func_index_by_var(const Module* module, const Var* var) {
-  return get_index_from_var(&module->func_bindings, var);
+Index Module::GetFuncIndex(const Var& var) const {
+  return func_bindings.FindIndex(var);
 }
 
-int get_global_index_by_var(const Module* module, const Var* var) {
-  return get_index_from_var(&module->global_bindings, var);
+Index Module::GetGlobalIndex(const Var& var) const {
+  return global_bindings.FindIndex(var);
 }
 
-int get_table_index_by_var(const Module* module, const Var* var) {
-  return get_index_from_var(&module->table_bindings, var);
+Index Module::GetTableIndex(const Var& var) const {
+  return table_bindings.FindIndex(var);
 }
 
-int get_memory_index_by_var(const Module* module, const Var* var) {
-  return get_index_from_var(&module->memory_bindings, var);
+Index Module::GetMemoryIndex(const Var& var) const {
+  return memory_bindings.FindIndex(var);
 }
 
-int get_func_type_index_by_var(const Module* module, const Var* var) {
-  return get_index_from_var(&module->func_type_bindings, var);
+Index Module::GetFuncTypeIndex(const Var& var) const {
+  return func_type_bindings.FindIndex(var);
 }
 
-int get_local_index_by_var(const Func* func, const Var* var) {
-  if (var->type == VarType::Index)
-    return static_cast<int>(var->index);
+Index Func::GetLocalIndex(const Var& var) const {
+  if (var.type == VarType::Index)
+    return var.index;
 
-  int result = func->param_bindings.find_index(var->name);
-  if (result != -1)
+  Index result = param_bindings.FindIndex(var.name);
+  if (result != kInvalidIndex)
     return result;
 
-  result = func->local_bindings.find_index(var->name);
-  if (result == -1)
+  result = local_bindings.FindIndex(var.name);
+  if (result == kInvalidIndex)
     return result;
 
-  /* the locals start after all the params */
-  return func->decl.sig.param_types.size() + result;
+  // The locals start after all the params.
+  return decl.GetNumParams() + result;
 }
 
-int get_module_index_by_var(const Script* script, const Var* var) {
-  return get_index_from_var(&script->module_bindings, var);
+const Func* Module::GetFunc(const Var& var) const {
+  return const_cast<Module*>(this)->GetFunc(var);
 }
 
-Func* get_func_by_var(const Module* module, const Var* var) {
-  int index = get_index_from_var(&module->func_bindings, var);
-  if (index < 0 || static_cast<size_t>(index) >= module->funcs.size())
+Func* Module::GetFunc(const Var& var) {
+  Index index = func_bindings.FindIndex(var);
+  if (index >= funcs.size())
     return nullptr;
-  return module->funcs[index];
+  return funcs[index];
 }
 
-Global* get_global_by_var(const Module* module, const Var* var) {
-  int index = get_index_from_var(&module->global_bindings, var);
-  if (index < 0 || static_cast<size_t>(index) >= module->globals.size())
+const Global* Module::GetGlobal(const Var& var) const {
+  return const_cast<Module*>(this)->GetGlobal(var);
+}
+
+Global* Module::GetGlobal(const Var& var) {
+  Index index = global_bindings.FindIndex(var);
+  if (index >= globals.size())
     return nullptr;
-  return module->globals[index];
+  return globals[index];
 }
 
-Table* get_table_by_var(const Module* module, const Var* var) {
-  int index = get_index_from_var(&module->table_bindings, var);
-  if (index < 0 || static_cast<size_t>(index) >= module->tables.size())
+Table* Module::GetTable(const Var& var) {
+  Index index = table_bindings.FindIndex(var);
+  if (index >= tables.size())
     return nullptr;
-  return module->tables[index];
+  return tables[index];
 }
 
-Memory* get_memory_by_var(const Module* module, const Var* var) {
-  int index = get_index_from_var(&module->memory_bindings, var);
-  if (index < 0 || static_cast<size_t>(index) >= module->memories.size())
+Memory* Module::GetMemory(const Var& var) {
+  Index index = memory_bindings.FindIndex(var);
+  if (index >= memories.size())
     return nullptr;
-  return module->memories[index];
+  return memories[index];
 }
 
-FuncType* get_func_type_by_var(const Module* module, const Var* var) {
-  int index = get_index_from_var(&module->func_type_bindings, var);
-  if (index < 0 || static_cast<size_t>(index) >= module->func_types.size())
+const FuncType* Module::GetFuncType(const Var& var) const {
+  return const_cast<Module*>(this)->GetFuncType(var);
+}
+
+FuncType* Module::GetFuncType(const Var& var) {
+  Index index = func_type_bindings.FindIndex(var);
+  if (index >= func_types.size())
     return nullptr;
-  return module->func_types[index];
+  return func_types[index];
 }
 
-int get_func_type_index_by_sig(const Module* module, const FuncSignature* sig) {
-  for (size_t i = 0; i < module->func_types.size(); ++i)
-    if (signatures_are_equal(&module->func_types[i]->sig, sig))
+
+Index Module::GetFuncTypeIndex(const FuncSignature& sig) const {
+  for (size_t i = 0; i < func_types.size(); ++i)
+    if (func_types[i]->sig == sig)
       return i;
-  return -1;
+  return kInvalidIndex;
 }
 
-int get_func_type_index_by_decl(const Module* module,
-                                const FuncDeclaration* decl) {
-  if (decl_has_func_type(decl)) {
-    return get_func_type_index_by_var(module, &decl->type_var);
+Index Module::GetFuncTypeIndex(const FuncDeclaration& decl) const {
+  if (decl.has_func_type) {
+    return GetFuncTypeIndex(decl.type_var);
   } else {
-    return get_func_type_index_by_sig(module, &decl->sig);
+    return GetFuncTypeIndex(decl.sig);
   }
 }
 
-Module* get_first_module(const Script* script) {
-  for (const std::unique_ptr<Command>& command : script->commands) {
+const Module* Script::GetFirstModule() const {
+  return const_cast<Script*>(this)->GetFirstModule();
+}
+
+Module* Script::GetFirstModule() {
+  for (const std::unique_ptr<Command>& command : commands) {
     if (command->type == CommandType::Module)
       return command->module;
   }
   return nullptr;
 }
 
-Module* get_module_by_var(const Script* script, const Var* var) {
-  int index = get_index_from_var(&script->module_bindings, var);
-  if (index < 0 || static_cast<size_t>(index) >= script->commands.size())
+const Module* Script::GetModule(const Var& var) const {
+  Index index = module_bindings.FindIndex(var);
+  if (index >= commands.size())
     return nullptr;
-  const Command& command = *script->commands[index].get();
+  const Command& command = *commands[index].get();
   assert(command.type == CommandType::Module);
   return command.module;
 }
 
-void make_type_binding_reverse_mapping(
+void MakeTypeBindingReverseMapping(
     const TypeVector& types,
     const BindingHash& bindings,
     std::vector<std::string>* out_reverse_mapping) {
@@ -155,35 +165,29 @@ void make_type_binding_reverse_mapping(
   }
 }
 
-ModuleField* append_module_field(Module* module) {
+ModuleField* Module::AppendField() {
   ModuleField* result = new ModuleField();
-  if (!module->first_field)
-    module->first_field = result;
-  else if (module->last_field)
-    module->last_field->next = result;
-  module->last_field = result;
+  if (!first_field)
+    first_field = result;
+  else if (last_field)
+    last_field->next = result;
+  last_field = result;
   return result;
 }
 
-FuncType* append_implicit_func_type(Location* loc,
-                                    Module* module,
-                                    FuncSignature* sig) {
-  ModuleField* field = append_module_field(module);
-  field->loc = *loc;
+FuncType* Module::AppendImplicitFuncType(const Location& loc,
+                                         const FuncSignature& sig) {
+  ModuleField* field = AppendField();
+  field->loc = loc;
   field->type = ModuleFieldType::FuncType;
   field->func_type = new FuncType();
-  field->func_type->sig = *sig;
+  field->func_type->sig = sig;
 
-  module->func_types.push_back(field->func_type);
+  func_types.push_back(field->func_type);
   return field->func_type;
 }
 
-void destroy_var(Var* var) {
-  if (var->type == VarType::Name)
-    destroy_string_slice(&var->name);
-}
-
-void destroy_expr_list(Expr* first) {
+void DestroyExprList(Expr* first) {
   Expr* expr = first;
   while (expr) {
     Expr* next = expr->next;
@@ -192,12 +196,57 @@ void destroy_expr_list(Expr* first) {
   }
 }
 
-Var::Var(int64_t index) : type(VarType::Index), index(index) {
+Var::Var(Index index) : type(VarType::Index), index(index) {
   WABT_ZERO_MEMORY(loc);
 }
 
 Var::Var(const StringSlice& name) : type(VarType::Name), name(name) {
   WABT_ZERO_MEMORY(loc);
+}
+
+Var::Var(Var&& rhs) : loc(rhs.loc), type(rhs.type) {
+  if (rhs.type == VarType::Index) {
+    index = rhs.index;
+  } else {
+    name = rhs.name;
+    rhs = Var(kInvalidIndex);
+  }
+}
+
+Var::Var(const Var& rhs) : loc(rhs.loc), type(rhs.type) {
+  if (rhs.type == VarType::Index) {
+    index = rhs.index;
+  } else {
+    name = dup_string_slice(rhs.name);
+  }
+}
+
+Var& Var::operator =(Var&& rhs) {
+  loc = rhs.loc;
+  type = rhs.type;
+  if (rhs.type == VarType::Index) {
+    index = rhs.index;
+  } else {
+    name = rhs.name;
+    rhs = Var(kInvalidIndex);
+  }
+  return *this;
+}
+
+Var& Var::operator =(const Var& rhs) {
+  loc = rhs.loc;
+  type = rhs.type;
+  if (rhs.type == VarType::Index) {
+    index = rhs.index;
+  } else {
+    name = dup_string_slice(rhs.name);
+  }
+  return *this;
+}
+
+Var::~Var() {
+  if (type == VarType::Name)
+    destroy_string_slice(&name);
 }
 
 Const::Const(I32, uint32_t value) : type(Type::I32), u32(value) {
@@ -226,7 +275,7 @@ Block::Block(Expr* first) : first(first) {
 
 Block::~Block() {
   destroy_string_slice(&label);
-  destroy_expr_list(first);
+  DestroyExprList(first);
 }
 
 Expr::Expr() : type(ExprType::Binary), next(nullptr) {
@@ -244,46 +293,58 @@ Expr::~Expr() {
       delete block;
       break;
     case ExprType::Br:
-      destroy_var(&br.var);
+      br.var.~Var();
       break;
     case ExprType::BrIf:
-      destroy_var(&br_if.var);
+      br_if.var.~Var();
       break;
     case ExprType::BrTable:
-      for (Var& var : *br_table.targets)
-        destroy_var(&var);
       delete br_table.targets;
-      destroy_var(&br_table.default_target);
+      br_table.default_target.~Var();
       break;
     case ExprType::Call:
-      destroy_var(&call.var);
+      call.var.~Var();
       break;
     case ExprType::CallIndirect:
-      destroy_var(&call_indirect.var);
+      call_indirect.var.~Var();
+      break;
+    case ExprType::Catch:
+    case ExprType::CatchAll:
+      catch_.var.~Var();
+      DestroyExprList(catch_.first);
       break;
     case ExprType::GetGlobal:
-      destroy_var(&get_global.var);
+      get_global.var.~Var();
       break;
     case ExprType::GetLocal:
-      destroy_var(&get_local.var);
+      get_local.var.~Var();
       break;
     case ExprType::If:
       delete if_.true_;
-      destroy_expr_list(if_.false_);
+      DestroyExprList(if_.false_);
       break;
     case ExprType::Loop:
       delete loop;
       break;
+    case ExprType::Rethrow:
+      rethrow_.var.~Var();
+      break;
     case ExprType::SetGlobal:
-      destroy_var(&set_global.var);
+      set_global.var.~Var();
       break;
     case ExprType::SetLocal:
-      destroy_var(&set_local.var);
+      set_local.var.~Var();
       break;
     case ExprType::TeeLocal:
-      destroy_var(&tee_local.var);
+      tee_local.var.~Var();
       break;
-
+    case ExprType::Throw:
+      throw_.var.~Var();
+      break;
+    case ExprType::TryBlock:
+      delete try_block.block;
+      DestroyExprList(try_block.first_catch);
+      break;
     case ExprType::Binary:
     case ExprType::Compare:
     case ExprType::Const:
@@ -353,6 +414,21 @@ Expr* Expr::CreateCallIndirect(Var var) {
 }
 
 // static
+Expr* Expr::CreateCatch(Var var, Expr* first) {
+  Expr* expr = new Expr(ExprType::Catch);
+  expr->catch_.var = var;
+  expr->catch_.first = first;
+  return expr;
+}
+
+// static
+Expr* Expr::CreateCatchAll(Expr* first) {
+  Expr* expr = new Expr(ExprType::CatchAll);
+  expr->catch_.first = first;
+  return expr;
+}
+
+// static
 Expr* Expr::CreateCompare(Opcode opcode) {
   Expr* expr = new Expr(ExprType::Compare);
   expr->compare.opcode = opcode;
@@ -411,7 +487,7 @@ Expr* Expr::CreateIf(Block* true_, Expr* false_) {
 }
 
 // static
-Expr* Expr::CreateLoad(Opcode opcode, uint32_t align, uint64_t offset) {
+Expr* Expr::CreateLoad(Opcode opcode, Address align, uint32_t offset) {
   Expr* expr = new Expr(ExprType::Load);
   expr->load.opcode = opcode;
   expr->load.align = align;
@@ -429,6 +505,13 @@ Expr* Expr::CreateLoop(Block* block) {
 // static
 Expr* Expr::CreateNop() {
   return new Expr(ExprType::Nop);
+}
+
+// static
+Expr* Expr::CreateRethrow(Var var) {
+  Expr* expr = new Expr(ExprType::Rethrow);
+  expr->rethrow_.var = var;
+  return expr;
 }
 
 // static
@@ -456,7 +539,7 @@ Expr* Expr::CreateSetLocal(Var var) {
 }
 
 // static
-Expr* Expr::CreateStore(Opcode opcode, uint32_t align, uint64_t offset) {
+Expr* Expr::CreateStore(Opcode opcode, Address align, uint32_t offset) {
   Expr* expr = new Expr(ExprType::Store);
   expr->store.opcode = opcode;
   expr->store.align = align;
@@ -468,6 +551,21 @@ Expr* Expr::CreateStore(Opcode opcode, uint32_t align, uint64_t offset) {
 Expr* Expr::CreateTeeLocal(Var var) {
   Expr* expr = new Expr(ExprType::TeeLocal);
   expr->tee_local.var = var;
+  return expr;
+}
+
+// static
+Expr* Expr::CreateThrow(Var var) {
+  Expr* expr = new Expr(ExprType::Throw);
+  expr->throw_.var = var;
+  return expr;
+}
+
+// static
+Expr* Expr::CreateTry(Block* block, Expr* first_catch) {
+  Expr* expr = new Expr(ExprType::TryBlock);
+  expr->try_block.block = block;
+  expr->try_block.first_catch = first_catch;
   return expr;
 }
 
@@ -491,13 +589,10 @@ FuncType::~FuncType() {
   destroy_string_slice(&name);
 }
 
-FuncDeclaration::FuncDeclaration() : has_func_type(false) {
-  WABT_ZERO_MEMORY(type_var);
-}
+FuncDeclaration::FuncDeclaration()
+    : has_func_type(false), type_var(kInvalidIndex) {}
 
-FuncDeclaration::~FuncDeclaration() {
-  destroy_var(&type_var);
-}
+FuncDeclaration::~FuncDeclaration() {}
 
 Func::Func() : first_expr(nullptr) {
   WABT_ZERO_MEMORY(name);
@@ -505,7 +600,7 @@ Func::Func() : first_expr(nullptr) {
 
 Func::~Func() {
   destroy_string_slice(&name);
-  destroy_expr_list(first_expr);
+  DestroyExprList(first_expr);
 }
 
 Global::Global() : type(Type::Void), mutable_(false), init_expr(nullptr) {
@@ -514,7 +609,7 @@ Global::Global() : type(Type::Void), mutable_(false), init_expr(nullptr) {
 
 Global::~Global() {
   destroy_string_slice(&name);
-  destroy_expr_list(init_expr);
+  DestroyExprList(init_expr);
 }
 
 Table::Table() {
@@ -526,25 +621,17 @@ Table::~Table() {
   destroy_string_slice(&name);
 }
 
-ElemSegment::ElemSegment() : offset(nullptr) {
-  WABT_ZERO_MEMORY(table_var);
-}
+ElemSegment::ElemSegment() : table_var(kInvalidIndex), offset(nullptr) {}
 
 ElemSegment::~ElemSegment() {
-  destroy_var(&table_var);
-  destroy_expr_list(offset);
-  for (Var& var : vars)
-    destroy_var(&var);
+  DestroyExprList(offset);
 }
 
-DataSegment::DataSegment() : offset(nullptr), data(nullptr), size(0) {
-  WABT_ZERO_MEMORY(memory_var);
-}
+DataSegment::DataSegment() : offset(nullptr), data(nullptr), size(0) {}
 
 DataSegment::~DataSegment() {
-  destroy_var(&memory_var);
-  destroy_expr_list(offset);
-  delete [] data;
+  DestroyExprList(offset);
+  delete[] data;
 }
 
 Memory::Memory() {
@@ -577,17 +664,18 @@ Import::~Import() {
     case ExternalKind::Global:
       delete global;
       break;
+    case ExternalKind::Except:
+      delete except;
+      break;
   }
 }
 
 Export::Export() {
   WABT_ZERO_MEMORY(name);
-  WABT_ZERO_MEMORY(var);
 }
 
 Export::~Export() {
   destroy_string_slice(&name);
-  destroy_var(&var);
 }
 
 void destroy_memory(Memory* memory) {
@@ -598,13 +686,18 @@ void destroy_table(Table* table) {
   destroy_string_slice(&table->name);
 }
 
-ModuleField::ModuleField() : type(ModuleFieldType::Start), next(nullptr) {
+ModuleField::ModuleField() : ModuleField(ModuleFieldType::Start) {}
+
+ModuleField::ModuleField(ModuleFieldType type)
+    : type(type), next(nullptr), start(kInvalidIndex) {
   WABT_ZERO_MEMORY(loc);
-  WABT_ZERO_MEMORY(start);
 }
 
 ModuleField::~ModuleField() {
   switch (type) {
+    case ModuleFieldType::Except:
+      delete except;
+      break;
     case ModuleFieldType::Func:
       delete func;
       break;
@@ -633,7 +726,7 @@ ModuleField::~ModuleField() {
       delete data_segment;
       break;
     case ModuleFieldType::Start:
-      destroy_var(&start);
+      start.~Var();
       break;
   }
 }
@@ -641,6 +734,7 @@ ModuleField::~ModuleField() {
 Module::Module()
     : first_field(nullptr),
       last_field(nullptr),
+      num_except_imports(0),
       num_func_imports(0),
       num_table_imports(0),
       num_memory_imports(0),
@@ -661,27 +755,32 @@ Module::~Module() {
   }
 }
 
-RawModule::RawModule() : type(RawModuleType::Text), text(nullptr) {}
+ScriptModule::ScriptModule() : type(ScriptModule::Type::Text), text(nullptr) {}
 
-RawModule::~RawModule() {
-  if (type == RawModuleType::Text) {
-    delete text;
-  } else {
-    destroy_string_slice(&binary.name);
-    delete [] binary.data;
+ScriptModule::~ScriptModule() {
+  switch (type) {
+    case ScriptModule::Type::Text:
+      delete text;
+      break;
+    case ScriptModule::Type::Binary:
+      destroy_string_slice(&binary.name);
+      delete [] binary.data;
+      break;
+    case ScriptModule::Type::Quoted:
+      destroy_string_slice(&quoted.name);
+      delete [] binary.data;
+      break;
   }
 }
 
 ActionInvoke::ActionInvoke() {}
 
-Action::Action() : type(ActionType::Get) {
+Action::Action() : type(ActionType::Get), module_var(kInvalidIndex) {
   WABT_ZERO_MEMORY(loc);
-  WABT_ZERO_MEMORY(module_var);
   WABT_ZERO_MEMORY(name);
 }
 
 Action::~Action() {
-  destroy_var(&module_var);
   destroy_string_slice(&name);
   switch (type) {
     case ActionType::Invoke:
@@ -704,7 +803,7 @@ Command::~Command() {
       break;
     case CommandType::Register:
       destroy_string_slice(&register_.module_name);
-      destroy_var(&register_.var);
+      register_.var.~Var();
       break;
     case CommandType::AssertMalformed:
       delete assert_malformed.module;
@@ -742,151 +841,5 @@ Command::~Command() {
 }
 
 Script::Script() {}
-
-#define CHECK_RESULT(expr)   \
-  do {                       \
-    if (WABT_FAILED((expr))) \
-      return Result::Error;  \
-  } while (0)
-
-#define CALLBACK(member)                                           \
-  CHECK_RESULT((visitor)->member                                   \
-                   ? (visitor)->member(expr, (visitor)->user_data) \
-                   : Result::Ok)
-
-static Result visit_expr(Expr* expr, ExprVisitor* visitor);
-
-Result visit_expr_list(Expr* first, ExprVisitor* visitor) {
-  for (Expr* expr = first; expr; expr = expr->next)
-    CHECK_RESULT(visit_expr(expr, visitor));
-  return Result::Ok;
-}
-
-static Result visit_expr(Expr* expr, ExprVisitor* visitor) {
-  switch (expr->type) {
-    case ExprType::Binary:
-      CALLBACK(on_binary_expr);
-      break;
-
-    case ExprType::Block:
-      CALLBACK(begin_block_expr);
-      CHECK_RESULT(visit_expr_list(expr->block->first, visitor));
-      CALLBACK(end_block_expr);
-      break;
-
-    case ExprType::Br:
-      CALLBACK(on_br_expr);
-      break;
-
-    case ExprType::BrIf:
-      CALLBACK(on_br_if_expr);
-      break;
-
-    case ExprType::BrTable:
-      CALLBACK(on_br_table_expr);
-      break;
-
-    case ExprType::Call:
-      CALLBACK(on_call_expr);
-      break;
-
-    case ExprType::CallIndirect:
-      CALLBACK(on_call_indirect_expr);
-      break;
-
-    case ExprType::Compare:
-      CALLBACK(on_compare_expr);
-      break;
-
-    case ExprType::Const:
-      CALLBACK(on_const_expr);
-      break;
-
-    case ExprType::Convert:
-      CALLBACK(on_convert_expr);
-      break;
-
-    case ExprType::CurrentMemory:
-      CALLBACK(on_current_memory_expr);
-      break;
-
-    case ExprType::Drop:
-      CALLBACK(on_drop_expr);
-      break;
-
-    case ExprType::GetGlobal:
-      CALLBACK(on_get_global_expr);
-      break;
-
-    case ExprType::GetLocal:
-      CALLBACK(on_get_local_expr);
-      break;
-
-    case ExprType::GrowMemory:
-      CALLBACK(on_grow_memory_expr);
-      break;
-
-    case ExprType::If:
-      CALLBACK(begin_if_expr);
-      CHECK_RESULT(visit_expr_list(expr->if_.true_->first, visitor));
-      CALLBACK(after_if_true_expr);
-      CHECK_RESULT(visit_expr_list(expr->if_.false_, visitor));
-      CALLBACK(end_if_expr);
-      break;
-
-    case ExprType::Load:
-      CALLBACK(on_load_expr);
-      break;
-
-    case ExprType::Loop:
-      CALLBACK(begin_loop_expr);
-      CHECK_RESULT(visit_expr_list(expr->loop->first, visitor));
-      CALLBACK(end_loop_expr);
-      break;
-
-    case ExprType::Nop:
-      CALLBACK(on_nop_expr);
-      break;
-
-    case ExprType::Return:
-      CALLBACK(on_return_expr);
-      break;
-
-    case ExprType::Select:
-      CALLBACK(on_select_expr);
-      break;
-
-    case ExprType::SetGlobal:
-      CALLBACK(on_set_global_expr);
-      break;
-
-    case ExprType::SetLocal:
-      CALLBACK(on_set_local_expr);
-      break;
-
-    case ExprType::Store:
-      CALLBACK(on_store_expr);
-      break;
-
-    case ExprType::TeeLocal:
-      CALLBACK(on_tee_local_expr);
-      break;
-
-    case ExprType::Unary:
-      CALLBACK(on_unary_expr);
-      break;
-
-    case ExprType::Unreachable:
-      CALLBACK(on_unreachable_expr);
-      break;
-  }
-
-  return Result::Ok;
-}
-
-/* TODO(binji): make the visitor non-recursive */
-Result visit_func(Func* func, ExprVisitor* visitor) {
-  return visit_expr_list(func->first_expr, visitor);
-}
 
 }  // namespace wabt
