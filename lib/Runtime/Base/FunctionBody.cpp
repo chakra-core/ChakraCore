@@ -3451,9 +3451,7 @@ namespace Js
     bool FunctionBody::IsSimpleJitOriginalEntryPoint() const
     {
         const FunctionEntryPointInfo *const simpleJitEntryPointInfo = GetSimpleJitEntryPointInfo();
-        return
-            simpleJitEntryPointInfo &&
-            reinterpret_cast<Js::JavascriptMethod>(simpleJitEntryPointInfo->GetNativeAddress()) == GetOriginalEntryPoint_Unchecked();
+        return simpleJitEntryPointInfo && simpleJitEntryPointInfo->GetNativeEntrypoint() == GetOriginalEntryPoint_Unchecked();
     }
 
     void FunctionProxy::Finalize(bool isShutdown)
@@ -3624,7 +3622,7 @@ namespace Js
             (entryPointInfo == this->m_defaultEntryPointInfo && this->IsInterpreterThunk()) ||
             (
                 GetSimpleJitEntryPointInfo() &&
-                GetEntryPoint(entryPointInfo) == reinterpret_cast<void *>(GetSimpleJitEntryPointInfo()->GetNativeEntrypoint())
+                GetEntryPoint(entryPointInfo) == GetSimpleJitEntryPointInfo()->GetNativeEntrypoint()
             ));
         this->SetEntryPoint(entryPointInfo, entryPoint);
     }
@@ -6555,7 +6553,7 @@ namespace Js
             if(simpleJitEntryPointInfo && GetExecutionMode() == ExecutionMode::FullJit)
             {
                 directEntryPoint =
-                    originalEntryPoint = reinterpret_cast<Js::JavascriptMethod>(simpleJitEntryPointInfo->GetNativeEntrypoint());
+                    originalEntryPoint = simpleJitEntryPointInfo->GetNativeEntrypoint();
             }
             else
             {
@@ -9708,7 +9706,7 @@ namespace Js
                 currentCookie = (void*)currentNativeCodegen;
 #endif
 
-                if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
+                if (this->jsMethod == this->GetNativeEntrypoint())
                 {
 #if DBG
                     // tag the jsMethod in case the native address is reused in recycler and create a false positive
@@ -9868,9 +9866,7 @@ namespace Js
                 if(simpleJitEntryPointInfo)
                 {
                     newEntryPoint = simpleJitEntryPointInfo;
-                    functionBody->SetDefaultFunctionEntryPointInfo(
-                        simpleJitEntryPointInfo,
-                        reinterpret_cast<JavascriptMethod>(newEntryPoint->GetNativeEntrypoint()));
+                    functionBody->SetDefaultFunctionEntryPointInfo(simpleJitEntryPointInfo, newEntryPoint->GetNativeEntrypoint());
                     functionBody->SetExecutionMode(ExecutionMode::SimpleJit);
                     functionBody->ResetSimpleJitLimitAndCallCount();
                 }

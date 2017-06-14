@@ -1603,8 +1603,7 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
              || originalEntryPoint == DefaultDeferredParsingThunk
              || (
                     functionBody->GetSimpleJitEntryPointInfo() &&
-                    originalEntryPoint ==
-                        reinterpret_cast<Js::JavascriptMethod>(functionBody->GetSimpleJitEntryPointInfo()->GetNativeEntrypoint())
+                    originalEntryPoint == functionBody->GetSimpleJitEntryPointInfo()->GetNativeEntrypoint()
                 )
             ) ||
             functionBody->GetDefaultFunctionEntryPointInfo()->entryPointIndex > function->GetFunctionEntryPointInfo()->entryPointIndex);
