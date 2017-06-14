@@ -14,6 +14,8 @@
  * limitations under the License.
 */
 
+const kC0DEFEFE = new Uint8Array([0xC0, 0xDE, 0xFE, 0xFE]);
+
 (function testJSAPI() {
 
 const WasmPage = 64 * 1024;
@@ -655,7 +657,7 @@ test(() => {
     assert_true(WebAssembly.validate(complexImportingModuleBinary));
     assert_false(WebAssembly.validate(moduleBinaryImporting2Memories));
     assert_false(WebAssembly.validate(moduleBinaryWithMemSectionAndMemImport));
-}, "'WebAssembly.validate' method"),
+}, "'WebAssembly.validate' method");
 
 test(() => {
     const compileDesc = Object.getOwnPropertyDescriptor(WebAssembly, 'compile');
@@ -694,8 +696,7 @@ assertCompileError([1], TypeError);
 assertCompileError([{}], TypeError);
 assertCompileError([new Uint8Array()], CompileError);
 assertCompileError([new ArrayBuffer()], CompileError);
-assertCompileError([new Uint8Array("hi!")], CompileError);
-assertCompileError([new ArrayBuffer("hi!")], CompileError);
+assertCompileError([kC0DEFEFE], CompileError);
 
 num_tests = 1;
 function assertCompileSuccess(bytes) {
@@ -743,8 +744,7 @@ test(() => {
     assertInstantiateError([{}], TypeError);
     assertInstantiateError([new Uint8Array()], CompileError);
     assertInstantiateError([new ArrayBuffer()], CompileError);
-    assertInstantiateError([new Uint8Array("hi!")], CompileError);
-    assertInstantiateError([new ArrayBuffer("hi!")], CompileError);
+    assertInstantiateError([kC0DEFEFE], CompileError);
     assertInstantiateError([importingModule], TypeError);
     assertInstantiateError([importingModule, null], TypeError);
     assertInstantiateError([importingModuleBinary, null], TypeError);

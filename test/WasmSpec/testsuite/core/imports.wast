@@ -41,6 +41,12 @@
   (func $print_f64-2 (import "spectest" "print") (param f64))
   (import "test" "func-i64->i64" (func $i64->i64 (param i64) (result i64)))
 
+  (func (export "p1") (import "spectest" "print") (param i32))
+  (func $p (export "p2") (import "spectest" "print") (param i32))
+  (func (export "p3") (export "p4") (import "spectest" "print") (param i32))
+  (func (export "p5") (import "spectest" "print") (type 0))
+  (func (export "p6") (import "spectest" "print") (type 0) (param i32) (result))
+
   (table anyfunc (elem $print_i32 $print_f64))
 
   (func (export "print32") (param $i i32)
@@ -471,3 +477,74 @@
 (assert_return (invoke "grow" (i32.const 0)) (i32.const 2))
 (assert_return (invoke "grow" (i32.const 1)) (i32.const -1))
 (assert_return (invoke "grow" (i32.const 0)) (i32.const 2))
+
+
+;; Syntax errors
+
+(assert_malformed
+  (module quote "(func) (import \"\" \"\" (func))")
+  "import after function"
+)
+(assert_malformed
+  (module quote "(func) (import \"\" \"\" (global i64))")
+  "import after function"
+)
+(assert_malformed
+  (module quote "(func) (import \"\" \"\" (table 0 anyfunc))")
+  "import after function"
+)
+(assert_malformed
+  (module quote "(func) (import \"\" \"\" (memory 0))")
+  "import after function"
+)
+
+(assert_malformed
+  (module quote "(global i64 (i64.const 0)) (import \"\" \"\" (func))")
+  "import after global"
+)
+(assert_malformed
+  (module quote "(global i64 (i64.const 0)) (import \"\" \"\" (global f32))")
+  "import after global"
+)
+(assert_malformed
+  (module quote "(global i64 (i64.const 0)) (import \"\" \"\" (table 0 anyfunc))")
+  "import after global"
+)
+(assert_malformed
+  (module quote "(global i64 (i64.const 0)) (import \"\" \"\" (memory 0))")
+  "import after global"
+)
+
+(assert_malformed
+  (module quote "(table 0 anyfunc) (import \"\" \"\" (func))")
+  "import after table"
+)
+(assert_malformed
+  (module quote "(table 0 anyfunc) (import \"\" \"\" (global i32))")
+  "import after table"
+)
+(assert_malformed
+  (module quote "(table 0 anyfunc) (import \"\" \"\" (table 0 anyfunc))")
+  "import after table"
+)
+(assert_malformed
+  (module quote "(table 0 anyfunc) (import \"\" \"\" (memory 0))")
+  "import after table"
+)
+
+(assert_malformed
+  (module quote "(memory 0) (import \"\" \"\" (func))")
+  "import after memory"
+)
+(assert_malformed
+  (module quote "(memory 0) (import \"\" \"\" (global i32))")
+  "import after memory"
+)
+(assert_malformed
+  (module quote "(memory 0) (import \"\" \"\" (table 1 3 anyfunc))")
+  "import after memory"
+)
+(assert_malformed
+  (module quote "(memory 0) (import \"\" \"\" (memory 1 2))")
+  "import after memory"
+)

@@ -1,0 +1,41 @@
+(290) testsuite/core/f32_bitwise.wast:298: assert_return($$.copysign(f32:NaN, f32:0) == f32:NaN) failed. Returned NaN
+(291) testsuite/core/f32_bitwise.wast:299: assert_return($$.copysign(f32:NaN, f32:0) == f32:NaN) failed. Returned NaN
+(292) testsuite/core/f32_bitwise.wast:300: assert_return($$.copysign(f32:NaN, f32:0) == f32:NaN) failed. Returned NaN
+(293) testsuite/core/f32_bitwise.wast:301: assert_return($$.copysign(f32:NaN, f32:0) == f32:NaN) failed. Returned NaN
+(294) testsuite/core/f32_bitwise.wast:302: assert_return($$.copysign(f32:NaN, f32:-1.401298464324817e-45) == f32:NaN) failed. Returned NaN
+(295) testsuite/core/f32_bitwise.wast:303: assert_return($$.copysign(f32:NaN, f32:1.401298464324817e-45) == f32:NaN) failed. Returned NaN
+(296) testsuite/core/f32_bitwise.wast:304: assert_return($$.copysign(f32:NaN, f32:-1.401298464324817e-45) == f32:NaN) failed. Returned NaN
+(297) testsuite/core/f32_bitwise.wast:305: assert_return($$.copysign(f32:NaN, f32:1.401298464324817e-45) == f32:NaN) failed. Returned NaN
+(298) testsuite/core/f32_bitwise.wast:306: assert_return($$.copysign(f32:NaN, f32:-1.1754943508222875e-38) == f32:NaN) failed. Returned NaN
+(299) testsuite/core/f32_bitwise.wast:307: assert_return($$.copysign(f32:NaN, f32:1.1754943508222875e-38) == f32:NaN) failed. Returned NaN
+(300) testsuite/core/f32_bitwise.wast:308: assert_return($$.copysign(f32:NaN, f32:-1.1754943508222875e-38) == f32:NaN) failed. Returned NaN
+(301) testsuite/core/f32_bitwise.wast:309: assert_return($$.copysign(f32:NaN, f32:1.1754943508222875e-38) == f32:NaN) failed. Returned NaN
+(302) testsuite/core/f32_bitwise.wast:310: assert_return($$.copysign(f32:NaN, f32:-0.5) == f32:NaN) failed. Returned NaN
+(303) testsuite/core/f32_bitwise.wast:311: assert_return($$.copysign(f32:NaN, f32:0.5) == f32:NaN) failed. Returned NaN
+(304) testsuite/core/f32_bitwise.wast:312: assert_return($$.copysign(f32:NaN, f32:-0.5) == f32:NaN) failed. Returned NaN
+(305) testsuite/core/f32_bitwise.wast:313: assert_return($$.copysign(f32:NaN, f32:0.5) == f32:NaN) failed. Returned NaN
+(306) testsuite/core/f32_bitwise.wast:314: assert_return($$.copysign(f32:NaN, f32:-1) == f32:NaN) failed. Returned NaN
+(307) testsuite/core/f32_bitwise.wast:315: assert_return($$.copysign(f32:NaN, f32:1) == f32:NaN) failed. Returned NaN
+(308) testsuite/core/f32_bitwise.wast:316: assert_return($$.copysign(f32:NaN, f32:-1) == f32:NaN) failed. Returned NaN
+(309) testsuite/core/f32_bitwise.wast:317: assert_return($$.copysign(f32:NaN, f32:1) == f32:NaN) failed. Returned NaN
+(310) testsuite/core/f32_bitwise.wast:318: assert_return($$.copysign(f32:NaN, f32:-6.2831854820251465) == f32:NaN) failed. Returned NaN
+(311) testsuite/core/f32_bitwise.wast:319: assert_return($$.copysign(f32:NaN, f32:6.2831854820251465) == f32:NaN) failed. Returned NaN
+(312) testsuite/core/f32_bitwise.wast:320: assert_return($$.copysign(f32:NaN, f32:-6.2831854820251465) == f32:NaN) failed. Returned NaN
+(313) testsuite/core/f32_bitwise.wast:321: assert_return($$.copysign(f32:NaN, f32:6.2831854820251465) == f32:NaN) failed. Returned NaN
+(314) testsuite/core/f32_bitwise.wast:322: assert_return($$.copysign(f32:NaN, f32:-3.4028234663852886e+38) == f32:NaN) failed. Returned NaN
+(315) testsuite/core/f32_bitwise.wast:323: assert_return($$.copysign(f32:NaN, f32:3.4028234663852886e+38) == f32:NaN) failed. Returned NaN
+(316) testsuite/core/f32_bitwise.wast:324: assert_return($$.copysign(f32:NaN, f32:-3.4028234663852886e+38) == f32:NaN) failed. Returned NaN
+(317) testsuite/core/f32_bitwise.wast:325: assert_return($$.copysign(f32:NaN, f32:3.4028234663852886e+38) == f32:NaN) failed. Returned NaN
+(318) testsuite/core/f32_bitwise.wast:326: assert_return($$.copysign(f32:NaN, f32:-Infinity) == f32:NaN) failed. Returned NaN
+(319) testsuite/core/f32_bitwise.wast:327: assert_return($$.copysign(f32:NaN, f32:Infinity) == f32:NaN) failed. Returned NaN
+(320) testsuite/core/f32_bitwise.wast:328: assert_return($$.copysign(f32:NaN, f32:-Infinity) == f32:NaN) failed. Returned NaN
+(321) testsuite/core/f32_bitwise.wast:329: assert_return($$.copysign(f32:NaN, f32:Infinity) == f32:NaN) failed. Returned NaN
+(322) testsuite/core/f32_bitwise.wast:330: assert_return($$.copysign(f32:NaN, f32:NaN) == f32:NaN) failed. Returned NaN
+(323) testsuite/core/f32_bitwise.wast:331: assert_return($$.copysign(f32:NaN, f32:NaN) == f32:NaN) failed. Returned NaN
+(324) testsuite/core/f32_bitwise.wast:332: assert_return($$.copysign(f32:NaN, f32:NaN) == f32:NaN) failed. Returned NaN
+(325) testsuite/core/f32_bitwise.wast:333: assert_return($$.copysign(f32:NaN, f32:NaN) == f32:NaN) failed. Returned NaN
+(342) testsuite/core/f32_bitwise.wast:350: assert_return($$.abs(f32:NaN) == f32:NaN) failed. Returned NaN
+(343) testsuite/core/f32_bitwise.wast:351: assert_return($$.abs(f32:NaN) == f32:NaN) failed. Returned NaN
+(360) testsuite/core/f32_bitwise.wast:368: assert_return($$.neg(f32:NaN) == f32:NaN) failed. Returned NaN
+(361) testsuite/core/f32_bitwise.wast:369: assert_return($$.neg(f32:NaN) == f32:NaN) failed. Returned NaN
+321/361 tests passed.

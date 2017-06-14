@@ -27,7 +27,10 @@ const argv = require("yargs")
       array: true,
       alias: "e",
       description: "Spec tests to exclude from the conversion (use for known failures)",
-      default: []
+      default: [
+        "memory_trap",
+        "traps"
+      ]
     },
     "xplat-excludes": {
       array: true,

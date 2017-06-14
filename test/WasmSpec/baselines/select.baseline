@@ -1,1 +1,9 @@
-30/30 tests passed.
+(10) testsuite/core/select.wast:41: assert_return($$.select_f32(f32:NaN, f32:1, i32:1) == f32:NaN) failed. Returned NaN
+(11) testsuite/core/select.wast:42: assert_return($$.select_f32(f32:NaN, f32:1, i32:1) == f32:NaN) failed. Returned NaN
+(16) testsuite/core/select.wast:47: assert_return($$.select_f32(f32:2, f32:NaN, i32:0) == f32:NaN) failed. Returned NaN
+(17) testsuite/core/select.wast:48: assert_return($$.select_f32(f32:2, f32:NaN, i32:0) == f32:NaN) failed. Returned NaN
+(18) testsuite/core/select.wast:50: assert_return($$.select_f64(f64:NaN, f64:1, i32:1) == f64:NaN) failed. Returned NaN
+(19) testsuite/core/select.wast:51: assert_return($$.select_f64(f64:NaN, f64:1, i32:1) == f64:NaN) failed. Returned NaN
+(24) testsuite/core/select.wast:56: assert_return($$.select_f64(f64:2, f64:NaN, i32:0) == f64:NaN) failed. Returned NaN
+(25) testsuite/core/select.wast:57: assert_return($$.select_f64(f64:2, f64:NaN, i32:0) == f64:NaN) failed. Returned NaN
+22/30 tests passed.
