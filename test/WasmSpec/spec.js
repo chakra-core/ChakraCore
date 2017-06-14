@@ -25,7 +25,7 @@ WScript.Flag("-wasmI64");
 
 if (cliArgs.length < 1) {
   print("usage: <exe> spec.js -args <filename.json> [start index] [end index] [-verbose] [-nt] -endargs");
-  WScript.quit(0);
+  WScript.Quit(0);
 }
 
 if (typeof IMPORTS_FROM_OTHER_SCRIPT === "undefined") {

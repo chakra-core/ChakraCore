@@ -1,5 +1,5 @@
 Harness Status: OK
-Found 89 tests: Pass = 88 Fail = 1
+Found 87 tests: Pass = 86 Fail = 1
 Pass 'WebAssembly' data property on global object  
 Pass 'WebAssembly' object  
 Pass 'WebAssembly.(Compile|Link|Runtime)Error' data property  
@@ -56,12 +56,10 @@ Pass assertCompileError 4
 Pass assertCompileError 5  
 Pass assertCompileError 6  
 Pass assertCompileError 7  
-Pass assertCompileError 8  
 Pass assertCompileSuccess 1  
 Pass assertCompileSuccess 2  
 Pass 'WebAssembly.instantiate' data property  
 Pass 'WebAssembly.instantiate' function  
-Pass unexpected success in assertInstantiateError  
 Pass unexpected success in assertInstantiateError  
 Pass unexpected success in assertInstantiateError  
 Pass unexpected success in assertInstantiateError  

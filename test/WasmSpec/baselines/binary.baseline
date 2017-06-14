@@ -1,2 +1,2 @@
-(15) testsuite/core/binary.wast:17: assert_malformed module failed. Had a linking error, expected a compile error: TypeError: Object expected
-16/17 tests passed.
+(28) testsuite/core/binary.wast:40: assert_malformed module failed. Had a linking error, expected a compile error: TypeError: Object expected
+31/32 tests passed.

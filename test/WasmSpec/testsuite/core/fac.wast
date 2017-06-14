@@ -1,19 +1,23 @@
 (module
   ;; Recursive factorial
   (func (export "fac-rec") (param i64) (result i64)
-    (if i64 (i64.eq (get_local 0) (i64.const 0))
-      (i64.const 1)
-      (i64.mul (get_local 0) (call 0 (i64.sub (get_local 0) (i64.const 1))))
+    (if (result i64) (i64.eq (get_local 0) (i64.const 0))
+      (then (i64.const 1))
+      (else
+        (i64.mul (get_local 0) (call 0 (i64.sub (get_local 0) (i64.const 1))))
+      )
     )
   )
 
   ;; Recursive factorial named
   (func $fac-rec-named (export "fac-rec-named") (param $n i64) (result i64)
-    (if i64 (i64.eq (get_local $n) (i64.const 0))
-      (i64.const 1)
-      (i64.mul
-        (get_local $n)
-        (call $fac-rec-named (i64.sub (get_local $n) (i64.const 1)))
+    (if (result i64) (i64.eq (get_local $n) (i64.const 0))
+      (then (i64.const 1))
+      (else
+        (i64.mul
+          (get_local $n)
+          (call $fac-rec-named (i64.sub (get_local $n) (i64.const 1)))
+        )
       )
     )
   )
@@ -27,8 +31,8 @@
       (loop
         (if
           (i64.eq (get_local 1) (i64.const 0))
-          (br 2)
-          (block
+          (then (br 2))
+          (else
             (set_local 2 (i64.mul (get_local 1) (get_local 2)))
             (set_local 1 (i64.sub (get_local 1) (i64.const 1)))
           )
@@ -49,8 +53,8 @@
       (loop $loop
         (if
           (i64.eq (get_local $i) (i64.const 0))
-          (br $done)
-          (block
+          (then (br $done))
+          (else
             (set_local $res (i64.mul (get_local $i) (get_local $res)))
             (set_local $i (i64.sub (get_local $i) (i64.const 1)))
           )
