@@ -1062,7 +1062,7 @@ public:
             jobProcessor->Close();
         }
 
-        if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
+        if (JITManager::GetJITManager()->IsOOPJITEnabled() && JITManager::GetJITManager()->IsConnected() && m_remoteThreadContextInfo)
         {
             if (JITManager::GetJITManager()->CleanupThreadContext(&m_remoteThreadContextInfo) == S_OK)
             {
