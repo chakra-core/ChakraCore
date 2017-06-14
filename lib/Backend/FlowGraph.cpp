@@ -636,29 +636,40 @@ void FlowGraph::InsertEdgeFromFinallyToEarlyExit(BasicBlock *finallyEndBlock, IR
     IR::LabelInstr *leaveLabel = IR::LabelInstr::New(Js::OpCode::Label, this->func);
     lastInstr->InsertBefore(leaveLabel);
 
-    this->AddBlock(leaveLabel, lastInstr, finallyEndBlock->GetNext(), finallyEndBlock /*prevBlock*/);
+    this->AddBlock(leaveLabel, lastInstr, nextBB, finallyEndBlock /*prevBlock*/);
     leaveLabel->SetRegion(lastLabel->GetRegion());
 
     this->AddEdge(finallyEndBlock, leaveLabel->GetBasicBlock());
 
-    IR::LabelInstr *brLabel = IR::LabelInstr::New(Js::OpCode::Label, this->func);
-    leaveLabel->InsertBefore(brLabel);
+    // If the Leave/LeaveNull at the end of finally was not preceeded by a Label, we have to create a new block with BrOnException to early exit
+    if (!lastInstr->GetPrevRealInstrOrLabel()->IsLabelInstr())
+    {
+        IR::LabelInstr *brLabel = IR::LabelInstr::New(Js::OpCode::Label, this->func);
+        leaveLabel->InsertBefore(brLabel);
 
-    IR::BranchInstr *brToExit = IR::BranchInstr::New(Js::OpCode::BrOnException, exitLabel, this->func);
-    leaveLabel->InsertBefore(brToExit);
+        IR::BranchInstr *brToExit = IR::BranchInstr::New(Js::OpCode::BrOnException, exitLabel, this->func);
+        leaveLabel->InsertBefore(brToExit);
 
-    this->AddBlock(brLabel, brToExit, finallyEndBlock->GetNext(), finallyEndBlock /*prevBlock*/);
+        this->AddBlock(brLabel, brToExit, finallyEndBlock->GetNext(), finallyEndBlock /*prevBlock*/);
+        brLabel->SetRegion(lastLabel->GetRegion());
 
-    brLabel->SetRegion(lastLabel->GetRegion());
+        this->AddEdge(finallyEndBlock, brLabel->GetBasicBlock());
+    }
+    else
+    {
+        // If the Leave/LeaveNull at the end of finally was preceeded by a Label, we reuse the block inserting BrOnException to early exit in it
+        IR::BranchInstr *brToExit = IR::BranchInstr::New(Js::OpCode::BrOnException, exitLabel, this->func);
+        leaveLabel->InsertBefore(brToExit);
+        this->AddEdge(finallyEndBlock, exitLabel->GetBasicBlock());
+    }
 
-    // in case of throw/non-terminating loop, there maybe no edge to the next block
+    // In case of throw/non-terminating loop, there maybe no edge to the next block
     if (this->FindEdge(finallyEndBlock, nextBB))
     {
         finallyEndBlock->RemoveSucc(nextBB, this);
     }
-    this->AddEdge(finallyEndBlock, brLabel->GetBasicBlock());
 
-    this->regToFinallyEndMap->Item(lastLabel->GetRegion(), finallyEndBlock->next->next);
+    this->regToFinallyEndMap->Item(lastLabel->GetRegion(), leaveLabel->GetBasicBlock());
 }
 
 void
@@ -3343,8 +3354,6 @@ FlowGraph::RemoveBlock(BasicBlock *block, GlobOpt * globOpt, bool tailDuping)
         {
             Assert(instr->IsLabelInstr());
             instr->AsLabelInstr()->m_isLoopTop = false;
-            instr->AsLabelInstr()->SetRegion(nullptr);
-            instr->AsLabelInstr()->m_hasNonBranchRef = false;
         }
         else
         {
