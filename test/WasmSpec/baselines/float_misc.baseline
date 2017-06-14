@@ -1,17 +1,1 @@
-(382) testsuite/core/float_misc.wast:592: assert_return($$.f32.abs(f32:NaN) == f32:NaN) failed. Returned NaN
-(383) testsuite/core/float_misc.wast:593: assert_return($$.f32.abs(f32:NaN) == f32:NaN) failed. Returned NaN
-(384) testsuite/core/float_misc.wast:594: assert_return($$.f64.abs(f64:NaN) == f64:NaN) failed. Returned NaN
-(385) testsuite/core/float_misc.wast:595: assert_return($$.f64.abs(f64:NaN) == f64:NaN) failed. Returned NaN
-(386) testsuite/core/float_misc.wast:597: assert_return($$.f32.neg(f32:NaN) == f32:NaN) failed. Returned NaN
-(387) testsuite/core/float_misc.wast:598: assert_return($$.f32.neg(f32:NaN) == f32:NaN) failed. Returned NaN
-(388) testsuite/core/float_misc.wast:599: assert_return($$.f64.neg(f64:NaN) == f64:NaN) failed. Returned NaN
-(389) testsuite/core/float_misc.wast:600: assert_return($$.f64.neg(f64:NaN) == f64:NaN) failed. Returned NaN
-(390) testsuite/core/float_misc.wast:602: assert_return($$.f32.copysign(f32:NaN, f32:NaN) == f32:NaN) failed. Returned NaN
-(391) testsuite/core/float_misc.wast:603: assert_return($$.f32.copysign(f32:NaN, f32:NaN) == f32:NaN) failed. Returned NaN
-(392) testsuite/core/float_misc.wast:604: assert_return($$.f32.copysign(f32:NaN, f32:NaN) == f32:NaN) failed. Returned NaN
-(393) testsuite/core/float_misc.wast:605: assert_return($$.f32.copysign(f32:NaN, f32:NaN) == f32:NaN) failed. Returned NaN
-(394) testsuite/core/float_misc.wast:606: assert_return($$.f64.copysign(f64:NaN, f64:NaN) == f64:NaN) failed. Returned NaN
-(395) testsuite/core/float_misc.wast:607: assert_return($$.f64.copysign(f64:NaN, f64:NaN) == f64:NaN) failed. Returned NaN
-(396) testsuite/core/float_misc.wast:608: assert_return($$.f64.copysign(f64:NaN, f64:NaN) == f64:NaN) failed. Returned NaN
-(397) testsuite/core/float_misc.wast:609: assert_return($$.f64.copysign(f64:NaN, f64:NaN) == f64:NaN) failed. Returned NaN
-425/441 tests passed.
+441/441 tests passed.

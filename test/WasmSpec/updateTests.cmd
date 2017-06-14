@@ -28,5 +28,5 @@ cd ..
 node convert-test-suite --rebase %*
 git add testsuite\*
 git add baselines\*
-echo Test updated and regerated, don't forget to update baselines
+echo Test updated and regenerated
 popd

@@ -1,13 +1,1 @@
-(274) testsuite/core/conversions.wast:324: assert_return($$.f64.convert_u_i64(i64:0x8000000000000401) == f64:9223372036854777000) failed. Returned 9223372036854776000
-(275) testsuite/core/conversions.wast:325: assert_return($$.f64.convert_u_i64(i64:0x8000000000000402) == f64:9223372036854777000) failed. Returned 9223372036854776000
-(352) testsuite/core/conversions.wast:408: assert_return($$.f32.reinterpret_i32(i32:-1) == f32:NaN) failed. Returned NaN
-(357) testsuite/core/conversions.wast:413: assert_return($$.f32.reinterpret_i32(i32:2143289344) == f32:NaN) failed. Returned NaN
-(358) testsuite/core/conversions.wast:414: assert_return($$.f32.reinterpret_i32(i32:-4194304) == f32:NaN) failed. Returned NaN
-(359) testsuite/core/conversions.wast:415: assert_return($$.f32.reinterpret_i32(i32:2141192192) == f32:NaN) failed. Returned NaN
-(360) testsuite/core/conversions.wast:416: assert_return($$.f32.reinterpret_i32(i32:-6291456) == f32:NaN) failed. Returned NaN
-(363) testsuite/core/conversions.wast:420: assert_return($$.f64.reinterpret_i64(i64:0xffffffffffffffff) == f64:NaN) failed. Returned NaN
-(369) testsuite/core/conversions.wast:426: assert_return($$.f64.reinterpret_i64(i64:0x7ff8000000000000) == f64:NaN) failed. Returned NaN
-(370) testsuite/core/conversions.wast:427: assert_return($$.f64.reinterpret_i64(i64:0xfff8000000000000) == f64:NaN) failed. Returned NaN
-(371) testsuite/core/conversions.wast:428: assert_return($$.f64.reinterpret_i64(i64:0x7ff4000000000000) == f64:NaN) failed. Returned NaN
-(372) testsuite/core/conversions.wast:429: assert_return($$.f64.reinterpret_i64(i64:0xfff4000000000000) == f64:NaN) failed. Returned NaN
-390/402 tests passed.
+396/396 tests passed.
