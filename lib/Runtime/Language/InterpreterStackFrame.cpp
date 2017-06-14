@@ -6876,8 +6876,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
                 m_reader.SetCurrentOffset(finallyOffset);
 
-                ResetOut();
-
                 this->nestedFinallyDepth++;
 
                 // mark the stackFrame as 'in finally block'

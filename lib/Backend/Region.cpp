@@ -68,10 +68,12 @@ Region::GetSelfOrFirstTryAncestor()
 }
 
 // Return the first ancestor of the region's parent which is not a non exception finally
+// Skip all non exception finally regions in the region tree
+// Return the parent of the first non-non-exception finally region
 Region *
 Region::GetFirstAncestorOfNonExceptingFinallyParent()
 {
-    Region * ancestor = this->GetParent();
+    Region * ancestor = this;
     while (ancestor && ancestor->IsNonExceptingFinally())
     {
         ancestor = ancestor->GetParent();
@@ -81,9 +83,11 @@ Region::GetFirstAncestorOfNonExceptingFinallyParent()
     // If the ancestor's parent is a non exception finally, recurse
     if (ancestor && ancestor->GetType() != RegionTypeRoot && ancestor->GetParent()->IsNonExceptingFinally())
     {
-        return ancestor->GetParent()->GetFirstAncestorOfNonExceptingFinallyParent();
+        return ancestor->GetParent()->GetFirstAncestorOfNonExceptingFinally();
     }
 
+    Assert(ancestor);
+    // Null check added to avoid prefast warning only
     return ancestor ? (ancestor->GetType() == RegionTypeRoot ? ancestor : ancestor->GetParent()) : nullptr;
 }
 
