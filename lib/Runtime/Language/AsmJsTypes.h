@@ -100,10 +100,10 @@ namespace Js
     // The asm.js spec recognizes this set of builtin Math functions.
     enum AsmJSMathBuiltinFunction: int
     {
-#define ASMJS_MATH_FUNC_NAMES(name, propertyName) AsmJSMathBuiltin_##name,
+#define ASMJS_MATH_FUNC_NAMES(name, propertyName, funcInfo) AsmJSMathBuiltin_##name,
 #include "AsmJsBuiltInNames.h"
         AsmJSMathBuiltinFunction_COUNT,
-#define ASMJS_MATH_CONST_NAMES(name, propertyName) AsmJSMathBuiltin_##name,
+#define ASMJS_MATH_CONST_NAMES(name, propertyName, value) AsmJSMathBuiltin_##name,
 #include "AsmJsBuiltInNames.h"
         AsmJSMathBuiltin_COUNT
     };
@@ -654,6 +654,7 @@ namespace Js
         AsmJSMathBuiltinFunction GetMathBuiltInFunction(){ return mBuiltIn; };
         virtual bool CheckAndSetReturnType( Js::AsmJsRetType val ) override;
         bool SupportsMathCall(ArgSlot argCount, AsmJsType* args, OpCodeAsmJs& op, AsmJsRetType& retType);
+        static bool IsFround(AsmJsFunctionDeclaration* sym);
     private:
         virtual bool SupportsArgCall(ArgSlot argCount, AsmJsType* args, AsmJsRetType& retType ) override;
 
