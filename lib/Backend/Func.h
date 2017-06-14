@@ -214,7 +214,7 @@ public:
     bool CanOptimizeTryFinally() const
     {
         return !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryFinallyPhase, this) &&
-            !this->GetReadOnlyProfileInfo()->IsOptimizeTryFinallyDisabled();
+            (!this->HasProfileInfo() || !this->GetReadOnlyProfileInfo()->IsOptimizeTryFinallyDisabled());
     }
 
     bool CanOptimizeTryCatch() const
