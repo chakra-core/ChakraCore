@@ -14,18 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef WABT_AST_WRITER_H_
-#define WABT_AST_WRITER_H_
+#ifndef WABT_WAST_PARSER_H_
+#define WABT_WAST_PARSER_H_
 
-#include "common.h"
+#include "wast-lexer.h"
 
 namespace wabt {
 
-struct Module;
-struct Writer;
+struct Script;
+class SourceErrorHandler;
 
-Result write_ast(struct Writer*, const struct Module*);
+struct WastParseOptions {
+  bool allow_exceptions = false;
+  bool debug_parsing = false;
+};
+
+Result parse_wast(WastLexer* lexer, Script** out_script, SourceErrorHandler*,
+                  WastParseOptions* options = nullptr);
 
 }  // namespace wabt
 
-#endif /* WABT_AST_WRITER_H_ */
+#endif /* WABT_WAST_PARSER_H_ */

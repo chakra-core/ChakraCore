@@ -16,11 +16,11 @@
 
 #include "common.h"
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <limits.h>
+#include <cassert>
+#include <climits>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 
 #if COMPILER_IS_MSVC
 #include <fcntl.h>
@@ -31,54 +31,22 @@
 
 namespace wabt {
 
-Reloc::Reloc(RelocType type, size_t offset, uint32_t index, int32_t addend)
+Reloc::Reloc(RelocType type, Offset offset, Index index, int32_t addend)
     : type(type), offset(offset), index(index), addend(addend) {}
 
-OpcodeInfo g_opcode_info[kOpcodeCount];
-
-/* TODO(binji): It's annoying to have to have an initializer function, but it
- * seems to be necessary as g++ doesn't allow non-trival designated
- * initializers (e.g. [314] = "blah") */
-void init_opcode_info(void) {
-  static bool s_initialized = false;
-  if (!s_initialized) {
-#define V(rtype, type1, type2, mem_size, code, NAME, text) \
-  g_opcode_info[code].name = text;                         \
-  g_opcode_info[code].result_type = Type::rtype;           \
-  g_opcode_info[code].param1_type = Type::type1;           \
-  g_opcode_info[code].param2_type = Type::type2;           \
-  g_opcode_info[code].memory_size = mem_size;
-
-    WABT_FOREACH_OPCODE(V)
-
-#undef V
-  }
-}
-
-const char* g_kind_name[] = {"func", "table", "memory", "global"};
+const char* g_kind_name[] = {"func", "table", "memory", "global", "except"};
 WABT_STATIC_ASSERT(WABT_ARRAY_SIZE(g_kind_name) == kExternalKindCount);
 
 const char* g_reloc_type_name[] = {"R_FUNC_INDEX_LEB",
                                    "R_TABLE_INDEX_SLEB",
                                    "R_TABLE_INDEX_I32",
-                                   "R_MEMORY_ADDR_LEB",
-                                   "R_MEMORY_ADDR_SLEB",
-                                   "R_MEMORY_ADDR_I32",
+                                   "R_GLOBAL_ADDR_LEB",
+                                   "R_GLOBAL_ADDR_SLEB",
+                                   "R_GLOBAL_ADDR_I32",
                                    "R_TYPE_INDEX_LEB",
                                    "R_GLOBAL_INDEX_LEB",
                                    };
 WABT_STATIC_ASSERT(WABT_ARRAY_SIZE(g_reloc_type_name) == kRelocTypeCount);
-
-bool is_naturally_aligned(Opcode opcode, uint32_t alignment) {
-  uint32_t opcode_align = get_opcode_memory_size(opcode);
-  return alignment == WABT_USE_NATURAL_ALIGNMENT || alignment == opcode_align;
-}
-
-uint32_t get_opcode_alignment(Opcode opcode, uint32_t alignment) {
-  if (alignment == WABT_USE_NATURAL_ALIGNMENT)
-    return get_opcode_memory_size(opcode);
-  return alignment;
-}
 
 StringSlice empty_string_slice(void) {
   StringSlice result;
@@ -162,92 +130,6 @@ Result read_file(const char* filename, char** out_data, size_t* out_size) {
   *out_size = size;
   fclose(infile);
   return Result::Ok;
-}
-
-static void print_carets(FILE* out,
-                         size_t num_spaces,
-                         size_t num_carets,
-                         size_t max_line) {
-  /* print the caret */
-  char* carets = static_cast<char*>(alloca(max_line));
-  memset(carets, '^', max_line);
-  if (num_carets > max_line - num_spaces)
-    num_carets = max_line - num_spaces;
-  /* always print at least one caret */
-  if (num_carets == 0)
-    num_carets = 1;
-  fprintf(out, "%*s%.*s\n", static_cast<int>(num_spaces), "",
-          static_cast<int>(num_carets), carets);
-}
-
-static void print_source_error(FILE* out,
-                               const Location* loc,
-                               const char* error,
-                               const char* source_line,
-                               size_t source_line_length,
-                               size_t source_line_column_offset) {
-  fprintf(out, "%s:%d:%d: %s\n", loc->filename, loc->line, loc->first_column,
-          error);
-  if (source_line && source_line_length > 0) {
-    fprintf(out, "%s\n", source_line);
-    size_t num_spaces = (loc->first_column - 1) - source_line_column_offset;
-    size_t num_carets = loc->last_column - loc->first_column;
-    print_carets(out, num_spaces, num_carets, source_line_length);
-  }
-}
-
-static void print_error_header(FILE* out, DefaultErrorHandlerInfo* info) {
-  if (info && info->header) {
-    switch (info->print_header) {
-      case PrintErrorHeader::Never:
-        break;
-
-      case PrintErrorHeader::Once:
-        info->print_header = PrintErrorHeader::Never;
-      /* Fallthrough. */
-
-      case PrintErrorHeader::Always:
-        fprintf(out, "%s:\n", info->header);
-        break;
-    }
-    /* If there's a header, indent the following message. */
-    fprintf(out, "  ");
-  }
-}
-
-static FILE* get_default_error_handler_info_output_file(
-    DefaultErrorHandlerInfo* info) {
-  return info && info->out_file ? info->out_file : stderr;
-}
-
-bool default_source_error_callback(const Location* loc,
-                                   const char* error,
-                                   const char* source_line,
-                                   size_t source_line_length,
-                                   size_t source_line_column_offset,
-                                   void* user_data) {
-  DefaultErrorHandlerInfo* info =
-      static_cast<DefaultErrorHandlerInfo*>(user_data);
-  FILE* out = get_default_error_handler_info_output_file(info);
-  print_error_header(out, info);
-  print_source_error(out, loc, error, source_line, source_line_length,
-                     source_line_column_offset);
-  return true;
-}
-
-bool default_binary_error_callback(uint32_t offset,
-                                   const char* error,
-                                   void* user_data) {
-  DefaultErrorHandlerInfo* info =
-      static_cast<DefaultErrorHandlerInfo*>(user_data);
-  FILE* out = get_default_error_handler_info_output_file(info);
-  print_error_header(out, info);
-  if (offset == WABT_UNKNOWN_OFFSET)
-    fprintf(out, "error: %s\n", error);
-  else
-    fprintf(out, "error: @0x%08x: %s\n", offset, error);
-  fflush(out);
-  return true;
 }
 
 void init_stdio() {

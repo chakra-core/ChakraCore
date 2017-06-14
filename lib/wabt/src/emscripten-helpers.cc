@@ -17,99 +17,265 @@
 #ifndef WABT_EMSCRIPTEN_HELPERS_H_
 #define WABT_EMSCRIPTEN_HELPERS_H_
 
-#include <stddef.h>
+#include <cstddef>
 
-#include "ast.h"
+#include <memory>
+
+#include "apply-names.h"
 #include "binary-reader.h"
+#include "binary-reader-ir.h"
 #include "binary-writer.h"
+#include "binary-error-handler.h"
 #include "common.h"
+#include "ir.h"
+#include "generate-names.h"
+#include "resolve-names.h"
+#include "source-error-handler.h"
 #include "stream.h"
+#include "validator.h"
+#include "wast-lexer.h"
+#include "wast-parser.h"
+#include "wat-writer.h"
 #include "writer.h"
 
-/* TODO(binji): it would be nicer to generate this as static data, but it's not
- * currently easy to do. Maybe use LLVM's python bindings for this? */
+struct WabtParseWastResult {
+  wabt::Result result;
+  std::unique_ptr<wabt::Script> script;
+};
 
-#define DEFINE_SIZEOF(Name, name) \
-  size_t wabt_sizeof_##name(void) { return sizeof(Name); }
+struct WabtReadBinaryResult {
+  wabt::Result result;
+  std::unique_ptr<wabt::Module> module;
+};
 
-#define DEFINE_OFFSETOF(Name, name, member)      \
-  size_t wabt_offsetof_##name##_##member(void) { \
-    return offsetof(Name, member);               \
+struct WabtWriteModuleResult {
+  wabt::Result result;
+  std::unique_ptr<wabt::OutputBuffer> buffer;
+  std::unique_ptr<wabt::OutputBuffer> log_buffer;
+};
+
+extern "C" {
+
+wabt::WastLexer* wabt_new_wast_buffer_lexer(const char* filename,
+                                            const void* data,
+                                            size_t size) {
+  std::unique_ptr<wabt::WastLexer> lexer =
+      wabt::WastLexer::CreateBufferLexer(filename, data, size);
+  return lexer.release();
+}
+
+WabtParseWastResult* wabt_parse_wast(
+    wabt::WastLexer* lexer,
+    wabt::SourceErrorHandlerBuffer* error_handler) {
+  WabtParseWastResult* result = new WabtParseWastResult();
+  wabt::Script* script = nullptr;
+  result->result = wabt::parse_wast(lexer, &script, error_handler);
+  result->script.reset(script);
+  return result;
+}
+
+WabtReadBinaryResult* wabt_read_binary(
+    const void* data,
+    size_t size,
+    int read_debug_names,
+    wabt::BinaryErrorHandlerBuffer* error_handler) {
+  wabt::ReadBinaryOptions options;
+  options.log_stream = nullptr;
+  options.read_debug_names = read_debug_names;
+
+  WabtReadBinaryResult* result = new WabtReadBinaryResult();
+  wabt::Module* module = new wabt::Module();
+  result->result =
+      wabt::read_binary_ir(data, size, &options, error_handler, module);
+  result->module.reset(module);
+  return result;
+}
+
+wabt::Result wabt_resolve_names_script(
+    wabt::WastLexer* lexer,
+    wabt::Script* script,
+    wabt::SourceErrorHandlerBuffer* error_handler) {
+  return resolve_names_script(lexer, script, error_handler);
+}
+
+wabt::Result wabt_resolve_names_module(
+    wabt::WastLexer* lexer,
+    wabt::Module* module,
+    wabt::SourceErrorHandlerBuffer* error_handler) {
+  return resolve_names_module(lexer, module, error_handler);
+}
+
+wabt::Result wabt_validate_script(
+    wabt::WastLexer* lexer,
+    wabt::Script* script,
+    wabt::SourceErrorHandlerBuffer* error_handler) {
+  return validate_script(lexer, script, error_handler);
+}
+
+wabt::Result wabt_apply_names_module(wabt::Module* module) {
+  return apply_names(module);
+}
+
+wabt::Result wabt_generate_names_module(wabt::Module* module) {
+  return generate_names(module);
+}
+
+wabt::Module* wabt_get_first_module(wabt::Script* script) {
+  return script->GetFirstModule();
+}
+
+WabtWriteModuleResult* wabt_write_binary_module(wabt::Module* module,
+                                                int log,
+                                                int canonicalize_lebs,
+                                                int relocatable,
+                                                int write_debug_names) {
+  wabt::MemoryStream stream;
+  wabt::WriteBinaryOptions options;
+  options.log_stream = log ? &stream : nullptr;
+  options.canonicalize_lebs = canonicalize_lebs;
+  options.relocatable = relocatable;
+  options.write_debug_names = write_debug_names;
+
+  wabt::MemoryWriter writer;
+  WabtWriteModuleResult* result = new WabtWriteModuleResult();
+  result->result = write_binary_module(&writer, module, &options);
+  if (result->result == wabt::Result::Ok) {
+    result->buffer = writer.ReleaseOutputBuffer();
+    result->log_buffer = log ? stream.ReleaseOutputBuffer() : nullptr;
   }
+  return result;
+}
 
-/* See http://stackoverflow.com/a/1872506 */
-#define CONCAT(a, b) CONCAT_(a, b)
-#define CONCAT_(a, b) CONCAT__(a, b)
-#define CONCAT__(a, b) a##b
-#define FOREACH_1(m, S, s, x, ...) m(S, s, x)
-#define FOREACH_2(m, S, s, x, ...) m(S, s, x) FOREACH_1(m, S, s, __VA_ARGS__)
-#define FOREACH_3(m, S, s, x, ...) m(S, s, x) FOREACH_2(m, S, s, __VA_ARGS__)
-#define FOREACH_4(m, S, s, x, ...) m(S, s, x) FOREACH_3(m, S, s, __VA_ARGS__)
-#define FOREACH_5(m, S, s, x, ...) m(S, s, x) FOREACH_4(m, S, s, __VA_ARGS__)
-#define FOREACH_6(m, S, s, x, ...) m(S, s, x) FOREACH_5(m, S, s, __VA_ARGS__)
-#define FOREACH_7(m, S, s, x, ...) m(S, s, x) FOREACH_6(m, S, s, __VA_ARGS__)
-#define FOREACH_8(m, S, s, x, ...) m(S, s, x) FOREACH_7(m, S, s, __VA_ARGS__)
-#define NARG(...) NARG_(__VA_ARGS__, RSEQ_N())
-#define NARG_(...) ARG_N(__VA_ARGS__)
-#define ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
-#define RSEQ_N() 8, 7, 6, 5, 4, 3, 2, 1, 0
-#define FOREACH(m, S, s, ...) FOREACH_(NARG(__VA_ARGS__), m, S, s, __VA_ARGS__)
-#define FOREACH_(N, m, S, s, ...) CONCAT(FOREACH_, N)(m, S, s, __VA_ARGS__)
-#define DEFINE_STRUCT0(Name, name) DEFINE_SIZEOF(Name, name)
-#define DEFINE_STRUCT(Name, name, ...) \
-  DEFINE_SIZEOF(Name, name)            \
-  FOREACH(DEFINE_OFFSETOF, Name, name, __VA_ARGS__)
+WabtWriteModuleResult* wabt_write_text_module(wabt::Module* module,
+                                              int fold_exprs,
+                                              int inline_export) {
+  wabt::MemoryStream stream;
+  wabt::WriteWatOptions options;
+  options.fold_exprs = fold_exprs;
+  options.inline_export = inline_export;
 
-WABT_EXTERN_C_BEGIN
+  wabt::MemoryWriter writer;
+  WabtWriteModuleResult* result = new WabtWriteModuleResult();
+  result->result = write_wat(&writer, module, &options);
+  if (result->result == wabt::Result::Ok) {
+    result->buffer = writer.ReleaseOutputBuffer();
+  }
+  return result;
+}
 
-/* clang-format off */
-DEFINE_STRUCT(
-    WabtBinaryErrorHandler, binary_error_handler,
-    on_error, user_data)
+void wabt_destroy_script(wabt::Script* script) {
+  delete script;
+}
 
-DEFINE_STRUCT(
-    WabtLocation, location,
-    filename, line, first_column, last_column)
+void wabt_destroy_module(wabt::Module* module) {
+  delete module;
+}
 
-DEFINE_STRUCT(
-    WabtMemoryWriter, memory_writer,
-    base, buf)
+void wabt_destroy_wast_lexer(wabt::WastLexer* lexer) {
+  delete lexer;
+}
 
-DEFINE_STRUCT0(
-    WabtModule, module)
+// SourceErrorHandlerBuffer
+wabt::SourceErrorHandlerBuffer* wabt_new_source_error_handler_buffer(void) {
+  return new wabt::SourceErrorHandlerBuffer();
+}
 
-DEFINE_STRUCT(
-    WabtOutputBuffer, output_buffer,
-    start, size, capacity)
+const void* wabt_source_error_handler_buffer_get_data(
+    wabt::SourceErrorHandlerBuffer* error_handler) {
+  return error_handler->buffer().data();
+}
 
-DEFINE_STRUCT(
-    WabtReadBinaryOptions, read_binary_options,
-    read_debug_names)
+size_t wabt_source_error_handler_buffer_get_size(
+    wabt::SourceErrorHandlerBuffer* error_handler) {
+  return error_handler->buffer().size();
+}
 
-DEFINE_STRUCT0(
-    WabtScript, script)
+void wabt_destroy_source_error_handler_buffer(
+    wabt::SourceErrorHandlerBuffer* error_handler) {
+  delete error_handler;
+}
 
-DEFINE_STRUCT(
-    WabtSourceErrorHandler, source_error_handler,
-    on_error, source_line_max_length, user_data)
+// BinaryErrorHandlerBuffer
+wabt::BinaryErrorHandlerBuffer* wabt_new_binary_error_handler_buffer(void) {
+  return new wabt::BinaryErrorHandlerBuffer();
+}
 
-DEFINE_STRUCT(
-    WabtStream, stream,
-    writer, offset, result, log_stream)
+const void* wabt_binary_error_handler_buffer_get_data(
+    wabt::BinaryErrorHandlerBuffer* error_handler) {
+  return error_handler->buffer().data();
+}
 
-DEFINE_STRUCT(
-    WabtStringSlice, string_slice,
-    start, length)
+size_t wabt_binary_error_handler_buffer_get_size(
+    wabt::BinaryErrorHandlerBuffer* error_handler) {
+  return error_handler->buffer().size();
+}
 
-DEFINE_STRUCT(
-    WabtWriter, writer,
-    write_data, move_data)
+void wabt_destroy_binary_error_handler_buffer(
+    wabt::BinaryErrorHandlerBuffer* error_handler) {
+  delete error_handler;
+}
 
-DEFINE_STRUCT(
-    WabtWriteBinaryOptions, write_binary_options,
-    log_stream, canonicalize_lebs, write_debug_names)
-/* clang-format on */
+// WabtParseWastResult
+wabt::Result wabt_parse_wast_result_get_result(WabtParseWastResult* result) {
+  return result->result;
+}
 
-WABT_EXTERN_C_END
+wabt::Script* wabt_parse_wast_result_release_script(
+    WabtParseWastResult* result) {
+  return result->script.release();
+}
+
+void wabt_destroy_parse_wast_result(WabtParseWastResult* result) {
+  delete result;
+}
+
+// WabtReadBinaryResult
+wabt::Result wabt_read_binary_result_get_result(WabtReadBinaryResult* result) {
+  return result->result;
+}
+
+wabt::Module* wabt_read_binary_result_release_module(
+    WabtReadBinaryResult* result) {
+  return result->module.release();
+}
+
+void wabt_destroy_read_binary_result(WabtReadBinaryResult* result) {
+  delete result;
+}
+
+// WabtWriteModuleResult
+wabt::Result wabt_write_module_result_get_result(
+    WabtWriteModuleResult* result) {
+  return result->result;
+}
+
+wabt::OutputBuffer* wabt_write_module_result_release_output_buffer(
+    WabtWriteModuleResult* result) {
+  return result->buffer.release();
+}
+
+wabt::OutputBuffer* wabt_write_module_result_release_log_output_buffer(
+    WabtWriteModuleResult* result) {
+  return result->log_buffer.release();
+}
+
+void wabt_destroy_write_module_result(WabtWriteModuleResult* result) {
+  delete result;
+}
+
+// wabt::OutputBuffer*
+const void* wabt_output_buffer_get_data(wabt::OutputBuffer* output_buffer) {
+  return output_buffer->data.data();
+}
+
+size_t wabt_output_buffer_get_size(wabt::OutputBuffer* output_buffer) {
+  return output_buffer->data.size();
+}
+
+void wabt_destroy_output_buffer(wabt::OutputBuffer* output_buffer) {
+  delete output_buffer;
+}
+
+}  // extern "C"
 
 #endif /* WABT_EMSCRIPTEN_HELPERS_H_ */

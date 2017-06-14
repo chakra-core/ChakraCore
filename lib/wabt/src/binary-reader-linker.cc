@@ -18,7 +18,7 @@
 
 #include <vector>
 
-#include "binary-reader.h"
+#include "binary-reader-nop.h"
 #include "wasm-link.h"
 
 #define RELOC_SIZE 5
@@ -28,29 +28,86 @@ namespace link {
 
 namespace {
 
-struct Context {
-  LinkerInputBinary* binary;
+class BinaryReaderLinker : public BinaryReaderNop {
+ public:
+  explicit BinaryReaderLinker(LinkerInputBinary* binary);
 
-  Section* reloc_section;
-  Section* current_section;
+  Result BeginSection(BinarySection section_type, Offset size) override;
+
+  Result OnImportFunc(Index import_index,
+                      StringSlice module_name,
+                      StringSlice field_name,
+                      Index func_index,
+                      Index sig_index) override;
+  Result OnImportGlobal(Index import_index,
+                        StringSlice module_name,
+                        StringSlice field_name,
+                        Index global_index,
+                        Type type,
+                        bool mutable_) override;
+  Result OnImportMemory(Index import_index,
+                        StringSlice module_name,
+                        StringSlice field_name,
+                        Index memory_index,
+                        const Limits* page_limits) override;
+
+  Result OnFunctionCount(Index count) override;
+
+  Result OnTable(Index index,
+                 Type elem_type,
+                 const Limits* elem_limits) override;
+
+  Result OnMemory(Index index, const Limits* limits) override;
+
+  Result OnExport(Index index,
+                  ExternalKind kind,
+                  Index item_index,
+                  StringSlice name) override;
+
+  Result OnElemSegmentFunctionIndexCount(Index index,
+                                         Index count) override;
+
+  Result BeginDataSegment(Index index, Index memory_index) override;
+  Result OnDataSegmentData(Index index,
+                           const void* data,
+                           Address size) override;
+
+  Result BeginNamesSection(Offset size) override;
+
+  Result OnFunctionName(Index function_index,
+                        StringSlice function_name) override;
+
+  Result OnRelocCount(Index count,
+                      BinarySection section_code,
+                      StringSlice section_name) override;
+  Result OnReloc(RelocType type,
+                 Offset offset,
+                 Index index,
+                 uint32_t addend) override;
+
+  Result OnInitExprI32ConstExpr(Index index, uint32_t value) override;
+
+ private:
+  LinkerInputBinary* binary_;
+
+  Section* reloc_section_ = nullptr;
+  Section* current_section_ = nullptr;
 };
 
-}  // namespace
+BinaryReaderLinker::BinaryReaderLinker(LinkerInputBinary* binary)
+    : binary_(binary) {}
 
-static Result on_reloc_count(uint32_t count,
-                             BinarySection section_code,
-                             StringSlice section_name,
-                             void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  LinkerInputBinary* binary = ctx->binary;
+Result BinaryReaderLinker::OnRelocCount(Index count,
+                                        BinarySection section_code,
+                                        StringSlice section_name) {
   if (section_code == BinarySection::Custom) {
     WABT_FATAL("relocation for custom sections not yet supported\n");
   }
 
-  for (const std::unique_ptr<Section>& section : binary->sections) {
+  for (const std::unique_ptr<Section>& section : binary_->sections) {
     if (section->section_code != section_code)
       continue;
-    ctx->reloc_section = section.get();
+    reloc_section_ = section.get();
     return Result::Ok;
   }
 
@@ -58,83 +115,78 @@ static Result on_reloc_count(uint32_t count,
   return Result::Error;
 }
 
-static Result on_reloc(RelocType type,
-                       uint32_t offset,
-                       uint32_t index,
-                       int32_t addend,
-                       void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-
-  if (offset + RELOC_SIZE > ctx->reloc_section->size) {
-    WABT_FATAL("invalid relocation offset: %#x\n", offset);
+Result BinaryReaderLinker::OnReloc(RelocType type,
+                                   Offset offset,
+                                   Index index,
+                                   uint32_t addend) {
+  if (offset + RELOC_SIZE > reloc_section_->size) {
+    WABT_FATAL("invalid relocation offset: %#" PRIoffset "\n", offset);
   }
 
-  ctx->reloc_section->relocations.emplace_back(type, offset, index, addend);
+  reloc_section_->relocations.emplace_back(type, offset, index, addend);
 
   return Result::Ok;
 }
 
-static Result on_import(uint32_t index,
-                        StringSlice module_name,
-                        StringSlice field_name,
-                        void* user_data) {
-  if (!string_slice_eq_cstr(&module_name, WABT_LINK_MODULE_NAME)) {
-    WABT_FATAL("unsupported import module: " PRIstringslice,
-               WABT_PRINTF_STRING_SLICE_ARG(module_name));
-  }
-  return Result::Ok;
-}
-
-static Result on_import_func(uint32_t import_index,
-                             StringSlice module_name,
-                             StringSlice field_name,
-                             uint32_t global_index,
-                             uint32_t sig_index,
-                             void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  ctx->binary->function_imports.emplace_back();
-  FunctionImport* import = &ctx->binary->function_imports.back();
+Result BinaryReaderLinker::OnImportFunc(Index import_index,
+                                        StringSlice module_name,
+                                        StringSlice field_name,
+                                        Index global_index,
+                                        Index sig_index) {
+  binary_->function_imports.emplace_back();
+  FunctionImport* import = &binary_->function_imports.back();
+  import->module_name = module_name;
   import->name = field_name;
   import->sig_index = sig_index;
   import->active = true;
-  ctx->binary->active_function_imports++;
+  binary_->active_function_imports++;
   return Result::Ok;
 }
 
-static Result on_import_global(uint32_t import_index,
-                               StringSlice module_name,
-                               StringSlice field_name,
-                               uint32_t global_index,
-                               Type type,
-                               bool mutable_,
-                               void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  ctx->binary->global_imports.emplace_back();
-  GlobalImport* import = &ctx->binary->global_imports.back();
+Result BinaryReaderLinker::OnImportGlobal(Index import_index,
+                                          StringSlice module_name,
+                                          StringSlice field_name,
+                                          Index global_index,
+                                          Type type,
+                                          bool mutable_) {
+  binary_->global_imports.emplace_back();
+  GlobalImport* import = &binary_->global_imports.back();
+  import->module_name = module_name;
   import->name = field_name;
   import->type = type;
   import->mutable_ = mutable_;
-  ctx->binary->active_global_imports++;
+  binary_->active_global_imports++;
   return Result::Ok;
 }
 
-static Result begin_section(BinaryReaderContext* ctx,
-                            BinarySection section_code,
-                            uint32_t size) {
-  Context* context = static_cast<Context*>(ctx->user_data);
-  LinkerInputBinary* binary = context->binary;
+Result BinaryReaderLinker::OnImportMemory(Index import_index,
+                                          StringSlice module_name,
+                                          StringSlice field_name,
+                                          Index memory_index,
+                                          const Limits* page_limits) {
+  WABT_FATAL("Linker does not support imported memories");
+  return Result::Error;
+}
+
+Result BinaryReaderLinker::OnFunctionCount(Index count) {
+  binary_->function_count = count;
+  return Result::Ok;
+}
+
+Result BinaryReaderLinker::BeginSection(BinarySection section_code,
+                                        Offset size) {
   Section* sec = new Section();
-  binary->sections.emplace_back(sec);
-  context->current_section = sec;
+  binary_->sections.emplace_back(sec);
+  current_section_ = sec;
   sec->section_code = section_code;
   sec->size = size;
-  sec->offset = ctx->offset;
-  sec->binary = binary;
+  sec->offset = state->offset;
+  sec->binary = binary_;
 
   if (sec->section_code != BinarySection::Custom &&
       sec->section_code != BinarySection::Start) {
     size_t bytes_read = read_u32_leb128(
-        &binary->data[sec->offset], &binary->data[binary->size], &sec->count);
+        &binary_->data[sec->offset], &binary_->data[binary_->size], &sec->count);
     if (bytes_read == 0)
       WABT_FATAL("error reading section element count\n");
     sec->payload_offset = sec->offset + bytes_read;
@@ -143,202 +195,99 @@ static Result begin_section(BinaryReaderContext* ctx,
   return Result::Ok;
 }
 
-static Result begin_custom_section(BinaryReaderContext* ctx,
-                                   uint32_t size,
-                                   StringSlice section_name) {
-  Context* context = static_cast<Context*>(ctx->user_data);
-  LinkerInputBinary* binary = context->binary;
-  Section* sec = context->current_section;
-  sec->data_custom.name = section_name;
-
-  /* Modify section size and offset to not include the name itself. */
-  size_t delta = ctx->offset - sec->offset;
-  sec->offset = sec->offset + delta;
-  sec->size = sec->size - delta;
-  sec->payload_offset = sec->offset;
-  sec->payload_size = sec->size;
-
-  /* Special handling for certain CUSTOM sections */
-  if (string_slice_eq_cstr(&section_name, "name")) {
-    uint32_t name_type;
-    size_t bytes_read = read_u32_leb128(
-        &binary->data[sec->offset], &binary->data[binary->size], &name_type);
-
-    if (static_cast<NameSectionSubsection>(name_type) != NameSectionSubsection::Function) {
-      WABT_FATAL("no function name section");
-    }
-
-    sec->payload_offset += bytes_read;
-    sec->payload_size -= bytes_read;
-
-    uint32_t subsection_size;
-    bytes_read = read_u32_leb128(
-        &binary->data[sec->offset], &binary->data[binary->size], &subsection_size);
-
-    sec->payload_offset += bytes_read;
-    sec->payload_size -= bytes_read;
-
-    bytes_read = read_u32_leb128(
-        &binary->data[sec->payload_offset], &binary->data[binary->size], &sec->count);
-    sec->payload_offset += bytes_read;
-    sec->payload_size -= bytes_read;
-
-    /* We don't currently support merging name sections unless they contain
-     * a name for every function. */
-    uint32_t total_funcs = binary->function_imports.size();
-    for (const std::unique_ptr<Section>& section : binary->sections) {
-      if (section->section_code == BinarySection::Function) {
-        total_funcs += section->count;
-        break;
-      }
-    }
-    if (total_funcs != sec->count) {
-      WABT_FATAL("name section count (%d) does not match function count (%d)\n",
-                 sec->count, total_funcs);
-    }
-  }
-
-  return Result::Ok;
-}
-
-static Result on_table(uint32_t index,
-                       Type elem_type,
-                       const Limits* elem_limits,
-                       void* user_data) {
+Result BinaryReaderLinker::OnTable(Index index,
+                                   Type elem_type,
+                                   const Limits* elem_limits) {
   if (elem_limits->has_max && (elem_limits->max != elem_limits->initial))
     WABT_FATAL("Tables with max != initial not supported by wabt-link\n");
 
-  Context* ctx = static_cast<Context*>(user_data);
-  ctx->binary->table_elem_count = elem_limits->initial;
+  binary_->table_elem_count = elem_limits->initial;
   return Result::Ok;
 }
 
-static Result on_elem_segment_function_index_count(BinaryReaderContext* ctx,
-                                                   uint32_t index,
-                                                   uint32_t count) {
-  Context* context = static_cast<Context*>(ctx->user_data);
-  Section* sec = context->current_section;
+Result BinaryReaderLinker::OnElemSegmentFunctionIndexCount(Index index,
+                                                           Index count) {
+  Section* sec = current_section_;
 
   /* Modify the payload to include only the actual function indexes */
-  size_t delta = ctx->offset - sec->payload_offset;
+  size_t delta = state->offset - sec->payload_offset;
   sec->payload_offset += delta;
   sec->payload_size -= delta;
   return Result::Ok;
 }
 
-static Result on_memory(uint32_t index,
-                        const Limits* page_limits,
-                        void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  Section* sec = ctx->current_section;
-  sec->memory_limits = *page_limits;
-  ctx->binary->memory_page_count = page_limits->initial;
+Result BinaryReaderLinker::OnMemory(Index index, const Limits* page_limits) {
+  Section* sec = current_section_;
+  sec->data.memory_limits = *page_limits;
+  binary_->memory_page_count = page_limits->initial;
   return Result::Ok;
 }
 
-static Result begin_data_segment(uint32_t index,
-                                 uint32_t memory_index,
-                                 void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  Section* sec = ctx->current_section;
-  if (!sec->data_segments) {
-    sec->data_segments = new std::vector<DataSegment>();
+Result BinaryReaderLinker::BeginDataSegment(Index index, Index memory_index) {
+  Section* sec = current_section_;
+  if (!sec->data.data_segments) {
+    sec->data.data_segments = new std::vector<DataSegment>();
   }
-  sec->data_segments->emplace_back();
-  DataSegment& segment = sec->data_segments->back();
+  sec->data.data_segments->emplace_back();
+  DataSegment& segment = sec->data.data_segments->back();
   segment.memory_index = memory_index;
   return Result::Ok;
 }
 
-static Result on_init_expr_i32_const_expr(uint32_t index,
-                                          uint32_t value,
-                                          void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  Section* sec = ctx->current_section;
+Result BinaryReaderLinker::OnInitExprI32ConstExpr(Index index, uint32_t value) {
+  Section* sec = current_section_;
   if (sec->section_code != BinarySection::Data)
     return Result::Ok;
-  DataSegment& segment = sec->data_segments->back();
+  DataSegment& segment = sec->data.data_segments->back();
   segment.offset = value;
   return Result::Ok;
 }
 
-static Result on_data_segment_data(uint32_t index,
-                                   const void* src_data,
-                                   uint32_t size,
-                                   void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  Section* sec = ctx->current_section;
-  DataSegment& segment = sec->data_segments->back();
+Result BinaryReaderLinker::OnDataSegmentData(Index index,
+                                             const void* src_data,
+                                             Address size) {
+  Section* sec = current_section_;
+  DataSegment& segment = sec->data.data_segments->back();
   segment.data = static_cast<const uint8_t*>(src_data);
   segment.size = size;
   return Result::Ok;
 }
 
-static Result on_export(uint32_t index,
-                        ExternalKind kind,
-                        uint32_t item_index,
-                        StringSlice name,
-                        void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  ctx->binary->exports.emplace_back();
-  Export* export_ = &ctx->binary->exports.back();
+Result BinaryReaderLinker::OnExport(Index index,
+                                    ExternalKind kind,
+                                    Index item_index,
+                                    StringSlice name) {
+  if (kind == ExternalKind::Memory) {
+    WABT_FATAL("Linker does not support exported memories");
+  }
+  binary_->exports.emplace_back();
+  Export* export_ = &binary_->exports.back();
   export_->name = name;
   export_->kind = kind;
   export_->index = item_index;
   return Result::Ok;
 }
 
-static Result on_function_name(uint32_t index,
-                               StringSlice name,
-                               void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  while (ctx->binary->debug_names.size() < index) {
-    ctx->binary->debug_names.emplace_back();
-  }
-  if (ctx->binary->debug_names.size() == index) {
-    ctx->binary->debug_names.push_back(string_slice_to_string(name));
-  }
+Result BinaryReaderLinker::BeginNamesSection(Offset size) {
+  binary_->debug_names.resize(binary_->function_count +
+                              binary_->function_imports.size());
   return Result::Ok;
 }
 
-Result read_binary_linker(LinkerInputBinary* input_info,
-                          LinkOptions* options) {
-  Context context;
-  WABT_ZERO_MEMORY(context);
-  context.binary = input_info;
+Result BinaryReaderLinker::OnFunctionName(Index index, StringSlice name) {
+  binary_->debug_names[index] = string_slice_to_string(name);
+  return Result::Ok;
+}
 
-  BinaryReader reader;
-  WABT_ZERO_MEMORY(reader);
-  reader.user_data = &context;
-  reader.begin_section = begin_section;
-  reader.begin_custom_section = begin_custom_section;
+}  // namespace
 
-  reader.on_reloc_count = on_reloc_count;
-  reader.on_reloc = on_reloc;
-
-  reader.on_import = on_import;
-  reader.on_import_func = on_import_func;
-  reader.on_import_global = on_import_global;
-
-  reader.on_export = on_export;
-
-  reader.on_table = on_table;
-
-  reader.on_memory = on_memory;
-
-  reader.begin_data_segment = begin_data_segment;
-  reader.on_init_expr_i32_const_expr = on_init_expr_i32_const_expr;
-  reader.on_data_segment_data = on_data_segment_data;
-
-  reader.on_elem_segment_function_index_count =
-      on_elem_segment_function_index_count;
-
-  reader.on_function_name = on_function_name;
+Result read_binary_linker(LinkerInputBinary* input_info, LinkOptions* options) {
+  BinaryReaderLinker reader(input_info);
 
   ReadBinaryOptions read_options = WABT_READ_BINARY_OPTIONS_DEFAULT;
   read_options.read_debug_names = true;
   read_options.log_stream = options->log_stream;
-  return read_binary(input_info->data, input_info->size, &reader, 1,
+  return read_binary(input_info->data, input_info->size, &reader,
                      &read_options);
 }
 

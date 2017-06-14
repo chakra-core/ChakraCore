@@ -16,9 +16,9 @@
 
 #include "option-parser.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstring>
 
 #include "config.h"
 
@@ -28,20 +28,89 @@
 
 namespace wabt {
 
-static int option_match(const char* s,
-                        const char* full,
-                        HasArgument has_argument) {
+OptionParser::Option::Option(char short_name,
+                             const std::string& long_name,
+                             const std::string& metavar,
+                             HasArgument has_argument,
+                             const std::string& help,
+                             const Callback& callback)
+    : short_name(short_name),
+      long_name(long_name),
+      metavar(metavar),
+      has_argument(has_argument == HasArgument::Yes),
+      help(help),
+      callback(callback) {}
+
+OptionParser::Argument::Argument(const std::string& name,
+                                 ArgumentCount count,
+                                 const Callback& callback)
+    : name(name), count(count), callback(callback) {}
+
+OptionParser::OptionParser(const char* program_name, const char* description)
+    : program_name_(program_name),
+      description_(description),
+      on_error_([this](const std::string& message) { DefaultError(message); }) {
+}
+
+void OptionParser::AddOption(const Option& option) {
+  options_.emplace_back(option);
+}
+
+void OptionParser::AddArgument(const std::string& name,
+                               ArgumentCount count,
+                               const Callback& callback) {
+  arguments_.emplace_back(name, count, callback);
+}
+
+void OptionParser::AddOption(char short_name,
+                             const char* long_name,
+                             const char* help,
+                             const NullCallback& callback) {
+  Option option(short_name, long_name, std::string(), HasArgument::No, help,
+                [callback](const char*) { callback(); });
+  AddOption(option);
+}
+
+void OptionParser::AddOption(const char* long_name,
+                             const char* help,
+                             const NullCallback& callback){
+  Option option('\0', long_name, std::string(), HasArgument::No, help,
+                [callback](const char*) { callback(); });
+  AddOption(option);
+}
+
+void OptionParser::AddOption(char short_name,
+                             const char* long_name,
+                             const char* metavar,
+                             const char* help,
+                             const Callback& callback) {
+  Option option(short_name, long_name, metavar, HasArgument::Yes, help,
+                callback);
+  AddOption(option);
+}
+
+void OptionParser::AddHelpOption() {
+  AddOption('h', "help", "Print this help message", [this]() {
+    PrintHelp();
+    exit(0);
+  });
+}
+
+// static
+int OptionParser::Match(const char* s,
+                        const std::string& full,
+                        bool has_argument) {
   int i;
   for (i = 0;; i++) {
     if (full[i] == '\0') {
-      /* perfect match. return +1, so it will be preferred over a longer option
-       * with the same prefix */
+      // Perfect match. Return +1, so it will be preferred over a longer option
+      // with the same prefix.
       if (s[i] == '\0')
         return i + 1;
 
-      /* we want to fail if s is longer than full, e.g. --foobar vs. --foo.
-       * However, if s ends with an '=', it's OK. */
-      if (!(has_argument == HasArgument::Yes && s[i] == '='))
+      // We want to fail if s is longer than full, e.g. --foobar vs. --foo.
+      // However, if s ends with an '=', it's OK.
+      if (!(has_argument && s[i] == '='))
         return -1;
       break;
     }
@@ -53,28 +122,45 @@ static int option_match(const char* s,
   return i;
 }
 
-static void WABT_PRINTF_FORMAT(2, 3)
-    error(OptionParser* parser, const char* format, ...) {
+void OptionParser::Errorf(const char* format, ...) {
   WABT_SNPRINTF_ALLOCA(buffer, length, format);
-  parser->on_error(parser, buffer);
+  on_error_(buffer);
 }
 
-void parse_options(OptionParser* parser, int argc, char** argv) {
-  parser->argv0 = argv[0];
+void OptionParser::DefaultError(const std::string& message) {
+  WABT_FATAL("%s\n", message.c_str());
+}
+
+void OptionParser::HandleArgument(size_t* arg_index, const char* arg_value) {
+  if (*arg_index >= arguments_.size()) {
+    Errorf("unexpected argument '%s'", arg_value);
+    return;
+  }
+  Argument& argument = arguments_[*arg_index];
+  argument.callback(arg_value);
+  argument.handled_count++;
+
+  if (argument.count == ArgumentCount::One) {
+    (*arg_index)++;
+  }
+}
+
+void OptionParser::Parse(int argc, char* argv[]) {
+  size_t arg_index = 0;
 
   for (int i = 1; i < argc; ++i) {
-    char* arg = argv[i];
+    const char* arg = argv[i];
     if (arg[0] == '-') {
       if (arg[1] == '-') {
-        /* long option */
+        // Long option.
         int best_index = -1;
         int best_length = 0;
         int best_count = 0;
-        for (int j = 0; j < parser->num_options; ++j) {
-          Option* option = &parser->options[j];
-          if (option->long_name) {
+        for (size_t j = 0; j < options_.size(); ++j) {
+          const Option& option = options_[j];
+          if (!option.long_name.empty()) {
             int match_length =
-                option_match(&arg[2], option->long_name, option->has_argument);
+                Match(&arg[2], option.long_name, option.has_argument);
             if (match_length > best_length) {
               best_index = j;
               best_length = match_length;
@@ -86,97 +172,115 @@ void parse_options(OptionParser* parser, int argc, char** argv) {
         }
 
         if (best_count > 1) {
-          error(parser, "ambiguous option \"%s\"", arg);
+          Errorf("ambiguous option '%s'", arg);
           continue;
         } else if (best_count == 0) {
-          error(parser, "unknown option \"%s\"", arg);
+          Errorf("unknown option '%s'", arg);
           continue;
         }
 
-        Option* best_option = &parser->options[best_index];
+        const Option& best_option = options_[best_index];
         const char* option_argument = nullptr;
-        if (best_option->has_argument == HasArgument::Yes) {
+        if (best_option.has_argument) {
           if (arg[best_length] == '=') {
             option_argument = &arg[best_length + 1];
           } else {
             if (i + 1 == argc || argv[i + 1][0] == '-') {
-              error(parser, "option \"--%s\" requires argument",
-                    best_option->long_name);
+              Errorf("option '--%s' requires argument",
+                     best_option.long_name.c_str());
               continue;
             }
             ++i;
             option_argument = argv[i];
           }
         }
-        parser->on_option(parser, best_option, option_argument);
+        best_option.callback(option_argument);
       } else {
-        /* short option */
+        // Short option.
         if (arg[1] == '\0') {
-          /* just "-" */
-          parser->on_argument(parser, arg);
+          // Just "-".
+          HandleArgument(&arg_index, arg);
           continue;
         }
 
-        /* allow short names to be combined, e.g. "-d -v" => "-dv" */
+        // Allow short names to be combined, e.g. "-d -v" => "-dv".
         for (int k = 1; arg[k]; ++k) {
           bool matched = false;
-          for (int j = 0; j < parser->num_options; ++j) {
-            Option* option = &parser->options[j];
-            if (option->short_name && arg[k] == option->short_name) {
+          for (const Option& option: options_) {
+            if (option.short_name && arg[k] == option.short_name) {
               const char* option_argument = nullptr;
-              if (option->has_argument == HasArgument::Yes) {
-                /* a short option with a required argument cannot be followed
-                 * by other short options */
+              if (option.has_argument) {
+                // A short option with a required argument cannot be followed
+                // by other short options_.
                 if (arg[k + 1] != '\0') {
-                  error(parser, "option \"-%c\" requires argument",
-                        option->short_name);
+                  Errorf("option '-%c' requires argument", option.short_name);
                   break;
                 }
 
                 if (i + 1 == argc || argv[i + 1][0] == '-') {
-                  error(parser, "option \"-%c\" requires argument",
-                        option->short_name);
+                  Errorf("option '-%c' requires argument", option.short_name);
                   break;
                 }
                 ++i;
                 option_argument = argv[i];
               }
-              parser->on_option(parser, option, option_argument);
+              option.callback(option_argument);
               matched = true;
               break;
             }
           }
 
           if (!matched) {
-            error(parser, "unknown option \"-%c\"", arg[k]);
+            Errorf("unknown option '-%c'", arg[k]);
             continue;
           }
         }
       }
     } else {
-      /* non-option argument */
-      parser->on_argument(parser, arg);
+      // Non-option argument.
+      HandleArgument(&arg_index, arg);
+    }
+  }
+
+  // For now, all arguments must be provided. Check that the last Argument was
+  // handled at least once.
+  if (!arguments_.empty() && arguments_.back().handled_count == 0) {
+    PrintHelp();
+    for (size_t i = arg_index; i < arguments_.size(); ++i) {
+      Errorf("expected %s argument.\n", arguments_[i].name.c_str());
     }
   }
 }
 
-void print_help(OptionParser* parser, const char* program_name) {
-  /* TODO(binji): do something more generic for filename here */
-  printf("usage: %s [options] filename\n\n", program_name);
-  printf("%s\n", parser->description);
+void OptionParser::PrintHelp() {
+  printf("usage: %s [options]", program_name_.c_str());
+
+  for (size_t i = 0; i < arguments_.size(); ++i) {
+    Argument& argument = arguments_[i];
+    switch (argument.count) {
+      case ArgumentCount::One:
+        printf(" %s", argument.name.c_str());
+        break;
+
+      case ArgumentCount::OneOrMore:
+        printf(" %s+", argument.name.c_str());
+        break;
+    }
+  }
+
+  printf("\n\n");
+  printf("%s\n", description_.c_str());
   printf("options:\n");
 
-  const int extra_space = 8;
-  int longest_name_length = 0;
-  for (int i = 0; i < parser->num_options; ++i) {
-    Option* option = &parser->options[i];
-    int length;
-    if (option->long_name) {
-      if (option->metavar) {
-        length =
-            snprintf(nullptr, 0, "%s=%s", option->long_name, option->metavar);
-      } else {
-        length = snprintf(nullptr, 0, "%s", option->long_name);
+  const size_t kExtraSpace = 8;
+  size_t longest_name_length = 0;
+  for (const Option& option: options_) {
+    size_t length;
+    if (!option.long_name.empty()) {
+      length = option.long_name.size();
+      if (!option.metavar.empty()) {
+        // +1 for '='.
+        length += option.metavar.size() + 1;
       }
     } else {
       continue;
@@ -186,41 +290,33 @@ void print_help(OptionParser* parser, const char* program_name) {
       longest_name_length = length;
   }
 
-  size_t buffer_size = longest_name_length + 1;
-  char* buffer = static_cast<char*>(alloca(buffer_size));
-
-  for (int i = 0; i < parser->num_options; ++i) {
-    Option* option = &parser->options[i];
-    if (!option->short_name && !option->long_name)
+  for (const Option& option: options_) {
+    if (!option.short_name && option.long_name.empty())
       continue;
 
-    if (option->short_name)
-      printf("  -%c, ", option->short_name);
+    std::string line;
+    if (option.short_name)
+      line += std::string("  -") + option.short_name + ", ";
     else
-      printf("      ");
+      line += "      ";
 
-    char format[20];
-    if (option->long_name) {
-      snprintf(format, sizeof(format), "--%%-%ds",
-               longest_name_length + extra_space);
-
-      if (option->metavar) {
-        snprintf(buffer, buffer_size, "%s=%s", option->long_name,
-                 option->metavar);
-        printf(format, buffer);
+    std::string flag;
+    if (!option.long_name.empty()) {
+      flag = "--";
+      if (!option.metavar.empty()) {
+        flag += option.long_name + '=' + option.metavar;
       } else {
-        printf(format, option->long_name);
+        flag += option.long_name;
       }
-    } else {
-      /* +2 for the extra "--" above */
-      snprintf(format, sizeof(format), "%%-%ds",
-               longest_name_length + extra_space + 2);
-      printf(format, "");
     }
 
-    if (option->help)
-      printf("%s", option->help);
-    printf("\n");
+    // +2 for "--" of the long flag name.
+    size_t remaining = longest_name_length + kExtraSpace + 2 - flag.size();
+    line += flag + std::string(remaining, ' ');
+
+    if (!option.help.empty())
+      line += option.help;
+    printf("%s\n", line.c_str());
   }
 }
 
