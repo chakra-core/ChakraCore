@@ -190,7 +190,7 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        Assert(args.Info.Count >= 3 && JavascriptString::Is(args.Values[1]) && JavascriptFunction::Is(args.Values[2]));
+        AssertOrFailFast(args.Info.Count >= 3 && JavascriptString::Is(args.Values[1]) && JavascriptFunction::Is(args.Values[2]));
 
         // retrieves arguments
         JavascriptString* methodName = JavascriptString::FromVar(args.Values[1]);
@@ -223,7 +223,7 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        Assert(args.Info.Count >= 3 && JavascriptObject::Is(args.Values[1]) && JavascriptFunction::Is(args.Values[2]));
+        AssertOrFailFast(args.Info.Count >= 3 && JavascriptObject::Is(args.Values[1]) && JavascriptFunction::Is(args.Values[2]));
 
         // retrieves arguments
         RecyclableObject* funcInfo = nullptr;
@@ -281,14 +281,14 @@ namespace Js
     Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToLengthFunction(RecyclableObject * function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        Assert(args.Info.Count >= 2);
+        AssertOrFailFast(args.Info.Count >= 2);
         return JavascriptNumber::ToVar(JavascriptConversion::ToLength(args.Values[1], scriptContext), scriptContext);
     }
 
     Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToIntegerFunction(RecyclableObject * function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        Assert(args.Info.Count >= 2);
+        AssertOrFailFast(args.Info.Count >= 2);
 
         Var value = args.Values[1];
         if (JavascriptOperators::IsUndefinedOrNull(value))
