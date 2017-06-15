@@ -84,11 +84,17 @@ namespace Js
 
     HRESULT SourceTextModuleRecord::ParseSource(__in_bcount(sourceLength) byte* sourceText, uint32 sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8)
     {
-        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ParseSource(%s)\n"), this->GetSpecifierSz());
-        Assert(!wasParsed);
+        Assert(!wasParsed || sourceText == nullptr);
         Assert(parser == nullptr);
         Assert(exceptionVar != nullptr);
         HRESULT hr = NOERROR;
+
+        // Return if loading failure has been reported
+        if (sourceText == nullptr && wasParsed)
+        {
+            return hr;
+        }
+
         ScriptContext* scriptContext = GetScriptContext();
         CompileScriptException se;
         ArenaAllocator* allocator = scriptContext->GeneralAllocator();
@@ -100,10 +106,12 @@ namespace Js
             *exceptionVar = pError;
             return E_NOTIMPL;
         }
+
         // Host indicates that the current module failed to load.
         if (sourceText == nullptr)
         {
             Assert(sourceLength == 0);
+            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("Failed to load: %s\n"), this->GetSpecifierSz());
             hr = E_FAIL;
             JavascriptError *pError = scriptContext->GetLibrary()->CreateURIError();
             JavascriptError::SetErrorMessageProperties(pError, hr, this->GetSpecifierSz(), scriptContext);
@@ -111,6 +119,7 @@ namespace Js
         }
         else
         {
+            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ParseSource(%s)\n"), this->GetSpecifierSz());
             try
             {
                 AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
@@ -157,6 +166,7 @@ namespace Js
                 }
             }
         }
+
         if (FAILED(hr))
         {
             if (*exceptionVar == nullptr)
@@ -174,12 +184,26 @@ namespace Js
                 this->errorObject = *exceptionVar;
             }
 
-            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded\n"));
             if (this->promise != nullptr)
             {
                 SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this);
             }
 
+            // Notify host if current module is dynamically-loaded module, or is root module and the host hasn't been notified
+            bool isScriptActive = scriptContext->GetThreadContext()->IsScriptActive();
+            if (this->promise != nullptr || (isRootModule && !hadNotifyHostReady))
+            {
+                OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (ParseSource error)\n"), this->GetSpecifierSz());
+                LEAVE_SCRIPT_IF(scriptContext, isScriptActive,
+                {
+                    scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
+                });
+
+                hadNotifyHostReady = true;
+            }
+
+            // Notify parent if applicable
+            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded\n"));
             NotifyParentsAsNeeded();
         }
         return hr;
@@ -251,6 +275,7 @@ namespace Js
                     {
                         bool isScriptActive = scriptContext->GetThreadContext()->IsScriptActive();
 
+                        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (PostProcessDynamicModuleImport)\n"), this->GetSpecifierSz());
                         LEAVE_SCRIPT_IF(scriptContext, isScriptActive,
                         {
                             hr = scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
@@ -293,6 +318,7 @@ namespace Js
                 ModuleDeclarationInstantiation();
                 if (!hadNotifyHostReady && !WasEvaluated())
                 {
+                    OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (PrepareForModuleDeclarationInitialization)\n"), this->GetSpecifierSz());
                     LEAVE_SCRIPT_IF(scriptContext, isScriptActive,
                     {
                         hr = scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
@@ -335,6 +361,7 @@ namespace Js
 
             if (this->promise != nullptr || (isRootModule && !hadNotifyHostReady))
             {
+                OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (OnChildModuleReady)\n"), this->GetSpecifierSz());
                 LEAVE_SCRIPT_IF(scriptContext, isScriptActive,
                 {
                     hr = scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
@@ -710,16 +737,30 @@ namespace Js
                         return true;
                     }
                     moduleRecord = SourceTextModuleRecord::FromHost(moduleRecordBase);
-                    OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>SetParent in (%s)\n"), moduleRecord->GetSpecifierSz());
-                    moduleRecord->SetParent(this, moduleName);
+                    Var errorObject = moduleRecord->GetErrorObject();
+                    if (errorObject == nullptr)
+                    {
+                        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>SetParent in (%s)\n"), moduleRecord->GetSpecifierSz());
+                        moduleRecord->SetParent(this, moduleName);
+                    }
+                    else
+                    {
+                        this->errorObject = errorObject;
+                        hr = E_FAIL;
+                        return true;
+                    }
                 }
                 return false;
             });
             if (FAILED(hr))
             {
-                JavascriptError *error = scriptContext->GetLibrary()->CreateError();
-                JavascriptError::SetErrorMessageProperties(error, hr, _u("fetch import module failed"), scriptContext);
-                this->errorObject = error;
+                if (this->errorObject == nullptr)
+                {
+                    JavascriptError *error = scriptContext->GetLibrary()->CreateError();
+                    JavascriptError::SetErrorMessageProperties(error, hr, _u("fetch import module failed"), scriptContext);
+                    this->errorObject = error;
+                }
+
                 OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\tfetch import module failed\n"));
                 NotifyParentsAsNeeded();
             }
