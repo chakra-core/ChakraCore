@@ -139,7 +139,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
     //
     if (fopen_s(&file, filename, "rb") != 0)
     {
-        if (!HostConfigFlags::flags.AsyncModuleLoadIsEnabled)
+        if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
         {
 #ifdef _WIN32
             DWORD lastError = GetLastError();
