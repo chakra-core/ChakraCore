@@ -6511,7 +6511,7 @@ CommonNumber:
             aParent = CrossSite::MarshalVar(scriptContext, aParent);
             if (i == length)
             {
-                length += 8;
+                length = UInt16Math::Add(length, 8);
                 FrameDisplay * tmp = RecyclerNewPlus(scriptContext->GetRecycler(), length * sizeof(void*), FrameDisplay, length);
                 js_memcpy_s((char*)tmp + tmp->GetOffsetOfScopes(), tmp->GetLength() * sizeof(void *), (char*)pDisplay + pDisplay->GetOffsetOfScopes(), pDisplay->GetLength() * sizeof(void*));
                 pDisplay = tmp;
@@ -6569,10 +6569,10 @@ CommonNumber:
 
         FrameDisplay *pDisplay = nullptr;
         FrameDisplay *envDisplay = (FrameDisplay*)argEnv;
-        uint16 length = envDisplay->GetLength() + 1;
+        uint16 length = UInt16Math::Add(envDisplay->GetLength(), 1);
 
         pDisplay = RecyclerNewPlus(scriptContext->GetRecycler(), length * sizeof(void*), FrameDisplay, length);
-        for (int j = 0; j < length - 1; j++)
+        for (uint16 j = 0; j < length - 1; j++)
         {
             pDisplay->SetItem(j + 1, envDisplay->GetItem(j));
         }

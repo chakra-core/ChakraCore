@@ -20,6 +20,7 @@
     <ClCompile>
       <PreprocessorDefinitions>
         %(PreprocessorDefinitions);
+        _CHAKRACOREBUILD;
         _WIN32_WINNT=$(Win32_WinNTVersion);
         WINVER=$(Win32_WinNTVersion);
         WIN32_LEAN_AND_MEAN=1
@@ -49,6 +50,9 @@
       </AdditionalIncludeDirectories>
     </ClCompile>
 
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);_CHAKRACOREBUILD</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
 
   <!-- Link dependencies for projects that link with Chakra libraries -->

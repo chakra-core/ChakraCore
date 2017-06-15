@@ -563,7 +563,7 @@ namespace Js
 
         if(isUnordered)
         {
-            newTypeHandler->CopyUnorderedStateFrom(*AsUnordered());
+            newTypeHandler->CopyUnorderedStateFrom(*AsUnordered(), instance);
         }
         else
         {
@@ -2658,6 +2658,7 @@ namespace Js
                 ->AddProperty(instance, propertyKey, value, attributes, info, flags, possibleSideEffects);
         }
 
+        // CONSIDER: Do this after TryReuseDeletedPropertyIndex. If we can reuse slots, no need to grow right now.
         if (this->GetSlotCapacity() <= nextPropertyIndex)
         {
             if (this->GetSlotCapacity() >= MaxPropertyIndexSize)

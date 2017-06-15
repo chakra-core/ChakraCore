@@ -5236,16 +5236,30 @@ Case0:
 
         if (hasInlineSegment)
         {
-            SparseArraySegmentBase* headSegBase = array->head;
-            SparseArraySegment<T>* headSeg = (SparseArraySegment<T>*)headSegBase;
-
-            AnalysisAssert(headSeg);
-            SparseArraySegment<T>* newHeadSeg = SparseArraySegment<T>::template AllocateSegmentImpl<false>(recycler,
-                headSeg->left, headSeg->length, headSeg->size, headSeg->next);
-
-            newHeadSeg = SparseArraySegment<T>::CopySegment(recycler, newHeadSeg, headSeg->left, headSeg, headSeg->left, headSeg->length);
-            newHeadSeg->next = headSeg->next;
+            AnalysisAssert(array->head);
+            SparseArraySegment<T>* newHeadSeg = array->ReallocNonLeafSegment((SparseArraySegment<T>*)PointerValue(array->head), array->head->next);
             array->head = newHeadSeg;
+        }
+    }
+
+    template <typename T>
+    void JavascriptArray::ReallocateNonLeafLastSegmentIfLeaf(JavascriptArray * arr, Recycler * recycler)
+    {
+        Assert(arr->head && arr->head->next); // Doesn't make sense to reallocate a leaf last segment as a non-leaf if its not going to point to any other segments.
+
+        // TODO: Consider utilizing lastUsedSegment once we fix CopyHeadIfInlinedHeadSegment in that respect.
+        SparseArraySegmentBase *lastSeg = nullptr;
+        SparseArraySegmentBase *seg = arr->head;
+        while (seg)
+        {
+            lastSeg = seg;
+            seg = seg->next;
+        }
+
+        if (SparseArraySegmentBase::IsLeafSegment(lastSeg, recycler))
+        {
+            AnalysisAssert(lastSeg);
+            arr->ReallocNonLeafSegment((SparseArraySegment<T>*)lastSeg, lastSeg->next, true /*forceNonLeaf*/);
         }
     }
 
@@ -5352,6 +5366,8 @@ Case0:
             bool isIntArray = false;
             bool isFloatArray = false;
 
+            pArr->ClearSegmentMap(); // Just dump the segment map on reverse
+
             if (JavascriptNativeIntArray::Is(pArr))
             {
                 isIntArray = true;
@@ -5369,10 +5385,12 @@ Case0:
                 if (isIntArray)
                 {
                     CopyHeadIfInlinedHeadSegment<int32>(pArr, recycler);
+                    ReallocateNonLeafLastSegmentIfLeaf<int32>(pArr, recycler);
                 }
                 else if (isFloatArray)
                 {
                     CopyHeadIfInlinedHeadSegment<double>(pArr, recycler);
+                    ReallocateNonLeafLastSegmentIfLeaf<double>(pArr, recycler);
                 }
                 else
                 {
@@ -5420,32 +5438,20 @@ Case0:
             }
 
             pArr->head = prevSeg;
-
-            // Just dump the segment map on reverse
-            pArr->ClearSegmentMap();
+            pArr->InvalidateLastUsedSegment(); // lastUsedSegment might be 0-length and discarded above
 
             if (isIntArray)
             {
-                if (pArr->head && pArr->head->next && SparseArraySegmentBase::IsLeafSegment(pArr->head, recycler))
-                {
-                    pArr->ReallocNonLeafSegment(SparseArraySegment<int32>::From(pArr->head), pArr->head->next);
-                }
                 pArr->EnsureHeadStartsFromZero<int32>(recycler);
             }
             else if (isFloatArray)
             {
-                if (pArr->head && pArr->head->next && SparseArraySegmentBase::IsLeafSegment(pArr->head, recycler))
-                {
-                    pArr->ReallocNonLeafSegment(SparseArraySegment<double>::From(pArr->head), pArr->head->next);
-                }
                 pArr->EnsureHeadStartsFromZero<double>(recycler);
             }
             else
             {
                 pArr->EnsureHeadStartsFromZero<Var>(recycler);
             }
-
-            pArr->InvalidateLastUsedSegment(); // lastUsedSegment might be 0-length and discarded above
 
 #ifdef VALIDATE_ARRAY
             pArr->ValidateArray();
