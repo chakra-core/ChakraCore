@@ -14,6 +14,8 @@ public:
     HANDLE hevntReceivedBroadcast;
     HANDLE hevntShutdown;
     HANDLE hSemaphore;
+    HANDLE hThread;
+
     JsSharedArrayBufferContentHandle sharedContent;
     JsValueRef receiveBroadcastCallbackFunc;
 
