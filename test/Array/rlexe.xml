@@ -742,4 +742,9 @@
       <files>array_conv_src.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug12340575.js</files>
+    </default>
+  </test>
 </regress-exe>
