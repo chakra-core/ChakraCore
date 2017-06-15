@@ -5253,6 +5253,7 @@ Case0:
 
         if (hasInlineSegment)
         {
+            AnalysisAssert(array->head);
             SparseArraySegment<T>* newHeadSeg = array->ReallocNonLeafSegment((SparseArraySegment<T>*)PointerValue(array->head), array->head->next);
             array->head = newHeadSeg;
         }
@@ -5274,6 +5275,7 @@ Case0:
 
         if (SparseArraySegmentBase::IsLeafSegment(lastSeg, recycler))
         {
+            AnalysisAssert(lastSeg);
             arr->ReallocNonLeafSegment((SparseArraySegment<T>*)lastSeg, lastSeg->next, true /*forceNonLeaf*/);
         }
     }

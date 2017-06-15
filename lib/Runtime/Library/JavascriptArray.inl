@@ -110,7 +110,7 @@ namespace Js
         Recycler *recycler = this->GetScriptContext()->GetRecycler();
         if (forceNonLeaf)
         {
-            newSeg = SparseArraySegment<T>::AllocateSegmentImpl<false /*isLeaf*/>(recycler, seg->left, seg->length, nextSeg);
+            newSeg = SparseArraySegment<T>::template AllocateSegmentImpl<false /*isLeaf*/>(recycler, seg->left, seg->length, nextSeg);
         }
         else
         {
