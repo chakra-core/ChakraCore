@@ -1130,17 +1130,24 @@ JsValueRef __stdcall WScriptJsrt::BroadcastCallback(JsValueRef callee, bool isCo
 
             LONG count = (LONG)threadData->children.size();
             threadData->hSemaphore = CreateSemaphore(NULL, 0, count, NULL);
-            //Clang does not support "for each" yet
-            for (auto i = threadData->children.begin(); i != threadData->children.end(); i++)
+            if (threadData->hSemaphore)
             {
-                auto child = *i;
-                SetEvent(child->hevntReceivedBroadcast);
+                //Clang does not support "for each" yet
+                for (auto i = threadData->children.begin(); i != threadData->children.end(); i++)
+                {
+                    auto child = *i;
+                    SetEvent(child->hevntReceivedBroadcast);
+                }
+
+                WaitForSingleObject(threadData->hSemaphore, INFINITE);
+                CloseHandle(threadData->hSemaphore);
+                threadData->hSemaphore = INVALID_HANDLE_VALUE;
             }
-
-            WaitForSingleObject(threadData->hSemaphore, INFINITE);
-            CloseHandle(threadData->hSemaphore);
-            threadData->hSemaphore = INVALID_HANDLE_VALUE;
-
+            else
+            {
+                fwprintf(stderr, _u("Couldn't create semaphore.\n"));
+                fflush(stderr);
+            }
 
             ChakraRTInterface::JsReleaseSharedArrayBufferContentHandle(threadData->sharedContent);
         }
