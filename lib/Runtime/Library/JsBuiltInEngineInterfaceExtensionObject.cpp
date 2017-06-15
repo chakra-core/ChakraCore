@@ -205,6 +205,8 @@ namespace Js
 
         // Link the function to __chakraLibrary.
         ScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateScriptFunction(func->GetFunctionProxy());
+        scriptFunction->SetIsJsBuiltInCode();
+        scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
 
         if (scriptFunction->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled())
         {

@@ -880,7 +880,7 @@ namespace Js
                 return JavascriptBuiltInFunction::GetFunctionInfo(functionId);
             }
 
-            if (sourceId == CurrentSourceId)  // caller and callee in same file
+            if (sourceId == CurrentSourceId) // caller and callee in same file
             {
                 FunctionProxy *inlineeProxy = functionBody->GetUtf8SourceInfo()->FindFunction(functionId);
                 return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
