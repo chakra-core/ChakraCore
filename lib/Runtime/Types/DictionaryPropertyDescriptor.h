@@ -154,6 +154,10 @@ namespace Js
         if (this->IsAccessor)
         {
             Assert(this->Data == NoSlots);
+            if (addingLetConstGlobal)
+            {
+                this->Data = nextPropertyIndex++;
+            }
         }
         else if (addingLetConstGlobal)
         {
@@ -165,7 +169,7 @@ namespace Js
             this->Getter = nextPropertyIndex++;
         }
         this->Attributes |= PropertyLetConstGlobal;
-        Assert(GetDataPropertyIndex<false>() != NoSlots);
+        Assert((addingLetConstGlobal ? GetDataPropertyIndex<true>() : GetDataPropertyIndex<false>()) != NoSlots);
     }
 
     template <typename TPropertyIndex>
