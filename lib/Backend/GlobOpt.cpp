@@ -3514,7 +3514,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
     if (val)
     {
         ValueType valueType(val->GetValueInfo()->Type());
-        if (valueType.IsLikelyNativeArray() && !valueType.IsObject() && instr->IsProfiledInstr())
+        if (valueType.IsLikelyNativeArray() && !valueType.IsObject() && instr->IsProfiledInstr() && !instr->m_func->IsInlined())
         {
             // See if we have profile data for the array type
             IR::ProfiledInstr *const profiledInstr = instr->AsProfiledInstr();
