@@ -69,7 +69,7 @@ bool InliningDecider::InlineIntoInliner(Js::FunctionBody *const inliner) const
         return false;
     }
 
-    if (!inliner->IsJsBuiltInCode() && !inliner->GetAnyDynamicProfileInfo()->HasCallSiteInfo(inliner))
+    if (!inliner->GetAnyDynamicProfileInfo()->HasCallSiteInfo(inliner))
     {
         INLINE_TESTTRACE(_u("INLINING: Skip Inline: No call site info\tCaller: %s (#%d)\n"), inliner->GetDisplayName(),
             inliner->GetDebugNumberSet(debugStringBuffer));
