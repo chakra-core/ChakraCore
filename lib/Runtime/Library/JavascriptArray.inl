@@ -95,7 +95,7 @@ namespace Js
     }
 
     template<typename T>
-    inline SparseArraySegment<T>* JavascriptArray::ReallocNonLeafSegment(SparseArraySegment<T> *seg, SparseArraySegmentBase* nextSeg)
+    inline SparseArraySegment<T>* JavascriptArray::ReallocNonLeafSegment(SparseArraySegment<T> *seg, SparseArraySegmentBase* nextSeg, bool forceNonLeaf)
     {
         // Find the segment prior to seg.
         SparseArraySegmentBase *prior = nullptr;
@@ -106,8 +106,16 @@ namespace Js
                 Assert(prior->next);
             }
         }
+        SparseArraySegment<T> *newSeg = nullptr;
         Recycler *recycler = this->GetScriptContext()->GetRecycler();
-        SparseArraySegment<T> *newSeg = SparseArraySegment<T>::AllocateSegment(recycler, seg->left, seg->length, nextSeg);
+        if (forceNonLeaf)
+        {
+            newSeg = SparseArraySegment<T>::template AllocateSegmentImpl<false /*isLeaf*/>(recycler, seg->left, seg->length, nextSeg);
+        }
+        else
+        {
+            newSeg = SparseArraySegment<T>::AllocateSegment(recycler, seg->left, seg->length, nextSeg);
+        }
         CopyArray(newSeg->elements, seg->length, seg->elements, seg->length);
 
         LinkSegmentsCommon(prior, newSeg);

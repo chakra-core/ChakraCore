@@ -2616,7 +2616,7 @@ void Inline::GetArgInstrsForCallAndApply(IR::Instr* callInstr, IR::Instr** impli
     linkOpnd->AsRegOpnd()->m_sym->m_isInlinedArgSlot = true;
 }
 
-/* 
+/*
 This method only inlines targets which are script functions, under the
 condition that the second argument (if any) passed to apply is arguments object.
 */
@@ -2728,7 +2728,7 @@ bool Inline::InlineApplyScriptTarget(IR::Instr *callInstr, const FunctionJITTime
         argObjByteCodeArgoutCapture->GetDst()->GetStackSym()->m_nonEscapingArgObjAlias = true;
 
         argumentsObjArgOut->m_opcode = Js::OpCode::ArgOut_A_FromStackArgs;
-    
+
         IR::Instr *  bailOutOnNotStackArgs = IR::BailOutInstr::New(Js::OpCode::BailOnNotStackArgs, IR::BailOutOnInlineFunction,
             callInstr, callInstr->m_func);
         // set src1 to avoid CSE on BailOnNotStackArgs for different arguments object
@@ -4688,7 +4688,7 @@ Inline::MapFormals(Func *inlinee,
             }
 
             int excess;
-            Js::ArgSlot restFuncFormalCount = 0;
+            uint restFuncFormalCount = 0;
             if (instr->m_func != inlinee)
             {
                 restFuncFormalCount = instr->m_func->GetJITFunctionBody()->GetInParamsCount();
@@ -4721,18 +4721,35 @@ Inline::MapFormals(Func *inlinee,
 
             if (instr->m_func != inlinee)
             {
-                for (uint i = restFuncFormalCount; i < formalCount; ++i)
+                uint index = 0;
+                for (uint i = restFuncFormalCount; i < min(actualCount, formalCount); ++i)
                 {
-                    IR::IndirOpnd *arrayLocOpnd = IR::IndirOpnd::New(restDst->AsRegOpnd(), i - restFuncFormalCount, TyVar, inlinee);
+                    IR::IndirOpnd *arrayLocOpnd = IR::IndirOpnd::New(restDst->AsRegOpnd(), index, TyVar, inlinee);
                     IR::Instr *stElemInstr = IR::Instr::New(Js::OpCode::StElemC, arrayLocOpnd, argOuts[i]->GetBytecodeArgOutCapture()->GetDst(), inlinee);
                     instr->InsertBefore(stElemInstr);
+                    index++;
+                }
+                for (uint i = max(formalCount, restFuncFormalCount); i < actualCount; ++i)
+                {
+                    IR::IndirOpnd *arrayLocOpnd = IR::IndirOpnd::New(restDst->AsRegOpnd(), index, TyVar, inlinee);
+                    IR::Instr *stElemInstr = IR::Instr::New(Js::OpCode::StElemC, arrayLocOpnd, argOutsExtra[i]->GetBytecodeArgOutCapture()->GetDst(), inlinee);
+                    instr->InsertBefore(stElemInstr);
+                    index++;
+                }
+                AssertMsg(index == (uint)excess, "Incorrect rest args built");
+                if (index != (uint)excess)
+                {
+                    throw Js::OperationAbortedException();
                 }
             }
-            for (uint i = formalCount; i < actualCount; ++i)
+            else
             {
-                IR::IndirOpnd *arrayLocOpnd = IR::IndirOpnd::New(restDst->AsRegOpnd(), (i + restFuncFormalCount) - formalCount, TyVar, inlinee);
-                IR::Instr *stElemInstr = IR::Instr::New(Js::OpCode::StElemC, arrayLocOpnd, argOutsExtra[i]->GetBytecodeArgOutCapture()->GetDst(), inlinee);
-                instr->InsertBefore(stElemInstr);
+                for (uint i = formalCount; i < actualCount; ++i)
+                {
+                    IR::IndirOpnd *arrayLocOpnd = IR::IndirOpnd::New(restDst->AsRegOpnd(), i - formalCount, TyVar, inlinee);
+                    IR::Instr *stElemInstr = IR::Instr::New(Js::OpCode::StElemC, arrayLocOpnd, argOutsExtra[i]->GetBytecodeArgOutCapture()->GetDst(), inlinee);
+                    instr->InsertBefore(stElemInstr);
+                }
             }
 
             instr->Remove();

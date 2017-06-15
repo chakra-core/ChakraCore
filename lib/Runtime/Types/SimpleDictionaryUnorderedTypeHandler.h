@@ -43,12 +43,30 @@ namespace Js
 
     private:
         template<class OtherTPropertyIndex, class OtherTMapKey, bool OtherIsNotExtensibleSupported>
-        void CopyUnorderedStateFrom(const SimpleDictionaryUnorderedTypeHandler<OtherTPropertyIndex, OtherTMapKey, OtherIsNotExtensibleSupported> &other)
+        void CopyUnorderedStateFrom(const SimpleDictionaryUnorderedTypeHandler<OtherTPropertyIndex, OtherTMapKey, OtherIsNotExtensibleSupported> &other,
+            DynamicObject *const object)
         {
             CompileAssert(sizeof(TPropertyIndex) >= sizeof(OtherTPropertyIndex));
             if (other.deletedPropertyIndex != PropertyIndexRanges<OtherTPropertyIndex>::NoSlots)
             {
                 deletedPropertyIndex = other.deletedPropertyIndex;
+
+                // If terminator values are different, walk to end of chain and update terminator value
+                if ((int)PropertyIndexRanges<TPropertyIndex>::NoSlots != (int)PropertyIndexRanges<OtherTPropertyIndex>::NoSlots)
+                {
+                    OtherTPropertyIndex cur = other.deletedPropertyIndex;
+                    for (;;)
+                    {
+                        OtherTPropertyIndex next = static_cast<OtherTPropertyIndex>(TaggedInt::ToInt32(object->GetSlot(cur)));
+                        if (next == PropertyIndexRanges<OtherTPropertyIndex>::NoSlots)
+                        {
+                            this->SetSlotUnchecked(object, cur, TaggedInt::ToVarUnchecked(PropertyIndexRanges<TPropertyIndex>::NoSlots));
+                            break;
+                        }
+
+                        cur = next;
+                    }
+                }
             }
         }
 

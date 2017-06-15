@@ -417,7 +417,7 @@ namespace Js
         JavascriptArray(JavascriptArray * instance, bool boxHead);
 
         template<typename T> inline void LinkSegments(SparseArraySegment<T>* prev, SparseArraySegment<T>* current);
-        template<typename T> inline SparseArraySegment<T>* ReallocNonLeafSegment(SparseArraySegment<T>* seg, SparseArraySegmentBase* nextSeg);
+        template<typename T> inline SparseArraySegment<T>* ReallocNonLeafSegment(SparseArraySegment<T>* seg, SparseArraySegmentBase* nextSeg, bool forceNonLeaf = false);
         void TryAddToSegmentMap(Recycler* recycler, SparseArraySegmentBase* seg);
 
     private:
@@ -575,6 +575,8 @@ namespace Js
 
         template<typename T>
         static void CopyHeadIfInlinedHeadSegment(JavascriptArray *array, Recycler *recycler);
+        template<typename T>
+        static void ReallocateNonLeafLastSegmentIfLeaf(JavascriptArray * arr, Recycler * recycler);
 
         template<typename T>
         static void ArraySpliceHelper(JavascriptArray* pNewArr, JavascriptArray* pArr, uint32 start, uint32 deleteLen,
