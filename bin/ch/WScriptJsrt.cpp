@@ -477,26 +477,27 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
     }
     else if (strcmp(scriptInjectType, "crossthread") == 0)
     {
-        if (GetRuntimeThreadLocalData().threadData == nullptr) 
+        auto& threadData = GetRuntimeThreadLocalData().threadData;
+        if (threadData == nullptr) 
         {
-            GetRuntimeThreadLocalData().threadData = new RuntimeThreadData();
+            threadData = new RuntimeThreadData();
         }
 
         RuntimeThreadData* child = new RuntimeThreadData();
         child->initialSource = fileContent;
-        GetRuntimeThreadLocalData().threadData->children.push_back(child);
-        child->parent = GetRuntimeThreadLocalData().threadData;
+        threadData->children.push_back(child);
+        child->parent = threadData;
                 
         // TODO: need to add a switch in case we don't need to wait for 
         // child initial script completion
-        ResetEvent(GetRuntimeThreadLocalData().threadData->hevntInitialScriptCompleted);
+        ResetEvent(threadData->hevntInitialScriptCompleted);
 
         child->hThread = ::CreateThread(NULL, NULL, [](void* param) -> DWORD
         {
             return ((RuntimeThreadData*)param)->ThreadProc();
         }, (void*)child, NULL, NULL);
 
-        WaitForSingleObject(GetRuntimeThreadLocalData().threadData->hevntInitialScriptCompleted, INFINITE);
+        WaitForSingleObject(threadData->hevntInitialScriptCompleted, INFINITE);
     }
     else
     {
@@ -958,13 +959,14 @@ bool WScriptJsrt::Uninitialize()
     // to avoid worrying about global destructor order.
     moduleRecordMap.clear();
 
-    if (GetRuntimeThreadLocalData().threadData && !GetRuntimeThreadLocalData().threadData->children.empty())
+    auto& threadData = GetRuntimeThreadLocalData().threadData;
+    if (threadData && !threadData->children.empty())
     {
-        LONG count = (LONG)GetRuntimeThreadLocalData().threadData->children.size();
+        LONG count = (LONG)threadData->children.size();
         std::vector<HANDLE> childrenHandles;
         
         //Clang does not support "for each" yet
-        for(auto i = GetRuntimeThreadLocalData().threadData->children.begin(); i!= GetRuntimeThreadLocalData().threadData->children.end(); i++)
+        for(auto i = threadData->children.begin(); i!= threadData->children.end(); i++)
         {
             auto child = *i;
             childrenHandles.push_back(child->hThread);
@@ -974,10 +976,12 @@ bool WScriptJsrt::Uninitialize()
         DWORD waitRet = WaitForMultipleObjects(count, &childrenHandles[0], TRUE, INFINITE);
         Assert(waitRet == WAIT_OBJECT_0);
 
-        for (auto i = GetRuntimeThreadLocalData().threadData->children.begin(); i != GetRuntimeThreadLocalData().threadData->children.end(); i++)
+        for (auto i = threadData->children.begin(); i != threadData->children.end(); i++)
         {
             delete *i;
         }
+
+        threadData->children.clear();
     }
 
     return true;
@@ -1119,25 +1123,26 @@ JsValueRef __stdcall WScriptJsrt::BroadcastCallback(JsValueRef callee, bool isCo
 
     if (argumentCount > 1)
     {
-        if (GetRuntimeThreadLocalData().threadData)
+        auto& threadData = GetRuntimeThreadLocalData().threadData;
+        if (threadData)
         {
-            ChakraRTInterface::JsGetSharedArrayBufferContent(arguments[1], &GetRuntimeThreadLocalData().threadData->sharedContent);
+            ChakraRTInterface::JsGetSharedArrayBufferContent(arguments[1], &threadData->sharedContent);
 
-            LONG count = (LONG)GetRuntimeThreadLocalData().threadData->children.size();
-            GetRuntimeThreadLocalData().threadData->hSemaphore = CreateSemaphore(NULL, 0, count, NULL);
+            LONG count = (LONG)threadData->children.size();
+            threadData->hSemaphore = CreateSemaphore(NULL, 0, count, NULL);
             //Clang does not support "for each" yet
-            for (auto i = GetRuntimeThreadLocalData().threadData->children.begin(); i != GetRuntimeThreadLocalData().threadData->children.end(); i++)
+            for (auto i = threadData->children.begin(); i != threadData->children.end(); i++)
             {
                 auto child = *i;
                 SetEvent(child->hevntReceivedBroadcast);
             }
 
-            WaitForSingleObject(GetRuntimeThreadLocalData().threadData->hSemaphore, INFINITE);
-            CloseHandle(GetRuntimeThreadLocalData().threadData->hSemaphore);
-            GetRuntimeThreadLocalData().threadData->hSemaphore = INVALID_HANDLE_VALUE;
+            WaitForSingleObject(threadData->hSemaphore, INFINITE);
+            CloseHandle(threadData->hSemaphore);
+            threadData->hSemaphore = INVALID_HANDLE_VALUE;
 
 
-            ChakraRTInterface::JsReleaseSharedArrayBufferContentHandle(GetRuntimeThreadLocalData().threadData->sharedContent);
+            ChakraRTInterface::JsReleaseSharedArrayBufferContentHandle(threadData->sharedContent);
         }
     }
 
@@ -1155,14 +1160,15 @@ JsValueRef __stdcall WScriptJsrt::ReceiveBroadcastCallback(JsValueRef callee, bo
 
     if (argumentCount > 1)
     {
-        if (GetRuntimeThreadLocalData().threadData)
+        auto& threadData = GetRuntimeThreadLocalData().threadData;
+        if (threadData)
         {
-            if (GetRuntimeThreadLocalData().threadData->receiveBroadcastCallbackFunc)
+            if (threadData->receiveBroadcastCallbackFunc)
             {
-                ChakraRTInterface::JsRelease(GetRuntimeThreadLocalData().threadData->receiveBroadcastCallbackFunc, nullptr);
+                ChakraRTInterface::JsRelease(threadData->receiveBroadcastCallbackFunc, nullptr);
             }
-            GetRuntimeThreadLocalData().threadData->receiveBroadcastCallbackFunc = arguments[1];
-            ChakraRTInterface::JsAddRef(GetRuntimeThreadLocalData().threadData->receiveBroadcastCallbackFunc, nullptr);
+            threadData->receiveBroadcastCallbackFunc = arguments[1];
+            ChakraRTInterface::JsAddRef(threadData->receiveBroadcastCallbackFunc, nullptr);
         }
     }
 
@@ -1188,12 +1194,13 @@ JsValueRef __stdcall WScriptJsrt::ReportCallback(JsValueRef callee, bool isConst
         if (autoStr.GetError() == JsNoError)
         {
             std::string str(autoStr.GetString());
+            auto& threadData = GetRuntimeThreadLocalData().threadData;
 
-            if (GetRuntimeThreadLocalData().threadData && GetRuntimeThreadLocalData().threadData->parent)
+            if (threadData && threadData->parent)
             {
-                EnterCriticalSection(&GetRuntimeThreadLocalData().threadData->parent->csReportQ);
-                GetRuntimeThreadLocalData().threadData->parent->reportQ.push_back(str);
-                LeaveCriticalSection(&GetRuntimeThreadLocalData().threadData->parent->csReportQ);
+                EnterCriticalSection(&threadData->parent->csReportQ);
+                threadData->parent->reportQ.push_back(str);
+                LeaveCriticalSection(&threadData->parent->csReportQ);
             }
         }
     }
@@ -1212,17 +1219,18 @@ JsValueRef __stdcall WScriptJsrt::GetReportCallback(JsValueRef callee, bool isCo
 
     if (argumentCount > 0)
     {
-        if (GetRuntimeThreadLocalData().threadData)
+        auto& threadData = GetRuntimeThreadLocalData().threadData;
+        if (threadData)
         {
-            EnterCriticalSection(&GetRuntimeThreadLocalData().threadData->csReportQ);
+            EnterCriticalSection(&threadData->csReportQ);
 
-            if (GetRuntimeThreadLocalData().threadData->reportQ.size() > 0)
+            if (threadData->reportQ.size() > 0)
             {
-                auto str = GetRuntimeThreadLocalData().threadData->reportQ.front();
-                GetRuntimeThreadLocalData().threadData->reportQ.pop_front();
+                auto str = threadData->reportQ.front();
+                threadData->reportQ.pop_front();
                 ChakraRTInterface::JsCreateString(str.c_str(), str.size(), &returnValue);
             }
-            LeaveCriticalSection(&GetRuntimeThreadLocalData().threadData->csReportQ);
+            LeaveCriticalSection(&threadData->csReportQ);
         }
     }
 
@@ -1240,9 +1248,10 @@ JsValueRef __stdcall WScriptJsrt::LeavingCallback(JsValueRef callee, bool isCons
 
     if (argumentCount > 0)
     {
-        if (GetRuntimeThreadLocalData().threadData)
+        auto& threadData = GetRuntimeThreadLocalData().threadData;
+        if (threadData)
         {
-            GetRuntimeThreadLocalData().threadData->leaving = true;
+            threadData->leaving = true;
         }
     }
 
