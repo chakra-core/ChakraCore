@@ -121,7 +121,6 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
     case WasmTypes::F64: return Js::AsmJsVarType::Double;
     case WasmTypes::M128:  return Js::AsmJsVarType::Float32x4;
     //case WasmTypes::I2:  return Js::AsmJsVarType::Int64x2; @TODO
-    //case WasmTypes::B2:  return Js::AsmJsVarType::Bool64x2; 
     //case WasmTypes::F2:  return Js::AsmJsVarType::Float2x64;
     default:
         throw WasmCompilationException(_u("Unknown var type %u"), wasmType);
@@ -571,7 +570,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wbI64Const:
         info = EmitConst(WasmTypes::I64, GetReader()->m_currentNode.cnst);
         break;
-    case wbF4Const:
+    case wbM128Const:
         info = EmitConst(WasmTypes::M128, GetReader()->m_currentNode.cnst);
         break;
     case wbBlock:
@@ -629,6 +628,12 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         m_writer->EmptyAsm(Js::OpCodeAsmJs::Unreachable_Void);
         SetUnreachableState(true);
         info.type = WasmTypes::Any;
+        break;
+
+//WASM_EXTRACTLANE_OPCODE
+#define WASM_EXTRACTLANE_OPCODE(opname, opcode, sig, asmjsop, nyi) \
+    case wb##opname: \
+        info = EmitExtractLane(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
         break;
 #define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi, viewtype) \
     case wb##opname: \
@@ -1244,6 +1249,58 @@ WasmBytecodeGenerator::EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmTy
     m_writer->AsmReg2(op, resultReg, info.location);
 
     return EmitInfo(resultReg, resultType);
+}
+
+
+static uint numLanes(Js::OpCodeAsmJs op) 
+{
+    switch (op) 
+    {
+    //case Js::OpCodeAsmJs::Simd128_ExtractLane_I2:
+    //case Js::OpCodeAsmJs::Simd128_ExtractLane_F2:
+    //    return 2;
+    case Js::OpCodeAsmJs::Simd128_ExtractLane_I4:
+    case Js::OpCodeAsmJs::Simd128_ExtractLane_F4:
+        return 4;
+    case Js::OpCodeAsmJs::Simd128_ExtractLane_I8:
+    case Js::OpCodeAsmJs::Simd128_ExtractLane_U8:
+        return 8;
+    case Js::OpCodeAsmJs::Simd128_ExtractLane_I16:
+    case Js::OpCodeAsmJs::Simd128_ExtractLane_U16:
+        return 16;
+    default:
+        Assert(UNREACHED);
+        return 0;
+    }
+
+}
+
+EmitInfo
+WasmBytecodeGenerator::EmitExtractLane(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature)
+{
+    WasmTypes::WasmType resultType = signature[0];
+    WasmTypes::WasmType simdArgType = signature[1];
+    const uint offset = GetReader()->m_currentNode.lane.lane_index;
+
+    if (offset >= numLanes(op)) 
+    {
+        throw WasmCompilationException(_u("index is out of range"));
+    }
+    EmitInfo simdArgInfo = PopEvalStack(simdArgType, _u("Argument should be of type M128"));
+    
+    Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
+    EmitInfo resultInfo(resultReg, resultType);
+
+    //put index into a register to reuse the existing infra in Interpreter and Compiler
+    WasmConstLitNode dummy;
+    dummy.i32 = offset;
+    EmitInfo indexInfo = EmitConst(WasmTypes::I32, dummy);
+    
+    m_writer->AsmReg3(op, resultReg, simdArgInfo.location, indexInfo.location);
+    ReleaseLocation(&indexInfo);
+    ReleaseLocation(&simdArgInfo);
+    //ReleaseLocation(&resultInfo);
+    return resultInfo;
 }
 
 EmitInfo
