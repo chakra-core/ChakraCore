@@ -4188,7 +4188,7 @@ HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * script
     bool isLibraryCode = ((scriptFlags & fscrIsLibraryCode) == fscrIsLibraryCode);
     bool isJsBuiltInCode = ((scriptFlags & fscrJsBuiltIn) == fscrJsBuiltIn);
     bool isLibraryOrJsBuiltInCode = isLibraryCode || isJsBuiltInCode;
-    int builtInPropertyCount = isLibraryCode || isJsBuiltInCode ? PropertyIds::_countJSOnlyProperty : TotalNumberOfBuiltInProperties;
+    int builtInPropertyCount = isLibraryOrJsBuiltInCode ? PropertyIds::_countJSOnlyProperty : TotalNumberOfBuiltInProperties;
     auto reader = Anew(alloc, ByteCodeBufferReader, scriptContext, buffer, isLibraryOrJsBuiltInCode, builtInPropertyCount);
     auto hr = reader->ReadHeader();
     if (FAILED(hr))
