@@ -3334,6 +3334,8 @@ IRBuilderAsmJs::InsertLoopBodyReturnIPInstr(uint targetOffset, uint offset)
 IR::SymOpnd *
 IRBuilderAsmJs::BuildAsmJsLoopBodySlotOpnd(SymID symId, IRType opndType)
 {
+    // There is no unsigned locals, make sure we create only signed locals
+    opndType = IRType_EnsureSigned(opndType);
     // Get the interpreter frame instance that was passed in.
     StackSym *loopParamSym = m_func->EnsureLoopParamSym();
 
