@@ -27,11 +27,6 @@ void RuntimeThreadLocalData::Initialize(RuntimeThreadData* threadData)
 
 void RuntimeThreadLocalData::Uninitialize()
 {
-    if (threadData)
-    {
-        delete threadData;
-        threadData = nullptr;
-    }
 }
 
 
@@ -62,6 +57,7 @@ RuntimeThreadData::~RuntimeThreadData()
     CloseHandle(this->hevntInitialScriptCompleted);
     CloseHandle(this->hevntReceivedBroadcast);
     CloseHandle(this->hevntShutdown);
+    CloseHandle(this->hThread);
     DeleteCriticalSection(&csReportQ);
 }
 
@@ -128,11 +124,6 @@ DWORD RuntimeThreadData::ThreadProc()
             }
             ChakraRTInterface::JsSetCurrentContext(nullptr);
             ChakraRTInterface::JsDisposeRuntime(runtime);
-
-            if (this->parent->hSemaphore != INVALID_HANDLE_VALUE)
-            {
-                ReleaseSemaphore(this->parent->hSemaphore, 1, NULL);
-            }
 
             threadLocalData.Uninitialize();
             return 0;
