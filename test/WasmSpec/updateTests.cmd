@@ -16,7 +16,9 @@ git clone --depth 1 --branch master https://github.com/WebAssembly/spec.git wasm
 cd wasm-spec
 git rev-parse HEAD > ..\testsuite.rev
 cd ..
-robocopy /e /mir wasm-spec\test testsuite
+rem Exclude comments.wast because it is intended to test wast->wasm with uncommon characters
+rem This is causing problems with our jenkins checks and it is not worth it to run in chakra
+robocopy /e /mir wasm-spec\test testsuite /xf comments.wast
 rd /q /s wasm-spec
 
 rem regerate testsuite
@@ -26,5 +28,5 @@ cd ..
 node convert-test-suite --rebase %*
 git add testsuite\*
 git add baselines\*
-echo Test updated and regerated, don't forget to update baselines
+echo Test updated and regenerated
 popd

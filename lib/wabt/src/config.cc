@@ -16,8 +16,8 @@
 
 #include "config.h"
 
-#include <stdarg.h>
-#include <stdio.h>
+#include <cstdarg>
+#include <cstdio>
 
 /* c99-style vsnprintf for MSVC < 2015. See http://stackoverflow.com/a/8712996
  using _snprintf or vsnprintf will not-properly null-terminate, and will return

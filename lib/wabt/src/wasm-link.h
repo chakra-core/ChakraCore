@@ -23,30 +23,31 @@
 #include "binary.h"
 #include "common.h"
 
-#define WABT_LINK_MODULE_NAME "__extern"
-
 namespace wabt {
 namespace link {
 
-struct LinkerInputBinary;
+class LinkerInputBinary;
 
 struct FunctionImport {
+  StringSlice module_name;
   StringSlice name;
-  uint32_t sig_index;
+  Index sig_index;
   bool active; /* Is this import present in the linked binary */
-  struct LinkerInputBinary* foreign_binary;
-  uint32_t foreign_index;
+  Index relocated_function_index;
+  LinkerInputBinary* foreign_binary;
+  Index foreign_index;
 };
 
 struct GlobalImport {
+  StringSlice module_name;
   StringSlice name;
   Type type;
   bool mutable_;
 };
 
 struct DataSegment {
-  uint32_t memory_index;
-  uint32_t offset;
+  Index memory_index;
+  Address offset;
   const uint8_t* data;
   size_t size;
 };
@@ -54,7 +55,7 @@ struct DataSegment {
 struct Export {
   ExternalKind kind;
   StringSlice name;
-  uint32_t index;
+  Index index;
 };
 
 struct SectionDataCustom {
@@ -68,7 +69,7 @@ struct Section {
   ~Section();
 
   /* The binary to which this section belongs */
-  struct LinkerInputBinary* binary;
+  LinkerInputBinary* binary;
   std::vector<Reloc> relocations; /* The relocations for this section */
 
   BinarySection section_code;
@@ -79,16 +80,16 @@ struct Section {
   size_t payload_offset;
 
   /* For known sections, the count of the number of elements in the section */
-  uint32_t count;
+  Index count;
 
   union {
     /* CUSTOM section data */
-    SectionDataCustom data_custom;
+    SectionDataCustom custom;
     /* DATA section data */
     std::vector<DataSegment>* data_segments;
     /* MEMORY section data */
     Limits memory_limits;
-  };
+  } data;
 
   /* The offset at which this section appears within the combined output
    * section. */
@@ -97,10 +98,19 @@ struct Section {
 
 typedef std::vector<Section*> SectionPtrVector;
 
-struct LinkerInputBinary {
+class LinkerInputBinary {
+ public:
   WABT_DISALLOW_COPY_AND_ASSIGN(LinkerInputBinary);
   LinkerInputBinary(const char* filename, uint8_t* data, size_t size);
   ~LinkerInputBinary();
+
+  Index RelocateFuncIndex(Index findex);
+  Index RelocateTypeIndex(Index index);
+  Index RelocateGlobalIndex(Index index);
+
+  bool IsValidFunctionIndex(Index index);
+  bool IsFunctionImport(Index index);
+  bool IsInactiveFunctionImport(Index index);
 
   const char* filename;
   uint8_t* data;
@@ -109,20 +119,21 @@ struct LinkerInputBinary {
   std::vector<Export> exports;
 
   std::vector<FunctionImport> function_imports;
-  uint32_t active_function_imports;
+  Index active_function_imports;
   std::vector<GlobalImport> global_imports;
-  uint32_t active_global_imports;
+  Index active_global_imports;
 
-  uint32_t type_index_offset;
-  uint32_t function_index_offset;
-  uint32_t imported_function_index_offset;
-  uint32_t global_index_offset;
-  uint32_t imported_global_index_offset;
-  uint32_t table_index_offset;
-  uint32_t memory_page_count;
-  uint32_t memory_page_offset;
+  Index type_index_offset;
+  Index function_index_offset;
+  Index imported_function_index_offset;
+  Index global_index_offset;
+  Index imported_global_index_offset;
+  Index table_index_offset;
+  Index memory_page_count;
+  Index memory_page_offset;
 
-  uint32_t table_elem_count;
+  Index table_elem_count = 0;
+  Index function_count = 0;
 
   std::vector<std::string> debug_names;
 };

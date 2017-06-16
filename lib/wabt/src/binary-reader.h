@@ -22,314 +22,257 @@
 
 #include "binary.h"
 #include "common.h"
+#include "opcode.h"
 
 #define WABT_READ_BINARY_OPTIONS_DEFAULT \
   { nullptr, false }
 
 namespace wabt {
 
+class Stream;
+
 struct ReadBinaryOptions {
-  struct Stream* log_stream;
+  Stream* log_stream;
   bool read_debug_names;
 };
 
-struct BinaryReaderContext {
-  const uint8_t* data;
-  size_t size;
-  size_t offset;
-  void* user_data;
-};
+class BinaryReaderDelegate {
+ public:
+  struct State {
+    State(const uint8_t* data, Offset size)
+        : data(data), size(size), offset(0) {}
 
-struct BinaryReader {
-  void* user_data;
+    const uint8_t* data;
+    Offset size;
+    Offset offset;
+  };
 
-  bool (*on_error)(BinaryReaderContext* ctx, const char* message);
+  virtual ~BinaryReaderDelegate() {}
 
-  /* module */
-  Result (*begin_module)(uint32_t version, void* user_data);
-  Result (*end_module)(void* user_data);
+  virtual bool OnError(const char* message) = 0;
+  virtual void OnSetState(const State* s) { state = s; }
 
-  Result (*begin_section)(BinaryReaderContext* ctx,
-                          BinarySection section_type,
-                          uint32_t size);
+  /* Module */
+  virtual Result BeginModule(uint32_t version) = 0;
+  virtual Result EndModule() = 0;
 
-  /* custom section */
-  Result (*begin_custom_section)(BinaryReaderContext* ctx,
-                                 uint32_t size,
-                                 StringSlice section_name);
-  Result (*end_custom_section)(BinaryReaderContext* ctx);
+  virtual Result BeginSection(BinarySection section_type, Offset size) = 0;
 
-  /* signatures section */
-  /* TODO(binji): rename to "type" section */
-  Result (*begin_signature_section)(BinaryReaderContext* ctx, uint32_t size);
-  Result (*on_signature_count)(uint32_t count, void* user_data);
-  Result (*on_signature)(uint32_t index,
-                         uint32_t param_count,
-                         Type* param_types,
-                         uint32_t result_count,
-                         Type* result_types,
-                         void* user_data);
-  Result (*end_signature_section)(BinaryReaderContext* ctx);
+  /* Custom section */
+  virtual Result BeginCustomSection(Offset size, StringSlice section_name) = 0;
+  virtual Result EndCustomSection() = 0;
 
-  /* import section */
-  Result (*begin_import_section)(BinaryReaderContext* ctx, uint32_t size);
-  Result (*on_import_count)(uint32_t count, void* user_data);
-  Result (*on_import)(uint32_t index,
-                      StringSlice module_name,
-                      StringSlice field_name,
-                      void* user_data);
-  Result (*on_import_func)(uint32_t import_index,
-                           StringSlice module_name,
-                           StringSlice field_name,
-                           uint32_t func_index,
-                           uint32_t sig_index,
-                           void* user_data);
-  Result (*on_import_table)(uint32_t import_index,
-                            StringSlice module_name,
-                            StringSlice field_name,
-                            uint32_t table_index,
-                            Type elem_type,
-                            const Limits* elem_limits,
-                            void* user_data);
-  Result (*on_import_memory)(uint32_t import_index,
-                             StringSlice module_name,
-                             StringSlice field_name,
-                             uint32_t memory_index,
-                             const Limits* page_limits,
-                             void* user_data);
-  Result (*on_import_global)(uint32_t import_index,
-                             StringSlice module_name,
-                             StringSlice field_name,
-                             uint32_t global_index,
-                             Type type,
-                             bool mutable_,
-                             void* user_data);
-  Result (*end_import_section)(BinaryReaderContext* ctx);
+  /* Type section */
+  virtual Result BeginTypeSection(Offset size) = 0;
+  virtual Result OnTypeCount(Index count) = 0;
+  virtual Result OnType(Index index,
+                        Index param_count,
+                        Type* param_types,
+                        Index result_count,
+                        Type* result_types) = 0;
+  virtual Result EndTypeSection() = 0;
 
-  /* function signatures section */
-  /* TODO(binji): rename to "function" section */
-  Result (*begin_function_signatures_section)(BinaryReaderContext* ctx,
-                                              uint32_t size);
-  Result (*on_function_signatures_count)(uint32_t count, void* user_data);
-  Result (*on_function_signature)(uint32_t index,
-                                  uint32_t sig_index,
-                                  void* user_data);
-  Result (*end_function_signatures_section)(BinaryReaderContext* ctx);
+  /* Import section */
+  virtual Result BeginImportSection(Offset size) = 0;
+  virtual Result OnImportCount(Index count) = 0;
+  virtual Result OnImport(Index index,
+                          StringSlice module_name,
+                          StringSlice field_name) = 0;
+  virtual Result OnImportFunc(Index import_index,
+                              StringSlice module_name,
+                              StringSlice field_name,
+                              Index func_index,
+                              Index sig_index) = 0;
+  virtual Result OnImportTable(Index import_index,
+                               StringSlice module_name,
+                               StringSlice field_name,
+                               Index table_index,
+                               Type elem_type,
+                               const Limits* elem_limits) = 0;
+  virtual Result OnImportMemory(Index import_index,
+                                StringSlice module_name,
+                                StringSlice field_name,
+                                Index memory_index,
+                                const Limits* page_limits) = 0;
+  virtual Result OnImportGlobal(Index import_index,
+                                StringSlice module_name,
+                                StringSlice field_name,
+                                Index global_index,
+                                Type type,
+                                bool mutable_) = 0;
+  virtual Result EndImportSection() = 0;
 
-  /* table section */
-  Result (*begin_table_section)(BinaryReaderContext* ctx, uint32_t size);
-  Result (*on_table_count)(uint32_t count, void* user_data);
-  Result (*on_table)(uint32_t index,
-                     Type elem_type,
-                     const Limits* elem_limits,
-                     void* user_data);
-  Result (*end_table_section)(BinaryReaderContext* ctx);
+  /* Function section */
+  virtual Result BeginFunctionSection(Offset size) = 0;
+  virtual Result OnFunctionCount(Index count) = 0;
+  virtual Result OnFunction(Index index, Index sig_index) = 0;
+  virtual Result EndFunctionSection() = 0;
 
-  /* memory section */
-  Result (*begin_memory_section)(BinaryReaderContext* ctx, uint32_t size);
-  Result (*on_memory_count)(uint32_t count, void* user_data);
-  Result (*on_memory)(uint32_t index, const Limits* limits, void* user_data);
-  Result (*end_memory_section)(BinaryReaderContext* ctx);
+  /* Table section */
+  virtual Result BeginTableSection(Offset size) = 0;
+  virtual Result OnTableCount(Index count) = 0;
+  virtual Result OnTable(Index index,
+                         Type elem_type,
+                         const Limits* elem_limits) = 0;
+  virtual Result EndTableSection() = 0;
 
-  /* global section */
-  Result (*begin_global_section)(BinaryReaderContext* ctx, uint32_t size);
-  Result (*on_global_count)(uint32_t count, void* user_data);
-  Result (*begin_global)(uint32_t index,
-                         Type type,
-                         bool mutable_,
-                         void* user_data);
-  Result (*begin_global_init_expr)(uint32_t index, void* user_data);
-  Result (*end_global_init_expr)(uint32_t index, void* user_data);
-  Result (*end_global)(uint32_t index, void* user_data);
-  Result (*end_global_section)(BinaryReaderContext* ctx);
+  /* Memory section */
+  virtual Result BeginMemorySection(Offset size) = 0;
+  virtual Result OnMemoryCount(Index count) = 0;
+  virtual Result OnMemory(Index index, const Limits* limits) = 0;
+  virtual Result EndMemorySection() = 0;
 
-  /* exports section */
-  Result (*begin_export_section)(BinaryReaderContext* ctx, uint32_t size);
-  Result (*on_export_count)(uint32_t count, void* user_data);
-  Result (*on_export)(uint32_t index,
-                      ExternalKind kind,
-                      uint32_t item_index,
-                      StringSlice name,
-                      void* user_data);
-  Result (*end_export_section)(BinaryReaderContext* ctx);
+  /* Global section */
+  virtual Result BeginGlobalSection(Offset size) = 0;
+  virtual Result OnGlobalCount(Index count) = 0;
+  virtual Result BeginGlobal(Index index, Type type, bool mutable_) = 0;
+  virtual Result BeginGlobalInitExpr(Index index) = 0;
+  virtual Result EndGlobalInitExpr(Index index) = 0;
+  virtual Result EndGlobal(Index index) = 0;
+  virtual Result EndGlobalSection() = 0;
 
-  /* start section */
-  Result (*begin_start_section)(BinaryReaderContext* ctx, uint32_t size);
-  Result (*on_start_function)(uint32_t func_index, void* user_data);
-  Result (*end_start_section)(BinaryReaderContext* ctx);
+  /* Exports section */
+  virtual Result BeginExportSection(Offset size) = 0;
+  virtual Result OnExportCount(Index count) = 0;
+  virtual Result OnExport(Index index,
+                          ExternalKind kind,
+                          Index item_index,
+                          StringSlice name) = 0;
+  virtual Result EndExportSection() = 0;
 
-  /* function bodies section */
-  /* TODO(binji): rename to code section */
-  Result (*begin_function_bodies_section)(BinaryReaderContext* ctx,
-                                          uint32_t size);
-  Result (*on_function_bodies_count)(uint32_t count, void* user_data);
-  Result (*begin_function_body_pass)(uint32_t index,
-                                     uint32_t pass,
-                                     void* user_data);
-  Result (*begin_function_body)(BinaryReaderContext* ctx, uint32_t index);
-  Result (*on_local_decl_count)(uint32_t count, void* user_data);
-  Result (*on_local_decl)(uint32_t decl_index,
-                          uint32_t count,
-                          Type type,
-                          void* user_data);
+  /* Start section */
+  virtual Result BeginStartSection(Offset size) = 0;
+  virtual Result OnStartFunction(Index func_index) = 0;
+  virtual Result EndStartSection() = 0;
 
-  /* function expressions; called between begin_function_body and
-   end_function_body */
-  Result (*on_opcode)(BinaryReaderContext* ctx, Opcode Opcode);
-  Result (*on_opcode_bare)(BinaryReaderContext* ctx);
-  Result (*on_opcode_uint32)(BinaryReaderContext* ctx, uint32_t value);
-  Result (*on_opcode_uint32_uint32)(BinaryReaderContext* ctx,
-                                    uint32_t value,
-                                    uint32_t value2);
-  Result (*on_opcode_uint64)(BinaryReaderContext* ctx, uint64_t value);
-  Result (*on_opcode_f32)(BinaryReaderContext* ctx, uint32_t value);
-  Result (*on_opcode_f64)(BinaryReaderContext* ctx, uint64_t value);
-  Result (*on_opcode_block_sig)(BinaryReaderContext* ctx,
-                                uint32_t num_types,
-                                Type* sig_types);
-  Result (*on_binary_expr)(Opcode opcode, void* user_data);
-  Result (*on_block_expr)(uint32_t num_types, Type* sig_types, void* user_data);
-  Result (*on_br_expr)(uint32_t depth, void* user_data);
-  Result (*on_br_if_expr)(uint32_t depth, void* user_data);
-  Result (*on_br_table_expr)(BinaryReaderContext* ctx,
-                             uint32_t num_targets,
-                             uint32_t* target_depths,
-                             uint32_t default_target_depth);
-  Result (*on_call_expr)(uint32_t func_index, void* user_data);
-  Result (*on_call_import_expr)(uint32_t import_index, void* user_data);
-  Result (*on_call_indirect_expr)(uint32_t sig_index, void* user_data);
-  Result (*on_compare_expr)(Opcode opcode, void* user_data);
-  Result (*on_convert_expr)(Opcode opcode, void* user_data);
-  Result (*on_drop_expr)(void* user_data);
-  Result (*on_else_expr)(void* user_data);
-  Result (*on_end_expr)(void* user_data);
-  Result (*on_end_func)(void* user_data);
-  Result (*on_f32_const_expr)(uint32_t value_bits, void* user_data);
-  Result (*on_f64_const_expr)(uint64_t value_bits, void* user_data);
-  Result (*on_get_global_expr)(uint32_t global_index, void* user_data);
-  Result (*on_get_local_expr)(uint32_t local_index, void* user_data);
-  Result (*on_grow_memory_expr)(void* user_data);
-  Result (*on_i32_const_expr)(uint32_t value, void* user_data);
-  Result (*on_i64_const_expr)(uint64_t value, void* user_data);
-  Result (*on_if_expr)(uint32_t num_types, Type* sig_types, void* user_data);
-  Result (*on_load_expr)(Opcode opcode,
-                         uint32_t alignment_log2,
-                         uint32_t offset,
-                         void* user_data);
-  Result (*on_loop_expr)(uint32_t num_types, Type* sig_types, void* user_data);
-  Result (*on_current_memory_expr)(void* user_data);
-  Result (*on_nop_expr)(void* user_data);
-  Result (*on_return_expr)(void* user_data);
-  Result (*on_select_expr)(void* user_data);
-  Result (*on_set_global_expr)(uint32_t global_index, void* user_data);
-  Result (*on_set_local_expr)(uint32_t local_index, void* user_data);
-  Result (*on_store_expr)(Opcode opcode,
-                          uint32_t alignment_log2,
-                          uint32_t offset,
-                          void* user_data);
-  Result (*on_tee_local_expr)(uint32_t local_index, void* user_data);
-  Result (*on_unary_expr)(Opcode opcode, void* user_data);
-  Result (*on_unreachable_expr)(void* user_data);
-  Result (*end_function_body)(uint32_t index, void* user_data);
-  Result (*end_function_body_pass)(uint32_t index,
-                                   uint32_t pass,
-                                   void* user_data);
-  Result (*end_function_bodies_section)(BinaryReaderContext* ctx);
+  /* Code section */
+  virtual Result BeginCodeSection(Offset size) = 0;
+  virtual Result OnFunctionBodyCount(Index count) = 0;
+  virtual Result BeginFunctionBody(Index index) = 0;
+  virtual Result OnLocalDeclCount(Index count) = 0;
+  virtual Result OnLocalDecl(Index decl_index, Index count, Type type) = 0;
 
-  /* elem section */
-  Result (*begin_elem_section)(BinaryReaderContext* ctx, uint32_t size);
-  Result (*on_elem_segment_count)(uint32_t count, void* user_data);
-  Result (*begin_elem_segment)(uint32_t index,
-                               uint32_t table_index,
-                               void* user_data);
-  Result (*begin_elem_segment_init_expr)(uint32_t index, void* user_data);
-  Result (*end_elem_segment_init_expr)(uint32_t index, void* user_data);
-  Result (*on_elem_segment_function_index_count)(BinaryReaderContext* ctx,
-                                                 uint32_t index,
-                                                 uint32_t count);
-  Result (*on_elem_segment_function_index)(uint32_t index,
-                                           uint32_t func_index,
-                                           void* user_data);
-  Result (*end_elem_segment)(uint32_t index, void* user_data);
-  Result (*end_elem_section)(BinaryReaderContext* ctx);
+  /* Function expressions; called between BeginFunctionBody and
+   EndFunctionBody */
+  virtual Result OnOpcode(Opcode Opcode) = 0;
+  virtual Result OnOpcodeBare() = 0;
+  virtual Result OnOpcodeUint32(uint32_t value) = 0;
+  virtual Result OnOpcodeIndex(Index value) = 0;
+  virtual Result OnOpcodeUint32Uint32(uint32_t value, uint32_t value2) = 0;
+  virtual Result OnOpcodeUint64(uint64_t value) = 0;
+  virtual Result OnOpcodeF32(uint32_t value) = 0;
+  virtual Result OnOpcodeF64(uint64_t value) = 0;
+  virtual Result OnOpcodeBlockSig(Index num_types, Type* sig_types) = 0;
+  virtual Result OnBinaryExpr(Opcode opcode) = 0;
+  virtual Result OnBlockExpr(Index num_types, Type* sig_types) = 0;
+  virtual Result OnBrExpr(Index depth) = 0;
+  virtual Result OnBrIfExpr(Index depth) = 0;
+  virtual Result OnBrTableExpr(Index num_targets,
+                               Index* target_depths,
+                               Index default_target_depth) = 0;
+  virtual Result OnCallExpr(Index func_index) = 0;
+  virtual Result OnCallIndirectExpr(Index sig_index) = 0;
+  virtual Result OnCompareExpr(Opcode opcode) = 0;
+  virtual Result OnConvertExpr(Opcode opcode) = 0;
+  virtual Result OnCurrentMemoryExpr() = 0;
+  virtual Result OnDropExpr() = 0;
+  virtual Result OnElseExpr() = 0;
+  virtual Result OnEndExpr() = 0;
+  virtual Result OnEndFunc() = 0;
+  virtual Result OnF32ConstExpr(uint32_t value_bits) = 0;
+  virtual Result OnF64ConstExpr(uint64_t value_bits) = 0;
+  virtual Result OnGetGlobalExpr(Index global_index) = 0;
+  virtual Result OnGetLocalExpr(Index local_index) = 0;
+  virtual Result OnGrowMemoryExpr() = 0;
+  virtual Result OnI32ConstExpr(uint32_t value) = 0;
+  virtual Result OnI64ConstExpr(uint64_t value) = 0;
+  virtual Result OnIfExpr(Index num_types, Type* sig_types) = 0;
+  virtual Result OnLoadExpr(Opcode opcode,
+                            uint32_t alignment_log2,
+                            Address offset) = 0;
+  virtual Result OnLoopExpr(Index num_types, Type* sig_types) = 0;
+  virtual Result OnNopExpr() = 0;
+  virtual Result OnReturnExpr() = 0;
+  virtual Result OnSelectExpr() = 0;
+  virtual Result OnSetGlobalExpr(Index global_index) = 0;
+  virtual Result OnSetLocalExpr(Index local_index) = 0;
+  virtual Result OnStoreExpr(Opcode opcode,
+                             uint32_t alignment_log2,
+                             Address offset) = 0;
+  virtual Result OnTeeLocalExpr(Index local_index) = 0;
+  virtual Result OnUnaryExpr(Opcode opcode) = 0;
+  virtual Result OnUnreachableExpr() = 0;
+  virtual Result EndFunctionBody(Index index) = 0;
+  virtual Result EndCodeSection() = 0;
 
-  /* data section */
-  Result (*begin_data_section)(BinaryReaderContext* ctx, uint32_t size);
-  Result (*on_data_segment_count)(uint32_t count, void* user_data);
-  Result (*begin_data_segment)(uint32_t index,
-                               uint32_t memory_index,
-                               void* user_data);
-  Result (*begin_data_segment_init_expr)(uint32_t index, void* user_data);
-  Result (*end_data_segment_init_expr)(uint32_t index, void* user_data);
-  Result (*on_data_segment_data)(uint32_t index,
-                                 const void* data,
-                                 uint32_t size,
-                                 void* user_data);
-  Result (*end_data_segment)(uint32_t index, void* user_data);
-  Result (*end_data_section)(BinaryReaderContext* ctx);
+  /* Elem section */
+  virtual Result BeginElemSection(Offset size) = 0;
+  virtual Result OnElemSegmentCount(Index count) = 0;
+  virtual Result BeginElemSegment(Index index, Index table_index) = 0;
+  virtual Result BeginElemSegmentInitExpr(Index index) = 0;
+  virtual Result EndElemSegmentInitExpr(Index index) = 0;
+  virtual Result OnElemSegmentFunctionIndexCount(Index index, Index count) = 0;
+  virtual Result OnElemSegmentFunctionIndex(Index segment_index,
+                                            Index func_index) = 0;
+  virtual Result EndElemSegment(Index index) = 0;
+  virtual Result EndElemSection() = 0;
 
-  /* names section */
-  Result (*begin_names_section)(BinaryReaderContext* ctx, uint32_t size);
-  Result (*on_function_name_subsection)(uint32_t index,
-                                        uint32_t name_type,
-                                        uint32_t subsection_size,
-                                        void* user_data);
-  Result (*on_function_names_count)(uint32_t num_functions,
-                                    void* user_data);
-  Result (*on_function_name)(uint32_t function_index,
-                             StringSlice function_name,
-                             void* user_data);
-  Result (*on_local_name_subsection)(uint32_t index,
-                                     uint32_t name_type,
-                                     uint32_t subsection_size,
-                                     void* user_data);
-  Result (*on_local_name_function_count)(uint32_t num_functions,
-                                         void* user_data);
-  Result (*on_local_name_local_count)(uint32_t function_index,
-                                      uint32_t num_locals,
-                                      void* user_data);
-  Result (*on_local_name)(uint32_t function_index,
-                          uint32_t local_index,
-                          StringSlice local_name,
-                          void* user_data);
-  Result (*end_names_section)(BinaryReaderContext* ctx);
+  /* Data section */
+  virtual Result BeginDataSection(Offset size) = 0;
+  virtual Result OnDataSegmentCount(Index count) = 0;
+  virtual Result BeginDataSegment(Index index, Index memory_index) = 0;
+  virtual Result BeginDataSegmentInitExpr(Index index) = 0;
+  virtual Result EndDataSegmentInitExpr(Index index) = 0;
+  virtual Result OnDataSegmentData(Index index,
+                                   const void* data,
+                                   Address size) = 0;
+  virtual Result EndDataSegment(Index index) = 0;
+  virtual Result EndDataSection() = 0;
 
-  /* names section */
-  Result (*begin_reloc_section)(BinaryReaderContext* ctx, uint32_t size);
-  Result (*on_reloc_count)(uint32_t count,
-                           BinarySection section_code,
-                           StringSlice section_name,
-                           void* user_data);
-  Result (*on_reloc)(RelocType type,
-                     uint32_t offset,
-                     uint32_t index,
-                     int32_t addend,
-                     void* user_data);
-  Result (*end_reloc_section)(BinaryReaderContext* ctx);
+  /* Names section */
+  virtual Result BeginNamesSection(Offset size) = 0;
+  virtual Result OnFunctionNameSubsection(Index index,
+                                          uint32_t name_type,
+                                          Offset subsection_size) = 0;
+  virtual Result OnFunctionNamesCount(Index num_functions) = 0;
+  virtual Result OnFunctionName(Index function_index,
+                                StringSlice function_name) = 0;
+  virtual Result OnLocalNameSubsection(Index index,
+                                       uint32_t name_type,
+                                       Offset subsection_size) = 0;
+  virtual Result OnLocalNameFunctionCount(Index num_functions) = 0;
+  virtual Result OnLocalNameLocalCount(Index function_index,
+                                       Index num_locals) = 0;
+  virtual Result OnLocalName(Index function_index,
+                             Index local_index,
+                             StringSlice local_name) = 0;
+  virtual Result EndNamesSection() = 0;
 
-  /* init_expr - used by elem, data and global sections; these functions are
-   * only called between calls to begin_*_init_expr and end_*_init_expr */
-  Result (*on_init_expr_f32_const_expr)(uint32_t index,
-                                        uint32_t value,
-                                        void* user_data);
-  Result (*on_init_expr_f64_const_expr)(uint32_t index,
-                                        uint64_t value,
-                                        void* user_data);
-  Result (*on_init_expr_get_global_expr)(uint32_t index,
-                                         uint32_t global_index,
-                                         void* user_data);
-  Result (*on_init_expr_i32_const_expr)(uint32_t index,
-                                        uint32_t value,
-                                        void* user_data);
-  Result (*on_init_expr_i64_const_expr)(uint32_t index,
-                                        uint64_t value,
-                                        void* user_data);
+  /* Reloc section */
+  virtual Result BeginRelocSection(Offset size) = 0;
+  virtual Result OnRelocCount(Index count,
+                              BinarySection section_code,
+                              StringSlice section_name) = 0;
+  virtual Result OnReloc(RelocType type,
+                         Offset offset,
+                         Index index,
+                         uint32_t addend) = 0;
+  virtual Result EndRelocSection() = 0;
+
+  /* InitExpr - used by elem, data and global sections; these functions are
+   * only called between calls to Begin*InitExpr and End*InitExpr */
+  virtual Result OnInitExprF32ConstExpr(Index index, uint32_t value) = 0;
+  virtual Result OnInitExprF64ConstExpr(Index index, uint64_t value) = 0;
+  virtual Result OnInitExprGetGlobalExpr(Index index, Index global_index) = 0;
+  virtual Result OnInitExprI32ConstExpr(Index index, uint32_t value) = 0;
+  virtual Result OnInitExprI64ConstExpr(Index index, uint64_t value) = 0;
+
+  const State* state = nullptr;
 };
 
 Result read_binary(const void* data,
                    size_t size,
-                   BinaryReader* reader,
-                   uint32_t num_function_passes,
+                   BinaryReaderDelegate* reader,
                    const ReadBinaryOptions* options);
 
 size_t read_u32_leb128(const uint8_t* ptr,

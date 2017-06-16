@@ -8,7 +8,7 @@ function test(nNestedBlocks) {
   // print(`Test(${nNestedBlocks})`)
   let nestedBlocks = "";
   for (let i = 0; i < nNestedBlocks; ++i) {
-    nestedBlocks += "(block i32 ";
+    nestedBlocks += "(block (result i32) ";
   }
   nestedBlocks += "(i32.const 5)";
   for (let i = 0; i < nNestedBlocks; ++i) {

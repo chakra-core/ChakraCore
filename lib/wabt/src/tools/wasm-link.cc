@@ -16,6 +16,9 @@
 
 #include "wasm-link.h"
 
+#include <memory>
+#include <vector>
+
 #include "binary-reader.h"
 #include "binding-hash.h"
 #include "binary-writer.h"
@@ -24,100 +27,52 @@
 #include "writer.h"
 #include "binary-reader-linker.h"
 
-#include <memory>
-#include <vector>
-
-#define PROGRAM_NAME "wasm-link"
-#define NOPE HasArgument::No
-#define YEP HasArgument::Yes
 #define FIRST_KNOWN_SECTION static_cast<size_t>(BinarySection::Type)
+#define LOG_DEBUG(fmt, ...) if (s_debug) s_log_stream->Writef(fmt, __VA_ARGS__);
 
 using namespace wabt;
 using namespace wabt::link;
 
-enum { FLAG_DEBUG, FLAG_OUTPUT, FLAG_RELOCATABLE, FLAG_HELP, NUM_FLAGS };
-
 static const char s_description[] =
-    "  link one or more wasm binary modules into a single binary module."
-    "\n"
-    "  $ wasm-link m1.wasm m2.wasm -o out.wasm\n";
-
-static Option s_options[] = {
-    {FLAG_DEBUG, '\0', "debug", nullptr, NOPE,
-     "log extra information when reading and writing wasm files"},
-    {FLAG_OUTPUT, 'o', "output", "FILE", YEP, "output wasm binary file"},
-    {FLAG_RELOCATABLE, 'r', "relocatable", nullptr, NOPE,
-     "output a relocatable object file"},
-    {FLAG_HELP, 'h', "help", nullptr, NOPE, "print this help message"},
-};
-WABT_STATIC_ASSERT(NUM_FLAGS == WABT_ARRAY_SIZE(s_options));
+R"(  link one or more wasm binary modules into a single binary module.
+  $ wasm-link m1.wasm m2.wasm -o out.wasm
+)";
 
 static bool s_debug;
 static bool s_relocatable;
 static const char* s_outfile = "a.wasm";
 static std::vector<std::string> s_infiles;
-static FileWriter s_log_stream_writer;
-static Stream s_log_stream;
+static std::unique_ptr<FileStream> s_log_stream;
 
 struct Context {
   WABT_DISALLOW_COPY_AND_ASSIGN(Context);
-  Context() {
-    WABT_ZERO_MEMORY(stream);
-  }
+  Context() {}
 
-  Stream stream;
+  MemoryStream stream;
   std::vector<std::unique_ptr<LinkerInputBinary>> inputs;
   ssize_t current_section_payload_offset = 0;
 };
 
-static void on_option(struct OptionParser* parser,
-                      struct Option* option,
-                      const char* argument) {
-  switch (option->id) {
-    case FLAG_DEBUG:
-      s_debug = true;
-      init_file_writer_existing(&s_log_stream_writer, stdout);
-      init_stream(&s_log_stream, &s_log_stream_writer.base, nullptr);
-      break;
-
-    case FLAG_OUTPUT:
-      s_outfile = argument;
-      break;
-
-    case FLAG_RELOCATABLE:
-      s_relocatable = true;
-      break;
-
-    case FLAG_HELP:
-      print_help(parser, PROGRAM_NAME);
-      exit(0);
-      break;
-  }
-}
-
-static void on_argument(struct OptionParser* parser, const char* argument) {
-  s_infiles.emplace_back(argument);
-}
-
-static void on_option_error(struct OptionParser* parser, const char* message) {
-  WABT_FATAL("%s\n", message);
-}
-
 static void parse_options(int argc, char** argv) {
-  OptionParser parser;
-  WABT_ZERO_MEMORY(parser);
-  parser.description = s_description;
-  parser.options = s_options;
-  parser.num_options = WABT_ARRAY_SIZE(s_options);
-  parser.on_option = on_option;
-  parser.on_argument = on_argument;
-  parser.on_error = on_option_error;
-  parse_options(&parser, argc, argv);
+  OptionParser parser("wasm-link", s_description);
 
-  if (!s_infiles.size()) {
-    print_help(&parser, PROGRAM_NAME);
-    WABT_FATAL("No inputs files specified.\n");
-  }
+  parser.AddOption("debug",
+                   "Log extra information when reading and writing wasm files",
+                   []() {
+                     s_debug = true;
+                     s_log_stream = FileStream::CreateStdout();
+                   });
+  parser.AddOption('o', "output", "FILE", "Output wasm binary file",
+                   [](const char* argument) { s_outfile = argument; });
+  parser.AddOption('r', "relocatable", "Output a relocatable object file",
+                   []() { s_relocatable = true; });
+  parser.AddHelpOption();
+
+  parser.AddArgument(
+      "filename", OptionParser::ArgumentCount::OneOrMore,
+      [](const std::string& argument) { s_infiles.emplace_back(argument); });
+
+  parser.Parse(argc, argv);
 }
 
 Section::Section()
@@ -128,11 +83,13 @@ Section::Section()
       payload_size(0),
       payload_offset(0),
       count(0),
-      output_payload_offset(0) {}
+      output_payload_offset(0) {
+  WABT_ZERO_MEMORY(data);
+}
 
 Section::~Section() {
   if (section_code == BinarySection::Data) {
-    delete data_segments;
+    delete data.data_segments;
   }
 }
 
@@ -156,28 +113,55 @@ LinkerInputBinary::~LinkerInputBinary() {
   delete[] data;
 }
 
-static uint32_t relocate_func_index(LinkerInputBinary* binary,
-                                    uint32_t function_index) {
-  uint32_t offset;
-  if (function_index >= binary->function_imports.size()) {
+bool LinkerInputBinary::IsFunctionImport(Index index) {
+  assert(IsValidFunctionIndex(index));
+  return index < function_imports.size();
+}
+
+bool LinkerInputBinary::IsInactiveFunctionImport(Index index){
+  return IsFunctionImport(index) && !function_imports[index].active;
+}
+
+bool LinkerInputBinary::IsValidFunctionIndex(Index index) {
+  return index < function_imports.size() + function_count;
+}
+
+Index LinkerInputBinary::RelocateFuncIndex(Index function_index) {
+  Index offset;
+  if (!IsFunctionImport(function_index)) {
     /* locally declared function call */
-    offset = binary->function_index_offset;
-    if (s_debug)
-      writef(&s_log_stream, "func reloc %d + %d\n", function_index, offset);
+    offset = function_index_offset;
+    LOG_DEBUG("func reloc %d + %d\n", function_index, offset);
   } else {
     /* imported function call */
-    FunctionImport* import = &binary->function_imports[function_index];
-    offset = binary->imported_function_index_offset;
+    FunctionImport* import = &function_imports[function_index];
     if (!import->active) {
       function_index = import->foreign_index;
       offset = import->foreign_binary->function_index_offset;
-      if (s_debug)
-        writef(&s_log_stream,
-               "reloc for disabled import. new index = %d + %d\n",
-               function_index, offset);
+      LOG_DEBUG("reloc for disabled import. new index = %d + %d\n",
+                function_index, offset);
+    } else {
+      Index new_index = import->relocated_function_index;
+      LOG_DEBUG("reloc for active import. old index = %d, new index = %d\n",
+                function_index, new_index);
+      return new_index;
     }
   }
   return function_index + offset;
+}
+
+Index LinkerInputBinary::RelocateTypeIndex(Index type_index) {
+  return type_index + type_index_offset;
+}
+
+Index LinkerInputBinary::RelocateGlobalIndex(Index global_index) {
+  Index offset;
+  if (global_index >= global_imports.size()) {
+    offset = global_index_offset;
+  } else {
+    offset = imported_global_index_offset;
+  }
+  return global_index + offset;
 }
 
 static void apply_relocation(Section* section, Reloc* r) {
@@ -185,28 +169,22 @@ static void apply_relocation(Section* section, Reloc* r) {
   uint8_t* section_data = &binary->data[section->offset];
   size_t section_size = section->size;
 
-  uint32_t cur_value = 0, new_value = 0;
+  Index cur_value = 0, new_value = 0;
   read_u32_leb128(section_data + r->offset, section_data + section_size,
                   &cur_value);
 
-  uint32_t offset = 0;
   switch (r->type) {
     case RelocType::FuncIndexLEB:
-      new_value = relocate_func_index(binary, cur_value);
+      new_value = binary->RelocateFuncIndex(cur_value);
+      break;
+    case RelocType::TypeIndexLEB:
+      new_value = binary->RelocateTypeIndex(cur_value);
       break;
     case RelocType::TableIndexSLEB:
-      printf("%s: table index reloc: %d offset=%d\n", binary->filename,
-             cur_value, binary->table_index_offset);
-      offset = binary->table_index_offset;
-      new_value = cur_value + offset;
+      new_value = cur_value + binary->table_index_offset;
       break;
     case RelocType::GlobalIndexLEB:
-      if (cur_value >= binary->global_imports.size()) {
-        offset = binary->global_index_offset;
-      } else {
-        offset = binary->imported_global_index_offset;
-      }
-      new_value = cur_value + offset;
+      new_value = binary->RelocateGlobalIndex(cur_value);
       break;
     default:
       WABT_FATAL("unhandled relocation type: %s\n",
@@ -222,9 +200,7 @@ static void apply_relocations(Section* section) {
   if (!section->relocations.size())
     return;
 
-  if (s_debug)
-    writef(&s_log_stream, "apply_relocations: %s\n",
-           get_section_name(section->section_code));
+  LOG_DEBUG("apply_relocations: %s\n", get_section_name(section->section_code));
 
   /* Perform relocations in-place */
   for (Reloc& reloc: section->relocations) {
@@ -236,45 +212,45 @@ static void write_section_payload(Context* ctx, Section* sec) {
   assert(ctx->current_section_payload_offset != -1);
 
   sec->output_payload_offset =
-      ctx->stream.offset - ctx->current_section_payload_offset;
+      ctx->stream.offset() - ctx->current_section_payload_offset;
 
   uint8_t* payload = &sec->binary->data[sec->payload_offset];
-  write_data(&ctx->stream, payload, sec->payload_size, "section content");
+  ctx->stream.WriteData(payload, sec->payload_size, "section content");
 }
 
 static void write_c_str(Stream* stream, const char* str, const char* desc) {
-  write_str(stream, str, strlen(str), PrintChars::Yes, desc);
+  write_str(stream, str, strlen(str), desc, PrintChars::Yes);
 }
 
 static void write_slice(Stream* stream, StringSlice str, const char* desc) {
-  write_str(stream, str.start, str.length, PrintChars::Yes, desc);
+  write_str(stream, str.start, str.length, desc, PrintChars::Yes);
 }
 
 static void write_string(Stream* stream,
                          const std::string& str,
                          const char* desc) {
-  write_str(stream, str.data(), str.length(), PrintChars::Yes, desc);
+  write_str(stream, str.data(), str.length(), desc, PrintChars::Yes);
 }
 
-#define WRITE_UNKNOWN_SIZE(STREAM)                        \
-  {                                                       \
-  uint32_t fixup_offset = (STREAM)->offset;               \
-  write_fixed_u32_leb128(STREAM, 0, "unknown size");      \
-  ctx->current_section_payload_offset = (STREAM)->offset; \
-  uint32_t start = (STREAM)->offset;
+#define WRITE_UNKNOWN_SIZE(STREAM)                            \
+  {                                                           \
+    Offset fixup_offset = (STREAM)->offset();                 \
+    write_fixed_u32_leb128(STREAM, 0, "unknown size");        \
+    ctx->current_section_payload_offset = (STREAM)->offset(); \
+    Offset start = (STREAM)->offset();
 
-#define FIXUP_SIZE(STREAM)                                                  \
-  write_fixed_u32_leb128_at(STREAM, fixup_offset, (STREAM)->offset - start, \
-                            "fixup size");                              \
+#define FIXUP_SIZE(STREAM)                                                    \
+  write_fixed_u32_leb128_at(STREAM, fixup_offset, (STREAM)->offset() - start, \
+                            "fixup size");                                    \
   }
 
 static void write_table_section(Context* ctx,
                                 const SectionPtrVector& sections) {
   /* Total section size includes the element count leb128 which is
    * always 1 in the current spec */
-  uint32_t table_count = 1;
+  Index table_count = 1;
   uint32_t flags = WABT_BINARY_LIMITS_HAS_MAX_FLAG;
-  uint32_t elem_count = 0;
+  Index elem_count = 0;
 
   for (Section* section: sections) {
     elem_count += section->binary->table_elem_count;
@@ -291,7 +267,7 @@ static void write_table_section(Context* ctx,
 }
 
 static void write_export_section(Context* ctx) {
-  uint32_t total_exports = 0;
+  Index total_exports = 0;
   for (const std::unique_ptr<LinkerInputBinary>& binary: ctx->inputs) {
     total_exports += binary->exports.size();
   }
@@ -303,11 +279,11 @@ static void write_export_section(Context* ctx) {
   for (const std::unique_ptr<LinkerInputBinary>& binary : ctx->inputs) {
     for (const Export& export_ : binary->exports) {
       write_slice(stream, export_.name, "export name");
-      write_u8_enum(stream, export_.kind, "export kind");
-      uint32_t index = export_.index;
+      stream->WriteU8Enum(export_.kind, "export kind");
+      Index index = export_.index;
       switch (export_.kind) {
         case ExternalKind::Func:
-          index = relocate_func_index(binary.get(), index);
+          index = binary->RelocateFuncIndex(index);
           break;
         default:
           WABT_FATAL("unsupport export type: %d\n",
@@ -325,7 +301,7 @@ static void write_elem_section(Context* ctx,
   Stream* stream = &ctx->stream;
   WRITE_UNKNOWN_SIZE(stream);
 
-  uint32_t total_elem_count = 0;
+  Index total_elem_count = 0;
   for (Section* section : sections) {
     total_elem_count += section->binary->table_elem_count;
   }
@@ -337,7 +313,7 @@ static void write_elem_section(Context* ctx,
   write_opcode(&ctx->stream, Opcode::End);
   write_u32_leb128(stream, total_elem_count, "num elements");
 
-  ctx->current_section_payload_offset = stream->offset;
+  ctx->current_section_payload_offset = stream->offset();
 
   for (Section* section : sections) {
     apply_relocations(section);
@@ -359,7 +335,7 @@ static void write_memory_section(Context* ctx,
   limits.has_max = true;
   for (size_t i = 0; i < sections.size(); i++) {
     Section* sec = sections[i];
-    limits.initial += sec->memory_limits.initial;
+    limits.initial += sec->data.memory_limits.initial;
   }
   limits.max = limits.initial;
   write_limits(stream, &limits);
@@ -369,24 +345,24 @@ static void write_memory_section(Context* ctx,
 
 static void write_function_import(Context* ctx,
                                   FunctionImport* import,
-                                  uint32_t offset) {
-  write_c_str(&ctx->stream, WABT_LINK_MODULE_NAME, "import module name");
+                                  Index offset) {
+  write_slice(&ctx->stream, import->module_name, "import module name");
   write_slice(&ctx->stream, import->name, "import field name");
-  write_u8_enum(&ctx->stream, ExternalKind::Func, "import kind");
+  ctx->stream.WriteU8Enum(ExternalKind::Func, "import kind");
   write_u32_leb128(&ctx->stream, import->sig_index + offset,
                    "import signature index");
 }
 
 static void write_global_import(Context* ctx, GlobalImport* import) {
-  write_c_str(&ctx->stream, WABT_LINK_MODULE_NAME, "import module name");
+  write_slice(&ctx->stream, import->module_name, "import module name");
   write_slice(&ctx->stream, import->name, "import field name");
-  write_u8_enum(&ctx->stream, ExternalKind::Global, "import kind");
+  ctx->stream.WriteU8Enum(ExternalKind::Global, "import kind");
   write_type(&ctx->stream, import->type);
-  write_u8(&ctx->stream, import->mutable_, "global mutability");
+  ctx->stream.WriteU8(import->mutable_, "global mutability");
 }
 
 static void write_import_section(Context* ctx) {
-  uint32_t num_imports = 0;
+  Index num_imports = 0;
   for (size_t i = 0; i < ctx->inputs.size(); i++) {
     LinkerInputBinary* binary = ctx->inputs[i].get();
     std::vector<FunctionImport>& imports = binary->function_imports;
@@ -421,7 +397,7 @@ static void write_import_section(Context* ctx) {
 
 static void write_function_section(Context* ctx,
                                    const SectionPtrVector& sections,
-                                   uint32_t total_count) {
+                                   Index total_count) {
   Stream* stream = &ctx->stream;
   WRITE_UNKNOWN_SIZE(stream);
 
@@ -429,16 +405,16 @@ static void write_function_section(Context* ctx,
 
   for (size_t i = 0; i < sections.size(); i++) {
     Section* sec = sections[i];
-    uint32_t count = sec->count;
-    uint32_t input_offset = 0;
-    uint32_t sig_index = 0;
+    Index count = sec->count;
+    Offset input_offset = 0;
+    Index sig_index = 0;
     const uint8_t* start = &sec->binary->data[sec->payload_offset];
     const uint8_t* end =
         &sec->binary->data[sec->payload_offset + sec->payload_size];
     while (count--) {
       input_offset += read_u32_leb128(start + input_offset, end, &sig_index);
-      sig_index += sec->binary->type_index_offset;
-      write_u32_leb128(stream, sig_index, "sig");
+      write_u32_leb128(stream, sec->binary->RelocateTypeIndex(sig_index),
+                       "sig");
     }
   }
 
@@ -447,27 +423,27 @@ static void write_function_section(Context* ctx,
 
 static void write_data_segment(Stream* stream,
                                const DataSegment& segment,
-                               uint32_t offset) {
+                               Address offset) {
   assert(segment.memory_index == 0);
   write_u32_leb128(stream, segment.memory_index, "memory index");
   write_opcode(stream, Opcode::I32Const);
   write_u32_leb128(stream, segment.offset + offset, "offset");
   write_opcode(stream, Opcode::End);
   write_u32_leb128(stream, segment.size, "segment size");
-  write_data(stream, segment.data, segment.size, "segment data");
+  stream->WriteData(segment.data, segment.size, "segment data");
 }
 
 static void write_data_section(Context* ctx,
                                const SectionPtrVector& sections,
-                               uint32_t total_count) {
+                               Index total_count) {
   Stream* stream = &ctx->stream;
   WRITE_UNKNOWN_SIZE(stream);
 
   write_u32_leb128(stream, total_count, "data segment count");
   for (size_t i = 0; i < sections.size(); i++) {
     Section* sec = sections[i];
-    for (size_t j = 0; j < sec->data_segments->size(); j++) {
-      const DataSegment& segment = (*sec->data_segments)[j];
+    for (size_t j = 0; j < sec->data.data_segments->size(); j++) {
+      const DataSegment& segment = (*sec->data.data_segments)[j];
       write_data_segment(stream, segment,
                          sec->binary->memory_page_offset * WABT_PAGE_SIZE);
     }
@@ -477,15 +453,13 @@ static void write_data_section(Context* ctx,
 }
 
 static void write_names_section(Context* ctx) {
-  uint32_t total_count = 0;
-  size_t k;
-  for (size_t i = 0; i < ctx->inputs.size(); i++) {
-    LinkerInputBinary* binary = ctx->inputs[i].get();
-    for (size_t j = 0; j < binary->debug_names.size(); j++) {
-      if (j < binary->function_imports.size()) {
-        if (!binary->function_imports[j].active)
-          continue;
-      }
+  Index total_count = 0;
+  for (const std::unique_ptr<LinkerInputBinary>& binary: ctx->inputs) {
+    for (size_t i = 0; i < binary->debug_names.size(); i++) {
+      if (binary->debug_names[i].empty())
+        continue;
+      if (binary->IsInactiveFunctionImport(i))
+        continue;
       total_count++;
     }
   }
@@ -494,40 +468,49 @@ static void write_names_section(Context* ctx) {
     return;
 
   Stream* stream = &ctx->stream;
-  write_u8_enum(stream, BinarySection::Custom, "section code");
+  stream->WriteU8Enum(BinarySection::Custom, "section code");
   WRITE_UNKNOWN_SIZE(stream);
   write_c_str(stream, "name", "custom section name");
-  write_u8_enum(stream, NameSectionSubsection::Function, "subsection code");
+
+  stream->WriteU8Enum(NameSectionSubsection::Function, "subsection code");
   WRITE_UNKNOWN_SIZE(stream);
   write_u32_leb128(stream, total_count, "element count");
 
-  k = 0;
-  for (size_t i = 0; i < ctx->inputs.size(); i++) {
-    LinkerInputBinary* binary = ctx->inputs[i].get();
-    for (size_t j = 0; j < binary->debug_names.size(); j++) {
-      if (j < binary->function_imports.size()) {
-        if (!binary->function_imports[j].active)
-          continue;
-      }
-      write_u32_leb128(stream, k++, "function index");
-      write_string(stream, binary->debug_names[j], "function name");
+  // Write import names
+  for (const std::unique_ptr<LinkerInputBinary>& binary: ctx->inputs) {
+    for (size_t i = 0; i < binary->debug_names.size(); i++) {
+      if (binary->debug_names[i].empty() || !binary->IsFunctionImport(i))
+        continue;
+      if (binary->IsInactiveFunctionImport(i))
+        continue;
+      write_u32_leb128(stream, binary->RelocateFuncIndex(i), "function index");
+      write_string(stream, binary->debug_names[i], "function name");
+    }
+  }
+
+  // Write non-import names
+  for (const std::unique_ptr<LinkerInputBinary>& binary: ctx->inputs) {
+    for (size_t i = 0; i < binary->debug_names.size(); i++) {
+      if (binary->debug_names[i].empty() || binary->IsFunctionImport(i))
+        continue;
+      write_u32_leb128(stream, binary->RelocateFuncIndex(i), "function index");
+      write_string(stream, binary->debug_names[i], "function name");
     }
   }
 
   FIXUP_SIZE(stream);
+
   FIXUP_SIZE(stream);
 }
 
 static void write_reloc_section(Context* ctx,
                                 BinarySection section_code,
                                 const SectionPtrVector& sections) {
-  uint32_t total_relocs = 0;
+  Index total_relocs = 0;
 
   /* First pass to know total reloc count */
-  for (size_t i = 0; i < sections.size(); i++) {
-    Section* sec = sections[i];
+  for (Section* sec: sections)
     total_relocs += sec->relocations.size();
-  }
 
   if (!total_relocs)
     return;
@@ -537,20 +520,34 @@ static void write_reloc_section(Context* ctx,
            WABT_BINARY_SECTION_RELOC, get_section_name(section_code));
 
   Stream* stream = &ctx->stream;
-  write_u8_enum(stream, BinarySection::Custom, "section code");
+  stream->WriteU8Enum(BinarySection::Custom, "section code");
   WRITE_UNKNOWN_SIZE(stream);
   write_c_str(stream, section_name, "reloc section name");
   write_u32_leb128_enum(&ctx->stream, section_code, "reloc section");
   write_u32_leb128(&ctx->stream, total_relocs, "num relocs");
 
-  for (size_t i = 0; i < sections.size(); i++) {
-    Section* sec = sections[i];
-    const std::vector<Reloc>& relocs = sec->relocations;
-    for (size_t j = 0; j < relocs.size(); j++) {
-      write_u32_leb128_enum(&ctx->stream, relocs[j].type, "reloc type");
-      uint32_t new_offset = relocs[j].offset + sec->output_payload_offset;
+  for (Section* sec: sections) {
+    for (const Reloc& reloc: sec->relocations) {
+      write_u32_leb128_enum(&ctx->stream, reloc.type, "reloc type");
+      Offset new_offset = reloc.offset + sec->output_payload_offset;
       write_u32_leb128(&ctx->stream, new_offset, "reloc offset");
-      write_u32_leb128(&ctx->stream, relocs[j].index, "reloc index");
+      Index relocated_index;
+      switch (reloc.type) {
+        case RelocType::FuncIndexLEB:
+          relocated_index = sec->binary->RelocateFuncIndex(reloc.index);
+          break;
+        case RelocType::TypeIndexLEB:
+          relocated_index = sec->binary->RelocateTypeIndex(reloc.index);
+          break;
+        case RelocType::GlobalIndexLEB:
+          relocated_index = sec->binary->RelocateGlobalIndex(reloc.index);
+          break;
+        // TODO(sbc): Handle other relocation types.
+        default:
+          WABT_FATAL("Unhandled reloc type: %s\n", get_reloc_type_name(reloc.type));
+          break;
+      }
+      write_u32_leb128(&ctx->stream, relocated_index, "reloc index");
     }
   }
 
@@ -568,17 +565,16 @@ static bool write_combined_section(Context* ctx,
                get_section_name(section_code));
   }
 
-  uint32_t total_count = 0;
-  uint32_t total_size = 0;
+  Index total_count = 0;
+  Index total_size = 0;
 
   /* Sum section size and element count */
-  for (size_t i = 0; i < sections.size(); i++) {
-    Section* sec = sections[i];
+  for (Section* sec: sections) {
     total_size += sec->payload_size;
     total_count += sec->count;
   }
 
-  write_u8_enum(&ctx->stream, section_code, "section code");
+  ctx->stream.WriteU8Enum(section_code, "section code");
   ctx->current_section_payload_offset = -1;
 
   switch (section_code) {
@@ -611,9 +607,8 @@ static bool write_combined_section(Context* ctx,
       Stream* stream = &ctx->stream;
       write_u32_leb128(stream, total_size, "section size");
       write_u32_leb128(stream, total_count, "element count");
-      ctx->current_section_payload_offset = ctx->stream.offset;
-      for (size_t i = 0; i < sections.size(); i++) {
-        Section* sec = sections[i];
+      ctx->current_section_payload_offset = ctx->stream.offset();
+      for (Section* sec: sections) {
         apply_relocations(sec);
         write_section_payload(ctx, sec);
       }
@@ -656,7 +651,7 @@ static void resolve_symbols(Context* ctx) {
     LinkerInputBinary* binary = ctx->inputs[i].get();
     for (size_t j = 0; j < binary->function_imports.size(); j++) {
       FunctionImport* import = &binary->function_imports[j];
-      int export_index = export_map.find_index(import->name);
+      int export_index = export_map.FindIndex(import->name);
       if (export_index == -1) {
         if (!s_relocatable)
           WABT_FATAL("undefined symbol: " PRIstringslice "\n",
@@ -677,13 +672,13 @@ static void resolve_symbols(Context* ctx) {
 }
 
 static void calculate_reloc_offsets(Context* ctx) {
-  uint32_t memory_page_offset = 0;
-  uint32_t type_count = 0;
-  uint32_t global_count = 0;
-  uint32_t function_count = 0;
-  uint32_t table_elem_count = 0;
-  uint32_t total_function_imports = 0;
-  uint32_t total_global_imports = 0;
+  Index memory_page_offset = 0;
+  Index type_count = 0;
+  Index global_count = 0;
+  Index function_count = 0;
+  Index table_elem_count = 0;
+  Index total_function_imports = 0;
+  Index total_global_imports = 0;
   for (size_t i = 0; i < ctx->inputs.size(); i++) {
     LinkerInputBinary* binary = ctx->inputs[i].get();
     /* The imported_function_index_offset is the sum of all the function
@@ -692,6 +687,17 @@ static void calculate_reloc_offsets(Context* ctx) {
     binary->imported_function_index_offset = total_function_imports;
     binary->imported_global_index_offset = total_global_imports;
     binary->memory_page_offset = memory_page_offset;
+
+    size_t delta = 0;
+    for (size_t i = 0; i < binary->function_imports.size(); i++) {
+      if (!binary->function_imports[i].active) {
+        delta++;
+      } else {
+        binary->function_imports[i].relocated_function_index =
+          total_function_imports + i - delta;
+      }
+    }
+
     memory_page_offset += binary->memory_page_count;
     total_function_imports += binary->active_function_imports;
     total_global_imports += binary->global_imports.size();
@@ -741,8 +747,8 @@ static void write_binary(Context* ctx) {
   }
 
   /* Write the final binary */
-  write_u32(&ctx->stream, WABT_BINARY_MAGIC, "WABT_BINARY_MAGIC");
-  write_u32(&ctx->stream, WABT_BINARY_VERSION, "WABT_BINARY_VERSION");
+  ctx->stream.WriteU32(WABT_BINARY_MAGIC, "WABT_BINARY_MAGIC");
+  ctx->stream.WriteU32(WABT_BINARY_VERSION, "WABT_BINARY_VERSION");
 
   /* Write known sections first */
   for (size_t i = FIRST_KNOWN_SECTION; i < kBinarySectionCount; i++) {
@@ -759,53 +765,44 @@ static void write_binary(Context* ctx) {
 
 static void dump_reloc_offsets(Context* ctx) {
   if (s_debug) {
-    for (uint32_t i = 0; i < ctx->inputs.size(); i++) {
+    for (size_t i = 0; i < ctx->inputs.size(); i++) {
       LinkerInputBinary* binary = ctx->inputs[i].get();
-      writef(&s_log_stream, "Relocation info for: %s\n", binary->filename);
-      writef(&s_log_stream, " - type index offset       : %d\n",
-             binary->type_index_offset);
-      writef(&s_log_stream, " - mem page offset         : %d\n",
-             binary->memory_page_offset);
-      writef(&s_log_stream, " - function index offset   : %d\n",
-             binary->function_index_offset);
-      writef(&s_log_stream, " - global index offset     : %d\n",
-             binary->global_index_offset);
-      writef(&s_log_stream, " - imported function offset: %d\n",
-             binary->imported_function_index_offset);
-      writef(&s_log_stream, " - imported global offset  : %d\n",
-             binary->imported_global_index_offset);
+      LOG_DEBUG("Relocation info for: %s\n", binary->filename);
+      LOG_DEBUG(" - type index offset       : %d\n",
+                           binary->type_index_offset);
+      LOG_DEBUG(" - mem page offset         : %d\n",
+                           binary->memory_page_offset);
+      LOG_DEBUG(" - function index offset   : %d\n",
+                           binary->function_index_offset);
+      LOG_DEBUG(" - global index offset     : %d\n",
+                           binary->global_index_offset);
+      LOG_DEBUG(" - imported function offset: %d\n",
+                           binary->imported_function_index_offset);
+      LOG_DEBUG(" - imported global offset  : %d\n",
+                           binary->imported_global_index_offset);
     }
   }
 }
 
 static Result perform_link(Context* ctx) {
-  MemoryWriter writer;
-  WABT_ZERO_MEMORY(writer);
-  if (WABT_FAILED(init_mem_writer(&writer)))
-    WABT_FATAL("unable to open memory writer for writing\n");
-
-  Stream* log_stream = nullptr;
   if (s_debug)
-    log_stream = &s_log_stream;
+    ctx->stream.set_log_stream(s_log_stream.get());
 
-  if (s_debug)
-    writef(&s_log_stream, "writing file: %s\n", s_outfile);
-
+  LOG_DEBUG("writing file: %s\n", s_outfile);
   calculate_reloc_offsets(ctx);
   resolve_symbols(ctx);
   calculate_reloc_offsets(ctx);
   dump_reloc_offsets(ctx);
-  init_stream(&ctx->stream, &writer.base, log_stream);
   write_binary(ctx);
 
-  if (WABT_FAILED(write_output_buffer_to_file(&writer.buf, s_outfile)))
+  if (WABT_FAILED(ctx->stream.WriteToFile(s_outfile))) {
     WABT_FATAL("error writing linked output to file\n");
+  }
 
-  close_mem_writer(&writer);
   return Result::Ok;
 }
 
-int main(int argc, char** argv) {
+int ProgramMain(int argc, char** argv) {
   init_stdio();
 
   Context context;
@@ -815,8 +812,7 @@ int main(int argc, char** argv) {
   Result result = Result::Ok;
   for (size_t i = 0; i < s_infiles.size(); i++) {
     const std::string& input_filename = s_infiles[i];
-    if (s_debug)
-      writef(&s_log_stream, "reading file: %s\n", input_filename.c_str());
+    LOG_DEBUG("reading file: %s\n", input_filename.c_str());
     char* data;
     size_t size;
     result = read_file(input_filename.c_str(), &data, &size);
@@ -827,7 +823,7 @@ int main(int argc, char** argv) {
     context.inputs.emplace_back(b);
     LinkOptions options = { NULL };
     if (s_debug)
-      options.log_stream = &s_log_stream;
+      options.log_stream = s_log_stream.get();
     result = read_binary_linker(b, &options);
     if (WABT_FAILED(result))
       WABT_FATAL("error parsing file: %s\n", input_filename.c_str());
@@ -835,4 +831,10 @@ int main(int argc, char** argv) {
 
   result = perform_link(&context);
   return result != Result::Ok;
+}
+
+int main(int argc, char** argv) {
+  WABT_TRY
+  return ProgramMain(argc, argv);
+  WABT_CATCH_BAD_ALLOC_AND_EXIT
 }
