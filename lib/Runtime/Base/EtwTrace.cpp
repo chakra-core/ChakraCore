@@ -192,11 +192,11 @@ void EtwTrace::PerformRundown(bool start)
                             {
                                 if (start)
                                 {
-                                    LogLoopBodyEventBG(EventWriteMethodDCStart, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
+                                    LogLoopBodyEvent(EventWriteMethodDCStart, body, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
                                 }
                                 else
                                 {
-                                    LogLoopBodyEventBG(EventWriteMethodDCEnd, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
+                                    LogLoopBodyEvent(EventWriteMethodDCEnd, body, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
                                 }
                             }
                         });
@@ -288,10 +288,10 @@ void EtwTrace::LogMethodNativeLoadEvent(FunctionBody* body, FunctionEntryPointIn
 #endif
 }
 
-void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint, uint16 loopNumber)
+void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopEntryPointInfo* entryPoint, uint16 loopNumber)
 {
 #if ENABLE_NATIVE_CODEGEN
-    LogLoopBodyEventBG(EventWriteMethodLoad, body, loopHeader, entryPoint, loopNumber);
+    LogLoopBodyEvent(EventWriteMethodLoad, body, entryPoint, loopNumber);
 #else
     Assert(false); // Caller should not be enabled if JIT is disabled
 #endif
@@ -316,10 +316,10 @@ void EtwTrace::LogMethodNativeUnloadEvent(FunctionBody* body, FunctionEntryPoint
 #endif
 }
 
-void EtwTrace::LogLoopBodyUnloadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint)
+void EtwTrace::LogLoopBodyUnloadEvent(FunctionBody* body, LoopEntryPointInfo* entryPoint, uint loopNumber)
 {
 #if ENABLE_NATIVE_CODEGEN
-    LogLoopBodyEvent(EventWriteMethodUnload, body, loopHeader, entryPoint);
+    LogLoopBodyEvent(EventWriteMethodUnload, body, entryPoint, loopNumber);
 #else
 Assert(false); // Caller should not be enabled if JIT is disabled
 #endif

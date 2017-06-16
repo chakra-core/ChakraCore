@@ -16,7 +16,7 @@ public:
     static void UnRegister();
 
     static void LogMethodNativeLoadEvent(Js::FunctionBody* body, Js::FunctionEntryPointInfo* entryPoint);
-    static void LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopHeader* loopHeader, Js::LoopEntryPointInfo* entryPoint, uint16 loopNumber);
+    static void LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopEntryPointInfo* entryPoint, uint16 loopNumber);
 
     static const utf8char_t DynamicCode[];
     static bool isJitProfilingActive;
