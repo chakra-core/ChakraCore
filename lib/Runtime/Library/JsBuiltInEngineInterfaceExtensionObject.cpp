@@ -150,7 +150,10 @@ namespace Js
     {
         if (jsBuiltInByteCode == nullptr)
         {
-            SourceContextInfo * sourceContextInfo = scriptContext->CreateSourceContextInfo(0, Js::Constants::JsBuiltInSourceContext);
+            SourceContextInfo* sourceContextInfo = RecyclerNewStructZ(scriptContext->GetRecycler(), SourceContextInfo);
+            sourceContextInfo->dwHostSourceContext = Js::Constants::JsBuiltInSourceContext;
+            sourceContextInfo->isHostDynamicDocument = true;
+            sourceContextInfo->sourceContextId = (uint)Js::Constants::JsBuiltInSourceContextId;
 
             Assert(sourceContextInfo != nullptr);
 
@@ -235,14 +238,23 @@ namespace Js
         Var classNameProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::className, scriptContext);
         Var methodNameProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::methodName, scriptContext);
         Var argumentsCountProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::argumentsCount, scriptContext);
+        Var forceInlineProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::forceInline, scriptContext);
 
         Assert(JavascriptString::Is(classNameProperty));
         Assert(JavascriptString::Is(methodNameProperty));
         Assert(TaggedInt::Is(argumentsCountProperty));
+        Assert(JavascriptOperators::IsUndefinedOrNull(forceInlineProperty) || JavascriptBoolean::Is(forceInlineProperty));
 
         JavascriptString* className = JavascriptString::FromVar(classNameProperty);
         JavascriptString* methodName = JavascriptString::FromVar(methodNameProperty);
         int argumentsCount = TaggedInt::ToInt32(argumentsCountProperty);
+
+        bool forceInline = false;
+        if (!JavascriptOperators::IsUndefinedOrNull(forceInlineProperty))
+        {
+            forceInline = JavascriptBoolean::FromVar(forceInlineProperty)->GetValue();
+        }
+
         JavascriptFunction* func = JavascriptFunction::FromVar(args.Values[2]);
 
         // Set the function's display name, as the function we pass in argument are anonym.
@@ -256,6 +268,11 @@ namespace Js
         ScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateScriptFunction(func->GetFunctionProxy());
         scriptFunction->SetIsJsBuiltInCode();
         scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
+        if (forceInline)
+        {
+            Assert(scriptFunction->HasFunctionBody());
+            scriptFunction->GetFunctionBody()->SetJsBuiltInForceInline();
+        }
         scriptFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(argumentsCount), PropertyConfigurable, nullptr);
 
         scriptFunction->SetConfigurable(PropertyIds::prototype, true);

@@ -2508,6 +2508,8 @@ namespace Js
 
         FieldWithBarrier(bool) m_hasFirstTmpRegister : 1;
         FieldWithBarrier(bool) m_hasActiveReference : 1;
+
+        FieldWithBarrier(bool) m_isJsBuiltInForceInline : 1;
 #if DBG
         FieldWithBarrier(bool) m_isSerialized : 1;
 #endif
@@ -2716,6 +2718,9 @@ namespace Js
         void SetDebuggerScopeIndex(uint32 index) { debuggerScopeIndex = index; }
 
         size_t GetLoopBodyName(uint loopNumber, _Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars);
+
+        void SetJsBuiltInForceInline() { m_isJsBuiltInForceInline = true; }
+        bool IsJsBuiltInForceInline() const { return m_isJsBuiltInForceInline; }
 
         void AllocateLoopHeaders();
         void ReleaseLoopHeaders();
