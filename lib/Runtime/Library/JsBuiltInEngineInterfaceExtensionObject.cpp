@@ -153,7 +153,7 @@ namespace Js
             SourceContextInfo* sourceContextInfo = RecyclerNewStructZ(scriptContext->GetRecycler(), SourceContextInfo);
             sourceContextInfo->dwHostSourceContext = Js::Constants::JsBuiltInSourceContext;
             sourceContextInfo->isHostDynamicDocument = true;
-            sourceContextInfo->sourceContextId = (uint)Js::Constants::JsBuiltInSourceContextId;
+            sourceContextInfo->sourceContextId = Js::Constants::JsBuiltInSourceContextId;
 
             Assert(sourceContextInfo != nullptr);
 
