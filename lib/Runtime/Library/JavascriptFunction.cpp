@@ -2289,7 +2289,7 @@ LABEL1:
         }
         else if (isWasmOnly)
         {
-            JavascriptError::ThrowWebAssemblyRuntimeError(func->GetScriptContext(), JSERR_InvalidTypedArrayIndex);
+            JavascriptError::ThrowWebAssemblyRuntimeError(func->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
         }
 
         // SIMD loads/stores do bounds checks.
