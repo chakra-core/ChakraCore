@@ -451,17 +451,17 @@ LSlowPath:
     }
 
     _Use_decl_annotations_
-    size_t DecodeUnitsIntoAndNullTerminate(char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
+    size_t DecodeUnitsIntoAndNullTerminate(char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options, bool *chunkEndsAtTruncatedSequence)
     {
-        size_t result = DecodeUnitsInto(buffer, pbUtf8, pbEnd, options);
+        size_t result = DecodeUnitsInto(buffer, pbUtf8, pbEnd, options, chunkEndsAtTruncatedSequence);
         buffer[result] = 0;
         return result;
     }
 
     _Use_decl_annotations_
-    size_t DecodeUnitsIntoAndNullTerminateNoAdvance(char16 *buffer, LPCUTF8 pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
+    size_t DecodeUnitsIntoAndNullTerminateNoAdvance(char16 *buffer, LPCUTF8 pbUtf8, LPCUTF8 pbEnd, DecodeOptions options, bool *chunkEndsAtTruncatedSequence)
     {
-        return DecodeUnitsIntoAndNullTerminate(buffer, pbUtf8, pbEnd, options);
+        return DecodeUnitsIntoAndNullTerminate(buffer, pbUtf8, pbEnd, options, chunkEndsAtTruncatedSequence);
     }
 
     bool CharsAreEqual(LPCOLESTR pch, LPCUTF8 bch, LPCUTF8 end, DecodeOptions options)

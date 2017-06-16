@@ -277,9 +277,9 @@ namespace utf8
     size_t DecodeUnitsInto(_Out_writes_(pbEnd - pbUtf8) char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault, bool *chunkEndsAtTruncatedSequence = nullptr);
 
     // Decode cb bytes from ptr to into buffer returning the number of characters converted and written to buffer (excluding the null terminator)
-    size_t DecodeUnitsIntoAndNullTerminate(__out_ecount(pbEnd - pbUtf8 + 1) __nullterminated char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault);
+    size_t DecodeUnitsIntoAndNullTerminate(__out_ecount(pbEnd - pbUtf8 + 1) __nullterminated char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault, bool *chunkEndsAtTruncatedSequence = nullptr);
 
-    size_t DecodeUnitsIntoAndNullTerminateNoAdvance(__out_ecount(pbEnd - pbUtf8 + 1) __nullterminated char16 *buffer, LPCUTF8 pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault);
+    size_t DecodeUnitsIntoAndNullTerminateNoAdvance(__out_ecount(pbEnd - pbUtf8 + 1) __nullterminated char16 *buffer, LPCUTF8 pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault, bool *chunkEndsAtTruncatedSequence = nullptr);
 
     // Encode a UTF-8 sequence into a UTF-8 sequence (which is just a memcpy). This is included for convenience in templates
     // when the character encoding is a template parameter.
