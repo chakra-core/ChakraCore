@@ -243,17 +243,12 @@ namespace Js
         Assert(JavascriptString::Is(classNameProperty));
         Assert(JavascriptString::Is(methodNameProperty));
         Assert(TaggedInt::Is(argumentsCountProperty));
-        Assert(JavascriptOperators::IsUndefinedOrNull(forceInlineProperty) || JavascriptBoolean::Is(forceInlineProperty));
 
         JavascriptString* className = JavascriptString::FromVar(classNameProperty);
         JavascriptString* methodName = JavascriptString::FromVar(methodNameProperty);
         int argumentsCount = TaggedInt::ToInt32(argumentsCountProperty);
 
-        BOOL forceInline = false;
-        if (!JavascriptOperators::IsUndefinedOrNull(forceInlineProperty))
-        {
-            forceInline = JavascriptBoolean::FromVar(forceInlineProperty)->GetValue();
-        }
+        BOOL forceInline = JavascriptConversion::ToBoolean(forceInlineProperty, scriptContext);
 
         JavascriptFunction* func = JavascriptFunction::FromVar(args.Values[2]);
 

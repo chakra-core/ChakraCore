@@ -870,7 +870,7 @@ bool InliningDecider::ContinueInliningUserDefinedFunctions(uint32 bytecodeInline
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-    if (PHASE_FORCE(Js::InlinePhase, this->topFunc) || this->topFunc->IsJsBuiltInCode() || bytecodeInlinedCount <= (uint)this->threshold.inlineCountMax)
+    if (PHASE_FORCE(Js::InlinePhase, this->topFunc) || bytecodeInlinedCount <= (uint)this->threshold.inlineCountMax)
     {
         return true;
     }
