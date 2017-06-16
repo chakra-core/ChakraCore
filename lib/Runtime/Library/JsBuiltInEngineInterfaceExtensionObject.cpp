@@ -249,7 +249,7 @@ namespace Js
         JavascriptString* methodName = JavascriptString::FromVar(methodNameProperty);
         int argumentsCount = TaggedInt::ToInt32(argumentsCountProperty);
 
-        bool forceInline = false;
+        BOOL forceInline = false;
         if (!JavascriptOperators::IsUndefinedOrNull(forceInlineProperty))
         {
             forceInline = JavascriptBoolean::FromVar(forceInlineProperty)->GetValue();
