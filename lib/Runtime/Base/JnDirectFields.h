@@ -725,6 +725,7 @@ ENTRY(registerFunction)
 ENTRY(className)
 ENTRY(methodName)
 ENTRY(argumentsCount)
+ENTRY(forceInline)
 ENTRY(toLength)
 ENTRY(toInteger)
 

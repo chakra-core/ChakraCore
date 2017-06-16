@@ -684,7 +684,8 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
         return false;
     }
 
-    if (PHASE_FORCE(Js::InlinePhase, this->topFunc) ||
+    if (inlinee->IsJsBuiltInForceInline() ||
+        PHASE_FORCE(Js::InlinePhase, this->topFunc) ||
         PHASE_FORCE(Js::InlinePhase, inliner) ||
         PHASE_FORCE(Js::InlinePhase, inlinee))
     {
@@ -869,7 +870,7 @@ bool InliningDecider::ContinueInliningUserDefinedFunctions(uint32 bytecodeInline
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-    if (PHASE_FORCE(Js::InlinePhase, this->topFunc) || bytecodeInlinedCount <= (uint)this->threshold.inlineCountMax)
+    if (PHASE_FORCE(Js::InlinePhase, this->topFunc) || this->topFunc->IsJsBuiltInCode() || bytecodeInlinedCount <= (uint)this->threshold.inlineCountMax)
     {
         return true;
     }
