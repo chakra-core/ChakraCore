@@ -9,7 +9,8 @@ import shutil
 import multiprocessing as mp
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-WASM_EXEC = os.path.join(SCRIPT_DIR, '..', 'interpreter', 'wasm')
+INTERPRETER_DIR = os.path.join(SCRIPT_DIR, '..', 'interpreter')
+WASM_EXEC = os.path.join(INTERPRETER_DIR, 'wasm')
 
 WAST_TESTS_DIR = os.path.join(SCRIPT_DIR, 'core')
 JS_TESTS_DIR = os.path.join(SCRIPT_DIR, 'js-api')
@@ -35,6 +36,14 @@ def ensure_empty_dir(path):
     ensure_remove_dir(path)
     os.mkdir(path)
 
+def compile_wasm_interpreter():
+    print("Recompiling the wasm interpreter...")
+    result = run('make', '-C', INTERPRETER_DIR)
+    if result.returncode != 0:
+        print("Couldn't recompile wasm spec interpreter")
+        sys.exit(1)
+    print("Done!")
+
 def ensure_wasm_executable(path_to_wasm):
     """
     Ensure we have built the wasm spec interpreter.
@@ -43,7 +52,6 @@ def ensure_wasm_executable(path_to_wasm):
     if result.returncode != 0:
         print('Unable to run the wasm executable')
         sys.exit(1)
-
 
 # JS harness.
 def convert_one_wast_file(inputs):
@@ -208,20 +216,31 @@ def process_args():
                         help="Relative path to the output directory for the front page.",
                         type=str)
 
-    return parser.parse_args()
+    parser.add_argument('--dont-recompile',
+                        action="store_const",
+                        dest="compile",
+                        help="Don't recompile the wasm spec interpreter (by default, it is)",
+                        const=False,
+                        default=True)
+
+    return parser.parse_args(), parser
 
 if __name__ == '__main__':
-    args = process_args()
+    args, parser = process_args()
 
     js_dir = args.js_dir
     html_dir = args.html_dir
     front_dir = args.front_dir
 
-    ensure_wasm_executable(WASM_EXEC)
-
     if front_dir is None and js_dir is None and html_dir is None:
-        print('At least one mode must be selected.')
+        print('At least one mode must be selected.\n')
+        parser.print_help()
         sys.exit(1)
+
+    if args.compile:
+        compile_wasm_interpreter()
+
+    ensure_wasm_executable(WASM_EXEC)
 
     if js_dir is not None:
         ensure_empty_dir(js_dir)

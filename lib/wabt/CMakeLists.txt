@@ -67,9 +67,8 @@ if (COMPILER_IS_CLANG)
   add_definitions(-fcolor-diagnostics)
 endif ()
 
-  set(AST_PARSER_GEN_C src/prebuilt/ast-parser-gen.cc)
-  include_directories(src/prebuilt)
-
+set(AST_PARSER_GEN_C src/prebuilt/wast-parser-gen.cc)
+include_directories(src/prebuilt)
 
 if (COMPILER_IS_CLANG OR COMPILER_IS_GNU)
   # yyerror passes a non-string-literal to a printf-like function, which is a
@@ -82,38 +81,45 @@ if (COMPILER_IS_CLANG OR COMPILER_IS_GNU)
 endif ()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${WABT_SOURCE_DIR}/cmake)
-  set(AST_LEXER_GEN_C src/prebuilt/ast-lexer-gen.cc)
+set(AST_LEXER_GEN_C src/prebuilt/wast-lexer-gen.cc)
 
 add_custom_target(everything)
 
 add_library(libwabt OBJECT
-  src/ast.cc
-  src/ast-parser-lexer-shared.cc
   ${AST_LEXER_GEN_C}
   ${AST_PARSER_GEN_C}
-  src/type-checker.cc
-  src/validator.cc
-
-  src/binary-reader.cc
-  src/binary-writer.cc
-  src/binary-writer-spec.cc
-  src/binary-reader-ast.cc
-  src/binding-hash.cc
-  src/ast-writer.cc
-  src/interpreter.cc
-  src/binary-reader-interpreter.cc
   src/apply-names.cc
-  src/generate-names.cc
-  src/resolve-names.cc
-  src/hash-util.cc
-  src/string-view.cc
-
+  src/binary-error-handler.cc
+  src/binary-reader-ir.cc
+  src/binary-reader-logging.cc
+  src/binary-reader-objdump.cc
+  src/binary-reader-opcnt.cc
+  src/binary-reader.cc
+  src/binary-writer-spec.cc
+  src/binary-writer.cc
   src/binary.cc
+  src/binding-hash.cc
   src/common.cc
   src/config.cc
+  src/emscripten-helpers.cc
+  src/expr-visitor.cc
+  src/generate-names.cc
+  src/hash-util.cc
+  src/ir.cc
+  src/lexer-source-line-finder.cc
+  src/lexer-source.cc
   src/literal.cc
+  src/opcode.cc
   src/option-parser.cc
+  src/resolve-names.cc
+  src/source-error-handler.cc
   src/stream.cc
+  src/string-view.cc
+  src/type-checker.cc
+  src/utf8.cc
+  src/validator.cc
+  src/wast-parser-lexer-shared.cc
+  src/wat-writer.cc
   src/writer.cc
 
   chakra/wabtapi.cc

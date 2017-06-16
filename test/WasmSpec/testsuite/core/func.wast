@@ -34,7 +34,7 @@
 
   (func $complex
     (param i32 f32) (param $x i64) (param) (param i32)
-    (result i32)
+    (result) (result i32) (result)
     (local f32) (local $y i32) (local i64 i32) (local) (local f64 i32)
     (unreachable) (unreachable)
   )
@@ -97,7 +97,7 @@
   (func (export "value-f64") (result f64) (f64.const 77.77))
   (func (export "value-block-void") (block (call $dummy) (call $dummy)))
   (func (export "value-block-i32") (result i32)
-    (block i32 (call $dummy) (i32.const 77))
+    (block (result i32) (call $dummy) (i32.const 77))
   )
 
   (func (export "return-empty") (return))
@@ -106,7 +106,7 @@
   (func (export "return-f32") (result f32) (return (f32.const 78.7)))
   (func (export "return-f64") (result f64) (return (f64.const 78.78)))
   (func (export "return-block-i32") (result i32)
-    (return (block i32 (call $dummy) (i32.const 77)))
+    (return (block (result i32) (call $dummy) (i32.const 77)))
   )
 
   (func (export "break-empty") (br 0))
@@ -115,7 +115,7 @@
   (func (export "break-f32") (result f32) (br 0 (f32.const 79.9)))
   (func (export "break-f64") (result f64) (br 0 (f64.const 79.79)))
   (func (export "break-block-i32") (result i32)
-    (br 0 (block i32 (call $dummy) (i32.const 77)))
+    (br 0 (block (result i32) (call $dummy) (i32.const 77)))
   )
 
   (func (export "break-br_if-empty") (param i32)
@@ -136,7 +136,9 @@
   )
   (func (export "break-br_table-nested-num") (param i32) (result i32)
     (i32.add
-      (block i32 (br_table 0 1 0 (i32.const 50) (get_local 0)) (i32.const 51))
+      (block (result i32)
+        (br_table 0 1 0 (i32.const 50) (get_local 0)) (i32.const 51)
+      )
       (i32.const 2)
     )
   )
@@ -486,3 +488,30 @@
   "type mismatch"
 )
 
+
+;; Syntax errors
+
+(assert_malformed
+  (module quote "(func (nop) (local i32))")
+  "unexpected token"
+)
+(assert_malformed
+  (module quote "(func (nop) (param i32))")
+  "unexpected token"
+)
+(assert_malformed
+  (module quote "(func (nop) (result i32))")
+  "unexpected token"
+)
+(assert_malformed
+  (module quote "(func (local i32) (param i32))")
+  "unexpected token"
+)
+(assert_malformed
+  (module quote "(func (local i32) (result i32) (get_local 0))")
+  "unexpected token"
+)
+(assert_malformed
+  (module quote "(func (result i32) (param i32) (get_local 0))")
+  "unexpected token"
+)

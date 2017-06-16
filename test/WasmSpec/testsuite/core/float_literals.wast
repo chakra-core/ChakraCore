@@ -11,9 +11,9 @@
   (func (export "f32.misc_nan") (result i32) (i32.reinterpret/f32 (f32.const nan:0x012345)))
   (func (export "f32.misc_positive_nan") (result i32) (i32.reinterpret/f32 (f32.const +nan:0x304050)))
   (func (export "f32.misc_negative_nan") (result i32) (i32.reinterpret/f32 (f32.const -nan:0x2abcde)))
-  (func (export "f32.infinity") (result i32) (i32.reinterpret/f32 (f32.const infinity)))
-  (func (export "f32.positive_infinity") (result i32) (i32.reinterpret/f32 (f32.const +infinity)))
-  (func (export "f32.negative_infinity") (result i32) (i32.reinterpret/f32 (f32.const -infinity)))
+  (func (export "f32.infinity") (result i32) (i32.reinterpret/f32 (f32.const inf)))
+  (func (export "f32.positive_infinity") (result i32) (i32.reinterpret/f32 (f32.const +inf)))
+  (func (export "f32.negative_infinity") (result i32) (i32.reinterpret/f32 (f32.const -inf)))
 
   ;; f32 numbers
   (func (export "f32.zero") (result i32) (i32.reinterpret/f32 (f32.const 0x0.0p0)))
@@ -47,9 +47,9 @@
   (func (export "f64.misc_nan") (result i64) (i64.reinterpret/f64 (f64.const nan:0x0123456789abc)))
   (func (export "f64.misc_positive_nan") (result i64) (i64.reinterpret/f64 (f64.const +nan:0x3040506070809)))
   (func (export "f64.misc_negative_nan") (result i64) (i64.reinterpret/f64 (f64.const -nan:0x2abcdef012345)))
-  (func (export "f64.infinity") (result i64) (i64.reinterpret/f64 (f64.const infinity)))
-  (func (export "f64.positive_infinity") (result i64) (i64.reinterpret/f64 (f64.const +infinity)))
-  (func (export "f64.negative_infinity") (result i64) (i64.reinterpret/f64 (f64.const -infinity)))
+  (func (export "f64.infinity") (result i64) (i64.reinterpret/f64 (f64.const inf)))
+  (func (export "f64.positive_infinity") (result i64) (i64.reinterpret/f64 (f64.const +inf)))
+  (func (export "f64.negative_infinity") (result i64) (i64.reinterpret/f64 (f64.const -inf)))
 
   ;; f64 numbers
   (func (export "f64.zero") (result i64) (i64.reinterpret/f64 (f64.const 0x0.0p0)))

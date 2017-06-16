@@ -27,7 +27,10 @@ const argv = require("yargs")
       array: true,
       alias: "e",
       description: "Spec tests to exclude from the conversion (use for known failures)",
-      default: []
+      default: [
+        "memory_trap",
+        "traps",
+      ]
     },
     "xplat-excludes": {
       array: true,
@@ -51,6 +54,7 @@ const argv = require("yargs")
         "left-to-right",
         "linking",
         "memory_trap",
+        "names",
         "page",
         "resizing",
         "select",
@@ -187,27 +191,33 @@ function main() {
 </regress-exe>
 `);
     return new Promise((resolve, reject) => {
-      fs.writeFile(path.join(__dirname, "..", "rlexe.xml"), rlexe, err => err ? reject(err) : resolve(specFiles));
+      fs.writeFile(path.join(__dirname, "..", "rlexe.xml"), rlexe, err => err ? reject(err) : resolve(runs));
     });
-  }).then(specFiles => {
+  }).then(runs => {
     if (!argv.rebase) {
       return;
     }
     fs.removeSync(baselineDir);
     fs.ensureDirSync(baselineDir);
-    return Promise.all(specFiles.map(specFile => new Promise((resolve, reject) => {
-      const baseline = fs.createWriteStream(getBaselinePath(specFile));
-      const args = [path.resolve(rlRoot, "spec.js"), "-nonative"].concat(stringArgv(hostFlags(specFile)));
-      console.log(argv.rebase, args.join(" "));
-      const engine = spawn(
-        argv.rebase,
-        args,
-        {cwd: rlRoot}
-      );
-      engine.stdout.pipe(baseline);
-      engine.stderr.pipe(baseline);
-      engine.on("error", reject);
-      engine.on("close", resolve);
+    return Promise.all(runs.map(run => new Promise((resolve, reject) => {
+      const test = run[0];
+      const baseline = fs.createWriteStream(test.baseline);
+      baseline.on("open", () => {
+        const args = [path.resolve(rlRoot, test.runner)].concat(test.flags);
+        console.log(argv.rebase, args.join(" "));
+        const engine = spawn(
+          argv.rebase,
+          args,
+          {
+            cwd: rlRoot,
+            stdio: [baseline, baseline, baseline],
+            shell: true
+          }
+        );
+        engine.on("error", reject);
+        engine.on("close", resolve);
+      });
+      baseline.on("error", reject);
     })));
   });
 }

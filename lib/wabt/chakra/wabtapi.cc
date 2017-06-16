@@ -4,29 +4,56 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "wabtapi.h"
+
+#pragma warning(push, 0)
 #include "writer.h"
-#include "ast-lexer.h"
-#include "ast.h"
-#include "ast-parser.h"
+#include "wast-parser.h"
+#include "wast-lexer.h"
 #include "resolve-names.h"
 #include "binary-writer.h"
+#include "source-error-handler.h"
+#include "ir.h"
+#pragma warning(pop)
 
 using namespace wabt;
 using namespace ChakraWabt;
+
+class MySourceErrorHandler : public SourceErrorHandler
+{
+public:
+
+    virtual bool OnError(const Location* loc, const std::string& error, const std::string& source_line, size_t source_line_column_offset) override
+    {
+        int colStart = loc->first_column - 1 - (int)source_line_column_offset;
+        int sourceErrorLength = (loc->last_column - loc->first_column) - 2;
+        if (sourceErrorLength < 0)
+        {
+            // -2 probably overflowed
+            sourceErrorLength = 0;
+        }
+        char buf[4096];
+        wabt_snprintf(buf, 4096, "Wast Parsing error:%u:%u:\n%s\n%s\n%*s^%*s^",
+                      loc->line,
+                      loc->first_column,
+                      error.c_str(),
+                      source_line.c_str(),
+                      colStart, "",
+                      sourceErrorLength, "");
+        throw Error(buf);
+    }
+
+
+    virtual size_t source_line_max_length() const override
+    {
+        return 256;
+    }
+
+};
 
 struct MemoryWriterContext
 {
     MemoryWriter* writer;
     Context* ctx;
-};
-
-struct AutoCleanLexer
-{
-    AstLexer* lexer;
-    ~AutoCleanLexer()
-    {
-        destroy_ast_lexer(lexer);
-    }
 };
 
 struct AutoCleanScript
@@ -45,57 +72,6 @@ uint TruncSizeT(size_t value)
         throw Error("Out of Memory");
     }
     return (uint)value;
-}
-
-void ensure_output_buffer_capacity(OutputBuffer* buf, size_t ensure_capacity, MemoryWriterContext* context)
-{
-    if (ensure_capacity > buf->capacity)
-    {
-        assert(buf->capacity != 0);
-        size_t newCapacity = buf->capacity * 2;
-        while (newCapacity < ensure_capacity)
-            newCapacity *= 2;
-        char* new_data = (char*)context->ctx->Allocate(TruncSizeT(newCapacity));
-        memcpy(new_data, buf->start, buf->capacity);
-        buf->start = new_data;
-        buf->capacity = newCapacity;
-    }
-}
-
-Result write_data_to_output_buffer(size_t offset,
-                                         const void* data,
-                                         size_t size,
-                                         void* user_data)
-{
-    MemoryWriterContext* context = static_cast<MemoryWriterContext*>(user_data);
-    MemoryWriter* writer = context->writer;
-    size_t end = offset + size;
-    ensure_output_buffer_capacity(&writer->buf, end, context);
-    memcpy(writer->buf.start + offset, data, size);
-    if (end > writer->buf.size)
-        writer->buf.size = end;
-    return Result::Ok;
-}
-
-Result move_data_in_output_buffer(size_t dst_offset,
-                                        size_t src_offset,
-                                        size_t size,
-                                        void* user_data)
-{
-    MemoryWriterContext* context = static_cast<MemoryWriterContext*>(user_data);
-    MemoryWriter* writer = context->writer;
-    size_t src_end = src_offset + size;
-    size_t dst_end = dst_offset + size;
-    size_t end = src_end > dst_end ? src_end : dst_end;
-    ensure_output_buffer_capacity(&writer->buf, end, context);
-    void* dst = reinterpret_cast<void*>(
-        reinterpret_cast<size_t>(writer->buf.start) + dst_offset);
-    void* src = reinterpret_cast<void*>(
-        reinterpret_cast<size_t>(writer->buf.start) + src_offset);
-    memmove(dst, src, size);
-    if (end > writer->buf.size)
-        writer->buf.size = end;
-    return Result::Ok;
 }
 
 void set_property(Context* ctx, Js::Var obj, PropertyId id, Js::Var value, const char* messageIfFailed)
@@ -232,7 +208,7 @@ Js::Var create_type_object(Context* ctx, Type type)
 
 void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* script, const Action* action)
 {
-    const Module* module = get_module_by_var(script, &action->module_var);
+    const Module* module = script->GetModule(action->module_var);
     const Export* export_;
     Js::Var resultArr = ctx->spec->createArray(ctx->user_data);
     set_property(ctx, obj, id, resultArr, "Unable to set action result type");
@@ -241,14 +217,14 @@ void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* 
     {
     case ActionType::Invoke:
     {
-        export_ = get_export_by_name(module, &action->name);
+        export_ = module->GetExport(action->name);
         assert(export_->kind == ExternalKind::Func);
-        Func* func = get_func_by_var(module, &export_->var);
-        int num_results = (int)get_num_results(func);
-        int i;
+        const Func* func = module->GetFunc(export_->var);
+        wabt::Index num_results = func->GetNumResults();
+        wabt::Index i;
         for (i = 0; i < num_results; ++i)
         {
-            Js::Var typeObj = create_type_object(ctx, get_result_type(func, i));
+            Js::Var typeObj = create_type_object(ctx, func->GetResultType(i));
             ctx->spec->push(resultArr, typeObj, ctx->user_data);
         }
         break;
@@ -256,9 +232,9 @@ void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* 
 
     case ActionType::Get:
     {
-        export_ = get_export_by_name(module, &action->name);
+        export_ = module->GetExport(action->name);
         assert(export_->kind == ExternalKind::Global);
-        Global* global = get_global_by_var(module, &export_->var);
+        const Global* global = module->GetGlobal(export_->var);
         Js::Var typeObj = create_type_object(ctx, global->type);
         ctx->spec->push(resultArr, typeObj, ctx->user_data);
         break;
@@ -305,19 +281,15 @@ Js::Var create_module(Context* ctx, Module* module)
     }
     MemoryWriter writer;
     MemoryWriterContext context{ &writer, ctx };
-    writer.base.move_data = move_data_in_output_buffer;
-    writer.base.write_data = write_data_to_output_buffer;
-    writer.base.user_data = &context;
-    writer.buf.size = 0;
-    size_t capacity = writer.buf.capacity = 256;
-    writer.buf.start = (char*)ctx->Allocate(TruncSizeT(capacity));
     WriteBinaryOptions s_write_binary_options = { nullptr, true, false, false };
-    Result result = write_binary_module(&writer.base, module, &s_write_binary_options);
+    Result result = write_binary_module(&writer, module, &s_write_binary_options);
     if (!WABT_SUCCEEDED(result))
     {
         throw Error("Error while writing module");
     }
-    return ctx->createBuffer(writer.buf.start, TruncSizeT(writer.buf.size), ctx->user_data);
+    const char* data = (const char*)writer.output_buffer().data.data();
+    const size_t size = writer.output_buffer().size();
+    return ctx->createBuffer(data, TruncSizeT(size), ctx->user_data);
 }
 
 void write_module(Context* ctx, Js::Var obj, Module* module)
@@ -326,18 +298,31 @@ void write_module(Context* ctx, Js::Var obj, Module* module)
     set_property(ctx, obj, PropertyIds::buffer, buffer, "Unable to set module");
 }
 
-static void write_invalid_module(Context* ctx, Js::Var obj, const RawModule* module, StringSlice text)
+static void write_invalid_module(Context* ctx, Js::Var obj, const ScriptModule* module, StringSlice text)
 {
-    write_location(ctx, obj, get_raw_module_location(module));
+    write_location(ctx, obj, &module->GetLocation());
     write_string(ctx, obj, PropertyIds::text, text);
-    if (module->type == RawModuleType::Text)
+    switch (module->type)
     {
+    case ScriptModule::Type::Text:
         write_module(ctx, obj, module->text);
-        return;
+        break;
+    case ScriptModule::Type::Binary:
+    {
+        Js::Var buffer = ctx->createBuffer(module->binary.data, TruncSizeT(module->binary.size), ctx->user_data);
+        set_property(ctx, obj, PropertyIds::buffer, buffer, "Unable to set invalid module");
+        break;
     }
-    assert(module->type == RawModuleType::Binary);
-    Js::Var buffer = ctx->createBuffer(module->binary.data, TruncSizeT(module->binary.size), ctx->user_data);
-    set_property(ctx, obj, PropertyIds::buffer, buffer, "Unable to set invalid module");
+    case ScriptModule::Type::Quoted:
+    {
+        Js::Var buffer = ctx->createBuffer(module->quoted.data, TruncSizeT(module->quoted.size), ctx->user_data);
+        set_property(ctx, obj, PropertyIds::buffer, buffer, "Unable to set invalid module");
+        break;
+    }
+    default:
+        assert(false);
+        break;
+    }
 }
 
 Js::Var write_commands(Context* ctx, Script* script) {
@@ -345,9 +330,8 @@ Js::Var write_commands(Context* ctx, Script* script) {
     Js::Var resultObj = ctx->spec->createObject(ctx->user_data);
     Js::Var commandsArr = ctx->spec->createArray(ctx->user_data);
     set_property(ctx, resultObj, PropertyIds::commands, commandsArr, "Unable to set commands");
-    size_t i;
-    int last_module_index = -1;
-    for (i = 0; i < script->commands.size(); ++i) {
+    wabt::Index last_module_index = (wabt::Index)-1;
+    for (wabt::Index i = 0; i < script->commands.size(); ++i) {
         const Command* command = script->commands[i].get();
 
         if (command->type == CommandType::AssertInvalidNonBinary)
@@ -364,7 +348,7 @@ Js::Var write_commands(Context* ctx, Script* script) {
                 write_string(ctx, cmdObj, PropertyIds::name, module->name);
             }
             write_module(ctx, cmdObj, module);
-            last_module_index = static_cast<int>(i);
+            last_module_index = i;
             break;
         }
 
@@ -440,31 +424,6 @@ Js::Var write_commands(Context* ctx, Script* script) {
     return resultObj;
 }
 
-bool lexer_error_callback(const Location* loc,
-                          const char* error,
-                          const char* source_line,
-                          size_t,
-                          size_t source_line_column_offset,
-                          void*)
-{
-    int colStart = loc->first_column - 1 - (int)source_line_column_offset;
-    int sourceErrorLength = (loc->last_column - loc->first_column) - 2;
-    if (sourceErrorLength < 0)
-    {
-        // -2 probably overflowed
-        sourceErrorLength = 0;
-    }
-    char buf[4096];
-    wabt_snprintf(buf, 4096, "Wast Parsing error:%u:%u:\n%s\n%s\n%*s^%*s^",
-                loc->line,
-                loc->first_column,
-                error,
-                source_line,
-                colStart, "",
-                sourceErrorLength, "");
-    throw Error(buf);
-};
-
 void Context::Validate(bool isSpec) const
 {
     if (!allocator) throw Error("Missing allocator");
@@ -486,24 +445,19 @@ Js::Var ChakraWabt::ConvertWast2Wasm(Context& ctx, char* buffer, uint bufferSize
 {
     ctx.Validate(isSpecText);
 
-    AstLexer* lexer = new_ast_buffer_lexer("", buffer, (size_t)bufferSize);
-    AutoCleanLexer autoCleanLexer = { lexer };
+    std::unique_ptr<WastLexer> lexer = WastLexer::CreateBufferLexer("", buffer, (size_t)bufferSize);
 
-    SourceErrorHandler s_error_handler = {
-        lexer_error_callback,
-        256,
-        nullptr
-    };
+    MySourceErrorHandler s_error_handler;
 
     Script* script;
-    Result result = parse_ast(lexer, &script, &s_error_handler);
+    Result result = parse_wast(lexer.get(), &script, &s_error_handler);
     AutoCleanScript autoCleanScript = { script };
     if (!WABT_SUCCEEDED(result))
     {
         throw Error("Invalid wast script");
     }
 
-    result = resolve_names_script(lexer, script, &s_error_handler);
+    result = resolve_names_script(lexer.get(), script, &s_error_handler);
     if (!WABT_SUCCEEDED(result))
     {
         throw Error("Unable to resolve script's names");
@@ -516,7 +470,7 @@ Js::Var ChakraWabt::ConvertWast2Wasm(Context& ctx, char* buffer, uint bufferSize
     }
     else
     {
-        Module* module = get_first_module(script);
+        Module* module = script->GetFirstModule();
         returnValue = create_module(&ctx, module);
     }
     return returnValue;
