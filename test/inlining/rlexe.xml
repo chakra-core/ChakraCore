@@ -274,4 +274,10 @@
       <compile-flags>-loopinterpretcount:1 -bgjit- -force:inline</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug9936017.js</files>
+      <compile-flags>-off:simplejit -oopjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>
