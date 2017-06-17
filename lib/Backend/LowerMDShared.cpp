@@ -5546,7 +5546,7 @@ IR::Opnd* LowererMD::Subtract2To31(IR::Opnd* src1, IR::Opnd* intMinFP, IRType ty
 IR::Opnd* LowererMD::GenerateTruncChecks(IR::Instr* instr)
 {
     IR::LabelInstr * conversion = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-    IR::LabelInstr * throwLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * throwLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
     IR::Opnd* src1 = instr->GetSrc1();
 
     IR::Opnd * src64 = nullptr;
