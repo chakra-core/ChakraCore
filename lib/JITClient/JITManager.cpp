@@ -30,6 +30,7 @@ JITManager::JITManager() :
     m_rpcBindingHandle(nullptr),
     m_oopJitEnabled(false),
     m_isJITServer(false),
+    m_failingHRESULT(S_OK),
     m_serverHandle(nullptr),
     m_jitConnectionId()
 {
@@ -183,7 +184,7 @@ bool
 JITManager::IsConnected() const
 {
     Assert(IsOOPJITEnabled());
-    return m_rpcBindingHandle != nullptr;
+    return m_rpcBindingHandle != nullptr && !HasJITFailed();
 }
 
 HANDLE
@@ -203,6 +204,19 @@ JITManager::EnableOOPJIT()
         // that will disable SetProcessValidCallTargets from being invoked.
         GlobalSecurityPolicy::DisableSetProcessValidCallTargets();
     }
+}
+
+void
+JITManager::SetJITFailed(HRESULT hr)
+{
+    Assert(hr != S_OK);
+    m_failingHRESULT = hr;
+}
+
+bool
+JITManager::HasJITFailed() const
+{
+    return m_failingHRESULT != S_OK;
 }
 
 bool

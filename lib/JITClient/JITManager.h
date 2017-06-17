@@ -28,6 +28,8 @@ public:
     void SetIsJITServer();
     bool IsOOPJITEnabled() const;
     void EnableOOPJIT();
+    void SetJITFailed(HRESULT hr);
+    bool HasJITFailed() const;
 
     HANDLE GetServerHandle() const;
 
@@ -125,6 +127,7 @@ private:
     UUID m_jitConnectionId;
     bool m_oopJitEnabled;
     bool m_isJITServer;
+    HRESULT m_failingHRESULT;
 
     static JITManager s_jitManager;
 
@@ -142,6 +145,7 @@ public:
     void SetIsJITServer() { Assert(false); }
     bool IsOOPJITEnabled() const { return false; }
     void EnableOOPJIT() { Assert(false); }
+    void SetJITFailed(HRESULT hr) { Assert(false); }
 
     HANDLE GetServerHandle() const
     {
