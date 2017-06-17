@@ -3025,7 +3025,10 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
     {
 #ifdef _M_X64
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
-        src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+        if (newOpcode == Js::OpCodeAsmJs::Div_Trap_Long)
+        {
+            src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+        }
 #endif
         Js::OpCode op = newOpcode == Js::OpCodeAsmJs::Div_Trap_ULong ? Js::OpCode::DivU_I4 : Js::OpCode::Div_I4;
         instr = IR::Instr::New(op, dstOpnd, src1Opnd, src2Opnd, m_func);
