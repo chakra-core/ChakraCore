@@ -12216,7 +12216,7 @@ bool GlobOpt::OptConstFoldBinaryWasm(
     }
 
     int64 tmpValueOut;
-    if (!instr->BinaryCalculatorT<T>(src1IntConstantValue, src2IntConstantValue, &tmpValueOut))
+    if (!instr->BinaryCalculatorT<T>(src1IntConstantValue, src2IntConstantValue, &tmpValueOut, func->GetJITFunctionBody()->IsWasmFunction()))
     {
         return false;
     }

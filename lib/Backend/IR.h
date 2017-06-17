@@ -334,7 +334,7 @@ public:
     bool            IsNeq();
     bool            BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult);
     template <typename T>     
-    bool            BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult);
+    bool            BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult, bool checkWouldTrap);
     bool            UnaryCalculator(IntConstType src1Const, IntConstType *pResult);
     IR::Instr*      GetNextArg();
 
