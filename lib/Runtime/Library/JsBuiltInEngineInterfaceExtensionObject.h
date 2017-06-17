@@ -22,6 +22,7 @@ namespace Js
         class EntryInfo
         {
         public:
+            static NoProfileFunctionInfo JsBuiltIn_RegisterChakraLibraryFunction;
             static NoProfileFunctionInfo JsBuiltIn_RegisterFunction;
 
             static NoProfileFunctionInfo JsBuiltIn_Internal_ToLengthFunction;
@@ -37,6 +38,7 @@ namespace Js
         void EnsureJsBuiltInByteCode(ScriptContext * scriptContext);
 
         static DynamicObject* GetPrototypeFromName(Js::PropertyIds propertyId, ScriptContext* scriptContext);
+        static Var EntryJsBuiltIn_RegisterChakraLibraryFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJsBuiltIn_RegisterFunction(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntryJsBuiltIn_Internal_ToLengthFunction(RecyclableObject* function, CallInfo callInfo, ...);

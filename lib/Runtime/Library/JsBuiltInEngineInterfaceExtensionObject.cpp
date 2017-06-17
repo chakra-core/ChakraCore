@@ -53,6 +53,7 @@ namespace Js
     }
 
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterFunction));
+    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterChakraLibraryFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterChakraLibraryFunction));
 
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToLengthFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToLengthFunction));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToIntegerFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToIntegerFunction));
@@ -130,6 +131,7 @@ namespace Js
         ScriptContext* scriptContext = builtInNativeInterfaces->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
+        library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::registerChakraLibraryFunction, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterChakraLibraryFunction, 2);
         library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::registerFunction, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterFunction, 2);
 
         builtInNativeInterfaces->SetHasNoEnumerableProperties(true);
@@ -148,7 +150,10 @@ namespace Js
     {
         if (jsBuiltInByteCode == nullptr)
         {
-            SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(Js::Constants::NoHostSourceContext, NULL);
+            SourceContextInfo* sourceContextInfo = RecyclerNewStructZ(scriptContext->GetRecycler(), SourceContextInfo);
+            sourceContextInfo->dwHostSourceContext = Js::Constants::JsBuiltInSourceContext;
+            sourceContextInfo->isHostDynamicDocument = true;
+            sourceContextInfo->sourceContextId = Js::Constants::JsBuiltInSourceContextId;
 
             Assert(sourceContextInfo != nullptr);
 
@@ -156,7 +161,7 @@ namespace Js
             memset(&si, 0, sizeof(si));
             si.sourceContextInfo = sourceContextInfo;
             SRCINFO *hsi = scriptContext->AddHostSrcInfo(&si);
-            uint32 flags = fscrIsLibraryCode | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
+            uint32 flags = fscrJsBuiltIn | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
 
             HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_jsbuiltin, nullptr, &jsBuiltInByteCode);
 
@@ -175,17 +180,53 @@ namespace Js
         case PropertyIds::String:
             return library->stringPrototype;
 
+        case PropertyIds::__chakraLibrary:
+            return library->GetChakraLib();
+
         default:
             AssertMsg(false, "Unable to find a prototype that match with this className.");
             return nullptr;
         }
     }
 
+    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterChakraLibraryFunction(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+
+        AssertOrFailFast(args.Info.Count >= 3 && JavascriptString::Is(args.Values[1]) && JavascriptFunction::Is(args.Values[2]));
+
+        // retrieves arguments
+        JavascriptString* methodName = JavascriptString::FromVar(args.Values[1]);
+        JavascriptFunction* func = JavascriptFunction::FromVar(args.Values[2]);
+
+        // Set the function's display name, as the function we pass in argument are anonym.
+        func->GetFunctionProxy()->SetIsPublicLibraryCode();
+        func->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodName->GetString(), methodName->GetLength(), 0);
+
+        DynamicObject* chakraLibraryObject = GetPrototypeFromName(PropertyIds::__chakraLibrary, scriptContext);
+        PropertyIds functionIdentifier = JavascriptOperators::GetPropertyId(methodName, scriptContext);
+
+        // Link the function to __chakraLibrary.
+        ScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateScriptFunction(func->GetFunctionProxy());
+        scriptFunction->SetIsJsBuiltInCode();
+        scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
+
+        if (scriptFunction->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled())
+        {
+            scriptFunction->SetPropertyWithAttributes(PropertyIds::name, methodName, PropertyConfigurable, nullptr);
+        }
+
+        scriptContext->GetLibrary()->AddMember(chakraLibraryObject, functionIdentifier, scriptFunction);
+
+        //Don't need to return anything
+        return scriptContext->GetLibrary()->GetUndefined();
+    }
+
     Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterFunction(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        Assert(args.Info.Count >= 3 && JavascriptObject::Is(args.Values[1]) && JavascriptFunction::Is(args.Values[2]));
+        AssertOrFailFast(args.Info.Count >= 3 && JavascriptObject::Is(args.Values[1]) && JavascriptFunction::Is(args.Values[2]));
 
         // retrieves arguments
         RecyclableObject* funcInfo = nullptr;
@@ -197,6 +238,7 @@ namespace Js
         Var classNameProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::className, scriptContext);
         Var methodNameProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::methodName, scriptContext);
         Var argumentsCountProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::argumentsCount, scriptContext);
+        Var forceInlineProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::forceInline, scriptContext);
 
         Assert(JavascriptString::Is(classNameProperty));
         Assert(JavascriptString::Is(methodNameProperty));
@@ -205,6 +247,9 @@ namespace Js
         JavascriptString* className = JavascriptString::FromVar(classNameProperty);
         JavascriptString* methodName = JavascriptString::FromVar(methodNameProperty);
         int argumentsCount = TaggedInt::ToInt32(argumentsCountProperty);
+
+        BOOL forceInline = JavascriptConversion::ToBoolean(forceInlineProperty, scriptContext);
+
         JavascriptFunction* func = JavascriptFunction::FromVar(args.Values[2]);
 
         // Set the function's display name, as the function we pass in argument are anonym.
@@ -216,7 +261,13 @@ namespace Js
 
         // Link the function to the prototype.
         ScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateScriptFunction(func->GetFunctionProxy());
-        scriptFunction->SetIsJsBuiltIn();
+        scriptFunction->SetIsJsBuiltInCode();
+        scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
+        if (forceInline)
+        {
+            Assert(scriptFunction->HasFunctionBody());
+            scriptFunction->GetFunctionBody()->SetJsBuiltInForceInline();
+        }
         scriptFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(argumentsCount), PropertyConfigurable, nullptr);
 
         scriptFunction->SetConfigurable(PropertyIds::prototype, true);
@@ -242,14 +293,14 @@ namespace Js
     Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToLengthFunction(RecyclableObject * function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        Assert(args.Info.Count >= 2);
+        AssertOrFailFast(args.Info.Count >= 2);
         return JavascriptNumber::ToVar(JavascriptConversion::ToLength(args.Values[1], scriptContext), scriptContext);
     }
 
     Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToIntegerFunction(RecyclableObject * function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        Assert(args.Info.Count >= 2);
+        AssertOrFailFast(args.Info.Count >= 2);
 
         Var value = args.Values[1];
         if (JavascriptOperators::IsUndefinedOrNull(value))

@@ -721,10 +721,12 @@ ENTRY(Promise)
 ENTRY(MissingProperty)
 //Built In
 ENTRY(__chakraLibrary)
+ENTRY(registerChakraLibraryFunction)
 ENTRY(registerFunction)
 ENTRY(className)
 ENTRY(methodName)
 ENTRY(argumentsCount)
+ENTRY(forceInline)
 ENTRY(toLength)
 ENTRY(toInteger)
 
