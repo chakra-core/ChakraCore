@@ -3019,8 +3019,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);
             break;
 
-        case Js::OpCode::Unreachable_Void:
-            GenerateThrowUnreachable(instr);
+        case Js::OpCode::ThrowRuntimeError:
+            GenerateThrow(instr->UnlinkSrc1(), instr);
+            instr->Remove();
             break;
 
 #endif //ENABLE_WASM
@@ -18923,13 +18924,6 @@ Lowerer::GenerateCtz(IR::Instr* instr)
     m_lowererMD.GenerateCtz(instr);
 }
 
-void Lowerer::GenerateThrowUnreachable(IR::Instr* instr)
-{
-    GenerateThrow(instr->GetSrc1(), instr);
-    instr->UnlinkSrc1();
-    instr->Remove();
-}
-
 void
 Lowerer::GeneratePopCnt(IR::Instr* instr)
 {
@@ -23978,6 +23972,7 @@ Lowerer::LowerTrapIfZero(IR::Instr * const instr)
     IR::Opnd * src1 = instr->GetSrc1();
 
     InsertTestBranch(src1, src1, Js::OpCode::BrNeq_A, doneLabel, doneLabel);
+    InsertLabel(true, doneLabel);
     GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), doneLabel);
     instr->m_opcode = Js::OpCode::Ld_I4;
     LowerLdI4(instr);
@@ -23997,23 +23992,43 @@ Lowerer::LowerTrapIfMinIntOverNegOne(IR::Instr * const instr)
     IR::Opnd * src2 = instr->UnlinkSrc2();
 
     int64 intMin = IRType_IsInt64(src1->GetType()) ? LONGLONG_MIN : INT_MIN;
-    InsertCompareBranch(src1, IR::IntConstOpnd::NewFromType(intMin, src1->GetType(), m_func), Js::OpCode::BrNeq_A, doneLabel, doneLabel);
-    InsertCompareBranch(src2, IR::IntConstOpnd::NewFromType(-1, src2->GetType(), m_func), Js::OpCode::BrNeq_A, doneLabel, doneLabel);
+    if (src1->IsImmediateOpnd())
+    {
+        if (src1->GetImmediateValue(m_func) != intMin)
+        {
+            InsertBranch(Js::OpCode::Br, doneLabel, doneLabel);
+        }
+        // Is min int, fallthrough
+    }
+    else
+    {
+        InsertCompareBranch(src1, IR::IntConstOpnd::NewFromType(intMin, src1->GetType(), m_func), Js::OpCode::BrNeq_A, doneLabel, doneLabel);
+    }
+    if (src2->IsImmediateOpnd())
+    {
+        if (src2->GetImmediateValue(m_func) != -1)
+        {
+            InsertBranch(Js::OpCode::Br, doneLabel, doneLabel);
+        }
+        // Is -1, fallthrough
+    }
+    else
+    {
+        InsertCompareBranch(src2, IR::IntConstOpnd::NewFromType(-1, src2->GetType(), m_func), Js::OpCode::BrNeq_A, doneLabel, doneLabel);
+    }
+    InsertLabel(true, doneLabel);
     GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), doneLabel);
     instr->m_opcode = Js::OpCode::Ld_I4;
     LowerLdI4(instr);
 }
 
 void
-Lowerer::GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr) const
+Lowerer::GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr)
 {
     IR::Instr *throwInstr = IR::Instr::New(Js::OpCode::RuntimeTypeError, IR::RegOpnd::New(TyMachReg, m_func), errorCode, m_func);
-    InsertLabel(true, instr);
     instr->InsertBefore(throwInstr);
-    Lowerer* lw = const_cast<Lowerer*> (this); //LowerUnaryHelperMem unlinks src1 of throwInstr,
-                                               //local and self-contained mutation
     const bool isWasm = m_func->GetJITFunctionBody() && m_func->GetJITFunctionBody()->IsWasmFunction();
-    lw->LowerUnaryHelperMem(throwInstr, isWasm ? IR::HelperOp_WebAssemblyRuntimeError : IR::HelperOp_RuntimeTypeError);
+    LowerUnaryHelperMem(throwInstr, isWasm ? IR::HelperOp_WebAssemblyRuntimeError : IR::HelperOp_RuntimeTypeError);
 }
 
 void

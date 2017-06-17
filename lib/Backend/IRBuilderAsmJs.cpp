@@ -1017,7 +1017,7 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::Unreachable_Void:
-        instr = IR::Instr::New(Js::OpCode::Unreachable_Void, m_func);
+        instr = IR::Instr::New(Js::OpCode::ThrowRuntimeError, m_func);
         instr->SetSrc1(IR::IntConstOpnd::New(SCODE_CODE(WASMERR_Unreachable), TyInt32, instr->m_func));
         AddInstr(instr, offset);
         break;

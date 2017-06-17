@@ -15842,7 +15842,7 @@ swap_srcs:
     case Js::OpCode::NewRegEx:
     case Js::OpCode::Ld_A:
     case Js::OpCode::Ld_I4:
-    case Js::OpCode::Unreachable_Void:
+    case Js::OpCode::ThrowRuntimeError:
     case Js::OpCode::TrapIfMinIntOverNegOne:
     case Js::OpCode::TrapIfTruncOverflow:
     case Js::OpCode::TrapIfZero:

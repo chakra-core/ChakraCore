@@ -444,7 +444,6 @@ private:
     void            GenerateFastInlineMathClz(IR::Instr* instr);
     void            GenerateCtz(IR::Instr* instr);
     void            GeneratePopCnt(IR::Instr* instr);
-    void            GenerateThrowUnreachable(IR::Instr* instr);
     void            GenerateTruncWithCheck(IR::Instr* instr);
     void            GenerateFastInlineMathFround(IR::Instr* instr);
     void            GenerateFastInlineRegExpExec(IR::Instr * instr);
@@ -501,7 +500,7 @@ private:
     void            GenerateObjectTestAndTypeLoad(IR::Instr *instrLdSt, IR::RegOpnd *opndBase, IR::RegOpnd *opndType, IR::LabelInstr *labelHelper);
     IR::LabelInstr *GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr = nullptr, IR::LabelInstr * labelBailOut = nullptr, IR::LabelInstr * collectRuntimeStatsLabel = nullptr);
     void            GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instrAfter);
-    void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr) const;
+    void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr);
     void            LowerLdI4(IR::Instr * const instr);
     void            LowerDivI4(IR::Instr * const instr);
     void            LowerRemI4(IR::Instr * const instr);
