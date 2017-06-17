@@ -384,7 +384,7 @@ bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
 {
     if (!JITManager::GetJITManager()->IsConnected())
     {
-        Js::Throw::OutOfMemory();
+        return false;
     }
     InterpreterThunkInputIDL thunkInput;
     thunkInput.asmJsThunk = this->isAsmInterpreterThunk;

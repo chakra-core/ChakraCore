@@ -3699,22 +3699,17 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
     default:
         break;
     }
-    // if jit process is terminated, we can handle certain abnormal hresults
-
-    // we should not have RPC failure if JIT process is still around
-    // since this is going to be a failfast, lets wait a bit in case server is in process of terminating
-    if (WaitForSingleObject(GetJITManager()->GetServerHandle(), CONFIG_FLAG(RPCFailFastWait)) != WAIT_OBJECT_0)
-    {
-        RpcFailure_fatal_error(hr);
-    }
 
     // we only expect to see these hresults in case server has been closed. failfast otherwise
     if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) &&
-        hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE) &&
-        hr != HRESULT_FROM_WIN32(RPC_X_SS_IN_NULL_CONTEXT))
+        hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE))
     {
         RpcFailure_fatal_error(hr);
     }
+
+    // if JIT process is gone, record that and stop trying to call it
+    GetJITManager()->SetJITFailed(hr);
+
     switch (callType)
     {
     case RemoteCallType::CodeGen:
