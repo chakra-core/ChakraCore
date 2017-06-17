@@ -28,7 +28,6 @@ const argv = require("yargs")
       alias: "e",
       description: "Spec tests to exclude from the conversion (use for known failures)",
       default: [
-        "memory_trap",
         "traps",
       ]
     },

@@ -711,6 +711,22 @@
   <test>
     <default>
       <files>spec.js</files>
+      <baseline>baselines/memory_trap.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/memory_trap.wast -endargs</compile-flags>
+      <tags>exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/memory_trap.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/memory_trap.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
       <baseline>baselines/names.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/names.wast -endargs</compile-flags>
       <tags>exclude_xplat</tags>

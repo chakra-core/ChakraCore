@@ -1918,6 +1918,8 @@ LABEL1:
             instrData.isLoad = false;
             break;
         }
+        //MOVSXD
+        case 0x63:
         //MOV - Load
         case 0x8A:
         case 0x8B:
@@ -1930,7 +1932,7 @@ LABEL1:
         {
             // more than one byte opcode and hence we will read pc multiple times
             pc++;
-            //MOVSX  , MOVSXD
+            //MOVSX
             if (*pc == 0xBE || *pc == 0xBF)
             {
                 instrData.isLoad = true;
