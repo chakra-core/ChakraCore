@@ -2406,11 +2406,13 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         src2Opnd->SetType(TyUint32);
         // Fall through for trap
     case Js::OpCodeAsmJs::Div_Trap_Int:
+#ifdef _M_X64
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
         if (newOpcode == Js::OpCodeAsmJs::Div_Trap_Int)
         {
             src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
         }
+#endif
         instr = IR::Instr::New(newOpcode == Js::OpCodeAsmJs::Div_Trap_UInt ? Js::OpCode::DivU_I4 : Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     case Js::OpCodeAsmJs::Div_UInt:
@@ -2426,7 +2428,9 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         src2Opnd->SetType(TyUint32);
         // Fall through for trap
     case Js::OpCodeAsmJs::Rem_Trap_Int:
+#ifdef _M_X64
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+#endif
         instr = IR::Instr::New(newOpcode == Js::OpCodeAsmJs::Rem_Trap_UInt ? Js::OpCode::RemU_I4 : Js::OpCode::Rem_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     case Js::OpCodeAsmJs::Rem_UInt:
@@ -3017,8 +3021,10 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
         // Fall Through for trap
     case Js::OpCodeAsmJs::Div_Trap_Long:
     {
+#ifdef _M_X64
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
         src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+#endif
         Js::OpCode op = newOpcode == Js::OpCodeAsmJs::Div_Trap_ULong ? Js::OpCode::DivU_I4 : Js::OpCode::Div_I4;
         instr = IR::Instr::New(op, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
@@ -3029,7 +3035,9 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
         // Fall Through for trap
     case Js::OpCodeAsmJs::Rem_Trap_Long:
     {
+#ifdef _M_X64
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+#endif
         Js::OpCode op = newOpcode == Js::OpCodeAsmJs::Rem_Trap_ULong ? Js::OpCode::RemU_I4 : Js::OpCode::Rem_I4;
         instr = IR::Instr::New(op, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
