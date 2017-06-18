@@ -22,7 +22,10 @@
 void TTDHostBuildCurrentExeDirectory(char* path, size_t* pathLength, size_t bufferLength)
 {
     wchar exePath[MAX_PATH];
-    GetModuleFileName(NULL, exePath, MAX_PATH);
+    if (!GetModuleFileName(NULL, exePath, MAX_PATH))
+    {
+        return;
+    }
 
     size_t i = wcslen(exePath) - 1;
     while(exePath[i] != _u('\\'))

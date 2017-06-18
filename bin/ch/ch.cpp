@@ -112,7 +112,10 @@ void __stdcall PrintChakraCoreVersion()
     LPCSTR chakraDllName = GetChakraDllName();
 
     char modulename[_MAX_PATH];
-    GetModuleFileNameA(NULL, modulename, _MAX_PATH);
+    if (!GetModuleFileNameA(NULL, modulename, _MAX_PATH))
+    {
+        return;
+    }
     _splitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
     _makepath_s(filename, drive, dir, chakraDllName, nullptr);
 

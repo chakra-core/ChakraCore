@@ -1228,16 +1228,20 @@ namespace Js
         GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCTSTR>(ip), &mod);
         offset = ip - (uintptr_t)mod;
         auto& faultModule = modulePath;
-        GetModuleFileName(mod, faultModule, MAX_PATH);
-        fwprintf(stderr, _u("***FI: Exception: %08x, module: %s, offset: 0x%p\n"),
-            ep->ExceptionRecord->ExceptionCode, faultModule, (void*)offset);
+        if (GetModuleFileName(mod, faultModule, MAX_PATH))
+        {
+            fwprintf(stderr, _u("***FI: Exception: %08x, module: %s, offset: 0x%p\n"),
+                ep->ExceptionRecord->ExceptionCode, faultModule, (void*)offset);
+        }
 
         //analyze duplication
         uintptr_t savedOffset = 0;
         auto& mainModule = modulePath;
-        GetModuleFileName(NULL, mainModule, MAX_PATH);
-        // multiple session of Fault Injection run shares the single crash offset recording file
-        _snwprintf_s(filename, _TRUNCATE, _u("%s.FICrashes.txt"), mainModule);
+        if (GetModuleFileName(NULL, mainModule, MAX_PATH))
+        {
+            // multiple session of Fault Injection run shares the single crash offset recording file
+            _snwprintf_s(filename, _TRUNCATE, _u("%s.FICrashes.txt"), mainModule);
+        }
 
         auto fp = _wfsopen(filename, _u("a+t"), _SH_DENYNO);
         if (fp != nullptr)
