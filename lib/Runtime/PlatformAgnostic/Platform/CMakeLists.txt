@@ -3,6 +3,7 @@ project(CHAKRA_PLATFORM_AGNOSTIC)
 set(PL_SOURCE_FILES
   Common/UnicodeText.Common.cpp
   Common/HiResTimer.cpp
+  Linux/EventTrace.cpp
   Linux/UnicodeText.ICU.cpp
   Linux/NumbersUtility.cpp
   Linux/Thread.cpp

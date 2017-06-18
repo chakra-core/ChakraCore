@@ -2,14 +2,18 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#pragma once
 
-#include "UnicodeText.h"
-#include "EventTrace.h"
+#include "RuntimePlatformAgnosticPch.h"
+#include "Common.h"
+#include "ChakraPlatform.h"
 
-#include "PlatformAgnostic/DateTime.h"
-#include "PlatformAgnostic/AssemblyCommon.h"
-
-#if !defined(_WIN32) && defined(DEBUG)
-#include <signal.h> // raise(SIGINT)
-#endif
+namespace PlatformAgnostic
+{
+    namespace EventTrace
+    {
+        void FireGenericEventTrace(const void* traceData)
+        {
+            JS_ETW(EventWriteJSCRIPT_INTERNAL_GENERIC_EVENT(static_cast<const char16*>(traceData)));
+        }
+    }
+}

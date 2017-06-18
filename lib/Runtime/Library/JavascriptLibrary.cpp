@@ -1266,6 +1266,9 @@ namespace Js
             AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("emitTTDLog"), &GlobalObject::EntryInfo::EmitTTDLog, 2);
         }
 #endif
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("chWriteTraceEvent"), &GlobalObject::EntryInfo::ChWriteTraceEvent, 1);
+#endif
 
 #ifdef IR_VIEWER
         if (Js::Configuration::Global.flags.IsEnabled(Js::IRViewerFlag))

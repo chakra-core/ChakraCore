@@ -4,6 +4,9 @@
     <ClCompile Include="Platform\Windows\UnicodeText.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Platform\Windows\EventTrace.cpp">
+      <Filter>Platform\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="Platform\Windows\DaylightHelper.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
@@ -39,5 +42,8 @@
     </ClInclude>
     <ClInclude Include="ChakraPlatform.h" />
     <ClInclude Include="RuntimePlatformAgnosticPch.h" />
+    <ClInclude Include="EventTrace.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -4,12 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "UnicodeText.h"
-#include "EventTrace.h"
+#include "Core/CommonTypedefs.h"
 
-#include "PlatformAgnostic/DateTime.h"
-#include "PlatformAgnostic/AssemblyCommon.h"
-
-#if !defined(_WIN32) && defined(DEBUG)
-#include <signal.h> // raise(SIGINT)
-#endif
+namespace PlatformAgnostic
+{
+    namespace EventTrace
+    {
+        void FireGenericEventTrace(const void* traceData);
+    }
+}
