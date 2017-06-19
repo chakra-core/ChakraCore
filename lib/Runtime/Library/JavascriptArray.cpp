@@ -5438,7 +5438,6 @@ Case0:
             }
 
             pArr->head = prevSeg;
-            pArr->InvalidateLastUsedSegment(); // lastUsedSegment might be 0-length and discarded above
 
             if (isIntArray)
             {
@@ -5453,6 +5452,7 @@ Case0:
                 pArr->EnsureHeadStartsFromZero<Var>(recycler);
             }
 
+            pArr->InvalidateLastUsedSegment(); // lastUsedSegment might be 0-length and discarded above
 #ifdef VALIDATE_ARRAY
             pArr->ValidateArray();
 #endif
