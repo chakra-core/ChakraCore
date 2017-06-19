@@ -74,7 +74,7 @@ const tests = [
     errorMsg: "Too many functions",
     makeModule: (builder, limit) => {
       const typeIndex = builder.addType(kSig_v_v);
-      for (let i = 0; i < limit; ++i) {builder.addFunction(null, typeIndex).end();}
+      for (let i = 0; i < limit; ++i) {builder.addFunction(null, typeIndex).addBody([]);}
     }
   }),
   // Tests 4,5
@@ -95,7 +95,7 @@ const tests = [
     type: "exports",
     errorMsg: "Too many exports",
     makeModule: (builder, limit) => {
-      builder.addFunction(null, kSig_v_v).end();
+      builder.addFunction(null, kSig_v_v).addBody([]);
       for (let i = 0; i < limit; ++i) {builder.addExport("" + i, 0);}
     }
   }),
@@ -125,7 +125,7 @@ const tests = [
     type: "element segments",
     errorMsg: "Too many element segments",
     makeModule: (builder, limit) => {
-      builder.addFunction(null, kSig_v_v).end();
+      builder.addFunction(null, kSig_v_v).addBody([]);
       builder.setFunctionTableLength(1);
       builder.function_table_inits.length = limit;
       builder.function_table_inits.fill({base: 0, is_global: false, array: [0]})
@@ -178,7 +178,7 @@ const tests = [
         builder
           .addFunction(name, kSig_v_v)
           .exportFunc()
-          .end();
+          .addBody([]);
         return new WebAssembly.Module(builder.toBuffer());
       }
       assert.doesNotThrow(() => makeExportName(notTooLongName));
@@ -208,7 +208,7 @@ const tests = [
         const builder = new WasmModuleBuilder();
         builder
           .addFunction(notTooLongName, kSig_v_v)
-          .end();
+          .addBody([]);
         return new WebAssembly.Module(builder.toBuffer());
       }
       assert.doesNotThrow(() => makeName(notTooLongName));
@@ -222,7 +222,7 @@ const tests = [
     limit: MaxFunctionLocals,
     type: "locals",
     makeModule: (builder, limit) => {
-      builder.addFunction(null, kSig_v_v).addLocals({i32_count: limit}).end();
+      builder.addFunction(null, kSig_v_v).addLocals({i32_count: limit}).addBody([]);
     }
   }),
   // Tests 21,22
@@ -232,7 +232,7 @@ const tests = [
     type: "params",
     errorMsg: "Too many arguments in signature",
     makeModule: (builder, limit) => {
-      builder.addFunction(null, {params: (new Array(limit)).fill(kWasmI32), results: []}).end();
+      builder.addFunction(null, {params: (new Array(limit)).fill(kWasmI32), results: []}).addBody([]);
     }
   }),
   // Tests 23
@@ -270,7 +270,7 @@ const tests = [
     errorMsg: "Function body too big",
     makeModule: (builder, limit) => {
       // limit -1 (number of locals byte) -1 (endOpCode)
-      builder.addFunction(null, kSig_v_v).addBody((new Array(limit - 2)).fill(kExprNop)).end();
+      builder.addFunction(null, kSig_v_v).addBody((new Array(limit - 2)).fill(kExprNop));
     }
   }),
   // todo:: test MaxBrTableElems
