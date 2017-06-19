@@ -1537,6 +1537,18 @@ namespace Js
         Assert(this->VerifyIsExtensible(scriptContext, false) || this->HasProperty(instance, propertyId)
             || JavascriptFunction::IsBuiltinProperty(instance, propertyId));
 
+        // We could potentially need 2 new slots to hold getter/setter, try pre-reserve
+        if (this->GetSlotCapacity() - 2 < nextPropertyIndex)
+        {
+            if (this->GetSlotCapacity() > MaxPropertyIndexSize - 2)
+            {
+                return ConvertToBigDictionaryTypeHandler(instance)
+                    ->SetAccessors(instance, propertyId, getter, setter, flags);
+            }
+
+            this->EnsureSlotCapacity(instance, 2);
+        }
+
         DictionaryPropertyDescriptor<T>* descriptor;
         if (this->GetFlags() & IsPrototypeFlag)
         {
@@ -1582,15 +1594,7 @@ namespace Js
             // conversion from data-property to accessor property
             if (descriptor->ConvertToGetterSetter(nextPropertyIndex))
             {
-                if (this->GetSlotCapacity() <= nextPropertyIndex)
-                {
-                    if (this->GetSlotCapacity() >= MaxPropertyIndexSize)
-                    {
-                        Throw::OutOfMemory();
-                    }
-
-                    this->EnsureSlotCapacity(instance);
-                }
+                AssertOrFailFast(this->GetSlotCapacity() >= nextPropertyIndex); // pre-reserved 2 at entry
             }
 
             // DictionaryTypeHandlers are not supposed to be shared.
@@ -1673,15 +1677,7 @@ namespace Js
         T getterIndex = ::Math::PostInc(nextPropertyIndex);
         T setterIndex = ::Math::PostInc(nextPropertyIndex);
         DictionaryPropertyDescriptor<T> newDescriptor(getterIndex, setterIndex);
-        if (this->GetSlotCapacity() <= nextPropertyIndex)
-        {
-            if (this->GetSlotCapacity() >= MaxPropertyIndexSize)
-            {
-                Throw::OutOfMemory();
-            }
-
-            this->EnsureSlotCapacity(instance);
-        }
+        AssertOrFailFast(this->GetSlotCapacity() >= nextPropertyIndex); // pre-reserved 2 at entry
 
         // DictionaryTypeHandlers are not supposed to be shared.
         Assert(!GetIsOrMayBecomeShared());
@@ -1782,6 +1778,18 @@ namespace Js
             }
             else if ((descriptor->Attributes & PropertyLetConstGlobal) != (attributes & PropertyLetConstGlobal))
             {
+                // We could potentially need 1 new slot by AddShadowedData(), try pre-reserve
+                if (this->GetSlotCapacity() <= nextPropertyIndex)
+                {
+                    if (this->GetSlotCapacity() >= MaxPropertyIndexSize)
+                    {
+                        return ConvertToBigDictionaryTypeHandler(instance)->SetPropertyWithAttributes(
+                            instance, propertyId, value, attributes, info, flags, possibleSideEffects);
+                    }
+
+                    this->EnsureSlotCapacity(instance);
+                }
+
                 bool addingLetConstGlobal = (attributes & PropertyLetConstGlobal) != 0;
 
                 if (addingLetConstGlobal)
@@ -1795,15 +1803,7 @@ namespace Js
 
                 descriptor->AddShadowedData(nextPropertyIndex, addingLetConstGlobal);
 
-                if (this->GetSlotCapacity() <= nextPropertyIndex)
-                {
-                    if (this->GetSlotCapacity() >= MaxPropertyIndexSize)
-                    {
-                        Throw::OutOfMemory();
-                    }
-
-                    this->EnsureSlotCapacity(instance);
-                }
+                AssertOrFailFast(this->GetSlotCapacity() >= nextPropertyIndex); // pre-reserved above
 
                 if (addingLetConstGlobal)
                 {
@@ -1891,15 +1891,14 @@ namespace Js
     }
 
     template <typename T>
-    void DictionaryTypeHandlerBase<T>::EnsureSlotCapacity(DynamicObject * instance)
+    void DictionaryTypeHandlerBase<T>::EnsureSlotCapacity(DynamicObject * instance, T increment /*= 1*/)
     {
         Assert(this->GetSlotCapacity() < MaxPropertyIndexSize); // Otherwise we can't grow this handler's capacity. We should've evolved to Bigger handler or OOM.
 
         // A Dictionary type is expected to have more properties
         // grow exponentially rather linearly to avoid the realloc and moves,
         // however use a small exponent to avoid waste
-        int newSlotCapacity;
-        newSlotCapacity = ::Math::Add(nextPropertyIndex, (T)1);
+        int newSlotCapacity = ::Math::Add(nextPropertyIndex, increment);
         newSlotCapacity = ::Math::Add(newSlotCapacity, newSlotCapacity >> 2);
         if (newSlotCapacity > MaxPropertyIndexSize)
         {
