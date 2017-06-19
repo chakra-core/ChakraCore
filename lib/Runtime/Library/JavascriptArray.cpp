@@ -6700,7 +6700,7 @@ Case0:
                 {
                     if (sortArray->length > 1)
                     {
-                        sortArray->FillFromPrototypes(0, sortArray->length); // We need find all missing value from [[proto]] object
+                        JS_REENTRANT(jsReentLock, sortArray->FillFromPrototypes(0, sortArray->length)); // We need find all missing value from [[proto]] object
                     }
                     JS_REENTRANT(jsReentLock, sortArray->Sort(compFn));
 
