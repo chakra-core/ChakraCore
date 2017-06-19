@@ -371,6 +371,16 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
     char16 configBuffer[MaxTokenSize];
     int index = 0;
 
+#ifdef _WIN32
+#define ReadChar(file) fgetwc(file)
+#define UnreadChar(c, file) ungetwc(c, file)
+#define CharType wint_t
+#else
+#define ReadChar(file) fgetc(file)
+#define UnreadChar(c, file) ungetc(c, file)
+#define CharType int
+#endif
+
     // We don't expect the token to overflow- if it does
     // the simplest thing to do would be to ignore the
     // read tokens
@@ -379,8 +389,10 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
     // wchar => char16 impedance mismatch.
     while (index < MaxTokenSize)
     {
-        int curChar = fgetc(configFile);
-        if (curChar == '\n' || curChar == FINISHED)
+        CharType curChar = ReadChar(configFile);
+        const CharType end = static_cast<const CharType>(FINISHED);
+
+        if (curChar == end || isspace(curChar))
         {
             configBuffer[index] = 0;
             if ((err = parser.Parse(configBuffer)) != 0)
@@ -388,9 +400,18 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
                 break;
             }
 
-            if (curChar == FINISHED)
+            while(curChar != end && isspace(curChar))
+            {
+                curChar = ReadChar(configFile);
+            }
+
+            if (curChar == end)
             {
                 break;
+            }
+            else
+            {
+                UnreadChar(curChar, configFile);
             }
 
             index = 0;
@@ -403,6 +424,10 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
             configBuffer[index++] = (char16) curChar;
         }
     }
+
+#undef ReadChar
+#undef UnreadChar
+#undef CharType
 
     fclose(configFile);
 
