@@ -21,7 +21,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_i64.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i64.wast -endargs -wasmMathExFilter-</compile-flags>
+      <compile-flags>-wasm -args testsuite/chakra/chakra_i64.wast -endargs -wasmMathExFilter</compile-flags>
       <tags>exclude_xplat</tags>
     </default>
   </test>
@@ -45,7 +45,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_i32.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i32.wast -endargs -wasmMathExFilter-</compile-flags>
+      <compile-flags>-wasm -args testsuite/chakra/chakra_i32.wast -endargs -wasmMathExFilter</compile-flags>
       <tags>exclude_xplat</tags>
     </default>
   </test>
@@ -583,7 +583,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/i64.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/i64.wast -endargs -wasmMathExFilter-</compile-flags>
+      <compile-flags>-wasm -args testsuite/core/i64.wast -endargs -wasmMathExFilter</compile-flags>
       <tags>exclude_xplat</tags>
     </default>
   </test>
@@ -653,7 +653,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/int_exprs.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/int_exprs.wast -endargs -wasmMathExFilter-</compile-flags>
+      <compile-flags>-wasm -args testsuite/core/int_exprs.wast -endargs -wasmMathExFilter</compile-flags>
       <tags>exclude_xplat</tags>
     </default>
   </test>
@@ -1032,7 +1032,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/traps.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/traps.wast -endargs -wasmMathExFilter-</compile-flags>
+      <compile-flags>-wasm -args testsuite/core/traps.wast -endargs -wasmMathExFilter</compile-flags>
       <tags>exclude_xplat</tags>
     </default>
   </test>

@@ -396,7 +396,7 @@ PHASE(All)
 #endif
 #define DEFAULT_CONFIG_WasmCheckVersion     (true)
 #define DEFAULT_CONFIG_WasmFold             (true)
-#define DEFAULT_CONFIG_WasmMathExFilter     (true)
+#define DEFAULT_CONFIG_WasmMathExFilter     (false)
 #define DEFAULT_CONFIG_WasmIgnoreResponse   (false)
 #define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)

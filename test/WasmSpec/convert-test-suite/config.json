@@ -11,7 +11,7 @@
       "traps"
     ]
   }, {
-    "flags": ["-wasmMathExFilter-"],
+    "flags": ["-wasmMathExFilter"],
     "files": [
       "int_exprs",
       "i32",
