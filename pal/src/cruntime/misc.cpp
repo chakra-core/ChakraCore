@@ -360,7 +360,7 @@ char *MiscGetenv(const char *name)
     {
         for(i = 0; palEnvironment[i] != NULL; i++)
         {
-            if (compare(palEnvironment[i], name, &length) == 0)
+            if (compare(name, palEnvironment[i], &length) == 0)
             {
                 equals = palEnvironment[i] + length;
                 if (*equals == '\0')
