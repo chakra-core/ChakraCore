@@ -20,5 +20,6 @@ function test1()
 
 test1();
 test1();
+test1();
 
 WScript.Echo("PASSED");

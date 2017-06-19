@@ -277,7 +277,7 @@
   <test>
     <default>
       <files>bug9936017.js</files>
-      <compile-flags>-off:simplejit -oopjit-</compile-flags>
+      <compile-flags>-oopjit-</compile-flags>
     </default>
   </test>
 </regress-exe>
