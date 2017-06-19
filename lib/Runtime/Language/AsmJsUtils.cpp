@@ -70,7 +70,7 @@ namespace Js
         PnFnc func = node->sxFnc;
         ParseNode* first = func.pnodeParams;
         // throws OOM on uint16 overflow
-        for( ParseNode* pnode = first; pnode; pnode = pnode->sxVar.pnodeNext, UInt16Math::Inc(numformals));
+        for( ParseNode* pnode = first; pnode; pnode = pnode->sxVar.pnodeNext, ArgSlotMath::Inc(numformals));
         return first;
     }
 
@@ -146,32 +146,6 @@ namespace Js
         va_list arglist;
         va_start( arglist, _msg );
         vswprintf_s( msg_, _msg, arglist );
-    }
-
-    Var AsmJsChangeHeapBuffer(RecyclableObject * function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        if (args.Info.Count < 1 || !ArrayBuffer::Is(args[1]))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedArrayBufferObject);
-        }
-
-
-        ArrayBuffer* newArrayBuffer = ArrayBuffer::FromVar(args[1]);
-        if (newArrayBuffer->IsDetached() || newArrayBuffer->GetByteLength() & 0xffffff || newArrayBuffer->GetByteLength() <= 0xffffff || newArrayBuffer->GetByteLength() > 0x80000000)
-        {
-            return JavascriptBoolean::ToVar(FALSE, scriptContext);
-        }
-        FrameDisplay* frame = ((ScriptFunction*)function)->GetEnvironment();
-        Field(Var)* moduleArrayBuffer = (Field(Var)*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
-        *moduleArrayBuffer = newArrayBuffer;
-        return JavascriptBoolean::ToVar(TRUE, scriptContext);
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS

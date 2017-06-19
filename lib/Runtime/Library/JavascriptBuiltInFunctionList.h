@@ -30,6 +30,10 @@ BUILTIN(GlobalObject, EnabledDiagnosticsTrace, EntryEnabledDiagnosticsTrace, Fun
 BUILTIN(GlobalObject, EmitTTDLog, EntryEmitTTDLog, FunctionInfo::ErrorOnNew)
 #endif
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+BUILTIN(GlobalObject, ChWriteTraceEvent, EntryChWriteTraceEvent, FunctionInfo::ErrorOnNew)
+#endif
+
 #ifdef IR_VIEWER
     BUILTIN(GlobalObject, ParseIR, EntryParseIR, FunctionInfo::ErrorOnNew)
     BUILTIN(GlobalObject, FunctionList, EntryFunctionList, FunctionInfo::ErrorOnNew)
@@ -317,6 +321,7 @@ BUILTIN(WebAssemblyModule, Exports, EntryExports, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, Imports, EntryImports, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, CustomSections, EntryCustomSections, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyInstance, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyInstance, GetterExports, GetterExports, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(WebAssemblyMemory, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(WebAssemblyMemory, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyMemory, GetterBuffer, EntryGetterBuffer, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)

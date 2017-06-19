@@ -101,3 +101,6 @@ deps/
 android-toolchain-arm/
 cc-toolchain/
 /TraceOutput.txt
+Build/VcBuild
+Build/VcBuild.NoJIT
+Build/VcBuild.SWB

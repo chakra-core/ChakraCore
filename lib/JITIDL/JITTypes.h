@@ -394,8 +394,8 @@ typedef struct WasmSignatureIDL
 {
     int resultType;
     unsigned int id;
-    unsigned int paramSize;
-    unsigned int paramsCount;
+    unsigned short paramSize;
+    unsigned short paramsCount;
     CHAKRA_PTR shortSig;
     IDL_DEF([size_is(paramsCount)]) int * params;
 } WasmSignatureIDL;
@@ -414,15 +414,15 @@ typedef struct TypedSlotInfo
 
 typedef struct AsmJsDataIDL
 {
-    boolean isHeapBufferConst;
     boolean usesHeapBuffer;
+    IDL_PAD1(0)
     unsigned short argByteSize;
     unsigned short argCount;
-    IDL_PAD2(0)
+    IDL_PAD2(1)
     int retType;
     int totalSizeInBytes;
     unsigned int wasmSignatureCount;
-    X64_PAD4(1)
+    X64_PAD4(2)
     TypedSlotInfo typedSlotInfos[5];
     CHAKRA_PTR wasmSignaturesBaseAddr;
     IDL_DEF([size_is(wasmSignatureCount)]) WasmSignatureIDL *  wasmSignatures;
@@ -815,6 +815,7 @@ typedef struct JITOutputIDL
     unsigned int xdataOffset;
 #endif
     CHAKRA_PTR codeAddress;
+    CHAKRA_PTR thunkAddress;
     TypeGuardTransferEntryIDL* typeGuardEntries;
 
     IDL_DEF([size_is(ctorCachesCount)]) CtorCacheTransferEntryIDL ** ctorCacheEntries;
@@ -824,7 +825,6 @@ typedef struct JITOutputIDL
     NativeDataBuffer* buffer;
     EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
     XProcNumberPageSegment* numberPageSegments;
-    X86_PAD4(1)
     __int64 startTime;
 } JITOutputIDL;
 

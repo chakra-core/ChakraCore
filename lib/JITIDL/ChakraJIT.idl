@@ -22,7 +22,8 @@ interface IChakraJIT
         [in] handle_t binding,
         [in] ThreadContextDataIDL * threadData,
         [out] PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        [out] CHAKRA_PTR * prereservedRegionAddr);
+        [out] CHAKRA_PTR * prereservedRegionAddr,
+        [out] CHAKRA_PTR * jitThunkAddr);
 
     HRESULT CleanupThreadContext(
         [in] handle_t binding,
@@ -67,7 +68,8 @@ interface IChakraJIT
     HRESULT FreeAllocation(
         [in] handle_t binding,
         [in] PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        [in] CHAKRA_PTR address);
+        [in] CHAKRA_PTR codeAddress,
+        [in] CHAKRA_PTR thunkAddress);
 
     HRESULT NewInterpreterThunkBlock(
         [in] handle_t binding,

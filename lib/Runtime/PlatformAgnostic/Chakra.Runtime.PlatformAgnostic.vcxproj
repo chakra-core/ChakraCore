@@ -8,7 +8,6 @@
     <RootNamespace>JS</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>Chakra.Runtime.PlatformAgnostic</ProjectName>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -48,11 +47,12 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\NumbersUtility.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\SystemInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\Thread.cpp" />
-
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\UnicodeText.Common.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\EventTrace.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChakraPlatform.h" />
+    <ClInclude Include="EventTrace.h" />
     <ClInclude Include="RuntimePlatformAgnosticPch.h" />
     <ClInclude Include="UnicodeText.h" />
   </ItemGroup>

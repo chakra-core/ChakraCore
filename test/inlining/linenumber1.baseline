@@ -1,1 +1,3 @@
-linenumber1.js(5, 5) JavaScript runtime error: 'p0' is undefined
+ReferenceError: 'p0' is not defined
+   at main (linenumber1.js:15:9)
+   at Global code (linenumber1.js:21:1)

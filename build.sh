@@ -79,7 +79,9 @@ script (at your own risk)"
     echo ""
 }
 
-CHAKRACORE_DIR=`dirname $0`
+pushd `dirname $0` > /dev/null
+CHAKRACORE_DIR=`pwd -P`
+popd > /dev/null
 _CXX=""
 _CC=""
 _VERBOSE=""
@@ -182,7 +184,17 @@ while [[ $# -gt 0 ]]; do
 
     --icu=*)
         ICU_PATH=$1
-        ICU_PATH="-DICU_INCLUDE_PATH_SH=${ICU_PATH:6}"
+        ICU_PATH="${ICU_PATH:6}"
+        if [[ ! -d ${ICU_PATH} ]]; then
+            if [[ -d "${CHAKRACORE_DIR}/${ICU_PATH}" ]]; then
+                ICU_PATH="${CHAKRACORE_DIR}/${ICU_PATH}"
+            else
+                # if ICU_PATH is given, do not fallback to no-icu
+                echo "!!! couldn't find ICU at $ICU_PATH"
+                exit 1
+            fi
+        fi
+        ICU_PATH="-DICU_INCLUDE_PATH_SH=${ICU_PATH}"
         ;;
 
     --libs-only)
@@ -303,6 +315,10 @@ while [[ $# -gt 0 ]]; do
         VALGRIND="-DENABLE_VALGRIND_SH=1"
         ;;
 
+    -y | -Y)
+        ALWAYS_YES=1
+        ;;
+
     *)
         echo "Unknown option $1"
         PRINT_USAGE
@@ -320,7 +336,7 @@ if [[ $SHOULD_EMBED_ICU == 1 ]]; then
         echo -e "\nThis script will download ICU-LIB from\n${ICU_URL}\n"
         echo "It is licensed to you by its publisher, not Microsoft."
         echo "Microsoft is not responsible for the software."
-        echo "Your installation and use of ICU-LIB is subject to the publisher’s terms available here:"
+        echo "Your installation and use of ICU-LIB is subject to the publisher's terms available here:"
         echo -e "http://www.unicode.org/copyright.html#License\n"
         echo -e "----------------------------------------------------------------\n"
         echo "If you don't agree, press Ctrl+C to terminate"
@@ -375,10 +391,26 @@ if [[ ${#_VERBOSE} > 0 ]]; then
 fi
 
 # if LTO build is enabled and cc-toolchain/clang was compiled, use it instead
-if [[ $HAS_LTO == 1 && -f cc-toolchain/build/bin/clang++ ]]; then
-    SELF=`pwd`
-    _CXX="$SELF/cc-toolchain/build/bin/clang++"
-    _CC="$SELF/cc-toolchain/build/bin/clang"
+if [[ $HAS_LTO == 1 ]]; then
+    if [[ -f cc-toolchain/build/bin/clang++ ]]; then
+        SELF=`pwd`
+        _CXX="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang++"
+        _CC="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang"
+    else
+        # Linux LD possibly doesn't support LLVM LTO, check.. and compile clang if not
+        if [[ $OS_LINUX == 1 ]]; then
+            if [[ ! `ld -v` =~ 'GNU gold' ]]; then
+                $CHAKRACORE_DIR/tools/compile_clang.sh
+                if [[ $? != 0 ]]; then
+                  echo -e "tools/compile_clang.sh has failed.\n"
+                  echo "Try with 'sudo' ?"
+                  exit 1
+                fi
+                _CXX="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang++"
+                _CC="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang"
+            fi
+        fi
+    fi
 fi
 
 if [ "${HAS_LTO}${OS_LINUX}" == "11" ]; then

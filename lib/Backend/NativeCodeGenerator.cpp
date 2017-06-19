@@ -1117,12 +1117,22 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     if (!CONFIG_FLAG(OOPCFGRegistration))
     {
-        scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
+        if (jitWriteData.thunkAddress)
+        {
+            scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.thunkAddress);
+        }
+        else
+        {
+            scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
+        }
+    }
+    if (workItem->Type() == JsLoopBodyWorkItemType)
+    {
+        Assert(jitWriteData.thunkAddress == NULL);
+        ((JsLoopBodyCodeGen*)workItem)->SetCodeAddress(jitWriteData.codeAddress);
     }
 
-    workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
-
-    workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize);
+    workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.thunkAddress, (Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize);
 
     if (jitWriteData.hasBailoutInstr != FALSE)
     {
@@ -1519,7 +1529,7 @@ NativeCodeGenerator::CheckAsmJsCodeGen(Js::ScriptFunction * function)
         {
             Output::Print(_u("Codegen not done yet for function: %s, Entrypoint is CheckAsmJsCodeGenThunk\n"), function->GetFunctionBody()->GetDisplayName());
         }
-        return reinterpret_cast<Js::Var>(entryPoint->GetNativeAddress());
+        return reinterpret_cast<Js::Var>(entryPoint->GetNativeEntrypoint());
     }
     if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
     {
@@ -1587,13 +1597,14 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
         Assert(functionBody->GetDefaultEntryPointInfo() == function->GetEntryPointInfo() &&
             (
                 originalEntryPoint == DefaultEntryThunk
+             || originalEntryPoint == Js::InterpreterStackFrame::StaticInterpreterThunk
              || scriptContext->IsDynamicInterpreterThunk(originalEntryPoint)
              || originalEntryPoint_IS_ProfileDeferredParsingThunk
              || originalEntryPoint == DefaultDeferredParsingThunk
              || (
                     functionBody->GetSimpleJitEntryPointInfo() &&
                     originalEntryPoint ==
-                        reinterpret_cast<Js::JavascriptMethod>(functionBody->GetSimpleJitEntryPointInfo()->GetNativeAddress())
+                        reinterpret_cast<Js::JavascriptMethod>(functionBody->GetSimpleJitEntryPointInfo()->GetNativeEntrypoint())
                 )
             ) ||
             functionBody->GetDefaultFunctionEntryPointInfo()->entryPointIndex > function->GetFunctionEntryPointInfo()->entryPointIndex);
@@ -1662,7 +1673,7 @@ NativeCodeGenerator::CheckCodeGenDone(
         scriptContext->GetNativeCodeGenerator()->SetNativeEntryPoint(
             entryPointInfo,
             functionBody,
-            reinterpret_cast<Js::JavascriptMethod>(entryPointInfo->GetNativeAddress()));
+            entryPointInfo->GetNativeEntrypoint());
         jsMethod = entryPointInfo->jsMethod;
 
         Assert(!functionBody->NeedEnsureDynamicProfileInfo() || jsMethod == Js::DynamicProfileInfo::EnsureDynamicProfileInfoThunk);
@@ -1981,7 +1992,6 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
         {
             Js::FunctionEntryPointInfo* entryPointInfo = static_cast<Js::FunctionEntryPointInfo*>(functionCodeGen->GetEntryPoint());
             entryPointInfo->SetJitMode(jitMode);
-            Assert(workItem->GetCodeAddress() != NULL);
             entryPointInfo->SetCodeGenDone();
         }
         else
@@ -2026,10 +2036,10 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
 
         if (succeeded)
         {
-            Assert(workItem->GetCodeAddress() != NULL);
+            Assert(loopBodyCodeGen->GetCodeAddress() != NULL);
 
             uint loopNum = loopBodyCodeGen->GetJITData()->loopNumber;
-            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);
+            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)loopBodyCodeGen->GetCodeAddress(), loopNum);
             entryPoint->SetCodeGenDone();
         }
         else
@@ -2048,7 +2058,6 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
     else
     {
         AssertMsg(false, "Unknown work item type");
-        AssertMsg(workItem->GetCodeAddress() == NULL, "No other types should have native entry point for now.");
     }
 }
 
@@ -2969,7 +2978,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
 
     const auto recycler = scriptContext->GetRecycler();
     {
-        const auto jitTimeData = RecyclerNew(recycler, Js::FunctionCodeGenJitTimeData, functionBody->GetFunctionInfo(), entryPoint);
+        const auto jitTimeData = Js::FunctionCodeGenJitTimeData::New(recycler, functionBody->GetFunctionInfo(), entryPoint);
         InliningDecider inliningDecider(functionBody, workItem->Type() == JsLoopBodyWorkItemType, functionBody->IsInDebugMode(), workItem->GetJitMode());
 
         BEGIN_TEMP_ALLOCATOR(gatherCodeGenDataAllocator, scriptContext, _u("GatherCodeGenData"));
@@ -3132,14 +3141,14 @@ NativeCodeGenerator::EnterScriptStart()
 }
 
 void
-FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, Js::JavascriptMethod address)
+FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress)
 {
     if (!scriptContext->GetNativeCodeGenerator())
     {
         return;
     }
 
-    scriptContext->GetNativeCodeGenerator()->QueueFreeNativeCodeGenAllocation((void*)address);
+    scriptContext->GetNativeCodeGenerator()->QueueFreeNativeCodeGenAllocation((void*)codeAddress, (void*)thunkAddress);
 }
 
 bool TryReleaseNonHiPriWorkItem(Js::ScriptContext* scriptContext, CodeGenWorkItem* workItem)
@@ -3170,22 +3179,29 @@ bool NativeCodeGenerator::TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem)
 }
 
 void
-NativeCodeGenerator::FreeNativeCodeGenAllocation(void* address)
+NativeCodeGenerator::FreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress)
 {
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         ThreadContext * context = this->scriptContext->GetThreadContext();
-        HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
+        HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)codeAddress, (intptr_t)thunkAddress);
         JITManager::HandleServerCallResult(hr, RemoteCallType::MemFree);
     }
     else if(this->backgroundAllocators)
     {
-        this->backgroundAllocators->emitBufferManager.FreeAllocation(address);
+        this->backgroundAllocators->emitBufferManager.FreeAllocation(codeAddress);
+        
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+        if (thunkAddress)
+        {
+            this->scriptContext->GetThreadContext()->GetJITThunkEmitter()->FreeThunk((uintptr_t)thunkAddress);
+        }
+#endif
     }
 }
 
 void
-NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
+NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* codeAddress, void * thunkAddress)
 {
     ASSERT_THREAD();
 
@@ -3197,35 +3213,48 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
     if (!JITManager::GetJITManager()->IsOOPJITEnabled() || !CONFIG_FLAG(OOPCFGRegistration))
     {
         //DeRegister Entry Point for CFG
-        ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(address, false);
+        if (thunkAddress)
+        {
+            ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(thunkAddress, false);
+        }
+        else
+        {
+            ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(codeAddress, false);
+        }
     }
 
-    if ((!JITManager::GetJITManager()->IsOOPJITEnabled() && !this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator()->IsInRange((void*)address)) ||
-        (JITManager::GetJITManager()->IsOOPJITEnabled() && !PreReservedVirtualAllocWrapper::IsInRange((void*)this->scriptContext->GetThreadContext()->GetPreReservedRegionAddr(), (void*)address)))
+    if ((!JITManager::GetJITManager()->IsOOPJITEnabled() && !this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator()->IsInRange((void*)codeAddress)) ||
+        (JITManager::GetJITManager()->IsOOPJITEnabled() && !PreReservedVirtualAllocWrapper::IsInRange((void*)this->scriptContext->GetThreadContext()->GetPreReservedRegionAddr(), (void*)codeAddress)))
     {
-        this->scriptContext->GetJitFuncRangeCache()->RemoveFuncRange((void*)address);
+        this->scriptContext->GetJitFuncRangeCache()->RemoveFuncRange((void*)codeAddress);
     }
     // OOP JIT will always queue a job
 
     // The foreground allocators may have been used
-    if(this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.FreeAllocation(address))
+    if(this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.FreeAllocation(codeAddress))
     {
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+        if (thunkAddress)
+        {
+            this->scriptContext->GetThreadContext()->GetJITThunkEmitter()->FreeThunk((uintptr_t)thunkAddress);
+        }
+#endif
         return;
     }
 
     // The background allocators were used. Queue a job to free the allocation from the background thread.
-    this->freeLoopBodyManager.QueueFreeLoopBodyJob(address);
+    this->freeLoopBodyManager.QueueFreeLoopBodyJob(codeAddress, thunkAddress);
 }
 
-void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* codeAddress)
+void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* codeAddress, void * thunkAddress)
 {
     Assert(!this->isClosed);
 
-    FreeLoopBodyJob* job = HeapNewNoThrow(FreeLoopBodyJob, this, codeAddress);
+    FreeLoopBodyJob* job = HeapNewNoThrow(FreeLoopBodyJob, this, codeAddress, thunkAddress);
 
     if (job == nullptr)
     {
-        FreeLoopBodyJob stackJob(this, codeAddress, false /* heapAllocated */);
+        FreeLoopBodyJob stackJob(this, codeAddress, thunkAddress, false /* heapAllocated */);
 
         {
             AutoOptionalCriticalSection lock(Processor()->GetCriticalSection());
@@ -3645,14 +3674,14 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
 }
 
 #if _WIN32
-void
+bool
 JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
 {
     // handle the normal hresults
     switch (hr)
     {
     case S_OK:
-        return;
+        return true;
     case E_ABORT:
         throw Js::OperationAbortedException();
     case E_OUTOFMEMORY:
@@ -3670,37 +3699,33 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
     default:
         break;
     }
-    // if jit process is terminated, we can handle certain abnormal hresults
-
-    // we should not have RPC failure if JIT process is still around
-    // since this is going to be a failfast, lets wait a bit in case server is in process of terminating
-    if (WaitForSingleObject(GetJITManager()->GetServerHandle(), CONFIG_FLAG(RPCFailFastWait)) != WAIT_OBJECT_0)
-    {
-        RpcFailure_fatal_error(hr);
-    }
 
     // we only expect to see these hresults in case server has been closed. failfast otherwise
     if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) &&
-        hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE) &&
-        hr != HRESULT_FROM_WIN32(RPC_X_SS_IN_NULL_CONTEXT))
+        hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE))
     {
         RpcFailure_fatal_error(hr);
     }
+
+    // if JIT process is gone, record that and stop trying to call it
+    GetJITManager()->SetJITFailed(hr);
+
     switch (callType)
     {
     case RemoteCallType::CodeGen:
         // inform job manager that JIT work item has been cancelled
         throw Js::OperationAbortedException();
     case RemoteCallType::HeapQuery:
-    case RemoteCallType::ThunkCreation:
         Js::Throw::OutOfMemory();
+    case RemoteCallType::ThunkCreation:
     case RemoteCallType::StateUpdate:
     case RemoteCallType::MemFree:
         // if server process is gone, we can ignore failures updating its state
-        return;
+        return false;
     default:
         Assert(UNREACHED);
         RpcFailure_fatal_error(hr);
     }
+    return false;
 }
 #endif

@@ -16,42 +16,73 @@
 
 #include "generate-names.h"
 
-#include <assert.h>
-#include <stdio.h>
-
+#include <cassert>
+#include <cstdio>
 #include <string>
 #include <vector>
 
-#include "ast.h"
+#include "expr-visitor.h"
+#include "ir.h"
 
-#define CHECK_RESULT(expr) \
-  do {                     \
-    if (WABT_FAILED(expr)) \
-      return Result::Error;   \
+#define CHECK_RESULT(expr)  \
+  do {                      \
+    if (WABT_FAILED(expr))  \
+      return Result::Error; \
   } while (0)
 
 namespace wabt {
 
 namespace {
 
-struct Context {
-  Context() : module(nullptr), label_count(0) { WABT_ZERO_MEMORY(visitor); }
+class NameGenerator : public ExprVisitor::DelegateNop {
+ public:
+  NameGenerator();
 
-  Module* module;
-  ExprVisitor visitor;
-  std::vector<std::string> index_to_name;
-  uint32_t label_count;
+  Result VisitModule(Module* module);
+
+  // Implementation of ExprVisitor::DelegateNop.
+  Result BeginBlockExpr(Expr* expr) override;
+  Result BeginLoopExpr(Expr* expr) override;
+  Result BeginIfExpr(Expr* expr) override;
+
+ private:
+  static bool HasName(StringSlice* str);
+  static void GenerateName(const char* prefix, Index index, StringSlice* str);
+  static void MaybeGenerateName(const char* prefix,
+                                Index index,
+                                StringSlice* str);
+  static void GenerateAndBindName(BindingHash* bindings,
+                                  const char* prefix,
+                                  Index index,
+                                  StringSlice* str);
+  static void MaybeGenerateAndBindName(BindingHash* bindings,
+                                       const char* prefix,
+                                       Index index,
+                                       StringSlice* str);
+  void GenerateAndBindLocalNames(BindingHash* bindings, const char* prefix);
+  Result VisitFunc(Index func_index, Func* func);
+  Result VisitGlobal(Index global_index, Global* global);
+  Result VisitFuncType(Index func_type_index, FuncType* func_type);
+  Result VisitTable(Index table_index, Table* table);
+  Result VisitMemory(Index memory_index, Memory* memory);
+
+  Module* module_ = nullptr;
+  ExprVisitor visitor_;
+  std::vector<std::string> index_to_name_;
+  Index label_count_ = 0;
 };
 
-}  // namespace
+NameGenerator::NameGenerator() : visitor_(this) {}
 
-static bool has_name(StringSlice* str) {
+// static
+bool NameGenerator::HasName(StringSlice* str) {
   return str->length > 0;
 }
 
-static void generate_name(const char* prefix,
-                          uint32_t index,
-                          StringSlice* str) {
+// static
+void NameGenerator::GenerateName(const char* prefix,
+                                 Index index,
+                                 StringSlice* str) {
   size_t prefix_len = strlen(prefix);
   size_t buffer_len = prefix_len + 20; /* add space for the number */
   char* buffer = static_cast<char*>(alloca(buffer_len));
@@ -63,133 +94,124 @@ static void generate_name(const char* prefix,
   *str = dup_string_slice(buf);
 }
 
-static void maybe_generate_name(const char* prefix,
-                                uint32_t index,
-                                StringSlice* str) {
-  if (!has_name(str))
-    generate_name(prefix, index, str);
+// static
+void NameGenerator::MaybeGenerateName(const char* prefix,
+                                      Index index,
+                                      StringSlice* str) {
+  if (!HasName(str))
+    GenerateName(prefix, index, str);
 }
 
-static void generate_and_bind_name(BindingHash* bindings,
-                                   const char* prefix,
-                                   uint32_t index,
-                                   StringSlice* str) {
-  generate_name(prefix, index, str);
+// static
+void NameGenerator::GenerateAndBindName(BindingHash* bindings,
+                                        const char* prefix,
+                                        Index index,
+                                        StringSlice* str) {
+  GenerateName(prefix, index, str);
   bindings->emplace(string_slice_to_string(*str), Binding(index));
 }
 
-static void maybe_generate_and_bind_name(BindingHash* bindings,
-                                         const char* prefix,
-                                         uint32_t index,
-                                         StringSlice* str) {
-  if (!has_name(str))
-    generate_and_bind_name(bindings, prefix, index, str);
+// static
+void NameGenerator::MaybeGenerateAndBindName(BindingHash* bindings,
+                                             const char* prefix,
+                                             Index index,
+                                             StringSlice* str) {
+  if (!HasName(str))
+    GenerateAndBindName(bindings, prefix, index, str);
 }
 
-static void generate_and_bind_local_names(
-    Context* ctx,
-    BindingHash* bindings,
-    const char* prefix) {
-  for (size_t i = 0; i < ctx->index_to_name.size(); ++i) {
-    const std::string& old_name = ctx->index_to_name[i];
+void NameGenerator::GenerateAndBindLocalNames(BindingHash* bindings,
+                                              const char* prefix) {
+  for (size_t i = 0; i < index_to_name_.size(); ++i) {
+    const std::string& old_name = index_to_name_[i];
     if (!old_name.empty())
       continue;
 
     StringSlice new_name;
-    generate_and_bind_name(bindings, prefix, i, &new_name);
-    ctx->index_to_name[i] = string_slice_to_string(new_name);
+    GenerateAndBindName(bindings, prefix, i, &new_name);
+    index_to_name_[i] = string_slice_to_string(new_name);
     destroy_string_slice(&new_name);
   }
 }
 
-static Result begin_block_expr(Expr* expr, void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  maybe_generate_name("$B", ctx->label_count++, &expr->block->label);
+Result NameGenerator::BeginBlockExpr(Expr* expr) {
+  MaybeGenerateName("$B", label_count_++, &expr->block->label);
   return Result::Ok;
 }
 
-static Result begin_loop_expr(Expr* expr, void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  maybe_generate_name("$L", ctx->label_count++, &expr->loop->label);
+Result NameGenerator::BeginLoopExpr(Expr* expr) {
+  MaybeGenerateName("$L", label_count_++, &expr->loop->label);
   return Result::Ok;
 }
 
-static Result begin_if_expr(Expr* expr, void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  maybe_generate_name("$L", ctx->label_count++, &expr->if_.true_->label);
+Result NameGenerator::BeginIfExpr(Expr* expr) {
+  MaybeGenerateName("$I", label_count_++, &expr->if_.true_->label);
   return Result::Ok;
 }
 
-static Result visit_func(Context* ctx, uint32_t func_index, Func* func) {
-  maybe_generate_and_bind_name(&ctx->module->func_bindings, "$f", func_index,
-                               &func->name);
+Result NameGenerator::VisitFunc(Index func_index, Func* func) {
+  MaybeGenerateAndBindName(&module_->func_bindings, "$f", func_index,
+                           &func->name);
 
-  make_type_binding_reverse_mapping(func->decl.sig.param_types,
-                                    func->param_bindings, &ctx->index_to_name);
-  generate_and_bind_local_names(ctx, &func->param_bindings, "$p");
+  MakeTypeBindingReverseMapping(func->decl.sig.param_types,
+                                func->param_bindings, &index_to_name_);
+  GenerateAndBindLocalNames(&func->param_bindings, "$p");
 
-  make_type_binding_reverse_mapping(func->local_types, func->local_bindings,
-                                    &ctx->index_to_name);
-  generate_and_bind_local_names(ctx, &func->local_bindings, "$l");
+  MakeTypeBindingReverseMapping(func->local_types, func->local_bindings,
+                                &index_to_name_);
+  GenerateAndBindLocalNames(&func->local_bindings, "$l");
 
-  ctx->label_count = 0;
-  CHECK_RESULT(visit_func(func, &ctx->visitor));
+  label_count_ = 0;
+  CHECK_RESULT(visitor_.VisitFunc(func));
   return Result::Ok;
 }
 
-static Result visit_global(Context* ctx,
-                           uint32_t global_index,
-                           Global* global) {
-  maybe_generate_and_bind_name(&ctx->module->global_bindings, "$g",
-                               global_index, &global->name);
+Result NameGenerator::VisitGlobal(Index global_index, Global* global) {
+  MaybeGenerateAndBindName(&module_->global_bindings, "$g", global_index,
+                           &global->name);
   return Result::Ok;
 }
 
-static Result visit_func_type(Context* ctx,
-                              uint32_t func_type_index,
-                              FuncType* func_type) {
-  maybe_generate_and_bind_name(&ctx->module->func_type_bindings, "$t",
-                               func_type_index, &func_type->name);
+Result NameGenerator::VisitFuncType(Index func_type_index,
+                                    FuncType* func_type) {
+  MaybeGenerateAndBindName(&module_->func_type_bindings, "$t", func_type_index,
+                           &func_type->name);
   return Result::Ok;
 }
 
-static Result visit_table(Context* ctx, uint32_t table_index, Table* table) {
-  maybe_generate_and_bind_name(&ctx->module->table_bindings, "$T", table_index,
-                               &table->name);
+Result NameGenerator::VisitTable(Index table_index, Table* table) {
+  MaybeGenerateAndBindName(&module_->table_bindings, "$T", table_index,
+                           &table->name);
   return Result::Ok;
 }
 
-static Result visit_memory(Context* ctx,
-                           uint32_t memory_index,
-                           Memory* memory) {
-  maybe_generate_and_bind_name(&ctx->module->memory_bindings, "$M",
-                               memory_index, &memory->name);
+Result NameGenerator::VisitMemory(Index memory_index, Memory* memory) {
+  MaybeGenerateAndBindName(&module_->memory_bindings, "$M", memory_index,
+                           &memory->name);
   return Result::Ok;
 }
 
-static Result visit_module(Context* ctx, Module* module) {
-  for (size_t i = 0; i < module->globals.size(); ++i)
-    CHECK_RESULT(visit_global(ctx, i, module->globals[i]));
-  for (size_t i = 0; i < module->func_types.size(); ++i)
-    CHECK_RESULT(visit_func_type(ctx, i, module->func_types[i]));
-  for (size_t i = 0; i < module->funcs.size(); ++i)
-    CHECK_RESULT(visit_func(ctx, i, module->funcs[i]));
-  for (size_t i = 0; i < module->tables.size(); ++i)
-    CHECK_RESULT(visit_table(ctx, i, module->tables[i]));
-  for (size_t i = 0; i < module->memories.size(); ++i)
-    CHECK_RESULT(visit_memory(ctx, i, module->memories[i]));
+Result NameGenerator::VisitModule(Module* module) {
+  module_ = module;
+  for (Index i = 0; i < module->globals.size(); ++i)
+    CHECK_RESULT(VisitGlobal(i, module->globals[i]));
+  for (Index i = 0; i < module->func_types.size(); ++i)
+    CHECK_RESULT(VisitFuncType(i, module->func_types[i]));
+  for (Index i = 0; i < module->funcs.size(); ++i)
+    CHECK_RESULT(VisitFunc(i, module->funcs[i]));
+  for (Index i = 0; i < module->tables.size(); ++i)
+    CHECK_RESULT(VisitTable(i, module->tables[i]));
+  for (Index i = 0; i < module->memories.size(); ++i)
+    CHECK_RESULT(VisitMemory(i, module->memories[i]));
+  module_ = nullptr;
   return Result::Ok;
 }
+
+}  // namespace
 
 Result generate_names(Module* module) {
-  Context ctx;
-  ctx.visitor.user_data = &ctx;
-  ctx.visitor.begin_block_expr = begin_block_expr;
-  ctx.visitor.begin_loop_expr = begin_loop_expr;
-  ctx.visitor.begin_if_expr = begin_if_expr;
-  ctx.module = module;
-  Result result = visit_module(&ctx, module);
-  return result;
+  NameGenerator generator;
+  return generator.VisitModule(module);
 }
 
 }  // namespace wabt

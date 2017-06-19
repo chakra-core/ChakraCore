@@ -500,6 +500,7 @@ public:
 private:
     PTHREADCONTEXT_HANDLE m_remoteThreadContextInfo;
     intptr_t m_prereservedRegionAddr;
+    intptr_t m_jitThunkStartAddr;
 
 #if ENABLE_NATIVE_CODEGEN
     BVSparse<HeapAllocator> * m_jitNumericProperties;
@@ -508,6 +509,10 @@ public:
     intptr_t GetPreReservedRegionAddr()
     {
         return m_prereservedRegionAddr;
+    }
+    intptr_t GetJITThunkStartAddr()
+    {
+        return m_jitThunkStartAddr;
     }
     BVSparse<HeapAllocator> * GetJITNumericProperties() const
     {
@@ -714,6 +719,9 @@ private:
     CustomHeap::InProcCodePageAllocators thunkPageAllocators;
 #endif
     CustomHeap::InProcCodePageAllocators codePageAllocators;
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+    InProcJITThunkEmitter jitThunkEmitter;
+#endif
 #endif
 
     RecyclerRootPtr<RecyclableData> recyclableData;
@@ -868,6 +876,10 @@ public:
     CustomHeap::InProcCodePageAllocators * GetThunkPageAllocators() { return &thunkPageAllocators; }
 #endif
     CustomHeap::InProcCodePageAllocators * GetCodePageAllocators() { return &codePageAllocators; }
+
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+    InProcJITThunkEmitter * GetJITThunkEmitter() { return &jitThunkEmitter; }
+#endif
 #endif // ENABLE_NATIVE_CODEGEN
 
     CriticalSection* GetFunctionBodyLock() { return &csFunctionBody; }
@@ -1050,7 +1062,7 @@ public:
             jobProcessor->Close();
         }
 
-        if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
+        if (JITManager::GetJITManager()->IsOOPJITEnabled() && JITManager::GetJITManager()->IsConnected() && m_remoteThreadContextInfo)
         {
             if (JITManager::GetJITManager()->CleanupThreadContext(&m_remoteThreadContextInfo) == S_OK)
             {

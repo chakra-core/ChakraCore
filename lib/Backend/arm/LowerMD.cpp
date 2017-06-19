@@ -6416,22 +6416,6 @@ LowererMD::LoadStackAddress(StackSym *sym, IR::RegOpnd* regDst)
 }
 
 void
-LowererMD::EmitPtrInstr(IR::Instr *instr)
-{
-    switch (instr->m_opcode)
-    {
-    case Js::OpCode::Add_Ptr:
-        LowererMD::ChangeToAdd(instr, false /* needFlags */);
-        break;
-
-    default:
-        AssertMsg(UNREACHED, "Un-implemented ptr opcode");
-    }
-
-    LegalizeMD::LegalizeInstr(instr, false);
-}
-
-void
 LowererMD::EmitInt4Instr(IR::Instr *instr)
 {
     IR::Instr * newInstr;
@@ -6461,10 +6445,14 @@ LowererMD::EmitInt4Instr(IR::Instr *instr)
         instr->m_opcode = Js::OpCode::MUL;
         break;
 
+    case Js::OpCode::DivU_I4:
+        AssertMsg(UNREACHED, "Unsigned div NYI");
     case Js::OpCode::Div_I4:
         instr->m_opcode = Js::OpCode::SDIV;
         break;
 
+    case Js::OpCode::RemU_I4:
+        AssertMsg(UNREACHED, "Unsigned rem NYI");
     case Js::OpCode::Rem_I4:
         instr->m_opcode = Js::OpCode::REM;
         break;

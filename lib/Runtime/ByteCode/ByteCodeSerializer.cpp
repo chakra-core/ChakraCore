@@ -1821,7 +1821,6 @@ public:
         size += PrependInt16(builder, _u("ArgSizeArrayLength"), funcInfo->GetArgSizeArrayLength());
         size += PrependUInt32Array(builder, funcInfo->GetArgSizeArrayLength(), funcInfo->GetArgsSizesArray());
         size += PrependByteArray(builder, funcInfo->GetArgCount(), (byte*)funcInfo->GetArgTypeArray());
-        size += PrependByte(builder, _u("IsHeapBufferConst"), funcInfo->IsHeapBufferConst());
         size += PrependByte(builder, _u("UsesHeapBuffer"), funcInfo->UsesHeapBuffer());
         for (int i = WAsmJs::LIMIT - 1; i >= 0; --i)
         {
@@ -1935,8 +1934,6 @@ public:
         size += PrependStruct(builder, _u("SIMDBuiltinBV"), &moduleInfo->GetAsmSimdBuiltinUsed());
 
         size += PrependInt32(builder, _u("MaxHeapAccess"), moduleInfo->GetMaxHeapAccess());
-        size += PrependByte(builder, _u("UsesChangeHeap"), moduleInfo->GetUsesChangeHeap());
-
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         size += PrependInt32(builder, _u("End Asm.js Module Info"), magicEndOfAsmJsModuleInfo);
@@ -3317,8 +3314,6 @@ public:
 
         bool boolVal;
         current = ReadBool(current, &boolVal);
-        funcInfo->SetIsHeapBufferConst(boolVal);
-        current = ReadBool(current, &boolVal);
         funcInfo->SetUsesHeapBuffer(boolVal);
 
         for (int i = WAsmJs::LIMIT - 1; i >= 0; --i)
@@ -3498,10 +3493,6 @@ public:
         uint maxAccess;
         current = ReadUInt32(current, &maxAccess);
         moduleInfo->SetMaxHeapAccess(maxAccess);
-
-        bool usesChangeHeap;
-        current = ReadBool(current, &usesChangeHeap);
-        moduleInfo->SetUsesChangeHeap(usesChangeHeap);
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         current = ReadInt32(current, &constant);

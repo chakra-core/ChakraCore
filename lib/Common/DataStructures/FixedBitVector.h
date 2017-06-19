@@ -534,7 +534,7 @@ public:
     const BVUnit * GetRawData() const { return data; }
 
     template <size_t rangeSize>
-    BVStatic<rangeSize> * GetRange(BVIndex startOffset)
+    BVStatic<rangeSize> * GetRange(BVIndex startOffset) const
     {
         AssertRange(startOffset);
         AssertRange(startOffset + rangeSize - 1);
@@ -673,6 +673,23 @@ public:
         for (BVIndex i = 0; i < wordCount; i++)
         {
             if (!this->data[i].IsEmpty())
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool IsAllSet() const
+    {
+        for (BVIndex i = 0; i < this->wordCount; i++)
+        {
+            if (i == this->wordCount - 1 && Length() % BVUnit::BitsPerWord != 0)
+            {
+                return this->data[i].Count() == Length() % BVUnit::BitsPerWord;
+            }
+            else if (!this->data[i].IsFull())
             {
                 return false;
             }

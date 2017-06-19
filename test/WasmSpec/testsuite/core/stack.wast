@@ -8,8 +8,8 @@
       (loop $loop
         (if
           (i64.eq (get_local $i) (i64.const 0))
-          (br $done)
-          (block
+          (then (br $done))
+          (else
             (set_local $res (i64.mul (get_local $i) (get_local $res)))
             (set_local $i (i64.sub (get_local $i) (i64.const 1)))
           )

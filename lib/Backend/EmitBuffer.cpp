@@ -8,7 +8,7 @@
 // EmitBufferManager::EmitBufferManager
 //      Constructor
 //----------------------------------------------------------------------------
-template <typename TAlloc, typename TPreReservedAlloc, class SyncObject>
+template <typename TAlloc, typename TPreReservedAlloc, typename SyncObject>
 EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::EmitBufferManager(ArenaAllocator * allocator, CustomHeap::CodePageAllocators<TAlloc, TPreReservedAlloc> * codePageAllocators,
     Js::ScriptContext * scriptContext, LPCWSTR name, HANDLE processHandle) :
     allocationHeap(allocator, codePageAllocators, processHandle),

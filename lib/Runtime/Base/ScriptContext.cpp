@@ -157,6 +157,10 @@ namespace Js
 #endif
 #ifdef REJIT_STATS
         , rejitStatsMap(nullptr)
+        , bailoutReasonCounts(nullptr)
+        , bailoutReasonCountsCap(nullptr)
+        , rejitReasonCounts(nullptr)
+        , rejitReasonCountsCap(nullptr)
 #endif
 #ifdef ENABLE_BASIC_TELEMETRY
         , telemetry(nullptr)
@@ -315,11 +319,10 @@ namespace Js
         this->toStringInlineCache = AllocatorNewZ(InlineCacheAllocator, GetInlineCacheAllocator(), InlineCache);
 
 #ifdef REJIT_STATS
-        if (PHASE_STATS1(Js::ReJITPhase))
-        {
-            rejitReasonCounts = AnewArrayZ(GeneralAllocator(), uint, NumRejitReasons);
-            bailoutReasonCounts = Anew(GeneralAllocator(), BailoutStatsMap, GeneralAllocator());
-        }
+        rejitReasonCounts = AnewArrayZ(GeneralAllocator(), uint, NumRejitReasons);
+        rejitReasonCountsCap = AnewArrayZ(GeneralAllocator(), uint, NumRejitReasons);
+        bailoutReasonCounts = Anew(GeneralAllocator(), BailoutStatsMap, GeneralAllocator());
+        bailoutReasonCountsCap = Anew(GeneralAllocator(), BailoutStatsMap, GeneralAllocator());
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
@@ -4304,10 +4307,10 @@ namespace Js
     }
 #endif
 
-    void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod method)
+    void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress)
     {
 #if ENABLE_NATIVE_CODEGEN
-        FreeNativeCodeGenAllocation(this, method);
+        FreeNativeCodeGenAllocation(this, codeAddress, thunkAddress);
 #endif
     }
 
@@ -5492,7 +5495,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             Output::Print(_u("\n\n"));
 
             // If in verbose mode, dump data for each FunctionBody
-            if (Configuration::Global.flags.Verbose && rejitStatsMap != NULL)
+            if (
+#if defined(FLAG) || defined(FLAG_REGOVR_EXP)
+                Configuration::Global.flags.Verbose &&
+#endif
+                rejitStatsMap != nullptr)
             {
                 // Aggregated data
                 Output::Print(_u("%-30s %14s %14s\n"), _u("Function (#),"), _u("Bailout Count,"), _u("Rejit Count"));
@@ -5694,15 +5701,18 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             }
         }
     }
-    void ScriptContext::LogRejit(Js::FunctionBody *body, uint reason)
+    void ScriptContext::LogRejit(Js::FunctionBody *body, RejitReason reason)
     {
-        Assert(reason < NumRejitReasons);
-        rejitReasonCounts[reason]++;
+        byte reasonIndex = static_cast<byte>(reason);
+        Assert(reasonIndex < NumRejitReasons);
+        rejitReasonCounts[reasonIndex]++;
 
+#if defined(FLAG) || defined(FLAG_REGOVR_EXP)
         if (Js::Configuration::Global.flags.Verbose)
         {
-            LogDataForFunctionBody(body, reason, true);
+            LogDataForFunctionBody(body, reasonIndex, true);
         }
+#endif
     }
     void ScriptContext::LogBailout(Js::FunctionBody *body, uint kind)
     {
@@ -5717,10 +5727,12 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             bailoutReasonCounts->Item(kind, val);
         }
 
+#if defined(FLAG) || defined(FLAG_REGOVR_EXP)
         if (Js::Configuration::Global.flags.Verbose)
         {
             LogDataForFunctionBody(body, kind, false);
         }
+#endif
     }
 #endif
 

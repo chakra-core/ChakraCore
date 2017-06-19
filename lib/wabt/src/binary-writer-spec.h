@@ -17,13 +17,11 @@
 #ifndef WABT_BINARY_WRITER_SPEC_H_
 #define WABT_BINARY_WRITER_SPEC_H_
 
-#include "ast.h"
 #include "binary-writer.h"
 #include "common.h"
+#include "ir.h"
 
 namespace wabt {
-
-struct Writer;
 
 #define WABT_WRITE_BINARY_SPEC_OPTIONS_DEFAULT \
   { nullptr, WABT_WRITE_BINARY_OPTIONS_DEFAULT }

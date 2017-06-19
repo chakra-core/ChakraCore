@@ -82,13 +82,13 @@
 // Even if it builds, it may not work properly. Disable at your own risk
 
 // Config options
+#define CONFIG_PARSE_CONFIG_FILE 1
+
 #ifdef _WIN32
 #define CONFIG_CONSOLE_AVAILABLE 1
-#define CONFIG_PARSE_CONFIG_FILE 1
 #define CONFIG_RICH_TRACE_FORMAT 1
 #else
 #define CONFIG_CONSOLE_AVAILABLE 0
-#define CONFIG_PARSE_CONFIG_FILE 0
 #define CONFIG_RICH_TRACE_FORMAT 0
 #endif
 
@@ -138,16 +138,21 @@
 #ifdef _WIN32
 #define SYSINFO_IMAGE_BASE_AVAILABLE 1
 #define ENABLE_CONCURRENT_GC 1
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 1 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST 1 // Use Interlocked SLIST for allocableHeapBlockList
 #define SUPPORT_WIN32_SLIST 1
 #define ENABLE_JS_ETW                               // ETW support
 #else
 #define SYSINFO_IMAGE_BASE_AVAILABLE 0
 #ifndef ENABLE_VALGRIND
 #define ENABLE_CONCURRENT_GC 1
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 1 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
 #else
 #define ENABLE_CONCURRENT_GC 0
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 0 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
 #endif
 #define SUPPORT_WIN32_SLIST 0
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST 0 // Use Interlocked SLIST for allocableHeapBlockList
 #endif
 
 

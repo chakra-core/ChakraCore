@@ -316,7 +316,7 @@ namespace Js
         INIT_ERROR_PROTO(uriErrorPrototype, InitializeURIErrorPrototype);
 
 #ifdef ENABLE_WASM
-        if (CONFIG_FLAG(Wasm))
+        if (CONFIG_FLAG(Wasm) && !PHASE_OFF1(Js::WasmPhase))
         {
             INIT_ERROR_PROTO(webAssemblyCompileErrorPrototype, InitializeWebAssemblyCompileErrorPrototype);
             INIT_ERROR_PROTO(webAssemblyRuntimeErrorPrototype, InitializeWebAssemblyRuntimeErrorPrototype);
@@ -373,7 +373,7 @@ namespace Js
             DeferredTypeHandler<InitializeStringIteratorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
 #ifdef ENABLE_WASM
-        if (CONFIG_FLAG(Wasm))
+        if (CONFIG_FLAG(Wasm) && !PHASE_OFF1(Js::WasmPhase))
         {
             webAssemblyMemoryPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -477,7 +477,7 @@ namespace Js
         INIT_SIMPLE_TYPE(uriErrorType, TypeIds_Error, uriErrorPrototype);
 
 #ifdef ENABLE_WASM
-        if (CONFIG_FLAG(Wasm))
+        if (CONFIG_FLAG(Wasm) && !PHASE_OFF1(Js::WasmPhase))
         {
             INIT_SIMPLE_TYPE(webAssemblyCompileErrorType, TypeIds_Error, webAssemblyCompileErrorPrototype);
             INIT_SIMPLE_TYPE(webAssemblyRuntimeErrorType, TypeIds_Error, webAssemblyRuntimeErrorPrototype);
@@ -624,7 +624,7 @@ namespace Js
 #endif
 
 #ifdef ENABLE_WASM
-        if (CONFIG_FLAG(Wasm))
+        if (CONFIG_FLAG(Wasm) && !PHASE_OFF1(Js::WasmPhase))
         {
             webAssemblyModuleType = DynamicType::New(scriptContext, TypeIds_WebAssemblyModule, webAssemblyModulePrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
             webAssemblyInstanceType = DynamicType::New(scriptContext, TypeIds_WebAssemblyInstance, webAssemblyInstancePrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
@@ -1275,6 +1275,9 @@ namespace Js
             AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("emitTTDLog"), &GlobalObject::EntryInfo::EmitTTDLog, 2);
         }
 #endif
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("chWriteTraceEvent"), &GlobalObject::EntryInfo::ChWriteTraceEvent, 1);
+#endif
 
 #ifdef IR_VIEWER
         if (Js::Configuration::Global.flags.IsEnabled(Js::IRViewerFlag))
@@ -1571,7 +1574,7 @@ namespace Js
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
 
 #ifdef ENABLE_WASM
-        if (CONFIG_FLAG(Wasm))
+        if (CONFIG_FLAG(Wasm) && !PHASE_OFF1(Js::WasmPhase))
         {
             webAssemblyCompileFunction = nullptr;
             // new WebAssembly object
@@ -1881,6 +1884,11 @@ namespace Js
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::wake, &AtomicsObject::EntryInfo::Wake, 3);
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::xor_, &AtomicsObject::EntryInfo::Xor, 3);
 
+        if (atomicsObject->GetScriptContext()->GetConfig()->IsES6ToStringTagEnabled())
+        {
+            library->AddMember(atomicsObject, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Atomics")), PropertyConfigurable);
+        }
+        
         atomicsObject->SetHasNoEnumerableProperties(true);
     }
 
@@ -2175,7 +2183,7 @@ namespace Js
         prototype->SetHasNoEnumerableProperties(hasNoEnumerableProperties);
     }
 
-#define INIT_ERROR(error) \
+#define INIT_ERROR_IMPL(error, errorName) \
     void JavascriptLibrary::Initialize##error##Constructor(DynamicObject* constructor, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
     { \
         typeHandler->Convert(constructor, mode, 3); \
@@ -2186,7 +2194,7 @@ namespace Js
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled()) \
         { \
             PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable; \
-            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#error)), prototypeNameMessageAttributes); \
+            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#errorName)), prototypeNameMessageAttributes); \
         } \
         constructor->SetHasNoEnumerableProperties(true); \
     } \
@@ -2197,21 +2205,22 @@ namespace Js
         library->AddMember(prototype, PropertyIds::constructor, library->Get##error##Constructor()); \
         bool hasNoEnumerableProperties = true; \
         PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable | PropertyWritable; \
-        library->AddMember(prototype, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#error)), prototypeNameMessageAttributes); \
+        library->AddMember(prototype, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#errorName)), prototypeNameMessageAttributes); \
         library->AddMember(prototype, PropertyIds::message, library->GetEmptyString(), prototypeNameMessageAttributes); \
         library->AddFunctionToLibraryObject(prototype, PropertyIds::toString, &JavascriptError::EntryInfo::ToString, 0); \
         prototype->SetHasNoEnumerableProperties(hasNoEnumerableProperties); \
     }
 
+#define INIT_ERROR(error) INIT_ERROR_IMPL(error, error)
     INIT_ERROR(EvalError);
     INIT_ERROR(RangeError);
     INIT_ERROR(ReferenceError);
     INIT_ERROR(SyntaxError);
     INIT_ERROR(TypeError);
     INIT_ERROR(URIError);
-    INIT_ERROR(WebAssemblyCompileError);
-    INIT_ERROR(WebAssemblyRuntimeError);
-    INIT_ERROR(WebAssemblyLinkError);
+    INIT_ERROR_IMPL(WebAssemblyCompileError, CompileError);
+    INIT_ERROR_IMPL(WebAssemblyRuntimeError, RuntimeError);
+    INIT_ERROR_IMPL(WebAssemblyLinkError, LinkError);
 
 #undef INIT_ERROR
 
@@ -2503,7 +2512,7 @@ namespace Js
         {
             library->AddMember(proxyConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Proxy), PropertyConfigurable);
         }
-        library->AddFunctionToLibraryObject(proxyConstructor, PropertyIds::revocable, &JavascriptProxy::EntryInfo::Revocable, PropertyNone);
+        library->AddFunctionToLibraryObject(proxyConstructor, PropertyIds::revocable, &JavascriptProxy::EntryInfo::Revocable, 2, PropertyConfigurable);
 
         proxyConstructor->SetHasNoEnumerableProperties(true);
     }
@@ -2823,16 +2832,16 @@ namespace Js
         library->AddMember(prototype, PropertyIds::constructor, library->webAssemblyTableConstructor);
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(prototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssemblyTable")), PropertyConfigurable);
+            library->AddMember(prototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssembly.Table")), PropertyConfigurable);
         }
         scriptContext->SetBuiltInLibraryFunction(WebAssemblyTable::EntryInfo::Grow.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(prototype, PropertyIds::grow, &WebAssemblyTable::EntryInfo::Grow, PropertyEnumerable));
+            library->AddFunctionToLibraryObject(prototype, PropertyIds::grow, &WebAssemblyTable::EntryInfo::Grow, 1));
 
         scriptContext->SetBuiltInLibraryFunction(WebAssemblyTable::EntryInfo::Get.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(prototype, PropertyIds::get, &WebAssemblyTable::EntryInfo::Get, PropertyEnumerable));
+            library->AddFunctionToLibraryObject(prototype, PropertyIds::get, &WebAssemblyTable::EntryInfo::Get, 1));
 
         scriptContext->SetBuiltInLibraryFunction(WebAssemblyTable::EntryInfo::Set.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(prototype, PropertyIds::set, &WebAssemblyTable::EntryInfo::Set, PropertyEnumerable));
+            library->AddFunctionToLibraryObject(prototype, PropertyIds::set, &WebAssemblyTable::EntryInfo::Set, 2));
 
         library->AddAccessorsToLibraryObject(prototype, PropertyIds::length, &WebAssemblyTable::EntryInfo::GetterLength, nullptr);
 
@@ -2848,7 +2857,7 @@ namespace Js
         library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyTablePrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
-            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("WebAssemblyTable")), PropertyConfigurable);
+            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Table")), PropertyConfigurable);
         }
         constructor->SetHasNoEnumerableProperties(true);
     }
@@ -2863,10 +2872,10 @@ namespace Js
         library->AddMember(prototype, PropertyIds::constructor, library->webAssemblyMemoryConstructor);
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(prototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssemblyMemory")), PropertyConfigurable);
+            library->AddMember(prototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssembly.Memory")), PropertyConfigurable);
         }
         scriptContext->SetBuiltInLibraryFunction(WebAssemblyMemory::EntryInfo::Grow.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(prototype, PropertyIds::grow, &WebAssemblyMemory::EntryInfo::Grow, PropertyEnumerable));
+            library->AddFunctionToLibraryObject(prototype, PropertyIds::grow, &WebAssemblyMemory::EntryInfo::Grow, 1));
 
         library->AddAccessorsToLibraryObject(prototype, PropertyIds::buffer, &WebAssemblyMemory::EntryInfo::GetterBuffer, nullptr);
 
@@ -2882,22 +2891,23 @@ namespace Js
         library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyMemoryPrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
-            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("WebAssemblyMemory")), PropertyConfigurable);
+            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Memory")), PropertyConfigurable);
         }
         constructor->SetHasNoEnumerableProperties(true);
     }
 
     void JavascriptLibrary::InitializeWebAssemblyInstancePrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(prototype, mode, 2);
+        typeHandler->Convert(prototype, mode, 3);
 
         JavascriptLibrary* library = prototype->GetLibrary();
         ScriptContext* scriptContext = prototype->GetScriptContext();
 
         library->AddMember(prototype, PropertyIds::constructor, library->webAssemblyInstanceConstructor);
+        library->AddAccessorsToLibraryObject(prototype, PropertyIds::exports, &WebAssemblyInstance::EntryInfo::GetterExports, nullptr);
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(prototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssemblyInstance")), PropertyConfigurable);
+            library->AddMember(prototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssembly.Instance")), PropertyConfigurable);
         }
         prototype->SetHasNoEnumerableProperties(true);
     }
@@ -2911,7 +2921,7 @@ namespace Js
         library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyInstancePrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
-            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("WebAssemblyInstance")), PropertyConfigurable);
+            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Instance")), PropertyConfigurable);
         }
         constructor->SetHasNoEnumerableProperties(true);
     }
@@ -2926,7 +2936,7 @@ namespace Js
         library->AddMember(prototype, PropertyIds::constructor, library->webAssemblyModuleConstructor);
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(prototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssemblyModule")), PropertyConfigurable);
+            library->AddMember(prototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssembly.Module")), PropertyConfigurable);
         }
         prototype->SetHasNoEnumerableProperties(true);
     }
@@ -2939,13 +2949,13 @@ namespace Js
         library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyModulePrototype, PropertyNone);
 
-        library->AddFunctionToLibraryObject(constructor, PropertyIds::exports, &WebAssemblyModule::EntryInfo::Exports, 2);
-        library->AddFunctionToLibraryObject(constructor, PropertyIds::imports, &WebAssemblyModule::EntryInfo::Imports, 2);
+        library->AddFunctionToLibraryObject(constructor, PropertyIds::exports, &WebAssemblyModule::EntryInfo::Exports, 1);
+        library->AddFunctionToLibraryObject(constructor, PropertyIds::imports, &WebAssemblyModule::EntryInfo::Imports, 1);
         library->AddFunctionToLibraryObject(constructor, PropertyIds::customSections, &WebAssemblyModule::EntryInfo::CustomSections, 2);
 
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
-            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("WebAssemblyModule")), PropertyConfigurable);
+            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Module")), PropertyConfigurable);
         }
         constructor->SetHasNoEnumerableProperties(true);
     }
@@ -2953,7 +2963,7 @@ namespace Js
     void JavascriptLibrary::InitializeWebAssemblyObject(DynamicObject* webAssemblyObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptLibrary* library = webAssemblyObject->GetLibrary();
-        int slots = 8;
+        int slots = 9;
 #ifdef ENABLE_WABT
         // Attaching wabt for testing
         ++slots;
@@ -2982,6 +2992,12 @@ namespace Js
         library->AddFunction(webAssemblyObject, PropertyIds::LinkError, library->webAssemblyLinkErrorConstructor);
         library->AddFunction(webAssemblyObject, PropertyIds::Memory, library->webAssemblyMemoryConstructor);
         library->AddFunction(webAssemblyObject, PropertyIds::Table, library->webAssemblyTableConstructor);
+
+        ScriptContext* scriptContext = webAssemblyObject->GetScriptContext();
+        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
+        {
+            library->AddMember(webAssemblyObject, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssembly")), PropertyConfigurable);
+        }
     }
 #endif
 
@@ -5860,19 +5876,21 @@ namespace Js
             return false;
         }
 
+        JS_REENTRANCY_LOCK(reentrancyLock, callsite->GetScriptContext()->GetThreadContext());
+        Unused(reentrancyLock);
+
         element = Js::JavascriptOperators::OP_GetProperty(callsite, Js::PropertyIds::raw, callsite->GetScriptContext());
         Js::ES5Array* rawArray = Js::ES5Array::FromVar(element);
 
         // Length of the raw strings should be the same as the cooked string literals.
-        Assert(length == rawArray->GetLength());
+        AssertOrFailFast(length != 0 && length == rawArray->GetLength());
 
         x = x->sxStrTemplate.pnodeStringRawLiterals;
 
-        Assert(length != 0);
-
         for (uint32 i = 0; i < length - 1; i++)
         {
-            rawArray->DirectGetItemAt(i, &element);
+            BOOL hasElem = rawArray->DirectGetItemAt(i, &element);
+            AssertOrFailFast(hasElem);
             str = Js::JavascriptString::FromVar(element);
 
             Assert(x->nop == knopList);
@@ -5897,7 +5915,8 @@ namespace Js
 
         // There should be one more string in the callsite array - and the final string in the ParseNode
 
-        rawArray->DirectGetItemAt(length - 1, &element);
+        BOOL hasLastElem = rawArray->DirectGetItemAt(length - 1, &element);
+        AssertOrFailFast(hasLastElem);
         str = Js::JavascriptString::FromVar(element);
 
         Assert(x->nop == knopStr);
@@ -6048,7 +6067,10 @@ namespace Js
             return false;
         }
 
-        Assert(lengthLeft != 0 && lengthRight != 0);
+        AssertOrFailFast(lengthLeft != 0 && lengthRight != 0);
+
+        JS_REENTRANCY_LOCK(reentrancyLock, arrayLeft->GetScriptContext()->GetThreadContext());
+        Unused(reentrancyLock);
 
         // Change to the set of raw strings.
         varLeft = Js::JavascriptOperators::OP_GetProperty(arrayLeft, Js::PropertyIds::raw, arrayLeft->GetScriptContext());
@@ -6058,13 +6080,15 @@ namespace Js
         arrayRight = Js::ES5Array::FromVar(varRight);
 
         // Length of the raw strings should be the same as the cooked string literals.
-        Assert(lengthLeft == arrayLeft->GetLength());
-        Assert(lengthRight == arrayRight->GetLength());
+        AssertOrFailFast(lengthLeft == arrayLeft->GetLength());
+        AssertOrFailFast(lengthRight == arrayRight->GetLength());
 
         for (uint32 i = 0; i < lengthLeft; i++)
         {
-            arrayLeft->DirectGetItemAt(i, &varLeft);
-            arrayRight->DirectGetItemAt(i, &varRight);
+            BOOL hasLeft = arrayLeft->DirectGetItemAt(i, &varLeft);
+            AssertOrFailFast(hasLeft);
+            BOOL hasRight = arrayRight->DirectGetItemAt(i, &varRight);
+            AssertOrFailFast(hasRight);
 
             // If the strings at this index are not equal, the callsite objects are not equal.
             if (!Js::JavascriptString::Equals(varLeft, varRight))
@@ -6086,12 +6110,14 @@ namespace Js
         {
             return hash;
         }
+        JS_REENTRANCY_LOCK(reentrancyLock, obj->GetScriptContext()->GetThreadContext());
+        Unused(reentrancyLock);
 
         Js::ES5Array* callsite = Js::ES5Array::FromVar(obj);
         Js::Var var = Js::JavascriptOperators::OP_GetProperty(callsite, Js::PropertyIds::raw, callsite->GetScriptContext());
         Js::ES5Array* rawArray = Js::ES5Array::FromVar(var);
 
-        Assert(rawArray->GetLength() > 0);
+        AssertOrFailFast(rawArray->GetLength() > 0);
 
         rawArray->DirectGetItemAt(0, &var);
         Js::JavascriptString* str = Js::JavascriptString::FromVar(var);
@@ -6101,7 +6127,8 @@ namespace Js
         {
             hash ^= DefaultComparer<const char16*>::GetHashCode(_u("${}"));
 
-            rawArray->DirectGetItemAt(i, &var);
+            BOOL hasItem = rawArray->DirectGetItemAt(i, &var);
+            AssertOrFailFast(hasItem);
             str = Js::JavascriptString::FromVar(var);
             hash ^= DefaultComparer<const char16*>::GetHashCode(str->GetSz());
         }
@@ -6285,12 +6312,12 @@ namespace Js
         return arr;
     }
 
-    Js::ArrayBuffer* JavascriptLibrary::CreateWebAssemblyArrayBuffer(uint32 length)
+    Js::WebAssemblyArrayBuffer* JavascriptLibrary::CreateWebAssemblyArrayBuffer(uint32 length)
     {
         return WebAssemblyArrayBuffer::Create(nullptr, length, arrayBufferType);
     }
 
-    Js::ArrayBuffer* JavascriptLibrary::CreateWebAssemblyArrayBuffer(byte* buffer, uint32 length)
+    Js::WebAssemblyArrayBuffer* JavascriptLibrary::CreateWebAssemblyArrayBuffer(byte* buffer, uint32 length)
     {
         return WebAssemblyArrayBuffer::Create(buffer, length, arrayBufferType);
     }
@@ -6853,7 +6880,7 @@ namespace Js
 
     DynamicObject* JavascriptLibrary::CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity)
     {
-        Assert(JavascriptOperators::IsObject(prototype));
+        Assert(JavascriptOperators::IsObjectOrNull(prototype));
 
         DynamicType* dynamicType = CreateObjectType(prototype, requestedInlineSlotCapacity);
         return DynamicObject::New(this->GetRecycler(), dynamicType);

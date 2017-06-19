@@ -1766,6 +1766,20 @@ namespace Js
 #endif
 
 #if DYNAMIC_INTERPRETER_THUNK
+#pragma optimize("", off)
+#ifdef ASMJS_PLAT
+    void InterpreterStackFrame::StaticInterpreterAsmThunk(RecyclableObject* function, ...)
+    {
+        InterpreterAsmThunk((AsmJsCallStackLayout*)&function);
+    }
+#endif
+
+    Var InterpreterStackFrame::StaticInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        return InterpreterThunk((JavascriptCallStackLayout*)&function);
+    }
+#pragma optimize("", on)
+
     Var InterpreterStackFrame::InterpreterThunk(JavascriptCallStackLayout* layout)
     {
         Js::ScriptFunction * function = Js::ScriptFunction::FromVar(layout->functionObject);
@@ -1775,6 +1789,7 @@ namespace Js
         return InterpreterHelper(function, args, localReturnAddress, localAddressOfReturnAddress);
     }
 #else
+
 #pragma optimize("", off)
     Var InterpreterStackFrame::InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -2112,7 +2127,7 @@ namespace Js
         ScriptFunction * function = (ScriptFunction*)stack->functionObject;
         Var* paramsAddr = stack->args;
         int  flags = CallFlags_Value;
-        ArgSlot nbArgs = UInt16Math::Add(function->GetFunctionBody()->GetAsmJsFunctionInfo()->GetArgCount(), 1);
+        ArgSlot nbArgs = ArgSlotMath::Add(function->GetFunctionBody()->GetAsmJsFunctionInfo()->GetArgCount(), 1);
         CallInfo callInfo((CallFlags)flags, nbArgs);
         ArgumentReader args(&callInfo, paramsAddr);
         void* returnAddress = _ReturnAddress();
@@ -2235,7 +2250,7 @@ namespace Js
     {
         Js::ScriptFunction * function = Js::ScriptFunction::FromVar(layout->functionObject);
         int  flags = CallFlags_Value;
-        ArgSlot nbArgs = UInt16Math::Add(function->GetFunctionBody()->GetAsmJsFunctionInfo()->GetArgCount(), 1);
+        ArgSlot nbArgs = ArgSlotMath::Add(function->GetFunctionBody()->GetAsmJsFunctionInfo()->GetArgCount(), 1);
 
         CallInfo callInfo((CallFlags)flags, nbArgs);
         ArgumentReader args(&callInfo, (Var*)layout->args);
@@ -2776,7 +2791,7 @@ namespace Js
                 // TODO: add more runtime checks here
                 FunctionInfoPtrPtr functionInfo = m_functionBody->GetNestedFuncReference(i);
 
-                AsmJsScriptFunction* scriptFuncObj = (AsmJsScriptFunction*)ScriptFunction::OP_NewScFunc(pDisplay, functionInfo);
+                AsmJsScriptFunction* scriptFuncObj = AsmJsScriptFunction::OP_NewAsmJsFunc(pDisplay, functionInfo);
                 localModuleFunctions[modFunc.location] = scriptFuncObj;
 
                 if (scriptFuncObj->GetDynamicType()->GetEntryPoint() == DefaultDeferredDeserializeThunk)
@@ -2784,15 +2799,8 @@ namespace Js
                     JavascriptFunction::DeferredDeserialize(scriptFuncObj);
                 }
 
-                if (i == 0 && info->GetUsesChangeHeap())
-                {
-                    scriptFuncObj->GetDynamicType()->SetEntryPoint(AsmJsChangeHeapBuffer);
-                }
-                else
-                {
-                    scriptFuncObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
-                    scriptFuncObj->GetFunctionBody()->GetAsmJsFunctionInfo()->SetModuleFunctionBody(asmJsModuleFunctionBody);
-                }
+                scriptFuncObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
+                scriptFuncObj->GetFunctionBody()->GetAsmJsFunctionInfo()->SetModuleFunctionBody(asmJsModuleFunctionBody);
                 scriptFuncObj->SetModuleMemory((Field(Var)*)moduleMemoryPtr);
                 if (!info->IsRuntimeProcessed())
                 {
@@ -3024,11 +3032,11 @@ namespace Js
                 break;
             }
 
-            // Make sure slots are aligned for this type
-            Assert(::Math::Align<intptr_t>((intptr_t)destination, (intptr_t)WAsmJs::GetTypeByteSize(type)) == (intptr_t)destination);
             byte* source = constTable + typeInfo->constSrcByteOffset;
             if (typeInfo->constCount > 0 && source != destination)
             {
+                // Make sure slots are aligned for this type
+                Assert(::Math::Align<intptr_t>((intptr_t)destination, (intptr_t)WAsmJs::GetTypeByteSize(type)) == (intptr_t)destination);
                 Assert(typeInfo->constSrcByteOffset != Js::Constants::InvalidOffset);
                 uint constByteSize = typeInfo->constCount * WAsmJs::GetTypeByteSize(type);
                 memmove_s(destination, constByteSize, source, constByteSize);
@@ -3042,15 +3050,9 @@ namespace Js
         if (func->GetFunctionBody()->IsWasmFunction())
         {
             WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
-            Var * val = nullptr;
-            if (wasmMem != nullptr)
-            {
-                val = (Var*)((BYTE*)wasmMem + WebAssemblyMemory::GetOffsetOfArrayBuffer());
-            }
-            m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = val;
-
             m_signatures = func->GetFunctionBody()->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetSignatures();
             m_wasmMemory = wasmMem;
+            m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = nullptr;
         }
         else
 #endif
@@ -6683,7 +6685,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                     this->ProcessTryHandlerBailout(ehBailoutData->child, --tryNestingDepth);
                 }
 
-                Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+                if (catchOffset != 0)
+                {
+                    Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+                }
 
                 if (this->IsInDebugMode())
                 {
@@ -6870,8 +6875,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 int currOffset = m_reader.GetCurrentOffset();
 
                 m_reader.SetCurrentOffset(finallyOffset);
-
-                ResetOut();
 
                 this->nestedFinallyDepth++;
 
@@ -7927,10 +7930,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     int InterpreterStackFrame::OP_GetMemorySize()
     {
-#ifdef ASMJS_PLAT
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
-        return arr ? arr->GetByteLength() >> 16 : 0;
+#ifdef ENABLE_WASM
+        return (int)m_wasmMemory->GetCurrentMemoryPages();
 #else
+        Assert(UNREACHED);
         return 0;
 #endif
     }
@@ -7938,17 +7941,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     int InterpreterStackFrame::OP_GrowMemory(int32 delta)
     {
 #ifdef ENABLE_WASM
-        int32 oldPageCount = m_wasmMemory->GrowInternal((uint32)delta);
-
-        SetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister, m_wasmMemory->GetBuffer());
-        return oldPageCount;
+        return m_wasmMemory->GrowInternal((uint32)delta);
 #else
         Assert(UNREACHED);
         return 0;
 #endif
     }
 
-    template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func> T InterpreterStackFrame::OP_DivRemCheck(T aLeft, T aRight, ScriptContext* scriptContext)
+    template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func> T InterpreterStackFrame::OP_UnsignedDivRemCheck(T aLeft, T aRight, ScriptContext* scriptContext)
     {
         if (aRight == 0)
         {
@@ -7958,16 +7958,31 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         return func(aLeft, aRight);
     }
 
-    template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func, T MIN> T InterpreterStackFrame::OP_DivOverflow(T aLeft, T aRight, ScriptContext* scriptContext)
+    template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func> T InterpreterStackFrame::OP_DivOverflow(T aLeft, T aRight, ScriptContext* scriptContext)
     {
         if (aRight == 0)
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_DivideByZero);
         }
 
-        if (aLeft == MIN && aRight == -1)
+        if (aLeft == SignedTypeTraits<T>::MinValue && aRight == -1)
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, VBSERR_Overflow);
+        }
+
+        return func(aLeft, aRight);
+    }
+
+    template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func> T InterpreterStackFrame::OP_RemOverflow(T aLeft, T aRight, ScriptContext* scriptContext)
+    {
+        if (aRight == 0)
+        {
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_DivideByZero);
+        }
+
+        if (aLeft == SignedTypeTraits<T>::MinValue && aRight == -1)
+        {
+            return 0;
         }
 
         return func(aLeft, aRight);
@@ -7982,13 +7997,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
+        const uint64 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
         RegSlot dstReg = playout->Value;
 
-        if (index < 0 || index + dataWidth > arr->GetByteLength())
+        if (index + dataWidth > arr->GetByteLength())
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
         }
@@ -8003,13 +8019,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdLdArrConstIndex(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint32 index = playout->SlotIndex;
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
+        const uint64 index = (uint32)playout->SlotIndex;
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
         RegSlot dstReg = playout->Value;
 
-        if (index < 0 || index + dataWidth > arr->GetByteLength())
+        if (index + dataWidth > arr->GetByteLength())
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
         }
@@ -8024,13 +8041,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdStArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
+        const uint64 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
         RegSlot srcReg = playout->Value;
 
-        if (index < 0 || index + dataWidth > arr->GetByteLength())
+        if (index + dataWidth > arr->GetByteLength())
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
         }
@@ -8043,13 +8061,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdStArrConstIndex(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint32 index = playout->SlotIndex;
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
+        const uint64 index = (uint32)playout->SlotIndex;
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
         RegSlot srcReg = playout->Value;
 
-        if (index < 0 || index + dataWidth > arr->GetByteLength())
+        if (index + dataWidth > arr->GetByteLength())
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
         }
@@ -8485,6 +8504,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_StArr(uint32 index, RegSlot regSlot)
     {
         CompileAssert(Js::ArrayBufferView::TYPE_COUNT == (sizeof(InterpreterStackFrame::StArrFunc) / sizeof(InterpreterStackFrame::ArrFunc)));
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         if (index < arr->GetByteLength())
         {
@@ -8566,6 +8586,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_LdArr(uint32 index, RegSlot regSlot)
     {
         CompileAssert(Js::ArrayBufferView::TYPE_COUNT == (sizeof(InterpreterStackFrame::LdArrFunc) / sizeof(InterpreterStackFrame::ArrFunc)));
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
         ArrayType val = index < (arr->GetByteLength()) ? *(ArrayType*)(buffer + index) : GetArrayViewOverflowVal<ArrayType>();
@@ -8604,9 +8625,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_LdArrWasm(const unaligned T* playout)
     {
+#ifdef ENABLE_WASM
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint64 index = playout->Offset + (uint64)GetRegRawInt(playout->SlotIndex);
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
+        WebAssemblyArrayBuffer* arr = m_wasmMemory->GetBuffer();
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_ArrayIndexOutOfRange);
@@ -8631,6 +8653,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         case ArrayBufferView::ViewType::TYPE_UINT32_TO_INT64 : SetRegRaw<int64>(playout->Value, (int64)*(uint32*)(buffer + index)); return;
         default:Assert(UNREACHED);
         }
+#else
+        Assert(UNREACHED);
+#endif
     }
     template <class T>
     void InterpreterStackFrame::OP_LdArrConstIndex(const unaligned T* playout)
@@ -8649,9 +8674,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_StArrWasm(const unaligned T* playout)
     {
+#ifdef ENABLE_WASM
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint64 index = playout->Offset + (uint64)GetRegRawInt(playout->SlotIndex);
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
+        WebAssemblyArrayBuffer* arr = m_wasmMemory->GetBuffer();
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_ArrayIndexOutOfRange);
@@ -8676,6 +8702,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         case ArrayBufferView::ViewType::TYPE_UINT32_TO_INT64: *(uint32*)(buffer + index) = (uint32) (GetRegRaw<int64>(playout->Value)); return;
         default:Assert(UNREACHED);
         }
+#else
+        Assert(UNREACHED);
+#endif
     }
     template <class T>
     void InterpreterStackFrame::OP_StArrConstIndex(const unaligned T* playout)

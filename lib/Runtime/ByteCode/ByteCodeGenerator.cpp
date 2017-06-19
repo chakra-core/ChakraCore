@@ -1182,7 +1182,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
     bool funcExprWithName;
     Js::ParseableFunctionInfo* parseableFunctionInfo = nullptr;
 
-    Js::AutoRestoreFunctionInfo autoRestoreFunctionInfo(reuseNestedFunc, reuseNestedFunc ? reuseNestedFunc->GetOriginalEntryPoint() : nullptr);
+    Js::AutoRestoreFunctionInfo autoRestoreFunctionInfo(reuseNestedFunc, reuseNestedFunc ? reuseNestedFunc->GetOriginalEntryPoint_Unchecked() : nullptr);
 
     if (this->pCurrentFunction &&
         this->pCurrentFunction->IsFunctionParsed())
@@ -2280,7 +2280,7 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
         {
             Assert(false);
         }
-        UInt16Math::Inc(pos);
+        ArgSlotMath::Inc(pos);
     };
 
     // We process rest separately because the number of in args needs to exclude rest.
@@ -2440,7 +2440,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
         // Process the formal arguments, even if there's no AST for the body, to support Function.length.
         Js::ArgSlot pos = 1;
         // We skip the rest parameter here because it is not counted towards the in arg count.
-        MapFormalsWithoutRest(pnode, [&](ParseNode *pnode) { UInt16Math::Inc(pos); });
+        MapFormalsWithoutRest(pnode, [&](ParseNode *pnode) { ArgSlotMath::Inc(pos); });
         byteCodeGenerator->SetNumberOfInArgs(pos);
         return funcInfo;
     }
@@ -3130,7 +3130,7 @@ void ByteCodeGenerator::ProcessCapturedSym(Symbol *sym)
     FuncInfo *funcHome = sym->GetScope()->GetFunc();
     FuncInfo *funcChild = funcHome->GetCurrentChildFunction();
 
-    Assert(sym->NeedsSlotAlloc(funcHome) || sym->GetIsGlobal() || sym->GetIsModuleImport());
+    Assert(sym->NeedsSlotAlloc(funcHome) || sym->GetIsGlobal() || sym->GetIsModuleImport() || sym->GetIsModuleExportStorage());
 
     // If this is not a local property, or not all its references can be tracked, or
     // it's not scoped to the function, or we're in debug mode, disable the delayed capture optimization.

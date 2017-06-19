@@ -685,12 +685,6 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
 
     instrRestart = instrStart = m_pc;
 
-#if _CONTROL_FLOW_GUARD_SHADOW_STACK
-    if (instr->isFsBased)
-    {
-        *instrRestart++ = 0x64;
-    }
-#endif
 
     // put out 16bit override if any
     if (instrSize == 2 && (opdope & (DNO16 | DFLT)) == 0)
@@ -1891,7 +1885,7 @@ bool EncoderMD::TryFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
         {
             IR::Instr *instrNext = instr->GetNextRealInstrOrLabel();
 
-            if (instrNext->IsBranchInstr() && instrNext->AsBranchInstr()->IsConditional())
+            if (instrNext->IsBranchInstr() && instrNext->AsBranchInstr()->IsConditional() && !instrNext->AsBranchInstr()->m_areCmpRegisterFlagsUsedLater)
             {
                 // Swap src and reverse branch
                 src2 = instr->UnlinkSrc1();

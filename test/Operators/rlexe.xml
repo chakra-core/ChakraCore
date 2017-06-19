@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -22,7 +22,7 @@
     <default>
       <files>biops.js</files>
       <baseline>biops.baseline</baseline>
-      <!-- fails due to baseline diff apparently; remove exclude_jenkins when fixed -->
+      <!-- fails due to baseline diff apparently; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <tags>Slow,exclude_jenkins</tags>
     </default>
   </test>
@@ -60,7 +60,7 @@
     <default>
       <files>equals.js</files>
       <baseline>equals.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <tags>exclude_jenkins</tags>
     </default>
   </test>

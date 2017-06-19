@@ -570,10 +570,10 @@ HELPERCALL(DirectMath_Exp, nullptr, 0)
 HELPERCALL(DirectMath_Log, nullptr, 0)
 HELPERCALL(DirectMath_Sin, nullptr, 0)
 HELPERCALL(DirectMath_Tan, nullptr, 0)
-HELPERCALL(DirectMath_Int64DivS, ((int64(*)(int64, int64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivOverflow<int64, &Js::AsmJsMath::Div<int64>, LONGLONG_MIN>), AttrCanThrow)
-HELPERCALL(DirectMath_Int64DivU, ((uint64(*)(uint64, uint64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivRemCheck<uint64, &Js::AsmJsMath::Div<uint64>>), AttrCanThrow)
-HELPERCALL(DirectMath_Int64RemS, ((int64(*)(int64, int64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivRemCheck<int64, &Wasm::WasmMath::Rem<int64>>), AttrCanThrow)
-HELPERCALL(DirectMath_Int64RemU, ((uint64(*)(uint64, uint64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivRemCheck<uint64, &Wasm::WasmMath::Rem<uint64>>), AttrCanThrow)
+HELPERCALL(DirectMath_Int64DivS, ((int64(*)(int64, int64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivOverflow<int64, &Js::AsmJsMath::DivUnsafe<int64>>), AttrCanThrow)
+HELPERCALL(DirectMath_Int64DivU, ((uint64(*)(uint64, uint64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_UnsignedDivRemCheck<uint64, &Js::AsmJsMath::DivUnsafe<uint64>>), AttrCanThrow)
+HELPERCALL(DirectMath_Int64RemS, ((int64(*)(int64, int64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_RemOverflow<int64, &Js::AsmJsMath::RemUnsafe<int64>>), AttrCanThrow)
+HELPERCALL(DirectMath_Int64RemU, ((uint64(*)(uint64, uint64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_UnsignedDivRemCheck<uint64, &Js::AsmJsMath::RemUnsafe<uint64>>), AttrCanThrow)
 HELPERCALL(DirectMath_Int64Mul , (int64(*)(int64,int64)) Js::AsmJsMath::Mul<int64>, 0)
 HELPERCALL(DirectMath_Int64Shl , (int64(*)(int64,int64)) Wasm::WasmMath::Shl<int64>, 0)
 HELPERCALL(DirectMath_Int64Shr , (int64(*)(int64,int64)) Wasm::WasmMath::Shr<int64>, 0)
@@ -617,10 +617,6 @@ HELPERCALL( CRT_chkstk, _chkstk, 0 )
 HELPERCALL(CRT_chkstk, __chkstk, 0)
 #endif
 
-#if _CONTROL_FLOW_GUARD_SHADOW_STACK
-// Statically linked CRT routine used when RFG violations.
-HELPERCALL(ReturnFlowGuardFailureRoutine, __guard_ss_verify_failure, 0)
-#endif
 
 #undef HELPERCALL_MATH
 #undef HELPERCALL_FULL_OR_INPLACE_MATH

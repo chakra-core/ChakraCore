@@ -101,6 +101,13 @@
   </test>
   <test>
     <default>
+      <files>FunctionCalls.js</files>
+      <baseline>FunctionCalls.baseline</baseline>
+      <compile-flags>-ForceStaticInterpreterThunk -testtrace:asmjs -simdjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>functiontablecalls.js</files>
       <baseline>functiontablecalls.baseline</baseline>
       <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
@@ -807,6 +814,11 @@
   </test>
   <test>
     <default>
+      <files>unsigned.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>asmjscctx.js</files>
       <baseline>asmjscctx.baseline</baseline>
       <compile-flags>-testtrace:asmjs</compile-flags>
@@ -833,6 +845,11 @@
   </test>
   <test>
     <default>
+      <files>bug9883547.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>constFoldTests.js</files>
       <compile-flags>-asmjs -maic:0</compile-flags>
     </default>
@@ -849,6 +866,20 @@
       <files>constbrbug.js</files>
       <baseline>constbrbug.baseline</baseline>
       <compile-flags>-testtrace:asmjs -maic:0</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>lambda.js</files>
+      <baseline>lambda.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>exports.js</files>
+      <baseline>exports.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
     </default>
   </test>
 </regress-exe>

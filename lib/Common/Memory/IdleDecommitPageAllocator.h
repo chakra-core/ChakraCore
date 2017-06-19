@@ -15,9 +15,7 @@ class IdleDecommitPageAllocator : public PageAllocator
 {
 public:
     IdleDecommitPageAllocator(AllocationPolicyManager * policyManager, PageAllocatorType type,
-#ifndef JD_PRIVATE
         Js::ConfigFlagsTable& flagTable,
-#endif
         uint maxFreePageCount = 0,
         uint maxIdleFreePageCount = DefaultMaxFreePageCount,
         bool zeroPages = false,

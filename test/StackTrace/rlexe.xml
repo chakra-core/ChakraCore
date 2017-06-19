@@ -1,8 +1,8 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
-      <tags>StackTrace,exclude_ship</tags>
+      <tags>StackTrace</tags>
       <files>SimpleThrow.js</files>
       <compile-flags>-ExtendedErrorStackForTestHost -errorStackTrace- -args runTest -endargs</compile-flags>
       <baseline>simpleThrow.js.stackTraceDisabled.baseline</baseline>
@@ -18,7 +18,7 @@
   </test>
   <test>
     <default>
-      <tags>StackTrace,exclude_ship</tags>
+      <tags>StackTrace</tags>
       <files>PropertyValidation.js</files>
       <compile-flags>-ExtendedErrorStackForTestHost -forceStrictMode</compile-flags>
       <baseline>PropertyValidation.nostrict.baseline</baseline>
@@ -26,7 +26,7 @@
   </test>
   <test>
     <default>
-      <tags>StackTrace,exclude_ship</tags>
+      <tags>StackTrace</tags>
       <files>SimpleThrow.js</files>
       <compile-flags>-ExtendedErrorStackForTestHost -args runTest -endargs</compile-flags>
       <baseline>SimpleThrow.js.baseline</baseline>
@@ -34,7 +34,7 @@
   </test>
   <test>
     <default>
-      <tags>StackTrace,exclude_ship</tags>
+      <tags>StackTrace</tags>
       <files>LongCallStackThrow.js</files>
       <compile-flags>-ExtendedErrorStackForTestHost -args runTest 5 -endargs</compile-flags>
       <baseline>LongCallStackThrow.js.Args5.baseline</baseline>
@@ -42,7 +42,7 @@
   </test>
   <test>
     <default>
-      <tags>StackTrace,exclude_ship</tags>
+      <tags>StackTrace</tags>
       <files>LongCallStackThrow.js</files>
       <compile-flags>-ExtendedErrorStackForTestHost -args runTest 6 -endargs</compile-flags>
       <baseline>LongCallStackThrow.js.Args6.baseline</baseline>
@@ -50,7 +50,7 @@
   </test>
   <test>
     <default>
-      <tags>StackTrace,exclude_ship</tags>
+      <tags>StackTrace</tags>
       <files>LongCallStackThrow.js</files>
       <compile-flags>-ExtendedErrorStackForTestHost -args runTest 7 -endargs</compile-flags>
       <baseline>LongCallStackThrow.js.Args7.baseline</baseline>
@@ -58,7 +58,7 @@
   </test>
   <test>
     <default>
-      <tags>StackTrace,exclude_ship</tags>
+      <tags>StackTrace</tags>
       <files>LongCallStackThrow.js</files>
       <compile-flags>-ExtendedErrorStackForTestHost -args runTest 30 -endargs</compile-flags>
       <baseline>LongCallStackThrow.js.Args30.baseline</baseline>
@@ -82,7 +82,7 @@
   </test>
   <test>
     <default>
-      <tags>StackTrace,xplat_verifymark_slow,exclude_ship</tags>
+      <tags>StackTrace,xplat_verifymark_slow</tags>
       <files>StackTraceLimitOOS.js</files>
       <baseline>StackTraceLimitOOS.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost -on:interruptprobe</compile-flags>

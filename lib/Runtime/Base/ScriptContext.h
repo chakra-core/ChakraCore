@@ -454,7 +454,6 @@ namespace Js
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
         typedef HRESULT (*GetDocumentContextFunction)(
-            ScriptContext *pContext,
             Js::FunctionBody *pFunctionBody,
             IDebugDocumentContext **ppDebugDocumentContext);
         GetDocumentContextFunction GetDocumentContext;
@@ -700,7 +699,7 @@ public:
 
         void LogDataForFunctionBody(Js::FunctionBody *body, uint idx, bool isRejit);
 
-        void LogRejit(Js::FunctionBody *body, uint reason);
+        void LogRejit(Js::FunctionBody *body, RejitReason reason);
         void LogBailout(Js::FunctionBody *body, uint kind);
 
         // Used to centrally collect stats for all function bodies.
@@ -708,7 +707,9 @@ public:
         RejitStatsMap* rejitStatsMap;
 
         BailoutStatsMap *bailoutReasonCounts;
+        BailoutStatsMap *bailoutReasonCountsCap;
         uint *rejitReasonCounts;
+        uint *rejitReasonCountsCap;
 #endif
 #ifdef ENABLE_BASIC_TELEMETRY
 
@@ -1418,7 +1419,7 @@ private:
         }
 
     public:
-        void FreeFunctionEntryPoint(Js::JavascriptMethod method);
+        void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);
 
     private:
         uint CloneSource(Utf8SourceInfo* info);

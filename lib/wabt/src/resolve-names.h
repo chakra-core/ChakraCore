@@ -21,18 +21,13 @@
 
 namespace wabt {
 
-struct AstLexer;
+class WastLexer;
 struct Module;
 struct Script;
-struct SourceErrorHandler;
+class SourceErrorHandler;
 
-Result resolve_names_module(struct AstLexer*,
-                            struct Module*,
-                            struct SourceErrorHandler*);
-
-Result resolve_names_script(struct AstLexer*,
-                            struct Script*,
-                            struct SourceErrorHandler*);
+Result resolve_names_module(WastLexer*, Module*, SourceErrorHandler*);
+Result resolve_names_script(WastLexer*, Script*, SourceErrorHandler*);
 
 }  // namespace wabt
 

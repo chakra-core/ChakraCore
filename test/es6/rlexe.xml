@@ -76,14 +76,6 @@
   </test>
   <test>
     <default>
-      <files>toPrimitiveJitBug654983.js</files>
-      <compile-flags>-trace:bailout</compile-flags>
-      <!-- This test sometimes fails with bailout trace output.  Pending investigation in bug OS 5244610. -->
-      <tags>fail</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>es6IsConcatSpreadable.js</files>
       <compile-flags>-es6tolength -args summary -endargs</compile-flags>
     </default>
@@ -132,12 +124,14 @@
       <baseline>proto_basic.baseline</baseline>
     </default>
   </test>
+  <!-- Microsoft/ChakraCore#2667 - Fix and Re-enable flaky test proto_disable.js
   <test>
     <default>
       <files>proto_disable.js</files>
       <baseline>proto_disable.baseline</baseline>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>proto_initializer.js</files>
@@ -504,33 +498,6 @@
   </test>
   <test>
     <default>
-      <files>es6_stable.js</files>
-      <!-- Disable OOP JIT which would cause output to print twice. -->
-      <compile-flags>-verbose -es6 -ES6DefaultArgs -WERExceptionSupport -oopjit-</compile-flags>
-      <baseline>es6_stable.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>es6_stable.js</files>
-      <!-- Disable OOP JIT which would cause output to print twice. -->
-      <compile-flags>-verbose -es6 -es6- -ES6DefaultArgs -WERExceptionSupport -oopjit-</compile-flags>
-      <baseline>es6_stable.enable_disable.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>es6_all.js</files>
-      <!-- Disable OOP JIT which would cause output to print twice. -->
-      <compile-flags>-verbose -es6all -oopjit- -WERExceptionSupport</compile-flags>
-      <baseline>es6_all.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>normalize.js</files>
       <baseline>normalize.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
@@ -547,7 +514,6 @@
       <files>unicode_escape_sequences.js</files>
       <baseline>unicode_escape_sequences.baseline</baseline>
       <compile-flags> -ES6Unicode -ES6RegExSticky</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -555,7 +521,7 @@
       <files>unicode_6_identifiers_utf8.js</files>
       <baseline>unicode_6_identifiers_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_win7,exclude_ship</tags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -563,7 +529,6 @@
       <files>unicode_regex_surrogate_atoms.js</files>
       <baseline>unicode_regex_surrogate_atoms.baseline</baseline>
       <compile-flags> -ES6Unicode -ES6RegExSticky</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -687,7 +652,7 @@
       <files>unicode_regex_surrogate_utf8.js</files>
       <baseline>unicode_regex_surrogate_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode -ES6RegExSticky</compile-flags>
-      <tags>exclude_ship,Slow</tags>
+      <tags>Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
@@ -696,7 +661,6 @@
       <files>unicode_blue_533163_utf8.js</files>
       <baseline>unicode_blue_533163_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -1096,7 +1060,7 @@
       <files>utfbug.js</files>
       <baseline />
       <compile-flags>-dump:bytecode</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1328,7 +1292,7 @@
 <test>
   <default>
     <files>await-futreserved-only-in-modules.js</files>
-    <compile-flags>-ES6Module</compile-flags>
+    <compile-flags>-MuteHostErrorMsg -ES6Module</compile-flags>
     <tags>exclude_dynapogo, exclude_xplat</tags>
   </default>
 </test>
@@ -1349,7 +1313,7 @@
 <test>
     <default>
         <files>module-syntax.js</files>
-        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+        <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
         <tags>exclude_dynapogo,exclude_sanitize_address</tags>
     </default>
 </test>
@@ -1363,7 +1327,7 @@
 <test>
     <default>
         <files>module-functionality.js</files>
-        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+        <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
         <tags>exclude_dynapogo,exclude_sanitize_address</tags>
     </default>
 </test>
@@ -1377,14 +1341,14 @@
 <test>
     <default>
         <files>dynamic-module-import-specifier.js</files>
-        <compile-flags>-AsyncModuleLoad -ES6Module -args summary -endargs</compile-flags>
+        <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
         <tags>exclude_sanitize_address</tags>
     </default>
 </test>
 <test>
     <default>
         <files>module-syntax.js</files>
-        <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
+        <compile-flags>-MuteHostErrorMsg -ES6Module -force:deferparse -args summary -endargs</compile-flags>
         <tags>exclude_sanitize_address</tags>
     </default>
 </test>
@@ -1400,6 +1364,21 @@
         <files>module-namespace.js</files>
         <compile-flags>-ES6Module -Es6ToStringTag -args summary -endargs</compile-flags>
         <tags>exclude_sanitize_address</tags>
+    </default>
+</test>
+<test>
+    <default>
+        <files>module-bugfixes.js</files>
+        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+        <tags>exclude_dynapogo,exclude_sanitize_address,bugfix</tags>
+    </default>
+</test>
+<test>
+    <default>
+        <files>bug_OS12095746.js</files>
+        <compile-flags>-MuteHostErrorMsg -IgnoreScriptErrorCode -TraceHostCallback -ES6Module</compile-flags>
+        <tags>exclude_dynapogo,exclude_sanitize_address,bugfix</tags>
+        <baseline>bug_OS12095746.baseline</baseline>
     </default>
 </test>
 <test>
@@ -1441,6 +1420,13 @@
     <compile-flags>-mic:1 -maxsimplejitruncount:2</compile-flags>
     <baseline>bug_issue_1496.baseline</baseline>
     <tags>BugFix</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>bug_issue_3076.js</files>
+    <compile-flags>-force:deferparse</compile-flags>
+    <tags>BugFix,exclude_sanitize_address</tags>
   </default>
 </test>
 <test>

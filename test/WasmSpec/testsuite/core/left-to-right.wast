@@ -159,17 +159,17 @@
   (func (export "f64_select") (result i32) (call $reset) (drop (select (call $f64_left) (call $f64_right) (call $f64_bool))) (call $get))
 
   (func (export "br_if") (result i32)
-    (block i32
+    (block (result i32)
       (call $reset)
       (drop (br_if 0 (call $i32_left) (i32.and (call $i32_right) (i32.const 0))))
       (call $get)
     )
   )
   (func (export "br_table") (result i32)
-    (block $a i32
+    (block $a (result i32)
       (call $reset)
       (drop
-        (block $b i32
+        (block $b (result i32)
           (br_table $a $b (call $i32_left) (call $i32_right))
         )
       )

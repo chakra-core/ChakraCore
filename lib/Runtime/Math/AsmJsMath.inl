@@ -105,30 +105,6 @@ namespace Js
     template<typename T> inline int AsmJsMath::CmpEq( T aLeft, T aRight ){return (int)(aLeft == aRight);}
     template<typename T> inline int AsmJsMath::CmpNe( T aLeft, T aRight ){return (int)(aLeft != aRight);}
 
-    template<typename T>
-    inline T AsmJsMath::Rem( T aLeft, T aRight )
-    {
-        return (aRight == 0) ? 0 : aLeft % aRight;
-    }
-
-    template<>
-    inline int AsmJsMath::Rem<int>( int aLeft, int aRight )
-    {
-        return ((aRight == 0) || (aLeft == INT_MIN && aRight == -1)) ? 0 : aLeft % aRight;
-    }
-
-    template<>
-    inline int64 AsmJsMath::Rem<int64>(int64 aLeft, int64 aRight)
-    {
-        return ((aRight == 0) || (aLeft == LONGLONG_MIN && aRight == -1)) ? 0 : aLeft % aRight;
-    }
-
-    template<>
-    inline double AsmJsMath::Rem<double>( double aLeft, double aRight )
-    {
-        return NumberUtilities::Modulus( aLeft, aRight );
-    }
-
     template<typename T> 
     inline T AsmJsMath::And( T aLeft, T aRight )
     {

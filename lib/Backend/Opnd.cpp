@@ -3686,6 +3686,10 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, _u(" (&NativeCodeData)"));
             break;
+        case AddrOpndKindWriteBarrierCardTable:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (&WriteBarrierCardTable)"));
+            break;
         default:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             if ((intptr_t)address == func->GetThreadContextInfo()->GetNullFrameDisplayAddr())

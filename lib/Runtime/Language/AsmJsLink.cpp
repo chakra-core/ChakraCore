@@ -26,20 +26,6 @@ namespace Js{
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Buffer bytelength is smaller than constant accesses"));
             return false;
         }
-        if (info->GetUsesChangeHeap())
-        {
-            if (buffer->GetByteLength() < 0x1000000)
-            {
-                Output::Print(_u("Asm.js Runtime Error : Buffer bytelength is not a valid size for asm.js\n"));
-                return false;
-            }
-            if (info->GetMaxHeapAccess() >= 0x1000000)
-            {
-                Output::Print(_u("Asm.js Runtime Error : Cannot have such large constant accesses\n"));
-                return false;
-            }
-        }
-
         if (!buffer->IsValidAsmJsBufferLength(buffer->GetByteLength(), true))
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Buffer bytelength is not a valid size for asm.js"));
@@ -72,6 +58,9 @@ namespace Js{
 
     bool ASMLink::CheckStdLib(ScriptContext* scriptContext, const AsmJsModuleInfo* info, const Var stdlib)
     {
+        // We should already prevent implicit calls, but just to be safe in case someone changes that
+        JS_REENTRANCY_LOCK(lock, scriptContext->GetThreadContext());
+
         BVStatic<ASMMATH_BUILTIN_SIZE> mathBuiltinUsed = info->GetAsmMathBuiltinUsed();
         BVStatic<ASMARRAY_BUILTIN_SIZE> arrayBuiltinUsed = info->GetAsmArrayBuiltinUsed();
         BVStatic<ASMSIMD_BUILTIN_SIZE> simdBuiltinUsed = info->GetAsmSimdBuiltinUsed();
@@ -195,70 +184,9 @@ namespace Js{
                 }
             }
             break;
-        case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_Int8Array:
-            arrayFuncObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Int8Array, scriptContext);
-            if (JavascriptFunction::Is(arrayFuncObj))
-            {
-                JavascriptFunction* arrayLibFunc = (JavascriptFunction*)arrayFuncObj;
-                return arrayLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Int8Array::EntryInfo::NewInstance)->GetOriginalEntryPoint();
-            }
-            break;
-        case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_Uint8Array:
-            arrayFuncObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Uint8Array, scriptContext);
-            if (JavascriptFunction::Is(arrayFuncObj))
-            {
-                JavascriptFunction* arrayLibFunc = (JavascriptFunction*)arrayFuncObj;
-                return arrayLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Uint8Array::EntryInfo::NewInstance)->GetOriginalEntryPoint();
-            }
-            break;
-        case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_Int16Array:
-            arrayFuncObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Int16Array, scriptContext);
-            if (JavascriptFunction::Is(arrayFuncObj))
-            {
-                JavascriptFunction* arrayLibFunc = (JavascriptFunction*)arrayFuncObj;
-                return arrayLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Int16Array::EntryInfo::NewInstance)->GetOriginalEntryPoint();
-            }
-            break;
-        case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_Uint16Array:
-            arrayFuncObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Uint16Array, scriptContext);
-            if (JavascriptFunction::Is(arrayFuncObj))
-            {
-                JavascriptFunction* arrayLibFunc = (JavascriptFunction*)arrayFuncObj;
-                return arrayLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Uint16Array::EntryInfo::NewInstance)->GetOriginalEntryPoint();
-            }
-            break;
-        case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_Int32Array:
-            arrayFuncObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Int32Array, scriptContext);
-            if (JavascriptFunction::Is(arrayFuncObj))
-            {
-                JavascriptFunction* arrayLibFunc = (JavascriptFunction*)arrayFuncObj;
-                return arrayLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Int32Array::EntryInfo::NewInstance)->GetOriginalEntryPoint();
-            }
-            break;
-        case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_Uint32Array:
-            arrayFuncObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Uint32Array, scriptContext);
-            if (JavascriptFunction::Is(arrayFuncObj))
-            {
-                JavascriptFunction* arrayLibFunc = (JavascriptFunction*)arrayFuncObj;
-                return arrayLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Uint32Array::EntryInfo::NewInstance)->GetOriginalEntryPoint();
-            }
-            break;
-        case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_Float32Array:
-            arrayFuncObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Float32Array, scriptContext);
-            if (JavascriptFunction::Is(arrayFuncObj))
-            {
-                JavascriptFunction* arrayLibFunc = (JavascriptFunction*)arrayFuncObj;
-                return arrayLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Float32Array::EntryInfo::NewInstance)->GetOriginalEntryPoint();
-            }
-            break;
-        case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_Float64Array:
-            arrayFuncObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Float64Array, scriptContext);
-            if (JavascriptFunction::Is(arrayFuncObj))
-            {
-                JavascriptFunction* arrayLibFunc = (JavascriptFunction*)arrayFuncObj;
-                return arrayLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Float64Array::EntryInfo::NewInstance)->GetOriginalEntryPoint();
-            }
-            break;
+#define ASMJS_TYPED_ARRAY_NAMES(name, propertyName) case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_##name: \
+            return CheckIsBuiltinFunction(scriptContext, stdlib, PropertyIds::##propertyName, propertyName##::EntryInfo::NewInstance);
+#include "AsmJsBuiltInNames.h"
         default:
             Assume(UNREACHED);
         }
@@ -267,308 +195,14 @@ namespace Js{
 
     bool ASMLink::CheckMathLibraryMethod(ScriptContext* scriptContext, const Var asmMathObject, const AsmJSMathBuiltinFunction mathLibMethod)
     {
-        Var mathFuncObj;
         switch (mathLibMethod)
         {
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_sin:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::sin, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Sin)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_cos:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::cos, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Cos)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_tan:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::tan, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Tan)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_asin:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::asin, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Asin)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_acos:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::acos, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Acos)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_atan:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::atan, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Atan)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_ceil:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::ceil, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Ceil)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_floor:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::floor, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Floor)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_exp:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::exp, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Exp)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_log:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::log, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Log)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_pow:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::pow, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Pow)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_sqrt:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::sqrt, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Sqrt)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_abs:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::abs, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Abs)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_atan2:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::atan2, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Atan2)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_imul:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::imul, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Imul)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_clz32:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::clz32, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Clz32)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_min:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::min, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Min)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_max:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::max, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Max)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_fround:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::fround, scriptContext);
-            if (JavascriptFunction::Is(mathFuncObj))
-            {
-                JavascriptFunction* mathLibFunc = (JavascriptFunction*)mathFuncObj;
-                if (mathLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&Math::EntryInfo::Fround)->GetOriginalEntryPoint())
-                {
-                    return true;
-                }
-            }
-            break;
-
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_e:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::E, scriptContext);
-            if (JavascriptNumber::Is(mathFuncObj))
-            {
-                JavascriptNumber* mathConstNumber = (JavascriptNumber*)mathFuncObj;
-                if (JavascriptNumber::GetValue(mathConstNumber) == (Math::E))
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_ln10:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::LN10, scriptContext);
-            if (JavascriptNumber::Is(mathFuncObj))
-            {
-                JavascriptNumber* mathConstNumber = (JavascriptNumber*)mathFuncObj;
-                if (JavascriptNumber::GetValue(mathConstNumber) == (Math::LN10))
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_ln2:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::LN2, scriptContext);
-            if (JavascriptNumber::Is(mathFuncObj))
-            {
-                JavascriptNumber* mathConstNumber = (JavascriptNumber*)mathFuncObj;
-                if (JavascriptNumber::GetValue(mathConstNumber) == (Math::LN2))
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_log2e:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::LOG2E, scriptContext);
-            if (JavascriptNumber::Is(mathFuncObj))
-            {
-                JavascriptNumber* mathConstNumber = (JavascriptNumber*)mathFuncObj;
-                if (JavascriptNumber::GetValue(mathConstNumber) == (Math::LOG2E))
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_log10e:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::LOG10E, scriptContext);
-            if (JavascriptNumber::Is(mathFuncObj))
-            {
-                JavascriptNumber* mathConstNumber = (JavascriptNumber*)mathFuncObj;
-                if (JavascriptNumber::GetValue(mathConstNumber) == (Math::LOG10E))
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_pi:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::PI, scriptContext);
-            if (JavascriptNumber::Is(mathFuncObj))
-            {
-                JavascriptNumber* mathConstNumber = (JavascriptNumber*)mathFuncObj;
-                if (JavascriptNumber::GetValue(mathConstNumber) == (Math::PI))
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_sqrt1_2:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::SQRT1_2, scriptContext);
-            if (JavascriptNumber::Is(mathFuncObj))
-            {
-                JavascriptNumber* mathConstNumber = (JavascriptNumber*)mathFuncObj;
-                if (JavascriptNumber::GetValue(mathConstNumber) == (Math::SQRT1_2))
-                {
-                    return true;
-                }
-            }
-            break;
-        case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_sqrt2:
-            mathFuncObj = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::SQRT2, scriptContext);
-            if (JavascriptNumber::Is(mathFuncObj))
-            {
-                JavascriptNumber* mathConstNumber = (JavascriptNumber*)mathFuncObj;
-                if (JavascriptNumber::GetValue(mathConstNumber) == (Math::SQRT2))
-                {
-                    return true;
-                }
-            }
-            break;
+#define ASMJS_MATH_FUNC_NAMES(name, propertyName, funcInfo) case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_##name: \
+            return CheckIsBuiltinFunction(scriptContext, asmMathObject, PropertyIds::##propertyName, funcInfo);
+#include "AsmJsBuiltInNames.h"
+#define ASMJS_MATH_DOUBLE_CONST_NAMES(name, propertyName, value) case AsmJSMathBuiltinFunction::AsmJSMathBuiltin_##name: \
+            return CheckIsBuiltinValue(scriptContext, asmMathObject, PropertyIds::##propertyName, value);
+#include "AsmJsBuiltInNames.h"
         default:
             Assume(UNREACHED);
         }
@@ -595,7 +229,6 @@ namespace Js{
             } \
             break;
 
-
 #define ASMJS_SIMD_O_NAMES(builtInId, propertyId, libName, entryPoint) \
         case  AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_##builtInId: \
             simdConstructorObj = JavascriptOperators::OP_GetProperty(asmSimdObject, PropertyIds::##libName, scriptContext); \
@@ -611,8 +244,6 @@ namespace Js{
             break;
 #include "AsmJsBuiltinNames.h"
 
-
-
         default:
             Assume(UNREACHED);
         }
@@ -620,8 +251,19 @@ namespace Js{
     }
 #endif
 
+    bool ASMLink::CheckIsBuiltinFunction(ScriptContext* scriptContext, const Var object, PropertyId propertyId, const FunctionInfo& funcInfo)
+    {
+        Var mathFuncObj = JavascriptOperators::OP_GetProperty(object, propertyId, scriptContext);
+        return JavascriptFunction::Is(mathFuncObj) &&
+            JavascriptFunction::FromVar(mathFuncObj)->GetFunctionInfo()->GetOriginalEntryPoint() == funcInfo.GetOriginalEntryPoint();
+    }
 
-
+    bool ASMLink::CheckIsBuiltinValue(ScriptContext* scriptContext, const Var object, PropertyId propertyId, double value)
+    {
+        Var mathValue = JavascriptOperators::OP_GetProperty(object, propertyId, scriptContext);
+        return JavascriptNumber::Is(mathValue) &&
+            JavascriptNumber::GetValue(mathValue) == value;
+    }
 
     bool ASMLink::CheckParams(ScriptContext* scriptContext, AsmJsModuleInfo* info, const Var stdlib, const Var foreign, const Var bufferView)
     {

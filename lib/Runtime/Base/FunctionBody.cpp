@@ -1268,7 +1268,8 @@ namespace Js
     {
         bool isInterpreterThunk = this->GetOriginalEntryPoint_Unchecked() == DefaultEntryThunk;
 #if DYNAMIC_INTERPRETER_THUNK
-        isInterpreterThunk = isInterpreterThunk || IsDynamicInterpreterThunk();
+        bool isStaticInterpreterThunk = this->GetOriginalEntryPoint_Unchecked() == InterpreterStackFrame::StaticInterpreterThunk;
+        isInterpreterThunk = isInterpreterThunk || isStaticInterpreterThunk || IsDynamicInterpreterThunk();
 #endif
         return isInterpreterThunk;
     }
@@ -3429,7 +3430,19 @@ namespace Js
     BOOL FunctionBody::IsNativeOriginalEntryPoint() const
     {
 #if ENABLE_NATIVE_CODEGEN
-        return this->GetScriptContext()->IsNativeAddress((void*)this->GetOriginalEntryPoint_Unchecked());
+        JavascriptMethod originalEntryPoint = this->GetOriginalEntryPoint_Unchecked();
+        return
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+            (
+#if ENABLE_OOP_NATIVE_CODEGEN
+            JITManager::GetJITManager()->IsOOPJITEnabled()
+                ? JITThunkEmitter<SectionAllocWrapper>::IsInThunk(this->GetScriptContext()->GetThreadContext()->GetJITThunkStartAddr(), (uintptr_t)originalEntryPoint)
+                :
+#endif
+                this->GetScriptContext()->GetThreadContext()->GetJITThunkEmitter()->IsInThunk((uintptr_t)originalEntryPoint)
+            ) ||
+#endif
+            this->GetScriptContext()->IsNativeAddress((void*)originalEntryPoint);
 #else
         return false;
 #endif
@@ -3611,7 +3624,7 @@ namespace Js
             (entryPointInfo == this->m_defaultEntryPointInfo && this->IsInterpreterThunk()) ||
             (
                 GetSimpleJitEntryPointInfo() &&
-                GetEntryPoint(entryPointInfo) == reinterpret_cast<void *>(GetSimpleJitEntryPointInfo()->GetNativeAddress())
+                GetEntryPoint(entryPointInfo) == reinterpret_cast<void *>(GetSimpleJitEntryPointInfo()->GetNativeEntrypoint())
             ));
         this->SetEntryPoint(entryPointInfo, entryPoint);
     }
@@ -3632,7 +3645,10 @@ namespace Js
             {
                 this->SetOriginalEntryPoint(this->m_scriptContext->GetNextDynamicInterpreterThunk(&this->m_dynamicInterpreterThunk));
             }
-            JS_ETW(EtwTrace::LogMethodInterpreterThunkLoadEvent(this));
+            if (this->m_dynamicInterpreterThunk != nullptr)
+            {
+                JS_ETW(EtwTrace::LogMethodInterpreterThunkLoadEvent(this));
+            }
         }
         else
         {
@@ -4764,7 +4780,7 @@ namespace Js
         PROFILER_SCRIPT_TYPE type = IsDynamicScript() ? PROFILER_SCRIPT_TYPE_DYNAMIC : PROFILER_SCRIPT_TYPE_USER;
 
         IDebugDocumentContext *pDebugDocumentContext = nullptr;
-        this->m_scriptContext->GetDocumentContext(this->m_scriptContext, this, &pDebugDocumentContext);
+        this->m_scriptContext->GetDocumentContext(this, &pDebugDocumentContext);
 
         HRESULT hr = m_scriptContext->OnScriptCompiled((PROFILER_TOKEN) this->GetUtf8SourceInfo()->GetSourceInfoId(), type, pDebugDocumentContext);
 
@@ -4780,7 +4796,7 @@ namespace Js
         const char16 *pwszName = GetExternalDisplayName();
 
         IDebugDocumentContext *pDebugDocumentContext = nullptr;
-        this->m_scriptContext->GetDocumentContext(this->m_scriptContext, this, &pDebugDocumentContext);
+        this->m_scriptContext->GetDocumentContext(this, &pDebugDocumentContext);
 
         SetHasFunctionCompiledSent(true);
 
@@ -6321,9 +6337,8 @@ namespace Js
         // Byte code generation failed for this function. Revert any intermediate state being tracked in the function body, in
         // case byte code generation is attempted again for this function body.
 
-#if DBG
-        this->UnlockCounters();
-#endif
+        DebugOnly(this->UnlockCounters());
+
         ResetInlineCaches();
         ResetObjectLiteralTypes();
         ResetLiteralRegexes();
@@ -6361,9 +6376,9 @@ namespace Js
         // pass may have failed, we need to restore state that is tracked on the function body by the visit pass.
         // Note: do not reset literal regexes if the function has already been compiled (e.g., is a parsed function enclosed by a
         // redeferred function) as we will not use the count of literals anyway, and the counters may be accessed by the background thread.
-#if DBG
-        this->UnlockCounters();
-#endif
+
+        DebugOnly(this->UnlockCounters());
+
         if (this->byteCodeBlock == nullptr)
         {
             ResetLiteralRegexes();
@@ -6543,7 +6558,7 @@ namespace Js
             if(simpleJitEntryPointInfo && GetExecutionMode() == ExecutionMode::FullJit)
             {
                 directEntryPoint =
-                    originalEntryPoint = reinterpret_cast<Js::JavascriptMethod>(simpleJitEntryPointInfo->GetNativeAddress());
+                    originalEntryPoint = reinterpret_cast<Js::JavascriptMethod>(simpleJitEntryPointInfo->GetNativeEntrypoint());
             }
             else
             {
@@ -7924,9 +7939,8 @@ namespace Js
         {
             return;
         }
-#if DBG
-        this->UnlockCounters();
-#endif
+
+        DebugOnly(this->UnlockCounters());
 
         CleanupRecyclerData(isScriptContextClosing, false /* capture entry point cleanup stack trace */);
         CleanUpForInCache(isScriptContextClosing);
@@ -7965,9 +7979,7 @@ namespace Js
 
         this->cleanedUp = true;
 
-#if DBG
-        this->LockDownCounters();
-#endif
+        DebugOnly(this->LockDownCounters());
     }
 
 
@@ -9530,8 +9542,9 @@ namespace Js
 
         // Reset the entry point upon a lazy bailout.
         this->Reset(true);
-        Assert(this->jsMethod != nullptr);
-        FreeNativeCodeGenAllocation(GetScriptContext(), this->jsMethod);
+        Assert(this->nativeAddress != nullptr);
+        FreeNativeCodeGenAllocation(GetScriptContext(), this->nativeAddress, this->thunkAddress);
+        this->nativeAddress = nullptr;
         this->jsMethod = nullptr;
     }
 #endif
@@ -9712,7 +9725,7 @@ namespace Js
 
                 if (validationCookie == currentCookie)
                 {
-                    scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress());
+                    scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress(), this->GetThunkAddress());
                 }
             }
 
@@ -9860,7 +9873,7 @@ namespace Js
                     newEntryPoint = simpleJitEntryPointInfo;
                     functionBody->SetDefaultFunctionEntryPointInfo(
                         simpleJitEntryPointInfo,
-                        reinterpret_cast<JavascriptMethod>(newEntryPoint->GetNativeAddress()));
+                        reinterpret_cast<JavascriptMethod>(newEntryPoint->GetNativeEntrypoint()));
                     functionBody->SetExecutionMode(ExecutionMode::SimpleJit);
                     functionBody->ResetSimpleJitLimitAndCallCount();
                 }
@@ -9910,7 +9923,7 @@ namespace Js
                 {
                     Assert(!functionType->GetEntryPointInfo()->IsFunctionEntryPointInfo() ||
                         ((FunctionEntryPointInfo*)functionType->GetEntryPointInfo())->IsCleanedUp()
-                        || (DWORD_PTR)functionType->GetEntryPoint() != this->GetNativeAddress());
+                        || functionType->GetEntryPoint() != this->GetNativeEntrypoint());
                 }
             });
 
@@ -9927,7 +9940,7 @@ namespace Js
                 const JavascriptMethod currentThunk = functionBody->GetScriptContext()->CurrentThunk;
                 const JavascriptMethod newDirectEntryPoint =
                     currentThunk == DefaultEntryThunk ? newOriginalEntryPoint : currentThunk;
-                const JavascriptMethod simpleJitNativeAddress = reinterpret_cast<JavascriptMethod>(GetNativeAddress());
+                const JavascriptMethod simpleJitNativeAddress = GetNativeEntrypoint();
                 functionBody->MapEntryPoints([&](const int entryPointIndex, FunctionEntryPointInfo *const entryPointInfo)
                 {
                     if(entryPointInfo != this && entryPointInfo->jsMethod == simpleJitNativeAddress)
@@ -10018,7 +10031,7 @@ namespace Js
                 currentCookie = (void*)currentNativeCodegen;
 #endif
 
-                if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
+                if (this->jsMethod == this->GetNativeEntrypoint())
                 {
 #if DBG
                     // tag the jsMethod in case the native address is reused in recycler and create a false positive
@@ -10032,7 +10045,7 @@ namespace Js
 
                 if (validationCookie == currentCookie)
                 {
-                    scriptContext->FreeFunctionEntryPoint(reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()));
+                    scriptContext->FreeFunctionEntryPoint(reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()), this->GetThunkAddress());
                 }
             }
 

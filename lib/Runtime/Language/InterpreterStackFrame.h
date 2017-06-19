@@ -200,8 +200,9 @@ namespace Js
         int32 OP_GrowMemory(int32 delta);
         void OP_Unreachable();
         template <typename T> using AsmJsMathPtr = T(*)(T a, T b);
-        template <typename T, AsmJsMathPtr<T> func, T MIN> static T OP_DivOverflow(T a, T b, ScriptContext* scriptContext);
-        template <typename T, AsmJsMathPtr<T> func> static T OP_DivRemCheck(T a, T b, ScriptContext* scriptContext);
+        template <typename T, AsmJsMathPtr<T> func> static T OP_DivOverflow(T a, T b, ScriptContext* scriptContext);
+        template <typename T, AsmJsMathPtr<T> func> static T OP_RemOverflow(T a, T b, ScriptContext* scriptContext);
+        template <typename T, AsmJsMathPtr<T> func> static T OP_UnsignedDivRemCheck(T a, T b, ScriptContext* scriptContext);
         void ValidateSetRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         template <typename RegSlotType> Var GetReg(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetReg(RegSlotType localRegisterID, Var bValue);
@@ -316,12 +317,14 @@ namespace Js
 #endif
 
 #ifdef ASMJS_PLAT
+        static void StaticInterpreterAsmThunk(RecyclableObject* function, ...);
         static void InterpreterAsmThunk(AsmJsCallStackLayout* layout);
 #endif
 
 #if DYNAMIC_INTERPRETER_THUNK
         static Var DelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
         _NOINLINE static Var InterpreterThunk(JavascriptCallStackLayout* layout);
+        _NOINLINE static Var StaticInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
 #else
         _NOINLINE static Var InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
 #endif

@@ -34,12 +34,13 @@ PHASE(All)
     PHASE(Delay)
         PHASE(Speculation)
         PHASE(GatherCodeGenData)
-    PHASE(WasmBytecode)
-        PHASE(WasmParser)
+    PHASE(Wasm)
+        // Wasm frontend
+        PHASE(WasmBytecode)
         PHASE(WasmReader)
-        PHASE(WasmSection)
-        PHASE(WasmLEB128)
-        PHASE(WasmFunctionBody)
+            PHASE(WasmSection)
+            PHASE(WasmLEB128)
+        // Wasm features per functions
         PHASE(WasmDeferred)
         PHASE(WasmValidatePrejit)
         PHASE(WasmInOut) // Trace input and output of wasm calls
@@ -396,6 +397,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_WasmCheckVersion     (true)
 #define DEFAULT_CONFIG_WasmFold             (true)
 #define DEFAULT_CONFIG_WasmIgnoreResponse   (false)
+#define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo    (true)
@@ -416,6 +418,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ForceExpireOnNonCacheCollect (false)
 #define DEFAULT_CONFIG_ForceFastPath        (false)
 #define DEFAULT_CONFIG_ForceJITLoopBody     (false)
+#define DEFAULT_CONFIG_ForceStaticInterpreterThunk (false)
 #define DEFAULT_CONFIG_ForceCleanPropertyOnCollect (false)
 #define DEFAULT_CONFIG_ForceCleanCacheOnCollect (false)
 #define DEFAULT_CONFIG_ForceGCAfterJSONParse (false)
@@ -679,7 +682,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_PerfHintLevel (1)
 #define DEFAULT_CONFIG_OOPJITMissingOpts (true)
 #define DEFAULT_CONFIG_OOPCFGRegistration (true)
-#define DEFAULT_CONFIG_RPCFailFastWait (3000)
 
 #define DEFAULT_CONFIG_FailFastIfDisconnectedDelegate    (false)
 
@@ -871,6 +873,7 @@ FLAGNR(Boolean, WasmFastArray         , "Enable fast array implementation for We
 FLAGNR(Boolean, WasmCheckVersion      , "Check the binary version for WebAssembly", DEFAULT_CONFIG_WasmCheckVersion)
 FLAGNR(Boolean, WasmFold              , "Enable i32/i64 const folding", DEFAULT_CONFIG_WasmFold)
 FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
+FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
 
 #ifndef COMPILE_DISABLE_Simdjs
     #define COMPILE_DISABLE_Simdjs 0
@@ -1111,6 +1114,7 @@ FLAGNR(Boolean, ForceExpireOnNonCacheCollect, "Allow expiration collect outside 
 FLAGNR(Boolean, ForceFastPath         , "Force fast-paths in native codegen", DEFAULT_CONFIG_ForceFastPath)
 FLAGNR(Boolean, ForceFloatPref        , "Force float preferencing (JIT only)", false)
 FLAGNR(Boolean, ForceJITLoopBody      , "Force jit loop body only", DEFAULT_CONFIG_ForceJITLoopBody)
+FLAGNR(Boolean, ForceStaticInterpreterThunk, "Force using static interpreter thunk", DEFAULT_CONFIG_ForceStaticInterpreterThunk)
 FLAGNR(Boolean, DumpCommentsFromReferencedFiles, "Allow printing comments of comment-table of the referenced file as well (use with -trace:CommentTable)", DEFAULT_CONFIG_DumpCommentsFromReferencedFiles)
 FLAGNR(Number,  DelayFullJITSmallFunc , "Scale Full JIT threshold for small functions which are going to be inlined soon. To provide fraction scale, the final scale is scale following this option devided by 10", DEFAULT_CONFIG_DelayFullJITSmallFunc)
 
@@ -1245,7 +1249,6 @@ FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)
 FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways", false)
 FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", DEFAULT_CONFIG_OOPJITMissingOpts)
 FLAGNR(Boolean, OOPCFGRegistration    , "Do CFG registration OOP (under OOP JIT)", DEFAULT_CONFIG_OOPCFGRegistration)
-FLAGNR(Number,  RPCFailFastWait       , "Wait time for JIT process termination before triggering failfast on RPC failure", DEFAULT_CONFIG_RPCFailFastWait)
 #ifdef _ARM64_
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else
@@ -1329,6 +1332,7 @@ FLAGNR(Boolean, RecyclerForceMarkInterior, "Force all the mark as interior", DEF
 #if ENABLE_CONCURRENT_GC
 FLAGNR(Number,  RecyclerPriorityBoostTimeout, "Adjust priority boost timeout", 5000)
 FLAGNR(Number,  RecyclerThreadCollectTimeout, "Adjust thread collect timeout", 1000)
+FLAGRA(Boolean, EnableConcurrentSweepAlloc, ecsa, "Turns off the feature to allow allocations during concurrent sweep.", true)
 #endif
 #ifdef RECYCLER_PAGE_HEAP
 FLAGNR(Number,      PageHeap,             "Use full page for heap allocations", DEFAULT_CONFIG_PageHeap)

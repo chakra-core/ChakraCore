@@ -399,6 +399,10 @@ HRESULT Parser::ParseSourceInternal(
     {
         hr = e.GetError();
     }
+    catch (Js::AsmJsParseException&)
+    {
+        hr = JSERR_AsmJsCompileError;
+    }
 
     if (FAILED(hr))
     {
@@ -2445,7 +2449,7 @@ template<bool buildAST> ParseNodePtr Parser::ParseImportCall()
     }
 
     m_pscan->Scan();
-    return CreateCallNode(knopCall, CreateNodeWithScanner<knopImport>(), specifier);
+    return buildAST ? CreateCallNode(knopCall, CreateNodeWithScanner<knopImport>(), specifier) : nullptr;
 }
 
 template<bool buildAST>
@@ -2461,7 +2465,10 @@ ParseNodePtr Parser::ParseImport()
     // import()
     if (m_token.tk == tkLParen)
     {
-        return ParseImportCall<buildAST>();
+        ParseNodePtr pnode = ParseImportCall<buildAST>();
+        BOOL fCanAssign;
+        IdentToken token;
+        return ParsePostfixOperators<buildAST>(pnode, TRUE, FALSE, FALSE, &fCanAssign, &token);
     }
 
     m_pscan->SeekTo(parsedImport);
@@ -3256,12 +3263,8 @@ LFunction :
         if (m_scriptContext->GetConfig()->IsES6ModuleEnabled())
         {
             m_pscan->Scan();
-            if (m_token.tk == tkLParen)
-            {
-                return ParseImportCall<buildAST>();
-            }
-
-            Error(ERRnoLparen);
+            ChkCurTokNoScan(tkLParen, ERRnoLparen);
+            pnode = ParseImportCall<buildAST>();
         }
         else
         {
@@ -5244,6 +5247,15 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
         if (isTopLevelDeferredFunc || (m_InAsmMode && m_deferAsmJs))
         {
+#ifdef ASMJS_PLAT
+            if (m_InAsmMode && fLambda)
+            {
+                // asm.js doesn't support lambda functions
+                Js::AsmJSCompiler::OutputError(m_scriptContext, _u("Lambda functions are not supported."));
+                Js::AsmJSCompiler::OutputError(m_scriptContext, _u("Asm.js compilation failed."));
+                throw Js::AsmJsParseException();
+            }
+#endif
             AssertMsg(!fLambda, "Deferring function parsing of a function does not handle lambda syntax");
             fDeferred = true;
 

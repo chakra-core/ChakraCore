@@ -6332,7 +6332,6 @@ GlobOpt::OptConstPeep(IR::Instr *instr, IR::Opnd *constSrc, Value **pDstVal, Val
         }
         // fall-through
 
-    case Js::OpCode::Add_Ptr:
     case Js::OpCode::Add_I4:
         if (value != 0)
         {
@@ -8274,7 +8273,6 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
     IR::Instr *&instr = *pInstr;
     int32 min1 = INT32_MIN, max1 = INT32_MAX, min2 = INT32_MIN, max2 = INT32_MAX, newMin, newMax, tmp;
     Js::OpCode opcode;
-    IR::Opnd *src1, *src2;
     Value *&src1Val = *pSrc1Val;
     Value *&src2Val = *pSrc2Val;
 
@@ -8590,6 +8588,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                 src2Lossy = false;
 
                 opcode = Js::OpCode::Div_I4;
+                Assert(!instr->GetSrc1()->IsUnsigned());
                 bailOutKind |= IR::BailOnDivResultNotInt;
                 if (max2 >= 0 && min2 <= 0)
                 {
@@ -9216,7 +9215,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
             }
             case Js::OpCode::Rem_A:
             {
-                src2 = instr->GetSrc2();
+                IR::Opnd* src2 = instr->GetSrc2();
                 if (!this->IsLoopPrePass() && min2 == max2 && min1 >= 0)
                 {
                     int32 value = min2;
@@ -9310,6 +9309,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                     newMax = max(newMin, newMax);
                 }
                 opcode = Js::OpCode::Rem_I4;
+                Assert(!instr->GetSrc1()->IsUnsigned());
                 break;
             }
 
@@ -9600,12 +9600,12 @@ LOutsideSwitch:
     }
 
     // Make sure the srcs are specialized
-    src1 = instr->GetSrc1();
+    IR::Opnd* src1 = instr->GetSrc1();
     this->ToInt32(instr, src1, this->currentBlock, src1ValueToSpecialize, nullptr, src1Lossy);
 
     if (!skipSrc2)
     {
-        src2 = instr->GetSrc2();
+        IR::Opnd* src2 = instr->GetSrc2();
         this->ToInt32(instr, src2, this->currentBlock, src2ValueToSpecialize, nullptr, src2Lossy);
     }
 
@@ -13471,7 +13471,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             // Unless we're in asm.js (where it is guaranteed that virtual typed array accesses cannot read/write beyond 4GB),
             // check the range of the index to make sure we won't access beyond the reserved memory beforing eliminating bounds
             // checks in jitted code.
-            if (!GetIsAsmJSFunc())
+            if (!GetIsAsmJSFunc() && baseOwnerIndir)
             {
                 IR::RegOpnd * idxOpnd = baseOwnerIndir->GetIndexOpnd();
                 if (idxOpnd)
@@ -13495,6 +13495,12 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             }
             else
             {
+                if (!baseOwnerIndir)
+                {
+                    Assert(instr->m_opcode == Js::OpCode::InlineArrayPush ||
+                        instr->m_opcode == Js::OpCode::InlineArrayPop ||
+                        instr->m_opcode == Js::OpCode::LdLen_A);
+                }
                 eliminatedLowerBoundCheck = true;
                 eliminatedUpperBoundCheck = true;
                 canBailOutOnArrayAccessHelperCall = false;
@@ -15592,7 +15598,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
     // This can happen for Neg_A if it needs to bail out on negative zero, and perhaps other cases as well. It's too late to fix
     // the problem (overflows may already be ignored), so handle it by bailing out at compile-time and disabling tracking int
     // overflow.
-    Assert(!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
+    Assert(!func->IsTrackCompoundedIntOverflowDisabled());
 
     if(PHASE_TRACE(Js::BailOutPhase, this->func))
     {
@@ -15610,7 +15616,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
         Output::Flush();
     }
 
-    if(func->HasProfileInfo() && func->GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled())
+    if(func->IsTrackCompoundedIntOverflowDisabled())
     {
         // Tracking int overflows is already off for some reason. Prevent trying to rejit again because it won't help and the
         // same thing will happen again and cause an infinite loop. Just abort jitting this function.
@@ -15684,7 +15690,6 @@ GlobOpt::PreLowerCanonicalize(IR::Instr *instr, Value **pSrc1Val, Value **pSrc2V
     case Js::OpCode::Or_I4:
     case Js::OpCode::Xor_I4:
     case Js::OpCode::Add_I4:
-    case Js::OpCode::Add_Ptr:
 swap_srcs:
         if (!instr->GetSrc2()->IsImmediateOpnd())
         {
@@ -17007,7 +17012,7 @@ bool
 GlobOpt::IsSwitchOptEnabled(Func const * func)
 {
     Assert(func->IsTopFunc());
-    return !PHASE_OFF(Js::SwitchOptPhase, func) && (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsSwitchOptDisabled()) && !IsTypeSpecPhaseOff(func)
+    return !PHASE_OFF(Js::SwitchOptPhase, func) && !func->IsSwitchOptDisabled() && !IsTypeSpecPhaseOff(func)
         && func->DoGlobOpt() && !func->HasTry();
 }
 
@@ -17035,7 +17040,7 @@ GlobOpt::DoAggressiveIntTypeSpec(Func const * func)
     return
         !PHASE_OFF(Js::AggressiveIntTypeSpecPhase, func) &&
         !IsTypeSpecPhaseOff(func) &&
-        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsAggressiveIntTypeSpecDisabled(func->IsLoopBody()));
+        !func->IsAggressiveIntTypeSpecDisabled();
 }
 
 bool
@@ -17126,7 +17131,7 @@ GlobOpt::DoArrayCheckHoist(Func const * const func)
     Assert(func->IsTopFunc());
     return
         !PHASE_OFF(Js::ArrayCheckHoistPhase, func) &&
-        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody())) &&
+        !func->IsArrayCheckHoistDisabled() &&
         !func->IsJitInDebugMode() && // StElemI fast path is not allowed when in debug mode, so it cannot have bailout
         func->DoGlobOptsForGeneratorFunc();
 }
@@ -17884,7 +17889,7 @@ GlobOpt::TraceSettings() const
     Output::Print(_u("    FloatTypeSpec: %s\r\n"), this->DoFloatTypeSpec() ? _u("enabled") : _u("disabled"));
     Output::Print(_u("    AggressiveIntTypeSpec: %s\r\n"), this->DoAggressiveIntTypeSpec() ? _u("enabled") : _u("disabled"));
     Output::Print(_u("    LossyIntTypeSpec: %s\r\n"), this->DoLossyIntTypeSpec() ? _u("enabled") : _u("disabled"));
-    Output::Print(_u("    ArrayCheckHoist: %s\r\n"),  (this->func->HasProfileInfo() && this->func->GetReadOnlyProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody())) ? _u("disabled") : _u("enabled"));
+    Output::Print(_u("    ArrayCheckHoist: %s\r\n"),  this->func->IsArrayCheckHoistDisabled() ? _u("disabled") : _u("enabled"));
     Output::Print(_u("    ImplicitCallFlags: %s\r\n"), Js::DynamicProfileInfo::GetImplicitCallFlagsString(this->func->m_fg->implicitCallFlags));
     for (Loop * loop = this->func->m_fg->loopList; loop != NULL; loop = loop->next)
     {

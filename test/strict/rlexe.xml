@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -17,7 +17,6 @@
       <files>basics_function_in_SM.js</files>
       <baseline>basics_function_in_SM.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -25,7 +24,6 @@
       <files>callerOrArgsNoAccess.js</files>
       <baseline>callerOrArgsNoAccess.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -33,7 +31,7 @@
       <files>stricteval-deferred.js</files>
       <baseline>stricteval-deferred.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -41,7 +39,7 @@
       <files>stricteval2-deferred.js</files>
       <baseline>stricteval2-deferred.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -49,7 +47,7 @@
       <files>stricteval3-deferred.js</files>
       <baseline>stricteval3-deferred.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -57,7 +55,7 @@
       <files>strictargs-deferred.js</files>
       <baseline>strictargs-deferred.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -65,7 +63,7 @@
       <files>strictargs2-deferred.js</files>
       <baseline>strictargs2-deferred.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -73,7 +71,7 @@
       <files>strictargs3-deferred.js</files>
       <baseline>strictargs3-deferred.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -120,7 +118,7 @@
       <files>formal_samename1.js</files>
       <baseline>formal_samename1.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -135,7 +133,7 @@
       <files>formal_samename2.js</files>
       <baseline>formal_samename2.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -157,7 +155,7 @@
       <files>delete.js</files>
       <baseline>delete.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -639,7 +637,7 @@
       <files>strictkwd.js</files>
       <baseline>strictkwd.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -647,7 +645,7 @@
       <files>strictkwd.js</files>
       <baseline>strictkwd.baseline</baseline>
       <compile-flags>-Off:Deferparse</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -655,7 +653,7 @@
       <files>strictkwd-deferred.js</files>
       <baseline>strictkwd-deferred.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>

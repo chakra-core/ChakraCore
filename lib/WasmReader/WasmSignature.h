@@ -12,31 +12,32 @@ class WasmSignature
 public:
     WasmSignature();
 
-    void AllocateParams(uint32 count, Recycler * recycler);
-    void SetParam(WasmTypes::WasmType type, uint32 index);
+    void AllocateParams(Js::ArgSlot count, Recycler * recycler);
+    void SetParam(WasmTypes::WasmType type, Js::ArgSlot index);
     void SetResultType(WasmTypes::WasmType type);
     void SetSignatureId(uint32 id);
 
-    Local GetParam(uint index) const;
+    Local GetParam(Js::ArgSlot index) const;
     WasmTypes::WasmType GetResultType() const;
-    uint32 GetParamCount() const;
-    uint32 GetParamSize(uint index) const;
-    uint32 GetParamsSize() const;
+    Js::ArgSlot GetParamCount() const;
+    Js::ArgSlot GetParamSize(Js::ArgSlot index) const;
+    Js::ArgSlot GetParamsSize() const;
     void FinalizeSignature();
     uint32 GetSignatureId() const;
     size_t GetShortSig() const;
 
     bool IsEquivalent(const WasmSignature* sig) const;
-    static WasmSignature * FromIDL(WasmSignatureIDL* sig);
+    static WasmSignature* FromIDL(WasmSignatureIDL* sig);
 
-    static uint GetOffsetOfShortSig() { return offsetof(WasmSignature, m_shortSig); }
+    static uint32 GetOffsetOfShortSig() { return offsetof(WasmSignature, m_shortSig); }
 
+    uint32 WriteSignatureToString(_Out_writes_(maxlen) char16 *out, uint32 maxlen);
     void Dump();
 private:
     Field(WasmTypes::WasmType) m_resultType;
     Field(uint32) m_id;
-    Field(uint32) m_paramSize;
-    Field(uint32) m_paramsCount;
+    Field(Js::ArgSlot) m_paramSize;
+    Field(Js::ArgSlot) m_paramsCount;
     Field(size_t) m_shortSig;
     Field(Local*) m_params;
 };

@@ -1559,6 +1559,55 @@ CHAKRA_API JsCreateArrayBuffer(_In_ unsigned int byteLength, _Out_ JsValueRef *r
     });
 }
 
+CHAKRA_API JsCreateSharedArrayBufferWithSharedContent(_In_ JsSharedArrayBufferContentHandle sharedContents, _Out_ JsValueRef *result)
+{
+    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        PARAM_NOT_NULL(result);
+
+        Js::JavascriptLibrary* library = scriptContext->GetLibrary();
+        *result = library->CreateSharedArrayBuffer((Js::SharedContents*)sharedContents);
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, result);
+
+        JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsGetSharedArrayBufferContent(_In_ JsValueRef sharedArrayBuffer, _Out_ JsSharedArrayBufferContentHandle *sharedContents)
+{
+    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        PARAM_NOT_NULL(sharedContents);
+
+        if (!Js::SharedArrayBuffer::Is(sharedArrayBuffer))
+        {
+            return JsErrorInvalidArgument;
+        }
+        
+        Js::SharedContents**& content = (Js::SharedContents**&)sharedContents;
+        *content = Js::SharedArrayBuffer::FromVar(sharedArrayBuffer)->GetSharedContents();
+
+        if (*content == nullptr)
+        {
+            return JsErrorFatal;
+        }
+
+        (*content)->AddRef();
+
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsReleaseSharedArrayBufferContentHandle(_In_ JsSharedArrayBufferContentHandle sharedContents)
+{
+    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        ((Js::SharedContents*)sharedContents)->Release();
+        return JsNoError;
+    });
+}
+
 CHAKRA_API JsCreateExternalArrayBuffer(_Pre_maybenull_ _Pre_writable_byte_size_(byteLength) void *data, _In_ unsigned int byteLength,
     _In_opt_ JsFinalizeCallback finalizeCallback, _In_opt_ void *callbackState, _Out_ JsValueRef *result)
 {

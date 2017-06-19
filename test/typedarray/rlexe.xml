@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -139,7 +139,7 @@
     </default>
   </test>
   <!--
-Below test fails with difference in space. Investigate the cause and re-enable them
+Below test fails with difference in space. Investigate the cause and re-enable them (Microsoft/ChakraCore#3038)
 <test>
     <default>
         <files>crossthread.js</files>
@@ -198,7 +198,7 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   </test>
   <test>
     <default>
-      <files>FloatHelperAccess.js</files>
+      <files>floathelperaccess.js</files>
       <tags>typedarray</tags>
     </default>
   </test>
@@ -219,14 +219,14 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   <test>
     <default>
       <files>allocation.js</files>
-      <tags>typedarray,exclude_arm,xplatslow</tags>
+      <tags>typedarray,exclude_arm,xplatslow,Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
   <test>
     <default>
       <files>allocation2.js</files>
-      <tags>typedarray,exclude_arm,xplatslow</tags>
+      <tags>typedarray,exclude_arm,xplatslow,Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>

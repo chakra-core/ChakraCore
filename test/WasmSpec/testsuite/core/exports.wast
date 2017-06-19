@@ -5,6 +5,8 @@
 (module (func) (func) (export "a" (func 0)) (export "b" (func 1)))
 
 (module (func (export "a")))
+(module (func (export "a") (export "b") (export "c")))
+(module (func (export "a") (export "b") (param i32)))
 (module (func) (export "a" (func 0)))
 (module (func $a (export "a")))
 (module (func $a) (export "a" (func $a)))

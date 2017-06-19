@@ -2199,6 +2199,20 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                     profileInfo->DisablePowIntIntTypeSpec();
                     rejitReason = RejitReason::PowIntIntTypeSpecDisabled;
                 }
+                break;
+            }
+            case IR::BailOutOnEarlyExit:
+            {
+                if (profileInfo->IsOptimizeTryFinallyDisabled())
+                {
+                    reThunk = true;
+                }
+                else
+                {
+                    profileInfo->DisableOptimizeTryFinally();
+                    rejitReason = RejitReason::OptimizeTryFinallyDisabled;
+                }
+                break;
             }
         }
 
@@ -2218,6 +2232,13 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         if (profileInfo->GetRejitCount() >= 100 ||
             (profileInfo->GetBailOutOffsetForLastRejit() == actualBailOutOffset && function->IsNewEntryPointAvailable()))
         {
+#ifdef REJIT_STATS
+            Js::ScriptContext* scriptContext = executeFunction->GetScriptContext();
+            if (scriptContext->rejitReasonCountsCap != nullptr)
+            {
+                scriptContext->rejitReasonCountsCap[static_cast<byte>(rejitReason)]++;
+            }
+#endif
             reThunk = true;
             rejitReason = RejitReason::None;
         }
@@ -2230,12 +2251,27 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 
     REJIT_KIND_TESTTRACE(bailOutKind, _u("Bailout from function: function: %s, bailOutKindName: (%S), bailOutCount: %d, callCount: %d, reJitReason: %S, reThunk: %s\r\n"),
         function->GetFunctionBody()->GetDisplayName(), ::GetBailOutKindName(bailOutKind), bailOutRecord->bailOutCount, callsCount,
-        RejitReasonNames[rejitReason], reThunk ? trueString : falseString);
+        GetRejitReasonName(rejitReason), reThunk ? trueString : falseString);
 
 #ifdef REJIT_STATS
-    if(PHASE_STATS(Js::ReJITPhase, executeFunction))
+    executeFunction->GetScriptContext()->LogBailout(executeFunction, bailOutKind);
+    if (bailOutRecord->bailOutCount > 500)
     {
-        executeFunction->GetScriptContext()->LogBailout(executeFunction, bailOutKind);
+        Js::ScriptContext* scriptContext = executeFunction->GetScriptContext();
+        auto bailoutReasonCountsCap = scriptContext->bailoutReasonCountsCap;
+        if (bailoutReasonCountsCap != nullptr)
+        {
+            if (!bailoutReasonCountsCap->ContainsKey(bailOutKind))
+            {
+                bailoutReasonCountsCap->Item(bailOutKind, 1);
+            }
+            else
+            {
+                uint val = bailoutReasonCountsCap->Item(bailOutKind);
+                ++val;
+                bailoutReasonCountsCap->Item(bailOutKind, val);
+            }
+        }
     }
 #endif
 
@@ -2255,10 +2291,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
     else if (rejitReason != RejitReason::None)
     {
 #ifdef REJIT_STATS
-        if(PHASE_STATS(Js::ReJITPhase, executeFunction))
-        {
-            executeFunction->GetScriptContext()->LogRejit(executeFunction, rejitReason);
-        }
+        executeFunction->GetScriptContext()->LogRejit(executeFunction, rejitReason);
 #endif
         executeFunction->ClearDontRethunkAfterBailout();
 
@@ -2284,7 +2317,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 bailOutRecord->bailOutCount);
 
             Output::Print(_u(" callCount: %u"), callsCount);
-            Output::Print(_u(" reason: %S"), RejitReasonNames[rejitReason]);
+            Output::Print(_u(" reason: %S"), GetRejitReasonName(rejitReason));
             if(bailOutKind != IR::BailOutInvalid)
             {
                 Output::Print(_u(" (%S)"), ::GetBailOutKindName(bailOutKind));
@@ -2411,7 +2444,16 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
                 break;
 
             case IR::BailOutOnNotNativeArray:
-                rejitReason = RejitReason::ExpectingNativeArray;
+                // REVIEW: We have an issue with array profile info.  The info on the type of array we have won't
+                //         get fixed by rejitting.  For now, just give up after 50 rejits.
+                if (loopHeader->GetRejitCount() >= 50)
+                {
+                    rejitReason = RejitReason::None;
+                }
+                else
+                {
+                    rejitReason = RejitReason::ExpectingNativeArray;
+                }
                 break;
 
             case IR::BailOutConvertedNativeArray:
@@ -2567,27 +2609,22 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
 
     REJIT_KIND_TESTTRACE(bailOutKind, _u("Bailout from loop: function: %s, loopNumber: %d, bailOutKindName: (%S), reJitReason: %S\r\n"),
         function->GetFunctionBody()->GetDisplayName(), executeFunction->GetLoopNumber(loopHeader),
-        ::GetBailOutKindName(bailOutKind), RejitReasonNames[rejitReason]);
+        ::GetBailOutKindName(bailOutKind), GetRejitReasonName(rejitReason));
 
 #ifdef REJIT_STATS
-    if(PHASE_STATS(Js::ReJITPhase, executeFunction))
-    {
-        executeFunction->GetScriptContext()->LogBailout(executeFunction, bailOutKind);
-    }
+    executeFunction->GetScriptContext()->LogBailout(executeFunction, bailOutKind);
 #endif
 
     if (rejitReason != RejitReason::None)
     {
 #ifdef REJIT_STATS
-        if(PHASE_STATS(Js::ReJITPhase, executeFunction))
-        {
-            executeFunction->GetScriptContext()->LogRejit(executeFunction, rejitReason);
-        }
+        executeFunction->GetScriptContext()->LogRejit(executeFunction, rejitReason);
 #endif
         // Single bailout triggers re-JIT of loop body. the actual codegen scheduling of the new
         // loop body happens in the interpreter
         loopHeader->interpretCount = executeFunction->GetLoopInterpretCount(loopHeader) - 2;
         loopHeader->CreateEntryPoint();
+        loopHeader->IncRejitCount();
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if(PHASE_TRACE(Js::ReJITPhase, executeFunction))
@@ -2599,7 +2636,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
                 executeFunction->GetDebugNumberSet(debugStringBuffer),
                 executeFunction->GetLoopNumber(loopHeader),
                 bailOutRecord->bailOutCount,
-                RejitReasonNames[rejitReason]);
+                GetRejitReasonName(rejitReason));
             if(bailOutKind != IR::BailOutInvalid)
             {
                 Output::Print(_u(" (%S)"), ::GetBailOutKindName(bailOutKind));

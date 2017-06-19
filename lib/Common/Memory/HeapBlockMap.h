@@ -5,10 +5,6 @@
 #pragma once
 #include "CommonDefines.h"
 
-#ifdef JD_PRIVATE
-class HeapBlockHelper;
-#endif
-
 namespace Memory
 {
 class HeapBlockMap32
@@ -25,7 +21,7 @@ public:
     static const uint PageMarkBitCount = PageSize / HeapConstants::ObjectGranularity;
     static const uint L2ChunkMarkBitCount = L2Count * PageMarkBitCount;
 
-#if defined(_M_X64_OR_ARM64) && !defined(JD_PRIVATE)
+#if defined(_M_X64_OR_ARM64)
     static const size_t TotalSize = 0x100000000;        // 4GB
 #endif
 
@@ -90,10 +86,6 @@ public:
 
 private:
     friend class PageSegmentBase<VirtualAllocWrapper>;
-
-#ifdef JD_PRIVATE
-    friend class HeapBlockHelper;
-#endif
 
     template <class Fn>
     void ForEachSegment(Recycler * recycler, Fn func);
@@ -283,9 +275,6 @@ public:
 
 private:
     friend class HeapBlockMap32;
-#ifdef JD_PRIVATE
-    friend class HeapBlockHelper;
-#endif
 
     struct Node
     {
@@ -325,12 +314,10 @@ public:
     void VerifyMarkCountForPages(void * address, uint pageCount);
 #endif
 
-#if !defined(JD_PRIVATE)
     static char * GetNodeStartAddress(void * address)
     {
         return (char *)(((size_t)address) & ~(HeapBlockMap32::TotalSize - 1));
     }
-#endif
 };
 
 typedef HeapBlockMap64 HeapBlockMap;

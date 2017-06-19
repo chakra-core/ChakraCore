@@ -164,9 +164,12 @@ elseif(CC_TARGETS_ARM)
     add_definitions(-D__arm__)
     add_definitions(-D_M_IX86_OR_ARM32)
     add_definitions(-D_M_ARM32_OR_ARM64)
-  if(CC_TARGET_OS_OSX)
-    add_compile_options(-arch arm)
-  endif()
+    if(CC_TARGET_OS_OSX)
+        add_compile_options(-arch arm)
+    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        # reduce link time memory usage
+        set(LINKER_REDUCED_MEMORY "-Xlinker --no-keep-memory")
+    endif()
 else()
     clr_unknown_arch()
 endif()
@@ -200,7 +203,9 @@ elseif(CC_TARGET_OS_OSX)
         -DPLATFORM_UNIX
     )
 
-    if(NOT ICULIB)
+    # in case ICU path was given but it doesn't exist, build script will fail.
+    # so, fallback only if ICU path wasn't given
+    if(NOT ICU_INCLUDE_PATH)
       set(NO_ICU_PATH_GIVEN 1)
       message("-- Couldn't find ICU. Falling back to --no-icu build")
     endif()

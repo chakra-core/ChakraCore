@@ -21,12 +21,14 @@
     </default>
   </test>
   <test>
+    <!-- Make NumberFormat.js expected output more general to support different implementations. (Microsoft/ChakraCore#3014) -->
     <default>
       <files>NumberFormat.js</files>
       <baseline>NumberFormat.baseline</baseline>
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
+  <!-- Combine NumberFormatOptions*.js by making expected output more general. (Microsoft/ChakraCore#3014) -->
   <test>
     <default>
       <files>NumberFormatOptions.js</files>
@@ -96,7 +98,7 @@
 
   <test>
     <default>
-      <!-- TODO (doilij) investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames -->
+      <!-- TODO investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames (Microsoft/ChakraCore#3130) -->
       <files>IntlInternalsHiddenFromExceptionStackTest.js</files>
       <baseline>IntlInternalsHiddenFromExceptionStackTest.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
@@ -105,7 +107,7 @@
   </test>
   <test>
     <default>
-      <!-- TODO (doilij) investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames -->
+      <!-- TODO investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames (Microsoft/ChakraCore#3130) -->
       <files>IntlInternalsHiddenFromFirstChanceExceptionStackTest.js</files>
       <baseline>IntlInternalsHiddenFromFirstChanceExceptionStackTest.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>

@@ -213,7 +213,8 @@ public:
 
     bool CanOptimizeTryFinally() const
     {
-        return !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryFinallyPhase, this);
+        return !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryFinallyPhase, this) &&
+            (!this->HasProfileInfo() || !this->GetReadOnlyProfileInfo()->IsOptimizeTryFinallyDisabled());
     }
 
     bool CanOptimizeTryCatch() const
@@ -752,12 +753,7 @@ public:
 
     bool                GetHasStackArgs() const
     {
-                        bool isStackArgOptDisabled = false;
-                        if (HasProfileInfo())
-                        {
-                            isStackArgOptDisabled = GetReadOnlyProfileInfo()->IsStackArgOptDisabled();
-                        }
-                        return this->hasStackArgs && !isStackArgOptDisabled && !PHASE_OFF1(Js::StackArgOptPhase);
+                        return this->hasStackArgs && !IsStackArgOptDisabled() && !PHASE_OFF1(Js::StackArgOptPhase);
     }
     void                SetHasStackArgs(bool has) { this->hasStackArgs = has;}
 
@@ -798,7 +794,6 @@ public:
                             }
                         }
     }
-
     void               DisableCanDoInlineArgOpt()
     {
                         Func* curFunc = this;
@@ -943,6 +938,11 @@ public:
 
     void SetScopeObjSym(StackSym * sym);
     StackSym * GetScopeObjSym();
+    bool IsTrackCompoundedIntOverflowDisabled() const;
+    bool IsArrayCheckHoistDisabled() const;
+    bool IsStackArgOptDisabled() const;
+    bool IsSwitchOptDisabled() const;
+    bool IsAggressiveIntTypeSpecDisabled() const;
 
 #if DBG
     bool                allowRemoveBailOutArgInstr;

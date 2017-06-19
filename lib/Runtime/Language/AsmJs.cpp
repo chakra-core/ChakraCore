@@ -139,7 +139,6 @@ namespace Js
         case knopCall: {
             ParseNode* target;
             AsmJsFunctionDeclaration* sym;
-            AsmJsMathFunction* mathSym;
             AsmJsSIMDFunction* simdSym;
 
             target = coercionNode->sxCall.pnodeTarget;
@@ -210,9 +209,8 @@ namespace Js
 
             *coercion = AsmJS_FRound;
             sym = m.LookupFunction(target->name());
-            mathSym = (AsmJsMathFunction*)sym;
 
-            if (!(mathSym && mathSym->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround))
+            if (!AsmJsMathFunction::IsFround(sym))
             {
                 return m.Fail( coercionNode, _u("call must be to fround coercion") );
             }

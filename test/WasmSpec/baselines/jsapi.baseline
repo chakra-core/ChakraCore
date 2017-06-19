@@ -1,51 +1,51 @@
 Harness Status: OK
-Found 89 tests: Pass = 67 Fail = 22
+Found 87 tests: Pass = 86 Fail = 1
 Pass 'WebAssembly' data property on global object  
-Fail 'WebAssembly' object  assert_equals: expected "[object WebAssembly]" but got "[object Object]"
+Pass 'WebAssembly' object  
 Pass 'WebAssembly.(Compile|Link|Runtime)Error' data property  
-Fail 'WebAssembly.(Compile|Runtime)Error' constructor function  assert_equals: expected "CompileError" but got "WebAssemblyCompileError"
+Pass 'WebAssembly.(Compile|Runtime)Error' constructor function  
 Pass 'WebAssembly.(Compile|Runtime)Error' instance objects  
 Pass 'WebAssembly.Module' data property  
-Fail 'WebAssembly.Module' constructor function  assert_equals: expected "Module" but got "WebAssemblyModule"
+Pass 'WebAssembly.Module' constructor function  
 Pass 'WebAssembly.Module.prototype' data property  
-Fail 'WebAssembly.Module.prototype' object  assert_equals: expected "[object WebAssembly.Module]" but got "[object WebAssemblyModule]"
-Fail 'WebAssembly.Module' instance objects  assert_equals: expected "[object WebAssembly.Module]" but got "[object WebAssemblyModule]"
+Pass 'WebAssembly.Module.prototype' object  
+Pass 'WebAssembly.Module' instance objects  
 Pass 'WebAssembly.Module.imports' data property  
-Fail 'WebAssembly.Module.imports' method  assert_equals: expected 1 but got 2
+Pass 'WebAssembly.Module.imports' method  
 Pass 'WebAssembly.Module.exports' data property  
-Fail 'WebAssembly.Module.exports' method  assert_equals: expected 1 but got 2
+Pass 'WebAssembly.Module.exports' method  
 Pass 'WebAssembly.Module.customSections' data property  
-Fail 'WebAssembly.Module.customSections' method  'sectionName' is not a string
+Pass 'WebAssembly.Module.customSections' method  
 Pass 'WebAssembly.Instance' data property  
-Fail 'WebAssembly.Instance' constructor function  assert_equals: expected "Instance" but got "WebAssemblyInstance"
+Pass 'WebAssembly.Instance' constructor function  
 Pass 'WebAssembly.Instance.prototype' data property  
-Fail 'WebAssembly.Instance.prototype' object  assert_equals: expected "[object WebAssembly.Instance]" but got "[object WebAssemblyInstance]"
-Fail 'WebAssembly.Instance' instance objects  assert_equals: expected "[object WebAssembly.Instance]" but got "[object WebAssemblyInstance]"
-Pass 'WebAssembly.Instance' 'exports' data property  
-Fail 'WebAssembly.Instance' 'exports' object  assert_equals: expected false but got true
+Pass 'WebAssembly.Instance.prototype' object  
+Pass 'WebAssembly.Instance' instance objects  
+Pass 'WebAssembly.Instance.prototype.exports' accessor property  
+Pass exports object  
 Fail Exported WebAssembly functions  assert_equals: expected 0 but got -1
 Pass 'WebAssembly.Memory' data property  
-Fail 'WebAssembly.Memory' constructor function  assert_equals: expected "Memory" but got "WebAssemblyMemory"
+Pass 'WebAssembly.Memory' constructor function  
 Pass 'WebAssembly.Memory.prototype' data property  
-Fail 'WebAssembly.Memory.prototype' object  assert_equals: expected "[object WebAssembly.Memory]" but got "[object WebAssemblyMemory]"
-Fail 'WebAssembly.Memory' instance objects  assert_equals: expected "[object WebAssembly.Memory]" but got "[object WebAssemblyMemory]"
+Pass 'WebAssembly.Memory.prototype' object  
+Pass 'WebAssembly.Memory' instance objects  
 Pass 'WebAssembly.Memory.prototype.buffer' accessor property  
 Pass 'WebAssembly.Memory.prototype.buffer' getter  
 Pass 'WebAssembly.Memory.prototype.grow' data property  
-Fail 'WebAssembly.Memory.prototype.grow' method  assert_equals: expected true but got false
+Pass 'WebAssembly.Memory.prototype.grow' method  
 Pass 'WebAssembly.Table' data property  
-Fail 'WebAssembly.Table' constructor function  assert_equals: expected "Table" but got "WebAssemblyTable"
+Pass 'WebAssembly.Table' constructor function  
 Pass 'WebAssembly.Table.prototype' data property  
-Fail 'WebAssembly.Table.prototype' object  assert_equals: expected "[object WebAssembly.Table]" but got "[object WebAssemblyTable]"
-Fail 'WebAssembly.Table' instance objects  assert_equals: expected "[object WebAssembly.Table]" but got "[object WebAssemblyTable]"
+Pass 'WebAssembly.Table.prototype' object  
+Pass 'WebAssembly.Table' instance objects  
 Pass 'WebAssembly.Table.prototype.length' accessor data property  
 Pass 'WebAssembly.Table.prototype.length' getter  
 Pass 'WebAssembly.Table.prototype.get' data property  
 Pass 'WebAssembly.Table.prototype.get' method  
 Pass 'WebAssembly.Table.prototype.set' data property  
-Fail 'WebAssembly.Table.prototype.set' method  assert_equals: expected 2 but got 1
+Pass 'WebAssembly.Table.prototype.set' method  
 Pass 'WebAssembly.Table.prototype.grow' data property  
-Fail 'WebAssembly.Table.prototype.grow' method  assert_equals: expected (number) 1 but got (undefined) undefined
+Pass 'WebAssembly.Table.prototype.grow' method  
 Pass 'WebAssembly.validate' method  
 Pass 'WebAssembly.compile' data property  
 Pass 'WebAssembly.compile' function  
@@ -56,12 +56,10 @@ Pass assertCompileError 4
 Pass assertCompileError 5  
 Pass assertCompileError 6  
 Pass assertCompileError 7  
-Pass assertCompileError 8  
 Pass assertCompileSuccess 1  
 Pass assertCompileSuccess 2  
 Pass 'WebAssembly.instantiate' data property  
 Pass 'WebAssembly.instantiate' function  
-Pass unexpected success in assertInstantiateError  
 Pass unexpected success in assertInstantiateError  
 Pass unexpected success in assertInstantiateError  
 Pass unexpected success in assertInstantiateError  

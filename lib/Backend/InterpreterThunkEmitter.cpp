@@ -56,49 +56,6 @@ const BYTE InterpreterThunkEmitter::Epilog[] = {
     0xC3                                                           // ret
 };
 
-#if _CONTROL_FLOW_GUARD_SHADOW_STACK
-#define RFG_PROLOGUE_SIZE 9
-
-const BYTE InterpreterThunkEmitter::InterpreterThunkRFG[] = {
-    0x48, 0x8b, 0x04, 0x24,                                        // mov         rax,qword ptr [rsp] 
-    0x64, 0x48, 0x89, 0x04, 0x24,                                  // mov         qword ptr fs:[rsp],rax
-    0x48, 0x89, 0x54, 0x24, 0x10,                                  // mov         qword ptr [rsp+10h],rdx
-    0x48, 0x89, 0x4C, 0x24, 0x08,                                  // mov         qword ptr [rsp+8],rcx
-    0x4C, 0x89, 0x44, 0x24, 0x18,                                  // mov         qword ptr [rsp+18h],r8
-    0x4C, 0x89, 0x4C, 0x24, 0x20,                                  // mov         qword ptr [rsp+20h],r9
-    0x48, 0x8B, 0x41, 0x00,                                        // mov         rax, qword ptr [rcx+FunctionInfoOffset]
-    0x48, 0x8B, 0x48, 0x00,                                        // mov         rcx, qword ptr [rax+FunctionProxyOffset]
-    0x48, 0x8B, 0x51, 0x00,                                        // mov         rdx, qword ptr [rcx+DynamicThunkAddressOffset]
-                                                                   // Range Check for Valid call target
-    0x48, 0x83, 0xE2, 0xF8,                                        // and         rdx, 0xFFFFFFFFFFFFFFF8h  ;Force 8 byte alignment
-    0x48, 0x8b, 0xca,                                              // mov         rcx, rdx
-    0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    // mov         rax, CallBlockStartAddress
-    0x48, 0x2b, 0xc8,                                              // sub         rcx, rax
-    0x48, 0x81, 0xf9, 0x00, 0x00, 0x00, 0x00,                      // cmp         rcx, ThunkSize
-    0x76, 0x09,                                                    // jbe         $safe
-    0x48, 0xc7, 0xc1, 0x00, 0x00, 0x00, 0x00,                      // mov         rcx, errorcode
-    0xcd, 0x29,                                                    // int         29h
-
-    // $safe:
-    0x48, 0x8D, 0x4C, 0x24, 0x08,                                  // lea         rcx, [rsp+8]                ;Load the address to stack
-    0x48, 0x83, 0xEC, StackAllocSize,                              // sub         rsp,28h
-    0x48, 0xB8, 0x00, 0x00, 0x00 ,0x00, 0x00, 0x00, 0x00, 0x00,    // mov         rax, <thunk>
-    0xFF, 0xE2,                                                    // jmp         rdx
-    0xCC, 0xCC, 0xCC, 0xCC                                         // int         3                           ;for alignment to size of 8 we are adding this
-};
-
-const BYTE InterpreterThunkEmitter::EpilogRFG[] = {
-    0x48, 0x83, 0xC4, StackAllocSize,                              // add         rsp,28h
-    0x64, 0x4c, 0x8b, 0x1c, 0x24,                                  // mov         r11,qword ptr fs:[rsp]
-    0x4c, 0x3b, 0x1c, 0x24,                                        // cmp         r11,qword ptr [rsp]
-    0x75, 0x01,                                                    // jne         $fail
-    0xC3,                                                          // ret
-
-    // $fail:
-    0xb9, 0x2c, 0x00, 0x00, 0x00,                                  // mov         ecx, errorcode
-    0xcd, 0x29,                                                    // int         29h
-};
-#endif
 
 #else  // Sys V AMD64
 const BYTE InterpreterThunkEmitter::FunctionInfoOffset = 7;
@@ -280,11 +237,6 @@ const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
 
 const BYTE InterpreterThunkEmitter::HeaderSize()
 {
-#if _CONTROL_FLOW_GUARD_SHADOW_STACK
-    if (_guard_rf_checks_enforced()) {
-        return sizeof(InterpreterThunkRFG);
-    }
-#endif
 
     return _HeaderSize;
 }
@@ -319,7 +271,15 @@ BYTE* InterpreterThunkEmitter::GetNextThunk(PVOID* ppDynamicInterpreterThunk)
         {
             return AllocateFromFreeList(ppDynamicInterpreterThunk);
         }
-        NewThunkBlock();
+        if (!NewThunkBlock())
+        {
+#ifdef ASMJS_PLAT
+            return this->isAsmInterpreterThunk ? (BYTE*)&Js::InterpreterStackFrame::StaticInterpreterAsmThunk : (BYTE*)&Js::InterpreterStackFrame::StaticInterpreterThunk;
+#else
+            Assert(!this->isAsmInterpreterThunk);
+            return (BYTE*)&Js::InterpreterStackFrame::StaticInterpreterThunk;
+#endif
+        }
     }
 
     Assert(this->thunkBuffer != nullptr);
@@ -351,13 +311,17 @@ void* InterpreterThunkEmitter::ConvertToEntryPoint(PVOID dynamicInterpreterThunk
     return entryPoint;
 }
 
-void InterpreterThunkEmitter::NewThunkBlock()
+bool InterpreterThunkEmitter::NewThunkBlock()
 {
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
+    if (CONFIG_FLAG(ForceStaticInterpreterThunk))
+    {
+        return false;
+    }
+
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        NewOOPJITThunkBlock();
-        return;
+        return NewOOPJITThunkBlock();
     }
 #endif
 
@@ -412,22 +376,25 @@ void InterpreterThunkEmitter::NewThunkBlock()
 #endif
     this->thunkBuffer = buffer;
     this->thunkCount = count;
+    return true;
 }
 
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
-void InterpreterThunkEmitter::NewOOPJITThunkBlock()
+bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
 {
     if (!JITManager::GetJITManager()->IsConnected())
     {
-        Js::Throw::OutOfMemory();
+        return false;
     }
     InterpreterThunkInputIDL thunkInput;
     thunkInput.asmJsThunk = this->isAsmInterpreterThunk;
 
     InterpreterThunkOutputIDL thunkOutput;
     HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(this->scriptContext->GetRemoteScriptAddr(), &thunkInput, &thunkOutput);
-    JITManager::HandleServerCallResult(hr, RemoteCallType::ThunkCreation);
-
+    if (!JITManager::HandleServerCallResult(hr, RemoteCallType::ThunkCreation))
+    {
+        return false;
+    }
 
     BYTE* buffer = (BYTE*)thunkOutput.mappedBaseAddr;
 
@@ -448,6 +415,7 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
 
     this->thunkBuffer = (BYTE*)thunkOutput.mappedBaseAddr;
     this->thunkCount = thunkOutput.thunkCount;
+    return true;
 }
 #endif
 
@@ -495,13 +463,6 @@ void InterpreterThunkEmitter::FillBuffer(
         interpreterThunk = SHIFT_ADDR(threadContext, &Js::InterpreterStackFrame::InterpreterThunk);
     }
 
-#if _CONTROL_FLOW_GUARD_SHADOW_STACK
-    if (_guard_rf_checks_enforced()) {
-        header = InterpreterThunkRFG;
-        epilog = EpilogRFG;
-        epilogSize = sizeof(EpilogRFG);
-    }
-#endif
 
     BYTE * currentBuffer = buffer;
     // Ensure there is space for PDATA at the end
@@ -744,11 +705,6 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
 {
     _Analysis_assume_(thunkSize == HeaderSize());
 
-#if _CONTROL_FLOW_GUARD_SHADOW_STACK
-    if (_guard_rf_checks_enforced()) {
-        thunkBuffer += RFG_PROLOGUE_SIZE;
-    }
-#endif
 
     Emit(thunkBuffer, ThunkAddressOffset, (uintptr_t)interpreterThunk);
     thunkBuffer[DynamicThunkAddressOffset] = Js::FunctionBody::GetOffsetOfDynamicInterpreterThunk();

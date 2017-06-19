@@ -402,11 +402,7 @@ Recycler::RealAlloc(HeapInfo* heap, size_t size)
     }
 #endif
 
-    char* addr = LargeAlloc<nothrow>(heap, size, attributes);
-#ifdef RECYCLER_PAGE_HEAP
-    this->VerifyPageHeapFillAfterAlloc(addr, size, attributes);
-#endif
-    return addr;
+    return LargeAlloc<nothrow>(heap, size, attributes);
 }
 
 template<typename T>

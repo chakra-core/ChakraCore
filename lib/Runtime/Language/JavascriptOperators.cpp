@@ -1913,7 +1913,7 @@ CommonNumber:
         for (int i = 0; i < length; i += 1)
         {
             Var value;
-            DynamicObject *obj = DynamicObject::FromVar(pScope->GetItem(i));
+            RecyclableObject *obj = RecyclableObject::FromVar(pScope->GetItem(i));
             if (JavascriptOperators::GetProperty(obj, Js::PropertyIds::_lexicalThisSlotSymbol, &value, scriptContext))
             {
                 return value;
@@ -5958,7 +5958,10 @@ CommonNumber:
 
     Var JavascriptOperators::NewScObjectNoCtor(Var instance, ScriptContext * requestContext)
     {
-        return NewScObjectNoCtorCommon(instance, requestContext, false);
+        // We can still call into NewScObjectNoCtor variations in JIT code for performance; however for proxy we don't
+        // really need the new object as the trap will handle the "this" pointer separately. pass back nullptr to ensure
+        // failure in invalid case.
+        return (JavascriptProxy::Is(instance)) ? nullptr : NewScObjectNoCtorCommon(instance, requestContext, false);
     }
 
     Var JavascriptOperators::NewScObjectNoCtorCommon(Var instance, ScriptContext* requestContext, bool isBaseClassConstructorNewScObject)
@@ -5979,13 +5982,6 @@ CommonNumber:
     {
         ScriptContext* functionScriptContext = function->GetScriptContext();
 
-        if (JavascriptProxy::Is(function))
-        {
-            // We can still call into NewScObjectNoCtor variations in JIT code for performance; however for proxy we don't
-            // really need the new object as the trap will handle the "this" pointer separately. pass back nullptr to ensure
-            // failure in invalid case.
-            return  nullptr;
-        }
         RecyclableObject * prototype = JavascriptOperators::GetPrototypeObject(function, functionScriptContext);
         prototype = RecyclableObject::FromVar(CrossSite::MarshalVar(requestContext, prototype));
         Var object = requestContext->GetLibrary()->CreateObject(prototype);
@@ -6520,7 +6516,7 @@ CommonNumber:
             aParent = CrossSite::MarshalVar(scriptContext, aParent);
             if (i == length)
             {
-                length += 8;
+                length = UInt16Math::Add(length, 8);
                 FrameDisplay * tmp = RecyclerNewPlus(scriptContext->GetRecycler(), length * sizeof(void*), FrameDisplay, length);
                 js_memcpy_s((char*)tmp + tmp->GetOffsetOfScopes(), tmp->GetLength() * sizeof(void *), (char*)pDisplay + pDisplay->GetOffsetOfScopes(), pDisplay->GetLength() * sizeof(void*));
                 pDisplay = tmp;
@@ -6578,10 +6574,10 @@ CommonNumber:
 
         FrameDisplay *pDisplay = nullptr;
         FrameDisplay *envDisplay = (FrameDisplay*)argEnv;
-        uint16 length = envDisplay->GetLength() + 1;
+        uint16 length = UInt16Math::Add(envDisplay->GetLength(), 1);
 
         pDisplay = RecyclerNewPlus(scriptContext->GetRecycler(), length * sizeof(void*), FrameDisplay, length);
-        for (int j = 0; j < length - 1; j++)
+        for (uint16 j = 0; j < length - 1; j++)
         {
             pDisplay->SetItem(j + 1, envDisplay->GetItem(j));
         }

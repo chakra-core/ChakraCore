@@ -17,7 +17,7 @@ namespace Memory
 {
 typedef void* FunctionTableHandle;
 
-#if DBG_DUMP && !defined(JD_PRIVATE)
+#if DBG_DUMP
 
 #define GUARD_PAGE_TRACE(...) \
     if (Js::Configuration::Global.flags.PrintGuardPageBounds) \
@@ -345,6 +345,8 @@ public:
 
 //---------- Private members ---------------/
 private:
+    void DecommitFreePagesInternal(uint index, uint pageCount);
+
     uint GetBitRangeBase(void* address) const
     {
         uint base = ((uint)(((char *)address) - this->address)) / AutoSystemInfo::PageSize;
@@ -626,9 +628,7 @@ public:
 #endif
 
     PageAllocatorBase(AllocationPolicyManager * policyManager,
-#ifndef JD_PRIVATE
         Js::ConfigFlagsTable& flags = Js::Configuration::Global.flags,
-#endif
         PageAllocatorType type = PageAllocatorType_Max,
         uint maxFreePageCount = DefaultMaxFreePageCount,
         bool zeroPages = false,
@@ -821,9 +821,7 @@ protected:
     bool enableWriteBarrier;
     AllocationPolicyManager * policyManager;
 
-#ifndef JD_PRIVATE
     Js::ConfigFlagsTable& pageAllocatorFlagTable;
-#endif
 
     // zero pages
     bool zeroPages;
@@ -1010,7 +1008,7 @@ public:
 
     // Release pages that has already been decommitted
     void    ReleaseDecommitted(void * address, size_t pageCount, __in void * segment);
-    bool IsAddressFromAllocator(__in void* address);    
+    bool IsAddressFromAllocator(__in void* address);
     bool    AllocXdata() { return allocXdata; }
 
 private:

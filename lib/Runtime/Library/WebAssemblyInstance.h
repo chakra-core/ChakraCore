@@ -14,9 +14,11 @@ namespace Js
         {
         public:
             static FunctionInfo NewInstance;
+            static FunctionInfo GetterExports;
         };
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var GetterExports(RecyclableObject* function, CallInfo callInfo, ...);
 
         static bool Is(Var aValue);
         static WebAssemblyInstance * FromVar(Var aValue);
@@ -34,6 +36,7 @@ namespace Js
         static void ValidateTableAndMemory(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
 
         Field(WebAssemblyModule *) m_module;
+        Field(Js::Var) m_exports;
     };
 
 } // namespace Js

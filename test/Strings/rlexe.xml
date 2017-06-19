@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -183,7 +183,7 @@
       <files>CompoundString.js</files>
       <baseline>CompoundString.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship,Slow</tags>
+      <tags>exclude_dynapogo,Slow</tags>
     </default>
   </test>
   <test>
@@ -251,7 +251,7 @@
   <test>
     <default>
       <files>repeatBug.js</files>
-      <tags>exclude_chk, Slow</tags>
+      <tags>exclude_chk,Slow</tags>
     </default>
-  </test> 
+  </test>
 </regress-exe>

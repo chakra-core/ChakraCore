@@ -20,25 +20,23 @@
     }
 
 // Level of tracing
-#define DO_WASM_TRACE_ALL       PHASE_TRACE1(Js::WasmBytecodePhase)
+#define DO_WASM_TRACE_ALL       PHASE_TRACE1(Js::WasmPhase)
+#define DO_WASM_TRACE_BYTECODE  DO_WASM_TRACE_ALL || PHASE_TRACE1(Js::WasmBytecodePhase)
 #define DO_WASM_TRACE_DECODER   DO_WASM_TRACE_ALL || PHASE_TRACE1(Js::WasmReaderPhase)
   #define DO_WASM_TRACE_SECTION DO_WASM_TRACE_DECODER || PHASE_TRACE1(Js::WasmSectionPhase)
-#define DO_WASM_TRACE_LEB128    DO_WASM_TRACE_ALL || PHASE_TRACE1(Js::WasmLEB128Phase)
-
+#define DO_WASM_TRACE_LEB128    PHASE_TRACE1(Js::WasmLEB128Phase)
+#else
+#define TRACE_WASM(...)
+#define DO_WASM_TRACE_ALL (false)
+#define DO_WASM_TRACE_BYTECODE (false)
+#define DO_WASM_TRACE_DECODER (false)
+#define DO_WASM_TRACE_SECTION (false)
+#define DO_WASM_TRACE_LEB128 (false)
+#endif
+#define TRACE_WASM_BYTECODE(...) TRACE_WASM(DO_WASM_TRACE_BYTECODE, __VA_ARGS__)
 #define TRACE_WASM_DECODER(...) TRACE_WASM(DO_WASM_TRACE_DECODER, __VA_ARGS__)
 #define TRACE_WASM_SECTION(...) TRACE_WASM(DO_WASM_TRACE_SECTION, __VA_ARGS__)
 #define TRACE_WASM_LEB128(...) TRACE_WASM(DO_WASM_TRACE_LEB128, __VA_ARGS__)
-#else
-#define DO_WASM_TRACE_ALL
-#define DO_WASM_TRACE_DECODER
-#define DO_WASM_TRACE_SECTION
-#define DO_WASM_TRACE_LEB128
-
-#define TRACE_WASM(...)
-#define TRACE_WASM_DECODER(...)
-#define TRACE_WASM_SECTION(...)
-#define TRACE_WASM_LEB128(...)
-#endif
 
 namespace Wasm
 {

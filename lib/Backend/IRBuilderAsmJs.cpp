@@ -1732,11 +1732,13 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
     }
     if (m_asmFuncInfo->UsesHeapBuffer())
     {
-        // if heap buffer can change, then we will insert reload after each call
-        if (!m_asmFuncInfo->IsHeapBufferConst())
+        // heap buffer can change for wasm
+#ifdef ENABLE_WASM
+        if (m_func->GetJITFunctionBody()->IsWasmFunction())
         {
             BuildHeapBufferReload(offset);
         }
+#endif
         // after foreign function call, we need to make sure that the heap hasn't been detached
         if (newOpcode == Js::OpCodeAsmJs::Call)
         {
@@ -1894,7 +1896,7 @@ void IRBuilderAsmJs::BuildArgOut(IR::Opnd* srcOpnd, uint32 dstRegSlot, uint32 of
     StackSym * symDst = nullptr;
     if (type == TyVar)
     {
-        symDst = m_func->m_symTable->GetArgSlotSym(UInt16Math::Add(dstArgSlot, 1));
+        symDst = m_func->m_symTable->GetArgSlotSym(ArgSlotMath::Add(dstArgSlot, 1));
         IR::Opnd * tmpDst = IR::RegOpnd::New(StackSym::New(m_func), TyVar, m_func);
 
         IR::Instr * instr = IR::Instr::New(Js::OpCode::ToVar, tmpDst, srcOpnd, m_func);
@@ -2396,41 +2398,42 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         instr = IR::Instr::New(Js::OpCode::Sub_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
 
-    case Js::OpCodeAsmJs::Mul_UInt:
-        src1Opnd->SetType(TyUint32);
-        src2Opnd->SetType(TyUint32);
     case Js::OpCodeAsmJs::Mul_Int:
         instr = IR::Instr::New(Js::OpCode::Mul_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-    case Js::OpCodeAsmJs::Div_Check_UInt:
+    case Js::OpCodeAsmJs::Div_Trap_UInt:
         src1Opnd->SetType(TyUint32);
         src2Opnd->SetType(TyUint32);
-    case Js::OpCodeAsmJs::Div_Check_Int:
-    {
+        // Fall through for trap
+    case Js::OpCodeAsmJs::Div_Trap_Int:
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
-        if (newOpcode == Js::OpCodeAsmJs::Div_Check_Int)
+        if (newOpcode == Js::OpCodeAsmJs::Div_Trap_Int)
         {
             src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
         }
-        instr = IR::Instr::New(Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
+        instr = IR::Instr::New(newOpcode == Js::OpCodeAsmJs::Div_Trap_UInt ? Js::OpCode::DivU_I4 : Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-    }
     case Js::OpCodeAsmJs::Div_UInt:
         src1Opnd->SetType(TyUint32);
         src2Opnd->SetType(TyUint32);
+        instr = IR::Instr::New(Js::OpCode::DivU_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
+        break;
     case Js::OpCodeAsmJs::Div_Int:
         instr = IR::Instr::New(Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-    case Js::OpCodeAsmJs::Rem_Check_UInt:
+    case Js::OpCodeAsmJs::Rem_Trap_UInt:
         src1Opnd->SetType(TyUint32);
         src2Opnd->SetType(TyUint32);
-    case Js::OpCodeAsmJs::Rem_Check_Int:
+        // Fall through for trap
+    case Js::OpCodeAsmJs::Rem_Trap_Int:
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
-        instr = IR::Instr::New(Js::OpCode::Rem_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
+        instr = IR::Instr::New(newOpcode == Js::OpCodeAsmJs::Rem_Trap_UInt ? Js::OpCode::RemU_I4 : Js::OpCode::Rem_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     case Js::OpCodeAsmJs::Rem_UInt:
         src1Opnd->SetType(TyUint32);
         src2Opnd->SetType(TyUint32);
+        instr = IR::Instr::New(Js::OpCode::RemU_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
+        break;
     case Js::OpCodeAsmJs::Rem_Int:
         instr = IR::Instr::New(Js::OpCode::Rem_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
@@ -3008,23 +3011,29 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
     case Js::OpCodeAsmJs::Mul_Long:
         instr = IR::Instr::New(Js::OpCode::Mul_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-    case Js::OpCodeAsmJs::Div_ULong:
+    case Js::OpCodeAsmJs::Div_Trap_ULong:
         src1Opnd->SetType(TyUint64);
         src2Opnd->SetType(TyUint64);
-    case Js::OpCodeAsmJs::Div_Long:
+        // Fall Through for trap
+    case Js::OpCodeAsmJs::Div_Trap_Long:
     {
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
         src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
-        instr = IR::Instr::New(Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
+        Js::OpCode op = newOpcode == Js::OpCodeAsmJs::Div_Trap_ULong ? Js::OpCode::DivU_I4 : Js::OpCode::Div_I4;
+        instr = IR::Instr::New(op, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     }
-    case Js::OpCodeAsmJs::Rem_ULong:
+    case Js::OpCodeAsmJs::Rem_Trap_ULong:
         src1Opnd->SetType(TyUint64);
         src2Opnd->SetType(TyUint64);
-    case Js::OpCodeAsmJs::Rem_Long:
+        // Fall Through for trap
+    case Js::OpCodeAsmJs::Rem_Trap_Long:
+    {
         src2Opnd = BuildTrapIfZero(src2Opnd, offset);
-        instr = IR::Instr::New(Js::OpCode::Rem_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
+        Js::OpCode op = newOpcode == Js::OpCodeAsmJs::Rem_Trap_ULong ? Js::OpCode::RemU_I4 : Js::OpCode::Rem_I4;
+        instr = IR::Instr::New(op, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
+    }
     case Js::OpCodeAsmJs::And_Long:
         instr = IR::Instr::New(Js::OpCode::And_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
@@ -3325,6 +3334,8 @@ IRBuilderAsmJs::InsertLoopBodyReturnIPInstr(uint targetOffset, uint offset)
 IR::SymOpnd *
 IRBuilderAsmJs::BuildAsmJsLoopBodySlotOpnd(SymID symId, IRType opndType)
 {
+    // There is no unsigned locals, make sure we create only signed locals
+    opndType = IRType_EnsureSigned(opndType);
     // Get the interpreter frame instance that was passed in.
     StackSym *loopParamSym = m_func->EnsureLoopParamSym();
 

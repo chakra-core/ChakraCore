@@ -200,9 +200,6 @@ public:
     }
 
 public:
-    template <size_t N>
-    void FillNativeRegToByteCodeRegMap(uint (&nativeRegToByteCodeRegMap)[N]);
-
     void IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, bool * pIsFloat64, bool * pIsInt32,
         bool * pIsSimd128F4, bool * pIsSimd128I4, bool * pIsSimd128I8, bool * pIsSimd128I16,
         bool * pIsSimd128U4, bool * pIsSimd128U8, bool * pIsSimd128U16, bool * pIsSimd128B4, bool * pIsSimd128B8, bool * pIsSimd128B16) const;
@@ -267,7 +264,6 @@ protected:
         uint regSlot, int offset, bool isLocal, bool isFloat64, bool isInt32,
         bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16,
         bool isSimd128U4, bool isSimd128U8, bool isSimd128U16, bool isSimd128B4, bool isSimd128B8, bool isSimd128B16 ) const;
-    void RestoreInlineFrame(InlinedFrameLayout *inlinedFrame, Js::JavascriptCallStackLayout * layout, Js::Var * registerSaves);
 
     void AdjustOffsetsForDiagMode(Js::JavascriptCallStackLayout * layout, Js::ScriptFunction * function) const;
 

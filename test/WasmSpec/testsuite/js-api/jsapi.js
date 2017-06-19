@@ -14,6 +14,8 @@
  * limitations under the License.
 */
 
+const kC0DEFEFE = new Uint8Array([0xC0, 0xDE, 0xFE, 0xFE]);
+
 (function testJSAPI() {
 
 const WasmPage = 64 * 1024;
@@ -46,8 +48,7 @@ const exportingModuleBinary = (() => {
         .addFunction('f', kSig_i_v)
         .addBody([
             kExprI32Const,
-            42,
-            kExprEnd
+            42
         ])
         .exportFunc();
 
@@ -59,9 +60,7 @@ const complexExportingModuleBinary = (() => {
 
     builder
         .addFunction('a', kSig_v_v)
-        .addBody([
-            kExprEnd
-        ])
+        .addBody([])
         .exportFunc();
 
     builder.addMemory(1, 1, /* exported */ false);
@@ -97,6 +96,7 @@ let CompileError;
 let LinkError;
 let RuntimeError;
 let Memory;
+let instanceProto;
 let memoryProto;
 let mem1;
 let Table;
@@ -199,7 +199,7 @@ test(() => {
     assertThrows(() => new Module(new Uint8Array()), CompileError);
     assertThrows(() => new Module(new ArrayBuffer()), CompileError);
     assert_equals(new Module(emptyModuleBinary) instanceof Module, true);
-    assert_equals(new Module(emptyModuleBinary.buffer) instanceof Module, true);
+    assert_equals(new Module(new Uint8Array(emptyModuleBinary)) instanceof Module, true);
 }, "'WebAssembly.Module' constructor function");
 
 test(() => {
@@ -350,7 +350,7 @@ test(() => {
 }, "'WebAssembly.Instance.prototype' data property");
 
 test(() => {
-    const instanceProto = Instance.prototype;
+    instanceProto = Instance.prototype;
     const instanceProtoDesc = Object.getOwnPropertyDescriptor(Instance, 'prototype');
     assert_equals(instanceProto, instanceProtoDesc.value);
     assert_equals(String(instanceProto), "[object WebAssembly.Instance]");
@@ -366,12 +366,16 @@ test(() => {
 }, "'WebAssembly.Instance' instance objects");
 
 test(() => {
-    const instanceExportsDesc = Object.getOwnPropertyDescriptor(exportingInstance, 'exports');
-    assert_equals(typeof instanceExportsDesc.value, "object");
-    assert_equals(instanceExportsDesc.writable, true);
-    assert_equals(instanceExportsDesc.enumerable, true);
-    assert_equals(instanceExportsDesc.configurable, true);
-}, "'WebAssembly.Instance' 'exports' data property");
+    const exportsDesc = Object.getOwnPropertyDescriptor(instanceProto, 'exports');
+    assert_equals(typeof exportsDesc.get, "function");
+    assert_equals(exportsDesc.set, undefined);
+    assert_equals(exportsDesc.enumerable, false);
+    assert_equals(exportsDesc.configurable, true);
+    const exportsGetter = exportsDesc.get;
+    assertThrows(() => exportsGetter.call(), TypeError);
+    assertThrows(() => exportsGetter.call({}), TypeError);
+    assert_equals(typeof exportsGetter.call(exportingInstance), "object");
+}, "'WebAssembly.Instance.prototype.exports' accessor property");
 
 test(() => {
     exportsObj = exportingInstance.exports;
@@ -385,7 +389,7 @@ test(() => {
     assert_equals(Object.getPrototypeOf(exportsObj), null);
     assertThrows(() => Object.defineProperty(exportsObj, 'g', {}), TypeError);
     assert_equals(Object.keys(exportsObj).join(), "f");
-}, "'WebAssembly.Instance' 'exports' object");
+}, "exports object");
 
 test(() => {
     const f = exportsObj.f;
@@ -645,7 +649,7 @@ test(() => {
     assert_true(WebAssembly.validate(complexImportingModuleBinary));
     assert_false(WebAssembly.validate(moduleBinaryImporting2Memories));
     assert_false(WebAssembly.validate(moduleBinaryWithMemSectionAndMemImport));
-}, "'WebAssembly.validate' method"),
+}, "'WebAssembly.validate' method");
 
 test(() => {
     const compileDesc = Object.getOwnPropertyDescriptor(WebAssembly, 'compile');
@@ -684,8 +688,7 @@ assertCompileError([1], TypeError);
 assertCompileError([{}], TypeError);
 assertCompileError([new Uint8Array()], CompileError);
 assertCompileError([new ArrayBuffer()], CompileError);
-assertCompileError([new Uint8Array("hi!")], CompileError);
-assertCompileError([new ArrayBuffer("hi!")], CompileError);
+assertCompileError([kC0DEFEFE], CompileError);
 
 num_tests = 1;
 function assertCompileSuccess(bytes) {
@@ -698,7 +701,7 @@ function assertCompileSuccess(bytes) {
 }
 
 assertCompileSuccess(emptyModuleBinary);
-assertCompileSuccess(emptyModuleBinary.buffer);
+assertCompileSuccess(new Uint8Array(emptyModuleBinary));
 
 test(() => {
     const instantiateDesc = Object.getOwnPropertyDescriptor(WebAssembly, 'instantiate');
@@ -722,7 +725,6 @@ test(() => {
                 })
                 .catch(error => {
                     assert_equals(error instanceof err, true);
-                    assert_equals(Boolean(error.stack.match("jsapi.js")), true);
                 })
         }, 'unexpected success in assertInstantiateError');
     }
@@ -734,8 +736,7 @@ test(() => {
     assertInstantiateError([{}], TypeError);
     assertInstantiateError([new Uint8Array()], CompileError);
     assertInstantiateError([new ArrayBuffer()], CompileError);
-    assertInstantiateError([new Uint8Array("hi!")], CompileError);
-    assertInstantiateError([new ArrayBuffer("hi!")], CompileError);
+    assertInstantiateError([kC0DEFEFE], CompileError);
     assertInstantiateError([importingModule], TypeError);
     assertInstantiateError([importingModule, null], TypeError);
     assertInstantiateError([importingModuleBinary, null], TypeError);
@@ -772,10 +773,10 @@ test(() => {
     }
     assertInstantiateSuccess(emptyModule);
     assertInstantiateSuccess(emptyModuleBinary);
-    assertInstantiateSuccess(emptyModuleBinary.buffer);
+    assertInstantiateSuccess(new Uint8Array(emptyModuleBinary));
     assertInstantiateSuccess(importingModule, {"":{f:()=>{}}});
     assertInstantiateSuccess(importingModuleBinary, {"":{f:()=>{}}});
-    assertInstantiateSuccess(importingModuleBinary.buffer, {"":{f:()=>{}}});
+    assertInstantiateSuccess(new Uint8Array(importingModuleBinary), {"":{f:()=>{}}});
     assertInstantiateSuccess(complexImportingModuleBinary, {
         a:{b:()=>{}},
         c:{d:scratch_memory},

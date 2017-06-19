@@ -171,13 +171,10 @@ Var WebAssemblyModule::EntryCustomSections(RecyclableObject* function, CallInfo 
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
     }
-    if (args.Info.Count < 3)
-    {
-        JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedString, _u("sectionName"));
-    }
+    Var sectionNameVar = args.Info.Count > 2 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
 
     WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
-    JavascriptString * sectionName = JavascriptConversion::ToString(args[2], scriptContext);
+    JavascriptString * sectionName = JavascriptConversion::ToString(sectionNameVar, scriptContext);
     const char16* sectionNameBuf = sectionName->GetString();
     charcount_t sectionNameLength = sectionName->GetLength();
 
@@ -344,7 +341,15 @@ WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage)
 
     if (maxPage < minPage)
     {
-        throw Wasm::WasmCompilationException(_u("Memory: MaxPage (%d) must be greater than MinPage (%d)"), maxPage, minPage);
+        throw Wasm::WasmCompilationException(_u("Memory: MaxPage (%u) must be greater than MinPage (%u)"), maxPage, minPage);
+    }
+    auto minPageTooBig = [minPage] {
+        throw Wasm::WasmCompilationException(_u("Memory: Unable to allocate minimum pages (%u)"), minPage);
+    };
+    uint32 minBytes = UInt32Math::Mul<WebAssembly::PageSize>(minPage, minPageTooBig);
+    if (minBytes > ArrayBuffer::MaxArrayBufferLength)
+    {
+        minPageTooBig();
     }
     m_hasMemory = true;
     m_memoryInitSize = minPage;
@@ -478,7 +483,7 @@ WebAssemblyModule::AttachCustomInOutTracingReader(Wasm::WasmFunctionInfo* func, 
         customReader->AddNode(nameNode);
     }
 
-    for (uint32 iParam = 0; iParam < signature->GetParamCount(); iParam++)
+    for (Js::ArgSlot iParam = 0; iParam < signature->GetParamCount(); iParam++)
     {
         Wasm::WasmNode node;
         node.op = Wasm::wbGetLocal;
@@ -596,7 +601,7 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     Wasm::WasmFunctionInfo* funcInfo = AddWasmFunctionInfo(signature);
     // Create the custom reader to generate the import thunk
     Wasm::WasmCustomReader* customReader = Anew(&m_alloc, Wasm::WasmCustomReader, &m_alloc);
-    for (uint32 iParam = 0; iParam < signature->GetParamCount(); iParam++)
+    for (uint32 iParam = 0; iParam < (uint32)signature->GetParamCount(); iParam++)
     {
         Wasm::WasmNode node;
         node.op = Wasm::wbGetLocal;

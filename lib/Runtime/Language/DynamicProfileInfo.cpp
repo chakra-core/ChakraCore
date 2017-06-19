@@ -342,7 +342,7 @@ namespace Js
             }
             else
             {
-                directEntryPoint = (JavascriptMethod)entryPoint->GetNativeAddress();
+                directEntryPoint = entryPoint->GetNativeEntrypoint();
             }
 
             entryPoint->jsMethod = directEntryPoint;
@@ -1607,7 +1607,8 @@ namespace Js
                 _u(" disableObjTypeSpec_jitLoopBody : %s\n")
                 _u(" disablePowIntTypeSpec : %s\n")
                 _u(" disableStackArgOpt : %s\n")
-                _u(" disableTagCheck : %s\n"),
+                _u(" disableTagCheck : %s\n")
+                _u(" disableOptimizeTryFinally : %s\n"),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec_jitLoopBody),
                 IsTrueOrFalse(this->bits.disableAggressiveMulIntTypeSpec),
@@ -1643,7 +1644,8 @@ namespace Js
                 IsTrueOrFalse(this->bits.disableObjTypeSpec_jitLoopBody),
                 IsTrueOrFalse(this->bits.disablePowIntIntTypeSpec),
                 IsTrueOrFalse(this->bits.disableStackArgOpt),
-                IsTrueOrFalse(this->bits.disableTagCheck));
+                IsTrueOrFalse(this->bits.disableTagCheck),
+                IsTrueOrFalse(this->bits.disableOptimizeTryFinally));
         }
     }
 
@@ -2274,7 +2276,7 @@ IR::BailOutKind IR::EquivalentToMonoTypeCheckBailOutKind(IR::BailOutKind kind)
     }
 }
 
-#if ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_CONFIG_OPTIONS || defined(REJIT_STATS)
 const char *const BailOutKindNames[] =
 {
 #define BAIL_OUT_KIND_LAST(n)               "" STRINGIZE(n) ""
@@ -2282,6 +2284,7 @@ const char *const BailOutKindNames[] =
 #define BAIL_OUT_KIND_VALUE_LAST(n, v)      BAIL_OUT_KIND_LAST(n)
 #define BAIL_OUT_KIND_VALUE(n, v)           BAIL_OUT_KIND(n)
 #include "BailOutKind.h"
+#undef BAIL_OUT_KIND_LAST
 };
 
 IR::BailOutKind const BailOutKindValidBits[] =
@@ -2289,7 +2292,6 @@ IR::BailOutKind const BailOutKindValidBits[] =
 #define BAIL_OUT_KIND(n, bits)               (IR::BailOutKind)bits,
 #define BAIL_OUT_KIND_VALUE_LAST(n, v)
 #define BAIL_OUT_KIND_VALUE(n, v)
-#define BAIL_OUT_KIND_LAST(n)
 #include "BailOutKind.h"
 };
 
