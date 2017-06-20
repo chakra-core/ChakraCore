@@ -80,6 +80,13 @@
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>IntlTaintingPreInitTests.js</files>
+      <baseline>IntlTaintingPreInitTests.baseline</baseline>
+      <tags>Intl,exclude_winglob</tags>
+    </default>
+  </test>
 
   <test>
     <default>
