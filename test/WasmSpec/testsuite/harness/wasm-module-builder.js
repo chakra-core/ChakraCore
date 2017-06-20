@@ -115,7 +115,6 @@ class WasmFunctionBuilder {
   }
 
   end() {
-    this.body.push(kExprEnd);
     return this.module;
   }
 }
