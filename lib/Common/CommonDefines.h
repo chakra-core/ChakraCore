@@ -350,6 +350,12 @@
 #define RECYCLER_TEST_SUPPORT
 #define ARENA_ALLOCATOR_FREE_LIST_SIZE
 
+// Configure whether we install a signal handler,
+#ifndef _WIN32
+#define PERFMAP_SIGNAL_HANDLER 1
+#define PERFMAP_SIGNAL SIGUSR2
+#endif
+
 // TODO (t-doilij) combine IR_VIEWER and ENABLE_IR_VIEWER
 #if 0
 #if ENABLE_NATIVE_CODEGEN

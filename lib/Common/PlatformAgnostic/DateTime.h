@@ -7,7 +7,6 @@
 #define RUNTIME_PLATFORM_AGNOSTIC_COMMON_DATETIME
 
 #include "PlatformAgnostic/DateTimeInternal.h"
-#include "CommonPal.h"
 
 namespace PlatformAgnostic
 {

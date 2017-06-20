@@ -12,15 +12,11 @@
 
 using namespace Js;
 
-
-
-struct sigaction previousSigusr2;
-
 //
 //  Handle the SIGUSR2 signal by setting a flag
 //  indicating that we should call WritePerfMap later on
 //
-void handle_sigusr2(int signum)
+void handle_signal(int signum)
 {
     PlatformAgnostic::PerfTrace::mapsRequested = true;
 }
@@ -35,15 +31,19 @@ volatile bool PerfTrace::mapsRequested = false;
 //
 void PerfTrace::Register()
 {
-    struct sigaction newAction;
+#ifdef PERF_SIGNAL_HANDLER
+    struct sigaction newAction = {0};
     newAction.sa_flags = SA_RESTART;
-    newAction.sa_handler = handle_sigusr2;
+    newAction.sa_handler = handle_signal;
     sigemptyset(&newAction.sa_mask);
 
-    if (-1 == sigaction(SIGUSR2, &newAction, &previousSigusr2))
+    struct sigaction previousAction = {0};
+
+    if (-1 == sigaction(PERFMAP_SIGNAL, &newAction, &previousAction))
     {
         AssertMsg(errno, "PerfTrace::Register: sigaction() call failed\n");
     }
+#endif
 }
 
 void  PerfTrace::WritePerfMap()
