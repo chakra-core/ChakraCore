@@ -348,7 +348,7 @@ protected:
 
     uint polymorphicCacheIndex;
     IR::BailOutKind bailOutKind;
-#if DBG
+#if DBG_DUMP
     Js::ArgSlot actualCount;
     uint constantCount;
     int inlineDepth;
@@ -366,7 +366,7 @@ protected:
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 public:
     Js::OpCode bailOutOpcode;
-#if DBG
+#if DBG_DUMP
    void Dump();
 #endif
 #endif

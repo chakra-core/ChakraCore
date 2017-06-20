@@ -308,7 +308,7 @@ private:
         ArenaAllocatorBase<InPlaceFreeListPolicy>::MaxSmallObjectSize >> ArenaAllocatorBase<InPlaceFreeListPolicy>::ObjectAlignmentBitShift;
 
 public:
-#ifdef DBG
+#if DBG_DUMP
     static const unsigned char DbgFreeMemFill = DbgMemFill;
 #endif
     static void * New(ArenaAllocatorBase<InPlaceFreeListPolicy> * allocator);
@@ -362,7 +362,7 @@ private:
     }
 
 public:
-#ifdef DBG
+#if DBG_DUMP
     // TODO: Consider making DbgFreeMemFill == DbgFill, now that we have ArenaAllocatorBase properly handling filling when free-listing and asserting debug fill at re-allocation.
     static const char DbgFreeMemFill = 0x0;
 #endif
@@ -619,7 +619,7 @@ public:
 class InlineCacheFreeListPolicy : public InlineCacheAllocatorInfo
 {
 public:
-#ifdef DBG
+#if DBG_DUMP
     static const unsigned char DbgFreeMemFill = DbgMemFill;
 #endif
     static void * New(ArenaAllocatorBase<InlineCacheAllocatorTraits> * allocator);

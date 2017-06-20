@@ -737,7 +737,7 @@ public:
     bool                 m_isSwitchBr : 1;
     bool                 m_isOrphanedLeave : 1; // A Leave in a loop body in a try, most likely generated because of a return statement.
     bool                 m_areCmpRegisterFlagsUsedLater : 1; // Indicate that this branch is not the only instr using the register flags set by cmp
-#if DBG
+#if DBG_DUMP
     bool                 m_isMultiBranch;
     bool                 m_isHelperToNonHelperBranch;
 #endif

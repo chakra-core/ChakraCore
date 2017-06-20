@@ -4150,7 +4150,7 @@ namespace Js
 
         void SetBegin(int begin);
         void SetEnd(int end);
-#if DBG
+#if DBG_DUMP
         void Dump();
         PCWSTR GetDebuggerScopeTypeString(DiagExtraScopesType scopeType);
 #endif

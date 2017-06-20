@@ -369,7 +369,7 @@ public:
     uint8                isAirLockCompensationBlock:1;
     uint8                beginsBailOnNoProfile:1;
 
-#ifdef DBG
+#if DBG_DUMP
     uint8                isBreakBlock:1;
     uint8                isAirLockBlock:1;
     uint8                isBreakCompensationBlockAtSink:1;

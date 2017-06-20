@@ -219,7 +219,7 @@ typedef struct FldIDL
 typedef struct ArrayCallSiteIDL
 {
     byte bits;
-#if DBG
+#if DBG_DUMP
     IDL_PAD1(0)
     IDL_PAD2(1)
     unsigned int functionNumber;

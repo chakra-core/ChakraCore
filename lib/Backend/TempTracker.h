@@ -25,7 +25,7 @@ protected:
     BVSparse<JitArenaAllocator>                tempTransferredSyms;
     HashTable<BVSparse<JitArenaAllocator> *> * tempTransferDependencies;
 
-#if DBG
+#if DBG_DUMP
     void Dump(char16 const * traceName);
 #endif
 };
@@ -47,7 +47,7 @@ public:
     void ProcessUse(StackSym * sym, BackwardPass * backwardPass);
     void MarkTemp(StackSym * sym, BackwardPass * backwardPass);
 
-#if DBG
+#if DBG_DUMP
     void Dump() { __super::Dump(T::GetTraceName()); }
 #endif
 };

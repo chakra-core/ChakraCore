@@ -13,7 +13,7 @@
 //  - Set the default values of debug/fretest/release flags if it is not set by the command line
 //----------------------------------------------------------------------------------------------------
 #ifndef DBG_DUMP
-#define DBG_DUMP 0
+#define DBG_DUMP 1
 #endif
 
 #ifdef _DEBUG

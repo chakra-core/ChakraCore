@@ -5491,7 +5491,7 @@ namespace Js
         }
         return true;
     }
-#if DBG
+#if DBG_DUMP
     void DebuggerScope::Dump()
     {
         int indent = (GetScopeDepth() - 1) * 4;

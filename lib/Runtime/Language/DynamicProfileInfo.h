@@ -302,7 +302,7 @@ namespace Js
             };
             byte bits;
         };
-#if DBG
+#if DBG_DUMP
         uint functionNumber;
         ProfileId callSiteNumber;
 #endif

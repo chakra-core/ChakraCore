@@ -33,7 +33,7 @@ private:
     Field(uint) count;
 };
 
-#if DBG
+#if DBG_DUMP
 typedef RealCount DefaultCount;
 #else
 typedef FakeCount DefaultCount;

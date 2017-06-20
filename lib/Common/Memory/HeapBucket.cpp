@@ -1526,7 +1526,11 @@ HeapBucketT<TBlockType>::Verify()
     }
 #endif
 
-    HeapBlockList::ForEach(heapBlockList, [this, DebugOnly(&recyclerVerifyListConsistencyData)](TBlockType * heapBlock)
+#if DBG
+    HeapBlockList::ForEach(heapBlockList, [this, &recyclerVerifyListConsistencyData](TBlockType * heapBlock)
+#else
+    HeapBlockList::ForEach(heapBlockList, [this](TBlockType * heapBlock)
+#endif
     {
         DebugOnly(VerifyBlockConsistencyInList(heapBlock, recyclerVerifyListConsistencyData));
         char * bumpAllocateAddress = nullptr;

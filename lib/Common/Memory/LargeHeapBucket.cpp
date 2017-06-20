@@ -435,9 +435,11 @@ LargeHeapBucket::TryAllocFromExplicitFreeList(Recycler * recycler, size_t sizeCa
         Assert(heapBlockVerify != nullptr);
         Assert(heapBlockVerify->IsLargeHeapBlock());
         LargeHeapBlock * largeHeapBlock = (LargeHeapBlock *)heapBlockVerify;
+#ifdef DBG
         LargeObjectHeader * dbgHeader;
         Assert(largeHeapBlock->GetObjectHeader(memBlock, &dbgHeader));
         Assert(dbgHeader == header);
+#endif
 
         ((FreeObject *)memBlock)->DebugFillNext();
 #endif

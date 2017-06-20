@@ -379,7 +379,7 @@ const char16 * const falseString = _u("false");
 #define BAILOUT_FLUSH(functionBody)
 #endif
 
-#if DBG
+#if DBG_DUMP
 void BailOutRecord::DumpArgOffsets(uint count, int* offsets, int argOutSlotStart)
 {
     char16 const * name = _u("OutParam");

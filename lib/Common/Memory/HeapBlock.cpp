@@ -1119,7 +1119,7 @@ SmallHeapBlockT<TBlockAttributes>::DoPartialReusePage(RecyclerSweep const& recyc
     return (expectFreeByteCount + objectSize >= recyclerSweep.GetPartialCollectSmallHeapBlockReuseMinFreeBytes());
 }
 
-#if DBG
+#if DBG || defined(RECYCLER_STATS)
 // do debug assert for partial block that we are not going to sweep
 template <class TBlockAttributes>
 void

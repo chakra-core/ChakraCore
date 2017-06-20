@@ -947,7 +947,7 @@ NumberTemp::DoMarkTempNumbersOnTempObjects(BackwardPass * backwardPass) const
     return backwardPass->DoMarkTempNumbersOnTempObjects() && !this->nonTempElemLoad;
 }
 
-#if DBG
+#if DBG_DUMP
 void
 NumberTemp::Dump(char16 const * traceName)
 {
@@ -1696,7 +1696,7 @@ ObjectTempVerify::DependencyCheck(IR::Instr * instr, BVSparse<JitArenaAllocator>
 #endif
 
 
-#if DBG
+#if DBG_DUMP
 bool
 NumberTemp::DoTrace(BackwardPass * backwardPass)
 {
@@ -1709,11 +1709,13 @@ ObjectTemp::DoTrace(BackwardPass * backwardPass)
     return PHASE_TRACE(Js::MarkTempObjectPhase, backwardPass->func);
 }
 
+#if DBG
 bool
 ObjectTempVerify::DoTrace(BackwardPass * backwardPass)
 {
     return PHASE_TRACE(Js::MarkTempObjectPhase, backwardPass->func);
 }
+#endif
 #endif
 
 // explicit instantiation
