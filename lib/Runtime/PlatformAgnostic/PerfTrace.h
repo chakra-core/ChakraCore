@@ -20,7 +20,7 @@ namespace PlatformAgnostic
 //
 class PerfTrace
 {
- public:
+public:
     static void Register();
 
     static void WritePerfMap();

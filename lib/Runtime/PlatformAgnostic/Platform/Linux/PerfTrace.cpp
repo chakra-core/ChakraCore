@@ -22,7 +22,7 @@ struct sigaction previousSigusr2;
 //
 void handle_sigusr2(int signum)
 {
-  PlatformAgnostic::PerfTrace::mapsRequested = true;
+    PlatformAgnostic::PerfTrace::mapsRequested = true;
 }
 
 namespace PlatformAgnostic
@@ -35,14 +35,14 @@ volatile bool PerfTrace::mapsRequested = false;
 //
 void PerfTrace::Register()
 {
-  struct sigaction newAction;
-  newAction.sa_flags = SA_RESTART;
-  newAction.sa_handler = handle_sigusr2;
-  sigemptyset(&newAction.sa_mask);
+    struct sigaction newAction;
+    newAction.sa_flags = SA_RESTART;
+    newAction.sa_handler = handle_sigusr2;
+    sigemptyset(&newAction.sa_mask);
 
-  if (-1 == sigaction(SIGUSR2, &newAction, &previousSigusr2))
+    if (-1 == sigaction(SIGUSR2, &newAction, &previousSigusr2))
     {
-      AssertMsg(errno, "PerfTrace::Register: sigaction() call failed\n");
+        AssertMsg(errno, "PerfTrace::Register: sigaction() call failed\n");
     }
 }
 
@@ -57,15 +57,15 @@ void  PerfTrace::WritePerfMap()
     FILE * perfMapFile;
 
     {
-      const size_t PERFMAP_FILENAME_MAX_LENGTH = 30;
-      char perfMapFilename[PERFMAP_FILENAME_MAX_LENGTH];
-      pid_t processId = getpid();
-      snprintf(perfMapFilename, PERFMAP_FILENAME_MAX_LENGTH, "/tmp/perf-%d.map", processId);
-      
-      perfMapFile = fopen(perfMapFilename, "w");
-      if (perfMapFile == NULL) {
-	return;
-      }
+        const size_t PERFMAP_FILENAME_MAX_LENGTH = 30;
+        char perfMapFilename[PERFMAP_FILENAME_MAX_LENGTH];
+        pid_t processId = getpid();
+        snprintf(perfMapFilename, PERFMAP_FILENAME_MAX_LENGTH, "/tmp/perf-%d.map", processId);
+
+        perfMapFile = fopen(perfMapFilename, "w");
+        if (perfMapFile == NULL) {
+            return;
+        }
     }
 
     while(threadContext != nullptr)
@@ -87,11 +87,11 @@ void  PerfTrace::WritePerfMap()
 #if DYNAMIC_INTERPRETER_THUNK
                 if(body->HasInterpreterThunkGenerated())
                 {
-		    const char16* functionName = body->GetExternalDisplayName();
-		    fwprintf(perfMapFile, _u("%llX %llX %s\n"),
-			    body->GetDynamicInterpreterEntryPoint(),
-			    body->GetDynamicInterpreterThunkSize(),
-			    functionName);
+                    const char16* functionName = body->GetExternalDisplayName();
+                    fwprintf(perfMapFile, _u("%llX %llX %s(Interpreted)\n"),
+                        body->GetDynamicInterpreterEntryPoint(),
+                        body->GetDynamicInterpreterThunkSize(),
+                        functionName);
                 }
 #endif
 
@@ -100,21 +100,21 @@ void  PerfTrace::WritePerfMap()
                 {
                     if(entryPoint->IsCodeGenDone())
                     {
-		      const ExecutionMode jitMode = entryPoint->GetJitMode();
-		      if (jitMode == ExecutionMode::SimpleJit)
-		      {
-			fwprintf(perfMapFile, _u("%llX %llX %s(Simple)\n"),
-				   entryPoint->GetNativeAddress(),
-				   entryPoint->GetCodeSize(),
-				   body->GetExternalDisplayName());
-		      }
-		      else
-		      {
-			fwprintf(perfMapFile, _u("%llX %llX %s\n"),
-				   entryPoint->GetNativeAddress(),
-				   entryPoint->GetCodeSize(),
-				   body->GetExternalDisplayName());
-		      }
+                        const ExecutionMode jitMode = entryPoint->GetJitMode();
+                        if (jitMode == ExecutionMode::SimpleJit)
+                        {
+                            fwprintf(perfMapFile, _u("%llX %llX %s(SimpleJIT)\n"),
+                                entryPoint->GetNativeAddress(),
+                                entryPoint->GetCodeSize(),
+                                body->GetExternalDisplayName());
+                        }
+                        else
+                        {
+                            fwprintf(perfMapFile, _u("%llX %llX %s(FullJIT)\n"),
+                                entryPoint->GetNativeAddress(),
+                                entryPoint->GetCodeSize(),
+                                body->GetExternalDisplayName());
+                        }
                     }
                 });
 
@@ -124,12 +124,12 @@ void  PerfTrace::WritePerfMap()
                     {
                         if(entryPoint->IsCodeGenDone())
                         {
-			  const uint16 loopNumber = ((uint16)body->GetLoopNumberWithLock(header));
-			  fwprintf(perfMapFile, _u("%llX %llX %s(Loop%u)\n"),
-				   entryPoint->GetNativeAddress(),
-				   entryPoint->GetCodeSize(),
-				   body->GetExternalDisplayName(),
-				   loopNumber+1);
+                            const uint16 loopNumber = ((uint16)body->GetLoopNumberWithLock(header));
+                            fwprintf(perfMapFile, _u("%llX %llX %s(Loop%u)\n"),
+                                entryPoint->GetNativeAddress(),
+                                entryPoint->GetCodeSize(),
+                                body->GetExternalDisplayName(),
+                                loopNumber+1);
                         }
                     });
                 });

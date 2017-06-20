@@ -16,12 +16,12 @@ volatile bool PerfTrace::mapsRequested = false;
   
 void PerfTrace::Register()
 {
-  // TODO: Implement this on Windows?
+    // TODO: Implement this on Windows?
 }
 
 void  PerfTrace::WritePerfMap()
 {
-  // TODO: Implement this on Windows?
+    // TODO: Implement this on Windows?
 }
 
 }
