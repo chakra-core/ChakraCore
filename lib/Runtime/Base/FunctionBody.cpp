@@ -7723,7 +7723,7 @@ namespace Js
                         // and doesn't get released to the allocator until there are no more outstanding references.  Thus we don't need
                         // to (and, in fact, cannot) remove it from the invalidation list here.  Instead, we'll do it in ReleaseInlineCache
                         // when there are no more outstanding references.
-                        rootObjectBase->ReleaseInlineCache(this->GetPropertyIdFromCacheId(i), false, false, IsScriptContextShutdown);
+                        unregisteredInlineCacheCount += rootObjectBase->ReleaseInlineCache(this->GetPropertyIdFromCacheId(i), false, false, IsScriptContextShutdown);
                     }
                 }
             }
@@ -7743,7 +7743,7 @@ namespace Js
                         // and doesn't get released to the allocator until there are no more outstanding references.  Thus we don't need
                         // to (and, in fact, cannot) remove it from the invalidation list here.  Instead, we'll do it in ReleaseInlineCache
                         // when there are no more outstanding references.
-                        rootObjectBase->ReleaseInlineCache(this->GetPropertyIdFromCacheId(i), true, false, IsScriptContextShutdown);
+                        unregisteredInlineCacheCount += rootObjectBase->ReleaseInlineCache(this->GetPropertyIdFromCacheId(i), true, false, IsScriptContextShutdown);
                     }
                 }
             }
@@ -7763,7 +7763,7 @@ namespace Js
                         // and doesn't get released to the allocator until there are no more outstanding references.  Thus we don't need
                         // to (and, in fact, cannot) remove it from the invalidation list here.  Instead, we'll do it in ReleaseInlineCache
                         // when there are no more outstanding references.
-                        rootObjectBase->ReleaseInlineCache(this->GetPropertyIdFromCacheId(i), false, true, IsScriptContextShutdown);
+                        unregisteredInlineCacheCount += rootObjectBase->ReleaseInlineCache(this->GetPropertyIdFromCacheId(i), false, true, IsScriptContextShutdown);
                     }
                 }
             }
