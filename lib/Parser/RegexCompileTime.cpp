@@ -1281,6 +1281,7 @@ namespace UnifiedRegex
         {
             Char uniqueEquivs[CaseInsensitive::EquivClassSize];
             CharCount uniqueEquivCount = FindUniqueEquivs(cs, uniqueEquivs);
+            Assert(uniqueEquivCount >= 2);
             switch (uniqueEquivCount)
             {
             case 2:
