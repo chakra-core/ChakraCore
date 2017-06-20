@@ -47,7 +47,7 @@ namespace Js
         EquivalentPropertyEntry* properties;
     };
 
-    typedef void (__cdecl *DeferredTypeInitializer)(DynamicObject* instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+    typedef bool (__cdecl *DeferredTypeInitializer)(DynamicObject* instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
     class DynamicTypeHandler
     {
