@@ -350,11 +350,14 @@
 #define RECYCLER_TEST_SUPPORT
 #define ARENA_ALLOCATOR_FREE_LIST_SIZE
 
-// Configure whether we install a signal handler,
-#ifndef _WIN32
-#define PERFMAP_SIGNAL_HANDLER 1
-#define PERFMAP_SIGNAL SIGUSR2
+// Configure whether we configure a signal handler
+// to produce perf-<pid>.map files
+#ifdef _WIN32
+#define PERFMAP_TRACE_ENABLED 0
+# else
+#define PERFMAP_TRACE_ENABLED 1
 #endif
+#define PERFMAP_SIGNAL SIGUSR2
 
 // TODO (t-doilij) combine IR_VIEWER and ENABLE_IR_VIEWER
 #if 0

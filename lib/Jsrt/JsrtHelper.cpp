@@ -149,7 +149,9 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
     #ifdef VTUNE_PROFILING
         VTuneChakraProfile::Register();
     #endif
+    #ifdef PERFMAP_TRACE_ENABLED
         PlatformAgnostic::PerfTrace::Register();
+    #endif
 
         ValueType::Initialize();
         ThreadContext::GlobalInitialize();
