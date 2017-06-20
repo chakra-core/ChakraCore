@@ -184,7 +184,8 @@ while [[ $# -gt 0 ]]; do
 
     --icu=*)
         ICU_PATH=$1
-        ICU_PATH="${ICU_PATH:6}"
+        # resolve tilde on path
+        eval ICU_PATH="${ICU_PATH:6}"
         if [[ ! -d ${ICU_PATH} ]]; then
             if [[ -d "${CHAKRACORE_DIR}/${ICU_PATH}" ]]; then
                 ICU_PATH="${CHAKRACORE_DIR}/${ICU_PATH}"
