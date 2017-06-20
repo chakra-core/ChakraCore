@@ -14633,6 +14633,16 @@ IR::BranchInstr *Lowerer::InsertCompareBranch(
         insertBeforeInstr->InsertBefore(instr);
         return LowererMD::LowerFloatCondBranch(instr, ignoreNaN);
     }
+#ifdef _M_IX86
+    else if (compareSrc1->IsInt64())
+    {
+        Assert(compareSrc2->IsInt64());
+        IR::BranchInstr *const instr = IR::BranchInstr::New(branchOpCode, target, compareSrc1, compareSrc2, func);
+        insertBeforeInstr->InsertBefore(instr);
+        m_lowererMD.EmitInt64Instr(instr);
+        return instr;
+    }
+#endif
 
     Js::OpCode swapSrcsBranchOpCode;
     switch(branchOpCode)
@@ -23968,12 +23978,21 @@ Lowerer::LowerTrapIfZero(IR::Instr * const instr)
     Assert(instr->GetSrc1());
     Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
 
-    IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
     IR::Opnd * src1 = instr->GetSrc1();
-
-    InsertTestBranch(src1, src1, Js::OpCode::BrNeq_A, doneLabel, doneLabel);
-    InsertLabel(true, doneLabel);
-    GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), doneLabel);
+    if (src1->IsImmediateOpnd())
+    {
+        if (src1->GetImmediateValue(m_func) == 0)
+        {
+            GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), instr);
+        }
+    }
+    else
+    {
+        IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
+        InsertCompareBranch(src1, IR::IntConstOpnd::NewFromType(0, src1->GetType(), m_func), Js::OpCode::BrNeq_A, doneLabel, doneLabel);
+        InsertLabel(true, doneLabel);
+        GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), doneLabel);
+    }
     instr->m_opcode = Js::OpCode::Ld_I4;
     LowerLdI4(instr);
 }
@@ -23991,14 +24010,18 @@ Lowerer::LowerTrapIfMinIntOverNegOne(IR::Instr * const instr)
     IR::Opnd * src1 = instr->GetSrc1();
     IR::Opnd * src2 = instr->UnlinkSrc2();
 
-    int64 intMin = IRType_IsInt64(src1->GetType()) ? LONGLONG_MIN : INT_MIN;
+    int64 intMin = src1->IsInt64() ? LONGLONG_MIN : INT_MIN;
     if (src1->IsImmediateOpnd())
     {
         if (src1->GetImmediateValue(m_func) != intMin)
         {
-            InsertBranch(Js::OpCode::Br, doneLabel, doneLabel);
+            // Const value not min int, will not trap
+            doneLabel->Remove();
+            src2->Free(m_func);
+            LowerLdI4(instr);
+            return;
         }
-        // Is min int, fallthrough
+        // Is min int no need to do check
     }
     else
     {
@@ -24008,9 +24031,14 @@ Lowerer::LowerTrapIfMinIntOverNegOne(IR::Instr * const instr)
     {
         if (src2->GetImmediateValue(m_func) != -1)
         {
-            InsertBranch(Js::OpCode::Br, doneLabel, doneLabel);
+            // Const value not min int, will not trap
+            doneLabel->Remove();
+            src2->Free(m_func);
+            LowerLdI4(instr);
+            return;
         }
-        // Is -1, fallthrough
+        // Is -1 no need to do check
+        src2->Free(m_func);
     }
     else
     {

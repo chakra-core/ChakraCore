@@ -354,8 +354,8 @@ public:
     static IR::BranchInstr *    InsertBranch(const Js::OpCode opCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::BranchInstr *    InsertBranch(const Js::OpCode opCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertCompare(IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
-    static IR::BranchInstr *    InsertCompareBranch(IR::Opnd *const compareSrc1, IR::Opnd *const compareSrc2, Js::OpCode branchOpCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
-    static IR::BranchInstr *    InsertCompareBranch(IR::Opnd *compareSrc1, IR::Opnd *compareSrc2, Js::OpCode branchOpCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
+           IR::BranchInstr *    InsertCompareBranch(IR::Opnd *const compareSrc1, IR::Opnd *const compareSrc2, Js::OpCode branchOpCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
+           IR::BranchInstr *    InsertCompareBranch(IR::Opnd *compareSrc1, IR::Opnd *compareSrc2, Js::OpCode branchOpCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
     static IR::Instr *          InsertTest(IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
     static IR::BranchInstr *    InsertTestBranch(IR::Opnd *const testSrc1, IR::Opnd *const testSrc2, const Js::OpCode branchOpCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::BranchInstr *    InsertTestBranch(IR::Opnd *const testSrc1, IR::Opnd *const testSrc2, const Js::OpCode branchOpCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
