@@ -388,9 +388,14 @@ else()
 endif()
 
 if(WITHOUT_FEATURES_SH)
-    unset(WITHOUT_FEATURES_SH CACHE)    # don't cache
     add_definitions(${WITHOUT_FEATURES_SH})
+    unset(WITHOUT_FEATURES_SH CACHE)    # don't cache
 endif(WITHOUT_FEATURES_SH)
+
+if(EXTRA_DEFINES_SH)
+    add_definitions(${EXTRA_DEFINES_SH})
+    unset(EXTRA_DEFINES_SH CACHE)    #don't cache
+endif(EXTRA_DEFINES_SH)
 
 enable_language(ASM)
 

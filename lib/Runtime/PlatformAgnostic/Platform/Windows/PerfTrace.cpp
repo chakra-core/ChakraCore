@@ -2,15 +2,26 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#pragma once
+#include "RuntimePlatformAgnosticPch.h"
 
-#include "UnicodeText.h"
-#include "EventTrace.h"
-#include "PerfTrace.h"
+#include "ChakraPlatform.h"
 
-#include "PlatformAgnostic/DateTime.h"
-#include "PlatformAgnostic/AssemblyCommon.h"
 
-#if !defined(_WIN32) && defined(DEBUG)
-#include <signal.h> // raise(SIGINT)
-#endif
+using namespace Js;
+
+namespace PlatformAgnostic
+{
+
+volatile sig_atomic_t PerfTrace::mapsRequested = 0;
+  
+void PerfTrace::Register()
+{
+    // TODO: Implement this on Windows?
+}
+
+void  PerfTrace::WritePerfMap()
+{
+    // TODO: Implement this on Windows?
+}
+
+}
