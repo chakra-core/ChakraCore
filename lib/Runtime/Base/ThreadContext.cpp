@@ -1735,6 +1735,11 @@ ThreadContext::ProbeStack(size_t size, Js::ScriptContext *scriptContext, PVOID r
 {
     this->ProbeStackNoDispose(size, scriptContext, returnAddress);
 
+    if (PlatformAgnostic::PerfTrace::mapsRequested)
+    {
+        PlatformAgnostic::PerfTrace::WritePerfMap();
+    }
+    
     // BACKGROUND-GC TODO: If we're stuck purely in JITted code, we should have the
     // background GC thread modify the threads stack limit to trigger the runtime stack probe
     if (this->callDispose && this->recycler->NeedDispose())
