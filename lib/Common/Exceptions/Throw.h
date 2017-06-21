@@ -208,6 +208,10 @@ namespace Js {
         {       \
             hr = GetRuntimeErrorFunc(Js::RecyclableObject::FromVar(errorObject), nullptr);   \
         }   \
+        else if (errorObject != nullptr) \
+        {  \
+            hr = JSERR_UncaughtException; \
+        }  \
         else \
         {  \
             AssertMsg(errorObject == nullptr, "errorObject should be NULL");  \
