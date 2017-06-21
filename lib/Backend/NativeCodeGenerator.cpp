@@ -900,13 +900,14 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     workItem->GetJITData()->startTime = (int64)start_time.QuadPart;
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
+        PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr();
         if (!JITManager::GetJITManager()->IsConnected())
         {
             throw Js::OperationAbortedException();
         }
         HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
             workItem->GetJITData(),
-            scriptContext->GetRemoteScriptAddr(),
+            remoteScriptContext,
             &jitWriteData);
         if (hr == E_ACCESSDENIED && body->GetScriptContext()->IsClosed())
         {
@@ -2066,7 +2067,7 @@ NativeCodeGenerator::UpdateJITState()
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         // TODO: OOP JIT, move server calls to background thread to reduce foreground thread delay
-        if (!scriptContext->GetRemoteScriptAddr())
+        if (!this->scriptContext->GetRemoteScriptAddr() || !JITManager::GetJITManager()->IsConnected())
         {
             return;
         }
