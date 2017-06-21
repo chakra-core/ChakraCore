@@ -1056,11 +1056,15 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             if (JITManager::GetJITManager()->IsOOPJITEnabled() && JITManager::GetJITManager()->IsConnected())
             {
-                HRESULT hr = JITManager::GetJITManager()->AddModuleRecordInfo(
-                    scriptContext->GetRemoteScriptAddr(),
-                    this->GetModuleId(),
-                    (intptr_t)this->GetLocalExportSlots());
-                JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+                PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr();
+                if (remoteScriptContext)
+                {
+                    HRESULT hr = JITManager::GetJITManager()->AddModuleRecordInfo(
+                        remoteScriptContext,
+                        this->GetModuleId(),
+                        (intptr_t)this->GetLocalExportSlots());
+                    JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+                }
             }
 #endif
         }

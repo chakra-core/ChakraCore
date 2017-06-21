@@ -382,6 +382,7 @@ bool InterpreterThunkEmitter::NewThunkBlock()
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
 bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
 {
+    PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr();
     if (!JITManager::GetJITManager()->IsConnected())
     {
         return false;
@@ -390,7 +391,7 @@ bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
     thunkInput.asmJsThunk = this->isAsmInterpreterThunk;
 
     InterpreterThunkOutputIDL thunkOutput;
-    HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(this->scriptContext->GetRemoteScriptAddr(), &thunkInput, &thunkOutput);
+    HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(remoteScriptContext, &thunkInput, &thunkOutput);
     if (!JITManager::HandleServerCallResult(hr, RemoteCallType::ThunkCreation))
     {
         return false;
@@ -758,7 +759,7 @@ InterpreterThunkEmitter::IsInHeap(void* address)
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
-        if (!remoteScript)
+        if (!remoteScript || !JITManager::GetJITManager()->IsConnected())
         {
             return false;
         }
@@ -796,7 +797,7 @@ void InterpreterThunkEmitter::Close()
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
-        if (remoteScript)
+        if (remoteScript && JITManager::GetJITManager()->IsConnected())
         {
             JITManager::GetJITManager()->DecommitInterpreterBufferManager(remoteScript, this->isAsmInterpreterThunk);
         }
