@@ -1266,7 +1266,7 @@ WasmBytecodeGenerator::EmitExtractLane(Js::OpCodeAsmJs op, const WasmTypes::Wasm
 {
     WasmTypes::WasmType resultType = signature[0];
     WasmTypes::WasmType simdArgType = signature[1];
-    const uint offset = GetReader()->m_currentNode.lane.lane_index;
+    const uint offset = GetReader()->m_currentNode.lane.index;
 
     if (offset >= numLanes(op)) 
     {
@@ -1295,7 +1295,14 @@ WasmBytecodeGenerator::EmitSimdMemAccess(Js::OpCodeAsmJs op, const WasmTypes::Wa
     WasmTypes::WasmType type = signature[0];
     SetUsesMemory(0);
 
+    const uint32 mask = Js::ArrayBufferView::ViewMask[viewType];
+    const uint alignment = GetReader()->m_currentNode.mem.alignment;
     const uint offset = GetReader()->m_currentNode.mem.offset;
+
+    if ((mask << 1) & (1 << alignment))
+    {
+        throw WasmCompilationException(_u("alignment must not be larger than natural"));
+    }
 
     EmitInfo rhsInfo;
     if (isStore)

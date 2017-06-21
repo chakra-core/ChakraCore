@@ -98,7 +98,7 @@ namespace Wasm
 
     struct WasmLaneNode
     {
-        uint lane_index;
+        uint index;
     };
 
     struct WasmVarNode

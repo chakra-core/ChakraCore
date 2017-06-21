@@ -63,6 +63,8 @@ function testLoadOpsForType(funcname, module, laneValues, expectedResults, start
     check(0, "instance.m128_load4", MEM_SIZE_IN_BYTES - 16);
     check("Access index is out of range", "instance.m128_load4", MEM_SIZE_IN_BYTES - 8);
     check("Access index is out of range", "instance.m128_load4", MEM_SIZE_IN_BYTES - 4);
+    check("Access index is out of range", "instance.m128_load4_offset", 0xFFFFFFFC);
+    check("Access index is out of range", "instance.m128_load4_offset", -1);
 
 }
 

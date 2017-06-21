@@ -19,12 +19,6 @@ const arr = new Uint32Array (memObj.buffer);
 const module = new WebAssembly.Module(readbuffer('const.wasm'));
 const instance = new WebAssembly.Instance(module, { "dummy" : { "memory" : memObj } }).exports;
 
-function moveArgsIntoArray(args, offset, arr) {
-    for (let i = 0; i < args.length; i++) {
-        arr[offset + i] = args[i];
-    }
-}
-
 let testIntLogicalOps = function (funcname, resultArr) {
     const len = 4
     instance[funcname]();

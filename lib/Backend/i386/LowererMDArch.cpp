@@ -992,7 +992,7 @@ LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= fal
             IR::RegOpnd *tmp = IR::RegOpnd::New(cmpOpnd->GetType(), m_func);
             Lowerer::InsertMove(tmp, cmpOpnd, helperLabel);
             // ADD tmp, offset
-            Lowerer::InsertAdd(true, tmp, tmp, IR::IntConstOpnd::New((uint32)src1->AsIndirOpnd()->GetOffset(), tmp->GetType(), m_func, true), helperLabel);
+            Lowerer::InsertAdd(true, tmp, tmp, IR::IntConstOpnd::New((uint32)src1->AsIndirOpnd()->GetOffset(), tmp->GetType(), m_func), helperLabel);
             // JB helper
             Lowerer::InsertBranch(Js::OpCode::JB, helperLabel, helperLabel);
             lowererMD->m_lowerer->InsertCompareBranch(tmp, instr->UnlinkSrc2(), Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
@@ -1069,7 +1069,7 @@ LowererMDArch::LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore /*= fa
             IR::RegOpnd *tmp = IR::RegOpnd::New(cmpOpnd->GetType(), m_func);
             Lowerer::InsertMove(tmp, cmpOpnd, helperLabel);
             // ADD tmp, offset
-            Lowerer::InsertAdd(true, tmp, tmp, IR::IntConstOpnd::New((uint32)dst->AsIndirOpnd()->GetOffset(), tmp->GetType(), m_func, true), helperLabel);
+            Lowerer::InsertAdd(true, tmp, tmp, IR::IntConstOpnd::New((uint32)dst->AsIndirOpnd()->GetOffset(), tmp->GetType(), m_func), helperLabel);
             // JB helper
             Lowerer::InsertBranch(Js::OpCode::JB, helperLabel, helperLabel);
             lowererMD->m_lowerer->InsertCompareBranch(tmp, instr->UnlinkSrc2(), Js::OpCode::BrGe_A, true, helperLabel, helperLabel);

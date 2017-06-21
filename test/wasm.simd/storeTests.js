@@ -60,6 +60,8 @@ const MEM_SIZE_IN_BYTES = 1024 * 64;
 check("RangeError", "instance.m128_store4", MEM_SIZE_IN_BYTES - 12, 777, 888, 999, 1111);
 check("RangeError", "instance.m128_store4", MEM_SIZE_IN_BYTES - 8, 777, 888, 999, 1111);
 check("RangeError", "instance.m128_store4", MEM_SIZE_IN_BYTES - 4, 777, 888, 999, 1111);
+check("RangeError", "instance.m128_store4_offset", -1, 777, 888, 999, 1111);
+check("RangeError", "instance.m128_store4_offset", 0xFFFFFFFC, 777, 888, 999, 1111);
 check(undefined, "instance.m128_store4", MEM_SIZE_IN_BYTES - 16, 777, 888, 999, 1111);
 
 if (passed) {
