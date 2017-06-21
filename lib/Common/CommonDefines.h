@@ -256,6 +256,15 @@
 #define DELAYLOAD_SET_CFG_TARGET 1
 #endif
 
+// Configure whether we configure a signal handler
+// to produce perf-<pid>.map files
+#ifdef _WIN32
+#define PERFMAP_TRACE_ENABLED 0
+#else
+#define PERFMAP_TRACE_ENABLED 1
+#endif
+#define PERFMAP_SIGNAL SIGUSR2
+
 #ifndef NTBUILD
 #define DELAYLOAD_SECTIONAPI 1
 #endif
@@ -349,15 +358,6 @@
 #define EXCEPTION_RECOVERY 1
 #define RECYCLER_TEST_SUPPORT
 #define ARENA_ALLOCATOR_FREE_LIST_SIZE
-
-// Configure whether we configure a signal handler
-// to produce perf-<pid>.map files
-#ifdef _WIN32
-#define PERFMAP_TRACE_ENABLED 0
-# else
-#define PERFMAP_TRACE_ENABLED 1
-#endif
-#define PERFMAP_SIGNAL SIGUSR2
 
 // TODO (t-doilij) combine IR_VIEWER and ENABLE_IR_VIEWER
 #if 0
