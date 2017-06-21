@@ -1741,9 +1741,12 @@ namespace JsRTApiTest
             REQUIRE(JsIsRuntimeExecutionDisabled(runtime, &isDisabled) == JsNoError);
             CHECK(isDisabled);
 
-
+#ifdef NTBUILD
             REQUIRE(JsCallFunction(postScriptAbortFunction, args, 1, nullptr) == JsErrorInDisabledState);
-
+#else // !JSRT_VERIFY_RUNTIME_STATE
+            bool hasException = false;
+            REQUIRE(JsHasException(&hasException) == JsErrorInDisabledState);
+#endif
             REQUIRE(JsGetAndClearException(&exception) == JsErrorInDisabledState);
             REQUIRE(JsEnableRuntimeExecution(runtime) == JsNoError);
             threadArgs.EndScriptExecution();
@@ -1787,7 +1790,12 @@ namespace JsRTApiTest
             bool isDisabled;
             REQUIRE(JsIsRuntimeExecutionDisabled(runtime, &isDisabled) == JsNoError);
             CHECK(isDisabled);
+#ifdef NTBUILD
             REQUIRE(JsRunScript(terminationTests[i], JS_SOURCE_CONTEXT_NONE, _u(""), &result) == JsErrorInDisabledState);
+#else // !JSRT_VERIFY_RUNTIME_STATE
+            bool hasException = false;
+            REQUIRE(JsHasException(&hasException) == JsErrorInDisabledState);
+#endif
             REQUIRE(JsGetAndClearException(&exception) == JsErrorInDisabledState);
             REQUIRE(JsEnableRuntimeExecution(runtime) == JsNoError);
             threadArgs.EndScriptExecution();
