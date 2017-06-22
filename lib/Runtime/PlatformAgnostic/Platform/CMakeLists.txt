@@ -8,6 +8,7 @@ set(PL_SOURCE_FILES
   Linux/NumbersUtility.cpp
   Linux/Thread.cpp
   Common/Trace.cpp
+  Common/SystemInfo.Common.cpp
   )
 
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)

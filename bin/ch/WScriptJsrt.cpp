@@ -856,7 +856,7 @@ bool WScriptJsrt::Initialize()
 
     // Set Binary Location
     JsValueRef binaryPathValue;
-    GetBinaryLocation(CH_BINARY_LOCATION, sizeof(CH_BINARY_LOCATION));
+    PlatformAgnostic::SystemInfo::GetBinaryLocation(CH_BINARY_LOCATION, sizeof(CH_BINARY_LOCATION));
 
     JsPropertyIdRef binaryPathProperty;
     IfJsrtErrorFail(CreatePropertyIdFromString("BINARY_PATH", &binaryPathProperty), false);
