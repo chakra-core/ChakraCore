@@ -3833,9 +3833,9 @@ namespace Js
         {
             loopHeader->interpretCount = entryPointInfo->GetFunctionBody()->GetLoopInterpretCount(loopHeader) - 1;
         }
-        JS_ETW(EtwTrace::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*)entryPointInfo), ((uint16)loopNum)));
+        JS_ETW(EtwTrace::LogLoopBodyLoadEvent(this, ((LoopEntryPointInfo*)entryPointInfo), ((uint16)loopNum)));
 #ifdef VTUNE_PROFILING
-        VTuneChakraProfile::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*)entryPointInfo), ((uint16)loopNum));
+        VTuneChakraProfile::LogLoopBodyLoadEvent(this, ((LoopEntryPointInfo*)entryPointInfo), ((uint16)loopNum));
 #endif
     }
 #endif
@@ -9986,7 +9986,8 @@ namespace Js
         if (this->IsCodeGenDone())
 #endif
         {
-            JS_ETW(EtwTrace::LogLoopBodyUnloadEvent(this->loopHeader->functionBody, this->loopHeader, this));
+            uint loopNumber = this->loopHeader->functionBody->GetLoopNumber(this->loopHeader);
+            JS_ETW(EtwTrace::LogLoopBodyUnloadEvent(this->loopHeader->functionBody, this, loopNumber));
 
 #if ENABLE_NATIVE_CODEGEN
             if (nullptr != this->inlineeFrameMap)
