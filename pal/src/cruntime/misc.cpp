@@ -378,6 +378,10 @@ char *MiscGetenv(const char *name)
     }
 done:
     InternalLeaveCriticalSection(pthrCurrent, &gcsEnvironment);
+    if (pRet == NULL)
+    {
+        return getenv(name);
+    }
     return pRet;
 }
 

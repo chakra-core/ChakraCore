@@ -41,6 +41,16 @@ SmallNormalHeapBucketBase<TBlockType>::ScanInitialImplicitRoots(Recycler * recyc
         heapBlock->ScanInitialImplicitRoots(recycler);
     });
 
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+    if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
+    {
+        HeapBlockList::ForEach(this->sweepableHeapBlockList, [recycler](TBlockType * heapBlock)
+        {
+            heapBlock->ScanInitialImplicitRoots(recycler);
+        });
+    }
+#endif
+
     HeapBlockList::ForEach(this->heapBlockList, [recycler](TBlockType * heapBlock)
     {
         heapBlock->ScanInitialImplicitRoots(recycler);
@@ -256,11 +266,26 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
             // We decided not to do a partial sweep.
             // Blocks in the pendingSweepList need to have a regular sweep.
 
-            TBlockType * tail = SweepPendingObjects<SweepMode_Concurrent>(recycler, list);
-            tail->SetNextBlock(this->heapBlockList);
-            this->heapBlockList = list;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+            if (this->AllowAllocationsDuringConcurrentSweep() && !this->AllocationsStartedDuringConcurrentSweep())
+            {
+                this->StartAllocationDuringConcurrentSweep();
+            }
+#endif
 
-            this->StartAllocationAfterSweep();
+            TBlockType * tail = SweepPendingObjects<SweepMode_Concurrent>(recycler, list);
+
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+            // During concurrent sweep if allocations were allowed, the heap blocks directly go into the SLIST of
+            // allocable heap blocks. They will be returned to the heapBlockList at the end of the sweep.
+            if (!this->AllowAllocationsDuringConcurrentSweep())
+#endif
+            {
+                tail->SetNextBlock(this->heapBlockList);
+                this->heapBlockList = list;
+
+                this->StartAllocationAfterSweep();
+            }
         }
 
         RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep.IsBackground()));
@@ -275,11 +300,25 @@ TBlockType *
 SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, TBlockType * list)
 {
     TBlockType * tail;
-    HeapBlockList::ForEach(list, [recycler, &tail](TBlockType * heapBlock)
+    HeapBlockList::ForEachEditing(list, [this, recycler, &tail](TBlockType * heapBlock)
     {
         // Note, page heap blocks are never swept concurrently
         heapBlock->template SweepObjects<mode>(recycler);
         tail = heapBlock;
+
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+        if (this->AllowAllocationsDuringConcurrentSweep())
+        {
+            bool blockAddedToSList = HeapBucketT<TBlockType>::PushHeapBlockToSList(this->allocableHeapBlockListHead, heapBlock);
+
+            // If we encountered OOM while pushing the heapBlock to the SLIST we must add it to the heapBlockList so we don't lose track of it.
+            if (!blockAddedToSList)
+            {
+                heapBlock->SetNextBlock(this->heapBlockList);
+                this->heapBlockList = heapBlock;
+            }
+        }
+#endif
     });
     return tail;
 }
@@ -299,19 +338,27 @@ template <typename TBlockType>
 template <class Fn>
 void
 SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& recyclerSweep, TBlockType * heapBlockList,
-    TBlockType *& reuseBlocklist, TBlockType *&unusedBlockList, Fn callback)
+    TBlockType *& reuseBlocklist, TBlockType *&unusedBlockList, bool allocationsAllowedDuringConcurrentSweep, Fn callback)
 {
     HeapBlockList::ForEachEditing(heapBlockList,
-        [&recyclerSweep, &reuseBlocklist, &unusedBlockList, callback](TBlockType * heapBlock)
+        [&recyclerSweep, &reuseBlocklist, &unusedBlockList, callback, allocationsAllowedDuringConcurrentSweep](TBlockType * heapBlock)
     {
         uint expectFreeByteCount;
         if (heapBlock->DoPartialReusePage(recyclerSweep, expectFreeByteCount))
         {
             callback(heapBlock, true);
 
-            // Reuse the page
-            heapBlock->SetNextBlock(reuseBlocklist);
-            reuseBlocklist = heapBlock;
+
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+            // During concurrent sweep if allocations were allowed, the heap blocks directly go into the SLIST of
+            // allocable heap blocks. They will be returned to the heapBlockList at the end of the sweep.
+            if(!allocationsAllowedDuringConcurrentSweep)
+#endif
+            {
+                // Reuse the page
+                heapBlock->SetNextBlock(reuseBlocklist);
+                reuseBlocklist = heapBlock;
+            }
 
             RECYCLER_STATS_ADD(recyclerSweep.GetRecycler(), smallNonLeafHeapBlockPartialReuseBytes[heapBlock->GetHeapBlockType()], expectFreeByteCount);
             RECYCLER_STATS_INC(recyclerSweep.GetRecycler(), smallNonLeafHeapBlockPartialReuseCount[heapBlock->GetHeapBlockType()]);
@@ -338,11 +385,36 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
     RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep.IsBackground()));
     Assert(this->GetRecycler()->inPartialCollectMode);
 
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+    if (this->AllowAllocationsDuringConcurrentSweep() && !this->AllocationsStartedDuringConcurrentSweep())
+    {
+        this->StartAllocationDuringConcurrentSweep();
+    }
+#endif
+
     TBlockType * currentHeapBlockList = this->heapBlockList;
     this->heapBlockList = nullptr;
     SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(recyclerSweep, currentHeapBlockList, this->heapBlockList,
-        this->partialHeapBlockList,
-        [](TBlockType * heapBlock, bool isReused) {});
+        this->partialHeapBlockList, this->AllowAllocationsDuringConcurrentSweep(),
+        [this](TBlockType * heapBlock, bool isReused) 
+    {
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+        if (isReused)
+        {
+            if (this->AllowAllocationsDuringConcurrentSweep())
+            {
+                bool blockAddedToSList = HeapBucketT<TBlockType>::PushHeapBlockToSList(this->allocableHeapBlockListHead, heapBlock);
+
+                // If we encountered OOM while pushing the heapBlock to the SLIST we must add it to the heapBlockList so we don't lose track of it.
+                if (!blockAddedToSList)
+                {
+                    heapBlock->SetNextBlock(this->heapBlockList);
+                    this->heapBlockList = heapBlock;
+                }
+            }
+        }
+#endif
+    });
 
 #if ENABLE_CONCURRENT_GC
     // only collect data for pending sweep list but don't sweep yet
@@ -353,8 +425,8 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
     pendingSweepList = nullptr;
     Recycler * recycler = recyclerSweep.GetRecycler();
     SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(recyclerSweep, currentHeapBlockList, this->heapBlockList,
-        pendingSweepList,
-        [recycler](TBlockType * heapBlock, bool isReused)
+        pendingSweepList, this->AllowAllocationsDuringConcurrentSweep(),
+        [this, recycler](TBlockType * heapBlock, bool isReused)
         {
             if (isReused)
             {
@@ -363,6 +435,19 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
 
                 // Page heap blocks are never swept concurrently
                 heapBlock->template SweepObjects<SweepMode_InThread>(recycler);
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+                if (this->AllowAllocationsDuringConcurrentSweep())
+                {
+                    bool blockAddedToSList = HeapBucketT<TBlockType>::PushHeapBlockToSList(this->allocableHeapBlockListHead, heapBlock);
+
+                    // If we encountered OOM while pushing the heapBlock to the SLIST we must add it to the heapBlockList so we don't lose track of it.
+                    if (!blockAddedToSList)
+                    {
+                        heapBlock->SetNextBlock(this->heapBlockList);
+                        this->heapBlockList = heapBlock;
+                    }
+                }
+#endif
 
                 // This block has been counted as concurrently swept, and now we changed our mind
                 // and sweep it in thread. Remove the count
@@ -374,7 +459,12 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
 
     RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep.IsBackground()));
 
-    this->StartAllocationAfterSweep();
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+    if (!this->AllocationsStartedDuringConcurrentSweep())
+#endif
+    {
+        this->StartAllocationAfterSweep();
+    }
 
     // PARTIALGC-TODO: revisit partial heap blocks to see if they can be put back into use
     // since the heuristics limit may be been changed.

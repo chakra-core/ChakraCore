@@ -38,7 +38,7 @@ enum CollectionState
     Collection_PostCollectionCallback      = 0x00020000,
     Collection_PostSweepRedeferralCallback = 0x00040000,
     Collection_WrapperCallback             = 0x00080000,
-    
+
 
     // Actual states
     CollectionStateNotCollecting          = 0,                                                                // not collecting

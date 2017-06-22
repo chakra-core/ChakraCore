@@ -22,7 +22,7 @@ WARN_LICENSE () {
     echo -e "This script will download LLVM/CLANG and LLVM Gold Bintools from\n${CC_URL}\n"
     echo "These software are licensed to you by its publisher(s), not Microsoft."
     echo "Microsoft is not responsible for the software."
-    echo "Your installation and use of the software is subject to the publisher’s terms available here:"
+    echo "Your installation and use of the software is subject to the publisher's terms available here:"
     echo -e "http://llvm.org/docs/DeveloperPolicy.html#license\nhttp://llvm.org/docs/GoldPlugin.html#licensing"
     echo -e "${ERROR_COLOR}"
     echo -e "----------------------------------------------------------------\n"
@@ -105,7 +105,7 @@ if [ ! -d ./cc-toolchain/src/llvm/projects/compiler-rt ]; then
     cd "${ROOT}/src/"
 
     echo "Downloading LLVM ${LLVM_VERSION}"
-    wget –quiet "http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz" >/dev/null 2>&1
+    wget --quiet "http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz" >/dev/null 2>&1
     tar -xf "llvm-${LLVM_VERSION}.src.tar.xz"
     if [ $? == 0 ]; then
         rm "llvm-${LLVM_VERSION}.src.tar.xz"
@@ -116,7 +116,7 @@ if [ ! -d ./cc-toolchain/src/llvm/projects/compiler-rt ]; then
 
     cd llvm/tools/
     echo "Downloading Clang ${LLVM_VERSION}"
-    wget –quiet "http://llvm.org/releases/${LLVM_VERSION}/cfe-${LLVM_VERSION}.src.tar.xz" >/dev/null 2>&1
+    wget --quiet "http://llvm.org/releases/${LLVM_VERSION}/cfe-${LLVM_VERSION}.src.tar.xz" >/dev/null 2>&1
     tar -xf "cfe-${LLVM_VERSION}.src.tar.xz"
     if [ $? == 0 ]; then
         mv "cfe-${LLVM_VERSION}.src" clang
@@ -128,7 +128,7 @@ if [ ! -d ./cc-toolchain/src/llvm/projects/compiler-rt ]; then
     mkdir -p ../projects/
     cd ../projects/
     echo "Downloading Compiler-RT ${LLVM_VERSION}"
-    wget –quiet "http://llvm.org/releases/${LLVM_VERSION}/compiler-rt-${LLVM_VERSION}.src.tar.xz" >/dev/null 2>&1
+    wget --quiet "http://llvm.org/releases/${LLVM_VERSION}/compiler-rt-${LLVM_VERSION}.src.tar.xz" >/dev/null 2>&1
     tar -xf "compiler-rt-${LLVM_VERSION}.src.tar.xz"
     if [ $? == 0 ]; then
         mv "compiler-rt-${LLVM_VERSION}.src" compiler-rt

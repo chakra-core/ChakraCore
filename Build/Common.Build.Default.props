@@ -29,8 +29,9 @@
 
   <!-- Common build settings -->
   <PropertyGroup>
-    <OptimizedBuild />
-    <OptimizedBuild Condition="'$(Configuration)'=='Release' or '$(Configuration)'=='Test'">true</OptimizedBuild>
+    <DebugBuild />
+    <DebugBuild Condition="'$(Configuration)'!='Release' and '$(Configuration)'!='Test'">true</DebugBuild>
+    <OptimizedBuild Condition="'$(OptimizedBuild)'=='' and '$(DebugBuild)'!='true'">true</OptimizedBuild>
     <WindowsSDKDesktopARMSupport Condition="'$(Platform)'=='ARM'">true</WindowsSDKDesktopARMSupport>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
