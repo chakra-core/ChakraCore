@@ -866,6 +866,7 @@
       <files>constbrbug.js</files>
       <baseline>constbrbug.baseline</baseline>
       <compile-flags>-testtrace:asmjs -maic:0</compile-flags>
+      <tags>exclude_drt</tags>
     </default>
   </test>
   <test>
@@ -873,6 +874,7 @@
       <files>lambda.js</files>
       <baseline>lambda.baseline</baseline>
       <compile-flags>-testtrace:asmjs</compile-flags>
+      <tags>exclude_drt</tags>
     </default>
   </test>
   <test>
@@ -880,6 +882,7 @@
       <files>exports.js</files>
       <baseline>exports.baseline</baseline>
       <compile-flags>-testtrace:asmjs</compile-flags>
+      <tags>exclude_drt</tags>
     </default>
   </test>
 </regress-exe>

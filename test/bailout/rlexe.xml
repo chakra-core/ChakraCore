@@ -119,6 +119,7 @@
       <files>bailout-argobj.js</files>
       <compile-flags>-bailout:3 -bailout:11 -forcejitloopbody</compile-flags>
       <baseline>bailout-argobj.baseline</baseline>
+      <tags>exclude_drt</tags>
     </default>
   </test>
   <test>
