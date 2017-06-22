@@ -27,7 +27,7 @@ namespace Js
 
         Js::InlineCache * GetInlineCache(Js::PropertyRecord const* propertyRecord, bool isLoadMethod, bool isStore);
         Js::RootObjectInlineCache * GetRootInlineCache(Js::PropertyRecord const* propertyRecord, bool isLoadMethod, bool isStore);
-        void ReleaseInlineCache(PropertyId propertyId, bool isLoadMethod, bool isStore, bool isShutdown);
+        uint ReleaseInlineCache(PropertyId propertyId, bool isLoadMethod, bool isStore, bool isShutdown);
 
         virtual BOOL EnsureProperty(PropertyId propertyId) override;
         virtual BOOL EnsureNoRedeclProperty(PropertyId propertyId) override sealed;
