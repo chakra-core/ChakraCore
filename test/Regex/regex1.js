@@ -148,4 +148,9 @@ c=[/[\300-\306]/g,"A",/[\340-\346]/g,"a",/\307/g,"C",/\347/g,"c",/[\310-\313]/g,
 //Negation of empty char set [^] test
 write("aa".match(/([^])(\1)/));
 
+write(/^.+ ab/g.exec(" ab"))
+write(/^.+a /.exec("a "))
+write(/^.+ax/.exec("ax"))
+
+
 
