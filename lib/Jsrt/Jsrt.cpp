@@ -1467,13 +1467,13 @@ CHAKRA_API JsSetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId
 
 CHAKRA_API JsHasProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _Out_ bool *hasProperty)
 {
-    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+    return ContextAPINoScriptWrapper([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTHasProperty, (Js::PropertyRecord *)propertyId, object);
 
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         VALIDATE_INCOMING_PROPERTYID(propertyId);
         PARAM_NOT_NULL(hasProperty);
-        *hasProperty = nullptr;
+        *hasProperty = false;
 
         *hasProperty = Js::JavascriptOperators::OP_HasProperty(object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext) != 0;
 
@@ -1503,7 +1503,7 @@ CHAKRA_API JsDeleteProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propert
 
 CHAKRA_API JsDefineProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _In_ JsValueRef propertyDescriptor, _Out_ bool *result)
 {
-    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+    return ContextAPINoScriptWrapper([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTDefineProperty, object, (Js::PropertyRecord *)propertyId, propertyDescriptor);
 
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
@@ -1585,7 +1585,7 @@ CHAKRA_API JsGetSharedArrayBufferContent(_In_ JsValueRef sharedArrayBuffer, _Out
         {
             return JsErrorInvalidArgument;
         }
-        
+
         Js::SharedContents**& content = (Js::SharedContents**&)sharedContents;
         *content = Js::SharedArrayBuffer::FromVar(sharedArrayBuffer)->GetSharedContents();
 
@@ -2200,7 +2200,7 @@ CHAKRA_API JsEquals(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out_ bool
 
 CHAKRA_API JsStrictEquals(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out_ bool *result)
 {
-    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+    return ContextAPINoScriptWrapper([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTEquals, object1, object2, true);
 
         VALIDATE_INCOMING_REFERENCE(object1, scriptContext);
