@@ -2812,7 +2812,7 @@ CommonNumber:
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
 
         uint16 length = pDisplay->GetLength();
-        DynamicObject *object;
+        RecyclableObject *object;
 
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
@@ -2822,7 +2822,7 @@ CommonNumber:
 
         for (uint16 i = 0; i < length; i++)
         {
-            object = (DynamicObject*)pDisplay->GetItem(i);
+            object = RecyclableObject::FromVar(pDisplay->GetItem(i));
 
             AssertMsg(!ConsoleScopeActivationObject::Is(object) || (i == length - 1), "Invalid location for ConsoleScopeActivationObject");
 
@@ -7558,7 +7558,8 @@ CommonNumber:
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
         for (uint16 i = 0; i < length; i++)
         {
-            DynamicObject* object = (DynamicObject*)pDisplay->GetItem(i);
+            RecyclableObject* object = RecyclableObject::FromVar(pDisplay->GetItem(i));
+
             Var value;
             if (CacheOperators::TryGetProperty<true, true, true, false, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
                     object, false, object, propertyId, &value, scriptContext, nullptr, &info))
