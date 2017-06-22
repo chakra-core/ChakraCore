@@ -258,12 +258,12 @@
 
 // Configure whether we configure a signal handler
 // to produce perf-<pid>.map files
-#ifdef _WIN32
+#ifndef PERFMAP_TRACE_ENABLED
 #define PERFMAP_TRACE_ENABLED 0
-#else
-#define PERFMAP_TRACE_ENABLED 1
 #endif
+#ifndef PERFMAP_SIGNAL
 #define PERFMAP_SIGNAL SIGUSR2
+#endif
 
 #ifndef NTBUILD
 #define DELAYLOAD_SECTIONAPI 1

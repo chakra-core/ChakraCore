@@ -392,6 +392,11 @@ if(WITHOUT_FEATURES_SH)
     add_definitions(${WITHOUT_FEATURES_SH})
 endif(WITHOUT_FEATURES_SH)
 
+if(EXTRA_DEFINES_SH)
+    unset(EXTRA_DEFINES_SH CACHE)    #don't cache
+    add_definitions(${EXTRA_DEFINES_SH})
+endif(EXTRA_DEFINES_SH)
+
 enable_language(ASM)
 
 if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
