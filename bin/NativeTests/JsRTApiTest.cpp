@@ -1603,11 +1603,19 @@ namespace JsRTApiTest
         JsRuntimeHandle runtime;
         HANDLE hMonitor;
         BOOL isScriptActive;
+        JsErrorCode disableExecutionResult;
+
         static const int waitTime = 1000;
 
         void BeginScriptExecution() { isScriptActive = true; }
         void EndScriptExecution() { isScriptActive = false; }
         void SignalMonitor() { SetEvent(hMonitor); }
+
+        // CATCH is not thread-safe. Call this in main thread only.
+        void CheckDisableExecutionResult()
+        {
+            REQUIRE(disableExecutionResult == JsNoError);
+        }
 
         unsigned int ThreadProc()
         {
@@ -1618,13 +1626,17 @@ namespace JsRTApiTest
                 if (isScriptActive)
                 {
                     Sleep(waitTime);
-                    REQUIRE(JsDisableRuntimeExecution(runtime) == JsNoError);
+
+                    // CATCH is not thread-safe. Do not verify in this thread.
+                    disableExecutionResult = JsDisableRuntimeExecution(runtime);
+                    if (disableExecutionResult == JsNoError)
+                    {
+                        continue;  // done, wait for next signal
+                    }
                 }
-                else
-                {
-                    CloseHandle(hMonitor);
-                    break;
-                }
+
+                CloseHandle(hMonitor);
+                break;
             }
             return 0;
         }
@@ -1746,6 +1758,7 @@ namespace JsRTApiTest
 
             REQUIRE(JsGetAndClearException(&exception) == JsErrorInDisabledState);
             REQUIRE(JsEnableRuntimeExecution(runtime) == JsNoError);
+            threadArgs.CheckDisableExecutionResult();
             threadArgs.EndScriptExecution();
         }
         threadArgs.SignalMonitor();
@@ -1790,6 +1803,7 @@ namespace JsRTApiTest
             REQUIRE(JsRunScript(terminationTests[i], JS_SOURCE_CONTEXT_NONE, _u(""), &result) == JsErrorInDisabledState);
             REQUIRE(JsGetAndClearException(&exception) == JsErrorInDisabledState);
             REQUIRE(JsEnableRuntimeExecution(runtime) == JsNoError);
+            threadArgs.CheckDisableExecutionResult();
             threadArgs.EndScriptExecution();
         }
         threadArgs.SignalMonitor();
