@@ -529,6 +529,38 @@ namespace Js
                 VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(aValue));
     }
 
+    bool JavascriptArray::IsInlineSegment(SparseArraySegmentBase *seg, JavascriptArray *pArr)
+    {
+        if (seg == nullptr)
+        {
+            return false;
+        }
+
+        SparseArraySegmentBase* inlineHeadSegment = nullptr;
+        if (JavascriptNativeArray::Is(pArr))
+        {
+            if (JavascriptNativeFloatArray::Is(pArr))
+            {
+                inlineHeadSegment = DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>((JavascriptNativeFloatArray*)pArr);
+            }
+            else
+            {
+                AssertOrFailFast(JavascriptNativeIntArray::Is(pArr));
+                inlineHeadSegment = DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>((JavascriptNativeIntArray*)pArr);
+            }
+
+            Assert(inlineHeadSegment);
+            return (seg == inlineHeadSegment);
+        }
+
+        // This will result in false positives. It is used because DetermineInlineHeadSegmentPointer
+        // does not handle Arrays that change type e.g. from JavascriptNativeIntArray to JavascriptArray
+        // This conversion in particular is problematic because JavascriptNativeIntArray is larger than JavascriptArray
+        // so the returned head segment ptr never equals pArr->head. So we will default to using this and deal with
+        // false positives. It is better than always doing a hard copy.
+        return pArr->head != nullptr && HasInlineHeadSegment(pArr->head->length);
+    }
+
     DynamicObjectFlags JavascriptArray::GetFlags() const
     {
         return GetArrayFlags();
@@ -5213,28 +5245,7 @@ Case0:
     template <typename T>
     void JavascriptArray::CopyHeadIfInlinedHeadSegment(JavascriptArray *array, Recycler *recycler)
     {
-        SparseArraySegmentBase* inlineHeadSegment = nullptr;
-        bool hasInlineSegment = false;
-
-        if (JavascriptNativeArray::Is(array))
-        {
-            if (JavascriptNativeFloatArray::Is(array))
-            {
-                inlineHeadSegment = DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>((JavascriptNativeFloatArray*)array);
-            }
-            else if (JavascriptNativeIntArray::Is(array))
-            {
-                inlineHeadSegment = DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>((JavascriptNativeIntArray*)array);
-            }
-            Assert(inlineHeadSegment);
-            hasInlineSegment = (array->head == (SparseArraySegment<T>*)inlineHeadSegment);
-        }
-        else
-        {
-            hasInlineSegment = HasInlineHeadSegment(array->head->length);
-        }
-
-        if (hasInlineSegment)
+        if (JavascriptArray::IsInlineSegment(array->head, array))
         {
             AnalysisAssert(array->head);
             SparseArraySegment<T>* newHeadSeg = array->ReallocNonLeafSegment((SparseArraySegment<T>*)PointerValue(array->head), array->head->next);
@@ -5378,8 +5389,8 @@ Case0:
             }
 
             // During the loop below we are going to reverse the segments list. The head segment will become the last segment.
-            // We have to verify that the current head segment is not the inilined segement, otherwise due to shuffling below, the inlined segment will no longer
-            // be the head and that can create issue down the line. Create new segment if it is an inilined segment.
+            // We have to verify that the current head segment is not the inlined segement, otherwise due to shuffling below, the inlined segment will no longer
+            // be the head and that can create issue down the line. Create new segment if it is an inlined segment.
             if (pArr->head && pArr->head->next)
             {
                 if (isIntArray)
@@ -5581,6 +5592,9 @@ Case0:
             AssertMsg(pArr->head->size == next->left + 1, "Shift next->left overlaps current segment by more than 1 element");
 
             SparseArraySegment<T> *head = SparseArraySegment<T>::From(pArr->head);
+            SparseArraySegment<T> *oldHead = head;
+            bool isInlineSegment = JavascriptArray::IsInlineSegment(head, pArr);
+            bool nextIsInlineSegment = JavascriptArray::IsInlineSegment(next, pArr);
             // Merge the two adjacent segments
             if (next->length != 0)
             {
@@ -5615,8 +5629,18 @@ Case0:
                 head->length = offset + next->length;
                 head->CheckLengthvsSize();
                 pArr->head = head;
+
+                if (isInlineSegment && oldHead != head)
+                {
+                    pArr->ClearElements(oldHead, 0);
+                }
             }
             head->next = next->next;
+            if (nextIsInlineSegment)
+            {
+                pArr->ClearElements(next, 0);
+            }
+
             pArr->InvalidateLastUsedSegment();
         }
 
@@ -6500,7 +6524,13 @@ Case0:
             uint32 newLength = head->length + countUndefined;
             if (newLength > head->size)
             {
+                SparseArraySegmentBase *oldHead = head;
+                bool isInlineSegment = JavascriptArray::IsInlineSegment(head, this);
                 head = SparseArraySegment<Var>::From(head)->GrowByMin(recycler, newLength - head->size);
+                if (isInlineSegment)
+                {
+                    this->ClearElements(oldHead, 0);
+                }
             }
 
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
@@ -6816,8 +6846,14 @@ Case0:
         // Save the deleted elements
         if (headDeleteLen != 0)
         {
+            SparseArraySegmentBase *oldHead = pnewArr->head;
+            bool isInlineSegment = JavascriptArray::IsInlineSegment(oldHead, pnewArr);
             pnewArr->InvalidateLastUsedSegment();
             pnewArr->head = SparseArraySegment<T>::CopySegment(recycler, SparseArraySegment<T>::From(pnewArr->head), 0, seg, start, headDeleteLen);
+            if (isInlineSegment && oldHead != pnewArr->head)
+            {
+                pnewArr->ClearElements(oldHead, 0);
+            }
         }
 
         if (newHeadLen != 0)
@@ -6908,33 +6944,7 @@ Case0:
             }
         }
 
-        // handle inlined segment
-        SparseArraySegmentBase* inlineHeadSegment = nullptr;
-        bool hasInlineSegment = false;
-        // The following if else set is used to determine whether a shallow or hard copy is needed
-        if (JavascriptNativeArray::Is(pArr))
-        {
-            if (JavascriptNativeFloatArray::Is(pArr))
-            {
-                inlineHeadSegment = DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>((JavascriptNativeFloatArray*)pArr);
-            }
-            else if (JavascriptNativeIntArray::Is(pArr))
-            {
-                inlineHeadSegment = DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>((JavascriptNativeIntArray*)pArr);
-            }
-            Assert(inlineHeadSegment);
-            hasInlineSegment = (startSeg == (SparseArraySegment<T>*)inlineHeadSegment);
-        }
-        else
-        {
-            // This will result in false positives. It is used because DetermineInlineHeadSegmentPointer
-            // does not handle Arrays that change type e.g. from JavascriptNativeIntArray to JavascriptArray
-            // This conversion in particular is problematic because JavascriptNativeIntArray is larger than JavascriptArray
-            // so the returned head segment ptr never equals pArr->head. So we will default to using this and deal with
-            // false positives. It is better than always doing a hard copy.
-            hasInlineSegment = HasInlineHeadSegment(pArr->head->length);
-        }
-
+        bool hasInlineSegment = JavascriptArray::IsInlineSegment(startSeg, pArr);
         if (startSeg)
         {
             // Delete Phase
@@ -7021,6 +7031,7 @@ Case0:
 
                         // Remove the entire segment from the original array
                         *prevSeg = startSeg->next;
+                        pArr->ClearElements(startSeg, 0);
                         startSeg = SparseArraySegment<T>::From(startSeg->next);
                     }
                     // if we have an inline head segment with 0 elements, remove it
@@ -7129,6 +7140,8 @@ Case0:
                 uint32 spaceLeft = segInsert->size - (start - segInsert->left);
                 if(spaceLeft < insertLen)
                 {
+                    SparseArraySegment<T> *oldSegInsert = segInsert;
+                    bool isInlineSegment = JavascriptArray::IsInlineSegment(segInsert, pArr);
                     if (!segInsert->next)
                     {
                         segInsert = segInsert->GrowByMin(recycler, insertLen - spaceLeft);
@@ -7136,6 +7149,11 @@ Case0:
                     else
                     {
                         segInsert = segInsert->GrowByMinMax(recycler, insertLen - spaceLeft, segInsert->next->left - segInsert->left - segInsert->size);
+                    }
+
+                    if (isInlineSegment)
+                    {
+                        pArr->ClearElements(oldSegInsert, 0);
                     }
                 }
                 *prevPrevSeg = segInsert;
@@ -7265,6 +7283,8 @@ Case0:
             // of that segment we optimize splice - Fast path.
             if (pArr->IsSingleSegmentArray() && pArr->head->HasIndex(start))
             {
+                SparseArraySegmentBase *oldHead = pArr->head;
+                bool isInlineSegment = JavascriptArray::IsInlineSegment(oldHead, pArr);
                 if (isIntArray)
                 {
                     ArraySegmentSpliceHelper<int32>(newArr, SparseArraySegment<int32>::From(pArr->head), (SparseArraySegment<int32>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
@@ -7276,6 +7296,11 @@ Case0:
                 else
                 {
                     ArraySegmentSpliceHelper<Var>(newArr, SparseArraySegment<Var>::From(pArr->head), (SparseArraySegment<Var>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
+                }
+
+                if (isInlineSegment && oldHead != pArr->head)
+                {
+                    pArr->ClearElements(oldHead, 0);
                 }
 
                 // Since the start index is within the bounds of the original array's head segment, it will not acquire any new
@@ -7569,6 +7594,8 @@ Case0:
         SparseArraySegmentBase* nextToHeadSeg = pArr->head->next;
         Recycler* recycler = scriptContext->GetRecycler();
 
+        SparseArraySegmentBase *oldHead = pArr->head;
+        bool isInlineSegment = JavascriptArray::IsInlineSegment(oldHead, pArr);
         if (nextToHeadSeg == nullptr)
         {
             pArr->EnsureHead<T>();
@@ -7579,6 +7606,10 @@ Case0:
             pArr->head = SparseArraySegment<T>::From(pArr->head)->GrowByMinMax(recycler, unshiftElements, ((nextToHeadSeg->left + unshiftElements) - pArr->head->left - pArr->head->size));
         }
 
+        if (isInlineSegment)
+        {
+            pArr->ClearElements(oldHead, 0);
+        }
     }
 
     template<typename T>
