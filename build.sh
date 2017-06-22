@@ -163,7 +163,7 @@ while [[ $# -gt 0 ]]; do
         SHOULD_EMBED_ICU=1
         ;;
 
-    --extra-defines)
+    --extra-defines=*)
         DEFINES=$1
         DEFINES=${DEFINES:16}    # value after --extra-defines=
         for x in ${DEFINES//,/ }  # replace comma with space then split
@@ -586,6 +586,7 @@ else
 fi
 
 echo Generating $BUILD_TYPE makefiles
+echo $EXTRA_DEFINES
 cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
     $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT \
     $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS $LIBS_ONLY_BUILD\

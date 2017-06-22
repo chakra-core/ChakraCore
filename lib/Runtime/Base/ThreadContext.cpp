@@ -1735,7 +1735,7 @@ ThreadContext::ProbeStack(size_t size, Js::ScriptContext *scriptContext, PVOID r
 {
     this->ProbeStackNoDispose(size, scriptContext, returnAddress);
 
-#ifdef PERFMAP_TRACE_ENABLED
+#if PERFMAP_TRACE_ENABLED
     if (PlatformAgnostic::PerfTrace::mapsRequested)
     {
         PlatformAgnostic::PerfTrace::WritePerfMap();

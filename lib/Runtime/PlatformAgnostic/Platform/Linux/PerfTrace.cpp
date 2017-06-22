@@ -31,6 +31,7 @@ volatile bool PerfTrace::mapsRequested = false;
 //
 void PerfTrace::Register()
 {
+#if PERFMAP_TRACE_ENABLED
     struct sigaction newAction = {0};
     newAction.sa_flags = SA_RESTART;
     newAction.sa_handler = handle_signal;
@@ -42,6 +43,7 @@ void PerfTrace::Register()
     {
         AssertMsg(errno, "PerfTrace::Register: sigaction() call failed\n");
     }
+#endif
 }
 
 void  PerfTrace::WritePerfMap()
