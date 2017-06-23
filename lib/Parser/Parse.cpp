@@ -891,16 +891,13 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
             PushScope(scope);
         }
 
+        ParseNodePtr pnodeFnc = GetCurrentFunctionNode();
         if (scope->GetScopeType() == ScopeType_GlobalEvalBlock)
         {
             Assert(fBlockScope);
             Assert(scope->GetEnclosingScope() == m_currentNodeProg->sxProg.scope);
             // Check for same-named decl in Global scope.
-            PidRefStack *pidRefOld = pid->GetPidRefForScopeId(0);
-            if (pidRefOld && pidRefOld->GetSym())
-            {
-                Error(ERRRedeclaration);
-            }
+            CheckRedeclarationErrorForBlockId(pid, 0);
         }
         else if (scope->GetScopeType() == ScopeType_Global && (this->m_grfscr & fscrEvalCode) &&
                  !(m_functionBody && m_functionBody->GetScopeInfo()))
@@ -909,16 +906,19 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
             // if we're compiling a deferred nested function and the global scope was restored from cached info,
             // because in that case we don't need a GlobalEvalScope.
             Assert(!fBlockScope || (this->m_grfscr & fscrConsoleScopeEval) == fscrConsoleScopeEval);
-            PidRefStack *pidRefOld = pid->GetPidRefForScopeId(1);
-            if (pidRefOld && pidRefOld->GetSym())
-            {
-                Error(ERRRedeclaration);
-            }
+            CheckRedeclarationErrorForBlockId(pid, 1);
+        }
+        else if (!pnodeFnc->sxFnc.IsBodyAndParamScopeMerged()
+            && scope->GetScopeType() == ScopeType_FunctionBody
+            && (pnode->nop == knopLetDecl || pnode->nop == knopConstDecl))
+        {
+            // In case of split scope function when we add a new let or const declaration to the body
+            // we have to check whether the param scope already has the same symbol defined.
+            CheckRedeclarationErrorForBlockId(pid, pnodeFnc->sxFnc.pnodeScopes->sxBlock.blockId);
         }
 
         if ((scope->GetScopeType() == ScopeType_FunctionBody || scope->GetScopeType() == ScopeType_Parameter) && symbolType != STFunction)
         {
-            ParseNodePtr pnodeFnc = GetCurrentFunctionNode();
             AnalysisAssert(pnodeFnc);
             if (pnodeFnc->sxFnc.pnodeName &&
                 pnodeFnc->sxFnc.pnodeName->nop == knopVarDecl &&
@@ -946,6 +946,16 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         refForDecl->SetSym(sym);
     }
     return sym;
+}
+
+void Parser::CheckRedeclarationErrorForBlockId(IdentPtr pid, int blockId)
+{
+    // If the ref stack entry for the blockId contains a sym then throw redeclaration error
+    PidRefStack *pidRefOld = pid->GetPidRefForScopeId(blockId);
+    if (pidRefOld && pidRefOld->GetSym() && !pidRefOld->GetSym()->GetIsArguments())
+    {
+        Error(ERRRedeclaration);
+    }
 }
 
 bool Parser::IsCurBlockInLoop() const
