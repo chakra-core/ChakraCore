@@ -216,9 +216,6 @@ namespace Js
 #endif
         private:
             static int CallRootEventFilter(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo);
-#if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
-            static bool ResumeForOutOfBoundsArrayRefs(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo);
-#endif
     };
 #if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
     class ArrayAccessDecoder

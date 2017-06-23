@@ -1854,7 +1854,98 @@ LABEL1:
     9)  Return EXCEPTION_CONTINUE_EXECUTION
 
     */
-#if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
+#if ENABLE_NATIVE_CODEGEN
+#if defined(_M_IX86) || defined(_M_X64)
+    class ExceptionFilterHelper
+    {
+        Js::ScriptFunction* m_func = nullptr;
+        bool m_checkedForFunc = false;
+        PEXCEPTION_POINTERS exceptionInfo;
+    public:
+        ExceptionFilterHelper(PEXCEPTION_POINTERS exceptionInfo) : exceptionInfo(exceptionInfo) {}
+        PEXCEPTION_POINTERS GetExceptionInfo() const
+        {
+            return exceptionInfo;
+        }
+        Var GetIPAddress() const
+        {
+#if _M_IX86
+            return (Var)exceptionInfo->ContextRecord->Eip;
+#elif _M_X64
+            return (Var)exceptionInfo->ContextRecord->Rip;
+#else
+#error Not yet Implemented
+#endif
+        }
+        Var* GetAddressOfFuncObj() const
+        {
+#if _M_IX86
+            return (Var*)(exceptionInfo->ContextRecord->Ebp + 2 * sizeof(Var));
+#elif _M_X64
+            return (Var*)(exceptionInfo->ContextRecord->Rbp + 2 * sizeof(Var));
+#else
+#error Not yet Implemented
+#endif
+        }
+        Js::ScriptFunction* GetScriptFunction()
+        {
+            if (m_checkedForFunc)
+            {
+                return m_func;
+            }
+            m_checkedForFunc = true;
+            ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+
+            // AV should come from JITed code, since we don't eliminate bound checks in interpreter
+            if (!threadContext->IsNativeAddress(GetIPAddress()))
+            {
+                return nullptr;
+            }
+
+            Var* addressOfFuncObj = GetAddressOfFuncObj();
+            if (!addressOfFuncObj || *addressOfFuncObj == nullptr || !ScriptFunction::Is(*addressOfFuncObj))
+            {
+                return nullptr;
+            }
+
+            Js::ScriptFunction* func = (Js::ScriptFunction*)(*addressOfFuncObj);
+
+            RecyclerHeapObjectInfo heapObject;
+            Recycler* recycler = threadContext->GetRecycler();
+
+            bool isFuncObjHeapAllocated = recycler->FindHeapObject(func, FindHeapObjectFlags_NoFlags, heapObject); // recheck if this needs to be removed
+            bool isEntryPointHeapAllocated = recycler->FindHeapObject(func->GetEntryPointInfo(), FindHeapObjectFlags_NoFlags, heapObject);
+            bool isFunctionBodyHeapAllocated = recycler->FindHeapObject(func->GetFunctionBody(), FindHeapObjectFlags_NoFlags, heapObject);
+
+            // ensure that all our objects are heap allocated
+            if (!(isFuncObjHeapAllocated && isEntryPointHeapAllocated && isFunctionBodyHeapAllocated))
+            {
+                return nullptr;
+            }
+            m_func = func;
+            return m_func;
+        }
+    };
+
+    void CheckWasmMathException(int exceptionCode, ExceptionFilterHelper& helper)
+    {
+        if (CONFIG_FLAG(WasmMathExFilter) && (exceptionCode == STATUS_INTEGER_DIVIDE_BY_ZERO || exceptionCode == STATUS_INTEGER_OVERFLOW))
+        {
+            Js::ScriptFunction* func = helper.GetScriptFunction();
+            if (func)
+            {
+                Js::FunctionBody* funcBody = func->GetFunctionBody();
+                if (funcBody && funcBody->IsWasmFunction())
+                {
+                    int32 code = exceptionCode == STATUS_INTEGER_DIVIDE_BY_ZERO ? WASMERR_DivideByZero : VBSERR_Overflow;
+                    JavascriptError::ThrowWebAssemblyRuntimeError(func->GetScriptContext(), code);
+                }
+            }
+        }
+    }
+
+    // x64 specific exception filters
+#ifdef _M_X64
     ArrayAccessDecoder::InstructionData ArrayAccessDecoder::CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo) // get the reg operand and isLoad and
     {
         InstructionData instrData;
@@ -2187,42 +2278,14 @@ LABEL1:
         return instrData;
     }
 
-    bool JavascriptFunction::ResumeForOutOfBoundsArrayRefs(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo)
+    bool ResumeForOutOfBoundsArrayRefs(int exceptionCode, ExceptionFilterHelper& helper)
     {
         if (exceptionCode != STATUS_ACCESS_VIOLATION)
         {
             return false;
         }
-
-        ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
-
-        // AV should come from JITed code, since we don't eliminate bound checks in interpreter
-        if (!threadContext->IsNativeAddress((Var)exceptionInfo->ContextRecord->Rip))
-        {
-            return false;
-        }
-
-        Var* addressOfFuncObj = (Var*)(exceptionInfo->ContextRecord->Rbp + 2 * sizeof(Var));
-        if (!addressOfFuncObj)
-        {
-            return false;
-        }
-
-        Js::ScriptFunction* func = (ScriptFunction::Is(*addressOfFuncObj))?(Js::ScriptFunction*)(*addressOfFuncObj):nullptr;
+        Js::ScriptFunction* func = helper.GetScriptFunction();
         if (!func)
-        {
-            return false;
-        }
-
-        RecyclerHeapObjectInfo heapObject;
-        Recycler* recycler = threadContext->GetRecycler();
-
-        bool isFuncObjHeapAllocated = recycler->FindHeapObject(func, FindHeapObjectFlags_NoFlags, heapObject); // recheck if this needs to be removed
-        bool isEntryPointHeapAllocated = recycler->FindHeapObject(func->GetEntryPointInfo(), FindHeapObjectFlags_NoFlags, heapObject);
-        bool isFunctionBodyHeapAllocated = recycler->FindHeapObject(func->GetFunctionBody(), FindHeapObjectFlags_NoFlags, heapObject);
-
-        // ensure that all our objects are heap allocated
-        if (!(isFuncObjHeapAllocated && isEntryPointHeapAllocated && isFunctionBodyHeapAllocated))
         {
             return false;
         }
@@ -2267,6 +2330,7 @@ LABEL1:
             }
         }
 
+        PEXCEPTION_POINTERS exceptionInfo = helper.GetExceptionInfo();
         BYTE* pc = (BYTE*)exceptionInfo->ExceptionRecord->ExceptionAddress;
         ArrayAccessDecoder::InstructionData instrData = ArrayAccessDecoder::CheckValidInstr(pc, exceptionInfo);
         // Check If the instruction is valid
@@ -2335,14 +2399,22 @@ LABEL1:
         return true;
     }
 #endif
+#endif
+#endif
 
     int JavascriptFunction::CallRootEventFilter(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo)
     {
-#if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
-        if (ResumeForOutOfBoundsArrayRefs(exceptionCode, exceptionInfo))
+#if ENABLE_NATIVE_CODEGEN
+#if defined(_M_IX86) || defined(_M_X64)
+        ExceptionFilterHelper helper(exceptionInfo);
+        CheckWasmMathException(exceptionCode, helper);
+#ifdef _M_X64
+        if (ResumeForOutOfBoundsArrayRefs(exceptionCode, helper))
         {
             return EXCEPTION_CONTINUE_EXECUTION;
         }
+#endif
+#endif
 #endif
         return EXCEPTION_CONTINUE_SEARCH;
     }

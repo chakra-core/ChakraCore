@@ -749,7 +749,7 @@ MACRO_BACKEND_ONLY(     PopCnt,             Empty,          OpTempNumberSources|
 MACRO_BACKEND_ONLY(     Copysign_A,         Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Trunc_A,            Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Nearest_A,          Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     Unreachable_Void,   Empty,          OpSideEffect)
+MACRO_BACKEND_ONLY(     ThrowRuntimeError,  Empty,          OpSideEffect)
 MACRO_BACKEND_ONLY(     TrapIfMinIntOverNegOne, Reg3,       OpSideEffect)
 MACRO_BACKEND_ONLY(     TrapIfZero,         Reg3,           OpSideEffect)
 

@@ -354,8 +354,8 @@ public:
     static IR::BranchInstr *    InsertBranch(const Js::OpCode opCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::BranchInstr *    InsertBranch(const Js::OpCode opCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertCompare(IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
-    static IR::BranchInstr *    InsertCompareBranch(IR::Opnd *const compareSrc1, IR::Opnd *const compareSrc2, Js::OpCode branchOpCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
-    static IR::BranchInstr *    InsertCompareBranch(IR::Opnd *compareSrc1, IR::Opnd *compareSrc2, Js::OpCode branchOpCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
+           IR::BranchInstr *    InsertCompareBranch(IR::Opnd *const compareSrc1, IR::Opnd *const compareSrc2, Js::OpCode branchOpCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
+           IR::BranchInstr *    InsertCompareBranch(IR::Opnd *compareSrc1, IR::Opnd *compareSrc2, Js::OpCode branchOpCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
     static IR::Instr *          InsertTest(IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
     static IR::BranchInstr *    InsertTestBranch(IR::Opnd *const testSrc1, IR::Opnd *const testSrc2, const Js::OpCode branchOpCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::BranchInstr *    InsertTestBranch(IR::Opnd *const testSrc1, IR::Opnd *const testSrc2, const Js::OpCode branchOpCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
@@ -444,7 +444,6 @@ private:
     void            GenerateFastInlineMathClz(IR::Instr* instr);
     void            GenerateCtz(IR::Instr* instr);
     void            GeneratePopCnt(IR::Instr* instr);
-    void            GenerateThrowUnreachable(IR::Instr* instr);
     void            GenerateTruncWithCheck(IR::Instr* instr);
     void            GenerateFastInlineMathFround(IR::Instr* instr);
     void            GenerateFastInlineRegExpExec(IR::Instr * instr);
@@ -501,9 +500,12 @@ private:
     void            GenerateObjectTestAndTypeLoad(IR::Instr *instrLdSt, IR::RegOpnd *opndBase, IR::RegOpnd *opndType, IR::LabelInstr *labelHelper);
     IR::LabelInstr *GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr = nullptr, IR::LabelInstr * labelBailOut = nullptr, IR::LabelInstr * collectRuntimeStatsLabel = nullptr);
     void            GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instrAfter);
-    void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr) const;
+    void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr);
+    void            LowerLdI4(IR::Instr * const instr);
     void            LowerDivI4(IR::Instr * const instr);
     void            LowerRemI4(IR::Instr * const instr);
+    void            LowerTrapIfZero(IR::Instr * const instr);
+    void            LowerTrapIfMinIntOverNegOne(IR::Instr * const instr);
     void            LowerDivI4Common(IR::Instr * const instr);
     void            LowerRemR8(IR::Instr * const instr);
     void            LowerRemR4(IR::Instr * const instr);

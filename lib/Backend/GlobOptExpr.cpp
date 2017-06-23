@@ -363,7 +363,7 @@ GlobOpt::CSEAddInstr(
 
 static void TransformIntoUnreachable(IntConstType errorCode, IR::Instr* instr)
 {
-    instr->m_opcode = Js::OpCode::Unreachable_Void;
+    instr->m_opcode = Js::OpCode::ThrowRuntimeError;
     instr->ReplaceSrc1(IR::IntConstOpnd::New(SCODE_CODE(errorCode), TyInt32, instr->m_func));
     instr->UnlinkDst();
 }

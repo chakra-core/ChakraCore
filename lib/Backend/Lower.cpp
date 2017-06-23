@@ -1115,11 +1115,14 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             break;
         case Js::OpCode::TrapIfMinIntOverNegOne:
-            instr->UnlinkSrc2();   //2nd arg was processed in div/rem; unlink it and transform an instruction into mov
+            LowerTrapIfMinIntOverNegOne(instr);
+            break;
         case Js::OpCode::TrapIfTruncOverflow:
+            instr->m_opcode = Js::OpCode::Ld_I4;
+            LowerLdI4(instr);
+            break;
         case Js::OpCode::TrapIfZero:
-            instr->m_opcode = Js::OpCode::Ld_I4; //to simplify handling of i32/i64
-            instrPrev = instr; //re-evaluate -- let Ld_I4 handler to properly lower the operand.
+            LowerTrapIfZero(instr);
             break;
         case Js::OpCode::DivU_I4:
         case Js::OpCode::Div_I4:
@@ -1729,6 +1732,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = this->LowerGrowWasmMemory(instr);
             break;
 #endif
+        case Js::OpCode::Ld_I4:
+            LowerLdI4(instr);
+            break;
         case Js::OpCode::LdAsmJsFunc:
             if (instr->GetSrc1()->IsIndirOpnd())
             {
@@ -1752,15 +1758,8 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 }
             }
             //fallthrough
-        case Js::OpCode::Ld_I4:
         case Js::OpCode::Ld_A:
         case Js::OpCode::InitConst:
-            if (instr->GetDst() && instr->GetDst()->IsInt64())
-            {
-                instrPrev = m_lowererMD.LowerInt64Assign(instr);
-                break;
-            }
-
             if (instr->IsJitProfilingInstr() && instr->AsJitProfilingInstr()->isBeginSwitch) {
                 LowerProfiledBeginSwitch(instr->AsJitProfilingInstr());
                 break;
@@ -3020,8 +3019,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);
             break;
 
-        case Js::OpCode::Unreachable_Void:
-            GenerateThrowUnreachable(instr);
+        case Js::OpCode::ThrowRuntimeError:
+            GenerateThrow(instr->UnlinkSrc1(), instr);
+            instr->Remove();
             break;
 
 #endif //ENABLE_WASM
@@ -14633,6 +14633,16 @@ IR::BranchInstr *Lowerer::InsertCompareBranch(
         insertBeforeInstr->InsertBefore(instr);
         return LowererMD::LowerFloatCondBranch(instr, ignoreNaN);
     }
+#ifdef _M_IX86
+    else if (compareSrc1->IsInt64())
+    {
+        Assert(compareSrc2->IsInt64());
+        IR::BranchInstr *const instr = IR::BranchInstr::New(branchOpCode, target, compareSrc1, compareSrc2, func);
+        insertBeforeInstr->InsertBefore(instr);
+        m_lowererMD.EmitInt64Instr(instr);
+        return instr;
+    }
+#endif
 
     Js::OpCode swapSrcsBranchOpCode;
     switch(branchOpCode)
@@ -14717,6 +14727,10 @@ IR::Instr *Lowerer::InsertTest(IR::Opnd *const src1, IR::Opnd *const src2, IR::I
     Assert(!src1->IsFloat64()); // not implemented
     Assert(src2);
     Assert(!src2->IsFloat64()); // not implemented
+#if !TARGET_64
+    Assert(!src1->IsInt64()); // not implemented
+    Assert(!src2->IsInt64()); // not implemented
+#endif
     Assert(insertBeforeInstr);
 
     Func *const func = insertBeforeInstr->m_func;
@@ -18918,13 +18932,6 @@ Lowerer::GenerateCtz(IR::Instr* instr)
     Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsInt64());
     Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsInt64());
     m_lowererMD.GenerateCtz(instr);
-}
-
-void Lowerer::GenerateThrowUnreachable(IR::Instr* instr)
-{
-    GenerateThrow(instr->GetSrc1(), instr);
-    instr->UnlinkSrc1();
-    instr->Remove();
 }
 
 void
@@ -23896,41 +23903,22 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
     IR::Opnd * src1 = instr->GetSrc1();
     IR::Opnd * src2 = instr->GetSrc2();
 
-    bool isWasmFunc = m_func->GetJITFunctionBody()->IsWasmFunction();
+    bool isWasm = m_func->GetJITFunctionBody()->IsWasmFunction();
+    Assert(!isWasm || isRem);
 
-    IR::Instr* divideByZeroInstr = IR::Instr::FindSingleDefInstr(Js::OpCode::TrapIfZero, instr->GetSrc2());
-
-    if (divideByZeroInstr || !isWasmFunc)
+    if (!isWasm)
     {
         InsertTestBranch(src2, src2, Js::OpCode::BrEq_A, div0Label, div0Label);
-
-        if (divideByZeroInstr)
-        {
-            GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), divLabel);
-        }
-        else
-        {
-            InsertMove(dst, IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
-        }
+        InsertMove(dst, IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
         InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
     }
-
 
     if (instr->GetSrc1()->IsSigned())
     {
         IR::LabelInstr * minIntLabel = nullptr;
         // we need to check for INT_MIN/-1 if divisor is either -1 or variable, and dividend is either INT_MIN or variable
         int64 intMin = IRType_IsInt64(src1->GetType()) ? LONGLONG_MIN : INT_MIN;
-        IR::Instr* overflowReg3 = IR::Instr::FindSingleDefInstr(Js::OpCode::TrapIfMinIntOverNegOne, instr->GetSrc1());
-        bool needsMinOverNeg1Check = true;
-        if (isWasmFunc && !isRem)
-        {
-            needsMinOverNeg1Check = overflowReg3 != nullptr;
-        }
-        else
-        {
-            needsMinOverNeg1Check = !(src2->IsImmediateOpnd() && src2->GetImmediateValue(m_func) != -1);
-        }
+        bool needsMinOverNeg1Check = !(src2->IsImmediateOpnd() && src2->GetImmediateValue(m_func) != -1);
         if (src1->IsImmediateOpnd())
         {
             if (needsMinOverNeg1Check && src1->GetImmediateValue(m_func) == intMin)
@@ -23957,14 +23945,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
                 InsertCompareBranch(src2, IR::IntConstOpnd::NewFromType(-1, src2->GetType(), m_func), Js::OpCode::BrNeq_A, divLabel, divLabel);
             }
             
-            if (overflowReg3)
-            {
-                GenerateThrow( IR::IntConstOpnd::NewFromType(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), divLabel);
-            }
-            else
-            {
-                InsertMove(dst, !isRem ? src1 : IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
-            }
+            InsertMove(dst, !isRem ? src1 : IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
             InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
         }
     }
@@ -23978,6 +23959,7 @@ Lowerer::LowerRemI4(IR::Instr * instr)
 {
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::Rem_I4 || instr->m_opcode == Js::OpCode::RemU_I4);
+
     if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         LowerDivI4Common(instr);
@@ -23989,14 +23971,105 @@ Lowerer::LowerRemI4(IR::Instr * instr)
 }
 
 void
-Lowerer::GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr) const
+Lowerer::LowerTrapIfZero(IR::Instr * const instr)
+{
+    Assert(instr);
+    Assert(instr->m_opcode == Js::OpCode::TrapIfZero);
+    Assert(instr->GetSrc1());
+    Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
+
+    IR::Opnd * src1 = instr->GetSrc1();
+    if (src1->IsImmediateOpnd())
+    {
+        if (src1->GetImmediateValue(m_func) == 0)
+        {
+            GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), instr);
+        }
+    }
+    else
+    {
+        IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
+        InsertCompareBranch(src1, IR::IntConstOpnd::NewFromType(0, src1->GetType(), m_func), Js::OpCode::BrNeq_A, doneLabel, doneLabel);
+        InsertLabel(true, doneLabel);
+        GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), doneLabel);
+    }
+    instr->m_opcode = Js::OpCode::Ld_I4;
+    LowerLdI4(instr);
+}
+
+void
+Lowerer::LowerTrapIfMinIntOverNegOne(IR::Instr * const instr)
+{
+    Assert(instr);
+    Assert(instr->m_opcode == Js::OpCode::TrapIfMinIntOverNegOne);
+    Assert(instr->GetSrc1());
+    Assert(instr->GetSrc2());
+    Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
+
+    IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
+    IR::Opnd * src1 = instr->GetSrc1();
+    IR::Opnd * src2 = instr->UnlinkSrc2();
+
+    int64 intMin = src1->IsInt64() ? LONGLONG_MIN : INT_MIN;
+    if (src1->IsImmediateOpnd())
+    {
+        if (src1->GetImmediateValue(m_func) != intMin)
+        {
+            // Const value not min int, will not trap
+            doneLabel->Remove();
+            src2->Free(m_func);
+            LowerLdI4(instr);
+            return;
+        }
+        // Is min int no need to do check
+    }
+    else
+    {
+        InsertCompareBranch(src1, IR::IntConstOpnd::NewFromType(intMin, src1->GetType(), m_func), Js::OpCode::BrNeq_A, doneLabel, doneLabel);
+    }
+    if (src2->IsImmediateOpnd())
+    {
+        if (src2->GetImmediateValue(m_func) != -1)
+        {
+            // Const value not min int, will not trap
+            doneLabel->Remove();
+            src2->Free(m_func);
+            LowerLdI4(instr);
+            return;
+        }
+        // Is -1 no need to do check
+        src2->Free(m_func);
+    }
+    else
+    {
+        InsertCompareBranch(src2, IR::IntConstOpnd::NewFromType(-1, src2->GetType(), m_func), Js::OpCode::BrNeq_A, doneLabel, doneLabel);
+    }
+    InsertLabel(true, doneLabel);
+    GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), doneLabel);
+    instr->m_opcode = Js::OpCode::Ld_I4;
+    LowerLdI4(instr);
+}
+
+void
+Lowerer::GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr)
 {
     IR::Instr *throwInstr = IR::Instr::New(Js::OpCode::RuntimeTypeError, IR::RegOpnd::New(TyMachReg, m_func), errorCode, m_func);
     instr->InsertBefore(throwInstr);
-    Lowerer* lw = const_cast<Lowerer*> (this); //LowerUnaryHelperMem unlinks src1 of throwInstr,
-                                               //local and self-contained mutation
     const bool isWasm = m_func->GetJITFunctionBody() && m_func->GetJITFunctionBody()->IsWasmFunction();
-    lw->LowerUnaryHelperMem(throwInstr, isWasm ? IR::HelperOp_WebAssemblyRuntimeError : IR::HelperOp_RuntimeTypeError);
+    LowerUnaryHelperMem(throwInstr, isWasm ? IR::HelperOp_WebAssemblyRuntimeError : IR::HelperOp_RuntimeTypeError);
+}
+
+void
+Lowerer::LowerLdI4(IR::Instr * const instr)
+{
+    if (instr->GetDst() && instr->GetDst()->IsInt64())
+    {
+        m_lowererMD.LowerInt64Assign(instr);
+    }
+    else
+    {
+        m_lowererMD.ChangeToAssign(instr);
+    }
 }
 
 void
@@ -24016,6 +24089,12 @@ Lowerer::LowerDivI4(IR::Instr * instr)
         return;
     }
 #endif
+
+    if (m_func->GetJITFunctionBody()->IsWasmFunction())
+    {
+        m_lowererMD.EmitInt4Instr(instr);
+        return;
+    }
 
     if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {

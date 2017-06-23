@@ -2,13 +2,13 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+/* eslint-env node */
 const path = require("path");
 const fs = require("fs-extra");
-const stringArgv = require("string-argv");
 const {spawn} = require("child_process");
 const slash = require("slash");
 
+const config = require("./config.json");
 const rlRoot = path.join(__dirname, "..");
 const baselineDir = path.join(rlRoot, "baselines");
 
@@ -22,47 +22,6 @@ const argv = require("yargs")
       description: "Path to the test suite",
       default: path.join(rlRoot, "testsuite"),
       demand: true,
-    },
-    excludes: {
-      array: true,
-      alias: "e",
-      description: "Spec tests to exclude from the conversion (use for known failures)",
-      default: [
-        "traps",
-      ]
-    },
-    "xplat-excludes": {
-      array: true,
-      description: "Spec tests to exclude when running on xplat (use for known failures)",
-      default: [
-        "address",
-        "binary",
-        "call",
-        "call_indirect",
-        "chakra_i32",
-        "chakra_i64",
-        "conversions",
-        "fac",
-        "float_exprs",
-        "func",
-        "func_ptrs",
-        "i32",
-        "i64",
-        "imports",
-        "int_exprs",
-        "left-to-right",
-        "linking",
-        "memory_trap",
-        "names",
-        "page",
-        "resizing",
-        "select",
-        "skip-stack-guard-page",
-        "start",
-        "traps",
-        "unreachable",
-        "unwind"
-      ]
     },
     rebase: {
       string: true,
@@ -122,14 +81,14 @@ function main() {
           return resolve(testPath);
         });
       }))));
-  }).then(chakraTests => new Promise((resolve, reject) => {
+  }).then(chakraTests => new Promise((resolve) => {
     const specFiles = [...chakraTests];
     fs.walk(path.join(argv.suite, "core"))
       .on("data", item => {
         if (
           path.extname(item.path) === ".wast" &&
           item.path.indexOf(".fail") === -1 &&
-          !argv.excludes.includes(path.basename(item.path, ".wast"))
+          !config.excludes.includes(path.basename(item.path, ".wast"))
         ) {
           specFiles.push(item.path);
         }
@@ -137,7 +96,7 @@ function main() {
       .on("end", () => {
         resolve(specFiles);
       });
-  })).then(specFiles => new Promise((resolve, reject) => {
+  })).then(specFiles => new Promise((resolve) => {
     fs.walk(path.join(argv.suite, "js-api"))
       .on("data", item => {
         if (path.extname(item.path) === ".js") {
@@ -154,20 +113,30 @@ function main() {
     };
     const runs = specFiles.map(specFile => {
       const ext = path.extname(specFile);
-      const isXplatExcluded = argv.xplatExcludes.indexOf(path.basename(specFile, ext)) !== -1;
+      const basename = path.basename(specFile, ext);
+      const isXplatExcluded = config["xplat-excludes"].indexOf(path.basename(specFile, ext)) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
+      const runner = runners[ext];
       const tests = [{
-        runner: runners[ext],
+        runner,
         tags: [],
-        baseline: baseline,
+        baseline,
         flags: [flags]
       }, {
-        runner: runners[ext],
+        runner,
         tags: ["exclude_dynapogo"],
-        baseline: baseline,
+        baseline,
         flags: [flags, "-nonative"]
-      }];
+      }].concat(config.features
+        .filter(feature => feature.files.includes(basename))
+        .map(feature => ({
+          runner,
+          baseline,
+          tags: [].concat(feature.rltags || []),
+          flags: [flags].concat(feature.flags || [])
+        }))
+      );
       if (isXplatExcluded) {
         for (const test of tests) test.tags.push("exclude_xplat");
       }

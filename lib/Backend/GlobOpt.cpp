@@ -12216,7 +12216,7 @@ bool GlobOpt::OptConstFoldBinaryWasm(
     }
 
     int64 tmpValueOut;
-    if (!instr->BinaryCalculatorT<T>(src1IntConstantValue, src2IntConstantValue, &tmpValueOut))
+    if (!instr->BinaryCalculatorT<T>(src1IntConstantValue, src2IntConstantValue, &tmpValueOut, func->GetJITFunctionBody()->IsWasmFunction()))
     {
         return false;
     }
@@ -15842,6 +15842,7 @@ swap_srcs:
     case Js::OpCode::NewRegEx:
     case Js::OpCode::Ld_A:
     case Js::OpCode::Ld_I4:
+    case Js::OpCode::ThrowRuntimeError:
     case Js::OpCode::TrapIfMinIntOverNegOne:
     case Js::OpCode::TrapIfTruncOverflow:
     case Js::OpCode::TrapIfZero:
