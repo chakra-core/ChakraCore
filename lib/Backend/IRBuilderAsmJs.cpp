@@ -1017,7 +1017,7 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::Unreachable_Void:
-        instr = IR::Instr::New(Js::OpCode::Unreachable_Void, m_func);
+        instr = IR::Instr::New(Js::OpCode::ThrowRuntimeError, m_func);
         instr->SetSrc1(IR::IntConstOpnd::New(SCODE_CODE(WASMERR_Unreachable), TyInt32, instr->m_func));
         AddInstr(instr, offset);
         break;
@@ -1953,6 +1953,7 @@ IRBuilderAsmJs::BuildInt1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
         tmpDst->SetValueType(ValueType::Float);
         AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, srcOpnd, m_func), offset);
         dstOpnd = BuildDstOpnd(dstRegSlot, newOpcode == Js::OpCodeAsmJs::Conv_Check_DTI ? TyInt32 : TyUint32);
+        dstOpnd->m_dontDeadStore = true;
         srcOpnd = tmpDst;
         break;
     }
@@ -1993,6 +1994,7 @@ IRBuilderAsmJs::BuildInt1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Re
         tmpDst->SetValueType(ValueType::Float);
         AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, srcOpnd, m_func), offset);
         dstOpnd = BuildDstOpnd(dstRegSlot, newOpcode == Js::OpCodeAsmJs::Conv_Check_FTI ? TyInt32 : TyUint32);
+        dstOpnd->m_dontDeadStore = true;
         srcOpnd = tmpDst;
         op = Js::OpCode::Conv_Prim;
         break;
@@ -2406,10 +2408,20 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         src2Opnd->SetType(TyUint32);
         // Fall through for trap
     case Js::OpCodeAsmJs::Div_Trap_Int:
-        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
-        if (newOpcode == Js::OpCodeAsmJs::Div_Trap_Int)
+#ifdef _WIN32
+        if (CONFIG_FLAG(WasmMathExFilter))
         {
-            src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+            // Do not emit traps, but make sure we don't remove the div
+            dstOpnd->m_dontDeadStore = true;
+        }
+        else
+#endif
+        {
+            src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+            if (newOpcode == Js::OpCodeAsmJs::Div_Trap_Int)
+            {
+                src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+            }
         }
         instr = IR::Instr::New(newOpcode == Js::OpCodeAsmJs::Div_Trap_UInt ? Js::OpCode::DivU_I4 : Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
@@ -2426,7 +2438,17 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         src2Opnd->SetType(TyUint32);
         // Fall through for trap
     case Js::OpCodeAsmJs::Rem_Trap_Int:
-        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+#ifdef _WIN32
+        if (CONFIG_FLAG(WasmMathExFilter))
+        {
+            // Do not emit traps, but make sure we don't remove the rem
+            dstOpnd->m_dontDeadStore = true;
+        }
+        else
+#endif
+        {
+            src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+        }
         instr = IR::Instr::New(newOpcode == Js::OpCodeAsmJs::Rem_Trap_UInt ? Js::OpCode::RemU_I4 : Js::OpCode::Rem_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     case Js::OpCodeAsmJs::Rem_UInt:
@@ -3017,8 +3039,21 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
         // Fall Through for trap
     case Js::OpCodeAsmJs::Div_Trap_Long:
     {
-        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
-        src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+#ifdef _WIN32
+        if (CONFIG_FLAG(WasmMathExFilter))
+        {
+            // Do not emit traps, but make sure we don't remove the div
+            dstOpnd->m_dontDeadStore = true;
+        }
+        else
+#endif
+        {
+            src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+            if (newOpcode == Js::OpCodeAsmJs::Div_Trap_Long)
+            {
+                src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+            }
+        }
         Js::OpCode op = newOpcode == Js::OpCodeAsmJs::Div_Trap_ULong ? Js::OpCode::DivU_I4 : Js::OpCode::Div_I4;
         instr = IR::Instr::New(op, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
@@ -3029,7 +3064,17 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
         // Fall Through for trap
     case Js::OpCodeAsmJs::Rem_Trap_Long:
     {
-        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+#ifdef _WIN32
+        if (CONFIG_FLAG(WasmMathExFilter))
+        {
+            // Do not emit traps, but make sure we don't remove the rem
+            dstOpnd->m_dontDeadStore = true;
+        }
+        else
+#endif
+        {
+            src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+        }
         Js::OpCode op = newOpcode == Js::OpCodeAsmJs::Rem_Trap_ULong ? Js::OpCode::RemU_I4 : Js::OpCode::Rem_I4;
         instr = IR::Instr::New(op, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
@@ -3185,6 +3230,7 @@ IRBuilderAsmJs::BuildLong1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
     IR::RegOpnd* tmpDst = IR::RegOpnd::New(src1Opnd->GetType(), m_func);
     tmpDst->SetValueType(ValueType::Float);
     AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, src1Opnd, m_func), offset);
+    dstOpnd->m_dontDeadStore = true;
     IR::Instr * instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, tmpDst, m_func);
     AddInstr(instr, offset);
 }
@@ -3246,6 +3292,7 @@ IRBuilderAsmJs::BuildLong1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::
         IR::RegOpnd* tmpDst = IR::RegOpnd::New(srcOpnd->GetType(), m_func);
         tmpDst->SetValueType(ValueType::Float);
         AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, srcOpnd, m_func), offset);
+        dstOpnd->m_dontDeadStore = true;
         srcOpnd = tmpDst;
     }
     IR::Instr * instr = IR::Instr::New(op, dstOpnd, srcOpnd, m_func);

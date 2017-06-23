@@ -1984,22 +1984,27 @@ LowererMDArch::EmitInt64Instr(IR::Instr *instr)
     Js::OpCode cmOpCode, lowOpCode, highOpCode;
     switch (instr->m_opcode)
     {
+    case Js::OpCode::Xor_A:
     case Js::OpCode::Xor_I4:
         lowOpCode = Js::OpCode::XOR;
         highOpCode = Js::OpCode::XOR;
         goto binopCommon;
+    case Js::OpCode::Or_A:
     case Js::OpCode::Or_I4:
         lowOpCode = Js::OpCode::OR;
         highOpCode = Js::OpCode::OR;
         goto binopCommon;
+    case Js::OpCode::And_A:
     case Js::OpCode::And_I4:
         lowOpCode = Js::OpCode::AND;
         highOpCode = Js::OpCode::AND;
         goto binopCommon;
+    case Js::OpCode::Add_A:
     case Js::OpCode::Add_I4:
         lowOpCode = Js::OpCode::ADD;
         highOpCode = Js::OpCode::ADC;
         goto binopCommon;
+    case Js::OpCode::Sub_A:
     case Js::OpCode::Sub_I4:
         lowOpCode = Js::OpCode::SUB;
         highOpCode = Js::OpCode::SBB;
@@ -2019,13 +2024,16 @@ binopCommon:
         LowererMD::Legalize(instr);
         break;
     }
+    case Js::OpCode::ShrU_A:
     case Js::OpCode::ShrU_I4:
         instr = LowerToHelper(IR::HelperDirectMath_Int64ShrU);
         break;
 
+    case Js::OpCode::Shr_A:
     case Js::OpCode::Shr_I4:
         instr = LowerToHelper(IR::HelperDirectMath_Int64Shr);
         break;
+    case Js::OpCode::Shl_A:
     case Js::OpCode::Shl_I4:
         instr = LowerToHelper(IR::HelperDirectMath_Int64Shl);
         break;
@@ -2044,6 +2052,7 @@ binopCommon:
     case Js::OpCode::PopCnt:
         instr = LowerToHelper(IR::HelperPopCnt64);
         break;
+    case Js::OpCode::Mul_A:
     case Js::OpCode::Mul_I4:
         instr = LowerToHelper(IR::HelperDirectMath_Int64Mul);
         break;
@@ -2051,6 +2060,7 @@ binopCommon:
         this->lowererMD->m_lowerer->LoadScriptContext(instr);
         instr = LowerToHelper(IR::HelperDirectMath_Int64DivU);
         break;
+    case Js::OpCode::Div_A:
     case Js::OpCode::Div_I4:
         this->lowererMD->m_lowerer->LoadScriptContext(instr);
         instr = LowerToHelper(IR::HelperDirectMath_Int64DivS);
@@ -2059,25 +2069,30 @@ binopCommon:
         this->lowererMD->m_lowerer->LoadScriptContext(instr);
         instr = LowerToHelper(IR::HelperDirectMath_Int64RemU);
         break;
+    case Js::OpCode::Rem_A:
     case Js::OpCode::Rem_I4:
         this->lowererMD->m_lowerer->LoadScriptContext(instr);
         instr = LowerToHelper(IR::HelperDirectMath_Int64RemS);
         break;
+    case Js::OpCode::BrTrue_A:
     case Js::OpCode::BrTrue_I4:
         cmOpCode = Js::OpCode::CmEq_I4;
         instr->m_opcode = Js::OpCode::JNE;
         goto br_Common;
 
+    case Js::OpCode::BrFalse_A:
     case Js::OpCode::BrFalse_I4:
         cmOpCode = Js::OpCode::CmEq_I4;
         instr->m_opcode = Js::OpCode::JEQ;
         goto br_Common;
 
+    case Js::OpCode::BrEq_A:
     case Js::OpCode::BrEq_I4:
         cmOpCode = Js::OpCode::CmEq_I4;
         instr->m_opcode = Js::OpCode::JEQ;
         goto br_Common;
 
+    case Js::OpCode::BrNeq_A:
     case Js::OpCode::BrNeq_I4:
         cmOpCode = Js::OpCode::CmNeq_I4;
         instr->m_opcode = Js::OpCode::JNE;
@@ -2103,21 +2118,25 @@ binopCommon:
         instr->m_opcode = Js::OpCode::JB;
         goto br_Common;
 
+    case Js::OpCode::BrGt_A:
     case Js::OpCode::BrGt_I4:
         cmOpCode = Js::OpCode::CmGt_I4;
         instr->m_opcode = Js::OpCode::JGT;
         goto br_Common;
 
+    case Js::OpCode::BrGe_A:
     case Js::OpCode::BrGe_I4:
         cmOpCode = Js::OpCode::CmGe_I4;
         instr->m_opcode = Js::OpCode::JGE;
         goto br_Common;
 
+    case Js::OpCode::BrLe_A:
     case Js::OpCode::BrLe_I4:
         cmOpCode = Js::OpCode::CmLe_I4;
         instr->m_opcode = Js::OpCode::JLE;
         goto br_Common;
 
+    case Js::OpCode::BrLt_A:
     case Js::OpCode::BrLt_I4:
         cmOpCode = Js::OpCode::CmLt_I4;
         instr->m_opcode = Js::OpCode::JLT;

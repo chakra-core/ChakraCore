@@ -1,0 +1,54 @@
+{
+  "features": [{
+    "flags": ["-wasmfastarray-"],
+    "rltags": ["exclude_x86"],
+    "files": [
+      "address",
+      "float_memory",
+      "memory",
+      "memory_trap",
+      "resizing",
+      "traps"
+    ]
+  }, {
+    "flags": ["-wasmMathExFilter"],
+    "files": [
+      "int_exprs",
+      "i32",
+      "i64",
+      "chakra_i32",
+      "chakra_i64",
+      "traps"
+    ]
+  }],
+  "excludes": [],
+  "xplat-excludes": [
+    "address",
+    "binary",
+    "call",
+    "call_indirect",
+    "chakra_i32",
+    "chakra_i64",
+    "conversions",
+    "fac",
+    "float_exprs",
+    "func",
+    "func_ptrs",
+    "i32",
+    "i64",
+    "imports",
+    "int_exprs",
+    "left-to-right",
+    "linking",
+    "memory_trap",
+    "names",
+    "page",
+    "resizing",
+    "select",
+    "skip-stack-guard-page",
+    "start",
+    "traps",
+    "unreachable",
+    "unwind"
+  ]
+}
