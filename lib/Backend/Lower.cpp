@@ -10920,11 +10920,12 @@ Lowerer::LowerArgInAsmJs(IR::Instr * instrArgIn)
 {
     Assert(m_func->GetJITFunctionBody()->IsAsmJsMode());
 
-    int argCount = (int)(int16)m_func->argInsCount;
+    Js::ArgSlot argCount = m_func->argInsCount;
     IR::Instr * instr = instrArgIn;
 
-    for (int argNum = argCount - 1; argNum >= 0; --argNum)
+    for (Js::ArgSlot argNum = 0; argNum < argCount; ++argNum)
     {
+        AssertOrFailFast(instr && instr->m_opcode == Js::OpCode::ArgIn_A);
 #ifdef _M_IX86
         if (instr->GetDst()->IsInt64())
         {
