@@ -2662,7 +2662,7 @@ bool Inline::InlineApplyScriptTarget(IR::Instr *callInstr, const FunctionJITTime
     const auto inlineCacheIndex = applyTargetLdOpnd->AsPropertySymOpnd()->m_inlineCacheIndex;
     const auto inlineeData = inlinerData->GetLdFldInlinee(inlineCacheIndex);
 
-    if ((!isArrayOpndArgumentsObject && (argsCount == 2)) || SkipCallApplyScriptTargetInlining_Shared(callInstr, inlinerData, inlineeData, /*isApplyTarget*/ true, /*isCallTarget*/ false))
+    if ((!isArrayOpndArgumentsObject && (argsCount != 1)) || SkipCallApplyScriptTargetInlining_Shared(callInstr, inlinerData, inlineeData, /*isApplyTarget*/ true, /*isCallTarget*/ false))
     {
         *pInlineeData = inlineeData;
         return false;
