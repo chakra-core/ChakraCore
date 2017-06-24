@@ -357,7 +357,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsFinalizeCallback 
                 //handle any uncaught exception by immediately time-traveling to the throwing line in the debugger -- in replay just report and exit
                 if(res == JsErrorCategoryScript)
                 {
-                    wprintf(_u("An unhandled script exception occoured!!!\n"));
+                    wprintf(_u("An unhandled script exception occurred!!!\n"));
 
                     ExitProcess(0);
                 }
