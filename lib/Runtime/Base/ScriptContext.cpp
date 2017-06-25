@@ -1733,25 +1733,37 @@ namespace Js
 
         JavascriptString *string;
 
+// TODO: (obastemur) Could this be dynamic instead of compile time?
+#ifndef CC_LOW_MEMORY_TARGET // we don't need this on a target with low memory
         if (!this->integerStringMap.TryGetValue(value, &string))
         {
             // Add the string to hash table cache
             // Don't add if table is getting too full.  We'll be holding on to
             // too many strings, and table lookup will become too slow.
-            if (this->integerStringMap.Count() > 1024)
+            // TODO: Long term running app, this cache doesn't provide much value?
+            //       i.e. what is the importance of first 512 number to string calls?
+            //       a solution; count the number of times we couldn't use cache
+            //       after cache is full. If it's bigger than X ?? the discard the
+            //       previous cache?
+            if (this->integerStringMap.Count() > 512)
             {
+#endif
                 // Use recycler memory
                 string = TaggedInt::ToString(value, this);
+
+#ifndef CC_LOW_MEMORY_TARGET
             }
             else
             {
-                char16 stringBuffer[20];
+                char16 stringBuffer[22];
 
-                TaggedInt::ToBuffer(value, stringBuffer, _countof(stringBuffer));
-                string = JavascriptString::NewCopySzFromArena(stringBuffer, this, this->GeneralAllocator());
+                int pos = TaggedInt::ToBuffer(value, stringBuffer, _countof(stringBuffer));
+                string = JavascriptString::NewCopySzFromArena(stringBuffer + pos,
+                    this, this->GeneralAllocator(), (_countof(stringBuffer) - 1) - pos);
                 this->integerStringMap.AddNew(value, string);
             }
         }
+#endif
 
         return string;
     }

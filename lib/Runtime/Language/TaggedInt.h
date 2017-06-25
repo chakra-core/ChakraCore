@@ -51,9 +51,9 @@ namespace Js {
         static int64 ToInt64(Var aValue);
         static uint16 ToUInt16(Var aValue);
         static Var ToVarUnchecked(int nValue);
-        static void ToBuffer(Var aValue, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
-        static void ToBuffer(int value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
-        static void ToBuffer(uint value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
+        static int ToBuffer(Var aValue, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
+        static int ToBuffer(int value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
+        static int ToBuffer(uint value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
         static JavascriptString* ToString(Var aValue,ScriptContext* scriptContext);
         static JavascriptString* ToString(int value,ScriptContext* scriptContext);
         static JavascriptString* ToString(uint value,ScriptContext* scriptContext);
