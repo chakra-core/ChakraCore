@@ -289,6 +289,7 @@ public:
     {
         fncFlags = kFunctionNone;
         canBeDeferred = false;
+        isBodyAndParamScopeMerged = true;
     }
 
     void SetAsmjsMode(bool set = true) { SetFlags(kFunctionAsmjsMode, set); }
