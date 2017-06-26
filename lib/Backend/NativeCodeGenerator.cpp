@@ -2833,8 +2833,8 @@ NativeCodeGenerator::GatherCodeGenData(
                 continue;
             }
 
-            bool getSetInlineCandidate = inlineGetterSetter && ((cacheType & Js::FldInfo_FromAccessor) != 0);
-            bool callApplyInlineCandidate = (inlineCallTarget || inlineApplyTarget) && ((cacheType & Js::FldInfo_FromAccessor) == 0);
+            bool getSetInlineCandidate = inlineGetterSetter && ((cacheType & Js::FldInfo_InlineCandidate) != 0) && ((cacheType & Js::FldInfo_FromAccessor) != 0);
+            bool callApplyInlineCandidate = (inlineCallTarget || inlineApplyTarget) && ((cacheType & Js::FldInfo_InlineCandidate) != 0) && ((cacheType & Js::FldInfo_FromAccessor) == 0);
 
             // 1. Do not inline if the x in a.x is both a getter/setter and is followed by a .apply
             // 2. If we were optimistic earlier in assuming that the inline caches on the function object would be monomorphic and asserted that we may possibly inline apply target,
