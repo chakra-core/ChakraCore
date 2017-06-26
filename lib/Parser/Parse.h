@@ -270,6 +270,7 @@ public:
     ParseNodePtr CreateNode(OpCode nop) { return CreateNode(nop, m_pscan? m_pscan->IchMinTok() : 0); }
     ParseNodePtr CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl = true, bool *isRedecl = nullptr);
     Symbol*      AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl, bool *isRedecl = nullptr);
+    void         CheckRedeclarationErrorForBlockId(IdentPtr pid, int blockId);
     ParseNodePtr CreateNameNode(IdentPtr pid)
     {
         ParseNodePtr pnode = CreateNode(knopName);
