@@ -214,6 +214,7 @@ namespace Js
 
         static JavascriptArray* FromAnyArray(Var aValue);
         static bool IsDirectAccessArray(Var aValue);
+        static bool IsInlineSegment(SparseArraySegmentBase *seg, JavascriptArray *pArr);
 
         void SetLength(uint32 newLength);
         BOOL SetLength(Var newLength);
