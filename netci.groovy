@@ -107,7 +107,7 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnaly
 }
 
 def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, configTag,
-    xplatBranch, nonDefaultTaskSetup, customOption, testVariant ->
+    xplatBranch, nonDefaultTaskSetup, customOption, testVariant, extraBuildParams ->
 
     def config = (platform == "osx" ? "osx_${buildType}" : "linux_${buildType}")
     def numConcurrentCommand = (platform == "osx" ? "sysctl -n hw.logicalcpu" : "nproc")
@@ -126,7 +126,7 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
     def icuFlag = (platform == "osx" ? "--icu=/usr/local/opt/icu4c/include" : "")
     def compilerPaths = (platform == "osx") ? "" : "--cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
     def buildScript = "bash ./build.sh ${staticFlag} -j=`${numConcurrentCommand}` ${buildFlag} " +
-                      "${swbCheckFlag} ${compilerPaths} ${icuFlag} ${customOption}"
+                      "${swbCheckFlag} ${compilerPaths} ${icuFlag} ${customOption} ${extraBuildParams}"
     def testScript = "bash test/runtests.sh \"${testVariant}\""
 
     def newJob = job(jobName) {
@@ -164,10 +164,10 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
 }
 
 // Generic task to trigger clang-based cross-plat build tasks
-def CreateXPlatBuildTasks = { machine, platform, configTag, xplatBranch, nonDefaultTaskSetup ->
+def CreateXPlatBuildTasks = { machine, platform, configTag, xplatBranch, nonDefaultTaskSetup, extraBuildParams ->
     [true, false].each { isPR ->
         CreateXPlatBuildTask(isPR, "test", "", machine, platform,
-            configTag, xplatBranch, nonDefaultTaskSetup, "--no-jit", "--variants disable_jit")
+            configTag, xplatBranch, nonDefaultTaskSetup, "--no-jit", "--variants disable_jit", extraBuildParams)
 
         ['debug', 'test', 'release'].each { buildType ->
             def staticBuildConfigs = [true, false]
@@ -177,7 +177,7 @@ def CreateXPlatBuildTasks = { machine, platform, configTag, xplatBranch, nonDefa
 
             staticBuildConfigs.each { staticBuild ->
                 CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform,
-                    configTag, xplatBranch, nonDefaultTaskSetup, "", "")
+                    configTag, xplatBranch, nonDefaultTaskSetup, "", "", extraBuildParams)
             }
         }
     }
@@ -298,7 +298,7 @@ if (isXPlatCompatibleBranch) {
     def osString = 'Ubuntu16.04'
 
     // PR and CI checks
-    CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, null)
+    CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, null, "")
 
     // daily builds
     if (isXPlatDailyBranch) {
@@ -306,7 +306,8 @@ if (isXPlatCompatibleBranch) {
             /* nonDefaultTaskSetup */ { newJob, isPR, config ->
                 DailyBuildTaskSetup(newJob, isPR,
                     "Ubuntu ${config}",
-                    'linux\\s+tests')})
+                    'linux\\s+tests')},
+            /* extraBuildParams */ "--extra-defines=PERFMAP_TRACE_ENABLED=1")
     }
 }
 
@@ -318,7 +319,7 @@ if (isXPlatCompatibleBranch) {
     def osString = 'OSX'
 
     // PR and CI checks
-    CreateXPlatBuildTasks(osString, "osx", "osx", branch, null)
+    CreateXPlatBuildTasks(osString, "osx", "osx", branch, null, "")
 
     // daily builds
     if (isXPlatDailyBranch) {
@@ -326,7 +327,8 @@ if (isXPlatCompatibleBranch) {
             /* nonDefaultTaskSetup */ { newJob, isPR, config ->
                 DailyBuildTaskSetup(newJob, isPR,
                     "OSX ${config}",
-                    'linux\\s+tests')})
+                    'linux\\s+tests')},
+            /* extraBuildParams */ "")
     }
 }
 

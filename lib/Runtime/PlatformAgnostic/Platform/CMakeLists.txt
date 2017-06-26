@@ -7,6 +7,7 @@ set(PL_SOURCE_FILES
   Linux/UnicodeText.ICU.cpp
   Linux/NumbersUtility.cpp
   Linux/Thread.cpp
+  Linux/PerfTrace.cpp
   Common/Trace.cpp
   Common/SystemInfo.Common.cpp
   )

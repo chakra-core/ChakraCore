@@ -41,6 +41,8 @@ PRINT_USAGE() {
     echo "     --create-deb[=V]  Create .deb package with given V version."
     echo " -d, --debug           Debug build. Default: Release"
     echo "     --embed-icu       Download and embed ICU-57 statically."
+    echo "     --extra-defines=DEF=VAR,DEFINE,..."
+    echo "                       Compile with additional defines"
     echo " -h, --help            Show help"
     echo "     --icu=PATH        Path to ICU include folder (see example below)"
     echo " -j[=N], --jobs[=N]    Multicore build, allow N jobs at once."
@@ -87,6 +89,7 @@ _CC=""
 _VERBOSE=""
 BUILD_TYPE="Release"
 CMAKE_GEN=
+EXTRA_DEFINES=""
 MAKE=make
 MULTICORE_BUILD=""
 NO_JIT=
@@ -158,6 +161,20 @@ while [[ $# -gt 0 ]]; do
 
     --embed-icu)
         SHOULD_EMBED_ICU=1
+        ;;
+
+    --extra-defines=*)
+        DEFINES=$1
+        DEFINES=${DEFINES:16}    # value after --extra-defines=
+        for x in ${DEFINES//,/ }  # replace comma with space then split
+        do
+            if [[ "$EXTRA_DEFINES" == "" ]]; then
+                EXTRA_DEFINES="-DEXTRA_DEFINES_SH="
+            else
+                EXTRA_DEFINES="$EXTRA_DEFINES;"
+            fi
+            EXTRA_DEFINES="${EXTRA_DEFINES}-D${x}"
+        done
         ;;
 
     -t | --test-build)
@@ -570,8 +587,9 @@ else
 fi
 
 echo Generating $BUILD_TYPE makefiles
+echo $EXTRA_DEFINES
 cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
-    $ENABLE_CC_XPLAT_TRACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT \
+    $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT \
     $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS $LIBS_ONLY_BUILD\
     $VALGRIND $BUILD_RELATIVE_DIRECTORY
 
