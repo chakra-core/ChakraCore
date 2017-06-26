@@ -6082,7 +6082,9 @@ namespace Js
             argumentsType = heapArgumentsType;
         }
 
-        return RecyclerNew(recycler, HeapArgumentsObject, recycler, (ActivationObject*)frameObj, formalCount, argumentsType);
+        return RecyclerNew(recycler, HeapArgumentsObject, recycler,
+            frameObj != GetNull() ? static_cast<ActivationObject*>(frameObj) : nullptr,
+            formalCount, argumentsType);
     }
 
     JavascriptArray* JavascriptLibrary::CreateArray()
