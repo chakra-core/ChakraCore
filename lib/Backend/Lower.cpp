@@ -10916,30 +10916,24 @@ Lowerer::LoadGeneratorObject(IR::Instr * instrInsert)
 }
 
 IR::Instr *
-Lowerer::LowerArgInAsmJs(IR::Instr * instrArgIn)
+Lowerer::LowerArgInAsmJs(IR::Instr * instr)
 {
     Assert(m_func->GetJITFunctionBody()->IsAsmJsMode());
 
-    int argCount = (int)(int16)m_func->argInsCount;
-    IR::Instr * instr = instrArgIn;
-
-    for (int argNum = argCount - 1; argNum >= 0; --argNum)
-    {
+    Assert(instr && instr->m_opcode == Js::OpCode::ArgIn_A);
+    IR::Instr* instrPrev = instr->m_prev;
 #ifdef _M_IX86
-        if (instr->GetDst()->IsInt64())
-        {
-            instr = m_lowererMD.LowerInt64Assign(instr);
-        }
-        else
+    if (instr->GetDst()->IsInt64())
+    {
+        m_lowererMD.LowerInt64Assign(instr);
+    }
+    else
 #endif
-        {
-            IR::Instr * instrPrev = instr->m_prev;
-            m_lowererMD.ChangeToAssign(instr);
-            instr = instrPrev;
-        }
+    {
+        m_lowererMD.ChangeToAssign(instr);
     }
 
-    return instr;
+    return instrPrev;
 }
 
 bool
