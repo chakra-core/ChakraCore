@@ -1847,7 +1847,7 @@ namespace Js
         {
             library->AddMember(atomicsObject, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Atomics")), PropertyConfigurable);
         }
-        
+
         atomicsObject->SetHasNoEnumerableProperties(true);
     }
 
@@ -2332,7 +2332,7 @@ namespace Js
         }
         return promiseResolveFunction;
     }
-    
+
     void JavascriptLibrary::InitializePromisePrototype(DynamicObject* promisePrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(promisePrototype, mode, 4);
@@ -3492,7 +3492,7 @@ namespace Js
         defaultPropertyDescriptor.SetConfigurable(false);
 
 #if !defined(_M_X64_OR_ARM64)
-        
+
         VirtualTableRecorder<Js::JavascriptNumber>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptNumber);
 #else
         vtableAddresses[VTableValue::VtableJavascriptNumber] = 0;
@@ -3587,7 +3587,7 @@ namespace Js
             case TypeIds_SIMDFloat32x4:
                 typeDisplayStrings[typeId] = simdFloat32x4DisplayString;
                 break;
-            
+
            //case TypeIds_SIMDFloat64x2:  //Type under review by the spec.
                 // typeDisplayStrings[typeId] = simdFloat64x2DisplayString;
                 // break;
@@ -6079,7 +6079,9 @@ namespace Js
             argumentsType = heapArgumentsType;
         }
 
-        return RecyclerNew(recycler, HeapArgumentsObject, recycler, (ActivationObject*)frameObj, formalCount, argumentsType);
+        return RecyclerNew(recycler, HeapArgumentsObject, recycler,
+            frameObj != GetNull() ? static_cast<ActivationObject*>(frameObj) : nullptr,
+            formalCount, argumentsType);
     }
 
     JavascriptArray* JavascriptLibrary::CreateArray()
