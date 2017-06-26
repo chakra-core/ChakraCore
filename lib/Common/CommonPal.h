@@ -28,7 +28,6 @@
 #else // Windows
     #define _ALWAYSINLINE __forceinline
     #define _NOINLINE __declspec(noinline)
-    #define __forceinline inline
 #endif
 
 // Only VC compiler support overflow guard
