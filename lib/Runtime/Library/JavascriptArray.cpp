@@ -4806,7 +4806,7 @@ Case0:
     {
         if (JavascriptArray::Is(object))
         {
-            return EntryPopJavascriptArray(scriptContext, object);
+            return EntryPopJavascriptArray(scriptContext, JavascriptArray::FromVar(object));
         }
         else
         {
@@ -4814,10 +4814,9 @@ Case0:
         }
     }
 
-    Var JavascriptArray::EntryPopJavascriptArray(ScriptContext * scriptContext, Var object)
+    Var JavascriptArray::EntryPopJavascriptArray(ScriptContext * scriptContext, JavascriptArray* arr)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
-        JavascriptArray * arr = JavascriptArray::FromVar(object);
         uint32 length = arr->length;
 
         if (length == 0)
@@ -4910,7 +4909,7 @@ Case0:
 
         if (JavascriptArray::Is(args[0]))
         {
-            JS_REENTRANT_UNLOCK(jsReentLock, return EntryPopJavascriptArray(scriptContext, args.Values[0]));
+            JS_REENTRANT_UNLOCK(jsReentLock, return EntryPopJavascriptArray(scriptContext, JavascriptArray::FromVar(args.Values[0])));
         }
         else
         {
