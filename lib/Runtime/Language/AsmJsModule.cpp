@@ -2287,7 +2287,10 @@ namespace Js
             {
                 mModuleMemory.mMemorySize = (int)((mModuleMemory.mSimdOffset + mSimdVarSpace.GetTotalVarCount()) * WAsmJs::SIMD_SLOTS_SPACE);
             }
-
+        }
+        else
+        {
+            mModuleMemory.mSimdOffset = 0;  // initialize to avoid GC false reference
         }
     }
 
