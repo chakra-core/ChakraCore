@@ -166,6 +166,7 @@ AutoSystemInfo::InitPhysicalProcessorCount()
     bResult = GetLogicalProcessorInformation(pBufferCurrent, &size);
     if (!bResult)
     {
+        NoCheckHeapDeleteArray(count, pBufferStart);
         return false;
     }
 
