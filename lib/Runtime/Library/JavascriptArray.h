@@ -304,7 +304,7 @@ namespace Js
         static Var Pop(ScriptContext * scriptContext, Var object);
 
 
-        static Var EntryPopJavascriptArray(ScriptContext * scriptContext, Var object);
+        static Var EntryPopJavascriptArray(ScriptContext * scriptContext, JavascriptArray* arr);
         static Var EntryPopNonJavascriptArray(ScriptContext * scriptContext, Var object);
 
 #if DEBUG
