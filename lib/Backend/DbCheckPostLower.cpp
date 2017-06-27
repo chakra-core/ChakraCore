@@ -243,6 +243,8 @@ void DbCheckPostLower::Check(IR::RegOpnd *regOpnd)
         return;
     }
 
+    Assert(regOpnd->IsRegOpnd());
+
     RegNum reg = regOpnd->GetReg();
     if (reg != RegNOREG)
     {
