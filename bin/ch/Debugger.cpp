@@ -327,7 +327,7 @@ bool Debugger::SetBaseline()
                 script[numChars] = '\0';
 
                 JsValueRef wideScriptRef;
-                IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString(
+                IfJsErrorFailLogAndHR(ChakraRTInterface::JsCreateString(
                   script, strlen(script), &wideScriptRef));
 
                 this->CallFunctionNoResult("SetBaseline", wideScriptRef);
