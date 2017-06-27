@@ -6,6 +6,10 @@
 LR"====(
 
 var $262 = {
+  createRealm: function () {
+    return WScript.LoadScript('', 'samethread').$262;
+  },
+  global: this,
   agent: {
     start: function (src) {
       WScript.LoadScript(        
@@ -23,7 +27,7 @@ var $262 = {
     broadcast: function (sab) { WScript.Broadcast(sab); },
     sleep: function (timeout) { WScript.Sleep(timeout); },
     getReport: function () { return WScript.GetReport(); },
-  }
+  },
 }
 
 )===="
