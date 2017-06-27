@@ -850,6 +850,7 @@ int _cdecl RunJITServer(int argc, __in_ecount(argc) LPWSTR argv[])
     ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, nullptr };
     HINSTANCE chakraLibrary = nullptr;
     bool success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
+    int status = 0;
 
     if (!success)
     {
@@ -858,25 +859,27 @@ int _cdecl RunJITServer(int argc, __in_ecount(argc) LPWSTR argv[])
     }
 
     UUID connectionUuid;
-    DWORD status = UuidFromStringW((RPC_WSTR)connectionUuidString, &connectionUuid);
+    status = UuidFromStringW((RPC_WSTR)connectionUuidString, &connectionUuid);
     if (status != RPC_S_OK)
     {
-        return status;
+        goto cleanup;
     }
 
     JsInitializeJITServerPtr initRpcServer = (JsInitializeJITServerPtr)GetProcAddress(chakraLibrary, "JsInitializeJITServer");
-    HRESULT hr = initRpcServer(&connectionUuid, nullptr, nullptr);
-    if (FAILED(hr))
+    status = initRpcServer(&connectionUuid, nullptr, nullptr);
+    if (FAILED(status))
     {
-        wprintf(L"InitializeJITServer failed by 0x%x\n", hr);
-        return hr;
+        wprintf(L"InitializeJITServer failed by 0x%x\n", status);
+        goto cleanup;
     }
+    status = 0;
 
+cleanup:
     if (chakraLibrary)
     {
         ChakraRTInterface::UnloadChakraDll(chakraLibrary);
     }
-    return 0;
+    return status;
 }
 #endif
 
