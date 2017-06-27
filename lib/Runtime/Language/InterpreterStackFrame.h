@@ -217,12 +217,14 @@ namespace Js
 
         template <typename RegSlotType> AsmJsSIMDValue GetRegRawSimd(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void           SetRegRawSimd(RegSlotType localRegisterID, AsmJsSIMDValue bValue);
+
         template <class T> void OP_SimdLdArrGeneric(const unaligned T* playout);
         template <class T> void OP_SimdLdArrConstIndex(const unaligned T* playout);
         template <class T> void OP_SimdStArrGeneric(const unaligned T* playout);
         template <class T> void OP_SimdStArrConstIndex(const unaligned T* playout);
         template <class T> void OP_SimdInt32x4FromFloat32x4(const unaligned T* playout);
         template <class T> void OP_SimdUint32x4FromFloat32x4(const unaligned T* playout);
+        template <class T> void OP_WasmSimdConst(const unaligned T* playout);
 
         template <class T> void OP_SimdInt16x8(const unaligned T* playout);
         template <class T> void OP_SimdInt8x16(const unaligned T* playout);

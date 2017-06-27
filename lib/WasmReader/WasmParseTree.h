@@ -96,6 +96,11 @@ namespace Wasm
         };
     };
 
+    struct WasmLaneNode
+    {
+        uint index;
+    };
+
     struct WasmVarNode
     {
         uint num;
@@ -146,6 +151,7 @@ namespace Wasm
             WasmConstLitNode cnst;
             WasmMemOpNode mem;
             WasmVarNode var;
+            WasmLaneNode lane;
         };
     };
 

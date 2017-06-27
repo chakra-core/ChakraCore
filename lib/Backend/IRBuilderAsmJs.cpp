@@ -2238,6 +2238,17 @@ IRBuilderAsmJs::BuildReg1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegS
 }
 
 void
+IRBuilderAsmJs::BuildFloat32x4_IntConst4(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, int C1, int C2, int C3, int C4)
+{
+    Assert(newOpcode == Js::OpCodeAsmJs::Simd128_LdC);
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128F4);
+    dstOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
+    SIMDValue simdConst{ C1, C2, C3, C4 };
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::Simd128_LdC, dstOpnd, IR::Simd128ConstOpnd::New(simdConst, TySimd128F4, m_func), m_func);
+    AddInstr(instr, offset);
+}
+
+void
 IRBuilderAsmJs::BuildInt1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, int constInt)
 {
     Assert(newOpcode == Js::OpCodeAsmJs::Ld_IntConst);
@@ -6452,11 +6463,11 @@ void IRBuilderAsmJs::BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offs
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmSimdTypedArr<SizePolicy>>();
-    BuildAsmSimdTypedArr(newOpcode, offset, layout->SlotIndex, layout->Value, layout->ViewType, layout->DataWidth);
+    BuildAsmSimdTypedArr(newOpcode, offset, layout->SlotIndex, layout->Value, layout->ViewType, layout->DataWidth, layout->Offset);
 }
 
 void
-IRBuilderAsmJs::BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, Js::ArrayBufferView::ViewType viewType, uint8 dataWidth)
+IRBuilderAsmJs::BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, Js::ArrayBufferView::ViewType viewType, uint8 dataWidth, uint32 simdOffset)
 {
     IRType type = TySimd128F4;
     Js::RegSlot valueRegSlot = GetRegSlotFromSimd128Reg(value);
@@ -6784,6 +6795,7 @@ IRBuilderAsmJs::BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, u
     // REVIEW: Store dataWidth in the instruction itself instead of an argument to avoid using ExtendedArgs or excessive opcodes.
     Assert(dataWidth >= 4 && dataWidth <= 16);
     instr->dataWidth = dataWidth;
+    indirOpnd->SetOffset(simdOffset);
     if (maskInstr)
     {
         AddInstr(maskInstr, offset);

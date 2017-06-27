@@ -428,19 +428,18 @@ WasmOp WasmBinaryReader::ReadOpCode()
     WasmOp op = (WasmOp)*m_pc++;
     ++m_funcState.count;
 
-    if (op == wbExtended || op == wbExtended2)
+    if (op == wbSimdStart)
     {
         if (!CONFIG_FLAG(WasmSimd))
         {
             ThrowDecodingError(_u("WebAssembly SIMD support is not enabled"));
         }
 
-        uint16 offset = (op - wbExtended + 1) * 256;
-        op = (WasmOp)*m_pc++;
-        ++m_funcState.count;
-
-        Assert((WasmOp)(op + offset) == op + offset);
-        op = WasmOp(op + offset);
+        uint32 len;
+        uint32 extOpCode = LEB128(len) + wbM128Const;
+        Assert((WasmOp)(extOpCode) == extOpCode);
+        op = (WasmOp)extOpCode;
+        m_funcState.count += len;
     }
 
     return op;
@@ -498,7 +497,7 @@ WasmBinaryReader::ReadExpr()
     case wbF64Const:
         ConstNode<WasmTypes::F64>();
         break;
-    case wbF4Const:
+    case wbM128Const:
         ConstNode<WasmTypes::M128>();
         break;
     case wbSetLocal:
@@ -519,10 +518,14 @@ WasmBinaryReader::ReadExpr()
         // Reserved value currently unused
         ReadConst<uint8>();
         break;
+#define WASM_LANE_OPCODE(opname, opcode, sig, nyi) \
+    case wb##opname: \
+        LaneNode(); \
+        break;
 #define WASM_MEM_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
         MemNode(); \
-    break;
+        break;
 #include "WasmBinaryOpCodes.h"
     default:
         break;
@@ -628,6 +631,13 @@ WasmBinaryReader::BrTableNode()
     }
     m_currentNode.brTable.defaultTarget = LEB128(len);
     m_funcState.count += len;
+}
+
+void
+WasmBinaryReader::LaneNode()
+{
+    m_currentNode.lane.index = ReadConst<uint8>();
+    m_funcState.count++;
 }
 
 void

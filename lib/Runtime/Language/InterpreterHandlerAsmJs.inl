@@ -614,6 +614,7 @@ EXDEF2_WMS( SIMD_U8_1toI16_1 , Simd128_FromUint16x8Bits_I16   , Js::SIMDUtils::F
 EXDEF2_WMS( SIMD_U16_1toI16_1, Simd128_FromUint8x16Bits_I16   , Js::SIMDUtils::FromSimdBits                   )
 
 EXDEF3_WMS( CUSTOM_ASMJS     , Simd128_FromFloat32x4_U4       , OP_SimdUint32x4FromFloat32x4 , Uint32x4_1Float32x4_1)
+EXDEF3_WMS( CUSTOM_ASMJS     , Simd128_LdC                    , OP_WasmSimdConst             , Float32x4_IntConst4)
 EXDEF2_WMS( SIMD_F4_1toU4_1  , Simd128_FromFloat32x4Bits_U4   , Js::SIMDUtils::FromSimdBits                   )
 EXDEF2_WMS( SIMD_I4_1toU4_1  , Simd128_FromInt32x4Bits_U4     , Js::SIMDUtils::FromSimdBits                   )
 EXDEF2_WMS( SIMD_I8_1toU4_1  , Simd128_FromInt16x8Bits_U4     , Js::SIMDUtils::FromSimdBits                   )

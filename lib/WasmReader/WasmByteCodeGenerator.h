@@ -146,15 +146,14 @@ namespace Wasm
         EmitInfo EmitBrIf();
 
         EmitInfo EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore);
+        EmitInfo EmitSimdMemAccess(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, uint8 dataWidth, bool isStore);
         EmitInfo EmitBinExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
         EmitInfo EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
+        EmitInfo EmitExtractLane(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
 
         EmitInfo EmitConst(WasmTypes::WasmType type, WasmConstLitNode cnst);
         void EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst);
         WasmConstLitNode GetZeroCnst();
-
-        EmitInfo EmitLoadIntConstIntoReg(uint val);
-        EmitInfo EmitLoadFloatConstIntoReg(uint val);
 
         void EnregisterLocals();
         void ReleaseLocation(EmitInfo* info);

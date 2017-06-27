@@ -520,6 +520,7 @@ namespace Js
         typename SizePolicy::RegSlotType     Value;
         ArrayBufferView::ViewType            ViewType;
         int8                                 DataWidth; // # of bytes to load/store
+        uint32                               Offset; //WASM.SIMD
     };
 
     // Generate the multi size layout type defs

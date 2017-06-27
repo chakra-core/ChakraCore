@@ -283,6 +283,7 @@ WASM_UNARY__OPCODE(F32ReinterpretI32, 0xbe, F_I , Reinterpret_ITF, false)
 WASM_UNARY__OPCODE(F64ReinterpretI64, 0xbf, D_L , Reinterpret_LTD, false)
 
 //Extended
+WASM_MISC_OPCODE(SimdStart, 0xfd, Limit, false)
 WASM_MISC_OPCODE(Extended, 0x06, Limit, false)
 WASM_MISC_OPCODE(Extended2, 0x07, Limit, false)
 
