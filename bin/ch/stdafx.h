@@ -105,6 +105,17 @@ do { \
     } \
 } while (0)
 
+#define IfJsErrorFailLogAndHR(expr) \
+do { \
+    JsErrorCode jsErrorCode = expr; \
+    if ((jsErrorCode) != JsNoError) { \
+        hr = E_FAIL; \
+        fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
+        fflush(stderr); \
+        goto Error; \
+    } \
+} while (0)
+
 #define IfJsErrorFailLogLabel(expr, label) \
 do { \
     JsErrorCode jsErrorCode = expr; \
