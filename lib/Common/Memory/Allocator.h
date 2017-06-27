@@ -147,8 +147,10 @@ inline T* PostAllocationCallback(const type_info& objType, T *obj)
 #define AllocatorNewNoThrowArrayZ(AllocatorType, alloc, T, count) AllocatorNewNoThrowArrayBase(AllocatorType, alloc, AllocZero, T, count)
 
 #define AllocatorNewNoThrowNoRecoveryArrayBase(AllocatorType, alloc, AllocFunc, T, count) AllocateArray<AllocatorType, T, true>(TRACK_ALLOC_INFO(alloc, T, AllocatorType, 0, count), &AllocatorType::NoThrowNoRecovery ## AllocFunc, count)
+#define AllocatorNewNoThrowNoRecoveryPlusBase(AllocatorType, alloc, AllocFunc, size, T, ...) new (TRACK_ALLOC_INFO(static_cast<AllocatorType *>(alloc), T, AllocatorType, size, (size_t)-1), true, &AllocatorType::NoThrowNoRecovery ## AllocFunc, size) T(__VA_ARGS__)
 
 #define AllocatorNewNoThrowNoRecoveryArrayZ(AllocatorType, alloc, T, count) AllocatorNewNoThrowNoRecoveryArrayBase(AllocatorType, alloc, AllocZero, T, count)
+#define AllocatorNewNoThrowNoRecoveryPlus(AllocatorType, alloc, size, T, ...) AllocatorNewNoThrowNoRecoveryPlusBase(AllocatorType, alloc, Alloc, size, T, __VA_ARGS__)
 
 // A few versions below supplies optional flags through ..., used by HeapDelete.
 #define AllocatorDelete(AllocatorType, alloc, obj, ...) \
