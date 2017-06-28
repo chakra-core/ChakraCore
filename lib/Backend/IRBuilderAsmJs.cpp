@@ -1452,6 +1452,37 @@ IRBuilderAsmJs::BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset, uin
         instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
     }
     AddInstr(instr, offset);
+
+#if DBG
+    if (newOpcode == Js::OpCodeAsmJs::StArrWasm && PHASE_TRACE(Js::WasmMemWritesPhase, m_func))
+    {
+        IR::Opnd* prevArg = nullptr;
+        auto PushArg = [&](ValueType valueType, IR::Opnd* srcOpnd) {
+            IR::RegOpnd* dstOpnd = IR::RegOpnd::New(srcOpnd->GetType(), m_func);
+            dstOpnd->SetValueType(valueType);
+            IR::Instr* instr = IR::Instr::New(Js::OpCode::ArgOut_A, dstOpnd, srcOpnd, m_func);
+            if (prevArg)
+            {
+                instr->SetSrc2(prevArg);
+            }
+            prevArg = dstOpnd;
+            AddInstr(instr, offset);
+        };
+
+        // static void TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint32 offset, Js::ArrayBufferView::ViewType viewType, uint bytecodeOffset, ScriptContext* context);
+        // ScriptContext is added automatically by CallHelper lower
+        PushArg(ValueType::GetInt(false), IR::IntConstOpnd::New(offset, TyUint32, m_func, true));
+        PushArg(ValueType::GetInt(false), IR::IntConstOpnd::New(viewType, TyUint8, m_func, true));
+        PushArg(ValueType::GetInt(false), IR::IntConstOpnd::New(constOffset, TyUint32, m_func));
+        PushArg(ValueType::GetInt(false), indexOpnd);
+        PushArg(ValueType::GetObject(ObjectType::Object), BuildSrcOpnd(AsmJsRegSlots::WasmMemoryReg, TyVar));
+
+        IR::Instr* callInstr = IR::Instr::New(Js::OpCode::CallHelper, m_func);
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperOp_WasmMemoryTraceWrite, m_func));
+        callInstr->SetSrc2(prevArg);
+        AddInstr(callInstr, offset);
+    }
+#endif
 }
 
 template <typename SizePolicy>
