@@ -170,9 +170,9 @@ WebAssemblyMemory::GrowHelper(WebAssemblyMemory * mem, uint32 deltaPages)
     return mem->GrowInternal(deltaPages);
 }
 
+#if DBG
 void WebAssemblyMemory::TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint32 offset, Js::ArrayBufferView::ViewType viewType, uint32 bytecodeOffset, ScriptContext* context)
 {
-#if DBG
     // Must call after the write
     Assert(mem);
     Output::Print(_u("#%04x "), bytecodeOffset);
@@ -212,10 +212,8 @@ void WebAssemblyMemory::TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint
         Assert(UNREACHED);
     }
     return;
-#else
-    Assert(UNREACHED);
-#endif
 }
+#endif
 
 Var
 WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callInfo, ...)
