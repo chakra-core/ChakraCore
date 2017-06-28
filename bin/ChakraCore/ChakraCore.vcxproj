@@ -162,6 +162,9 @@
     <ProjectReference Include="..\..\lib\WasmReader\Chakra.WasmReader.vcxproj">
       <Project>{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}</Project>
     </ProjectReference>
+    <ProjectReference Condition="'$(BuildWabt)'=='true'" Include="..\..\lib\wabt\wabt.vcxproj">
+      <Project>{F48B3491-81DF-4F49-B35F-3308CBE6A379}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\lib\Runtime\Types\Chakra.Runtime.Types.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9110f6}</Project>
     </ProjectReference>
