@@ -101,7 +101,7 @@ function test(fn, description) {
     }).then(done);
   } catch (e) {
     // If fn doesn't return a Promise we will throw here
-    // WebAssembly.compile should always return a Promise
+    // WebAssembly.compileStreaming should always return a Promise
     testInfo.result = "Failed";
     testInfo.error = e;
     done();
@@ -114,81 +114,87 @@ function shouldThrow() {
 function ignoreError() {}
 
 test(() =>
-  WebAssembly.compile(defaultModule)
+  WebAssembly.compileStreaming(defaultModule)
+    .then(shouldThrow, ignoreError),
+  "WebAssembly.compileStreaming(buffer => Error)"
+);
+test(() =>
+  WebAssembly.compileStreaming(new Promise((resolve, reject) => setTimeout(() => reject(new Error("Some Error")), 100)))
+    .then(shouldThrow, ignoreError),
+  "WebAssembly.compileStreaming(Promise => timeout Error)"
+);
+test(() =>
+  WebAssembly.compileStreaming(Promise.reject())
+    .then(shouldThrow, ignoreError),
+  "WebAssembly.compileStreaming(Promise => Empty Error)"
+);
+test(() =>
+  WebAssembly.compileStreaming(Promise.reject(new Error("Promise.reject(new Error()")))
+    .then(shouldThrow, ignoreError),
+  "WebAssembly.compileStreaming(Promise => Error)"
+);
+test(() =>
+  WebAssembly.compileStreaming(Promise.resolve("Wrong type"))
+    .then(shouldThrow, ignoreError),
+  "WebAssembly.compileStreaming(Promise => string)"
+);
+test(() =>
+  WebAssembly.compileStreaming(fetch(() => defaultModule))
     .then(validateDefaultCompile),
-  "WebAssembly.compile(buffer => defaultModule)"
+  "WebAssembly.compileStreaming(fetch => defaultModule)"
 );
 test(() =>
-  WebAssembly.compile(new Promise((resolve, reject) => setTimeout(() => reject(new Error("Some Error")), 100)))
+  WebAssembly.compileStreaming(fetch(() => {throw new Error("Failed to fetch");}))
     .then(shouldThrow, ignoreError),
-  "WebAssembly.compile(Promise => timeout Error)"
+  "WebAssembly.compileStreaming(fetch => Error)"
 );
 test(() =>
-  WebAssembly.compile(Promise.reject())
-    .then(shouldThrow, ignoreError),
-  "WebAssembly.compile(Promise => Empty Error)"
-);
-test(() =>
-  WebAssembly.compile(Promise.reject(new Error("Promise.reject(new Error()")))
-    .then(shouldThrow, ignoreError),
-  "WebAssembly.compile(Promise => Error)"
-);
-test(() =>
-  WebAssembly.compile(Promise.resolve("Wrong type"))
-    .then(shouldThrow, ignoreError),
-  "WebAssembly.compile(Promise => string)"
-);
-test(() =>
-  WebAssembly.compile(fetch(() => defaultModule))
+  WebAssembly.compileStreaming(new Response(defaultModule))
     .then(validateDefaultCompile),
-  "WebAssembly.compile(fetch => defaultModule)"
+  "WebAssembly.compileStreaming(Response => defaultModule)"
 );
 test(() =>
-  WebAssembly.compile(fetch(() => {throw new Error("Failed to fetch");}))
+  WebAssembly.compileStreaming(new Response(defaultModule, true))
     .then(shouldThrow, ignoreError),
-  "WebAssembly.compile(fetch => Error)"
+  "WebAssembly.compileStreaming(Response => Error)"
 );
+
+
 test(() =>
-  WebAssembly.compile(new Response(defaultModule))
-    .then(validateDefaultCompile),
-  "WebAssembly.compile(Response => defaultModule)"
-);
-test(() =>
-  WebAssembly.compile(new Response(defaultModule, true))
+  WebAssembly.instantiateStreaming(defaultModule)
     .then(shouldThrow, ignoreError),
-  "WebAssembly.compile(Response => Error)"
+  "WebAssembly.instantiateStreaming(defaultModule => Error)"
+);
+test(() =>
+  WebAssembly.instantiateStreaming(fetch(() => defaultModule))
+    .then(validateDefaultInstantiate),
+  "WebAssembly.instantiateStreaming(fetch => defaultModule)"
+);
+test(() =>
+  WebAssembly.instantiateStreaming(fetch(() => {throw new Error("Failed to fetch");}))
+    .then(shouldThrow, ignoreError),
+  "WebAssembly.instantiateStreaming(fetch => Error)"
+);
+test(() =>
+  WebAssembly.instantiateStreaming(new Response(defaultModule))
+    .then(validateDefaultInstantiate),
+  "WebAssembly.instantiateStreaming(Response => defaultModule)"
+);
+test(() =>
+  WebAssembly.instantiateStreaming(new Response(defaultModule, true))
+    .then(shouldThrow, ignoreError),
+  "WebAssembly.instantiateStreaming(Response => Error)"
 );
 
 test(() =>
-  WebAssembly.instantiate(fetch(() => defaultModule))
-    .then(validateDefaultInstantiate),
-  "WebAssembly.instantiate(fetch => defaultModule)"
-);
-test(() =>
-  WebAssembly.instantiate(fetch(() => {throw new Error("Failed to fetch");}))
-    .then(shouldThrow, ignoreError),
-  "WebAssembly.instantiate(fetch => Error)"
-);
-test(() =>
-  WebAssembly.instantiate(new Response(defaultModule))
-    .then(validateDefaultInstantiate),
-  "WebAssembly.instantiate(Response => defaultModule)"
-);
-test(() =>
-  WebAssembly.instantiate(new Response(defaultModule, true))
-    .then(shouldThrow, ignoreError),
-  "WebAssembly.instantiate(Response => Error)"
-);
-
-test(() =>
-  WebAssembly.instantiate(fetch(() => defaultImportModule), defaultImportObject)
+  WebAssembly.instantiateStreaming(fetch(() => defaultImportModule), defaultImportObject)
     .then(validateDefaultImportInstantiate),
-  "WebAssembly.instantiate(fetch => defaultImportModule, defaultImportObject)"
+  "WebAssembly.instantiateStreaming(fetch => defaultImportModule, defaultImportObject)"
 );
 test(() =>
-  WebAssembly.instantiate(new Response(defaultImportModule), defaultImportObject)
+  WebAssembly.instantiateStreaming(new Response(defaultImportModule), defaultImportObject)
     .then(validateDefaultImportInstantiate),
-  "WebAssembly.instantiate(Response => defaultImportModule, defaultImportObject)"
+  "WebAssembly.instantiateStreaming(Response => defaultImportModule, defaultImportObject)"
 );
 
 allTestsQueued = true;
