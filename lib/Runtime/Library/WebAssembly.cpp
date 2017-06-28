@@ -17,7 +17,6 @@ Var WebAssembly::EntryCompile(RecyclableObject* function, CallInfo callInfo, ...
     ARGUMENTS(args, callInfo);
     AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
     ScriptContext* scriptContext = function->GetScriptContext();
-    JavascriptLibrary* library = scriptContext->GetLibrary();
 
     Assert(!(callInfo.Flags & CallFlags_New));
     try
@@ -27,17 +26,41 @@ Var WebAssembly::EntryCompile(RecyclableObject* function, CallInfo callInfo, ...
             JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource);
         }
 
+        WebAssemblySource src(args[1], true, scriptContext);
+        WebAssemblyModule* wasmModule = WebAssemblyModule::CreateModule(scriptContext, &src);
+        return JavascriptPromise::CreateResolvedPromise(wasmModule, scriptContext);
+    }
+    catch (JavascriptException & e)
+    {
+        return JavascriptPromise::CreateRejectedPromise(e.GetAndClear()->GetThrownObject(scriptContext), scriptContext);
+    }
+}
+
+Var WebAssembly::EntryCompileStreaming(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    ScriptContext* scriptContext = function->GetScriptContext();
+    JavascriptLibrary* library = scriptContext->GetLibrary();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+    try
+    {
+        if (args.Info.Count < 2)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
+        }
+
         // Check to see if it was a response object
         Var responsePromise = TryResolveResponse(function, args[0], args[1]);
         if (responsePromise)
         {
-            // Once we've resolved everything, come back here and create the module
+            // Once we've resolved everything, create the module
             return JavascriptPromise::CreateThenPromise((JavascriptPromise*)responsePromise, library->GetWebAssemblyCompileFunction(), library->GetThrowerFunction(), scriptContext);
         }
-
-        WebAssemblySource src(args[1], true, scriptContext);
-        WebAssemblyModule* wasmModule = WebAssemblyModule::CreateModule(scriptContext, &src);
-        return JavascriptPromise::CreateResolvedPromise(wasmModule, scriptContext);
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
     }
     catch (JavascriptException & e)
     {
@@ -52,7 +75,6 @@ Var WebAssembly::EntryInstantiate(RecyclableObject* function, CallInfo callInfo,
     ARGUMENTS(args, callInfo);
     AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
     ScriptContext* scriptContext = function->GetScriptContext();
-    JavascriptLibrary* library = scriptContext->GetLibrary();
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -68,19 +90,6 @@ Var WebAssembly::EntryInstantiate(RecyclableObject* function, CallInfo callInfo,
         if (args.Info.Count >= 3)
         {
             importObject = args[2];
-        }
-
-        // Check to see if it was a response object
-        Var responsePromise = TryResolveResponse(function, args[0], args[1]);
-        if (responsePromise)
-        {
-            // Since instantiate takes extra arguments, we have to create a bound function to carry the importsObject until the response is resolved
-            // Because function::bind() binds arguments from the left first, we have to calback a different function to reverse the order of the arguments
-            Var boundArgs[] = { library->GetWebAssemblyInstantiateBoundFunction(), args[0], importObject };
-            CallInfo boundCallInfo(CallFlags_Value, 3);
-            ArgumentReader myargs(&boundCallInfo, boundArgs);
-            RecyclableObject* boundFunction = BoundFunction::New(scriptContext, myargs);
-            return JavascriptPromise::CreateThenPromise((JavascriptPromise*)responsePromise, boundFunction, library->GetThrowerFunction(), scriptContext);
         }
 
         if (WebAssemblyModule::Is(args[1]))
@@ -100,6 +109,49 @@ Var WebAssembly::EntryInstantiate(RecyclableObject* function, CallInfo callInfo,
             JavascriptOperators::OP_SetProperty(resultObject, PropertyIds::instance, instance, scriptContext);
         }
         return JavascriptPromise::CreateResolvedPromise(resultObject, scriptContext);
+    }
+    catch (JavascriptException & e)
+    {
+        return JavascriptPromise::CreateRejectedPromise(e.GetAndClear()->GetThrownObject(scriptContext), scriptContext);
+    }
+}
+
+Var WebAssembly::EntryInstantiateStreaming(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    ScriptContext* scriptContext = function->GetScriptContext();
+    JavascriptLibrary* library = scriptContext->GetLibrary();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+
+    try
+    {
+        if (args.Info.Count < 2)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
+        }
+
+        // Check to see if it was a response object
+        Var responsePromise = TryResolveResponse(function, args[0], args[1]);
+        if (responsePromise)
+        {
+            Var importObject = scriptContext->GetLibrary()->GetUndefined();
+            if (args.Info.Count >= 3)
+            {
+                importObject = args[2];
+            }
+            // Since instantiate takes extra arguments, we have to create a bound function to carry the importsObject until the response is resolved
+            // Because function::bind() binds arguments from the left first, we have to calback a different function to reverse the order of the arguments
+            Var boundArgs[] = { library->GetWebAssemblyInstantiateBoundFunction(), args[0], importObject };
+            CallInfo boundCallInfo(CallFlags_Value, 3);
+            ArgumentReader myargs(&boundCallInfo, boundArgs);
+            RecyclableObject* boundFunction = BoundFunction::New(scriptContext, myargs);
+            return JavascriptPromise::CreateThenPromise((JavascriptPromise*)responsePromise, boundFunction, library->GetThrowerFunction(), scriptContext);
+        }
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
     }
     catch (JavascriptException & e)
     {
