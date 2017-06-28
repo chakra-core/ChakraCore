@@ -44,6 +44,7 @@ PHASE(All)
         PHASE(WasmDeferred)
         PHASE(WasmValidatePrejit)
         PHASE(WasmInOut) // Trace input and output of wasm calls
+        PHASE(WasmMemWrites) // Trace memory writes
     PHASE(Asmjs)
         PHASE(AsmjsTmpRegisterAllocation)
         PHASE(AsmjsEncoder)
