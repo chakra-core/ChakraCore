@@ -1700,7 +1700,7 @@ bool EncoderMD::TryFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
         {
             IR::Instr *instrNext = instr->GetNextRealInstrOrLabel();
 
-            if (instrNext->IsBranchInstr() && instrNext->AsBranchInstr()->IsConditional() && !instrNext->AsBranchInstr()->m_areCmpRegisterFlagsUsedLater)
+            if (instrNext->IsBranchInstr() && instrNext->AsBranchInstr()->IsConditional())
             {
                 // Swap src and reverse branch
                 src2 = instr->UnlinkSrc1();
