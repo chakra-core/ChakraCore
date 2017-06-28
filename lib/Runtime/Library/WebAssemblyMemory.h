@@ -41,6 +41,9 @@ namespace Js
         static int32 GrowHelper(Js::WebAssemblyMemory * memory, uint32 deltaPages);
 
         static int GetOffsetOfArrayBuffer() { return offsetof(WebAssemblyMemory, m_buffer); }
+#if DBG
+        static void TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint32 offset, Js::ArrayBufferView::ViewType viewType, uint32 bytecodeOffset, ScriptContext* context);
+#endif
     private:
         WebAssemblyMemory(WebAssemblyArrayBuffer * buffer, uint32 initial, uint32 maximum, DynamicType * type);
 
