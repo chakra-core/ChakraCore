@@ -2424,11 +2424,13 @@ LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, 
 IR::Instr *
 LowererMD::LowerRet(IR::Instr * retInstr)
 {
-    IR::RegOpnd *retReg = IR::RegOpnd::New(nullptr, RETURN_REG, TyMachReg, m_func);
+    IR::RegOpnd *retReg = IR::RegOpnd::New(TyMachReg, m_func);
+    retReg->SetReg(RETURN_REG);
+    Lowerer::InsertMove(retReg, retInstr->UnlinkSrc1(), retInstr);
 
-    retInstr->SetDst(retReg);
+    retInstr->SetSrc1(retReg);
 
-    return this->ChangeToAssign(retInstr);
+    return retInstr;
 }
 
 
@@ -8675,6 +8677,9 @@ LowererMD::FinalLower()
 
             switch (instr->m_opcode)
             {
+            case Js::OpCode::Ret:
+                instr->Remove();
+                break;
             case Js::OpCode::Leave:
                 Assert(this->m_func->DoOptimizeTry() && !this->m_func->IsLoopBodyInTry());
                 instrPrev = this->LowerLeave(instr, instr->AsBranchInstr()->GetTarget(), true /*fromFinalLower*/);
