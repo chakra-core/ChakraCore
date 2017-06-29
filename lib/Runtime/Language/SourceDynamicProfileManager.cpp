@@ -329,11 +329,25 @@ namespace Js
         dynamicProfileInfoMapSaving.Reset();
     }
 
+    void SourceDynamicProfileManager::AddItem(LocalFunctionId functionId, DynamicProfileInfo *info)
+    {
+        try
+        {
+            // our BaseDictionary does not allow nothrow allocator
+            AUTO_NESTED_HANDLED_EXCEPTION_TYPE(ExceptionType_OutOfMemory);
+            dynamicProfileInfoMapSaving.Item(functionId, info);
+        }
+        catch (Js::OutOfMemoryException&)
+        {
+            Output::Print(_u("Hit OOM while saving dynamic profile info\n"));
+        }
+    }
+
     void SourceDynamicProfileManager::CopySavingData()
     {
         dynamicProfileInfoMap.Map([&](LocalFunctionId functionId, DynamicProfileInfo *info)
         {
-            dynamicProfileInfoMapSaving.Item(functionId, info);
+            this->AddItem(functionId, info);
         });
     }
 
@@ -341,7 +355,7 @@ namespace Js
     SourceDynamicProfileManager::SaveDynamicProfileInfo(LocalFunctionId functionId, DynamicProfileInfo * dynamicProfileInfo)
     {
         Assert(dynamicProfileInfo->GetFunctionBody()->HasExecutionDynamicProfileInfo());
-        dynamicProfileInfoMapSaving.Item(functionId, dynamicProfileInfo);
+        this->AddItem(functionId, dynamicProfileInfo);
     }
 
     template <typename T>
