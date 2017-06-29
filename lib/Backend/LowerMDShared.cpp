@@ -863,8 +863,10 @@ LowererMD::LowerRet(IR::Instr * retInstr)
                 retInstr->SetSrc1(lowOpnd);
 
                 // Mov high bits to edx
-                IR::RegOpnd* regEdx = IR::RegOpnd::New(nullptr, RegEDX, regType, this->m_func);
+                IR::RegOpnd* regEdx = IR::RegOpnd::New(regType, this->m_func);
+                regEdx->SetReg(RegEDX);
                 Lowerer::InsertMove(regEdx, highOpnd, retInstr);
+                retInstr->SetSrc2(regEdx);
             }
 #endif
             break;
@@ -910,17 +912,19 @@ LowererMD::LowerRet(IR::Instr * retInstr)
             Assert(UNREACHED);
         }
 
-        retReg = IR::RegOpnd::New(nullptr, lowererMDArch.GetRegReturnAsmJs(regType), regType, m_func);
+        retReg = IR::RegOpnd::New(regType, m_func);
+        retReg->SetReg(lowererMDArch.GetRegReturnAsmJs(regType));
     }
     else
 #endif
     {
-        retReg = IR::RegOpnd::New(nullptr, lowererMDArch.GetRegReturn(TyMachReg), TyMachReg, m_func);
+        retReg = IR::RegOpnd::New(TyMachReg, m_func);
+        retReg->SetReg(lowererMDArch.GetRegReturn(TyMachReg));
     }
 
-    retInstr->SetDst(retReg);
-
-    return this->ChangeToAssign(retInstr);
+    Lowerer::InsertMove(retReg, retInstr->UnlinkSrc1(), retInstr);
+    retInstr->SetSrc1(retReg);
+    return retInstr;
 }
 
 ///----------------------------------------------------------------------------
