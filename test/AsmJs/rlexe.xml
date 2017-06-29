@@ -658,6 +658,13 @@
   </test>
   <test>
     <default>
+      <files>return3.js</files>
+      <baseline>return3.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>returndouble.js</files>
       <baseline>returndouble.baseline</baseline>
       <compile-flags>-testtrace:asmjs -simdjs -bgjit- -lic:1</compile-flags>
