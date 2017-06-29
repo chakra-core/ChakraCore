@@ -2165,6 +2165,8 @@ void LowererMDArch::LowerInt64Branch(IR::Instr *instr)
         // If src1 is not 0, jump to destination
         branchInstr->m_opcode = Js::OpCode::JNE;
 
+        // Don't need the doneLabel for this case
+        doneLabel->Remove();
         break;
     }
     case Js::OpCode::BrFalse_A:
@@ -2183,6 +2185,9 @@ void LowererMDArch::LowerInt64Branch(IR::Instr *instr)
         // If src1 is 0, jump to destination
         branchInstr->m_opcode = Js::OpCode::JEQ;
 
+
+        // Don't need the doneLabel for this case
+        doneLabel->Remove();
         break;
     }
     case Js::OpCode::BrEq_A:
@@ -2205,6 +2210,9 @@ void LowererMDArch::LowerInt64Branch(IR::Instr *instr)
         //done:
         cmpHighAndJump(Js::OpCode::JNE, jmpLabel);
         cmpLowAndJump(Js::OpCode::JNE);
+
+        // Don't need the doneLabel for this case
+        doneLabel->Remove();
         break;
     case Js::OpCode::BrUnGt_I4: cmpInt64Common(Js::OpCode::JA, Js::OpCode::JA); break;
     case Js::OpCode::BrUnGe_I4: cmpInt64Common(Js::OpCode::JA, Js::OpCode::JAE); break;
