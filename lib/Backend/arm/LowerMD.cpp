@@ -8675,6 +8675,9 @@ LowererMD::FinalLower()
 
             switch (instr->m_opcode)
             {
+            case Js::OpCode::Ret:
+                instr->Remove();
+                break;
             case Js::OpCode::Leave:
                 Assert(this->m_func->DoOptimizeTry() && !this->m_func->IsLoopBodyInTry());
                 instrPrev = this->LowerLeave(instr, instr->AsBranchInstr()->GetTarget(), true /*fromFinalLower*/);

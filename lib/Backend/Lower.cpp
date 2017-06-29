@@ -23589,6 +23589,7 @@ Lowerer::ValidOpcodeAfterLower(IR::Instr* instr, Func * func)
     }
     switch (opcode)
     {
+    case Js::OpCode::Ret:
     case Js::OpCode::Label:
     case Js::OpCode::StatementBoundary:
     case Js::OpCode::DeletedNonHelperBranch:
