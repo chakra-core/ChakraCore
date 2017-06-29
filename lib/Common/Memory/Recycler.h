@@ -2521,3 +2521,14 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, Recycler * recycler, const
     Assume(buffer != nullptr);
     return buffer;
 }
+
+#if DBG && defined(RECYCLER_VERIFY_MARK)
+extern bool IsLikelyRuntimeFalseReference(
+    char* objectStartAddress, size_t offset, const char* typeName);
+#define DECLARE_RECYCLER_VERIFY_MARK_FRIEND() \
+    private: \
+        friend bool ::IsLikelyRuntimeFalseReference( \
+            char* objectStartAddress, size_t offset, const char* typeName);
+#else
+#define DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
+#endif
