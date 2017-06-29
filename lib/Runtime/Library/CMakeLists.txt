@@ -133,6 +133,7 @@ set(CRLIB_SOURCE_CODES
     TypedArray.cpp
     TypedArrayIndexEnumerator.cpp
     UriHelper.cpp
+    VerifyMarkFalseReference.cpp
     ${Wasm_dep}
     )
 

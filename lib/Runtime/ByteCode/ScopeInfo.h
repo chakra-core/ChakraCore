@@ -11,6 +11,8 @@ namespace Js {
     //
     class ScopeInfo
     {
+        DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
+
         struct MapSymbolData
         {
             FuncInfo* func;
