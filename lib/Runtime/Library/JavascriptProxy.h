@@ -185,11 +185,13 @@ namespace Js
                     {
                         targetToTrapResultMap.Add(propertyId, true);
                     }
+                }
 
-                    if (fn(propertyRecord))
-                    {
-                        trapResult->DirectSetItemAt(trapResultIndex++, element);
-                    }
+                // We explicitly allow duplicates in the results. A map is sufficient since the spec steps that remove entries
+                // remove ALL of them at the same time.
+                if (fn(propertyRecord))
+                {
+                    trapResult->DirectSetItemAt(trapResultIndex++, element);
                 }
             }
         }
