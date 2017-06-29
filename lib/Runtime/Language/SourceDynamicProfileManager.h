@@ -23,7 +23,7 @@ namespace Js
     public:
         SourceDynamicProfileManager(Recycler* allocator) : isNonCachableScript(false), cachedStartupFunctions(nullptr), recycler(allocator),
 #ifdef DYNAMIC_PROFILE_STORAGE
-            dynamicProfileInfoMapSaving(&NoThrowHeapAllocator::Instance),
+            dynamicProfileInfoMapSaving(&HeapAllocator::Instance),
 #endif
             dynamicProfileInfoMap(allocator), startupFunctions(nullptr), profileDataCache(nullptr) 
         {
@@ -53,11 +53,12 @@ namespace Js
         FieldNoBarrier(Recycler*) recycler;
 
 #ifdef DYNAMIC_PROFILE_STORAGE
-        typedef JsUtil::BaseDictionary<LocalFunctionId, DynamicProfileInfo *, NoThrowHeapAllocator> DynamicProfileInfoMapSavingType;
+        typedef JsUtil::BaseDictionary<LocalFunctionId, DynamicProfileInfo *, HeapAllocator> DynamicProfileInfoMapSavingType;
         FieldNoBarrier(DynamicProfileInfoMapSavingType) dynamicProfileInfoMapSaving;
         
         void SaveDynamicProfileInfo(LocalFunctionId functionId, DynamicProfileInfo * dynamicProfileInfo);
         void SaveToDynamicProfileStorage(char16 const * url);
+        void AddItem(LocalFunctionId functionId, DynamicProfileInfo *info);
         template <typename T>
         static SourceDynamicProfileManager * Deserialize(T * reader, Recycler* allocator);
         template <typename T>
