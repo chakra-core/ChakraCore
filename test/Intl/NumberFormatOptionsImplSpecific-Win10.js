@@ -40,8 +40,8 @@ var tests = [
         body: function () {
             const baseSigFigs = { minimumSignificantDigits: 3, maximumSignificantDigits: 3 };
 
-            assert.areEqual(new Intl.NumberFormat("en-US", extendOptions(baseSigFigs, { style: "percent" })).format(123.1), `12,300${NON_BREAKING_SPACE}%`, "style: percent");
-            assert.areEqual(new Intl.NumberFormat("en-US", extendOptions(baseSigFigs, { style: "percent", useGrouping: false })).format(123.1), `12300${NON_BREAKING_SPACE}%`, "style: percent, no grouping");
+            assert.areEqual(new Intl.NumberFormat("en-US", extendOptions(baseSigFigs, { style: "percent" })).format(123.1), `12,300%`, "style: percent");
+            assert.areEqual(new Intl.NumberFormat("en-US", extendOptions(baseSigFigs, { style: "percent", useGrouping: false })).format(123.1), `12300%`, "style: percent, no grouping");
         }
     }
 ];

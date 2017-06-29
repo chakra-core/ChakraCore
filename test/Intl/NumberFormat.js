@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 
 // WinTH: Changed to use non-breaking space in some output
-var NON_BREAKING_SPACE = String.fromCharCode(0xA0);
 
 function testNumberFormatOptions(opts, number, expected, altExpected) {
     try{
@@ -61,7 +60,7 @@ testNumberFormatOptions({ maximumSignificantDigits: 5 }, 125.125, "125.13");
 testNumberFormatOptions({ maximumSignificantDigits: 5 }, -125.125, "-125.13");
 testNumberFormatOptions({ useGrouping: true }, 12512, "12,512");
 testNumberFormatOptions({ useGrouping: false }, 12512, "12512");
-testNumberFormatOptions({ style: "percent" }, 1.5, "150 %", /*altExpected*/"150" + NON_BREAKING_SPACE + "%");
+testNumberFormatOptions({ style: "percent" }, 1.5, "150%", /*altExpected*/"150%");
 testNumberFormatOptions({ currency: "USD", style: "currency", maximumFractionDigits: 2, minimumFractionDigits: 2 }, 1.5, "$1.50");
 
 testNumberFormatOptions({ minimumIntegerDigits: NaN }, undefined, undefined);
