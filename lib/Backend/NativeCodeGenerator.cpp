@@ -3715,8 +3715,9 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
     case RemoteCallType::CodeGen:
         // inform job manager that JIT work item has been cancelled
         throw Js::OperationAbortedException();
+#if DBG
     case RemoteCallType::HeapQuery:
-        Js::Throw::OutOfMemory();
+#endif
     case RemoteCallType::ThunkCreation:
     case RemoteCallType::StateUpdate:
     case RemoteCallType::MemFree:

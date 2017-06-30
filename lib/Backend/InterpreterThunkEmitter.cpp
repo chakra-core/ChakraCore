@@ -761,11 +761,16 @@ InterpreterThunkEmitter::IsInHeap(void* address)
         PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
         if (!remoteScript || !JITManager::GetJITManager()->IsConnected())
         {
-            return false;
+            // this method is used in asserts to validate whether an entry point is valid
+            // in case JIT process crashed, let's just say true to keep asserts from firing
+            return true;
         }
         boolean result;
         HRESULT hr = JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
-        JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
+        if (!JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery))
+        {
+            return true;
+        }
         return result != FALSE;
     }
     else
