@@ -489,18 +489,18 @@ EmitInfo WasmBytecodeGenerator::EmitSimdBuildExpr(Js::OpCodeAsmJs op, const Wasm
     const WasmTypes::WasmType type = signature[1];
 
     Js::RegSlot resultReg = GetRegisterSpace(signature[0])->AcquireTmpRegister();
-    
+
     EmitInfo args[Simd::MAX_LANES];
     for (uint i = 0; i < lanes; i++)
     {
         args[i] = PopEvalStack();
-        if (type != args[i].type) 
+        if (type != args[i].type)
         {
             throw WasmCompilationException(_u("type mismatch"));
         }
     }
 
-    switch (lanes) 
+    switch (lanes)
     {
         case 4:
             m_writer->AsmReg5(op, resultReg, args[3].location, args[2].location, args[1].location, args[0].location);
@@ -514,11 +514,11 @@ EmitInfo WasmBytecodeGenerator::EmitSimdBuildExpr(Js::OpCodeAsmJs op, const Wasm
         default:
             Assert(UNREACHED);
     }
- 
+
     for (uint i = 0; i < lanes; i++)
     {
         ReleaseLocation(&args[i]);
-    }     
+    }
 
     return EmitInfo(resultReg, resultType);
 }
@@ -633,7 +633,11 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
 
 #define WASM_EXTRACTLANE_OPCODE(opname, opcode, sig, asmjsop, nyi) \
     case wb##opname: \
-        info = EmitExtractLane(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
+        info = EmitExtractLaneExpr(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
+        break;
+#define WASM_REPLACELANE_OPCODE(opname, opcode, sig, asmjsop, nyi) \
+    case wb##opname: \
+        info = EmitReplaceLaneExpr(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
         break;
 #define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi, viewtype) \
     case wb##opname: \
@@ -1238,50 +1242,86 @@ WasmBytecodeGenerator::EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmTy
 }
 
 
-static uint numLanes(Js::OpCodeAsmJs op) 
+void WasmBytecodeGenerator::CheckLaneIndex(Js::OpCodeAsmJs op)
 {
+    uint numLanes;
     switch (op) 
     {
     //case Js::OpCodeAsmJs::Simd128_ExtractLane_I2:
     //case Js::OpCodeAsmJs::Simd128_ExtractLane_F2:
     //    return 2;
     case Js::OpCodeAsmJs::Simd128_ExtractLane_I4:
+    case Js::OpCodeAsmJs::Simd128_ReplaceLane_I4:
     case Js::OpCodeAsmJs::Simd128_ExtractLane_F4:
-        return 4;
+    case Js::OpCodeAsmJs::Simd128_ReplaceLane_F4:
+        numLanes = 4;
+        break;
     case Js::OpCodeAsmJs::Simd128_ExtractLane_I8:
     case Js::OpCodeAsmJs::Simd128_ExtractLane_U8:
-        return 8;
+    case Js::OpCodeAsmJs::Simd128_ReplaceLane_I8:
+    case Js::OpCodeAsmJs::Simd128_ReplaceLane_U8:
+        numLanes = 8;
+        break;
     case Js::OpCodeAsmJs::Simd128_ExtractLane_I16:
     case Js::OpCodeAsmJs::Simd128_ExtractLane_U16:
-        return 16;
+    case Js::OpCodeAsmJs::Simd128_ReplaceLane_I16:
+    case Js::OpCodeAsmJs::Simd128_ReplaceLane_U16:
+        numLanes = 16;
+        break;
     default:
         Assert(UNREACHED);
-        return 0;
+        numLanes = UINT_MAX;
     }
 
-}
-
-EmitInfo
-WasmBytecodeGenerator::EmitExtractLane(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature)
-{
-    WasmTypes::WasmType resultType = signature[0];
-    WasmTypes::WasmType simdArgType = signature[1];
     const uint offset = GetReader()->m_currentNode.lane.index;
 
-    if (offset >= numLanes(op)) 
+    if (offset >= numLanes)
     {
         throw WasmCompilationException(_u("index is out of range"));
     }
-    EmitInfo simdArgInfo = PopEvalStack(simdArgType, _u("Argument should be of type M128"));
+}
+
+EmitInfo WasmBytecodeGenerator::EmitLaneIndex(Js::OpCodeAsmJs op)
+{
+    CheckLaneIndex(op);
+    const uint offset = GetReader()->m_currentNode.lane.index;
+    WasmConstLitNode dummy;
+    dummy.i32 = offset;
+    return EmitConst(WasmTypes::I32, dummy);
+}
+
+EmitInfo WasmBytecodeGenerator::EmitReplaceLaneExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature) {
+
+    const WasmTypes::WasmType resultType = signature[0];
+    const WasmTypes::WasmType valueType = signature[1];
+    EmitInfo valueArg = PopEvalStack(valueType, _u("lane argument type mismatch"));
     
+    EmitInfo simdArg = PopEvalStack(WasmTypes::M128, _u("simd argument type mismatch"));
+    Assert(resultType == WasmTypes::M128);
+   
+    EmitInfo indexInfo = EmitLaneIndex(op);
+    Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
+    EmitInfo result(resultReg, resultType);
+
+    m_writer->AsmReg4(op, resultReg, simdArg.location, indexInfo.location, valueArg.location);
+    ReleaseLocation(&indexInfo);
+    return result;
+}
+
+EmitInfo
+WasmBytecodeGenerator::EmitExtractLaneExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature)
+{
+    WasmTypes::WasmType resultType = signature[0];
+    WasmTypes::WasmType simdArgType = signature[1];
+    
+    EmitInfo simdArgInfo = PopEvalStack(simdArgType, _u("Argument should be of type M128"));
+
     Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
     EmitInfo resultInfo(resultReg, resultType);
 
     //put index into a register to reuse the existing infra in Interpreter and Compiler
-    WasmConstLitNode dummy;
-    dummy.i32 = offset;
-    EmitInfo indexInfo = EmitConst(WasmTypes::I32, dummy);
-    
+    EmitInfo indexInfo = EmitLaneIndex(op);
+
     m_writer->AsmReg3(op, resultReg, simdArgInfo.location, indexInfo.location);
     ReleaseLocation(&indexInfo);
     ReleaseLocation(&simdArgInfo);
@@ -1330,7 +1370,6 @@ WasmBytecodeGenerator::EmitSimdMemAccess(Js::OpCodeAsmJs op, const WasmTypes::Wa
     return yieldInfo;
 }
 
-
 EmitInfo
 WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore)
 {
@@ -1363,7 +1402,7 @@ WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* s
     }
 
     ReleaseLocation(&exprInfo);
-    Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();   
+    Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
     m_writer->WasmMemAccess(Js::OpCodeAsmJs::LdArrWasm, resultReg, exprInfo.location, offset, viewType);
 
     EmitInfo yieldInfo;
@@ -1706,7 +1745,7 @@ WasmBytecodeGenerator::ExitEvalStackScope()
     Assert(!m_evalStack.Empty());
     EmitInfo info = m_evalStack.Pop();
     // It is possible to have unconsumed Any type left on the stack, simply remove them
-    while (info.type == WasmTypes::Any) 
+    while (info.type == WasmTypes::Any)
     {
         Assert(!m_evalStack.Empty());
         info = m_evalStack.Pop();

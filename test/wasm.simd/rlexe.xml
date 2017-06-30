@@ -8,20 +8,8 @@
 </test>
 <test>
   <default>
-    <files>loadTests.js</files>
-    <compile-flags> -maic:0 -wasm -wasmsimd</compile-flags>
-  </default>
-</test>
-<test>
-  <default>
     <files>storeTests.js</files>
     <compile-flags> -wasm -wasmsimd</compile-flags>
-  </default>
-</test>
-<test>
-  <default>
-    <files>storeTests.js</files>
-    <compile-flags> -maic:0 -wasm -wasmsimd</compile-flags>
   </default>
 </test>
 <test>
@@ -32,8 +20,14 @@
 </test>
 <test>
   <default>
-    <files>constTests.js</files>
-    <compile-flags> -wasm -wasmsimd -maic:0</compile-flags>
+    <files>splatNegTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>replaceLaneTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
   </default>
 </test>
 </regress-exe>
