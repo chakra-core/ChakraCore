@@ -504,7 +504,7 @@ namespace Js
 
     void JavascriptAsyncFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTDAssert(false, "Invalid -- JavascriptGeneratorFunction");
+        TTDAssert(false, "Invalid -- JavascriptAsyncFunction");
     }
 
     TTD::NSSnapObjects::SnapObjectType GeneratorVirtualScriptFunction::GetSnapTag_TTD() const
