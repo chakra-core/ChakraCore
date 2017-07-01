@@ -391,6 +391,16 @@ namespace Js
         }
     }
 
+    void InlineCache::RemoveFromInvalidationListAndClear(ThreadContext* threadContext)
+    {
+        if (this->RemoveFromInvalidationList())
+        {
+            threadContext->NotifyInlineCacheBatchUnregistered(1);
+        }
+
+        this->Clear();
+    }
+
     InlineCache *InlineCache::Clone(Js::PropertyId propertyId, ScriptContext* scriptContext)
     {
         Assert(scriptContext);

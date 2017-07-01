@@ -454,10 +454,8 @@ namespace Js
             }
             inlineCaches[tryInlineCacheIndex].u = inlineCaches[inlineCacheIndex].u;
             UpdateInlineCachesFillInfo(tryInlineCacheIndex, true /*set*/);
-            // Let's clear the cache slot on which we had the collision. We might have stolen the invalidationListSlotPtr,
-            // so it may not pass VerifyRegistrationForInvalidation. Besides, it will be repopulated with the incoming data,
-            // and registered for invalidation, if necessary.
-            inlineCaches[inlineCacheIndex].Clear();
+            // Let's clear the cache slot on which we had the collision.
+            inlineCaches[inlineCacheIndex].RemoveFromInvalidationListAndClear(type->GetScriptContext()->GetThreadContext());
             Assert((this->inlineCachesFillInfo & (1 << inlineCacheIndex)) != 0);
             UpdateInlineCachesFillInfo(inlineCacheIndex, false /*set*/);
         }
