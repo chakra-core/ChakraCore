@@ -196,8 +196,6 @@ namespace Js
         Assert(this->GetTypeId() == TypeIds_Function);
 #if ENABLE_NATIVE_CODEGEN
         Assert(!IsCrossSiteObject() || entryPoint != (Js::JavascriptMethod)checkCodeGenThunk);
-#else
-        Assert(!IsCrossSiteObject());
 #endif
 
         Assert((entryPointInfo != nullptr && this->GetFunctionProxy() != nullptr));
