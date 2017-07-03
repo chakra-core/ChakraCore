@@ -980,6 +980,8 @@ JsErrorCode WScriptJsrt::InitializeModuleCallbacks()
 
 bool WScriptJsrt::Uninitialize()
 {
+    messageQueue = nullptr;
+    sourceContext = 0;
     // moduleRecordMap is a global std::map, its destructor may access overrided
     // "operator delete" / global HeapAllocator::Instance. Clear it manually here
     // to avoid worrying about global destructor order.
