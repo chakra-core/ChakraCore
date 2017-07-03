@@ -257,7 +257,15 @@ public:
     static HRESULT SetConfigFlags(__in int argc, __in_ecount(argc) LPWSTR argv[], ICustomConfigFlags* customConfigFlags) { return CHECKED_CALL(SetConfigFlags, argc, argv, customConfigFlags); }
     static HRESULT GetFileNameFlag(BSTR * filename) { return CHECKED_CALL(GetFilenameFlag, filename); }
     static HRESULT PrintConfigFlagsUsageString() { m_usageStringPrinted = true;  return CHECKED_CALL(PrintConfigFlagsUsageString); }
-
+    static HRESULT GetLoopFlag(int* flag)
+    {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        return CHECKED_CALL(GetLoopFlag, flag);
+#else
+        *flag = DEFAULT_CONFIG_Loop;
+        return S_OK;
+#endif
+    }
 #ifdef CHECK_MEMORY_LEAK
     static bool IsEnabledCheckMemoryFlag() { return CHECKED_CALL_RETURN(IsEnabledCheckMemoryLeakFlag, FALSE); }
     static HRESULT SetCheckMemoryLeakFlag(bool flag) { return CHECKED_CALL(SetCheckMemoryLeakFlag, flag); }

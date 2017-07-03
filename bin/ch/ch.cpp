@@ -380,6 +380,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsFinalizeCallback 
     {
         Assert(fileContents != nullptr || bufferValue != nullptr);
 
+
         JsErrorCode runScript;
         JsValueRef fname;
         IfJsErrorFailLogLabel(ChakraRTInterface::JsCreateString(fullPath,
@@ -387,40 +388,40 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsFinalizeCallback 
 
         if(bufferValue != nullptr)
         {
-            if(fileContents == nullptr)
-            {
-                // if we have no fileContents, no worry about freeing them, and the call is simple.
-                runScript = ChakraRTInterface::JsRunSerialized(
+                if (fileContents == nullptr)
+                {
+                    // if we have no fileContents, no worry about freeing them, and the call is simple.
+                    runScript = ChakraRTInterface::JsRunSerialized(
                         bufferValue,
                         nullptr /*JsSerializedLoadScriptCallback*/,
                         0 /*SourceContext*/,
                         fname,
                         nullptr /*result*/
-                        );
-            }
-            else // fileContents != nullptr
-            {
-                // Memory management is a little more complex here
-                SerializedCallbackInfo serializedCallbackInfo;
-                serializedCallbackInfo.scriptBody = (void*)fileContents;
-                serializedCallbackInfo.scriptBodyFinalizeCallback = fileContentsFinalizeCallback;
-                serializedCallbackInfo.freeingHandled = false;
+                    );
+                }
+                else // fileContents != nullptr
+                {
+                    // Memory management is a little more complex here
+                    SerializedCallbackInfo serializedCallbackInfo;
+                    serializedCallbackInfo.scriptBody = (void*)fileContents;
+                    serializedCallbackInfo.scriptBodyFinalizeCallback = fileContentsFinalizeCallback;
+                    serializedCallbackInfo.freeingHandled = false;
 
-                // Now we can run our script, with this serializedCallbackInfo as the sourcecontext
-                runScript = ChakraRTInterface::JsRunSerialized(
+                    // Now we can run our script, with this serializedCallbackInfo as the sourcecontext
+                    runScript = ChakraRTInterface::JsRunSerialized(
                         bufferValue,
                         DummyJsSerializedScriptLoadUtf8Source,
                         reinterpret_cast<JsSourceContext>(&serializedCallbackInfo),
                         // Use source ptr as sourceContext
                         fname,
                         nullptr /*result*/);
-                // Now that we're down here, we can free the fileContents if they weren't sent into
-                // a GC-managed object.
-                if(!serializedCallbackInfo.freeingHandled)
-                {
-                    if(fileContentsFinalizeCallback != nullptr)
+                    // Now that we're down here, we can free the fileContents if they weren't sent into
+                    // a GC-managed object.
+                    if (!serializedCallbackInfo.freeingHandled)
                     {
-                        fileContentsFinalizeCallback((void*)fileContents);
+                        if (fileContentsFinalizeCallback != nullptr)
+                        {
+                            fileContentsFinalizeCallback((void*)fileContents);
                     }
                 }
             }
@@ -447,20 +448,21 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsFinalizeCallback 
                 IfFailedReturn(ChakraRTInterface::JsTTDStart());
             }
 
-            runScript = ChakraRTInterface::JsRun(scriptSource,
-                WScriptJsrt::GetNextSourceContext(), fname,
-                JsParseScriptAttributeNone, nullptr /*result*/);
-            if (runScript == JsErrorCategoryUsage)
-            {
-                wprintf(_u("FATAL ERROR: Core was compiled without ENABLE_TTD is defined. CH is trying to use TTD interface\n"));
-                abort();
-            }
+                runScript = ChakraRTInterface::JsRun(scriptSource,
+                    WScriptJsrt::GetNextSourceContext(), fname,
+                    JsParseScriptAttributeNone, nullptr /*result*/);
+                if (runScript == JsErrorCategoryUsage)
+                {
+                    wprintf(_u("FATAL ERROR: Core was compiled without ENABLE_TTD is defined. CH is trying to use TTD interface\n"));
+                    abort();
+                }
 #else
-            runScript = ChakraRTInterface::JsRun(scriptSource,
-                WScriptJsrt::GetNextSourceContext(), fname,
-                JsParseScriptAttributeNone,
-                nullptr /*result*/);
+                runScript = ChakraRTInterface::JsRun(scriptSource,
+                    WScriptJsrt::GetNextSourceContext(), fname,
+                    JsParseScriptAttributeNone,
+                    nullptr /*result*/);
 #endif
+
         }
 
         //Do a yield after the main script body executes
@@ -1037,58 +1039,62 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 #endif // _WIN32
 
     HostConfigFlags::HandleArgsFlag(argc, argv);
-
-    argInfo = { argc, argv, PrintUsage, nullptr };
-    success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
+    int loopCount = 1;
+    for (int i = 0; i < loopCount; ++i)
+    {
+        argInfo = { argc, argv, PrintUsage, nullptr };
+        success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
+        if (ChakraRTInterface::GetLoopFlag(&loopCount) != S_OK) goto return_cleanup;
 
 #if defined(CHAKRA_STATIC_LIBRARY) && !defined(NDEBUG)
-    // handle command line flags
-    OnChakraCoreLoaded(OnChakraCoreLoadedEntry);
+        // handle command line flags
+        OnChakraCoreLoaded(OnChakraCoreLoadedEntry);
 #endif
 
-    if (argInfo.filename == nullptr)
-    {
-        WideStringToNarrowDynamic(argv[1], &argInfo.filename);
-    }
+        if (argInfo.filename == nullptr)
+        {
+            WideStringToNarrowDynamic(argv[1], &argInfo.filename);
+        }
 
-    if (success)
-    {
+        if (success)
+        {
 #ifdef _WIN32
 #if ENABLE_NATIVE_CODEGEN
-        if (HostConfigFlags::flags.OOPJIT)
-        {
-            // TODO: Error checking
-            JITProcessManager::StartRpcServer(argc, argv);
-            ChakraRTInterface::ConnectJITServer(JITProcessManager::GetRpcProccessHandle(), nullptr, JITProcessManager::GetRpcConnectionId());
-        }
+            if (HostConfigFlags::flags.OOPJIT)
+            {
+                // TODO: Error checking
+                JITProcessManager::StartRpcServer(argc, argv);
+                ChakraRTInterface::ConnectJITServer(JITProcessManager::GetRpcProccessHandle(), nullptr, JITProcessManager::GetRpcConnectionId());
+            }
 #endif
-        HANDLE threadHandle;
-        threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(0, 0, &StaticThreadProc, &argInfo, STACK_SIZE_PARAM_IS_A_RESERVATION, 0));
+            HANDLE threadHandle;
+            threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(0, 0, &StaticThreadProc, &argInfo, STACK_SIZE_PARAM_IS_A_RESERVATION, 0));
 
-        if (threadHandle != nullptr)
-        {
-            DWORD waitResult = WaitForSingleObject(threadHandle, INFINITE);
-            Assert(waitResult == WAIT_OBJECT_0);
-            DWORD threadExitCode;
-            GetExitCodeThread(threadHandle, &threadExitCode);
-            exitCode = (HRESULT)threadExitCode;
-            CloseHandle(threadHandle);
-        }
-        else
-        {
-            fwprintf(stderr, _u("FATAL ERROR: failed to create worker thread error code %d, exiting\n"), errno);
-            AssertMsg(false, "failed to create worker thread");
-        }
+            if (threadHandle != nullptr)
+            {
+                DWORD waitResult = WaitForSingleObject(threadHandle, INFINITE);
+                Assert(waitResult == WAIT_OBJECT_0);
+                DWORD threadExitCode;
+                GetExitCodeThread(threadHandle, &threadExitCode);
+                exitCode = (HRESULT)threadExitCode;
+                CloseHandle(threadHandle);
+            }
+            else
+            {
+                fwprintf(stderr, _u("FATAL ERROR: failed to create worker thread error code %d, exiting\n"), errno);
+                AssertMsg(false, "failed to create worker thread");
+            }
 #else
-        // On linux, execute on the same thread
-        exitCode = ExecuteTestWithMemoryCheck(argInfo.filename);
+            // On linux, execute on the same thread
+            exitCode = ExecuteTestWithMemoryCheck(argInfo.filename);
 #endif
 
-        ChakraRTInterface::UnloadChakraDll(chakraLibrary);
-    }
+            ChakraRTInterface::UnloadChakraDll(chakraLibrary);
+        }
 #if ENABLE_NATIVE_CODEGEN && defined(_WIN32)
-    JITProcessManager::TerminateJITServer();
+        JITProcessManager::TerminateJITServer();
 #endif
+    }
 
     PAL_Shutdown();
     retval = (int)exitCode;
