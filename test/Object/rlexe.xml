@@ -260,6 +260,12 @@
   </test>
   <test>
     <default>
+      <files>TypeSnapshotEnumerationCachedType.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -off:ArrayCheckHoist -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>NewScObject-InlineSlotCapacityLocking.js</files>
       <baseline>NewScObject-InlineSlotCapacityLocking.baseline</baseline>
     </default>
