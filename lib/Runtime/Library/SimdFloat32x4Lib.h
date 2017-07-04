@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
-
+#ifdef ENABLE_SIMDJS
 namespace Js {
 
     class SIMDFloat32x4Lib
@@ -136,3 +136,4 @@ namespace Js {
         // End entry points
     };
 } // namespace Js
+#endif

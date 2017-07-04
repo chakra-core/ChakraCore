@@ -164,6 +164,8 @@ namespace Js
 
         return SIMDType::New(&result, scriptContext);
     }
+
+#ifdef ENABLE_SIMDJS
     template Var SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDInt32x4  >(Var src1, Var src2, Var *lanes, const uint32 laneCount, const uint32 range, ScriptContext* scriptContext);
     template Var SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDFloat32x4>(Var src1, Var src2, Var *lanes, const uint32 laneCount, const uint32 range, ScriptContext* scriptContext);
     template Var SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDFloat64x2>(Var src1, Var src2, Var *lanes, const uint32 laneCount, const uint32 range, ScriptContext* scriptContext);
@@ -172,6 +174,7 @@ namespace Js
     template Var SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDInt16x8  >(Var src1, Var src2, Var *lanes, const uint32 laneCount, const uint32 range, ScriptContext* scriptContext);
     template Var SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDUint8x16 >(Var src1, Var src2, Var *lanes, const uint32 laneCount, const uint32 range, ScriptContext* scriptContext);
     template Var SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDUint16x8 >(Var src1, Var src2, Var *lanes, const uint32 laneCount, const uint32 range, ScriptContext* scriptContext);
+#endif
 
     bool SIMDUtils::SIMDIsSupportedTypedArray(Var value)
     {

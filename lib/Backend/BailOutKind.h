@@ -48,11 +48,12 @@ BAIL_OUT_KIND(BailOutForGeneratorYield,             0)
 BAIL_OUT_KIND(BailOutOnException,                   0)
 BAIL_OUT_KIND(BailOutOnEarlyExit,                   0)
 
+#ifdef ENABLE_SIMDJS
 // SIMD_JS
 BAIL_OUT_KIND(BailOutSimd128F4Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128I4Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128I8Only,                 0)
-BAIL_OUT_KIND(BailOutSimd128I16Only,                 0)
+BAIL_OUT_KIND(BailOutSimd128I16Only,                0)
 BAIL_OUT_KIND(BailOutSimd128U4Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128U8Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128U16Only,                0)
@@ -61,6 +62,7 @@ BAIL_OUT_KIND(BailOutSimd128B8Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128B16Only,                0)
 BAIL_OUT_KIND(BailOutSimd128D2Only,                 0)
 BAIL_OUT_KIND(BailOutNoSimdTypeSpec,                0)
+#endif
 
 BAIL_OUT_KIND(BailOutKindEnd,                       0)
 

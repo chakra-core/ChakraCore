@@ -1194,6 +1194,7 @@ struct FuncBailOutData
     BVFixed * losslessInt32Syms;
     BVFixed * float64Syms;
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     BVFixed * simd128F4Syms;
     BVFixed * simd128I4Syms;
@@ -1205,6 +1206,7 @@ struct FuncBailOutData
     BVFixed * simd128B4Syms;
     BVFixed * simd128B8Syms;
     BVFixed * simd128B16Syms;
+#endif
 
     void Initialize(Func * func, JitArenaAllocator * tempAllocator);
     void FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOutRecordDataTable *table, uint **lastUpdatedRowIndices);
@@ -1219,6 +1221,7 @@ FuncBailOutData::Initialize(Func * func, JitArenaAllocator * tempAllocator)
     this->localOffsets = AnewArrayZ(tempAllocator, int, localsCount);
     this->losslessInt32Syms = BVFixed::New(localsCount, tempAllocator);
     this->float64Syms = BVFixed::New(localsCount, tempAllocator);
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     this->simd128F4Syms = BVFixed::New(localsCount, tempAllocator);
     this->simd128I4Syms = BVFixed::New(localsCount, tempAllocator);
@@ -1230,6 +1233,7 @@ FuncBailOutData::Initialize(Func * func, JitArenaAllocator * tempAllocator)
     this->simd128B4Syms = BVFixed::New(localsCount, tempAllocator);
     this->simd128B8Syms = BVFixed::New(localsCount, tempAllocator);
     this->simd128B16Syms = BVFixed::New(localsCount, tempAllocator);
+#endif
 }
 
 void
@@ -1254,7 +1258,7 @@ FuncBailOutData::FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOu
         {
             bool isFloat = float64Syms->Test(i) != 0;
             bool isInt = losslessInt32Syms->Test(i) != 0;
-
+#ifdef ENABLE_SIMDJS
             // SIMD_JS
             bool isSimd128F4  = simd128F4Syms->Test(i) != 0;
             bool isSimd128I4  = simd128I4Syms->Test(i) != 0;
@@ -1270,6 +1274,11 @@ FuncBailOutData::FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOu
             globalBailOutRecordDataTable->AddOrUpdateRow(allocator, bailOutRecordId, i, isFloat, isInt, 
                 isSimd128F4, isSimd128I4, isSimd128I8, isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16,
                 isSimd128B4, isSimd128B8, isSimd128B16, localOffsets[i], &((*lastUpdatedRowIndices)[i]));
+#else
+            globalBailOutRecordDataTable->AddOrUpdateRow(allocator, bailOutRecordId, i, isFloat, isInt,
+                false, false, false, false, false, false, false,
+                false, false, false, localOffsets[i], &((*lastUpdatedRowIndices)[i]));
+#endif
             Assert(globalBailOutRecordDataTable->globalBailOutRecordDataRows[(*lastUpdatedRowIndices)[i]].regSlot  == i);
             bailOutRecord->localOffsetsCount++;
         }
@@ -1283,6 +1292,7 @@ FuncBailOutData::Clear(JitArenaAllocator * tempAllocator)
     JitAdeleteArray(tempAllocator, localsCount, localOffsets);
     losslessInt32Syms->Delete(tempAllocator);
     float64Syms->Delete(tempAllocator);
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     simd128F4Syms->Delete(tempAllocator);
     simd128I4Syms->Delete(tempAllocator);
@@ -1294,6 +1304,7 @@ FuncBailOutData::Clear(JitArenaAllocator * tempAllocator)
     simd128B4Syms->Delete(tempAllocator);
     simd128B8Syms->Delete(tempAllocator);
     simd128B16Syms->Delete(tempAllocator);
+#endif
 }
 
 GlobalBailOutRecordDataTable *
@@ -1484,6 +1495,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         {
             funcBailOutData[index].float64Syms->Set(i);
         }
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         else if (copyStackSym->IsSimd128F4())
         {
@@ -1525,6 +1537,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         {
             funcBailOutData[index].simd128B16Syms->Set(i);
         }
+#endif
         copyPropSymsIter.RemoveCurrent(this->func->m_alloc);
     }
     NEXT_SLISTBASE_ENTRY_EDITING;
@@ -1556,6 +1569,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         {
             funcBailOutData[index].float64Syms->Set(i);
         }
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         else if (stackSym->IsSimd128F4())
         {
@@ -1597,6 +1611,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         {
             funcBailOutData[index].simd128B16Syms->Set(i);
         }
+#endif
     }
     NEXT_BITSET_IN_SPARSEBV;
 
@@ -1748,6 +1763,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo = NativeCodeDataNew(allocator, BailOutRecord::ArgOutOffsetInfo);
                 currentBailOutRecord->argOutOffsetInfo->argOutFloat64Syms = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->argOutLosslessInt32Syms = nullptr;
+
+#ifdef ENABLE_SIMDJS
                 // SIMD_JS
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128F4Syms = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128I4Syms = nullptr;
@@ -1759,6 +1776,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B4Syms = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B8Syms = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B16Syms = nullptr;
+#endif
 
                 currentBailOutRecord->argOutOffsetInfo->argOutSymStart = 0;
                 currentBailOutRecord->argOutOffsetInfo->outParamOffsets = nullptr;
@@ -1785,6 +1803,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo->argOutSymStart = outParamStart;
                 currentBailOutRecord->argOutOffsetInfo->argOutFloat64Syms = argOutFloat64Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutLosslessInt32Syms = argOutLosslessInt32Syms;
+
+#ifdef ENABLE_SIMDJS
                 // SIMD_JS
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128F4Syms  = argOutSimd128F4Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128I4Syms  = argOutSimd128I4Syms  ;
@@ -1796,8 +1816,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B4Syms = argOutSimd128U4Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B8Syms = argOutSimd128U8Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B16Syms = argOutSimd128U16Syms;
-
-
+#endif
             }
 #if DBG_DUMP
             if (PHASE_DUMP(Js::BailOutPhase, this->func))

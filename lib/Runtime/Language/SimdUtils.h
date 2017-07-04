@@ -5,8 +5,9 @@
 
 #pragma once
 
+#ifdef ENABLE_SIMDJS
 #define SIMD128_TYPE_SPEC_FLAG Js::Configuration::Global.flags.Simd128TypeSpec
-
+#endif
 // The representations below assume little-endian.
 #define SIMD_X 0
 #define SIMD_Y 1
