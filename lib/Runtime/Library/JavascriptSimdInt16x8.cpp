@@ -6,7 +6,7 @@
 
 #include "RuntimeLibraryPch.h"
 
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     const char16 JavascriptSIMDInt16x8::TypeName[] = _u("SIMD.Int16x8");
@@ -79,4 +79,5 @@ namespace Js
         return JavascriptNumber::ToVar(value.i16[index], requestContext);
     }
 }
+#endif
 

@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     class JavascriptSIMDBool32x4 sealed : public JavascriptSIMDType
@@ -47,4 +47,5 @@ namespace Js
 
     };
 }
+#endif
 

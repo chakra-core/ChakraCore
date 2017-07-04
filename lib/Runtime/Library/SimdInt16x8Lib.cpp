@@ -5,7 +5,7 @@
 
 
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     Var SIMDInt16x8Lib::EntryInt16x8(RecyclableObject* function, CallInfo callInfo, ...)
@@ -945,3 +945,4 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, _u("select"));
     }
 }
+#endif
