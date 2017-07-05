@@ -1677,7 +1677,7 @@ namespace Js
                         Output::Print(_u("PropertyString '%s' : Invalidating LdElem cache for type %p\n"), string->GetString(), type);
                     }
 #endif
-                    cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].Clear();
+                    cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].RemoveFromInvalidationListAndClear(this->GetThreadContext());
                 }
                 cache = string->GetStElemInlineCache();
                 if (cache->PretendTrySetProperty(type, type, &info))
@@ -1688,7 +1688,7 @@ namespace Js
                         Output::Print(_u("PropertyString '%s' : Invalidating StElem cache for type %p\n"), string->GetString(), type);
                     }
 #endif
-                    cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].Clear();
+                    cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].RemoveFromInvalidationListAndClear(this->GetThreadContext());
                 }
             }
         }
