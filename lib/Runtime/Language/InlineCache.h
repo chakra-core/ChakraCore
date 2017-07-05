@@ -222,8 +222,11 @@ namespace Js
                 return false;
             }
 
+            Assert(*this->invalidationListSlotPtr == this);
+
             *this->invalidationListSlotPtr = nullptr;
             this->invalidationListSlotPtr = nullptr;
+
             return true;
         }
 
@@ -314,6 +317,7 @@ namespace Js
         bool PretendTrySetProperty(Type *const type, Type *const oldType, PropertyCacheOperationInfo * operationInfo) const;
 
         void Clear();
+        void RemoveFromInvalidationListAndClear(ThreadContext* threadContext);
         template <class TAllocator>
         InlineCache *Clone(TAllocator *const allocator);
         InlineCache *Clone(Js::PropertyId propertyId, ScriptContext* scriptContext);
