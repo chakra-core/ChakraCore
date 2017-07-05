@@ -1267,19 +1267,4 @@ namespace Js
     template <>
     inline uint32 JavascriptArray::ConvertToIndex<uint32, uint32>(uint32 idxDest, ScriptContext* scriptContext) { return idxDest; }
 
-    // This is for protecting a region of code, where we can't recover and be consistent upon failures (mainly due to OOM and SO).
-    // FailFast on that. 
-    class AutoFailFastOnError
-    {
-    public:
-        AutoFailFastOnError() : m_operationCompleted(false) { }
-        ~AutoFailFastOnError();
-
-        void Completed() { m_operationCompleted = true; }
-
-    private:
-        bool m_operationCompleted;
-    };
-
-
 } // namespace Js
