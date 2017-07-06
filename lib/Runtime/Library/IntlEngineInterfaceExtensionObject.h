@@ -27,7 +27,7 @@ namespace Js
         JavascriptFunction* GetDateToLocaleDateString() { return dateToLocaleDateString; }
         JavascriptFunction* GetNumberToLocaleString() { return numberToLocaleString; }
         JavascriptFunction* GetStringLocaleCompare() { return stringLocaleCompare; }
-        static void __cdecl InitializeIntlNativeInterfaces(DynamicObject* intlNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static bool __cdecl InitializeIntlNativeInterfaces(DynamicObject* intlNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
 #if DBG
         void DumpByteCode() override;
