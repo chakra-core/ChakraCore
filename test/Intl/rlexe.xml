@@ -21,35 +21,17 @@
     </default>
   </test>
   <test>
-    <!-- Make NumberFormat.js expected output more general to support different implementations. (Microsoft/ChakraCore#3014) -->
     <default>
       <files>NumberFormat.js</files>
       <baseline>NumberFormat.baseline</baseline>
       <tags>Intl,exclude_winglob,exclude_drt</tags>
     </default>
   </test>
-  <!-- Combine NumberFormatOptions*.js by making expected output more general. (Microsoft/ChakraCore#3014) -->
   <test>
     <default>
       <files>NumberFormatOptions.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
       <tags>Intl</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <!-- Variant of test to run on Win10 -->
-      <files>NumberFormatOptionsImplSpecific-Win10.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,exclude_winBlue,exclude_win8,exclude_win7,exclude_drt</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <!-- Variant of test to run on WinBlue and earlier -->
-      <files>NumberFormatOptionsImplSpecific-WinBlue.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,exclude_win10</tags>
     </default>
   </test>
 
