@@ -66,8 +66,8 @@ namespace Js
         static Var FunctionCallTrap(RecyclableObject* function, CallInfo callInfo, ...);
         static JavascriptProxy* Create(ScriptContext* scriptContext, Arguments args);
 
-        static BOOL GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor* propertyDescriptor);
-        static BOOL DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext);
+        static BOOL GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* requestContext, PropertyDescriptor* propertyDescriptor);
+        static BOOL DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* requestContext);
 
         static DWORD GetOffsetOfTarget() { return offsetof(JavascriptProxy, target); }
 
@@ -140,7 +140,7 @@ namespace Js
         virtual void AddToPrototype(ScriptContext * requestContext) override;
         virtual void SetPrototype(RecyclableObject* newPrototype) override;
 
-        BOOL SetPrototypeTrap(RecyclableObject* newPrototype, bool showThrow);
+        BOOL SetPrototypeTrap(RecyclableObject* newPrototype, bool showThrow, ScriptContext * requestContext);
         Var ToString(Js::ScriptContext* scriptContext);
 
         // proxy does not support IDispatch stuff.
@@ -208,6 +208,17 @@ namespace Js
         JavascriptFunction* GetMethodHelper(PropertyId methodId, ScriptContext* requestContext);
         Var GetValueFromDescriptor(Var instance, PropertyDescriptor propertyDescriptor, ScriptContext* requestContext);
         static Var GetName(ScriptContext* requestContext, PropertyId propertyId);
+
+        RecyclableObject* MarshalHandler(ScriptContext* requestContext) const
+        {
+            return static_cast<RecyclableObject*>(
+                CrossSite::MarshalVar(requestContext, handler));
+        }
+        RecyclableObject* MarshalTarget(ScriptContext* requestContext) const
+        {
+            return static_cast<RecyclableObject*>(
+                CrossSite::MarshalVar(requestContext, target));
+        }
 
         static BOOL TestIntegrityLevel(IntegrityLevel integrityLevel, RecyclableObject* obj, ScriptContext* scriptContext);
         static BOOL SetIntegrityLevel(IntegrityLevel integrityLevel, RecyclableObject* obj, ScriptContext* scriptContext);

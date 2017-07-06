@@ -156,7 +156,7 @@ namespace Js
         {
             JavascriptProxy* proxy = JavascriptProxy::FromVar(object);
             CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
-            return proxy->SetPrototypeTrap(newPrototype, shouldThrow);
+            return proxy->SetPrototypeTrap(newPrototype, shouldThrow, scriptContext);
         }
         
         // 2.   Let extensible be the value of the [[Extensible]] internal data property of O.
