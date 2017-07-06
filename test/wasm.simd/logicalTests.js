@@ -71,26 +71,42 @@ let testBoolReduceOps = function (funcname, args1, expected) {
 testBoolReduceOps("i32x4_anytrue", [0, 0, 0, 0], false);
 testBoolReduceOps("i32x4_anytrue", [0, 0, 0, 0xFFFFFFFF], true);
 testBoolReduceOps("i32x4_anytrue", [0xFFFFFFFF, 0, 0, 0], true);
+testBoolReduceOps("i32x4_anytrue", [0x80000000, 0, 0, 0], true);
+testBoolReduceOps("i32x4_anytrue", [0, 0, 0, 0x10], true);
 
 testBoolReduceOps("i32x4_alltrue", [0, 0, 0, 0], false);
 testBoolReduceOps("i32x4_alltrue", [0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0], false);
 testBoolReduceOps("i32x4_alltrue", [0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF], true);
+testBoolReduceOps("i32x4_alltrue", [0x10, 0x4, 0x8, 0x1], true);
+testBoolReduceOps("i32x4_alltrue", [0x80000000, 0x40000000, 0x20000000, 0x10000000], true);
+testBoolReduceOps("i32x4_alltrue", [0x80000000, 0x40000000, 0x20000000, 0], false);
 
 testBoolReduceOps("i16x8_anytrue", [0, 0, 0, 0, 0, 0, 0, 0], false);
 testBoolReduceOps("i16x8_anytrue", [0, 0, 0, 0, 0, 0, 0xFFFF, 0], true);
 testBoolReduceOps("i16x8_anytrue", [0, 0, 0xFFFF, 0, 0, 0, 0, 0], true);
+testBoolReduceOps("i16x8_anytrue", [0, 0, 1, 0, 0, 0, 0, 0], true);
+testBoolReduceOps("i16x8_anytrue", [0, 0, 1, 0, 0, 0, 0x10, 0], true);
+testBoolReduceOps("i16x8_anytrue", [0, 0, 0, 0, 0, 0, 0, 0x800], true);
 
 testBoolReduceOps("i16x8_alltrue", [0, 0, 0, 0, 0, 0, 0, 0], false);
 testBoolReduceOps("i16x8_alltrue", [0, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF], false);
 testBoolReduceOps("i16x8_alltrue", [0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF], true);
+testBoolReduceOps("i16x8_alltrue", [0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF], true);
+testBoolReduceOps("i16x8_alltrue", [0x8000, 0x4000, 0x2000, 0x1000, 0x800, 0x400, 0x200, 0x100], true);
+testBoolReduceOps("i16x8_alltrue", [0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1], true);
+testBoolReduceOps("i16x8_alltrue", [0x80, 0x40, 0x20, 0x10, 0x8, 0, 0x2, 0x1], false);
 
 testBoolReduceOps("i8x16_anytrue", [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], false);
 testBoolReduceOps("i8x16_anytrue", [0, 0, 0, 0, 0, 0, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0], true);
 testBoolReduceOps("i8x16_anytrue", [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0, 0], true);
+testBoolReduceOps("i8x16_anytrue", [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x80, 0, 0, 0, 0, 0], true);
+testBoolReduceOps("i8x16_anytrue", [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], true);
 
 testBoolReduceOps("i8x16_alltrue", [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], false);
 testBoolReduceOps("i8x16_alltrue", [0xFF, 0xFF, 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], false);
 testBoolReduceOps("i8x16_alltrue", [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], true);
+testBoolReduceOps("i8x16_alltrue", [0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1, 3, 5, 7, 9, 11, 87, 42, 1], true);
+testBoolReduceOps("i8x16_alltrue", [0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0, 0x1, 3, 5, 7, 9, 11, 87, 42, 1], false);
 
 if (passed) {
     print("Passed");
