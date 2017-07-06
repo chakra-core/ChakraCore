@@ -27,6 +27,12 @@
 @echo off
 setlocal
 
+rem <repo root>\test\
+set script_dir=%~dp0
+
+rem remove trailing \
+set script_dir=%script_dir:~,-1%
+
 goto :main
 
 :: ============================================================================
@@ -75,9 +81,8 @@ goto :main
 :: ============================================================================
 :main
 
-  if not exist %cd%\rlexedirs.xml (
-    echo Error: rlexedirs.xml not found in current directory.
-    echo runtests.cmd must be run from a test root directory containing rlexedirs.xml.
+  if not exist %script_dir%\rlexedirs.xml (
+    echo Error: rlexedirs.xml not found in %script_dir% directory.
     exit /b 1
   )
 
@@ -98,7 +103,9 @@ goto :main
 
   call :configureVars
 
-  set _logsRoot=%cd%\logs
+  pushd %script_dir%
+
+  set _logsRoot=%script_dir%\logs
   call :doSilent del /s /q profile.dpl.*
 
   for %%i in (%_Variants%) do (
@@ -107,6 +114,8 @@ goto :main
   )
 
   call :cleanUp
+
+  popd
 
   for %%i in (%_Variants%) do (
     echo.
@@ -469,7 +478,7 @@ goto :main
   set _rlArgs=%_rlArgs% %EXTRA_RL_FLAGS%
   set _rlArgs=%_rlArgs% %_rebase%
 
-  set REGRESS=%CD%
+  set REGRESS=%script_dir%
 
   call :do rl %_rlArgs%
   if %ERRORLEVEL% NEQ 0 set _HadFailures=1
