@@ -5783,9 +5783,8 @@ LowererMD::GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInse
 void
 LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeInstr)
 {
-    bool useJITTrampoline = m_func->GetThreadContextInfo()->IsCFGEnabled();
-    IR::LabelInstr * callLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-    IR::LabelInstr * cfgLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, m_func, useJITTrampoline);
+    bool useJITTrampoline = CONFIG_FLAG(UseJITTrampoline);
+    IR::LabelInstr * callLabelInstr = nullptr;
     uintptr_t jitThunkStartAddress = NULL;
     if (useJITTrampoline)
     {
@@ -5810,6 +5809,9 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
             IR::AddrOpnd * endAddressOfSegmentConstOpnd = IR::AddrOpnd::New(endAddressOfSegment, IR::AddrOpndKindDynamicMisc, m_func);
             IR::RegOpnd *resultOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
 
+            callLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+            IR::LabelInstr * cfgLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+
             // resultOpnd = SUB endAddressOfSegmentConstOpnd, entryPointOpnd
             // CMP resultOpnd, TotalThunkSize
             // JAE $cfgLabel
@@ -5819,9 +5821,10 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
             m_lowerer->InsertCompareBranch(resultOpnd, IR::IntConstOpnd::New(InProcJITThunkEmitter::TotalThunkSize, TyMachReg, m_func, true), Js::OpCode::BrGe_A, true, cfgLabelInstr, insertBeforeInstr);
             m_lowerer->InsertAnd(entryPointOpnd, entryPointOpnd, IR::IntConstOpnd::New(InProcJITThunkEmitter::ThunkAlignmentMask, TyMachReg, m_func, true), insertBeforeInstr);
             m_lowerer->InsertBranch(Js::OpCode::Br, callLabelInstr, insertBeforeInstr);
+
+            insertBeforeInstr->InsertBefore(cfgLabelInstr);
         }
     }
-    insertBeforeInstr->InsertBefore(cfgLabelInstr);
     //MOV  ecx, entryPoint
     IR::RegOpnd * entryPointRegOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
 #if _M_IX86
@@ -5856,12 +5859,15 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
     if (jitThunkStartAddress)
     {
         Assert(callLabelInstr);
-#if DBG
-        //Always generate CFG check in DBG build to make sure that the address is still valid
-        movInstrEntryPointToRegister->InsertBefore(callLabelInstr);
-#else
-        insertBeforeInstr->InsertBefore(callLabelInstr);
-#endif
+        if (CONFIG_FLAG(ForceJITCFGCheck))
+        {
+            // Always generate CFG check to make sure that the address is still valid
+            movInstrEntryPointToRegister->InsertBefore(callLabelInstr);
+        }
+        else
+        {
+            insertBeforeInstr->InsertBefore(callLabelInstr);
+        }
     }
 }
 #endif
