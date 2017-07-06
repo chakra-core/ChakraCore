@@ -8166,7 +8166,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
         if (nop != knopYieldLeaf)
         {
-            if (nop == knopIncPre || nop == knopDecPre)
+            if ((nop == knopIncPre || nop == knopDecPre) && (m_token.tk != tkDArrow))
             {
                 if (!fCanAssign && PHASE_ON1(Js::EarlyReferenceErrorsPhase))
                 {

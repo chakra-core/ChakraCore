@@ -507,6 +507,13 @@ var tests = [
             var l = async() => a = (async() => b = ('str'));
             assert.areEqual("async() => a = (async() => b = ('str'))", '' + l, "Nested async lambda should be correct");
         }
+    },
+    {
+        // Regression test for issue: https://github.com/Microsoft/ChakraCore/issues/2746
+        name: "Lambda expression with syntax error.",
+        body: function () {
+            assert.throws(() => { eval('--par=>'); }, SyntaxError, "Expected syntax error.");
+        }
     }
 ];
 
