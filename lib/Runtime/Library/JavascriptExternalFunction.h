@@ -74,7 +74,7 @@ namespace Js
         static Var WrappedFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var StdCallExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var DefaultExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
-        static void __cdecl DeferredInitializer(DynamicObject* instance, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode);
+        static bool __cdecl DeferredInitializer(DynamicObject* instance, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode);
 
         void PrepareExternalCall(Arguments * args);
 
