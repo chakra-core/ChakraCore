@@ -76,27 +76,6 @@ namespace Js
             }
         }
 
-        void RetrieveSourceText(__out_ecount_full(cchLim - cchMin) LPOLESTR cpText, charcount_t cchMin, charcount_t cchLim) const
-        {
-            size_t cbLength = GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText"));
-            LPCUTF8 source = GetSource(_u("Utf8SourceInfo::RetrieveSourceText"));
-            LPCUTF8 pbStart = nullptr;
-            LPCUTF8 pbEnd = nullptr;
-            
-            if (cbLength == GetCchLength())
-            {
-                pbStart = source + cchMin;
-                pbEnd = source + cchLim;
-            }
-            else
-            {
-                pbStart = source + utf8::CharacterIndexToByteIndex(source, cbLength, cchMin, utf8::doAllowThreeByteSurrogates);
-                pbEnd = source + utf8::CharacterIndexToByteIndex(source, cbLength, cchLim, utf8::doAllowThreeByteSurrogates);
-            }
-            
-            utf8::DecodeUnitsInto(cpText, pbStart, pbEnd, utf8::doAllowThreeByteSurrogates);
-        }
-
         size_t CharacterIndexToByteIndex(charcount_t cchIndex) const
         {
             return cchIndex < m_cchLength ? (GetCbLength(_u("CharacterIndexToByteIndex")) == m_cchLength ?  cchIndex : utf8::CharacterIndexToByteIndex(this->GetSource(_u("CharacterIndexToByteIndex")), GetCbLength(_u("CharacterIndexToByteIndex")), cchIndex, utf8::doAllowThreeByteSurrogates)) : m_cchLength;
