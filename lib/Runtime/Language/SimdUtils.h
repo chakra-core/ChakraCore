@@ -328,6 +328,24 @@ namespace Js {
             return SIMDType::New(&result, scriptContext);
         }
 
+        template <typename T>
+        static SIMDValue CanonicalizeToBools(SIMDValue val)
+        {
+#ifdef ENABLE_WASM
+            T* cursor = (T*)val.i8;
+            const uint maxBytes = 16;
+            uint size = maxBytes / sizeof(T);
+
+            for (uint i = 0; i < size; i++)
+            {
+                cursor[i] = cursor[i] ? -1 : 0;
+            }
+            return val;
+#else
+            return val;
+#endif
+        }
+
         template <class SIMDType>
         static void SIMD128TypedArrayStore(Var arg1, Var arg2, Var simdVar, uint32 dataWidth, ScriptContext *scriptContext)
         {

@@ -299,13 +299,13 @@ EXDEF2_WMS( SIMD_B4_1toB4_1  , Simd128_Not_B4              , Js::SIMDInt32x4Oper
 EXDEF2_WMS( SIMD_B8_1toB8_1  , Simd128_Not_B8              , Js::SIMDInt32x4Operation::OpNot             )
 EXDEF2_WMS( SIMD_B16_1toB16_1, Simd128_Not_B16             , Js::SIMDInt32x4Operation::OpNot             )
 
-EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AllTrue_B4            , Js::SIMDBool32x4Operation::OpAllTrue        )
-EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AllTrue_B8            , Js::SIMDBool32x4Operation::OpAllTrue        )
-EXDEF2_WMS( SIMD_B16_1toI1, Simd128_AllTrue_B16          , Js::SIMDBool32x4Operation::OpAllTrue        )
+EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AllTrue_B4            , Js::SIMDBool32x4Operation::OpAllTrue<int>          )
+EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AllTrue_B8            , Js::SIMDBool32x4Operation::OpAllTrue<short>        )
+EXDEF2_WMS( SIMD_B16_1toI1, Simd128_AllTrue_B16          , Js::SIMDBool32x4Operation::OpAllTrue<char>         )
 
-EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AnyTrue_B4            , Js::SIMDBool32x4Operation::OpAnyTrue        )
-EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AnyTrue_B8            , Js::SIMDBool32x4Operation::OpAnyTrue        )
-EXDEF2_WMS( SIMD_B16_1toI1, Simd128_AnyTrue_B16          , Js::SIMDBool32x4Operation::OpAnyTrue        )
+EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AnyTrue_B4            , Js::SIMDBool32x4Operation::OpAnyTrue<int>          )
+EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AnyTrue_B8            , Js::SIMDBool32x4Operation::OpAnyTrue<short>        )
+EXDEF2_WMS( SIMD_B16_1toI1, Simd128_AnyTrue_B16          , Js::SIMDBool32x4Operation::OpAnyTrue<char>         )
 
   DEF2_WMS(SIMD_I4_1I1toI4_1 , Simd128_ShLtByScalar_I4     , Js::SIMDInt32x4Operation::OpShiftLeftByScalar)
   DEF2_WMS(SIMD_I4_1I1toI4_1 , Simd128_ShRtByScalar_I4     , Js::SIMDInt32x4Operation::OpShiftRightByScalar)
