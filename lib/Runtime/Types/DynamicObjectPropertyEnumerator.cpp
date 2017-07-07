@@ -251,9 +251,8 @@ namespace Js
             }
         } while (Js::IsInternalPropertyId(propertyId));
 
-        if (info.GetPropertyString() != nullptr && info.GetPropertyString()->ShouldUseCache())
+        if (info.GetPropertyString() != nullptr && info.GetPropertyString()->ShouldUseCache() && propertyString == info.GetPropertyString())
         {
-            Assert(propertyString == info.GetPropertyString());
             CacheOperators::CachePropertyRead(startingObject, this->object, false, propertyId, false, &info, scriptContext);
             if (info.IsStoreFieldCacheEnabled() && info.IsWritable() && ((info.GetFlags() & (InlineCacheGetterFlag | InlineCacheSetterFlag)) == 0))
             {
