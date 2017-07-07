@@ -514,6 +514,49 @@ var tests = [
         body: function () {
             assert.throws(() => { eval('--par=>'); }, SyntaxError, "Expected syntax error.");
         }
+    },
+    {
+        name: "Lambda consisting of question-mark operator with false-branch wrapped in parens",
+        body: function () {
+            var l = () => true ? 1 : (0)
+            assert.areEqual('() => true ? 1 : (0)', '' + l, "Lambda to string should include the parens wrapping the false branch");
+            
+            var l = () => true ? 1 : ('๏บบ')
+            assert.areEqual("() => true ? 1 : ('๏บบ')", '' + l, "Multi-byte characters should not break the string");
+            
+            var s = "() => true ? 1 : ('\u{20ac}')";
+            var l = eval(s);
+            assert.areEqual(s, '' + l, "Unicode byte sequences should not break the string");
+            
+            var l = async() => true ? 1 : (0);
+            assert.areEqual('async() => true ? 1 : (0)', '' + l, "Async lambda should also be correct");
+            
+            var l = () => true ? 1 : (() => false ? 1 : (0))
+            assert.areEqual('() => true ? 1 : (() => false ? 1 : (0))', '' + l, "Nested lambda to string should be correct");
+            
+            var l = async() => true ? 1 : (() => false ? 1 : (0))
+            assert.areEqual("async() => true ? 1 : (() => false ? 1 : (0))", '' + l, "Nested async lambda should be correct");
+        }
+    },
+    {
+        name: "Lambda consisting of new expression where constructor is wrapped in parens",
+        body: function () {
+            var l = () => new (Boolean)
+            assert.areEqual('() => new (Boolean)', '' + l, "Lambda to string should include the parens wrapping the constructor");
+            
+            var l = async () => new (Boolean)
+            assert.areEqual('async () => new (Boolean)', '' + l, "Async lambda should work");
+        }
+    },
+    {
+        name: "Async lambda consisting of single await which is wrapped in parens",
+        body: function () {
+            var l = async () => await (5)
+            assert.areEqual('async () => await (5)', '' + l, "Lambda to string should include the parens wrapping the await argument");
+            
+            var l = () => await (5)
+            assert.areEqual('() => await (5)', '' + l, "Regular lambda should also work, though this await looks like a function call");
+        }
     }
 ];
 

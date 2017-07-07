@@ -3141,7 +3141,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         }
         else
         {
-            ParseNodePtr pnodeExpr = ParseTerm<buildAST>(FALSE, pNameHint, pHintLength, pShortNameOffset);
+            ParseNodePtr pnodeExpr = ParseTerm<buildAST>(FALSE, pNameHint, pHintLength, pShortNameOffset, nullptr, false, nullptr, nullptr, nullptr, plastRParen);
             if (buildAST)
             {
                 pnode = CreateCallNode(knopNew, pnodeExpr, nullptr);
@@ -8161,7 +8161,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         else
         {
             // Disallow spread after a unary operator.
-            pnodeT = ParseExpr<buildAST>(opl, &fCanAssign, TRUE, FALSE, nullptr /*hint*/, nullptr /*hintLength*/, nullptr /*hintOffset*/, &operandToken, true);
+            pnodeT = ParseExpr<buildAST>(opl, &fCanAssign, TRUE, FALSE, nullptr /*hint*/, nullptr /*hintLength*/, nullptr /*hintOffset*/, &operandToken, true, nullptr, plastRParen);
         }
 
         if (nop != knopYieldLeaf)
@@ -8452,7 +8452,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         {
             pnodeT = ParseExpr<buildAST>(koplAsg, NULL, fAllowIn);
             ChkCurTok(tkColon, ERRnoColon);
-            ParseNodePtr pnodeT2 = ParseExpr<buildAST>(koplAsg, NULL, fAllowIn);
+            ParseNodePtr pnodeT2 = ParseExpr<buildAST>(koplAsg, NULL, fAllowIn, 0, nullptr, nullptr, nullptr, nullptr, false, nullptr, plastRParen);
             if (buildAST)
             {
                 pnode = CreateTriNode(nop, pnode, pnodeT, pnodeT2);
