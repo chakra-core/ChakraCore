@@ -371,7 +371,7 @@ public:
     IR::Instr*          Simd128LowerMinMaxNum(IR::Instr* instr);
     IR::Instr*          Simd128LowerAnyTrue(IR::Instr* instr);
     IR::Instr*          Simd128LowerAllTrue(IR::Instr* instr);
-#ifdef ENABLE_WASM
+#ifdef ENABLE_WASM_SIMD
     IR::Opnd*           Simd128CanonicalizeToBoolsBeforeReduction(IR::Instr* instr);
 #endif
     BYTE                Simd128GetTypedArrBytesPerElem(ValueType arrType);
