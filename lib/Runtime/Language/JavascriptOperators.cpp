@@ -1692,9 +1692,9 @@ CommonNumber:
             RootObjectBase* rootObject = static_cast<RootObjectBase*>(object);
             foundProperty = rootObject->GetRootProperty(instance, propertyId, value, info, requestContext);
         }
+
         while (!foundProperty && JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
-
             if (unscopables && IsPropertyUnscopable(object, propertyId))
             {
                 break;
@@ -5521,7 +5521,15 @@ CommonNumber:
 
     Var JavascriptOperators::OP_InitCachedScope(Var varFunc, const Js::PropertyIdArray *propIds, Field(DynamicType*)* literalType, bool formalsAreLetDecls, ScriptContext *scriptContext)
     {
-        ScriptFunction *func = JavascriptGeneratorFunction::Is(varFunc) || JavascriptAsyncFunction::Is(varFunc) ?
+        bool isGAFunction = JavascriptFunction::Is(varFunc);
+        Assert(isGAFunction);
+        if (isGAFunction)
+        {
+            JavascriptFunction *function = JavascriptFunction::FromVar(varFunc);
+            isGAFunction = JavascriptGeneratorFunction::Test(function) || JavascriptAsyncFunction::Test(function);
+        }
+
+        ScriptFunction *func = isGAFunction ?
             JavascriptGeneratorFunction::FromVar(varFunc)->GetGeneratorVirtualScriptFunction() :
             ScriptFunction::FromVar(varFunc);
 
