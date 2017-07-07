@@ -88,7 +88,7 @@ static Volatile<CPalThread*> free_threads_list PAL_GLOBAL = NULL;
 
 /* lock to access list of free THREAD structures */
 /* NOTE: can't use a CRITICAL_SECTION here (see comment in FreeTHREAD) */
-int free_threads_spinlock = 0;
+static CCSpinLock<false> free_threads_spinlock;
 
 /* lock to access iEndingThreads counter, condition variable to signal shutdown
 thread when any remaining threads have died, and count of exiting threads that
@@ -191,6 +191,10 @@ Function:
 --*/
 BOOL TLSInitialize()
 {
+    // This will be called once and can't be called during/after another lock
+    // in place due to PAL is not yet initialized. The underlying issue here is
+    // related to whole lib/pal initialization on start.
+    free_threads_spinlock.Reset();
     /* Create the pthread key for thread objects, which we use
        for fast access to the current thread object. */
     if (pthread_key_create(&thObjKey, InternalEndCurrentThreadWrapper))
@@ -199,20 +203,7 @@ BOOL TLSInitialize()
         return FALSE;
     }
 
-    SPINLOCKInit(&free_threads_spinlock);
-
     return TRUE;
-}
-
-/*++
-Function:
-    TLSCleanup
-
-    Shutdown the TLS subsystem
---*/
-VOID TLSCleanup()
-{
-    SPINLOCKDestroy(&free_threads_spinlock);
 }
 
 /*++
@@ -229,8 +220,7 @@ CPalThread* AllocTHREAD()
 {
     CPalThread* pThread = NULL;
 
-    /* Get the lock */
-    SPINLOCKAcquire(&free_threads_spinlock, 0);
+    free_threads_spinlock.Enter();
 
     pThread = free_threads_list;
     if (pThread != NULL)
@@ -238,8 +228,7 @@ CPalThread* AllocTHREAD()
         free_threads_list = pThread->GetNext();
     }
 
-    /* Release the lock */
-    SPINLOCKRelease(&free_threads_spinlock);
+    free_threads_spinlock.Leave();
 
     if (pThread == NULL)
     {
@@ -298,14 +287,12 @@ static void FreeTHREAD(CPalThread *pThread)
        Update: [TODO] PROCSuspendOtherThreads has been removed. Can this
        code be changed?*/
 
-    /* Get the lock */
-    SPINLOCKAcquire(&free_threads_spinlock, 0);
+    free_threads_spinlock.Enter();
 
     pThread->SetNext(free_threads_list);
     free_threads_list = pThread;
 
-    /* Release the lock */
-    SPINLOCKRelease(&free_threads_spinlock);
+    free_threads_spinlock.Leave();
 }
 
 
@@ -1177,12 +1164,6 @@ CorUnix::InternalSetThreadPriority(
     case THREAD_PRIORITY_NORMAL:        /* fall through */
     case THREAD_PRIORITY_BELOW_NORMAL:  /* fall through */
     case THREAD_PRIORITY_LOWEST:
-#if PAL_IGNORE_NORMAL_THREAD_PRIORITY
-        /* We aren't going to set the thread priority. Just record what it is,
-           and exit */
-        pTargetThread->m_iThreadPriority = iNewPriority;
-        goto InternalSetThreadPriorityExit;
-#endif
         break;
 
     default:
