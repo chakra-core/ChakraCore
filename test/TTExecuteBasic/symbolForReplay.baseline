@@ -1,5 +1,7 @@
 x === y: false
 z === y: true
+sym1 === sym2: false
+sym1 === sym3: true
 zo === y: false
 
 Reached end of Execution -- Exiting.
