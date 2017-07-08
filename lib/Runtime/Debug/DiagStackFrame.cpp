@@ -132,7 +132,7 @@ namespace Js
                 }
 
                 bool unused = false;
-                Js::IDiagObjectAddress* address = localsWalker->FindPropertyAddress(Js::PropertyIds::_lexicalThisSlotSymbol, unused);
+                Js::IDiagObjectAddress* address = localsWalker->FindPropertyAddress(Js::PropertyIds::_this, unused);
 
                 if (ppOutAddress != nullptr)
                 {

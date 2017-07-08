@@ -27,10 +27,6 @@
 #if !defined(ENTRY2)
 #define ENTRY2(name, str)
 #endif
-ENTRY_INTERNAL_SYMBOL(_lexicalThisSlotSymbol)
-ENTRY_INTERNAL_SYMBOL(_superReferenceSymbol)
-ENTRY_INTERNAL_SYMBOL(_superCtorReferenceSymbol)
-ENTRY_INTERNAL_SYMBOL(_lexicalNewTargetSymbol)
 ENTRY_SYMBOL(_symbolHasInstance, _u("Symbol.hasInstance"))
 ENTRY_SYMBOL(_symbolIsConcatSpreadable, _u("Symbol.isConcatSpreadable"))
 ENTRY_SYMBOL(_symbolIterator, _u("Symbol.iterator"))
@@ -770,6 +766,12 @@ ENTRY(wake)
 ENTRY(column)
 ENTRY(url)
 ENTRY(exception)
+
+ENTRY2(_this, _u("*this*"))
+ENTRY2(_super, _u("*super*"))
+ENTRY2(_superConstructor, _u("*superconstructor*"))
+ENTRY2(_newTarget, _u("*new.target*"))
+
 
 // Note: Do not add fields for conditionally-compiled PropertyIds into this file.
 //       The bytecode for internal javascript libraries is built on chk but re-used in fre builds.
