@@ -1302,12 +1302,11 @@ namespace Js
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
 #endif
-        Var thisArg = JavascriptOperators::OP_GetThisNoFastPath(args[0], 0, scriptContext);
-        RecyclableObject* obj = RecyclableObject::FromVar(thisArg);
-
-        Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
-        const PropertyRecord* propertyRecord;
-        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
+        RecyclableObject* obj = nullptr;
+        if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.__defineGetter__"));
+        }
 
         Var getterFunc = args.Info.Count > 2 ? args[2] : obj->GetLibrary()->GetUndefined();
 
@@ -1315,6 +1314,10 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Object.prototype.__defineGetter__"));
         }
+
+        Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
+        const PropertyRecord* propertyRecord;
+        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
 
         PropertyDescriptor propertyDescriptor;
         propertyDescriptor.SetEnumerable(true);
@@ -1340,12 +1343,11 @@ namespace Js
         // For browser interop, simulate LdThis by calling OP implementation directly.
         // Do not have module id here so use the global id, 0.
         //
-        Var thisArg = JavascriptOperators::OP_GetThisNoFastPath(args[0], 0, scriptContext);
-        RecyclableObject* obj = RecyclableObject::FromVar(thisArg);
-
-        Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
-        const PropertyRecord* propertyRecord;
-        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
+        RecyclableObject* obj = nullptr;
+        if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.__defineSetter__"));
+        }
 
         Var setterFunc = args.Info.Count > 2 ? args[2] : obj->GetLibrary()->GetUndefined();
 
@@ -1353,6 +1355,10 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Object.prototype.__defineSetter__"));
         }
+
+        Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
+        const PropertyRecord* propertyRecord;
+        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
 
         PropertyDescriptor propertyDescriptor;
         propertyDescriptor.SetEnumerable(true);

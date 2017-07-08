@@ -16,7 +16,7 @@ PASSED
 PASSED
 *** Running test #9 (test09): __defineGetter__ and __defineSetter__ both have length 2 and __lookupGetter__ and __lookupSetter__ both have length 1
 PASSED
-*** Running test #10 (test10): __defineGetter__ and __defineSetter__ should convert null/undefined this argument to global object
+*** Running test #10 (test10): __defineGetter__ and __defineSetter__ should throw TypeError with null/undefined this argument
 PASSED
 *** Running test #11 (test11): __lookupGetter__ and __lookupSetter__ find getters and setters of the given name on the calling object respectively
 PASSED
@@ -25,4 +25,6 @@ PASSED
 *** Running test #13 (test13): __lookupGetter__ and __lookupSetter__ should look for accessors up the prototype chain
 undefined
 PASSED
-Summary of tests: total executed: 13; passed: 13; failed: 0
+*** Running test #14 (test14): __defineGetter__ and __defineSetter__ should throw TypeError when the object specified as getter/setter is not callable
+PASSED
+Summary of tests: total executed: 14; passed: 14; failed: 0
