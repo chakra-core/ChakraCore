@@ -5803,7 +5803,7 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
         if (jitThunkStartAddress)
         {
             uintptr_t endAddressOfSegment = jitThunkStartAddress + InProcJITThunkEmitter::TotalThunkSize;
-
+            Assert(endAddressOfSegment > jitThunkStartAddress);
             // Generate instructions for local Pre-Reserved Segment Range check
 
             IR::AddrOpnd * endAddressOfSegmentConstOpnd = IR::AddrOpnd::New(endAddressOfSegment, IR::AddrOpndKindDynamicMisc, m_func);
