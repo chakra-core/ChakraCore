@@ -1366,6 +1366,12 @@
   </test>
   <test>
     <default>
+      <files>propstrbug.js</files>
+      <compile-flags>-lic:1 -bgjit- -msjrc:2 -mic:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>memop-upperbound.js</files>
       <baseline>memop-upperbound.baseline</baseline>
       <compile-flags>-lic:1 -off:nativearray</compile-flags>
