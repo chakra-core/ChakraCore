@@ -6752,6 +6752,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 this->ProcessTryHandlerBailout(ehBailoutData->child, --tryNestingDepth);
             }
 
+            Js::JavascriptExceptionObject * exceptionObj = this->scriptContext->GetThreadContext()->GetPendingFinallyException();
+            this->scriptContext->GetThreadContext()->SetPendingFinallyException(nullptr);
+
             int finallyEndOffset = this->ProcessFinally();
 
             if (--this->nestedFinallyDepth == -1)
@@ -6760,8 +6763,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 this->m_flags &= ~InterpreterStackFrameFlags_WithinFinallyBlock;
             }
 
-            volatile Js::JavascriptExceptionObject * exceptionObj = this->scriptContext->GetThreadContext()->GetPendingFinallyException();
-            this->scriptContext->GetThreadContext()->SetPendingFinallyException(nullptr);
             // Finally exited with LeaveNull, We don't throw for early returns
             if (finallyEndOffset == 0 && exceptionObj)
             {
