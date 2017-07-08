@@ -206,22 +206,17 @@ var tests = {
         }
     },
     test10: {
-        name: "__defineGetter__ and __defineSetter__ should convert null/undefined this argument to global object",
+        name: "__defineGetter__ and __defineSetter__ should throw TypeError with null/undefined this argument",
         body: function () {
-            Object.prototype.__defineGetter__.call(undefined, "test10_undefined_getter", function () { return undefined; });
-            Object.prototype.__defineGetter__.call(null, "test10_null_getter", function () { return undefined; });
-            Object.prototype.__defineSetter__.call(undefined, "test10_undefined_setter", function (v) { });
-            Object.prototype.__defineSetter__.call(null, "test10_null_setter", function (v) { });
+            assert.throws(() => { Object.prototype.__defineGetter__.call(undefined, "test10_undefined_getter", function () { return undefined; }); }, TypeError, "__defineGetter__ should throw TypeError when this object is Undefined.");
+            assert.throws(() => { Object.prototype.__defineGetter__.call(null, "test10_null_getter", function () { return undefined; }); }, TypeError, "__defineGetter__ should throw TypeError when this object is Null.");
+            assert.throws(() => { Object.prototype.__defineSetter__.call(undefined, "test10_undefined_setter", function (v) { }); }, TypeError, "__defineSetter__ should throw TypeError when this object is Undefined.");
+            assert.throws(() => { Object.prototype.__defineSetter__.call(null, "test10_null_setter", function (v) { }); }, TypeError, "__defineSetter__ should throw TypeError when this object is Null.");          
 
-            assert.isTrue(globalObject.hasOwnProperty("test10_undefined_getter"), "global object should now have a getter named test10_undefined_getter");
-            assert.isTrue(globalObject.hasOwnProperty("test10_null_getter"), "global object should now have a getter named test10_null_getter");
-            assert.isTrue(globalObject.hasOwnProperty("test10_undefined_setter"), "global object should now have a setter named test10_undefined_setter");
-            assert.isTrue(globalObject.hasOwnProperty("test10_null_setter"), "global object should now have a setter named test10_null_setter");
-
-            delete globalObject["test10_undefined_getter"];
-            delete globalObject["test10_null_getter"];
-            delete globalObject["test10_undefined_setter"];
-            delete globalObject["test10_null_setter"];
+            assert.isFalse(globalObject.hasOwnProperty("test10_undefined_getter"), "global object should now have a getter named test10_undefined_getter");
+            assert.isFalse(globalObject.hasOwnProperty("test10_null_getter"), "global object should now have a getter named test10_null_getter");
+            assert.isFalse(globalObject.hasOwnProperty("test10_undefined_setter"), "global object should now have a setter named test10_undefined_setter");
+            assert.isFalse(globalObject.hasOwnProperty("test10_null_setter"), "global object should now have a setter named test10_null_setter");
         }
     },
     test11: {
@@ -296,6 +291,13 @@ var tests = {
             assert.isTrue(o.__lookupGetter__("getb") === getfn, "data property on o shadows accessor property on prototype but __lookupGetter__ looks for the first accessor property, skipping all others, so should return getfn");
             assert.isTrue(o.__lookupSetter__("seta") === undefined, "accessor property on o shadows accessor property on prototype but it is get-only so looking up a setter should return undefined");
             assert.isTrue(o.__lookupSetter__("setb") === setfn, "data property on o shadows accessor property on prototype but __lookupGetter__ looks for the first accessor property, skipping all others, so should return setfn");
+        }
+    },
+    test14: {
+        name: "__defineGetter__ and __defineSetter__ should throw TypeError when the object specified as getter/setter is not callable",
+        body: function () {
+            assert.throws(() => { __defineGetter__.call(this, 'x', 23); }, TypeError, "__defineGetter__ should throw TypeError when the function object is not callable.");
+            assert.throws(() => { this.__defineSetter__('y', {}); }, TypeError, "__defineGetter__ should throw TypeError when the function object is not callable.");
         }
     },
 };

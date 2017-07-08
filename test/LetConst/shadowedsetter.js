@@ -5,7 +5,7 @@
 
 evaluate = WScript.LoadScript;
 
-__defineSetter__("x", function () { });
+this.__defineSetter__("x", function () { });
 
 evaluate(`
   let x = 'let';
