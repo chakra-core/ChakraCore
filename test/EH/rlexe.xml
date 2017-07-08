@@ -107,4 +107,10 @@
       <baseline>early2.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>tryfinallybug0.js</files>
+      <baseline>tryfinallybug0.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>
