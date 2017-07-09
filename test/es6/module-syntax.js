@@ -38,6 +38,16 @@ var tests = [
         }
     },
     {
+        name: "Syntax error return in module top level",
+        body: function () {
+            testModuleScript('return;', 'Syntax error if in module\'s top-level', true);
+            testModuleScript('if (false) return;', 'Syntax error if in module\'s top-level', true);
+            testModuleScript('if (false) {} else return;', 'Syntax error if in module\'s top-level', true);
+            testModuleScript('while (false) return;', 'Syntax error if in module\'s top-level', true);
+            testModuleScript('do return while(false);', 'Syntax error if in module\'s top-level', true);
+        }
+    },
+    {
         name: "Valid default export statements",
         body: function () {
             testModuleScript('export default function () { };', 'Unnamed function expression default export');
@@ -74,6 +84,13 @@ var tests = [
             testModuleScript("export 'string_constant';", 'Syntax error if export is followed by string constant', true);
             testModuleScript('export ', 'Syntax error if export is followed by EOF', true);
             testModuleScript('function foo() { }; export { foo as 100 };', 'Syntax error in named export clause if trying to export as numeric constant', true);
+            testModuleScript('if (false) export default null;', 'Syntax error export in if', true);
+            testModuleScript('if (false) {} else export default null;', 'Syntax error export after else', true);
+            testModuleScript('for(var i=0; i<1; i++) export default null;', 'Syntax error export in for', true);
+            testModuleScript('while(false) export default null;', 'Syntax error export in while', true);
+            testModuleScript(`do export default null
+                                while (false);`, 'Syntax error export in while', true);
+            testModuleScript('function () { export default null; }', 'Syntax error export in function', true);
         }
     },
     {
@@ -114,6 +131,13 @@ var tests = [
             testModuleScript('import { foo bar } from "module";', 'Named import clause missing "as" token', true);
             testModuleScript('import { foo as switch } from "module";', 'Named import clause with non-identifier token after "as"', true);
             testModuleScript('import { foo, , } from "module";', 'Named import clause with too many trailing commas', true);
+            testModuleScript('if (false) import { default } from "module";', 'Syntax error export in if', true);
+            testModuleScript('if (false) {} import { default } from "module";', 'Syntax error export after else', true);
+            testModuleScript('for(var i=0; i<1; i++) import { default } from "module";', 'Syntax error export in for', true);
+            testModuleScript('while(false) import { default } from "module";', 'Syntax error export in while', true);
+            testModuleScript(`do import { default } from "module"
+                                while (false);`, 'Syntax error export in while', true);
+            testModuleScript('function () { import { default } from "module"; }', 'Syntax error export in function', true);
         }
     },
     {

@@ -212,9 +212,9 @@ var tests = [
                 assert.areEqual("Module", foo[Symbol.toStringTag], 'namespace toStringTag');
                 assert.areEqual("[object Module]", Object.prototype.toString.call(foo), 'Object.prototype.toString uses the module namespace @@toStringTag value');
                 var symbols = Object.getOwnPropertySymbols(foo);
-                assert.areEqual(2, symbols.length, "two symbols");
+                assert.areEqual(1, symbols.length, "one symbol");
                 assert.areEqual(symbols[0], Symbol.toStringTag, "first symbol is toStringTag");
-                assert.areEqual(symbols[1], Symbol.iterator, "second symbol is iterator");
+                assert.isFalse(Object.prototype.hasOwnProperty.call(foo, Symbol.iterator), "Module namespace object should not have Symbol.iterator property");
                 assert.throws( function() {Object.setPrototypeOf(foo, Object)}, TypeError, 'Cannot create property for a non-extensible object');
                 assert.areEqual(true, Reflect.preventExtensions(foo), '[[PreventExtensions]] for namespace object returns true');`;
             testModuleScript(functionBody, "Test importing as different binding identifiers", false);
