@@ -137,10 +137,15 @@ if(ICU_INCLUDE_PATH)
       if (NOT ICUDATA)
           set(ICUDATA "")
       endif()
+      find_library(ICUTOOLS icutools PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+      if (NOT ICUTOOLS)
+          set(ICUTOOLS "")
+      endif()
       set(ICULIB
         ${ICUUC}
         ${ICU18}
         ${ICUDATA}
+        ${ICUTOOLS}
         )
     endif()
 endif()
@@ -385,6 +390,12 @@ if(NO_JIT_SH)
     add_definitions(-DDISABLE_JIT=1)
 else()
     set(BuildJIT 1)
+endif()
+
+if(INTL_ICU_SH)
+    unset(INTL_ICU_SH CACHE)    # don't cache
+    add_definitions(-DINTL_ICU=1)
+    set(IntlICU 1)
 endif()
 
 if(WITHOUT_FEATURES_SH)

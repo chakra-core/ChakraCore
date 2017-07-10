@@ -28,6 +28,7 @@
         $(MSBuildThisFileDirectory)..\Runtime;
         $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
         $(ChakraJITIDLIntDir);
+        $(IcuIncludeDir)\common;
         $(ChakraManifestsIncludeDirectory);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>

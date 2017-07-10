@@ -98,11 +98,21 @@
 #if defined(_WIN32) || defined(HAS_REAL_ICU)
 #define ENABLE_UNICODE_API 1                        // Enable use of Unicode-related APIs
 #endif
+
 // Language features
-// xplat-todo: revisit these features
-#ifdef _WIN32
+#if defined(_WIN32) || defined(INTL_ICU)
 #define ENABLE_INTL_OBJECT                          // Intl support
 #endif
+#ifdef INTL_ICU
+#ifdef DBG
+//#define INTL_ICU_DEBUG 1              // NOTE: uncomment this to display INTL_ICU-specific debug output
+#endif
+//#define INTL_ICU_ALLOW_HYBRID 1       // NOTE: uncomment this line to test INTL_ICU SxS with INTL_WINGLOB while INTL_ICU is in-development
+#endif
+#if defined(_WIN32) && (!defined(INTL_ICU) || (defined(INTL_ICU) && defined(INTL_ICU_ALLOW_HYBRID)))
+#define INTL_WINGLOB 1
+#endif
+
 #define ENABLE_ES6_CHAR_CLASSIFIER                  // ES6 Unicode character classifier support
 
 // Type system features
