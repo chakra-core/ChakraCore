@@ -5,6 +5,18 @@
 #pragma once
 
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_ES6_CHAR_CLASSIFIER)
+
+#ifdef INTL_ICU
+#include <CommonPal.h>
+#define U_STATIC_IMPLEMENTATION
+#define U_SHOW_CPLUSPLUS_API 0
+#pragma warning(push)
+#pragma warning(disable:4995) // deprecation warning
+#include <unicode/uloc.h>
+#pragma warning(pop)
+#endif // INTL_ICU
+
+#ifdef INTL_WINGLOB
 #include "Windows.Globalization.h"
 #ifndef NTBUILD
 #include "windows.globalization.numberformatting.h"
@@ -12,12 +24,14 @@
 #include "Windows.Data.Text.h"
 #include "activation.h"
 using namespace ABI;
-#endif
+#endif // NTBUILD
+#endif // INTL_WINGLOB
 
 class ThreadContext;
 
 namespace Js
 {
+#ifdef INTL_WINGLOB
     class WindowsGlobalizationAdapter
     {
     private:
@@ -142,6 +156,24 @@ namespace Js
         static HRESULT VerifyResult(HSTRING * result, HRESULT errCode);
 #endif
     };
-}
-#endif
+#endif // INTL_WINGLOB
 
+#ifdef INTL_ICU
+#ifdef ENABLE_INTL_OBJECT
+    class IcuIntlAdapter
+    {
+    public:
+        static bool IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch);
+        static HRESULT NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
+            _Out_ char16 *normalized, _Out_ size_t *normalizedLength);
+
+        //static bool ResolveLocaleLookup(_In_ ScriptContext *scriptContext, _In_ JavascriptString *locale, _Out_ char16 *resolved);
+        static bool ResolveLocaleLookup(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved);
+        //static bool ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_ JavascriptString *locale, _Out_ char16 *resolved);
+        static bool ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved);
+        static int GetUserDefaultLocaleName(_Out_ LPWSTR lpLocaleName, _In_ int cchLocaleName);
+    };
+#endif // ENABLE_INTL_OBJECT
+#endif // INTL_ICU
+}
+#endif // defined(ENABLE_INTL_OBJECT) || defined(ENABLE_ES6_CHAR_CLASSIFIER)
