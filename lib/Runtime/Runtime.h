@@ -571,9 +571,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/TaggedInt.inl"
 #include "Library/JavascriptGeneratorFunction.h"
 
-
 #ifndef USED_IN_STATIC_LIB
 #ifdef ENABLE_INTL_OBJECT
+#ifdef INTL_WINGLOB
 
 //The "helper" methods below are to resolve external symbol references to our delay-loaded libraries.
 inline HRESULT WindowsCreateString(_In_reads_opt_(length) const WCHAR * sourceString, UINT32 length, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING * string)
@@ -605,5 +605,7 @@ inline HRESULT WindowsDuplicateString(_In_opt_ HSTRING original, _Outptr_result_
 {
     return ThreadContext::GetContextForCurrentThread()->GetWindowsGlobalizationLibrary()->WindowsDuplicateString(original, newString);
 }
-#endif
-#endif
+
+#endif // INTL_WINGLOB
+#endif // ENABLE_INTL_OBJECT
+#endif // #ifndef USED_IN_STATIC_LIB

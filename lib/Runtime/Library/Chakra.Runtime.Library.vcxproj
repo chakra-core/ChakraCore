@@ -34,6 +34,7 @@
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\JITClient;
         $(ChakraJITIDLIntDir);
+        $(IcuIncludeDir)\common; <!-- // TODO (doilij): At end of IntlICU development, remove this if it is not needed here. -->
         $(MSBuildThisFileDirectory)..\Math;
         $(ChakraManifestsIncludeDirectory);
         $(ManifestsInboxIncludeDirectory);

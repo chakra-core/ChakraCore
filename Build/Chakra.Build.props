@@ -29,6 +29,10 @@
         %(PreprocessorDefinitions);
         DISABLE_JIT=1
       </PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(IntlICU)'=='true'">
+        %(PreprocessorDefinitions);
+        INTL_ICU=1
+      </PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(ForceSWB)'=='true'">
         %(PreprocessorDefinitions);
         GLOBAL_ENABLE_WRITE_BARRIER=1

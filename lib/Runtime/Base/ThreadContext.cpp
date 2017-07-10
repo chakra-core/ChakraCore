@@ -4647,6 +4647,7 @@ Js::DelayLoadWinRtRoParameterizedIID* ThreadContext::GetWinRTRoParameterizedIIDL
 #endif
 
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_ES6_CHAR_CLASSIFIER)
+#ifdef INTL_WINGLOB
 Js::WindowsGlobalizationAdapter* ThreadContext::GetWindowsGlobalizationAdapter()
 {
     return &windowsGlobalizationAdapter;
@@ -4658,6 +4659,7 @@ Js::DelayLoadWindowsGlobalization* ThreadContext::GetWindowsGlobalizationLibrary
 
     return &delayLoadWindowsGlobalizationLibrary;
 }
+#endif // INTL_WINGLOB
 #endif
 
 #ifdef ENABLE_FOUNDATION_OBJECT

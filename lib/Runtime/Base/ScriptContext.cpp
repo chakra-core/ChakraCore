@@ -5769,17 +5769,20 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     bool ScriptContext::IsIntlEnabled()
     {
+#ifdef ENABLE_INTL_OBJECT
         if (GetConfig()->IsIntlEnabled())
         {
-#ifdef ENABLE_GLOBALIZATION
+#ifdef INTL_WINGLOB
             // This will try to load globalization dlls if not already loaded.
             Js::DelayLoadWindowsGlobalization* globLibrary = GetThreadContext()->GetWindowsGlobalizationLibrary();
             return globLibrary->HasGlobalizationDllLoaded();
+#else
+            return true;
 #endif
         }
+#endif
         return false;
     }
-
 
 #ifdef INLINE_CACHE_STATS
     void ScriptContext::LogCacheUsage(Js::PolymorphicInlineCache *cache, bool isGetter, Js::PropertyId propertyId, bool hit, bool collision)

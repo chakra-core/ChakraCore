@@ -130,6 +130,7 @@ namespace Js
     };
 #endif
 
+#ifdef INTL_WINGLOB
     class DelayLoadWindowsGlobalization sealed : public DelayLoadWinRtString
     {
     private:
@@ -171,6 +172,7 @@ namespace Js
         HRESULT WindowsCompareStringOrdinal(_In_opt_ HSTRING string1, _In_opt_ HSTRING string2, _Out_ INT32 * result) override;
         HRESULT WindowsDuplicateString(_In_opt_ HSTRING original, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING *newString) override;
     };
+#endif
 
     class DelayLoadWinRtFoundation sealed : public DelayLoadLibrary
     {

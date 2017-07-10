@@ -60,6 +60,7 @@ PRINT_USAGE() {
     echo "     --target-path[=S] Output path for compiled binaries. Default: out/"
     echo "     --trace           Enables experimental built-in trace."
     echo "     --xcode           Generate XCode project."
+    echo "     --with-intl       Include the Intl object (requires ICU)."
     echo "     --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental features."
     echo "     --valgrind        Enable Valgrind support"
@@ -240,6 +241,10 @@ while [[ $# -gt 0 ]]; do
 
     --no-jit)
         NO_JIT="-DNO_JIT_SH=1"
+        ;;
+
+    --with-intl)
+        INTL_ICU="-DINTL_ICU_SH=1"
         ;;
 
     --xcode)
@@ -589,7 +594,7 @@ fi
 echo Generating $BUILD_TYPE makefiles
 echo $EXTRA_DEFINES
 cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
-    $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT \
+    $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $INTL_ICU \
     $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS $LIBS_ONLY_BUILD\
     $VALGRIND $BUILD_RELATIVE_DIRECTORY
 
