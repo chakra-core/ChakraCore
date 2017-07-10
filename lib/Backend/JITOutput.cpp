@@ -256,7 +256,7 @@ JITOutput::FinalizeNativeCode()
         m_func->GetOOPCodeGenAllocators()->emitBufferManager.CompletePreviousAllocation(m_oopAlloc);
 #if defined(_CONTROL_FLOW_GUARD)
 #if _M_IX86 || _M_X64
-        if (m_func->GetThreadContextInfo()->IsCFGEnabled() && !m_func->IsLoopBody())
+        if (!m_func->IsLoopBody() && CONFIG_FLAG(UseJITTrampoline))
         {
             m_outputData->thunkAddress = m_func->GetOOPThreadContext()->GetJITThunkEmitter()->CreateThunk(m_outputData->codeAddress);
         }
@@ -276,7 +276,7 @@ JITOutput::FinalizeNativeCode()
 
 #if defined(_CONTROL_FLOW_GUARD)
 #if _M_IX86 || _M_X64
-        if (m_func->GetThreadContextInfo()->IsCFGEnabled() && !m_func->IsLoopBody())
+        if (!m_func->IsLoopBody() && CONFIG_FLAG(UseJITTrampoline))
         {
             m_outputData->thunkAddress = m_func->GetInProcThreadContext()->GetJITThunkEmitter()->CreateThunk(m_outputData->codeAddress);
         }
