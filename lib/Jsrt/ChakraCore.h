@@ -661,5 +661,23 @@ CHAKRA_API
 JsReleaseSharedArrayBufferContentHandle(
     _In_ JsSharedArrayBufferContentHandle sharedContents);
 
+/// <summary>
+///     Determines whether an object has a non-inherited property.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that may contain the property.</param>
+/// <param name="propertyId">The ID of the property.</param>
+/// <param name="hasOwnProperty">Whether the object has the non-inherited property.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsHasOwnProperty(
+        _In_ JsValueRef object,
+        _In_ JsPropertyIdRef propertyId,
+        _Out_ bool *hasOwnProperty);
+
 #endif // CHAKRACOREBUILD_
 #endif // _CHAKRACORE_H_
