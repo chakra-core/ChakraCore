@@ -2860,22 +2860,6 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
         done->InsertBefore(newInstr);
     }
 
-#ifndef _M_X64
-    if (isInt64Src)
-    {
-        IR::LabelInstr* skipLow = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-        newInstr = IR::BranchInstr::New(Js::OpCode::JNE, skipLow, this->m_func);
-        newInstr->AsBranchInstr()->m_areCmpRegisterFlagsUsedLater = true;
-        done->InsertBefore(newInstr);
-
-        newInstr = IR::Instr::New(cmpOp, this->m_func);
-        newInstr->SetSrc1(src1Pair.low);
-        newInstr->SetSrc2(src2Pair.low);
-        done->InsertBefore(newInstr);
-        done->InsertBefore(skipLow);
-    }
-#endif
-
     if (!isIntDst)
     {
         opnd = this->m_lowerer->LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse);
@@ -2953,6 +2937,36 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
         newInstr = IR::Instr::New(useCC, tmp, tmp, regTrue, this->m_func);
     }
     done->InsertBefore(newInstr);
+
+#ifndef _M_X64
+    if (isInt64Src)
+    {
+        IR::LabelInstr* skipLow = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+        newInstr = IR::BranchInstr::New(Js::OpCode::JNE, skipLow, this->m_func);
+        done->InsertBefore(newInstr);
+
+        newInstr = IR::Instr::New(cmpOp, this->m_func);
+        newInstr->SetSrc1(src1Pair.low);
+        newInstr->SetSrc2(src2Pair.low);
+        done->InsertBefore(newInstr);
+
+        Js::OpCode lowUseCC = useCC;
+        // Need to do an unsigned compare for the lower part
+        switch (instr->m_opcode)
+        {
+        case Js::OpCode::CmGe_I4: lowUseCC = Js::OpCode::SETAE; break;
+        case Js::OpCode::CmGt_I4: lowUseCC = Js::OpCode::SETA; break;
+        case Js::OpCode::CmLe_I4: lowUseCC = Js::OpCode::SETBE; break;
+        case Js::OpCode::CmLt_I4: lowUseCC = Js::OpCode::SETB; break;
+        }
+
+        // tmp.i8 = SetCC tmp.i8
+        IR::Opnd *tmp_i8 = tmp->UseWithNewType(TyInt8, this->m_func);
+        newInstr = IR::Instr::New(lowUseCC, tmp_i8, tmp_i8, this->m_func);
+        done->InsertBefore(newInstr);
+        done->InsertBefore(skipLow);
+    }
+#endif
 
     if (tmp != dst)
     {

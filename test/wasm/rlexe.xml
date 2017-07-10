@@ -217,6 +217,13 @@
 </test>
 <test>
   <default>
+    <files>i64.js</files>
+    <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
+    <tags>exclude_xplat</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>i64cf.js</files>
     <compile-flags>-wasm -maic:0</compile-flags>
     <tags>exclude_amd64</tags>
