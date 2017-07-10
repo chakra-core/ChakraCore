@@ -25,14 +25,10 @@ namespace Js
 
         class EntryInfo
         {
-        public:
-            static FunctionInfo SymbolIterator;
         };
 
         static ModuleNamespace* GetModuleNamespace(ModuleRecordBase* moduleRecord);
-        static Var EntrySymbolIterator(RecyclableObject* function, CallInfo callInfo, ...);
         void Initialize();
-        ListForListIterator* EnsureSortedExportedNames();
         static ModuleNamespace* FromVar(Var obj) { Assert(JavascriptOperators::GetTypeId(obj) == TypeIds_ModuleNamespace); return static_cast<ModuleNamespace*>(obj); }
 
         virtual PropertyId GetPropertyId(BigPropertyIndex index) override;
