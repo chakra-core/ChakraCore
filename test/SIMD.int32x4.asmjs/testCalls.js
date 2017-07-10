@@ -6,11 +6,11 @@
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
-    
+
     var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
     var i4splat = i4.splat;
-    
+
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
     //var i4abs = i4.abs;
@@ -32,10 +32,10 @@ function asmModule(stdlib, imports) {
     //var i4shiftRightByScalar = i4.shiftRightByScalar;
     //var i4shiftRightArithmeticByScalar = i4.shiftRightArithmeticByScalar;
 
-    var f4 = stdlib.SIMD.Float32x4;  
+    var f4 = stdlib.SIMD.Float32x4;
     var f4check = f4.check;
     var f4splat = f4.splat;
-    
+
     var f4fromInt32x4 = f4.fromInt32x4;
     var f4fromInt32x4Bits = f4.fromInt32x4Bits;
     var f4abs = f4.abs;
@@ -44,7 +44,7 @@ function asmModule(stdlib, imports) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    
+
     var f4min = f4.min;
     var f4max = f4.max;
 
@@ -61,21 +61,21 @@ function asmModule(stdlib, imports) {
 
     var f4select = f4.select;
 
-    
+
 
     var fround = stdlib.Math.fround;
 
     var globImportF4 = f4check(imports.g1);       // global var import
     var globImportI4 = i4check(imports.g2);       // global var import
-    
+
     var g1 = f4(-5033.2,-3401.0,665.34,32234.1);          // global var initialized
     var g2 = i4(1065353216, -1073741824, -1077936128, 1082130432);          // global var initialized
-    
+
     var gval = 1234;
     var gval2 = 1234.0;
 
 
-    
+
     var loopCOUNT = 3;
 
     function func1(a, b)
@@ -94,7 +94,7 @@ function asmModule(stdlib, imports) {
 
         return i4check(x);
     }
-    
+
     function func2(a, b, c, d)
     {
         a = i4check(a);
@@ -109,7 +109,7 @@ function asmModule(stdlib, imports) {
 
             x = i4check(func1(a, b));
             y = i4check(func1(c, d));
-            
+
 
         }
 
@@ -125,8 +125,8 @@ function asmModule(stdlib, imports) {
         e = i4check(e);
         f = i4check(f);
         g = i4check(g);
-        h = i4check(h);        
-        
+        h = i4check(h);
+
         var x = i4(0,0,0,0);
         var y = i4(0,0,0,0);
         var loopIndex = 0;
@@ -135,7 +135,7 @@ function asmModule(stdlib, imports) {
 
             x = i4check(func2(a, b, c, d));
             y = i4check(func2(e, f, g, h));
-            
+
         }
 
         return i4check(i4add(x,y));
@@ -151,8 +151,9 @@ function asmModule(stdlib, imports) {
                 return i4check(value1);
             }
         }
+        return i4check(value1);
     }
-    
+
     // TODO: Test conversion of returned value
     function value()
     {
@@ -170,7 +171,7 @@ function asmModule(stdlib, imports) {
 
         return +ret;
     }
-    
+
     return {func1:func1, func2:func2, func3:func3, func4:func4/*, func5:func5, func6:func6*/};
 }
 

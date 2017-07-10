@@ -37,10 +37,10 @@ function asmModule(stdlib, imports) {
 
     var u16extractLane = u16.extractLane;
 
-    var f4 = stdlib.SIMD.Float32x4;  
+    var f4 = stdlib.SIMD.Float32x4;
     var f4check = f4.check;
     var f4splat = f4.splat;
-    
+
     var f4fromInt32x4 = f4.fromInt32x4;
     var f4fromInt32x4Bits = f4.fromInt32x4Bits;
     var f4abs = f4.abs;
@@ -49,7 +49,7 @@ function asmModule(stdlib, imports) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    
+
     var f4min = f4.min;
     var f4max = f4.max;
 
@@ -66,16 +66,16 @@ function asmModule(stdlib, imports) {
 
     var f4select = f4.select;
 
-    
+
 
     var fround = stdlib.Math.fround;
 
     var globImportF4 = f4check(imports.g1);       // global var import
     var globImportU16 = u16check(imports.g2);       // global var import
-    
+
     var g1 = f4(-5033.2,-3401.0,665.34,32234.1);          // global var initialized
     var g2 = u16(1065353216, -1073741824, -1077936128, 1082130432, 1065353216, -1073741824, -1077936128, 1082130432, 1033216, -11824, -106128, 1081302, 53216, -10, -10779, 1082130432);          // global var initialized
-    
+
     var gval = 1234;
     var gval2 = 1234.0;
 
@@ -103,7 +103,7 @@ function asmModule(stdlib, imports) {
         g2 = x;
         return i16check(i16fu16(x));
     }
-    
+
     function func2(a, b, c, d)
     {
         a = i16check(a);
@@ -132,8 +132,8 @@ function asmModule(stdlib, imports) {
         e = i16check(e);
         f = i16check(f);
         g = i16check(g);
-        h = i16check(h);        
-        
+        h = i16check(h);
+
         var x = u16(-1, -2, -3, -4, -5, -6, -7, -8, 1024, 1025, 1026, 1027, -1028, -1029, -1030, -1031);
         var y = u16(-1, -2, -3, -4, -5, -6, -7, -8, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031);
         var loopIndex = 0;
@@ -142,7 +142,7 @@ function asmModule(stdlib, imports) {
 
             x = u16fi16(i16check(func2(a, b, c, d)));
             y = u16fi16(i16check(func2(e, f, g, h)));
-            
+
         }
 
         //return i16check(u16add(x,y));
@@ -159,8 +159,9 @@ function asmModule(stdlib, imports) {
                 return i16check(i16fu16(value1));
             }
         }
+        return i16check(i16fu16(value1));
     }
-    
+
     // TODO: Test conversion of returned value
     function value()
     {
