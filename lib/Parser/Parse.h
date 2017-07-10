@@ -376,6 +376,7 @@ private:
     bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node
     bool m_isInBackground;
     bool m_reparsingLambdaParams;
+    bool m_disallowImportExportStmt;
 
     // This bool is used for deferring the shorthand initializer error ( {x = 1}) - as it is allowed in the destructuring grammar.
     bool m_hasDeferredShorthandInitError;
@@ -861,6 +862,7 @@ private:
         _Out_opt_ BOOL* pfCanAssign = nullptr);
 
     bool IsImportOrExportStatementValidHere();
+    bool IsTopLevelModuleFunc();
 
     template<bool buildAST> ParseNodePtr ParseImport();
     template<bool buildAST> void ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma = false);

@@ -131,6 +131,8 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_deferEllipsisError = false;
     m_hasDeferredShorthandInitError = false;
     m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperDisallowed;
+
+    m_disallowImportExportStmt = false;
 }
 
 Parser::~Parser(void)
@@ -2446,7 +2448,14 @@ bool Parser::IsImportOrExportStatementValidHere()
         && curFunc->sxFnc.IsModule()
         && this->m_currentBlockInfo->pnodeBlock == curFunc->sxFnc.pnodeBodyScope
         && (this->m_grfscr & fscrEvalCode) != fscrEvalCode
-        && this->m_tryCatchOrFinallyDepth == 0;
+        && this->m_tryCatchOrFinallyDepth == 0
+        && !this->m_disallowImportExportStmt;
+}
+
+bool Parser::IsTopLevelModuleFunc()
+{
+    ParseNodePtr curFunc = GetCurrentFunctionNode();
+    return curFunc->nop == knopFncDecl && curFunc->sxFnc.IsModule();
 }
 
 template<bool buildAST> ParseNodePtr Parser::ParseImportCall()
@@ -9767,6 +9776,8 @@ LEndSwitch:
             pnode->sxWhile.pnodeCond = pnodeCond;
             pnode->ichLim = ichLim;
         }
+        bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
+        m_disallowImportExportStmt = true;
         PushStmt<buildAST>(&stmt, pnode, knopWhile, pnodeLabel, pLabelIdList);
         ParseNodePtr pnodeBody = ParseStatement<buildAST>();
         PopStmt(&stmt);
@@ -9775,6 +9786,7 @@ LEndSwitch:
         {
             pnode->sxWhile.pnodeBody = pnodeBody;
         }
+        m_disallowImportExportStmt = stashedDisallowImportExportStmt;
         break;
     }
 
@@ -9786,7 +9798,10 @@ LEndSwitch:
         }
         PushStmt<buildAST>(&stmt, pnode, knopDoWhile, pnodeLabel, pLabelIdList);
         m_pscan->Scan();
+        bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
+        m_disallowImportExportStmt = true;
         ParseNodePtr pnodeBody = ParseStatement<buildAST>();
+        m_disallowImportExportStmt = stashedDisallowImportExportStmt;
         PopStmt(&stmt);
         charcount_t ichMinT = m_pscan->IchMinTok();
 
@@ -9838,6 +9853,8 @@ LEndSwitch:
         }
         ChkCurTok(tkRParen, ERRnoRparen);
 
+        bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
+        m_disallowImportExportStmt = true;
         PushStmt<buildAST>(&stmt, pnode, knopIf, pnodeLabel, pLabelIdList);
         ParseNodePtr pnodeTrue = ParseStatement<buildAST>();
         ParseNodePtr pnodeFalse = nullptr;
@@ -9852,6 +9869,7 @@ LEndSwitch:
             pnode->sxIf.pnodeFalse = pnodeFalse;
         }
         PopStmt(&stmt);
+        m_disallowImportExportStmt = stashedDisallowImportExportStmt;
         break;
     }
 
@@ -10106,7 +10124,7 @@ LGetJumpStatement:
     {
         if (buildAST)
         {
-            if (nullptr == m_currentNodeFunc)
+            if (nullptr == m_currentNodeFunc || IsTopLevelModuleFunc())
             {
                 Error(ERRbadReturn);
             }
