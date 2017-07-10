@@ -291,8 +291,7 @@ const argv = yargsParse(WScript.Arguments, {
 
 const todoTests = tests
   .slice(argv.start, argv.end)
-  .filter(test => (!test.slow || argv.slow) &&
-                  (!test.invalidTest || argv.invalid) &&
+  .filter(test => (!test.invalidTest || argv.invalid) &&
                   (!test.validTest || argv.valid));
 
 testRunner.run(todoTests, {verbose: argv.verbose});
