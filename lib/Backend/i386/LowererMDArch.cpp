@@ -1959,6 +1959,12 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
 void
 LowererMDArch::EmitInt64Instr(IR::Instr *instr)
 {
+    if (instr->IsBranchInstr())
+    {
+        LowerInt64Branch(instr);
+        return;
+    }
+
     IR::Opnd* dst = instr->GetDst();
     IR::Opnd* src1 = instr->GetSrc1();
     IR::Opnd* src2 = instr->GetSrc2();
@@ -1981,7 +1987,7 @@ LowererMDArch::EmitInt64Instr(IR::Instr *instr)
         return callInstr;
     };
 
-    Js::OpCode cmOpCode, lowOpCode, highOpCode;
+    Js::OpCode lowOpCode, highOpCode;
     switch (instr->m_opcode)
     {
     case Js::OpCode::Xor_A:
@@ -2074,93 +2080,155 @@ binopCommon:
         this->lowererMD->m_lowerer->LoadScriptContext(instr);
         instr = LowerToHelper(IR::HelperDirectMath_Int64RemS);
         break;
-    case Js::OpCode::BrTrue_A:
-    case Js::OpCode::BrTrue_I4:
-        cmOpCode = Js::OpCode::CmEq_I4;
-        instr->m_opcode = Js::OpCode::JNE;
-        goto br_Common;
-
-    case Js::OpCode::BrFalse_A:
-    case Js::OpCode::BrFalse_I4:
-        cmOpCode = Js::OpCode::CmEq_I4;
-        instr->m_opcode = Js::OpCode::JEQ;
-        goto br_Common;
-
-    case Js::OpCode::BrEq_A:
-    case Js::OpCode::BrEq_I4:
-        cmOpCode = Js::OpCode::CmEq_I4;
-        instr->m_opcode = Js::OpCode::JEQ;
-        goto br_Common;
-
-    case Js::OpCode::BrNeq_A:
-    case Js::OpCode::BrNeq_I4:
-        cmOpCode = Js::OpCode::CmNeq_I4;
-        instr->m_opcode = Js::OpCode::JNE;
-        goto br_Common;
-
-    case Js::OpCode::BrUnGt_I4:
-        cmOpCode = Js::OpCode::CmUnGt_I4;
-        instr->m_opcode = Js::OpCode::JA;
-        goto br_Common;
-
-    case Js::OpCode::BrUnGe_I4:
-        cmOpCode = Js::OpCode::CmUnGe_I4;
-        instr->m_opcode = Js::OpCode::JAE;
-        goto br_Common;
-
-    case Js::OpCode::BrUnLe_I4:
-        cmOpCode = Js::OpCode::CmUnLe_I4;
-        instr->m_opcode = Js::OpCode::JBE;
-        goto br_Common;
-
-    case Js::OpCode::BrUnLt_I4:
-        cmOpCode = Js::OpCode::CmUnLt_I4;
-        instr->m_opcode = Js::OpCode::JB;
-        goto br_Common;
-
-    case Js::OpCode::BrGt_A:
-    case Js::OpCode::BrGt_I4:
-        cmOpCode = Js::OpCode::CmGt_I4;
-        instr->m_opcode = Js::OpCode::JGT;
-        goto br_Common;
-
-    case Js::OpCode::BrGe_A:
-    case Js::OpCode::BrGe_I4:
-        cmOpCode = Js::OpCode::CmGe_I4;
-        instr->m_opcode = Js::OpCode::JGE;
-        goto br_Common;
-
-    case Js::OpCode::BrLe_A:
-    case Js::OpCode::BrLe_I4:
-        cmOpCode = Js::OpCode::CmLe_I4;
-        instr->m_opcode = Js::OpCode::JLE;
-        goto br_Common;
-
-    case Js::OpCode::BrLt_A:
-    case Js::OpCode::BrLt_I4:
-        cmOpCode = Js::OpCode::CmLt_I4;
-        instr->m_opcode = Js::OpCode::JLT;
-br_Common:
-        {
-            IR::Opnd* cmDst = IR::RegOpnd::New(TyInt32, this->m_func);
-            instr->UnlinkSrc1();
-            if (src2)
-            {
-                instr->UnlinkSrc2();
-            }
-            else
-            {
-                src2 = IR::Int64ConstOpnd::New(0, TyInt64, this->m_func);
-            }
-            IR::Instr* cmInstr = IR::Instr::New(cmOpCode, cmDst, src1, src2, this->m_func);
-            instr->InsertBefore(cmInstr);
-            // Todo::Emit the compare and jump directly instead of doing a compare first
-            lowererMD->GenerateFastCmXxI4(cmInstr);
-            break;
-        }
-
     default:
         AssertMsg(UNREACHED, "Int64 opcode not supported");
+    }
+}
+
+void LowererMDArch::LowerInt64Branch(IR::Instr *instr)
+{
+    AssertOrFailFast(instr->IsBranchInstr());
+    IR::BranchInstr* branchInstr = instr->AsBranchInstr();
+    Assert(branchInstr->IsConditional());
+    // destination label
+    IR::LabelInstr* jmpLabel = branchInstr->GetTarget();
+    // Label to use when we know the condition is false after checking only the high bits
+    IR::LabelInstr* doneLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    branchInstr->InsertAfter(doneLabel);
+
+    IR::Opnd* src1 = instr->UnlinkSrc1();
+    IR::Opnd* src2 = instr->GetSrc2() ? instr->UnlinkSrc2() : IR::Int64ConstOpnd::New(0, TyInt64, this->m_func);
+    Assert(src1 && src1->IsInt64());
+    Assert(src2 && src2->IsInt64());
+
+    Int64RegPair src1Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src1);
+    Int64RegPair src2Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src2);
+
+    const auto insertJNE = [&]()
+    {
+        IR::Instr* newInstr = IR::BranchInstr::New(Js::OpCode::JNE, doneLabel, m_func);
+        branchInstr->InsertBefore(newInstr);
+        LowererMD::Legalize(newInstr);
+    };
+    const auto cmpHighAndJump = [&](Js::OpCode jumpOp, IR::LabelInstr* label)
+    {
+        IR::Instr* newInstr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
+        newInstr->SetSrc1(src1Pair.high);
+        newInstr->SetSrc2(src2Pair.high);
+        branchInstr->InsertBefore(newInstr);
+        LowererMD::Legalize(newInstr);
+
+        newInstr = IR::BranchInstr::New(jumpOp, label, this->m_func);
+        branchInstr->InsertBefore(newInstr);
+        LowererMD::Legalize(newInstr);
+    };
+    const auto cmpLowAndJump = [&](Js::OpCode jumpOp)
+    {
+        IR::Instr* newInstr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
+        newInstr->SetSrc1(src1Pair.low);
+        newInstr->SetSrc2(src2Pair.low);
+        branchInstr->InsertBefore(newInstr);
+        LowererMD::Legalize(newInstr);
+
+        branchInstr->m_opcode = jumpOp;
+    };
+    const auto cmpInt64Common = [&](Js::OpCode cmpHighJmpOp, Js::OpCode cmpLowJmpOp)
+    {
+        // CMP src1.high, src2.high
+        // JCC target
+        // JNE done ;; not equal means it's inverse of JCC, do not change in case cmp opnd are swapped
+        // ;; Fallthrough src1.high == src2.high
+        // CMP src1.low, src2.low
+        // JCC target ;; Must do unsigned comparison on low bits
+        //done:
+        cmpHighAndJump(cmpHighJmpOp, jmpLabel);
+        insertJNE();
+        cmpLowAndJump(cmpLowJmpOp);
+    };
+
+    switch (instr->m_opcode)
+    {
+
+    case Js::OpCode::BrTrue_A:
+    case Js::OpCode::BrTrue_I4:
+    {
+        // For BrTrue, we only need to check the low bits
+
+        // TEST src1.low, src1.low
+        // JNE target
+        IR::Instr* newInstr = IR::Instr::New(Js::OpCode::TEST, this->m_func);
+        newInstr->SetSrc1(src1Pair.low);
+        newInstr->SetSrc2(src1Pair.low);
+        branchInstr->InsertBefore(newInstr);
+        LowererMD::Legalize(newInstr);
+
+        // If src1 is not 0, jump to destination
+        branchInstr->m_opcode = Js::OpCode::JNE;
+
+        // Don't need the doneLabel for this case
+        doneLabel->Remove();
+        break;
+    }
+    case Js::OpCode::BrFalse_A:
+    case Js::OpCode::BrFalse_I4:
+    {
+        // For BrFalse, we only need to check the low bits
+
+        // TEST src1.low, src1.low
+        // JNE target
+        IR::Instr* newInstr = IR::Instr::New(Js::OpCode::TEST, this->m_func);
+        newInstr->SetSrc1(src1Pair.low);
+        newInstr->SetSrc2(src1Pair.low);
+        branchInstr->InsertBefore(newInstr);
+        LowererMD::Legalize(newInstr);
+
+        // If src1 is 0, jump to destination
+        branchInstr->m_opcode = Js::OpCode::JEQ;
+
+
+        // Don't need the doneLabel for this case
+        doneLabel->Remove();
+        break;
+    }
+    case Js::OpCode::BrEq_A:
+    case Js::OpCode::BrEq_I4:
+        // CMP src1.high, src2.high
+        // JNE done
+        // CMP src1.low, src2.low
+        // JEQ target
+        //done:
+        cmpHighAndJump(Js::OpCode::JNE, doneLabel);
+        cmpLowAndJump(Js::OpCode::JEQ);
+
+        break;
+    case Js::OpCode::BrNeq_A:
+    case Js::OpCode::BrNeq_I4:
+        // CMP src1.high, src2.high
+        // JNE target
+        // CMP src1.low, src2.low
+        // JNE target
+        //done:
+        cmpHighAndJump(Js::OpCode::JNE, jmpLabel);
+        cmpLowAndJump(Js::OpCode::JNE);
+
+        // Don't need the doneLabel for this case
+        doneLabel->Remove();
+        break;
+    case Js::OpCode::BrUnGt_I4: cmpInt64Common(Js::OpCode::JA, Js::OpCode::JA); break;
+    case Js::OpCode::BrUnGe_I4: cmpInt64Common(Js::OpCode::JA, Js::OpCode::JAE); break;
+    case Js::OpCode::BrUnLt_I4: cmpInt64Common(Js::OpCode::JB, Js::OpCode::JB); break;
+    case Js::OpCode::BrUnLe_I4: cmpInt64Common(Js::OpCode::JB, Js::OpCode::JBE); break;
+    case Js::OpCode::BrGt_A: // Fall through
+    case Js::OpCode::BrGt_I4: cmpInt64Common(Js::OpCode::JGT, Js::OpCode::JA); break;
+    case Js::OpCode::BrGe_A: // Fall through
+    case Js::OpCode::BrGe_I4: cmpInt64Common(Js::OpCode::JGT, Js::OpCode::JAE); break;
+    case Js::OpCode::BrLt_A: // Fall through
+    case Js::OpCode::BrLt_I4: cmpInt64Common(Js::OpCode::JLT, Js::OpCode::JB); break;
+    case Js::OpCode::BrLe_A: // Fall through
+    case Js::OpCode::BrLe_I4: cmpInt64Common(Js::OpCode::JLT, Js::OpCode::JBE); break;
+    default:
+        AssertMsg(UNREACHED, "Int64 branch opcode not supported");
+        branchInstr->m_opcode = Js::OpCode::Nop;
     }
 }
 

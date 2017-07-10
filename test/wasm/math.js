@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 var {fixupI64Return} = WScript.LoadScriptFile("./wasmutils.js");
+WScript.Flag("-wasmI64");
 
 let passed = true;
 function check(expected, funName, ...args)
@@ -54,16 +55,16 @@ check("Division by zero","exports.i64_div_u", 5, 0);
 check("Division by zero","exports.i64_rem_s", 5, 0);
 check("Division by zero","exports.i64_rem_u", 5, 0);
 check("0xfffffffffffffffe","exports.i64_div_s", 5, -2);
-check("0x0000000000000002","exports.i64_div_u", 5, 2);
-check("0x0000000000000000","exports.i64_rem_s", 5, -1);
-check("0x000000000000000c","exports.i64_rem_u", -4, 16);
+check("0x2","exports.i64_div_u", 5, 2);
+check("0x0","exports.i64_rem_s", 5, -1);
+check("0xc","exports.i64_rem_u", -4, 16);
 
-check("0x0000000000000040", "exports.ctzI64", 0);
-check("0x0000000000000040", "exports.ctzI64", "0");
-check("0x0000000000000000", "exports.ctzI64", "1");
-check("0x000000000000001f", "exports.ctzI64", "" + -Math.pow(2,31));
-check("0x000000000000003a", "exports.ctzI64", "0x3400000000000000");
-check("0x000000000000003f", "exports.ctzI64", "-9223372036854775808");
+check("0x40", "exports.ctzI64", 0);
+check("0x40", "exports.ctzI64", "0");
+check("0x0", "exports.ctzI64", "1");
+check("0x1f", "exports.ctzI64", "" + -Math.pow(2,31));
+check("0x3a", "exports.ctzI64", "0x3400000000000000");
+check("0x3f", "exports.ctzI64", "-9223372036854775808");
 
 if(passed) {
   print("Passed");
