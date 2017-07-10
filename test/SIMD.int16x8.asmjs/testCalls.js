@@ -9,7 +9,7 @@ function asmModule(stdlib, imports) {
     var i4check = i4.check;
     /*
     var i4splat = i4.splat;
-    
+
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
     //var i4abs = i4.abs;
@@ -34,7 +34,7 @@ function asmModule(stdlib, imports) {
     var i8 = stdlib.SIMD.Int16x8;
     var i8check = i8.check;
 
-    var f4 = stdlib.SIMD.Float32x4;  
+    var f4 = stdlib.SIMD.Float32x4;
     var f4check = f4.check;
     var f4splat = f4.splat;
     var i8extractLane = i8.extractLane;
@@ -46,7 +46,7 @@ function asmModule(stdlib, imports) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    
+
     var f4min = f4.min;
     var f4max = f4.max;
 
@@ -63,20 +63,20 @@ function asmModule(stdlib, imports) {
 
     var f4select = f4.select;
 
-    
+
     var fround = stdlib.Math.fround;
 
     var globImportF4 = f4check(imports.g1);       // global var import
     var globImportI8 = i8check(imports.g2);       // global var import
-    
+
     var g1 = f4(-5033.2,-3401.0,665.34,32234.1);          // global var initialized
     var g2 = i8(1065353216, -1073741824, -1077936128, 1082130432, 1065353216, -1073741824, -1077936128, 1082130432);          // global var initialized
-    
+
     var gval = 1234;
     var gval2 = 1234.0;
 
 
-    
+
     var loopCOUNT = 3;
 
     function func1(a, b)
@@ -97,7 +97,7 @@ function asmModule(stdlib, imports) {
 
         return i8check(x);
     }
-    
+
     function func2(a, b, c, d)
     {
         a = i8check(a);
@@ -112,7 +112,7 @@ function asmModule(stdlib, imports) {
 
             x = i8check(func1(a, b));
             y = i8check(func1(c, d));
-            
+
 
         }
 
@@ -129,8 +129,8 @@ function asmModule(stdlib, imports) {
         e = i8check(e);
         f = i8check(f);
         g = i8check(g);
-        h = i8check(h);        
-        
+        h = i8check(h);
+
         var x = i8(-1, -2, -3, -4, -5, -6, -7, -8);
         var y = i8(1, 2, 3, 4, 5, 6, 7, 8);
         var loopIndex = 0;
@@ -139,7 +139,7 @@ function asmModule(stdlib, imports) {
 
             x = i8check(func2(a, b, c, d));
             y = i8check(func2(e, f, g, h));
-            
+
         }
 
         //return i8check(i8add(x,y));
@@ -156,8 +156,9 @@ function asmModule(stdlib, imports) {
                 return i8check(value1);
             }
         }
+        return i8check(value1);
     }
-    
+
     // TODO: Test conversion of returned value
     function value()
     {
