@@ -252,16 +252,13 @@ ServerInitializeThreadContext(
         *threadContextInfoAddress = (PTHREADCONTEXT_HANDLE)EncodePointer(contextInfo);
 
 #if defined(_CONTROL_FLOW_GUARD)
-        if (contextInfo->IsCFGEnabled())
+        if (!PHASE_OFF1(Js::PreReservedHeapAllocPhase))
         {
-            if (!PHASE_OFF1(Js::PreReservedHeapAllocPhase))
-            {
-                *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedSectionAllocator()->EnsurePreReservedRegion();
-            }
-#if _M_IX86 || _M_X64
-            *jitThunkAddr = (intptr_t)contextInfo->GetJITThunkEmitter()->EnsureInitialized();
-#endif
+            *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedSectionAllocator()->EnsurePreReservedRegion();
         }
+#if _M_IX86 || _M_X64
+        *jitThunkAddr = (intptr_t)contextInfo->GetJITThunkEmitter()->EnsureInitialized();
+#endif
 #endif
 
         return hr;
