@@ -9,7 +9,7 @@ function asmModule(stdlib, imports) {
     var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
     var i4splat = i4.splat;
-    
+
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
     //var i4abs = i4.abs;
@@ -34,10 +34,10 @@ function asmModule(stdlib, imports) {
     var u8 = stdlib.SIMD.Uint16x8;
     var u8check = u8.check;
 
-    var f4 = stdlib.SIMD.Float32x4;  
+    var f4 = stdlib.SIMD.Float32x4;
     var f4check = f4.check;
     var f4splat = f4.splat;
-    
+
     var f4fromInt32x4 = f4.fromInt32x4;
     var f4fromInt32x4Bits = f4.fromInt32x4Bits;
     var f4abs = f4.abs;
@@ -46,7 +46,7 @@ function asmModule(stdlib, imports) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    
+
     var f4min = f4.min;
     var f4max = f4.max;
 
@@ -71,10 +71,10 @@ function asmModule(stdlib, imports) {
 
     var globImportF4 = f4check(imports.g1);       // global var import
     var globImportU8 = u8check(imports.g2);       // global var import
-    
+
     var g1 = f4(-5033.2,-3401.0,665.34,32234.1);          // global var initialized
     var g2 = u8(1065353216, -1073741824, -1077936128, 1082130432, 1065353216, -1073741824, -1077936128, 1082130432);          // global var initialized
-    
+
     var gval = 1234;
     var gval2 = 1234.0;
 
@@ -107,7 +107,7 @@ function asmModule(stdlib, imports) {
         g2 = x;
         return i8check(i8fromU8bits(x));
     }
-    
+
     function func2(a, b, c, d)
     {
         a = i8check(a);
@@ -122,7 +122,7 @@ function asmModule(stdlib, imports) {
 
             x = u8fromI8bits(i8check(func1(a, b)));
             y = u8fromI8bits(i8check(func1(c, d)));
-            
+
 
         }
 
@@ -139,8 +139,8 @@ function asmModule(stdlib, imports) {
         e = i8check(e);
         f = i8check(f);
         g = i8check(g);
-        h = i8check(h);        
-        
+        h = i8check(h);
+
         var x = u8(-1, -2, -3, -4, -5, -6, -7, -8);
         var y = u8(1, 2, 3, 4, 5, 6, 7, 8);
         var loopIndex = 0;
@@ -149,7 +149,7 @@ function asmModule(stdlib, imports) {
 
             x = u8fromI8bits(i8check(func2(a, b, c, d)));
             y = u8fromI8bits(i8check(func2(e, f, g, h)));
-            
+
         }
 
         //return i8check(u8add(x,y));
@@ -166,8 +166,9 @@ function asmModule(stdlib, imports) {
                 return i8check(i8fromU8bits(value1));
             }
         }
+        return i8check(i8fromU8bits(value1));
     }
-    
+
     // TODO: Test conversion of returned value
     function value()
     {
@@ -235,7 +236,7 @@ var u8fromI8 = SIMD.Uint16x8.fromInt16x8Bits;
 
 var ret1 = u8fromI8(m.func1(i8fromU8(s1), i8fromU8(s2)));
 var ret2 = u8fromI8(m.func2(i8fromU8(s1), i8fromU8(s2), i8fromU8(s3), i8fromU8(s4)));
-var ret3 = u8fromI8(m.func3(i8fromU8(s1), i8fromU8(s2), i8fromU8(s3), i8fromU8(s4), 
+var ret3 = u8fromI8(m.func3(i8fromU8(s1), i8fromU8(s2), i8fromU8(s3), i8fromU8(s4),
 i8fromU8(s5), i8fromU8(s6), i8fromU8(s7), i8fromU8(s8)));
 var ret4 = u8fromI8(m.func4());
 var ret5 = u8fromI8(m.func5());

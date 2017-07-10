@@ -7,11 +7,11 @@
 WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
-    
+
     var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
     var i4splat = i4.splat;
-    
+
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
     var i4lessThan = i4.lessThan;
@@ -24,10 +24,10 @@ function asmModule(stdlib, imports) {
     var i4not = i4.not;
 
 
-    var f4 = stdlib.SIMD.Float32x4;  
+    var f4 = stdlib.SIMD.Float32x4;
     var f4check = f4.check;
     var f4splat = f4.splat;
-    
+
     var f4fromInt32x4 = f4.fromInt32x4;
     var f4fromInt32x4Bits = f4.fromInt32x4Bits;
     var f4abs = f4.abs;
@@ -39,7 +39,7 @@ function asmModule(stdlib, imports) {
     var f4min = f4.min;
     var f4max = f4.max;
     var f4sqrt = f4.sqrt;
-    
+
     var f4lessThan = f4.lessThan;
     var f4lessThanOrEqual = f4.lessThanOrEqual;
     var f4equal = f4.equal;
@@ -56,10 +56,10 @@ function asmModule(stdlib, imports) {
 
     var globImportF4 = f4check(imports.g1);       // global var import
     var globImportI4 = i4check(imports.g2);       // global var import
-    
+
     var g1 = f4(-5033.2,-3401.0,665.34,32234.1);          // global var initialized
     var g2 = i4(1065353216, -1073741824, -1077936128, 1082130432);          // global var initialized
-    
+
     var gval = 1234;
     var gval2 = 1234.0;
 
@@ -85,7 +85,7 @@ function asmModule(stdlib, imports) {
 
         return f4check(x);
     }
-    
+
     function func2(a, count, b, c, d, i)
     {
         a = f4check(a);
@@ -120,8 +120,8 @@ function asmModule(stdlib, imports) {
         double3 = +double3;
         g = f4check(g);
         h = f4check(h);
-        float4 = fround(float4);        
-        
+        float4 = fround(float4);
+
         var x = f4(0.0,0.0,0.0,0.0);
         var y = f4(0.0,0.0,0.0,0.0);
         var loopIndex = 0;
@@ -144,8 +144,9 @@ function asmModule(stdlib, imports) {
                 return f4check(value1);
             }
         }
+        return f4check(value1);
     }
-    
+
     // TODO: Test conversion of returned value
     function value()
     {
