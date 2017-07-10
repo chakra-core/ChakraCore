@@ -648,21 +648,24 @@ namespace Js
         PropertyValueInfo::DisablePrototypeCache(info, this); // We can't cache prototype property either
 
         PropertyDescriptor proxyPropertyDescriptor;
-        ScriptContext* scriptContext = GetScriptContext();
+
+        ThreadContext* threadContext = GetScriptContext()->GetThreadContext();
+        ScriptContext* requestContext =
+            threadContext->GetPreviousHostScriptContext()->GetScriptContext();
 
         // Set implicit call flag so we bailout and not do copy-prop on field
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
+
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
-        if (!JavascriptOperators::GetOwnPropertyDescriptor(this, propertyId, scriptContext, &proxyPropertyDescriptor))
+        if (!JavascriptOperators::GetOwnPropertyDescriptor(this, propertyId, requestContext, &proxyPropertyDescriptor))
         {
             PropertyDescriptor resultDescriptor;
             resultDescriptor.SetConfigurable(true);
             resultDescriptor.SetWritable(true);
             resultDescriptor.SetEnumerable(true);
             resultDescriptor.SetValue(value);
-            return Js::JavascriptOperators::DefineOwnPropertyDescriptor(this, propertyId, resultDescriptor, true, scriptContext);
+            return Js::JavascriptOperators::DefineOwnPropertyDescriptor(this, propertyId, resultDescriptor, true, requestContext);
         }
         else
         {
@@ -683,7 +686,7 @@ namespace Js
 
             proxyPropertyDescriptor.SetValue(value);
             proxyPropertyDescriptor.SetOriginal(nullptr);
-            return Js::JavascriptOperators::DefineOwnPropertyDescriptor(this, propertyId, proxyPropertyDescriptor, true, scriptContext);
+            return Js::JavascriptOperators::DefineOwnPropertyDescriptor(this, propertyId, proxyPropertyDescriptor, true, requestContext);
         }
     }
 
