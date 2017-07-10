@@ -1,0 +1,5 @@
+*.baseline -crlf
+*.cmd -crlf
+test/**/*.js -crlf
+test/es6/HTMLComments.js binary diff=cpp
+*.wasm binary
