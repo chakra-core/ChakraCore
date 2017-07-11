@@ -1425,6 +1425,20 @@
 </test>
 <test>
   <default>
+    <files>bug_issue_3247.js</files>
+    <baseline>bug_issue_3247.baseline</baseline>
+    <tags>BugFix,exclude_sanitize_address</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>bug_issue_3257.js</files>
+    <baseline>bug_issue_3257.baseline</baseline>
+    <tags>BugFix,exclude_sanitize_address</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>typedarray_bugs.js</files>
     <compile-flags>-args summary -endargs</compile-flags>
     <tags>BugFix</tags>

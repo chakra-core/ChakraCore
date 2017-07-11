@@ -33,7 +33,7 @@ new Error()
     name	  isOwn = false	 value = Error
     message	  isOwn = false	 value = 
     stack	  isOwn = true	 value = Error
-	at Global code (errorprops.js:55:1)
+	at Global code (errorProps.js:55:1)
     number	  isOwn = true	 value = 0
     description	  isOwn = true	 value = 
 
@@ -43,7 +43,7 @@ new Error(undefined)
     name	  isOwn = false	 value = Error
     message	  isOwn = false	 value = 
     stack	  isOwn = true	 value = Error
-	at Global code (errorprops.js:59:1)
+	at Global code (errorProps.js:59:1)
     number	  isOwn = false	 value = undefined
     description	  isOwn = true	 value = undefined
 
@@ -53,7 +53,7 @@ new Error(null)
     name	  isOwn = false	 value = Error
     message	  isOwn = true	 value = null
     stack	  isOwn = true	 value = Error: null
-	at Global code (errorprops.js:63:1)
+	at Global code (errorProps.js:63:1)
     number	  isOwn = false	 value = undefined
     description	  isOwn = true	 value = null
 
@@ -63,7 +63,7 @@ new Error("Hello")
     name	  isOwn = false	 value = Error
     message	  isOwn = true	 value = Hello
     stack	  isOwn = true	 value = Error: Hello
-	at Global code (errorprops.js:67:1)
+	at Global code (errorProps.js:67:1)
     number	  isOwn = false	 value = undefined
     description	  isOwn = true	 value = Hello
 
@@ -73,7 +73,7 @@ new Error(100, "With a number")
     name	  isOwn = false	 value = Error
     message	  isOwn = true	 value = With a number
     stack	  isOwn = true	 value = Error: With a number
-	at Global code (errorprops.js:71:1)
+	at Global code (errorProps.js:71:1)
     number	  isOwn = true	 value = 100
     description	  isOwn = true	 value = With a number
 
@@ -83,7 +83,7 @@ new Error("Hello"); name=undefined
     name	  isOwn = true	 value = undefined
     message	  isOwn = true	 value = Hello
     stack	  isOwn = true	 value = Error: Hello
-	at Global code (errorprops.js:75:1)
+	at Global code (errorProps.js:75:1)
     number	  isOwn = false	 value = undefined
     description	  isOwn = true	 value = Hello
     name	  isOwn = true	 value = undefined
@@ -94,7 +94,7 @@ new ReferenceError("I'm a reference error")
     name	  isOwn = false	 value = ReferenceError
     message	  isOwn = true	 value = I'm a reference error
     stack	  isOwn = true	 value = ReferenceError: I'm a reference error
-	at Global code (errorprops.js:80:1)
+	at Global code (errorProps.js:80:1)
     number	  isOwn = false	 value = undefined
     description	  isOwn = false	 value = undefined
 ReferenceError: 'RegExpError' is not defined
@@ -105,7 +105,7 @@ new TypeError()
     name	  isOwn = false	 value = TypeError
     message	  isOwn = false	 value = 
     stack	  isOwn = true	 value = TypeError
-	at Global code (errorprops.js:90:1)
+	at Global code (errorProps.js:90:1)
     number	  isOwn = false	 value = undefined
     description	  isOwn = false	 value = undefined
 
@@ -115,7 +115,7 @@ new TypeError(undefined)
     name	  isOwn = false	 value = TypeError
     message	  isOwn = false	 value = 
     stack	  isOwn = true	 value = TypeError
-	at Global code (errorprops.js:94:1)
+	at Global code (errorProps.js:94:1)
     number	  isOwn = false	 value = undefined
     description	  isOwn = false	 value = undefined
 
@@ -125,7 +125,7 @@ new TypeError(null)
     name	  isOwn = false	 value = TypeError
     message	  isOwn = true	 value = null
     stack	  isOwn = true	 value = TypeError: null
-	at Global code (errorprops.js:98:1)
+	at Global code (errorProps.js:98:1)
     number	  isOwn = false	 value = undefined
     description	  isOwn = false	 value = undefined
 
@@ -135,7 +135,7 @@ new TypeError("With a undef name")
     name	  isOwn = true	 value = undefined
     message	  isOwn = true	 value = With a undef name
     stack	  isOwn = true	 value = Error: With a undef name
-	at Global code (errorprops.js:103:1)
+	at Global code (errorProps.js:103:1)
     number	  isOwn = false	 value = undefined
     description	  isOwn = false	 value = undefined
     name	  isOwn = true	 value = undefined
@@ -146,6 +146,6 @@ Runtime TypeError()
     name	  isOwn = false	 value = ReferenceError
     message	  isOwn = true	 value = 'boo' is not defined
     stack	  isOwn = true	 value = ReferenceError: 'boo' is not defined
-	at Global code (errorprops.js:111:5)
+	at Global code (errorProps.js:111:5)
     number	  isOwn = true	 value = -2146823279
     description	  isOwn = true	 value = 'boo' is not defined
