@@ -539,8 +539,7 @@ public:
 
 private:
     typedef JsUtil::BaseDictionary<uint, Js::SourceDynamicProfileManager*, Recycler, PowerOf2SizePolicy> SourceDynamicProfileManagerMap;
-    typedef JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy> SymbolRegistrationMap;
-
+    typedef JsUtil::BaseDictionary<Js::HashedCharacterBuffer<char16>*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy, Js::PropertyRecordStringHashComparer> SymbolRegistrationMap;
 
     class SourceDynamicProfileManagerCache
     {
@@ -1468,11 +1467,11 @@ public:
 #endif
 
     void EnsureSymbolRegistrationMap();
-    const Js::PropertyRecord* GetSymbolFromRegistrationMap(const char16* stringKey);
+    const Js::PropertyRecord* GetSymbolFromRegistrationMap(const char16* stringKey, charcount_t stringLength);
     const Js::PropertyRecord* AddSymbolToRegistrationMap(const char16* stringKey, charcount_t stringLength);
 
 #if ENABLE_TTD
-    JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy>* GetSymbolRegistrationMap_TTD();
+    JsUtil::BaseDictionary<Js::HashedCharacterBuffer<char16>*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy, Js::PropertyRecordStringHashComparer>* GetSymbolRegistrationMap_TTD();
 #endif
 
     inline void ClearPendingSOError()
