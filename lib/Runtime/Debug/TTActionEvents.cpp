@@ -490,6 +490,17 @@ namespace TTD
             Js::JavascriptOperators::OP_HasProperty(var, GetPropertyIdItem(action), ctx);
         }
 
+        void HasOwnPropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
+        {
+            TTD_REPLAY_ACTIVE_CONTEXT(executeContext);
+            const JsRTSingleVarScalarArgumentAction* action = GetInlineEventDataAs<JsRTSingleVarScalarArgumentAction, EventKind::HasOwnPropertyActionTag>(evt);
+            Js::Var var = InflateVarInReplay(executeContext, GetVarItem_0(action));
+            TTD_REPLAY_VALIDATE_INCOMING_OBJECT(var, ctx);
+
+            //Result is not needed but trigger computation for any effects
+            Js::JavascriptOperators::OP_HasOwnProperty(var, GetPropertyIdItem(action), ctx);
+        }
+
         void InstanceOfAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
         {
             TTD_REPLAY_ACTIVE_CONTEXT(executeContext);
