@@ -132,7 +132,7 @@ namespace Js
         // Search the global symbol registration map for a symbol with description equal to the string key.
         // The map can only have one symbol with that description so if we found a symbol, that is the registered
         // symbol for the string key.
-        const Js::PropertyRecord* propertyRecord = scriptContext->GetThreadContext()->GetSymbolFromRegistrationMap(key->GetString());
+        const Js::PropertyRecord* propertyRecord = scriptContext->GetThreadContext()->GetSymbolFromRegistrationMap(key->GetString(), key->GetLength());
 
         // If we didn't find a PropertyRecord in the map, we'll create a new symbol with description equal to the key string.
         // This is the only place we add new PropertyRecords to the map, so we should never have multiple PropertyRecords in the
@@ -165,12 +165,14 @@ namespace Js
         }
 
         JavascriptSymbol* sym = JavascriptSymbol::FromVar(args[1]);
-        const char16* key = sym->GetValue()->GetBuffer();
+        const Js::PropertyRecord* symPropertyRecord = sym->GetValue();
+        const char16* key = symPropertyRecord->GetBuffer();
+        const charcount_t keyLength = symPropertyRecord->GetLength();
 
         // Search the global symbol registration map for a key equal to the description of the symbol passed into Symbol.keyFor.
         // Symbol.for creates a new symbol with description equal to the key and uses that key as a mapping to the new symbol.
         // There will only be one symbol in the map with that string key value.
-        const Js::PropertyRecord* propertyRecord = scriptContext->GetThreadContext()->GetSymbolFromRegistrationMap(key);
+        const Js::PropertyRecord* propertyRecord = scriptContext->GetThreadContext()->GetSymbolFromRegistrationMap(key, keyLength);
 
         // If we found a PropertyRecord in the map, make sure it is the same symbol that was passed to Symbol.keyFor.
         // If the two are different, it means the symbol passed to keyFor has the same description as a symbol registered via

@@ -4283,11 +4283,13 @@ void ThreadContext::EnsureSymbolRegistrationMap()
     }
 }
 
-const Js::PropertyRecord* ThreadContext::GetSymbolFromRegistrationMap(const char16* stringKey)
+const Js::PropertyRecord* ThreadContext::GetSymbolFromRegistrationMap(const char16* stringKey, charcount_t stringLength)
 {
     this->EnsureSymbolRegistrationMap();
 
-    return this->recyclableData->symbolRegistrationMap->Lookup(stringKey, nullptr);
+    Js::HashedCharacterBuffer<char16> propertyName = Js::HashedCharacterBuffer<char16>(stringKey, stringLength);
+
+    return this->recyclableData->symbolRegistrationMap->LookupWithKey(&propertyName, nullptr);
 }
 
 const Js::PropertyRecord* ThreadContext::AddSymbolToRegistrationMap(const char16* stringKey, charcount_t stringLength)
@@ -4298,15 +4300,18 @@ const Js::PropertyRecord* ThreadContext::AddSymbolToRegistrationMap(const char16
 
     Assert(propertyRecord);
 
-    // The key is the PropertyRecord's buffer (the PropertyRecord itself) which is being pinned as long as it's in this map.
-    // If that's ever not the case, we'll need to duplicate the key here and put that in the map instead.
-    this->recyclableData->symbolRegistrationMap->Add(propertyRecord->GetBuffer(), propertyRecord);
+    // We need to support null characters in the Symbol names. For e.g. "A\0Z" is a valid symbol name and is different than "A\0Y".
+    // However, as the key contains a null character we need to hash the symbol name past the null character. The default implementation terminates
+    // at the null character, so we use the Js::HashedCharacterBuffer as key. We allocate the key in the recycler memory as it needs to be around
+    // for the lifetime of the map.
+    Js::HashedCharacterBuffer<char16> * propertyName = RecyclerNew(GetRecycler(), Js::HashedCharacterBuffer<char16>, stringKey, stringLength);
+    this->recyclableData->symbolRegistrationMap->Add(propertyName, propertyRecord);
 
     return propertyRecord;
 }
 
 #if ENABLE_TTD
-JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy>* ThreadContext::GetSymbolRegistrationMap_TTD()
+JsUtil::BaseDictionary<Js::HashedCharacterBuffer<char16>*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy, Js::PropertyRecordStringHashComparer>* ThreadContext::GetSymbolRegistrationMap_TTD()
 {
     //This adds a little memory but makes simplifies other logic -- maybe revise later
     this->EnsureSymbolRegistrationMap();
