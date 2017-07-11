@@ -80,68 +80,6 @@
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
     </default>
   </test>
-  <!--
-Disabled -testtrace cases to eliminate maintenance headache (Microsoft/ChakraCore#3037)
-<test>
-   <default>
-      <files>moreSwitches1_1.js</files>
-      <baseline>moreSwitches1_1.baseline</baseline>
-      <compile-flags>-testtrace:bailout -testtrace:rejit</compile-flags>
-      <tags>exclude_dynapogo</tags>
-   </default>
-   <condition order="1" type="include">
-          <target>arm</target>
-          <override>
-                 <baseline>moreSwitches1_1.arm.baseline</baseline>
-          </override>
-        </condition>
-</test>
-
-<test>
-   <default>
-      <files>nonIntCases.js</files>
-      <baseline>nonIntCases.baseline</baseline>
-      <compile-flags>-testtrace:bailout -testtrace:rejit</compile-flags>
-      <tags>exclude_dynapogo</tags>
-   </default>
-   <condition order="1" type="include">
-          <target>arm</target>
-          <override>
-                 <baseline>nonIntCases.arm.baseline</baseline>
-          </override>
-        </condition>
-</test>
-
-<test>
-   <default>
-      <files>stringBailOut.js</files>
-      <baseline>stringBailOut.baseline</baseline>
-      <compile-flags>-testtrace:bailout -testtrace:rejit</compile-flags>
-      <tags>exclude_dynapogo</tags>
-   </default>
-</test>
-
-<test>
-   <default>
-      <files>intBailOut.js</files>
-      <baseline>intBailOut.baseline</baseline>
-      <compile-flags>-testtrace:bailout -testtrace:rejit</compile-flags>
-      <tags>exclude_dynapogo</tags>
-   </default>
-   <condition order="1" type="include">
-      <target>arm</target>
-      <override>
-         <baseline>intBailOut.arm.baseline</baseline>
-      </override>
-    </condition>
-    <condition order="2" type="include">
-      <target>amd64</target>
-      <override>
-         <baseline>intBailOut.amd64.baseline</baseline>
-      </override>
-    </condition>
-</test>
--->
   <test>
     <default>
       <files>BugFixRegression_MaxInterpret.js</files>
