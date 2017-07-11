@@ -3293,12 +3293,12 @@ LABEL1:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        RecyclableObject * constructor = RecyclableObject::FromVar(args[0]);
-        if (!JavascriptConversion::IsCallable(constructor) || args.Info.Count < 2)
+        if (!JavascriptConversion::IsCallable(args[0]) || args.Info.Count < 2)
         {
             return JavascriptBoolean::ToVar(FALSE, scriptContext);
         }
 
+        RecyclableObject * constructor = RecyclableObject::FromVar(args[0]);
         Var instance = args[1];
 
         Assert(JavascriptProxy::Is(constructor) || JavascriptFunction::Is(constructor));
