@@ -2276,6 +2276,9 @@ namespace Js
 
                 funcBody = this->GetFunctionBody();
 
+                // As we have a valid function body already clear the restore data
+                autoRestoreFunctionInfo.Clear();
+
                 if (isDebugOrAsmJsReparse)
                 {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
