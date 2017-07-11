@@ -2061,4 +2061,41 @@ namespace JsRTApiTest
         JsRTApiTest::WithSetup(JsRuntimeAttributeEnableExperimentalFeatures, ReentrantNoErrorParseModuleTest);
     }
 
+    void ObjectHasOwnPropertyMethodTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        JsValueRef proto = JS_INVALID_REFERENCE;
+        JsValueRef object = JS_INVALID_REFERENCE;
+
+        REQUIRE(JsCreateObject(&proto) == JsNoError);
+        REQUIRE(JsCreateObject(&object) == JsNoError);
+        REQUIRE(JsSetPrototype(object, proto) == JsNoError);
+
+        JsPropertyIdRef propertyIdFoo = JS_INVALID_REFERENCE;
+        JsPropertyIdRef propertyIdBar = JS_INVALID_REFERENCE;
+        bool hasProperty = false;
+
+        REQUIRE(JsGetPropertyIdFromName(_u("foo"), &propertyIdFoo) == JsNoError);
+        REQUIRE(JsGetPropertyIdFromName(_u("bar"), &propertyIdBar) == JsNoError);
+
+        REQUIRE(JsSetProperty(object, propertyIdFoo, object, true) == JsNoError);
+        REQUIRE(JsSetProperty(proto, propertyIdBar, object, true) == JsNoError);
+
+        REQUIRE(JsHasProperty(object, propertyIdFoo, &hasProperty) == JsNoError);
+        CHECK(hasProperty);
+
+        REQUIRE(JsHasOwnProperty(object, propertyIdFoo, &hasProperty) == JsNoError);
+        CHECK(hasProperty);
+
+        REQUIRE(JsHasProperty(object, propertyIdBar, &hasProperty) == JsNoError);
+        CHECK(hasProperty);
+
+        REQUIRE(JsHasOwnProperty(object, propertyIdBar, &hasProperty) == JsNoError);
+        CHECK(!hasProperty);
+    }
+
+    TEST_CASE("ApiTest_ObjectHasOwnPropertyMethodTest", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::ObjectHasOwnPropertyMethodTest);
+    }
+
 }

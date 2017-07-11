@@ -542,6 +542,7 @@ namespace TTD
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(SetExceptionActionTag, ContextAPINoScriptWrapper, JsRTSingleVarScalarArgumentAction, SetExceptionAction_Execute);
 
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(HasPropertyActionTag, ContextAPIWrapper, JsRTSingleVarScalarArgumentAction, HasPropertyAction_Execute);
+        TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(HasOwnPropertyActionTag, ContextAPIWrapper, JsRTSingleVarScalarArgumentAction, HasOwnPropertyAction_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(InstanceOfActionTag, ContextAPIWrapper, JsRTDoubleVarArgumentAction, InstanceOfAction_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(EqualsActionTag, ContextAPIWrapper, JsRTDoubleVarSingleScalarArgumentAction, EqualsAction_Execute);
 
@@ -2139,6 +2140,22 @@ namespace TTD
 
         NSLogEvents::JsRTSingleVarScalarArgumentAction* gpAction = nullptr;
         NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTSingleVarScalarArgumentAction, NSLogEvents::EventKind::HasPropertyActionTag>(&gpAction);
+        NSLogEvents::SetVarItem_0(gpAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var));
+        NSLogEvents::SetPropertyIdItem(gpAction, pRecord->GetPropertyId());
+
+        actionPopper.InitializeWithEventAndEnter(evt);
+    }
+
+    void EventLog::RecordJsRTHasOwnProperty(TTDJsRTActionResultAutoRecorder& actionPopper, const Js::PropertyRecord* pRecord, Js::Var var)
+    {
+        //The host may not have validated this yet (and will exit early if the check fails) so we check it here as well before getting the property id below
+        if(pRecord == nullptr || Js::IsInternalPropertyId(pRecord->GetPropertyId()))
+        {
+            return;
+        }
+
+        NSLogEvents::JsRTSingleVarScalarArgumentAction* gpAction = nullptr;
+        NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTSingleVarScalarArgumentAction, NSLogEvents::EventKind::HasOwnPropertyActionTag>(&gpAction);
         NSLogEvents::SetVarItem_0(gpAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var));
         NSLogEvents::SetPropertyIdItem(gpAction, pRecord->GetPropertyId());
 
