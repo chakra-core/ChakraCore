@@ -307,7 +307,7 @@ namespace Js
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded\n"));
             NotifyParentsAsNeeded();
 
-            if (this->promise != nullptr || (!WasDeclarationInitialized() && isRootModule))
+            if (!WasDeclarationInitialized() && isRootModule)
             {
                 // TODO: move this as a promise call? if parser is called from a different thread
                 // We'll need to call the bytecode gen in the main thread as we are accessing GC.
@@ -850,7 +850,7 @@ namespace Js
             });
         }
 #endif
-        if (!scriptContext->GetConfig()->IsES6ModuleEnabled())
+        if (!scriptContext->GetConfig()->IsES6ModuleEnabled() || WasEvaluated())
         {
             return nullptr;
         }

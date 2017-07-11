@@ -1,3 +1,3 @@
 RangeError: Locale 'INVALID CURRENCY CODE' is not well-formed
-   at testFirstChanceException (intlinternalshiddenfromfirstchanceexceptionstacktest.js:10:5)
-   at Global code (intlinternalshiddenfromfirstchanceexceptionstacktest.js:14:5)
+   at testFirstChanceException (IntlInternalsHiddenFromFirstChanceExceptionStackTest.js:10:5)
+   at Global code (IntlInternalsHiddenFromFirstChanceExceptionStackTest.js:14:5)

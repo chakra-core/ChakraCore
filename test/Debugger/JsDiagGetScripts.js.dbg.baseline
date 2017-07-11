@@ -3,13 +3,13 @@
     "sources": [
       {
         "scriptId": 3,
-        "fileName": "dummyfilename.js",
+        "fileName": "dummyFileName.js",
         "lineCount": 1,
         "sourceLength": 0
       },
       {
         "scriptId": 2,
-        "fileName": "jsdiaggetscripts.js",
+        "fileName": "JsDiagGetScripts.js",
         "lineCount": 12,
         "sourceLength": 640
       },

@@ -447,8 +447,10 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsFinalizeCallback 
                 IfFailedReturn(ChakraRTInterface::JsTTDStart());
             }
 
+            auto sourceContext = WScriptJsrt::GetNextSourceContext();
+            WScriptJsrt::RegisterScriptDir(sourceContext, fullPath);
             runScript = ChakraRTInterface::JsRun(scriptSource,
-                WScriptJsrt::GetNextSourceContext(), fname,
+                sourceContext, fname,
                 JsParseScriptAttributeNone, nullptr /*result*/);
             if (runScript == JsErrorCategoryUsage)
             {
@@ -711,14 +713,7 @@ HRESULT ExecuteTest(const char* fileName)
             IfFailGo(E_FAIL);
         }
 
-        // canonicalize that path name to lower case for the profile storage
-        // REVIEW: Assuming no utf8 characters here
         len = strlen(fullPath);
-        for (size_t i = 0; i < len; i++)
-        {
-            fullPath[i] = (char)tolower(fullPath[i]);
-        }
-
         if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
         {
             if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
