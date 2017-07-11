@@ -733,7 +733,6 @@ if (this->object) \
             U_SUCCESS(error) && ((size_t)parsedLength == inputLangTagUtf8SizeActual);
         if (!success)
         {
-            AssertMsg(false, "uloc_forLanguageTag failed");
             goto cleanup;
         }
 
