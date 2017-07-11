@@ -1716,9 +1716,9 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
         if (ref->IsAssignment())
         {
             sym->PromoteAssignmentState();
-            if (m_currentNodeFunc && sym->GetIsFormal())
+            if (sym->GetIsFormal())
             {
-                m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);
+                GetCurrentFunctionNode()->sxFnc.SetHasAnyWriteToFormals(true);
             }
         }
 
