@@ -69,9 +69,9 @@
 
 // Memory Protections
 #ifdef _CONTROL_FLOW_GUARD
-#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE | PAGE_TARGETS_INVALID)
+#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE_READ | PAGE_TARGETS_INVALID)
 #else
-#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE)
+#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE_READ)
 #endif
 
 //----------------------------------------------------------------------------------------------------
