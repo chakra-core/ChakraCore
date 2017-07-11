@@ -3,7 +3,7 @@
     "sources": [
       {
         "scriptId": 1,
-        "fileName": "parenteddynamiccode2.js",
+        "fileName": "parentedDynamicCode2.js",
         "lineCount": 22,
         "sourceLength": 756
       },
@@ -27,7 +27,7 @@
     "sources": [
       {
         "scriptId": 1,
-        "fileName": "parenteddynamiccode2.js",
+        "fileName": "parentedDynamicCode2.js",
         "lineCount": 22,
         "sourceLength": 756
       },
