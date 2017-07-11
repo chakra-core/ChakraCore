@@ -812,6 +812,17 @@ var tests = [
         }
     },
     {
+        name: 'Issue# 2471: Symbol registration map should support symbol names with null characters.',
+        body: function() {
+            var sym1 = Symbol.for('A\0X');
+            var sym2 = Symbol.for('A\0Y');
+            var sym3 = Symbol.for('A\0X');
+
+            assert.isFalse(sym1 === sym2, "Symbols created via Symbol.for should NOT be same if they have different description after the Null character");
+            assert.isTrue(sym1 === sym3, "Symbols created via Symbol.for should be same if they have same description");
+        }
+    },
+    {
         name: 'Throwing TypeError when trying to add with a string or a number',
         body: function() {
             var x = Symbol();
