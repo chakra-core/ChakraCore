@@ -120,8 +120,7 @@
   <test>
     <default>
       <files>xplatInterval.js</files>
-      <!-- Fix or add explanation for exclude_jenkins (Microsoft/ChakraCore#3010) -->
-      <tags>exclude_jenkins,Slow</tags>
+      <tags>Slow</tags>
     </default>
   </test>
 </regress-exe>
