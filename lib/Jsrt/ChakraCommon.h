@@ -229,10 +229,6 @@ typedef unsigned short uint16_t;
         /// <summary>
         ///     Module was evaluated already when JsModuleEvaluation is called.
         /// </summary>
-        JsErrorModuleEvaluated,
-        /// <summary>
-        ///     Category of errors that relates to errors occurring within the engine itself.
-        /// </summary>
         JsErrorCategoryEngine = 0x20000,
         /// <summary>
         ///     The Chakra engine has run out of memory.
