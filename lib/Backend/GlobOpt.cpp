@@ -6220,6 +6220,18 @@ GlobOpt::FindObjectTypeValue(SymID typeSymId, GlobHashTable *valueNumberMap, BVS
     {
         return nullptr;
     }
+    return FindObjectTypeValueNoLivenessCheck(typeSymId, valueNumberMap);
+}
+
+Value *
+GlobOpt::FindObjectTypeValueNoLivenessCheck(StackSym* typeSym, BasicBlock* block)
+{
+    return FindObjectTypeValueNoLivenessCheck(typeSym->m_id, block->globOptData.symToValueMap);
+}
+
+Value *
+GlobOpt::FindObjectTypeValueNoLivenessCheck(SymID typeSymId, GlobHashTable *valueNumberMap)
+{
     Value* value = FindValueFromHashTable(valueNumberMap, typeSymId);
     Assert(value == nullptr || value->GetValueInfo()->IsJsType());
     return value;
