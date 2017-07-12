@@ -93,6 +93,19 @@ function test5() {
 }
 test5();
 
+function test6() {
+  var global = WScript.LoadScript("", "samethread");
+  var OProxy = global.Proxy;
+  var desc;
+  var p = new OProxy({}, {
+      defineProperty: function(_, __, _desc) {
+      desc = _desc;
+      return desc;
+    }
+  });
+  p.a = 0;
+}
+test6();
 
 // In Chakra when calling "foo(arg1, arg2, ...)", we assume all the
 // participating components -- "foo", "arg1", "arg2"... -- are either from
