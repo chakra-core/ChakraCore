@@ -549,10 +549,6 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
         // Set asmjs to be true in entrypoint
         entryPointInfo->SetIsAsmJSFunction(true);
 
-        // Update the native address of the older entry point - this should be either the TJ entrypoint or the Interpreter Entry point
-        entryPointInfo->SetNativeAddress(oldFuncObjEntryPointInfo->jsMethod);
-        // have a reference to TJ entrypointInfo, this will be queued for collection in checkcodegen
-        entryPointInfo->SetOldFunctionEntryPointInfo(oldFuncObjEntryPointInfo);
         Assert(PHASE_ON1(Js::AsmJsJITTemplatePhase) || (!oldFuncObjEntryPointInfo->GetIsTJMode() && !entryPointInfo->GetIsTJMode()));
         // this changes the address in the entrypointinfo to be the AsmJsCodgenThunk
         function->UpdateThunkEntryPoint(entryPointInfo, NativeCodeGenerator::CheckAsmJsCodeGenThunk);
@@ -1530,7 +1526,7 @@ NativeCodeGenerator::CheckAsmJsCodeGen(Js::ScriptFunction * function)
         {
             Output::Print(_u("Codegen not done yet for function: %s, Entrypoint is CheckAsmJsCodeGenThunk\n"), function->GetFunctionBody()->GetDisplayName());
         }
-        return reinterpret_cast<Js::Var>(entryPoint->GetNativeEntrypoint());
+        return reinterpret_cast<Js::Var>(functionBody->GetOriginalEntryPoint());
     }
     if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
     {
