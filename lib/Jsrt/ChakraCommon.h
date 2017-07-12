@@ -227,7 +227,7 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsErrorModuleParsed,
         /// <summary>
-        ///     Module was evaluated already when JsModuleEvaluation is called.
+        ///     Category of errors that relates to errors occurring within the engine itself.
         /// </summary>
         JsErrorCategoryEngine = 0x20000,
         /// <summary>
