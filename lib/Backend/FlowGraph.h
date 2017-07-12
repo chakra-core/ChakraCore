@@ -142,6 +142,7 @@ public:
         finallyLabelStack(nullptr),
         leaveNullLabelStack(nullptr),
         regToFinallyEndMap(nullptr),
+        leaveNullLabelToFinallyLabelMap(nullptr),
         hasBackwardPassInfo(false),
         hasLoop(false),
         implicitCallFlags(Js::ImplicitCall_HasNoInfo)
@@ -188,6 +189,8 @@ public:
     SList<IR::LabelInstr*> *  leaveNullLabelStack;
     typedef JsUtil::BaseDictionary<Region *, BasicBlock *, JitArenaAllocator> RegionToFinallyEndMapType;
     RegionToFinallyEndMapType * regToFinallyEndMap;
+    typedef JsUtil::BaseDictionary<IR::LabelInstr *, IR::LabelInstr *, JitArenaAllocator> LeaveNullLabelToFinallyLabelMapType;
+    LeaveNullLabelToFinallyLabelMapType * leaveNullLabelToFinallyLabelMap;
     bool                      hasBackwardPassInfo;
     bool                      hasLoop;
     Js::ImplicitCallFlags     implicitCallFlags;
