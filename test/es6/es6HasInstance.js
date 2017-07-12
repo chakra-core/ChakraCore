@@ -303,8 +303,10 @@ var tests = [
             assert.areEqual(false, desc.enumerable, "name:enumerable==false");
             assert.areEqual(false, desc.writable, "name:writable==false");
             assert.areEqual(true, desc.configurable, "name:configurable==true");
-            
-            assert.areEqual(false, f.call(), "Function.prototype[Symbol.hasInstance].call()");
+
+            assert.areEqual(false, f.call(), "Function.prototype[Symbol.hasInstance].call() should return False when constructor is Undefined.");
+            assert.areEqual(false, f.call(null), "Function.prototype[Symbol.hasInstance].call(null) should return False when constructor is Null.");
+            assert.areEqual(false, f.call(0), "Function.prototype[Symbol.hasInstance].call(0) should return False when constructor is not an Object.");
             assert.areEqual(false, f.call({}), "Function.prototype[Symbol.hasInstance].call({})");
         }
     },
