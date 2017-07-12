@@ -415,7 +415,7 @@ fi
 
 # if LTO build is enabled and cc-toolchain/clang was compiled, use it instead
 if [[ $HAS_LTO == 1 ]]; then
-    if [[ -f cc-toolchain/build/bin/clang++ ]]; then
+    if [[ -f "${CHAKRACORE_DIR}/cc-toolchain/build/bin/clang++" ]]; then
         SELF=`pwd`
         _CXX="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang++"
         _CC="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang"
@@ -423,14 +423,17 @@ if [[ $HAS_LTO == 1 ]]; then
         # Linux LD possibly doesn't support LLVM LTO, check.. and compile clang if not
         if [[ $OS_LINUX == 1 ]]; then
             if [[ ! `ld -v` =~ 'GNU gold' ]]; then
+                pushd "$CHAKRACORE_DIR" > /dev/null
                 $CHAKRACORE_DIR/tools/compile_clang.sh
                 if [[ $? != 0 ]]; then
                   echo -e "tools/compile_clang.sh has failed.\n"
                   echo "Try with 'sudo' ?"
+                  popd > /dev/null
                   exit 1
                 fi
                 _CXX="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang++"
                 _CC="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang"
+                popd > /dev/null
             fi
         fi
     fi
