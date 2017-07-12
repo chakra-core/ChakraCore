@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
 
@@ -1084,3 +1084,4 @@ namespace Js
     }
 
 }
+#endif

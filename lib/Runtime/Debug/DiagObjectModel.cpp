@@ -4226,6 +4226,7 @@ namespace Js
     }
 #endif
 
+#ifdef ENABLE_SIMDJS
     //--------------------------
     // RecyclableSimdObjectWalker
 
@@ -4357,4 +4358,6 @@ namespace Js
         }
         return nullptr;
     }
+
+#endif // #ifdef ENABLE_SIMDJS
 }

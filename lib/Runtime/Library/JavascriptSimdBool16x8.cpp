@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     const char16 JavascriptSIMDBool16x8::TypeName[] = _u("SIMD.Bool16x8");
@@ -56,3 +56,4 @@ namespace Js
         return JavascriptSIMDBool16x8::New(&this->value, requestContext);
     }
 }
+#endif

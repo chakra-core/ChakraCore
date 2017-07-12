@@ -5,7 +5,7 @@
 
 #pragma once
 
-
+#ifdef ENABLE_SIMDJS
 class JavascriptSIMDFloat32x4;
 class JavascriptSIMDFloat64x2;
 
@@ -52,3 +52,4 @@ namespace Js
         Var GetLaneAsNumber(uint index, ScriptContext* requestContext);
     };
 }
+#endif
