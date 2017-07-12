@@ -232,8 +232,6 @@ namespace Js
             entryPointInfo->jsMethod = entryPoint;
         }
 
-        if (!isAsmJS)
-        {
             ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
             if (oldEntryPointInfo
                 && oldEntryPointInfo != entryPointInfo
@@ -245,7 +243,6 @@ namespace Js
 
                 threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
             }
-        }
 
         this->GetScriptFunctionType()->SetEntryPointInfo(entryPointInfo);
     }
