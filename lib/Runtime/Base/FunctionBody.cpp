@@ -3735,18 +3735,7 @@ namespace Js
         {
             entryPointInfo->jsMethod = directEntryPoint;
         }
-#ifdef ASMJS_PLAT
-        if (isAsmJs)
-        {
-            // release the old entrypointinfo if available
-            FunctionEntryPointInfo* oldEntryPointInfo = entryPointInfo->GetOldFunctionEntryPointInfo();
-            if (oldEntryPointInfo)
-            {
-                this->GetScriptContext()->GetThreadContext()->QueueFreeOldEntryPointInfoIfInScript(oldEntryPointInfo);
-                oldEntryPointInfo = nullptr;
-            }
-        }
-#endif
+
         this->CaptureDynamicProfileState(entryPointInfo);
 
         if(entryPointInfo->GetJitMode() == ExecutionMode::SimpleJit)
@@ -9569,18 +9558,6 @@ namespace Js
     }
 
 #ifdef ASMJS_PLAT
-    void FunctionEntryPointInfo::SetOldFunctionEntryPointInfo(FunctionEntryPointInfo* entrypointInfo)
-    {
-        Assert(this->GetIsAsmJSFunction());
-        Assert(entrypointInfo);
-        mOldFunctionEntryPointInfo = entrypointInfo;
-    };
-
-    FunctionEntryPointInfo* FunctionEntryPointInfo::GetOldFunctionEntryPointInfo()const
-    {
-        Assert(this->GetIsAsmJSFunction());
-        return mOldFunctionEntryPointInfo;
-    };
     void FunctionEntryPointInfo::SetIsTJMode(bool value)
     {
         Assert(this->GetIsAsmJSFunction());

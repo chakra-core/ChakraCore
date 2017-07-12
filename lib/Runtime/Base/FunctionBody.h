@@ -1068,16 +1068,11 @@ namespace Js
 
     private:
         Field(ExecutionMode) jitMode;
-        Field(FunctionEntryPointInfo*) mOldFunctionEntryPointInfo; // strong ref to oldEntryPointInfo(Int or TJ) in asm to ensure we don't collect it before JIT is completed
         Field(bool)       mIsTemplatizedJitMode; // true only if in TJ mode, used only for debugging
     public:
         FunctionEntryPointInfo(FunctionProxy * functionInfo, Js::JavascriptMethod method, ThreadContext* context, void* validationCookie);
 
 #ifdef ASMJS_PLAT
-        //AsmJS Support
-
-        void SetOldFunctionEntryPointInfo(FunctionEntryPointInfo* entrypointInfo);
-        FunctionEntryPointInfo* GetOldFunctionEntryPointInfo()const;
         void SetIsTJMode(bool value);
         bool GetIsTJMode()const;
         //End AsmJS Support
