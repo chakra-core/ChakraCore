@@ -225,19 +225,16 @@ namespace Js
             entryPointInfo->jsMethod = entryPoint;
         }
 
-        if (!isAsmJS)
+        ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
+        if (oldEntryPointInfo
+            && oldEntryPointInfo != entryPointInfo
+            && oldEntryPointInfo->SupportsExpiration())
         {
-            ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
-            if (oldEntryPointInfo
-                && oldEntryPointInfo != entryPointInfo
-                && oldEntryPointInfo->SupportsExpiration())
-            {
-                // The old entry point could be executing so we need root it to make sure
-                // it isn't prematurely collected. The rooting is done by queuing it up on the threadContext
-                ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+            // The old entry point could be executing so we need root it to make sure
+            // it isn't prematurely collected. The rooting is done by queuing it up on the threadContext
+            ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
 
-                threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
-            }
+            threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
         }
 
         this->GetScriptFunctionType()->SetEntryPointInfo(entryPointInfo);
