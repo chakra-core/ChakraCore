@@ -866,7 +866,7 @@ SECOND_PASS:
             }
 
             startSeg = current;
-            Assert(startSeg == oldStartSeg || isInlineSegment);
+            Assert(startSeg != oldStartSeg || !isInlineSegment); // ensure isInlineSegment implies startSeg != oldStartSeg
             if (isInlineSegment)
             {
                 this->ClearElements(oldStartSeg, 0);
@@ -955,7 +955,7 @@ SECOND_PASS:
                 }
             }
 
-            Assert(oldCurrent == current || isInlineSegment);
+            Assert(oldCurrent != current || !isInlineSegment); // ensure isInlineSegment implies oldCurrent != current
             if (isInlineSegment)
             {
                 this->ClearElements(oldCurrent, 0);
