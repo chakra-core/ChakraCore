@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     Var SIMDFloat32x4Lib::EntryFloat32x4(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1225,3 +1225,4 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Float32x4.store"));
     }
 }
+#endif

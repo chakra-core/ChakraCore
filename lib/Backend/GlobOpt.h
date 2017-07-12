@@ -723,9 +723,12 @@ private:
     void                    ToInt32Dst(IR::Instr *instr, IR::RegOpnd *dst, BasicBlock *block);
     void                    ToUInt32Dst(IR::Instr *instr, IR::RegOpnd *dst, BasicBlock *block);
     void                    ToFloat64Dst(IR::Instr *instr, IR::RegOpnd *dst, BasicBlock *block);
+
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     void                    TypeSpecializeSimd128Dst(IRType type, IR::Instr *instr, Value *valToTransfer, Value *const src1Value, Value **pDstVal);
     void                    ToSimd128Dst(IRType toType, IR::Instr *instr, IR::RegOpnd *dst, BasicBlock *block);
+#endif
 
     void                    OptConstFoldBr(bool test, IR::Instr *instr, Value * intTypeSpecSrc1Val = nullptr, Value * intTypeSpecSrc2Val = nullptr);
     void                    PropagateIntRangeForNot(int32 minimum, int32 maximum, int32 *pNewMin, int32 * pNewMax);

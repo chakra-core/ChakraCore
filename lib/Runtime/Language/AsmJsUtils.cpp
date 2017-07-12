@@ -312,6 +312,7 @@ namespace Js
                 *(double*)argDst = doubleVal;
                 argDst = argDst + sizeof(double);
             }
+#ifdef ENABLE_SIMDJS
             else if (info->GetArgType(i).isSIMD())
             {
                 AsmJsVarType argType = info->GetArgType(i);
@@ -403,6 +404,7 @@ namespace Js
                 *(AsmJsSIMDValue*)argDst = simdVal;
                 argDst = argDst + sizeof(AsmJsSIMDValue);
             }
+#endif // #ifdef ENABLE_SIMDJS
             else
             {
                 Assert(UNREACHED);
@@ -486,6 +488,7 @@ namespace Js
             returnValue = JavascriptNumber::NewWithCheck(floatRetVal, scriptContext);
             break;
         }
+#ifdef ENABLE_SIMDJS
         case AsmJsRetType::Float32x4:
         {
             X86SIMDValue simdVal;
@@ -563,6 +566,7 @@ namespace Js
             returnValue = JavascriptSIMDUint8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
+#endif // #ifdef ENABLE_SIMDJS
         default:
             Assume(UNREACHED);
         }
@@ -678,6 +682,7 @@ namespace Js
             returnValue = JavascriptNumber::NewWithCheck((double)fval, func->GetScriptContext());
             break;
         }
+#ifdef ENABLE_SIMDJS
         case AsmJsRetType::Int32x4:
             AsmJsSIMDValue simdVal;
             simdVal.Zero();
@@ -839,6 +844,7 @@ namespace Js
             }
             returnValue = JavascriptSIMDUint8x16::New(&simdVal, func->GetScriptContext());
             break;
+#endif // #ifdef ENABLE_SIMDJS
         default:
             Assume(UNREACHED);
         }

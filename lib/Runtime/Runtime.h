@@ -154,6 +154,7 @@ namespace Js
     struct RestrictedErrorStrings;
     class JavascriptError;
 
+#ifdef ENABLE_SIMDJS
 //SIMD_JS
     // SIMD
     class JavascriptSIMDObject;
@@ -179,6 +180,7 @@ namespace Js
     class JavascriptSIMDBool8x16;
     class SIMDBool16x8Lib;
     class JavascriptSIMDBool16x8;
+#endif // #ifdef ENABLE_SIMDJS
 
     class RecyclableObject;
     class JavascriptRegExp;

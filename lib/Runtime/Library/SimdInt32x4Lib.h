@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
-
+#ifdef ENABLE_SIMDJS
 namespace Js {
 
     class SIMDInt32x4Lib
@@ -126,4 +126,4 @@ namespace Js {
         // End entry points
     };
 } // namespace Js
-
+#endif

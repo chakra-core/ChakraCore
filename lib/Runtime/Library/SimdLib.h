@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
+#ifdef ENABLE_SIMDJS
 // SIMD types
 #include "Library/JavascriptSimdObject.h"
 #include "Library/JavascriptSimdType.h"
@@ -31,3 +32,4 @@
 #include "Library/SimdBool32x4Lib.h"
 #include "Library/SimdBool16x8Lib.h"
 #include "Library/SimdBool8x16Lib.h"
+#endif

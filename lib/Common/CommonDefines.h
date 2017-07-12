@@ -125,10 +125,10 @@
 #define ENABLE_GLOBALIZATION
 // dep: IActiveScriptProfilerCallback, IActiveScriptProfilerHeapEnum
 #define ENABLE_SCRIPT_PROFILING
-#ifndef __clang__
+// #ifndef __clang__
 // xplat-todo: change DISABLE_SEH to ENABLE_SEH and move here
-#define ENABLE_SIMDJS
-#endif
+// #define ENABLE_SIMDJS
+// #endif
 
 #define ENABLE_CUSTOM_ENTROPY
 #endif

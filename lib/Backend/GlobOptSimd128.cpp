@@ -517,6 +517,7 @@ IR::BailOutKind GlobOpt::GetBailOutKindFromValueType(const ValueType &valueType)
     {
         return IR::BailOutIntOnly;
     }
+#ifdef ENABLE_SIMDJS
     else if (valueType.IsSimd128Float32x4())
     {
         return IR::BailOutSimd128F4Only;
@@ -525,6 +526,12 @@ IR::BailOutKind GlobOpt::GetBailOutKindFromValueType(const ValueType &valueType)
     {
         Assert(valueType.IsSimd128Int32x4());
         return IR::BailOutSimd128I4Only;
+    }
+#endif
+    else
+    {
+        AssertOrFailFast(UNREACHED);
+        return IR::BailOutInvalid;
     }
 }
 

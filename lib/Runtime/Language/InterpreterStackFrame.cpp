@@ -2154,11 +2154,13 @@ namespace Js
         case AsmJsRetType::Uint32x4:
         case AsmJsRetType::Uint16x8:
         case AsmJsRetType::Uint8x16:
+#ifdef ENABLE_SIMDJS
             if (function->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
             {
                 function->GetScriptContext()->asmJsReturnValue.simdVal = GetAsmJsRetVal<AsmJsSIMDValue>(newInstance);
                 break;
             }
+#endif
             Assert(UNREACHED);
         // double return
         case AsmJsRetType::Double:
@@ -2593,11 +2595,13 @@ namespace Js
         Field(Var)* localModuleFunctions = moduleMemoryPtr + moduleMemory.mFuncOffset ;
         Field(Field(Var)*)* localFunctionTables = (Field(Field(Var)*)*)(moduleMemoryPtr + moduleMemory.mFuncPtrOffset) ;
 
+#ifdef ENABLE_SIMDJS
         AsmJsSIMDValue* localSimdSlots = nullptr;
         if (scriptContext->GetConfig()->IsSimdjsEnabled())
         {
             localSimdSlots = ((AsmJsSIMDValue*)moduleMemoryPtr) + moduleMemory.mSimdOffset; // simdOffset is in SIMDValues
         }
+#endif
 
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
         *stdLibPtr = (m_inSlotsCount > 1) ? m_inParams[1] : nullptr;
@@ -2638,12 +2642,15 @@ namespace Js
             {
                 localDoubleSlots[var.location] = var.initialiser.doubleInit;
             }
+#ifdef ENABLE_SIMDJS
             else if (scriptContext->GetConfig()->IsSimdjsEnabled() && type.isSIMD())
             {
                 // e.g. var g = f4(0.0, 0.0, 0.0, 0.0);
                 localSimdSlots[var.location] = var.initialiser.simdInit;
             }
-            else {
+#endif
+            else
+            {
                 Assert(UNREACHED);
             }
         }
@@ -2686,6 +2693,7 @@ namespace Js
                 double val = JavascriptConversion::ToNumber( value, scriptContext );
                 localDoubleSlots[import.location] = val;
             }
+#ifdef ENABLE_SIMDJS
             else if (scriptContext->GetConfig()->IsSimdjsEnabled() && type.isSIMD())
             {
                 // e.g. var g = f4(imports.v);
@@ -2749,6 +2757,7 @@ namespace Js
                 }
                 localSimdSlots[import.location] = val;
             }
+#endif // #ifdef ENABLE_SIMDJS
 
             // check for implicit call after converting to number
             if (this->CheckAndResetImplicitCall(prevDisableImplicitFlags, saveImplicitcallFlags))
@@ -3067,8 +3076,9 @@ namespace Js
         int64* int64Arg = m_localInt64Slots + info->GetTypedSlotInfo(WAsmJs::INT64)->constCount;
         double* doubleArg = m_localDoubleSlots + info->GetTypedSlotInfo(WAsmJs::FLOAT64)->constCount;
         float* floatArg = m_localFloatSlots + info->GetTypedSlotInfo(WAsmJs::FLOAT32)->constCount;
+#if _M_X64
         AsmJsSIMDValue* simdArg = m_localSimdSlots + info->GetTypedSlotInfo(WAsmJs::SIMD)->constCount;
-
+#endif
         // Move the arguments to the right location
         ArgSlot argCount = info->GetArgCount();
 
@@ -3176,6 +3186,7 @@ namespace Js
                     ++simdArg;
                     homingAreaSize += sizeof(AsmJsSIMDValue);
                 }
+#ifdef ENABLE_SIMDJS
                 if (scriptContext->GetConfig()->IsSimdjsEnabled() && i == 2) // last argument ?
                 {
                     // If we have simd arguments, the homing area in m_inParams can be larger than 3 64-bit slots. This is because SIMD values are unboxed there too.
@@ -3184,6 +3195,7 @@ namespace Js
                     argAddress = (uintptr_t)m_inParams + homingAreaSize;
                 }
                 else
+#endif
                 {
                     argAddress += MachPtr;
                 }
@@ -3239,12 +3251,14 @@ namespace Js
                 ++doubleArg;
                 argAddress += sizeof(double);
             }
+#ifdef ENABLE_SIMDJS
             else if (scriptContext->GetConfig()->IsSimdjsEnabled() && info->GetArgType(i).isSIMD())
             {
                 *simdArg = *(AsmJsSIMDValue*)argAddress;
                 ++simdArg;
                 argAddress += sizeof(AsmJsSIMDValue);
             }
+#endif
             else
             {
                 AssertMsg(UNREACHED, "Invalid function arg type.");
@@ -3832,6 +3846,7 @@ namespace Js
             Assume(UNREACHED);
         }
         Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
+#ifdef ENABLE_SIMDJS
 #if _M_X64
         if (scriptContext->GetConfig()->IsSimdjsEnabled())
 #endif
@@ -3843,6 +3858,14 @@ namespace Js
         {
             PopOut((ArgSlot)asmInfo->GetArgCount() + 1);
         }
+#endif
+#else
+#if _M_X64
+        PopOut((ArgSlot)asmInfo->GetArgCount() + 1);
+        
+#else
+        PopOut((ArgSlot)(argsSize / sizeof(Var)) + 1);
+#endif
 #endif
         Assert(function);
     }

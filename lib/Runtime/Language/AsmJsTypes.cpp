@@ -833,7 +833,11 @@ namespace Js
             allocator,
             AllocateRegisterSpace,
             // Exclude int64 and simd if not enabled
-            1 << WAsmJs::INT64 | (scriptContext->GetConfig()->IsSimdjsEnabled() ? 0 : 1 << WAsmJs::SIMD)
+            1 << WAsmJs::INT64 | (
+#ifdef ENABLE_SIMDJS
+                scriptContext->GetConfig()->IsSimdjsEnabled() ? 0 :
+#endif
+                1 << WAsmJs::SIMD)
         )
         , mFuncInfo(pnodeFnc->sxFnc.funcInfo)
         , mFuncBody(nullptr)

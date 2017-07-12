@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 // SIMD_JS
 
 namespace Js
@@ -272,3 +272,4 @@ namespace Js
     }
 
 }
+#endif
