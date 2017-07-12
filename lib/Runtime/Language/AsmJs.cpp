@@ -520,7 +520,7 @@ namespace Js
         {
             lib = ParserWrapper::DotMember(base);
             base = ParserWrapper::DotBase(base);
-
+#ifdef ENABLE_SIMDJS
             if (m.GetScriptContext()->GetConfig()->IsSimdjsEnabled())
             {
                 if (!lib || (lib->GetPropertyId() != PropertyIds::Math && lib->GetPropertyId() != PropertyIds::SIMD))
@@ -529,6 +529,7 @@ namespace Js
                 }
             }
             else
+#endif
             {
                 if (!lib || lib->GetPropertyId() != PropertyIds::Math)
                 {
@@ -539,7 +540,7 @@ namespace Js
 
         if( ParserWrapper::IsNameDeclaration(base) && base->name() == m.GetStdLibArgName() )
         {
-
+#ifdef ENABLE_SIMDJS
             if (m.GetScriptContext()->GetConfig()->IsSimdjsEnabled())
             {
                 if (lib && lib->GetPropertyId() == PropertyIds::SIMD)
@@ -565,7 +566,7 @@ namespace Js
                     return true;
                 }
             }
-
+#endif
             // global.Math.xxx
             MathBuiltin mathBuiltin;
             if (m.LookupStandardLibraryMathName(field, &mathBuiltin))

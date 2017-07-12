@@ -320,7 +320,9 @@ namespace Js {
         bool AddStandardLibraryArrayName(PropertyId id, AsmJsTypedArrayFunction * func, AsmJSTypedArrayBuiltinFunction mathLibFunctionName);
         bool CheckByteLengthCall(ParseNode * node, ParseNode * newBufferDecl);
         bool ValidateSimdConstructor(ParseNode* pnode, AsmJsSIMDFunction* simdFunc, AsmJsSIMDValue& value);
+#ifdef ENABLE_SIMDJS
         bool IsSimdjsEnabled() { return GetScriptContext()->GetConfig()->IsSimdjsEnabled(); }
+#endif
     };
 
     struct AsmJsSlot

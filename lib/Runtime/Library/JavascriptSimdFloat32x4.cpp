@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     const char16 JavascriptSIMDFloat32x4::TypeName[] = _u("SIMD.Float32x4");
@@ -80,3 +80,4 @@ namespace Js
     }
 
 }
+#endif

@@ -175,13 +175,13 @@ namespace Js
 
         // add 3 for each of I0, F0, and D0
         RegSlot regCount = mInfo->RegCount() + 3 + AsmJsFunctionMemory::RequiredVarConstants;
-
+#ifdef ENABLE_SIMDJS
         if (IsSimdjsEnabled())
         {
             // 1 return reg for SIMD
             regCount++;
         }
-
+#endif
         byteCodeFunction->SetFirstTmpReg(regCount);
     }
 

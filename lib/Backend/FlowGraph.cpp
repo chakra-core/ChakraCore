@@ -4575,6 +4575,7 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
             }
         } NEXT_BITSET_IN_SPARSEBV;
 
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         // Simd128 type-spec syms
         BVSparse<JitArenaAllocator> tempBv2(globOpt->tempAlloc);
@@ -4642,6 +4643,8 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
                 Assert(UNREACHED);
             }
         } NEXT_BITSET_IN_SPARSEBV;
+#endif
+
         tempBv->ClearAll();
     }
 
@@ -4658,9 +4661,11 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
     BVSparse<JitArenaAllocator> tempBv3(globOpt->tempAlloc);
     BVSparse<JitArenaAllocator> tempBv4(globOpt->tempAlloc);
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     BVSparse<JitArenaAllocator> simd128F4SymsToUnbox(globOpt->tempAlloc);
     BVSparse<JitArenaAllocator> simd128I4SymsToUnbox(globOpt->tempAlloc);
+#endif
 
     FOREACH_PREDECESSOR_EDGE_EDITING(edge, this, iter)
     {
@@ -4694,17 +4699,20 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
 
         bool symIVNeedsSpecializing = (symIV && !pred->globOptData.liveInt32Syms->Test(symIV->m_id) && !tempBv3.Test(symIV->m_id));
 
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         simd128F4SymsToUnbox.Minus(blockData.liveSimd128F4Syms, pred->globOptData.liveSimd128F4Syms);
         simd128I4SymsToUnbox.Minus(blockData.liveSimd128I4Syms, pred->globOptData.liveSimd128I4Syms);
-
+#endif
 
         if (!globOpt->tempBv->IsEmpty() ||
             !tempBv2.IsEmpty() ||
             !tempBv3.IsEmpty() ||
             !tempBv4.IsEmpty() ||
+#ifdef ENABLE_SIMDJS
             !simd128F4SymsToUnbox.IsEmpty() ||
             !simd128I4SymsToUnbox.IsEmpty() ||
+#endif
             symIVNeedsSpecializing ||
             symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
         {
@@ -4770,6 +4778,7 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
                 globOpt->InsertValueCompensation(pred, symsRequiringCompensationToMergedValueInfoMap);
             }
 
+#ifdef ENABLE_SIMDJS
             // SIMD_JS
             if (!simd128F4SymsToUnbox.IsEmpty())
             {
@@ -4780,6 +4789,7 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
             {
                 globOpt->ToTypeSpec(&simd128I4SymsToUnbox, pred, TySimd128I4, IR::BailOutSimd128I4Only);
             }
+#endif
         }
     } NEXT_PREDECESSOR_EDGE_EDITING;
 
@@ -4834,13 +4844,14 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
         loop->float64SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
         loop->float64SymsOnEntry->Copy(this->globOptData.liveFloat64Syms);
 
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         loop->simd128F4SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
         loop->simd128F4SymsOnEntry->Copy(this->globOptData.liveSimd128F4Syms);
 
         loop->simd128I4SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
         loop->simd128I4SymsOnEntry->Copy(this->globOptData.liveSimd128I4Syms);
-
+#endif
 
         loop->liveFieldsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
         loop->liveFieldsOnEntry->Copy(this->globOptData.liveFields);

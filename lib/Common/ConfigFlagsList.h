@@ -382,12 +382,16 @@ PHASE(All)
 #define DEFAULT_CONFIG_ASMJS                (true)
 #define DEFAULT_CONFIG_AsmJsEdge            (false)
 #define DEFAULT_CONFIG_AsmJsStopOnError     (false)
+
+#ifdef ENABLE_SIMDJS
 #ifdef COMPILE_DISABLE_Simdjs
     // If Simdjs needs to be disabled by compile flag, DEFAULT_CONFIG_SIMDJS should be false
     #define DEFAULT_CONFIG_SIMDJS               (false)
 #else
     #define DEFAULT_CONFIG_SIMDJS               (false)
 #endif
+#endif // #ifdef ENABLE_SIMDJS
+
 #define DEFAULT_CONFIG_Wasm               (true)
 #define DEFAULT_CONFIG_WasmI64            (false)
 #if ENABLE_FAST_ARRAYBUFFER
@@ -872,11 +876,14 @@ FLAGNR(Boolean, WasmFold              , "Enable i32/i64 const folding", DEFAULT_
 FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
 
+#ifdef ENABLE_SIMDJS
 #ifndef COMPILE_DISABLE_Simdjs
     #define COMPILE_DISABLE_Simdjs 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, Simdjs, "Enable Simdjs", DEFAULT_CONFIG_SIMDJS)
 FLAGR(Boolean, Simd128TypeSpec, "Enable type-specialization of Simd128 symbols", false)
+#endif // #ifdef ENABLE_SIMDJS
+
 FLAGNR(Boolean, AssertBreak           , "Debug break on assert", false)
 FLAGNR(Boolean, AssertPopUp           , "Pop up asserts (default: false)", false)
 FLAGNR(Boolean, AssertIgnore          , "Ignores asserts if set", false)

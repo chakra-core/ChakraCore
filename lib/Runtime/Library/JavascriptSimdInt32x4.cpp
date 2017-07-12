@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     const char16 JavascriptSIMDInt32x4::TypeName[] = _u("SIMD.Int32x4");
@@ -75,3 +75,4 @@ namespace Js
             simdValue.i32, &callInfo, &requestContext);
     }
 }
+#endif

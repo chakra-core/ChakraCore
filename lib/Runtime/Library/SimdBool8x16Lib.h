@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-
+#ifdef ENABLE_SIMDJS
 namespace Js {
     class SIMDBool8x16Lib
     {
@@ -56,4 +56,4 @@ namespace Js {
         // End entry points
     };
 } // namespace Js
-
+#endif

@@ -6,7 +6,7 @@
 
 #include "RuntimeLibraryPch.h"
 
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     const char16 JavascriptSIMDBool8x16::TypeName[] = _u("SIMD.Bool8x16");
@@ -59,3 +59,4 @@ namespace Js
         return JavascriptSIMDBool8x16::New(&this->value, requestContext);
     }
 }
+#endif

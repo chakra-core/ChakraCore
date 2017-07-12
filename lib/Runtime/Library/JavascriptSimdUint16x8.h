@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     class JavascriptSIMDUint16x8 sealed : public JavascriptSIMDType
@@ -42,3 +42,4 @@ namespace Js
         Var  Copy(ScriptContext* requestContext);
     };
 }
+#endif

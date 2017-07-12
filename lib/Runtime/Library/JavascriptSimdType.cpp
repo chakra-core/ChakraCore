@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     // Constructors
@@ -215,3 +215,4 @@ namespace Js
     template Var JavascriptSIMDType::EntryValueOf<JavascriptSIMDUint8x16>(RecyclableObject* function, CallInfo callInfo, ...);
     template Var JavascriptSIMDType::EntryValueOf<JavascriptSIMDFloat32x4>(RecyclableObject* function, CallInfo callInfo, ...);
 }
+#endif
