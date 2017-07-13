@@ -202,6 +202,8 @@ Opnd::CloneUse(Func *func)
 
 void Opnd::Free(Func *func)
 {
+    AssertMsg(!IsInUse(), "Attempting to free in use operand.");
+
     switch (this->m_kind)
     {
     case OpndKindIntConst:
@@ -2337,10 +2339,12 @@ IndirOpnd::~IndirOpnd()
 {
     if (m_baseOpnd != nullptr)
     {
+        m_baseOpnd->UnUse();
         m_baseOpnd->Free(m_func);
     }
     if (m_indexOpnd != nullptr)
     {
+        m_indexOpnd->UnUse();
         m_indexOpnd->Free(m_func);
     }
 }
