@@ -17023,20 +17023,17 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                 const IR::AutoReuseOpnd autoReuseReg(reg, m_func);
                 InsertMove(reg, src, stElem);
 
-                bool bailOutOnHelperCall = stElem->HasBailOutInfo() && (stElem->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall);
-
                 // Convert to float, and assign to indirOpnd
                 if (baseValueType.IsLikelyOptimizedVirtualTypedArray())
                 {
                     IR::RegOpnd* dstReg = IR::RegOpnd::New(indirOpnd->GetType(), this->m_func);
-                    m_lowererMD.EmitLoadFloat(dstReg, reg, stElem, bailOutOnHelperCall);
+                    m_lowererMD.EmitLoadFloat(dstReg, reg, stElem, stElem, labelHelper);
                     InsertMove(indirOpnd, dstReg, stElem);
                 }
                 else
                 {
-                    m_lowererMD.EmitLoadFloat(indirOpnd, reg, stElem, bailOutOnHelperCall);
+                    m_lowererMD.EmitLoadFloat(indirOpnd, reg, stElem, stElem, labelHelper);
                 }
-
             }
         }
         else if (objectType == ObjectType::Uint8ClampedArray || objectType == ObjectType::Uint8ClampedVirtualArray || objectType == ObjectType::Uint8ClampedMixedArray)
@@ -17219,7 +17216,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                 //      Any pointer is larger than 512 because first 64k memory is reserved by the OS
                 // #endif
 
-                IR::LabelInstr *labelInlineSet = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+                IR::LabelInstr *labelInlineSet = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
 #ifndef _M_ARM
                 //      TEST src, ~(TaggedInt(255))      -- Check for tagged int >= 255 and <= 0
                 //      JEQ $inlineSet
@@ -17241,29 +17238,53 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
 
                 // Uint8ClampedArray::DirectSetItem(array, index, value);
 
-                m_lowererMD.LoadHelperArgument(stElem, regSrc);
-                IR::Opnd *indexOpnd = indirOpnd->GetIndexOpnd();
-                if (indexOpnd == nullptr)
+                // Inserting a helper call. Make sure it observes the main instructions's requirements regarding implicit calls.
+                if (!instrIsInHelperBlock)
                 {
-                    indexOpnd = IR::IntConstOpnd::New(indirOpnd->GetOffset(), TyInt32, this->m_func);
+                    stElem->InsertBefore(IR::LabelInstr::New(Js::OpCode::Label, m_func, true));
+                }
+
+                if (stElem->HasBailOutInfo() && (stElem->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall))
+                {
+                    // Bail out instead of doing the helper call.
+                    Assert(labelHelper);
+                    this->InsertBranch(Js::OpCode::Br, labelHelper, stElem);
                 }
                 else
                 {
-                    Assert(indirOpnd->GetOffset() == 0);
+                    IR::Instr *instr = IR::Instr::New(Js::OpCode::Call, this->m_func);
+                    stElem->InsertBefore(instr);
+
+                    if (stElem->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(stElem->GetBailOutKind()))
+                    {
+                        // Bail out if this helper triggers implicit calls.
+                        instr = instr->ConvertToBailOutInstr(stElem->GetBailOutInfo(), stElem->GetBailOutKind());
+                        if (stElem->GetBailOutInfo()->bailOutInstr == stElem)
+                        {
+                            IR::Instr * instrShare = stElem->ShareBailOut();
+                            LowerBailTarget(instrShare);
+                        }
+                    }
+
+                    m_lowererMD.LoadHelperArgument(instr, regSrc);
+                    IR::Opnd *indexOpnd = indirOpnd->GetIndexOpnd();
+                    if (indexOpnd == nullptr)
+                    {
+                        indexOpnd = IR::IntConstOpnd::New(indirOpnd->GetOffset(), TyInt32, this->m_func);
+                    }
+                    else
+                    {
+                        Assert(indirOpnd->GetOffset() == 0);
+                    }
+                    m_lowererMD.LoadHelperArgument(instr, indexOpnd);
+                    m_lowererMD.LoadHelperArgument(instr, stElem->GetDst()->AsIndirOpnd()->GetBaseOpnd());
+
+                    Assert(objectType == ObjectType::Uint8ClampedArray || objectType == ObjectType::Uint8ClampedMixedArray || objectType == ObjectType::Uint8ClampedVirtualArray);
+                    m_lowererMD.ChangeToHelperCall(instr, IR::JnHelperMethod::HelperUint8ClampedArraySetItem);
+
+                    // JMP $fallThrough
+                    InsertBranch(Js::OpCode::Br, labelFallThru, stElem);
                 }
-                m_lowererMD.LoadHelperArgument(stElem, indexOpnd);
-                m_lowererMD.LoadHelperArgument(stElem, stElem->GetDst()->AsIndirOpnd()->GetBaseOpnd());
-
-                IR::Instr *instr = IR::Instr::New(Js::OpCode::Call, this->m_func);
-
-                Assert(objectType == ObjectType::Uint8ClampedArray || objectType == ObjectType::Uint8ClampedMixedArray || objectType == ObjectType::Uint8ClampedVirtualArray);
-                instr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperUint8ClampedArraySetItem, this->m_func));
-
-                stElem->InsertBefore(instr);
-                m_lowererMD.LowerCall(instr, 0);
-
-                // JMP $fallThrough
-                InsertBranch(Js::OpCode::Br, labelFallThru, stElem);
 
                 //$inlineSet
                 stElem->InsertBefore(labelInlineSet);
@@ -17306,9 +17327,27 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                 AssertMsg(AutoSystemInfo::Data.SSE2Available(), "GloOpt shouldn't have specialized Uint32Array StElemI to float64 if SSE2 is unavailable.");
 #endif
 
+                bool bailOutOnHelperCall = stElem->HasBailOutInfo() ? !!(stElem->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall) : false;
+                if (bailOutOnHelperCall)
+                {
+                    if(!GlobOpt::DoEliminateArrayAccessHelperCall(this->m_func))
+                    {
+                        // Array access helper call removal is already off for some reason. Prevent trying to rejit again
+                        // because it won't help and the same thing will happen again. Just abort jitting this function.
+                        if(PHASE_TRACE(Js::BailOutPhase, this->m_func))
+                        {
+                            Output::Print(_u("    Aborting JIT because EliminateArrayAccessHelperCall is already off\n"));
+                            Output::Flush();
+                        }
+                        throw Js::OperationAbortedException();
+                    }
+
+                    throw Js::RejitException(RejitReason::ArrayAccessHelperCallEliminationDisabled);
+                }
+
                 IR::RegOpnd *const reg = IR::RegOpnd::New(TyInt32, this->m_func);
                 const IR::AutoReuseOpnd autoReuseReg(reg, m_func);
-                m_lowererMD.EmitFloatToInt(reg, src, stElem);
+                m_lowererMD.EmitFloatToInt(reg, src, stElem, stElem, labelHelper);
 
                 // MOV indirOpnd, reg
                 InsertMove(indirOpnd, reg, stElem);
@@ -17338,12 +17377,23 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                     // FromVar reg, Src
                     IR::RegOpnd *const reg = IR::RegOpnd::New(TyInt32, this->m_func);
                     const IR::AutoReuseOpnd autoReuseReg(reg, m_func);
-                    IR::Instr *const instr = IR::Instr::New(Js::OpCode::FromVar, reg, regSrc, stElem->m_func);
+                    IR::Instr * instr = IR::Instr::New(Js::OpCode::FromVar, reg, regSrc, stElem->m_func);
                     stElem->InsertBefore(instr);
 
                     // Convert reg to int32
                     // Note: ToUint32 is implemented as (uint32)ToInt32()
-                    bool bailOutOnHelperCall = (stElem->HasBailOutInfo() && (stElem->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall));
+                    IR::BailOutKind bailOutKind = stElem->HasBailOutInfo() ? stElem->GetBailOutKind() : IR::BailOutInvalid;
+                    if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
+                    {
+                        instr = instr->ConvertToBailOutInstr(stElem->GetBailOutInfo(), bailOutKind);
+                        if (stElem->GetBailOutInfo()->bailOutInstr == stElem)
+                        {
+                            IR::Instr * instrShare = stElem->ShareBailOut();
+                            LowerBailTarget(instrShare);
+                        }
+                    }
+
+                    bool bailOutOnHelperCall = !!(bailOutKind & IR::BailOutOnArrayAccessHelperCall);
                     m_lowererMD.EmitLoadInt32(instr, true /*conversionFromObjectAllowed*/, bailOutOnHelperCall, labelHelper);
 
                     // MOV indirOpnd, reg

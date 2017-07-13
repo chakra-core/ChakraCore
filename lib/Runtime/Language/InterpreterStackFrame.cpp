@@ -1633,7 +1633,7 @@ namespace Js
                 jmp doSimd; // Otherwise, the return type is simd
             ToXmmWord:
                 // float
-                cvtsd2ss xmm0, [eax];
+                movss xmm0, [eax];
                 jmp end;
             ToXmmDWord:
                 // double
@@ -1802,8 +1802,9 @@ namespace Js
 #pragma optimize("", on)
 #endif
 
-    Var InterpreterStackFrame::InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, const bool isAsmJs)
+    Var InterpreterStackFrame::InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, AsmJsReturnStruct* asmJsReturn)
     {
+        const bool isAsmJs = asmJsReturn != nullptr;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         // Support for simulating partially initialized interpreter stack frame.
@@ -2068,6 +2069,17 @@ namespace Js
         }
 #endif
 
+#ifdef ASMJS_PLAT
+        if (isAsmJs)
+        {
+            asmJsReturn->i = newInstance->GetRegRawInt(0);
+            asmJsReturn->l = newInstance->GetRegRawInt64(0);
+            asmJsReturn->d = newInstance->GetRegRawDouble(0);
+            asmJsReturn->f = newInstance->GetRegRawFloat(0);
+            asmJsReturn->simd = newInstance->GetRegRawSimd(0);
+        }
+#endif
+
         if (fReleaseAlloc)
         {
             functionScriptContext->ReleaseInterpreterArena();
@@ -2080,46 +2092,10 @@ namespace Js
         }
 #endif
 
-        if (isAsmJs)
-        {
-            return newInstance;
-        }
         return aReturn;
     }
 
 #ifdef ASMJS_PLAT
-    template<>
-    int InterpreterStackFrame::GetAsmJsRetVal<int>(InterpreterStackFrame* instance)
-    {
-        return instance->m_localIntSlots[0];
-    }
-    template<>
-    int64 InterpreterStackFrame::GetAsmJsRetVal<int64>(InterpreterStackFrame* instance)
-    {
-        return instance->m_localInt64Slots[0];
-    }
-    template<>
-    double InterpreterStackFrame::GetAsmJsRetVal<double>(InterpreterStackFrame* instance)
-    {
-        return instance->m_localDoubleSlots[0];
-    }
-    template<>
-    float InterpreterStackFrame::GetAsmJsRetVal<float>(InterpreterStackFrame* instance)
-    {
-        return instance->m_localFloatSlots[0];
-    }
-    template<>
-    AsmJsSIMDValue InterpreterStackFrame::GetAsmJsRetVal<AsmJsSIMDValue>(InterpreterStackFrame* instance)
-    {
-        return instance->m_localSimdSlots[0];
-    }
-#if _M_IX86 || _M_X64
-    template<>
-    X86SIMDValue InterpreterStackFrame::GetAsmJsRetVal<X86SIMDValue>(InterpreterStackFrame* instance)
-    {
-        return X86SIMDValue::ToX86SIMDValue(instance->m_localSimdSlots[0]);
-    }
-#endif
 
 #if _M_IX86
     int InterpreterStackFrame::AsmJsInterpreter(AsmJsCallStackLayout* stack)
@@ -2135,7 +2111,8 @@ namespace Js
 #if ENABLE_PROFILE_INFO
         function->GetFunctionBody()->EnsureDynamicProfileInfo();
 #endif
-        InterpreterStackFrame* newInstance = (InterpreterStackFrame*)InterpreterHelper(function, args, returnAddress, addressOfReturnAddress, true);
+        AsmJsReturnStruct asmJsReturn = { 0 };
+        InterpreterHelper(function, args, returnAddress, addressOfReturnAddress, &asmJsReturn);
 
         //Handle return value
         AsmJsRetType::Which retType = (AsmJsRetType::Which) GetRetType(function);
@@ -2157,31 +2134,30 @@ namespace Js
 #ifdef ENABLE_SIMDJS
             if (function->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
             {
-                function->GetScriptContext()->asmJsReturnValue.simdVal = GetAsmJsRetVal<AsmJsSIMDValue>(newInstance);
+                function->GetScriptContext()->asmJsReturnValue.simdVal = asmJsReturn.simd;
                 break;
             }
 #endif
             Assert(UNREACHED);
         // double return
         case AsmJsRetType::Double:
-            function->GetScriptContext()->asmJsReturnValue.dbVal = GetAsmJsRetVal<double>(newInstance);
+            function->GetScriptContext()->asmJsReturnValue.dbVal = asmJsReturn.d;
             break;
         // float return
         case AsmJsRetType::Float:
-            function->GetScriptContext()->asmJsReturnValue.dbVal = (double)GetAsmJsRetVal<float>(newInstance);
+            function->GetScriptContext()->asmJsReturnValue.floatVal = asmJsReturn.f;
             break;
         // signed or void return
         case AsmJsRetType::Signed:
         case AsmJsRetType::Void:
-            retVal = GetAsmJsRetVal<int>(newInstance);
+            retVal = asmJsReturn.i;
             break;
         case AsmJsRetType::Int64:
         {
-            int64 int64RetVal = GetAsmJsRetVal<int64>(newInstance);
-            function->GetScriptContext()->asmJsReturnValue.int64Val = int64RetVal;
+            function->GetScriptContext()->asmJsReturnValue.int64Val = asmJsReturn.l;
             // put the lower bits into eax
             // we'll read the higher bits from memory
-            retVal = (int)int64RetVal;
+            retVal = (int)asmJsReturn.l;
             break;
         }
         default:
@@ -2259,9 +2235,10 @@ namespace Js
         void* returnAddress = _ReturnAddress();
         void* addressOfReturnAddress = _AddressOfReturnAddress();
         function->GetFunctionBody()->EnsureDynamicProfileInfo();
-        InterpreterStackFrame* newInstance = (InterpreterStackFrame*)InterpreterHelper(function, args, returnAddress, addressOfReturnAddress, true);
+        AsmJsReturnStruct asmJsReturn = { 0 };
+        InterpreterHelper(function, args, returnAddress, addressOfReturnAddress, &asmJsReturn);
 
-        return GetAsmJsRetVal<T>(newInstance);
+        return asmJsReturn.GetRetVal<T>();
     }
 
     __m128 InterpreterStackFrame::AsmJsInterpreterSimdJs(AsmJsCallStackLayout* layout)

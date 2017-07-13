@@ -150,7 +150,7 @@ public:
               void            GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInsert, bool isHelper) { __debugbreak(); }
               void            GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, IR::LabelInstr* allocHelperLabel, IR::LabelInstr* allocDoneLabel) { __debugbreak(); }
               void            SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::Instr *instrOrig, IR::Instr *instrInsert, bool isHelper = false) { __debugbreak(); }
-              IR::RegOpnd *   EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, bool bailOutOnHelperCall = false) { __debugbreak(); return 0; }
+              void            EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, IR::Instr * instrBailOut = nullptr, IR::LabelInstr * labelBailOut = nullptr) { __debugbreak(); }
               IR::Instr *     LoadCheckedFloat(IR::RegOpnd *opndOrig, IR::RegOpnd *opndFloat, IR::LabelInstr *labelInline, IR::LabelInstr *labelHelper, IR::Instr *instrInsert) { __debugbreak(); return 0; }
 
               void LoadFloatValue(IR::RegOpnd * javascriptNumber, IR::RegOpnd * opndFloat, IR::LabelInstr * labelHelper, IR::Instr * instrInsert) { __debugbreak(); }
@@ -197,7 +197,7 @@ public:
               void                EmitLoadVarNoCheck(IR::RegOpnd * dst, IR::RegOpnd * src, IR::Instr *instrLoad, bool isFromUint32, bool isHelper) { __debugbreak(); }
               void                EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
               void                EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
-              void                EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
+              void                EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert, IR::Instr * instrBailOut = nullptr, IR::LabelInstr * labelBailOut = nullptr) { __debugbreak(); }
               void                EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
               void                EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }
               void                EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert) { __debugbreak(); }

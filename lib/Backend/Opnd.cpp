@@ -2810,8 +2810,7 @@ Opnd::IsArgumentsObject()
     // Since we need this information in the inliner where we don't track arguments object sym, going with single def is the best option.
     StackSym * sym = this->GetStackSym();
 
-    return sym && sym->IsSingleDef() &&
-        (sym->m_instrDef->m_opcode == Js::OpCode::LdHeapArguments || sym->m_instrDef->m_opcode == Js::OpCode::LdLetHeapArguments);
+    return sym && sym->IsSingleDef() && sym->GetInstrDef()->HasAnyLoadHeapArgsOpCode();
 }
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)

@@ -1439,6 +1439,18 @@ GlobOptBlockData::FindObjectTypeValue(SymID typeSymId)
     {
         return nullptr;
     }
+    return FindObjectTypeValueNoLivenessCheck(typeSymId);
+}
+
+Value *
+GlobOptBlockData::FindObjectTypeValueNoLivenessCheck(StackSym* typeSym)
+{
+    return FindObjectTypeValueNoLivenessCheck(typeSym->m_id);
+}
+
+Value *
+GlobOptBlockData::FindObjectTypeValueNoLivenessCheck(SymID typeSymId)
+{
     Value* value = this->FindValueFromMapDirect(typeSymId);
     Assert(value == nullptr || value->GetValueInfo()->IsJsType());
     return value;

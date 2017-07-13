@@ -6860,10 +6860,7 @@ BackwardPass::TrackNoImplicitCallInlinees(IR::Instr *instr)
         || OpCodeAttr::CallInstr(instr->m_opcode)
         || instr->CallsAccessor()
         || GlobOpt::MayNeedBailOnImplicitCall(instr, nullptr, nullptr)
-        || instr->m_opcode == Js::OpCode::LdHeapArguments
-        || instr->m_opcode == Js::OpCode::LdLetHeapArguments
-        || instr->m_opcode == Js::OpCode::LdHeapArgsCached
-        || instr->m_opcode == Js::OpCode::LdLetHeapArgsCached
+        || instr->HasAnyLoadHeapArgsOpCode()
         || instr->m_opcode == Js::OpCode::LdFuncExpr)
     {
         // This func has instrs with bailouts or implicit calls
