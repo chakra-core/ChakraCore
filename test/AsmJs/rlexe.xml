@@ -619,6 +619,11 @@
   </test>
   <test>
     <default>
+      <files>brbool.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>constTest.js</files>
       <baseline>constTest.baseline</baseline>
       <compile-flags>-testtrace:asmjs</compile-flags>
