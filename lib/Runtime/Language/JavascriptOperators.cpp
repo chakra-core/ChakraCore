@@ -8529,7 +8529,9 @@ CommonNumber:
         {
             if (!dynamicType->GetIsLocked())
             {
-                dynamicType->LockType();
+                // We only need to lock the type to prevent against the type evolving after it has been cached. If the type becomes shared
+                // in the future, any further changes to the type will result in creating a new type handler.
+                dynamicType->LockTypeOnly();
             }
         }
 
