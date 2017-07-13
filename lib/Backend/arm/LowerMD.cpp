@@ -5764,8 +5764,8 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
     return labelDone;
 }
 
-IR::RegOpnd *
-LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, bool bailOutOnHelperCall)
+void
+LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, IR::Instr * instrBailOut, IR::LabelInstr * labelBailOut)
 {
     IR::LabelInstr *labelDone;
     IR::Instr *instr;
@@ -5784,24 +5784,18 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, b
     if (labelDone == nullptr)
     {
         // We're done
-        return nullptr;
+        return;
     }
 
-    if (bailOutOnHelperCall)
-    {
-        if(!GlobOpt::DoEliminateArrayAccessHelperCall(this->m_func))
-        {
-            // Array access helper call removal is already off for some reason. Prevent trying to rejit again
-            // because it won't help and the same thing will happen again. Just abort jitting this function.
-            if(PHASE_TRACE(Js::BailOutPhase, this->m_func))
-            {
-                Output::Print(_u("    Aborting JIT because EliminateArrayAccessHelperCall is already off\n"));
-                Output::Flush();
-            }
-            throw Js::OperationAbortedException();
-        }
+    IR::BailOutKind bailOutKind = instrBailOut && instrBailOut->HasBailOutInfo() ? instrBailOut->GetBailOutKind() : IR::BailOutInvalid;
 
-        throw Js::RejitException(RejitReason::ArrayAccessHelperCallEliminationDisabled);
+    if (bailOutKind & IR::BailOutOnArrayAccessHelperCall)
+    {
+        // Bail out instead of making the helper call.
+        Assert(labelBailOut);
+        m_lowerer->InsertBranch(Js::OpCode::Br, labelBailOut, insertInstr);
+        insertInstr->InsertBefore(labelDone);
+        return;
     }
 
     IR::Opnd *memAddress = dst;
@@ -5834,6 +5828,17 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, b
     instr->SetSrc2(reg3Opnd);
     insertInstr->InsertBefore(instr);
 
+    if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
+    {
+        _Analysis_assume_(instrBailOut != nullptr);
+        instr = instr->ConvertToBailOutInstr(instrBailOut->GetBailOutInfo(), bailOutKind);
+        if (instrBailOut->GetBailOutInfo()->bailOutInstr == instrBailOut)
+        {
+            IR::Instr * instrShare = instrBailOut->ShareBailOut();
+            m_lowerer->LowerBailTarget(instrShare);
+        }
+    }
+
     IR::JnHelperMethod helper;
     if (dst->GetType() == TyFloat32)
     {
@@ -5856,7 +5861,6 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, b
 
     // $Done
     insertInstr->InsertBefore(labelDone);
-    return nullptr;
 }
 
 void
@@ -8421,8 +8425,21 @@ LowererMD::CheckOverflowOnFloatToInt32(IR::Instr* instrInsert, IR::Opnd* intOpnd
 }
 
 void
-LowererMD::EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+LowererMD::EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert, IR::Instr * instrBailOut, IR::LabelInstr * labelBailOut)
 {
+    IR::BailOutKind bailOutKind = IR::BailOutInvalid;
+    if (instrBailOut && instrBailOut->HasBailOutInfo())
+    {
+        bailOutKind = instrBailOut->GetBailOutKind(); 
+        if (bailOutKind & IR::BailOutOnArrayAccessHelperCall)
+        {
+            // Bail out instead of calling helper. If this is happening unconditionally, the caller should instead throw a rejit exception.
+            Assert(labelBailOut);
+            m_lowerer->InsertBranch(Js::OpCode::Br, labelBailOut, instrInsert);
+            return;
+        }
+    }
+
     IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
     IR::Instr *instr;
@@ -8432,11 +8449,23 @@ LowererMD::EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
     // $Helper
     instrInsert->InsertBefore(labelHelper);
 
-    // dst = ToInt32Core(src);
-    LoadDoubleHelperArgument(instrInsert, src);
-
     instr = IR::Instr::New(Js::OpCode::Call, dst, this->m_func);
     instrInsert->InsertBefore(instr);
+
+    if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
+    {
+        _Analysis_assume_(instrBailOut != nullptr);
+        instr = instr->ConvertToBailOutInstr(instrBailOut->GetBailOutInfo(), bailOutKind);
+        if (instrBailOut->GetBailOutInfo()->bailOutInstr == instrBailOut)
+        {
+            IR::Instr * instrShare = instrBailOut->ShareBailOut();
+            m_lowerer->LowerBailTarget(instrShare);
+        }
+    }
+
+    // dst = ToInt32Core(src);
+    LoadDoubleHelperArgument(instr, src);
+
     this->ChangeToHelperCall(instr, IR::HelperConv_ToInt32Core);
 
     // $Done

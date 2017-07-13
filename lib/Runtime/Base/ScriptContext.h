@@ -437,8 +437,9 @@ namespace Js
         bool IsRegistered() { return next != nullptr || prev != nullptr || threadContext->GetScriptContextList() == this; }
         union
         {
-            int64 int64Val; // stores the double & float result for Asm interpreter
-            double dbVal; // stores the double & float result for Asm interpreter
+            int64 int64Val;
+            float floatVal;
+            double dbVal;
             AsmJsSIMDValue simdVal; // stores raw simd result for Asm interpreter
         } asmJsReturnValue;
         static DWORD GetAsmJsReturnValueOffset() { return offsetof(ScriptContext, asmJsReturnValue); }

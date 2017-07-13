@@ -330,17 +330,17 @@ endif
         push rcx
         sub rsp, 20h
         call ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z
-        mov r13, rax
         add rsp, 20h
         pop rcx
-        pop rax
+        pop r13
 
-setup_stack_and_reg_args:
-
-        ; OP_CallAsmInternal checks stack space
-
+        ; OP_CallAsmInternal probes stack
+        ; Check if we need to commit more stack
+        cmp rax, 2000h ; x64 has 2 guard pages
+        jl stack_alloc
+        call __chkstk
 stack_alloc:
-        sub  rsp, r13
+        sub rsp, rax
 
         ;; copy all args to the new stack frame.
         lea r11, [rsi]
@@ -350,8 +350,8 @@ copy_stack_args:
         mov qword ptr [r10], rdi
         add r11, 8
         add r10, 8
-        sub r13, 8
-        cmp r13, 0
+        sub rax, 8
+        cmp rax, 0
         jg copy_stack_args
 
         ; r12 points to arg size map
@@ -399,7 +399,7 @@ SIMDArg3:
         movups xmm3, xmmword ptr [r11]
 
 setup_args_done:
-        call rax
+        call r13
 done:
         lea rsp, [rbp]
         pop rbp

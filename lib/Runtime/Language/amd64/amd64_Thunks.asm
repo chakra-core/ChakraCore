@@ -10,6 +10,7 @@ ifdef _CONTROL_FLOW_GUARD
     extrn __guard_check_icall_fptr:QWORD
     extrn __guard_dispatch_icall_fptr:QWORD
 endif
+extrn __chkstk: PROC
 
 ifdef _ENABLE_DYNAMIC_THUNKS
 
@@ -346,7 +347,13 @@ align 16
         mov rdi, rdx ; save orig stack pointer, so that we can add it back later
         add rdx, 68h ; account for the changes we have already made to rsp
 
+        ; Check if we need to commit more stack
+        cmp rax, 2000h ; x64 has 2 guard pages
+        jl stack_alloc
+        call __chkstk
+stack_alloc:
         sub rsp, rax ; allocate additional stack space for args
+
         ; UnboxAsmJsArguments(func, origArgsLoc, argDst, callInfo)
         mov rcx, rsi
         mov r8, rsp

@@ -299,6 +299,8 @@ public:
     Value *                 FindPropertyValue(SymID symId);
     Value *                 FindObjectTypeValue(StackSym* typeSym);
     Value *                 FindObjectTypeValue(SymID typeSymId);
+    Value *                 FindObjectTypeValueNoLivenessCheck(StackSym* typeSym);
+    Value *                 FindObjectTypeValueNoLivenessCheck(SymID typeSymId);
     Value *                 FindFuturePropertyValue(PropertySym *const propertySym);
 
     StackSym *              GetCopyPropSym(Sym * sym, Value * val);
