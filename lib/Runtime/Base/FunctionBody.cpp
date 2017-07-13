@@ -4899,9 +4899,8 @@ namespace Js
         this->entryPoints->ClearAndZero();
 
         // Store the originalEntryPoint to restore it back immediately.
-        JavascriptMethod originalEntryPoint = this->GetOriginalEntryPoint_Unchecked();
         this->CreateNewDefaultEntryPoint();
-        this->SetOriginalEntryPoint(originalEntryPoint);
+        this->SetOriginalEntryPoint(this->GetScriptContext()->CurrentThunk);
         if (this->m_defaultEntryPointInfo)
         {
             this->GetDefaultFunctionEntryPointInfo()->entryPointIndex = 0;
