@@ -2311,6 +2311,79 @@ GlobOpt::IsSubsetOf(Js::EquivalentTypeSet * leftTypeSet, Js::EquivalentTypeSet *
 }
 
 bool
+GlobOpt::CompareCurrentTypesWithExpectedTypes(JsTypeValueInfo *valueInfo, IR::PropertySymOpnd * propertySymOpnd)
+{
+    bool isTypeDead = propertySymOpnd->IsTypeDead();
+
+    if (valueInfo == nullptr || (valueInfo->GetJsType() == nullptr && valueInfo->GetJsTypeSet() == nullptr))
+    {
+        // No upstream types. Do a type check.
+        return !isTypeDead;
+    }
+
+    if (!propertySymOpnd->HasEquivalentTypeSet() || propertySymOpnd->NeedsMonoCheck())
+    {
+        JITTypeHolder opndType = propertySymOpnd->GetType();
+
+        if (valueInfo->GetJsType() != nullptr)
+        {
+            if (valueInfo->GetJsType() == propertySymOpnd->GetType())
+            {
+                return true;
+            }
+            if (propertySymOpnd->HasInitialType() && valueInfo->GetJsType() == propertySymOpnd->GetInitialType())
+            {
+                return !isTypeDead;
+            }
+            return false;
+        }
+        else
+        {
+            Assert(valueInfo->GetJsTypeSet());
+            Js::EquivalentTypeSet *valueTypeSet = valueInfo->GetJsTypeSet();
+
+            if (valueTypeSet->Contains(opndType))
+            {
+                return !isTypeDead;
+            }
+            if (propertySymOpnd->HasInitialType() && valueTypeSet->Contains(propertySymOpnd->GetInitialType()))
+            {
+                return !isTypeDead;
+            }
+            return false;
+        }
+    }
+    else
+    {
+        Js::EquivalentTypeSet * opndTypeSet = propertySymOpnd->GetEquivalentTypeSet();
+
+        if (valueInfo->GetJsType() != nullptr)
+        {
+            uint16 checkedTypeSetIndex;
+            if (opndTypeSet->Contains(valueInfo->GetJsType(), &checkedTypeSetIndex))
+            {
+                return true;
+            }
+            return false;
+        }
+        else
+        {
+            if (IsSubsetOf(valueInfo->GetJsTypeSet(), opndTypeSet))
+            {
+                return true;
+            }
+            if (propertySymOpnd->IsMono() ?
+                    valueInfo->GetJsTypeSet()->Contains(propertySymOpnd->GetFirstEquivalentType()) :
+                    IsSubsetOf(opndTypeSet, valueInfo->GetJsTypeSet()))
+            {
+                return true;
+            }
+            return false;
+        }
+    }
+}
+
+bool
 GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd)
 {
     return ProcessPropOpInTypeCheckSeq<true>(instr, opnd, this->currentBlock, false);
@@ -3066,6 +3139,21 @@ GlobOpt::CopyPropPropertySymObj(IR::SymOpnd *symOpnd, IR::Instr *instr)
                 if (symOpnd->IsPropertySymOpnd())
                 {
                     IR::PropertySymOpnd *propertySymOpnd = symOpnd->AsPropertySymOpnd();
+
+                    if (propertySymOpnd->IsTypeCheckSeqCandidate())
+                    {
+                        // If the new pointer sym's expected type(s) don't match those in the inline-cache-based data for this access,
+                        // we probably have a mismatch and can't safely objtypespec. If the saved objtypespecfldinfo isn't right for
+                        // the new type, then we'll do an incorrect property access.
+                        StackSym * newTypeSym = copySym->GetObjectTypeSym();
+                        Value * newValue = this->FindObjectTypeValueNoLivenessCheck(newTypeSym, this->currentBlock);
+                        JsTypeValueInfo * newValueInfo = newValue ? newValue->GetValueInfo()->AsJsType() : nullptr;
+                        bool shouldOptimize = CompareCurrentTypesWithExpectedTypes(newValueInfo, propertySymOpnd);
+                        if (!shouldOptimize)
+                        {
+                            propertySymOpnd->SetTypeCheckSeqCandidate(false);
+                        }
+                    }
 
                     // This is no longer strictly necessary, since we don't set the type dead bits in the initial
                     // backward pass, but let's keep it around for now in case we choose to revert to the old model.

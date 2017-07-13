@@ -2701,6 +2701,13 @@ bool Inline::InlineApplyScriptTarget(IR::Instr *callInstr, const FunctionJITTime
         return false;
     });
 
+    // If the arguments object was passed in as the first argument to apply,
+    // 'arguments' access continues to exist even after apply target inlining 
+    if (!HasArgumentsAccess(explicitThisArgOut))
+    {
+        callInstr->m_func->SetApplyTargetInliningRemovedArgumentsAccess();
+    }
+
     if (safeThis)
     {
         IR::Instr * byteCodeArgOutCapture = explicitThisArgOut->GetBytecodeArgOutCapture();
@@ -3132,11 +3139,6 @@ Inline::TryGetFixedMethodsForBuiltInAndTarget(IR::Instr *callInstr, const Functi
             inlinerData->GetBody()->GetDisplayName(), inlinerData->GetDebugNumberSet(debugStringBuffer2),
             this->topFunc->GetJITFunctionBody()->GetDisplayName(), this->topFunc->GetDebugNumberSet(debugStringBuffer3));
         return false;
-    }
-
-    if (isApplyTarget)
-    {
-        callInstr->m_func->SetHasApplyTargetInlining();
     }
 
     Assert(callInstr->m_opcode == originalCallOpCode);
@@ -5281,21 +5283,39 @@ Inline::IsArgumentsOpnd(IR::Opnd* opnd, SymID argumentsSymId)
     return false;
 }
 
+bool
+Inline::IsArgumentsOpnd(IR::Opnd* opnd)
+{
+    IR::Opnd * checkOpnd = opnd;
+    while (checkOpnd)
+    {
+        if (checkOpnd->IsArgumentsObject())
+        {
+            return true;
+        }
+        checkOpnd = checkOpnd->GetStackSym() && checkOpnd->GetStackSym()->IsSingleDef() ? checkOpnd->GetStackSym()->GetInstrDef()->GetSrc1() : nullptr;
+    }
+
+    return false;
+}
 
 bool
 Inline::HasArgumentsAccess(IR::Opnd *opnd, SymID argumentsSymId)
 {
     // We should look at dst last to correctly handle cases where it's the same as one of the src operands.
-    if (opnd)
+    IR::Opnd * checkOpnd = opnd;
+    while (checkOpnd)
     {
-        if (opnd->IsRegOpnd() || opnd->IsSymOpnd() || opnd->IsIndirOpnd())
+        if (checkOpnd->IsRegOpnd() || checkOpnd->IsSymOpnd() || checkOpnd->IsIndirOpnd())
         {
-            if (IsArgumentsOpnd(opnd, argumentsSymId))
+            if (IsArgumentsOpnd(checkOpnd, argumentsSymId))
             {
                 return true;
             }
         }
+        checkOpnd = checkOpnd->GetStackSym() && checkOpnd->GetStackSym()->IsSingleDef() ? checkOpnd->GetStackSym()->GetInstrDef()->GetSrc1() : nullptr;
     }
+
     return false;
 }
 
@@ -5329,6 +5349,13 @@ Inline::HasArgumentsAccess(IR::Instr * instr, SymID argumentsSymId)
 }
 
 bool
+Inline::HasArgumentsAccess(IR::Instr * instr)
+{
+    return (instr->GetSrc1() && IsArgumentsOpnd(instr->GetSrc1())) ||
+        (instr->GetSrc2() && IsArgumentsOpnd(instr->GetSrc2()));
+}
+
+bool
 Inline::GetInlineeHasArgumentObject(Func * inlinee)
 {
     if (!inlinee->GetJITFunctionBody()->UsesArgumentsObject())
@@ -5339,14 +5366,12 @@ Inline::GetInlineeHasArgumentObject(Func * inlinee)
 
     // Inlinee has arguments access
 
-    if (!inlinee->GetHasApplyTargetInlining())
+    if (!inlinee->GetApplyTargetInliningRemovedArgumentsAccess())
     {
-        // There is no apply target inlining (this.init.apply(this, arguments))
-        // So arguments access continues to exist
         return true;
     }
 
-    // Its possible there is no more arguments access after we inline apply target validate the same.
+    // Its possible there is no more arguments access after we inline apply target; validate the same.
     // This sounds expensive, but we are only walking inlinee which has apply target inlining optimization enabled.
     // Also we walk only instruction in that inlinee and not nested inlinees. So it is not expensive.
     SymID argumentsSymId = 0;

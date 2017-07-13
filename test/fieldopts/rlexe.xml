@@ -21,6 +21,12 @@
   </test>
   <test>
     <default>
+      <files>equiv-mismatch2.js</files>
+      <compile-flags>-force:rejit -off:bailonnoprofile</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>equiv-locktypeid.js</files>
       <baseline>equiv-locktypeid.baseline</baseline>
     </default>
