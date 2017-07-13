@@ -1364,6 +1364,8 @@ private:
     Value*                  FindObjectTypeValue(SymID typeSymId, BasicBlock* block);
     Value *                 FindObjectTypeValue(StackSym* typeSym, GlobHashTable *valueNumberMap, BVSparse<JitArenaAllocator>* liveFields);
     Value *                 FindObjectTypeValue(SymID typeSymId, GlobHashTable *valueNumberMap, BVSparse<JitArenaAllocator>* liveFields);
+    Value *                 FindObjectTypeValueNoLivenessCheck(StackSym* typeSym, BasicBlock* block);
+    Value *                 FindObjectTypeValueNoLivenessCheck(SymID typeSymId, GlobHashTable *valueNumberMap);
     Value *                 FindFuturePropertyValue(PropertySym *const propertySym);
     IR::Opnd *              CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *parentIndirOpnd = nullptr);
     IR::Opnd *              CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copySym, IR::IndirOpnd *parentIndirOpnd = nullptr);
@@ -1760,6 +1762,7 @@ private:
     bool                    PreparePropertySymOpndForTypeCheckSeq(IR::PropertySymOpnd *propertySymOpnd, IR::Instr * instr, Loop *loop);
     static bool             AreTypeSetsIdentical(Js::EquivalentTypeSet * leftTypeSet, Js::EquivalentTypeSet * rightTypeSet);
     static bool             IsSubsetOf(Js::EquivalentTypeSet * leftTypeSet, Js::EquivalentTypeSet * rightTypeSet);
+    static bool             CompareCurrentTypesWithExpectedTypes(JsTypeValueInfo *valueInfo, IR::PropertySymOpnd * propertySymOpnd);
     bool                    ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd);
     bool                    CheckIfInstrInTypeCheckSeqEmitsTypeCheck(IR::Instr* instr, IR::PropertySymOpnd *opnd);
     template<bool makeChanges>

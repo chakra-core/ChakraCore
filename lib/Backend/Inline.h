@@ -91,8 +91,10 @@ private:
     IR::Instr * RemoveLdThis(IR::Instr *instr);
     bool        GetInlineeHasArgumentObject(Func * inlinee);
     bool        HasArgumentsAccess(IR::Instr * instr, SymID argumentsSymId);
+    bool        HasArgumentsAccess(IR::Instr * instr);
     bool        HasArgumentsAccess(IR::Opnd * opnd, SymID argumentsSymId);
     bool        IsArgumentsOpnd(IR::Opnd* opnd,SymID argumentsSymId);
+    bool        IsArgumentsOpnd(IR::Opnd* opnd);
     void        Cleanup(IR::Instr *callInstr);
     IR::PropertySymOpnd* GetMethodLdOpndForCallInstr(IR::Instr* callInstr);
 #ifdef ENABLE_SIMDJS

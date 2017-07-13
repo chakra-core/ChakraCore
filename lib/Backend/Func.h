@@ -509,12 +509,24 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     IR::SymOpnd *GetNextInlineeFrameArgCountSlotOpnd()
     {
         Assert(!this->m_hasInlineArgsOpt);
+        if (this->m_hasInlineArgsOpt)
+        {
+            // If the function has inlineArgsOpt turned on, jitted code will not write to stack slots for inlinee's function object
+            // and arguments, until needed. If we attempt to read from those slots, we may be reading uninitialized memory.
+            throw Js::OperationAbortedException();
+        }
         return GetInlineeOpndAtOffset((Js::Constants::InlineeMetaArgCount + actualCount) * MachPtr);
     }
 
     IR::SymOpnd *GetInlineeFunctionObjectSlotOpnd()
     {
         Assert(!this->m_hasInlineArgsOpt);
+        if (this->m_hasInlineArgsOpt)
+        {
+            // If the function has inlineArgsOpt turned on, jitted code will not write to stack slots for inlinee's function object
+            // and arguments, until needed. If we attempt to read from those slots, we may be reading uninitialized memory.
+            throw Js::OperationAbortedException();
+        }
         return GetInlineeOpndAtOffset(Js::Constants::InlineeMetaArgIndex_FunctionObject * MachPtr);
     }
 
@@ -526,6 +538,12 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     IR::SymOpnd *GetInlineeArgvSlotOpnd()
     {
         Assert(!this->m_hasInlineArgsOpt);
+        if (this->m_hasInlineArgsOpt)
+        {
+            // If the function has inlineArgsOpt turned on, jitted code will not write to stack slots for inlinee's function object
+            // and arguments, until needed. If we attempt to read from those slots, we may be reading uninitialized memory.
+            throw Js::OperationAbortedException();
+        }
         return GetInlineeOpndAtOffset(Js::Constants::InlineeMetaArgIndex_Argv * MachPtr);
     }
 
@@ -686,7 +704,7 @@ public:
     bool                hasThrow : 1;
     bool                hasUnoptimizedArgumentsAcccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
     bool                m_canDoInlineArgsOpt : 1;
-    bool                hasApplyTargetInlining:1;
+    bool                applyTargetInliningRemovedArgumentsAccess :1;
     bool                isGetterSetter : 1;
     const bool          isInlinedConstructor: 1;
     bool                hasImplicitCalls: 1;
@@ -804,8 +822,8 @@ public:
                         }
     }
 
-    bool                GetHasApplyTargetInlining() const { return this->hasApplyTargetInlining;}
-    void                SetHasApplyTargetInlining() { this->hasApplyTargetInlining = true;}
+    bool                GetApplyTargetInliningRemovedArgumentsAccess() const { return this->applyTargetInliningRemovedArgumentsAccess;}
+    void                SetApplyTargetInliningRemovedArgumentsAccess() { this->applyTargetInliningRemovedArgumentsAccess = true;}
 
     bool                GetHasMarkTempObjects() const { return this->hasMarkTempObjects; }
     void                SetHasMarkTempObjects() { this->hasMarkTempObjects = true; }
