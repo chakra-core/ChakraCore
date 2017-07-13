@@ -219,6 +219,10 @@ SCCLiveness::Build()
                 loop->regAlloc.loopStart = instrNum;
                 loop->regAlloc.loopEnd = lastBranchNum;
 
+#if LOWER_SPLIT_INT64
+                func->Int64SplitExtendLoopLifetime(loop);
+#endif
+
                 // Tail duplication can result in cases in which an outer loop lexically ends before the inner loop.
                 // The register allocator could then thrash in the inner loop registers used for a live-on-back-edge
                 // sym on the outer loop. To prevent this, we need to mark the end of the outer loop as the end of the

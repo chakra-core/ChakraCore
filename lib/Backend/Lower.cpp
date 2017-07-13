@@ -2002,21 +2002,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 }
                 this->m_func->MarkConstantAddressSyms(instr->AsLabelInstr()->GetLoop()->regAlloc.liveOnBackEdgeSyms);
                 instr->AsLabelInstr()->GetLoop()->regAlloc.liveOnBackEdgeSyms->Or(this->addToLiveOnBackEdgeSyms);
-#ifndef _M_X64
-                if (m_int64RegPairMap)
-                {
-                    // If we have replaced any sym that was live on the back edge for 2 other syms, these 2 syms needs to be live on back edge as well.
-                    BVSparse<JitArenaAllocator> *liveOnBackEdgeSyms = instr->AsLabelInstr()->GetLoop()->regAlloc.liveOnBackEdgeSyms;
-                    m_int64RegPairMap->Map([&](SymID key, Int64SymPair value)
-                    {
-                        if (liveOnBackEdgeSyms->Test(key))
-                        {
-                            liveOnBackEdgeSyms->Set(value.low->m_id);
-                            liveOnBackEdgeSyms->Set(value.high->m_id);
-                        }
-                    });
-                }
-#endif
             }
             break;
 
@@ -9395,91 +9380,6 @@ Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
     instr->InsertBefore(labelHelper);
     // $after
 }
-
-#ifndef _M_X64
-void Lowerer::EnsureInt64RegPairMap()
-{
-    if (!m_int64RegPairMap)
-    {
-        m_int64RegPairMap = Anew(m_alloc, Int64RegPairMap, m_alloc);
-    }
-}
-
-Int64RegPair Lowerer::FindOrCreateInt64Pair(IR::Opnd* reg)
-{
-    Int64RegPair pair;
-    IRType type = reg->GetType();
-    if (IRType_IsInt64(type))
-    {
-        type = IRType_IsSignedInt(type) ? TyInt32 : TyUint32;
-    }
-    if (reg->IsIndirOpnd())
-    {
-        IR::IndirOpnd* indir = reg->AsIndirOpnd();
-        indir->SetType(type);
-        pair.low = indir;
-        pair.high = indir->Copy(m_func)->AsIndirOpnd();
-        pair.high->AsIndirOpnd()->SetOffset(indir->GetOffset() + 4);
-        return pair;
-    }
-
-    // Only indir opnd can have a type other than int64
-    Assert(IRType_IsInt64(reg->GetType()));
-
-    if (reg->IsImmediateOpnd())
-    {
-        int64 value = reg->GetImmediateValue(m_func);
-        pair.low = IR::IntConstOpnd::New((int32)value, type, m_func);
-        pair.high = IR::IntConstOpnd::New((int32)(value >> 32), type, m_func);
-        return pair;
-    }
-
-    EnsureInt64RegPairMap();
-    StackSym* stackSym = reg->GetStackSym();
-    if (!stackSym)
-    {
-        AssertMsg(UNREACHED, "Invalid int64 operand type");
-        Js::Throw::FatalInternalError();
-    }
-
-    SymID symId = stackSym->m_id;
-    Int64SymPair symPair;
-    if (!m_int64RegPairMap->TryGetValue(symId, &symPair))
-    {
-        if (stackSym->IsArgSlotSym() || stackSym->IsParamSlotSym())
-        {
-            const bool isArg = stackSym->IsArgSlotSym();
-            typedef StackSym* (*SymConstr)(Js::ArgSlot, Func *, IRType);
-            SymConstr Constr = isArg ? &StackSym::NewArgSlotSym : (SymConstr)&StackSym::NewParamSlotSym;
-            Js::ArgSlot slotNumber = isArg ? stackSym->GetArgSlotNum() : stackSym->GetParamSlotNum();
-            symPair.low = Constr(slotNumber, this->m_func, type);
-            symPair.low->m_allocated = true;
-            symPair.low->m_offset = stackSym->m_offset;
-            symPair.high = Constr(slotNumber + 1, this->m_func, type);
-            symPair.high->m_allocated = true;
-            symPair.high->m_offset = stackSym->m_offset + 4;
-        }
-        else
-        {
-            symPair.low = StackSym::New(type, this->m_func);
-            symPair.high = StackSym::New(type, this->m_func);
-        }
-        m_int64RegPairMap->Add(symId, symPair);
-    }
-
-    if (reg->IsSymOpnd())
-    {
-        pair.low = IR::SymOpnd::New(symPair.low, reg->AsSymOpnd()->m_offset, type, this->m_func);
-        pair.high = IR::SymOpnd::New(symPair.high, reg->AsSymOpnd()->m_offset, type, this->m_func);
-    }
-    else
-    {
-        pair.low = IR::RegOpnd::New(symPair.low, type, this->m_func);
-        pair.high = IR::RegOpnd::New(symPair.high, type, this->m_func);
-    }
-    return pair;
-}
-#endif
 
 ///----------------------------------------------------------------------------
 ///

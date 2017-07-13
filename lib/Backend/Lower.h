@@ -19,13 +19,6 @@ enum RoundMode : BYTE {
     RoundModeHalfToEven = 2
 };
 
-struct Int64RegPair
-{
-    IR::Opnd* high;
-    IR::Opnd* low;
-    Int64RegPair(): high(nullptr), low(nullptr) {}
-};
-
 #if defined(_M_IX86) || defined(_M_AMD64)
 #include "LowerMDShared.h"
 #elif defined(_M_ARM) || defined(_M_ARM64)
@@ -53,9 +46,6 @@ class Lowerer
 public:
     Lowerer(Func * func) : m_func(func), m_lowererMD(func), nextStackFunctionOpnd(nullptr), outerMostLoopLabel(nullptr),
         initializedTempSym(nullptr), addToLiveOnBackEdgeSyms(nullptr), currentRegion(nullptr)
-#ifndef _M_X64
-        , m_int64RegPairMap(nullptr)
-#endif
     {
 #ifdef RECYCLER_WRITE_BARRIER_JIT
         m_func->m_lowerer = this;
@@ -339,10 +329,6 @@ private:
     void            GenerateGetSingleCharString(IR::RegOpnd * charCodeOpnd, IR::Opnd * resultOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * doneLabel, IR::Instr * instr, bool isCodePoint);
     void            GenerateFastBrBReturn(IR::Instr * instr);
 
-#ifndef _M_X64
-    void            EnsureInt64RegPairMap();
-    Int64RegPair    FindOrCreateInt64Pair(IR::Opnd*);
-#endif
 public:
     static IR::LabelInstr *     InsertLabel(const bool isHelper, IR::Instr *const insertBeforeInstr);
 
@@ -708,9 +694,4 @@ private:
     BVSparse<JitArenaAllocator> * initializedTempSym;
     BVSparse<JitArenaAllocator> * addToLiveOnBackEdgeSyms;
     Region *        currentRegion;
-#ifndef _M_X64
-    struct Int64SymPair { StackSym* high; StackSym* low; };
-    typedef BaseDictionary<SymID, Int64SymPair, JitArenaAllocator> Int64RegPairMap;
-    Int64RegPairMap* m_int64RegPairMap;
-#endif
 };
