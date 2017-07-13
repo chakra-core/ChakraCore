@@ -30,4 +30,16 @@
     <compile-flags> -wasm -wasmsimd</compile-flags>
   </default>
 </test>
+<test>
+  <default>
+    <files>truncConvTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>logicalTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
 </regress-exe>

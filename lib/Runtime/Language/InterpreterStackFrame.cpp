@@ -7929,13 +7929,33 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     }
 
+
+    bool InterpreterStackFrame::SIMDAnyNaN(AsmJsSIMDValue& input)
+    {
+        if (!GetFunctionBody()->IsWasmFunction()) 
+        {
+            return false;
+        }
+
+        AsmJsSIMDValue compResult = SIMDFloat32x4Operation::OpEqual(input, input);
+        return !SIMDBool32x4Operation::OpAllTrue(compResult);
+    }
+    
     // handler for SIMD.Int32x4.FromFloat32x4
     template <class T>
     void InterpreterStackFrame::OP_SimdInt32x4FromFloat32x4(const unaligned T* playout)
     {
         bool throws = false;
         AsmJsSIMDValue input = GetRegRawSimd(playout->F4_1);
-        AsmJsSIMDValue result = SIMDInt32x4Operation::OpFromFloat32x4(input, throws);
+        AsmJsSIMDValue result{ 0 };
+
+#ifdef ENABLE_WASM
+        throws = SIMDAnyNaN(input);
+        if (!throws)
+#endif
+        {
+            result = SIMDInt32x4Operation::OpFromFloat32x4(input, throws);
+        }
 
         // value is out of bound
         if (throws)
@@ -7950,9 +7970,16 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         bool throws = false;
         AsmJsSIMDValue input = GetRegRawSimd(playout->F4_1);
-        AsmJsSIMDValue result = SIMDUint32x4Operation::OpFromFloat32x4(input, throws);
+        AsmJsSIMDValue result{ 0 };
 
-        // value is out of bound
+#ifdef ENABLE_WASM
+        throws = SIMDAnyNaN(input);
+        if (!throws)
+#endif
+        {
+            result = SIMDUint32x4Operation::OpFromFloat32x4(input, throws);
+        }
+
         if (throws)
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("SIMD.Int32x4.FromFloat32x4"));
