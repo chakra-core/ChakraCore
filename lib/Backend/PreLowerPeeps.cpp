@@ -362,6 +362,10 @@ IR::Instr *Lowerer::PeepBrBool(IR::Instr *instrBr)
     {
         return instrBr;
     }
+    if (cm1DstReg->IsEqual(instrCm2->GetSrc1()) || cm1DstReg->IsEqual(instrCm2->GetSrc2()))
+    {
+        return instrBr;
+    }
     if (cm1DstReg->IsEqual(instrBinOp->GetSrc1()))
     {
         if (!instrBinOp->GetSrc1()->AsRegOpnd()->GetIsDead())
