@@ -427,18 +427,7 @@ namespace Js
     int GetStackSizeForAsmJsUnboxing(ScriptFunction* func)
     {
         AsmJsFunctionInfo* info = func->GetFunctionBody()->GetAsmJsFunctionInfo();
-        int argSize = MachPtr;
-        for (ArgSlot i = 0; i < info->GetArgCount(); i++)
-        {
-            if (info->GetArgType(i).isSIMD())
-            {
-                argSize += sizeof(AsmJsSIMDValue);
-            }
-            else
-            {
-                argSize += MachPtr;
-            }
-        }
+        int argSize = info->GetArgByteSize() + MachPtr;
         argSize = ::Math::Align<int32>(argSize, 16);
 
         if (argSize < 32)
@@ -446,7 +435,7 @@ namespace Js
             argSize = 32; // convention is to always allocate spill space for rcx,rdx,r8,r9
         }
 
-        PROBE_STACK_CALL(func->GetScriptContext(), func, argSize);
+        PROBE_STACK_CALL(func->GetScriptContext(), func, argSize + Js::Constants::MinStackDefault);
         return argSize;
     }
 
@@ -582,7 +571,7 @@ namespace Js
         FunctionBody* body = func->GetFunctionBody();
         AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
         int argSize = info->GetArgByteSize();
-        char* dst;
+        void* dst;
         Var returnValue = 0;
 
         // TODO (michhol): wasm, heap should not ever be detached
@@ -590,14 +579,10 @@ namespace Js
 
         argSize = ::Math::Align<int32>(argSize, 8);
         // Allocate stack space for args
+        PROBE_STACK_CALL(func->GetScriptContext(), func, argSize + Js::Constants::MinStackDefault);
 
-        __asm
-        {
-            sub esp, argSize
-            mov dst, esp
-        };
-
-        const void * asmJSEntryPoint = UnboxAsmJsArguments(func, args.Values + 1, dst - MachPtr, callInfo);
+        dst = _alloca(argSize);
+        const void * asmJSEntryPoint = UnboxAsmJsArguments(func, args.Values + 1, ((char*)dst) - MachPtr, callInfo);
 
         // make call and convert primitive type back to Var
         switch (info->GetReturnType().which())

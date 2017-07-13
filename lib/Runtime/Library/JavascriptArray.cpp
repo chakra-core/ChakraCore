@@ -1603,6 +1603,9 @@ namespace Js
 
         // Grow the segments
 
+        // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
+        AutoFailFastOnError failFastError;
+
         ScriptContext *scriptContext = intArray->GetScriptContext();
         Recycler *recycler = scriptContext->GetRecycler();
         SparseArraySegmentBase *seg, *nextSeg, *prevSeg = nullptr;
@@ -1711,6 +1714,7 @@ namespace Js
             VirtualTableInfo<JavascriptNativeFloatArray>::SetVirtualTable(intArray);
         }
 
+        failFastError.Completed();
         return (JavascriptNativeFloatArray*)intArray;
     }
 
@@ -1878,6 +1882,10 @@ namespace Js
         ScriptContext *scriptContext = intArray->GetScriptContext();
         Recycler *recycler = scriptContext->GetRecycler();
         SparseArraySegmentBase *seg, *nextSeg, *prevSeg = nullptr;
+
+        // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
+        AutoFailFastOnError failFastError;
+
         for (seg = intArray->head; seg; seg = nextSeg)
         {
             nextSeg = seg->next;
@@ -1988,6 +1996,7 @@ namespace Js
             VirtualTableInfo<JavascriptArray>::SetVirtualTable(intArray);
         }
 
+        failFastError.Completed();
         return intArray;
     }
     JavascriptArray *JavascriptNativeIntArray::ToVarArray(JavascriptNativeIntArray *intArray)
@@ -2063,6 +2072,10 @@ namespace Js
         ScriptContext *scriptContext = fArray->GetScriptContext();
         Recycler *recycler = scriptContext->GetRecycler();
         SparseArraySegmentBase *seg, *nextSeg, *prevSeg = nullptr;
+
+        // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
+        AutoFailFastOnError failFastError;
+
         for (seg = fArray->head; seg; seg = nextSeg)
         {
             nextSeg = seg->next;
@@ -2184,6 +2197,8 @@ namespace Js
             Assert(VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(fArray));
             VirtualTableInfo<JavascriptArray>::SetVirtualTable(fArray);
         }
+
+        failFastError.Completed();
 
         return fArray;
     }
@@ -7277,6 +7292,8 @@ Case0:
         // If return object is a JavascriptArray, we can use all the array splice helpers
         if (newArr && isBuiltinArrayCtor && len == pArr->length)
         {
+            // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
+            AutoFailFastOnError failFastOnError;
 
             // Array has a single segment (need not start at 0) and splice start lies in the range
             // of that segment we optimize splice - Fast path.
@@ -7369,6 +7386,8 @@ Case0:
             {
                 newArr->length = deleteLen;
             }
+
+            failFastOnError.Completed();
 
             newArr->InvalidateLastUsedSegment();
 
@@ -7690,8 +7709,6 @@ Case0:
 
                 Assert(pArr->length <= MaxArrayLength - unshiftElements);
 
-                SparseArraySegmentBase* renumberSeg = pArr->head->next;
-
                 bool isIntArray = false;
                 bool isFloatArray = false;
 
@@ -7721,6 +7738,8 @@ Case0:
                         GrowArrayHeadHelperForUnshift<Var>(pArr, unshiftElements, scriptContext);
                     }
                 }
+
+                SparseArraySegmentBase* renumberSeg = pArr->head->next;
 
                 while (renumberSeg)
                 {
@@ -12578,6 +12597,14 @@ Case0:
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptNativeFloatArray'");
 
         return static_cast<JavascriptNativeFloatArray *>(RecyclableObject::FromVar(aValue));
+    }
+
+    AutoFailFastOnError::~AutoFailFastOnError()
+    {
+        if (!m_operationCompleted)
+        {
+            AssertOrFailFast(false);
+        }
     }
 
     template int   Js::JavascriptArray::GetParamForIndexOf<unsigned int>(unsigned int, Js::Arguments const&, void*&, unsigned int&, Js::ScriptContext*);

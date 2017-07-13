@@ -16,6 +16,7 @@ void EmitYield(Js::RegSlot inputLocation, Js::RegSlot resultLocation, ByteCodeGe
 void EmitUseBeforeDeclaration(Symbol *sym, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitUseBeforeDeclarationRuntimeError(ByteCodeGenerator *byteCodeGenerator, Js::RegSlot location);
 void VisitClearTmpRegs(ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator, FuncInfo * funcInfo);
+void EmitSuperMethodBegin(ParseNode *pnodeTarget, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 
 bool CallTargetIsArray(ParseNode *pnode)
 {
@@ -2631,6 +2632,10 @@ void ByteCodeGenerator::EmitThis(FuncInfo *funcInfo, Js::RegSlot fromRegister)
             // via super call chain.
             Js::PropertyId slot = parent->thisScopeSlot;
             EmitInternalScopedSlotLoad(funcInfo, scope, envIndex, slot, funcInfo->thisPointerRegister, false);
+        }
+        else
+        {
+            m_writer.Reg1(Js::OpCode::LdUndef, funcInfo->thisPointerRegister);
         }
     }
     else if (funcInfo->byteCodeFunction->GetIsStrictMode() && (!funcInfo->IsGlobalFunction() || this->flags & fscrEval))
@@ -7084,6 +7089,7 @@ void EmitAssignment(
         Js::PropertyId propertyId = lhs->sxBin.pnode2->sxPid.PropertyIdFromNameNode();
 
         uint cacheId = funcInfo->FindOrAddInlineCacheId(lhs->sxBin.pnode1->location, propertyId, false, true);
+        EmitSuperMethodBegin(lhs, byteCodeGenerator, funcInfo);
         if (lhs->sxBin.pnode1->nop == knopSuper)
         {
             Js::RegSlot tmpReg = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, funcInfo->superRegister, funcInfo);

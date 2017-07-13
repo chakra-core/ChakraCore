@@ -898,6 +898,7 @@ private:
     bool                    PreparePropertySymOpndForTypeCheckSeq(IR::PropertySymOpnd *propertySymOpnd, IR::Instr * instr, Loop *loop);
     static bool             AreTypeSetsIdentical(Js::EquivalentTypeSet * leftTypeSet, Js::EquivalentTypeSet * rightTypeSet);
     static bool             IsSubsetOf(Js::EquivalentTypeSet * leftTypeSet, Js::EquivalentTypeSet * rightTypeSet);
+    static bool             CompareCurrentTypesWithExpectedTypes(JsTypeValueInfo *valueInfo, IR::PropertySymOpnd * propertySymOpnd);
     bool                    ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd);
     bool                    CheckIfInstrInTypeCheckSeqEmitsTypeCheck(IR::Instr* instr, IR::PropertySymOpnd *opnd);
     template<bool makeChanges>
