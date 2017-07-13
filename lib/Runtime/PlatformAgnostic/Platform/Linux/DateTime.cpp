@@ -160,7 +160,6 @@ namespace DateTime
         // tm doesn't have milliseconds
         int milliseconds = local->time % 1000;
 
-        tzset();
         time_t utime = timelocal(&local_tm);
         if (local_tm.tm_isdst)
         {
@@ -188,7 +187,6 @@ namespace DateTime
         // tm doesn't have milliseconds
         int milliseconds = utc->time % 1000;
 
-        tzset();
         time_t ltime = timegm(&utc_tm);
 
         struct tm local_tm = {0};
