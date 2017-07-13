@@ -846,6 +846,7 @@ int _cdecl RunJITServer(int argc, __in_ecount(argc) LPWSTR argv[])
     HINSTANCE chakraLibrary = nullptr;
     bool success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
     int status = 0;
+    JsInitializeJITServerPtr initRpcServer = nullptr;
 
     if (!success)
     {
@@ -860,7 +861,7 @@ int _cdecl RunJITServer(int argc, __in_ecount(argc) LPWSTR argv[])
         goto cleanup;
     }
 
-    JsInitializeJITServerPtr initRpcServer = (JsInitializeJITServerPtr)GetProcAddress(chakraLibrary, "JsInitializeJITServer");
+    initRpcServer = (JsInitializeJITServerPtr)GetProcAddress(chakraLibrary, "JsInitializeJITServer");
     status = initRpcServer(&connectionUuid, nullptr, nullptr);
     if (FAILED(status))
     {
