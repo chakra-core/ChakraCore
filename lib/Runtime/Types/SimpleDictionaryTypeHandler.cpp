@@ -1341,6 +1341,13 @@ namespace Js
                 return
                     ConvertToNonSharedSimpleDictionaryType(instance)->SetProperty(instance, propertyKey, value, flags, info);
             }
+            else if (instance->GetDynamicType()->GetIsLocked())
+            {
+                Assert(!GetIsShared() && !instance->GetDynamicType()->GetIsShared());
+
+                // We have changed the type of the only instance using this type handler, so we don't need to say the type handler is shared here.
+                instance->ChangeType();
+            }
 
             if(isUnordered)
             {
@@ -1550,6 +1557,14 @@ namespace Js
             }
 #endif
 
+            if (instance->GetDynamicType()->GetIsLocked())
+            {
+                Assert(!GetIsShared() && !instance->GetDynamicType()->GetIsShared());
+
+                // We have changed the type of the only instance using this type handler, so we don't need to say the type handler is shared here.
+                instance->ChangeType();
+            }
+
             ScriptContext* scriptContext = instance->GetScriptContext();
 
             JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
@@ -1671,6 +1686,14 @@ namespace Js
                     ->DeleteProperty(instance, propertyId, propertyOperationFlags);
             }
 #endif
+
+            if (instance->GetDynamicType()->GetIsLocked())
+            {
+                Assert(!GetIsShared() && !instance->GetDynamicType()->GetIsShared());
+
+                // We have changed the type of the only instance using this type handler, so we don't need to say the type handler is shared here.
+                instance->ChangeType();
+            }
 
             ScriptContext* scriptContext = instance->GetScriptContext();
             SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor;
@@ -1876,6 +1899,14 @@ namespace Js
         }
         else
         {
+            if (instance->GetDynamicType()->GetIsLocked())
+            {
+                Assert(!GetIsShared() && !instance->GetDynamicType()->GetIsShared());
+
+                // We have changed the type of the only instance using this type handler, so we don't need to say the type handler is shared here.
+                instance->ChangeType();
+            }
+
             descriptor->Attributes = attributes;
         }
         return true;
@@ -1909,6 +1940,14 @@ namespace Js
         }
         else
         {
+            if (instance->GetDynamicType()->GetIsLocked())
+            {
+                Assert(!GetIsShared() && !instance->GetDynamicType()->GetIsShared());
+
+                // We have changed the type of the only instance using this type handler, so we don't need to say the type handler is shared here.
+                instance->ChangeType();
+            }
+
             descriptor->Attributes = attributes;
         }
         return true;
@@ -2351,6 +2390,13 @@ namespace Js
                                 flags,
                                 possibleSideEffects);
                 }
+                else if (instance->GetDynamicType()->GetIsLocked())
+                {
+                    Assert(!GetIsShared() && !instance->GetDynamicType()->GetIsShared());
+
+                    // We have changed the type of the only instance using this type handler, so we don't need to say the type handler is shared here.
+                    instance->ChangeType();
+                }
 
                 if(isUnordered)
                 {
@@ -2399,6 +2445,14 @@ namespace Js
                 }
                 else
                 {
+                    if (instance->GetDynamicType()->GetIsLocked())
+                    {
+                        Assert(!GetIsShared() && !instance->GetDynamicType()->GetIsShared());
+
+                        // We have changed the type of the only instance using this type handler, so we don't need to say the type handler is shared here.
+                        instance->ChangeType();
+                    }
+
                     descriptor->Attributes = attributes;
                 }
             }
@@ -2528,6 +2582,14 @@ namespace Js
     {
         if (!GetIsLocked())
         {
+            if (instance->GetDynamicType()->GetIsLocked())
+            {
+                Assert(!GetIsShared() && !instance->GetDynamicType()->GetIsShared());
+
+                // We have changed the type of the only instance using this type handler, so we don't need to say the type handler is shared here.
+                instance->ChangeType();
+            }
+
             SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor;
             Assert(propertyId != Constants::NoProperty);
             PropertyRecord const* propertyRecord = instance->GetScriptContext()->GetPropertyName(propertyId);
@@ -2647,6 +2709,13 @@ namespace Js
         if (GetIsLocked())
         {
             typeHandler = ConvertToNonSharedSimpleDictionaryType(instance);
+        }
+        else if(instance->GetDynamicType()->GetIsLocked())
+        {
+            Assert(!GetIsShared() && !instance->GetDynamicType()->GetIsShared());
+
+            // We have changed the type of the only instance using this type handler, so we don't need to say the type handler is shared here.
+            instance->ChangeType();
         }
 
         if (TMapKey_IsJavascriptString<TMapKey>() &&
