@@ -1978,6 +1978,12 @@ FlowGraph::UpdateRegionForBlockFromEHPred(BasicBlock * block, bool reassign)
         Assert(this->func->HasTry() && (this->func->DoOptimizeTry() || (this->func->IsSimpleJit() && this->func->hasBailout)));
         return;
     }
+    if (block->isDead || block->isDeleted)
+    {
+        // We can end up calling this function with such blocks, return doing nothing
+        // See test5() in tryfinallytests.js
+        return;
+    }
 
     if (block == this->blockList)
     {

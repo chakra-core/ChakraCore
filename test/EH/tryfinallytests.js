@@ -46,6 +46,22 @@ function test2() {
   ary | 0;
 }
 
+function test5() {
+  for (let rwcjvd = 0, ljcyer = /x/g; rwcjvd; rwcjvd) {
+    {
+      if (/x/) {
+        try {
+        } catch (e) {
+        }
+      } else {
+        throw "err" ;
+        while (new Array.isArray(/x/g, 'u56DC') && 0) {
+        }
+      }
+    }
+  }
+}
+
 test0();
 test0();
 test0();
@@ -57,5 +73,9 @@ test1();
 test2();
 test2();
 test2();
+
+test5();
+test5();
+test5();
 
 WScript.Echo("passed");
