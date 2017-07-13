@@ -163,7 +163,6 @@ public:
 
     HRESULT EnqueuePromiseTask(Js::Var taskVar) override
     {
-        AssertMsg(false, "jsrt should have set the promise callback");
         return E_NOTIMPL;
     }
 
