@@ -11792,13 +11792,13 @@ Lowerer::LowerBailOnEqualOrNotEqual(IR::Instr * instr,
         // result = AND implCallFlags, ~ImplicitCall_None
         //          TST result, ImplicitCall_Accessor
         //          JEQ $bail
-        //          OR profiledFlags, FldInfoAccessor
+        //          OR profiledFlags, ( FldInfo_FromAccessor | FldInfo_Polymorphic )
         //          $bail
 
         IR::Opnd * implicitCallFlags = GetImplicitCallFlagsOpnd();
         IR::Opnd * accessorImplicitCall = IR::IntConstOpnd::New(Js::ImplicitCall_Accessor & ~Js::ImplicitCall_None, GetImplicitCallFlagsType(), instr->m_func, true);
         IR::Opnd * maskNoImplicitCall = IR::IntConstOpnd::New((Js::ImplicitCallFlags)~Js::ImplicitCall_None, GetImplicitCallFlagsType(), instr->m_func, true);
-        IR::Opnd * fldInfoAccessor = IR::IntConstOpnd::New(Js::FldInfo_FromAccessor, GetFldInfoFlagsType(), instr->m_func, true);
+        IR::Opnd * fldInfoAccessor = IR::IntConstOpnd::New(Js::FldInfo_FromAccessor | Js::FldInfo_Polymorphic, GetFldInfoFlagsType(), instr->m_func, true);
         IR::LabelInstr * label = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, true);
 
         IR::Instr * andInstr = InsertAnd(IR::RegOpnd::New(GetImplicitCallFlagsType(), instr->m_func), implicitCallFlags, maskNoImplicitCall, instr);
