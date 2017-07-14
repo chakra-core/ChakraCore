@@ -838,14 +838,14 @@ LowererMD::LowerRet(IR::Instr * retInstr)
         case Js::AsmJsRetType::Int64:
         {
             regType = TyInt64;
-#ifdef _M_IX86
+#if LOWER_SPLIT_INT64
             regType = TyInt32;
             {
                 IR::Opnd* lowOpnd = nullptr;
                 IR::Opnd* highOpnd = nullptr;
                 if (retInstr->GetSrc1()->IsRegOpnd())
                 {
-                    Int64RegPair srcPair = m_lowerer->FindOrCreateInt64Pair(retInstr->GetSrc1()->AsRegOpnd());
+                    Int64RegPair srcPair = m_func->FindOrCreateInt64Pair(retInstr->GetSrc1()->AsRegOpnd());
                     lowOpnd = srcPair.low;
                     highOpnd = srcPair.high;
                 }
@@ -2789,12 +2789,12 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
 
     Assert(src1->IsRegOpnd());
 
-#ifndef _M_X64
+#if LOWER_SPLIT_INT64
     Int64RegPair src1Pair, src2Pair;
     if (isInt64Src)
     {
-        src1Pair = this->m_lowerer->FindOrCreateInt64Pair(src1);
-        src2Pair = this->m_lowerer->FindOrCreateInt64Pair(src2);
+        src1Pair = this->m_func->FindOrCreateInt64Pair(src1);
+        src2Pair = this->m_func->FindOrCreateInt64Pair(src2);
         src1 = src1Pair.high;
         src2 = src2Pair.high;
     }
@@ -8587,7 +8587,7 @@ LowererMD::EmitReinterpretPrimitive(IR::Opnd* dst, IR::Opnd* src, IR::Instr* ins
     {
 #if _M_AMD64
         LegalizeInsert(IR::Instr::New(Js::OpCode::MOVQ, dst, src, m_func));
-#elif _M_IX86
+#elif LOWER_SPLIT_INT64
         if (dst->IsInt64())
         {
             //    movd xmm2, xmm1
@@ -8595,7 +8595,7 @@ LowererMD::EmitReinterpretPrimitive(IR::Opnd* dst, IR::Opnd* src, IR::Instr* ins
             //    shufps xmm2, xmm2, 1
             //    movd high_bits, xmm2
             Assert(src->IsFloat64());
-            Int64RegPair dstPair = m_lowerer->FindOrCreateInt64Pair(dst);
+            Int64RegPair dstPair = m_func->FindOrCreateInt64Pair(dst);
 
             // shufps modifies the register, we shouldn't change the source here
             IR::RegOpnd* tmpDouble = IR::RegOpnd::New(TyFloat64, m_func);
@@ -8612,7 +8612,7 @@ LowererMD::EmitReinterpretPrimitive(IR::Opnd* dst, IR::Opnd* src, IR::Instr* ins
             //    shufps xmm0, xmm0, (0 | 2 << 2 | 3 << 4 | 3 << 6);
             Assert(src->IsInt64());
             Assert(dst->IsFloat64());
-            Int64RegPair srcPair = m_lowerer->FindOrCreateInt64Pair(src);
+            Int64RegPair srcPair = m_func->FindOrCreateInt64Pair(src);
 
             IR::RegOpnd* tmpDouble = IR::RegOpnd::New(TyFloat64, m_func);
             LegalizeInsert(IR::Instr::New(Js::OpCode::MOVD, dst, srcPair.low, m_func));
@@ -9606,7 +9606,7 @@ LowererMD::NegZeroBranching(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* is
     IR::RegOpnd *intOpnd = IR::RegOpnd::New(regType, this->m_func);
     EmitReinterpretFloatToInt(intOpnd, opnd, instr);
 
-#if _M_IX86
+#if LOWER_SPLIT_INT64
     if (!is32Bits)
     {
         // For 64bits comparisons on x86 we need to check 2 registers
@@ -9615,7 +9615,7 @@ LowererMD::NegZeroBranching(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* is
         // CMP intOpnd.low, k_NegZero.i32
         // BREQ isNeg0Label
         // JMP isNotNeg0Label
-        Int64RegPair dstPair = m_lowerer->FindOrCreateInt64Pair(intOpnd);
+        Int64RegPair dstPair = m_func->FindOrCreateInt64Pair(intOpnd);
         const uint32 high64NegZero = Js::NumberConstants::k_NegZero >> 32;
         const uint32 low64NegZero = Js::NumberConstants::k_NegZero & UINT32_MAX;
         IR::IntConstOpnd *negZeroHighOpnd = IR::IntConstOpnd::New(high64NegZero, TyUint32, m_func);
