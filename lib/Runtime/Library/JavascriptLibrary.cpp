@@ -5318,7 +5318,7 @@ namespace Js
             HRESULT hr = scriptContext->GetHostScriptContext()->EnqueuePromiseTask(taskVar);
             if (hr != S_OK)
             {
-                Js::JavascriptError::MapAndThrowError(scriptContext, hr);
+                Js::JavascriptError::MapAndThrowError(scriptContext, JSERR_HostMaybeMissingPromiseContinuationCallback);
             }
         }
     }

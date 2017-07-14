@@ -370,6 +370,9 @@ RT_ERROR_MSG(JSERR_OutOfBoundString, 5670, "", "String length is out of bound", 
 RT_ERROR_MSG(JSERR_InvalidIterableObject, 5671, "%s : Invalid iterable object", "Invalid iterable object", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_InvalidIteratorObject, 5672, "%s : Invalid iterator object", "Invalid iterator object", kjstTypeError, 0)
 
+//Host errors
+RT_ERROR_MSG(JSERR_HostMaybeMissingPromiseContinuationCallback, 5700, "", "Host may not have set any promise continuation callback. Promises may not be executed.", kjstTypeError, 0)
+
 // WebAssembly Errors
 RT_ERROR_MSG(WASMERR_WasmCompileError, 7000, "%s", "Compilation failed.", kjstWebAssemblyCompileError, 0)
 RT_ERROR_MSG(WASMERR_Unreachable, 7001, "", "Unreachable Code", kjstWebAssemblyRuntimeError, 0)
