@@ -1504,9 +1504,9 @@ CommonNumber:
         while (JavascriptOperators::GetTypeId(instance) != TypeIds_Null)
         {
             PropertyQueryFlags result = instance->HasPropertyQuery(propertyId);
-            if (result != Property_NotFound)
+            if (result != PropertyQueryFlags::Property_NotFound)
             {
-                return JavascriptConversion::PropertyQueryFlagsToBoolean(result); // return false if instance is typed array and HasPropertyQuery() returns Property_Found_Undefined
+                return JavascriptConversion::PropertyQueryFlagsToBoolean(result); // return false if instance is typed array and HasPropertyQuery() returns PropertyQueryFlags::Property_Found_Undefined
             }
 
             instance = JavascriptOperators::GetPrototypeNoTrap(instance);
@@ -1719,7 +1719,7 @@ CommonNumber:
             else
             {
                 PropertyQueryFlags result = object->GetPropertyQuery(instance, propertyId, value, info, requestContext);
-                if (result != Property_NotFound)
+                if (result != PropertyQueryFlags::Property_NotFound)
                 {
                     foundProperty = JavascriptConversion::PropertyQueryFlagsToBoolean(result);
                     break;
@@ -1816,7 +1816,7 @@ CommonNumber:
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
             PropertyQueryFlags result = object->GetPropertyQuery(instance, propertyKey, value, info, requestContext);
-            if (result != Property_NotFound)
+            if (result != PropertyQueryFlags::Property_NotFound)
             {
                 if (value && !WithScopeObject::Is(object) && info->GetPropertyString())
                 {
@@ -2025,7 +2025,7 @@ CommonNumber:
             else
             {
                 PropertyQueryFlags result = object->GetPropertyReferenceQuery(instance, propertyId, value, info, requestContext);
-                if (result != Property_NotFound)
+                if (result != PropertyQueryFlags::Property_NotFound)
                 {
                     foundProperty = JavascriptConversion::PropertyQueryFlagsToBoolean(result);
                     break;
@@ -3102,7 +3102,7 @@ CommonNumber:
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
             PropertyQueryFlags result;
-            if ((result = object->HasItemQuery(index)) != Property_NotFound)
+            if ((result = object->HasItemQuery(index)) != PropertyQueryFlags::Property_NotFound)
             {
                 return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
             }
@@ -3124,7 +3124,7 @@ CommonNumber:
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
             PropertyQueryFlags result;
-            if ((result = object->GetItemQuery(instance, index, value, requestContext)) != Property_NotFound)
+            if ((result = object->GetItemQuery(instance, index, value, requestContext)) != PropertyQueryFlags::Property_NotFound)
             {
                 return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
             }
@@ -3144,7 +3144,7 @@ CommonNumber:
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
             PropertyQueryFlags result;
-            if ((result = object->GetItemReferenceQuery(instance, index, value, requestContext)) != Property_NotFound)
+            if ((result = object->GetItemReferenceQuery(instance, index, value, requestContext)) != PropertyQueryFlags::Property_NotFound)
             {
                 return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
             }

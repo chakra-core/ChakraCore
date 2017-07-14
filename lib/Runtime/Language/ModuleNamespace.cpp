@@ -146,13 +146,13 @@ namespace Js
         }
         if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (unambiguousNonLocalExports != nullptr)
         {
             return JavascriptConversion::BooleanToPropertyQueryFlags(unambiguousNonLocalExports->ContainsKey(propertyId));
         }
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL ModuleNamespace::HasOwnProperty(PropertyId propertyId)
@@ -177,7 +177,7 @@ namespace Js
             //    PropertyValueInfo::Set(info, this, (PropertyIndex)propertyDescriptor.propertyIndex, propertyDescriptor.Attributes);
             //}
             *value = this->GetNSSlot(propertyDescriptor.propertyIndex);
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (unambiguousNonLocalExports != nullptr)
         {
@@ -188,7 +188,7 @@ namespace Js
                 return JavascriptConversion::BooleanToPropertyQueryFlags(moduleNameRecord.module->GetNamespace()->GetProperty(originalInstance, moduleNameRecord.bindingName, value, info, requestContext));
             }
         }
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags ModuleNamespace::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
