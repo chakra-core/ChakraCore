@@ -1867,6 +1867,15 @@ LABEL1:
         {
             return exceptionInfo;
         }
+
+        uintptr_t GetFaultingAddress() const
+        {
+            // For AVs, the second element of ExceptionInformation array is address of inaccessible data
+            // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363082.aspx
+            Assert(this->exceptionInfo->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION);
+            Assert(this->exceptionInfo->ExceptionRecord->NumberParameters >= 2);
+            return exceptionInfo->ExceptionRecord->ExceptionInformation[1];
+        }
         Var GetIPAddress() const
         {
 #if _M_IX86
@@ -2278,6 +2287,7 @@ LABEL1:
         return instrData;
     }
 
+#if ENABLE_FAST_ARRAYBUFFER
     bool ResumeForOutOfBoundsArrayRefs(int exceptionCode, ExceptionFilterHelper& helper)
     {
         if (exceptionCode != STATUS_ACCESS_VIOLATION)
@@ -2292,7 +2302,6 @@ LABEL1:
         Js::FunctionBody* funcBody = func->GetFunctionBody();
         bool isWAsmJs = funcBody->GetIsAsmJsFunction();
         bool isWasmOnly = funcBody->IsWasmFunction();
-        BYTE* buffer = nullptr;
         if (isWAsmJs)
         {
             // some extra checks for asm.js because we have slightly more information that we can validate
@@ -2303,16 +2312,19 @@ LABEL1:
             }
 
             ArrayBuffer* arrayBuffer = nullptr;
+            size_t reservationSize = 0;
 #ifdef ENABLE_WASM
             if (isWasmOnly)
             {
                 WebAssemblyMemory* mem = *(WebAssemblyMemory**)(moduleMemory + WebAssemblyModule::GetMemoryOffset());
                 arrayBuffer = mem->GetBuffer();
+                reservationSize = MAX_WASM__ARRAYBUFFER_LENGTH;
             }
             else
 #endif
             {
                 arrayBuffer = *(ArrayBuffer**)(moduleMemory + AsmJsModuleMemory::MemoryTableBeginOffset);
+                reservationSize = MAX_ASMJS_ARRAYBUFFER_LENGTH;
             }
 
             if (!arrayBuffer || !arrayBuffer->GetBuffer())
@@ -2320,11 +2332,20 @@ LABEL1:
                 // don't have a heap buffer for asm.js... so this shouldn't be an asm.js heap access
                 return false;
             }
-            buffer = arrayBuffer->GetBuffer();
+            uintptr_t bufferAddr = (uintptr_t)arrayBuffer->GetBuffer();
 
             uint bufferLength = arrayBuffer->GetByteLength();
 
             if (!isWasmOnly && !arrayBuffer->IsValidAsmJsBufferLength(bufferLength))
+            {
+                return false;
+            }
+            uintptr_t faultingAddr = helper.GetFaultingAddress();
+            if (faultingAddr < bufferAddr)
+            {
+                return false;
+            }
+            if (faultingAddr >= bufferAddr + reservationSize)
             {
                 return false;
             }
@@ -2345,15 +2366,7 @@ LABEL1:
             return false;
         }
 
-        // If asm.js, make sure the base address is that of the heap buffer
-        if (instrData.bufferValue != (uint64)buffer)
-        {
-            if (isWAsmJs)
-            {
-                return false;
-            }
-        }
-        else if (isWasmOnly)
+        if (isWasmOnly)
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(func->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
         }
@@ -2401,6 +2414,7 @@ LABEL1:
 #endif
 #endif
 #endif
+#endif
 
     int JavascriptFunction::CallRootEventFilter(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo)
     {
@@ -2408,7 +2422,7 @@ LABEL1:
 #if defined(_M_IX86) || defined(_M_X64)
         ExceptionFilterHelper helper(exceptionInfo);
         CheckWasmMathException(exceptionCode, helper);
-#ifdef _M_X64
+#if ENABLE_FAST_ARRAYBUFFER
         if (ResumeForOutOfBoundsArrayRefs(exceptionCode, helper))
         {
             return EXCEPTION_CONTINUE_EXECUTION;
