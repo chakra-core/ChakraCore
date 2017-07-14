@@ -2556,7 +2556,7 @@ LowererMDArch::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInser
     Assert(dst->IsRegOpnd() && dst->IsInt32());
     Assert(src->IsInt64());
 
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV_TRUNC, dst, src, this->m_func));
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV_TRUNC, dst, src, instrInsert->m_func));
 }
 
 void

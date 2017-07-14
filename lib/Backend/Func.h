@@ -13,6 +13,12 @@ class FlowGraph;
 #include "UnwindInfoManager.h"
 #endif
 
+struct Int64RegPair
+{
+    IR::Opnd* high = nullptr;
+    IR::Opnd* low = nullptr;
+};
+
 struct Cloner
 {
     Cloner(Lowerer *lowerer, JitArenaAllocator *alloc) :
@@ -581,6 +587,11 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     byte GetPolyCacheUtil(const uint index) const;
     byte GetPolyCacheUtilToInitialize(const uint index) const;
 
+#if LOWER_SPLIT_INT64
+    Int64RegPair FindOrCreateInt64Pair(IR::Opnd*);
+    void Int64SplitExtendLoopLifetime(Loop* loop);
+#endif
+
 #if defined(_M_ARM32_OR_ARM64)
     RegNum GetLocalsPointer() const;
 #endif
@@ -1038,6 +1049,12 @@ private:
     bool canHoistConstantAddressLoad;
 #if DBG
     VtableHashMap * vtableMap;
+#endif
+#if LOWER_SPLIT_INT64
+    struct Int64SymPair {StackSym* high = nullptr; StackSym* low = nullptr;};
+    // Key is an int64 symId, value is a pair of int32 StackSym
+    typedef JsUtil::BaseDictionary<SymID, Int64SymPair, JitArenaAllocator> Int64SymPairMap;
+    Int64SymPairMap* m_int64SymPairMap;
 #endif
 #ifdef RECYCLER_WRITE_BARRIER_JIT
 public:

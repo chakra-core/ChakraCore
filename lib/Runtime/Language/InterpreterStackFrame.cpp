@@ -9156,7 +9156,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(m_functionBody->IsWasmFunction());
         uint index = GetRegRawInt(regIndex);
         Wasm::WasmFunctionInfo* info = m_functionBody->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetWasmFunctionInfo(index);
-        Output::SkipToColumn(WAsmJs::Tracing::GetPrintCol());
+        int col = WAsmJs::Tracing::GetPrintCol();
+        if (col > 0)
+        {
+            Output::SkipToColumn(col);
+        }
         info->GetBody()->DumpFullFunctionName();
         Output::Print(_u("("));
 #endif
