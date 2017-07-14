@@ -384,7 +384,7 @@ namespace Js
     bool AsmJSCompiler::CheckGlobalVariableInitImport( AsmJsModuleCompiler &m, PropertyName varName, ParseNode *initNode, bool isMutable /*= true*/)
     {
         AsmJSCoercion coercion;
-        ParseNode *coercedExpr;
+        ParseNode *coercedExpr = nullptr;
         if( !CheckTypeAnnotation( m, initNode, &coercion, &coercedExpr ) )
         {
             return false;
@@ -546,7 +546,7 @@ namespace Js
                 if (lib && lib->GetPropertyId() == PropertyIds::SIMD)
                 {
                     // global.SIMD.xxx
-                    AsmJsSIMDFunction *simdFunc;
+                    AsmJsSIMDFunction *simdFunc = nullptr;
 
                     if (!m.LookupStdLibSIMDName(field->GetPropertyId(), field, &simdFunc))
                     {

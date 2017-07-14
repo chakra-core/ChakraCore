@@ -4517,7 +4517,7 @@ namespace UnifiedRegex
         {
             if (REGEX_CONFIG_FLAG(RegexOptimize))
             {
-                Char c;
+                Char c = 0;
                 if (root->IsSingleChar(compiler, c))
                 {
                     // SPECIAL CASE: c

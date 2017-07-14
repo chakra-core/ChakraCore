@@ -162,7 +162,7 @@ namespace Js
         void GetOwnPropertyKeysHelper(ScriptContext* scriptContext, RecyclableObject* trapResultArray, uint32 len, JavascriptArray* trapResult,
             JsUtil::BaseDictionary<Js::PropertyId, bool, ArenaAllocator>& targetToTrapResultMap, Fn fn)
         {
-            Var element;
+            Var element = nullptr;
             const PropertyRecord* propertyRecord;
             uint32 trapResultIndex = 0;
             PropertyId propertyId;

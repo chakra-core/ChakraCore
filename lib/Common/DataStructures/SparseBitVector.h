@@ -454,7 +454,7 @@ template <class TAllocator>
 SparseBVUnit *
 BVSparse<TAllocator>::BitsFromIndex(BVIndex i, bool create)
 {
-    Field(BVSparseNode*, TAllocator)* prevNextField;
+    Field(BVSparseNode*, TAllocator)* prevNextField = nullptr;
     BVSparseNode * node = NodeFromIndex(i, &prevNextField, create);
     if (node)
     {
@@ -470,7 +470,7 @@ template <class TAllocator>
 const SparseBVUnit *
 BVSparse<TAllocator>::BitsFromIndex(BVIndex i) const
 {
-    Field(BVSparseNode*, TAllocator) const* prevNextField;
+    Field(BVSparseNode*, TAllocator) const* prevNextField = nullptr;
     const BVSparseNode * node = NodeFromIndex(i, &prevNextField);
     if (node)
     {
@@ -577,7 +577,7 @@ template <class TAllocator>
 void
 BVSparse<TAllocator>::Clear(BVIndex i)
 {
-    Field(BVSparseNode*, TAllocator)* prevNextField;
+    Field(BVSparseNode*, TAllocator)* prevNextField = nullptr;
     BVSparseNode * current = this->NodeFromIndex(i, &prevNextField, false /* create */);
     if(current)
     {
@@ -625,7 +625,7 @@ template <class TAllocator>
 BOOLEAN
 BVSparse<TAllocator>::TestAndClear(BVIndex i)
 {
-    Field(BVSparseNode*, TAllocator)* prevNextField;
+    Field(BVSparseNode*, TAllocator)* prevNextField = nullptr;
     BVSparseNode * current = this->NodeFromIndex(i, &prevNextField, false /* create */);
     if (current == nullptr)
     {

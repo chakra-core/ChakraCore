@@ -136,7 +136,7 @@ namespace Js
         CheckOpen();
         Empty(OpCode::EndOfBlock);
 
-        ByteBlock* finalByteCodeBlock;
+        ByteBlock* finalByteCodeBlock = nullptr;
 
         ScriptContext* scriptContext = m_functionWrite->GetScriptContext();
         m_byteCodeData.Copy(scriptContext->GetRecycler(), &finalByteCodeBlock);
@@ -191,8 +191,8 @@ namespace Js
         //
         // Store the final trimmed byte-code on the function.
         //
-        ByteBlock* finalAuxiliaryBlock;
-        ByteBlock* finalAuxiliaryContextBlock;
+        ByteBlock* finalAuxiliaryBlock = nullptr;
+        ByteBlock* finalAuxiliaryContextBlock = nullptr;
 
         m_auxiliaryData.Copy(m_functionWrite->GetScriptContext()->GetRecycler(), &finalAuxiliaryBlock);
         m_auxContextData.Copy(m_functionWrite->GetScriptContext()->GetRecycler(), &finalAuxiliaryContextBlock);

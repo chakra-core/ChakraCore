@@ -2354,7 +2354,7 @@ namespace Js
                     {
                         CompileScriptException se;
                         Parser ps(m_scriptContext, funcBody->GetIsStrictMode() ? TRUE : FALSE);
-                        ParseNodePtr parseTree;
+                        ParseNodePtr parseTree = nullptr;
 
                         uint nextFunctionId = funcBody->GetLocalFunctionId();
                         hrParser = ps.ParseSourceWithOffset(&parseTree, pszStart, offset, length, charOffset, isCesu8, grfscr, &se,
@@ -8601,7 +8601,7 @@ namespace Js
             Assert(this->jitTransferData->lazyBailoutProperties != nullptr);
 
             Js::PropertyId propertyId = this->jitTransferData->lazyBailoutProperties[i];
-            Js::PropertyGuard* sharedPropertyGuard;
+            Js::PropertyGuard* sharedPropertyGuard = nullptr;
             bool hasSharedPropertyGuard = TryGetSharedPropertyGuard(propertyId, sharedPropertyGuard);
             Assert(hasSharedPropertyGuard);
             bool isValid = hasSharedPropertyGuard ? sharedPropertyGuard->IsValid() : false;
@@ -8711,7 +8711,7 @@ namespace Js
             while (*next)
             {
                 Js::PropertyId propertyId = (*next)->propId;
-                Js::PropertyGuard* sharedPropertyGuard;
+                Js::PropertyGuard* sharedPropertyGuard = nullptr;
 
                 // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
                 // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
@@ -8763,7 +8763,7 @@ namespace Js
             while (entry->propertyId != Js::Constants::NoProperty)
             {
                 Js::PropertyId propertyId = entry->propertyId;
-                Js::PropertyGuard* sharedPropertyGuard;
+                Js::PropertyGuard* sharedPropertyGuard = nullptr;
 
                 // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
                 // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
@@ -8818,7 +8818,7 @@ namespace Js
             for (uint i = 0; i < this->jitTransferData->ctorCacheTransferData.ctorCachesCount; ++i)
             {
                 Js::PropertyId propertyId = entries[i]->propId;
-                Js::PropertyGuard* sharedPropertyGuard;
+                Js::PropertyGuard* sharedPropertyGuard = nullptr;
 
                 // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
                 // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
@@ -8855,7 +8855,7 @@ namespace Js
             while (entry->propertyId != Js::Constants::NoProperty)
             {
                 Js::PropertyId propertyId = entry->propertyId;
-                Js::PropertyGuard* sharedPropertyGuard;
+                Js::PropertyGuard* sharedPropertyGuard = nullptr;
 
                 // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
                 // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,

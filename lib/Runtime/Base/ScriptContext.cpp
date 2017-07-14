@@ -1623,7 +1623,7 @@ namespace Js
     {
         PropertyStringCacheMap* propertyStringMap = this->GetLibrary()->EnsurePropertyStringMap();
 
-        RecyclerWeakReference<PropertyString>* stringReference;
+        RecyclerWeakReference<PropertyString>* stringReference = nullptr;
         if (propertyStringMap->TryGetValue(propertyId, &stringReference))
         {
             PropertyString *string = stringReference->Get();
@@ -2406,7 +2406,7 @@ namespace Js
 
     SourceContextInfo* ScriptContext::GetSourceContextInfo(uint hash)
     {
-        SourceContextInfo * sourceContextInfo;
+        SourceContextInfo * sourceContextInfo = nullptr;
         if (this->Cache()->dynamicSourceContextInfoMap && this->Cache()->dynamicSourceContextInfoMap->TryGetValue(hash, &sourceContextInfo))
         {
             return sourceContextInfo;
@@ -2506,7 +2506,7 @@ namespace Js
 
         // We only init sourceContextInfoMap, don't need to lock.
         EnsureSourceContextInfoMap();
-        SourceContextInfo * sourceContextInfo;
+        SourceContextInfo * sourceContextInfo = nullptr;
         if (this->Cache()->sourceContextInfoMap->TryGetValue(sourceContext, &sourceContextInfo))
         {
 #if ENABLE_PROFILE_INFO

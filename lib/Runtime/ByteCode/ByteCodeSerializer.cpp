@@ -2903,7 +2903,7 @@ public:
                 }
             case ctStringTemplateCallsite:
                 {
-                    Var callsite;
+                    Var callsite = nullptr;
                     current = ReadStringTemplateCallsiteConstant(current, function, callsite);
 
                     function->RecordConstant(reg, callsite);
@@ -3807,7 +3807,7 @@ public:
         {
             for(auto i = 0; i<nestedCount; ++i)
             {
-                const byte * nestedFunctionBytes;
+                const byte * nestedFunctionBytes = nullptr;
                 current = ReadOffsetAsPointer(current, &nestedFunctionBytes);
                 if (nestedFunctionBytes == nullptr)
                 {
@@ -3815,7 +3815,7 @@ public:
                 }
                 else
                 {
-                    FunctionProxy* nestedFunction;
+                    FunctionProxy* nestedFunction = nullptr;
 
                     // If we should deserialize nested functions, go ahead and do so
                     // If we shouldn't, and we're currently deserializing a function proxy

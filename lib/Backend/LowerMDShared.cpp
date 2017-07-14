@@ -3721,7 +3721,7 @@ LowererMD::GenerateFastBrS(IR::BranchInstr *brInstr)
     brInstr->InsertBefore(cmpInstr);
     Legalize(cmpInstr);
 
-    Js::OpCode opcode;
+    Js::OpCode opcode = Js::OpCode::InvalidOpCode;
 
     switch(brInstr->m_opcode)
     {

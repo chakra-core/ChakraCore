@@ -86,7 +86,7 @@ namespace JSON
                     }
                     currentChar = saveCurrentChar;
                     double val;
-                    const char16* end;
+                    const char16* end = nullptr;
                     val = Js::NumberUtilities::StrToDbl(currentChar, &end, scriptContext);
                     if(currentChar == end)
                     {
