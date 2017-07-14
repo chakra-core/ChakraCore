@@ -232,7 +232,21 @@ var tests = [
             testModuleScript(functionBody, "Test importing as different binding identifiers", false);
        }
     },
+    {
+        name: "Issue3246: namespace property names are sorted",
+        body: function () {
+            let functionBody =
+                `
+                import * as ns from 'ValidExportStatements2.js';
+                var p = new Proxy(ns, {});
+                var names = ["sym0","default","$","$$","_","\u03bb","aa","A","a","zz","z","\u03bc","Z","za","__","az","\u03c0"].sort();
 
+                assert.areEqual(names, Object.getOwnPropertyNames(ns), "ModuleNamespace");
+                assert.areEqual(names, Object.getOwnPropertyNames(p), "Proxy");
+                `;
+            testModuleScript(functionBody, "Test importing as different binding identifiers", false);
+       }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
