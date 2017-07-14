@@ -89,25 +89,25 @@ var tests = [
             assert.areEqual("setter(v){}", oSet.set.toString(), "the name should be setter");
         }
     },
-    /* TODO fix and re-enable this test case (Microsoft/ChakraCore#3008)
     {
         name: "class constructor test",
         body: function ()
         {
+            // [19.2.3.5] Function.prototype.toString()
+            // The string representation must have the syntax of a FunctionDeclaration, FunctionExpression, GeneratorDeclaration,
+            //     GeneratorExpression, AsyncFunctionDeclaration, AsyncFunctionExpression, ClassDeclaration, ClassExpression, ArrowFunction,
+            //     AsyncArrowFunction, or MethodDefinition depending upon the actual characteristics of the object.
+
             eval("var qux = class { constructor(){} static func(){} method(){} get getter(){} set setter(v){}}");
             var quxObj = new qux();
-            // FIXME Test threw exception: assert.areEqual failed: expected: constructor(){} actual: class { constructor(){} static func(){} method(){} get getter(){} set setter(v){}}
-            assert.areEqual("constructor(){}", quxObj.constructor.toString(), "The constructor should have the toString  with name constructor");
+            assert.areEqual("class { constructor(){} static func(){} method(){} get getter(){} set setter(v){}}",
+                quxObj.constructor.toString(), "The string representation must have the syntax of a ClassExpression");
 
             var qux = class { };
             var quxObj = new qux();
-            // I left a space between closing ellipse ) and the opening bracket { because that's how all browsers do toString on runtime functions
-            // Should this not be how other browsers do default constructor go to RuntimeCommon.h and change JS_DEFAULT_CTOR_DISPLAY_STRING
-            // FIXME Test threw exception: assert.areEqual failed: expected: constructor() {} actual: class { }
-            assert.areEqual("constructor() {}", quxObj.constructor.toString(), "The constructor should have the toString with name constructor")
+            assert.areEqual("class { }", quxObj.constructor.toString(), "The string representation must have the syntax of a ClassDeclaration")
         }
     },
-    */
     {
         name: "shorthand method function test",
         body: function ()
