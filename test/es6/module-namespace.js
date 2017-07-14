@@ -32,6 +32,18 @@ function testModuleScript(source, message, shouldFail = false) {
 
 var tests = [
     {
+        name: "Issue3249: Namespace object's Symbol.toStringTag",
+        body: function () {
+			testModuleScript(`
+			import * as foo from "ValidExportStatements.js";
+            var desc = Object.getOwnPropertyDescriptor(foo, Symbol.toStringTag);
+            assert.isFalse(desc.configurable, "configurable: false");
+            assert.isFalse(desc.enumerable, "enumerable: false");
+            assert.isFalse(desc.writable, "writable: false");
+		    `, '', false);
+        }
+    },
+    {
         name: "Basic import namespace",
         body: function () {
 			testModuleScript(`
