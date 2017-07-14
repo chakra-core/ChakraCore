@@ -15,6 +15,9 @@
 
 #include "Library/ForInObjectEnumerator.h"
 #include "Library/ES5Array.h"
+#include "Types/SimpleDictionaryPropertyDescriptor.h"
+#include "Types/SimpleDictionaryTypeHandler.h"
+#include "Language/ModuleNamespace.h"
 
 #ifndef SCRIPT_DIRECT_TYPE
 typedef enum JsNativeValueType: int
@@ -1143,6 +1146,20 @@ CommonNumber:
         {
             JavascriptProxy* proxy = JavascriptProxy::FromVar(instance);
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
+        }
+
+        if (ModuleNamespace::Is(object))
+        {
+            ModuleNamespace *ns = ModuleNamespace::FromVar(object);
+            JavascriptArray *names = ns->GetSortedExportedNames();
+            if (names == nullptr)
+            {
+                names = JavascriptObject::CreateOwnStringPropertiesHelper(object, scriptContext);
+                names->Sort(nullptr);
+                ns->SetSortedExportedNames(names);
+            }
+
+            return names;
         }
 
         return JavascriptObject::CreateOwnStringPropertiesHelper(object, scriptContext);
