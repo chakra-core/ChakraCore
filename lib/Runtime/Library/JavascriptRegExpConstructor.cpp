@@ -165,7 +165,7 @@ namespace Js
         case PropertyIds::$7:
         case PropertyIds::$8:
         case PropertyIds::$9:
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         default:
             return JavascriptFunction::HasPropertyQuery(propertyId);
         }

@@ -197,7 +197,7 @@ namespace Js {
         PropertyOperation_ThrowOnDeleteIfNotConfig      = 0x400,
     };
 
-    enum PropertyQueryFlags : int
+    enum class PropertyQueryFlags : int
     {
         Property_NotFound                               = 0,
         Property_Found                                  = 1,

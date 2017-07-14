@@ -1089,12 +1089,12 @@ namespace Js
         const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
 
 #define HAS_PROPERTY(ownProperty) \
-        return (ownProperty ? Property_Found : DynamicObject::HasPropertyQuery(propertyId));
+        return (ownProperty ? PropertyQueryFlags::Property_Found : DynamicObject::HasPropertyQuery(propertyId));
 
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         case PropertyIds::global:
         case PropertyIds::multiline:
         case PropertyIds::ignoreCase:

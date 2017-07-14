@@ -91,12 +91,12 @@ namespace Js
     {
         if (propertyId == PropertyIds::length)
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptStringObject::IsValidIndex(propertyId, true));
@@ -238,7 +238,7 @@ namespace Js
 
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         // For NumericPropertyIds check that index is less than JavascriptString length
@@ -251,7 +251,7 @@ namespace Js
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags JavascriptStringObject::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -347,7 +347,7 @@ namespace Js
     {
         if (this->InternalUnwrap()->HasItem(index))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return DynamicObject::HasItemQuery(index);
     }
@@ -357,7 +357,7 @@ namespace Js
         JavascriptString* str = JavascriptString::FromVar(CrossSite::MarshalVar(requestContext, this->InternalUnwrap()));
         if (str->GetItemAt(index, value))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return DynamicObject::GetItemQuery(originalInstance, index, value, requestContext);
     }
