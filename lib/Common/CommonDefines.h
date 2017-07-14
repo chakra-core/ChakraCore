@@ -662,6 +662,13 @@
 #endif
 #endif
 
+
+#ifdef _M_IX86
+#define LOWER_SPLIT_INT64 1
+#else
+#define LOWER_SPLIT_INT64 0
+#endif
+
 #if (defined(_M_IX86) || defined(_M_X64)) && !defined(DISABLE_JIT)
 #define ASMJS_PLAT
 #endif

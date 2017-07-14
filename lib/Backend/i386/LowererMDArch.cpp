@@ -762,7 +762,7 @@ LowererMDArch::LowerInt64CallDst(IR::Instr * callInstr)
     RegNum highReturnReg = RegEDX;
     IR::Instr * movInstr;
 
-    Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(callInstr->GetDst());
+    Int64RegPair dstPair = m_func->FindOrCreateInt64Pair(callInstr->GetDst());
     callInstr->GetDst()->SetType(TyInt32);
     movInstr = callInstr->SinkDst(GetAssignOp(TyInt32), lowReturnReg);
     movInstr->UnlinkDst();
@@ -1402,7 +1402,7 @@ LowererMDArch::LoadInt64HelperArgument(IR::Instr * instrInsert, IR::Opnd * opndA
     IR::Instr * instrPrev = IR::Instr::New(Js::OpCode::LEA, espOpnd, opnd, this->m_func);
     instrInsert->InsertBefore(instrPrev);
 
-    Int64RegPair argPair = this->lowererMD->m_lowerer->FindOrCreateInt64Pair(opndArg);
+    Int64RegPair argPair = m_func->FindOrCreateInt64Pair(opndArg);
 
     opnd = IR::IndirOpnd::New(espOpnd, 0, TyInt32, this->m_func);
     IR::Instr * instr = IR::Instr::New(Js::OpCode::MOV, opnd, argPair.low, this->m_func);
@@ -1906,8 +1906,8 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
     {
         int dstSize = dst->GetSize();
         int srcSize = src1->GetSize();
-        Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst);
-        Int64RegPair src1Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src1);
+        Int64RegPair dstPair = m_func->FindOrCreateInt64Pair(dst);
+        Int64RegPair src1Pair = m_func->FindOrCreateInt64Pair(src1);
         IR::Instr* lowLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.low, src1Pair.low, m_func);
 
         instr->InsertBefore(lowLoadInstr);
@@ -2016,9 +2016,9 @@ LowererMDArch::EmitInt64Instr(IR::Instr *instr)
         highOpCode = Js::OpCode::SBB;
 binopCommon:
     {
-        Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst);
-        Int64RegPair src1Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src1);
-        Int64RegPair src2Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src2);
+        Int64RegPair dstPair = m_func->FindOrCreateInt64Pair(dst);
+        Int64RegPair src1Pair = m_func->FindOrCreateInt64Pair(src1);
+        Int64RegPair src2Pair = m_func->FindOrCreateInt64Pair(src2);
         IR::Instr* lowInstr = IR::Instr::New(lowOpCode, dstPair.low, src1Pair.low, src2Pair.low, m_func);
         instr->InsertBefore(lowInstr);
         LowererMD::Legalize(lowInstr);
@@ -2101,8 +2101,8 @@ void LowererMDArch::LowerInt64Branch(IR::Instr *instr)
     Assert(src1 && src1->IsInt64());
     Assert(src2 && src2->IsInt64());
 
-    Int64RegPair src1Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src1);
-    Int64RegPair src2Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src2);
+    Int64RegPair src1Pair = m_func->FindOrCreateInt64Pair(src1);
+    Int64RegPair src2Pair = m_func->FindOrCreateInt64Pair(src2);
 
     const auto insertJNE = [&]()
     {
@@ -2564,19 +2564,20 @@ LowererMDArch::EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInser
 {
     Assert(dst->IsRegOpnd() && dst->IsInt64());
     Assert(src->IsInt32());
+    Func* func = instrInsert->m_func;
 
-    Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst);
+    Int64RegPair dstPair = func->FindOrCreateInt64Pair(dst);
 
-    IR::RegOpnd *regEAX = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    IR::RegOpnd *regEAX = IR::RegOpnd::New(TyMachPtr, func);
     regEAX->SetReg(RegEAX);
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, regEAX, src, this->m_func));
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, regEAX, src, func));
 
-    IR::RegOpnd *regEDX = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    IR::RegOpnd *regEDX = IR::RegOpnd::New(TyMachPtr, func);
     regEDX->SetReg(RegEDX);
 
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::CDQ, regEDX, instrInsert->m_func));
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.low, regEAX, this->m_func));
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.high, regEDX, this->m_func));
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::CDQ, regEDX, func));
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.low, regEAX, func));
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.high, regEDX, func));
 }
 
 void
@@ -2584,10 +2585,11 @@ LowererMDArch::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInse
 {
     Assert(dst->IsRegOpnd() && dst->IsInt64());
     Assert(src->IsUInt32());
+    Func* func = instrInsert->m_func;
 
-    Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst);
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.high, IR::IntConstOpnd::New(0, TyInt32, this->m_func), this->m_func));
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.low, src, this->m_func));
+    Int64RegPair dstPair = func->FindOrCreateInt64Pair(dst);
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.high, IR::IntConstOpnd::New(0, TyInt32, func), func));
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.low, src, func));
 }
 
 void
@@ -2595,9 +2597,10 @@ LowererMDArch::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInser
 {
     Assert(dst->IsRegOpnd() && dst->IsInt32());
     Assert(src->IsInt64());
+    Func* func = instrInsert->m_func;
 
-    Int64RegPair srcPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src);
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dst, srcPair.low, this->m_func));
+    Int64RegPair srcPair = func->FindOrCreateInt64Pair(src);
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dst, srcPair.low, func));
 }
 
 bool
