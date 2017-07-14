@@ -1867,8 +1867,11 @@ LABEL1:
         {
             return exceptionInfo;
         }
+
         uintptr_t GetFaultingAddress() const
         {
+            // For AVs, the second element of ExceptionInformation array is address of inaccessible data
+            // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363082.aspx
             Assert(this->exceptionInfo->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION);
             Assert(this->exceptionInfo->ExceptionRecord->NumberParameters >= 2);
             return exceptionInfo->ExceptionRecord->ExceptionInformation[1];
