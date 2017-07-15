@@ -630,12 +630,12 @@ namespace Js
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
             // All the slots within the length of the array are valid.
-            return index < this->GetLength() ? Property_Found : Property_NotFound_NoProto;
+            return index < this->GetLength() ? PropertyQueryFlags::Property_Found : PropertyQueryFlags::Property_NotFound_NoProto;
         }
 
         if (!scriptContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, scriptContext))
         {
-            return Property_NotFound_NoProto;
+            return PropertyQueryFlags::Property_NotFound_NoProto;
         }
 
         return DynamicObject::HasPropertyQuery(propertyId);
@@ -677,15 +677,15 @@ namespace Js
             *value = this->DirectGetItem(index);
             if (JavascriptOperators::GetTypeId(*value) == Js::TypeIds_Undefined)
             {
-                return Property_NotFound;
+                return PropertyQueryFlags::Property_NotFound;
             }
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         if (!requestContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, requestContext))
         {
             *value = requestContext->GetLibrary()->GetUndefined();
-            return Property_NotFound_NoProto;
+            return PropertyQueryFlags::Property_NotFound_NoProto;
         }
 
         return DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
@@ -699,7 +699,7 @@ namespace Js
         if (CanonicalNumericIndexString(propertyNameString, requestContext))
         {
             *value = requestContext->GetLibrary()->GetUndefined();
-            return Property_NotFound_NoProto;
+            return PropertyQueryFlags::Property_NotFound_NoProto;
         }
 
         return DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
@@ -714,22 +714,22 @@ namespace Js
 
         if (index < GetLength())
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
-        return Property_NotFound_NoProto;
+        return PropertyQueryFlags::Property_NotFound_NoProto;
     }
 
     PropertyQueryFlags TypedArrayBase::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
         *value = DirectGetItem(index);
-        return index < GetLength() ? Property_Found : Property_NotFound_NoProto;
+        return index < GetLength() ? PropertyQueryFlags::Property_Found : PropertyQueryFlags::Property_NotFound_NoProto;
     }
 
     PropertyQueryFlags TypedArrayBase::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
         *value = DirectGetItem(index);
-        return index < GetLength() ? Property_Found : Property_NotFound_NoProto;
+        return index < GetLength() ? PropertyQueryFlags::Property_Found : PropertyQueryFlags::Property_NotFound_NoProto;
     }
 
     BOOL TypedArrayBase::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)

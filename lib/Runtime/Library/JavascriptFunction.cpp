@@ -2469,13 +2469,13 @@ LABEL1:
         case PropertyIds::arguments:
             if (this->HasRestrictedProperties())
             {
-                return Property_Found;
+                return PropertyQueryFlags::Property_Found;
             }
             break;
         case PropertyIds::length:
             if (this->IsScriptFunction())
             {
-                return Property_Found;
+                return PropertyQueryFlags::Property_Found;
             }
             break;
         }

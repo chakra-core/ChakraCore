@@ -416,18 +416,18 @@ namespace Js
         {
             if (this->GetItemAt(index, value, requestContext))
             {
-                return Property_Found;
+                return PropertyQueryFlags::Property_Found;
             }
         }
 
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext)))
         {
             // Property has been pre-set and not deleted. Use it.
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags HeapArgumentsObject::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -439,11 +439,11 @@ namespace Js
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext)))
         {
             // Property has been pre-set and not deleted. Use it.
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags HeapArgumentsObject::GetPropertyReferenceQuery(Var originalInstance, PropertyId id, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -486,7 +486,7 @@ namespace Js
     {
         if (this->HasItemAt(index))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return DynamicObject::HasItemQuery(index);
     }
@@ -495,7 +495,7 @@ namespace Js
     {
         if (this->GetItemAt(index, value, requestContext))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return DynamicObject::GetItemQuery(originalInstance, index, value, requestContext);
     }
