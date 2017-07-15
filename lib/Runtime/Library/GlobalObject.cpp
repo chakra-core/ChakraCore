@@ -1790,7 +1790,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags((this->directHostObject && JavascriptOperators::GetProperty(this->directHostObject, propertyId, value, requestContext, info)) ||
             (this->hostObject && JavascriptOperators::GetProperty(this->hostObject, propertyId, value, requestContext, info)));
@@ -1835,7 +1835,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyReferenceQuery(originalInstance, propertyId, value, info, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags((this->directHostObject && JavascriptOperators::GetPropertyReference(this->directHostObject, propertyId, value, requestContext, info)) ||
             (this->hostObject && JavascriptOperators::GetPropertyReference(this->hostObject, propertyId, value, requestContext, info)));
@@ -2205,7 +2205,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemReferenceQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags(
             (this->directHostObject && JavascriptConversion::PropertyQueryFlagsToBoolean(this->directHostObject->GetItemReferenceQuery(originalInstance, index, value, requestContext))) ||
@@ -2222,7 +2222,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         return JavascriptConversion::BooleanToPropertyQueryFlags((this->directHostObject && this->directHostObject->GetItem(originalInstance, index, value, requestContext)) ||

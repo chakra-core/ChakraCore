@@ -51,10 +51,10 @@ namespace Js
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL IsFixedProperty(PropertyId propertyId) override { return false; }
-        virtual PropertyQueryFlags HasItemQuery(uint32 index) override { return Property_NotFound; }
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override { return PropertyQueryFlags::Property_NotFound; }
         virtual BOOL HasOwnItem(uint32 index) override { return false; }
-        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return Property_NotFound; }
-        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return Property_NotFound; }
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return PropertyQueryFlags::Property_NotFound; }
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return PropertyQueryFlags::Property_NotFound; }
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override { *setterValue = nullptr; return DescriptorFlags::None; }
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override { return false; }
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override { return true; }

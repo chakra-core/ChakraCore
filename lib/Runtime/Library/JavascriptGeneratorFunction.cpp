@@ -247,7 +247,7 @@ namespace Js
     {
         if (propertyId == PropertyIds::length)
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         if (propertyId == PropertyIds::caller || propertyId == PropertyIds::arguments)

@@ -11868,7 +11868,7 @@ Case0:
     {
         if (propertyId == PropertyIds::length)
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         ScriptContext* scriptContext = GetScriptContext();
@@ -12120,7 +12120,7 @@ Case0:
     {
         if (GetPropertyBuiltIns(propertyId, value))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         ScriptContext* scriptContext = GetScriptContext();
@@ -12143,7 +12143,7 @@ Case0:
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         return DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
