@@ -60,6 +60,13 @@
   </test>
   <test>
     <default>
+      <files>bug11370283.js</files>
+      <compile-flags>-bgjit- -lic:1</compile-flags>
+      <tags>BugFix,exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug4916987.js</files>
       <compile-flags>-mic:1 -off:simplejit</compile-flags>
       <tags>BugFix</tags>
