@@ -2572,7 +2572,6 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
             if (this->RemoveFlowEdgeToFinallyOnExceptionBlock(instr))
             {
                 *isInstrRemoved = true;
-                this->currentBlock->RemoveInstr(instr);
                 return instrNext;
             }
         }
@@ -17660,14 +17659,39 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
     }
 
     Assert(finallyBlock && predBlock);
+
     if (this->func->m_fg->FindEdge(predBlock, finallyBlock))
     {
         predBlock->RemoveDeadSucc(finallyBlock, this->func->m_fg);
+
+        if (instr->m_opcode == Js::OpCode::BrOnException)
+        {
+            this->currentBlock->RemoveInstr(instr);
+        }
+
+        if (finallyBlock->GetFirstInstr()->AsLabelInstr()->IsUnreferenced())
+        {
+            // Traverse predBlocks of finallyBlock, if any of the preds have a different region, set m_hasNonBranchRef to true
+            // If not, this label can get eliminated and an incorrect region from the predecessor can get propagated in lowered code
+            // See test3() in tryfinallytests.js
+
+            Region * finallyRegion = finallyBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
+            FOREACH_PREDECESSOR_BLOCK(pred, finallyBlock)
+            {
+                Region * predRegion = pred->GetFirstInstr()->AsLabelInstr()->GetRegion();
+                if (predRegion != finallyRegion)
+                {
+                    finallyBlock->GetFirstInstr()->AsLabelInstr()->m_hasNonBranchRef = true;
+                }
+            } NEXT_PREDECESSOR_BLOCK;
+        }
+
         if (predBlock == this->currentBlock)
         {
             predBlock->DecrementDataUseCount();
         }
     }
+
     return true;
 }
 

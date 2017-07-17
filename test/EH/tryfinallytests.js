@@ -46,6 +46,23 @@ function test2() {
   ary | 0;
 }
 
+function test3() {
+  var IntArr0 = new Array();
+  var VarArr0 = [];
+  try {
+  } catch (ex) {
+  } finally {
+    do {
+      try {
+        VarArr0.reverse();
+      } catch (ex) {
+        continue;
+      } finally {
+      }
+    } while (IntArr0[5]);
+  }
+}
+
 function test5() {
   for (let rwcjvd = 0, ljcyer = /x/g; rwcjvd; rwcjvd) {
     {
@@ -73,6 +90,10 @@ test1();
 test2();
 test2();
 test2();
+
+test3();
+test3();
+test3();
 
 test5();
 test5();
