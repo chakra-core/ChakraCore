@@ -107,6 +107,28 @@ function test6() {
 }
 test6();
 
+function test7() {
+  var obj0 = {};
+  var arrObj0 = {};
+  var func3 = function () {
+    return typeof func3.caller == 'object';
+  };
+  obj0.method0 = func3;
+  var protoObj0 = Object(obj0);
+  var proxyHandler = {};
+  do {
+  } while (protoObj0.method0());
+  var v0 = new Proxy(obj0.method0, proxyHandler);
+  var sc0 = WScript.LoadScript('', 'samethread');
+  sc0.v0 = v0;
+  sc0.arrObj0 = arrObj0;
+  sc0.obj0 = obj0;
+  sc0.protoObj0 = protoObj0;
+  var sc0_cctx = sc0.WScript.LoadScript('function foo() { var _oo1obj = (function(_oo1a) {\n  var _oo1obj = {};\n  _oo1obj.prop1 = v0(arrObj0);\n  return _oo1obj;\n})(typeof(arrObj0.prop0)  == \'object\') ;\n }');
+  sc0_cctx.foo();
+}
+test7();
+
 // In Chakra when calling "foo(arg1, arg2, ...)", we assume all the
 // participating components -- "foo", "arg1", "arg2"... -- are either from
 // executing context (caller) or properly cross-site marshalled.
