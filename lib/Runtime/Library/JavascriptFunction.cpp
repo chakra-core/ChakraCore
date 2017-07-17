@@ -2805,7 +2805,11 @@ LABEL1:
             HRESULT hr = scriptContext->GetHostScriptContext()->CheckCrossDomainScriptContext(funcCaller->GetScriptContext());
             if (S_OK != hr)
             {
-                *value = scriptContext->GetLibrary()->GetNull();
+                *value = nullValue;
+            }
+            else
+            {
+                *value = CrossSite::MarshalVar(requestContext, funcCaller);
             }
         }
 
