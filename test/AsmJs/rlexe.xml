@@ -941,16 +941,16 @@
       <tags>exclude_chk</tags>
     </default>
   </test>
-<!--
   <test>
     <default>
       <files>params.js</files>
       <baseline>params.baseline</baseline>
       <compile-flags>-testtrace:asmjs -args 14000 -endargs</compile-flags>
+      <!-- todo:: On unix platforms there is more stack available,
+           so we need to find the right limit to test in order to not timeout -->
       <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
--->
   <test>
     <default>
       <files>nested.js</files>
