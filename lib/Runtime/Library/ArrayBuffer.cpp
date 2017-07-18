@@ -615,16 +615,16 @@ namespace Js
                         recycler->ReportExternalMemoryFailure(length);
                     }
                 }
-                else
-                {
-                    JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-                }
             }
 
             if (buffer != nullptr)
             {
                 bufferLength = length;
                 ZeroMemory(buffer, bufferLength);
+            }
+            else
+            {
+                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
             }
         }
     }

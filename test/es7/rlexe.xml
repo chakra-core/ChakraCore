@@ -106,10 +106,4 @@
       <tags>exclude_amd64</tags>
     </default>
   </test>
-  <test>
-    <default>
-      <files>arraybuffer_constructor.js</files>
-      <tags>exclude_amd64</tags>
-    </default>
-  </test>
 </regress-exe>
