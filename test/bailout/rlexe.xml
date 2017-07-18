@@ -251,4 +251,10 @@
       <files>spill.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug12782316.js</files>
+      <compile-flags>-force:fieldcopyprop</compile-flags>
+    </default>
+  </test>
 </regress-exe>
