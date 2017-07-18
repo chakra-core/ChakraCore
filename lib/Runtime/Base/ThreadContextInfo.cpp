@@ -458,9 +458,9 @@ ThreadContextInfo::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetV
             }
             else if (gle == STATUS_PROCESS_IS_TERMINATING)
             {
-	            // When this error is set, the target process is exiting and thus cannot proceed with
-	            // JIT output. Throw this exception to safely abort this call.
-	            throw Js::OperationAbortedException();
+                // When this error is set, the target process is exiting and thus cannot proceed with
+                // JIT output. Throw this exception to safely abort this call.
+                throw Js::OperationAbortedException();
             }
             else
             {
