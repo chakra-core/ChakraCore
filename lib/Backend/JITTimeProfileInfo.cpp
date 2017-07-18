@@ -175,7 +175,7 @@ intptr_t
 JITTimeProfileInfo::GetFldInfoAddr(uint fieldAccessId) const
 {
     Assert(fieldAccessId < GetProfiledFldCount());
-    return m_profileData.fldDataAddr + fieldAccessId;
+    return m_profileData.fldDataAddr + fieldAccessId * sizeof(Js::FldInfo);
 }
 
 ValueType
