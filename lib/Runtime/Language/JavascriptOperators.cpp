@@ -1148,20 +1148,6 @@ CommonNumber:
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
         }
 
-        if (ModuleNamespace::Is(object))
-        {
-            ModuleNamespace *ns = ModuleNamespace::FromVar(object);
-            JavascriptArray *names = ns->GetSortedExportedNames();
-            if (names == nullptr)
-            {
-                names = JavascriptObject::CreateOwnStringPropertiesHelper(object, scriptContext);
-                names->Sort(nullptr);
-                ns->SetSortedExportedNames(names);
-            }
-
-            return names;
-        }
-
         return JavascriptObject::CreateOwnStringPropertiesHelper(object, scriptContext);
     }
 

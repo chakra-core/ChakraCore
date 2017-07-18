@@ -25,7 +25,7 @@ namespace Js
         Field(ModuleNamespace::UnambiguousExportMap*) nonLocalMap;
         Field(BigPropertyIndex) currentLocalMapIndex;
         Field(BigPropertyIndex) currentNonLocalMapIndex;
-        Field(bool) doneWithLocalExports;
+        Field(bool) doneWithExports;
         Field(bool) doneWithSymbol;
         Field(EnumeratorFlags) flags;
     };

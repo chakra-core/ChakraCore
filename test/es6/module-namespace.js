@@ -241,8 +241,21 @@ var tests = [
                 var p = new Proxy(ns, {});
                 var names = ["sym0","default","$","$$","_","\u03bb","aa","A","a","zz","z","\u03bc","Z","za","__","az","\u03c0"].sort();
 
-                assert.areEqual(names, Object.getOwnPropertyNames(ns), "ModuleNamespace");
-                assert.areEqual(names, Object.getOwnPropertyNames(p), "Proxy");
+                var verifyNamespaceOwnProperty = function(obj, objKind) {
+                    assert.areEqual(names, Object.getOwnPropertyNames(obj), objKind+" getOwnPropertyNames()");
+
+                    var propDesc = Object.getOwnPropertyDescriptors(obj);
+                    assert.areEqual('{"value":"Module","writable":false,"enumerable":false,"configurable":false}', JSON.stringify(propDesc[Symbol.toStringTag]),
+                        objKind+" getOwnPropertyDescriptors() @@toStringTag");
+                    assert.areEqual(names, Object.keys(propDesc), "ModuleNamespace", objKind+" getOwnPropertyDescriptors()");
+                };
+
+                verifyNamespaceOwnProperty(ns, "ModuleNamespace");
+                verifyNamespaceOwnProperty(p, "Proxy");
+
+                var propEn = [];
+                for (var k in ns) { propEn.push(k); }
+                assert.areEqual(names, propEn, "ModuleNamespace enumerator");
                 `;
             testModuleScript(functionBody, "Test importing as different binding identifiers", false);
        }
