@@ -29,8 +29,7 @@ namespace Js
 
         static ModuleNamespace* GetModuleNamespace(ModuleRecordBase* moduleRecord);
         void Initialize();
-        JavascriptArray *GetSortedExportedNames() { return this->sortedExportedNames; }
-        void SetSortedExportedNames(JavascriptArray *val) { this->sortedExportedNames = val; }
+        ListForListIterator* GetSortedExportedNames() { return this->sortedExportedNames; }
         static bool Is(Var aValue) {  return JavascriptOperators::GetTypeId(aValue) == TypeIds_ModuleNamespace; }
         static ModuleNamespace* FromVar(Var obj) { Assert(JavascriptOperators::GetTypeId(obj) == TypeIds_ModuleNamespace); return static_cast<ModuleNamespace*>(obj); }
 
@@ -86,7 +85,7 @@ namespace Js
         Field(ModuleRecordBase*) moduleRecord;
         Field(UnambiguousExportMap*) unambiguousNonLocalExports;
         Field(SimplePropertyDescriptorMap*) propertyMap;   // local exports.
-        Field(JavascriptArray*) sortedExportedNames;   // sorted exported names
+        Field(ListForListIterator*) sortedExportedNames;   // sorted exported names for both local and indirect exports; excludes symbols.
         Field(Field(Var)*) nsSlots;
 
         void SetNSSlotsForModuleNS(Field(Var)* nsSlot) { this->nsSlots = nsSlot; }
