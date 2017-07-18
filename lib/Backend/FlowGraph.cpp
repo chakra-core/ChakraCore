@@ -693,6 +693,7 @@ void FlowGraph::InsertEdgeFromFinallyToEarlyExit(BasicBlock *finallyEndBlock, IR
 
         IR::BranchInstr *brToExit = IR::BranchInstr::New(Js::OpCode::BrOnException, exitLabel, this->func);
         brToExit->m_brFinallyToEarlyExit = true;
+        brToExit->SetByteCodeOffset(lastInstr);
         leaveLabel->InsertBefore(brToExit);
 
         this->AddBlock(brLabel, brToExit, finallyEndBlock->GetNext(), finallyEndBlock /*prevBlock*/);
@@ -704,6 +705,7 @@ void FlowGraph::InsertEdgeFromFinallyToEarlyExit(BasicBlock *finallyEndBlock, IR
     {
         // If the Leave/LeaveNull at the end of finally was preceeded by a Label, we reuse the block inserting BrOnException to early exit in it
         IR::BranchInstr *brToExit = IR::BranchInstr::New(Js::OpCode::BrOnException, exitLabel, this->func);
+        brToExit->SetByteCodeOffset(lastInstr);
         brToExit->m_brFinallyToEarlyExit = true;
         leaveLabel->InsertBefore(brToExit);
         this->AddEdge(finallyEndBlock, exitLabel->GetBasicBlock());
