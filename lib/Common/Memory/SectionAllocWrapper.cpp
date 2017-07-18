@@ -85,7 +85,7 @@ PVOID MapView(HANDLE process, HANDLE sectionHandle, size_t size, size_t offset, 
         {
             return nullptr;
         }
-        flags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE;
+        flags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE_READ;
     }
 
 #if USEFILEMAP2
@@ -590,7 +590,7 @@ SectionAllocWrapper::Alloc(LPVOID requestAddress, size_t dwSize, DWORD allocatio
 
         if ((allocationType & MEM_COMMIT) == MEM_COMMIT)
         {
-            const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE;
+            const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE_READ;
             address = VirtualAllocEx(this->process, address, dwSize, MEM_COMMIT, allocProtectFlags);
         }
     }
@@ -717,7 +717,7 @@ PreReservedSectionAllocWrapper::IsInRange(void * address)
     {
         MEMORY_BASIC_INFORMATION memBasicInfo;
         size_t bytes = VirtualQueryEx(this->process, address, &memBasicInfo, sizeof(memBasicInfo));
-        Assert(bytes == 0 || (memBasicInfo.State == MEM_COMMIT && memBasicInfo.AllocationProtect == PAGE_EXECUTE));
+        Assert(bytes == 0 || (memBasicInfo.State == MEM_COMMIT && memBasicInfo.AllocationProtect == PAGE_EXECUTE_READ));
     }
 #endif
     return isInRange;
@@ -920,7 +920,7 @@ LPVOID PreReservedSectionAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
             AutoEnableDynamicCodeGen enableCodeGen;
 #endif
 
-            const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE;
+            const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE_READ;
             allocatedAddress = (char *)VirtualAllocEx(this->process, addressToReserve, dwSize, MEM_COMMIT, allocProtectFlags);
             if (allocatedAddress == nullptr)
             {

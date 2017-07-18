@@ -151,12 +151,14 @@ void Scanner<EncodingPolicy>::SetText(EncodedCharPtr pszSrc, size_t offset, size
     m_DeferredParseFlags = ScanFlagNone;
 }
 
+#if ENABLE_BACKGROUND_PARSING
 template <typename EncodingPolicy>
 void Scanner<EncodingPolicy>::PrepareForBackgroundParse(Js::ScriptContext *scriptContext)
 {
     scriptContext->GetThreadContext()->GetStandardChars((EncodedChar*)0);
     scriptContext->GetThreadContext()->GetStandardChars((char16*)0);
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Number of code points from 'first' up to, but not including the next
