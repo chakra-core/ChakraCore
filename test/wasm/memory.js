@@ -146,7 +146,7 @@ test({init: 0, max: 5});
 test({init: 0, max: 10});
 test({init: 5});
 test({init: 5, max: 10});
-test({init: 1 << 14, checkOOM: true});
+// test({init: 1 << 14, checkOOM: true}); // ArrayBuffer will throw OOM instead of returning a null buffer
 try {
   test({init: 1 << 15});
   print("Failed. Expected an error when allocating WebAssembly.Memory too big");
