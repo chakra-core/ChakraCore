@@ -693,6 +693,7 @@ void FlowGraph::InsertEdgeFromFinallyToEarlyExit(BasicBlock *finallyEndBlock, IR
 
         IR::BranchInstr *brToExit = IR::BranchInstr::New(Js::OpCode::BrOnException, exitLabel, this->func);
         brToExit->m_brFinallyToEarlyExit = true;
+        brToExit->SetByteCodeOffset(lastInstr);
         leaveLabel->InsertBefore(brToExit);
 
         this->AddBlock(brLabel, brToExit, finallyEndBlock->GetNext(), finallyEndBlock /*prevBlock*/);
@@ -704,6 +705,7 @@ void FlowGraph::InsertEdgeFromFinallyToEarlyExit(BasicBlock *finallyEndBlock, IR
     {
         // If the Leave/LeaveNull at the end of finally was preceeded by a Label, we reuse the block inserting BrOnException to early exit in it
         IR::BranchInstr *brToExit = IR::BranchInstr::New(Js::OpCode::BrOnException, exitLabel, this->func);
+        brToExit->SetByteCodeOffset(lastInstr);
         brToExit->m_brFinallyToEarlyExit = true;
         leaveLabel->InsertBefore(brToExit);
         this->AddEdge(finallyEndBlock, exitLabel->GetBasicBlock());
@@ -1976,6 +1978,12 @@ FlowGraph::UpdateRegionForBlockFromEHPred(BasicBlock * block, bool reassign)
     if (!reassign && firstInstr->IsLabelInstr() && firstInstr->AsLabelInstr()->GetRegion())
     {
         Assert(this->func->HasTry() && (this->func->DoOptimizeTry() || (this->func->IsSimpleJit() && this->func->hasBailout)));
+        return;
+    }
+    if (block->isDead || block->isDeleted)
+    {
+        // We can end up calling this function with such blocks, return doing nothing
+        // See test5() in tryfinallytests.js
         return;
     }
 

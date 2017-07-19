@@ -2550,42 +2550,12 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     {
         ProcessTryHandler(instr);
     }
-    else if (instr->m_opcode == Js::OpCode::BrOnException)
+    else if (instr->m_opcode == Js::OpCode::BrOnException || instr->m_opcode == Js::OpCode::BrOnNoException)
     {
-        if (instr->AsBranchInstr()->GetTarget()->GetRegion()->GetType() != RegionType::RegionTypeFinally)
-        {
-            // BrOnException was added to model flow from try region to the catch region to assist
-            // the backward pass in propagating bytecode upward exposed info from the catch block
-            // to the try, and to handle break blocks. Removing it here as it has served its purpose
-            // and keeping it around might also have unintended effects while merging block data for
-            // the catch block's predecessors.
-            // Note that the Deadstore pass will still be able to propagate bytecode upward exposed info
-            // because it doesn't skip dead blocks for that.
-            this->RemoveFlowEdgeToCatchBlock(instr);
-            *isInstrRemoved = true;
-            this->currentBlock->RemoveInstr(instr);
-            return instrNext;
-        }
-        else
-        {
-            // We add BrOnException from a finally region to early exit
-            if (this->RemoveFlowEdgeToFinallyOnExceptionBlock(instr))
+        if (this->ProcessExceptionHandlingEdges(instr))
             {
             *isInstrRemoved = true;
-            this->currentBlock->RemoveInstr(instr);
             return instrNext;
-        }
-    }
-    }
-    else if (instr->m_opcode == Js::OpCode::BrOnNoException)
-    {
-        if (instr->AsBranchInstr()->GetTarget()->GetRegion()->GetType() == RegionType::RegionTypeCatch)
-        {
-            this->RemoveFlowEdgeToCatchBlock(instr);
-        }
-        else
-        {
-            this->RemoveFlowEdgeToFinallyOnExceptionBlock(instr);
         }
     }
 
@@ -17544,6 +17514,46 @@ GlobOpt::ProcessTryHandler(IR::Instr* instr)
     ToVar(writeThroughSymbolsSet, this->currentBlock);
 }
 
+bool
+GlobOpt::ProcessExceptionHandlingEdges(IR::Instr* instr)
+{
+    Assert(instr->m_opcode == Js::OpCode::BrOnException || instr->m_opcode == Js::OpCode::BrOnNoException);
+
+    if (instr->m_opcode == Js::OpCode::BrOnException)
+    {
+        if (instr->AsBranchInstr()->GetTarget()->GetRegion()->GetType() == RegionType::RegionTypeCatch)
+        {
+            // BrOnException was added to model flow from try region to the catch region to assist
+            // the backward pass in propagating bytecode upward exposed info from the catch block
+            // to the try, and to handle break blocks. Removing it here as it has served its purpose
+            // and keeping it around might also have unintended effects while merging block data for
+            // the catch block's predecessors.
+            // Note that the Deadstore pass will still be able to propagate bytecode upward exposed info
+            // because it doesn't skip dead blocks for that.
+            this->RemoveFlowEdgeToCatchBlock(instr);
+            this->currentBlock->RemoveInstr(instr);
+            return true;
+        }
+        else
+        {
+            // We add BrOnException from a finally region to early exit, remove that since it has served its purpose
+            return this->RemoveFlowEdgeToFinallyOnExceptionBlock(instr);
+        }
+    }
+    else if (instr->m_opcode == Js::OpCode::BrOnNoException)
+    {
+        if (instr->AsBranchInstr()->GetTarget()->GetRegion()->GetType() == RegionType::RegionTypeCatch)
+        {
+            this->RemoveFlowEdgeToCatchBlock(instr);
+        }
+        else
+        {
+            this->RemoveFlowEdgeToFinallyOnExceptionBlock(instr);
+        }
+    }
+    return false;
+}
+
 void
 GlobOpt::InsertToVarAtDefInTryRegion(IR::Instr * instr, IR::Opnd * dstOpnd)
 {
@@ -17664,14 +17674,39 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
     }
 
     Assert(finallyBlock && predBlock);
+
         if (this->func->m_fg->FindEdge(predBlock, finallyBlock))
         {
             predBlock->RemoveDeadSucc(finallyBlock, this->func->m_fg);
+
+        if (instr->m_opcode == Js::OpCode::BrOnException)
+        {
+            this->currentBlock->RemoveInstr(instr);
+        }
+
+        if (finallyBlock->GetFirstInstr()->AsLabelInstr()->IsUnreferenced())
+        {
+            // Traverse predBlocks of finallyBlock, if any of the preds have a different region, set m_hasNonBranchRef to true
+            // If not, this label can get eliminated and an incorrect region from the predecessor can get propagated in lowered code
+            // See test3() in tryfinallytests.js
+
+            Region * finallyRegion = finallyBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
+            FOREACH_PREDECESSOR_BLOCK(pred, finallyBlock)
+            {
+                Region * predRegion = pred->GetFirstInstr()->AsLabelInstr()->GetRegion();
+                if (predRegion != finallyRegion)
+                {
+                    finallyBlock->GetFirstInstr()->AsLabelInstr()->m_hasNonBranchRef = true;
+                }
+            } NEXT_PREDECESSOR_BLOCK;
+        }
+
             if (predBlock == this->currentBlock)
             {
                 predBlock->DecrementDataUseCount();
             }
         }
+
     return true;
 }
 
