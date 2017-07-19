@@ -531,13 +531,16 @@ namespace Js
         const int intConstCount = asmInfo->GetIntConstCount();
         const int doubleConstCount = asmInfo->GetDoubleConstCount();
         const int floatConstCount = asmInfo->GetFloatConstCount();
-        const int simdConstCount = asmInfo->GetSimdConstCount();
 
         // Offset of doubles from (double*)m_localSlot
         const int intOffsets = asmInfo->GetIntByteOffset() / sizeof(int);
         const int doubleOffsets = asmInfo->GetDoubleByteOffset() / sizeof(double);
         const int floatOffset = asmInfo->GetFloatByteOffset() / sizeof(float);
+
+#ifdef ENABLE_SIMDJS
+        const int simdConstCount = asmInfo->GetSimdConstCount();
         const int simdByteOffset = asmInfo->GetSimdByteOffset(); // in bytes
+#endif
 
         int argoffset = (int)args;
         // initialize argument location
