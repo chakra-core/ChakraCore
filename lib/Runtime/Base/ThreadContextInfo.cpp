@@ -5,6 +5,11 @@
 
 #include "RuntimeBasePch.h"
 
+// Originally defined in ntstatus.h, define here because including windows.h (via PCH
+// above) with ntstatus.h causes macro redefinition errors for the common errors defined
+// in both header files.
+#define STATUS_PROCESS_IS_TERMINATING    ((NTSTATUS)0xC000010AL)
+
 #if ENABLE_NATIVE_CODEGEN
 #include "CodeGenAllocators.h"
 #include "ServerThreadContext.h"
@@ -445,10 +450,17 @@ ThreadContextInfo::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetV
 
         if (!isCallTargetRegistrationSucceed)
         {
-            if (GetLastError() == ERROR_COMMITMENT_LIMIT)
+            DWORD gle = GetLastError();
+            if (gle == ERROR_COMMITMENT_LIMIT)
             {
                 //Throw OOM, if there is not enough virtual memory for paging (required for CFG BitMap)
                 Js::Throw::OutOfMemory();
+            }
+            else if (gle == STATUS_PROCESS_IS_TERMINATING)
+            {
+                // When this error is set, the target process is exiting and thus cannot proceed with
+                // JIT output. Throw this exception to safely abort this call.
+                throw Js::OperationAbortedException();
             }
             else
             {
