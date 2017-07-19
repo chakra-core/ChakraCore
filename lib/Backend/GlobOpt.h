@@ -921,6 +921,7 @@ private:
     void                    OptimizeIndirUses(IR::IndirOpnd *indir, IR::Instr * *pInstr, Value **indirIndexValRef);
     void                    RemoveCodeAfterNoFallthroughInstr(IR::Instr *instr);
     void                    ProcessTryHandler(IR::Instr* instr);
+    bool                    ProcessExceptionHandlingEdges(IR::Instr* instr);
     void                    InsertToVarAtDefInTryRegion(IR::Instr * instr, IR::Opnd * dstOpnd);
     void                    RemoveFlowEdgeToCatchBlock(IR::Instr * instr);
     bool                    RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr);
