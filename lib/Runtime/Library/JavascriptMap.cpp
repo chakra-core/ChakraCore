@@ -64,6 +64,15 @@ namespace Js
 
         Var iterable = (args.Info.Count > 1) ? args[1] : library->GetUndefined();
 
+        if (mapObject->map != nullptr)
+        {
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Map"), _u("Map"));
+        }
+
+        // ensure mapObject->map is created before trying to fetch the adder function
+        // see github#2747
+        mapObject->map = RecyclerNew(scriptContext->GetRecycler(), MapDataMap, scriptContext->GetRecycler());
+
         RecyclableObject* iter = nullptr;
         RecyclableObject* adder = nullptr;
 
@@ -77,13 +86,6 @@ namespace Js
             }
             adder = RecyclableObject::FromVar(adderVar);
         }
-
-        if (mapObject->map != nullptr)
-        {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Map"), _u("Map"));
-        }
-
-        mapObject->map = RecyclerNew(scriptContext->GetRecycler(), MapDataMap, scriptContext->GetRecycler());
 
         if (iter != nullptr)
         {
