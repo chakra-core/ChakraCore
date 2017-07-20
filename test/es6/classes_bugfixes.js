@@ -377,6 +377,18 @@ var tests = [
     }
   },
   {
+    name: "Issue3217: Reflect.construct permanently corrupts the invoked constructor",
+    body: function () {
+        function Base() {}
+        function Derived() {}
+        Derived.prototype = Object.create(Base.prototype);
+
+        assert.isFalse(new Base() instanceof Derived);
+        Reflect.construct(Base, [], Derived);
+        assert.isFalse(new Base() instanceof Derived);
+    }
+  },
+  {
     name: "OS12503560: assignment to super[prop] not accessing base class property",
     body: function () {
         var result = "";

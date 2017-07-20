@@ -938,13 +938,15 @@ namespace Js
                 resultObject,
                 JavascriptFunction::Is(functionObj) && functionObj->GetScriptContext() == scriptContext ?
                 JavascriptFunction::FromVar(functionObj) :
-                nullptr);
+                nullptr,
+                overridingNewTarget != nullptr);
     }
 
     Var JavascriptFunction::FinishConstructor(
         const Var constructorReturnValue,
         Var newObject,
-        JavascriptFunction *const function)
+        JavascriptFunction *const function,
+        bool hasOverridingNewTarget)
     {
         Assert(constructorReturnValue);
 
@@ -954,7 +956,9 @@ namespace Js
             newObject = constructorReturnValue;
         }
 
-        if (function && function->GetConstructorCache()->NeedsUpdateAfterCtor())
+        // #3217: Cases with overriding newTarget are not what constructor cache is intended for;
+        //     Bypass constructor cache to avoid prototype mismatch/confusion.
+        if (function && function->GetConstructorCache()->NeedsUpdateAfterCtor() && !hasOverridingNewTarget)
         {
             JavascriptOperators::UpdateNewScObjectCache(function, newObject, function->GetScriptContext());
         }
