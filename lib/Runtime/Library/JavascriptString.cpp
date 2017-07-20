@@ -1548,7 +1548,7 @@ case_2:
         }
 
         // We aren't going to bail early so let's create a StringBuilder and put the first raw string in there
-        CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)> stringBuilder(scriptContext);
+        CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)> stringBuilder = (scriptContext);
         stringBuilder.Append(string);
 
         // Each raw string is followed by a substitution expression except for the last one
@@ -1560,22 +1560,30 @@ case_2:
         // strcon2 /
         // expr2   \__ step 3
         // strcon3 /
-        for (uint32 i = 1; i < length; ++i)
+        const auto append = [&] (Var var)
         {
-            // First append the next substitution expression
-            // If we have an arg at [i+1] use that one, otherwise empty string (which is nop)
-            if (i+1 < args.Info.Count)
+            JavascriptString* string = JavascriptConversion::ToString(var, scriptContext);
+            stringBuilder.Append(string);
+        };
+        uint32 loopMax = length >= UINT_MAX ? UINT_MAX-1 : (uint32)length;
+        uint32 i = 1, argsCount = args.Info.Count;
+        for (; i < loopMax; ++i)
+        {
+            // First append the next substitution expression if available
+            if (i + 1 < argsCount)
             {
-                string = JavascriptConversion::ToString(args[i+1], scriptContext);
-
-                stringBuilder.Append(string);
+                append(args[i + 1]);
             }
 
             // Then append the next string (this will also cover the final string case)
-            var = JavascriptOperators::OP_GetElementI_UInt32(raw, i, scriptContext);
-            string = JavascriptConversion::ToString(var, scriptContext);
+            append(JavascriptOperators::OP_GetElementI_UInt32(raw, i, scriptContext));
+        }
 
-            stringBuilder.Append(string);
+        // Length can be greater than uint32 max (unlikely in practice)
+        for (int64 j = (int64)i; j < length; ++j)
+        {
+            // Append whatever is left in the array/object
+            append(JavascriptOperators::OP_GetElementI(raw, JavascriptNumber::ToVar(j, scriptContext), scriptContext));
         }
 
         // CompoundString::Builder has saved our lives
