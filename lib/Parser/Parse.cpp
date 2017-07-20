@@ -4500,6 +4500,9 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
                 bool couldBeObjectPattern = !isObjectPattern && m_token.tk == tkAsg;
 
+                // Saving the current state as we may change the isObjectPattern down below.
+                bool oldState = isObjectPattern;
+
                 if (couldBeObjectPattern)
                 {
                     declarationType = tkLCurly;
@@ -4540,6 +4543,8 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 {
                     pnodeArg = CreateBinNode(isObjectPattern && !couldBeObjectPattern ? knopObjectPatternMember : knopMemberShort, pnodeName, pnodeIdent);
                 }
+
+                isObjectPattern = oldState;
             }
             else
             {

@@ -8534,7 +8534,7 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
 
     if (nameNode->nop == knopComputedName)
     {
-        Assert(memberNode->nop == knopGetMember || memberNode->nop == knopSetMember || memberNode->nop == knopMember);
+        AssertOrFailFast(memberNode->nop == knopGetMember || memberNode->nop == knopSetMember || memberNode->nop == knopMember);
 
         Js::OpCode setOp = memberNode->nop == knopGetMember ?
             (isClassMember ? Js::OpCode::InitClassMemberGetComputedName : Js::OpCode::InitGetElemI) :
@@ -8606,7 +8606,7 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
     }
     else
     {
-        Assert(memberNode->nop == knopGetMember || memberNode->nop == knopSetMember);
+        AssertOrFailFast(memberNode->nop == knopGetMember || memberNode->nop == knopSetMember);
 
         Js::OpCode setOp = memberNode->nop == knopGetMember ?
             (isClassMember ? Js::OpCode::InitClassMemberGet : Js::OpCode::InitGetFld) :
