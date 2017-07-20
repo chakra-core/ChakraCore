@@ -64,6 +64,13 @@ namespace Js
 
         Var iterable = (args.Info.Count > 1) ? args[1] : library->GetUndefined();
 
+        if (setObject->set != nullptr)
+        {
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Set"), _u("Set"));
+        }
+
+        setObject->set = RecyclerNew(scriptContext->GetRecycler(), SetDataSet, scriptContext->GetRecycler());
+
         RecyclableObject* iter = nullptr;
         RecyclableObject* adder = nullptr;
 
@@ -77,14 +84,6 @@ namespace Js
             }
             adder = RecyclableObject::FromVar(adderVar);
         }
-
-        if (setObject->set != nullptr)
-        {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Set"), _u("Set"));
-        }
-
-
-        setObject->set = RecyclerNew(scriptContext->GetRecycler(), SetDataSet, scriptContext->GetRecycler());
 
         if (iter != nullptr)
         {
