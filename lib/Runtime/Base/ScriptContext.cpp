@@ -823,7 +823,7 @@ namespace Js
 
     PropertyId ScriptContext::GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName)
     {
-        Js::PropertyRecord const * propertyRecord;
+        Js::PropertyRecord const * propertyRecord = nullptr;
         threadContext->GetOrAddPropertyId(propName, &propertyRecord);
 
         this->TrackPid(propertyRecord);
@@ -838,7 +838,7 @@ namespace Js
 
     PropertyId ScriptContext::GetOrAddPropertyIdTracked(__in_ecount(propertyNameLength) LPCWSTR propertyName, __in int propertyNameLength)
     {
-        Js::PropertyRecord const * propertyRecord;
+        Js::PropertyRecord const * propertyRecord = nullptr;
         threadContext->GetOrAddPropertyId(propertyName, propertyNameLength, &propertyRecord);
         if (propertyNameLength == 2)
         {
@@ -1660,7 +1660,7 @@ namespace Js
         if (propertyStringMap != nullptr)
         {
             PropertyString *string = nullptr;
-            RecyclerWeakReference<PropertyString>* stringReference;
+            RecyclerWeakReference<PropertyString>* stringReference = nullptr;
             if (propertyStringMap->TryGetValue(propertyId, &stringReference))
             {
                 string = stringReference->Get();
