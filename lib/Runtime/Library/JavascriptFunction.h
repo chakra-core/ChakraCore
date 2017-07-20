@@ -113,7 +113,7 @@ namespace Js
         static Var CallRootFunctionInScript(JavascriptFunction* func, Arguments args);
 
         static Var CallAsConstructor(Var v, Var overridingNewTarget, Arguments args, ScriptContext* scriptContext, const Js::AuxArray<uint32> *spreadIndices = nullptr);
-        static Var FinishConstructor(const Var constructorReturnValue, Var newObject, JavascriptFunction *const function);
+        static Var FinishConstructor(const Var constructorReturnValue, Var newObject, JavascriptFunction *const function, bool hasOverridingNewTarget = false);
 
 #if DBG
         static void CheckValidDebugThunk(ScriptContext* scriptContext, RecyclableObject *function);
