@@ -213,9 +213,8 @@ Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
         }
     }
 #endif
-
-#if DBG
-    VerifyPageHeapFillAfterAlloc<attributes>(memBlock, size);
+#ifdef RECYCLER_PAGE_HEAP
+    VerifyPageHeapFillAfterAlloc(memBlock, size, attributes);
 #endif
     return memBlock;
 }
@@ -268,8 +267,8 @@ Recycler::AllocZeroWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
         }
     }
 
-#if DBG
-    VerifyPageHeapFillAfterAlloc<attributes>(obj, size);
+#ifdef RECYCLER_PAGE_HEAP
+    VerifyPageHeapFillAfterAlloc(obj, size, attributes);
 #endif
 
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
@@ -305,36 +304,6 @@ bool Recycler::IsPageHeapEnabled(size_t size)
     }
     return false;
 }
-
-#if DBG
-template <ObjectInfoBits attributes>
-void Recycler::VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size)
-{
-    if (IsPageHeapEnabled() && memBlock != nullptr)
-    {
-        HeapBlock* heapBlock = this->FindHeapBlock(memBlock);
-
-        if (this->IsPageHeapEnabled<attributes>(size))
-        {
-            if (heapBlock->IsLargeHeapBlock())
-            {
-                LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
-                if (largeHeapBlock->InPageHeapMode())
-                {
-                    LargeObjectHeader* header = (LargeObjectHeader*)(memBlock - sizeof(LargeObjectHeader));
-                    largeHeapBlock->VerifyPageHeapPattern();
-                    header->isPageHeapFillVerified = true;
-                }
-            }
-            else
-            {
-                // currently we don't support integration of large blocks
-                Assert(((SmallHeapBlockT<SmallAllocationBlockAttributes>*)heapBlock)->isIntegratedBlock);
-            }
-        }
-    }
-}
-#endif
 
 template <ObjectInfoBits attributes, bool isSmallAlloc, bool nothrow>
 inline char*
@@ -433,11 +402,7 @@ Recycler::RealAlloc(HeapInfo* heap, size_t size)
     }
 #endif
 
-    char* addr = LargeAlloc<nothrow>(heap, size, attributes);
-#if DBG
-    this->VerifyPageHeapFillAfterAlloc<attributes>(addr, size);
-#endif
-    return addr;
+    return LargeAlloc<nothrow>(heap, size, attributes);
 }
 
 template<typename T>
@@ -526,6 +491,7 @@ Recycler::ScanObjectInlineInterior(void ** obj, size_t byteCount)
 }
 
 template <bool doSpecialMark>
+NO_SANITIZE_ADDRESS
 inline void
 Recycler::ScanMemoryInline(void ** obj, size_t byteCount)
 {

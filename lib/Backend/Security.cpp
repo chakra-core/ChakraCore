@@ -234,8 +234,39 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
         return;
     }
 
+    const auto unlinkSrc = [&]() {
+        if (opnd != instr->GetSrc1())
+        {
+            Assert(opnd == instr->GetSrc2());
+            isSrc2 = true;
+            instr->UnlinkSrc2();
+        }
+        else
+        {
+            instr->UnlinkSrc1();
+        }
+    };
+
     switch(opnd->GetKind())
     {
+    case IR::OpndKindInt64Const:
+    {
+#if TARGET_64
+        IR::Int64ConstOpnd *intConstOpnd = opnd->AsInt64ConstOpnd();
+        if (!this->IsLargeConstant(intConstOpnd->GetValue()))
+        {
+            return;
+        }
+        unlinkSrc();
+        int64 encodedValue = EncodeValue(instr, intConstOpnd, intConstOpnd->GetValue(), &newOpnd);
+        intConstOpnd->SetEncodedValue(encodedValue);
+#else
+        Assert(UNREACHED);
+        return;
+#endif
+    }
+    break;
+
     case IR::OpndKindIntConst:
     {
         IR::IntConstOpnd *intConstOpnd = opnd->AsIntConstOpnd();
@@ -248,23 +279,9 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
         {
             return;
         }
+        unlinkSrc();
 
-        if (opnd != instr->GetSrc1())
-        {
-            Assert(opnd == instr->GetSrc2());
-            isSrc2 = true;
-            instr->UnlinkSrc2();
-        }
-        else
-        {
-            instr->UnlinkSrc1();
-        }
-
-#if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-        intConstOpnd->decodedValue = intConstOpnd->GetValue();
-#endif
-
-        intConstOpnd->SetValue(EncodeValue(instr, intConstOpnd, intConstOpnd->GetValue(), &newOpnd));
+        intConstOpnd->SetEncodedValue(EncodeValue(instr, intConstOpnd, intConstOpnd->GetValue(), &newOpnd));
     }
     break;
 
@@ -278,16 +295,7 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
             return;
         }
 
-        if (opnd != instr->GetSrc1())
-        {
-            Assert(opnd == instr->GetSrc2());
-            isSrc2 = true;
-            instr->UnlinkSrc2();
-        }
-        else
-        {
-            instr->UnlinkSrc1();
-        }
+        unlinkSrc();
 
         addrOpnd->SetEncodedValue((Js::Var)this->EncodeValue(instr, addrOpnd, (IntConstType)addrOpnd->m_address, &newOpnd), addrOpnd->GetAddrOpndKind());
     }
@@ -304,11 +312,8 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
         AssertMsg(indirOpnd->GetIndexOpnd() == nullptr, "Code currently doesn't support indir with offset and indexOpnd");
 
         IR::IntConstOpnd *indexOpnd = IR::IntConstOpnd::New(indirOpnd->GetOffset(), TyInt32, instr->m_func);
-#if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-        indexOpnd->decodedValue = indexOpnd->GetValue();
-#endif
 
-        indexOpnd->SetValue(EncodeValue(instr, indexOpnd, indexOpnd->GetValue(), &newOpnd));
+        indexOpnd->SetEncodedValue(EncodeValue(instr, indexOpnd, indexOpnd->GetValue(), &newOpnd));
         indirOpnd->SetOffset(0);
         indirOpnd->SetIndexOpnd(newOpnd);
     }
@@ -361,7 +366,7 @@ Security::EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue,
         IR::IntConstOpnd * cookieOpnd = IR::IntConstOpnd::New(cookie, TyInt32, instr->m_func);
 
 #if DBG_DUMP
-        cookieOpnd->name = _u("cookie");
+        cookieOpnd->SetName(_u("cookie"));
 #endif
 
         instrNew = IR::Instr::New(Js::OpCode::Xor_I4, regOpnd, regOpnd, cookieOpnd, instr->m_func);
@@ -390,7 +395,7 @@ Security::EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue,
         IR::IntConstOpnd * cookieOpnd = IR::IntConstOpnd::New(cookie, TyUint32, instr->m_func);
 
 #if DBG_DUMP
-        cookieOpnd->name = _u("cookie");
+        cookieOpnd->SetName(_u("cookie"));
 #endif
 
         instrNew = IR::Instr::New(Js::OpCode::Xor_I4, regOpnd, regOpnd, cookieOpnd, instr->m_func);

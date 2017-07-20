@@ -81,11 +81,6 @@
       "Symbol.iterator": "function <large string>"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "af1": "function <large string>",
       "af2": "function <large string>",

@@ -18,6 +18,9 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, (HANDLE)data->processHandle),
     m_codePageAllocators(nullptr, ALLOC_XDATA, &m_sectionAllocator, &m_preReservedSectionAllocator, (HANDLE)data->processHandle),
     m_codeGenAlloc(nullptr, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+    m_jitThunkEmitter(this, &m_sectionAllocator, (HANDLE)data->processHandle),
+#endif
     m_pageAlloc(nullptr, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
         PageAllocator::DefaultLowMaxFreePageCount :
@@ -79,7 +82,7 @@ ServerThreadContext::GetImplicitCallFlagsAddr() const
     return static_cast<intptr_t>(m_threadContextData.implicitCallFlagsAddr);
 }
 
-#if defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
+#if (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (defined(_M_IX86) || defined(_M_X64))
 intptr_t
 ServerThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {
@@ -135,6 +138,14 @@ ServerThreadContext::GetCodeGenAllocators()
 {
     return &m_codeGenAlloc;
 }
+
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+OOPJITThunkEmitter *
+ServerThreadContext::GetJITThunkEmitter()
+{
+    return &m_jitThunkEmitter;
+}
+#endif
 
 intptr_t
 ServerThreadContext::GetRuntimeChakraBaseAddress() const

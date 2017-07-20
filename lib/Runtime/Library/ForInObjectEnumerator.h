@@ -21,7 +21,7 @@ namespace Js
         } *shadowData;
 
         // States
-        bool canUseJitFastPath;
+        bool canUseJitFastPath; // used by GenerateFastBrBReturn and GenerateFastInlineHasOwnProperty
         bool enumeratingPrototype;
 
         BOOL TestAndSetEnumerated(PropertyId propertyId);
@@ -35,12 +35,13 @@ namespace Js
         ScriptContext * GetScriptContext() const { return enumerator.GetScriptContext(); }
         void Initialize(RecyclableObject* currentObject, ScriptContext * requestContext, bool enumSymbols = false, ForInCache * forInCache = nullptr);
         void Clear();
-        Var MoveAndGetNext(PropertyId& propertyId);
+        JavascriptString * MoveAndGetNext(PropertyId& propertyId);
 
         static RecyclableObject* GetFirstPrototypeWithEnumerableProperties(RecyclableObject* object, RecyclableObject** pFirstPrototype = nullptr);
 
 
         static uint32 GetOffsetOfCanUseJitFastPath() { return offsetof(ForInObjectEnumerator, canUseJitFastPath); }
+        static uint32 GetOffsetOfEnumeratingPrototype() { return offsetof(ForInObjectEnumerator, enumeratingPrototype); }
         static uint32 GetOffsetOfEnumeratorScriptContext() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfScriptContext(); }
         static uint32 GetOffsetOfEnumeratorObject() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfObject(); }
         static uint32 GetOffsetOfEnumeratorInitialType() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfInitialType(); }

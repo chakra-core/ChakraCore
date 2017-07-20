@@ -390,10 +390,10 @@ IRBuilder::Build()
     this->branchRelocList = JitAnew(m_tempAlloc, SList<BranchReloc *>, m_tempAlloc);
     Func * topFunc = this->m_func->GetTopFunc();
     if (topFunc->HasTry() &&
-        ((!topFunc->HasFinally() && !topFunc->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, topFunc)) ||
+        ((!topFunc->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, topFunc)) ||
         (topFunc->IsSimpleJit() && topFunc->GetJITFunctionBody()->DoJITLoopBody()))) // should be relaxed as more bailouts are added in Simple Jit
     {
-        this->catchOffsetStack = JitAnew(m_tempAlloc, SList<uint>, m_tempAlloc);
+        this->handlerOffsetStack = JitAnew(m_tempAlloc, SList<handlerStackElementType>, m_tempAlloc);
     }
 
     this->firstTemp = m_func->GetJITFunctionBody()->GetFirstTmpReg();
@@ -876,7 +876,7 @@ IRBuilder::Build()
 
     InsertLabels();
 
-    Assert(!this->catchOffsetStack || this->catchOffsetStack->Empty());
+    Assert(!this->handlerOffsetStack || this->handlerOffsetStack->Empty());
 
     // Insert bailout for ignore exception for labels, after all labels were finalized.
     ignoreExBranchInstrToOffsetMap.Map([this](IR::Instr* instr, int byteCodeOffset) {
@@ -1664,11 +1664,21 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         newOpcode = Js::OpCode::Ld_A;
         break;
 
+    case Js::OpCode::LdParamObj:
+        if (!m_func->GetJITFunctionBody()->HasScopeObject())
+        {
+            Js::Throw::FatalInternalError();
+        }
+        srcOpnd = BuildSrcOpnd(m_func->GetJITFunctionBody()->GetParamClosureReg());
+        isNotInt = true;
+        newOpcode = Js::OpCode::Ld_A;
+        break;
+
     case Js::OpCode::Throw:
         {
             srcOpnd = this->BuildSrcOpnd(srcRegOpnd);
-
-            if (this->catchOffsetStack && !this->catchOffsetStack->Empty())
+            if ((this->handlerOffsetStack && !this->handlerOffsetStack->Empty()) ||
+                finallyBlockLevel > 0)
             {
                 newOpcode = Js::OpCode::EHThrow;
             }
@@ -1781,9 +1791,10 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         return;
 
     case Js::OpCode::Catch:
-        if (this->catchOffsetStack)
+        if (this->handlerOffsetStack)
         {
-            this->catchOffsetStack->Pop();
+            Assert(this->handlerOffsetStack->Top().Second() == true);
+            this->handlerOffsetStack->Pop();
         }
         dstIsCatchObject = true;
         break;
@@ -2066,7 +2077,7 @@ IRBuilder::BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
             ValueType arrayType(ldElemInfo->GetArrayType());
             if(arrayType.IsLikelyNativeArray() &&
                 (
-                    (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
+                    (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
                     m_func->IsJitInDebugMode()
                 ))
             {
@@ -2080,7 +2091,7 @@ IRBuilder::BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
             }
             src1Opnd->SetValueType(arrayType);
 
-            if (m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch())
+            if (m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry())
             {
                 isProfiled = false;
             }
@@ -3504,9 +3515,9 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
     IR::ByteCodeUsesInstr *byteCodeUse;
     PropertySym *fieldSym = nullptr;
     StackSym *   stackFuncPtrSym = nullptr;
-    SymID        symID;
+    SymID        symID = m_func->GetJITFunctionBody()->GetLocalClosureReg();
     bool isLdSlotThatWasNotProfiled = false;
-    uint scopeSlotSize = 0;
+    uint scopeSlotSize = m_func->GetJITFunctionBody()->GetScopeSlotArraySize();
     StackSym* closureSym = m_func->GetLocalClosureSym();
 
     switch (newOpcode)
@@ -3515,14 +3526,9 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             scopeSlotSize = m_func->GetJITFunctionBody()->GetParamScopeSlotArraySize();
             closureSym = m_func->GetParamClosureSym();
             symID = m_func->GetJITFunctionBody()->GetParamClosureReg();
-            fieldSym = PropertySym::New(closureSym, slotId, (uint32)-1, (uint)-1, PropertyKindSlots, m_func);
-            goto LdLocalSlot;
+            // Fall through
 
         case Js::OpCode::LdLocalSlot:
-            scopeSlotSize = m_func->GetJITFunctionBody()->GetScopeSlotArraySize();
-            symID = m_func->GetJITFunctionBody()->GetLocalClosureReg();
-
-LdLocalSlot:
             if (PHASE_ON(Js::ClosureRangeCheckPhase, m_func))
             {
                 if ((uint32)slotId >= scopeSlotSize + Js::ScopeSlots::FirstSlotIndex)
@@ -3562,7 +3568,7 @@ LdLocalSlot:
                 this->EnsureLoopBodyLoadSlot(symID);
             }
 
-            fieldSym = fieldSym ? fieldSym : PropertySym::FindOrCreate(symID, slotId, (uint32)-1, (uint)-1, PropertyKindSlots, m_func);
+            fieldSym = PropertySym::FindOrCreate(symID, slotId, (uint32)-1, (uint)-1, PropertyKindSlots, m_func);
             fieldOpnd = IR::SymOpnd::New(fieldSym, TyVar, m_func);
             regOpnd = this->BuildDstOpnd(regSlot);
             instr = nullptr;
@@ -3587,12 +3593,9 @@ LdLocalSlot:
             closureSym = m_func->GetParamClosureSym();
             symID = m_func->GetJITFunctionBody()->GetParamClosureReg();
             newOpcode = Js::OpCode::LdLocalObjSlot;
-            goto LdLocalObjSlot;
+            // Fall through
 
         case Js::OpCode::LdLocalObjSlot:
-            symID = m_func->GetJITFunctionBody()->GetLocalClosureReg();
-
-LdLocalObjSlot:
             if (closureSym->HasByteCodeRegSlot())
             {
                 byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
@@ -3622,12 +3625,19 @@ LdLocalObjSlot:
             this->AddInstr(instr, offset);
             break;
 
+        case Js::OpCode::StParamSlot:
+        case Js::OpCode::StParamSlotChkUndecl:
+            scopeSlotSize = m_func->GetJITFunctionBody()->GetParamScopeSlotArraySize();
+            closureSym = m_func->GetParamClosureSym();
+            symID = m_func->GetJITFunctionBody()->GetParamClosureReg();
+            newOpcode = newOpcode == Js::OpCode::StParamSlot ? Js::OpCode::StLocalSlot : Js::OpCode::StLocalSlotChkUndecl;
+            // Fall through
+
         case Js::OpCode::StLocalSlot:
         case Js::OpCode::StLocalSlotChkUndecl:
-
             if (PHASE_ON(Js::ClosureRangeCheckPhase, m_func))
             {
-                if ((uint32)slotId >= m_func->GetJITFunctionBody()->GetScopeSlotArraySize() + Js::ScopeSlots::FirstSlotIndex)
+                if ((uint32)slotId >= scopeSlotSize + Js::ScopeSlots::FirstSlotIndex)
                 {
                     Js::Throw::FatalInternalError();
                 }
@@ -3660,7 +3670,6 @@ LdLocalObjSlot:
             }
             else
             {
-                symID = m_func->GetJITFunctionBody()->GetLocalClosureReg();
                 if (IsLoopBody())
                 {
                     this->EnsureLoopBodyLoadSlot(symID);
@@ -3683,9 +3692,15 @@ LdLocalObjSlot:
             }
             break;
 
+        case Js::OpCode::StParamObjSlot:
+        case Js::OpCode::StParamObjSlotChkUndecl:
+            closureSym = m_func->GetParamClosureSym();
+            symID = m_func->GetJITFunctionBody()->GetParamClosureReg();
+            newOpcode = newOpcode == Js::OpCode::StParamObjSlot ? Js::OpCode::StLocalObjSlot : Js::OpCode::StLocalObjSlotChkUndecl;
+            // Fall through
+
         case Js::OpCode::StLocalObjSlot:
         case Js::OpCode::StLocalObjSlotChkUndecl:
-
             if (closureSym->HasByteCodeRegSlot())
             {
                 byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
@@ -3694,7 +3709,7 @@ LdLocalObjSlot:
             }
 
             regOpnd = IR::RegOpnd::New(TyVar, m_func);
-            fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, m_func->GetJITFunctionBody()->GetLocalClosureReg(), (Js::DynamicObject::GetOffsetOfAuxSlots())/sizeof(Js::Var), (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
+            fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, symID, (Js::DynamicObject::GetOffsetOfAuxSlots())/sizeof(Js::Var), (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
             instr = IR::Instr::New(Js::OpCode::LdSlotArr, regOpnd, fieldOpnd, m_func);
             this->AddInstr(instr, offset);
 
@@ -4865,14 +4880,14 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
             // The property ID array needs to be both relocatable and available (so we can
             // get the slot capacity), so we need to just pass the offset to lower and let
             // lower take it from there...
-            srcOpnd = IR::IntConstOpnd::New(auxInsn->Offset, TyUint32, m_func, true);
+            srcOpnd = IR::IntConstOpnd::New(auxInsn->Offset, TyUint32, m_func);
             dstOpnd = this->BuildDstOpnd(dstRegSlot);
             dstOpnd->SetValueType(ValueType::GetObject(ObjectType::UninitializedObject));
             instr = IR::Instr::New(newOpcode, dstOpnd, srcOpnd, m_func);
 
             // Because we're going to be making decisions based off the value, we have to defer
             // this until we get to lowering.
-            instr->SetSrc2(IR::IntConstOpnd::New(literalObjectId, TyUint32, m_func, true));
+            instr->SetSrc2(IR::IntConstOpnd::New(literalObjectId, TyUint32, m_func));
 
             if (dstOpnd->m_sym->m_isSingleDef)
             {
@@ -5355,7 +5370,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
     {
         if(arrayType.IsLikelyNativeArray() &&
             (
-                (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
+                (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
                 m_func->IsJitInDebugMode()
             ))
         {
@@ -5378,7 +5393,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
         }
         indirOpnd->GetBaseOpnd()->SetValueType(arrayType);
 
-        if (m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch())
+        if (m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry())
         {
             isProfiledLoad = false;
             isProfiledStore = false;
@@ -6750,7 +6765,7 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
         IR::BranchInstr * branchInstr;
         IR::LabelInstr * labelInstr;
 
-        if (this->catchOffsetStack && !this->catchOffsetStack->Empty())
+        if (this->handlerOffsetStack && !this->handlerOffsetStack->Empty() && this->handlerOffsetStack->Top().Second())
         {
             // If the try region has a break block, we don't want the Flowgraph to move all of that code out of the loop
             // because an exception will bring the control back into the loop. The branch out of the loop (which is the
@@ -6759,16 +6774,30 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
             // "BrOnException $catch" is inserted before Leave's in the try region to instrument flow from the try region
             // to the catch region (which is in the loop).
             IR::BranchInstr * brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, nullptr, this->m_func);
-            this->AddBranchInstr(brOnException, offset, this->catchOffsetStack->Top());
+            this->AddBranchInstr(brOnException, offset, this->handlerOffsetStack->Top().First());
         }
 
         labelInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
         branchInstr = IR::BranchInstr::New(newOpcode, labelInstr, this->m_func);
         this->AddInstr(branchInstr, offset);
         this->AddInstr(labelInstr, Js::Constants::NoByteCodeOffset);
-
         break;
     }
+
+    case Js::OpCode::LeaveNull:
+        finallyBlockLevel--;
+        this->AddInstr(instr, offset);
+        break;
+
+    case Js::OpCode::Finally:
+        if (this->handlerOffsetStack)
+        {
+            Assert(this->handlerOffsetStack->Top().Second() == false);
+            this->handlerOffsetStack->Pop();
+        }
+        finallyBlockLevel++;
+        this->AddInstr(IR::Instr::New(Js::OpCode::Finally, this->m_func), offset);
+        break;
 
     case Js::OpCode::Break:
         if (m_func->IsJitInDebugMode())
@@ -6795,7 +6824,9 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
                 this->m_func),
             offset);
 
-        if (this->m_func->GetJITFunctionBody()->GetScopeSlotArraySize())
+        // Create a new local closure for the body when either body scope has scope slots allocated or
+        // eval is present which can leak declarations.
+        if (this->m_func->GetJITFunctionBody()->GetScopeSlotArraySize()  > 0 || this->m_func->GetJITFunctionBody()->HasScopeObject())
         {
             if (this->m_func->GetJITFunctionBody()->HasScopeObject())
             {
@@ -7042,9 +7073,13 @@ IRBuilder::BuildBr(Js::OpCode newOpcode, uint32 offset)
     }
 #endif
 
-    if ((newOpcode == Js::OpCode::TryCatch) && this->catchOffsetStack)
+    if ((newOpcode == Js::OpCode::TryCatch) && this->handlerOffsetStack)
     {
-        this->catchOffsetStack->Push(targetOffset);
+        this->handlerOffsetStack->Push(Pair<uint, bool>(targetOffset, true));
+    }
+    else if ((newOpcode == Js::OpCode::TryFinally) && this->handlerOffsetStack)
+    {
+        this->handlerOffsetStack->Push(Pair<uint, bool>(targetOffset, false));
     }
     branchInstr = IR::BranchInstr::New(newOpcode, nullptr, m_func);
     this->AddBranchInstr(branchInstr, offset, targetOffset);

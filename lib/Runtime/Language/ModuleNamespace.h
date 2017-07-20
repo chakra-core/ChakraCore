@@ -25,14 +25,13 @@ namespace Js
 
         class EntryInfo
         {
-        public:
-            static FunctionInfo SymbolIterator;
         };
 
         static ModuleNamespace* GetModuleNamespace(ModuleRecordBase* moduleRecord);
-        static Var EntrySymbolIterator(RecyclableObject* function, CallInfo callInfo, ...);
         void Initialize();
-        ListForListIterator* EnsureSortedExportedNames();
+        JavascriptArray *GetSortedExportedNames() { return this->sortedExportedNames; }
+        void SetSortedExportedNames(JavascriptArray *val) { this->sortedExportedNames = val; }
+        static bool Is(Var aValue) {  return JavascriptOperators::GetTypeId(aValue) == TypeIds_ModuleNamespace; }
         static ModuleNamespace* FromVar(Var obj) { Assert(JavascriptOperators::GetTypeId(obj) == TypeIds_ModuleNamespace); return static_cast<ModuleNamespace*>(obj); }
 
         virtual PropertyId GetPropertyId(BigPropertyIndex index) override;
@@ -52,19 +51,19 @@ namespace Js
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL IsFixedProperty(PropertyId propertyId) override { return false; }
-        virtual PropertyQueryFlags HasItemQuery(uint32 index) override { return Property_NotFound; }
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override { return PropertyQueryFlags::Property_NotFound; }
         virtual BOOL HasOwnItem(uint32 index) override { return false; }
-        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return Property_NotFound; }
-        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return Property_NotFound; }
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return PropertyQueryFlags::Property_NotFound; }
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return PropertyQueryFlags::Property_NotFound; }
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override { *setterValue = nullptr; return DescriptorFlags::None; }
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override { return false; }
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override { return true; }
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr);
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override { return false; }
         virtual BOOL GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext) override { return false; }
-        virtual BOOL IsWritable(PropertyId propertyId) override { return true; }
+        virtual BOOL IsWritable(PropertyId propertyId) override { return false; }
         virtual BOOL IsConfigurable(PropertyId propertyId) override { return false; }
-        virtual BOOL IsEnumerable(PropertyId propertyId) override { return true; }
+        virtual BOOL IsEnumerable(PropertyId propertyId) override { return false; }
         virtual BOOL SetEnumerable(PropertyId propertyId, BOOL value) override { return false; }
         virtual BOOL SetWritable(PropertyId propertyId, BOOL value) override { return false; }
         virtual BOOL IsProtoImmutable() const { return true; }
@@ -87,7 +86,7 @@ namespace Js
         Field(ModuleRecordBase*) moduleRecord;
         Field(UnambiguousExportMap*) unambiguousNonLocalExports;
         Field(SimplePropertyDescriptorMap*) propertyMap;   // local exports.
-        Field(ListForListIterator*) sortedExportedNames;   // sorted exported names for both local and indirect exports; excludes symbols.
+        Field(JavascriptArray*) sortedExportedNames;   // sorted exported names
         Field(Field(Var)*) nsSlots;
 
         void SetNSSlotsForModuleNS(Field(Var)* nsSlot) { this->nsSlots = nsSlot; }

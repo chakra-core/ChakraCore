@@ -15,21 +15,20 @@ namespace Wasm
         fSectIgnore,
     };
 
-#define WASM_SECTION(name, id, flag, precendent) bSect ## name,
+#define WASM_SECTION(intName, id, flag, precendent) bSect ## intName,
     enum SectionCode : uint8
     {
 #include "WasmSections.h"
         bSectLimit,
-        bsectLastKnownSection = bSectDataSegments
+        bsectLastKnownSection = bSectData
     };
 
     struct SectionInfo
     {
-        SectionInfo(SectionFlag, SectionCode, const char16*, const char*, const uint32);
+        SectionInfo(SectionFlag, SectionCode, const char16*, const uint32);
         SectionFlag flag;
         SectionCode precedent;
         const char16* name;
-        const char* id;
         const uint32 nameLength;
         static SectionInfo All[bSectLimit];
     };

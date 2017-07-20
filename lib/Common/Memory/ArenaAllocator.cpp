@@ -1111,8 +1111,33 @@ void InlineCacheFreeListPolicy::Release(void * policy)
 }
 
 #if DBG
-bool InlineCacheAllocator::IsAllZero()
+void InlineCacheAllocator::CheckIsAllZero(bool lockdown)
 {
+    ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
+    while (memoryBlock != nullptr)
+    {
+        Assert(memoryBlock->nbytes % sizeof(CacheLayout) == 0);
+        ArenaMemoryBlock * next = memoryBlock->next;
+        CacheLayout* endPtr = (CacheLayout*)(memoryBlock->GetBytes() + memoryBlock->nbytes);
+        for (CacheLayout* cache = (CacheLayout*)memoryBlock->GetBytes(); cache < endPtr; cache++)
+        {
+            unsigned char* weakRefBytes = (unsigned char *)cache->weakRefs;
+#ifdef ARENA_MEMORY_VERIFY
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0)
+                || IsAll(weakRefBytes, sizeof(cache->weakRefs), InlineCacheFreeListPolicy::DbgFreeMemFill));
+#else
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0));
+#endif
+        }
+
+        memoryBlock = next;
+    }
+
+    if (verifiedAllZeroAndLockedDown && lockdown)
+    {
+        return;
+    }
+
     UpdateCacheBlock();
 
     // See InlineCacheAllocator::ZeroAll for why we ignore the strongRef slot of the CacheLayout.
@@ -1125,25 +1150,22 @@ bool InlineCacheAllocator::IsAllZero()
         for (CacheLayout* cache = (CacheLayout*)bigBlock->GetBytes(); cache < endPtr; cache++)
         {
             unsigned char* weakRefBytes = (unsigned char *)cache->weakRefs;
-            for (size_t i = 0; i < sizeof(cache->weakRefs); i++)
-            {
-                // If we're verifying arena memory (in debug builds) caches on the free list
-                // will be debug pattern filled (specifically, at least their weak reference slots).
-                // All other caches must be zeroed out (again, at least their weak reference slots).
+            // If we're verifying arena memory (in debug builds) caches on the free list
+            // will be debug pattern filled (specifically, at least their weak reference slots).
+            // All other caches must be zeroed out (again, at least their weak reference slots).
 #ifdef ARENA_MEMORY_VERIFY
-                if (weakRefBytes[i] != NULL && weakRefBytes[i] != InlineCacheFreeListPolicy::DbgFreeMemFill)
-                {
-                    AssertMsg(false, "Inline cache arena is not zeroed!");
-                    return false;
-                }
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0) 
+                || IsAll(weakRefBytes, sizeof(cache->weakRefs), InlineCacheFreeListPolicy::DbgFreeMemFill));
 #else
-                if (weakRefBytes[i] != NULL)
-                {
-                    AssertMsg(false, "Inline cache arena is not zeroed!");
-                    return false;
-                }
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0));
 #endif
-            }
+        }
+
+        if (lockdown)
+        {
+            // make it read only, so we verify all zero once and it won't change afterwards
+            DWORD oldProtect;
+            VirtualProtect(bigBlock->allocation->GetAddress(), bigBlock->allocation->GetSize(), PAGE_READONLY, &oldProtect);
         }
         bigBlock = bigBlock->nextBigBlock;
     }
@@ -1156,59 +1178,57 @@ bool InlineCacheAllocator::IsAllZero()
         for (CacheLayout* cache = (CacheLayout*)bigBlock->GetBytes(); cache < endPtr; cache++)
         {
             char* weakRefBytes = (char *)cache->weakRefs;
-            for (size_t i = 0; i < sizeof(cache->weakRefs); i++)
-            {
-                // If we're verifying arena memory (in debug builds) caches on the free list
-                // will be debug pattern filled (specifically, their weak reference slots).
-                // All other caches must be zeroed out (again, their weak reference slots).
+
 #ifdef ARENA_MEMORY_VERIFY
-                if (weakRefBytes[i] != NULL && weakRefBytes[i] != InlineCacheFreeListPolicy::DbgFreeMemFill)
-                {
-                    AssertMsg(false, "Inline cache arena is not zeroed!");
-                    return false;
-                }
+            Assert(IsAll((byte*)weakRefBytes, sizeof(cache->weakRefs), 0)
+                || IsAll((byte*)weakRefBytes, sizeof(cache->weakRefs), InlineCacheFreeListPolicy::DbgFreeMemFill));
 #else
-                if (weakRefBytes[i] != NULL)
-                {
-                    AssertMsg(false, "Inline cache arena is not zeroed!");
-                    return false;
-                }
+            Assert(IsAll(weakRefBytes, sizeof(cache->weakRefs), 0));
 #endif
-            }
+        }
+        if (lockdown)
+        {
+            DWORD oldProtect;
+            VirtualProtect(bigBlock->allocation->GetAddress(), bigBlock->allocation->GetSize(), PAGE_READONLY, &oldProtect);
         }
         bigBlock = bigBlock->nextBigBlock;
     }
 
-    ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
-    while (memoryBlock != nullptr)
+    if (lockdown)
     {
-        Assert(memoryBlock->nbytes % sizeof(CacheLayout) == 0);
-        ArenaMemoryBlock * next = memoryBlock->next;
-        CacheLayout* endPtr = (CacheLayout*)(memoryBlock->GetBytes() + memoryBlock->nbytes);
-        for (CacheLayout* cache = (CacheLayout*)memoryBlock->GetBytes(); cache < endPtr; cache++)
-        {
-            unsigned char* weakRefBytes = (unsigned char *)cache->weakRefs;
-            for (size_t i = 0; i < sizeof(cache->weakRefs); i++)
-            {
-#ifdef ARENA_MEMORY_VERIFY
-                if (weakRefBytes[i] != NULL && weakRefBytes[i] != InlineCacheFreeListPolicy::DbgFreeMemFill)
-                {
-                    AssertMsg(false, "Inline cache arena is not zeroed!");
-                    return false;
-                }
-#else
-                if (weakRefBytes[i] != NULL)
-                {
-                    AssertMsg(false, "Inline cache arena is not zeroed!");
-                    return false;
-                }
-#endif
-            }
-        }
-        memoryBlock = next;
+        verifiedAllZeroAndLockedDown = true;
     }
+}
 
-    return true;
+void InlineCacheAllocator::Unlock()
+{
+    if (verifiedAllZeroAndLockedDown)
+    {
+        // restore the pages to read-write before returning to page allocator
+        BigBlock *bigBlock = this->bigBlocks;
+        while (bigBlock != NULL)
+        {
+            DWORD oldProtect;
+            VirtualProtect(bigBlock->allocation->GetAddress(), bigBlock->allocation->GetSize(), PAGE_READWRITE, &oldProtect);
+            bigBlock = bigBlock->nextBigBlock;
+        }
+
+        bigBlock = this->fullBlocks;
+        while (bigBlock != NULL)
+        {
+            DWORD oldProtect;
+            VirtualProtect(bigBlock->allocation->GetAddress(), bigBlock->allocation->GetSize(), PAGE_READWRITE, &oldProtect);
+
+            bigBlock = bigBlock->nextBigBlock;
+        }
+
+        verifiedAllZeroAndLockedDown = false;
+    }
+}
+
+InlineCacheAllocator::~InlineCacheAllocator()
+{
+    Unlock();
 }
 #endif
 
@@ -1439,49 +1459,28 @@ void InlineCacheAllocator::ClearCachesWithDeadWeakRefs(Recycler* recycler)
 #else
 
 #if DBG
-bool InlineCacheAllocator::IsAllZero()
+void InlineCacheAllocator::CheckIsAllZero()
 {
     UpdateCacheBlock();
     BigBlock *blockp = this->bigBlocks;
     while (blockp != NULL)
     {
-        for (size_t i = 0; i < blockp->currentByte; i++)
-        {
-            if (blockp->GetBytes()[i] != 0)
-            {
-                return false;
-            }
-        }
-
+        Assert(IsAll((byte*)blockp->GetBytes(), blockp->currentByte, 0));
         blockp = blockp->nextBigBlock;
     }
     blockp = this->fullBlocks;
     while (blockp != NULL)
     {
-        for (size_t i = 0; i < blockp->currentByte; i++)
-        {
-            if (blockp->GetBytes()[i] != 0)
-            {
-                return false;
-            }
-        }
+        Assert(IsAll((byte*)blockp->GetBytes(), blockp->currentByte, 0));
         blockp = blockp->nextBigBlock;
     }
 
     ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
     while (memoryBlock != nullptr)
     {
-        ArenaMemoryBlock * next = memoryBlock->next;
-        for (size_t i = 0; i < memoryBlock->nbytes; i++)
-        {
-            if (memoryBlock->GetBytes()[i] != 0)
-            {
-                return false;
-            }
-        }
-        memoryBlock = next;
+        Assert(IsAll((byte*)memoryBlock->GetBytes(), memoryBlock->nbytes, 0'));
+        memoryBlock = memoryBlock->next;
     }
-    return true;
 }
 #endif
 
@@ -1513,50 +1512,80 @@ void InlineCacheAllocator::ZeroAll()
 #endif
 
 #if DBG
-bool CacheAllocator::IsAllZero()
+void CacheAllocator::CheckIsAllZero(bool lockdown)
 {
+    ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
+    while (memoryBlock != nullptr)
+    {
+        Assert(IsAll((byte*)memoryBlock->GetBytes(), memoryBlock->nbytes, 0));
+        memoryBlock = memoryBlock->next;
+    }
+
+    if (verifiedAllZeroAndLockedDown && lockdown)
+    {
+        return;
+    }
     UpdateCacheBlock();
     BigBlock *blockp = this->bigBlocks;
     while (blockp != NULL)
     {
-        for (size_t i = 0; i < blockp->currentByte; i++)
+        Assert(IsAll((byte*)blockp->GetBytes(), blockp->currentByte, 0));
+        if (lockdown)
         {
-            if (blockp->GetBytes()[i] != 0)
-            {
-                return false;
-            }
+            DWORD oldProtect;
+            VirtualProtect(blockp->allocation->GetAddress(), blockp->allocation->GetSize(), PAGE_READONLY, &oldProtect);
         }
-
         blockp = blockp->nextBigBlock;
     }
+
     blockp = this->fullBlocks;
     while (blockp != NULL)
     {
-        for (size_t i = 0; i < blockp->currentByte; i++)
+        Assert(IsAll((byte*)blockp->GetBytes(), blockp->currentByte, 0));
+        if (lockdown)
         {
-            if (blockp->GetBytes()[i] != 0)
-            {
-                return false;
-            }
+            DWORD oldProtect;
+            VirtualProtect(blockp->allocation->GetAddress(), blockp->allocation->GetSize(), PAGE_READONLY, &oldProtect);
         }
         blockp = blockp->nextBigBlock;
     }
 
-    ArenaMemoryBlock * memoryBlock = this->mallocBlocks;
-    while (memoryBlock != nullptr)
+    if (lockdown)
     {
-        ArenaMemoryBlock * next = memoryBlock->next;
-        for (size_t i = 0; i < memoryBlock->nbytes; i++)
-        {
-            if (memoryBlock->GetBytes()[i] != 0)
-            {
-                return false;
-            }
-        }
-        memoryBlock = next;
+        verifiedAllZeroAndLockedDown = true;
     }
-    return true;
 }
+
+void CacheAllocator::Unlock()
+{
+    if (verifiedAllZeroAndLockedDown)
+    {
+        // restore the pages to read-write before returning to page allocator
+        BigBlock *bigBlock = this->bigBlocks;
+        while (bigBlock != NULL)
+        {
+            DWORD oldProtect;
+            VirtualProtect(bigBlock->allocation->GetAddress(), bigBlock->allocation->GetSize(), PAGE_READWRITE, &oldProtect);
+            bigBlock = bigBlock->nextBigBlock;
+        }
+
+        bigBlock = this->fullBlocks;
+        while (bigBlock != NULL)
+        {
+            DWORD oldProtect;
+            VirtualProtect(bigBlock->allocation->GetAddress(), bigBlock->allocation->GetSize(), PAGE_READWRITE, &oldProtect);
+            bigBlock = bigBlock->nextBigBlock;
+        }
+
+        verifiedAllZeroAndLockedDown = false;
+    }
+}
+
+CacheAllocator::~CacheAllocator()
+{
+    Unlock();
+}
+
 #endif
 
 void CacheAllocator::ZeroAll()
@@ -1591,4 +1620,9 @@ namespace Memory
     template class ArenaAllocatorBase<InPlaceFreeListPolicy>;
     template class ArenaAllocatorBase<StandAloneFreeListPolicy>;
     template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
+
+    bool IsAll(byte* buffer, size_t size, byte c)
+    {
+        return size == 0 || ((*buffer == c) && (size == 1 || memcmp(buffer, buffer + 1, size - 1) == 0));
+    }
 }

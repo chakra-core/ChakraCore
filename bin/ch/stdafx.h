@@ -17,9 +17,12 @@
 
 #define IfJsrtErrorFail(expr, ret) do { if ((expr) != JsNoError) return ret; } while (0)
 #define IfJsrtErrorHR(expr) do { if((expr) != JsNoError) { hr = E_FAIL; goto Error; } } while(0)
+#define IfJsrtErrorHRLabel(expr, label) do { if((expr) != JsNoError) { hr = E_FAIL; goto label; } } while(0)
 #define IfJsrtError(expr) do { if((expr) != JsNoError) { goto Error; } } while(0)
 #define IfJsrtErrorSetGo(expr) do { errorCode = (expr); if(errorCode != JsNoError) { hr = E_FAIL; goto Error; } } while(0)
+#define IfJsrtErrorSetGoLabel(expr, label) do { errorCode = (expr); if(errorCode != JsNoError) { hr = E_FAIL; goto label; } } while(0)
 #define IfFalseGo(expr) do { if(!(expr)) { hr = E_FAIL; goto Error; } } while(0)
+#define IfFalseGoLabel(expr, label) do { if(!(expr)) { hr = E_FAIL; goto label; } } while(0)
 
 #define WIN32_LEAN_AND_MEAN 1
 
@@ -90,6 +93,8 @@ using utf8::NarrowStringToWideDynamic;
 using utf8::WideStringToNarrowDynamic;
 #include "Helpers.h"
 
+#include "PlatformAgnostic/SystemInfo.h"
+
 #define IfJsErrorFailLog(expr) \
 do { \
     JsErrorCode jsErrorCode = expr; \
@@ -97,6 +102,27 @@ do { \
         fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
         fflush(stderr); \
         goto Error; \
+    } \
+} while (0)
+
+#define IfJsErrorFailLogAndHR(expr) \
+do { \
+    JsErrorCode jsErrorCode = expr; \
+    if ((jsErrorCode) != JsNoError) { \
+        hr = E_FAIL; \
+        fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
+        fflush(stderr); \
+        goto Error; \
+    } \
+} while (0)
+
+#define IfJsErrorFailLogLabel(expr, label) \
+do { \
+    JsErrorCode jsErrorCode = expr; \
+    if ((jsErrorCode) != JsNoError) { \
+        fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
+        fflush(stderr); \
+        goto label; \
     } \
 } while (0)
 
@@ -140,6 +166,7 @@ do { \
 #include "ChakraRtInterface.h"
 #include "HostConfigFlags.h"
 #include "MessageQueue.h"
+#include "RuntimeThreadData.h"
 #include "WScriptJsrt.h"
 #include "Debugger.h"
 
@@ -258,6 +285,5 @@ inline JsErrorCode CreatePropertyIdFromString(const char* str, JsPropertyIdRef *
     return ChakraRTInterface::JsCreatePropertyId(str, strlen(str), Id);
 }
 
-void GetBinaryLocation(char *path, const unsigned size);
 void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char* filename);
 extern "C" HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks);

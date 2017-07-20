@@ -596,7 +596,8 @@ namespace Js
         char16 const * sourceString = argString->GetSz();
         charcount_t sourceLen = argString->GetLength();
         FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
-        if (!scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript))
+        bool found = scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript);
+        if (!found || (!isIndirect && pfuncScript->GetEnvironment() != &NullFrameDisplay))
         {
             uint32 grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
 
@@ -607,25 +608,11 @@ namespace Js
 
             pfuncScript = library->GetGlobalObject()->EvalHelper(scriptContext, argString->GetSz(), argString->GetLength(), moduleID,
                 grfscr, Constants::EvalCode, doRegisterDocument, isIndirect, strictMode);
-            Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            Js::Utf8SourceInfo* utf8SourceInfo = pfuncScript->GetFunctionBody()->GetUtf8SourceInfo();
-            if (scriptContext->IsScriptContextInDebugMode() && !utf8SourceInfo->GetIsLibraryCode() && !utf8SourceInfo->IsInDebugMode())
-            {
-                // Identifying if any non library function escaped for not being in debug mode.
-                Throw::FatalInternalError();
-            }
-#endif
-
-#if ENABLE_TTD
-            if(!scriptContext->IsTTDRecordOrReplayModeEnabled())
+            if (!found)
             {
                 scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
             }
-#else
-            scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
-#endif
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -644,13 +631,13 @@ namespace Js
         //
         //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
         //
-        if(!isLibraryCode && (scriptContext->IsTTDRecordModeEnabled() || scriptContext->ShouldPerformReplayAction()))
+        if(!isLibraryCode && pfuncScript != nullptr && (scriptContext->IsTTDRecordModeEnabled() || scriptContext->ShouldPerformReplayAction()))
         {
             //Make sure we have the body and text information available
             FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
             if(!scriptContext->TTDContextInfo->IsBodyAlreadyLoadedAtTopLevel(globalBody))
             {
-                uint64 bodyIdCtr = 0;
+                uint32 bodyIdCtr = 0;
 
                 if(scriptContext->IsTTDRecordModeEnabled())
                 {
@@ -673,6 +660,16 @@ namespace Js
                 //walk global body to (1) add functions to pin set (2) build parent map
                 scriptContext->TTDContextInfo->ProcessFunctionBodyOnLoad(globalBody, nullptr);
                 scriptContext->TTDContextInfo->RegisterEvalScript(globalBody, bodyIdCtr);
+
+                if(scriptContext->ShouldPerformRecordOrReplayAction())
+                {
+                    globalBody->GetUtf8SourceInfo()->SetSourceInfoForDebugReplay_TTD(bodyIdCtr);
+                }
+
+                if(scriptContext->ShouldPerformDebuggerAction())
+                {
+                    scriptContext->GetThreadContext()->TTDExecutionInfo->ProcessScriptLoad(scriptContext, bodyIdCtr, globalBody, globalBody->GetUtf8SourceInfo(), nullptr);
+                }
             }
         }
 #endif
@@ -721,7 +718,7 @@ namespace Js
             }
         }
 
-        return library->GetGlobalObject()->ExecuteEvalParsedFunction(pfuncScript, environment, varThis);
+        return library->GetGlobalObject()->ExecuteEvalParsedFunction(pfuncScript, environment, varThis, scriptContext);
     }
 
     void GlobalObject::UpdateThisForEval(Var &varThis, ModuleID moduleID, ScriptContext *scriptContext, BOOL strictMode)
@@ -737,7 +734,7 @@ namespace Js
     }
 
 
-    Var GlobalObject::ExecuteEvalParsedFunction(ScriptFunction *pfuncScript, FrameDisplay* environment, Var &varThis)
+    Var GlobalObject::ExecuteEvalParsedFunction(ScriptFunction *pfuncScript, FrameDisplay* environment, Var &varThis, ScriptContext *scriptContext)
     {
         Assert(pfuncScript != nullptr);
 
@@ -749,8 +746,8 @@ namespace Js
             // Executing the eval causes the scope chain to escape.
             pfuncScript->InvalidateCachedScopeChain();
         }
-        Var varResult = CALL_FUNCTION(pfuncScript, CallInfo(CallFlags_Eval, 1), varThis);
-        pfuncScript->SetEnvironment(nullptr);
+        Var varResult = CALL_FUNCTION(scriptContext->GetThreadContext(), pfuncScript, CallInfo(CallFlags_Eval, 1), varThis);
+        pfuncScript->SetEnvironment((FrameDisplay*)&NullFrameDisplay);
         return varResult;
     }
 
@@ -1601,6 +1598,23 @@ LHexError:
         return scriptContext->GetLibrary()->GetUndefined();
     }
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    Var GlobalObject::EntryChWriteTraceEvent(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        if (args.Info.Count < 2)
+        {
+            return function->GetScriptContext()->GetLibrary()->GetUndefined();
+        }
+
+        Js::JavascriptString* jsString = Js::JavascriptConversion::ToString(args[1], function->GetScriptContext());
+        PlatformAgnostic::EventTrace::FireGenericEventTrace(jsString->GetSz());
+        return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+#endif
+
 #if ENABLE_TTD
     //Log a string in the telemetry system (and print to the console)
     Var GlobalObject::EntryTelemetryLog(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1776,7 +1790,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags((this->directHostObject && JavascriptOperators::GetProperty(this->directHostObject, propertyId, value, requestContext, info)) ||
             (this->hostObject && JavascriptOperators::GetProperty(this->hostObject, propertyId, value, requestContext, info)));
@@ -1821,7 +1835,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyReferenceQuery(originalInstance, propertyId, value, info, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags((this->directHostObject && JavascriptOperators::GetPropertyReference(this->directHostObject, propertyId, value, requestContext, info)) ||
             (this->hostObject && JavascriptOperators::GetPropertyReference(this->hostObject, propertyId, value, requestContext, info)));
@@ -2191,7 +2205,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemReferenceQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags(
             (this->directHostObject && JavascriptConversion::PropertyQueryFlagsToBoolean(this->directHostObject->GetItemReferenceQuery(originalInstance, index, value, requestContext))) ||
@@ -2208,7 +2222,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         return JavascriptConversion::BooleanToPropertyQueryFlags((this->directHostObject && this->directHostObject->GetItem(originalInstance, index, value, requestContext)) ||

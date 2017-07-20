@@ -139,7 +139,6 @@ namespace Js
         case knopCall: {
             ParseNode* target;
             AsmJsFunctionDeclaration* sym;
-            AsmJsMathFunction* mathSym;
             AsmJsSIMDFunction* simdSym;
 
             target = coercionNode->sxCall.pnodeTarget;
@@ -210,9 +209,8 @@ namespace Js
 
             *coercion = AsmJS_FRound;
             sym = m.LookupFunction(target->name());
-            mathSym = (AsmJsMathFunction*)sym;
 
-            if (!(mathSym && mathSym->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround))
+            if (!AsmJsMathFunction::IsFround(sym))
             {
                 return m.Fail( coercionNode, _u("call must be to fround coercion") );
             }
@@ -522,7 +520,7 @@ namespace Js
         {
             lib = ParserWrapper::DotMember(base);
             base = ParserWrapper::DotBase(base);
-
+#ifdef ENABLE_SIMDJS
             if (m.GetScriptContext()->GetConfig()->IsSimdjsEnabled())
             {
                 if (!lib || (lib->GetPropertyId() != PropertyIds::Math && lib->GetPropertyId() != PropertyIds::SIMD))
@@ -531,6 +529,7 @@ namespace Js
                 }
             }
             else
+#endif
             {
                 if (!lib || lib->GetPropertyId() != PropertyIds::Math)
                 {
@@ -541,7 +540,7 @@ namespace Js
 
         if( ParserWrapper::IsNameDeclaration(base) && base->name() == m.GetStdLibArgName() )
         {
-
+#ifdef ENABLE_SIMDJS
             if (m.GetScriptContext()->GetConfig()->IsSimdjsEnabled())
             {
                 if (lib && lib->GetPropertyId() == PropertyIds::SIMD)
@@ -567,7 +566,7 @@ namespace Js
                     return true;
                 }
             }
-
+#endif
             // global.Math.xxx
             MathBuiltin mathBuiltin;
             if (m.LookupStandardLibraryMathName(field, &mathBuiltin))

@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
-
+#ifdef ENABLE_SIMDJS
 namespace Js {
 
     class SIMDUint16x8Lib
@@ -107,3 +107,4 @@ namespace Js {
     };
 
 } // namespace Js
+#endif

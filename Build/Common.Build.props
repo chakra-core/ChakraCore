@@ -16,7 +16,7 @@
 
       <!--Disable midl timestamps wherever possible, razzle build already have this-->
       <AdditionalOptions Condition="'$(BuildingWithBuildExe)'!='true'">%(AdditionalOptions) /no_stamp</AdditionalOptions>
-      
+
       <SuppressStartupBanner>true</SuppressStartupBanner>
 
       <!-- Other defaults -->
@@ -25,13 +25,13 @@
 
       <!-- ======== makefiledef ======== -->
       <AdditionalOptions>%(AdditionalOptions) -sal</AdditionalOptions>
-      
+
       <!-- ======== sources.inc ======== -->
       <!-- generates SAL annotations for our interface -->
       <AdditionalOptions>%(AdditionalOptions) -sal_local</AdditionalOptions>
     </Midl>
     <ClCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);_CHAKRACOREBUILD;NOMINMAX;USE_EDGEMODE_JSRT</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);NOMINMAX;USE_EDGEMODE_JSRT</PreprocessorDefinitions>
       <!-- Some of our STDMETHOD can throw
            TODO: Code review STDMETHOD and separate out API that can throw and those that can't -->
       <PreprocessorDefinitions>%(PreprocessorDefinitions);COM_STDMETHOD_CAN_THROW</PreprocessorDefinitions>
@@ -40,10 +40,10 @@
 
       <!-- Add any preprocessor definitions passed using msbuild environment -->
       <PreprocessorDefinitions Condition="'$(AdditionalPreprocessorDefinitions)'!=''">%(PreprocessorDefinitions);$(AdditionalPreprocessorDefinitions)</PreprocessorDefinitions>
-      
+
       <!-- MIDL generate code uses this define -->
       <PreprocessorDefinitions Condition="'$(Platform)'=='ARM'">%(PreprocessorDefinitions);_ARM_</PreprocessorDefinitions>
-            
+
       <!-- /W4 -->
       <WarningLevel>Level4</WarningLevel>
       <!-- /WX -->
@@ -79,6 +79,13 @@
 
       <ProgramDataBaseFileName Condition="'$(ConfigurationType)'=='StaticLibrary'">$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <ProgramDataBaseFileName Condition="'$(ConfigurationType)'!='StaticLibrary'">$(IntDir)</ProgramDataBaseFileName>
+
+      <!-- ======== For Code Covearge ======== -->
+      <PreprocessorDefinitions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">
+        %(PreprocessorDefinitions);
+        BYTECODE_TESTING=1
+      </PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(BuildWabt)'=='true'">%(PreprocessorDefinitions);CAN_BUILD_WABT=1</PreprocessorDefinitions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions Condition="'$(ChakraVersionBuildNumber)'!=''">%(PreprocessorDefinitions);CHAKRA_VERSION_BUILD_NUMBER=$(ChakraVersionBuildNumber)</PreprocessorDefinitions>
@@ -93,7 +100,7 @@
     <Link>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding Condition="'$(OptimizedBuild)'=='true'">true</EnableCOMDATFolding>
+      <EnableCOMDATFolding Condition="'$(OptimizedBuild)'=='true' AND '$(ENABLE_CODECOVERAGE)'!='true'">true</EnableCOMDATFolding>
       <OptimizeReferences Condition="'$(OptimizedBuild)'=='true'">true</OptimizeReferences>
 
       <MinimumRequiredVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win7)'" >6.1</MinimumRequiredVersion>
@@ -102,12 +109,33 @@
 
       <!-- Always set the checksum -->
       <AdditionalOptions>%(AdditionalOptions) /release</AdditionalOptions>
+      <!-- Ignore Linker warning: This object file does not define any previously undefined public symbols -->
+      <AdditionalOptions>%(AdditionalOptions) /ignore:4221</AdditionalOptions>
+      <!-- ======== For Code Covearge ======== -->
+      <AdditionalOptions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">%(AdditionalOptions) /DEBUGTYPE:CV,FIXUP</AdditionalOptions>
     </Link>
+    <Lib>
+      <!-- Ignore Linker warning: This object file does not define any previously undefined public symbols -->
+      <AdditionalOptions>%(AdditionalOptions) /ignore:4221</AdditionalOptions>
+    </Lib>
   </ItemDefinitionGroup>
-  <!-- chk build flags -->
-  <ItemDefinitionGroup Condition="'$(OptimizedBuild)'!='true'">
+
+  <!--Optimization flags-->
+  <ItemDefinitionGroup Condition="'$(OptimizedBuild)'!='true' OR '$(ENABLE_CODECOVERAGE)'=='true'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(OptimizedBuild)'=='true' AND '$(ENABLE_CODECOVERAGE)'!='true'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  
+    <!-- chk build flags -->  
+  <ItemDefinitionGroup Condition="'$(DebugBuild)'=='true'">
+    <ClCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);_DEBUG;DBG;DBG_DUMP</PreprocessorDefinitions>
     </ClCompile>
     <ResourceCompile>
@@ -118,12 +146,10 @@
     </Midl>
   </ItemDefinitionGroup>
   <!-- fre and fretest build flags -->
-  <ItemDefinitionGroup Condition="'$(OptimizedBuild)'=='true'">
+  <ItemDefinitionGroup Condition="'$(DebugBuild)'!='true'">
     <ClCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);NDEBUG</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Test'">%(PreprocessorDefinitions);ENABLE_DEBUG_CONFIG_OPTIONS=1</PreprocessorDefinitions>
-      <Optimization>MaxSpeed</Optimization>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Test'">%(PreprocessorDefinitions);ENABLE_DEBUG_CONFIG_OPTIONS=1</PreprocessorDefinitions>

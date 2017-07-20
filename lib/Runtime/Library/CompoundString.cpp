@@ -1013,7 +1013,7 @@ namespace Js
                 Unreference();
                 const char16 *const buffer = _u("");
                 SetBuffer(buffer);
-                VirtualTableInfo<LiteralString>::SetVirtualTable(this);
+                LiteralStringWithPropertyStringPtr::ConvertString(this);
                 return buffer;
             }
 
@@ -1025,7 +1025,7 @@ namespace Js
                 const char16 *const buffer = GetLibrary()->GetCharStringCache().GetStringForChar(LastBlockChars()[0])->UnsafeGetBuffer();
                 Unreference();
                 SetBuffer(buffer);
-                VirtualTableInfo<LiteralString>::SetVirtualTable(this);
+                LiteralStringWithPropertyStringPtr::ConvertString(this);
                 return buffer;
             }
         }
@@ -1039,7 +1039,7 @@ namespace Js
             const char16 *const buffer = LastBlockChars();
             Unreference();
             SetBuffer(buffer);
-            VirtualTableInfo<LiteralString>::SetVirtualTable(this);
+            LiteralStringWithPropertyStringPtr::ConvertString(this);
             return buffer;
         }
 
@@ -1049,7 +1049,7 @@ namespace Js
         Assert(buffer[totalCharLength] == _u('\0'));
         Unreference();
         SetBuffer(buffer);
-        VirtualTableInfo<LiteralString>::SetVirtualTable(this);
+        LiteralStringWithPropertyStringPtr::ConvertString(this);
         return buffer;
     }
 

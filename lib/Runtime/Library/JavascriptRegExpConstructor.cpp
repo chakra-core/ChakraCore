@@ -165,7 +165,7 @@ namespace Js
         case PropertyIds::$7:
         case PropertyIds::$8:
         case PropertyIds::$9:
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         default:
             return JavascriptFunction::HasPropertyQuery(propertyId);
         }
@@ -523,7 +523,7 @@ namespace Js
     }
 
 
-    BOOL JavascriptRegExpConstructor::GetSpecialEnumerablePropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
+    BOOL JavascriptRegExpConstructor::GetSpecialEnumerablePropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext)
     {
         uint length = GetSpecialEnumerablePropertyCount();
         if (index < length)
@@ -556,7 +556,7 @@ namespace Js
         return _countof(specialPropertyIds);
     }
 
-    BOOL JavascriptRegExpConstructor::GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
+    BOOL JavascriptRegExpConstructor::GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext)
     {
         uint length = GetSpecialPropertyCount();
         if (index < length)

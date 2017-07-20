@@ -1,11 +1,10 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
       <files>loop.js</files>
       <compile-flags>-forcejitloopbody</compile-flags>
       <baseline>loop.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -13,7 +12,6 @@
       <files>loop.js</files>
       <compile-flags>-forcejitloopbody -on:interruptprobe</compile-flags>
       <baseline>loop.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -21,7 +19,6 @@
       <files>loopinversion.js</files>
       <compile-flags>-force:deferparse</compile-flags>
       <baseline>loopinversion.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -29,7 +26,6 @@
       <files>loopinversion.js</files>
       <compile-flags>-on:interruptprobe</compile-flags>
       <baseline>loopinversion.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>

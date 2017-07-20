@@ -90,7 +90,7 @@ function runtest(catchException)
 }
 
 if (this.WScript && this.WScript.LoadScriptFile) {
-    this.WScript.LoadScriptFile("TrimStackTracePath.js");
+    this.WScript.LoadScriptFile("../UnitTestFramework/TrimStackTracePath.js");
 }
 
 Error.stackTraceLimit = Infinity;

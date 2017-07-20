@@ -9,10 +9,12 @@
 
   <!-- Auto tool set selection -->
   <PropertyGroup>
-    <PlatformToolset Condition="'$(VisualStudioVersion)'=='11.0' or '$(MSBuildToolsVersion)'=='11.0'">v110</PlatformToolset>
-    <PlatformToolset Condition="'$(VisualStudioVersion)'=='12.0' or '$(MSBuildToolsVersion)'=='12.0'">v120</PlatformToolset>
-    <PlatformToolset Condition="'$(VisualStudioVersion)'=='14.0' or '$(MSBuildToolsVersion)'=='14.0'">v140</PlatformToolset>
-    <PlatformToolset Condition="'$(VisualStudioVersion)'=='15.0' or '$(MSBuildToolsVersion)'=='15.0'">v141</PlatformToolset>
+    <BuildToolVersion>$(VisualStudioVersion)</BuildToolVersion>
+    <BuildToolVersion Condition="'$(BuildToolVersion)'==''">$(MSBuildToolsVersion)</BuildToolVersion>
+    <PlatformToolset Condition="'$(BuildToolVersion)'=='11.0'">v110</PlatformToolset>
+    <PlatformToolset Condition="'$(BuildToolVersion)'=='12.0'">v120</PlatformToolset>
+    <PlatformToolset Condition="'$(BuildToolVersion)'=='14.0'">v140</PlatformToolset>
+    <PlatformToolset Condition="'$(BuildToolVersion)'=='15.0'">v141</PlatformToolset>
   </PropertyGroup>
 
   <!-- Default ChakraDevConfigDir -->
@@ -27,8 +29,9 @@
 
   <!-- Common build settings -->
   <PropertyGroup>
-    <OptimizedBuild />
-    <OptimizedBuild Condition="'$(Configuration)'=='Release' or '$(Configuration)'=='Test'">true</OptimizedBuild>
+    <DebugBuild />
+    <DebugBuild Condition="'$(Configuration)'!='Release' and '$(Configuration)'!='Test'">true</DebugBuild>
+    <OptimizedBuild Condition="'$(OptimizedBuild)'=='' and '$(DebugBuild)'!='true'">true</OptimizedBuild>
     <WindowsSDKDesktopARMSupport Condition="'$(Platform)'=='ARM'">true</WindowsSDKDesktopARMSupport>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
@@ -81,5 +84,16 @@
 
     <ChakraParserIntDir>$(IntDir)..\Chakra.Parser</ChakraParserIntDir>
     <ChakraJITIDLIntDir>$(IntDir)..\Chakra.JITIDL</ChakraJITIDLIntDir>
+  </PropertyGroup>
+
+  <!-- Determine if the build should include wabt -->
+  <PropertyGroup>
+    <BuildWabt>true</BuildWabt>
+    <!-- Only build wabt on x64/x86, the only platform supporting WebAssembly at this time -->
+    <BuildWabt Condition="'$(Platform)'!='x64' and '$(Platform)'!='win32'">false</BuildWabt>
+    <!-- Wabt is a test tool, do not include it in the Release build -->
+    <BuildWabt Condition="'$(Configuration)'!='Debug' and '$(Configuration)'!='Test'">false</BuildWabt>
+    <!-- Wabt uses c++11 features only available in recent toolset (v140 and above) -->
+    <BuildWabt Condition="'$(BuildToolVersion)'&lt;'14.0'">false</BuildWabt>
   </PropertyGroup>
 </Project>

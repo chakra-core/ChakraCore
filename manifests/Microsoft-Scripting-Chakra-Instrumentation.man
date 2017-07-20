@@ -136,6 +136,11 @@
                     name="MemProtectHeapSize"
                     symbol="MEMPROTECT_HEAP_SIZE_KEYWORD"
                     />
+                <keyword
+                    mask="0x1000000"
+                    name="Internal"
+                    symbol="INTERNAL_KEYWORD"
+                    />
             </keywords>
             <tasks>
                 <task
@@ -927,6 +932,11 @@
                     eventGUID="{09fdd3c1-a5f7-4b7f-aabc-6eecc4e30309}"
                     name="Memprotect_GC_Heap_Size"
                     value="107"
+                    />
+                <task
+                    eventGUID="{7aabacec-6052-4f52-9aae-10fd5b5bfc0c}"
+                    name="Jscript_Internal_Generic_Event"
+                    value="108"
                     />
             </tasks>
             <maps>
@@ -1886,6 +1896,12 @@
                 <data
                     inType="win:Boolean"
                     name="FromGC"
+                    />
+                </template>
+                <template tid="InternalGenericEvent">
+                <data
+                    inType="win:UnicodeString"
+                    name="eventData"
                     />
                 </template>
             </templates>
@@ -3840,6 +3856,14 @@
                     task="Memprotect_GC_Heap_Size"
                     template="MemprotectHeap"
                     value="241"
+                    />
+                <event
+                    keywords="Internal"
+                    opcode="win:Info"
+                    symbol="JSCRIPT_INTERNAL_GENERIC_EVENT"
+                    task="Jscript_Internal_Generic_Event"
+                    template="InternalGenericEvent"
+                    value="242"
                     />
             </events>
             </provider>

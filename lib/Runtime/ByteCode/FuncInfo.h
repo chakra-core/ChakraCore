@@ -130,7 +130,6 @@ public:
     uint isTopLevelEventHandler : 1;
     uint hasLocalInClosure : 1;
     uint hasClosureReference : 1;
-    uint hasGlobalReference : 1;
     uint hasCachedScope : 1;
     uint funcExprNameReference : 1;
     uint applyEnclosesArgs : 1;
@@ -140,7 +139,7 @@ public:
     uint hasLoop : 1;
     uint hasEscapedUseNestedFunc : 1;
     uint needEnvRegister : 1;
-    uint hasCapturedThis : 1;
+    uint isBodyAndParamScopeMerged : 1;
 #if DBG
     // FunctionBody was reused on recompile of a redeferred enclosing function.
     uint isReused:1;
@@ -178,19 +177,14 @@ public:
     typedef JsUtil::BaseDictionary<SlotKey, Js::ProfileId, ArenaAllocator, PowerOf2SizePolicy, SlotKeyComparer> SlotProfileIdMap;
     SlotProfileIdMap slotProfileIdMap;
     Js::PropertyId thisScopeSlot;
-    Js::PropertyId innerThisScopeSlot; // Used in case of split scope
     Js::PropertyId superScopeSlot;
-    Js::PropertyId innerSuperScopeSlot; // Used in case of split scope
     Js::PropertyId superCtorScopeSlot;
-    Js::PropertyId innerSuperCtorScopeSlot; // Used in case of split scope
     Js::PropertyId newTargetScopeSlot;
-    Js::PropertyId innerNewTargetScopeSlot; // Used in case of split scope
     bool isThisLexicallyCaptured;
     bool isSuperLexicallyCaptured;
     bool isSuperCtorLexicallyCaptured;
     bool isNewTargetLexicallyCaptured;
     Symbol *argumentsSymbol;
-    Symbol *innerArgumentsSymbol;
     JsUtil::List<Js::RegSlot, ArenaAllocator> nonUserNonTempRegistersToInitialize;
 
     FuncInfo(
@@ -314,22 +308,6 @@ public:
         argumentsSymbol = sym;
     }
 
-    Symbol *GetInnerArgumentsSymbol() const
-    {
-        return innerArgumentsSymbol;
-    }
-
-    void SetInnerArgumentsSymbol(Symbol *sym)
-    {
-        Assert(innerArgumentsSymbol == nullptr || innerArgumentsSymbol == sym);
-        innerArgumentsSymbol = sym;
-    }
-
-    bool IsInnerArgumentsSymbol(Symbol* sym)
-    {
-        return innerArgumentsSymbol != nullptr && innerArgumentsSymbol == sym;
-    }
-
     bool GetCallsEval() const {
         return callsEval;
     }
@@ -405,14 +383,6 @@ public:
         hasClosureReference = has;
     }
 
-    bool GetHasGlobalRef() const {
-        return hasGlobalReference;
-    }
-
-    void SetHasGlobalRef(bool has) {
-        hasGlobalReference = has;
-    }
-
     bool GetIsStrictMode() const {
         return this->byteCodeFunction->GetIsStrictMode();
     }
@@ -465,12 +435,12 @@ public:
         return this->byteCodeFunction->GetFunctionBody();
     }
 
-    bool HasCapturedThis() const {
-        return hasCapturedThis;
+    bool IsBodyAndParamScopeMerged() const {
+        return isBodyAndParamScopeMerged;
     }
 
-    void SetHasCapturedThis() {
-        hasCapturedThis = true;
+    void ResetBodyAndParamScopeMerged() {
+        isBodyAndParamScopeMerged = false;
     }
 
     BOOL HasSuperReference() const;
@@ -804,7 +774,6 @@ public:
     void EnsureSuperScopeSlot();
     void EnsureSuperCtorScopeSlot();
     void EnsureNewTargetScopeSlot();
-    void UseInnerSpecialScopeSlots();
 
     void SetIsThisLexicallyCaptured()
     {

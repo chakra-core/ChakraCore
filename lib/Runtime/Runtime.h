@@ -75,7 +75,7 @@ namespace Js
     struct CallInfo;
     struct InlineeCallInfo;
     struct InlineCache;
-    struct PolymorphicInlineCache;
+    class PolymorphicInlineCache;
     struct Arguments;
     class StringDictionaryWrapper;
     struct ByteCodeDumper;
@@ -154,6 +154,7 @@ namespace Js
     struct RestrictedErrorStrings;
     class JavascriptError;
 
+#ifdef ENABLE_SIMDJS
 //SIMD_JS
     // SIMD
     class JavascriptSIMDObject;
@@ -179,6 +180,7 @@ namespace Js
     class JavascriptSIMDBool8x16;
     class SIMDBool16x8Lib;
     class JavascriptSIMDBool16x8;
+#endif // #ifdef ENABLE_SIMDJS
 
     class RecyclableObject;
     class JavascriptRegExp;
@@ -434,6 +436,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/JavascriptFunction.h"
 #include "Library/RuntimeFunction.h"
 #include "Library/JavascriptExternalFunction.h"
+#include "Library/CustomExternalIterator.h"
 
 #include "Base/CharStringCache.h"
 
@@ -532,6 +535,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "screrror.h"
 
 #include "Debug/TTRuntimeInfoTracker.h"
+#include "Debug/TTExecutionInfo.h"
 #include "Debug/TTInflateMap.h"
 #include "Debug/TTSnapTypes.h"
 #include "Debug/TTSnapValues.h"
@@ -544,6 +548,10 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #endif
 
 #include "../WasmReader/WasmReader.h"
+
+#include "Language/AsmJsTypes.h"
+#include "Language/AsmJsModule.h"
+#include "Language/AsmJs.h"
 
 //
 // .inl files
@@ -565,9 +573,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/TaggedInt.inl"
 #include "Library/JavascriptGeneratorFunction.h"
 
-
 #ifndef USED_IN_STATIC_LIB
 #ifdef ENABLE_INTL_OBJECT
+#ifdef INTL_WINGLOB
 
 //The "helper" methods below are to resolve external symbol references to our delay-loaded libraries.
 inline HRESULT WindowsCreateString(_In_reads_opt_(length) const WCHAR * sourceString, UINT32 length, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING * string)
@@ -599,5 +607,7 @@ inline HRESULT WindowsDuplicateString(_In_opt_ HSTRING original, _Outptr_result_
 {
     return ThreadContext::GetContextForCurrentThread()->GetWindowsGlobalizationLibrary()->WindowsDuplicateString(original, newString);
 }
-#endif
-#endif
+
+#endif // INTL_WINGLOB
+#endif // ENABLE_INTL_OBJECT
+#endif // #ifndef USED_IN_STATIC_LIB

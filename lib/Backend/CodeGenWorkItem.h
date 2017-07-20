@@ -20,7 +20,6 @@ protected:
     CodeGenWorkItemIDL jitData;
 
     Js::FunctionBody *const functionBody;
-    size_t codeAddress;
     ptrdiff_t codeSize;
 
 public:
@@ -63,9 +62,6 @@ public:
     {
         return functionBody;
     }
-
-    void SetCodeAddress(size_t codeAddress) { this->codeAddress = codeAddress; }
-    size_t GetCodeAddress() { return codeAddress; }
 
     void SetCodeSize(ptrdiff_t codeSize) { this->codeSize = codeSize; }
     ptrdiff_t GetCodeSize() { return codeSize; }
@@ -186,9 +182,6 @@ public:
 
     QueuedFullJitWorkItem *GetQueuedFullJitWorkItem() const;
     QueuedFullJitWorkItem *EnsureQueuedFullJitWorkItem();
-
-private:
-    bool ShouldSpeculativelyJit() const;
 };
 
 struct JsFunctionCodeGen sealed : public CodeGenWorkItem
@@ -267,17 +260,21 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
         JsUtil::JobManager *const manager, Js::FunctionBody *const functionBody,
         Js::EntryPointInfo* entryPointInfo, bool isJitInDebugMode, Js::LoopHeader * loopHeader) :
         CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsLoopBodyWorkItemType),
+        codeAddress(NULL),
         loopHeader(loopHeader)
     {
         this->jitData.loopNumber = GetLoopNumber();
     }
-
+    uintptr_t codeAddress;
     Js::LoopHeader * loopHeader;
 
     uint GetLoopNumber() const override
     {
         return functionBody->GetLoopNumberWithLock(loopHeader);
     }
+
+    void SetCodeAddress(uintptr_t codeAddress) { this->codeAddress = codeAddress; }
+    uintptr_t GetCodeAddress() const { return codeAddress; }
 
     uint GetByteCodeCount() const override
     {

@@ -56,10 +56,8 @@ namespace Js
     }
 
     // enumeration order: symbol first; local exports next; nonlocal exports last.
-    Var ModuleNamespaceEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    JavascriptString * ModuleNamespaceEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
-        Var undefined = GetLibrary()->GetUndefined();
-        Var result = undefined;
         if (attributes != nullptr)
         {
             // all the attribute should have the same setting here in namespace object.
@@ -67,14 +65,14 @@ namespace Js
         }
         if (!doneWithSymbol)
         {
-            result = symbolEnumerator.MoveAndGetNext(propertyId, attributes);
-            if (result == nullptr)
+            JavascriptString * symbolResult = symbolEnumerator.MoveAndGetNext(propertyId, attributes);
+            if (symbolResult == nullptr)
             {
                 doneWithSymbol = true;
             }
             else
             {
-                return result;
+                return symbolResult;
             }
         }
         if (!this->doneWithLocalExports)
@@ -94,7 +92,7 @@ namespace Js
         if (this->nonLocalMap != nullptr && (currentNonLocalMapIndex + 1 < nonLocalMap->Count()))
         {
             currentNonLocalMapIndex++;
-            result = this->GetScriptContext()->GetPropertyString(this->nonLocalMap->GetKeyAt(currentNonLocalMapIndex));
+            JavascriptString * result = this->GetScriptContext()->GetPropertyString(this->nonLocalMap->GetKeyAt(currentNonLocalMapIndex));
             return result;
         }
         return nullptr;

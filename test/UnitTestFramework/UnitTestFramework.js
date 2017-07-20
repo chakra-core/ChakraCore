@@ -10,20 +10,33 @@
 //     if (this.WScript && this.WScript.LoadScriptFile) { // Check for running in ch
 //         this.WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 //     }
+//
 //   How to define and run tests:
 //     var tests = [ { name: "test name 1", body: function () {} }, ...];
 //     testRunner.run(tests);
+//
 //   How to output "pass" only if run passes so that we can skip baseline:
 //     testRunner.run(tests, {verbose: false});
 //     Or do this only when "summary" is given on command line:
 //          jshost   -args summary -endargs
 //          testRunner.run(tests, { verbose: WScript.Arguments[0] != "summary" });
+//
+//   How to launch module code
+//     testRunner.LoadModule(source, context, shouldFail)
+//     example: testRunner.LoadModule(source, 'samethread', false);
+//
 //   How to use assert:
-//     assert.areEqual(expected, actual, "those two should be equal");
+//     assert.areEqual(expected, actual, "those two should be equal (i.e. deep equality of objects using ===)");
 //     assert.areNotEqual(expected, actual, "those two should NOT be equal");
-//     assert.fail("error");
-//     assert.throws(function, SyntaxError);
+//     assert.areAlmostEqual(expected, actual, "those two should be almost equal, numerically (allows difference by epsilon)");
+//     assert.isTrue(actual, "actual should be true");
+//     assert.isFalse(actual, "actual should be false");
+//     assert.isUndefined(actual, "actual should be undefined");
+//     assert.isNotUndefined(actual, "actual should not be undefined");
+//     assert.throws(function, SyntaxError, "function should throw (in this case, specifically a SyntaxError with fooMessage", "fooMessage");
 //     assert.doesNotThrow(function, "this function should not throw anything");
+//     assert.fail("error");
+//
 //   Some useful helpers:
 //     helpers.writeln("works in both", "console", "and", "browser);
 //     helpers.printObject(WScript);
@@ -105,13 +118,49 @@ var testRunner = function testRunner() {
     var passedTestCount = 0;
     var objectType = "object";
     var _verbose = true; // If false, try to output "pass" only for passed run so we can skip baseline.
+    var _asyncMode = false;  // If true, run tests in asynchronous mode
+    var _hasAsyncTestPromise = false;
 
-    return {
+    var asyncTest = {
+        "promise" : [],
+        "resolve" : []
+    };
+
+    var testRunner = {
+        isAsyncTest: function isAsyncTest() {
+            return _asyncMode;
+        },
+
+        getAsyncTestIndex: function getAsyncTestIndex() {
+            return asyncTest.testIndex;
+        },
+
+        asyncTestErr: function asyncTestErr(testIndex, str) {
+            asyncTest.error[testIndex] += str + "\n";
+        },
+
+        asyncTestHasNoErr: function asyncTestHasNoErr(testIndex) {
+            return asyncTest.error[testIndex] == "";
+        },
+
+        asyncTestCompleted: function asyncTestCompleted(testIndex) {
+            for (var i in asyncTest.resolve[testIndex]) {
+                if (asyncTest.resolve[testIndex][i] != 0) {
+                    return false;
+                }
+            }
+            return true;
+        },
+
         runTests: function runTests(testsToRun, options) {
             ///<summary>Runs provided tests.<br/>
             /// The 'testsToRun' is an object that has enumerable properties,<br/>
             /// each property is an object that has 'name' and 'body' properties.
+            /// Also collects and tallies error output of asynchronously executed code.
             ///</summary>
+
+            asyncTest.count = new Array(testsToRun.length).fill(0);
+            asyncTest.error = new Array(testsToRun.length).fill("");
 
             if (options && options.hasOwnProperty("verbose")) {
                 _verbose = options.verbose;
@@ -124,11 +173,53 @@ var testRunner = function testRunner() {
                 }
             }
 
-            if (_verbose || executedTestCount != passedTestCount) {
-                helpers.writeln("Summary of tests: total executed: ", executedTestCount,
-                  "; passed: ", passedTestCount, "; failed: ", executedTestCount - passedTestCount);
+            if (!_hasAsyncTestPromise) {
+                if (_verbose || executedTestCount != passedTestCount) {
+                    helpers.writeln(`Summary of tests: total executed: ${executedTestCount}; passed: ${passedTestCount}; failed: ${executedTestCount - passedTestCount}`);
+                } else {
+                    helpers.writeln("pass");
+                }
             } else {
-                helpers.writeln("pass");
+                var promiseResolved = false;
+                var asyncTestSummary = function asyncTestSummary(executedTestCount) {
+                    var passedTestCount = 0;
+                    for (var i in testsToRun) {
+                        var completed = testRunner.asyncTestCompleted(i);
+                        var passed = completed && testRunner.asyncTestHasNoErr(i);
+                        if (!passed) {
+                            helpers.writeln(`*** Async result of test #${Number(i)+1} (${i}): ${testsToRun[i].name}`);
+                            helpers.writeln(asyncTest.error[i]);
+                            if (!completed) {
+                                helpers.writeln("NOT COMPLETED");
+                            }
+                            helpers.writeln(passed ? "PASSED" : "FAILED");
+                        } else {
+                            passedTestCount++;
+                        }
+                    }
+
+                    if (_verbose || executedTestCount != passedTestCount) {
+                        helpers.writeln(`Summary of tests: total executed: ${executedTestCount}; passed: ${passedTestCount}; failed: ${executedTestCount - passedTestCount}`);
+                    } else {
+                        helpers.writeln("pass");
+                    }
+
+                };
+
+                Promise.all(asyncTest.promise.map(Promise.all, Promise)).then( function() {
+                    asyncTestSummary(executedTestCount);
+                    promiseResolved = true;
+                    WScript.ClearTimeout(scheduledPromiseCheck);
+                });
+
+                var promiseCheck = function promiseCheck(time, keepWaiting) {
+                    if (keepWaiting && !promiseResolved) {
+                        WScript.SetTimeout(()=>promiseCheck(time, true), time);
+                    } else if (!promiseResolved) {
+                        asyncTestSummary(executedTestCount);
+                    }
+                };
+                var scheduledPromiseCheck = WScript.SetTimeout(promiseCheck, 5000);
             }
         },
 
@@ -142,11 +233,15 @@ var testRunner = function testRunner() {
             ///</summary>
             function logTestNameIf(b) {
                 if (b) {
-                    helpers.writeln("*** Running test #", executedTestCount + 1, " (", testIndex, "): ", testName);
+                    helpers.writeln(`*** Running test #${executedTestCount + 1} (${testIndex}): ${testName}`);
                 }
             }
 
             logTestNameIf(_verbose);
+
+            asyncTest.testIndex = testIndex;
+            asyncTest.promise[testIndex] = [];
+            asyncTest.resolve[testIndex] = [];
 
             var isSuccess = true;
             try {
@@ -164,11 +259,57 @@ var testRunner = function testRunner() {
                 ++passedTestCount;
             } else {
                 helpers.writeln("FAILED");
+                testRunner.asyncTestErr(testIndex, "RUN FAILED");
             }
-
             ++executedTestCount;
+        },
+
+        asyncTestBegin: function asyncTestBegin(testIndex, testCount) {
+            _asyncMode = true;
+            asyncTest.testIndex = testIndex;
+        },
+
+        asyncTestEnd: function asyncTestEnd(testIndex, testCount) {
+            _asyncMode = false;
+            asyncTest.resolve[testIndex][testCount]();
+            asyncTest.resolve[testIndex][testCount] = 0;
+        },
+
+        prepareAsyncCode: function prepareAsyncCode(source, shouldFail, explicitAsyncTestExit) {
+            var testIndex = asyncTest.testIndex;
+            if (typeof shouldFail == "undefined" || shouldFail == false) {
+                _hasAsyncTestPromise = true;
+                var testCount = asyncTest.count[testIndex]++;
+                var promise = new Promise((resolve, reject) => {
+                    asyncTest.resolve[testIndex].push(resolve);
+                });
+                asyncTest.promise[testIndex].push(promise);
+                return explicitAsyncTestExit ?
+                    `
+                    var _asyncEnter = ()=>{ testRunner.asyncTestBegin(${testIndex}, ${testCount}); };
+                    var _asyncExit = ()=>{ testRunner.asyncTestEnd(${testIndex}, ${testCount}); };
+                    _asyncEnter();
+                    ${source};
+                    `  :
+                    `
+                    testRunner.asyncTestBegin(${testIndex}, ${testCount});
+                    ${source};
+                    testRunner.asyncTestEnd(${testIndex}, ${testCount});
+                    `;
+            } else {
+                return source;
+            }
+        },
+
+        LoadModule : function LoadModule(source, context, shouldFail, explicitAsyncTestExit) {
+            return WScript.LoadModule(testRunner.prepareAsyncCode(source, shouldFail, explicitAsyncTestExit), context);
+        },
+
+        LoadScript : function LoadScript(source, context, shouldFail, explicitAsyncTestExit) {
+            return WScript.LoadScript(testRunner.prepareAsyncCode(source, shouldFail, explicitAsyncTestExit));
         }
-    }
+    };
+    return testRunner;
 }(); // testRunner.
 
 var assert = function assert() {
@@ -180,6 +321,15 @@ var assert = function assert() {
     var isNaN = function isNaN(x) {
         return x !== x;
     };
+
+    var throwMessage = function throwMessage(ex) {
+        if (!testRunner.isAsyncTest()) {
+            throw ex;
+        } else {
+            var message = ex.stack || ex.message || ex;
+            testRunner.asyncTestErr(testRunner.getAsyncTestIndex(), "Test threw exception: " + message);
+        }
+    }
 
     // returns true on success, and error message on failure
     var compare = function compare(expected, actual) {
@@ -238,7 +388,7 @@ var assert = function assert() {
         if (result !== true) {
             var exMessage = addMessage("assert." + assertType + " failed: " + result);
             exMessage = addMessage(exMessage, message);
-            throw exMessage;
+            throwMessage(exMessage);
         }
     }
 
@@ -253,7 +403,7 @@ var assert = function assert() {
         areEqual: function areEqual(expected, actual, message) {
             /// <summary>
             /// IMPORTANT: NaN compares equal.<br/>
-            /// IMPORTANT: for objects, assert.AreEqual checks the fields.<br/>
+            /// IMPORTANT: for objects, assert.areEqual checks the fields.<br/>
             /// So, for 'var obj1={}, obj2={}' areEqual would be success, although in Javascript obj1 != obj2.<br/><br/>
             /// Performs deep comparison of arguments.<br/>
             /// This works for objects and simple types.<br/><br/>
@@ -334,7 +484,7 @@ var assert = function assert() {
                     expectedString += " " + expectedErrorMessage;
                 }
                 var actual = exception !== noException ? exception : "<no exception>";
-                throw addMessage("assert.throws failed: expected: " + expectedString + ", actual: " + actual, message);
+                throwMessage(addMessage("assert.throws failed: expected: " + expectedString + ", actual: " + actual, message));
             }
         },
 
@@ -351,12 +501,12 @@ var assert = function assert() {
                 return;
             }
 
-            throw addMessage("assert.doesNotThrow failed: expected: <no exception>, actual: " + exception, message);
+            throwMessage(addMessage("assert.doesNotThrow failed: expected: <no exception>, actual: " + exception, message));
         },
 
         fail: function fail(message) {
             ///<summary>Can be used to fail the test.</summary>
-            throw message;
+            throwMessage(message);
         }
     }
 }(); // assert.

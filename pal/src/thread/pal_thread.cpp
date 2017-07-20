@@ -88,7 +88,7 @@ static Volatile<CPalThread*> free_threads_list PAL_GLOBAL = NULL;
 
 /* lock to access list of free THREAD structures */
 /* NOTE: can't use a CRITICAL_SECTION here (see comment in FreeTHREAD) */
-int free_threads_spinlock = 0;
+static CCSpinLock<false> free_threads_spinlock;
 
 /* lock to access iEndingThreads counter, condition variable to signal shutdown
 thread when any remaining threads have died, and count of exiting threads that
@@ -191,6 +191,10 @@ Function:
 --*/
 BOOL TLSInitialize()
 {
+    // This will be called once and can't be called during/after another lock
+    // in place due to PAL is not yet initialized. The underlying issue here is
+    // related to whole lib/pal initialization on start.
+    free_threads_spinlock.Reset();
     /* Create the pthread key for thread objects, which we use
        for fast access to the current thread object. */
     if (pthread_key_create(&thObjKey, InternalEndCurrentThreadWrapper))
@@ -199,20 +203,7 @@ BOOL TLSInitialize()
         return FALSE;
     }
 
-    SPINLOCKInit(&free_threads_spinlock);
-
     return TRUE;
-}
-
-/*++
-Function:
-    TLSCleanup
-
-    Shutdown the TLS subsystem
---*/
-VOID TLSCleanup()
-{
-    SPINLOCKDestroy(&free_threads_spinlock);
 }
 
 /*++
@@ -229,8 +220,7 @@ CPalThread* AllocTHREAD()
 {
     CPalThread* pThread = NULL;
 
-    /* Get the lock */
-    SPINLOCKAcquire(&free_threads_spinlock, 0);
+    free_threads_spinlock.Enter();
 
     pThread = free_threads_list;
     if (pThread != NULL)
@@ -238,8 +228,7 @@ CPalThread* AllocTHREAD()
         free_threads_list = pThread->GetNext();
     }
 
-    /* Release the lock */
-    SPINLOCKRelease(&free_threads_spinlock);
+    free_threads_spinlock.Leave();
 
     if (pThread == NULL)
     {
@@ -298,70 +287,14 @@ static void FreeTHREAD(CPalThread *pThread)
        Update: [TODO] PROCSuspendOtherThreads has been removed. Can this
        code be changed?*/
 
-    /* Get the lock */
-    SPINLOCKAcquire(&free_threads_spinlock, 0);
+    free_threads_spinlock.Enter();
 
     pThread->SetNext(free_threads_list);
     free_threads_list = pThread;
 
-    /* Release the lock */
-    SPINLOCKRelease(&free_threads_spinlock);
+    free_threads_spinlock.Leave();
 }
 
-
-/*++
-Function:
-  THREADGetThreadProcessId
-
-returns the process owner ID of the indicated hThread
---*/
-DWORD
-THREADGetThreadProcessId(
-    HANDLE hThread
-    // UNIXTODO Should take pThread parameter here (modify callers)
-    )
-{
-    CPalThread *pThread;
-    CPalThread *pTargetThread;
-    IPalObject *pobjThread = NULL;
-    PAL_ERROR palError = NO_ERROR;
-
-    DWORD dwProcessId = 0;
-
-    pThread = InternalGetCurrentThread();
-
-    palError = InternalGetThreadDataFromHandle(
-        pThread,
-        hThread,
-        0,
-        &pTargetThread,
-        &pobjThread
-        );
-
-    if (NO_ERROR != palError)
-    {
-        if (!pThread->IsDummy())
-        {
-            dwProcessId = GetCurrentProcessId();
-        }
-        else
-        {
-            ASSERT("Dummy thread passed to THREADGetProcessId\n");
-        }
-
-        if (NULL != pobjThread)
-        {
-           pobjThread->ReleaseReference(pThread);
-        }
-    }
-    else
-    {
-        ERROR("Couldn't retreive the hThread:%p pid owner !\n", hThread);
-    }
-
-
-    return dwProcessId;
-}
 
 /*++
 Function:
@@ -411,6 +344,7 @@ GetThreadId(
     return dwThreadId;
 }
 
+static THREAD_LOCAL DWORD cachedCurrentThreadId = 0;
 /*++
 Function:
   GetCurrentThreadId
@@ -422,22 +356,18 @@ PALAPI
 GetCurrentThreadId(
             VOID)
 {
+    if (cachedCurrentThreadId != 0) return cachedCurrentThreadId;
     DWORD dwThreadId;
 
     PERF_ENTRY(GetCurrentThreadId);
     ENTRY("GetCurrentThreadId()\n");
-
-    //
-    // TODO: should do perf test to see how this compares
-    // with calling InternalGetCurrentThread (i.e., is our lookaside
-    // cache faster on average than pthread_self?)
-    //
 
     dwThreadId = (DWORD)THREADSilentGetCurrentThreadId();
 
     LOGEXIT("GetCurrentThreadId returns DWORD %#x\n", dwThreadId);
     PERF_EXIT(GetCurrentThreadId);
 
+    cachedCurrentThreadId = dwThreadId;
     return dwThreadId;
 }
 
@@ -1234,12 +1164,6 @@ CorUnix::InternalSetThreadPriority(
     case THREAD_PRIORITY_NORMAL:        /* fall through */
     case THREAD_PRIORITY_BELOW_NORMAL:  /* fall through */
     case THREAD_PRIORITY_LOWEST:
-#if PAL_IGNORE_NORMAL_THREAD_PRIORITY
-        /* We aren't going to set the thread priority. Just record what it is,
-           and exit */
-        pTargetThread->m_iThreadPriority = iNewPriority;
-        goto InternalSetThreadPriorityExit;
-#endif
         break;
 
     default:
@@ -2834,12 +2758,6 @@ int CorUnix::CThreadMachExceptionHandlers::GetIndexOfHandler(exception_mask_t bm
 
 #endif // HAVE_MACH_EXCEPTIONS
 
-#ifndef __APPLE__
-#define THREAD_LOCAL thread_local
-#else
-#define THREAD_LOCAL _Thread_local
-#endif
-
 #ifndef __IOS__
 static THREAD_LOCAL ULONG_PTR s_cachedHighLimit = 0;
 static THREAD_LOCAL ULONG_PTR s_cachedLowLimit = 0;
@@ -2910,4 +2828,48 @@ bool IsAddressOnStack(ULONG_PTR address)
     }
 
     return false;
+}
+
+#ifndef __IOS__
+// why _Thread_local ? Because it is faster(.)
+// why not replace PAL to use _Thread_local instead of front caching? _Thread_local is not cross platform
+
+// Why ULONG_PTR? keeping type for localThread `simple` may affect implementation hence the perf. positively.
+THREAD_LOCAL ULONG_PTR localThread = 0;
+CPalThread *CorUnix::GetCurrentPalThread(bool force)
+{
+    ULONG_PTR pThread = localThread;
+    if (pThread == 0)
+    {
+        pThread = (ULONG_PTR) reinterpret_cast<CPalThread*>(pthread_getspecific(thObjKey));
+#ifdef FEATURE_PAL_SXS
+        if (pThread == 0 && force)
+        {
+            pThread = (ULONG_PTR) CreateCurrentThreadData();
+        }
+#endif
+        localThread = pThread;
+    }
+
+    return (CPalThread*)pThread;
+}
+#else // !__IOS__
+CPalThread *CorUnix::GetCurrentPalThread(bool force)
+{
+    CPalThread *pThread = reinterpret_cast<CPalThread*>(pthread_getspecific(thObjKey));
+
+#ifdef FEATURE_PAL_SXS
+    if (pThread == nullptr && force)
+    {
+        pThread = CreateCurrentThreadData();
+    }
+#endif
+
+    return pThread;
+}
+#endif
+
+CPalThread *CorUnix::InternalGetCurrentThread()
+{
+    return GetCurrentPalThread(true);
 }

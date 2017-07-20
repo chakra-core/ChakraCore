@@ -17,52 +17,46 @@
 #ifndef WABT_LINK_H_
 #define WABT_LINK_H_
 
+#include <memory>
+#include <vector>
+
 #include "binary.h"
 #include "common.h"
-#include "vector.h"
-
-#define WABT_LINK_MODULE_NAME "__extern"
 
 namespace wabt {
+namespace link {
 
-struct LinkerInputBinary;
+class LinkerInputBinary;
 
 struct FunctionImport {
+  StringSlice module_name;
   StringSlice name;
-  uint32_t sig_index;
+  Index sig_index;
   bool active; /* Is this import present in the linked binary */
-  struct LinkerInputBinary* foreign_binary;
-  uint32_t foreign_index;
+  Index relocated_function_index;
+  LinkerInputBinary* foreign_binary;
+  Index foreign_index;
 };
-WABT_DEFINE_VECTOR(function_import, FunctionImport);
 
 struct GlobalImport {
+  StringSlice module_name;
   StringSlice name;
   Type type;
   bool mutable_;
 };
-WABT_DEFINE_VECTOR(global_import, GlobalImport);
 
 struct DataSegment {
-  uint32_t memory_index;
-  uint32_t offset;
+  Index memory_index;
+  Address offset;
   const uint8_t* data;
   size_t size;
 };
-WABT_DEFINE_VECTOR(data_segment, DataSegment);
-
-struct Reloc {
-  RelocType type;
-  size_t offset;
-};
-WABT_DEFINE_VECTOR(reloc, Reloc);
 
 struct Export {
   ExternalKind kind;
   StringSlice name;
-  uint32_t index;
+  Index index;
 };
-WABT_DEFINE_VECTOR(export, Export);
 
 struct SectionDataCustom {
   /* Reference to string data stored in the containing InputBinary */
@@ -70,9 +64,13 @@ struct SectionDataCustom {
 };
 
 struct Section {
+  WABT_DISALLOW_COPY_AND_ASSIGN(Section);
+  Section();
+  ~Section();
+
   /* The binary to which this section belongs */
-  struct LinkerInputBinary* binary;
-  RelocVector relocations; /* The relocations for this section */
+  LinkerInputBinary* binary;
+  std::vector<Reloc> relocations; /* The relocations for this section */
 
   BinarySection section_code;
   size_t size;
@@ -82,56 +80,65 @@ struct Section {
   size_t payload_offset;
 
   /* For known sections, the count of the number of elements in the section */
-  uint32_t count;
+  Index count;
 
   union {
     /* CUSTOM section data */
-    SectionDataCustom data_custom;
+    SectionDataCustom custom;
     /* DATA section data */
-    DataSegmentVector data_segments;
+    std::vector<DataSegment>* data_segments;
     /* MEMORY section data */
     Limits memory_limits;
-  };
+  } data;
 
   /* The offset at which this section appears within the combined output
    * section. */
   size_t output_payload_offset;
 };
-WABT_DEFINE_VECTOR(section, Section);
 
-typedef Section* SectionPtr;
-WABT_DEFINE_VECTOR(section_ptr, SectionPtr);
+typedef std::vector<Section*> SectionPtrVector;
 
-WABT_DEFINE_VECTOR(string_slice, StringSlice);
+class LinkerInputBinary {
+ public:
+  WABT_DISALLOW_COPY_AND_ASSIGN(LinkerInputBinary);
+  LinkerInputBinary(const char* filename, uint8_t* data, size_t size);
+  ~LinkerInputBinary();
 
-struct LinkerInputBinary {
+  Index RelocateFuncIndex(Index findex);
+  Index RelocateTypeIndex(Index index);
+  Index RelocateGlobalIndex(Index index);
+
+  bool IsValidFunctionIndex(Index index);
+  bool IsFunctionImport(Index index);
+  bool IsInactiveFunctionImport(Index index);
+
   const char* filename;
   uint8_t* data;
   size_t size;
-  SectionVector sections;
+  std::vector<std::unique_ptr<Section>> sections;
+  std::vector<Export> exports;
 
-  ExportVector exports;
+  std::vector<FunctionImport> function_imports;
+  Index active_function_imports;
+  std::vector<GlobalImport> global_imports;
+  Index active_global_imports;
 
-  FunctionImportVector function_imports;
-  uint32_t active_function_imports;
-  GlobalImportVector global_imports;
-  uint32_t active_global_imports;
+  Index type_index_offset;
+  Index function_index_offset;
+  Index imported_function_index_offset;
+  Index global_index_offset;
+  Index imported_global_index_offset;
+  Index table_index_offset;
+  Index memory_page_count;
+  Index memory_page_offset;
 
-  uint32_t type_index_offset;
-  uint32_t function_index_offset;
-  uint32_t imported_function_index_offset;
-  uint32_t global_index_offset;
-  uint32_t imported_global_index_offset;
-  uint32_t table_index_offset;
-  uint32_t memory_page_count;
-  uint32_t memory_page_offset;
+  Index table_elem_count = 0;
+  Index function_count = 0;
 
-  uint32_t table_elem_count;
-
-  StringSliceVector debug_names;
+  std::vector<std::string> debug_names;
 };
-WABT_DEFINE_VECTOR(binary, LinkerInputBinary);
 
+}  // namespace link
 }  // namespace wabt
 
 #endif /* WABT_LINK_H_ */

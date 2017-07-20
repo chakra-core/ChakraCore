@@ -8,6 +8,8 @@ namespace Js
 {
     class JavascriptDate : public DynamicObject
     {
+        DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
+
     protected:
         Field(DateImplementation) m_date;
 

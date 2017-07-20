@@ -9,71 +9,82 @@ namespace Js
     DEFINE_RECYCLER_TRACKER_PERF_COUNTER(PropertyString);
     DEFINE_RECYCLER_TRACKER_WEAKREF_PERF_COUNTER(PropertyString);
 
-    PropertyString::PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord)
-        : JavascriptString(type, propertyRecord->GetLength(), propertyRecord->GetBuffer()), m_propertyRecord(propertyRecord)
+    PropertyString::PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord) :
+        JavascriptString(type, propertyRecord->GetLength(), propertyRecord->GetBuffer()),
+        propertyRecord(propertyRecord),
+        ldElemInlineCache(nullptr),
+        stElemInlineCache(nullptr),
+        hitRate(0)
     {
     }
-
-    PropertyString* PropertyString::New(StaticType* type, const Js::PropertyRecord* propertyRecord, ArenaAllocator *arena)
-    {
-        PropertyString * propertyString = (PropertyString *)Anew(arena, ArenaAllocPropertyString, type, propertyRecord);
-        propertyString->propCache = AllocatorNewStructZ(InlineCacheAllocator, type->GetScriptContext()->GetInlineCacheAllocator(), PropertyCache);
-        return propertyString;
-    }
-
 
     PropertyString* PropertyString::New(StaticType* type, const Js::PropertyRecord* propertyRecord, Recycler *recycler)
     {
-        PropertyString * propertyString =  RecyclerNewPlusZ(recycler, sizeof(PropertyCache), PropertyString, type, propertyRecord);
-        propertyString->propCache = (PropertyCache*)(propertyString + 1);
+        PropertyString * propertyString = RecyclerNewZ(recycler, PropertyString, type, propertyRecord);
+        // TODO: in future, might be worth putting these inline to avoid extra allocations. PIC copy API needs to be updated to support this though
+        propertyString->ldElemInlineCache = ScriptContextPolymorphicInlineCache::New(MinPropertyStringInlineCacheSize, type->GetLibrary());
+        propertyString->stElemInlineCache = ScriptContextPolymorphicInlineCache::New(MinPropertyStringInlineCacheSize, type->GetLibrary());
         return propertyString;
     }
 
-    PropertyCache const * PropertyString::GetPropertyCache() const
+    PolymorphicInlineCache * PropertyString::GetLdElemInlineCache() const
     {
-        Assert(!propCache->type  || propCache->type->GetScriptContext() == this->GetScriptContext());
-        return propCache;
+        return this->ldElemInlineCache;
     }
 
-    void PropertyString::ClearPropertyCache()
+    PolymorphicInlineCache * PropertyString::GetStElemInlineCache() const
     {
-        this->propCache->type = nullptr;
+        return this->stElemInlineCache;
     }
+
     void const * PropertyString::GetOriginalStringReference()
     {
         // Property record is the allocation containing the string buffer
-        return this->m_propertyRecord;
+        return this->propertyRecord;
+    }
+
+    bool PropertyString::ShouldUseCache() const
+    {
+        return this->hitRate > (int)CONFIG_FLAG(StringCacheMissThreshold);
+    }
+
+    void PropertyString::LogCacheMiss()
+    {
+        this->hitRate -= (int)CONFIG_FLAG(StringCacheMissPenalty);
+        if (this->hitRate < (int)CONFIG_FLAG(StringCacheMissReset))
+        {
+            this->hitRate = 0;
+        }
     }
 
     RecyclableObject * PropertyString::CloneToScriptContext(ScriptContext* requestContext)
     {
-        return requestContext->GetLibrary()->CreatePropertyString(this->m_propertyRecord);
+        return requestContext->GetLibrary()->CreatePropertyString(this->propertyRecord);
     }
 
-    void PropertyString::UpdateCache(Type * type, uint16 dataSlotIndex, bool isInlineSlot, bool isStoreFieldEnabled)
+    PolymorphicInlineCache * PropertyString::CreateBiggerPolymorphicInlineCache(bool isLdElem)
     {
-        Assert(type);
-        
-        if (type->GetScriptContext() != this->GetScriptContext())
+        PolymorphicInlineCache * polymorphicInlineCache = isLdElem ? GetLdElemInlineCache() : GetStElemInlineCache();
+        Assert(polymorphicInlineCache && polymorphicInlineCache->CanAllocateBigger());
+        uint16 polymorphicInlineCacheSize = polymorphicInlineCache->GetSize();
+        uint16 newPolymorphicInlineCacheSize = PolymorphicInlineCache::GetNextSize(polymorphicInlineCacheSize);
+        Assert(newPolymorphicInlineCacheSize > polymorphicInlineCacheSize);
+        PolymorphicInlineCache * newPolymorphicInlineCache = ScriptContextPolymorphicInlineCache::New(newPolymorphicInlineCacheSize, GetLibrary());
+        polymorphicInlineCache->CopyTo(this->propertyRecord->GetPropertyId(), GetScriptContext(), newPolymorphicInlineCache);
+        if (isLdElem)
         {
-            return;
+            this->ldElemInlineCache = newPolymorphicInlineCache;
         }
-
-        if (this->IsArenaAllocPropertyString())
+        else
         {
-            this->GetScriptContext()->SetHasUsedInlineCache(true);
+            this->stElemInlineCache = newPolymorphicInlineCache;
         }
-
-        type->SetHasBeenCached();
-        this->propCache->type = type;
-        this->propCache->preventdataSlotIndexFalseRef = 1;
-        this->propCache->dataSlotIndex = dataSlotIndex;
-        this->propCache->preventFlagsFalseRef = 1;
-        this->propCache->isInlineSlot = isInlineSlot;
-        this->propCache->isStoreFieldEnabled = isStoreFieldEnabled;
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (PHASE_VERBOSE_TRACE1(Js::PolymorphicInlineCachePhase) || PHASE_TRACE1(PropertyStringCachePhase))
+        {
+            Output::Print(_u("PropertyString '%s' : Bigger PIC, oldSize = %d, newSize = %d\n"), GetString(), polymorphicInlineCacheSize, newPolymorphicInlineCacheSize);
+        }
+#endif
+        return newPolymorphicInlineCache;
     }
-
-    ArenaAllocPropertyString::ArenaAllocPropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord)
-        :PropertyString(type, propertyRecord)
-    {}
 }

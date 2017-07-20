@@ -6,14 +6,6 @@
 
 #include <sys/stat.h>
 
-#if defined(__APPLE__)
-#include <mach-o/dyld.h> // _NSGetExecutablePath
-#elif defined(__linux__)
-#include <unistd.h> // readlink
-#elif !defined(_WIN32)
-#error "How to get the executable path for this platform?"
-#endif // _WIN32 ?
-
 //TODO: x-plat definitions
 #ifdef _WIN32
 #define MAX_URI_LENGTH 512
@@ -139,26 +131,30 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
     //
     if (fopen_s(&file, filename, "rb") != 0)
     {
-#ifdef _WIN32
-        DWORD lastError = GetLastError();
-        char16 wszBuff[512];
-        fprintf(stderr, "Error in opening file '%s' ", filename);
-        wszBuff[0] = 0;
-        if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
-            nullptr,
-            lastError,
-            0,
-            wszBuff,
-            _countof(wszBuff),
-            nullptr))
+        if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
         {
-            fwprintf(stderr, _u(": %s"), wszBuff);
-        }
-        fwprintf(stderr, _u("\n"));
+#ifdef _WIN32
+            DWORD lastError = GetLastError();
+            char16 wszBuff[512];
+            fprintf(stderr, "Error in opening file '%s' ", filename);
+            wszBuff[0] = 0;
+            if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+                nullptr,
+                lastError,
+                0,
+                wszBuff,
+                _countof(wszBuff),
+                nullptr))
+            {
+                fwprintf(stderr, _u(": %s"), wszBuff);
+            }
+            fwprintf(stderr, _u("\n"));
 #elif defined(_POSIX_VERSION)
-        fprintf(stderr, "Error in opening file: ");
-        perror(filename);
+            fprintf(stderr, "Error in opening file: ");
+            perror(filename);
 #endif
+        }
+
         IfFailGo(E_FAIL);
     }
 
@@ -565,78 +561,6 @@ void CALLBACK Helpers::TTFlushAndCloseStreamCallback(JsTTDStreamHandle handle, b
     fclose((FILE*)handle);
 }
 
-#define SET_BINARY_PATH_ERROR_MESSAGE(path, msg) \
-    str_len = (int) strlen(msg);                 \
-    memcpy(path, msg, (size_t)str_len);          \
-    path[str_len] = char(0)
-
-void GetBinaryLocation(char *path, const unsigned size)
-{
-    AssertMsg(path != nullptr, "Path can not be nullptr");
-    AssertMsg(size < INT_MAX, "Isn't it too big for a path buffer?");
-#ifdef _WIN32
-    LPWSTR wpath = (WCHAR*)malloc(sizeof(WCHAR) * size);
-    int str_len;
-    if (!wpath)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed. OutOfMemory!");
-        return;
-    }
-    str_len = GetModuleFileNameW(NULL, wpath, size - 1);
-    if (str_len <= 0)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed.");
-        free(wpath);
-        return;
-    }
-
-    str_len = WideCharToMultiByte(CP_UTF8, 0, wpath, str_len, path, size, NULL, NULL);
-    free(wpath);
-
-    if (str_len <= 0)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName (WideCharToMultiByte) has failed.");
-        return;
-    }
-
-    if ((unsigned)str_len > size - 1)
-    {
-        str_len = (int) size - 1;
-    }
-    path[str_len] = char(0);
-#elif defined(__APPLE__)
-    uint32_t path_size = (uint32_t)size;
-    char *tmp = nullptr;
-    int str_len;
-    if (_NSGetExecutablePath(path, &path_size))
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: _NSGetExecutablePath has failed.");
-        return;
-    }
-
-    tmp = (char*)malloc(size);
-    char *result = realpath(path, tmp);
-    str_len = strlen(result);
-    memcpy(path, result, str_len);
-    free(tmp);
-    path[str_len] = char(0);
-#elif defined(__linux__)
-    int str_len = readlink("/proc/self/exe", path, size - 1);
-    if (str_len <= 0)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: /proc/self/exe has failed.");
-        return;
-    }
-    path[str_len] = char(0);
-#else
-#warning "Implement GetBinaryLocation for this platform"
-#endif
-}
-
-// xplat-todo: Implement a corresponding solution for GetModuleFileNameW
-// and cleanup PAL. [ https://github.com/Microsoft/ChakraCore/pull/2288 should be merged first ]
-// GetModuleFileName* PAL is not reliable and forces us to explicitly double initialize PAL
-// with argc / argv....
 void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char* filename)
 {
     char fullpath[_MAX_PATH];
@@ -644,7 +568,7 @@ void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char
     char dir[_MAX_DIR];
 
     char modulename[_MAX_PATH];
-    GetBinaryLocation(modulename, _MAX_PATH);
+    PlatformAgnostic::SystemInfo::GetBinaryLocation(modulename, _MAX_PATH);
     _splitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
     _makepath_s(fullpath, drive, dir, filename, nullptr);
 

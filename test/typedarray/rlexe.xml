@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -139,12 +139,12 @@
     </default>
   </test>
   <!--
-Below test fails with difference in space. Investigate the cause and re-enable them
+Below test fails with difference in space. Investigate the cause and re-enable them (Microsoft/ChakraCore#3038)
 <test>
     <default>
         <files>crossthread.js</files>
         <baseline>crossthread_es6.baseline</baseline>
-        <tags>typedarray,exclude_arm,exclude_chk,exclude_apollo</tags>
+        <tags>typedarray,exclude_arm,exclude_chk</tags>
     </default>
 </test>
 -->
@@ -198,6 +198,12 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   </test>
   <test>
     <default>
+      <files>floathelperaccess.js</files>
+      <tags>typedarray</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>subarray.js</files>
       <baseline>subarray.baseline</baseline>
       <tags>typedarray</tags>
@@ -213,14 +219,14 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   <test>
     <default>
       <files>allocation.js</files>
-      <tags>typedarray,exclude_arm,xplatslow</tags>
+      <tags>typedarray,exclude_arm,xplatslow,Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
   <test>
     <default>
       <files>allocation2.js</files>
-      <tags>typedarray,exclude_arm,xplatslow</tags>
+      <tags>typedarray,exclude_arm,xplatslow,Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
@@ -299,6 +305,13 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   </test>
   <test>
     <default>
+      <files>transferdetach.js</files>
+      <compile-flags>-ArrayBufferTransfer</compile-flags>
+      <tags>typedarray</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>memset.js</files>
       <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -mmoc:0</compile-flags>
     </default>
@@ -331,6 +344,11 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   <test>
     <default>
       <files>bug_OS_6911900.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>reentry1.js</files>
     </default>
   </test>
 </regress-exe>

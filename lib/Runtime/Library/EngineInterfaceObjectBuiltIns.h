@@ -9,6 +9,7 @@ GlobalBuiltInConstructor(RegExp)
 GlobalBuiltInConstructor(String)
 GlobalBuiltInConstructor(Date)
 GlobalBuiltInConstructor(Error) /*This was added back in to allow assert errors*/
+GlobalBuiltInConstructor(Map)
 
 GlobalBuiltIn(Math,Abs)
 GlobalBuiltIn(Math,Floor)

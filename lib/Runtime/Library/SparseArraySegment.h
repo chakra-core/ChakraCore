@@ -29,6 +29,7 @@ namespace Js
 
         uint32  RemoveUndefined(ScriptContext* scriptContext); //returns count of undefined removed
         void    EnsureSizeInBound();
+        void    CheckLengthvsSize() { AssertOrFailFast(this->length <= this->size); }
 
         static uint32 GetOffsetOfLeft() { return offsetof(SparseArraySegmentBase, left); }
         static uint32 GetOffsetOfLength() { return offsetof(SparseArraySegmentBase, length); }

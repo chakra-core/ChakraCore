@@ -17,7 +17,7 @@
 #ifndef WABT_LITERAL_H_
 #define WABT_LITERAL_H_
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "common.h"
 

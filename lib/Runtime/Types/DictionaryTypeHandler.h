@@ -73,9 +73,9 @@ namespace Js
         virtual PropertyId GetPropertyId(ScriptContext* scriptContext, BigPropertyIndex index) override;
 
         virtual BOOL FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags) override;
+            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info) override;
         virtual BOOL FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags) override;
+            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info) override;
 
         virtual PropertyIndex GetPropertyIndex(PropertyRecord const* propertyRecord) override;
         virtual bool GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info) override;
@@ -208,7 +208,7 @@ namespace Js
         void Add(const PropertyRecord* propertyId, PropertyAttributes attributes, ScriptContext *const scriptContext);
         void Add(const PropertyRecord* propertyId, PropertyAttributes attributes, bool isInitialized, bool isFixed, bool usedAsFixed, ScriptContext *const scriptContext);
 
-        void EnsureSlotCapacity(DynamicObject * instance);
+        void EnsureSlotCapacity(DynamicObject * instance, T increment = 1);
 
         BOOL AddProperty(DynamicObject* instance, const PropertyRecord* propertyRecord, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, bool throwIfNotExtensible, SideEffects possibleSideEffects);
         ES5ArrayTypeHandlerBase<T>* ConvertToES5ArrayType(DynamicObject *instance);

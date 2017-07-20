@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -29,7 +29,6 @@
       <files>evalDeferred.js</files>
       <baseline>evalDeferred.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -61,7 +60,7 @@
     <default>
       <files>InternalToString.js</files>
       <baseline>InternalToString.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <tags>exclude_jenkins</tags>
     </default>
   </test>

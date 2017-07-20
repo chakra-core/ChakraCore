@@ -122,7 +122,7 @@ void JsrtDebugUtils::AddVarPropertyToObject(Js::DynamicObject * object, const ch
     }
 }
 
-void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObjectModelDisplay* objectDisplayRef, Js::ScriptContext * scriptContext)
+void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObjectModelDisplay* objectDisplayRef, Js::ScriptContext * scriptContext, bool forceSetValueProp)
 {
     Assert(objectDisplayRef != nullptr);
     Assert(scriptContext != nullptr);
@@ -200,6 +200,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             addDisplay = true;
             break;
 
+#ifdef ENABLE_SIMDJS
         case Js::TypeIds_SIMDFloat32x4:
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDFloat32x4DisplayString(), scriptContext);
             addDisplay = true;
@@ -216,6 +217,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDInt8x16DisplayString(), scriptContext);
             addDisplay = true;
             break;
+#endif // #ifdef ENABLE_SIMDJS
 
         case Js::TypeIds_Enumerator:
         case Js::TypeIds_HostDispatch:
@@ -325,6 +327,11 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         JsrtDebugUtils::AddPropertyToObject(object, addDisplay ? JsrtDebugPropertyId::display : JsrtDebugPropertyId::value, value, wcslen(value), scriptContext);
     }
 
+    if (forceSetValueProp && varValue != nullptr && !JsrtDebugUtils::HasProperty(object, JsrtDebugPropertyId::value, scriptContext))
+    {
+        JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, varValue, scriptContext);
+    }
+
     DBGPROP_ATTRIB_FLAGS dbPropAttrib = objectDisplayRef->GetTypeAttribute();
 
     JsrtDebugPropertyAttribute propertyAttributes = JsrtDebugPropertyAttribute::NONE;
@@ -387,6 +394,22 @@ void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPr
 void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, Js::Var value, Js::ScriptContext * scriptContext)
 {
     JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, value, scriptContext);
+}
+
+bool JsrtDebugUtils::HasProperty(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, Js::ScriptContext * scriptContext)
+{
+    const char16* propertyName = GetDebugPropertyName(propertyId);
+
+    const Js::PropertyRecord* propertyRecord;
+    scriptContext->FindPropertyRecord(propertyName, static_cast<int>(wcslen(propertyName)), &propertyRecord);
+
+    if (propertyRecord == nullptr)
+    {
+        // No property record exists, there must be no property with that name in the script context.
+        return false;
+    }
+
+    return !!Js::JavascriptOperators::HasProperty(object, propertyRecord->GetPropertyId());
 }
 
 const char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)

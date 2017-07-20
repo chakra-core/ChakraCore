@@ -133,7 +133,8 @@ namespace Js
         UIGroupType_None,
         UIGroupType_InnerScope,           // variables under the innerscope (such as Block/Catch)
         UIGroupType_Scope,
-        UIGroupType_Globals
+        UIGroupType_Globals,
+        UIGroupType_Param
     };
 
     enum FramesLocalType
@@ -202,9 +203,10 @@ namespace Js
         static uint GetBreakMutationBreakpointsCount(DiagStackFrame* frame);
 #endif
 
-        bool IsInGroup() const { return (groupType != UIGroupType::UIGroupType_None && groupType != UIGroupType::UIGroupType_InnerScope); }
-        bool IsWalkerForCurrentFrame() const { return groupType == UIGroupType::UIGroupType_None; }
+        bool IsInGroup() const { return (groupType != UIGroupType::UIGroupType_None && groupType != UIGroupType::UIGroupType_Param && groupType != UIGroupType::UIGroupType_InnerScope); }
+        bool IsWalkerForCurrentFrame() const { return groupType == UIGroupType::UIGroupType_None || groupType == UIGroupType_Param; }
         DebuggerScope * GetScopeWhenHaltAtFormals();
+        static bool IsInParamScope(DebuggerScope* scope, DiagStackFrame* pFrame);
 
         int GetAdjustedByteCodeOffset() const;
 
@@ -989,6 +991,7 @@ namespace Js
     };
 #endif
 
+#ifdef ENABLE_SIMDJS
     // For SIMD walker
     template <typename simdType, uint elementCount>
     class RecyclableSimdObjectWalker : public RecyclableObjectWalker
@@ -1040,4 +1043,6 @@ namespace Js
     typedef RecyclableSimdObjectDisplay<JavascriptSIMDUint32x4,  RecyclableSimdUint32x4ObjectWalker>    RecyclableSimdUint32x4ObjectDisplay;
     typedef RecyclableSimdObjectDisplay<JavascriptSIMDUint8x16,  RecyclableSimdUint8x16ObjectWalker>    RecyclableSimdUint8x16ObjectDisplay;
     typedef RecyclableSimdObjectDisplay<JavascriptSIMDUint16x8,  RecyclableSimdUint16x8ObjectWalker>    RecyclableSimdUint16x8ObjectDisplay;
+
+#endif // #ifdef ENABLE_SIMDJS
 }

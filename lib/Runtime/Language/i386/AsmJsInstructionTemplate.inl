@@ -161,6 +161,10 @@ InstructionStart( LAHF      , 1|4|8 , 1 , NoFlag    )
     FormatEmpty()
 InstructionEnd ( LAHF )
 
+InstructionStart( LEA       , 4   , 0, NoFlag    )
+    FormatRegAddr(EncodeModRM_RegRM)
+InstructionEnd ( LEA )
+
 InstructionStart( MOV       , 1|2|4   , 11, AffectOp1 )
     Format2Reg(EncodeModRM_2Reg)
     FormatRegAddr(EncodeModRM_RegRM)

@@ -65,9 +65,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Func2": "function <large string>",
       "Func3": "function <large string>",
       "Func1": "function <large string>",
@@ -84,11 +81,6 @@
       "x": "undefined undefined"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Func2": "function <large string>",
       "Func3": "function <large string>",
       "Func1": "function <large string>",

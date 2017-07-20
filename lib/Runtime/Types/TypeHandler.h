@@ -47,7 +47,7 @@ namespace Js
         EquivalentPropertyEntry* properties;
     };
 
-    typedef void (__cdecl *DeferredTypeInitializer)(DynamicObject* instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+    typedef bool (__cdecl *DeferredTypeInitializer)(DynamicObject* instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
     class DynamicTypeHandler
     {
@@ -324,7 +324,45 @@ namespace Js
         static int GetOffsetOfFlags() { return offsetof(DynamicTypeHandler, flags); }
         static int GetOffsetOfOffsetOfInlineSlots() { return offsetof(DynamicTypeHandler, offsetOfInlineSlots); }
 
+        /*
+        Returns a value indicating whether the current type handler is locked.
+
+        Given below is the list of  all the actions where different type handlers explicitly check for the type handler being locked. In most cases, when a type is evolving,
+        if the type handler is locked a new type handler is created and all existing properties are copied over before evolving the type.
+        1. SimpleTypeHandler
+              (i) SetPropertyWithAttributes
+             (ii) SetAttribute
+        2. SimpleDictionaryTypeHandler
+              (i) AddProperty
+             (ii) DeleteProperty
+            (iii) SetProperty
+             (iv) SetPropertyWithAttributes
+              (v) SetAttribute
+             (vi) PreventExtension
+            (vii) Seal
+           (viii) Freeze
+        3. SimpleDictionaryUnorderedTypeHandler
+             (i) AddProperty
+            (ii) DeleteProperty
+           (iii) SetProperty
+            (iv) SetPropertyWithAttributes
+             (v) SetAttribute
+            (vi) PreventExtension
+           (vii) Seal
+          (viii) Freeze
+        4. PathTypeHandler
+             (i) DeleteProperty
+            (ii) SetProperty
+           (iii) SetPropertyWithAttributes
+        5. NullTypeHandler
+             (i) AddProperty
+            (ii) SetPropertyWithAttributes
+            (iv) PreventExtension
+             (v) Seal
+            (vi) Freeze
+        */
         bool GetIsLocked() const { return (this->flags & IsLockedFlag) != 0; }
+
         bool GetIsShared() const { return (this->flags & IsSharedFlag) != 0; }
         bool GetMayBecomeShared() const { return (this->flags & MayBecomeSharedFlag) != 0; }
         bool GetIsOrMayBecomeShared() const { return (this->flags & (MayBecomeSharedFlag | IsSharedFlag)) != 0; }
@@ -402,9 +440,9 @@ namespace Js
         virtual PropertyId GetPropertyId(ScriptContext* scriptContext, PropertyIndex index) = 0;
         virtual PropertyId GetPropertyId(ScriptContext* scriptContext, BigPropertyIndex index) = 0;
         virtual BOOL FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags) = 0;
+            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info) = 0;
         virtual BOOL FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags);
+            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info);
         virtual PropertyIndex GetPropertyIndex(PropertyRecord const* propertyRecord) = 0;
         virtual bool GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info) = 0;
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const Js::TypeEquivalenceRecord& record, uint& failedPropertyIndex) = 0;

@@ -1,0 +1,5 @@
+Passed object prototype tainting!
+Passed array prototype tainting!
+Passed string prototype tainting!
+Passed other tainting!
+Passed general tainting!

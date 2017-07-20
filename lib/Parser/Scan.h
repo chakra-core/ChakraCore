@@ -376,8 +376,9 @@ public:
     tokens ScanNoKeywords();
     tokens ScanForcingPid();
     void SetText(EncodedCharPtr psz, size_t offset, size_t length, charcount_t characterOffset, ULONG grfscr, ULONG lineNumber = 0);
+#if ENABLE_BACKGROUND_PARSING
     void PrepareForBackgroundParse(Js::ScriptContext *scriptContext);
-
+#endif
     enum ScanState
     {
         ScanStateNormal = 0,       

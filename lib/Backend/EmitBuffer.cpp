@@ -8,7 +8,7 @@
 // EmitBufferManager::EmitBufferManager
 //      Constructor
 //----------------------------------------------------------------------------
-template <typename TAlloc, typename TPreReservedAlloc, class SyncObject>
+template <typename TAlloc, typename TPreReservedAlloc, typename SyncObject>
 EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::EmitBufferManager(ArenaAllocator * allocator, CustomHeap::CodePageAllocators<TAlloc, TPreReservedAlloc> * codePageAllocators,
     Js::ScriptContext * scriptContext, LPCWSTR name, HANDLE processHandle) :
     allocationHeap(allocator, codePageAllocators, processHandle),
@@ -296,15 +296,7 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::AllocateBuffer(__in si
 #if DBG
     MEMORY_BASIC_INFORMATION memBasicInfo;
     size_t resultBytes = VirtualQueryEx(this->processHandle, allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
-    if (resultBytes == 0) 
-    {
-        MemoryOperationLastError::RecordLastError();
-        if (this->processHandle != GetCurrentProcess())
-        {            
-            return nullptr;
-        }
-    }
-    Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
+    Assert(resultBytes == 0 || memBasicInfo.Protect == PAGE_EXECUTE_READ);
 #endif
 
     return allocation;
@@ -342,7 +334,7 @@ bool EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::IsBufferExecuteRe
     AutoRealOrFakeCriticalSection<SyncObject> autoCs(&this->criticalSection);
     MEMORY_BASIC_INFORMATION memBasicInfo;
     size_t resultBytes = VirtualQuery(allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
-    return resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE;
+    return resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE_READ;
 }
 #endif
 

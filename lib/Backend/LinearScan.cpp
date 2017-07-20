@@ -187,7 +187,7 @@ LinearScan::RegAlloc()
         }
         else if (instr->IsBranchInstr())
         {
-            if (this->func->HasTry() && this->func->DoOptimizeTryCatch())
+            if (this->func->HasTry() && this->func->DoOptimizeTry())
             {
                 this->ProcessEHRegionBoundary(instr);
             }
@@ -206,8 +206,7 @@ LinearScan::RegAlloc()
             if (this->currentRegion)
             {
                 RegionType curRegType = this->currentRegion->GetType();
-                Assert(curRegType != RegionTypeFinally); //Finally regions are not optimized yet
-                if (curRegType == RegionTypeTry || curRegType == RegionTypeCatch)
+                if (curRegType == RegionTypeTry || curRegType == RegionTypeCatch || curRegType == RegionTypeFinally)
                 {
                     this->func->hasBailoutInEHRegion = true;
                 }
@@ -223,9 +222,10 @@ LinearScan::RegAlloc()
         }
 
         this->SetSrcRegs(instr);
-        this->EndDeadLifetimes(instr);
 
         this->CheckOpHelper(instr);
+
+        this->EndDeadLifetimes(instr);
 
         this->KillImplicitRegs(instr);
 
@@ -1005,7 +1005,7 @@ LinearScan::NeedsWriteThrough(StackSym * sym)
 bool
 LinearScan::NeedsWriteThroughForEH(StackSym * sym)
 {
-    if (!this->func->HasTry() || !this->func->DoOptimizeTryCatch() || !sym->HasByteCodeRegSlot())
+    if (!this->func->HasTry() || !this->func->DoOptimizeTry() || !sym->HasByteCodeRegSlot())
     {
         return false;
     }
@@ -1195,6 +1195,7 @@ struct FuncBailOutData
     BVFixed * losslessInt32Syms;
     BVFixed * float64Syms;
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     BVFixed * simd128F4Syms;
     BVFixed * simd128I4Syms;
@@ -1206,6 +1207,7 @@ struct FuncBailOutData
     BVFixed * simd128B4Syms;
     BVFixed * simd128B8Syms;
     BVFixed * simd128B16Syms;
+#endif
 
     void Initialize(Func * func, JitArenaAllocator * tempAllocator);
     void FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOutRecordDataTable *table, uint **lastUpdatedRowIndices);
@@ -1220,6 +1222,7 @@ FuncBailOutData::Initialize(Func * func, JitArenaAllocator * tempAllocator)
     this->localOffsets = AnewArrayZ(tempAllocator, int, localsCount);
     this->losslessInt32Syms = BVFixed::New(localsCount, tempAllocator);
     this->float64Syms = BVFixed::New(localsCount, tempAllocator);
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     this->simd128F4Syms = BVFixed::New(localsCount, tempAllocator);
     this->simd128I4Syms = BVFixed::New(localsCount, tempAllocator);
@@ -1231,6 +1234,7 @@ FuncBailOutData::Initialize(Func * func, JitArenaAllocator * tempAllocator)
     this->simd128B4Syms = BVFixed::New(localsCount, tempAllocator);
     this->simd128B8Syms = BVFixed::New(localsCount, tempAllocator);
     this->simd128B16Syms = BVFixed::New(localsCount, tempAllocator);
+#endif
 }
 
 void
@@ -1255,7 +1259,7 @@ FuncBailOutData::FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOu
         {
             bool isFloat = float64Syms->Test(i) != 0;
             bool isInt = losslessInt32Syms->Test(i) != 0;
-
+#ifdef ENABLE_SIMDJS
             // SIMD_JS
             bool isSimd128F4  = simd128F4Syms->Test(i) != 0;
             bool isSimd128I4  = simd128I4Syms->Test(i) != 0;
@@ -1271,6 +1275,11 @@ FuncBailOutData::FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOu
             globalBailOutRecordDataTable->AddOrUpdateRow(allocator, bailOutRecordId, i, isFloat, isInt, 
                 isSimd128F4, isSimd128I4, isSimd128I8, isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16,
                 isSimd128B4, isSimd128B8, isSimd128B16, localOffsets[i], &((*lastUpdatedRowIndices)[i]));
+#else
+            globalBailOutRecordDataTable->AddOrUpdateRow(allocator, bailOutRecordId, i, isFloat, isInt,
+                false, false, false, false, false, false, false,
+                false, false, false, localOffsets[i], &((*lastUpdatedRowIndices)[i]));
+#endif
             Assert(globalBailOutRecordDataTable->globalBailOutRecordDataRows[(*lastUpdatedRowIndices)[i]].regSlot  == i);
             bailOutRecord->localOffsetsCount++;
         }
@@ -1284,6 +1293,7 @@ FuncBailOutData::Clear(JitArenaAllocator * tempAllocator)
     JitAdeleteArray(tempAllocator, localsCount, localOffsets);
     losslessInt32Syms->Delete(tempAllocator);
     float64Syms->Delete(tempAllocator);
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     simd128F4Syms->Delete(tempAllocator);
     simd128I4Syms->Delete(tempAllocator);
@@ -1295,6 +1305,7 @@ FuncBailOutData::Clear(JitArenaAllocator * tempAllocator)
     simd128B4Syms->Delete(tempAllocator);
     simd128B8Syms->Delete(tempAllocator);
     simd128B16Syms->Delete(tempAllocator);
+#endif
 }
 
 GlobalBailOutRecordDataTable *
@@ -1351,7 +1362,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     if (this->func->HasTry())
     {
         RegionType currentRegionType = this->currentRegion->GetType();
-        if (currentRegionType == RegionTypeTry || currentRegionType == RegionTypeCatch)
+        if (currentRegionType == RegionTypeTry || currentRegionType == RegionTypeCatch || currentRegionType == RegionTypeFinally)
         {
             bailOutInfo->bailOutRecord->ehBailoutData = this->currentRegion->ehBailoutData;
         }
@@ -1485,6 +1496,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         {
             funcBailOutData[index].float64Syms->Set(i);
         }
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         else if (copyStackSym->IsSimd128F4())
         {
@@ -1526,6 +1538,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         {
             funcBailOutData[index].simd128B16Syms->Set(i);
         }
+#endif
         copyPropSymsIter.RemoveCurrent(this->func->m_alloc);
     }
     NEXT_SLISTBASE_ENTRY_EDITING;
@@ -1557,6 +1570,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         {
             funcBailOutData[index].float64Syms->Set(i);
         }
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         else if (stackSym->IsSimd128F4())
         {
@@ -1598,6 +1612,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         {
             funcBailOutData[index].simd128B16Syms->Set(i);
         }
+#endif
     }
     NEXT_BITSET_IN_SPARSEBV;
 
@@ -1749,6 +1764,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo = NativeCodeDataNew(allocator, BailOutRecord::ArgOutOffsetInfo);
                 currentBailOutRecord->argOutOffsetInfo->argOutFloat64Syms = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->argOutLosslessInt32Syms = nullptr;
+
+#ifdef ENABLE_SIMDJS
                 // SIMD_JS
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128F4Syms = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128I4Syms = nullptr;
@@ -1760,6 +1777,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B4Syms = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B8Syms = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B16Syms = nullptr;
+#endif
 
                 currentBailOutRecord->argOutOffsetInfo->argOutSymStart = 0;
                 currentBailOutRecord->argOutOffsetInfo->outParamOffsets = nullptr;
@@ -1786,6 +1804,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo->argOutSymStart = outParamStart;
                 currentBailOutRecord->argOutOffsetInfo->argOutFloat64Syms = argOutFloat64Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutLosslessInt32Syms = argOutLosslessInt32Syms;
+
+#ifdef ENABLE_SIMDJS
                 // SIMD_JS
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128F4Syms  = argOutSimd128F4Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128I4Syms  = argOutSimd128I4Syms  ;
@@ -1797,8 +1817,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B4Syms = argOutSimd128U4Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B8Syms = argOutSimd128U8Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B16Syms = argOutSimd128U16Syms;
-
-
+#endif
             }
 #if DBG_DUMP
             if (PHASE_DUMP(Js::BailOutPhase, this->func))
@@ -2239,7 +2258,7 @@ LinearScan::RecordUse(Lifetime * lifetime, IR::Instr * instr, IR::RegOpnd * regO
     // have real accurate flow info for the later.
     if ((regOpnd && regOpnd->m_sym->IsConst())
           || (
-                 (this->func->HasTry() && !this->func->DoOptimizeTryCatch()) &&
+                 (this->func->HasTry() && !this->func->DoOptimizeTry()) &&
                  this->IsInLoop() &&
                  lifetime->lastUseLabel != this->lastLabel &&
                  this->liveOnBackEdgeSyms->Test(lifetime->sym->m_id) &&
@@ -2279,7 +2298,7 @@ void LinearScan::RecordLoopUse(Lifetime *lifetime, RegNum reg)
         return;
     }
 
-    if (this->func->HasTry() && !this->func->DoOptimizeTryCatch())
+    if (this->func->HasTry() && !this->func->DoOptimizeTry())
     {
         return;
     }
@@ -3122,8 +3141,8 @@ void
 LinearScan::ProcessEHRegionBoundary(IR::Instr * instr)
 {
     Assert(instr->IsBranchInstr());
-    Assert(instr->m_opcode != Js::OpCode::TryFinally); // finallys are not supported for optimization yet.
-    if (instr->m_opcode != Js::OpCode::TryCatch && instr->m_opcode != Js::OpCode::Leave)
+
+    if (instr->m_opcode != Js::OpCode::TryCatch && instr->m_opcode != Js::OpCode::TryFinally && instr->m_opcode != Js::OpCode::Leave)
     {
         return;
     }
@@ -3275,7 +3294,7 @@ LinearScan::InsertStores(Lifetime *lifetime, RegNum reg, IR::Instr *insertionIns
     uint localStoreCost = LinearScan::GetUseSpillCost(this->loopNest, (this->currentOpHelperBlock != nullptr));
 
     // Is it cheaper to spill all the defs we've seen so far or just insert a store at the current point?
-    if ((this->func->HasTry() && !this->func->DoOptimizeTryCatch()) || localStoreCost >= lifetime->allDefsCost)
+    if ((this->func->HasTry() && !this->func->DoOptimizeTry()) || localStoreCost >= lifetime->allDefsCost)
     {
         // Insert a store for each def point we've seen so far
         FOREACH_SLIST_ENTRY(IR::Instr *, instr, &(lifetime->defList))
@@ -3856,7 +3875,7 @@ LinearScan::GetUseSpillCost(uint loopNest, BOOL isInHelperBlock)
 void
 LinearScan::ProcessSecondChanceBoundary(IR::BranchInstr *branchInstr)
 {
-    if (this->func->HasTry() && !this->func->DoOptimizeTryCatch())
+    if (this->func->HasTry() && !this->func->DoOptimizeTry())
     {
         return;
     }
@@ -3946,7 +3965,7 @@ LinearScan::ProcessSecondChanceBoundaryHelper(IR::BranchInstr *branchInstr, IR::
 void
 LinearScan::ProcessSecondChanceBoundary(IR::LabelInstr *labelInstr)
 {
-    if (this->func->HasTry() && !this->func->DoOptimizeTryCatch())
+    if (this->func->HasTry() && !this->func->DoOptimizeTry())
     {
         return;
     }
@@ -4718,7 +4737,7 @@ IR::Instr * LinearScan::TryHoistLoad(IR::Instr *instr, Lifetime *lifetime)
         return insertInstr;
     }
 
-    if ((this->func->HasTry() && !this->func->DoOptimizeTryCatch()) || (this->currentRegion && this->currentRegion->GetType() != RegionTypeRoot))
+    if ((this->func->HasTry() && !this->func->DoOptimizeTry()) || (this->currentRegion && this->currentRegion->GetType() != RegionTypeRoot))
     {
         return insertInstr;
     }

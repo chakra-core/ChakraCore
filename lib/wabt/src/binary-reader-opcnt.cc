@@ -16,152 +16,119 @@
 
 #include "binary-reader-opcnt.h"
 
-#include <assert.h>
-#include <inttypes.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdio.h>
+#include <cassert>
+#include <cinttypes>
+#include <cstdarg>
+#include <cstdint>
+#include <cstdio>
 
-#include "binary-reader.h"
+#include "binary-reader-nop.h"
 #include "common.h"
 
 namespace wabt {
 
-struct Context {
+namespace {
+
+class BinaryReaderOpcnt : public BinaryReaderNop {
+ public:
+  explicit BinaryReaderOpcnt(OpcntData* data);
+
+  Result OnOpcode(Opcode opcode) override;
+  Result OnI32ConstExpr(uint32_t value) override;
+  Result OnGetLocalExpr(Index local_index) override;
+  Result OnSetLocalExpr(Index local_index) override;
+  Result OnTeeLocalExpr(Index local_index) override;
+  Result OnLoadExpr(Opcode opcode,
+                    uint32_t alignment_log2,
+                    Address offset) override;
+  Result OnStoreExpr(Opcode opcode,
+                     uint32_t alignment_log2,
+                     Address offset) override;
+
+ private:
   OpcntData* opcnt_data;
 };
 
-static Result add_int_counter_value(IntCounterVector* vec,
-                                        intmax_t value) {
-  size_t i;
-  for (i = 0; i < vec->size; ++i) {
-    if (vec->data[i].value == value) {
-      ++vec->data[i].count;
+static Result AddIntCounterValue(IntCounterVector* vec, intmax_t value) {
+  for (IntCounter& counter : *vec) {
+    if (counter.value == value) {
+      ++counter.count;
       return Result::Ok;
     }
   }
-  IntCounter counter;
-  counter.value = value;
-  counter.count = 1;
-  append_int_counter_value(vec, &counter);
+  vec->emplace_back(value, 1);
   return Result::Ok;
 }
 
-static Result add_int_pair_counter_value(IntPairCounterVector* vec,
-                                             intmax_t first,
-                                             intmax_t second) {
-  size_t i;
-  for (i = 0; i < vec->size; ++i) {
-    if (vec->data[i].first == first && vec->data[i].second == second) {
-      ++vec->data[i].count;
+static Result AddIntPairCounterValue(IntPairCounterVector* vec,
+                                     intmax_t first,
+                                     intmax_t second) {
+  for (IntPairCounter& pair : *vec) {
+    if (pair.first == first && pair.second == second) {
+      ++pair.count;
       return Result::Ok;
     }
   }
-  IntPairCounter counter;
-  counter.first = first;
-  counter.second = second;
-  counter.count = 1;
-  append_int_pair_counter_value(vec, &counter);
+  vec->emplace_back(first, second, 1);
   return Result::Ok;
 }
 
-static Result on_opcode(BinaryReaderContext* context,
-                            Opcode opcode) {
-  Context* ctx = static_cast<Context*>(context->user_data);
-  IntCounterVector* opcnt_vec = &ctx->opcnt_data->opcode_vec;
-  while (static_cast<size_t>(opcode) >= opcnt_vec->size) {
-    IntCounter Counter;
-    Counter.value = opcnt_vec->size;
-    Counter.count = 0;
-    append_int_counter_value(opcnt_vec, &Counter);
+BinaryReaderOpcnt::BinaryReaderOpcnt(OpcntData* data) : opcnt_data(data) {}
+
+Result BinaryReaderOpcnt::OnOpcode(Opcode opcode) {
+  IntCounterVector& opcnt_vec = opcnt_data->opcode_vec;
+  while (static_cast<size_t>(opcode) >= opcnt_vec.size()) {
+    opcnt_vec.emplace_back(opcnt_vec.size(), 0);
   }
-  ++opcnt_vec->data[static_cast<size_t>(opcode)].count;
+  ++opcnt_vec[static_cast<size_t>(opcode)].count;
   return Result::Ok;
 }
 
-static Result on_i32_const_expr(uint32_t value, void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  return add_int_counter_value(&ctx->opcnt_data->i32_const_vec,
-                               static_cast<int32_t>(value));
+Result BinaryReaderOpcnt::OnI32ConstExpr(uint32_t value) {
+  return AddIntCounterValue(&opcnt_data->i32_const_vec,
+                            static_cast<int32_t>(value));
 }
 
-static Result on_get_local_expr(uint32_t local_index, void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  return add_int_counter_value(&ctx->opcnt_data->get_local_vec, local_index);
+Result BinaryReaderOpcnt::OnGetLocalExpr(Index local_index) {
+  return AddIntCounterValue(&opcnt_data->get_local_vec, local_index);
 }
 
-static Result on_set_local_expr(uint32_t local_index, void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  return add_int_counter_value(&ctx->opcnt_data->set_local_vec, local_index);
+Result BinaryReaderOpcnt::OnSetLocalExpr(Index local_index) {
+  return AddIntCounterValue(&opcnt_data->set_local_vec, local_index);
 }
 
-static  Result on_tee_local_expr(uint32_t local_index, void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  return add_int_counter_value(&ctx->opcnt_data->tee_local_vec, local_index);
+Result BinaryReaderOpcnt::OnTeeLocalExpr(Index local_index) {
+  return AddIntCounterValue(&opcnt_data->tee_local_vec, local_index);
 }
 
-static  Result on_load_expr(Opcode opcode,
-                                uint32_t alignment_log2,
-                                uint32_t offset,
-                                void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  if (opcode == Opcode::I32Load)
-    return add_int_pair_counter_value(&ctx->opcnt_data->i32_load_vec,
-                                      alignment_log2, offset);
+Result BinaryReaderOpcnt::OnLoadExpr(Opcode opcode,
+                                     uint32_t alignment_log2,
+                                     Address offset) {
+  if (opcode == Opcode::I32Load) {
+    return AddIntPairCounterValue(&opcnt_data->i32_load_vec, alignment_log2,
+                                  offset);
+  }
   return Result::Ok;
 }
 
-static  Result on_store_expr(Opcode opcode,
-                                 uint32_t alignment_log2,
-                                 uint32_t offset,
-                                 void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  if (opcode == Opcode::I32Store)
-    return add_int_pair_counter_value(&ctx->opcnt_data->i32_store_vec,
-                                      alignment_log2, offset);
+Result BinaryReaderOpcnt::OnStoreExpr(Opcode opcode,
+                                      uint32_t alignment_log2,
+                                      Address offset) {
+  if (opcode == Opcode::I32Store) {
+    return AddIntPairCounterValue(&opcnt_data->i32_store_vec, alignment_log2,
+                                  offset);
+  }
   return Result::Ok;
 }
 
-static void on_error(BinaryReaderContext* ctx, const char* message) {
-  DefaultErrorHandlerInfo info;
-  info.header = "error reading binary";
-  info.out_file = stdout;
-  info.print_header = PrintErrorHeader::Once;
-  default_binary_error_callback(ctx->offset, message, &info);
-}
-
-void init_opcnt_data(OpcntData* data) {
-  WABT_ZERO_MEMORY(*data);
-}
-
-void destroy_opcnt_data(OpcntData* data) {
-  destroy_int_counter_vector(&data->opcode_vec);
-  destroy_int_counter_vector(&data->i32_const_vec);
-  destroy_int_counter_vector(&data->get_local_vec);
-  destroy_int_pair_counter_vector(&data->i32_load_vec);
-}
+}  // namespace
 
 Result read_binary_opcnt(const void* data,
-                                  size_t size,
-                                  const struct ReadBinaryOptions* options,
-                                  OpcntData* opcnt_data) {
-  Context ctx;
-  WABT_ZERO_MEMORY(ctx);
-  ctx.opcnt_data = opcnt_data;
-
-  BinaryReader reader;
-  WABT_ZERO_MEMORY(reader);
-  reader.user_data = &ctx;
-  reader.on_error = on_error;
-  reader.on_opcode = on_opcode;
-  reader.on_i32_const_expr = on_i32_const_expr;
-  reader.on_get_local_expr = on_get_local_expr;
-  reader.on_set_local_expr = on_set_local_expr;
-  reader.on_tee_local_expr = on_tee_local_expr;
-  reader.on_load_expr = on_load_expr;
-  reader.on_store_expr = on_store_expr;
-
-  return read_binary(data, size, &reader, 1, options);
+                         size_t size,
+                         const struct ReadBinaryOptions* options,
+                         OpcntData* opcnt_data) {
+  BinaryReaderOpcnt reader(opcnt_data);
+  return read_binary(data, size, &reader, options);
 }
 
 }  // namespace wabt

@@ -23,7 +23,8 @@
       <DisableSpecificWarnings>
         %(DisableSpecificWarnings);
         4458; <!-- Declaration hides class member -->
-        4477; <!-- TODO: Format string specifier incorrect on x64 --></DisableSpecificWarnings>
+        4477; <!-- TODO: Format string specifier incorrect on x64 -->
+      </DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <AdditionalDependencies>

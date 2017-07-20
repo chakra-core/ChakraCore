@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeTryCatchTestFunc": "function <large string>"
     },
     "arguments": {
@@ -18,19 +15,11 @@
       "ex": "string Exception!"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeTryCatchTestFunc": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeTryCatchTestFunc": "function <large string>"
     },
     "arguments": {
@@ -47,11 +36,6 @@
       "ex": "string Exception!"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeTryCatchTestFunc": "function <large string>"
     }
   }

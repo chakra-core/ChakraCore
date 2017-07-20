@@ -12,9 +12,12 @@
 
 ThreadContextInfo::ThreadContextInfo() :
     m_isAllJITCodeInPreReservedRegion(true),
-    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined),
     m_isClosed(false)
 {
+    for (int i = 0; i <= WellKnownHostType_Last; ++i)
+    {
+        wellKnownHostTypeIds[i] = Js::TypeIds_Undefined;
+    }
 }
 
 #if ENABLE_NATIVE_CODEGEN
@@ -417,6 +420,15 @@ ThreadContextInfo::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetV
     if (IsCFGEnabled())
     {
         AssertMsg(IS_16BYTE_ALIGNED(callTargetAddress), "callTargetAddress is not 16-byte page aligned?");
+
+        // If SetProcessValidCallTargets is not allowed by global policy (e.g.
+        // OOP JIT is in use in the client), then generate a fast fail
+        // exception as state has been corrupted and attempt is being made to
+        // illegally call SetProcessValidCallTargets.
+        if (!GlobalSecurityPolicy::IsSetProcessValidCallTargetsAllowed())
+        {
+            RaiseFailFastException(nullptr, nullptr, FAIL_FAST_GENERATE_EXCEPTION_ADDRESS);
+        }
 
         PVOID startAddressOfPage = (PVOID)(PAGE_START_ADDR(callTargetAddress));
         size_t codeOffset = OFFSET_ADDR_WITHIN_PAGE(callTargetAddress);

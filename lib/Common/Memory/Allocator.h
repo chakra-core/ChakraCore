@@ -10,7 +10,7 @@
 // Page heap mode is supported currently only in the Recycler
 // Defining here so that other allocators can take advantage of this
 // in the future
-enum PageHeapMode
+enum PageHeapMode : byte
 {
     PageHeapModeOff = 0,   // No Page heap
     PageHeapModeBlockStart = 1,   // Allocate the object at the beginning of the page
@@ -23,6 +23,10 @@ enum PageHeapMode
 
 #if DBG || defined(RECYCLER_FREE_MEM_FILL)
 #define DbgMemFill 0XFE
+#endif
+
+#ifdef RECYCLER_PAGE_HEAP
+#define PageHeapMemFill 0XF0
 #endif
 
 namespace Memory
@@ -143,8 +147,10 @@ inline T* PostAllocationCallback(const type_info& objType, T *obj)
 #define AllocatorNewNoThrowArrayZ(AllocatorType, alloc, T, count) AllocatorNewNoThrowArrayBase(AllocatorType, alloc, AllocZero, T, count)
 
 #define AllocatorNewNoThrowNoRecoveryArrayBase(AllocatorType, alloc, AllocFunc, T, count) AllocateArray<AllocatorType, T, true>(TRACK_ALLOC_INFO(alloc, T, AllocatorType, 0, count), &AllocatorType::NoThrowNoRecovery ## AllocFunc, count)
+#define AllocatorNewNoThrowNoRecoveryPlusBase(AllocatorType, alloc, AllocFunc, size, T, ...) new (TRACK_ALLOC_INFO(static_cast<AllocatorType *>(alloc), T, AllocatorType, size, (size_t)-1), true, &AllocatorType::NoThrowNoRecovery ## AllocFunc, size) T(__VA_ARGS__)
 
 #define AllocatorNewNoThrowNoRecoveryArrayZ(AllocatorType, alloc, T, count) AllocatorNewNoThrowNoRecoveryArrayBase(AllocatorType, alloc, AllocZero, T, count)
+#define AllocatorNewNoThrowNoRecoveryPlus(AllocatorType, alloc, size, T, ...) AllocatorNewNoThrowNoRecoveryPlusBase(AllocatorType, alloc, Alloc, size, T, __VA_ARGS__)
 
 // A few versions below supplies optional flags through ..., used by HeapDelete.
 #define AllocatorDelete(AllocatorType, alloc, obj, ...) \
@@ -227,6 +233,7 @@ struct AllocatorInfo
 template <typename TAllocator>
 struct ForceNonLeafAllocator
 {
+    static const bool FakeZeroLengthArray = true;
     typedef TAllocator AllocatorType;
 };
 
@@ -235,6 +242,7 @@ template <typename TAllocator>
 struct ForceLeafAllocator
 {
     typedef TAllocator AllocatorType;
+    static const bool FakeZeroLengthArray = true;
 };
 
 // Optional AllocatorDelete flags
@@ -382,16 +390,19 @@ void DestructArray(size_t count, T* obj)
 template <typename TAllocator, typename T>
 void DeleteArray(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, size_t count, T * obj)
 {
-    if (count == 0)
+    if (count == 0 && AllocatorInfo<TAllocator, T>::AllocatorType::FakeZeroLengthArray)
     {
         return;
     }
 
-    DestructArray(count, obj);
+    if (count != 0)
+    {
+        DestructArray(count, obj);
 
-    // DeleteArray can only be called when an array is allocated successfully.
-    // So the add should never overflow
-    Assert(count * sizeof(T) / count == sizeof(T));
+        // DeleteArray can only be called when an array is allocated successfully.
+        // So the add should never overflow
+        Assert(count * sizeof(T) / count == sizeof(T));
+    }
 
     auto freeFunc = AllocatorInfo<TAllocator, T>::AllocatorFunc::GetFreeFunc();
     (allocator->*freeFunc)((void *)obj, sizeof(T) * count);
@@ -561,5 +572,5 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool n
     char * buffer = (alloc->*AllocFunc)(AllocSizeMath::Add(plusSize, byteSize));
 
     // This seems to generate the most compact code
-    return buffer + (buffer > 0 ? plusSize : (size_t)buffer);
+    return buffer + ((uintptr_t)buffer > 0 ? plusSize : (size_t)buffer);
 }

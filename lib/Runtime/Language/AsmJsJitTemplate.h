@@ -9,7 +9,7 @@
 namespace Js
 {
 
-    void AsmJsCommonEntryPoint(Js::ScriptFunction* func, void* savedEbp);
+    void AsmJsCommonEntryPoint(Js::ScriptFunction* func, void* localSlot, void* args);
 
     namespace AsmJsJitTemplate
     {
@@ -97,7 +97,6 @@ namespace Js
 
         // uint operations
         CreateTemplate( Div_UInt, int targetOffset, int leftOffset, int rightOffset );
-        CreateTemplate( Mul_UInt, int targetOffset, int leftOffset, int rightOffset );
         CreateTemplate( Rem_UInt, int targetOffset, int leftOffset, int rightOffset );
 
         CreateTemplate( Lt_UInt, int targetOffset, int leftOffset, int rightOffset );

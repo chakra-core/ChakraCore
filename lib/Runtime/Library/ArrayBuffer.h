@@ -63,24 +63,29 @@ namespace Js
 
         virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) = 0;
 
+        ArrayBufferBase(DynamicType *type) : DynamicObject(type), isDetached(false) { }
+        bool IsDetached() { return isDetached; }
+
 #if ENABLE_TTD
         virtual void MarshalCrossSite_TTDInflate() = 0;
 #endif
 
-        ArrayBufferBase(DynamicType *type) : DynamicObject(type) { }
-
         virtual bool IsArrayBuffer() = 0;
         virtual bool IsSharedArrayBuffer() = 0;
+        virtual bool IsWebAssemblyArrayBuffer() { return false; }
         virtual ArrayBuffer * GetAsArrayBuffer() = 0;
         virtual SharedArrayBuffer * GetAsSharedArrayBuffer() { return nullptr; }
         virtual void AddParent(ArrayBufferParent* parent) { }
-        virtual bool IsDetached() { return false; }
         virtual uint32 GetByteLength() const = 0;
         virtual BYTE* GetBuffer() const = 0;
-        virtual bool IsValidVirtualBufferLength(uint length) { return false; }
+        virtual bool IsValidVirtualBufferLength(uint length) const { return false; };
 
         static bool Is(Var value);
         static ArrayBufferBase* FromVar(Var value);
+        static int GetIsDetachedOffset() { return offsetof(ArrayBufferBase, isDetached); }
+
+    protected:
+        Field(bool) isDetached;
     };
 
     class ArrayBuffer : public ArrayBufferBase
@@ -90,7 +95,7 @@ namespace Js
         // typed array.
         DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBuffer, ArrayBufferBase);
     private:
-        void ClearParentsLength(ArrayBufferParent* parent);
+        void DetachBufferFromParent(ArrayBufferParent* parent);
     public:
         template <typename FreeFN>
         class ArrayBufferDetachedState : public ArrayBufferDetachedStateBase
@@ -155,12 +160,10 @@ namespace Js
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
         virtual ArrayBufferDetachedStateBase* DetachAndGetState();
-        virtual bool IsDetached() override { return this->isDetached; }
         virtual uint32 GetByteLength() const override { return bufferLength; }
         virtual BYTE* GetBuffer() const override { return buffer; }
 
         static int GetByteLengthOffset() { return offsetof(ArrayBuffer, bufferLength); }
-        static int GetIsDetachedOffset() { return offsetof(ArrayBuffer, isDetached); }
         static int GetBufferOffset() { return offsetof(ArrayBuffer, buffer); }
 
         virtual void AddParent(ArrayBufferParent* parent) override;
@@ -204,10 +207,6 @@ namespace Js
 
         FieldNoBarrier(BYTE*) buffer;             // Points to a heap allocated RGBA buffer, can be null
         Field(uint32) bufferLength;       // Number of bytes allocated
-
-        // When an ArrayBuffer is detached, the TypedArray and DataView objects pointing to it must be made aware,
-        // for this purpose the ArrayBuffer needs to hold WeakReferences to them
-        Field(bool) isDetached;
     };
 
     class ArrayBufferParent : public ArrayObject
@@ -257,10 +256,12 @@ namespace Js
 
         static bool IsValidAsmJsBufferLengthAlgo(uint length, bool forceCheck);
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) override;
-        virtual bool IsValidVirtualBufferLength(uint length) override;
+        virtual bool IsValidVirtualBufferLength(uint length) const override;
 
         virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
 
+        template<typename Func>
+        void ReportDifferentialAllocation(uint32 newBufferLength, Func reportFailureFn);
         void ReportDifferentialAllocation(uint32 newBufferLength);
 
     protected:
@@ -281,6 +282,8 @@ namespace Js
 
     class WebAssemblyArrayBuffer : public JavascriptArrayBuffer
     {
+        template<typename Allocator>
+        WebAssemblyArrayBuffer(uint32 length, DynamicType * type, Allocator allocator);
         WebAssemblyArrayBuffer(uint32 length, DynamicType * type);
         WebAssemblyArrayBuffer(byte* buffer, uint32 length, DynamicType * type);
     protected:
@@ -288,8 +291,11 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WebAssemblyArrayBuffer);
     public:
         static WebAssemblyArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
-        virtual bool IsValidVirtualBufferLength(uint length) override;
+        WebAssemblyArrayBuffer* GrowMemory(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength);
+
+        virtual bool IsValidVirtualBufferLength(uint length) const override;
         virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
+        virtual bool IsWebAssemblyArrayBuffer() override { return true; }
     };
 
     // the memory must be allocated via CoTaskMemAlloc.

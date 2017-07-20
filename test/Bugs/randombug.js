@@ -3,16 +3,14 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+WScript.LoadScriptFile("../UnitTestFramework/TrimStackTracePath.js");
+
 function write()
 {
   for(var i=0;i<arguments.length;i++)
   {
     WScript.Echo(arguments[i]);
   }
-}
-
-function TrimStackTracePath(line) {
-    return line && line.replace(/\(.+\\test.bugs./ig, "(");
 }
 
 write("For Win8 934770");

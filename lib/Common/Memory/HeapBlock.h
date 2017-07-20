@@ -333,7 +333,7 @@ public:
     virtual BOOL IsValidObject(void* objectAddress) = 0;
 
     virtual byte* GetRealAddressFromInterior(void* interiorAddress) = 0;
-    virtual size_t GetObjectSize(void* object) = 0;
+    virtual size_t GetObjectSize(void* object) const = 0;
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) = 0;
     virtual bool TestObjectMarkedBit(void* objectAddress) = 0;
     virtual void SetObjectMarkedBit(void* objectAddress) = 0;
@@ -352,6 +352,15 @@ public:
     virtual void UpdatePerfCountersOnFree() = 0;
 #endif
 };
+
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+template <typename TBlockType>
+struct HeapBlockSListItem {
+    // SLIST_ENTRY needs to be the first element in the structure to avoid calculating offset with the SList API calls.
+    SLIST_ENTRY itemEntry;
+    TBlockType * itemHeapBlock;
+};
+#endif
 
 enum SweepMode
 {
@@ -521,7 +530,6 @@ public:
     uint GetObjectWordCount() const { return this->objectSize / sizeof(void *); }
     uint GetPageCount() const;
 
-    template<bool checkPageHeap=true>
     bool HasFreeObject() const
     {
         return freeObjectList != nullptr;
@@ -610,7 +618,7 @@ public:
     byte* GetRealAddressFromInterior(void* interiorAddress) override sealed;
     bool TestObjectMarkedBit(void* objectAddress) override sealed;
     void SetObjectMarkedBit(void* objectAddress) override;
-    virtual size_t GetObjectSize(void* object) override { return objectSize; }
+    virtual size_t GetObjectSize(void* object) const override { return objectSize; }
 
     uint GetMarkCountForSweep();
     SweepState Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount = 0, bool hasPendingDispose = false);
@@ -695,7 +703,7 @@ protected:
     void CheckFreeBitVector(bool isCollecting);
 #endif
 
-    SmallHeapBlockBitVector * EnsureFreeBitVector();
+    SmallHeapBlockBitVector * EnsureFreeBitVector(bool isCollecting = true);
     SmallHeapBlockBitVector * BuildFreeBitVector();
     ushort BuildFreeBitVector(SmallHeapBlockBitVector * bv);
 

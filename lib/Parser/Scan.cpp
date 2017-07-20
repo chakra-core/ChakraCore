@@ -151,12 +151,14 @@ void Scanner<EncodingPolicy>::SetText(EncodedCharPtr pszSrc, size_t offset, size
     m_DeferredParseFlags = ScanFlagNone;
 }
 
+#if ENABLE_BACKGROUND_PARSING
 template <typename EncodingPolicy>
 void Scanner<EncodingPolicy>::PrepareForBackgroundParse(Js::ScriptContext *scriptContext)
 {
     scriptContext->GetThreadContext()->GetStandardChars((EncodedChar*)0);
     scriptContext->GetThreadContext()->GetStandardChars((char16*)0);
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Number of code points from 'first' up to, but not including the next
@@ -885,14 +887,7 @@ tokens Scanner<EncodingPolicy>::RescanRegExpTokenizer()
 template <typename EncodingPolicy>
 tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
 {
-    if (m_parser && m_parser->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackRegex);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
 
     // SEE ALSO: RegexHelper::PrimCompileDynamic()
 
@@ -954,14 +949,7 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
 template<typename EncodingPolicy>
 tokens Scanner<EncodingPolicy>::ScanRegExpConstantNoAST(ArenaAllocator* alloc)
 {
-    if (m_parser && m_parser->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackRegex);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
 
     ThreadContext *threadContext = m_scriptContext->GetThreadContext();
     UnifiedRegex::StandardChars<EncodedChar>* standardEncodedChars = threadContext->GetStandardChars((EncodedChar*)0);
@@ -1961,7 +1949,9 @@ LIdentifier:
                 token = tkDec;
                 if (!m_fIsModuleCode)
                 {
-                    if ('>' == this->PeekFirst(p, last) && (m_fHadEol || seenDelimitedCommentEnd)) // --> HTMLCloseComment
+                    // https://tc39.github.io/ecma262/#prod-annexB-MultiLineComment
+                    // If there was a new line in the multi-line comment, the text after --> is a comment.
+                    if ('>' == this->PeekFirst(p, last) && m_fHadEol)
                     {
                         goto LSkipLineComment;
                     }

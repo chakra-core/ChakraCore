@@ -10,10 +10,10 @@
 #if ENABLE_CROSSSITE_TRACE
 #define TTD_XSITE_LOG(CTX, MSG, VAR) if((CTX)->ShouldPerformRecordOrReplayAction()) \
 { \
-    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteLiteralMsg(" -XS- "); \
-    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteLiteralMsg(MSG); \
-    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteVar(VAR); \
-    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteLiteralMsg("\n"); \
+    (CTX)->GetThreadContext()->TTDExecutionInfo->GetTraceLogger()->WriteLiteralMsg(" -XS- "); \
+    (CTX)->GetThreadContext()->TTDExecutionInfo->GetTraceLogger()->WriteLiteralMsg(MSG); \
+    (CTX)->GetThreadContext()->TTDExecutionInfo->GetTraceLogger()->WriteVar(VAR); \
+    (CTX)->GetThreadContext()->TTDExecutionInfo->GetTraceLogger()->WriteLiteralMsg("\n"); \
 }
 #else
 #define TTD_XSITE_LOG(CTX, MSG, VAR)
@@ -52,6 +52,8 @@ namespace Js
             AssertMsg(object != object->GetScriptContext()->GetLibrary()->GetDefaultAccessorFunction(), "default accessor marshalled");
             JavascriptFunction * function = JavascriptFunction::FromVar(object);
 
+            //TODO: this may be too aggressive and create x-site thunks that are't technically needed -- see uglify-2js test.
+
             // See if this function is one that the host needs to handle
             HostScriptContext * hostScriptContext = scriptContext->GetHostScriptContext();
             if (!hostScriptContext || !hostScriptContext->SetCrossSiteForFunctionType(function))
@@ -68,6 +70,16 @@ namespace Js
 
                     function->SetEntryPoint(function->GetScriptContext()->CurrentCrossSiteThunk);
                 }
+            }
+        }
+        else if (object->GetTypeId() == TypeIds_Proxy)
+        {
+            RecyclableObject * target = JavascriptProxy::FromVar(object)->GetTarget();
+            if (JavascriptConversion::IsCallable(target))
+            {
+                Assert(JavascriptProxy::FunctionCallTrap == object->GetEntryPoint());
+                TTD_XSITE_LOG(scriptContext, "setEntryPoint->CrossSiteProxyCallTrap ", object);
+                object->GetDynamicType()->SetEntryPoint(CrossSite::CrossSiteProxyCallTrap);
             }
         }
     }
@@ -398,6 +410,14 @@ namespace Js
         return CommonThunk(function, entryPoint, args);
     }
 
+    Var CrossSite::CrossSiteProxyCallTrap(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        RUNTIME_ARGUMENTS(args, callInfo);
+        Assert(JavascriptProxy::Is(function));
+
+        return CrossSite::CommonThunk(function, JavascriptProxy::FunctionCallTrap, args);
+    }
+
     Var CrossSite::CommonThunk(RecyclableObject* recyclableObject, JavascriptMethod entryPoint, Arguments args)
     {
         DynamicObject* function = DynamicObject::FromVar(recyclableObject);
@@ -425,7 +445,7 @@ namespace Js
         {
             i = 1;
             Assert(args.Info.Flags & CallFlags_New);
-            Assert(JavascriptFunction::Is(function) && JavascriptFunction::FromVar(function)->GetFunctionInfo()->GetAttributes() & FunctionInfo::SkipDefaultNewObject);
+            Assert(JavascriptProxy::Is(function) || (JavascriptFunction::Is(function) && JavascriptFunction::FromVar(function)->GetFunctionInfo()->GetAttributes() & FunctionInfo::SkipDefaultNewObject));
         }
         uint count = args.Info.Count;
         if ((args.Info.Flags & CallFlags_ExtraArg) && ((args.Info.Flags & CallFlags_NewTarget) == 0))

@@ -214,6 +214,7 @@ namespace Js
 
         static JavascriptArray* FromAnyArray(Var aValue);
         static bool IsDirectAccessArray(Var aValue);
+        static bool IsInlineSegment(SparseArraySegmentBase *seg, JavascriptArray *pArr);
 
         void SetLength(uint32 newLength);
         BOOL SetLength(Var newLength);
@@ -303,7 +304,7 @@ namespace Js
         static Var Pop(ScriptContext * scriptContext, Var object);
 
 
-        static Var EntryPopJavascriptArray(ScriptContext * scriptContext, Var object);
+        static Var EntryPopJavascriptArray(ScriptContext * scriptContext, JavascriptArray* arr);
         static Var EntryPopNonJavascriptArray(ScriptContext * scriptContext, Var object);
 
 #if DEBUG
@@ -353,7 +354,7 @@ namespace Js
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
-        virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) override;
+        virtual BOOL GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext) override;
         virtual uint GetSpecialPropertyCount() const override;
         virtual PropertyId const * GetSpecialPropertyIds() const override;
         virtual DescriptorFlags GetSetter(PropertyId propertyId, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -417,7 +418,7 @@ namespace Js
         JavascriptArray(JavascriptArray * instance, bool boxHead);
 
         template<typename T> inline void LinkSegments(SparseArraySegment<T>* prev, SparseArraySegment<T>* current);
-        template<typename T> inline SparseArraySegment<T>* ReallocNonLeafSegment(SparseArraySegment<T>* seg, SparseArraySegmentBase* nextSeg);
+        template<typename T> inline SparseArraySegment<T>* ReallocNonLeafSegment(SparseArraySegment<T>* seg, SparseArraySegmentBase* nextSeg, bool forceNonLeaf = false);
         void TryAddToSegmentMap(Recycler* recycler, SparseArraySegmentBase* seg);
 
     private:
@@ -514,7 +515,24 @@ namespace Js
         static Var ReduceRightObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var accumulator, ScriptContext* scriptContext);
         static Var OfHelper(bool isTypedArrayEntryPoint, Arguments& args, ScriptContext* scriptContext);
 
-        static uint32 GetFromIndex(Var arg, uint32 length, ScriptContext *scriptContext);
+        template<typename T>
+        static T GetFromIndex(Var arg, T length, ScriptContext *scriptContext, bool addWithLength = true)
+        {
+            T fromIndex = 0;
+
+            double value = TaggedInt::Is(arg) ? (double)TaggedInt::ToInt64(arg) : JavascriptConversion::ToInteger(arg, scriptContext);
+
+            if (value < 0)
+            {
+                fromIndex = addWithLength ? (T)max(0i64, (int64)(value + length)) : 0;
+            }
+            else
+            {
+                fromIndex = (T)min(value, (double)length);
+            }
+            return fromIndex;
+        }
+
     protected:
         template<class T> bool IsMissingHeadSegmentItemImpl(const uint32 index) const;
         SegmentBTreeRoot * GetSegmentMap() const;
@@ -544,7 +562,6 @@ namespace Js
         template<typename T>
         static void GrowArrayHeadHelperForUnshift(JavascriptArray* pArr, uint32 unshiftElements, ScriptContext * scriptContext);
 
-        static uint64 GetFromIndex(Var arg, uint64 length, ScriptContext *scriptContext);
         static int64 GetFromLastIndex(Var arg, int64 length, ScriptContext *scriptContext);
         static JavascriptString* JoinToString(Var value, ScriptContext* scriptContext);
         static JavascriptString* JoinHelper(Var thisArg, JavascriptString* separatorStr, ScriptContext* scriptContext);
@@ -557,6 +574,10 @@ namespace Js
 
         virtual int32 HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm, ScriptContext * scriptContext);
 
+        template<typename T>
+        static void CopyHeadIfInlinedHeadSegment(JavascriptArray *array, Recycler *recycler);
+        template<typename T>
+        static void ReallocateNonLeafLastSegmentIfLeaf(JavascriptArray * arr, Recycler * recycler);
 
         template<typename T>
         static void ArraySpliceHelper(JavascriptArray* pNewArr, JavascriptArray* pArr, uint32 start, uint32 deleteLen,
@@ -565,10 +586,13 @@ namespace Js
         static void ArraySegmentSpliceHelper(JavascriptArray *pnewArr, SparseArraySegment<T> *seg, SparseArraySegment<T> **prev, uint32 start, uint32 deleteLen,
                                                     Var* insertArgs, uint32 insertLen, Recycler *recycler);
         template<typename T>
-        static RecyclableObject* ObjectSpliceHelper(RecyclableObject* pObj, uint32 len, uint32 start, uint32 deleteLen,
+        static RecyclableObject* ObjectSpliceHelper(RecyclableObject* pObj, T len, T start, T deleteLen,
                                                     Var* insertArgs, uint32 insertLen, ScriptContext *scriptContext, RecyclableObject* pNewObj = nullptr);
         static JavascriptString* ToLocaleStringHelper(Var value, ScriptContext* scriptContext);
         static Js::JavascriptArray* CreateNewArrayHelper(uint32 len, bool isIntArray, bool isFloatArray, Js::JavascriptArray *baseArray, ScriptContext* scriptContext);
+
+        static Var TryArraySplice(JavascriptArray* pArr, uint32 start, uint32 len, uint32 deleteLen,
+            Var* insertArgs, uint32 insertLen, ScriptContext *scriptContext);
 
         void FillFromPrototypes(uint32 startIndex, uint32 endIndex);
         bool IsFillFromPrototypes();
@@ -828,9 +852,13 @@ namespace Js
         static void ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, uint32 index);
         static void ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, BigIndex index);
 
+        template<typename T>
+        static void TryGetArrayAndLength(Var arg, ScriptContext *scriptContext, PCWSTR methodName, __out JavascriptArray** array, __out RecyclableObject** obj, __out T * length);
+        static uint64 OP_GetLength(Var obj, ScriptContext *scriptContext);
+
     public:
         template<typename T, typename P = uint32>
-        static void Unshift(RecyclableObject* obj, const T& toIndex, uint32 start, P end, ScriptContext* scriptContext);
+        static void Unshift(RecyclableObject* obj, const T& toIndex, P start, P end, ScriptContext* scriptContext);
 
         template <typename T>
         class ItemTrace
@@ -872,6 +900,12 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VtableHelper();
+        }
     };
 
     // Ideally we would propagate the throw flag setting of true from the array operations down to the [[Delete]]/[[Put]]/... methods. But that is a big change
@@ -1044,6 +1078,12 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VtableHelper();
+        }
     };
 
 #if ENABLE_COPYONACCESS_ARRAY
@@ -1094,6 +1134,13 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VtableHelper();
+        }
+
     };
 #endif
 
@@ -1199,6 +1246,13 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VtableHelper();
+        }
+
     };
 
     template <>
@@ -1208,5 +1262,20 @@ namespace Js
 
     template <>
     inline uint32 JavascriptArray::ConvertToIndex<uint32, uint32>(uint32 idxDest, ScriptContext* scriptContext) { return idxDest; }
+
+    // This is for protecting a region of code, where we can't recover and be consistent upon failures (mainly due to OOM and SO).
+    // FailFast on that. 
+    class AutoFailFastOnError
+    {
+    public:
+        AutoFailFastOnError() : m_operationCompleted(false) { }
+        ~AutoFailFastOnError();
+
+        void Completed() { m_operationCompleted = true; }
+
+    private:
+        bool m_operationCompleted;
+    };
+
 
 } // namespace Js

@@ -55,6 +55,8 @@ const BYTE InterpreterThunkEmitter::Epilog[] = {
     0x48, 0x83, 0xC4, StackAllocSize,                              // add         rsp,28h
     0xC3                                                           // ret
 };
+
+
 #else  // Sys V AMD64
 const BYTE InterpreterThunkEmitter::FunctionInfoOffset = 7;
 const BYTE InterpreterThunkEmitter::FunctionProxyOffset = 11;
@@ -230,9 +232,14 @@ const BYTE InterpreterThunkEmitter::Call[] = {
 
 #endif
 
-const BYTE InterpreterThunkEmitter::HeaderSize = sizeof(InterpreterThunk);
+const BYTE InterpreterThunkEmitter::_HeaderSize = sizeof(InterpreterThunk);
 const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
-const uint InterpreterThunkEmitter::ThunksPerBlock = (BlockSize - HeaderSize) / ThunkSize;
+
+const BYTE InterpreterThunkEmitter::HeaderSize()
+{
+
+    return _HeaderSize;
+}
 
 InterpreterThunkEmitter::InterpreterThunkEmitter(Js::ScriptContext* context, ArenaAllocator* allocator, CustomHeap::InProcCodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
     emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer"), GetCurrentProcess()),
@@ -264,7 +271,15 @@ BYTE* InterpreterThunkEmitter::GetNextThunk(PVOID* ppDynamicInterpreterThunk)
         {
             return AllocateFromFreeList(ppDynamicInterpreterThunk);
         }
-        NewThunkBlock();
+        if (!NewThunkBlock())
+        {
+#ifdef ASMJS_PLAT
+            return this->isAsmInterpreterThunk ? (BYTE*)&Js::InterpreterStackFrame::StaticInterpreterAsmThunk : (BYTE*)&Js::InterpreterStackFrame::StaticInterpreterThunk;
+#else
+            Assert(!this->isAsmInterpreterThunk);
+            return (BYTE*)&Js::InterpreterStackFrame::StaticInterpreterThunk;
+#endif
+        }
     }
 
     Assert(this->thunkBuffer != nullptr);
@@ -272,7 +287,7 @@ BYTE* InterpreterThunkEmitter::GetNextThunk(PVOID* ppDynamicInterpreterThunk)
 #if _M_ARM
     thunk = (BYTE*)((DWORD)thunk | 0x01);
 #endif
-    *ppDynamicInterpreterThunk = thunk + HeaderSize + ((--thunkCount) * ThunkSize);
+    *ppDynamicInterpreterThunk = thunk + HeaderSize() + ((--thunkCount) * ThunkSize);
 #if _M_ARM
     AssertMsg(((uintptr_t)(*ppDynamicInterpreterThunk) & 0x6) == 0, "Not 8 byte aligned?");
 #else
@@ -296,13 +311,17 @@ void* InterpreterThunkEmitter::ConvertToEntryPoint(PVOID dynamicInterpreterThunk
     return entryPoint;
 }
 
-void InterpreterThunkEmitter::NewThunkBlock()
+bool InterpreterThunkEmitter::NewThunkBlock()
 {
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
+    if (CONFIG_FLAG(ForceStaticInterpreterThunk))
+    {
+        return false;
+    }
+
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        NewOOPJITThunkBlock();
-        return;
+        return NewOOPJITThunkBlock();
     }
 #endif
 
@@ -347,7 +366,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
     ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(buffer);
 
     // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.
-    auto block = this->thunkBlocks.PrependNode(allocator, buffer);
+    auto block = this->thunkBlocks.PrependNode(allocator, buffer, count);
 #if PDATA_ENABLED
     void* pdataTable;
     PDataManager::RegisterPdata((PRUNTIME_FUNCTION)pdataStart, (ULONG_PTR)buffer, (ULONG_PTR)epilogEnd, &pdataTable);
@@ -357,22 +376,26 @@ void InterpreterThunkEmitter::NewThunkBlock()
 #endif
     this->thunkBuffer = buffer;
     this->thunkCount = count;
+    return true;
 }
 
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
-void InterpreterThunkEmitter::NewOOPJITThunkBlock()
+bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
 {
+    PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr();
     if (!JITManager::GetJITManager()->IsConnected())
     {
-        Js::Throw::OutOfMemory();
+        return false;
     }
     InterpreterThunkInputIDL thunkInput;
     thunkInput.asmJsThunk = this->isAsmInterpreterThunk;
 
     InterpreterThunkOutputIDL thunkOutput;
-    HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(this->scriptContext->GetRemoteScriptAddr(), &thunkInput, &thunkOutput);
-    JITManager::HandleServerCallResult(hr, RemoteCallType::ThunkCreation);
-
+    HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(remoteScriptContext, &thunkInput, &thunkOutput);
+    if (!JITManager::HandleServerCallResult(hr, RemoteCallType::ThunkCreation))
+    {
+        return false;
+    }
 
     BYTE* buffer = (BYTE*)thunkOutput.mappedBaseAddr;
 
@@ -382,7 +405,7 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
     }
 
     // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.
-    auto block = this->thunkBlocks.PrependNode(allocator, buffer);
+    auto block = this->thunkBlocks.PrependNode(allocator, buffer, thunkOutput.thunkCount);
 #if PDATA_ENABLED
     void* pdataTable;
     PDataManager::RegisterPdata((PRUNTIME_FUNCTION)thunkOutput.pdataTableStart, (ULONG_PTR)thunkOutput.mappedBaseAddr, (ULONG_PTR)thunkOutput.epilogEndAddr, &pdataTable);
@@ -393,6 +416,7 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
 
     this->thunkBuffer = (BYTE*)thunkOutput.mappedBaseAddr;
     this->thunkCount = thunkOutput.thunkCount;
+    return true;
 }
 #endif
 
@@ -421,8 +445,10 @@ void InterpreterThunkEmitter::FillBuffer(
 #endif
     DWORD bytesRemaining = BlockSize;
     DWORD bytesWritten = 0;
-    DWORD epilogSize = sizeof(Epilog);
     DWORD thunks = 0;
+    DWORD epilogSize = sizeof(Epilog);
+    const BYTE *epilog = Epilog;
+    const BYTE *header = InterpreterThunk;
 
     intptr_t interpreterThunk;
 
@@ -438,6 +464,7 @@ void InterpreterThunkEmitter::FillBuffer(
         interpreterThunk = SHIFT_ADDR(threadContext, &Js::InterpreterStackFrame::InterpreterThunk);
     }
 
+
     BYTE * currentBuffer = buffer;
     // Ensure there is space for PDATA at the end
     BYTE* pdataStart = currentBuffer + (BlockSize - Math::Align(pdataSize, EMIT_BUFFER_ALIGNMENT));
@@ -448,10 +475,10 @@ void InterpreterThunkEmitter::FillBuffer(
     intptr_t finalEpilogStart = finalPdataStart - Math::Align(epilogSize, EMIT_BUFFER_ALIGNMENT);
 
     // Copy the thunk buffer and modify it.
-    js_memcpy_s(currentBuffer, bytesRemaining, InterpreterThunk, HeaderSize);
-    EncodeInterpreterThunk(currentBuffer, finalAddr, HeaderSize, finalEpilogStart, epilogSize, interpreterThunk);
-    currentBuffer += HeaderSize;
-    bytesRemaining -= HeaderSize;
+    js_memcpy_s(currentBuffer, bytesRemaining, header, HeaderSize());
+    EncodeInterpreterThunk(currentBuffer, finalAddr, HeaderSize(), finalEpilogStart, epilogSize, interpreterThunk);
+    currentBuffer += HeaderSize();
+    bytesRemaining -= HeaderSize();
 
     // Copy call buffer
     DWORD callSize = sizeof(Call);
@@ -487,7 +514,7 @@ void InterpreterThunkEmitter::FillBuffer(
     currentBuffer += bytesWritten;
 
     // Copy epilog
-    bytesWritten = CopyWithAlignment(currentBuffer, bytesRemaining, Epilog, epilogSize, EMIT_BUFFER_ALIGNMENT);
+    bytesWritten = CopyWithAlignment(currentBuffer, bytesRemaining, epilog, epilogSize, EMIT_BUFFER_ALIGNMENT);
     currentBuffer += bytesWritten;
     bytesRemaining -= bytesWritten;
 
@@ -520,7 +547,7 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
     __in const DWORD epilogSize,
     __in const intptr_t interpreterThunk)
 {
-    _Analysis_assume_(thunkSize == HeaderSize);
+    _Analysis_assume_(thunkSize == HeaderSize());
     // Encode MOVW
     DWORD lowerThunkBits = (uint32)interpreterThunk & 0x0000FFFF;
     DWORD movW = EncodeMove(/*Opcode*/ 0x0000F240, /*register*/1, lowerThunkBits);
@@ -539,7 +566,7 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
     thunkBuffer[DynamicThunkAddressOffset] = Js::FunctionBody::GetOffsetOfDynamicInterpreterThunk();
 
     // Encode MOVW R12, CallBlockStartAddress
-    uintptr_t callBlockStartAddress = (uintptr_t)thunkBufferStartAddress + HeaderSize;
+    uintptr_t callBlockStartAddress = (uintptr_t)thunkBufferStartAddress + HeaderSize();
     uint totalThunkSize = (uint)(epilogStart - callBlockStartAddress);
 
     DWORD lowerCallBlockStartAddress = callBlockStartAddress & 0x0000FFFF;
@@ -594,8 +621,8 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
 {
     int addrOffset = ThunkAddressOffset;
 
-    _Analysis_assume_(thunkSize == HeaderSize);
-    AssertMsg(thunkSize == HeaderSize, "Mismatch in the size of the InterpreterHeaderThunk and the thunkSize used in this API (EncodeInterpreterThunk)");
+    _Analysis_assume_(thunkSize == HeaderSize());
+    AssertMsg(thunkSize == HeaderSize(), "Mismatch in the size of the InterpreterHeaderThunk and the thunkSize used in this API (EncodeInterpreterThunk)");
 
     // Following 4 MOV Instrs are to move the 64-bit address of the InterpreterThunk address into register x1.
 
@@ -677,13 +704,15 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
     __in const DWORD epilogSize,
     __in const intptr_t interpreterThunk)
 {
-    _Analysis_assume_(thunkSize == HeaderSize);
+    _Analysis_assume_(thunkSize == HeaderSize());
+
+
     Emit(thunkBuffer, ThunkAddressOffset, (uintptr_t)interpreterThunk);
     thunkBuffer[DynamicThunkAddressOffset] = Js::FunctionBody::GetOffsetOfDynamicInterpreterThunk();
     thunkBuffer[FunctionInfoOffset] = Js::JavascriptFunction::GetOffsetOfFunctionInfo();
     thunkBuffer[FunctionProxyOffset] = Js::FunctionInfo::GetOffsetOfFunctionProxy();
-    Emit(thunkBuffer, CallBlockStartAddrOffset, (uintptr_t) thunkBufferStartAddress + HeaderSize);
-    uint totalThunkSize = (uint)(epilogStart - (thunkBufferStartAddress + HeaderSize));
+    Emit(thunkBuffer, CallBlockStartAddrOffset, (uintptr_t) thunkBufferStartAddress + HeaderSize());
+    uint totalThunkSize = (uint)(epilogStart - (thunkBufferStartAddress + HeaderSize()));
     Emit(thunkBuffer, ThunkSizeOffset, totalThunkSize);
     Emit(thunkBuffer, ErrorOffset, (BYTE) FAST_FAIL_INVALID_ARG);
 }
@@ -730,13 +759,18 @@ InterpreterThunkEmitter::IsInHeap(void* address)
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
-        if (!remoteScript)
+        if (!remoteScript || !JITManager::GetJITManager()->IsConnected())
         {
-            return false;
+            // this method is used in asserts to validate whether an entry point is valid
+            // in case JIT process crashed, let's just say true to keep asserts from firing
+            return true;
         }
         boolean result;
         HRESULT hr = JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
-        JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
+        if (!JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery))
+        {
+            return true;
+        }
         return result != FALSE;
     }
     else
@@ -768,7 +802,7 @@ void InterpreterThunkEmitter::Close()
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
-        if (remoteScript)
+        if (remoteScript && JITManager::GetJITManager()->IsConnected())
         {
             JITManager::GetJITManager()->DecommitInterpreterBufferManager(remoteScript, this->isAsmInterpreterThunk);
         }
@@ -855,15 +889,15 @@ BYTE* ThunkBlock::AllocateFromFreeList()
 
 BVIndex ThunkBlock::FromThunkAddress(BYTE* address)
 {
-    int index = ((uint)(address - start) - InterpreterThunkEmitter::HeaderSize) / InterpreterThunkEmitter::ThunkSize;
-    Assert(index < InterpreterThunkEmitter::ThunksPerBlock);
+    uint index = ((uint)(address - start) - InterpreterThunkEmitter::HeaderSize()) / InterpreterThunkEmitter::ThunkSize;
+    Assert(index < this->thunkCount);
     return index;
 }
 
 BYTE* ThunkBlock::ToThunkAddress(BVIndex index)
 {
-    Assert(index < InterpreterThunkEmitter::ThunksPerBlock);
-    BYTE* address = start + InterpreterThunkEmitter::HeaderSize + InterpreterThunkEmitter::ThunkSize * index;
+    Assert(index < this->thunkCount);
+    BYTE* address = start + InterpreterThunkEmitter::HeaderSize() + InterpreterThunkEmitter::ThunkSize * index;
     return address;
 }
 
@@ -871,7 +905,7 @@ bool ThunkBlock::EnsureFreeList(ArenaAllocator* allocator)
 {
     if(!this->freeList)
     {
-        this->freeList = BVFixed::NewNoThrow(InterpreterThunkEmitter::ThunksPerBlock, allocator);
+        this->freeList = BVFixed::NewNoThrow(this->thunkCount, allocator);
     }
     return this->freeList != nullptr;
 }

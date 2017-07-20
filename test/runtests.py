@@ -6,7 +6,7 @@
 
 from __future__ import print_function
 from datetime import datetime
-from multiprocessing import Pool, Manager
+from multiprocessing import Pool, Manager, cpu_count
 from threading import Timer
 import sys
 import os
@@ -40,10 +40,18 @@ SLOW_TIMEOUT = 180
 
 parser.add_argument('folders', metavar='folder', nargs='*',
                     help='folder subset to run tests')
-parser.add_argument('-b', '--binary', metavar='bin', help='ch full path')
+parser.add_argument('-b', '--binary', metavar='bin',
+                    help='ch full path')
+parser.add_argument('-v', '--verbose', action='store_true',
+                    help='increase verbosity of output')
+parser.add_argument('--sanitize', metavar='sanitizers',
+                    help='ignore tests known to be broken with these sanitizers')
 parser.add_argument('-d', '--debug', action='store_true',
                     help='use debug build');
-parser.add_argument('-t', '--test', action='store_true', help='use test build')
+parser.add_argument('-t', '--test', '--test-build', action='store_true',
+                    help='use test build')
+parser.add_argument('--static', action='store_true',
+                    help='mark that we are testing a static build')
 parser.add_argument('--variants', metavar='variant', nargs='+',
                     help='run specified test variants')
 parser.add_argument('--include-slow', action='store_true',
@@ -60,15 +68,30 @@ parser.add_argument('--flags', default='',
                     help='global test flags to ch')
 parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
                     help='test timeout (default ' + str(DEFAULT_TIMEOUT) + ' seconds)')
-parser.add_argument('--swb', action='store_true', help='use binary from VcBuild.SWB to run the test')
-parser.add_argument('-l', '--logfile', metavar='logfile', help='file to log results to', default=None)
-parser.add_argument('--x86', action='store_true', help='use x86 build')
-parser.add_argument('--x64', action='store_true', help='use x64 build')
+parser.add_argument('--swb', action='store_true',
+                    help='use binary from VcBuild.SWB to run the test')
+parser.add_argument('--lldb', default=None,
+                    help='run a single test in lldb batch mode to get call stack and crash logs', action='store_true')
+parser.add_argument('-l', '--logfile', metavar='logfile',
+                    help='file to log results to', default=None)
+parser.add_argument('--x86', action='store_true',
+                    help='use x86 build')
+parser.add_argument('--x64', action='store_true',
+                    help='use x64 build')
+parser.add_argument('-j', '--processcount', metavar='processcount', type=int,
+                    help='number of parallel threads to use')
+parser.add_argument('--warn-on-timeout', action='store_true',
+                    help='warn when a test times out instead of labelling it as an error immediately')
+parser.add_argument('--override-test-root', type=str,
+                    help='change the base directory for the tests (where rlexedirs will be sought)')
 args = parser.parse_args()
-
 
 test_root = os.path.dirname(os.path.realpath(__file__))
 repo_root = os.path.dirname(test_root)
+
+# new test root
+if args.override_test_root:
+    test_root = os.path.realpath(args.override_test_root)
 
 # arch: x86, x64
 arch = 'x86' if args.x86 else ('x64' if args.x64 else None)
@@ -121,15 +144,37 @@ elif args.include_slow and args.timeout == DEFAULT_TIMEOUT:
 
 not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 
+# verbosity
+verbose = False
+if args.verbose:
+    verbose = True
+    print("Emitting verbose output...")
+
 # xplat: temp hard coded to exclude unsupported tests
 if sys.platform != 'win32':
     not_tags.add('exclude_xplat')
     not_tags.add('Intl')
+    not_tags.add('require_simd')
+
+if args.sanitize != None:
+    not_tags.add('exclude_sanitize_'+args.sanitize)
+
+if args.static != None:
+    not_tags.add('exclude_static')
 
 if sys.platform == 'darwin':
     not_tags.add('exclude_mac')
-not_compile_flags = set(['-simdjs']) \
-    if sys.platform != 'win32' else None
+not_compile_flags = None
+
+# use -j flag to specify number of parallel processes
+processcount = cpu_count()
+if args.processcount != None:
+    processcount = int(args.processcount)
+
+# handle warn on timeout
+warn_on_timeout = False
+if args.warn_on_timeout == True:
+    warn_on_timeout = True
 
 # use tags/not_tags/not_compile_flags as case-insensitive
 def lower_set(s):
@@ -335,7 +380,10 @@ class TestVariant(object):
     def _show_failed(self, test, flags, exit_code, output,
                     expected_output=None, timedout=False):
         if timedout:
-            self._print('ERROR: Test timed out!')
+            if warn_on_timeout:
+                self._print('WARNING: Test timed out!')
+            else:
+                self._print('ERROR: Test timed out!')
         self._print('{} {} {}'.format(binary, ' '.join(flags), test.filename))
         if expected_output == None or timedout:
             self._print("\nOutput:")
@@ -348,7 +396,7 @@ class TestVariant(object):
             ln = min(len(lst_output), len(lst_expected))
             for i in range(0, ln):
                 if lst_output[i] != lst_expected[i]:
-                    self._print("Output: (at line " + str(i) + ")")
+                    self._print("Output: (at line " + str(i+1) + ")")
                     self._print("----------------------------")
                     self._print(lst_output[i])
                     self._print("----------------------------")
@@ -359,7 +407,10 @@ class TestVariant(object):
                     break
 
         self._print("exit code: {}".format(exit_code))
-        self._log_result(test, fail=True)
+        if warn_on_timeout and timedout:
+            self._log_result(test, fail=False)
+        else:
+            self._log_result(test, fail=True)
 
     # temp: try find real file name on hard drive if case mismatch
     def _check_file(self, folder, filename):
@@ -401,7 +452,14 @@ class TestVariant(object):
                     args.flags.split() + \
                     flags.split()
 
-        cmd = [binary] + flags + [os.path.basename(js_file)]
+        if args.lldb == None:
+            cmd = [binary] + flags + [os.path.basename(js_file)]
+        else:
+            lldb_file = open(working_path + '/' + os.path.basename(js_file) + '.lldb.cmd', 'w')
+            lldb_command = ['run'] + flags + [os.path.basename(js_file)]
+            lldb_file.write(' '.join([str(s) for s in lldb_command]));
+            lldb_file.close()
+            cmd = ['lldb'] + [binary] + ['-s'] + [os.path.basename(js_file) + '.lldb.cmd'] + ['-o bt'] + ['-b']
 
         test.start()
         proc = SP.Popen(cmd, stdout=SP.PIPE, stderr=SP.STDOUT, cwd=working_path)
@@ -456,6 +514,8 @@ class TestVariant(object):
                         expected_output=expected_output, **fail_args)
 
         # passed
+        if verbose:
+            self._print('{} {} {}'.format(binary, ' '.join(flags), test.filename))
         self._log_result(test, fail=False)
 
     # run tests under this variant, using given multiprocessing Pool
@@ -646,7 +706,7 @@ def main():
         os.remove(f)
 
     # run each variant
-    pool, sequential_pool = Pool(), Pool(1)
+    pool, sequential_pool = Pool(processcount), Pool(1)
     start_time = datetime.now()
     for variant in variants:
         variant.run(testLoader, pool, sequential_pool)

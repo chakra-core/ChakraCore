@@ -13,10 +13,12 @@ private:
 #endif
     BYTE*    start;
     BVFixed* freeList;
+    DWORD    thunkCount;
 
 public:
-    ThunkBlock(BYTE* start) :
+    ThunkBlock(BYTE* start, DWORD thunkCount) :
         start(start),
+        thunkCount(thunkCount),
         freeList(NULL)
 #if PDATA_ENABLED
         , registeredPdataTable(NULL)
@@ -87,6 +89,7 @@ private:
 
     static const BYTE Epilog[];
 
+
     static const BYTE PageCount = 1;
 #if defined(_M_X64)
     static const BYTE PrologSize;
@@ -94,10 +97,10 @@ private:
 #endif
 
     /* ------private helpers -----------*/
-    void NewThunkBlock();
+    bool NewThunkBlock();
 
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
-    void NewOOPJITThunkBlock();
+    bool NewOOPJITThunkBlock();
 #endif
 
     static void EncodeInterpreterThunk(
@@ -123,10 +126,10 @@ private:
     };
 
     BYTE* AllocateFromFreeList(PVOID* ppDynamicInterpreterThunk);
+    static const BYTE _HeaderSize;
 public:
-    static const BYTE HeaderSize;
+    static const BYTE HeaderSize();
     static const BYTE ThunkSize;
-    static const uint ThunksPerBlock;
     static const uint BlockSize= AutoSystemInfo::PageSize * PageCount;
     static void* ConvertToEntryPoint(PVOID dynamicInterpreterThunk);
 

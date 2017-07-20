@@ -87,6 +87,9 @@ bool JsrtContext::TrySetCurrent(JsrtContext * context)
         {
             return false;
         }
+        // no need to rootAddRef and Release for the same context
+        if (s_tlvSlot == context) return true;
+
         threadContext->GetRecycler()->RootAddRef((LPVOID)context);
     }
     else

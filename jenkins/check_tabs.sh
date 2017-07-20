@@ -20,6 +20,7 @@ rm -f $ERRFILE
 git diff --name-only `git merge-base origin/master HEAD` HEAD |
     xargs grep -P -l "\t" |
     grep -v -E '^pal/' |
+    grep -v -E '\Makefile$' |
     grep -v -E '\.sln$' |
     grep -v -E '\.js$' |
     grep -v -E '\.baseline$' |

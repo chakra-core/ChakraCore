@@ -32,6 +32,11 @@ namespace Js
 
         static JavascriptGeneratorFunction* FromVar(Var var);
         static bool Is(Var var);
+        inline static bool Test(JavascriptFunction *obj)
+        {
+            return VirtualTableInfo<JavascriptGeneratorFunction>::HasVirtualTable(obj)
+              || VirtualTableInfo<CrossSiteObject<JavascriptGeneratorFunction>>::HasVirtualTable(obj);
+        }
 
         static JavascriptGeneratorFunction* OP_NewScGenFunc(FrameDisplay* environment, FunctionInfoPtrPtr infoRef);
         static Var EntryGeneratorFunctionImplementation(RecyclableObject* function, CallInfo callInfo, ...);
@@ -79,6 +84,12 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableJavascriptGeneratorFunction;
+        }
     };
 
     class JavascriptAsyncFunction : public JavascriptGeneratorFunction
@@ -100,11 +111,22 @@ namespace Js
 
         static JavascriptAsyncFunction* FromVar(Var var);
         static bool Is(Var var);
+        inline static bool Test(JavascriptFunction *obj)
+        {
+            return VirtualTableInfo<JavascriptAsyncFunction>::HasVirtualTable(obj)
+              || VirtualTableInfo<CrossSiteObject<JavascriptAsyncFunction>>::HasVirtualTable(obj);
+        }
 
 #if ENABLE_TTD
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableJavascriptAsyncFunction;
+        }
     };
 
     class GeneratorVirtualScriptFunction : public ScriptFunction

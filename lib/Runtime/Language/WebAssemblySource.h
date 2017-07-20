@@ -15,6 +15,8 @@ namespace Js
         Js::Utf8SourceInfo* sourceInfo;
     public:
         WebAssemblySource(Var source, bool createNewContext, ScriptContext* scriptContext);
+        // Caller is responsible to make a copy of the buffer source
+        WebAssemblySource(BYTE* source, uint bufferLength, bool createNewContext, ScriptContext* scriptContext);
 
         BYTE* GetBuffer() const { return buffer; }
         uint GetBufferLength() const { return bufferLength; }

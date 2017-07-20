@@ -12,6 +12,8 @@ namespace Js
     template<class T, typename CountT = typename T::CounterFields>
     struct CompactCounters
     {
+        friend class FunctionBody;
+            
         struct Fields {
             union {
                 uint8 u8Fields[static_cast<size_t>(CountT::Max)];
@@ -24,11 +26,14 @@ namespace Js
             Fields() {}
         };
 
+        uint8 GetFieldSize() const { return fieldSize; }
+        Fields* GetFields() const { return fields; }
+
+    private:
         FieldWithBarrier(uint8) fieldSize;
 #if DBG
 
-        mutable FieldWithBarrier(bool) bgThreadCallStarted;
-        FieldWithBarrier(bool) isCleaningUp;
+        mutable FieldWithBarrier(bool) isLockedDown;
 #endif
         typename FieldWithBarrier(Fields*) fields;
 
@@ -36,7 +41,7 @@ namespace Js
         CompactCounters(T* host)
             :fieldSize(0)
 #if DBG
-            , bgThreadCallStarted(false), isCleaningUp(false)
+            , isLockedDown(false)
 #endif
         {
             AllocCounters<uint8>(host);
@@ -44,12 +49,6 @@ namespace Js
 
         uint32 Get(CountT typeEnum) const
         {
-#if DBG
-            if (!bgThreadCallStarted && ThreadContext::GetContextForCurrentThread() == nullptr)
-            {
-                bgThreadCallStarted = true;
-            }
-#endif
             uint8 type = static_cast<uint8>(typeEnum);
             uint8 localFieldSize = fieldSize;
             uint32 value = 0;
@@ -67,7 +66,7 @@ namespace Js
             }
             else
             {
-                Assert(localFieldSize == 0 && this->isCleaningUp && this->fields == nullptr); // OOM when initial allocation failed
+                Assert(localFieldSize == 0 && this->fields == nullptr); // OOM when initial allocation failed
             }
 
             return value;
@@ -75,9 +74,6 @@ namespace Js
 
         uint32 Set(CountT typeEnum, uint32 val, T* host)
         {
-            Assert(bgThreadCallStarted == false || isCleaningUp == true
-                || host->GetScriptContext()->GetThreadContext()->GetEtwRundownCriticalSection()->IsLockedByAnyThread());
-
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)
             {
@@ -110,14 +106,12 @@ namespace Js
                 return this->fields->u32Fields[type] = val;
             }
 
-            Assert(fieldSize == 0 && this->isCleaningUp && this->fields == nullptr && val == 0); // OOM when allocating the counters structure
+            Assert(fieldSize == 0 && this->fields == nullptr && val == 0); // OOM when allocating the counters structure
             return val;
         }
 
         uint32 Increase(CountT typeEnum, T* host)
         {
-            Assert(bgThreadCallStarted == false);
-
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)
             {
@@ -152,7 +146,9 @@ namespace Js
         template<typename FieldT>
         void AllocCounters(T* host)
         {
-            Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
+            // only allow expanding in foreground thread. while function body cleanup 
+            // we may set counters to 0 but that would not lead to expanding
+            Assert(ThreadContext::GetContextForCurrentThread());
             Assert(host->GetRecycler() != nullptr);
 
             const uint8 max = static_cast<uint8>(CountT::Max);
@@ -196,7 +192,7 @@ namespace Js
             }
             else
             {
-                AutoCriticalSection autoCS(host->GetScriptContext()->GetThreadContext()->GetEtwRundownCriticalSection());
+                AutoCriticalSection autoCS(host->GetScriptContext()->GetThreadContext()->GetFunctionBodyLock());
                 this->fieldSize = sizeof(FieldT);
                 this->fields = fieldsArray;
             }

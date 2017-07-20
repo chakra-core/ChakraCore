@@ -3,27 +3,24 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
-      "innerFunc": "function <large string>",
-      "x": "undefined undefined",
       "a": "string [Uninitialized block variable]",
-      "aConst": "string [Uninitialized block variable]"
+      "aConst": "string [Uninitialized block variable]",
+      "innerFunc": "function <large string>",
+      "x": "undefined undefined"
     }
   },
   {
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "a": "number 0",
+      "aConst": "number 1",
       "innerFunc": "function <large string>",
-      "x": "number -1",
-      "a": "number 0",
-      "aConst": "number 1"
+      "x": "number -1"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -33,35 +30,27 @@
       "Symbol.iterator": "function <large string>"
     },
     "locals": {
-      "innerInnerFunc": {
-        "#__proto__": "function function() {\n    [native code]\n}",
-        "prototype": "Object {...}",
-        "name": "string innerInnerFunc",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
       "bConst": "string [Uninitialized block variable]",
-      "b": "string [Uninitialized block variable]"
+      "b": "string [Uninitialized block variable]",
+      "innerInnerFunc": {
+        "#__proto__": "function function() {\n    [native code]\n}",
+        "prototype": "Object {...}",
+        "name": "string innerInnerFunc",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
     },
     "scopes0": {
       "a": "number 0",
       "aConst": "number 1"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -71,6 +60,8 @@
       "Symbol.iterator": "function <large string>"
     },
     "locals": {
+      "bConst": "number 2",
+      "b": "number 3",
       "innerInnerFunc": {
         "#__proto__": "function function() {\n    [native code]\n}",
         "prototype": "Object {...}",
@@ -78,28 +69,18 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "bConst": "number 2",
-      "b": "number 3"
+      }
     },
     "scopes0": {
       "a": "number 0",
       "aConst": "number 1"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -121,19 +102,11 @@
       "aConst": "number 1"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -155,19 +128,11 @@
       "aConst": "number 1"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -177,6 +142,8 @@
       "Symbol.iterator": "function <large string>"
     },
     "locals": {
+      "bConst": "number 2",
+      "b": "number 3",
       "innerInnerFunc": {
         "#__proto__": "function function() {\n    [native code]\n}",
         "prototype": "Object {...}",
@@ -184,20 +151,13 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "bConst": "number 2",
-      "b": "number 3"
+      }
     },
     "scopes0": {
       "a": "number 0",
       "aConst": "number 1"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     }
   },
@@ -205,10 +165,10 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
-      "innerFunc": "function <large string>",
-      "x": "number -1",
       "a": "number 0",
-      "aConst": "number 1"
+      "aConst": "number 1",
+      "innerFunc": "function <large string>",
+      "x": "number -1"
     }
   }
 ]

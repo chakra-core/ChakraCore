@@ -12,8 +12,7 @@ namespace Js
     void ScopeInfo::SaveSymbolInfo(Symbol* sym, MapSymbolData* mapSymbolData)
     {
         // We don't need to create slot for or save "arguments"
-        bool needScopeSlot = !sym->GetIsArguments() && sym->GetHasNonLocalReference()
-            && (!mapSymbolData->func->IsInnerArgumentsSymbol(sym) || mapSymbolData->func->GetHasArguments());
+        bool needScopeSlot = !sym->GetIsArguments() && sym->GetHasNonLocalReference();
         Js::PropertyId scopeSlot = Constants::NoSlot;
 
         if (sym->GetIsModuleExportStorage())
@@ -74,7 +73,6 @@ namespace Js
         scopeInfo->isObject = scope->GetIsObject();
         scopeInfo->mustInstantiate = scope->GetMustInstantiate();
         scopeInfo->isCached = (scope->GetFunc()->GetBodyScope() == scope) && scope->GetFunc()->GetHasCachedScope();
-        scopeInfo->canMergeWithBodyScope = scope->GetCanMergeWithBodyScope();
         scopeInfo->hasLocalInClosure = scope->GetHasOwnLocalInClosure();
         
 
@@ -190,10 +188,7 @@ namespace Js
         {
             scope->SetIsObject();
         }
-        if (!this->GetCanMergeWithBodyScope())
-        {
-            scope->SetCannotMergeWithBodyScope();
-        }
+
         Assert(parser);
 
         scriptContext = parser->GetScriptContext();

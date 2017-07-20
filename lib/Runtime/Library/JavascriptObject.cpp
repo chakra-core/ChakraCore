@@ -156,7 +156,7 @@ namespace Js
         {
             JavascriptProxy* proxy = JavascriptProxy::FromVar(object);
             CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
-            return proxy->SetPrototypeTrap(newPrototype, shouldThrow);
+            return proxy->SetPrototypeTrap(newPrototype, shouldThrow, scriptContext);
         }
         
         // 2.   Let extensible be the value of the [[Extensible]] internal data property of O.
@@ -341,7 +341,7 @@ namespace Js
         }
 
         RecyclableObject* toStringFunc = RecyclableObject::FromVar(toStringVar);
-        return CALL_FUNCTION(toStringFunc, CallInfo(CallFlags_Value, 1), thisValue);
+        return CALL_FUNCTION(scriptContext->GetThreadContext(), toStringFunc, CallInfo(CallFlags_Value, 1), thisValue);
     }
 
     Var JavascriptObject::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
@@ -405,7 +405,7 @@ namespace Js
         if (isArray)
         {
             // 5. If isArray is true, let builtinTag be "Array".
-            return library->CreateStringFromCppLiteral(_u("[object Array]"));
+            return library->GetObjectArrayDisplayString();
         }
 
         JavascriptString* builtInTag = nullptr;
@@ -414,28 +414,28 @@ namespace Js
             // 6. Else if O is an exotic String object, let builtinTag be "String".
         case TypeIds_String:
         case TypeIds_StringObject:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object String]"));
+            builtInTag = library->GetObjectStringDisplayString();
             break;
 
             // 7. Else if O has an[[ParameterMap]] internal slot, let builtinTag be "Arguments".
         case TypeIds_Arguments:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object Arguments]"));
+            builtInTag = library->GetObjectArgumentsDisplayString();
             break;
 
             // 8. Else if O has a [[Call]] internal method, let builtinTag be "Function".
         case TypeIds_Function:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object Function]"));
+            builtInTag = library->GetObjectFunctionDisplayString();
             break;
 
             // 9. Else if O has an [[ErrorData]] internal slot, let builtinTag be "Error".
         case TypeIds_Error:
-            builtInTag = library->GetErrorDisplayString();
+            builtInTag = library->GetObjectErrorDisplayString();
             break;
 
             // 10. Else if O has a [[BooleanData]] internal slot, let builtinTag be "Boolean".
         case TypeIds_Boolean:
         case TypeIds_BooleanObject:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object Boolean]"));
+            builtInTag = library->GetObjectBooleanDisplayString();
             break;
 
             // 11. Else if O has a [[NumberData]] internal slot, let builtinTag be "Number".
@@ -444,18 +444,18 @@ namespace Js
         case TypeIds_UInt64Number:
         case TypeIds_Integer:
         case TypeIds_NumberObject:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object Number]"));
+            builtInTag = library->GetObjectNumberDisplayString();
             break;
 
             // 12. Else if O has a [[DateValue]] internal slot, let builtinTag be "Date".
         case TypeIds_Date:
         case TypeIds_WinRTDate:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object Date]"));
+            builtInTag = library->GetObjectDateDisplayString();
             break;
 
             // 13. Else if O has a [[RegExpMatcher]] internal slot, let builtinTag be "RegExp".
         case TypeIds_RegEx:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object RegExp]"));
+            builtInTag = library->GetObjectRegExpDisplayString();
             break;
 
             // 14. Else, let builtinTag be "Object".
@@ -1142,8 +1142,7 @@ namespace Js
             return newArr;  // Return an empty array if we don't have an enumerator
         }
 
-        RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
-        Var propertyName = nullptr;
+        JavascriptString * propertyName = nullptr;
         PropertyId propertyId;
         uint32 propertyIndex = 0;
         uint32 symbolIndex = 0;
@@ -1152,7 +1151,7 @@ namespace Js
 
         while ((propertyName = enumerator.MoveAndGetNext(propertyId)) != NULL)
         {
-            if (!JavascriptOperators::IsUndefinedObject(propertyName, undefined)) //There are some code paths in which GetCurrentIndex can return undefined
+            if (propertyName)
             {
                 if (includeSymbolProperties)
                 {
@@ -1179,10 +1178,7 @@ namespace Js
             uint32 index = 0;
             while (object->GetSpecialPropertyName(index, &propertyName, scriptContext))
             {
-                if (!JavascriptOperators::IsUndefinedObject(propertyName, undefined))
-                {
-                    newArr->DirectSetItemAt(propertyIndex++, propertyName);
-                }
+                newArr->DirectSetItemAt(propertyIndex++, propertyName);
                 index++;
             }
         }
@@ -1306,12 +1302,11 @@ namespace Js
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
 #endif
-        Var thisArg = JavascriptOperators::OP_GetThisNoFastPath(args[0], 0, scriptContext);
-        RecyclableObject* obj = RecyclableObject::FromVar(thisArg);
-
-        Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
-        const PropertyRecord* propertyRecord;
-        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
+        RecyclableObject* obj = nullptr;
+        if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.__defineGetter__"));
+        }
 
         Var getterFunc = args.Info.Count > 2 ? args[2] : obj->GetLibrary()->GetUndefined();
 
@@ -1319,6 +1314,10 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Object.prototype.__defineGetter__"));
         }
+
+        Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
+        const PropertyRecord* propertyRecord;
+        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
 
         PropertyDescriptor propertyDescriptor;
         propertyDescriptor.SetEnumerable(true);
@@ -1344,12 +1343,11 @@ namespace Js
         // For browser interop, simulate LdThis by calling OP implementation directly.
         // Do not have module id here so use the global id, 0.
         //
-        Var thisArg = JavascriptOperators::OP_GetThisNoFastPath(args[0], 0, scriptContext);
-        RecyclableObject* obj = RecyclableObject::FromVar(thisArg);
-
-        Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
-        const PropertyRecord* propertyRecord;
-        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
+        RecyclableObject* obj = nullptr;
+        if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.__defineSetter__"));
+        }
 
         Var setterFunc = args.Info.Count > 2 ? args[2] : obj->GetLibrary()->GetUndefined();
 
@@ -1357,6 +1355,10 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Object.prototype.__defineSetter__"));
         }
+
+        Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
+        const PropertyRecord* propertyRecord;
+        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
 
         PropertyDescriptor propertyDescriptor;
         propertyDescriptor.SetEnumerable(true);
@@ -1525,20 +1527,14 @@ namespace Js
 
         PropertyId nextKey = Constants::NoProperty;
         Var propValue = nullptr;
-        Var propertyVar = nullptr;
+        JavascriptString * propertyName = nullptr;
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((propertyVar = enumerator.MoveAndGetNext(nextKey)) != NULL)
+        while ((propertyName = enumerator.MoveAndGetNext(nextKey)) != NULL)
         {
             if (nextKey == Constants::NoProperty)
             {
-                if (JavascriptOperators::IsUndefinedObject(propertyVar)) //There are some code paths in which GetCurrentIndex can return undefined
-                {
-                    continue;
-                }
-
                 PropertyRecord const * propertyRecord = nullptr;
-                JavascriptString* propertyName = JavascriptString::FromVar(propertyVar);
 
                 scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
                 nextKey = propertyRecord->GetPropertyId();
@@ -1686,24 +1682,14 @@ namespace Js
         PropertyId propId;
         PropertyRecord const * propertyRecord;
         JavascriptString* propertyName = nullptr;
-        RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
-        Var tempVar;
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((tempVar = enumerator.MoveAndGetNext(propId)) != NULL)
+        while ((propertyName = enumerator.MoveAndGetNext(propId)) != NULL)
         {
             if (propId == Constants::NoProperty) //try current property id query first
             {
-                if (!JavascriptOperators::IsUndefinedObject(tempVar, undefined)) //There are some enumerators returning propertyName but not propId
-                {
-                    propertyName = JavascriptString::FromVar(tempVar);
-                    scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
-                    propId = propertyRecord->GetPropertyId();
-                }
-                else
-                {
-                    continue;
-                }
+                scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
+                propId = propertyRecord->GetPropertyId();
             }
             else
             {
@@ -1724,7 +1710,7 @@ namespace Js
                 descriptors = temp;
             }
 
-            tempVar = JavascriptOperators::GetProperty(props, propId, scriptContext);
+            Var tempVar = JavascriptOperators::GetProperty(props, propId, scriptContext);
 
             AnalysisAssert(descCount < descSize);
             if (!JavascriptOperators::ToPropertyDescriptor(tempVar, &descriptors[descCount].descriptor, scriptContext))

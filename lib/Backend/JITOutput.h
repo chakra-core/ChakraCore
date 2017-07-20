@@ -21,6 +21,12 @@ public:
 #ifdef _M_ARM
     void RecordXData(BYTE * xdata);
 #endif
+    bool IsTrackCompoundedIntOverflowDisabled() const;
+    bool IsArrayCheckHoistDisabled() const;
+    bool IsStackArgOptDisabled() const;
+    bool IsSwitchOptDisabled() const;
+    bool IsAggressiveIntTypeSpecDisabled() const;
+
     uint16 GetArgUsedForBranch() const;
     intptr_t GetCodeAddress() const;
     size_t GetCodeSize() const;

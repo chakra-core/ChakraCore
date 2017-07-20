@@ -92,7 +92,6 @@ namespace Js
         , mCompiler( compiler )
         , mByteCodeGenerator(mCompiler->GetByteCodeGenerator())
         , mNestedCallCount(0)
-        , mIsCallLegal(true)
     {
         mWriter.Create();
 
@@ -176,13 +175,13 @@ namespace Js
 
         // add 3 for each of I0, F0, and D0
         RegSlot regCount = mInfo->RegCount() + 3 + AsmJsFunctionMemory::RequiredVarConstants;
-
+#ifdef ENABLE_SIMDJS
         if (IsSimdjsEnabled())
         {
             // 1 return reg for SIMD
             regCount++;
         }
-
+#endif
         byteCodeFunction->SetFirstTmpReg(regCount);
     }
 
@@ -427,18 +426,22 @@ namespace Js
         // Emit a function body. Only explicit returns and the implicit "undef" at the bottom
         // get copied to the return register.
 
+        ParseNode *stmt = nullptr;
         while (varStmts->nop == knopList)
         {
-            ParseNode *stmt = ParserWrapper::GetBinaryLeft(varStmts);
+            stmt = ParserWrapper::GetBinaryLeft(varStmts);
             EmitTopLevelStatement( stmt );
             varStmts = ParserWrapper::GetBinaryRight(varStmts);
         }
         Assert(!varStmts->CapturesSyms());
 
         // if last statement isn't return, type must be void
-        if (varStmts->nop != knopReturn)
+        if (!stmt || stmt->nop != knopReturn)
         {
-            mFunction->CheckAndSetReturnType(AsmJsRetType::Void);
+            if (!mFunction->CheckAndSetReturnType(AsmJsRetType::Void))
+            {
+                throw AsmJsCompilationException(_u("Expected function return type to be void got %s instead"), mFunction->GetReturnType().toType().toChars());
+            }
         }
         EmitTopLevelStatement(varStmts);
     }
@@ -885,11 +888,6 @@ namespace Js
         return emitInfo;
     }
 
-    bool AsmJSByteCodeGenerator::IsFRound(AsmJsMathFunction* sym)
-    {
-        return (sym && sym->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround);
-    }
-
     bool AsmJSByteCodeGenerator::IsValidSimdFcnRetType(AsmJsSIMDFunction& simdFunction, const AsmJsRetType& expectedType, const AsmJsRetType& retType)
     {
         // Return types of simd builtins can be coereced to other asmjs types when a valid coercion exists
@@ -1043,29 +1041,17 @@ namespace Js
             }
         }
 
-
-        if (IsFRound((AsmJsMathFunction*)sym))
-        {
-            expectedType = AsmJsRetType::Float;
-        }
-
-
         const bool isFFI = sym->GetSymbolType() == AsmJsSymbol::ImportFunction;
         const bool isMathBuiltin = sym->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction;
-        if( isMathBuiltin )
+        if(isMathBuiltin)
         {
-            return EmitMathBuiltin( pnode, sym->Cast<AsmJsMathFunction>(), expectedType );
+            return EmitMathBuiltin(pnode, sym->Cast<AsmJsMathFunction>());
         }
 
         // math builtins have different requirements for call-site coercion
         if (!sym->CheckAndSetReturnType(expectedType))
         {
             throw AsmJsCompilationException(_u("Different return type found for function %s"), funcName->Psz());
-        }
-        if (!mIsCallLegal)
-        {
-            Assert(!isMathBuiltin); // math builtins cannot change heap, so they are specifically excluded from this rule
-            throw AsmJsCompilationException(_u("Call is not legal at this location"));
         }
         const int StartCallIndex = 0;
         const int CallIndex = 1;
@@ -1097,7 +1083,7 @@ namespace Js
         else
         {
             // args size + 1 pointer
-            const ArgSlot argByteSize = UInt16Math::Add(sym->GetArgByteSize(argCount), sizeof(Var));
+            const ArgSlot argByteSize = ArgSlotMath::Add(sym->GetArgByteSize(argCount), sizeof(Var));
             mWriter.AsmStartCall(callOpCode[funcOpCode][StartCallIndex], argByteSize);
         }
         AutoArrayPtr<AsmJsType> types(nullptr, 0);
@@ -1230,16 +1216,16 @@ namespace Js
             throw AsmJsCompilationException( _u("Function %s returns different type"), funcName->Psz() );
         }
 
-        const ArgSlot argByteSize = UInt16Math::Add(sym->GetArgByteSize(argCount), sizeof(Var));
+        const ArgSlot argByteSize = ArgSlotMath::Add(sym->GetArgByteSize(argCount), sizeof(Var));
         // +1 is for function object
-        ArgSlot runtimeArg = UInt16Math::Add(argCount, 1);
+        ArgSlot runtimeArg = ArgSlotMath::Add(argCount, 1);
         if (funcOpCode == 1) // for non import functions runtimeArg is calculated from argByteSize
         {
             runtimeArg = (ArgSlot)(::ceil((double)(argByteSize / sizeof(Var)))) + 1;
         }
 
         // +1 is for return address
-        maxDepthForLevel += UInt16Math::Add(runtimeArg, 1);
+        maxDepthForLevel += ArgSlotMath::Add(runtimeArg, 1);
 
         // Make sure we have enough memory allocated for OutParameters
         if (mNestedCallCount > 1)
@@ -1483,8 +1469,7 @@ namespace Js
                                   simdFunc->GetSimdBuiltInFunction() == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_float32x4_splat ||                                /*splat all args*/
                                  (i == 2 && simdFunc->GetSimdBuiltInFunction() == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_float32x4_replaceLane))
                         {
-
-                            if (argCall && argCall->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction && IsFRound(argCall->Cast<AsmJsMathFunction>()))
+                            if (AsmJsMathFunction::IsFround(argCall))
                             {
                                 argInfo = EmitCall(arg, AsmJsRetType::Float);
                             }
@@ -1793,11 +1778,7 @@ namespace Js
         uint32 indexSlot = 0;
         TypedArrayEmitType emitType = simdFunction->IsSimdLoadFunc() ? TypedArrayEmitType::LoadTypedArray : TypedArrayEmitType::StoreTypedArray;
 
-        // if changeHeap is implemented, calls are illegal in index expression
-        bool wasCallLegal = mIsCallLegal;
-        mIsCallLegal = !mCompiler->UsesChangeHeap();
         EmitExpressionInfo indexInfo = EmitTypedArrayIndex(indexNode, op, indexSlot, viewType, emitType);
-        mIsCallLegal = wasCallLegal;
 
         EmitExpressionInfo valueInfo = { 0, AsmJsType::Void };
         // convert opcode to const if needed
@@ -1944,44 +1925,42 @@ namespace Js
         return emitInfo;
     }
 
-    EmitExpressionInfo AsmJSByteCodeGenerator::EmitMathBuiltin(ParseNode* pnode, AsmJsMathFunction* mathFunction, AsmJsRetType expectedType)
+    EmitExpressionInfo AsmJSByteCodeGenerator::EmitMathBuiltin(ParseNode* pnode, AsmJsMathFunction* mathFunction)
     {
         if (mathFunction->GetMathBuiltInFunction() == AsmJSMathBuiltinFunction::AsmJSMathBuiltin_max || mathFunction->GetMathBuiltInFunction() == AsmJSMathBuiltinFunction::AsmJSMathBuiltin_min)
         {
-            return EmitMinMax(pnode, mathFunction, expectedType);
+            return EmitMinMax(pnode, mathFunction);
         }
 
         ++mNestedCallCount;
 
         const ArgSlot argCount = pnode->sxCall.argCount;
         ParseNode* argNode = pnode->sxCall.pnodeArgs;
+        const bool isFRound = AsmJsMathFunction::IsFround(mathFunction);
 
         // for fround, if we have a fround(NumericLiteral), we want to just emit Ld_Flt NumericLiteral
-        if (argCount == 1 && IsFRound(mathFunction) && ParserWrapper::IsFroundNumericLiteral(argNode))
+        if (argCount == 1 && isFRound && ParserWrapper::IsFroundNumericLiteral(argNode))
         {
-            Assert(expectedType == AsmJsRetType::Float);
             StartStatement(pnode);
             RegSlot dst = mFunction->AcquireTmpRegister<float>();
-            EmitExpressionInfo emitInfo(dst, expectedType.toType());
+            EmitExpressionInfo emitInfo(dst, AsmJsType::Float);
+            float constValue = -0.0f;
             if (argNode->nop == knopFlt)
             {
-                mWriter.AsmReg2(OpCodeAsmJs::Ld_Flt, dst, mFunction->GetConstRegister<float>((float)argNode->sxFlt.dbl));
+                constValue = (float)argNode->sxFlt.dbl;
             }
             else if (argNode->nop == knopInt)
             {
-                mWriter.AsmReg2(OpCodeAsmJs::Ld_Flt, dst, mFunction->GetConstRegister<float>((float)argNode->sxInt.lw));
+                constValue = (float)argNode->sxInt.lw;
             }
             else
             {
                 Assert(ParserWrapper::IsNegativeZero(argNode));
-                mWriter.AsmReg2(OpCodeAsmJs::Ld_Flt, dst, mFunction->GetConstRegister<float>(-0.0f));
             }
+            mWriter.AsmReg2(OpCodeAsmJs::Ld_Flt, dst, mFunction->GetConstRegister<float>(constValue));
             EndStatement(pnode);
             return emitInfo;
         }
-
-        // The logic here is similar to EmitSimdBuiltinArguments()
-        // TODO: Maybe outline this to EmitArguments() after RI. Currently it is causing frequent conflicts upon FI.
 
         AutoArrayPtr<AsmJsType> types(nullptr, 0);
         AutoArrayPtr<EmitExpressionInfo> argsInfo(nullptr, 0);
@@ -1996,7 +1975,7 @@ namespace Js
                 // Get i arg node
                 ParseNode* arg = argNode;
                 // Special case for fround(abs()) call
-                if (argNode->nop == knopCall && mathFunction->GetMathBuiltInFunction() == AsmJSMathBuiltinFunction::AsmJSMathBuiltin_fround)
+                if (argNode->nop == knopCall && isFRound)
                 {
                     // Emit argument
                     const EmitExpressionInfo& argInfo = EmitCall(arg, AsmJsRetType::Float);
@@ -2110,7 +2089,7 @@ namespace Js
         return emitInfo;
     }
 
-    EmitExpressionInfo AsmJSByteCodeGenerator::EmitMinMax(ParseNode* pnode, AsmJsMathFunction* mathFunction, AsmJsRetType expectedType)
+    EmitExpressionInfo AsmJSByteCodeGenerator::EmitMinMax(ParseNode* pnode, AsmJsMathFunction* mathFunction)
     {
         Assert(mathFunction->GetArgCount() == 2);
         ++mNestedCallCount;
@@ -2519,11 +2498,7 @@ namespace Js
 
         OpCodeAsmJs op;
         uint32 indexSlot = 0;
-        // if changeHeap is implemented, calls are illegal in index expression
-        bool wasCallLegal = mIsCallLegal;
-        mIsCallLegal = !mCompiler->UsesChangeHeap();
         EmitExpressionInfo indexInfo = EmitTypedArrayIndex(indexNode, op, indexSlot, viewType, LoadTypedArray);
-        mIsCallLegal = wasCallLegal;
         mFunction->ReleaseLocationGeneric(&indexInfo);
 
         EmitExpressionInfo info( arrayView->GetType() );
@@ -2655,12 +2630,8 @@ namespace Js
 
             OpCodeAsmJs op;
             uint32 indexSlot = 0;
-            // if changeHeap is implemented, calls are illegal in index expression and on right hand side of assignments
-            bool wasCallLegal = mIsCallLegal;
-            mIsCallLegal = !mCompiler->UsesChangeHeap();
             EmitExpressionInfo indexInfo = EmitTypedArrayIndex(indexNode, op, indexSlot, viewType, StoreTypedArray);
             rhsEmit = Emit(rhs);
-            mIsCallLegal = wasCallLegal;
 
             if (viewType == ArrayBufferView::TYPE_FLOAT32)
             {

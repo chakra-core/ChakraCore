@@ -5,6 +5,8 @@
 #pragma once
 
 #include "UnicodeText.h"
+#include "EventTrace.h"
+#include "PerfTrace.h"
 
 #include "PlatformAgnostic/DateTime.h"
 #include "PlatformAgnostic/AssemblyCommon.h"

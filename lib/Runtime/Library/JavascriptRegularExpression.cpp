@@ -861,7 +861,7 @@ namespace Js
         if (JavascriptConversion::IsCallable(exec))
         {
             RecyclableObject* execFn = RecyclableObject::FromVar(exec);
-            Var result = CALL_FUNCTION(execFn, CallInfo(CallFlags_Value, 2), thisObj, string);
+            Var result = CALL_FUNCTION(scriptContext->GetThreadContext(), execFn, CallInfo(CallFlags_Value, 2), thisObj, string);
 
             if (!JavascriptOperators::IsObjectOrNull(result))
             {
@@ -1089,12 +1089,12 @@ namespace Js
         const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
 
 #define HAS_PROPERTY(ownProperty) \
-        return (ownProperty ? Property_Found : DynamicObject::HasPropertyQuery(propertyId));
+        return (ownProperty ? PropertyQueryFlags::Property_Found : DynamicObject::HasPropertyQuery(propertyId));
 
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         case PropertyIds::global:
         case PropertyIds::multiline:
         case PropertyIds::ignoreCase:
@@ -1505,7 +1505,7 @@ namespace Js
 
 #undef IS_WRITABLE
     }
-    BOOL JavascriptRegExp::GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
+    BOOL JavascriptRegExp::GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext)
     {
         uint length = GetSpecialPropertyCount();
 

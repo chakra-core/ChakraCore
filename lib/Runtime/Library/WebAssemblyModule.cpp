@@ -34,6 +34,7 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_signaturesCount(0),
     m_startFuncIndex(Js::Constants::UninitializedValue),
     m_binaryBuffer(binaryBuffer),
+    m_binaryBufferLength(binaryBufferLength),
     m_customSections(nullptr)
 {
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
@@ -170,13 +171,10 @@ Var WebAssemblyModule::EntryCustomSections(RecyclableObject* function, CallInfo 
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
     }
-    if (args.Info.Count < 3)
-    {
-        JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedString, _u("sectionName"));
-    }
+    Var sectionNameVar = args.Info.Count > 2 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
 
     WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
-    JavascriptString * sectionName = JavascriptConversion::ToString(args[2], scriptContext);
+    JavascriptString * sectionName = JavascriptConversion::ToString(sectionNameVar, scriptContext);
     const char16* sectionNameBuf = sectionName->GetString();
     charcount_t sectionNameLength = sectionName->GetLength();
 
@@ -234,15 +232,24 @@ WebAssemblyModule::CreateModule(
     }
     catch (Wasm::WasmCompilationException& ex)
     {
-        Wasm::WasmCompilationException newEx = ex;
+        // The reason that we use GetTempErrorMessageRef here, instead of just doing simply
+        // ReleaseErrorMessage and grabbing it away from the WasmCompilationException, is a
+        // slight niggle in the lifetime of the message buffer. The normal error throw..Var
+        // routines don't actually do anything to clean up their varargs - likely good, due
+        // to the variety of situations that we want to use them in. However, this fails to
+        // clean up strings if they're not cleaned up by some destructor. By handling these
+        // error strings not by grabbing them away from the WasmCompilationException, I can
+        // have the WasmCompilationException destructor clean up the strings when we throw,
+        // by which point SetErrorMessage will already have copied out what it needs.
+        BSTR originalMessage = ex.GetTempErrorMessageRef();
         if (currentBody != nullptr)
         {
-            char16* originalMessage = ex.ReleaseErrorMessage();
             intptr_t offset = readerInfo->m_module->GetReader()->GetCurrentOffset();
             intptr_t start = readerInfo->m_funcInfo->m_readerInfo.startOffset;
             uint32 size = readerInfo->m_funcInfo->m_readerInfo.size;
 
-            newEx = Wasm::WasmCompilationException(
+            originalMessage = ex.ReleaseErrorMessage();
+            ex = Wasm::WasmCompilationException(
                 _u("function %s at offset %d/%d: %s"),
                 currentBody->GetDisplayName(),
                 offset - start,
@@ -251,8 +258,9 @@ WebAssemblyModule::CreateModule(
             );
             currentBody->GetAsmJsFunctionInfo()->SetWasmReaderInfo(nullptr);
             SysFreeString(originalMessage);
+            originalMessage = ex.GetTempErrorMessageRef();
         }
-        JavascriptError::ThrowWebAssemblyCompileErrorVar(scriptContext, WASMERR_WasmCompileError, newEx.ReleaseErrorMessage());
+        JavascriptError::ThrowWebAssemblyCompileErrorVar(scriptContext, WASMERR_WasmCompileError, originalMessage);
     }
 
     return webAssemblyModule;
@@ -279,9 +287,7 @@ WebAssemblyModule::ValidateModule(
             Js::FunctionBody * body = webAssemblyModule->GetWasmFunctionInfo(i)->GetBody();
             Wasm::WasmReaderInfo * readerInfo = body->GetAsmJsFunctionInfo()->GetWasmReaderInfo();
 
-            // TODO: avoid actually generating bytecode here
-            Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
-
+            Wasm::WasmBytecodeGenerator::ValidateFunction(scriptContext, readerInfo);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (PHASE_ON(WasmValidatePrejitPhase, body))
             {
@@ -335,7 +341,15 @@ WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage)
 
     if (maxPage < minPage)
     {
-        throw Wasm::WasmCompilationException(_u("Memory: MaxPage (%d) must be greater than MinPage (%d)"), maxPage, minPage);
+        throw Wasm::WasmCompilationException(_u("Memory: MaxPage (%u) must be greater than MinPage (%u)"), maxPage, minPage);
+    }
+    auto minPageTooBig = [minPage] {
+        throw Wasm::WasmCompilationException(_u("Memory: Unable to allocate minimum pages (%u)"), minPage);
+    };
+    uint32 minBytes = UInt32Math::Mul<WebAssembly::PageSize>(minPage, minPageTooBig);
+    if (minBytes > ArrayBuffer::MaxArrayBufferLength)
+    {
+        minPageTooBig();
     }
     m_hasMemory = true;
     m_memoryInitSize = minPage;
@@ -439,6 +453,102 @@ WebAssemblyModule::GetWasmFunctionInfo(uint index) const
 }
 
 void
+WebAssemblyModule::SwapWasmFunctionInfo(uint i1, uint i2)
+{
+    Wasm::WasmFunctionInfo* f1 = GetWasmFunctionInfo(i1);
+    Wasm::WasmFunctionInfo* f2 = GetWasmFunctionInfo(i2);
+    m_functionsInfo->SetItem(i1, f2);
+    m_functionsInfo->SetItem(i2, f1);
+}
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+void
+WebAssemblyModule::AttachCustomInOutTracingReader(Wasm::WasmFunctionInfo* func, uint callIndex)
+{
+    Wasm::WasmFunctionInfo* calledFunc = GetWasmFunctionInfo(callIndex);
+    Wasm::WasmSignature* signature = calledFunc->GetSignature();
+    if (!calledFunc->GetSignature()->IsEquivalent(signature))
+    {
+        throw Wasm::WasmCompilationException(_u("InOut tracing reader signature mismatch"));
+    }
+    // Create the custom reader to generate the import thunk
+    Wasm::WasmCustomReader* customReader = Anew(&m_alloc, Wasm::WasmCustomReader, &m_alloc);
+    // Print the function name we are calling
+    {
+        Wasm::WasmNode nameNode;
+        nameNode.op = Wasm::wbI32Const;
+        nameNode.cnst.i32 = callIndex;
+        customReader->AddNode(nameNode);
+        nameNode.op = Wasm::wbPrintFuncName;
+        customReader->AddNode(nameNode);
+    }
+
+    for (Js::ArgSlot iParam = 0; iParam < signature->GetParamCount(); iParam++)
+    {
+        Wasm::WasmNode node;
+        node.op = Wasm::wbGetLocal;
+        node.var.num = iParam;
+        customReader->AddNode(node);
+
+        Wasm::Local param = signature->GetParam(iParam);
+        switch (param)
+        {
+        case Wasm::Local::I32: node.op = Wasm::wbPrintI32; break;
+        case Wasm::Local::I64: node.op = Wasm::wbPrintI64; break;
+        case Wasm::Local::F32: node.op = Wasm::wbPrintF32; break;
+        case Wasm::Local::F64: node.op = Wasm::wbPrintF64; break;
+        default:
+            throw Wasm::WasmCompilationException(_u("Unknown param type"));
+        }
+        customReader->AddNode(node);
+
+        if (iParam < signature->GetParamCount() - 1)
+        {
+            node.op = Wasm::wbPrintArgSeparator;
+            customReader->AddNode(node);
+        }
+    }
+
+    Wasm::WasmNode beginNode;
+    beginNode.op = Wasm::wbPrintBeginCall;
+    customReader->AddNode(beginNode);
+
+    Wasm::WasmNode callNode;
+    callNode.op = Wasm::wbCall;
+    callNode.call.num = callIndex;
+    callNode.call.funcType = Wasm::FunctionIndexTypes::Function;
+    customReader->AddNode(callNode);
+
+    Wasm::WasmTypes::WasmType returnType = signature->GetResultType();
+    Wasm::WasmNode endNode;
+    endNode.op = Wasm::wbI32Const;
+    endNode.cnst.i32 = returnType;
+    customReader->AddNode(endNode);
+    endNode.op = Wasm::wbPrintEndCall;
+    customReader->AddNode(endNode);
+
+    if (returnType != Wasm::WasmTypes::Void)
+    {
+        Wasm::WasmNode node;
+        switch (returnType)
+        {
+        case Wasm::WasmTypes::I32: node.op = Wasm::wbPrintI32; break;
+        case Wasm::WasmTypes::I64: node.op = Wasm::wbPrintI64; break;
+        case Wasm::WasmTypes::F32: node.op = Wasm::wbPrintF32; break;
+        case Wasm::WasmTypes::F64: node.op = Wasm::wbPrintF64; break;
+        default:
+            throw Wasm::WasmCompilationException(_u("Unknown return type"));
+        }
+        customReader->AddNode(node);
+    }
+    endNode.op = Wasm::wbPrintNewLine;
+    customReader->AddNode(endNode);
+
+    func->SetCustomReader(customReader);
+}
+#endif
+
+void
 WebAssemblyModule::AllocateFunctionExports(uint32 entries)
 {
     m_exports = AnewArrayZ(&m_alloc, Wasm::WasmExport, entries);
@@ -491,7 +601,7 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     Wasm::WasmFunctionInfo* funcInfo = AddWasmFunctionInfo(signature);
     // Create the custom reader to generate the import thunk
     Wasm::WasmCustomReader* customReader = Anew(&m_alloc, Wasm::WasmCustomReader, &m_alloc);
-    for (uint32 iParam = 0; iParam < signature->GetParamCount(); iParam++)
+    for (uint32 iParam = 0; iParam < (uint32)signature->GetParamCount(); iParam++)
     {
         Wasm::WasmNode node;
         node.op = Wasm::wbGetLocal;
@@ -581,11 +691,11 @@ WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, const WebAs
     {
         ValidateInitExportForOffset(initExpr);
     }
-    catch (Wasm::WasmCompilationException &e)
+    catch (Wasm::WasmCompilationException&)
     {
         // Should have been checked at compile time
         Assert(UNREACHED);
-        throw e;
+        throw;
     }
 
     uint offset = 0;

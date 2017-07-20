@@ -124,6 +124,8 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
         return false;
     }
 
+    Assert( ((ULONG_PTR)this->address % (64 * 1024)) == 0 );
+
     originalAddress = this->address;
     bool committed = (allocFlags & MEM_COMMIT) != 0;
     if (addGuardPages)
@@ -136,8 +138,12 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
 #endif
         if (committed)
         {
-            GetAllocator()->GetVirtualAllocator()->Free(address, leadingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT);
-            GetAllocator()->GetVirtualAllocator()->Free(address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize), trailingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT);
+            GetAllocator()->GetVirtualAllocator()->Free(address,
+              leadingGuardPageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
+
+            GetAllocator()->GetVirtualAllocator()->Free(address +
+              ((leadingGuardPageCount + this->segmentPageCount) * AutoSystemInfo::PageSize),
+              trailingGuardPageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
         }
         this->GetAllocator()->ReportFree((leadingGuardPageCount + trailingGuardPageCount) * AutoSystemInfo::PageSize);
 
@@ -146,7 +152,8 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
 
     if (!GetAllocator()->CreateSecondaryAllocator(this, committed, &this->secondaryAllocator))
     {
-        GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
+        GetAllocator()->GetVirtualAllocator()->Free(originalAddress,
+          GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
         this->GetAllocator()->ReportFailure(GetPageCount() * AutoSystemInfo::PageSize);
         this->address = nullptr;
         return false;
@@ -161,7 +168,8 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
         if (this->isWriteBarrierEnabled)
         {
             // only commit card table for write barrier pages for strict check
-            // we can do this in free build if all write barrier annotated struct only allocate with write barrier pages
+            // we can do this in free build if all write barrier annotated struct
+            // only allocate with write barrier pages
             registerBarrierResult = RecyclerWriteBarrierManager::OnSegmentAlloc(this->address, this->segmentPageCount);
         }
     }
@@ -173,7 +181,8 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
 
     if (!registerBarrierResult)
     {
-        GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
+        GetAllocator()->GetVirtualAllocator()->Free(originalAddress,
+          GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
         this->GetAllocator()->ReportFailure(GetPageCount() * AutoSystemInfo::PageSize);
         this->address = nullptr;
         return false;
@@ -185,7 +194,8 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
 
     if (this->isWriteBarrierEnabled)
     {
-        RecyclerWriteBarrierManager::ToggleBarrier(this->address, this->segmentPageCount * AutoSystemInfo::PageSize, true);
+        RecyclerWriteBarrierManager::ToggleBarrier(this->address,
+          this->segmentPageCount * AutoSystemInfo::PageSize, true);
     }
 #endif
 #endif
@@ -284,7 +294,7 @@ PageSegmentBase<T>::Prime()
 
 template<typename T>
 bool
-PageSegmentBase<T>::IsAllocationPageAligned(__in char* address, size_t pageCount)
+PageSegmentBase<T>::IsAllocationPageAligned(__in char* address, size_t pageCount, uint *nextIndex)
 {
     // Require that allocations are aligned at a boundary
     // corresponding to the page count
@@ -297,6 +307,11 @@ PageSegmentBase<T>::IsAllocationPageAligned(__in char* address, size_t pageCount
     if ((reinterpret_cast<uintptr_t>(address)& mask) == 0)
     {
         return true;
+    }
+
+    if (nextIndex != nullptr)
+    {
+        *nextIndex = (uint) ((reinterpret_cast<uintptr_t>(address) % (mask + 1)) / AutoSystemInfo::PageSize);
     }
 
     return false;
@@ -332,9 +347,14 @@ PageSegmentBase<T>::AllocPages(uint pageCount)
 
             if (pageCount > 1 && !notPageAligned)
             {
-                if (!IsAllocationPageAligned(allocAddress, pageCount))
+                uint nextIndex = 0;
+                if (!IsAllocationPageAligned(allocAddress, pageCount, &nextIndex))
                 {
-                    index = this->freePages.GetNextBit(index + 1);
+                    if (index + nextIndex >= this->GetAllocator()->GetMaxAllocPageCount())
+                    {
+                        return nullptr;
+                    }
+                    index = this->freePages.GetNextBit(index + nextIndex);
                     continue;
                 }
             }
@@ -400,9 +420,14 @@ PageSegmentBase<TVirtualAlloc>::AllocDecommitPages(uint pageCount, T freePages, 
 
             if (!notPageAligned)
             {
-                if (!IsAllocationPageAligned(pages, pageCount))
+                uint nextIndex = 0;
+                if (!IsAllocationPageAligned(pages, pageCount, &nextIndex))
                 {
-                    index = freeAndDecommitPages.GetNextBit(index + 1);
+                    if (index + nextIndex >= this->GetAllocator()->GetMaxAllocPageCount())
+                    {
+                        return nullptr;
+                    }
+                    index = freeAndDecommitPages.GetNextBit(index + nextIndex);
                     continue;
                 }
             }
@@ -520,7 +545,8 @@ PageSegmentBase<T>::DecommitPages(__in void * address, uint pageCount)
 {
     Assert(address >= this->address);
     Assert(pageCount <= this->GetAllocator()->maxAllocPageCount);
-    Assert(((uint)(((char *)address) - this->address)) <= (this->GetAllocator()->maxAllocPageCount - pageCount) * AutoSystemInfo::PageSize);
+    Assert(((uint)(((char *)address) - this->address))
+      <= (this->GetAllocator()->maxAllocPageCount - pageCount) * AutoSystemInfo::PageSize);
 
     Assert(!IsFreeOrDecommitted(address, pageCount));
     uint base = this->GetBitRangeBase(address);
@@ -531,36 +557,58 @@ PageSegmentBase<T>::DecommitPages(__in void * address, uint pageCount)
     if (!onlyUpdateState)
     {
 #pragma warning(suppress: 6250)
-        this->GetAllocator()->GetVirtualAllocator()->Free(address, pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
+        this->GetAllocator()->GetVirtualAllocator()->Free(address,
+          pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
     }
 
     Assert(decommitPageCount == (uint)this->GetCountOfDecommitPages());
 }
 
 template<typename T>
+void
+PageSegmentBase<T>::DecommitFreePagesInternal(uint index, uint pageCount)
+{
+    Assert(pageCount > 0 && (index + pageCount) <= this->GetAvailablePageCount());
+    this->ClearRangeInFreePagesBitVector(index, pageCount);
+    this->SetRangeInDecommitPagesBitVector(index, pageCount);
+
+    char * currentAddress = this->address + (index * AutoSystemInfo::PageSize);
+#pragma warning(suppress: 6250)
+    this->GetAllocator()->GetVirtualAllocator()->Free(currentAddress,
+      pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
+}
+
+template<typename T>
 size_t
 PageSegmentBase<T>::DecommitFreePages(size_t pageToDecommit)
 {
-    Assert(pageToDecommit != 0);
-    char * currentAddress = this->address;
+    Assert(pageToDecommit != 0 && this->GetAvailablePageCount() > 0);
 
-    uint decommitCount = 0;
-    for (uint i = 0; i < this->GetAvailablePageCount(); i++)
+    uint startIndex = 0, index = 0, decommitCount = 0;
+    do
     {
-        if (this->TestInFreePagesBitVector(i))
+        if (!this->TestInFreePagesBitVector(index))
         {
-            this->ClearBitInFreePagesBitVector(i);
-            this->SetBitInDecommitPagesBitVector(i);
-#pragma warning(suppress: 6250)
-            this->GetAllocator()->GetVirtualAllocator()->Free(currentAddress, AutoSystemInfo::PageSize, MEM_DECOMMIT);
+            if (startIndex < index)
+            {
+                uint pageCount = index - startIndex;
+                this->DecommitFreePagesInternal(startIndex, pageCount);
+            }
+            startIndex = index + 1;
+        }
+        else
+        {
             decommitCount++;
         }
-        currentAddress += AutoSystemInfo::PageSize;
-        if (decommitCount == pageToDecommit)
-        {
-            break;
-        }
     }
+    while (++index < this->GetAvailablePageCount() && decommitCount < pageToDecommit);
+
+    if (startIndex < index)
+    {
+        uint pageCount = index - startIndex;
+        this->DecommitFreePagesInternal(startIndex, pageCount);
+    }
+
     Assert(decommitCount <= this->freePageCount);
     this->decommitPageCount += decommitCount;
     this->freePageCount -= decommitCount;
@@ -610,9 +658,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::GetMaxAllocPageCount()
 
 template<typename TVirtualAlloc, typename TSegment, typename TPageSegment>
 PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::PageAllocatorBase(AllocationPolicyManager * policyManager,
-#ifndef JD_PRIVATE
     Js::ConfigFlagsTable& flagTable,
-#endif
     PageAllocatorType type,
     uint maxFreePageCount, bool zeroPages,
 #if ENABLE_BACKGROUND_PAGE_FREEING
@@ -621,9 +667,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::PageAllocatorBase(Allo
     uint maxAllocPageCount, uint secondaryAllocPageCount,
     bool stopAllocationOnOutOfMemory, bool excludeGuardPages, HANDLE processHandle, bool enableWriteBarrier) :
     policyManager(policyManager),
-#ifndef JD_PRIVATE
     pageAllocatorFlagTable(flagTable),
-#endif
     maxFreePageCount(maxFreePageCount),
     freePageCount(0),
     allocFlags(0),
@@ -1494,13 +1538,12 @@ void
 PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::ReleaseSegment(TSegment * segment)
 {
     ASSERT_THREAD();
-#if defined(RECYCLER_MEMORY_VERIFY) || defined(ARENA_MEMORY_VERIFY)
+#ifdef RECYCLER_NO_PAGE_REUSE
     if (disablePageReuse)
     {
         Assert(this->processHandle == GetCurrentProcess());
-        DWORD oldProtect;
-        BOOL vpresult = VirtualProtect(segment->GetAddress(), segment->GetPageCount() * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
-        Assert(vpresult && oldProtect == PAGE_READWRITE);
+#pragma prefast(suppress:6250, "Calling 'VirtualFree' without the MEM_RELEASE flag might free memory but not address descriptors (VADs).")
+        VirtualFree(segment->GetAddress(), segment->GetPageCount() * AutoSystemInfo::PageSize, MEM_DECOMMIT);
         return;
     }
 #endif
@@ -1529,13 +1572,12 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::ReleasePages(__in void
     ASSERT_THREAD();
     Assert(!this->HasMultiThreadAccess());
 
-#if defined(RECYCLER_MEMORY_VERIFY) || defined(ARENA_MEMORY_VERIFY)
+#ifdef RECYCLER_NO_PAGE_REUSE
     if (disablePageReuse)
     {
         Assert(this->processHandle == GetCurrentProcess());
-        DWORD oldProtect;
-        BOOL vpresult = VirtualProtect(address, pageCount * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
-        Assert(vpresult && oldProtect == PAGE_READWRITE);
+#pragma prefast(suppress:6250, "Calling 'VirtualFree' without the MEM_RELEASE flag might free memory but not address descriptors (VADs).")
+        VirtualFree(address, pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
         return;
     }
 #endif

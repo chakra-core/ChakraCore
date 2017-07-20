@@ -12,8 +12,12 @@ namespace Js
         template<typename T> static T Add( T aLeft, T aRight );
         template<typename T> static T Sub( T aLeft, T aRight );
         template<typename T> static T Mul( T aLeft, T aRight );
-        template<typename T> static T Div( T aLeft, T aRight );
-        template<typename T> static T Rem( T aLeft, T aRight );
+        template<typename T> static bool DivWouldTrap(T aLeft, T aRight);
+        template<typename T> static T DivUnsafe(T aLeft, T aRight);
+        template<typename T> static T DivChecked(T aLeft, T aRight);
+        template<typename T> static bool RemWouldTrap(T aLeft, T aRight);
+        template<typename T> static T RemUnsafe(T aLeft, T aRight);
+        template<typename T> static T RemChecked(T aLeft, T aRight);
         template<typename T> static T Min( T aLeft, T aRight );
         template<typename T> static T Max( T aLeft, T aRight );
         template<typename T> static T Abs( T aLeft );

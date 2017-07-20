@@ -110,10 +110,6 @@ JsModuleEvaluation(
         return JsErrorInvalidArgument;
     }
     Js::SourceTextModuleRecord* moduleRecord = Js::SourceTextModuleRecord::FromHost(requestModule);
-    if (moduleRecord->WasEvaluated())
-    {
-        return JsErrorModuleEvaluated;
-    }
     if (result != nullptr)
     {
         *result = JS_INVALID_REFERENCE;
@@ -162,6 +158,9 @@ JsSetModuleHostInfo(
         case JsModuleHostInfo_FetchImportedModuleCallback:
             currentContext->GetHostScriptContext()->SetFetchImportedModuleCallback(reinterpret_cast<FetchImportedModuleCallBack>(hostInfo));
             break;
+        case JsModuleHostInfo_FetchImportedModuleFromScriptCallback:
+            currentContext->GetHostScriptContext()->SetFetchImportedModuleFromScriptCallback(reinterpret_cast<FetchImportedModuleFromScriptCallBack>(hostInfo));
+            break;
         case JsModuleHostInfo_NotifyModuleReadyCallback:
             currentContext->GetHostScriptContext()->SetNotifyModuleReadyCallback(reinterpret_cast<NotifyModuleReadyCallback>(hostInfo));
             break;
@@ -202,6 +201,9 @@ JsGetModuleHostInfo(
             break;
         case JsModuleHostInfo_FetchImportedModuleCallback:
             *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetFetchImportedModuleCallback());
+            break;
+        case JsModuleHostInfo_FetchImportedModuleFromScriptCallback:
+            *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetFetchImportedModuleFromScriptCallback());
             break;
         case JsModuleHostInfo_NotifyModuleReadyCallback:
             *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetNotifyModuleReadyCallback());

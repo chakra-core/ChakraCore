@@ -3,6 +3,12 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+if (this.WScript && this.WScript.LoadScriptFile) {
+    this.WScript.LoadScriptFile("../UnitTestFramework/TrimStackTracePath.js");
+}
+
+try {
+
 (function(){
   var obj0 = 1;
   var obj1 = 1;
@@ -47,8 +53,8 @@
           c = (! (((obj0.c &= ary[(3)]) || obj1.c) > ((intary[((((obj0.b++ ) >= 0 ? (obj0.b++ ) : 0)) & 0XF)] >= 2147483647) >> a)));
         }
         var __loopvar3 = 0;
-        LABEL0: 
-        LABEL1: 
+        LABEL0:
+        LABEL1:
         while((209) && __loopvar3 < 3) {
           __loopvar3++;
           continue LABEL0;
@@ -81,7 +87,7 @@
     }
     else {
       var __loopvar2 = 0;
-      LABEL0: 
+      LABEL0:
       do {
         __loopvar2++;
         for(var __loopvar3 = 0; obj0.b < (ary[(7)]) && __loopvar3 < 3; obj0.b++ + __loopvar3++) {
@@ -97,3 +103,7 @@
     }
   }
 })();
+
+} catch (e) {
+    console.log(TrimStackTracePath(e.stack));
+}

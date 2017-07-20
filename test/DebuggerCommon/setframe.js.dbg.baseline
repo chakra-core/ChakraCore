@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -20,11 +17,6 @@
       "HHH_C": "number 0"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -32,9 +24,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -61,11 +50,6 @@
       "GGG_closure": "number 1"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -73,9 +57,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -92,11 +73,6 @@
       "FFF_C": "number 0"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -142,9 +118,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -171,11 +144,6 @@
       "GGG_closure": "number 3"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -183,9 +151,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -202,11 +167,6 @@
       "FFF_C": "number 0"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"

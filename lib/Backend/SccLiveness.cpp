@@ -219,6 +219,10 @@ SCCLiveness::Build()
                 loop->regAlloc.loopStart = instrNum;
                 loop->regAlloc.loopEnd = lastBranchNum;
 
+#if LOWER_SPLIT_INT64
+                func->Int64SplitExtendLoopLifetime(loop);
+#endif
+
                 // Tail duplication can result in cases in which an outer loop lexically ends before the inner loop.
                 // The register allocator could then thrash in the inner loop registers used for a live-on-back-edge
                 // sym on the outer loop. To prevent this, we need to mark the end of the outer loop as the end of the
@@ -309,7 +313,7 @@ SCCLiveness::Build()
 
         // Check for lifetimes that have been extended such that they now span multiple regions.
         this->curRegion->SetEnd(this->func->m_exitInstr);
-        if (this->func->HasTry() && !this->func->DoOptimizeTryCatch())
+        if (this->func->HasTry() && !this->func->DoOptimizeTry())
         {
             FOREACH_SLIST_ENTRY(Lifetime *, lifetime, &this->lifetimeList)
             {
@@ -527,7 +531,7 @@ SCCLiveness::ProcessStackSymUse(StackSym * stackSym, IR::Instr * instr, int usag
     }
     else
     {
-        if (lifetime->region != this->curRegion && !this->func->DoOptimizeTryCatch())
+        if (lifetime->region != this->curRegion && !this->func->DoOptimizeTry())
         {
             lifetime->dontAllocate = true;
         }
@@ -628,7 +632,7 @@ SCCLiveness::ProcessRegDef(IR::RegOpnd *regDef, IR::Instr *instr)
 
         ExtendLifetime(lifetime, instr);
 
-        if (lifetime->region != this->curRegion && !this->func->DoOptimizeTryCatch())
+        if (lifetime->region != this->curRegion && !this->func->DoOptimizeTry())
         {
             lifetime->dontAllocate = true;
         }
@@ -786,25 +790,26 @@ SCCLiveness::FoldIndir(IR::Instr *instr, IR::Opnd *opnd)
     }
 
     IR::RegOpnd *base = indir->GetBaseOpnd();
-    if (!base || !base->m_sym || !base->m_sym->IsConst() || base->m_sym->IsIntConst() || base->m_sym->IsFloatConst())
+    uint8 *constValue = nullptr;
+    if (base)
     {
-        return false;
-    }
-
-    uint8 *constValue = static_cast<uint8 *>(base->m_sym->GetConstAddress());
-    if(indir->GetOffset() != 0)
-    {
-        if(indir->GetOffset() < 0 ? constValue + indir->GetOffset() > constValue : constValue + indir->GetOffset() < constValue)
+        if (!base->m_sym || !base->m_sym->IsConst() || base->m_sym->IsIntConst() || base->m_sym->IsFloatConst())
         {
             return false;
         }
-        constValue += indir->GetOffset();
+        constValue = static_cast<uint8 *>(base->m_sym->GetConstAddress());
+        if (indir->GetOffset() < 0 ? constValue + indir->GetOffset() > constValue : constValue + indir->GetOffset() < constValue)
+        {
+            return false;
+        }
     }
+    constValue += indir->GetOffset();
 
 #ifdef _M_X64
     // Encoding only allows 32bits worth
     if(!Math::FitsInDWord((size_t)constValue))
     {
+        Assert(base != nullptr);
         return false;
     }
 #endif

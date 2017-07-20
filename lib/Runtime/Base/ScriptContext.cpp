@@ -44,15 +44,12 @@ namespace Js
         return scriptContext.Detach();
     }
 
-    void ScriptContext::Delete(ScriptContext* scriptContext)
-    {
-        HeapDelete(scriptContext);
-    }
-
     CriticalSection JITPageAddrToFuncRangeCache::cs;
 
     ScriptContext::ScriptContext(ThreadContext* threadContext) :
         ScriptContextBase(),
+        prev(nullptr),
+        next(nullptr),
         interpreterArena(nullptr),
         moduleSrcInfoCount(0),
         // Regex globals
@@ -132,7 +129,8 @@ namespace Js
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
         m_remoteScriptContextAddr(nullptr),
-        isWeakReferenceDictionaryListCleared(false)
+        isWeakReferenceDictionaryListCleared(false),
+        isDebugContextInitialized(false)
 #if ENABLE_PROFILE_INFO
         , referencesSharedDynamicSourceContextInfo(false)
 #endif
@@ -158,6 +156,10 @@ namespace Js
 #endif
 #ifdef REJIT_STATS
         , rejitStatsMap(nullptr)
+        , bailoutReasonCounts(nullptr)
+        , bailoutReasonCountsCap(nullptr)
+        , rejitReasonCounts(nullptr)
+        , rejitReasonCountsCap(nullptr)
 #endif
 #ifdef ENABLE_BASIC_TELEMETRY
         , telemetry(nullptr)
@@ -258,8 +260,6 @@ namespace Js
         memset(byteCodeHistogram, 0, sizeof(byteCodeHistogram));
 #endif
 
-        memset(propertyStrings, 0, sizeof(PropertyStringMap*)* 80);
-
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
         this->allocId = threadContext->GetScriptContextCount();
 #endif
@@ -294,7 +294,6 @@ namespace Js
 #endif
 
         // Do this after all operations that may cause potential exceptions. Note: InitialAllocations may still throw!
-        threadContext->RegisterScriptContext(this);
         numberAllocator.Initialize(this->GetRecycler());
 
 #if DEBUG
@@ -319,11 +318,10 @@ namespace Js
         this->toStringInlineCache = AllocatorNewZ(InlineCacheAllocator, GetInlineCacheAllocator(), InlineCache);
 
 #ifdef REJIT_STATS
-        if (PHASE_STATS1(Js::ReJITPhase))
-        {
-            rejitReasonCounts = AnewArrayZ(GeneralAllocator(), uint, NumRejitReasons);
-            bailoutReasonCounts = Anew(GeneralAllocator(), BailoutStatsMap, GeneralAllocator());
-        }
+        rejitReasonCounts = AnewArrayZ(GeneralAllocator(), uint, NumRejitReasons);
+        rejitReasonCountsCap = AnewArrayZ(GeneralAllocator(), uint, NumRejitReasons);
+        bailoutReasonCounts = Anew(GeneralAllocator(), BailoutStatsMap, GeneralAllocator());
+        bailoutReasonCountsCap = Anew(GeneralAllocator(), BailoutStatsMap, GeneralAllocator());
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
@@ -391,7 +389,7 @@ namespace Js
     ScriptContext::~ScriptContext()
     {
         // Take etw rundown lock on this thread context. We are going to change/destroy this scriptContext.
-        AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
+        AutoCriticalSection autocs(GetThreadContext()->GetFunctionBodyLock());
 
 #if ENABLE_NATIVE_CODEGEN
         if (m_domFastPathHelperMap != nullptr)
@@ -470,7 +468,10 @@ namespace Js
 
         // Normally the JavascriptLibraryBase will unregister the scriptContext from the threadContext.
         // In cases where we don't finish initialization e.g. OOM, manually unregister the scriptContext.
-        threadContext->UnregisterScriptContext(this);
+        if (this->IsRegistered())
+        {
+            threadContext->UnregisterScriptContext(this);
+        }
 
 #if ENABLE_BACKGROUND_PARSING
         if (this->backgroundParser != nullptr)
@@ -611,30 +612,33 @@ namespace Js
             CloseNativeCodeGenerator(this->nativeCodeGen);
         }
 #endif
-
-        if (this->sourceList)
         {
-            bool hasFunctions = false;
-            this->sourceList->MapUntil([&hasFunctions](int, RecyclerWeakReference<Utf8SourceInfo>* sourceInfoWeakRef) -> bool
+            // Take lock on the function bodies to sync with the etw source rundown if any.
+            AutoCriticalSection autocs(GetThreadContext()->GetFunctionBodyLock());
+            if (this->sourceList)
             {
-                Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
-                if (sourceInfo)
+                bool hasFunctions = false;
+                this->sourceList->MapUntil([&hasFunctions](int, RecyclerWeakReference<Utf8SourceInfo>* sourceInfoWeakRef) -> bool
                 {
-                    hasFunctions = sourceInfo->HasFunctions();
-                }
+                    Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
+                    if (sourceInfo)
+                    {
+                        hasFunctions = sourceInfo->HasFunctions();
+                    }
 
-                return hasFunctions;
-            });
-
-            if (hasFunctions)
-            {
-                // We still need to walk through all the function bodies and call cleanup
-                // because otherwise ETW events might not get fired if a GC doesn't happen
-                // and the thread context isn't shut down cleanly (process detach case)
-                this->MapFunction([this](Js::FunctionBody* functionBody) {
-                    Assert(functionBody->GetScriptContext() == nullptr || functionBody->GetScriptContext() == this);
-                    functionBody->Cleanup(/* isScriptContextClosing */ true);
+                    return hasFunctions;
                 });
+
+                if (hasFunctions)
+                {
+                    // We still need to walk through all the function bodies and call cleanup
+                    // because otherwise ETW events might not get fired if a GC doesn't happen
+                    // and the thread context isn't shut down cleanly (process detach case)
+                    this->MapFunction([this](Js::FunctionBody* functionBody) {
+                        Assert(functionBody->GetScriptContext() == nullptr || functionBody->GetScriptContext() == this);
+                        functionBody->Cleanup(/* isScriptContextClosing */ true);
+                    });
+                }
             }
         }
 
@@ -754,6 +758,8 @@ namespace Js
         {
             javascriptLibrary->CleanupForClose();
             javascriptLibrary->Uninitialize();
+
+            this->ClearScriptContextCaches();
         }
     }
 
@@ -762,12 +768,7 @@ namespace Js
         if (isScriptContextActuallyClosed)
             return false;
 
-        // Limit the lock scope. We require the same lock in ~ScriptContext(), which may be called next.
-        {
-            // Take etw rundown lock on this thread context. We are going to change this scriptContext.
-            AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
-            InternalClose();
-        }
+        InternalClose();
 
         if (!inDestructor && globalObject != nullptr)
         {
@@ -797,12 +798,12 @@ namespace Js
             return NULL;
         }
         const uint i = PropertyStringMap::PStrMapIndex(ch1);
-        if (propertyStrings[i] == NULL)
+        if (this->Cache()->propertyStrings[i] == NULL)
         {
             return NULL;
         }
         const uint j = PropertyStringMap::PStrMapIndex(ch2);
-        return propertyStrings[i]->strLen2[j];
+        return this->Cache()->propertyStrings[i]->strLen2[j];
     }
 
     void ScriptContext::FindPropertyRecord(JavascriptString *pstName, PropertyRecord const ** propertyRecord)
@@ -1205,6 +1206,7 @@ namespace Js
 #endif
 #endif
 
+        ClearArray(this->Cache()->propertyStrings, 80);
         this->Cache()->dynamicRegexMap =
             RegexPatternMruMap::New(
                 recycler,
@@ -1265,6 +1267,13 @@ namespace Js
 
         this->GetDebugContext()->GetProbeContainer()->Initialize(this);
 
+        isDebugContextInitialized = true;
+
+#if defined(_M_ARM32_OR_ARM64)
+        // We need to ensure that the above write to the isDebugContextInitialized is visible to the debugger thread.
+        MemoryBarrier();
+#endif
+
         AssertMsg(this->CurrentThunk == DefaultEntryThunk, "Creating non default thunk while initializing");
         AssertMsg(this->DeferredParsingThunk == DefaultDeferredParsingThunk, "Creating non default thunk while initializing");
         AssertMsg(this->DeferredDeserializationThunk == DefaultDeferredDeserializeThunk, "Creating non default thunk while initializing");
@@ -1276,7 +1285,7 @@ namespace Js
 
         if (!sourceList)
         {
-            AutoCriticalSection critSec(threadContext->GetEtwRundownCriticalSection());
+            AutoCriticalSection critSec(threadContext->GetFunctionBodyLock());
             sourceList.Root(RecyclerNew(this->GetRecycler(), SourceList, this->GetRecycler()), this->GetRecycler());
         }
 
@@ -1319,7 +1328,7 @@ namespace Js
 #endif
     void ScriptContext::MarkForClose()
     {
-        if (IsClosed()) 
+        if (IsClosed())
         {
             return;
         }
@@ -1408,6 +1417,8 @@ namespace Js
         // Assigned the global Object after we have successfully AddRef (in case of OOM)
         globalObject = localGlobalObject;
         globalObject->Initialize(this);
+
+        this->GetThreadContext()->RegisterScriptContext(this);
     }
 
     ArenaAllocator* ScriptContext::AllocatorForDiagnostics()
@@ -1537,8 +1548,8 @@ namespace Js
 
     void ScriptContext::InitPropertyStringMap(int i)
     {
-        propertyStrings[i] = AnewStruct(GeneralAllocator(), PropertyStringMap);
-        memset(propertyStrings[i]->strLen2, 0, sizeof(PropertyString*)* 80);
+        this->Cache()->propertyStrings[i] = RecyclerNewStruct(GetRecycler(), PropertyStringMap);
+        ClearArray(this->Cache()->propertyStrings[i]->strLen2, 80);
     }
 
     void ScriptContext::TrackPid(const PropertyRecord* propertyRecord)
@@ -1584,17 +1595,17 @@ namespace Js
     {
         const char16* buf = propString->GetBuffer();
         const uint i = PropertyStringMap::PStrMapIndex(buf[0]);
-        if (propertyStrings[i] == NULL)
+        if (this->Cache()->propertyStrings[i] == NULL)
         {
             InitPropertyStringMap(i);
         }
         const uint j = PropertyStringMap::PStrMapIndex(buf[1]);
-        if (propertyStrings[i]->strLen2[j] == NULL && !isClosed)
+        if (this->Cache()->propertyStrings[i]->strLen2[j] == NULL && !isClosed)
         {
-            propertyStrings[i]->strLen2[j] = GetLibrary()->CreatePropertyString(propString, this->GeneralAllocator());
+            this->Cache()->propertyStrings[i]->strLen2[j] = GetLibrary()->CreatePropertyString(propString);
             this->TrackPid(propString);
         }
-        return propertyStrings[i]->strLen2[j];
+        return this->Cache()->propertyStrings[i]->strLen2[j];
     }
 
     PropertyString* ScriptContext::CachePropertyString2(const PropertyRecord* propString)
@@ -1656,10 +1667,28 @@ namespace Js
             }
             if (string)
             {
-                PropertyCache const* cache = string->GetPropertyCache();
-                if (cache->type == type)
+                PolymorphicInlineCache * cache = string->GetLdElemInlineCache();
+                PropertyCacheOperationInfo info;
+                if (cache->PretendTryGetProperty(type, &info))
                 {
-                    string->ClearPropertyCache();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+                    if (PHASE_TRACE1(PropertyStringCachePhase))
+                    {
+                        Output::Print(_u("PropertyString '%s' : Invalidating LdElem cache for type %p\n"), string->GetString(), type);
+                    }
+#endif
+                    cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].RemoveFromInvalidationListAndClear(this->GetThreadContext());
+                }
+                cache = string->GetStElemInlineCache();
+                if (cache->PretendTrySetProperty(type, type, &info))
+                {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+                    if (PHASE_TRACE1(PropertyStringCachePhase))
+                    {
+                        Output::Print(_u("PropertyString '%s' : Invalidating StElem cache for type %p\n"), string->GetString(), type);
+                    }
+#endif
+                    cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].RemoveFromInvalidationListAndClear(this->GetThreadContext());
                 }
             }
         }
@@ -1944,7 +1973,7 @@ namespace Js
             {
                 Assert((loadScriptFlag & LoadScriptFlag_disableAsmJs) != LoadScriptFlag_disableAsmJs);
 
-                pse->Clear();
+                pse->Free();
 
                 loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
                 return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo,
@@ -2178,7 +2207,7 @@ namespace Js
         {
             // We can be compiling new source code while rundown thread is reading from the list, causing AV on the reader thread
             // lock the list during write as well.
-            AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
+            AutoCriticalSection autocs(GetThreadContext()->GetFunctionBodyLock());
             return sourceList->SetAtFirstFreeSpot(sourceWeakRef);
         }
     }
@@ -2284,7 +2313,30 @@ namespace Js
         return success;
     }
 
-    void ScriptContext::AddToEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript)
+    void ScriptContext::AddToEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pfuncScript)
+    {
+        Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        Js::Utf8SourceInfo* utf8SourceInfo = pfuncScript->GetFunctionBody()->GetUtf8SourceInfo();
+        if (this->IsScriptContextInDebugMode() && !utf8SourceInfo->GetIsLibraryCode() && !utf8SourceInfo->IsInDebugMode())
+        {
+            // Identifying if any non library function escaped for not being in debug mode.
+            Throw::FatalInternalError();
+        }
+#endif
+
+#if ENABLE_TTD
+        if(!this->IsTTDRecordOrReplayModeEnabled())
+        {
+            this->AddToEvalMapHelper(key, isIndirect, pfuncScript);
+        }
+#else
+        this->AddToEvalMapHelper(key, isIndirect, pfuncScript);
+#endif
+    }
+
+    void ScriptContext::AddToEvalMapHelper(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript)
     {
         EvalCacheDictionary *dict = isIndirect ? this->Cache()->indirectEvalCacheDictionary : this->Cache()->evalCacheDictionary;
         if (dict == nullptr)
@@ -2401,7 +2453,7 @@ namespace Js
         IActiveScriptDataCache* profileDataCache, char16 const * sourceMapUrl /*= NULL*/, size_t sourceMapUrlLen /*= 0*/)
     {
         // Take etw rundown lock on this thread context. We are going to init/add to sourceContextInfoMap.
-        AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
+        AutoCriticalSection autocs(GetThreadContext()->GetFunctionBodyLock());
 
         EnsureSourceContextInfoMap();
         Assert(this->GetSourceContextInfo(sourceContext, profileDataCache) == nullptr);
@@ -3929,6 +3981,7 @@ namespace Js
             }
         }
 
+
         __TRY_FINALLY_BEGIN // SEH is not guaranteed, see the implementation
         {
             Assert(!function->IsScriptFunction() || function->GetFunctionProxy());
@@ -4253,16 +4306,19 @@ namespace Js
     }
 #endif
 
-    void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod method)
+    void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress)
     {
 #if ENABLE_NATIVE_CODEGEN
-        FreeNativeCodeGenAllocation(this, method);
+        FreeNativeCodeGenAllocation(this, codeAddress, thunkAddress);
 #endif
     }
 
     void ScriptContext::RegisterProtoInlineCache(InlineCache *pCache, PropertyId propId)
     {
         hasProtoOrStoreFieldInlineCache = true;
+#if DBG
+        this->inlineCacheAllocator.Unlock();
+#endif
         threadContext->RegisterProtoInlineCache(pCache, propId);
     }
 
@@ -4293,6 +4349,9 @@ namespace Js
     void ScriptContext::RegisterStoreFieldInlineCache(InlineCache *pCache, PropertyId propId)
     {
         hasProtoOrStoreFieldInlineCache = true;
+#if DBG
+        this->inlineCacheAllocator.Unlock();
+#endif
         threadContext->RegisterStoreFieldInlineCache(pCache, propId);
     }
 
@@ -4313,6 +4372,9 @@ namespace Js
     {
         Assert(JavascriptFunction::FromVar(function)->GetScriptContext() == this);
         hasIsInstInlineCache = true;
+#if DBG
+        this->isInstInlineCacheAllocator.Unlock();
+#endif
         threadContext->RegisterIsInstInlineCache(cache, function);
     }
 
@@ -4430,29 +4492,29 @@ void ScriptContext::ClearInlineCaches()
 {
     if (this->hasUsedInlineCache)
     {
-        GetInlineCacheAllocator()->ZeroAll();
+        this->inlineCacheAllocator.ZeroAll();
         this->hasUsedInlineCache = false;
         this->hasProtoOrStoreFieldInlineCache = false;
     }
 
-    Assert(GetInlineCacheAllocator()->IsAllZero());
+    DebugOnly(this->inlineCacheAllocator.CheckIsAllZero(true));
 }
 
 void ScriptContext::ClearIsInstInlineCaches()
 {
     if (this->hasIsInstInlineCache)
     {
-        GetIsInstInlineCacheAllocator()->ZeroAll();
+        isInstInlineCacheAllocator.ZeroAll();
         this->hasIsInstInlineCache = false;
     }
 
-    Assert(GetIsInstInlineCacheAllocator()->IsAllZero());
+    DebugOnly(isInstInlineCacheAllocator.CheckIsAllZero(true));
 }
 
 void ScriptContext::ClearForInCaches()
 {
-    ForInCacheAllocator()->ZeroAll();
-    Assert(ForInCacheAllocator()->IsAllZero());
+    forInCacheAllocator.ZeroAll();
+    DebugOnly(forInCacheAllocator.CheckIsAllZero(false));
 }
 
 
@@ -4461,8 +4523,8 @@ void ScriptContext::ClearInlineCachesWithDeadWeakRefs()
 {
     if (this->hasUsedInlineCache)
     {
-        GetInlineCacheAllocator()->ClearCachesWithDeadWeakRefs(this->recycler);
-        Assert(GetInlineCacheAllocator()->HasNoDeadWeakRefs(this->recycler));
+        this->inlineCacheAllocator.ClearCachesWithDeadWeakRefs(this->recycler);
+        Assert(this->inlineCacheAllocator.HasNoDeadWeakRefs(this->recycler));
     }
 }
 #endif
@@ -4680,7 +4742,9 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         contextData.debugScriptIdWhenSetAddr = GetDebugScriptIdWhenSetAddr();
 
         contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
+#ifdef ENABLE_SIMDJS
         contextData.isSIMDEnabled = GetConfig()->IsSimdjsEnabled();
+#endif
         CompileAssert(VTableValue::Count == VTABLE_COUNT); // need to update idl when this changes
 
         auto vtblAddresses = GetLibrary()->GetVTableAddresses();
@@ -4868,10 +4932,12 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return GetRecycler()->AllowNativeCodeBumpAllocation();
     }
 
+#ifdef ENABLE_SIMDJS
     bool ScriptContext::IsSIMDEnabled() const
     {
         return GetConfig()->IsSimdjsEnabled();
     }
+#endif
 
     bool ScriptContext::IsPRNGSeeded() const
     {
@@ -5426,7 +5492,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             Output::Print(_u("\n\n"));
 
             // If in verbose mode, dump data for each FunctionBody
-            if (Configuration::Global.flags.Verbose && rejitStatsMap != NULL)
+            if (
+#if defined(FLAG) || defined(FLAG_REGOVR_EXP)
+                Configuration::Global.flags.Verbose &&
+#endif
+                rejitStatsMap != nullptr)
             {
                 // Aggregated data
                 Output::Print(_u("%-30s %14s %14s\n"), _u("Function (#),"), _u("Bailout Count,"), _u("Rejit Count"));
@@ -5547,26 +5617,8 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         if (PHASE_STATS1(Js::PolymorphicInlineCachePhase))
         {
             Output::Print(_u("%s,%s,%s,%s,%s,%s,%s,%s,%s\n"), _u("Function"), _u("Property"), _u("Kind"), _u("Accesses"), _u("Misses"), _u("Miss Rate"), _u("Collisions"), _u("Collision Rate"), _u("Slot Count"));
-            cacheDataMap->Map([this](Js::PolymorphicInlineCache const *cache, CacheData *data) {
-                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                uint total = data->hits + data->misses;
-                char16 const *propName = this->threadContext->GetPropertyName(data->propertyId)->GetBuffer();
-
-                wchar funcName[1024];
-
-                swprintf_s(funcName, _u("%s (%s)"), cache->functionBody->GetExternalDisplayName(), cache->functionBody->GetDebugNumberSet(debugStringBuffer));
-
-                Output::Print(_u("%s,%s,%s,%d,%d,%f,%d,%f,%d\n"),
-                    funcName,
-                    propName,
-                    data->isGetCache ? _u("get") : _u("set"),
-                    total,
-                    data->misses,
-                    static_cast<float>(data->misses) / total,
-                    data->collisions,
-                    static_cast<float>(data->collisions) / total,
-                    cache->GetSize()
-                    );
+            cacheDataMap->Map([this](Js::PolymorphicInlineCache const *cache, InlineCacheData *data) {
+                cache->PrintStats(data);
             });
         }
 #endif
@@ -5646,15 +5698,18 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             }
         }
     }
-    void ScriptContext::LogRejit(Js::FunctionBody *body, uint reason)
+    void ScriptContext::LogRejit(Js::FunctionBody *body, RejitReason reason)
     {
-        Assert(reason < NumRejitReasons);
-        rejitReasonCounts[reason]++;
+        byte reasonIndex = static_cast<byte>(reason);
+        Assert(reasonIndex < NumRejitReasons);
+        rejitReasonCounts[reasonIndex]++;
 
+#if defined(FLAG) || defined(FLAG_REGOVR_EXP)
         if (Js::Configuration::Global.flags.Verbose)
         {
-            LogDataForFunctionBody(body, reason, true);
+            LogDataForFunctionBody(body, reasonIndex, true);
         }
+#endif
     }
     void ScriptContext::LogBailout(Js::FunctionBody *body, uint kind)
     {
@@ -5669,10 +5724,12 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             bailoutReasonCounts->Item(kind, val);
         }
 
+#if defined(FLAG) || defined(FLAG_REGOVR_EXP)
         if (Js::Configuration::Global.flags.Verbose)
         {
             LogDataForFunctionBody(body, kind, false);
         }
+#endif
     }
 #endif
 
@@ -5716,17 +5773,20 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     bool ScriptContext::IsIntlEnabled()
     {
+#ifdef ENABLE_INTL_OBJECT
         if (GetConfig()->IsIntlEnabled())
         {
-#ifdef ENABLE_GLOBALIZATION
+#ifdef INTL_WINGLOB
             // This will try to load globalization dlls if not already loaded.
             Js::DelayLoadWindowsGlobalization* globLibrary = GetThreadContext()->GetWindowsGlobalizationLibrary();
             return globLibrary->HasGlobalizationDllLoaded();
+#else
+            return true;
 #endif
         }
+#endif
         return false;
     }
-
 
 #ifdef INLINE_CACHE_STATS
     void ScriptContext::LogCacheUsage(Js::PolymorphicInlineCache *cache, bool isGetter, Js::PropertyId propertyId, bool hit, bool collision)
@@ -5737,10 +5797,10 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             BindReference(cacheDataMap);
         }
 
-        CacheData *data = NULL;
+        InlineCacheData *data = NULL;
         if (!cacheDataMap->TryGetValue(cache, &data))
         {
-            data = Anew(GeneralAllocator(), CacheData);
+            data = Anew(GeneralAllocator(), InlineCacheData);
             cacheDataMap->Item(cache, data);
             data->isGetCache = isGetter;
             data->propertyId = propertyId;

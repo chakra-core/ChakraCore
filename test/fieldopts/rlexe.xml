@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -17,6 +17,12 @@
       <files>equiv-mismatch.js</files>
       <compile-flags>-maxsimplejitruncount:2</compile-flags>
       <baseline>equiv-mismatch.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>equiv-mismatch2.js</files>
+      <compile-flags>-force:rejit -off:bailonnoprofile</compile-flags>
     </default>
   </test>
   <test>
@@ -41,14 +47,12 @@
     <default>
       <files>fieldconstprop_ldmethodfld.js</files>
       <compile-flags>-force:fieldcopyprop</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldcopyprop_assign.js</files>
       <compile-flags>-force:fieldcopyprop</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -56,21 +60,18 @@
       <files>fieldcopyprop_delete.js</files>
       <compile-flags>-force:fieldcopyprop</compile-flags>
       <baseline>fieldcopyprop_delete.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldcopyprop_deletestrict.js</files>
       <compile-flags>-force:fieldcopyprop</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist2.js</files>
       <compile-flags>-force:fieldhoist -force:fieldcopyprop</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -78,7 +79,6 @@
       <files>fieldhoist4.js</files>
       <compile-flags>-force:fieldhoist -force:fieldcopyprop</compile-flags>
       <baseline>fieldhoist4.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -86,7 +86,6 @@
       <files>fieldhoist5.js</files>
       <compile-flags>-force:fieldhoist -force:fieldcopyprop</compile-flags>
       <baseline />
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -94,7 +93,6 @@
       <files>fieldhoist6.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist6.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -102,7 +100,6 @@
       <files>fieldhoist6b.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist6b.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -110,7 +107,6 @@
       <files>fieldhoist7.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist7.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -118,7 +114,6 @@
       <files>fieldhoist8.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist8.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -126,14 +121,13 @@
       <files>fieldhoist_nullfieldhoist.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist_nullfieldhoist.baseline</baseline>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist9.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -141,7 +135,6 @@
       <files>fieldhoist_unreachable.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist_unreachable.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -149,7 +142,6 @@
       <files>fieldhoist_typespec.js</files>
       <baseline>fieldhoist_typespec.baseline</baseline>
       <compile-flags>-force:fieldhoist</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -157,7 +149,6 @@
       <files>fieldhoist_typespec.js</files>
       <baseline>fieldhoist_typespec.baseline</baseline>
       <compile-flags>-force:fieldhoist -off:aggressiveIntTypeSpec</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -165,21 +156,20 @@
       <files>fieldhoist_typespec.js</files>
       <baseline>fieldhoist_typespec.baseline</baseline>
       <compile-flags>-force:fieldhoist -off:aggressiveIntTypeSpec -off:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_typespec2.js</files>
       <compile-flags>-force:fieldHoist -force:jitLoopBody -off:aggressiveIntTypeSpec</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_typespec3.js</files>
       <baseline>fieldhoist_typespec3.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -187,7 +177,6 @@
       <files>fieldhoist_undefined_global.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist_undefined_global.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -195,7 +184,6 @@
       <files>fieldhoist_negzero.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist_negzero.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -203,7 +191,7 @@
       <files>fieldhoist_negzero.js</files>
       <compile-flags>-force:fieldhoist -Serialized</compile-flags>
       <baseline>fieldhoist_negzero.baseline</baseline>
-      <tags>exclude_ship,exclude_forceserialized</tags>
+      <tags>exclude_forceserialized</tags>
     </default>
   </test>
   <test>
@@ -211,7 +199,6 @@
       <files>fieldhoist_typeof.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist_typeof.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -219,7 +206,6 @@
       <files>fieldhoist_sideeffect.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist_sideeffect.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -227,7 +213,6 @@
       <files>fieldcopyprop_nonwritable.js</files>
       <compile-flags>-force:fieldhoist -force:fieldcopyprop</compile-flags>
       <baseline>fieldcopyprop_nonwritable.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -235,7 +220,6 @@
       <files>fieldcopyprop_primitive.js</files>
       <compile-flags>-force:fieldcopyprop</compile-flags>
       <baseline>fieldcopyprop_primitive.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -243,7 +227,6 @@
       <files>fieldcopyprop_preventextensions.js</files>
       <compile-flags>-force:fieldcopyprop</compile-flags>
       <baseline>fieldcopyprop_preventextensions.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -251,7 +234,6 @@
       <files>fieldcopyprop_freeze.js</files>
       <compile-flags>-force:fieldcopyprop</compile-flags>
       <baseline>fieldcopyprop_freeze.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -265,7 +247,6 @@
       <files>fieldhoist_join.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist_join.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -273,14 +254,12 @@
       <files>fieldhoist_slots.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist_slots.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_slots2.js</files>
       <baseline>fieldhoist_slots2.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -288,7 +267,6 @@
       <files>fieldhoist_objptrcopyprop.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline />
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -296,7 +274,6 @@
       <files>fieldhoist_objptrcopyprop2.js</files>
       <compile-flags>-force:fieldhoist</compile-flags>
       <baseline>fieldhoist_objptrcopyprop2.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -304,7 +281,6 @@
       <files>fieldhoist_kills.js</files>
       <baseline>fieldhoist_kills.baseline</baseline>
       <compile-flags>-force:fieldHoist</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -324,7 +300,6 @@
       <files>CheckThis.js</files>
       <compile-flags>-force:inline -force:checkthis</compile-flags>
       <baseline>CheckThis.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -343,7 +318,6 @@
       <files>fieldcopyprop_typespec.js</files>
       <baseline>fieldcopyprop_typespec.baseline</baseline>
       <compile-flags>-force:fieldcopyprop</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -356,7 +330,6 @@
     <default>
       <files>forcefixdataprops.js</files>
       <compile-flags>-off:simplejit -force:fixdataprops</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -386,7 +359,7 @@
       <files>objtypespec1.js</files>
       <baseline>objtypespec1.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -394,7 +367,7 @@
       <files>objtypespec2.js</files>
       <baseline>objtypespec2.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -402,7 +375,7 @@
       <files>objtypespec3.js</files>
       <baseline>objtypespec3.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -410,7 +383,7 @@
       <files>objtypespec-fieldhoist.js</files>
       <baseline>objtypespec-fieldhoist.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit -bgjit- -loopinterpretcount:0 -force:fieldhoist</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -418,7 +391,7 @@
       <files>objtypespec-fieldhoist.2.js</files>
       <baseline>objtypespec-fieldhoist.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -426,7 +399,7 @@
       <files>objtypespec_proto.js</files>
       <baseline>objtypespec_proto.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -434,7 +407,7 @@
       <files>objtypespec-add.js</files>
       <baseline>objtypespec-add.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -442,7 +415,7 @@
       <files>objtypespec-add-2.js</files>
       <baseline>objtypespec-add-2.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -loopInterpretCount:1</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -450,7 +423,7 @@
       <files>objtypespec-add-4.js</files>
       <baseline>objtypespec-add-4.baseline</baseline>
       <compile-flags>-maxinterpretcount:2</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -466,7 +439,7 @@
       <files>objtypespec-newobj.1.js</files>
       <baseline>objtypespec-newobj.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:globOpt</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -474,7 +447,7 @@
       <files>objtypespec-newobj.1.js</files>
       <baseline>objtypespec-newobj.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:inline</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -482,7 +455,7 @@
       <files>objtypespec-newobj.1.js</files>
       <baseline>objtypespec-newobj.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpec</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -490,7 +463,7 @@
       <files>objtypespec-newobj.1.js</files>
       <baseline>objtypespec-newobj.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -498,7 +471,7 @@
       <files>objtypespec-newobj.1.js</files>
       <baseline>objtypespec-newobj.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:fixedNewObj</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -506,7 +479,7 @@
       <files>objtypespec-newobj.1.js</files>
       <baseline>objtypespec-newobj.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:fixedMethods</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -514,7 +487,7 @@
       <files>objtypespec-newobj.1.js</files>
       <baseline>objtypespec-newobj.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:splitNewScObject</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -522,7 +495,7 @@
       <files>objtypespec-newobj.1.js</files>
       <baseline>objtypespec-newobj.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:splitNewScObject</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -530,7 +503,7 @@
       <files>objtypespec-newobj.1.js</files>
       <baseline>objtypespec-newobj.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:fixedNewObj -off:splitNewScObject</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -538,7 +511,7 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <tags>exclude_dynapogo,exclude_jenkins</tags>
     </default>
   </test>
@@ -547,8 +520,8 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:globOpt</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_ship,exclude_dynapogo,exclude_jenkins</tags>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <tags>exclude_dynapogo,exclude_jenkins</tags>
     </default>
   </test>
   <test>
@@ -556,8 +529,8 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:inline</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_ship,exclude_dynapogo,exclude_jenkins</tags>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <tags>exclude_dynapogo,exclude_jenkins</tags>
     </default>
   </test>
   <test>
@@ -565,8 +538,8 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpec</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_ship,exclude_dynapogo,exclude_jenkins</tags>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <tags>exclude_dynapogo,exclude_jenkins</tags>
     </default>
   </test>
   <test>
@@ -574,8 +547,8 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_ship,exclude_dynapogo,exclude_jenkins</tags>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <tags>exclude_dynapogo,exclude_jenkins</tags>
     </default>
   </test>
   <test>
@@ -583,8 +556,8 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:fixedNewObj</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_ship,exclude_dynapogo,exclude_jenkins</tags>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <tags>exclude_dynapogo,exclude_jenkins</tags>
     </default>
   </test>
   <test>
@@ -592,8 +565,8 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:fixedMethods</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_ship,exclude_dynapogo,exclude_jenkins</tags>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <tags>exclude_dynapogo,exclude_jenkins</tags>
     </default>
   </test>
   <test>
@@ -601,8 +574,8 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:splitNewScObject</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_ship,exclude_dynapogo,exclude_jenkins</tags>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <tags>exclude_dynapogo,exclude_jenkins</tags>
     </default>
   </test>
   <test>
@@ -610,8 +583,8 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:splitNewScObject</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_ship,exclude_dynapogo,exclude_jenkins</tags>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <tags>exclude_dynapogo,exclude_jenkins</tags>
     </default>
   </test>
   <test>
@@ -619,8 +592,8 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:fixedNewObj -off:splitNewScObject</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_ship,exclude_dynapogo,exclude_jenkins</tags>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <tags>exclude_dynapogo,exclude_jenkins</tags>
     </default>
   </test>
   <test>
@@ -636,7 +609,7 @@
       <files>objtypespec-newobj-invalidation.1.js</files>
       <baseline>objtypespec-newobj-invalidation.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:globOpt</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -644,7 +617,7 @@
       <files>objtypespec-newobj-invalidation.1.js</files>
       <baseline>objtypespec-newobj-invalidation.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:inline</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -652,7 +625,7 @@
       <files>objtypespec-newobj-invalidation.1.js</files>
       <baseline>objtypespec-newobj-invalidation.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpec</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -660,7 +633,7 @@
       <files>objtypespec-newobj-invalidation.1.js</files>
       <baseline>objtypespec-newobj-invalidation.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -668,7 +641,7 @@
       <files>objtypespec-newobj-invalidation.1.js</files>
       <baseline>objtypespec-newobj-invalidation.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:fixedNewObj</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -676,7 +649,7 @@
       <files>objtypespec-newobj-invalidation.1.js</files>
       <baseline>objtypespec-newobj-invalidation.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:splitNewScObject</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -684,7 +657,7 @@
       <files>objtypespec-newobj-invalidation.1.js</files>
       <baseline>objtypespec-newobj-invalidation.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:splitNewScObject</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -692,7 +665,7 @@
       <files>objtypespec-newobj-invalidation.1.js</files>
       <baseline>objtypespec-newobj-invalidation.1.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:fixedNewObj-off:splitNewScObject</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -708,7 +681,7 @@
       <files>objtypespec-newobj-invalidation.2.js</files>
       <baseline>objtypespec-newobj-invalidation.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:globOpt</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -716,7 +689,7 @@
       <files>objtypespec-newobj-invalidation.2.js</files>
       <baseline>objtypespec-newobj-invalidation.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:inline</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -724,7 +697,7 @@
       <files>objtypespec-newobj-invalidation.2.js</files>
       <baseline>objtypespec-newobj-invalidation.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpec</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -732,7 +705,7 @@
       <files>objtypespec-newobj-invalidation.2.js</files>
       <baseline>objtypespec-newobj-invalidation.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -740,7 +713,7 @@
       <files>objtypespec-newobj-invalidation.2.js</files>
       <baseline>objtypespec-newobj-invalidation.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:fixedNewObj</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -748,7 +721,7 @@
       <files>objtypespec-newobj-invalidation.2.js</files>
       <baseline>objtypespec-newobj-invalidation.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:splitNewScObject</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -756,7 +729,7 @@
       <files>objtypespec-newobj-invalidation.2.js</files>
       <baseline>objtypespec-newobj-invalidation.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:splitNewScObject</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -764,14 +737,14 @@
       <files>objtypespec-newobj-invalidation.2.js</files>
       <baseline>objtypespec-newobj-invalidation.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:fixedNewObj-off:splitNewScObject</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>FieldHoist_MaxInterpret.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>

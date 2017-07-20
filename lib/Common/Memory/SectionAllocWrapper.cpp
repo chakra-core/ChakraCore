@@ -7,8 +7,112 @@
 #if _WIN32
 #include "../Core/DelayLoadLibrary.h"
 
+#ifdef NTDDI_WIN10_RS2
+#if (NTDDI_VERSION >= NTDDI_WIN10_RS2)
+#define USEFILEMAP2 1
+#endif
+#endif
+
 namespace Memory
 {
+
+void CloseSectionHandle(HANDLE handle)
+{
+#if USEFILEMAP2
+    CloseHandle(handle);
+#else
+    NtdllLibrary::Instance->Close(handle);
+#endif
+}
+
+HANDLE CreateSection(size_t sectionSize, bool commit)
+{
+    const ULONG allocAttributes = commit ? SEC_COMMIT : SEC_RESERVE;
+#if USEFILEMAP2
+#if TARGET_32
+    DWORD sizeHigh = 0;
+#elif TARGET_64
+    DWORD sizeHigh = (DWORD)(sectionSize >> 32);
+#endif
+    HANDLE handle = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_EXECUTE_READWRITE | allocAttributes, sizeHigh, (DWORD)sectionSize, NULL);
+    if (handle == nullptr)
+    {
+        return nullptr;
+    }
+#else
+    NtdllLibrary::OBJECT_ATTRIBUTES attr;
+    NtdllLibrary::Instance->InitializeObjectAttributes(&attr, NULL, NtdllLibrary::OBJ_KERNEL_HANDLE, NULL, NULL);
+    LARGE_INTEGER size = { 0 };
+#if TARGET_32
+    size.LowPart = sectionSize;
+#elif TARGET_64
+    size.QuadPart = sectionSize;
+#endif
+    HANDLE handle = nullptr;
+    int status = NtdllLibrary::Instance->CreateSection(&handle, SECTION_MAP_READ | SECTION_MAP_WRITE | SECTION_QUERY | SECTION_MAP_EXECUTE, &attr, &size, PAGE_EXECUTE_READWRITE, allocAttributes, NULL);
+    if (status != 0)
+    {
+        return nullptr;
+    }
+#endif
+    return handle;
+}
+
+void UnmapView(HANDLE process, PVOID address)
+{
+#if USEFILEMAP2
+    UnmapViewOfFile2(process, address, 0);
+#else
+    NtdllLibrary::Instance->UnmapViewOfSection(process, address);
+#endif
+}
+
+PVOID MapView(HANDLE process, HANDLE sectionHandle, size_t size, size_t offset, bool local)
+{
+    PVOID address = nullptr;
+    DWORD flags = 0;
+    if (local)
+    {
+        if (process != GetCurrentProcess())
+        {
+            return nullptr;
+        }
+        flags = PAGE_READWRITE;
+    }
+    else
+    {
+        if (process == GetCurrentProcess())
+        {
+            return nullptr;
+        }
+        flags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE_READ;
+    }
+
+#if USEFILEMAP2
+    address = MapViewOfFile2(sectionHandle, process, offset, nullptr, size, NULL, flags);
+    if (local && address != nullptr)
+    {
+        address = VirtualAlloc(address, size, MEM_COMMIT, flags);
+    }
+#else
+    LARGE_INTEGER mapOffset = { 0 };
+#if TARGET_32
+    mapOffset.LowPart = offset;
+#elif TARGET_64
+    mapOffset.QuadPart = offset;
+#else
+    CompileAssert(UNREACHED);
+#endif
+    SIZE_T viewSize = size;
+    int status = NtdllLibrary::Instance->MapViewOfSection(sectionHandle, process, &address, NULL, viewSize, &mapOffset, &viewSize, NtdllLibrary::ViewUnmap, NULL, flags);
+    if (status != 0)
+    {
+        return nullptr;
+    }
+#endif
+    return address;
+}
+
 #if defined(_M_X64_OR_ARM64)
 SectionMap32::SectionMap32(__in char * startAddress) :
     startAddress(startAddress),
@@ -177,7 +281,7 @@ SectionMap32::L2MapChunk::~L2MapChunk()
         if (map[i] != nullptr)
         {
             // in case runtime process has abnormal termination, map may not be empty
-            NtdllLibrary::Instance->Close(map[i]->handle);
+            CloseSectionHandle(map[i]->handle);
             HeapDelete(map[i]);
         }
     }
@@ -406,39 +510,27 @@ SectionMap64::FindNode(void * address) const
 
 static const uint SectionAlignment = 65536;
 
-LPVOID
+PVOID
 AllocLocalView(HANDLE sectionHandle, LPVOID remoteBaseAddr, LPVOID remoteRequestAddress, size_t requestSize)
 {
     const size_t offset = (uintptr_t)remoteRequestAddress - (uintptr_t)remoteBaseAddr;
-    LARGE_INTEGER mapOffset = { 0 };
     const size_t offsetAlignment = offset % SectionAlignment;
-#if TARGET_32
-    mapOffset.LowPart = offset - offsetAlignment;
-#elif TARGET_64
-    mapOffset.QuadPart = offset - offsetAlignment;
-#else
-    CompileAssert(UNREACHED);
-#endif
-    LPVOID address = nullptr;
-    SIZE_T viewSize = requestSize + offsetAlignment;
-    int status = NtdllLibrary::Instance->MapViewOfSection(sectionHandle, GetCurrentProcess(), &address, NULL, viewSize, &mapOffset, &viewSize, NtdllLibrary::ViewUnmap, NULL, PAGE_READWRITE);
-    if (status != 0 || address == nullptr)
+    const size_t alignedOffset = offset - offsetAlignment;
+    const size_t viewSize = requestSize + offsetAlignment;
+    
+    PVOID address = MapView(GetCurrentProcess(), sectionHandle, viewSize, alignedOffset, true);
+    if (address == nullptr)
     {
         return nullptr;
     }
-    if (viewSize < requestSize)
-    {
-        NtdllLibrary::Instance->UnmapViewOfSection(GetCurrentProcess(), address);
-        return nullptr;
-    }
-    return (LPVOID)((uintptr_t)address + offsetAlignment);
+    return (PVOID)((uintptr_t)address + offsetAlignment);
 }
 
 BOOL
 FreeLocalView(LPVOID lpAddress)
 {
     const size_t alignment = (uintptr_t)lpAddress % SectionAlignment;
-    NtdllLibrary::Instance->UnmapViewOfSection(GetCurrentProcess(), (LPVOID)((uintptr_t)lpAddress - alignment));
+    UnmapView(GetCurrentProcess(), (LPVOID)((uintptr_t)lpAddress - alignment));
     return TRUE;
 }
 
@@ -459,49 +551,33 @@ SectionAllocWrapper::Alloc(LPVOID requestAddress, size_t dwSize, DWORD allocatio
     // REVIEW: is this needed?
     AutoEnableDynamicCodeGen enableCodeGen(true);
 #endif
-
-    const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE;
+    HANDLE sectionHandle = nullptr;
+    SectionInfo * section = nullptr;
 
     // for new allocations, create new section and fully map it (reserved) into runtime process
     if (requestAddress == nullptr)
     {
-        NtdllLibrary::OBJECT_ATTRIBUTES attr;
-        NtdllLibrary::Instance->InitializeObjectAttributes(&attr, NULL, NtdllLibrary::OBJ_KERNEL_HANDLE, NULL, NULL);
-        LARGE_INTEGER size = { 0 };
-#if TARGET_32
-        size.LowPart = dwSize;
-#elif TARGET_64
-        size.QuadPart = dwSize;
-#endif
-        HANDLE sectionHandle = nullptr;
-        const ULONG allocAttributes = ((allocationType & MEM_COMMIT) == MEM_COMMIT) ? SEC_COMMIT : SEC_RESERVE;
-        int status = NtdllLibrary::Instance->CreateSection(&sectionHandle, SECTION_MAP_READ | SECTION_MAP_WRITE | SECTION_QUERY | SECTION_MAP_EXECUTE, &attr, &size, PAGE_EXECUTE_READWRITE, allocAttributes, NULL);
-        if (status != 0)
+        sectionHandle = CreateSection(dwSize, ((allocationType & MEM_COMMIT) == MEM_COMMIT));
+        if (sectionHandle == nullptr)
         {
-            return nullptr;
+            goto FailureCleanup;
+        }
+        address = MapView(this->process, sectionHandle, 0, 0, false);
+        if(address == nullptr)
+        {
+            goto FailureCleanup;
         }
 
-        SIZE_T viewSize = 0;
-        status = NtdllLibrary::Instance->MapViewOfSection(sectionHandle, this->process, &address, NULL, NULL, NULL, &viewSize, NtdllLibrary::ViewUnmap, NULL, allocProtectFlags);
-        if (status != 0 || address == nullptr)
+        section = HeapNewNoThrowStruct(SectionInfo);
+        if (section == nullptr)
         {
-            NtdllLibrary::Instance->Close(sectionHandle);
-            return nullptr;
-        }
-        SectionInfo * section = HeapNewNoThrowStruct(SectionInfo);
-        if (!section)
-        {
-            NtdllLibrary::Instance->Close(sectionHandle);
-            return nullptr;
+            goto FailureCleanup;
         }
         section->handle = sectionHandle;
         section->runtimeBaseAddress = address;
-        if (viewSize < dwSize || !sections.SetSection(address, (uint)(dwSize / AutoSystemInfo::PageSize), section))
+        if (!sections.SetSection(address, (uint)(dwSize / AutoSystemInfo::PageSize), section))
         {
-            HeapDelete(section);
-            NtdllLibrary::Instance->Close(sectionHandle);
-            NtdllLibrary::Instance->UnmapViewOfSection(this->process, address);
-            return nullptr;
+            goto FailureCleanup;
         }
     }
     else
@@ -514,12 +590,28 @@ SectionAllocWrapper::Alloc(LPVOID requestAddress, size_t dwSize, DWORD allocatio
 
         if ((allocationType & MEM_COMMIT) == MEM_COMMIT)
         {
+            const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE_READ;
             address = VirtualAllocEx(this->process, address, dwSize, MEM_COMMIT, allocProtectFlags);
         }
-
     }
 
     return address;
+
+FailureCleanup:
+    // if section allocation failed, free whatever we started to allocate
+    if (sectionHandle != nullptr)
+    {
+        CloseSectionHandle(sectionHandle);
+    }
+    if (address != nullptr)
+    {
+        UnmapView(this->process, address);
+    }
+    if (section != nullptr)
+    {
+        HeapDelete(section);
+    }
+    return nullptr;
 }
 
 LPVOID
@@ -547,8 +639,8 @@ BOOL SectionAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
         Assert(section->runtimeBaseAddress == lpAddress);
         sections.ClearSection(lpAddress, (uint)(dwSize / AutoSystemInfo::PageSize));
 
-        NtdllLibrary::Instance->UnmapViewOfSection(this->process, lpAddress);
-        NtdllLibrary::Instance->Close(section->handle);
+        UnmapView(this->process, lpAddress);
+        CloseSectionHandle(section->handle);
     }
     else
     {
@@ -595,8 +687,8 @@ PreReservedSectionAllocWrapper::~PreReservedSectionAllocWrapper()
 {
     if (IsPreReservedRegionPresent())
     {
-        NtdllLibrary::Instance->UnmapViewOfSection(this->process, this->preReservedStartAddress);
-        NtdllLibrary::Instance->Close(this->section);
+        UnmapView(this->process, this->preReservedStartAddress);
+        CloseSectionHandle(this->section);
         PreReservedHeapTrace(_u("MEM_RELEASE the PreReservedSegment. Start Address: 0x%p, Size: 0x%x * 0x%x bytes"), this->preReservedStartAddress, PreReservedAllocationSegmentCount,
             AutoSystemInfo::Data.GetAllocationGranularityPageSize());
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
@@ -625,7 +717,7 @@ PreReservedSectionAllocWrapper::IsInRange(void * address)
     {
         MEMORY_BASIC_INFORMATION memBasicInfo;
         size_t bytes = VirtualQueryEx(this->process, address, &memBasicInfo, sizeof(memBasicInfo));
-        Assert(bytes != 0 && memBasicInfo.State == MEM_COMMIT && memBasicInfo.AllocationProtect == PAGE_EXECUTE);
+        Assert(bytes == 0 || (memBasicInfo.State == MEM_COMMIT && memBasicInfo.AllocationProtect == PAGE_EXECUTE_READ));
     }
 #endif
     return isInRange;
@@ -691,30 +783,18 @@ LPVOID PreReservedSectionAllocWrapper::EnsurePreReservedRegionInternal()
         return startAddress;
     }
 
-    const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE;
     size_t bytes = PreReservedAllocationSegmentCount * AutoSystemInfo::Data.GetAllocationGranularityPageSize();
     if (PHASE_FORCE1(Js::PreReservedHeapAllocPhase))
     {
-        NtdllLibrary::OBJECT_ATTRIBUTES attr;
-        NtdllLibrary::Instance->InitializeObjectAttributes(&attr, NULL, NtdllLibrary::OBJ_KERNEL_HANDLE, NULL, NULL);
-        LARGE_INTEGER size = { 0 };
-#if TARGET_32
-        size.LowPart = bytes;
-#elif TARGET_64
-        size.QuadPart = bytes;
-#endif
-        HANDLE sectionHandle = nullptr;
-        int status = NtdllLibrary::Instance->CreateSection(&sectionHandle, SECTION_MAP_READ | SECTION_MAP_WRITE | SECTION_QUERY | SECTION_MAP_EXECUTE, &attr, &size, PAGE_EXECUTE_READWRITE, SEC_RESERVE, NULL);
-        if (status != 0)
+        HANDLE sectionHandle = CreateSection(bytes, false);
+        if (sectionHandle == nullptr)
         {
             return nullptr;
         }
-
-        SIZE_T viewSize = 0;
-        status = NtdllLibrary::Instance->MapViewOfSection(sectionHandle, this->process, &startAddress, NULL, 0, NULL, &viewSize, NtdllLibrary::ViewUnmap, NULL, allocProtectFlags);
-        if (status != 0 || startAddress == nullptr)
+        startAddress = MapView(this->process, sectionHandle, 0, 0, false);
+        if (startAddress == nullptr)
         {
-            NtdllLibrary::Instance->Close(sectionHandle);
+            CloseSectionHandle(sectionHandle);
             return nullptr;
         }
         PreReservedHeapTrace(_u("Reserving PreReservedSegment For the first time(CFG Non-Enabled). Address: 0x%p\n"), this->preReservedStartAddress);
@@ -745,26 +825,15 @@ LPVOID PreReservedSectionAllocWrapper::EnsurePreReservedRegionInternal()
 
     if (AutoSystemInfo::Data.IsCFGEnabled() && supportPreReservedRegion)
     {
-        NtdllLibrary::OBJECT_ATTRIBUTES attr;
-        NtdllLibrary::Instance->InitializeObjectAttributes(&attr, NULL, NtdllLibrary::OBJ_KERNEL_HANDLE, NULL, NULL);
-        LARGE_INTEGER size = { 0 };
-#if TARGET_32
-        size.LowPart = bytes;
-#elif TARGET_64
-        size.QuadPart = bytes;
-#endif
-        HANDLE sectionHandle = nullptr;
-        int status = NtdllLibrary::Instance->CreateSection(&sectionHandle, SECTION_MAP_READ | SECTION_MAP_WRITE | SECTION_QUERY | SECTION_MAP_EXECUTE, &attr, &size, PAGE_EXECUTE_READWRITE, SEC_RESERVE, NULL);
-        if (status != 0)
+        HANDLE sectionHandle = CreateSection(bytes, false);
+        if (sectionHandle == nullptr)
         {
             return nullptr;
         }
-
-        SIZE_T viewSize = 0;
-        status = NtdllLibrary::Instance->MapViewOfSection(sectionHandle, this->process, &startAddress, NULL, 0, NULL, &viewSize, NtdllLibrary::ViewUnmap, NULL, allocProtectFlags);
-        if (status != 0 || startAddress == nullptr)
+        startAddress = MapView(this->process, sectionHandle, 0, 0, false);
+        if (startAddress == nullptr)
         {
-            NtdllLibrary::Instance->Close(sectionHandle);
+            CloseSectionHandle(sectionHandle);
             return nullptr;
         }
         PreReservedHeapTrace(_u("Reserving PreReservedSegment For the first time(CFG Enabled). Address: 0x%p\n"), this->preReservedStartAddress);
@@ -851,7 +920,7 @@ LPVOID PreReservedSectionAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
             AutoEnableDynamicCodeGen enableCodeGen;
 #endif
 
-            const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE;
+            const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE_READ;
             allocatedAddress = (char *)VirtualAllocEx(this->process, addressToReserve, dwSize, MEM_COMMIT, allocProtectFlags);
             if (allocatedAddress == nullptr)
             {

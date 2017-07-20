@@ -17,7 +17,7 @@ namespace Memory
 {
 typedef void* FunctionTableHandle;
 
-#if DBG_DUMP && !defined(JD_PRIVATE)
+#if DBG_DUMP
 
 #define GUARD_PAGE_TRACE(...) \
     if (Js::Configuration::Global.flags.PrintGuardPageBounds) \
@@ -252,7 +252,7 @@ public:
     uint GetFreePageCount() const { return freePageCount; }
     uint GetDecommitPageCount() const { return decommitPageCount; }
 
-    static bool IsAllocationPageAligned(__in char* address, size_t pageCount);
+    static bool IsAllocationPageAligned(__in char* address, size_t pageCount, uint *nextIndex = nullptr);
 
     template <typename T, bool notPageAligned>
     char * AllocDecommitPages(DECLSPEC_GUARD_OVERFLOW uint pageCount, T freePages, T decommitPages);
@@ -345,6 +345,8 @@ public:
 
 //---------- Private members ---------------/
 private:
+    void DecommitFreePagesInternal(uint index, uint pageCount);
+
     uint GetBitRangeBase(void* address) const
     {
         uint base = ((uint)(((char *)address) - this->address)) / AutoSystemInfo::PageSize;
@@ -626,9 +628,7 @@ public:
 #endif
 
     PageAllocatorBase(AllocationPolicyManager * policyManager,
-#ifndef JD_PRIVATE
         Js::ConfigFlagsTable& flags = Js::Configuration::Global.flags,
-#endif
         PageAllocatorType type = PageAllocatorType_Max,
         uint maxFreePageCount = DefaultMaxFreePageCount,
         bool zeroPages = false,
@@ -698,6 +698,7 @@ public:
 #if defined(RECYCLER_NO_PAGE_REUSE) || defined(ARENA_MEMORY_VERIFY)
     void ReenablePageReuse() { Assert(disablePageReuse); disablePageReuse = false; }
     bool DisablePageReuse() { bool wasDisablePageReuse = disablePageReuse; disablePageReuse = true; return wasDisablePageReuse; }
+    bool IsPageReuseDisabled() { return disablePageReuse; }
 #endif
 
 #if DBG
@@ -820,9 +821,7 @@ protected:
     bool enableWriteBarrier;
     AllocationPolicyManager * policyManager;
 
-#ifndef JD_PRIVATE
     Js::ConfigFlagsTable& pageAllocatorFlagTable;
-#endif
 
     // zero pages
     bool zeroPages;
@@ -1008,10 +1007,10 @@ public:
     void DecommitPages(__in char* address, size_t pageCount = 1);
 
     // Release pages that has already been decommitted
-    void ReleaseDecommitted(void * address, size_t pageCount, __in void * segment);
+    void    ReleaseDecommitted(void * address, size_t pageCount, __in void * segment);
     bool IsAddressFromAllocator(__in void* address);
+    bool    AllocXdata() { return allocXdata; }
 
-    bool AllocXdata() { return allocXdata; }
 private:
     bool         allocXdata;
     void         ReleaseDecommittedSegment(__in SegmentBase<TVirtualAlloc>* segment);

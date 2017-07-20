@@ -7,6 +7,11 @@
 </dir>
 <dir>
   <default>
+    <files>$262</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>Array</files>
   </default>
 </dir>
@@ -59,6 +64,11 @@
 <dir>
   <default>
     <files>Date</files>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>Intl</files>
   </default>
 </dir>
 <dir>
@@ -260,140 +270,44 @@
 <dir>
   <default>
     <files>AsmJs</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend,require_asmjs</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>AsmJsFloat</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend,require_asmjs</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>AsmJsParser</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.float32x4</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.int32x4</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.int8x16</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.float32x4.asmjs</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.int32x4.asmjs</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.int16x8.asmjs</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.int8x16.asmjs</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.uint32x4.asmjs</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.uint16x8.asmjs</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.uint8x16.asmjs</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.bool32x4.asmjs</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.bool16x8.asmjs</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.bool8x16.asmjs</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.workloads.asmjs</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.wrappers</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>SIMD.TypeSpec</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend,require_asmjs</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>WasmSpec</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend,exclude_jshost,exclude_win7,require_wasm</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>wasm</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend,require_wasm</tags>
     <tags>exclude_arm,exclude_arm64</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>Debugger</files>
-    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger</tags>
+    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>DebuggerCommon</files>
-    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger</tags>
+    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>

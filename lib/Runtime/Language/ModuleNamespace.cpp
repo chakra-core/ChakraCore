@@ -13,8 +13,6 @@
 
 namespace Js
 {
-    Js::FunctionInfo ModuleNamespace::EntryInfo::SymbolIterator(FORCE_NO_WRITE_BARRIER_TAG(ModuleNamespace::EntrySymbolIterator));
-
     ModuleNamespace::ModuleNamespace(ModuleRecordBase* moduleRecord, DynamicType* type) :
         moduleRecord(moduleRecord), DynamicObject(type), unambiguousNonLocalExports(nullptr),
         sortedExportedNames(nullptr), nsSlots(nullptr)
@@ -54,12 +52,6 @@ namespace Js
             DynamicObject::SetPropertyWithAttributes(PropertyIds::_symbolToStringTag, library->GetModuleTypeDisplayString(),
                 PropertyConfigurable, nullptr);
         }
-
-        DynamicType* type = library->CreateFunctionWithLengthType(&EntryInfo::SymbolIterator);
-        RuntimeFunction* iteratorFunction = RecyclerNewEnumClass(scriptContext->GetRecycler(),
-            JavascriptLibrary::EnumFunctionClass, RuntimeFunction,
-            type, &EntryInfo::SymbolIterator);
-        DynamicObject::SetPropertyWithAttributes(PropertyIds::_symbolIterator, iteratorFunction, PropertyBuiltInMethodDefaults, nullptr);
 
         ModuleImportOrExportEntryList* localExportList = sourceTextModuleRecord->GetLocalExportEntryList();
         // We don't have a type handler that can handle ModuleNamespace object. We have properties that could be aliased
@@ -154,13 +146,13 @@ namespace Js
         }
         if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (unambiguousNonLocalExports != nullptr)
         {
             return JavascriptConversion::BooleanToPropertyQueryFlags(unambiguousNonLocalExports->ContainsKey(propertyId));
         }
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL ModuleNamespace::HasOwnProperty(PropertyId propertyId)
@@ -185,7 +177,7 @@ namespace Js
             //    PropertyValueInfo::Set(info, this, (PropertyIndex)propertyDescriptor.propertyIndex, propertyDescriptor.Attributes);
             //}
             *value = this->GetNSSlot(propertyDescriptor.propertyIndex);
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (unambiguousNonLocalExports != nullptr)
         {
@@ -196,7 +188,7 @@ namespace Js
                 return JavascriptConversion::BooleanToPropertyQueryFlags(moduleNameRecord.module->GetNamespace()->GetProperty(originalInstance, moduleNameRecord.bindingName, value, info, requestContext));
             }
         }
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags ModuleNamespace::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -307,59 +299,5 @@ namespace Js
             }
         }
         return FALSE;
-    }
-
-    // We will make sure the iterator will iterate through the exported properties in sorted order.
-    // There is no such requirement for enumerator (forin).
-    ListForListIterator* ModuleNamespace::EnsureSortedExportedNames()
-    {
-        if (sortedExportedNames == nullptr)
-        {
-            ExportedNames* exportedNames = moduleRecord->GetExportedNames(nullptr);
-            ScriptContext* scriptContext = GetScriptContext();
-            sortedExportedNames = ListForListIterator::New(scriptContext->GetRecycler());
-            exportedNames->Map([&](PropertyId propertyId) {
-                JavascriptString* propertyString = scriptContext->GetPropertyString(propertyId);
-                sortedExportedNames->Add(propertyString);
-            });
-            sortedExportedNames->Sort([](void* context, const void* left, const void* right) ->int {
-                JavascriptString** leftString = (JavascriptString**) (left);
-                JavascriptString** rightString = (JavascriptString**) (right);
-                if (JavascriptString::LessThan(*leftString, *rightString))
-                {
-                    return -1;
-                }
-                if (JavascriptString::LessThan(*rightString, *leftString))
-                {
-                    return 1;
-                }
-                return 0;
-            }, nullptr);
-        }
-        return sortedExportedNames;
-    }
-
-    Var ModuleNamespace::EntrySymbolIterator(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        if (args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedNamespace, _u("Namespace[Symbol.iterator]"));
-        }
-
-        if (JavascriptOperators::GetTypeId(args[0]) != TypeIds_ModuleNamespace)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedNamespace, _u("Namespace[Symbol.iterator]"));
-        }
-
-        ModuleNamespace* moduleNamespace = ModuleNamespace::FromVar(args[0]);
-        ListForListIterator* sortedExportedNames = moduleNamespace->EnsureSortedExportedNames();
-        return scriptContext->GetLibrary()->CreateListIterator(sortedExportedNames);
     }
 }

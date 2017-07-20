@@ -17,35 +17,54 @@
 #ifndef WABT_BINDING_HASH_H_
 #define WABT_BINDING_HASH_H_
 
+#include <functional>
+#include <string>
+#include <vector>
+#include <unordered_map>
+
 #include "common.h"
-#include "vector.h"
 
 namespace wabt {
 
+struct Var;
+
 struct Binding {
+  explicit Binding(Index index) : index(index) {
+    WABT_ZERO_MEMORY(loc);
+  }
+  Binding(const Location& loc, Index index) : loc(loc), index(index) {}
+
   Location loc;
-  StringSlice name;
-  int index;
+  Index index;
 };
 
-struct BindingHashEntry {
-  Binding binding;
-  struct BindingHashEntry* next;
-  struct BindingHashEntry* prev; /* only valid when this entry is unused */
-};
-WABT_DEFINE_VECTOR(binding_hash_entry, BindingHashEntry);
+// This class derives from a C++ container, which is usually not advisable
+// because they don't have virtual destructors. So don't delete a BindingHash
+// object through a pointer to std::unordered_multimap.
+class BindingHash : public std::unordered_multimap<std::string, Binding> {
+ public:
+  typedef std::function<void(const value_type&, const value_type&)>
+      DuplicateCallback;
 
-struct BindingHash {
-  BindingHashEntryVector entries;
-  BindingHashEntry* free_head;
-};
+  void FindDuplicates(DuplicateCallback callback) const;
 
-Binding* insert_binding(BindingHash*, const StringSlice*);
-void remove_binding(BindingHash*, const StringSlice*);
-bool hash_entry_is_free(const BindingHashEntry*);
-/* returns -1 if the name is not in the hash */
-int find_binding_index_by_name(const BindingHash*, const StringSlice* name);
-void destroy_binding_hash(BindingHash*);
+  Index FindIndex(const Var&) const;
+
+  Index FindIndex(const StringSlice& name) const {
+    auto iter = find(string_slice_to_string(name));
+    if (iter != end())
+      return iter->second.index;
+    return kInvalidIndex;
+  }
+
+ private:
+  typedef std::vector<const value_type*> ValueTypeVector;
+
+  void CreateDuplicatesVector(ValueTypeVector* out_duplicates) const;
+  void SortDuplicatesVectorByLocation(ValueTypeVector* duplicates) const;
+  void CallCallbacks(const ValueTypeVector& duplicates,
+                     DuplicateCallback callback) const;
+};
 
 }  // namespace wabt
 

@@ -10,12 +10,12 @@ namespace Js
     class ProfilingHelpers
     {
     public:
-        static Var ProfiledLdElem(const Var base, const Var varIndex, FunctionBody *const functionBody, const ProfileId profileId);
+        static Var ProfiledLdElem(const Var base, const Var varIndex, FunctionBody *const functionBody, const ProfileId profileId, bool didArrayAccessHelperCall);
         static Var ProfiledLdElem_FastPath(JavascriptArray *const array, const Var varIndex, ScriptContext *const scriptContext, LdElemInfo *const ldElemInfo = nullptr);
 
     public:
         static void ProfiledStElem_DefaultFlags(const Var base, const Var varIndex, const Var value, FunctionBody *const functionBody, const ProfileId profileId);
-        static void ProfiledStElem(const Var base, const Var varIndex, const Var value, FunctionBody *const functionBody, const ProfileId profileId, const PropertyOperationFlags flags);
+        static void ProfiledStElem(const Var base, const Var varIndex, const Var value, FunctionBody *const functionBody, const ProfileId profileId, const PropertyOperationFlags flags, bool didArrayAccessHelperCall);
         static void ProfiledStElem_FastPath(JavascriptArray *const array, const Var varIndex, const Var value, ScriptContext *const scriptContext, const PropertyOperationFlags flags, StElemInfo *const stElemInfo = nullptr);
 
     public:

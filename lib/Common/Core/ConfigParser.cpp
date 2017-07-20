@@ -313,7 +313,6 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
     Assert(!_hasReadConfig);
     _hasReadConfig = true;
 
-    char16 configBuffer[MaxTokenSize];
     int err = 0;
     char16 modulename[_MAX_PATH];
     char16 filename[_MAX_PATH];
@@ -326,6 +325,7 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
     _wmakepath_s(filename, drive, dir, _configFileName, _u(".config"));
 
     FILE* configFile;
+#ifdef _WIN32
     if (_wfopen_s(&configFile, filename, _u("r, ccs=UNICODE")) != 0 || configFile == nullptr)
     {
         WCHAR configFileFullName[MAX_PATH];
@@ -337,19 +337,98 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
         {
             return;
         }
+
         if (_wfopen_s(&configFile, filename, _u("r, ccs=UNICODE")) != 0 || configFile == nullptr)
         {
             return;
         }
     }
-
-    while (fwscanf_s(configFile, _u("%s"), configBuffer, MaxTokenSize) != FINISHED)
+#else
+    // Two-pathed for a couple reasons
+    // 1. PAL doesn't like the ccs option passed in.
+    // 2. _wfullpath is not implemented in the PAL.
+    // Instead, on xplat, we'll check the HOME directory to see if there is
+    // a config file there that we can use
+    if (_wfopen_s(&configFile, filename, _u("r")) != 0 || configFile == nullptr)
     {
-        if ((err = parser.Parse(configBuffer)) != 0)
+        WCHAR homeDir[MAX_PATH];
+
+        if (GetEnvironmentVariable(_u("HOME"), homeDir, MAX_PATH) == 0)
         {
-            break;
+            return;
+        }
+        
+        WCHAR configFileFullName[MAX_PATH];
+
+        StringCchPrintf(configFileFullName, MAX_PATH, _u("%s/%s.config"), homeDir, _configFileName);
+        if (_wfopen_s(&configFile, configFileFullName, _u("r")) != 0 || configFile == nullptr)
+        {
+            return;
         }
     }
+#endif
+
+    char16 configBuffer[MaxTokenSize];
+    int index = 0;
+
+#ifdef _WIN32
+#define ReadChar(file) fgetwc(file)
+#define UnreadChar(c, file) ungetwc(c, file)
+#define CharType wint_t
+#else
+#define ReadChar(file) fgetc(file)
+#define UnreadChar(c, file) ungetc(c, file)
+#define CharType int
+#endif
+
+    // We don't expect the token to overflow- if it does
+    // the simplest thing to do would be to ignore the
+    // read tokens
+    // We could use _fwscanf_s here but the function
+    // isn't implemented in the PAL and we'd have to deal with
+    // wchar => char16 impedance mismatch.
+    while (index < MaxTokenSize)
+    {
+        CharType curChar = ReadChar(configFile);
+        const CharType end = static_cast<const CharType>(FINISHED);
+
+        if (curChar == end || isspace(curChar))
+        {
+            configBuffer[index] = 0;
+            if ((err = parser.Parse(configBuffer)) != 0)
+            {
+                break;
+            }
+
+            while(curChar != end && isspace(curChar))
+            {
+                curChar = ReadChar(configFile);
+            }
+
+            if (curChar == end)
+            {
+                break;
+            }
+            else
+            {
+                UnreadChar(curChar, configFile);
+            }
+
+            index = 0;
+        }
+        else
+        {
+            // The expectation is that non-ANSI characters
+            // are not used in the config- otherwise it will
+            // be interpreted incorrectly here
+            configBuffer[index++] = (char16) curChar;
+        }
+    }
+
+#undef ReadChar
+#undef UnreadChar
+#undef CharType
+
     fclose(configFile);
 
     if (err !=0)

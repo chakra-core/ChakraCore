@@ -16,7 +16,7 @@ namespace Js
     template<bool isLeaf>
     SparseArraySegment<T> * SparseArraySegment<T>::Allocate(Recycler* recycler, uint32 left, uint32 length, uint32 size, uint32 fillStart /*= 0*/)
     {
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
         Assert(size <= JavascriptArray::MaxArrayLength - left);
 
         uint32 bufferSize = UInt32Math::Mul<sizeof(T)>(size);
@@ -274,7 +274,7 @@ namespace Js
         {
             length =  offset + 1;
         }
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
         Assert(left + length > left);
     }
 
@@ -309,6 +309,7 @@ namespace Js
             }
             current->elements[offset] = value;
             current->length =  offset + 1;
+            current->CheckLengthvsSize();
         }
         else
         {
@@ -351,7 +352,7 @@ namespace Js
             dst = dst->GrowBy(recycler, newLen - dst->size);
         }
         dst->length = newLen;
-        Assert(dst->length <= dst->size);
+        dst->CheckLengthvsSize();
         AssertMsg(srcIndex >= src->left,"src->left > srcIndex resulting in negative indexing of src->elements");
         CopyArray(dst->elements + dstIndex - dst->left, inputLen, src->elements + srcIndex - src->left, inputLen);
         return dst;
@@ -420,7 +421,7 @@ namespace Js
     template<bool isLeaf>
     SparseArraySegment<T>* SparseArraySegment<T>::GrowByImpl(Recycler *recycler, uint32 n)
     {
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
         Assert(n != 0);
 
         uint32 newSize = size + n;
@@ -470,7 +471,7 @@ namespace Js
     template<bool isLeaf>
     SparseArraySegment<T>* SparseArraySegment<T>::GrowFrontByMaxImpl(Recycler *recycler, uint32 n)
     {
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
         Assert(n > 0);
         Assert(n <= left);
         Assert(size + n > size);
@@ -509,7 +510,7 @@ namespace Js
         {
             length = index - left;
         }
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
     }
 
 

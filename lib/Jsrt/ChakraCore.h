@@ -27,6 +27,15 @@
 
 typedef void* JsModuleRecord;
 
+/// <summary>
+///     A reference to an object owned by the SharedArrayBuffer.
+/// </summary>
+/// <remarks>
+///     This represents SharedContents which is heap allocated object, it can be passed through 
+///     different runtimes to share the underlying buffer.
+/// </remarks>
+typedef void *JsSharedArrayBufferContentHandle;
+
 typedef enum JsParseModuleSourceFlags
 {
     JsParseModuleSourceFlags_DataIsUTF16LE = 0x00000000,
@@ -38,7 +47,8 @@ typedef enum JsModuleHostInfoKind
     JsModuleHostInfo_Exception = 0x01,
     JsModuleHostInfo_HostDefined = 0x02,
     JsModuleHostInfo_NotifyModuleReadyCallback = 0x3,
-    JsModuleHostInfo_FetchImportedModuleCallback = 0x4
+    JsModuleHostInfo_FetchImportedModuleCallback = 0x4,
+    JsModuleHostInfo_FetchImportedModuleFromScriptCallback = 0x5
 } JsModuleHostInfoKind;
 
 /// <summary>
@@ -65,6 +75,21 @@ typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleCallBack)(_In_ JsModule
 /// holds the exception. Otherwise the referencingModule is ready and the host should schedule execution afterwards.
 /// </remarks>
 /// <param name="referencingModule">The referencing module that have finished running ModuleDeclarationInstantiation step.</param>
+/// <param name="exceptionVar">If nullptr, the module is successfully initialized and host should queue the execution job
+///                           otherwise it's the exception object.</param>
+/// <returns>
+///     true if the operation succeeded, false otherwise.
+/// </returns>
+typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleFromScriptCallBack)(_In_ JsSourceContext dwReferencingSourceContext, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord);
+
+/// <summary>
+///     User implemented callback to get notification when the module is ready.
+/// </summary>
+/// <remarks>
+/// Notify the host after ModuleDeclarationInstantiation step (15.2.1.1.6.4) is finished. If there was error in the process, exceptionVar
+/// holds the exception. Otherwise the referencingModule is ready and the host should schedule execution afterwards.
+/// </remarks>
+/// <param name="dwReferencingSourceContext">The referencing script that calls import()</param>
 /// <param name="exceptionVar">If nullptr, the module is successfully initialized and host should queue the execution job
 ///                           otherwise it's the exception object.</param>
 /// <returns>
@@ -164,6 +189,39 @@ JsGetModuleHostInfo(
     _Outptr_result_maybenull_ void** hostInfo);
 
 #ifdef CHAKRACOREBUILD_
+/// <summary>
+///     Returns metadata relating to the exception that caused the runtime of the current context
+///     to be in the exception state and resets the exception state for that runtime. The metadata
+///     includes a reference to the exception itself.
+/// </summary>
+/// <remarks>
+///     <para>
+///     If the runtime of the current context is not in an exception state, this API will return
+///     <c>JsErrorInvalidArgument</c>. If the runtime is disabled, this will return an exception
+///     indicating that the script was terminated, but it will not clear the exception (the
+///     exception will be cleared if the runtime is re-enabled using
+///     <c>JsEnableRuntimeExecution</c>).
+///     </para>
+///     <para>
+///     The metadata value is a javascript object with the following properties: <c>exception</c>, the
+///     thrown exception object; <c>line</c>, the 0 indexed line number where the exception was thrown;
+///     <c>column</c>, the 0 indexed column number where the exception was thrown; <c>length</c>, the
+///     source-length of the cause of the exception; <c>source</c>, a string containing the line of
+///     source code where the exception was thrown; and <c>url</c>, a string containing the name of
+///     the script file containing the code that threw the exception.
+///     </para>
+///     <para>
+///     Requires an active script context.
+///     </para>
+/// </remarks>
+/// <param name="metadata">The exception metadata for the runtime of the current context.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsGetAndClearExceptionWithMetadata(
+    _Out_ JsValueRef *metadata);
+
 /// <summary>
 ///     Called by the runtime to load the source code of the serialized script.
 /// </summary>
@@ -508,9 +566,118 @@ CHAKRA_API
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
 CHAKRA_API
-JsCreatePromise(
-    _Out_ JsValueRef *promise,
-    _Out_ JsValueRef *resolveFunction,
-    _Out_ JsValueRef *rejectFunction);
+    JsCreatePromise(
+        _Out_ JsValueRef *promise,
+        _Out_ JsValueRef *resolveFunction,
+        _Out_ JsValueRef *rejectFunction);
+
+/// <summary>
+///     A weak reference to a JavaScript value.
+/// </summary>
+/// <remarks>
+///     A value with only weak references is available for garbage-collection. A strong reference
+///     to the value (<c>JsValueRef</c>) may be obtained from a weak reference if the value happens
+///     to still be available.
+/// </remarks>
+typedef JsRef JsWeakRef;
+
+/// <summary>
+///     Creates a weak reference to a value.
+/// </summary>
+/// <param name="value">The value to be referenced.</param>
+/// <param name="weakRef">Weak reference to the value.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCreateWeakReference(
+        _In_ JsValueRef value,
+        _Out_ JsWeakRef* weakRef);
+
+/// <summary>
+///     Gets a strong reference to the value referred to by a weak reference.
+/// </summary>
+/// <param name="weakRef">A weak reference.</param>
+/// <param name="value">Reference to the value, or <c>JS_INVALID_REFERENCE</c> if the value is
+///     no longer available.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsGetWeakReferenceValue(
+        _In_ JsWeakRef weakRef,
+        _Out_ JsValueRef* value);
+
+/// <summary>
+///     Creates a Javascript SharedArrayBuffer object with shared content get from JsGetSharedArrayBufferContent.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="sharedContents">
+///     The storage object of a SharedArrayBuffer which can be shared between multiple thread.
+/// </param>
+/// <param name="result">The new SharedArrayBuffer object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateSharedArrayBufferWithSharedContent(
+    _In_ JsSharedArrayBufferContentHandle sharedContents,
+    _Out_ JsValueRef *result);
+
+/// <summary>
+///     Get the storage object from a SharedArrayBuffer.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="sharedArrayBuffer">The SharedArrayBuffer object.</param>
+/// <param name="sharedContents">
+///     The storage object of a SharedArrayBuffer which can be shared between multiple thread.
+///     User should call JsReleaseSharedArrayBufferContentHandle after finished using it.
+/// </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsGetSharedArrayBufferContent(
+    _In_ JsValueRef sharedArrayBuffer,
+    _Out_ JsSharedArrayBufferContentHandle *sharedContents);
+
+/// <summary>
+///     Decrease the reference count on a SharedArrayBuffer storage object.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="sharedContents">
+///     The storage object of a SharedArrayBuffer which can be shared between multiple thread.
+/// </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsReleaseSharedArrayBufferContentHandle(
+    _In_ JsSharedArrayBufferContentHandle sharedContents);
+
+/// <summary>
+///     Determines whether an object has a non-inherited property.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that may contain the property.</param>
+/// <param name="propertyId">The ID of the property.</param>
+/// <param name="hasOwnProperty">Whether the object has the non-inherited property.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsHasOwnProperty(
+        _In_ JsValueRef object,
+        _In_ JsPropertyIdRef propertyId,
+        _Out_ bool *hasOwnProperty);
+
 #endif // CHAKRACOREBUILD_
 #endif // _CHAKRACORE_H_

@@ -29,4 +29,8 @@ if (count !== 4) {
     WScript.Echo('fail');
 }
 
+(vjczgj = (function(y) { try{}catch(e){} }), fkvcij = (y)) => {};
+
+(omabpn = (function(x) {return { getOwnPropertyNames: function(){ switch({}) { case 0:  "" ; }},  }; }), pkgrln = (TypeError(x))) => {};
+
 WScript.Echo('pass');

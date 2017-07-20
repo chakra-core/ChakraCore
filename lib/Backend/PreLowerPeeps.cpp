@@ -181,6 +181,12 @@ Lowerer::PeepShiftAdd(IR::Instr *instrAdd)
 
     IR::Opnd * src2 = instrAdd->GetSrc2();
     IR::Opnd * src1 = instrAdd->GetSrc1();
+
+    // we can't remove t1 in case both srcs are uses of t1
+    if (src1->IsEqual(src2))
+    {
+        return instrAdd;
+    }
     IR::Instr * resultInstr = TryShiftAdd(instrAdd, src1, src2);
     if (resultInstr->m_opcode == Js::OpCode::Add_I4)
     {
@@ -353,6 +359,10 @@ IR::Instr *Lowerer::PeepBrBool(IR::Instr *instrBr)
 
     IR::RegOpnd *cm1DstReg = instrCm1->GetDst()->AsRegOpnd();
     if (!cm1DstReg->m_sym->IsSingleDef())
+    {
+        return instrBr;
+    }
+    if (cm1DstReg->IsEqual(instrCm2->GetSrc1()) || cm1DstReg->IsEqual(instrCm2->GetSrc2()))
     {
         return instrBr;
     }

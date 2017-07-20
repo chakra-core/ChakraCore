@@ -232,27 +232,39 @@ namespace Js
     JavascriptString * DynamicObjectPropertyEnumerator::MoveAndGetNextNoCache(PropertyId& propertyId, PropertyAttributes * attributes)
     {
         JavascriptString* propertyString = nullptr;
-
         BigPropertyIndex newIndex = this->objectIndex;
+        PropertyValueInfo info;
+        RecyclableObject * startingObject = this->object;
         do
         {
             newIndex++;
-            if (!object->FindNextProperty(newIndex, &propertyString, &propertyId, attributes,
-                GetTypeToEnumerate(), flags, this->scriptContext)
+            PropertyValueInfo::ClearCacheInfo(&info);
+            if (!this->object->FindNextProperty(newIndex, &propertyString, &propertyId, attributes,
+                GetTypeToEnumerate(), flags, this->scriptContext, &info)
                 || (GetSnapShotSemantics() && newIndex >= initialPropertyCount))
             {
                 // No more properties
                 newIndex--;
                 propertyString = nullptr;
+                PropertyValueInfo::ClearCacheInfo(&info);
                 break;
             }
         } while (Js::IsInternalPropertyId(propertyId));
 
+        if (info.GetPropertyString() != nullptr && info.GetPropertyString()->ShouldUseCache() && propertyString == info.GetPropertyString())
+        {
+            CacheOperators::CachePropertyRead(startingObject, this->object, false, propertyId, false, &info, scriptContext);
+            if (info.IsStoreFieldCacheEnabled() && info.IsWritable() && ((info.GetFlags() & (InlineCacheGetterFlag | InlineCacheSetterFlag)) == 0))
+            {
+                PropertyValueInfo::SetCacheInfo(&info, info.GetPropertyString(), info.GetPropertyString()->GetStElemInlineCache(), info.AllowResizingPolymorphicInlineCache());
+                CacheOperators::CachePropertyWrite(this->object, false, this->object->GetType(), propertyId, &info, scriptContext);
+            }
+        }
         this->objectIndex = newIndex;
         return propertyString;
     }
 
-    Var DynamicObjectPropertyEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes * attributes)
+    JavascriptString * DynamicObjectPropertyEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes * attributes)
     {
         if (this->cachedData && this->initialType == this->object->GetDynamicType())
         {

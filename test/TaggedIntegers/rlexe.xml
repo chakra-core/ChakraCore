@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -270,7 +270,7 @@
     <default>
       <files>arrays.js</files>
       <baseline>arrays.baseline</baseline>
-      <tags>exclude_interpreted,exclude_serialized,exclude_ship,require_backend</tags>
+      <tags>exclude_interpreted,exclude_serialized,require_backend</tags>
       <compile-flags>-dynamicprofileinput:profile.dpl.arrays.js -off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
   </test>

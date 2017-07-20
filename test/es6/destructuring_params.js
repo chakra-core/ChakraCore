@@ -222,6 +222,10 @@ var tests = [
             assert.areEqual(k, 62,  "Identifiers from patterns are captured and initialized correctly");
         }
         f3({x:10}, [20], 30);
+
+        function f4(a) { return a() }
+        var f5 = ({ x }) => f4(() => x);
+        assert.areEqual(f5({ x: 42 }), 42, "The destructured param is captured by the inner lambda");
      }
    },
   {
@@ -253,6 +257,10 @@ var tests = [
             })();
         }
         f3({x:5}, [6]);
+
+        function f4(a) { return a() }
+        var f5 = ({ x }) => f4(() => eval("x"));
+        assert.areEqual(f5({ x: 42 }), 42, "The destructured param is captured by the inner lambda with eval");
      }
    },
   {

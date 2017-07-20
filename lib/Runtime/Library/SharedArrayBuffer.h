@@ -10,7 +10,6 @@ namespace Js
 {
 
     class WaiterList;
-
     typedef JsUtil::List<DWORD_PTR, HeapAllocator> SharableAgents;
     typedef JsUtil::BaseDictionary<uint, WaiterList *, HeapAllocator> IndexToWaitersMap;
 
@@ -18,16 +17,20 @@ namespace Js
     {
     public:
         BYTE  *buffer;             // Points to a heap allocated RGBA buffer, can be null
-        uint32 bufferLength;       // Number of bytes allocated
-
-        // Addref/release counter for current buffer, this is needed as the current buffer will be shared among different workers
-        uint refCount;
         IndexToWaitersMap *indexToWaiterList;  // Map of agents waiting on a particular index.
-        bool isBufferCleared; /// This should be gone.
+        uint32 bufferLength;       // Number of bytes allocated
+    private:
+        // Addref/release counter for current buffer, this is needed as the current buffer will be shared among different workers
+        long refCount;
+
+    public:
+        long AddRef();
+        long Release();
 
 #if DBG
         // This is mainly used for validation purpose as the wait/wake APIs should be used on the agents (Workers) among which this buffer is shared.
         SharableAgents *allowedAgents;
+        CriticalSection csAgent;
         void AddAgent(DWORD_PTR agent);
         bool IsValidAgent(DWORD_PTR agent);
 #endif
@@ -35,37 +38,11 @@ namespace Js
         void Cleanup();
 
         SharedContents(BYTE* b, uint32 l)
-            : buffer(b), bufferLength(l), refCount(1), indexToWaiterList(nullptr), isBufferCleared(false)
+            : buffer(b), bufferLength(l), refCount(1), indexToWaiterList(nullptr)
 #if DBG
             , allowedAgents(nullptr)
 #endif
         { 
-        }
-    };
-
-    // This state will be created when we are sharing on SharedArrayBuffer among different workers (agents)
-    class SharableState : public DetachedStateBase
-    {
-    public:
-        SharedContents *contents;
-        ArrayBufferAllocationType allocationType;
-        SharableState(SharedContents *c, ArrayBufferAllocationType t)
-            : DetachedStateBase(TypeIds_SharedArrayBuffer), contents(c), allocationType(t)
-        { }
-
-        virtual void ClearSelfOnly() override
-        {
-            HeapDelete(this);
-        }
-
-        virtual void DiscardState() override
-        {
-            Assert(false);
-        }
-
-        virtual void Discard() override
-        {
-            ClearSelfOnly();
         }
     };
 
@@ -74,8 +51,7 @@ namespace Js
     public:
         DEFINE_VTABLE_CTOR_ABSTRACT(SharedArrayBuffer, ArrayBufferBase);
 
-        template <typename Allocator>
-        SharedArrayBuffer(uint32 length, DynamicType * type, Allocator allocator);
+        SharedArrayBuffer(uint32 length, DynamicType * type);
 
         SharedArrayBuffer(SharedContents *contents, DynamicType * type);
 
@@ -109,9 +85,6 @@ namespace Js
         virtual ArrayBuffer * GetAsArrayBuffer() { return nullptr; }
         virtual SharedArrayBuffer * GetAsSharedArrayBuffer() override { return SharedArrayBuffer::FromVar(this); }
 
-        static SharedArrayBuffer* NewFromSharedState(DetachedStateBase* state, JavascriptLibrary *library);
-        static DetachedStateBase* GetSharableState(Var object);
-
         WaiterList *GetWaiterList(uint index);
         SharedContents *GetSharedContents() { return sharedContents; }
 
@@ -122,10 +95,12 @@ namespace Js
         // maximum 1G to avoid arithmetic overflow.
         static const uint32 MaxSharedArrayBufferLength = 1 << 30;
 #endif
-        virtual bool IsValidVirtualBufferLength(uint length) { return false; }
+        virtual bool IsValidVirtualBufferLength(uint length) const;
 
     protected:
         FieldNoBarrier(SharedContents *) sharedContents;
+
+        static CriticalSection csSharedArrayBuffer;
     };
 
     class JavascriptSharedArrayBuffer : public SharedArrayBuffer
@@ -139,7 +114,6 @@ namespace Js
         static JavascriptSharedArrayBuffer* Create(SharedContents *sharedContents, DynamicType * type);
         virtual void Dispose(bool isShutdown) override;
         virtual void Finalize(bool isShutdown) override;
-        virtual bool IsValidVirtualBufferLength(uint length) override;
 
     private:
         JavascriptSharedArrayBuffer(uint32 length, DynamicType * type);

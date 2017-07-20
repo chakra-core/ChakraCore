@@ -6,6 +6,8 @@
 
 #if ENABLE_TTD
 
+#define PATH_BUFFER_COUNT 256
+
 namespace TTD
 {
     InflateMap::InflateMap()
@@ -298,18 +300,20 @@ namespace TTD
         ;
     }
 
-    void TTDComparePath::WritePathToConsole(ThreadContext* threadContext, bool printNewline, char16* namebuff) const
+    void TTDComparePath::WritePathToConsole(ThreadContext* threadContext, bool printNewline, _Out_writes_z_(buffLength) char16* namebuff, charcount_t namebuffLength) const
     {
         if(this->m_prefix != nullptr)
         {
-            this->m_prefix->WritePathToConsole(threadContext, false, namebuff);
+            this->m_prefix->WritePathToConsole(threadContext, false, namebuff, namebuffLength);
         }
 
         if(this->m_stepKind == StepKind::PropertyData || this->m_stepKind == StepKind::PropertyGetter || this->m_stepKind == StepKind::PropertySetter)
         {
             const Js::PropertyRecord* pRecord = threadContext->GetPropertyName((Js::PropertyId)this->m_step.IndexOrPID);
-            js_memcpy_s(namebuff, 256 * sizeof(char16), pRecord->GetBuffer(), pRecord->GetLength() * sizeof(char16));
-            namebuff[pRecord->GetLength()] = _u('\0');
+            js_memcpy_s(namebuff, namebuffLength * sizeof(char16), pRecord->GetBuffer(), pRecord->GetLength() * sizeof(char16));
+
+            // Don't allow the null to be written past the end of the buffer.
+            namebuff[min(namebuffLength - 1, pRecord->GetLength())] = _u('\0');
         }
 
         bool isFirst = (this->m_prefix == nullptr);
@@ -372,7 +376,7 @@ namespace TTD
     {
         this->StrictCrossSite = !threadContext->TTDLog->IsDebugModeFlagSet();
 
-        this->PathBuffer = TT_HEAP_ALLOC_ARRAY_ZERO(char16, 256);
+        this->PathBuffer = TT_HEAP_ALLOC_ARRAY_ZERO(char16, PATH_BUFFER_COUNT);
 
         this->SnapObjCmpVTable = TT_HEAP_ALLOC_ARRAY_ZERO(fPtr_AssertSnapEquivAddtlInfo, (int32)NSSnapObjects::SnapObjectType::Limit);
 
@@ -402,7 +406,7 @@ namespace TTD
 
     TTDCompareMap::~TTDCompareMap()
     {
-        TT_HEAP_FREE_ARRAY(char16, this->PathBuffer, 256);
+        TT_HEAP_FREE_ARRAY(char16, this->PathBuffer, PATH_BUFFER_COUNT);
 
         TT_HEAP_FREE_ARRAY(TTD::fPtr_AssertSnapEquivAddtlInfo, this->SnapObjCmpVTable, (int32)NSSnapObjects::SnapObjectType::Limit);
 
@@ -421,7 +425,7 @@ namespace TTD
             {
                 wprintf(_u("Snap1 ptrid: *0x%I64x\n"), this->CurrentH1Ptr);
                 wprintf(_u("Snap2 ptrid: *0x%I64x\n"), this->CurrentH2Ptr);
-                this->CurrentPath->WritePathToConsole(this->Context, true, this->PathBuffer);
+                this->CurrentPath->WritePathToConsole(this->Context, true, this->PathBuffer, PATH_BUFFER_COUNT);
             }
         }
 

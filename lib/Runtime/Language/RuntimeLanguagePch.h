@@ -9,11 +9,8 @@
 
 #include "Runtime.h"
 
-#include "Language/AsmJsTypes.h"
 #include "Language/AsmJsUtils.h"
 #include "Language/AsmJsLink.h"
-#include "Language/AsmJsModule.h"
-#include "Language/AsmJs.h"
 #ifdef ASMJS_PLAT
 #include "Language/AsmJsJitTemplate.h"
 #include "Language/AsmJsEncoder.h"

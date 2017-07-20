@@ -28,129 +28,261 @@ namespace TTD
 
         //////////////////
 
+        //A generic struct for actions that only need a result value
+        struct JsRTResultOnlyAction
+        {
+            TTDVar Result;
+        };
+
+        template <EventKind tag>
+        void JsRTResultOnlyAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
+        {
+            const JsRTResultOnlyAction* vAction = GetInlineEventDataAs<JsRTResultOnlyAction, tag>(evt);
+
+            writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(vAction->Result, writer, NSTokens::Separator::NoSeparator);
+        }
+
+        template <EventKind tag>
+        void JsRTResultOnlyAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        {
+            JsRTResultOnlyAction* vAction = GetInlineEventDataAs<JsRTResultOnlyAction, tag>(evt);
+
+            reader->ReadKey(NSTokens::Key::argRetVal, true);
+            vAction->Result = NSSnapValues::ParseTTDVar(false, reader);
+        }
+
+        //A generic struct for actions that only need a single integral value
+        struct JsRTIntegralArgumentAction
+        {
+            TTDVar Result;
+            int64 Scalar;
+        };
+
+        template <EventKind tag>
+        void JsRTIntegralArgumentAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
+        {
+            const JsRTIntegralArgumentAction* vAction = GetInlineEventDataAs<JsRTIntegralArgumentAction, tag>(evt);
+
+            writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(vAction->Result, writer, NSTokens::Separator::NoSeparator);
+
+            writer->WriteInt64(NSTokens::Key::i64Val, vAction->Scalar, NSTokens::Separator::CommaSeparator);
+        }
+
+        template <EventKind tag>
+        void JsRTIntegralArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        {
+            JsRTIntegralArgumentAction* vAction = GetInlineEventDataAs<JsRTIntegralArgumentAction, tag>(evt);
+
+            reader->ReadKey(NSTokens::Key::argRetVal, true);
+            vAction->Result = NSSnapValues::ParseTTDVar(false, reader);
+
+            vAction->Scalar = reader->ReadInt64(NSTokens::Key::i64Val, true);
+        }
+
         //A generic struct for actions that only need variables
-        struct JsRTVarsArgumentAction
+        template <size_t count>
+        struct JsRTVarsArgumentAction_InternalUse
         {
             TTDVar Result;
-            TTDVar Var1;
-            TTDVar Var2;
-            TTDVar Var3;
+            TTDVar VarArray[count];
         };
 
-        template <EventKind tag>
-        void JsRTVarsArgumentAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
+        template <EventKind tag, size_t count>
+        void JsRTVarsArgumentAction_InternalUse_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
         {
-            const JsRTVarsArgumentAction* vAction = GetInlineEventDataAs<JsRTVarsArgumentAction, tag>(evt);
+            const JsRTVarsArgumentAction_InternalUse<count>* vAction = GetInlineEventDataAs<JsRTVarsArgumentAction_InternalUse<count>, tag>(evt);
+
+            writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(vAction->Result, writer, NSTokens::Separator::NoSeparator);
+
+            if(count == 1)
+            {
+                NSSnapValues::EmitTTDVar(vAction->VarArray[0], writer, NSTokens::Separator::CommaSeparator);
+            }
+            else
+            {
+                writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+                for(size_t i = 0; i < count; ++i)
+                {
+                    NSSnapValues::EmitTTDVar(vAction->VarArray[i], writer, i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
+                }
+                writer->WriteSequenceEnd();
+            }
+        }
+
+        template <EventKind tag, size_t count>
+        void JsRTVarsArgumentAction_InternalUse_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        {
+            JsRTVarsArgumentAction_InternalUse<count>* vAction = GetInlineEventDataAs<JsRTVarsArgumentAction_InternalUse<count>, tag>(evt);
+
+            reader->ReadKey(NSTokens::Key::argRetVal, true);
+            vAction->Result = NSSnapValues::ParseTTDVar(false, reader);
+
+            if(count == 1)
+            {
+                vAction->VarArray[0] = NSSnapValues::ParseTTDVar(true, reader);
+            }
+            else
+            {
+                reader->ReadSequenceStart_WDefaultKey(true);
+                for(size_t i = 0; i < count; ++i)
+                {
+                    vAction->VarArray[i] = NSSnapValues::ParseTTDVar(i != 0, reader);
+                }
+                reader->ReadSequenceEnd();
+            }
+        }
+
+        template <size_t count, size_t index>
+        TTDVar GetVarItem_InternalUse(const JsRTVarsArgumentAction_InternalUse<count>* argAction)
+        {
+            static_assert(index < count, "Index out of bounds in JsRTVarAndIntegralArgumentsAction.");
+            return argAction->VarArray[index];
+        }
+        template <size_t count> TTDVar GetVarItem_0(const JsRTVarsArgumentAction_InternalUse<count>* argAction) { return GetVarItem_InternalUse<count, 0>(argAction); }
+        template <size_t count> TTDVar GetVarItem_1(const JsRTVarsArgumentAction_InternalUse<count>* argAction) { return GetVarItem_InternalUse<count, 1>(argAction); }
+        template <size_t count> TTDVar GetVarItem_2(const JsRTVarsArgumentAction_InternalUse<count>* argAction) { return GetVarItem_InternalUse<count, 2>(argAction); }
+
+        template <size_t count, size_t index>
+        void SetVarItem_InternalUse(JsRTVarsArgumentAction_InternalUse<count>* argAction, TTDVar value)
+        {
+            static_assert(index < count, "Index out of bounds in JsRTVarAndIntegralArgumentsAction.");
+            argAction->VarArray[index] = value;
+        }
+        template <size_t count> void SetVarItem_0(JsRTVarsArgumentAction_InternalUse<count>* argAction, TTDVar value) { return SetVarItem_InternalUse<count, 0>(argAction, value); }
+        template <size_t count> void SetVarItem_1(JsRTVarsArgumentAction_InternalUse<count>* argAction, TTDVar value) { return SetVarItem_InternalUse<count, 1>(argAction, value); }
+        template <size_t count> void SetVarItem_2(JsRTVarsArgumentAction_InternalUse<count>* argAction, TTDVar value) { return SetVarItem_InternalUse<count, 2>(argAction, value); }
+
+        typedef JsRTVarsArgumentAction_InternalUse<1> JsRTSingleVarArgumentAction;
+        template <EventKind tag> void JsRTSingleVarArgumentAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext) { JsRTVarsArgumentAction_InternalUse_Emit<tag, 1>(evt, writer, threadContext); }
+        template <EventKind tag> void JsRTSingleVarArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc) { JsRTVarsArgumentAction_InternalUse_Parse<tag, 1>(evt, threadContext, reader, alloc); }
+
+        typedef JsRTVarsArgumentAction_InternalUse<2> JsRTDoubleVarArgumentAction;
+        template <EventKind tag> void JsRTDoubleVarArgumentAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext) { JsRTVarsArgumentAction_InternalUse_Emit<tag, 2>(evt, writer, threadContext); }
+        template <EventKind tag> void JsRTDoubleVarArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc) { JsRTVarsArgumentAction_InternalUse_Parse<tag, 2>(evt, threadContext, reader, alloc); }
+
+        typedef JsRTVarsArgumentAction_InternalUse<3> JsRTTrippleVarArgumentAction;
+        template <EventKind tag> void JsRTTrippleVarArgumentAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext) { JsRTVarsArgumentAction_InternalUse_Emit<tag, 3>(evt, writer, threadContext); }
+        template <EventKind tag> void JsRTTrippleVarArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc) { JsRTVarsArgumentAction_InternalUse_Parse<tag, 3>(evt, threadContext, reader, alloc); }
+
+        //A generic struct for actions that need variables and scalar data
+        template <size_t vcount, size_t icount>
+        struct JsRTVarAndIntegralArgumentsAction_InternalUse
+        {
+            TTDVar Result;
+            TTDVar VarArray[vcount];
+            int64 ScalarArray[icount];
+        };
+
+        template <EventKind tag, size_t vcount, size_t icount>
+        void JsRTVarAndIntegralArgumentsAction_InternalUse_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
+        {
+            const JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* vAction = GetInlineEventDataAs<JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>, tag>(evt);
 
             writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(vAction->Result, writer, NSTokens::Separator::NoSeparator);
 
             writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-            NSSnapValues::EmitTTDVar(vAction->Var1, writer, NSTokens::Separator::NoSeparator);
-            NSSnapValues::EmitTTDVar(vAction->Var2, writer, NSTokens::Separator::CommaSeparator);
-            NSSnapValues::EmitTTDVar(vAction->Var3, writer, NSTokens::Separator::CommaSeparator);
+            for(size_t i = 0; i < vcount; ++i)
+            {
+                NSSnapValues::EmitTTDVar(vAction->VarArray[i], writer, i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
+            }
+
+            for(size_t i = 0; i < icount; ++i)
+            {
+                writer->WriteNakedInt64(vAction->ScalarArray[i], vcount + i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
+            }
             writer->WriteSequenceEnd();
         }
 
-        template <EventKind tag>
-        void JsRTVarsArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        template <EventKind tag, size_t vcount, size_t icount>
+        void JsRTVarAndIntegralArgumentsAction_InternalUse_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
         {
-            JsRTVarsArgumentAction* vAction = GetInlineEventDataAs<JsRTVarsArgumentAction, tag>(evt);
+            JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* vAction = GetInlineEventDataAs<JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>, tag>(evt);
 
             reader->ReadKey(NSTokens::Key::argRetVal, true);
             vAction->Result = NSSnapValues::ParseTTDVar(false, reader);
 
             reader->ReadSequenceStart_WDefaultKey(true);
-            vAction->Var1 = NSSnapValues::ParseTTDVar(false, reader);
-            vAction->Var2 = NSSnapValues::ParseTTDVar(true, reader);
-            vAction->Var3 = NSSnapValues::ParseTTDVar(true, reader);
+            for(size_t i = 0; i < vcount; ++i)
+            {
+                vAction->VarArray[i] = NSSnapValues::ParseTTDVar(i != 0, reader);
+            }
+
+            for(size_t i = 0; i < icount; ++i)
+            {
+                vAction->ScalarArray[i] = reader->ReadNakedInt64(vcount + i != 0);
+            }
             reader->ReadSequenceEnd();
         }
 
-        //A generic struct for actions that only need variables and 1 (large) integral value (of known type from the union)
-        struct JsRTVarsWithIntegralUnionArgumentAction
+        template <size_t vcount, size_t icount, size_t index>
+        TTDVar GetVarItem_InternalUse(const JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction)
         {
-            TTDVar Result;
-            TTDVar Var1;
-            TTDVar Var2;
-            union { BOOL u_bVal; Js::PropertyId u_pid; int64 u_iVal; };
-        };
+            static_assert(index < vcount, "Index out of bounds in JsRTVarAndIntegralArgumentsAction.");
+            return argAction->VarArray[index];
+        }
+        template <size_t vcount, size_t icount> TTDVar GetVarItem_0(const JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction) { return GetVarItem_InternalUse<vcount, icount, 0>(argAction); }
+        template <size_t vcount, size_t icount> TTDVar GetVarItem_1(const JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction) { return GetVarItem_InternalUse<vcount, icount, 1>(argAction); }
 
-        template <EventKind tag>
-        void JsRTVarsWithIntegralUnionArgumentAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
+        template <size_t vcount, size_t icount, size_t index>
+        void SetVarItem_InternalUse(JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction, TTDVar value)
         {
-            const JsRTVarsWithIntegralUnionArgumentAction* vAction = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, tag>(evt);
+            static_assert(index < vcount, "Index out of bounds in JsRTVarAndIntegralArgumentsAction.");
+            argAction->VarArray[index] = value;
+        }
+        template <size_t vcount, size_t icount> void SetVarItem_0(JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction, TTDVar value) { return SetVarItem_InternalUse<vcount, icount, 0>(argAction, value); }
+        template <size_t vcount, size_t icount> void SetVarItem_1(JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction, TTDVar value) { return SetVarItem_InternalUse<vcount, icount, 1>(argAction, value); }
 
-            writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
-            NSSnapValues::EmitTTDVar(vAction->Result, writer, NSTokens::Separator::NoSeparator);
+        template <size_t vcount, size_t icount, size_t index>
+        int64 GetScalarItem_InternalUse(const JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction)
+        {
+            static_assert(index < icount, "Index out of bounds in JsRTVarAndIntegralArgumentsAction.");
+            return argAction->ScalarArray[index];
+        }
+        template <size_t vcount, size_t icount> int64 GetScalarItem_0(const JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction) { return GetScalarItem_InternalUse<vcount, icount, 0>(argAction); }
+        template <size_t vcount, size_t icount> int64 GetScalarItem_1(const JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction) { return GetScalarItem_InternalUse<vcount, icount, 1>(argAction); }
 
-            writer->WriteInt64(NSTokens::Key::i64Val, vAction->u_iVal, NSTokens::Separator::CommaSeparator);
+        template <size_t vcount, size_t icount, size_t index>
+        void SetScalarItem_InternalUse(JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction, int64 value)
+        {
+            static_assert(index < icount, "Index out of bounds in JsRTVarAndIntegralArgumentsAction.");
+            argAction->ScalarArray[index] = value;
+        }
+        template <size_t vcount, size_t icount> void SetScalarItem_0(JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction, int64 value) { return SetScalarItem_InternalUse<vcount, icount, 0>(argAction, value); }
+        template <size_t vcount, size_t icount> void SetScalarItem_1(JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction, int64 value) { return SetScalarItem_InternalUse<vcount, icount, 1>(argAction, value); }
 
-            writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-            NSSnapValues::EmitTTDVar(vAction->Var1, writer, NSTokens::Separator::NoSeparator);
-            NSSnapValues::EmitTTDVar(vAction->Var2, writer, NSTokens::Separator::CommaSeparator);
-            writer->WriteSequenceEnd();
+        template <size_t vcount, size_t icount>
+        Js::PropertyId GetPropertyIdItem(const JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction)
+        {
+            static_assert(0 < icount, "Index out of bounds in JsRTVarAndIntegralArgumentsAction.");
+            return (Js::PropertyId)argAction->ScalarArray[0];
         }
 
-        template <EventKind tag>
-        void JsRTVarsWithIntegralUnionArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        template <size_t vcount, size_t icount>
+        void SetPropertyIdItem(JsRTVarAndIntegralArgumentsAction_InternalUse<vcount, icount>* argAction, Js::PropertyId value)
         {
-            JsRTVarsWithIntegralUnionArgumentAction* vAction = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, tag>(evt);
-
-            reader->ReadKey(NSTokens::Key::argRetVal, true);
-            vAction->Result = NSSnapValues::ParseTTDVar(false, reader);
-
-            vAction->u_iVal = reader->ReadInt64(NSTokens::Key::i64Val, true);
-
-            reader->ReadSequenceStart_WDefaultKey(true);
-            vAction->Var1 = NSSnapValues::ParseTTDVar(false, reader);
-            vAction->Var2 = NSSnapValues::ParseTTDVar(true, reader);
-            reader->ReadSequenceEnd();
+            AssertMsg(0 < icount, "Index out of bounds in JsRTVarAndIntegralArgumentsAction.");
+            argAction->ScalarArray[0] = (int64)value;
         }
 
-        //A generic struct for actions that only need variables and 2 (small) integral values
-        struct JsRTVarsWithBoolAndPIDArgumentAction
-        {
-            TTDVar Result;
-            TTDVar Var1;
-            TTDVar Var2;
-            Js::PropertyId Pid;
-            BOOL BoolVal;
-        };
+        typedef JsRTVarAndIntegralArgumentsAction_InternalUse<1, 1> JsRTSingleVarScalarArgumentAction;
+        template <EventKind tag> void JsRTSingleVarScalarArgumentAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext) { JsRTVarAndIntegralArgumentsAction_InternalUse_Emit<tag, 1, 1>(evt, writer, threadContext); }
+        template <EventKind tag> void JsRTSingleVarScalarArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc) { JsRTVarAndIntegralArgumentsAction_InternalUse_Parse<tag, 1, 1>(evt, threadContext, reader, alloc); }
 
-        template <EventKind tag>
-        void JsRTVarsWithBoolAndPIDArgumentAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
-        {
-            const JsRTVarsWithBoolAndPIDArgumentAction* vAction = GetInlineEventDataAs<JsRTVarsWithBoolAndPIDArgumentAction, tag>(evt);
+        typedef JsRTVarAndIntegralArgumentsAction_InternalUse<2, 1> JsRTDoubleVarSingleScalarArgumentAction;
+        template <EventKind tag> void JsRTDoubleVarSingleScalarArgumentAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext) { JsRTVarAndIntegralArgumentsAction_InternalUse_Emit<tag, 2, 1>(evt, writer, threadContext); }
+        template <EventKind tag> void JsRTDoubleVarSingleScalarArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc) { JsRTVarAndIntegralArgumentsAction_InternalUse_Parse<tag, 2, 1>(evt, threadContext, reader, alloc); }
 
-            writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
-            NSSnapValues::EmitTTDVar(vAction->Result, writer, NSTokens::Separator::NoSeparator);
+        typedef JsRTVarAndIntegralArgumentsAction_InternalUse<1, 2> JsRTSingleVarDoubleScalarArgumentAction;
+        template <EventKind tag> void JsRTSingleVarDoubleScalarArgumentAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext) { JsRTVarAndIntegralArgumentsAction_InternalUse_Emit<tag, 1, 2>(evt, writer, threadContext); }
+        template <EventKind tag> void JsRTSingleVarDoubleScalarArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc) { JsRTVarAndIntegralArgumentsAction_InternalUse_Parse<tag, 1, 2>(evt, threadContext, reader, alloc); }
 
-            writer->WriteUInt32(NSTokens::Key::u32Val, vAction->Pid, NSTokens::Separator::CommaSeparator);
-            writer->WriteInt32(NSTokens::Key::i32Val, vAction->BoolVal, NSTokens::Separator::CommaSeparator);
-
-            writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-            NSSnapValues::EmitTTDVar(vAction->Var1, writer, NSTokens::Separator::NoSeparator);
-            NSSnapValues::EmitTTDVar(vAction->Var2, writer, NSTokens::Separator::CommaSeparator);
-            writer->WriteSequenceEnd();
-        }
-
-        template <EventKind tag>
-        void JsRTVarsWithBoolAndPIDArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
-        {
-            JsRTVarsWithBoolAndPIDArgumentAction* vAction = GetInlineEventDataAs<JsRTVarsWithBoolAndPIDArgumentAction, tag>(evt);
-
-            reader->ReadKey(NSTokens::Key::argRetVal, true);
-            vAction->Result = NSSnapValues::ParseTTDVar(false, reader);
-
-            vAction->Pid = reader->ReadUInt32(NSTokens::Key::u32Val, true);
-            vAction->BoolVal = reader->ReadInt32(NSTokens::Key::i32Val, true);
-
-            reader->ReadSequenceStart_WDefaultKey(true);
-            vAction->Var1 = NSSnapValues::ParseTTDVar(false, reader);
-            vAction->Var2 = NSSnapValues::ParseTTDVar(true, reader);
-            reader->ReadSequenceEnd();
-        }
+        typedef JsRTVarAndIntegralArgumentsAction_InternalUse<2, 2> JsRTDoubleVarDoubleScalarArgumentAction;
+        template <EventKind tag> void JsRTDoubleVarDoubleScalarArgumentAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext) { JsRTVarAndIntegralArgumentsAction_InternalUse_Emit<tag, 2, 2>(evt, writer, threadContext); }
+        template <EventKind tag> void JsRTDoubleVarDoubleScalarArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc) { JsRTVarAndIntegralArgumentsAction_InternalUse_Parse<tag, 2, 2>(evt, threadContext, reader, alloc); }
 
         //A struct for actions that are definied by their tag and a double
         struct JsRTDoubleArgumentAction
@@ -311,26 +443,6 @@ namespace TTD
 
         void SetActiveScriptContext_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
-        struct JsRTDestroyScriptContextAction_KnownObjects
-        {
-            TTD_LOG_PTR_ID UndefinedLogTag;
-            TTD_LOG_PTR_ID NullLogTag;
-            TTD_LOG_PTR_ID TrueLogTag;
-            TTD_LOG_PTR_ID FalseLogTag;
-        };
-
-        struct JsRTDestroyScriptContextAction
-        {
-            TTD_LOG_PTR_ID GlobalLogTag;
-
-            JsRTDestroyScriptContextAction_KnownObjects* KnownObjects;
-        };
-
-        void DeadScriptContext_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
-        void DeadScriptContext_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void DeadScriptContext_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
-        void DeadScriptContext_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
-
 #if !INT32VAR
         void CreateInt_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 #endif
@@ -340,19 +452,19 @@ namespace TTD
         void CreateString_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void CreateSymbol_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
-        void Execute_CreateErrorHelper(const JsRTVarsArgumentAction* errorData, ThreadContextTTD* executeContext, Js::ScriptContext* ctx, EventKind eventKind, Js::Var* res);
+        void Execute_CreateErrorHelper(const JsRTSingleVarArgumentAction* errorData, ThreadContextTTD* executeContext, Js::ScriptContext* ctx, EventKind eventKind, Js::Var* res);
 
         template<EventKind errorKind>
         void CreateError_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
         {
-            const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, errorKind>(evt);
+            const JsRTSingleVarArgumentAction* action = GetInlineEventDataAs<JsRTSingleVarArgumentAction, errorKind>(evt);
 
             Js::Var res = nullptr;
             Execute_CreateErrorHelper(action, executeContext, executeContext->GetActiveScriptContext(), errorKind, &res);
 
             if(res != nullptr)
             {
-                JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, errorKind>(executeContext, evt, res);
+                JsRTActionHandleResultForReplay<JsRTSingleVarArgumentAction, errorKind>(executeContext, evt, res);
             }
         }
 
@@ -362,7 +474,7 @@ namespace TTD
         void VarConvertToObject_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         void AddRootRef_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
-        void RemoveRootRef_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void AddWeakRootRef_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         void AllocateObject_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void AllocateExternalObject_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
@@ -372,10 +484,12 @@ namespace TTD
         void AllocateFunctionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         void HostProcessExitAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void GetAndClearExceptionWithMetadataAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void SetExceptionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         void HasPropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void HasOwnPropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void InstanceOfAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void EqualsAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
@@ -496,34 +610,14 @@ namespace TTD
         void JsRTConstructCallAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void JsRTConstructCallAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
-        //A struct for correlating host callback ids that are registed/created/canceled by this call
-        struct JsRTCallbackAction
+        //A struct for calls to script parse
+        struct JsRTCodeParseAction
         {
-            //The id of the current callback (we should be able to recompute this but we store it to simplify later analysis)
-            int64 CurrentCallbackId;
+            TTDVar Result;
 
-            //the function tag and name for the callback function and the id that we are associating it with
-            int64 NewCallbackId;
-            
-            //Info on the time that this registration occours
-            TTDebuggerSourceLocation* RegisterLocation;
+            //The body counter id associated with this load
+            uint32 BodyCtrId;
 
-            //true if this is a cancelation/repeating action -- otherwise this is a 
-            bool IsCreate;
-            bool IsCancel;
-            bool IsRepeating;
-        };
-
-        void JsRTCallbackAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
-        void JsRTCallbackAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void JsRTCallbackAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
-        void JsRTCallbackAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
-        
-        bool JsRTCallbackAction_GetActionTimeInfoForDebugger(const EventLogEntry* evt, TTDebuggerSourceLocation& sourceLocation);
-
-        //A struct for additional info associated with calls to script parse
-        struct JsRTCodeParseAction_AdditionalInfo
-        {
             //Is the code utf8
             bool IsUtf8;
 
@@ -539,19 +633,7 @@ namespace TTD
             LoadScriptFlag LoadFlag;
         };
 
-        //A struct for calls to script parse
-        struct JsRTCodeParseAction
-        {
-            TTDVar Result;
-
-            //The body counter id associated with this load
-            uint64 BodyCtrId;
-
-            //All of the additional source code load info
-            JsRTCodeParseAction_AdditionalInfo* AdditionalInfo;
-        };
-
-        void JsRTCodeParseAction_SetBodyCtrId(EventLogEntry* parseEvent, uint64 bodyCtrId);
+        void JsRTCodeParseAction_SetBodyCtrId(EventLogEntry* parseEvent, uint32 bodyCtrId);
 
         void JsRTCodeParseAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void JsRTCodeParseAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
@@ -571,9 +653,18 @@ namespace TTD
             TTDebuggerSourceLocation LastExecutedLocation;
         };
 
-        //A struct for additional info associated with calls to script parse
-        struct JsRTCallFunctionAction_AdditionalInfo
+        //A struct for calls to that execute existing functions
+        struct JsRTCallFunctionAction
         {
+            TTDVar Result;
+
+            //The re-entry depth we are at when this happens
+            int32 CallbackDepth;
+
+            //the number of arguments and the argument array -- function is always argument[0]
+            uint32 ArgCount;
+            TTDVar* ArgArray;
+
             //The actual event time associated with this call (is >= the TopLevelCallbackEventTime)
             int64 CallEventTime;
 
@@ -590,22 +681,6 @@ namespace TTD
             //The name of the function
             TTString FunctionName;
 #endif
-        };
-
-        //A struct for calls to that execute existing functions
-        struct JsRTCallFunctionAction
-        {
-            TTDVar Result;
-
-            //The re-entry depth we are at when this happens
-            int32 CallbackDepth;
-
-            //the number of arguments and the argument array -- function is always argument[0]
-            uint32 ArgCount;
-            TTDVar* ArgArray;
-
-            //Additional info associated with the Action
-            JsRTCallFunctionAction_AdditionalInfo* AdditionalInfo;
         };
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS

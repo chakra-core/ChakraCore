@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptSIMDFloat32x4.cpp" />
@@ -14,9 +14,9 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)CompoundString.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)dataview.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)EngineInterfaceObject.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)IteratorObjectEnumerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptArrayIterator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptBuiltInFunctions.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptExternalFunction.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptGenerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptGeneratorFunction.cpp" />
@@ -118,7 +118,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyModule.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyTable.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyEnvironment.cpp" />
-    <ClCompile Include="WabtInterface.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WabtInterface.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -142,7 +144,6 @@
     <ClInclude Include="HostObjectBase.h" />
     <ClInclude Include="InJavascript\Intl.js.bc.32b.h" />
     <ClInclude Include="InJavascript\Intl.js.bc.64b.h" />
-    <ClInclude Include="IteratorObjectEnumerator.h" />
     <ClInclude Include="JavascriptArrayIndexEnumerator.h" />
     <ClInclude Include="JavascriptArrayIterator.h" />
     <ClInclude Include="JavascriptBuiltInFunctionList.h" />
@@ -254,6 +255,8 @@
     <ClInclude Include="WebAssemblyTable.h" />
     <ClInclude Include="WebAssemblyEnvironment.h" />
     <ClInclude Include="WabtInterface.h" />
+    <ClInclude Include="CustomExternalIterator.h" />
+    <ClInclude Include="JavascriptExceptionMetadata.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />

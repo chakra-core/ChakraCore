@@ -18,6 +18,12 @@ WebAssemblySource::WebAssemblySource(Var source, bool createNewContext, ScriptCo
     CreateSourceInfo(createNewContext, scriptContext);
 }
 
+WebAssemblySource::WebAssemblySource(byte* source, uint bufferLength, bool createNewContext, ScriptContext* scriptContext):
+    buffer(source), bufferLength(bufferLength)
+{
+    CreateSourceInfo(createNewContext, scriptContext);
+}
+
 void WebAssemblySource::ReadBufferSource(Var val, ScriptContext * scriptContext)
 {
     BYTE* srcBuffer;

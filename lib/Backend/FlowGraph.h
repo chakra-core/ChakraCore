@@ -139,6 +139,10 @@ public:
         tailBlock(nullptr),
         loopList(nullptr),
         catchLabelStack(nullptr),
+        finallyLabelStack(nullptr),
+        leaveNullLabelStack(nullptr),
+        regToFinallyEndMap(nullptr),
+        leaveNullLabelToFinallyLabelMap(nullptr),
         hasBackwardPassInfo(false),
         hasLoop(false),
         implicitCallFlags(Js::ImplicitCall_HasNoInfo)
@@ -149,7 +153,7 @@ public:
     void Destroy(void);
 
     void         RunPeeps();
-    BasicBlock * AddBlock(IR::Instr * firstInstr, IR::Instr * lastInstr, BasicBlock * nextBlock);
+    BasicBlock * AddBlock(IR::Instr * firstInstr, IR::Instr * lastInstr, BasicBlock * nextBlock, BasicBlock *prevBlock = nullptr);
     FlowEdge *   AddEdge(BasicBlock * predBlock, BasicBlock * succBlock);
     BasicBlock * InsertCompensationCodeForBlockMove(FlowEdge * edge, // Edge where compensation code needs to be inserted
                                                     bool insertCompensationBlockToLoopList = false,
@@ -158,19 +162,19 @@ public:
     BasicBlock * InsertAirlockBlock(FlowEdge * edge);
     void         InsertCompBlockToLoopList(Loop *loop, BasicBlock* compBlock, BasicBlock* targetBlock, bool postTarget);
     void         RemoveUnreachableBlocks();
-    bool         RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt = nullptr, IR::Instr ** pUpwardedInstr = nullptr);
+    bool         RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt = nullptr);
     IR::Instr *  RemoveInstr(IR::Instr *instr, GlobOpt * globOpt);
-    void         RemoveBlock(BasicBlock *block, GlobOpt * globOpt = nullptr, bool tailDuping = false, IR::Instr ** upwardedInstr = nullptr);
+    void         RemoveBlock(BasicBlock *block, GlobOpt * globOpt = nullptr, bool tailDuping = false);
     BasicBlock * SetBlockTargetAndLoopFlag(IR::LabelInstr * labelInstr);
     Func*        GetFunc() { return func;};
     static void  SafeRemoveInstr(IR::Instr *instr);
     void         SortLoopLists();
     FlowEdge *   FindEdge(BasicBlock *predBlock, BasicBlock *succBlock);
-    void         UpwardInlineeEndBeforeRemoving(BasicBlock * block,
-                                                IR::Instr * inlineeEnd,
-                                                BVSparse<JitArenaAllocator> * visitedBlocks,
-                                                IR::Instr ** pUpwardedInstr);
-
+    IR::LabelInstr * DeleteLeaveChainBlocks(IR::BranchInstr *leaveInstr, IR::Instr * &instrPrev);
+    bool         IsEarlyExitFromFinally(IR::BranchInstr *leaveInstr, Region *currentRegion, Region *branchTargetRegion, IR::Instr *&instrPrev, IR::LabelInstr *&exitLabel);
+    bool         Dominates(Region *finallyRegion, Region *exitLabelRegion);
+    bool         DoesExitLabelDominate(IR::BranchInstr *leaveInstr);
+    void         InsertEdgeFromFinallyToEarlyExit(BasicBlock * finallyEndBlock, IR::LabelInstr * exitLabel);
 #if DBG_DUMP
     void         Dump();
     void         Dump(bool verbose, const char16 *form);
@@ -181,6 +185,12 @@ public:
     BasicBlock *              tailBlock;
     Loop *                    loopList;
     SList<IR::LabelInstr*> *  catchLabelStack;
+    SList<IR::LabelInstr*> *  finallyLabelStack;
+    SList<IR::LabelInstr*> *  leaveNullLabelStack;
+    typedef JsUtil::BaseDictionary<Region *, BasicBlock *, JitArenaAllocator> RegionToFinallyEndMapType;
+    RegionToFinallyEndMapType * regToFinallyEndMap;
+    typedef JsUtil::BaseDictionary<IR::LabelInstr *, IR::LabelInstr *, JitArenaAllocator> LeaveNullLabelToFinallyLabelMapType;
+    LeaveNullLabelToFinallyLabelMapType * leaveNullLabelToFinallyLabelMap;
     bool                      hasBackwardPassInfo;
     bool                      hasLoop;
     Js::ImplicitCallFlags     implicitCallFlags;
@@ -190,7 +200,10 @@ private:
     void        BuildLoop(BasicBlock *headBlock, BasicBlock *tailBlock, Loop *parentLoop = nullptr);
     void        WalkLoopBlocks(BasicBlock *block, Loop *loop, JitArenaAllocator *tempAlloc);
     void        AddBlockToLoop(BasicBlock *block, Loop *loop);
-    void        UpdateRegionForBlock(BasicBlock *block, Region **blockToRegion);
+    bool        IsEHTransitionInstr(IR::Instr *instr);
+    BasicBlock * GetPredecessorForRegionPropagation(BasicBlock *block);
+    void        UpdateRegionForBlock(BasicBlock *block);
+    void        UpdateRegionForBlockFromEHPred(BasicBlock *block, bool reassign = false);
     Region *    PropagateRegionFromPred(BasicBlock *block, BasicBlock *predBlock, Region *predRegion, IR::Instr * &tryInstr);
     IR::Instr * PeepCm(IR::Instr *instr);
     IR::Instr * PeepTypedCm(IR::Instr *instr);
@@ -306,11 +319,11 @@ public:
 
     BasicBlock * GetNext()
     {
-        BasicBlock *block = this;
+        BasicBlock *block = this->next;
 
-        do {
+        while (block && block->isDeleted) {
             block = block->next;
-        } while (block && block->isDeleted);
+        }
 
         return block;
     }
@@ -334,8 +347,14 @@ public:
 
     bool IsLandingPad();
 
-#if DBG_DUMP
+    // GlobOpt Stuff
+public:
+    void         MergePredBlocksValueMaps(GlobOpt* globOptState);
+private:
+    void         CleanUpValueMaps();
 
+#if DBG_DUMP
+public:
     void DumpHeader(bool insertCR = true);
     void Dump();
 
@@ -551,23 +570,24 @@ public:
     BVSparse<JitArenaAllocator> *lossyInt32SymsOnEntry; // see GlobOptData::liveLossyInt32Syms
     BVSparse<JitArenaAllocator> *float64SymsOnEntry;
     BVSparse<JitArenaAllocator> *liveFieldsOnEntry;
+
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     // live syms upon entering loop header (from pred merge + forced syms + used before defs in loop)
     BVSparse<JitArenaAllocator> *simd128F4SymsOnEntry;
     BVSparse<JitArenaAllocator> *simd128I4SymsOnEntry;
+    BVSparse<JitArenaAllocator> *likelySimd128F4SymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-Simd128F4 value, and used before they are defined in the loop
+    BVSparse<JitArenaAllocator> *likelySimd128I4SymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-Simd128I4 value, and used before they are defined in the loop
+    // syms need to be forced to certain type due to hoisting
+    BVSparse<JitArenaAllocator> *forceSimd128F4SymsOnEntry;
+    BVSparse<JitArenaAllocator> *forceSimd128I4SymsOnEntry;
+#endif
 
     BVSparse<JitArenaAllocator> *symsUsedBeforeDefined;                // stack syms that are live in the landing pad, and used before they are defined in the loop
     BVSparse<JitArenaAllocator> *likelyIntSymsUsedBeforeDefined;       // stack syms that are live in the landing pad with a likely-int value, and used before they are defined in the loop
     BVSparse<JitArenaAllocator> *likelyNumberSymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-number value, and used before they are defined in the loop
-    // SIMD_JS
-    BVSparse<JitArenaAllocator> *likelySimd128F4SymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-Simd128F4 value, and used before they are defined in the loop
-    BVSparse<JitArenaAllocator> *likelySimd128I4SymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-Simd128I4 value, and used before they are defined in the loop
 
     BVSparse<JitArenaAllocator> *forceFloat64SymsOnEntry;
-    // SIMD_JS
-    // syms need to be forced to certain type due to hoisting
-    BVSparse<JitArenaAllocator> *forceSimd128F4SymsOnEntry;
-    BVSparse<JitArenaAllocator> *forceSimd128I4SymsOnEntry;
 
     BVSparse<JitArenaAllocator> *symsDefInLoop;
     BailOutInfo *       bailOutInfo;
@@ -709,11 +729,13 @@ public:
         symsUsedBeforeDefined(nullptr),
         likelyIntSymsUsedBeforeDefined(nullptr),
         likelyNumberSymsUsedBeforeDefined(nullptr),
+#ifdef ENABLE_SIMDJS
         likelySimd128F4SymsUsedBeforeDefined(nullptr),
         likelySimd128I4SymsUsedBeforeDefined(nullptr),
-        forceFloat64SymsOnEntry(nullptr),
         forceSimd128F4SymsOnEntry(nullptr),
         forceSimd128I4SymsOnEntry(nullptr),
+#endif
+        forceFloat64SymsOnEntry(nullptr),
         symsDefInLoop(nullptr),
         fieldHoistCandidateTypes(nullptr),
         fieldHoistSymMap(alloc),
@@ -741,7 +763,7 @@ public:
     void                SetImplicitCallFlags(Js::ImplicitCallFlags flags);
     Js::LoopFlags GetLoopFlags() const { return loopFlags; }
     void SetLoopFlags(Js::LoopFlags val) { loopFlags = val; }
-    bool                CanHoistInvariants();
+    bool                CanHoistInvariants() const;
     bool                CanDoFieldCopyProp();
     bool                CanDoFieldHoist();
     void                SetHasCall();

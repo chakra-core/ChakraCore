@@ -191,5 +191,11 @@
     <None Include="src\thread\pal_thread.cpp" />
     <None Include="src\thread\process.cpp" />
     <None Include="src\thread\threadsusp.cpp" />
+    <None Include="src\locale\UnicodeData.txt" />
+    <None Include="src\arch\arm\asmconstants.h" />
+    <None Include="src\arch\arm\processor.cpp" />
+    <None Include="src\cruntime\runtime_proxy.cpp" />
+    <None Include="src\cruntime\runtime_proxy.h" />
+    <None Include="inc\unixasmmacrosarm.inc" />
   </ItemGroup>
 </Project>

@@ -18,7 +18,7 @@ rm -f $ERRFILE
 rm -f $ERRFILETEMP
 
 echo "Check Copyright > Begin Checking..."
-git diff --name-only `git merge-base origin/master HEAD` HEAD |
+git diff --name-only `git merge-base origin/$ghprbTargetBranch HEAD` HEAD |
     grep -v -E '\.git.*' |
     grep -v -E '\.xml$' |
     grep -v -E '\.props$' |
@@ -39,6 +39,7 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.man$' |
     grep -v -E 'lib/wabt/.*' |
     grep -v -E 'test/WasmSpec/.*$' |
+    grep -v -E 'test/UnitTestFramework/yargs.js$' |
     grep -v -E 'test/benchmarks/.*\.js$' |
     grep -v -E 'test/benchmarks/.*\.js_c$' |
     grep -v -E 'bin/External/.*$' |

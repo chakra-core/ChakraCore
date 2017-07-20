@@ -17,47 +17,83 @@
 #ifndef WABT_OPTION_PARSER_H_
 #define WABT_OPTION_PARSER_H_
 
+#include <functional>
+#include <string>
+#include <vector>
+
 #include "common.h"
 
 namespace wabt {
 
-enum class HasArgument {
-  No = 0,
-  Yes = 1,
+class OptionParser {
+ public:
+  enum class HasArgument { No, Yes };
+  enum class ArgumentCount { One, OneOrMore };
+
+  struct Option;
+  typedef std::function<void(const char*)> Callback;
+  typedef std::function<void()> NullCallback;
+
+  struct Option {
+    Option(char short_name,
+           const std::string& long_name,
+           const std::string& metavar,
+           HasArgument has_argument,
+           const std::string& help,
+           const Callback&);
+
+    char short_name;
+    std::string long_name;
+    std::string metavar;
+    bool has_argument;
+    std::string help;
+    Callback callback;
+  };
+
+  struct Argument {
+    Argument(const std::string& name, ArgumentCount, const Callback&);
+
+    std::string name;
+    ArgumentCount count;
+    Callback callback;
+    int handled_count = 0;
+  };
+
+  explicit OptionParser(const char* program_name, const char* description);
+
+  void AddOption(const Option&);
+  void AddArgument(const std::string& name, ArgumentCount, const Callback&);
+  void SetErrorCallback(const Callback&);
+  void Parse(int argc, char* argv[]);
+  void PrintHelp();
+
+  // Helper functions.
+  void AddOption(char short_name,
+                 const char* long_name,
+                 const char* help,
+                 const NullCallback&);
+  void AddOption(const char* long_name, const char* help, const NullCallback&);
+  void AddOption(char short_name,
+                 const char* long_name,
+                 const char* metavar,
+                 const char* help,
+                 const Callback&);
+  void AddHelpOption();
+
+ private:
+  static int Match(const char* s, const std::string& full, bool has_argument);
+  void WABT_PRINTF_FORMAT(2, 3) Errorf(const char* format, ...);
+  void HandleArgument(size_t* arg_index, const char* arg_value);
+
+  // Print the error and exit(1).
+  void DefaultError(const std::string&);
+
+  std::string program_name_;
+  std::string description_;
+  std::vector<Option> options_;
+  std::vector<Argument> arguments_;
+  Callback on_error_;
 };
-
-struct Option;
-struct OptionParser;
-typedef void (*OptionCallback)(struct OptionParser*,
-                               struct Option*,
-                               const char* argument);
-typedef void (*ArgumentCallback)(struct OptionParser*, const char* argument);
-typedef void (*OptionErrorCallback)(struct OptionParser*, const char* message);
-
-struct Option {
-  int id;
-  char short_name;
-  const char* long_name;
-  const char* metavar;
-  HasArgument has_argument;
-  const char* help;
-};
-
-struct OptionParser {
-  const char* description;
-  Option* options;
-  int num_options;
-  OptionCallback on_option;
-  ArgumentCallback on_argument;
-  OptionErrorCallback on_error;
-  void* user_data;
-
-  /* cached after call to parse_options */
-  char* argv0;
-};
-
-void parse_options(OptionParser* parser, int argc, char** argv);
-void print_help(OptionParser* parser, const char* program_name);
 
 }  // namespace wabt
 

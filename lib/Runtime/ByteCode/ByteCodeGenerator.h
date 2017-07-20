@@ -181,7 +181,6 @@ public:
     void FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
     void SetClosureRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
     void EnsureSpecialScopeSlots(FuncInfo* funcInfo, Scope* scope);
-    void InitSpecialScopeSlots(FuncInfo* funcInfo);
     void SetHasTry(bool has);
     void SetHasFinally(bool has);
     void SetNumberOfInArgs(Js::ArgSlot argCount);
@@ -382,6 +381,7 @@ public:
     void UpdateDebuggerPropertyInitializationOffset(Js::RegSlot location, Js::PropertyId propertyId, bool shouldConsumeRegister = true);
 
     void PopulateFormalsScope(uint beginOffset, FuncInfo *funcInfo, ParseNode *pnode);
+    void InsertPropertyToDebuggerScope(FuncInfo* funcInfo, Js::DebuggerScope* debuggerScope, Symbol* sym);
     FuncInfo *FindEnclosingNonLambda();
 
     bool CanStackNestedFunc(FuncInfo * funcInfo, bool trace = false);

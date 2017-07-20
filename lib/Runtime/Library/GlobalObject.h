@@ -33,7 +33,7 @@ namespace Js
         BOOL ReserveGlobalProperty(PropertyId propertyId);
         BOOL IsReservedGlobalProperty(PropertyId propertyId);
 
-        Var ExecuteEvalParsedFunction(ScriptFunction *pfuncScript, FrameDisplay* environment, Var &varThis);
+        Var ExecuteEvalParsedFunction(ScriptFunction *pfuncScript, FrameDisplay* environment, Var &varThis, ScriptContext *scriptContext);
 
         class EntryInfo
         {
@@ -56,6 +56,10 @@ namespace Js
 
             static FunctionInfo EnabledDiagnosticsTrace;
             static FunctionInfo EmitTTDLog;
+#endif
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+            static FunctionInfo ChWriteTraceEvent;
 #endif
 
 #ifdef IR_VIEWER
@@ -85,6 +89,10 @@ namespace Js
 
         static Var EntryEnabledDiagnosticsTrace(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryEmitTTDLog(RecyclableObject* function, CallInfo callInfo, ...);
+#endif
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        static Var EntryChWriteTraceEvent(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
 
 #ifdef IR_VIEWER

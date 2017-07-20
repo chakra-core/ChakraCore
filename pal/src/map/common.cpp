@@ -49,7 +49,7 @@ INT W32toUnixAccessControl( IN DWORD flProtect )
         MemAccessControl = PROT_EXEC | PROT_READ | PROT_WRITE;
         break;
     case PAGE_EXECUTE :
-        MemAccessControl = PROT_EXEC;
+        MemAccessControl = PROT_EXEC | PROT_READ; // WinAPI PAGE_EXECUTE also implies readable
         break;
     case PAGE_EXECUTE_READ :
         MemAccessControl = PROT_EXEC | PROT_READ;

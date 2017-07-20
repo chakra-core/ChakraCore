@@ -139,7 +139,7 @@ namespace Js {
         typedef JsUtil::BaseDictionary<PropertyId, AsmJsSymbol*, ArenaAllocator> ModuleEnvironment;
         typedef JsUtil::List<AsmJsFunc*, ArenaAllocator> ModuleFunctionArray;
         typedef JsUtil::List<AsmJsFunctionTable*, ArenaAllocator> ModuleFunctionTableArray;
-        typedef JsUtil::List<AsmJsModuleExport, ArenaAllocator> ModuleExportArray;
+        typedef JsUtil::BaseDictionary<PropertyId, AsmJsModuleExport, ArenaAllocator> ModuleExportMap;
         typedef JsUtil::Queue<AsmJsArrayView *, ArenaAllocator> ModuleArrayViewList;
         typedef WAsmJs::RegisterSpace ModuleIntVars;
         typedef WAsmJs::RegisterSpace ModuleDoubleVars;
@@ -185,7 +185,7 @@ namespace Js {
         ModuleSIMDVars                  mSimdVarSpace;
         BVStatic<ASMSIMD_BUILTIN_SIZE>  mAsmSimdBuiltinUsedBV;
 
-        ModuleExportArray               mExports;
+        ModuleExportMap                 mExports;
         RegSlot                         mExportFuncIndex; // valid only if export object is empty
         ModuleFunctionTableArray        mFunctionTableArray;
         int                             mVarImportCount;
@@ -206,7 +206,6 @@ namespace Js {
         bool mBufferArgNameInit : 1;
 #endif
         bool mInitialised : 1;
-        bool mUsesChangeHeap : 1;
         bool mUsesHeapBuffer : 1;
     public:
         AsmJsModuleCompiler( ExclusiveContext *cx, AsmJSParser &parser );
@@ -283,7 +282,6 @@ namespace Js {
         bool Fail( ParseNode* usepn, const wchar *error );
 
         bool AreAllFuncTableDefined();
-        bool UsesChangeHeap() { return mUsesChangeHeap; }
         bool UsesHeapBuffer() { return mUsesHeapBuffer; }
         void SetUsesHeapBuffer(bool val) { mUsesHeapBuffer = val; }
         void UpdateMaxHeapAccess(uint index);
@@ -322,7 +320,9 @@ namespace Js {
         bool AddStandardLibraryArrayName(PropertyId id, AsmJsTypedArrayFunction * func, AsmJSTypedArrayBuiltinFunction mathLibFunctionName);
         bool CheckByteLengthCall(ParseNode * node, ParseNode * newBufferDecl);
         bool ValidateSimdConstructor(ParseNode* pnode, AsmJsSIMDFunction* simdFunc, AsmJsSIMDValue& value);
+#ifdef ENABLE_SIMDJS
         bool IsSimdjsEnabled() { return GetScriptContext()->GetConfig()->IsSimdjsEnabled(); }
+#endif
     };
 
     struct AsmJsSlot
@@ -410,7 +410,6 @@ namespace Js {
         Field(BVStatic<ASMSIMD_BUILTIN_SIZE>)  mAsmSimdBuiltinUsed;
 
         Field(uint)                         mMaxHeapAccess;
-        Field(bool)                         mUsesChangeHeap;
         Field(bool)                         mIsProcessed;
     public:
         AsmJsModuleInfo( Recycler* recycler ) :
@@ -428,7 +427,6 @@ namespace Js {
             , mFunctionImports( nullptr )
             , mFunctions( nullptr )
             , mMaxHeapAccess(0)
-            , mUsesChangeHeap(false)
             , mIsProcessed(false)
             , mSlotMap(nullptr)
         {
@@ -590,14 +588,6 @@ namespace Js {
         inline BVStatic<ASMARRAY_BUILTIN_SIZE> GetAsmArrayBuiltinUsed()const
         {
             return mAsmArrayBuiltinUsed;
-        }
-        void SetUsesChangeHeap(bool val)
-        {
-            mUsesChangeHeap = val;
-        }
-        inline bool GetUsesChangeHeap() const
-        {
-            return mUsesChangeHeap;
         }
         void SetMaxHeapAccess(uint val)
         {

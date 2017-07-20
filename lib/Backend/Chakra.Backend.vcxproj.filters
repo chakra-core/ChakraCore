@@ -112,7 +112,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITOutput.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeFunctionBody.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeProfileInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeScriptContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeWorkItem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsJITInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITRuntimeInfo.cpp" />
@@ -127,8 +126,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionCodeGenJitTimeData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FixedFieldInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ObjTypeSpecFldInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeFixedField.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PageAllocatorPool.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBlockData.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ValueInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITThunkEmitter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -323,7 +324,6 @@
     <ClInclude Include="JITTimeWorkItem.h" />
     <ClInclude Include="JITTimeFunctionBody.h" />
     <ClInclude Include="JITOutput.h" />
-    <ClInclude Include="JITTimeScriptContext.h" />
     <ClInclude Include="JITTimeProfileInfo.h" />
     <ClInclude Include="AsmJsJITInfo.h" />
     <ClInclude Include="FunctionJITTimeInfo.h" />
@@ -342,6 +342,9 @@
     <ClInclude Include="ObjTypeSpecFldInfo.h" />
     <ClInclude Include="CRC.h" />
     <ClInclude Include="PageAllocatorPool.h" />
+    <ClInclude Include="GlobOptBlockData.h" />
+    <ClInclude Include="ValueInfo.h" />
+    <ClInclude Include="JITThunkEmitter.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

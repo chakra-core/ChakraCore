@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "F1": "function <large string>",
       "F2": "function <large string>"
     },
@@ -18,11 +15,6 @@
       "a": "string Hello"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "F1": "function <large string>",
       "F2": "function <large string>"
     }
