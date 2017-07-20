@@ -20,8 +20,6 @@
 #ifndef _CHAKRADEBUG_H_
 #define _CHAKRADEBUG_H_
 
-#include "ChakraCommon.h"
-
 #ifdef _WIN32
 //Other platforms already include <stdint.h> and have this defined automatically
 typedef __int64 int64_t;
