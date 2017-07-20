@@ -1994,8 +1994,10 @@ Instr::New(Js::OpCode opcode, Opnd *dstOpnd, Func *func)
     Instr * instr;
 
     instr = Instr::New(opcode, func);
-    instr->SetDst(dstOpnd);
-
+    if (dstOpnd)
+    {
+        instr->SetDst(dstOpnd);
+    }
     return instr;
 }
 
