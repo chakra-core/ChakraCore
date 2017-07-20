@@ -376,6 +376,33 @@ var tests = [
         assert.areEqual('abc', result, "result == 'abc'");
     }
   },
+  {
+    name: "OS12503560: assignment to super[prop] not accessing base class property",
+    body: function () {
+        var result = "";
+        class B {
+            get x1() { result += "Bgetter;"; return 0; }
+            set x1(v){ result += "Bsetter;"; }
+        }
+
+        class A extends B {
+            constructor() {
+                (()=>{
+                    super();
+                    var s = 'x';
+                    super[(s+s).substr(0,1)+1] = null;
+                    s = super[s+'1'];
+                })();
+            }
+
+            get x1() { result += "Agetter;"; return 0; } // should not be called
+            set x1(v){ result += "Asetter;"; }  // should not be called
+        };
+
+        new A();
+        assert.areEqual('Bsetter;Bgetter;', result);
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
