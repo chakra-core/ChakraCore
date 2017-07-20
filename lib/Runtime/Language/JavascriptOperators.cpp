@@ -6247,7 +6247,7 @@ CommonNumber:
                 if (typeHandler->IsSharable())
                 {
 #if DBG
-                    bool cachedProtoCanBeCached;
+                    bool cachedProtoCanBeCached = false;
                     Assert(type->GetPrototype() == JavascriptOperators::GetPrototypeObjectForConstructorCache(constructor, requestContext, cachedProtoCanBeCached));
                     Assert(cachedProtoCanBeCached);
                     Assert(type->GetScriptContext() == constructorCache->GetScriptContext());
