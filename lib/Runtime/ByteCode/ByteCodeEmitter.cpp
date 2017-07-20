@@ -7106,9 +7106,16 @@ void EmitAssignment(
 
     case knopIndex:
     {
+        Js::RegSlot targetLocation =
+            (lhs->sxBin.pnode1->nop == knopSuper) ?
+            byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, funcInfo->superRegister, funcInfo) :
+            lhs->sxBin.pnode1->location;
+
+        EmitSuperMethodBegin(lhs, byteCodeGenerator, funcInfo);
         byteCodeGenerator->Writer()->Element(
             ByteCodeGenerator::GetStElemIOpCode(funcInfo),
-            rhsLocation, lhs->sxBin.pnode1->location, lhs->sxBin.pnode2->location);
+            rhsLocation, targetLocation, lhs->sxBin.pnode2->location);
+
         break;
     }
 
