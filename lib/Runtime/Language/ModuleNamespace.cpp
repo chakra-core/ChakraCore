@@ -50,7 +50,7 @@ namespace Js
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
             DynamicObject::SetPropertyWithAttributes(PropertyIds::_symbolToStringTag, library->GetModuleTypeDisplayString(),
-                PropertyConfigurable, nullptr);
+                PropertyNone, nullptr);
         }
 
         ModuleImportOrExportEntryList* localExportList = sourceTextModuleRecord->GetLocalExportEntryList();
@@ -168,6 +168,84 @@ namespace Js
     BOOL ModuleNamespace::HasOwnProperty(PropertyId propertyId)
     {
         return HasProperty(propertyId);
+    }
+
+    BOOL ModuleNamespace::IsConfigurable(PropertyId propertyId)
+    {
+        SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
+        const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
+        if (propertyRecord->IsSymbol())
+        {
+            return this->DynamicObject::IsConfigurable(propertyId);
+        }
+
+        if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
+        {
+            return !!(propertyDescriptor.Attributes & PropertyConfigurable);
+        }
+
+        if (unambiguousNonLocalExports != nullptr)
+        {
+            ModuleNameRecord moduleNameRecord;
+            if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
+            {
+                return !!(PropertyModuleNamespaceDefault & PropertyConfigurable);
+            }
+        }
+
+        return DynamicObject::IsConfigurable(propertyId);
+    }
+
+    BOOL ModuleNamespace::IsEnumerable(PropertyId propertyId)
+    {
+        SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
+        const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
+        if (propertyRecord->IsSymbol())
+        {
+            return this->DynamicObject::IsEnumerable(propertyId);
+        }
+
+        if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
+        {
+            return !!(propertyDescriptor.Attributes & PropertyEnumerable);
+        }
+
+        if (unambiguousNonLocalExports != nullptr)
+        {
+            ModuleNameRecord moduleNameRecord;
+            if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
+            {
+                return !!(PropertyModuleNamespaceDefault & PropertyEnumerable);
+            }
+        }
+
+        return DynamicObject::IsEnumerable(propertyId);
+    }
+
+    BOOL ModuleNamespace::IsWritable(PropertyId propertyId)
+    {
+        SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
+        const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
+        if (propertyRecord->IsSymbol())
+        {
+            return this->DynamicObject::IsWritable(propertyId);
+        }
+
+        if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
+        {
+            return !!(propertyDescriptor.Attributes & PropertyWritable);
+        }
+
+        if (unambiguousNonLocalExports != nullptr)
+        {
+            ModuleNameRecord moduleNameRecord;
+            if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
+            {
+                return !!(PropertyModuleNamespaceDefault & PropertyWritable);
+            }
+        }
+
+        return DynamicObject::IsWritable(propertyId);
     }
 
     PropertyQueryFlags ModuleNamespace::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
