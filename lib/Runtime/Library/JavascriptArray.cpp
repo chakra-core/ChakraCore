@@ -6207,6 +6207,11 @@ Case0:
 
         if (pArr)
         {
+            if (HasAnyES5ArrayInPrototypeChain(pArr))
+            {
+                JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::SliceObjectHelper(obj, start, 0u, newArr, newObj, newLen, scriptContext));
+            }
+
             // If we constructed a new Array object, we have some nice helpers here
             if (newArr && isBuiltinArrayCtor)
             {

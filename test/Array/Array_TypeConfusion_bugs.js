@@ -786,5 +786,18 @@ var tests = [
             assert.isTrue(setterCalled);
         }
     },
+    {
+        name: "slice : the method slice should get property from prototype which is a proxy",
+        body: function ()
+        {
+            var arr = [];
+            arr.length = 100;
+            arr.__proto__ = new Proxy([16], {} );
+
+            arr.push(1);
+            var ret = arr.slice(0, 10);
+            assert.areEqual(16, ret[0]);
+        }
+    },
 ];
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
