@@ -67,7 +67,7 @@
             "caller": "object null",
             "arguments": "object null"
           },
-          "[Symbol.species]": {
+          "Symbol.species": {
             "#__proto__": "function function() {\n    [native code]\n}",
             "length": "number 3",
             "name": "string Int8Array",
