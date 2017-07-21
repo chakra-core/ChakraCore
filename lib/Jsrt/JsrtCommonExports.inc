@@ -120,4 +120,5 @@
     JsGetWeakReferenceValue
     JsGetAndClearExceptionWithMetadata
     JsHasOwnProperty
+    JsCopyStringOneByte
 #endif

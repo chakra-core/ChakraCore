@@ -679,5 +679,43 @@ CHAKRA_API
         _In_ JsPropertyIdRef propertyId,
         _Out_ bool *hasOwnProperty);
 
+/// <summary>
+///     Write JS string value into char string buffer without a null terminator
+/// </summary>
+/// <remarks>
+///     <para>
+///         When size of the `buffer` is unknown,
+///         `buffer` argument can be nullptr.
+///         In that case, `written` argument will return the length needed.
+///     </para>
+///     <para>
+///         When start is out of range or &lt; 0, returns JsErrorInvalidArgument
+///         and `written` will be equal to 0.
+///         If calculated length is 0 (It can be due to string length or `start`
+///         and length combination), then `written` will be equal to 0 and call
+///         returns JsNoError
+///     </para>
+///     <para>
+///         The JS string `value` will be converted one utf16 code point at a time,
+///         and if it has code points that do not fit in one byte, those values
+///         will be truncated.
+///     </para>
+/// </remarks>
+/// <param name="value">JavascriptString value</param>
+/// <param name="start">Start offset of buffer</param>
+/// <param name="length">Number of characters to be written</param>
+/// <param name="buffer">Pointer to buffer</param>
+/// <param name="written">Total number of characters written</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCopyStringOneByte(
+    _In_ JsValueRef value,
+    _In_ int start,
+    _In_ int length,
+    _Out_opt_ char* buffer,
+    _Out_opt_ size_t* written);
+
 #endif // CHAKRACOREBUILD_
 #endif // _CHAKRACORE_H_
