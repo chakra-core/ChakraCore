@@ -574,6 +574,7 @@ namespace Js
         void AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo);
         void AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, RecyclableObject * getterFunction, RecyclableObject * setterFunction);
         void AddAccessorsToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunction);
+        void AddSpeciesAccessorsToLibraryObject(DynamicObject* object, FunctionInfo * getterFunctionInfo);
         RuntimeFunction * CreateGetterFunction(PropertyId nameId, FunctionInfo* functionInfo);
         RuntimeFunction * CreateSetterFunction(PropertyId nameId, FunctionInfo* functionInfo);
 
