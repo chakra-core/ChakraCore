@@ -4181,13 +4181,14 @@ JsErrorCode WriteStringCopy(
         *written = 0;  // init to 0 for default
     }
 
-    const char16* str = nullptr;
-    size_t strLength = 0;
-    JsErrorCode errorCode = JsStringToPointer(value, &str, &strLength);
-    if (errorCode != JsNoError)
+    if (!Js::JavascriptString::Is(value))
     {
-        return errorCode;
+        return JsErrorInvalidArgument;
     }
+
+    Js::JavascriptString *jsString = Js::JavascriptString::FromVar(value);
+    const char16* str = jsString->GetSz();
+    size_t strLength = jsString->GetLength();
 
     if (start < 0 || (size_t)start > strLength)
     {
@@ -4200,7 +4201,7 @@ JsErrorCode WriteStringCopy(
         return JsNoError;  // no chars written
     }
 
-    errorCode = copyFunc(str + start, count, written);
+    JsErrorCode errorCode = copyFunc(str + start, count, written);
     if (errorCode != JsNoError)
     {
         return errorCode;
@@ -4230,10 +4231,6 @@ CHAKRA_API JsCopyStringUtf16(
             if (buffer)
             {
                 memmove(buffer, src, sizeof(char16) * count);
-            }
-            else
-            {
-                *needed = count;
             }
             return JsNoError;
         });
@@ -4742,6 +4739,29 @@ CHAKRA_API JsHasOwnProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propert
 
         *hasOwnProperty = Js::JavascriptOperators::OP_HasOwnProperty(object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext) != 0;
 
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsCopyStringOneByte(
+    _In_ JsValueRef value,
+    _In_ int start,
+    _In_ int length,
+    _Out_opt_ char* buffer,
+    _Out_opt_ size_t* written)
+{
+    PARAM_NOT_NULL(value);
+    VALIDATE_JSREF(value);
+    return WriteStringCopy(value, start, length, written,
+        [buffer](const char16* src, size_t count, size_t *needed)
+    {
+        if (buffer)
+        {
+            for (size_t i = 0; i < count; i++)
+            {
+                buffer[i] = (char)src[i];
+            }
+        }
         return JsNoError;
     });
 }

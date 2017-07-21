@@ -2143,4 +2143,32 @@ namespace JsRTApiTest
         JsRTApiTest::RunWithAttributes(JsRTApiTest::ObjectHasOwnPropertyMethodTest);
     }
 
+    void JsCopyStringOneByteMethodTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        size_t written = 0;
+        char buf[10] = {0};
+        JsValueRef value;
+        REQUIRE(JsCreateStringUtf16(reinterpret_cast<uint16_t*>(_u("0\x10\x80\xa9\uabcd\U000104377")), 8, &value) == JsNoError);
+        REQUIRE(JsCopyStringOneByte(value, 0, -1, nullptr, &written) == JsNoError);
+        CHECK(written == 8);
+        buf[written] = '\xff';
+
+        REQUIRE(JsCopyStringOneByte(value, 0, 10, buf, &written) == JsNoError);
+        CHECK(written == 8);
+        CHECK(buf[0] == '0');
+        CHECK(buf[1] == '\x10');
+        CHECK(buf[2] == '\x80');
+        CHECK(buf[3] == '\xA9');
+        CHECK(buf[4] == '\xcd');
+        CHECK(buf[5] == '\x01');
+        CHECK(buf[6] == '\x37');
+        CHECK(buf[7] == '7');
+        CHECK(buf[8] == '\xff');
+    }
+
+    TEST_CASE("ApiTest_JsCopyStringOneByteMethodTest", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::JsCopyStringOneByteMethodTest);
+    }
+
 }
