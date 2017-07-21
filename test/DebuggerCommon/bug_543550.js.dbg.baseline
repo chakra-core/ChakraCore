@@ -20,7 +20,7 @@
           "#__proto__": "function function() {\n    [native code]\n}",
           "length": "number 0",
           "prototype": "Object {...}",
-          "[Symbol.species]": "function function Map() { [native code] }",
+          "Symbol.species": "function function Map() { [native code] }",
           "name": "string Map",
           "caller": "object null",
           "arguments": "object null"
