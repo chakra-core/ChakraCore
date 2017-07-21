@@ -209,6 +209,12 @@ namespace Js
             return VirtualTableInfo<Js::ActivationObjectEx>::HasVirtualTable(instance);
         }
 
+        static ActivationObjectEx * FromVar(Var instance)
+        {
+            AssertOrFailFast(Is(instance));
+            return reinterpret_cast<ActivationObjectEx *>(instance);
+        }
+
     private:
         Field(ScriptFunction *) parentFunc;
         Field(uint) cachedFuncCount;
