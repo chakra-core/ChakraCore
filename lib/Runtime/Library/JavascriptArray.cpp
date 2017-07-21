@@ -483,7 +483,7 @@ namespace Js
 
     bool JavascriptArray::IsMissingItem(uint32 index)
     {
-        if (this->length <= index)
+        if (!(this->head->left <= index && index < (this->head->left+ this->head->length)))
         {
             return false;
         }
@@ -5980,8 +5980,12 @@ Case0:
         // Prototype lookup for missing elements
         if (!pArr->HasNoMissingValues())
         {
-            for (uint32 i = 0; i < newLen && (i + start) < pArr->length; i++)
+            for (uint32 i = 0; i < newLen; i++)
             {
+                if (!(pArr->head->left <= (i + start) && (i + start) <  (pArr->head->left + pArr->head->length)))
+                {
+                    break;
+                }
                 // array type might be changed in the below call to DirectGetItemAtFull
                 // need recheck array type before checking array item [i + start]
                 if (pArr->IsMissingItem(i + start))
