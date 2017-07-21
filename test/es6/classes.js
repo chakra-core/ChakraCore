@@ -948,7 +948,7 @@ var tests = [
     {
         name: "Extends expression of a class declaration or expression is strict mode",
         body: function() {
-            var BadClass = class extends function() { arguments.caller; } {};
+            var BadClass = class extends function() { arguments.callee; } {};
             assert.throws(function() { Object.getPrototypeOf(BadClass).arguments; }, TypeError, "The extends expression of a class expression should be parsed in strict mode", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
             assert.throws(function() { new BadClass(); }, TypeError, "New'ing a class with a parent constructor that throws in strict mode, should throw", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
 
