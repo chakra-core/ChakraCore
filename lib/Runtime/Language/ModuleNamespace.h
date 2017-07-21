@@ -60,9 +60,9 @@ namespace Js
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr);
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override { return false; }
         virtual BOOL GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext) override { return false; }
-        virtual BOOL IsWritable(PropertyId propertyId) override { return false; }
-        virtual BOOL IsConfigurable(PropertyId propertyId) override { return false; }
-        virtual BOOL IsEnumerable(PropertyId propertyId) override { return false; }
+        virtual BOOL IsWritable(PropertyId propertyId) override;
+        virtual BOOL IsConfigurable(PropertyId propertyId) override;
+        virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL SetEnumerable(PropertyId propertyId, BOOL value) override { return false; }
         virtual BOOL SetWritable(PropertyId propertyId, BOOL value) override { return false; }
         virtual BOOL IsProtoImmutable() const { return true; }
