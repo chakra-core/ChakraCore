@@ -24,12 +24,15 @@ function f() {
 }
 f();
 
-var m = '';
-try {
-    WScript.LoadModule('var await = 0;', 'samethread');
-} catch (e) {
-    m = e.message;
+function test(awaitStr)
+{
+    try {
+        WScript.LoadModule('var ' + awaitStr + ' = 0;', 'samethread');
+    } catch (e) {
+        return e.message === 'The use of a keyword for an identifier is invalid';
+    }
+    print("Failed: no syntax error of identifier '" + awaitStr + "'");
+    return false;
 }
 
-print(m === 'The use of a keyword for an identifier is invalid' ?
-        'pass' : 'fail');
+print(test("await") & test("\\u0061wait")? 'pass' : '');
