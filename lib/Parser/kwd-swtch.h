@@ -13,7 +13,7 @@
             case 'w':
                 if (p[1] == 'a' && p[2] == 'i' && p[3] == 't' && !IsIdContinueNext(p+4, last)) {
                     p += 4;
-                    if (this->m_fAwaitIsKeyword || this->m_fIsModuleCode) {
+                    if (this->AwaitIsKeyword()) {
                         token = tkAWAIT;
                         goto LReserved;
                     }
@@ -438,7 +438,7 @@
         {
             if (p[0] == 'i' && p[1] == 'e' && p[2] == 'l' && p[3] == 'd' && !IsIdContinueNext(p+4, last)) {
                 p += 4;
-                if (this->m_fYieldIsKeyword || !this->m_parser || this->m_parser->IsStrictMode()) {
+                if (this->YieldIsKeyword()) {
                     token = tkYIELD;
                     goto LReserved;
                 }

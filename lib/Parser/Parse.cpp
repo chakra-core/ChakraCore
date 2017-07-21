@@ -256,8 +256,8 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
 
         // Give the scanner the source and get the first token
         m_pscan->SetText(pszSrc, 0, encodedCharCount, 0, grfscr);
-        m_pscan->SetYieldIsKeyword(isGenerator);
-        m_pscan->SetAwaitIsKeyword(isAsync);
+        m_pscan->SetYieldIsKeywordRegion(isGenerator);
+        m_pscan->SetAwaitIsKeywordRegion(isAsync);
         m_pscan->Scan();
 
         uint nestedCount = 0;
@@ -2929,9 +2929,9 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             isAsyncExpr = true;
         }
 
-        bool previousAwaitIsKeyword = m_pscan->SetAwaitIsKeyword(isAsyncExpr);
+        bool previousAwaitIsKeyword = m_pscan->SetAwaitIsKeywordRegion(isAsyncExpr);
         m_pscan->Scan();
-        m_pscan->SetAwaitIsKeyword(previousAwaitIsKeyword);
+        m_pscan->SetAwaitIsKeywordRegion(previousAwaitIsKeyword);
 
         // We search for an Async expression (a function declaration or an async lambda expression)
         if (isAsyncExpr && !m_pscan->FHadNewLine())
@@ -4983,9 +4983,9 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
     // switch scanner to treat 'yield' as keyword in generator functions
     // or as an identifier in non-generator functions
-    bool fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeyword(pnodeFnc && pnodeFnc->sxFnc.IsGenerator());
+    bool fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeywordRegion(pnodeFnc && pnodeFnc->sxFnc.IsGenerator());
 
-    bool fPreviousAwaitIsKeyword = m_pscan->SetAwaitIsKeyword(fAsync);
+    bool fPreviousAwaitIsKeyword = m_pscan->SetAwaitIsKeywordRegion(fAsync);
 
     if (pnodeFnc && pnodeFnc->sxFnc.IsGenerator())
     {
@@ -5491,8 +5491,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         m_grfscr |= uDeferSave;
     }
 
-    m_pscan->SetYieldIsKeyword(fPreviousYieldIsKeyword);
-    m_pscan->SetAwaitIsKeyword(fPreviousAwaitIsKeyword);
+    m_pscan->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
+    m_pscan->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
 
     // Restore the current function.
     if (buildAST)
@@ -6069,9 +6069,9 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
     {
         if (!fDeclaration)
         {
-            bool fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeyword(!fDeclaration);
+            bool fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeywordRegion(!fDeclaration);
             m_pscan->Scan();
-            m_pscan->SetYieldIsKeyword(fPreviousYieldIsKeyword);
+            m_pscan->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
         }
         else
         {
@@ -6212,8 +6212,8 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
 
     if (fLambda)
     {
-        fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeyword(pnodeParentFnc != nullptr && pnodeParentFnc->sxFnc.IsGenerator());
-        fPreviousAwaitIsKeyword = m_pscan->SetAwaitIsKeyword(fAsync || (pnodeParentFnc != nullptr && pnodeParentFnc->sxFnc.IsAsync()));
+        fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeywordRegion(pnodeParentFnc != nullptr && pnodeParentFnc->sxFnc.IsGenerator());
+        fPreviousAwaitIsKeyword = m_pscan->SetAwaitIsKeywordRegion(fAsync || (pnodeParentFnc != nullptr && pnodeParentFnc->sxFnc.IsAsync()));
     }
 
     Assert(!fNoArg || !fOneArg); // fNoArg and fOneArg can never be true at the same time.
@@ -6243,8 +6243,8 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
 
         if (fLambda)
         {
-            m_pscan->SetYieldIsKeyword(fPreviousYieldIsKeyword);
-            m_pscan->SetAwaitIsKeyword(fPreviousAwaitIsKeyword);
+            m_pscan->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
+            m_pscan->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
         }
 
         return;
@@ -6494,8 +6494,8 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
 
     if (fLambda)
     {
-        m_pscan->SetYieldIsKeyword(fPreviousYieldIsKeyword);
-        m_pscan->SetAwaitIsKeyword(fPreviousAwaitIsKeyword);
+        m_pscan->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
+        m_pscan->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
     }
 }
 
@@ -6826,9 +6826,9 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
 
     // switch scanner to treat 'yield' as keyword in generator functions
     // or as an identifier in non-generator functions
-    bool fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeyword(pnodeFnc && pnodeFnc->sxFnc.IsGenerator());
+    bool fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeywordRegion(pnodeFnc && pnodeFnc->sxFnc.IsGenerator());
 
-    bool fPreviousAwaitIsKeyword = m_pscan->SetAwaitIsKeyword(pnodeFnc && pnodeFnc->sxFnc.IsAsync());
+    bool fPreviousAwaitIsKeyword = m_pscan->SetAwaitIsKeywordRegion(pnodeFnc && pnodeFnc->sxFnc.IsAsync());
 
     // Skip the arg list.
     m_pscan->ScanNoKeywords();
@@ -6923,8 +6923,8 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
     Assert(tempNextFunctionId == pnodeFnc->sxFnc.deferredParseNextFunctionId);
     this->m_nextFunctionId = nextFunctionIdSave;
 
-    m_pscan->SetYieldIsKeyword(fPreviousYieldIsKeyword);
-    m_pscan->SetAwaitIsKeyword(fPreviousAwaitIsKeyword);
+    m_pscan->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
+    m_pscan->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
 }
 
 void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef, bool skipCurlyBraces)
@@ -8115,10 +8115,10 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
         if (nop == knopYield)
         {
-            if (!m_pscan->YieldIsKeyword() || oplMin > opl)
+            if (!m_pscan->YieldIsKeywordRegion() || oplMin > opl)
             {
                 // The case where 'yield' is scanned as a keyword (tkYIELD) but the scanner
-                // is not treating yield as a keyword (!m_pscan->YieldIsKeyword()) occurs
+                // is not treating yield as a keyword (!m_pscan->YieldIsKeywordRegion()) occurs
                 // in strict mode non-generator function contexts.
                 //
                 // That is, 'yield' is a keyword because of strict mode, but YieldExpression
@@ -8135,7 +8135,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         }
         else if (nop == knopAwait)
         {
-            if (!m_pscan->AwaitIsKeyword() ||
+            if (!m_pscan->AwaitIsKeywordRegion() ||
                 m_currentScope->GetScopeType() == ScopeType_Parameter)
             {
                 // As with the 'yield' keyword, the case where 'await' is scanned as a keyword (tkAWAIT)
