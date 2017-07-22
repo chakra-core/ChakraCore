@@ -5559,6 +5559,9 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
             }
         }
+
+        this->ClearBailoutReasonCountsMap();
+        this->ClearRejitReasonCountsArray();
 #endif
 
 #ifdef FIELD_ACCESS_STATS
@@ -5730,6 +5733,34 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             LogDataForFunctionBody(body, kind, false);
         }
 #endif
+    }
+    void ScriptContext::ClearBailoutReasonCountsMap()
+    {
+        if (this->bailoutReasonCounts != nullptr)
+        {
+            this->bailoutReasonCounts->Clear();
+        }
+        if (this->bailoutReasonCountsCap != nullptr)
+        {
+            this->bailoutReasonCountsCap->Clear();
+        }
+    }
+    void ScriptContext::ClearRejitReasonCountsArray()
+    {
+        if (this->rejitReasonCounts != nullptr)
+        {
+            for (UINT16 i = 0; i < NumRejitReasons; i++)
+            {
+                this->rejitReasonCounts[i] = 0;
+            }
+        }
+        if (this->rejitReasonCountsCap != nullptr)
+        {
+            for (UINT16 i = 0; i < NumRejitReasons; i++)
+            {
+                this->rejitReasonCountsCap[i] = 0;
+            }
+        }
     }
 #endif
 
