@@ -44,7 +44,6 @@ FLAG_RELEASE(IsES6RegExSymbolsEnabled, ES6RegExSymbols)
 FLAG_RELEASE(IsES6HasInstanceEnabled, ES6HasInstance)
 FLAG_RELEASE(SkipSplitOnNoResult, SkipSplitOnNoResult)
 FLAG_RELEASE(IsES7AsyncAndAwaitEnabled, ES7AsyncAwait)
-FLAG_RELEASE(IsArrayBufferTransferEnabled, ArrayBufferTransfer)
 FLAG_RELEASE(IsESObjectGetOwnPropertyDescriptorsEnabled, ESObjectGetOwnPropertyDescriptors)
 FLAG_RELEASE(IsESSharedArrayBufferEnabled, ESSharedArrayBuffer)
 #ifdef ENABLE_PROJECTION

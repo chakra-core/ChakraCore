@@ -1878,11 +1878,6 @@ namespace Js
         }
         library->AddFunctionToLibraryObject(arrayBufferConstructor, PropertyIds::isView, &ArrayBuffer::EntryInfo::IsView, 1);
 
-        if (scriptContext->GetConfig()->IsArrayBufferTransferEnabled())
-        {
-            library->AddFunctionToLibraryObject(arrayBufferConstructor, PropertyIds::transfer, &ArrayBuffer::EntryInfo::Transfer, 2);
-        }
-
         arrayBufferConstructor->SetHasNoEnumerableProperties(true);
 
         return true;

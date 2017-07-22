@@ -21,23 +21,6 @@ while (true) {
   ++verbose;
 }
 
-function testTransfer(buffer) {
-  if (ArrayBuffer.transfer) {
-    try {
-      ArrayBuffer.transfer(buffer);
-      print("Failed. Expected an error when trying to transfer ");
-    } catch (e) {
-      if (verbose > 1) {
-        print(`Passed. Expected error: ${e.message}`);
-      }
-    }
-  } else {
-    print("ArrayBuffer.tranfer is missing");
-  }
-}
-
-
-
 function test({init, max, checkOOM} = {}) {
   if (verbose) {
     print(`Testing memory {init: ${init|0}, max: ${max}}`);
@@ -124,16 +107,13 @@ function test({init, max, checkOOM} = {}) {
     testReadWrite(-2, -2, currentSize);
     testReadWrite(-1, -1, currentSize);
     testReadWrite(0, 6, currentSize);
-    testTransfer(mem.buffer);
     testReadWrite(1, 7, currentSize);
-    testTransfer(mem.buffer);
     testReadWrite(1, 7, currentSize);
     testReadWrite(currentSize - 4, 457, currentSize);
     testReadWrite(currentSize - 3, -98745, currentSize);
     testReadWrite(currentSize - 2, 786452, currentSize);
     testReadWrite(currentSize - 1, -1324, currentSize);
     testReadWrite(currentSize, 123, currentSize);
-    testTransfer(mem.buffer);
   }
   run(0);
   run(3);

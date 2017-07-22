@@ -403,46 +403,6 @@ namespace Js
         return library->GetFalse();
     }
 
-    // ArrayBuffer.transfer as described in Luke Wagner's proposal: https://gist.github.com/lukewagner/2735af7eea411e18cf20
-    Var ArrayBuffer::EntryTransfer(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        PROBE_STACK(scriptContext, Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayBuffer_Constructor_transfer);
-
-        if (args.Info.Count < 2 || !ArrayBuffer::Is(args[1]))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedArrayBufferObject);
-        }
-
-        ArrayBuffer* arrayBuffer = ArrayBuffer::FromVar(args[1]);
-
-        if (arrayBuffer->IsDetached())
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("ArrayBuffer.transfer"));
-        }
-
-        uint32 newBufferLength = arrayBuffer->bufferLength;
-        if (args.Info.Count >= 3)
-        {
-            newBufferLength = ToIndex(args[2], JSERR_ArrayLengthConstructIncorrect, scriptContext, MaxArrayBufferLength);
-
-            // ToIndex above can call user script (valueOf) which can detach the buffer
-            if (arrayBuffer->IsDetached())
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("ArrayBuffer.transfer"));
-            }
-        }
-
-        return arrayBuffer->TransferInternal(newBufferLength);
-    }
-
     // ArrayBuffer.prototype.slice as described in ES6 draft #19 section 24.1.4.3.
     Var ArrayBuffer::EntrySlice(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -781,18 +741,6 @@ namespace Js
         /* See JavascriptArrayBuffer::Finalize */
     }
 
-    // Copy memory from src to dst, truncate if dst smaller, zero extra memory
-    // if dst larger
-    static void MemCpyZero(__bcount(dstSize) BYTE* dst, size_t dstSize,
-        __in_bcount(count) const BYTE* src, size_t count)
-    {
-        js_memcpy_s(dst, dstSize, src, min(dstSize, count));
-        if (dstSize > count)
-        {
-            ZeroMemory(dst + count, dstSize - count);
-        }
-    }
-
     // Same as realloc but zero newly allocated portion if newSize > oldSize
     static BYTE* ReallocZero(BYTE* ptr, size_t oldSize, size_t newSize)
     {
@@ -803,98 +751,6 @@ namespace Js
         }
         return ptrNew;
     }
-
-    ArrayBuffer * JavascriptArrayBuffer::TransferInternal(uint32 newBufferLength)
-    {
-        ArrayBuffer* newArrayBuffer;
-        Recycler* recycler = this->GetRecycler();
-
-        if (this->bufferLength > 0)
-        {
-            ReportDifferentialAllocation(newBufferLength);
-        }
-
-        if (newBufferLength == 0 || this->bufferLength == 0)
-        {
-            newArrayBuffer = GetLibrary()->CreateArrayBuffer(newBufferLength);
-            if (newBufferLength > 0 && !newArrayBuffer->GetByteLength())
-            {
-                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-            }
-        }
-        else
-        {
-            BYTE * newBuffer = nullptr;
-            if (IsValidVirtualBufferLength(this->bufferLength))
-            {
-                if (IsValidVirtualBufferLength(newBufferLength))
-                {
-                    // we are transferring between an optimized buffer using a length that can be optimized
-                    if (newBufferLength < this->bufferLength)
-                    {
-#pragma prefast(suppress:6250, "Calling 'VirtualFree' without the MEM_RELEASE flag might free memory but not address descriptors (VADs).")
-                        VirtualFree(this->buffer + newBufferLength, this->bufferLength - newBufferLength, MEM_DECOMMIT);
-                    }
-                    else if (newBufferLength > this->bufferLength)
-                    {
-                        LPVOID newMem = VirtualAlloc(this->buffer + this->bufferLength, newBufferLength - this->bufferLength, MEM_COMMIT, PAGE_READWRITE);
-                        if (!newMem)
-                        {
-                            recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
-                            JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-                        }
-                    }
-                    newBuffer = this->buffer;
-                }
-                else
-                {
-                    // we are transferring from an optimized buffer, but the new length isn't compatible, so start over and copy to new memory
-                    newBuffer = (BYTE*)malloc(newBufferLength);
-                    if (!newBuffer)
-                    {
-                        recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
-                        JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-                    }
-                    MemCpyZero(newBuffer, newBufferLength, this->buffer, this->bufferLength);
-                }
-            }
-            else
-            {
-                if (IsValidVirtualBufferLength(newBufferLength))
-                {
-                    // we are transferring from an unoptimized buffer, but new length can be optimized, so move to that
-                    newBuffer = (BYTE*)AsmJsVirtualAllocator(newBufferLength);
-                    if (!newBuffer)
-                    {
-                        recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
-                        JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-                    }
-                    MemCpyZero(newBuffer, newBufferLength, this->buffer, this->bufferLength);
-                }
-                else if (newBufferLength != this->bufferLength)
-                {
-                    // both sides will just be regular ArrayBuffer, so realloc
-                    newBuffer = ReallocZero(this->buffer, this->bufferLength, newBufferLength);
-                    if (!newBuffer)
-                    {
-                        recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
-                        JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-                    }
-                }
-                else
-                {
-                    newBuffer = this->buffer;
-                }
-            }
-            newArrayBuffer = GetLibrary()->CreateArrayBuffer(newBuffer, newBufferLength);
-
-        }
-        AutoDiscardPTR<Js::ArrayBufferDetachedStateBase> state(DetachAndGetState());
-        state->MarkAsClaimed();
-
-        return newArrayBuffer;
-    }
-
 
     template<typename Func>
     void Js::JavascriptArrayBuffer::ReportDifferentialAllocation(uint32 newBufferLength, Func reportFailureFn)
@@ -1107,11 +963,6 @@ namespace Js
         return newArrayBuffer;
     }
 
-    ArrayBuffer * WebAssemblyArrayBuffer::TransferInternal(uint32 newBufferLength)
-    {
-        JavascriptError::ThrowTypeError(GetScriptContext(), WASMERR_CantDetach);
-    }
-
     ProjectionArrayBuffer::ProjectionArrayBuffer(uint32 length, DynamicType * type) :
         ArrayBuffer(length, type, CoTaskMemAlloc)
     {
@@ -1141,29 +992,6 @@ namespace Js
     void ProjectionArrayBuffer::Dispose(bool isShutdown)
     {
         CoTaskMemFree(buffer);
-    }
-
-    ArrayBuffer * ProjectionArrayBuffer::TransferInternal(uint32 newBufferLength)
-    {
-        ArrayBuffer* newArrayBuffer;
-        if (newBufferLength == 0 || this->bufferLength == 0)
-        {
-            newArrayBuffer = GetLibrary()->CreateProjectionArraybuffer(newBufferLength);
-        }
-        else
-        {
-            BYTE * newBuffer = (BYTE*)CoTaskMemRealloc(this->buffer, newBufferLength);
-            if (!newBuffer)
-            {
-                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-            }
-            newArrayBuffer = GetLibrary()->CreateProjectionArraybuffer(newBuffer, newBufferLength);
-        }
-
-        AutoDiscardPTR<Js::ArrayBufferDetachedStateBase> state(DetachAndGetState());
-        state->MarkAsClaimed();
-
-        return newArrayBuffer;
     }
 
     ExternalArrayBuffer::ExternalArrayBuffer(byte *buffer, uint32 length, DynamicType *type)

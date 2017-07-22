@@ -142,7 +142,6 @@ namespace Js
             static FunctionInfo IsView;
             static FunctionInfo GetterByteLength;
             static FunctionInfo GetterSymbolSpecies;
-            static FunctionInfo Transfer;
         };
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
@@ -150,7 +149,6 @@ namespace Js
         static Var EntryIsView(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterByteLength(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryTransfer(RecyclableObject* function, CallInfo callInfo, ...);
 
         static bool Is(Var aValue);
         static ArrayBuffer* NewFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library);
@@ -183,7 +181,6 @@ namespace Js
 
         static uint32 ToIndex(Var value, int32 errorCode, ScriptContext *scriptContext, uint32 MaxAllowedLength, bool checkSameValueZero = true);
 
-        virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) = 0;
     protected:
 
         typedef void __cdecl FreeFn(void* ptr);
@@ -258,8 +255,6 @@ namespace Js
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) override;
         virtual bool IsValidVirtualBufferLength(uint length) const override;
 
-        virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
-
         template<typename Func>
         void ReportDifferentialAllocation(uint32 newBufferLength, Func reportFailureFn);
         void ReportDifferentialAllocation(uint32 newBufferLength);
@@ -294,7 +289,6 @@ namespace Js
         WebAssemblyArrayBuffer* GrowMemory(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength);
 
         virtual bool IsValidVirtualBufferLength(uint length) const override;
-        virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
         virtual bool IsWebAssemblyArrayBuffer() override { return true; }
     };
 
@@ -318,7 +312,6 @@ namespace Js
         static ProjectionArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
         virtual void Dispose(bool isShutdown) override;
         virtual void Finalize(bool isShutdown) override {};
-        virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
     private:
         ProjectionArrayBuffer(uint32 length, DynamicType * type);
         ProjectionArrayBuffer(byte* buffer, uint32 length, DynamicType * type);
@@ -332,7 +325,6 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(ExternalArrayBuffer);
     public:
         ExternalArrayBuffer(byte *buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType *type);
-        virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override { Assert(UNREACHED); Throw::InternalError(); };
     protected:
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override { Assert(UNREACHED); Throw::InternalError(); };
 
