@@ -5542,7 +5542,7 @@ namespace Js
 
     Var InterpreterStackFrame::OP_GetCachedFunc(Var instance, int32 index)
     {
-        ActivationObjectEx *obj = (ActivationObjectEx*)ActivationObjectEx::FromVar(instance);
+        ActivationObjectEx *obj = ActivationObjectEx::FromVar(instance);
 
         FuncCacheEntry *entry = obj->GetFuncCacheEntry((uint)index);
         return entry->func;
@@ -5556,7 +5556,7 @@ namespace Js
 
     void InterpreterStackFrame::OP_CommitScopeHelper(const PropertyIdArray *propIds)
     {
-        ActivationObjectEx *obj = (ActivationObjectEx*)ActivationObjectEx::FromVar(this->localClosure);
+        ActivationObjectEx *obj = ActivationObjectEx::FromVar(this->localClosure);
         ScriptFunction *func = obj->GetParentFunc();
 
         Assert(obj->GetParentFunc() == func);

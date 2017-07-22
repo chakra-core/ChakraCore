@@ -2730,16 +2730,17 @@ LABEL1:
                 // If this is the internal function of a generator function then return the original generator function
                 funcCaller = ScriptFunction::FromVar(funcCaller)->GetRealFunctionObject();
 
-                // This function is escaping, so make sure there isn't some caller that has a cached scope.
-                JavascriptFunction * func;
-                while (walker.GetCaller(&func))
+                // This function is escaping, so make sure there isn't some nested parent that has a cached scope.
+                if (ScriptFunction::Is(funcCaller))
                 {
-                    if (ScriptFunction::Is(func))
+                    FrameDisplay * pFrameDisplay = Js::ScriptFunction::FromVar(funcCaller)->GetEnvironment();
+                    uint length = (uint)pFrameDisplay->GetLength();
+                    for (uint i = 0; i < length; i++)
                     {
-                        ActivationObjectEx * obj = ScriptFunction::FromVar(func)->GetCachedScope();
-                        if (obj)
+                        void * scope = pFrameDisplay->GetItem(i);
+                        if (!Js::ScopeSlots::Is(scope) && Js::ActivationObjectEx::Is(scope))
                         {
-                            obj->InvalidateCachedScope();
+                            Js::ActivationObjectEx::FromVar(scope)->InvalidateCachedScope();
                         }
                     }
                 }
