@@ -711,6 +711,8 @@ public:
         BailoutStatsMap *bailoutReasonCountsCap;
         uint *rejitReasonCounts;
         uint *rejitReasonCountsCap;
+        void ClearBailoutReasonCountsMap();
+        void ClearRejitReasonCountsArray();
 #endif
 #ifdef ENABLE_BASIC_TELEMETRY
 
