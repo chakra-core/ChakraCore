@@ -3708,7 +3708,7 @@ Inline::InlineFunctionCommon(IR::Instr *callInstr, bool originalCallTargetOpndIs
 // A functionInfo->Index# table is created in scriptContext (and potentially movable to threadContext if WS is not a concern).
 // we use the table to identify the helper that needs to be lowered.
 // At lower time we create the call to helper, which is function entrypoint at this time.
-IR::Instr * Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const FunctionJITTimeInfo *const inlineeData, const FunctionJITTimeInfo *const inlinerData)
+void Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const FunctionJITTimeInfo *const inlineeData, const FunctionJITTimeInfo *const inlinerData)
 {
     intptr_t functionInfo = inlineeData->GetFunctionInfoAddr();
 
@@ -3719,7 +3719,11 @@ IR::Instr * Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const F
 
     // Find the helper routine for this functionInfo.
     IR::JnHelperMethod helperMethod = this->topFunc->GetScriptContextInfo()->GetDOMFastPathHelper(functionInfo);
-
+    if (helperMethod == IR::HelperInvalid)
+    {
+        // abort inlining if helper isn't found
+        return;
+    }
     // Find the instance object (External object).
     PropertySym * fieldSym = ldFldInstr->GetSrc1()->AsSymOpnd()->m_sym->AsPropertySym();
     IR::RegOpnd * instanceOpnd = IR::RegOpnd::New(fieldSym->m_stackSym, TyMachPtr, ldFldInstr->m_func);
@@ -3761,8 +3765,6 @@ IR::Instr * Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const F
     this->topFunc->SetHasInlinee();
 
     InsertStatementBoundary(ldInstr->m_next);
-
-    return ldInstr->m_next;
 }
 #endif
 void
