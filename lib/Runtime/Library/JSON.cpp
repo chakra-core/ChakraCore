@@ -654,7 +654,7 @@ namespace JSON
                                 scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);
                                 id = propRecord->GetPropertyId();
                             }
-                            StringifyMemberObject(propertyName, id, value, (Js::ConcatStringBuilder*)result, indentString, memberSeparator, isFirstMember, isEmpty);                            
+                            StringifyMemberObject(propertyName, id, value, (Js::ConcatStringBuilder*)result, indentString, memberSeparator, isFirstMember, isEmpty);
                         }
                     }
                     else // case: ES5 && ReplacerFunction == replacerType.
@@ -706,25 +706,26 @@ namespace JSON
 
         if(isEmpty)
         {
-            result = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("{}"));
+            result = scriptContext->GetLibrary()->GetEmptyObjectString();
         }
         else
         {
             if(this->gap)
             {
+                JavascriptLibrary *library = scriptContext->GetLibrary();
                 if(!indentString)
                 {
                     indentString = GetIndentString(this->indent);
                 }
                 // Note: it's better to use strings with length = 1 as the are cached/new instances are not created every time.
                 Js::ConcatStringN<7>* retVal = Js::ConcatStringN<7>::New(this->scriptContext);
-                retVal->SetItem(0, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("{")));
-                retVal->SetItem(1, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("\n")));
+                retVal->SetItem(0, library->GetOpenBracketString());
+                retVal->SetItem(1, library->GetNewLineString());
                 retVal->SetItem(2, indentString);
                 retVal->SetItem(3, result);
-                retVal->SetItem(4, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("\n")));
+                retVal->SetItem(4, library->GetNewLineString());
                 retVal->SetItem(5, GetIndentString(stepBackIndent));
-                retVal->SetItem(6, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("}")));
+                retVal->SetItem(6, library->GetCloseBracketString());
                 result = retVal;
             }
             else
@@ -775,7 +776,7 @@ namespace JSON
         Js::JavascriptString* result;
         if (length == 0)
         {
-            result = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("[]"));
+            result = scriptContext->GetLibrary()->GetEmptyArrayString();
         }
         else
         {
@@ -809,17 +810,19 @@ namespace JSON
 
             if (this->gap)
             {
+                JavascriptLibrary *library = scriptContext->GetLibrary();
                 if (!indentString)
                 {
                     indentString = GetIndentString(this->indent);
                 }
-                Js::ConcatStringN<6>* retVal = Js::ConcatStringN<6>::New(this->scriptContext);
-                retVal->SetItem(0, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("[\n")));
-                retVal->SetItem(1, indentString);
-                retVal->SetItem(2, result);
-                retVal->SetItem(3, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("\n")));
-                retVal->SetItem(4, GetIndentString(stepBackIndent));
-                retVal->SetItem(5, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("]")));
+                Js::ConcatStringN<7>* retVal = Js::ConcatStringN<7>::New(this->scriptContext);
+                retVal->SetItem(0, library->GetOpenSBracketString());
+                retVal->SetItem(1, library->GetNewLineString());
+                retVal->SetItem(2, indentString);
+                retVal->SetItem(3, result);
+                retVal->SetItem(4, library->GetNewLineString());
+                retVal->SetItem(5, GetIndentString(stepBackIndent));
+                retVal->SetItem(6, library->GetCloseSBracketString());
                 result = retVal;
             }
             else
@@ -842,7 +845,7 @@ namespace JSON
             }
             else
             {
-                propertySeparator = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(":"));
+                propertySeparator = scriptContext->GetLibrary()->GetColonString();
             }
         }
         return propertySeparator;
@@ -852,7 +855,7 @@ namespace JSON
     {
         // Note: this potentially can be improved by using a special ConcatString which has gap and count fields.
         //       Although this does not seem to be a critical path (using gap should not be often).
-        Js::JavascriptString* res = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(""));
+        Js::JavascriptString* res = scriptContext->GetLibrary()->GetEmptyString();
         if(this->gap)
         {
             for (uint i = 0 ; i < count; i++)
@@ -875,7 +878,7 @@ namespace JSON
         }
     }
 
-    void StringifySession::StringifyMemberObject( Js::JavascriptString* propertyName, Js::PropertyId id, Js::Var value, Js::ConcatStringBuilder* result, Js::JavascriptString* &indentString, Js::JavascriptString* &memberSeparator, bool &isFirstMember, bool &isEmpty )
+    void StringifySession::StringifyMemberObject(Js::JavascriptString* propertyName, Js::PropertyId id, Js::Var value, Js::ConcatStringBuilder* result, Js::JavascriptString* &indentString, Js::JavascriptString* &memberSeparator, bool &isFirstMember, bool &isEmpty )
     {
         Js::Var propertyObjectString = Str(propertyName, id, value);
         if(!Js::JavascriptOperators::IsUndefinedObject(propertyObjectString, scriptContext))
