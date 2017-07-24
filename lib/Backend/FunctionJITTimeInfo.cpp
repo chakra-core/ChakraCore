@@ -31,7 +31,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
     }
     else
     {
-        // outermost function must have a body
+        // outermost function must have a body, but inlinees may not (if they are builtins)
         Assert(isInlinee);
     }
 
