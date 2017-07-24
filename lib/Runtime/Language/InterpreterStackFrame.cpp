@@ -3254,7 +3254,11 @@ namespace Js
                 ++doubleArg;
                 argAddress += sizeof(double);
             }
-            else if (scriptContext->GetConfig()->IsSimdjsEnabled() && info->GetArgType(i).isSIMD())
+            else if ((scriptContext->GetConfig()->IsSimdjsEnabled()
+#ifdef ENABLE_WASM_SIMD
+                        || scriptContext->GetConfig()->IsWasmSimdEnabled()
+#endif
+                     ) && info->GetArgType(i).isSIMD())
             {
                 *simdArg = *(AsmJsSIMDValue*)argAddress;
                 ++simdArg;

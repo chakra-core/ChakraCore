@@ -860,7 +860,9 @@ FLAGNR(Boolean, AsmJsEdge             , "Enable asm.js features which may have b
 FLAGNR(Boolean, WasmI64               , "Enable Int64 testing for WebAssembly. ArgIns can be [number,string,{low:number,high:number}]. Return values will be {low:number,high:number}", DEFAULT_CONFIG_WasmI64)
 FLAGNR(Boolean, WasmFastArray         , "Enable fast array implementation for WebAssembly", DEFAULT_CONFIG_WasmFastArray)
 FLAGNR(Boolean, WasmCheckVersion      , "Check the binary version for WebAssembly", DEFAULT_CONFIG_WasmCheckVersion)
-FLAGNR(Boolean, WasmSimd, "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
+#ifdef ENABLE_WASM_SIMD
+FLAGR(Boolean, WasmSimd, "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
+#endif
 
 #ifndef COMPILE_DISABLE_Simdjs
     #define COMPILE_DISABLE_Simdjs 0
