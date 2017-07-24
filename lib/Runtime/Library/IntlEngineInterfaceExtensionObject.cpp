@@ -436,23 +436,23 @@ namespace Js
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
 #endif
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Intl"));
+                    initType = scriptContext->GetPropertyString(PropertyIds::Intl);
                     break;
                 case IntlInitializationType::StringPrototype:
                     // No other windows globalization adapter needed. Common adapter should suffice
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("String"));
+                    initType = scriptContext->GetPropertyString(PropertyIds::String);
                     break;
                 case IntlInitializationType::DatePrototype:
 #ifdef INTL_WINGLOB
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
 #endif
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Date"));
+                    initType = scriptContext->GetPropertyString(PropertyIds::Date);
                     break;
                 case IntlInitializationType::NumberPrototype:
 #ifdef INTL_WINGLOB
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
 #endif
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Number"));
+                    initType = scriptContext->GetPropertyString(PropertyIds::Number);
                     break;
             }
 

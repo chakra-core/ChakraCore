@@ -12,6 +12,8 @@
 #define PreInitializedObjectTypeCount ((MaxPreInitializedObjectTypeInlineSlotCount / InlineSlotCountIncrement) + 1)
 CompileAssert(MaxPreInitializedObjectTypeInlineSlotCount <= USHRT_MAX);
 
+#include "StringCache.h"
+
 class ScriptSite;
 class ActiveScriptExternalLibrary;
 class ProjectionExternalLibrary;
@@ -43,7 +45,7 @@ namespace Js
     typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
 
     // valid if object!= NULL
-    struct EnumeratedObjectCache 
+    struct EnumeratedObjectCache
     {
         static const int kMaxCachedPropStrings = 16;
         Field(DynamicObject*) object;
@@ -206,7 +208,6 @@ namespace Js
         static DWORD GetBooleanFalseOffset() { return offsetof(JavascriptLibrary, booleanFalse); }
         static DWORD GetNegativeZeroOffset() { return offsetof(JavascriptLibrary, negativeZero); }
         static DWORD GetNumberTypeStaticOffset() { return offsetof(JavascriptLibrary, numberTypeStatic); }
-        static DWORD GetStringTypeStaticOffset() { return offsetof(JavascriptLibrary, stringTypeStatic); }
         static DWORD GetObjectTypesOffset() { return offsetof(JavascriptLibrary, objectTypes); }
         static DWORD GetObjectHeaderInlinedTypesOffset() { return offsetof(JavascriptLibrary, objectHeaderInlinedTypes); }
         static DWORD GetRegexTypeOffset() { return offsetof(JavascriptLibrary, regexType); }
@@ -361,7 +362,6 @@ namespace Js
         Field(DynamicType *) regexPrototypeType;
         Field(DynamicType *) regexType;
         Field(DynamicType *) regexResultType;
-        Field(StaticType  *) stringTypeStatic;
         Field(DynamicType *) stringTypeDynamic;
         Field(DynamicType *) mapType;
         Field(DynamicType *) setType;
@@ -373,67 +373,19 @@ namespace Js
         Field(DynamicType *) moduleNamespaceType;
         Field(PropertyDescriptor) defaultPropertyDescriptor;
 
+        Field(StringCache) stringCache; // cache string variables once they are used
+
+        // no late caching is needed
         Field(JavascriptString*) nullString;
         Field(JavascriptString*) emptyString;
-        Field(JavascriptString*) quotesString;
-        Field(JavascriptString*) whackString;
-        Field(JavascriptString*) objectArgumentsDisplayString;
-        Field(JavascriptString*) objectArrayDisplayString;
-        Field(JavascriptString*) objectBooleanDisplayString;
-        Field(JavascriptString*) objectDateDisplayString;
-        Field(JavascriptString*) objectErrorDisplayString;
-        Field(JavascriptString*) objectFunctionDisplayString;
-        Field(JavascriptString*) objectDisplayString;
-        Field(JavascriptString*) objectNumberDisplayString;
-        Field(JavascriptString*) objectRegExpDisplayString;
-        Field(JavascriptString*) objectStringDisplayString;
-        Field(JavascriptString*) stringTypeDisplayString;
-        Field(JavascriptString*) functionPrefixString;
-        Field(JavascriptString*) generatorFunctionPrefixString;
-        Field(JavascriptString*) asyncFunctionPrefixString;
-        Field(JavascriptString*) functionDisplayString;
-        Field(JavascriptString*) xDomainFunctionDisplayString;
-        Field(JavascriptString*) undefinedDisplayString;
-        Field(JavascriptString*) nanDisplayString;
-        Field(JavascriptString*) nullDisplayString;
-        Field(JavascriptString*) unknownDisplayString;
-        Field(JavascriptString*) commaDisplayString;
-        Field(JavascriptString*) commaSpaceDisplayString;
-        Field(JavascriptString*) trueDisplayString;
-        Field(JavascriptString*) falseDisplayString;
-        Field(JavascriptString*) invalidDateString;
-        Field(JavascriptString*) objectTypeDisplayString;
-        Field(JavascriptString*) functionTypeDisplayString;
-        Field(JavascriptString*) booleanTypeDisplayString;
-        Field(JavascriptString*) numberTypeDisplayString;
-        Field(JavascriptString*) moduleTypeDisplayString;
-        Field(JavascriptString*) variantDateTypeDisplayString;
 
-#ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        Field(JavascriptString*) simdFloat32x4DisplayString;
-        Field(JavascriptString*) simdFloat64x2DisplayString;
-        Field(JavascriptString*) simdInt32x4DisplayString;
-        Field(JavascriptString*) simdInt16x8DisplayString;
-        Field(JavascriptString*) simdInt8x16DisplayString;
-        Field(JavascriptString*) simdBool32x4DisplayString;
-        Field(JavascriptString*) simdBool16x8DisplayString;
-        Field(JavascriptString*) simdBool8x16DisplayString;
-        Field(JavascriptString*) simdUint32x4DisplayString;
-        Field(JavascriptString*) simdUint16x8DisplayString;
-        Field(JavascriptString*) simdUint8x16DisplayString;
-#endif
-
-
+        // used implicitly by ChakraFull - don't late cache
         Field(JavascriptString*) symbolTypeDisplayString;
         Field(JavascriptString*) debuggerDeadZoneBlockVariableString;
 
         Field(DynamicObject*) missingPropertyHolder;
-
         Field(StaticType*) throwErrorObjectType;
-
         Field(PropertyStringCacheMap*) propertyStringMap;
-
         Field(ConstructorCache*) builtInConstructorCache;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -475,7 +427,6 @@ namespace Js
         Field(JavascriptFunction*) simdUint16x8ToStringFunction;
         Field(JavascriptFunction*) simdUint8x16ToStringFunction;
 #endif
-
 
         Field(JavascriptSymbol*) symbolMatch;
         Field(JavascriptSymbol*) symbolReplace;
@@ -649,56 +600,71 @@ namespace Js
         JavascriptSymbol* GetSymbolSpecies() { return symbolSpecies; }
         JavascriptString* GetNullString() { return nullString; }
         JavascriptString* GetEmptyString() const;
-        JavascriptString* GetWhackString() { return whackString; }
-        JavascriptString* GetUndefinedDisplayString() { return undefinedDisplayString; }
-        JavascriptString* GetNaNDisplayString() { return nanDisplayString; }
-        JavascriptString* GetQuotesString() { return quotesString; }
-        JavascriptString* GetNullDisplayString() { return nullDisplayString; }
-        JavascriptString* GetUnknownDisplayString() { return unknownDisplayString; }
-        JavascriptString* GetCommaDisplayString() { return commaDisplayString; }
-        JavascriptString* GetCommaSpaceDisplayString() { return commaSpaceDisplayString; }
-        JavascriptString* GetTrueDisplayString() { return trueDisplayString; }
-        JavascriptString* GetFalseDisplayString() { return falseDisplayString; }
-        JavascriptString* GetObjectDisplayString() { return objectDisplayString; }
-        JavascriptString* GetObjectArgumentsDisplayString() { return objectArgumentsDisplayString; }
-        JavascriptString* GetObjectArrayDisplayString() { return objectArrayDisplayString; }
-        JavascriptString* GetObjectBooleanDisplayString() { return objectBooleanDisplayString; }
-        JavascriptString* GetObjectDateDisplayString() { return objectDateDisplayString; }
-        JavascriptString* GetObjectErrorDisplayString() { return objectErrorDisplayString; }
-        JavascriptString* GetObjectFunctionDisplayString() { return objectFunctionDisplayString; }
-        JavascriptString* GetObjectNumberDisplayString() { return objectNumberDisplayString; }
-        JavascriptString* GetObjectRegExpDisplayString() { return objectRegExpDisplayString; }
-        JavascriptString* GetObjectStringDisplayString() { return objectStringDisplayString; }
-        JavascriptString* GetStringTypeDisplayString() { return stringTypeDisplayString; }
-        JavascriptString* GetFunctionPrefixString() { return functionPrefixString; }
-        JavascriptString* GetGeneratorFunctionPrefixString() { return generatorFunctionPrefixString; }
-        JavascriptString* GetAsyncFunctionPrefixString() { return asyncFunctionPrefixString; }
-        JavascriptString* GetFunctionDisplayString() { return functionDisplayString; }
-        JavascriptString* GetXDomainFunctionDisplayString() { return xDomainFunctionDisplayString; }
-        JavascriptString* GetInvalidDateString() { return invalidDateString; }
-        JavascriptString* GetObjectTypeDisplayString() const { return objectTypeDisplayString; }
-        JavascriptString* GetFunctionTypeDisplayString() const { return functionTypeDisplayString; }
-        JavascriptString* GetBooleanTypeDisplayString() const { return booleanTypeDisplayString; }
-        JavascriptString* GetNumberTypeDisplayString() const { return numberTypeDisplayString; }
-        JavascriptString* GetModuleTypeDisplayString() const { return moduleTypeDisplayString; }
-        JavascriptString* GetVariantDateTypeDisplayString() const { return variantDateTypeDisplayString; }
 
+#define SCACHE_FUNCTION_PROXY(name) JavascriptString* name() { return stringCache.##name##(); }
 #ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        JavascriptString* GetSIMDFloat32x4DisplayString() const { return simdFloat32x4DisplayString; }
-        JavascriptString* GetSIMDFloat64x2DisplayString() const { return simdFloat64x2DisplayString; }
-        JavascriptString* GetSIMDInt32x4DisplayString()   const { return simdInt32x4DisplayString; }
-        JavascriptString* GetSIMDInt16x8DisplayString()   const { return simdInt16x8DisplayString; }
-        JavascriptString* GetSIMDInt8x16DisplayString()   const { return simdInt8x16DisplayString; }
-
-        JavascriptString* GetSIMDBool32x4DisplayString()   const { return simdBool32x4DisplayString; }
-        JavascriptString* GetSIMDBool16x8DisplayString()   const { return simdBool16x8DisplayString; }
-        JavascriptString* GetSIMDBool8x16DisplayString()   const { return simdBool8x16DisplayString; }
-
-        JavascriptString* GetSIMDUint32x4DisplayString()   const { return simdUint32x4DisplayString; }
-        JavascriptString* GetSIMDUint16x8DisplayString()   const { return simdUint16x8DisplayString; }
-        JavascriptString* GetSIMDUint8x16DisplayString()   const { return simdUint8x16DisplayString; }
+        SCACHE_FUNCTION_PROXY(GetSIMDFloat32x4DisplayString)
+        SCACHE_FUNCTION_PROXY(GetSIMDFloat64x2DisplayString)
+        SCACHE_FUNCTION_PROXY(GetSIMDInt32x4DisplayString)
+        SCACHE_FUNCTION_PROXY(GetSIMDInt16x8DisplayString)
+        SCACHE_FUNCTION_PROXY(GetSIMDInt8x16DisplayString)
+        SCACHE_FUNCTION_PROXY(GetSIMDBool32x4DisplayString)
+        SCACHE_FUNCTION_PROXY(GetSIMDBool16x8DisplayString)
+        SCACHE_FUNCTION_PROXY(GetSIMDBool8x16DisplayString)
+        SCACHE_FUNCTION_PROXY(GetSIMDUint32x4DisplayString)
+        SCACHE_FUNCTION_PROXY(GetSIMDUint16x8DisplayString)
+        SCACHE_FUNCTION_PROXY(GetSIMDUint8x16DisplayString)
 #endif
+        SCACHE_FUNCTION_PROXY(GetEmptyObjectString)
+        SCACHE_FUNCTION_PROXY(GetQuotesString)
+        SCACHE_FUNCTION_PROXY(GetWhackString)
+        SCACHE_FUNCTION_PROXY(GetCommaDisplayString)
+        SCACHE_FUNCTION_PROXY(GetCommaSpaceDisplayString)
+        SCACHE_FUNCTION_PROXY(GetOpenBracketString)
+        SCACHE_FUNCTION_PROXY(GetCloseBracketString)
+        SCACHE_FUNCTION_PROXY(GetOpenSBracketString)
+        SCACHE_FUNCTION_PROXY(GetCloseSBracketString)
+        SCACHE_FUNCTION_PROXY(GetEmptyArrayString)
+        SCACHE_FUNCTION_PROXY(GetNewLineString)
+        SCACHE_FUNCTION_PROXY(GetColonString)
+        SCACHE_FUNCTION_PROXY(GetFunctionAnonymousString)
+        SCACHE_FUNCTION_PROXY(GetFunctionPTRAnonymousString)
+        SCACHE_FUNCTION_PROXY(GetAsyncFunctionAnonymouseString)
+        SCACHE_FUNCTION_PROXY(GetOpenRBracketString)
+        SCACHE_FUNCTION_PROXY(GetNewLineCloseRBracketString)
+        SCACHE_FUNCTION_PROXY(GetSpaceOpenBracketString)
+        SCACHE_FUNCTION_PROXY(GetNewLineCloseBracketString)
+        SCACHE_FUNCTION_PROXY(GetFunctionPrefixString)
+        SCACHE_FUNCTION_PROXY(GetGeneratorFunctionPrefixString)
+        SCACHE_FUNCTION_PROXY(GetAsyncFunctionPrefixString)
+        SCACHE_FUNCTION_PROXY(GetFunctionDisplayString)
+        SCACHE_FUNCTION_PROXY(GetXDomainFunctionDisplayString)
+        SCACHE_FUNCTION_PROXY(GetInvalidDateString)
+        SCACHE_FUNCTION_PROXY(GetObjectDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectArgumentsDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectArrayDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectBooleanDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectDateDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectErrorDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectFunctionDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectNumberDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectRegExpDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectStringDisplayString)
+        SCACHE_FUNCTION_PROXY(GetUndefinedDisplayString)
+        SCACHE_FUNCTION_PROXY(GetNaNDisplayString)
+        SCACHE_FUNCTION_PROXY(GetNullDisplayString)
+        SCACHE_FUNCTION_PROXY(GetUnknownDisplayString)
+        SCACHE_FUNCTION_PROXY(GetTrueDisplayString)
+        SCACHE_FUNCTION_PROXY(GetFalseDisplayString)
+        SCACHE_FUNCTION_PROXY(GetStringTypeDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectTypeDisplayString)
+        SCACHE_FUNCTION_PROXY(GetFunctionTypeDisplayString)
+        SCACHE_FUNCTION_PROXY(GetBooleanTypeDisplayString)
+        SCACHE_FUNCTION_PROXY(GetNumberTypeDisplayString)
+        SCACHE_FUNCTION_PROXY(GetModuleTypeDisplayString)
+        SCACHE_FUNCTION_PROXY(GetVariantDateTypeDisplayString)
+        SCACHE_FUNCTION_PROXY(GetSymbolTypeDisplayString)
+#undef  SCACHE_FUNCTION_PROXY
 
         JavascriptString* GetSymbolTypeDisplayString() const { return symbolTypeDisplayString; }
         JavascriptString* GetDebuggerDeadZoneBlockVariableString() { Assert(debuggerDeadZoneBlockVariableString); return debuggerDeadZoneBlockVariableString; }
@@ -861,7 +827,7 @@ namespace Js
         DynamicType * GetRegexType() const { return regexType; }
         DynamicType * GetRegexResultType() const { return regexResultType; }
         DynamicType * GetArrayBufferType() const { return arrayBufferType; }
-        StaticType  * GetStringTypeStatic() const { AssertMsg(stringTypeStatic, "Where's stringTypeStatic?"); return stringTypeStatic; }
+        StaticType  * GetStringTypeStatic() const { return stringCache.GetStringTypeStatic(); }
         DynamicType * GetStringTypeDynamic() const { return stringTypeDynamic; }
         StaticType  * GetVariantDateType() const { return variantDateType; }
         void EnsureDebugObject(DynamicObject* newDebugObject);
@@ -1233,7 +1199,7 @@ namespace Js
         void SetArrayObjectHasUserDefinedSpecies(bool val) { arrayObjectHasUserDefinedSpecies = val; }
 
         FunctionBody* GetFakeGlobalFuncForUndefer()const { return this->fakeGlobalFuncForUndefer; }
-        void SetFakeGlobalFuncForUndefer(FunctionBody* functionBody) { this->fakeGlobalFuncForUndefer = functionBody; }        
+        void SetFakeGlobalFuncForUndefer(FunctionBody* functionBody) { this->fakeGlobalFuncForUndefer = functionBody; }
 
         ModuleRecordList* EnsureModuleRecordList();
         SourceTextModuleRecord* GetModuleRecord(uint moduleId);
