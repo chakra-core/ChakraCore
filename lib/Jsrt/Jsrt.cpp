@@ -1559,6 +1559,7 @@ CHAKRA_API JsCreateArrayBuffer(_In_ unsigned int byteLength, _Out_ JsValueRef *r
     });
 }
 
+#ifdef _CHAKRACOREBUILD
 CHAKRA_API JsCreateSharedArrayBufferWithSharedContent(_In_ JsSharedArrayBufferContentHandle sharedContents, _Out_ JsValueRef *result)
 {
     return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
@@ -1585,7 +1586,7 @@ CHAKRA_API JsGetSharedArrayBufferContent(_In_ JsValueRef sharedArrayBuffer, _Out
         {
             return JsErrorInvalidArgument;
         }
-        
+
         Js::SharedContents**& content = (Js::SharedContents**&)sharedContents;
         *content = Js::SharedArrayBuffer::FromVar(sharedArrayBuffer)->GetSharedContents();
 
@@ -1607,6 +1608,7 @@ CHAKRA_API JsReleaseSharedArrayBufferContentHandle(_In_ JsSharedArrayBufferConte
         return JsNoError;
     });
 }
+#endif // _CHAKRACOREBUILD
 
 CHAKRA_API JsCreateExternalArrayBuffer(_Pre_maybenull_ _Pre_writable_byte_size_(byteLength) void *data, _In_ unsigned int byteLength,
     _In_opt_ JsFinalizeCallback finalizeCallback, _In_opt_ void *callbackState, _Out_ JsValueRef *result)
@@ -4128,7 +4130,7 @@ CHAKRA_API JsTTDReplayExecution(_Inout_ JsTTDMoveMode* moveMode, _Out_ int64_t* 
 #endif
 }
 
-#ifdef CHAKRACOREBUILD_
+#ifdef _CHAKRACOREBUILD
 
 template <class SrcChar, class DstChar>
 static void CastCopy(const SrcChar* src, DstChar* dst, size_t count)
@@ -4766,4 +4768,4 @@ CHAKRA_API JsCopyStringOneByte(
     });
 }
 
-#endif // CHAKRACOREBUILD_
+#endif // _CHAKRACOREBUILD

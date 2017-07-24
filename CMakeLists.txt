@@ -245,6 +245,7 @@ if(STATIC_LIBRARY)
 endif()
 
 if(CLR_CMAKE_PLATFORM_XPLAT)
+    add_definitions(-D_CHAKRACOREBUILD)
     add_definitions(-DFEATURE_PAL)
     add_definitions(-DPLATFORM_UNIX=1)
 

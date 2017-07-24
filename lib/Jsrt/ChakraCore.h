@@ -21,9 +21,15 @@
 #ifndef _CHAKRACORE_H_
 #define _CHAKRACORE_H_
 
-#include "ChakraCommon.h"
+#if !defined(NTBUILD) && !defined(_CHAKRACOREBUILD)
+#define _CHAKRACOREBUILD
+#endif
 
+#include "ChakraCommon.h"
 #include "ChakraDebug.h"
+
+// Begin ChakraCore only APIs
+#ifdef _CHAKRACOREBUILD
 
 typedef void* JsModuleRecord;
 
@@ -31,7 +37,7 @@ typedef void* JsModuleRecord;
 ///     A reference to an object owned by the SharedArrayBuffer.
 /// </summary>
 /// <remarks>
-///     This represents SharedContents which is heap allocated object, it can be passed through 
+///     This represents SharedContents which is heap allocated object, it can be passed through
 ///     different runtimes to share the underlying buffer.
 /// </remarks>
 typedef void *JsSharedArrayBufferContentHandle;
@@ -188,7 +194,6 @@ JsGetModuleHostInfo(
     _In_ JsModuleHostInfoKind moduleHostInfo,
     _Outptr_result_maybenull_ void** hostInfo);
 
-#ifdef CHAKRACOREBUILD_
 /// <summary>
 ///     Returns metadata relating to the exception that caused the runtime of the current context
 ///     to be in the exception state and resets the exception state for that runtime. The metadata
@@ -717,5 +722,5 @@ JsCopyStringOneByte(
     _Out_opt_ char* buffer,
     _Out_opt_ size_t* written);
 
-#endif // CHAKRACOREBUILD_
+#endif // _CHAKRACOREBUILD
 #endif // _CHAKRACORE_H_
