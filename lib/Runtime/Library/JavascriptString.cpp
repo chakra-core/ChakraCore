@@ -128,11 +128,16 @@ namespace Js
         return NewWithBufferT<LiteralString, true>(content, cchUseLength, scriptContext);
     }
 
-    JavascriptString* JavascriptString::NewCopySzFromArena(__in_z const char16* content, ScriptContext* scriptContext, ArenaAllocator *arena)
+    JavascriptString* JavascriptString::NewCopySzFromArena(__in_z const char16* content,
+        ScriptContext* scriptContext, ArenaAllocator *arena, charcount_t cchUseLength)
     {
         AssertMsg(content != nullptr, "NULL value passed to JavascriptString::New");
 
-        charcount_t cchUseLength = JavascriptString::GetBufferLength(content);
+        if (!cchUseLength)
+        {
+            cchUseLength = JavascriptString::GetBufferLength(content);
+        }
+
         char16* buffer = JavascriptString::AllocateAndCopySz(arena, content, cchUseLength);
         return ArenaLiteralString::New(scriptContext->GetLibrary()->GetStringTypeStatic(),
             buffer, cchUseLength, arena);
