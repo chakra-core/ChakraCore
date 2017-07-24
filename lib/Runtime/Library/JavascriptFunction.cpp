@@ -1688,20 +1688,26 @@ LABEL1:
     void JavascriptFunction::ReparseAsmJsModule(ScriptFunction** functionRef)
     {
         ParseableFunctionInfo* functionInfo = (*functionRef)->GetParseableFunctionInfo();
-
         Assert(functionInfo);
-        functionInfo->GetFunctionBody()->AddDeferParseAttribute();
-        functionInfo->GetFunctionBody()->ResetEntryPoint();
-        functionInfo->GetFunctionBody()->ResetInParams();
+        try
+        {
+            functionInfo->GetFunctionBody()->AddDeferParseAttribute();
+            functionInfo->GetFunctionBody()->ResetEntryPoint();
+            functionInfo->GetFunctionBody()->ResetInParams();
 
-        FunctionBody * funcBody = functionInfo->Parse(functionRef);
+            FunctionBody * funcBody = functionInfo->Parse(functionRef);
 
-#if ENABLE_PROFILE_INFO
-        // This is the first call to the function, ensure dynamic profile info
-        funcBody->EnsureDynamicProfileInfo();
-#endif
+    #if ENABLE_PROFILE_INFO
+            // This is the first call to the function, ensure dynamic profile info
+            funcBody->EnsureDynamicProfileInfo();
+    #endif
 
-        (*functionRef)->UpdateUndeferredBody(funcBody);
+            (*functionRef)->UpdateUndeferredBody(funcBody);
+        }
+        catch (JavascriptException&)
+        {
+                Js::Throw::FatalInternalError();
+        }
     }
 
     // Thunk for handling calls to functions that have not had byte code generated for them.
