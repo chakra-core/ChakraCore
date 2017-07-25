@@ -3173,10 +3173,14 @@ namespace Js
                 }
                 else
                 {
+#if defined (ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
                     Assert(info->GetArgType(i).isSIMD());
                     *simdArg = *(AsmJsSIMDValue*)floatSpillAddress;
                     ++simdArg;
                     homingAreaSize += sizeof(AsmJsSIMDValue);
+#else
+                    Assert(UNREACHED);
+#endif
                 }
 #ifdef ENABLE_SIMDJS
                 if (scriptContext->GetConfig()->IsSimdjsEnabled() && i == 2) // last argument ?
@@ -8036,9 +8040,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = ((uint64)(uint32)GetRegRawInt(playout->SlotIndex) + playout->Offset /* WASM only */) & (int64)(int)ArrayBufferView::ViewMask[playout->ViewType];
 
-        JavascriptArrayBuffer* arr = (m_functionBody->IsWasmFunction()) ?
-            m_wasmMemory->GetBuffer() :
-            *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        JavascriptArrayBuffer* arr =
+#ifdef ENABLE_WASM_SIMD
+            (m_functionBody->IsWasmFunction()) ?
+                m_wasmMemory->GetBuffer() :
+#endif
+                *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
 
         uint8 dataWidth = playout->DataWidth;
@@ -8082,9 +8089,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = ((uint64)(uint32)GetRegRawInt(playout->SlotIndex) + playout->Offset /* WASM only */) & (int64)(int)ArrayBufferView::ViewMask[playout->ViewType];
 
-        JavascriptArrayBuffer* arr = (m_functionBody->IsWasmFunction()) ?
-            m_wasmMemory->GetBuffer() :
-            *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        JavascriptArrayBuffer* arr =
+#ifdef ENABLE_WASM_SIMD
+            (m_functionBody->IsWasmFunction()) ?
+                m_wasmMemory->GetBuffer() :
+#endif
+                *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         BYTE* buffer = arr->GetBuffer();
 
         uint8 dataWidth = playout->DataWidth;
