@@ -89,7 +89,7 @@ void JsrtDebugUtils::AddLineCountToObject(Js::DynamicObject * object, Js::Utf8So
     JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::lineCount, (uint32)utf8SourceInfo->GetLineCount(), utf8SourceInfo->GetScriptContext());
 }
 
-void JsrtDebugUtils::AddSouceToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
+void JsrtDebugUtils::AddSourceToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
 {
     int32 cchLength = utf8SourceInfo->GetCchLength();
     AutoArrayPtr<char16> sourceContent(HeapNewNoThrowArray(char16, cchLength + 1), cchLength + 1);
@@ -104,6 +104,19 @@ void JsrtDebugUtils::AddSouceToObject(Js::DynamicObject * object, Js::Utf8Source
     else
     {
         JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::source, _u(""), 1, utf8SourceInfo->GetScriptContext());
+    }
+}
+
+void JsrtDebugUtils::AddSourceMetadataToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
+{
+    JsrtDebugUtils::AddFileNameOrScriptTypeToObject(object, utf8SourceInfo);
+    JsrtDebugUtils::AddLineCountToObject(object, utf8SourceInfo);
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
+
+    if (utf8SourceInfo->HasDebugDocument())
+    {
+        // Only add the script ID in cases where a debug document exists
+        JsrtDebugUtils::AddScriptIdToObject(object, utf8SourceInfo);
     }
 }
 

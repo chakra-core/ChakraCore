@@ -60,11 +60,14 @@ namespace Js
 
         HostDebugContext * GetHostDebugContext() const { return hostDebugContext; }
 
+        bool GetIsReparsingSource() const { return this->isReparsingSource; }
+
     private:
         ScriptContext * scriptContext;
         HostDebugContext* hostDebugContext;
         DebuggerMode debuggerMode;
         ProbeContainer* diagProbesContainer;
+        bool isReparsingSource;
 
         // Private Functions
         void WalkAndAddUtf8SourceInfo(Js::Utf8SourceInfo* sourceInfo, JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer> *utf8SourceInfoList);
