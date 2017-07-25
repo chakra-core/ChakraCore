@@ -135,7 +135,7 @@ namespace Js
     /* static */
     bool JavascriptFunction::IsBuiltinProperty(Var objectWithProperty, PropertyIds propertyId)
     {
-        return ScriptFunction::Is(objectWithProperty)
+        return ScriptFunctionBase::Is(objectWithProperty)
             && (propertyId == PropertyIds::length || (JavascriptFunction::FromVar(objectWithProperty)->HasRestrictedProperties() && (propertyId == PropertyIds::arguments || propertyId == PropertyIds::caller)));
     }
 #endif
