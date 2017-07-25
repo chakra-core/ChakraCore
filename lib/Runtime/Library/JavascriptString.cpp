@@ -1566,7 +1566,8 @@ case_2:
             stringBuilder.Append(string);
         };
         uint32 loopMax = length >= UINT_MAX ? UINT_MAX-1 : (uint32)length;
-        uint32 i = 1, argsCount = args.Info.Count;
+        uint32 i = 1;
+        uint32 argsCount = args.Info.Count;
         for (; i < loopMax; ++i)
         {
             // First append the next substitution expression if available
