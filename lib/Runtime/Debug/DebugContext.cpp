@@ -10,7 +10,8 @@ namespace Js
         scriptContext(scriptContext),
         hostDebugContext(nullptr),
         diagProbesContainer(nullptr),
-        debuggerMode(DebuggerMode::NotDebugging)
+        debuggerMode(DebuggerMode::NotDebugging),
+        isReparsingSource(false)
     {
         Assert(scriptContext != nullptr);
     }
@@ -141,6 +142,30 @@ namespace Js
 
     HRESULT DebugContext::RundownSourcesAndReparse(bool shouldPerformSourceRundown, bool shouldReparseFunctions)
     {
+        struct AutoRestoreIsReparsingSource
+        {
+            AutoRestoreIsReparsingSource(DebugContext* debugContext, bool shouldReparseFunctions)
+                : debugContext(debugContext)
+                , shouldReparseFunctions(shouldReparseFunctions)
+            {
+                if (this->shouldReparseFunctions)
+                {
+                    this->debugContext->isReparsingSource = true;
+                }
+            }
+            ~AutoRestoreIsReparsingSource()
+            {
+                if (this->shouldReparseFunctions)
+                {
+                    this->debugContext->isReparsingSource = false;
+                }
+            }
+
+        private:
+            DebugContext* debugContext;
+            bool shouldReparseFunctions;
+        } autoRestoreIsReparsingSource(this, shouldReparseFunctions);
+
         OUTPUT_TRACE(Js::DebuggerPhase, _u("DebugContext::RundownSourcesAndReparse scriptContext 0x%p, shouldPerformSourceRundown %d, shouldReparseFunctions %d\n"),
             this->scriptContext, shouldPerformSourceRundown, shouldReparseFunctions);
 

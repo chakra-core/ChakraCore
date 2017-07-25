@@ -1,0 +1,9 @@
+[
+  {
+    "this": "Object {...}",
+    "locals": {
+      "b": "string [Uninitialized block variable]"
+    },
+    "scopes0": "undefined undefined"
+  }
+]

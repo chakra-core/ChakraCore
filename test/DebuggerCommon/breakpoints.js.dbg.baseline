@@ -3,6 +3,76 @@
     "this": {
       "f": "function <large string>"
     },
+    "scopes0": {
+      "arguments": "Object {...}",
+      "x": "Object {...}",
+      "test": "undefined undefined"
+    },
+    "globals": {
+      "f": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 0,
+        "column": 0,
+        "sourceText": "x.a++",
+        "function": "eval code"
+      },
+      {
+        "line": 8,
+        "column": 1,
+        "sourceText": "eval(\"x.a++;/**bp:locals(1);stack()**/ x.b++;\")",
+        "function": "f"
+      },
+      {
+        "line": 15,
+        "column": 0,
+        "sourceText": "f()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "f": "function <large string>"
+    },
+    "scopes0": {
+      "arguments": "Object {...}",
+      "x": "Object {...}",
+      "test": "undefined undefined"
+    },
+    "globals": {
+      "f": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 0,
+        "column": 0,
+        "sourceText": "x.c = \"test\\\"string\"",
+        "function": "eval code"
+      },
+      {
+        "line": 10,
+        "column": 1,
+        "sourceText": "eval(\"x.c = \\\"test\\\\\\\"string\\\";/**bp:locals(1);stack()**/ x.b++;\")",
+        "function": "f"
+      },
+      {
+        "line": 15,
+        "column": 0,
+        "sourceText": "f()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "f": "function <large string>"
+    },
     "locals": {
       "arguments": {
         "#__proto__": "Object {...}",
@@ -32,6 +102,76 @@
       },
       {
         "line": 15,
+        "column": 0,
+        "sourceText": "f()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "f": "function <large string>"
+    },
+    "scopes0": {
+      "arguments": "Object {...}",
+      "x": "Object {...}",
+      "test": "undefined undefined"
+    },
+    "globals": {
+      "f": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 0,
+        "column": 0,
+        "sourceText": "x.a++",
+        "function": "eval code"
+      },
+      {
+        "line": 8,
+        "column": 1,
+        "sourceText": "eval(\"x.a++;/**bp:locals(1);stack()**/ x.b++;\")",
+        "function": "f"
+      },
+      {
+        "line": 16,
+        "column": 0,
+        "sourceText": "f()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "f": "function <large string>"
+    },
+    "scopes0": {
+      "arguments": "Object {...}",
+      "x": "Object {...}",
+      "test": "undefined undefined"
+    },
+    "globals": {
+      "f": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 0,
+        "column": 0,
+        "sourceText": "x.c = \"test\\\"string\"",
+        "function": "eval code"
+      },
+      {
+        "line": 10,
+        "column": 1,
+        "sourceText": "eval(\"x.c = \\\"test\\\\\\\"string\\\";/**bp:locals(1);stack()**/ x.b++;\")",
+        "function": "f"
+      },
+      {
+        "line": 16,
         "column": 0,
         "sourceText": "f()",
         "function": "Global code"

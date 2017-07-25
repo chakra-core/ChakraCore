@@ -572,7 +572,7 @@
   <test>
     <default>
       <files>blockScopeEvalTest.js</files>
-      <compile-flags>-InspectMaxStringLength:33 -debuglaunch -dbgbaseline:emptyJson.dbg.baseline</compile-flags>
+      <compile-flags>-InspectMaxStringLength:33 -debuglaunch -dbgbaseline:blockScopeEvalTest.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>
@@ -911,7 +911,7 @@
   <test>
     <default>
       <files>bug_222633.js</files>
-      <compile-flags> -debuglaunch -dbgbaseline:emptyJson.dbg.baseline</compile-flags>
+      <compile-flags> -debuglaunch -dbgbaseline:bug_222633.js.dbg.baseline</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
