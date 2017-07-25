@@ -5464,6 +5464,9 @@ Case0:
                 isFloatArray = true;
             }
 
+            // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
+            AutoDisableInterrupt failFastOnError(scriptContext->GetThreadContext());
+
             // During the loop below we are going to reverse the segments list. The head segment will become the last segment.
             // We have to verify that the current head segment is not the inilined segement, otherwise due to shuffling below (of EnsureHeadStartsFromZero call below), the inlined segment will no longer
             // be the head and that can create issue down the line. Create new segment if it is an inilined segment.
@@ -5549,6 +5552,9 @@ Case0:
 #ifdef VALIDATE_ARRAY
             pArr->ValidateArray();
 #endif
+
+            failFastOnError.Completed();
+
         }
         else if (typedArrayBase)
         {
