@@ -180,12 +180,12 @@ for(var i = 1; i< 20; i = i+3)
 }
 for(var i = 0; i< 20; i = i+3)
 {
-  Object.defineProperty(Object.prototype, i, { get: function (i) { return function () { return "O"+i; } }(i), configurable: true, enumerable: true });
+  Object.defineProperty(Object.prototype, i, { get: function (i) { return function () { return "O"+i; } }(i), set : function(ab) {}, configurable: true, enumerable: true });
 }
 
 for(var i = 1; i< 20; i = i+3)
 {
-  Object.defineProperty(Array.prototype, i, { get: function (i) { return function () { return "a"+i; } }(i), configurable: true, enumerable: true });
+  Object.defineProperty(Array.prototype, i, { get: function (i) { return function () { return "a"+i; } }(i), set : function(ab) {}, configurable: true, enumerable: true });
 }
 
 arr.shift();

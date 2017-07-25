@@ -734,6 +734,13 @@
   </test>
   <test>
     <default>
+      <files>Array_TypeConfusion_bugs.js</files>
+      <compile-flags>-ForceArrayBTree -args summary -endargs</compile-flags>
+      <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug_9575461.js</files>
     </default>
   </test>
