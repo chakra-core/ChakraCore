@@ -3854,7 +3854,13 @@ namespace Js
         Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
 #if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
 #if _M_X64
+#ifdef ENABLE_SIMDJS
         if (scriptContext->GetConfig()->IsSimdjsEnabled())
+#else
+#ifdef ENABLE_WASM_SIMD
+        if (scriptContext->GetConfig()->IsWasmSimdEnabled())
+#endif 
+#endif
 #endif
         {
             PopOut((ArgSlot)(argsSize / sizeof(Var)) + 1);
