@@ -10,16 +10,16 @@ align 16
 ?ULongToDouble@JavascriptConversion@Js@@SAN_K@Z PROC FRAME
         .endprolog
 
-        test rax, rax
+        test rcx, rcx
         js msbSet
-        cvtsi2sd xmm0, rax
+        cvtsi2sd xmm0, rcx
         jmp doneULongToDouble
     msbSet:
-        mov rdx, rax
-        and rax, 1 ; Save lsb
+        mov rdx, rcx
+        and rcx, 1 ; Save lsb
         shr rdx, 1 ; divide by 2
-        or rax, rdx ; put back lsb if it was set
-        cvtsi2sd xmm0, rax ; do conversion
+        or rcx, rdx ; put back lsb if it was set
+        cvtsi2sd xmm0, rcx ; do conversion
         addsd xmm0, xmm0 ; xmm0 * 2
     doneULongToDouble:
         ret

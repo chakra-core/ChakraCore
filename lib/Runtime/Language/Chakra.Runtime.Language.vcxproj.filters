@@ -157,7 +157,9 @@
     <MASM Include="$(MSBuildThisFileDirectory)amd64\JavascriptOperatorsA.asm">
       <Filter>amd64</Filter>
     </MASM>
-    <MASM Include="amd64\JavascriptConversionA.asm" />
+    <MASM Include="$(MSBuildThisFileDirectory)amd64\JavascriptConversionA.asm">
+      <Filter>amd64</Filter>
+    </MASM>
   </ItemGroup>
   <ItemGroup>
     <None Include="AsmJsEncoder.inl" />
