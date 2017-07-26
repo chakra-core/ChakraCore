@@ -14,10 +14,11 @@ function write(str) {
     }
 }
 
-write("--- 1 ---");                                                                   // CHROME          IE8
-try { write(eval('1+//\0\n1')); } catch (e) { write(e); }                             // 2               !
-try { write(eval('"a\0b"').length); } catch (e) { write(e); }                         // 3               !
-try { write(eval('\'a\0b\'').length); } catch (e) { write(e); }                       // 3               !
-try { write(eval('\0 = 1')); } catch (e) { write(e); }                                // !               undefined
-try { write(eval('/*\0*/1')); } catch (e) { write(e); }                               // 1               !
-try { write(eval('1//\0')); } catch (e) { write(e); }                                 // 1               1
+write("--- 1 ---");                                                               
+try { write(eval('1+//\0\n1')); } catch (e) { write(e); }                             // 2      
+try { write(eval('"a\0b"').length); } catch (e) { write(e); }                         // 3       
+try { write(eval('\'a\0b\'').length); } catch (e) { write(e); }                       // 3         
+try { write(eval('\0 = 1')); } catch (e) { write(e); }                                // !          
+try { write(eval('/*\0*/1')); } catch (e) { write(e); }                               // 1              
+try { write(eval('1//\0')); } catch (e) { write(e); }                                 // 1               
+try { write(eval('1\0')); } catch (e) { write(e); }                                 // !               
