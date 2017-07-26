@@ -2137,14 +2137,14 @@ namespace Js
                 function->GetScriptContext()->asmJsReturnValue.simdVal = asmJsReturn.simd;
                 break;
             }
-#else
+#endif
+
 #ifdef ENABLE_WASM_SIMD
             if (function->GetScriptContext()->GetConfig()->IsWasmSimdEnabled())
             {
                 function->GetScriptContext()->asmJsReturnValue.simdVal = asmJsReturn.simd;
                 break;
             }
-#endif
 #endif
 
             Assert(UNREACHED);
@@ -3856,29 +3856,31 @@ namespace Js
             Assume(UNREACHED);
         }
         Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
-#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
+#if defined (ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
 #if _M_X64
+
 #ifdef ENABLE_SIMDJS
         if (scriptContext->GetConfig()->IsSimdjsEnabled())
-#else
+#endif
+
 #ifdef ENABLE_WASM_SIMD
-        if (scriptContext->GetConfig()->IsWasmSimdEnabled())
-#endif 
+            if (scriptContext->GetConfig()->IsWasmSimdEnabled())
 #endif
+
 #endif
-        {
-            PopOut((ArgSlot)(argsSize / sizeof(Var)) + 1);
-        }
+            {
+                PopOut((ArgSlot)(argsSize / sizeof(Var)) + 1);
+            }
 #if _M_X64
-        else
-        {
-            PopOut((ArgSlot)asmInfo->GetArgCount() + 1);
-        }
+            else
+            {
+                PopOut((ArgSlot)asmInfo->GetArgCount() + 1);
+            }
 #endif
 #else
 #if _M_X64
         PopOut((ArgSlot)asmInfo->GetArgCount() + 1);
-        
+
 #else
         PopOut((ArgSlot)(argsSize / sizeof(Var)) + 1);
 #endif
