@@ -495,7 +495,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
     else if (strcmp(scriptInjectType, "crossthread") == 0)
     {
         auto& threadData = GetRuntimeThreadLocalData().threadData;
-        if (threadData == nullptr) 
+        if (threadData == nullptr)
         {
             threadData = new RuntimeThreadData();
         }
@@ -504,8 +504,8 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
         child->initialSource = fileContent;
         threadData->children.push_back(child);
         child->parent = threadData;
-                
-        // TODO: need to add a switch in case we don't need to wait for 
+
+        // TODO: need to add a switch in case we don't need to wait for
         // child initial script completion
         ResetEvent(threadData->hevntInitialScriptCompleted);
 
@@ -542,7 +542,16 @@ Error:
             errCode = ChakraRTInterface::JsCreateError(messageProperty, &error);
             if (errCode == JsNoError)
             {
-                errCode = ChakraRTInterface::JsSetException(error);
+                bool hasException = false;
+                errorCode = ChakraRTInterface::JsHasException(&hasException);
+                if (errorCode == JsNoError && !hasException)
+                {
+                    errCode = ChakraRTInterface::JsSetException(error);
+                }
+                else if (errCode == JsNoError)
+                {
+                    errCode = JsErrorInExceptionState;
+                }
             }
         }
 
@@ -983,7 +992,7 @@ bool WScriptJsrt::Uninitialize()
     {
         LONG count = (LONG)threadData->children.size();
         std::vector<HANDLE> childrenHandles;
-        
+
         //Clang does not support "for each" yet
         for(auto i = threadData->children.begin(); i!= threadData->children.end(); i++)
         {
