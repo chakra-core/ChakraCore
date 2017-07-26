@@ -1149,7 +1149,7 @@ LEcmaLineBreak:
             goto LMainDefault;
 
         case kchNUL:
-            if (p >= last)
+            if (p > last)
             {
                 m_currentCharacter = p - 1;
                 Error(ERRnoStrEnd);
@@ -1725,14 +1725,14 @@ LLoop:
         case '\0':
             // Put back the null in case we get called again.
             p--;
-LEof:
-            token = tkEOF;
-
-            if (p + 1 < last)
+            if (p < last)
             {
                 // A \0 prior to the end of the text is an invalid character.
                 Error(ERRillegalChar);
             }
+LEof:
+            Assert(p >= last);
+            token = tkEOF;
             break;
 
         case 0x0009:
@@ -2033,7 +2033,10 @@ LCommentLineBreak:
                         m_parser->ReduceDeferredScriptLength((ULONG)(p - m_pchMinTok));
                         break;
                     case kchNUL:
-                        if (p >= last)
+                        // Because we used ReadFirst, we have advanced p. The character that we are looking at is actually is p - 1.
+                        // If p == last, we are looking at p - 1, it is still within the source buffer, and we need to consider it part of the comment
+                        // Only if p > last that we have pass the source buffer and consider it a line break
+                        if (p > last)
                         {
                             p--;
                             goto LCommentLineBreak;
