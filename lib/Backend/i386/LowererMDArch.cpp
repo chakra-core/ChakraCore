@@ -971,7 +971,7 @@ LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= fal
     }
     else
     {
-#ifdef ENABLE_WASM
+#ifdef ENABLE_WASM_SIMD
         if (m_func->GetJITFunctionBody()->IsWasmFunction() && src1->AsIndirOpnd()->GetOffset()) //WASM.SIMD
         {
             IR::RegOpnd *tmp = IR::RegOpnd::New(cmpOpnd->GetType(), m_func);
@@ -1048,7 +1048,7 @@ LowererMDArch::LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore /*= fa
     }
     else
     {
-#ifdef ENABLE_WASM
+#ifdef ENABLE_WASM_SIMD
         if (m_func->GetJITFunctionBody()->IsWasmFunction() && dst->AsIndirOpnd()->GetOffset()) //WASM.SIMD
         {
             IR::RegOpnd *tmp = IR::RegOpnd::New(cmpOpnd->GetType(), m_func);

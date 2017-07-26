@@ -8152,7 +8152,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AsmJsSIMDValue input = GetRegRawSimd(playout->F4_1);
         AsmJsSIMDValue result{ 0 };
 
-#ifdef ENABLE_WASM
+#ifdef ENABLE_WASM_SIMD
         throws = SIMDAnyNaN(input);
         if (!throws)
 #endif
@@ -8175,7 +8175,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AsmJsSIMDValue input = GetRegRawSimd(playout->F4_1);
         AsmJsSIMDValue result{ 0 };
 
-#ifdef ENABLE_WASM
+#ifdef ENABLE_WASM_SIMD
         throws = SIMDAnyNaN(input);
         if (!throws)
 #endif
