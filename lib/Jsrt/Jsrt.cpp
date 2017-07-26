@@ -4194,14 +4194,13 @@ JsErrorCode WriteStringCopy(
         *written = 0;  // init to 0 for default
     }
 
-    if (!Js::JavascriptString::Is(value))
+    const char16* str = nullptr;
+    size_t strLength = 0;
+    JsErrorCode errorCode = JsStringToPointer(value, &str, &strLength);
+    if (errorCode != JsNoError)
     {
-        return JsErrorInvalidArgument;
+        return errorCode;
     }
-
-    Js::JavascriptString *jsString = Js::JavascriptString::FromVar(value);
-    const char16* str = jsString->GetSz();
-    size_t strLength = jsString->GetLength();
 
     if (start < 0 || (size_t)start > strLength)
     {
@@ -4214,7 +4213,7 @@ JsErrorCode WriteStringCopy(
         return JsNoError;  // no chars written
     }
 
-    JsErrorCode errorCode = copyFunc(str + start, count, written);
+    errorCode = copyFunc(str + start, count, written);
     if (errorCode != JsNoError)
     {
         return errorCode;
