@@ -4304,7 +4304,7 @@ const Js::PropertyRecord* ThreadContext::AddSymbolToRegistrationMap(const char16
     // However, as the key contains a null character we need to hash the symbol name past the null character. The default implementation terminates
     // at the null character, so we use the Js::HashedCharacterBuffer as key. We allocate the key in the recycler memory as it needs to be around
     // for the lifetime of the map.
-    Js::HashedCharacterBuffer<char16> * propertyName = RecyclerNew(GetRecycler(), Js::HashedCharacterBuffer<char16>, stringKey, stringLength);
+    Js::HashedCharacterBuffer<char16> * propertyName = RecyclerNew(GetRecycler(), Js::HashedCharacterBuffer<char16>, propertyRecord->GetBuffer(), propertyRecord->GetLength());
     this->recyclableData->symbolRegistrationMap->Add(propertyName, propertyRecord);
 
     return propertyRecord;

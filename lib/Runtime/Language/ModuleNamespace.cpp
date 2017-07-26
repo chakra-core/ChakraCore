@@ -50,7 +50,7 @@ namespace Js
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
             DynamicObject::SetPropertyWithAttributes(PropertyIds::_symbolToStringTag, library->GetModuleTypeDisplayString(),
-                PropertyConfigurable, nullptr);
+                PropertyNone, nullptr);
         }
 
         ModuleImportOrExportEntryList* localExportList = sourceTextModuleRecord->GetLocalExportEntryList();
@@ -84,6 +84,7 @@ namespace Js
         // For items that are not in the local export list, we need to resolve them to get it
         ExportedNames* exportedNames = sourceTextModuleRecord->GetExportedNames(nullptr);
         ModuleNameRecord* moduleNameRecord = nullptr;
+        sortedExportedNames = ListForListIterator::New(scriptContext->GetRecycler());
 #if DBG
         uint unresolvableExportsCount = 0;
         uint localExportCount = 0;
@@ -91,6 +92,8 @@ namespace Js
         if (exportedNames != nullptr)
         {
             exportedNames->Map([&](PropertyId propertyId) {
+                JavascriptString* propertyString = scriptContext->GetPropertyString(propertyId);
+                sortedExportedNames->Add(propertyString);
                 if (!moduleRecord->ResolveExport(propertyId, nullptr, nullptr, &moduleNameRecord))
                 {
                     // ignore ambigious resolution.
@@ -116,6 +119,13 @@ namespace Js
                 this->AddUnambiguousNonLocalExport(propertyId, moduleNameRecord);
             });
         }
+
+        sortedExportedNames->Sort([](void* context, const void* left, const void* right) ->int {
+            JavascriptString** leftString = (JavascriptString**)(left);
+            JavascriptString** rightString = (JavascriptString**)(right);
+            return JavascriptString::strcmp(*leftString, *rightString);
+        }, nullptr);
+
 #if DBG
         uint totalExportCount = exportedNames != nullptr ? exportedNames->Count() : 0;
         uint unambiguousNonLocalCount = (this->GetUnambiguousNonLocalExports() != nullptr) ? this->GetUnambiguousNonLocalExports()->Count() : 0;
@@ -158,6 +168,84 @@ namespace Js
     BOOL ModuleNamespace::HasOwnProperty(PropertyId propertyId)
     {
         return HasProperty(propertyId);
+    }
+
+    BOOL ModuleNamespace::IsConfigurable(PropertyId propertyId)
+    {
+        SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
+        const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
+        if (propertyRecord->IsSymbol())
+        {
+            return this->DynamicObject::IsConfigurable(propertyId);
+        }
+
+        if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
+        {
+            return !!(propertyDescriptor.Attributes & PropertyConfigurable);
+        }
+
+        if (unambiguousNonLocalExports != nullptr)
+        {
+            ModuleNameRecord moduleNameRecord;
+            if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
+            {
+                return !!(PropertyModuleNamespaceDefault & PropertyConfigurable);
+            }
+        }
+
+        return DynamicObject::IsConfigurable(propertyId);
+    }
+
+    BOOL ModuleNamespace::IsEnumerable(PropertyId propertyId)
+    {
+        SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
+        const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
+        if (propertyRecord->IsSymbol())
+        {
+            return this->DynamicObject::IsEnumerable(propertyId);
+        }
+
+        if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
+        {
+            return !!(propertyDescriptor.Attributes & PropertyEnumerable);
+        }
+
+        if (unambiguousNonLocalExports != nullptr)
+        {
+            ModuleNameRecord moduleNameRecord;
+            if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
+            {
+                return !!(PropertyModuleNamespaceDefault & PropertyEnumerable);
+            }
+        }
+
+        return DynamicObject::IsEnumerable(propertyId);
+    }
+
+    BOOL ModuleNamespace::IsWritable(PropertyId propertyId)
+    {
+        SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
+        const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
+        if (propertyRecord->IsSymbol())
+        {
+            return this->DynamicObject::IsWritable(propertyId);
+        }
+
+        if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
+        {
+            return !!(propertyDescriptor.Attributes & PropertyWritable);
+        }
+
+        if (unambiguousNonLocalExports != nullptr)
+        {
+            ModuleNameRecord moduleNameRecord;
+            if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
+            {
+                return !!(PropertyModuleNamespaceDefault & PropertyWritable);
+            }
+        }
+
+        return DynamicObject::IsWritable(propertyId);
     }
 
     PropertyQueryFlags ModuleNamespace::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)

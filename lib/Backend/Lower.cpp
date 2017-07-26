@@ -306,7 +306,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     this->m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(currFunc->GetHasNonSimpleParams() ? TRUE : FALSE, TyUint8, currFunc));
 
                     // s2 = current function.
-                    IR::Opnd * paramOpnd = GetFuncObjectOpnd(instr);
+                    IR::Opnd * paramOpnd = LoadFunctionBodyOpnd(instr);
                     this->m_lowererMD.LoadHelperArgument(instr, paramOpnd);
                     
                     m_lowererMD.ChangeToHelperCallMem(instr, IR::HelperOP_NewScopeObjectWithFormals);

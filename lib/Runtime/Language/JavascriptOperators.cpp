@@ -1148,20 +1148,6 @@ CommonNumber:
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
         }
 
-        if (ModuleNamespace::Is(object))
-        {
-            ModuleNamespace *ns = ModuleNamespace::FromVar(object);
-            JavascriptArray *names = ns->GetSortedExportedNames();
-            if (names == nullptr)
-            {
-                names = JavascriptObject::CreateOwnStringPropertiesHelper(object, scriptContext);
-                names->Sort(nullptr);
-                ns->SetSortedExportedNames(names);
-            }
-
-            return names;
-        }
-
         return JavascriptObject::CreateOwnStringPropertiesHelper(object, scriptContext);
     }
 
@@ -5640,7 +5626,7 @@ CommonNumber:
 
     void JavascriptOperators::OP_InitCachedFuncs(Var varScope, FrameDisplay *pDisplay, const FuncInfoArray *info, ScriptContext *scriptContext)
     {
-        ActivationObjectEx *scopeObj = (ActivationObjectEx*)ActivationObjectEx::FromVar(varScope);
+        ActivationObjectEx *scopeObj = ActivationObjectEx::FromVar(varScope);
         Assert(scopeObj->GetTypeHandler()->GetInlineSlotCapacity() == 0);
 
         uint funcCount = info->count;
@@ -6269,7 +6255,7 @@ CommonNumber:
                 if (typeHandler->IsSharable())
                 {
 #if DBG
-                    bool cachedProtoCanBeCached;
+                    bool cachedProtoCanBeCached = false;
                     Assert(type->GetPrototype() == JavascriptOperators::GetPrototypeObjectForConstructorCache(constructor, requestContext, cachedProtoCanBeCached));
                     Assert(cachedProtoCanBeCached);
                     Assert(type->GetScriptContext() == constructorCache->GetScriptContext());
@@ -6997,8 +6983,6 @@ CommonNumber:
         if (funcCallee->IsStrictMode())
         {
             JavascriptFunction* restrictedPropertyAccessor = library->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
-            argsObj->SetAccessors(PropertyIds::caller, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
-
             argsObj->SetAccessors(PropertyIds::callee, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
 
         }
@@ -7016,7 +7000,7 @@ CommonNumber:
         return scriptContext->GetLibrary()->CreateActivationObject();
     }
 
-    Var JavascriptOperators::OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, JavascriptFunction * funcCallee, bool nonSimpleParamList)
+    Var JavascriptOperators::OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, FunctionBody * calleeBody, bool nonSimpleParamList)
     {
         Js::ActivationObject * frameObject = (ActivationObject*)OP_NewScopeObject(scriptContext);
         // No fixed fields for formal parameters of the arguments object.  Also, mark all fields as initialized up-front, because
@@ -7024,7 +7008,7 @@ CommonNumber:
         // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
         // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
         // is ready for storing values directly to slots.
-        DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), funcCallee->GetFunctionBody()->GetFormalsPropIdArray(), nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
+        DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), calleeBody->GetFormalsPropIdArray(), nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
 
         int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
         int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();

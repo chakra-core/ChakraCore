@@ -158,16 +158,14 @@
     <tags>exclude_jshost,exclude_win7</tags>
   </default>
 </test>
-<!-- Todo:: Enable test once ported to release/1.6
 <test>
   <default>
     <files>params.js</files>
     <baseline>baselines/params.baseline</baseline>
-    <compile-flags>-wasm -EnableFatalErrorOnOOM- -args 14000 -endargs</compile-flags>
-    <tags>exclude_jshost,exclude_win7,exclude_dynapogo</tags>
+    <compile-flags>-wasm -args 14000 -endargs</compile-flags>
+    <tags>exclude_jshost,exclude_win7,exclude_dynapogo,exclude_xplat</tags>
   </default>
 </test>
--->
 <test>
   <default>
     <files>debugger.js</files>

@@ -398,7 +398,7 @@ namespace Js
             SRCINFO *hsi = scriptContext->AddHostSrcInfo(&si);
             uint32 flags = fscrIsLibraryCode | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
 
-            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_intl, nullptr, &this->intlByteCode);
+            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_Intl, nullptr, &this->intlByteCode);
 
             IfFailAssertMsgAndThrowHr(hr, "Failed to deserialize Intl.js bytecode - very probably the bytecode needs to be rebuilt.");
         }
@@ -436,23 +436,23 @@ namespace Js
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
 #endif
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Intl"));
+                    initType = scriptContext->GetPropertyString(PropertyIds::Intl);
                     break;
                 case IntlInitializationType::StringPrototype:
                     // No other windows globalization adapter needed. Common adapter should suffice
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("String"));
+                    initType = scriptContext->GetPropertyString(PropertyIds::String);
                     break;
                 case IntlInitializationType::DatePrototype:
 #ifdef INTL_WINGLOB
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
 #endif
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Date"));
+                    initType = scriptContext->GetPropertyString(PropertyIds::Date);
                     break;
                 case IntlInitializationType::NumberPrototype:
 #ifdef INTL_WINGLOB
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
 #endif
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Number"));
+                    initType = scriptContext->GetPropertyString(PropertyIds::Number);
                     break;
             }
 

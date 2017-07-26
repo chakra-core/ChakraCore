@@ -32,14 +32,70 @@ function testModuleScript(source, message, shouldFail = false) {
 
 var tests = [
     {
-        name: "Issue3249: Namespace object's Symbol.toStringTag",
+        name: "Issue3249: Namespace object's property attributes",
         body: function () {
 			testModuleScript(`
+            function verifyPropertyDesc(obj, prop, desc, propName) {
+                var actualDesc = Object.getOwnPropertyDescriptor(obj, prop);
+                if (typeof propName === "undefined") { propName = prop; }
+                assert.areEqual(desc.configurable, actualDesc.configurable, propName+"'s attribute: configurable");
+                assert.areEqual(desc.enumerable, actualDesc.enumerable, propName+"'s attribute: enumerable");
+                assert.areEqual(desc.writable, actualDesc.writable, propName+"'s attribute: writable");
+            }
+
 			import * as foo from "ValidExportStatements.js";
-            var desc = Object.getOwnPropertyDescriptor(foo, Symbol.toStringTag);
-            assert.isFalse(desc.configurable, "configurable: false");
-            assert.isFalse(desc.enumerable, "enumerable: false");
-            assert.isFalse(desc.writable, "writable: false");
+            assert.areEqual("Module", foo[Symbol.toStringTag], "@@toStringTag is the String value'Module'");
+            verifyPropertyDesc(foo, Symbol.toStringTag, {configurable:false, enumerable: false, writable: false}, "Symbol.toStringTag");
+            verifyPropertyDesc(foo, "default", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "var7", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "var6", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "var4", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "var3", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "var2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "var1", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "foo4", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "bar2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "foobar", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "foo3", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "baz2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "foo2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "baz", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "bar", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "foo", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "const6", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "const5", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "const4", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "const3", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "const2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "let7", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "let6", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "let5", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "let4", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "let2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "let1", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "cl2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "cl1", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "gn2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "gn1", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "fn2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo, "fn1", {configurable:false, enumerable: true, writable: true});
+
+            import * as foo1 from "ValidReExportStatements.js";
+            verifyPropertyDesc(foo1, "foo", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo1, "bar", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo1, "baz", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo1, "foo2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo1, "bar2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo1, "foo3", {configurable:false, enumerable: true, writable: true});
+
+            import * as foo2 from "ModuleComplexReexports.js";
+            verifyPropertyDesc(foo2, "ModuleComplexReexports_foo", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo2, "bar2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo2, "localfoo2", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo2, "bar", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo2, "localfoo", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo2, "baz", {configurable:false, enumerable: true, writable: true});
+            verifyPropertyDesc(foo2, "foo", {configurable:false, enumerable: true, writable: true});
 		    `, '', false);
         }
     },
@@ -135,9 +191,8 @@ var tests = [
     {
         name: "reexport only",
         body: function () {
-            //testModuleScript('import * as foo from "ValidReExportStatements.js"; for (var i in foo) helpers.writeln(i + "=" + foo[i]);', '', false);
             testModuleScript(`
-			import * as foo from "ValidReExportStatements.js";
+            import * as foo from "ValidReExportStatements.js";
 			assert.areEqual("function foo() { }", foo.foo.toString(), "foo");
 			assert.areEqual("class bar { }", foo.bar.toString(), "bar");
 			assert.areEqual("function* baz() { }", foo.baz.toString(), "baz");
@@ -241,8 +296,21 @@ var tests = [
                 var p = new Proxy(ns, {});
                 var names = ["sym0","default","$","$$","_","\u03bb","aa","A","a","zz","z","\u03bc","Z","za","__","az","\u03c0"].sort();
 
-                assert.areEqual(names, Object.getOwnPropertyNames(ns), "ModuleNamespace");
-                assert.areEqual(names, Object.getOwnPropertyNames(p), "Proxy");
+                var verifyNamespaceOwnProperty = function(obj, objKind) {
+                    assert.areEqual(names, Object.getOwnPropertyNames(obj), objKind+" getOwnPropertyNames()");
+
+                    var propDesc = Object.getOwnPropertyDescriptors(obj);
+                    assert.areEqual('{"value":"Module","writable":false,"enumerable":false,"configurable":false}', JSON.stringify(propDesc[Symbol.toStringTag]),
+                        objKind+" getOwnPropertyDescriptors() @@toStringTag");
+                    assert.areEqual(names, Object.keys(propDesc), "ModuleNamespace", objKind+" getOwnPropertyDescriptors()");
+                };
+
+                verifyNamespaceOwnProperty(ns, "ModuleNamespace");
+                verifyNamespaceOwnProperty(p, "Proxy");
+
+                var propEn = [];
+                for (var k in ns) { propEn.push(k); }
+                assert.areEqual(names, propEn, "ModuleNamespace enumerator");
                 `;
             testModuleScript(functionBody, "Test importing as different binding identifiers", false);
        }

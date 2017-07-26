@@ -135,18 +135,10 @@ namespace Js
     /* static */
     bool JavascriptFunction::IsBuiltinProperty(Var objectWithProperty, PropertyIds propertyId)
     {
-        return ScriptFunction::Is(objectWithProperty)
+        return ScriptFunctionBase::Is(objectWithProperty)
             && (propertyId == PropertyIds::length || (JavascriptFunction::FromVar(objectWithProperty)->HasRestrictedProperties() && (propertyId == PropertyIds::arguments || propertyId == PropertyIds::caller)));
     }
 #endif
-
-    static char16 const funcName[] = _u("function anonymous");
-    static char16 const genFuncName[] = _u("function* anonymous");
-    static char16 const asyncFuncName[] = _u("async function anonymous");
-    static char16 const openFormals[] = _u("(");
-    static char16 const closeFormals[] = _u("\n)");
-    static char16 const openFuncBody[] = _u(" {");
-    static char16 const closeFuncBody[] = _u("\n}");
 
     Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
@@ -164,7 +156,7 @@ namespace Js
         JavascriptString* separator = library->GetCommaDisplayString();
 
         // Gather all the formals into a string like (fml1, fml2, fml3)
-        JavascriptString *formals = library->CreateStringFromCppLiteral(openFormals);
+        JavascriptString *formals = library->GetOpenRBracketString();
         for (uint i = 1; i < args.Info.Count - 1; ++i)
         {
             if (i != 1)
@@ -173,7 +165,7 @@ namespace Js
             }
             formals = JavascriptString::Concat(formals, JavascriptConversion::ToString(args.Values[i], scriptContext));
         }
-        formals = JavascriptString::Concat(formals, library->CreateStringFromCppLiteral(closeFormals));
+        formals = JavascriptString::Concat(formals, library->GetNewLineCloseRBracketString());
         // Function body, last argument to Function(...)
         JavascriptString *fnBody = NULL;
         if (args.Info.Count > 1)
@@ -183,25 +175,25 @@ namespace Js
 
         // Create a string representing the anonymous function
         Assert(
-            CountNewlines(funcName) +
-            CountNewlines(openFormals) +
-            CountNewlines(closeFormals) +
-            CountNewlines(openFuncBody)
+            0 + // "function anonymous" GetFunctionAnonymousString
+            0 + // "("   GetOpenRBracketString
+            1 + // "\n)" GetNewLineCloseRBracketString
+            0 // " {"  GetSpaceOpenBracketString
             == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
 
         JavascriptString *bs = functionKind == FunctionKind::Async ?
-            library->CreateStringFromCppLiteral(asyncFuncName) :
+            library->GetAsyncFunctionAnonymouseString() :
             functionKind == FunctionKind::Generator ?
-            library->CreateStringFromCppLiteral(genFuncName) :
-            library->CreateStringFromCppLiteral(funcName);
+            library->GetFunctionPTRAnonymousString() :
+            library->GetFunctionAnonymousString();
         bs = JavascriptString::Concat(bs, formals);
-        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(openFuncBody));
+        bs = JavascriptString::Concat(bs, library->GetSpaceOpenBracketString());
         if (fnBody != NULL)
         {
             bs = JavascriptString::Concat(bs, fnBody);
         }
 
-        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(closeFuncBody));
+        bs = JavascriptString::Concat(bs, library->GetNewLineCloseBracketString());
         // Bug 1105479. Get the module id from the caller
         ModuleID moduleID = kmodGlobal;
 
@@ -938,13 +930,15 @@ namespace Js
                 resultObject,
                 JavascriptFunction::Is(functionObj) && functionObj->GetScriptContext() == scriptContext ?
                 JavascriptFunction::FromVar(functionObj) :
-                nullptr);
+                nullptr,
+                overridingNewTarget != nullptr);
     }
 
     Var JavascriptFunction::FinishConstructor(
         const Var constructorReturnValue,
         Var newObject,
-        JavascriptFunction *const function)
+        JavascriptFunction *const function,
+        bool hasOverridingNewTarget)
     {
         Assert(constructorReturnValue);
 
@@ -954,7 +948,9 @@ namespace Js
             newObject = constructorReturnValue;
         }
 
-        if (function && function->GetConstructorCache()->NeedsUpdateAfterCtor())
+        // #3217: Cases with overriding newTarget are not what constructor cache is intended for;
+        //     Bypass constructor cache to avoid prototype mismatch/confusion.
+        if (function && function->GetConstructorCache()->NeedsUpdateAfterCtor() && !hasOverridingNewTarget)
         {
             JavascriptOperators::UpdateNewScObjectCache(function, newObject, function->GetScriptContext());
         }
@@ -1669,7 +1665,7 @@ LABEL1:
 
         if (funcObjectWithInlineCache && !funcObjectWithInlineCache->GetHasOwnInlineCaches())
         {
-            // If the function object needs to use the inline caches from the function body, point them to the 
+            // If the function object needs to use the inline caches from the function body, point them to the
             // function body's caches. This is required in two redeferral cases:
             //
             // 1. We might have cleared the caches on the function object (ClearBorrowedInlineCacheOnFunctionObject)
@@ -2726,16 +2722,17 @@ LABEL1:
                 // If this is the internal function of a generator function then return the original generator function
                 funcCaller = ScriptFunction::FromVar(funcCaller)->GetRealFunctionObject();
 
-                // This function is escaping, so make sure there isn't some caller that has a cached scope.
-                JavascriptFunction * func;
-                while (walker.GetCaller(&func))
+                // This function is escaping, so make sure there isn't some nested parent that has a cached scope.
+                if (ScriptFunction::Is(funcCaller))
                 {
-                    if (ScriptFunction::Is(func))
+                    FrameDisplay * pFrameDisplay = Js::ScriptFunction::FromVar(funcCaller)->GetEnvironment();
+                    uint length = (uint)pFrameDisplay->GetLength();
+                    for (uint i = 0; i < length; i++)
                     {
-                        ActivationObjectEx * obj = ScriptFunction::FromVar(func)->GetCachedScope();
-                        if (obj)
+                        void * scope = pFrameDisplay->GetItem(i);
+                        if (!Js::ScopeSlots::Is(scope) && Js::ActivationObjectEx::Is(scope))
                         {
-                            obj->InvalidateCachedScope();
+                            Js::ActivationObjectEx::FromVar(scope)->InvalidateCachedScope();
                         }
                     }
                 }
@@ -2805,7 +2802,11 @@ LABEL1:
             HRESULT hr = scriptContext->GetHostScriptContext()->CheckCrossDomainScriptContext(funcCaller->GetScriptContext());
             if (S_OK != hr)
             {
-                *value = scriptContext->GetLibrary()->GetNull();
+                *value = nullValue;
+            }
+            else
+            {
+                *value = CrossSite::MarshalVar(requestContext, funcCaller);
             }
         }
 

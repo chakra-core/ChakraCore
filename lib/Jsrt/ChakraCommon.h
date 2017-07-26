@@ -96,10 +96,6 @@ typedef unsigned short WCHAR;
 typedef unsigned short uint16_t;
 #endif
 
-#if !defined(NTBUILD) && !defined(CHAKRACOREBUILD_)
-#define CHAKRACOREBUILD_
-#endif
-
     /// <summary>
     ///     An error code returned from a Chakra hosting API.
     /// </summary>
@@ -2384,7 +2380,7 @@ typedef unsigned short uint16_t;
     /// </returns>
     CHAKRA_API
         JsSetPromiseContinuationCallback(
-            _In_ JsPromiseContinuationCallback promiseContinuationCallback,
+            _In_opt_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
 
 #ifdef _WIN32

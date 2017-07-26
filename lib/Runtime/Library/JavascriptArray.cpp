@@ -5318,6 +5318,58 @@ Case0:
         JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::ReverseHelper(pArr, nullptr, obj, length.GetBigIndex(), scriptContext));
     }
 
+    bool JavascriptArray::HasAnyES5ArrayInPrototypeChain(JavascriptArray *arr, bool forceCheckProtoChain)
+    {
+        Assert(arr != nullptr);
+
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arr);
+#endif
+
+        bool hasAnyES5Array = false;
+
+        // If there is no gap (unless forced) we are not filling from the prototype - so no point checking for ES5Array.
+        if (forceCheckProtoChain || arr->IsFillFromPrototypes())
+        {
+            RecyclableObject* prototype = arr->GetPrototype();
+
+            while (JavascriptOperators::GetTypeId(prototype) != TypeIds_Null)
+            {
+                RecyclableObject* protoObj = prototype;
+
+                if (!(DynamicObject::IsAnyArray(protoObj) || JavascriptOperators::IsObject(protoObj)) 
+                    || JavascriptProxy::Is(protoObj)
+                    || protoObj->IsExternal())
+                {
+                    hasAnyES5Array = true;
+                    break;
+                }
+
+                if (DynamicObject::IsAnyArray(protoObj))
+                {
+                    if (ES5Array::Is(protoObj))
+                    {
+                        hasAnyES5Array = true;
+                        break;
+                    }
+                }
+                else if (DynamicType::Is(protoObj->GetTypeId()))
+                {
+                    DynamicObject* dynobj = DynamicObject::FromVar(protoObj);
+                    ArrayObject* objectArray = dynobj->GetObjectArray();
+                    if (objectArray != nullptr && ES5Array::Is(objectArray))
+                    {
+                        hasAnyES5Array = true;
+                        break;
+                    }
+                }
+
+                prototype = prototype->GetPrototype();
+            }
+        }
+        return hasAnyES5Array;
+    }
+
     // Array.prototype.reverse as described in ES6.0 (draft 22) Section 22.1.3.20
     template <typename T>
     Var JavascriptArray::ReverseHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, ScriptContext* scriptContext)
@@ -5347,7 +5399,9 @@ Case0:
 
         ThrowTypeErrorOnFailureHelper h(scriptContext, methodName);
 
-        if (pArr)
+        bool useNoSideEffectReverse = pArr != nullptr && !HasAnyES5ArrayInPrototypeChain(pArr);
+
+        if (useNoSideEffectReverse)
         {
             Recycler * recycler = scriptContext->GetRecycler();
 
@@ -5371,6 +5425,12 @@ Case0:
                         pArr->FillFromPrototypes(0, (uint32)middle),
                         pArr->FillFromPrototypes(1 + (uint32)middle, (uint32)length));
                 }
+            }
+
+            // As we have already established that the FillFromPrototype should not change the bound of the array.
+            if (length != (T)pArr->length)
+            {
+                Js::Throw::FatalInternalError();
             }
 
             if (pArr->HasNoMissingValues() && pArr->head && pArr->head->next)
@@ -5679,21 +5739,31 @@ Case0:
         {
             return res;
         }
-        if (JavascriptArray::Is(args[0]))
+
+        bool useNoSideEffectShift = JavascriptArray::Is(args[0])
+            && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject()
+            && !HasAnyES5ArrayInPrototypeChain(JavascriptArray::FromVar(args[0]));
+
+        if (useNoSideEffectShift)
         {
             JavascriptArray * pArr = JavascriptArray::FromVar(args[0]);
-#if ENABLE_COPYONACCESS_ARRAY
-            JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(pArr);
-#endif
 
             if (pArr->length == 0)
             {
                 return res;
             }
 
+            uint32 length = pArr->length;
+
             if(pArr->IsFillFromPrototypes())
             {
                 JS_REENTRANT(jsReentLock, pArr->FillFromPrototypes(0, pArr->length)); // We need find all missing value from [[proto]] object
+            }
+
+            // As we have already established that the FillFromPrototype should not change the bound of the array.
+            if (length != pArr->length)
+            {
+                Js::Throw::FatalInternalError();
             }
 
             if(pArr->HasNoMissingValues() && pArr->head && pArr->head->next)
@@ -6137,6 +6207,11 @@ Case0:
 
         if (pArr)
         {
+            if (HasAnyES5ArrayInPrototypeChain(pArr))
+            {
+                JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::SliceObjectHelper(obj, start, 0u, newArr, newObj, newLen, scriptContext));
+            }
+
             // If we constructed a new Array object, we have some nice helpers here
             if (newArr && isBuiltinArrayCtor)
             {
@@ -6662,12 +6737,12 @@ Case0:
             }
         }
 
-        if (JavascriptArray::Is(args[0]))
-        {
-#if ENABLE_COPYONACCESS_ARRAY
-            JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
-#endif
+        bool useNoSideEffectSort = JavascriptArray::Is(args[0])
+            && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject()
+            && !HasAnyES5ArrayInPrototypeChain(JavascriptArray::FromVar(args[0]));
 
+        if (useNoSideEffectSort)
+        {
             JavascriptArray *arr = JavascriptArray::FromVar(args[0]);
 
             if (arr->length <= 1)
@@ -6675,9 +6750,17 @@ Case0:
                 return args[0];
             }
 
+            uint32 length = arr->length;
+
             if(arr->IsFillFromPrototypes())
             {
                 JS_REENTRANT(jsReentLock, arr->FillFromPrototypes(0, arr->length)); // We need find all missing value from [[proto]] object
+            }
+
+            // As we have already established that the FillFromPrototype should not change the bound of the array.
+            if (length != arr->length)
+            {
+                Js::Throw::FatalInternalError();
             }
 
             // Maintain nativity of the array only for the following cases (To favor inplace conversions - keeps the conversion cost less):
@@ -7677,20 +7760,36 @@ Case0:
         {
            return res;
         }
-        if (JavascriptArray::Is(args[0]) && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject())
+
+        JavascriptArray * pArr = nullptr;
+        if (JavascriptArray::Is(args[0])
+            && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject())
         {
 #if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
 #endif
-            JavascriptArray * pArr = JavascriptArray::FromVar(args[0]);
+            pArr = JavascriptArray::FromVar(args[0]);
+        }
 
             uint32 unshiftElements = args.Info.Count - 1;
 
+        // forceCheckProtoChain - since the array expand to accommodate new items thus we have to check if we have accessor on the proto chain.
+        bool useNoSideEffectUnshift = pArr != nullptr && (unshiftElements == 0 || !HasAnyES5ArrayInPrototypeChain(pArr, true /*forceCheckProtoChain*/));
+
+        if (useNoSideEffectUnshift)
+        {
             if (unshiftElements > 0)
             {
+                uint32 length = pArr->length;
                 if (pArr->IsFillFromPrototypes())
                 {
                     JS_REENTRANT(jsReentLock, pArr->FillFromPrototypes(0, pArr->length)); // We need find all missing value from [[proto]] object
+                }
+
+                // As we have already established that the FillFromPrototype should not change the bound of the array.
+                if (length != pArr->length)
+                {
+                    Js::Throw::FatalInternalError();
                 }
 
                 // Pre-process: truncate overflowing elements to properties
@@ -7795,7 +7894,6 @@ Case0:
             }
 
             JS_REENTRANT(jsReentLock, BigIndex length = OP_GetLength(dynamicObject, scriptContext));
-            uint32 unshiftElements = args.Info.Count - 1;
             if (unshiftElements > 0)
             {
                 uint32 MaxSpaceUint32 = MaxArrayLength - unshiftElements;

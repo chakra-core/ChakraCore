@@ -84,6 +84,13 @@
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>IntlIdentities.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>Intl,exclude_winglob</tags>
+    </default>
+  </test>
 
   <test>
     <default>

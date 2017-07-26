@@ -1733,25 +1733,37 @@ namespace Js
 
         JavascriptString *string;
 
+// TODO: (obastemur) Could this be dynamic instead of compile time?
+#ifndef CC_LOW_MEMORY_TARGET // we don't need this on a target with low memory
         if (!this->integerStringMap.TryGetValue(value, &string))
         {
             // Add the string to hash table cache
             // Don't add if table is getting too full.  We'll be holding on to
             // too many strings, and table lookup will become too slow.
-            if (this->integerStringMap.Count() > 1024)
+            // TODO: Long term running app, this cache doesn't provide much value?
+            //       i.e. what is the importance of first 512 number to string calls?
+            //       a solution; count the number of times we couldn't use cache
+            //       after cache is full. If it's bigger than X ?? the discard the
+            //       previous cache?
+            if (this->integerStringMap.Count() > 512)
             {
+#endif
                 // Use recycler memory
                 string = TaggedInt::ToString(value, this);
+
+#ifndef CC_LOW_MEMORY_TARGET
             }
             else
             {
-                char16 stringBuffer[20];
+                char16 stringBuffer[22];
 
-                TaggedInt::ToBuffer(value, stringBuffer, _countof(stringBuffer));
-                string = JavascriptString::NewCopySzFromArena(stringBuffer, this, this->GeneralAllocator());
+                int pos = TaggedInt::ToBuffer(value, stringBuffer, _countof(stringBuffer));
+                string = JavascriptString::NewCopySzFromArena(stringBuffer + pos,
+                    this, this->GeneralAllocator(), (_countof(stringBuffer) - 1) - pos);
                 this->integerStringMap.AddNew(value, string);
             }
         }
+#endif
 
         return string;
     }
@@ -3137,7 +3149,13 @@ namespace Js
 
         } autoRestore(this->GetThreadContext());
 
+        // xplat-todo: (obastemur) Enable JIT on Debug mode
+        // CodeGen entrypoint can be deleted before we are able to unregister
+        // due to how we handle xdata on xplat, resetting the entrypoints below might affect CodeGen process.
+        // it is safer (on xplat) to turn JIT off during Debug for now.
+#ifdef _WIN32
         if (!Js::Configuration::Global.EnableJitInDebugMode())
+#endif
         {
             if (attach)
             {
@@ -4957,13 +4975,12 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     IR::JnHelperMethod ScriptContext::GetDOMFastPathHelper(intptr_t funcInfoAddr)
     {
-        IR::JnHelperMethod helper;
+        IR::JnHelperMethod helper = IR::HelperInvalid;
 
         m_domFastPathHelperMap->LockResize();
-        bool found = m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
+        m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
         m_domFastPathHelperMap->UnlockResize();
 
-        Assert(found);
         return helper;
     }
 #endif
@@ -5559,6 +5576,9 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
             }
         }
+
+        this->ClearBailoutReasonCountsMap();
+        this->ClearRejitReasonCountsArray();
 #endif
 
 #ifdef FIELD_ACCESS_STATS
@@ -5730,6 +5750,34 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             LogDataForFunctionBody(body, kind, false);
         }
 #endif
+    }
+    void ScriptContext::ClearBailoutReasonCountsMap()
+    {
+        if (this->bailoutReasonCounts != nullptr)
+        {
+            this->bailoutReasonCounts->Clear();
+        }
+        if (this->bailoutReasonCountsCap != nullptr)
+        {
+            this->bailoutReasonCountsCap->Clear();
+        }
+    }
+    void ScriptContext::ClearRejitReasonCountsArray()
+    {
+        if (this->rejitReasonCounts != nullptr)
+        {
+            for (UINT16 i = 0; i < NumRejitReasons; i++)
+            {
+                this->rejitReasonCounts[i] = 0;
+            }
+        }
+        if (this->rejitReasonCountsCap != nullptr)
+        {
+            for (UINT16 i = 0; i < NumRejitReasons; i++)
+            {
+                this->rejitReasonCountsCap[i] = 0;
+            }
+        }
     }
 #endif
 

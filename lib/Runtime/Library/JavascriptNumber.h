@@ -186,12 +186,6 @@ namespace Js
         static Var FormatDoubleToString( double value, Js::NumberUtilities::FormatType formatType, int fractionDigits, ScriptContext* scriptContext );
 
         static BOOL GetThisValue(Var avalue, double* pDouble);
-
-        template <class Lib>
-        static typename Lib::LibStringType ToStringNan(const Lib& lib);
-
-        template <class Lib>
-        static typename Lib::LibStringType ToStringNanOrInfinite(double val, const Lib& lib);
     };
 
     //
@@ -237,36 +231,6 @@ namespace Js
     {
         return IsSpecial(value, k_NegZero);
     }
-
-    template <class Lib>
-    inline typename Lib::LibStringType JavascriptNumber::ToStringNan(const Lib& lib)
-    {
-        return lib.CreateStringFromCppLiteral(_u("NaN"));
-    }
-
-    template <class Lib>
-    inline typename Lib::LibStringType JavascriptNumber::ToStringNanOrInfinite(double value, const Lib& lib)
-    {
-        if(!NumberUtilities::IsFinite(value))
-        {
-            if(IsNan(value))
-            {
-                return ToStringNan(lib);
-            }
-
-            if(IsPosInf(value))
-            {
-                return lib.CreateStringFromCppLiteral(_u("Infinity"));
-            }
-            else
-            {
-                AssertMsg(IsNegInf(value), "bad handling of infinite number");
-                return lib.CreateStringFromCppLiteral(_u("-Infinity"));
-            }
-        }
-        return nullptr;
-    }
-
 }
 
 #if defined(_M_IX86)

@@ -29,6 +29,11 @@ FunctionJITTimeInfo::BuildJITTimeData(
         jitData->bodyData = AnewStructZ(alloc, FunctionBodyDataIDL);
         JITTimeFunctionBody::InitializeJITFunctionData(alloc, body, jitData->bodyData);
     }
+    else
+    {
+        // outermost function must have a body, but inlinees may not (if they are builtins)
+        Assert(isInlinee);
+    }
 
     jitData->localFuncId = codeGenData->GetFunctionInfo()->GetLocalFunctionId();
     jitData->isAggressiveInliningEnabled = codeGenData->GetIsAggressiveInliningEnabled();

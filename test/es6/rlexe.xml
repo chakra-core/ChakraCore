@@ -2,6 +2,12 @@
 <regress-exe>
   <test>
     <default>
+      <files>bug_issue_2747.js</files>
+      <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>lambda1.js</files>
       <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
     </default>
