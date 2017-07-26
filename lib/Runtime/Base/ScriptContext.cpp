@@ -3149,7 +3149,13 @@ namespace Js
 
         } autoRestore(this->GetThreadContext());
 
+        // xplat-todo: (obastemur) Enable JIT on Debug mode
+        // CodeGen entrypoint can be deleted before we are able to unregister
+        // due to how we handle xdata on xplat, resetting the entrypoints below might affect CodeGen process.
+        // it is safer (on xplat) to turn JIT off during Debug for now.
+#ifdef _WIN32
         if (!Js::Configuration::Global.EnableJitInDebugMode())
+#endif
         {
             if (attach)
             {
