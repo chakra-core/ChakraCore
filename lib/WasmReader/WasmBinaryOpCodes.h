@@ -4,12 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 
 // define this to include all opcodes
-#ifndef WASM_OPCODE
-#define WASM_OPCODE(opname, opcode, sig, nyi)
-#endif
-
 #ifndef WASM_SIGNATURE
 #define WASM_SIGNATURE(id,...)
+#endif
+
+#ifndef WASM_OPCODE
+#define WASM_OPCODE(opname, opcode, sig, nyi)
 #endif
 
 #ifndef WASM_CTRL_OPCODE
@@ -85,6 +85,8 @@ WASM_SIGNATURE(D,       1,   WasmTypes::I64)
 WASM_SIGNATURE(V,       1,   WasmTypes::Void)
 WASM_SIGNATURE(Limit,   1,   WasmTypes::Void)
 
+#include "WasmBinaryOpcodesSimd.h"
+
 // Control flow operators
 WASM_CTRL_OPCODE(Unreachable, 0x00, Limit, false)
 WASM_CTRL_OPCODE(Nop,         0x01, Limit, false)
@@ -150,7 +152,6 @@ WASM_MISC_OPCODE(I64Const,     0x42, Limit, false)
 WASM_MISC_OPCODE(F32Const,     0x43, Limit, false)
 WASM_MISC_OPCODE(F64Const,     0x44, Limit, false)
 
-////////////////////////////////////////////////////////////
 // Comparison operators
 WASM_UNARY__OPCODE(I32Eqz,            0x45, I_I , Eqz_Int        , false)
 WASM_BINARY_OPCODE(I32Eq,             0x46, I_II, CmEq_Int       , false)
@@ -303,10 +304,15 @@ WASM_EMPTY__OPCODE(PrintBeginCall   , 0xf2,       PrintBeginCall   , false)
 WASM_EMPTY__OPCODE(PrintNewLine     , 0xf3,       PrintNewLine     , false)
 WASM_UNARY__OPCODE(PrintEndCall     , 0xf4, V_I , PrintEndCall     , false)
 WASM_UNARY__OPCODE(PrintI32         , 0xfc, I_I , PrintI32         , false)
-WASM_UNARY__OPCODE(PrintI64         , 0xfd, L_L , PrintI64         , false)
+WASM_UNARY__OPCODE(PrintI64         , 0xef, L_L , PrintI64         , false)
 WASM_UNARY__OPCODE(PrintF32         , 0xfe, F_F , PrintF32         , false)
 WASM_UNARY__OPCODE(PrintF64         , 0xff, D_D , PrintF64         , false)
 #endif
+
+//Extended
+WASM_MISC_OPCODE(SimdStart, 0xfd, Limit, false)
+WASM_MISC_OPCODE(Extended, 0x06, Limit, false)
+WASM_MISC_OPCODE(Extended2, 0x07, Limit, false)
 
 #undef WASM_OPCODE
 #undef WASM_SIGNATURE

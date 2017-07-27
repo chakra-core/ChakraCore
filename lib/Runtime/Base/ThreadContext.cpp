@@ -333,7 +333,7 @@ ThreadContext::GetThreadStackLimitAddr() const
     return (intptr_t)GetAddressOfStackLimitForCurrentThread();
 }
 
-#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
+#if ENABLE_NATIVE_CODEGEN && (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (defined(_M_IX86) || defined(_M_X64))
 intptr_t
 ThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {

@@ -129,6 +129,14 @@ MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_LdSlot_F4                 , ElementSlo
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_StSlot_F4                 , ElementSlot                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_Return_F4                 , Float32x4_2                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_I_ArgOut_F4               , Reg1Float32x4_1                   , None           ,        None                      )
+MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_ArgOut_F4                 , Reg1Float32x4_1                   , None           ,        None                      )
+MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_ArgOut_I4                 , Reg1Int32x4_1                     , None           ,        None                      )
+MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_ArgOut_B4                 , Reg1Bool32x4_1                    , None           ,        None                      )
+MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_ArgOut_I8                 , Reg1Int16x8_1                     , None           ,        None                      )
+MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_ArgOut_B8                 , Reg1Bool16x8_1                    , None           ,        None                      )
+MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_ArgOut_I16                , Reg1Int8x16_1                     , None           ,        None                      )
+MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_ArgOut_B16                , Reg1Bool8x16_1                    , None           ,        None                      )
+
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_I_Conv_VTF4               , Float32x4_2                       , None           ,        None                      )
 
 // Float64x2
@@ -201,7 +209,7 @@ MACRO_SIMD_EXTEND_WMS(Simd128_Not_B16         , Bool8x16_2                  , No
 MACRO_SIMD_EXTEND_WMS(Simd128_Neg_U4          , Uint32x4_2                  , None, None, 0)
 MACRO_SIMD_EXTEND_WMS(Simd128_Neg_U8          , Uint16x8_2                  , None, None, 0)
 MACRO_SIMD_EXTEND_WMS(Simd128_Neg_U16         , Uint8x16_2                  , None, None, 0)
-MACRO_SIMD_BACKEND_ONLY(Simd128_LdC           , Empty                       , None, OpCanCSE) // Load Simd128 const stack slot
+MACRO_SIMD_EXTEND_WMS(Simd128_LdC             , Float32x4_IntConst4         , None, OpCanCSE, 0) // Load Simd128 const stack slot
 
 #if 0
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS(Simd128_Ld_D2, Float64x2_2, None, None)
@@ -498,8 +506,7 @@ MACRO_SIMD_EXTEND_WMS       ( Simd128_AllTrue_B16               , Int1Bool8x16_1
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_Ld_B16                , Bool8x16_2                         , None           ,        None                     )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_LdSlot_B16            , ElementSlot                        , None           ,        None                     )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_StSlot_B16            , ElementSlot                        , None           ,        None                     )
-
-MACRO_SIMD_EXTEND         ( Simd128_End_Extend                  , Empty                            , None           ,        None               ,      0)   // Just a marker to indicate SIMD opcodes region
+MACRO_SIMD_EXTEND               ( Simd128_End_Extend                , Empty                            , None           ,        None               ,      0)   // Just a marker to indicate SIMD opcodes region
 #undef T_F4
 #undef T_I4
 #undef T_INT

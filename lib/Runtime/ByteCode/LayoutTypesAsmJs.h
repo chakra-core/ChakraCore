@@ -218,6 +218,7 @@ LAYOUT_TYPE_WMS_REG2  ( Int32x4_1Int8x16_1               , Int32x4, Int8x16)
 LAYOUT_TYPE_WMS_REG2  ( Int32x4_1Uint8x16_1              , Int32x4, Uint8x16)
 LAYOUT_TYPE_WMS_REG3  ( Int1Int32x4_1Int1                , Int, Int32x4, Int)
 LAYOUT_TYPE_WMS_REG4  ( Int32x4_2Int2                    , Int32x4, Int32x4, Int, Int)
+LAYOUT_TYPE_WMS_REG5  ( Float32x4_IntConst4              , Float32x4, IntConst, IntConst, IntConst, IntConst)
 // Float64x2
 // Disabled for now
 #if 0

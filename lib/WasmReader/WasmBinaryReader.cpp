@@ -16,10 +16,32 @@ namespace Wasm
 
 namespace WasmTypes
 {
+
+const char16* const strIds[Limit] = {
+    nullptr,       //Void = 0,
+    _u("int32"),   //I32 = 1,
+    _u("int64"),   //I64 = 2,
+    _u("float"),   //F32 = 3,
+    _u("double"),  //F64 = 4,
+    _u("simd128")
+};
+
+const char16* GetStrId(WasmType type)
+{
+    Assert(type < WasmType::Limit);
+    return strIds[type];
+}
+
 bool IsLocalType(WasmTypes::WasmType type)
 {
     // Check if type in range ]Void,Limit[
     return (uint32)(type - 1) < (WasmTypes::Limit - 1);
+}
+
+bool IsSIMDType(WasmTypes::WasmType type)
+{
+    uint utype = (uint)(type);
+    return utype > WasmTypes::F64 && utype < WasmTypes::Limit;
 }
 
 uint32 GetTypeByteSize(WasmType type)
@@ -31,6 +53,11 @@ uint32 GetTypeByteSize(WasmType type)
     case I64: return sizeof(int64);
     case F32: return sizeof(float);
     case F64: return sizeof(double);
+#define SIMD_CASE(TYPE, BASE) case TYPE: 
+FOREACH_SIMD_TYPE(SIMD_CASE)
+#undef SIMD_CASE
+        CompileAssert(sizeof(Simd::simdvec) == 16);
+        return sizeof(Simd::simdvec);
     default:
         Js::Throw::InternalError();
     }
@@ -72,6 +99,7 @@ WasmTypes::WasmType LanguageTypes::ToWasmType(int8 binType)
     case LanguageTypes::i64: return WasmTypes::I64;
     case LanguageTypes::f32: return WasmTypes::F32;
     case LanguageTypes::f64: return WasmTypes::F64;
+    case LanguageTypes::m128: return WasmTypes::M128;
     default:
         throw WasmCompilationException(_u("Invalid binary type %d"), binType);
     }
@@ -357,10 +385,31 @@ bool WasmBinaryReader::IsCurrentFunctionCompleted() const
     return m_pc == m_curFuncEnd;
 }
 
+WasmOp WasmBinaryReader::ReadOpCode()
+{
+    WasmOp op = (WasmOp)*m_pc++;
+    ++m_funcState.count;
+
+    if (op == wbSimdStart)
+    {
+        if (!CONFIG_FLAG(WasmSimd))
+        {
+            ThrowDecodingError(_u("WebAssembly SIMD support is not enabled"));
+        }
+
+        uint32 len;
+        uint32 extOpCode = LEB128(len) + wbM128Const;
+        Assert((WasmOp)(extOpCode) == extOpCode);
+        op = (WasmOp)extOpCode;
+        m_funcState.count += len;
+    }
+
+    return op;
+}
+
 WasmOp WasmBinaryReader::ReadExpr()
 {
-    WasmOp op = m_currentNode.op = (WasmOp)*m_pc++;
-    ++m_funcState.count;
+    WasmOp op = m_currentNode.op = ReadOpCode();
 
     if (EndOfFunc())
     {
@@ -409,6 +458,9 @@ WasmOp WasmBinaryReader::ReadExpr()
     case wbF64Const:
         ConstNode<WasmTypes::F64>();
         break;
+    case wbM128Const:
+        ConstNode<WasmTypes::M128>();
+        break;
     case wbSetLocal:
     case wbGetLocal:
     case wbTeeLocal:
@@ -427,10 +479,14 @@ WasmOp WasmBinaryReader::ReadExpr()
         // Reserved value currently unused
         ReadConst<uint8>();
         break;
+#define WASM_LANE_OPCODE(opname, opcode, sig, nyi) \
+    case wb##opname: \
+        LaneNode(); \
+        break;
 #define WASM_MEM_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
         MemNode(); \
-    break;
+        break;
 #include "WasmBinaryOpCodes.h"
     default:
         break;
@@ -543,6 +599,12 @@ void WasmBinaryReader::BrTableNode()
     m_funcState.count += len;
 }
 
+void WasmBinaryReader::LaneNode()
+{
+    m_currentNode.lane.index = ReadConst<uint8>();
+    m_funcState.count++;
+}
+
 void WasmBinaryReader::MemNode()
 {
     uint32 len = 0;
@@ -586,6 +648,13 @@ void WasmBinaryReader::ConstNode()
     case WasmTypes::F64:
         m_currentNode.cnst.f64 = ReadConst<double>();
         m_funcState.count += sizeof(double);
+        break;
+    case WasmTypes::M128:
+        for (uint i = 0; i < Simd::VEC_WIDTH; i++) 
+        {
+            m_currentNode.cnst.v128[i] = ReadConst<uint>();
+        }
+        m_funcState.count += sizeof(m_currentNode.cnst.v128);
         break;
     }
 }

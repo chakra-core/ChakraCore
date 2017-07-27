@@ -8,6 +8,7 @@
     <ClInclude Include="WasmBytecodeGenerator.h" />
     <ClInclude Include="WasmBinaryReader.h" />
     <ClInclude Include="WasmBinaryOpcodes.h" />
+    <ClInclude Include="WasmBinaryOpcodesSimd.h" />
     <ClInclude Include="WasmSignature.h" />
     <ClInclude Include="WasmSections.h" />
     <ClInclude Include="WasmSection.h" />

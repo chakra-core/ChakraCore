@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -115,6 +115,13 @@ Js::ArgSlot WasmSignature::GetParamSize(Js::ArgSlot index) const
         CompileAssert(sizeof(double) == sizeof(int64));
         return sizeof(int64);
         break;
+#define SIMD_CASE(TYPE, BASE) case WasmTypes::##TYPE:
+
+FOREACH_SIMD_TYPE(SIMD_CASE)
+#undef SIMD_CASE
+        CompileAssert(sizeof(Simd::simdvec) == 16);
+        return sizeof(Simd::simdvec);
+        break;
     default:
         throw WasmCompilationException(_u("Invalid param type"));
     }
@@ -134,13 +141,19 @@ void WasmSignature::FinalizeSignature()
         }
     }
 
-    CompileAssert(Local::Limit - 1 <= 4);
     CompileAssert(Local::Void == 0);
 
+#if 0
+    CompileAssert(Local::Limit - 1 <= 4);
     // 3 bits for result type, 2 for each arg
     // we don't need to reserve a sentinel bit because there is no result type with value of 7
+<<<<<<< ff70da6772635d9b6570520540faaa6281eceb03
     uint32 sigSize = ((uint32)paramCount) * 2 + 3;
     if (sigSize <= sizeof(m_shortSig) << 3)
+=======
+    int sigSize = 3 + 2 * GetParamCount();
+    if (sigSize <= sizeof(m_shortSig) << 3 && false)
+>>>>>>> Adding WASM-SIMD feature flag
     {
         m_shortSig = (m_shortSig << 3) | m_resultType;
         for (Js::ArgSlot i = 0; i < paramCount; ++i)
@@ -149,6 +162,7 @@ void WasmSignature::FinalizeSignature()
             m_shortSig = (m_shortSig << 2) | (m_params[i] - 1);
         }
     }
+#endif
 }
 
 Js::ArgSlot WasmSignature::GetParamsSize() const

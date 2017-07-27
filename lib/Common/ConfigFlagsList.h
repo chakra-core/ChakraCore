@@ -404,6 +404,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_WasmMathExFilter     (false)
 #define DEFAULT_CONFIG_WasmIgnoreResponse   (false)
 #define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
+#define DEFAULT_CONFIG_WasmSimd             (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo    (true)
@@ -875,6 +876,9 @@ FLAGNR(Boolean, WasmCheckVersion      , "Check the binary version for WebAssembl
 FLAGNR(Boolean, WasmFold              , "Enable i32/i64 const folding", DEFAULT_CONFIG_WasmFold)
 FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
+#ifdef ENABLE_WASM_SIMD
+FLAGR(Boolean, WasmSimd, "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
+#endif
 
 #ifdef ENABLE_SIMDJS
 #ifndef COMPILE_DISABLE_Simdjs

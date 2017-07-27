@@ -519,7 +519,7 @@ LowererMD::Init(Lowerer *lowerer)
 {
     m_lowerer = lowerer;
     this->lowererMDArch.Init(this);
-#ifdef ENABLE_SIMDJS
+#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
     Simd128InitOpcodeMap();
 #endif
 }

@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -176,6 +176,8 @@ namespace Wasm
     private:
         void GenerateFunction();
 
+        template <size_t lanes> 
+        EmitInfo EmitSimdBuildExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
         void EmitExpr(WasmOp op);
         EmitInfo EmitBlock();
         void EmitBlockCommon(BlockInfo* blockInfo, bool* endOnElse = nullptr);
@@ -201,14 +203,19 @@ namespace Wasm
         EmitInfo EmitBrIf();
 
         EmitInfo EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore);
+        EmitInfo EmitSimdMemAccess(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, uint8 dataWidth, bool isStore);
         EmitInfo EmitBinExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
         EmitInfo EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
+        EmitInfo EmitExtractLaneExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
+        EmitInfo EmitReplaceLaneExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
+        void CheckLaneIndex(Js::OpCodeAsmJs op);
+        EmitInfo EmitLaneIndex(Js::OpCodeAsmJs op);
 
         EmitInfo EmitConst(WasmTypes::WasmType type, WasmConstLitNode cnst);
         void EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst);
         WasmConstLitNode GetZeroCnst();
-
         void EnsureStackAvailable();
+
         void EnregisterLocals();
         void ReleaseLocation(EmitInfo* info);
 

@@ -146,7 +146,7 @@ const _x86_SIMDValue X86_4LANES_MASKS[]     = {{ 0xffffffff, 0x00000000, 0x00000
 
 #pragma warning(pop)
 
-#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)
+#if ENABLE_NATIVE_CODEGEN && (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD))
 // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle.
 extern _x86_SIMDValue X86_TEMP_SIMD[];
 #endif
@@ -244,6 +244,24 @@ namespace Js {
             return simdVal;
         };
 
+        static inline int32 SIMD128InnerExtractLaneB4(const SIMDValue src1, const uint32 lane) 
+        {
+            int val = SIMD128InnerExtractLaneI4(src1, lane);
+            return val ? 1 : 0;
+        };
+
+        static inline int16 SIMD128InnerExtractLaneB8(const SIMDValue src1, const uint32 lane)
+        {
+            int16 val = SIMD128InnerExtractLaneI8(src1, lane);
+            return val ? 1 : 0;
+        };
+
+        static inline int8 SIMD128InnerExtractLaneB16(const SIMDValue src1, const uint32 lane)
+        {
+            int8 val = SIMD128InnerExtractLaneI16(src1, lane);
+            return val ? 1 : 0;
+        };
+
         static inline float SIMD128InnerExtractLaneF4(const SIMDValue src1, const uint32 lane) { return src1.f32[lane]; };
         static inline int32 SIMD128InnerExtractLaneI4(const SIMDValue src1, const uint32 lane) { return src1.i32[lane]; };
         static inline int16 SIMD128InnerExtractLaneI8(const SIMDValue src1, const uint32 lane) { return src1.i16[lane]; };
@@ -309,6 +327,27 @@ namespace Js {
 
             SIMDValue result = SIMDUtils::SIMDLdData(data, (uint8)dataWidth);
             return SIMDType::New(&result, scriptContext);
+        }
+
+        template <typename T>
+        static SIMDValue CanonicalizeToBools(SIMDValue val)
+        {
+#ifdef ENABLE_WASM_SIMD
+
+            CompileAssert(sizeof(T) <= sizeof(SIMDValue));
+            CompileAssert(sizeof(SIMDValue) % sizeof(T) == 0);
+            T* cursor = (T*)val.i8;
+            const uint maxBytes = 16;
+            uint size = maxBytes / sizeof(T);
+
+            for (uint i = 0; i < size; i++)
+            {
+                cursor[i] = cursor[i] ? -1 : 0;
+            }
+            return val;
+#else
+            return val;
+#endif
         }
 
         template <class SIMDType>

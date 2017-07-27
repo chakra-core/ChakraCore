@@ -77,6 +77,23 @@ namespace Js
         }
         return false;
     }
+    
+    template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteFloat32x4_IntConst4(OpCodeAsmJs op, RegSlot R0, int C1, int C2, int C3, int C4)
+    {
+        OpLayoutT_Float32x4_IntConst4<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.F4_0, R0) && 
+            SizePolicy::Assign(layout.C1, C1) && 
+            SizePolicy::Assign(layout.C2, C2) &&
+            SizePolicy::Assign(layout.C3, C3) &&
+            SizePolicy::Assign(layout.C4, C4)
+            )
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
     template <typename SizePolicy>
     bool AsmJsByteCodeWriter::TryWriteAsmReg2(OpCodeAsmJs op, RegSlot R0, RegSlot R1)
     {
@@ -386,11 +403,11 @@ namespace Js
     }
 
     template <typename SizePolicy>
-    bool AsmJsByteCodeWriter::TryWriteAsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType)
+    bool AsmJsByteCodeWriter::TryWriteAsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType, uint32 offset)
     {
         OpLayoutT_AsmSimdTypedArr<SizePolicy> layout;
         if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<ArrayBufferView::ViewType>(layout.ViewType, viewType)
-            && SizePolicy::Assign(layout.SlotIndex, slotIndex) && SizePolicy::template Assign<int8>(layout.DataWidth, dataWidth))
+            && SizePolicy::Assign(layout.SlotIndex, slotIndex) && SizePolicy::template Assign<int8>(layout.DataWidth, dataWidth) && SizePolicy::Assign(layout.Offset, offset))
         {
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
             return true;
@@ -500,6 +517,11 @@ namespace Js
         MULTISIZE_LAYOUT_WRITE(AsmReg19, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18);
     }
 
+    void AsmJsByteCodeWriter::WasmSimdConst(OpCodeAsmJs op, RegSlot R0, int C0, int C1, int C2, int C3)
+    {
+        MULTISIZE_LAYOUT_WRITE(Float32x4_IntConst4, op, R0, C0, C1, C2, C3);
+    }
+
     void AsmJsByteCodeWriter::AsmBr(ByteCodeLabel labelID, OpCodeAsmJs op)
     {
         CheckOpen();
@@ -561,10 +583,10 @@ namespace Js
         MULTISIZE_LAYOUT_WRITE(WasmMemAccess, op, value, slotIndex, offset, viewType);
     }
 
-    void AsmJsByteCodeWriter::AsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType)
+    void AsmJsByteCodeWriter::AsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType, uint32 offset)
     {
         Assert(dataWidth >= 4 && dataWidth <= 16);
-        MULTISIZE_LAYOUT_WRITE(AsmSimdTypedArr, op, value, slotIndex, dataWidth, viewType);
+        MULTISIZE_LAYOUT_WRITE(AsmSimdTypedArr, op, value, slotIndex, dataWidth, viewType, offset);
     }
 
     void AsmJsByteCodeWriter::AsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, int32 slotId)
