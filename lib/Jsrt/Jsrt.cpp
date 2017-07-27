@@ -4252,7 +4252,8 @@ CHAKRA_API JsCopyString(
     _In_ JsValueRef value,
     _Out_opt_ char* buffer,
     _In_ size_t bufferSize,
-    _Out_opt_ size_t* length)
+    _Out_opt_ size_t* writtenLength,
+    _Out_opt_ size_t* actualLength)
 {
     PARAM_NOT_NULL(value);
     VALIDATE_JSREF(value);
@@ -4266,14 +4267,12 @@ CHAKRA_API JsCopyString(
     }
 
     utf8::WideToNarrow utf8Str(str, strLength);
-    if (!buffer)
+    if (actualLength)
     {
-        if (length)
-        {
-            *length = utf8Str.Length();
-        }
+      *actualLength = utf8Str.Length();
     }
-    else
+
+    if (buffer)
     {
         size_t count = min(bufferSize, utf8Str.Length());
         // Try to copy whole characters if buffer size insufficient
@@ -4284,10 +4283,14 @@ CHAKRA_API JsCopyString(
             (LPCUTF8)(const char*)utf8Str, utf8Str.Length(), maxFitChars);
 
         memmove(buffer, utf8Str, sizeof(char) * count);
-        if (length)
+        if (writtenLength)
         {
-            *length = count;
+            *writtenLength = count;
         }
+    }
+    else if (writtenLength)
+    {
+        *writtenLength = 0;
     }
 
     return JsNoError;
