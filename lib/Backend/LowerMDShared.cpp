@@ -4012,34 +4012,6 @@ LowererMD::GenerateFlagInlineCacheCheck(
     return branchInstr;
 }
 
-IR::BranchInstr *
-LowererMD::GenerateFlagInlineCacheCheckForNoGetterSetter(
-    IR::Instr * instrLdSt,
-    IR::RegOpnd * opndInlineCache,
-    IR::LabelInstr * labelNext)
-{
-    // Generate:
-    //
-    //      TEST [&(inlineCache->u.accessor.flags)], (Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag)
-    //      JNE $next
-
-    IR::Instr * instr;
-    IR::Opnd* flagsOpnd;
-    flagsOpnd = IR::IndirOpnd::New(opndInlineCache, 0, TyInt8, instrLdSt->m_func);
-
-    // TEST [&(inlineCache->u.accessor.flags)], (Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag)
-    instr = IR::Instr::New(Js::OpCode::TEST,instrLdSt->m_func);
-    instr->SetSrc1(flagsOpnd);
-    instr->SetSrc2(IR::IntConstOpnd::New((Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag) << 1, TyInt8, instrLdSt->m_func));
-    instrLdSt->InsertBefore(instr);
-
-    // JNE $next
-    IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::JNE, labelNext, instrLdSt->m_func);
-    instrLdSt->InsertBefore(branchInstr);
-
-    return branchInstr;
-}
-
 void
 LowererMD::GenerateFlagInlineCacheCheckForGetterSetter(
     IR::Instr * insertBeforeInstr,
