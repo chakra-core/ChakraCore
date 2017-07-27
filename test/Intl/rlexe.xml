@@ -91,6 +91,13 @@
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <compile-flags> -Intl -debugLaunch -dbgbaseline:IntlReturnedValueTests.js.dbg.baseline</compile-flags>
+      <files>IntlReturnedValueTests.js</files>
+      <tags>Intl,exclude_winglob</tags>
+    </default>
+  </test>
 
   <test>
     <default>

@@ -6597,12 +6597,32 @@ namespace Js
         return CreateStdCallExternalFunction(entryPoint, TaggedInt::ToVarUnchecked(nameId), callbackState);
     }
 
-    JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, Var nameId, void *callbackState)
+    JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, Var name, void *callbackState)
     {
-        JavascriptExternalFunction* function = this->CreateIdMappedExternalFunction(entryPoint, stdCallFunctionWithDeferredPrototypeType);
-        function->SetFunctionNameId(nameId);
-        function->SetCallbackState(callbackState);
+        Var functionNameOrId = name;
+        if (JavascriptString::Is(name))
+        {
+            JavascriptString * functionName = JavascriptString::FromVar(name);
+            const char16 * functionNameBuffer = functionName->GetString();
+            int functionNameBufferLength = functionName->GetLengthAsSignedInt();
 
+            PropertyId functionNamePropertyId = scriptContext->GetOrAddPropertyIdTracked(functionNameBuffer, functionNameBufferLength);
+            functionNameOrId = TaggedInt::ToVarUnchecked(functionNamePropertyId);
+        }
+#if ENABLE_TTD
+        else if (scriptContext->GetThreadContext()->IsRuntimeInTTDMode() && TaggedInt::Is(name))
+        {
+            PropertyId pid = TaggedInt::ToInt32(name);
+            if (!scriptContext->IsTrackedPropertyId(pid))
+            {
+                scriptContext->TrackPid(pid);
+            }
+        }
+#endif
+        AssertOrFailFast(TaggedInt::Is(functionNameOrId));
+        JavascriptExternalFunction* function = this->CreateIdMappedExternalFunction(entryPoint, stdCallFunctionWithDeferredPrototypeType);
+        function->SetFunctionNameId(functionNameOrId);
+        function->SetCallbackState(callbackState);
         return function;
     }
 

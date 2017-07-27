@@ -6,6 +6,9 @@
 // Validating return values with built-ins and host objects.
 
 function test1() {
+    // Calling toString() shouldn't affect the function name being seen by the debugger. Used to show function name as "function Date() { [native code] }" instead of just "Date".
+    Date.toString();
+    WScript.Echo.toString();
     var a = Date(); /**bp:locals();resume('step_over');locals();resume('step_over');locals()**/
     WScript.Echo("Pass") + WScript.SetTimeout("1", 10);
 }
