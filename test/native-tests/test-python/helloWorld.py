@@ -56,12 +56,12 @@ chakraCore.JsConvertValueToString(jsResult, byref(resultJSString));
 
 stringLength = c_size_t();
 # Get buffer size needed for the result string
-chakraCore.JsCopyString(resultJSString, 0, 0, byref(stringLength));
+chakraCore.JsCopyString(resultJSString, 0, 0, 0, byref(stringLength));
 
 resultSTR = create_string_buffer(stringLength.value + 1); # buffer is big enough to store the result
 
 # Get String from JsValueRef
-chakraCore.JsCopyString(resultJSString, byref(resultSTR), stringLength.value + 1, 0);
+chakraCore.JsCopyString(resultJSString, byref(resultSTR), stringLength.value + 1, 0, 0);
 
 # Set `null-ending` to the end
 resultSTRLastByte = (c_char * stringLength.value).from_address(addressof(resultSTR))
