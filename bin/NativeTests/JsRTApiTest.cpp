@@ -683,6 +683,18 @@ namespace JsRTApiTest
             CHECK(wcscmp(expectedName, actualName) == 0);
         };
 
+        auto testToStringResult = [=](JsValueRef function, PCWCHAR expectedResult, size_t expectedResultLength)
+        {
+            JsValueRef actualResult = JS_INVALID_REFERENCE;
+            REQUIRE(JsConvertValueToString(function, &actualResult) == JsNoError);
+
+            PCWCHAR actualResultString = nullptr;
+            size_t actualResultLength;
+            REQUIRE(JsStringToPointer(actualResult, &actualResultString, &actualResultLength) == JsNoError);
+            CHECK(expectedResultLength == actualResultLength);
+            CHECK(wcscmp(expectedResult, actualResultString) == 0);
+        };
+
         JsValueRef function = JS_INVALID_REFERENCE;
         REQUIRE(JsCreateFunction(ExternalFunctionCallback, nullptr, &function) == JsNoError);
         testConstructorName(function, _u(""), 0);
@@ -692,6 +704,11 @@ namespace JsRTApiTest
         REQUIRE(JsPointerToString(name, _countof(name) - 1, &nameString) == JsNoError);
         REQUIRE(JsCreateNamedFunction(nameString, ExternalFunctionCallback, nullptr, &function) == JsNoError);
         testConstructorName(function, name, _countof(name) - 1);
+
+        WCHAR toStringExpectedResult[] = _u("function FooName() { [native code] }");
+        testToStringResult(function, toStringExpectedResult, _countof(toStringExpectedResult) - 1);
+        // Calling toString multiple times should return the same result.
+        testToStringResult(function, toStringExpectedResult, _countof(toStringExpectedResult) - 1);
     }
 
     TEST_CASE("ApiTest_ExternalFunctionNameTest", "[ApiTest]")
