@@ -4363,13 +4363,13 @@ LowererMD::GenerateFlagInlineCacheCheckForGetterSetter(
 
     // Generate:
     //
-    //      TST [&(inlineCache->u.flags.flags)], Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag
+    //      TST [&(inlineCache->u.accessor.flags)], Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag
     //      BEQ $next
     IR::Instr * instr;
     IR::Opnd* flagsOpnd;
 
-    flagsOpnd = IR::IndirOpnd::New(opndInlineCache, 0, TyInt8, this->m_func);
-    // AND [&(inlineCache->u.flags.flags)], InlineCacheGetterFlag | InlineCacheSetterFlag
+    flagsOpnd = IR::IndirOpnd::New(opndInlineCache, (int32)offsetof(Js::InlineCache, u.accessor.rawUInt16), TyInt8, this->m_func);
+    // AND [&(inlineCache->u.accessor.flags)], InlineCacheGetterFlag | InlineCacheSetterFlag
     instr = IR::Instr::New(Js::OpCode::TST,this->m_func);
     instr->SetSrc1(flagsOpnd);
     instr->SetSrc2(IR::IntConstOpnd::New(accessorFlagMask, TyInt8, this->m_func));
@@ -4379,33 +4379,6 @@ LowererMD::GenerateFlagInlineCacheCheckForGetterSetter(
     // BEQ $next
     instr = IR::BranchInstr::New(Js::OpCode::BEQ, labelNext, this->m_func);
     insertBeforeInstr->InsertBefore(instr);
-}
-
-IR::BranchInstr *
-LowererMD::GenerateFlagInlineCacheCheckForNoGetterSetter(
-    IR::Instr * instrLdSt,
-    IR::RegOpnd * opndInlineCache,
-    IR::LabelInstr * labelNext)
-{
-    // Generate:
-    //
-    //      TST [&(inlineCache->u.flags.flags)], (Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag)
-    //      BNE $next
-    IR::Instr * instr;
-    IR::Opnd* flagsOpnd;
-
-    flagsOpnd = IR::IndirOpnd::New(opndInlineCache, 0, TyInt8, instrLdSt->m_func);
-    instr = IR::Instr::New(Js::OpCode::TST, instrLdSt->m_func);
-    instr->SetSrc1(flagsOpnd);
-    instr->SetSrc2(IR::IntConstOpnd::New((Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag) << 1, TyInt8, instrLdSt->m_func));
-    instrLdSt->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
-
-    // BNQ $next
-    IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::BNE, labelNext, instrLdSt->m_func);
-    instrLdSt->InsertBefore(branchInstr);
-
-    return branchInstr;
 }
 
 IR::BranchInstr *
