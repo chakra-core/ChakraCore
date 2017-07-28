@@ -10,7 +10,8 @@ namespace Js
         scriptContext(scriptContext),
         hostDebugContext(nullptr),
         diagProbesContainer(nullptr),
-        debuggerMode(DebuggerMode::NotDebugging)
+        debuggerMode(DebuggerMode::NotDebugging),
+        isDebuggerRecording(true)
     {
         Assert(scriptContext != nullptr);
     }
