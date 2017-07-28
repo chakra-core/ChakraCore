@@ -1356,4 +1356,11 @@
       <compile-flags>-debuglaunch -dbgbaseline:promisedisplay.js.dbg.baseline</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>AsyncDynamicAttach.js</files>
+      <compile-flags>-dbgbaseline:AsyncDynamicAttach.js.dbg.baseline</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
 </regress-exe>
