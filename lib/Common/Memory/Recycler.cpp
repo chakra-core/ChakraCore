@@ -947,12 +947,12 @@ Recycler::IsSweeping() const
 }
 
 void
-Recycler::SetIsScriptActive(bool isScriptActive)
+Recycler::SetIsScriptActive(bool isScriptActive, bool doCleanup)
 {
     Assert(this->isInScript);
     Assert(this->isScriptActive != isScriptActive);
     this->isScriptActive = isScriptActive;
-    if (isScriptActive)
+    if (isScriptActive && doCleanup)
     {
         this->tickCountNextDispose = ::GetTickCount() + RecyclerHeuristic::TickCountFinishCollection;
     }

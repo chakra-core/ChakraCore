@@ -1476,7 +1476,7 @@ ThreadContext::EnterScriptStart(Js::ScriptEntryExitRecord * record, bool doClean
     AssertMsg(!this->IsScriptActive(),
               "Missing EnterScriptEnd or LeaveScriptStart");
     this->isScriptActive = true;
-    recycler->SetIsScriptActive(true);
+    recycler->SetIsScriptActive(true, doCleanup);
 
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::RunPhase))
@@ -1504,7 +1504,7 @@ ThreadContext::EnterScriptEnd(Js::ScriptEntryExitRecord * record, bool doCleanup
     AssertMsg(this->IsScriptActive(),
               "Missing EnterScriptStart or LeaveScriptEnd");
     this->isScriptActive = false;
-    this->GetRecycler()->SetIsScriptActive(false);
+    this->GetRecycler()->SetIsScriptActive(false, doCleanup);
     this->callRootLevel--;
 #ifdef EXCEPTION_CHECK
     ExceptionCheck::SetHandledExceptionType(record->handledExceptionType);
