@@ -744,11 +744,13 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
                 if (!PHASE_OFF(Js::CopyPropPhase, func))
                 {
                     Value* value = this->currentBlock->globOptData.FindValue(argSym);
-
-                    StackSym * copyPropSym = this->currentBlock->globOptData.GetCopyPropSym(argSym, value);
-                    if (copyPropSym)
+                    if (value)
                     {
-                        argSym = copyPropSym;
+                        StackSym * copyPropSym = this->currentBlock->globOptData.GetCopyPropSym(argSym, value);
+                        if (copyPropSym)
+                        {
+                            argSym = copyPropSym;
+                        }
                     }
                 }
 
