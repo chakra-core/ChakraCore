@@ -1736,7 +1736,7 @@ void
 GlobOpt::ReloadFieldHoistStackSym(IR::Instr * instr, PropertySym * propertySym)
 {
     Assert(instr->TransfersSrcValue());
-    StackSym * fieldHoistSym;
+    StackSym * fieldHoistSym = nullptr;
     Loop * loop = this->FindFieldHoistStackSym(this->currentBlock->loop, propertySym->m_id, &fieldHoistSym, instr);
 
     if (loop == nullptr)

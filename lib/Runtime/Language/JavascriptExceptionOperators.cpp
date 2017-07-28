@@ -21,7 +21,7 @@ namespace Js
         // If the outer try catch was already in the user code, no need to go any further.
         if (!m_previousCatchHandlerToUserCodeStatus)
         {
-            Js::JavascriptFunction* caller;
+            Js::JavascriptFunction* caller = nullptr;
             if (JavascriptStackWalker::GetCaller(&caller, scriptContext))
             {
                 Js::FunctionBody *funcBody = NULL;
@@ -1435,7 +1435,7 @@ namespace Js
                 scriptContext->GetThreadContext()->SetDisableImplicitFlags(DisableImplicitCallAndExceptionFlag);
             }
 
-            Var var;
+            Var var = nullptr;
             if (JavascriptOperators::GetProperty(error, PropertyIds::stackTraceLimit, &var, scriptContext))
             {
                 // Only accept the value if it is a "Number". Avoid potential valueOf() call.

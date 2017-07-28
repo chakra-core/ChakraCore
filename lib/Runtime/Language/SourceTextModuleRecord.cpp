@@ -442,7 +442,7 @@ namespace Js
             }
             this->starExportRecordList->Map([=](ModuleImportOrExportEntry exportEntry) {
                 Assert(exportEntry.moduleRequest != nullptr);
-                SourceTextModuleRecord* moduleRecord;
+                SourceTextModuleRecord* moduleRecord = nullptr;
                 if (this->childrenModuleSet->TryGetValue(exportEntry.moduleRequest->Psz(), &moduleRecord))
                 {
                     Assert(moduleRecord->WasParsed());

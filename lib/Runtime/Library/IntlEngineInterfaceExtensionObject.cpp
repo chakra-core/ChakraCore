@@ -697,7 +697,7 @@ namespace Js
         }
 
         HRESULT hr;
-        Var propertyValue;
+        Var propertyValue = nullptr;
         JavascriptString* localeJSstr;
         DynamicObject* options = DynamicObject::FromVar(args.Values[1]);
 
@@ -840,7 +840,7 @@ namespace Js
         DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
 
         HRESULT hr;
-        Var propertyValue;
+        Var propertyValue = nullptr;
         uint32 length;
 
         PCWSTR locale = GetTypedPropertyBuiltInFrom(obj, __locale, JavascriptString) ? JavascriptString::FromVar(propertyValue)->GetSz() : nullptr;
@@ -1218,7 +1218,7 @@ namespace Js
         obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext);
 
         //We are going to perform the same check for timeZone as when caching the formatter.
-        Var propertyValue;
+        Var propertyValue = nullptr;
         AutoHSTRING result;
 
         //If timeZone is undefined; then use the standard dateTimeFormatter to format in local time; otherwise use the IDateTimeFormatter2 to format using specified timezone (UTC)

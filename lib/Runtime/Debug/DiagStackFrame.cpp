@@ -374,7 +374,7 @@ namespace Js
             Js::PropertyId propertyId = activeScopeObject->GetPropertyId((Js::PropertyIndex)i);
             if (propertyId != Js::Constants::NoProperty)
             {
-                Js::Var value;
+                Js::Var value = nullptr;
                 if (Js::JavascriptOperators::GetProperty(activeScopeObject, propertyId, &value, scriptContext))
                 {
                     Js::IDiagObjectAddress * pAddress = nullptr;

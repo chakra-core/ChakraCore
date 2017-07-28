@@ -3457,7 +3457,7 @@ ThreadContext::PropertyGuardEntry*
 ThreadContext::EnsurePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, bool& foundExistingEntry)
 {
     PropertyGuardDictionary &guards = this->recyclableData->propertyGuards;
-    PropertyGuardEntry* entry;
+    PropertyGuardEntry* entry = nullptr;
 
     foundExistingEntry = guards.TryGetValue(propertyRecord, &entry);
     if (!foundExistingEntry)
@@ -3630,7 +3630,7 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
     if (entry->entryPoints && entry->entryPoints->Count() > 0)
     {
         Js::JavascriptStackWalker stackWalker(this->GetScriptContextList());
-        Js::JavascriptFunction* caller;
+        Js::JavascriptFunction* caller = nullptr;
         while (stackWalker.GetCaller(&caller, /*includeInlineFrames*/ false))
         {
             // If the current frame is already from a bailout - we do not need to do on stack invalidation
@@ -3662,7 +3662,7 @@ ThreadContext::InvalidatePropertyGuards(Js::PropertyId propertyId)
 {
     const Js::PropertyRecord* propertyRecord = GetPropertyName(propertyId);
     PropertyGuardDictionary &guards = this->recyclableData->propertyGuards;
-    PropertyGuardEntry* entry;
+    PropertyGuardEntry* entry = nullptr;
     if (guards.TryGetValueAndRemove(propertyRecord, &entry))
     {
         InvalidatePropertyGuardEntry(propertyRecord, entry, false);
@@ -3920,7 +3920,7 @@ void ThreadContext::RegisterTypeWithProtoPropertyCache(const Js::PropertyId prop
     Assert(type);
 
     PropertyIdToTypeHashSetDictionary &typesWithProtoPropertyCache = recyclableData->typesWithProtoPropertyCache;
-    TypeHashSet *typeHashSet;
+    TypeHashSet *typeHashSet = nullptr;
     if(!typesWithProtoPropertyCache.TryGetValue(propertyId, &typeHashSet))
     {
         typeHashSet = RecyclerNew(recycler, TypeHashSet, recycler);
@@ -3942,7 +3942,7 @@ void ThreadContext::InternalInvalidateProtoTypePropertyCaches(const Js::Property
     // Get the hash set of registered types associated with the property ID, invalidate each type in the hash set, and
     // remove the property ID and its hash set from the map
     PropertyIdToTypeHashSetDictionary &typesWithProtoPropertyCache = recyclableData->typesWithProtoPropertyCache;
-    TypeHashSet *typeHashSet;
+    TypeHashSet *typeHashSet = nullptr;
     if(typesWithProtoPropertyCache.Count() != 0 && typesWithProtoPropertyCache.TryGetValueAndRemove(propertyId, &typeHashSet))
     {
         DoInvalidateProtoTypePropertyCaches(propertyId, typeHashSet);
@@ -4191,7 +4191,7 @@ Js::SourceDynamicProfileManager* ThreadContext::GetSourceDynamicProfileManager(_
 {
       EnsureSourceProfileManagersByUrlMap();
       Js::SourceDynamicProfileManager* profileManager = nullptr;
-      SourceDynamicProfileManagerCache* managerCache;
+      SourceDynamicProfileManagerCache* managerCache = nullptr;
       bool newCache = false;
       if(!this->recyclableData->sourceProfileManagersByUrl->TryGetValue(url, &managerCache))
       {
@@ -4525,7 +4525,7 @@ void ThreadContext::CheckInterruptPoll()
 void *
 ThreadContext::GetDynamicObjectEnumeratorCache(Js::DynamicType const * dynamicType)
 {
-    void * data;
+    void * data = nullptr;
     return this->dynamicObjectEnumeratorCacheMap.TryGetValue(dynamicType, &data)? data : nullptr;
 }
 

@@ -1010,7 +1010,7 @@ IRBuilder::InsertLabels()
 
     while (iter.Next())
     {
-        IR::LabelInstr * labelInstr;
+        IR::LabelInstr * labelInstr = nullptr;
         BranchReloc * reloc = iter.Data();
         IR::BranchInstr * branchInstr = reloc->GetBranchInstr();
         uint offset = reloc->GetOffset();

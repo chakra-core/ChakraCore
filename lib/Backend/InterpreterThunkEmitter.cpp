@@ -339,8 +339,8 @@ bool InterpreterThunkEmitter::NewThunkBlock()
     }
 
 #if PDATA_ENABLED
-    PRUNTIME_FUNCTION pdataStart;
-    intptr_t epilogEnd;
+    PRUNTIME_FUNCTION pdataStart = nullptr;
+    intptr_t epilogEnd = 0;
 #endif
 
     DWORD count = this->thunkCount;

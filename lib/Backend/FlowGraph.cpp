@@ -2874,7 +2874,7 @@ FlowGraph::PeepCm(IR::Instr *instr)
     instrBr->SetSrc2(instr->UnlinkSrc2());
     instrBr->m_func = instr->m_func;
 
-    Js::OpCode newOpcode;
+    Js::OpCode newOpcode = Js::OpCode::InvalidOpCode;
 
     switch(instr->m_opcode)
     {

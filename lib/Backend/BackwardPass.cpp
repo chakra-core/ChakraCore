@@ -3284,7 +3284,7 @@ BackwardPass::ProcessNoImplicitCallUses(IR::Instr *const instr)
     {
         IR::Opnd *const src = srcs[i];
         IR::ArrayRegOpnd *arraySrc = nullptr;
-        Sym *sym;
+        Sym *sym = nullptr;
         switch(src->GetKind())
         {
             case IR::OpndKindReg:
@@ -3412,7 +3412,7 @@ BackwardPass::ProcessNoImplicitCallDef(IR::Instr *const instr)
         return;
     }
 
-    Sym *srcSym;
+    Sym *srcSym = nullptr;
     switch(src->GetKind())
     {
         case IR::OpndKindReg:
@@ -6385,7 +6385,7 @@ BackwardPass::TrackFloatSymEquivalence(IR::Instr *const instr)
             return;
         }
 
-        FloatSymEquivalenceClass *dstEquivalenceClass, *srcEquivalenceClass;
+        FloatSymEquivalenceClass *dstEquivalenceClass = nullptr, *srcEquivalenceClass = nullptr;
         const bool dstHasEquivalenceClass = floatSymEquivalenceMap->TryGetValue(dst->m_id, &dstEquivalenceClass);
         const bool srcHasEquivalenceClass = floatSymEquivalenceMap->TryGetValue(src->m_id, &srcEquivalenceClass);
 
@@ -6446,7 +6446,7 @@ BackwardPass::TrackFloatSymEquivalence(IR::Instr *const instr)
     // kind on the instruction. Both are checked because in functions without loops, equivalence tracking is not done and only
     // the sym's non-number bailout bit will have the information, and in functions with loops, equivalence tracking is done
     // throughout the function and checking just the sym's non-number bailout bit is insufficient.
-    FloatSymEquivalenceClass *dstEquivalenceClass;
+    FloatSymEquivalenceClass *dstEquivalenceClass = nullptr;
     if(dst->m_requiresBailOnNotNumber ||
         (floatSymEquivalenceMap->TryGetValue(dst->m_id, &dstEquivalenceClass) && dstEquivalenceClass->RequiresBailOnNotNumber()))
     {

@@ -1159,7 +1159,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 }
             }
 
-            bool instrIsInHelperBlock;
+            bool instrIsInHelperBlock = false;
             if(!fastPath)
             {
                 LowerLdLen(instr, false);
@@ -1590,7 +1590,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 baseOpnd->SetValueType(baseOpnd->FindProfiledValueType());
             }
 
-            bool instrIsInHelperBlock;
+            bool instrIsInHelperBlock = false;
             if (!fastPath)
             {
                 this->LowerStElemI(
@@ -1657,7 +1657,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 baseOpnd->SetValueType(baseOpnd->FindProfiledValueType());
             }
 
-            bool instrIsInHelperBlock;
+            bool instrIsInHelperBlock = false;
 
             if (!fastPath)
             {
@@ -2662,7 +2662,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::BailOnNotArray:
         {
-            IR::Instr *bailOnNotArray, *bailOnMissingValue;
+            IR::Instr *bailOnNotArray = nullptr, *bailOnMissingValue = nullptr;
             SplitBailOnNotArray(instr, &bailOnNotArray, &bailOnMissingValue);
             IR::RegOpnd *const arrayOpnd = LowerBailOnNotArray(bailOnNotArray);
             if(bailOnMissingValue)
@@ -5141,8 +5141,7 @@ Lowerer::LowerUpdateNewScObjectCache(IR::Instr * insertInstr, IR::Opnd *dst, IR:
 IR::Instr *
 Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
 {
-    IR::Instr* startCallInstr;
-    if (newObjInstr->HasEmptyArgOutChain(&startCallInstr))
+    if (newObjInstr->HasEmptyArgOutChain())
     {
         newObjInstr->FreeSrc2();
         return LowerNewScObjArrayNoArg(newObjInstr);
@@ -5277,7 +5276,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
                 linkSym = linkOpnd->AsRegOpnd()->m_sym->AsStackSym();
                 AssertMsg(!linkSym->IsArgSlotSym() && linkSym->m_isSingleDef, "Arg tree not single def...");
 
-                startCallInstr = linkSym->m_instrDef;
+                IR::Instr* startCallInstr = linkSym->m_instrDef;
                 AssertMsg(startCallInstr->GetArgOutCount(false) == 2, "Generating ArrayFastPath for more than 1 parameter not allowed.");
 
                 // Since we emitted fast path above, move the startCall/argOut instruction right before helper
@@ -5673,7 +5672,7 @@ Lowerer::LowerProfiledLdFld(IR::JitProfilingInstr *ldFldInstr)
     auto src = ldFldInstr->UnlinkSrc1();
     AssertMsg(src->IsSymOpnd() && src->AsSymOpnd()->m_sym->IsPropertySym(), "Expected property sym as src");
 
-    IR::JnHelperMethod helper;
+    IR::JnHelperMethod helper = IR::HelperInvalid;
     switch (ldFldInstr->m_opcode)
     {
         case Js::OpCode::LdFld:
@@ -5755,7 +5754,6 @@ ldFldCommon:
 
         default:
             Assert(false);
-            __assume(false);
     }
 
     ldFldInstr->SetSrc1(IR::HelperCallOpnd::New(helper, m_func));
@@ -7468,7 +7466,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITTypeHolder type,
 
         AssertMsg(!isTypeStatic || !propOpInfo->IsBeingStored(), "Why are we storing a field to an object of static type?");
 
-        Js::EquivalentPropertyEntry* entry;
+        Js::EquivalentPropertyEntry* entry = nullptr;
         if (propIds.TryGetValue(propertyId, &entry))
         {
             if (propOpIndex == entry->slotIndex && propOpUsesAuxSlot == entry->isAuxSlot)
@@ -11043,7 +11041,7 @@ Lowerer::InlineBuiltInLibraryCall(IR::Instr *callInstr)
 void Lowerer::LowerInlineBuiltIn(IR::Instr* builtInEndInstr)
 {
     Assert(builtInEndInstr->m_opcode == Js::OpCode::InlineBuiltInEnd || builtInEndInstr->m_opcode == Js::OpCode::InlineNonTrackingBuiltInEnd);
-    IR::Instr* startCallInstr;
+    IR::Instr* startCallInstr = nullptr;
     builtInEndInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
         startCallInstr = argInstr->GetSrc2()->GetStackSym()->m_instrDef;
         return false;
@@ -18495,7 +18493,7 @@ Lowerer::GenerateFastInlineStringSplitMatch(IR::Instr * instr)
     // script context
     LoadScriptContext(instr);
 
-    IR::JnHelperMethod helperMethod;
+    IR::JnHelperMethod helperMethod = IR::JnHelperMethod::HelperInvalid;
     IR::AutoReuseOpnd autoReuseStackAllocationOpnd;
     if(callDst && instr->dstIsTempObject)
     {

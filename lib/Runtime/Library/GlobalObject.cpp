@@ -592,7 +592,7 @@ namespace Js
         scriptContext->TransitionToDebugModeIfFirstSource(/* utf8SourceInfo = */ nullptr);
 
         JavascriptString *argString = JavascriptString::FromVar(evalArg);
-        ScriptFunction *pfuncScript;
+        ScriptFunction *pfuncScript = nullptr;
         char16 const * sourceString = argString->GetSz();
         charcount_t sourceLen = argString->GetLength();
         FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
@@ -684,7 +684,7 @@ namespace Js
             // The eval expression refers to "this"
             if (args.Info.Flags & CallFlags_ExtraArg)
             {
-                JavascriptFunction* pfuncCaller;
+                JavascriptFunction* pfuncCaller = nullptr;
                 JavascriptStackWalker::GetCaller(&pfuncCaller, scriptContext);
                 // If we are non-hidden call to eval then look for the "this" object in the frame display if the caller is a lambda else get "this" from the caller's frame.
 
@@ -884,7 +884,7 @@ namespace Js
             Parser parser(scriptContext, strictMode);
             bool forceNoNative = false;
 
-            ParseNodePtr parseTree;
+            ParseNodePtr parseTree = nullptr;
 
             SourceContextInfo * sourceContextInfo = pSrcInfo->sourceContextInfo;
             ULONG deferParseThreshold = Parser::GetDeferralThreshold(sourceContextInfo->IsSourceProfileLoaded());
@@ -970,7 +970,7 @@ namespace Js
             if ((grfscr & fscrIsLibraryCode) == 0)
             {
                 // For parented eval get the caller's utf8SourceInfo
-                JavascriptFunction* pfuncCaller;
+                JavascriptFunction* pfuncCaller = nullptr;
                 if (JavascriptStackWalker::GetCaller(&pfuncCaller, scriptContext) && pfuncCaller && pfuncCaller->IsScriptFunction())
                 {
                     FunctionBody* parentFuncBody = pfuncCaller->GetFunctionBody();
@@ -1043,7 +1043,7 @@ namespace Js
             Parser parser(scriptContext, strictMode);
             bool forceNoNative = false;
 
-            ParseNodePtr parseTree;
+            ParseNodePtr parseTree = nullptr;
 
             SourceContextInfo * sourceContextInfo = pSrcInfo->sourceContextInfo;
 
