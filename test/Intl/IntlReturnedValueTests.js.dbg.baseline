@@ -2,7 +2,6 @@
   {
     "this": "Object {...}",
     "functionCallsReturn": {
-      "[Anonymous function returned]": "undefined undefined",
       "[Intl.DateTimeFormat returned]": "Object {...}"
     },
     "locals": {

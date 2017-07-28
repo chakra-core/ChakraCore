@@ -30,6 +30,14 @@
   </test>
   <test>
     <default>
+      <compile-flags>-debuglaunch -dbgbaseline:IntlInit.js.dbg.baseline -Intl</compile-flags>
+      <files>IntlInit.js</files>
+      <!-- xplat-todo: enable on xplat when Intl is supported on xplat (Microsoft/ChakraCore#2919) -->
+      <tags>exclude_winglob,exclude_xplat,Intl</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>ES6_intl_stepinto.js</files>
       <compile-flags>-dbgbaseline:ES6_intl_stepinto.js.dbg.baseline -Intl</compile-flags>
       <!-- xplat-todo: enable on xplat when Intl is supported on xplat (Microsoft/ChakraCore#2919) -->
@@ -213,7 +221,7 @@
       <compile-flags>-dbgbaseline:ES6_intl_simple_attach.js.dbg.baseline -Intl</compile-flags>
       <baseline>ES6_intl_simple_attach.js.baseline</baseline>
       <!-- xplat-todo: enable on xplat when Intl is supported on xplat (Microsoft/ChakraCore#2919) -->
-      <tags>exclude_winglob,exclude_xplat</tags>
+      <tags>exclude_winglob,exclude_xplat,Intl</tags>
     </default>
   </test>
   <test>
@@ -286,7 +294,7 @@
       <files>ES6_intl_stepinto_libexpandos.js</files>
       <compile-flags>-debuglaunch -dbgbaseline:ES6_intl_stepinto_libexpandos.js.dbg.baseline -Intl</compile-flags>
       <!-- xplat-todo: enable on xplat when Intl is supported on xplat (Microsoft/ChakraCore#2919) -->
-      <tags>exclude_winglob,exclude_xplat</tags>
+      <tags>exclude_winglob,exclude_xplat,Intl</tags>
     </default>
   </test>
   <test>

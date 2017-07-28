@@ -11,6 +11,7 @@ namespace Js
         hostDebugContext(nullptr),
         diagProbesContainer(nullptr),
         debuggerMode(DebuggerMode::NotDebugging),
+        isDebuggerRecording(true),
         isReparsingSource(false)
     {
         Assert(scriptContext != nullptr);

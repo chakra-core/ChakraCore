@@ -26,7 +26,7 @@
   </test>
   <test>
     <default>
-      <compile-flags>-debuglaunch -dbgbaseline:JsDiagGetFunctionPositionIntl.js.dbg.baseline</compile-flags>
+      <compile-flags>-debuglaunch -dbgbaseline:JsDiagGetFunctionPositionIntl.js.dbg.baseline -Intl</compile-flags>
       <files>JsDiagGetFunctionPositionIntl.js</files>
       <!-- xplat-todo: enable on xplat when Intl is supported on xplat (Microsoft/ChakraCore#2919) -->
       <tags>exclude_xplat,Intl</tags>

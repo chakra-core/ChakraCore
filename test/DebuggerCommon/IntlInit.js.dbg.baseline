@@ -1,0 +1,20 @@
+[
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[Intl.getCanonicalLocales returned]": "Array [en-US]"
+    },
+    "locals": {
+      "x": "number 0"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[Intl.getCanonicalLocales returned]": "Array [en-US]"
+    },
+    "locals": {
+      "x": "number 1"
+    }
+  }
+]

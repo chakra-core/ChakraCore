@@ -1800,27 +1800,6 @@ private:
 
 extern void(*InitializeAdditionalProperties)(ThreadContext *threadContext);
 
-// Temporarily set script profiler isProfilingUserCode state, restore at destructor
-class AutoProfilingUserCode
-{
-private:
-    ThreadContext* threadContext;
-    const bool oldIsProfilingUserCode;
-
-public:
-    AutoProfilingUserCode(ThreadContext* threadContext, bool isProfilingUserCode) :
-        threadContext(threadContext),
-        oldIsProfilingUserCode(threadContext->IsProfilingUserCode())
-    {
-        threadContext->SetIsProfilingUserCode(isProfilingUserCode);
-    }
-
-    ~AutoProfilingUserCode()
-    {
-        threadContext->SetIsProfilingUserCode(oldIsProfilingUserCode);
-    }
-};
-
 #if ENABLE_JS_REENTRANCY_CHECK
 class JsReentLock
 {
