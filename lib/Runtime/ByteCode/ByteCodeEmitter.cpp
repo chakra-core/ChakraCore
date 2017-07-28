@@ -1744,9 +1744,13 @@ void ByteCodeGenerator::FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody 
 
     this->SetClosureRegisters(funcInfo, byteCodeFunction);
 
-    if (this->IsInDebugMode())
+    if (this->IsInDebugMode() || byteCodeFunction->IsCoroutine())
     {
         // Give permanent registers to the inner scopes in debug mode.
+        // TODO: We create seperate debuggerscopes for each block which has own scope. These are stored in the var registers
+        // allocated below. Ideally we should change this logic to not allocate separate registers for these and save the debug
+        // info in corresponding symbols and use it from there. This will also affect the temp register allocation logic in
+        // EmitOneFunction.
         uint innerScopeCount = funcInfo->InnerScopeCount();
         byteCodeFunction->SetInnerScopeCount(innerScopeCount);
         if (innerScopeCount)
@@ -3181,8 +3185,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         // Reserve temp registers for the inner scopes. We prefer temps because the JIT will then renumber them
         // and see different lifetimes. (Note that debug mode requires permanent registers. See FinalizeRegisters.)
+        // Need to revisit the condition when enabling JitES6Generators.
         uint innerScopeCount = funcInfo->InnerScopeCount();
-        if (!this->IsInDebugMode())
+        if (!this->IsInDebugMode() && !byteCodeFunction->IsCoroutine())
         {
             byteCodeFunction->SetInnerScopeCount(innerScopeCount);
             if (innerScopeCount)
