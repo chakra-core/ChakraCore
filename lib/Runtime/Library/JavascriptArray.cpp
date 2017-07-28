@@ -6901,7 +6901,8 @@ Case0:
         Var* insertArgs = args.Info.Count > 3 ? &args.Values[3] : nullptr;
         uint32 insertLen = args.Info.Count > 3 ? args.Info.Count - 3 : 0;
 
-        if (pArr != nullptr)
+        // Force check the prototype as we may insert values more than current elements
+        if (pArr != nullptr && !HasAnyES5ArrayInPrototypeChain(pArr, true /*forceCheckProtoChain*/))
         {
             // Since we get the length from an array and that cannot be more than uint32.
             _Analysis_assume_(length <= UINT_MAX);
