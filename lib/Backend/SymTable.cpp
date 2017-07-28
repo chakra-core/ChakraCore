@@ -161,7 +161,7 @@ SymTable::FindPropertySym(SymID id) const
 PropertySym *
 SymTable::FindPropertySym(SymID stackSymID, int32 propertyId) const
 {
-    PropertySym *  propertySym;
+    PropertySym *  propertySym = nullptr;
 
     stackSymID += this->m_IDAdjustment;
 

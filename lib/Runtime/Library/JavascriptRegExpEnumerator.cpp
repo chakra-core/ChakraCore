@@ -23,7 +23,7 @@ namespace Js
         propertyId = Constants::NoProperty;
         ScriptContext* scriptContext = this->GetScriptContext();
 
-        JavascriptString * item;
+        JavascriptString * item = nullptr;
         if (regExpObject->GetSpecialEnumerablePropertyName(++index, &item, scriptContext))
         {
             if (attributes != nullptr)

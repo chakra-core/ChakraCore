@@ -720,7 +720,7 @@ void WasmBinaryReader::ReadExportSection()
         const char16* exportName = ReadInlineName(length, nameLength);
 
         // Check if the name is already used
-        NameList* list;
+        NameList* list = nullptr;
         if (exportsNameDict.TryGetValue(nameLength, &list))
         {
             const char16** found = list->Find([exportName, nameLength](const char16* existing) { 

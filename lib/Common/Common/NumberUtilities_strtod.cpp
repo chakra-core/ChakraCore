@@ -2262,9 +2262,9 @@ static int RoundTo(byte *pbSrc, byte *pbLim, int nDigits, __out_bcount(nDigits+1
 int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType ft, int nDigits, __out_ecount(cchDst) char16 *pchDst, int cchDst)
 {
     int n = 0; // the no. of chars in the result.
-    int wExp10;
+    int wExp10 = 0;
     byte rgb[kcbMaxRgb];
-    byte *pbLim;
+    byte *pbLim = nullptr;
 
     if (!Js::NumberUtilities::IsFinite(dbl))
     {

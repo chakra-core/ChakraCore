@@ -7542,7 +7542,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_ScopedLdInst(const unaligned T * playout)
     {
-        Var thisVar;
+        Var thisVar = nullptr;
         Var rootObject = GetFunctionBody()->GetRootObject();
         Var result = JavascriptOperators::OP_GetInstanceScoped(GetEnvForEvalCode(),
             m_functionBody->GetReferencedPropertyId(playout->PropertyIdIndex), rootObject, &thisVar, GetScriptContext());

@@ -353,7 +353,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_CannotGet_NullOrUndefined , scriptContext->GetPropertyName(propertyId)->GetBuffer());
         }
 
-        Var value;
+        Var value = nullptr;
         try
         {
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
@@ -435,7 +435,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_CannotGet_NullOrUndefined, GetPropertyDisplayNameForError(index, scriptContext));
         }
 
-        Var member;
+        Var member = nullptr;
         uint32 indexVal;
         PropertyRecord const * propertyRecord = nullptr;
 
@@ -1191,7 +1191,7 @@ CommonNumber:
             // filter enumerable keys
             uint32 resultLength = proxyResult->GetLength();
             Var element;
-            const Js::PropertyRecord *propertyRecord;
+            const Js::PropertyRecord *propertyRecord = nullptr;
             uint32 index = 0;
             for (uint32 i = 0; i < resultLength; i++)
             {
@@ -1264,7 +1264,7 @@ CommonNumber:
         Var getter, setter;
         if (false == JavascriptOperators::GetOwnAccessors(obj, propertyId, &getter, &setter, scriptContext))
         {
-            Var value;
+            Var value = nullptr;
             if (false == JavascriptOperators::GetOwnProperty(obj, propertyId, &value, scriptContext))
             {
                 return FALSE;
@@ -1474,7 +1474,7 @@ CommonNumber:
         if (JavascriptOperators::IsObject(unscopables))
         {
             DynamicObject *unscopablesList = DynamicObject::FromVar(unscopables);
-            Var value;
+            Var value = nullptr;
             //8.1.1.2.1.9.c If blocked is not undefined
             if (JavascriptOperators::GetProperty(unscopablesList, propertyId, &value, scriptContext))
             {
@@ -1593,7 +1593,7 @@ CommonNumber:
         {
             if (!dynamicObject->DynamicObject::GetAccessors(propertyId, &getter, &setter, requestContext))
             {
-                Var value;
+                Var value = nullptr;
                 if (!JavascriptConversion::PropertyQueryFlagsToBoolean(dynamicObject->DynamicObject::GetPropertyQuery(instance, propertyId, &value, NULL, requestContext)) ||
                     (requestContext->IsUndeclBlockVar(value) && (ActivationObject::Is(instance) || RootObjectBase::Is(instance))))
                 {
@@ -1605,7 +1605,7 @@ CommonNumber:
         {
             if (!object->GetAccessors(propertyId, &getter, &setter, requestContext))
             {
-                Var value;
+                Var value = nullptr;
                 if (!object->GetProperty(instance, propertyId, &value, NULL, requestContext) ||
                     (requestContext->IsUndeclBlockVar(value) && (ActivationObject::Is(instance) || RootObjectBase::Is(instance))))
                 {
@@ -1877,7 +1877,7 @@ CommonNumber:
     {
         AssertMsg(RootObjectBase::Is(instance), "Root must be an object!");
 
-        Var value;
+        Var value = nullptr;
         if (JavascriptOperators::GetRootProperty(RecyclableObject::FromVar(instance), propertyId, &value, scriptContext, info))
         {
             if (scriptContext->IsUndeclBlockVar(value))
@@ -1915,7 +1915,7 @@ CommonNumber:
 
         for (int i = 0; i < length; i += 1)
         {
-            Var value;
+            Var value = nullptr;
             RecyclableObject *obj = RecyclableObject::FromVar(pScope->GetItem(i));
             if (JavascriptOperators::GetProperty(obj, Js::PropertyIds::_lexicalThisSlotSymbol, &value, scriptContext))
             {
@@ -2072,7 +2072,7 @@ CommonNumber:
         {
             DynamicObject* dynamicObject = (DynamicObject*)object;
             DynamicTypeHandler* dynamicTypeHandler = dynamicObject->GetDynamicType()->GetTypeHandler();
-            Var property;
+            Var property = nullptr;
             if (dynamicTypeHandler->CheckFixedProperty(requestContext->GetPropertyName(propertyId), &property, requestContext))
             {
                 Assert(value == nullptr || *value == property);
@@ -2165,7 +2165,7 @@ CommonNumber:
     {
         GlobalObject * globalObject = scriptContext->GetGlobalObject();
         uint32 index;
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         IndexType indexType = GetIndexTypeFromString(propertyName, propertyLength, scriptContext, &index, &propertyRecord, true);
 
         if (indexType == IndexType_Number)
@@ -2299,7 +2299,7 @@ CommonNumber:
                 {
                     Assert(JavascriptProxy::Is(setterValueOrProxy));
                     JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
-                    const PropertyRecord* propertyRecord;
+                    const PropertyRecord* propertyRecord = nullptr;
                     proxy->PropertyIdFromInt(index, &propertyRecord);
                     return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetItemOnTaggedNumberKind, propertyRecord->GetPropertyId(), newValue, requestContext);
                 }
@@ -2521,7 +2521,7 @@ CommonNumber:
         if ( (instanceType == TypeIds_NativeIntArray || instanceType == TypeIds_NativeFloatArray) || (instanceType >= TypeIds_Int8Array && instanceType <= TypeIds_Uint64Array) )
         {
             RecyclableObject* object = RecyclableObject::FromVar(instance);
-            Var member;
+            Var member = nullptr;
 
             // If the item is found in the array own body, then it is a number
             if (JavascriptOperators::GetOwnItem(object, index, &member, scriptContext)
@@ -3074,7 +3074,7 @@ CommonNumber:
 
     BOOL JavascriptOperators::HasItem(RecyclableObject* object, uint64 index)
     {
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         ScriptContext* scriptContext = object->GetScriptContext();
         JavascriptOperators::GetPropertyIdForInt(index, scriptContext, &propertyRecord);
         return JavascriptOperators::HasProperty(object, propertyRecord->GetPropertyId());
@@ -3146,7 +3146,7 @@ CommonNumber:
 
     BOOL JavascriptOperators::SetItem(Var receiver, RecyclableObject* object, uint64 index, Var value, ScriptContext* scriptContext, PropertyOperationFlags propertyOperationFlags)
     {
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         JavascriptOperators::GetPropertyIdForInt(index, scriptContext, &propertyRecord);
         return JavascriptOperators::SetProperty(receiver, object, propertyRecord->GetPropertyId(), value, scriptContext, propertyOperationFlags);
     }
@@ -3177,7 +3177,7 @@ CommonNumber:
             {
                 Assert(JavascriptProxy::Is(setterValueOrProxy));
                 JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
-                const PropertyRecord* propertyRecord;
+                const PropertyRecord* propertyRecord = nullptr;
                 proxy->PropertyIdFromInt(index, &propertyRecord);
                 return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetItemKind, propertyRecord->GetPropertyId(), value, scriptContext, skipPrototypeCheck);
             }
@@ -3209,7 +3209,7 @@ CommonNumber:
     }
     BOOL JavascriptOperators::DeleteItem(RecyclableObject* object, uint64 index, PropertyOperationFlags propertyOperationFlags)
     {
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         JavascriptOperators::GetPropertyIdForInt(index, object->GetScriptContext(), &propertyRecord);
         return JavascriptOperators::DeleteProperty(object, propertyRecord->GetPropertyId(), propertyOperationFlags);
     }
@@ -3221,7 +3221,7 @@ CommonNumber:
             RecyclableObject::FromVar(instance);
 
         uint32 indexVal;
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         IndexType indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, false);
 
         if (indexType == IndexType_Number)
@@ -3830,9 +3830,9 @@ CommonNumber:
         }
 
         uint32 indexVal;
-        PropertyRecord const * propertyRecord;
-        JavascriptString * propertyNameString;
-        Var value;
+        PropertyRecord const * propertyRecord = nullptr;
+        JavascriptString * propertyNameString = nullptr;
+        Var value = nullptr;
 
         IndexType indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, &propertyNameString, false, true);
 
@@ -4057,7 +4057,7 @@ CommonNumber:
         threadContext->ClearImplicitCallFlags();
 
         uint32 indexVal;
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         Var value = NULL;
         BOOL hasProperty = FALSE;
         IndexType indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, false);
@@ -4966,7 +4966,7 @@ CommonNumber:
         RecyclableObject* object = RecyclableObject::FromVar(instance);
 
         uint32 indexVal;
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         JavascriptString * propertyNameString = nullptr;
         BOOL result = TRUE;
         IndexType indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, &propertyNameString, false, true);
@@ -7273,7 +7273,7 @@ CommonNumber:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("in"));
         }
 
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         uint32 index;
         IndexType indexType = GetIndexType(argProperty, scriptContext, &index, &propertyRecord, true);
 
@@ -10844,7 +10844,7 @@ CommonNumber:
 
     BOOL JavascriptOperators::GetItem(RecyclableObject* instance, uint64 index, Var* value, ScriptContext* requestContext)
     {
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         JavascriptOperators::GetPropertyIdForInt(index, requestContext, &propertyRecord);
         return JavascriptOperators::GetProperty(instance, propertyRecord->GetPropertyId(), value, requestContext);
     }

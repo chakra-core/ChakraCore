@@ -1524,7 +1524,7 @@ Func::GetOrCreateSingleTypeGuard(intptr_t typeAddr)
 {
     EnsureSingleTypeGuards();
 
-    Js::JitTypePropertyGuard* guard;
+    Js::JitTypePropertyGuard* guard = nullptr;
     if (!this->singleTypeGuards->TryGetValue(typeAddr, &guard))
     {
         // Property guards are allocated by NativeCodeData::Allocator so that their lifetime extends as long as the EntryPointInfo is alive.

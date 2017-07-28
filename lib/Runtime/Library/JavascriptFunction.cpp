@@ -535,7 +535,7 @@ namespace Js
                 {
                     for (uint i = 0; i < len; i++)
                     {
-                        Var element;
+                        Var element = nullptr;
                         if (!JavascriptOperators::GetItem(dynamicObject, i, &element, scriptContext))
                         {
                             element = undefined;
