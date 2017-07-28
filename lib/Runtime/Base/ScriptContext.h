@@ -500,6 +500,10 @@ namespace Js
         bool IsScriptContextInNonDebugMode() const;
         bool IsScriptContextInDebugMode() const;
         bool IsScriptContextInSourceRundownOrDebugMode() const;
+
+        bool IsDebuggerRecording() const;
+        void SetIsDebuggerRecording(bool isDebuggerRecording);
+
         bool IsRunningScript() const { return this->threadContext->GetScriptEntryExit() != nullptr; }
 
         typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::WeakRefFreeListedRemovePolicy> CalleeSourceList;
@@ -1879,8 +1883,34 @@ private:
         Js::Phase phase;
         bool isPhaseComplete;
     };
-}
 
+    // Set up a scope in which we will initialize library JS code (like Intl.js),
+    // which should not be treated as user-level JS code.
+    // We should not profile and should not log debugger information in such a scope.
+    class AutoInitLibraryCodeScope
+    {
+    private:
+        ScriptContext * const scriptContext;
+        const bool oldIsProfilingUserCode;
+        const bool oldIsDebuggerRecording;
+
+    public:
+        AutoInitLibraryCodeScope(ScriptContext *scriptContext) :
+            scriptContext(scriptContext),
+            oldIsProfilingUserCode(scriptContext->GetThreadContext()->IsProfilingUserCode()),
+            oldIsDebuggerRecording(scriptContext->IsDebuggerRecording())
+        {
+            this->scriptContext->GetThreadContext()->SetIsProfilingUserCode(false);
+            this->scriptContext->SetIsDebuggerRecording(false);
+        }
+
+        ~AutoInitLibraryCodeScope()
+        {
+            this->scriptContext->GetThreadContext()->SetIsProfilingUserCode(this->oldIsProfilingUserCode);
+            this->scriptContext->SetIsDebuggerRecording(this->oldIsDebuggerRecording);
+        }
+    };
+}
 
 #define BEGIN_TEMP_ALLOCATOR(allocator, scriptContext, name) \
     Js::TempArenaAllocatorObject *temp##allocator = scriptContext->GetTemporaryAllocator(name); \

@@ -6,23 +6,14 @@
 // Return values from Intl function calls show the function name correctly in debugger.
 
 /////////////////// DateFormat ////////////////////
-var options = { ca: "gregory", hour12: true, timeZone:"UTC" }; 
-// Bug: GitHub Issue#3438: Intl.DateTimeFormat constructor call has 2 entries in the debugger functionCallsReturn.
-// https://github.com/Microsoft/ChakraCore/issues/3438
-// Actual: 
-    // "functionCallsReturn": {
-    //   "[Anonymous function returned]": "undefined undefined",
-    //   "[Intl.DateTimeFormat returned]": "Object {...}"
-// Expected:
-    // "functionCallsReturn": {
-    //   "[Intl.DateTimeFormat returned]": "Object {...}"
+var options = { ca: "gregory", hour12: true, timeZone:"UTC" };
 var dateFormat1 = new Intl.DateTimeFormat("en-US", options);    /**bp:resume('step_over');locals();**/
 WScript.Echo("");  // Dummy line to get desired debugger logging behavior. Required due to the above bug.
 var date1 = new Date(2000, 1, 1);
 
 // Bug: GitHub Issue#3439: Intl function call has 2 entries in the debugger functionCallsReturn.
 // https://github.com/Microsoft/ChakraCore/issues/3439
-// Actual: 
+// Actual:
     // "functionCallsReturn": {
     //   "[get format returned]": "function <large string>",
     //   "[Intl.DateTimeFormat.prototype.format returned]": "string ‎2‎/‎1‎/‎2000"
@@ -41,7 +32,7 @@ var numberFormat1 = new Intl.NumberFormat();                    /**bp:resume('st
 WScript.Echo("");  // Dummy line to get desired debugger logging behavior. Required due to the above bug.
 // Bug: GitHub Issue#3439: Intl function call has 2 entries in the debugger functionCallsReturn.
 // https://github.com/Microsoft/ChakraCore/issues/3439
-// Actual: 
+// Actual:
     // "functionCallsReturn": {
     //   "[get format returned]": "function <large string>",
     //   "[Intl.DateTimeFormat.prototype.format returned]": "string ‎2‎/‎1‎/‎2000"
@@ -58,7 +49,7 @@ WScript.Echo("");  // Dummy line to get desired debugger logging behavior. Requi
 var collator1 = Intl.Collator();                                /**bp:resume('step_over');locals();resume('step_over');locals();**/
 // Bug: GitHub Issue#3439: Intl function call has 2 entries in the debugger functionCallsReturn.
 // https://github.com/Microsoft/ChakraCore/issues/3439
-// Actual: 
+// Actual:
     // "functionCallsReturn": {
     //   "[get compare returned]": "function <large string>",
     //   "[Intl.Collator.prototype.compare returned]": "number -1"

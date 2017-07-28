@@ -75,11 +75,13 @@ namespace Js
 
     void ProbeContainer::StartRecordingCall()
     {
+        Assert(this->pScriptContext->GetDebugContext() && this->pScriptContext->GetDebugContext()->IsDebuggerRecording());
         this->debugManager->stepController.StartRecordingCall();
     }
 
     void ProbeContainer::EndRecordingCall(Js::Var returnValue, Js::JavascriptFunction * function)
     {
+        Assert(this->pScriptContext->GetDebugContext() && this->pScriptContext->GetDebugContext()->IsDebuggerRecording());
         this->debugManager->stepController.EndRecordingCall(returnValue, function);
     }
 
