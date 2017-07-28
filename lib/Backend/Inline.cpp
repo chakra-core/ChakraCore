@@ -5147,13 +5147,14 @@ Inline::FixupExtraActualParams(IR::Instr * instr, IR::Instr *argOuts[], IR::Inst
 {
     Assert(instr->m_opcode == Js::OpCode::ArgOut_A_FromStackArgs);
 
-    int offsetFixup;
+    int offsetFixup = INT_MAX;
     Assert(instr->m_func->callSiteToArgumentsOffsetFixupMap->ContainsKey(callSiteId));
     instr->m_func->callSiteToArgumentsOffsetFixupMap->TryGetValue(callSiteId, &offsetFixup);
 
     StackSym *sym = instr->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
     while (index < actualCount)
     {
+        Assert(offsetFixup != INT_MAX);
         IR::Instr* argOutToMapTo = argOuts[index] ? argOuts[index] : argOutsExtra[index];
         StackSym* newStackSym = StackSym::NewArgSlotSym(sym->GetArgSlotNum(), instr->m_func);
         newStackSym->m_isInlinedArgSlot = true;
@@ -5180,7 +5181,7 @@ Inline::RemoveExtraFixupArgouts(IR::Instr* instr, uint argoutRemoveCount, Js::Pr
 {
     Assert(instr->m_opcode == Js::OpCode::ArgOut_A_FromStackArgs);
 
-    int offsetFixup;
+    int offsetFixup = -1;
     Assert(instr->m_func->callSiteToArgumentsOffsetFixupMap->ContainsKey(callSiteId));
     instr->m_func->callSiteToArgumentsOffsetFixupMap->TryGetValue(callSiteId, &offsetFixup);
 
@@ -5188,6 +5189,7 @@ Inline::RemoveExtraFixupArgouts(IR::Instr* instr, uint argoutRemoveCount, Js::Pr
     IR::Instr* argInstr = instr->GetSrc2()->AsSymOpnd()->m_sym->AsStackSym()->GetInstrDef();
     for(uint argIndex = 0; argIndex < argoutRemoveCount; argIndex++)
     {
+        Assert(offsetFixup != -1);
         Assert(argInstr->m_opcode == Js::OpCode::ArgOut_A_FixupForStackArgs);
         Assert(!argInstr->HasByteCodeArgOutCapture()); // ArgOut_A_FixupForStackArgs should not be restored on bailout, so we don't generate ByteCodeArgOutCapture for these argouts.
 

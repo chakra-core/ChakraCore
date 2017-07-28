@@ -1131,7 +1131,7 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     loop->fieldPRESymStore->Set(symStore->m_id);
 
     ValueType valueType(ValueType::Uninitialized);
-    Value *initialValue;
+    Value *initialValue = nullptr;
 
     if (loop->initialValueFieldMap.TryGetValue(propertySym, &initialValue))
     {
@@ -3110,7 +3110,7 @@ GlobOpt::CopyPropDstUses(IR::Opnd *opnd, IR::Instr *instr, Value *src1Val)
 void
 GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *propertySym, PropertySym *originalPropertySym)
 {
-    Value *initialValue;
+    Value *initialValue = nullptr;
     StackSym *symStore;
 
     if (loop->allFieldsKilled || loop->fieldKilled->Test(originalPropertySym->m_id))
@@ -4333,7 +4333,7 @@ GlobOpt::GetVarConstantValue(IR::AddrOpnd *addrOpnd)
     bool isVar = addrOpnd->IsVar();
     bool isString = isVar && addrOpnd->m_localAddress && JITJavascriptString::Is(addrOpnd->m_localAddress);
     Value *val = nullptr;
-    Value *cachedValue;
+    Value *cachedValue = nullptr;
     if(this->addrConstantToValueMap->TryGetValue(addrOpnd->m_address, &cachedValue))
     {
         // The cached value could be from a different block since this is a global (as opposed to a per-block) cache. Since
@@ -4468,7 +4468,7 @@ GlobOpt::NewFixedFunctionValue(Js::JavascriptFunction *function, IR::AddrOpnd *a
     Assert(function != nullptr);
 
     Value *val = nullptr;
-    Value *cachedValue;
+    Value *cachedValue = nullptr;
     if(this->addrConstantToValueMap->TryGetValue(addrOpnd->m_address, &cachedValue))
     {
         // The cached value could be from a different block since this is a global (as opposed to a per-block) cache. Since
@@ -13656,7 +13656,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             for(Loop *loop = currentBlock->loop; loop; loop = loop->parent)
             {
                 const JsArrayKills loopKills(loop->jsArrayKills);
-                Value *baseValueInLoopLandingPad;
+                Value *baseValueInLoopLandingPad = nullptr;
                 if((isLikelyJsArray && loopKills.KillsValueType(newBaseValueType)) ||
                     !OptIsInvariant(baseOpnd->m_sym, currentBlock, loop, baseValue, true, true, &baseValueInLoopLandingPad) ||
                     !(doArrayChecks || baseValueInLoopLandingPad->GetValueInfo()->IsObject()))

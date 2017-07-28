@@ -93,7 +93,7 @@ namespace Js
         }
 
         UnifiedRegex::RegexKey lookupKey(psz, csz, flags);
-        UnifiedRegex::RegexPattern* pattern;
+        UnifiedRegex::RegexPattern* pattern = nullptr;
         RegexPatternMruMap* dynamicRegexMap = scriptContext->GetDynamicRegexMap();
         if (!dynamicRegexMap->TryGetValue(lookupKey, &pattern))
         {

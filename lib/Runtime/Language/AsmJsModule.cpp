@@ -2523,7 +2523,7 @@ namespace Js
         uint slotsCount = moduleBody->scopeSlotArraySize;
         for (uint i = 0; i < slotsCount; ++i)
         {
-            AsmJsSlot * asmSlot;
+            AsmJsSlot * asmSlot = nullptr;
             bool found = asmSlotMap->TryGetValue(propertyIdArray[i], &asmSlot);
             // we should have everything we need in the map
             Assert(found);

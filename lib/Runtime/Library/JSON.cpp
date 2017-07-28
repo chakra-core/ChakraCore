@@ -390,7 +390,7 @@ namespace JSON
 
     Js::Var StringifySession::Str(uint32 index, Js::Var holder)
     {
-        Js::Var value;
+        Js::Var value = nullptr;
         Js::RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
 
         if (Js::JavascriptArray::Is(holder) && !Js::JavascriptArray::FromVar(holder)->IsCrossSiteObject())
@@ -420,7 +420,7 @@ namespace JSON
 
     Js::Var StringifySession::Str(Js::JavascriptString* key, Js::PropertyId keyId, Js::Var holder)
     {
-        Js::Var value;
+        Js::Var value = nullptr;
         // We should look only into object's own properties here. When an object is serialized, only the own properties are considered,
         // the prototype chain is not considered. However, the property names can be selected via an array replacer. In this case
         // ES5 spec doesn't say the property has to own property or even to be enumerable. So, properties from the prototype, or non enum properties,
@@ -446,7 +446,7 @@ namespace JSON
         //check and apply 'toJSON' filter
         if (Js::JavascriptOperators::IsJsNativeObject(value) || (Js::JavascriptOperators::IsObject(value)))
         {
-            Js::Var tojson;
+            Js::Var tojson = nullptr;
             if (Js::JavascriptOperators::GetProperty(Js::RecyclableObject::FromVar(value), Js::PropertyIds::toJSON, &tojson, scriptContext) &&
                 Js::JavascriptConversion::IsCallable(tojson))
             {

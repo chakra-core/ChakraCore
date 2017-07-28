@@ -1113,7 +1113,7 @@ Peeps::PeepCondMove(IR::LabelInstr *labelInstr, IR::Instr *nextInstr, const bool
 {
     IR::Instr *instr = labelInstr->GetPrevRealInstrOrLabel();
 
-    Js::OpCode newOpCode;
+    Js::OpCode newOpCode = Js::OpCode::InvalidOpCode;
 
     // Check if BB is all MOVs with both RegOpnd
     while(instr->m_opcode == Js::OpCode::MOV)

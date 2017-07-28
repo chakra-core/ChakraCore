@@ -496,7 +496,7 @@ CommonNumber:
         //  3. If func is either undefined or null, return undefined.
         //  4. If IsCallable(func) is false, throw a TypeError exception.
         //  5. Return func.
-        Var varMethod;
+        Var varMethod = nullptr;
 
         if (!(requestContext->GetConfig()->IsES6ToPrimitiveEnabled()
             && JavascriptOperators::GetPropertyReference(recyclableObject, PropertyIds::_symbolToPrimitive, &varMethod, requestContext)

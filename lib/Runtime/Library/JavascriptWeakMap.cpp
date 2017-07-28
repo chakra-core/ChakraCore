@@ -120,7 +120,7 @@ namespace Js
 
                 RecyclableObject* obj = RecyclableObject::FromVar(nextItem);
 
-                Var key, value;
+                Var key = nullptr, value = nullptr;
 
                 if (!JavascriptOperators::GetItem(obj, 0u, &key, scriptContext))
                 {
