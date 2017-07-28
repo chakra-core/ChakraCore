@@ -8507,6 +8507,12 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 pnode->sxFnc.cbMin = iecpMin;
                 pnode->ichMin = ichMin;
             }
+
+            // ArrowFunction/AsyncArrowFunction is part of AssignmentExpression, which should terminate the expression unless followed by a comma
+            if (m_token.tk != tkComma)
+            {
+                break;
+            }
         }
         else
         {
