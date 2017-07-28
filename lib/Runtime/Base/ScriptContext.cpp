@@ -3981,7 +3981,6 @@ namespace Js
             }
         }
 
-
         __TRY_FINALLY_BEGIN // SEH is not guaranteed, see the implementation
         {
             Assert(!function->IsScriptFunction() || function->GetFunctionProxy());
@@ -3998,7 +3997,7 @@ namespace Js
             OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("DebugProfileProbeThunk: calling function: %s isWrapperRegistered=%d useDebugWrapper=%d\n"),
                 function->GetFunctionInfo()->HasBody() ? function->GetFunctionBody()->GetDisplayName() : _u("built-in/library"), AutoRegisterIgnoreExceptionWrapper::IsRegistered(scriptContext->GetThreadContext()), useDebugWrapper);
 
-            if (scriptContext->IsScriptContextInDebugMode())
+            if (scriptContext->IsDebuggerRecording())
             {
                 scriptContext->GetDebugContext()->GetProbeContainer()->StartRecordingCall();
             }
@@ -4071,7 +4070,7 @@ namespace Js
             }
 #endif
 
-            if (scriptContext->IsScriptContextInDebugMode())
+            if (scriptContext->IsDebuggerRecording())
             {
                 scriptContext->GetDebugContext()->GetProbeContainer()->EndRecordingCall(aReturn, function);
             }
@@ -5801,6 +5800,23 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return false;
     }
 
+    bool ScriptContext::IsDebuggerRecording() const
+    {
+        if (this->debugContext != nullptr)
+        {
+            return this->GetDebugContext()->IsDebuggerRecording();
+        }
+        return false;
+    }
+
+    void ScriptContext::SetIsDebuggerRecording(bool isDebuggerRecording)
+    {
+        if (this->debugContext != nullptr)
+        {
+            this->GetDebugContext()->SetIsDebuggerRecording(isDebuggerRecording);
+        }
+    }
+
     bool ScriptContext::IsIntlEnabled()
     {
         if (GetConfig()->IsIntlEnabled())
@@ -5813,7 +5829,6 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         }
         return false;
     }
-
 
 #ifdef INLINE_CACHE_STATS
     void ScriptContext::LogCacheUsage(Js::PolymorphicInlineCache *cache, bool isGetter, Js::PropertyId propertyId, bool hit, bool collision)

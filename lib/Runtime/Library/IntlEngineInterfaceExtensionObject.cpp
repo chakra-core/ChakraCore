@@ -411,7 +411,6 @@ namespace Js
                     AssertMsg(false, "Not a valid intlInitializationType.");
                     // fall thru
                 case IntlInitializationType::Intl:
-
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
                     initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Intl"));
@@ -437,8 +436,10 @@ namespace Js
             {
                 scriptContext->RegisterScript(function->GetFunctionProxy());
             }
-            // Mark we are profiling library code already, so that any initialization library code called here won't be reported to profiler
-            AutoProfilingUserCode autoProfilingUserCode(scriptContext->GetThreadContext(), /*isProfilingUserCode*/false);
+
+            // Mark we are profiling library code already, so that any initialization library code called here won't be reported to profiler.
+            // Also tell the debugger not to record events during intialization so that we don't leak information about initialization.
+            AutoInitLibraryCodeScope autoInitLibraryCodeScope(scriptContext);
 
             Js::Var args[] = { scriptContext->GetLibrary()->GetUndefined(), scriptContext->GetLibrary()->GetEngineInterfaceObject(), initType };
             Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args));
