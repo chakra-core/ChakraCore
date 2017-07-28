@@ -160,7 +160,7 @@ JsErrorCode GlobalAPIWrapper_NoRecord(Fn fn)
 
 JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState, bool allowInObjectBeforeCollectCallback = false);
 
-template <bool verifyRuntimeState, class Fn>
+template <bool verifyRuntimeState, bool doCleanup, class Fn>
 JsErrorCode ContextAPIWrapper_Core(Fn fn)
 {
     JsrtContext *currentContext = JsrtContext::GetCurrent();
@@ -177,7 +177,7 @@ JsErrorCode ContextAPIWrapper_Core(Fn fn)
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
 
         // Enter script
-        BEGIN_ENTER_SCRIPT(scriptContext, true, true, true)
+        BEGIN_ENTER_SCRIPT(scriptContext, doCleanup, true, true)
         {
             errCode = fn(scriptContext);
         }
@@ -218,11 +218,11 @@ JsErrorCode ContextAPIWrapper_Core(Fn fn)
     return errCode;
 }
 
-template <bool verifyRuntimeState, class Fn>
+template <bool verifyRuntimeState, bool doCleanup, class Fn>
 JsErrorCode ContextAPIWrapper(Fn fn)
 {
     TTDRecorder _actionEntryPopper;
-    JsErrorCode errCode = ContextAPIWrapper_Core<verifyRuntimeState>([&fn, &_actionEntryPopper](Js::ScriptContext* scriptContext) -> JsErrorCode
+    JsErrorCode errCode = ContextAPIWrapper_Core<verifyRuntimeState, doCleanup>([&fn, &_actionEntryPopper](Js::ScriptContext* scriptContext) -> JsErrorCode
     {
         return fn(scriptContext, _actionEntryPopper);
     });
@@ -237,7 +237,7 @@ JsErrorCode ContextAPIWrapper(Fn fn)
 template <bool verifyRuntimeState, class Fn>
 JsErrorCode ContextAPIWrapper_NoRecord(Fn fn)
 {
-    return ContextAPIWrapper_Core<verifyRuntimeState>([&fn](Js::ScriptContext* scriptContext) -> JsErrorCode
+    return ContextAPIWrapper_Core<verifyRuntimeState, true>([&fn](Js::ScriptContext* scriptContext) -> JsErrorCode
     {
         return fn(scriptContext);
     });

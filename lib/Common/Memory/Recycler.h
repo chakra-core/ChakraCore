@@ -1109,7 +1109,7 @@ public:
 #endif
 
     void SetIsThreadBound();
-    void SetIsScriptActive(bool isScriptActive);
+    void SetIsScriptActive(bool isScriptActive, bool doCleanup = true);
     void SetIsInScript(bool isInScript);
     bool ShouldIdleCollectOnExit();
     void ScheduleNextCollection();
