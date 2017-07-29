@@ -799,5 +799,19 @@ var tests = [
             assert.areEqual(16, ret[0]);
         }
     },
+    {
+        name: "splice : the method splice should get property from prototype which is a proxy",
+        body: function ()
+        {
+            var v1 = [];
+            v1.length = 20;
+            var hasCalled = 0;
+            v1.__proto__ = new Proxy([222], {has : function() { hasCalled++;} });
+            v1.push(1);
+            assert.areEqual(222, v1[0]);
+            var ret  = v1.splice(0, 10);
+            assert.areEqual(20, hasCalled);
+        }
+    },
 ];
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
