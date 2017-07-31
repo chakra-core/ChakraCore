@@ -332,17 +332,28 @@ namespace JSON
 
     // -------- StringifySession implementation ------------//
 
+    static char16  gapStringBuffer[JSONspaceSize];
+    static char16* GetGapStringInternal()
+    {
+        wmemset(gapStringBuffer, _u(' '), JSONspaceSize);
+        return gapStringBuffer;
+    }
+
     void StringifySession::CompleteInit(Js::Var space, ArenaAllocator* tempAlloc)
     {
         //set the stack, gap
-        char16 buffer[JSONspaceSize];
-        wmemset(buffer, _u(' '), JSONspaceSize);
+        static const char16* spaceBuffer = GetGapStringInternal(); // multi threading safe
+
         charcount_t len = 0;
         switch (Js::JavascriptOperators::GetTypeId(space))
         {
         case Js::TypeIds_Integer:
             {
                 len = max(0, min(JSONspaceSize, static_cast<int>(Js::TaggedInt::ToInt32(space))));
+                if (len)
+                {
+                    gap = Js::JavascriptString::NewCopyBuffer(spaceBuffer, len, scriptContext);
+                }
                 break;
             }
         case Js::TypeIds_Number:
@@ -351,6 +362,10 @@ namespace JSON
         case Js::TypeIds_UInt64Number:
             {
                 len = max(0, static_cast<int>(min(static_cast<double>(JSONspaceSize), Js::JavascriptConversion::ToInteger(space, scriptContext))));
+                if (len)
+                {
+                    gap = Js::JavascriptString::NewCopyBuffer(spaceBuffer, len, scriptContext);
+                }
                 break;
             }
         case Js::TypeIds_String:
@@ -358,7 +373,7 @@ namespace JSON
                 len = min(static_cast<charcount_t>(JSONspaceSize), Js::JavascriptString::FromVar(space)->GetLength());
                 if(len)
                 {
-                    js_wmemcpy_s(buffer, JSONspaceSize, Js::JavascriptString::FromVar(space)->GetString(), len);
+                    gap = Js::JavascriptString::NewCopyBuffer(Js::JavascriptString::FromVar(space)->GetString(), len, scriptContext);
                 }
                 break;
             }
@@ -370,15 +385,11 @@ namespace JSON
                     len = min(static_cast<charcount_t>(JSONspaceSize), Js::JavascriptString::FromVar(spaceString)->GetLength());
                     if(len)
                     {
-                        js_wmemcpy_s(buffer, JSONspaceSize, Js::JavascriptString::FromVar(spaceString)->GetString(), len);
+                        gap = Js::JavascriptString::NewCopyBuffer(Js::JavascriptString::FromVar(spaceString)->GetString(), len, scriptContext);
                     }
                 }
                 break;
             }
-        }
-        if (len)
-        {
-            gap = Js::JavascriptString::NewCopyBuffer(buffer, len, scriptContext);
         }
 
         objectStack = Anew(tempAlloc, JSONStack, tempAlloc, scriptContext);
