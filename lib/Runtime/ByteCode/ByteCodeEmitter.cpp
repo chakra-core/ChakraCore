@@ -1986,17 +1986,6 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
         m_writer.RecordFrameDisplayRegister(funcInfo->frameDisplayRegister);
     }
 
-    // new.target may be used to construct the 'this' register so make sure to load it first
-    if (funcInfo->newTargetRegister != Js::Constants::NoRegister)
-    {
-        this->LoadNewTargetObject(funcInfo);
-    }
-
-    if (funcInfo->thisPointerRegister != Js::Constants::NoRegister)
-    {
-        this->LoadThisObject(funcInfo, thisLoadedFromParams);
-    }
-
     this->RecordAllIntConstants(funcInfo);
     this->RecordAllStrConstants(funcInfo);
     this->RecordAllStringTemplateCallsiteConstants(funcInfo);
@@ -2005,6 +1994,11 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
     {
         byteCodeFunction->RecordFloatConstant(byteCodeFunction->MapRegSlot(location), d);
     });
+
+    // WARNING !!!
+    // DO NOT emit any bytecode before loading the heap arguments. This is because those opcodes may bail 
+    // out (unlikely, since opcodes emitted in this function should not correspond to user code, but possible)
+    // and the Jit assumes that there cannot be any bailouts before LdHeapArguments (or its equivalent)
 
     if (funcInfo->GetHasArguments())
     {
@@ -2028,6 +2022,25 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
             GetFormalArgsArray(this, funcInfo, propIds);
             byteCodeFunction->SetPropertyIdsOfFormals(propIds);
         }
+    }
+
+    // Class constructors do not have a [[call]] slot but we don't implement a generic way to express this.
+    // What we do is emit a check for the new flag here. If we don't have CallFlags_New set, the opcode will throw.
+    // We need to do this before emitting 'this' since the base class constructor will try to construct a new object.
+    if (funcInfo->IsClassConstructor())
+    {
+        m_writer.Empty(Js::OpCode::ChkNewCallFlag);
+    }
+
+    // new.target may be used to construct the 'this' register so make sure to load it first
+    if (funcInfo->newTargetRegister != Js::Constants::NoRegister)
+    {
+        this->LoadNewTargetObject(funcInfo);
+    }
+
+    if (funcInfo->thisPointerRegister != Js::Constants::NoRegister)
+    {
+        this->LoadThisObject(funcInfo, thisLoadedFromParams);
     }
 
     //
@@ -3223,14 +3236,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         this->PushFuncInfo(_u("EmitOneFunction"), funcInfo);
 
         this->inPrologue = true;
-
-        // Class constructors do not have a [[call]] slot but we don't implement a generic way to express this.
-        // What we do is emit a check for the new flag here. If we don't have CallFlags_New set, the opcode will throw.
-        // We need to do this before emitting 'this' since the base class constructor will try to construct a new object.
-        if (funcInfo->IsClassConstructor())
-        {
-            m_writer.Empty(Js::OpCode::ChkNewCallFlag);
-        }
 
         Scope* paramScope = funcInfo->GetParamScope();
         Scope* bodyScope = funcInfo->GetBodyScope();
