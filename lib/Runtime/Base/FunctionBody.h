@@ -1763,7 +1763,7 @@ namespace Js
 
     inline FunctionBody * FunctionProxy::GetFunctionBody() const
     {
-        Assert(IsFunctionBody());
+        AssertOrFailFast(IsFunctionBody());
         return (FunctionBody*)this;
     }
 
