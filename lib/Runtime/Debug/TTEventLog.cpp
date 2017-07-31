@@ -2340,7 +2340,7 @@ namespace TTD
         NSLogEvents::JsRTSingleVarArgumentAction* giAction = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::JsRTSingleVarArgumentAction, NSLogEvents::EventKind::GetTypedArrayInfoActionTag>();
         NSLogEvents::SetVarItem_0(giAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var));
 
-        //entry/exit status should be set to clead by initialization so don't need to do anything
+        // entry/exit status should be set to clear by initialization so don't need to do anything
         giAction->Result = TTD_CONVERT_JSVAR_TO_TTDVAR(result);
     }
 
@@ -2349,7 +2349,7 @@ namespace TTD
         NSLogEvents::JsRTSingleVarArgumentAction* giAction = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::JsRTSingleVarArgumentAction, NSLogEvents::EventKind::GetDataViewInfoActionTag>();
         NSLogEvents::SetVarItem_0(giAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var));
 
-        //entry/exit status should be set to clead by initialization so don't need to do anything
+        // entry/exit status should be set to clear by initialization so don't need to do anything
         giAction->Result = TTD_CONVERT_JSVAR_TO_TTDVAR(result);
     }
 
