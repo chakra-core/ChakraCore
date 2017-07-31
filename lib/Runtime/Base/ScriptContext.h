@@ -945,7 +945,7 @@ private:
         }
 #endif
 
-        void SetHasUsedInlineCache(bool value) 
+        void SetHasUsedInlineCache(bool value)
         {
             hasUsedInlineCache = value;
 #if DBG
@@ -1424,7 +1424,20 @@ private:
             return this->deferredBody;
         }
 
+    private:
+        Js::PropertyId emptyStringPropertyId;
     public:
+        Js::PropertyId GetEmptyStringPropertyId()
+        {
+            if (emptyStringPropertyId == Js::PropertyIds::_none)
+            {
+                Js::PropertyRecord const * propertyRecord;
+                this->GetOrAddPropertyRecord(_u(""), 0, &propertyRecord);
+                emptyStringPropertyId = propertyRecord->GetPropertyId();
+            }
+            return emptyStringPropertyId;
+        }
+
         void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);
 
     private:

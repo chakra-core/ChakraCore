@@ -79,9 +79,7 @@ namespace JSON
             {
                 Js::DynamicObject* root = scriptContext->GetLibrary()->CreateObject();
                 JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(root));
-                Js::PropertyRecord const * propertyRecord;
-                scriptContext->GetOrAddPropertyRecord(_u(""), 0, &propertyRecord);
-                Js::PropertyId propertyId = propertyRecord->GetPropertyId();
+                Js::PropertyId propertyId = scriptContext->GetEmptyStringPropertyId();
                 Js::JavascriptOperators::InitProperty(root, propertyId, result);
                 result = parser.Walk(scriptContext->GetLibrary()->GetEmptyString(), propertyId, root);
             }
@@ -322,9 +320,7 @@ namespace JSON
 
             Js::DynamicObject* wrapper = scriptContext->GetLibrary()->CreateObject();
             JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(wrapper));
-            Js::PropertyRecord const * propertyRecord;
-            scriptContext->GetOrAddPropertyRecord(_u(""), 0, &propertyRecord);
-            Js::PropertyId propertyId = propertyRecord->GetPropertyId();
+            Js::PropertyId propertyId = scriptContext->GetEmptyStringPropertyId();
             Js::JavascriptOperators::InitProperty(wrapper, propertyId, value);
             result = stringifySession.Str(scriptContext->GetLibrary()->GetEmptyString(), propertyId, wrapper);
         }
