@@ -1456,4 +1456,11 @@
     <tags>BugFix</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>bug-OS10595959.js</files>
+    <compile-flags>-maxsimplejitruncount:1 -maxinterpretcount:1 -off:stackargopt -stress:bailonnoprofile -args summary -endargs</compile-flags>
+    <tags>BugFix</tags>
+  </default>
+</test>
 </regress-exe>
