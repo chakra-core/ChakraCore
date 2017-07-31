@@ -499,34 +499,43 @@ CHAKRA_API JsDiagGetFunctionPosition(
 
         Js::ScriptFunction* jsFunction = Js::ScriptFunction::FromVar(function);
 
-        Js::FunctionBody* functionBody = jsFunction->GetFunctionBody();
-        if (functionBody != nullptr)
+        BOOL fParsed = jsFunction->GetParseableFunctionInfo()->IsFunctionParsed();
+        if (!fParsed)
         {
-            Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
-            if (utf8SourceInfo != nullptr && !utf8SourceInfo->GetIsLibraryCode())
+            Js::JavascriptFunction::DeferredParseCore(&jsFunction, fParsed);
+        }
+
+        if (fParsed)
+        {
+            Js::FunctionBody* functionBody = jsFunction->GetFunctionBody();
+            if (functionBody != nullptr)
             {
-                ULONG lineNumber = functionBody->GetLineNumber();
-                ULONG columnNumber = functionBody->GetColumnNumber();
-                uint startOffset = functionBody->GetStatementStartOffset(0);
-                ULONG firstStatementLine;
-                LONG firstStatementColumn;
-
-                if (functionBody->GetLineCharOffsetFromStartChar(startOffset, &firstStatementLine, &firstStatementColumn))
+                Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
+                if (utf8SourceInfo != nullptr && !utf8SourceInfo->GetIsLibraryCode())
                 {
-                    Js::DynamicObject* funcPositionObject = (Js::DynamicObject*)Js::CrossSite::MarshalVar(utf8SourceInfo->GetScriptContext(), scriptContext->GetLibrary()->CreateObject());
+                    ULONG lineNumber = functionBody->GetLineNumber();
+                    ULONG columnNumber = functionBody->GetColumnNumber();
+                    uint startOffset = functionBody->GetStatementStartOffset(0);
+                    ULONG firstStatementLine;
+                    LONG firstStatementColumn;
 
-                    if (funcPositionObject != nullptr)
+                    if (functionBody->GetLineCharOffsetFromStartChar(startOffset, &firstStatementLine, &firstStatementColumn))
                     {
-                        JsrtDebugUtils::AddScriptIdToObject(funcPositionObject, utf8SourceInfo);
-                        JsrtDebugUtils::AddFileNameOrScriptTypeToObject(funcPositionObject, utf8SourceInfo);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::line, (uint32) lineNumber, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::column, (uint32) columnNumber, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementLine, (uint32) firstStatementLine, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementColumn, (int32) firstStatementColumn, scriptContext);
+                        Js::DynamicObject* funcPositionObject = (Js::DynamicObject*)Js::CrossSite::MarshalVar(utf8SourceInfo->GetScriptContext(), scriptContext->GetLibrary()->CreateObject());
 
-                        *functionPosition = funcPositionObject;
+                        if (funcPositionObject != nullptr)
+                        {
+                            JsrtDebugUtils::AddScriptIdToObject(funcPositionObject, utf8SourceInfo);
+                            JsrtDebugUtils::AddFileNameOrScriptTypeToObject(funcPositionObject, utf8SourceInfo);
+                            JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::line, (uint32)lineNumber, scriptContext);
+                            JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::column, (uint32)columnNumber, scriptContext);
+                            JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementLine, (uint32)firstStatementLine, scriptContext);
+                            JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementColumn, (int32)firstStatementColumn, scriptContext);
 
-                        return JsNoError;
+                            *functionPosition = funcPositionObject;
+
+                            return JsNoError;
+                        }
                     }
                 }
             }
