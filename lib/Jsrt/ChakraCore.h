@@ -733,5 +733,22 @@ JsCopyStringOneByte(
     _Out_opt_ char* buffer,
     _Out_opt_ size_t* written);
 
+/// <summary>
+///     Obtains frequently used properties of a data view.
+/// </summary>
+/// <param name="dataView">The data view instance.</param>
+/// <param name="arrayBuffer">The ArrayBuffer backstore of the view.</param>
+/// <param name="byteOffset">The offset in bytes from the start of arrayBuffer referenced by the array.</param>
+/// <param name="byteLength">The number of bytes in the array.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsGetDataViewInfo(
+        _In_ JsValueRef dataView,
+        _Out_opt_ JsValueRef *arrayBuffer,
+        _Out_opt_ unsigned int *byteOffset,
+        _Out_opt_ unsigned int *byteLength);
+
 #endif // _CHAKRACOREBUILD
 #endif // _CHAKRACORE_H_
