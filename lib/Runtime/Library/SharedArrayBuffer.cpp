@@ -270,7 +270,7 @@ namespace Js
             }
         };
 
-        if (recycler->ReportExternalMemoryAllocation(length))
+        if (recycler->RequestExternalMemoryAllocation(length))
         {
             buffer = alloc(length);
             if (buffer == nullptr)
