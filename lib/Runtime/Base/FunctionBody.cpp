@@ -948,11 +948,10 @@ namespace Js
             Js::ParseableFunctionInfo::NewDeferredFunctionFromFunctionBody(this);
         FunctionInfo * functionInfo = this->GetFunctionInfo();
 
-        this->MapFunctionObjectTypes([&](DynamicType* type)
+        this->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
-            Assert(type->GetTypeId() == TypeIds_Function);
-
-            ScriptFunctionType* functionType = (ScriptFunctionType*)type;
+            Assert(functionType->GetTypeId() == TypeIds_Function);
+            
             if (!CrossSite::IsThunk(functionType->GetEntryPoint()))
             {
                 functionType->SetEntryPoint(GetScriptContext()->DeferredParsingThunk);
@@ -2050,7 +2049,7 @@ namespace Js
             {
                 if (typeWeakRef)
                 {
-                    DynamicType* type = typeWeakRef->Get();
+                    ScriptFunctionType* type = typeWeakRef->Get();
                     if (type)
                     {
                         func(type);
@@ -2078,7 +2077,7 @@ namespace Js
         return functionObjectTypeList;
     }
 
-    void FunctionProxy::RegisterFunctionObjectType(DynamicType* functionType)
+    void FunctionProxy::RegisterFunctionObjectType(ScriptFunctionType* functionType)
     {
         FunctionTypeWeakRefList* typeList = EnsureFunctionObjectTypeList();
 
@@ -9716,11 +9715,9 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
     void FunctionEntryPointInfo::ResetOnNativeCodeInstallFailure()
     {
-        this->functionProxy->MapFunctionObjectTypes([&](DynamicType* type)
+        this->functionProxy->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
-            Assert(type->GetTypeId() == TypeIds_Function);
-
-            ScriptFunctionType* functionType = (ScriptFunctionType*)type;
+            Assert(functionType->GetTypeId() == TypeIds_Function);
             if (functionType->GetEntryPointInfo() == this)
             {
                 if (!this->GetIsAsmJSFunction())
@@ -9791,11 +9788,10 @@ namespace Js
             autoCleanup.Done();
 
         }
-        this->functionProxy->MapFunctionObjectTypes([&](DynamicType* type)
+        this->functionProxy->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
-            Assert(type->GetTypeId() == TypeIds_Function);
-
-            ScriptFunctionType* functionType = (ScriptFunctionType*)type;
+            Assert(functionType->GetTypeId() == TypeIds_Function);
+            
             if (functionType->GetEntryPointInfo() == this)
             {
                 functionType->SetEntryPointInfo(entryPoint);
@@ -9874,11 +9870,10 @@ namespace Js
             }
 
             OUTPUT_TRACE(Js::ExpirableCollectPhase,  _u("Expiring 0x%p\n"), this);
-            this->functionProxy->MapFunctionObjectTypes([&] (DynamicType* type)
+            this->functionProxy->MapFunctionObjectTypes([&] (ScriptFunctionType* functionType)
             {
-                Assert(type->GetTypeId() == TypeIds_Function);
+                Assert(functionType->GetTypeId() == TypeIds_Function);
 
-                ScriptFunctionType* functionType = (ScriptFunctionType*) type;
                 if (functionType->GetEntryPointInfo() == this)
                 {
                     OUTPUT_TRACE(Js::ExpirableCollectPhase, _u("Type 0x%p uses this entry point- switching to default entry point\n"), this);
