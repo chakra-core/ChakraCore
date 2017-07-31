@@ -581,6 +581,7 @@ namespace TTD
 
         //Record a get info from a typed array
         void RecordJsRTGetTypedArrayInfo(Js::Var var, Js::Var result);
+        void RecordJsRTGetDataViewInfo(Js::Var var, Js::Var result);
 
         //Record various raw byte* from ArrayBuffer manipulations
         void RecordJsRTRawBufferCopySync(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var dst, uint32 dstIndex, Js::Var src, uint32 srcIndex, uint32 length);

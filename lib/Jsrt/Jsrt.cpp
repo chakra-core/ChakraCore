@@ -4781,4 +4781,44 @@ CHAKRA_API JsCopyStringOneByte(
     });
 }
 
+CHAKRA_API JsGetDataViewInfo(
+    _In_ JsValueRef dataView,
+    _Out_opt_ JsValueRef *arrayBuffer,
+    _Out_opt_ unsigned int *byteOffset,
+    _Out_opt_ unsigned int *byteLength)
+{
+    VALIDATE_JSREF(dataView);
+
+    BEGIN_JSRT_NO_EXCEPTION
+    {
+        if (!Js::DataView::Is(dataView))
+        {
+            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
+        }
+
+        Js::DataView* dv = Js::DataView::FromVar(dataView);
+        if (arrayBuffer != nullptr) {
+            *arrayBuffer = dv->GetArrayBuffer();
+        }
+
+        if (byteOffset != nullptr) {
+            *byteOffset = dv->GetByteOffset();
+        }
+
+        if (byteLength != nullptr) {
+            *byteLength = dv->GetLength();
+        }
+    }
+
+#if ENABLE_TTD
+    Js::ScriptContext* scriptContext = Js::RecyclableObject::FromVar(dataView)->GetScriptContext();
+    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && arrayBuffer != nullptr)
+    {
+        scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetDataViewInfo(dataView, *arrayBuffer);
+    }
+#endif
+
+    END_JSRT_NO_EXCEPTION
+}
+
 #endif // _CHAKRACOREBUILD
