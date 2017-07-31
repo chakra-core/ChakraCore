@@ -121,4 +121,5 @@
     JsGetAndClearExceptionWithMetadata
     JsHasOwnProperty
     JsCopyStringOneByte
+    JsGetDataViewInfo
 #endif
