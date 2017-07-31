@@ -2173,7 +2173,7 @@ namespace JsRTApiTest
         size_t written = 0;
         char buf[10] = {0};
         JsValueRef value;
-        REQUIRE(JsCreateStringUtf16(reinterpret_cast<uint16_t*>(_u("0\x10\x80\xa9\uabcd\U000104377")), 8, &value) == JsNoError);
+        REQUIRE(JsCreateStringUtf16(reinterpret_cast<const uint16_t*>(_u("0\x10\x80\xa9\uabcd\U000104377")), 8, &value) == JsNoError);
         REQUIRE(JsCopyStringOneByte(value, 0, -1, nullptr, &written) == JsNoError);
         CHECK(written == 8);
         buf[written] = '\xff';
