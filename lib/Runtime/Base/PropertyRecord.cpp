@@ -21,6 +21,41 @@ namespace Js
     {
     }
 
+    PropertyRecord::PropertyRecord(const WCHAR* buffer, const int length, DWORD bytelength, bool isSymbol)
+        : pid(Js::Constants::NoProperty), isSymbol(isSymbol), byteCount(bytelength)
+    {
+        Assert(length >= 0 && buffer != nullptr);
+
+        WCHAR* target = (WCHAR*)((PropertyRecord*)this + 1);
+        isNumeric = (isSymbol || length > 10 || length <= 0) ? false : true;
+        hash = 0;
+
+        for (int i = 0; i < length; i++)
+        {
+            const WCHAR byte = buffer[i];
+            if (isNumeric)
+            {
+                if (byte < _u('0') || byte > _u('9'))
+                  isNumeric = false;
+            }
+
+            CC_HASH_LOGIC(hash, byte);
+            target[i] = byte;
+        }
+        target[length] = WCHAR(0);
+
+        if (isNumeric)
+        {
+            uint32 numericValue;
+            isNumeric = Js::PropertyRecord::IsPropertyNameNumeric(this->GetBuffer(), this->GetLength(), &numericValue);
+            if (isNumeric)
+            {
+                *(uint32 *)(this->GetBuffer() + this->GetLength() + 1) = numericValue;
+                Assert(GetNumericValue() == numericValue);
+            }
+        }
+    }
+
     void PropertyRecord::Finalize(bool isShutdown)
     {
         if (!isShutdown)

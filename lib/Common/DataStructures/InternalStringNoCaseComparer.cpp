@@ -20,8 +20,7 @@ namespace JsUtil
         uint hash = 0;
         for (size_t i = 0; i < length; i++)
         {
-            hash = _rotl(hash, 7);
-            hash ^= tolower(s[i]);
+            CC_HASH_LOGIC(hash, tolower(s[i]));
         }
         return ((hash & 0x7fffffff) << 1) | 1;
     }
