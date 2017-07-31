@@ -159,7 +159,8 @@ namespace Js
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
-        virtual ArrayBufferDetachedStateBase* DetachAndGetState();
+        void Detach();
+        ArrayBufferDetachedStateBase* DetachAndGetState();
         virtual uint32 GetByteLength() const override { return bufferLength; }
         virtual BYTE* GetBuffer() const override { return buffer; }
 

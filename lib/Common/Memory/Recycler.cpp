@@ -1101,7 +1101,7 @@ Recycler::AddExternalMemoryUsage(size_t size)
     CollectNow<CollectOnAllocation>();
 }
 
-BOOL Recycler::ReportExternalMemoryAllocation(size_t size)
+bool Recycler::RequestExternalMemoryAllocation(size_t size)
 {
     return recyclerPageAllocator.RequestAlloc(size);
 }
