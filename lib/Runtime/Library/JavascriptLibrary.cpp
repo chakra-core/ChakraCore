@@ -7329,7 +7329,6 @@ namespace Js
         if (this->dynamicFunctionReference == nullptr)
         {
             this->dynamicFunctionReference = RecyclerNew(this->recycler, FunctionReferenceList, this->recycler);
-            this->BindReference(this->dynamicFunctionReference);
             this->dynamicFunctionReferenceDepth = 0;
         }
 
