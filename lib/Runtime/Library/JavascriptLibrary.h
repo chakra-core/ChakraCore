@@ -257,7 +257,6 @@ namespace Js
         Field(DynamicType *) arrayBufferType;
         Field(DynamicType *) sharedArrayBufferType;
         Field(DynamicType *) dataViewType;
-        Field(DynamicType *) typedArrayType;
         Field(DynamicType *) int8ArrayType;
         Field(DynamicType *) uint8ArrayType;
         Field(DynamicType *) uint8ClampedArrayType;
