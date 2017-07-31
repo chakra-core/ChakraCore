@@ -4316,6 +4316,7 @@ stCommon:
     case Js::OpCode::ScopedStFld:
     case Js::OpCode::ConsoleScopedStFld:
     case Js::OpCode::ScopedStFldStrict:
+    case Js::OpCode::ConsoleScopedStFldStrict:
     {
         Assert(!isProfiled);
 

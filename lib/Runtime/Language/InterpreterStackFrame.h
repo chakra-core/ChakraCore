@@ -541,6 +541,7 @@ namespace Js
         template <class T> void OP_SetPropertyScoped_NoFastPath(unaligned T* playout, PropertyOperationFlags flags);
         template <class T> void OP_SetPropertyScopedStrict(unaligned T* playout);
         template <class T> void OP_ConsoleSetPropertyScoped(unaligned T* playout);
+        template <class T> void OP_ConsoleSetPropertyScopedStrict(unaligned T* playout);
 
         template <class T> void DoSetProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags);
         template <class T> void DoSetSuperProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags);

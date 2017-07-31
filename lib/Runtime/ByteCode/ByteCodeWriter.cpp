@@ -1944,6 +1944,7 @@ StoreCommon:
         case OpCode::ScopedStFld:
         case OpCode::ConsoleScopedStFld:
         case OpCode::ScopedStFldStrict:
+        case OpCode::ConsoleScopedStFldStrict:
             break;
 
         case OpCode::LdLocalFld:
