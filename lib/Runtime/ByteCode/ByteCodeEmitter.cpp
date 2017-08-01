@@ -3356,8 +3356,10 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         DefineLabels(funcInfo);
 
-        if (pnode->sxFnc.HasNonSimpleParameterList())
+        if (pnode->sxFnc.HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
         {
+            Assert(pnode->sxFnc.HasNonSimpleParameterList() || CONFIG_FLAG(ForceSplitScope));
+
             this->InitBlockScopedNonTemps(funcInfo->root->sxFnc.pnodeScopes, funcInfo);
 
             EmitDefaultArgs(funcInfo, pnode);
@@ -3400,8 +3402,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         DefineUserVars(funcInfo);
 
-        if (pnode->sxFnc.HasNonSimpleParameterList())
+        if (pnode->sxFnc.HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
         {
+            Assert(pnode->sxFnc.HasNonSimpleParameterList() || CONFIG_FLAG(ForceSplitScope));
             this->InitBlockScopedNonTemps(funcInfo->root->sxFnc.pnodeBodyScope, funcInfo);
         }
         else
