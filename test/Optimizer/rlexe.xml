@@ -1417,4 +1417,11 @@
       <compile-flags>-lic:1 -off:simplejit -bgjit-</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>HoistCheckObjType.js</files>
+      <baseline>HoistCheckObjType.baseline</baseline>
+      <compile-flags>-PrintSystemException -CheckMemoryLeak- -maxinterpretcount:1 -maxsimplejitruncount:1 -MinMemOpCount:0 -werexceptionsupport -force:rejit -off:ArrayCheckHoist -force:atom</compile-flags>
+    </default>
+  </test>
 </regress-exe>
