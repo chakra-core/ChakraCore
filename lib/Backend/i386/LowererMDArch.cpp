@@ -109,6 +109,7 @@ LowererMDArch::GetAssignOp(IRType type)
     case TySimd128B8:
     case TySimd128B16:
     case TySimd128D2:
+    case TySimd128I2:
         return Js::OpCode::MOVUPS;
     default:
         return Js::OpCode::MOV;
@@ -1986,6 +1987,7 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
 }
 
 
+
 void
 LowererMDArch::EmitInt64Instr(IR::Instr *instr)
 {
@@ -2053,9 +2055,12 @@ binopCommon:
         instr->InsertBefore(lowInstr);
         LowererMD::Legalize(lowInstr);
 
-        instr->ReplaceDst(dstPair.high);
-        instr->ReplaceSrc1(src1Pair.high);
-        instr->ReplaceSrc2(src2Pair.high);
+        instr->UnlinkDst();
+        instr->SetDst(dstPair.high);
+        instr->UnlinkSrc1();
+        instr->SetSrc1(src1Pair.high);
+        instr->UnlinkSrc2();
+        instr->SetSrc2(src2Pair.high);
         instr->m_opcode = highOpCode;
         LowererMD::Legalize(instr);
         break;

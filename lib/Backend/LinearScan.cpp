@@ -2727,6 +2727,10 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
         {
             type = TySimd128D2;
         }
+        else if (newLifetime->isSimd128I2)
+        {
+            type = TySimd128I2;
+        }
         else
         {
             type = TyMachReg;

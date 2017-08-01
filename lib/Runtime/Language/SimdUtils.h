@@ -28,7 +28,8 @@
     Field(uint16)  u16[8];\
     Field(uint8)   u8[16];\
     Field(float)   f32[4];\
-    Field(double)  f64[2];
+    Field(double)  f64[2]; \
+    Field(int64)   i64[2];
 #define SIMD_TEMP_SIZE 3
 struct _SIMDValue
 {
@@ -228,6 +229,11 @@ namespace Js {
             simdVal.f32[lane] = value;
             return simdVal;
         };
+        static inline SIMDValue SIMD128InnerReplaceLaneI2(SIMDValue simdVal, const uint32 lane, const int64 value)
+        {
+            simdVal.i64[lane] = value;
+            return simdVal;
+        };
         static inline SIMDValue SIMD128InnerReplaceLaneI4(SIMDValue simdVal, const uint32 lane, const int32 value)
         {
             simdVal.i32[lane] = value;
@@ -263,6 +269,7 @@ namespace Js {
         };
 
         static inline float SIMD128InnerExtractLaneF4(const SIMDValue src1, const uint32 lane) { return src1.f32[lane]; };
+        static inline int64 SIMD128InnerExtractLaneI2(const SIMDValue src1, const uint32 lane) { return src1.i64[lane]; };
         static inline int32 SIMD128InnerExtractLaneI4(const SIMDValue src1, const uint32 lane) { return src1.i32[lane]; };
         static inline int16 SIMD128InnerExtractLaneI8(const SIMDValue src1, const uint32 lane) { return src1.i16[lane]; };
         static inline int8 SIMD128InnerExtractLaneI16(const SIMDValue src1, const uint32 lane) { return src1.i8[lane];  };
@@ -342,7 +349,7 @@ namespace Js {
 
             for (uint i = 0; i < size; i++)
             {
-                cursor[i] = cursor[i] ? -1 : 0;
+                cursor[i] = cursor[i] ? (T) -1 : 0;
             }
             return val;
 #else

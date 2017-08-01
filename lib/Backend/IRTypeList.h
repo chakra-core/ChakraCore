@@ -32,6 +32,7 @@ IRTYPE(Simd128U16,  Simd,     16,      b(16),       1,        simd128)
 IRTYPE(Simd128B4,   Simd,     16,      b(16),       1,        simd128)
 IRTYPE(Simd128B8,   Simd,     16,      b(16),       1,        simd128)
 IRTYPE(Simd128B16,  Simd,     16,      b(16),       1,        simd128)
+IRTYPE(Simd128I2,   Simd,     16,      b(16),       1,        simd128)
 IRTYPE(Simd128D2,   Simd,     16,      b(16),       1,        simd128) // SIMD end
 
 

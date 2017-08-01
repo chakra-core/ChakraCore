@@ -139,6 +139,19 @@ MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_ArgOut_B16                , Reg1Bool8x
 
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_I_Conv_VTF4               , Float32x4_2                       , None           ,        None                      )
 
+// Int64x2
+MACRO_SIMD_EXTEND_WMS(Simd128_Splat_I2, Int64x2_1Long1, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_ExtractLane_I2, Long1Int64x2_1Int1, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_ReplaceLane_I2, Int64x2_2_Int1_Long1, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_Add_I2, Int64x2_3, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_Sub_I2, Int64x2_3, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_Neg_I2, Int64x2_2, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_ShLtByScalar_I2, Int64x2_2Int1, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_ShRtByScalar_I2, Int64x2_2Int1, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_ShRtByScalar_U2, Int64x2_2Int1, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_AnyTrue_B2, Int1Bool64x2_1, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_AllTrue_B2, Int1Bool64x2_1, None, None, 0)
+
 // Float64x2
 #if 0 //Disabling this type until the specification decides to include or not.
 MACRO_SIMD_EXTEND_WMS(Simd128_DoublesToD2, Float64x2_1Double2, None, None, 0)

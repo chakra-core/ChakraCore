@@ -42,10 +42,12 @@ namespace Js
         return mask_8 == 0xFFFF;
     }
 
+    template bool SIMDBool32x4Operation::OpAllTrue<int64>(const SIMDValue& simd);
     template bool SIMDBool32x4Operation::OpAllTrue<int32>(const SIMDValue& simd);
     template bool SIMDBool32x4Operation::OpAllTrue<int16>(const SIMDValue& simd);
     template bool SIMDBool32x4Operation::OpAllTrue<int8>(const SIMDValue& simd);
     //
+    template bool SIMDBool32x4Operation::OpAnyTrue<int64>(const SIMDValue& simd);
     template bool SIMDBool32x4Operation::OpAnyTrue<int32>(const SIMDValue& simd);
     template bool SIMDBool32x4Operation::OpAnyTrue<int16>(const SIMDValue& simd);
     template bool SIMDBool32x4Operation::OpAnyTrue<int8>(const SIMDValue& simd);

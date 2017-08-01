@@ -1273,9 +1273,10 @@ void WasmBytecodeGenerator::CheckLaneIndex(Js::OpCodeAsmJs op)
     uint numLanes;
     switch (op) 
     {
-    //case Js::OpCodeAsmJs::Simd128_ExtractLane_I2:
-    //case Js::OpCodeAsmJs::Simd128_ExtractLane_F2:
-    //    return 2;
+    case Js::OpCodeAsmJs::Simd128_ExtractLane_I2:
+    case Js::OpCodeAsmJs::Simd128_ReplaceLane_I2:
+        numLanes = 2;
+        break;
     case Js::OpCodeAsmJs::Simd128_ExtractLane_I4:
     case Js::OpCodeAsmJs::Simd128_ReplaceLane_I4:
     case Js::OpCodeAsmJs::Simd128_ExtractLane_F4:
