@@ -379,6 +379,7 @@ MACRO_WMS(              ScopedInitFunc,             ElementScopedC, OpSideEffect
 MACRO_WMS(              ScopedStFld,                ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Store to function's scope stack
 MACRO_EXTEND_WMS(       ConsoleScopedStFld,         ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Store to function's scope stack
 MACRO_WMS(              ScopedStFldStrict,          ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Store to function's scope stack
+MACRO_EXTEND_WMS(       ConsoleScopedStFldStrict,   ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Store to function's scope stack in strict mode for console scope
 MACRO_WMS(              ScopedDeleteFld,            ElementScopedC, OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Remove a property through a stack of scopes
 MACRO_WMS(              ScopedDeleteFldStrict,      ElementScopedC, OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Remove a property through a stack of scopes in strict mode
 MACRO_WMS_PROFILED(     LdSlot,                     ElementSlot,    OpTempNumberSources)
