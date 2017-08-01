@@ -351,4 +351,9 @@ Below test fails with difference in space. Investigate the cause and re-enable t
       <files>reentry1.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>CrossSiteVirtual.js</files>
+    </default>
+  </test>
 </regress-exe>
