@@ -179,6 +179,7 @@ public:
     bool IsSimd128Uint16x8() const;
     bool IsSimd128Uint8x16() const;
     bool IsSimd128Float64x2() const;
+    bool IsSimd128Int64x2() const;
 
 
     bool IsLikelySimd128() const;
@@ -189,6 +190,7 @@ public:
     bool IsLikelySimd128Uint16x8() const;
     bool IsLikelySimd128Uint8x16() const;
     bool IsLikelySimd128Float64x2() const;
+    bool IsLikelySimd128Int64x2() const;
 #endif
 
     bool HasBeenObject() const;

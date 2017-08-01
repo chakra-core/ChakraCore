@@ -102,6 +102,7 @@
 #define LAYOUT_PREFIX_Bool32x4() B4_
 #define LAYOUT_PREFIX_Int32x4() I4_
 #define LAYOUT_PREFIX_Float64x2() F2_
+#define LAYOUT_PREFIX_Int64x2() I2_
 #define LAYOUT_PREFIX_Int16x8() I8_
 #define LAYOUT_PREFIX_Bool16x8() B8_
 #define LAYOUT_PREFIX_Int8x16() I16_
@@ -235,6 +236,15 @@ LAYOUT_TYPE_WMS_REG2  ( Float64x2_1Int32x4_1             , Float64x2, Int32x4)
 LAYOUT_TYPE_WMS_REG4  ( Float64x2_1Int32x4_1Float64x2_2  , Float64x2, Int32x4, Float64x2, Float64x2)
 LAYOUT_TYPE_WMS_REG2  ( Reg1Float64x2_1                  , Reg, Float64x2)
 #endif //0
+
+//Int64x2
+LAYOUT_TYPE_WMS_REG2  ( Int64x2_1Long1                   , Int64x2, Long)
+LAYOUT_TYPE_WMS_REG3  ( Long1Int64x2_1Int1               , Long, Int64x2, Int)
+LAYOUT_TYPE_WMS_REG4  ( Int64x2_2_Int1_Long1             , Int64x2, Int64x2, Int, Long)
+LAYOUT_TYPE_WMS_REG3  ( Int64x2_3                        , Int64x2, Int64x2, Int64x2)
+LAYOUT_TYPE_WMS_REG2  ( Int64x2_2                        , Int64x2, Int64x2)
+LAYOUT_TYPE_WMS_REG3  ( Int64x2_2Int1                    , Int64x2, Int64x2, Int)
+LAYOUT_TYPE_WMS_REG2  ( Int1Bool64x2_1                   , Int, Int64x2)
 
 // Int16x8
 LAYOUT_TYPE_WMS_REG9  ( Int16x8_1Int8                    , Int16x8, Int, Int, Int, Int, Int, Int, Int, Int)

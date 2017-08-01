@@ -48,6 +48,7 @@ namespace Js
         case Intish:      return _u("intish");
         case Void:        return _u("void");
         case Int32x4:     return _u("SIMD.Int32x4");
+        case Int64x2:     return _u("SIMD.Int64x2");
         case Bool32x4:    return _u("SIMD.Bool32x4");
         case Bool16x8:    return _u("SIMD.Bool16x8");
         case Bool8x16:    return _u("SIMD.Bool8x16");
@@ -102,6 +103,10 @@ namespace Js
     bool AsmJsType::isSIMDFloat64x2() const
     {
         return which_ == Float64x2;
+    }
+    bool AsmJsType::isSIMDInt64x2() const
+    {
+        return which_ == Int64x2;
     }
 
     bool AsmJsType::isSIMDUint32x4() const

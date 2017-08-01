@@ -354,6 +354,14 @@ HELPERCALL(AllocUninitializedNumber, Js::JavascriptOperators::AllocUninitialized
 // SIMD_JS
 HELPERCALL(AllocUninitializedSimdF4, Js::JavascriptSIMDFloat32x4::AllocUninitialized, 0)
 HELPERCALL(AllocUninitializedSimdI4, Js::JavascriptSIMDInt32x4::AllocUninitialized, 0)
+
+#endif
+
+#ifdef ENABLE_WASM_SIMD
+HELPERCALL(Simd128ShRtByScalarU2, Js::SIMDInt64x2Operation::OpShiftRightByScalarU, 0)
+HELPERCALL(Simd128ShRtByScalarI2, Js::SIMDInt64x2Operation::OpShiftRightByScalar, 0)
+HELPERCALL(Simd128ShLtByScalarI2, Js::SIMDInt64x2Operation::OpShiftLeftByScalar, 0)
+HELPERCALL(Simd128ReplaceLaneI2, Js::SIMDInt64x2Operation::OpReplaceLane, 0)
 #endif
 
 HELPERCALL(Op_TryCatch, nullptr, 0)

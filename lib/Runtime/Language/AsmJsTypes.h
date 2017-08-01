@@ -143,7 +143,8 @@ namespace Js
             Bool16x8,
             Bool8x16,
             Float32x4,
-            Float64x2
+            Float64x2,
+            Int64x2
         };
 
     private:
@@ -185,6 +186,7 @@ namespace Js
         bool isSIMDUint32x4() const;
         bool isSIMDUint16x8() const;
         bool isSIMDUint8x16() const;
+        bool isSIMDInt64x2() const;
         AsmJsRetType toRetType() const;
     };
 
@@ -209,6 +211,7 @@ namespace Js
             Bool8x16 = AsmJsType::Bool8x16,
             Float32x4 = AsmJsType::Float32x4,
             Float64x2 = AsmJsType::Float64x2,
+            Int64x2 = AsmJsType::Int64x2,
             Int16x8 = AsmJsType::Int16x8,
             Int8x16 = AsmJsType::Int8x16,
             Uint32x4 = AsmJsType::Uint32x4,
@@ -271,7 +274,8 @@ namespace Js
             Int8x16 = AsmJsType::Int8x16,
             Uint32x4 = AsmJsType::Uint32x4,
             Uint16x8 = AsmJsType::Uint16x8,
-            Uint8x16 = AsmJsType::Uint8x16
+            Uint8x16 = AsmJsType::Uint8x16,
+            Int64x2 = AsmJsType::Int64x2
         };
 
     private:

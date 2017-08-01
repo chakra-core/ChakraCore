@@ -411,6 +411,7 @@ SCCLiveness::ProcessSrc(IR::Opnd *src, IR::Instr *instr)
                 lifetime->isSimd128B8 = symOpnd->IsSimd128B8();
                 lifetime->isSimd128B16 = symOpnd->IsSimd128B16();
                 lifetime->isSimd128D2 = symOpnd->IsSimd128D2();
+                lifetime->isSimd128I2 = symOpnd->IsSimd128I2();
             }
 
             IR::RegOpnd * newRegOpnd = IR::RegOpnd::New(stackSym, reg, symOpnd->GetType(), this->func);
@@ -625,6 +626,7 @@ SCCLiveness::ProcessRegDef(IR::RegOpnd *regDef, IR::Instr *instr)
         lifetime->isSimd128B8 = regDef->IsSimd128B8();
         lifetime->isSimd128B16 = regDef->IsSimd128B16();
         lifetime->isSimd128D2   = regDef->IsSimd128D2();
+        lifetime->isSimd128I2 = regDef->IsSimd128I2();
     }
     else
     {
