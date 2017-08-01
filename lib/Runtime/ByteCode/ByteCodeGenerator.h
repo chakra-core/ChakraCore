@@ -338,9 +338,11 @@ public:
             isRoot ? Js::OpCode::StRootFld : Js::OpCode::StFld;
     }
     static Js::OpCode GetStFldOpCode(FuncInfo* funcInfo, bool isRoot, bool isLetDecl, bool isConstDecl, bool isClassMemberInit);
-    static Js::OpCode GetScopedStFldOpCode(bool isStrictMode)
+    static Js::OpCode GetScopedStFldOpCode(bool isStrictMode, bool isConsoleScope = false)
     {
-        return isStrictMode ? Js::OpCode::ScopedStFldStrict : Js::OpCode::ScopedStFld;
+        return isStrictMode ? 
+            (isConsoleScope ? Js::OpCode::ConsoleScopedStFldStrict : Js::OpCode::ScopedStFldStrict) :
+            (isConsoleScope ? Js::OpCode::ConsoleScopedStFld : Js::OpCode::ScopedStFld);
     }
     static Js::OpCode GetScopedStFldOpCode(FuncInfo* funcInfo, bool isConsoleScopeLetConst = false);
     static Js::OpCode GetStElemIOpCode(bool isStrictMode)

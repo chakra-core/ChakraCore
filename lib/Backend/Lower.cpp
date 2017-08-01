@@ -548,12 +548,13 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::ConsoleScopedStFld:
+        case Js::OpCode::ConsoleScopedStFldStrict:
         {
             if (!noFieldFastPath)
             {
                 m_lowererMD.GenerateFastScopedStFld(instr);
             }
-            Js::PropertyOperationFlags flags = static_cast<Js::PropertyOperationFlags>(Js::PropertyOperation_None | Js::PropertyOperation_AllowUndeclInConsoleScope);
+            Js::PropertyOperationFlags flags = static_cast<Js::PropertyOperationFlags>((instr->m_opcode == Js::OpCode::ConsoleScopedStFld ?  Js::PropertyOperation_None : Js::PropertyOperation_StrictMode) | Js::PropertyOperation_AllowUndeclInConsoleScope);
             instrPrev = this->LowerScopedStFld(instr, IR::HelperOp_ConsolePatchSetPropertyScoped, true, true, flags);
             break;
         }

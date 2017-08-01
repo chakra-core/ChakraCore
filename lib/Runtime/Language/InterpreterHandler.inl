@@ -348,6 +348,7 @@ EXDEF3_WMS(CUSTOM_L_Value,          ScopedLdFldForTypeOf,       OP_GetPropertyFo
   DEF3_WMS(CUSTOM,                  ScopedStFld,                OP_SetPropertyScoped, ElementP)
 EXDEF3_WMS(CUSTOM,                  ConsoleScopedStFld,         OP_ConsoleSetPropertyScoped, ElementP)
   DEF3_WMS(CUSTOM,                  ScopedStFldStrict,          OP_SetPropertyScopedStrict, ElementP)
+EXDEF3_WMS(CUSTOM,                  ConsoleScopedStFldStrict,   OP_ConsoleSetPropertyScopedStrict, ElementP)
   DEF2_WMS(GET_ELEM_IMem,           DeleteElemI_A,              JavascriptOperators::OP_DeleteElementI)
   DEF2_WMS(GET_ELEM_IMem_Strict,    DeleteElemIStrict_A,        JavascriptOperators::OP_DeleteElementI)
   DEF3_WMS(CUSTOM_L_Value,          ScopedLdInst,               OP_ScopedLdInst, ElementScopedC2)

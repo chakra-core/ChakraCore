@@ -4472,6 +4472,12 @@ namespace Js
     }
 
     template <class T>
+    void InterpreterStackFrame::OP_ConsoleSetPropertyScopedStrict(unaligned T* playout)
+    {
+        OP_SetPropertyScoped(playout, (PropertyOperationFlags)(PropertyOperation_StrictMode | PropertyOperation_AllowUndeclInConsoleScope));
+    }
+
+    template <class T>
     inline bool InterpreterStackFrame::TrySetPropertyLocalFastPath(unaligned T* playout, PropertyId pid, Var instance, InlineCache*& inlineCache, PropertyOperationFlags flags)
     {
         Assert(!TaggedNumber::Is(instance));
