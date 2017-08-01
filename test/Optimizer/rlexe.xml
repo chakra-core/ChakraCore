@@ -1421,7 +1421,7 @@
     <default>
       <files>HoistCheckObjType.js</files>
       <baseline>HoistCheckObjType.baseline</baseline>
-      <compile-flags>-PrintSystemException -CheckMemoryLeak- -maxinterpretcount:1 -maxsimplejitruncount:1 -MinMemOpCount:0 -werexceptionsupport -force:rejit -off:ArrayCheckHoist -force:atom</compile-flags>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1</compile-flags>
     </default>
   </test>
 </regress-exe>
