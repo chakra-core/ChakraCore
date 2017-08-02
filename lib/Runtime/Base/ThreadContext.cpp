@@ -1741,7 +1741,7 @@ ThreadContext::ProbeStack(size_t size, Js::ScriptContext *scriptContext, PVOID r
         PlatformAgnostic::PerfTrace::WritePerfMap();
     }
 #endif
-    
+
     // BACKGROUND-GC TODO: If we're stuck purely in JITted code, we should have the
     // background GC thread modify the threads stack limit to trigger the runtime stack probe
     if (this->callDispose && this->recycler->NeedDispose())
@@ -2206,8 +2206,13 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
         lastRecord->hasReentered = true;
         record->next = lastRecord;
 
-        // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
-        if (!IsOnStack(lastRecord) || (uintptr_t)record >= (uintptr_t)lastRecord)
+        // these are on stack, which grows down. if this condition doesn't hold,
+        // then the list somehow got messed up
+        if (
+#if defined(JSRT_VERIFY_RUNTIME_STATE) || defined(DEBUG)
+        !IsOnStack(lastRecord) ||
+#endif
+        (uintptr_t)record >= (uintptr_t)lastRecord)
         {
             EntryExitRecord_Corrupted_fatal_error();
         }
@@ -2220,9 +2225,14 @@ void ThreadContext::PopEntryExitRecord(Js::ScriptEntryExitRecord * record)
 {
     AssertMsg(record && record == this->entryExitRecord, "Mismatch script entry/exit");
 
-    // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
+    // these are on stack, which grows down. if this condition doesn't hold,
+    // then the list somehow got messed up
     Js::ScriptEntryExitRecord * next = this->entryExitRecord->next;
-    if (next && (!IsOnStack(next) || (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
+    if (next && (
+#if defined(JSRT_VERIFY_RUNTIME_STATE) || defined(DEBUG)
+        !IsOnStack(next) ||
+#endif
+    (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
     {
         EntryExitRecord_Corrupted_fatal_error();
     }
