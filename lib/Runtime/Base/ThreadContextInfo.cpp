@@ -79,12 +79,6 @@ ThreadContextInfo::GetUIntConvertConstAddr() const
 }
 
 intptr_t
-ThreadContextInfo::GetUInt64ConvertConstAddr() const
-{
-    return SHIFT_ADDR(this, &Js::JavascriptNumber::UInt64ConvertConst);
-}
-
-intptr_t
 ThreadContextInfo::GetUint8ClampedArraySetItemAddr() const
 {
     return SHIFT_ADDR(this, (BOOL(*)(Js::Uint8ClampedArray * arr, uint32 index, Js::Var value))&Js::Uint8ClampedArray::DirectSetItem);
