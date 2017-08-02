@@ -7676,29 +7676,42 @@ LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
         dst = IR::RegOpnd::New(TyFloat64, this->m_func);
     }
 
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTSI2SD, dst, src, this->m_func));
+    const auto insertLegalize = [instr](IR::Instr* newInstr)
+    {
+        instr->InsertBefore(newInstr);
+        Legalize(newInstr);
+    };
+
     if (src->IsUnsigned())
     {
-        IR::RegOpnd * highestBitOpnd = IR::RegOpnd::New(TyInt64, this->m_func);
-        IR::Instr* instrNew = IR::Instr::New(Js::OpCode::SHR, highestBitOpnd, src,
-        IR::IntConstOpnd::New(63, TyInt8, this->m_func, true), this->m_func);
-        instr->InsertBefore(instrNew);
-        Legalize(instrNew);
-        IR::RegOpnd * baseOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+        insertLegalize(IR::Instr::New(Js::OpCode::TEST, nullptr, src, src, m_func));
+        IR::LabelInstr* msbSetLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+        IR::LabelInstr* doneLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+        insertLegalize(IR::BranchInstr::New(Js::OpCode::JSB, msbSetLabel, m_func));
+        // MSB not set, simple case
+        insertLegalize(IR::Instr::New(Js::OpCode::CVTSI2SD, dst, src, m_func));
+        insertLegalize(IR::BranchInstr::New(Js::OpCode::JMP, doneLabel, m_func));
+        insertLegalize(msbSetLabel);
 
-        instrNew = IR::Instr::New(Js::OpCode::MOV, baseOpnd, IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetUInt64ConvertConstAddr(),
-            IR::AddrOpndKindDynamicMisc, this->m_func), this->m_func);
-
-        instr->InsertBefore(instrNew);
-
-        instrNew = IR::Instr::New(Js::OpCode::ADDSD, dst, dst, IR::IndirOpnd::New(baseOpnd,
-            highestBitOpnd, IndirScale8, TyFloat64, this->m_func), this->m_func);
-        instr->InsertBefore(instrNew);
+        IR::RegOpnd* halfOpnd = IR::RegOpnd::New(TyInt64, m_func);
+        IR::RegOpnd* lsbOpnd = IR::RegOpnd::New(TyInt64, m_func);
+        m_lowerer->InsertMove(halfOpnd, src, instr);
+        m_lowerer->InsertMove(lsbOpnd, src, instr);
+        insertLegalize(IR::Instr::New(Js::OpCode::SHR, halfOpnd, halfOpnd, IR::IntConstOpnd::New(1, TyInt8, m_func), m_func));
+        insertLegalize(IR::Instr::New(Js::OpCode::AND, lsbOpnd, lsbOpnd, IR::Int64ConstOpnd::New(1, TyInt64, m_func), m_func));
+        insertLegalize(IR::Instr::New(Js::OpCode::OR, halfOpnd, halfOpnd, lsbOpnd, m_func));
+        insertLegalize(IR::Instr::New(Js::OpCode::CVTSI2SD, dst, halfOpnd, m_func));
+        insertLegalize(IR::Instr::New(Js::OpCode::ADDSD, dst, dst, dst, m_func));
+        insertLegalize(doneLabel);
+    }
+    else
+    {
+        insertLegalize(IR::Instr::New(Js::OpCode::CVTSI2SD, dst, src, m_func));
     }
 
     if (origDst)
     {
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTSD2SS, origDst, dst, this->m_func));
+        insertLegalize(IR::Instr::New(Js::OpCode::CVTSD2SS, origDst, dst, m_func));
     }
 #endif
 }
