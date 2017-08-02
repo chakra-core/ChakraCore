@@ -2004,7 +2004,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     contextData.scriptStackLimit = GetScriptStackLimit();
     contextData.isThreadBound = IsThreadBound();
     contextData.allowPrereserveAlloc = allowPrereserveAlloc;
-#if defined(ENABLE_SIMDJS) && (_M_IX86 || _M_AMD64)
+#if (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (_M_IX86 || _M_AMD64)
     contextData.simdTempAreaBaseAddr = (intptr_t)GetSimdTempArea();
 #endif
 
