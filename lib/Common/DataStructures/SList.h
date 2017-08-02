@@ -17,6 +17,8 @@ protected:
     void DecrementCount() {}
     void SetCount(uint count) {}
     void AddCount(FakeCount& c) {}
+public:
+    uint Count() const { return 0; }
 };
 
 class RealCount
