@@ -604,7 +604,13 @@ cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
 _RET=$?
 if [[ $? == 0 ]]; then
     if [[ $MAKE != 0 ]]; then
-        $MAKE $MULTICORE_BUILD $_VERBOSE $WB_TARGET 2>&1 | tee build.log
+        # $MFLAGS comes from host `make` process. Sub `make` process needs this (recursional make runs)
+        TEST_MFLAGS="${MFLAGS}*!"
+        if [[ $TEST_MFLAGS != "*!" ]]; then
+            # Get -j flag from the host
+            MULTICORE_BUILD=""
+        fi
+        $MAKE $MFLAGS $MULTICORE_BUILD $_VERBOSE $WB_TARGET 2>&1 | tee build.log
         _RET=${PIPESTATUS[0]}
     else
         echo "Visit given folder above for xcode project file ----^"
