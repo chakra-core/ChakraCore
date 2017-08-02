@@ -5350,6 +5350,39 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
             }
             return dstVal;
         }
+
+        if (!this->IsLoopPrePass())
+        {
+            if (instr->HasBailOutInfo())
+            {
+                const IR::BailOutKind oldBailOutKind = instr->GetBailOutKind();
+                Assert(
+                    (
+                        !(oldBailOutKind & ~IR::BailOutKindBits) ||
+                        (oldBailOutKind & ~IR::BailOutKindBits) == IR::BailOutOnImplicitCallsPreOp
+                        ) &&
+                    !(oldBailOutKind & IR::BailOutKindBits & ~(IR::BailOutOnArrayAccessHelperCall | IR::BailOutMarkTempObject)));
+                if (bailOutKind == IR::BailOutConventionalTypedArrayAccessOnly)
+                {
+                    // BailOutConventionalTypedArrayAccessOnly also bails out if the array access is outside the head
+                    // segment bounds, and guarantees no implicit calls. Override the bailout kind so that the instruction
+                    // bails out for the right reason.
+                    instr->SetBailOutKind(
+                        bailOutKind | (oldBailOutKind & (IR::BailOutKindBits - IR::BailOutOnArrayAccessHelperCall)));
+                }
+                else
+                {
+                    // BailOutConventionalNativeArrayAccessOnly by itself may generate a helper call, and may cause implicit
+                    // calls to occur, so it must be merged in to eliminate generating the helper call
+                    Assert(bailOutKind == IR::BailOutConventionalNativeArrayAccessOnly);
+                    instr->SetBailOutKind(oldBailOutKind | bailOutKind);
+                }
+            }
+            else
+            {
+                GenerateBailAtOperation(&instr, bailOutKind);
+            }
+        }
         TypeSpecializeIntDst(instr, instr->m_opcode, nullptr, nullptr, nullptr, bailOutKind, newMin, newMax, &dstVal);
         toType = TyInt32;
         break;
@@ -5378,6 +5411,39 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
                 }
             }
             return dstVal;
+        }
+
+        if (!this->IsLoopPrePass())
+        {
+            if (instr->HasBailOutInfo())
+            {
+                const IR::BailOutKind oldBailOutKind = instr->GetBailOutKind();
+                Assert(
+                    (
+                        !(oldBailOutKind & ~IR::BailOutKindBits) ||
+                        (oldBailOutKind & ~IR::BailOutKindBits) == IR::BailOutOnImplicitCallsPreOp
+                        ) &&
+                    !(oldBailOutKind & IR::BailOutKindBits & ~(IR::BailOutOnArrayAccessHelperCall | IR::BailOutMarkTempObject)));
+                if (bailOutKind == IR::BailOutConventionalTypedArrayAccessOnly)
+                {
+                    // BailOutConventionalTypedArrayAccessOnly also bails out if the array access is outside the head
+                    // segment bounds, and guarantees no implicit calls. Override the bailout kind so that the instruction
+                    // bails out for the right reason.
+                    instr->SetBailOutKind(
+                        bailOutKind | (oldBailOutKind & (IR::BailOutKindBits - IR::BailOutOnArrayAccessHelperCall)));
+                }
+                else
+                {
+                    // BailOutConventionalNativeArrayAccessOnly by itself may generate a helper call, and may cause implicit
+                    // calls to occur, so it must be merged in to eliminate generating the helper call
+                    Assert(bailOutKind == IR::BailOutConventionalNativeArrayAccessOnly);
+                    instr->SetBailOutKind(oldBailOutKind | bailOutKind);
+                }
+            }
+            else
+            {
+                GenerateBailAtOperation(&instr, bailOutKind);
+            }
         }
         TypeSpecializeFloatDst(instr, nullptr, nullptr, nullptr, &dstVal);
         toType = TyFloat64;
@@ -5424,39 +5490,6 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
         Output::Print(_u(".\n"));
 #endif
         Output::Flush();
-    }
-
-    if(!this->IsLoopPrePass())
-    {
-        if(instr->HasBailOutInfo())
-        {
-            const IR::BailOutKind oldBailOutKind = instr->GetBailOutKind();
-            Assert(
-                (
-                    !(oldBailOutKind & ~IR::BailOutKindBits) ||
-                    (oldBailOutKind & ~IR::BailOutKindBits) == IR::BailOutOnImplicitCallsPreOp
-                ) &&
-                !(oldBailOutKind & IR::BailOutKindBits & ~(IR::BailOutOnArrayAccessHelperCall | IR::BailOutMarkTempObject)));
-            if(bailOutKind == IR::BailOutConventionalTypedArrayAccessOnly)
-            {
-                // BailOutConventionalTypedArrayAccessOnly also bails out if the array access is outside the head
-                // segment bounds, and guarantees no implicit calls. Override the bailout kind so that the instruction
-                // bails out for the right reason.
-                instr->SetBailOutKind(
-                    bailOutKind | (oldBailOutKind & (IR::BailOutKindBits - IR::BailOutOnArrayAccessHelperCall)));
-            }
-            else
-            {
-                // BailOutConventionalNativeArrayAccessOnly by itself may generate a helper call, and may cause implicit
-                // calls to occur, so it must be merged in to eliminate generating the helper call
-                Assert(bailOutKind == IR::BailOutConventionalNativeArrayAccessOnly);
-                instr->SetBailOutKind(oldBailOutKind | bailOutKind);
-            }
-        }
-        else
-        {
-            GenerateBailAtOperation(&instr, bailOutKind);
-        }
     }
 
     return dstVal;

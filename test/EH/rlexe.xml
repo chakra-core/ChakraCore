@@ -118,4 +118,10 @@
       <files>tryfinallytests.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>tryfinallyldelembug.js</files>
+      <compile-flags> -off:arraycheckhoist </compile-flags>
+    </default>
+  </test>
 </regress-exe>
