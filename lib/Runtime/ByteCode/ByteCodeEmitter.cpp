@@ -1058,6 +1058,9 @@ void ByteCodeGenerator::DefineCachedFunctions(FuncInfo *funcInfoParent)
 
     Js::FuncInfoArray *info = AnewPlus(alloc, extraBytes, Js::FuncInfoArray, slotCount);
 
+    // slotCount is guaranteed to be non-zero here.
+    Js::AuxArray<uint32> * slotIdInCachedScopeToNestedIndexArray = funcInfoParent->GetParsedFunctionBody()->AllocateSlotIdInCachedScopeToNestedIndexArray(slotCount);
+
     slotCount = 0;
 
     auto fillEntries = [&](ParseNode *pnodeFnc)
@@ -1069,6 +1072,8 @@ void ByteCodeGenerator::DefineCachedFunctions(FuncInfo *funcInfoParent)
             Js::FuncInfoEntry *entry = &info->elements[slotCount];
             entry->nestedIndex = pnodeFnc->sxFnc.nestedIndex;
             entry->scopeSlot = sym->GetScopeSlot();
+
+            slotIdInCachedScopeToNestedIndexArray->elements[slotCount] = pnodeFnc->sxFnc.nestedIndex;
             slotCount++;
         }
     };

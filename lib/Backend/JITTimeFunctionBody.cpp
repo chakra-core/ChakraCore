@@ -243,6 +243,12 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
     jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexesWithLock();
 
+    Js::AuxArray<uint32> * slotIdInCachedScopeToNestedIndexArray = functionBody->GetSlotIdInCachedScopeToNestedIndexArrayWithLock();
+    if (slotIdInCachedScopeToNestedIndexArray)
+    {
+        jitBody->functionSlotsInCachedScopeCount = slotIdInCachedScopeToNestedIndexArray->count;
+        jitBody->slotIdInCachedScopeToNestedIndexArray = slotIdInCachedScopeToNestedIndexArray->elements;
+    }
 #ifdef ASMJS_PLAT
     if (functionBody->GetIsAsmJsFunction())
     {
@@ -922,6 +928,14 @@ JITTimeFunctionBody::GetLiteralRegexAddr(uint index) const
     Assert(index < m_bodyData.literalRegexCount);
 
     return m_bodyData.literalRegexes[index];
+}
+
+uint
+JITTimeFunctionBody::GetNestedFuncIndexForSlotIdInCachedScope(uint index) const
+{
+    AssertOrFailFast(m_bodyData.slotIdInCachedScopeToNestedIndexArray != nullptr);
+    AssertOrFailFast(index < m_bodyData.functionSlotsInCachedScopeCount);
+    return m_bodyData.slotIdInCachedScopeToNestedIndexArray[index];
 }
 
 void *

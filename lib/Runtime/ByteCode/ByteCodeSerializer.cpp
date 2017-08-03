@@ -63,6 +63,8 @@ namespace Js
     const int magicEndOfAsmJsModuleInfo = *(int*)"]asmmodinfo";
     const int magicStartOfPropIdsOfFormals = *(int*)"propIdOfFormals[";
     const int magicEndOfPropIdsOfFormals = *(int*)"]propIdOfFormals";
+    const int magicStartOfSlotIdToNestedIndexArray = *(int*)"slotIdToNestedIndexArray[";
+    const int magicEndOfSlotIdToNestedIndexArray = *(int*)"]slotIdToNestedIndexArray"
 #endif
 
     // Serialized files are architecture specific
@@ -1566,6 +1568,33 @@ public:
         return size;
     }
 
+    uint32 AddSlotIdInCachedScopeToNestedIndexArray(BufferBuilderList& builder, FunctionBody * functionBody)
+    {
+        if (functionBody->GetSlotIdInCachedScopeToNestedIndexArray() == nullptr)
+        {
+            return PrependByte(builder, _u("SlotIdInCachedScopeToNestedIndexArray exists"), 0);
+        }
+        
+        uint32 size = 0;
+
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        size += PrependInt32(builder, _u("Start SlotIdInCachedScopeToNestedIndexArray"), magicStartOfSlotIdToNestedIndexArray);
+#endif
+
+        size += PrependByte(builder, _u("SlotIdInCachedScopeToNestedIndexArray exists"), 1);
+        Js::AuxArray<uint32> * slotIdToNestedIndexArray = functionBody->GetSlotIdInCachedScopeToNestedIndexArray();
+        size += PrependInt32(builder, _u("SlotIdInCachedScopeToNestedIndexArray count"), slotIdToNestedIndexArray->count);
+        for (uint i = 0; i < slotIdToNestedIndexArray->count; i++)
+        {
+            size += PrependInt32(builder, _u("Nested function index for slot id in cached scope"), slotIdToNestedIndexArray->elements[i]);
+        }
+
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        size += PrependInt32(builder, _u("End magicStartOfSlotIdToNestedIndexArray"), magicEndOfSlotIdToNestedIndexArray);
+#endif
+        return size;
+    }
+
     // Gets the number of debugger slot array scopes there are in the function body's scope chain list.
     uint32 GetDebuggerScopeSlotArrayCount(FunctionBody * function)
     {
@@ -2129,6 +2158,7 @@ public:
             AddReferencedPropertyIdMap(builder, function);
 
             AddPropertyIdsForScopeSlotArray(builder, function);
+            AddSlotIdInCachedScopeToNestedIndexArray(builder, function);
 
             uint debuggerScopeSlotArraySize = GetDebuggerScopeSlotArrayCount(function);
             PrependInt32(builder, _u("Debugger Scope Slot Array Size"), debuggerScopeSlotArraySize);
@@ -2985,6 +3015,37 @@ public:
         return current;
     }
 
+    const byte * ReadSlotIdInCachedScopeToNestedIndexArray(const byte * current, FunctionBody * functionBody)
+    {
+        byte slotIdInCachedScopeToNestedIndexArrayExists;
+        current = ReadByte(current, &slotIdInCachedScopeToNestedIndexArrayExists);
+        if (slotIdInCachedScopeToNestedIndexArrayExists)
+        {
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+            int constant;
+            current = ReadInt32(current, &constant);
+            Assert(constant == magicStartOfSlotIdToNestedIndexArray);
+#endif
+            uint32 count;
+            current = ReadUInt32(current, &count);
+
+            Js::AuxArray<uint32> * slotIdInCachedScopeToNestedIndexArray = functionBody->AllocateSlotIdInCachedScopeToNestedIndexArray(count);
+            
+            uint32 value;
+            for (uint i = 0; i < count; i++)
+            {
+                current = ReadUInt32(current, &value);
+                slotIdInCachedScopeToNestedIndexArray->elements[i] = value;
+            }
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+            current = ReadInt32(current, &constant);
+            Assert(constant == magicEndOfSlotIdToNestedIndexArray);
+#endif
+        }
+        return current;
+    }
+
+
     const byte * ReadSlotArrayDebuggerScopeProperties(const byte * current, FunctionBody* function, DebuggerScope* debuggerScope, uint propertyCount)
     {
         Assert(function);
@@ -3765,6 +3826,7 @@ public:
             (*functionBody)->AllocateInlineCache();
 
             current = ReadPropertyIdsForScopeSlotArray(current, *functionBody);
+            current = ReadSlotIdInCachedScopeToNestedIndexArray(current, *functionBody);
 
             uint debuggerScopeCount = 0;
             current = ReadUInt32(current, &debuggerScopeCount);

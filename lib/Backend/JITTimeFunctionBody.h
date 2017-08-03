@@ -167,6 +167,7 @@ public:
     intptr_t GetFormalsPropIdArrayAddr() const;
     intptr_t GetObjectLiteralTypeRef(uint index) const;
     intptr_t GetLiteralRegexAddr(uint index) const;
+    uint GetNestedFuncIndexForSlotIdInCachedScope(uint index) const;
     const AsmJsJITInfo * GetAsmJsInfo() const;
     const JITTimeProfileInfo * GetReadOnlyProfileInfo() const;
     JITTimeProfileInfo * GetProfileInfo() const;
