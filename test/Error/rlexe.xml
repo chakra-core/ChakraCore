@@ -62,49 +62,53 @@
     <default>
       <files>sourceInfo_00.js</files>
       <baseline>sourceInfo_00.baseline</baseline>
-      <tags>fail</tags>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>sourceInfo_01.js</files>
       <baseline>sourceInfo_01.baseline</baseline>
-      <tags>fail</tags>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
+      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
     <default>
       <files>sourceInfo_10.js</files>
       <baseline>sourceInfo_10.baseline</baseline>
-      <tags>fail</tags>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>sourceInfo_11.js</files>
       <baseline>sourceInfo_11.baseline</baseline>
-      <tags>fail</tags>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
+      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
     <default>
       <files>sourceInfo_12.js</files>
       <baseline>sourceInfo_12.baseline</baseline>
-      <tags>fail</tags>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>sourceInfo_13.js</files>
       <baseline>sourceInfo_13.baseline</baseline>
-      <tags>fail</tags>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
+      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
     <default>
       <files>sourceInfo_20.js</files>
       <baseline>sourceInfo_20.baseline</baseline>
-      <tags>fail</tags>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
+      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
