@@ -993,7 +993,7 @@ private:
 #endif
 
         bool IsDebugContextInitialized() const { return this->isDebugContextInitialized; }
-        DebugContext* GetDebugContext() const { return this->debugContext; }
+        DebugContext* GetDebugContext() const;
         CriticalSection* GetDebugContextCloseCS() { return &debugContextCloseCS; }
 
         uint callCount;
