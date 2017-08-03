@@ -14,5 +14,5 @@ dummy();
 var obj = {
     apply: Function.prototype.apply
 };
-obj.apply(); //12,1
+obj.apply();
 dummy();

@@ -1,1 +1,3 @@
-sourceInfo_20.js(10, 5) JavaScript runtime error: Exception thrown and not caught
+thrown at sourceInfo_20.js:
+^
+123

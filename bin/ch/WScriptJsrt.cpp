@@ -1378,8 +1378,13 @@ bool WScriptJsrt::PrintException(LPCSTR fileName, JsErrorCode jsErrorCode)
                 if (errorCode != JsErrorCode::JsNoError || propertyType == JsUndefined)
                 {
                     const char *fName = fileName != nullptr ? fileName : "(unknown)";
+
+                    CHAR shortFileName[_MAX_PATH];
+                    CHAR ext[_MAX_EXT];
+                    _splitpath_s(fName, nullptr, 0, nullptr, 0, shortFileName, _countof(shortFileName), ext, _countof(ext));
+
                     // do not mix char/wchar. print them separately
-                    fprintf(stderr, "thrown at %s:\n^\n", fName);
+                    fprintf(stderr, "thrown at %s%s:\n^\n", shortFileName, ext);
                     fwprintf(stderr, _u("%ls\n"), errorMessage.GetWideString());
                 }
                 else
