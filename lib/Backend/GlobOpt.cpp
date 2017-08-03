@@ -16203,7 +16203,6 @@ GlobOpt::OptIsInvariant(
         // any farther up the object graph.)
         Assert(instr->GetSrc1());
         PropertySym *propertySym = instr->GetSrc1()->AsPropertySymOpnd()->GetPropertySym();
-        Assert(propertySym != nullptr);  // QUESTION FOR REVIEWER: Can this ever be false?
         if (propertySym->HasObjectTypeSym()) {
             StackSym *objectTypeSym = propertySym->GetObjectTypeSym();
             if (!this->OptIsInvariant(objectTypeSym, block, loop, this->CurrentBlockData()->FindValue(objectTypeSym), true, true)) {
