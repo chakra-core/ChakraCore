@@ -36,7 +36,7 @@ endif()
 
 if(CC_TARGETS_AMD64_SH)
     set(CC_TARGETS_AMD64 1)
-elseif (CC_TARGETS_ARM_SH)
+elseif(CC_TARGETS_ARM_SH)
     set(CC_TARGETS_ARM 1)
     add_definitions(-D_ARM_=1)
     set(CMAKE_SYSTEM_PROCESSOR "armv7l")
@@ -50,6 +50,15 @@ endif()
 unset(CC_TARGETS_ARM_SH CACHE)
 unset(CC_TARGETS_X86_SH CACHE)
 unset(CC_TARGETS_AMD64_SH CACHE)
+
+if(ENABLE_VALGRIND_SH)
+    unset(ENABLE_VALGRIND_SH CACHE)
+    if(NOT CC_TARGETS_X86)
+        # Enable Valgrind is not needed for x86 builds. Already <= 32Gb address space
+        set(ENABLE_VALGRIND 1)
+        add_definitions(-DENABLE_VALGRIND=1)
+    endif()
+endif()
 
 if(ICU_SETTINGS_RESET)
     unset(ICU_SETTINGS_RESET CACHE)
@@ -128,10 +137,15 @@ if(ICU_INCLUDE_PATH)
       if (NOT ICUDATA)
           set(ICUDATA "")
       endif()
+      find_library(ICUTOOLS icutools PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+      if (NOT ICUTOOLS)
+          set(ICUTOOLS "")
+      endif()
       set(ICULIB
         ${ICUUC}
         ${ICU18}
         ${ICUDATA}
+        ${ICUTOOLS}
         )
     endif()
 endif()
@@ -140,6 +154,8 @@ set(CLR_CMAKE_PLATFORM_XPLAT 1)
 if(CC_TARGETS_AMD64)
     add_definitions(-D_M_X64_OR_ARM64)
     add_compile_options(-msse4.2)
+
+    set(CAN_BUILD_WABT 1)
 elseif(CC_TARGETS_X86)
     add_definitions(-D__i686__)
     add_definitions(-D_M_IX86_OR_ARM32)
@@ -153,11 +169,18 @@ elseif(CC_TARGETS_ARM)
     add_definitions(-D__arm__)
     add_definitions(-D_M_IX86_OR_ARM32)
     add_definitions(-D_M_ARM32_OR_ARM64)
-  if(CC_TARGET_OS_OSX)
-    add_compile_options(-arch arm)
-  endif()
+    if(CC_TARGET_OS_OSX)
+        add_compile_options(-arch arm)
+    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        # reduce link time memory usage
+        set(LINKER_REDUCED_MEMORY "-Xlinker --no-keep-memory")
+    endif()
 else()
     clr_unknown_arch()
+endif()
+
+if(CAN_BUILD_WABT)
+    add_definitions(-DCAN_BUILD_WABT)
 endif()
 
 if(CC_TARGET_OS_LINUX OR CC_TARGET_OS_ANDROID)
@@ -185,7 +208,9 @@ elseif(CC_TARGET_OS_OSX)
         -DPLATFORM_UNIX
     )
 
-    if(NOT ICULIB)
+    # in case ICU path was given but it doesn't exist, build script will fail.
+    # so, fallback only if ICU path wasn't given
+    if(NOT ICU_INCLUDE_PATH)
       set(NO_ICU_PATH_GIVEN 1)
       message("-- Couldn't find ICU. Falling back to --no-icu build")
     endif()
@@ -220,6 +245,7 @@ if(STATIC_LIBRARY)
 endif()
 
 if(CLR_CMAKE_PLATFORM_XPLAT)
+    add_definitions(-D_CHAKRACOREBUILD)
     add_definitions(-DFEATURE_PAL)
     add_definitions(-DPLATFORM_UNIX=1)
 
@@ -279,6 +305,7 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         -Wno-null-conversion\
         -Wno-return-type\
         -Wno-switch\
+        -Wno-implicit-function-declaration\
         -Wno-int-to-pointer-cast"
     )
         # notes..
@@ -366,10 +393,21 @@ else()
     set(BuildJIT 1)
 endif()
 
+if(INTL_ICU_SH)
+    unset(INTL_ICU_SH CACHE)    # don't cache
+    add_definitions(-DINTL_ICU=1)
+    set(IntlICU 1)
+endif()
+
 if(WITHOUT_FEATURES_SH)
-    unset(WITHOUT_FEATURES_SH CACHE)    # don't cache
     add_definitions(${WITHOUT_FEATURES_SH})
+    unset(WITHOUT_FEATURES_SH CACHE)    # don't cache
 endif(WITHOUT_FEATURES_SH)
+
+if(EXTRA_DEFINES_SH)
+    add_definitions(${EXTRA_DEFINES_SH})
+    unset(EXTRA_DEFINES_SH CACHE)    #don't cache
+endif(EXTRA_DEFINES_SH)
 
 enable_language(ASM)
 

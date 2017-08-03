@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -26,20 +23,12 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -51,14 +40,6 @@
       "[0]": "boolean false"
     },
     "locals": {
-      "inner": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string inner",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
       "closureFoo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -67,23 +48,23 @@
         "arguments": "Object {...}",
         "length": "number 1"
       },
-      "a": "boolean false"
+      "a": "boolean false",
+      "inner": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string inner",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -98,20 +79,12 @@
       "a": "boolean false"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -134,20 +107,12 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -170,11 +135,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }

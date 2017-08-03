@@ -30,6 +30,10 @@ BUILTIN(GlobalObject, EnabledDiagnosticsTrace, EntryEnabledDiagnosticsTrace, Fun
 BUILTIN(GlobalObject, EmitTTDLog, EntryEmitTTDLog, FunctionInfo::ErrorOnNew)
 #endif
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+BUILTIN(GlobalObject, ChWriteTraceEvent, EntryChWriteTraceEvent, FunctionInfo::ErrorOnNew)
+#endif
+
 #ifdef IR_VIEWER
     BUILTIN(GlobalObject, ParseIR, EntryParseIR, FunctionInfo::ErrorOnNew)
     BUILTIN(GlobalObject, FunctionList, EntryFunctionList, FunctionInfo::ErrorOnNew)
@@ -308,13 +312,18 @@ BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
 // Wasm entry points
 #ifdef ENABLE_WASM
 BUILTIN(WebAssembly, Compile, EntryCompile, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, CompileStreaming, EntryCompileStreaming, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssembly, Validate, EntryValidate, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssembly, Instantiate, EntryInstantiate, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, InstantiateStreaming, EntryInstantiateStreaming, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, InstantiateBound, EntryInstantiateBound, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, QueryResponse, EntryQueryResponse, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(WebAssemblyModule, Exports, EntryExports, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, Imports, EntryImports, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, CustomSections, EntryCustomSections, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyInstance, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyInstance, GetterExports, GetterExports, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(WebAssemblyMemory, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(WebAssemblyMemory, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyMemory, GetterBuffer, EntryGetterBuffer, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)

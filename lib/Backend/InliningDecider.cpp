@@ -138,7 +138,7 @@ uint InliningDecider::InlinePolymorphicCallSite(Js::FunctionBody *const inliner,
     bool isConstructorCall;
     if (!profileData->GetPolymorphicCallSiteInfo(inliner, profiledCallSiteId, &isConstructorCall, functionBodyArray, functionBodyArrayLength))
     {
-        return false;
+        return 0;
     }
 
     uint inlineeCount = 0;
@@ -484,6 +484,8 @@ bool InliningDecider::GetBuiltInInfoCommon(
         goto CallDirectCommon;
 
     case Js::JavascriptBuiltInFunction::JavascriptArray_Includes:
+    case Js::JavascriptBuiltInFunction::JavascriptObject_HasOwnProperty:
+    case Js::JavascriptBuiltInFunction::JavascriptArray_IsArray:
         *returnType = ValueType::Boolean;
         goto CallDirectCommon;
 

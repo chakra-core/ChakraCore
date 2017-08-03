@@ -3,8 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-var passed = true;
-
 function test1() {
   var sc4 = WScript.LoadScript('function test(){ obj2.prop4 = {needMarshal:true}; }', 'samethread');
   var obj1 = new Proxy({}, { set: function (target, property, value) { Reflect.set(value); } })
@@ -20,9 +18,7 @@ function test2() {
   var bug = new Proxy(new Array(1), { has: () => true });
   var a = bug.concat();
   if (a[0] !== undefined || a.length !== 1) {
-    passed = false;
-  } else {
-    passed &= true;
+    print('FAIL');
   }
 }
 test2();
@@ -97,4 +93,187 @@ function test5() {
 }
 test5();
 
-print(passed ? "passed" : "failed");
+function test6() {
+  var global = WScript.LoadScript("", "samethread");
+  var OProxy = global.Proxy;
+  var desc;
+  var p = new OProxy({}, {
+      defineProperty: function(_, __, _desc) {
+      desc = _desc;
+      return desc;
+    }
+  });
+  p.a = 0;
+}
+test6();
+
+function test7() {
+  var obj0 = {};
+  var arrObj0 = {};
+  var func3 = function () {
+    return typeof func3.caller == 'object';
+  };
+  obj0.method0 = func3;
+  var protoObj0 = Object(obj0);
+  var proxyHandler = {};
+  do {
+  } while (protoObj0.method0());
+  var v0 = new Proxy(obj0.method0, proxyHandler);
+  var sc0 = WScript.LoadScript('', 'samethread');
+  sc0.v0 = v0;
+  sc0.arrObj0 = arrObj0;
+  sc0.obj0 = obj0;
+  sc0.protoObj0 = protoObj0;
+  var sc0_cctx = sc0.WScript.LoadScript('function foo() { var _oo1obj = (function(_oo1a) {\n  var _oo1obj = {};\n  _oo1obj.prop1 = v0(arrObj0);\n  return _oo1obj;\n})(typeof(arrObj0.prop0)  == \'object\') ;\n }');
+  sc0_cctx.foo();
+}
+test7();
+
+// In Chakra when calling "foo(arg1, arg2, ...)", we assume all the
+// participating components -- "foo", "arg1", "arg2"... -- are either from
+// executing context (caller) or properly cross-site marshalled.
+//
+// BUG: JavascriptProxy implementation has a lot of direct calls to
+//            trap(handler, target, ...)
+// "handler", "target" were based on proxy context at proxy creation time.
+// They both need marshalling to executing context.
+
+// Except: apply & construct traps are behind CrossSiteProxyCallTrap thus they
+// work fine without marshalling themselves.
+
+// defineProperty trap needs handler/target marshalling
+(function() {
+  var g = WScript.LoadScript(
+    'function test(x, name, desc) { return Object.defineProperty(x, name, desc) }',
+    'samethread');
+  var p = new Proxy({}, {
+    defineProperty: g.test
+  });
+
+  g.test(p, 'abc', {value: 1});
+  //
+  // This call invokes the trap in executing "g" context. Since the trap (value
+  // g.test) itself is also from "g" context, CrossSite::CommonThunk determines
+  // no marshalling required. However, handler/target args were from "p"
+  // context and need marshalling.
+})();
+
+// deleteProperty trap needs handler/target marshalling
+(function() {
+  var g = WScript.LoadScript(
+    'function test(x, name) { delete x.name }', 'samethread');
+  var p = new Proxy({}, {
+    deleteProperty: g.test
+  });
+  g.test(p);
+})();
+
+// get trap needs handler/target marshalling
+(function() {
+  var g = WScript.LoadScript(
+    'function test(x) { x.name }', 'samethread');
+  var p = new Proxy({}, {
+    get: g.test
+  });
+  g.test(p);
+})();
+
+// getOwnPropertyDescriptor trap needs handler/target marshalling
+(function() {
+  var g = WScript.LoadScript(
+    'function test(x, name) { Object.getOwnPropertyDescriptor(x, name) }',
+    'samethread');
+  var p = new Proxy({}, {
+    getOwnPropertyDescriptor: g.test
+  });
+  g.test(p);
+})();
+
+// getPrototypeOf trap needs handler/target marshalling
+(function() {
+  var g = WScript.LoadScript(
+    'function test(x) { x.name; return x.__proto__ }', 'samethread');
+  var p = new Proxy({}, {
+    getPrototypeOf: g.test
+  });
+
+  g.test({name: p});
+  //
+  // This test is a bit different to others because getPrototypeOf is called
+  // implicitly when marshalling object and prototype chain.
+  //
+  // Above call passes a crosss-site object to "g" context. That call accesses
+  // x.name (the proxy) in "g" context, thus will marshal value proxy p and
+  // its prototype chain to "g" context. Accessing prototype chain calls the
+  // trap (value g.test) in "g" context. Since the trap itself is also from "g"
+  // context, CrossSite::CommonThunk determines no marshalling required.
+  // However, handler/target args were from "p" context and need marshalling.
+})();
+
+// has trap needs handler/target marshalling
+(function() {
+  var g = WScript.LoadScript(
+    'function test(x, name) { name in x }', 'samethread');
+  var p = new Proxy({}, {
+    has: g.test
+  });
+  g.test(p);
+})();
+
+// isExtensible trap needs handler/target marshalling
+(function() {
+  var g = WScript.LoadScript(
+    'function test(x) { return Object.isExtensible(x) }', 'samethread');
+  var p = new Proxy({}, {
+    isExtensible: g.test
+  });
+  g.test(p);
+})();
+
+// ownKeys trap needs handler/target marshalling
+(function() {
+  var g = WScript.LoadScript(
+    'function test(x) { return Object.getOwnPropertyNames(x) }',
+    'samethread');
+  var p = new Proxy(function() {}, {
+    ownKeys: g.test
+  });
+
+  g.test(p);
+})();
+
+// preventExtensions trap needs handler/target marshalling
+(function() {
+  var g = WScript.LoadScript(
+    'function test(x) { return Object.preventExtensions(x) }', 'samethread');
+  var p = new Proxy({}, {
+    preventExtensions: g.test
+  });
+  g.test(p);
+})();
+
+// set trap needs handler/target marshalling
+(function() {
+  var g = WScript.LoadScript(
+    'function test(x, name, val) { x[name] = val }', 'samethread');
+  var p = new Proxy({}, {
+    set: g.test
+  });
+
+  g.test(p, 'abc', 1);
+})();
+
+// setPrototypeOf trap needs handler/target marshalling
+(function() {
+  var g = WScript.LoadScript(
+    'function test(x, proto) { return Object.setPrototypeOf(x, proto) }',
+    'samethread');
+  var p = new Proxy({}, {
+    setPrototypeOf: g.test
+  });
+
+  g.test(p, {});
+})();
+
+
+print('PASS');

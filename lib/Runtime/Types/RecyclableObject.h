@@ -24,9 +24,11 @@ namespace Js {
         InlineCacheFlags flags;
         CacheInfoFlag cacheInfoFlag;
         InlineCache* inlineCache;
-        PolymorphicInlineCache* polymorphicInlineCache;
+        PolymorphicInlineCache * polymorphicInlineCache;
         FunctionBody * functionBody;
+        PropertyString * propertyString;
         uint inlineCacheIndex;
+        bool isFunctionPIC;
         bool allowResizingPolymorphicInlineCache;
 
         void Set(RecyclableObject* instance, PropertyIndex propertyIndex, PropertyAttributes attributes, InlineCacheFlags flags)
@@ -44,9 +46,7 @@ namespace Js {
     public:
         PropertyValueInfo()
             : m_instance(NULL), m_propertyIndex(Constants::NoSlot), m_attributes(PropertyNone), flags(InlineCacheNoFlags),
-            cacheInfoFlag(CacheInfoFlag::defaultInfoFlags), inlineCache(NULL), polymorphicInlineCache(NULL), functionBody(NULL),
-            inlineCacheIndex(Constants::NoInlineCacheIndex),
-            allowResizingPolymorphicInlineCache(true)
+            cacheInfoFlag(CacheInfoFlag::defaultInfoFlags), inlineCache(nullptr), polymorphicInlineCache(nullptr), propertyString(nullptr), functionBody(nullptr), inlineCacheIndex(Constants::NoInlineCacheIndex), allowResizingPolymorphicInlineCache(true)
         {
         }
 
@@ -72,24 +72,30 @@ namespace Js {
         static void SetCacheInfo(PropertyValueInfo* info, InlineCache *const inlineCache);
         static void SetCacheInfo(PropertyValueInfo* info, FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, const bool allowResizingPolymorphicInlineCache);
         static void SetCacheInfo(PropertyValueInfo* info, FunctionBody *const functionBody, PolymorphicInlineCache *const polymorphicInlineCache, const InlineCacheIndex inlineCacheIndex, const bool allowResizingPolymorphicInlineCache);
+        static void SetCacheInfo(PropertyValueInfo* info, PropertyString *const propertyString, PolymorphicInlineCache *const polymorphicInlineCache, bool allowResizing);
         static void ClearCacheInfo(PropertyValueInfo* info);
 
-        inline InlineCache * GetInlineCache() const
+        InlineCache * GetInlineCache() const
         {
             return this->inlineCache;
         }
 
-        inline PolymorphicInlineCache * GetPolymorphicInlineCache() const
+        PolymorphicInlineCache * GetPolymorphicInlineCache() const
         {
             return this->polymorphicInlineCache;
         }
 
-        inline FunctionBody * GetFunctionBody() const
+        FunctionBody * GetFunctionBody() const
         {
             return this->functionBody;
         }
 
-        inline uint GetInlineCacheIndex() const
+        PropertyString * GetPropertyString() const
+        {
+            return this->propertyString;
+        }
+
+        uint GetInlineCacheIndex() const
         {
             return this->inlineCacheIndex;
         }
@@ -191,7 +197,7 @@ namespace Js {
         PropertyOperation_ThrowOnDeleteIfNotConfig      = 0x400,
     };
 
-    enum PropertyQueryFlags : int
+    enum class PropertyQueryFlags : int
     {
         Property_NotFound                               = 0,
         Property_Found                                  = 1,
@@ -315,7 +321,7 @@ namespace Js {
         virtual BOOL SetEnumerable(PropertyId propertyId, BOOL value) { return false; }
         virtual BOOL SetAttributes(PropertyId propertyId, PropertyAttributes attributes) { return false; }
 
-        virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) { return false; }
+        virtual BOOL GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext) { return false; }
         virtual uint GetSpecialPropertyCount() const { return 0; }
         virtual PropertyId const * GetSpecialPropertyIds() const { return nullptr; }
         virtual RecyclableObject* GetThisObjectOrUnWrap(); // Due to the withScope object there are times we need to unwrap

@@ -43,6 +43,123 @@ namespace Js
         return !StaticType::Is(typeId);
     }
 
+    /*
+    The LockTypeOnly method does the following:
+    1. Locks the type.
+    2. Does NOT lock the type handler.
+
+    Use this method sparingly for cases where the intention is to ONLY lock the type and NOT lock the type handler. When in doubt use the LockType() method instead of LockTypeOnly.
+
+    Currently, whenever we lock the type the intention is to lock BOTH the type and the type handler. However, almost always when we check whether the type is locked we intend to check whether
+    the type handler is locked. The only exception is when we add a type to the EquivalentTypeCache.
+
+    When we add a type to the EquivalentTypeCache the intention is to lock the Type to ensure that when a cached type evolves the cache gets invalidated. For shared types, this also means we
+    need to create a new type handler when the type evolves. However, for non-shared types, we can still reuse the type handler. This provides a significant performance benefit for cases
+    where objects with large number of properties are created once during start up (e.g. page load) and used later, by avoiding the cost of re-creating the type hanlder and copying a large
+    number of properties over to the new type handler. To get this benefit, we only lock the type while adding it to the equivalent type cache. If the type becomes shared; after it was added
+    to the equivalent type cache; its type handler will then get locked as part of ShareType() and any further evolution of the type will result in creating a new type handler.
+    */
+    bool DynamicType::LockTypeOnly()
+    {
+        if (GetIsLocked())
+        {
+            Assert(this->GetTypeHandler()->IsLockable());
+            return true;
+        }
+        if (this->GetTypeHandler()->IsLockable())
+        {
+            this->isLocked = true;
+            return true;
+        }
+        return false;
+    }
+
+    /*
+    The LockType method does the following:
+    1. Locks the type.
+    2. Also, locks the type handler.
+
+    Currently, whenever we lock the type the intention is to lock BOTH the type and the type handler. However, almost always when we check whether the type is locked we intend to check whether
+    the type handler is locked. The only exception is when we add a type to the EquivalentTypeCache. See LockTypeOnly() method for details on the EquivalentTypeCache case.
+
+    Currently we lock Both the Type and the Type Handler in the following cases:
+    1. When a type is Shared.
+    2. Snapshot Enumeration: DynamicType::PrepareForTypeSnapshotEnumeration()
+    To support snapshot enumetation we need to remember the type handler at the start of the enumeration in case the type evolves during enumeration. To acieve this we lock BOTH the
+    type and the type handler in preparation for the enumeration.
+    3. While setting prototype: PathTypeHandlerBase::SetPrototype()
+    While setting prototype if we create a new type and put the old type to promoted type mapping in the TypeOfPrototypeObjectDictionary property we lock and share the new type.
+    4. PreventExtensions, Seal and Freeze:
+    Each of the operations PreventExtension, Seal and Freeze change the behavior of the type in ways that needs the type handler to be locked. The PreventExtensions operation prevents
+    adding any new properties to the type so any future attempts to add new property to its type handler needs the type handler to be converted. For a shared type, this will happen by design,
+    but if we end up creating a new non-shared type handler during PreventExtensions or Seal or Freeze then we explicitly need to lock the type handler to indicate that any future mutation
+    should convert this newly created type handler. Seal and Freeze operations also need locking the type handler for similar reasons. In addition, Freeze also needs to invalidate the inline
+    caches for the type, so it also needs to change the type during this operation.
+    */
+    bool DynamicType::LockType()
+    {
+        if (GetIsLocked() && this->GetTypeHandler()->GetIsLocked())
+        {
+            Assert(this->GetTypeHandler()->IsLockable());
+            return true;
+        }
+        if (this->GetTypeHandler()->IsLockable())
+        {
+            this->GetTypeHandler()->LockTypeHandler();
+            this->isLocked = true;
+            return true;
+        }
+        return false;
+    }
+
+    /*
+    The ShareType() method does the following:
+    1. Marks the Type as Locked
+    2. Marks the Type Handler as Locked
+    3. Marks the Type as Shared
+    4. Marks the Type Handler as Shared
+
+    Currently, we share type in the following cases:
+    1. While promoting a type: PathTypeHandlerBase::PromoteType
+    If we find a successor for the PropertyRecord while promoting a type the successor's type should now be marked as Shared as a new object has reached the type.
+    2. While setting prototype: PathTypeHandlerBase::SetPrototype()
+    While setting prototype if we create a new type and put the old type to promoted type mapping in the TypeOfPrototypeObjectDictionary property we lock and share the new type.
+    3. While creating new object literals: JavascriptOperators::EnsureObjectLiteralType
+    When a new object literal is created with a type from FunctionBody::GetObjectLiteralTypeRef() already allocated by the ByteCodeWriter in AllocateObjectLiteralTypeArray() its marked
+    as Shared.
+    4. While updating the constructor function cache: JavascriptOperators::UpdateNewScObjectCache
+    When we cache constructor return values for a type that has a sharable type handler we share the type in cases where we can do the "this assignment optimization".
+    5. While deoptimizing object header inlining: DynamicObject::DeoptimizeObjectHeaderInlining
+    While deoptimizing object header inlining the we create a new type and mark it as shared.
+    6. While deleting last property on an object: PathTypeHandlerBase::DeleteLastProperty
+    While deleting last property on an object if we end up moving auxSlots to object header (inline, reoptimize) the object's type get changed to the predecessor type. As the
+    predecessor's type is now shared we mark it as shared.
+    7. PreventExtensions, Seal and Freeze:
+    Each of the operations PreventExtension, Seal and Freeze change the behavior of the type in ways that needs the type handler to be locked. The PreventExtensions operation prevents
+    adding any new properties to the type so any future attempts to add new property to its type handler needs the type handler to be converted. For a shared type, this will happen by
+    design, but if we end up creating a new non-shared type handler during PreventExtensions or Seal or Freeze then we explicitly need to lock the type handler to indicate that any
+    future mutation should convert this newly created type handler. Seal and Freeze operations also need locking the type handler for similar reasons. In addition, Freeze also needs
+    to invalidate the inline caches for the type, so it also needs to change the type during this operation.
+    8. Module Namespace type: JavascriptLibrary::InitializeTypes
+    ES6 module namespace type is shared in JavascriptLibrary::InitializeTypes.
+    */
+    bool DynamicType::ShareType()
+    {
+        if (this->GetIsShared())
+        {
+            Assert(this->GetTypeHandler()->IsSharable());
+            return true;
+        }
+        if (this->GetTypeHandler()->IsSharable())
+        {
+            LockType();
+            this->GetTypeHandler()->ShareTypeHandler(this->GetScriptContext());
+            this->isShared = true;
+            return true;
+        }
+        return false;
+    }
+
     bool
     DynamicType::SetHasNoEnumerableProperties(bool value)
     {
@@ -56,7 +173,8 @@ namespace Js
         PropertyIndex propertyIndex = (PropertyIndex)-1;
         JavascriptString* propertyString = nullptr;
         PropertyId propertyId = Constants::NoProperty;
-        Assert(!this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), propertyIndex, &propertyString, &propertyId, nullptr, this, this, EnumeratorFlags::None));
+        PropertyValueInfo info;
+        Assert(!this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), propertyIndex, &propertyString, &propertyId, nullptr, this, this, EnumeratorFlags::None, nullptr, &info));
 #endif
 
         this->hasNoEnumerableProperties = true;
@@ -312,7 +430,7 @@ namespace Js
             {
                 // Stack object should have a pre-op bail on implicit call.  We shouldn't see them here.
                 Assert(!ThreadContext::IsOnStack(this) || threadContext->HasNoSideEffect(toStringFunction));
-                return CALL_FUNCTION(toStringFunction, CallInfo(CallFlags_Value, 1), this);
+                return CALL_FUNCTION(threadContext, toStringFunction, CallInfo(CallFlags_Value, 1), this);
             });
 
             if (!aResult)

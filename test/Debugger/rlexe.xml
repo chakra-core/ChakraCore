@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -22,8 +22,14 @@
     <default>
       <compile-flags>-debuglaunch -dbgbaseline:JsDiagGetFunctionPosition.js.dbg.baseline</compile-flags>
       <files>JsDiagGetFunctionPosition.js</files>
-      <!-- xplat-todo: enable back [not supported] Intl -->
-      <tags>exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <compile-flags>-debuglaunch -dbgbaseline:JsDiagGetFunctionPositionIntl.js.dbg.baseline</compile-flags>
+      <files>JsDiagGetFunctionPositionIntl.js</files>
+      <!-- xplat-todo: enable on xplat when Intl is supported on xplat (Microsoft/ChakraCore#2919) -->
+      <tags>exclude_xplat,Intl</tags>
     </default>
   </test>
   <test>

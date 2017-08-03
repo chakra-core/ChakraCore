@@ -6,16 +6,19 @@
 #include "RuntimeLibraryPch.h"
 
 #ifdef ENABLE_WASM
+#include "WasmLimits.h"
 
 namespace Js
 {
 
-WebAssemblyMemory::WebAssemblyMemory(ArrayBuffer * buffer, uint32 initial, uint32 maximum, DynamicType * type) :
+WebAssemblyMemory::WebAssemblyMemory(WebAssemblyArrayBuffer* buffer, uint32 initial, uint32 maximum, DynamicType * type) :
     DynamicObject(type),
     m_buffer(buffer),
     m_initial(initial),
     m_maximum(maximum)
 {
+    Assert(m_buffer);
+    Assert(m_buffer->GetByteLength() >= UInt32Math::Mul<WebAssembly::PageSize>(initial));
 }
 
 /* static */
@@ -61,7 +64,7 @@ WebAssemblyMemory::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     Var initVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::initial, scriptContext);
     uint32 initial = WebAssembly::ToNonWrappingUint32(initVar, scriptContext);
 
-    uint32 maximum = UINT_MAX;
+    uint32 maximum = Wasm::Limits::GetMaxMemoryMaximumPages();
     if (JavascriptOperators::OP_HasProperty(memoryDescriptor, PropertyIds::maximum, scriptContext))
     {
         Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::maximum, scriptContext);
@@ -133,22 +136,21 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
     const uint32 oldPageCount = oldBytes / WebAssembly::PageSize;
     Assert(oldBytes % WebAssembly::PageSize == 0);
 
-    if (deltaBytes == 0)
-    {
-        return (int32)oldPageCount;
-    }
-
     const uint32 newPageCount = oldPageCount + deltaPages;
     if (newPageCount > m_maximum)
     {
         return -1;
     }
 
-    ArrayBuffer * newBuffer = nullptr;
+    WebAssemblyArrayBuffer * newBuffer = nullptr;
     JavascriptExceptionObject* caughtExceptionObject = nullptr;
     try
     {
-        newBuffer = m_buffer->TransferInternal(newBytes);
+        newBuffer = m_buffer->GrowMemory(newBytes);
+        if (newBuffer == nullptr)
+        {
+            return -1;
+        }
     }
     catch (const JavascriptException& err)
     {
@@ -157,7 +159,6 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
         return -1;
     }
 
-    Assert(newBuffer);
     m_buffer = newBuffer;
     CompileAssert(ArrayBuffer::MaxArrayBufferLength / WebAssembly::PageSize <= INT32_MAX);
     return (int32)oldPageCount;
@@ -168,6 +169,51 @@ WebAssemblyMemory::GrowHelper(WebAssemblyMemory * mem, uint32 deltaPages)
 {
     return mem->GrowInternal(deltaPages);
 }
+
+#if DBG
+void WebAssemblyMemory::TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint32 offset, Js::ArrayBufferView::ViewType viewType, uint32 bytecodeOffset, ScriptContext* context)
+{
+    // Must call after the write
+    Assert(mem);
+    Output::Print(_u("#%04x "), bytecodeOffset);
+    uint64 bigIndex = (uint64)index + (uint64)offset;
+    if (index >= mem->m_buffer->GetByteLength())
+    {
+        Output::Print(_u("WasmMemoryTrace:: Writing out of bounds. %llu >= %u\n"), bigIndex, mem->m_buffer->GetByteLength());
+    }
+    if (offset)
+    {
+        Output::Print(_u("WasmMemoryTrace:: buf[%u + %u (%llu)] = "), index, offset, bigIndex);
+    }
+    else
+    {
+        Output::Print(_u("WasmMemoryTrace:: buf[%u] = "), index);
+    }
+    BYTE* buffer = mem->m_buffer->GetBuffer();
+    switch (viewType)
+    {
+    case ArrayBufferView::ViewType::TYPE_INT8_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_INT8: Output::Print(_u("%d\n"), *(int8*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_UINT8_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_UINT8: Output::Print(_u("%u\n"), *(uint8*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_INT16_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_INT16: Output::Print(_u("%d\n"), *(int16*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_UINT16_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_UINT16: Output::Print(_u("%u\n"), *(uint16*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_INT32_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_INT32: Output::Print(_u("%d\n"), *(int32*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_UINT32_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_UINT32: Output::Print(_u("%u\n"), *(uint32*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_FLOAT32: Output::Print(_u("%.4f\n"), *(float*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_FLOAT64: Output::Print(_u("%.8f\n"), *(double*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_INT64: Output::Print(_u("%lld\n"), *(int64*)(buffer + bigIndex)); break;
+    default:
+        CompileAssert(ArrayBufferView::ViewType::TYPE_COUNT == 15);
+        Assert(UNREACHED);
+    }
+    return;
+}
+#endif
 
 Var
 WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callInfo, ...)
@@ -192,22 +238,23 @@ WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callIn
 WebAssemblyMemory *
 WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
-    uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
-    ArrayBuffer* buffer;
-#if ENABLE_FAST_ARRAYBUFFER
-    if (CONFIG_FLAG(WasmFastArray))
+    if (initial > maximum || initial > Wasm::Limits::GetMaxMemoryInitialPages() || maximum > Wasm::Limits::GetMaxMemoryMaximumPages())
     {
-        buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
+        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
-    else
-#endif
+    // This shouldn't overflow since we checked in the module, but just to be safe
+    uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
+    WebAssemblyArrayBuffer* buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
+    Assert(buffer);
+    if (byteLength > 0 && buffer->GetByteLength() == 0)
     {
-        buffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
+        // Failed to allocate buffer
+        return nullptr;
     }
     return RecyclerNewFinalized(scriptContext->GetRecycler(), WebAssemblyMemory, buffer, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyMemoryType());
 }
 
-ArrayBuffer *
+WebAssemblyArrayBuffer*
 WebAssemblyMemory::GetBuffer() const
 {
     return m_buffer;
@@ -223,6 +270,12 @@ uint
 WebAssemblyMemory::GetMaximumLength() const
 {
     return m_maximum;
+}
+
+uint
+WebAssemblyMemory::GetCurrentMemoryPages() const
+{
+    return m_buffer->GetByteLength() / WebAssembly::PageSize;
 }
 
 } // namespace Js

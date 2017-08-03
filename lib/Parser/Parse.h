@@ -71,8 +71,6 @@ struct BackgroundParseItem;
 struct PnClass;
 class HashTbl;
 
-typedef void (*ParseErrorCallback)(void *data, charcount_t position, charcount_t length, HRESULT hr);
-
 struct PidRefStack;
 
 struct DeferredFunctionStub;
@@ -133,8 +131,13 @@ public:
     Js::ScriptContext* GetScriptContext() const { return m_scriptContext; }
     void ClearScriptContext() { m_scriptContext = nullptr; }
 
+#if ENABLE_BACKGROUND_PARSING
     bool IsBackgroundParser() const { return m_isInBackground; }
     bool IsDoingFastScan() const { return m_doingFastScan; }
+#else
+    bool IsBackgroundParser() const { return false; }
+    bool IsDoingFastScan() const { return false; }
+#endif
 
     static IdentPtr PidFromNode(ParseNodePtr pnode);
 
@@ -194,11 +197,11 @@ private:
     Js::LocalFunctionId * m_nextFunctionId;
     SourceContextInfo*    m_sourceContextInfo;
 
-    ParseErrorCallback  m_errorCallback;
-    void *              m_errorCallbackData;
-    BOOL                m_uncertainStructure;
+#if ENABLE_BACKGROUND_PARSING
     bool                m_hasParallelJob;
+    bool                m_isInBackground;
     bool                m_doingFastScan;
+#endif
     int                 m_nextBlockId;
 
     // RegexPattern objects created for literal regexes are recycler-allocated and need to be kept alive until the function body
@@ -270,6 +273,7 @@ public:
     ParseNodePtr CreateNode(OpCode nop) { return CreateNode(nop, m_pscan? m_pscan->IchMinTok() : 0); }
     ParseNodePtr CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl = true, bool *isRedecl = nullptr);
     Symbol*      AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl, bool *isRedecl = nullptr);
+    void         CheckRedeclarationErrorForBlockId(IdentPtr pid, int blockId);
     ParseNodePtr CreateNameNode(IdentPtr pid)
     {
         ParseNodePtr pnode = CreateNode(knopName);
@@ -307,9 +311,9 @@ public:
         charcount_t ichMin,charcount_t ichLim);
 
     void PrepareScanner(bool fromExternal);
+#if ENABLE_BACKGROUND_PARSING
     void PrepareForBackgroundParse();
     void AddFastScannedRegExpNode(ParseNodePtr const pnode);
-#if ENABLE_BACKGROUND_PARSING
     void AddBackgroundRegExpNode(ParseNodePtr const pnode);
     void AddBackgroundParseItem(BackgroundParseItem *const item);
     void FinishBackgroundRegExpNodes();
@@ -372,9 +376,9 @@ private:
     ParseNodePtr * m_ppnodeScope;  // function list tail
     ParseNodePtr * m_ppnodeExprScope; // function expression list tail
     ParseNodePtr * m_ppnodeVar;  // variable list tail
-    bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node
-    bool m_isInBackground;
+    bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node  
     bool m_reparsingLambdaParams;
+    bool m_disallowImportExportStmt;
 
     // This bool is used for deferring the shorthand initializer error ( {x = 1}) - as it is allowed in the destructuring grammar.
     bool m_hasDeferredShorthandInitError;
@@ -778,9 +782,9 @@ private:
     void ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint);
     void ParseNestedDeferredFunc(ParseNodePtr pnodeFnc, bool fLambda, bool *pNeedScanRCurly, bool *pStrictModeTurnedOn);
     void CheckStrictFormalParameters();
-    void AddArgumentsNodeToVars(ParseNodePtr pnodeFnc);
+    ParseNodePtr AddArgumentsNodeToVars(ParseNodePtr pnodeFnc);
+    void UpdateArgumentsNode(ParseNodePtr pnodeFnc, ParseNodePtr argNode);
     void UpdateOrCheckForDuplicateInFormals(IdentPtr pid, SList<IdentPtr> *formals);
-    ParseNodePtr CreateAsyncSpawnGenerator();
 
     LPCOLESTR GetFunctionName(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint);
     uint CalculateFunctionColumnNumber();
@@ -860,9 +864,11 @@ private:
         _Out_opt_ BOOL* pfCanAssign = nullptr);
 
     bool IsImportOrExportStatementValidHere();
+    bool IsTopLevelModuleFunc();
 
-    template<bool buildAST> ParseNodePtr ParseImportDeclaration();
+    template<bool buildAST> ParseNodePtr ParseImport();
     template<bool buildAST> void ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma = false);
+    template<bool buildAST> ParseNodePtr ParseImportCall();
 
     template<bool buildAST> ParseNodePtr ParseExportDeclaration();
     template<bool buildAST> ParseNodePtr ParseDefaultExportClause();

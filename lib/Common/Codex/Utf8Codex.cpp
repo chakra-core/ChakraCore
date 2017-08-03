@@ -97,7 +97,7 @@ namespace utf8
     }
 
     _At_(ptr, _In_reads_(end - ptr) _Post_satisfies_(ptr >= _Old_(ptr) - 1 && ptr <= end))
-    inline char16 DecodeTail(char16 c1, LPCUTF8& ptr, LPCUTF8 end, DecodeOptions& options)
+    inline char16 DecodeTail(char16 c1, LPCUTF8& ptr, LPCUTF8 end, DecodeOptions& options, bool *chunkEndsAtTruncatedSequence)
     {
         char16 ch = 0;
         BYTE c2, c3, c4;
@@ -129,8 +129,15 @@ namespace utf8
             if (ptr >= end)
             {
                 if ((options & doChunkedEncoding) != 0)
+                {
                     // The is a sequence that spans a chunk, push ptr back to the beginning of the sequence.
                     ptr--;
+
+                    if (chunkEndsAtTruncatedSequence)
+                    {
+                        *chunkEndsAtTruncatedSequence = true;
+                    }
+                }
                 return g_chUnknown;
             }
             c2 = *ptr++;
@@ -160,8 +167,16 @@ namespace utf8
             if (ptr + 1 >= end)
             {
                 if ((options & doChunkedEncoding) != 0)
+                {
                     // The is a sequence that spans a chunk, push ptr back to the beginning of the sequence.
                     ptr--;
+
+                    if (chunkEndsAtTruncatedSequence)
+                    {
+                        *chunkEndsAtTruncatedSequence = true;
+                    }
+                }
+
                 return g_chUnknown;
             }
 
@@ -221,8 +236,15 @@ LFourByte:
             if (ptr + 2 >= end)
             {
                 if ((options & doChunkedEncoding) != 0)
+                {
                     // The is a sequence that spans a chunk, push ptr back to the beginning of the sequence.
                     ptr--;
+
+                    if (chunkEndsAtTruncatedSequence)
+                    {
+                        *chunkEndsAtTruncatedSequence = true;
+                    }
+                }
 
                 ch = g_chUnknown;
                 break;
@@ -378,9 +400,14 @@ LFourByte:
     }
     
     _Use_decl_annotations_
-    size_t DecodeUnitsInto(char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
+    size_t DecodeUnitsInto(char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options, bool *chunkEndsAtTruncatedSequence)
     {
         DecodeOptions localOptions = options;
+
+        if (chunkEndsAtTruncatedSequence)
+        {
+            *chunkEndsAtTruncatedSequence = false;
+        }
 
         LPCUTF8 p = pbUtf8;
         char16 *dest = buffer;
@@ -402,7 +429,7 @@ LSlowPath:
         while (p < pbEnd)
         {
             LPCUTF8 s = p;
-            char16 chDest = Decode(p, pbEnd, localOptions);
+            char16 chDest = Decode(p, pbEnd, localOptions, chunkEndsAtTruncatedSequence);
 
             if (s < p)
             {
@@ -424,17 +451,17 @@ LSlowPath:
     }
 
     _Use_decl_annotations_
-    size_t DecodeUnitsIntoAndNullTerminate(char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
+    size_t DecodeUnitsIntoAndNullTerminate(char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options, bool *chunkEndsAtTruncatedSequence)
     {
-        size_t result = DecodeUnitsInto(buffer, pbUtf8, pbEnd, options);
-        buffer[(int)result] = 0;
+        size_t result = DecodeUnitsInto(buffer, pbUtf8, pbEnd, options, chunkEndsAtTruncatedSequence);
+        buffer[result] = 0;
         return result;
     }
 
     _Use_decl_annotations_
-    size_t DecodeUnitsIntoAndNullTerminateNoAdvance(char16 *buffer, LPCUTF8 pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
+    size_t DecodeUnitsIntoAndNullTerminateNoAdvance(char16 *buffer, LPCUTF8 pbUtf8, LPCUTF8 pbEnd, DecodeOptions options, bool *chunkEndsAtTruncatedSequence)
     {
-        return DecodeUnitsIntoAndNullTerminate(buffer, pbUtf8, pbEnd, options);
+        return DecodeUnitsIntoAndNullTerminate(buffer, pbUtf8, pbEnd, options, chunkEndsAtTruncatedSequence);
     }
 
     bool CharsAreEqual(LPCOLESTR pch, LPCUTF8 bch, LPCUTF8 end, DecodeOptions options)

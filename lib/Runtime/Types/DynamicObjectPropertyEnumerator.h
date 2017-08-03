@@ -50,7 +50,7 @@ namespace Js
         bool IsNullEnumerator() const;
         void Reset();
         void Clear(EnumeratorFlags flags, ScriptContext * requestContext);
-        Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes * attributes);
+        JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes * attributes);
 
         bool CanUseJITFastPath() const;
         static uint32 GetOffsetOfScriptContext() { return offsetof(DynamicObjectPropertyEnumerator, scriptContext); }

@@ -41,10 +41,10 @@ namespace Js
         BOOL GetSpecialNonEnumerablePropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext);
         uint GetSpecialNonEnumerablePropertyCount() const;
         PropertyId const * GetSpecialNonEnumerablePropertyIds() const;
-        BOOL GetSpecialEnumerablePropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext);
+        BOOL GetSpecialEnumerablePropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext);
         uint GetSpecialEnumerablePropertyCount() const;
         PropertyId const * GetSpecialEnumerablePropertyIds() const;
-        virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) override;
+        virtual BOOL GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext) override;
         virtual uint GetSpecialPropertyCount() const override;
         virtual PropertyId const * GetSpecialPropertyIds() const override;
         UnifiedRegex::RegexPattern* GetLastPattern() const { return lastPattern; }

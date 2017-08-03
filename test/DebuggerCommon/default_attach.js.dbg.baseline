@@ -335,9 +335,9 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "a": "undefined undefined",
       "b": "undefined undefined",
-      "c": "undefined undefined",
-      "a": "undefined undefined"
+      "c": "undefined undefined"
     },
     "scopes0": "undefined undefined"
   },
@@ -493,9 +493,9 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "a": "number 1",
       "b": "undefined undefined",
-      "c": "undefined undefined",
-      "a": "number 1"
+      "c": "undefined undefined"
     },
     "scopes0": "undefined undefined"
   },
@@ -662,11 +662,11 @@
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "undefined undefined",
       "b": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined",
     "scopes1": "undefined undefined"
@@ -821,11 +821,11 @@
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "number 1",
       "b": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined",
     "scopes1": "undefined undefined"
@@ -1634,11 +1634,11 @@
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "number 1",
       "b": "function <large string>",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined",
     "scopes1": "undefined undefined"
@@ -2447,13 +2447,12 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
-      "b": "function <large string>",
-      "c": "undefined undefined",
+      "m": "undefined undefined",
       "a": "number 1",
-      "m": "undefined undefined"
+      "b": "function <large string>",
+      "c": "undefined undefined"
     },
-    "scopes0": "undefined undefined",
-    "scopes1": "undefined undefined"
+    "scopes0": "undefined undefined"
   },
   {
     "breakpoints": [
@@ -2608,11 +2607,11 @@
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "undefined undefined",
       "b": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined",
     "scopes1": "undefined undefined"
@@ -2768,15 +2767,14 @@
   {
     "this": "Object {...}",
     "locals": {
+      "m": "undefined undefined",
       "a": "number 1",
       "b": "function <large string>",
       "c": "undefined undefined",
-      "arguments": "Object {...}",
-      "m": "undefined undefined"
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined",
-    "scopes1": "undefined undefined",
-    "scopes2": "undefined undefined"
+    "scopes1": "undefined undefined"
   },
   {
     "breakpoints": [
@@ -3092,14 +3090,13 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "m": "undefined undefined",
       "a": "number 1",
       "b": "function <large string>",
-      "c": "undefined undefined",
-      "m": "undefined undefined"
+      "c": "undefined undefined"
     },
     "scopes0": "undefined undefined",
-    "scopes1": "undefined undefined",
-    "scopes2": "undefined undefined"
+    "scopes1": "undefined undefined"
   },
   {
     "breakpoints": [
@@ -3585,9 +3582,9 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "a": "undefined undefined",
       "b": "undefined undefined",
-      "c": "undefined undefined",
-      "a": "undefined undefined"
+      "c": "undefined undefined"
     },
     "scopes0": "undefined undefined"
   },
@@ -3743,9 +3740,9 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "a": "number 1",
       "b": "undefined undefined",
-      "c": "undefined undefined",
-      "a": "number 1"
+      "c": "undefined undefined"
     },
     "scopes0": "undefined undefined"
   },
@@ -3912,11 +3909,11 @@
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "undefined undefined",
       "b": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined",
     "scopes1": "undefined undefined"
@@ -4071,11 +4068,11 @@
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "number 1",
       "b": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined",
     "scopes1": "undefined undefined"
@@ -4884,11 +4881,11 @@
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "number 1",
       "b": "function <large string>",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined",
     "scopes1": "undefined undefined"
@@ -5697,13 +5694,12 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
-      "b": "function <large string>",
-      "c": "undefined undefined",
+      "m": "undefined undefined",
       "a": "number 1",
-      "m": "undefined undefined"
+      "b": "function <large string>",
+      "c": "undefined undefined"
     },
-    "scopes0": "undefined undefined",
-    "scopes1": "undefined undefined"
+    "scopes0": "undefined undefined"
   },
   {
     "breakpoints": [
@@ -5858,11 +5854,11 @@
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "undefined undefined",
       "b": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined",
     "scopes1": "undefined undefined"
@@ -6018,15 +6014,14 @@
   {
     "this": "Object {...}",
     "locals": {
+      "m": "undefined undefined",
       "a": "number 1",
       "b": "function <large string>",
       "c": "undefined undefined",
-      "arguments": "Object {...}",
-      "m": "undefined undefined"
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined",
-    "scopes1": "undefined undefined",
-    "scopes2": "undefined undefined"
+    "scopes1": "undefined undefined"
   },
   {
     "breakpoints": [
@@ -6342,14 +6337,13 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "m": "undefined undefined",
       "a": "number 1",
       "b": "function <large string>",
-      "c": "undefined undefined",
-      "m": "undefined undefined"
+      "c": "undefined undefined"
     },
     "scopes0": "undefined undefined",
-    "scopes1": "undefined undefined",
-    "scopes2": "undefined undefined"
+    "scopes1": "undefined undefined"
   },
   {
     "breakpoints": [

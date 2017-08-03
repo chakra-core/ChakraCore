@@ -17,7 +17,7 @@ null
 x.foo
 local.i
 5
-ReferenceError: 'f' is undefined
+ReferenceError: 'f' is not defined
 abcd
 O.evalinwith
 local evalinwith

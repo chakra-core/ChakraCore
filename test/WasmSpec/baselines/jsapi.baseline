@@ -1,0 +1,89 @@
+Harness Status: OK
+Found 87 tests: Pass = 86 Fail = 1
+Pass 'WebAssembly' data property on global object  
+Pass 'WebAssembly' object  
+Pass 'WebAssembly.(Compile|Link|Runtime)Error' data property  
+Pass 'WebAssembly.(Compile|Runtime)Error' constructor function  
+Pass 'WebAssembly.(Compile|Runtime)Error' instance objects  
+Pass 'WebAssembly.Module' data property  
+Pass 'WebAssembly.Module' constructor function  
+Pass 'WebAssembly.Module.prototype' data property  
+Pass 'WebAssembly.Module.prototype' object  
+Pass 'WebAssembly.Module' instance objects  
+Pass 'WebAssembly.Module.imports' data property  
+Pass 'WebAssembly.Module.imports' method  
+Pass 'WebAssembly.Module.exports' data property  
+Pass 'WebAssembly.Module.exports' method  
+Pass 'WebAssembly.Module.customSections' data property  
+Pass 'WebAssembly.Module.customSections' method  
+Pass 'WebAssembly.Instance' data property  
+Pass 'WebAssembly.Instance' constructor function  
+Pass 'WebAssembly.Instance.prototype' data property  
+Pass 'WebAssembly.Instance.prototype' object  
+Pass 'WebAssembly.Instance' instance objects  
+Pass 'WebAssembly.Instance.prototype.exports' accessor property  
+Pass exports object  
+Fail Exported WebAssembly functions  assert_equals: expected 0 but got -1
+Pass 'WebAssembly.Memory' data property  
+Pass 'WebAssembly.Memory' constructor function  
+Pass 'WebAssembly.Memory.prototype' data property  
+Pass 'WebAssembly.Memory.prototype' object  
+Pass 'WebAssembly.Memory' instance objects  
+Pass 'WebAssembly.Memory.prototype.buffer' accessor property  
+Pass 'WebAssembly.Memory.prototype.buffer' getter  
+Pass 'WebAssembly.Memory.prototype.grow' data property  
+Pass 'WebAssembly.Memory.prototype.grow' method  
+Pass 'WebAssembly.Table' data property  
+Pass 'WebAssembly.Table' constructor function  
+Pass 'WebAssembly.Table.prototype' data property  
+Pass 'WebAssembly.Table.prototype' object  
+Pass 'WebAssembly.Table' instance objects  
+Pass 'WebAssembly.Table.prototype.length' accessor data property  
+Pass 'WebAssembly.Table.prototype.length' getter  
+Pass 'WebAssembly.Table.prototype.get' data property  
+Pass 'WebAssembly.Table.prototype.get' method  
+Pass 'WebAssembly.Table.prototype.set' data property  
+Pass 'WebAssembly.Table.prototype.set' method  
+Pass 'WebAssembly.Table.prototype.grow' data property  
+Pass 'WebAssembly.Table.prototype.grow' method  
+Pass 'WebAssembly.validate' method  
+Pass 'WebAssembly.compile' data property  
+Pass 'WebAssembly.compile' function  
+Pass assertCompileError 1  
+Pass assertCompileError 2  
+Pass assertCompileError 3  
+Pass assertCompileError 4  
+Pass assertCompileError 5  
+Pass assertCompileError 6  
+Pass assertCompileError 7  
+Pass assertCompileSuccess 1  
+Pass assertCompileSuccess 2  
+Pass 'WebAssembly.instantiate' data property  
+Pass 'WebAssembly.instantiate' function  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  

@@ -17,7 +17,7 @@ class Region
 {
 public:
     Region() : type(RegionTypeInvalid),
-               parent(NULL), matchingTryRegion(nullptr), matchingCatchRegion(nullptr), matchingFinallyRegion(nullptr), selfOrFirstTryAncestor(nullptr),
+               parent(NULL), matchingTryRegion(nullptr), matchingCatchRegion(nullptr), matchingFinallyOnExceptRegion(nullptr), matchingFinallyOnNoExceptRegion(nullptr), selfOrFirstTryAncestor(nullptr),
                start(NULL), end(NULL),
                writeThroughSymbolsSet(nullptr),
                ehBailoutData(nullptr), bailoutReturnThunkLabel(nullptr), returnThunkEmitted(false),
@@ -37,8 +37,25 @@ public:
     inline Region * GetMatchingCatchRegion() const      { return this->matchingCatchRegion; }
     inline void SetMatchingCatchRegion(Region* catchRegion) { this->matchingCatchRegion = catchRegion; }
 
-    inline Region * GetMatchingFinallyRegion() const    { return this->matchingFinallyRegion; }
-    inline void SetMatchingFinallyRegion(Region* finallyRegion) { this->matchingFinallyRegion = finallyRegion; }
+    inline Region * GetMatchingFinallyRegion(bool isExcept) const
+    {
+        return isExcept ? this->matchingFinallyOnExceptRegion : this->matchingFinallyOnNoExceptRegion;
+    }
+    inline void SetMatchingFinallyRegion(Region* finallyRegion, bool isExcept)
+    {
+        if (isExcept)
+        {
+            this->matchingFinallyOnExceptRegion = finallyRegion;
+        }
+        else
+        {
+            this->matchingFinallyOnNoExceptRegion = finallyRegion;
+        }
+    }
+    bool IsNonExceptingFinally()
+    {
+        return (this->GetType() == RegionTypeFinally && this->GetMatchingTryRegion()->GetMatchingFinallyRegion(false) == this);
+    }
 
     inline IR::Instr * GetStart() const                 { return this->start; }
     inline void SetStart(IR::Instr * instr)             { this->start = instr; }
@@ -49,13 +66,19 @@ public:
     inline void SetExceptionObjectSym(StackSym * sym)   { this->exceptionObjectSym = sym; }
     void   AllocateEHBailoutData(Func * func, IR::Instr * tryInstr);
     Region * GetSelfOrFirstTryAncestor();
+    Region * GetFirstAncestorOfNonExceptingFinallyParent();
+    Region * GetFirstAncestorOfNonExceptingFinally();
 
 private:
     RegionType                      type;
     Region *                        parent;
     Region *                        matchingTryRegion;
     Region *                        matchingCatchRegion;
-    Region *                        matchingFinallyRegion;
+    Region *                        matchingFinallyOnExceptRegion;
+    Region *                        matchingFinallyOnNoExceptRegion;
+    // We need to mark a non-expecting finally region we execute in the JIT, as in EH region.
+    // We can bailout from the non excepting EH region, in that case we need ehBailoutData to reconstruct eh frames in the interpreter
+
     Region *                        selfOrFirstTryAncestor; // = self, if try region, otherwise
                                                             // = first try ancestor
     IR::Instr *                     start;

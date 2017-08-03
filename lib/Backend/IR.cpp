@@ -3237,6 +3237,21 @@ bool Instr::HasFixedFunctionAddressTarget() const
         this->GetSrc1()->AsAddrOpnd()->m_isFunction;
 }
 
+bool Instr::TransfersSrcValue()
+{
+    // Return whether the instruction transfers a value to the destination.
+    // This is used to determine whether we should generate a value for the src so that it will
+    // match with the dst for copy prop.
+
+    // No point creating an unknown value for the src of a binary instr, as the dst will just be a different
+    // Don't create value for instruction without dst as well. The value doesn't go anywhere.
+
+    // if (src2 == nullptr) Disable copy prop for ScopedLdFld/ScopeStFld, etc., consider enabling that in the future
+    // Consider: Add opcode attribute to indicate whether the opcode would use the value or not
+
+    return this->GetDst() != nullptr && this->GetSrc2() == nullptr && !OpCodeAttr::DoNotTransfer(this->m_opcode) && !this->CallsAccessor();
+}
+
 
 void Instr::MoveArgs(bool generateByteCodeCapture)
 {
@@ -3462,7 +3477,7 @@ PropertySymOpnd *Instr::GetPropertySymOpnd() const
     return nullptr;
 }
 
-bool Instr::CallsAccessor(IR::PropertySymOpnd* methodOpnd)
+bool Instr::CallsAccessor(IR::PropertySymOpnd * methodOpnd)
 {
     if (methodOpnd)
     {
@@ -3473,7 +3488,7 @@ bool Instr::CallsAccessor(IR::PropertySymOpnd* methodOpnd)
     return CallsGetter() || CallsSetter();
 }
 
-bool Instr::CallsSetter(IR::PropertySymOpnd* methodOpnd)
+bool Instr::CallsSetter()
 {
     return
         this->IsProfiledInstr() &&
@@ -3481,7 +3496,7 @@ bool Instr::CallsSetter(IR::PropertySymOpnd* methodOpnd)
         ((this->AsProfiledInstr()->u.FldInfo().flags & Js::FldInfo_FromAccessor) != 0);
 }
 
-bool Instr::CallsGetter(IR::PropertySymOpnd* methodOpnd)
+bool Instr::CallsGetter()
 {
     return
         this->IsProfiledInstr() &&
@@ -3710,21 +3725,43 @@ bool Instr::IsCmCC_I4()
     return (this->m_opcode >= Js::OpCode::CmEq_I4 && this->m_opcode <= Js::OpCode::CmUnGe_I4);
 }
 
+bool Instr::IsNeq()
+{
+    switch (m_opcode)
+    {
+    case Js::OpCode::BrNeq_A:
+    case Js::OpCode::BrNeq_I4:
+    case Js::OpCode::BrNotEq_A:
+    case Js::OpCode::BrSrNeq_A:
+    case Js::OpCode::BrSrNotEq_A:
+    case Js::OpCode::CmNeq_A:
+    case Js::OpCode::CmNeq_I4:
+    case Js::OpCode::CmSrNeq_A:
+        return true;
+    default:
+        return false;
+    }
+}
+
 template <typename T>
-bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
+bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult, bool checkWouldTrap)
 {
     T value = 0;
-    bool check = true;
     switch (this->m_opcode)
     {
-#define BINARY_U(OPCODE,HANDLER) \
+#define DO_HANDLER(HANDLER, type) HANDLER(type##src1Const, type##src2Const)
+#define BINARY_CASE_CHECK(OPCODE,HANDLER,CHECK_HANDLER,type) \
     case Js::OpCode::##OPCODE: \
-        value = HANDLER((typename SignedTypeTraits<T>::UnsignedType)src1Const, (typename SignedTypeTraits<T>::UnsignedType)src2Const); \
+        if (checkWouldTrap && DO_HANDLER(CHECK_HANDLER,type)) { return false; } \
+        value = DO_HANDLER(HANDLER,type); \
         break;
-#define BINARY(OPCODE,HANDLER) \
+#define BINARY_CASE(OPCODE,HANDLER,type) \
     case Js::OpCode::##OPCODE: \
-        value = HANDLER(src1Const, src2Const); \
+        value = DO_HANDLER(HANDLER,type); \
         break;
+#define BINARY_U(OPCODE,HANDLER) BINARY_CASE(OPCODE,HANDLER,(typename SignedTypeTraits<T>::UnsignedType))
+#define BINARY(OPCODE,HANDLER)  BINARY_CASE(OPCODE,HANDLER,)
+
         BINARY(CmEq_I4, Js::AsmJsMath::CmpEq)
         BINARY(CmNeq_I4, Js::AsmJsMath::CmpNe)
         BINARY(CmLt_I4, Js::AsmJsMath::CmpLt)
@@ -3735,7 +3772,6 @@ bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
         BINARY_U(CmUnGt_I4, Js::AsmJsMath::CmpGt)
         BINARY_U(CmUnLe_I4, Js::AsmJsMath::CmpLe)
         BINARY_U(CmUnGe_I4, Js::AsmJsMath::CmpGe)
-        //
         BINARY(Add_I4, Js::AsmJsMath::Add)
         BINARY(Sub_I4, Js::AsmJsMath::Sub)
         BINARY(Mul_I4, Js::AsmJsMath::Mul)
@@ -3745,25 +3781,10 @@ bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
         BINARY(Shl_I4, Wasm::WasmMath::Shl)
         BINARY(Shr_I4, Wasm::WasmMath::Shr)
         BINARY_U(ShrU_I4, Wasm::WasmMath::ShrU)
-        case Js::OpCode::Div_I4:
-            check = GetSrc1()->IsUnsigned() || !(src1Const == SignedTypeTraits<T>::MinValue && src2Const == -1);
-        case Js::OpCode::Rem_I4:
-        if (check && (src2Const != 0))
-        {
-            if (GetSrc1()->IsUnsigned())
-            {
-                value = m_opcode == Js::OpCode::Div_I4 ?
-                    Js::AsmJsMath::Div<typename SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const) :
-                    Js::AsmJsMath::Rem<typename SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const);
-            }
-            else
-            {
-                value = m_opcode == Js::OpCode::Div_I4 ?
-                    Js::AsmJsMath::Div<T>(src1Const, src2Const) :
-                    Js::AsmJsMath::Rem<T>(src1Const, src2Const);
-            }
-        }
-        break;
+        BINARY_CASE_CHECK(DivU_I4, Js::AsmJsMath::DivChecked, Js::AsmJsMath::DivWouldTrap, (typename SignedTypeTraits<T>::UnsignedType))
+        BINARY_CASE_CHECK(Div_I4, Js::AsmJsMath::DivChecked, Js::AsmJsMath::DivWouldTrap, )
+        BINARY_CASE_CHECK(RemU_I4, Js::AsmJsMath::RemChecked, Js::AsmJsMath::RemWouldTrap, (typename SignedTypeTraits<T>::UnsignedType))
+        BINARY_CASE_CHECK(Rem_I4, Js::AsmJsMath::RemChecked, Js::AsmJsMath::RemWouldTrap, )
         default:
             return false;
 #undef BINARY
@@ -3774,8 +3795,8 @@ bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
     return true;
 }
 
-template bool Instr::BinaryCalculatorT<int>(int src1Const64, int src2Const64, int64 *pResult);
-template bool Instr::BinaryCalculatorT<int64>(int64 src1Const64, int64 src2Const64, int64 *pResult);
+template bool Instr::BinaryCalculatorT<int>(int src1Const64, int src2Const64, int64 *pResult, bool checkWouldTrap);
+template bool Instr::BinaryCalculatorT<int64>(int64 src1Const64, int64 src2Const64, int64 *pResult, bool checkWouldTrap);
 
 bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult)
 {

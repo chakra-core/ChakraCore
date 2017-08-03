@@ -6,20 +6,6 @@
 
 namespace Wasm
 {
-const uint64 specialDivLeftValue = (uint64)1 << 63;
-
-template<>
-inline int64 WasmMath::Rem( int64 aLeft, int64 aRight )
-{
-    return (aLeft == specialDivLeftValue && aRight == -1) ? 0 : aLeft % aRight;
-}
-
-template<>
-inline uint64 WasmMath::Rem( uint64 aLeft, uint64 aRight )
-{
-    return (aLeft == specialDivLeftValue && aRight == -1) ? specialDivLeftValue : aLeft % aRight;
-}
-
 template<typename T> 
 inline T WasmMath::Shl( T aLeft, T aRight )
 {

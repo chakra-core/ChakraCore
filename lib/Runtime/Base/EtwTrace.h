@@ -165,53 +165,8 @@ enum MethodType : uint16
     Body->GetColumnNumber(),                                 \
     GetFunctionName(Body))
 
-#define LogLoopBodyEvent(Function, Body, loopHeader, entryPoint)                                           \
-    Assert(entryPoint->GetNativeAddress() != NULL);                                                        \
-    Assert(entryPoint->GetCodeSize() > 0);                                                                 \
-    WCHAR loopBodyNameArray[NameBufferLength];                                                             \
-    WCHAR* loopBodyName = loopBodyNameArray;                                                               \
-    size_t bufferSize = GetLoopBodyName(Body, loopHeader, loopBodyName, NameBufferLength);                 \
-    if(bufferSize > NameBufferLength) /* insufficient buffer space*/                                       \
-    {                                                                                                      \
-        loopBodyName = HeapNewNoThrowArray(WCHAR, bufferSize);                                             \
-        if(loopBodyName)                                                                                   \
-        {                                                                                                  \
-            GetLoopBodyName(Body, loopHeader, loopBodyName, bufferSize);                                   \
-        }                                                                                                  \
-        else                                                                                               \
-        {                                                                                                  \
-            loopBodyNameArray[0] = _u('\0');                                                               \
-            loopBodyName = loopBodyNameArray;                                                              \
-        }                                                                                                  \
-    }                                                                                                      \
-    JS_ETW(Function(Body->GetScriptContext(),                                                              \
-        (void *)entryPoint->GetNativeAddress(),                                                            \
-        entryPoint->GetCodeSize(),                                                                         \
-        GetFunctionId(Body),                                                                               \
-        0 /* methodFlags - for future use*/,                                                               \
-        MethodType_LoopBody + (uint16)Body->GetLoopNumber(loopHeader),                                     \
-        GetSourceId(Body),                                                                                 \
-        /*line*/ 0,                                                                                        \
-        /*column*/ 0,                                                                                      \
-        loopBodyName));                                                                                    \
-   WriteMethodEvent(STRINGIZEW(Function),                                                                  \
-        Body->GetScriptContext(),                                                                          \
-        (void *)entryPoint->GetNativeAddress(),                                                            \
-        entryPoint->GetCodeSize(),                                                                         \
-        GetFunctionId(Body),                                                                               \
-        0 /* methodFlags - for future use*/,                                                               \
-        MethodType_LoopBody + (uint16)Body->GetLoopNumber(loopHeader),                                     \
-        GetSourceId(Body),                                                                                 \
-        /*line*/ 0,                                                                                        \
-        /*column*/ 0,                                                                                      \
-        loopBodyName);                                                                                     \
-    if(loopBodyNameArray != loopBodyName)                                                                  \
-    {                                                                                                      \
-        HeapDeleteArray(bufferSize, loopBodyName);                                                         \
-    }
 
-
-#define LogLoopBodyEventBG(Function, Body, loopHeader, entryPoint, loopNumber)                             \
+#define LogLoopBodyEvent(Function, Body, entryPoint, loopNumber)                                           \
     Assert(entryPoint->GetNativeAddress() != NULL);                                                        \
     Assert(entryPoint->GetCodeSize() > 0);                                                                 \
     WCHAR loopBodyNameArray[NameBufferLength];                                                             \
@@ -222,7 +177,7 @@ enum MethodType : uint16
         loopBodyName = HeapNewNoThrowArray(WCHAR, bufferSize);                                             \
         if(loopBodyName)                                                                                   \
         {                                                                                                  \
-            GetLoopBodyName(Body, loopHeader, loopBodyName, bufferSize);                                   \
+            Body->GetLoopBodyName(loopNumber, loopBodyName, NameBufferLength);                             \
         }                                                                                                  \
         else                                                                                               \
         {                                                                                                  \
@@ -274,14 +229,14 @@ public:
     static void LogSourceUnloadEvents(Js::ScriptContext* scriptContext);
     static void LogMethodNativeUnloadEvent(Js::FunctionBody* body, Js::FunctionEntryPointInfo* entryPoint);
     static void LogMethodInterpreterThunkUnloadEvent(Js::FunctionBody* body);
-    static void LogLoopBodyUnloadEvent(Js::FunctionBody* body, Js::LoopHeader* loopHeader, Js::LoopEntryPointInfo* entryPoint);
+    static void LogLoopBodyUnloadEvent(Js::FunctionBody* body, Js::LoopEntryPointInfo* entryPoint, uint loopNumber);
 
     /* Load events */
     static void LogMethodInterpreterThunkLoadEvent(Js::FunctionBody* body);
     static void LogMethodNativeLoadEvent(Js::FunctionBody* body, Js::FunctionEntryPointInfo* entryPoint);
 
 
-    static void LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopHeader* loopHeader, Js::LoopEntryPointInfo* entryPoint, uint16 loopNumber);
+    static void LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopEntryPointInfo* entryPoint, uint16 loopNumber);
     static void LogScriptContextLoadEvent(Js::ScriptContext* scriptContext);
     static void LogSourceModuleLoadEvent(Js::ScriptContext* scriptContext, DWORD_PTR sourceContext, _In_z_ const char16* url);
 

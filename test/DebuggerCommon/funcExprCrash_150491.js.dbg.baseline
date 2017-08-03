@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Pass": "function <large string>",
       "test": "function <large string>",
       "top": "Object {...}"
@@ -31,11 +28,6 @@
       "p": "boolean false"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Pass": "function <large string>",
       "test": "function <large string>",
       "top": "Object {...}"

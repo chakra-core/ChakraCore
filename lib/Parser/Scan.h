@@ -376,8 +376,9 @@ public:
     tokens ScanNoKeywords();
     tokens ScanForcingPid();
     void SetText(EncodedCharPtr psz, size_t offset, size_t length, charcount_t characterOffset, ULONG grfscr, ULONG lineNumber = 0);
+#if ENABLE_BACKGROUND_PARSING
     void PrepareForBackgroundParse(Js::ScriptContext *scriptContext);
-
+#endif
     enum ScanState
     {
         ScanStateNormal = 0,       
@@ -387,26 +388,35 @@ public:
     ScanState GetScanState() { return m_scanState; }
     void SetScanState(ScanState state) { m_scanState = state; }
 
-    bool SetYieldIsKeyword(bool fYieldIsKeyword)
+    bool SetYieldIsKeywordRegion(bool fYieldIsKeywordRegion)
     {
-        bool fPrevYieldIsKeyword = m_fYieldIsKeyword;
-        m_fYieldIsKeyword = fYieldIsKeyword;
-        return fPrevYieldIsKeyword;
+        bool fPrevYieldIsKeywordRegion = m_fYieldIsKeywordRegion;
+        m_fYieldIsKeywordRegion = fYieldIsKeywordRegion;
+        return fPrevYieldIsKeywordRegion;
+    }
+    bool YieldIsKeywordRegion()
+    {
+        return m_fYieldIsKeywordRegion;
     }
     bool YieldIsKeyword()
     {
-        return m_fYieldIsKeyword;
+        return YieldIsKeywordRegion() || this->IsStrictMode();
     }
 
-    bool SetAwaitIsKeyword(bool fAwaitIsKeyword)
+    bool SetAwaitIsKeywordRegion(bool fAwaitIsKeywordRegion)
     {
-        bool fPrevAwaitIsKeyword = m_fAwaitIsKeyword;
-        m_fAwaitIsKeyword = fAwaitIsKeyword;
-        return fPrevAwaitIsKeyword;
+        bool fPrevAwaitIsKeywordRegion = m_fAwaitIsKeywordRegion;
+        m_fAwaitIsKeywordRegion = fAwaitIsKeywordRegion;
+        return fPrevAwaitIsKeywordRegion;
     }
+    bool AwaitIsKeywordRegion()
+    {
+        return m_fAwaitIsKeywordRegion;
+    }
+
     bool AwaitIsKeyword()
     {
-        return m_fAwaitIsKeyword;
+        return AwaitIsKeywordRegion() || this->m_fIsModuleCode;
     }
 
     tokens TryRescanRegExp();
@@ -683,8 +693,8 @@ private:
     BYTE m_DeferredParseFlags:2;            // suppressStrPid and suppressIdPid
     charcount_t m_ichCheck;             // character at which completion is to be computed.
     bool es6UnicodeMode;                // True if ES6Unicode Extensions are enabled.
-    bool m_fYieldIsKeyword;             // Whether to treat 'yield' as an identifier or keyword
-    bool m_fAwaitIsKeyword;             // Whether to treat 'await' as an identifier or keyword
+    bool m_fYieldIsKeywordRegion;       // Whether to treat 'yield' as an identifier or keyword
+    bool m_fAwaitIsKeywordRegion;       // Whether to treat 'await' as an identifier or keyword
 
     // Temporary buffer.
     TemporaryBuffer m_tempChBuf;

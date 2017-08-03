@@ -743,7 +743,7 @@ namespace TTD
 
             if(snapFuncInfo->CachedScopeObjId != TTD_INVALID_PTR_ID)
             {
-                fobj->SetCachedScope((Js::ActivationObjectEx*)inflator->LookupObject(snapFuncInfo->CachedScopeObjId));
+                fobj->SetCachedScope(Js::ActivationObjectEx::FromVar(inflator->LookupObject(snapFuncInfo->CachedScopeObjId)));
             }
 
             if(snapFuncInfo->HomeObjId != TTD_INVALID_PTR_ID)
@@ -1028,10 +1028,6 @@ namespace TTD
             {
                 activationObj = nullptr;
             }
-            else if(argsInfo->IsFrameJsNull)
-            {
-                activationObj = ctx->GetLibrary()->GetNull();
-            }
             else
             {
                 TTDAssert(argsInfo->FrameObject != TTD_INVALID_PTR_ID, "That won't work!");
@@ -1052,10 +1048,6 @@ namespace TTD
             if(argsInfo->IsFrameNullPtr)
             {
                 activationObj = nullptr;
-            }
-            else if(argsInfo->IsFrameJsNull)
-            {
-                activationObj = ctx->GetLibrary()->GetNull();
             }
             else
             {

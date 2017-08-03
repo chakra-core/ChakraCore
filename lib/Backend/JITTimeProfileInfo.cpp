@@ -135,30 +135,7 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->flags |= profileInfo->IsLoopImplicitCallInfoDisabled() ? Flags_disableLoopImplicitCallInfo : 0;
     data->flags |= profileInfo->IsPowIntIntTypeSpecDisabled() ? Flags_disablePowIntIntTypeSpec : 0;
     data->flags |= profileInfo->IsTagCheckDisabled() ? Flags_disableTagCheck : 0;
-}
-
-void
-JITTimeProfileInfo::DisableAggressiveIntTypeSpec(bool isLoopBody)
-{
-    m_profileData.flags |= isLoopBody ? Flags_disableAggressiveIntTypeSpec_jitLoopBody : Flags_disableAggressiveIntTypeSpec;
-}
-
-void
-JITTimeProfileInfo::DisableStackArgOpt()
-{
-    m_profileData.flags |= Flags_disableStackArgOpt;
-}
-
-void
-JITTimeProfileInfo::DisableSwitchOpt()
-{
-    m_profileData.flags |= Flags_disableSwitchOpt;
-}
-
-void
-JITTimeProfileInfo::DisableTrackCompoundedIntOverflow()
-{
-    m_profileData.flags |= Flags_disableTrackCompoundedIntOverflow;
+    data->flags |= profileInfo->IsOptimizeTryFinallyDisabled() ? Flags_disableOptimizeTryFinally : 0;
 }
 
 const Js::LdElemInfo *
@@ -198,7 +175,7 @@ intptr_t
 JITTimeProfileInfo::GetFldInfoAddr(uint fieldAccessId) const
 {
     Assert(fieldAccessId < GetProfiledFldCount());
-    return m_profileData.fldDataAddr + fieldAccessId;
+    return m_profileData.fldDataAddr + fieldAccessId * sizeof(Js::FldInfo);
 }
 
 ValueType
@@ -504,6 +481,12 @@ bool
 JITTimeProfileInfo::IsTagCheckDisabled() const
 {
     return TestFlag(Flags_disableTagCheck);
+}
+
+bool
+JITTimeProfileInfo::IsOptimizeTryFinallyDisabled() const
+{
+    return TestFlag(Flags_disableOptimizeTryFinally);
 }
 
 bool

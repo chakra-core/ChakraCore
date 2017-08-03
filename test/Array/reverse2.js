@@ -42,3 +42,13 @@ Test(0,5, 7,15, 21,24, 55, 59 , 65);
 Test(0,5, 7,15, 21,24, 55, 59 , 78);
 Test(0,1, 7,12, 15,17, 26, 27 , 27);
 
+function Test1()
+{
+  var ary = new Array(2);
+  ary.reverse();
+  ary.push(1);
+}
+Test1();
+Test1();
+Test1();
+

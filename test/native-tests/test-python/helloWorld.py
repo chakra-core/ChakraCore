@@ -13,7 +13,10 @@ else:
     platform = "so"
 
 build_type = sys.argv[1]
-so_path = "../../../out/" + build_type + "/libChakraCore." + platform
+if sys.argv[2] != None:
+    so_path = sys.argv[2]
+else:
+    so_path = "../../../out/" + build_type + "/libChakraCore." + platform
 
 if os.path.isfile(so_path):
     chakraCore = CDLL(so_path)

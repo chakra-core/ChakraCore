@@ -17,21 +17,13 @@
 
 namespace TTD
 {
-    //A struct that we use to record key log tag values for a script when it it maked as "to-be destroyed"
-    struct DeadScriptLogTagInfo
-    {
-        TTD_LOG_PTR_ID GlobalLogTag;
-        TTD_LOG_PTR_ID UndefinedLogTag;
-        TTD_LOG_PTR_ID NullLogTag;
-        TTD_LOG_PTR_ID TrueLogTag;
-        TTD_LOG_PTR_ID FalseLogTag;
-    };
-
     //This class implements the data structures and algorithms needed to manage the ThreadContext TTD runtime info.
     //Basically we don't want to add a lot of size/complexity to the ThreadContext object/class if it isn't perf critical
     class ThreadContextTTD
     {
     private:
+        typedef JsUtil::WeaklyReferencedKeyDictionary<Js::RecyclableObject, bool, RecyclerPointerComparer<const Js::RecyclableObject*>> RecordRootMap;
+
         ThreadContext* m_threadCtx;
         void* m_runtimeHandle;
 
@@ -41,18 +33,25 @@ namespace TTD
         //A list of contexts that are being run in TTD mode and the currently active context (may be null)
         Js::ScriptContext* m_activeContext;
         JsUtil::List<Js::ScriptContext*, HeapAllocator> m_contextList;
-        JsUtil::List<DeadScriptLogTagInfo, HeapAllocator> m_deadScriptRecordList;
 
         //The pin set we have for the external contexts that are created
         //We add ref to the thread context instead of having a pin set during replay
         JsUtil::BaseDictionary<Js::ScriptContext*, FinalizableObject*, HeapAllocator> m_ttdContextToExternalRefMap;
 
-        //Keep track of roots (and local roots as needed)
-        RecyclerRootPtr<ObjectPinSet> m_ttdRootSet;
-        RecyclerRootPtr<ObjectPinSet> m_ttdLocalRootSet;
-        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, Js::RecyclableObject*, HeapAllocator> m_ttdRootTagIdMap;
+        //Keep track of which log ptr ids map to which objects -- in record this is only for add ref or addhidden ref objects in replay it includes local as awell
+        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, Js::RecyclableObject*, HeapAllocator> m_ttdRootTagToObjectMap;
+        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, bool, HeapAllocator> m_ttdMayBeLongLivedRoot;
+
+        //In record we add refs to this weak map and the contents represent the live accessible roots (at loop yield/snapshot points)
+        RecyclerRootPtr<RecordRootMap> m_ttdRecordRootWeakMap;
+
+        //In replay we explicitly keep root objects alive -- this is the pin set and map from LOG_PTR_ID values to the actual objects
+        RecyclerRootPtr<ObjectPinSet> m_ttdReplayRootPinSet;
 
         void AddNewScriptContext_Helper(Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative, bool debugMode);
+
+        //Clean any empty slots out of the weak record map so we aren't leaking space
+        void CleanRecordWeakRootMap();
 
     public:
         uint32 SnapInterval;
@@ -78,9 +77,6 @@ namespace TTD
         //Get the list of all the context that we are currently tracking
         const JsUtil::List<Js::ScriptContext*, HeapAllocator>& GetTTDContexts() const;
 
-        //Get the list of any contexts which we want to mark as destoyed (CALLER SHOULD CLEAR WHEN DONE RECORDING)
-        JsUtil::List<DeadScriptLogTagInfo, HeapAllocator>& GetTTDDeadContextsForRecord();
-
         void AddNewScriptContextRecord(FinalizableObject* externalCtx, Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative, bool debugMode);
         void AddNewScriptContextReplay(FinalizableObject* externalCtx, Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative, bool debugMode);
         void SetActiveScriptContext(Js::ScriptContext* ctx);
@@ -89,30 +85,49 @@ namespace TTD
         //This is called from an excluded section of code (GC processing) so we can't check mode info, instead we must check if the ctx is in our map
         void NotifyCtxDestroyInRecord(Js::ScriptContext* ctx);
 
-        void NotifyCtxDestroyedInReplay(TTD_LOG_PTR_ID globalId, TTD_LOG_PTR_ID undefId, TTD_LOG_PTR_ID nullId, TTD_LOG_PTR_ID trueId, TTD_LOG_PTR_ID falseId);
-
         void ClearContextsForSnapRestore(JsUtil::List<FinalizableObject*, HeapAllocator>& deadCtxs);
 
-        //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
-        static bool IsSpecialRootObject(Js::RecyclableObject* obj);
+        void AddRootRef_Record(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
+        {
+            this->m_ttdRecordRootWeakMap->Item(newRoot, true);
 
-        void AddTrackedRootGeneral(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
-        void RemoveTrackedRootGeneral(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot);
+            this->m_ttdMayBeLongLivedRoot.Item(origId, true);
+            this->m_ttdRootTagToObjectMap.Item(origId, newRoot);
+        }
 
-        void AddTrackedRootSpecial(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
-        void RemoveTrackedRootSpecial(TTD_LOG_PTR_ID origId);
+        void AddRootRef_Replay(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
+        {
+            this->m_ttdReplayRootPinSet->AddNew(newRoot);
 
-        const ObjectPinSet* GetRootSet() const;
+            this->m_ttdMayBeLongLivedRoot.Item(origId, true);
+            this->m_ttdRootTagToObjectMap.Item(origId, newRoot);
+        }
 
-        void AddLocalRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
-        void ClearLocalRootsAndRefreshMap();
-        const ObjectPinSet* GetLocalRootSet() const;
+        void AddLocalRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
+        {
+            this->m_ttdReplayRootPinSet->AddNew(newRoot);
+            this->m_ttdRootTagToObjectMap.Item(origId, newRoot);
+        }
+
+        void ClearLocalRootsAndRefreshMap_Replay();
+
+        const JsUtil::BaseDictionary<TTD_LOG_PTR_ID, Js::RecyclableObject*, HeapAllocator>& GetRootTagToObjectMap() const { return this->m_ttdRootTagToObjectMap; }
+
+        //Get any ref counter id for a log ptr id reference (0 if there are no string/weak refs)
+        bool ResolveIsLongLivedForExtract(TTD_LOG_PTR_ID origId) const { return this->m_ttdMayBeLongLivedRoot.LookupWithKey(origId, false); }
 
         void LoadInvertedRootMap(JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap) const;
-        void ExtractSnapshotRoots(JsUtil::List<Js::Var, HeapAllocator>& roots);
 
         Js::RecyclableObject* LookupObjectForLogID(TTD_LOG_PTR_ID origId);
         void ClearRootsForSnapRestore();
+
+        void ForceSetRootInfoInRestore(TTD_LOG_PTR_ID logid, Js::RecyclableObject* obj, bool maybeLongLived);
+
+        //Sync up the root set information before we do a snapshot in record mode
+        void SyncRootsBeforeSnapshot_Record();
+
+        //When we are replaying and hit a snapshot we need to sync up with the live script contexts and roots as in replay (so do that here)
+        void SyncCtxtsAndRootsWithSnapshot_Replay(uint32 liveContextCount, TTD_LOG_PTR_ID* liveContextIdArray, uint32 liveRootCount, TTD_LOG_PTR_ID* liveRootIdArray);
 
         Js::ScriptContext* LookupContextForScriptId(TTD_LOG_PTR_ID ctxId) const;
     };
@@ -167,16 +182,16 @@ namespace TTD
 
         //force parsing and load up the parent maps etc.
         void ProcessFunctionBodyOnLoad(Js::FunctionBody* body, Js::FunctionBody* parent);
-        void RegisterLoadedScript(Js::FunctionBody* body, uint64 bodyCtrId);
-        void RegisterNewScript(Js::FunctionBody* body, uint64 bodyCtrId);
-        void RegisterEvalScript(Js::FunctionBody* body, uint64 bodyCtrId);
+        void RegisterLoadedScript(Js::FunctionBody* body, uint32 bodyCtrId);
+        void RegisterNewScript(Js::FunctionBody* body, uint32 bodyCtrId);
+        void RegisterEvalScript(Js::FunctionBody* body, uint32 bodyCtrId);
 
         //Lookup the parent body for a function body (or null for global code)
         Js::FunctionBody* ResolveParentBody(Js::FunctionBody* body) const;
 
         //Helpers for resolving top level bodies accross snapshots
-        uint64 FindTopLevelCtrForBody(Js::FunctionBody* body) const;
-        Js::FunctionBody* FindRootBodyByTopLevelCtr(uint64 bodyCtrId) const;
+        uint32 FindTopLevelCtrForBody(Js::FunctionBody* body) const;
+        Js::FunctionBody* FindRootBodyByTopLevelCtr(uint32 bodyCtrId) const;
 
         void ClearLoadedSourcesForSnapshotRestore();
     };

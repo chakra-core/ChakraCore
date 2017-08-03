@@ -17,6 +17,6 @@ namespace Js
     public:
         JavascriptStringEnumerator(JavascriptString* stringObject, ScriptContext * requestContext);
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     };
 }

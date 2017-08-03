@@ -11,7 +11,8 @@ namespace Js
         const Var base,
         const Var varIndex,
         FunctionBody *const functionBody,
-        const ProfileId profileId)
+        const ProfileId profileId,
+        bool didArrayAccessHelperCall)
     {
         Assert(base);
         Assert(varIndex);
@@ -44,6 +45,11 @@ namespace Js
         JavascriptArray *const array =
             JavascriptArray::GetArrayForArrayOrObjectWithArray(base, &isObjectWithArray, &arrayTypeId);
 
+        if (didArrayAccessHelperCall)
+        {
+            ldElemInfo.neededHelperCall = true;
+        }
+
         do // while(false)
         {
             // The fast path is only for JavascriptArray and doesn't cover native arrays, objects with internal arrays, or typed
@@ -67,6 +73,11 @@ namespace Js
             {
                 bool isVirtual = (VirtualTableInfoBase::GetVirtualTable(base) == ValueType::GetVirtualTypedArrayVtable(arrayTypeId));
                 ldElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();
+            }
+            else if(Js::RecyclableObject::Is(base))
+            {
+                ldElemInfo.arrayType = ValueType::FromObject(Js::RecyclableObject::FromVar(base)).ToLikely();
+                break;
             }
             else
             {
@@ -93,7 +104,7 @@ namespace Js
         const ValueType arrayType(ldElemInfo.GetArrayType());
         if(!arrayType.IsUninitialized())
         {
-            if(arrayType.IsLikelyObject() && arrayType.GetObjectType() == ObjectType::Array && !arrayType.HasIntElements())
+            if(array && arrayType.IsLikelyObject() && arrayType.GetObjectType() == ObjectType::Array && !arrayType.HasIntElements())
             {
                 JavascriptOperators::UpdateNativeArrayProfileInfoToCreateVarArray(
                     array,
@@ -186,7 +197,7 @@ namespace Js
         FunctionBody *const functionBody,
         const ProfileId profileId)
     {
-        ProfiledStElem(base, varIndex, value, functionBody, profileId, PropertyOperation_None);
+        ProfiledStElem(base, varIndex, value, functionBody, profileId, PropertyOperation_None, false);
     }
 
     void ProfilingHelpers::ProfiledStElem(
@@ -195,7 +206,8 @@ namespace Js
         const Var value,
         FunctionBody *const functionBody,
         const ProfileId profileId,
-        const PropertyOperationFlags flags)
+        const PropertyOperationFlags flags,
+        bool didArrayAccessHelperCall)
     {
         Assert(base);
         Assert(varIndex);
@@ -266,11 +278,21 @@ namespace Js
             {
                 length = headSegmentLength;
                 bool isVirtual = (VirtualTableInfoBase::GetVirtualTable(base) == ValueType::GetVirtualTypedArrayVtable(arrayTypeId));
-                stElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();
+                stElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();        
+                if (!TaggedNumber::Is(value) && !JavascriptNumber::Is_NoTaggedIntCheck(value))
+                {
+                    // Non-number stored to a typed array. A helper call will be needed to convert the value.
+                    stElemInfo.neededHelperCall = true;
+                }
             }
             else
             {
                 break;
+            }
+
+            if (didArrayAccessHelperCall)
+            {
+                stElemInfo.neededHelperCall = true;
             }
 
             if(!TaggedInt::Is(varIndex))
@@ -1154,7 +1176,7 @@ namespace Js
                 // point on, when the same function object is used as a constructor, the a new object with the final type will
                 // be created. Whatever is stored in the inline cache currently will cause cache misses after the constructor
                 // cache update. So, just clear it now so that the caches won't be flagged as polymorphic.
-                inlineCache->Clear();
+                inlineCache->RemoveFromInvalidationListAndClear(scriptContext->GetThreadContext());
             }
         }
         else

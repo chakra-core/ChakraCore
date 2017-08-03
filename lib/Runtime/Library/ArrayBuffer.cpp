@@ -38,7 +38,7 @@ namespace Js
         return toReturn;
     }
 
-    void ArrayBuffer::ClearParentsLength(ArrayBufferParent* parent)
+    void ArrayBuffer::DetachBufferFromParent(ArrayBufferParent* parent)
     {
         if (parent == nullptr)
         {
@@ -48,23 +48,158 @@ namespace Js
         switch (JavascriptOperators::GetTypeId(parent))
         {
         case TypeIds_Int8Array:
+                if (Int8VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Int8VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Int8Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Int8VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Int8Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Uint8Array:
+                if (Uint8VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Uint8VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Uint8Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Uint8VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Uint8Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Uint8ClampedArray:
+                if (Uint8ClampedVirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Uint8ClampedVirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Uint8ClampedArray>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Uint8ClampedVirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Uint8ClampedArray>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Int16Array:
+                if (Int16VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Int16VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Int16Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Int16VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Int16Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Uint16Array:
+                if (Uint16VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Uint16VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Uint16Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Uint16VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Uint16Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Int32Array:
+                if (Int32VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Int32VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Int32Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Int32VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Int32Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Uint32Array:
+                if (Uint32VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Uint32VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Uint32Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Uint32VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Uint32Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Float32Array:
+                if (Float32VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Float32VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Float32Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Float32VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Float32Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Float64Array:
+                if (Float64VirtualArray::Is(parent))
+                {
+                    if (VirtualTableInfo<Float64VirtualArray>::HasVirtualTable(parent))
+                    {
+                        VirtualTableInfo<Float64Array>::SetVirtualTable(parent);
+                    }
+                    else
+                    {
+                        Assert(VirtualTableInfo<CrossSiteObject<Float64VirtualArray>>::HasVirtualTable(parent));
+                        VirtualTableInfo<CrossSiteObject<Float64Array>>::SetVirtualTable(parent);
+                    }
+                }
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                break;
+
         case TypeIds_Int64Array:
         case TypeIds_Uint64Array:
         case TypeIds_CharArray:
         case TypeIds_BoolArray:
-            TypedArrayBase::FromVar(parent)->length = 0;
+                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
             break;
 
         case TypeIds_DataView:
-            DataView::FromVar(parent)->length = 0;
+                DataView::FromVar(parent)->ClearLengthAndBufferOnDetach();
             break;
 
         default:
@@ -90,14 +225,14 @@ namespace Js
 
         if (this->primaryParent != nullptr)
         {
-            this->ClearParentsLength(this->primaryParent->Get());
+            this->DetachBufferFromParent(this->primaryParent->Get());
         }
 
         if (this->otherParents != nullptr)
         {
             this->otherParents->Map([&](RecyclerWeakReference<ArrayBufferParent>* item)
             {
-                this->ClearParentsLength(item->Get());
+                this->DetachBufferFromParent(item->Get());
             });
         }
 
@@ -448,7 +583,7 @@ namespace Js
 
     template <class Allocator>
     ArrayBuffer::ArrayBuffer(uint32 length, DynamicType * type, Allocator allocator) :
-        ArrayBufferBase(type), isDetached(false)
+        ArrayBufferBase(type)
     {
         buffer = nullptr;
         bufferLength = 0;
@@ -480,10 +615,6 @@ namespace Js
                         recycler->ReportExternalMemoryFailure(length);
                     }
                 }
-                else
-                {
-                    JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-                }
             }
 
             if (buffer != nullptr)
@@ -491,11 +622,15 @@ namespace Js
                 bufferLength = length;
                 ZeroMemory(buffer, bufferLength);
             }
+            else
+            {
+                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+            }
         }
     }
 
     ArrayBuffer::ArrayBuffer(byte* buffer, uint32 length, DynamicType * type) :
-        buffer(buffer), bufferLength(length), ArrayBufferBase(type), isDetached(false)
+        buffer(buffer), bufferLength(length), ArrayBufferBase(type)
     {
         if (length > MaxArrayBufferLength)
         {
@@ -601,7 +736,7 @@ namespace Js
         return IsValidAsmJsBufferLengthAlgo(length, forceCheck);
     }
 
-    bool JavascriptArrayBuffer::IsValidVirtualBufferLength(uint length)
+    bool JavascriptArrayBuffer::IsValidVirtualBufferLength(uint length) const
     {
 #if ENABLE_FAST_ARRAYBUFFER
         return !PHASE_OFF1(Js::TypedArrayVirtualPhase) && IsValidAsmJsBufferLengthAlgo(length, true);
@@ -760,7 +895,9 @@ namespace Js
         return newArrayBuffer;
     }
 
-    void JavascriptArrayBuffer::ReportDifferentialAllocation(uint32 newBufferLength)
+
+    template<typename Func>
+    void Js::JavascriptArrayBuffer::ReportDifferentialAllocation(uint32 newBufferLength, Func reportFailureFn)
     {
         Recycler* recycler = this->GetRecycler();
 
@@ -777,7 +914,7 @@ namespace Js
                     recycler->CollectNow<CollectOnTypedArrayAllocation>();
                     if (!recycler->ReportExternalMemoryAllocation(newBufferLength - this->bufferLength))
                     {
-                        JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+                        reportFailureFn();
                     }
                 }
             }
@@ -787,6 +924,15 @@ namespace Js
                 recycler->ReportExternalMemoryFree(this->bufferLength - newBufferLength);
             }
         }
+    }
+
+
+    void JavascriptArrayBuffer::ReportDifferentialAllocation(uint32 newBufferLength)
+    {
+        ScriptContext* scriptContext = GetScriptContext();
+        ReportDifferentialAllocation(newBufferLength, [scriptContext] {
+            JavascriptError::ThrowOutOfMemoryError(scriptContext);
+        });
     }
 
 #if ENABLE_TTD
@@ -815,32 +961,41 @@ namespace Js
 #endif
 
 
-
-    WebAssemblyArrayBuffer::WebAssemblyArrayBuffer(uint32 length, DynamicType * type) :
-#ifndef ENABLE_FAST_ARRAYBUFFER
-        // Treat as a normal JavascriptArrayBuffer
-        JavascriptArrayBuffer(length, type) {}
-#else
-        JavascriptArrayBuffer(length, type, WasmVirtualAllocator)
+    template<typename Allocator>
+    Js::WebAssemblyArrayBuffer::WebAssemblyArrayBuffer(uint32 length, DynamicType * type, Allocator allocator):
+        JavascriptArrayBuffer(length, type, allocator)
     {
+#ifndef ENABLE_FAST_ARRAYBUFFER
+        CompileAssert(UNREACHED);
+#endif
+        Assert(allocator == WasmVirtualAllocator);
         // Make sure we always have a buffer even if the length is 0
-        if (buffer == nullptr)
+        if (buffer == nullptr && length == 0)
         {
             // We want to allocate an empty buffer using virtual memory
-            Assert(length == 0);
-            buffer = (BYTE*)WasmVirtualAllocator(0);
-            if (buffer == nullptr)
-            {
-                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
-            }
+            buffer = (BYTE*)allocator(0);
+        }
+        if (buffer == nullptr)
+        {
+            JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
         }
     }
-#endif
+
+    // Treat as a normal JavascriptArrayBuffer
+    WebAssemblyArrayBuffer::WebAssemblyArrayBuffer(uint32 length, DynamicType * type) :
+        JavascriptArrayBuffer(length, type, malloc)
+    {
+    }
 
     WebAssemblyArrayBuffer::WebAssemblyArrayBuffer(byte* buffer, uint32 length, DynamicType * type):
         JavascriptArrayBuffer(buffer, length, type)
     {
-
+#if ENABLE_FAST_ARRAYBUFFER
+        if (CONFIG_FLAG(WasmFastArray) && buffer == nullptr)
+        {
+            JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+        }
+#endif
     }
 
     WebAssemblyArrayBuffer* WebAssemblyArrayBuffer::Create(byte* buffer, uint32 length, DynamicType * type)
@@ -853,48 +1008,108 @@ namespace Js
         }
         else
         {
-            result = RecyclerNewFinalized(recycler, WebAssemblyArrayBuffer, length, type);
+#if ENABLE_FAST_ARRAYBUFFER
+            if (CONFIG_FLAG(WasmFastArray))
+            {
+                result = RecyclerNewFinalized(recycler, WebAssemblyArrayBuffer, length, type, WasmVirtualAllocator);
+            }
+            else
+#endif
+            {
+                result = RecyclerNewFinalized(recycler, WebAssemblyArrayBuffer, length, type);
+            }
         }
         Assert(result);
         recycler->AddExternalMemoryUsage(length);
         return result;
     }
 
-    bool WebAssemblyArrayBuffer::IsValidVirtualBufferLength(uint length)
+    bool WebAssemblyArrayBuffer::IsValidVirtualBufferLength(uint length) const
     {
 #if ENABLE_FAST_ARRAYBUFFER
-        return true;
+        return CONFIG_FLAG(WasmFastArray);
 #else
         return false;
 #endif
     }
 
-    ArrayBuffer * WebAssemblyArrayBuffer::TransferInternal(uint32 newBufferLength)
+    WebAssemblyArrayBuffer* WebAssemblyArrayBuffer::GrowMemory(uint32 newBufferLength)
     {
-#if ENABLE_FAST_ARRAYBUFFER
-        ReportDifferentialAllocation(newBufferLength);
-        Assert(this->buffer);
-
-        AssertMsg(newBufferLength > this->bufferLength, "The only supported scenario in WebAssembly is to grow the memory");
-        if (newBufferLength > this->bufferLength)
+        if (newBufferLength < this->bufferLength)
         {
-            LPVOID newMem = VirtualAlloc(this->buffer + this->bufferLength, newBufferLength - this->bufferLength, MEM_COMMIT, PAGE_READWRITE);
-            if (!newMem)
+            Assert(UNREACHED);
+            JavascriptError::ThrowTypeError(GetScriptContext(), WASMERR_BufferGrowOnly);
+        }
+        uint32 growSize = newBufferLength - this->bufferLength;
+
+        bool failedReport = false;
+        const auto reportFailedFn = [&failedReport] { failedReport = true; };
+
+        WebAssemblyArrayBuffer* newArrayBuffer = nullptr;
+#if ENABLE_FAST_ARRAYBUFFER
+        if (CONFIG_FLAG(WasmFastArray))
+        {
+            AssertOrFailFast(this->buffer);
+            ReportDifferentialAllocation(newBufferLength, reportFailedFn);
+            if (failedReport)
             {
-                Recycler* recycler = this->GetRecycler();
-                recycler->ReportExternalMemoryFailure(newBufferLength);
-                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+                return nullptr;
+            }
+
+            if (growSize > 0)
+            {
+                LPVOID newMem = VirtualAlloc(this->buffer + this->bufferLength, growSize, MEM_COMMIT, PAGE_READWRITE);
+                if (!newMem)
+                {
+                    Recycler* recycler = this->GetRecycler();
+                    recycler->ReportExternalMemoryFailure(newBufferLength);
+                    return nullptr;
+                }
+            }
+            newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(this->buffer, newBufferLength);
+        }
+        else
+#endif
+        if (this->GetByteLength() == 0)
+        {
+            if (growSize > 0)
+            {
+                newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(newBufferLength);
+            }
+            else
+            {
+                newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(this->buffer, 0);
             }
         }
-        ArrayBuffer* newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(this->buffer, newBufferLength);
+        else
+        {
+            ReportDifferentialAllocation(newBufferLength, reportFailedFn);
+            if (failedReport)
+            {
+                return nullptr;
+            }
+            byte* newBuffer = ReallocZero(this->buffer, this->bufferLength, newBufferLength);
+            if (!newBuffer)
+            {
+                this->GetRecycler()->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
+                return nullptr;
+            }
+            newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(newBuffer, newBufferLength);
+        }
+
+        if (!newArrayBuffer || newArrayBuffer->GetByteLength() != newBufferLength)
+        {
+            return nullptr;
+        }
 
         AutoDiscardPTR<Js::ArrayBufferDetachedStateBase> state(DetachAndGetState());
         state->MarkAsClaimed();
-
         return newArrayBuffer;
-#else
-        return JavascriptArrayBuffer::TransferInternal(newBufferLength);
-#endif
+    }
+
+    ArrayBuffer * WebAssemblyArrayBuffer::TransferInternal(uint32 newBufferLength)
+    {
+        JavascriptError::ThrowTypeError(GetScriptContext(), WASMERR_CantDetach);
     }
 
     ProjectionArrayBuffer::ProjectionArrayBuffer(uint32 length, DynamicType * type) :

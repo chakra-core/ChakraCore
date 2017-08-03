@@ -19,7 +19,7 @@ namespace Js
 
     public:
         TypedArrayIndexEnumerator(TypedArrayBase* typeArrayBase, EnumeratorFlags flags, ScriptContext* scriptContext);
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
         virtual void Reset() override;
     };
 }

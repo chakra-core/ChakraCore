@@ -412,6 +412,86 @@ var tests = [
       assert.throws(function () { eval("foo(typeof ...[1,2,3]);"); }, SyntaxError, "Spread with keyword unary operator throws a syntax error",  "Unexpected ... operator");
       assert.throws(function () { eval("foo(!!...[1,2,3]);"); },      SyntaxError, "Spread with chained unary operators throws a syntax error", "Unexpected ... operator");
     }
+  },
+  {
+    name: "call scenario - second spread is changing the first spread's length",
+    body: function () {
+        function foo() {
+            var args = [...arguments];
+            assert.areEqual([101, 102, 201], args, "2 values from the first spread and 1 value from the second spread is expected");
+        }
+        
+        var first = [101, 102];
+        
+        var obj = {};
+        Object.defineProperty(obj, '2', {get : function() {
+            assert.fail('this should not have called')
+            return 103;
+        }});
+
+        var second = [];
+        second.length = 1;
+        var getterCalled = false;
+        Object.defineProperty(second, '0', {get : function() {
+            // Changing the state of the first spread
+            first.__proto__ = obj;
+            first.length = 3;
+            getterCalled = true;
+            return 201;
+        }});
+
+        foo(...first, ...second);
+        assert.isTrue(getterCalled, "getter of the second spread is executed");
+    }
+  },
+  {
+    name: "array scenario - second spread is changing the first spread's length",
+    body: function () {
+        
+        var first = [101, 102];
+        
+        var obj = {};
+        Object.defineProperty(obj, '2', {get : function() {
+            assert.fail('this should not have called')
+            return 103;
+        }});
+
+        var second = [];
+        second.length = 1;
+        var getterCalled = false;
+        Object.defineProperty(second, '0', {get : function() {
+            // Changing the state of the first spread
+            first.__proto__ = obj;
+            first.length = 3;
+            getterCalled = true;
+            return 201;
+        }});
+
+        var result = [...first, ...second];
+        assert.areEqual([101, 102, 201], result, "2 values from the first spread and 1 value from the second spread is expected");
+        assert.isTrue(getterCalled, "getter of the second spread is executed");
+    }
+  },
+  {
+    name: "typedarray scenario - second spread is changing value of first spread which is a typedarray",
+    body: function () {
+        
+        var first = new Uint32Array([101, 102]);
+        
+        var second = [];
+        second.length = 1;
+        var getterCalled = false;
+        Object.defineProperty(second, '0', {get : function() {
+            // Changing the state of the first spread
+            first[0] = 11; // This should not affect the resultant spread.
+            getterCalled = true;
+            return 201;
+        }});
+
+        var result = [...first, ...second];
+        assert.areEqual([101, 102, 201], result, "2 values from the first spread and 1 value from the second spread is expected");
+        assert.isTrue(getterCalled, "getter of the second spread is executed");
+    }
   }
 ];
 

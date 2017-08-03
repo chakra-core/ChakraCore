@@ -1,8 +1,8 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
-      <compile-flags>-on:asmjs -testtrace:asmjs -simdjs</compile-flags>
+      <compile-flags>-on:asmjs -testtrace:asmjs</compile-flags>
       <files>UnaryPos.js</files>
       <baseline>UnaryPos.baseline</baseline>
     </default>

@@ -26,6 +26,7 @@ namespace IR
     #define BAIL_OUT_KIND_VALUE_LAST(n, v)      n = v
     #define BAIL_OUT_KIND_VALUE(n, v)           BAIL_OUT_KIND_VALUE_LAST(n, v),
     #include "BailOutKind.h"
+    #undef BAIL_OUT_KIND_LAST
     };
     ENUM_CLASS_HELPERS(BailOutKind, uint);
 
@@ -36,7 +37,7 @@ namespace IR
     BailOutKind EquivalentToMonoTypeCheckBailOutKind(BailOutKind kind);
 }
 
-#if ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_CONFIG_OPTIONS || defined(REJIT_STATS)
 const char *GetBailOutKindName(IR::BailOutKind kind);
 bool IsValidBailOutKindAndBits(IR::BailOutKind bailOutKind);
 #endif
@@ -516,6 +517,7 @@ namespace Js
             Field(bool) disableLoopImplicitCallInfo : 1;
             Field(bool) disableStackArgOpt : 1;
             Field(bool) disableTagCheck : 1;
+            Field(bool) disableOptimizeTryFinally : 1;
         };
         Field(Bits) bits;
 
@@ -813,6 +815,8 @@ namespace Js
         void DisablePowIntIntTypeSpec() { this->bits.disablePowIntIntTypeSpec = true; }
         bool IsTagCheckDisabled() const { return bits.disableTagCheck; }
         void DisableTagCheck() { this->bits.disableTagCheck = true; }
+        bool IsOptimizeTryFinallyDisabled() const { return bits.disableOptimizeTryFinally; }
+        void DisableOptimizeTryFinally() { this->bits.disableOptimizeTryFinally = true; }
 
         static bool IsCallSiteNoInfo(Js::LocalFunctionId functionId) { return functionId == CallSiteNoInfo; }
         int IncRejitCount() { return this->rejitCount++; }

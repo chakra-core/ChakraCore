@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -7,13 +7,12 @@
       <compile-flags>-Intl-</compile-flags>
     </default>
   </test>
-  <!--
   <test>
     <default>
-      <files>ie12ScriptFunctionToStrings.js</files>
-      <compile-flags>-ES6Generators -ES6Classes -args summary -endargs</compile-flags>
+      <files>ScriptFunctionToStrings.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
-  </test>-->
+  </test>
   <test>
     <default>
       <files>DomProperties.js</files>
@@ -80,7 +79,6 @@
     <default>
       <files>label1.js</files>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -96,7 +94,7 @@
       <files>label2.js</files>
       <baseline>label2.baseline</baseline>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -112,7 +110,7 @@
       <files>label3.js</files>
       <baseline>label3.baseline</baseline>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -128,7 +126,7 @@
       <files>label4.js</files>
       <baseline>label4.baseline</baseline>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -144,7 +142,7 @@
       <files>label5.js</files>
       <baseline>label5.baseline</baseline>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -160,7 +158,7 @@
       <files>label6.js</files>
       <baseline>label6.baseline</baseline>
       <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -265,7 +263,6 @@
     <default>
       <files>With.js</files>
       <baseline>With.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -273,7 +270,6 @@
       <files>With.js</files>
       <baseline>With.baseline</baseline>
       <compile-flags>-force:deferparse</compile-flags>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -350,14 +346,12 @@
     <default>
       <files>inlinecache.js</files>
       <baseline>inlinecache.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>scan.js</files>
       <baseline>scan.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -370,27 +364,8 @@
     <default>
       <files>with3.js</files>
       <baseline>with3.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
-  <!--
-  <test>
-    <default>
-      <compile-flags>-hostType:2</compile-flags>
-      <files>Enumerator-deprecated.js</files>
-      <baseline>Enumerator-deprecated.baseline</baseline>
-    </default>
-  </test>
-
-  <test>
-    <default>
-      <compile-flags>-hostType:3</compile-flags>
-      <files>Enumerator-WebViewHost.js</files>
-      <baseline>Enumerator-WebViewHost.baseline</baseline>
-      <tags>exclude_inprocdebug</tags>
-    </default>
-  </test>
-  -->
   <test>
     <default>
       <files>cross_site_accessor_main.js</files>

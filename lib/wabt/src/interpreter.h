@@ -19,16 +19,20 @@
 
 #include <stdint.h>
 
-#include "array.h"
-#include "common.h"
+#include <functional>
+#include <memory>
+#include <vector>
+
 #include "binding-hash.h"
-#include "type-vector.h"
-#include "vector.h"
+#include "common.h"
+#include "opcode.h"
 #include "writer.h"
 
 namespace wabt {
 
-struct Stream;
+class Stream;
+
+namespace interpreter {
 
 #define FOREACH_INTERPRETER_RESULT(V)                                       \
   V(Ok, "ok")                                                               \
@@ -67,89 +71,106 @@ struct Stream;
   /* the expected export kind doesn't match. */                             \
   V(ExportKindMismatch, "export kind mismatch")
 
-enum class InterpreterResult {
+enum class Result {
 #define V(Name, str) Name,
   FOREACH_INTERPRETER_RESULT(V)
 #undef V
 };
 
-#define WABT_INVALID_INDEX static_cast<uint32_t>(~0)
-#define WABT_INVALID_OFFSET static_cast<uint32_t>(~0)
-#define WABT_TABLE_ENTRY_SIZE (sizeof(uint32_t) * 2 + sizeof(uint8_t))
+typedef uint32_t IstreamOffset;
+static const IstreamOffset kInvalidIstreamOffset = ~0;
+
+// A table entry has the following packed layout:
+//
+//   struct {
+//     IstreamOffset offset;
+//     uint32_t drop_count;
+//     uint8_t keep_count;
+//   };
+#define WABT_TABLE_ENTRY_SIZE \
+  (sizeof(IstreamOffset) + sizeof(uint32_t) + sizeof(uint8_t))
 #define WABT_TABLE_ENTRY_OFFSET_OFFSET 0
 #define WABT_TABLE_ENTRY_DROP_OFFSET sizeof(uint32_t)
-#define WABT_TABLE_ENTRY_KEEP_OFFSET (sizeof(uint32_t) * 2)
+#define WABT_TABLE_ENTRY_KEEP_OFFSET (sizeof(IstreamOffset) + sizeof(uint32_t))
 
-#define WABT_FOREACH_INTERPRETER_OPCODE(V)         \
-  WABT_FOREACH_OPCODE(V)                           \
-  V(___, ___, ___, 0, 0xfb, Alloca, "alloca")      \
-  V(___, ___, ___, 0, 0xfc, BrUnless, "br_unless") \
-  V(___, ___, ___, 0, 0xfd, CallHost, "call_host") \
-  V(___, ___, ___, 0, 0xfe, Data, "data")          \
-  V(___, ___, ___, 0, 0xff, DropKeep, "drop_keep")
-
-enum class InterpreterOpcode {
+enum class Opcode {
 /* push space on the value stack for N entries */
-#define V(rtype, type1, type2, mem_size, code, Name, text) Name = code,
-  WABT_FOREACH_INTERPRETER_OPCODE(V)
-#undef V
+#define WABT_OPCODE(rtype, type1, type2, mem_size, code, Name, text) \
+  Name = code,
+#include "interpreter-opcode.def"
+#undef WABT_OPCODE
 
-      First = static_cast<int>(Opcode::First),
+  First = static_cast<int>(::wabt::Opcode::First),
   Last = DropKeep,
 };
-static const int kInterpreterOpcodeCount = WABT_ENUM_COUNT(InterpreterOpcode);
+static const int kOpcodeCount = WABT_ENUM_COUNT(Opcode);
 
-typedef uint32_t Uint32;
-WABT_DEFINE_ARRAY(uint32, Uint32);
+struct FuncSignature {
+  FuncSignature() = default;
+  FuncSignature(Index param_count,
+                Type* param_types,
+                Index result_count,
+                Type* result_types);
 
-/* TODO(binji): identical to FuncSignature. Share? */
-struct InterpreterFuncSignature {
-  TypeVector param_types;
-  TypeVector result_types;
+  std::vector<Type> param_types;
+  std::vector<Type> result_types;
 };
-WABT_DEFINE_VECTOR(interpreter_func_signature, InterpreterFuncSignature);
 
-struct InterpreterTable {
+struct Table {
+  explicit Table(const Limits& limits)
+      : limits(limits), func_indexes(limits.initial, kInvalidIndex) {}
+
   Limits limits;
-  Uint32Array func_indexes;
+  std::vector<Index> func_indexes;
 };
-WABT_DEFINE_VECTOR(interpreter_table, InterpreterTable);
 
-struct InterpreterMemory {
-  char* data;
+struct Memory {
+  Memory() { WABT_ZERO_MEMORY(page_limits); }
+  explicit Memory(const Limits& limits)
+      : page_limits(limits), data(limits.initial * WABT_PAGE_SIZE) {}
+
   Limits page_limits;
-  uint32_t byte_size; /* Cached from page_limits. */
+  std::vector<char> data;
 };
-WABT_DEFINE_VECTOR(interpreter_memory, InterpreterMemory);
 
-union InterpreterValue {
+union Value {
   uint32_t i32;
   uint64_t i64;
   uint32_t f32_bits;
   uint64_t f64_bits;
 };
-WABT_DEFINE_ARRAY(interpreter_value, InterpreterValue);
 
-struct InterpreterTypedValue {
+struct TypedValue {
+  TypedValue() {}
+  explicit TypedValue(Type type) : type(type) {}
+  TypedValue(Type type, const Value& value) : type(type), value(value) {}
+
   Type type;
-  InterpreterValue value;
+  Value value;
 };
-WABT_DEFINE_VECTOR(interpreter_typed_value, InterpreterTypedValue);
 
-struct InterpreterGlobal {
-  InterpreterTypedValue typed_value;
+struct Global {
+  Global() : mutable_(false), import_index(kInvalidIndex) {}
+  Global(const TypedValue& typed_value, bool mutable_)
+      : typed_value(typed_value), mutable_(mutable_) {}
+
+  TypedValue typed_value;
   bool mutable_;
-  uint32_t import_index; /* or INVALID_INDEX if not imported */
+  Index import_index; /* or INVALID_INDEX if not imported */
 };
-WABT_DEFINE_VECTOR(interpreter_global, InterpreterGlobal);
 
-struct InterpreterImport {
+struct Import {
+  Import();
+  Import(Import&&);
+  Import& operator=(Import&&);
+  ~Import();
+
   StringSlice module_name;
   StringSlice field_name;
   ExternalKind kind;
   union {
     struct {
-      uint32_t sig_index;
+      Index sig_index;
     } func;
     struct {
       Limits limits;
@@ -160,175 +181,325 @@ struct InterpreterImport {
     } global;
   };
 };
-WABT_DEFINE_ARRAY(interpreter_import, InterpreterImport);
 
-struct InterpreterFunc;
+struct Func;
 
-typedef Result (*InterpreterHostFuncCallback)(
-    const struct InterpreterFunc* func,
-    const InterpreterFuncSignature* sig,
-    uint32_t num_args,
-    InterpreterTypedValue* args,
-    uint32_t num_results,
-    InterpreterTypedValue* out_results,
-    void* user_data);
+typedef Result (*HostFuncCallback)(const struct HostFunc* func,
+                                   const FuncSignature* sig,
+                                   Index num_args,
+                                   TypedValue* args,
+                                   Index num_results,
+                                   TypedValue* out_results,
+                                   void* user_data);
 
-struct InterpreterFunc {
-  uint32_t sig_index;
+struct Func {
+  WABT_DISALLOW_COPY_AND_ASSIGN(Func);
+  Func(Index sig_index, bool is_host)
+      : sig_index(sig_index), is_host(is_host) {}
+  virtual ~Func() {}
+
+  inline struct DefinedFunc* as_defined();
+  inline struct HostFunc* as_host();
+
+  Index sig_index;
   bool is_host;
-  union {
-    struct {
-      uint32_t offset;
-      uint32_t local_decl_count;
-      uint32_t local_count;
-      TypeVector param_and_local_types;
-    } defined;
-    struct {
-      StringSlice module_name;
-      StringSlice field_name;
-      InterpreterHostFuncCallback callback;
-      void* user_data;
-    } host;
-  };
 };
-WABT_DEFINE_VECTOR(interpreter_func, InterpreterFunc);
 
-struct InterpreterExport {
-  StringSlice name; /* Owned by the export_bindings hash */
-  ExternalKind kind;
-  uint32_t index;
+struct DefinedFunc : Func {
+  DefinedFunc(Index sig_index)
+      : Func(sig_index, false),
+        offset(kInvalidIstreamOffset),
+        local_decl_count(0),
+        local_count(0) {}
+
+  IstreamOffset offset;
+  Index local_decl_count;
+  Index local_count;
+  std::vector<Type> param_and_local_types;
 };
-WABT_DEFINE_VECTOR(interpreter_export, InterpreterExport);
 
-struct PrintErrorCallback {
+struct HostFunc : Func {
+  HostFunc(const StringSlice& module_name,
+           const StringSlice& field_name,
+           Index sig_index)
+      : Func(sig_index, true),
+        module_name(module_name),
+        field_name(field_name) {}
+
+  StringSlice module_name;
+  StringSlice field_name;
+  HostFuncCallback callback;
   void* user_data;
-  void (*print_error)(const char* msg, void* user_data);
 };
 
-struct InterpreterHostImportDelegate {
-  void* user_data;
-  Result (*import_func)(InterpreterImport*,
-                        InterpreterFunc*,
-                        InterpreterFuncSignature*,
-                        PrintErrorCallback,
-                        void* user_data);
-  Result (*import_table)(InterpreterImport*,
-                         InterpreterTable*,
-                         PrintErrorCallback,
-                         void* user_data);
-  Result (*import_memory)(InterpreterImport*,
-                          InterpreterMemory*,
-                          PrintErrorCallback,
-                          void* user_data);
-  Result (*import_global)(InterpreterImport*,
-                          InterpreterGlobal*,
-                          PrintErrorCallback,
-                          void* user_data);
-};
+DefinedFunc* Func::as_defined() {
+  assert(!is_host);
+  return static_cast<DefinedFunc*>(this);
+}
 
-struct InterpreterModule {
+HostFunc* Func::as_host() {
+  assert(is_host);
+  return static_cast<HostFunc*>(this);
+}
+
+struct Export {
+  Export(const StringSlice& name, ExternalKind kind, Index index)
+      : name(name), kind(kind), index(index) {}
+  Export(Export&&);
+  Export& operator=(Export&&);
+  ~Export();
+
   StringSlice name;
-  InterpreterExportVector exports;
+  ExternalKind kind;
+  Index index;
+};
+
+class HostImportDelegate {
+ public:
+  typedef std::function<void(const char* msg)> ErrorCallback;
+
+  virtual ~HostImportDelegate() {}
+  virtual wabt::Result ImportFunc(Import*,
+                                  Func*,
+                                  FuncSignature*,
+                                  const ErrorCallback&) = 0;
+  virtual wabt::Result ImportTable(Import*, Table*, const ErrorCallback&) = 0;
+  virtual wabt::Result ImportMemory(Import*, Memory*, const ErrorCallback&) = 0;
+  virtual wabt::Result ImportGlobal(Import*, Global*, const ErrorCallback&) = 0;
+};
+
+struct Module {
+  WABT_DISALLOW_COPY_AND_ASSIGN(Module);
+  explicit Module(bool is_host);
+  Module(const StringSlice& name, bool is_host);
+  virtual ~Module();
+
+  inline struct DefinedModule* as_defined();
+  inline struct HostModule* as_host();
+
+  Export* GetExport(StringSlice name);
+
+  StringSlice name;
+  std::vector<Export> exports;
   BindingHash export_bindings;
-  uint32_t memory_index; /* INVALID_INDEX if not defined */
-  uint32_t table_index;  /* INVALID_INDEX if not defined */
+  Index memory_index; /* kInvalidIndex if not defined */
+  Index table_index;  /* kInvalidIndex if not defined */
   bool is_host;
-  union {
-    struct {
-      InterpreterImportArray imports;
-      uint32_t start_func_index; /* INVALID_INDEX if not defined */
-      size_t istream_start;
-      size_t istream_end;
-    } defined;
-    struct {
-      InterpreterHostImportDelegate import_delegate;
-    } host;
+};
+
+struct DefinedModule : Module {
+  DefinedModule();
+
+  std::vector<Import> imports;
+  Index start_func_index; /* kInvalidIndex if not defined */
+  IstreamOffset istream_start;
+  IstreamOffset istream_end;
+};
+
+struct HostModule : Module {
+  explicit HostModule(const StringSlice& name);
+
+  std::unique_ptr<HostImportDelegate> import_delegate;
+};
+
+DefinedModule* Module::as_defined() {
+  assert(!is_host);
+  return static_cast<DefinedModule*>(this);
+}
+
+HostModule* Module::as_host() {
+  assert(is_host);
+  return static_cast<HostModule*>(this);
+}
+
+class Environment {
+ public:
+  // Used to track and reset the state of the environment.
+  struct MarkPoint {
+    size_t modules_size = 0;
+    size_t sigs_size = 0;
+    size_t funcs_size = 0;
+    size_t memories_size = 0;
+    size_t tables_size = 0;
+    size_t globals_size = 0;
+    size_t istream_size = 0;
   };
+
+  Environment();
+
+  OutputBuffer& istream() { return *istream_; }
+  void SetIstream(std::unique_ptr<OutputBuffer> istream) {
+    istream_ = std::move(istream);
+  }
+  std::unique_ptr<OutputBuffer> ReleaseIstream() { return std::move(istream_); }
+
+  Index GetFuncSignatureCount() const { return sigs_.size(); }
+  Index GetFuncCount() const { return funcs_.size(); }
+  Index GetGlobalCount() const { return globals_.size(); }
+  Index GetMemoryCount() const { return memories_.size(); }
+  Index GetTableCount() const { return tables_.size(); }
+  Index GetModuleCount() const { return modules_.size(); }
+
+  Index GetLastModuleIndex() const {
+    return modules_.empty() ? kInvalidIndex : modules_.size() - 1;
+  }
+  Index FindModuleIndex(StringSlice name) const;
+
+  FuncSignature* GetFuncSignature(Index index) { return &sigs_[index]; }
+  Func* GetFunc(Index index) {
+    assert(index < funcs_.size());
+    return funcs_[index].get();
+  }
+  Global* GetGlobal(Index index) {
+    assert(index < globals_.size());
+    return &globals_[index];
+  }
+  Memory* GetMemory(Index index) {
+    assert(index < memories_.size());
+    return &memories_[index];
+  }
+  Table* GetTable(Index index) {
+    assert(index < tables_.size());
+    return &tables_[index];
+  }
+  Module* GetModule(Index index) {
+    assert(index < modules_.size());
+    return modules_[index].get();
+  }
+
+  Module* GetLastModule() {
+    return modules_.empty() ? nullptr : modules_.back().get();
+  }
+  Module* FindModule(StringSlice name);
+  Module* FindRegisteredModule(StringSlice name);
+
+  template <typename... Args>
+  FuncSignature* EmplaceBackFuncSignature(Args&&... args) {
+    sigs_.emplace_back(args...);
+    return &sigs_.back();
+  }
+
+  template <typename... Args>
+  Func* EmplaceBackFunc(Args&&... args) {
+    funcs_.emplace_back(args...);
+    return funcs_.back().get();
+  }
+
+  template <typename... Args>
+  Global* EmplaceBackGlobal(Args&&... args) {
+    globals_.emplace_back(args...);
+    return &globals_.back();
+  }
+
+  template <typename... Args>
+  Table* EmplaceBackTable(Args&&... args) {
+    tables_.emplace_back(args...);
+    return &tables_.back();
+  }
+
+  template <typename... Args>
+  Memory* EmplaceBackMemory(Args&&... args) {
+    memories_.emplace_back(args...);
+    return &memories_.back();
+  }
+
+  template <typename... Args>
+  Module* EmplaceBackModule(Args&&... args) {
+    modules_.emplace_back(args...);
+    return modules_.back().get();
+  }
+
+  template <typename... Args>
+  void EmplaceModuleBinding(Args&&... args) {
+    module_bindings_.emplace(args...);
+  }
+
+  template <typename... Args>
+  void EmplaceRegisteredModuleBinding(Args&&... args) {
+    registered_module_bindings_.emplace(args...);
+  }
+
+  HostModule* AppendHostModule(StringSlice name);
+
+  bool FuncSignaturesAreEqual(Index sig_index_0, Index sig_index_1) const;
+
+  MarkPoint Mark();
+  void ResetToMarkPoint(const MarkPoint&);
+
+  void Disassemble(Stream* stream, IstreamOffset from, IstreamOffset to);
+  void DisassembleModule(Stream* stream, Module*);
+
+ private:
+  friend class Thread;
+
+  std::vector<std::unique_ptr<Module>> modules_;
+  std::vector<FuncSignature> sigs_;
+  std::vector<std::unique_ptr<Func>> funcs_;
+  std::vector<Memory> memories_;
+  std::vector<Table> tables_;
+  std::vector<Global> globals_;
+  std::unique_ptr<OutputBuffer> istream_;
+  BindingHash module_bindings_;
+  BindingHash registered_module_bindings_;
 };
-WABT_DEFINE_VECTOR(interpreter_module, InterpreterModule);
 
-/* Used to track and reset the state of the environment. */
-struct InterpreterEnvironmentMark {
-  size_t modules_size;
-  size_t sigs_size;
-  size_t funcs_size;
-  size_t memories_size;
-  size_t tables_size;
-  size_t globals_size;
-  size_t istream_size;
+class Thread {
+ public:
+  struct Options {
+    static const uint32_t kDefaultValueStackSize = 512 * 1024 / sizeof(Value);
+    static const uint32_t kDefaultCallStackSize = 64 * 1024;
+
+    explicit Options(uint32_t value_stack_size = kDefaultValueStackSize,
+                     uint32_t call_stack_size = kDefaultCallStackSize,
+                     IstreamOffset pc = kInvalidIstreamOffset);
+
+    uint32_t value_stack_size;
+    uint32_t call_stack_size;
+    IstreamOffset pc;
+  };
+
+  explicit Thread(Environment*, const Options& = Options());
+
+  Environment* env() { return env_; }
+
+  Result RunFunction(Index func_index,
+                     const std::vector<TypedValue>& args,
+                     std::vector<TypedValue>* out_results);
+
+  Result TraceFunction(Index func_index,
+                       Stream*,
+                       const std::vector<TypedValue>& args,
+                       std::vector<TypedValue>* out_results);
+
+ private:
+  Result PushValue(Value);
+  Result PushArgs(const FuncSignature*, const std::vector<TypedValue>& args);
+  void CopyResults(const FuncSignature*, std::vector<TypedValue>* out_results);
+
+  Result Run(int num_instructions, IstreamOffset* call_stack_return_top);
+  void Trace(Stream*);
+
+  Result RunDefinedFunction(IstreamOffset);
+  Result TraceDefinedFunction(IstreamOffset, Stream*);
+
+  Result CallHost(HostFunc*);
+
+  Environment* env_;
+  std::vector<Value> value_stack_;
+  std::vector<IstreamOffset> call_stack_;
+  Value* value_stack_top_;
+  Value* value_stack_end_;
+  IstreamOffset* call_stack_top_;
+  IstreamOffset* call_stack_end_;
+  IstreamOffset pc_;
 };
 
-struct InterpreterEnvironment {
-  InterpreterModuleVector modules;
-  InterpreterFuncSignatureVector sigs;
-  InterpreterFuncVector funcs;
-  InterpreterMemoryVector memories;
-  InterpreterTableVector tables;
-  InterpreterGlobalVector globals;
-  OutputBuffer istream;
-  BindingHash module_bindings;
-  BindingHash registered_module_bindings;
-};
+bool is_canonical_nan_f32(uint32_t f32_bits);
+bool is_canonical_nan_f64(uint64_t f64_bits);
+bool is_arithmetic_nan_f32(uint32_t f32_bits);
+bool is_arithmetic_nan_f64(uint64_t f64_bits);
 
-struct InterpreterThread {
-  InterpreterEnvironment* env;
-  InterpreterValueArray value_stack;
-  Uint32Array call_stack;
-  InterpreterValue* value_stack_top;
-  InterpreterValue* value_stack_end;
-  uint32_t* call_stack_top;
-  uint32_t* call_stack_end;
-  uint32_t pc;
-
-  /* a temporary buffer that is for passing args to host functions */
-  InterpreterTypedValueVector host_args;
-};
-
-#define WABT_INTERPRETER_THREAD_OPTIONS_DEFAULT \
-  { 512 * 1024 / sizeof(InterpreterValue), 64 * 1024, WABT_INVALID_OFFSET }
-
-struct InterpreterThreadOptions {
-  uint32_t value_stack_size;
-  uint32_t call_stack_size;
-  uint32_t pc;
-};
-
-bool is_nan_f32(uint32_t f32_bits);
-bool is_nan_f64(uint64_t f64_bits);
-bool func_signatures_are_equal(InterpreterEnvironment* env,
-                               uint32_t sig_index_0,
-                               uint32_t sig_index_1);
-
-void init_interpreter_environment(InterpreterEnvironment* env);
-void destroy_interpreter_environment(InterpreterEnvironment* env);
-InterpreterEnvironmentMark mark_interpreter_environment(
-    InterpreterEnvironment* env);
-void reset_interpreter_environment_to_mark(InterpreterEnvironment* env,
-                                           InterpreterEnvironmentMark mark);
-InterpreterModule* append_host_module(InterpreterEnvironment* env,
-                                      StringSlice name);
-void init_interpreter_thread(InterpreterEnvironment* env,
-                             InterpreterThread* thread,
-                             InterpreterThreadOptions* options);
-InterpreterResult push_thread_value(InterpreterThread* thread,
-                                    InterpreterValue value);
-void destroy_interpreter_thread(InterpreterThread* thread);
-InterpreterResult call_host(InterpreterThread* thread, InterpreterFunc* func);
-InterpreterResult run_interpreter(InterpreterThread* thread,
-                                  uint32_t num_instructions,
-                                  uint32_t* call_stack_return_top);
-void trace_pc(InterpreterThread* thread, struct Stream* stream);
-void disassemble(InterpreterEnvironment* env,
-                 struct Stream* stream,
-                 uint32_t from,
-                 uint32_t to);
-void disassemble_module(InterpreterEnvironment* env,
-                        struct Stream* stream,
-                        InterpreterModule* module);
-
-InterpreterExport* get_interpreter_export_by_name(InterpreterModule* module,
-                                                  const StringSlice* name);
-
+}  // namespace interpreter
 }  // namespace wabt
 
 #endif /* WABT_INTERPRETER_H_ */

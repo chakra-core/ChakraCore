@@ -1076,12 +1076,6 @@ typedef struct _SYSTEMTIME {
 } SYSTEMTIME, *PSYSTEMTIME, *LPSYSTEMTIME;
 
 PALIMPORT
-VOID
-PALAPI
-GetSystemTime(
-          OUT LPSYSTEMTIME lpSystemTime);
-
-PALIMPORT
 BOOL
 PALAPI
 FileTimeToSystemTime(
@@ -3788,7 +3782,18 @@ GetStringTypeExW(
 #define NORM_IGNORESYMBOLS        0x00000004  // ignore symbols
 #define NORM_IGNOREKANATYPE       0x00010000  // ignore kanatype
 #define SORT_STRINGSORT           0x00001000  // use string sort method
+#else // LINUX
+// Flags with no value on a given platform are given 0 so that program logic can be unaltered (a|0==a)
+#define NORM_IGNORENONSPACE       0x00000000  // ignore nonspacing chars
+#define NORM_IGNORESYMBOLS        0x00000000  // ignore symbols
+#define NORM_IGNOREKANATYPE       0x00000000  // ignore kanatype
+#define SORT_STRINGSORT           0x00000000  // use string sort method
 #endif // __APPLE__
+// __APPLE__ and LINUX
+// Flags with no value on a given platform are given 0 so that program logic can be unaltered (a|0==a)
+#define LINGUISTIC_IGNOREDIACRITIC 0x00000000  // linguistically appropriate 'ignore case'
+#define LINGUISTIC_IGNORECASE     0x00000000  // linguistically appropriate 'ignore nonspace'
+#define SORT_DIGITSASNUMBERS      0x00000000  // Sort digits as numbers (ie: 2 comes before 10)
 
 
 typedef struct nlsversioninfo {
@@ -6238,6 +6243,11 @@ inline WCHAR *PAL_wcsstr(WCHAR *_S, const WCHAR *_P)
 }
 #endif
 
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
+#if !__has_builtin(_rotl)
 /*++
 Function:
 _rotl
@@ -6255,12 +6265,14 @@ unsigned int __cdecl _rotl(unsigned int value, int shift)
     retval = (value << shift) | (value >> (sizeof(int) * CHAR_BIT - shift));
     return retval;
 }
+#endif
 
 // On 64 bit unix, make the long an int.
 #ifdef BIT64
 #define _lrotl _rotl
 #endif // BIT64
 
+#if !__has_builtin(_rotl64)
 /*++
 Function:
 _rotl64
@@ -6278,7 +6290,9 @@ unsigned long long __cdecl _rotl64(unsigned long long value, int shift)
     retval = (value << shift) | (value >> (sizeof(unsigned long long) * CHAR_BIT - shift));
     return retval;
 }
+#endif
 
+#if !__has_builtin(_rotr)
 /*++
 Function:
 _rotr
@@ -6296,7 +6310,9 @@ unsigned int __cdecl _rotr(unsigned int value, int shift)
     retval = (value >> shift) | (value << (sizeof(int) * CHAR_BIT - shift));
     return retval;
 }
+#endif
 
+#if !__has_builtin(_rotr64)
 /*++
 Function:
 _rotr64
@@ -6314,6 +6330,7 @@ unsigned long long __cdecl _rotr64(unsigned long long value, int shift)
     retval = (value >> shift) | (value << (sizeof(unsigned long long) * CHAR_BIT - shift));
     return retval;
 }
+#endif
 
 PALIMPORT int __cdecl abs(int);
 PALIMPORT double __cdecl fabs(double);
@@ -6872,6 +6889,8 @@ ULONG_PTR __stdcall GetCurrentSP();
 
 #ifdef  __cplusplus
 }
+
+#include "CCSpinLock.hpp"
 #endif
 
 #endif // __PAL_H__

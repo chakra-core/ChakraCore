@@ -92,17 +92,24 @@ bool ThreadContextTLSEntry::TrySetThreadContext(ThreadContext * threadContext)
         ENTRY_FOR_CURRENT_THREAD() = entry;
 #endif
     }
-    else if (entry->threadContext != NULL && entry->threadContext != threadContext)
+    else if (entry->threadContext != NULL)
     {
-        // If the thread has an active thread context and either that thread context is thread
-        // bound (in which case it cannot be moved off this thread), or if the thread context
-        // is running script, you cannot move it off this thread.
-        if (entry->threadContext->IsThreadBound() || entry->threadContext->IsInScript())
+        if (entry->threadContext == threadContext)
         {
-            return false;
+            return true;
         }
+        else
+        {
+            // If the thread has an active thread context and either that thread context is thread
+            // bound (in which case it cannot be moved off this thread), or if the thread context
+            // is running script, you cannot move it off this thread.
+            if (entry->threadContext->IsThreadBound() || entry->threadContext->IsInScript())
+            {
+                return false;
+            }
 
-        ClearThreadContext(entry, true);
+            ClearThreadContext(entry, true);
+        }
     }
 
     SetThreadContext(entry, threadContext);

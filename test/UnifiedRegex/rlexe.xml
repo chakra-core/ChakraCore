@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -24,7 +24,7 @@
       <files>bugFixRegression.js</files>
       <baseline>bugFixRegression.baseline</baseline>
       <compile-flags>-forceSerialized</compile-flags>
-      <tags>exclude_ship,exclude_serialized,Slow</tags>
+      <tags>exclude_serialized,Slow</tags>
     </default>
   </test>
   <test>

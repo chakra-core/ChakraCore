@@ -11,5 +11,11 @@ const char *const RejitReasonNames[] =
     #include "RejitReasons.h"
     #undef REJIT_REASON
 };
+const char* const GetRejitReasonName(RejitReason reason)
+{
+    byte reasonIndex = static_cast<byte>(reason);
+    Assert(reasonIndex < NumRejitReasons);
+    return RejitReasonNames[reasonIndex];
+}
 
 const uint NumRejitReasons = _countof(RejitReasonNames);

@@ -226,11 +226,13 @@ ServerScriptContext::GetRecyclerAllowNativeCodeBumpAllocation() const
     return m_contextData.recyclerAllowNativeCodeBumpAllocation != 0;
 }
 
+#ifdef ENABLE_SIMDJS
 bool
 ServerScriptContext::IsSIMDEnabled() const
 {
     return m_contextData.isSIMDEnabled != 0;
 }
+#endif
 
 intptr_t
 ServerScriptContext::GetBuiltinFunctionsBaseAddr() const
@@ -333,13 +335,12 @@ ServerScriptContext::GetEmitBufferManager(bool asmJsManager)
 IR::JnHelperMethod
 ServerScriptContext::GetDOMFastPathHelper(intptr_t funcInfoAddr)
 {
-    IR::JnHelperMethod helper;
+    IR::JnHelperMethod helper = IR::HelperInvalid;
 
     m_domFastPathHelperMap->LockResize();
-    bool found = m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
+    m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
     m_domFastPathHelperMap->UnlockResize();
 
-    Assert(found);
     return helper;
 }
 

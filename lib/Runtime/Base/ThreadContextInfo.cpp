@@ -5,6 +5,11 @@
 
 #include "RuntimeBasePch.h"
 
+// Originally defined in ntstatus.h, define here because including windows.h (via PCH
+// above) with ntstatus.h causes macro redefinition errors for the common errors defined
+// in both header files.
+#define STATUS_PROCESS_IS_TERMINATING    ((NTSTATUS)0xC000010AL)
+
 #if ENABLE_NATIVE_CODEGEN
 #include "CodeGenAllocators.h"
 #include "ServerThreadContext.h"
@@ -12,9 +17,12 @@
 
 ThreadContextInfo::ThreadContextInfo() :
     m_isAllJITCodeInPreReservedRegion(true),
-    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined),
     m_isClosed(false)
 {
+    for (int i = 0; i <= WellKnownHostType_Last; ++i)
+    {
+        wellKnownHostTypeIds[i] = Js::TypeIds_Undefined;
+    }
 }
 
 #if ENABLE_NATIVE_CODEGEN
@@ -418,6 +426,15 @@ ThreadContextInfo::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetV
     {
         AssertMsg(IS_16BYTE_ALIGNED(callTargetAddress), "callTargetAddress is not 16-byte page aligned?");
 
+        // If SetProcessValidCallTargets is not allowed by global policy (e.g.
+        // OOP JIT is in use in the client), then generate a fast fail
+        // exception as state has been corrupted and attempt is being made to
+        // illegally call SetProcessValidCallTargets.
+        if (!GlobalSecurityPolicy::IsSetProcessValidCallTargetsAllowed())
+        {
+            RaiseFailFastException(nullptr, nullptr, FAIL_FAST_GENERATE_EXCEPTION_ADDRESS);
+        }
+
         PVOID startAddressOfPage = (PVOID)(PAGE_START_ADDR(callTargetAddress));
         size_t codeOffset = OFFSET_ADDR_WITHIN_PAGE(callTargetAddress);
 
@@ -433,10 +450,17 @@ ThreadContextInfo::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetV
 
         if (!isCallTargetRegistrationSucceed)
         {
-            if (GetLastError() == ERROR_COMMITMENT_LIMIT)
+            DWORD gle = GetLastError();
+            if (gle == ERROR_COMMITMENT_LIMIT)
             {
                 //Throw OOM, if there is not enough virtual memory for paging (required for CFG BitMap)
                 Js::Throw::OutOfMemory();
+            }
+            else if (gle == STATUS_PROCESS_IS_TERMINATING)
+            {
+                // When this error is set, the target process is exiting and thus cannot proceed with
+                // JIT output. Throw this exception to safely abort this call.
+                throw Js::OperationAbortedException();
             }
             else
             {

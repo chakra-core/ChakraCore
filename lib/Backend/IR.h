@@ -275,13 +275,14 @@ public:
     static Instr*   FindSingleDefInstr(Js::OpCode opCode, Opnd* src);
 
     BranchInstr *   ChangeCmCCToBranchInstr(LabelInstr *targetInstr);
-
     static void     MoveRangeAfter(Instr * instrStart, Instr * instrLast, Instr * instrAfter);
     static IR::Instr * CloneRange(Instr * instrStart, Instr * instrLast, Instr * instrInsert, Lowerer *lowerer, JitArenaAllocator *alloc, bool (*fMapTest)(IR::Instr*), bool clonedInstrGetOrigArgSlot);
 
     bool            CanHaveArgOutChain() const;
     bool            HasEmptyArgOutChain(IR::Instr** startCallInstrOut = nullptr);
     bool            HasFixedFunctionAddressTarget() const;
+    // Return whether the instruction transfer value from the src to the dst for copy prop
+    bool            TransfersSrcValue();
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     const char *    GetBailOutKindName() const;
@@ -330,9 +331,10 @@ public:
     bool            IsCmCC_A();
     bool            IsCmCC_R8();
     bool            IsCmCC_I4();
+    bool            IsNeq();
     bool            BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult);
     template <typename T>     
-    bool            BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult);
+    bool            BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult, bool checkWouldTrap);
     bool            UnaryCalculator(IntConstType src1Const, IntConstType *pResult);
     IR::Instr*      GetNextArg();
 
@@ -432,9 +434,9 @@ public:
     FixedFieldInfo* GetFixedFunction() const;
     uint       GetArgOutCount(bool getInterpreterArgOutCount);
     IR::PropertySymOpnd *GetPropertySymOpnd() const;
-    bool       CallsAccessor(IR::PropertySymOpnd* methodOpnd = nullptr);
-    bool       CallsGetter(IR::PropertySymOpnd* methodOpnd = nullptr);
-    bool       CallsSetter(IR::PropertySymOpnd* methodOpnd = nullptr);
+    bool       CallsAccessor(IR::PropertySymOpnd * methodOpnd = nullptr);
+    bool       CallsGetter();
+    bool       CallsSetter();
     bool       UsesAllFields();
     void       MoveArgs(bool generateByteCodeCapture = false);
     void       Move(IR::Instr* insertInstr);
@@ -470,6 +472,7 @@ public:
     Js::OpCode      m_opcode;
     uint8           ignoreOverflowBitCount;      // Number of bits after which ovf matters. Currently used for MULs.
 
+    bool            isFsBased : 1; // TEMP : just for BS testing
     bool            dstIsTempNumber : 1;
     bool            dstIsTempNumberTransferred : 1;
     bool            dstIsTempObject : 1;
@@ -733,9 +736,12 @@ public:
     bool                 m_isAirlock : 1;
     bool                 m_isSwitchBr : 1;
     bool                 m_isOrphanedLeave : 1; // A Leave in a loop body in a try, most likely generated because of a return statement.
+    bool                 m_areCmpRegisterFlagsUsedLater : 1; // Indicate that this branch is not the only instr using the register flags set by cmp
+    bool                 m_brFinallyToEarlyExit : 1; // BrOnException from finally to early exit, can be turned into BrOnNoException on break blocks removal
 #if DBG
     bool                 m_isMultiBranch;
     bool                 m_isHelperToNonHelperBranch;
+    bool                 m_leaveConvToBr;
 #endif
 
 public:
@@ -744,10 +750,11 @@ public:
     static BranchInstr * New(Js::OpCode opcode, Opnd* destOpnd, LabelInstr * branchTarget, Opnd *srcOpnd, Func *func);
     static BranchInstr * New(Js::OpCode opcode, LabelInstr * branchTarget, Opnd *src1Opnd, Opnd *src2Opnd, Func *func);
 
-    BranchInstr(bool hasBailOutInfo = false) : Instr(hasBailOutInfo), m_branchTarget(nullptr), m_isAirlock(false), m_isSwitchBr(false), m_isOrphanedLeave(false)
+    BranchInstr(bool hasBailOutInfo = false) : Instr(hasBailOutInfo), m_branchTarget(nullptr), m_isAirlock(false), m_isSwitchBr(false), m_isOrphanedLeave(false), m_areCmpRegisterFlagsUsedLater(false), m_brFinallyToEarlyExit(false)
     {
 #if DBG
         m_isMultiBranch = false;
+        m_leaveConvToBr = false;
 #endif
     }
 

@@ -81,7 +81,7 @@ function runtest()
     foo();
 }
 
-if (this.WScript && this.WScript.Arguments && this.WScript.LoadScriptFile("TrimStackTracePath.js"))
+if (this.WScript && this.WScript.Arguments && this.WScript.LoadScriptFile("../UnitTestFramework/TrimStackTracePath.js"))
 {
     if (this.WScript.Arguments[0] == "runTest")
     {

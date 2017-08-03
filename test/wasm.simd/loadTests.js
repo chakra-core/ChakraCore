@@ -43,7 +43,8 @@ function testLoadOpsForType(funcname, module, laneValues, expectedResults, start
         catch (e) {
             if (e.message === "Access index is out of range" || 
                 e.message === "Simd typed array access: argument out of range" ||
-                e.message === "argument out of range"
+                e.message === "argument out of range" ||
+                e.message === "Memory index is out of range"
             ) {
                 result = "Access index is out of range";
             }

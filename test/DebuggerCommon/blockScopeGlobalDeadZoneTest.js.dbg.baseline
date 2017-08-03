@@ -2,18 +2,12 @@
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "a": "undefined undefined"
     }
   },
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "a": "number 0"
     }
   },
@@ -21,9 +15,6 @@
     "this": "Object {...}",
     "locals": {
       "b": "number 1",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "a": "number 0"
     }
   },
@@ -32,9 +23,6 @@
     "locals": {
       "b": "number 1",
       "c": "number 2",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "a": "number 0"
     }
   }

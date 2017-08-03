@@ -64,8 +64,9 @@ public:
         , m_ldSlots(nullptr)
         , m_loopCounterSym(nullptr)
         , callTreeHasSomeProfileInfo(false)
+        , finallyBlockLevel(0)
         , m_saveLoopImplicitCallFlags(nullptr)
-        , catchOffsetStack(nullptr)
+        , handlerOffsetStack(nullptr)
         , m_switchAdapter(this)
         , m_switchBuilder(&m_switchAdapter)
         , m_stackFuncPtrSym(nullptr)
@@ -323,7 +324,8 @@ private:
     Js::StatementReader<Js::FunctionBody::ArenaStatementMapList> m_statementReader;
     SList<IR::Instr *> *m_argStack;
     SList<BranchReloc*> *branchRelocList;
-    SList<uint>         *catchOffsetStack;
+    typedef Pair<uint, bool> handlerStackElementType;
+    SList<handlerStackElementType>         *handlerOffsetStack;
     SymID *             tempMap;
     BVFixed *           fbvTempUsed;
     Js::RegSlot         firstTemp;
@@ -339,6 +341,7 @@ private:
     StackSym*           m_loopCounterSym;
     StackSym *          m_stackFuncPtrSym;
     bool                callTreeHasSomeProfileInfo;
+    uint                finallyBlockLevel;
 
     // Keep track of how many args we have on the stack whenever
     // we make a call so that the max stack used over all calls can be

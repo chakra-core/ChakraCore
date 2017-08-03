@@ -16,7 +16,14 @@
 
 'use strict';
 
-// WPT's assert_throw uses a list of predefined, hardcoded know errors. Since
+let testNum = (function() {
+    let count = 1;
+    return function() {
+        return `#${count++} `;
+    }
+})();
+
+// WPT's assert_throw uses a list of predefined, hardcoded known errors. Since
 // it is not aware of the WebAssembly error types (yet), implement our own
 // version.
 function assertThrows(func, err) {
@@ -27,7 +34,7 @@ function assertThrows(func, err) {
         assert_true(e instanceof err, `expected ${err.name}, observed ${e.constructor.name}`);
         caught = true;
     }
-    assert_true(caught, "assertThrows must catch any error.")
+    assert_true(caught, testNum() + "assertThrows must catch any error.")
 }
 
 /******************************************************************************
@@ -126,8 +133,12 @@ function module(bytes, valid = true) {
     return module;
 }
 
+function uniqueTest(func, desc) {
+    test(func, testNum() + desc);
+}
+
 function assert_invalid(bytes) {
-    test(() => {
+    uniqueTest(() => {
         try {
             module(bytes, /* valid */ false);
             throw new Error('did not fail');
@@ -140,7 +151,7 @@ function assert_invalid(bytes) {
 const assert_malformed = assert_invalid;
 
 function assert_soft_invalid(bytes) {
-    test(() => {
+    uniqueTest(() => {
         try {
             module(bytes, /* valid */ soft_validate);
             if (soft_validate)
@@ -170,10 +181,10 @@ function instance(bytes, imports = registry, valid = true) {
     }
 
     if (valid) {
-        test(() => {
-            let instanciated = err === null;
-            assert_true(instanciated, err);
-        }, "module successfully instanciated");
+        uniqueTest(() => {
+            let instantiated = err === null;
+            assert_true(instantiated, err);
+        }, "module successfully instantiated");
     }
 
     return err !== null ? ErrorResult(err) : ValueResult(i);
@@ -228,7 +239,7 @@ function run(action) {
 
     _assert(result instanceof Result);
 
-    test(() => {
+    uniqueTest(() => {
         if (result.isError())
             throw result.value;
     }, "A wast test that runs without any special assertion.");
@@ -239,7 +250,7 @@ function assert_unlinkable(bytes) {
 
     _assert(result instanceof Result);
 
-    test(() => {
+    uniqueTest(() => {
         assert_true(result.isError(), 'expected error result');
         if (result.isError()) {
             let e = result.value;
@@ -253,7 +264,7 @@ function assert_uninstantiable(bytes) {
 
     _assert(result instanceof Result);
 
-    test(() => {
+    uniqueTest(() => {
         assert_true(result.isError(), 'expected error result');
         if (result.isError()) {
             let e = result.value;
@@ -267,7 +278,7 @@ function assert_trap(action) {
 
     _assert(result instanceof Result);
 
-    test(() => {
+    uniqueTest(() => {
         assert_true(result.isError(), 'expected error result');
         if (result.isError()) {
             let e = result.value;
@@ -284,7 +295,7 @@ function assert_exhaustion(action) {
 
     _assert(result instanceof Result);
 
-    test(() => {
+    uniqueTest(() => {
         assert_true(result.isError(), 'expected error result');
         if (result.isError()) {
             let e = result.value;
@@ -304,7 +315,7 @@ function assert_return(action, expected) {
 
     _assert(result instanceof Result);
 
-    test(() => {
+    uniqueTest(() => {
         assert_true(!result.isError(), `expected success result, got: ${result.value}.`);
         if (!result.isError()) {
             assert_equals(result.value, expected);
@@ -317,7 +328,7 @@ function assert_return_nan(action) {
 
     _assert(result instanceof Result);
 
-    test(() => {
+    uniqueTest(() => {
         assert_true(!result.isError(), 'expected success result');
         if (!result.isError()) {
             assert_true(Number.isNaN(result.value), `expected NaN, observed ${result.value}.`);

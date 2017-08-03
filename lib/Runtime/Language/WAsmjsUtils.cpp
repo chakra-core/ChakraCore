@@ -17,43 +17,97 @@ template<> Types RegisterSpace::GetRegisterSpaceType<double>(){return WAsmJs::FL
 template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WAsmJs::SIMD;}
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    void TraceAsmJsArgsIn(Js::Var function, int n, ...)
+    namespace Tracing
     {
-        Assert(Js::AsmJsScriptFunction::Is(function));
-        Js::AsmJsScriptFunction* asmFunction = (Js::AsmJsScriptFunction*)function;
-        va_list argptr;
-        va_start(argptr, n);
-
-        Output::Print(_u("Executing function %s("), asmFunction->GetFunctionBody()->GetDisplayName());
-        for (int i = 0; i < n ; i++)
+        // This can be broken if exception are thrown from wasm frames
+        int callDepth = 0;
+        int GetPrintCol()
         {
-            IRType type = (IRType)va_arg(argptr, int32);
-            switch (type)
+            return callDepth;
+        }
+
+        void PrintArgSeparator()
+        {
+            Output::Print(_u(", "));
+        }
+
+        void PrintBeginCall()
+        {
+            ++callDepth;
+            Output::Print(_u(") {\n"));
+        }
+
+        void PrintNewLine()
+        {
+            Output::Print(_u("\n"));
+        }
+
+        void PrintEndCall(int hasReturn)
+        {
+            callDepth = callDepth > 0 ? callDepth - 1 : 0;
+            Output::Print(_u("%*s}"), GetPrintCol(), _u(""));
+            if (hasReturn)
             {
-            case TyInt32:
-            case TyUint32:
-                Output::Print(_u("%d, "), va_arg(argptr, int32));
-                break;
-            case TyInt64:
-            case TyUint64:
-                Output::Print(_u("%lld, "), va_arg(argptr, int64));
-                break;
-            case TyFloat32:
-            {
-                int v = va_arg(argptr, int);
-                Output::Print(_u("%.2f, "), *(float*)v);
-                break;
-            }
-            case TyFloat64:
-                Output::Print(_u("%.2f, "), va_arg(argptr, double));
-                break;
-            default:
-                break;
+                Output::Print(_u(" = "));
             }
         }
-        Output::Print(_u("){\n"));
+
+        int PrintI32(int val)
+        {
+            Output::Print(_u("%d"), val);
+            return val;
+        }
+
+        int64 PrintI64(int64 val)
+        {
+            Output::Print(_u("%lld"), val);
+            return val;
+        }
+
+        float PrintF32(float val)
+        {
+            Output::Print(_u("%.4f"), val);
+            return val;
+        }
+
+        double PrintF64(double val)
+        {
+            Output::Print(_u("%.4f"), val);
+            return val;
+        }
     }
 #endif
+    void JitFunctionIfReady(Js::ScriptFunction* func, uint interpretedCount /*= 0*/)
+    {
+#if ENABLE_NATIVE_CODEGEN
+        Js::FunctionBody* body = func->GetFunctionBody();
+        if (WAsmJs::ShouldJitFunction(body, interpretedCount))
+        {
+            if (PHASE_TRACE(Js::AsmjsEntryPointInfoPhase, body))
+            {
+                Output::Print(_u("Scheduling %s For Full JIT at callcount:%d\n"), body->GetDisplayName(), interpretedCount);
+            }
+            GenerateFunction(body->GetScriptContext()->GetNativeCodeGenerator(), body, func);
+            body->SetIsAsmJsFullJitScheduled(true);
+        }
+#endif
+    }
+
+    bool ShouldJitFunction(Js::FunctionBody* body, uint interpretedCount)
+    {
+#if ENABLE_NATIVE_CODEGEN
+        const bool noJit = PHASE_OFF(Js::BackEndPhase, body) ||
+            PHASE_OFF(Js::FullJitPhase, body) ||
+            body->GetScriptContext()->GetConfig()->IsNoNative() ||
+            body->GetIsAsmJsFullJitScheduled();
+        const bool forceNative = CONFIG_ISENABLED(Js::ForceNativeFlag);
+        const uint minAsmJsInterpretRunCount = (uint)CONFIG_FLAG(MinAsmJsInterpreterRunCount);
+        const uint maxAsmJsInterpretRunCount = (uint)CONFIG_FLAG(MaxAsmJsInterpreterRunCount);
+        return !noJit && (forceNative || interpretedCount >= minAsmJsInterpretRunCount || interpretedCount >= maxAsmJsInterpretRunCount);
+#else
+        return false;
+#endif
+    }
 
     uint32 ConvertOffset(uint32 ptr, uint32 fromSize, uint32 toSize)
     {

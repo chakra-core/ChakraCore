@@ -7,6 +7,9 @@ endif()
 if(CC_TARGETS_AMD64)
     set(wasm_objects $<TARGET_OBJECTS:Chakra.WasmReader>)
     set(wasm_includes ${CHAKRACORE_SOURCE_DIR}/lib/WasmReader)
+endif()
+
+if(CAN_BUILD_WABT)
     set(wabt_objects $<TARGET_OBJECTS:libwabt>)
     set(wabt_includes ${CHAKRACORE_SOURCE_DIR}/lib/wabt)
 endif()
@@ -79,5 +82,26 @@ if (CC_TARGETS_AMD64)
     set(BUILD_TESTS OFF)
     set(RUN_BISON OFF)
     set(RUN_RE2C OFF)
+endif()
+
+if(CAN_BUILD_WABT)
     add_subdirectory (wabt)
 endif()
+
+if(NOT CC_XCODE_PROJECT)
+    add_custom_command(TARGET ChakraCoreStatic POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/include"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/Jsrt/ChakraCore.h"
+            "${CMAKE_BINARY_DIR}/include"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/Jsrt/ChakraCommon.h"
+            "${CMAKE_BINARY_DIR}/include"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/Jsrt/ChakraDebug.h"
+            "${CMAKE_BINARY_DIR}/include"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/Common/ChakraCoreVersion.h"
+            "${CMAKE_BINARY_DIR}/include"
+    )
+endif(NOT CC_XCODE_PROJECT)

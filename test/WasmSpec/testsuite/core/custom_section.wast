@@ -1,4 +1,4 @@
-(module
+(module binary
   "\00asm" "\01\00\00\00"
   "\00\24\10" "a custom section" "this is the payload"
   "\00\20\10" "a custom section" "this is payload"
@@ -6,9 +6,12 @@
   "\00\10\00" "" "this is payload"
   "\00\01\00" "" ""
   "\00\24\10" "\00\00custom sectio\00" "this is the payload"
+  "\00\24\10" "\ef\bb\bfa custom sect" "this is the payload"
+  "\00\24\10" "a custom sect\e2\8c\a3" "this is the payload"
+  "\00\1f\16" "module within a module" "\00asm" "\01\00\00\00"
 )
 
-(module
+(module binary
   "\00asm" "\01\00\00\00"
   "\00\0e\06" "custom" "payload"
   "\00\0e\06" "custom" "payload"
@@ -44,7 +47,7 @@
   "\00\0e\06" "custom" "payload"
 )
 
-(module
+(module binary
   "\00asm" "\01\00\00\00"
   "\01\07\01\60\02\7f\7f\01\7f"                ;; type section
   "\00\1a\06" "custom" "this is the payload"   ;; custom section
@@ -55,7 +58,15 @@
 )
 
 (assert_malformed
-  (module
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\00"
+  )
+  "unexpected end"
+)
+
+(assert_malformed
+  (module binary
     "\00asm" "\01\00\00\00"
     "\00\00"
   )
@@ -63,7 +74,7 @@
 )
 
 (assert_malformed
-  (module
+  (module binary
     "\00asm" "\01\00\00\00"
     "\00\26\10" "a custom section" "this is the payload"
   )
@@ -71,7 +82,7 @@
 )
 
 (assert_malformed
-  (module
+  (module binary
     "\00asm" "\01\00\00\00"
     "\00\25\10" "a custom section" "this is the payload"
     "\00\24\10" "a custom section" "this is the payload"
@@ -80,7 +91,7 @@
 )
 
 (assert_malformed
-  (module
+  (module binary
     "\00asm" "\01\00\00\00"
     "\01\07\01\60\02\7f\7f\01\7f"                         ;; type section
     "\00\25\10" "a custom section" "this is the payload"  ;; invalid length!
@@ -89,4 +100,13 @@
     "\00\1b\07" "custom2" "this is the payload"           ;; custom section
   )
   "function and code section have inconsistent lengths"
+)
+
+;; Test concatenated modules.
+(assert_malformed
+  (module binary
+    "\00asm\01\00\00\00"
+    "\00asm\01\00\00\00"
+  )
+  "length out of bounds"
 )

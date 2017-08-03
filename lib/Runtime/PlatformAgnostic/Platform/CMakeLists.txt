@@ -2,11 +2,14 @@ project(CHAKRA_PLATFORM_AGNOSTIC)
 
 set(PL_SOURCE_FILES
   Common/UnicodeText.Common.cpp
+  Common/HiResTimer.cpp
+  Linux/EventTrace.cpp
   Linux/UnicodeText.ICU.cpp
-  Linux/HiResTimer.cpp
   Linux/NumbersUtility.cpp
   Linux/Thread.cpp
+  Linux/PerfTrace.cpp
   Common/Trace.cpp
+  Common/SystemInfo.Common.cpp
   )
 
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)

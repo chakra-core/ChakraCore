@@ -1,1 +1,3 @@
-linenumber2.js(88, 10) JavaScript runtime error: 'd' is undefined
+ReferenceError: 'd' is not defined
+   at Anonymous function (linenumber2.js:99:10)
+   at Global code (linenumber2.js:12:2)

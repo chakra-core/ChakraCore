@@ -122,6 +122,22 @@ enum LoadScriptFlag
     LoadScriptFlag_ExternalArrayBuffer = 0x100          // for ExternalArrayBuffer
 };
 
+#ifdef INLINE_CACHE_STATS
+// Used to store inline cache stats
+
+struct InlineCacheData
+{
+    uint hits;
+    uint misses;
+    uint collisions;
+    bool isGetCache;
+    Js::PropertyId propertyId;
+
+    InlineCacheData() : hits(0), misses(0), collisions(0), isGetCache(false), propertyId(Js::PropertyIds::_none) { }
+};
+
+#endif
+
 class HostScriptContext
 {
 public:
@@ -153,6 +169,7 @@ public:
     virtual HRESULT EnqueuePromiseTask(Js::Var varTask) = 0;
 
     virtual HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
+    virtual HRESULT FetchImportedModuleFromScript(DWORD_PTR dwReferencingSourceContext, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
     virtual HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) = 0;
 
     Js::ScriptContext* GetScriptContext() { return scriptContext; }
@@ -169,21 +186,32 @@ private:
 };
 
 #if ENABLE_TTD
+typedef void (CALLBACK *JsTTDOnScriptLoadCallback)(FinalizableObject* hostContext, Js::FunctionBody* body, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException, bool notify);
+typedef uint32 (CALLBACK *JsTTDOnBPRegisterCallback)(void* hostRuntime, int64 bpID, Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* utf8SourceInfo, uint32 line, uint32 column, BOOL* isNewBP);
+typedef void (CALLBACK *JsTTDOnBPDeleteCallback)(void* hostRuntime, uint32 bpID);
+typedef void (CALLBACK *JsTTDOnBPClearDocumentCallback)(void* hostRuntime);
+
 //A class that we use to pass in a functor from the host when we need to inform it about something we are doing
 class HostScriptContextCallbackFunctor
 {
 public:
-    FinalizableObject* HostData;
-    void(*pfOnScriptLoadCallback)(FinalizableObject* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+    FinalizableObject* HostContext;
+    void* HostRuntime;
+
+    JsTTDOnScriptLoadCallback pfOnScriptLoadCallback;
+
+    JsTTDOnBPRegisterCallback pfOnBPRegisterCallback;
+    JsTTDOnBPDeleteCallback pfOnBPDeleteCallback;
+    JsTTDOnBPClearDocumentCallback pfOnBPClearDocumentCallback;
 
     HostScriptContextCallbackFunctor()
-        : HostData(nullptr), pfOnScriptLoadCallback(nullptr)
+        : HostContext(nullptr), HostRuntime(nullptr), pfOnScriptLoadCallback(nullptr), pfOnBPRegisterCallback(nullptr), pfOnBPDeleteCallback(nullptr), pfOnBPClearDocumentCallback(nullptr)
     {
         ;
     }
 
-    HostScriptContextCallbackFunctor(FinalizableObject* callbackData, void(*pfcallbackOnScriptLoad)(FinalizableObject* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException))
-        : HostData(callbackData), pfOnScriptLoadCallback(pfcallbackOnScriptLoad)
+    HostScriptContextCallbackFunctor(FinalizableObject* hostContext, void* hostRuntime, JsTTDOnScriptLoadCallback callbackOnScriptLoad, JsTTDOnBPRegisterCallback callbackOnBPRegister, JsTTDOnBPDeleteCallback callbackOnBPDelete, JsTTDOnBPClearDocumentCallback callbackOnBPClearDocument)
+        : HostContext(hostContext), HostRuntime(hostRuntime), pfOnScriptLoadCallback(callbackOnScriptLoad), pfOnBPRegisterCallback(callbackOnBPRegister), pfOnBPDeleteCallback(callbackOnBPDelete), pfOnBPClearDocumentCallback(callbackOnBPClearDocument)
     {
         ;
     }
@@ -355,18 +383,6 @@ namespace Js
 #endif
     };
 
-    struct PropertyStringMap
-    {
-        PropertyString* strLen2[80];
-
-        inline static uint PStrMapIndex(char16 ch)
-        {
-            Assert(ch >= '0' && ch <= 'z');
-            return ch - '0';
-        }
-    };
-
-
     /*
     * This class caches jitted func address ranges.
     * This is to facilitate WER scenarios to use this cache for checking native addresses.
@@ -418,10 +434,12 @@ namespace Js
 
         ScriptContext *next;
         ScriptContext *prev;
+        bool IsRegistered() { return next != nullptr || prev != nullptr || threadContext->GetScriptContextList() == this; }
         union
         {
-            int64 int64Val; // stores the double & float result for Asm interpreter
-            double dbVal; // stores the double & float result for Asm interpreter
+            int64 int64Val;
+            float floatVal;
+            double dbVal;
             AsmJsSIMDValue simdVal; // stores raw simd result for Asm interpreter
         } asmJsReturnValue;
         static DWORD GetAsmJsReturnValueOffset() { return offsetof(ScriptContext, asmJsReturnValue); }
@@ -437,7 +455,6 @@ namespace Js
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
         typedef HRESULT (*GetDocumentContextFunction)(
-            ScriptContext *pContext,
             Js::FunctionBody *pFunctionBody,
             IDebugDocumentContext **ppDebugDocumentContext);
         GetDocumentContextFunction GetDocumentContext;
@@ -529,7 +546,6 @@ namespace Js
         InlineCache * GetToStringInlineCache() const { return toStringInlineCache; }
 
     private:
-        PropertyStringMap* propertyStrings[80];
 
         JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
 
@@ -684,7 +700,7 @@ public:
 
         void LogDataForFunctionBody(Js::FunctionBody *body, uint idx, bool isRejit);
 
-        void LogRejit(Js::FunctionBody *body, uint reason);
+        void LogRejit(Js::FunctionBody *body, RejitReason reason);
         void LogBailout(Js::FunctionBody *body, uint kind);
 
         // Used to centrally collect stats for all function bodies.
@@ -692,7 +708,11 @@ public:
         RejitStatsMap* rejitStatsMap;
 
         BailoutStatsMap *bailoutReasonCounts;
+        BailoutStatsMap *bailoutReasonCountsCap;
         uint *rejitReasonCounts;
+        uint *rejitReasonCountsCap;
+        void ClearBailoutReasonCountsMap();
+        void ClearRejitReasonCountsArray();
 #endif
 #ifdef ENABLE_BASIC_TELEMETRY
 
@@ -704,23 +724,9 @@ public:
 
 #endif
 #ifdef INLINE_CACHE_STATS
-        // Used to store inline cache stats
-
-        struct CacheData
-        {
-            uint hits;
-            uint misses;
-            uint collisions;
-            bool isGetCache;
-            Js::PropertyId propertyId;
-
-            CacheData() : hits(0), misses(0), collisions(0), isGetCache(false), propertyId(Js::PropertyIds::_none) { }
-        };
-
         // This is a strongly referenced dictionary, since we want to know hit rates for dead caches.
-        typedef JsUtil::BaseDictionary<const Js::PolymorphicInlineCache*, CacheData*, Recycler> CacheDataMap;
+        typedef JsUtil::BaseDictionary<const Js::PolymorphicInlineCache*, InlineCacheData*, Recycler> CacheDataMap;
         CacheDataMap *cacheDataMap;
-
         void LogCacheUsage(Js::PolymorphicInlineCache *cache, bool isGet, Js::PropertyId propertyId, bool hit, bool collision);
 #endif
 
@@ -884,9 +890,13 @@ private:
         void InitializePostGlobal();
         void InitializeCache();
 
+        bool isDebugContextInitialized;
+
         // Source Info
         void EnsureSourceContextInfoMap();
         void EnsureDynamicSourceContextInfoMap();
+
+        void AddToEvalMapHelper(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript);
 
         uint moduleSrcInfoCount;
 #ifdef RUNTIME_DATA_COLLECTION
@@ -931,7 +941,16 @@ private:
         }
 #endif
 
-        void SetHasUsedInlineCache(bool value) { hasUsedInlineCache = value; }
+        void SetHasUsedInlineCache(bool value) 
+        {
+            hasUsedInlineCache = value;
+#if DBG
+            if(hasUsedInlineCache)
+            {
+                inlineCacheAllocator.Unlock();
+            }
+#endif
+        }
 
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }
@@ -969,6 +988,7 @@ private:
         bool IsInitialized() { return this->isInitialized; }
 #endif
 
+        bool IsDebugContextInitialized() const { return this->isDebugContextInitialized; }
         DebugContext* GetDebugContext() const { return this->debugContext; }
         CriticalSection* GetDebugContextCloseCS() { return &debugContextCloseCS; }
 
@@ -978,7 +998,6 @@ private:
         DWORD webWorkerId;
 
         static ScriptContext * New(ThreadContext * threadContext);
-        static void Delete(ScriptContext* scriptContext);
 
         ~ScriptContext();
 
@@ -1208,7 +1227,8 @@ private:
         TypeId ReserveTypeIds(int count);
         TypeId CreateTypeId();
 
-        WellKnownHostType GetWellKnownHostType(Js::TypeId typeId) { return threadContext->GetWellKnownHostType(typeId); }
+        template<WellKnownHostType wellKnownType>
+        bool IsWellKnownHostType(Js::TypeId typeId) { return threadContext->IsWellKnownHostType<wellKnownType>(typeId); }
         void SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::TypeId typeId) { threadContext->SetWellKnownHostTypeId(wellKnownType, typeId); }
 
         ParseNodePtr ParseScript(Parser* parser, const byte* script,
@@ -1401,7 +1421,7 @@ private:
         }
 
     public:
-        void FreeFunctionEntryPoint(Js::JavascriptMethod method);
+        void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);
 
     private:
         uint CloneSource(Utf8SourceInfo* info);
@@ -1700,7 +1720,9 @@ private:
         virtual intptr_t GetNumberAllocatorAddr() const override;
         virtual intptr_t GetRecyclerAddr() const override;
         virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const override;
+#ifdef ENABLE_SIMDJS
         virtual bool IsSIMDEnabled() const override;
+#endif
         virtual bool IsPRNGSeeded() const override;
         virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;
 

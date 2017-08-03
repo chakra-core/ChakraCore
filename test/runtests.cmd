@@ -304,13 +304,6 @@ goto :main
   :: If the user specified extra variants to run (i.e. in addition to the defaults), include them.
   if not "%_ExtraVariants%" == "" set _Variants=%_Variants%,%_ExtraVariants%
 
-  rem TODO: Move any apollo tests from core\test back into private unittests
-  set _ExcludeApolloTests=
-  if "%APOLLO%" == "1" (
-    set _ExcludeApolloTests=-nottags:exclude_apollo
-    set TARGET_OS=wp8
-  )
-
   if not "%_nightly%" == "1" (
     set _NOTTAGS=%_NOTTAGS% -nottags:nightly
   ) else (

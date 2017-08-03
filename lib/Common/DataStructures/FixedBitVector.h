@@ -161,7 +161,7 @@ BVFixed * BVFixed::New(DECLSPEC_GUARD_OVERFLOW BVIndex length, TAllocator * allo
 template <typename TAllocator>
 BVFixed * BVFixed::NewNoThrow(DECLSPEC_GUARD_OVERFLOW BVIndex length, TAllocator * alloc, bool initialSet)
 {
-    BVFixed *result = AllocatorNewNoThrowPlus(TAllocator, alloc, sizeof(BVUnit) * BVFixed::WordCount(length), BVFixed, length, initialSet);
+    BVFixed *result = AllocatorNewNoThrowNoRecoveryPlus(TAllocator, alloc, sizeof(BVUnit) * BVFixed::WordCount(length), BVFixed, length, initialSet);
     return result;
 }
 
@@ -227,6 +227,9 @@ Container BVFixed::GetRange(BVIndex start, BVIndex len) const
 }
 
 template<typename Container>
+#ifdef NO_SANITIZE_ADDRESS_FIXVC
+NO_SANITIZE_ADDRESS
+#endif
 void BVFixed::SetRange(Container* value, BVIndex start, BVIndex len)
 {
     AssertRange(start);
@@ -531,7 +534,7 @@ public:
     const BVUnit * GetRawData() const { return data; }
 
     template <size_t rangeSize>
-    BVStatic<rangeSize> * GetRange(BVIndex startOffset)
+    BVStatic<rangeSize> * GetRange(BVIndex startOffset) const
     {
         AssertRange(startOffset);
         AssertRange(startOffset + rangeSize - 1);
@@ -670,6 +673,23 @@ public:
         for (BVIndex i = 0; i < wordCount; i++)
         {
             if (!this->data[i].IsEmpty())
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool IsAllSet() const
+    {
+        for (BVIndex i = 0; i < this->wordCount; i++)
+        {
+            if (i == this->wordCount - 1 && Length() % BVUnit::BitsPerWord != 0)
+            {
+                return this->data[i].Count() == Length() % BVUnit::BitsPerWord;
+            }
+            else if (!this->data[i].IsFull())
             {
                 return false;
             }

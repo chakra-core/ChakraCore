@@ -6,6 +6,7 @@
 #include "JSON.h"
 #include "JSONParser.h"
 
+
 using namespace Js;
 
 namespace JSON
@@ -128,24 +129,22 @@ namespace JSON
                 // modified by user code. It is better to skip a damaged object. ES5 spec doesn't specify an error here.
                 if(Js::RecyclableObject::FromVar(value)->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics, scriptContext))
                 {
-                    Js::Var propertyNameVar;
+                    Js::JavascriptString * propertyName;
 
                     while (true)
                     {
                         Js::PropertyId idMember = Js::Constants::NoProperty;
-                        propertyNameVar = enumerator.MoveAndGetNext(idMember);
-                        if (propertyNameVar == nullptr)
+                        propertyName = enumerator.MoveAndGetNext(idMember);
+                        if (propertyName == nullptr)
                         {
                             break;
                         }
 
                         //NOTE: If testing key value call enumerator->GetCurrentValue() to confirm value is correct;
 
-                        AssertMsg(Js::JavascriptString::Is(propertyNameVar) , "bad enumeration on a JSON Object");
-
                         if (idMember != Js::Constants::NoProperty)
                         {
-                            Js::Var newElement = Walk(Js::JavascriptString::FromVar(propertyNameVar), idMember, value);
+                            Js::Var newElement = Walk(propertyName, idMember, value);
                             if (Js::JavascriptOperators::IsUndefinedObject(newElement, undefined))
                             {
                                 Js::JavascriptOperators::DeleteProperty(Js::RecyclableObject::FromVar(value), idMember);
@@ -161,7 +160,7 @@ namespace JSON
                         {
                             uint32 propertyIndex = enumerator.GetCurrentItemIndex();
                             AssertMsg(Js::JavascriptArray::InvalidIndex != propertyIndex, "Not a numeric type");
-                            Js::Var newElement = Walk(Js::JavascriptString::FromVar(propertyNameVar), idMember, value, propertyIndex);
+                            Js::Var newElement = Walk(propertyName, idMember, value, propertyIndex);
                             if (Js::JavascriptOperators::IsUndefinedObject(newElement, undefined))
                             {
                                 Js::JavascriptOperators::DeleteItem(Js::RecyclableObject::FromVar(value), propertyIndex);

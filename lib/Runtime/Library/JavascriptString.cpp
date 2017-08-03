@@ -128,11 +128,16 @@ namespace Js
         return NewWithBufferT<LiteralString, true>(content, cchUseLength, scriptContext);
     }
 
-    JavascriptString* JavascriptString::NewCopySzFromArena(__in_z const char16* content, ScriptContext* scriptContext, ArenaAllocator *arena)
+    JavascriptString* JavascriptString::NewCopySzFromArena(__in_z const char16* content,
+        ScriptContext* scriptContext, ArenaAllocator *arena, charcount_t cchUseLength)
     {
         AssertMsg(content != nullptr, "NULL value passed to JavascriptString::New");
 
-        charcount_t cchUseLength = JavascriptString::GetBufferLength(content);
+        if (!cchUseLength)
+        {
+            cchUseLength = JavascriptString::GetBufferLength(content);
+        }
+
         char16* buffer = JavascriptString::AllocateAndCopySz(arena, content, cchUseLength);
         return ArenaLiteralString::New(scriptContext->GetLibrary()->GetStringTypeStatic(),
             buffer, cchUseLength, arena);
@@ -199,10 +204,10 @@ namespace Js
     }
 
     JavascriptString::JavascriptString(StaticType * type, charcount_t charLength, const char16* szValue)
-        : RecyclableObject(type), m_charLength(charLength), m_pszValue(szValue)
+        : RecyclableObject(type), m_pszValue(szValue)
     {
         Assert(type->GetTypeId() == TypeIds_String);
-        AssertMsg(IsValidCharCount(charLength), "String length is out of range");
+        SetLength(charLength);
     }
 
     _Ret_range_(m_charLength, m_charLength)
@@ -1560,22 +1565,31 @@ case_2:
         // strcon2 /
         // expr2   \__ step 3
         // strcon3 /
-        for (uint32 i = 1; i < length; ++i)
+        const auto append = [&] (Var var)
         {
-            // First append the next substitution expression
-            // If we have an arg at [i+1] use that one, otherwise empty string (which is nop)
-            if (i+1 < args.Info.Count)
-            {
-                string = JavascriptConversion::ToString(args[i+1], scriptContext);
-
+            JavascriptString* string = JavascriptConversion::ToString(var, scriptContext);
                 stringBuilder.Append(string);
+        };
+        uint32 loopMax = length >= UINT_MAX ? UINT_MAX-1 : (uint32)length;
+        uint32 i = 1;
+        uint32 argsCount = args.Info.Count;
+        for (; i < loopMax; ++i)
+        {
+            // First append the next substitution expression if available
+            if (i + 1 < argsCount)
+            {
+                append(args[i + 1]);
             }
 
             // Then append the next string (this will also cover the final string case)
-            var = JavascriptOperators::OP_GetElementI_UInt32(raw, i, scriptContext);
-            string = JavascriptConversion::ToString(var, scriptContext);
+            append(JavascriptOperators::OP_GetElementI_UInt32(raw, i, scriptContext));
+        }
 
-            stringBuilder.Append(string);
+        // Length can be greater than uint32 max (unlikely in practice)
+        for (int64 j = (int64)i; j < length; ++j)
+        {
+            // Append whatever is left in the array/object
+            append(JavascriptOperators::OP_GetElementI(raw, JavascriptNumber::ToVar(j, scriptContext), scriptContext));
         }
 
         // CompoundString::Builder has saved our lives
@@ -1759,18 +1773,18 @@ case_2:
         }
 
         RecyclableObject* fnObj = RecyclableObject::FromVar(fn);
-        return CallRegExFunction<argCount>(fnObj, regExp, args);
+        return CallRegExFunction<argCount>(fnObj, regExp, args, scriptContext);
     }
 
     template<>
-    Var JavascriptString::CallRegExFunction<1>(RecyclableObject* fnObj, Var regExp, Arguments& args)
+    Var JavascriptString::CallRegExFunction<1>(RecyclableObject* fnObj, Var regExp, Arguments& args, ScriptContext *scriptContext)
     {
         // args[0]: String
-        return CALL_FUNCTION(fnObj, CallInfo(CallFlags_Value, 2), regExp, args[0]);
+        return CALL_FUNCTION(scriptContext->GetThreadContext(), fnObj, CallInfo(CallFlags_Value, 2), regExp, args[0]);
     }
 
     template<>
-    Var JavascriptString::CallRegExFunction<2>(RecyclableObject* fnObj, Var regExp, Arguments& args)
+    Var JavascriptString::CallRegExFunction<2>(RecyclableObject* fnObj, Var regExp, Arguments& args, ScriptContext * scriptContext)
     {
         // args[0]: String
         // args[1]: RegExp (ignored since we need to create one when the argument is "undefined")
@@ -1778,10 +1792,10 @@ case_2:
 
         if (args.Info.Count < 3)
         {
-            return CallRegExFunction<1>(fnObj, regExp, args);
+            return CallRegExFunction<1>(fnObj, regExp, args, scriptContext);
         }
 
-        return CALL_FUNCTION(fnObj, CallInfo(CallFlags_Value, 3), regExp, args[0], args[2]);
+        return CALL_FUNCTION(scriptContext->GetThreadContext(), fnObj, CallInfo(CallFlags_Value, 3), regExp, args[0], args[2]);
     }
 
     Var JavascriptString::EntrySlice(RecyclableObject* function, CallInfo callInfo, ...)
@@ -3353,7 +3367,7 @@ case_2:
         return builder.ToString();
     }
 
-    int JavascriptString::IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, int len, const char16* searchStr, int searchLen, int position)
+    int JavascriptString::IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, int searchLen, int position)
     {
         int result = -1;
 
@@ -3400,7 +3414,7 @@ case_2:
         return result;
     }
 
-    int JavascriptString::LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, int len, const char16* searchStr, int searchLen, int position)
+    int JavascriptString::LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, charcount_t searchLen, charcount_t position)
     {
         const char16 searchFirst = searchStr[0];
         uint32 lMatchedJump = searchLen;
@@ -3729,7 +3743,7 @@ case_2:
     {
         if (propertyId == PropertyIds::length)
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         ScriptContext* scriptContext = GetScriptContext();
         charcount_t index;
@@ -3737,10 +3751,10 @@ case_2:
         {
             if (index < this->GetLength())
             {
-                return Property_Found;
+                return PropertyQueryFlags::Property_Found;
             }
         }
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL JavascriptString::IsEnumerable(PropertyId propertyId)
@@ -3768,11 +3782,11 @@ case_2:
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, requestContext))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
     bool JavascriptString::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
     {
@@ -3891,6 +3905,8 @@ case_2:
     bool JavascriptStringHelpers<T>::Equals(Var aLeft, Var aRight)
     {
         AssertMsg(T::Is(aLeft) && T::Is(aRight), "string comparison");
+
+        if (aLeft == aRight) return true;
 
         T *leftString = T::FromVar(aLeft);
         T *rightString = T::FromVar(aRight);

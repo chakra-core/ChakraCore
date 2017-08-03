@@ -76,14 +76,14 @@ public:
             IR::Instr *         LowerInt64Assign(IR::Instr * instr);
             void                GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSize);
             void                EmitInt64Instr(IR::Instr *instr);
+            void                LowerInt64Branch(IR::Instr *instr);
             static void         EmitInt4Instr(IR::Instr *instr);
-            static void         EmitPtrInstr(IR::Instr *instr);
             void                EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32 = false, bool isHelper = false);
             void                EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void                EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
-            void                EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
-            void                EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
-            void                EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
+            static void         EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
+            static void         EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
+            static void         EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             bool                EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed, bool bailOutOnHelper = false, IR::LabelInstr * labelBailOut = nullptr);
 
             IR::Instr *         LoadCheckedFloat(IR::RegOpnd *opndOrig, IR::RegOpnd *opndFloat, IR::LabelInstr *labelInline, IR::LabelInstr *labelHelper, IR::Instr *instrInsert, const bool checkForNullInLoopBody = false);

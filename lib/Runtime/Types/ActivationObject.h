@@ -116,7 +116,8 @@ namespace Js
 
         static bool Is(void* instance)
         {
-            return VirtualTableInfo<Js::ConsoleScopeActivationObject>::HasVirtualTable(instance);
+            return VirtualTableInfo<ConsoleScopeActivationObject>::HasVirtualTable(instance)
+                || VirtualTableInfo<CrossSiteObject<ConsoleScopeActivationObject>>::HasVirtualTable(instance);
         }
 
 #if ENABLE_TTD
@@ -206,6 +207,12 @@ namespace Js
         static bool Is(void* instance)
         {
             return VirtualTableInfo<Js::ActivationObjectEx>::HasVirtualTable(instance);
+        }
+
+        static ActivationObjectEx * FromVar(Var instance)
+        {
+            AssertOrFailFast(Is(instance));
+            return reinterpret_cast<ActivationObjectEx *>(instance);
         }
 
     private:

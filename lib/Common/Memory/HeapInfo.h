@@ -87,6 +87,10 @@ public:
 #endif
 #if ENABLE_CONCURRENT_GC
     void PrepareSweep();
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    void StartAllocationsDuringConcurrentSweep();
+    void FinishConcurrentSweep();
+#endif
 
     void TransferPendingHeapBlocks(RecyclerSweep& recyclerSweep);
     void ConcurrentTransferSweptObjects(RecyclerSweep& recyclerSweep);

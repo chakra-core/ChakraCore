@@ -32,7 +32,7 @@ Value **pDstVal
         if (instr->GetSrc1()->IsRegOpnd())
         {
             StackSym *sym = instr->GetSrc1()->AsRegOpnd()->m_sym;
-            if (IsSimd128TypeSpecialized(sym, this->currentBlock))
+            if (this->currentBlock->globOptData.IsSimd128TypeSpecialized(sym))
             {
                 ValueType valueType = (*pSrc1Val)->GetValueInfo()->Type();
                 Assert(valueType.IsSimd128());
@@ -48,11 +48,11 @@ Value **pDstVal
         {
             StackSym *sym = instr->GetSrc1()->AsRegOpnd()->m_sym;
             IRType type = TyIllegal;
-            if (IsSimd128F4TypeSpecialized(sym, this->currentBlock))
+            if (this->currentBlock->globOptData.IsSimd128F4TypeSpecialized(sym))
             {
                 type = TySimd128F4;
             }
-            else if (IsSimd128I4TypeSpecialized(sym, this->currentBlock))
+            else if (this->currentBlock->globOptData.IsSimd128I4TypeSpecialized(sym))
             {
                 type = TySimd128I4;
             }
@@ -220,7 +220,7 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
                 // In the Forward Pass: Check IRType since Sym can be null, because of const prop.
                 if (expectedType.IsSimd128Float32x4())
                 {
-                    if (sym && !IsSimd128F4TypeSpecialized(sym, &currentBlock->globOptData) ||
+                    if (sym && !this->currentBlock->globOptData.IsSimd128F4TypeSpecialized(sym) ||
                         !sym && opnd->GetType() != TySimd128F4)
                     {
                         return false;
@@ -228,7 +228,7 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
                 }
                 else if (expectedType.IsSimd128Int32x4())
                 {
-                    if (sym && !IsSimd128I4TypeSpecialized(sym, &currentBlock->globOptData) ||
+                    if (sym && !this->currentBlock->globOptData.IsSimd128I4TypeSpecialized(sym) ||
                         !sym && opnd->GetType() != TySimd128I4)
                     {
                         return false;
@@ -236,7 +236,7 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
                 }
                 else if (expectedType.IsFloat())
                 {
-                    if (sym && !IsFloat64TypeSpecialized(sym, &currentBlock->globOptData) ||
+                    if (sym && !this->currentBlock->globOptData.IsFloat64TypeSpecialized(sym) ||
                         !sym&& opnd->GetType() != TyFloat64)
                     {
                         return false;
@@ -245,7 +245,7 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
                 }
                 else if (expectedType.IsInt())
                 {
-                    if ((sym && !IsInt32TypeSpecialized(sym, &currentBlock->globOptData) && !currentBlock->globOptData.liveLossyInt32Syms->Test(sym->m_id)) ||
+                    if ((sym && !this->currentBlock->globOptData.IsInt32TypeSpecialized(sym) && !currentBlock->globOptData.liveLossyInt32Syms->Test(sym->m_id)) ||
                         !sym && opnd->GetType() != TyInt32)
                     {
                         return false;
@@ -308,7 +308,7 @@ GlobOpt::Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, cons
         valueOpnd = instr->GetSrc1();
 
         // St(arr, index, value). Make sure value can be Simd128 type-spec'd
-        doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(FindValue(valueOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type(), simdFuncSignature->args[2]);
+        doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(this->currentBlock->globOptData.FindValue(valueOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type(), simdFuncSignature->args[2]);
     }
     else
     {
@@ -317,7 +317,7 @@ GlobOpt::Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, cons
 
     // array and index operands should have been type-specialized in OptArraySrc: ValueTypes should be definite at this point. If not, don't type-spec.
     // We can be in a loop prepass, where opnd ValueInfo is not set yet. Get the ValueInfo from the Value Table instead.
-    ValueType baseOpndType = FindValue(baseOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
+    ValueType baseOpndType = this->currentBlock->globOptData.FindValue(baseOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
     
     if (IsLoopPrePass())
     {
@@ -325,7 +325,7 @@ GlobOpt::Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, cons
         // indexOpnd might be missing if loading from [0]
         if (indexOpnd != nullptr)
         {
-            ValueType indexOpndType = FindValue(indexOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
+            ValueType indexOpndType = this->currentBlock->globOptData.FindValue(indexOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
             doTypeSpec = doTypeSpec && indexOpndType.IsLikelyInt();
         }
     }
@@ -334,7 +334,7 @@ GlobOpt::Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, cons
         doTypeSpec = doTypeSpec && (baseOpndType.IsObject() && baseOpndType.IsTypedArray());
         if (indexOpnd != nullptr)
         {
-            ValueType indexOpndType = FindValue(indexOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
+            ValueType indexOpndType = this->currentBlock->globOptData.FindValue(indexOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type();
             doTypeSpec = doTypeSpec && indexOpndType.IsInt();
         }
     }
@@ -517,6 +517,7 @@ IR::BailOutKind GlobOpt::GetBailOutKindFromValueType(const ValueType &valueType)
     {
         return IR::BailOutIntOnly;
     }
+#ifdef ENABLE_SIMDJS
     else if (valueType.IsSimd128Float32x4())
     {
         return IR::BailOutSimd128F4Only;
@@ -525,6 +526,12 @@ IR::BailOutKind GlobOpt::GetBailOutKindFromValueType(const ValueType &valueType)
     {
         Assert(valueType.IsSimd128Int32x4());
         return IR::BailOutSimd128I4Only;
+    }
+#endif
+    else
+    {
+        AssertOrFailFast(UNREACHED);
+        return IR::BailOutInvalid;
     }
 }
 

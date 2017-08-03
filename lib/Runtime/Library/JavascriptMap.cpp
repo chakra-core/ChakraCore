@@ -64,6 +64,16 @@ namespace Js
 
         Var iterable = (args.Info.Count > 1) ? args[1] : library->GetUndefined();
 
+        if (mapObject->map != nullptr)
+        {
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Map"), _u("Map"));
+        }
+
+        /* Ensure mapObject->map is created before trying to fetch the adder function. If Map.prototype.set has
+           its getter set to another Map method (such as Map.prototype.get) and we try to get the function before
+           the map is initialized, it will cause a null dereference. See github#2747 */
+        mapObject->map = RecyclerNew(scriptContext->GetRecycler(), MapDataMap, scriptContext->GetRecycler());
+
         RecyclableObject* iter = nullptr;
         RecyclableObject* adder = nullptr;
 
@@ -77,13 +87,6 @@ namespace Js
             }
             adder = RecyclableObject::FromVar(adderVar);
         }
-
-        if (mapObject->map != nullptr)
-        {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Map"), _u("Map"));
-        }
-
-        mapObject->map = RecyclerNew(scriptContext->GetRecycler(), MapDataMap, scriptContext->GetRecycler());
 
         if (iter != nullptr)
         {
@@ -110,7 +113,7 @@ namespace Js
                 }
 
                 // CONSIDER: if adder is the default built-in, fast path it and skip the JS call?
-                CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 3), mapObject, key, value);
+                CALL_FUNCTION(scriptContext->GetThreadContext(), adder, CallInfo(CallFlags_Value, 3), mapObject, key, value);
             });
         }
 
@@ -189,7 +192,7 @@ namespace Js
             Var key = iterator.Current().Key();
             Var value = iterator.Current().Value();
 
-            CALL_FUNCTION(callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, key, map);
+            CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, key, map);
         }
 
         return scriptContext->GetLibrary()->GetUndefined();

@@ -64,6 +64,13 @@ namespace Js
 
         Var iterable = (args.Info.Count > 1) ? args[1] : library->GetUndefined();
 
+        if (setObject->set != nullptr)
+        {
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Set"), _u("Set"));
+        }
+
+        setObject->set = RecyclerNew(scriptContext->GetRecycler(), SetDataSet, scriptContext->GetRecycler());
+
         RecyclableObject* iter = nullptr;
         RecyclableObject* adder = nullptr;
 
@@ -78,18 +85,10 @@ namespace Js
             adder = RecyclableObject::FromVar(adderVar);
         }
 
-        if (setObject->set != nullptr)
-        {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Set"), _u("Set"));
-        }
-
-
-        setObject->set = RecyclerNew(scriptContext->GetRecycler(), SetDataSet, scriptContext->GetRecycler());
-
         if (iter != nullptr)
         {
             JavascriptOperators::DoIteratorStepAndValue(iter, scriptContext, [&](Var nextItem) {
-                CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 2), setObject, nextItem);
+                CALL_FUNCTION(scriptContext->GetThreadContext(), adder, CallInfo(CallFlags_Value, 2), setObject, nextItem);
             });
         }
 
@@ -195,7 +194,7 @@ namespace Js
         {
             Var value = iterator.Current();
 
-            CALL_FUNCTION(callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, value, args[0]);
+            CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, value, args[0]);
         }
 
         return scriptContext->GetLibrary()->GetUndefined();

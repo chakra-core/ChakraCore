@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#if !defined(BAIL_OUT_KIND) || !defined(BAIL_OUT_KIND_LAST) || !defined(BAIL_OUT_KIND_VALUE) || !defined(BAIL_OUT_KIND_VALUE_LAST)
-    #error BAIL_OUT_KIND, BAIL_OUT_KIND_LAST, BAIL_OUT_KIND_VALUE, and BAIL_OUT_KIND_VALUE_LAST must be defined before including this file.
+#if !defined(BAIL_OUT_KIND) || !defined(BAIL_OUT_KIND_VALUE) || !defined(BAIL_OUT_KIND_VALUE_LAST)
+    #error BAIL_OUT_KIND, BAIL_OUT_KIND_VALUE, and BAIL_OUT_KIND_VALUE_LAST must be defined before including this file.
 #endif
                /* kind */                           /* allowed bits */
 BAIL_OUT_KIND(BailOutInvalid,                       IR::BailOutOnResultConditions | IR::BailOutForArrayBits | IR::BailOutForDebuggerBits | IR::BailOutMarkTempObject)
@@ -46,12 +46,14 @@ BAIL_OUT_KIND(LazyBailOut,                          0)
 BAIL_OUT_KIND(BailOutOnFailedHoistedLoopCountBasedBoundCheck, 0)
 BAIL_OUT_KIND(BailOutForGeneratorYield,             0)
 BAIL_OUT_KIND(BailOutOnException,                   0)
+BAIL_OUT_KIND(BailOutOnEarlyExit,                   0)
 
+#ifdef ENABLE_SIMDJS
 // SIMD_JS
 BAIL_OUT_KIND(BailOutSimd128F4Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128I4Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128I8Only,                 0)
-BAIL_OUT_KIND(BailOutSimd128I16Only,                 0)
+BAIL_OUT_KIND(BailOutSimd128I16Only,                0)
 BAIL_OUT_KIND(BailOutSimd128U4Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128U8Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128U16Only,                0)
@@ -60,6 +62,7 @@ BAIL_OUT_KIND(BailOutSimd128B8Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128B16Only,                0)
 BAIL_OUT_KIND(BailOutSimd128D2Only,                 0)
 BAIL_OUT_KIND(BailOutNoSimdTypeSpec,                0)
+#endif
 
 BAIL_OUT_KIND(BailOutKindEnd,                       0)
 
@@ -138,7 +141,6 @@ BAIL_OUT_KIND_VALUE(BailOutMarkTempObject, 1 << (BAIL_OUT_KIND_MISC_BIT_START + 
 BAIL_OUT_KIND_VALUE_LAST(BailOutKindBits, BailOutMarkTempObject | BailOutOnDivSrcConditions | BailOutOnResultConditions | BailOutForArrayBits | BailOutForDebuggerBits)
 
 // Help caller undefine the macros
-#undef BAIL_OUT_KIND_LAST
 #undef BAIL_OUT_KIND
 #undef BAIL_OUT_KIND_VALUE_LAST
 #undef BAIL_OUT_KIND_VALUE

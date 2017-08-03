@@ -17,22 +17,16 @@
 #ifndef WABT_BINARY_READER_OBJDUMP_H_
 #define WABT_BINARY_READER_OBJDUMP_H_
 
+#include <string>
+#include <vector>
+
 #include "common.h"
 #include "stream.h"
-#include "vector.h"
 
 namespace wabt {
 
 struct Module;
 struct ReadBinaryOptions;
-
-struct Reloc {
-  RelocType type;
-  size_t offset;
-};
-WABT_DEFINE_VECTOR(reloc, Reloc);
-
-WABT_DEFINE_VECTOR(string_slice, StringSlice);
 
 enum class ObjdumpMode {
   Prepass,
@@ -43,6 +37,7 @@ enum class ObjdumpMode {
 };
 
 struct ObjdumpOptions {
+  Stream* log_stream;
   bool headers;
   bool details;
   bool raw;
@@ -50,16 +45,21 @@ struct ObjdumpOptions {
   bool debug;
   bool relocs;
   ObjdumpMode mode;
-  const char* infile;
+  const char* filename;
   const char* section_name;
-  bool print_header;
-  StringSliceVector function_names;
-  RelocVector code_relocations;
+};
+
+// read_binary_objdump uses this state to store information from previous runs
+// and use it to display more useful information.
+struct ObjdumpState {
+  std::vector<Reloc> code_relocations;
+  std::vector<std::string> function_names;
 };
 
 Result read_binary_objdump(const uint8_t* data,
                            size_t size,
-                           ObjdumpOptions* options);
+                           ObjdumpOptions* options,
+                           ObjdumpState* state);
 
 }  // namespace wabt
 

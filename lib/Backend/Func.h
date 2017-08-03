@@ -13,6 +13,12 @@ class FlowGraph;
 #include "UnwindInfoManager.h"
 #endif
 
+struct Int64RegPair
+{
+    IR::Opnd* high = nullptr;
+    IR::Opnd* low = nullptr;
+};
+
 struct Cloner
 {
     Cloner(Lowerer *lowerer, JitArenaAllocator *alloc) :
@@ -196,7 +202,8 @@ public:
     {
         return
             !PHASE_OFF(Js::GlobOptPhase, this) && !IsSimpleJit() &&
-            (!GetTopFunc()->HasTry() || GetTopFunc()->CanOptimizeTryCatch());
+            (!GetTopFunc()->HasTry() || GetTopFunc()->CanOptimizeTryCatch()) &&
+            (!GetTopFunc()->HasFinally() || GetTopFunc()->CanOptimizeTryFinally());
     }
 
     bool DoInline() const
@@ -204,15 +211,21 @@ public:
         return DoGlobOpt() && !GetTopFunc()->HasTry();
     }
 
-    bool DoOptimizeTryCatch() const
+    bool DoOptimizeTry() const
     {
         Assert(IsTopFunc());
         return DoGlobOpt();
     }
 
+    bool CanOptimizeTryFinally() const
+    {
+        return !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryFinallyPhase, this) &&
+            (!this->HasProfileInfo() || !this->GetReadOnlyProfileInfo()->IsOptimizeTryFinallyDisabled());
+    }
+
     bool CanOptimizeTryCatch() const
     {
-        return !this->HasFinally() && !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this);
+        return !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this);
     }
 
     bool DoSimpleJitDynamicProfile() const;
@@ -290,7 +303,7 @@ public:
 
     int32 GetLocalVarSlotOffset(int32 slotId);
     int32 GetHasLocalVarChangedOffset();
-    bool IsJitInDebugMode();
+    bool IsJitInDebugMode() const;
     bool IsNonTempLocalVar(uint32 slotIndex);
     void OnAddSym(Sym* sym);
 
@@ -337,10 +350,13 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
 #endif
 
+#ifdef ENABLE_SIMDJS
     bool IsSIMDEnabled() const
     {
         return GetScriptContextInfo()->IsSIMDEnabled();
     }
+#endif
+
     uint32 GetInstrCount();
     inline Js::ScriptContext* GetScriptContext() const
     {
@@ -509,12 +525,24 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     IR::SymOpnd *GetNextInlineeFrameArgCountSlotOpnd()
     {
         Assert(!this->m_hasInlineArgsOpt);
+        if (this->m_hasInlineArgsOpt)
+        {
+            // If the function has inlineArgsOpt turned on, jitted code will not write to stack slots for inlinee's function object
+            // and arguments, until needed. If we attempt to read from those slots, we may be reading uninitialized memory.
+            throw Js::OperationAbortedException();
+        }
         return GetInlineeOpndAtOffset((Js::Constants::InlineeMetaArgCount + actualCount) * MachPtr);
     }
 
     IR::SymOpnd *GetInlineeFunctionObjectSlotOpnd()
     {
         Assert(!this->m_hasInlineArgsOpt);
+        if (this->m_hasInlineArgsOpt)
+        {
+            // If the function has inlineArgsOpt turned on, jitted code will not write to stack slots for inlinee's function object
+            // and arguments, until needed. If we attempt to read from those slots, we may be reading uninitialized memory.
+            throw Js::OperationAbortedException();
+        }
         return GetInlineeOpndAtOffset(Js::Constants::InlineeMetaArgIndex_FunctionObject * MachPtr);
     }
 
@@ -526,6 +554,12 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     IR::SymOpnd *GetInlineeArgvSlotOpnd()
     {
         Assert(!this->m_hasInlineArgsOpt);
+        if (this->m_hasInlineArgsOpt)
+        {
+            // If the function has inlineArgsOpt turned on, jitted code will not write to stack slots for inlinee's function object
+            // and arguments, until needed. If we attempt to read from those slots, we may be reading uninitialized memory.
+            throw Js::OperationAbortedException();
+        }
         return GetInlineeOpndAtOffset(Js::Constants::InlineeMetaArgIndex_Argv * MachPtr);
     }
 
@@ -552,6 +586,11 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     JITTimePolymorphicInlineCache * GetRuntimePolymorphicInlineCache(const uint index) const;
     byte GetPolyCacheUtil(const uint index) const;
     byte GetPolyCacheUtilToInitialize(const uint index) const;
+
+#if LOWER_SPLIT_INT64
+    Int64RegPair FindOrCreateInt64Pair(IR::Opnd*);
+    void Int64SplitExtendLoopLifetime(Loop* loop);
+#endif
 
 #if defined(_M_ARM32_OR_ARM64)
     RegNum GetLocalsPointer() const;
@@ -684,9 +723,9 @@ public:
     bool                hasStackArgs: 1;
     bool                hasImplicitParamLoad : 1; // True if there is a load of CallInfo, FunctionObject
     bool                hasThrow : 1;
-    bool                hasUnoptimizedArgumentsAcccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
+    bool                hasUnoptimizedArgumentsAccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
     bool                m_canDoInlineArgsOpt : 1;
-    bool                hasApplyTargetInlining:1;
+    bool                applyTargetInliningRemovedArgumentsAccess :1;
     bool                isGetterSetter : 1;
     const bool          isInlinedConstructor: 1;
     bool                hasImplicitCalls: 1;
@@ -744,14 +783,9 @@ public:
 
     bool                GetThisOrParentInlinerHasArguments() const { return thisOrParentInlinerHasArguments; }
 
-    bool                GetHasStackArgs()
+    bool                GetHasStackArgs() const
     {
-                        bool isStackArgOptDisabled = false;
-                        if (HasProfileInfo())
-                        {
-                            isStackArgOptDisabled = GetReadOnlyProfileInfo()->IsStackArgOptDisabled();
-                        }
-                        return this->hasStackArgs && !isStackArgOptDisabled && !PHASE_OFF1(Js::StackArgOptPhase);
+                        return this->hasStackArgs && !IsStackArgOptDisabled() && !PHASE_OFF1(Js::StackArgOptPhase);
     }
     void                SetHasStackArgs(bool has) { this->hasStackArgs = has;}
 
@@ -773,13 +807,13 @@ public:
     bool                GetHasThrow() const { return this->hasThrow; }
     void                SetHasThrow() { this->hasThrow = true; }
 
-    bool                GetHasUnoptimizedArgumentsAcccess() const { return this->hasUnoptimizedArgumentsAcccess; }
+    bool                GetHasUnoptimizedArgumentsAccess() const { return this->hasUnoptimizedArgumentsAccess; }
     void                SetHasUnoptimizedArgumentsAccess(bool args)
     {
                         // Once set to 'true' make sure this does not become false
-                        if (!this->hasUnoptimizedArgumentsAcccess)
+                        if (!this->hasUnoptimizedArgumentsAccess)
                         {
-                            this->hasUnoptimizedArgumentsAcccess = args;
+                            this->hasUnoptimizedArgumentsAccess = args;
                         }
 
                         if (args)
@@ -787,12 +821,11 @@ public:
                             Func *curFunc = this->GetParentFunc();
                             while (curFunc)
                             {
-                                curFunc->hasUnoptimizedArgumentsAcccess = args;
+                                curFunc->hasUnoptimizedArgumentsAccess = args;
                                 curFunc = curFunc->GetParentFunc();
                             }
                         }
     }
-
     void               DisableCanDoInlineArgOpt()
     {
                         Func* curFunc = this;
@@ -804,8 +837,8 @@ public:
                         }
     }
 
-    bool                GetHasApplyTargetInlining() const { return this->hasApplyTargetInlining;}
-    void                SetHasApplyTargetInlining() { this->hasApplyTargetInlining = true;}
+    bool                GetApplyTargetInliningRemovedArgumentsAccess() const { return this->applyTargetInliningRemovedArgumentsAccess;}
+    void                SetApplyTargetInliningRemovedArgumentsAccess() { this->applyTargetInliningRemovedArgumentsAccess = true;}
 
     bool                GetHasMarkTempObjects() const { return this->hasMarkTempObjects; }
     void                SetHasMarkTempObjects() { this->hasMarkTempObjects = true; }
@@ -834,7 +867,7 @@ public:
     bool                HasArrayInfo()
     {
         const auto top = this->GetTopFunc();
-        return this->HasProfileInfo() && this->GetWeakFuncRef() && !(top->HasTry() && !top->DoOptimizeTryCatch()) &&
+        return this->HasProfileInfo() && this->GetWeakFuncRef() && !(top->HasTry() && !top->DoOptimizeTry()) &&
             top->DoGlobOpt() && !PHASE_OFF(Js::LoopFastPathPhase, top);
     }
 
@@ -870,6 +903,8 @@ public:
         case Js::BuiltinFunction::Math_Abs:
         case Js::BuiltinFunction::JavascriptArray_Push:
         case Js::BuiltinFunction::JavascriptString_Replace:
+        case Js::BuiltinFunction::JavascriptObject_HasOwnProperty:
+        case Js::BuiltinFunction::JavascriptArray_IsArray:
             return true;
 
         default:
@@ -935,6 +970,11 @@ public:
 
     void SetScopeObjSym(StackSym * sym);
     StackSym * GetScopeObjSym();
+    bool IsTrackCompoundedIntOverflowDisabled() const;
+    bool IsArrayCheckHoistDisabled() const;
+    bool IsStackArgOptDisabled() const;
+    bool IsSwitchOptDisabled() const;
+    bool IsAggressiveIntTypeSpecDisabled() const;
 
 #if DBG
     bool                allowRemoveBailOutArgInstr;
@@ -1009,6 +1049,12 @@ private:
     bool canHoistConstantAddressLoad;
 #if DBG
     VtableHashMap * vtableMap;
+#endif
+#if LOWER_SPLIT_INT64
+    struct Int64SymPair {StackSym* high = nullptr; StackSym* low = nullptr;};
+    // Key is an int64 symId, value is a pair of int32 StackSym
+    typedef JsUtil::BaseDictionary<SymID, Int64SymPair, JitArenaAllocator> Int64SymPairMap;
+    Int64SymPairMap* m_int64SymPairMap;
 #endif
 #ifdef RECYCLER_WRITE_BARRIER_JIT
 public:

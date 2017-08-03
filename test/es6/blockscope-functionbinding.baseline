@@ -61,9 +61,9 @@ function f() { }
 
 Test 8: Function scope binding does not occur in strict mode
 
-ReferenceError: 'f' is undefined
+ReferenceError: 'f' is not defined
 function f() { }
-ReferenceError: 'f' is undefined
+ReferenceError: 'f' is not defined
 
 Test 9: Overwriting user declared var
 
@@ -99,13 +99,13 @@ let g
 Test 13: Eval does not leak let and const bindings
 
 var f
-ReferenceError: 'g' is undefined
+ReferenceError: 'g' is not defined
 eval var f
 function g() { }
-ReferenceError: 'h' is undefined
-ReferenceError: 'i' is undefined
+ReferenceError: 'h' is not defined
+ReferenceError: 'i' is not defined
 eval blockscoped var j
-ReferenceError: 'k' is undefined
+ReferenceError: 'k' is not defined
 
 Test 14: Eval leaks vars, and var declarations bind to block scoped bindings for rhs initialization
 
@@ -144,7 +144,7 @@ function f() { }
 function g() { }
 let g
 var f
-ReferenceError: 'g' is undefined
+ReferenceError: 'g' is not defined
 
 Test 19: function declaration var binding should be ignored when same named let/const variable is at function scope
 

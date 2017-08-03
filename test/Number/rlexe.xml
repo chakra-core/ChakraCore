@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -39,7 +39,6 @@
       <files>NoSse.js</files>
       <baseline>NoSse.baseline</baseline>
       <compile-flags>-sse:0</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>

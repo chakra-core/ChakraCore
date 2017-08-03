@@ -82,6 +82,14 @@ namespace Js {
         RaiseException((DWORD)DBG_TERMINATE_PROCESS, EXCEPTION_NONCONTINUABLE, 0, NULL);
     }
 
+#if ENABLE_JS_REENTRANCY_CHECK
+    void Throw::FatalJsReentrancyError()
+    {
+        AssertMsg(false, "Js reentrancy error!!");
+        ReportFatalException(NULL, E_UNEXPECTED, Fatal_JsReentrancy_Error, 0);
+    }
+#endif
+
     void Throw::InternalError()
     {
         AssertOrFailFastMsg(false, "Internal error!!");

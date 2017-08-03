@@ -6,7 +6,7 @@
 
 #if ENABLE_TTD
 
-#define TTD_EVENTLOG_LIST_BLOCK_SIZE 4096
+#define TTD_EVENTLOG_LIST_BLOCK_SIZE 65536
 
 namespace TTD
 {
@@ -95,29 +95,6 @@ namespace TTD
         void InitializeForRecording(Js::ScriptContext* ctx, double beginWallTime, NSLogEvents::EventLogEntry* callAction);
     };
 
-    //A by value class representing the state of the last returned from location in execution (return x or exception)
-    class TTLastReturnLocationInfo
-    {
-    private:
-        bool m_isExceptionFrame;
-        SingleCallCounter m_lastFrame;
-
-    public:
-        TTLastReturnLocationInfo();
-
-        void SetReturnLocation(const SingleCallCounter& cframe);
-        void SetExceptionLocation(const SingleCallCounter& cframe);
-
-        bool IsDefined() const;
-        bool IsReturnLocation() const;
-        bool IsExceptionLocation() const;
-        const SingleCallCounter& GetLocation() const;
-
-        void Clear();
-        void ClearReturnOnly();
-        void ClearExceptionOnly();
-    };
-
     //A list class for the events that we accumulate in the event log
     class TTEventList
     {
@@ -125,13 +102,13 @@ namespace TTD
         struct TTEventListLink
         {
             //The current end of the allocated data in the block
-            uint32 CurrPos;
+            size_t CurrPos;
 
             //The First index that holds data
-            uint32 StartPos;
+            size_t StartPos;
 
             //The actual block for the data
-            NSLogEvents::EventLogEntry* BlockData;
+            byte* BlockData;
 
             //The next block in the list
             TTEventListLink* Next;
@@ -145,19 +122,45 @@ namespace TTD
         //the allocators we use for this work
         UnlinkableSlabAllocator* m_alloc;
 
+        //The vtable with callbacks for the event log entries in the list
+        const NSLogEvents::EventLogEntryVTableEntry* m_vtable;
+
+        //Map from event entries to previous event entries -- only valid in replay mode otherwise empty
+        JsUtil::BaseDictionary<const NSLogEvents::EventLogEntry*, size_t, HeapAllocator> m_previousEventMap;
+
         void AddArrayLink();
         void RemoveArrayLink(TTEventListLink* block);
 
     public:
         TTEventList(UnlinkableSlabAllocator* alloc);
-        void UnloadEventList(NSLogEvents::EventLogEntryVTableEntry* vtable);
+
+        void SetVTable(const NSLogEvents::EventLogEntryVTableEntry* vtable);
+        void InitializePreviousEventMap();
+
+        void UnloadEventList();
 
         //Add the entry to the list
-        NSLogEvents::EventLogEntry* GetNextAvailableEntry();
+        template <typename T>
+        NSLogEvents::EventLogEntry* GetNextAvailableEntry() 
+        {
+            const size_t esize = TTD_EVENT_PLUS_DATA_SIZE(T);
+            if((this->m_headBlock == nullptr) || (this->m_headBlock->CurrPos + esize >= TTD_EVENTLOG_LIST_BLOCK_SIZE))
+            {
+                this->AddArrayLink();
+            }
+
+            NSLogEvents::EventLogEntry* entry = reinterpret_cast<NSLogEvents::EventLogEntry*>(this->m_headBlock->BlockData + this->m_headBlock->CurrPos);
+            this->m_headBlock->CurrPos += esize;
+
+            return entry;
+        }
+
+        //Add the entry to the list
+        NSLogEvents::EventLogEntry* GetNextAvailableEntry(size_t requiredSize);
 
         //Delete the entry from the list (must always be the first link/entry in the list)
         //This also calls unload on the entry
-        void DeleteFirstEntry(TTEventListLink* block, NSLogEvents::EventLogEntry* data, NSLogEvents::EventLogEntryVTableEntry* vtable);
+        void DeleteFirstEntry(TTEventListLink* block, NSLogEvents::EventLogEntry* data);
 
         //Return true if this is empty
         bool IsEmpty() const;
@@ -169,11 +172,14 @@ namespace TTD
         {
         private:
             TTEventListLink* m_currLink;
-            uint32 m_currIdx;
+            size_t m_currIdx;
+
+            const NSLogEvents::EventLogEntryVTableEntry* m_vtable;
+            const JsUtil::BaseDictionary<const NSLogEvents::EventLogEntry*, size_t, HeapAllocator>* m_previousEventMap;
 
         public:
             Iterator();
-            Iterator(TTEventListLink* head, uint32 pos);
+            Iterator(TTEventListLink* head, size_t pos, const NSLogEvents::EventLogEntryVTableEntry* vtable, const JsUtil::BaseDictionary<const NSLogEvents::EventLogEntry*, size_t, HeapAllocator>* previousEventMap);
 
             const NSLogEvents::EventLogEntry* Current() const;
             NSLogEvents::EventLogEntry* Current();
@@ -184,11 +190,11 @@ namespace TTD
             bool IsValid() const;
 
             void MoveNext();
-            void MovePrevious();
+            void MovePrevious_ReplayOnly();
         };
 
         Iterator GetIteratorAtFirst() const;
-        Iterator GetIteratorAtLast() const;
+        Iterator GetIteratorAtLast_ReplayOnly() const;
     };
 
     //A class that represents the event log for the program execution
@@ -209,22 +215,13 @@ namespace TTD
         //A high res timer we can use to extract some diagnostic timing info as we go
         TTDTimer m_timer;
 
-        //A counter (per event dispatch) which holds the current value for the function counter
-        uint64 m_runningFunctionTimeCtr;
-
         //Top-Level callback event time (or -1 if we are not in a callback)
         int64 m_topLevelCallbackEventTime;
 
-        //The tag (from the host) that tells us which callback id this (toplevel) callback is associated with (-1 if not initiated by a callback)
-        int64 m_hostCallbackId;
-
         //The list of all the events and the iterator we use during replay
-        TTEventList m_eventList;
         NSLogEvents::EventLogEntryVTableEntry* m_eventListVTable;
+        TTEventList m_eventList;
         TTEventList::Iterator m_currentReplayEventIterator;
-
-        //Array of call counters (used as stack)
-        JsUtil::List<SingleCallCounter, HeapAllocator> m_callStack;
 
         //The current mode the system is running in (and a stack of mode push/pops that we use to generate it)
         TTModeStack m_modeStack;
@@ -244,55 +241,22 @@ namespace TTD
         RecyclerRootPtr<PropertyRecordPinSet> m_propertyRecordPinSet;
         UnorderedArrayList<NSSnapType::SnapPropertyRecord, TTD_ARRAY_LIST_SIZE_DEFAULT> m_propertyRecordList;
 
+        //The value of the threadContext sourceInfoCounter in record -- in replay initialize to this value to avoid collisions
+        uint32 m_sourceInfoCount;
+
         //A list of all *root* scripts that have been loaded during this session
         UnorderedArrayList<NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo, TTD_ARRAY_LIST_SIZE_MID> m_loadedTopLevelScripts;
         UnorderedArrayList<NSSnapValues::TopLevelNewFunctionBodyResolveInfo, TTD_ARRAY_LIST_SIZE_SMALL> m_newFunctionTopLevelScripts;
         UnorderedArrayList<NSSnapValues::TopLevelEvalFunctionBodyResolveInfo, TTD_ARRAY_LIST_SIZE_SMALL> m_evalTopLevelScripts;
 
-        //The most recently executed statement before return -- normal return or exception
-        //We clear this after executing any following statements so this can be used for:
-        // - Step back to uncaught exception
-        // - Step to last statement in previous event
-        // - Step back *into* possible if either case is true
-
-        TTLastReturnLocationInfo m_lastReturnLocation;
-
-        //A flag indicating if we want to break on the entry to the user code 
-        bool m_breakOnFirstUserCode;
-
-        //A pending TTDBP we want to set and move to
-        TTDebuggerSourceLocation m_pendingTTDBP;
-        int64 m_pendingTTDMoveMode;
-
-        //The bp we are actively moving to in TT mode
-        int64 m_activeBPId;
-        bool m_shouldRemoveWhenDone;
-        TTDebuggerSourceLocation m_activeTTDBP;
-
-        //The last breakpoint seen in the most recent scan
-        TTDebuggerSourceLocation m_continueBreakPoint;
-
-        //Used to preserve breakpoints accross inflate operations
-        uint32 m_preservedBPCount;
-        TTD_LOG_PTR_ID* m_preservedBreakPointSourceScriptArray;
-        TTDebuggerSourceLocation** m_preservedBreakPointLocationArray;
-
-#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        TraceLogger m_diagnosticLogger;
-#endif
-
         ////
         //Helper methods
 
-        //get the top call counter from the stack
-        const SingleCallCounter& GetTopCallCounter() const;
-        SingleCallCounter& GetTopCallCounter();
-
-        //get the caller for the top call counter that is user code from the stack (e.g. stack -2)
-        bool TryGetTopCallCallerCounter(SingleCallCounter& caller) const;
-
         //Get the current XTTDEventTime and advance the event time counter
-        int64 GetCurrentEventTimeAndAdvance();
+        int64 GetCurrentEventTimeAndAdvance()
+        {
+            return this->m_eventTimeCtr++;
+        }
 
         //Advance the time and event position for replay
         void AdvanceTimeAndPositionForReplay();
@@ -300,11 +264,8 @@ namespace TTD
         //Look at the stack to get the new computed mode
         void UpdateComputedMode();
 
-        //Unload any pinned or otherwise retained objects
-        void UnloadRetainedData();
-
         //A helper for extracting snapshots
-        SnapShot* DoSnapshotExtract_Helper();
+        SnapShot* DoSnapshotExtract_Helper(double gcTime);
 
         //Replay a snapshot event -- either just advance the event position or, if running diagnostics, take new snapshot and compare
         void ReplaySnapshotEvent();
@@ -315,8 +276,10 @@ namespace TTD
         template <typename T, NSLogEvents::EventKind tag>
         NSLogEvents::EventLogEntry* RecordGetInitializedEvent(T** extraData)
         {
-            NSLogEvents::EventLogEntry* res = this->m_eventList.GetNextAvailableEntry();
-            NSLogEvents::EventLogEntry_Initialize(res, tag, this->GetCurrentEventTimeAndAdvance());
+            AssertMsg(TTD_EVENT_PLUS_DATA_SIZE_DIRECT(sizeof(T)) == this->m_eventListVTable[(uint32)tag].DataSize, "Computed and extracted data sizes dont' match!!!");
+
+            NSLogEvents::EventLogEntry* res = this->m_eventList.GetNextAvailableEntry<T>();
+            NSLogEvents::EventLogEntry_Initialize<tag>(res, this->GetCurrentEventTimeAndAdvance());
 
             *extraData = NSLogEvents::GetInlineEventDataAs<T, tag>(res);
             return res;
@@ -325,8 +288,10 @@ namespace TTD
         template <typename T, NSLogEvents::EventKind tag>
         T* RecordGetInitializedEvent_DataOnly()
         {
-            NSLogEvents::EventLogEntry* res = this->m_eventList.GetNextAvailableEntry();
-            NSLogEvents::EventLogEntry_Initialize(res, tag, this->GetCurrentEventTimeAndAdvance());
+            AssertMsg(TTD_EVENT_PLUS_DATA_SIZE_DIRECT(sizeof(T)) == this->m_eventListVTable[(uint32)tag].DataSize, "Computed and extracted data sizes dont' match!!!");
+
+            NSLogEvents::EventLogEntry* res = this->m_eventList.GetNextAvailableEntry<T>();
+            NSLogEvents::EventLogEntry_Initialize<tag>(res, this->GetCurrentEventTimeAndAdvance());
 
             //For these operations are not allowed to fail so success is always 0
             res->ResultStatus = 0;
@@ -369,11 +334,6 @@ namespace TTD
         //When we stop recording we want to unload all of the data in the log (otherwise we get strange transitions if we start again later)
         void UnloadAllLogData();
 
-#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        //Get the trace logger for this 
-        TraceLogger* GetTraceLogger();
-#endif
-
         //Initialize the log so that it is ready to perform TTD (record or replay) and set into the correct global mode
         void InitForTTDRecord();
         void InitForTTDReplay(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength, bool debug);
@@ -390,6 +350,9 @@ namespace TTD
         //pop the top debugger mode
         void PopMode(TTDMode m);
 
+        //Get the current mode for TTD execution
+        TTDMode GetCurrentTTDMode() const;
+
         //Set the mode flags on the script context based on the TTDMode in the Log
         void SetModeFlagsOnContext(Js::ScriptContext* ctx);
 
@@ -402,12 +365,6 @@ namespace TTD
         //A special check for to see if we want to push the supression flag for getter exection
         bool ShouldDoGetterInvocationSupression() const;
 
-        //A special check to see if we are in the process of a time-travel move and do not want to stop at any breakpoints
-        bool ShouldSuppressBreakpointsForTimeTravelMove() const;
-
-        //A special check to see if we are in the process of a time-travel move and do not want to stop at any breakpoints
-        bool ShouldRecordBreakpointsDuringTimeTravelScan() const;
-
         //Add a property record to our pin set
         void AddPropertyRecord(const Js::PropertyRecord* record);
 
@@ -416,8 +373,10 @@ namespace TTD
         const NSSnapValues::TopLevelNewFunctionBodyResolveInfo* AddNewFunction(Js::FunctionBody* fb, Js::ModuleID moduleId, const char16* source, uint32 sourceLen);
         const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* AddEvalFunction(Js::FunctionBody* fb, Js::ModuleID moduleId, const char16* source, uint32 sourceLen, uint32 grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode);
 
-        void RecordTopLevelCodeAction(uint64 bodyCtrId);
-        uint64 ReplayTopLevelCodeAction();
+        uint32 GetSourceInfoCount() const;
+
+        void RecordTopLevelCodeAction(uint32 bodyCtrId);
+        uint32 ReplayTopLevelCodeAction();
 
         ////////////////////////////////
         //Logging support
@@ -464,6 +423,12 @@ namespace TTD
         //Replay symbol creation
         void ReplaySymbolCreationEvent(Js::PropertyId* pid);
 
+        //Log if a weak collection contained a value when an operation occours
+        void RecordWeakCollectionContainsEvent(bool contains);
+
+        //Replay a weak collection contained a value when an operation occours (return the truth value)
+        bool ReplayWeakCollectionContainsEvent();
+
         //Log a value event for return from an external call
         NSLogEvents::EventLogEntry* RecordExternalCallEvent(Js::JavascriptFunction* func, int32 rootDepth, uint32 argc, Js::Var* argv, bool checkExceptions);
         void RecordExternalCallEvent_Complete(Js::JavascriptFunction* efunction, NSLogEvents::EventLogEntry* evt, Js::Var result);
@@ -476,88 +441,8 @@ namespace TTD
 
         void ReplayEnqueueTaskEvent(Js::ScriptContext* ctx, Js::Var taskVar);
 
-        //Log a function call
-        void PushCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool isInFinally);
-
-        //Log a function return in normal case and exception
-        void PopCallEvent(Js::JavascriptFunction* function, Js::Var result);
-        void PopCallEventException(Js::JavascriptFunction* function);
-
-        void ClearExceptionFrames();
-
-        //Set that we want to break on the execution of the first user code
-        void SetBreakOnFirstUserCode();
-
-        bool HasPendingTTDBP() const;
-        int64 GetPendingTTDBPTargetEventTime() const;
-        void GetPendingTTDBPInfo(TTDebuggerSourceLocation& BPLocation) const;
-        void ClearPendingTTDBPInfo();
-        void SetPendingTTDBPInfo(const TTDebuggerSourceLocation& BPLocation);
-        void EnsureTTDBPInfoTopLevelBodyCtrPreInflate();
-
-        int64 GetPendingTTDMoveMode() const;
-        void ClearPendingTTDMoveMode();
-        void SetPendingTTDMoveMode(int64 mode);
-
-        bool HasActiveBP() const;
-        UINT GetActiveBPId() const;
-        void ClearActiveBP();
-        void SetActiveBP(UINT bpId, bool isNewBP, const TTDebuggerSourceLocation& bpLocation);
-
-        //Process the breakpoint info as we enter a break statement and return true if we actually want to break
-        bool ProcessBPInfoPreBreak(Js::FunctionBody* fb);
-
-        //Process the breakpoint info as we resume from a break statement
-        void ProcessBPInfoPostBreak(Js::FunctionBody* fb);
-
-        //Clear the BP scan info
-        void ClearBPScanInfo();
-
-        //When scanning add the current location as a BP location
-        void AddCurrentLocationDuringScan();
-
-        //After a scan set the pending BP to the earliest breakpoint before the given current pending BP location and return true
-        //If no such BP location then return false
-        bool TryFindAndSetPreviousBP();
-
-        //Load and restore all the breakpoints in the manager before and after we create new script contexts  
-        void LoadPreservedBPInfo();
-        void UnLoadPreservedBPInfo();
-        const uint32 GetPerservedBPInfoCount() const;
-        TTD_LOG_PTR_ID* GetPerservedBPInfoScriptArray();
-        TTDebuggerSourceLocation** GetPerservedBPInfoLocationArray();
-
-        //Update the loop count information
-        void UpdateLoopCountInfo();
-
-        //
-        //TODO: This is not great performance wise
-        //
-        //For debugging we currently brute force track the current/last source statements executed
-        void UpdateCurrentStatementInfo(uint bytecodeOffset);
-
-        //Get the current time/position info for the debugger -- all out arguments are optional (nullptr if you don't care)
-        void GetTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const;
-
-#if ENABLE_OBJECT_SOURCE_TRACKING
-        void GetTimeAndPositionForDiagnosticObjectTracking(DiagnosticOrigin& originInfo) const;
-#endif 
-
-        //Get the previous statement time/position for the debugger -- return false if this is the first statement of the event handler
-        bool GetPreviousTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const;
-
-        //Get the last (uncaught or just caught) exception time/position for the debugger -- if the last return action was an exception and we have not made any additional calls
-        //Otherwise get the last statement executed call time/position for the debugger
-        void GetLastExecutedTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const;
-
-        //Get the current host callback id
-        int64 GetCurrentHostCallbackId() const;
-
         //Get the current top-level event time 
         int64 GetCurrentTopLevelEventTime() const;
-
-        //Get the time info around a host id creation/cancelation event -- return null if we can't find the event of interest (not in log or we were called directly by host -- host id == -1)
-        const NSLogEvents::JsRTCallbackAction* GetEventForHostCallbackId(bool wantRegisterOp, int64 hostIdOfInterest) const;
 
         //Get the event time corresponding to the first/last/k-th top-level event in the log
         int64 GetFirstEventTimeInLog() const;
@@ -626,7 +511,6 @@ namespace TTD
         void RecordJsRTCreateScriptContextResult(NSLogEvents::EventLogEntry* evt, Js::ScriptContext* newCtx);
 
         void RecordJsRTSetCurrentContext(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var globalObject);
-        void RecordJsRTDeadScriptEvent(const DeadScriptLogTagInfo& deadCtx);
 
 #if !INT32VAR
         void RecordJsRTCreateInteger(TTDJsRTActionResultAutoRecorder& actionPopper, int value);
@@ -654,7 +538,7 @@ namespace TTD
 
         //Record lifetime management events
         void RecordJsRTAddRootRef(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var);
-        void RecordJsRTRemoveRootRef(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var);
+        void RecordJsRTAddWeakRootRef(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var);
         void RecordJsRTEventLoopYieldPoint();
 
         //Record object allocate operations
@@ -667,11 +551,13 @@ namespace TTD
 
         //Record GetAndClearException
         void RecordJsRTHostExitProcess(TTDJsRTActionResultAutoRecorder& actionPopper, int32 exitCode);
+        void RecordJsRTGetAndClearExceptionWithMetadata(TTDJsRTActionResultAutoRecorder& actionPopper);
         void RecordJsRTGetAndClearException(TTDJsRTActionResultAutoRecorder& actionPopper);
         void RecordJsRTSetException(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, bool propagateToDebugger);
 
         //Record query operations
         void RecordJsRTHasProperty(TTDJsRTActionResultAutoRecorder& actionPopper, const Js::PropertyRecord* pRecord, Js::Var var);
+        void RecordJsRTHasOwnProperty(TTDJsRTActionResultAutoRecorder& actionPopper, const Js::PropertyRecord* pRecord, Js::Var var);
         void RecordJsRTInstanceOf(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var object, Js::Var constructor);
         void RecordJsRTEquals(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var1, Js::Var var2, bool doStrict);
 
@@ -705,9 +591,6 @@ namespace TTD
         //Record a constructor call from JsRT
         void RecordJsRTConstructCall(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var funcVar, uint32 argCount, Js::Var* args);
 
-        //Record callback registration/cancelation
-        void RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCreate, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 callbackId);
-
         //Record code parse
         NSLogEvents::EventLogEntry* RecordJsRTCodeParse(TTDJsRTActionResultAutoRecorder& actionPopper, LoadScriptFlag loadFlag, bool isUft8, const byte* script, uint32 scriptByteLength, uint64 sourceContextId, const char16* sourceUri);
 
@@ -719,42 +602,6 @@ namespace TTD
 
         void EmitLog(const char* emitUri, size_t emitUriLength);
         void ParseLogInto(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength);
-    };
-
-    //A class to ensure that even when exceptions are thrown the pop action for the TTD call stack is executed -- defined after EventLog so we can refer to it in the .h file
-    class TTDExceptionFramePopper
-    {
-    private:
-        EventLog* m_log;
-        Js::JavascriptFunction* m_function;
-
-    public:
-        TTDExceptionFramePopper()
-            : m_log(nullptr), m_function(nullptr)
-        {
-            ;
-        }
-
-        ~TTDExceptionFramePopper()
-        {
-            //we didn't clear this so an exception was thrown and we are propagating
-            if(this->m_log != nullptr)
-            {
-                //if it doesn't have an exception frame then this is the frame where the exception was thrown so record our info
-                this->m_log->PopCallEventException(this->m_function);
-            }
-        }
-
-        void PushInfo(EventLog* log, Js::JavascriptFunction* function)
-        {
-            this->m_log = log; //set the log info so if the pop isn't called the destructor will record propagation
-            this->m_function = function;
-        }
-
-        void PopInfo()
-        {
-            this->m_log = nullptr; //normal pop (no exception) just clear so destructor nops
-        }
     };
 
     //In cases where we may have many exits where we need to pop something we pushed earlier (i.e. exceptions)

@@ -33,7 +33,7 @@ namespace Js
     struct PropertyIdOnRegSlotsContainer;
 
     struct InlineCache;
-    struct PolymorphicInlineCache;
+    class PolymorphicInlineCache;
     struct IsInstInlineCache;
     class ScopeObjectChain;
     class EntryPointInfo;
@@ -581,6 +581,7 @@ namespace Js
 
         Field(CodeGenWorkItem *) workItem;
         FieldNoBarrier(Js::JavascriptMethod) nativeAddress;
+        FieldNoBarrier(Js::JavascriptMethod) thunkAddress;
         Field(ptrdiff_t) codeSize;
 
     protected:
@@ -651,7 +652,7 @@ namespace Js
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
             equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), inProcJITNaticeCodedata(nullptr),
             numberChunks(nullptr), numberPageSegments(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
-            isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
+            isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr), inlineeFrameMap(nullptr),
 #if PDATA_ENABLED
             xdataInfo(nullptr),
 #endif
@@ -844,11 +845,12 @@ namespace Js
             this->state = CodeGenPending;
         }
 
-        void SetCodeGenRecorded(Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize)
+        void SetCodeGenRecorded(Js::JavascriptMethod thunkAddress, Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize)
         {
             Assert(this->GetState() == CodeGenQueued);
             Assert(codeSize > 0);
             this->nativeAddress = nativeAddress;
+            this->thunkAddress = thunkAddress;
             this->codeSize = codeSize;
             this->state = CodeGenRecorded;
 
@@ -857,12 +859,7 @@ namespace Js
 #endif
         }
 
-        void SetCodeGenDone()
-        {
-            Assert(this->GetState() == CodeGenRecorded);
-            this->state = CodeGenDone;
-            this->workItem = nullptr;
-        }
+        void SetCodeGenDone();
 
         void SetJITCapReached()
         {
@@ -900,6 +897,20 @@ namespace Js
 
             // !! this is illegal, however (by design) `IsInNativeAddressRange` (right above) needs it
             return reinterpret_cast<DWORD_PTR>(this->nativeAddress);
+        }
+
+        Js::JavascriptMethod GetThunkAddress() const
+        {
+            Assert(this->GetState() == CodeGenRecorded || this->GetState() == CodeGenDone);
+
+            return this->thunkAddress;
+        }
+
+        Js::JavascriptMethod GetNativeEntrypoint() const
+        {
+            Assert(this->GetState() == CodeGenRecorded || this->GetState() == CodeGenDone || this->isAsmJsFunction);
+
+            return this->thunkAddress ? this->thunkAddress : this->nativeAddress;
         }
 
         ptrdiff_t GetCodeSize() const
@@ -1057,16 +1068,11 @@ namespace Js
 
     private:
         Field(ExecutionMode) jitMode;
-        Field(FunctionEntryPointInfo*) mOldFunctionEntryPointInfo; // strong ref to oldEntryPointInfo(Int or TJ) in asm to ensure we don't collect it before JIT is completed
         Field(bool)       mIsTemplatizedJitMode; // true only if in TJ mode, used only for debugging
     public:
         FunctionEntryPointInfo(FunctionProxy * functionInfo, Js::JavascriptMethod method, ThreadContext* context, void* validationCookie);
 
 #ifdef ASMJS_PLAT
-        //AsmJS Support
-
-        void SetOldFunctionEntryPointInfo(FunctionEntryPointInfo* entrypointInfo);
-        FunctionEntryPointInfo* GetOldFunctionEntryPointInfo()const;
         void SetIsTJMode(bool value);
         bool GetIsTJMode()const;
         //End AsmJS Support
@@ -1181,6 +1187,9 @@ namespace Js
         Field(uint) endOffset;
         Field(uint) interpretCount;
         Field(uint) profiledLoopCounter;
+#if ENABLE_NATIVE_CODEGEN
+        Field(uint) rejitCount;
+#endif
         Field(bool) isNested;
         Field(bool) isInTry;
         Field(FunctionBody *) functionBody;
@@ -1285,6 +1294,8 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         int CreateEntryPoint();
         void ReleaseEntryPoints();
+        void IncRejitCount() { ++rejitCount; }
+        uint GetRejitCount() { return rejitCount; }
 #endif
 
         void ResetInterpreterCount()
@@ -1315,9 +1326,7 @@ namespace Js
     //
     class FunctionProxy : public FinalizableObject
     {
-        static CriticalSection GlobalLock;
     public:
-        static CriticalSection* GetLock() { return &GlobalLock; }
         typedef RecyclerWeakReference<DynamicType> FunctionTypeWeakRef;
         typedef JsUtil::List<FunctionTypeWeakRef*, Recycler, false, WeakRefFreeListedRemovePolicy> FunctionTypeWeakRefList;
 
@@ -2009,6 +2018,9 @@ namespace Js
         void SetReparsed(bool set) { m_reparsed = set; }
         bool GetExternalDisplaySourceName(BSTR* sourceName);
 
+        void CleanupToReparse();
+        void CleanupToReparseHelper();
+
         bool EndsAfter(size_t offset) const;
 
         void SetDoBackendArgumentsOptimization(bool set)
@@ -2098,6 +2110,7 @@ namespace Js
         DeferredFunctionStub *GetDeferredStubs() const { return static_cast<DeferredFunctionStub *>(this->GetAuxPtr(AuxPointerType::DeferredStubs)); }
         void SetDeferredStubs(DeferredFunctionStub *stub) { this->SetAuxPtr(AuxPointerType::DeferredStubs, stub); }
         void RegisterFuncToDiag(ScriptContext * scriptContext, char16 const * pszTitle);
+        bool IsES6ModuleCode() const;
 
     protected:
         static HRESULT MapDeferredReparseError(HRESULT& hrParse, const CompileScriptException& se);
@@ -2261,21 +2274,19 @@ namespace Js
                 Max
             };
 
+    private:
             typedef CompactCounters<FunctionBody> CounterT;
             FieldWithBarrier(CounterT) counters;
+            friend CounterT;
 
-            uint32 GetCountField(FunctionBody::CounterFields fieldEnum) const
-            {
-                return counters.Get(fieldEnum);
-            }
-            uint32 SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val)
-            {
-                return counters.Set(fieldEnum, val, this);
-            }
-            uint32 IncreaseCountField(FunctionBody::CounterFields fieldEnum)
-            {
-                return counters.Increase(fieldEnum, this);
-            }
+    public:
+            uint32 GetCountField(FunctionBody::CounterFields fieldEnum) const;
+            uint32 SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val);
+            uint32 IncreaseCountField(FunctionBody::CounterFields fieldEnum);
+#if DBG
+            void LockDownCounters() { counters.isLockedDown = true; };
+            void UnlockCounters() { counters.isLockedDown = false; };
+#endif
 
             struct StatementMap
             {
@@ -3082,6 +3093,8 @@ namespace Js
 
         bool GetNativeEntryPointUsed() const { return m_nativeEntryPointUsed; }
         void SetNativeEntryPointUsed(bool nativeEntryPointUsed) { this->m_nativeEntryPointUsed = nativeEntryPointUsed; }
+        bool GetHasDoneLoopBodyCodeGen() const { return hasDoneLoopBodyCodeGen; }
+        void SetHasDoneLoopBodyCodeGen(bool hasDoneLoopBodyCodeGen) { this->hasDoneLoopBodyCodeGen = hasDoneLoopBodyCodeGen; }
 #endif
 
         bool GetIsFuncRegistered() { return m_isFuncRegistered; }
@@ -3154,8 +3167,8 @@ namespace Js
         PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return static_cast<PolymorphicCallSiteInfo *>(this->GetAuxPtr(AuxPointerType::PolymorphicCallSiteInfoHead)); }
 #endif
 
-        PolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return static_cast<PolymorphicInlineCache *>(this->GetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead)); }
-        void SetPolymorphicInlineCachesHead(PolymorphicInlineCache * cache) { this->SetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead, cache); }
+        FunctionBodyPolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return static_cast<FunctionBodyPolymorphicInlineCache *>(this->GetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead)); }
+        void SetPolymorphicInlineCachesHead(FunctionBodyPolymorphicInlineCache * cache) { this->SetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead, cache); }
 
         bool PolyInliningUsingFixedMethodsAllowedByConfigFlags(FunctionBody* topFunctionBody)
         {
@@ -3318,7 +3331,7 @@ namespace Js
         void RecordTrueObject(RegSlot location);
         void RecordFalseObject(RegSlot location);
         void RecordIntConstant(RegSlot location, unsigned int val);
-        void RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch);
+        void RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch, bool forcePropertyString);
         void RecordFloatConstant(RegSlot location, double d);
         void RecordNullDisplayConstant(RegSlot location);
         void RecordStrictNullDisplayConstant(RegSlot location);
@@ -3572,7 +3585,7 @@ namespace Js
         void SetEntryToDeferParseForDebugger();
         void ClearEntryPoints();
         void ResetEntryPoint();
-        void CleanupToReparse();
+        void CleanupToReparseHelper();
         void AddDeferParseAttribute();
         void RemoveDeferParseAttribute();
 #if DBG
@@ -4010,6 +4023,10 @@ namespace Js
         Field(PropertyId *) propertyIdsForRegSlots;
         Field(uint) length;
 
+        // This keeps the upper bound of register slots for the formals. While emitting locals in the body we skip
+        // the properties that are below this limit.
+        Field(RegSlot) formalsUpperBound;
+
         Field(PropertyIdArray *) propertyIdsForFormalArgs;
 
         PropertyIdOnRegSlotsContainer();
@@ -4032,6 +4049,7 @@ namespace Js
     const int DebuggerScopePropertyFlags_CatchObject            = 0x000000002;
     const int DebuggerScopePropertyFlags_WithObject             = 0x000000004;
     const int DebuggerScopePropertyFlags_ForInOrOfCollection    = 0x000000008;
+    const int DebuggerScopePropertyFlags_HasDuplicateInBody     = 0x000000016;
 
     // Used to store local property info for with/catch objects, lets, or consts
     // that are needed for the debugger.

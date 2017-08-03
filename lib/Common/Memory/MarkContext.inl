@@ -46,6 +46,7 @@ bool MarkContext::AddTrackedObject(FinalizableObject * obj)
 #endif
 
 template <bool parallel, bool interior, bool doSpecialMark>
+NO_SANITIZE_ADDRESS
 inline
 void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 {
@@ -75,21 +76,15 @@ void MarkContext::ScanMemory(void ** obj, size_t byteCount)
         void * candidate = *(static_cast<void * volatile *>(obj));
 #endif
 
-#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
-        if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
-        {
-            this->parentRef = obj;
-        }
+#if DBG
+        this->parentRef = obj;
 #endif
         Mark<parallel, interior, doSpecialMark>(candidate, parentObject);
         obj++;
     } while (obj != objEnd);
 
-#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
-    {
-        this->parentRef = nullptr;
-    }
+#if DBG
+    this->parentRef = nullptr;
 #endif
 
 #if DBG_DUMP

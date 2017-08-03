@@ -14,7 +14,7 @@ namespace Js
         Reset();
     }
 
-    Var JavascriptArrayIndexSnapshotEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    JavascriptString * JavascriptArrayIndexSnapshotEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
 

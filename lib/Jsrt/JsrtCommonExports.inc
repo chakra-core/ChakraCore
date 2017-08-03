@@ -116,4 +116,9 @@
     JsCreatePropertyId
     JsCopyPropertyId
     JsCreatePromise
+    JsCreateWeakReference
+    JsGetWeakReferenceValue
+    JsGetAndClearExceptionWithMetadata
+    JsHasOwnProperty
+    JsCopyStringOneByte
 #endif

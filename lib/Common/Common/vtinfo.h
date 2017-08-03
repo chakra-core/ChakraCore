@@ -101,6 +101,20 @@ public:
     static bool HasVirtualTable(void * ptr) { return GetVirtualTable(ptr) == Address; }
 };
 
+template <typename T>
+class VirtualTableRecorder
+{
+public:
+    static void RecordVirtualTableAddress(INT_PTR * vtableAddresses, int32 value)
+    {
+        vtableAddresses[value] = VirtualTableInfo<T>::Address;
+
+        // validate uniqueness of vtable
+        bool isValueEqual = reinterpret_cast<T*>(&vtableAddresses[value])->DummyVirtualFunctionToHinderLinkerICF() == value;
+        AssertOrFailFast(isValueEqual);
+    }
+};
+
 #if !defined(USED_IN_STATIC_LIB)
 #pragma warning(disable:4238) // class rvalue used as lvalue
 template <typename T>

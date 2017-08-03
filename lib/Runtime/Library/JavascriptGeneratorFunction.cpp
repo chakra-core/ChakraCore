@@ -114,6 +114,8 @@ namespace Js
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         ARGUMENTS(stackArgs, callInfo);
 
+        Assert(!(callInfo.Flags & CallFlags_New));
+
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptGeneratorFunction* generatorFunction = JavascriptGeneratorFunction::FromVar(function);
 
@@ -128,7 +130,8 @@ namespace Js
         // Set the prototype from constructor
         JavascriptOperators::OrdinaryCreateFromConstructor(function, generator, prototype, scriptContext);
 
-        Assert(!(callInfo.Flags & CallFlags_New));
+        // Call a next on the generator to execute till the beginning of the body
+        CALL_ENTRYPOINT(scriptContext->GetThreadContext(), generator->EntryNext, function, CallInfo(CallFlags_Value, 1), generator);
 
         return generator;
     }
@@ -162,7 +165,7 @@ namespace Js
 
         try
         {
-            CALL_FUNCTION(executor, CallInfo(CallFlags_Value, 3), library->GetUndefined(), resolve, reject);
+            CALL_FUNCTION(scriptContext->GetThreadContext(), executor, CallInfo(CallFlags_Value, 3), library->GetUndefined(), resolve, reject);
         }
         catch (const JavascriptException& err)
         {
@@ -244,7 +247,7 @@ namespace Js
     {
         if (propertyId == PropertyIds::length)
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         if (propertyId == PropertyIds::caller || propertyId == PropertyIds::arguments)
@@ -375,8 +378,23 @@ namespace Js
         return false;
     }
 
+    BOOL JavascriptGeneratorFunction::SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)
+    {
+        if (propertyId == PropertyIds::length)
+        {
+            return this->scriptFunction->SetAccessors(propertyId, getter, setter, flags);
+        }
+
+        return JavascriptFunction::SetAccessors(propertyId, getter, setter, flags);
+    }
+
     BOOL JavascriptGeneratorFunction::GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext)
     {
+        if (propertyId == PropertyIds::length)
+        {
+            return this->scriptFunction->GetAccessors(propertyId, getter, setter, requestContext);
+        }
+
         if (propertyId == PropertyIds::caller || propertyId == PropertyIds::arguments)
         {
             // JavascriptFunction has special case for caller and arguments; call DynamicObject:: virtual directly to skip that.
@@ -394,6 +412,11 @@ namespace Js
             return DynamicObject::GetSetter(propertyId, setterValue, info, requestContext);
         }
 
+        if (propertyId == PropertyIds::length)
+        {
+            return this->scriptFunction->GetSetter(propertyId, setterValue, info, requestContext);
+        }
+
         return JavascriptFunction::GetSetter(propertyId, setterValue, info, requestContext);
     }
 
@@ -402,10 +425,18 @@ namespace Js
         PropertyRecord const* propertyRecord;
         this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
 
-        if (propertyRecord != nullptr && (propertyRecord->GetPropertyId() == PropertyIds::caller || propertyRecord->GetPropertyId() == PropertyIds::arguments))
+        if (propertyRecord != nullptr)
+        {
+            if (propertyRecord->GetPropertyId() == PropertyIds::length)
+            {
+                return this->scriptFunction->GetSetter(propertyNameString, setterValue, info, requestContext);
+            }
+
+            if ((propertyRecord->GetPropertyId() == PropertyIds::caller || propertyRecord->GetPropertyId() == PropertyIds::arguments))
         {
             // JavascriptFunction has special case for caller and arguments; call DynamicObject:: virtual directly to skip that.
             return DynamicObject::GetSetter(propertyNameString, setterValue, info, requestContext);
+        }
         }
 
         return JavascriptFunction::GetSetter(propertyNameString, setterValue, info, requestContext);
@@ -501,7 +532,7 @@ namespace Js
 
     void JavascriptAsyncFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTDAssert(false, "Invalid -- JavascriptGeneratorFunction");
+        TTDAssert(false, "Invalid -- JavascriptAsyncFunction");
     }
 
     TTD::NSSnapObjects::SnapObjectType GeneratorVirtualScriptFunction::GetSnapTag_TTD() const

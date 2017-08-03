@@ -14,20 +14,18 @@ WasmCustomReader::WasmCustomReader(ArenaAllocator* alloc) : m_nodes(alloc)
 
 }
 
-void
-WasmCustomReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
+void WasmCustomReader::SeekToFunctionBody(class WasmFunctionInfo* funcInfo)
 {
+    Assert(funcInfo->GetCustomReader() == this);
     m_state = 0;
 }
 
-bool
-WasmCustomReader::IsCurrentFunctionCompleted() const
+bool WasmCustomReader::IsCurrentFunctionCompleted() const
 {
     return m_state >= (uint32)m_nodes.Count();
 }
 
-WasmOp
-WasmCustomReader::ReadExpr()
+WasmOp WasmCustomReader::ReadExpr()
 {
     if (m_state < (uint32)m_nodes.Count())
     {

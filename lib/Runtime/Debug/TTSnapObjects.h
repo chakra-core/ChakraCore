@@ -279,7 +279,6 @@ namespace TTD
 
             //The frame object 
             bool IsFrameNullPtr;
-            bool IsFrameJsNull;
             TTD_PTR_ID FrameObject;
 
             uint32 FormalCount;
@@ -300,7 +299,6 @@ namespace TTD
             writer->WriteUInt32(NSTokens::Key::numberOfArgs, argsInfo->NumOfArguments, NSTokens::Separator::CommaAndBigSpaceSeparator);
 
             writer->WriteBool(NSTokens::Key::boolVal, argsInfo->IsFrameNullPtr, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, argsInfo->IsFrameJsNull, NSTokens::Separator::CommaSeparator);
             writer->WriteAddr(NSTokens::Key::objectId, argsInfo->FrameObject, NSTokens::Separator::CommaSeparator);
 
             writer->WriteLengthValue(argsInfo->FormalCount, NSTokens::Separator::CommaSeparator);
@@ -322,7 +320,6 @@ namespace TTD
             argsInfo->NumOfArguments = reader->ReadUInt32(NSTokens::Key::numberOfArgs, true);
 
             argsInfo->IsFrameNullPtr = reader->ReadBool(NSTokens::Key::boolVal, true);
-            argsInfo->IsFrameJsNull = reader->ReadBool(NSTokens::Key::boolVal, true);
             argsInfo->FrameObject = reader->ReadAddr(NSTokens::Key::objectId, true);
 
             argsInfo->FormalCount = reader->ReadLengthValue(true);
@@ -357,7 +354,6 @@ namespace TTD
             compareMap.DiagnosticAssert(argsInfo1->NumOfArguments == argsInfo2->NumOfArguments);
 
             compareMap.DiagnosticAssert(argsInfo1->IsFrameNullPtr == argsInfo2->IsFrameNullPtr);
-            compareMap.DiagnosticAssert(argsInfo1->IsFrameJsNull == argsInfo2->IsFrameJsNull);
             compareMap.CheckConsistentAndAddPtrIdMapping_Special(argsInfo1->FrameObject, argsInfo2->FrameObject, _u("frameObject"));
 
             compareMap.DiagnosticAssert(argsInfo1->FormalCount == argsInfo2->FormalCount);

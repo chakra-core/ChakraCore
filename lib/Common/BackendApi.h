@@ -42,6 +42,7 @@ typedef double  FloatConstType;
 
 #include "EmitBuffer.h"
 #include "InterpreterThunkEmitter.h"
+#include "JITThunkEmitter.h"
 #include "BackendOpCodeAttr.h"
 #include "BackendOpCodeAttrAsmJs.h"
 #include "CodeGenNumberAllocator.h"
@@ -61,7 +62,7 @@ void UpdateNativeCodeGeneratorForDebugMode(NativeCodeGenerator* nativeCodeGen);
 CriticalSection *GetNativeCodeGenCriticalSection(NativeCodeGenerator *pNativeCodeGen);
 bool TryReleaseNonHiPriWorkItem(Js::ScriptContext* scriptContext, CodeGenWorkItem* workItem);
 void NativeCodeGenEnterScriptStart(NativeCodeGenerator * nativeCodeGen);
-void FreeNativeCodeGenAllocation(Js::ScriptContext* scriptContext, Js::JavascriptMethod address);
+void FreeNativeCodeGenAllocation(Js::ScriptContext* scriptContext, Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);
 InProcCodeGenAllocators* GetForegroundAllocator(NativeCodeGenerator * nativeCodeGen, PageAllocator* pageallocator);
 void GenerateFunction(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody * functionBody, Js::ScriptFunction * function = NULL);
 void GenerateLoopBody(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody * functionBody, Js::LoopHeader * loopHeader, Js::EntryPointInfo* entryPointInfo, uint localCount, Js::Var localSlots[]);
@@ -233,6 +234,7 @@ enum VTableValue {
     VtableDynamicObject,
     VtableInvalid,
     VtablePropertyString,
+    VtableLiteralStringWithPropertyStringPtr,
     VtableJavascriptBoolean,
     VtableJavascriptArray,
     VtableInt8Array,

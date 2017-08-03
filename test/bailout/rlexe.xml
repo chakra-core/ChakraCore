@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -118,8 +118,8 @@
     <default>
       <files>bailout-argobj.js</files>
       <compile-flags>-bailout:3 -bailout:11 -forcejitloopbody</compile-flags>
-      <tags>exclude_ship</tags>
       <baseline>bailout-argobj.baseline</baseline>
+      <tags>exclude_drt</tags>
     </default>
   </test>
   <test>
@@ -173,7 +173,6 @@
       <files>AggressiveIntTypeSpecWithFloatPref.js</files>
       <compile-flags>-on:aggressiveIntTypeSpec</compile-flags>
       <baseline>Void.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -195,14 +194,12 @@
       <files>flags.js</files>
       <compile-flags>-bailoutbytecode:312</compile-flags>
       <baseline>flags.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>initlocals.js</files>
       <compile-flags>-bailout:8</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -233,7 +230,6 @@
     <default>
       <files>bailout-branch.js</files>
       <baseline>bailout-branch.baseline</baseline>
-      <tags>exclude_ship</tags>
       <compile-flags>-forcejitloopbody -force:fieldhoist</compile-flags>
     </default>
   </test>
@@ -241,7 +237,6 @@
     <default>
       <files>bailout-checkthis.js</files>
       <baseline />
-      <tags>exclude_ship</tags>
       <compile-flags>-force:checkthis</compile-flags>
     </default>
   </test>
@@ -254,6 +249,12 @@
   <test>
     <default>
       <files>spill.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug12782316.js</files>
+      <compile-flags>-force:fieldcopyprop</compile-flags>
     </default>
   </test>
 </regress-exe>

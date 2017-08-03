@@ -1,6 +1,81 @@
 [
   {
     "evaluate": {
+      "level_0_identifier_0=='level0'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_0_identifier_1=='level0'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_0_identifier_2=='level0'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_0=='level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments[0]=='level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_1[0]=='level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_2=='level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_3=='level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_4=='level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_0=='level1level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments[0]=='level1level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_1[0]=='level1level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_2=='level1level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_3=='level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
+      "level_1_identifier_4=='level1level1'": "boolean true"
+    }
+  },
+  {
+    "evaluate": {
       "level_0_identifier_0=='level0level1'": "boolean true"
     }
   },

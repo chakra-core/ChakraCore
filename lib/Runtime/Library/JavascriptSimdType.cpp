@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     // Constructors
@@ -152,11 +152,11 @@ namespace Js
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, requestContext))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags JavascriptSIMDType::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -215,3 +215,4 @@ namespace Js
     template Var JavascriptSIMDType::EntryValueOf<JavascriptSIMDUint8x16>(RecyclableObject* function, CallInfo callInfo, ...);
     template Var JavascriptSIMDType::EntryValueOf<JavascriptSIMDFloat32x4>(RecyclableObject* function, CallInfo callInfo, ...);
 }
+#endif

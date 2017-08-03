@@ -28,13 +28,16 @@ public:
     void SetIsJITServer();
     bool IsOOPJITEnabled() const;
     void EnableOOPJIT();
+    void SetJITFailed(HRESULT hr);
+    bool HasJITFailed() const;
 
     HANDLE GetServerHandle() const;
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
         __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __out intptr_t *prereservedRegionAddr);
+        __out intptr_t * prereservedRegionAddr,
+        __out intptr_t * jitThunkAddr);
 
     HRESULT CleanupThreadContext(
         __inout PPTHREADCONTEXT_HANDLE threadContextInfoAddress);
@@ -79,7 +82,8 @@ public:
 
     HRESULT FreeAllocation(
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __in intptr_t address);
+        __in intptr_t codeAddress,
+        __in intptr_t thunkAddress);
 
     HRESULT SetIsPRNGSeeded(
         __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
@@ -107,7 +111,7 @@ public:
 
 
     static JITManager * GetJITManager();
-    static void HandleServerCallResult(HRESULT hr, RemoteCallType callType);
+    static bool HandleServerCallResult(HRESULT hr, RemoteCallType callType);
 private:
     JITManager();
     ~JITManager();
@@ -123,6 +127,7 @@ private:
     UUID m_jitConnectionId;
     bool m_oopJitEnabled;
     bool m_isJITServer;
+    HRESULT m_failingHRESULT;
 
     static JITManager s_jitManager;
 
@@ -140,6 +145,7 @@ public:
     void SetIsJITServer() { Assert(false); }
     bool IsOOPJITEnabled() const { return false; }
     void EnableOOPJIT() { Assert(false); }
+    void SetJITFailed(HRESULT hr) { Assert(false); }
 
     HANDLE GetServerHandle() const
     {
@@ -149,7 +155,8 @@ public:
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
         __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __out intptr_t *prereservedRegionAddr)
+        __out intptr_t *prereservedRegionAddr,
+        __out intptr_t * jitThunkAddr)
         { Assert(false); return E_FAIL; }
 
     HRESULT DecommitInterpreterBufferManager(
@@ -199,7 +206,8 @@ public:
 
     HRESULT FreeAllocation(
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __in intptr_t address)
+        __in intptr_t codeAddress,
+        __in intptr_t thunkAddress)
         { Assert(false); return E_FAIL; }
 
     HRESULT SetIsPRNGSeeded(
@@ -233,8 +241,7 @@ public:
 
     static JITManager * GetJITManager()
         { return &s_jitManager; }
-    static void HandleServerCallResult(HRESULT hr, RemoteCallType callType) { Assert(UNREACHED); }
-
+    static bool HandleServerCallResult(HRESULT hr, RemoteCallType callType) { Assert(UNREACHED); }
 private:
     static JITManager s_jitManager;
 };

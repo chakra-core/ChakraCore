@@ -340,7 +340,7 @@ namespace JsUtil
             return defaultValue;
         }
 
-        inline const TValue& Lookup(const TKey& key, const TValue& defaultValue)
+        inline const TValue& Lookup(const TKey& key, const TValue& defaultValue) const
         {
             return LookupWithKey<TKey>(key, defaultValue);
         }

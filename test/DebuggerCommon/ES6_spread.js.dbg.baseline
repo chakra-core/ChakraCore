@@ -1,14 +1,14 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "foo": "function <large string>",
       "a": "Array [1,2,check]"
     },
     "locals": {
+      "x": "number 1",
+      "y": "number 2",
+      "z": "string check",
       "arguments": {
         "#__proto__": "Object {...}",
         "length": "number 3",
@@ -17,17 +17,9 @@
         "[0]": "string 1",
         "[1]": "string 2",
         "[2]": "string \"check\""
-      },
-      "x": "number 1",
-      "y": "number 2",
-      "z": "string check"
+      }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "foo": "function <large string>",
       "a": "Array [1,2,check]"

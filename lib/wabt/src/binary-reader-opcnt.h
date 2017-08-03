@@ -18,7 +18,8 @@
 #define WABT_BINARY_READER_OPCNT_H_
 
 #include "common.h"
-#include "vector.h"
+
+#include <vector>
 
 namespace wabt {
 
@@ -26,19 +27,22 @@ struct Module;
 struct ReadBinaryOptions;
 
 struct IntCounter {
+  IntCounter(intmax_t value, size_t count) : value(value), count(count) {}
+
   intmax_t value;
   size_t count;
 };
-
-WABT_DEFINE_VECTOR(int_counter, IntCounter)
+typedef std::vector<IntCounter> IntCounterVector;
 
 struct IntPairCounter {
+  IntPairCounter(intmax_t first, intmax_t second, size_t count)
+      : first(first), second(second), count(count) {}
+
   intmax_t first;
   intmax_t second;
   size_t count;
 };
-
-WABT_DEFINE_VECTOR(int_pair_counter, IntPairCounter);
+typedef std::vector<IntPairCounter> IntPairCounterVector;
 
 struct OpcntData {
   IntCounterVector opcode_vec;

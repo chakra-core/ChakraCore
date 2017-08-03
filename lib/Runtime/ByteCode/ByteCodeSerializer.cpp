@@ -213,7 +213,8 @@ enum FunctionFlags
     ffIsAsmJsFunction                  = 0x80000,
     ffIsAnonymous                      = 0x100000,
     ffUsesArgumentsObject              = 0x200000,
-    ffDoScopeObjectCreation            = 0x400000
+    ffDoScopeObjectCreation            = 0x400000,
+    ffIsParamAndBodyScopeMerged        = 0x800000
 };
 
 // Kinds of constant
@@ -1371,6 +1372,7 @@ public:
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         size += PrependInt32(builder, _u("Start String Constant"), magicStartStringConstant);
 #endif
+        size += PrependBool(builder, _u("Is Property String"), VirtualTableInfo<Js::PropertyString>::HasVirtualTable(str));
 
         auto bb = Anew(alloc, ByteBuffer, (str->GetLength() + 1) * sizeof(char16), (void*)str->GetSz());
         size += PrependByteBuffer(builder, _u("String Constant 16 Value"), bb);
@@ -1819,7 +1821,6 @@ public:
         size += PrependInt16(builder, _u("ArgSizeArrayLength"), funcInfo->GetArgSizeArrayLength());
         size += PrependUInt32Array(builder, funcInfo->GetArgSizeArrayLength(), funcInfo->GetArgsSizesArray());
         size += PrependByteArray(builder, funcInfo->GetArgCount(), (byte*)funcInfo->GetArgTypeArray());
-        size += PrependByte(builder, _u("IsHeapBufferConst"), funcInfo->IsHeapBufferConst());
         size += PrependByte(builder, _u("UsesHeapBuffer"), funcInfo->UsesHeapBuffer());
         for (int i = WAsmJs::LIMIT - 1; i >= 0; --i)
         {
@@ -1933,8 +1934,6 @@ public:
         size += PrependStruct(builder, _u("SIMDBuiltinBV"), &moduleInfo->GetAsmSimdBuiltinUsed());
 
         size += PrependInt32(builder, _u("MaxHeapAccess"), moduleInfo->GetMaxHeapAccess());
-        size += PrependByte(builder, _u("UsesChangeHeap"), moduleInfo->GetUsesChangeHeap());
-
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         size += PrependInt32(builder, _u("End Asm.js Module Info"), magicEndOfAsmJsModuleInfo);
@@ -2001,6 +2000,7 @@ public:
             | (function->m_CallsEval ? ffhasSetCallsEval : 0)
             | (function->m_ChildCallsEval ? ffChildCallsEval : 0)
             | (function->m_hasReferenceableBuiltInArguments ? ffHasReferenceableBuiltInArguments : 0)
+            | (function->m_isParamAndBodyScopeMerged ? ffIsParamAndBodyScopeMerged : 0)
             | (isAnonymous ? ffIsAnonymous : 0)
 #ifdef ASMJS_PLAT
             | (function->m_isAsmjsMode ? ffIsAsmJsMode : 0)
@@ -2267,7 +2267,7 @@ public:
         return ReadFunctionBodyFlags(buffer, remainingBytes, value);
     }
 
-    const byte* ReadBool(const byte * buffer, bool * value)
+    const byte* ReadBool(const byte * buffer, _Out_ bool * value)
     {
         auto remainingBytes = (raw + totalSize) - buffer;
         Assert(remainingBytes >= sizeof(bool));
@@ -2721,21 +2721,22 @@ public:
         return S_OK;
     }
 
-    const byte* ReadStringConstant(const byte* current, FunctionBody* function, LPCWSTR& string, uint32& len)
+    const byte* ReadStringConstant(const byte* current, FunctionBody* function, _Out_ LPCWSTR * string, _Out_ uint32 * len, _Out_ bool * isPropertyString)
     {
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         int constant;
         current = ReadInt32(current, &constant);
         Assert(constant == magicStartStringConstant);
 #endif
+        current = ReadBool(current, isPropertyString);
         int stringId;
         current = ReadInt32(current, &stringId);
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         current = ReadInt32(current, &constant);
         Assert(constant == magicEndStringConstant);
 #endif
-        string = GetString16ById(stringId);
-        len = GetString16LengthById(stringId);
+        *string = GetString16ById(stringId);
+        *len = GetString16LengthById(stringId);
 
         return current;
     }
@@ -2752,13 +2753,23 @@ public:
 
         LPCWSTR string;
         uint32 len;
+        bool isPropertyString = false;
         uint32 rawlen = 0;
 
         for (int i = 0; i < arrayLength; i++)
         {
-            current = ReadStringConstant(current, function, string, len);
-
-            JavascriptString* str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
+            current = ReadStringConstant(current, function, &string, &len, &isPropertyString);
+            JavascriptString* str = nullptr;
+            if (isPropertyString)
+            {
+                PropertyRecord const * propertyRecord;
+                scriptContext->GetOrAddPropertyRecord(string, len, &propertyRecord);
+                str = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
+            }
+            else
+            {
+                str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
+            }
             callsite->SetItemWithAttributes(i, str, PropertyEnumerable);
         }
 
@@ -2766,10 +2777,20 @@ public:
 
         for (int i = 0; i < arrayLength; i++)
         {
-            current = ReadStringConstant(current, function, string, len);
+            current = ReadStringConstant(current, function, &string, &len, &isPropertyString);
             rawlen += len;
 
-            JavascriptString* str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
+            JavascriptString* str = nullptr;
+            if (isPropertyString)
+            {
+                PropertyRecord const * propertyRecord;
+                scriptContext->GetOrAddPropertyRecord(string, len, &propertyRecord);
+                str = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
+            }
+            else
+            {
+                str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
+            }
             rawArray->SetItemWithAttributes(i, str, PropertyEnumerable);
         }
 
@@ -2874,9 +2895,10 @@ public:
                 {
                     LPCWSTR string;
                     uint32 len;
-                    current = ReadStringConstant(current, function, string, len);
+                    bool isPropertyString = false;
+                    current = ReadStringConstant(current, function, &string, &len, &isPropertyString);
 
-                    function->RecordStrConstant(reg, string, len);
+                    function->RecordStrConstant(reg, string, len, isPropertyString);
                     break;
                 }
             case ctStringTemplateCallsite:
@@ -3292,8 +3314,6 @@ public:
 
         bool boolVal;
         current = ReadBool(current, &boolVal);
-        funcInfo->SetIsHeapBufferConst(boolVal);
-        current = ReadBool(current, &boolVal);
         funcInfo->SetUsesHeapBuffer(boolVal);
 
         for (int i = WAsmJs::LIMIT - 1; i >= 0; --i)
@@ -3473,10 +3493,6 @@ public:
         uint maxAccess;
         current = ReadUInt32(current, &maxAccess);
         moduleInfo->SetMaxHeapAccess(maxAccess);
-
-        bool usesChangeHeap;
-        current = ReadBool(current, &usesChangeHeap);
-        moduleInfo->SetUsesChangeHeap(usesChangeHeap);
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         current = ReadInt32(current, &constant);
@@ -3672,15 +3688,12 @@ public:
             (*functionBody)->m_CallsEval = (bitflags & ffhasSetCallsEval) ? true : false;
             (*functionBody)->m_ChildCallsEval = (bitflags & ffChildCallsEval) ? true : false;
             (*functionBody)->m_hasReferenceableBuiltInArguments = (bitflags & ffHasReferenceableBuiltInArguments) ? true : false;
+            (*functionBody)->m_isParamAndBodyScopeMerged = (bitflags & ffIsParamAndBodyScopeMerged) ? true : false;
 #ifdef ASMJS_PLAT
             (*functionBody)->m_isAsmJsFunction = (bitflags & ffIsAsmJsFunction) ? true : false;
             (*functionBody)->m_isAsmjsMode = (bitflags & ffIsAsmJsMode) ? true : false;
 #endif
 
-            if ((*functionBody)->paramScopeSlotArraySize > 0)
-            {
-                (*functionBody)->SetParamAndBodyScopeNotMerged();
-            }
             byte loopHeaderExists;
             current = ReadByte(current, &loopHeaderExists);
             if (loopHeaderExists)

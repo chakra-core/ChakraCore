@@ -20,7 +20,7 @@ namespace DateTime
 
     public:
         double Now();
-        static double GetSystemTime();
+        double GetSystemTime();
 
         void Reset() { data.Reset(); }
     };

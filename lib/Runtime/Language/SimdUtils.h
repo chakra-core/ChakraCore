@@ -5,8 +5,9 @@
 
 #pragma once
 
+#ifdef ENABLE_SIMDJS
 #define SIMD128_TYPE_SPEC_FLAG Js::Configuration::Global.flags.Simd128TypeSpec
-
+#endif
 // The representations below assume little-endian.
 #define SIMD_X 0
 #define SIMD_Y 1
@@ -145,7 +146,7 @@ const _x86_SIMDValue X86_4LANES_MASKS[]     = {{ 0xffffffff, 0x00000000, 0x00000
 
 #pragma warning(pop)
 
-#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)
+#if ENABLE_NATIVE_CODEGEN && (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD))
 // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle.
 extern _x86_SIMDValue X86_TEMP_SIMD[];
 #endif

@@ -43,7 +43,7 @@ namespace Js
     {
         currentLocalMapIndex = Constants::NoBigSlot;
         currentNonLocalMapIndex = Constants::NoBigSlot;
-        doneWithLocalExports = false;
+        doneWithExports = false;
         if (!!(flags & EnumeratorFlags::EnumSymbols))
         {
             doneWithSymbol = false;
@@ -55,48 +55,43 @@ namespace Js
         symbolEnumerator.Reset();
     }
 
-    // enumeration order: symbol first; local exports next; nonlocal exports last.
-    Var ModuleNamespaceEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    // enumeration order: 9.4.6.10 (sorted) exports first, followed by symbols
+    JavascriptString * ModuleNamespaceEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
-        Var undefined = GetLibrary()->GetUndefined();
-        Var result = undefined;
         if (attributes != nullptr)
         {
             // all the attribute should have the same setting here in namespace object.
             *attributes = PropertyModuleNamespaceDefault;
         }
+
+        if (!(this->doneWithExports))
+        {
+            ListForListIterator *sortedExportedNames = nsObject->GetSortedExportedNames();
+            currentLocalMapIndex++;
+            if (currentLocalMapIndex < sortedExportedNames->Count())
+            {
+                Assert(JavascriptString::Is(sortedExportedNames->Item(currentLocalMapIndex)));
+                return JavascriptString::FromVar(sortedExportedNames->Item(currentLocalMapIndex));
+            }
+            else
+            {
+                this->doneWithExports = true;
+            }
+        }
+
         if (!doneWithSymbol)
         {
-            result = symbolEnumerator.MoveAndGetNext(propertyId, attributes);
-            if (result == nullptr)
+            JavascriptString * symbolResult = symbolEnumerator.MoveAndGetNext(propertyId, attributes);
+            if (symbolResult == nullptr)
             {
                 doneWithSymbol = true;
             }
             else
             {
-                return result;
+                return symbolResult;
             }
         }
-        if (!this->doneWithLocalExports)
-        {
-            currentLocalMapIndex++;
-            JavascriptString* propertyString = nullptr;
-            if (!nsObject->FindNextProperty(currentLocalMapIndex, &propertyString, &propertyId, attributes, this->GetScriptContext()))
-            {
-                // we are done with the object part; 
-                this->doneWithLocalExports = true;
-            }
-            else
-            {
-                return propertyString;
-            }
-        }
-        if (this->nonLocalMap != nullptr && (currentNonLocalMapIndex + 1 < nonLocalMap->Count()))
-        {
-            currentNonLocalMapIndex++;
-            result = this->GetScriptContext()->GetPropertyString(this->nonLocalMap->GetKeyAt(currentNonLocalMapIndex));
-            return result;
-        }
+
         return nullptr;
     }
 }

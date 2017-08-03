@@ -77,6 +77,20 @@ namespace Js
         JavascriptFunction* GetSyntaxErrorConstructor() const { return syntaxErrorConstructor; }
         JavascriptFunction* GetTypeErrorConstructor() const { return typeErrorConstructor; }
         JavascriptFunction* GetURIErrorConstructor() const { return uriErrorConstructor; }
+        JavascriptFunction* GetPromiseResolve() const { return promiseResolveFunction; }
+        JavascriptFunction* GetPromiseThen() const { return promiseThenFunction; }
+        JavascriptFunction* GetJSONStringify() const { return jsonStringifyFunction; }
+        JavascriptFunction* GetObjectFreeze() const { return objectFreezeFunction; }
+        JavascriptFunction* GetDebugEval() const { return debugEval; }
+        JavascriptFunction* GetStackTraceFunction() const { return getStackTrace; }
+#ifdef EDIT_AND_CONTINUE
+        JavascriptFunction* GetEditSource() const { return editSource; }
+#endif
+
+        JavascriptFunction* GetArrayPrototypeForEachFunction() const { return arrayPrototypeForEachFunction; }
+        JavascriptFunction* GetArrayPrototypeKeysFunction() const { return arrayPrototypeKeysFunction; }
+        JavascriptFunction* GetArrayPrototypeValuesFunction() const { return arrayPrototypeValuesFunction; }
+        JavascriptFunction* GetArrayPrototypeEntriesFunction() const { return arrayPrototypeEntriesFunction; }
 
         DynamicObject* GetMathObject() { return mathObject; }
         DynamicObject* GetJSONObject() { return JSONObject; }
@@ -116,6 +130,7 @@ namespace Js
         DynamicObject* GetMapIteratorPrototype() const { return mapIteratorPrototype; }
         DynamicObject* GetSetIteratorPrototype() const { return setIteratorPrototype; }
         DynamicObject* GetStringIteratorPrototype() const { return stringIteratorPrototype; }
+        DynamicObject* GetIteratorPrototype() const { return iteratorPrototype; }
         DynamicObject* GetPromisePrototype() const { return promisePrototype; }
         DynamicObject* GetGeneratorFunctionPrototype() const { return generatorFunctionPrototype; }
         DynamicObject* GetGeneratorPrototype() const { return generatorPrototype; }
@@ -128,6 +143,8 @@ namespace Js
         DynamicObject* GetSyntaxErrorPrototype() const { return syntaxErrorPrototype; }
         DynamicObject* GetTypeErrorPrototype() const { return typeErrorPrototype; }
         DynamicObject* GetURIErrorPrototype() const { return uriErrorPrototype; }
+        PropertyId GetPropertyIdSymbolIterator() { return PropertyIds::_symbolIterator; };
+        PropertyId GetPropertyIdSymbolToStringTag() { return PropertyIds::_symbolToStringTag; };
 
     protected:
         Field(GlobalObject*) globalObject;
@@ -179,6 +196,11 @@ namespace Js
         Field(JavascriptFunction*) __proto__getterFunction;
         Field(JavascriptFunction*) __proto__setterFunction;
         Field(JavascriptFunction*) arrayIteratorPrototypeBuiltinNextFunction;
+        Field(JavascriptFunction*) promiseResolveFunction;
+        Field(JavascriptFunction*) promiseThenFunction;
+        Field(JavascriptFunction*) jsonStringifyFunction;
+        Field(JavascriptFunction*) objectFreezeFunction;
+
         Field(DynamicObject*) mathObject;
         // SIMD_JS
         Field(DynamicObject*) simdObject;
@@ -275,6 +297,10 @@ namespace Js
         Field(JavascriptSymbol*) symbolToPrimitive;
         Field(JavascriptSymbol*) symbolToStringTag;
         Field(JavascriptSymbol*) symbolUnscopables;
+        Field(JavascriptFunction*) arrayPrototypeForEachFunction;
+        Field(JavascriptFunction*) arrayPrototypeKeysFunction;
+        Field(JavascriptFunction*) arrayPrototypeValuesFunction;
+        Field(JavascriptFunction*) arrayPrototypeEntriesFunction;
 
     public:
         Field(ScriptContext*) scriptContext;
@@ -284,5 +310,11 @@ namespace Js
         virtual void Finalize(bool isShutdown) override;
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
+    protected:
+        Field(JavascriptFunction*) debugEval;
+        Field(JavascriptFunction*) getStackTrace;
+#ifdef EDIT_AND_CONTINUE
+        Field(JavascriptFunction*) editSource;
+#endif
     };
 }

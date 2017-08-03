@@ -162,6 +162,7 @@ set(SOURCES
   synchmgr/synchmanager.cpp
   synchmgr/wait.cpp
   sync/cs.cpp
+  sync/CCSpinLock.cpp
   thread/context.cpp
   thread/process.cpp
   thread/pal_thread.cpp

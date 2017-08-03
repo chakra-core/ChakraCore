@@ -118,14 +118,55 @@ namespace Js
                                                       void          *frame,
                                                       size_t         spillSize,
                                                       size_t         argsSize,
+                                                      int            hasBailedOutOffset,
                                                       ScriptContext *scriptContext)
     {
         void                      *tryContinuation     = nullptr;
-        void                      *finallyContinuation = nullptr;
         JavascriptExceptionObject *exception           = nullptr;
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault + spillSize + argsSize);
 
+        try
+        {
+            tryContinuation = amd64_CallWithFakeFrame(tryAddr, frame, spillSize, argsSize);
+        }
+        catch (const Js::JavascriptException& err)
+        {
+            exception = err.GetAndClear();
+        }
+
+        if (exception)
+        {
+            // Clone static exception object early in case finally block overwrites it
+            exception = exception->CloneIfStaticExceptionObject(scriptContext);
+        }
+
+        if (exception)
+        {
+            bool hasBailedOut = *(bool*)((char*)frame + hasBailedOutOffset); // stack offsets are negative
+            if (hasBailedOut)
+            {
+                // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
+                // it so happens that this catch was on the stack and caught the exception.
+                // Re-throw!
+                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
+            }
+            // MGTODO : We need to set the exception object, so that we can access in the interpreter, better way out ?
+            scriptContext->GetThreadContext()->SetPendingFinallyException(exception);
+            void *continuation = amd64_CallWithFakeFrame(finallyAddr, frame, spillSize, argsSize, exception);
+            return continuation;
+        }
+
+        return tryContinuation;
+    }
+
+    void * JavascriptExceptionOperators::OP_TryFinallySimpleJit(void * tryAddr, void * finallyAddr, void * frame, size_t spillSize, size_t argsSize, ScriptContext * scriptContext)
+    {
+        void                      *tryContinuation = nullptr;
+        void                      *finallyContinuation = nullptr;
+        JavascriptExceptionObject *exception           = nullptr;
+
+        PROBE_STACK(scriptContext, Constants::MinStackDefault + spillSize + argsSize);
         try
         {
             tryContinuation = amd64_CallWithFakeFrame(tryAddr, frame, spillSize, argsSize);
@@ -154,6 +195,7 @@ namespace Js
 
         return tryContinuation;
     }
+
 #elif defined(_M_ARM32_OR_ARM64)
 
     void *JavascriptExceptionOperators::OP_TryCatch(
@@ -213,11 +255,62 @@ namespace Js
         void *framePtr,
         void *localsPtr,
         size_t argsSize,
+        int hasBailedOutOffset,
         ScriptContext *scriptContext)
     {
         void                      *tryContinuation     = nullptr;
-        void                      *finallyContinuation = nullptr;
         JavascriptExceptionObject *exception           = nullptr;
+
+        PROBE_STACK(scriptContext, Constants::MinStackDefault + argsSize);
+
+        try
+        {
+#if defined(_M_ARM)
+            tryContinuation = arm_CallEhFrame(tryAddr, framePtr, localsPtr, argsSize);
+#elif defined(_M_ARM64)
+            tryContinuation = arm64_CallEhFrame(tryAddr, framePtr, localsPtr, argsSize);
+#endif
+        }
+        catch (const Js::JavascriptException& err)
+        {
+            exception = err.GetAndClear();
+        }
+
+        if (exception)
+        {
+            // Clone static exception object early in case finally block overwrites it
+            exception = exception->CloneIfStaticExceptionObject(scriptContext);
+            bool hasBailedOut = *(bool*)((char*)localsPtr + hasBailedOutOffset); // stack offsets are sp relative
+            if (hasBailedOut)
+            {
+                // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
+                // it so happens that this catch was on the stack and caught the exception.
+                // Re-throw!
+                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
+            }
+            scriptContext->GetThreadContext()->SetPendingFinallyException(exception);
+#if defined(_M_ARM)
+            void * finallyContinuation = arm_CallEhFrame(finallyAddr, framePtr, localsPtr, argsSize);
+#elif defined(_M_ARM64)
+            void * finallyContinuation = arm64_CallEhFrame(finallyAddr, framePtr, localsPtr, argsSize);
+#endif
+            return finallyContinuation;
+        }
+
+        return tryContinuation;
+    }
+
+    void *JavascriptExceptionOperators::OP_TryFinallySimpleJit(
+        void *tryAddr,
+        void *finallyAddr,
+        void *framePtr,
+        void *localsPtr,
+        size_t argsSize,
+        ScriptContext *scriptContext)
+    {
+        void                      *tryContinuation = nullptr;
+        void                      *finallyContinuation = nullptr;
+        JavascriptExceptionObject *exception = nullptr;
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault + argsSize);
 
@@ -402,7 +495,7 @@ namespace Js
         return continuationAddr;
     }
 
-    void* JavascriptExceptionOperators::OP_TryFinally(void* tryAddr, void* handlerAddr, void* framePtr, ScriptContext *scriptContext)
+    void* JavascriptExceptionOperators::OP_TryFinally(void* tryAddr, void* handlerAddr, void* framePtr, int hasBailedOutOffset, ScriptContext *scriptContext)
     {
         Js::JavascriptExceptionObject* pExceptionObject = NULL;
         void* continuationAddr = NULL;
@@ -479,6 +572,149 @@ namespace Js
         {
             // Clone static exception object early in case finally block overwrites it
             pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
+            bool hasBailedOut = *(bool*)((char*)framePtr + hasBailedOutOffset); // stack offsets are negative
+            if (hasBailedOut)
+            {
+                // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
+                // it so happens that this catch was on the stack and caught the exception.
+                // Re-throw!
+                JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
+            }
+            scriptContext->GetThreadContext()->SetPendingFinallyException(pExceptionObject);
+
+            void* newContinuationAddr = NULL;
+#ifdef _M_IX86
+            void *savedEsp;
+
+            __asm
+            {
+                // Save and restore the callee-saved registers around the call.
+                // TODO: track register kills by region and generate per-region prologs and epilogs
+                push esi
+                push edi
+                push ebx
+
+                // 8-byte align frame to improve floating point perf of our JIT'd code.
+                // Save ESP
+                mov ecx, esp
+                mov savedEsp, ecx
+                and esp, -8
+
+                // Set up the call target
+                mov eax, handlerAddr
+
+#if 0 && defined(_CONTROL_FLOW_GUARD)
+                // verify that the call target is valid
+                mov  ebx, eax; save call target
+                mov  ecx, eax
+                call[__guard_check_icall_fptr]
+                mov  eax, ebx; restore call target
+#endif
+
+                // save the current frame ptr, and adjust the frame to access
+                // locals in native code.
+                push ebp
+                mov ebp, framePtr
+                call eax
+                pop ebp
+
+                // The native code gives us the address where execution should continue on exit
+                // from the finally, but only if flow leaves the finally before it completes.
+                mov newContinuationAddr, eax
+
+                // Restore ESP
+                mov ecx, savedEsp
+                mov esp, ecx
+
+                pop ebx
+                pop edi
+                pop esi
+            }
+#else
+        AssertMsg(FALSE, "Unsupported native try-finally handler");
+#endif
+            return newContinuationAddr;
+        }
+        return continuationAddr;
+    }
+
+    void* JavascriptExceptionOperators::OP_TryFinallySimpleJit(void* tryAddr, void* handlerAddr, void* framePtr, ScriptContext *scriptContext)
+    {
+        Js::JavascriptExceptionObject* pExceptionObject = NULL;
+        void* continuationAddr = NULL;
+
+        PROBE_STACK(scriptContext, Constants::MinStackDefault);
+
+        try
+        {
+            // Bug in compiler optimizer: try-catch can be optimized away if the try block contains __asm calls into function
+            // that may throw. The current workaround is to add the following dummy throw to prevent this optimization.
+            // It seems like compiler got smart and still optimizes if the exception is not JavascriptExceptionObject (see catch handler below).
+            // In order to circumvent that we are throwing OutOfMemory.
+            if (!tryAddr)
+            {
+                Assert(false);
+                ThrowOutOfMemory(scriptContext);
+            }
+
+#ifdef _M_IX86
+            void *savedEsp;
+            __asm
+            {
+                // Save and restore the callee-saved registers around the call.
+                // TODO: track register kills by region and generate per-region prologs and epilogs
+                push esi
+                push edi
+                push ebx
+
+                // 8-byte align frame to improve floating point perf of our JIT'd code.
+                // Save ESP
+                mov ecx, esp
+                mov savedEsp, ecx
+                and esp, -8
+
+                // Set up the call target, save the current frame ptr, and adjust the frame to access
+                // locals in native code.
+                mov eax, tryAddr
+
+#if 0 && defined(_CONTROL_FLOW_GUARD)
+                // verify that the call target is valid
+                mov  ebx, eax; save call target
+                mov  ecx, eax
+                call[__guard_check_icall_fptr]
+                mov  eax, ebx; restore call target
+#endif
+
+                push ebp
+                mov ebp, framePtr
+                call eax
+                pop ebp
+
+                // The native code gives us the address where execution should continue on exit
+                // from the region.
+                mov continuationAddr, eax
+
+                // Restore ESP
+                mov ecx, savedEsp
+                mov esp, ecx
+
+                pop ebx
+                pop edi
+                pop esi
+            }
+#else
+            AssertMsg(FALSE, "Unsupported native try-finally handler");
+#endif
+        }
+        catch (const Js::JavascriptException& err)
+        {
+            pExceptionObject = err.GetAndClear();
+        }
+
+        if (pExceptionObject)
+        {
+            // Clone static exception object early in case finally block overwrites it
+            pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
         }
 
         void* newContinuationAddr = NULL;
@@ -503,11 +739,11 @@ namespace Js
             mov eax, handlerAddr
 
 #if 0 && defined(_CONTROL_FLOW_GUARD)
-                // verify that the call target is valid
-                mov  ebx, eax     ; save call target
-                mov  ecx, eax
-                call [__guard_check_icall_fptr]
-                mov  eax, ebx     ; restore call target
+            // verify that the call target is valid
+            mov  ebx, eax; save call target
+            mov  ecx, eax
+            call[__guard_check_icall_fptr]
+            mov  eax, ebx; restore call target
 #endif
 
             // save the current frame ptr, and adjust the frame to access
@@ -849,7 +1085,13 @@ namespace Js
                    // Make sure we didn't disable exceptions
                    !scriptContext->GetThreadContext()->IsDisableImplicitException()
             );
-            scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
+
+            ThreadContext *threadContext = scriptContext->GetThreadContext();
+            threadContext->ClearDisableImplicitFlags();
+#if ENABLE_JS_REENTRANCY_CHECK
+            threadContext->SetNoJsReentrancy(false);
+#endif
+
             if (fillExceptionContext && considerPassingToDebugger)
             {
                 DispatchExceptionToDebugger(exceptionObject, scriptContext);

@@ -32,18 +32,22 @@ namespace Js
 
         static WebAssemblyMemory * CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext);
 
-        ArrayBuffer * GetBuffer() const;
+        WebAssemblyArrayBuffer * GetBuffer() const;
         uint GetInitialLength() const;
         uint GetMaximumLength() const;
+        uint GetCurrentMemoryPages() const;
 
         int32 GrowInternal(uint32 deltaPages);
         static int32 GrowHelper(Js::WebAssemblyMemory * memory, uint32 deltaPages);
 
         static int GetOffsetOfArrayBuffer() { return offsetof(WebAssemblyMemory, m_buffer); }
+#if DBG
+        static void TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint32 offset, Js::ArrayBufferView::ViewType viewType, uint32 bytecodeOffset, ScriptContext* context);
+#endif
     private:
-        WebAssemblyMemory(ArrayBuffer * buffer, uint32 initial, uint32 maximum, DynamicType * type);
+        WebAssemblyMemory(WebAssemblyArrayBuffer * buffer, uint32 initial, uint32 maximum, DynamicType * type);
 
-        Field(ArrayBuffer *) m_buffer;
+        Field(WebAssemblyArrayBuffer *) m_buffer;
 
         Field(uint) m_initial;
         Field(uint) m_maximum;

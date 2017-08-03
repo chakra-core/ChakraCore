@@ -104,8 +104,8 @@ Scanner<EncodingPolicy>::Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, 
 
     this->es6UnicodeMode = scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled();
 
-    m_fYieldIsKeyword = false;
-    m_fAwaitIsKeyword = false;
+    m_fYieldIsKeywordRegion = false;
+    m_fAwaitIsKeywordRegion = false;
 }
 
 template <typename EncodingPolicy>
@@ -151,12 +151,14 @@ void Scanner<EncodingPolicy>::SetText(EncodedCharPtr pszSrc, size_t offset, size
     m_DeferredParseFlags = ScanFlagNone;
 }
 
+#if ENABLE_BACKGROUND_PARSING
 template <typename EncodingPolicy>
 void Scanner<EncodingPolicy>::PrepareForBackgroundParse(Js::ScriptContext *scriptContext)
 {
     scriptContext->GetThreadContext()->GetStandardChars((EncodedChar*)0);
     scriptContext->GetThreadContext()->GetStandardChars((char16*)0);
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Number of code points from 'first' up to, but not including the next
@@ -475,12 +477,12 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
             // So we can just assume it is an ID
             DebugOnly(int32 cch = UnescapeToTempBuf(pchMin, p));
             DebugOnly(tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
-            Assert(tk == tkID || (tk == tkYIELD && !m_fYieldIsKeyword) || (tk == tkAWAIT && !m_fAwaitIsKeyword));
+            Assert(tk == tkID || (tk == tkYIELD && !this->YieldIsKeyword()) || (tk == tkAWAIT && !this->AwaitIsKeyword()));
             return tkID;
         }
         int32 cch = UnescapeToTempBuf(pchMin, p);
         tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode());
-        return (!m_fYieldIsKeyword && tk == tkYIELD) || (!m_fAwaitIsKeyword && tk == tkAWAIT) ? tkID : tk;
+        return (!this->YieldIsKeyword() && tk == tkYIELD) || (!this->AwaitIsKeyword() && tk == tkAWAIT) ? tkID : tk;
     }
 
     // UTF16 Scanner are only for syntax coloring, so it shouldn't come here.
@@ -492,7 +494,7 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         // So we can just assume it is an ID
         DebugOnly(int32 cch = UnescapeToTempBuf(pchMin, p));
         DebugOnly(tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
-        Assert(tk == tkID || (tk == tkYIELD && !m_fYieldIsKeyword) || (tk == tkAWAIT && !m_fAwaitIsKeyword));
+        Assert(tk == tkID || (tk == tkYIELD && !this->YieldIsKeyword()) || (tk == tkAWAIT && !this->AwaitIsKeyword()));
 
         m_ptoken->SetIdentifier(reinterpret_cast<const char *>(pchMin), (int32)(p - pchMin));
         return tkID;
@@ -504,16 +506,16 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
     if (!fHasEscape)
     {
         // If it doesn't have escape, then Scan() should have taken care of keywords (except
-        // yield if m_fYieldIsKeyword is false, in which case yield is treated as an identifier, and except
-        // await if m_fAwaitIsKeyword is false, in which case await is treated as an identifier).
+        // yield if this->YieldIsKeyword() is false, in which case yield is treated as an identifier, and except
+        // await if this->AwaitIsKeyword() is false, in which case await is treated as an identifier).
         // We don't have to check if the name is reserved word and return it as an Identifier
         Assert(pid->Tk(IsStrictMode()) == tkID
-            || (pid->Tk(IsStrictMode()) == tkYIELD && !m_fYieldIsKeyword)
-            || (pid->Tk(IsStrictMode()) == tkAWAIT && !m_fAwaitIsKeyword));
+            || (pid->Tk(IsStrictMode()) == tkYIELD && !this->YieldIsKeyword())
+            || (pid->Tk(IsStrictMode()) == tkAWAIT && !this->AwaitIsKeyword()));
         return tkID;
     }
     tokens tk = pid->Tk(IsStrictMode());
-    return tk == tkID || (tk == tkYIELD && !m_fYieldIsKeyword) || (tk == tkAWAIT && !m_fAwaitIsKeyword) ? tkID : tkNone;
+    return tk == tkID || (tk == tkYIELD && !this->YieldIsKeyword()) || (tk == tkAWAIT && !this->AwaitIsKeyword()) ? tkID : tkNone;
 }
 
 template <typename EncodingPolicy>
@@ -885,14 +887,7 @@ tokens Scanner<EncodingPolicy>::RescanRegExpTokenizer()
 template <typename EncodingPolicy>
 tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
 {
-    if (m_parser && m_parser->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackRegex);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
 
     // SEE ALSO: RegexHelper::PrimCompileDynamic()
 
@@ -954,14 +949,7 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
 template<typename EncodingPolicy>
 tokens Scanner<EncodingPolicy>::ScanRegExpConstantNoAST(ArenaAllocator* alloc)
 {
-    if (m_parser && m_parser->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackRegex);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
 
     ThreadContext *threadContext = m_scriptContext->GetThreadContext();
     UnifiedRegex::StandardChars<EncodedChar>* standardEncodedChars = threadContext->GetStandardChars((EncodedChar*)0);
@@ -1161,7 +1149,7 @@ LEcmaLineBreak:
             goto LMainDefault;
 
         case kchNUL:
-            if (p >= last)
+            if (p > last)
             {
                 m_currentCharacter = p - 1;
                 Error(ERRnoStrEnd);
@@ -1737,14 +1725,14 @@ LLoop:
         case '\0':
             // Put back the null in case we get called again.
             p--;
-LEof:
-            token = tkEOF;
-
-            if (p + 1 < last)
+            if (p < last)
             {
                 // A \0 prior to the end of the text is an invalid character.
                 Error(ERRillegalChar);
             }
+LEof:
+            Assert(p >= last);
+            token = tkEOF;
             break;
 
         case 0x0009:
@@ -1961,7 +1949,9 @@ LIdentifier:
                 token = tkDec;
                 if (!m_fIsModuleCode)
                 {
-                    if ('>' == this->PeekFirst(p, last) && (m_fHadEol || seenDelimitedCommentEnd)) // --> HTMLCloseComment
+                    // https://tc39.github.io/ecma262/#prod-annexB-MultiLineComment
+                    // If there was a new line in the multi-line comment, the text after --> is a comment.
+                    if ('>' == this->PeekFirst(p, last) && m_fHadEol)
                     {
                         goto LSkipLineComment;
                     }
@@ -2043,7 +2033,10 @@ LCommentLineBreak:
                         m_parser->ReduceDeferredScriptLength((ULONG)(p - m_pchMinTok));
                         break;
                     case kchNUL:
-                        if (p >= last)
+                        // Because we used ReadFirst, we have advanced p. The character that we are looking at is actually is p - 1.
+                        // If p == last, we are looking at p - 1, it is still within the source buffer, and we need to consider it part of the comment
+                        // Only if p > last that we have pass the source buffer and consider it a line break
+                        if (p > last)
                         {
                             p--;
                             goto LCommentLineBreak;

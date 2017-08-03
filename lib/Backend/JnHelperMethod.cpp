@@ -211,8 +211,8 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
     //
     // These are statically initialized to an import thunk, but let's keep them out of the table in case a new CRT changes this
     //
-    case HelperMemCmp:
-        return SHIFT_CRT_ADDR(context, (int(*)(void *, void *, size_t))memcmp);
+    case HelperWMemCmp:
+        return SHIFT_CRT_ADDR(context, (int(*)(const char16 *, const char16 *, size_t))wmemcmp);
 
     case HelperMemCpy:
         return SHIFT_CRT_ADDR(context, (void*(*)(void *, void const*, size_t))memcpy);
@@ -294,6 +294,10 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
 
     case HelperOp_TryFinally:
         return SHIFT_ADDR(context, Js::JavascriptExceptionOperators::OP_TryFinally);
+
+
+    case HelperOp_TryFinallySimpleJit:
+        return SHIFT_ADDR(context, Js::JavascriptExceptionOperators::OP_TryFinallySimpleJit);
 
     //
     // Methods that we don't want to get marked as CFG targets as they dump all registers to a controlled address

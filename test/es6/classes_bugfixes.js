@@ -350,6 +350,71 @@ var tests = [
         assert.areEqual('B1', B.n1(), "static method.call()");
     }
   },
+  {
+    name: "Issue3054: NULL pointer crash when calling constructor with Proxy new_target",
+    body: function () {
+        var result = "";
+        class B {
+            constructor() {
+                assert.areEqual(P, new.target, "B(): new.target === P");
+                result += "b";
+            }
+        }
+
+        class A extends B {
+            constructor() {
+                assert.areEqual(P, new.target, "A(): new.target === P");
+                result += "a";
+                super();
+                result += "c";
+            }
+        }
+
+        var P = new Proxy(B, {});
+        Reflect.construct(A, [], P);
+
+        assert.areEqual('abc', result, "result == 'abc'");
+    }
+  },
+  {
+    name: "Issue3217: Reflect.construct permanently corrupts the invoked constructor",
+    body: function () {
+        function Base() {}
+        function Derived() {}
+        Derived.prototype = Object.create(Base.prototype);
+
+        assert.isFalse(new Base() instanceof Derived);
+        Reflect.construct(Base, [], Derived);
+        assert.isFalse(new Base() instanceof Derived);
+    }
+  },
+  {
+    name: "OS12503560: assignment to super[prop] not accessing base class property",
+    body: function () {
+        var result = "";
+        class B {
+            get x1() { result += "Bgetter;"; return 0; }
+            set x1(v){ result += "Bsetter;"; }
+        }
+
+        class A extends B {
+            constructor() {
+                (()=>{
+                    super();
+                    var s = 'x';
+                    super[(s+s).substr(0,1)+1] = null;
+                    s = super[s+'1'];
+                })();
+            }
+
+            get x1() { result += "Agetter;"; return 0; } // should not be called
+            set x1(v){ result += "Asetter;"; }  // should not be called
+        };
+
+        new A();
+        assert.areEqual('Bsetter;Bgetter;', result);
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

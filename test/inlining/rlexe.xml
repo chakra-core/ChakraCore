@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -10,28 +10,61 @@
   <test>
     <default>
       <files>linenumber1.js</files>
-      <tags>fail</tags>
-      <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_arm</tags>
+      <!-- TODO investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames (Microsoft/ChakraCore#3130) -->
+      <compile-flags>-force:inline -ExtendedErrorStackForTestHost-</compile-flags>
       <baseline>linenumber1.baseline</baseline>
+      <tags>exclude_arm</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>linenumber1.js</files>
+      <!-- Variant of test without -force:inline to ensure output is the same -->
+      <!-- TODO investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames (Microsoft/ChakraCore#3130) -->
+      <!-- <compile-flags>-force:inline -ExtendedErrorStackForTestHost-</compile-flags> -->
+      <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
+      <baseline>linenumber1.baseline</baseline>
+      <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
     <default>
       <files>linenumber2.js</files>
-      <tags>fail</tags>
-      <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_arm</tags>
+      <!-- TODO investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames (Microsoft/ChakraCore#3130) -->
+      <compile-flags>-force:inline -ExtendedErrorStackForTestHost-</compile-flags>
       <baseline>linenumber2.baseline</baseline>
+      <tags>exclude_arm</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>linenumber2.js</files>
+      <!-- Variant of test without -force:inline to ensure output is the same -->
+      <!-- TODO investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames (Microsoft/ChakraCore#3130) -->
+      <!-- <compile-flags>-force:inline -ExtendedErrorStackForTestHost-</compile-flags> -->
+      <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
+      <baseline>linenumber2.baseline</baseline>
+      <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
     <default>
       <files>linenumber3.js</files>
-      <tags>fail</tags>
-      <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_arm</tags>
+      <!-- TODO investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames (Microsoft/ChakraCore#3130) -->
+      <compile-flags>-force:inline -ExtendedErrorStackForTestHost-</compile-flags>
       <baseline>linenumber3.baseline</baseline>
+      <tags>exclude_arm</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>linenumber3.js</files>
+      <!-- Variant of test without -force:inline to ensure output is the same -->
+      <!-- TODO investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames (Microsoft/ChakraCore#3130) -->
+      <!-- <compile-flags>-force:inline -ExtendedErrorStackForTestHost-</compile-flags> -->
+      <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
+      <baseline>linenumber3.baseline</baseline>
+      <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
@@ -39,7 +72,7 @@
       <files>InlineConstructors.js</files>
       <baseline>InlineConstructors.baseline</baseline>
       <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_ship,exclude_arm,Slow</tags>
+      <tags>exclude_arm,Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
@@ -48,14 +81,13 @@
       <files>InlinedConstructorBailout.js</files>
       <baseline>InlinedConstructorBailout.baseline</baseline>
       <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>inliningWithArguments.js</files>
       <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_ship,exclude_arm</tags>
+      <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
@@ -86,7 +118,7 @@
       <files>linenumber4.js</files>
       <baseline>linenumber4.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit -loopinterpretcount:0 -force:inline -bgjit-</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -94,7 +126,7 @@
       <files>Miscellaneous_MaxInterpret.js</files>
       <baseline>Miscellaneous_MaxInterpret.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -force:inline</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -107,14 +139,12 @@
       <files>bug515849.js</files>
       <baseline>bug515849.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -msjrc:0 -force:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>inlineBuiltIns.js</files>
       <compile-flags> -maxInterpretCount:1 -msjrc:0 </compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -127,7 +157,7 @@
     <default>
       <files>polyInliningFixedMethods.js</files>
       <baseline>polyInliningFixedMethods.baseline</baseline>
-      <compile-flags>-maxInterpretCount:1 -maxSimpleJitRunCount:1 -extendederrorstackfortesthost</compile-flags>
+      <compile-flags>-maxInterpretCount:1 -maxSimpleJitRunCount:1 -ExtendedErrorStackForTestHost</compile-flags>
     </default>
   </test>
   <test>
@@ -229,7 +259,7 @@
   <test>
     <default>
       <files>stackTrace.js</files>
-      <compile-flags>-extendederrorstackfortesthost</compile-flags>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
       <baseline>stackTrace.baseline</baseline>
     </default>
   </test>
@@ -242,6 +272,21 @@
     <default>
       <files>inliningInLoopBody.js</files>
       <compile-flags>-loopinterpretcount:1 -bgjit- -force:inline</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug9936017.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug11265991.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug12528802.js</files>
     </default>
   </test>
 </regress-exe>

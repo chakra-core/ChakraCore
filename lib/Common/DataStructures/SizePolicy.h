@@ -55,7 +55,6 @@ struct PowerOf2Policy
     }
 };
 
-#ifndef JD_PRIVATE
 template <class SizePolicy, uint averageChainLength = 2, uint growthRateNumerator = 2, uint growthRateDenominator = 1, uint minBucket = 4>
 struct DictionarySizePolicy
 {
@@ -82,4 +81,3 @@ struct DictionarySizePolicy
 
 typedef DictionarySizePolicy<PrimePolicy> PrimeSizePolicy;
 typedef DictionarySizePolicy<PowerOf2Policy> PowerOf2SizePolicy;
-#endif

@@ -12,3 +12,7 @@ export function increment() {
     counter++;
 }
 export var counter = 0;
+
+export function reset() {
+    counter = 0;
+}

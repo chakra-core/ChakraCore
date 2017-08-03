@@ -1,0 +1,59 @@
+hasOwnUnchanged:
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, not: z, 
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, not: z, 
+hasOwnDifferentObj:
+not: 5, own: y, not: x, not: z, 
+not: 4, own: y, not: w, own: x, 
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, not: z, 
+not: 4, own: y, not: w, own: x, 
+not: 5, own: y, not: x, not: z, 
+hasOwnModifyLate:
+own: 4, own: y, own: w, own: x, 
+own: 5, own: y, own: x, not: z, 
+own: 4, own: y, own: w, own: x, 
+own: 5, own: y, own: x, not: z, 
+hasOwnModifyEarly:
+own: 4, own: y, own: w, own: x, 
+own: 5, own: y, own: x, not: z, 
+own: 4, own: y, own: w, own: x, 
+own: 5, own: y, own: x, not: z, 
+hasOwnDelete:
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, not: x, not: z, 
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, not: x, not: z, 
+hasOwnDeleteLate:
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, not: x, not: z, 
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, not: x, not: z, 
+hasOwnModifyOther:
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, not: z, 
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, not: z, 
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, not: z, 
+hasOwnNumeric:
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, own: 1, not: z, 
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, own: 1, not: z, 
+hasOwnUnchangedWithNumeric:
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, not: 1, not: z, 
+hasOwnNumeric2:
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, not: z, 
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, not: z, 
+hasOwnNumeric3:
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, own: 7, not: z, 
+own: 4, own: y, own: w, not: x, 
+own: 4, own: y, own: w, not: x, 
+own: 5, own: y, own: x, own: 7, not: z, 
+own: 5, own: y, own: x, own: 7, not: z, 

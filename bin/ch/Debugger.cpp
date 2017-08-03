@@ -174,7 +174,7 @@ JsValueRef Debugger::Evaluate(JsValueRef callee, bool isConstructCall, JsValueRe
     if (argumentCount > 2)
     {
         IfJsErrorFailLogAndRet(ChakraRTInterface::JsNumberToInt(arguments[1], &stackFrameIndex));
-        ChakraRTInterface::JsDiagEvaluate(arguments[2], stackFrameIndex, JsParseScriptAttributeNone, &result);
+        ChakraRTInterface::JsDiagEvaluate(arguments[2], stackFrameIndex, JsParseScriptAttributeNone, /* forceSetValueProp */ false, &result);
     }
 
     return result;
@@ -327,7 +327,7 @@ bool Debugger::SetBaseline()
                 script[numChars] = '\0';
 
                 JsValueRef wideScriptRef;
-                IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString(
+                IfJsErrorFailLogAndHR(ChakraRTInterface::JsCreateString(
                   script, strlen(script), &wideScriptRef));
 
                 this->CallFunctionNoResult("SetBaseline", wideScriptRef);

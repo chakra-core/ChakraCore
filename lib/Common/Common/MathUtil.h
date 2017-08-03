@@ -100,6 +100,12 @@ public:
         return ((size + (alignment-1)) & ~(alignment-1));
     }
 
+    template <typename T>
+    static bool IsAligned(T size, T alignment)
+    {
+        return (size & (alignment - 1)) == 0;
+    }
+
     template <typename T, class Func>
     static T AlignOverflowCheck(T size, T alignment, __inout Func& overflowFn)
     {
@@ -118,4 +124,54 @@ public:
         return AlignOverflowCheck(size, alignment, DefaultOverflowPolicy);
     }
 
+    // Postfix increment "val++", call overflowFn() first if overflow
+    template <typename T, class Func>
+    static T PostInc(T& val, const Func& overflowFn)
+    {
+        T tmp = val;
+        if (IncImpl(val, &tmp))
+        {
+            overflowFn();  // call before changing val
+        }
+
+        T old = val;
+        val = tmp;
+        return old;
+    }
+
+    // Postfix increment "val++", call DefaultOverflowPolicy() first if overflow
+    template <typename T>
+    static T PostInc(T& val)
+    {
+        return PostInc(val, DefaultOverflowPolicy);
+    }
+
+    template <typename T>
+    static bool IncImpl(T val, T *pResult)
+    {
+        CompileAssert(false);  // must implement template specialization on type T
+    }
+
+    template <typename T, class Func>
+    static T Add(T left, T right, const Func& overflowFn)
+    {
+        T result;
+        if (AddImpl(left, right, &result))
+        {
+            overflowFn();
+        }
+        return result;
+    }
+
+    template <typename T>
+    static T Add(T left, T right)
+    {
+        return Add(left, right, DefaultOverflowPolicy);
+    }
+
+    template <typename T>
+    static bool AddImpl(T left, T right, T *pResult)
+    {
+        CompileAssert(false);  // must implement template specialization on type T
+    }
 };

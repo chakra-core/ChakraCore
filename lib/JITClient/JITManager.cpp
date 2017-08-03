@@ -8,8 +8,8 @@
 _Must_inspect_result_
 _Ret_maybenull_ _Post_writable_byte_size_(size)
 void * __RPC_USER midl_user_allocate(
-#if defined(NTBUILD) || defined(_M_ARM)
-    _In_ // starting win8, _In_ is in the signature
+#if defined(_WIN32_WINNT_WIN10)
+    _In_ // starting win10, _In_ is in the signature
 #endif
     size_t size)
 {
@@ -30,6 +30,7 @@ JITManager::JITManager() :
     m_rpcBindingHandle(nullptr),
     m_oopJitEnabled(false),
     m_isJITServer(false),
+    m_failingHRESULT(S_OK),
     m_serverHandle(nullptr),
     m_jitConnectionId()
 {
@@ -183,7 +184,7 @@ bool
 JITManager::IsConnected() const
 {
     Assert(IsOOPJITEnabled());
-    return m_rpcBindingHandle != nullptr;
+    return m_rpcBindingHandle != nullptr && !HasJITFailed();
 }
 
 HANDLE
@@ -196,6 +197,26 @@ void
 JITManager::EnableOOPJIT()
 {
     m_oopJitEnabled = true;
+
+    if (CONFIG_FLAG(OOPCFGRegistration))
+    {
+        // Since this client has enabled OOPJIT, perform the one-way policy update
+        // that will disable SetProcessValidCallTargets from being invoked.
+        GlobalSecurityPolicy::DisableSetProcessValidCallTargets();
+    }
+}
+
+void
+JITManager::SetJITFailed(HRESULT hr)
+{
+    Assert(hr != S_OK);
+    m_failingHRESULT = hr;
+}
+
+bool
+JITManager::HasJITFailed() const
+{
+    return m_failingHRESULT != S_OK;
 }
 
 bool
@@ -278,14 +299,15 @@ HRESULT
 JITManager::InitializeThreadContext(
     __in ThreadContextDataIDL * data,
     __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    __out intptr_t * prereservedRegionAddr)
+    __out intptr_t * prereservedRegionAddr,
+    __out intptr_t * jitThunkAddr)
 {
     Assert(IsOOPJITEnabled());
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientInitializeThreadContext(m_rpcBindingHandle, data, threadContextInfoAddress, prereservedRegionAddr);
+        hr = ClientInitializeThreadContext(m_rpcBindingHandle, data, threadContextInfoAddress, prereservedRegionAddr, jitThunkAddr);
     }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
@@ -533,14 +555,15 @@ JITManager::CloseScriptContext(
 HRESULT
 JITManager::FreeAllocation(
     __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    __in intptr_t address)
+    __in intptr_t codeAddress,
+    __in intptr_t thunkAddress)
 {
     Assert(IsOOPJITEnabled());
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientFreeAllocation(m_rpcBindingHandle, threadContextInfoAddress, address);
+        hr = ClientFreeAllocation(m_rpcBindingHandle, threadContextInfoAddress, codeAddress, thunkAddress);
     }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {

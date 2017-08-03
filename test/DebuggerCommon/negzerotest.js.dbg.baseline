@@ -2,9 +2,6 @@
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "y": "number 0"
     }
   }

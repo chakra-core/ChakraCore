@@ -22,8 +22,8 @@ Test 3 passed. Expected Error: TypeError: BufferSource expected
 Test 4 passed. Expected Error: TypeError: BufferSource expected
 Test 5 passed. Expected Error: TypeError: BufferSource expected
 Test 6 passed. Expected Error: TypeError: BufferSource expected
-Test 7 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 4, Left: 0
-Test 8 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 1, Left: 0
+Test 7 passed. Expected Error: CompileError: Out of file: Needed: 4, Left: 0
+Test 8 passed. Expected Error: CompileError: Out of file: Needed: 1, Left: 0
 Test 9 passed. Expected Error: TypeError: BufferSource expected
 Testing module
 exports
@@ -39,8 +39,8 @@ Test 3 passed. Expected Error: TypeError: BufferSource expected
 Test 4 passed. Expected Error: TypeError: BufferSource expected
 Test 5 passed. Expected Error: TypeError: BufferSource expected
 Test 6 passed. Expected Error: TypeError: BufferSource expected
-Test 7 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 4, Left: 0
-Test 8 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 1, Left: 0
+Test 7 passed. Expected Error: CompileError: Out of file: Needed: 4, Left: 0
+Test 8 passed. Expected Error: CompileError: Out of file: Needed: 1, Left: 0
 Test 9 passed. Expected Error: TypeError: BufferSource expected
 Test 10 passed. Expected Error: TypeError: Object expected
 Test 11 passed. Expected Error: TypeError: Object expected
@@ -87,8 +87,8 @@ Test 5 passed. Expected Error: TypeError: BufferSource expected
 Test 6 passed. Expected Error: TypeError: BufferSource expected
 Test 7 passed. Expected Error: TypeError: BufferSource expected
 Test 8 passed. Expected Error: TypeError: BufferSource expected
-Test 9 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 4, Left: 0
-Test 10 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 1, Left: 0
+Test 9 passed. Expected Error: CompileError: Out of file: Needed: 4, Left: 0
+Test 10 passed. Expected Error: CompileError: Out of file: Needed: 1, Left: 0
 Test 11 passed. Expected Error: TypeError: BufferSource expected
 Testing module
 exports
@@ -115,9 +115,8 @@ Test 0 passed. Expected Error: TypeError: WebAssembly.Module expected
 Test 1 passed. Expected Error: TypeError: WebAssembly.Module expected
 Test 2 passed. Expected Error: TypeError: WebAssembly.Module expected
 Test 3 passed. Expected Error: TypeError: WebAssembly.Module expected
-Test 4 passed. Expected Error: TypeError: 'sectionName' is not a string
-Test 5 passed. Expected Error: Error: Doesn't support toString
-Test 6 passed. Expected Error: TypeError: Object doesn't support property or method 'ToString'
+Test 4 passed. Expected Error: Error: Doesn't support toString
+Test 5 passed. Expected Error: TypeError: Object doesn't support property or method 'ToString'
 6/6 tests passed
 
 new WebAssembly.Instance tests
@@ -128,14 +127,14 @@ Test 3 passed. Expected Error: TypeError: Object expected
 Test 4 passed. Expected Error: TypeError: Object expected
 Test 5 passed. Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
 Test 6 passed. Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
-Test 7 passed. Expected Error: WebAssemblyLinkError: Function expected
-Test 8 passed. Expected Error: WebAssemblyLinkError: Function called with invalid signature
-Test 9 passed. Expected Error: WebAssemblyLinkError: WebAssembly.Memory object expected
-Test 10 passed. Expected Error: WebAssemblyLinkError: WebAssembly.Memory object expected
-Test 11 passed. Expected Error: WebAssemblyLinkError: WebAssembly.Memory object expected
-Test 12 passed. Expected Error: WebAssemblyLinkError: WebAssembly.Table object expected
-Test 13 passed. Expected Error: WebAssemblyLinkError: WebAssembly.Table object expected
-Test 14 passed. Expected Error: WebAssemblyLinkError: WebAssembly.Table object expected
+Test 7 passed. Expected Error: LinkError: Function expected
+Test 8 passed. Expected Error: LinkError: Cannot link import test.fn.Thunk[0]()->i32 to fn2()->f32 in link table due to a signature mismatch
+Test 9 passed. Expected Error: LinkError: WebAssembly.Memory object expected
+Test 10 passed. Expected Error: LinkError: WebAssembly.Memory object expected
+Test 11 passed. Expected Error: LinkError: WebAssembly.Memory object expected
+Test 12 passed. Expected Error: LinkError: WebAssembly.Table object expected
+Test 13 passed. Expected Error: LinkError: WebAssembly.Table object expected
+Test 14 passed. Expected Error: LinkError: WebAssembly.Table object expected
 Testing instance
 f1: 5
 fn: 1
@@ -206,12 +205,12 @@ Test 4 passed. Expected Error: TypeError: WebAssembly exported function expected
 Test 5 passed. Expected Error: TypeError: WebAssembly exported function expected
 Test 6 passed. Expected Error: TypeError: WebAssembly exported function expected
 Test 7 passed. Expected Error: TypeError: WebAssembly exported function expected
-Test 8 passed. Expected Error: WebAssemblyRuntimeError: WebAssembly exported function expected
-Test 9 passed. Expected Error: WebAssemblyRuntimeError: WebAssembly exported function expected
-Test 10 passed. Expected Error: WebAssemblyRuntimeError: WebAssembly exported function expected
-Test 11 passed. Expected Error: WebAssemblyRuntimeError: Table index is out of range
-Test 12 passed. Expected Error: WebAssemblyRuntimeError: Function called with invalid signature
-Test 13 passed. Expected Error: WebAssemblyRuntimeError: Function called with invalid signature
+Test 8 passed. Expected Error: RuntimeError: WebAssembly exported function expected
+Test 9 passed. Expected Error: RuntimeError: WebAssembly exported function expected
+Test 10 passed. Expected Error: RuntimeError: WebAssembly exported function expected
+Test 11 passed. Expected Error: RuntimeError: Table index is out of range
+Test 12 passed. Expected Error: RuntimeError: Function called with invalid signature
+Test 13 passed. Expected Error: RuntimeError: Function called with invalid signature
 Current length: 30
 Length after attempt to modify : 30
 Is element in table the same as the one exported: true

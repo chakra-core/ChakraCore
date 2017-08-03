@@ -58,7 +58,6 @@ namespace Js
         ByteCodeGenerator* mByteCodeGenerator;
         AsmJsByteCodeWriter mWriter;
         int mNestedCallCount;
-        bool mIsCallLegal;
     public:
         AsmJSByteCodeGenerator(AsmJsFunc* func, AsmJsModuleCompiler* compiler);
         static void EmitEmptyByteCode(FuncInfo* funcInfo, ByteCodeGenerator* byteCodeGen, ParseNode* funcNode);
@@ -84,8 +83,8 @@ namespace Js
         EmitExpressionInfo EmitAssignment( ParseNode * pnode );
         EmitExpressionInfo EmitReturn( ParseNode * pnode );
         EmitExpressionInfo EmitCall( ParseNode * pnode, AsmJsRetType expectedType = AsmJsRetType::Void );
-        EmitExpressionInfo EmitMathBuiltin( ParseNode* pnode, AsmJsMathFunction* mathFunction, AsmJsRetType expectedType );
-        EmitExpressionInfo EmitMinMax(ParseNode* pnode, AsmJsMathFunction* mathFunction, AsmJsRetType expectedType);
+        EmitExpressionInfo EmitMathBuiltin( ParseNode* pnode, AsmJsMathFunction* mathFunction);
+        EmitExpressionInfo EmitMinMax(ParseNode* pnode, AsmJsMathFunction* mathFunction);
         EmitExpressionInfo EmitUnaryPos( ParseNode * pnode );
         EmitExpressionInfo EmitUnaryNeg( ParseNode * pnode );
         EmitExpressionInfo EmitUnaryNot( ParseNode * pnode );
@@ -133,18 +132,18 @@ namespace Js
         void SetModuleSimd(RegSlot dst, RegSlot src, AsmJsVarType type);
         void LoadSimd(RegSlot dst, RegSlot src, AsmJsVarType type);
 
-        bool IsFRound(AsmJsMathFunction* sym);
         bool IsValidSimdFcnRetType(AsmJsSIMDFunction& simdFunction, const AsmJsRetType& expectedType, const AsmJsRetType& retType);
         /// TODO:: Finish removing references to old bytecode generator
         ByteCodeGenerator* GetOldByteCodeGenerator() const
         {
             return mByteCodeGenerator;
         }
-
+#ifdef ENABLE_SIMDJS
         bool IsSimdjsEnabled()
         {
             return mFunction->GetFuncBody()->GetScriptContext()->GetConfig()->IsSimdjsEnabled();
         }
+#endif
         // try to reuse a tmp register or acquire a new one
         // also takes care of releasing tmp register
         template<typename T>

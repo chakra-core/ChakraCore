@@ -68,15 +68,16 @@ enum TypeId
   #endif
     TypeIds_NativeFloatArray = 31,
     TypeIds_ArrayLast = TypeIds_NativeFloatArray,
-    TypeIds_Date = 32,
-    TypeIds_RegEx = 33,
-    TypeIds_Error = 34,
-    TypeIds_BooleanObject = 35,
-    TypeIds_NumberObject = 36,
-    TypeIds_StringObject = 37,
-    TypeIds_SIMDObject = 38,
-    TypeIds_Arguments = 39,
-    TypeIds_ES5Array = 40,
+    TypeIds_ES5Array = 32,
+    TypeIds_ArrayLastWithES5 = TypeIds_ES5Array,
+    TypeIds_Date = 33,
+    TypeIds_RegEx = 34,
+    TypeIds_Error = 35,
+    TypeIds_BooleanObject = 36,
+    TypeIds_NumberObject = 37,
+    TypeIds_StringObject = 38,
+    TypeIds_SIMDObject = 39,
+    TypeIds_Arguments = 40,
     TypeIds_ArrayBuffer = 41,
     TypeIds_Int8Array = 42,
     TypeIds_TypedArrayMin = TypeIds_Int8Array,
@@ -127,6 +128,6 @@ enum TypeId
     TypeIds_SpreadArgument = 79,
     TypeIds_ModuleNamespace = 80,
     TypeIds_ListIterator = 81,
-
+    TypeIds_ExternalIterator = 82,
     TypeIds_Limit //add a new TypeId before TypeIds_Limit or before TypeIds_LastTrueJavascriptObjectType
 };

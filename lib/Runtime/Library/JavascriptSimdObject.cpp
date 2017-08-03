@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     JavascriptSIMDObject::JavascriptSIMDObject(DynamicType * type)
@@ -147,7 +147,7 @@ namespace Js
     }
 
     template <typename T, size_t N>
-    Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString, const T(&laneValues)[N],
+    Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString, const T (&laneValues)[N], 
         CallInfo* callInfo, ScriptContext* scriptContext) const
     {
         Assert(args);
@@ -208,7 +208,7 @@ namespace Js
         {
             for (; idx < numLanes - 1; ++idx)
             {
-                laneVar = JavascriptNumber::ToVar(static_cast<int>(laneValues[idx]), scriptContext);
+                laneVar = JavascriptNumber::ToVar(static_cast<int>(laneValues[idx]), scriptContext); 
                 newArgs[0] = laneVar;
                 JavascriptString *laneValue = JavascriptNumber::ToLocaleStringIntl(newArgs, newCallInfo, scriptContext);
                 result = JavascriptString::Concat(result, laneValue);
@@ -223,7 +223,7 @@ namespace Js
             Assert((typeDescriptor == TypeIds_SIMDUint8x16 || typeDescriptor == TypeIds_SIMDUint16x8 || typeDescriptor == TypeIds_SIMDUint32x4));
             for (; idx < numLanes - 1; ++idx)
             {
-                laneVar = JavascriptNumber::ToVar(static_cast<uint>(laneValues[idx]), scriptContext);
+                laneVar = JavascriptNumber::ToVar(static_cast<uint>(laneValues[idx]), scriptContext); 
                 newArgs[0] = laneVar;
                 JavascriptString *laneValue = JavascriptNumber::ToLocaleStringIntl(newArgs, newCallInfo, scriptContext);
                 result = JavascriptString::Concat(result, laneValue);
@@ -236,6 +236,7 @@ namespace Js
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
         return JavascriptString::Concat(result, JavascriptString::NewWithSz(_u(")"), scriptContext));
     }
+
     template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString, 
         const float (&laneValues)[4], CallInfo* callInfo, ScriptContext* scriptContext) const;
     template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString,
@@ -257,3 +258,4 @@ namespace Js
         return value;
     }
 }
+#endif

@@ -64,27 +64,54 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 
 
 #ifdef _WIN32
-#define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
+#define CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ...) \
     entryPoint(function, callInfo, ##__VA_ARGS__)
 #elif defined(_M_X64) || defined(_M_IX86)
 // Call an entryPoint (JavascriptMethod) with custom calling convention.
 //  RDI == function, RSI == callInfo, (RDX/RCX/R8/R9==null/unused),
 //  all parameters on stack.
-#define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
+#define CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ...) \
     entryPoint(function, callInfo, nullptr, nullptr, nullptr, nullptr, \
                function, callInfo, ##__VA_ARGS__)
 #elif defined(_ARM_)
 // xplat-todo: fix me ARM
-#define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
+#define CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ...) \
     entryPoint(function, callInfo, ##__VA_ARGS__)
 #else
-#error CALL_ENTRYPOINT not yet implemented
+#error CALL_ENTRYPOINT_NOASSERT not yet implemented
 #endif
 
-#define CALL_FUNCTION(function, callInfo, ...) \
-    CALL_ENTRYPOINT(function->GetEntryPoint(), \
+#define CALL_FUNCTION_NOASSERT(function, callInfo, ...) \
+    CALL_ENTRYPOINT_NOASSERT(function->GetEntryPoint(), \
                     function, callInfo, ##__VA_ARGS__)
 
+#if ENABLE_JS_REENTRANCY_CHECK
+#define CALL_FUNCTION(threadContext, function, callInfo, ...) \
+    (threadContext->AssertJsReentrancy(), \
+    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__));
+#define CALL_ENTRYPOINT(threadContext, entryPoint, function, callInfo, ...) \
+    (threadContext->AssertJsReentrancy(), \
+    CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__));
+#define JS_REENTRANT(reentrancyLock, ...) \
+    reentrancyLock.unlock(); \
+    __VA_ARGS__; \
+    reentrancyLock.relock();
+#define JS_REENTRANT_UNLOCK(reentrancyLock, ...) \
+    reentrancyLock.unlock(); \
+    __VA_ARGS__;
+#define JS_REENTRANCY_LOCK(reentrancyLock, threadContext) \
+    JsReentLock reentrancyLock(threadContext);
+#else
+#define CALL_FUNCTION(threadContext, function, callInfo, ...) \
+    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__);
+#define CALL_ENTRYPOINT(threadContext, entryPoint, function, callInfo, ...) \
+    CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__);
+#define JS_REENTRANT(reentrancyLock, ...) \
+    __VA_ARGS__;
+#define JS_REENTRANT_UNLOCK(reentrancyLock, ...) \
+    __VA_ARGS__;
+#define JS_REENTRANCY_LOCK(reentrancyLock, threadContext)
+#endif // ENABLE_JS_REENTRANCY_CHECK
 
 /*
  * RUNTIME_ARGUMENTS is a simple wrapper around the variadic calling convention

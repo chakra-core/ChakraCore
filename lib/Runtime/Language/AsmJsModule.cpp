@@ -78,16 +78,10 @@ namespace Js
             FunctionBody* functionBody = func->GetFuncBody();
             AsmJsFunctionInfo* asmInfo = functionBody->AllocateAsmJsFunctionInfo();
 
-            if (i == 0 && mUsesChangeHeap)
-            {
-                continue;
-            }
-
             if (!asmInfo->Init(func))
             {
                 return false;
             }
-            asmInfo->SetIsHeapBufferConst(!mUsesChangeHeap);
             asmInfo->SetUsesHeapBuffer(mUsesHeapBuffer);
 
             functionBody->CheckAndSetOutParamMaxDepth(func->GetMaxArgOutDepth());
@@ -166,15 +160,14 @@ namespace Js
         asmInfo->SetModuleMemory(mModuleMemory);
         asmInfo->SetAsmMathBuiltinUsed(mAsmMathBuiltinUsedBV);
         asmInfo->SetAsmArrayBuiltinUsed(mAsmArrayBuiltinUsedBV);
-        asmInfo->SetUsesChangeHeap(mUsesChangeHeap);
         asmInfo->SetMaxHeapAccess(mMaxHeapAccess);
-
+#ifdef ENABLE_SIMDJS
         if (IsSimdjsEnabled())
         {
             asmInfo->SetAsmSimdBuiltinUsed(mAsmSimdBuiltinUsedBV);
             asmInfo->SetSimdRegCount(mSimdVarSpace.GetTotalVarCount());
         }
-
+#endif
         int varCount = 3; // 3 possible arguments
 
         functionBody->SetInParamsCount(4); // Always set 4 inParams so the memory space is the same (globalEnv,stdlib,foreign,buffer)
@@ -190,12 +183,15 @@ namespace Js
         // Create export module proxy
         asmInfo->SetExportFunctionIndex(mExportFuncIndex);
         asmInfo->SetExportsCount(mExports.Count());
-        for (int i = 0; i < mExports.Count(); i++)
+        auto exportIter = mExports.GetIterator();
+
+        for(int exportIndex = 0; exportIter.IsValid(); ++exportIndex)
         {
-            AsmJsModuleExport& exMod = mExports.Item(i);
-            auto ex = asmInfo->GetExport(i);
+            const AsmJsModuleExport& exMod = exportIter.CurrentValue();
+            auto ex = asmInfo->GetExport(exportIndex);
             *ex.id = exMod.id;
             *ex.location = exMod.location;
+            exportIter.MoveNext();
         }
 
         int iVar = 0, iVarImp = 0, iFunc = 0, iFuncImp = 0;
@@ -229,10 +225,12 @@ namespace Js
                     {
                         modVar.initialiser.doubleInit = var->GetDoubleInitialiser();
                     }
+#ifdef ENABLE_SIMDJS
                     else if (IsSimdjsEnabled() && var->GetVarType().isSIMD())
                     {
                         modVar.initialiser.simdInit = var->GetSimdConstInitialiser();
                     }
+#endif
                     else
                     {
                         Assert(UNREACHED);
@@ -411,31 +409,28 @@ namespace Js
             if (pnode->sxCall.pnodeTarget->nop == knopName)
             {
                 AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(pnode->sxCall.pnodeTarget->name());
-                if (funcDecl && funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
+                if (AsmJsMathFunction::IsFround(funcDecl))
                 {
-                    AsmJsMathFunction* mathFunc = funcDecl->Cast<AsmJsMathFunction>();
-                    if (mathFunc->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround)
+                    switch (pnode->sxCall.pnodeArgs->nop)
                     {
-                        switch (pnode->sxCall.pnodeArgs->nop)
+                    case knopFlt:
+                        func->AddConst<float>((float)pnode->sxCall.pnodeArgs->sxFlt.dbl);
+                        evalArgs = false;
+                        break;
+                    case knopInt:
+                        func->AddConst<float>((float)pnode->sxCall.pnodeArgs->sxInt.lw);
+                        evalArgs = false;
+                        break;
+                    case knopNeg:
+                        if (pnode->sxCall.pnodeArgs->sxUni.pnode1->nop == knopInt && pnode->sxCall.pnodeArgs->sxUni.pnode1->sxInt.lw == 0)
                         {
-                        case knopFlt:
-                            func->AddConst<float>((float)pnode->sxCall.pnodeArgs->sxFlt.dbl);
+                            func->AddConst<float>(-0.0f);
                             evalArgs = false;
                             break;
-                        case knopInt:
-                            func->AddConst<float>((float)pnode->sxCall.pnodeArgs->sxInt.lw);
-                            evalArgs = false;
-                            break;
-                        case knopNeg:
-                            if (pnode->sxCall.pnodeArgs->sxUni.pnode1->nop == knopInt && pnode->sxCall.pnodeArgs->sxUni.pnode1->sxInt.lw == 0)
-                            {
-                                func->AddConst<float>(-0.0f);
-                                evalArgs = false;
-                                break;
-                            }
                         }
                     }
                 }
+#ifdef ENABLE_SIMDJS
                 else if (IsSimdjsEnabled())
                 {
                     /*
@@ -469,7 +464,7 @@ namespace Js
                         }
                     }
                 }
-
+#endif // #ifdef ENABLE_SIMDJS
             }
             if (evalArgs)
             {
@@ -651,12 +646,6 @@ namespace Js
         // Check if this function requires a bigger Ast
         UpdateMaxAstSize(fncNode->sxFnc.astSize);
 
-        if (funcIndex == 0 && CheckChangeHeap(func))
-        {
-            fncNode->sxFnc.pnodeBody = NULL;
-            return true;
-        }
-
         if (!SetupFunctionArguments(func, pnodeBody))
         {
             // failure message will be printed by SetupFunctionArguments
@@ -777,14 +766,14 @@ namespace Js
 
                 if (funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
                 {
-                    AsmJsMathFunction* mathFunc = funcDecl->Cast<AsmJsMathFunction>();
-                    if (!(mathFunc && mathFunc->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround))
+                    if (!AsmJsMathFunction::IsFround(funcDecl))
                     {
                         return Fail(rhs, _u("call should be for fround"));
                     }
                     var->SetVarType(AsmJsVarType::Float);
                     var->SetLocation(func->AcquireRegister<float>());
                 }
+#ifdef ENABLE_SIMDJS
                 else if (IsSimdjsEnabled() && funcDecl->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
                 {
                     AsmJsSIMDFunction* simdFunc = funcDecl->Cast<AsmJsSIMDFunction>();
@@ -802,6 +791,7 @@ namespace Js
                     // This allows us to capture all SIMD constants from locals initializations, add them to the register space before we assign registers to args and locals.
                     func->GetSimdVarsList().Add(var);
                 }
+#endif
                 else
                 {
                     return Fail(rhs, _u("Wrong function used for argument definition"));
@@ -839,8 +829,6 @@ namespace Js
     {
         ParseNodePtr pnode = func->GetBodyNode();
         MathBuiltin mathBuiltin;
-        AsmJsMathFunction* mathFunc = nullptr;
-        AsmJsSIMDFunction* simdFunc = nullptr;
         AsmJsSIMDValue simdValue;
         simdValue.Zero();
         // define all variables
@@ -868,8 +856,11 @@ namespace Js
                 ParseNode* pnodeInit = decl->sxVar.pnodeInit;
                 AsmJsSymbol * declSym = nullptr;
 
-                mathFunc = nullptr;
-                simdFunc = nullptr;
+                bool isFroundInit = false;
+
+#ifdef ENABLE_SIMDJS
+                AsmJsSIMDFunction* simdFunc = nullptr;
+#endif
 
                 if (!pnodeInit)
                 {
@@ -897,16 +888,13 @@ namespace Js
 
                     if (funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
                     {
-                        mathFunc = funcDecl->Cast<AsmJsMathFunction>();
-                        if (!(mathFunc && mathFunc->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround))
+                        if (!AsmJsMathFunction::IsFround(funcDecl) || !ParserWrapper::IsFroundNumericLiteral(pnodeInit->sxCall.pnodeArgs))
                         {
                             return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                         }
-                        if (!ParserWrapper::IsFroundNumericLiteral(pnodeInit->sxCall.pnodeArgs))
-                        {
-                            return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
-                        }
+                        isFroundInit = true;
                     }
+#ifdef ENABLE_SIMDJS
                     else if (IsSimdjsEnabled() && funcDecl->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
                     {
                         // var x = f4(1.0, 2.0, 3.0, 4.0);
@@ -915,6 +903,11 @@ namespace Js
                         {
                             return Fail(varNode, _u("Invalid SIMD local declaration"));
                         }
+                    }
+#endif
+                    else
+                    {
+                        return Fail(varNode, _u("Unknown function call on var declaration"));
                     }
                 }
                 else if (pnodeInit->nop != knopInt && pnodeInit->nop != knopFlt)
@@ -1008,7 +1001,7 @@ namespace Js
                 }
                 else if (pnodeInit->nop == knopCall)
                 {
-                    if (mathFunc)
+                    if (isFroundInit)
                     {
                         var->SetVarType(AsmJsVarType::Float);
                         var->SetLocation(func->AcquireRegister<float>());
@@ -1032,6 +1025,7 @@ namespace Js
                             loc = func->GetConstRegister<float>(fVal);
                         }
                     }
+#ifdef ENABLE_SIMDJS
                     else if (IsSimdjsEnabled() && simdFunc)
                     {
                         // simd constructor call
@@ -1043,6 +1037,7 @@ namespace Js
                         // add to list. assign register after all constants.
                         func->GetSimdVarsList().Add(var);
                     }
+#endif
                     else
                     {
                         Assert(UNREACHED);
@@ -1064,6 +1059,7 @@ namespace Js
 
         varDeclEnd:
         // this code has to be on all exit-path from the function
+#ifdef ENABLE_SIMDJS
         if (IsSimdjsEnabled())
         {
             // Now, assign registers to all SIMD vars after all constants are en-registered.
@@ -1074,6 +1070,7 @@ namespace Js
             }
             func->GetSimdVarsList().Reset(); // list not needed anymore
         }
+#endif
         return true;
     }
 
@@ -1106,137 +1103,6 @@ namespace Js
         }
         // Error allocating a new function
         return nullptr;
-    }
-
-    bool AsmJsModuleCompiler::CheckChangeHeap(AsmJsFunc * func)
-    {
-        ParseNode * fncNode = func->GetFncNode();
-        ParseNode * pnodeBody = fncNode->sxFnc.pnodeBody;
-        ParseNode * pnodeArgs = fncNode->sxFnc.pnodeParams;
-
-        // match AST for changeHeap function.
-        // it must be defined in the following format (names/whitespace can differ):
-        //function changeHeap(newBuffer)
-        //{
-        //  if (byteLength(newBuffer) & 0xffffff ||
-        //      byteLength(newBuffer) <= 0xffffff ||
-        //      byteLength(newBuffer) >  0x80000000)
-        //      return false;
-        //  heap32 = new Int32Array(newBuffer);
-        //  ...
-        //  buffer = newBuffer;
-        //  return true;
-        //}
-
-        // ensure function
-        if (pnodeBody->nop != knopList || !pnodeArgs || pnodeArgs->nop != knopVarDecl)
-        {
-            return false;
-        }
-
-        // ensure if expression
-        ParseNode * ifNode = pnodeBody->sxBin.pnode1;
-        if (ifNode->nop != knopIf || ifNode->sxIf.pnodeFalse)
-        {
-            return false;
-        }
-
-        // validate "byteLength(newBuffer) >  0x80000000"
-        ParseNode * orNode = ifNode->sxIf.pnodeCond;
-        if (orNode->nop != knopLogOr || orNode->sxBin.pnode1->nop != knopLogOr)
-        {
-            return false;
-        }
-        ParseNode * cond = orNode->sxBin.pnode2;
-        if (cond->nop != knopGt || !CheckByteLengthCall(cond->sxBin.pnode1, pnodeArgs) || cond->sxBin.pnode2->nop != knopFlt || cond->sxBin.pnode2->sxFlt.dbl != 2147483648.0 || !cond->sxBin.pnode2->sxFlt.maybeInt)
-        {
-            return false;
-        }
-
-        // validate "byteLength(newBuffer) <= 0xffffff"
-        orNode = orNode->sxBin.pnode1;
-        cond = orNode->sxBin.pnode2;
-        if (cond->nop != knopLe || !CheckByteLengthCall(cond->sxBin.pnode1, pnodeArgs) || cond->sxBin.pnode2->nop != knopInt || cond->sxBin.pnode2->sxInt.lw != 0x00ffffff)
-        {
-            return false;
-        }
-
-        // validate "byteLength(newBuffer) & 0xffffff"
-        cond = orNode->sxBin.pnode1;
-        if (cond->nop != knopAnd || !CheckByteLengthCall(cond->sxBin.pnode1, pnodeArgs) || cond->sxBin.pnode2->nop != knopInt || cond->sxBin.pnode2->sxInt.lw != 0x00ffffff)
-        {
-            return false;
-        }
-        // validate "return false;"
-        cond = ifNode->sxIf.pnodeTrue;
-        if (!cond || cond->nop != knopReturn || cond->sxReturn.pnodeExpr->nop != knopFalse)
-        {
-            return false;
-        }
-
-        // validate heap32 = new Int32Array(newBuffer); etc.
-        while (!mArrayViews.Empty())
-        {
-            // all views that were instantiated must be replaced in the order which they were instantiated
-            AsmJsArrayView * requiredArrayView = mArrayViews.Dequeue();
-            pnodeBody = pnodeBody->sxBin.pnode2;
-            if (pnodeBody->nop != knopList)
-            {
-                return false;
-            }
-            ParseNode * assignNode = pnodeBody->sxBin.pnode1;
-            if (assignNode->nop != knopAsg || assignNode->sxBin.pnode1->nop != knopName)
-            {
-                return false;
-            }
-            // validate left hand side
-            AsmJsSymbol * actualArraySym = LookupIdentifier(assignNode->sxBin.pnode1->name());
-            if (requiredArrayView != actualArraySym)
-            {
-                return false;
-            }
-
-            ParseNode * callNode = assignNode->sxBin.pnode2;
-            // validate correct argument is passed
-            if (callNode->nop != knopNew || !callNode->sxCall.pnodeArgs || callNode->sxCall.pnodeArgs->nop != knopName || callNode->sxCall.pnodeArgs->name()->GetPropertyId() != pnodeArgs->name()->GetPropertyId() || callNode->sxCall.pnodeTarget->nop != knopName)
-            {
-                return false;
-            }
-            // validate correct function is being called
-            AsmJsSymbol * callTargetSym = LookupIdentifier(callNode->sxCall.pnodeTarget->name());
-            if (!callTargetSym || callTargetSym->GetSymbolType() != AsmJsSymbol::TypedArrayBuiltinFunction)
-            {
-                return false;
-            }
-            if (requiredArrayView->GetViewType() != callTargetSym->Cast<AsmJsTypedArrayFunction>()->GetViewType())
-            {
-                return false;
-            }
-        }
-        pnodeBody = pnodeBody->sxBin.pnode2;
-        if (pnodeBody->nop != knopList)
-        {
-            return false;
-        }
-
-        // validate buffer = newBuffer;
-        ParseNode * assign = pnodeBody->sxBin.pnode1;
-        if (assign->nop != knopAsg || assign->sxBin.pnode1->nop != knopName || !mBufferArgName || mBufferArgName->GetPropertyId() != assign->sxBin.pnode1->name()->GetPropertyId() ||
-            assign->sxBin.pnode2->nop != knopName || pnodeArgs->name()->GetPropertyId() != assign->sxBin.pnode2->name()->GetPropertyId())
-        {
-            return false;
-        }
-        // validate return true;
-        pnodeBody = pnodeBody->sxBin.pnode2;
-        if (pnodeBody->nop != knopList || pnodeBody->sxBin.pnode2->nop != knopEndCode ||
-            pnodeBody->sxBin.pnode1->nop != knopReturn || !pnodeBody->sxBin.pnode1->sxReturn.pnodeExpr || pnodeBody->sxBin.pnode1->sxReturn.pnodeExpr->nop != knopTrue)
-        {
-            return false;
-        }
-        // now we should flag this module as containing changeHeap method
-        mUsesChangeHeap = true;
-        AsmJSByteCodeGenerator::EmitEmptyByteCode(func->GetFuncInfo(), GetByteCodeGenerator(), fncNode);
-        return true;
     }
 
     bool AsmJsModuleCompiler::CheckByteLengthCall(ParseNode * callNode, ParseNode * bufferDecl)
@@ -1451,6 +1317,7 @@ namespace Js
                 return false;
             }
         }
+#ifdef ENABLE_SIMDJS
         // similar to math functions maps initialization.
         if (IsSimdjsEnabled())
         {
@@ -1459,6 +1326,7 @@ namespace Js
                 return false;
             }
         }
+#endif
         return true;
     }
 
@@ -1956,7 +1824,6 @@ namespace Js
         , mCompileTimeLastTick(GetTick())
         , mMaxAstSize(0)
         , mArrayViews(&mAllocator)
-        , mUsesChangeHeap(false)
         , mUsesHeapBuffer(false)
         , mMaxHeapAccess(0)
 #if DBG
@@ -2182,6 +2049,7 @@ namespace Js
             var->SetVarType( AsmJsVarType::Float );
             var->SetLocation(mFloatVarSpace.AcquireRegister());
             break;
+#ifdef ENABLE_SIMDJS
         case Js::AsmJS_Int32x4:
             if (IsSimdjsEnabled())
             {
@@ -2270,6 +2138,7 @@ namespace Js
                 break;
             }
             Assert(UNREACHED);
+#endif // #ifdef ENABLE_SIMDJS
         default:
             break;
         }
@@ -2345,12 +2214,21 @@ namespace Js
 
     bool AsmJsModuleCompiler::AddExport( PropertyName name, RegSlot location )
     {
-        AsmJsModuleExport ex;
-        ex.id = name->GetPropertyId();
-        ex.location = location;
-
-        // return is < 0 if count overflowed 31bits
-        return mExports.Add( ex ) >= 0;
+        AsmJsModuleExport * foundExport;
+        if (mExports.TryGetReference(name->GetPropertyId(), &foundExport))
+        {
+            AsmJSCompiler::OutputMessage(GetScriptContext(), DEIT_GENERAL, _u("Warning: redefining export"));
+            foundExport->location = location;
+            return true;
+        }
+        else
+        {
+            AsmJsModuleExport ex;
+            ex.id = name->GetPropertyId();
+            ex.location = location;
+            return mExports.Add(ex.id, ex) >= 0;
+            // return is < 0 if count overflowed 31bits
+        }
     }
 
     bool AsmJsModuleCompiler::SetExportFunc( AsmJsFunc* func )
@@ -2417,7 +2295,7 @@ namespace Js
         mModuleMemory.mFloatOffset = mModuleMemory.mFuncPtrOffset + GetFuncPtrTableCount();
         mModuleMemory.mIntOffset = mModuleMemory.mFloatOffset + (int32)(mFloatVarSpace.GetTotalVarCount() * WAsmJs::FLOAT_SLOTS_SPACE + 0.5);
         mModuleMemory.mMemorySize    = mModuleMemory.mIntOffset + (int32)(mIntVarSpace.GetTotalVarCount() * WAsmJs::INT_SLOTS_SPACE + 0.5);
-
+#ifdef ENABLE_SIMDJS
         if (IsSimdjsEnabled())
         {
             // mSimdOffset is in SIMDValues, hence aligned
@@ -2427,7 +2305,11 @@ namespace Js
             {
                 mModuleMemory.mMemorySize = (int)((mModuleMemory.mSimdOffset + mSimdVarSpace.GetTotalVarCount()) * WAsmJs::SIMD_SLOTS_SPACE);
             }
-
+        }
+        else
+#endif
+        {
+            mModuleMemory.mSimdOffset = 0;  // initialize to avoid GC false reference
         }
     }
 
@@ -2615,8 +2497,9 @@ namespace Js
         int * asmIntVars = reinterpret_cast<int*>(asmJsEnvironment + asmModuleInfo->GetModuleMemory().mIntOffset);
         float * asmFloatVars = reinterpret_cast<float*>(asmJsEnvironment + asmModuleInfo->GetModuleMemory().mFloatOffset);
 
+#ifdef ENABLE_SIMDJS
         AsmJsSIMDValue * asmSIMDVars = reinterpret_cast<AsmJsSIMDValue*>(asmJsEnvironment + asmModuleInfo->GetModuleMemory().mSimdOffset);
-
+#endif
 
 #if DEBUG
         Field(Var) * slotArray = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), moduleBody->scopeSlotArraySize + ScopeSlots::FirstSlotIndex);
@@ -2661,6 +2544,7 @@ namespace Js
                 case AsmJsVarType::Int:
                     value = JavascriptNumber::ToVar(asmIntVars[asmSlot->location], scriptContext);
                     break;
+#ifdef ENABLE_SIMDJS
                 case AsmJsVarType::Float32x4:
                     value = JavascriptSIMDFloat32x4::New(&asmSIMDVars[asmSlot->location], scriptContext);
                     break;
@@ -2694,6 +2578,7 @@ namespace Js
                 case AsmJsVarType::Bool8x16:
                     value = JavascriptSIMDBool8x16::New(&asmSIMDVars[asmSlot->location], scriptContext);
                     break;
+#endif // #ifdef ENABLE_SIMDJS
                 default:
                     Assume(UNREACHED);
                 }
@@ -2781,7 +2666,7 @@ namespace Js
             {
                 switch (asmSlot->builtinMathFunc)
                 {
-#define ASMJS_MATH_FUNC_NAMES(name, propertyName) \
+#define ASMJS_MATH_FUNC_NAMES(name, propertyName, funcInfo) \
                         case AsmJSMathBuiltin_##name: \
                             value = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::##propertyName, scriptContext); \
                             break;
