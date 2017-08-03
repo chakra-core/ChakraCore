@@ -641,10 +641,10 @@ namespace JSON
                         precisePropertyCount = propertyCount;
                     }
 
-                    result = Js::ConcatStringBuilder::New(this->scriptContext, propertyCount);    // Reserve initial slots for properties.
-
                     if (ReplacerFunction != replacerType)
                     {
+                        // Reserve initial slots for properties. +1 stands for extra property being pushed during the stringify
+                        result = Js::ConcatStringBuilder::New(this->scriptContext, propertyCount + 1);
                         enumerator.Reset();
                         while ((propertyName = enumerator.MoveAndGetNext(id)) != NULL)
                         {
@@ -666,6 +666,8 @@ namespace JSON
                         {
                             precisePropertyCount = this->GetPropertyCount(object, &enumerator);
                         }
+
+                        result = Js::ConcatStringBuilder::New(this->scriptContext, precisePropertyCount);    // Reserve initial slots for properties.
 
                         // pick the property names before walking the object
                         DECLARE_TEMP_GUEST_ALLOCATOR(nameTableAlloc);
