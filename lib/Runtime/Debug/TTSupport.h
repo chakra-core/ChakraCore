@@ -1281,6 +1281,7 @@ namespace TTD
 
         void AddItem(Tag id, const T& item)
         {
+            TTDAssert(this->m_count * TTD_DICTIONARY_LOAD_FACTOR < this->m_capacity, "The dictionary is being sized incorrectly and will likely have poor performance");
             Entry* entry = this->FindSlotForId<true>(id);
 
             InitializeEntry(entry, id, item);

@@ -936,6 +936,7 @@ namespace Js
             case OpCode::ScopedStFld:
             case OpCode::ConsoleScopedStFld:
             case OpCode::ScopedStFldStrict:
+            case OpCode::ConsoleScopedStFldStrict:
                 Output::Print(_u(" %s = R%d, R%d #%d"), pPropertyName->GetBuffer(), data->Value,
                     Js::FunctionBody::RootObjectRegSlot, data->inlineCacheIndex);
                 break;

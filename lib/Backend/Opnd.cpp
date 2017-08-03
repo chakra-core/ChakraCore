@@ -1870,6 +1870,7 @@ HelperCallOpnd::New(JnHelperMethod fnHelper, Func *func)
 void
 HelperCallOpnd::Init(JnHelperMethod fnHelper)
 {
+    Assert(fnHelper    != IR::HelperInvalid);
     this->m_fnHelper    = fnHelper;
     this->m_type        = TyMachPtr;
 

@@ -948,11 +948,10 @@ namespace Js
             Js::ParseableFunctionInfo::NewDeferredFunctionFromFunctionBody(this);
         FunctionInfo * functionInfo = this->GetFunctionInfo();
 
-        this->MapFunctionObjectTypes([&](DynamicType* type)
+        this->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
-            Assert(type->GetTypeId() == TypeIds_Function);
-
-            ScriptFunctionType* functionType = (ScriptFunctionType*)type;
+            Assert(functionType->GetTypeId() == TypeIds_Function);
+            
             if (!CrossSite::IsThunk(functionType->GetEntryPoint()))
             {
                 functionType->SetEntryPoint(GetScriptContext()->DeferredParsingThunk);
@@ -2050,7 +2049,7 @@ namespace Js
             {
                 if (typeWeakRef)
                 {
-                    DynamicType* type = typeWeakRef->Get();
+                    ScriptFunctionType* type = typeWeakRef->Get();
                     if (type)
                     {
                         func(type);
@@ -2078,7 +2077,7 @@ namespace Js
         return functionObjectTypeList;
     }
 
-    void FunctionProxy::RegisterFunctionObjectType(DynamicType* functionType)
+    void FunctionProxy::RegisterFunctionObjectType(ScriptFunctionType* functionType)
     {
         FunctionTypeWeakRefList* typeList = EnsureFunctionObjectTypeList();
 
@@ -2354,7 +2353,7 @@ namespace Js
                     {
                         CompileScriptException se;
                         Parser ps(m_scriptContext, funcBody->GetIsStrictMode() ? TRUE : FALSE);
-                        ParseNodePtr parseTree;
+                        ParseNodePtr parseTree = nullptr;
 
                         uint nextFunctionId = funcBody->GetLocalFunctionId();
                         hrParser = ps.ParseSourceWithOffset(&parseTree, pszStart, offset, length, charOffset, isCesu8, grfscr, &se,
@@ -8601,7 +8600,7 @@ namespace Js
             Assert(this->jitTransferData->lazyBailoutProperties != nullptr);
 
             Js::PropertyId propertyId = this->jitTransferData->lazyBailoutProperties[i];
-            Js::PropertyGuard* sharedPropertyGuard;
+            Js::PropertyGuard* sharedPropertyGuard = nullptr;
             bool hasSharedPropertyGuard = TryGetSharedPropertyGuard(propertyId, sharedPropertyGuard);
             Assert(hasSharedPropertyGuard);
             bool isValid = hasSharedPropertyGuard ? sharedPropertyGuard->IsValid() : false;
@@ -8711,7 +8710,7 @@ namespace Js
             while (*next)
             {
                 Js::PropertyId propertyId = (*next)->propId;
-                Js::PropertyGuard* sharedPropertyGuard;
+                Js::PropertyGuard* sharedPropertyGuard = nullptr;
 
                 // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
                 // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
@@ -8763,7 +8762,7 @@ namespace Js
             while (entry->propertyId != Js::Constants::NoProperty)
             {
                 Js::PropertyId propertyId = entry->propertyId;
-                Js::PropertyGuard* sharedPropertyGuard;
+                Js::PropertyGuard* sharedPropertyGuard = nullptr;
 
                 // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
                 // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
@@ -8818,7 +8817,7 @@ namespace Js
             for (uint i = 0; i < this->jitTransferData->ctorCacheTransferData.ctorCachesCount; ++i)
             {
                 Js::PropertyId propertyId = entries[i]->propId;
-                Js::PropertyGuard* sharedPropertyGuard;
+                Js::PropertyGuard* sharedPropertyGuard = nullptr;
 
                 // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
                 // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
@@ -8855,7 +8854,7 @@ namespace Js
             while (entry->propertyId != Js::Constants::NoProperty)
             {
                 Js::PropertyId propertyId = entry->propertyId;
-                Js::PropertyGuard* sharedPropertyGuard;
+                Js::PropertyGuard* sharedPropertyGuard = nullptr;
 
                 // We use the shared guard created during work item creation to ensure that the condition we assumed didn't change while
                 // we were JIT-ing. If we don't have a shared property guard for this property then we must not need to protect it,
@@ -9716,11 +9715,9 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
     void FunctionEntryPointInfo::ResetOnNativeCodeInstallFailure()
     {
-        this->functionProxy->MapFunctionObjectTypes([&](DynamicType* type)
+        this->functionProxy->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
-            Assert(type->GetTypeId() == TypeIds_Function);
-
-            ScriptFunctionType* functionType = (ScriptFunctionType*)type;
+            Assert(functionType->GetTypeId() == TypeIds_Function);
             if (functionType->GetEntryPointInfo() == this)
             {
                 if (!this->GetIsAsmJSFunction())
@@ -9791,11 +9788,10 @@ namespace Js
             autoCleanup.Done();
 
         }
-        this->functionProxy->MapFunctionObjectTypes([&](DynamicType* type)
+        this->functionProxy->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
-            Assert(type->GetTypeId() == TypeIds_Function);
-
-            ScriptFunctionType* functionType = (ScriptFunctionType*)type;
+            Assert(functionType->GetTypeId() == TypeIds_Function);
+            
             if (functionType->GetEntryPointInfo() == this)
             {
                 functionType->SetEntryPointInfo(entryPoint);
@@ -9874,11 +9870,10 @@ namespace Js
             }
 
             OUTPUT_TRACE(Js::ExpirableCollectPhase,  _u("Expiring 0x%p\n"), this);
-            this->functionProxy->MapFunctionObjectTypes([&] (DynamicType* type)
+            this->functionProxy->MapFunctionObjectTypes([&] (ScriptFunctionType* functionType)
             {
-                Assert(type->GetTypeId() == TypeIds_Function);
+                Assert(functionType->GetTypeId() == TypeIds_Function);
 
-                ScriptFunctionType* functionType = (ScriptFunctionType*) type;
                 if (functionType->GetEntryPointInfo() == this)
                 {
                     OUTPUT_TRACE(Js::ExpirableCollectPhase, _u("Type 0x%p uses this entry point- switching to default entry point\n"), this);

@@ -2822,8 +2822,8 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
     // If the loop count is constant, (inductionVariableOffset + loopCount * maxMagnitudeChange) can be folded into an offset:
     //     bound = index + offset
     int offset;
-    StackSym *indexLoopCountBasedBoundBaseSym;
-    Value *indexLoopCountBasedBoundBaseValue;
+    StackSym *indexLoopCountBasedBoundBaseSym = nullptr;
+    Value *indexLoopCountBasedBoundBaseValue = nullptr;
     IntConstantBounds indexLoopCountBasedBoundBaseConstantBounds;
     bool generateLoopCountBasedIndexBound;
     if(!loopCount->HasBeenGenerated() || loopCount->LoopCountMinusOneSym())

@@ -216,6 +216,9 @@ namespace Js
         int GetMemberCount() { return pMembersList ? pMembersList->Count() : 0; }
 
         bool IsPropertyValid(PropertyId propertyId, RegSlot location, bool *isPropertyInDebuggerScope, bool* isConst, bool* isInDeadZone) const;
+
+    private:
+        static JavascriptString * ParseFunctionName(JavascriptString* displayName, ScriptContext* scriptContext);
     };
 
 

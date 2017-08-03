@@ -4252,7 +4252,8 @@ CHAKRA_API JsCopyString(
     _In_ JsValueRef value,
     _Out_opt_ char* buffer,
     _In_ size_t bufferSize,
-    _Out_opt_ size_t* length)
+    _Out_opt_ size_t* writtenLength,
+    _Out_opt_ size_t* actualLength)
 {
     PARAM_NOT_NULL(value);
     VALIDATE_JSREF(value);
@@ -4266,14 +4267,12 @@ CHAKRA_API JsCopyString(
     }
 
     utf8::WideToNarrow utf8Str(str, strLength);
-    if (!buffer)
+    if (actualLength)
     {
-        if (length)
-        {
-            *length = utf8Str.Length();
-        }
+      *actualLength = utf8Str.Length();
     }
-    else
+
+    if (buffer)
     {
         size_t count = min(bufferSize, utf8Str.Length());
         // Try to copy whole characters if buffer size insufficient
@@ -4284,10 +4283,14 @@ CHAKRA_API JsCopyString(
             (LPCUTF8)(const char*)utf8Str, utf8Str.Length(), maxFitChars);
 
         memmove(buffer, utf8Str, sizeof(char) * count);
-        if (length)
+        if (writtenLength)
         {
-            *length = count;
+            *writtenLength = count;
         }
+    }
+    else if (writtenLength)
+    {
+        *writtenLength = 0;
     }
 
     return JsNoError;
@@ -4776,6 +4779,46 @@ CHAKRA_API JsCopyStringOneByte(
         }
         return JsNoError;
     });
+}
+
+CHAKRA_API JsGetDataViewInfo(
+    _In_ JsValueRef dataView,
+    _Out_opt_ JsValueRef *arrayBuffer,
+    _Out_opt_ unsigned int *byteOffset,
+    _Out_opt_ unsigned int *byteLength)
+{
+    VALIDATE_JSREF(dataView);
+
+    BEGIN_JSRT_NO_EXCEPTION
+    {
+        if (!Js::DataView::Is(dataView))
+        {
+            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
+        }
+
+        Js::DataView* dv = Js::DataView::FromVar(dataView);
+        if (arrayBuffer != nullptr) {
+            *arrayBuffer = dv->GetArrayBuffer();
+        }
+
+        if (byteOffset != nullptr) {
+            *byteOffset = dv->GetByteOffset();
+        }
+
+        if (byteLength != nullptr) {
+            *byteLength = dv->GetLength();
+        }
+    }
+
+#if ENABLE_TTD
+    Js::ScriptContext* scriptContext = Js::RecyclableObject::FromVar(dataView)->GetScriptContext();
+    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && arrayBuffer != nullptr)
+    {
+        scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetDataViewInfo(dataView, *arrayBuffer);
+    }
+#endif
+
+    END_JSRT_NO_EXCEPTION
 }
 
 #endif // _CHAKRACOREBUILD

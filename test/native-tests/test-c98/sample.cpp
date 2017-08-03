@@ -63,9 +63,9 @@ int main()
     // Project script result back to C++.
     char *resultSTR = nullptr;
     size_t stringLength;
-    FAIL_CHECK(JsCopyString(resultJSString, nullptr, 0, &stringLength));
+    FAIL_CHECK(JsCopyString(resultJSString, nullptr, 0, nullptr, &stringLength));
     resultSTR = (char*)malloc(stringLength + 1);
-    FAIL_CHECK(JsCopyString(resultJSString, resultSTR, stringLength + 1, nullptr));
+    FAIL_CHECK(JsCopyString(resultJSString, resultSTR, stringLength + 1, nullptr, nullptr));
     resultSTR[stringLength] = 0;
 
     printf("Result -> %s \n", resultSTR);

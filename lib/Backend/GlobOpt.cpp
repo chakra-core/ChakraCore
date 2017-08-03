@@ -1131,7 +1131,7 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     loop->fieldPRESymStore->Set(symStore->m_id);
 
     ValueType valueType(ValueType::Uninitialized);
-    Value *initialValue;
+    Value *initialValue = nullptr;
 
     if (loop->initialValueFieldMap.TryGetValue(propertySym, &initialValue))
     {
@@ -3110,7 +3110,7 @@ GlobOpt::CopyPropDstUses(IR::Opnd *opnd, IR::Instr *instr, Value *src1Val)
 void
 GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *propertySym, PropertySym *originalPropertySym)
 {
-    Value *initialValue;
+    Value *initialValue = nullptr;
     StackSym *symStore;
 
     if (loop->allFieldsKilled || loop->fieldKilled->Test(originalPropertySym->m_id))
@@ -4333,7 +4333,7 @@ GlobOpt::GetVarConstantValue(IR::AddrOpnd *addrOpnd)
     bool isVar = addrOpnd->IsVar();
     bool isString = isVar && addrOpnd->m_localAddress && JITJavascriptString::Is(addrOpnd->m_localAddress);
     Value *val = nullptr;
-    Value *cachedValue;
+    Value *cachedValue = nullptr;
     if(this->addrConstantToValueMap->TryGetValue(addrOpnd->m_address, &cachedValue))
     {
         // The cached value could be from a different block since this is a global (as opposed to a per-block) cache. Since
@@ -4468,7 +4468,7 @@ GlobOpt::NewFixedFunctionValue(Js::JavascriptFunction *function, IR::AddrOpnd *a
     Assert(function != nullptr);
 
     Value *val = nullptr;
-    Value *cachedValue;
+    Value *cachedValue = nullptr;
     if(this->addrConstantToValueMap->TryGetValue(addrOpnd->m_address, &cachedValue))
     {
         // The cached value could be from a different block since this is a global (as opposed to a per-block) cache. Since
@@ -5350,6 +5350,39 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
             }
             return dstVal;
         }
+
+        if (!this->IsLoopPrePass())
+        {
+            if (instr->HasBailOutInfo())
+            {
+                const IR::BailOutKind oldBailOutKind = instr->GetBailOutKind();
+                Assert(
+                    (
+                        !(oldBailOutKind & ~IR::BailOutKindBits) ||
+                        (oldBailOutKind & ~IR::BailOutKindBits) == IR::BailOutOnImplicitCallsPreOp
+                        ) &&
+                    !(oldBailOutKind & IR::BailOutKindBits & ~(IR::BailOutOnArrayAccessHelperCall | IR::BailOutMarkTempObject)));
+                if (bailOutKind == IR::BailOutConventionalTypedArrayAccessOnly)
+                {
+                    // BailOutConventionalTypedArrayAccessOnly also bails out if the array access is outside the head
+                    // segment bounds, and guarantees no implicit calls. Override the bailout kind so that the instruction
+                    // bails out for the right reason.
+                    instr->SetBailOutKind(
+                        bailOutKind | (oldBailOutKind & (IR::BailOutKindBits - IR::BailOutOnArrayAccessHelperCall)));
+                }
+                else
+                {
+                    // BailOutConventionalNativeArrayAccessOnly by itself may generate a helper call, and may cause implicit
+                    // calls to occur, so it must be merged in to eliminate generating the helper call
+                    Assert(bailOutKind == IR::BailOutConventionalNativeArrayAccessOnly);
+                    instr->SetBailOutKind(oldBailOutKind | bailOutKind);
+                }
+            }
+            else
+            {
+                GenerateBailAtOperation(&instr, bailOutKind);
+            }
+        }
         TypeSpecializeIntDst(instr, instr->m_opcode, nullptr, nullptr, nullptr, bailOutKind, newMin, newMax, &dstVal);
         toType = TyInt32;
         break;
@@ -5378,6 +5411,39 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
                 }
             }
             return dstVal;
+        }
+
+        if (!this->IsLoopPrePass())
+        {
+            if (instr->HasBailOutInfo())
+            {
+                const IR::BailOutKind oldBailOutKind = instr->GetBailOutKind();
+                Assert(
+                    (
+                        !(oldBailOutKind & ~IR::BailOutKindBits) ||
+                        (oldBailOutKind & ~IR::BailOutKindBits) == IR::BailOutOnImplicitCallsPreOp
+                        ) &&
+                    !(oldBailOutKind & IR::BailOutKindBits & ~(IR::BailOutOnArrayAccessHelperCall | IR::BailOutMarkTempObject)));
+                if (bailOutKind == IR::BailOutConventionalTypedArrayAccessOnly)
+                {
+                    // BailOutConventionalTypedArrayAccessOnly also bails out if the array access is outside the head
+                    // segment bounds, and guarantees no implicit calls. Override the bailout kind so that the instruction
+                    // bails out for the right reason.
+                    instr->SetBailOutKind(
+                        bailOutKind | (oldBailOutKind & (IR::BailOutKindBits - IR::BailOutOnArrayAccessHelperCall)));
+                }
+                else
+                {
+                    // BailOutConventionalNativeArrayAccessOnly by itself may generate a helper call, and may cause implicit
+                    // calls to occur, so it must be merged in to eliminate generating the helper call
+                    Assert(bailOutKind == IR::BailOutConventionalNativeArrayAccessOnly);
+                    instr->SetBailOutKind(oldBailOutKind | bailOutKind);
+                }
+            }
+            else
+            {
+                GenerateBailAtOperation(&instr, bailOutKind);
+            }
         }
         TypeSpecializeFloatDst(instr, nullptr, nullptr, nullptr, &dstVal);
         toType = TyFloat64;
@@ -5424,39 +5490,6 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
         Output::Print(_u(".\n"));
 #endif
         Output::Flush();
-    }
-
-    if(!this->IsLoopPrePass())
-    {
-        if(instr->HasBailOutInfo())
-        {
-            const IR::BailOutKind oldBailOutKind = instr->GetBailOutKind();
-            Assert(
-                (
-                    !(oldBailOutKind & ~IR::BailOutKindBits) ||
-                    (oldBailOutKind & ~IR::BailOutKindBits) == IR::BailOutOnImplicitCallsPreOp
-                ) &&
-                !(oldBailOutKind & IR::BailOutKindBits & ~(IR::BailOutOnArrayAccessHelperCall | IR::BailOutMarkTempObject)));
-            if(bailOutKind == IR::BailOutConventionalTypedArrayAccessOnly)
-            {
-                // BailOutConventionalTypedArrayAccessOnly also bails out if the array access is outside the head
-                // segment bounds, and guarantees no implicit calls. Override the bailout kind so that the instruction
-                // bails out for the right reason.
-                instr->SetBailOutKind(
-                    bailOutKind | (oldBailOutKind & (IR::BailOutKindBits - IR::BailOutOnArrayAccessHelperCall)));
-            }
-            else
-            {
-                // BailOutConventionalNativeArrayAccessOnly by itself may generate a helper call, and may cause implicit
-                // calls to occur, so it must be merged in to eliminate generating the helper call
-                Assert(bailOutKind == IR::BailOutConventionalNativeArrayAccessOnly);
-                instr->SetBailOutKind(oldBailOutKind | bailOutKind);
-            }
-        }
-        else
-        {
-            GenerateBailAtOperation(&instr, bailOutKind);
-        }
     }
 
     return dstVal;
@@ -13656,7 +13689,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             for(Loop *loop = currentBlock->loop; loop; loop = loop->parent)
             {
                 const JsArrayKills loopKills(loop->jsArrayKills);
-                Value *baseValueInLoopLandingPad;
+                Value *baseValueInLoopLandingPad = nullptr;
                 if((isLikelyJsArray && loopKills.KillsValueType(newBaseValueType)) ||
                     !OptIsInvariant(baseOpnd->m_sym, currentBlock, loop, baseValue, true, true, &baseValueInLoopLandingPad) ||
                     !(doArrayChecks || baseValueInLoopLandingPad->GetValueInfo()->IsObject()))
@@ -16199,6 +16232,21 @@ GlobOpt::OptIsInvariant(
         {
             allowNonPrimitives = true;
         }
+        break;
+    case Js::OpCode::CheckObjType:
+        // Bug 11712101: If the operand is a field, ensure that its containing object type is invariant
+        // before hoisting -- that is, don't hoist a CheckObjType over a DeleteFld on that object.
+        // (CheckObjType only checks the operand and its immediate parent, so we don't need to go
+        // any farther up the object graph.)
+        Assert(instr->GetSrc1());
+        PropertySym *propertySym = instr->GetSrc1()->AsPropertySymOpnd()->GetPropertySym();
+        if (propertySym->HasObjectTypeSym()) {
+            StackSym *objectTypeSym = propertySym->GetObjectTypeSym();
+            if (!this->OptIsInvariant(objectTypeSym, block, loop, this->CurrentBlockData()->FindValue(objectTypeSym), true, true)) {
+                return false;
+            }
+        }
+
         break;
     }
 

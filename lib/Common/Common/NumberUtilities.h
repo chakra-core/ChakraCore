@@ -68,7 +68,6 @@ namespace Js
         static const BYTE SgnFloatBitCst[];
         static const BYTE SgnDoubleBitCst[];
         static double const UIntConvertConst[];
-        static uint64 const UInt64ConvertConst[];
 
         static double const MaskNegDouble[];
         static float const MaskNegFloat[];

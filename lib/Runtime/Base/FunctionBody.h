@@ -1327,7 +1327,7 @@ namespace Js
     class FunctionProxy : public FinalizableObject
     {
     public:
-        typedef RecyclerWeakReference<DynamicType> FunctionTypeWeakRef;
+        typedef RecyclerWeakReference<ScriptFunctionType> FunctionTypeWeakRef;
         typedef JsUtil::List<FunctionTypeWeakRef*, Recycler, false, WeakRefFreeListedRemovePolicy> FunctionTypeWeakRefList;
 
     protected:
@@ -1465,7 +1465,7 @@ namespace Js
         FunctionTypeWeakRefList* EnsureFunctionObjectTypeList();
         FunctionTypeWeakRefList* GetFunctionObjectTypeList() const;
         void SetFunctionObjectTypeList(FunctionTypeWeakRefList* list);
-        void RegisterFunctionObjectType(DynamicType* functionType);
+        void RegisterFunctionObjectType(ScriptFunctionType* functionType);
         template <typename Fn>
         void MapFunctionObjectTypes(Fn func);
 
@@ -1763,7 +1763,7 @@ namespace Js
 
     inline FunctionBody * FunctionProxy::GetFunctionBody() const
     {
-        Assert(IsFunctionBody());
+        AssertOrFailFast(IsFunctionBody());
         return (FunctionBody*)this;
     }
 

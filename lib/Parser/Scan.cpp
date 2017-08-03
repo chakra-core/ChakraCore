@@ -584,7 +584,7 @@ template <typename EncodingPolicy>
 typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt)
 {
     EncodedCharPtr last = m_pchLast;
-    EncodedCharPtr pchT;
+    EncodedCharPtr pchT = nullptr;
     likelyInt = true;
     // Reset
     m_OctOrLeadingZeroOnLastTKNumber = false;

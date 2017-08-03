@@ -476,9 +476,18 @@ WasmOp WasmBinaryReader::ReadExpr()
         break;
     case wbCurrentMemory:
     case wbGrowMemory:
+    {
         // Reserved value currently unused
-        ReadConst<uint8>();
+        uint8 reserved = ReadConst<uint8>();
+        if (reserved != 0)
+        {
+            ThrowDecodingError(op == wbCurrentMemory
+                ? _u("current_memory reserved value must be 0")
+                : _u("grow_memory reserved value must be 0")
+            );
+        }
         break;
+    }
 #define WASM_LANE_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
         LaneNode(); \
@@ -549,7 +558,11 @@ void WasmBinaryReader::CallIndirectNode()
 
     uint32 funcNum = LEB128(length);
     // Reserved value currently unused
-    ReadConst<uint8>();
+    uint8 reserved = ReadConst<uint8>();
+    if (reserved != 0)
+    {
+        ThrowDecodingError(_u("call_indirect reserved value must be 0"));
+    }
     if (!m_module->HasTable() && !m_module->HasTableImport())
     {
         ThrowDecodingError(_u("Found call_indirect operator, but no table"));
@@ -789,7 +802,7 @@ void WasmBinaryReader::ReadExportSection()
         const char16* exportName = ReadInlineName(length, nameLength);
 
         // Check if the name is already used
-        NameList* list;
+        NameList* list = nullptr;
         if (exportsNameDict.TryGetValue(nameLength, &list))
         {
             const char16** found = list->Find([exportName, nameLength](const char16* existing) { 

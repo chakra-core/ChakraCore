@@ -1741,7 +1741,7 @@ ThreadContext::ProbeStack(size_t size, Js::ScriptContext *scriptContext, PVOID r
         PlatformAgnostic::PerfTrace::WritePerfMap();
     }
 #endif
-    
+
     // BACKGROUND-GC TODO: If we're stuck purely in JITted code, we should have the
     // background GC thread modify the threads stack limit to trigger the runtime stack probe
     if (this->callDispose && this->recycler->NeedDispose())
@@ -2206,8 +2206,13 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
         lastRecord->hasReentered = true;
         record->next = lastRecord;
 
-        // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
-        if (!IsOnStack(lastRecord) || (uintptr_t)record >= (uintptr_t)lastRecord)
+        // these are on stack, which grows down. if this condition doesn't hold,
+        // then the list somehow got messed up
+        if (
+#if defined(JSRT_VERIFY_RUNTIME_STATE) || defined(DEBUG)
+        !IsOnStack(lastRecord) ||
+#endif
+        (uintptr_t)record >= (uintptr_t)lastRecord)
         {
             EntryExitRecord_Corrupted_fatal_error();
         }
@@ -2220,9 +2225,14 @@ void ThreadContext::PopEntryExitRecord(Js::ScriptEntryExitRecord * record)
 {
     AssertMsg(record && record == this->entryExitRecord, "Mismatch script entry/exit");
 
-    // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
+    // these are on stack, which grows down. if this condition doesn't hold,
+    // then the list somehow got messed up
     Js::ScriptEntryExitRecord * next = this->entryExitRecord->next;
-    if (next && (!IsOnStack(next) || (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
+    if (next && (
+#if defined(JSRT_VERIFY_RUNTIME_STATE) || defined(DEBUG)
+        !IsOnStack(next) ||
+#endif
+    (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
     {
         EntryExitRecord_Corrupted_fatal_error();
     }
@@ -3464,7 +3474,7 @@ ThreadContext::PropertyGuardEntry*
 ThreadContext::EnsurePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, bool& foundExistingEntry)
 {
     PropertyGuardDictionary &guards = this->recyclableData->propertyGuards;
-    PropertyGuardEntry* entry;
+    PropertyGuardEntry* entry = nullptr;
 
     foundExistingEntry = guards.TryGetValue(propertyRecord, &entry);
     if (!foundExistingEntry)
@@ -3637,7 +3647,7 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
     if (entry->entryPoints && entry->entryPoints->Count() > 0)
     {
         Js::JavascriptStackWalker stackWalker(this->GetScriptContextList());
-        Js::JavascriptFunction* caller;
+        Js::JavascriptFunction* caller = nullptr;
         while (stackWalker.GetCaller(&caller, /*includeInlineFrames*/ false))
         {
             // If the current frame is already from a bailout - we do not need to do on stack invalidation
@@ -3669,7 +3679,7 @@ ThreadContext::InvalidatePropertyGuards(Js::PropertyId propertyId)
 {
     const Js::PropertyRecord* propertyRecord = GetPropertyName(propertyId);
     PropertyGuardDictionary &guards = this->recyclableData->propertyGuards;
-    PropertyGuardEntry* entry;
+    PropertyGuardEntry* entry = nullptr;
     if (guards.TryGetValueAndRemove(propertyRecord, &entry))
     {
         InvalidatePropertyGuardEntry(propertyRecord, entry, false);
@@ -3927,7 +3937,7 @@ void ThreadContext::RegisterTypeWithProtoPropertyCache(const Js::PropertyId prop
     Assert(type);
 
     PropertyIdToTypeHashSetDictionary &typesWithProtoPropertyCache = recyclableData->typesWithProtoPropertyCache;
-    TypeHashSet *typeHashSet;
+    TypeHashSet *typeHashSet = nullptr;
     if(!typesWithProtoPropertyCache.TryGetValue(propertyId, &typeHashSet))
     {
         typeHashSet = RecyclerNew(recycler, TypeHashSet, recycler);
@@ -3949,7 +3959,7 @@ void ThreadContext::InternalInvalidateProtoTypePropertyCaches(const Js::Property
     // Get the hash set of registered types associated with the property ID, invalidate each type in the hash set, and
     // remove the property ID and its hash set from the map
     PropertyIdToTypeHashSetDictionary &typesWithProtoPropertyCache = recyclableData->typesWithProtoPropertyCache;
-    TypeHashSet *typeHashSet;
+    TypeHashSet *typeHashSet = nullptr;
     if(typesWithProtoPropertyCache.Count() != 0 && typesWithProtoPropertyCache.TryGetValueAndRemove(propertyId, &typeHashSet))
     {
         DoInvalidateProtoTypePropertyCaches(propertyId, typeHashSet);
@@ -4198,7 +4208,7 @@ Js::SourceDynamicProfileManager* ThreadContext::GetSourceDynamicProfileManager(_
 {
       EnsureSourceProfileManagersByUrlMap();
       Js::SourceDynamicProfileManager* profileManager = nullptr;
-      SourceDynamicProfileManagerCache* managerCache;
+      SourceDynamicProfileManagerCache* managerCache = nullptr;
       bool newCache = false;
       if(!this->recyclableData->sourceProfileManagersByUrl->TryGetValue(url, &managerCache))
       {
@@ -4532,7 +4542,7 @@ void ThreadContext::CheckInterruptPoll()
 void *
 ThreadContext::GetDynamicObjectEnumeratorCache(Js::DynamicType const * dynamicType)
 {
-    void * data;
+    void * data = nullptr;
     return this->dynamicObjectEnumeratorCacheMap.TryGetValue(dynamicType, &data)? data : nullptr;
 }
 

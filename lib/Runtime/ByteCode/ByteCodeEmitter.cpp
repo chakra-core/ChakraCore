@@ -1744,9 +1744,13 @@ void ByteCodeGenerator::FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody 
 
     this->SetClosureRegisters(funcInfo, byteCodeFunction);
 
-    if (this->IsInDebugMode())
+    if (this->IsInDebugMode() || byteCodeFunction->IsCoroutine())
     {
         // Give permanent registers to the inner scopes in debug mode.
+        // TODO: We create seperate debuggerscopes for each block which has own scope. These are stored in the var registers
+        // allocated below. Ideally we should change this logic to not allocate separate registers for these and save the debug
+        // info in corresponding symbols and use it from there. This will also affect the temp register allocation logic in
+        // EmitOneFunction.
         uint innerScopeCount = funcInfo->InnerScopeCount();
         byteCodeFunction->SetInnerScopeCount(innerScopeCount);
         if (innerScopeCount)
@@ -1982,17 +1986,6 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
         m_writer.RecordFrameDisplayRegister(funcInfo->frameDisplayRegister);
     }
 
-    // new.target may be used to construct the 'this' register so make sure to load it first
-    if (funcInfo->newTargetRegister != Js::Constants::NoRegister)
-    {
-        this->LoadNewTargetObject(funcInfo);
-    }
-
-    if (funcInfo->thisPointerRegister != Js::Constants::NoRegister)
-    {
-        this->LoadThisObject(funcInfo, thisLoadedFromParams);
-    }
-
     this->RecordAllIntConstants(funcInfo);
     this->RecordAllStrConstants(funcInfo);
     this->RecordAllStringTemplateCallsiteConstants(funcInfo);
@@ -2001,6 +1994,11 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
     {
         byteCodeFunction->RecordFloatConstant(byteCodeFunction->MapRegSlot(location), d);
     });
+
+    // WARNING !!!
+    // DO NOT emit any bytecode before loading the heap arguments. This is because those opcodes may bail 
+    // out (unlikely, since opcodes emitted in this function should not correspond to user code, but possible)
+    // and the Jit assumes that there cannot be any bailouts before LdHeapArguments (or its equivalent)
 
     if (funcInfo->GetHasArguments())
     {
@@ -2024,6 +2022,25 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
             GetFormalArgsArray(this, funcInfo, propIds);
             byteCodeFunction->SetPropertyIdsOfFormals(propIds);
         }
+    }
+
+    // Class constructors do not have a [[call]] slot but we don't implement a generic way to express this.
+    // What we do is emit a check for the new flag here. If we don't have CallFlags_New set, the opcode will throw.
+    // We need to do this before emitting 'this' since the base class constructor will try to construct a new object.
+    if (funcInfo->IsClassConstructor())
+    {
+        m_writer.Empty(Js::OpCode::ChkNewCallFlag);
+    }
+
+    // new.target may be used to construct the 'this' register so make sure to load it first
+    if (funcInfo->newTargetRegister != Js::Constants::NoRegister)
+    {
+        this->LoadNewTargetObject(funcInfo);
+    }
+
+    if (funcInfo->thisPointerRegister != Js::Constants::NoRegister)
+    {
+        this->LoadThisObject(funcInfo, thisLoadedFromParams);
     }
 
     //
@@ -3181,8 +3198,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         // Reserve temp registers for the inner scopes. We prefer temps because the JIT will then renumber them
         // and see different lifetimes. (Note that debug mode requires permanent registers. See FinalizeRegisters.)
+        // Need to revisit the condition when enabling JitES6Generators.
         uint innerScopeCount = funcInfo->InnerScopeCount();
-        if (!this->IsInDebugMode())
+        if (!this->IsInDebugMode() && !byteCodeFunction->IsCoroutine())
         {
             byteCodeFunction->SetInnerScopeCount(innerScopeCount);
             if (innerScopeCount)
@@ -3218,14 +3236,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         this->PushFuncInfo(_u("EmitOneFunction"), funcInfo);
 
         this->inPrologue = true;
-
-        // Class constructors do not have a [[call]] slot but we don't implement a generic way to express this.
-        // What we do is emit a check for the new flag here. If we don't have CallFlags_New set, the opcode will throw.
-        // We need to do this before emitting 'this' since the base class constructor will try to construct a new object.
-        if (funcInfo->IsClassConstructor())
-        {
-            m_writer.Empty(Js::OpCode::ChkNewCallFlag);
-        }
 
         Scope* paramScope = funcInfo->GetParamScope();
         Scope* bodyScope = funcInfo->GetBodyScope();
@@ -3346,8 +3356,10 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         DefineLabels(funcInfo);
 
-        if (pnode->sxFnc.HasNonSimpleParameterList())
+        if (pnode->sxFnc.HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
         {
+            Assert(pnode->sxFnc.HasNonSimpleParameterList() || CONFIG_FLAG(ForceSplitScope));
+
             this->InitBlockScopedNonTemps(funcInfo->root->sxFnc.pnodeScopes, funcInfo);
 
             EmitDefaultArgs(funcInfo, pnode);
@@ -3390,8 +3402,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         DefineUserVars(funcInfo);
 
-        if (pnode->sxFnc.HasNonSimpleParameterList())
+        if (pnode->sxFnc.HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
         {
+            Assert(pnode->sxFnc.HasNonSimpleParameterList() || CONFIG_FLAG(ForceSplitScope));
             this->InitBlockScopedNonTemps(funcInfo->root->sxFnc.pnodeBodyScope, funcInfo);
         }
         else
@@ -5095,17 +5108,17 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
     if (sym == nullptr || sym->GetIsGlobal())
     {
         Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
+        bool isConsoleScopeLetConst = this->IsConsoleScopeEval() && (isLetDecl || isConstDecl);
         if (this->flags & fscrEval)
         {
             if (funcInfo->byteCodeFunction->GetIsStrictMode() && funcInfo->IsGlobalFunction())
             {
                 uint cacheId = funcInfo->FindOrAddInlineCacheId(funcInfo->frameDisplayRegister, propertyId, false, true);
-                this->m_writer.ElementP(GetScopedStFldOpCode(funcInfo), rhsLocation, cacheId);
+                this->m_writer.ElementP(GetScopedStFldOpCode(funcInfo, isConsoleScopeLetConst), rhsLocation, cacheId);
             }
             else
             {
                 uint cacheId = funcInfo->FindOrAddInlineCacheId(funcInfo->GetEnvRegister(), propertyId, false, true);
-                bool isConsoleScopeLetConst = this->IsConsoleScopeEval() && (isLetDecl || isConstDecl);
                 // In "eval", store to a symbol with unknown scope goes through the closure environment.
                 this->m_writer.ElementP(GetScopedStFldOpCode(funcInfo, isConsoleScopeLetConst), rhsLocation, cacheId);
             }
@@ -5115,7 +5128,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
             uint cacheId = funcInfo->FindOrAddInlineCacheId(funcInfo->GetEnvRegister(), propertyId, false, true);
 
             // In "eval", store to a symbol with unknown scope goes through the closure environment.
-            this->m_writer.ElementP(GetScopedStFldOpCode(funcInfo), rhsLocation, cacheId);
+            this->m_writer.ElementP(GetScopedStFldOpCode(funcInfo, isConsoleScopeLetConst), rhsLocation, cacheId);
         }
         else
         {

@@ -283,6 +283,13 @@
 </test>
 <test>
   <default>
+    <files>binary.js</files>
+    <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
+    <tags>exclude_xplat</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>limits.js</files>
     <compile-flags>-wasm -args --no-verbose --end 4 -endargs</compile-flags>
     <timeout>300</timeout>

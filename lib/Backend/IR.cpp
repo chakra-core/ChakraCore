@@ -1138,7 +1138,7 @@ Instr::UnlinkBailOutInfo()
 bool
 Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
 {
-    BailOutInfo *oldBailOutInfo;
+    BailOutInfo *oldBailOutInfo = nullptr;
     bool deleteOld = false;
 
 #if DBG
@@ -1994,8 +1994,10 @@ Instr::New(Js::OpCode opcode, Opnd *dstOpnd, Func *func)
     Instr * instr;
 
     instr = Instr::New(opcode, func);
-    instr->SetDst(dstOpnd);
-
+    if (dstOpnd)
+    {
+        instr->SetDst(dstOpnd);
+    }
     return instr;
 }
 
@@ -3625,7 +3627,7 @@ bool Instr::UsesAllFields()
 BranchInstr *
 Instr::ChangeCmCCToBranchInstr(LabelInstr *targetInstr)
 {
-    Js::OpCode newOpcode;
+    Js::OpCode newOpcode = Js::OpCode::InvalidOpCode;
     switch (this->m_opcode)
     {
     case Js::OpCode::CmEq_A:

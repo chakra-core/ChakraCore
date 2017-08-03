@@ -823,7 +823,7 @@ namespace Js
 
     PropertyId ScriptContext::GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName)
     {
-        Js::PropertyRecord const * propertyRecord;
+        Js::PropertyRecord const * propertyRecord = nullptr;
         threadContext->GetOrAddPropertyId(propName, &propertyRecord);
 
         this->TrackPid(propertyRecord);
@@ -838,7 +838,7 @@ namespace Js
 
     PropertyId ScriptContext::GetOrAddPropertyIdTracked(__in_ecount(propertyNameLength) LPCWSTR propertyName, __in int propertyNameLength)
     {
-        Js::PropertyRecord const * propertyRecord;
+        Js::PropertyRecord const * propertyRecord = nullptr;
         threadContext->GetOrAddPropertyId(propertyName, propertyNameLength, &propertyRecord);
         if (propertyNameLength == 2)
         {
@@ -1623,7 +1623,7 @@ namespace Js
     {
         PropertyStringCacheMap* propertyStringMap = this->GetLibrary()->EnsurePropertyStringMap();
 
-        RecyclerWeakReference<PropertyString>* stringReference;
+        RecyclerWeakReference<PropertyString>* stringReference = nullptr;
         if (propertyStringMap->TryGetValue(propertyId, &stringReference))
         {
             PropertyString *string = stringReference->Get();
@@ -1660,7 +1660,7 @@ namespace Js
         if (propertyStringMap != nullptr)
         {
             PropertyString *string = nullptr;
-            RecyclerWeakReference<PropertyString>* stringReference;
+            RecyclerWeakReference<PropertyString>* stringReference = nullptr;
             if (propertyStringMap->TryGetValue(propertyId, &stringReference))
             {
                 string = stringReference->Get();
@@ -2418,7 +2418,7 @@ namespace Js
 
     SourceContextInfo* ScriptContext::GetSourceContextInfo(uint hash)
     {
-        SourceContextInfo * sourceContextInfo;
+        SourceContextInfo * sourceContextInfo = nullptr;
         if (this->Cache()->dynamicSourceContextInfoMap && this->Cache()->dynamicSourceContextInfoMap->TryGetValue(hash, &sourceContextInfo))
         {
             return sourceContextInfo;
@@ -2518,7 +2518,7 @@ namespace Js
 
         // We only init sourceContextInfoMap, don't need to lock.
         EnsureSourceContextInfoMap();
-        SourceContextInfo * sourceContextInfo;
+        SourceContextInfo * sourceContextInfo = nullptr;
         if (this->Cache()->sourceContextInfoMap->TryGetValue(sourceContext, &sourceContextInfo))
         {
 #if ENABLE_PROFILE_INFO
@@ -3999,7 +3999,6 @@ namespace Js
             }
         }
 
-
         __TRY_FINALLY_BEGIN // SEH is not guaranteed, see the implementation
         {
             Assert(!function->IsScriptFunction() || function->GetFunctionProxy());
@@ -4016,7 +4015,7 @@ namespace Js
             OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("DebugProfileProbeThunk: calling function: %s isWrapperRegistered=%d useDebugWrapper=%d\n"),
                 function->GetFunctionInfo()->HasBody() ? function->GetFunctionBody()->GetDisplayName() : _u("built-in/library"), AutoRegisterIgnoreExceptionWrapper::IsRegistered(scriptContext->GetThreadContext()), useDebugWrapper);
 
-            if (scriptContext->IsScriptContextInDebugMode())
+            if (scriptContext->IsDebuggerRecording())
             {
                 scriptContext->GetDebugContext()->GetProbeContainer()->StartRecordingCall();
             }
@@ -4089,7 +4088,7 @@ namespace Js
             }
 #endif
 
-            if (scriptContext->IsScriptContextInDebugMode())
+            if (scriptContext->IsDebuggerRecording())
             {
                 scriptContext->GetDebugContext()->GetProbeContainer()->EndRecordingCall(aReturn, function);
             }
@@ -5817,6 +5816,23 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             return this->GetDebugContext()->IsDebugContextInSourceRundownOrDebugMode();
         }
         return false;
+    }
+
+    bool ScriptContext::IsDebuggerRecording() const
+    {
+        if (this->debugContext != nullptr)
+        {
+            return this->GetDebugContext()->IsDebuggerRecording();
+        }
+        return false;
+    }
+
+    void ScriptContext::SetIsDebuggerRecording(bool isDebuggerRecording)
+    {
+        if (this->debugContext != nullptr)
+        {
+            this->GetDebugContext()->SetIsDebuggerRecording(isDebuggerRecording);
+        }
     }
 
     bool ScriptContext::IsIntlEnabled()

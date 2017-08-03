@@ -51,10 +51,14 @@ namespace Js
         void SetHostDebugContext(HostDebugContext * hostDebugContext);
 
         void SetDebuggerMode(DebuggerMode mode);
+
         bool IsDebugContextInNonDebugMode() const { return this->debuggerMode == DebuggerMode::NotDebugging; }
         bool IsDebugContextInDebugMode() const { return this->debuggerMode == DebuggerMode::Debugging; }
         bool IsDebugContextInSourceRundownMode() const { return this->debuggerMode == DebuggerMode::SourceRundown; }
         bool IsDebugContextInSourceRundownOrDebugMode() const { return IsDebugContextInSourceRundownMode() || IsDebugContextInDebugMode(); }
+
+        bool IsDebuggerRecording() const { return this->isDebuggerRecording; }
+        void SetIsDebuggerRecording(bool isDebuggerRecording) { this->isDebuggerRecording = isDebuggerRecording; }
 
         ProbeContainer* GetProbeContainer() const { return this->diagProbesContainer; }
 
@@ -65,8 +69,9 @@ namespace Js
     private:
         ScriptContext * scriptContext;
         HostDebugContext* hostDebugContext;
-        DebuggerMode debuggerMode;
         ProbeContainer* diagProbesContainer;
+        DebuggerMode debuggerMode;
+        bool isDebuggerRecording;
         bool isReparsingSource;
 
         // Private Functions

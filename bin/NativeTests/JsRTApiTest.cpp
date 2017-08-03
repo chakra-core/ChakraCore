@@ -683,6 +683,18 @@ namespace JsRTApiTest
             CHECK(wcscmp(expectedName, actualName) == 0);
         };
 
+        auto testToStringResult = [=](JsValueRef function, PCWCHAR expectedResult, size_t expectedResultLength)
+        {
+            JsValueRef actualResult = JS_INVALID_REFERENCE;
+            REQUIRE(JsConvertValueToString(function, &actualResult) == JsNoError);
+
+            PCWCHAR actualResultString = nullptr;
+            size_t actualResultLength;
+            REQUIRE(JsStringToPointer(actualResult, &actualResultString, &actualResultLength) == JsNoError);
+            CHECK(expectedResultLength == actualResultLength);
+            CHECK(wcscmp(expectedResult, actualResultString) == 0);
+        };
+
         JsValueRef function = JS_INVALID_REFERENCE;
         REQUIRE(JsCreateFunction(ExternalFunctionCallback, nullptr, &function) == JsNoError);
         testConstructorName(function, _u(""), 0);
@@ -692,6 +704,11 @@ namespace JsRTApiTest
         REQUIRE(JsPointerToString(name, _countof(name) - 1, &nameString) == JsNoError);
         REQUIRE(JsCreateNamedFunction(nameString, ExternalFunctionCallback, nullptr, &function) == JsNoError);
         testConstructorName(function, name, _countof(name) - 1);
+
+        WCHAR toStringExpectedResult[] = _u("function FooName() { [native code] }");
+        testToStringResult(function, toStringExpectedResult, _countof(toStringExpectedResult) - 1);
+        // Calling toString multiple times should return the same result.
+        testToStringResult(function, toStringExpectedResult, _countof(toStringExpectedResult) - 1);
     }
 
     TEST_CASE("ApiTest_ExternalFunctionNameTest", "[ApiTest]")
@@ -2156,7 +2173,7 @@ namespace JsRTApiTest
         size_t written = 0;
         char buf[10] = {0};
         JsValueRef value;
-        REQUIRE(JsCreateStringUtf16(reinterpret_cast<uint16_t*>(_u("0\x10\x80\xa9\uabcd\U000104377")), 8, &value) == JsNoError);
+        REQUIRE(JsCreateStringUtf16(reinterpret_cast<const uint16_t*>(_u("0\x10\x80\xa9\uabcd\U000104377")), 8, &value) == JsNoError);
         REQUIRE(JsCopyStringOneByte(value, 0, -1, nullptr, &written) == JsNoError);
         CHECK(written == 8);
         buf[written] = '\xff';

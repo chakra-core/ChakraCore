@@ -509,6 +509,7 @@ namespace TTD
         void SetIndexAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         void GetTypedArrayInfoAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void GetDataViewInfoAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         //////////////////
 

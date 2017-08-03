@@ -1915,11 +1915,7 @@ Js::OpCode ByteCodeGenerator::GetStFldOpCode(FuncInfo* funcInfo, bool isRoot, bo
 /* static */
 Js::OpCode ByteCodeGenerator::GetScopedStFldOpCode(FuncInfo* funcInfo, bool isConsoleScopeLetConst)
 {
-    if (isConsoleScopeLetConst)
-    {
-        return Js::OpCode::ConsoleScopedStFld;
-    }
-    return GetScopedStFldOpCode(funcInfo->GetIsStrictMode());
+    return GetScopedStFldOpCode(funcInfo->GetIsStrictMode(), isConsoleScopeLetConst);
 }
 
 /* static */

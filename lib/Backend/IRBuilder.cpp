@@ -1010,7 +1010,7 @@ IRBuilder::InsertLabels()
 
     while (iter.Next())
     {
-        IR::LabelInstr * labelInstr;
+        IR::LabelInstr * labelInstr = nullptr;
         BranchReloc * reloc = iter.Data();
         IR::BranchInstr * branchInstr = reloc->GetBranchInstr();
         uint offset = reloc->GetOffset();
@@ -4316,6 +4316,7 @@ stCommon:
     case Js::OpCode::ScopedStFld:
     case Js::OpCode::ConsoleScopedStFld:
     case Js::OpCode::ScopedStFldStrict:
+    case Js::OpCode::ConsoleScopedStFldStrict:
     {
         Assert(!isProfiled);
 

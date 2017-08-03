@@ -2846,7 +2846,7 @@ namespace Js
                 return seg->elements[offset];
             }
         }
-        Var element;
+        Var element = nullptr;
         if (DirectGetItemAtFull(index, &element))
         {
             return element;
@@ -2868,7 +2868,7 @@ namespace Js
                 return JavascriptNumber::ToVar(seg->elements[offset], GetScriptContext());
             }
         }
-        Var element;
+        Var element = nullptr;
         if (DirectGetItemAtFull(index, &element))
         {
             return element;
@@ -2897,7 +2897,7 @@ namespace Js
                 return JavascriptNumber::ToVarWithCheck(seg->elements[offset], GetScriptContext());
             }
         }
-        Var element;
+        Var element = nullptr;
         if (DirectGetItemAtFull(index, &element))
         {
             return element;
@@ -3765,7 +3765,7 @@ namespace Js
 
         JS_REENTRANT(jsReentLock, TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.indexOf"), &pArr, &obj, &length));
 
-        Var search;
+        Var search = nullptr;
         uint32 fromIndex = 0;
         uint64 fromIndex64 = 0;
 
@@ -4459,7 +4459,7 @@ CaseDefault:
                         static_cast<charcount_t>(arrLength + (hasSeparator ? arrLength - 1 : 0)));
                 CompoundString *const cs =
                     CompoundString::NewWithPointerCapacity(estimatedAppendCount, scriptContext->GetLibrary());
-                Var item;
+                Var item = nullptr;
                 BOOL gotItem;
                 JS_REENTRANT(jsReentLock, gotItem = TemplatedGetItem(arr, 0u, &item, scriptContext));
                 if (gotItem)
@@ -4493,7 +4493,7 @@ CaseDefault:
                 }
 
                 JavascriptString *res = nullptr;
-                Var item;
+                Var item = nullptr;
 
                 JS_REENTRANT(jsReentLock, gotItem = TemplatedGetItem(arr, 0u, &item, scriptContext));
                 if (gotItem)
@@ -4517,7 +4517,7 @@ CaseDefault:
 
             case 1:
             {
-                Var item;
+                Var item = nullptr;
                 BOOL gotItem;
                 JS_REENTRANT(jsReentLock, gotItem = TemplatedGetItem(arr, 0u, &item, scriptContext));
                 if (gotItem)
@@ -4556,7 +4556,7 @@ CaseDefault:
                         static_cast<charcount_t>(cSrcLength + (hasSeparator ? cSrcLength - 1 : 0)));
                 CompoundString *const cs =
                     CompoundString::NewWithPointerCapacity(estimatedAppendCount, scriptContext->GetLibrary());
-                Var value;
+                Var value = nullptr;
                 JS_REENTRANT(jsReentLock, gotItem = JavascriptOperators::GetItem(object, 0u, &value, scriptContext));
                 if (gotItem)
                 {
@@ -4587,7 +4587,7 @@ CaseDefault:
                 }
 
                 JavascriptString *res = nullptr;
-                Var value;
+                Var value = nullptr;
                 JS_REENTRANT(jsReentLock, gotItem = JavascriptOperators::GetItem(object, 0u, &value, scriptContext));
                 if (gotItem)
                 {
@@ -4608,7 +4608,7 @@ CaseDefault:
 
             case 1:
             {
-                Var value;
+                Var value = nullptr;
                 JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(object, 0u, &value, scriptContext));
                 if (gotItem)
                 {
@@ -4641,7 +4641,7 @@ Case0:
 
         JS_REENTRANT(jsReentLock, TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.lastIndexOf"), &pArr, &obj, &length));
 
-        Var search;
+        Var search = nullptr;
         int64 fromIndex;
         JS_REENTRANT(jsReentLock,
             BOOL gotParam = GetParamForLastIndexOf(length, args, search, fromIndex, scriptContext));
@@ -4873,7 +4873,7 @@ Case0:
         }
 
         uint32 index = length - 1;
-        Var element;
+        Var element = nullptr;
         JS_REENTRANT(jsReentLock, BOOL gotItem = arr->DirectGetItemAtFull(index, &element));
 
         if (!gotItem)
@@ -4912,7 +4912,7 @@ Case0:
         }
         BigIndex index = length;
         --index;
-        Var element;
+        Var element = nullptr;
         if (index.IsSmallIndex())
         {
             JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(dynamicObject, index.GetSmallIndex(), &element, scriptContext));
@@ -5978,7 +5978,7 @@ Case0:
                 // need recheck array type before checking array item [i + start]
                 if (pArr->IsMissingItem(i + start))
                 {
-                    Var element;
+                    Var element = nullptr;
                     pnewArr->SetHasNoMissingValues(false);
                     JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull(i + start, &element));
                     if (gotItem)
@@ -6251,7 +6251,7 @@ Case0:
                 else
                 {
                     AssertMsg(CONFIG_FLAG(ForceES5Array), "newArr can only be ES5Array when it is forced");
-                    Var element;
+                    Var element = nullptr;
                     for (uint32 i = 0; i < newLen; i++)
                     {
                         JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull(i + start, &element));
@@ -6275,7 +6275,7 @@ Case0:
             else
             {
                 // The constructed object isn't an array, we'll need to use normal object manipulation
-                Var element;
+                Var element = nullptr;
 
                 for (uint32 i = 0; i < newLen; i++)
                 {
@@ -6815,7 +6815,7 @@ Case0:
 
                 for (uint32 i = 0; i < len; i++)
                 {
-                    Var item;
+                    Var item = nullptr;
                     JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(pObj, i, &item, scriptContext));
                     if (gotItem)
                     {
@@ -6901,7 +6901,8 @@ Case0:
         Var* insertArgs = args.Info.Count > 3 ? &args.Values[3] : nullptr;
         uint32 insertLen = args.Info.Count > 3 ? args.Info.Count - 3 : 0;
 
-        if (pArr != nullptr)
+        // Force check the prototype as we may insert values more than current elements
+        if (pArr != nullptr && !HasAnyES5ArrayInPrototypeChain(pArr, true /*forceCheckProtoChain*/))
         {
             // Since we get the length from an array and that cannot be more than uint32.
             _Analysis_assume_(length <= UINT_MAX);
@@ -8102,7 +8103,7 @@ Case0:
             scriptContext->PushObject(arr);
             pushedObject = true;
 
-            Var element;
+            Var element = nullptr;
             JS_REENTRANT(jsReentLock, BOOL gotItem = ItemTrace<T>::GetItem(arr, 0, &element, scriptContext));
             if (gotItem)
             {
@@ -11345,7 +11346,7 @@ Case0:
 
                 for (uint32 j = start; j < end; j++)
                 {
-                    Var element;
+                    Var element = nullptr;
                     JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(srcArray, propertyObject, j, &element, scriptContext));
                     if (!gotItem)
                     {
@@ -12143,6 +12144,10 @@ Case0:
 
     JavascriptEnumerator * JavascriptArray::GetIndexEnumerator(EnumeratorFlags flags, ScriptContext* requestContext)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
+
         if (!!(flags & EnumeratorFlags::SnapShotSemantics))
         {
             return RecyclerNew(GetRecycler(), JavascriptArrayIndexSnapshotEnumerator, this, flags, requestContext);
@@ -12152,6 +12157,9 @@ Case0:
 
     BOOL JavascriptArray::GetNonIndexEnumerator(JavascriptStaticEnumerator * enumerator, ScriptContext* requestContext)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         return enumerator->Initialize(nullptr, nullptr, this, EnumeratorFlags::SnapShotSemantics, requestContext, nullptr);
     }
 
@@ -12263,7 +12271,7 @@ Case0:
 
     PropertyQueryFlags JavascriptArray::HasItemQuery(uint32 index)
     {
-        Var value;
+        Var value = nullptr;
         return JavascriptConversion::BooleanToPropertyQueryFlags(this->DirectGetItemAt<Var>(index, &value));
     }
 
@@ -12559,6 +12567,9 @@ Case0:
 
     BOOL JavascriptArray::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         return enumerator->Initialize(nullptr, this, this, flags, requestContext, forInCache);
     }
 

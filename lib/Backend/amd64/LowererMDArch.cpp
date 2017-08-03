@@ -752,7 +752,7 @@ LowererMDArch::LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper
     GeneratePreCall(callInstr, functionObjOpnd, insertBeforeInstrForCFGCheck);
 
     // We need to get the calculated CallInfo in SimpleJit because that doesn't include any changes for stack alignment
-    IR::IntConstOpnd *callInfo;
+    IR::IntConstOpnd *callInfo = nullptr;
     int32 argCount = LowerCallArgs(callInstr, callFlags, 1, &callInfo);
 
 
@@ -1065,7 +1065,7 @@ LowererMDArch::GetArgSlotOpnd(uint16 index, StackSym * argSym, bool isHelper /*=
 IR::Instr *
 LowererMDArch::LowerAsmJsCallE(IR::Instr *callInstr)
 {
-    IR::IntConstOpnd *callInfo;
+    IR::IntConstOpnd *callInfo = nullptr;
     int32 argCount = this->LowerCallArgs(callInstr, Js::CallFlags_Value, 1, &callInfo);
 
     IR::Instr* ret = this->LowerCall(callInstr, argCount);

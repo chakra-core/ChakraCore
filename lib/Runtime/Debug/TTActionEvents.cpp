@@ -5,6 +5,8 @@
 #include "RuntimeDebugPch.h"
 
 #include "Library/JavascriptExceptionMetadata.h"
+#include "Common/ByteSwap.h"
+#include "Library/DataView.h"
 
 #if ENABLE_TTD
 
@@ -717,6 +719,20 @@ namespace TTD
             //Failure will kick all the way out to replay loop -- which is what we want
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE(ExceptionType_OutOfMemory);
             JsRTActionHandleResultForReplay<JsRTSingleVarArgumentAction, EventKind::GetTypedArrayInfoActionTag>(executeContext, evt, res);
+        }
+
+        void GetDataViewInfoAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
+        {
+            const JsRTSingleVarArgumentAction* action = GetInlineEventDataAs<JsRTSingleVarArgumentAction, EventKind::GetDataViewInfoActionTag>(evt);
+            Js::Var var = InflateVarInReplay(executeContext, GetVarItem_0(action));
+
+            Js::DataView* dataView = Js::DataView::FromVar(var);
+            Js::Var res = dataView->GetArrayBuffer();
+
+            //Need additional notify since JsRTActionHandleResultForReplay may allocate but GetDataViewInfo does not enter runtime
+            //Failure will kick all the way out to replay loop -- which is what we want
+            AUTO_NESTED_HANDLED_EXCEPTION_TYPE(ExceptionType_OutOfMemory);
+            JsRTActionHandleResultForReplay<JsRTSingleVarArgumentAction, EventKind::GetDataViewInfoActionTag>(executeContext, evt, res);
         }
 
         //////////////////

@@ -89,7 +89,6 @@ namespace Js
     __declspec(align(16)) double const NumberConstants::UIntConvertConst[2] = { 0, 4294967296.000000 };
     __declspec(align(16)) float const NumberConstants::MaskNegFloat[] = { -0.0f, -0.0f, -0.0f, -0.0f };
     __declspec(align(16)) double const NumberConstants::MaskNegDouble[] = { -0.0, -0.0 };
-    __declspec(align(16)) uint64 const NumberConstants::UInt64ConvertConst[2] = { 0, 0x43f0000000000000 };
 
 
     bool NumberUtilities::IsDigit(int ch)

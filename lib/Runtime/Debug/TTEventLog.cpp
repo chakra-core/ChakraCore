@@ -562,6 +562,7 @@ namespace TTD
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(SetIndexActionTag, ContextAPIWrapper, JsRTTrippleVarArgumentAction, SetIndexAction_Execute);
 
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(GetTypedArrayInfoActionTag, None, JsRTSingleVarArgumentAction, GetTypedArrayInfoAction_Execute);
+        TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(GetDataViewInfoActionTag, None, JsRTSingleVarArgumentAction, GetDataViewInfoAction_Execute);
 
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY(RawBufferCopySync, ContextAPIWrapper, JsRTRawBufferCopyAction, NSLogEvents::RawBufferCopySync_Execute, nullptr, NSLogEvents::JsRTRawBufferCopyAction_Emit, NSLogEvents::JsRTRawBufferCopyAction_Parse);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY(RawBufferModifySync, ContextAPIWrapper, JsRTRawBufferModifyAction, NSLogEvents::RawBufferModifySync_Execute, NSLogEvents::JsRTRawBufferModifyAction_UnloadEventMemory<NSLogEvents::EventKind::RawBufferModifySync>, NSLogEvents::JsRTRawBufferModifyAction_Emit<NSLogEvents::EventKind::RawBufferModifySync>, NSLogEvents::JsRTRawBufferModifyAction_Parse<NSLogEvents::EventKind::RawBufferModifySync>);
@@ -1494,6 +1495,8 @@ namespace TTD
             dbgScopeCount += iter.Current()->TopLevelBase.ScopeChainInfo.ScopeCount;
         }
 
+        uint32 topFunctionCount = topLevelLoadScriptMap.Count() + topLevelNewScriptMap.Count() + topLevelEvalScriptMap.Count();
+
         ThreadContextTTD* threadCtx = this->m_threadContext->TTDContext;
         const UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& snpCtxs = snap->GetContextList();
 
@@ -1508,7 +1511,7 @@ namespace TTD
 
         if(reuseInflateMap)
         {
-            this->m_lastInflateMap->PrepForReInflate(snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), dbgScopeCount, snap->EnvCount(), snap->SlotArrayCount());
+            this->m_lastInflateMap->PrepForReInflate(snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount() + topFunctionCount, dbgScopeCount, snap->EnvCount(), snap->SlotArrayCount());
 
             //collect anything that is dead
             threadCtx->ClearRootsForSnapRestore();
@@ -1545,7 +1548,7 @@ namespace TTD
             }
 
             this->m_lastInflateMap = TT_HEAP_NEW(InflateMap);
-            this->m_lastInflateMap->PrepForInitialInflate(this->m_threadContext, snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), dbgScopeCount, snap->EnvCount(), snap->SlotArrayCount());
+            this->m_lastInflateMap->PrepForInitialInflate(this->m_threadContext, snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount() + topFunctionCount, dbgScopeCount, snap->EnvCount(), snap->SlotArrayCount());
             this->m_lastInflateSnapshotTime = etime;
 
             //collect anything that is dead
@@ -2339,7 +2342,16 @@ namespace TTD
         NSLogEvents::JsRTSingleVarArgumentAction* giAction = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::JsRTSingleVarArgumentAction, NSLogEvents::EventKind::GetTypedArrayInfoActionTag>();
         NSLogEvents::SetVarItem_0(giAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var));
 
-        //entry/exit status should be set to clead by initialization so don't need to do anything
+        // entry/exit status should be set to clear by initialization so don't need to do anything
+        giAction->Result = TTD_CONVERT_JSVAR_TO_TTDVAR(result);
+    }
+
+    void EventLog::RecordJsRTGetDataViewInfo(Js::Var var, Js::Var result)
+    {
+        NSLogEvents::JsRTSingleVarArgumentAction* giAction = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::JsRTSingleVarArgumentAction, NSLogEvents::EventKind::GetDataViewInfoActionTag>();
+        NSLogEvents::SetVarItem_0(giAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var));
+
+        // entry/exit status should be set to clear by initialization so don't need to do anything
         giAction->Result = TTD_CONVERT_JSVAR_TO_TTDVAR(result);
     }
 
