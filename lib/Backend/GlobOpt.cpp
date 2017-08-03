@@ -16197,7 +16197,7 @@ GlobOpt::OptIsInvariant(
         }
         break;
     case Js::OpCode::CheckObjType:
-        // Bug 11712101: If the operand is a field, ensure that its containing object type is invariant 
+        // Bug 11712101: If the operand is a field, ensure that its containing object type is invariant
         // before hoisting -- that is, don't hoist a CheckObjType over a DeleteFld on that object.
         // (CheckObjType only checks the operand and its immediate parent, so we don't need to go
         // any farther up the object graph.)
