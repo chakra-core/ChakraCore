@@ -1,0 +1,125 @@
+[
+  {
+    "breakpoints": []
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "mem": "WebAssembly.Memory {...}",
+      "table": "WebAssembly.Table {...}",
+      "module": "WebAssembly.Module {...}",
+      "instance": "WebAssembly.Instance {...}",
+      "foo": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 50,
+        "column": 2,
+        "sourceText": "debugger",
+        "function": "makeInstance"
+      },
+      {
+        "line": 53,
+        "column": 0,
+        "sourceText": "const {exports: {a, b, c}} = makeInstance(val => {\r\n  print(val);\r\n  // causes exception\r\n  return val.b.c;\r\n})",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "breakpoints": []
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}"
+  },
+  {
+    "callStack": [
+      {
+        "line": 72,
+        "column": 2,
+        "sourceText": "debugger",
+        "function": "runA"
+      }
+    ]
+  },
+  {
+    "breakpoints": []
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "mem": "WebAssembly.Memory {...}",
+      "table": "WebAssembly.Table {...}",
+      "module": "WebAssembly.Module {...}",
+      "instance": "WebAssembly.Instance {...}",
+      "foo": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 50,
+        "column": 2,
+        "sourceText": "debugger",
+        "function": "makeInstance"
+      },
+      {
+        "line": 118,
+        "column": 4,
+        "sourceText": "const {exports: {c: newC}} = makeInstance(val => {\r\n      debugger;\r\n      testValue = val;\r\n    })",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "breakpoints": []
+  },
+  {
+    "arguments": "Object {...}",
+    "locals": {
+      "newC": "function <large string>",
+      "testValue": "number 0"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 122,
+        "column": 4,
+        "sourceText": "debugger",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "breakpoints": []
+  },
+  {
+    "arguments": "Object {...}",
+    "locals": {
+      "val": "number 15"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "callStack": [
+      {
+        "line": 119,
+        "column": 6,
+        "sourceText": "debugger",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 123,
+        "column": 4,
+        "sourceText": "newC(15)",
+        "function": "Anonymous function"
+      }
+    ]
+  }
+]

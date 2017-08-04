@@ -1370,4 +1370,25 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>wasm_basic.js</files>
+      <compile-flags>-wasm -dbgbaseline:wasm_basic.js.dbg.baseline</compile-flags>
+      <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>wasm_basic.js</files>
+      <compile-flags>-wasm -maic:1 -dbgbaseline:wasm_basic.js.dbg.baseline</compile-flags>
+      <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>wasm_basic.js</files>
+      <compile-flags>-wasm -debuglaunch -args debuglaunch -endargs -dbgbaseline:wasm_basic_launch.js.dbg.baseline</compile-flags>
+      <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_xplat</tags>
+    </default>
+  </test>
 </regress-exe>
