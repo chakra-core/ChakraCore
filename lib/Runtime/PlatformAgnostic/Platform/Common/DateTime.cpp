@@ -3,39 +3,68 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#ifndef __APPLE__
-// todo: for BSD consider moving this file into macOS folder
-#include "../Linux/DateTime.cpp"
-#else
 #include "Common.h"
 #include "ChakraPlatform.h"
-#include <CoreFoundation/CFDate.h>
-#include <CoreFoundation/CFTimeZone.h>
 
 namespace PlatformAgnostic
 {
 namespace DateTime
 {
+    int GetTZ(double tv, WCHAR* dst_name, bool* is_dst, int* offset)
+    {
+        struct tm tm_local, *tm_result;
+        time_t time_noms = (time_t) (tv / 1000 /* drop ms */);
+        tm_result = localtime_r(&time_noms, &tm_local);
+        if (!tm_result)
+        {
+            *is_dst = false;
+            *offset = 0;
+            if (dst_name != nullptr)
+            {
+                dst_name[0] = (WCHAR) 0;
+            }
+            return 0;
+        }
+
+        *is_dst = tm_result->tm_isdst > 0;
+        *offset = (int) tm_result->tm_gmtoff;
+
+        if (dst_name != nullptr)
+        {
+            if (!tm_result->tm_zone)
+            {
+                dst_name[0] = 0;
+                return 0;
+            }
+
+            uint32 length = 0;
+            for (; length < __CC_PA_TIMEZONE_ABVR_NAME_LENGTH
+                && tm_result->tm_zone[length] != 0; length++)
+            {
+                dst_name[length] = (WCHAR) tm_result->tm_zone[length];
+            }
+
+            if (length >= __CC_PA_TIMEZONE_ABVR_NAME_LENGTH)
+            {
+                length = __CC_PA_TIMEZONE_ABVR_NAME_LENGTH - 1;
+            }
+
+            dst_name[length] = (WCHAR)0;
+            return length;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
     const WCHAR *Utility::GetStandardName(size_t *nameLength, const DateTime::YMD *ymd)
     {
         AssertMsg(ymd != NULL, "xplat needs DateTime::YMD is defined for this call");
         double tv = Js::DateUtilities::TvFromDate(ymd->year, ymd->mon, ymd->mday, ymd->time);
-        int64_t absoluteTime = tv / 1000;
-        absoluteTime -= kCFAbsoluteTimeIntervalSince1970;
-
-        CFTimeZoneRef timeZone = CFTimeZoneCopySystem();
-
-        int offset = (int)CFTimeZoneGetSecondsFromGMT(timeZone, (CFAbsoluteTime)absoluteTime);
-        absoluteTime -= offset;
-
-        char tz_name[128];
-        CFStringRef abbr = CFTimeZoneCopyAbbreviation(timeZone, absoluteTime);
-        CFRelease(timeZone);
-        CFStringGetCString(abbr, tz_name, sizeof(tz_name), kCFStringEncodingUTF16);
-        wcscpy_s(data.standardName, 32, reinterpret_cast<WCHAR*>(tz_name));
-        data.standardNameLength = CFStringGetLength(abbr);
-        CFRelease(abbr);
-
+        bool isDST;
+        int mOffset;
+        data.standardNameLength = GetTZ(tv, data.standardName, &isDST, &mOffset);
         *nameLength = data.standardNameLength;
         return data.standardName;
     }
@@ -46,22 +75,11 @@ namespace DateTime
         return GetStandardName(nameLength, ymd);
     }
 
-    static time_t IsDST(double tv, int *offset)
-    {
-        CFTimeZoneRef timeZone = CFTimeZoneCopySystem();
-        int64_t absoluteTime = tv / 1000;
-        absoluteTime -= kCFAbsoluteTimeIntervalSince1970;
-        *offset = (int)CFTimeZoneGetSecondsFromGMT(timeZone, (CFAbsoluteTime)absoluteTime);
-
-        time_t result = CFTimeZoneIsDaylightSavingTime(timeZone, (CFAbsoluteTime)absoluteTime);
-        CFRelease(timeZone);
-        return result;
-    }
-
     static void YMDLocalToUtc(double localtv, YMD *utc)
     {
         int mOffset = 0;
-        bool isDST = IsDST(localtv, &mOffset);
+        bool isDST;
+        GetTZ(localtv, nullptr, &isDST, &mOffset);
         localtv -= DateTimeTicks_PerSecond * mOffset;
         Js::DateUtilities::GetYmdFromTv(localtv, utc);
     }
@@ -70,7 +88,8 @@ namespace DateTime
                           int &bias, int &offset, bool &isDaylightSavings)
     {
         int mOffset = 0;
-        bool isDST = IsDST(utctv, &mOffset);
+        bool isDST;
+        GetTZ(utctv, nullptr, &isDST, &mOffset);
         utctv += DateTimeTicks_PerSecond * mOffset;
         Js::DateUtilities::GetYmdFromTv(utctv, local);
         isDaylightSavings = isDST;
@@ -97,4 +116,3 @@ namespace DateTime
     }
 } // namespace DateTime
 } // namespace PlatformAgnostic
-#endif
