@@ -127,14 +127,14 @@ Test 3 passed. Expected Error: TypeError: Object expected
 Test 4 passed. Expected Error: TypeError: Object expected
 Test 5 passed. Expected Error: TypeError: Import module 'test' is invalid
 Test 6 passed. Expected Error: TypeError: Import module 'test' is invalid
-Test 7 passed. Expected Error: LinkError: Invalid import 'test.fn'. Expected a Function
+Test 7 passed. Expected Error: LinkError: Import 'test.fn' is invalid. Expected type Function
 Test 8 passed. Expected Error: LinkError: Cannot link import test.fn.Thunk[0]()->i32 to fn2()->f32 in link table due to a signature mismatch
-Test 9 passed. Expected Error: LinkError: Invalid import 'test.memory'. Expected a WebAssembly.Memory
-Test 10 passed. Expected Error: LinkError: Invalid import 'test.memory'. Expected a WebAssembly.Memory
-Test 11 passed. Expected Error: LinkError: Invalid import 'test.memory'. Expected a WebAssembly.Memory
-Test 12 passed. Expected Error: LinkError: Invalid import 'table.'. Expected a WebAssembly.Table
-Test 13 passed. Expected Error: LinkError: Invalid import 'table.'. Expected a WebAssembly.Table
-Test 14 passed. Expected Error: LinkError: Invalid import 'table.'. Expected a WebAssembly.Table
+Test 9 passed. Expected Error: LinkError: Import 'test.memory' is invalid. Expected type WebAssembly.Memory
+Test 10 passed. Expected Error: LinkError: Import 'test.memory' is invalid. Expected type WebAssembly.Memory
+Test 11 passed. Expected Error: LinkError: Import 'test.memory' is invalid. Expected type WebAssembly.Memory
+Test 12 passed. Expected Error: LinkError: Import 'table.' is invalid. Expected type WebAssembly.Table
+Test 13 passed. Expected Error: LinkError: Import 'table.' is invalid. Expected type WebAssembly.Table
+Test 14 passed. Expected Error: LinkError: Import 'table.' is invalid. Expected type WebAssembly.Table
 Testing instance
 f1: 5
 fn: 1
