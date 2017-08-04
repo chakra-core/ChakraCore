@@ -35,6 +35,12 @@ namespace Wasm
         uint32 maximum;
     };
 
+    struct BinaryLocation
+    {
+        intptr_t offset;
+        intptr_t size;
+    };
+
     static const uint32 binaryVersion = 0x1;
 
     class WasmBinaryReader : public WasmReaderBase
@@ -53,7 +59,7 @@ namespace Wasm
 #if DBG_DUMP
         void PrintOps();
 #endif
-        intptr_t GetCurrentOffset() const { return m_pc - m_start; }
+        BinaryLocation GetCurrentLocation() const { return {m_pc - m_start, m_end - m_start}; }
     private:
         struct ReaderState
         {

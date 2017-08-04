@@ -17,6 +17,10 @@ Var GetImportVariable(Wasm::WasmImport* wi, ScriptContext* ctx, Var ffi)
     uint32 modNameLen = wi->modNameLen;
     ctx->GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
     Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), ctx);
+    if (!JavascriptOperators::IsObject(modProp))
+    {
+        JavascriptError::ThrowTypeErrorVar(ctx, WASMERR_InvalidImportModule, modName);
+    }
 
     const char16* name = wi->importName;
     uint32 nameLen = wi->importNameLen;
@@ -25,7 +29,7 @@ Var GetImportVariable(Wasm::WasmImport* wi, ScriptContext* ctx, Var ffi)
 
     if (!RecyclableObject::Is(modProp))
     {
-        JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+        JavascriptError::ThrowTypeErrorVar(ctx, WASMERR_InvalidImport, modName, name);
     }
     return JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), ctx);
 }
@@ -117,11 +121,6 @@ WebAssemblyInstance *
 WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject)
 {
     if (!JavascriptOperators::IsUndefined(importObject) && !JavascriptOperators::IsObject(importObject))
-    {
-        JavascriptError::ThrowTypeError(module->GetScriptContext(), JSERR_NeedObject);
-    }
-
-    if (module->GetImportCount() > 0 && !JavascriptOperators::IsObject(importObject))
     {
         JavascriptError::ThrowTypeError(module->GetScriptContext(), JSERR_NeedObject);
     }
@@ -312,7 +311,7 @@ void WebAssemblyInstance::LoadImports(
         {
             if (!JavascriptFunction::Is(prop))
             {
-                JavascriptError::ThrowWebAssemblyLinkError(ctx, JSERR_Property_NeedFunction);
+                throw Wasm::WasmCompilationException(_u("Invalid import '%s.%s'. Expected a Function"), import->modName, import->importName);
             }
             Assert(counter < wasmModule->GetImportedFunctionCount());
             Assert(wasmModule->GetFunctionIndexType(counter) == Wasm::FunctionIndexTypes::ImportThunk);
@@ -345,7 +344,7 @@ void WebAssemblyInstance::LoadImports(
             {
                 if (!WebAssemblyMemory::Is(prop))
                 {
-                    JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedMemoryObject);
+                    throw Wasm::WasmCompilationException(_u("Invalid import '%s.%s'. Expected a WebAssembly.Memory"), import->modName, import->importName);
                 }
                 WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(prop);
 
@@ -368,13 +367,17 @@ void WebAssemblyInstance::LoadImports(
             {
                 if (!WebAssemblyTable::Is(prop))
                 {
-                    JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedTableObject);
+                    throw Wasm::WasmCompilationException(_u("Invalid import '%s.%s'. Expected a WebAssembly.Table"), import->modName, import->importName);
                 }
                 WebAssemblyTable * table = WebAssemblyTable::FromVar(prop);
 
-                if (!wasmModule->IsValidTableImport(table))
+                if (table->GetInitialLength() < wasmModule->GetTableInitSize())
                 {
-                    JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedTableObject);
+                    throw Wasm::WasmCompilationException(_u("Imported table initial size (%u) is smaller than declared (%u)"), table->GetInitialLength(), wasmModule->GetTableInitSize());
+                }
+                if (table->GetMaximumLength() > wasmModule->GetTableMaxSize())
+                {
+                    throw Wasm::WasmCompilationException(_u("Imported table maximum size (%u) is larger than declared (%u)"), table->GetMaximumLength(), wasmModule->GetTableMaxSize());
                 }
                 env->SetTable(counter, table);
             }
@@ -385,7 +388,7 @@ void WebAssemblyInstance::LoadImports(
             Wasm::WasmGlobal* global = wasmModule->GetGlobal(counter);
             if (global->IsMutable() || (!JavascriptNumber::Is(prop) && !TaggedInt::Is(prop)))
             {
-                JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_InvalidImport);
+                throw Wasm::WasmCompilationException(_u("Invalid import '%s.%s'. Expected a Number"), import->modName, import->importName);
             }
 
             Assert(global->GetReferenceType() == Wasm::GlobalReferenceTypes::ImportedReference);
