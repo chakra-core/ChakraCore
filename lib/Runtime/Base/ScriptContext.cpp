@@ -199,6 +199,7 @@ namespace Js
 #endif
         , debugContext(nullptr)
         , jitFuncRangeCache(nullptr)
+        , emptyStringPropertyId(Js::PropertyIds::_none)
     {
        // This may allocate memory and cause exception, but it is ok, as we all we have done so far
        // are field init and those dtor will be called if exception occurs
