@@ -1469,7 +1469,10 @@ CHAKRA_API JsSetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId
 
 CHAKRA_API JsHasProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _Out_ bool *hasProperty)
 {
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+    VALIDATE_JSREF(object);
+    if (!Js::JavascriptOperators::IsObject(object)) return JsErrorArgumentNotObject;
+
+    auto internalHasProperty = [&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTHasProperty, (Js::PropertyRecord *)propertyId, object);
 
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
@@ -1480,7 +1483,24 @@ CHAKRA_API JsHasProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId
         *hasProperty = Js::JavascriptOperators::OP_HasProperty(object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext) != 0;
 
         return JsNoError;
-    });
+    };
+
+    Js::RecyclableObject* robject = Js::RecyclableObject::FromVar(object);
+    Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(robject);
+    while (typeId != Js::TypeIds_Null && typeId != Js::TypeIds_Proxy)
+    {
+        robject = robject->GetPrototype();
+        typeId = Js::JavascriptOperators::GetTypeId(robject);
+    }
+
+    if (typeId == Js::TypeIds_Proxy)
+    {
+        return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
+    }
+    else
+    {
+        return ContextAPINoScriptWrapper(internalHasProperty);
+    }
 }
 
 CHAKRA_API JsDeleteProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _In_ bool useStrictRules, _Out_ JsValueRef *result)
