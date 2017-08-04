@@ -3065,6 +3065,7 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
                     Assert(intConstOpnd->IsIntConstOpnd());
 
                     uint nestedFuncIndex = instr->m_func->GetJITFunctionBody()->GetNestedFuncIndexForSlotIdInCachedScope(intConstOpnd->AsIntConstOpnd()->AsUint32());
+                    intConstOpnd->Free(instr->m_func);
 
                     instr->ReplaceSrc1(IR::IntConstOpnd::New(nestedFuncIndex, TyUint32, instr->m_func));
                     instr->SetSrc2(IR::RegOpnd::New(currFunc->GetLocalFrameDisplaySym(), IRType::TyVar, currFunc));

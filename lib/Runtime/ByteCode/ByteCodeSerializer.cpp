@@ -39,12 +39,12 @@ namespace Js
     const int magicEndOfCacheIdToPropIdMap = *(int*)"]cid";
     const int magicStartOfReferencedPropIdMap = *(int*)"rid[";
     const int magicEndOfReferencedPropIdMap = *(int*)"]rid";
-    const int magicStartOfPropertyIdsForScopeSlotArray = *(int*)"scope[";
-    const int magicEndOfPropertyIdsForScopeSlotArray = *(int*)"]scope";
-    const int magicStartOfDebuggerScopes = *(int*)"dbgscope[";
-    const int magicEndOfDebuggerScopes = *(int*)"]dbgscope";
-    const int magicStartOfDebuggerScopeProperties = *(int*)"dbgscopeprop[";
-    const int magicEndOfDebuggerScopeProperties = *(int*)"]dbgscopeprop";
+    const int magicStartOfPropertyIdsForScopeSlotArray = *(int*)"scp[";
+    const int magicEndOfPropertyIdsForScopeSlotArray = *(int*)"]scp";
+    const int magicStartOfDebuggerScopes = *(int*)"dsc[";
+    const int magicEndOfDebuggerScopes = *(int*)"]dsc";
+    const int magicStartOfDebuggerScopeProperties = *(int*)"dsp[";
+    const int magicEndOfDebuggerScopeProperties = *(int*)"]dsp";
     const int magicStartOfAux = *(int*)"aux[";
     const int magicEndOfAux = *(int*)"]aux";
     const int magicStartOfAuxVarArray = *(int*)"ava[";
@@ -57,14 +57,14 @@ namespace Js
     const int magicEndOfAuxPropIdArray = *(int*)"]api";
     const int magicStartOfAuxFuncInfoArray = *(int*)"afi[";
     const int magicEndOfAuxFuncInfoArray = *(int*)"]afi";
-    const int magicStartOfAsmJsFuncInfo = *(int*)"asmfuncinfo[";
-    const int magicEndOfAsmJsFuncInfo = *(int*)"]asmfuncinfo";
-    const int magicStartOfAsmJsModuleInfo = *(int*)"asmmodinfo[";
-    const int magicEndOfAsmJsModuleInfo = *(int*)"]asmmodinfo";
-    const int magicStartOfPropIdsOfFormals = *(int*)"propIdOfFormals[";
-    const int magicEndOfPropIdsOfFormals = *(int*)"]propIdOfFormals";
-    const int magicStartOfSlotIdToNestedIndexArray = *(int*)"slotIdToNestedIndexArray[";
-    const int magicEndOfSlotIdToNestedIndexArray = *(int*)"]slotIdToNestedIndexArray"
+    const int magicStartOfAsmJsFuncInfo = *(int*)"aFI[";
+    const int magicEndOfAsmJsFuncInfo = *(int*)"]aFI";
+    const int magicStartOfAsmJsModuleInfo = *(int*)"ami[";
+    const int magicEndOfAsmJsModuleInfo = *(int*)"]ami";
+    const int magicStartOfPropIdsOfFormals = *(int*)"pif[";
+    const int magicEndOfPropIdsOfFormals = *(int*)"]pif";
+    const int magicStartOfSlotIdToNestedIndexArray = *(int*)"sni[";
+    const int magicEndOfSlotIdToNestedIndexArray = *(int*)"]sni"
 #endif
 
     // Serialized files are architecture specific
@@ -131,6 +131,7 @@ struct SerializedFieldList {
     bool has_m_lineNumber: 1;
     bool has_m_columnNumber: 1;
     bool has_m_nestedCount: 1;
+    bool has_slotIdInCachedScopeToNestedIndexArray : 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
@@ -1570,18 +1571,12 @@ public:
 
     uint32 AddSlotIdInCachedScopeToNestedIndexArray(BufferBuilderList& builder, FunctionBody * functionBody)
     {
-        if (functionBody->GetSlotIdInCachedScopeToNestedIndexArray() == nullptr)
-        {
-            return PrependByte(builder, _u("SlotIdInCachedScopeToNestedIndexArray exists"), 0);
-        }
-        
         uint32 size = 0;
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         size += PrependInt32(builder, _u("Start SlotIdInCachedScopeToNestedIndexArray"), magicStartOfSlotIdToNestedIndexArray);
 #endif
 
-        size += PrependByte(builder, _u("SlotIdInCachedScopeToNestedIndexArray exists"), 1);
         Js::AuxArray<uint32> * slotIdToNestedIndexArray = functionBody->GetSlotIdInCachedScopeToNestedIndexArray();
         size += PrependInt32(builder, _u("SlotIdInCachedScopeToNestedIndexArray count"), slotIdToNestedIndexArray->count);
         for (uint i = 0; i < slotIdToNestedIndexArray->count; i++)
@@ -2158,7 +2153,16 @@ public:
             AddReferencedPropertyIdMap(builder, function);
 
             AddPropertyIdsForScopeSlotArray(builder, function);
-            AddSlotIdInCachedScopeToNestedIndexArray(builder, function);
+
+            if (function->GetSlotIdInCachedScopeToNestedIndexArray() == nullptr)
+            {
+                definedFields.has_slotIdInCachedScopeToNestedIndexArray = false;
+            }
+            else
+            {
+                definedFields.has_slotIdInCachedScopeToNestedIndexArray = true;
+                AddSlotIdInCachedScopeToNestedIndexArray(builder, function);
+            }
 
             uint debuggerScopeSlotArraySize = GetDebuggerScopeSlotArrayCount(function);
             PrependInt32(builder, _u("Debugger Scope Slot Array Size"), debuggerScopeSlotArraySize);
@@ -3017,31 +3021,27 @@ public:
 
     const byte * ReadSlotIdInCachedScopeToNestedIndexArray(const byte * current, FunctionBody * functionBody)
     {
-        byte slotIdInCachedScopeToNestedIndexArrayExists;
-        current = ReadByte(current, &slotIdInCachedScopeToNestedIndexArrayExists);
-        if (slotIdInCachedScopeToNestedIndexArrayExists)
-        {
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-            int constant;
-            current = ReadInt32(current, &constant);
-            Assert(constant == magicStartOfSlotIdToNestedIndexArray);
+        int constant;
+        current = ReadInt32(current, &constant);
+        Assert(constant == magicStartOfSlotIdToNestedIndexArray);
 #endif
-            uint32 count;
-            current = ReadUInt32(current, &count);
+        uint32 count;
+        current = ReadUInt32(current, &count);
 
-            Js::AuxArray<uint32> * slotIdInCachedScopeToNestedIndexArray = functionBody->AllocateSlotIdInCachedScopeToNestedIndexArray(count);
+        Js::AuxArray<uint32> * slotIdInCachedScopeToNestedIndexArray = functionBody->AllocateSlotIdInCachedScopeToNestedIndexArray(count);
             
-            uint32 value;
-            for (uint i = 0; i < count; i++)
-            {
-                current = ReadUInt32(current, &value);
-                slotIdInCachedScopeToNestedIndexArray->elements[i] = value;
-            }
-#ifdef BYTE_CODE_MAGIC_CONSTANTS
-            current = ReadInt32(current, &constant);
-            Assert(constant == magicEndOfSlotIdToNestedIndexArray);
-#endif
+        uint32 value;
+        for (uint i = 0; i < count; i++)
+        {
+            current = ReadUInt32(current, &value);
+            slotIdInCachedScopeToNestedIndexArray->elements[i] = value;
         }
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        current = ReadInt32(current, &constant);
+        Assert(constant == magicEndOfSlotIdToNestedIndexArray);
+#endif
+
         return current;
     }
 
@@ -3826,7 +3826,11 @@ public:
             (*functionBody)->AllocateInlineCache();
 
             current = ReadPropertyIdsForScopeSlotArray(current, *functionBody);
-            current = ReadSlotIdInCachedScopeToNestedIndexArray(current, *functionBody);
+
+            if (definedFields->has_slotIdInCachedScopeToNestedIndexArray)
+            {
+                current = ReadSlotIdInCachedScopeToNestedIndexArray(current, *functionBody);
+            }
 
             uint debuggerScopeCount = 0;
             current = ReadUInt32(current, &debuggerScopeCount);
