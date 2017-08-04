@@ -5,30 +5,57 @@
 
 const realPrint = print;
 WScript.Echo = print = console.log = () => {};
-if (WScript.Arguments.indexOf("-v") !== -1) {
+if (WScript.Arguments.indexOf("--verbose") !== -1) {
   WScript.Echo = print = console.log = realPrint;
 }
-
+let isAttached = WScript.Arguments.indexOf("debuglaunch") !== -1;
 function attach() {
+  if (isAttached) return Promise.resolve();
   return new Promise(r => WScript.Attach(() => {
+    isAttached = true;
     print("attached");
     r();
   }));
 }
 function detach() {
+  if (!isAttached) return Promise.resolve();
   return new Promise(r => WScript.Detach(() => {
+    isAttached = false;
     print("detached");
     r();
   }));
 }
-const buf = readbuffer("debugger.wasm");
-const {exports: {a, b, c}} = new WebAssembly.Instance(new WebAssembly.Module(buf), {test: {
-  foo: function(val) {
-    print(val);
-    // causes exception
-    return val.b.c;
-  }
-}});
+const buf = WebAssembly.wabt.convertWast2Wasm(`(module
+  (import "test" "mem" (memory 1))
+  (import "test" "table" (table 15 anyfunc))
+  (import "test" "foo" (func $foo (param i32)))
+  (func (export "a") (param i32)
+    (call $foo (get_local 0))
+  )
+  (func $b (export "b") (param i32)
+    (call $foo (get_local 0))
+  )
+
+  (func $c (export "c") (param i32)
+    (call $d (get_local 0))
+  )
+  (func $d (param i32)
+    (call $b (get_local 0))
+  )
+)`);
+function makeInstance(foo) {
+  const mem = new WebAssembly.Memory({initial: 1});
+  const table = new WebAssembly.Table({initial: 15, element: "anyfunc"});
+  const module = new WebAssembly.Module(buf);
+  const instance = new WebAssembly.Instance(module, {test: {mem, table, foo}});
+  debugger;
+  return instance;
+}
+const {exports: {a, b, c}} = makeInstance(val => {
+  print(val);
+  // causes exception
+  return val.b.c;
+});
 
 let id = 0;
 function runTest(fn) {
@@ -43,6 +70,7 @@ function caught(e) {
 }
 
 function runA() {
+  debugger;
   try {runTest(a);} catch (e) {caught(e);}
 }
 function runB() {
@@ -64,7 +92,7 @@ attach()
   .then(runB)
   .then(() => {
     let p = Promise.resolve();
-    for(let i = 0; i < 20; ++i) {
+    for (let i = 0; i < 20; ++i) {
       p = p
         .then(attach)
         .then(runB)
@@ -76,23 +104,23 @@ attach()
     return p;
   })
   .then(() => {
-    for(let i = 0; i < 20; ++i) {
+    for (let i = 0; i < 20; ++i) {
       runC();
     }
   })
   .then(attach)
   .then(() => {
-    for(let i = 0; i < 20; ++i) {
+    for (let i = 0; i < 20; ++i) {
       runC();
     }
   })
   .then(() => {
     let testValue = 0;
-    const {exports: {c: newC}} = new WebAssembly.Instance(new WebAssembly.Module(buf), {test: {
-      foo: function(val) {
-        testValue = val;
-      }
-    }});
+    const {exports: {c: newC}} = makeInstance(val => {
+      debugger;
+      testValue = val;
+    });
+    debugger;
     newC(15);
     if (testValue !== 15) {
       realPrint("Invalid assignment through import under debugger");
