@@ -114,6 +114,10 @@ struct RecyclerPointerComparer
     }
 };
 
+#define CC_HASH_LOGIC(hash, byte) \
+    hash  = _rotl(hash, 7);        \
+    hash ^= byte;
+
 template <>
 struct DefaultComparer<GUID>
 {
@@ -128,8 +132,7 @@ struct DefaultComparer<GUID>
         int hash = 0;
         for (int i = 0; i < sizeof(GUID); i++)
         {
-            hash = _rotl(hash, 7);
-            hash ^= (uint32)(p[i]);
+            CC_HASH_LOGIC(hash, (uint32)(p[i]));
         }
         return hash;
      }
@@ -148,8 +151,7 @@ struct StringComparer
         int hash = 0;
         while (*str)
         {
-            hash = _rotl(hash, 7);
-            hash ^= *str;
+            CC_HASH_LOGIC(hash, *str);
             str++;
         }
         return hash;

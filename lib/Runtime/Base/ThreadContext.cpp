@@ -1035,37 +1035,18 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
 
     int length = propertyName.GetLength();
     uint bytelength = sizeof(char16) * length;
-
-    uint32 indexVal = 0;
-
-    // Symbol properties cannot be numeric since their description is not to be used!
-    bool isNumeric = !isSymbol && Js::PropertyRecord::IsPropertyNameNumeric(propertyName.GetBuffer(), propertyName.GetLength(), &indexVal);
-
-    uint hash = JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(propertyName.GetBuffer(), propertyName.GetLength());
-
-    size_t allocLength = bytelength + sizeof(char16) + (isNumeric ? sizeof(uint32) : 0);
+    size_t allocLength = bytelength + sizeof(char16) + ( (!isSymbol && length <= 10 && length > 0) ? sizeof(uint32) : 0);
 
     // If it's bound, create it in the thread arena, along with a fake weak ref
     Js::PropertyRecord * propertyRecord;
     if (bind)
     {
-        propertyRecord = AnewPlus(GetThreadAlloc(), allocLength, Js::PropertyRecord, bytelength, isNumeric, hash, isSymbol);
+        propertyRecord = AnewPlus(GetThreadAlloc(), allocLength, Js::PropertyRecord, propertyName.GetBuffer(), length, bytelength, isSymbol);
         propertyRecord->isBound = true;
     }
     else
     {
-        propertyRecord = RecyclerNewFinalizedLeafPlus(recycler, allocLength, Js::PropertyRecord, bytelength, isNumeric, hash, isSymbol);
-    }
-
-    // Copy string and numeric info
-    char16* buffer = (char16 *)(propertyRecord + 1);
-    js_memcpy_s(buffer, bytelength, propertyName.GetBuffer(), bytelength);
-    buffer[length] = _u('\0');
-
-    if (isNumeric)
-    {
-        *(uint32 *)(buffer + length + 1) = indexVal;
-        Assert(propertyRecord->GetNumericValue() == indexVal);
+        propertyRecord = RecyclerNewFinalizedLeafPlus(recycler, allocLength, Js::PropertyRecord, propertyName.GetBuffer(), length, bytelength, isSymbol);
     }
 
     Js::PropertyId propertyId = this->GetNextPropertyId();
