@@ -2842,17 +2842,18 @@ case_2:
         const char16* pchEnd =  pchStart + m_charLength;
         const char16 *pch = this->GetScriptContext()->GetCharClassifier()->SkipWhiteSpace(pchStart, pchEnd);
         bool isNegative = false;
+
+        if (pch < pchEnd)
+        {
         switch (*pch)
         {
         case '-':
             isNegative = true;
             // Fall through.
         case '+':
-            if(pch < pchEnd)
-            {
                 pch++;
-            }
             break;
+        }
         }
 
         if (0 == radix)
@@ -2861,7 +2862,7 @@ case_2:
             {
                 radix = 10;
             }
-            else if (('x' == pch[1] || 'X' == pch[1]) && pchEnd - pch >= 2)
+            else if (pchEnd - pch >= 2 && ('x' == pch[1] || 'X' == pch[1]))
             {
                 radix = 16;
                 pch += 2;
@@ -2875,7 +2876,7 @@ case_2:
         }
         else if (16 == radix)
         {
-            if('0' == pch[0] && ('x' == pch[1] || 'X' == pch[1]) && pchEnd - pch >= 2)
+            if(pchEnd - pch >= 2 && '0' == pch[0] && ('x' == pch[1] || 'X' == pch[1]))
             {
                 pch += 2;
             }
