@@ -3011,7 +3011,7 @@ namespace Js
         DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
 
         // Disable QC while functions are re-parsed as this can be time consuming
-        AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
+        AutoDisableInterrupt autoDisableInterrupt(this->threadContext, false /* explicitCompletion */);
 
         hr = this->GetDebugContext()->RundownSourcesAndReparse(shouldPerformSourceRundown, /*shouldReparseFunctions*/ true);
 
@@ -3107,7 +3107,7 @@ namespace Js
         this->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::SourceRundown);
 
         // Disable QC while functions are re-parsed as this can be time consuming
-        AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
+        AutoDisableInterrupt autoDisableInterrupt(this->threadContext, false /* explicitCompletion */);
 
         // Force a reparse so that indirect function caches are updated.
         hr = this->GetDebugContext()->RundownSourcesAndReparse(/*shouldPerformSourceRundown*/ false, /*shouldReparseFunctions*/ true);

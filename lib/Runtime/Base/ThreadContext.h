@@ -82,30 +82,6 @@ protected:
     bool isDisabled;
 };
 
-class AutoDisableInterrupt
-{
-private:
-    InterruptPoller* interruptPoller;
-    bool previousState;
-public:
-    AutoDisableInterrupt(InterruptPoller* interruptPoller, bool disable)
-        : interruptPoller(interruptPoller)
-    {
-        if (interruptPoller != nullptr)
-        {
-            previousState = interruptPoller->IsDisabled();
-            interruptPoller->SetDisabled(disable);
-        }
-    }
-    ~AutoDisableInterrupt()
-    {
-        if (interruptPoller != nullptr)
-        {
-            interruptPoller->SetDisabled(previousState);
-        }
-    }
-};
-
 // This function is called before we step out of script (currently only for WinRT callout).
 // Debugger would put a breakpoint on this function if they want to detect the point at which we step
 // over the boundary.
@@ -1799,6 +1775,42 @@ private:
 };
 
 extern void(*InitializeAdditionalProperties)(ThreadContext *threadContext);
+
+// This is for protecting a region of code, where we can't recover and be consistent upon failures (mainly due to OOM and SO).
+// FailFast on that. 
+class AutoDisableInterrupt
+{
+public:
+    AutoDisableInterrupt::AutoDisableInterrupt(ThreadContext *threadContext, bool explicitCompletion = true)
+        : m_operationCompleted(false), m_interruptDisableState(false), m_threadContext(threadContext), m_explicitCompletion(explicitCompletion)
+    {
+        if (m_threadContext->HasInterruptPoller())
+        {
+            m_interruptDisableState = m_threadContext->GetInterruptPoller()->IsDisabled();
+            m_threadContext->GetInterruptPoller()->SetDisabled(true);
+        }
+    }
+    AutoDisableInterrupt::~AutoDisableInterrupt()
+    {
+        if (m_threadContext->HasInterruptPoller())
+        {
+            m_threadContext->GetInterruptPoller()->SetDisabled(m_interruptDisableState);
+        }
+
+        if (m_explicitCompletion && !m_operationCompleted)
+        {
+            AssertOrFailFast(false);
+        }
+    }
+
+    void Completed() { m_operationCompleted = true; }
+
+private:
+    ThreadContext * m_threadContext;
+    bool m_operationCompleted;
+    bool m_interruptDisableState;
+    bool m_explicitCompletion;
+};
 
 #if ENABLE_JS_REENTRANCY_CHECK
 class JsReentLock
