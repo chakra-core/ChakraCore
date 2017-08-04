@@ -3,7 +3,6 @@
   <test>
     <default>
       <files>DateCtr.js</files>
-      <baseline>DateCtr.baseline</baseline>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <tags>exclude_jenkins</tags>
     </default>
@@ -13,8 +12,8 @@
       <files>DateGetSet.js</files>
       <baseline>DateGetSet.baseline</baseline>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <!-- OSX doesn't provide expected DST info for year 35816 -->
-      <tags>exclude_jenkins,exclude_mac</tags>
+      <!-- XPLAT doesn't provide expected DST info for year 35816 -->
+      <tags>exclude_jenkins,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -30,7 +29,8 @@
       <files>DateParse2.js</files>
       <baseline>DateParse2.v5.baseline</baseline>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_jenkins</tags>
+      <!-- xplat DST info for BC years don't mach to ones for Windows. Internally trying to match them is very expensive -->
+      <tags>exclude_jenkins,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -45,7 +45,7 @@
       <baseline>parseISO.baseline</baseline>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <!-- OSX doesn't provide expected DST for minus years -->
-      <tags>exclude_jenkins,exclude_mac,Slow</tags>
+      <tags>exclude_jenkins,exclude_xplat,Slow</tags>
     </default>
   </test>
   <test>
