@@ -1358,6 +1358,7 @@ namespace Js
             ScopeInfo = 20,
             FormalsPropIdArray = 21,
             ForInCacheArray = 22,
+            SlotIdInCachedScopeToNestedIndexArray = 23,
 
             Max,
             Invalid = 0xff
@@ -3463,10 +3464,17 @@ namespace Js
         void SetLiteralRegex(const uint index, UnifiedRegex::RegexPattern *const pattern);
         Field(DynamicType*)* GetObjectLiteralTypes() const { return static_cast<Field(DynamicType*)*>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
         Field(DynamicType*)* GetObjectLiteralTypesWithLock() const { return static_cast<Field(DynamicType*)*>(this->GetAuxPtrWithLock(AuxPointerType::ObjLiteralTypes)); }
+
+        Js::AuxArray<uint32> * GetSlotIdInCachedScopeToNestedIndexArray() const { return static_cast<Js::AuxArray<uint32> *>(this->GetAuxPtr(AuxPointerType::SlotIdInCachedScopeToNestedIndexArray)); }
+        Js::AuxArray<uint32> * GetSlotIdInCachedScopeToNestedIndexArrayWithLock() const { return static_cast<Js::AuxArray<uint32> *>(this->GetAuxPtrWithLock(AuxPointerType::SlotIdInCachedScopeToNestedIndexArray)); }
+        Js::AuxArray<uint32> * AllocateSlotIdInCachedScopeToNestedIndexArray(uint32 slotCount);
+
     private:
         void ResetLiteralRegexes();
         void ResetObjectLiteralTypes();
         void SetObjectLiteralTypes(DynamicType** objLiteralTypes) { this->SetAuxPtr(AuxPointerType::ObjLiteralTypes, objLiteralTypes); };
+        void SetSlotIdInCachedScopeToNestedIndexArray(Js::AuxArray<uint32> * slotIdInCachedScopeToNestedIndexArray) { this->SetAuxPtr(AuxPointerType::SlotIdInCachedScopeToNestedIndexArray, slotIdInCachedScopeToNestedIndexArray); }
+        void ResetSlotIdInCachedScopeToNestedIndexArray() { SetSlotIdInCachedScopeToNestedIndexArray(nullptr); }
     public:
 
         void ResetByteCodeGenState();
