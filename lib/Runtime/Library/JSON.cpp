@@ -332,18 +332,17 @@ namespace JSON
 
     // -------- StringifySession implementation ------------//
 
-    static char16  gapStringBuffer[JSONspaceSize];
-    static char16* GetGapStringInternal()
+    class JSONSpace
     {
-        wmemset(gapStringBuffer, _u(' '), JSONspaceSize);
-        return gapStringBuffer;
-    }
+    public:
+        static char16  Buffer[JSONspaceSize];
+        JSONSpace() { wmemset(Buffer, _u(' '), JSONspaceSize); }
+    };
+    char16 JSONSpace::Buffer[JSONspaceSize];
+    static JSONSpace jsonSpace;
 
     void StringifySession::CompleteInit(Js::Var space, ArenaAllocator* tempAlloc)
     {
-        //set the stack, gap
-        static const char16* spaceBuffer = GetGapStringInternal(); // multi threading safe
-
         charcount_t len = 0;
         switch (Js::JavascriptOperators::GetTypeId(space))
         {
@@ -352,7 +351,7 @@ namespace JSON
                 len = max(0, min(JSONspaceSize, static_cast<int>(Js::TaggedInt::ToInt32(space))));
                 if (len)
                 {
-                    gap = Js::JavascriptString::NewCopyBuffer(spaceBuffer, len, scriptContext);
+                    gap = Js::JavascriptString::NewCopyBuffer(jsonSpace.Buffer, len, scriptContext);
                 }
                 break;
             }
@@ -364,7 +363,7 @@ namespace JSON
                 len = max(0, static_cast<int>(min(static_cast<double>(JSONspaceSize), Js::JavascriptConversion::ToInteger(space, scriptContext))));
                 if (len)
                 {
-                    gap = Js::JavascriptString::NewCopyBuffer(spaceBuffer, len, scriptContext);
+                    gap = Js::JavascriptString::NewCopyBuffer(jsonSpace.Buffer, len, scriptContext);
                 }
                 break;
             }
