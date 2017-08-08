@@ -1,4 +1,9 @@
-﻿WScript.LoadScriptFile('copy-prop-stack-slot-test-framework.js');
+﻿//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
+WScript.LoadScriptFile('copy-prop-stack-slot-test-framework.js');
 var tc=new TestCase();
 tc.id="38";
 tc.desc="Enumerate arguments";
