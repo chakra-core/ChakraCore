@@ -482,6 +482,13 @@ namespace Js
         }
 #endif
 
+        if (this->debugContext != nullptr)
+        {
+            Assert(this->debugContext->IsClosed());
+            HeapDelete(this->debugContext);
+            this->debugContext = nullptr;
+        }
+
 #if ENABLE_NATIVE_CODEGEN
         if (this->nativeCodeGen != nullptr)
         {
@@ -665,21 +672,20 @@ namespace Js
 #endif
 
         this->EnsureClearDebugDocument();
+
         if (this->debugContext != nullptr)
         {
-            if(this->debugContext->GetProbeContainer())
+            if (this->debugContext->GetProbeContainer() != nullptr)
             {
-                this->debugContext->GetProbeContainer()->UninstallInlineBreakpointProbe(NULL);
+                this->debugContext->GetProbeContainer()->UninstallInlineBreakpointProbe(nullptr);
                 this->debugContext->GetProbeContainer()->UninstallDebuggerScriptOptionCallback();
             }
 
-            // Guard the closing and deleting of DebugContext as in meantime PDM might
-            // call OnBreakFlagChange
+            // Guard the closing DebugContext as in meantime PDM might call OnBreakFlagChange
             AutoCriticalSection autoDebugContextCloseCS(&debugContextCloseCS);
-            DebugContext* tempDebugContext = this->debugContext;
-            this->debugContext = nullptr;
-            tempDebugContext->Close();
-            HeapDelete(tempDebugContext);
+            this->debugContext->Close();
+            // Not deleting debugContext here as Close above will clear all memory debugContext allocated.
+            // Actual deletion of debugContext will happen in ScriptContext destructor
         }
 
         if (this->diagnosticArena != nullptr)
@@ -5792,9 +5798,23 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     }
 #endif
 
+    DebugContext* ScriptContext::GetDebugContext() const
+    {
+        Assert(this->debugContext != nullptr);
+
+        if (this->debugContext->IsClosed())
+        {
+            // Once DebugContext is closed we should assume it's not there
+            // The actual deletion of debugContext happens in ScriptContext destructor
+            return nullptr;
+        }
+
+        return this->debugContext;
+    }
+
     bool ScriptContext::IsScriptContextInNonDebugMode() const
     {
-        if (this->debugContext != nullptr)
+        if (this->GetDebugContext() != nullptr)
         {
             return this->GetDebugContext()->IsDebugContextInNonDebugMode();
         }
@@ -5803,7 +5823,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     bool ScriptContext::IsScriptContextInDebugMode() const
     {
-        if (this->debugContext != nullptr)
+        if (this->GetDebugContext() != nullptr)
         {
             return this->GetDebugContext()->IsDebugContextInDebugMode();
         }
@@ -5812,7 +5832,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     bool ScriptContext::IsScriptContextInSourceRundownOrDebugMode() const
     {
-        if (this->debugContext != nullptr)
+        if (this->GetDebugContext() != nullptr)
         {
             return this->GetDebugContext()->IsDebugContextInSourceRundownOrDebugMode();
         }
@@ -5821,7 +5841,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     bool ScriptContext::IsDebuggerRecording() const
     {
-        if (this->debugContext != nullptr)
+        if (this->GetDebugContext() != nullptr)
         {
             return this->GetDebugContext()->IsDebuggerRecording();
         }
@@ -5830,7 +5850,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     void ScriptContext::SetIsDebuggerRecording(bool isDebuggerRecording)
     {
-        if (this->debugContext != nullptr)
+        if (this->GetDebugContext() != nullptr)
         {
             this->GetDebugContext()->SetIsDebuggerRecording(isDebuggerRecording);
         }
