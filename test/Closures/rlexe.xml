@@ -175,4 +175,10 @@
       <tags>BugFix</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>copy-prop-stack-slot.js</files>
+      <baseline>copy-prop-stack-slot.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>
