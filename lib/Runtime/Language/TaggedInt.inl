@@ -206,7 +206,22 @@ namespace Js
     }
 #endif
 
+    // Returns true when the provided args only contains TaggedInts. Note that
+    // iteration starts from 1 (to account for 'this' at index 0).
+    bool inline TaggedInt::OnlyContainsTaggedInt(Js::Arguments& args)
+    {
+        bool onlyContainsInts = true;
+        for (uint idxArg = 1; idxArg < args.Info.Count; idxArg++)
+        {
+            if (!TaggedInt::Is(args[idxArg]))
+            {
+                onlyContainsInts = false;
+                break;
+            }
+        }
 
+        return onlyContainsInts;
+    }
 
     inline Var TaggedInt::Add(Var aLeft,Var aRight,ScriptContext* scriptContext)
 #ifdef DBG
