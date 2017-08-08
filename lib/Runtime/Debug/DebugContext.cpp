@@ -10,6 +10,7 @@ namespace Js
         scriptContext(scriptContext),
         hostDebugContext(nullptr),
         diagProbesContainer(nullptr),
+        isClosed(false),
         debuggerMode(DebuggerMode::NotDebugging),
         isDebuggerRecording(true),
         isReparsingSource(false)
@@ -19,7 +20,7 @@ namespace Js
 
     DebugContext::~DebugContext()
     {
-        Assert(this->scriptContext == nullptr);
+        Assert(this->scriptContext != nullptr);
         Assert(this->hostDebugContext == nullptr);
         Assert(this->diagProbesContainer == nullptr);
     }
@@ -33,8 +34,18 @@ namespace Js
 
     void DebugContext::Close()
     {
+        if (this->isClosed)
+        {
+            return;
+        }
+
+        AssertMsg(this->scriptContext->IsActuallyClosed(), "Closing DebugContext before ScriptContext close might have consequences");
+
+        this->isClosed = true;
+
+        // Release all memory and do all cleanup. No operation should be done after isClosed is set
+
         Assert(this->scriptContext != nullptr);
-        this->scriptContext = nullptr;
 
         if (this->diagProbesContainer != nullptr)
         {
@@ -50,6 +61,11 @@ namespace Js
         }
     }
 
+    bool DebugContext::IsSelfOrScriptContextClosed() const
+    {
+        return (this->IsClosed() || this->scriptContext->IsClosed());
+    }
+
     void DebugContext::SetHostDebugContext(HostDebugContext * hostDebugContext)
     {
         Assert(this->hostDebugContext == nullptr);
@@ -60,10 +76,13 @@ namespace Js
 
     bool DebugContext::CanRegisterFunction() const
     {
-        if (this->hostDebugContext == nullptr || this->scriptContext == nullptr || this->scriptContext->IsClosed() || this->IsDebugContextInNonDebugMode())
+        if (this->IsSelfOrScriptContextClosed() ||
+            this->hostDebugContext == nullptr ||
+            this->IsDebugContextInNonDebugMode())
         {
             return false;
         }
+
         return true;
     }
 
@@ -195,14 +214,10 @@ namespace Js
             return hr;
         }
 
-        // Cache ScriptContext as multiple calls below can go out of engine and ScriptContext can be closed which will delete DebugContext
-        Js::ScriptContext* cachedScriptContext = this->scriptContext;
-
         utf8SourceInfoList->MapUntil([&](int index, Js::Utf8SourceInfo * sourceInfo) -> bool
         {
-            if (cachedScriptContext->IsClosed())
+            if (this->IsSelfOrScriptContextClosed())
             {
-                // ScriptContext could be closed in previous iteration
                 hr = E_FAIL;
                 return true;
             }
@@ -261,9 +276,8 @@ namespace Js
             bool fHasDoneSourceRundown = false;
             for (int i = 0; i < pFunctionsToRegister->Count(); i++)
             {
-                if (cachedScriptContext->IsClosed())
+                if (this->IsSelfOrScriptContextClosed())
                 {
-                    // ScriptContext could be closed in previous iteration
                     hr = E_FAIL;
                     return true;
                 }
@@ -276,7 +290,7 @@ namespace Js
 
                 if (shouldReparseFunctions)
                 {
-                    BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(cachedScriptContext, false)
+                    BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(this->scriptContext, false)
                     {
                         functionInfo->GetParseableFunctionInfo()->Parse();
                         // This is the first call to the function, ensure dynamic profile info
@@ -293,7 +307,7 @@ namespace Js
                 // Parsing the function may change its FunctionProxy.
                 Js::ParseableFunctionInfo *parseableFunctionInfo = functionInfo->GetParseableFunctionInfo();
 
-                if (!fHasDoneSourceRundown && shouldPerformSourceRundown && !cachedScriptContext->IsClosed())
+                if (!fHasDoneSourceRundown && shouldPerformSourceRundown && !this->IsSelfOrScriptContextClosed())
                 {
                     BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
                     {
@@ -321,13 +335,13 @@ namespace Js
             return false;
         });
 
-        if (!cachedScriptContext->IsClosed())
+        if (!this->IsSelfOrScriptContextClosed())
         {
-            if (shouldPerformSourceRundown && cachedScriptContext->HaveCalleeSources() && this->hostDebugContext != nullptr)
+            if (shouldPerformSourceRundown && this->scriptContext->HaveCalleeSources() && this->hostDebugContext != nullptr)
             {
-                cachedScriptContext->MapCalleeSources([=](Js::Utf8SourceInfo* calleeSourceInfo)
+                this->scriptContext->MapCalleeSources([=](Js::Utf8SourceInfo* calleeSourceInfo)
                 {
-                    if (!cachedScriptContext->IsClosed())
+                    if (!this->IsSelfOrScriptContextClosed())
                     {
                         // This call goes out of engine
                         this->hostDebugContext->ReParentToCaller(calleeSourceInfo);
