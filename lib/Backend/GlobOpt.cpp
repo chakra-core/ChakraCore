@@ -360,6 +360,7 @@ GlobOpt::ForwardPass()
     this->byteCodeConstantValueNumbersBv = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->tempBv = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->prePassCopyPropSym = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+	this->slotSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->byteCodeUses = nullptr;
     this->propertySymUse = nullptr;
 
@@ -5179,6 +5180,11 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
 
     case Js::OpCode::Typeof:
         return this->NewGenericValue(ValueType::String, dst);
+        break;
+    case Js::OpCode::InitLocalClosure:
+        Assert(instr->GetDst());
+        Assert(instr->GetDst()->IsSymOpnd());
+        this->slotSyms->Set(instr->GetDst()->AsSymOpnd()->m_sym->m_id);
         break;
     }
 
