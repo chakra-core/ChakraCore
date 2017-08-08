@@ -5183,8 +5183,16 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         break;
     case Js::OpCode::InitLocalClosure:
         Assert(instr->GetDst());
-        Assert(instr->GetDst()->IsSymOpnd());
-        this->slotSyms->Set(instr->GetDst()->AsSymOpnd()->m_sym->m_id);
+        Assert(instr->GetDst()->IsRegOpnd());
+        IR::RegOpnd *regOpnd = instr->GetDst()->AsRegOpnd();
+        StackSym *opndStackSym = regOpnd->m_sym;
+        Assert(opndStackSym != nullptr);
+        ObjectSymInfo *objectSymInfo = opndStackSym->m_objectInfo;
+        Assert(objectSymInfo != nullptr);
+        for (PropertySym *localVarSlotList = objectSymInfo->m_propertySymList; localVarSlotList; localVarSlotList = localVarSlotList->m_nextInStackSymList)
+        {
+            this->slotSyms->Set(localVarSlotList->m_id);
+        }
         break;
     }
 
