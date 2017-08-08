@@ -546,6 +546,7 @@ typedef struct FunctionBodyDataIDL
     unsigned int literalRegexCount;
     unsigned int auxDataCount;
     unsigned int auxContextDataCount;
+    unsigned int functionSlotsInCachedScopeCount;
 
     unsigned int fullStatementMapCount;
     unsigned int propertyIdsForRegSlotsCount;
@@ -575,6 +576,8 @@ typedef struct FunctionBodyDataIDL
     IDL_DEF([size_is(auxDataCount)]) byte * auxData;
 
     IDL_DEF([size_is(auxContextDataCount)]) byte * auxContextData;
+
+    IDL_DEF([size_is(functionSlotsInCachedScopeCount)]) unsigned int * slotIdInCachedScopeToNestedIndexArray;
 
     ProfileDataIDL * profileData;
 
