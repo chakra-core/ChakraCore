@@ -4915,6 +4915,7 @@ namespace Js
         this->SetFormalsPropIdArray(nullptr);
         this->SetReferencedPropertyIdMap(nullptr);
         this->SetLiteralRegexs(nullptr);
+        this->SetSlotIdInCachedScopeToNestedIndexArray(nullptr);
         this->SetStatementMaps(nullptr);
         this->SetCodeGenGetSetRuntimeData(nullptr);
         this->SetPropertyIdOnRegSlotsContainer(nullptr);
@@ -6302,6 +6303,13 @@ namespace Js
         this->SetLiteralRegexs(nullptr);
     }
 
+    Js::AuxArray<uint32> * FunctionBody::AllocateSlotIdInCachedScopeToNestedIndexArray(uint32 slotCount)
+    {
+        Js::AuxArray<uint32> * slotIdToNestedIndexArray = RecyclerNewPlusLeaf(GetScriptContext()->GetRecycler(), slotCount * sizeof(uint32), Js::AuxArray<uint32>, slotCount);
+        SetSlotIdInCachedScopeToNestedIndexArray(slotIdToNestedIndexArray);
+        return slotIdToNestedIndexArray;
+    }
+
     void FunctionBody::ResetProfileIds()
     {
 #if ENABLE_PROFILE_INFO
@@ -6329,6 +6337,7 @@ namespace Js
         ResetLiteralRegexes();
         ResetLoops();
         ResetProfileIds();
+        ResetSlotIdInCachedScopeToNestedIndexArray();
 
         SetFirstTmpRegister(Constants::NoRegister);
         SetLocalClosureRegister(Constants::NoRegister);
