@@ -576,8 +576,7 @@ public:
 public:
     JsTypeValueInfo * Copy(JitArenaAllocator *const allocator) const
     {
-        JsTypeValueInfo * newInfo = JitAnew(allocator, JsTypeValueInfo, *this);
-        return newInfo;
+        return JitAnew(allocator, JsTypeValueInfo, *this);
     }
 
     JITTypeHolder GetJsType() const
