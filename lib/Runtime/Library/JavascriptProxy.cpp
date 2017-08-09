@@ -681,7 +681,7 @@ namespace Js
         }
         else
         {
-            // ES2017 Spec'ed (9.1.9.1): 
+            // ES2017 Spec'ed (9.1.9.1):
             // If existingDescriptor is not undefined, then
             //    If IsAccessorDescriptor(existingDescriptor) is true, return false.
             //    If existingDescriptor.[[Writable]] is false, return false.
@@ -1996,11 +1996,10 @@ namespace Js
 
     void JavascriptProxy::PropertyIdFromInt(uint32 index, PropertyRecord const** propertyRecord)
     {
-        char16 buffer[20];
+        char16 buffer[22];
+        int pos = TaggedInt::ToBuffer(index, buffer, 22);
 
-        ::_i64tow_s(index, buffer, sizeof(buffer) / sizeof(char16), 10);
-
-        GetScriptContext()->GetOrAddPropertyRecord((LPCWSTR)buffer, static_cast<int>(wcslen(buffer)), propertyRecord);
+        GetScriptContext()->GetOrAddPropertyRecord((LPCWSTR)buffer + pos, (_countof(buffer) - 1) - pos, propertyRecord);
     }
 
     Var JavascriptProxy::GetName(ScriptContext* requestContext, PropertyId propertyId)
