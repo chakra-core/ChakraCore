@@ -682,8 +682,8 @@
             if ((passes + failures) === 0) {
                 document.write("<h1>No tests were run! There's probably a SyntaxError in the test file.</h1>")
             }
-			
-			// Added for XBox team to parse out pass/fail from page title
+
+            // Added for XBox team to parse out pass/fail from page title
             document.title =
                 'PASS:' + passes +
                 ';FAIL:' + failures +

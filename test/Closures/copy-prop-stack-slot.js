@@ -7,20 +7,20 @@ WScript.LoadScriptFile('copy-prop-stack-slot-test-framework.js');
 var tc=new TestCase();
 tc.id="38";
 tc.desc="Enumerate arguments";
-tc.test=function(){	
+tc.test=function(){
     var actualContent = "";
-	var actualIndex = "";
+    var actualIndex = "";
 
-	function testArgument(){
-		for(var a in arguments){
+    function testArgument() {
+        for (var a in arguments) {
             actualContent += arguments[a];
-			actualIndex += a;
-		}
-	}
+            actualIndex += a;
+        }
+    }
 
-	testArgument(12,13,14,15);			    
-	WScript.Echo(actualContent);
-	WScript.Echo(actualIndex);
+    testArgument(12,13,14,15);
+    WScript.Echo(actualContent);
+    WScript.Echo(actualIndex);
 }
 tc.AddTest();
 Run();
