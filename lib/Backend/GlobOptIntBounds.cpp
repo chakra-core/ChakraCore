@@ -1016,6 +1016,36 @@ void GlobOpt::MergeBoundCheckHoistBlockData(
                     mergedInductionVariables->Add(backEdgeInductionVariable);
                 }
             }
+
+            const InductionVariableSet *const fromDataInductionVariables = fromData->inductionVariables;
+            for (auto it = mergedInductionVariables->GetIterator(); it.IsValid(); it.MoveNext())
+            {
+                InductionVariable &mergedInductionVariable = it.CurrentValueReference();
+                if (!mergedInductionVariable.IsChangeDeterminate())
+                {
+                    continue;
+                }
+
+                StackSym *const sym = mergedInductionVariable.Sym();
+                const InductionVariable *fromDataInductionVariable;
+                if (fromDataInductionVariables->TryGetReference(sym->m_id, &fromDataInductionVariable))
+                {
+                    continue;
+                }
+
+                // Process the set of symbols that are induction variables due to prior loops that share the same parent loop, but are not induction variables in the current loop
+                // If the current loop is initializing such carried over induction variables, then their value numbers will differ from the current loop's landing pad
+                // Such induction variables should be marked as indeterminate going forward, such the  induction variable analysis accurately flows to the parent loop.
+                Value *const fromDataValue = fromData->FindValue(sym);
+                if (fromDataValue)
+                {
+                    Value *const landingPadValue = toBlock->loop->landingPad->globOptData.FindValue(sym);
+                    if (landingPadValue && fromDataValue->GetValueNumber() != landingPadValue->GetValueNumber())
+                    {
+                        mergedInductionVariable.SetChangeIsIndeterminate();
+                    }
+                }
+            }
             return;
         }
 
