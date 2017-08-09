@@ -59,8 +59,8 @@ namespace Js {
         static JavascriptString* ToString(int value,ScriptContext* scriptContext);
         static JavascriptString* ToString(uint value,ScriptContext* scriptContext);
 
-        static int SignedToString(long value, char16 *buffer, int bufferSize);
-        static int UnsignedToString(unsigned long value, char16 *buffer, int bufferSize);
+        static int SignedToString(__int64 value, char16 *buffer, int bufferSize);
+        static int UnsignedToString(unsigned __int64 value, char16 *buffer, int bufferSize);
 
         static Var MinVal() { return ToVarUnchecked(k_nMinValue); }
         static Var MaxVal() { return ToVarUnchecked(k_nMaxValue); }
