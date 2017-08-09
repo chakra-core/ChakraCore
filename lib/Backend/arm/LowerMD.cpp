@@ -8559,7 +8559,7 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
 #if DBG
             NativeCodeData::GetDataDescription(pValue, instrInsert->m_func->m_alloc),
 #endif
-            instrInsert->m_func);
+            instrInsert->m_func, true);
     }
     else
     {

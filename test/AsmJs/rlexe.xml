@@ -921,6 +921,19 @@
   </test>
   <test>
     <default>
+      <files>bug12239366.js</files>
+      <compile-flags>-lic:1 -bgjit-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>badFunctionType.js</files>
+      <baseline>badFunctionType.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bugGH2270.js</files>
     </default>
   </test>
@@ -980,6 +993,11 @@
       <baseline>exports.baseline</baseline>
       <compile-flags>-testtrace:asmjs</compile-flags>
       <tags>exclude_drt</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>trackdeferredonreparse.js</files>
     </default>
   </test>
 </regress-exe>

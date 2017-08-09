@@ -822,6 +822,8 @@ private:
 
     NativeLibraryEntryRecord nativeLibraryEntry;
 
+    UCrtC99MathApis ucrtC99MathApis;
+
     // Indicates the current loop depth as observed by the interpreter. The interpreter causes this value to be updated upon
     // entering and leaving a loop.
     uint8 loopDepth;
@@ -858,6 +860,8 @@ public:
 #endif // ENABLE_NATIVE_CODEGEN
 
     CriticalSection* GetFunctionBodyLock() { return &csFunctionBody; }
+
+    UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
 
     Js::IsConcatSpreadableCache* GetIsConcatSpreadableCache() { return &isConcatSpreadableCache; }
 

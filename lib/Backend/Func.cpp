@@ -153,6 +153,14 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 
     Assert(this->IsInlined() == !!runtimeInfo);
 
+    AssertOrFailFast(!HasProfileInfo() || GetReadOnlyProfileInfo()->GetLoopCount() == GetJITFunctionBody()->GetLoopCount());
+    Js::RegSlot tmpResult;
+    AssertOrFailFast(!UInt32Math::Add(GetJITFunctionBody()->GetConstCount(), GetJITFunctionBody()->GetVarCount(), &tmpResult));
+    AssertOrFailFast(GetJITFunctionBody()->IsAsmJsMode() || GetJITFunctionBody()->GetFirstTmpReg() <= GetJITFunctionBody()->GetLocalsCount());
+    AssertOrFailFast(!IsLoopBody() || m_workItem->GetLoopNumber() < GetJITFunctionBody()->GetLoopCount());
+    AssertOrFailFast(CONFIG_FLAG(Prejit) || CONFIG_ISENABLED(Js::ForceNativeFlag) || GetJITFunctionBody()->GetByteCodeLength() < (uint)CONFIG_FLAG(MaxJITFunctionBytecodeByteLength));
+    GetJITFunctionBody()->EnsureConsistentConstCount();
+
     if (this->IsTopFunc())
     {
         outputData->hasJittedStackClosure = false;

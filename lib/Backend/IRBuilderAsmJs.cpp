@@ -27,7 +27,7 @@ IRBuilderAsmJs::Build()
     m_switchBuilder.Init(m_func, m_tempAlloc, true);
 
     m_firstVarConst = 0;
-    Js::RegSlot tempCount = 0;
+    m_tempCount = 0;
     m_firstsType[0] = m_firstVarConst + AsmJsRegSlots::RegCount;
     for (int i = 0, j = 1; i < WAsmJs::LIMIT; ++i, ++j)
     {
@@ -36,7 +36,7 @@ IRBuilderAsmJs::Build()
         m_firstsType[j] = typedInfo.constCount;
         m_firstsType[j + WAsmJs::LIMIT] = typedInfo.varCount;
         m_firstsType[j + 2 * WAsmJs::LIMIT] = typedInfo.tmpCount;
-        tempCount += typedInfo.tmpCount;
+        m_tempCount += typedInfo.tmpCount;
     }
     // Fixup the firsts by looking at the previous value
     for (int i = 1; i < m_firstsTypeCount; ++i)
@@ -66,10 +66,10 @@ IRBuilderAsmJs::Build()
     // we will be using lower space for type specialized syms, so bump up where new temp syms can be created
     m_func->m_symTable->IncreaseStartingID(m_firstIRTemp - m_func->m_symTable->GetMaxSymID());
 
-    if (tempCount > 0)
+    if (m_tempCount > 0)
     {
-        m_tempMap = (SymID*)m_tempAlloc->AllocZero(sizeof(SymID) * tempCount);
-        m_fbvTempUsed = BVFixed::New<JitArenaAllocator>(tempCount, m_tempAlloc);
+        m_tempMap = AnewArrayZ(m_tempAlloc, SymID, m_tempCount);
+        m_fbvTempUsed = BVFixed::New<JitArenaAllocator>(m_tempCount, m_tempAlloc);
     }
     else
     {
@@ -359,9 +359,10 @@ IRBuilderAsmJs::BuildIntConstOpnd(Js::RegSlot regSlot)
     Js::Var * constTable = (Js::Var*)m_func->GetJITFunctionBody()->GetConstTable();
     const WAsmJs::TypedSlotInfo& info = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetTypedSlotInfo(WAsmJs::INT32);
     Assert(info.constSrcByteOffset != Js::Constants::InvalidOffset);
+    AssertOrFailFast(info.constSrcByteOffset < UInt32Math::Mul<sizeof(Js::Var)>(m_func->GetJITFunctionBody()->GetConstCount()));
     int* intConstTable = reinterpret_cast<int*>(((byte*)constTable) + info.constSrcByteOffset);
     Js::RegSlot srcReg = GetTypedRegFromRegSlot(regSlot, WAsmJs::INT32);
-    Assert(srcReg >= Js::FunctionBody::FirstRegSlot && srcReg < info.constCount);
+    AssertOrFailFast(srcReg >= Js::FunctionBody::FirstRegSlot && srcReg < info.constCount);
     const int32 value = intConstTable[srcReg];
     IR::IntConstOpnd *opnd = IR::IntConstOpnd::New(value, TyInt32, m_func);
 
@@ -536,7 +537,9 @@ IRBuilderAsmJs::GetMappedTemp(Js::RegSlot reg)
     AssertMsg(RegIsTemp(reg), "Processing non-temp reg as a temp?");
     AssertMsg(m_tempMap, "Processing non-temp reg without a temp map?");
 
-    return m_tempMap[reg - GetFirstTmp(WAsmJs::FirstType)];
+    Js::RegSlot tempIndex = reg - GetFirstTmp(WAsmJs::FirstType);
+    AssertOrFailFast(tempIndex < m_tempCount);
+    return m_tempMap[tempIndex];
 }
 
 void
@@ -545,7 +548,9 @@ IRBuilderAsmJs::SetMappedTemp(Js::RegSlot reg, SymID tempId)
     AssertMsg(RegIsTemp(reg), "Processing non-temp reg as a temp?");
     AssertMsg(m_tempMap, "Processing non-temp reg without a temp map?");
 
-    m_tempMap[reg - GetFirstTmp(WAsmJs::FirstType)] = tempId;
+    Js::RegSlot tempIndex = reg - GetFirstTmp(WAsmJs::FirstType);
+    AssertOrFailFast(tempIndex < m_tempCount);
+    m_tempMap[tempIndex] = tempId;
 }
 
 BOOL
@@ -554,7 +559,9 @@ IRBuilderAsmJs::GetTempUsed(Js::RegSlot reg)
     AssertMsg(RegIsTemp(reg), "Processing non-temp reg as a temp?");
     AssertMsg(m_fbvTempUsed, "Processing non-temp reg without a used BV?");
 
-    return m_fbvTempUsed->Test(reg - GetFirstTmp(WAsmJs::FirstType));
+    Js::RegSlot tempIndex = reg - GetFirstTmp(WAsmJs::FirstType);
+    AssertOrFailFast(tempIndex < m_tempCount);
+    return m_fbvTempUsed->Test(tempIndex);
 }
 
 void
@@ -563,13 +570,15 @@ IRBuilderAsmJs::SetTempUsed(Js::RegSlot reg, BOOL used)
     AssertMsg(RegIsTemp(reg), "Processing non-temp reg as a temp?");
     AssertMsg(m_fbvTempUsed, "Processing non-temp reg without a used BV?");
 
+    Js::RegSlot tempIndex = reg - GetFirstTmp(WAsmJs::FirstType);
+    AssertOrFailFast(tempIndex < m_tempCount);
     if (used)
     {
-        m_fbvTempUsed->Set(reg - GetFirstTmp(WAsmJs::FirstType));
+        m_fbvTempUsed->Set(tempIndex);
     }
     else
     {
-        m_fbvTempUsed->Clear(reg - GetFirstTmp(WAsmJs::FirstType));
+        m_fbvTempUsed->Clear(tempIndex);
     }
 }
 
@@ -697,6 +706,8 @@ void IRBuilderAsmJs::CreateLoadConstInstrForType(
 )
 {
     T* typedTable = (T*)(table + byteOffset);
+    AssertOrFailFast(byteOffset < UInt32Math::Mul<sizeof(Js::Var)>(m_func->GetJITFunctionBody()->GetConstCount()));
+    AssertOrFailFast(AllocSizeMath::Add((size_t)typedTable, UInt32Math::Mul<sizeof(T)>(constCount)) <= (size_t)((Js::Var*)m_func->GetJITFunctionBody()->GetConstTable() + m_func->GetJITFunctionBody()->GetConstCount()));
     // 1 for return register
     ++regAllocated;
     ++typedTable;

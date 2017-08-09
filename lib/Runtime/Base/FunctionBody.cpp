@@ -948,6 +948,23 @@ namespace Js
             Js::ParseableFunctionInfo::NewDeferredFunctionFromFunctionBody(this);
         FunctionInfo * functionInfo = this->GetFunctionInfo();
 
+        this->RedeferFunctionObjectTypes();
+
+        this->Cleanup(false);
+        if (GetIsFuncRegistered())
+        {
+            this->GetUtf8SourceInfo()->RemoveFunctionBody(this);
+        }
+
+        // New allocation is done at this point, so update existing structures
+        // Adjust functionInfo attributes, point to new proxy
+        functionInfo->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
+        functionInfo->SetFunctionProxy(parseableFunctionInfo);
+        functionInfo->SetOriginalEntryPoint(DefaultEntryThunk);
+    }
+
+    void FunctionBody::RedeferFunctionObjectTypes()
+    {
         this->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
             Assert(functionType->GetTypeId() == TypeIds_Function);
@@ -961,18 +978,6 @@ namespace Js
                 functionType->GetEntryPointInfo()->jsMethod = GetScriptContext()->DeferredParsingThunk;
             }
         });
-
-        this->Cleanup(false);
-        if (GetIsFuncRegistered())
-        {
-            this->GetUtf8SourceInfo()->RemoveFunctionBody(this);
-        }
-
-        // New allocation is done at this point, so update existing structures
-        // Adjust functionInfo attributes, point to new proxy
-        functionInfo->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
-        functionInfo->SetFunctionProxy(parseableFunctionInfo);
-        functionInfo->SetOriginalEntryPoint(DefaultEntryThunk);
     }
 
     void FunctionBody::SetDefaultFunctionEntryPointInfo(FunctionEntryPointInfo* entryPointInfo, const JavascriptMethod originalEntryPoint)
@@ -1923,15 +1928,6 @@ namespace Js
 
         FunctionInfoArray nested = this->GetNestedFuncArray();
         nested[index] = nestedFunc;
-
-        if (nestedFunc)
-        {
-            if (!this->GetSourceContextInfo()->IsDynamic() && nestedFunc->IsDeferredParseFunction() && nestedFunc->GetParseableFunctionInfo()->GetIsDeclaration() && this->GetIsTopLevel() && !(flags & fscrEvalCode))
-            {
-                this->GetUtf8SourceInfo()->TrackDeferredFunction(nestedFunc->GetLocalFunctionId(), nestedFunc->GetParseableFunctionInfo());
-            }
-        }
-
     }
 
     FunctionInfo* ParseableFunctionInfo::GetNestedFunc(uint index)

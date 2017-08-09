@@ -3088,7 +3088,8 @@ namespace Js
 
         if (JavascriptArray::Is(pDestObj))
         {
-            pDestArray = JavascriptArray::FromVar(pDestObj);
+            // ConcatArgs function expects to work on the Var array so we are ensuring it.
+            pDestArray = EnsureNonNativeArray(JavascriptArray::FromVar(pDestObj));
         }
 
         T idxDest = startIdxDest;
@@ -3217,11 +3218,13 @@ namespace Js
                     ++idxDest;
                 }
             }
+
+            firstPromotedItemIsSpreadable = false;
         }
         if (!pDestArray)
         {
             JS_REENTRANT(jsReentLock, pDestObj->SetProperty(PropertyIds::length, ConvertToIndex<T, Var>(idxDest, scriptContext), Js::PropertyOperation_None, nullptr));
-       }
+        }
         else if (pDestArray->GetLength() != ConvertToIndex<T, uint32>(idxDest, scriptContext))
         {
             pDestArray->SetLength(ConvertToIndex<T, uint32>(idxDest, scriptContext));
@@ -5462,19 +5465,25 @@ Case0:
             }
 
             // During the loop below we are going to reverse the segments list. The head segment will become the last segment.
-            // We have to verify that the current head segment is not the inlined segement, otherwise due to shuffling below, the inlined segment will no longer
-            // be the head and that can create issue down the line. Create new segment if it is an inlined segment.
-            if (pArr->head && pArr->head->next)
+            // We have to verify that the current head segment is not the inilined segement, otherwise due to shuffling below (of EnsureHeadStartsFromZero call below), the inlined segment will no longer
+            // be the head and that can create issue down the line. Create new segment if it is an inilined segment.
+            if (pArr->head && (pArr->head->next || (pArr->head->left + pArr->head->length) < length))
             {
                 if (isIntArray)
                 {
                     CopyHeadIfInlinedHeadSegment<int32>(pArr, recycler);
-                    ReallocateNonLeafLastSegmentIfLeaf<int32>(pArr, recycler);
+                    if (pArr->head->next)
+                    {
+                        ReallocateNonLeafLastSegmentIfLeaf<int32>(pArr, recycler);
+                    }
                 }
                 else if (isFloatArray)
                 {
                     CopyHeadIfInlinedHeadSegment<double>(pArr, recycler);
-                    ReallocateNonLeafLastSegmentIfLeaf<double>(pArr, recycler);
+                    if (pArr->head->next)
+                    {
+                        ReallocateNonLeafLastSegmentIfLeaf<double>(pArr, recycler);
+                    }
                 }
                 else
                 {

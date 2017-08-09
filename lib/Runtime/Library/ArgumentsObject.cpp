@@ -60,7 +60,7 @@ namespace Js
             break;
         }
 
-        if (funcCaller == nullptr || JavascriptOperators::GetTypeId(funcCaller) == TypeIds_Null)
+        if (funcCaller == nullptr)
         {
             return scriptContext->GetLibrary()->GetNull();
         }

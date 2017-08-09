@@ -609,7 +609,8 @@ PHASE(All)
 #define DEFAULT_CONFIG_EnumerateSpecialPropertiesInDebugger (true)
 #endif
 
-#define DEFAULT_CONFIG_MaxJITFunctionBytecodeSize (120000)
+#define DEFAULT_CONFIG_MaxJITFunctionBytecodeByteLength (4800000)
+#define DEFAULT_CONFIG_MaxJITFunctionBytecodeCount (120000)
 
 #define DEFAULT_CONFIG_JitQueueThreshold      (6)
 
@@ -1243,7 +1244,8 @@ FLAGR(Number,   MinDeferredFuncTokenCount, "Minimum length in tokens of defer-pa
 #if DBG
 FLAGNR(Number,  SkipFuncCountForBailOnNoProfile,  "Initial Number of functions in a func body to be skipped from forcibly inserting BailOnNoProfile.", DEFAULT_CONFIG_SkipFuncCountForBailOnNoProfile)
 #endif
-FLAGNR(Number,  MaxJITFunctionBytecodeSize, "The biggest function we'll JIT (bytecode size)", DEFAULT_CONFIG_MaxJITFunctionBytecodeSize)
+FLAGNR(Number, MaxJITFunctionBytecodeByteLength, "The biggest function we'll JIT (bytecode bytelength)", DEFAULT_CONFIG_MaxJITFunctionBytecodeByteLength)
+FLAGNR(Number, MaxJITFunctionBytecodeCount, "The biggest function we'll JIT (bytecode count)", DEFAULT_CONFIG_MaxJITFunctionBytecodeCount)
 FLAGNR(Number,  MaxLoopsPerFunction   , "Maximum number of loops in any function in the script", DEFAULT_CONFIG_MaxLoopsPerFunction)
 FLAGNR(Number,  FuncObjectInlineCacheThreshold  , "Maximum number of inline caches a function body may have to allow for inline caches to be allocated on the function object", DEFAULT_CONFIG_FuncObjectInlineCacheThreshold)
 FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)

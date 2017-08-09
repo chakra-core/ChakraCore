@@ -3802,9 +3802,10 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
     int count=0;
     while (true)
     {
-        // the count of arguments has to fit in an unsigned short
-        if (count > 0xffffU)
+        if (count >= Js::Constants::MaxAllowedArgs)
+        {
             Error(ERRnoMemory);
+        }
         // Allow spread in argument lists.
         IdentToken token;
         pnodeArg = ParseExpr<buildAST>(koplCma, nullptr, TRUE, /* fAllowEllipsis */TRUE, NULL, nullptr, nullptr, &token);
@@ -5164,7 +5165,18 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             {
                 m_reparsingLambdaParams = true;
             }
+            DeferredFunctionStub *saveDeferredStub = nullptr;
+            if (buildAST)
+            {
+                // Don't try to make use of stubs while parsing formals. Issues with arrow functions, nested functions.
+                saveDeferredStub = m_currDeferredStub;
+                m_currDeferredStub = nullptr;
+            }
             this->ParseFncFormals<buildAST>(pnodeFnc, pnodeFncParent, flags);
+            if (buildAST)
+            {
+                m_currDeferredStub = saveDeferredStub;
+            }
             m_reparsingLambdaParams = fLambdaParamsSave;
         }
 
@@ -6300,9 +6312,9 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                         Assert(lexNode->IsVarLetOrConst());
                         UpdateOrCheckForDuplicateInFormals(lexNode->sxVar.pid, &formals);
                         lexNode->sxVar.sym->SetSymbolType(STFormal);
-                        if (m_currentNodeFunc != nullptr && lexNode->sxVar.pid == wellKnownPropertyPids.arguments)
+                        if (lexNode->sxVar.pid == wellKnownPropertyPids.arguments)
                         {
-                            m_currentNodeFunc->grfpn |= PNodeFlags::fpnArguments_overriddenInParam;
+                            GetCurrentFunctionNode()->grfpn |= PNodeFlags::fpnArguments_overriddenInParam;
                         }
                     }
 
@@ -7577,7 +7589,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
 
         // We are not able to pass more than a ushort worth of arguments to the tag
         // so use that as a logical limit on the number of string constant pieces.
-        if (stringConstantCount >= USHRT_MAX)
+        if (stringConstantCount >= Js::Constants::MaxAllowedArgs)
         {
             Error(ERRnoMemory);
         }
@@ -8842,19 +8854,19 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                 CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Let, m_scriptContext);
             }
 
-            if (pid == wellKnownPropertyPids.arguments && m_currentNodeFunc)
+            if (pid == wellKnownPropertyPids.arguments)
             {
                 // This var declaration may change the way an 'arguments' identifier in the function is resolved
                 if (declarationType == tkVAR)
                 {
-                    m_currentNodeFunc->grfpn |= PNodeFlags::fpnArguments_varDeclaration;
+                    GetCurrentFunctionNode()->grfpn |= PNodeFlags::fpnArguments_varDeclaration;
                 }
                 else
                 {
                     if (GetCurrentBlockInfo()->pnodeBlock->sxBlock.blockType == Function)
                     {
                         // Only override arguments if we are at the function block level.
-                        m_currentNodeFunc->grfpn |= PNodeFlags::fpnArguments_overriddenByDecl;
+                        GetCurrentFunctionNode()->grfpn |= PNodeFlags::fpnArguments_overriddenByDecl;
                     }
                 }
             }
