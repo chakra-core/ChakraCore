@@ -6208,7 +6208,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         {
             if (jitPageAddrToFuncRangeMap == nullptr)
             {
-                jitPageAddrToFuncRangeMap = HeapNew(JITPageAddrToFuncRangeMap, &HeapAllocator::Instance);
+                jitPageAddrToFuncRangeMap = HeapNew(JITPageAddrToFuncRangeMap, &HeapAllocator::Instance, 1027);
             }
 
             void * pageAddr = GetPageAddr(address);
@@ -6228,7 +6228,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         {
             if (largeJitFuncToSizeMap == nullptr)
             {
-                largeJitFuncToSizeMap = HeapNew(LargeJITFuncAddrToSizeMap, &HeapAllocator::Instance);
+                largeJitFuncToSizeMap = HeapNew(LargeJITFuncAddrToSizeMap, &HeapAllocator::Instance, 1027);
             }
 
             uint byteCount = 0;

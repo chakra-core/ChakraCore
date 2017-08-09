@@ -391,8 +391,8 @@ namespace Js
     {
     public:
         typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator> RangeMap;
-        typedef JsUtil::BaseDictionary<void *, RangeMap*, HeapAllocator> JITPageAddrToFuncRangeMap;
-        typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator> LargeJITFuncAddrToSizeMap;
+        typedef JsUtil::BaseDictionary<void *, RangeMap*, HeapAllocator, PrimeSizePolicy> JITPageAddrToFuncRangeMap;
+        typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator, PrimeSizePolicy> LargeJITFuncAddrToSizeMap;
 
     private:
         JITPageAddrToFuncRangeMap * jitPageAddrToFuncRangeMap;
