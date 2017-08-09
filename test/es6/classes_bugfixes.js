@@ -377,6 +377,55 @@ var tests = [
     }
   },
   {
+    name: "Issue3064: Caching conflict of super property access",
+    body: function () {
+        function Base() { }
+        Base.prototype = {
+            x: 15,
+            f() { return this.x; },
+        };
+
+        function Derived() {}
+        Derived.prototype = {
+            __proto__: Base.prototype,
+            x: 27,
+            f() {
+              var a = super.x;
+              var b = eval("super.x");
+              return this.x;
+           }
+        };
+
+        assert.areEqual(15, new Base().f());
+        assert.areEqual(27, new Derived().f());
+      }
+  },
+  {
+    name: "Issue3423: Repeated calls to class setter triggers assertion",
+    body: function () {
+        var result = "";
+        class B {
+            set x(v) { result += "Bset;"; this._x = v; }
+            get x() { result += "Bget;"; return this._x; }
+        }
+
+        class A extends B {
+            set x(v) { result += "Aset;"; super.x = v + 100; }
+            get x() { result += "Aget;"; return super.x; }
+        }
+
+        var a = new A();
+        a.x = 100;
+        assert.areEqual(200, a.x);
+        assert.areEqual("Aset;Bset;Aget;Bget;", result);
+
+        var a1 = new A();
+        a1.x = -100;
+        assert.areEqual(0, a1.x);
+        assert.areEqual("Aset;Bset;Aget;Bget;Aset;Bset;Aget;Bget;", result);
+      }
+  },
+  {
     name: "Issue3217: Reflect.construct permanently corrupts the invoked constructor",
     body: function () {
         function Base() {}
