@@ -65,6 +65,8 @@ namespace Js
         ProbeContainer* GetProbeContainer() const { return this->diagProbesContainer; }
         HostDebugContext * GetHostDebugContext() const { return this->hostDebugContext; }
 
+        bool GetIsReparsingSource() const { return this->isReparsingSource; }
+
     private:
         ScriptContext * scriptContext;
         HostDebugContext* hostDebugContext;
@@ -72,6 +74,7 @@ namespace Js
         DebuggerMode debuggerMode;
         bool isClosed : 1;
         bool isDebuggerRecording : 1;
+        bool isReparsingSource : 1;
 
         // Private Functions
         void WalkAndAddUtf8SourceInfo(Js::Utf8SourceInfo* sourceInfo, JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer> *utf8SourceInfoList);

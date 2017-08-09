@@ -2553,7 +2553,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     else if (instr->m_opcode == Js::OpCode::BrOnException || instr->m_opcode == Js::OpCode::BrOnNoException)
     {
         if (this->ProcessExceptionHandlingEdges(instr))
-        {
+            {
             *isInstrRemoved = true;
             return instrNext;
         }
@@ -3496,7 +3496,11 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
     if (val)
     {
         ValueType valueType(val->GetValueInfo()->Type());
-        if (valueType.IsLikelyNativeArray() && !valueType.IsObject() && instr->IsProfiledInstr())
+
+        // This block uses local profiling data to optimize the case of a native array being passed to a function that fills it with other types. When the function is inlined
+        // into different call paths which use different types this can cause a perf hit by performing unnecessary array conversions, so only perform this optimization when 
+        // the function is not inlined.
+        if (valueType.IsLikelyNativeArray() && !valueType.IsObject() && instr->IsProfiledInstr() && !instr->m_func->IsInlined())
         {
             // See if we have profile data for the array type
             IR::ProfiledInstr *const profiledInstr = instr->AsProfiledInstr();
@@ -17719,9 +17723,9 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
 
     Assert(finallyBlock && predBlock);
 
-    if (this->func->m_fg->FindEdge(predBlock, finallyBlock))
-    {
-        predBlock->RemoveDeadSucc(finallyBlock, this->func->m_fg);
+        if (this->func->m_fg->FindEdge(predBlock, finallyBlock))
+        {
+            predBlock->RemoveDeadSucc(finallyBlock, this->func->m_fg);
 
         if (instr->m_opcode == Js::OpCode::BrOnException)
         {
@@ -17745,11 +17749,11 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
             } NEXT_PREDECESSOR_BLOCK;
         }
 
-        if (predBlock == this->currentBlock)
-        {
-            predBlock->DecrementDataUseCount();
+            if (predBlock == this->currentBlock)
+            {
+                predBlock->DecrementDataUseCount();
+            }
         }
-    }
 
     return true;
 }

@@ -6,6 +6,96 @@
       "obj": "undefined undefined",
       "c": "undefined undefined"
     },
+    "scopes0": {
+      "arguments": "Object {...}",
+      "mm": "Array [22,33]",
+      "f1": "function function f1() {}",
+      "a": "number 10",
+      "b": "Object {...}",
+      "c1": "undefined undefined"
+    },
+    "globals": {
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "obj": "undefined undefined",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "mm": "Array [22,33]"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 3,
+        "column": 1,
+        "sourceText": "ex1",
+        "function": "eval code"
+      },
+      {
+        "line": 10,
+        "column": 4,
+        "sourceText": "eval(' try { \\n abc.def = 10;\\n } catch(ex1) { \\n ex1; /**bp:stack();locals(1);evaluate(\"ex1\");evaluate(\"c1\")**/ } \\nc;')",
+        "function": "foo"
+      },
+      {
+        "line": 13,
+        "column": 0,
+        "sourceText": "foo()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": {
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "obj": "undefined undefined",
+      "c": "undefined undefined"
+    },
+    "locals": {
+      "ex1": {
+        "#__proto__": "Error ",
+        "message": "string <large string>",
+        "description": "string <large string>",
+        "number": "number -2146823279",
+        "stack": "string <large string>"
+      }
+    },
+    "scopes0": {
+      "arguments": "Object {...}",
+      "mm": "Array [22,33]",
+      "f1": "function function f1() {}",
+      "a": "number 10",
+      "b": "Object {...}",
+      "c1": "Array [1]"
+    },
+    "globals": {
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "obj": "undefined undefined",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "ex1": "Error <large string>"
+    }
+  },
+  {
+    "evaluate": {
+      "c1": "Array [1]"
+    }
+  },
+  {
+    "this": {
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "obj": "undefined undefined",
+      "c": "undefined undefined"
+    },
     "locals": {
       "foo": {
         "#__proto__": "function <large string>",

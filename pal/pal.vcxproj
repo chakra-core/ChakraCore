@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props"/>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
   <ItemGroup>
     <None Include="inc\debugmacrosext.h" />
@@ -33,13 +33,8 @@
     <None Include="inc\rt\wincrypt.h" />
     <None Include="inc\safemath.h" />
     <None Include="inc\strsafe.h" />
-    <None Include="inc\unixasmmacrosarm.inc" />
     <None Include="inc\volatile.h" />
-    <None Include="src\arch\arm\asmconstants.h" />
-    <None Include="src\arch\arm\processor.cpp" />
     <None Include="src\arch\i386\asmconstants.h" />
-    <None Include="src\cruntime\runtime_proxy.cpp" />
-    <None Include="src\cruntime\runtime_proxy.h" />
     <None Include="src\exception\machexception.h" />
     <None Include="src\exception\machmessage.h" />
     <None Include="src\exception\signal.hpp" />
@@ -85,7 +80,6 @@
     <None Include="src\include\pal\utf8.h" />
     <None Include="src\include\pal\utils.h" />
     <None Include="src\include\pal\virtual.h" />
-    <None Include="src\locale\UnicodeData.txt" />
     <None Include="src\map\common.h" />
     <None Include="src\objmgr\palobjbase.hpp" />
     <None Include="src\objmgr\shmobject.hpp" />
@@ -204,8 +198,16 @@
     <ProjectGuid>{02D4FD92-AD34-40CA-85DF-4D6C7E3A1F22}</ProjectGuid>
     <RootNamespace>pal</RootNamespace>
   </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+  </PropertyGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')"/>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

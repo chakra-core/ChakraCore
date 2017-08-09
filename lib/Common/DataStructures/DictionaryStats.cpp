@@ -7,7 +7,7 @@
 #include "DictionaryStats.h"
 
 DictionaryType* DictionaryStats::dictionaryTypes = NULL;
-CRITICAL_SECTION DictionaryStats::dictionaryTypesCriticalSection;
+CriticalSection DictionaryStats::dictionaryTypesCriticalSection;
 
 DictionaryStats* DictionaryStats::Create(const char* name, uint bucketCount)
 {
@@ -49,11 +49,7 @@ DictionaryStats::DictionaryStats(const char* name, uint bucketCount)
     pNext(NULL),
     pName(NULL)
 {
-    if(dictionaryTypes == NULL)
-    {
-        InitializeCriticalSection(&DictionaryStats::dictionaryTypesCriticalSection);
-    }
-    EnterCriticalSection(&DictionaryStats::dictionaryTypesCriticalSection);
+    DictionaryStats::dictionaryTypesCriticalSection.Enter();
     DictionaryType* type = NULL;
     // See if we already created instance(s) of this type
     DictionaryType* current = dictionaryTypes;
@@ -77,7 +73,7 @@ DictionaryStats::DictionaryStats(const char* name, uint bucketCount)
         strncpy_s(type->name, name, _countof(type->name)-1);
         type->name[sizeof(type->name)-1]='\0';
     }
-    LeaveCriticalSection(&dictionaryTypesCriticalSection);
+    dictionaryTypesCriticalSection.Leave();
     // keep a pointer to the name in case we are asked to clone ourselves
     pName = type->name;
 
@@ -128,7 +124,7 @@ void DictionaryStats::OutputStats()
     if (!dictionaryTypes)
         return;
 
-    EnterCriticalSection(&DictionaryStats::dictionaryTypesCriticalSection);
+    DictionaryStats::dictionaryTypesCriticalSection.Enter();
     DictionaryType* current = dictionaryTypes;
     Output::Print(_u("PROFILE DICTIONARY\n"));
     Output::Print(_u("%8s  %13s  %13s  %13s  %13s  %13s  %13s  %13s  %14s  %14s  %13s  %13s  %13s    %s\n"), _u("Metric"),_u("StartSize"), _u("EndSize"), _u("Resizes"), _u("Items"), _u("MaxDepth"), _u("EmptyBuckets"), _u("Lookups"), _u("Collisions"), _u("AvgLookupDepth"), _u("AvgCollDepth"), _u("MaxLookupDepth"), _u("Instances"), _u("Type"));
@@ -208,8 +204,7 @@ void DictionaryStats::OutputStats()
     }
     Output::Print(_u("====================================================================================\n"));
     ClearStats();
-    LeaveCriticalSection(&DictionaryStats::dictionaryTypesCriticalSection);
-    DeleteCriticalSection(&DictionaryStats::dictionaryTypesCriticalSection);
+    DictionaryStats::dictionaryTypesCriticalSection.Leave();
 }
 
 void DictionaryStats::ComputeStats(uint input, double &total, double &max)

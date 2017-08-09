@@ -10,10 +10,7 @@ class RecyclerPageAllocator : public IdleDecommitPageAllocator
 {
 public:
     RecyclerPageAllocator(Recycler* recycler, AllocationPolicyManager * policyManager,
-#ifndef JD_PRIVATE
-        Js::ConfigFlagsTable& flagTable,
-#endif
-        uint maxFreePageCount, uint maxAllocPageCount = PageAllocator::DefaultMaxAllocPageCount, bool enableWriteBarrier = false);
+        Js::ConfigFlagsTable& flagTable, uint maxFreePageCount, uint maxAllocPageCount = PageAllocator::DefaultMaxAllocPageCount, bool enableWriteBarrier = false);
 #if ENABLE_CONCURRENT_GC
 #ifdef RECYCLER_WRITE_WATCH
     void EnableWriteWatch();

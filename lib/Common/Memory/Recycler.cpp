@@ -255,6 +255,9 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #if GLOBAL_ENABLE_WRITE_BARRIER
     , pendingWriteBarrierBlockMap(&HeapAllocator::Instance)
 #endif
+#ifdef PROFILE_RECYCLER_ALLOC
+    , trackerCriticalSection(nullptr)
+#endif
 {
 #ifdef RECYCLER_MARK_TRACK
     this->markMap = NoCheckHeapNew(MarkMap, &NoCheckHeapAllocator::Instance, 163, &markMapCriticalSection);
@@ -574,7 +577,7 @@ Recycler::~Recycler()
         });
         NoCheckHeapDelete(this->trackerDictionary);
         this->trackerDictionary = nullptr;
-        ::DeleteCriticalSection(&trackerCriticalSection);
+        delete(trackerCriticalSection);
     }
 #endif
 
@@ -4611,6 +4614,19 @@ Recycler::IsConcurrentSweepExecutingState() const
     return (collectionState & (Collection_ConcurrentSweep | Collection_ExecutingConcurrent)) == (Collection_ConcurrentSweep | Collection_ExecutingConcurrent);
 }
 
+
+BOOL
+Recycler::IsConcurrentSweepSetupState() const
+{
+    return (collectionState & CollectionStateSetupConcurrentSweep) == CollectionStateSetupConcurrentSweep;
+}
+
+BOOL
+Recycler::IsConcurrentSweepState() const
+{
+    return this->collectionState == CollectionStateConcurrentSweep;
+}
+
 BOOL
 Recycler::IsConcurrentState() const
 {
@@ -5655,45 +5671,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
     }
     else
     {
-        GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentTransferSwept));
-        GCETW(GC_FLUSHZEROPAGE_START, (this));
-
-        Assert(collectionState == CollectionStateTransferSweptWait);
-#ifdef RECYCLER_TRACE
-        PrintCollectTrace(Js::ConcurrentSweepPhase, true);
-#endif
-        collectionState = CollectionStateTransferSwept;
-
-#if ENABLE_BACKGROUND_PAGE_FREEING
-        if (CONFIG_FLAG(EnableBGFreeZero))
-        {
-            // We should have zeroed all the pages in the background thread
-            Assert(!recyclerPageAllocator.HasZeroQueuedPages());
-            Assert(!recyclerLargeBlockPageAllocator.HasZeroQueuedPages());
-            this->FlushBackgroundPages();
-        }
-#endif
-
-        GCETW(GC_FLUSHZEROPAGE_STOP, (this));
-        GCETW(GC_TRANSFERSWEPTOBJECTS_START, (this));
-
-        Assert(this->recyclerSweep != nullptr);
-        Assert(!this->recyclerSweep->IsBackground());
-#if ENABLE_PARTIAL_GC
-        if (this->inPartialCollectMode)
-        {
-            ConcurrentPartialTransferSweptObjects(*this->recyclerSweep);
-        }
-        else
-#endif
-        {
-            ConcurrentTransferSweptObjects(*this->recyclerSweep);
-        }
-        recyclerSweep->EndSweep();
-
-        GCETW(GC_TRANSFERSWEPTOBJECTS_STOP, (this));
-
-        GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentTransferSwept));
+        FinishTransferSwept(flags);
     }
 
     RECYCLER_PROFILE_EXEC_END2(this, concurrentPhase, Js::RecyclerPhase);
@@ -5713,6 +5691,50 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
     }
 
     return true;
+}
+
+void
+Recycler::FinishTransferSwept(CollectionFlags flags)
+{
+    GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentTransferSwept));
+    GCETW(GC_FLUSHZEROPAGE_START, (this));
+
+    Assert(collectionState == CollectionStateTransferSweptWait);
+#ifdef RECYCLER_TRACE
+    PrintCollectTrace(Js::ConcurrentSweepPhase, true);
+#endif
+    collectionState = CollectionStateTransferSwept;
+
+#if ENABLE_BACKGROUND_PAGE_FREEING
+    if (CONFIG_FLAG(EnableBGFreeZero))
+    {
+        // We should have zeroed all the pages in the background thread
+        Assert(!recyclerPageAllocator.HasZeroQueuedPages());
+        Assert(!recyclerLargeBlockPageAllocator.HasZeroQueuedPages());
+        this->FlushBackgroundPages();
+    }
+#endif
+
+    GCETW(GC_FLUSHZEROPAGE_STOP, (this));
+    GCETW(GC_TRANSFERSWEPTOBJECTS_START, (this));
+
+    Assert(this->recyclerSweep != nullptr);
+    Assert(!this->recyclerSweep->IsBackground());
+#if ENABLE_PARTIAL_GC
+    if (this->inPartialCollectMode)
+    {
+        ConcurrentPartialTransferSweptObjects(*this->recyclerSweep);
+    }
+    else
+#endif
+    {
+        ConcurrentTransferSweptObjects(*this->recyclerSweep);
+    }
+    recyclerSweep->EndSweep();
+
+    GCETW(GC_TRANSFERSWEPTOBJECTS_STOP, (this));
+
+    GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentTransferSwept));
 }
 
 #if !DISABLE_SEH
@@ -5802,7 +5824,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
     }
     else if (this->IsConcurrentMarkState())
     {
-        RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, this->collectionState == CollectionStateConcurrentFinishMark?
+        RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, this->collectionState == CollectionStateConcurrentFinishMark ?
             Js::BackgroundFinishMarkPhase : Js::ConcurrentMarkPhase);
         GCETW_INTERNAL(GC_START, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
         DebugOnly(this->markContext.GetPageAllocator()->SetConcurrentThreadId(::GetCurrentThreadId()));
@@ -5837,7 +5859,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
             break;
         };
         GCETW_INTERNAL(GC_STOP, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
-        RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, this->collectionState == CollectionStateConcurrentFinishMark?
+        RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, this->collectionState == CollectionStateConcurrentFinishMark ?
             Js::BackgroundFinishMarkPhase : Js::ConcurrentMarkPhase);
 
         this->collectionState = CollectionStateRescanWait;
@@ -5845,12 +5867,12 @@ Recycler::DoBackgroundWork(bool forceForeground)
     }
     else
     {
+        Assert(this->enableConcurrentSweep);
+        Assert(this->collectionState == CollectionStateConcurrentSweep);
+
         RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, Js::ConcurrentSweepPhase);
         GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep));
         GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
-
-        Assert(this->enableConcurrentSweep);
-        Assert(this->collectionState == CollectionStateConcurrentSweep);
 
 #if ENABLE_BACKGROUND_PAGE_ZEROING
         if (CONFIG_FLAG(EnableBGFreeZero))
@@ -5869,6 +5891,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
 
         Assert(this->recyclerSweep != nullptr);
         this->recyclerSweep->BackgroundSweep();
+
         uint sweptBytes = 0;
 #ifdef RECYCLER_STATS
         sweptBytes = (uint)collectionStats.objectSweptBytes;
@@ -5891,9 +5914,9 @@ Recycler::DoBackgroundWork(bool forceForeground)
         }
 #endif
         GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
-
         Assert(this->collectionState == CollectionStateConcurrentSweep);
         this->collectionState = CollectionStateTransferSweptWait;
+
         RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, Js::ConcurrentSweepPhase);
     }
 
@@ -6036,6 +6059,16 @@ Recycler::ThreadProc()
 }
 
 #endif //ENABLE_CONCURRENT_GC
+
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+void
+Recycler::FinishConcurrentSweep()
+{
+#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+    this->autoHeap.FinishConcurrentSweep();
+#endif
+}
+#endif
 
 void
 Recycler::FinishCollection(bool needConcurrentSweep)
@@ -7219,7 +7252,7 @@ void Recycler::VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size, ObjectI
         if (heapBlock->IsLargeHeapBlock())
         {
             LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
-            if (largeHeapBlock->InPageHeapMode() 
+            if (largeHeapBlock->InPageHeapMode()
 #ifdef RECYCLER_NO_PAGE_REUSE
                 && !largeHeapBlock->GetPageAllocator(this)->IsPageReuseDisabled()
 #endif
@@ -7584,9 +7617,8 @@ Recycler::InitializeProfileAllocTracker()
     if (DoProfileAllocTracker())
     {
         trackerDictionary = NoCheckHeapNew(TypeInfotoTrackerItemMap, &NoCheckHeapAllocator::Instance, 163);
-
+        trackerCriticalSection = new CriticalSection(1000);
 #pragma prefast(suppress:6031, "InitializeCriticalSectionAndSpinCount always succeed since Vista. No need to check return value");
-        InitializeCriticalSectionAndSpinCount(&trackerCriticalSection, 1000);
     }
 
     nextAllocData.Clear();
@@ -7669,9 +7701,9 @@ void* Recycler::TrackAlloc(void* object, size_t size, const TrackAllocData& trac
     if (this->trackerDictionary != nullptr)
     {
         Assert(nextAllocData.IsEmpty()); // should have been cleared
-        EnterCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Enter();
         TrackAllocCore(object, size, trackAllocData);
-        LeaveCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Leave();
     }
     return object;
 }
@@ -7682,7 +7714,7 @@ Recycler::TrackIntegrate(__in_ecount(blockSize) char * blockAddress, size_t bloc
     if (this->trackerDictionary != nullptr)
     {
         Assert(nextAllocData.IsEmpty()); // should have been cleared
-        EnterCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Enter();
 
         char * address = blockAddress;
         char * blockEnd = blockAddress + blockSize;
@@ -7692,7 +7724,7 @@ Recycler::TrackIntegrate(__in_ecount(blockSize) char * blockAddress, size_t bloc
             address += allocSize;
         }
 
-        LeaveCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Leave();
     }
 }
 
@@ -7700,7 +7732,7 @@ BOOL Recycler::TrackFree(const char* address, size_t size)
 {
     if (this->trackerDictionary != nullptr)
     {
-        EnterCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Enter();
         TrackerData * data = GetTrackerData((char *)address);
         if (data != nullptr)
         {
@@ -7732,7 +7764,7 @@ BOOL Recycler::TrackFree(const char* address, size_t size)
                 Assert(false);
             }
         }
-        LeaveCriticalSection(&trackerCriticalSection);
+        trackerCriticalSection->Leave();
     }
     return true;
 }
@@ -7761,14 +7793,14 @@ Recycler::TrackUnallocated(__in char* address, __in  char *endAddress, size_t si
     {
         if (this->trackerDictionary != nullptr)
         {
-            EnterCriticalSection(&trackerCriticalSection);
+            trackerCriticalSection->Enter();
             while (address + sizeCat <= endAddress)
             {
                 Assert(GetTrackerData(address) == nullptr);
                 SetTrackerData(address, &TrackerData::EmptyData);
                 address += sizeCat;
             }
-            LeaveCriticalSection(&trackerCriticalSection);
+            trackerCriticalSection->Leave();
         }
     }
 }
@@ -8005,7 +8037,7 @@ Recycler::VerifyMarkStack()
     }
 }
 
-bool 
+bool
 Recycler::VerifyMark(void * target)
 {
     return VerifyMark(nullptr, target);

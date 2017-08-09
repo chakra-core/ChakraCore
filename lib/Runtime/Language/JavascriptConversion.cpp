@@ -517,15 +517,15 @@ CommonNumber:
 
         if (hint == JavascriptHint::HintString)
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("string"));
+            hintString = requestContext->GetLibrary()->GetStringTypeDisplayString();
         }
         else if (hint == JavascriptHint::HintNumber)
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("number"));
+            hintString = requestContext->GetLibrary()->GetNumberTypeDisplayString();
         }
         else
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("default"));
+            hintString = requestContext->GetPropertyString(PropertyIds::default_);
         }
 
         // If exoticToPrim is not undefined, then

@@ -1035,37 +1035,18 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
 
     int length = propertyName.GetLength();
     uint bytelength = sizeof(char16) * length;
-
-    uint32 indexVal = 0;
-
-    // Symbol properties cannot be numeric since their description is not to be used!
-    bool isNumeric = !isSymbol && Js::PropertyRecord::IsPropertyNameNumeric(propertyName.GetBuffer(), propertyName.GetLength(), &indexVal);
-
-    uint hash = JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(propertyName.GetBuffer(), propertyName.GetLength());
-
-    size_t allocLength = bytelength + sizeof(char16) + (isNumeric ? sizeof(uint32) : 0);
+    size_t allocLength = bytelength + sizeof(char16) + ( (!isSymbol && length <= 10 && length > 0) ? sizeof(uint32) : 0);
 
     // If it's bound, create it in the thread arena, along with a fake weak ref
     Js::PropertyRecord * propertyRecord;
     if (bind)
     {
-        propertyRecord = AnewPlus(GetThreadAlloc(), allocLength, Js::PropertyRecord, bytelength, isNumeric, hash, isSymbol);
+        propertyRecord = AnewPlus(GetThreadAlloc(), allocLength, Js::PropertyRecord, propertyName.GetBuffer(), length, bytelength, isSymbol);
         propertyRecord->isBound = true;
     }
     else
     {
-        propertyRecord = RecyclerNewFinalizedLeafPlus(recycler, allocLength, Js::PropertyRecord, bytelength, isNumeric, hash, isSymbol);
-    }
-
-    // Copy string and numeric info
-    char16* buffer = (char16 *)(propertyRecord + 1);
-    js_memcpy_s(buffer, bytelength, propertyName.GetBuffer(), bytelength);
-    buffer[length] = _u('\0');
-
-    if (isNumeric)
-    {
-        *(uint32 *)(buffer + length + 1) = indexVal;
-        Assert(propertyRecord->GetNumericValue() == indexVal);
+        propertyRecord = RecyclerNewFinalizedLeafPlus(recycler, allocLength, Js::PropertyRecord, propertyName.GetBuffer(), length, bytelength, isSymbol);
     }
 
     Js::PropertyId propertyId = this->GetNextPropertyId();
@@ -1735,6 +1716,13 @@ ThreadContext::ProbeStack(size_t size, Js::ScriptContext *scriptContext, PVOID r
 {
     this->ProbeStackNoDispose(size, scriptContext, returnAddress);
 
+#if PERFMAP_TRACE_ENABLED
+    if (PlatformAgnostic::PerfTrace::mapsRequested)
+    {
+        PlatformAgnostic::PerfTrace::WritePerfMap();
+    }
+#endif
+
     // BACKGROUND-GC TODO: If we're stuck purely in JITted code, we should have the
     // background GC thread modify the threads stack limit to trigger the runtime stack probe
     if (this->callDispose && this->recycler->NeedDispose())
@@ -2199,8 +2187,13 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
         lastRecord->hasReentered = true;
         record->next = lastRecord;
 
-        // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
-        if (!IsOnStack(lastRecord) || (uintptr_t)record >= (uintptr_t)lastRecord)
+        // these are on stack, which grows down. if this condition doesn't hold,
+        // then the list somehow got messed up
+        if (
+#if defined(JSRT_VERIFY_RUNTIME_STATE) || defined(DEBUG)
+        !IsOnStack(lastRecord) ||
+#endif
+        (uintptr_t)record >= (uintptr_t)lastRecord)
         {
             EntryExitRecord_Corrupted_fatal_error();
         }
@@ -2213,9 +2206,14 @@ void ThreadContext::PopEntryExitRecord(Js::ScriptEntryExitRecord * record)
 {
     AssertMsg(record && record == this->entryExitRecord, "Mismatch script entry/exit");
 
-    // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
+    // these are on stack, which grows down. if this condition doesn't hold,
+    // then the list somehow got messed up
     Js::ScriptEntryExitRecord * next = this->entryExitRecord->next;
-    if (next && (!IsOnStack(next) || (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
+    if (next && (
+#if defined(JSRT_VERIFY_RUNTIME_STATE) || defined(DEBUG)
+        !IsOnStack(next) ||
+#endif
+    (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
     {
         EntryExitRecord_Corrupted_fatal_error();
     }
@@ -2997,7 +2995,7 @@ ThreadContext::TryEnterExpirableCollectMode()
             Js::JavascriptFunction* javascriptFunction = nullptr;
             while (walker.GetCallerWithoutInlinedFrames(&javascriptFunction))
             {
-                if (javascriptFunction != nullptr && Js::ScriptFunction::Is(javascriptFunction))
+                if (javascriptFunction != nullptr && Js::ScriptFunction::Test(javascriptFunction))
                 {
                     Js::ScriptFunction* scriptFunction = (Js::ScriptFunction*) javascriptFunction;
                     Js::FunctionEntryPointInfo* entryPointInfo =  scriptFunction->GetFunctionEntryPointInfo();
@@ -3634,7 +3632,7 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
         while (stackWalker.GetCaller(&caller, /*includeInlineFrames*/ false))
         {
             // If the current frame is already from a bailout - we do not need to do on stack invalidation
-            if (caller != nullptr && Js::ScriptFunction::Is(caller) && !stackWalker.GetCurrentFrameFromBailout())
+            if (caller != nullptr && Js::ScriptFunction::Test(caller) && !stackWalker.GetCurrentFrameFromBailout())
             {
                 BYTE dummy;
                 Js::FunctionEntryPointInfo* functionEntryPoint = caller->GetFunctionBody()->GetDefaultFunctionEntryPointInfo();
@@ -4645,6 +4643,7 @@ Js::DelayLoadWinRtRoParameterizedIID* ThreadContext::GetWinRTRoParameterizedIIDL
 #endif
 
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_ES6_CHAR_CLASSIFIER)
+#ifdef INTL_WINGLOB
 Js::WindowsGlobalizationAdapter* ThreadContext::GetWindowsGlobalizationAdapter()
 {
     return &windowsGlobalizationAdapter;
@@ -4656,6 +4655,7 @@ Js::DelayLoadWindowsGlobalization* ThreadContext::GetWindowsGlobalizationLibrary
 
     return &delayLoadWindowsGlobalizationLibrary;
 }
+#endif // INTL_WINGLOB
 #endif
 
 #ifdef ENABLE_FOUNDATION_OBJECT

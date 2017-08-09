@@ -2,6 +2,14 @@
 <regress-exe>
   <test>
     <default>
+      <files>Basics.js</files>
+      <tags>Intl,exclude_winglob</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+
+  <test>
+    <default>
       <files>Collator.js</files>
       <tags>Intl,exclude_winglob</tags>
     </default>

@@ -1598,6 +1598,23 @@ LHexError:
         return scriptContext->GetLibrary()->GetUndefined();
     }
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    Var GlobalObject::EntryChWriteTraceEvent(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        if (args.Info.Count < 2)
+        {
+            return function->GetScriptContext()->GetLibrary()->GetUndefined();
+        }
+
+        Js::JavascriptString* jsString = Js::JavascriptConversion::ToString(args[1], function->GetScriptContext());
+        PlatformAgnostic::EventTrace::FireGenericEventTrace(jsString->GetSz());
+        return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+#endif
+
 #if ENABLE_TTD
     //Log a string in the telemetry system (and print to the console)
     Var GlobalObject::EntryTelemetryLog(RecyclableObject* function, CallInfo callInfo, ...)

@@ -19,7 +19,7 @@
 #pragma warning(pop)
 #endif
 
-// Minimal definitions to use AssertMsg in the PAIL
+// Minimal definitions to use AssertMsg in the PAL
 #ifndef _WIN32
 #define DbgRaiseAssertionFailure() __builtin_trap()
 #define __analysis_assume(x)

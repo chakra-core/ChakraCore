@@ -548,7 +548,7 @@ public:
 
     JsTypeValueInfo(const JsTypeValueInfo& other)
         : ValueInfo(Uninitialized, ValueStructureKind::JsType),
-        jsType(other.jsType), jsTypeSet(other.jsTypeSet)
+        jsType(other.jsType), jsTypeSet(other.jsTypeSet), isShared(false)
     {
     }
 
@@ -576,9 +576,7 @@ public:
 public:
     JsTypeValueInfo * Copy(JitArenaAllocator *const allocator) const
     {
-        JsTypeValueInfo * newInfo = JitAnew(allocator, JsTypeValueInfo, *this);
-        newInfo->isShared = false;
-        return newInfo;
+        return JitAnew(allocator, JsTypeValueInfo, *this);
     }
 
     JITTypeHolder GetJsType() const

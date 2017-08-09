@@ -4,16 +4,25 @@
     <ClCompile Include="Platform\Windows\UnicodeText.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Platform\Windows\EventTrace.cpp">
+      <Filter>Platform\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="Platform\Windows\DaylightHelper.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="Platform\Windows\DateTime.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Platform\Windows\PerfTrace.cpp">
+      <Filter>Platform\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="Platform\Linux\UnicodeText.ICU.cpp">
       <Filter>Platform\Linux</Filter>
     </ClCompile>
     <ClCompile Include="Platform\Linux\DateTime.cpp">
+      <Filter>Platform\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Linux\PerfTrace.cpp">
       <Filter>Platform\Linux</Filter>
     </ClCompile>
     <ClCompile Include="RuntimePlatformAgnosticPch.cpp" />
@@ -39,5 +48,11 @@
     </ClInclude>
     <ClInclude Include="ChakraPlatform.h" />
     <ClInclude Include="RuntimePlatformAgnosticPch.h" />
+    <ClInclude Include="EventTrace.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="PerfTrace.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

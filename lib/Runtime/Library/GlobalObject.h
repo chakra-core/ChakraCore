@@ -58,6 +58,10 @@ namespace Js
             static FunctionInfo EmitTTDLog;
 #endif
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+            static FunctionInfo ChWriteTraceEvent;
+#endif
+
 #ifdef IR_VIEWER
             static FunctionInfo ParseIR;
             static FunctionInfo FunctionList;
@@ -85,6 +89,10 @@ namespace Js
 
         static Var EntryEnabledDiagnosticsTrace(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryEmitTTDLog(RecyclableObject* function, CallInfo callInfo, ...);
+#endif
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        static Var EntryChWriteTraceEvent(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
 
 #ifdef IR_VIEWER

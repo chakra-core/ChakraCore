@@ -428,21 +428,66 @@ LblDone:
         return JavascriptNumber::ToVar(uValue >> (nShift & 0x1F), scriptContext);
     }
 
-    void TaggedInt::ToBuffer(Var aValue, __out_ecount_z(bufSize) char16 * buffer, uint bufSize)
+    int TaggedInt::ToBuffer(Var aValue, __out_ecount_z(bufSize) char16 * buffer, uint bufSize)
     {
         return ToBuffer(ToInt32(aValue), buffer, bufSize);
     }
 
-    void TaggedInt::ToBuffer(int value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize)
+    // fills the buffer from the end and returns the start index
+    static int UnsignedToString(unsigned long value, char16 *buffer, int bufferSize)
     {
-        Assert(bufSize > 10);
-        _itow_s(value, buffer, bufSize, 10);
+        static_assert(sizeof(unsigned long) <= 8, "This method may not support the target architecture");
+        AssertMsg(bufferSize >= 22, "Error: bufferSize is too small. value may not be represented properly");
+
+        buffer[bufferSize - 1] = char16(0);
+        int pos = bufferSize - 2;
+        while(value > 9)
+        {
+            const int val100 = value % 100;
+            value /= 100;
+
+            if (val100 < 10)
+            {
+                buffer[pos--] = _u('0') + static_cast<char>(val100);
+                buffer[pos--] = _u('0');
+                continue;
+            }
+
+            buffer[pos--] = _u('0') + static_cast<char>(val100 % 10);
+            buffer[pos--] = _u('0') + static_cast<char>(val100 / 10);
+        }
+
+        if (value && value < 10)
+        {
+            buffer[pos--] = _u('0') + static_cast<char>(value);
+        }
+        else if (pos == bufferSize - 2) // if it was 0
+        {
+            buffer[pos--] = _u('0');
+        }
+
+        return pos + 1;
     }
 
-    void TaggedInt::ToBuffer(uint value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize)
+    static int SignedToString(long value, char16 *buffer, int bufferSize)
     {
-        Assert(bufSize > 10);
-        _ultow_s(value, buffer, bufSize, 10);
+        bool neg = value < 0;
+        unsigned long val = (unsigned long) (neg ? -1 * value : value);
+        int pos = UnsignedToString(val, buffer, bufferSize);
+        if (neg) buffer[--pos] = _u('-');
+        return pos;
+    }
+
+    int TaggedInt::ToBuffer(int value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize)
+    {
+        Assert(bufSize >= 22);
+        return SignedToString(value, buffer, bufSize);
+    }
+
+    int TaggedInt::ToBuffer(uint value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize)
+    {
+        Assert(bufSize >= 22);
+        return UnsignedToString(value, buffer, bufSize);
     }
 
     JavascriptString* TaggedInt::ToString(Var aValue,ScriptContext* scriptContext)
@@ -452,17 +497,18 @@ LblDone:
 
     JavascriptString* TaggedInt::ToString(int value, ScriptContext* scriptContext)
     {
-        char16 szBuffer[20];
-        ToBuffer(value, szBuffer, _countof(szBuffer));
+        char16 szBuffer[22];
+        int pos = ToBuffer(value, szBuffer, _countof(szBuffer));
 
-        return JavascriptString::NewCopySz(szBuffer, scriptContext);
+        return JavascriptString::NewCopyBuffer(szBuffer + pos, (_countof(szBuffer) - 1) - pos, scriptContext);
     }
+
     JavascriptString* TaggedInt::ToString(uint value, ScriptContext* scriptContext)
     {
-        char16 szBuffer[20];
-        ToBuffer(value, szBuffer, _countof(szBuffer));
+        char16 szBuffer[22];
+        int pos = ToBuffer(value, szBuffer, _countof(szBuffer));
 
-        return JavascriptString::NewCopySz(szBuffer, scriptContext);
+        return JavascriptString::NewCopyBuffer(szBuffer + pos, (_countof(szBuffer) - 1) - pos, scriptContext);
     }
 
     Var TaggedInt::NegateUnchecked(Var aValue)

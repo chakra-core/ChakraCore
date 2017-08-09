@@ -16,7 +16,14 @@ namespace Js
 
     bool ScriptFunctionBase::Is(Var func)
     {
-        return ScriptFunction::Is(func) || JavascriptGeneratorFunction::Is(func) || JavascriptAsyncFunction::Is(func);
+        if (JavascriptFunction::Is(func))
+        {
+            JavascriptFunction *function = JavascriptFunction::FromVar(func);
+            return ScriptFunction::Test(function) || JavascriptGeneratorFunction::Test(function)
+                || JavascriptAsyncFunction::Test(function);
+        }
+
+        return false;
     }
 
     ScriptFunctionBase * ScriptFunctionBase::FromVar(Var func)
@@ -225,17 +232,17 @@ namespace Js
             entryPointInfo->jsMethod = entryPoint;
         }
 
-        ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
-        if (oldEntryPointInfo
-            && oldEntryPointInfo != entryPointInfo
-            && oldEntryPointInfo->SupportsExpiration())
-        {
-            // The old entry point could be executing so we need root it to make sure
-            // it isn't prematurely collected. The rooting is done by queuing it up on the threadContext
-            ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+            ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
+            if (oldEntryPointInfo
+                && oldEntryPointInfo != entryPointInfo
+                && oldEntryPointInfo->SupportsExpiration())
+            {
+                // The old entry point could be executing so we need root it to make sure
+                // it isn't prematurely collected. The rooting is done by queuing it up on the threadContext
+                ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
 
-            threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
-        }
+                threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
+            }
 
         this->GetScriptFunctionType()->SetEntryPointInfo(entryPointInfo);
     }

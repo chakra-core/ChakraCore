@@ -43,6 +43,7 @@ namespace Js
 
         PropertyRecord(DWORD bytelength, bool isNumeric, uint hash, bool isSymbol);
         PropertyRecord(PropertyId pid, uint hash, bool isNumeric, DWORD byteCount, bool isSymbol);
+        PropertyRecord(const WCHAR* buffer, const int length, DWORD bytelength, bool isSymbol);
         PropertyRecord() { Assert(false); } // never used, needed by compiler for BuiltInPropertyRecord
 
         static bool IsPropertyNameNumeric(const char16* str, int length, uint32* intVal);

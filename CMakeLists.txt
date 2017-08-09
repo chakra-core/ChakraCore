@@ -137,10 +137,15 @@ if(ICU_INCLUDE_PATH)
       if (NOT ICUDATA)
           set(ICUDATA "")
       endif()
+      find_library(ICUTOOLS icutools PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+      if (NOT ICUTOOLS)
+          set(ICUTOOLS "")
+      endif()
       set(ICULIB
         ${ICUUC}
         ${ICU18}
         ${ICUDATA}
+        ${ICUTOOLS}
         )
     endif()
 endif()
@@ -164,9 +169,12 @@ elseif(CC_TARGETS_ARM)
     add_definitions(-D__arm__)
     add_definitions(-D_M_IX86_OR_ARM32)
     add_definitions(-D_M_ARM32_OR_ARM64)
-  if(CC_TARGET_OS_OSX)
-    add_compile_options(-arch arm)
-  endif()
+    if(CC_TARGET_OS_OSX)
+        add_compile_options(-arch arm)
+    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        # reduce link time memory usage
+        set(LINKER_REDUCED_MEMORY "-Xlinker --no-keep-memory")
+    endif()
 else()
     clr_unknown_arch()
 endif()
@@ -385,10 +393,21 @@ else()
     set(BuildJIT 1)
 endif()
 
+if(INTL_ICU_SH)
+    unset(INTL_ICU_SH CACHE)    # don't cache
+    add_definitions(-DINTL_ICU=1)
+    set(IntlICU 1)
+endif()
+
 if(WITHOUT_FEATURES_SH)
-    unset(WITHOUT_FEATURES_SH CACHE)    # don't cache
     add_definitions(${WITHOUT_FEATURES_SH})
+    unset(WITHOUT_FEATURES_SH CACHE)    # don't cache
 endif(WITHOUT_FEATURES_SH)
+
+if(EXTRA_DEFINES_SH)
+    add_definitions(${EXTRA_DEFINES_SH})
+    unset(EXTRA_DEFINES_SH CACHE)    #don't cache
+endif(EXTRA_DEFINES_SH)
 
 enable_language(ASM)
 
