@@ -469,12 +469,7 @@ void WasmBinaryReader::ValidateModuleHeader()
 
     if (CONFIG_FLAG(WasmCheckVersion))
     {
-        // Accept version 0xd to avoid problem in our test infrastructure
-        // We should eventually remove support for 0xd.
-        // The Assert is here as a reminder in case we change the binary version and we haven't removed 0xd support yet
-        CompileAssert(binaryVersion == 0x1);
-
-        if (version != binaryVersion && version != 0xd)
+        if (version != binaryVersion)
         {
             ThrowDecodingError(_u("Invalid WASM version!"));
         }
