@@ -33,7 +33,7 @@ namespace JsUtil
             return StaticGetHashCode(string, len);
         }
 
-        int FastHash() const
+        hash_t FastHash() const
         {
             Assert(string != nullptr);
             return InternalGetHashCode<true>(string, len);
@@ -49,18 +49,15 @@ namespace JsUtil
 
         static bool StaticEquals(__in_z T const * s1, __in_z T const* s2, __in charcount_t length);
 
-        static int StaticGetHashCode(__in_z T const * s, __in charcount_t length)
+        static hash_t StaticGetHashCode(__in_z T const * s, __in charcount_t length)
         {
             return InternalGetHashCode<false>(s, length);
         }
 
-        // This must be identical to Trident's getHash function in fastDOMCompiler.pl
         template <bool fastHash>
-        static int InternalGetHashCode(__in_z T const * s, __in charcount_t length)
+        static hash_t InternalGetHashCode(__in_z T const * s, __in charcount_t length)
         {
-            // TODO: This hash performs poorly on small strings, consider finding a better hash function
-            // now that some type handlers hash by string instead of PropertyId.
-            int hash = 0;
+            hash_t hash = CC_HASH_OFFSET_VALUE;
             charcount_t hashLength = length;
             if (fastHash)
             {

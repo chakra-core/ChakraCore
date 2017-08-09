@@ -114,9 +114,11 @@ struct RecyclerPointerComparer
     }
 };
 
+// FNV-1a hash -> https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
+#define CC_HASH_OFFSET_VALUE 2166136261
 #define CC_HASH_LOGIC(hash, byte) \
-    hash  = _rotl(hash, 7);        \
-    hash ^= byte;
+    hash ^= byte;                 \
+    hash *= 16777619
 
 template <>
 struct DefaultComparer<GUID>
@@ -129,7 +131,7 @@ struct DefaultComparer<GUID>
      inline static hash_t GetHashCode(GUID const& guid)
      {
         char* p = (char*)&guid;
-        int hash = 0;
+        hash_t hash = CC_HASH_OFFSET_VALUE;
         for (int i = 0; i < sizeof(GUID); i++)
         {
             CC_HASH_LOGIC(hash, (uint32)(p[i]));
@@ -148,7 +150,7 @@ struct StringComparer
 
     inline static hash_t GetHashCode(T str)
     {
-        int hash = 0;
+        hash_t hash = CC_HASH_OFFSET_VALUE;
         while (*str)
         {
             CC_HASH_LOGIC(hash, *str);
