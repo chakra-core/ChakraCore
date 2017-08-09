@@ -1431,13 +1431,7 @@ private:
     public:
         Js::PropertyId GetEmptyStringPropertyId()
         {
-            if (emptyStringPropertyId == Js::PropertyIds::_none)
-            {
-                Js::PropertyRecord const * propertyRecord;
-                this->GetOrAddPropertyRecord(_u(""), 0, &propertyRecord);
-                emptyStringPropertyId = propertyRecord->GetPropertyId();
-            }
-            return emptyStringPropertyId;
+            return threadContext->GetEmptyStringPropertyId();
         }
 
         void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);
