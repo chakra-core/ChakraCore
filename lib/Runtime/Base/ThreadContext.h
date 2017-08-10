@@ -1802,7 +1802,7 @@ public:
             AssertOrFailFast(false);
         }
     }
-
+    void RequireExplicitCompletion() { m_explicitCompletion = true; }
     void Completed() { m_operationCompleted = true; }
 
 private:

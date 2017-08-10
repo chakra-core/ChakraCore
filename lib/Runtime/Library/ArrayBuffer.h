@@ -159,7 +159,7 @@ namespace Js
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
-        virtual ArrayBufferDetachedStateBase* DetachAndGetState();
+        ArrayBufferDetachedStateBase* DetachAndGetState();
         virtual uint32 GetByteLength() const override { return bufferLength; }
         virtual BYTE* GetBuffer() const override { return buffer; }
 
@@ -185,6 +185,7 @@ namespace Js
 
         virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) = 0;
     protected:
+        void Detach();
 
         typedef void __cdecl FreeFn(void* ptr);
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) = 0;
