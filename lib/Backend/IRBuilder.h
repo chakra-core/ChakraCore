@@ -225,7 +225,9 @@ private:
         AssertMsg(this->RegIsTemp(reg), "Processing non-temp reg as a temp?");
         AssertMsg(this->tempMap, "Processing non-temp reg without a temp map?");
 
-        return this->tempMap[reg - this->firstTemp];
+        Js::RegSlot tempIndex = reg - this->firstTemp;
+        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
+        return this->tempMap[tempIndex];
     }
 
     void                SetMappedTemp(Js::RegSlot reg, SymID tempId)
@@ -233,7 +235,9 @@ private:
         AssertMsg(this->RegIsTemp(reg), "Processing non-temp reg as a temp?");
         AssertMsg(this->tempMap, "Processing non-temp reg without a temp map?");
 
-        this->tempMap[reg - this->firstTemp] = tempId;
+        Js::RegSlot tempIndex = reg - this->firstTemp;
+        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
+        this->tempMap[tempIndex] = tempId;
     }
 
     BOOL                GetTempUsed(Js::RegSlot reg)
@@ -241,7 +245,9 @@ private:
         AssertMsg(this->RegIsTemp(reg), "Processing non-temp reg as a temp?");
         AssertMsg(this->fbvTempUsed, "Processing non-temp reg without a used BV?");
 
-        return this->fbvTempUsed->Test(reg - this->firstTemp);
+        Js::RegSlot tempIndex = reg - this->firstTemp;
+        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
+        return this->fbvTempUsed->Test(tempIndex);
     }
 
     void                SetTempUsed(Js::RegSlot reg, BOOL used)
@@ -249,13 +255,15 @@ private:
         AssertMsg(this->RegIsTemp(reg), "Processing non-temp reg as a temp?");
         AssertMsg(this->fbvTempUsed, "Processing non-temp reg without a used BV?");
 
+        Js::RegSlot tempIndex = reg - this->firstTemp;
+        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
         if (used)
         {
-            this->fbvTempUsed->Set(reg - this->firstTemp);
+            this->fbvTempUsed->Set(tempIndex);
         }
         else
         {
-            this->fbvTempUsed->Clear(reg - this->firstTemp);
+            this->fbvTempUsed->Clear(tempIndex);
         }
     }
 

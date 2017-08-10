@@ -11,7 +11,7 @@ class ServerThreadContext : public ThreadContextInfo
 public:
     typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
 
-    ServerThreadContext(ThreadContextDataIDL * data);
+    ServerThreadContext(ThreadContextDataIDL * data, HANDLE processHandle);
     ~ServerThreadContext();
 
     virtual HANDLE GetProcessHandle() const override;
@@ -56,18 +56,10 @@ public:
 
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
-    intptr_t GetJITCRTBaseAddress() const;
+
+    static intptr_t GetJITCRTBaseAddress();
 
 private:
-
-    class AutoCloseHandle
-    {
-    public:
-        AutoCloseHandle(HANDLE handle) : handle(handle) { Assert(handle != GetCurrentProcess()); }
-        ~AutoCloseHandle() { CloseHandle(this->handle); }
-    private:
-        HANDLE handle;
-    };
 
     AutoCloseHandle m_autoProcessHandle;
 

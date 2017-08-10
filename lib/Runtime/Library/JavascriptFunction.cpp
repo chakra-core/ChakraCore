@@ -613,13 +613,20 @@ namespace Js
         /// Check Argument[0] has internal [[Call]] property
         /// If not, throw TypeError
         ///
-        if (args.Info.Count == 0 || !JavascriptConversion::IsCallable(args[0]))
+        uint argCount = args.Info.Count;
+        if (callInfo.Flags & CallFlags_ExtraArg)
+        {
+            // The last argument is the "extra". Don't consider it in the logic below.
+            // It will either remain in place (argCount == 1) or be copied.
+            argCount--;
+        }
+        if (argCount == 0 || !JavascriptConversion::IsCallable(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.call"));
         }
 
         RecyclableObject *pFunc = RecyclableObject::FromVar(args[0]);
-        if (args.Info.Count == 1)
+        if (argCount == 1)
         {
             args.Values[0] = scriptContext->GetLibrary()->GetUndefined();
         }
@@ -2711,12 +2718,14 @@ LABEL1:
                 break;
             }
 
-            if (funcCaller->GetScriptContext() != requestContext && funcCaller->GetTypeId() == TypeIds_Null)
+            if (funcCaller == nullptr)
             {
-                // There are cases where StackWalker might return null value from different scriptContext
-                // Caller of this function expects nullValue from the requestContext.
+                // We no longer return Null objects as JavascriptFunctions, so we don't have to worry about
+                // cross-context null objects. We do want to clean up null pointers though, since some call
+                // later in this function may depend on non-nullptr calls.
                 funcCaller = nullValue;
             }
+
             if (ScriptFunction::Is(funcCaller))
             {
                 // If this is the internal function of a generator function then return the original generator function

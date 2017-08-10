@@ -28,7 +28,6 @@ public:
     Js::ArgSlot GetArgCount() const;
     Js::ArgSlot GetArgByteSize() const;
     Js::AsmJsRetType::Which GetRetType() const;
-    Js::AsmJsVarType::Which * GetArgTypeArray() const;
     Js::AsmJsVarType::Which GetArgType(Js::ArgSlot argNum) const;
 
 #ifdef ENABLE_WASM
@@ -40,6 +39,7 @@ public:
     bool AccessNeedsBoundCheck(uint offset) const;
 
 private:
+    Js::AsmJsVarType::Which * GetArgTypeArray() const;
     AsmJsDataIDL m_data;
 #endif
 };

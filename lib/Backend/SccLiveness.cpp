@@ -490,7 +490,7 @@ SCCLiveness::ProcessBailOutUses(IR::Instr * instr)
     // lifetimes wouldn't have been extended beyond the bailout point (InlineeEnd extends the lifetimes)
     // Extend argument lifetimes up to the bail out point to allow LinearScan::SpillInlineeArgs to spill
     // inlinee args.
-    if ((instr->GetBailOutKind() == IR::BailOutOnNoProfile) && !instr->m_func->IsTopFunc())
+    if (instr->HasBailOnNoProfile() && !instr->m_func->IsTopFunc())
     {
         Func * inlinee = instr->m_func;
         while (!inlinee->IsTopFunc())

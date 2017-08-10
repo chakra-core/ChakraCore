@@ -62,7 +62,7 @@ namespace Js
 
         if (fnc.HasNonSimpleParameterList())
         {
-            return m.Fail(fn, _u("default & rest args not allowed"));
+            return m.Fail(fn, _u("default, rest & destructuring args not allowed"));
         }
 
         if (fnc.IsStaticMember())
@@ -88,6 +88,11 @@ namespace Js
         if (!isGlobal && fnc.nestedCount != 0)
         {
             return m.Fail(fn, _u("closure functions are not allowed"));
+        }
+
+        if (!fnc.IsAsmJsAllowed())
+        {
+            return m.Fail(fn, _u("invalid function flags detected"));
         }
 
         return true;
@@ -765,7 +770,7 @@ namespace Js
                 }
                 else if (decl->nop != knopConstDecl && decl->nop != knopVarDecl)
                 {
-                    break;
+                    goto varDeclEnd;
                 }
 
                 if (decl->sxVar.pnodeInit && decl->sxVar.pnodeInit->nop == knopArray)

@@ -4,6 +4,7 @@
   <PropertyGroup>
     <NtTargetVersion_Win7 >0x601</NtTargetVersion_Win7>
     <NtTargetVersion_Win8 >0x602</NtTargetVersion_Win8>
+    <NtTargetVersion_WinBlue>0x603</NtTargetVersion_WinBlue>
     <NtTargetVersion_Win10>0xA00</NtTargetVersion_Win10>
   </PropertyGroup>
 

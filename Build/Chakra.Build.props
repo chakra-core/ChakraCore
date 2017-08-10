@@ -4,6 +4,7 @@
   <PropertyGroup>
     <Win32_WinNTVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win7)'">0x0601</Win32_WinNTVersion>
     <Win32_WinNTVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win8)'">0x0602</Win32_WinNTVersion>
+    <Win32_WinNTVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_WinBlue)'">0x0603</Win32_WinNTVersion>
     <Win32_WinNTVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win10)'">0x0A00</Win32_WinNTVersion>
 
     <!-- Always use Platform SDK for core builds -->

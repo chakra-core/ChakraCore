@@ -368,6 +368,18 @@ public:
     bool CanBeDeferred() const { return canBeDeferred; }
     bool IsBodyAndParamScopeMerged() { return isBodyAndParamScopeMerged; }
     bool FIBPreventsDeferral() const { return fibPreventsDeferral; }
+    // Only allow the normal functions to be asm.js
+    bool IsAsmJsAllowed() const { return (fncFlags & ~(
+        kFunctionAsmjsMode |
+        kFunctionNested |
+        kFunctionDeclaration |
+        kFunctionStrictMode |
+        kFunctionNameIsHidden |
+        kFunctionHasReferenceableBuiltInArguments |
+        kFunctionHasNonThisStmt |
+        // todo:: we shouldn't accept kFunctionHasAnyWriteToFormals on the asm module, but it looks like a bug is setting that flag incorrectly
+        kFunctionHasAnyWriteToFormals
+    )) == 0; }
 
     size_t LengthInBytes()
     {

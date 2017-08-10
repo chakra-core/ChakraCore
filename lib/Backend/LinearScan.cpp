@@ -3632,7 +3632,7 @@ void LinearScan::TrackInlineeArgLifetimes(IR::Instr* instr)
             Assert(this->currentBlock->inlineeStack.Count() == 0);
         }
     }
-    else if (instr->m_opcode == Js::OpCode::InlineeEnd)
+    else if (instr->m_opcode == Js::OpCode::InlineeEnd || instr->HasBailOnNoProfile())
     {
         if (instr->m_func->m_hasInlineArgsOpt)
         {

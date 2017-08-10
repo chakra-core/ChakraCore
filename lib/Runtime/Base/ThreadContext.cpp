@@ -1964,20 +1964,18 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
         return true;
     }
 
-    ThreadContextDataIDL contextData;
-    HANDLE serverHandle = JITManager::GetJITManager()->GetServerHandle();
-
-    HANDLE jitTargetHandle = nullptr;
-    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), serverHandle, &jitTargetHandle, 0, FALSE, DUPLICATE_SAME_ACCESS))
+#ifdef USE_RPC_HANDLE_MARSHALLING
+    HANDLE processHandle;
+    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &processHandle, 0, false, DUPLICATE_SAME_ACCESS))
     {
         return false;
     }
+    AutoCloseHandle autoClose(processHandle);
+#endif
 
-    contextData.processHandle = (intptr_t)jitTargetHandle;
-
+    ThreadContextDataIDL contextData;
     contextData.chakraBaseAddress = (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr();
-    ucrtC99MathApis.Ensure();
-    contextData.crtBaseAddress = (intptr_t)ucrtC99MathApis.GetHandle();
+    contextData.crtBaseAddress = (intptr_t)AutoSystemInfo::GetCRTHandle();
     contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
     contextData.bailOutRegisterSaveSpaceAddr = (intptr_t)bailOutRegisterSaveSpace;
     contextData.disableImplicitFlagsAddr = (intptr_t)GetAddressOfDisableImplicitFlags();
@@ -2000,7 +1998,14 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
         }
     }
 
-    HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr, &m_jitThunkStartAddr);
+    HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(
+        &contextData,
+#ifdef USE_RPC_HANDLE_MARSHALLING
+        processHandle,
+#endif
+        &m_remoteThreadContextInfo,
+        &m_prereservedRegionAddr,
+        &m_jitThunkStartAddr);
     JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
 
     return m_remoteThreadContextInfo != nullptr;

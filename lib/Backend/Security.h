@@ -8,9 +8,12 @@ class Security
 {
 private:
     Func *func;
+    IR::RegOpnd * basePlusCookieOpnd;
+    IR::IntConstOpnd * cookieOpnd;
+    IR::RegOpnd * baseOpnd;
 
 public:
-    Security(Func * func) : func(func) {}
+    Security(Func * func) : func(func), basePlusCookieOpnd(nullptr), cookieOpnd(nullptr), baseOpnd(nullptr) { }
 
     void            EncodeLargeConstants();
     void            InsertNOPs();
@@ -18,16 +21,32 @@ public:
     static void     InsertRandomFunctionPad(IR::Instr * instrBeforeInstr);
 
 private:
-    void            EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd);
-    IntConstType    EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue, IR::RegOpnd ** pNewOpnd);
-#ifdef _M_X64
-    size_t          EncodeAddress(IR::Instr *instr, IR::Opnd *opnd, size_t value, IR::RegOpnd **pNewOpnd);
+    bool            EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd);
+    uint            CalculateConstSize(IR::Opnd *opnd);
+    IntConstType    EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue, _Out_ IR::RegOpnd ** pNewOpnd);
+#if TARGET_64
+    size_t          EncodeAddress(IR::Instr *instr, IR::Opnd *opnd, size_t value, _Out_ IR::RegOpnd **pNewOpnd);
 #endif
+    static IR::IntConstOpnd * BuildCookieOpnd(IRType type, Func * func);
 
-    // Large constants have more than 16 significant bits.
-    // Constants except these are considered large: 0x0000????, 0xffff????, 0x????0000, 0x????ffff
-    static bool     IsLargeConstant(int32 value) { return static_cast<int16>(value) != 0 && static_cast<int16>(value) != -1 && (value >> 16) != 0 && (value >> 16) != -1; }
-    static bool     IsLargeConstant(int64 value) { return IsLargeConstant((int32)value) || IsLargeConstant((int32)(value >> 16)) || IsLargeConstant((int32)(value >> 32)); }
+    template<typename T> static uint GetByteCount(T value)
+    {
+        uint byteCount = 0;
+        for (uint i = 0; i < sizeof(T); ++i)
+        {
+            if (IsByteSet(value, i))
+            {
+                ++byteCount;
+            }
+        }
+        return byteCount;
+    }
+
+    template<typename T> static bool IsByteSet(T value, uint32 index)
+    {
+        const byte byteValue = (byte)(value >> (index * MachBits));
+        return byteValue != 0 && byteValue != 0xFF;
+    }
 
     void            InsertNOPBefore(IR::Instr *instr);
     int             GetNextNOPInsertPoint();

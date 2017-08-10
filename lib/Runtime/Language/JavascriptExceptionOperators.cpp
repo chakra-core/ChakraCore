@@ -970,7 +970,7 @@ namespace Js
     // We might be trying to raise a stack overflow exception from the interpreter before
     // we've executed code in the current script stack frame. In that case the current byte
     // code offset is 0. In such cases walk to the caller's caller.
-    BOOL JavascriptExceptionOperators::GetCaller(JavascriptStackWalker& walker, JavascriptFunction*& jsFunc)
+    BOOL JavascriptExceptionOperators::GetCaller(JavascriptStackWalker& walker, _Out_opt_ JavascriptFunction*& jsFunc)
     {
         if (! walker.GetCaller(&jsFunc))
         {

@@ -98,6 +98,7 @@ public:
     bool CanInlineRecursively(uint depth, bool tryAggressive = true) const;
     bool NeedScopeObjectForArguments(bool hasNonSimpleParams) const;
     bool GetDoScopeObjectCreation() const;
+    void EnsureConsistentConstCount() const;
 
     const byte * GetByteCodeBuffer() const;
     StatementMapIDL * GetFullStatementMap() const;

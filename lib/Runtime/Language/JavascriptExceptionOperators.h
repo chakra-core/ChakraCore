@@ -97,7 +97,7 @@ namespace Js
             uint64 stackCrawlLimit, PVOID returnAddress, bool isThrownException, bool resetStack = false);
 
         static void ThrowExceptionObjectInternal(Js::JavascriptExceptionObject * exceptionObject, ScriptContext* scriptContext, bool fillExceptionContext, bool considerPassingToDebugger, PVOID returnAddress, bool resetStack);
-        static BOOL GetCaller(JavascriptStackWalker& walker, JavascriptFunction*& jsFunc);
+        static BOOL GetCaller(JavascriptStackWalker& walker, _Out_opt_ JavascriptFunction*& jsFunc);
         static void DumpStackTrace(JavascriptExceptionContext& exceptionContext, bool isThrownException = true);
         static JavascriptExceptionContext::StackTrace* TrimStackTraceForThrownObject(JavascriptExceptionContext::StackTrace* stackTraceOriginal, Var thrownObject, ScriptContext& scriptContext);
         static void AppendExternalFrameToStackTrace(CompoundString* bs, LPCWSTR functionName, LPCWSTR fileName, ULONG lineNumber, LONG characterPosition);

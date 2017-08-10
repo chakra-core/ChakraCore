@@ -2641,6 +2641,7 @@ namespace Js
 
         bool DoRedeferFunction(uint inactiveThreshold) const;
         void RedeferFunction();
+        void RedeferFunctionObjectTypes();
         bool IsActiveFunction(ActiveFunctionSet * pActiveFuncs) const;
         bool TestAndUpdateActiveFunctions(ActiveFunctionSet * pActiveFuncs) const;
         void UpdateActiveFunctionSet(ActiveFunctionSet * pActiveFuncs, FunctionCodeGenRuntimeData *callSiteData) const;
@@ -3729,6 +3730,8 @@ namespace Js
             if (this->pfi != nullptr && this->pfi->GetFunctionInfo()->GetFunctionProxy() != this->pfi)
             {
                 FunctionInfo *functionInfo = this->pfi->GetFunctionInfo();
+                FunctionBody *functionBody = functionInfo->GetFunctionProxy()->GetFunctionBody();
+                functionBody->RedeferFunctionObjectTypes();
                 functionInfo->SetAttributes(
                     (FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
                 functionInfo->SetFunctionProxy(this->pfi);

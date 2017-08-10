@@ -685,17 +685,22 @@ namespace Js
             if (args.Info.Flags & CallFlags_ExtraArg)
             {
                 JavascriptFunction* pfuncCaller = nullptr;
-                JavascriptStackWalker::GetCaller(&pfuncCaller, scriptContext);
                 // If we are non-hidden call to eval then look for the "this" object in the frame display if the caller is a lambda else get "this" from the caller's frame.
 
+                bool successful = false;
+                if (JavascriptStackWalker::GetCaller(&pfuncCaller, scriptContext))
+                {
                 FunctionInfo* functionInfo = pfuncCaller->GetFunctionInfo();
                 if (functionInfo != nullptr && (functionInfo->IsLambda() || functionInfo->IsClassConstructor()))
                 {
                     Var defaultInstance = (moduleID == kmodGlobal) ? JavascriptOperators::OP_LdRoot(scriptContext)->ToThis() : (Var)JavascriptOperators::GetModuleRoot(moduleID, scriptContext);
                     varThis = JavascriptOperators::OP_GetThisScoped(environment, defaultInstance, scriptContext);
                     UpdateThisForEval(varThis, moduleID, scriptContext, strictMode);
+                        successful = true;
                 }
-                else
+                }
+
+                if (!successful)
                 {
                     JavascriptStackWalker::GetThis(&varThis, moduleID, scriptContext);
                     UpdateThisForEval(varThis, moduleID, scriptContext, strictMode);
@@ -792,7 +797,7 @@ namespace Js
             ArenaAllocator tempAlloc(_u("ValidateSyntaxArena"), scriptContext->GetThreadContext()->GetPageAllocator(), Throw::OutOfMemory);
 
             size_t cchSource = sourceLength;
-            size_t cbUtf8Buffer = (cchSource + 1) * 3;
+            size_t cbUtf8Buffer = UInt32Math::AddMul<1, 3>(sourceLength);
             LPUTF8 utf8Source = AnewArray(&tempAlloc, utf8char_t, cbUtf8Buffer);
             Assert(cchSource < MAXLONG);
             size_t cbSource = utf8::EncodeIntoAndNullTerminate(utf8Source, source, static_cast< charcount_t >(cchSource));
@@ -864,7 +869,7 @@ namespace Js
         BEGIN_TRANSLATE_EXCEPTION_TO_HRESULT
         {
             uint cchSource = sourceLength;
-            size_t cbUtf8Buffer = (cchSource + 1) * 3;
+            size_t cbUtf8Buffer = UInt32Math::AddMul<1, 3>(cchSource);
 
             ArenaAllocator tempArena(_u("EvalHelperArena"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory);
             LPUTF8 utf8Source = AnewArray(&tempArena, utf8char_t, cbUtf8Buffer);
@@ -1024,7 +1029,7 @@ namespace Js
         BEGIN_TRANSLATE_EXCEPTION_TO_HRESULT
         {
             size_t cchSource = sourceLength;
-            size_t cbUtf8Buffer = (cchSource + 1) * 3;
+            size_t cbUtf8Buffer = UInt32Math::AddMul<1, 3>(sourceLength);
 
             ArenaAllocator tempArena(_u("EvalHelperArena"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory);
             LPUTF8 utf8Source = AnewArray(&tempArena, utf8char_t, cbUtf8Buffer);

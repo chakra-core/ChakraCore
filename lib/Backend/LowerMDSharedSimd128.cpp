@@ -390,7 +390,7 @@ IR::Instr* LowererMD::Simd128LoadConst(IR::Instr* instr)
 #if DBG
             NativeCodeData::GetDataDescription(pValue, m_func->m_alloc),
 #endif
-            m_func);
+            m_func, true);
 
         GetLowerer()->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
     }

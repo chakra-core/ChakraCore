@@ -2936,7 +2936,8 @@ namespace Js
         newInstance->m_reader.Create(funcObj->GetFunctionBody());
         // now that we have set up the new frame, let's interpret it!
         funcObj->GetFunctionBody()->BeginExecution();
-        PushPopFrameHelper(newInstance, _ReturnAddress(), _AddressOfReturnAddress());
+
+        PushPopFrameHelper pushPopFrameHelper(newInstance, this->returnAddress, this->addressOfReturnAddress);
         Var retVal = newInstance->ProcessUnprofiled();
 
         if (doProfile)

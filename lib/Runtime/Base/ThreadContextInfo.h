@@ -121,10 +121,16 @@ public:
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
 #endif
 
-    UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
 protected:
-
-    UCrtC99MathApis ucrtC99MathApis;
+    class AutoCloseHandle
+    {
+    public:
+        AutoCloseHandle(HANDLE handle) : handle(handle) { Assert(this->handle != GetCurrentProcess()); }
+        ~AutoCloseHandle() { CloseHandle(this->handle); }
+        HANDLE GetHandle() const { return this->handle; }
+    private:
+        HANDLE handle;
+    };
 
     Js::TypeId wellKnownHostTypeIds[WellKnownHostType_Last + 1];
 
