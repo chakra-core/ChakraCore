@@ -79,7 +79,8 @@ public:
     WebAssemblyTable * CreateTable() const;
     bool HasTable() const { return m_hasTable; }
     bool HasTableImport() const { return m_tableImport != nullptr; }
-    bool IsValidTableImport(const WebAssemblyTable * table) const;
+    uint32 GetTableInitSize() const { return m_tableInitSize; }
+    uint32 GetTableMaxSize() const { return m_tableMaxSize; }
 
     uint GetWasmFunctionCount() const;
     Wasm::WasmFunctionInfo* AddWasmFunctionInfo(Wasm::WasmSignature* funsig);

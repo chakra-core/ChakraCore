@@ -45,13 +45,13 @@ Test 9 passed. Expected Error: TypeError: BufferSource expected
 Test 10 passed. Expected Error: TypeError: Object expected
 Test 11 passed. Expected Error: TypeError: Object expected
 Test 12 passed. Expected Error: TypeError: Object expected
-Test 13 passed. Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
-Test 14 passed. Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
+Test 13 passed. Expected Error: TypeError: Import module 'test' is invalid
+Test 14 passed. Expected Error: TypeError: Import module 'test' is invalid
 Test 15 passed. Expected Error: TypeError: Object expected
 Test 16 passed. Expected Error: TypeError: Object expected
 Test 17 passed. Expected Error: TypeError: Object expected
-Test 18 passed. Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
-Test 19 passed. Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
+Test 18 passed. Expected Error: TypeError: Import module 'test' is invalid
+Test 19 passed. Expected Error: TypeError: Import module 'test' is invalid
 Testing module
 exports
 [{"kind":"function", "name":"fn"}, {"kind":"global", "name":"g1"}, {"kind":"function", "name":"f1"}, {"kind":"global", "name":"g2"}, {"kind":"table", "name":"table"}, {"kind":"function", "name":"fn2"}, {"kind":"function", "name":"call_i32"}, {"kind":"memory", "name":"mem"}, {"kind":"function", "name":"call_f32"}, {"kind":"global", "name":"g3"}, {"kind":"function", "name":"load"}]
@@ -125,16 +125,16 @@ Test 1 passed. Expected Error: TypeError: WebAssembly.Instance: cannot be called
 Test 2 passed. Expected Error: TypeError: Object expected
 Test 3 passed. Expected Error: TypeError: Object expected
 Test 4 passed. Expected Error: TypeError: Object expected
-Test 5 passed. Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
-Test 6 passed. Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
-Test 7 passed. Expected Error: LinkError: Function expected
+Test 5 passed. Expected Error: TypeError: Import module 'test' is invalid
+Test 6 passed. Expected Error: TypeError: Import module 'test' is invalid
+Test 7 passed. Expected Error: LinkError: Import 'test.fn' is invalid. Expected type Function
 Test 8 passed. Expected Error: LinkError: Cannot link import test.fn.Thunk[0]()->i32 to fn2()->f32 in link table due to a signature mismatch
-Test 9 passed. Expected Error: LinkError: WebAssembly.Memory object expected
-Test 10 passed. Expected Error: LinkError: WebAssembly.Memory object expected
-Test 11 passed. Expected Error: LinkError: WebAssembly.Memory object expected
-Test 12 passed. Expected Error: LinkError: WebAssembly.Table object expected
-Test 13 passed. Expected Error: LinkError: WebAssembly.Table object expected
-Test 14 passed. Expected Error: LinkError: WebAssembly.Table object expected
+Test 9 passed. Expected Error: LinkError: Import 'test.memory' is invalid. Expected type WebAssembly.Memory
+Test 10 passed. Expected Error: LinkError: Import 'test.memory' is invalid. Expected type WebAssembly.Memory
+Test 11 passed. Expected Error: LinkError: Import 'test.memory' is invalid. Expected type WebAssembly.Memory
+Test 12 passed. Expected Error: LinkError: Import 'table.' is invalid. Expected type WebAssembly.Table
+Test 13 passed. Expected Error: LinkError: Import 'table.' is invalid. Expected type WebAssembly.Table
+Test 14 passed. Expected Error: LinkError: Import 'table.' is invalid. Expected type WebAssembly.Table
 Testing instance
 f1: 5
 fn: 1
