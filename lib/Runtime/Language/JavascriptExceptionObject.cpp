@@ -7,6 +7,11 @@
 
 namespace Js
 {
+#if DBG
+    uint JavascriptExceptionObject::oomExceptionCount = 0;
+    uint JavascriptExceptionObject::soExceptionCount = 0;
+#endif
+
     void JavascriptExceptionObject::FillError(Js::JavascriptExceptionContext& exceptionContext, ScriptContext *scriptContext, HostWrapperCreateFuncType hostWrapperCreateFunc)
     {
         this->scriptContext  = scriptContext;

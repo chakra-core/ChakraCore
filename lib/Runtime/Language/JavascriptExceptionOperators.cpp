@@ -1030,6 +1030,7 @@ namespace Js
 
     void JavascriptExceptionOperators::ThrowOutOfMemory(ScriptContext *scriptContext)
     {
+        DebugOnly(++JavascriptExceptionObject::oomExceptionCount);
         ThreadContext *threadContext = scriptContext ?
             scriptContext->GetThreadContext() :
             ThreadContext::GetContextForCurrentThread();
@@ -1043,6 +1044,7 @@ namespace Js
     void JavascriptExceptionOperators::ThrowStackOverflow(ScriptContext *scriptContext, PVOID returnAddress)
     {
         Assert(scriptContext);
+        DebugOnly(++JavascriptExceptionObject::soExceptionCount);
 
         ThreadContext *threadContext = scriptContext->GetThreadContext();
         JavascriptExceptionObject *so = threadContext->GetPendingSOErrorObject();

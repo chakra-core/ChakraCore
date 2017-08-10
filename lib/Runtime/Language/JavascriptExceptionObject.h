@@ -195,6 +195,12 @@ namespace Js
         Field(JavascriptExceptionObject*) next;  // to temporarily store list of throwing exceptions
 
         PREVENT_COPY(JavascriptExceptionObject)
+    public:
+#if DBG
+        // Count how many Out of Memory and Stack overflow exceptions happened during the execution
+        static uint oomExceptionCount;
+        static uint soExceptionCount;
+#endif
     };
 
     class GeneratorReturnExceptionObject : public JavascriptExceptionObject
