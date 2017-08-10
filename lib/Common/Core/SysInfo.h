@@ -49,6 +49,7 @@ public:
     static DWORD SaveModuleFileName(HANDLE hMod);
     static LPCWSTR GetJscriptDllFileName();
     static HRESULT GetJscriptFileVersion(DWORD* majorVersion, DWORD* minorVersion, DWORD *buildDateHash = nullptr, DWORD *buildTimeHash = nullptr);
+    static HMODULE GetCRTHandle();
 #if DBG
     static bool IsInitialized();
 #endif

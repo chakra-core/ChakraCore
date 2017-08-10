@@ -31,10 +31,11 @@ public:
     void SetJITFailed(HRESULT hr);
     bool HasJITFailed() const;
 
-    HANDLE GetServerHandle() const;
-
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
+#ifdef USE_RPC_HANDLE_MARSHALLING
+        __in HANDLE processHandle,
+#endif
         __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __out intptr_t * prereservedRegionAddr,
         __out intptr_t * jitThunkAddr);
@@ -123,7 +124,6 @@ private:
         __out RPC_BINDING_HANDLE* bindingHandle);
 
     RPC_BINDING_HANDLE m_rpcBindingHandle;
-    HANDLE m_serverHandle;
     UUID m_jitConnectionId;
     bool m_oopJitEnabled;
     bool m_isJITServer;
@@ -147,13 +147,11 @@ public:
     void EnableOOPJIT() { Assert(false); }
     void SetJITFailed(HRESULT hr) { Assert(false); }
 
-    HANDLE GetServerHandle() const
-    {
-        Assert(false); return HANDLE();
-    }
-
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
+#ifdef USE_RPC_HANDLE_MARSHALLING
+        __in HANDLE processHandle,
+#endif
         __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __out intptr_t *prereservedRegionAddr,
         __out intptr_t * jitThunkAddr)

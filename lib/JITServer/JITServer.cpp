@@ -193,6 +193,9 @@ HRESULT
 ServerInitializeThreadContext(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in ThreadContextDataIDL * threadContextData,
+#ifdef USE_RPC_HANDLE_MARSHALLING
+    /* [in] */ __RPC__in HANDLE processHandle,
+#endif
     /* [out] */ __RPC__deref_out_opt PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
     /* [out] */ __RPC__out intptr_t *prereservedRegionAddr,
     /* [out] */ __RPC__out intptr_t *jitThunkAddr)
@@ -208,45 +211,53 @@ ServerInitializeThreadContext(
     *jitThunkAddr = 0;
 
     ServerThreadContext * contextInfo = nullptr;
+
+    DWORD clientPid;
+    HRESULT hr = HRESULT_FROM_WIN32(I_RpcBindingInqLocalClientPID(binding, &clientPid));
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+#ifdef USE_RPC_HANDLE_MARSHALLING
+    HANDLE targetHandle;
+    if (!DuplicateHandle(GetCurrentProcess(), processHandle, GetCurrentProcess(), &targetHandle, 0, false, DUPLICATE_SAME_ACCESS))
+    {
+        return E_ACCESSDENIED;
+    }
+#else
+    HANDLE targetHandle = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_LIMITED_INFORMATION, false, clientPid);
+    if (!targetHandle)
+    {
+        return E_ACCESSDENIED;
+    }
+#endif
     try
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory));
-        contextInfo = HeapNew(ServerThreadContext, threadContextData);
+        contextInfo = HeapNew(ServerThreadContext, threadContextData, targetHandle);
         ServerContextManager::RegisterThreadContext(contextInfo);
     }
     catch (Js::OutOfMemoryException)
     {
-        CloseHandle((HANDLE)threadContextData->processHandle);
+        CloseHandle(targetHandle);
         return E_OUTOFMEMORY;
     }
 
     return ServerCallWrapper(contextInfo, [&]()->HRESULT
     {
-        RPC_CALL_ATTRIBUTES CallAttributes = { 0 };
-
-        CallAttributes.Version = RPC_CALL_ATTRIBUTES_VERSION;
-        CallAttributes.Flags = RPC_QUERY_CLIENT_PID;
-        HRESULT hr = HRESULT_FROM_WIN32(RpcServerInqCallAttributes(binding, &CallAttributes));
-        if (FAILED(hr))
-        {
-            return hr;
-        }
-        if (CallAttributes.ClientPID != (HANDLE)contextInfo->GetRuntimePid())
+        if (clientPid != contextInfo->GetRuntimePid())
         {
             return E_ACCESSDENIED;
         }
-        hr = CheckModuleAddress(contextInfo->GetProcessHandle(), (LPCVOID)contextInfo->GetRuntimeChakraBaseAddress(), (LPCVOID)AutoSystemInfo::Data.dllLoadAddress);
+        hr = CheckModuleAddress(targetHandle, (LPCVOID)contextInfo->GetRuntimeChakraBaseAddress(), (LPCVOID)AutoSystemInfo::Data.dllLoadAddress);
         if (FAILED(hr))
         {
             return hr;
         }
-        if (contextInfo->GetUCrtC99MathApis()->IsAvailable())
+        hr = CheckModuleAddress(targetHandle, (LPCVOID)contextInfo->GetRuntimeCRTBaseAddress(), (LPCVOID)contextInfo->GetJITCRTBaseAddress());
+        if (FAILED(hr))
         {
-            hr = CheckModuleAddress(contextInfo->GetProcessHandle(), (LPCVOID)contextInfo->GetRuntimeCRTBaseAddress(), (LPCVOID)contextInfo->GetJITCRTBaseAddress());
-            if (FAILED(hr))
-            {
-                return hr;
-            }
+            return hr;
         }
 
         *threadContextInfoAddress = (PTHREADCONTEXT_HANDLE)EncodePointer(contextInfo);

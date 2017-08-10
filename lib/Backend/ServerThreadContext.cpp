@@ -8,18 +8,18 @@
 #if ENABLE_OOP_NATIVE_CODEGEN
 #include "JITServer/JITServer.h"
 
-ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
-    m_autoProcessHandle((HANDLE)data->processHandle),
+ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data, HANDLE processHandle) :
+    m_autoProcessHandle(processHandle),
     m_threadContextData(*data),
     m_refCount(0),
     m_numericPropertyBV(nullptr),
-    m_preReservedSectionAllocator((HANDLE)data->processHandle),
-    m_sectionAllocator((HANDLE)data->processHandle),
-    m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, (HANDLE)data->processHandle),
-    m_codePageAllocators(nullptr, ALLOC_XDATA, &m_sectionAllocator, &m_preReservedSectionAllocator, (HANDLE)data->processHandle),
-    m_codeGenAlloc(nullptr, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
+    m_preReservedSectionAllocator(processHandle),
+    m_sectionAllocator(processHandle),
+    m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, processHandle),
+    m_codePageAllocators(nullptr, ALLOC_XDATA, &m_sectionAllocator, &m_preReservedSectionAllocator, processHandle),
+    m_codeGenAlloc(nullptr, nullptr, &m_codePageAllocators, processHandle),
 #if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
-    m_jitThunkEmitter(this, &m_sectionAllocator, (HANDLE)data->processHandle),
+    m_jitThunkEmitter(this, &m_sectionAllocator, processHandle),
 #endif
     m_pageAlloc(nullptr, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
@@ -27,8 +27,7 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
         PageAllocator::DefaultMaxFreePageCount
     )
 {
-    ucrtC99MathApis.Ensure();
-    m_pid = GetProcessId((HANDLE)data->processHandle);
+    m_pid = GetProcessId(processHandle);
 
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
     m_codeGenAlloc.canCreatePreReservedSegment = data->allowPrereserveAlloc != FALSE;
@@ -112,7 +111,7 @@ ServerThreadContext::IsThreadBound() const
 HANDLE
 ServerThreadContext::GetProcessHandle() const
 {
-    return reinterpret_cast<HANDLE>(m_threadContextData.processHandle);
+    return m_autoProcessHandle.GetHandle();
 }
 
 CustomHeap::OOPCodePageAllocators *
@@ -159,10 +158,11 @@ ServerThreadContext::GetRuntimeCRTBaseAddress() const
     return static_cast<intptr_t>(m_threadContextData.crtBaseAddress);
 }
 
+/* static */
 intptr_t
-ServerThreadContext::GetJITCRTBaseAddress() const
+ServerThreadContext::GetJITCRTBaseAddress()
 {
-    return (intptr_t)ucrtC99MathApis.GetHandle();
+    return (intptr_t)AutoSystemInfo::GetCRTHandle();
 }
 
 PageAllocator *

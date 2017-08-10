@@ -101,7 +101,11 @@ namespace Js
         Assert(this->propertyMap->GetValueAt(existingPropertyIndex).Attributes & PropertyDeleted);
 
         const bool reused = TryReuseDeletedPropertyIndex(object, propertyIndex);
-        Assert(reused); // at least one property index must have been free-listed since we're adding an existing deleted property
+        if (!reused)
+        {
+            Assert(0); // at least one property index must have been free-listed since we're adding an existing deleted property
+            return false;
+        }
 
         if(*propertyIndex == existingPropertyIndex)
         {

@@ -313,6 +313,11 @@
   </test>
   <test>
     <default>
+      <files>DeleteAndReAddNonExtensible.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>Accessors.js</files>
       <baseline>Accessors.baseline</baseline>
     </default>

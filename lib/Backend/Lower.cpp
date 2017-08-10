@@ -7138,7 +7138,7 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
 #if DBG
                 NativeCodeData::GetDataDescription(typeCheckGuard, func->m_alloc),
 #endif
-                func);
+                func, true);
             this->addToLiveOnBackEdgeSyms->Set(func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
         }
         else
@@ -7311,7 +7311,7 @@ Lowerer::GenerateCachedTypeWithoutPropertyCheck(IR::Instr *instrInsert, IR::Prop
 #if DBG
                 NativeCodeData::GetDataDescription(typePropertyGuard, this->m_func->m_alloc),
 #endif
-                this->m_func);
+                this->m_func, true);
 
             this->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
         }
@@ -9471,7 +9471,7 @@ IR::Instr* Lowerer::LowerMultiBr(IR::Instr * instr, IR::JnHelperMethod helperMet
 #if DBG
                 NativeCodeData::GetDataDescription(dictionary, this->m_func->m_alloc),
 #endif
-                this->m_func), instr);
+                this->m_func, true), instr);
 
         this->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
 
@@ -13145,7 +13145,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
 #if DBG
                 NativeCodeData::GetDataDescription(bailOutInfo->bailOutRecord, this->m_func->m_alloc),
 #endif
-                m_func);
+                m_func, true);
 
             this->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
         }

@@ -713,14 +713,29 @@ namespace Js
 
     InlineCache * ScriptFunctionWithInlineCache::GetInlineCache(uint index)
     {
-        Assert(this->m_inlineCaches != nullptr);
-        Assert(index < this->GetInlineCacheCount());
+        void** inlineCaches = this->GetInlineCaches();
+        Assert(inlineCaches != nullptr);
+        AssertOrFailFast(index < this->GetInlineCacheCount());
 #if DBG
         Assert(this->m_inlineCacheTypes[index] == InlineCacheTypeNone ||
             this->m_inlineCacheTypes[index] == InlineCacheTypeInlineCache);
         this->m_inlineCacheTypes[index] = InlineCacheTypeInlineCache;
 #endif
-        return reinterpret_cast<InlineCache *>(PointerValue(this->m_inlineCaches[index]));
+        return reinterpret_cast<InlineCache *>(PointerValue(inlineCaches[index]));
+    }
+
+    Field(void**) ScriptFunctionWithInlineCache::GetInlineCaches()
+    {
+        // If script function have inline caches pointing to function body and function body got reparsed we need to reset cache
+        if (this->GetHasInlineCaches() &&
+            !this->GetHasOwnInlineCaches() &&
+            this->m_inlineCaches != this->GetFunctionBody()->GetInlineCaches())
+        {
+            Assert(this->GetFunctionBody()->GetCompileCount() > 1);
+            this->SetInlineCachesFromFunctionBody();
+        }
+
+        return this->m_inlineCaches;
     }
 
     void ScriptFunctionWithInlineCache::SetInlineCachesFromFunctionBody()

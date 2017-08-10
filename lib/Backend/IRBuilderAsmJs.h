@@ -172,6 +172,8 @@ private:
     Js::RegSlot             m_firstsType[m_firstsTypeCount];
     Js::RegSlot             m_firstVarConst;
     Js::RegSlot             m_firstIRTemp;
+    Js::RegSlot             m_tempCount;
+
     Js::OpCode *            m_simdOpcodesMap;
 
     Js::RegSlot GetFirstConst(WAsmJs::Types type) { return m_firstsType[type]; }

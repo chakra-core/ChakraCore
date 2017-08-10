@@ -400,7 +400,7 @@ IRBuilder::Build()
     Js::RegSlot tempCount = m_func->GetJITFunctionBody()->GetTempCount();
     if (tempCount > 0)
     {
-        this->tempMap = (SymID*)m_tempAlloc->AllocZero(sizeof(SymID) * tempCount);
+        this->tempMap = AnewArrayZ(m_tempAlloc, SymID, tempCount);
         this->fbvTempUsed = BVFixed::New<JitArenaAllocator>(tempCount, m_tempAlloc);
     }
     else
@@ -446,6 +446,7 @@ IRBuilder::Build()
 #endif
 
         lastOffset = m_func->m_workItem->GetLoopHeader()->endOffset;
+        AssertOrFailFast(lastOffset < m_func->GetJITFunctionBody()->GetByteCodeLength());
         // Ret is created at lastOffset + 1, so we need lastOffset + 2 entries
         offsetToInstructionCount = lastOffset + 2;
 
@@ -2721,6 +2722,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
 
         case Js::OpCode::ProfiledLoopStart:
         {
+            AssertOrFailFast(num < m_func->GetJITFunctionBody()->GetLoopCount());
             // If we're in profiling SimpleJit and jitting loop bodies, we need to keep this until lowering.
             if (m_func->DoSimpleJitDynamicProfile() && m_func->GetJITFunctionBody()->DoJITLoopBody())
             {
@@ -2771,6 +2773,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
 
         case Js::OpCode::ProfiledLoopEnd:
         {
+            AssertOrFailFast(num < m_func->GetJITFunctionBody()->GetLoopCount());
             // TODO: Decide whether we want the implicit loop call flags to be recorded in simplejitted loop bodies
             if (m_func->DoSimpleJitDynamicProfile() && m_func->GetJITFunctionBody()->DoJITLoopBody())
             {

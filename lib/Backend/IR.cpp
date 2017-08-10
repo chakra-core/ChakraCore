@@ -84,6 +84,12 @@ Instr::HasEquivalentTypeCheckBailOut() const
     return this->HasBailOutInfo() && IR::IsEquivalentTypeCheckBailOutKind(this->GetBailOutKind());
 }
 
+bool
+Instr::HasBailOnNoProfile() const
+{
+    return this->HasBailOutInfo() && this->GetBailOutKind() == IR::BailOutOnNoProfile;
+}
+
 void
 Instr::ChangeEquivalentToMonoTypeCheckBailOut()
 {
