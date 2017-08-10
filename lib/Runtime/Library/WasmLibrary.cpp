@@ -109,7 +109,6 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
     Wasm::WasmReaderInfo* readerInfo = info->GetWasmReaderInfo();
     if (readerInfo)
     {
-        info->SetWasmReaderInfo(nullptr);
         try
         {
             Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
@@ -142,6 +141,7 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
             entrypointInfo->jsMethod = WasmLazyTrapCallback;
             info->SetLazyError(pError);
         }
+        info->SetWasmReaderInfo(nullptr);
     }
     else
     {
