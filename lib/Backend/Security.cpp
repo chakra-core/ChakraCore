@@ -13,29 +13,108 @@ Security::EncodeLargeConstants()
         return;
     }
 
-    FOREACH_REAL_INSTR_IN_FUNC_EDITING(instr, instrNext, this->func)
+    uint prevInstrConstSize = 0;
+    FOREACH_INSTR_IN_FUNC_EDITING(instr, instrNext, this->func)
     {
         if (!instr->IsRealInstr())
         {
+            if (instr->IsLabelInstr())
+            {
+                IR::LabelInstr * label = instr->AsLabelInstr();
+
+                if (label->labelRefs.Count() > 1 || (label->labelRefs.Count() == 1 && label->labelRefs.Head() != label->m_prev))
+                {
+                    if (this->cookieOpnd != nullptr)
+                    {
+                        this->cookieOpnd->Free(this->func);
+                    }
+                    this->baseOpnd = nullptr;
+                    this->cookieOpnd = nullptr;
+                    this->basePlusCookieOpnd = nullptr;
+                }
+            }
             continue;
         }
-        IR::Opnd *dst = instr->GetDst();
-        if (dst)
-        {
-            this->EncodeOpnd(instr, dst);
-        }
+
         IR::Opnd *src1 = instr->GetSrc1();
+        IR::Opnd *src2 = instr->GetSrc2();
+        IR::Opnd *dst = instr->GetDst();
+
+        if (dst && this->baseOpnd && dst->IsEqual(this->baseOpnd))
+        {
+            if (this->cookieOpnd != nullptr)
+            {
+                this->cookieOpnd->Free(this->func);
+            }
+            this->baseOpnd = nullptr;
+            this->cookieOpnd = nullptr;
+            this->basePlusCookieOpnd = nullptr;
+        }
+
+        uint currInstrConstSize = 0;
+        uint dstSize = dst ? CalculateConstSize(dst) : 0;
+        uint src1Size = 0;
+        uint src2Size = 0;
         if (src1)
         {
-            this->EncodeOpnd(instr, src1);
-
-            IR::Opnd *src2 = instr->GetSrc2();
+            src1Size = CalculateConstSize(src1);
             if (src2)
             {
-                this->EncodeOpnd(instr, src2);
+                src2Size = CalculateConstSize(src2);
             }
         }
-    } NEXT_REAL_INSTR_IN_FUNC_EDITING;
+
+        prevInstrConstSize = currInstrConstSize;
+        currInstrConstSize = dstSize + src1Size + src2Size;
+
+        // we don't need to blind constants if user controlled byte size < 3
+        if (currInstrConstSize + prevInstrConstSize <= 2 && !PHASE_FORCE1(Js::EncodeConstantsPhase))
+        {
+            continue;
+        }
+
+        bool isSrc1EqualDst = false;
+        if (dstSize >= 2)
+        {
+            // don't count instrs where dst == src1 against size
+            if (src1 && dstSize == src1Size && src1->IsEqual(dst))
+            {
+                currInstrConstSize -= dstSize;
+                isSrc1EqualDst = true;
+
+                if (currInstrConstSize + prevInstrConstSize <= 2 && !PHASE_FORCE1(Js::EncodeConstantsPhase))
+                {
+                    continue;
+                }
+            }
+
+            this->EncodeOpnd(instr, dst);
+            if (isSrc1EqualDst)
+            {
+                instr->ReplaceSrc1(dst);
+            }
+            currInstrConstSize -= dstSize;
+            if (currInstrConstSize + prevInstrConstSize <= 2 && !PHASE_FORCE1(Js::EncodeConstantsPhase))
+            {
+                continue;
+            }
+        }
+        if (src1Size >= 2 && !isSrc1EqualDst)
+        {
+            this->EncodeOpnd(instr, src1);
+            currInstrConstSize -= src1Size;
+            if (currInstrConstSize + prevInstrConstSize <= 2 && !PHASE_FORCE1(Js::EncodeConstantsPhase))
+            {
+                continue;
+            }
+        }
+        if (src2Size >= 2)
+        {
+            this->EncodeOpnd(instr, src2);
+            currInstrConstSize -= src2Size;
+        }
+    } NEXT_INSTR_IN_FUNC_EDITING;
+
 }
 
 int
@@ -91,10 +170,10 @@ Security::InsertNOPs()
     int count = 0;
     IR::Instr *instr = this->func->m_headInstr;
 
-    while(true)
+    while (true)
     {
         count = this->GetNextNOPInsertPoint();
-        while(instr && count--)
+        while (instr && count--)
         {
             instr = instr->GetNextRealInstr();
         }
@@ -174,7 +253,7 @@ Security::InsertSmallNOP(IR::Instr * instr, DWORD nopSize)
 
     IR::Instr *nopInstr = nullptr;
 
-    switch(nopSize)
+    switch (nopSize)
     {
     case 1:
     case 2:
@@ -210,29 +289,54 @@ Security::DontEncode(IR::Opnd *opnd)
     {
         IR::AddrOpnd *addrOpnd = opnd->AsAddrOpnd();
         return (addrOpnd->m_dontEncode ||
-                !addrOpnd->IsVar() ||
-                addrOpnd->m_address == nullptr ||
-                !Js::TaggedNumber::Is(addrOpnd->m_address));
+            !addrOpnd->IsVar() ||
+            addrOpnd->m_address == nullptr ||
+            !Js::TaggedNumber::Is(addrOpnd->m_address));
     }
-
-    case IR::OpndKindHelperCall:
-        // Never encode helper call addresses, as these are always internal constants.
+    case IR::OpndKindIndir:
+    {
+        IR::IndirOpnd *indirOpnd = opnd->AsIndirOpnd();
+        return indirOpnd->m_dontEncode || indirOpnd->GetOffset() == 0;
+    }
+    default:
         return true;
     }
-
-    return false;
 }
 
-void
-Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
+uint
+Security::CalculateConstSize(IR::Opnd *opnd)
+{
+    if (DontEncode(opnd))
+    {
+        return 0;
+    }
+    switch (opnd->GetKind())
+    {
+    case IR::OpndKindIntConst:
+    {
+        IR::IntConstOpnd *intConstOpnd = opnd->AsIntConstOpnd();
+        return GetByteCount(intConstOpnd->GetValue());
+    }
+    case IR::OpndKindAddr:
+    {
+        IR::AddrOpnd *addrOpnd = opnd->AsAddrOpnd();
+        return Js::TaggedInt::Is(addrOpnd->m_address) ? GetByteCount(Js::TaggedInt::ToInt32(addrOpnd->m_address)) : GetByteCount((intptr_t)addrOpnd->m_address);
+    }
+    case IR::OpndKindIndir:
+    {
+        IR::IndirOpnd * indirOpnd = opnd->AsIndirOpnd();
+        return GetByteCount(indirOpnd->GetOffset());
+    }
+    default:
+        Assume(UNREACHED);
+    }
+    return 0;
+}
+bool
+Security::EncodeOpnd(IR::Instr * instr, IR::Opnd *opnd)
 {
     IR::RegOpnd *newOpnd;
     bool isSrc2 = false;
-
-    if (Security::DontEncode(opnd))
-    {
-        return;
-    }
 
     const auto unlinkSrc = [&]() {
         if (opnd != instr->GetSrc1())
@@ -247,38 +351,12 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
         }
     };
 
-    switch(opnd->GetKind())
+    switch (opnd->GetKind())
     {
-    case IR::OpndKindInt64Const:
-    {
-#if TARGET_64
-        IR::Int64ConstOpnd *intConstOpnd = opnd->AsInt64ConstOpnd();
-        if (!this->IsLargeConstant(intConstOpnd->GetValue()))
-        {
-            return;
-        }
-        unlinkSrc();
-        int64 encodedValue = EncodeValue(instr, intConstOpnd, intConstOpnd->GetValue(), &newOpnd);
-        intConstOpnd->SetEncodedValue(encodedValue);
-#else
-        Assert(UNREACHED);
-        return;
-#endif
-    }
-    break;
-
     case IR::OpndKindIntConst:
     {
         IR::IntConstOpnd *intConstOpnd = opnd->AsIntConstOpnd();
 
-        if (
-#if TARGET_64
-            IRType_IsInt64(intConstOpnd->GetType()) ? !this->IsLargeConstant(intConstOpnd->GetValue()) :
-#endif
-            !this->IsLargeConstant(intConstOpnd->AsInt32()))
-        {
-            return;
-        }
         unlinkSrc();
 
         intConstOpnd->SetEncodedValue(EncodeValue(instr, intConstOpnd, intConstOpnd->GetValue(), &newOpnd));
@@ -288,12 +366,6 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
     case IR::OpndKindAddr:
     {
         IR::AddrOpnd *addrOpnd = opnd->AsAddrOpnd();
-
-        // Only encode large constants.  Small ones don't allow control of enough bits
-        if (Js::TaggedInt::Is(addrOpnd->m_address) && !this->IsLargeConstant(Js::TaggedInt::ToInt32(addrOpnd->m_address)))
-        {
-            return;
-        }
 
         unlinkSrc();
 
@@ -305,29 +377,63 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
     {
         IR::IndirOpnd *indirOpnd = opnd->AsIndirOpnd();
 
-        if (!this->IsLargeConstant(indirOpnd->GetOffset()) || indirOpnd->m_dontEncode)
+        // Using 32 bit cookie causes major perf loss on the subsequent indirs, so only support this path for 16 bit offset
+        // It's relatively rare for base to be null or to have index + offset, so fall back to the more generic xor method for these
+        if (indirOpnd->GetBaseOpnd() && indirOpnd->GetIndexOpnd() == nullptr && Math::FitsInWord(indirOpnd->GetOffset()))
         {
-            return;
+            if (!this->baseOpnd || !this->baseOpnd->IsEqual(indirOpnd->GetBaseOpnd()))
+            {
+                if (this->cookieOpnd != nullptr)
+                {
+                    this->cookieOpnd->Free(this->func);
+                }
+                this->cookieOpnd = BuildCookieOpnd(TyInt16, instr->m_func);
+                this->basePlusCookieOpnd = IR::RegOpnd::New(TyMachReg, instr->m_func);
+                this->baseOpnd = indirOpnd->GetBaseOpnd();
+                IR::IndirOpnd * indir = IR::IndirOpnd::New(this->baseOpnd, this->cookieOpnd->AsInt32(), TyMachReg, instr->m_func);
+                Lowerer::InsertLea(this->basePlusCookieOpnd, indir, instr);
+            }
+            int32 diff = indirOpnd->GetOffset() - this->cookieOpnd->AsInt32();
+            indirOpnd->SetOffset((int32)diff);
+            indirOpnd->SetBaseOpnd(this->basePlusCookieOpnd);
+            return true;
         }
-        AssertMsg(indirOpnd->GetIndexOpnd() == nullptr, "Code currently doesn't support indir with offset and indexOpnd");
 
-        IR::IntConstOpnd *indexOpnd = IR::IntConstOpnd::New(indirOpnd->GetOffset(), TyInt32, instr->m_func);
+        IR::IntConstOpnd *indexOpnd = IR::IntConstOpnd::New(indirOpnd->GetOffset(), TyMachReg, instr->m_func);
 
-        indexOpnd->SetEncodedValue(EncodeValue(instr, indexOpnd, indexOpnd->GetValue(), &newOpnd));
+        indexOpnd->SetValue(EncodeValue(instr, indexOpnd, indexOpnd->GetValue(), &newOpnd));
+
         indirOpnd->SetOffset(0);
-        indirOpnd->SetIndexOpnd(newOpnd);
+        if (indirOpnd->GetIndexOpnd() != nullptr)
+        {
+            // update the base rather than the index, because index might have scale
+            if (indirOpnd->GetBaseOpnd() != nullptr)
+            {
+                IR::RegOpnd * newBaseOpnd = IR::RegOpnd::New(TyMachReg, instr->m_func);
+                Lowerer::InsertAdd(false, newBaseOpnd, newOpnd, indirOpnd->GetBaseOpnd(), instr);
+                indirOpnd->SetBaseOpnd(newBaseOpnd);
+            }
+            else
+            {
+                indirOpnd->SetBaseOpnd(newOpnd);
+            }
+        }
+        else
+        {
+            indirOpnd->SetIndexOpnd(newOpnd);
+        }
     }
-    return;
+    return true;
 
     default:
-        return;
+        return false;
     }
 
     IR::Opnd *dst = instr->GetDst();
 
     if (dst)
     {
-#if _M_X64
+#if TARGET_64
         // Ensure the left and right operand has the same type (that might not be true for constants on x64)
         newOpnd = (IR::RegOpnd *)newOpnd->UseWithNewType(dst->GetType(), instr->m_func);
 #endif
@@ -347,32 +453,70 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
         }
     }
 
-     LowererMD::ImmedSrcToReg(instr, newOpnd, isSrc2 ? 2 : 1);
+    LowererMD::ImmedSrcToReg(instr, newOpnd, isSrc2 ? 2 : 1);
+    return true;
+}
+
+IR::IntConstOpnd *
+Security::BuildCookieOpnd(IRType type, Func * func)
+{
+    IntConstType cookie = 0;
+    switch (type)
+    {
+    case TyInt8:
+        cookie = (int8)Math::Rand();
+        break;
+    case TyUint8:
+        cookie = (uint8)Math::Rand();
+        break;
+    case TyInt16:
+        cookie = (int16)Math::Rand();
+        break;
+    case TyUint16:
+        cookie = (uint16)Math::Rand();
+        break;
+#if TARGET_32
+    case TyVar:
+#endif
+    case TyInt32:
+        cookie = (int32)Math::Rand();
+        break;
+    case TyUint32:
+        cookie = (uint32)Math::Rand();
+        break;
+#if TARGET_64
+    case TyVar:
+    case TyInt64:
+    case TyUint64:
+        cookie = Math::Rand();
+        break;
+#endif
+    default:
+        Assume(UNREACHED);
+    }
+    IR::IntConstOpnd * cookieOpnd = IR::IntConstOpnd::New(cookie, type, func);
+
+#if DBG_DUMP
+    cookieOpnd->SetName(_u("cookie"));
+#endif
+    return cookieOpnd;
 }
 
 IntConstType
-Security::EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue, IR::RegOpnd **pNewOpnd)
+Security::EncodeValue(IR::Instr * instr, IR::Opnd *opnd, IntConstType constValue, _Out_ IR::RegOpnd **pNewOpnd)
 {
     if (opnd->GetType() == TyInt32 || opnd->GetType() == TyInt16 || opnd->GetType() == TyInt8
-#if _M_IX86
+#if TARGET_32
         || opnd->GetType() == TyVar
 #endif
         )
     {
-        int32 cookie = (int32)Math::Rand();
-        IR::RegOpnd *regOpnd = IR::RegOpnd::New(StackSym::New(TyInt32, instr->m_func), TyInt32, instr->m_func);
+        IR::RegOpnd *regOpnd = IR::RegOpnd::New(StackSym::New(opnd->GetType(), instr->m_func), opnd->GetType(), instr->m_func);
         IR::Instr * instrNew = LowererMD::CreateAssign(regOpnd, opnd, instr);
-
-        IR::IntConstOpnd * cookieOpnd = IR::IntConstOpnd::New(cookie, TyInt32, instr->m_func);
-
-#if DBG_DUMP
-        cookieOpnd->SetName(_u("cookie"));
-#endif
-
-        instrNew = IR::Instr::New(Js::OpCode::Xor_I4, regOpnd, regOpnd, cookieOpnd, instr->m_func);
+        IR::IntConstOpnd * cookieOpnd = BuildCookieOpnd(opnd->GetType(), instr->m_func);
+        instrNew = IR::Instr::New(LowererMD::MDXorOpcode, regOpnd, regOpnd, cookieOpnd, instr->m_func);
         instr->InsertBefore(instrNew);
-
-        LowererMD::EmitInt4Instr(instrNew);
+        LowererMD::Legalize(instrNew);
 
         StackSym * stackSym = regOpnd->m_sym;
         Assert(!stackSym->m_isSingleDef);
@@ -383,25 +527,19 @@ Security::EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue,
         *pNewOpnd = regOpnd;
 
         int32 value = (int32)constValue;
-        value = value ^ cookie;
+        value = value ^ cookieOpnd->AsInt32();
         return value;
     }
     else if (opnd->GetType() == TyUint32 || opnd->GetType() == TyUint16 || opnd->GetType() == TyUint8)
     {
-        uint32 cookie = (uint32)Math::Rand();
-        IR::RegOpnd *regOpnd = IR::RegOpnd::New(StackSym::New(TyUint32, instr->m_func), TyUint32, instr->m_func);
+        IR::RegOpnd *regOpnd = IR::RegOpnd::New(StackSym::New(opnd->GetType(), instr->m_func), opnd->GetType(), instr->m_func);
         IR::Instr * instrNew = LowererMD::CreateAssign(regOpnd, opnd, instr);
 
-        IR::IntConstOpnd * cookieOpnd = IR::IntConstOpnd::New(cookie, TyUint32, instr->m_func);
+        IR::IntConstOpnd * cookieOpnd = BuildCookieOpnd(opnd->GetType(), instr->m_func);
 
-#if DBG_DUMP
-        cookieOpnd->SetName(_u("cookie"));
-#endif
-
-        instrNew = IR::Instr::New(Js::OpCode::Xor_I4, regOpnd, regOpnd, cookieOpnd, instr->m_func);
+        instrNew = IR::Instr::New(LowererMD::MDXorOpcode, regOpnd, regOpnd, cookieOpnd, instr->m_func);
         instr->InsertBefore(instrNew);
-
-        LowererMD::EmitInt4Instr(instrNew);
+        LowererMD::Legalize(instrNew);
 
         StackSym * stackSym = regOpnd->m_sym;
         Assert(!stackSym->m_isSingleDef);
@@ -412,32 +550,33 @@ Security::EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue,
         *pNewOpnd = regOpnd;
 
         uint32 value = (uint32)constValue;
-        value = value ^ cookie;
+        value = value ^ cookieOpnd->AsUint32();
         return (IntConstType)value;
     }
     else
     {
-#ifdef _M_X64
+#if TARGET_64
         return this->EncodeAddress(instr, opnd, constValue, pNewOpnd);
 #else
         Assert(false);
+        // (Prefast warning on failure to assign *pNewOpnd.)
+        *pNewOpnd = nullptr;
         return 0;
 #endif
     }
 }
 
-#ifdef _M_X64
+#if TARGET_64
 size_t
-Security::EncodeAddress(IR::Instr *instr, IR::Opnd *opnd, size_t value, IR::RegOpnd **pNewOpnd)
+Security::EncodeAddress(IR::Instr * instr, IR::Opnd *opnd, size_t value, _Out_ IR::RegOpnd **pNewOpnd)
 {
     IR::Instr   *instrNew = nullptr;
-    IR::RegOpnd *regOpnd  = IR::RegOpnd::New(TyMachReg, instr->m_func);
+    IR::RegOpnd *regOpnd = IR::RegOpnd::New(TyMachReg, instr->m_func);
 
     instrNew = LowererMD::CreateAssign(regOpnd, opnd, instr);
 
-    size_t cookie = (size_t)Math::Rand();
-    IR::IntConstOpnd *cookieOpnd = IR::IntConstOpnd::New(cookie, TyMachReg, instr->m_func);
-    instrNew = IR::Instr::New(Js::OpCode::XOR, regOpnd, regOpnd, cookieOpnd, instr->m_func);
+    IR::IntConstOpnd *cookieOpnd = BuildCookieOpnd(TyMachReg, instr->m_func);
+    instrNew = IR::Instr::New(LowererMD::MDXorOpcode, regOpnd, regOpnd, cookieOpnd, instr->m_func);
     instr->InsertBefore(instrNew);
     LowererMD::Legalize(instrNew);
 
@@ -448,6 +587,6 @@ Security::EncodeAddress(IR::Instr *instr, IR::Opnd *opnd, size_t value, IR::RegO
     stackSym->constantValue = value;
 
     *pNewOpnd = regOpnd;
-    return value ^ cookie;
+    return value ^ cookieOpnd->GetValue();
 }
 #endif

@@ -60,7 +60,7 @@ AsmJsJITInfo::GetArgTypeArray() const
 Js::AsmJsVarType::Which
 AsmJsJITInfo::GetArgType(Js::ArgSlot argNum) const
 {
-    Assert(argNum < GetArgCount());
+    AssertOrFailFast(argNum < GetArgCount());
     return GetArgTypeArray()[argNum];
 }
 

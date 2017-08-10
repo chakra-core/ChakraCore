@@ -1349,16 +1349,6 @@ namespace Js
                 instance->ChangeType();
             }
 
-            if(isUnordered)
-            {
-                TPropertyIndex propertyIndex;
-                if(AsUnordered()->TryUndeleteProperty(instance, descriptor->propertyIndex, &propertyIndex))
-                {
-                    Assert(PropertyRecordStringHashComparer<TMapKey>::Equals(propertyMap->GetKeyAt(propertyIndex), TMapKey_OptionalConvertPropertyIdToPropertyRecord(scriptContext, propertyKey)));
-                    descriptor = propertyMap->GetReferenceAt(propertyIndex);
-                }
-            }
-
             if (IsNotExtensibleSupported)
             {
                 bool isForce = (flags & PropertyOperation_Force) != 0;
@@ -1368,6 +1358,16 @@ namespace Js
                     {
                         return FALSE;
                     }
+                }
+            }
+
+            if(isUnordered)
+            {
+                TPropertyIndex propertyIndex;
+                if(AsUnordered()->TryUndeleteProperty(instance, descriptor->propertyIndex, &propertyIndex))
+                {
+                    Assert(PropertyRecordStringHashComparer<TMapKey>::Equals(propertyMap->GetKeyAt(propertyIndex), TMapKey_OptionalConvertPropertyIdToPropertyRecord(scriptContext, propertyKey)));
+                    descriptor = propertyMap->GetReferenceAt(propertyIndex);
                 }
             }
 

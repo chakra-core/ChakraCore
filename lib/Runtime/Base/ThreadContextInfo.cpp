@@ -395,7 +395,7 @@ ThreadContextInfo::IsCFGEnabled()
     PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY CfgPolicy;
     m_delayLoadWinCoreProcessThreads.EnsureFromSystemDirOnly();
     BOOL isGetMitigationPolicySucceeded = m_delayLoadWinCoreProcessThreads.GetMitigationPolicyForProcess(
-        this->GetProcessHandle(),
+        GetCurrentProcess(),
         ProcessControlFlowGuardPolicy,
         &CfgPolicy,
         sizeof(CfgPolicy));

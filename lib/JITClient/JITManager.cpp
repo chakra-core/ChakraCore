@@ -31,7 +31,6 @@ JITManager::JITManager() :
     m_oopJitEnabled(false),
     m_isJITServer(false),
     m_failingHRESULT(S_OK),
-    m_serverHandle(nullptr),
     m_jitConnectionId()
 {
 }
@@ -41,10 +40,6 @@ JITManager::~JITManager()
     if (m_rpcBindingHandle)
     {
         RpcBindingFree(&m_rpcBindingHandle);
-    }
-    if (m_serverHandle)
-    {
-        CloseHandle(m_serverHandle);
     }
 }
 
@@ -187,12 +182,6 @@ JITManager::IsConnected() const
     return m_rpcBindingHandle != nullptr && !HasJITFailed();
 }
 
-HANDLE
-JITManager::GetServerHandle() const
-{
-    return m_serverHandle;
-}
-
 void
 JITManager::EnableOOPJIT()
 {
@@ -230,7 +219,6 @@ JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* server
 {
     Assert(IsOOPJITEnabled());
     Assert(m_rpcBindingHandle == nullptr);
-    Assert(m_serverHandle == nullptr);
 
     HRESULT hr = E_FAIL;
 
@@ -238,12 +226,6 @@ JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* server
     {
         Assert(UNREACHED);
         return E_FAIL;
-    }
-
-    if (!DuplicateHandle(GetCurrentProcess(), jitProcessHandle, GetCurrentProcess(), &m_serverHandle, 0, FALSE, DUPLICATE_SAME_ACCESS))
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto FailureCleanup;
     }
 
     hr = CreateBinding(jitProcessHandle, serverSecurityDescriptor, &connectionUuid, &m_rpcBindingHandle);
@@ -257,11 +239,6 @@ JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* server
     return hr;
 
 FailureCleanup:
-    if (m_serverHandle)
-    {
-        CloseHandle(m_serverHandle);
-        m_serverHandle = nullptr;
-    }
     if (m_rpcBindingHandle)
     {
         RpcBindingFree(&m_rpcBindingHandle);
@@ -298,6 +275,9 @@ JITManager::Shutdown()
 HRESULT
 JITManager::InitializeThreadContext(
     __in ThreadContextDataIDL * data,
+#ifdef USE_RPC_HANDLE_MARSHALLING
+    __in HANDLE processHandle,
+#endif
     __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
     __out intptr_t * prereservedRegionAddr,
     __out intptr_t * jitThunkAddr)
@@ -307,7 +287,15 @@ JITManager::InitializeThreadContext(
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientInitializeThreadContext(m_rpcBindingHandle, data, threadContextInfoAddress, prereservedRegionAddr, jitThunkAddr);
+        hr = ClientInitializeThreadContext(
+            m_rpcBindingHandle,
+            data,
+#ifdef USE_RPC_HANDLE_MARSHALLING
+            processHandle,
+#endif
+            threadContextInfoAddress,
+            prereservedRegionAddr,
+            jitThunkAddr);
     }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {

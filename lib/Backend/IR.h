@@ -203,6 +203,7 @@ public:
     bool            HasAuxBailOut() const { return hasAuxBailOut; }
     bool            HasTypeCheckBailOut() const;
     bool            HasEquivalentTypeCheckBailOut() const;
+    bool            HasBailOnNoProfile() const;
     void            ClearBailOutInfo();
     bool            IsDstNotAlwaysConvertedToInt32() const;
     bool            IsDstNotAlwaysConvertedToNumber() const;

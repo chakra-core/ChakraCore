@@ -397,6 +397,11 @@ LPCWSTR AutoSystemInfo::GetJscriptDllFileName()
     return (LPCWSTR)Data.binaryName;
 }
 
+HMODULE AutoSystemInfo::GetCRTHandle()
+{
+    return GetModuleHandle(_u("msvcrt.dll"));
+}
+
 bool AutoSystemInfo::IsLowMemoryProcess()
 {
     ULONG64 commit = ULONG64(-1);

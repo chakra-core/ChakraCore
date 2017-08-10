@@ -7,6 +7,14 @@
 
 #ifdef __midl
 import "wtypes.idl";
+#include "sdkddkver.h"
+#endif
+
+#if defined(WINVER) && WINVER >= _WIN32_WINNT_WINBLUE // on 8.1+, RPC can marshal process handle for us
+#ifdef __midl
+cpp_quote("#define USE_RPC_HANDLE_MARSHALLING 1")
+#endif
+#define USE_RPC_HANDLE_MARSHALLING 1
 #endif
 
 #if defined(_M_IX86) || defined(_M_ARM)
@@ -302,7 +310,6 @@ typedef struct ThreadContextDataIDL
 
     IDL_PAD2(0)
     X64_PAD4(1)
-    CHAKRA_PTR processHandle;
     CHAKRA_PTR chakraBaseAddress;
     CHAKRA_PTR crtBaseAddress;
     CHAKRA_PTR threadStackLimitAddr;

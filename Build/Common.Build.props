@@ -29,6 +29,8 @@
       <!-- ======== sources.inc ======== -->
       <!-- generates SAL annotations for our interface -->
       <AdditionalOptions>%(AdditionalOptions) -sal_local</AdditionalOptions>
+      
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WINVER=$(Win32_WinNTVersion)</PreprocessorDefinitions>
     </Midl>
     <ClCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);NOMINMAX;USE_EDGEMODE_JSRT</PreprocessorDefinitions>
@@ -105,6 +107,7 @@
 
       <MinimumRequiredVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win7)'" >6.1</MinimumRequiredVersion>
       <MinimumRequiredVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win8)'" >6.2</MinimumRequiredVersion>
+      <MinimumRequiredVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_WinBlue)'" >6.3</MinimumRequiredVersion>
       <MinimumRequiredVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win10)'" >10.00</MinimumRequiredVersion>
 
       <!-- Always set the checksum -->

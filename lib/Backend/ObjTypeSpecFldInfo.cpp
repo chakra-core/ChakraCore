@@ -114,6 +114,7 @@ Js::TypeId
 ObjTypeSpecFldInfo::GetTypeId(uint i) const
 {
     Assert(IsPoly());
+    AssertOrFailFast(i < m_data.fixedFieldInfoArraySize);
     return (Js::TypeId)GetFixedFieldInfoArray()[i].GetType()->GetTypeId();
 }
 
@@ -151,6 +152,7 @@ intptr_t
 ObjTypeSpecFldInfo::GetFieldValue(uint i) const
 {
     Assert(IsPoly());
+    AssertOrFailFast(i < m_data.fixedFieldInfoArraySize);
     return GetFixedFieldInfoArray()[i].GetFieldValue();
 }
 
@@ -164,6 +166,7 @@ intptr_t
 ObjTypeSpecFldInfo::GetFieldValueAsFixedDataIfAvailable() const
 {
     Assert(HasFixedValue() && GetFixedFieldCount() == 1);
+    AssertOrFailFast(m_data.fixedFieldInfoArraySize > 0);
 
     return GetFixedFieldInfoArray()[0].GetFieldValue();
 }
@@ -191,6 +194,7 @@ JITTypeHolder
 ObjTypeSpecFldInfo::GetType(uint i) const
 {
     Assert(i == 0 || IsPoly());
+    AssertOrFailFast(i < m_data.fixedFieldInfoArraySize);
     JITType * type = GetFixedFieldInfoArray()[i].GetType();
     if (!type)
     {
@@ -223,6 +227,7 @@ ObjTypeSpecFldInfo::GetFixedFieldIfAvailableAsFixedFunction()
 {
     Assert(HasFixedValue());
     Assert(IsMono() || (IsPoly() && !DoesntHaveEquivalence()));
+    AssertOrFailFast(m_data.fixedFieldInfoArraySize > 0);
     Assert(GetFixedFieldInfoArray());
     if (GetFixedFieldInfoArray()[0].GetFuncInfoAddr() != 0)
     {
@@ -236,9 +241,13 @@ ObjTypeSpecFldInfo::GetFixedFieldIfAvailableAsFixedFunction(uint i)
 {
     Assert(HasFixedValue());
     Assert(IsPoly());
-    if (m_data.fixedFieldCount > 0 && GetFixedFieldInfoArray()[i].GetFuncInfoAddr() != 0)
+    if (m_data.fixedFieldCount > 0)
     {
-        return &GetFixedFieldInfoArray()[i];
+        AssertOrFailFast(i < m_data.fixedFieldInfoArraySize);
+        if (GetFixedFieldInfoArray()[i].GetFuncInfoAddr() != 0)
+        {
+            return &GetFixedFieldInfoArray()[i];
+        }
     }
     return nullptr;
 }

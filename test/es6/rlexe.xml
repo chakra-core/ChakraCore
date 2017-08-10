@@ -730,6 +730,11 @@
   </test>
   <test>
     <default>
+      <files>proxycall.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>proxyenumremoval.js</files>
     </default>
   </test>
@@ -898,6 +903,11 @@
     <default>
       <files>destructuring_params.js</files>
       <compile-flags>-ES6Rest -ES6Classes -ES6Destructuring -ES6DefaultArgs -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>destructuring_params_arguments_override.js</files>
     </default>
   </test>
   <test>
