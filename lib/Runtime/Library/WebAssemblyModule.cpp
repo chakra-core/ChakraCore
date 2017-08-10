@@ -244,16 +244,14 @@ WebAssemblyModule::CreateModule(
         BSTR originalMessage = ex.GetTempErrorMessageRef();
         if (currentBody != nullptr)
         {
-            intptr_t offset = readerInfo->m_module->GetReader()->GetCurrentOffset();
-            intptr_t start = readerInfo->m_funcInfo->m_readerInfo.startOffset;
-            uint32 size = readerInfo->m_funcInfo->m_readerInfo.size;
+            Wasm::BinaryLocation location = readerInfo->m_module->GetReader()->GetCurrentLocation();
 
             originalMessage = ex.ReleaseErrorMessage();
             ex = Wasm::WasmCompilationException(
-                _u("function %s at offset %d/%d: %s"),
+                _u("function %s at offset %u/%u (0x%x/0x%x): %s"),
                 currentBody->GetDisplayName(),
-                offset - start,
-                size,
+                location.offset, location.size,
+                location.offset, location.size,
                 originalMessage
             );
             currentBody->GetAsmJsFunctionInfo()->SetWasmReaderInfo(nullptr);
@@ -417,12 +415,6 @@ WebAssemblyTable *
 WebAssemblyModule::CreateTable() const
 {
     return WebAssemblyTable::Create(m_tableInitSize, m_tableMaxSize, GetScriptContext());
-}
-
-bool
-WebAssemblyModule::IsValidTableImport(const WebAssemblyTable * table) const
-{
-    return m_tableImport && table->GetInitialLength() >= m_tableInitSize && table->GetMaximumLength() <= m_tableMaxSize;
 }
 
 uint32
