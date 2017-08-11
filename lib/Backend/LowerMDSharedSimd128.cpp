@@ -5,12 +5,6 @@
 
 #include "Backend.h"
 
-#ifdef _M_IX86
-#define EMITINT64INSTR(instr) EmitInt64Instr(instr)
-#else
-#define EMITINT64INSTR(instr) EmitInt4Instr(instr)
-#endif
-
 static IR::Instr* removeInstr(IR::Instr* instr)
 {
     IR::Instr* prevInstr;

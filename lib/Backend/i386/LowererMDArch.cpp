@@ -2055,12 +2055,9 @@ binopCommon:
         instr->InsertBefore(lowInstr);
         LowererMD::Legalize(lowInstr);
 
-        instr->UnlinkDst();
-        instr->SetDst(dstPair.high);
-        instr->UnlinkSrc1();
-        instr->SetSrc1(src1Pair.high);
-        instr->UnlinkSrc2();
-        instr->SetSrc2(src2Pair.high);
+        instr->ReplaceDst(dstPair.high);
+        instr->ReplaceSrc1(src1Pair.high);
+        instr->ReplaceSrc2(src2Pair.high);
         instr->m_opcode = highOpCode;
         LowererMD::Legalize(instr);
         break;
