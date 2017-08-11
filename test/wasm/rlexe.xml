@@ -166,27 +166,34 @@
     <tags>exclude_jshost,exclude_win7,exclude_dynapogo,exclude_xplat</tags>
   </default>
 </test>
-<test>
-  <default>
-    <files>debugger.js</files>
-    <compile-flags>-wasm -dbgbaseline:debugger.js.dbg.baseline</compile-flags>
-    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_xplat</tags>
-  </default>
-</test>
-<test>
-  <default>
-    <files>debugger.js</files>
-    <compile-flags>-wasm -maic:1 -dbgbaseline:debugger.js.dbg.baseline</compile-flags>
-    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_xplat</tags>
-  </default>
-</test>
-<test>
-  <default>
-    <files>wasmcctx.js</files>
-    <compile-flags>-wasm -dbgbaseline:wasmcctx.js.dbg.baseline</compile-flags>
-    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_xplat</tags>
-  </default>
-</test>
+  <test>
+    <default>
+      <files>debugger_basic.js</files>
+      <compile-flags>-wasm -dbgbaseline:debugger_basic.js.dbg.baseline</compile-flags>
+      <tags>exclude_jshost,exclude_win7,exclude_snap,require_debugger,exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>debugger_basic.js</files>
+      <compile-flags>-wasm -maic:1 -dbgbaseline:debugger_basic.js.dbg.baseline</compile-flags>
+      <tags>exclude_jshost,exclude_win7,exclude_snap,require_debugger,exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>debugger_basic.js</files>
+      <compile-flags>-wasm -debuglaunch -args debuglaunch -endargs -dbgbaseline:debugger_basic_launch.js.dbg.baseline</compile-flags>
+      <tags>exclude_jshost,exclude_win7,exclude_snap,require_debugger,exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>wasmcctx.js</files>
+      <compile-flags>-wasm -dbgbaseline:wasmcctx.js.dbg.baseline -InspectMaxStringLength:50</compile-flags>
+      <tags>exclude_jshost,exclude_win7,exclude_snap,require_debugger,exclude_xplat</tags>
+    </default>
+  </test>
 <test>
   <default>
     <files>oom_wasm.js</files>
