@@ -857,7 +857,7 @@ namespace Js
             PropertyValueInfo propertyValueInfo;
             PropertyValueInfo::SetCacheInfo(&propertyValueInfo, functionBody, inlineCache, inlineCacheIndex, true);
             if (!CacheOperators::TryGetProperty<true, true, true, !Root && !Method, true, !Root, true, false, true>(
-                    thisObject,
+                    object,
                     Root,
                     object,
                     propertyId,
@@ -1102,7 +1102,7 @@ namespace Js
             PropertyValueInfo propertyValueInfo;
             PropertyValueInfo::SetCacheInfo(&propertyValueInfo, functionBody, inlineCache, inlineCacheIndex, true);
             if(!CacheOperators::TrySetProperty<true, true, true, true, !Root, true, false, true>(
-                    thisObject,
+                    object,
                     Root,
                     propertyId,
                     value,
