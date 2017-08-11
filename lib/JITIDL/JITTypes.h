@@ -163,6 +163,7 @@ typedef struct ObjTypeSpecFldIDL
     IDL_Field(int) propertyId;
     IDL_Field(int) typeId;
     IDL_Field(unsigned int) id;
+    X64_PAD4(0)
     IDL_Field(CHAKRA_WB_PTR) protoObjectAddr;
     IDL_Field(CHAKRA_WB_PTR) propertyGuardValueAddr;
     IDL_Field(EquivalentTypeSetIDL *) typeSet;
@@ -328,8 +329,10 @@ typedef struct ScriptContextDataIDL
     boolean recyclerAllowNativeCodeBumpAllocation;
 #ifdef ENABLE_SIMDJS
     boolean isSIMDEnabled;
-#endif
+#else
     IDL_PAD1(0)
+#endif
+    IDL_PAD1(1)
     unsigned int recyclerVerifyPad;
     CHAKRA_PTR vtableAddresses[VTABLE_COUNT];
 
@@ -404,6 +407,7 @@ typedef struct WasmSignatureIDL
     unsigned int id;
     unsigned short paramSize;
     unsigned short paramsCount;
+    X64_PAD4(0)
     CHAKRA_PTR shortSig;
     IDL_DEF([size_is(paramsCount)]) int * params;
 } WasmSignatureIDL;
@@ -557,7 +561,7 @@ typedef struct FunctionBodyDataIDL
 
     unsigned int fullStatementMapCount;
     unsigned int propertyIdsForRegSlotsCount;
-
+    X64_PAD4(1)
     IDL_DEF([size_is(propertyIdsForRegSlotsCount)]) int * propertyIdsForRegSlots;
 
     SmallSpanSequenceIDL * statementMap;
@@ -702,7 +706,6 @@ typedef struct CodeGenWorkItemIDL
     CHAKRA_PTR functionBodyAddr;
     CHAKRA_PTR globalThisAddr;
     CHAKRA_PTR nativeDataAddr;
-    X86_PAD4(2)
     __int64 startTime;
 } CodeGenWorkItemIDL;
 
@@ -824,6 +827,8 @@ typedef struct JITOutputIDL
     CHAKRA_PTR xdataAddr;
 #elif defined(_M_ARM) || defined(_M_ARM64)
     unsigned int xdataOffset;
+#else
+    X86_PAD4(0)
 #endif
     CHAKRA_PTR codeAddress;
     CHAKRA_PTR thunkAddress;
