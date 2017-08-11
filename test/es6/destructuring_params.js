@@ -109,15 +109,15 @@ var tests = [
   {
     name: "Destructuring syntax as params - redeclarations",
     body: function () {
-      assert.throws(function () { eval("function foo({x:x, x:x}) {}"); },  SyntaxError,  "One formal as object pattern has duplicate binding identifiers is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo({x:x}, {x:x}) {}"); },  SyntaxError,  "Two formals as object patterns have duplicate binding identifiers is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo([x, x]) {}"); }, SyntaxError,   "One formal as array pattern has duplicate binding identifiers is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo([x], [x]) {}"); },  SyntaxError,  "Two formals as array patterns have duplicate binding identifiers is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo([x], {x:x}) {}"); },  SyntaxError,  "Mixed array and object pattern with duplicate identifiers is not valid syntax", "Let/Const redeclaration");
+      assert.throws(function () { eval("function foo({x:x, x:x}) {}"); },  SyntaxError,  "One formal as object pattern has duplicate binding identifiers is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo({x:x}, {x:x}) {}"); },  SyntaxError,  "Two formals as object patterns have duplicate binding identifiers is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo([x, x]) {}"); }, SyntaxError,   "One formal as array pattern has duplicate binding identifiers is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo([x], [x]) {}"); },  SyntaxError,  "Two formals as array patterns have duplicate binding identifiers is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo([x], {x:x}) {}"); },  SyntaxError,  "Mixed array and object pattern with duplicate identifiers is not valid syntax", "Identifier redeclaration");
       assert.throws(function () { eval("function foo([x], x) {}"); },  SyntaxError,  "First formal as array pattern has matching name with the second formal is not valid syntax", "Duplicate formal parameter names not allowed in this context");
-      assert.throws(function () { eval("function foo(x, [x]) {}"); },  SyntaxError,  "First normal formal is matching with the second formal which is array pattern is not valid syntax", "Let/Const redeclaration");
+      assert.throws(function () { eval("function foo(x, [x]) {}"); },  SyntaxError,  "First normal formal is matching with the second formal which is array pattern is not valid syntax", "Identifier redeclaration");
       assert.throws(function () { eval("function foo({x:{z:[z1]}}, z1) {}"); },  SyntaxError,  "First formal as nesting object pattern has matching name with the second formal is not valid syntax", "Duplicate formal parameter names not allowed in this context");
-      assert.throws(function () { eval("function foo([x]) { let x = 10;}"); },  SyntaxError,  "Object destructuring pattern as a formal is valid syntax", "Let/Const redeclaration");
+      assert.throws(function () { eval("function foo([x]) { let x = 10;}"); },  SyntaxError,  "Object destructuring pattern as a formal is valid syntax", "Identifier redeclaration");
       assert.doesNotThrow(function () { eval("function foo([x]) { var x = 10;}"); },  "var declared names matching with formal (as array pattern) is valid syntax");
     }
   },

@@ -54,7 +54,7 @@ LSC_ERROR_MSG( 1048, ERRKeywordNotId  , "The use of a keyword for an identifier 
 LSC_ERROR_MSG( 1049, ERRFutureReservedWordNotId, "The use of a future reserved word for an identifier is invalid")
 LSC_ERROR_MSG( 1050, ERRFutureReservedWordInStrictModeNotId, "The use of a future reserved word for an identifier is invalid. The identifier name is reserved in strict mode.")
 LSC_ERROR_MSG( 1051, ERRSetterMustHaveOneParameter, "Setter functions must have exactly one parameter")
-LSC_ERROR_MSG( 1052, ERRRedeclaration  , "Let/Const redeclaration") // "var x; let x;" is also a redeclaration
+LSC_ERROR_MSG( 1052, ERRRedeclaration  , "Identifier redeclaration") // "var x; let x;" is also a redeclaration
 LSC_ERROR_MSG( 1053, ERRUninitializedConst  , "Const must be initialized")
 LSC_ERROR_MSG( 1054, ERRDeclOutOfStmt  , "Declaration outside statement context")
 LSC_ERROR_MSG( 1055, ERRAssignmentToConst  , "Assignment to const")

@@ -2139,7 +2139,7 @@ var tests = [
         assert.throws(function () { return function (a = eval("var a = 2"), b = a) { return [a, b]; }() },
                         ReferenceError,
                         "Redeclaring the current formal using var inside an eval throws",
-                        "Let/Const redeclaration");
+                        "Identifier redeclaration");
         assert.doesNotThrow(function () { "use strict"; return function (a = eval("var a = 2"), b = a) { return [a, b]; }() },
                             "Redeclaring the current formal using var inside a strict mode eval does not throw");
         assert.doesNotThrow(function () { "use strict"; return function (a = eval("var a = 2"), b = a) { return [a, b]; }() },
@@ -2148,12 +2148,12 @@ var tests = [
         assert.throws(function () { function foo(a = eval("var b"), b, c = b) { return [a, b, c]; } foo(); },
                         ReferenceError,
                         "Redeclaring a future formal using var inside an eval throws",
-                        "Let/Const redeclaration");
+                        "Identifier redeclaration");
 
         assert.throws(function () { function foo(a, b = eval("var a"), c = a) { return [a, b, c]; } foo(); },
                         ReferenceError,
                         "Redeclaring a previous formal using var inside an eval throws",
-                        "Let/Const redeclaration");
+                        "Identifier redeclaration");
 
         // Let and const do not leak outside of an eval, so the test cases below should never throw.
         // Redeclarations of formals - let

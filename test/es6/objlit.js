@@ -263,16 +263,16 @@ var tests = [
         name: "BLUE 603997: Method formals redeclaration error",
         body: function() {
             assert.doesNotThrow(function() { eval("var obj = { method(a) { var a; } };"); },                  "Object literal method with a var redeclaration does not throw");
-            assert.throws(function() { eval("var obj = { method(a) { let a; } };"); },           SyntaxError, "Object literal method with a let redeclaration throws",       "Let/Const redeclaration");
-            assert.throws(function() { eval("var obj = { method(a) { const a; } };"); },         SyntaxError, "Object literal method with a const redeclaration throws",     "Let/Const redeclaration");
+            assert.throws(function() { eval("var obj = { method(a) { let a; } };"); },           SyntaxError, "Object literal method with a let redeclaration throws",       "Identifier redeclaration");
+            assert.throws(function() { eval("var obj = { method(a) { const a; } };"); },         SyntaxError, "Object literal method with a const redeclaration throws",     "Identifier redeclaration");
 
             assert.doesNotThrow(function() { eval("var obj = { method(a,b,c) { var b; } };"); },              "Object literal method with a var redeclaration does not throw");
-            assert.throws(function() { eval("var obj = { method(a,b,c) { let b; } };"); },       SyntaxError, "Object literal method with a let redeclaration throws",       "Let/Const redeclaration");
-            assert.throws(function() { eval("var obj = { method(a,b,c) { const b; } };"); },     SyntaxError, "Object literal method with a const redeclaration throws",     "Let/Const redeclaration");
+            assert.throws(function() { eval("var obj = { method(a,b,c) { let b; } };"); },       SyntaxError, "Object literal method with a let redeclaration throws",       "Identifier redeclaration");
+            assert.throws(function() { eval("var obj = { method(a,b,c) { const b; } };"); },     SyntaxError, "Object literal method with a const redeclaration throws",     "Identifier redeclaration");
 
             assert.doesNotThrow(function() { eval("var obj = { set method(a) { var a; } };"); },              "Object literal set method with a var redeclaration does not throw");
-            assert.throws(function() { eval("var obj = { set method(a) { let a; } };"); },       SyntaxError, "Object literal set method with a let redeclaration throws",   "Let/Const redeclaration");
-            assert.throws(function() { eval("var obj = { set method(a) { const a; } };"); },     SyntaxError, "Object literal set method with a const redeclaration throws", "Let/Const redeclaration");
+            assert.throws(function() { eval("var obj = { set method(a) { let a; } };"); },       SyntaxError, "Object literal set method with a let redeclaration throws",   "Identifier redeclaration");
+            assert.throws(function() { eval("var obj = { set method(a) { const a; } };"); },     SyntaxError, "Object literal set method with a const redeclaration throws", "Identifier redeclaration");
         }
     },
     {

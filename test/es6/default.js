@@ -52,25 +52,25 @@ var tests = [
       // Redeclaration errors - non-simple in this case means any parameter list with a default expression
       assert.doesNotThrow(function () { eval("function foo(a = 1) { var a; }"); },            "Var redeclaration with a non-simple parameter list");
       assert.doesNotThrow(function () { eval("function foo(a = 1, b) { var b; }"); },         "Var redeclaration does not throw with a non-simple parameter list on a non-default parameter");
-      assert.throws(function () { function foo(a = 1) { eval('var a;'); }; foo() },     ReferenceError, "Var redeclaration throws with a non-simple parameter list inside an eval", "Let/Const redeclaration");
-      assert.throws(function () { function foo(a = 1, b) { eval('var b;'); }; foo(); }, ReferenceError, "Var redeclaration throws with a non-simple parameter list on a non-default parameter inside eval", "Let/Const redeclaration");
+      assert.throws(function () { function foo(a = 1) { eval('var a;'); }; foo() },     ReferenceError, "Var redeclaration throws with a non-simple parameter list inside an eval", "Identifier redeclaration");
+      assert.throws(function () { function foo(a = 1, b) { eval('var b;'); }; foo(); }, ReferenceError, "Var redeclaration throws with a non-simple parameter list on a non-default parameter inside eval", "Identifier redeclaration");
 
-      assert.throws(function () { eval("function foo(a) { let a; };"); }, SyntaxError, "Duplicate let decalration in the body should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo(a) { const a = 1; };"); }, SyntaxError, "Duplicate const decalration in the body should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("(a) => { let a; };"); }, SyntaxError, "Duplicate let decalration in the body of an arrow function should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("(a) => { const a = 1; };"); }, SyntaxError, "Duplicate const decalration in the body of an arrow function should throw redeclaration error", "Let/Const redeclaration", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo(a, b = () => a) { let b; };"); }, SyntaxError, "Duplicate let decalration in the body of a split scope function should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo(a, b = () => a) { const b = 1; };"); }, SyntaxError, "Duplicate const decalration in the body of a split scope function should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo(arguments, b = () => arguments) { let arguments; };"); }, SyntaxError, "Duplicate let definition of arguments should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo(arguments, b = () => arguments) { const arguments = 1; };"); }, SyntaxError, "Duplicate const definition of arguments should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("(a, b = () => a) => { let b; };"); }, SyntaxError, "Duplicate let decalration in the body of a split scope arrow function should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("(a, b = () => a) => { const b = 1; };"); }, SyntaxError, "Duplicate const decalration in the body of a split scope arrow function should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("(arguments, b = () => arguments) => { let arguments; };"); }, SyntaxError, "Duplicate let definition of arguments in an arrow function should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("(arguments, b = () => arguments) => { const arguments = 1; };"); }, SyntaxError, "Duplicate const definition of arguments in an arrow function should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo({a, b = () => a}) { let b; };"); }, SyntaxError, "Duplicate let decalration in the body of a function with destructured param should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo([a], b = () => a) { const b = 1; };"); }, SyntaxError, "Duplicate const decalration in the body of a function with destructured param should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo([arguments, b = () => arguments]) { let arguments; };"); }, SyntaxError, "Duplicate let definition of arguments in a function with destructured params should throw redeclaration error", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo(arguments, {b = () => arguments}) { const arguments = 1; };"); }, SyntaxError, "Duplicate const definition of arguments in a function with destructured params should throw redeclaration error", "Let/Const redeclaration");
+      assert.throws(function () { eval("function foo(a) { let a; };"); }, SyntaxError, "Duplicate let decalration in the body should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo(a) { const a = 1; };"); }, SyntaxError, "Duplicate const decalration in the body should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("(a) => { let a; };"); }, SyntaxError, "Duplicate let decalration in the body of an arrow function should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("(a) => { const a = 1; };"); }, SyntaxError, "Duplicate const decalration in the body of an arrow function should throw redeclaration error", "Identifier redeclaration", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo(a, b = () => a) { let b; };"); }, SyntaxError, "Duplicate let decalration in the body of a split scope function should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo(a, b = () => a) { const b = 1; };"); }, SyntaxError, "Duplicate const decalration in the body of a split scope function should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo(arguments, b = () => arguments) { let arguments; };"); }, SyntaxError, "Duplicate let definition of arguments should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo(arguments, b = () => arguments) { const arguments = 1; };"); }, SyntaxError, "Duplicate const definition of arguments should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("(a, b = () => a) => { let b; };"); }, SyntaxError, "Duplicate let decalration in the body of a split scope arrow function should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("(a, b = () => a) => { const b = 1; };"); }, SyntaxError, "Duplicate const decalration in the body of a split scope arrow function should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("(arguments, b = () => arguments) => { let arguments; };"); }, SyntaxError, "Duplicate let definition of arguments in an arrow function should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("(arguments, b = () => arguments) => { const arguments = 1; };"); }, SyntaxError, "Duplicate const definition of arguments in an arrow function should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo({a, b = () => a}) { let b; };"); }, SyntaxError, "Duplicate let decalration in the body of a function with destructured param should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo([a], b = () => a) { const b = 1; };"); }, SyntaxError, "Duplicate const decalration in the body of a function with destructured param should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo([arguments, b = () => arguments]) { let arguments; };"); }, SyntaxError, "Duplicate let definition of arguments in a function with destructured params should throw redeclaration error", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo(arguments, {b = () => arguments}) { const arguments = 1; };"); }, SyntaxError, "Duplicate const definition of arguments in a function with destructured params should throw redeclaration error", "Identifier redeclaration");
 
       assert.doesNotThrow(function () { function foo(a = 1) { eval('let a;'); }; foo() },           "Let redeclaration inside an eval does not throw with a non-simple parameter list");
       assert.doesNotThrow(function () { function foo(a = 1) { eval('const a = "str";'); }; foo() }, "Const redeclaration inside an eval does not throw with a non-simple parameter list");
@@ -469,7 +469,7 @@ var tests = [
         f8(1);
 
         assert.throws(function () { eval("function f(a, b = arguments) { class arguments { } }"); }, SyntaxError, "Class cannot be named arguments", "Invalid usage of 'arguments' in strict mode");
-        assert.throws(function () { eval("function f(a, arguments) { class arguments { } }"); }, SyntaxError, "Class cannot be named arguments even when one of the formal is named arguments", "Let/Const redeclaration");
+        assert.throws(function () { eval("function f(a, arguments) { class arguments { } }"); }, SyntaxError, "Class cannot be named arguments even when one of the formal is named arguments", "Identifier redeclaration");
 
         function f9( a = 0, b = {
             arguments() {

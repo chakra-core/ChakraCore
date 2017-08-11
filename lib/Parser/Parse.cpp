@@ -861,6 +861,13 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
                 // If !errorOnRedecl, (old) let/const hides the (new) var, so do nothing.
                 break;
             case knopVarDecl:
+                // At the top level of a Module, function declarations are treated like lexical declarations rather than like var declarations.
+                if (errorOnRedecl && m_scriptContext->GetConfig()->IsES6ModuleEnabled() && IsImportOrExportStatementValidHere() &&
+                    (symbolType == STFunction || sym->GetSymbolType() == STFunction))
+                {
+                    Error(ERRRedeclaration);
+                }
+
                 // Legal redeclaration. Who wins?
                 if (errorOnRedecl || sym->GetDecl()->sxVar.isBlockScopeFncDeclVar || sym->GetIsArguments())
                 {

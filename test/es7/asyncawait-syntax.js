@@ -184,10 +184,10 @@ var tests = [
         name: "local variables with same names as formal parameters have proper redeclaration semantics",
         body: function () {
             assert.doesNotThrow(function () { eval("async function af(x) { var x; }"); }, "var with same name as formal is not an error");
-            assert.throws(function () { eval("async function af(x) { let x; }"); }, SyntaxError, "let with same name as formal is an error", "Let/Const redeclaration");
-            assert.throws(function () { eval("async function af(x) { const x = 1; }"); }, SyntaxError, "const with same name as formal is an error", "Let/Const redeclaration");
+            assert.throws(function () { eval("async function af(x) { let x; }"); }, SyntaxError, "let with same name as formal is an error", "Identifier redeclaration");
+            assert.throws(function () { eval("async function af(x) { const x = 1; }"); }, SyntaxError, "const with same name as formal is an error", "Identifier redeclaration");
             assert.doesNotThrow(function () { eval("async function af(x) { function x() { } }"); }, "local function with same name as formal is not an error");
-            assert.throws(function () { eval("async function af(x) { class x { } }"); }, SyntaxError, "class with same name as formal is an error", "Let/Const redeclaration");
+            assert.throws(function () { eval("async function af(x) { class x { } }"); }, SyntaxError, "class with same name as formal is an error", "Identifier redeclaration");
         }
     },
     {

@@ -206,8 +206,8 @@ var tests = [
 
       // Redeclarations
       assert.doesNotThrow(function () { eval("var [a, a] = [];"); },    "Destructured var array declaration with a repeated identifier reference does not throw");
-      assert.throws(function () { eval("let [a, a] = [];"); },   SyntaxError, "Destructured let array declaration with a repeated identifier reference throws", "Let/Const redeclaration");
-      assert.throws(function () { eval("const [a, a] = [];"); }, SyntaxError, "Destructured const array declaration with a repeated identifier reference throws", "Let/Const redeclaration");
+      assert.throws(function () { eval("let [a, a] = [];"); },   SyntaxError, "Destructured let array declaration with a repeated identifier reference throws", "Identifier redeclaration");
+      assert.throws(function () { eval("const [a, a] = [];"); }, SyntaxError, "Destructured const array declaration with a repeated identifier reference throws", "Identifier redeclaration");
       assert.doesNotThrow(function () { eval("var a; [a, a] = [];"); }, "Destructured var array assignment with a repeated identifier reference does not throw");
       assert.doesNotThrow(function () { eval("let a; [a, a] = [];"); }, "Destructured let array assignment with a repeated identifier reference does not throw");
 
@@ -219,12 +219,12 @@ var tests = [
 
       // Call expression property references
       assert.throws(function () { eval("function foo() { return {}; }; var [foo()] = [];"); },       SyntaxError,    "Destructured var array declaration with a call expression throws",                      "Syntax error");
-      assert.throws(function () { eval("function foo() { return {}; }; let [foo()] = [];"); },       SyntaxError,    "Destructured let array declaration with a call expression throws",                      "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo() { return {}; }; const [foo()] = [];"); },     SyntaxError,    "Destructured const array declaration with a call expression throws",                    "Let/Const redeclaration");
+      assert.throws(function () { eval("function foo() { return {}; }; let [foo()] = [];"); },       SyntaxError,    "Destructured let array declaration with a call expression throws",                      "Identifier redeclaration");
+      assert.throws(function () { eval("function foo() { return {}; }; const [foo()] = [];"); },     SyntaxError,    "Destructured const array declaration with a call expression throws",                    "Identifier redeclaration");
       assert.throws(function () { eval("function foo() { return {}; }; [foo()] = [];"); },           SyntaxError,    "Destructured array assignment with a call expression throws",                           "Invalid destructuring assignment target");
       assert.throws(function () { eval("function foo() { return {}; }; var [foo().x] = [];"); },     SyntaxError,    "Destructured var array declaration with a call expression property reference throws",   "Syntax error");
-      assert.throws(function () { eval("function foo() { return {}; }; let [foo().x] = [];"); },     SyntaxError,    "Destructured let array declaration with a call expression property reference throws",   "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo() { return {}; }; const [foo().x] = [];"); },   SyntaxError,    "Destructured const array declaration with a call expression property reference throws", "Let/Const redeclaration");
+      assert.throws(function () { eval("function foo() { return {}; }; let [foo().x] = [];"); },     SyntaxError,    "Destructured let array declaration with a call expression property reference throws",   "Identifier redeclaration");
+      assert.throws(function () { eval("function foo() { return {}; }; const [foo().x] = [];"); },   SyntaxError,    "Destructured const array declaration with a call expression property reference throws", "Identifier redeclaration");
       assert.doesNotThrow(function () { eval("function foo() { return {}; }; [foo().x] = [];"); },      "Destructured array assignment with super a property reference does not throw");
       assert.doesNotThrow(function () { eval("function foo() { return {}; }; [foo()[\"x\"]] = [];"); }, "Destructured array assignment with a call expression property reference does not throw");
 

@@ -48,6 +48,15 @@ var tests = [
         }
     },
     {
+        name: "Syntax error of redeclaration in function declaration at module top level",
+        body: function () {
+            testModuleScript('var f; function f() {}', 'Syntax error of redeclaration in function declaration in module\'s top-level', true);
+            testModuleScript('var g; function *g() {}', 'Syntax error of redeclaration in function generator declaration in module\'s top-level', true);
+            testModuleScript('function e() { var f; function f() {} }', 'No syntax error of redeclaration in function declaration that is not in module\'s top-level');
+            testModuleScript('function e() { var g; function *g() {} }', 'No syntax error of redeclaration in function generator declaration that is not in module\'s top-level');
+        }
+    },
+    {
         name: "Valid default export statements",
         body: function () {
             testModuleScript('export default function () { };', 'Unnamed function expression default export');
