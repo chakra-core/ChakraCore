@@ -1739,7 +1739,7 @@ CommonNumber:
             //         Also we might want to throw here instead of checking it again in the caller
             if (value && !requestContext->IsUndeclBlockVar(*value) && !WithScopeObject::Is(object))
             {
-                CacheOperators::CachePropertyRead(instance, object, isRoot, propertyId, false, info, requestContext);
+                CacheOperators::CachePropertyRead(propertyObject, object, isRoot, propertyId, false, info, requestContext);
             }
 #ifdef TELEMETRY_JSO
             if (TELEMETRY_PROPERTY_OPCODE_FILTER(propertyId))
@@ -1779,7 +1779,7 @@ CommonNumber:
                 }
 
                 PropertyValueInfo::Set(info, requestContext->GetLibrary()->GetMissingPropertyHolder(), 0);
-                CacheOperators::CachePropertyRead(instance, requestContext->GetLibrary()->GetMissingPropertyHolder(), isRoot, propertyId, true, info, requestContext);
+                CacheOperators::CachePropertyRead(propertyObject, requestContext->GetLibrary()->GetMissingPropertyHolder(), isRoot, propertyId, true, info, requestContext);
             }
 #if defined(TELEMETRY_JSO) || defined(TELEMETRY_AddToCache) // enabled for `TELEMETRY_AddToCache`, because this is the property-not-found codepath where the normal TELEMETRY_AddToCache code wouldn't be executed.
             if (TELEMETRY_PROPERTY_OPCODE_FILTER(propertyId))
@@ -7282,7 +7282,7 @@ CommonNumber:
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
         Var value;
         if (CacheOperators::TryGetProperty<true, true, true, true, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
-                thisInstance, false, object, propertyId, &value, scriptContext, nullptr, &info))
+                instance, false, object, propertyId, &value, scriptContext, nullptr, &info))
         {
             return value;
         }
@@ -7938,55 +7938,7 @@ CommonNumber:
     template <bool IsFromFullJit, class TInlineCache>
     inline void JavascriptOperators::PatchPutValueNoLocalFastPath(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags)
     {
-        ScriptContext *const scriptContext = functionBody->GetScriptContext();
-
-        if (TaggedNumber::Is(instance))
-        {
-            JavascriptOperators::SetPropertyOnTaggedNumber(instance,
-                                        nullptr,
-                                        propertyId,
-                                        newValue,
-                                        scriptContext,
-                                        flags);
-             return;
-        }
-#if ENABLE_COPYONACCESS_ARRAY
-        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
-#endif
-        RecyclableObject *object = RecyclableObject::FromVar(instance);
-
-        PropertyValueInfo info;
-        PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
-        if (CacheOperators::TrySetProperty<!TInlineCache::IsPolymorphic, true, true, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
-                object, false, propertyId, newValue, scriptContext, flags, nullptr, &info))
-        {
-            return;
-        }
-
-#if DBG_DUMP
-        if (PHASE_VERBOSE_TRACE1(Js::InlineCachePhase))
-        {
-            CacheOperators::TraceCache(inlineCache, _u("PatchPutValueNoLocalFastPath"), propertyId, scriptContext, object);
-        }
-#endif
-
-        ImplicitCallFlags prevImplicitCallFlags = ImplicitCall_None;
-        ImplicitCallFlags currImplicitCallFlags = ImplicitCall_None;
-        bool hasThisOnlyStatements = functionBody->GetHasOnlyThisStmts();
-        if (hasThisOnlyStatements)
-        {
-            prevImplicitCallFlags = CacheAndClearImplicitBit(scriptContext);
-        }
-        if (!JavascriptOperators::OP_SetProperty(instance, propertyId, newValue, scriptContext, &info, flags))
-        {
-            // Add implicit call flags, to bail out if field copy prop may propagate the wrong value.
-            scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_NoOpSet);
-        }
-        if (hasThisOnlyStatements)
-        {
-            currImplicitCallFlags = CheckAndUpdateFunctionBodyWithImplicitFlag(functionBody);
-            RestoreImplicitFlag(scriptContext, prevImplicitCallFlags, currImplicitCallFlags);
-        }
+        PatchPutValueWithThisPtrNoLocalFastPath<IsFromFullJit, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
     }
     template void JavascriptOperators::PatchPutValueNoLocalFastPath<false, InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
     template void JavascriptOperators::PatchPutValueNoLocalFastPath<true, InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);

@@ -4651,7 +4651,7 @@ IRBuilder::BuildElementC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
             value2Opnd = this->BuildDstOpnd(value2Slot);
             regOpnd = this->BuildDstOpnd(regSlot);
 
-            instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, value2Opnd, m_func);
+            instr = IR::ProfiledInstr::New(newOpcode, regOpnd, fieldSymOpnd, value2Opnd, m_func);
             this->AddInstr(instr, offset);
         }
         break;
@@ -4672,7 +4672,7 @@ IRBuilder::BuildElementC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
         regOpnd = this->BuildSrcOpnd(regSlot);
         value2Opnd = this->BuildSrcOpnd(value2Slot);
 
-        instr = IR::Instr::New(newOpcode, fieldSymOpnd, regOpnd, value2Opnd, m_func);
+        instr = IR::ProfiledInstr::New(newOpcode, fieldSymOpnd, regOpnd, value2Opnd, m_func);
 
         this->AddInstr(instr, offset);
         break;
