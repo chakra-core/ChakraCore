@@ -429,7 +429,8 @@ void WasmBytecodeGenerator::GenerateFunction()
         m_originalWriter->Reset();
         throw;
     }
-
+    // Make sure we don't have any unforeseen exceptions as we finalize the body
+    AutoDisableInterrupt autoDisableInterrupt(m_scriptContext->GetThreadContext(), true);
 
 #if DBG_DUMP
     if (PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()) && !IsValidating())
@@ -443,6 +444,8 @@ void WasmBytecodeGenerator::GenerateFunction()
     mTypedRegisterAllocator.CommitToFunctionInfo(info, GetFunctionBody());
 
     GetFunctionBody()->CheckAndSetOutParamMaxDepth(m_maxArgOutDepth);
+
+    autoDisableInterrupt.Completed();
 }
 
 void WasmBytecodeGenerator::EnregisterLocals()
