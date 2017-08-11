@@ -1030,11 +1030,25 @@ namespace Js
 
     void JavascriptExceptionOperators::ThrowOutOfMemory(ScriptContext *scriptContext)
     {
-        DebugOnly(++JavascriptExceptionObject::oomExceptionCount);
         ThreadContext *threadContext = scriptContext ?
             scriptContext->GetThreadContext() :
             ThreadContext::GetContextForCurrentThread();
         threadContext->ClearDisableImplicitFlags();
+#if DBG
+        if (scriptContext)
+        {
+            ++scriptContext->oomExceptionCount;
+        }
+        else
+        {
+            ScriptContext* ctx = threadContext->GetScriptContextList();
+            while (ctx)
+            {
+                ++ctx->oomExceptionCount;
+                ctx = ctx->next;
+            }
+        }
+#endif
 
         JavascriptExceptionObject *oom = JavascriptExceptionOperators::GetOutOfMemoryExceptionObject(scriptContext);
 
@@ -1044,7 +1058,7 @@ namespace Js
     void JavascriptExceptionOperators::ThrowStackOverflow(ScriptContext *scriptContext, PVOID returnAddress)
     {
         Assert(scriptContext);
-        DebugOnly(++JavascriptExceptionObject::soExceptionCount);
+        DebugOnly(++scriptContext->soExceptionCount);
 
         ThreadContext *threadContext = scriptContext->GetThreadContext();
         JavascriptExceptionObject *so = threadContext->GetPendingSOErrorObject();
