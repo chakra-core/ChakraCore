@@ -2820,7 +2820,9 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
             {
                 if (valueType.CanBeTaggedValue())
                 {
-                    ChangeValueType(nullptr, value, valueType.SetCanBeTaggedValue(false), false);
+                    // We're not adding new information to the value other than changing the value type. Preserve any existing
+                    // information and just change the value type.
+                    ChangeValueType(nullptr, value, valueType.SetCanBeTaggedValue(false), true /*preserveSubClassInfo*/);
                     return false;
                 }
                 if (this->byteCodeUses)
