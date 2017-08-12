@@ -144,7 +144,9 @@ namespace Js
 
     private:
         Field(Field(Var)*) m_moduleMemory;
+#ifdef ENABLE_WASM
         Field(Wasm::WasmSignature *) m_signature;
+#endif
     };
 
     class ScriptFunctionWithInlineCache : public ScriptFunction

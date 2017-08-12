@@ -23,7 +23,6 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_memoryMaxSize(0),
     m_tableInitSize(0),
     m_tableMaxSize(0),
-    m_alloc(_u("WebAssemblyModule"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
     m_indirectfuncs(nullptr),
     m_exports(nullptr),
     m_exportCount(0),
@@ -37,12 +36,13 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_binaryBufferLength(binaryBufferLength),
     m_customSections(nullptr)
 {
+    m_alloc = HeapNew(ArenaAllocator, _u("WebAssemblyModule"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory);
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
     memset(m_globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
     m_functionsInfo = RecyclerNew(scriptContext->GetRecycler(), WasmFunctionInfosList, scriptContext->GetRecycler());
-    m_imports = Anew(&m_alloc, WasmImportsList, &m_alloc);
-    m_globals = Anew(&m_alloc, WasmGlobalsList, &m_alloc);
-    m_reader = Anew(&m_alloc, Wasm::WasmBinaryReader, &m_alloc, this, binaryBuffer, binaryBufferLength);
+    m_imports = Anew(m_alloc, WasmImportsList, m_alloc);
+    m_globals = Anew(m_alloc, WasmGlobalsList, m_alloc);
+    m_reader = Anew(m_alloc, Wasm::WasmBinaryReader, m_alloc, this, binaryBuffer, binaryBufferLength);
 }
 
 /* static */
@@ -428,7 +428,7 @@ WebAssemblyModule::AddWasmFunctionInfo(Wasm::WasmSignature* sig)
 {
     uint32 functionId = GetWasmFunctionCount();
     // must be recycler memory, since it holds reference to the function body
-    Wasm::WasmFunctionInfo* funcInfo = RecyclerNew(GetRecycler(), Wasm::WasmFunctionInfo, &m_alloc, sig, functionId);
+    Wasm::WasmFunctionInfo* funcInfo = RecyclerNew(GetRecycler(), Wasm::WasmFunctionInfo, m_alloc, sig, functionId);
     m_functionsInfo->Add(funcInfo);
     return funcInfo;
 }
@@ -464,7 +464,7 @@ WebAssemblyModule::AttachCustomInOutTracingReader(Wasm::WasmFunctionInfo* func, 
         throw Wasm::WasmCompilationException(_u("InOut tracing reader signature mismatch"));
     }
     // Create the custom reader to generate the import thunk
-    Wasm::WasmCustomReader* customReader = Anew(&m_alloc, Wasm::WasmCustomReader, &m_alloc);
+    Wasm::WasmCustomReader* customReader = Anew(m_alloc, Wasm::WasmCustomReader, m_alloc);
     // Print the function name we are calling
     {
         Wasm::WasmNode nameNode;
@@ -543,7 +543,7 @@ WebAssemblyModule::AttachCustomInOutTracingReader(Wasm::WasmFunctionInfo* func, 
 void
 WebAssemblyModule::AllocateFunctionExports(uint32 entries)
 {
-    m_exports = AnewArrayZ(&m_alloc, Wasm::WasmExport, entries);
+    m_exports = AnewArrayZ(m_alloc, Wasm::WasmExport, entries);
     m_exportCount = entries;
 }
 
@@ -581,7 +581,7 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     }
 
     // Store the information about the import
-    Wasm::WasmImport* importInfo = Anew(&m_alloc, Wasm::WasmImport);
+    Wasm::WasmImport* importInfo = Anew(m_alloc, Wasm::WasmImport);
     importInfo->kind = Wasm::ExternalKinds::Function;
     importInfo->modNameLen = modNameLen;
     importInfo->modName = modName;
@@ -592,7 +592,7 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     Wasm::WasmSignature* signature = GetSignature(sigId);
     Wasm::WasmFunctionInfo* funcInfo = AddWasmFunctionInfo(signature);
     // Create the custom reader to generate the import thunk
-    Wasm::WasmCustomReader* customReader = Anew(&m_alloc, Wasm::WasmCustomReader, &m_alloc);
+    Wasm::WasmCustomReader* customReader = Anew(m_alloc, Wasm::WasmCustomReader, m_alloc);
     for (uint32 iParam = 0; iParam < (uint32)signature->GetParamCount(); iParam++)
     {
         Wasm::WasmNode node;
@@ -641,7 +641,7 @@ WebAssemblyModule::GetImport(uint32 i) const
 void
 WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen)
 {
-    Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
+    Wasm::WasmImport* wi = Anew(m_alloc, Wasm::WasmImport);
     wi->kind = Wasm::ExternalKinds::Global;
     wi->importName = importName;
     wi->importNameLen = importNameLen;
@@ -653,7 +653,7 @@ WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, con
 void
 WebAssemblyModule::AddMemoryImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen)
 {
-    Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
+    Wasm::WasmImport* wi = Anew(m_alloc, Wasm::WasmImport);
     wi->kind = Wasm::ExternalKinds::Memory;
     wi->importName = importName;
     wi->importNameLen = importNameLen;
@@ -666,7 +666,7 @@ WebAssemblyModule::AddMemoryImport(const char16* modName, uint32 modNameLen, con
 void
 WebAssemblyModule::AddTableImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen)
 {
-    Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
+    Wasm::WasmImport* wi = Anew(m_alloc, Wasm::WasmImport);
     wi->kind = Wasm::ExternalKinds::Table;
     wi->importName = importName;
     wi->importNameLen = importNameLen;
@@ -724,7 +724,7 @@ WebAssemblyModule::ValidateInitExportForOffset(const Wasm::WasmNode& initExpr) c
 void
 WebAssemblyModule::AddGlobal(Wasm::GlobalReferenceTypes::Type refType, Wasm::WasmTypes::WasmType type, bool isMutable, Wasm::WasmNode init)
 {
-    Wasm::WasmGlobal* global = Anew(&m_alloc, Wasm::WasmGlobal, refType, m_globalCounts[type]++, type, isMutable, init);
+    Wasm::WasmGlobal* global = Anew(m_alloc, Wasm::WasmGlobal, refType, m_globalCounts[type]++, type, isMutable, init);
     m_globals->Add(global);
 }
 
@@ -749,7 +749,7 @@ WebAssemblyModule::AllocateDataSegs(uint32 count)
 {
     Assert(count != 0);
     m_datasegCount = count;
-    m_datasegs = AnewArray(&m_alloc, Wasm::WasmDataSegment*, count);
+    m_datasegs = AnewArray(m_alloc, Wasm::WasmDataSegment*, count);
 }
 
 void
@@ -774,7 +774,7 @@ WebAssemblyModule::AllocateElementSegs(uint32 count)
 {
     Assert(count != 0);
     m_elementsegCount = count;
-    m_elementsegs = AnewArrayZ(&m_alloc, Wasm::WasmElementSegment*, count);
+    m_elementsegs = AnewArrayZ(m_alloc, Wasm::WasmElementSegment*, count);
 }
 
 void
@@ -834,13 +834,17 @@ WebAssemblyModule::GetModuleEnvironmentSize() const
 void
 WebAssemblyModule::Finalize(bool isShutdown)
 {
-    m_alloc.Clear();
+    if (m_alloc)
+    {
+        HeapDelete(m_alloc);
+        m_alloc = nullptr;
+    }
 }
 
 void
 WebAssemblyModule::Dispose(bool isShutdown)
 {
-    Assert(m_alloc.Size() == 0);
+    Assert(!m_alloc);
 }
 
 void
@@ -915,7 +919,7 @@ WebAssemblyModule::AddCustomSection(Wasm::CustomSection customSection)
 {
     if (!m_customSections)
     {
-        m_customSections = Anew(&m_alloc, CustomSectionsList, &m_alloc);
+        m_customSections = Anew(m_alloc, CustomSectionsList, m_alloc);
     }
     m_customSections->Add(customSection);
 }

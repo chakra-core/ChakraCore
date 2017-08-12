@@ -291,6 +291,12 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_Promise:
         case Js::TypeIds_GlobalObject:
         case Js::TypeIds_SpreadArgument:
+#ifdef ENABLE_WASM
+        case Js::TypeIds_WebAssemblyModule:
+        case Js::TypeIds_WebAssemblyInstance:
+        case Js::TypeIds_WebAssemblyMemory:
+        case Js::TypeIds_WebAssemblyTable:
+#endif
 
         case Js::TypeIds_Proxy:
         {
@@ -480,7 +486,12 @@ const char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     case Js::TypeIds_Promise:           return _u("Promise");
     case Js::TypeIds_GlobalObject:      return _u("Object");
     case Js::TypeIds_SpreadArgument:    return _u("Spread");
-
+#ifdef ENABLE_WASM
+    case Js::TypeIds_WebAssemblyModule:  return _u("WebAssembly.Module");
+    case Js::TypeIds_WebAssemblyInstance:return _u("WebAssembly.Instance");
+    case Js::TypeIds_WebAssemblyMemory:  return _u("WebAssembly.Memory");
+    case Js::TypeIds_WebAssemblyTable:   return _u("WebAssembly.Table");
+#endif
     default:
         Assert(false);
     }
