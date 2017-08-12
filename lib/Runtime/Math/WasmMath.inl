@@ -105,27 +105,18 @@ inline int WasmMath::Eqz(T value)
 template<>
 inline double WasmMath::Copysign(double aLeft, double aRight)
 {
-#if _M_IX86
-    double a = *(double*)Js::NumberConstants::AbsDoubleCst;
-    double b = *(double*)Js::NumberConstants::SgnDoubleBitCst;
-    __asm {
-        movq xmm0, aLeft;
-        movq xmm1, aRight;
-        movq xmm2, a;
-        movq xmm3, b;
-        andps xmm0, xmm2;
-        andps xmm1, xmm3;
-        xorps xmm0, xmm1;
-    }
-#else
-    return _copysign(aLeft, aRight);
-#endif
+    uint64 aLeftI64 = *(uint64*)(&aLeft);
+    uint64 aRightI64 = *(uint64*)(&aRight);
+    uint64 res = ((aLeftI64 & 0x7fffffffffffffffull) | (aRightI64 & 0x8000000000000000ull));
+    return *(double*)(&res);
 }
 
 template<>
 inline float WasmMath::Copysign(float aLeft, float aRight)
 {
-    uint32 res = ((*(uint32*)(&aLeft) & 0x7fffffffu) | (*(uint32*)(&aRight) & 0x80000000u));
+    uint32 aLeftI32 = *(uint32*)(&aLeft);
+    uint32 aRightI32 = *(uint32*)(&aRight);
+    uint32 res = ((aLeftI32 & 0x7fffffffu) | (aRightI32 & 0x80000000u));
     return *(float*)(&res);
 }
 

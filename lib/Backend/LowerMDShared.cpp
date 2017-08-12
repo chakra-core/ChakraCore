@@ -7008,20 +7008,22 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, T value, IR::Instr * instrInsert)
     IR::Opnd * opnd;
 
     void* pValue = nullptr;
-    bool isFloat64 = opndDst->IsFloat64();
+    const bool isFloat64 = opndDst->IsFloat64();
+    IRType irtype = isFloat64 ? TyMachDouble : TyFloat32;
+    // Cast the value to the matching opndDst's type because T might not match
     if (isFloat64)
     {
-        pValue = NativeCodeDataNewNoFixup(instrInsert->m_func->GetNativeCodeDataAllocator(), DoubleType<DataDesc_LowererMD_LoadFloatValue_Double>, value);
+        pValue = NativeCodeDataNewNoFixup(instrInsert->m_func->GetNativeCodeDataAllocator(), DoubleType<DataDesc_LowererMD_LoadFloatValue_Double>, (double)value);
     }
     else
     {
         Assert(opndDst->IsFloat32());
-        pValue = (float*)NativeCodeDataNewNoFixup(instrInsert->m_func->GetNativeCodeDataAllocator(), FloatType<DataDesc_LowererMD_LoadFloatValue_Float>, (float)value);
+        pValue = NativeCodeDataNewNoFixup(instrInsert->m_func->GetNativeCodeDataAllocator(), FloatType<DataDesc_LowererMD_LoadFloatValue_Float>, (float)value);
     }
 
     if (!instrInsert->m_func->IsOOPJIT())
     {
-        opnd = IR::MemRefOpnd::New((void*)pValue, isFloat64 ? TyMachDouble : TyFloat32,
+        opnd = IR::MemRefOpnd::New((void*)pValue, irtype,
             instrInsert->m_func, isFloat64 ? IR::AddrOpndKindDynamicDoubleRef : IR::AddrOpndKindDynamicFloatRef);
     }
     else // OOP JIT
@@ -7034,7 +7036,7 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, T value, IR::Instr * instrInsert)
             IR::MemRefOpnd::New(instrInsert->m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, instrInsert->m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
             instrInsert);
 
-        opnd = IR::IndirOpnd::New(addressRegOpnd, offset, isFloat64 ? TyMachDouble : TyFloat32,
+        opnd = IR::IndirOpnd::New(addressRegOpnd, offset, irtype,
 #if DBG
             NativeCodeData::GetDataDescription(pValue, instrInsert->m_func->m_alloc),
 #endif
