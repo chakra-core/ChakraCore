@@ -357,6 +357,12 @@
   </test>
   <test>
     <default>
+      <files>bug13213828.js</files>
+      <compile-flags>-mic:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>valueInfoLossBug.js</files>
     </default>
   </test>
