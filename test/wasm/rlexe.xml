@@ -297,6 +297,13 @@
 </test>
 <test>
   <default>
+    <files>polyinline.js</files>
+    <compile-flags>-maxinterpretcount:2 -off:simplejit</compile-flags>
+    <tags>exclude_xplat,exclude_jshost,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>limits.js</files>
     <compile-flags>-wasm -args --no-verbose --end 4 -endargs</compile-flags>
     <timeout>300</timeout>
