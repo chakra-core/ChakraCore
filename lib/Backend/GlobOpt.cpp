@@ -1274,6 +1274,21 @@ void GlobOpt::InsertValueCompensation(
 
     GlobOptBlockData &predecessorBlockData = predecessor->globOptData;
     GlobOptBlockData &successorBlockData = *CurrentBlockData();
+    struct DelayChangeValueInfo
+    {
+        Value* predecessorValue;
+        ArrayValueInfo* valueInfo;
+        void ChangeValueInfo(BasicBlock* predecessor, GlobOpt* g)
+        {
+            g->ChangeValueInfo(
+                predecessor,
+                predecessorValue,
+                valueInfo,
+                false /*allowIncompatibleType*/,
+                true /*compensated*/);
+        }
+    };
+    JsUtil::List<DelayChangeValueInfo, ArenaAllocator> delayChangeValueInfo(alloc);
     for(auto it = symsRequiringCompensationToMergedValueInfoMap.GetIterator(); it.IsValid(); it.MoveNext())
     {
         const auto &entry = it.Current();
@@ -1399,8 +1414,9 @@ void GlobOpt::InsertValueCompensation(
 
         if(compensated)
         {
-            ChangeValueInfo(
-                predecessor,
+            // Save the new ValueInfo for later.
+            // We don't want other symbols needing compensation to see this new one
+            delayChangeValueInfo.Add({
                 predecessorValue,
                 ArrayValueInfo::New(
                     alloc,
@@ -1408,11 +1424,13 @@ void GlobOpt::InsertValueCompensation(
                     mergedHeadSegmentSym ? mergedHeadSegmentSym : predecessorHeadSegmentSym,
                     mergedHeadSegmentLengthSym ? mergedHeadSegmentLengthSym : predecessorHeadSegmentLengthSym,
                     mergedLengthSym ? mergedLengthSym : predecessorLengthSym,
-                    predecessorValueInfo->GetSymStore()),
-                false /*allowIncompatibleType*/,
-                compensated);
+                    predecessorValueInfo->GetSymStore())
+            });
         }
     }
+
+    // Once we've compensated all the symbols, update the new ValueInfo.
+    delayChangeValueInfo.Map([predecessor, this](int, DelayChangeValueInfo d) { d.ChangeValueInfo(predecessor, this); });
 
     if(setLastInstrInPredecessor)
     {
