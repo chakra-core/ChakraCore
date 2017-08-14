@@ -633,6 +633,8 @@ namespace Js
 
     BOOL JavascriptProxy::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
+        PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
+
         // This is the second half of [[set]] where when the handler does not specified [[set]] so we forward to [[set]] on target
         // with receiver as the proxy.
         //c.Let existingDescriptor be the result of calling the[[GetOwnProperty]] internal method of Receiver with argument P.
@@ -1451,6 +1453,8 @@ namespace Js
 
     RecyclableObject* JavascriptProxy::GetPrototypeSpecial()
     {
+        PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
+
         // Reject implicit call
         ThreadContext* threadContext = GetScriptContext()->GetThreadContext();
         if (threadContext->IsDisableImplicitCall())
