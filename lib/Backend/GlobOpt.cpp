@@ -5180,7 +5180,6 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
 
     case Js::OpCode::Typeof:
         return this->NewGenericValue(ValueType::String, dst);
-        break;
     case Js::OpCode::InitLocalClosure:
         Assert(instr->GetDst());
         Assert(instr->GetDst()->IsRegOpnd());
