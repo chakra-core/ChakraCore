@@ -523,17 +523,17 @@ namespace Js
         this->isJavascriptFrame = this->CheckJavascriptFrame(includeInlineFrames);
 
 #if ENABLE_NATIVE_CODEGEN
-		if (this->IsJavascriptFrame() && this->interpreterFrame && lastInternalFrameInfo.codeAddress != nullptr)
-		{
-			this->previousInterpreterFrameIsForLoopBody = true;
-		}
-		else
-		{
-			this->previousInterpreterFrameIsForLoopBody = false;
-		}
+        if (this->IsJavascriptFrame() && this->interpreterFrame && lastInternalFrameInfo.codeAddress != nullptr)
+        {
+            this->previousInterpreterFrameIsForLoopBody = true;
+        }
+        else
+        {
+            this->previousInterpreterFrameIsForLoopBody = false;
+        }
 #endif
-		
-		if (this->IsJavascriptFrame())
+
+        if (this->IsJavascriptFrame())
         {
             // In case we have a cross site thunk, update the script context
             Js::JavascriptFunction *function = this->GetCurrentFunction();
