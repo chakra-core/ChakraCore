@@ -673,7 +673,8 @@ private:
     void                    DetectUnknownChangesToInductionVariables(GlobOptBlockData *const blockData);
     void                    SetInductionVariableValueNumbers(GlobOptBlockData *const blockData);
     void                    FinalizeInductionVariables(Loop *const loop, GlobOptBlockData *const headerData);
-    bool                    DetermineSymBoundOffsetOrValueRelativeToLandingPad(StackSym *const sym, const bool landingPadValueIsLowerBound, ValueInfo *const valueInfo, const IntBounds *const bounds, GlobOptBlockData *const landingPadGlobOptBlockData, int *const boundOffsetOrValueRef);
+    enum class SymBoundType {OFFSET, VALUE, UNKNOWN};
+    SymBoundType DetermineSymBoundOffsetOrValueRelativeToLandingPad(StackSym *const sym, const bool landingPadValueIsLowerBound, ValueInfo *const valueInfo, const IntBounds *const bounds, GlobOptBlockData *const landingPadGlobOptBlockData, int *const boundOffsetOrValueRef);
 
 private:
     void                    DetermineDominatingLoopCountableBlock(Loop *const loop, BasicBlock *const headerBlock);

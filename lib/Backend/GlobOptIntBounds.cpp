@@ -1262,7 +1262,7 @@ void GlobOpt::FinalizeInductionVariables(Loop *const loop, GlobOptBlockData *con
     }
 }
 
-bool GlobOpt::DetermineSymBoundOffsetOrValueRelativeToLandingPad(
+GlobOpt::SymBoundType GlobOpt::DetermineSymBoundOffsetOrValueRelativeToLandingPad(
     StackSym *const sym,
     const bool landingPadValueIsLowerBound,
     ValueInfo *const valueInfo,
@@ -1284,7 +1284,7 @@ bool GlobOpt::DetermineSymBoundOffsetOrValueRelativeToLandingPad(
         // for(; i === 1; ++i){...}, where 'i' is an induction variable but has a constant value inside the loop, or in blocks
         // inside the loop such as if(i === 1){...}
         *boundOffsetOrValueRef = constantValue;
-        return true; // 'true' indicates that *boundOffsetOrValueRef contains the constant bound value
+        return SymBoundType::VALUE;
     }
 
     if (bounds)
@@ -1292,16 +1292,11 @@ bool GlobOpt::DetermineSymBoundOffsetOrValueRelativeToLandingPad(
         Value *const landingPadValue = landingPadGlobOptBlockData->FindValue(sym);
         Assert(landingPadValue);
         Assert(landingPadValue->GetValueInfo()->IsInt());
-        const auto getBoundOffset = [bounds, landingPadValue, landingPadValueIsLowerBound]
-        {
-            const ValueRelativeOffset *bound = nullptr;
-            AssertVerify(
-                (landingPadValueIsLowerBound ? bounds->RelativeLowerBounds() : bounds->RelativeUpperBounds())
-                .TryGetReference(landingPadValue->GetValueNumber(), &bound));
-            return bound->Offset();
-        };
+
         int landingPadConstantValue;
-        if(landingPadValue->GetValueInfo()->TryGetIntConstantValue(&landingPadConstantValue))
+        const ValueRelativeOffset* bound = nullptr;
+        const RelativeIntBoundSet& boundSet = landingPadValueIsLowerBound ? bounds->RelativeLowerBounds() : bounds->RelativeUpperBounds();
+        if (landingPadValue->GetValueInfo()->TryGetIntConstantValue(&landingPadConstantValue))
         {
             // The sym's bound already takes the landing pad constant value into consideration, unless the landing pad value was
             // updated to have a more aggressive range (and hence, now a constant value) as part of hoisting a bound check or some
@@ -1314,23 +1309,29 @@ bool GlobOpt::DetermineSymBoundOffsetOrValueRelativeToLandingPad(
                 // The landing pad value became a constant value as part of a hoisting operation. The landing pad constant value is
                 // a more aggressive bound, so use that instead, and take into consideration the change to the sym so far inside the
                 // loop, using the relative bound to the landing pad value.
-                constantBound = landingPadConstantValue + getBoundOffset();
+                if (!boundSet.TryGetReference(landingPadValue->GetValueNumber(), &bound))
+                {
+                    return SymBoundType::UNKNOWN;
+                }
+                constantBound = landingPadConstantValue + bound->Offset();
             }
             *boundOffsetOrValueRef = constantBound;
-            return true; // 'true' indicates that *boundOffsetOrValueRef contains the constant bound value
+            return SymBoundType::VALUE;
         }
 
-        *boundOffsetOrValueRef = getBoundOffset();
-        // 'false' indicates that *boundOffsetOrValueRef contains the bound offset, which must be added to the sym's value in the
-        // landing pad to get the bound value
-        return false;
+        if (!boundSet.TryGetReference(landingPadValue->GetValueNumber(), &bound))
+        {
+            return SymBoundType::UNKNOWN;
+        }
+        *boundOffsetOrValueRef = bound->Offset();
+        return SymBoundType::OFFSET;
     }
     AssertVerify(
         landingPadValueIsLowerBound
         ? valueInfo->TryGetIntConstantLowerBound(boundOffsetOrValueRef)
         : valueInfo->TryGetIntConstantUpperBound(boundOffsetOrValueRef));
 
-    return true; // 'true' indicates that *boundOffsetOrValueRef contains the constant bound value
+    return SymBoundType::VALUE;
 }
 
 void GlobOpt::DetermineDominatingLoopCountableBlock(Loop *const loop, BasicBlock *const headerBlock)
@@ -1545,24 +1546,31 @@ void GlobOpt::DetermineLoopCount(Loop *const loop)
         }
 
         // Determine if the induction variable already changed in the loop, and by how much
-        int inductionVariableOffset;
-        StackSym *inductionVariableSymToAdd;
-        if(DetermineSymBoundOffsetOrValueRelativeToLandingPad(
-                inductionVariableVarSym,
-                minMagnitudeChange >= 0,
-                inductionVariableValueInfo,
-                inductionVariableBounds,
-                &landingPadBlockData,
-                &inductionVariableOffset))
+        int inductionVariableOffset = 0;
+        StackSym *inductionVariableSymToAdd = nullptr;
+        SymBoundType symBoundType = DetermineSymBoundOffsetOrValueRelativeToLandingPad(
+            inductionVariableVarSym,
+            minMagnitudeChange >= 0,
+            inductionVariableValueInfo,
+            inductionVariableBounds,
+            &landingPadBlockData,
+            &inductionVariableOffset);
+        if (symBoundType == SymBoundType::VALUE)
         {
             // The bound value is constant
             inductionVariableSymToAdd = nullptr;
         }
-        else
+        else if (symBoundType == SymBoundType::OFFSET)
         {
             // The bound value is not constant, the offset needs to be added to the induction variable in the landing pad
             inductionVariableSymToAdd = inductionVariableVarSym->GetInt32EquivSym(nullptr);
             Assert(inductionVariableSymToAdd);
+        }
+        else
+        {
+            Assert(symBoundType == SymBoundType::UNKNOWN);
+            // We were unable to determine the sym bound offset or value
+            continue;
         }
 
         // Int operands are required
@@ -2826,23 +2834,30 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
     }
 
     // Determine if the index already changed in the loop, and by how much
-    int indexOffset;
-    StackSym *indexSymToAdd;
-    if(DetermineSymBoundOffsetOrValueRelativeToLandingPad(
-            indexSym,
-            maxMagnitudeChange >= 0,
-            indexValueInfo,
-            indexBounds,
-            &currentLoop->landingPad->globOptData,
-            &indexOffset))
+    int indexOffset = 0;
+    StackSym *indexSymToAdd = nullptr;
+    SymBoundType symBoundType = DetermineSymBoundOffsetOrValueRelativeToLandingPad(
+        indexSym,
+        maxMagnitudeChange >= 0,
+        indexValueInfo,
+        indexBounds,
+        &currentLoop->landingPad->globOptData,
+        &indexOffset);
+    if (symBoundType == SymBoundType::VALUE)
     {
         // The bound value is constant
         indexSymToAdd = nullptr;
     }
-    else
+    else if (symBoundType == SymBoundType::OFFSET)
     {
         // The bound value is not constant, the offset needs to be added to the index sym in the landing pad
         indexSymToAdd = indexSym;
+    }
+    else
+    {
+        Assert(symBoundType == SymBoundType::UNKNOWN);
+        TRACE_PHASE_VERBOSE(Js::Phase::BoundCheckHoistPhase, 4, _u("Unable to determine the sym bound offset or value\n"));
+        return;
     }
     TRACE_PHASE_VERBOSE(Js::Phase::BoundCheckHoistPhase, 3, _u("Index's offset from landing pad is %d\n"), indexOffset);
 
