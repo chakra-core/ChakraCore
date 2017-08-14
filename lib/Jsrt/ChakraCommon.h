@@ -2138,6 +2138,25 @@ typedef unsigned short uint16_t;
             _In_opt_ void *callbackState,
             _Out_ JsValueRef *function);
 
+
+    /// <summary>
+    ///     Changes the internal callback state for an external function.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="function">The function object.</param>
+    /// <param name="callbackState">
+    ///     User provided state that will be passed back to the callback.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSetExternalFunctionState(
+              _In_ JsValueRef function,
+              _In_opt_ void *callbackState);
+
     /// <summary>
     ///     Creates a new JavaScript error object
     /// </summary>

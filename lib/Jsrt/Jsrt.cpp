@@ -2432,6 +2432,22 @@ CHAKRA_API JsCreateNamedFunction(_In_ JsValueRef name, _In_ JsNativeFunction nat
     });
 }
 
+CHAKRA_API JsSetExternalFunctionState(_In_ JsValueRef function, _In_opt_ void *callbackState)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        VALIDATE_INCOMING_FUNCTION(function, scriptContext);
+
+        Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(function);
+        if(jsFunction != JS_INVALID_REFERENCE && jsFunction->IsExternalFunction())
+        {
+            Js::JavascriptExternalFunction *externalFunction = (Js::JavascriptExternalFunction *) jsFunction;
+            externalFunction->SetCallbackState(callbackState);
+        }
+
+        return JsNoError;
+    });
+}
+
 void SetErrorMessage(Js::ScriptContext *scriptContext, JsValueRef newError, JsValueRef message)
 {
     Js::JavascriptOperators::OP_SetProperty(newError, Js::PropertyIds::message, message, scriptContext);
