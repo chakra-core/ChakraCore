@@ -414,6 +414,11 @@ private:
     BVSparse<JitArenaAllocator> *  objectTypeSyms;
     BVSparse<JitArenaAllocator> *  prePassCopyPropSym;  // Symbols that were copy prop'd during loop prepass
 
+    // Symbols that refer to slots in the stack frame.  We still use currentBlock->liveFields to tell us
+    // which of these slots are live; this bit-vector just identifies which entries in liveFields represent
+    // slots, so we can zero them all out quickly.
+    BVSparse<JitArenaAllocator> *  slotSyms;
+
     PropertySym *               propertySymUse;
 
     BVSparse<JitArenaAllocator> *  lengthEquivBv;
@@ -838,7 +843,7 @@ private:
     void                    ProcessFieldKills(IR::Instr * instr);
     void                    KillLiveFields(StackSym * stackSym, BVSparse<JitArenaAllocator> * bv);
     void                    KillLiveFields(PropertySym * propertySym, BVSparse<JitArenaAllocator> * bv);
-    void                    KillLiveFields(BVSparse<JitArenaAllocator> *const propertyEquivSet, BVSparse<JitArenaAllocator> *const bv) const;
+    void                    KillLiveFields(BVSparse<JitArenaAllocator> *const fieldsToKill, BVSparse<JitArenaAllocator> *const bv) const;
     void                    KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * bv, bool inGlobOpt, Func *func);
     void                    KillAllFields(BVSparse<JitArenaAllocator> * bv);
     void                    SetAnyPropertyMayBeWrittenTo();
