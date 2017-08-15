@@ -8673,9 +8673,12 @@ CommonNumber:
                 {
                     if (!currentDescriptor->IsWritable())
                     {
-                        if ((descriptor.WritableSpecified() && descriptor.IsWritable()) ||  // ES5 8.12.9.10.a.i
-                            (descriptor.ValueSpecified() &&
-                                !JavascriptConversion::SameValue(descriptor.GetValue(), currentDescriptor->GetValue()))) // ES5 8.12.9.10.a.ii
+                        if (descriptor.WritableSpecified() && descriptor.IsWritable())  // ES5 8.12.9.10.a.i
+                        {
+                            return Reject(throwOnError, scriptContext, JSERR_DefineProperty_NotConfigurable, propId);
+                        }
+                        else if (descriptor.ValueSpecified() &&
+                                !JavascriptConversion::SameValue(descriptor.GetValue(), currentDescriptor->GetValue())) // ES5 8.12.9.10.a.ii
                         {
                             return Reject(throwOnError, scriptContext, JSERR_DefineProperty_NotWritable, propId);
                         }
