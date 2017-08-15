@@ -2595,7 +2595,7 @@ namespace Js
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToISOString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toISOString, &JavascriptDate::EntryInfo::ToISOString, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToJSON.GetOriginalEntryPoint(),
-             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toJSON, &JavascriptDate::EntryInfo::ToJSON, 1));
+            library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toJSON, &JavascriptDate::EntryInfo::ToJSON, 1));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToLocaleDateString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toLocaleDateString, &JavascriptDate::EntryInfo::ToLocaleDateString, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToLocaleString.GetOriginalEntryPoint(),
@@ -2606,9 +2606,12 @@ namespace Js
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toString, &JavascriptDate::EntryInfo::ToString, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToTimeString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toTimeString, &JavascriptDate::EntryInfo::ToTimeString, 0));
-        scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToUTCString.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toUTCString, &JavascriptDate::EntryInfo::ToUTCString, 0));
-        library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toGMTString, &JavascriptDate::EntryInfo::ToGMTString, 0);
+
+        // Spec stipulates toGMTString must be the same function object as toUTCString
+        JavascriptFunction *toUTCStringFunc = library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toUTCString, &JavascriptDate::EntryInfo::ToUTCString, 0);
+        scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToUTCString.GetOriginalEntryPoint(), toUTCStringFunc);
+        library->AddMember(datePrototype, PropertyIds::toGMTString, toUTCStringFunc, PropertyBuiltInMethodDefaults);
+
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ValueOf.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::valueOf, &JavascriptDate::EntryInfo::ValueOf, 0));
 
@@ -5000,10 +5003,9 @@ namespace Js
 
     JavascriptFunction* JavascriptLibrary::AddFunction(DynamicObject* object, PropertyId propertyId, RuntimeFunction* function)
     {
-
-       AddMember(object, propertyId, function);
-       function->SetFunctionNameId(TaggedInt::ToVarUnchecked((int)propertyId));
-       return function;
+        AddMember(object, propertyId, function);
+        function->SetFunctionNameId(TaggedInt::ToVarUnchecked((int)propertyId));
+        return function;
     }
 
     JavascriptFunction * JavascriptLibrary::AddFunctionToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * functionInfo, int length, PropertyAttributes attributes)
@@ -7664,7 +7666,6 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(toString, JavascriptDate::EntryToString);
         REG_OBJECTS_LIB_FUNC(toTimeString, JavascriptDate::EntryToTimeString);
         REG_OBJECTS_LIB_FUNC(toUTCString, JavascriptDate::EntryToUTCString);
-        REG_OBJECTS_LIB_FUNC(toGMTString, JavascriptDate::EntryToGMTString);
         REG_OBJECTS_LIB_FUNC(valueOf, JavascriptDate::EntryValueOf);
 
         return hr;

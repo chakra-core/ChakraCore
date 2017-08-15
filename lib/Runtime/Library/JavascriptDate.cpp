@@ -1503,16 +1503,6 @@ namespace Js
             DateImplementation::DateTimeFlag::NoDate);
     }
 
-    // CONSIDER: ToGMTString and ToUTCString is the same, but currently the profiler use the entry point address to identify
-    // the entry point. So we will have to make the function different. Consider using FunctionInfo to identify the function
-    Var JavascriptDate::EntryToGMTString(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        return JavascriptFunction::CallFunction<true>(function, JavascriptDate::EntryToUTCString, args);
-    }
-
     Var JavascriptDate::EntryToUTCString(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);

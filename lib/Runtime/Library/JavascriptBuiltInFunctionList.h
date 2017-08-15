@@ -125,7 +125,6 @@ BUILTIN(JavascriptDate, ToLocaleTimeString, EntryToLocaleTimeString, FunctionInf
 BUILTIN(JavascriptDate, ToString, EntryToString, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptDate, ToTimeString, EntryToTimeString, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, ToUTCString, EntryToUTCString, FunctionInfo::ErrorOnNew)
-BUILTIN(JavascriptDate, ToGMTString, EntryToGMTString, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, UTC, EntryUTC, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, ValueOf, EntryValueOf, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptDate, SymbolToPrimitive, EntrySymbolToPrimitive, FunctionInfo::ErrorOnNew)
