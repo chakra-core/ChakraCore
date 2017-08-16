@@ -40,7 +40,6 @@ public:
     DWORD GetNumberOfPhysicalProcessors() const { return this->dwNumberOfPhysicalProcessors; }
 
 #ifdef _WIN32
-    HMODULE GetCRTHandle();
     bool IsCRTModulePointer(uintptr_t ptr);
 #endif
 
@@ -59,6 +58,9 @@ public:
 #endif
 #if SYSINFO_IMAGE_BASE_AVAILABLE
     static bool IsJscriptModulePointer(void * ptr);
+#endif
+#ifdef _WIN32
+    static HMODULE GetCRTHandle();
 #endif
     static DWORD const PageSize = 4096;
 
@@ -82,12 +84,11 @@ public:
 #endif
     
 private:
-    AutoSystemInfo() : majorVersion(0), minorVersion(0), buildDateHash(0), buildTimeHash(0), crtBase(0), crtSize(0) { Initialize(); }
+    AutoSystemInfo() : majorVersion(0), minorVersion(0), buildDateHash(0), buildTimeHash(0), crtSize(0) { Initialize(); }
     void Initialize();
     bool isWindows8OrGreater;
     uint allocationGranularityPageCount;
     HANDLE processHandle;
-    HMODULE crtBase;
     DWORD crtSize;
 #if defined(_M_IX86) || defined(_M_X64)
     int CPUInfo[4];

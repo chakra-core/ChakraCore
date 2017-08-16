@@ -398,30 +398,27 @@ LPCWSTR AutoSystemInfo::GetJscriptDllFileName()
 }
 
 #ifdef _WIN32
+/* static */
 HMODULE AutoSystemInfo::GetCRTHandle()
 {
-    if (Data.crtBase == 0)
-    {
-        Data.crtBase = GetModuleHandle(_u("msvcrt.dll"));
-    }
-    return Data.crtBase;
+    return GetModuleHandle(_u("msvcrt.dll"));
 }
 
 bool
 AutoSystemInfo::IsCRTModulePointer(uintptr_t ptr)
 {
-    uintptr_t base = (uintptr_t)GetCRTHandle();
+    HMODULE base = GetCRTHandle();
     if (Data.crtSize == 0)
     {
         MODULEINFO info;
-        if (!GetModuleInformation(GetCurrentProcess(), Data.crtBase, &info, sizeof(MODULEINFO)))
+        if (!GetModuleInformation(GetCurrentProcess(), base, &info, sizeof(MODULEINFO)))
         {
             AssertOrFailFast(UNREACHED);
         }
         Data.crtSize = info.SizeOfImage;
-        Assert(Data.crtBase == info.lpBaseOfDll);
+        Assert(base == info.lpBaseOfDll);
     }
-    return (ptr >= base && ptr < base + Data.crtSize);
+    return (ptr >= (uintptr_t)base && ptr < (uintptr_t)base + Data.crtSize);
 }
 #endif
 
