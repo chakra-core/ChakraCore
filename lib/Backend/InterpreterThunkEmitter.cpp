@@ -456,12 +456,12 @@ void InterpreterThunkEmitter::FillBuffer(
 #ifdef ASMJS_PLAT
     if (asmJsThunk)
     {
-        interpreterThunk = SHIFT_ADDR(threadContext, &Js::InterpreterStackFrame::InterpreterAsmThunk);
+        interpreterThunk = ShiftAddr(threadContext, &Js::InterpreterStackFrame::InterpreterAsmThunk);
     }
     else
 #endif
     {
-        interpreterThunk = SHIFT_ADDR(threadContext, &Js::InterpreterStackFrame::InterpreterThunk);
+        interpreterThunk = ShiftAddr(threadContext, &Js::InterpreterStackFrame::InterpreterThunk);
     }
 
 
