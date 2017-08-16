@@ -41,7 +41,7 @@ namespace Js
         virtual ExportedNames* GetExportedNames(ExportModuleRecordList* exportStarSet) = 0;
         // return false when "ambiguous".
         // otherwise nullptr means "null" where we have circular reference/cannot resolve.
-        virtual bool ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ExportModuleRecordList* exportStarSet, ModuleNameRecord** exportRecord) = 0;
+        virtual bool ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ModuleNameRecord** exportRecord) = 0;
         virtual void ModuleDeclarationInstantiation() = 0;
         virtual Var ModuleEvaluation() = 0;
         virtual bool IsSourceTextModuleRecord() { return false; }
