@@ -251,6 +251,7 @@ struct PnFnc
     bool isBodyAndParamScopeMerged; // Indicates whether the param scope and the body scope of the function can be merged together or not.
                                     // We cannot merge both scopes together if there is any closure capture or eval is present in the param scope.
     bool fibPreventsDeferral;
+    bool hasDestructuredParam;
 
     static const int32 MaxStackClosureAST = 800000;
 
@@ -290,6 +291,7 @@ public:
         fncFlags = kFunctionNone;
         canBeDeferred = false;
         isBodyAndParamScopeMerged = true;
+        hasDestructuredParam = false;
     }
 
     void SetAsmjsMode(bool set = true) { SetFlags(kFunctionAsmjsMode, set); }
@@ -328,6 +330,7 @@ public:
     void SetCanBeDeferred(bool set = true) { canBeDeferred = set; }
     void ResetBodyAndParamScopeMerged() { isBodyAndParamScopeMerged = false; }
     void SetFIBPreventsDeferral(bool set = true) { fibPreventsDeferral = set; }
+    void SetHasDestructuredParam(bool set = true) { hasDestructuredParam = set; }
 
     bool CallsEval() const { return HasFlags(kFunctionCallsEval); }
     bool ChildCallsEval() const { return HasFlags(kFunctionChildCallsEval); }
@@ -368,6 +371,7 @@ public:
     bool CanBeDeferred() const { return canBeDeferred; }
     bool IsBodyAndParamScopeMerged() { return isBodyAndParamScopeMerged; }
     bool FIBPreventsDeferral() const { return fibPreventsDeferral; }
+    bool HasDestructuredParam() const { return hasDestructuredParam; }
 
     size_t LengthInBytes()
     {
