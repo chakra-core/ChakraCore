@@ -29,7 +29,7 @@ namespace Js
 
         // return false when "ambiguous". 
         // otherwise nullptr means "null" where we have circular reference/cannot resolve.
-        bool ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ExportModuleRecordList* exportStarSet, ModuleNameRecord** exportRecord) override;
+        bool ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ModuleNameRecord** exportRecord) override;
         bool ResolveImport(PropertyId localName, ModuleNameRecord** importRecord);
         void ModuleDeclarationInstantiation() override;
         Var ModuleEvaluation() override;
