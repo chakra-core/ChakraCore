@@ -870,7 +870,7 @@ private:
     template<bool buildAST> void ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma = false);
     template<bool buildAST> ParseNodePtr ParseImportCall();
 
-    template<bool buildAST> ParseNodePtr ParseExportDeclaration();
+    template<bool buildAST> ParseNodePtr ParseExportDeclaration(bool *needTerminator = nullptr);
     template<bool buildAST> ParseNodePtr ParseDefaultExportClause();
 
     template<bool buildAST> void ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* importOrExportEntryList, bool isExportClause);

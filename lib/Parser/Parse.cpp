@@ -2709,7 +2709,7 @@ LDefault:
 }
 
 template<bool buildAST>
-ParseNodePtr Parser::ParseExportDeclaration()
+ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
 {
     Assert(m_scriptContext->GetConfig()->IsES6ModuleEnabled());
     Assert(m_token.tk == tkEXPORT);
@@ -2722,6 +2722,11 @@ ParseNodePtr Parser::ParseExportDeclaration()
     ParseNodePtr pnode = nullptr;
     IdentPtr moduleIdentifier = nullptr;
     tokens declarationType;
+
+    if (needTerminator != nullptr)
+    {
+        *needTerminator = false;
+    }
 
     // We just parsed an export token. Next valid tokens are *, {, var, let, const, async, function, class, default.
     m_pscan->Scan();
@@ -2742,6 +2747,11 @@ ParseNodePtr Parser::ParseExportDeclaration()
             IdentPtr importName = wellKnownPropertyPids._star;
 
             AddModuleImportOrExportEntry(EnsureModuleStarExportEntryList(), importName, nullptr, nullptr, moduleIdentifier);
+        }
+
+        if (needTerminator != nullptr)
+        {
+            *needTerminator = true;
         }
 
         break;
@@ -2784,6 +2794,12 @@ ParseNodePtr Parser::ParseExportDeclaration()
                 exportEntryList.Clear();
             }
         }
+
+        if (needTerminator != nullptr)
+        {
+            *needTerminator = true;
+        }
+
         break;
 
     case tkID:
@@ -10229,14 +10245,24 @@ LGetJumpStatement:
         goto LNeedTerminator;
 
     case tkEXPORT:
+    {
         if (!(m_grfscr & fscrIsModuleCode))
         {
             goto LDefaultToken;
         }
 
-        pnode = ParseExportDeclaration<buildAST>();
+        bool needTerminator = false;
+        pnode = ParseExportDeclaration<buildAST>(&needTerminator);
 
+        if (needTerminator)
+        {
         goto LNeedTerminator;
+        }
+        else
+        {
+            break;
+        }
+    }
 
 LDefaultToken:
     default:
