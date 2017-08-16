@@ -335,6 +335,9 @@ EXDEF2_WMS(SIMD_I2_1I1toI2_1 , Simd128_ShLtByScalar_I2     , Js::SIMDInt64x2Oper
   DEF2_WMS(SIMD_I4_1I1toI4_1 , Simd128_ShRtByScalar_I4     , Js::SIMDInt32x4Operation::OpShiftRightByScalar)
 EXDEF2_WMS(SIMD_I2_1I1toI2_1 , Simd128_ShRtByScalar_I2     , Js::SIMDInt64x2Operation::OpShiftRightByScalar)
 
+// ternary ops
+EXDEF2_WMS( SIMD_I4_3toI4_1  , Simd128_BitSelect_I4          , SIMDUtils::SIMD128BitSelect)
+
   // binary ops
 EXDEF2_WMS( SIMD_I2_2toI2_1  , Simd128_Add_I2              , Js::SIMDInt64x2Operation::OpAdd             )
 EXDEF2_WMS( SIMD_F4_2toF4_1  , Simd128_Add_F4              , Js::SIMDFloat32x4Operation::OpAdd           )
@@ -692,6 +695,8 @@ EXDEF2_WMS( SIMD_U16_2toB16_1 , Simd128_Gt_U16              , Js::SIMDUint8x16Op
 EXDEF2_WMS( SIMD_U4_1toU4_1     , Simd128_Neg_U4              , SIMDInt32x4Operation::OpNeg                     )
 EXDEF2_WMS( SIMD_U8_1toU8_1     , Simd128_Neg_U8              , SIMDInt16x8Operation::OpNeg                     )
 EXDEF2_WMS( SIMD_U16_1toU16_1   , Simd128_Neg_U16             , SIMDInt8x16Operation::OpNeg                     )
+
+EXDEF2_WMS( SIMD_V8X16_2I16toV8X16_1, Simd128_Shuffle_V8X16 , SIMDUtils::SIMD128InnerShuffle                    )
 
 #if 0
 EXDEF2_WMS(SIMD_D2toD2_1, Simd128_DoublesToD2, SIMDFloat64x2Operation::OpFloat64x2)

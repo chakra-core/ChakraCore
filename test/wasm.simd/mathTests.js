@@ -59,7 +59,7 @@ let testMathOps = function (funcname, args1, args2, resultArr) {
         instance[funcname](); //unary ops
     }
 
-    for (let i = 0; i < len; i++) {
+    for (let i = 0; i < resultArr.length; i++) {
         if (type === "f32x4" && Number.isNaN(resultArr[i])) {
             assertEquals(true, Number.isNaN(arr[i]));
         } else {
@@ -225,6 +225,50 @@ testMathOps("func_f32x4_sqrt",
     [1 << 20, 0, 6.25, -1],
     null,
     [1 << 10, 0, 2.5 , Number.NaN]
+);
+
+//bitselect
+testMathOps("func_i32x4_bitselect",
+    [0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+    0, 0, 0, 0,
+    0xF0F0F0F0, 0xFFFFFFFF, 0xD6D6D6D6, 0xAAAAAAAA],
+    null,
+    [0xF0F0F0F0|0, 0xFFFFFFFF|0, 0xD6D6D6D6|0, 0xAAAAAAAA|0]
+);
+
+testMathOps("func_i32x4_bitselect",
+    [0, 0, 0, 0,
+    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+    ~0xF0F0F0F0, ~0xFFFFFFFF, ~0xD6D6D6D6, ~0xAAAAAAAA],
+    null,
+    [0xF0F0F0F0|0, 0xFFFFFFFF|0, 0xD6D6D6D6|0, 0xAAAAAAAA|0]
+);
+
+testMathOps("func_i32x4_bitselect",
+    [0xBEBEBEBE, 0xD7D7D7D7, 0xF3F3F3F3, 0xFFFFFFFF,
+    0x55555555, 0x29292929, 0x0F0F0F0F, 0,
+    0xAAAAAAAA, 0xD6D6D6D6,0xF0F0F0F0, 0],
+    null,
+    [-1,-1,-1,0]
+);
+
+testMathOps("func_i8x16_shuffle_test1",
+    [0  ,  1 , 2  , 3  , 4  , 5  , 6  , 7  , 8  , 9  , 10 , 11 , 12 , 13 , 14 , 15],
+    [16 , 17 , 18 , 19 , 20 , 21 , 22 , 23 , 24 , 25 , 26 , 27 , 28 , 29 , 30 , 31],
+    [16 , 17 , 18 , 19 , 20 , 21 , 22 , 23 , 0  , 1  , 2  , 3  , 4  , 5  , 6  , 7]
+);
+
+testMathOps("func_i8x16_shuffle_test0",
+    [0  ,  1 , 2  , 3  , 4  , 5  , 6  , 7  , 8  , 9  , 10 , 11 , 12 , 13 , 14 , 15],
+    [16 , 17 , 18 , 19 , 20 , 21 , 22 , 23 , 24 , 25 , 26 , 27 , 28 , 29 , 30 , 31],
+    [31 , 30 , 29 , 28 , 1  , 17 , 2  , 19 , 3  , 4  , 5  , 6  , 21 , 20 , 11 , 10]
+);
+
+
+testMathOps("func_i8x16_shuffle_test2",
+    [0  ,  1 , 2  , 3  , 4  , 5  , 6  , 7  , 8  , 9  , 10 , 11 , 12 , 13 , 14 , 15],
+    [16 , 17 , 18 , 19 , 20 , 21 , 22 , 23 , 24 , 25 , 26 , 27 , 28 , 29 , 30 , 31],
+    [0  , 17 , 1  , 18 , 2  , 19 , 3  , 20 , 4  , 21 , 5  , 22 , 6  , 23  , 7  , 24]
 );
 
 if (passed) {

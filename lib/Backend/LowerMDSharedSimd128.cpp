@@ -823,11 +823,30 @@ IR::Instr* LowererMD::Simd128LowerUnMappedInstruction(IR::Instr *instr)
     case Js::OpCode::Simd128_AllTrue_B8:
     case Js::OpCode::Simd128_AllTrue_B16:
         return Simd128LowerAllTrue(instr);
-
+    case Js::OpCode::Simd128_BitSelect_I4:
+        return LowerSimd128BitSelect(instr);
     default:
         AssertMsg(UNREACHED, "Unsupported Simd128 instruction");
     }
     return nullptr;
+}
+
+
+IR::Instr* LowererMD::LowerSimd128BitSelect(IR::Instr* instr)
+{
+    SList<IR::Opnd*> *args = Simd128GetExtendedArgs(instr);
+    IR::Opnd *dst = args->Pop();
+    IR::Opnd *src1 = args->Pop();
+    IR::Opnd *src2 = args->Pop();
+    IR::Opnd *mask = args->Pop();
+
+    IR::Instr* pInstr = IR::Instr::New(Js::OpCode::PXOR, dst, src1, src2, m_func);
+    instr->InsertBefore(pInstr);
+    Legalize(pInstr);
+
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::PAND, dst, dst, mask, m_func));
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::PXOR, dst, dst, src2, m_func));
+    return removeInstr(instr);
 }
 
 IR::Instr* LowererMD::Simd128LoadConst(IR::Instr* instr)

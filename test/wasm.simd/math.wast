@@ -6,6 +6,63 @@
 (module
   (import "dummy" "memory" (memory 1))
 
+    (func (export "func_i8x16_shuffle_test0")
+        (local $v1 m128) (local $v2 m128)
+
+        (set_local $v1 (m128.load offset=0 align=4 (i32.const 0)))
+        (set_local $v2 (m128.load offset=0 align=4 (i32.const 16)))
+
+        (m128.store offset=0 (i32.const 0)
+            (v8x16.shuffle
+                (get_local $v1) (get_local $v2)
+                (i32.const 31) (i32.const 30) (i32.const 29) (i32.const 28)
+                (i32.const 1) (i32.const 17) (i32.const 2) (i32.const 19)
+                (i32.const 3) (i32.const 4) (i32.const 5) (i32.const 6)
+                (i32.const 21) (i32.const 20) (i32.const 11) (i32.const 10)
+            )
+        )
+    )
+
+    (func (export "func_i8x16_shuffle_test1")
+        (local $v1 m128) (local $v2 m128)
+
+        (set_local $v1 (m128.load offset=0 align=4 (i32.const 0)))
+        (set_local $v2 (m128.load offset=0 align=4 (i32.const 16)))
+
+        (m128.store offset=0 (i32.const 0)
+            (v8x16.shuffle
+                (get_local $v1) (get_local $v2)
+                (i32.const 16) (i32.const 17) (i32.const 18) (i32.const 19)
+                (i32.const 20) (i32.const 21) (i32.const 22) (i32.const 23)
+                (i32.const 0) (i32.const 1) (i32.const 2) (i32.const 3)
+                (i32.const 4) (i32.const 5) (i32.const 6) (i32.const 7)
+            )
+        )
+    )
+
+    (func (export "func_i8x16_shuffle_test2")
+        (local $v1 m128) (local $v2 m128)
+
+        (set_local $v1 (m128.load offset=0 align=4 (i32.const 0)))
+        (set_local $v2 (m128.load offset=0 align=4 (i32.const 16)))
+
+        (m128.store offset=0 (i32.const 0)
+            (v8x16.shuffle
+                (get_local $v1) (get_local $v2)
+                (i32.const 0) (i32.const 17) (i32.const 1) (i32.const 18)
+                (i32.const 2) (i32.const 19) (i32.const 3) (i32.const 20)
+                (i32.const 4) (i32.const 21) (i32.const 5) (i32.const 22)
+                (i32.const 6) (i32.const 23) (i32.const 7) (i32.const 24)
+            )
+        )
+    )
+
+    (func (export "func_i32x4_bitselect") (local $v1 m128) (local $v2 m128) (local $mask m128)
+        (set_local $v1 (m128.load offset=0 align=4 (i32.const 0)))
+        (set_local $v2 (m128.load offset=0 align=4 (i32.const 16)))
+        (set_local $mask (m128.load offset=0 align=4 (i32.const 32)))
+        (m128.store offset=0 (i32.const 0) (m128.bitselect (get_local $v1) (get_local $v2) (get_local $mask)))
+    )
 
     (func (export "func_i32x4_add") (local $v1 m128) (local $v2 m128)
         (set_local $v1 (m128.load offset=0 align=4 (i32.const 0)))

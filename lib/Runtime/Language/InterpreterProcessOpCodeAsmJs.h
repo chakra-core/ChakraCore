@@ -1597,6 +1597,15 @@ if (switchProfileMode) \
     }
 #define PROCESS_SIMD_F4_2toB4_1(name, func) PROCESS_SIMD_F4_2toB4_1_COMMON(name, func,)
 
+#define PROCESS_SIMD_I4_3toI4_1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Int32x4_4, suffix); \
+    SetRegRawSimd(playout->I4_0, func(GetRegRawSimd(playout->I4_1), GetRegRawSimd(playout->I4_2), GetRegRawSimd(playout->I4_3))); \
+    break; \
+    }
+#define PROCESS_SIMD_I4_3toI4_1(name, func) PROCESS_SIMD_I4_3toI4_1_COMMON(name, func,)
+
 #define PROCESS_SIMD_I4_2toI4_1_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
     { \
@@ -2173,6 +2182,23 @@ if (switchProfileMode) \
     break; \
     }
 #define PROCESS_SIMD_U16_1I16toU16_1(name, func) PROCESS_SIMD_U16_1I16toU16_1_COMMON(name, func,)
+
+// v8x16shuffle
+#define PROCESS_SIMD_V8X16_2I16toV8X16_1_COMMON(name, func, suffix) \
+   case OpCodeAsmJs::name: \
+   { \
+   PROCESS_READ_LAYOUT_ASMJS(name, AsmShuffle, suffix); \
+   const uint32 max_lanes = 16; \
+   uint32 lanes[max_lanes]; \
+   for (uint32 i = 0; i < max_lanes; i++) \
+   { \
+       Assert(playout->INDICES[i] < max_lanes * 2); \
+       lanes[i] = playout->INDICES[i]; \
+   } \
+   SetRegRawSimd(playout->R0, func(GetRegRawSimd(playout->R1), GetRegRawSimd(playout->R2), max_lanes, lanes));  \
+   break; \
+   }
+#define PROCESS_SIMD_V8X16_2I16toV8X16_1(name, func) PROCESS_SIMD_V8X16_2I16toV8X16_1_COMMON(name, func,)
 
 // u16shuffle
 #define PROCESS_SIMD_U16_2I16toU16_1_COMMON(name, func, suffix) \

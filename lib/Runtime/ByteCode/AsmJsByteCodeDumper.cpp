@@ -982,6 +982,19 @@ namespace Js
     }
 
     template <class T>
+    void AsmJsByteCodeDumper::DumpAsmShuffle(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpFloat32x4Reg(data->R0);
+        DumpFloat32x4Reg(data->R1);
+        DumpFloat32x4Reg(data->R2);
+        const uint NUM_LANES = 16;
+        for (uint i = 0; i < NUM_LANES; i++)
+        {
+            DumpU4(data->INDICES[i]);
+        }
+    }
+
+    template <class T>
     void AsmJsByteCodeDumper::DumpAsmSimdTypedArr(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         const char16* heapTag = nullptr;
