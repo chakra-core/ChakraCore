@@ -4,10 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 namespace Js
 {
-#ifdef SSE2MATH
-    namespace SSE2
-    {
-#endif
         Var JavascriptMath::Negate_Full(Var aRight, ScriptContext* scriptContext)
         {
             // Special case for zero. Must return -0
@@ -1153,7 +1149,4 @@ StringCommon:
 
             return JavascriptConversion::ToInt32_Full(aValue, scriptContext);
         }
-#ifdef SSE2MATH
-      }
-#endif
 }
