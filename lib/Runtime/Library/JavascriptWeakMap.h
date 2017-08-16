@@ -42,12 +42,12 @@ namespace Js
         // its type and therefore without invalidating cache and JIT assumptions.
         //
         typedef JsUtil::BaseDictionary<WeakMapId, Var, Recycler, PowerOf2SizePolicy, RecyclerPointerComparer> WeakMapKeyMap;
-        typedef JsUtil::WeaklyReferencedKeyDictionary<DynamicObject, bool, RecyclerPointerComparer<const DynamicObject*>> KeySet;
+        typedef JsUtil::WeaklyReferencedKeyDictionary<RecyclableObject, bool, RecyclerPointerComparer<const RecyclableObject*>> KeySet;
 
         Field(KeySet) keySet;
 
-        WeakMapKeyMap* GetWeakMapKeyMapFromKey(DynamicObject* key) const;
-        WeakMapKeyMap* AddWeakMapKeyMapToKey(DynamicObject* key);
+        WeakMapKeyMap* GetWeakMapKeyMapFromKey(RecyclableObject* key) const;
+        WeakMapKeyMap* AddWeakMapKeyMapToKey(RecyclableObject* key);
 
         WeakMapId GetWeakMapId() const { return (void*)(((uintptr_t)this) | 1); }
         static JavascriptWeakMap* GetWeakMapFromId(WeakMapId id) { return reinterpret_cast<JavascriptWeakMap*>((uintptr_t)id & (~1)); }
@@ -64,10 +64,10 @@ namespace Js
         static JavascriptWeakMap* FromVar(Var aValue);
 
         void Clear();
-        bool Delete(DynamicObject* key);
-        bool Get(DynamicObject* key, Var* value) const;
-        bool Has(DynamicObject* key) const;
-        void Set(DynamicObject* key, Var value);
+        bool Delete(RecyclableObject* key);
+        bool Get(RecyclableObject* key, Var* value) const;
+        bool Has(RecyclableObject* key) const;
+        void Set(RecyclableObject* key, Var value);
 
         virtual void Finalize(bool isShutdown) override { Clear(); }
         virtual void Dispose(bool isShutdown) override { }
@@ -96,7 +96,7 @@ namespace Js
         template <typename Fn>
         void Map(Fn fn)
         {
-            return keySet.Map([&](DynamicObject* key, bool, const RecyclerWeakReference<DynamicObject>*)
+            return keySet.Map([&](RecyclableObject* key, bool, const RecyclerWeakReference<RecyclableObject>*)
             {
                 Var value = nullptr;
                 WeakMapKeyMap* keyMap = GetWeakMapKeyMapFromKey(key);

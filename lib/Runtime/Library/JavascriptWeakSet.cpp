@@ -105,7 +105,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_WeakMapSetKeyNotAnObject, _u("WeakSet.prototype.add"));
         }
 
-        DynamicObject* keyObj = DynamicObject::FromVar(key);
+        RecyclableObject* keyObj = RecyclableObject::FromVar(key);
 
 #if ENABLE_TTD
         //In replay we need to pin the object (and will release at snapshot points) -- in record we don't need to do anything
@@ -139,7 +139,7 @@ namespace Js
 
         if (JavascriptOperators::IsObject(key) && JavascriptOperators::GetTypeId(key) != TypeIds_HostDispatch)
         {
-            DynamicObject* keyObj = DynamicObject::FromVar(key);
+            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
 
             didDelete = weakSet->Delete(keyObj);
         }
@@ -180,7 +180,7 @@ namespace Js
 
         if (JavascriptOperators::IsObject(key) && JavascriptOperators::GetTypeId(key) != TypeIds_HostDispatch)
         {
-            DynamicObject* keyObj = DynamicObject::FromVar(key);
+            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
 
             hasValue = weakSet->Has(keyObj);
         }
@@ -202,18 +202,18 @@ namespace Js
         return scriptContext->GetLibrary()->CreateBoolean(hasValue);
     }
 
-    void JavascriptWeakSet::Add(DynamicObject* key)
+    void JavascriptWeakSet::Add(RecyclableObject* key)
     {
         keySet.Item(key, true);
     }
 
-    bool JavascriptWeakSet::Delete(DynamicObject* key)
+    bool JavascriptWeakSet::Delete(RecyclableObject* key)
     {
         bool unused = false;
         return keySet.TryGetValueAndRemove(key, &unused);
     }
 
-    bool JavascriptWeakSet::Has(DynamicObject* key)
+    bool JavascriptWeakSet::Has(RecyclableObject* key)
     {
         bool unused = false;
         return keySet.TryGetValue(key, &unused);
@@ -232,7 +232,7 @@ namespace Js
         Js::ScriptContext* scriptContext = this->GetScriptContext();
         if(scriptContext->IsTTDReplayModeEnabled())
         {
-            this->Map([&](DynamicObject* key)
+            this->Map([&](RecyclableObject* key)
             {
                 scriptContext->TTDContextInfo->TTDWeakReferencePinSet->AddNew(key);
             });
@@ -252,7 +252,7 @@ namespace Js
         ssi->SetSize = 0;
         ssi->SetValueArray = alloc.SlabReserveArraySpace<TTD::TTDVar>(setCountEst + 1); //always reserve at least 1 element
 
-        this->Map([&](DynamicObject* key)
+        this->Map([&](RecyclableObject* key)
         {
             AssertMsg(ssi->SetSize < setCountEst, "We are writting junk");
 
