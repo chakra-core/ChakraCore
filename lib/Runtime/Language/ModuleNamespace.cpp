@@ -94,7 +94,7 @@ namespace Js
             exportedNames->Map([&](PropertyId propertyId) {
                 JavascriptString* propertyString = scriptContext->GetPropertyString(propertyId);
                 sortedExportedNames->Add(propertyString);
-                if (!moduleRecord->ResolveExport(propertyId, nullptr, nullptr, &moduleNameRecord))
+                if (!moduleRecord->ResolveExport(propertyId, nullptr, &moduleNameRecord))
                 {
                     // ignore ambigious resolution.
 #if DBG
