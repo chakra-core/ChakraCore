@@ -397,10 +397,33 @@ LPCWSTR AutoSystemInfo::GetJscriptDllFileName()
     return (LPCWSTR)Data.binaryName;
 }
 
+#ifdef _WIN32
 HMODULE AutoSystemInfo::GetCRTHandle()
 {
-    return GetModuleHandle(_u("msvcrt.dll"));
+    if (Data.crtBase == 0)
+    {
+        Data.crtBase = GetModuleHandle(_u("msvcrt.dll"));
+    }
+    return Data.crtBase;
 }
+
+bool
+AutoSystemInfo::IsCRTModulePointer(uintptr_t ptr)
+{
+    uintptr_t base = (uintptr_t)GetCRTHandle();
+    if (Data.crtSize == 0)
+    {
+        MODULEINFO info;
+        if (!GetModuleInformation(GetCurrentProcess(), Data.crtBase, &info, sizeof(MODULEINFO)))
+        {
+            AssertOrFailFast(UNREACHED);
+        }
+        Data.crtSize = info.SizeOfImage;
+        Assert(Data.crtBase == info.lpBaseOfDll);
+    }
+    return (ptr >= base && ptr < base + Data.crtSize);
+}
+#endif
 
 bool AutoSystemInfo::IsLowMemoryProcess()
 {

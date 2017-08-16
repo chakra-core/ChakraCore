@@ -3882,7 +3882,7 @@ namespace Js
     BuiltinFunction JavascriptLibrary::GetBuiltInForFuncInfo(intptr_t funcInfoAddr, ThreadContextInfo * context)
     {
 #define LIBRARY_FUNCTION(target, name, argc, flags, EntryInfo) \
-        if(funcInfoAddr == SHIFT_ADDR(context, (intptr_t)&EntryInfo)) \
+        if(funcInfoAddr == (intptr_t)ShiftAddr(context, &EntryInfo)) \
         { \
             return BuiltinFunction::##target##_##name; \
         }

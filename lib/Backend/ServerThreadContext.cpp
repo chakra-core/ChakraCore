@@ -162,7 +162,7 @@ ServerThreadContext::GetRuntimeCRTBaseAddress() const
 intptr_t
 ServerThreadContext::GetJITCRTBaseAddress()
 {
-    return (intptr_t)AutoSystemInfo::GetCRTHandle();
+    return (intptr_t)AutoSystemInfo::Data.GetCRTHandle();
 }
 
 PageAllocator *
