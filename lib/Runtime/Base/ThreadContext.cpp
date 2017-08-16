@@ -1975,7 +1975,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 
     ThreadContextDataIDL contextData;
     contextData.chakraBaseAddress = (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr();
-    contextData.crtBaseAddress = (intptr_t)AutoSystemInfo::GetCRTHandle();
+    contextData.crtBaseAddress = (intptr_t)AutoSystemInfo::Data.GetCRTHandle();
     contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
     contextData.bailOutRegisterSaveSpaceAddr = (intptr_t)bailOutRegisterSaveSpace;
     contextData.disableImplicitFlagsAddr = (intptr_t)GetAddressOfDisableImplicitFlags();
