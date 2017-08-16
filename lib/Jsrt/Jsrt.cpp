@@ -40,9 +40,6 @@ public:
     }
 };
 
-typedef utf8::NarrowWideConverter<CodexHeapAllocatorInterface, LPCSTR, LPWSTR> NarrowToWideChakraHeap;
-typedef utf8::NarrowWideConverter<CodexHeapAllocatorInterface, LPCWSTR, LPSTR> WideToNarrowChakraHeap;
-
 JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState,
     bool allowInObjectBeforeCollectCallback)
 {
@@ -4272,8 +4269,7 @@ CHAKRA_API JsCopyString(
     _In_ JsValueRef value,
     _Out_opt_ char* buffer,
     _In_ size_t bufferSize,
-    _Out_opt_ size_t* writtenLength,
-    _Out_opt_ size_t* actualLength)
+    _Out_opt_ size_t* length)
 {
     PARAM_NOT_NULL(value);
     VALIDATE_JSREF(value);
@@ -4286,31 +4282,10 @@ CHAKRA_API JsCopyString(
         return errorCode;
     }
 
-    utf8::WideToNarrow utf8Str(str, strLength);
-    if (actualLength)
+    utf8::WideToNarrow utf8Str(str, strLength, buffer, bufferSize);
+    if (length)
     {
-      *actualLength = utf8Str.Length();
-    }
-
-    if (buffer)
-    {
-        size_t count = min(bufferSize, utf8Str.Length());
-        // Try to copy whole characters if buffer size insufficient
-        auto maxFitChars = utf8::ByteIndexIntoCharacterIndex(
-            (LPCUTF8)(const char*)utf8Str, count,
-            utf8::DecodeOptions::doChunkedEncoding);
-        count = utf8::CharacterIndexToByteIndex(
-            (LPCUTF8)(const char*)utf8Str, utf8Str.Length(), maxFitChars);
-
-        memmove(buffer, utf8Str, sizeof(char) * count);
-        if (writtenLength)
-        {
-            *writtenLength = count;
-        }
-    }
-    else if (writtenLength)
-    {
-        *writtenLength = 0;
+        *length = utf8Str.Length();
     }
 
     return JsNoError;
