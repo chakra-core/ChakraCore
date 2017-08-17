@@ -399,18 +399,7 @@ SCCLiveness::ProcessSrc(IR::Opnd *src, IR::Instr *instr)
             {
                 lifetime = this->InsertLifetime(stackSym, reg, this->func->m_headInstr->m_next);
                 lifetime->region = this->curRegion;
-                lifetime->isFloat = symOpnd->IsFloat();
-                lifetime->isSimd128F4 = symOpnd->IsSimd128F4();
-                lifetime->isSimd128I4 = symOpnd->IsSimd128I4();
-                lifetime->isSimd128I8 = symOpnd->IsSimd128I8();
-                lifetime->isSimd128I16 = symOpnd->IsSimd128I16();
-                lifetime->isSimd128U4 = symOpnd->IsSimd128U4();
-                lifetime->isSimd128U8 = symOpnd->IsSimd128U8();
-                lifetime->isSimd128U16 = symOpnd->IsSimd128U16();
-                lifetime->isSimd128B4 = symOpnd->IsSimd128B4();
-                lifetime->isSimd128B8 = symOpnd->IsSimd128B8();
-                lifetime->isSimd128B16 = symOpnd->IsSimd128B16();
-                lifetime->isSimd128D2 = symOpnd->IsSimd128D2();
+                lifetime->isFloat = symOpnd->IsFloat() || symOpnd->IsSimd128();
             }
 
             IR::RegOpnd * newRegOpnd = IR::RegOpnd::New(stackSym, reg, symOpnd->GetType(), this->func);
@@ -613,18 +602,7 @@ SCCLiveness::ProcessRegDef(IR::RegOpnd *regDef, IR::Instr *instr)
     {
         lifetime = this->InsertLifetime(stackSym, regDef->GetReg(), instr);
         lifetime->region = this->curRegion;
-        lifetime->isFloat = regDef->IsFloat();
-        lifetime->isSimd128F4   = regDef->IsSimd128F4();
-        lifetime->isSimd128I4   = regDef->IsSimd128I4 ();
-        lifetime->isSimd128I8   = regDef->IsSimd128I8 ();
-        lifetime->isSimd128I16  = regDef->IsSimd128I16();
-        lifetime->isSimd128U4   = regDef->IsSimd128U4 ();
-        lifetime->isSimd128U8   = regDef->IsSimd128U8 ();
-        lifetime->isSimd128U16  = regDef->IsSimd128U16();
-        lifetime->isSimd128B4 = regDef->IsSimd128B4();
-        lifetime->isSimd128B8 = regDef->IsSimd128B8();
-        lifetime->isSimd128B16 = regDef->IsSimd128B16();
-        lifetime->isSimd128D2   = regDef->IsSimd128D2();
+        lifetime->isFloat = regDef->IsFloat() || regDef->IsSimd128();
     }
     else
     {
