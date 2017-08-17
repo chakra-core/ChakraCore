@@ -2672,7 +2672,11 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
 
     if (newLifetime)
     {
-        if (newLifetime->isFloat)
+        if (newLifetime->IsInt())
+        {
+            type = TyMachReg;
+        }
+        else if (newLifetime->isFloat)
         {
             type = TyFloat64;
         }
@@ -2722,6 +2726,7 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
         }
         else
         {
+            Assert(UNREACHED);
             type = TyMachReg;
         }
     }
@@ -2751,17 +2756,17 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
                 }
             }
 
-            if (newLifetime->isFloat || newLifetime->isSimd128())
+            if (newLifetime->IsInt())
+            {
+                regsBv.And(this->int32Regs);
+                regsBv = this->linearScanMD.FilterRegIntSizeConstraints(regsBv, newLifetime->intUsageBv);
+            }
+            else
             {
 #ifdef _M_IX86
                 Assert(AutoSystemInfo::Data.SSE2Available());
 #endif
                 regsBv.And(this->floatRegs);
-            }
-            else
-            {
-                regsBv.And(this->int32Regs);
-                regsBv = this->linearScanMD.FilterRegIntSizeConstraints(regsBv, newLifetime->intUsageBv);
             }
 
 
@@ -2909,7 +2914,7 @@ LinearScan::Spill(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool dontSpillCur
 {
     uint minSpillCost = (uint)-1;
 
-    Assert(!newLifetime || !regOpnd || newLifetime->isFloat == (regOpnd->GetType() == TyMachDouble) || newLifetime->isSimd128() == (regOpnd->IsSimd128()));
+    Assert(!newLifetime || !regOpnd || newLifetime->isFloat == (regOpnd->GetType() == TyMachDouble) || newLifetime->IsSimd128() == (regOpnd->IsSimd128()));
     bool isFloatReg;
     BitVector intUsageBV;
     bool needCalleeSaved;
@@ -2917,7 +2922,7 @@ LinearScan::Spill(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool dontSpillCur
     // For now, we just spill the lifetime with the lowest spill cost.
     if (newLifetime)
     {
-        isFloatReg = newLifetime->isFloat || newLifetime->isSimd128();
+        isFloatReg = !newLifetime->IsInt();
 
         if (!force)
         {
@@ -2948,7 +2953,7 @@ LinearScan::Spill(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool dontSpillCur
         uint spillCost = this->GetSpillCost(lifetime);
         if (spillCost < minSpillCost                        &&
             this->instrUseRegs.Test(lifetime->reg) == false &&
-            (lifetime->isFloat || lifetime->isSimd128()) == isFloatReg  &&
+            !lifetime->IsInt() == isFloatReg &&
             !lifetime->cantSpill                            &&
             (!needCalleeSaved || this->calleeSavedRegs.Test(lifetime->reg)) &&
             this->linearScanMD.FitRegIntSizeConstraints(lifetime->reg, intUsageBV))
@@ -2966,13 +2971,13 @@ LinearScan::Spill(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool dontSpillCur
         candidate.RemoveCurrent();
 
         this->activeRegs.Clear(spilledRange->reg);
-        if (spilledRange->isFloat || spilledRange->isSimd128())
+        if (spilledRange->IsInt())
         {
-            this->floatRegUsedCount--;
+            this->intRegUsedCount--;
         }
         else
         {
-            this->intRegUsedCount--;
+            this->floatRegUsedCount--;
         }
     }
     else if (dontSpillCurrent)
@@ -3145,13 +3150,13 @@ LinearScan::ProcessEHRegionBoundary(IR::Instr * instr)
     FOREACH_SLIST_ENTRY_EDITING(Lifetime *, lifetime, this->activeLiveranges, iter)
     {
         this->activeRegs.Clear(lifetime->reg);
-        if (lifetime->isFloat || lifetime->isSimd128())
+        if (lifetime->IsInt())
         {
-            this->floatRegUsedCount--;
+            this->intRegUsedCount--;
         }
         else
         {
-            this->intRegUsedCount--;
+            this->floatRegUsedCount--;
         }
         this->SpillLiveRange(lifetime, insertionInstr);
         iter.RemoveCurrent();
@@ -3799,13 +3804,13 @@ LinearScan::AssignActiveReg(Lifetime * lifetime, RegNum reg)
     this->func->m_regsUsed.Set(reg);
     lifetime->reg = reg;
     this->activeRegs.Set(reg);
-    if (lifetime->isFloat || lifetime->isSimd128())
+    if (lifetime->IsInt())
     {
-        this->floatRegUsedCount++;
+        this->intRegUsedCount++;
     }
     else
     {
-        this->intRegUsedCount++;
+        this->floatRegUsedCount++;
     }
     this->AddToActive(lifetime);
 
