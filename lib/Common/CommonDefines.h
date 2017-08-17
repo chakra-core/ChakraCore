@@ -262,6 +262,12 @@
 #define OPT_CONSTEXPR
 #endif
 
+#ifdef _WIN32
+#define VECTORCALL __vectorcall
+#else
+#define VECTORCALL
+#endif
+
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) || defined(CHAKRA_CORE_DOWN_COMPAT)
 #define DELAYLOAD_SET_CFG_TARGET 1
 #endif
