@@ -127,7 +127,7 @@ namespace Js
                 srcInfo->moduleID = moduleId;
 
                 LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
-                    (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
+                    LoadScriptFlag_disableAsmJs | (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
 
                 Utf8SourceInfo* pResultSourceInfo = nullptr;
                 this->parseTree = scriptContext->ParseScript(parser, sourceText,

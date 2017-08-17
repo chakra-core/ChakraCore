@@ -56,13 +56,10 @@ default, rest & destructuring args not allowed
 Asm.js compilation failed.
 
 Running test 14: kFunctionIsModule
-Warning test disabled
 
 Running test 15: asm.js function in Module
-Warning test disabled
 
 Running test 16: kFunctionIsDefaultModuleExport
-Warning test disabled
 
 Running test 17: kFunctionHasSuperReference
 invalid function flags detected
