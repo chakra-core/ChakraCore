@@ -522,17 +522,6 @@ namespace Js
     {
         this->isJavascriptFrame = this->CheckJavascriptFrame(includeInlineFrames);
 
-#if ENABLE_NATIVE_CODEGEN
-        if (this->IsJavascriptFrame() && this->interpreterFrame && lastInternalFrameInfo.codeAddress != nullptr)
-        {
-            this->previousInterpreterFrameIsForLoopBody = true;
-        }
-        else
-        {
-            this->previousInterpreterFrameIsForLoopBody = false;
-        }
-#endif
-
         if (this->IsJavascriptFrame())
         {
             // In case we have a cross site thunk, update the script context
@@ -543,6 +532,13 @@ namespace Js
 #endif
             if (this->interpreterFrame)
             {
+#if ENABLE_NATIVE_CODEGEN
+                if (lastInternalFrameInfo.codeAddress != nullptr)
+                {
+                    this->previousInterpreterFrameIsForLoopBody = true;
+                }
+#endif
+
                 // We might've bailed out of an inlinee, so check if there were any inlinees.
                 if (this->interpreterFrame->GetFlags() & InterpreterStackFrameFlags_FromBailOut)
                 {
@@ -678,6 +674,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         if (lastInternalFrameInfo.codeAddress != nullptr && this->previousInterpreterFrameIsForLoopBody)
         {
+            this->previousInterpreterFrameIsForLoopBody = false;
             ClearCachedInternalFrameInfo();
         }
 
