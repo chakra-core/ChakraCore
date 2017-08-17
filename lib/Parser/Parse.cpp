@@ -6319,6 +6319,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                 {
                     // Mark that the function has a non simple parameter list before parsing the pattern since the pattern can have function definitions.
                     this->GetCurrentFunctionNode()->sxFnc.SetHasNonSimpleParameterList();
+                    this->GetCurrentFunctionNode()->sxFnc.SetHasDestructuredParams();
 
                     ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
                     m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;

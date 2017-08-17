@@ -4011,6 +4011,8 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 funcInfo->frameObjRegister != Js::Constants::NoRegister &&
                 !ApplyEnclosesArgs(pnodeFnc, this) &&
                 funcInfo->IsBodyAndParamScopeMerged() && // There is eval in the param scope
+                !pnodeFnc->sxFnc.HasDefaultArguments() &&
+                !pnodeFnc->sxFnc.HasDestructuredParams() &&
                 (PHASE_FORCE(Js::CachedScopePhase, funcInfo->byteCodeFunction) || !IsInDebugMode())
 #if ENABLE_TTD
                 && !funcInfo->GetParsedFunctionBody()->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode()
