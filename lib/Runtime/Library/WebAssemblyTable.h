@@ -39,8 +39,6 @@ namespace Js
         uint32 GetInitialLength() const;
         uint32 GetMaximumLength() const;
 
-        Var * GetValues() const;
-
         void DirectSetValue(uint index, Var val);
         Var DirectGetValue(uint index) const;
 
