@@ -682,6 +682,11 @@ public:
         uint funcJitCodeUsed;
         uint speculativeJitCount;
 #endif
+#if DBG
+        // Count how many Out of Memory and Stack overflow exceptions happened during the execution
+        uint oomExceptionCount = 0;
+        uint soExceptionCount = 0;
+#endif
 
 #ifdef REJIT_STATS
         // Used to store bailout stats
