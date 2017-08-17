@@ -103,6 +103,24 @@ function test4() {
   }
 }
 
+function test6() {
+  var litObj0 = {};
+  for (; 87587180 < typeof ('prop0' in litObj0); arrObj0()) {
+    try {
+      continue;
+    }
+    finally {
+      var v1 = IntArr0();
+      while (1) {
+	WScript.Echo("help");
+	if (num > 10) {
+	WScript.Echo("help2");
+	}
+      }
+    }
+  }
+}
+
 test0();
 test0();
 test0();
@@ -127,5 +145,8 @@ test5();
 test5();
 test5();
 
+test6();
+test6();
+test6();
 
 WScript.Echo("passed");

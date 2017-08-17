@@ -140,9 +140,7 @@ public:
         loopList(nullptr),
         catchLabelStack(nullptr),
         finallyLabelStack(nullptr),
-        leaveNullLabelStack(nullptr),
         regToFinallyEndMap(nullptr),
-        leaveNullLabelToFinallyLabelMap(nullptr),
         hasBackwardPassInfo(false),
         hasLoop(false),
         implicitCallFlags(Js::ImplicitCall_HasNoInfo)
@@ -171,7 +169,7 @@ public:
     void         SortLoopLists();
     FlowEdge *   FindEdge(BasicBlock *predBlock, BasicBlock *succBlock);
     IR::LabelInstr * DeleteLeaveChainBlocks(IR::BranchInstr *leaveInstr, IR::Instr * &instrPrev);
-    bool         IsEarlyExitFromFinally(IR::BranchInstr *leaveInstr, Region *currentRegion, Region *branchTargetRegion, IR::Instr *&instrPrev, IR::LabelInstr *&exitLabel);
+    bool         CheckIfEarlyExitAndAddEdgeToFinally(IR::BranchInstr *leaveInstr, Region *currentRegion, Region *branchTargetRegion, IR::Instr *&instrPrev, IR::LabelInstr *&exitLabel);
     bool         Dominates(Region *finallyRegion, Region *exitLabelRegion);
     bool         DoesExitLabelDominate(IR::BranchInstr *leaveInstr);
     void         InsertEdgeFromFinallyToEarlyExit(BasicBlock * finallyEndBlock, IR::LabelInstr * exitLabel);
