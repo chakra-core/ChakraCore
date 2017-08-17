@@ -59,7 +59,6 @@ namespace Js
 #endif
         trigramAlphabet(nullptr),
         regexStacks(nullptr),
-        arrayMatchInit(false),
         config(threadContext->GetConfig(), threadContext->IsOptimizedForManyInstances()),
 #if ENABLE_BACKGROUND_PARSING
         backgroundParser(nullptr),
