@@ -377,7 +377,7 @@ namespace Js
         Output::Print(_u(" D2_%d "), (int)reg);
     }
 
-    // Float64x2
+    // Int64x2
     void AsmJsByteCodeDumper::DumpInt64x2Reg(RegSlot reg)
     {
         Output::Print(_u(" I2_%d "), (int)reg);

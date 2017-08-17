@@ -1161,7 +1161,7 @@ IR::Instr* LowererMD::Simd128LowerSplat(IR::Instr *instr)
 
     Assert(src1 && src1->IsRegOpnd() && (src1->GetType() == TyFloat32 || src1->GetType() == TyInt32 || src1->GetType() == TyFloat64 ||
         src1->GetType() == TyInt16 || src1->GetType() == TyInt8 || src1->GetType() == TyUint16 ||
-        src1->GetType() == TyUint8 || src1->GetType() == TyUint32 || src1->GetType() == TyInt64));
+        src1->GetType() == TyUint8 || src1->GetType() == TyUint32 || src1->IsInt64()));
 
     Assert(!instr->GetSrc2());
 

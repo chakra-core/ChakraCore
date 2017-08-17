@@ -298,7 +298,6 @@ namespace Js
 #define LAYOUT_FIELDS_HELPER(x, y) x ## y
 #define LAYOUT_FIELDS_DEF(x, y) LAYOUT_FIELDS_HELPER(x, y)
 
-//LAYOUT_TYPE_WMS_REG2(Int64x2_1Long1, Int64x2, Long)
 #define LAYOUT_TYPE_WMS_REG2(layout, t0, t1) \
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\

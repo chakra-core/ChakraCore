@@ -4523,7 +4523,6 @@ void IRBuilderAsmJs::BuildReg1Int8x16_1(Js::OpCodeAsmJs newOpcode, uint32 offset
 void
 IRBuilderAsmJs::BuildInt64x2_1Long1(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG2)
 {
-
     Assert(newOpcode == Js::OpCodeAsmJs::Simd128_Splat_I2);
     IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TyInt64);
     src1Opnd->SetValueType(ValueType::GetInt(false));
