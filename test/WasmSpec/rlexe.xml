@@ -251,6 +251,21 @@
   <test>
     <default>
       <files>spec.js</files>
+      <baseline>baselines/elem.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/elem.wast -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/elem.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/elem.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
       <baseline>baselines/endianness.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/endianness.wast -endargs</compile-flags>
     </default>
