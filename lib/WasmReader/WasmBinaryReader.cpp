@@ -588,11 +588,15 @@ void WasmBinaryReader::ConstNode()
         m_funcState.count += len;
         break;
     case WasmTypes::F32:
-        m_currentNode.cnst.f32 = ReadConst<float>();
+    {
+        m_currentNode.cnst.i32 = ReadConst<int32>();
+        CompileAssert(sizeof(int32) == sizeof(float));
         m_funcState.count += sizeof(float);
         break;
+    }
     case WasmTypes::F64:
-        m_currentNode.cnst.f64 = ReadConst<double>();
+        m_currentNode.cnst.i64 = ReadConst<int64>();
+        CompileAssert(sizeof(int64) == sizeof(double));
         m_funcState.count += sizeof(double);
         break;
     }
@@ -1254,6 +1258,9 @@ SectionLimits WasmBinaryReader::ReadSectionLimits(uint32 maxInitial, uint32 maxM
     return limits;
 }
 
+// Do not use float version of ReadConst. Instead use integer version and reinterpret bits.
+template<> double WasmBinaryReader::ReadConst<double>() { Assert(false); return 0; }
+template<> float WasmBinaryReader::ReadConst<float>() { Assert(false); return 0;  }
 template <typename T>
 T WasmBinaryReader::ReadConst()
 {

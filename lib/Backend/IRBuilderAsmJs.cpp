@@ -782,7 +782,7 @@ IRBuilderAsmJs::BuildConstantLoads()
             );
             break;
         case WAsmJs::FLOAT32:
-            CreateLoadConstInstrForType<float, IR::FloatConstOpnd>(
+            CreateLoadConstInstrForType<float, IR::Float32ConstOpnd>(
                 table,
                 regAllocated,
                 info.constCount,
@@ -2213,7 +2213,7 @@ IRBuilderAsmJs::BuildFloat1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::
     IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyFloat32);
     dstOpnd->SetValueType(ValueType::Float);
 
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::LdC_F8_R8, dstOpnd, IR::FloatConstOpnd::New(constVal, TyFloat32, m_func), m_func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::LdC_F8_R8, dstOpnd, IR::Float32ConstOpnd::New(constVal, TyFloat32, m_func), m_func);
 
     AddInstr(instr, offset);
 }

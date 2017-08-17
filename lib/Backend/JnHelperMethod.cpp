@@ -10,10 +10,9 @@
 #include "Library/RegexHelper.h"
 
 #include "Debug/DiagHelperMethodWrapper.h"
-#include "Math/JavascriptSSE2MathOperators.h"
-#include "Math/JavascriptSSE2MathOperators.inl"
 #include "Math/CrtSSE2Math.h"
 #include "Library/JavascriptGeneratorFunction.h"
+#include "RuntimeMathPch.h"
 
 namespace IR
 {
@@ -29,34 +28,10 @@ intptr_t const JnHelperMethodAddresses[] =
     NULL
 };
 
-#if defined(_M_IX86)
-intptr_t const JnHelperMethodAddresses_SSE2[] =
-{
-#define SSE2MATH
-#define HELPERCALL(Name, Address, Attributes) reinterpret_cast<intptr_t>(Address),
-// Because of order-of-initialization problems with the vtable address static field
-// and this array, we're going to have to fill these in as we go along.
-#include "JnHelperMethodList.h"
-#undef HELPERCALL
-#undef SSE2MATH
-    NULL
-};
-
-intptr_t const *GetHelperMethods()
-{
-    if (AutoSystemInfo::Data.SSE2Available())
-    {
-        return JnHelperMethodAddresses_SSE2;
-    }
-    return JnHelperMethodAddresses;
-}
-#else
-
 intptr_t const *GetHelperMethods()
 {
     return JnHelperMethodAddresses;
 }
-#endif
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS && defined(_CONTROL_FLOW_GUARD)
 class HelperTableCheck
@@ -64,9 +39,6 @@ class HelperTableCheck
 public:
     HelperTableCheck() {
         CheckJnHelperTable(JnHelperMethodAddresses);
-#if defined(_M_IX86)
-        CheckJnHelperTable(JnHelperMethodAddresses_SSE2);
-#endif
     }
 };
 

@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLanguagePch.h"
+#include "RuntimeMathPch.h"
 #include "EHBailoutData.h"
 #include "Library/JavascriptRegularExpression.h"
 #if DBG_DUMP
@@ -7765,13 +7766,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     // specialized version for doubles
     template <>
-    double InterpreterStackFrame::GetRegRaw(RegSlot localRegisterID) const
+    double VECTORCALL InterpreterStackFrame::GetRegRaw(RegSlot localRegisterID) const
     {
         return (double)m_localDoubleSlots[localRegisterID];
     }
 
     template <>
-    float InterpreterStackFrame::GetRegRaw(RegSlot localRegisterID) const
+    float VECTORCALL InterpreterStackFrame::GetRegRaw(RegSlot localRegisterID) const
     {
         return (float)m_localFloatSlots[localRegisterID];
     }

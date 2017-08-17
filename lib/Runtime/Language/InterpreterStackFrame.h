@@ -231,11 +231,11 @@ namespace Js
         template <typename RegSlotType> void SetRegRawInt( RegSlotType localRegisterID, int bValue );
         template <typename RegSlotType> int64 GetRegRawInt64( RegSlotType localRegisterID ) const;
         template <typename RegSlotType> void SetRegRawInt64( RegSlotType localRegisterID, int64 bValue );
-        template <typename RegSlotType> double GetRegRawDouble(RegSlotType localRegisterID) const;
-        template <typename RegSlotType> float GetRegRawFloat(RegSlotType localRegisterID) const;
+        template <typename RegSlotType> double VECTORCALL GetRegRawDouble(RegSlotType localRegisterID) const;
+        template <typename RegSlotType> float VECTORCALL GetRegRawFloat(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetRegRawDouble(RegSlotType localRegisterID, double bValue);
         template <typename RegSlotType> void SetRegRawFloat(RegSlotType localRegisterID, float bValue);
-        template <typename T> T GetRegRaw( RegSlot localRegisterID ) const;
+        template <typename T> T VECTORCALL GetRegRaw( RegSlot localRegisterID ) const;
         template <typename T> void SetRegRaw( RegSlot localRegisterID, T bValue );
 
         template <typename RegSlotType> AsmJsSIMDValue GetRegRawSimd(RegSlotType localRegisterID) const;
