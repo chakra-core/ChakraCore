@@ -53,9 +53,8 @@ namespace Js
         JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration); \
     }
 
-#define BEGIN_TYPEOF_ERROR_HANDLER(scriptContext)  \
-    try { \
-    Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext); \
+#ifdef ENABLE_SCRIPT_DEBUGGING
+#define BEGIN_TYPEOF_ERROR_HANDLER_DEBUGGER_THROW_IS_INTERNAL \
     class AutoCleanup \
     { \
     private: \
@@ -76,6 +75,14 @@ namespace Js
             } \
         } \
     } autoCleanup(scriptContext);
+#else
+#define BEGIN_TYPEOF_ERROR_HANDLER_DEBUGGER_THROW_IS_INTERNAL
+#endif
+
+#define BEGIN_TYPEOF_ERROR_HANDLER(scriptContext)  \
+    try { \
+        Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext); \
+        BEGIN_TYPEOF_ERROR_HANDLER_DEBUGGER_THROW_IS_INTERNAL
 
 
 #define END_TYPEOF_ERROR_HANDLER(scriptContext, var) \

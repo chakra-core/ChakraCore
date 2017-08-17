@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 //static
 DebuggingFlags::DebuggingFlags() :
     m_forceInterpreter(false),
@@ -75,3 +76,4 @@ void DebuggingFlags::SetIsBuiltInWrapperPresent(bool value /* = true */)
 {
     m_isBuiltInWrapperPresent = value;
 }
+#endif

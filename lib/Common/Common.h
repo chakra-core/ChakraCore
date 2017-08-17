@@ -11,6 +11,8 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 #endif
 
+#define MAKE_HR(errnum) (MAKE_HRESULT(SEVERITY_ERROR, FACILITY_CONTROL, errnum))
+
 // If we're using the PAL for C++ standard library compat,
 // we don't need to include wchar for string handling
 #ifndef USING_PAL_STDLIB

@@ -6,7 +6,9 @@
 
 #include "ChakraCore.h"
 #include "JsrtThreadService.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "JsrtDebugManager.h"
+#endif
 
 class JsrtContext;
 
@@ -42,9 +44,11 @@ public:
     bool IsSerializeByteCodeForLibrary() const { return serializeByteCodeForLibrary; }
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     void EnsureJsrtDebugManager();
     void DeleteJsrtDebugManager();
     JsrtDebugManager * GetJsrtDebugManager();
+#endif
 
 #if ENABLE_TTD
     uint32 BPRegister_TTD(int64 bpID, Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* utf8SourceInfo, uint32 line, uint32 column, BOOL* isNewBP);
@@ -68,5 +72,7 @@ private:
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     bool serializeByteCodeForLibrary;
 #endif
+#ifdef ENABLE_SCRIPT_DEBUGGING
     JsrtDebugManager * jsrtDebugManager;
+#endif
 };

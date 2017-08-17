@@ -5,7 +5,6 @@
 #pragma once
 
 #ifdef _WIN32
-#include "CommonDefines.h"
 #include "CommonMin.h"
 #else
 #include "pal.h"

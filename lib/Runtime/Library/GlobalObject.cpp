@@ -587,9 +587,11 @@ namespace Js
             return evalArg;
         }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         // It might happen that no script parsed on this context (scriptContext) till now,
         // so this Eval acts as the first source compile for scriptContext, transition to debugMode as needed
         scriptContext->TransitionToDebugModeIfFirstSource(/* utf8SourceInfo = */ nullptr);
+#endif
 
         JavascriptString *argString = JavascriptString::FromVar(evalArg);
         ScriptFunction *pfuncScript = nullptr;

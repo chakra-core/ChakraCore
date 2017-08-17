@@ -176,6 +176,7 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ TTDRecord
     }
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     JsrtDebugManager* jsrtDebugManager = runtime->GetJsrtDebugManager();
 
     if(jsrtDebugManager != nullptr)
@@ -192,6 +193,7 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ TTDRecord
 
         threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
     }
+#endif
 
 #if ENABLE_TTD
     if(activelyRecording)
@@ -479,19 +481,21 @@ CHAKRA_API JsDisposeRuntime(_In_ JsRuntimeHandle runtimeHandle)
                 recycler->ClearObjectBeforeCollectCallbacks();
             }
         }
-
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (runtime->GetJsrtDebugManager() != nullptr)
         {
             runtime->GetJsrtDebugManager()->ClearDebuggerObjects();
         }
-
+#endif
         Js::ScriptContext *scriptContext;
         for (scriptContext = threadContext->GetScriptContextList(); scriptContext; scriptContext = scriptContext->next)
         {
+#ifdef ENABLE_SCRIPT_DEBUGGING
             if (runtime->GetJsrtDebugManager() != nullptr)
             {
                 runtime->GetJsrtDebugManager()->ClearDebugDocument(scriptContext);
             }
+#endif
             scriptContext->MarkForClose();
         }
 
@@ -499,7 +503,9 @@ CHAKRA_API JsDisposeRuntime(_In_ JsRuntimeHandle runtimeHandle)
         // We need to do this before recycler shutdown, because ScriptEngine->Close won't work then.
         runtime->CloseContexts();
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         runtime->DeleteJsrtDebugManager();
+#endif
 
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         bool doFinalGC = false;

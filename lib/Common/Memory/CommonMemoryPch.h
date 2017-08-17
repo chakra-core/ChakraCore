@@ -8,6 +8,7 @@
 
 typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
+#define MAKE_HR(errnum) (MAKE_HRESULT(SEVERITY_ERROR, FACILITY_CONTROL, errnum))
 
 // === C Runtime Header Files ===
 #include <time.h>

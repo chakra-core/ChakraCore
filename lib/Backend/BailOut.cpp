@@ -4,9 +4,11 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/DebuggingFlags.h"
 #include "Debug/DiagProbe.h"
 #include "Debug/DebugManager.h"
+#endif
 #include "Language/JavascriptFunctionArgIndex.h"
 
 extern const IRType RegTypes[RegNumCount];
@@ -1376,6 +1378,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     // Clear the disable implicit call bit in case we bail from that region
     functionScriptContext->GetThreadContext()->ClearDisableImplicitFlags();
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     bool isInDebugMode = executeFunction->IsInDebugMode();
     AssertMsg(!isInDebugMode || Js::Configuration::Global.EnableJitInDebugMode(),
         "In diag mode we can get here (function has to be JIT'ed) only when EnableJitInDiagMode is true!");
@@ -1446,6 +1449,8 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
             }
         }
     }
+#endif
+
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
@@ -1735,7 +1740,11 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     {
         // Following _AddressOfReturnAddress <= real address of "returnAddress". Suffices for RemoteStackWalker to test partially initialized interpreter frame.
         Js::InterpreterStackFrame::PushPopFrameHelper pushPopFrameHelper(newInstance, returnAddress, _AddressOfReturnAddress());
+#ifdef ENABLE_SCRIPT_DEBUGGING
         aReturn = isInDebugMode ? newInstance->DebugProcess() : newInstance->Process();
+#else
+        aReturn = newInstance->Process();
+#endif
         // Note: in debug mode we always have to bailout to debug thunk,
         //       as normal interpreter thunk expects byte code compiled w/o debugging.
     }
@@ -2736,7 +2745,9 @@ Js::Var BailOutRecord::BailOutForElidedYield(void * framePointer)
     Js::ScriptFunction ** functionRef = (Js::ScriptFunction **)&layout->functionObject;
     Js::ScriptFunction * function = *functionRef;
     Js::FunctionBody * executeFunction = function->GetFunctionBody();
+#ifdef ENABLE_SCRIPT_DEBUGGING
     bool isInDebugMode = executeFunction->IsInDebugMode();
+#endif
 
     Js::JavascriptGenerator* generator = static_cast<Js::JavascriptGenerator*>(layout->args[0]);
     Js::InterpreterStackFrame* frame = generator->GetFrame();
@@ -2756,7 +2767,11 @@ Js::Var BailOutRecord::BailOutForElidedYield(void * framePointer)
     {
         // Following _AddressOfReturnAddress <= real address of "returnAddress". Suffices for RemoteStackWalker to test partially initialized interpreter frame.
         Js::InterpreterStackFrame::PushPopFrameHelper pushPopFrameHelper(frame, _ReturnAddress(), _AddressOfReturnAddress());
+#ifdef ENABLE_SCRIPT_DEBUGGING
         aReturn = isInDebugMode ? frame->DebugProcess() : frame->Process();
+#else
+        aReturn = frame->Process();
+#endif
         // Note: in debug mode we always have to bailout to debug thunk,
         //       as normal interpreter thunk expects byte code compiled w/o debugging.
     }

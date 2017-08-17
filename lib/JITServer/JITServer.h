@@ -20,8 +20,8 @@ private:
     static JsUtil::BaseHashSet<ServerScriptContext*, HeapAllocator> scriptContexts;
     static CriticalSection cs;
 
-#ifdef STACK_BACK_TRACE
 public:
+#ifdef STACK_BACK_TRACE
     template<class T>
     struct ClosedContextEntry
     {
