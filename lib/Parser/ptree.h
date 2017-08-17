@@ -182,7 +182,7 @@ enum FncFlags : uint
     kFunctionIsAccessor                         = 1 << 6, // function is a property getter or setter
     kFunctionHasNonThisStmt                     = 1 << 7,
     kFunctionStrictMode                         = 1 << 8,
-    // Free = 1 << 9,
+    kFunctionHasDestructuredParams              = 1 << 9,
     kFunctionIsModule                           = 1 << 10, // function is a module body
     // Free = 1 << 11,
     kFunctionHasWithStmt                        = 1 << 12, // function (or child) uses with
@@ -296,6 +296,7 @@ public:
     void SetChildCallsEval(bool set = true) { SetFlags(kFunctionChildCallsEval, set); }
     void SetDeclaration(bool set = true) { SetFlags(kFunctionDeclaration, set); }
     void SetHasDefaultArguments(bool set = true) { SetFlags(kFunctionHasDefaultArguments, set); }
+    void SetHasDestructuredParams(bool set = true) { SetFlags(kFunctionHasDestructuredParams, set); }
     void SetHasHeapArguments(bool set = true) { SetFlags(kFunctionHasHeapArguments, set); }
     void SetHasAnyWriteToFormals(bool set = true) { SetFlags((uint)kFunctionHasAnyWriteToFormals, set); }
     void SetHasNonSimpleParameterList(bool set = true) { SetFlags(kFunctionHasNonSimpleParameterList, set); }
@@ -330,6 +331,7 @@ public:
     bool GetAsmjsMode() const { return HasFlags(kFunctionAsmjsMode); }
     bool GetStrictMode() const { return HasFlags(kFunctionStrictMode); }
     bool HasDefaultArguments() const { return HasFlags(kFunctionHasDefaultArguments); }
+    bool HasDestructuredParams() const { return HasFlags(kFunctionHasDestructuredParams); }
     bool HasHeapArguments() const { return true; /* HasFlags(kFunctionHasHeapArguments); Disabling stack arguments. Always return HeapArguments as True */ }
     bool HasAnyWriteToFormals() const { return HasFlags((uint)kFunctionHasAnyWriteToFormals); }
     bool HasOnlyThisStmts() const { return !HasFlags(kFunctionHasNonThisStmt); }
