@@ -47,7 +47,13 @@ TEST () {
     fi
 }
 
-FIND_CLANG
+RES=$(c++ --version)
+if [[ ! $RES =~ "Apple LLVM" ]]; then
+    FIND_CLANG
+else
+    CC="cc"
+    CXX="c++"
+fi
 
 RUN () {
     TEST_PATH=$1

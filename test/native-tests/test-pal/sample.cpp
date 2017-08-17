@@ -3,39 +3,34 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#include "pal.h"
+extern "C"  int
+__cdecl
+PAL_wcscmp(
+	   const char16_t *string1,
+	   const char16_t *string2);
 
-int wscmp(const char16_t *left, const char16_t *right)
-{
-    if (!left && !right)
-    {
-        return 0;
-    }
-    else if (left && right)
-    {
-        while (*left != u'\0' && *right != u'\0')
-        {
-            int diff = *right - *left;
-            if (diff != 0)
-            {
-                return diff;
-            }
-            ++left;
-            ++right;
-        }
+extern "C" const char16_t *
+__cdecl
+PAL_wcsstr(
+	   const char16_t *string,
+	   const char16_t *strCharSet);
 
-        int diff = *right - *left;
-        return diff;
-    }
-    else
-    {
-        return (left == NULL ? -1 : 1);
-    }
-}
+extern "C" int
+__cdecl
+PAL_wprintf(
+	    const char16_t*, ...);
+
+#ifndef NULL
+#if defined(__cplusplus)
+#define NULL    0
+#else
+#define NULL    ((void *)0)
+#endif
+#endif
 
 int validate(const char16_t *actual, const char16_t *expected, const char16_t *testName)
 {
-    int c = wscmp(expected, actual);
+    int c = PAL_wcscmp(expected, actual);
     if (c == 0)
     {
         return 0;
@@ -64,7 +59,7 @@ int main()
 
     if (result == 0)
     {
-        printf("SUCCESS");
+        PAL_wprintf(u"SUCCESS");
     }
     return result;
 }
