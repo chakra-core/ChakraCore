@@ -30,6 +30,10 @@ check_symbol_exists(snprintf "stdio.h" HAVE_SNPRINTF)
 check_symbol_exists(sysconf "unistd.h" HAVE_SYSCONF)
 check_symbol_exists(strcasecmp "strings.h" HAVE_STRCASECMP)
 
+if (WIN32)
+  check_symbol_exists(ENABLE_VIRTUAL_TERMINAL_PROCESSING "windows.h" HAVE_WIN32_VT100)
+endif ()
+
 include(CheckTypeSize)
 check_type_size(ssize_t SSIZE_T)
 check_type_size(size_t SIZEOF_SIZE_T)
@@ -67,7 +71,7 @@ if (COMPILER_IS_CLANG)
   add_definitions(-fcolor-diagnostics)
 endif ()
 
-set(AST_PARSER_GEN_C src/prebuilt/wast-parser-gen.cc)
+
 include_directories(src/prebuilt)
 
 if (COMPILER_IS_CLANG OR COMPILER_IS_GNU)
@@ -81,46 +85,51 @@ if (COMPILER_IS_CLANG OR COMPILER_IS_GNU)
 endif ()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${WABT_SOURCE_DIR}/cmake)
-set(AST_LEXER_GEN_C src/prebuilt/wast-lexer-gen.cc)
+set(WAST_LEXER_GEN_CC src/prebuilt/wast-lexer-gen.cc)
 
 add_custom_target(everything)
 
 add_library(libwabt OBJECT
-  ${AST_LEXER_GEN_C}
-  ${AST_PARSER_GEN_C}
-  src/apply-names.cc
-  src/binary-error-handler.cc
-  src/binary-reader-ir.cc
-  src/binary-reader-logging.cc
-  src/binary-reader-objdump.cc
-  src/binary-reader-opcnt.cc
+  src/opcode.cc
+  src/error-handler.cc
+  src/hash-util.cc
+  src/string-view.cc
+  src/ir.cc
+  src/expr-visitor.cc
+  src/lexer-source.cc
+  src/lexer-source-line-finder.cc
+  src/wast-parser-lexer-shared.cc
+  ${WAST_LEXER_GEN_CC}
+  src/wast-parser.cc
+  src/type-checker.cc
+  src/validator.cc
+
   src/binary-reader.cc
-  src/binary-writer-spec.cc
+  src/binary-reader-logging.cc
   src/binary-writer.cc
-  src/binary.cc
+  src/binary-writer-spec.cc
+  src/binary-reader-ir.cc
   src/binding-hash.cc
+  src/wat-writer.cc
+  src/interpreter.cc
+  src/binary-reader-interpreter.cc
+  src/apply-names.cc
+  src/generate-names.cc
+  src/resolve-names.cc
+
+  src/binary.cc
+  src/color.cc
   src/common.cc
   src/config.cc
-  src/emscripten-helpers.cc
-  src/expr-visitor.cc
-  src/generate-names.cc
-  src/hash-util.cc
-  src/ir.cc
-  src/lexer-source-line-finder.cc
-  src/lexer-source.cc
+  src/feature.cc
   src/literal.cc
-  src/opcode.cc
   src/option-parser.cc
-  src/resolve-names.cc
-  src/source-error-handler.cc
   src/stream.cc
-  src/string-view.cc
-  src/type-checker.cc
+  src/tracing.cc
   src/utf8.cc
-  src/validator.cc
-  src/wast-parser-lexer-shared.cc
-  src/wat-writer.cc
   src/writer.cc
 
   chakra/wabtapi.cc
+
+
 )

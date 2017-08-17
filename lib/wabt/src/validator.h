@@ -23,11 +23,12 @@ namespace wabt {
 
 struct Module;
 struct Script;
-class SourceErrorHandler;
+class ErrorHandler;
 
 // Perform all checks on the script. It is valid if and only if this function
 // succeeds.
-Result validate_script(WastLexer*, const Script*, SourceErrorHandler*);
+Result ValidateScript(WastLexer*, const Script*, ErrorHandler*);
+Result ValidateModule(WastLexer*, const Module*, ErrorHandler*);
 
 }  // namespace wabt
 

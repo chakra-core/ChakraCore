@@ -39,10 +39,10 @@ void Stream::WriteDataAt(size_t at,
                          size_t size,
                          const char* desc,
                          PrintChars print_chars) {
-  if (WABT_FAILED(result_))
+  if (Failed(result_))
     return;
   if (log_stream_) {
-    log_stream_->WriteMemoryDump(src, size, at, nullptr, desc, print_chars);
+    log_stream_->WriteMemoryDump(src, size, at, print_chars, nullptr, desc);
   }
   result_ = writer_->WriteData(at, src, size);
 }
@@ -56,7 +56,7 @@ void Stream::WriteData(const void* src,
 }
 
 void Stream::MoveData(size_t dst_offset, size_t src_offset, size_t size) {
-  if (WABT_FAILED(result_))
+  if (Failed(result_))
     return;
   if (log_stream_) {
     log_stream_->Writef(
@@ -74,9 +74,9 @@ void Stream::Writef(const char* format, ...) {
 void Stream::WriteMemoryDump(const void* start,
                              size_t size,
                              size_t offset,
+                             PrintChars print_chars,
                              const char* prefix,
-                             const char* desc,
-                             PrintChars print_chars) {
+                             const char* desc) {
   const uint8_t* p = static_cast<const uint8_t*>(start);
   const uint8_t* end = p + size;
   while (p < end) {
@@ -114,10 +114,18 @@ void Stream::WriteMemoryDump(const void* start,
 
 MemoryStream::MemoryStream() : Stream(&writer_) {}
 
-FileStream::FileStream(const char* filename)
+FileStream::FileStream(string_view filename)
     : Stream(&writer_), writer_(filename) {}
 
 FileStream::FileStream(FILE* file) : Stream(&writer_), writer_(file) {}
+
+FileStream::FileStream(FileStream&& other)
+    : Stream(&writer_), writer_(std::move(other.writer_)) {}
+
+FileStream& FileStream::operator=(FileStream&& other) {
+  writer_ = std::move(other.writer_);
+  return *this;
+}
 
 // static
 std::unique_ptr<FileStream> FileStream::CreateStdout() {

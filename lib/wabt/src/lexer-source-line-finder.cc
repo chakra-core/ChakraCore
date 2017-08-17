@@ -22,7 +22,7 @@
 
 #define CHECK_RESULT(expr)  \
   do {                      \
-    if (WABT_FAILED(expr))  \
+    if (Failed(expr))       \
       return Result::Error; \
   } while (0)
 

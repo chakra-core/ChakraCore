@@ -288,14 +288,13 @@
 <dir>
   <default>
     <files>WasmSpec</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend,exclude_jshost,exclude_win7,require_wasm</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend,exclude_jshost,exclude_win7,require_wasm,exclude_xplat</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>wasm</files>
     <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend,require_wasm</tags>
-    <tags>exclude_arm,exclude_arm64</tags>
   </default>
 </dir>
 <dir>

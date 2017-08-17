@@ -114,7 +114,7 @@ function main() {
     const runs = specFiles.map(specFile => {
       const ext = path.extname(specFile);
       const basename = path.basename(specFile, ext);
-      const isXplatExcluded = true || config["xplat-excludes"].indexOf(path.basename(specFile, ext)) !== -1;
+      const isXplatExcluded = config["xplat-excludes"].indexOf(path.basename(specFile, ext)) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
       const runner = runners[ext];

@@ -1,1 +1,2 @@
-103/103 tests passed.
+(65) testsuite/core/func.wast:309: assert_return($$.signature-implicit-reused() == ) failed. Unexpectedly threw: CompileError: function signature-implicit-reused[77] at offset 1793/1940 (0x701/0x794): Call argument does not match formal type
+102/103 tests passed.

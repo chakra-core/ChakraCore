@@ -308,6 +308,7 @@ ENTRY(arrayBuffer)
 // wabt
 ENTRY(wabt)
 ENTRY(convertWast2Wasm)
+ENTRY(module_type)
 ENTRY(spec)
 ENTRY(commands)
 ENTRY(type)
