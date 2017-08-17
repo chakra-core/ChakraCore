@@ -20,6 +20,8 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
+#include <map>
+#include <vector>
 
 #include "binary-reader.h"
 #include "binary-reader-opcnt.h"
@@ -37,9 +39,7 @@ static const char* s_outfile;
 static size_t s_cutoff = 0;
 static const char* s_separator = ": ";
 
-static ReadBinaryOptions s_read_binary_options =
-    WABT_READ_BINARY_OPTIONS_DEFAULT;
-
+static ReadBinaryOptions s_read_binary_options;
 static std::unique_ptr<FileStream> s_log_stream;
 
 static const char s_description[] =
@@ -51,7 +51,7 @@ examples:
   $ wasm-opcodecnt test.wasm -o test.dist
 )";
 
-static void parse_options(int argc, char** argv) {
+static void ParseOptions(int argc, char** argv) {
   OptionParser parser("wasm-opcodecnt", s_description);
 
   parser.AddOption('v', "verbose", "Use multiple times for more info", []() {
@@ -78,206 +78,97 @@ static void parse_options(int argc, char** argv) {
   parser.Parse(argc, argv);
 }
 
-typedef int(int_counter_lt_fcn)(const IntCounter&, const IntCounter&);
+template <typename T>
+struct SortByCountDescending {
+  bool operator()(const T& lhs, const T& rhs) const {
+    return lhs.second > rhs.second;
+  }
+};
 
-typedef int(int_pair_counter_lt_fcn)(const IntPairCounter&,
-                                     const IntPairCounter&);
+template <typename T>
+struct WithinCutoff {
+  bool operator()(const T& pair) const {
+    return pair.second >= s_cutoff;
+  }
+};
 
-typedef void (*display_name_fcn)(FILE* out, intmax_t value);
+void WriteCounts(Stream& stream, const OpcodeInfoCounts& info_counts) {
+  typedef std::pair<Opcode, size_t> OpcodeCountPair;
 
-static void display_opcode_name(FILE* out, intmax_t opcode) {
-  if (opcode >= 0 && opcode < kOpcodeCount)
-    fprintf(out, "%s", get_opcode_name(static_cast<Opcode>(opcode)));
-  else
-    fprintf(out, "?(%" PRIdMAX ")", opcode);
-}
+  std::map<Opcode, size_t> counts;
+  for (auto& info_count_pair: info_counts) {
+    Opcode opcode = info_count_pair.first.opcode();
+    size_t count = info_count_pair.second;
+    counts[opcode] += count;
+  }
 
-static void display_intmax(FILE* out, intmax_t value) {
-  fprintf(out, "%" PRIdMAX, value);
-}
+  std::vector<OpcodeCountPair> sorted;
+  std::copy_if(counts.begin(), counts.end(), std::back_inserter(sorted),
+               WithinCutoff<OpcodeCountPair>());
 
-static void display_int_counter_vector(FILE* out,
-                                       const IntCounterVector& vec,
-                                       display_name_fcn display_fcn,
-                                       const char* opcode_name) {
-  for (const IntCounter& counter : vec) {
-    if (counter.count == 0)
-      continue;
-    if (opcode_name)
-      fprintf(out, "(%s ", opcode_name);
-    display_fcn(out, counter.value);
-    if (opcode_name)
-      fprintf(out, ")");
-    fprintf(out, "%s%" PRIzd "\n", s_separator, counter.count);
+  // Use a stable sort to keep the elements with the same count in opcode
+  // order (since the Opcode map is sorted).
+  std::stable_sort(sorted.begin(), sorted.end(),
+                   SortByCountDescending<OpcodeCountPair>());
+
+  for (auto& pair : sorted) {
+    Opcode opcode = pair.first;
+    size_t count = pair.second;
+    stream.Writef("%s%s%" PRIzd "\n", opcode.GetName(), s_separator, count);
   }
 }
 
-static void display_int_pair_counter_vector(FILE* out,
-                                            const IntPairCounterVector& vec,
-                                            display_name_fcn display_first_fcn,
-                                            display_name_fcn display_second_fcn,
-                                            const char* opcode_name) {
-  for (const IntPairCounter& pair : vec) {
-    if (pair.count == 0)
-      continue;
-    if (opcode_name)
-      fprintf(out, "(%s ", opcode_name);
-    display_first_fcn(out, pair.first);
-    fputc(' ', out);
-    display_second_fcn(out, pair.second);
-    if (opcode_name)
-      fprintf(out, ")");
-    fprintf(out, "%s%" PRIzd "\n", s_separator, pair.count);
+void WriteCountsWithImmediates(Stream& stream,
+                               const OpcodeInfoCounts& counts) {
+  // Remove const from the key type so we can sort below.
+  typedef std::pair<std::remove_const<OpcodeInfoCounts::key_type>::type,
+                    OpcodeInfoCounts::mapped_type>
+      OpcodeInfoCountPair;
+
+  std::vector<OpcodeInfoCountPair> sorted;
+  std::copy_if(counts.begin(), counts.end(), std::back_inserter(sorted),
+               WithinCutoff<OpcodeInfoCountPair>());
+
+  // Use a stable sort to keep the elements with the same count in opcode info
+  // order (since the OpcodeInfoCounts map is sorted).
+  std::stable_sort(sorted.begin(), sorted.end(),
+                   SortByCountDescending<OpcodeInfoCountPair>());
+
+  for (auto& pair : sorted) {
+    auto&& info = pair.first;
+    size_t count = pair.second;
+    info.Write(stream);
+    stream.Writef("%s%" PRIzd "\n", s_separator, count);
   }
-}
-
-static int opcode_counter_gt(const IntCounter& counter_1,
-                             const IntCounter& counter_2) {
-  if (counter_1.count > counter_2.count)
-    return 1;
-  if (counter_1.count < counter_2.count)
-    return 0;
-  const char* name_1 = "?1";
-  const char* name_2 = "?2";
-  if (counter_1.value < kOpcodeCount) {
-    const char* opcode_name =
-        get_opcode_name(static_cast<Opcode>(counter_1.value));
-    if (opcode_name)
-      name_1 = opcode_name;
-  }
-  if (counter_2.value < kOpcodeCount) {
-    const char* opcode_name =
-        get_opcode_name(static_cast<Opcode>(counter_2.value));
-    if (opcode_name)
-      name_2 = opcode_name;
-  }
-  int diff = strcmp(name_1, name_2);
-  if (diff > 0)
-    return 1;
-  return 0;
-}
-
-static int int_counter_gt(const IntCounter& counter_1,
-                          const IntCounter& counter_2) {
-  if (counter_1.count < counter_2.count)
-    return 0;
-  if (counter_1.count > counter_2.count)
-    return 1;
-  if (counter_1.value < counter_2.value)
-    return 0;
-  if (counter_1.value > counter_2.value)
-    return 1;
-  return 0;
-}
-
-static int int_pair_counter_gt(const IntPairCounter& counter_1,
-                               const IntPairCounter& counter_2) {
-  if (counter_1.count < counter_2.count)
-    return 0;
-  if (counter_1.count > counter_2.count)
-    return 1;
-  if (counter_1.first < counter_2.first)
-    return 0;
-  if (counter_1.first > counter_2.first)
-    return 1;
-  if (counter_1.second < counter_2.second)
-    return 0;
-  if (counter_1.second > counter_2.second)
-    return 1;
-  return 0;
-}
-
-static void display_sorted_int_counter_vector(FILE* out,
-                                              const char* title,
-                                              const IntCounterVector& vec,
-                                              int_counter_lt_fcn lt_fcn,
-                                              display_name_fcn display_fcn,
-                                              const char* opcode_name) {
-  if (vec.size() == 0)
-    return;
-
-  /* First filter out values less than cutoff. This speeds up sorting. */
-  IntCounterVector filtered_vec;
-  for (const IntCounter& counter: vec) {
-    if (counter.count < s_cutoff)
-      continue;
-    filtered_vec.push_back(counter);
-  }
-  std::sort(filtered_vec.begin(), filtered_vec.end(), lt_fcn);
-  fprintf(out, "%s\n", title);
-  display_int_counter_vector(out, filtered_vec, display_fcn, opcode_name);
-}
-
-static void display_sorted_int_pair_counter_vector(
-    FILE* out,
-    const char* title,
-    const IntPairCounterVector& vec,
-    int_pair_counter_lt_fcn lt_fcn,
-    display_name_fcn display_first_fcn,
-    display_name_fcn display_second_fcn,
-    const char* opcode_name) {
-  if (vec.size() == 0)
-    return;
-
-  IntPairCounterVector filtered_vec;
-  for (const IntPairCounter& pair : vec) {
-    if (pair.count < s_cutoff)
-      continue;
-    filtered_vec.push_back(pair);
-  }
-  std::sort(filtered_vec.begin(), filtered_vec.end(), lt_fcn);
-  fprintf(out, "%s\n", title);
-  display_int_pair_counter_vector(out, filtered_vec, display_first_fcn,
-                                  display_second_fcn, opcode_name);
 }
 
 int ProgramMain(int argc, char** argv) {
-  init_stdio();
-  parse_options(argc, argv);
+  InitStdio();
+  ParseOptions(argc, argv);
 
-  char* data;
-  size_t size;
-  Result result = read_file(s_infile, &data, &size);
-  if (WABT_FAILED(result)) {
+  std::vector<uint8_t> file_data;
+  Result result = ReadFile(s_infile, &file_data);
+  if (Failed(result)) {
     const char* input_name = s_infile ? s_infile : "stdin";
     ERROR("Unable to parse: %s", input_name);
-    delete[] data;
+    return 1;
   }
-  FILE* out = stdout;
-  if (s_outfile) {
-    out = fopen(s_outfile, "w");
-    if (!out)
-      ERROR("fopen \"%s\" failed, errno=%d\n", s_outfile, errno);
-    result = Result::Error;
-  }
-  if (WABT_SUCCEEDED(result)) {
-    OpcntData opcnt_data;
-    result = read_binary_opcnt(data, size, &s_read_binary_options, &opcnt_data);
-    if (WABT_SUCCEEDED(result)) {
-      display_sorted_int_counter_vector(
-          out, "Opcode counts:", opcnt_data.opcode_vec, opcode_counter_gt,
-          display_opcode_name, nullptr);
-      display_sorted_int_counter_vector(
-          out, "\ni32.const:", opcnt_data.i32_const_vec, int_counter_gt,
-          display_intmax, get_opcode_name(Opcode::I32Const));
-      display_sorted_int_counter_vector(
-          out, "\nget_local:", opcnt_data.get_local_vec, int_counter_gt,
-          display_intmax, get_opcode_name(Opcode::GetLocal));
-      display_sorted_int_counter_vector(
-          out, "\nset_local:", opcnt_data.set_local_vec, int_counter_gt,
-          display_intmax, get_opcode_name(Opcode::SetLocal));
-      display_sorted_int_counter_vector(
-          out, "\ntee_local:", opcnt_data.tee_local_vec, int_counter_gt,
-          display_intmax, get_opcode_name(Opcode::TeeLocal));
-      display_sorted_int_pair_counter_vector(
-          out, "\ni32.load:", opcnt_data.i32_load_vec, int_pair_counter_gt,
-          display_intmax, display_intmax, get_opcode_name(Opcode::I32Load));
-      display_sorted_int_pair_counter_vector(
-          out, "\ni32.store:", opcnt_data.i32_store_vec, int_pair_counter_gt,
-          display_intmax, display_intmax, get_opcode_name(Opcode::I32Store));
+
+  FileStream stream(s_outfile ? FileStream(s_outfile) : FileStream(stdout));
+
+  if (Succeeded(result)) {
+    OpcodeInfoCounts counts;
+    result = ReadBinaryOpcnt(DataOrNull(file_data), file_data.size(),
+                             &s_read_binary_options, &counts);
+    if (Succeeded(result)) {
+      stream.Writef("Opcode counts:\n");
+      WriteCounts(stream, counts);
+
+      stream.Writef("\nOpcode counts with immediates:\n");
+      WriteCountsWithImmediates(stream, counts);
     }
   }
-  delete[] data;
+
   return result != Result::Ok;
 }
 

@@ -27,12 +27,12 @@
  * Name: used to generate the opcode enum
  * text: a string of the opcode name in the text format
  *
- *          tr  t1    t2   m  code  Name text
+ *          tr  t1    t2   m  prefix code  Name text
  * ============================================================  */
 
 #include "opcode.def"
-WABT_OPCODE(___, ___, ___, 0, 0xc0, Alloca, "alloca")
-WABT_OPCODE(___, ___, ___, 0, 0xc1, BrUnless, "br_unless")
-WABT_OPCODE(___, ___, ___, 0, 0xc2, CallHost, "call_host")
-WABT_OPCODE(___, ___, ___, 0, 0xc3, Data, "data")
-WABT_OPCODE(___, ___, ___, 0, 0xc4, DropKeep, "drop_keep")
+WABT_OPCODE(___, ___, ___, 0, 0,     0xc0, Alloca, "alloca")
+WABT_OPCODE(___, ___, ___, 0, 0,     0xc1, BrUnless, "br_unless")
+WABT_OPCODE(___, ___, ___, 0, 0,     0xc2, CallHost, "call_host")
+WABT_OPCODE(___, ___, ___, 0, 0,     0xc3, Data, "data")
+WABT_OPCODE(___, ___, ___, 0, 0,     0xc4, DropKeep, "drop_keep")

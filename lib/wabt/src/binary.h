@@ -25,6 +25,8 @@
 
 #define WABT_BINARY_SECTION_NAME "name"
 #define WABT_BINARY_SECTION_RELOC "reloc"
+#define WABT_BINARY_SECTION_LINKING "linking"
+#define WABT_BINARY_SECTION_EXCEPTION "exception"
 
 #define WABT_FOREACH_BINARY_SECTION(V) \
   V(Custom, custom, 0)                 \
@@ -57,7 +59,7 @@ static const int kBinarySectionCount = WABT_ENUM_COUNT(BinarySection);
 
 extern const char* g_section_name[];
 
-static WABT_INLINE const char* get_section_name(BinarySection sec) {
+static WABT_INLINE const char* GetSectionName(BinarySection sec) {
   assert(static_cast<int>(sec) < kBinarySectionCount);
   return g_section_name[static_cast<size_t>(sec)];
 }

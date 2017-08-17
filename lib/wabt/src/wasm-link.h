@@ -29,8 +29,8 @@ namespace link {
 class LinkerInputBinary;
 
 struct FunctionImport {
-  StringSlice module_name;
-  StringSlice name;
+  std::string module_name;
+  std::string name;
   Index sig_index;
   bool active; /* Is this import present in the linked binary */
   Index relocated_function_index;
@@ -39,8 +39,8 @@ struct FunctionImport {
 };
 
 struct GlobalImport {
-  StringSlice module_name;
-  StringSlice name;
+  std::string module_name;
+  std::string name;
   Type type;
   bool mutable_;
 };
@@ -54,13 +54,8 @@ struct DataSegment {
 
 struct Export {
   ExternalKind kind;
-  StringSlice name;
+  std::string name;
   Index index;
-};
-
-struct SectionDataCustom {
-  /* Reference to string data stored in the containing InputBinary */
-  StringSlice name;
 };
 
 struct Section {
@@ -83,8 +78,6 @@ struct Section {
   Index count;
 
   union {
-    /* CUSTOM section data */
-    SectionDataCustom custom;
     /* DATA section data */
     std::vector<DataSegment>* data_segments;
     /* MEMORY section data */
@@ -101,8 +94,7 @@ typedef std::vector<Section*> SectionPtrVector;
 class LinkerInputBinary {
  public:
   WABT_DISALLOW_COPY_AND_ASSIGN(LinkerInputBinary);
-  LinkerInputBinary(const char* filename, uint8_t* data, size_t size);
-  ~LinkerInputBinary();
+  LinkerInputBinary(const char* filename, const std::vector<uint8_t>& data);
 
   Index RelocateFuncIndex(Index findex);
   Index RelocateTypeIndex(Index index);
@@ -113,8 +105,7 @@ class LinkerInputBinary {
   bool IsInactiveFunctionImport(Index index);
 
   const char* filename;
-  uint8_t* data;
-  size_t size;
+  std::vector<uint8_t> data;
   std::vector<std::unique_ptr<Section>> sections;
   std::vector<Export> exports;
 

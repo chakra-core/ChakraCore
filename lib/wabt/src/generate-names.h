@@ -23,7 +23,7 @@ namespace wabt {
 
 struct Module;
 
-Result generate_names(struct Module*);
+Result GenerateNames(struct Module*);
 
 }  // namespace wabt
 

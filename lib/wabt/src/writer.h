@@ -27,7 +27,7 @@
 namespace wabt {
 
 struct OutputBuffer {
-  Result WriteToFile(const char* filename) const;
+  Result WriteToFile(string_view filename) const;
 
   size_t size() const { return data.size(); }
 
@@ -62,7 +62,7 @@ class FileWriter : public Writer {
   WABT_DISALLOW_COPY_AND_ASSIGN(FileWriter);
 
  public:
-  explicit FileWriter(const char* filename);
+  explicit FileWriter(string_view filename);
   explicit FileWriter(FILE* file);
   FileWriter(FileWriter&&);
   FileWriter& operator=(FileWriter&&);

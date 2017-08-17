@@ -24,20 +24,20 @@ namespace wabt {
 
 typedef std::size_t hash_code;
 
-inline hash_code hash_combine() { return 0; }
-inline hash_code hash_combine(hash_code seed) { return seed; }
-hash_code hash_combine(hash_code x, hash_code y);
+inline hash_code HashCombine() { return 0; }
+inline hash_code HashCombine(hash_code seed) { return seed; }
+hash_code HashCombine(hash_code x, hash_code y);
 
 template <typename T, typename... U>
-inline hash_code hash_combine(const T& first, const U&... rest) {
-  return hash_combine(hash_combine(rest...), std::hash<T>()(first));
+inline hash_code HashCombine(const T& first, const U&... rest) {
+  return HashCombine(HashCombine(rest...), std::hash<T>()(first));
 }
 
 template <typename It>
-inline hash_code hash_range(It first, It last) {
+inline hash_code HashRange(It first, It last) {
   hash_code result = 0;
   for (auto iter = first; iter != last; ++iter) {
-    result = hash_combine(result, *iter);
+    result = HashCombine(result, *iter);
   }
   return result;
 }
