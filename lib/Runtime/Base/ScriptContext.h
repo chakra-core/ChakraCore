@@ -922,10 +922,6 @@ private:
         CriticalSection debugContextCloseCS;
 
     public:
-        static const int kArrayMatchCh=72;
-        static const int kMaxArrayMatchIndex=8192;
-        short arrayMatchItems[kArrayMatchCh];
-        bool arrayMatchInit;
 
 #ifdef LEAK_REPORT
         LeakReport::UrlRecord * urlRecord;
@@ -981,17 +977,6 @@ private:
         time_t GetCreateTime() const { return createTime; }
         uint GetAllocId() const { return allocId; }
 #endif
-        void InitializeArrayMatch()
-        {
-            if (!arrayMatchInit)
-            {
-                for (int i=0;i<kArrayMatchCh;i++)
-                {
-                    arrayMatchItems[i]= -1;
-                }
-                arrayMatchInit=true;
-            }
-        }
 
 #ifdef HEAP_ENUMERATION_VALIDATION
         bool IsInitialized() { return this->isInitialized; }
