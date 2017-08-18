@@ -1482,27 +1482,27 @@ PAL_wcsstr(
         goto leave;
     }
 
-    if (*strCharSet == 0)
-    {
-        ret = (char16_t *)string;
-        goto leave;
-    }
-
     while (*string != 0)
     {
         i = 0;
         while (1)
         {
-            if (*(string + i) == 0 || *(strCharSet + i) == 0)
+            if (*(strCharSet + i) == 0)
             {
                 ret = (char16_t *) string;
+                goto leave;
+            }
+            else if (*(string + i) == 0)
+            {
+                ret = NULL;
                 goto leave;
             }
             if (*(string + i) != *(strCharSet + i))
             {
                 break;
             }
-        i++;
+
+            i++;
         }
         string++;
     }
