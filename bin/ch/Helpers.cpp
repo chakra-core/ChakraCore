@@ -370,12 +370,8 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
             }
 #endif
             fprintf(stderr, "\n");
-            return E_FAIL;
         }
-        else
-        {
-            return E_FAIL;
-        }
+        return E_FAIL;        
     }
     // file will not be nullptr if _wfopen_s succeeds
     __analysis_assume(file != nullptr);
