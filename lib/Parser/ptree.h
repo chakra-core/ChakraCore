@@ -459,6 +459,7 @@ struct PnCall
     BYTE isApplyCall : 1;
     BYTE isEvalCall : 1;
     BYTE isSuperCall : 1;
+    BYTE hasDestructuring : 1;
 };
 
 struct PnStmt
