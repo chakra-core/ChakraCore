@@ -390,7 +390,14 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
 
 void WasmBytecodeGenerator::GenerateFunction()
 {
-    TRACE_WASM_BYTECODE(_u("GenerateFunction %u \n"), m_funcInfo->GetNumber());
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    if (DO_WASM_TRACE_BYTECODE)
+    {
+        Output::Print(_u("Generate WebAssembly Bytecode: "));
+        GetFunctionBody()->DumpFullFunctionName();
+        Output::Print(_u("\n"));
+    }
+#endif
     if (PHASE_OFF(Js::WasmBytecodePhase, GetFunctionBody()))
     {
         throw WasmCompilationException(_u("Compilation skipped"));
@@ -1064,12 +1071,17 @@ EmitInfo WasmBytecodeGenerator::EmitIfElseExpr()
     EmitInfo falseExpr;
     if (endOnElse)
     {
-        if (blockInfo.yieldInfo)
+        if (blockInfo.HasYield())
         {
+            // Indicate that we need this block to yield a value
             blockInfo.yieldInfo->didYield = false;
         }
         EmitBlockCommon(&blockInfo);
         EnsureYield(blockInfo);
+    }
+    else if (blockInfo.HasYield())
+    {
+        throw WasmCompilationException(_u("Expected an else block when 'if' returns a value"));
     }
     m_writer->MarkAsmJsLabel(endLabel);
 
