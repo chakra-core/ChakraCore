@@ -2622,6 +2622,7 @@ IR::Instr* LowererMD::Simd128LowerAllTrue(IR::Instr* instr)
     instr->InsertBefore(pInstr);
 
     //horizontally OR into 0th and 2nd positions
+    //TODO nikolayk revisit the sequence for in64x2.alltrue
     IR::Opnd* newDst = dst;
     uint cmpMask = 0xFFFF;
     if (instr->m_opcode == Js::OpCode::Simd128_AllTrue_B2) 

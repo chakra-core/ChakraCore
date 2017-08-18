@@ -12,6 +12,10 @@ namespace Js {
         static SIMDValue OpAdd(const SIMDValue& a, const SIMDValue& b);
         static SIMDValue OpSub(const SIMDValue& a, const SIMDValue& b);
         static SIMDValue OpNeg(const SIMDValue& a);
+
+        //pointer-based arguments are used to ensure that calling conventions are consistent across x86/x64
+        //and match call sequences JIT generates.
+        //TODO: nikolayk back to "const SIMDValue& a"
         static void OpShiftLeftByScalar(SIMDValue* dst, SIMDValue* src, int count);
         static void OpShiftRightByScalar(SIMDValue* dst, SIMDValue* src, int count);
         static void OpShiftRightByScalarU(SIMDValue* dst, SIMDValue* src, int count);
