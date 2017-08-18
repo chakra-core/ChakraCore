@@ -332,8 +332,7 @@ namespace Js
         static int GetRetType(JavascriptFunction* func);
         static int GetAsmJsArgSize(AsmJsCallStackLayout * stack);
         static int GetDynamicRetType(AsmJsCallStackLayout * stack);
-        static DWORD GetAsmJsReturnValueOffset(AsmJsCallStackLayout * stack);
-        _NOINLINE   static int  AsmJsInterpreter(AsmJsCallStackLayout * stack);
+        _NOINLINE static void AsmJsInterpreter(AsmJsCallStackLayout * stack, byte* retDst);
 #elif _M_X64
         template <typename T>
         static T AsmJsInterpreter(AsmJsCallStackLayout* layout);

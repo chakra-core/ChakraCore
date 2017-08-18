@@ -457,7 +457,7 @@ endif
 ;;============================================================================================================
 
 ;;  JavascriptMethod WasmLibrary::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
-extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z : PROC
+extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z : PROC
 
 ;; Var WasmLibrary::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
 align 16
@@ -475,16 +475,14 @@ align 16
         .endprolog
 
         sub rsp, 20h
-        lea rcx, [rsp + 30h]
         mov rdx, 0
-        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z
+        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z
 
 ifdef _CONTROL_FLOW_GUARD
         mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
         call [__guard_check_icall_fptr]         ; verify that the call target is valid
         mov rax, rcx                            ;restore call target
 endif
-        add rsp, 20h
 
         lea rsp, [rbp]
         pop rbp
@@ -505,7 +503,7 @@ endif
 ;;============================================================================================================
 
 ;;  JavascriptMethod WasmLibrary::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
-extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z : PROC
+extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z : PROC
 
 ;; Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
 align 16
@@ -528,22 +526,18 @@ align 16
         movaps xmmword ptr [rsp + 30h], xmm1
         movaps xmmword ptr [rsp + 40h], xmm2
         movaps xmmword ptr [rsp + 50h], xmm3
-
-        lea rcx, [rsp + 70h]
         mov rdx, 1
-        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z
+        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z
 
 ifdef _CONTROL_FLOW_GUARD
         mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
         call [__guard_check_icall_fptr]         ; verify that the call target is valid
         mov rax, rcx                            ;restore call target
 endif
-
         ; restore potential floating point arguments from stack
         movaps xmm1, xmmword ptr [rsp + 30h]
         movaps xmm2, xmmword ptr [rsp + 40h]
         movaps xmm3, xmmword ptr [rsp + 50h]
-        add rsp, 60h
 
         lea rsp, [rbp]
         pop rbp
