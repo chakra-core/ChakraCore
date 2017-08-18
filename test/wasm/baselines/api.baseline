@@ -221,4 +221,5 @@ call_f32(2): NaN
 call_i32(0): 1
 call_i32(29): 123456
 call_i32(30): 123456
+table2[0](): 123456
 done
