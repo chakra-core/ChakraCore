@@ -2865,6 +2865,7 @@ LinearScan::Spill(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool dontSpillCur
 {
     uint minSpillCost = (uint)-1;
 
+    Assert(!newLifetime || !regOpnd || newLifetime->isFloat == (regOpnd->GetType() == TyMachDouble || regOpnd->IsSimd128()));
     bool isFloatReg;
     BitVector intUsageBV;
     bool needCalleeSaved;
