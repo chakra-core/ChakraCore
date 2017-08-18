@@ -3771,27 +3771,43 @@ namespace Js
 #if _M_X64 || _M_IX86
     void InterpreterStackFrame::OP_CallAsmInternal(RecyclableObject * function)
     {
-        AsmJsFunctionInfo* asmInfo = ((ScriptFunction*)function)->GetFunctionBody()->GetAsmJsFunctionInfo();
-        uint argsSize = asmInfo->GetArgByteSize();
-        ScriptFunction* scriptFunc = (ScriptFunction*)function;
-        ScriptContext * scriptContext = function->GetScriptContext();
-        PROBE_STACK_CALL(scriptContext, function, argsSize);
+        AsmJsScriptFunction* scriptFunc = AsmJsScriptFunction::FromVar(function);
+        AsmJsFunctionInfo* asmInfo = scriptFunc->GetFunctionBody()->GetAsmJsFunctionInfo();
+        uint alignedArgsSize = ::Math::Align<uint32>(asmInfo->GetArgByteSize(), 16);
+#if _M_X64
+        // convention is to always allocate spill space for rcx,rdx,r8,r9
+        if (alignedArgsSize < 0x20) alignedArgsSize = 0x20;
 
+        // Prepare in advance the possible arguments that will need to be put in register
+        byte _declspec(align(16)) reg[3 * 16];
+        uint* argSizes = asmInfo->GetArgsSizesArray();
+        Assert(asmInfo->GetArgSizeArrayLength() >= 2);
+        byte* curOutParams = (byte*)m_outParams + sizeof(Var);
+        js_memcpy_s(reg, 16, curOutParams, 16);
+        js_memcpy_s(reg + 16, 16, curOutParams + argSizes[0], 16);
+        js_memcpy_s(reg + 32, 16, curOutParams + argSizes[0] + argSizes[1], 16);
+#else
+        byte* reg = nullptr;
+#endif
+
+        ScriptContext * scriptContext = function->GetScriptContext();
         Js::FunctionEntryPointInfo* entrypointInfo = (Js::FunctionEntryPointInfo*)scriptFunc->GetEntryPointInfo();
+        PROBE_STACK_CALL(scriptContext, function, alignedArgsSize + Js::Constants::MinStackDefault);
+
         switch (asmInfo->GetReturnType().which())
         {
         case AsmJsRetType::Void:
         case AsmJsRetType::Signed:
-            m_localIntSlots[0] = JavascriptFunction::CallAsmJsFunction<int>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            m_localIntSlots[0] = JavascriptFunction::CallAsmJsFunction<int>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, (byte*)reg);
             break;
         case AsmJsRetType::Int64:
-            m_localInt64Slots[0] = JavascriptFunction::CallAsmJsFunction<int64>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            m_localInt64Slots[0] = JavascriptFunction::CallAsmJsFunction<int64>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, (byte*)reg);
             break;
         case AsmJsRetType::Double:
-            m_localDoubleSlots[0] = JavascriptFunction::CallAsmJsFunction<double>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            m_localDoubleSlots[0] = JavascriptFunction::CallAsmJsFunction<double>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, (byte*)reg);
             break;
         case AsmJsRetType::Float:
-            m_localFloatSlots[0] = JavascriptFunction::CallAsmJsFunction<float>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            m_localFloatSlots[0] = JavascriptFunction::CallAsmJsFunction<float>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, (byte*)reg);
             break;
 #ifdef ENABLE_SIMDJS
         case AsmJsRetType::Float32x4:
@@ -3807,38 +3823,20 @@ namespace Js
         case AsmJsRetType::Uint8x16:
 #if _M_X64
             X86SIMDValue simdVal;
-            simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, (byte*)reg);
             m_localSimdSlots[0] = X86SIMDValue::ToSIMDValue(simdVal);
 #else
-            m_localSimdSlots[0] = JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            m_localSimdSlots[0] = JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, (byte*)reg);
 #endif
             break;
 #endif
         default:
             Assume(UNREACHED);
         }
-        Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
-#ifdef ENABLE_SIMDJS
-#if _M_X64
-        if (scriptContext->GetConfig()->IsSimdjsEnabled())
-#endif
-        {
-            PopOut((ArgSlot)(argsSize / sizeof(Var)) + 1);
-        }
-#if _M_X64
-        else
-        {
-            PopOut((ArgSlot)asmInfo->GetArgCount() + 1);
-        }
-#endif
-#else
-#if _M_X64
-        PopOut((ArgSlot)asmInfo->GetArgCount() + 1);
-        
-#else
-        PopOut((ArgSlot)(argsSize / sizeof(Var)) + 1);
-#endif
-#endif
+
+        const ArgSlot nVarToPop = (asmInfo->GetArgByteSize() / sizeof(Var)) + 1;
+        PopOut(nVarToPop);
+
         Assert(function);
     }
 #else

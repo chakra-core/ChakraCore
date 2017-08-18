@@ -285,7 +285,7 @@
 // Other features
 // #define CHAKRA_CORE_DOWN_COMPAT 1
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_M_IX86)
 #define VECTORCALL __vectorcall
 #else
 #define VECTORCALL
