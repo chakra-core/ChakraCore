@@ -1785,7 +1785,7 @@ extern void(*InitializeAdditionalProperties)(ThreadContext *threadContext);
 class AutoDisableInterrupt
 {
 public:
-    AutoDisableInterrupt::AutoDisableInterrupt(ThreadContext *threadContext, bool explicitCompletion = true)
+    AutoDisableInterrupt(ThreadContext *threadContext, bool explicitCompletion = true)
         : m_operationCompleted(false), m_interruptDisableState(false), m_threadContext(threadContext), m_explicitCompletion(explicitCompletion)
     {
         if (m_threadContext->HasInterruptPoller())
@@ -1794,7 +1794,7 @@ public:
             m_threadContext->GetInterruptPoller()->SetDisabled(true);
         }
     }
-    AutoDisableInterrupt::~AutoDisableInterrupt()
+    ~AutoDisableInterrupt()
     {
         if (m_threadContext->HasInterruptPoller())
         {
