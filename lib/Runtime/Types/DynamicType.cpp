@@ -85,7 +85,7 @@ namespace Js
     Currently we lock Both the Type and the Type Handler in the following cases:
     1. When a type is Shared.
     2. Snapshot Enumeration: DynamicType::PrepareForTypeSnapshotEnumeration()
-    To support snapshot enumetation we need to remember the type handler at the start of the enumeration in case the type evolves during enumeration. To acieve this we lock BOTH the
+    To support snapshot enumeration we need to remember the type handler at the start of the enumeration in case the type evolves during enumeration. To achieve this we lock BOTH the
     type and the type handler in preparation for the enumeration.
     3. While setting prototype: PathTypeHandlerBase::SetPrototype()
     While setting prototype if we create a new type and put the old type to promoted type mapping in the TypeOfPrototypeObjectDictionary property we lock and share the new type.
