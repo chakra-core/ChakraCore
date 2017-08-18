@@ -1027,6 +1027,7 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
     HRESULT hr = E_FAIL;
     JsValueRef returnValue = JS_INVALID_REFERENCE;
     JsErrorCode errorCode = JsNoError;
+    const char* fileContent = nullptr;
 
     if (argumentCount < 2)
     {
@@ -1034,7 +1035,6 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
     }
     else
     {
-        const char* fileContent;
         AutoString fileName;
 
         IfJsrtErrorSetGo(fileName.Initialize(arguments[1]));
@@ -1051,16 +1051,17 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
             }
             else
             {
-                JsValueRef stringObject;
                 IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(
-                    fileContent, lengthBytes, &stringObject));
-                free((void*)fileContent);
-                return stringObject;
+                    fileContent, lengthBytes, &returnValue));
             }
         }
     }
 
 Error:
+    if (fileContent)
+    {
+        free((void*)fileContent);
+    }
     return returnValue;
 }
 
