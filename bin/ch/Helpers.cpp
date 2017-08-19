@@ -329,10 +329,10 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
     {
         if (printFileOpenError)
         {
+            fprintf(stderr, "Error in opening file '%s' ", filename);
 #ifdef _WIN32
             DWORD lastError = GetLastError();
             char16 wszBuff[512];
-            fprintf(stderr, "Error in opening file '%s' ", filename);
             wszBuff[0] = 0;
             if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
                 nullptr,
@@ -346,12 +346,8 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
             }
 #endif
             fprintf(stderr, "\n");
-            IfFailGo(E_FAIL);
         }
-        else
-        {
-            return E_FAIL;
-        }
+        return E_FAIL;        
     }
     // file will not be nullptr if _wfopen_s succeeds
     __analysis_assume(file != nullptr);
@@ -377,9 +373,9 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
         fwprintf(stderr, _u("Read error"));
         IfFailGo(E_FAIL);
     }
-    fclose(file);
 
 Error:
+    fclose(file);
     if (contents && FAILED(hr))
     {
         HeapFree(GetProcessHeap(), 0, (void*)contents);
