@@ -189,8 +189,6 @@ const tests = [{
   `)
   }
 }, {
-  // Todo:: bug #12464098
-  disabled: true,
   name: "kFunctionIsModule",
   test() { WScript.LoadModule(`
     "use asm"
@@ -200,8 +198,6 @@ const tests = [{
     }`)
   }
 }, {
-  // found bugs in jsrt api
-  disabled: true,
   name: "asm.js function in Module",
   test() {
     WScript.LoadModule(`
@@ -211,7 +207,6 @@ const tests = [{
     }`)
   }
 }, {
-  disabled: true,
   name: "kFunctionIsDefaultModuleExport",
   test() {
     WScript.LoadModule(`
