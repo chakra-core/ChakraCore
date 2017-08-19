@@ -1746,13 +1746,13 @@ namespace TTD
             }
             catch(const Js::JavascriptException& err)
             {
-                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same exception here");
 
                 ctx->GetThreadContext()->SetRecordedException(err.GetAndClear());
             }
             catch(Js::ScriptAbortException)
             {
-                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same exception here");
 
                 Assert(ctx->GetThreadContext()->GetRecordedException() == nullptr);
                 ctx->GetThreadContext()->SetRecordedException(ctx->GetThreadContext()->GetPendingTerminatedErrorObject());
@@ -1785,14 +1785,14 @@ namespace TTD
             }
             catch(const Js::JavascriptException& err)
             {
-                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same exception here");
 
                 TTDAssert(false, "Should never get JavascriptExceptionObject for ContextAPINoScriptWrapper.");
                 ctx->GetThreadContext()->SetRecordedException(err.GetAndClear());
             }
             catch(Js::ScriptAbortException)
             {
-                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same exception here");
 
                 Assert(ctx->GetThreadContext()->GetRecordedException() == nullptr);
                 ctx->GetThreadContext()->SetRecordedException(ctx->GetThreadContext()->GetPendingTerminatedErrorObject());
@@ -2714,9 +2714,9 @@ namespace TTD
         bool diagEnabled = reader.ReadBool(NSTokens::Key::diagEnabled, true);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        TTDAssert(diagEnabled, "Diag was enabled in record so it shoud be in replay as well!!!");
+        TTDAssert(diagEnabled, "Diag was enabled in record so it should be in replay as well!!!");
 #else
-        TTDAssert(!diagEnabled, "Diag was *not* enabled in record so it shoud *not* be in replay either!!!");
+        TTDAssert(!diagEnabled, "Diag was *not* enabled in record so it should *not* be in replay either!!!");
 #endif
 
         reader.ReadUInt64(NSTokens::Key::usedMemory, true);

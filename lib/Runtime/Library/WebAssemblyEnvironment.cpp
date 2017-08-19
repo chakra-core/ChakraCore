@@ -82,7 +82,7 @@ void Js::WebAssemblyEnvironment::SetVarElement(Field(Var)* ptr, T* val, uint32 i
 
     Field(Var)* dst = ptr + index;
     CheckPtrIsValid<Var>((intptr_t)dst);
-    AssertMsg(*(T**)dst == nullptr, "We shouln't overwrite anything on the environment once it is set");
+    AssertMsg(*(T**)dst == nullptr, "We shouldn't overwrite anything on the environment once it is set");
     *dst = val;
 }
 
@@ -145,7 +145,7 @@ void WebAssemblyEnvironment::SetGlobalInternal(uint32 offset, T val)
 {
     Field(T)* ptr = (Field(T)*)PointerValue(start) + offset;
     CheckPtrIsValid<T>((intptr_t)PointerValue(ptr));
-    AssertMsg(*ptr == 0, "We shouln't overwrite anything on the environment once it is set");
+    AssertMsg(*ptr == 0, "We shouldn't overwrite anything on the environment once it is set");
     *ptr = val;
 }
 

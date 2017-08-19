@@ -1131,7 +1131,7 @@ PAL_wcscat(
 
     ret = PAL_wcsncat( strDestination, strSource, PAL_wcslen( strSource ) );
 
-    LOGEXIT("wcscat returnng char16_t %p (%S)\n", ret, ret);
+    LOGEXIT("wcscat returning char16_t %p (%S)\n", ret, ret);
     PERF_EXIT(wcscat);
     return ret;
 }
@@ -1829,7 +1829,7 @@ PAL_iswdigit( char16_t c )
     }
     else
     {
-        TRACE( "No corresonding unicode record for character %d.\n", c );
+        TRACE( "No corresponding unicode record for character %d.\n", c );
     }
 #endif  /* HAVE_COREFOUNDATION */
     LOGEXIT("PAL_iswdigit returning %d\n", nRetVal);

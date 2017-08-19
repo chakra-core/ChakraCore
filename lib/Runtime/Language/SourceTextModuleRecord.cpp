@@ -648,7 +648,7 @@ namespace Js
                     JavascriptExceptionOperators::Throw(childModule->errorObject, GetScriptContext());
                 }
 
-                // if ambigious, return "ambigious"
+                // if ambiguous, return "ambiguous"
                 if (!childModule->ResolveExport(exportName, resolveSet, &currentResolution))
                 {
                     ambiguousResolution = true;

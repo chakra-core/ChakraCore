@@ -211,11 +211,11 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsErrorPropertyNotString,
         /// <summary>
-        ///     Module evaulation is called in wrong context.
+        ///     Module evaluation is called in wrong context.
         /// </summary>
         JsErrorInvalidContext,
         /// <summary>
-        ///     Module evaulation is called in wrong context.
+        ///     Module evaluation is called in wrong context.
         /// </summary>
         JsInvalidModuleHostInfoKind,
         /// <summary>
@@ -295,7 +295,7 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsErrorDiagObjectNotFound,
         /// <summary>
-        ///     VM was unable to perfom the request action
+        ///     VM was unable to perform the request action
         /// </summary>
         JsErrorDiagUnableToPerformAction,
     } JsErrorCode;
