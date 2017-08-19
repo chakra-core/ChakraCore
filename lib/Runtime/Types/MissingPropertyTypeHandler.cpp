@@ -36,6 +36,7 @@ namespace Js
         return 0;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     bool MissingPropertyTypeHandler::GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info)
     {
         info.slotIndex = Constants::NoSlot;
@@ -53,6 +54,7 @@ namespace Js
     {
         return false;
     }
+#endif
 
     BOOL MissingPropertyTypeHandler::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl)
     {

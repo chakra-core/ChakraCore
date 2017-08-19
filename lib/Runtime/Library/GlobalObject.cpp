@@ -26,7 +26,9 @@ namespace Js
         GlobalObject* globalObject = RecyclerNewPlus(scriptContext->GetRecycler(),
             sizeof(Var) * InlineSlotCapacity, GlobalObject, globalType, scriptContext);
 
+#if ENABLE_FIXED_FIELDS
         globalTypeHandler->SetSingletonInstanceIfNeeded(scriptContext->GetRecycler()->CreateWeakReferenceHandle<DynamicObject>(globalObject));
+#endif
 
         return globalObject;
     }

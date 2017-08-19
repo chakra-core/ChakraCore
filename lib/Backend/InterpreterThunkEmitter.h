@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
 class ThunkBlock
 {
 private:

@@ -322,7 +322,9 @@ namespace Js
         InlineCache *Clone(TAllocator *const allocator);
         InlineCache *Clone(Js::PropertyId propertyId, ScriptContext* scriptContext);
         void CopyTo(PropertyId propertyId, ScriptContext * scriptContext, InlineCache * const clone);
+#if ENABLE_FIXED_FIELDS
         bool TryGetFixedMethodFromCache(Js::FunctionBody* functionBody, uint cacheId, Js::JavascriptFunction** pFixedMethod);
+#endif
 
         bool GetGetterSetter(Type *const type, RecyclableObject **callee);
         bool GetCallApplyTarget(RecyclableObject* obj, RecyclableObject **callee);

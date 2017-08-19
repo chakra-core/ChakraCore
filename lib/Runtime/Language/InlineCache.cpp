@@ -413,6 +413,7 @@ namespace Js
         return clone;
     }
 
+#if ENABLE_FIXED_FIELDS
     bool InlineCache::TryGetFixedMethodFromCache(Js::FunctionBody* functionBody, uint cacheId, Js::JavascriptFunction** pFixedMethod)
     {
         Assert(pFixedMethod);
@@ -464,6 +465,7 @@ namespace Js
 
         return false;
     }
+#endif
 
     void InlineCache::CopyTo(PropertyId propertyId, ScriptContext * scriptContext, InlineCache * const clone)
     {

@@ -410,10 +410,12 @@ namespace Js
         return true;
     }
 
+#if ENABLE_FIXED_FIELDS
     BOOL RecyclableObject::IsFixedProperty(PropertyId propertyId)
     {
         return false;
     }
+#endif
 
     PropertyQueryFlags RecyclableObject::HasItemQuery(uint32 index)
     {

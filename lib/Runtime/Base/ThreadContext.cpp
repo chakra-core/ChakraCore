@@ -88,7 +88,9 @@ ThreadContext::RecyclableData::RecyclableData(Recycler *const recycler) :
     oomErrorObject(nullptr, nullptr, nullptr, true),
     terminatedErrorObject(nullptr, nullptr, nullptr),
     typesWithProtoPropertyCache(recycler),
+#if ENABLE_NATIVE_CODEGEN
     propertyGuards(recycler, 128),
+#endif
     oldEntryPointInfo(nullptr),
 #ifdef ENABLE_SCRIPT_DEBUGGING
     returnedValueList(nullptr),
@@ -3099,6 +3101,7 @@ ThreadContext::ClearInlineCachesWithDeadWeakRefs()
     }
 }
 
+#if ENABLE_NATIVE_CODEGEN
 void
 ThreadContext::ClearInvalidatedUniqueGuards()
 {
@@ -3131,6 +3134,7 @@ ThreadContext::ClearInvalidatedUniqueGuards()
         });
     });
 }
+#endif
 
 void
 ThreadContext::ClearInlineCaches()
