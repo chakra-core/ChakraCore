@@ -83,10 +83,6 @@ namespace Wasm
     struct WasmVarNode
     {
         uint32 num;
-        union
-        {
-            LPCUTF8 exportName;
-        };
     };
 
     struct WasmMemOpNode

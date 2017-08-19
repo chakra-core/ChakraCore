@@ -73,7 +73,67 @@ case wb##opname: \
     break;
 #include "WasmBinaryOpCodes.h"
     }
-    Output::SkipToColumn(20);
+    switch (op)
+    {
+    case wbIf:
+    case wbLoop:
+    case wbBlock: Output::Print(_u(" () -> %s"), GetTypeName(GetReader()->m_currentNode.block.sig)); break;
+    case wbBr:
+    case wbBrIf: Output::Print(_u(" depth: %u"), GetReader()->m_currentNode.br.depth); break;
+    case wbBrTable: Output::Print(_u(" %u cases, default: "), GetReader()->m_currentNode.brTable.numTargets, GetReader()->m_currentNode.brTable.defaultTarget); break;
+    case wbCall:
+    case wbCallIndirect:
+    {
+        uint id = GetReader()->m_currentNode.call.num;
+        if (id < m_module->GetWasmFunctionCount())
+        {
+            FunctionIndexTypes::Type funcType = GetReader()->m_currentNode.call.funcType;
+            switch (funcType)
+            {
+            case Wasm::FunctionIndexTypes::Invalid: Output::Print(_u(" (invalid) ")); break;
+            case Wasm::FunctionIndexTypes::ImportThunk: Output::Print(_u(" (thunk) ")); break;
+            case Wasm::FunctionIndexTypes::Function: Output::Print(_u(" (func) ")); break;
+            case Wasm::FunctionIndexTypes::Import: Output::Print(_u(" (import) ")); break;
+            default:  Output::Print(_u(" (unknown)")); break;
+            }
+            auto func = this->m_module->GetWasmFunctionInfo(id);
+            func->GetBody()->DumpFullFunctionName();
+        }
+        else
+        {
+            Output::Print(_u(" invalid id"));
+        }
+        break;
+    }
+    case wbSetLocal:
+    case wbGetLocal:
+    case wbTeeLocal:
+    case wbGetGlobal:
+    case wbSetGlobal: Output::Print(_u(" (%d)"), GetReader()->m_currentNode.var.num); break;
+    case wbI32Const: Output::Print(_u(" (%d, 0x%x)"), GetReader()->m_currentNode.cnst.i32, GetReader()->m_currentNode.cnst.i32); break;
+    case wbI64Const: Output::Print(_u(" (%lld, 0x%llx)"), GetReader()->m_currentNode.cnst.i64, GetReader()->m_currentNode.cnst.i64); break;
+    case wbF32Const: Output::Print(_u(" (%.4f)"), GetReader()->m_currentNode.cnst.f32); break;
+    case wbF64Const: Output::Print(_u(" (%.4f)"), GetReader()->m_currentNode.cnst.f64); break;
+#define WASM_MEM_OPCODE(opname, opcode, sig, nyi) case wb##opname: // FallThrough
+#include "WasmBinaryOpCodes.h"
+    {
+        const uint8 alignment = GetReader()->m_currentNode.mem.alignment;
+        const uint32 offset = GetReader()->m_currentNode.mem.offset;
+        switch (((!!alignment) << 1) | (!!offset))
+        {
+        case 0: // no alignment, no offset
+            Output::Print(_u(" [i]")); break;
+        case 1: // no alignment, offset
+            Output::Print(_u(" [i + %u (0x%x)]"), offset, offset); break;
+        case 2: // alignment, no offset
+            Output::Print(_u(" [i & ~0x%x]"), (1 << alignment) - 1); break;
+        case 3: // alignment, offset
+            Output::Print(_u(" [i + %u (0x%x) & ~0x%x]"), offset, offset, (1 << alignment) - 1); break;
+        }
+        break;
+    }
+    }
+    Output::SkipToColumn(40);
     PrintTypeStack(m_evalStack);
 }
 
@@ -725,6 +785,10 @@ EmitInfo WasmBytecodeGenerator::EmitSetLocal(bool tee)
 
     if (tee)
     {
+        if (info.type == WasmTypes::Any)
+        {
+            throw WasmCompilationException(_u("Can't tee_local unreachable values"));
+        }
         return info;
     }
     else
