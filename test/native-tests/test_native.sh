@@ -1,3 +1,4 @@
+#!/bin/bash
 #-------------------------------------------------------------------------------------------------------
 # Copyright (C) Microsoft. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
@@ -20,6 +21,9 @@ FIND_CLANG() {
     if [[ $CC == 0 ]]; then
         echo "Error: Couldn't find Clang"
         exit 1
+    else
+    echo "Using CC [${CC}]"
+    echo "Using CXX [${CXX}]"
     fi
 }
 
@@ -83,6 +87,9 @@ RUN "test-char"
 
 # test-char16
 RUN "test-char16"
+
+#test-pal
+RUN "test-pal"
 
 # test-static-native
 RUN "test-static-native"
