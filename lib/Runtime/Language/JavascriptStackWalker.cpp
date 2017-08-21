@@ -537,11 +537,7 @@ namespace Js
                 {
                     this->previousInterpreterFrameIsForLoopBody = true;
                 }
-                else
 #endif
-                {
-                    this->previousInterpreterFrameIsForLoopBody = false;
-                }
 
                 // We might've bailed out of an inlinee, so check if there were any inlinees.
                 if (this->interpreterFrame->GetFlags() & InterpreterStackFrameFlags_FromBailOut)
@@ -678,6 +674,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         if (lastInternalFrameInfo.codeAddress != nullptr && this->previousInterpreterFrameIsForLoopBody)
         {
+            this->previousInterpreterFrameIsForLoopBody = false;
             ClearCachedInternalFrameInfo();
         }
 
