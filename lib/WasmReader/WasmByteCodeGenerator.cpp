@@ -23,10 +23,10 @@ namespace Wasm
 #define WASM_SIGNATURE(id, nTypes, ...) const WasmTypes::WasmType WasmOpCodeSignatures::id[] = {__VA_ARGS__};
 #include "WasmBinaryOpCodes.h"
 
-#if DBG_DUMP
-void WasmBytecodeGenerator::PrintTypeStack() const
+template<typename WriteFn>
+void WasmBytecodeGenerator::WriteTypeStack(WriteFn writefn) const
 {
-    Output::Print(_u("["));
+    writefn(_u("["));
     int i = 0;
     while (m_evalStack.Peek(i).type != WasmTypes::Limit)
     {
@@ -39,19 +39,39 @@ void WasmBytecodeGenerator::PrintTypeStack() const
         EmitInfo info = m_evalStack.Peek(i--);
         if (!isFirst)
         {
-            Output::Print(_u(", "));
+            writefn(_u(", "));
         }
         isFirst = false;
-        switch (info.type)
-        {
-        case WasmTypes::I32: Output::Print(_u("i32")); break;
-        case WasmTypes::I64: Output::Print(_u("i64")); break;
-        case WasmTypes::F32: Output::Print(_u("f32")); break;
-        case WasmTypes::F64: Output::Print(_u("f64")); break;
-        default: Output::Print(_u("any")); break;
-        }
+        writefn(GetTypeName(info.type));
     }
-    Output::Print(_u("]"));
+    writefn(_u("]"));
+}
+
+uint32 WasmBytecodeGenerator::WriteTypeStackToString(_Out_writes_(maxlen) char16* out, uint32 maxlen) const
+{
+    AssertOrFailFast(out != nullptr);
+    uint32 numwritten = 0;
+    WriteTypeStack([&] (const char16* msg)
+    {
+        numwritten += _snwprintf_s(out + numwritten, maxlen - numwritten, _TRUNCATE, msg);
+    });
+    if (numwritten >= maxlen - 5)
+    {
+        // null out the last 5 characters so we can properly end it 
+        for (int i = 1; i <= 5; i++)
+        {
+            *(out + maxlen - i) = 0;
+        }
+        numwritten -= 5;
+        numwritten += _snwprintf_s(out + numwritten, maxlen - numwritten, _TRUNCATE, _u("...]"));
+    }
+    return numwritten;
+}
+
+#if DBG_DUMP
+void WasmBytecodeGenerator::PrintTypeStack() const
+{
+    WriteTypeStack([](const char16* msg) { Output::Print(msg); });
 }
 
 void WasmBytecodeGenerator::PrintOpBegin(WasmOp op)
@@ -1372,16 +1392,14 @@ void WasmBytecodeGenerator::EmitBr()
 {
     uint32 depth = GetReader()->m_currentNode.br.depth;
 
-    if (ShouldYieldToBlock(depth))
+    BlockInfo blockInfo = GetBlockInfo(depth);
+    if (blockInfo.HasYield())
     {
         EmitInfo info = PopEvalStack();
-        YieldToBlock(depth, info);
+        YieldToBlock(blockInfo, info);
         ReleaseLocation(&info);
     }
-
-    Js::ByteCodeLabel target = GetLabel(depth);
-    m_writer->AsmBr(target);
-
+    m_writer->AsmBr(blockInfo.label);
     SetUnreachableState(true);
 }
 
@@ -1393,14 +1411,20 @@ EmitInfo WasmBytecodeGenerator::EmitBrIf()
     ReleaseLocation(&conditionInfo);
 
     EmitInfo info;
-    if (ShouldYieldToBlock(depth))
+    BlockInfo blockInfo = GetBlockInfo(depth);
+    if (blockInfo.HasYield())
     {
         info = PopEvalStack();
-        YieldToBlock(depth, info);
+        YieldToBlock(blockInfo, info);
+        if (info.type == WasmTypes::Any)
+        {
+            Assert(IsUnreachable());
+            // Use the block's yield type to continue type check
+            info = EmitInfo(blockInfo.yieldInfo->info.type);
+        }
     }
 
-    Js::ByteCodeLabel target = GetLabel(depth);
-    m_writer->AsmBrReg1(Js::OpCodeAsmJs::BrTrue_Int, target, conditionInfo.location);
+    m_writer->AsmBrReg1(Js::OpCodeAsmJs::BrTrue_Int, blockInfo.label, conditionInfo.location);
     return info;
 }
 
@@ -1613,9 +1637,11 @@ void WasmBytecodeGenerator::ExitEvalStackScope()
     }
     if (info.type != WasmTypes::Limit)
     {
-        uint32 nElemLeftOnStack = 1;
-        while(m_evalStack.Pop().type != WasmTypes::Limit) { ++nElemLeftOnStack; }
-        throw WasmCompilationException(_u("Expected stack to be empty, but has %d"), nElemLeftOnStack);
+        // Put info back on stack so we can write it to string
+        m_evalStack.Push(info);
+        char16 buf[512] = { 0 };
+        WriteTypeStackToString(buf, 512);
+        throw WasmCompilationException(_u("Expected stack to be empty, but has %s"), buf);
     }
 }
 

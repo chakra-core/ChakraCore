@@ -205,11 +205,14 @@ namespace Wasm
         EmitInfo EmitSetLocal(bool tee);
         void EmitReturnExpr(EmitInfo* explicitRetInfo = nullptr);
         EmitInfo EmitSelect();
+        template<typename WriteFn>
+        void WriteTypeStack(WriteFn fn) const;
+        uint32 WriteTypeStackToString(_Out_writes_(maxlen) char16* out, uint32 maxlen) const;
 #if DBG_DUMP
         uint32 opId = 0;
         uint32 lastOpId = 1;
-        void PrintTypeStack() const;
         void PrintOpBegin(WasmOp op);
+        void PrintTypeStack() const;
         void PrintOpEnd();
 #endif
         void EmitBr();
