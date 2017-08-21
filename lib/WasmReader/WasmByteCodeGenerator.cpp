@@ -11,10 +11,8 @@
 #include "EmptyWasmByteCodeWriter.h"
 
 #if DBG_DUMP
-uint32 opId = 0;
-uint32 lastOpId = 1;
-#define DebugPrintOp(op) if (PHASE_TRACE(Js::WasmBytecodePhase, GetFunctionBody())) { PrintOpBegin(op); }
-#define DebugPrintOpEnd() if (PHASE_TRACE(Js::WasmBytecodePhase, GetFunctionBody())) { PrintOpEnd(); }
+#define DebugPrintOp(op) if (DO_WASM_TRACE_BYTECODE) { PrintOpBegin(op); }
+#define DebugPrintOpEnd() if (DO_WASM_TRACE_BYTECODE) { PrintOpEnd(); }
 #else
 #define DebugPrintOp(op)
 #define DebugPrintOpEnd()
@@ -26,11 +24,11 @@ namespace Wasm
 #include "WasmBinaryOpCodes.h"
 
 #if DBG_DUMP
-void PrintTypeStack(const JsUtil::Stack<EmitInfo>& stack)
+void WasmBytecodeGenerator::PrintTypeStack() const
 {
     Output::Print(_u("["));
     int i = 0;
-    while (stack.Peek(i).type != WasmTypes::Limit)
+    while (m_evalStack.Peek(i).type != WasmTypes::Limit)
     {
         ++i;
     }
@@ -38,7 +36,7 @@ void PrintTypeStack(const JsUtil::Stack<EmitInfo>& stack)
     bool isFirst = true;
     while (i >= 0)
     {
-        EmitInfo info = stack.Peek(i--);
+        EmitInfo info = m_evalStack.Peek(i--);
         if (!isFirst)
         {
             Output::Print(_u(", "));
@@ -56,7 +54,7 @@ void PrintTypeStack(const JsUtil::Stack<EmitInfo>& stack)
     Output::Print(_u("]"));
 }
 
-void WasmBytecodeGenerator::PrintOpBegin(WasmOp op) const
+void WasmBytecodeGenerator::PrintOpBegin(WasmOp op)
 {
     if (lastOpId == opId) Output::Print(_u("\r\n"));
     lastOpId = ++opId;
@@ -80,7 +78,7 @@ case wb##opname: \
     case wbBlock: Output::Print(_u(" () -> %s"), GetTypeName(GetReader()->m_currentNode.block.sig)); break;
     case wbBr:
     case wbBrIf: Output::Print(_u(" depth: %u"), GetReader()->m_currentNode.br.depth); break;
-    case wbBrTable: Output::Print(_u(" %u cases, default: "), GetReader()->m_currentNode.brTable.numTargets, GetReader()->m_currentNode.brTable.defaultTarget); break;
+    case wbBrTable: Output::Print(_u(" %u cases, default: %u"), GetReader()->m_currentNode.brTable.numTargets, GetReader()->m_currentNode.brTable.defaultTarget); break;
     case wbCall:
     case wbCallIndirect:
     {
@@ -134,16 +132,16 @@ case wb##opname: \
     }
     }
     Output::SkipToColumn(40);
-    PrintTypeStack(m_evalStack);
+    PrintTypeStack();
 }
 
-void WasmBytecodeGenerator::PrintOpEnd() const
+void WasmBytecodeGenerator::PrintOpEnd()
 {
     if (lastOpId == opId)
     {
         ++opId;
         Output::Print(_u(" -> "));
-        PrintTypeStack(m_evalStack);
+        PrintTypeStack();
         Output::Print(_u("\r\n"));
     }
 }
@@ -492,6 +490,7 @@ void WasmBytecodeGenerator::GenerateFunction()
     }
     catch (...)
     {
+        TRACE_WASM_BYTECODE(_u("\nHad Compilation error!"));
         GetReader()->FunctionEnd();
         m_originalWriter->Reset();
         throw;

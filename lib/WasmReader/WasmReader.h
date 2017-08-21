@@ -21,7 +21,7 @@
 
 // Level of tracing
 #define DO_WASM_TRACE_ALL       PHASE_TRACE1(Js::WasmPhase)
-#define DO_WASM_TRACE_BYTECODE  DO_WASM_TRACE_ALL || PHASE_TRACE1(Js::WasmBytecodePhase)
+#define DO_WASM_TRACE_BYTECODE  DO_WASM_TRACE_ALL || PHASE_TRACE(Js::WasmBytecodePhase, GetFunctionBody())
 #define DO_WASM_TRACE_DECODER   DO_WASM_TRACE_ALL || PHASE_TRACE1(Js::WasmReaderPhase)
   #define DO_WASM_TRACE_SECTION DO_WASM_TRACE_DECODER || PHASE_TRACE1(Js::WasmSectionPhase)
 #define DO_WASM_TRACE_LEB128    PHASE_TRACE1(Js::WasmLEB128Phase)
