@@ -231,6 +231,7 @@ public:
     uint8           m_isArgCaptured: 1;       // True if there is a ByteCodeArgOutCapture for this symbol
     uint8           m_nonEscapingArgObjAlias : 1;
     uint8           m_isCatchObjectSym : 1;   // a catch object sym (used while jitting loop bodies)
+    uint            m_isClosureSym : 1;
     IRType          m_type;
     Js::BuiltinFunction m_builtInIndex;
 
