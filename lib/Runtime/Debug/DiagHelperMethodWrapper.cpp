@@ -3,6 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
+
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Language/JavascriptStackWalker.h"
 
 namespace Js
@@ -268,3 +270,4 @@ namespace Js
     template void HandleHelperOrLibraryMethodWrapperException<true>(ScriptContext * scriptContext, JavascriptExceptionObject * exceptionObject);
     template void HandleHelperOrLibraryMethodWrapperException<false> (ScriptContext * scriptContext, JavascriptExceptionObject * exceptionObject);
 } // namespace Js
+#endif

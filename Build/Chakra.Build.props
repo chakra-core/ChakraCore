@@ -30,6 +30,14 @@
         %(PreprocessorDefinitions);
         DISABLE_JIT=1
       </PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(BuildScriptDebug)'=='false'">
+        %(PreprocessorDefinitions);
+        BUILD_WITHOUT_SCRIPT_DEBUG=1
+      </PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(BuildLite)'=='true'">
+        %(PreprocessorDefinitions);
+        CHAKRACORE_LITE
+      </PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(IntlICU)'=='true'">
         %(PreprocessorDefinitions);
         INTL_ICU=1

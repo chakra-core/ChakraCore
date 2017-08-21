@@ -466,9 +466,11 @@ namespace Js
             }
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
             // Mark we are profiling library code already, so that any initialization library code called here won't be reported to profiler.
             // Also tell the debugger not to record events during intialization so that we don't leak information about initialization.
             AutoInitLibraryCodeScope autoInitLibraryCodeScope(scriptContext);
+#endif
 
             Js::Var args[] = { scriptContext->GetLibrary()->GetUndefined(), scriptContext->GetLibrary()->GetEngineInterfaceObject(), initType };
             Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args));

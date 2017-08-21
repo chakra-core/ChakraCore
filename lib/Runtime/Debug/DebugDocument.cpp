@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 namespace Js
 {
     DebugDocument::DebugDocument(Utf8SourceInfo* utf8SourceInfo, Js::FunctionBody* functionBody) :
@@ -351,3 +352,4 @@ namespace Js
         return TRUE;
     }
 }
+#endif

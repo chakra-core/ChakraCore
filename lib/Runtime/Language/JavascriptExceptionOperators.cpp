@@ -1141,6 +1141,7 @@ namespace Js
         Assert(exceptionObject != NULL);
         Assert(scriptContext != NULL);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (scriptContext->IsScriptContextInDebugMode()
             && scriptContext->GetDebugContext()->GetProbeContainer()->HasAllowedForException(exceptionObject))
         {
@@ -1150,6 +1151,7 @@ namespace Js
 
             scriptContext->GetDebugContext()->GetProbeContainer()->DispatchExceptionBreakpoint(&haltState);
         }
+#endif
     }
 
     void JavascriptExceptionOperators::ThrowExceptionObject(Js::JavascriptExceptionObject * exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger, PVOID returnAddress, bool resetStack)

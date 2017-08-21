@@ -3,7 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/DiagHelperMethodWrapper.h"
+#endif
 #include "Library/ThrowErrorObject.h"
 
 namespace Js
@@ -17,6 +19,7 @@ namespace Js
 
         ThrowErrorObject* throwErrorObject = ThrowErrorObject::FromVar(function);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         bool useExceptionWrapper =
             scriptContext->IsScriptContextInDebugMode() /* Check for script context is intentional as library code also uses exception wrapper */ &&
             (ScriptContext::IsExceptionWrapperForBuiltInsEnabled(scriptContext) || ScriptContext::IsExceptionWrapperForHelpersEnabled(scriptContext)) &&
@@ -33,6 +36,7 @@ namespace Js
             return ret;
         }
         else
+#endif
         {
             JavascriptExceptionOperators::Throw(throwErrorObject->m_error, scriptContext);
         }

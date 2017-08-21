@@ -7355,7 +7355,7 @@ namespace Js
         this->dynamicFunctionReference->Push(func);
     }
 
-
+#ifdef ENABLE_SCRIPT_PROFILING
     // Register for profiler
 #define DEFINE_OBJECT_NAME(object) const char16 *pwszObjectName = _u(#object);
 
@@ -8471,6 +8471,7 @@ namespace Js
         return hr;
     }
 #endif
+#endif // ENABLE_SCRIPT_PROFILING
 
 #if DBG
     void JavascriptLibrary::DumpLibraryByteCode()

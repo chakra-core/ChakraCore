@@ -835,10 +835,12 @@ namespace Js
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded rootFunction == nullptr\n"));
             NotifyParentsAsNeeded();
         }
+#ifdef ENABLE_SCRIPT_DEBUGGING
         else
         {
             scriptContext->GetDebugContext()->RegisterFunction(this->rootFunction->GetFunctionBody(), nullptr);
         }
+#endif
     }
 
     Var SourceTextModuleRecord::ModuleEvaluation()

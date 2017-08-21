@@ -28,6 +28,11 @@
     <Import Project="$(ChakraDevConfigDir)\Chakra.Build.user.props" Condition="exists('$(ChakraDevConfigDir)\Chakra.Build.user.props')"/>
   </ImportGroup>
 
+  <!-- Configurations -->
+  <PropertyGroup Condition="'$(BuildLite)'=='true'">
+    <BuildJIT>false</BuildJIT>
+    <BuildScriptDebug>false</BuildScriptDebug>
+  </PropertyGroup>  
   <!-- Common build settings -->
   <PropertyGroup>
     <DebugBuild />
@@ -62,7 +67,9 @@
     <OutBaseDir Condition="'$(OutBaseDir)'!=''">$(OutBaseDir)\$(SolutionName)</OutBaseDir>
     <OutBaseDir Condition="'$(OutBaseDir)'==''">$(SolutionDir)VcBuild</OutBaseDir>
     <OutBaseDir Condition="'$(Clang)'!=''">$(OutBaseDir).$(Clang)</OutBaseDir>
-    <OutBaseDir Condition="'$(BuildJIT)'=='false'">$(OutBaseDir).NoJIT</OutBaseDir>
+    <OutBaseDir Condition="'$(BuildLite)'=='true'">$(OutBaseDir).Lite</OutBaseDir>
+    <OutBaseDir Condition="'$(BuildLite)'!='true' and '$(BuildJIT)'=='false'">$(OutBaseDir).NoJIT</OutBaseDir>
+    <OutBaseDir Condition="'$(BuildLite)'!='true' and '$(BuildScriptDebug)'=='false'">$(OutBaseDir).NoScriptDebug</OutBaseDir>
     <OutBaseDir Condition="'$(ForceSWB)'=='true'">$(OutBaseDir).SWB</OutBaseDir>
     <IntBaseDir Condition="'$(IntBaseDir)'==''">$(OutBaseDir)</IntBaseDir>
   </PropertyGroup>

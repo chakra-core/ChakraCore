@@ -2017,7 +2017,9 @@ namespace Js
         LPCUTF8 GetStartOfDocument(const char16* reason = nullptr) const;
         bool IsReparsed() const { return m_reparsed; }
         void SetReparsed(bool set) { m_reparsed = set; }
+#ifdef NTBUILD
         bool GetExternalDisplaySourceName(BSTR* sourceName);
+#endif
 
         void CleanupToReparse();
         void CleanupToReparseHelper();
@@ -3349,9 +3351,11 @@ namespace Js
         void         EndExecution();
         SourceInfo * GetSourceInfo() { return &this->m_sourceInfo; }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         bool InstallProbe(int offset);
         bool UninstallProbe(int offset);
         bool ProbeAtOffset(int offset, OpCode* pOriginalOpcode);
+#endif
 
         static bool ShouldShareInlineCaches() { return CONFIG_FLAG(ShareInlineCaches); }
 
@@ -3590,8 +3594,10 @@ namespace Js
         void SetEntryToProfileMode();
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         void CheckAndRegisterFuncToDiag(ScriptContext *scriptContext);
         void SetEntryToDeferParseForDebugger();
+#endif
         void ClearEntryPoints();
         void ResetEntryPoint();
         void CleanupToReparseHelper();

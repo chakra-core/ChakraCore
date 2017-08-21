@@ -43,7 +43,7 @@
       <AdditionalOptions>-Zc:implicitNoexcept- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(BuildScriptDebug)'!='false'">
     <ClCompile Include="$(MSBuildThisFileDirectory)DebugContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BreakpointProbe.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DebugDocument.cpp" />
@@ -55,7 +55,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)DiagStackFrame.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MutationBreakpoint.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ProbeContainer.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SourceContextInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeDebugPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -86,7 +85,6 @@
     <ClInclude Include="MutationBreakpoint.h" />
     <ClInclude Include="ProbeContainer.h" />
     <ClInclude Include="RuntimeDebugPch.h" />
-    <ClInclude Include="SourceContextInfo.h" />
     <ClInclude Include="TTActionEvents.h" />
     <ClInclude Include="TTEventLog.h" />
     <ClInclude Include="TTEvents.h" />

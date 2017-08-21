@@ -157,7 +157,7 @@
     <ProjectReference Include="..\..\lib\Runtime\ByteCode\Chakra.Runtime.ByteCode.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9110f5}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\lib\Runtime\Debug\Chakra.Runtime.Debug.vcxproj">
+    <ProjectReference Include="..\..\lib\Runtime\Debug\Chakra.Runtime.Debug.vcxproj" Condition="'$(BuildScriptDebug)'!='false'">
       <Project>{8C61E4E7-F0D6-420D-A352-3E6E50D406DD}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\lib\Runtime\Language\Chakra.Runtime.Language.vcxproj">
