@@ -81,7 +81,7 @@ namespace utf8
         return (unsigned)(ch - chMin) <= (unsigned)(chMax - chMin);
     }
 
-    inline BOOL IsValidWideChar(const char16 ch)
+    BOOL IsValidWideChar(char16 ch)
     {
         return (ch < 0xfdd0) || ((ch > 0xfdef) && (ch <= 0xffef)) || ((ch >= 0xfff9) && (ch <= 0xfffd));
     }

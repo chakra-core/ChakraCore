@@ -1208,8 +1208,7 @@ void WasmBytecodeGenerator::EmitBrTable()
             throw WasmCompilationException(_u("br_table target %u signature mismatch. Expected ()->%s, got ()->%s"), target, GetTypeName(defaultType), GetTypeName(type));
         }
         YieldToBlock(blockInfo, yieldvalue);
-        Js::ByteCodeLabel targetLabel = GetLabel(target);
-        m_writer->AsmBrReg1Const1(Js::OpCodeAsmJs::Case_IntConst, targetLabel, scrutineeInfo.location, i);
+        m_writer->AsmBrReg1Const1(Js::OpCodeAsmJs::Case_IntConst, blockInfo.label, scrutineeInfo.location, i);
     }
 
     YieldToBlock(defaultBlockInfo, yieldvalue);
@@ -1534,12 +1533,6 @@ BlockInfo WasmBytecodeGenerator::PushLabel(Js::ByteCodeLabel label, bool addBloc
     return info;
 }
 
-void WasmBytecodeGenerator::YieldToBlock(uint32 relativeDepth, EmitInfo expr)
-{
-    BlockInfo blockInfo = GetBlockInfo(relativeDepth);
-    YieldToBlock(blockInfo, expr);
-}
-
 void WasmBytecodeGenerator::YieldToBlock(BlockInfo blockInfo, EmitInfo expr)
 {
     if (blockInfo.HasYield() && expr.type != WasmTypes::Any)
@@ -1559,11 +1552,6 @@ void WasmBytecodeGenerator::YieldToBlock(BlockInfo blockInfo, EmitInfo expr)
     }
 }
 
-bool WasmBytecodeGenerator::ShouldYieldToBlock(uint32 relativeDepth) const
-{
-    return GetBlockInfo(relativeDepth).HasYield();
-}
-
 Wasm::BlockInfo WasmBytecodeGenerator::GetBlockInfo(uint32 relativeDepth) const
 {
     if (relativeDepth >= (uint32)m_blockInfos.Count())
@@ -1571,11 +1559,6 @@ Wasm::BlockInfo WasmBytecodeGenerator::GetBlockInfo(uint32 relativeDepth) const
         throw WasmCompilationException(_u("Invalid branch target"));
     }
     return m_blockInfos.Peek(relativeDepth);
-}
-
-Js::ByteCodeLabel WasmBytecodeGenerator::GetLabel(uint32 relativeDepth)
-{
-    return GetBlockInfo(relativeDepth).label;
 }
 
 WasmRegisterSpace* WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type)

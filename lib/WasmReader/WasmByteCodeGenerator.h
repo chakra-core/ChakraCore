@@ -233,10 +233,7 @@ namespace Wasm
         EmitInfo PopLabel(Js::ByteCodeLabel labelValidation);
         BlockInfo PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo = true);
         void YieldToBlock(BlockInfo blockInfo, EmitInfo expr);
-        void YieldToBlock(uint32 relativeDepth, EmitInfo expr);
-        bool ShouldYieldToBlock(uint32 relativeDepth) const;
         BlockInfo GetBlockInfo(uint32 relativeDepth) const;
-        Js::ByteCodeLabel GetLabel(uint32 relativeDepth);
 
         Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
         Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
