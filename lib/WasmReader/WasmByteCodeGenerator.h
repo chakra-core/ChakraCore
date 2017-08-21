@@ -129,6 +129,18 @@ namespace Wasm
         Js::ByteCodeLabel label;
         bool DidYield() const { return HasYield() && yieldInfo->didYield; }
         bool HasYield() const { return yieldInfo != nullptr; }
+        bool IsEquivalent(const BlockInfo& other) const
+        {
+            if (HasYield() != other.HasYield())
+            {
+                return false;
+            }
+            if (HasYield() && yieldInfo->info.type != other.yieldInfo->info.type)
+            {
+                return false;
+            }
+            return true;
+        }
     };
 
     typedef JsUtil::BaseDictionary<uint32, LPCUTF8, ArenaAllocator> WasmExportDictionary;

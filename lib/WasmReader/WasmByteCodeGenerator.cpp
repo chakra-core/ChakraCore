@@ -1161,17 +1161,18 @@ void WasmBytecodeGenerator::EmitBrTable()
     EmitInfo scrutineeInfo = PopEvalStack(WasmTypes::I32, _u("br_table expression must be of type i32"));
 
     m_writer->AsmReg2(Js::OpCodeAsmJs::BeginSwitch_Int, scrutineeInfo.location, scrutineeInfo.location);
-    EmitInfo yieldInfo;
-    if (ShouldYieldToBlock(defaultEntry))
+    EmitInfo yieldvalue;
+    BlockInfo defaultBlockInfo = GetBlockInfo(defaultEntry);
+    if (defaultBlockInfo.HasYield())
     {
         // If the scrutinee is any then check the stack before popping
         if (scrutineeInfo.type == WasmTypes::Any && m_evalStack.Peek().type == WasmTypes::Limit)
         {
-            yieldInfo = scrutineeInfo;
+            yieldvalue = scrutineeInfo;
         }
         else
         {
-            yieldInfo = PopEvalStack();
+            yieldvalue = PopEvalStack();
         }
     }
 
@@ -1179,15 +1180,22 @@ void WasmBytecodeGenerator::EmitBrTable()
     for (uint32 i = 0; i < numTargets; i++)
     {
         uint32 target = targetTable[i];
-        YieldToBlock(target, yieldInfo);
+        BlockInfo blockInfo = GetBlockInfo(target);
+        if (!defaultBlockInfo.IsEquivalent(blockInfo))
+        {
+            WasmTypes::WasmType defaultType = defaultBlockInfo.yieldInfo ? defaultBlockInfo.yieldInfo->info.type : WasmTypes::Void;
+            WasmTypes::WasmType type = blockInfo.yieldInfo ? blockInfo.yieldInfo->info.type : WasmTypes::Void;
+            throw WasmCompilationException(_u("br_table target %u signature mismatch. Expected ()->%s, got ()->%s"), target, GetTypeName(defaultType), GetTypeName(type));
+        }
+        YieldToBlock(blockInfo, yieldvalue);
         Js::ByteCodeLabel targetLabel = GetLabel(target);
         m_writer->AsmBrReg1Const1(Js::OpCodeAsmJs::Case_IntConst, targetLabel, scrutineeInfo.location, i);
     }
 
-    YieldToBlock(defaultEntry, yieldInfo);
-    m_writer->AsmBr(GetLabel(defaultEntry), Js::OpCodeAsmJs::EndSwitch_Int);
+    YieldToBlock(defaultBlockInfo, yieldvalue);
+    m_writer->AsmBr(defaultBlockInfo.label, Js::OpCodeAsmJs::EndSwitch_Int);
     ReleaseLocation(&scrutineeInfo);
-    ReleaseLocation(&yieldInfo);
+    ReleaseLocation(&yieldvalue);
 
     SetUnreachableState(true);
 }
