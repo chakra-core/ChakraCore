@@ -1021,6 +1021,13 @@ const char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLengt
         AssertMsg(UNREACHED, "We calculated the length before decoding, what happened ?");
         ThrowDecodingError(_u("Error while decoding utf8 string"));
     }
+    for (size_t i = 0; i < decodedLength; ++i)
+    {
+        if (!utf8::IsValidWideChar(contents[i]) || contents[i] == UNICODE_UNKNOWN_CHAR_MARK)
+        {
+            ThrowDecodingError(_u("Invalid UTF-8 encoding"));
+        }
+    }
     return contents;
 }
 

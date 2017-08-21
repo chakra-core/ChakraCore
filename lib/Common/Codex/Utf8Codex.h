@@ -141,6 +141,8 @@ namespace utf8
     };
     DEFINE_ENUM_FLAG_OPERATORS(DecodeOptions);
 
+    BOOL IsValidWideChar(const char16 ch);
+
     // Decode the trail bytes after the UTF8 lead byte c1 but returning 0xFFFD if trail bytes are expected after end.
     _At_(ptr, _In_reads_(end - ptr) _Post_satisfies_(ptr >= _Old_(ptr) - 1 && ptr <= end))
     char16 DecodeTail(char16 c1, LPCUTF8& ptr, LPCUTF8 end, DecodeOptions& options, bool *chunkEndsAtTruncatedSequence = nullptr);
