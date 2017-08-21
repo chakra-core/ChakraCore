@@ -1606,7 +1606,7 @@ EmitInfo WasmBytecodeGenerator::PopEvalStack(WasmTypes::WasmType expectedType, c
     {
         if (!mismatchMessage)
         {
-            mismatchMessage = _u("Type mismatch");
+            throw WasmCompilationException(_u("Type mismatch. Expected %s, got %s"), GetTypeName(expectedType), GetTypeName(info.type));
         }
         throw WasmCompilationException(mismatchMessage);
     }
