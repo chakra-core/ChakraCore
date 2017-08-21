@@ -54,6 +54,7 @@ StackSym::New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func)
     stackSym->m_isArgCaptured = false;
     stackSym->m_requiresBailOnNotNumber = false;
     stackSym->m_isCatchObjectSym = false;
+    stackSym->m_isClosureSym = false;
     stackSym->m_builtInIndex = Js::BuiltinFunction::None;
     stackSym->m_slotNum = StackSym::InvalidSlot;
 
@@ -503,7 +504,7 @@ StackSym::CloneDef(Func *func)
         newSym->m_allocated = m_allocated;
         newSym->m_isInlinedArgSlot = m_isInlinedArgSlot;
         newSym->m_isCatchObjectSym = m_isCatchObjectSym;
-
+        newSym->m_isClosureSym = m_isClosureSym;
         newSym->m_type = m_type;
 
         newSym->CopySymAttrs(this);

@@ -10082,7 +10082,9 @@ Lowerer::CreateOpndForSlotAccess(IR::Opnd * opnd)
         // Stack closure syms are made to look like slot accesses for the benefit of GlobOpt, so that it can do proper
         // copy prop and implicit call bailout. But what we really want is local stack load/store.
         // Don't do this for loop body, though, since we don't have the value saved on the stack.
-        return IR::SymOpnd::New(dstSym->m_stackSym, 0, TyMachReg, this->m_func);
+        IR::SymOpnd * closureSym = IR::SymOpnd::New(dstSym->m_stackSym, 0, TyMachReg, this->m_func);
+        closureSym->GetStackSym()->m_isClosureSym = true;
+        return closureSym;
     }
 
     int32 offset = dstSym->m_propertyId;
