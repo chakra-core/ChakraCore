@@ -279,7 +279,7 @@ namespace std {
 template <>
 struct hash<::wabt::string_view> {
   ::wabt::hash_code operator()(const ::wabt::string_view& sv) {
-    return ::wabt::hash_range(sv.begin(), sv.end());
+    return ::wabt::HashRange(sv.begin(), sv.end());
   }
 };
 

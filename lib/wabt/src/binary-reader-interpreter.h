@@ -28,15 +28,15 @@ class Environment;
 
 } // namespace interpreter
 
-class BinaryErrorHandler;
+class ErrorHandler;
 struct ReadBinaryOptions;
 
-Result read_binary_interpreter(interpreter::Environment* env,
-                               const void* data,
-                               size_t size,
-                               const ReadBinaryOptions* options,
-                               BinaryErrorHandler*,
-                               interpreter::DefinedModule** out_module);
+Result ReadBinaryInterpreter(interpreter::Environment* env,
+                             const void* data,
+                             size_t size,
+                             const ReadBinaryOptions* options,
+                             ErrorHandler*,
+                             interpreter::DefinedModule** out_module);
 
 }  // namespace wabt
 

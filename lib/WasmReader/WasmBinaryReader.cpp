@@ -649,8 +649,6 @@ void WasmBinaryReader::ReadSignatureTypeSection()
     // signatures table
     for (uint32 i = 0; i < numTypes; i++)
     {
-        TRACE_WASM_DECODER(_u("Signature #%u"), i);
-
         WasmSignature* sig = m_module->GetSignature(i);
         sig->SetSignatureId(i);
         int8 form = ReadConst<int8>();
@@ -684,6 +682,14 @@ void WasmBinaryReader::ReadSignatureTypeSection()
             sig->SetResultType(type);
         }
         sig->FinalizeSignature();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (DO_WASM_TRACE_DECODER)
+        {
+            Output::Print(_u("Signature #%u: "), i);
+            sig->Dump();
+            Output::Print(_u("\n"));
+        }
+#endif
     }
 }
 

@@ -21,61 +21,82 @@
 
 namespace wabt {
 
-enum class Opcode {
+class Features;
 
-#define WABT_OPCODE(rtype, type1, type2, mem_size, code, Name, text) \
-  Name = code,
+struct Opcode {
+  // Opcode enumerations.
+  //
+  // NOTE: this enum does not match the binary encoding.
+  //
+  enum Enum {
+#define WABT_OPCODE(rtype, type1, type2, mem_size, prefix, code, Name, text) \
+  Name,
+#include "opcode.def"
+#undef WABT_OPCODE
+    Invalid,
+  };
+
+  // Static opcode objects.
+#define WABT_OPCODE(rtype, type1, type2, mem_size, prefix, code, Name, text) \
+  static Opcode Name##_Opcode;
 #include "opcode.def"
 #undef WABT_OPCODE
 
-  First = Unreachable,
-  Last = F64ReinterpretI64,
+  Opcode() = default;  // Provided so Opcode can be member of a union.
+  Opcode(Enum e) : enum_(e) {}
+  operator Enum() const { return enum_; }
+
+  static Opcode FromCode(uint32_t);
+  static Opcode FromCode(uint8_t prefix, uint32_t code);
+  bool HasPrefix() const { return GetInfo().prefix != 0; }
+  uint8_t GetPrefix() const { return GetInfo().prefix; }
+  uint32_t GetCode() const { return GetInfo().code; }
+  size_t GetLength() const { return HasPrefix() ? 2 : 1; }
+  const char* GetName() const { return GetInfo().name; }
+  Type GetResultType() const { return GetInfo().result_type; }
+  Type GetParamType1() const { return GetInfo().param1_type; }
+  Type GetParamType2() const { return GetInfo().param2_type; }
+  Address GetMemorySize() const { return GetInfo().memory_size; }
+
+  // Return 1 if |alignment| matches the alignment of |opcode|, or if
+  // |alignment| is WABT_USE_NATURAL_ALIGNMENT.
+  bool IsNaturallyAligned(Address alignment) const;
+
+  // If |alignment| is WABT_USE_NATURAL_ALIGNMENT, return the alignment of
+  // |opcode|, else return |alignment|.
+  Address GetAlignment(Address alignment) const;
+
+  static bool IsPrefixByte(uint8_t byte) { return byte >= kFirstPrefix; }
+
+  bool IsEnabled(const Features& features) const;
+
+ private:
+  static const uint32_t kFirstPrefix = 0xfc;
+
+  struct Info {
+    const char* name;
+    Type result_type;
+    Type param1_type;
+    Type param2_type;
+    Address memory_size;
+    uint8_t prefix;
+    uint32_t code;
+    uint32_t prefix_code;  // See PrefixCode below. Used for fast lookup.
+  };
+
+  static uint32_t PrefixCode(uint8_t prefix, uint32_t code) {
+    // For now, 8 bits is enough for all codes.
+    assert(code < 0x100);
+    return (prefix << 8) | code;
+  }
+
+  Info GetInfo() const;
+  static Info infos_[];
+  static Info invalid_info_;
+
+  Enum enum_;
 };
-static const int kOpcodeCount = WABT_ENUM_COUNT(Opcode);
 
-struct OpcodeInfo {
-  const char* name;
-  Type result_type;
-  Type param1_type;
-  Type param2_type;
-  Address memory_size;
-};
-
-// Return 1 if |alignment| matches the alignment of |opcode|, or if |alignment|
-// is WABT_USE_NATURAL_ALIGNMENT.
-bool is_naturally_aligned(Opcode opcode, Address alignment);
-
-// If |alignment| is WABT_USE_NATURAL_ALIGNMENT, return the alignment of
-// |opcode|, else return |alignment|.
-Address get_opcode_alignment(Opcode opcode, Address alignment);
-
-extern OpcodeInfo g_opcode_info[];
-
-inline const char* get_opcode_name(Opcode opcode) {
-  assert(static_cast<int>(opcode) < kOpcodeCount);
-  return g_opcode_info[static_cast<size_t>(opcode)].name;
-}
-
-inline Type get_opcode_result_type(Opcode opcode) {
-  assert(static_cast<int>(opcode) < kOpcodeCount);
-  return g_opcode_info[static_cast<size_t>(opcode)].result_type;
-}
-
-inline Type get_opcode_param_type_1(Opcode opcode) {
-  assert(static_cast<int>(opcode) < kOpcodeCount);
-  return g_opcode_info[static_cast<size_t>(opcode)].param1_type;
-}
-
-inline Type get_opcode_param_type_2(Opcode opcode) {
-  assert(static_cast<int>(opcode) < kOpcodeCount);
-  return g_opcode_info[static_cast<size_t>(opcode)].param2_type;
-}
-
-inline int get_opcode_memory_size(Opcode opcode) {
-  assert(static_cast<int>(opcode) < kOpcodeCount);
-  return g_opcode_info[static_cast<size_t>(opcode)].memory_size;
-}
-
-}  // namespace
+}  // end anonymous namespace
 
 #endif  // WABT_OPCODE_H_

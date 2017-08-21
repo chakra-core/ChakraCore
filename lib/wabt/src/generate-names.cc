@@ -26,7 +26,7 @@
 
 #define CHECK_RESULT(expr)  \
   do {                      \
-    if (WABT_FAILED(expr))  \
+    if (Failed(expr))       \
       return Result::Error; \
   } while (0)
 
@@ -41,30 +41,33 @@ class NameGenerator : public ExprVisitor::DelegateNop {
   Result VisitModule(Module* module);
 
   // Implementation of ExprVisitor::DelegateNop.
-  Result BeginBlockExpr(Expr* expr) override;
-  Result BeginLoopExpr(Expr* expr) override;
-  Result BeginIfExpr(Expr* expr) override;
+  Result BeginBlockExpr(BlockExpr* expr) override;
+  Result BeginLoopExpr(LoopExpr* expr) override;
+  Result BeginIfExpr(IfExpr* expr) override;
 
  private:
-  static bool HasName(StringSlice* str);
-  static void GenerateName(const char* prefix, Index index, StringSlice* str);
+  static bool HasName(const std::string& str);
+  static void GenerateName(const char* prefix,
+                           Index index,
+                           std::string* out_str);
   static void MaybeGenerateName(const char* prefix,
                                 Index index,
-                                StringSlice* str);
+                                std::string* out_str);
   static void GenerateAndBindName(BindingHash* bindings,
                                   const char* prefix,
                                   Index index,
-                                  StringSlice* str);
+                                  std::string* out_str);
   static void MaybeGenerateAndBindName(BindingHash* bindings,
                                        const char* prefix,
                                        Index index,
-                                       StringSlice* str);
+                                       std::string* out_str);
   void GenerateAndBindLocalNames(BindingHash* bindings, const char* prefix);
   Result VisitFunc(Index func_index, Func* func);
   Result VisitGlobal(Index global_index, Global* global);
   Result VisitFuncType(Index func_type_index, FuncType* func_type);
   Result VisitTable(Index table_index, Table* table);
   Result VisitMemory(Index memory_index, Memory* memory);
+  Result VisitExcept(Index except_index, Exception* except);
 
   Module* module_ = nullptr;
   ExprVisitor visitor_;
@@ -75,30 +78,26 @@ class NameGenerator : public ExprVisitor::DelegateNop {
 NameGenerator::NameGenerator() : visitor_(this) {}
 
 // static
-bool NameGenerator::HasName(StringSlice* str) {
-  return str->length > 0;
+bool NameGenerator::HasName(const std::string& str) {
+  return !str.empty();
 }
 
 // static
 void NameGenerator::GenerateName(const char* prefix,
                                  Index index,
-                                 StringSlice* str) {
+                                 std::string* str) {
   size_t prefix_len = strlen(prefix);
   size_t buffer_len = prefix_len + 20; /* add space for the number */
   char* buffer = static_cast<char*>(alloca(buffer_len));
   int actual_len = wabt_snprintf(buffer, buffer_len, "%s%u", prefix, index);
-
-  StringSlice buf;
-  buf.length = actual_len;
-  buf.start = buffer;
-  *str = dup_string_slice(buf);
+  str->assign(buffer, actual_len);
 }
 
 // static
 void NameGenerator::MaybeGenerateName(const char* prefix,
                                       Index index,
-                                      StringSlice* str) {
-  if (!HasName(str))
+                                      std::string* str) {
+  if (!HasName(*str))
     GenerateName(prefix, index, str);
 }
 
@@ -106,17 +105,17 @@ void NameGenerator::MaybeGenerateName(const char* prefix,
 void NameGenerator::GenerateAndBindName(BindingHash* bindings,
                                         const char* prefix,
                                         Index index,
-                                        StringSlice* str) {
+                                        std::string* str) {
   GenerateName(prefix, index, str);
-  bindings->emplace(string_slice_to_string(*str), Binding(index));
+  bindings->emplace(*str, Binding(index));
 }
 
 // static
 void NameGenerator::MaybeGenerateAndBindName(BindingHash* bindings,
                                              const char* prefix,
                                              Index index,
-                                             StringSlice* str) {
-  if (!HasName(str))
+                                             std::string* str) {
+  if (!HasName(*str))
     GenerateAndBindName(bindings, prefix, index, str);
 }
 
@@ -127,25 +126,24 @@ void NameGenerator::GenerateAndBindLocalNames(BindingHash* bindings,
     if (!old_name.empty())
       continue;
 
-    StringSlice new_name;
+    std::string new_name;
     GenerateAndBindName(bindings, prefix, i, &new_name);
-    index_to_name_[i] = string_slice_to_string(new_name);
-    destroy_string_slice(&new_name);
+    index_to_name_[i] = new_name;
   }
 }
 
-Result NameGenerator::BeginBlockExpr(Expr* expr) {
+Result NameGenerator::BeginBlockExpr(BlockExpr* expr) {
   MaybeGenerateName("$B", label_count_++, &expr->block->label);
   return Result::Ok;
 }
 
-Result NameGenerator::BeginLoopExpr(Expr* expr) {
-  MaybeGenerateName("$L", label_count_++, &expr->loop->label);
+Result NameGenerator::BeginLoopExpr(LoopExpr* expr) {
+  MaybeGenerateName("$L", label_count_++, &expr->block->label);
   return Result::Ok;
 }
 
-Result NameGenerator::BeginIfExpr(Expr* expr) {
-  MaybeGenerateName("$I", label_count_++, &expr->if_.true_->label);
+Result NameGenerator::BeginIfExpr(IfExpr* expr) {
+  MaybeGenerateName("$I", label_count_++, &expr->true_->label);
   return Result::Ok;
 }
 
@@ -191,6 +189,12 @@ Result NameGenerator::VisitMemory(Index memory_index, Memory* memory) {
   return Result::Ok;
 }
 
+Result NameGenerator::VisitExcept(Index except_index, Exception* except) {
+  MaybeGenerateAndBindName(&module_->except_bindings, "$e", except_index,
+                           &except->name);
+  return Result::Ok;
+}
+
 Result NameGenerator::VisitModule(Module* module) {
   module_ = module;
   for (Index i = 0; i < module->globals.size(); ++i)
@@ -203,13 +207,15 @@ Result NameGenerator::VisitModule(Module* module) {
     CHECK_RESULT(VisitTable(i, module->tables[i]));
   for (Index i = 0; i < module->memories.size(); ++i)
     CHECK_RESULT(VisitMemory(i, module->memories[i]));
+  for (Index i = 0; i < module->excepts.size(); ++i)
+    CHECK_RESULT(VisitExcept(i, module->excepts[i]));
   module_ = nullptr;
   return Result::Ok;
 }
 
-}  // namespace
+}  // end anonymous namespace
 
-Result generate_names(Module* module) {
+Result GenerateNames(Module* module) {
   NameGenerator generator;
   return generator.VisitModule(module);
 }

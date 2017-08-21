@@ -14,38 +14,52 @@
  * limitations under the License.
  */
 
-#ifndef WABT_SOURCE_ERROR_HANDLER_H_
-#define WABT_SOURCE_ERROR_HANDLER_H_
+#ifndef WABT_ERROR_HANDLER_H_
+#define WABT_ERROR_HANDLER_H_
 
 #include <string>
 
+#include "color.h"
 #include "common.h"
 
 namespace wabt {
 
-class SourceErrorHandler {
+class ErrorHandler {
  public:
-  virtual ~SourceErrorHandler() {}
+  explicit ErrorHandler(Location::Type);
+
+  virtual ~ErrorHandler() {}
 
   // Returns true if the error was handled.
-  virtual bool OnError(const Location*,
+  virtual bool OnError(const Location&,
                        const std::string& error,
                        const std::string& source_line,
                        size_t source_line_column_offset) = 0;
 
+  // Helper function for binary locations.
+  bool OnError(size_t offset, const std::string& error) {
+    return OnError(Location(offset), error, std::string(), 0);
+  }
+
   // OnError will be called with with source_line trimmed to this length.
   virtual size_t source_line_max_length() const = 0;
 
-  std::string DefaultErrorMessage(const Location*,
+  std::string DefaultErrorMessage(const Color&,
+                                  const Location&,
                                   const std::string& error,
                                   const std::string& source_line,
                                   size_t source_line_column_offset,
                                   int indent);
+
+ protected:
+  Location::Type location_type_;
 };
 
-class SourceErrorHandlerNop : public SourceErrorHandler {
+class ErrorHandlerNop : public ErrorHandler {
  public:
-  bool OnError(const Location*,
+  ErrorHandlerNop();
+
+  bool OnError(const Location&,
                const std::string& error,
                const std::string& source_line,
                size_t source_line_column_offset) override {
@@ -55,7 +69,7 @@ class SourceErrorHandlerNop : public SourceErrorHandler {
   size_t source_line_max_length() const override { return 80; }
 };
 
-class SourceErrorHandlerFile : public SourceErrorHandler {
+class ErrorHandlerFile : public ErrorHandler {
  public:
   enum class PrintHeader {
     Never,
@@ -63,12 +77,13 @@ class SourceErrorHandlerFile : public SourceErrorHandler {
     Always,
   };
 
-  SourceErrorHandlerFile(FILE* file = stderr,
-                         const std::string& header = std::string(),
-                         PrintHeader print_header = PrintHeader::Never,
-                         size_t source_line_max_length = 80);
+  explicit ErrorHandlerFile(Location::Type,
+                            FILE* file = stderr,
+                            const std::string& header = std::string(),
+                            PrintHeader print_header = PrintHeader::Never,
+                            size_t source_line_max_length = 80);
 
-  bool OnError(const Location*,
+  bool OnError(const Location&,
                const std::string& error,
                const std::string& source_line,
                size_t source_line_column_offset) override;
@@ -79,19 +94,20 @@ class SourceErrorHandlerFile : public SourceErrorHandler {
 
  private:
   void PrintErrorHeader();
-  void PrintSourceError();
 
   FILE* file_;
   std::string header_;
   PrintHeader print_header_;
   size_t source_line_max_length_;
+  Color color_;
 };
 
-class SourceErrorHandlerBuffer : public SourceErrorHandler {
+class ErrorHandlerBuffer : public ErrorHandler {
  public:
-  explicit SourceErrorHandlerBuffer(size_t source_line_max_length = 80);
+  explicit ErrorHandlerBuffer(Location::Type,
+                              size_t source_line_max_length = 80);
 
-  bool OnError(const Location*,
+  bool OnError(const Location&,
                const std::string& error,
                const std::string& source_line,
                size_t source_line_column_offset) override;
@@ -105,8 +121,9 @@ class SourceErrorHandlerBuffer : public SourceErrorHandler {
  private:
   size_t source_line_max_length_;
   std::string buffer_;
+  Color color_;
 };
 
 }  // namespace wabt
 
-#endif // WABT_SOURCE_ERROR_HANDLER_H_
+#endif // WABT_ERROR_HANDLER_H_

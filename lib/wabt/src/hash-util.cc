@@ -23,7 +23,7 @@ namespace wabt {
 // Hash combiner from:
 // http://stackoverflow.com/questions/4948780/magic-number-in-boosthash-combine
 
-hash_code hash_combine(hash_code seed, hash_code y) {
+hash_code HashCombine(hash_code seed, hash_code y) {
 #if SIZEOF_SIZE_T == 4
   constexpr hash_code magic = 0x9e3779b9;
 #elif SIZEOF_SIZE_T == 8

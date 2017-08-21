@@ -38,7 +38,7 @@ struct Module;
  *    ...
  *    (call $foo ...)
  */
-Result apply_names(struct Module*);
+Result ApplyNames(struct Module*);
 
 }  // namespace wabt
 

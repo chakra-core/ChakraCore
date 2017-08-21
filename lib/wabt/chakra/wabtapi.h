@@ -60,7 +60,7 @@ namespace ChakraWabt
         PushFn push;
     };
 
-    typedef Js::Var(*CreateBufferFn)(const char* start, uint size, void* user_data);
+    typedef Js::Var(*CreateBufferFn)(const unsigned char* start, uint size, void* user_data);
     typedef void*(*AllocatorFn)(uint size, void* user_data);
     struct Context
     {
