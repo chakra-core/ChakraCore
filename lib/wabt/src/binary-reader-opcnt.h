@@ -17,50 +17,76 @@
 #ifndef WABT_BINARY_READER_OPCNT_H_
 #define WABT_BINARY_READER_OPCNT_H_
 
-#include "common.h"
-
+#include <map>
 #include <vector>
+
+#include "common.h"
+#include "opcode.h"
 
 namespace wabt {
 
 struct Module;
 struct ReadBinaryOptions;
+class Stream;
 
-struct IntCounter {
-  IntCounter(intmax_t value, size_t count) : value(value), count(count) {}
+class OpcodeInfo {
+ public:
+  enum class Kind {
+    Bare,
+    Uint32,
+    Uint64,
+    Index,
+    Float32,
+    Float64,
+    Uint32Uint32,
+    BlockSig,
+    BrTable,
+  };
 
-  intmax_t value;
-  size_t count;
+  explicit OpcodeInfo(Opcode, Kind);
+  template <typename T>
+  OpcodeInfo(Opcode, Kind, T* data, size_t count = 1);
+  template <typename T>
+  OpcodeInfo(Opcode, Kind, T* data, size_t count, T extra);
+
+  Opcode opcode() const { return opcode_; }
+
+  void Write(Stream&);
+
+ private:
+  template <typename T>
+  std::pair<const T*, size_t> GetDataArray() const;
+  template <typename T>
+  const T* GetData(size_t expected_size = 1) const;
+
+  template <typename T, typename F>
+  void WriteArray(Stream& stream, F&& write_func);
+
+  Opcode opcode_;
+  Kind kind_;
+  std::vector<uint8_t> data_;
+
+  friend bool operator==(const OpcodeInfo&, const OpcodeInfo&);
+  friend bool operator!=(const OpcodeInfo&, const OpcodeInfo&);
+  friend bool operator<(const OpcodeInfo&, const OpcodeInfo&);
+  friend bool operator<=(const OpcodeInfo&, const OpcodeInfo&);
+  friend bool operator>(const OpcodeInfo&, const OpcodeInfo&);
+  friend bool operator>=(const OpcodeInfo&, const OpcodeInfo&);
 };
-typedef std::vector<IntCounter> IntCounterVector;
 
-struct IntPairCounter {
-  IntPairCounter(intmax_t first, intmax_t second, size_t count)
-      : first(first), second(second), count(count) {}
+bool operator==(const OpcodeInfo&, const OpcodeInfo&);
+bool operator!=(const OpcodeInfo&, const OpcodeInfo&);
+bool operator<(const OpcodeInfo&, const OpcodeInfo&);
+bool operator<=(const OpcodeInfo&, const OpcodeInfo&);
+bool operator>(const OpcodeInfo&, const OpcodeInfo&);
+bool operator>=(const OpcodeInfo&, const OpcodeInfo&);
 
-  intmax_t first;
-  intmax_t second;
-  size_t count;
-};
-typedef std::vector<IntPairCounter> IntPairCounterVector;
+typedef std::map<OpcodeInfo, size_t> OpcodeInfoCounts;
 
-struct OpcntData {
-  IntCounterVector opcode_vec;
-  IntCounterVector i32_const_vec;
-  IntCounterVector get_local_vec;
-  IntCounterVector set_local_vec;
-  IntCounterVector tee_local_vec;
-  IntPairCounterVector i32_load_vec;
-  IntPairCounterVector i32_store_vec;
-};
-
-void init_opcnt_data(OpcntData* data);
-void destroy_opcnt_data(OpcntData* data);
-
-Result read_binary_opcnt(const void* data,
-                         size_t size,
-                         const struct ReadBinaryOptions* options,
-                         OpcntData* opcnt_data);
+Result ReadBinaryOpcnt(const void* data,
+                       size_t size,
+                       const struct ReadBinaryOptions* options,
+                       OpcodeInfoCounts* opcode_counts);
 
 }  // namespace wabt
 

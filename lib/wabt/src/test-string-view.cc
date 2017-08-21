@@ -25,7 +25,7 @@ using namespace wabt;
 
 namespace {
 
-void assert_string_view_eq(const char* s, const string_view& sv) {
+void assert_string_view_eq(const char* s, string_view sv) {
   size_t len = std::strlen(s);
   ASSERT_EQ(len, sv.size());
   for (size_t i = 0; i < len; ++i) {
@@ -35,7 +35,7 @@ void assert_string_view_eq(const char* s, const string_view& sv) {
 
 constexpr string_view::size_type npos = string_view::npos;
 
-}  // namespace
+}  // end anonymous namespace
 
 TEST(string_view, default_constructor) {
   assert_string_view_eq("", string_view());
@@ -299,6 +299,7 @@ TEST(string_view, rfind0) {
   ASSERT_EQ(5U, string_view("find fins").rfind(string_view("fin")));
   ASSERT_EQ(0U, string_view("find fins").rfind(string_view("fin"), 4));
   ASSERT_EQ(npos, string_view("find fins").rfind(string_view("no")));
+  ASSERT_EQ(npos, string_view("foo").rfind(string_view("foobar")));
 }
 
 TEST(string_view, rfind1) {
@@ -311,12 +312,14 @@ TEST(string_view, rfind2) {
   ASSERT_EQ(6U, string_view("012340123").rfind("12345", npos, 2));
   ASSERT_EQ(1U, string_view("012340123").rfind("12345", 4, 2));
   ASSERT_EQ(npos, string_view("012340123").rfind("12345", npos, 5));
+  ASSERT_EQ(npos, string_view("012").rfind("12345", npos, 5));
 }
 
 TEST(string_view, rfind3) {
   ASSERT_EQ(6U, string_view("012340123").rfind("12"));
   ASSERT_EQ(1U, string_view("012340123").rfind("12", 2));
   ASSERT_EQ(npos, string_view("012340123").rfind("12", 0));
+  ASSERT_EQ(npos, string_view("012").rfind("12345"));
 }
 
 TEST(string_view, find_first_of0) {

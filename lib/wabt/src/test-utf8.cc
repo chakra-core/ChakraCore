@@ -35,12 +35,12 @@ void assert_is_valid_utf8(bool expected,
     // Make sure it fails if there are continuation bytes past the end of the
     // string.
     for (int bad_length = 1; bad_length < length; ++bad_length) {
-      ASSERT_FALSE(is_valid_utf8(buf, bad_length)) << cu0 << ", " << cu1 << ", "
-                                                   << cu2 << ", " << cu3;
+      ASSERT_FALSE(IsValidUtf8(buf, bad_length))
+          << cu0 << ", " << cu1 << ", " << cu2 << ", " << cu3;
     }
   }
 
-  ASSERT_TRUE(expected == is_valid_utf8(buf, length))
+  ASSERT_TRUE(expected == IsValidUtf8(buf, length))
       << cu0 << ", " << cu1 << ", " << cu2 << ", " << cu3;
 }
 
@@ -48,7 +48,7 @@ bool is_in_range(int x, int low, int high) {
   return x >= low && x < high;
 }
 
-}  // namespace
+}  // end anonymous namespace
 
 #define FOR_RANGE(var, low, high) for (int var = low; var < high; var++)
 #define FOR_EACH_BYTE(var) FOR_RANGE(var, 0, 0x100)

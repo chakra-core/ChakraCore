@@ -16,30 +16,17 @@
 
 #include "wast-parser-lexer-shared.h"
 
-#include <cstdarg>
-#include <cstdio>
-#include <cstring>
-#include <string>
+#include "common.h"
+#include "error-handler.h"
+#include "wast-lexer.h"
 
 namespace wabt {
 
-void wast_parser_error(Location* loc,
-                       WastLexer* lexer,
-                       WastParser* parser,
-                       const char* format,
-                       ...) {
-  parser->errors++;
-  va_list args;
-  va_start(args, format);
-  wast_format_error(parser->error_handler, loc, lexer, format, args);
-  va_end(args);
-}
-
-void wast_format_error(SourceErrorHandler* error_handler,
-                       const struct Location* loc,
-                       WastLexer* lexer,
-                       const char* format,
-                       va_list args) {
+void WastFormatError(ErrorHandler* error_handler,
+                     const Location* loc,
+                     WastLexer* lexer,
+                     const char* format,
+                     va_list args) {
   va_list args_copy;
   va_copy(args_copy, args);
   char fixed_buf[WABT_DEFAULT_SNPRINTF_ALLOCA_BUFSIZE];
@@ -55,35 +42,16 @@ void wast_format_error(SourceErrorHandler* error_handler,
     size_t source_line_max_length = error_handler->source_line_max_length();
     Result result = lexer->line_finder().GetSourceLine(
         *loc, source_line_max_length, &source_line);
-    if (WABT_FAILED(result)) {
+    if (Failed(result)) {
       // If this fails, it means that we've probably screwed up the lexer. Blow
       // up.
       WABT_FATAL("error getting the source line.\n");
     }
   }
 
-  error_handler->OnError(loc, std::string(buffer), source_line.line,
+  error_handler->OnError(*loc, std::string(buffer), source_line.line,
                          source_line.column_offset);
   va_end(args_copy);
-}
-
-void destroy_text_list(TextList* text_list) {
-  TextListNode* node = text_list->first;
-  while (node) {
-    TextListNode* next = node->next;
-    destroy_string_slice(&node->text);
-    delete node;
-    node = next;
-  }
-}
-
-void destroy_module_field_list(ModuleFieldList* fields) {
-  ModuleField* field = fields->first;
-  while (field) {
-    ModuleField* next = field->next;
-    delete field;
-    field = next;
-  }
 }
 
 }  // namespace wabt

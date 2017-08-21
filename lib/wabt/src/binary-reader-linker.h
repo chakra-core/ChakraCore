@@ -32,8 +32,7 @@ struct LinkOptions {
   Stream* log_stream;
 };
 
-Result read_binary_linker(LinkerInputBinary* input_info,
-                          LinkOptions* options);
+Result ReadBinaryLinker(LinkerInputBinary* input_info, LinkOptions* options);
 
 } // namespace link
 }  // namespace wabt

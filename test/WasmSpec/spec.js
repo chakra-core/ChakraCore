@@ -547,11 +547,15 @@ function runSimpleAction(moduleRegistry, command) {
 }
 
 function getField(moduleRegistry, action) {
-  const m = action.module ? moduleRegistry[action.module] : moduleRegistry.currentModule;
+  const moduleName = action.module !== undefined ? action.module : "currentModule";
+  const m = moduleRegistry[moduleName];
   if (!m) {
     throw new Error("Module unavailable to run action");
   }
   const {field} = action;
+  if (!(field in m.exports)) {
+    throw new Error(`Unable to find field ${field} in ${moduleName}`)
+  }
   return m.exports[field];
 }
 

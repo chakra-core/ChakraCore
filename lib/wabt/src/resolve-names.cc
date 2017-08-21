@@ -19,46 +19,50 @@
 #include <cassert>
 #include <cstdio>
 
+#include "cast.h"
+#include "error-handler.h"
 #include "expr-visitor.h"
 #include "ir.h"
+#include "wast-lexer.h"
 #include "wast-parser-lexer-shared.h"
 
 namespace wabt {
 
 namespace {
 
-typedef Label* LabelPtr;
-
 class NameResolver : public ExprVisitor::DelegateNop {
  public:
-  NameResolver(WastLexer* lexer,
-               Script* script,
-               SourceErrorHandler* error_handler);
+  NameResolver(WastLexer* lexer, Script* script, ErrorHandler* error_handler);
 
   Result VisitModule(Module* module);
   Result VisitScript(Script* script);
 
   // Implementation of ExprVisitor::DelegateNop.
-  Result BeginBlockExpr(Expr*) override;
-  Result EndBlockExpr(Expr*) override;
-  Result OnBrExpr(Expr*) override;
-  Result OnBrIfExpr(Expr*) override;
-  Result OnBrTableExpr(Expr*) override;
-  Result OnCallExpr(Expr*) override;
-  Result OnCallIndirectExpr(Expr*) override;
-  Result OnGetGlobalExpr(Expr*) override;
-  Result OnGetLocalExpr(Expr*) override;
-  Result BeginIfExpr(Expr*) override;
-  Result EndIfExpr(Expr*) override;
-  Result BeginLoopExpr(Expr*) override;
-  Result EndLoopExpr(Expr*) override;
-  Result OnSetGlobalExpr(Expr*) override;
-  Result OnSetLocalExpr(Expr*) override;
-  Result OnTeeLocalExpr(Expr*) override;
+  Result BeginBlockExpr(BlockExpr*) override;
+  Result EndBlockExpr(BlockExpr*) override;
+  Result OnBrExpr(BrExpr*) override;
+  Result OnBrIfExpr(BrIfExpr*) override;
+  Result OnBrTableExpr(BrTableExpr*) override;
+  Result OnCallExpr(CallExpr*) override;
+  Result OnCallIndirectExpr(CallIndirectExpr*) override;
+  Result OnCatchExpr(TryExpr*, Catch*) override;
+  Result OnGetGlobalExpr(GetGlobalExpr*) override;
+  Result OnGetLocalExpr(GetLocalExpr*) override;
+  Result BeginIfExpr(IfExpr*) override;
+  Result EndIfExpr(IfExpr*) override;
+  Result BeginLoopExpr(LoopExpr*) override;
+  Result EndLoopExpr(LoopExpr*) override;
+  Result OnSetGlobalExpr(SetGlobalExpr*) override;
+  Result OnSetLocalExpr(SetLocalExpr*) override;
+  Result OnTeeLocalExpr(TeeLocalExpr*) override;
+  Result BeginTryExpr(TryExpr*) override;
+  Result EndTryExpr(TryExpr*) override;
+  Result OnThrowExpr(ThrowExpr*) override;
+  Result OnRethrowExpr(RethrowExpr*) override;
 
  private:
   void PrintError(const Location* loc, const char* fmt, ...);
-  void PushLabel(Label* label);
+  void PushLabel(const std::string& label);
   void PopLabel();
   void CheckDuplicateBindings(const BindingHash* bindings, const char* desc);
   void ResolveLabelVar(Var* var);
@@ -68,6 +72,7 @@ class NameResolver : public ExprVisitor::DelegateNop {
   void ResolveFuncTypeVar(Var* var);
   void ResolveTableVar(Var* var);
   void ResolveMemoryVar(Var* var);
+  void ResolveExceptionVar(Var* var);
   void ResolveLocalVar(Var* var);
   void VisitFunc(Func* func);
   void VisitExport(Export* export_);
@@ -77,25 +82,25 @@ class NameResolver : public ExprVisitor::DelegateNop {
   void VisitScriptModule(ScriptModule* script_module);
   void VisitCommand(Command* command);
 
-  SourceErrorHandler* error_handler_ = nullptr;
+  ErrorHandler* error_handler_ = nullptr;
   WastLexer* lexer_ = nullptr;
   Script* script_ = nullptr;
   Module* current_module_ = nullptr;
   Func* current_func_ = nullptr;
   ExprVisitor visitor_;
-  std::vector<Label*> labels_;
+  std::vector<std::string> labels_;
   Result result_ = Result::Ok;
 };
 
 NameResolver::NameResolver(WastLexer* lexer,
                            Script* script,
-                           SourceErrorHandler* error_handler)
+                           ErrorHandler* error_handler)
     : error_handler_(error_handler),
       lexer_(lexer),
       script_(script),
       visitor_(this) {}
 
-}  // namespace
+}  // end anonymous namespace
 
 void WABT_PRINTF_FORMAT(3, 4) NameResolver::PrintError(const Location* loc,
                                                        const char* fmt,
@@ -103,11 +108,11 @@ void WABT_PRINTF_FORMAT(3, 4) NameResolver::PrintError(const Location* loc,
   result_ = Result::Error;
   va_list args;
   va_start(args, fmt);
-  wast_format_error(error_handler_, loc, lexer_, fmt, args);
+  WastFormatError(error_handler_, loc, lexer_, fmt, args);
   va_end(args);
 }
 
-void NameResolver::PushLabel(Label* label) {
+void NameResolver::PushLabel(const std::string& label) {
   labels_.push_back(label);
 }
 
@@ -129,35 +134,31 @@ void NameResolver::CheckDuplicateBindings(const BindingHash* bindings,
 }
 
 void NameResolver::ResolveLabelVar(Var* var) {
-  if (var->type == VarType::Name) {
+  if (var->is_name()) {
     for (int i = labels_.size() - 1; i >= 0; --i) {
-      Label* label = labels_[i];
-      if (string_slices_are_equal(label, &var->name)) {
-        destroy_string_slice(&var->name);
-        var->type = VarType::Index;
-        var->index = labels_.size() - i - 1;
+      const std::string& label = labels_[i];
+      if (label == var->name()) {
+        var->set_index(labels_.size() - i - 1);
         return;
       }
     }
-    PrintError(&var->loc, "undefined label variable \"" PRIstringslice "\"",
-               WABT_PRINTF_STRING_SLICE_ARG(var->name));
+    PrintError(&var->loc, "undefined label variable \"%s\"",
+               var->name().c_str());
   }
 }
 
 void NameResolver::ResolveVar(const BindingHash* bindings,
                               Var* var,
                               const char* desc) {
-  if (var->type == VarType::Name) {
+  if (var->is_name()) {
     Index index = bindings->FindIndex(*var);
     if (index == kInvalidIndex) {
-      PrintError(&var->loc, "undefined %s variable \"" PRIstringslice "\"",
-                 desc, WABT_PRINTF_STRING_SLICE_ARG(var->name));
+      PrintError(&var->loc, "undefined %s variable \"%s\"", desc,
+                 var->name().c_str());
       return;
     }
 
-    destroy_string_slice(&var->name);
-    var->index = index;
-    var->type = VarType::Index;
+    var->set_index(index);
   }
 }
 
@@ -181,103 +182,133 @@ void NameResolver::ResolveMemoryVar(Var* var) {
   ResolveVar(&current_module_->memory_bindings, var, "memory");
 }
 
+void NameResolver::ResolveExceptionVar(Var* var) {
+  ResolveVar(&current_module_->except_bindings, var, "exception");
+}
+
 void NameResolver::ResolveLocalVar(Var* var) {
-  if (var->type == VarType::Name) {
+  if (var->is_name()) {
     if (!current_func_)
       return;
 
     Index index = current_func_->GetLocalIndex(*var);
     if (index == kInvalidIndex) {
-      PrintError(&var->loc, "undefined local variable \"" PRIstringslice "\"",
-                 WABT_PRINTF_STRING_SLICE_ARG(var->name));
+      PrintError(&var->loc, "undefined local variable \"%s\"",
+                 var->name().c_str());
       return;
     }
 
-    destroy_string_slice(&var->name);
-    var->index = index;
-    var->type = VarType::Index;
+    var->set_index(index);
   }
 }
 
-Result NameResolver::BeginBlockExpr(Expr* expr) {
-  PushLabel(&expr->block->label);
+Result NameResolver::BeginBlockExpr(BlockExpr* expr) {
+  PushLabel(expr->block->label);
   return Result::Ok;
 }
 
-Result NameResolver::EndBlockExpr(Expr* expr) {
+Result NameResolver::EndBlockExpr(BlockExpr* expr) {
   PopLabel();
   return Result::Ok;
 }
 
-Result NameResolver::BeginLoopExpr(Expr* expr) {
-  PushLabel(&expr->loop->label);
+Result NameResolver::BeginLoopExpr(LoopExpr* expr) {
+  PushLabel(expr->block->label);
   return Result::Ok;
 }
 
-Result NameResolver::EndLoopExpr(Expr* expr) {
+Result NameResolver::EndLoopExpr(LoopExpr* expr) {
   PopLabel();
   return Result::Ok;
 }
 
-Result NameResolver::OnBrExpr(Expr* expr) {
-  ResolveLabelVar(&expr->br.var);
+Result NameResolver::OnBrExpr(BrExpr* expr) {
+  ResolveLabelVar(&expr->var);
   return Result::Ok;
 }
 
-Result NameResolver::OnBrIfExpr(Expr* expr) {
-  ResolveLabelVar(&expr->br_if.var);
+Result NameResolver::OnBrIfExpr(BrIfExpr* expr) {
+  ResolveLabelVar(&expr->var);
   return Result::Ok;
 }
 
-Result NameResolver::OnBrTableExpr(Expr* expr) {
-  for (Var& target : *expr->br_table.targets)
+Result NameResolver::OnBrTableExpr(BrTableExpr* expr) {
+  for (Var& target : *expr->targets)
     ResolveLabelVar(&target);
-  ResolveLabelVar(&expr->br_table.default_target);
+  ResolveLabelVar(&expr->default_target);
   return Result::Ok;
 }
 
-Result NameResolver::OnCallExpr(Expr* expr) {
-  ResolveFuncVar(&expr->call.var);
+Result NameResolver::OnCallExpr(CallExpr* expr) {
+  ResolveFuncVar(&expr->var);
   return Result::Ok;
 }
 
-Result NameResolver::OnCallIndirectExpr(Expr* expr) {
-  ResolveFuncTypeVar(&expr->call_indirect.var);
+Result NameResolver::OnCallIndirectExpr(CallIndirectExpr* expr) {
+  ResolveFuncTypeVar(&expr->var);
   return Result::Ok;
 }
 
-Result NameResolver::OnGetGlobalExpr(Expr* expr) {
-  ResolveGlobalVar(&expr->get_global.var);
+Result NameResolver::OnGetGlobalExpr(GetGlobalExpr* expr) {
+  ResolveGlobalVar(&expr->var);
   return Result::Ok;
 }
 
-Result NameResolver::OnGetLocalExpr(Expr* expr) {
-  ResolveLocalVar(&expr->get_local.var);
+Result NameResolver::OnGetLocalExpr(GetLocalExpr* expr) {
+  ResolveLocalVar(&expr->var);
   return Result::Ok;
 }
 
-Result NameResolver::BeginIfExpr(Expr* expr) {
-  PushLabel(&expr->if_.true_->label);
+Result NameResolver::BeginIfExpr(IfExpr* expr) {
+  PushLabel(expr->true_->label);
   return Result::Ok;
 }
 
-Result NameResolver::EndIfExpr(Expr* expr) {
+Result NameResolver::EndIfExpr(IfExpr* expr) {
   PopLabel();
   return Result::Ok;
 }
 
-Result NameResolver::OnSetGlobalExpr(Expr* expr) {
-  ResolveGlobalVar(&expr->set_global.var);
+Result NameResolver::OnSetGlobalExpr(SetGlobalExpr* expr) {
+  ResolveGlobalVar(&expr->var);
   return Result::Ok;
 }
 
-Result NameResolver::OnSetLocalExpr(Expr* expr) {
-  ResolveLocalVar(&expr->set_local.var);
+Result NameResolver::OnSetLocalExpr(SetLocalExpr* expr) {
+  ResolveLocalVar(&expr->var);
   return Result::Ok;
 }
 
-Result NameResolver::OnTeeLocalExpr(Expr* expr) {
-  ResolveLocalVar(&expr->tee_local.var);
+Result NameResolver::OnTeeLocalExpr(TeeLocalExpr* expr) {
+  ResolveLocalVar(&expr->var);
+  return Result::Ok;
+}
+
+Result NameResolver::BeginTryExpr(TryExpr* expr) {
+  PushLabel(expr->block->label);
+  return Result::Ok;
+}
+
+Result NameResolver::EndTryExpr(TryExpr*) {
+  PopLabel();
+  return Result::Ok;
+}
+
+Result NameResolver::OnCatchExpr(TryExpr* expr, Catch* catch_) {
+  if (!catch_->IsCatchAll())
+    ResolveExceptionVar(&catch_->var);
+  return Result::Ok;
+}
+
+Result NameResolver::OnThrowExpr(ThrowExpr* expr) {
+  ResolveExceptionVar(&expr->var);
+  return Result::Ok;
+}
+
+Result NameResolver::OnRethrowExpr(RethrowExpr* expr) {
+  // Note: the variable refers to corresponding (enclosing) catch, using the try
+  // block label for context.
+  ResolveLabelVar(&expr->var);
   return Result::Ok;
 }
 
@@ -312,7 +343,7 @@ void NameResolver::VisitExport(Export* export_) {
       break;
 
     case ExternalKind::Except:
-      WABT_FATAL("NameResolver::VisitExport(except) not defined\n");
+      ResolveExceptionVar(&export_->var);
       break;
   }
 }
@@ -340,6 +371,7 @@ Result NameResolver::VisitModule(Module* module) {
   CheckDuplicateBindings(&module->func_type_bindings, "function type");
   CheckDuplicateBindings(&module->table_bindings, "table");
   CheckDuplicateBindings(&module->memory_bindings, "memory");
+  CheckDuplicateBindings(&module->except_bindings, "except");
 
   for (Func* func : module->funcs)
     VisitFunc(func);
@@ -365,7 +397,7 @@ void NameResolver::VisitScriptModule(ScriptModule* script_module) {
 void NameResolver::VisitCommand(Command* command) {
   switch (command->type) {
     case CommandType::Module:
-      VisitModule(command->module);
+      VisitModule(cast<ModuleCommand>(command)->module);
       break;
 
     case CommandType::Action:
@@ -385,31 +417,22 @@ void NameResolver::VisitCommand(Command* command) {
       break;
 
     case CommandType::AssertInvalid: {
+      auto* assert_invalid_command = cast<AssertInvalidCommand>(command);
       /* The module may be invalid because the names cannot be resolved; we
        * don't want to print errors or fail if that's the case, but we still
        * should try to resolve names when possible. */
-      SourceErrorHandlerNop new_error_handler;
-
+      ErrorHandlerNop new_error_handler;
       NameResolver new_resolver(lexer_, script_, &new_error_handler);
-      new_resolver.VisitScriptModule(command->assert_invalid.module);
-      if (WABT_FAILED(new_resolver.result_)) {
-        command->type = CommandType::AssertInvalidNonBinary;
-      }
+      new_resolver.VisitScriptModule(assert_invalid_command->module);
       break;
     }
 
-    case CommandType::AssertInvalidNonBinary:
-      /* The only reason a module would be "non-binary" is if the names cannot
-       * be resolved. So we assume name resolution has already been tried and
-       * failed, so skip it. */
-      break;
-
     case CommandType::AssertUnlinkable:
-      VisitScriptModule(command->assert_unlinkable.module);
+      VisitScriptModule(cast<AssertUnlinkableCommand>(command)->module);
       break;
 
     case CommandType::AssertUninstantiable:
-      VisitScriptModule(command->assert_uninstantiable.module);
+      VisitScriptModule(cast<AssertUninstantiableCommand>(command)->module);
       break;
   }
 }
@@ -420,16 +443,16 @@ Result NameResolver::VisitScript(Script* script) {
   return result_;
 }
 
-Result resolve_names_module(WastLexer* lexer,
-                            Module* module,
-                            SourceErrorHandler* error_handler) {
+Result ResolveNamesModule(WastLexer* lexer,
+                          Module* module,
+                          ErrorHandler* error_handler) {
   NameResolver resolver(lexer, nullptr, error_handler);
   return resolver.VisitModule(module);
 }
 
-Result resolve_names_script(WastLexer* lexer,
-                            Script* script,
-                            SourceErrorHandler* error_handler) {
+Result ResolveNamesScript(WastLexer* lexer,
+                          Script* script,
+                          ErrorHandler* error_handler) {
   NameResolver resolver(lexer, script, error_handler);
   return resolver.VisitScript(script);
 }

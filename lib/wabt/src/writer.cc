@@ -28,10 +28,11 @@
 
 namespace wabt {
 
-Result OutputBuffer::WriteToFile(const char* filename) const {
-  FILE* file = fopen(filename, "wb");
+Result OutputBuffer::WriteToFile(string_view filename) const {
+  std::string filename_str = filename.to_string();
+  FILE* file = fopen(filename_str.c_str(), "wb");
   if (!file) {
-    ERROR("unable to open %s for writing\n", filename);
+    ERROR("unable to open %s for writing\n", filename_str.c_str());
     return Result::Error;
   }
 
@@ -41,7 +42,8 @@ Result OutputBuffer::WriteToFile(const char* filename) const {
 
   ssize_t bytes = fwrite(data.data(), 1, data.size(), file);
   if (bytes < 0 || static_cast<size_t>(bytes) != data.size()) {
-    ERROR("failed to write %" PRIzd " bytes to %s\n", data.size(), filename);
+    ERROR("failed to write %" PRIzd " bytes to %s\n", data.size(),
+          filename_str.c_str());
     return Result::Error;
   }
 
@@ -93,15 +95,16 @@ Result MemoryWriter::MoveData(size_t dst_offset,
 FileWriter::FileWriter(FILE* file)
     : file_(file), offset_(0), should_close_(false) {}
 
-FileWriter::FileWriter(const char* filename)
+FileWriter::FileWriter(string_view filename)
     : file_(nullptr), offset_(0), should_close_(false) {
-  file_ = fopen(filename, "wb");
+  std::string filename_str = filename.to_string();
+  file_ = fopen(filename_str.c_str(), "wb");
 
   // TODO(binji): this is pretty cheesy, should come up with a better API.
   if (file_) {
     should_close_ = true;
   } else {
-    ERROR("fopen name=\"%s\" failed, errno=%d\n", filename, errno);
+    ERROR("fopen name=\"%s\" failed, errno=%d\n", filename_str.c_str(), errno);
   }
 }
 

@@ -37,6 +37,9 @@
 /* Whether strcasecmp is defined by strings.h */
 #cmakedefine01 HAVE_STRCASECMP
 
+/* Whether ENABLE_VIRTUAL_TERMINAL_PROCESSING is defined by windows.h */
+#cmakedefine01 HAVE_WIN32_VT100
+
 #cmakedefine01 COMPILER_IS_CLANG
 #cmakedefine01 COMPILER_IS_GNU
 #cmakedefine01 COMPILER_IS_MSVC
