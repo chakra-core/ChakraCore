@@ -231,6 +231,9 @@ CreateBuildTask(true, 'x64', 'debug',
 // x64_debug DisableJIT
 CreateBuildTask(true, 'x64', 'debug',
     'Windows_NT', 'ci_disablejit', '"/p:BuildJIT=false"', '-winBlue -disablejit', false, null, null)
+// x64_debug Lite
+CreateBuildTask(true, 'x64', 'debug',
+    'Windows_NT', 'ci_lite', '"/p:BuildLite=true"', '-winBlue -lite', false, null, null)
 // x64_debug Legacy
 CreateBuildTask(true, 'x64', 'debug',
     'Windows 7', 'ci_dev12', 'msbuild12', '-win7 -includeSlow', false, null, null)
