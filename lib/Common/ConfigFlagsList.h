@@ -1286,6 +1286,7 @@ FLAGNR(Boolean, PrintRunTimeDataCollectionTrace, "Print traces needed for runtim
 FLAGR (Boolean, Prejit                , "Prejit everything, including things that are not called, ignoring limits (default: false)", DEFAULT_CONFIG_Prejit)
 #endif
 FLAGNR(Boolean, PrintSrcInDump        , "Print the lineno and the source code in the intermediate dumps", true)
+FLAGNR(Boolean, PrintGlobOptInstrString, "Print the Globopt instr string in post lower dumps", true)
 #if PROFILE_DICTIONARY
 FLAGNR(Number,  ProfileDictionary     , "Profile dictionary usage. Only dictionaries with max depth of <number> or above are displayed (0=no filter).", -1)
 #endif
