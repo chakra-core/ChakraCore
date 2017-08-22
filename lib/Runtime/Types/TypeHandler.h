@@ -14,38 +14,14 @@ namespace Js
         DeferredInitializeMode_SetAccessors
     };
 
+#if ENABLE_FIXED_FIELDS
     enum FixedPropertyKind : CHAR
     {
         FixedDataProperty = 1 << 0,
         FixedMethodProperty = 1 << 1,
         FixedAccessorProperty = 1 << 2,
     };
-
-    struct PropertyEquivalenceInfo
-    {
-        PropertyIndex slotIndex;
-        bool isAuxSlot;
-        bool isWritable;
-
-        PropertyEquivalenceInfo():
-            slotIndex(Constants::NoSlot), isAuxSlot(false), isWritable(false) {}
-        PropertyEquivalenceInfo(PropertyIndex slotIndex, bool isAuxSlot, bool isWritable):
-            slotIndex(slotIndex), isAuxSlot(isAuxSlot), isWritable(isWritable) {}
-    };
-
-    struct EquivalentPropertyEntry
-    {
-        Js::PropertyId propertyId;
-        Js::PropertyIndex slotIndex;
-        bool isAuxSlot;
-        bool mustBeWritable;
-    };
-
-    struct TypeEquivalenceRecord
-    {
-        uint propertyCount;
-        EquivalentPropertyEntry* properties;
-    };
+#endif
 
     typedef bool (__cdecl *DeferredTypeInitializer)(DynamicObject* instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 

@@ -9,7 +9,9 @@
 
 #include "Library/RegexHelper.h"
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/DiagHelperMethodWrapper.h"
+#endif
 #include "Math/CrtSSE2Math.h"
 #include "Library/JavascriptGeneratorFunction.h"
 #include "RuntimeMathPch.h"

@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeBasePch.h"
-#include "BackendApi.h"
 #include "ThreadServiceWrapper.h"
 #include "Types/TypePropertyCache.h"
 #ifdef ENABLE_SCRIPT_DEBUGGING
