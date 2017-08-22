@@ -652,7 +652,7 @@ namespace Js
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
             equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), inProcJITNaticeCodedata(nullptr),
             numberChunks(nullptr), numberPageSegments(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
-            isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
+            isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr), inlineeFrameMap(nullptr),
 #if PDATA_ENABLED
             xdataInfo(nullptr),
 #endif
@@ -1068,16 +1068,11 @@ namespace Js
 
     private:
         Field(ExecutionMode) jitMode;
-        Field(FunctionEntryPointInfo*) mOldFunctionEntryPointInfo; // strong ref to oldEntryPointInfo(Int or TJ) in asm to ensure we don't collect it before JIT is completed
         Field(bool)       mIsTemplatizedJitMode; // true only if in TJ mode, used only for debugging
     public:
         FunctionEntryPointInfo(FunctionProxy * functionInfo, Js::JavascriptMethod method, ThreadContext* context, void* validationCookie);
 
 #ifdef ASMJS_PLAT
-        //AsmJS Support
-
-        void SetOldFunctionEntryPointInfo(FunctionEntryPointInfo* entrypointInfo);
-        FunctionEntryPointInfo* GetOldFunctionEntryPointInfo()const;
         void SetIsTJMode(bool value);
         bool GetIsTJMode()const;
         //End AsmJS Support
@@ -1332,7 +1327,7 @@ namespace Js
     class FunctionProxy : public FinalizableObject
     {
     public:
-        typedef RecyclerWeakReference<DynamicType> FunctionTypeWeakRef;
+        typedef RecyclerWeakReference<ScriptFunctionType> FunctionTypeWeakRef;
         typedef JsUtil::List<FunctionTypeWeakRef*, Recycler, false, WeakRefFreeListedRemovePolicy> FunctionTypeWeakRefList;
 
     protected:
@@ -1363,6 +1358,7 @@ namespace Js
             ScopeInfo = 20,
             FormalsPropIdArray = 21,
             ForInCacheArray = 22,
+            SlotIdInCachedScopeToNestedIndexArray = 23,
 
             Max,
             Invalid = 0xff
@@ -1470,7 +1466,7 @@ namespace Js
         FunctionTypeWeakRefList* EnsureFunctionObjectTypeList();
         FunctionTypeWeakRefList* GetFunctionObjectTypeList() const;
         void SetFunctionObjectTypeList(FunctionTypeWeakRefList* list);
-        void RegisterFunctionObjectType(DynamicType* functionType);
+        void RegisterFunctionObjectType(ScriptFunctionType* functionType);
         template <typename Fn>
         void MapFunctionObjectTypes(Fn func);
 
@@ -1768,7 +1764,7 @@ namespace Js
 
     inline FunctionBody * FunctionProxy::GetFunctionBody() const
     {
-        Assert(IsFunctionBody());
+        AssertOrFailFast(IsFunctionBody());
         return (FunctionBody*)this;
     }
 
@@ -2021,7 +2017,9 @@ namespace Js
         LPCUTF8 GetStartOfDocument(const char16* reason = nullptr) const;
         bool IsReparsed() const { return m_reparsed; }
         void SetReparsed(bool set) { m_reparsed = set; }
+#ifdef NTBUILD
         bool GetExternalDisplaySourceName(BSTR* sourceName);
+#endif
 
         void CleanupToReparse();
         void CleanupToReparseHelper();
@@ -2645,6 +2643,7 @@ namespace Js
 
         bool DoRedeferFunction(uint inactiveThreshold) const;
         void RedeferFunction();
+        void RedeferFunctionObjectTypes();
         bool IsActiveFunction(ActiveFunctionSet * pActiveFuncs) const;
         bool TestAndUpdateActiveFunctions(ActiveFunctionSet * pActiveFuncs) const;
         void UpdateActiveFunctionSet(ActiveFunctionSet * pActiveFuncs, FunctionCodeGenRuntimeData *callSiteData) const;
@@ -3352,9 +3351,11 @@ namespace Js
         void         EndExecution();
         SourceInfo * GetSourceInfo() { return &this->m_sourceInfo; }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         bool InstallProbe(int offset);
         bool UninstallProbe(int offset);
         bool ProbeAtOffset(int offset, OpCode* pOriginalOpcode);
+#endif
 
         static bool ShouldShareInlineCaches() { return CONFIG_FLAG(ShareInlineCaches); }
 
@@ -3468,10 +3469,17 @@ namespace Js
         void SetLiteralRegex(const uint index, UnifiedRegex::RegexPattern *const pattern);
         Field(DynamicType*)* GetObjectLiteralTypes() const { return static_cast<Field(DynamicType*)*>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
         Field(DynamicType*)* GetObjectLiteralTypesWithLock() const { return static_cast<Field(DynamicType*)*>(this->GetAuxPtrWithLock(AuxPointerType::ObjLiteralTypes)); }
+
+        Js::AuxArray<uint32> * GetSlotIdInCachedScopeToNestedIndexArray() const { return static_cast<Js::AuxArray<uint32> *>(this->GetAuxPtr(AuxPointerType::SlotIdInCachedScopeToNestedIndexArray)); }
+        Js::AuxArray<uint32> * GetSlotIdInCachedScopeToNestedIndexArrayWithLock() const { return static_cast<Js::AuxArray<uint32> *>(this->GetAuxPtrWithLock(AuxPointerType::SlotIdInCachedScopeToNestedIndexArray)); }
+        Js::AuxArray<uint32> * AllocateSlotIdInCachedScopeToNestedIndexArray(uint32 slotCount);
+
     private:
         void ResetLiteralRegexes();
         void ResetObjectLiteralTypes();
         void SetObjectLiteralTypes(DynamicType** objLiteralTypes) { this->SetAuxPtr(AuxPointerType::ObjLiteralTypes, objLiteralTypes); };
+        void SetSlotIdInCachedScopeToNestedIndexArray(Js::AuxArray<uint32> * slotIdInCachedScopeToNestedIndexArray) { this->SetAuxPtr(AuxPointerType::SlotIdInCachedScopeToNestedIndexArray, slotIdInCachedScopeToNestedIndexArray); }
+        void ResetSlotIdInCachedScopeToNestedIndexArray() { SetSlotIdInCachedScopeToNestedIndexArray(nullptr); }
     public:
 
         void ResetByteCodeGenState();
@@ -3586,8 +3594,10 @@ namespace Js
         void SetEntryToProfileMode();
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         void CheckAndRegisterFuncToDiag(ScriptContext *scriptContext);
         void SetEntryToDeferParseForDebugger();
+#endif
         void ClearEntryPoints();
         void ResetEntryPoint();
         void CleanupToReparseHelper();
@@ -3726,6 +3736,8 @@ namespace Js
             if (this->pfi != nullptr && this->pfi->GetFunctionInfo()->GetFunctionProxy() != this->pfi)
             {
                 FunctionInfo *functionInfo = this->pfi->GetFunctionInfo();
+                FunctionBody *functionBody = functionInfo->GetFunctionProxy()->GetFunctionBody();
+                functionBody->RedeferFunctionObjectTypes();
                 functionInfo->SetAttributes(
                     (FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
                 functionInfo->SetFunctionProxy(this->pfi);

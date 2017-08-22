@@ -60,7 +60,7 @@ namespace Js
             break;
         }
 
-        if (funcCaller == nullptr || JavascriptOperators::GetTypeId(funcCaller) == TypeIds_Null)
+        if (funcCaller == nullptr)
         {
             return scriptContext->GetLibrary()->GetNull();
         }
@@ -111,6 +111,7 @@ namespace Js
     HeapArgumentsObject::HeapArgumentsObject(Recycler *recycler, ActivationObject* obj, uint32 formalCount, DynamicType * type)
         : ArgumentsObject(type), frameObject(obj), formalCount(formalCount), numOfArguments(0), callerDeleted(false), deletedArgs(nullptr)
     {
+        Assert(!frameObject || ActivationObject::Is(frameObject));
     }
 
     void HeapArgumentsObject::SetNumberOfArguments(uint32 len)
@@ -297,20 +298,14 @@ namespace Js
         TTD_PTR_ID* depOnArray = nullptr;
 
         argsInfo->IsFrameNullPtr = false;
-        argsInfo->IsFrameJsNull = false;
         argsInfo->FrameObject = TTD_INVALID_PTR_ID;
         if(this->frameObject == nullptr)
         {
             argsInfo->IsFrameNullPtr = true;
         }
-        else if(Js::JavascriptOperators::GetTypeId(this->frameObject) == TypeIds_Null)
-        {
-            argsInfo->IsFrameJsNull = true;
-        }
         else
         {
-            argsInfo->FrameObject = TTD_CONVERT_VAR_TO_PTR_ID(
-                static_cast<ActivationObject*>(this->frameObject));
+            argsInfo->FrameObject = TTD_CONVERT_VAR_TO_PTR_ID(this->frameObject);
 
             //Primitive kinds always inflated first so we only need to deal with complex kinds as depends on
             if(TTD::JsSupport::IsVarComplexKind(this->frameObject))
@@ -421,18 +416,18 @@ namespace Js
         {
             if (this->GetItemAt(index, value, requestContext))
             {
-                return Property_Found;
+                return PropertyQueryFlags::Property_Found;
             }
         }
 
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext)))
         {
             // Property has been pre-set and not deleted. Use it.
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags HeapArgumentsObject::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -444,11 +439,11 @@ namespace Js
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext)))
         {
             // Property has been pre-set and not deleted. Use it.
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags HeapArgumentsObject::GetPropertyReferenceQuery(Var originalInstance, PropertyId id, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -491,7 +486,7 @@ namespace Js
     {
         if (this->HasItemAt(index))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return DynamicObject::HasItemQuery(index);
     }
@@ -500,7 +495,7 @@ namespace Js
     {
         if (this->GetItemAt(index, value, requestContext))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return DynamicObject::GetItemQuery(originalInstance, index, value, requestContext);
     }

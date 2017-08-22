@@ -170,6 +170,51 @@ WebAssemblyMemory::GrowHelper(WebAssemblyMemory * mem, uint32 deltaPages)
     return mem->GrowInternal(deltaPages);
 }
 
+#if DBG
+void WebAssemblyMemory::TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint32 offset, Js::ArrayBufferView::ViewType viewType, uint32 bytecodeOffset, ScriptContext* context)
+{
+    // Must call after the write
+    Assert(mem);
+    Output::Print(_u("#%04x "), bytecodeOffset);
+    uint64 bigIndex = (uint64)index + (uint64)offset;
+    if (index >= mem->m_buffer->GetByteLength())
+    {
+        Output::Print(_u("WasmMemoryTrace:: Writing out of bounds. %llu >= %u\n"), bigIndex, mem->m_buffer->GetByteLength());
+    }
+    if (offset)
+    {
+        Output::Print(_u("WasmMemoryTrace:: buf[%u + %u (%llu)] = "), index, offset, bigIndex);
+    }
+    else
+    {
+        Output::Print(_u("WasmMemoryTrace:: buf[%u] = "), index);
+    }
+    BYTE* buffer = mem->m_buffer->GetBuffer();
+    switch (viewType)
+    {
+    case ArrayBufferView::ViewType::TYPE_INT8_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_INT8: Output::Print(_u("%d\n"), *(int8*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_UINT8_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_UINT8: Output::Print(_u("%u\n"), *(uint8*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_INT16_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_INT16: Output::Print(_u("%d\n"), *(int16*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_UINT16_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_UINT16: Output::Print(_u("%u\n"), *(uint16*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_INT32_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_INT32: Output::Print(_u("%d\n"), *(int32*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_UINT32_TO_INT64:
+    case ArrayBufferView::ViewType::TYPE_UINT32: Output::Print(_u("%u\n"), *(uint32*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_FLOAT32: Output::Print(_u("%.4f\n"), *(float*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_FLOAT64: Output::Print(_u("%.8f\n"), *(double*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_INT64: Output::Print(_u("%lld\n"), *(int64*)(buffer + bigIndex)); break;
+    default:
+        CompileAssert(ArrayBufferView::ViewType::TYPE_COUNT == 15);
+        Assert(UNREACHED);
+    }
+    return;
+}
+#endif
+
 Var
 WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callInfo, ...)
 {

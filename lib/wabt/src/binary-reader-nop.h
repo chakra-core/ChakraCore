@@ -34,7 +34,7 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   }
 
   /* Custom section */
-  Result BeginCustomSection(Offset size, StringSlice section_name) override {
+  Result BeginCustomSection(Offset size, string_view section_name) override {
     return Result::Ok;
   }
   Result EndCustomSection() override { return Result::Ok; }
@@ -55,38 +55,45 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result BeginImportSection(Offset size) override { return Result::Ok; }
   Result OnImportCount(Index count) override { return Result::Ok; }
   Result OnImport(Index index,
-                  StringSlice module_name,
-                  StringSlice field_name) override {
+                  string_view module_name,
+                  string_view field_name) override {
     return Result::Ok;
   }
   Result OnImportFunc(Index import_index,
-                      StringSlice module_name,
-                      StringSlice field_name,
+                      string_view module_name,
+                      string_view field_name,
                       Index func_index,
                       Index sig_index) override {
     return Result::Ok;
   }
   Result OnImportTable(Index import_index,
-                       StringSlice module_name,
-                       StringSlice field_name,
+                       string_view module_name,
+                       string_view field_name,
                        Index table_index,
                        Type elem_type,
                        const Limits* elem_limits) override {
     return Result::Ok;
   }
   Result OnImportMemory(Index import_index,
-                        StringSlice module_name,
-                        StringSlice field_name,
+                        string_view module_name,
+                        string_view field_name,
                         Index memory_index,
                         const Limits* page_limits) override {
     return Result::Ok;
   }
   Result OnImportGlobal(Index import_index,
-                        StringSlice module_name,
-                        StringSlice field_name,
+                        string_view module_name,
+                        string_view field_name,
                         Index global_index,
                         Type type,
                         bool mutable_) override {
+    return Result::Ok;
+  }
+  Result OnImportException(Index import_index,
+                           string_view module_name,
+                           string_view field_name,
+                           Index except_index,
+                           TypeVector& sig) override {
     return Result::Ok;
   }
   Result EndImportSection() override { return Result::Ok; }
@@ -134,7 +141,7 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result OnExport(Index index,
                   ExternalKind kind,
                   Index item_index,
-                  StringSlice name) override {
+                  string_view name) override {
     return Result::Ok;
   }
   Result EndExportSection() override { return Result::Ok; }
@@ -181,6 +188,8 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   }
   Result OnCallExpr(Index func_index) override { return Result::Ok; }
   Result OnCallIndirectExpr(Index sig_index) override { return Result::Ok; }
+  Result OnCatchExpr(Index except_index) override { return Result::Ok; }
+  Result OnCatchAllExpr() override { return Result::Ok; }
   Result OnCompareExpr(Opcode opcode) override { return Result::Ok; }
   Result OnConvertExpr(Opcode opcode) override { return Result::Ok; }
   Result OnCurrentMemoryExpr() override { return Result::Ok; }
@@ -207,6 +216,7 @@ class BinaryReaderNop : public BinaryReaderDelegate {
     return Result::Ok;
   }
   Result OnNopExpr() override { return Result::Ok; }
+  Result OnRethrowExpr(Index depth) override { return Result::Ok; }
   Result OnReturnExpr() override { return Result::Ok; }
   Result OnSelectExpr() override { return Result::Ok; }
   Result OnSetGlobalExpr(Index global_index) override { return Result::Ok; }
@@ -217,6 +227,10 @@ class BinaryReaderNop : public BinaryReaderDelegate {
     return Result::Ok;
   }
   Result OnTeeLocalExpr(Index local_index) override { return Result::Ok; }
+  Result OnThrowExpr(Index depth) override { return Result::Ok; }
+  Result OnTryExpr(Index num_types, Type* sig_types) override {
+    return Result::Ok;
+  }
   Result OnUnaryExpr(Opcode opcode) override { return Result::Ok; }
   Result OnUnreachableExpr() override { return Result::Ok; }
   Result EndFunctionBody(Index index) override { return Result::Ok; }
@@ -266,7 +280,7 @@ class BinaryReaderNop : public BinaryReaderDelegate {
     return Result::Ok;
   }
   Result OnFunctionName(Index function_index,
-                        StringSlice function_name) override {
+                        string_view function_name) override {
     return Result::Ok;
   }
   Result OnLocalNameSubsection(Index index,
@@ -283,7 +297,7 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   }
   Result OnLocalName(Index function_index,
                      Index local_index,
-                     StringSlice local_name) override {
+                     string_view local_name) override {
     return Result::Ok;
   }
   Result EndNamesSection() override { return Result::Ok; }
@@ -292,7 +306,7 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result BeginRelocSection(Offset size) override { return Result::Ok; }
   Result OnRelocCount(Index count,
                       BinarySection section_code,
-                      StringSlice section_name) override {
+                      string_view section_name) override {
     return Result::Ok;
   }
   Result OnReloc(RelocType type,
@@ -302,6 +316,23 @@ class BinaryReaderNop : public BinaryReaderDelegate {
     return Result::Ok;
   }
   Result EndRelocSection() override { return Result::Ok; }
+
+  /* Exception section */
+  Result BeginExceptionSection(Offset size) override { return Result::Ok; }
+  Result OnExceptionCount(Index count) override { return Result::Ok; }
+  Result OnExceptionType(Index index, TypeVector& sig) override {
+    return Result::Ok;
+  }
+  Result EndExceptionSection() override { return Result::Ok; }
+
+  /* Linking section */
+  Result BeginLinkingSection(Offset size) override { return Result::Ok; }
+  Result OnStackGlobal(Index stack_global) override { return Result::Ok; }
+  Result OnSymbolInfoCount(Index count) override { return Result::Ok; }
+  Result OnSymbolInfo(string_view name, uint32_t flags) override {
+    return Result::Ok;
+  }
+  Result EndLinkingSection() override { return Result::Ok; }
 
   /* InitExpr - used by elem, data and global sections; these functions are
    * only called between calls to Begin*InitExpr and End*InitExpr */

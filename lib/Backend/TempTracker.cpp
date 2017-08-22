@@ -818,7 +818,7 @@ NumberTemp::GetRepresentativePropertySymId(PropertySym * propertySym, BackwardPa
 {
     // Since we don't track alias with objects, all property accesses are all grouped together.
     // Use a single property sym id to represent a propertyId to track dependencies.
-    SymID symId;
+    SymID symId = (SymID)-1;
     Js::PropertyId propertyId = propertySym->m_propertyId;
     if (!backwardPass->numberTempRepresentativePropertySym->TryGetValue(propertyId, &symId))
     {
@@ -1146,7 +1146,7 @@ ObjectTemp::ProcessInstr(IR::Instr * instr)
         {
             // First (non-this) parameter is either a regexp or search string.
             // It doesn't escape.
-            IR::Instr * instrArgDef;
+            IR::Instr * instrArgDef = nullptr;
             instr->FindCallArgumentOpnd(2, &instrArgDef);
             instrArgDef->dstIsTempObject = true;
             break;
@@ -1154,7 +1154,7 @@ ObjectTemp::ProcessInstr(IR::Instr * instr)
 
         case IR::JnHelperMethod::HelperRegExp_Exec:
         {
-            IR::Instr * instrArgDef;
+            IR::Instr * instrArgDef = nullptr;
             instr->FindCallArgumentOpnd(1, &instrArgDef);
             instrArgDef->dstIsTempObject = true;
             break;

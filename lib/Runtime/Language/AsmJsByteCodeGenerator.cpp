@@ -175,13 +175,13 @@ namespace Js
 
         // add 3 for each of I0, F0, and D0
         RegSlot regCount = mInfo->RegCount() + 3 + AsmJsFunctionMemory::RequiredVarConstants;
-
+#ifdef ENABLE_SIMDJS
         if (IsSimdjsEnabled())
         {
             // 1 return reg for SIMD
             regCount++;
         }
-
+#endif
         byteCodeFunction->SetFirstTmpReg(regCount);
     }
 
@@ -426,18 +426,22 @@ namespace Js
         // Emit a function body. Only explicit returns and the implicit "undef" at the bottom
         // get copied to the return register.
 
+        ParseNode *stmt = nullptr;
         while (varStmts->nop == knopList)
         {
-            ParseNode *stmt = ParserWrapper::GetBinaryLeft(varStmts);
+            stmt = ParserWrapper::GetBinaryLeft(varStmts);
             EmitTopLevelStatement( stmt );
             varStmts = ParserWrapper::GetBinaryRight(varStmts);
         }
         Assert(!varStmts->CapturesSyms());
 
         // if last statement isn't return, type must be void
-        if (varStmts->nop != knopReturn)
+        if (!stmt || stmt->nop != knopReturn)
         {
-            mFunction->CheckAndSetReturnType(AsmJsRetType::Void);
+            if (!mFunction->CheckAndSetReturnType(AsmJsRetType::Void))
+            {
+                throw AsmJsCompilationException(_u("Expected function return type to be void got %s instead"), mFunction->GetReturnType().toType().toChars());
+            }
         }
         EmitTopLevelStatement(varStmts);
     }

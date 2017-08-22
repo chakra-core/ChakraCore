@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#include <signal.h>
+
 //
 // perf or perf_events is a tool for tracing in linux.
 // In order to make sense of perf traces in the presence of a JIT,
@@ -25,7 +27,7 @@ public:
 
     static void WritePerfMap();
 
-    static volatile bool mapsRequested;
+    static volatile sig_atomic_t mapsRequested;
 };
 
 };

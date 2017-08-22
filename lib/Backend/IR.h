@@ -203,6 +203,7 @@ public:
     bool            HasAuxBailOut() const { return hasAuxBailOut; }
     bool            HasTypeCheckBailOut() const;
     bool            HasEquivalentTypeCheckBailOut() const;
+    bool            HasBailOnNoProfile() const;
     void            ClearBailOutInfo();
     bool            IsDstNotAlwaysConvertedToInt32() const;
     bool            IsDstNotAlwaysConvertedToNumber() const;
@@ -334,7 +335,7 @@ public:
     bool            IsNeq();
     bool            BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult);
     template <typename T>     
-    bool            BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult);
+    bool            BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult, bool checkWouldTrap);
     bool            UnaryCalculator(IntConstType src1Const, IntConstType *pResult);
     IR::Instr*      GetNextArg();
 
@@ -737,9 +738,11 @@ public:
     bool                 m_isSwitchBr : 1;
     bool                 m_isOrphanedLeave : 1; // A Leave in a loop body in a try, most likely generated because of a return statement.
     bool                 m_areCmpRegisterFlagsUsedLater : 1; // Indicate that this branch is not the only instr using the register flags set by cmp
+    bool                 m_brFinallyToEarlyExit : 1; // BrOnException from finally to early exit, can be turned into BrOnNoException on break blocks removal
 #if DBG
     bool                 m_isMultiBranch;
     bool                 m_isHelperToNonHelperBranch;
+    bool                 m_leaveConvToBr;
 #endif
 
 public:
@@ -748,10 +751,11 @@ public:
     static BranchInstr * New(Js::OpCode opcode, Opnd* destOpnd, LabelInstr * branchTarget, Opnd *srcOpnd, Func *func);
     static BranchInstr * New(Js::OpCode opcode, LabelInstr * branchTarget, Opnd *src1Opnd, Opnd *src2Opnd, Func *func);
 
-    BranchInstr(bool hasBailOutInfo = false) : Instr(hasBailOutInfo), m_branchTarget(nullptr), m_isAirlock(false), m_isSwitchBr(false), m_isOrphanedLeave(false), m_areCmpRegisterFlagsUsedLater(false)
+    BranchInstr(bool hasBailOutInfo = false) : Instr(hasBailOutInfo), m_branchTarget(nullptr), m_isAirlock(false), m_isSwitchBr(false), m_isOrphanedLeave(false), m_areCmpRegisterFlagsUsedLater(false), m_brFinallyToEarlyExit(false)
     {
 #if DBG
         m_isMultiBranch = false;
+        m_leaveConvToBr = false;
 #endif
     }
 

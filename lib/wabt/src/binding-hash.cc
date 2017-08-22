@@ -33,9 +33,9 @@ void BindingHash::FindDuplicates(DuplicateCallback callback) const {
 }
 
 Index BindingHash::FindIndex(const Var& var) const {
-  if (var.type == VarType::Name)
-    return FindIndex(var.name);
-  return var.index;
+  if (var.is_name())
+    return FindIndex(var.name());
+  return var.index();
 }
 
 void BindingHash::CreateDuplicatesVector(

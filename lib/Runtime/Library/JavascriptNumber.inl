@@ -214,12 +214,29 @@ namespace Js
 
     inline JavascriptString * JavascriptNumber::ToStringNan(ScriptContext* scriptContext)
     {
-        return ToStringNan(*scriptContext->GetLibrary());
+        return scriptContext->GetLibrary()->GetNaNDisplayString();
     }
 
     inline JavascriptString* JavascriptNumber::ToStringNanOrInfinite(double value, ScriptContext* scriptContext)
     {
-        return ToStringNanOrInfinite(value, *scriptContext->GetLibrary());
+        if(!NumberUtilities::IsFinite(value))
+        {
+            if(IsNan(value))
+            {
+                return ToStringNan(scriptContext);
+            }
+
+            if(IsPosInf(value))
+            {
+                return scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Infinity"));
+            }
+            else
+            {
+                AssertMsg(IsNegInf(value), "bad handling of infinite number");
+                return scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("-Infinity"));
+            }
+        }
+        return nullptr;
     }
 
     inline Var JavascriptNumber::FormatDoubleToString( double value, Js::NumberUtilities::FormatType formatType, int formatDigits, ScriptContext* scriptContext )

@@ -4,11 +4,16 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
+#ifdef ENABLE_WASM
 
 namespace Js
 {
     class WebAssemblyInstance : public DynamicObject
     {
+    protected:
+        DEFINE_VTABLE_CTOR(WebAssemblyInstance, DynamicObject);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WebAssemblyInstance);
+
     public:
         class EntryInfo
         {
@@ -40,3 +45,4 @@ namespace Js
     };
 
 } // namespace Js
+#endif

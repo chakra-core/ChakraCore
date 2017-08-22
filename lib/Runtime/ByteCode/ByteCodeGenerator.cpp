@@ -1915,11 +1915,7 @@ Js::OpCode ByteCodeGenerator::GetStFldOpCode(FuncInfo* funcInfo, bool isRoot, bo
 /* static */
 Js::OpCode ByteCodeGenerator::GetScopedStFldOpCode(FuncInfo* funcInfo, bool isConsoleScopeLetConst)
 {
-    if (isConsoleScopeLetConst)
-    {
-        return Js::OpCode::ConsoleScopedStFld;
-    }
-    return GetScopedStFldOpCode(funcInfo->GetIsStrictMode());
+    return GetScopedStFldOpCode(funcInfo->GetIsStrictMode(), isConsoleScopeLetConst);
 }
 
 /* static */
@@ -3692,6 +3688,8 @@ void PreVisitCatch(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                     item->sxVar.pid->Psz(), sym->GetSymbolTypeName());
             }
 #endif
+            sym->SetIsCatch(true);
+            sym->SetIsBlockVar(true);
         });
     }
     else
@@ -5029,7 +5027,6 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
         if (nonLambdaFunc != func || (func->IsGlobalFunction() && (byteCodeGenerator->GetFlags() & fscrEval)))
         {
-            nonLambdaFunc->root->sxFnc.SetHasNewTargetReference();
             nonLambdaFunc->AssignNewTargetRegister();
             nonLambdaFunc->SetIsNewTargetLexicallyCaptured();
 
@@ -5063,7 +5060,6 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             {
                 func->AssignNewTargetRegister();
 
-                nonLambdaFunc->root->sxFnc.SetHasNewTargetReference();
                 nonLambdaFunc->AssignNewTargetRegister();
                 nonLambdaFunc->SetIsNewTargetLexicallyCaptured();
                 nonLambdaFunc->AssignUndefinedConstRegister();
@@ -5262,6 +5258,14 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 #endif
                     auto symName = sym->GetName();
                     sym = funcInfo->bodyScope->FindLocalSymbol(symName);
+
+                    if (sym == nullptr && nop == knopLetDecl && pnode->sxVar.sym->GetIsCatch())
+                    {
+                        // This should be  a scenario like try {} catch([x]) {} with no duplicate definition inside the catch block.
+                        // In non-destructured catch block param case, the created node will be a name node, not a var node.
+                        break;
+                    }
+
                     if (sym == nullptr)
                     {
                         sym = funcInfo->paramScope->FindLocalSymbol(symName);

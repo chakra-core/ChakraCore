@@ -1778,6 +1778,7 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
                 float64StackSym = stackSym->GetFloat64EquivSym(nullptr);
                 Assert(float64StackSym);
             }
+#ifdef ENABLE_SIMDJS
             // SIMD_JS
             else if (bailOutInfo->liveSimd128F4Syms->Test(symId))
             {
@@ -1787,6 +1788,7 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
             {
                 simd128StackSym = stackSym->GetSimd128I4EquivSym(nullptr);
             }
+#endif
             else
             {
                 Assert(bailOutInfo->liveVarSyms->Test(symId));
@@ -2345,17 +2347,21 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
         // ToVars that can more easily be eliminated due to being dead stores.
 
 #if DBG
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         // Simd128 syms should be live in at most one form
         tempBv->And(bailOutInfo->liveSimd128F4Syms, bailOutInfo->liveSimd128I4Syms);
+#endif
         Assert(tempBv->IsEmpty());
 
         // Verify that all syms to restore are live in some fashion
         tempBv->Minus(byteCodeUpwardExposedUsed, bailOutInfo->liveVarSyms);
         tempBv->Minus(bailOutInfo->liveLosslessInt32Syms);
         tempBv->Minus(bailOutInfo->liveFloat64Syms);
+#ifdef ENABLE_SIMDJS
         tempBv->Minus(bailOutInfo->liveSimd128F4Syms);
         tempBv->Minus(bailOutInfo->liveSimd128I4Syms);
+#endif
         Assert(tempBv->IsEmpty());
 #endif
 
@@ -2426,6 +2432,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
             }
             NEXT_BITSET_IN_SPARSEBV;
 
+#ifdef ENABLE_SIMDJS
             // SIMD_JS
             tempBv->Or(bailOutInfo->liveSimd128F4Syms, bailOutInfo->liveSimd128I4Syms);
             tempBv->And(byteCodeUpwardExposedUsed);
@@ -2447,6 +2454,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
                 byteCodeUpwardExposedUsed->Set(simd128Sym->m_id);
             }
             NEXT_BITSET_IN_SPARSEBV;
+#endif
         }
         // Var
         // Any remaining syms to restore will be restored from their var versions
@@ -3054,8 +3062,12 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
                 {
                     instr->m_opcode = Js::OpCode::NewScFunc;
                     IR::Opnd * intConstOpnd = instr->UnlinkSrc2();
+                    Assert(intConstOpnd->IsIntConstOpnd());
 
-                    instr->ReplaceSrc1(intConstOpnd);
+                    uint nestedFuncIndex = instr->m_func->GetJITFunctionBody()->GetNestedFuncIndexForSlotIdInCachedScope(intConstOpnd->AsIntConstOpnd()->AsUint32());
+                    intConstOpnd->Free(instr->m_func);
+
+                    instr->ReplaceSrc1(IR::IntConstOpnd::New(nestedFuncIndex, TyUint32, instr->m_func));
                     instr->SetSrc2(IR::RegOpnd::New(currFunc->GetLocalFrameDisplaySym(), IRType::TyVar, currFunc));
                 }
                 break;
@@ -3276,7 +3288,7 @@ BackwardPass::ProcessNoImplicitCallUses(IR::Instr *const instr)
     {
         IR::Opnd *const src = srcs[i];
         IR::ArrayRegOpnd *arraySrc = nullptr;
-        Sym *sym;
+        Sym *sym = nullptr;
         switch(src->GetKind())
         {
             case IR::OpndKindReg:
@@ -3404,7 +3416,7 @@ BackwardPass::ProcessNoImplicitCallDef(IR::Instr *const instr)
         return;
     }
 
-    Sym *srcSym;
+    Sym *srcSym = nullptr;
     switch(src->GetKind())
     {
         case IR::OpndKindReg:
@@ -6377,7 +6389,7 @@ BackwardPass::TrackFloatSymEquivalence(IR::Instr *const instr)
             return;
         }
 
-        FloatSymEquivalenceClass *dstEquivalenceClass, *srcEquivalenceClass;
+        FloatSymEquivalenceClass *dstEquivalenceClass = nullptr, *srcEquivalenceClass = nullptr;
         const bool dstHasEquivalenceClass = floatSymEquivalenceMap->TryGetValue(dst->m_id, &dstEquivalenceClass);
         const bool srcHasEquivalenceClass = floatSymEquivalenceMap->TryGetValue(src->m_id, &srcEquivalenceClass);
 
@@ -6438,7 +6450,7 @@ BackwardPass::TrackFloatSymEquivalence(IR::Instr *const instr)
     // kind on the instruction. Both are checked because in functions without loops, equivalence tracking is not done and only
     // the sym's non-number bailout bit will have the information, and in functions with loops, equivalence tracking is done
     // throughout the function and checking just the sym's non-number bailout bit is insufficient.
-    FloatSymEquivalenceClass *dstEquivalenceClass;
+    FloatSymEquivalenceClass *dstEquivalenceClass = nullptr;
     if(dst->m_requiresBailOnNotNumber ||
         (floatSymEquivalenceMap->TryGetValue(dst->m_id, &dstEquivalenceClass) && dstEquivalenceClass->RequiresBailOnNotNumber()))
     {
@@ -6852,10 +6864,7 @@ BackwardPass::TrackNoImplicitCallInlinees(IR::Instr *instr)
         || OpCodeAttr::CallInstr(instr->m_opcode)
         || instr->CallsAccessor()
         || GlobOpt::MayNeedBailOnImplicitCall(instr, nullptr, nullptr)
-        || instr->m_opcode == Js::OpCode::LdHeapArguments
-        || instr->m_opcode == Js::OpCode::LdLetHeapArguments
-        || instr->m_opcode == Js::OpCode::LdHeapArgsCached
-        || instr->m_opcode == Js::OpCode::LdLetHeapArgsCached
+        || instr->HasAnyLoadHeapArgsOpCode()
         || instr->m_opcode == Js::OpCode::LdFuncExpr)
     {
         // This func has instrs with bailouts or implicit calls

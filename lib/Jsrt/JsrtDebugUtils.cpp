@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "JsrtPch.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "JsrtDebugUtils.h"
 #include "RuntimeDebugPch.h"
 #include "screrror.h"   // For CompileScriptException
@@ -89,7 +90,7 @@ void JsrtDebugUtils::AddLineCountToObject(Js::DynamicObject * object, Js::Utf8So
     JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::lineCount, (uint32)utf8SourceInfo->GetLineCount(), utf8SourceInfo->GetScriptContext());
 }
 
-void JsrtDebugUtils::AddSouceToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
+void JsrtDebugUtils::AddSourceToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
 {
     int32 cchLength = utf8SourceInfo->GetCchLength();
     AutoArrayPtr<char16> sourceContent(HeapNewNoThrowArray(char16, cchLength + 1), cchLength + 1);
@@ -104,6 +105,19 @@ void JsrtDebugUtils::AddSouceToObject(Js::DynamicObject * object, Js::Utf8Source
     else
     {
         JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::source, _u(""), 1, utf8SourceInfo->GetScriptContext());
+    }
+}
+
+void JsrtDebugUtils::AddSourceMetadataToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
+{
+    JsrtDebugUtils::AddFileNameOrScriptTypeToObject(object, utf8SourceInfo);
+    JsrtDebugUtils::AddLineCountToObject(object, utf8SourceInfo);
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
+
+    if (utf8SourceInfo->HasDebugDocument())
+    {
+        // Only add the script ID in cases where a debug document exists
+        JsrtDebugUtils::AddScriptIdToObject(object, utf8SourceInfo);
     }
 }
 
@@ -200,6 +214,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             addDisplay = true;
             break;
 
+#ifdef ENABLE_SIMDJS
         case Js::TypeIds_SIMDFloat32x4:
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDFloat32x4DisplayString(), scriptContext);
             addDisplay = true;
@@ -216,6 +231,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDInt8x16DisplayString(), scriptContext);
             addDisplay = true;
             break;
+#endif // #ifdef ENABLE_SIMDJS
 
         case Js::TypeIds_Enumerator:
         case Js::TypeIds_HostDispatch:
@@ -276,6 +292,12 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_Promise:
         case Js::TypeIds_GlobalObject:
         case Js::TypeIds_SpreadArgument:
+#ifdef ENABLE_WASM
+        case Js::TypeIds_WebAssemblyModule:
+        case Js::TypeIds_WebAssemblyInstance:
+        case Js::TypeIds_WebAssemblyMemory:
+        case Js::TypeIds_WebAssemblyTable:
+#endif
 
         case Js::TypeIds_Proxy:
         {
@@ -465,7 +487,12 @@ const char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     case Js::TypeIds_Promise:           return _u("Promise");
     case Js::TypeIds_GlobalObject:      return _u("Object");
     case Js::TypeIds_SpreadArgument:    return _u("Spread");
-
+#ifdef ENABLE_WASM
+    case Js::TypeIds_WebAssemblyModule:  return _u("WebAssembly.Module");
+    case Js::TypeIds_WebAssemblyInstance:return _u("WebAssembly.Instance");
+    case Js::TypeIds_WebAssemblyMemory:  return _u("WebAssembly.Memory");
+    case Js::TypeIds_WebAssemblyTable:   return _u("WebAssembly.Table");
+#endif
     default:
         Assert(false);
     }
@@ -483,3 +510,4 @@ const char16 * JsrtDebugUtils::GetDebugPropertyName(JsrtDebugPropertyId property
     Assert(false);
     return _u("");
 }
+#endif

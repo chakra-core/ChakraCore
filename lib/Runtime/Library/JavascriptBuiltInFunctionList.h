@@ -125,7 +125,6 @@ BUILTIN(JavascriptDate, ToLocaleTimeString, EntryToLocaleTimeString, FunctionInf
 BUILTIN(JavascriptDate, ToString, EntryToString, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptDate, ToTimeString, EntryToTimeString, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, ToUTCString, EntryToUTCString, FunctionInfo::ErrorOnNew)
-BUILTIN(JavascriptDate, ToGMTString, EntryToGMTString, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, UTC, EntryUTC, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, ValueOf, EntryValueOf, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptDate, SymbolToPrimitive, EntrySymbolToPrimitive, FunctionInfo::ErrorOnNew)
@@ -312,8 +311,10 @@ BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
 // Wasm entry points
 #ifdef ENABLE_WASM
 BUILTIN(WebAssembly, Compile, EntryCompile, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, CompileStreaming, EntryCompileStreaming, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssembly, Validate, EntryValidate, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssembly, Instantiate, EntryInstantiate, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, InstantiateStreaming, EntryInstantiateStreaming, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssembly, InstantiateBound, EntryInstantiateBound, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssembly, QueryResponse, EntryQueryResponse, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)

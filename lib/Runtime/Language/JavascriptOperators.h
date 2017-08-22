@@ -53,9 +53,8 @@ namespace Js
         JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration); \
     }
 
-#define BEGIN_TYPEOF_ERROR_HANDLER(scriptContext)  \
-    try { \
-    Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext); \
+#ifdef ENABLE_SCRIPT_DEBUGGING
+#define BEGIN_TYPEOF_ERROR_HANDLER_DEBUGGER_THROW_IS_INTERNAL \
     class AutoCleanup \
     { \
     private: \
@@ -76,6 +75,14 @@ namespace Js
             } \
         } \
     } autoCleanup(scriptContext);
+#else
+#define BEGIN_TYPEOF_ERROR_HANDLER_DEBUGGER_THROW_IS_INTERNAL
+#endif
+
+#define BEGIN_TYPEOF_ERROR_HANDLER(scriptContext)  \
+    try { \
+        Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext); \
+        BEGIN_TYPEOF_ERROR_HANDLER_DEBUGGER_THROW_IS_INTERNAL
 
 
 #define END_TYPEOF_ERROR_HANDLER(scriptContext, var) \
@@ -453,7 +460,7 @@ namespace Js
         static void OP_InvalidateCachedScope(Var varEnv, int32 envIndex);
         static void OP_InitCachedFuncs(Var varScope, FrameDisplay *pDisplay, const FuncInfoArray *info, ScriptContext *scriptContext);
         static Var OP_NewScopeObject(ScriptContext* scriptContext);
-        static Var OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, JavascriptFunction * funcCallee, bool nonSimpleParamList);
+        static Var OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, FunctionBody * calleeBody, bool nonSimpleParamList);
         static Field(Var)* OP_NewScopeSlots(unsigned int count, ScriptContext *scriptContext, Var scope);
         static Field(Var)* OP_NewScopeSlotsWithoutPropIds(unsigned int count, int index, ScriptContext *scriptContext, FunctionBody *functionBody);
         static Field(Var)* OP_CloneScopeSlots(Field(Var) *scopeSlots, ScriptContext *scriptContext);

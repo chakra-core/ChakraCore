@@ -702,6 +702,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         ScriptContext* scriptContext = function->GetScriptContext();
+        bool hasOnlyIntegerArgs = false;
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -714,14 +715,31 @@ namespace Js
             double result = JavascriptConversion::ToNumber(args[1], scriptContext);
             return JavascriptNumber::ToVarNoCheck(result, scriptContext);
         }
-        else if (args.Info.Count == 3)
+        else
         {
-            if (TaggedInt::Is(args[1]) && TaggedInt::Is(args[2]))
+            hasOnlyIntegerArgs = TaggedInt::OnlyContainsTaggedInt(args);
+            if (hasOnlyIntegerArgs && args.Info.Count == 3)
             {
                 return TaggedInt::ToVarUnchecked(max(TaggedInt::ToInt32(args[1]), TaggedInt::ToInt32(args[2])));
             }
         }
 
+        if (hasOnlyIntegerArgs)
+        {
+            int32 current = TaggedInt::ToInt32(args[1]);
+            for (uint idxArg = 2; idxArg < args.Info.Count; idxArg++)
+            {
+                int32 compare = TaggedInt::ToInt32(args[idxArg]);
+                if (current < compare)
+                {
+                    current = compare;
+                }
+            }
+
+            return TaggedInt::ToVarUnchecked(current);
+        }
+        else
+        {
         double current = JavascriptConversion::ToNumber(args[1], scriptContext);
         if(JavascriptNumber::IsNan(current))
         {
@@ -735,7 +753,10 @@ namespace Js
             {
                 return scriptContext->GetLibrary()->GetNaN();
             }
-            if((JavascriptNumber::IsNegZero(current) && compare == 0) ||
+
+                // In C++, -0.0f == 0.0f; however, in ES, -0.0f < 0.0f. Thus, use additional library 
+                // call to test this comparison.
+                if ((compare == 0 && JavascriptNumber::IsNegZero(current)) ||
                 current < compare )
             {
                 current = compare;
@@ -743,6 +764,7 @@ namespace Js
         }
 
         return JavascriptNumber::ToVarNoCheck(current, scriptContext);
+    }
     }
 
 
@@ -760,6 +782,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         ScriptContext* scriptContext = function->GetScriptContext();
+        bool hasOnlyIntegerArgs = false;
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -772,14 +795,31 @@ namespace Js
             double result = JavascriptConversion::ToNumber(args[1], scriptContext);
             return JavascriptNumber::ToVarNoCheck(result, scriptContext);
         }
-        else if (args.Info.Count == 3)
+        else
         {
-            if (TaggedInt::Is(args[1]) && TaggedInt::Is(args[2]))
+            hasOnlyIntegerArgs = TaggedInt::OnlyContainsTaggedInt(args);
+            if (hasOnlyIntegerArgs && args.Info.Count == 3)
             {
                 return TaggedInt::ToVarUnchecked(min(TaggedInt::ToInt32(args[1]), TaggedInt::ToInt32(args[2])));
             }
         }
 
+        if (hasOnlyIntegerArgs)
+        {
+            int32 current = TaggedInt::ToInt32(args[1]);
+            for (uint idxArg = 2; idxArg < args.Info.Count; idxArg++)
+            {
+                int32 compare = TaggedInt::ToInt32(args[idxArg]);
+                if (current > compare)
+                {
+                    current = compare;
+                }
+            }
+
+            return TaggedInt::ToVarUnchecked(current);
+        }
+        else
+        {
         double current = JavascriptConversion::ToNumber(args[1], scriptContext);
         if(JavascriptNumber::IsNan(current))
         {
@@ -793,7 +833,10 @@ namespace Js
             {
                 return scriptContext->GetLibrary()->GetNaN();
             }
-            if((JavascriptNumber::IsNegZero(compare) && current == 0) ||
+
+                // In C++, -0.0f == 0.0f; however, in ES, -0.0f < 0.0f. Thus, use additional library 
+                // call to test this comparison.
+                if ((current == 0 && JavascriptNumber::IsNegZero(compare)) ||
                 current > compare )
             {
                 current = compare;
@@ -801,6 +844,7 @@ namespace Js
         }
 
         return JavascriptNumber::ToVarNoCheck(current, scriptContext);
+    }
     }
 
 

@@ -2,6 +2,8 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+#pragma once
+
 class UInt16Math
 {
 public:
@@ -80,3 +82,15 @@ public:
 
 };
 using ArgSlotMath = UInt16Math;
+
+template <>
+inline bool Math::IncImpl<uint16>(uint16 val, uint16 *pResult)
+{
+    return UInt16Math::Add(val, 1, pResult);
+}
+
+template <>
+inline bool Math::AddImpl<uint16>(uint16 left, uint16 right, uint16 *pResult)
+{
+    return UInt16Math::Add(left, right, pResult);
+}

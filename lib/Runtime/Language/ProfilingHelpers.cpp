@@ -857,7 +857,7 @@ namespace Js
             PropertyValueInfo propertyValueInfo;
             PropertyValueInfo::SetCacheInfo(&propertyValueInfo, functionBody, inlineCache, inlineCacheIndex, true);
             if (!CacheOperators::TryGetProperty<true, true, true, !Root && !Method, true, !Root, true, false, true>(
-                    thisObject,
+                    object,
                     Root,
                     object,
                     propertyId,
@@ -1102,7 +1102,7 @@ namespace Js
             PropertyValueInfo propertyValueInfo;
             PropertyValueInfo::SetCacheInfo(&propertyValueInfo, functionBody, inlineCache, inlineCacheIndex, true);
             if(!CacheOperators::TrySetProperty<true, true, true, true, !Root, true, false, true>(
-                    thisObject,
+                    object,
                     Root,
                     propertyId,
                     value,
@@ -1176,7 +1176,7 @@ namespace Js
                 // point on, when the same function object is used as a constructor, the a new object with the final type will
                 // be created. Whatever is stored in the inline cache currently will cause cache misses after the constructor
                 // cache update. So, just clear it now so that the caches won't be flagged as polymorphic.
-                inlineCache->Clear();
+                inlineCache->RemoveFromInvalidationListAndClear(scriptContext->GetThreadContext());
             }
         }
         else

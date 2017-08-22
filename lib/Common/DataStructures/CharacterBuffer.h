@@ -68,8 +68,7 @@ namespace JsUtil
             }
             for (charcount_t i = 0; i < hashLength; i++)
             {
-                hash = _rotl(hash, 7);
-                hash ^= s[i];
+                CC_HASH_LOGIC(hash, s[i]);
             }
             return hash;
         }

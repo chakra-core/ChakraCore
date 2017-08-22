@@ -166,6 +166,7 @@ AutoSystemInfo::InitPhysicalProcessorCount()
     bResult = GetLogicalProcessorInformation(pBufferCurrent, &size);
     if (!bResult)
     {
+        NoCheckHeapDeleteArray(count, pBufferStart);
         return false;
     }
 
@@ -396,6 +397,31 @@ LPCWSTR AutoSystemInfo::GetJscriptDllFileName()
 {
     return (LPCWSTR)Data.binaryName;
 }
+
+#ifdef _WIN32
+/* static */
+HMODULE AutoSystemInfo::GetCRTHandle()
+{
+    return GetModuleHandle(_u("msvcrt.dll"));
+}
+
+bool
+AutoSystemInfo::IsCRTModulePointer(uintptr_t ptr)
+{
+    HMODULE base = GetCRTHandle();
+    if (Data.crtSize == 0)
+    {
+        MODULEINFO info;
+        if (!GetModuleInformation(GetCurrentProcess(), base, &info, sizeof(MODULEINFO)))
+        {
+            AssertOrFailFast(UNREACHED);
+        }
+        Data.crtSize = info.SizeOfImage;
+        Assert(base == info.lpBaseOfDll);
+    }
+    return (ptr >= (uintptr_t)base && ptr < (uintptr_t)base + Data.crtSize);
+}
+#endif
 
 bool AutoSystemInfo::IsLowMemoryProcess()
 {

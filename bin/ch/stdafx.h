@@ -24,17 +24,11 @@
 #define IfFalseGo(expr) do { if(!(expr)) { hr = E_FAIL; goto Error; } } while(0)
 #define IfFalseGoLabel(expr, label) do { if(!(expr)) { hr = E_FAIL; goto label; } } while(0)
 
-#define WIN32_LEAN_AND_MEAN 1
-
 #include "CommonDefines.h"
 #include <map>
 #include <string>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
 #include <CommonPal.h>
-#endif // _WIN32
 
 #include <stdarg.h>
 #ifdef _MSC_VER
@@ -93,10 +87,23 @@ using utf8::NarrowStringToWideDynamic;
 using utf8::WideStringToNarrowDynamic;
 #include "Helpers.h"
 
+#include "PlatformAgnostic/SystemInfo.h"
+
 #define IfJsErrorFailLog(expr) \
 do { \
     JsErrorCode jsErrorCode = expr; \
     if ((jsErrorCode) != JsNoError) { \
+        fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
+        fflush(stderr); \
+        goto Error; \
+    } \
+} while (0)
+
+#define IfJsErrorFailLogAndHR(expr) \
+do { \
+    JsErrorCode jsErrorCode = expr; \
+    if ((jsErrorCode) != JsNoError) { \
+        hr = E_FAIL; \
         fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
         fflush(stderr); \
         goto Error; \
@@ -193,17 +200,38 @@ public:
         {
             strValue = value;
         }
+        int strLen = 0;
+        size_t writtenLen = 0;
+        size_t actualLen = 0;
         if (errorCode == JsNoError)
         {
-            size_t len = 0;
-            errorCode = ChakraRTInterface::JsCopyString(strValue, nullptr, 0, &len);
+            errorCode = ChakraRTInterface::JsGetStringLength(strValue, &strLen);
             if (errorCode == JsNoError)
             {
-                data = (char*) malloc((len + 1) * sizeof(char));
-                ChakraRTInterface::JsCopyString(strValue, data, len + 1, &length);
-                AssertMsg(len == length, "If you see this message.. There is something seriously wrong. Good Luck!");
-                *(data + len) = char(0);
+                // Assume ascii characters
+                data = (char*)malloc((strLen + 1) * sizeof(char));
+                errorCode = ChakraRTInterface::JsCopyString(strValue, data, strLen, &writtenLen, &actualLen);
+                if (errorCode == JsNoError)
+                {
+                    // If non-ascii, take slow path
+                    if (writtenLen != actualLen)
+                    {
+                        free(data);
+                        data = (char*)malloc((actualLen + 1) * sizeof(char));
+
+                        errorCode = ChakraRTInterface::JsCopyString(strValue, data, actualLen + 1, &writtenLen, nullptr);
+                        if (errorCode == JsNoError)
+                        {
+                            AssertMsg(actualLen == writtenLen, "If you see this message.. There is something seriously wrong. Good Luck!");
+                            
+                        }
+                    }
+                }
             }
+        }
+        if (errorCode == JsNoError)
+        {
+            *(data + actualLen) = char(0);
         }
         return errorCode;
     }
@@ -272,6 +300,5 @@ inline JsErrorCode CreatePropertyIdFromString(const char* str, JsPropertyIdRef *
     return ChakraRTInterface::JsCreatePropertyId(str, strlen(str), Id);
 }
 
-void GetBinaryLocation(char *path, const unsigned size);
 void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char* filename);
 extern "C" HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks);

@@ -214,6 +214,7 @@ namespace Js
 
         static JavascriptArray* FromAnyArray(Var aValue);
         static bool IsDirectAccessArray(Var aValue);
+        static bool IsInlineSegment(SparseArraySegmentBase *seg, JavascriptArray *pArr);
 
         void SetLength(uint32 newLength);
         BOOL SetLength(Var newLength);
@@ -303,7 +304,7 @@ namespace Js
         static Var Pop(ScriptContext * scriptContext, Var object);
 
 
-        static Var EntryPopJavascriptArray(ScriptContext * scriptContext, Var object);
+        static Var EntryPopJavascriptArray(ScriptContext * scriptContext, JavascriptArray* arr);
         static Var EntryPopNonJavascriptArray(ScriptContext * scriptContext, Var object);
 
 #if DEBUG
@@ -623,6 +624,10 @@ namespace Js
 
         template <typename Fn>
         static void ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArr, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, uint32 destIndex, Fn fn);
+
+        // This helper function is mainly used as a precheck before going to the FillFromPrototype code path.
+        // Proxy and CustomExternalObject in the prototype chain will be returned as if ES5Array is there.
+        static bool HasAnyES5ArrayInPrototypeChain(JavascriptArray *arr, bool forceCheckProtoChain = false);
 
         // NativeArrays may change it's content type, but not others
         template <typename T> static bool MayChangeType() { return false; }

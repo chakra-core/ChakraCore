@@ -8,6 +8,8 @@ namespace Js
 {
     class JavascriptDate : public DynamicObject
     {
+        DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
+
     protected:
         Field(DateImplementation) m_date;
 
@@ -127,7 +129,6 @@ namespace Js
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToTimeString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToUTCString(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryToGMTString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryUTC(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryValueOf(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolToPrimitive(RecyclableObject* function, CallInfo callInfo, ...);

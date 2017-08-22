@@ -217,7 +217,7 @@ namespace JsRTApiTest
     }
 
     void DeleteObjectIndexedPropertyBug(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
-     {
+    {
         JsValueRef object;
         REQUIRE(JsRunScript(_u("({a: 'a', 1: 1, 100: 100})"), JS_SOURCE_CONTEXT_NONE, _u(""), &object) == JsNoError);
 
@@ -679,8 +679,20 @@ namespace JsRTApiTest
             PCWCHAR actualName = nullptr;
             size_t actualNameLength;
             REQUIRE(JsStringToPointer(name, &actualName, &actualNameLength) == JsNoError);
-            CHECK(expectedNameLength ==  actualNameLength);
+            CHECK(expectedNameLength == actualNameLength);
             CHECK(wcscmp(expectedName, actualName) == 0);
+        };
+
+        auto testToStringResult = [=](JsValueRef function, PCWCHAR expectedResult, size_t expectedResultLength)
+        {
+            JsValueRef actualResult = JS_INVALID_REFERENCE;
+            REQUIRE(JsConvertValueToString(function, &actualResult) == JsNoError);
+
+            PCWCHAR actualResultString = nullptr;
+            size_t actualResultLength;
+            REQUIRE(JsStringToPointer(actualResult, &actualResultString, &actualResultLength) == JsNoError);
+            CHECK(expectedResultLength == actualResultLength);
+            CHECK(wcscmp(expectedResult, actualResultString) == 0);
         };
 
         JsValueRef function = JS_INVALID_REFERENCE;
@@ -692,6 +704,11 @@ namespace JsRTApiTest
         REQUIRE(JsPointerToString(name, _countof(name) - 1, &nameString) == JsNoError);
         REQUIRE(JsCreateNamedFunction(nameString, ExternalFunctionCallback, nullptr, &function) == JsNoError);
         testConstructorName(function, name, _countof(name) - 1);
+
+        WCHAR toStringExpectedResult[] = _u("function FooName() { [native code] }");
+        testToStringResult(function, toStringExpectedResult, _countof(toStringExpectedResult) - 1);
+        // Calling toString multiple times should return the same result.
+        testToStringResult(function, toStringExpectedResult, _countof(toStringExpectedResult) - 1);
     }
 
     TEST_CASE("ApiTest_ExternalFunctionNameTest", "[ApiTest]")
@@ -1089,7 +1106,7 @@ namespace JsRTApiTest
         REQUIRE(JsSetCurrentContext(current) == JsNoError);
         REQUIRE(JsDisposeRuntime(second) == JsNoError);
 
-        delete [] compiledScript;
+        delete[] compiledScript;
     }
 
     TEST_CASE("ApiTest_ByteCodeTest", "[ApiTest]")
@@ -1309,7 +1326,7 @@ namespace JsRTApiTest
         JsValueRef proto = JS_INVALID_REFERENCE;
         JsValueRef object1 = JS_INVALID_REFERENCE;
         JsValueRef object2 = JS_INVALID_REFERENCE;
-        JsPropertyIdRef obj1_a_pid= JS_INVALID_REFERENCE;
+        JsPropertyIdRef obj1_a_pid = JS_INVALID_REFERENCE;
         JsPropertyIdRef obj1_b_pid = JS_INVALID_REFERENCE;
         JsPropertyIdRef obj2_x_pid = JS_INVALID_REFERENCE;
         JsPropertyIdRef obj2_y_pid = JS_INVALID_REFERENCE;
@@ -1414,9 +1431,11 @@ namespace JsRTApiTest
     static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callbackState)
     {
         CHECK(callbackState != nullptr);
-        CHECK(*(void **)callbackState == nullptr);
-        // All the task need to finish async, so we need to save the callback.
-        *(void **)callbackState = task;
+
+        // This simply saves the given task into the callback state
+        // so that we can verify it in the test
+        CHECK(*(JsValueRef *)callbackState == JS_INVALID_REFERENCE);
+        *(JsValueRef *)callbackState = task;
     }
 
     void PromisesTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
@@ -1429,13 +1448,13 @@ namespace JsRTApiTest
         REQUIRE(JsRunScript(
             _u("new Promise(") \
             _u("  function(resolve, reject) {") \
-            _u("      resolve('basic:success');") \
+            _u("    resolve('basic:success');") \
             _u("  }") \
             _u(").then (") \
             _u("  function () { return new Promise(") \
             _u("    function(resolve, reject) { ") \
             _u("      resolve('second:success'); ") \
-            _u("      })") \
+            _u("    })") \
             _u("  }") \
             _u(");"), JS_SOURCE_CONTEXT_NONE, _u(""), &result) == JsNoError);
         CHECK(callback != nullptr);
@@ -1470,6 +1489,49 @@ namespace JsRTApiTest
     TEST_CASE("ApiTest_PromisesTest", "[ApiTest]")
     {
         JsRTApiTest::RunWithAttributes(JsRTApiTest::PromisesTest);
+    }
+
+    void UnsetPromiseContinuation(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        JsValueRef result = JS_INVALID_REFERENCE, callbackState = JS_INVALID_REFERENCE, exception = JS_INVALID_REFERENCE;
+        JsValueType cbStateType = JsUndefined;
+        const wchar_t *script = _u("new Promise((res, rej) => res()).then(() => 1)");
+
+        // script with no promise continuation callback should error
+        REQUIRE(JsRunScript(script, JS_SOURCE_CONTEXT_NONE, _u(""), &result) == JsErrorScriptException);
+        CHECK(result == JS_INVALID_REFERENCE);
+        REQUIRE(JsGetAndClearException(&exception) == JsNoError);
+
+        // script with promise continuation callback should run successfully
+        result = JS_INVALID_REFERENCE;
+        callbackState = JS_INVALID_REFERENCE;
+        REQUIRE(JsSetPromiseContinuationCallback(PromiseContinuationCallback, &callbackState) == JsNoError);
+        REQUIRE(JsRunScript(script, JS_SOURCE_CONTEXT_NONE, _u(""), &result) == JsNoError);
+        CHECK(result != JS_INVALID_REFERENCE);
+        REQUIRE(JsGetValueType(callbackState, &cbStateType) == JsNoError);
+        CHECK(cbStateType == JsFunction);
+
+        // unsetting the promise continuation callback should make promise scripts error
+        result = JS_INVALID_REFERENCE;
+        callbackState = JS_INVALID_REFERENCE;
+        REQUIRE(JsSetPromiseContinuationCallback(nullptr, nullptr) == JsNoError);
+        REQUIRE(JsRunScript(script, JS_SOURCE_CONTEXT_NONE, _u(""), &result) == JsErrorScriptException);
+        CHECK(result == JS_INVALID_REFERENCE);
+        REQUIRE(JsGetAndClearException(&exception) == JsNoError);
+
+        // resetting promise continuation callback should run successfully
+        result = JS_INVALID_REFERENCE;
+        callbackState = JS_INVALID_REFERENCE;
+        REQUIRE(JsSetPromiseContinuationCallback(PromiseContinuationCallback, &callbackState) == JsNoError);
+        REQUIRE(JsRunScript(script, JS_SOURCE_CONTEXT_NONE, _u(""), &result) == JsNoError);
+        CHECK(result != JS_INVALID_REFERENCE);
+        REQUIRE(JsGetValueType(callbackState, &cbStateType) == JsNoError);
+        CHECK(cbStateType == JsFunction);
+    }
+
+    TEST_CASE("ApiTest_UnsetPromiseContinuation", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::UnsetPromiseContinuation);
     }
 
     void ArrayBufferTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
@@ -1603,11 +1665,19 @@ namespace JsRTApiTest
         JsRuntimeHandle runtime;
         HANDLE hMonitor;
         BOOL isScriptActive;
+        JsErrorCode disableExecutionResult;
+
         static const int waitTime = 1000;
 
         void BeginScriptExecution() { isScriptActive = true; }
         void EndScriptExecution() { isScriptActive = false; }
         void SignalMonitor() { SetEvent(hMonitor); }
+
+        // CATCH is not thread-safe. Call this in main thread only.
+        void CheckDisableExecutionResult()
+        {
+            REQUIRE(disableExecutionResult == JsNoError);
+        }
 
         unsigned int ThreadProc()
         {
@@ -1618,13 +1688,17 @@ namespace JsRTApiTest
                 if (isScriptActive)
                 {
                     Sleep(waitTime);
-                    REQUIRE(JsDisableRuntimeExecution(runtime) == JsNoError);
+
+                    // CATCH is not thread-safe. Do not verify in this thread.
+                    disableExecutionResult = JsDisableRuntimeExecution(runtime);
+                    if (disableExecutionResult == JsNoError)
+                    {
+                        continue;  // done, wait for next signal
+                    }
                 }
-                else
-                {
-                    CloseHandle(hMonitor);
-                    break;
-                }
+
+                CloseHandle(hMonitor);
+                break;
             }
             return 0;
         }
@@ -1741,11 +1815,15 @@ namespace JsRTApiTest
             REQUIRE(JsIsRuntimeExecutionDisabled(runtime, &isDisabled) == JsNoError);
             CHECK(isDisabled);
 
-
+#ifdef NTBUILD
             REQUIRE(JsCallFunction(postScriptAbortFunction, args, 1, nullptr) == JsErrorInDisabledState);
-
+#else // !JSRT_VERIFY_RUNTIME_STATE
+            bool hasException = false;
+            REQUIRE(JsHasException(&hasException) == JsErrorInDisabledState);
+#endif
             REQUIRE(JsGetAndClearException(&exception) == JsErrorInDisabledState);
             REQUIRE(JsEnableRuntimeExecution(runtime) == JsNoError);
+            threadArgs.CheckDisableExecutionResult();
             threadArgs.EndScriptExecution();
         }
         threadArgs.SignalMonitor();
@@ -1787,9 +1865,15 @@ namespace JsRTApiTest
             bool isDisabled;
             REQUIRE(JsIsRuntimeExecutionDisabled(runtime, &isDisabled) == JsNoError);
             CHECK(isDisabled);
+#ifdef NTBUILD
             REQUIRE(JsRunScript(terminationTests[i], JS_SOURCE_CONTEXT_NONE, _u(""), &result) == JsErrorInDisabledState);
+#else // !JSRT_VERIFY_RUNTIME_STATE
+            bool hasException = false;
+            REQUIRE(JsHasException(&hasException) == JsErrorInDisabledState);
+#endif
             REQUIRE(JsGetAndClearException(&exception) == JsErrorInDisabledState);
             REQUIRE(JsEnableRuntimeExecution(runtime) == JsNoError);
+            threadArgs.CheckDisableExecutionResult();
             threadArgs.EndScriptExecution();
         }
         threadArgs.SignalMonitor();
@@ -1805,7 +1889,7 @@ namespace JsRTApiTest
     struct ModuleResponseData
     {
         ModuleResponseData()
-        : mainModule(JS_INVALID_REFERENCE), childModule(JS_INVALID_REFERENCE), mainModuleException(JS_INVALID_REFERENCE), mainModuleReady(false)
+            : mainModule(JS_INVALID_REFERENCE), childModule(JS_INVALID_REFERENCE), mainModuleException(JS_INVALID_REFERENCE), mainModuleReady(false)
         {
         }
         JsModuleRecord mainModule;
@@ -2045,6 +2129,71 @@ namespace JsRTApiTest
     TEST_CASE("ApiTest_ReentrantNoErrorParseModuleTest", "[ApiTest]")
     {
         JsRTApiTest::WithSetup(JsRuntimeAttributeEnableExperimentalFeatures, ReentrantNoErrorParseModuleTest);
+    }
+
+    void ObjectHasOwnPropertyMethodTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        JsValueRef proto = JS_INVALID_REFERENCE;
+        JsValueRef object = JS_INVALID_REFERENCE;
+
+        REQUIRE(JsCreateObject(&proto) == JsNoError);
+        REQUIRE(JsCreateObject(&object) == JsNoError);
+        REQUIRE(JsSetPrototype(object, proto) == JsNoError);
+
+        JsPropertyIdRef propertyIdFoo = JS_INVALID_REFERENCE;
+        JsPropertyIdRef propertyIdBar = JS_INVALID_REFERENCE;
+        bool hasProperty = false;
+
+        REQUIRE(JsGetPropertyIdFromName(_u("foo"), &propertyIdFoo) == JsNoError);
+        REQUIRE(JsGetPropertyIdFromName(_u("bar"), &propertyIdBar) == JsNoError);
+
+        REQUIRE(JsSetProperty(object, propertyIdFoo, object, true) == JsNoError);
+        REQUIRE(JsSetProperty(proto, propertyIdBar, object, true) == JsNoError);
+
+        REQUIRE(JsHasProperty(object, propertyIdFoo, &hasProperty) == JsNoError);
+        CHECK(hasProperty);
+
+        REQUIRE(JsHasOwnProperty(object, propertyIdFoo, &hasProperty) == JsNoError);
+        CHECK(hasProperty);
+
+        REQUIRE(JsHasProperty(object, propertyIdBar, &hasProperty) == JsNoError);
+        CHECK(hasProperty);
+
+        REQUIRE(JsHasOwnProperty(object, propertyIdBar, &hasProperty) == JsNoError);
+        CHECK(!hasProperty);
+    }
+
+    TEST_CASE("ApiTest_ObjectHasOwnPropertyMethodTest", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::ObjectHasOwnPropertyMethodTest);
+    }
+
+    void JsCopyStringOneByteMethodTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        size_t written = 0;
+        char buf[10] = {0};
+        JsValueRef value;
+        REQUIRE(JsCreateStringUtf16(reinterpret_cast<const uint16_t*>(_u("0\x10\x80\xa9\uabcd\U000104377")), 8, &value) == JsNoError);
+        REQUIRE(JsCopyStringOneByte(value, 0, -1, nullptr, &written) == JsNoError);
+        CHECK(written == 8);
+        buf[written] = '\xff';
+
+        REQUIRE(JsCopyStringOneByte(value, 0, 10, buf, &written) == JsNoError);
+        CHECK(written == 8);
+        CHECK(buf[0] == '0');
+        CHECK(buf[1] == '\x10');
+        CHECK(buf[2] == '\x80');
+        CHECK(buf[3] == '\xA9');
+        CHECK(buf[4] == '\xcd');
+        CHECK(buf[5] == '\x01');
+        CHECK(buf[6] == '\x37');
+        CHECK(buf[7] == '7');
+        CHECK(buf[8] == '\xff');
+    }
+
+    TEST_CASE("ApiTest_JsCopyStringOneByteMethodTest", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::JsCopyStringOneByteMethodTest);
     }
 
 }

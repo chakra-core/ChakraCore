@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "JsrtPch.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "JsrtInternal.h"
 #include "RuntimeDebugPch.h"
 #include "ThreadContextTlsEntry.h"
@@ -40,12 +41,16 @@
     { \
         return JsErrorWrongThread; \
     }
+#endif
 
 CHAKRA_API JsDiagStartDebugging(
     _In_ JsRuntimeHandle runtimeHandle,
     _In_ JsDiagDebugEventCallback debugEventCallback,
     _In_opt_ void* callbackState)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
@@ -101,12 +106,16 @@ CHAKRA_API JsDiagStartDebugging(
 
         return JsNoError;
     });
+#endif
 }
 
 CHAKRA_API JsDiagStopDebugging(
     _In_ JsRuntimeHandle runtimeHandle,
     _Out_ void** callbackState)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
@@ -150,11 +159,15 @@ CHAKRA_API JsDiagStopDebugging(
 
         return JsNoError;
     });
+#endif
 }
 
 CHAKRA_API JsDiagGetScripts(
     _Out_ JsValueRef *scriptsArray)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(scriptsArray);
@@ -177,12 +190,16 @@ CHAKRA_API JsDiagGetScripts(
 
         return JsErrorDiagUnableToPerformAction;
     });
+#endif
 }
 
 CHAKRA_API JsDiagGetSource(
     _In_ unsigned int scriptId,
     _Out_ JsValueRef *source)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(source);
@@ -205,11 +222,15 @@ CHAKRA_API JsDiagGetSource(
 
         return JsErrorInvalidArgument;
     });
+#endif
 }
 
 CHAKRA_API JsDiagRequestAsyncBreak(
     _In_ JsRuntimeHandle runtimeHandle)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
@@ -229,11 +250,15 @@ CHAKRA_API JsDiagRequestAsyncBreak(
 
         return JsNoError;
     });
+#endif
 }
 
 CHAKRA_API JsDiagGetBreakpoints(
     _Out_ JsValueRef *breakpoints)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         PARAM_NOT_NULL(breakpoints);
@@ -268,6 +293,7 @@ CHAKRA_API JsDiagGetBreakpoints(
 
         return JsNoError;
     });
+#endif
 }
 
 CHAKRA_API JsDiagSetBreakpoint(
@@ -276,6 +302,9 @@ CHAKRA_API JsDiagSetBreakpoint(
     _In_ unsigned int columnNumber,
     _Out_ JsValueRef *breakpoint)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         PARAM_NOT_NULL(breakpoint);
@@ -329,11 +358,15 @@ CHAKRA_API JsDiagSetBreakpoint(
 
         return JsErrorDiagObjectNotFound;
     });
+#endif
 }
 
 CHAKRA_API JsDiagRemoveBreakpoint(
     _In_ unsigned int breakpointId)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         JsrtContext *currentContext = JsrtContext::GetCurrent();
@@ -358,12 +391,16 @@ CHAKRA_API JsDiagRemoveBreakpoint(
 
         return JsNoError;
     });
+#endif
 }
 
 CHAKRA_API JsDiagSetBreakOnException(
     _In_ JsRuntimeHandle runtimeHandle,
     _In_ JsDiagBreakOnExceptionAttributes exceptionAttributes)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
@@ -378,12 +415,16 @@ CHAKRA_API JsDiagSetBreakOnException(
 
         return JsNoError;
     });
+#endif
 }
 
 CHAKRA_API JsDiagGetBreakOnException(
     _In_ JsRuntimeHandle runtimeHandle,
     _Out_ JsDiagBreakOnExceptionAttributes* exceptionAttributes)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
 
         VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
@@ -402,11 +443,15 @@ CHAKRA_API JsDiagGetBreakOnException(
 
         return JsNoError;
     });
+#endif
 }
 
 CHAKRA_API JsDiagSetStepType(
     _In_ JsDiagStepType stepType)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return ContextAPIWrapper_NoRecord<true>([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
 
         JsrtContext *currentContext = JsrtContext::GetCurrent();
@@ -479,12 +524,16 @@ CHAKRA_API JsDiagSetStepType(
 
         return JsNoError;
     });
+#endif
 }
 
 CHAKRA_API JsDiagGetFunctionPosition(
     _In_ JsValueRef function,
     _Out_ JsValueRef *functionPosition)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         VALIDATE_INCOMING_REFERENCE(function, scriptContext);
@@ -499,34 +548,43 @@ CHAKRA_API JsDiagGetFunctionPosition(
 
         Js::ScriptFunction* jsFunction = Js::ScriptFunction::FromVar(function);
 
-        Js::FunctionBody* functionBody = jsFunction->GetFunctionBody();
-        if (functionBody != nullptr)
+        BOOL fParsed = jsFunction->GetParseableFunctionInfo()->IsFunctionParsed();
+        if (!fParsed)
         {
-            Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
-            if (utf8SourceInfo != nullptr && !utf8SourceInfo->GetIsLibraryCode())
+            Js::JavascriptFunction::DeferredParseCore(&jsFunction, fParsed);
+        }
+
+        if (fParsed)
+        {
+            Js::FunctionBody* functionBody = jsFunction->GetFunctionBody();
+            if (functionBody != nullptr)
             {
-                ULONG lineNumber = functionBody->GetLineNumber();
-                ULONG columnNumber = functionBody->GetColumnNumber();
-                uint startOffset = functionBody->GetStatementStartOffset(0);
-                ULONG firstStatementLine;
-                LONG firstStatementColumn;
-
-                if (functionBody->GetLineCharOffsetFromStartChar(startOffset, &firstStatementLine, &firstStatementColumn))
+                Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
+                if (utf8SourceInfo != nullptr && !utf8SourceInfo->GetIsLibraryCode())
                 {
-                    Js::DynamicObject* funcPositionObject = (Js::DynamicObject*)Js::CrossSite::MarshalVar(utf8SourceInfo->GetScriptContext(), scriptContext->GetLibrary()->CreateObject());
+                    ULONG lineNumber = functionBody->GetLineNumber();
+                    ULONG columnNumber = functionBody->GetColumnNumber();
+                    uint startOffset = functionBody->GetStatementStartOffset(0);
+                    ULONG firstStatementLine;
+                    LONG firstStatementColumn;
 
-                    if (funcPositionObject != nullptr)
+                    if (functionBody->GetLineCharOffsetFromStartChar(startOffset, &firstStatementLine, &firstStatementColumn))
                     {
-                        JsrtDebugUtils::AddScriptIdToObject(funcPositionObject, utf8SourceInfo);
-                        JsrtDebugUtils::AddFileNameOrScriptTypeToObject(funcPositionObject, utf8SourceInfo);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::line, (uint32) lineNumber, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::column, (uint32) columnNumber, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementLine, (uint32) firstStatementLine, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementColumn, (int32) firstStatementColumn, scriptContext);
+                        Js::DynamicObject* funcPositionObject = (Js::DynamicObject*)Js::CrossSite::MarshalVar(utf8SourceInfo->GetScriptContext(), scriptContext->GetLibrary()->CreateObject());
 
-                        *functionPosition = funcPositionObject;
+                        if (funcPositionObject != nullptr)
+                        {
+                            JsrtDebugUtils::AddScriptIdToObject(funcPositionObject, utf8SourceInfo);
+                            JsrtDebugUtils::AddFileNameOrScriptTypeToObject(funcPositionObject, utf8SourceInfo);
+                            JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::line, (uint32)lineNumber, scriptContext);
+                            JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::column, (uint32)columnNumber, scriptContext);
+                            JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementLine, (uint32)firstStatementLine, scriptContext);
+                            JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementColumn, (int32)firstStatementColumn, scriptContext);
 
-                        return JsNoError;
+                            *functionPosition = funcPositionObject;
+
+                            return JsNoError;
+                        }
                     }
                 }
             }
@@ -534,11 +592,15 @@ CHAKRA_API JsDiagGetFunctionPosition(
 
         return JsErrorDiagObjectNotFound;
     });
+#endif
 }
 
 CHAKRA_API JsDiagGetStackTrace(
     _Out_ JsValueRef *stackTrace)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(stackTrace);
@@ -558,12 +620,16 @@ CHAKRA_API JsDiagGetStackTrace(
 
         return JsNoError;
     });
+#endif
 }
 
 CHAKRA_API JsDiagGetStackProperties(
     _In_ unsigned int stackFrameIndex,
     _Out_ JsValueRef *properties)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(properties);
@@ -595,6 +661,7 @@ CHAKRA_API JsDiagGetStackProperties(
 
         return JsErrorDiagUnableToPerformAction;
     });
+#endif
 }
 
 CHAKRA_API JsDiagGetProperties(
@@ -603,7 +670,9 @@ CHAKRA_API JsDiagGetProperties(
     _In_ unsigned int totalCount,
     _Out_ JsValueRef *propertiesObject)
 {
-
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(propertiesObject);
@@ -635,12 +704,16 @@ CHAKRA_API JsDiagGetProperties(
 
         return JsErrorDiagUnableToPerformAction;
     });
+#endif
 }
 
 CHAKRA_API JsDiagGetObjectFromHandle(
     _In_ unsigned int objectHandle,
     _Out_ JsValueRef *handleObject)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(handleObject);
@@ -672,6 +745,7 @@ CHAKRA_API JsDiagGetObjectFromHandle(
 
         return JsErrorDiagUnableToPerformAction;
     });
+#endif
 }
 
 CHAKRA_API JsDiagEvaluate(
@@ -681,6 +755,9 @@ CHAKRA_API JsDiagEvaluate(
     _In_ bool forceSetValueProp,
     _Out_ JsValueRef *evalResult)
 {
+#ifndef ENABLE_SCRIPT_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
     return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(expressionVal);
@@ -756,4 +833,5 @@ CHAKRA_API JsDiagEvaluate(
         return success ? JsNoError : JsErrorScriptException;
 
     }, false /*allowInObjectBeforeCollectCallback*/, true /*scriptExceptionAllowed*/);
+#endif
 }

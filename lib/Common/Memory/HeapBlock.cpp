@@ -885,54 +885,7 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
                     }
                 };
 
-                if (strstr(typeName, "Js::DynamicProfileInfo") != nullptr)
-                {
-                    // Js::DynamicProfileInfo allocate with non-Leaf in test/chk build
-                    // TODO: (leish)(swb) find a way to set barrier for the Js::DynamicProfileInfo plus allocation
-                    dumpFalsePositive();
-                    return;
-                }
-
-                if (offset <= Math::Align((3 * sizeof(uint)), sizeof(void*)) // left, length, size
-                    && strstr(typeName, "Js::SparseArraySegment") != nullptr)
-                {
-                    // Js::SparseArraySegmentBase left, length and size can easily form a false positive
-                    // TODO: (leish)(swb) find a way to tag these fields
-                    dumpFalsePositive();
-                    return;
-                }
-
-                if (
-                    offset >=// m_data offset on JavascriptDate
-#ifdef _M_X64_OR_ARM64
-                    0x20
-#else
-                    0x10
-#endif
-                    && strstr(typeName, "Js::JavascriptDate") != nullptr)
-                {
-                    // the fields on Js::DateImplementation can easily form a false positive
-                    // TODO: (leish)(swb) find a way to tag these
-                    dumpFalsePositive();
-                    return;
-                }
-
-                if (offset >= 0x30 && (offset & 0xf) == 0 // symbol array at the end of scopeInfo, can point to arena allocated propertyRecord
-                    && strstr(typeName, "Js::ScopeInfo") != nullptr)
-                {
-                    dumpFalsePositive();
-                    return;
-                }
-
-                // Js::Type::entryPoint may contain outdated data uncleared, and reused by recycler
-                // Most often occurs with script function Type
-                if (offset ==
-#if TARGET_64
-                    0x18
-#else
-                    0x10
-#endif
-                    && strstr(typeName, "Js::ScriptFunctionType"))
+                if (IsLikelyRuntimeFalseReference(objectStartAddress, offset, typeName))
                 {
                     dumpFalsePositive();
                     return;
@@ -979,7 +932,7 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
     Output::Print(_u("Missing barrier on 0x%p, target is 0x%p\n"), objectAddress, target);
     AssertMsg(false, "Missing barrier.");
 }
-#endif
+#endif  // DBG
 
 template <class TBlockAttributes>
 void
@@ -1185,7 +1138,7 @@ SmallHeapBlockT<TBlockAttributes>::AdjustPartialUncollectedAllocBytes(RecyclerSw
 
     recyclerSweep.SubtractSweepNewObjectAllocBytes(newObjectExpectSweepCount * this->objectSize);
 }
-#endif
+#endif  // RECYCLER_VERIFY_MARK
 
 template <class TBlockAttributes>
 uint

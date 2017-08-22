@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "Core/AtomLockGuids.h"
-#include <CommonPal.h>
 #ifdef _WIN32
 #include <winver.h>
 #include <process.h>
@@ -357,7 +356,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsFinalizeCallback 
                 //handle any uncaught exception by immediately time-traveling to the throwing line in the debugger -- in replay just report and exit
                 if(res == JsErrorCategoryScript)
                 {
-                    wprintf(_u("An unhandled script exception occoured!!!\n"));
+                    wprintf(_u("An unhandled script exception occurred!!!\n"));
 
                     ExitProcess(0);
                 }
@@ -447,8 +446,10 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsFinalizeCallback 
                 IfFailedReturn(ChakraRTInterface::JsTTDStart());
             }
 
+            auto sourceContext = WScriptJsrt::GetNextSourceContext();
+            WScriptJsrt::RegisterScriptDir(sourceContext, fullPath);
             runScript = ChakraRTInterface::JsRun(scriptSource,
-                WScriptJsrt::GetNextSourceContext(), fname,
+                sourceContext, fname,
                 JsParseScriptAttributeNone, nullptr /*result*/);
             if (runScript == JsErrorCategoryUsage)
             {
@@ -711,14 +712,7 @@ HRESULT ExecuteTest(const char* fileName)
             IfFailGo(E_FAIL);
         }
 
-        // canonicalize that path name to lower case for the profile storage
-        // REVIEW: Assuming no utf8 characters here
         len = strlen(fullPath);
-        for (size_t i = 0; i < len; i++)
-        {
-            fullPath[i] = (char)tolower(fullPath[i]);
-        }
-
         if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
         {
             if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
@@ -850,6 +844,8 @@ int _cdecl RunJITServer(int argc, __in_ecount(argc) LPWSTR argv[])
     ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, nullptr };
     HINSTANCE chakraLibrary = nullptr;
     bool success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
+    int status = 0;
+    JsInitializeJITServerPtr initRpcServer = nullptr;
 
     if (!success)
     {
@@ -858,25 +854,27 @@ int _cdecl RunJITServer(int argc, __in_ecount(argc) LPWSTR argv[])
     }
 
     UUID connectionUuid;
-    DWORD status = UuidFromStringW((RPC_WSTR)connectionUuidString, &connectionUuid);
+    status = UuidFromStringW((RPC_WSTR)connectionUuidString, &connectionUuid);
     if (status != RPC_S_OK)
     {
-        return status;
+        goto cleanup;
     }
 
-    JsInitializeJITServerPtr initRpcServer = (JsInitializeJITServerPtr)GetProcAddress(chakraLibrary, "JsInitializeJITServer");
-    HRESULT hr = initRpcServer(&connectionUuid, nullptr, nullptr);
-    if (FAILED(hr))
+    initRpcServer = (JsInitializeJITServerPtr)GetProcAddress(chakraLibrary, "JsInitializeJITServer");
+    status = initRpcServer(&connectionUuid, nullptr, nullptr);
+    if (FAILED(status))
     {
-        wprintf(L"InitializeJITServer failed by 0x%x\n", hr);
-        return hr;
+        wprintf(L"InitializeJITServer failed by 0x%x\n", status);
+        goto cleanup;
     }
+    status = 0;
 
+cleanup:
     if (chakraLibrary)
     {
         ChakraRTInterface::UnloadChakraDll(chakraLibrary);
     }
-    return 0;
+    return status;
 }
 #endif
 

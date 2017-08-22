@@ -15,6 +15,7 @@ namespace JSON
     class JSONStack
     {
     private:
+        Js::Var        tempValues[2];
         SList<Js::Var> jsObjectStack; // Consider: key-only dictionary here
         typedef JsUtil::List<Js::Var, ArenaAllocator, false, Js::CopyRemovePolicy,
             SpecializedComparer<Js::Var, JSON::StrictEqualsObjectComparer>::TComparerType> DOMObjectStack;
@@ -30,6 +31,12 @@ namespace JSON
         bool Has(Js::Var data, bool bJsObject = true) const;
         bool Push(Js::Var data, bool bJsObject = true);
         void Pop(bool bJsObject = true);
+
+        ~JSONStack()
+        {
+            tempValues[0] = nullptr; // _JS_VALUE
+            tempValues[1] = nullptr; // _DOM_VALUE
+        }
 
     private:
         void EnsuresDomObjectStack(void);

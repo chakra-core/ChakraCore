@@ -128,11 +128,16 @@ namespace Js
         return NewWithBufferT<LiteralString, true>(content, cchUseLength, scriptContext);
     }
 
-    JavascriptString* JavascriptString::NewCopySzFromArena(__in_z const char16* content, ScriptContext* scriptContext, ArenaAllocator *arena)
+    JavascriptString* JavascriptString::NewCopySzFromArena(__in_z const char16* content,
+        ScriptContext* scriptContext, ArenaAllocator *arena, charcount_t cchUseLength)
     {
         AssertMsg(content != nullptr, "NULL value passed to JavascriptString::New");
 
-        charcount_t cchUseLength = JavascriptString::GetBufferLength(content);
+        if (!cchUseLength)
+        {
+            cchUseLength = JavascriptString::GetBufferLength(content);
+        }
+
         char16* buffer = JavascriptString::AllocateAndCopySz(arena, content, cchUseLength);
         return ArenaLiteralString::New(scriptContext->GetLibrary()->GetStringTypeStatic(),
             buffer, cchUseLength, arena);
@@ -1560,22 +1565,31 @@ case_2:
         // strcon2 /
         // expr2   \__ step 3
         // strcon3 /
-        for (uint32 i = 1; i < length; ++i)
+        const auto append = [&] (Var var)
         {
-            // First append the next substitution expression
-            // If we have an arg at [i+1] use that one, otherwise empty string (which is nop)
-            if (i+1 < args.Info.Count)
-            {
-                string = JavascriptConversion::ToString(args[i+1], scriptContext);
-
+            JavascriptString* string = JavascriptConversion::ToString(var, scriptContext);
                 stringBuilder.Append(string);
+        };
+        uint32 loopMax = length >= UINT_MAX ? UINT_MAX-1 : (uint32)length;
+        uint32 i = 1;
+        uint32 argsCount = args.Info.Count;
+        for (; i < loopMax; ++i)
+        {
+            // First append the next substitution expression if available
+            if (i + 1 < argsCount)
+            {
+                append(args[i + 1]);
             }
 
             // Then append the next string (this will also cover the final string case)
-            var = JavascriptOperators::OP_GetElementI_UInt32(raw, i, scriptContext);
-            string = JavascriptConversion::ToString(var, scriptContext);
+            append(JavascriptOperators::OP_GetElementI_UInt32(raw, i, scriptContext));
+        }
 
-            stringBuilder.Append(string);
+        // Length can be greater than uint32 max (unlikely in practice)
+        for (int64 j = (int64)i; j < length; ++j)
+        {
+            // Append whatever is left in the array/object
+            append(JavascriptOperators::OP_GetElementI(raw, JavascriptNumber::ToVar(j, scriptContext), scriptContext));
         }
 
         // CompoundString::Builder has saved our lives
@@ -2828,17 +2842,18 @@ case_2:
         const char16* pchEnd =  pchStart + m_charLength;
         const char16 *pch = this->GetScriptContext()->GetCharClassifier()->SkipWhiteSpace(pchStart, pchEnd);
         bool isNegative = false;
+
+        if (pch < pchEnd)
+        {
         switch (*pch)
         {
         case '-':
             isNegative = true;
             // Fall through.
         case '+':
-            if(pch < pchEnd)
-            {
                 pch++;
-            }
             break;
+        }
         }
 
         if (0 == radix)
@@ -2847,7 +2862,7 @@ case_2:
             {
                 radix = 10;
             }
-            else if (('x' == pch[1] || 'X' == pch[1]) && pchEnd - pch >= 2)
+            else if (pchEnd - pch >= 2 && ('x' == pch[1] || 'X' == pch[1]))
             {
                 radix = 16;
                 pch += 2;
@@ -2861,7 +2876,7 @@ case_2:
         }
         else if (16 == radix)
         {
-            if('0' == pch[0] && ('x' == pch[1] || 'X' == pch[1]) && pchEnd - pch >= 2)
+            if(pchEnd - pch >= 2 && '0' == pch[0] && ('x' == pch[1] || 'X' == pch[1]))
             {
                 pch += 2;
             }
@@ -3729,7 +3744,7 @@ case_2:
     {
         if (propertyId == PropertyIds::length)
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         ScriptContext* scriptContext = GetScriptContext();
         charcount_t index;
@@ -3737,10 +3752,10 @@ case_2:
         {
             if (index < this->GetLength())
             {
-                return Property_Found;
+                return PropertyQueryFlags::Property_Found;
             }
         }
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL JavascriptString::IsEnumerable(PropertyId propertyId)
@@ -3768,11 +3783,11 @@ case_2:
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, requestContext))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
     bool JavascriptString::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
     {

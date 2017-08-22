@@ -1,0 +1,29 @@
+{
+  "features": [{
+    "flags": ["-wasmfastarray-"],
+    "rltags": ["exclude_x86"],
+    "files": [
+      "address",
+      "float_memory",
+      "memory",
+      "memory_trap",
+      "resizing",
+      "traps"
+    ]
+  }, {
+    "flags": ["-wasmMathExFilter"],
+    "files": [
+      "int_exprs",
+      "i32",
+      "i64",
+      "chakra_i32",
+      "chakra_i64",
+      "traps"
+    ]
+  }],
+  "excludes": [
+    "names"
+  ],
+  "xplat-excludes": [
+  ]
+}

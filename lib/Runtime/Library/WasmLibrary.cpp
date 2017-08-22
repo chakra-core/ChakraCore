@@ -109,7 +109,6 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
     Wasm::WasmReaderInfo* readerInfo = info->GetWasmReaderInfo();
     if (readerInfo)
     {
-        info->SetWasmReaderInfo(nullptr);
         try
         {
             Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
@@ -120,15 +119,13 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
         catch (Wasm::WasmCompilationException& ex)
         {
             char16* originalMessage = ex.ReleaseErrorMessage();
-            intptr_t offset = readerInfo->m_module->GetReader()->GetCurrentOffset();
-            intptr_t start = readerInfo->m_funcInfo->m_readerInfo.startOffset;
-            uint32 size = readerInfo->m_funcInfo->m_readerInfo.size;
+            Wasm::BinaryLocation location = readerInfo->m_module->GetReader()->GetCurrentLocation();
 
             Wasm::WasmCompilationException newEx(
-                _u("function %s at offset %d/%d: %s"),
+                _u("function %s at offset %u/%u (0x%x/0x%x): %s"),
                 body->GetDisplayName(),
-                offset - start,
-                size,
+                location.offset, location.size,
+                location.offset, location.size,
                 originalMessage
             );
             SysFreeString(originalMessage);
@@ -142,6 +139,7 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
             entrypointInfo->jsMethod = WasmLazyTrapCallback;
             info->SetLazyError(pError);
         }
+        info->SetWasmReaderInfo(nullptr);
     }
     else
     {

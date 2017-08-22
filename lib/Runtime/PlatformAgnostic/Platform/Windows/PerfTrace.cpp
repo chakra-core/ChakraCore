@@ -12,7 +12,7 @@ using namespace Js;
 namespace PlatformAgnostic
 {
 
-volatile bool PerfTrace::mapsRequested = false;
+volatile sig_atomic_t PerfTrace::mapsRequested = 0;
   
 void PerfTrace::Register()
 {

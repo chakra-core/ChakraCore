@@ -348,6 +348,7 @@ EXDEF3_WMS(CUSTOM_L_Value,          ScopedLdFldForTypeOf,       OP_GetPropertyFo
   DEF3_WMS(CUSTOM,                  ScopedStFld,                OP_SetPropertyScoped, ElementP)
 EXDEF3_WMS(CUSTOM,                  ConsoleScopedStFld,         OP_ConsoleSetPropertyScoped, ElementP)
   DEF3_WMS(CUSTOM,                  ScopedStFldStrict,          OP_SetPropertyScopedStrict, ElementP)
+EXDEF3_WMS(CUSTOM,                  ConsoleScopedStFldStrict,   OP_ConsoleSetPropertyScopedStrict, ElementP)
   DEF2_WMS(GET_ELEM_IMem,           DeleteElemI_A,              JavascriptOperators::OP_DeleteElementI)
   DEF2_WMS(GET_ELEM_IMem_Strict,    DeleteElemIStrict_A,        JavascriptOperators::OP_DeleteElementI)
   DEF3_WMS(CUSTOM_L_Value,          ScopedLdInst,               OP_ScopedLdInst, ElementScopedC2)
@@ -389,7 +390,9 @@ EXDEF2    (W1,                      RuntimeReferenceError,      JavascriptExcept
 EXDEF2_WMS(A1toXX,                  ObjectFreeze,               JavascriptOperators::OP_Freeze)
 EXDEF3_WMS(CUSTOM,                  ClearAttributes,            OP_ClearAttributes, ElementU)
   DEF3_WMS(CUSTOM,                  ApplyArgs,                  OP_ApplyArgs, Reg5)
+#ifdef ENABLE_SCRIPT_DEBUGGING
 EXDEF3_WMS(CUSTOM,                  EmitTmpRegCount,            OP_EmitTmpRegCount, Unsigned1)
+#endif
 EXDEF2    (EMPTY,                   BeginBodyScope,             OP_BeginBodyScope)
 
 #endif

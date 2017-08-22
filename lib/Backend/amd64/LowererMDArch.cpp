@@ -752,7 +752,7 @@ LowererMDArch::LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper
     GeneratePreCall(callInstr, functionObjOpnd, insertBeforeInstrForCFGCheck);
 
     // We need to get the calculated CallInfo in SimpleJit because that doesn't include any changes for stack alignment
-    IR::IntConstOpnd *callInfo;
+    IR::IntConstOpnd *callInfo = nullptr;
     int32 argCount = LowerCallArgs(callInstr, callFlags, 1, &callInfo);
 
 
@@ -1003,6 +1003,7 @@ LowererMDArch::GetArgSlotOpnd(uint16 index, StackSym * argSym, bool isHelper /*=
 
     uint16 argPosition = index;
 
+#ifdef ENABLE_SIMDJS
     // Without SIMD the index is the Var offset and is also the argument index. Since each arg = 1 Var.
     // With SIMD, args are of variable length and we need to the argument position in the args list.
     if (m_func->IsSIMDEnabled() &&
@@ -1012,6 +1013,7 @@ LowererMDArch::GetArgSlotOpnd(uint16 index, StackSym * argSym, bool isHelper /*=
     {
         argPosition = (uint16)argSym->m_argPosition;
     }
+#endif
 
     IR::Opnd *argSlotOpnd = nullptr;
 
@@ -1063,7 +1065,7 @@ LowererMDArch::GetArgSlotOpnd(uint16 index, StackSym * argSym, bool isHelper /*=
 IR::Instr *
 LowererMDArch::LowerAsmJsCallE(IR::Instr *callInstr)
 {
-    IR::IntConstOpnd *callInfo;
+    IR::IntConstOpnd *callInfo = nullptr;
     int32 argCount = this->LowerCallArgs(callInstr, Js::CallFlags_Value, 1, &callInfo);
 
     IR::Instr* ret = this->LowerCall(callInstr, argCount);
@@ -2554,7 +2556,7 @@ LowererMDArch::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInser
     Assert(dst->IsRegOpnd() && dst->IsInt32());
     Assert(src->IsInt64());
 
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV_TRUNC, dst, src, this->m_func));
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV_TRUNC, dst, src, instrInsert->m_func));
 }
 
 void
@@ -3030,6 +3032,9 @@ LowererMDArch::FinalLower()
     {
         switch (instr->m_opcode)
         {
+        case Js::OpCode::Ret:
+            instr->Remove();
+            break;
         case Js::OpCode::LdArgSize:
             Assert(this->m_func->HasTry());
             instr->m_opcode = Js::OpCode::MOV;

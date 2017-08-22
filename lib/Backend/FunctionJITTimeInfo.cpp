@@ -22,126 +22,124 @@ FunctionJITTimeInfo::BuildJITTimeData(
     bool isForegroundJIT)
 {
     jitData->functionInfoAddr = (intptr_t)codeGenData->GetFunctionInfo();
-
-    if (codeGenData->GetFunctionBody() && codeGenData->GetFunctionBody()->GetByteCode())
-    {
-        Js::FunctionBody * body = codeGenData->GetFunctionInfo()->GetParseableFunctionInfo()->GetFunctionBody();
-        jitData->bodyData = AnewStructZ(alloc, FunctionBodyDataIDL);
-        JITTimeFunctionBody::InitializeJITFunctionData(alloc, body, jitData->bodyData);
-    }
-
     jitData->localFuncId = codeGenData->GetFunctionInfo()->GetLocalFunctionId();
     jitData->isAggressiveInliningEnabled = codeGenData->GetIsAggressiveInliningEnabled();
     jitData->isInlined = codeGenData->GetIsInlined();
     jitData->weakFuncRef = (intptr_t)codeGenData->GetWeakFuncRef();
-
     jitData->inlineesBv = (BVFixedIDL*)(const BVFixed*)codeGenData->inlineesBv;
 
-    if (codeGenData->GetFunctionInfo()->HasBody() && codeGenData->GetFunctionInfo()->GetFunctionProxy()->IsFunctionBody())
+    if (!codeGenData->GetFunctionBody() || !codeGenData->GetFunctionBody()->GetByteCode())
     {
-        Assert(isInlinee == !!runtimeData);
-        const Js::FunctionCodeGenRuntimeData * targetRuntimeData = nullptr;
-        if (runtimeData)
-        {
-            // may be polymorphic, so seek the runtime data matching our JIT time data
-            targetRuntimeData = runtimeData->GetForTarget(codeGenData->GetFunctionInfo()->GetFunctionBody());
-        }
-        Js::FunctionBody * functionBody = codeGenData->GetFunctionBody();
-        if (functionBody->HasDynamicProfileInfo())
-        {
-            Assert(jitData->bodyData != nullptr);
-            ProfileDataIDL * profileData = AnewStruct(alloc, ProfileDataIDL);
-            JITTimeProfileInfo::InitializeJITProfileData(alloc, functionBody->GetAnyDynamicProfileInfo(), functionBody, profileData, isForegroundJIT);
+        // outermost function must have a body, but inlinees may not (if they are builtins)
+        Assert(isInlinee);
+        return;
+    }
 
-            jitData->bodyData->profileData = profileData;
+    Js::FunctionBody * body = codeGenData->GetFunctionInfo()->GetParseableFunctionInfo()->GetFunctionBody();
+    jitData->bodyData = AnewStructZ(alloc, FunctionBodyDataIDL);
+    JITTimeFunctionBody::InitializeJITFunctionData(alloc, body, jitData->bodyData);
 
-            if (isInlinee)
-            {
-                // if not inlinee, NativeCodeGenerator will provide the address
-                // REVIEW: OOP JIT, for inlinees, is this actually necessary?
-                Js::ProxyEntryPointInfo *defaultEntryPointInfo = functionBody->GetDefaultEntryPointInfo();
-                Assert(defaultEntryPointInfo->IsFunctionEntryPointInfo());
-                Js::FunctionEntryPointInfo *functionEntryPointInfo = static_cast<Js::FunctionEntryPointInfo*>(defaultEntryPointInfo);
-                jitData->callsCountAddress = (intptr_t)&functionEntryPointInfo->callsCount;
+    Assert(isInlinee == !!runtimeData);
+    const Js::FunctionCodeGenRuntimeData * targetRuntimeData = nullptr;
+    if (runtimeData)
+    {
+        // may be polymorphic, so seek the runtime data matching our JIT time data
+        targetRuntimeData = runtimeData->GetForTarget(codeGenData->GetFunctionInfo()->GetFunctionBody());
+    }
+    Js::FunctionBody * functionBody = codeGenData->GetFunctionBody();
+    if (functionBody->HasDynamicProfileInfo())
+    {
+        ProfileDataIDL * profileData = AnewStruct(alloc, ProfileDataIDL);
+        JITTimeProfileInfo::InitializeJITProfileData(alloc, functionBody->GetAnyDynamicProfileInfo(), functionBody, profileData, isForegroundJIT);
+
+        jitData->bodyData->profileData = profileData;
+
+        if (isInlinee)
+        {
+            // if not inlinee, NativeCodeGenerator will provide the address
+            // REVIEW: OOP JIT, for inlinees, is this actually necessary?
+            Js::ProxyEntryPointInfo *defaultEntryPointInfo = functionBody->GetDefaultEntryPointInfo();
+            Assert(defaultEntryPointInfo->IsFunctionEntryPointInfo());
+            Js::FunctionEntryPointInfo *functionEntryPointInfo = static_cast<Js::FunctionEntryPointInfo*>(defaultEntryPointInfo);
+            jitData->callsCountAddress = (intptr_t)&functionEntryPointInfo->callsCount;
                 
-                jitData->sharedPropertyGuards = codeGenData->sharedPropertyGuards;
-                jitData->sharedPropGuardCount = codeGenData->sharedPropertyGuardCount;
-            }
+            jitData->sharedPropertyGuards = codeGenData->sharedPropertyGuards;
+            jitData->sharedPropGuardCount = codeGenData->sharedPropertyGuardCount;
         }
-        if (jitData->bodyData->profiledCallSiteCount > 0)
-        {
-            jitData->inlineeCount = jitData->bodyData->profiledCallSiteCount;
-            // using arena because we can't recycler allocate (may be on background), and heap freeing this is slightly complicated
-            jitData->inlinees = AnewArrayZ(alloc, FunctionJITTimeDataIDL*, jitData->bodyData->profiledCallSiteCount);
-            jitData->inlineesRecursionFlags = AnewArrayZ(alloc, boolean, jitData->bodyData->profiledCallSiteCount);
+    }
+    if (jitData->bodyData->profiledCallSiteCount > 0)
+    {
+        jitData->inlineeCount = jitData->bodyData->profiledCallSiteCount;
+        // using arena because we can't recycler allocate (may be on background), and heap freeing this is slightly complicated
+        jitData->inlinees = AnewArrayZ(alloc, FunctionJITTimeDataIDL*, jitData->bodyData->profiledCallSiteCount);
+        jitData->inlineesRecursionFlags = AnewArrayZ(alloc, boolean, jitData->bodyData->profiledCallSiteCount);
 
-            for (Js::ProfileId i = 0; i < jitData->bodyData->profiledCallSiteCount; ++i)
+        for (Js::ProfileId i = 0; i < jitData->bodyData->profiledCallSiteCount; ++i)
+        {
+            const Js::FunctionCodeGenJitTimeData * inlineeJITData = codeGenData->GetInlinee(i);
+            if (inlineeJITData == codeGenData)
             {
-                const Js::FunctionCodeGenJitTimeData * inlineeJITData = codeGenData->GetInlinee(i);
-                if (inlineeJITData == codeGenData)
+                jitData->inlineesRecursionFlags[i] = TRUE;
+            }
+            else if (inlineeJITData != nullptr)
+            {
+                const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = nullptr;
+                if (inlineeJITData->GetFunctionInfo()->HasBody())
                 {
-                    jitData->inlineesRecursionFlags[i] = TRUE;
+                    inlineeRuntimeData = isInlinee ? targetRuntimeData->GetInlinee(i) : functionBody->GetInlineeCodeGenRuntimeData(i);
                 }
-                else if (inlineeJITData != nullptr)
-                {
-                    const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = nullptr;
-                    if (inlineeJITData->GetFunctionInfo()->HasBody())
-                    {
-                        inlineeRuntimeData = isInlinee ? targetRuntimeData->GetInlinee(i) : functionBody->GetInlineeCodeGenRuntimeData(i);
-                    }
-                    jitData->inlinees[i] = AnewStructZ(alloc, FunctionJITTimeDataIDL);
-                    BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData, jitData->inlinees[i], true, isForegroundJIT);
-                }
+                jitData->inlinees[i] = AnewStructZ(alloc, FunctionJITTimeDataIDL);
+                BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData, jitData->inlinees[i], true, isForegroundJIT);
             }
         }
-        jitData->profiledRuntimeData = AnewStructZ(alloc, FunctionJITRuntimeIDL);
-        if (isInlinee && targetRuntimeData->ClonedInlineCaches()->HasInlineCaches())
+    }
+    jitData->profiledRuntimeData = AnewStructZ(alloc, FunctionJITRuntimeIDL);
+    if (isInlinee && targetRuntimeData->ClonedInlineCaches()->HasInlineCaches())
+    {
+        jitData->profiledRuntimeData->clonedCacheCount = jitData->bodyData->inlineCacheCount;
+        jitData->profiledRuntimeData->clonedInlineCaches = AnewArray(alloc, intptr_t, jitData->profiledRuntimeData->clonedCacheCount);
+        for (uint j = 0; j < jitData->bodyData->inlineCacheCount; ++j)
         {
-            jitData->profiledRuntimeData->clonedCacheCount = jitData->bodyData->inlineCacheCount;
-            jitData->profiledRuntimeData->clonedInlineCaches = AnewArray(alloc, intptr_t, jitData->profiledRuntimeData->clonedCacheCount);
-            for (uint j = 0; j < jitData->bodyData->inlineCacheCount; ++j)
-            {
-                jitData->profiledRuntimeData->clonedInlineCaches[j] = (intptr_t)targetRuntimeData->ClonedInlineCaches()->GetInlineCache(j);
-            }
+            jitData->profiledRuntimeData->clonedInlineCaches[j] = (intptr_t)targetRuntimeData->ClonedInlineCaches()->GetInlineCache(j);
         }
-        if (jitData->bodyData->inlineCacheCount > 0)
-        {
-            jitData->ldFldInlineeCount = jitData->bodyData->inlineCacheCount;
-            jitData->ldFldInlinees = AnewArrayZ(alloc, FunctionJITTimeDataIDL*, jitData->bodyData->inlineCacheCount);
+    }
+    if (jitData->bodyData->inlineCacheCount > 0)
+    {
+        jitData->ldFldInlineeCount = jitData->bodyData->inlineCacheCount;
+        jitData->ldFldInlinees = AnewArrayZ(alloc, FunctionJITTimeDataIDL*, jitData->bodyData->inlineCacheCount);
 
-            Field(ObjTypeSpecFldInfo*)* objTypeSpecInfo = codeGenData->GetObjTypeSpecFldInfoArray()->GetInfoArray();
-            if(objTypeSpecInfo)
+        Field(ObjTypeSpecFldInfo*)* objTypeSpecInfo = codeGenData->GetObjTypeSpecFldInfoArray()->GetInfoArray();
+        if(objTypeSpecInfo)
+        {
+            jitData->objTypeSpecFldInfoCount = jitData->bodyData->inlineCacheCount;
+            jitData->objTypeSpecFldInfoArray = (ObjTypeSpecFldIDL**)objTypeSpecInfo;
+        }
+        for (Js::InlineCacheIndex i = 0; i < jitData->bodyData->inlineCacheCount; ++i)
+        {
+            const Js::FunctionCodeGenJitTimeData * inlineeJITData = codeGenData->GetLdFldInlinee(i);
+            const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = isInlinee ? targetRuntimeData->GetLdFldInlinee(i) : functionBody->GetLdFldInlineeCodeGenRuntimeData(i);
+            if (inlineeJITData != nullptr)
             {
-                jitData->objTypeSpecFldInfoCount = jitData->bodyData->inlineCacheCount;
-                jitData->objTypeSpecFldInfoArray = (ObjTypeSpecFldIDL**)objTypeSpecInfo;
-            }
-            for (Js::InlineCacheIndex i = 0; i < jitData->bodyData->inlineCacheCount; ++i)
-            {
-                const Js::FunctionCodeGenJitTimeData * inlineeJITData = codeGenData->GetLdFldInlinee(i);
-                const Js::FunctionCodeGenRuntimeData * inlineeRuntimeData = isInlinee ? targetRuntimeData->GetLdFldInlinee(i) : functionBody->GetLdFldInlineeCodeGenRuntimeData(i);
-                if (inlineeJITData != nullptr)
-                {
-                    jitData->ldFldInlinees[i] = AnewStructZ(alloc, FunctionJITTimeDataIDL);
-                    BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData, jitData->ldFldInlinees[i], true, isForegroundJIT);
-                }
+                jitData->ldFldInlinees[i] = AnewStructZ(alloc, FunctionJITTimeDataIDL);
+                BuildJITTimeData(alloc, inlineeJITData, inlineeRuntimeData, jitData->ldFldInlinees[i], true, isForegroundJIT);
             }
         }
-        if (!isInlinee && codeGenData->GetGlobalObjTypeSpecFldInfoCount() > 0)
-        {
-            Field(ObjTypeSpecFldInfo*)* globObjTypeSpecInfo = codeGenData->GetGlobalObjTypeSpecFldInfoArray();
-            Assert(globObjTypeSpecInfo != nullptr);
+    }
+    if (!isInlinee && codeGenData->GetGlobalObjTypeSpecFldInfoCount() > 0)
+    {
+        Field(ObjTypeSpecFldInfo*)* globObjTypeSpecInfo = codeGenData->GetGlobalObjTypeSpecFldInfoArray();
+        Assert(globObjTypeSpecInfo != nullptr);
 
-            jitData->globalObjTypeSpecFldInfoCount = codeGenData->GetGlobalObjTypeSpecFldInfoCount();
-            jitData->globalObjTypeSpecFldInfoArray = (ObjTypeSpecFldIDL**)globObjTypeSpecInfo;
-        }
-        const Js::FunctionCodeGenJitTimeData * nextJITData = codeGenData->GetNext();
-        if (nextJITData != nullptr)
-        {
-            // only inlinee should be polymorphic
-            Assert(isInlinee);
-            jitData->next = AnewStructZ(alloc, FunctionJITTimeDataIDL);
-            BuildJITTimeData(alloc, nextJITData, runtimeData, jitData->next, true, isForegroundJIT);
-        }
+        jitData->globalObjTypeSpecFldInfoCount = codeGenData->GetGlobalObjTypeSpecFldInfoCount();
+        jitData->globalObjTypeSpecFldInfoArray = (ObjTypeSpecFldIDL**)globObjTypeSpecInfo;
+    }
+    const Js::FunctionCodeGenJitTimeData * nextJITData = codeGenData->GetNext();
+    if (nextJITData != nullptr)
+    {
+        // only inlinee should be polymorphic
+        Assert(isInlinee);
+        jitData->next = AnewStructZ(alloc, FunctionJITTimeDataIDL);
+        BuildJITTimeData(alloc, nextJITData, runtimeData, jitData->next, true, isForegroundJIT);
     }
 }
 

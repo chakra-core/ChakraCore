@@ -258,7 +258,7 @@ IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch,
     AssertArrMemR(prgch, cch);
     Assert(luHash == CaseSensitiveComputeHash(prgch, end));
 
-    IdentPtr * ppid;
+    IdentPtr * ppid = nullptr;
     IdentPtr pid;
     LONG cb;
     int32 bucketCount;

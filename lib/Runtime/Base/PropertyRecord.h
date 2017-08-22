@@ -43,6 +43,7 @@ namespace Js
 
         PropertyRecord(DWORD bytelength, bool isNumeric, uint hash, bool isSymbol);
         PropertyRecord(PropertyId pid, uint hash, bool isNumeric, DWORD byteCount, bool isSymbol);
+        PropertyRecord(const WCHAR* buffer, const int length, DWORD bytelength, bool isSymbol);
         PropertyRecord() { Assert(false); } // never used, needed by compiler for BuiltInPropertyRecord
 
         static bool IsPropertyNameNumeric(const char16* str, int length, uint32* intVal);
@@ -147,7 +148,7 @@ namespace Js
     class HashedCharacterBuffer : public JsUtil::CharacterBuffer<TChar>
     {
     private:
-        hash_t hashCode;
+        Field(hash_t) hashCode;
 
     public:
         HashedCharacterBuffer(TChar const * string, charcount_t len) :
@@ -254,6 +255,22 @@ namespace Js
         inline static hash_t GetHashCode(HashedCharacterBuffer<char16> const & str)
         {
             return str.GetHashCode();
+        }
+    };
+
+    template<>
+    struct PropertyRecordStringHashComparer<HashedCharacterBuffer<char16> *>
+    {
+        inline static bool Equals(HashedCharacterBuffer<char16>* const str1, HashedCharacterBuffer<char16>* const str2)
+        {
+            return (str1->GetLength() == str2->GetLength() &&
+                str1->GetHashCode() == str2->GetHashCode() &&
+                JsUtil::CharacterBuffer<char16>::StaticEquals(str1->GetBuffer(), str2->GetBuffer(), str1->GetLength()));
+        }
+
+        inline static hash_t GetHashCode(HashedCharacterBuffer<char16>* const str)
+        {
+            return str->GetHashCode();
         }
     };
 

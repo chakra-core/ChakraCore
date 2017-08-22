@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLanguagePch.h"
+#include "RuntimeMathPch.h"
 
 #if ENABLE_NATIVE_CODEGEN
 
@@ -531,13 +532,16 @@ namespace Js
         const int intConstCount = asmInfo->GetIntConstCount();
         const int doubleConstCount = asmInfo->GetDoubleConstCount();
         const int floatConstCount = asmInfo->GetFloatConstCount();
-        const int simdConstCount = asmInfo->GetSimdConstCount();
 
         // Offset of doubles from (double*)m_localSlot
         const int intOffsets = asmInfo->GetIntByteOffset() / sizeof(int);
         const int doubleOffsets = asmInfo->GetDoubleByteOffset() / sizeof(double);
         const int floatOffset = asmInfo->GetFloatByteOffset() / sizeof(float);
+
+#ifdef ENABLE_SIMDJS
+        const int simdConstCount = asmInfo->GetSimdConstCount();
         const int simdByteOffset = asmInfo->GetSimdByteOffset(); // in bytes
+#endif
 
         int argoffset = (int)args;
         // initialize argument location
@@ -562,8 +566,9 @@ namespace Js
         int* m_localIntSlots;
         double* m_localDoubleSlots;
         float* m_localFloatSlots;
+#ifdef ENABLE_SIMDJS
         AsmJsSIMDValue* m_localSimdSlots;
-
+#endif
 #if DBG_DUMP
         const bool tracingFunc = PHASE_TRACE( AsmjsFunctionEntryPhase, body );
         if( tracingFunc )
@@ -593,7 +598,7 @@ namespace Js
 
             m_localDoubleSlots = ((double*)m_localSlots) + doubleOffsets;
             memcpy_s(m_localDoubleSlots, doubleConstCount*sizeof(double), constTable, doubleConstCount*sizeof(double));
-
+#ifdef ENABLE_SIMDJS
             if (func->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
             {
                 // Copy SIMD constants to TJ stack frame. No data alignment.
@@ -602,7 +607,7 @@ namespace Js
                 memcpy_s(m_localSimdSlots, simdConstCount*sizeof(AsmJsSIMDValue), constTable, simdConstCount*sizeof(AsmJsSIMDValue));
                 simdArg = m_localSimdSlots + simdConstCount;
             }
-
+#endif
             intArg = m_localIntSlots + intConstCount;
             doubleArg = m_localDoubleSlots + doubleConstCount;
             floatArg = m_localFloatSlots + floatConstCount;

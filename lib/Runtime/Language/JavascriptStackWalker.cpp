@@ -444,7 +444,7 @@ namespace Js
                 inlineeOffset = inlinedFrameWalker.GetCurrentInlineeOffset();
             }
         }
-        else if (ScriptFunction::Is(parentFunction) && HasInlinedFramesOnStack())
+        else if (ScriptFunction::Test(parentFunction) && HasInlinedFramesOnStack())
         {
             // Inlined frames are not being walked right now. However, if there
             // are inlined frames on the stack the InlineeCallInfo of the first inlined frame
@@ -537,11 +537,7 @@ namespace Js
                 {
                     this->previousInterpreterFrameIsForLoopBody = true;
                 }
-                else
 #endif
-                {
-                    this->previousInterpreterFrameIsForLoopBody = false;
-                }
 
                 // We might've bailed out of an inlinee, so check if there were any inlinees.
                 if (this->interpreterFrame->GetFlags() & InterpreterStackFrameFlags_FromBailOut)
@@ -678,6 +674,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         if (lastInternalFrameInfo.codeAddress != nullptr && this->previousInterpreterFrameIsForLoopBody)
         {
+            this->previousInterpreterFrameIsForLoopBody = false;
             ClearCachedInternalFrameInfo();
         }
 
@@ -747,31 +744,39 @@ namespace Js
         return true;
     }
 
-    BOOL JavascriptStackWalker::GetCallerWithoutInlinedFrames(JavascriptFunction ** ppFunc)
+    BOOL JavascriptStackWalker::GetCallerWithoutInlinedFrames(_Out_opt_ JavascriptFunction ** ppFunc)
     {
         return GetCaller(ppFunc, /*includeInlineFrames*/ false);
     }
 
-    BOOL JavascriptStackWalker::GetCaller(JavascriptFunction ** ppFunc, bool includeInlineFrames)
+    BOOL JavascriptStackWalker::GetCaller(_Out_opt_ JavascriptFunction ** ppFunc, bool includeInlineFrames)
     {
         while (this->Walk(includeInlineFrames))
         {
             if (this->IsJavascriptFrame())
             {
                 Assert(entryExitRecord != NULL);
+                if (ppFunc)
+                {
                 *ppFunc = this->GetCurrentFunction();
+                }
                 AssertMsg(!this->shouldDetectPartiallyInitializedInterpreterFrame, "must have skipped first frame if needed");
                 return true;
             }
         }
-        *ppFunc = (JavascriptFunction*)this->scriptContext->GetLibrary()->GetNull();
+        if (ppFunc)
+        {
+            *ppFunc = nullptr;
+        }
         return false;
     }
 
-    BOOL JavascriptStackWalker::GetNonLibraryCodeCaller(JavascriptFunction ** ppFunc)
+    BOOL JavascriptStackWalker::GetNonLibraryCodeCaller(_Out_opt_ JavascriptFunction ** ppFunc)
     {
         while (this->GetCaller(ppFunc))
         {
+            Assert(ppFunc != nullptr);
+            __analysis_assume(ppFunc != nullptr);
             if (!(*ppFunc)->IsLibraryCode())
             {
                 return true;
@@ -801,10 +806,12 @@ namespace Js
         }
     }
 
-    bool JavascriptStackWalker::GetDisplayCaller(JavascriptFunction ** ppFunc)
+    bool JavascriptStackWalker::GetDisplayCaller(_Out_opt_ JavascriptFunction ** ppFunc)
     {
         while (this->GetCaller(ppFunc))
         {
+            Assert(ppFunc != nullptr);
+            __analysis_assume(ppFunc != nullptr);
             if (IsDisplayCaller(*ppFunc))
             {
                 return true;
@@ -1104,11 +1111,14 @@ namespace Js
         return (threadContext->GetScriptEntryExit() != NULL);
     }
 
-    BOOL JavascriptStackWalker::GetCaller(JavascriptFunction** ppFunc, ScriptContext* scriptContext)
+    BOOL JavascriptStackWalker::GetCaller(_Out_opt_ JavascriptFunction** ppFunc, ScriptContext* scriptContext)
     {
         if (!IsWalkable(scriptContext))
         {
+            if (ppFunc)
+            {
             *ppFunc = nullptr;
+            }
             return FALSE;
         }
 
@@ -1116,7 +1126,7 @@ namespace Js
         return walker.GetCaller(ppFunc);
     }
 
-    BOOL JavascriptStackWalker::GetCaller(JavascriptFunction** ppFunc, uint32* byteCodeOffset, ScriptContext* scriptContext)
+    BOOL JavascriptStackWalker::GetCaller(_Out_opt_ JavascriptFunction** ppFunc, uint32* byteCodeOffset, ScriptContext* scriptContext)
     {
         JavascriptStackWalker walker(scriptContext);
         if (walker.GetCaller(ppFunc))

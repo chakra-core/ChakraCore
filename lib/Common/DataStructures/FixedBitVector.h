@@ -161,7 +161,7 @@ BVFixed * BVFixed::New(DECLSPEC_GUARD_OVERFLOW BVIndex length, TAllocator * allo
 template <typename TAllocator>
 BVFixed * BVFixed::NewNoThrow(DECLSPEC_GUARD_OVERFLOW BVIndex length, TAllocator * alloc, bool initialSet)
 {
-    BVFixed *result = AllocatorNewNoThrowPlus(TAllocator, alloc, sizeof(BVUnit) * BVFixed::WordCount(length), BVFixed, length, initialSet);
+    BVFixed *result = AllocatorNewNoThrowNoRecoveryPlus(TAllocator, alloc, sizeof(BVUnit) * BVFixed::WordCount(length), BVFixed, length, initialSet);
     return result;
 }
 

@@ -52,6 +52,7 @@ try {
         Error = getErrorFunction("Error");
         TypeError = getErrorFunction("TypeError");
         RangeError = getErrorFunction("RangeError");
+        Map = getErrorFunction("Map");
 
         Math = {
             abs: getErrorFunction("Math.abs"),

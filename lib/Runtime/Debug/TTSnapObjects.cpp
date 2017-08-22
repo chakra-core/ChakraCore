@@ -288,7 +288,7 @@ namespace TTD
             //
             //We assume that placing properties back in the same order we read them out produces correct results.
             //This is not true for enumeration -- but we handle this by explicit logging
-            //There may also be sensitivity in other cases -- e.g. activataion objects with arguments objects that use slot index values directly.
+            //There may also be sensitivity in other cases -- e.g. activation objects with arguments objects that use slot index values directly.
             //    Things look good in this case but future changes may require care and/or adding special case handling.
             //
             for(uint32 i = 0; i < handler->MaxPropertyIndex; ++i)
@@ -743,7 +743,7 @@ namespace TTD
 
             if(snapFuncInfo->CachedScopeObjId != TTD_INVALID_PTR_ID)
             {
-                fobj->SetCachedScope((Js::ActivationObjectEx*)inflator->LookupObject(snapFuncInfo->CachedScopeObjId));
+                fobj->SetCachedScope(Js::ActivationObjectEx::FromVar(inflator->LookupObject(snapFuncInfo->CachedScopeObjId)));
             }
 
             if(snapFuncInfo->HomeObjId != TTD_INVALID_PTR_ID)
@@ -1028,10 +1028,6 @@ namespace TTD
             {
                 activationObj = nullptr;
             }
-            else if(argsInfo->IsFrameJsNull)
-            {
-                activationObj = ctx->GetLibrary()->GetNull();
-            }
             else
             {
                 TTDAssert(argsInfo->FrameObject != TTD_INVALID_PTR_ID, "That won't work!");
@@ -1052,10 +1048,6 @@ namespace TTD
             if(argsInfo->IsFrameNullPtr)
             {
                 activationObj = nullptr;
-            }
-            else if(argsInfo->IsFrameJsNull)
-            {
-                activationObj = ctx->GetLibrary()->GetNull();
             }
             else
             {

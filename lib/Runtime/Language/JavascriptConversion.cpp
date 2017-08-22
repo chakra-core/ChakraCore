@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
+#include "RuntimeMathPch.h"
 #include "Library/JavascriptNumberObject.h"
 #include "Library/JavascriptStringObject.h"
 #include "Library/JavascriptSimdObject.h"
@@ -496,7 +497,7 @@ CommonNumber:
         //  3. If func is either undefined or null, return undefined.
         //  4. If IsCallable(func) is false, throw a TypeError exception.
         //  5. Return func.
-        Var varMethod;
+        Var varMethod = nullptr;
 
         if (!(requestContext->GetConfig()->IsES6ToPrimitiveEnabled()
             && JavascriptOperators::GetPropertyReference(recyclableObject, PropertyIds::_symbolToPrimitive, &varMethod, requestContext)
@@ -517,15 +518,15 @@ CommonNumber:
 
         if (hint == JavascriptHint::HintString)
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("string"));
+            hintString = requestContext->GetLibrary()->GetStringTypeDisplayString();
         }
         else if (hint == JavascriptHint::HintNumber)
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("number"));
+            hintString = requestContext->GetLibrary()->GetNumberTypeDisplayString();
         }
         else
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("default"));
+            hintString = requestContext->GetPropertyString(PropertyIds::default_);
         }
 
         // If exoticToPrim is not undefined, then
@@ -1544,10 +1545,13 @@ CommonNumber:
         return static_cast<double>(aValue);
     }
 
+    // Windows x64 version implemented in masm to work around precision limitation
+#if !defined(_WIN32 ) || !defined(_M_X64)
     double JavascriptConversion::ULongToDouble(unsigned __int64 aValue)
     {
         return static_cast<double>(aValue);
     }
+#endif
 
     float JavascriptConversion::LongToFloat(__int64 aValue)
     {

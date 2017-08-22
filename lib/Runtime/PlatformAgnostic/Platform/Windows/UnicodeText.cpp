@@ -85,26 +85,41 @@ namespace PlatformAgnostic
             while (lo != hi)
             {
                 mid = lo + (hi - lo) / 2;
+
                 if (pRanges[mid].chStart <= ch && ch <= pRanges[mid].chFinish)
+                {
                     return true;
+                }
+
                 if (ch < pRanges[mid].chStart)
+                {
                     hi = mid;
+                }
                 else
+                {
                     lo = mid + 1;
+                }
             }
+
             return false;
         }
 
         static WORD oFindOldCharType(OLECHAR ch)
         {
             if ((OLECHAR)65279 == ch)
+            {
                 return C1_SPACE;
+            }
 
             if (doBinSearch(ch, oldAlphas, cOldAlphas))
+            {
                 return C1_ALPHA;
+            }
 
             if (doBinSearch(ch, oldDigits, cOldDigits))
+            {
                 return C1_DIGIT;
+            }
 
             return 0;
         }
@@ -116,7 +131,7 @@ namespace PlatformAgnostic
             // TODO: We should remove the depedency on ThreadContext for this layer
             // Currently, this exists since Windows.Globalization.dll is delay loaded and the
             // handle is stored on the thread context. We should move the management of the
-            // lifetime of that DLL to this layer, so that we can move the PAIL out of Runtime
+            // lifetime of that DLL to this layer, so that we can move the PAL out of Runtime
             // into Common.
             ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
             AssertMsg(threadContext, "Method should not be called after thread context is freed");
@@ -129,6 +144,7 @@ namespace PlatformAgnostic
             return defaultValue;
         }
 
+#ifdef INTL_WINGLOB
         template <typename Fn, typename TDefaultValue>
         static TDefaultValue ExecuteWinGlobApi(Fn fn, TDefaultValue defaultValue)
         {
@@ -158,6 +174,7 @@ namespace PlatformAgnostic
                 return (returnValue != 0);
             }, false);
         }
+#endif
 
         // Helper Win32 conversion utilities
         static NORM_FORM TranslateToWin32NormForm(NormalizationForm normalizationForm)
@@ -291,6 +308,7 @@ namespace PlatformAgnostic
 
         UnicodeGeneralCategoryClass GetGeneralCategoryClass(codepoint_t codepoint)
         {
+#ifdef INTL_WINGLOB
             return ExecuteWinGlobApi([&](IUnicodeCharactersStatics* pUnicodeCharStatics) {
                 UnicodeGeneralCategory category = UnicodeGeneralCategory::UnicodeGeneralCategory_NotAssigned;
 
@@ -328,25 +346,45 @@ namespace PlatformAgnostic
 
                 return UnicodeGeneralCategoryClass::CategoryClassOther;
             }, UnicodeGeneralCategoryClass::CategoryClassOther);
+#else
+            // TODO (doilij) implement with ICU
+            return UnicodeGeneralCategoryClass::CategoryClassOther;
+#endif
         }
 
         bool IsIdStart(codepoint_t codepoint)
         {
+#ifdef INTL_WINGLOB
             return ExecuteWinGlobCodepointCheckApi(codepoint, &IUnicodeCharactersStatics::IsIdStart);
+#else
+            // TODO (doilij) implement with ICU
+            return false;
+#endif
         }
 
         bool IsIdContinue(codepoint_t codepoint)
         {
+#ifdef INTL_WINGLOB
             return ExecuteWinGlobCodepointCheckApi(codepoint, &IUnicodeCharactersStatics::IsIdContinue);
+#else
+            // TODO (doilij) implement with ICU
+            return false;
+#endif
         }
 
         bool IsWhitespace(codepoint_t codepoint)
         {
+#ifdef INTL_WINGLOB
             return ExecuteWinGlobCodepointCheckApi(codepoint, &IUnicodeCharactersStatics::IsWhitespace);
+#else
+            // TODO (doilij) implement with ICU
+            return false;
+#endif
         }
 
         bool IsExternalUnicodeLibraryAvailable()
         {
+#ifdef INTL_WINGLOB
             return ExecuteWithThreadContext([](ThreadContext* threadContext) {
                 Js::WindowsGlobalizationAdapter* globalizationAdapter = threadContext->GetWindowsGlobalizationAdapter();
                 Js::DelayLoadWindowsGlobalization* globLibrary = threadContext->GetWindowsGlobalizationLibrary();
@@ -364,6 +402,10 @@ namespace PlatformAgnostic
 
                 return false;
             }, false);
+#else
+            // TODO (doilij) implement with ICU
+            return false;
+#endif
         }
 
         int LogicalStringCompare(const char16* string1, const char16* string2)
@@ -395,7 +437,9 @@ namespace PlatformAgnostic
                     // for PUNCT or DIGIT, and SPACE for SPACE or BLANK.
                     WORD wOldCharType = oFindOldCharType(ch);
                     if (0 == wOldCharType)
+                    {
                         return CharacterClassificationType::Invalid;
+                    }
 
                     charType = wOldCharType;
                 }

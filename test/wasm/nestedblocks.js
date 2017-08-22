@@ -4,23 +4,26 @@
 //-------------------------------------------------------------------------------------------------------
 
 WScript.Flag("-off:wasmdeferred");
+WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-constants.js");
+WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-module-builder.js");
+
 function test(nNestedBlocks) {
-  // print(`Test(${nNestedBlocks})`)
-  let nestedBlocks = "";
+  const builder = new WasmModuleBuilder();
+  const iType = builder.addType({params: [], results: [kWasmI32]});
+  const body = [];
   for (let i = 0; i < nNestedBlocks; ++i) {
-    nestedBlocks += "(block (result i32) ";
+    body.push(kExprBlock|0, kWasmI32|0);
   }
-  nestedBlocks += "(i32.const 5)";
+  body.push(kExprI32Const|0, 5);
   for (let i = 0; i < nNestedBlocks; ++i) {
-    nestedBlocks += ")";
+    body.push(kExprEnd|0);
   }
-  const buf = WebAssembly.wabt.convertWast2Wasm(`(module
-    (func (export "foo") (result i32)
-      ${nestedBlocks}
-    )
-  )`);
+  builder
+    .addFunction("foo", iType)
+    .addBody(body)
+    .exportFunc();
   try {
-    new WebAssembly.Module(buf);
+    new WebAssembly.Module(builder.toBuffer());
     return true;
   } catch (e) {
     if (e.message.includes("Maximum supported nested blocks reached")) {

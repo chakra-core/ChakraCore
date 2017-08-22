@@ -58,6 +58,13 @@ public:
         return functionBody->GetScriptContext();
     }
 
+    uint GetByteCodeLength() const
+    {
+        return this->functionBody->IsInDebugMode()
+            ? this->functionBody->GetOriginalByteCode()->GetLength()
+            : this->functionBody->GetByteCode()->GetLength();
+    }
+
     Js::FunctionBody* GetFunctionBody() const
     {
         return functionBody;

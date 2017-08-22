@@ -35,6 +35,7 @@
         $(MSBuildThisFileDirectory)..\..\Runtime\Math;
         $(MSBuildThisFileDirectory)..\..\JITClient;
         $(ChakraJITIDLIntDir);
+        $(IcuIncludeDir)\common;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -256,6 +257,9 @@
     <ClInclude Include="WebAssemblySource.h" />
   </ItemGroup>
   <ItemGroup>
+    <MASM Include="$(MSBuildThisFileDirectory)amd64\JavascriptConversionA.asm">
+      <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
+    </MASM>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\JavascriptOperatorsA.asm">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
     </MASM>

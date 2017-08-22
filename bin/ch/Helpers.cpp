@@ -6,14 +6,6 @@
 
 #include <sys/stat.h>
 
-#if defined(__APPLE__)
-#include <mach-o/dyld.h> // _NSGetExecutablePath
-#elif defined(__linux__)
-#include <unistd.h> // readlink
-#elif !defined(_WIN32)
-#error "How to get the executable path for this platform?"
-#endif // _WIN32 ?
-
 //TODO: x-plat definitions
 #ifdef _WIN32
 #define MAX_URI_LENGTH 512
@@ -252,74 +244,58 @@ LPCWSTR Helpers::JsErrorCodeToString(JsErrorCode jsErrorCode)
 
     switch (jsErrorCode)
     {
-    case JsNoError:
-        return _u("JsNoError");
-        break;
-
-    case JsErrorInvalidArgument:
-        return _u("JsErrorInvalidArgument");
-        break;
-
-    case JsErrorNullArgument:
-        return _u("JsErrorNullArgument");
-        break;
-
-    case JsErrorNoCurrentContext:
-        return _u("JsErrorNoCurrentContext");
-        break;
-
-    case JsErrorInExceptionState:
-        return _u("JsErrorInExceptionState");
-        break;
-
-    case JsErrorNotImplemented:
-        return _u("JsErrorNotImplemented");
-        break;
-
-    case JsErrorWrongThread:
-        return _u("JsErrorWrongThread");
-        break;
-
-    case JsErrorRuntimeInUse:
-        return _u("JsErrorRuntimeInUse");
-        break;
-
-    case JsErrorBadSerializedScript:
-        return _u("JsErrorBadSerializedScript");
-        break;
-
-    case JsErrorInDisabledState:
-        return _u("JsErrorInDisabledState");
-        break;
-
-    case JsErrorCannotDisableExecution:
-        return _u("JsErrorCannotDisableExecution");
-        break;
-
-    case JsErrorHeapEnumInProgress:
-        return _u("JsErrorHeapEnumInProgress");
-        break;
-
-    case JsErrorOutOfMemory:
-        return _u("JsErrorOutOfMemory");
-        break;
-
-    case JsErrorScriptException:
-        return _u("JsErrorScriptException");
-        break;
-
-    case JsErrorScriptCompile:
-        return _u("JsErrorScriptCompile");
-        break;
-
-    case JsErrorScriptTerminated:
-        return _u("JsErrorScriptTerminated");
-        break;
-
-    case JsErrorFatal:
-        return _u("JsErrorFatal");
-        break;
-
+    case JsNoError:                            return _u("JsNoError");
+    // JsErrorCategoryUsage
+    case JsErrorCategoryUsage:                 return _u("JsErrorCategoryUsage");
+    case JsErrorInvalidArgument:               return _u("JsErrorInvalidArgument");
+    case JsErrorNullArgument:                  return _u("JsErrorNullArgument");
+    case JsErrorNoCurrentContext:              return _u("JsErrorNoCurrentContext");
+    case JsErrorInExceptionState:              return _u("JsErrorInExceptionState");
+    case JsErrorNotImplemented:                return _u("JsErrorNotImplemented");
+    case JsErrorWrongThread:                   return _u("JsErrorWrongThread");
+    case JsErrorRuntimeInUse:                  return _u("JsErrorRuntimeInUse");
+    case JsErrorBadSerializedScript:           return _u("JsErrorBadSerializedScript");
+    case JsErrorInDisabledState:               return _u("JsErrorInDisabledState");
+    case JsErrorCannotDisableExecution:        return _u("JsErrorCannotDisableExecution");
+    case JsErrorHeapEnumInProgress:            return _u("JsErrorHeapEnumInProgress");
+    case JsErrorArgumentNotObject:             return _u("JsErrorArgumentNotObject");
+    case JsErrorInProfileCallback:             return _u("JsErrorInProfileCallback");
+    case JsErrorInThreadServiceCallback:       return _u("JsErrorInThreadServiceCallback");
+    case JsErrorCannotSerializeDebugScript:    return _u("JsErrorCannotSerializeDebugScript");
+    case JsErrorAlreadyDebuggingContext:       return _u("JsErrorAlreadyDebuggingContext");
+    case JsErrorAlreadyProfilingContext:       return _u("JsErrorAlreadyProfilingContext");
+    case JsErrorIdleNotEnabled:                return _u("JsErrorIdleNotEnabled");
+    case JsCannotSetProjectionEnqueueCallback: return _u("JsCannotSetProjectionEnqueueCallback");
+    case JsErrorCannotStartProjection:         return _u("JsErrorCannotStartProjection");
+    case JsErrorInObjectBeforeCollectCallback: return _u("JsErrorInObjectBeforeCollectCallback");
+    case JsErrorObjectNotInspectable:          return _u("JsErrorObjectNotInspectable");
+    case JsErrorPropertyNotSymbol:             return _u("JsErrorPropertyNotSymbol");
+    case JsErrorPropertyNotString:             return _u("JsErrorPropertyNotString");
+    case JsErrorInvalidContext:                return _u("JsErrorInvalidContext");
+    case JsInvalidModuleHostInfoKind:          return _u("JsInvalidModuleHostInfoKind");
+    case JsErrorModuleParsed:                  return _u("JsErrorModuleParsed");
+    // JsErrorCategoryEngine
+    case JsErrorCategoryEngine:                return _u("JsErrorCategoryEngine");
+    case JsErrorOutOfMemory:                   return _u("JsErrorOutOfMemory");
+    case JsErrorBadFPUState:                   return _u("JsErrorBadFPUState");
+    // JsErrorCategoryScript
+    case JsErrorCategoryScript:                return _u("JsErrorCategoryScript");
+    case JsErrorScriptException:               return _u("JsErrorScriptException");
+    case JsErrorScriptCompile:                 return _u("JsErrorScriptCompile");
+    case JsErrorScriptTerminated:              return _u("JsErrorScriptTerminated");
+    case JsErrorScriptEvalDisabled:            return _u("JsErrorScriptEvalDisabled");
+    // JsErrorCategoryFatal
+    case JsErrorCategoryFatal:                 return _u("JsErrorCategoryFatal");
+    case JsErrorFatal:                         return _u("JsErrorFatal");
+    case JsErrorWrongRuntime:                  return _u("JsErrorWrongRuntime");
+    // JsErrorCategoryDiagError
+    case JsErrorCategoryDiagError:             return _u("JsErrorCategoryDiagError");
+    case JsErrorDiagAlreadyInDebugMode:        return _u("JsErrorDiagAlreadyInDebugMode");
+    case JsErrorDiagNotInDebugMode:            return _u("JsErrorDiagNotInDebugMode");
+    case JsErrorDiagNotAtBreak:                return _u("JsErrorDiagNotAtBreak");
+    case JsErrorDiagInvalidHandle:             return _u("JsErrorDiagInvalidHandle");
+    case JsErrorDiagObjectNotFound:            return _u("JsErrorDiagObjectNotFound");
+    case JsErrorDiagUnableToPerformAction:     return _u("JsErrorDiagUnableToPerformAction");
     default:
         return _u("<unknown>");
         break;
@@ -353,10 +329,10 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
     {
         if (printFileOpenError)
         {
+            fprintf(stderr, "Error in opening file '%s' ", filename);
 #ifdef _WIN32
             DWORD lastError = GetLastError();
             char16 wszBuff[512];
-            fprintf(stderr, "Error in opening file '%s' ", filename);
             wszBuff[0] = 0;
             if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
                 nullptr,
@@ -370,12 +346,8 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
             }
 #endif
             fprintf(stderr, "\n");
-            IfFailGo(E_FAIL);
         }
-        else
-        {
-            return E_FAIL;
-        }
+        return E_FAIL;        
     }
     // file will not be nullptr if _wfopen_s succeeds
     __analysis_assume(file != nullptr);
@@ -401,9 +373,9 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
         fwprintf(stderr, _u("Read error"));
         IfFailGo(E_FAIL);
     }
-    fclose(file);
 
 Error:
+    fclose(file);
     if (contents && FAILED(hr))
     {
         HeapFree(GetProcessHeap(), 0, (void*)contents);
@@ -569,78 +541,6 @@ void CALLBACK Helpers::TTFlushAndCloseStreamCallback(JsTTDStreamHandle handle, b
     fclose((FILE*)handle);
 }
 
-#define SET_BINARY_PATH_ERROR_MESSAGE(path, msg) \
-    str_len = (int) strlen(msg);                 \
-    memcpy(path, msg, (size_t)str_len);          \
-    path[str_len] = char(0)
-
-void GetBinaryLocation(char *path, const unsigned size)
-{
-    AssertMsg(path != nullptr, "Path can not be nullptr");
-    AssertMsg(size < INT_MAX, "Isn't it too big for a path buffer?");
-#ifdef _WIN32
-    LPWSTR wpath = (WCHAR*)malloc(sizeof(WCHAR) * size);
-    int str_len;
-    if (!wpath)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed. OutOfMemory!");
-        return;
-    }
-    str_len = GetModuleFileNameW(NULL, wpath, size - 1);
-    if (str_len <= 0)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed.");
-        free(wpath);
-        return;
-    }
-
-    str_len = WideCharToMultiByte(CP_UTF8, 0, wpath, str_len, path, size, NULL, NULL);
-    free(wpath);
-
-    if (str_len <= 0)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName (WideCharToMultiByte) has failed.");
-        return;
-    }
-
-    if ((unsigned)str_len > size - 1)
-    {
-        str_len = (int) size - 1;
-    }
-    path[str_len] = char(0);
-#elif defined(__APPLE__)
-    uint32_t path_size = (uint32_t)size;
-    char *tmp = nullptr;
-    int str_len;
-    if (_NSGetExecutablePath(path, &path_size))
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: _NSGetExecutablePath has failed.");
-        return;
-    }
-
-    tmp = (char*)malloc(size);
-    char *result = realpath(path, tmp);
-    str_len = strlen(result);
-    memcpy(path, result, str_len);
-    free(tmp);
-    path[str_len] = char(0);
-#elif defined(__linux__)
-    int str_len = readlink("/proc/self/exe", path, size - 1);
-    if (str_len <= 0)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: /proc/self/exe has failed.");
-        return;
-    }
-    path[str_len] = char(0);
-#else
-#warning "Implement GetBinaryLocation for this platform"
-#endif
-}
-
-// xplat-todo: Implement a corresponding solution for GetModuleFileNameW
-// and cleanup PAL. [ https://github.com/Microsoft/ChakraCore/pull/2288 should be merged first ]
-// GetModuleFileName* PAL is not reliable and forces us to explicitly double initialize PAL
-// with argc / argv....
 void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char* filename)
 {
     char fullpath[_MAX_PATH];
@@ -648,7 +548,7 @@ void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char
     char dir[_MAX_DIR];
 
     char modulename[_MAX_PATH];
-    GetBinaryLocation(modulename, _MAX_PATH);
+    PlatformAgnostic::SystemInfo::GetBinaryLocation(modulename, _MAX_PATH);
     _splitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
     _makepath_s(fullpath, drive, dir, filename, nullptr);
 

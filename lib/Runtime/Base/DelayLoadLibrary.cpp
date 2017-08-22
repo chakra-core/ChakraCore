@@ -176,6 +176,7 @@ namespace Js
         return E_NOTIMPL;
     }
 
+#ifdef INTL_WINGLOB
     bool DelayLoadWindowsGlobalization::HasGlobalizationDllLoaded()
     {
         return this->hasGlobalizationDllLoaded;
@@ -202,6 +203,7 @@ namespace Js
 
         return E_NOTIMPL;
     }
+#endif
 
     HRESULT DelayLoadWinRtFoundation::RoGetActivationFactory(
         __in HSTRING activatibleClassId,
@@ -255,6 +257,7 @@ namespace Js
         return E_NOTIMPL;
     }
 
+#ifdef INTL_WINGLOB
     void DelayLoadWindowsGlobalization::Ensure(Js::DelayLoadWinRtString *winRTStringLibrary)
     {
         if (!this->m_isInit)
@@ -344,6 +347,7 @@ namespace Js
         }
         return DelayLoadWinRtString::WindowsDuplicateString(original, newString);
     }
+#endif
 
 #ifdef ENABLE_PROJECTION
     HRESULT DelayLoadWinRtError::RoClearError()

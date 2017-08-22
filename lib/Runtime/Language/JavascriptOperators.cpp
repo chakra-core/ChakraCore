@@ -15,6 +15,9 @@
 
 #include "Library/ForInObjectEnumerator.h"
 #include "Library/ES5Array.h"
+#include "Types/SimpleDictionaryPropertyDescriptor.h"
+#include "Types/SimpleDictionaryTypeHandler.h"
+#include "Language/ModuleNamespace.h"
 
 #ifndef SCRIPT_DIRECT_TYPE
 typedef enum JsNativeValueType: int
@@ -350,7 +353,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_CannotGet_NullOrUndefined , scriptContext->GetPropertyName(propertyId)->GetBuffer());
         }
 
-        Var value;
+        Var value = nullptr;
         try
         {
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
@@ -432,7 +435,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_CannotGet_NullOrUndefined, GetPropertyDisplayNameForError(index, scriptContext));
         }
 
-        Var member;
+        Var member = nullptr;
         uint32 indexVal;
         PropertyRecord const * propertyRecord = nullptr;
 
@@ -1188,7 +1191,7 @@ CommonNumber:
             // filter enumerable keys
             uint32 resultLength = proxyResult->GetLength();
             Var element;
-            const Js::PropertyRecord *propertyRecord;
+            const Js::PropertyRecord *propertyRecord = nullptr;
             uint32 index = 0;
             for (uint32 i = 0; i < resultLength; i++)
             {
@@ -1261,7 +1264,7 @@ CommonNumber:
         Var getter, setter;
         if (false == JavascriptOperators::GetOwnAccessors(obj, propertyId, &getter, &setter, scriptContext))
         {
-            Var value;
+            Var value = nullptr;
             if (false == JavascriptOperators::GetOwnProperty(obj, propertyId, &value, scriptContext))
             {
                 return FALSE;
@@ -1471,7 +1474,7 @@ CommonNumber:
         if (JavascriptOperators::IsObject(unscopables))
         {
             DynamicObject *unscopablesList = DynamicObject::FromVar(unscopables);
-            Var value;
+            Var value = nullptr;
             //8.1.1.2.1.9.c If blocked is not undefined
             if (JavascriptOperators::GetProperty(unscopablesList, propertyId, &value, scriptContext))
             {
@@ -1487,9 +1490,9 @@ CommonNumber:
         while (JavascriptOperators::GetTypeId(instance) != TypeIds_Null)
         {
             PropertyQueryFlags result = instance->HasPropertyQuery(propertyId);
-            if (result != Property_NotFound)
+            if (result != PropertyQueryFlags::Property_NotFound)
             {
-                return JavascriptConversion::PropertyQueryFlagsToBoolean(result); // return false if instance is typed array and HasPropertyQuery() returns Property_Found_Undefined
+                return JavascriptConversion::PropertyQueryFlagsToBoolean(result); // return false if instance is typed array and HasPropertyQuery() returns PropertyQueryFlags::Property_Found_Undefined
             }
 
             instance = JavascriptOperators::GetPrototypeNoTrap(instance);
@@ -1590,7 +1593,7 @@ CommonNumber:
         {
             if (!dynamicObject->DynamicObject::GetAccessors(propertyId, &getter, &setter, requestContext))
             {
-                Var value;
+                Var value = nullptr;
                 if (!JavascriptConversion::PropertyQueryFlagsToBoolean(dynamicObject->DynamicObject::GetPropertyQuery(instance, propertyId, &value, NULL, requestContext)) ||
                     (requestContext->IsUndeclBlockVar(value) && (ActivationObject::Is(instance) || RootObjectBase::Is(instance))))
                 {
@@ -1602,7 +1605,7 @@ CommonNumber:
         {
             if (!object->GetAccessors(propertyId, &getter, &setter, requestContext))
             {
-                Var value;
+                Var value = nullptr;
                 if (!object->GetProperty(instance, propertyId, &value, NULL, requestContext) ||
                     (requestContext->IsUndeclBlockVar(value) && (ActivationObject::Is(instance) || RootObjectBase::Is(instance))))
                 {
@@ -1692,9 +1695,9 @@ CommonNumber:
             RootObjectBase* rootObject = static_cast<RootObjectBase*>(object);
             foundProperty = rootObject->GetRootProperty(instance, propertyId, value, info, requestContext);
         }
+
         while (!foundProperty && JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
-
             if (unscopables && IsPropertyUnscopable(object, propertyId))
             {
                 break;
@@ -1702,7 +1705,7 @@ CommonNumber:
             else
             {
                 PropertyQueryFlags result = object->GetPropertyQuery(instance, propertyId, value, info, requestContext);
-                if (result != Property_NotFound)
+                if (result != PropertyQueryFlags::Property_NotFound)
                 {
                     foundProperty = JavascriptConversion::PropertyQueryFlagsToBoolean(result);
                     break;
@@ -1736,7 +1739,7 @@ CommonNumber:
             //         Also we might want to throw here instead of checking it again in the caller
             if (value && !requestContext->IsUndeclBlockVar(*value) && !WithScopeObject::Is(object))
             {
-                CacheOperators::CachePropertyRead(instance, object, isRoot, propertyId, false, info, requestContext);
+                CacheOperators::CachePropertyRead(propertyObject, object, isRoot, propertyId, false, info, requestContext);
             }
 #ifdef TELEMETRY_JSO
             if (TELEMETRY_PROPERTY_OPCODE_FILTER(propertyId))
@@ -1776,7 +1779,7 @@ CommonNumber:
                 }
 
                 PropertyValueInfo::Set(info, requestContext->GetLibrary()->GetMissingPropertyHolder(), 0);
-                CacheOperators::CachePropertyRead(instance, requestContext->GetLibrary()->GetMissingPropertyHolder(), isRoot, propertyId, true, info, requestContext);
+                CacheOperators::CachePropertyRead(propertyObject, requestContext->GetLibrary()->GetMissingPropertyHolder(), isRoot, propertyId, true, info, requestContext);
             }
 #if defined(TELEMETRY_JSO) || defined(TELEMETRY_AddToCache) // enabled for `TELEMETRY_AddToCache`, because this is the property-not-found codepath where the normal TELEMETRY_AddToCache code wouldn't be executed.
             if (TELEMETRY_PROPERTY_OPCODE_FILTER(propertyId))
@@ -1799,7 +1802,7 @@ CommonNumber:
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
             PropertyQueryFlags result = object->GetPropertyQuery(instance, propertyKey, value, info, requestContext);
-            if (result != Property_NotFound)
+            if (result != PropertyQueryFlags::Property_NotFound)
             {
                 if (value && !WithScopeObject::Is(object) && info->GetPropertyString())
                 {
@@ -1874,7 +1877,7 @@ CommonNumber:
     {
         AssertMsg(RootObjectBase::Is(instance), "Root must be an object!");
 
-        Var value;
+        Var value = nullptr;
         if (JavascriptOperators::GetRootProperty(RecyclableObject::FromVar(instance), propertyId, &value, scriptContext, info))
         {
             if (scriptContext->IsUndeclBlockVar(value))
@@ -1912,7 +1915,7 @@ CommonNumber:
 
         for (int i = 0; i < length; i += 1)
         {
-            Var value;
+            Var value = nullptr;
             RecyclableObject *obj = RecyclableObject::FromVar(pScope->GetItem(i));
             if (JavascriptOperators::GetProperty(obj, Js::PropertyIds::_lexicalThisSlotSymbol, &value, scriptContext))
             {
@@ -2008,7 +2011,7 @@ CommonNumber:
             else
             {
                 PropertyQueryFlags result = object->GetPropertyReferenceQuery(instance, propertyId, value, info, requestContext);
-                if (result != Property_NotFound)
+                if (result != PropertyQueryFlags::Property_NotFound)
                 {
                     foundProperty = JavascriptConversion::PropertyQueryFlagsToBoolean(result);
                     break;
@@ -2069,7 +2072,7 @@ CommonNumber:
         {
             DynamicObject* dynamicObject = (DynamicObject*)object;
             DynamicTypeHandler* dynamicTypeHandler = dynamicObject->GetDynamicType()->GetTypeHandler();
-            Var property;
+            Var property = nullptr;
             if (dynamicTypeHandler->CheckFixedProperty(requestContext->GetPropertyName(propertyId), &property, requestContext))
             {
                 Assert(value == nullptr || *value == property);
@@ -2162,7 +2165,7 @@ CommonNumber:
     {
         GlobalObject * globalObject = scriptContext->GetGlobalObject();
         uint32 index;
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         IndexType indexType = GetIndexTypeFromString(propertyName, propertyLength, scriptContext, &index, &propertyRecord, true);
 
         if (indexType == IndexType_Number)
@@ -2296,7 +2299,7 @@ CommonNumber:
                 {
                     Assert(JavascriptProxy::Is(setterValueOrProxy));
                     JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
-                    const PropertyRecord* propertyRecord;
+                    const PropertyRecord* propertyRecord = nullptr;
                     proxy->PropertyIdFromInt(index, &propertyRecord);
                     return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetItemOnTaggedNumberKind, propertyRecord->GetPropertyId(), newValue, requestContext);
                 }
@@ -2518,7 +2521,7 @@ CommonNumber:
         if ( (instanceType == TypeIds_NativeIntArray || instanceType == TypeIds_NativeFloatArray) || (instanceType >= TypeIds_Int8Array && instanceType <= TypeIds_Uint64Array) )
         {
             RecyclableObject* object = RecyclableObject::FromVar(instance);
-            Var member;
+            Var member = nullptr;
 
             // If the item is found in the array own body, then it is a number
             if (JavascriptOperators::GetOwnItem(object, index, &member, scriptContext)
@@ -2812,7 +2815,7 @@ CommonNumber:
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
 
         uint16 length = pDisplay->GetLength();
-        DynamicObject *object;
+        RecyclableObject *object;
 
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
@@ -2822,7 +2825,7 @@ CommonNumber:
 
         for (uint16 i = 0; i < length; i++)
         {
-            object = (DynamicObject*)pDisplay->GetItem(i);
+            object = RecyclableObject::FromVar(pDisplay->GetItem(i));
 
             AssertMsg(!ConsoleScopeActivationObject::Is(object) || (i == length - 1), "Invalid location for ConsoleScopeActivationObject");
 
@@ -3071,7 +3074,7 @@ CommonNumber:
 
     BOOL JavascriptOperators::HasItem(RecyclableObject* object, uint64 index)
     {
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         ScriptContext* scriptContext = object->GetScriptContext();
         JavascriptOperators::GetPropertyIdForInt(index, scriptContext, &propertyRecord);
         return JavascriptOperators::HasProperty(object, propertyRecord->GetPropertyId());
@@ -3085,7 +3088,7 @@ CommonNumber:
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
             PropertyQueryFlags result;
-            if ((result = object->HasItemQuery(index)) != Property_NotFound)
+            if ((result = object->HasItemQuery(index)) != PropertyQueryFlags::Property_NotFound)
             {
                 return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
             }
@@ -3107,7 +3110,7 @@ CommonNumber:
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
             PropertyQueryFlags result;
-            if ((result = object->GetItemQuery(instance, index, value, requestContext)) != Property_NotFound)
+            if ((result = object->GetItemQuery(instance, index, value, requestContext)) != PropertyQueryFlags::Property_NotFound)
             {
                 return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
             }
@@ -3127,7 +3130,7 @@ CommonNumber:
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
             PropertyQueryFlags result;
-            if ((result = object->GetItemReferenceQuery(instance, index, value, requestContext)) != Property_NotFound)
+            if ((result = object->GetItemReferenceQuery(instance, index, value, requestContext)) != PropertyQueryFlags::Property_NotFound)
             {
                 return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
             }
@@ -3143,7 +3146,7 @@ CommonNumber:
 
     BOOL JavascriptOperators::SetItem(Var receiver, RecyclableObject* object, uint64 index, Var value, ScriptContext* scriptContext, PropertyOperationFlags propertyOperationFlags)
     {
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         JavascriptOperators::GetPropertyIdForInt(index, scriptContext, &propertyRecord);
         return JavascriptOperators::SetProperty(receiver, object, propertyRecord->GetPropertyId(), value, scriptContext, propertyOperationFlags);
     }
@@ -3174,7 +3177,7 @@ CommonNumber:
             {
                 Assert(JavascriptProxy::Is(setterValueOrProxy));
                 JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
-                const PropertyRecord* propertyRecord;
+                const PropertyRecord* propertyRecord = nullptr;
                 proxy->PropertyIdFromInt(index, &propertyRecord);
                 return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetItemKind, propertyRecord->GetPropertyId(), value, scriptContext, skipPrototypeCheck);
             }
@@ -3206,7 +3209,7 @@ CommonNumber:
     }
     BOOL JavascriptOperators::DeleteItem(RecyclableObject* object, uint64 index, PropertyOperationFlags propertyOperationFlags)
     {
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         JavascriptOperators::GetPropertyIdForInt(index, object->GetScriptContext(), &propertyRecord);
         return JavascriptOperators::DeleteProperty(object, propertyRecord->GetPropertyId(), propertyOperationFlags);
     }
@@ -3218,7 +3221,7 @@ CommonNumber:
             RecyclableObject::FromVar(instance);
 
         uint32 indexVal;
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         IndexType indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, false);
 
         if (indexType == IndexType_Number)
@@ -3511,15 +3514,15 @@ CommonNumber:
                 if (VirtualTableInfo<Int8VirtualArray>::HasVirtualTable(instance))
                 {
                     Int8VirtualArray* int8Array = Int8VirtualArray::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(int8Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return int8Array->DirectGetItem(indexInt);
                     }
                 }
-                else
+                else if (VirtualTableInfo<Int8Array>::HasVirtualTable(instance))
                 {
                     Int8Array* int8Array = Int8Array::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(int8Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return int8Array->DirectGetItem(indexInt);
                     }
@@ -3534,15 +3537,15 @@ CommonNumber:
                 if (VirtualTableInfo<Uint8VirtualArray>::HasVirtualTable(instance))
                 {
                     Uint8VirtualArray* uint8Array = Uint8VirtualArray::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(uint8Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return uint8Array->DirectGetItem(indexInt);
                     }
                 }
-                else
+                else if (VirtualTableInfo<Uint8Array>::HasVirtualTable(instance))
                 {
                     Uint8Array* uint8Array = Uint8Array::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(uint8Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return uint8Array->DirectGetItem(indexInt);
                     }
@@ -3557,15 +3560,15 @@ CommonNumber:
                 if (VirtualTableInfo<Uint8ClampedVirtualArray>::HasVirtualTable(instance))
                 {
                     Uint8ClampedVirtualArray* uint8ClampedArray = Uint8ClampedVirtualArray::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(uint8ClampedArray) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return uint8ClampedArray->DirectGetItem(indexInt);
                     }
                 }
-                else
+                else if (VirtualTableInfo<Uint8ClampedArray>::HasVirtualTable(instance))
                 {
                     Uint8ClampedArray* uint8ClampedArray = Uint8ClampedArray::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(uint8ClampedArray) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return uint8ClampedArray->DirectGetItem(indexInt);
                     }
@@ -3581,15 +3584,15 @@ CommonNumber:
                 if (VirtualTableInfo<Int16VirtualArray>::HasVirtualTable(instance))
                 {
                     Int16VirtualArray* int16Array = Int16VirtualArray::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(int16Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return int16Array->DirectGetItem(indexInt);
                     }
                 }
-                else
+                else if (VirtualTableInfo<Int16Array>::HasVirtualTable(instance))
                 {
                     Int16Array* int16Array = Int16Array::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(int16Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return int16Array->DirectGetItem(indexInt);
                     }
@@ -3605,15 +3608,15 @@ CommonNumber:
                 if (VirtualTableInfo<Uint16VirtualArray>::HasVirtualTable(instance))
                 {
                     Uint16VirtualArray* uint16Array = Uint16VirtualArray::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(uint16Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return uint16Array->DirectGetItem(indexInt);
                     }
                 }
-                else
+                else if (VirtualTableInfo<Uint16Array>::HasVirtualTable(instance))
                 {
                     Uint16Array* uint16Array = Uint16Array::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(uint16Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return uint16Array->DirectGetItem(indexInt);
                     }
@@ -3627,15 +3630,15 @@ CommonNumber:
                 if (VirtualTableInfo<Int32VirtualArray>::HasVirtualTable(instance))
                 {
                     Int32VirtualArray* int32Array = Int32VirtualArray::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(int32Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return int32Array->DirectGetItem(indexInt);
                     }
                 }
-                else
+                else if (VirtualTableInfo<Int32Array>::HasVirtualTable(instance))
                 {
                     Int32Array* int32Array = Int32Array::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(int32Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return int32Array->DirectGetItem(indexInt);
                     }
@@ -3650,15 +3653,15 @@ CommonNumber:
                 if (VirtualTableInfo<Uint32VirtualArray>::HasVirtualTable(instance))
                 {
                     Uint32VirtualArray* uint32Array = Uint32VirtualArray::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(uint32Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return uint32Array->DirectGetItem(indexInt);
                     }
                 }
-                else
+                else if (VirtualTableInfo<Uint32Array>::HasVirtualTable(instance))
                 {
                     Uint32Array* uint32Array = Uint32Array::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(uint32Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return uint32Array->DirectGetItem(indexInt);
                     }
@@ -3673,15 +3676,15 @@ CommonNumber:
                 if (VirtualTableInfo<Float32VirtualArray>::HasVirtualTable(instance))
                 {
                     Float32VirtualArray* float32Array = Float32VirtualArray::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(float32Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return float32Array->DirectGetItem(indexInt);
                     }
                 }
-                else
+                else if (VirtualTableInfo<Float32Array>::HasVirtualTable(instance))
                 {
                     Float32Array* float32Array = Float32Array::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(float32Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return float32Array->DirectGetItem(indexInt);
                     }
@@ -3695,15 +3698,15 @@ CommonNumber:
                 if (VirtualTableInfo<Float64VirtualArray>::HasVirtualTable(instance))
                 {
                     Float64VirtualArray* float64Array = Float64VirtualArray::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(float64Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return float64Array->DirectGetItem(indexInt);
                     }
                 }
-                else
+                else if (VirtualTableInfo<Float64Array>::HasVirtualTable(instance))
                 {
                     Float64Array* float64Array = Float64Array::FromVar(instance);
-                    if (!CrossSite::IsCrossSiteObjectTyped(float64Array) && indexInt >= 0)
+                    if (indexInt >= 0)
                     {
                         return float64Array->DirectGetItem(indexInt);
                     }
@@ -3827,9 +3830,9 @@ CommonNumber:
         }
 
         uint32 indexVal;
-        PropertyRecord const * propertyRecord;
-        JavascriptString * propertyNameString;
-        Var value;
+        PropertyRecord const * propertyRecord = nullptr;
+        JavascriptString * propertyNameString = nullptr;
+        Var value = nullptr;
 
         IndexType indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, &propertyNameString, false, true);
 
@@ -4054,7 +4057,7 @@ CommonNumber:
         threadContext->ClearImplicitCallFlags();
 
         uint32 indexVal;
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         Var value = NULL;
         BOOL hasProperty = FALSE;
         IndexType indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, false);
@@ -4169,6 +4172,9 @@ CommonNumber:
             {
                 BOOL returnValue = FALSE;
                 bool isNumericIndex = false;
+
+                // CrossSite types will go down the slow path.
+
                 switch (instanceType)
                 {
                 case TypeIds_Int8Array:
@@ -4178,19 +4184,13 @@ CommonNumber:
                     if (VirtualTableInfo<Int8VirtualArray>::HasVirtualTable(instance))
                     {
                         Int8VirtualArray* int8Array = Int8VirtualArray::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(int8Array))
-                        {
                             returnValue = int8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
-                    else
+                    else if( VirtualTableInfo<Int8Array>::HasVirtualTable(instance))
                     {
                         Int8Array* int8Array = Int8Array::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(int8Array))
-                        {
                             returnValue = int8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
                     break;
                 }
 
@@ -4200,19 +4200,13 @@ CommonNumber:
                     if (VirtualTableInfo<Uint8VirtualArray>::HasVirtualTable(instance))
                     {
                         Uint8VirtualArray* uint8Array = Uint8VirtualArray::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(uint8Array))
-                        {
                             returnValue = uint8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
-                    else
+                    else if (VirtualTableInfo<Uint8Array>::HasVirtualTable(instance))
                     {
                         Uint8Array* uint8Array = Uint8Array::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(uint8Array))
-                        {
                             returnValue = uint8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
                     break;
                 }
 
@@ -4222,19 +4216,13 @@ CommonNumber:
                     if (VirtualTableInfo<Uint8ClampedVirtualArray>::HasVirtualTable(instance))
                     {
                         Uint8ClampedVirtualArray* uint8ClampedArray = Uint8ClampedVirtualArray::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(uint8ClampedArray))
-                        {
                             returnValue = uint8ClampedArray->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
-                    else
+                    else if(VirtualTableInfo<Uint8ClampedArray>::HasVirtualTable(instance))
                     {
                         Uint8ClampedArray* uint8ClampedArray = Uint8ClampedArray::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(uint8ClampedArray))
-                        {
                             returnValue = uint8ClampedArray->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
                     break;
                 }
 
@@ -4244,19 +4232,13 @@ CommonNumber:
                     if (VirtualTableInfo<Int16VirtualArray>::HasVirtualTable(instance))
                     {
                         Int16VirtualArray* int16Array = Int16VirtualArray::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(int16Array))
-                        {
                             returnValue = int16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
-                    else
+                    else if (VirtualTableInfo<Int16Array>::HasVirtualTable(instance))
                     {
                         Int16Array* int16Array = Int16Array::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(int16Array))
-                        {
                             returnValue = int16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
                     break;
                 }
 
@@ -4267,19 +4249,13 @@ CommonNumber:
                     if (VirtualTableInfo<Uint16VirtualArray>::HasVirtualTable(instance))
                     {
                         Uint16VirtualArray* uint16Array = Uint16VirtualArray::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(uint16Array))
-                        {
                             returnValue = uint16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
-                    else
+                    else if (VirtualTableInfo<Uint16Array>::HasVirtualTable(instance))
                     {
                         Uint16Array* uint16Array = Uint16Array::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(uint16Array))
-                        {
                             returnValue = uint16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
                     break;
                 }
                 case TypeIds_Int32Array:
@@ -4288,19 +4264,13 @@ CommonNumber:
                     if (VirtualTableInfo<Int32VirtualArray>::HasVirtualTable(instance))
                     {
                         Int32VirtualArray* int32Array = Int32VirtualArray::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(int32Array))
-                        {
                             returnValue = int32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
-                    else
+                    else if(VirtualTableInfo<Int32Array>::HasVirtualTable(instance))
                     {
                         Int32Array* int32Array = Int32Array::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(int32Array))
-                        {
                             returnValue = int32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
                     break;
                 }
                 case TypeIds_Uint32Array:
@@ -4310,19 +4280,13 @@ CommonNumber:
                     if (VirtualTableInfo<Uint32VirtualArray>::HasVirtualTable(instance))
                     {
                         Uint32VirtualArray* uint32Array = Uint32VirtualArray::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(uint32Array))
-                        {
                             returnValue = uint32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
-                    else
+                    else if (VirtualTableInfo<Uint32Array>::HasVirtualTable(instance))
                     {
                         Uint32Array* uint32Array = Uint32Array::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(uint32Array))
-                        {
                             returnValue = uint32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
                     break;
                 }
                 case TypeIds_Float32Array:
@@ -4331,41 +4295,28 @@ CommonNumber:
                     if (VirtualTableInfo<Float32VirtualArray>::HasVirtualTable(instance))
                     {
                         Float32VirtualArray* float32Array = Float32VirtualArray::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(float32Array))
-                        {
                             returnValue = float32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
-                    else
+                    else if (VirtualTableInfo<Float32Array>::HasVirtualTable(instance))
                     {
                         Float32Array* float32Array = Float32Array::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(float32Array))
-                        {
                             returnValue = float32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
                     break;
                 }
                 case TypeIds_Float64Array:
                 {
                     // The type array will deal with all possible values for the index
-
                     if (VirtualTableInfo<Float64VirtualArray>::HasVirtualTable(instance))
                     {
                         Float64VirtualArray* float64Array = Float64VirtualArray::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(float64Array))
-                        {
                             returnValue = float64Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
-                    else
+                    else if (VirtualTableInfo<Float64Array>::HasVirtualTable(instance))
                     {
                         Float64Array* float64Array = Float64Array::FromVar(instance);
-                        if (!CrossSite::IsCrossSiteObjectTyped(float64Array))
-                        {
                             returnValue = float64Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                         }
-                    }
                     break;
                 }
                 }
@@ -4963,7 +4914,7 @@ CommonNumber:
         RecyclableObject* object = RecyclableObject::FromVar(instance);
 
         uint32 indexVal;
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         JavascriptString * propertyNameString = nullptr;
         BOOL result = TRUE;
         IndexType indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, &propertyNameString, false, true);
@@ -5521,7 +5472,15 @@ CommonNumber:
 
     Var JavascriptOperators::OP_InitCachedScope(Var varFunc, const Js::PropertyIdArray *propIds, Field(DynamicType*)* literalType, bool formalsAreLetDecls, ScriptContext *scriptContext)
     {
-        ScriptFunction *func = JavascriptGeneratorFunction::Is(varFunc) || JavascriptAsyncFunction::Is(varFunc) ?
+        bool isGAFunction = JavascriptFunction::Is(varFunc);
+        Assert(isGAFunction);
+        if (isGAFunction)
+        {
+            JavascriptFunction *function = JavascriptFunction::FromVar(varFunc);
+            isGAFunction = JavascriptGeneratorFunction::Test(function) || JavascriptAsyncFunction::Test(function);
+        }
+
+        ScriptFunction *func = isGAFunction ?
             JavascriptGeneratorFunction::FromVar(varFunc)->GetGeneratorVirtualScriptFunction() :
             ScriptFunction::FromVar(varFunc);
 
@@ -5615,7 +5574,7 @@ CommonNumber:
 
     void JavascriptOperators::OP_InitCachedFuncs(Var varScope, FrameDisplay *pDisplay, const FuncInfoArray *info, ScriptContext *scriptContext)
     {
-        ActivationObjectEx *scopeObj = (ActivationObjectEx*)ActivationObjectEx::FromVar(varScope);
+        ActivationObjectEx *scopeObj = ActivationObjectEx::FromVar(varScope);
         Assert(scopeObj->GetTypeHandler()->GetInlineSlotCapacity() == 0);
 
         uint funcCount = info->count;
@@ -6244,7 +6203,7 @@ CommonNumber:
                 if (typeHandler->IsSharable())
                 {
 #if DBG
-                    bool cachedProtoCanBeCached;
+                    bool cachedProtoCanBeCached = false;
                     Assert(type->GetPrototype() == JavascriptOperators::GetPrototypeObjectForConstructorCache(constructor, requestContext, cachedProtoCanBeCached));
                     Assert(cachedProtoCanBeCached);
                     Assert(type->GetScriptContext() == constructorCache->GetScriptContext());
@@ -6972,8 +6931,6 @@ CommonNumber:
         if (funcCallee->IsStrictMode())
         {
             JavascriptFunction* restrictedPropertyAccessor = library->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
-            argsObj->SetAccessors(PropertyIds::caller, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
-
             argsObj->SetAccessors(PropertyIds::callee, restrictedPropertyAccessor, restrictedPropertyAccessor, PropertyOperation_NonFixedValue);
 
         }
@@ -6991,7 +6948,7 @@ CommonNumber:
         return scriptContext->GetLibrary()->CreateActivationObject();
     }
 
-    Var JavascriptOperators::OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, JavascriptFunction * funcCallee, bool nonSimpleParamList)
+    Var JavascriptOperators::OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, FunctionBody * calleeBody, bool nonSimpleParamList)
     {
         Js::ActivationObject * frameObject = (ActivationObject*)OP_NewScopeObject(scriptContext);
         // No fixed fields for formal parameters of the arguments object.  Also, mark all fields as initialized up-front, because
@@ -6999,7 +6956,7 @@ CommonNumber:
         // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
         // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
         // is ready for storing values directly to slots.
-        DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), funcCallee->GetFunctionBody()->GetFormalsPropIdArray(), nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
+        DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), calleeBody->GetFormalsPropIdArray(), nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
 
         int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
         int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();
@@ -7264,7 +7221,7 @@ CommonNumber:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("in"));
         }
 
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         uint32 index;
         IndexType indexType = GetIndexType(argProperty, scriptContext, &index, &propertyRecord, true);
 
@@ -7325,7 +7282,7 @@ CommonNumber:
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
         Var value;
         if (CacheOperators::TryGetProperty<true, true, true, true, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
-                thisInstance, false, object, propertyId, &value, scriptContext, nullptr, &info))
+                instance, false, object, propertyId, &value, scriptContext, nullptr, &info))
         {
             return value;
         }
@@ -7558,7 +7515,8 @@ CommonNumber:
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
         for (uint16 i = 0; i < length; i++)
         {
-            DynamicObject* object = (DynamicObject*)pDisplay->GetItem(i);
+            RecyclableObject* object = RecyclableObject::FromVar(pDisplay->GetItem(i));
+
             Var value;
             if (CacheOperators::TryGetProperty<true, true, true, false, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
                     object, false, object, propertyId, &value, scriptContext, nullptr, &info))
@@ -7980,55 +7938,7 @@ CommonNumber:
     template <bool IsFromFullJit, class TInlineCache>
     inline void JavascriptOperators::PatchPutValueNoLocalFastPath(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags)
     {
-        ScriptContext *const scriptContext = functionBody->GetScriptContext();
-
-        if (TaggedNumber::Is(instance))
-        {
-            JavascriptOperators::SetPropertyOnTaggedNumber(instance,
-                                        nullptr,
-                                        propertyId,
-                                        newValue,
-                                        scriptContext,
-                                        flags);
-             return;
-        }
-#if ENABLE_COPYONACCESS_ARRAY
-        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
-#endif
-        RecyclableObject *object = RecyclableObject::FromVar(instance);
-
-        PropertyValueInfo info;
-        PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
-        if (CacheOperators::TrySetProperty<!TInlineCache::IsPolymorphic, true, true, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
-                object, false, propertyId, newValue, scriptContext, flags, nullptr, &info))
-        {
-            return;
-        }
-
-#if DBG_DUMP
-        if (PHASE_VERBOSE_TRACE1(Js::InlineCachePhase))
-        {
-            CacheOperators::TraceCache(inlineCache, _u("PatchPutValueNoLocalFastPath"), propertyId, scriptContext, object);
-        }
-#endif
-
-        ImplicitCallFlags prevImplicitCallFlags = ImplicitCall_None;
-        ImplicitCallFlags currImplicitCallFlags = ImplicitCall_None;
-        bool hasThisOnlyStatements = functionBody->GetHasOnlyThisStmts();
-        if (hasThisOnlyStatements)
-        {
-            prevImplicitCallFlags = CacheAndClearImplicitBit(scriptContext);
-        }
-        if (!JavascriptOperators::OP_SetProperty(instance, propertyId, newValue, scriptContext, &info, flags))
-        {
-            // Add implicit call flags, to bail out if field copy prop may propagate the wrong value.
-            scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_NoOpSet);
-        }
-        if (hasThisOnlyStatements)
-        {
-            currImplicitCallFlags = CheckAndUpdateFunctionBodyWithImplicitFlag(functionBody);
-            RestoreImplicitFlag(scriptContext, prevImplicitCallFlags, currImplicitCallFlags);
-        }
+        PatchPutValueWithThisPtrNoLocalFastPath<IsFromFullJit, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
     }
     template void JavascriptOperators::PatchPutValueNoLocalFastPath<false, InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
     template void JavascriptOperators::PatchPutValueNoLocalFastPath<true, InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
@@ -8520,7 +8430,9 @@ CommonNumber:
         {
             if (!dynamicType->GetIsLocked())
             {
-                dynamicType->LockType();
+                // We only need to lock the type to prevent against the type evolving after it has been cached. If the type becomes shared
+                // in the future, any further changes to the type will result in creating a new type handler.
+                dynamicType->LockTypeOnly();
             }
         }
 
@@ -8761,9 +8673,12 @@ CommonNumber:
                 {
                     if (!currentDescriptor->IsWritable())
                     {
-                        if ((descriptor.WritableSpecified() && descriptor.IsWritable()) ||  // ES5 8.12.9.10.a.i
-                            (descriptor.ValueSpecified() &&
-                                !JavascriptConversion::SameValue(descriptor.GetValue(), currentDescriptor->GetValue()))) // ES5 8.12.9.10.a.ii
+                        if (descriptor.WritableSpecified() && descriptor.IsWritable())  // ES5 8.12.9.10.a.i
+                        {
+                            return Reject(throwOnError, scriptContext, JSERR_DefineProperty_NotConfigurable, propId);
+                        }
+                        else if (descriptor.ValueSpecified() &&
+                                !JavascriptConversion::SameValue(descriptor.GetValue(), currentDescriptor->GetValue())) // ES5 8.12.9.10.a.ii
                         {
                             return Reject(throwOnError, scriptContext, JSERR_DefineProperty_NotWritable, propId);
                         }
@@ -10832,7 +10747,7 @@ CommonNumber:
 
     BOOL JavascriptOperators::GetItem(RecyclableObject* instance, uint64 index, Var* value, ScriptContext* requestContext)
     {
-        PropertyRecord const * propertyRecord;
+        PropertyRecord const * propertyRecord = nullptr;
         JavascriptOperators::GetPropertyIdForInt(index, requestContext, &propertyRecord);
         return JavascriptOperators::GetProperty(instance, propertyRecord->GetPropertyId(), value, requestContext);
     }

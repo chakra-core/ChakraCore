@@ -184,6 +184,7 @@ public:
             void            HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod helperMethodFloat, IR::JnHelperMethod helperMethodDouble);
             void            GenerateFastInlineBuiltInMathAbs(IR::Instr* instr);
             void            GenerateFastInlineBuiltInMathPow(IR::Instr* instr);
+            IR::Instr *     CheckIsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* isNeg0Label);
             IR::Instr *     CloneSlowPath(IR::Instr * instrEndFloatRange, IR::Instr * instrInsert);
             bool            IsCloneDone(IR::Instr * instr, BVSparse<JitArenaAllocator> *bvTmps);
             IR::Instr *     EnsureAdjacentArgs(IR::Instr * instrArg);
@@ -199,7 +200,8 @@ public:
             void            GenerateCopysign(IR::Instr * instr);
 
             static IR::Instr *LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert);
-            static IR::Instr *LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrInsert);
+            template <typename T>
+            static IR::Instr *LoadFloatValue(IR::Opnd * opndDst, T value, IR::Instr * instrInsert);
             IR::Instr *     LoadStackAddress(StackSym *sym, IR::RegOpnd *optionalDstOpnd = nullptr);
             void            EmitInt64Instr(IR::Instr * instr);
      static void            EmitInt4Instr(IR::Instr *instr);
@@ -211,14 +213,14 @@ public:
             void            EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void            EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void            EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
-            void            EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
+            void            EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert, IR::Instr * instrBailOut = nullptr, IR::LabelInstr * labelBailOut = nullptr);
             void            EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void            EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
      static IR::Instr *     InsertConvertFloat64ToInt32(const RoundMode roundMode, IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr);
             void            ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone, IR::Instr * instInsert);
             void            EmitReinterpretPrimitive(IR::Opnd* dst, IR::Opnd* src, IR::Instr* insertBeforeInstr);
             void            EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr);
-            IR::RegOpnd *   EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, bool bailOutOnHelperCall = false);
+            void            EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, IR::Instr * instrBailOut = nullptr, IR::LabelInstr * labelBailOut = nullptr);
             static void     EmitNon32BitOvfCheck(IR::Instr *instr, IR::Instr *insertInstr, IR::LabelInstr* bailOutLabel);
 
             static void     LowerInt4NegWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel);
@@ -305,7 +307,6 @@ public:
             static IR::BranchInstr * GenerateLocalInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext, bool checkTypeWithoutProperty = false);
             static IR::BranchInstr * GenerateProtoInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
             static IR::BranchInstr * GenerateFlagInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
-            static IR::BranchInstr * GenerateFlagInlineCacheCheckForNoGetterSetter(IR::Instr * instrLdSt, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
             static IR::BranchInstr * GenerateFlagInlineCacheCheckForLocal(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
             static void GenerateLdFldFromLocalInlineCache(IR::Instr * instrLdFld, IR::RegOpnd * opndBase, IR::Opnd * opndDst, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot);
             static void GenerateLdFldFromProtoInlineCache(IR::Instr * instrLdFld, IR::RegOpnd * opndBase, IR::Opnd * opndDst, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot);

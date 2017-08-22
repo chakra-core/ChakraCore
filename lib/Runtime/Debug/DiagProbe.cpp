@@ -3,6 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
+
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Language/InterpreterStackFrame.h"
 
 #define InvalidScriptId 0xFFFFFFFF
@@ -384,3 +386,4 @@ namespace Js
         }
     }
 }
+#endif

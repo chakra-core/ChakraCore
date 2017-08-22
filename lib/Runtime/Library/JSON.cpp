@@ -79,9 +79,7 @@ namespace JSON
             {
                 Js::DynamicObject* root = scriptContext->GetLibrary()->CreateObject();
                 JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(root));
-                Js::PropertyRecord const * propertyRecord;
-                scriptContext->GetOrAddPropertyRecord(_u(""), 0, &propertyRecord);
-                Js::PropertyId propertyId = propertyRecord->GetPropertyId();
+                Js::PropertyId propertyId = scriptContext->GetEmptyStringPropertyId();
                 Js::JavascriptOperators::InitProperty(root, propertyId, result);
                 result = parser.Walk(scriptContext->GetLibrary()->GetEmptyString(), propertyId, root);
             }
@@ -322,9 +320,7 @@ namespace JSON
 
             Js::DynamicObject* wrapper = scriptContext->GetLibrary()->CreateObject();
             JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(wrapper));
-            Js::PropertyRecord const * propertyRecord;
-            scriptContext->GetOrAddPropertyRecord(_u(""), 0, &propertyRecord);
-            Js::PropertyId propertyId = propertyRecord->GetPropertyId();
+            Js::PropertyId propertyId = scriptContext->GetEmptyStringPropertyId();
             Js::JavascriptOperators::InitProperty(wrapper, propertyId, value);
             result = stringifySession.Str(scriptContext->GetLibrary()->GetEmptyString(), propertyId, wrapper);
         }
@@ -336,17 +332,27 @@ namespace JSON
 
     // -------- StringifySession implementation ------------//
 
+    class JSONSpace
+    {
+    public:
+        static char16  Buffer[JSONspaceSize];
+        JSONSpace() { wmemset(Buffer, _u(' '), JSONspaceSize); }
+    };
+    char16 JSONSpace::Buffer[JSONspaceSize];
+    static JSONSpace jsonSpace;
+
     void StringifySession::CompleteInit(Js::Var space, ArenaAllocator* tempAlloc)
     {
-        //set the stack, gap
-        char16 buffer[JSONspaceSize];
-        wmemset(buffer, _u(' '), JSONspaceSize);
         charcount_t len = 0;
         switch (Js::JavascriptOperators::GetTypeId(space))
         {
         case Js::TypeIds_Integer:
             {
                 len = max(0, min(JSONspaceSize, static_cast<int>(Js::TaggedInt::ToInt32(space))));
+                if (len)
+                {
+                    gap = Js::JavascriptString::NewCopyBuffer(jsonSpace.Buffer, len, scriptContext);
+                }
                 break;
             }
         case Js::TypeIds_Number:
@@ -355,6 +361,10 @@ namespace JSON
         case Js::TypeIds_UInt64Number:
             {
                 len = max(0, static_cast<int>(min(static_cast<double>(JSONspaceSize), Js::JavascriptConversion::ToInteger(space, scriptContext))));
+                if (len)
+                {
+                    gap = Js::JavascriptString::NewCopyBuffer(jsonSpace.Buffer, len, scriptContext);
+                }
                 break;
             }
         case Js::TypeIds_String:
@@ -362,7 +372,7 @@ namespace JSON
                 len = min(static_cast<charcount_t>(JSONspaceSize), Js::JavascriptString::FromVar(space)->GetLength());
                 if(len)
                 {
-                    js_wmemcpy_s(buffer, JSONspaceSize, Js::JavascriptString::FromVar(space)->GetString(), len);
+                    gap = Js::JavascriptString::NewCopyBuffer(Js::JavascriptString::FromVar(space)->GetString(), len, scriptContext);
                 }
                 break;
             }
@@ -374,15 +384,11 @@ namespace JSON
                     len = min(static_cast<charcount_t>(JSONspaceSize), Js::JavascriptString::FromVar(spaceString)->GetLength());
                     if(len)
                     {
-                        js_wmemcpy_s(buffer, JSONspaceSize, Js::JavascriptString::FromVar(spaceString)->GetString(), len);
+                        gap = Js::JavascriptString::NewCopyBuffer(Js::JavascriptString::FromVar(spaceString)->GetString(), len, scriptContext);
                     }
                 }
                 break;
             }
-        }
-        if (len)
-        {
-            gap = Js::JavascriptString::NewCopyBuffer(buffer, len, scriptContext);
         }
 
         objectStack = Anew(tempAlloc, JSONStack, tempAlloc, scriptContext);
@@ -390,7 +396,7 @@ namespace JSON
 
     Js::Var StringifySession::Str(uint32 index, Js::Var holder)
     {
-        Js::Var value;
+        Js::Var value = nullptr;
         Js::RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
 
         if (Js::JavascriptArray::Is(holder) && !Js::JavascriptArray::FromVar(holder)->IsCrossSiteObject())
@@ -420,7 +426,7 @@ namespace JSON
 
     Js::Var StringifySession::Str(Js::JavascriptString* key, Js::PropertyId keyId, Js::Var holder)
     {
-        Js::Var value;
+        Js::Var value = nullptr;
         // We should look only into object's own properties here. When an object is serialized, only the own properties are considered,
         // the prototype chain is not considered. However, the property names can be selected via an array replacer. In this case
         // ES5 spec doesn't say the property has to own property or even to be enumerable. So, properties from the prototype, or non enum properties,
@@ -446,7 +452,7 @@ namespace JSON
         //check and apply 'toJSON' filter
         if (Js::JavascriptOperators::IsJsNativeObject(value) || (Js::JavascriptOperators::IsObject(value)))
         {
-            Js::Var tojson;
+            Js::Var tojson = nullptr;
             if (Js::JavascriptOperators::GetProperty(Js::RecyclableObject::FromVar(value), Js::PropertyIds::toJSON, &tojson, scriptContext) &&
                 Js::JavascriptConversion::IsCallable(tojson))
             {
@@ -641,10 +647,10 @@ namespace JSON
                         precisePropertyCount = propertyCount;
                     }
 
-                    result = Js::ConcatStringBuilder::New(this->scriptContext, propertyCount);    // Reserve initial slots for properties.
-
                     if (ReplacerFunction != replacerType)
                     {
+                        // Reserve initial slots for properties. +1 stands for extra property being pushed during the stringify
+                        result = Js::ConcatStringBuilder::New(this->scriptContext, propertyCount + 1);
                         enumerator.Reset();
                         while ((propertyName = enumerator.MoveAndGetNext(id)) != NULL)
                         {
@@ -654,7 +660,7 @@ namespace JSON
                                 scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);
                                 id = propRecord->GetPropertyId();
                             }
-                            StringifyMemberObject(propertyName, id, value, (Js::ConcatStringBuilder*)result, indentString, memberSeparator, isFirstMember, isEmpty);                            
+                            StringifyMemberObject(propertyName, id, value, (Js::ConcatStringBuilder*)result, indentString, memberSeparator, isFirstMember, isEmpty);
                         }
                     }
                     else // case: ES5 && ReplacerFunction == replacerType.
@@ -666,6 +672,8 @@ namespace JSON
                         {
                             precisePropertyCount = this->GetPropertyCount(object, &enumerator);
                         }
+
+                        result = Js::ConcatStringBuilder::New(this->scriptContext, precisePropertyCount);    // Reserve initial slots for properties.
 
                         // pick the property names before walking the object
                         DECLARE_TEMP_GUEST_ALLOCATOR(nameTableAlloc);
@@ -706,25 +714,26 @@ namespace JSON
 
         if(isEmpty)
         {
-            result = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("{}"));
+            result = scriptContext->GetLibrary()->GetEmptyObjectString();
         }
         else
         {
             if(this->gap)
             {
+                JavascriptLibrary *library = scriptContext->GetLibrary();
                 if(!indentString)
                 {
                     indentString = GetIndentString(this->indent);
                 }
                 // Note: it's better to use strings with length = 1 as the are cached/new instances are not created every time.
                 Js::ConcatStringN<7>* retVal = Js::ConcatStringN<7>::New(this->scriptContext);
-                retVal->SetItem(0, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("{")));
-                retVal->SetItem(1, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("\n")));
+                retVal->SetItem(0, library->GetOpenBracketString());
+                retVal->SetItem(1, library->GetNewLineString());
                 retVal->SetItem(2, indentString);
                 retVal->SetItem(3, result);
-                retVal->SetItem(4, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("\n")));
+                retVal->SetItem(4, library->GetNewLineString());
                 retVal->SetItem(5, GetIndentString(stepBackIndent));
-                retVal->SetItem(6, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("}")));
+                retVal->SetItem(6, library->GetCloseBracketString());
                 result = retVal;
             }
             else
@@ -775,7 +784,7 @@ namespace JSON
         Js::JavascriptString* result;
         if (length == 0)
         {
-            result = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("[]"));
+            result = scriptContext->GetLibrary()->GetEmptyArrayString();
         }
         else
         {
@@ -809,17 +818,19 @@ namespace JSON
 
             if (this->gap)
             {
+                JavascriptLibrary *library = scriptContext->GetLibrary();
                 if (!indentString)
                 {
                     indentString = GetIndentString(this->indent);
                 }
-                Js::ConcatStringN<6>* retVal = Js::ConcatStringN<6>::New(this->scriptContext);
-                retVal->SetItem(0, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("[\n")));
-                retVal->SetItem(1, indentString);
-                retVal->SetItem(2, result);
-                retVal->SetItem(3, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("\n")));
-                retVal->SetItem(4, GetIndentString(stepBackIndent));
-                retVal->SetItem(5, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("]")));
+                Js::ConcatStringN<7>* retVal = Js::ConcatStringN<7>::New(this->scriptContext);
+                retVal->SetItem(0, library->GetOpenSBracketString());
+                retVal->SetItem(1, library->GetNewLineString());
+                retVal->SetItem(2, indentString);
+                retVal->SetItem(3, result);
+                retVal->SetItem(4, library->GetNewLineString());
+                retVal->SetItem(5, GetIndentString(stepBackIndent));
+                retVal->SetItem(6, library->GetCloseSBracketString());
                 result = retVal;
             }
             else
@@ -842,7 +853,7 @@ namespace JSON
             }
             else
             {
-                propertySeparator = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(":"));
+                propertySeparator = scriptContext->GetLibrary()->GetColonString();
             }
         }
         return propertySeparator;
@@ -852,7 +863,7 @@ namespace JSON
     {
         // Note: this potentially can be improved by using a special ConcatString which has gap and count fields.
         //       Although this does not seem to be a critical path (using gap should not be often).
-        Js::JavascriptString* res = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(""));
+        Js::JavascriptString* res = scriptContext->GetLibrary()->GetEmptyString();
         if(this->gap)
         {
             for (uint i = 0 ; i < count; i++)
@@ -875,7 +886,7 @@ namespace JSON
         }
     }
 
-    void StringifySession::StringifyMemberObject( Js::JavascriptString* propertyName, Js::PropertyId id, Js::Var value, Js::ConcatStringBuilder* result, Js::JavascriptString* &indentString, Js::JavascriptString* &memberSeparator, bool &isFirstMember, bool &isEmpty )
+    void StringifySession::StringifyMemberObject(Js::JavascriptString* propertyName, Js::PropertyId id, Js::Var value, Js::ConcatStringBuilder* result, Js::JavascriptString* &indentString, Js::JavascriptString* &memberSeparator, bool &isFirstMember, bool &isEmpty )
     {
         Js::Var propertyObjectString = Str(propertyName, id, value);
         if(!Js::JavascriptOperators::IsUndefinedObject(propertyObjectString, scriptContext))

@@ -34,6 +34,7 @@
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\JITClient;
         $(ChakraJITIDLIntDir);
+        $(IcuIncludeDir)\common; <!-- // TODO (doilij): At end of IntlICU development, remove this if it is not needed here. -->
         $(MSBuildThisFileDirectory)..\Math;
         $(ChakraManifestsIncludeDirectory);
         $(ManifestsInboxIncludeDirectory);
@@ -165,8 +166,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyTable.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyEnvironment.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WabtInterface.cpp" />
-    <ClCompile Include="CustomExternalIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -272,6 +274,7 @@
     <ClInclude Include="JavascriptError.h" />
     <ClInclude Include="JavascriptFunction.h" />
     <ClInclude Include="JavascriptLibrary.h" />
+    <ClInclude Include="StringCache.h" />
     <ClInclude Include="JavascriptLibraryBase.h" />
     <ClInclude Include="JavascriptNumber.h" />
     <ClInclude Include="JavascriptNumberObject.h" />

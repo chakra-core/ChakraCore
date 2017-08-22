@@ -414,7 +414,7 @@ namespace Js
         {
             // The case here is a frame that doesn't define any captured locals, so it blindly grabs the parent
             // function's environment, which may have been boxed.
-            FrameDisplay *boxedFrameDisplay;
+            FrameDisplay *boxedFrameDisplay = nullptr;
             if (boxedValues.TryGetValue(frameDisplay, (void **)&boxedFrameDisplay))
             {
                 nestedFunc->SetEnvironment(boxedFrameDisplay);
@@ -425,7 +425,7 @@ namespace Js
         for (uint i = 0; i < frameDisplay->GetLength(); i++)
         {
             Var* stackScopeSlots = (Var*)frameDisplay->GetItem(i);
-            Var* boxedScopeSlots;
+            Var* boxedScopeSlots = nullptr;
             if (boxedValues.TryGetValue(stackScopeSlots, (void**)&boxedScopeSlots))
             {
                 frameDisplay->SetItem(i, boxedScopeSlots);
@@ -509,7 +509,7 @@ namespace Js
         Js::FrameDisplay *stackFrameDisplay = this->GetFrameDisplayFromNativeFrame(walker, callerFunctionBody);
         if (ThreadContext::IsOnStack(stackFrameDisplay))
         {
-            Js::FrameDisplay *boxedFrameDisplay;
+            Js::FrameDisplay *boxedFrameDisplay = nullptr;
             if (boxedValues.TryGetValue(stackFrameDisplay, (void**)&boxedFrameDisplay))
             {
                 this->SetFrameDisplayFromNativeFrame(walker, callerFunctionBody, boxedFrameDisplay);
@@ -520,7 +520,7 @@ namespace Js
         Var              *stackScopeSlots = this->GetScopeSlotsFromNativeFrame(walker, callerFunctionBody);
         if (ThreadContext::IsOnStack(stackScopeSlots))
         {
-            Var              *boxedScopeSlots;
+            Var              *boxedScopeSlots = nullptr;
             if (boxedValues.TryGetValue(stackScopeSlots, (void**)&boxedScopeSlots))
             {
                 this->SetScopeSlotsFromNativeFrame(walker, callerFunctionBody, boxedScopeSlots);
@@ -617,7 +617,7 @@ namespace Js
             return frameDisplay;
         }
 
-        FrameDisplay * boxedFrameDisplay;
+        FrameDisplay * boxedFrameDisplay = nullptr;
         if (boxedValues.TryGetValue(frameDisplay, (void **)&boxedFrameDisplay))
         {
             return boxedFrameDisplay;
@@ -655,7 +655,7 @@ namespace Js
     {
         Assert(slotArray != nullptr);
         Assert(count != 0);
-        Field(Var) * boxedSlotArray;
+        Field(Var) * boxedSlotArray = nullptr;
         if (boxedValues.TryGetValue(slotArray, (void **)&boxedSlotArray))
         {
             return (Var*)boxedSlotArray;

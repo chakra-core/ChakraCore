@@ -5,6 +5,21 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
+function extendOptions(base, ext) {
+    const ret = {};
+    for (const x in base) {
+        if (base.hasOwnProperty(x)) {
+            ret[x] = base[x];
+        }
+    }
+    for (const x in ext) {
+        if (ext.hasOwnProperty(x)) {
+            ret[x] = ext[x];
+        }
+    }
+    return ret;
+}
+
 var tests = [
     {
         name: "Test Valid Options - Formatting Number with Significant Digits",
@@ -62,7 +77,38 @@ var tests = [
             verifyNFException("en-US", { style: "currency", currency: 5 }, "currency", "Currency code '5' is invalid");
             verifyNFException("en-US", { style: "currency", currency: "USD", currencyDisplay: "invalid" }, "currencyDisplay", "['code', 'symbol', 'name']");
         }
-    }
+    },
+    {
+        name: "Test Valid Options - Formatting Currency with Significant Digits",
+        body: function () {
+            const usdBaseOptions = { minimumSignificantDigits: 3, maximumSignificantDigits: 3, style: "currency", currency: "USD" };
+            var expectedRegex1 = new RegExp("\\$[\x20\u00a0]?123");
+            var expectedRegex2 = new RegExp("USD[\x20\u00a0]?123");
+
+            var actual1 = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, {})).format(123.1);
+            assert.isTrue(expectedRegex1.test(actual1), "currency: USD (default display) actual: '" + actual1 + "' expected(Regex): '" + expectedRegex1 + "'");
+            var actual2 = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, { currencyDisplay: "code" })).format(123.1);
+            assert.isTrue(expectedRegex2.test(actual2), "currency code: USD actual: '" + actual2 + "' expected(Regex): '" + expectedRegex2 + "'");
+
+            var actual3 = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, { currencyDisplay: "symbol" })).format(123.1);
+            assert.isTrue(expectedRegex1.test(actual3), "currency symbol: USD ($) actual: '" + actual3 + "' expected(Regex): '" + expectedRegex1 + "'");
+            var actual4 = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, { currencyDisplay: "name" })).format(123.1);
+            assert.isTrue(expectedRegex2.test(actual4), "currency name: USD actual: '" + actual4 + "' expected(Regex): '" + expectedRegex2 + "'");
+        }
+    },
+    {
+        name: "Test Valid Options - Formatting Percentage with Significant Digits",
+        body: function () {
+            const baseSigFigs = { minimumSignificantDigits: 3, maximumSignificantDigits: 3 };
+            var expectedRegex1 = new RegExp("12,300[\x20\u00a0]?%");
+            var actual1 = new Intl.NumberFormat("en-US", extendOptions(baseSigFigs, { style: "percent" })).format(123.1);
+            assert.isTrue(expectedRegex1.test(actual1), "[style: percent] actual: '" + actual1 + "' expected(Regex): '" + expectedRegex1 + "'");
+
+            var expectedRegex2 = new RegExp("12300[\x20\u00a0]?%");
+            var actual2 = new Intl.NumberFormat("en-US", extendOptions(baseSigFigs, { style: "percent", useGrouping: false })).format(123.1);
+            assert.isTrue(expectedRegex2.test(actual2), "[style: percent, no grouping] actual: '" + actual2 + "' expected(Regex): '" + expectedRegex2 + "'");
+        }
+    }    
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

@@ -339,8 +339,8 @@ bool InterpreterThunkEmitter::NewThunkBlock()
     }
 
 #if PDATA_ENABLED
-    PRUNTIME_FUNCTION pdataStart;
-    intptr_t epilogEnd;
+    PRUNTIME_FUNCTION pdataStart = nullptr;
+    intptr_t epilogEnd = 0;
 #endif
 
     DWORD count = this->thunkCount;
@@ -382,6 +382,7 @@ bool InterpreterThunkEmitter::NewThunkBlock()
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
 bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
 {
+    PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr();
     if (!JITManager::GetJITManager()->IsConnected())
     {
         return false;
@@ -390,7 +391,7 @@ bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
     thunkInput.asmJsThunk = this->isAsmInterpreterThunk;
 
     InterpreterThunkOutputIDL thunkOutput;
-    HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(this->scriptContext->GetRemoteScriptAddr(), &thunkInput, &thunkOutput);
+    HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(remoteScriptContext, &thunkInput, &thunkOutput);
     if (!JITManager::HandleServerCallResult(hr, RemoteCallType::ThunkCreation))
     {
         return false;
@@ -455,12 +456,12 @@ void InterpreterThunkEmitter::FillBuffer(
 #ifdef ASMJS_PLAT
     if (asmJsThunk)
     {
-        interpreterThunk = SHIFT_ADDR(threadContext, &Js::InterpreterStackFrame::InterpreterAsmThunk);
+        interpreterThunk = ShiftAddr(threadContext, &Js::InterpreterStackFrame::InterpreterAsmThunk);
     }
     else
 #endif
     {
-        interpreterThunk = SHIFT_ADDR(threadContext, &Js::InterpreterStackFrame::InterpreterThunk);
+        interpreterThunk = ShiftAddr(threadContext, &Js::InterpreterStackFrame::InterpreterThunk);
     }
 
 
@@ -758,13 +759,18 @@ InterpreterThunkEmitter::IsInHeap(void* address)
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
-        if (!remoteScript)
+        if (!remoteScript || !JITManager::GetJITManager()->IsConnected())
         {
-            return false;
+            // this method is used in asserts to validate whether an entry point is valid
+            // in case JIT process crashed, let's just say true to keep asserts from firing
+            return true;
         }
         boolean result;
         HRESULT hr = JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
-        JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
+        if (!JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery))
+        {
+            return true;
+        }
         return result != FALSE;
     }
     else
@@ -796,7 +802,7 @@ void InterpreterThunkEmitter::Close()
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
-        if (remoteScript)
+        if (remoteScript && JITManager::GetJITManager()->IsConnected())
         {
             JITManager::GetJITManager()->DecommitInterpreterBufferManager(remoteScript, this->isAsmInterpreterThunk);
         }

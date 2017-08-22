@@ -20,25 +20,30 @@
 #include <cstdlib>
 
 #include "apply-names.h"
-#include "binary-error-handler.h"
 #include "binary-reader.h"
 #include "binary-reader-ir.h"
+#include "error-handler.h"
+#include "feature.h"
 #include "generate-names.h"
 #include "ir.h"
 #include "option-parser.h"
 #include "stream.h"
+#include "validator.h"
+#include "wast-lexer.h"
 #include "wat-writer.h"
 #include "writer.h"
 
 using namespace wabt;
 
 static int s_verbose;
-static const char* s_infile;
-static const char* s_outfile;
-static ReadBinaryOptions s_read_binary_options = {nullptr, true};
+static std::string s_infile;
+static std::string s_outfile;
+static Features s_features;
 static WriteWatOptions s_write_wat_options;
 static bool s_generate_names;
+static bool s_read_debug_names = true;
 static std::unique_ptr<FileStream> s_log_stream;
+static bool s_validate = true;
 
 static const char s_description[] =
 R"(  read a file in the wasm binary format, and convert it to the wasm
@@ -52,66 +57,79 @@ examples:
   $ wasm2wast test.wasm --no-debug-names -o test.wast
 )";
 
-static void parse_options(int argc, char** argv) {
+static void ParseOptions(int argc, char** argv) {
   OptionParser parser("wasm2wast", s_description);
 
   parser.AddOption('v', "verbose", "Use multiple times for more info", []() {
     s_verbose++;
     s_log_stream = FileStream::CreateStdout();
-    s_read_binary_options.log_stream = s_log_stream.get();
   });
   parser.AddHelpOption();
   parser.AddOption(
       'o', "output", "FILENAME",
       "Output file for the generated wast file, by default use stdout",
-      [](const char* argument) { s_outfile = argument; });
+      [](const char* argument) {
+        s_outfile = argument;
+        ConvertBackslashToSlash(&s_outfile);
+      });
   parser.AddOption('f', "fold-exprs", "Write folded expressions where possible",
                    []() { s_write_wat_options.fold_exprs = true; });
+  s_features.AddOptions(&parser);
   parser.AddOption("inline-exports", "Write all exports inline",
                    []() { s_write_wat_options.inline_export = true; });
   parser.AddOption("no-debug-names", "Ignore debug names in the binary file",
-                   []() { s_read_binary_options.read_debug_names = false; });
+                   []() { s_read_debug_names = false; });
   parser.AddOption(
       "generate-names",
       "Give auto-generated names to non-named functions, types, etc.",
       []() { s_generate_names = true; });
+  parser.AddOption("no-check", "Don't check for invalid modules",
+                   []() { s_validate = false; });
   parser.AddArgument("filename", OptionParser::ArgumentCount::One,
-                     [](const char* argument) { s_infile = argument; });
+                     [](const char* argument) {
+                       s_infile = argument;
+                       ConvertBackslashToSlash(&s_infile);
+                     });
   parser.Parse(argc, argv);
 }
 
 int ProgramMain(int argc, char** argv) {
   Result result;
 
-  init_stdio();
-  parse_options(argc, argv);
+  InitStdio();
+  ParseOptions(argc, argv);
 
-  char* data;
-  size_t size;
-  result = read_file(s_infile, &data, &size);
-  if (WABT_SUCCEEDED(result)) {
-    BinaryErrorHandlerFile error_handler;
+  std::vector<uint8_t> file_data;
+  result = ReadFile(s_infile.c_str(), &file_data);
+  if (Succeeded(result)) {
+    ErrorHandlerFile error_handler(Location::Type::Binary);
     Module module;
-    result = read_binary_ir(data, size, &s_read_binary_options, &error_handler,
-                            &module);
-    if (WABT_SUCCEEDED(result)) {
-      if (s_generate_names)
-        result = generate_names(&module);
+    ReadBinaryOptions options(s_features, s_log_stream.get(),
+                              s_read_debug_names);
+    result = ReadBinaryIr(s_infile.c_str(), DataOrNull(file_data),
+                          file_data.size(), &options, &error_handler, &module);
+    if (Succeeded(result)) {
+      if (Succeeded(result) && s_validate) {
+        WastLexer* lexer = nullptr;
+        result = ValidateModule(lexer, &module, &error_handler);
+      }
 
-      if (WABT_SUCCEEDED(result)) {
+      if (s_generate_names)
+        result = GenerateNames(&module);
+
+      if (Succeeded(result)) {
         /* TODO(binji): This shouldn't fail; if a name can't be applied
          * (because the index is invalid, say) it should just be skipped. */
-        Result dummy_result = apply_names(&module);
+        Result dummy_result = ApplyNames(&module);
         WABT_USE(dummy_result);
       }
 
-      if (WABT_SUCCEEDED(result)) {
-        FileWriter writer(s_outfile ? FileWriter(s_outfile)
-                                    : FileWriter(stdout));
-        result = write_wat(&writer, &module, &s_write_wat_options);
+      if (Succeeded(result)) {
+        FileWriter writer(!s_outfile.empty() ? FileWriter(s_outfile.c_str())
+                                             : FileWriter(stdout));
+        result = WriteWat(&writer, &module, &s_write_wat_options);
       }
     }
-    delete[] data;
   }
   return result != Result::Ok;
 }

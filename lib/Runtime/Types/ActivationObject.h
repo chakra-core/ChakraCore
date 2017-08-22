@@ -184,21 +184,25 @@ namespace Js
 
         static PropertyId GetCachedFuncCount(const PropertyIdArray *propIds)
         {
+            AssertOrFailFast(propIds->extraSlots > 0);
             return ActivationObjectEx::GetCachedScopeInfo(propIds)[0];
         }
 
         static PropertyId GetFirstFuncSlot(const PropertyIdArray *propIds)
         {
+            AssertOrFailFast(propIds->extraSlots > 1);
             return ActivationObjectEx::GetCachedScopeInfo(propIds)[1];
         }
 
         static PropertyId GetFirstVarSlot(const PropertyIdArray *propIds)
         {
+            AssertOrFailFast(propIds->extraSlots > 2);
             return ActivationObjectEx::GetCachedScopeInfo(propIds)[2];
         }
 
         static PropertyId GetLiteralObjectRef(const PropertyIdArray *propIds)
         {
+            AssertOrFailFast(propIds->extraSlots > 3);
             return ActivationObjectEx::GetCachedScopeInfo(propIds)[3];
         }
 
@@ -207,6 +211,12 @@ namespace Js
         static bool Is(void* instance)
         {
             return VirtualTableInfo<Js::ActivationObjectEx>::HasVirtualTable(instance);
+        }
+
+        static ActivationObjectEx * FromVar(Var instance)
+        {
+            AssertOrFailFast(Is(instance));
+            return reinterpret_cast<ActivationObjectEx *>(instance);
         }
 
     private:

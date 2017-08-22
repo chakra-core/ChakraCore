@@ -24,9 +24,12 @@ namespace Js
         return static_cast<JavascriptWeakMap *>(RecyclableObject::FromVar(aValue));
     }
 
-    JavascriptWeakMap::WeakMapKeyMap* JavascriptWeakMap::GetWeakMapKeyMapFromKey(DynamicObject* key) const
+    JavascriptWeakMap::WeakMapKeyMap* JavascriptWeakMap::GetWeakMapKeyMapFromKey(RecyclableObject* key) const
     {
+        AssertOrFailFast(DynamicType::Is(key->GetTypeId()) || JavascriptOperators::GetTypeId(key) == TypeIds_HostDispatch);
+
         Var weakMapKeyData = nullptr;
+
         if (!key->GetInternalProperty(key, InternalPropertyIds::WeakMapKeyMap, &weakMapKeyData, nullptr, key->GetScriptContext()))
         {
             return nullptr;
@@ -42,8 +45,10 @@ namespace Js
         return static_cast<WeakMapKeyMap*>(weakMapKeyData);
     }
 
-    JavascriptWeakMap::WeakMapKeyMap* JavascriptWeakMap::AddWeakMapKeyMapToKey(DynamicObject* key)
+    JavascriptWeakMap::WeakMapKeyMap* JavascriptWeakMap::AddWeakMapKeyMapToKey(RecyclableObject* key)
     {
+        AssertOrFailFast(DynamicType::Is(key->GetTypeId()) || JavascriptOperators::GetTypeId(key) == TypeIds_HostDispatch);
+
         // The internal property may exist on an object that has had DynamicObject::ResetObject called on itself.
         // In that case the value stored in the property slot should be null.
         DebugOnly(Var unused = nullptr);
@@ -120,7 +125,7 @@ namespace Js
 
                 RecyclableObject* obj = RecyclableObject::FromVar(nextItem);
 
-                Var key, value;
+                Var key = nullptr, value = nullptr;
 
                 if (!JavascriptOperators::GetItem(obj, 0u, &key, scriptContext))
                 {
@@ -163,9 +168,9 @@ namespace Js
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
         bool didDelete = false;
 
-        if (JavascriptOperators::IsObject(key) && JavascriptOperators::GetTypeId(key) != TypeIds_HostDispatch)
+        if (JavascriptOperators::IsObject(key))
         {
-            DynamicObject* keyObj = DynamicObject::FromVar(key);
+            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
 
             didDelete = weakMap->Delete(keyObj);
         }
@@ -205,9 +210,9 @@ namespace Js
 
         bool loaded = false;
         Var value = nullptr;
-        if (JavascriptOperators::IsObject(key) && JavascriptOperators::GetTypeId(key) != TypeIds_HostDispatch)
+        if (JavascriptOperators::IsObject(key))
         {
-            DynamicObject* keyObj = DynamicObject::FromVar(key);
+            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
             loaded = weakMap->Get(keyObj, &value);
         }
 
@@ -245,9 +250,9 @@ namespace Js
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
         bool hasValue = false;
 
-        if (JavascriptOperators::IsObject(key) && JavascriptOperators::GetTypeId(key) != TypeIds_HostDispatch)
+        if (JavascriptOperators::IsObject(key))
         {
-            DynamicObject* keyObj = DynamicObject::FromVar(key);
+            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
 
             hasValue = weakMap->Has(keyObj);
         }
@@ -286,14 +291,12 @@ namespace Js
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
         Var value = (args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined();
 
-        if (!JavascriptOperators::IsObject(key) || JavascriptOperators::GetTypeId(key) == TypeIds_HostDispatch)
+        if (!JavascriptOperators::IsObject(key))
         {
-            // HostDispatch can not expand so can't have internal property added to it.
-            // TODO: Support HostDispatch as WeakMap key
             JavascriptError::ThrowTypeError(scriptContext, JSERR_WeakMapSetKeyNotAnObject, _u("WeakMap.prototype.set"));
         }
 
-        DynamicObject* keyObj = DynamicObject::FromVar(key);
+        RecyclableObject* keyObj = RecyclableObject::FromVar(key);
 
 #if ENABLE_TTD
         //In replay we need to pin the object (and will release at snapshot points) -- in record we don't need to do anything
@@ -310,7 +313,7 @@ namespace Js
 
     void JavascriptWeakMap::Clear()
     {
-        keySet.Map([&](DynamicObject* key, bool value, const RecyclerWeakReference<DynamicObject>* weakRef) {
+        keySet.Map([&](RecyclableObject* key, bool value, const RecyclerWeakReference<RecyclableObject>* weakRef) {
             WeakMapKeyMap* keyMap = GetWeakMapKeyMapFromKey(key);
 
             // It may be the case that a CEO has been reset and the keyMap is now null.
@@ -326,7 +329,7 @@ namespace Js
         keySet.Clear();
     }
 
-    bool JavascriptWeakMap::Delete(DynamicObject* key)
+    bool JavascriptWeakMap::Delete(RecyclableObject* key)
     {
         WeakMapKeyMap* keyMap = GetWeakMapKeyMapFromKey(key);
 
@@ -343,7 +346,7 @@ namespace Js
         return false;
     }
 
-    bool JavascriptWeakMap::Get(DynamicObject* key, Var* value) const
+    bool JavascriptWeakMap::Get(RecyclableObject* key, Var* value) const
     {
         WeakMapKeyMap* keyMap = GetWeakMapKeyMapFromKey(key);
 
@@ -355,7 +358,7 @@ namespace Js
         return false;
     }
 
-    bool JavascriptWeakMap::Has(DynamicObject* key) const
+    bool JavascriptWeakMap::Has(RecyclableObject* key) const
     {
         WeakMapKeyMap* keyMap = GetWeakMapKeyMapFromKey(key);
 
@@ -367,7 +370,7 @@ namespace Js
         return false;
     }
 
-    void JavascriptWeakMap::Set(DynamicObject* key, Var value)
+    void JavascriptWeakMap::Set(RecyclableObject* key, Var value)
     {
         WeakMapKeyMap* keyMap = GetWeakMapKeyMapFromKey(key);
 
@@ -393,14 +396,14 @@ namespace Js
         Js::ScriptContext* scriptContext = this->GetScriptContext();
         if(scriptContext->IsTTDReplayModeEnabled())
         {
-            this->Map([&](DynamicObject* key, Js::Var value)
+            this->Map([&](RecyclableObject* key, Js::Var value)
             {
                 scriptContext->TTDContextInfo->TTDWeakReferencePinSet->AddNew(key);
             });
         }
 
         //Keys are weak so are always reachable from somewhere else but values are not so we must walk them
-        this->Map([&](DynamicObject* key, Js::Var value)
+        this->Map([&](RecyclableObject* key, Js::Var value)
         {
             extractor->MarkVisitVar(value);
         });
@@ -419,7 +422,7 @@ namespace Js
         smi->MapSize = 0;
         smi->MapKeyValueArray = alloc.SlabReserveArraySpace<TTD::TTDVar>(mapCountEst + 1); //always reserve at least 1 element
 
-        this->Map([&](DynamicObject* key, Js::Var value)
+        this->Map([&](RecyclableObject* key, Js::Var value)
         {
             AssertMsg(smi->MapSize + 1 < mapCountEst, "We are writting junk");
 

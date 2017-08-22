@@ -8,6 +8,13 @@ cpp_quote("#define __JITTypes_h__")
 
 #include "JITTypes.h"
 
+// we can't include Windows.h, so for simplicity, let's define these values ourself
+// from: https://msdn.microsoft.com/en-us/library/windows/desktop/ms684880.aspx
+#define PROCESS_VM_OPERATION 0x0008
+#define PROCESS_VM_READ 0x0010
+#define PROCESS_VM_WRITE 0x0020
+#define PROCESS_QUERY_LIMITED_INFORMATION 0x1000
+
 cpp_quote("#endif //__JITTypes_h__")
 
 [
@@ -21,6 +28,9 @@ interface IChakraJIT
     HRESULT InitializeThreadContext(
         [in] handle_t binding,
         [in] ThreadContextDataIDL * threadData,
+#ifdef USE_RPC_HANDLE_MARSHALLING
+        [in, system_handle(sh_process, PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_LIMITED_INFORMATION)] HANDLE processHandle,
+#endif
         [out] PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         [out] CHAKRA_PTR * prereservedRegionAddr,
         [out] CHAKRA_PTR * jitThunkAddr);

@@ -70,6 +70,8 @@ parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
                     help='test timeout (default ' + str(DEFAULT_TIMEOUT) + ' seconds)')
 parser.add_argument('--swb', action='store_true',
                     help='use binary from VcBuild.SWB to run the test')
+parser.add_argument('--lldb', default=None,
+                    help='run a single test in lldb batch mode to get call stack and crash logs', action='store_true')
 parser.add_argument('-l', '--logfile', metavar='logfile',
                     help='file to log results to', default=None)
 parser.add_argument('--x86', action='store_true',
@@ -394,7 +396,7 @@ class TestVariant(object):
             ln = min(len(lst_output), len(lst_expected))
             for i in range(0, ln):
                 if lst_output[i] != lst_expected[i]:
-                    self._print("Output: (at line " + str(i) + ")")
+                    self._print("Output: (at line " + str(i+1) + ")")
                     self._print("----------------------------")
                     self._print(lst_output[i])
                     self._print("----------------------------")
@@ -450,7 +452,14 @@ class TestVariant(object):
                     args.flags.split() + \
                     flags.split()
 
-        cmd = [binary] + flags + [os.path.basename(js_file)]
+        if args.lldb == None:
+            cmd = [binary] + flags + [os.path.basename(js_file)]
+        else:
+            lldb_file = open(working_path + '/' + os.path.basename(js_file) + '.lldb.cmd', 'w')
+            lldb_command = ['run'] + flags + [os.path.basename(js_file)]
+            lldb_file.write(' '.join([str(s) for s in lldb_command]));
+            lldb_file.close()
+            cmd = ['lldb'] + [binary] + ['-s'] + [os.path.basename(js_file) + '.lldb.cmd'] + ['-o bt'] + ['-b']
 
         test.start()
         proc = SP.Popen(cmd, stdout=SP.PIPE, stderr=SP.STDOUT, cwd=working_path)

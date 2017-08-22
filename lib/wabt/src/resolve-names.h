@@ -24,10 +24,10 @@ namespace wabt {
 class WastLexer;
 struct Module;
 struct Script;
-class SourceErrorHandler;
+class ErrorHandler;
 
-Result resolve_names_module(WastLexer*, Module*, SourceErrorHandler*);
-Result resolve_names_script(WastLexer*, Script*, SourceErrorHandler*);
+Result ResolveNamesModule(WastLexer*, Module*, ErrorHandler*);
+Result ResolveNamesScript(WastLexer*, Script*, ErrorHandler*);
 
 }  // namespace wabt
 

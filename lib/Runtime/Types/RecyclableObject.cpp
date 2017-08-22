@@ -327,7 +327,7 @@ namespace Js
 
     PropertyQueryFlags RecyclableObject::HasPropertyQuery(PropertyId propertyId)
     {
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL RecyclableObject::HasOwnProperty(PropertyId propertyId)
@@ -342,12 +342,12 @@ namespace Js
 
     PropertyQueryFlags RecyclableObject::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags RecyclableObject::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL RecyclableObject::GetInternalProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -357,7 +357,7 @@ namespace Js
 
     PropertyQueryFlags RecyclableObject::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL RecyclableObject::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
@@ -417,7 +417,7 @@ namespace Js
 
     PropertyQueryFlags RecyclableObject::HasItemQuery(uint32 index)
     {
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL RecyclableObject::HasOwnItem(uint32 index)
@@ -427,12 +427,12 @@ namespace Js
 
     PropertyQueryFlags RecyclableObject::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags RecyclableObject::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL RecyclableObject::SetItem(uint32 index, Var value, PropertyOperationFlags flags)

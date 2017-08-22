@@ -60,6 +60,7 @@ PRINT_USAGE() {
     echo "     --target-path[=S] Output path for compiled binaries. Default: out/"
     echo "     --trace           Enables experimental built-in trace."
     echo "     --xcode           Generate XCode project."
+    echo "     --with-intl       Include the Intl object (requires ICU)."
     echo "     --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental features."
     echo "     --valgrind        Enable Valgrind support"
@@ -201,7 +202,8 @@ while [[ $# -gt 0 ]]; do
 
     --icu=*)
         ICU_PATH=$1
-        ICU_PATH="${ICU_PATH:6}"
+        # resolve tilde on path
+        eval ICU_PATH="${ICU_PATH:6}"
         if [[ ! -d ${ICU_PATH} ]]; then
             if [[ -d "${CHAKRACORE_DIR}/${ICU_PATH}" ]]; then
                 ICU_PATH="${CHAKRACORE_DIR}/${ICU_PATH}"
@@ -239,6 +241,10 @@ while [[ $# -gt 0 ]]; do
 
     --no-jit)
         NO_JIT="-DNO_JIT_SH=1"
+        ;;
+
+    --with-intl)
+        INTL_ICU="-DINTL_ICU_SH=1"
         ;;
 
     --xcode)
@@ -409,7 +415,7 @@ fi
 
 # if LTO build is enabled and cc-toolchain/clang was compiled, use it instead
 if [[ $HAS_LTO == 1 ]]; then
-    if [[ -f cc-toolchain/build/bin/clang++ ]]; then
+    if [[ -f "${CHAKRACORE_DIR}/cc-toolchain/build/bin/clang++" ]]; then
         SELF=`pwd`
         _CXX="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang++"
         _CC="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang"
@@ -417,14 +423,17 @@ if [[ $HAS_LTO == 1 ]]; then
         # Linux LD possibly doesn't support LLVM LTO, check.. and compile clang if not
         if [[ $OS_LINUX == 1 ]]; then
             if [[ ! `ld -v` =~ 'GNU gold' ]]; then
+                pushd "$CHAKRACORE_DIR" > /dev/null
                 $CHAKRACORE_DIR/tools/compile_clang.sh
                 if [[ $? != 0 ]]; then
                   echo -e "tools/compile_clang.sh has failed.\n"
                   echo "Try with 'sudo' ?"
+                  popd > /dev/null
                   exit 1
                 fi
                 _CXX="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang++"
                 _CC="$CHAKRACORE_DIR/cc-toolchain/build/bin/clang"
+                popd > /dev/null
             fi
         fi
     fi
@@ -588,14 +597,24 @@ fi
 echo Generating $BUILD_TYPE makefiles
 echo $EXTRA_DEFINES
 cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
-    $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT \
+    $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $INTL_ICU \
     $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS $LIBS_ONLY_BUILD\
     $VALGRIND $BUILD_RELATIVE_DIRECTORY
 
 _RET=$?
 if [[ $? == 0 ]]; then
     if [[ $MAKE != 0 ]]; then
-        $MAKE $MULTICORE_BUILD $_VERBOSE $WB_TARGET 2>&1 | tee build.log
+        if [[ $MAKE != 'ninja' ]]; then
+            # $MFLAGS comes from host `make` process. Sub `make` process needs this (recursional make runs)
+            TEST_MFLAGS="${MFLAGS}*!"
+            if [[ $TEST_MFLAGS != "*!" ]]; then
+                # Get -j flag from the host
+                MULTICORE_BUILD=""
+            fi
+            $MAKE $MFLAGS $MULTICORE_BUILD $_VERBOSE $WB_TARGET 2>&1 | tee build.log
+        else
+            $MAKE $MULTICORE_BUILD $_VERBOSE $WB_TARGET 2>&1 | tee build.log
+        fi
         _RET=${PIPESTATUS[0]}
     else
         echo "Visit given folder above for xcode project file ----^"

@@ -489,6 +489,7 @@ namespace TTD
         void SetExceptionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         void HasPropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void HasOwnPropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void InstanceOfAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void EqualsAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
@@ -508,6 +509,7 @@ namespace TTD
         void SetIndexAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         void GetTypedArrayInfoAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void GetDataViewInfoAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         //////////////////
 

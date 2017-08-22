@@ -27,12 +27,15 @@ public:
         bailOutOffset(bailOutOffset), bailOutFunc(bailOutFunc),
         byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr),
         totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), outParamInlinedArgSlot(nullptr),
-        liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr),
-        liveFloat64Syms(nullptr), liveSimd128F4Syms(nullptr),
+        liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr), liveFloat64Syms(nullptr),
+#ifdef ENABLE_SIMDJS
+        liveSimd128F4Syms(nullptr),
         liveSimd128I4Syms(nullptr), liveSimd128I8Syms(nullptr), liveSimd128I16Syms(nullptr),
         liveSimd128U4Syms(nullptr), liveSimd128U8Syms(nullptr), liveSimd128U16Syms(nullptr),
         liveSimd128B4Syms(nullptr), liveSimd128B8Syms(nullptr), liveSimd128B16Syms(nullptr),
-        liveSimd128D2Syms(nullptr), branchConditionOpnd(nullptr),
+        liveSimd128D2Syms(nullptr),
+#endif
+        branchConditionOpnd(nullptr),
         stackLiteralBailOutInfoCount(0), stackLiteralBailOutInfo(nullptr)
     {
         Assert(bailOutOffset != Js::Constants::NoByteCodeOffset);
@@ -101,6 +104,7 @@ public:
     BVSparse<JitArenaAllocator> * liveLosslessInt32Syms;                // These are only the live int32 syms that fully represent the var-equivalent sym's value (see GlobOpt::FillBailOutInfo)
     BVSparse<JitArenaAllocator> * liveFloat64Syms;
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     BVSparse<JitArenaAllocator> * liveSimd128F4Syms;
     BVSparse<JitArenaAllocator> * liveSimd128I4Syms;
@@ -113,6 +117,7 @@ public:
     BVSparse<JitArenaAllocator> * liveSimd128B8Syms;
     BVSparse<JitArenaAllocator> * liveSimd128B16Syms;
     BVSparse<JitArenaAllocator> * liveSimd128D2Syms;
+#endif
 
     int * outParamOffsets;
 
@@ -283,6 +288,7 @@ protected:
     {
         BVFixed * argOutFloat64Syms;        // Used for float-type-specialized ArgOut symbols. Index = [0 .. BailOutInfo::totalOutParamCount].
         BVFixed * argOutLosslessInt32Syms;  // Used for int-type-specialized ArgOut symbols (which are native int and for bailout we need tagged ints).
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         BVFixed * argOutSimd128F4Syms;
         BVFixed * argOutSimd128I4Syms;
@@ -294,6 +300,7 @@ protected:
         BVFixed * argOutSimd128B4Syms;
         BVFixed * argOutSimd128B8Syms;
         BVFixed * argOutSimd128B16Syms;
+#endif
         uint * startCallOutParamCounts;
         int * outParamOffsets;
         uint startCallCount;
@@ -303,6 +310,7 @@ protected:
         {
             FixupNativeDataPointer(argOutFloat64Syms, chunkList);
             FixupNativeDataPointer(argOutLosslessInt32Syms, chunkList);
+#ifdef ENABLE_SIMDJS
             FixupNativeDataPointer(argOutSimd128F4Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128I4Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128I8Syms, chunkList);
@@ -313,6 +321,7 @@ protected:
             FixupNativeDataPointer(argOutSimd128B4Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128B8Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128B16Syms, chunkList);
+#endif
 
             // special handling for startCallOutParamCounts and outParamOffsets, becuase it points to middle of the allocation
             uint* startCallOutParamCountsStart = startCallOutParamCounts - startCallIndex;
@@ -440,6 +449,7 @@ struct GlobalBailOutRecordDataRow
     unsigned regSlot : 30;
     unsigned isFloat : 1;
     unsigned isInt : 1;
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     unsigned isSimd128F4 : 1;
     unsigned isSimd128I4 : 1;
@@ -451,6 +461,7 @@ struct GlobalBailOutRecordDataRow
     unsigned isSimd128U4 : 1;
     unsigned isSimd128U8 : 1;
     unsigned isSimd128U16 : 1;
+#endif
 };
 
 struct GlobalBailOutRecordDataTable

@@ -74,7 +74,7 @@ namespace Js
             JavascriptError::ThrowTypeError(requestContext, JSERR_Property_VarDate, requestContext->GetPropertyName(propertyId)->GetBuffer());
         }
         *value = nullptr;
-        return Property_Found;
+        return PropertyQueryFlags::Property_Found;
     };
 
     PropertyQueryFlags JavascriptVariantDate::GetPropertyQuery(Js::Var originalInstance, Js::JavascriptString* propertyNameString, Js::Var* value, PropertyValueInfo* info, Js::ScriptContext* requestContext)
@@ -84,7 +84,7 @@ namespace Js
             JavascriptError::ThrowTypeError(requestContext, JSERR_Property_VarDate, propertyNameString);
         }
         *value = nullptr;
-        return Property_Found;
+        return PropertyQueryFlags::Property_Found;
     };
 
     PropertyQueryFlags JavascriptVariantDate::GetPropertyReferenceQuery(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, PropertyValueInfo* info, Js::ScriptContext* requestContext)
@@ -94,7 +94,7 @@ namespace Js
             JavascriptError::ThrowTypeError(requestContext, JSERR_Property_VarDate, requestContext->GetPropertyName(propertyId)->GetBuffer());
         }
         *value = nullptr;
-        return Property_Found;
+        return PropertyQueryFlags::Property_Found;
     };
 
     BOOL JavascriptVariantDate::SetProperty(Js::PropertyId propertyId, Js::Var value, Js::PropertyOperationFlags flags, PropertyValueInfo* info)

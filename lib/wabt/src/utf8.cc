@@ -43,13 +43,13 @@ const int s_utf8_length[256] = {
 };
 
 // Returns true if this is a valid continuation byte.
-bool is_cont(uint8_t c) {
+bool IsCont(uint8_t c) {
   return (c & 0xc0) == 0x80;
 }
 
-}  // namespace
+}  // end anonymous namespace
 
-bool is_valid_utf8(const char* s, size_t s_length) {
+bool IsValidUtf8(const char* s, size_t s_length) {
   const uint8_t* p = reinterpret_cast<const uint8_t*>(s);
   const uint8_t* end = p + s_length;
   while (p < end) {
@@ -68,7 +68,7 @@ bool is_valid_utf8(const char* s, size_t s_length) {
 
       case 2:
         p++;
-        if (!is_cont(*p++))
+        if (!IsCont(*p++))
           return false;
         break;
 
@@ -76,7 +76,7 @@ bool is_valid_utf8(const char* s, size_t s_length) {
         p++;
         uint8_t cu1 = *p++;
         uint8_t cu2 = *p++;
-        if (!(is_cont(cu1) && is_cont(cu2)) ||
+        if (!(IsCont(cu1) && IsCont(cu2)) ||
             (cu0 == 0xe0 && cu1 < 0xa0) ||  // Overlong encoding.
             (cu0 == 0xed && cu1 >= 0xa0))   // UTF-16 surrogate halves.
           return false;
@@ -88,7 +88,7 @@ bool is_valid_utf8(const char* s, size_t s_length) {
         uint8_t cu1 = *p++;
         uint8_t cu2 = *p++;
         uint8_t cu3 = *p++;
-        if (!(is_cont(cu1) && is_cont(cu2) && is_cont(cu3)) ||
+        if (!(IsCont(cu1) && IsCont(cu2) && IsCont(cu3)) ||
             (cu0 == 0xf0 && cu1 < 0x90) ||  // Overlong encoding.
             (cu0 == 0xf4 && cu1 >= 0x90))   // Code point >= 0x11000.
           return false;

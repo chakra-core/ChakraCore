@@ -44,6 +44,7 @@ PHASE(All)
         PHASE(WasmDeferred)
         PHASE(WasmValidatePrejit)
         PHASE(WasmInOut) // Trace input and output of wasm calls
+        PHASE(WasmMemWrites) // Trace memory writes
     PHASE(Asmjs)
         PHASE(AsmjsTmpRegisterAllocation)
         PHASE(AsmjsEncoder)
@@ -381,12 +382,16 @@ PHASE(All)
 #define DEFAULT_CONFIG_ASMJS                (true)
 #define DEFAULT_CONFIG_AsmJsEdge            (false)
 #define DEFAULT_CONFIG_AsmJsStopOnError     (false)
+
+#ifdef ENABLE_SIMDJS
 #ifdef COMPILE_DISABLE_Simdjs
     // If Simdjs needs to be disabled by compile flag, DEFAULT_CONFIG_SIMDJS should be false
     #define DEFAULT_CONFIG_SIMDJS               (false)
 #else
     #define DEFAULT_CONFIG_SIMDJS               (false)
 #endif
+#endif // #ifdef ENABLE_SIMDJS
+
 #define DEFAULT_CONFIG_Wasm               (true)
 #define DEFAULT_CONFIG_WasmI64            (false)
 #if ENABLE_FAST_ARRAYBUFFER
@@ -396,6 +401,7 @@ PHASE(All)
 #endif
 #define DEFAULT_CONFIG_WasmCheckVersion     (true)
 #define DEFAULT_CONFIG_WasmFold             (true)
+#define DEFAULT_CONFIG_WasmMathExFilter     (false)
 #define DEFAULT_CONFIG_WasmIgnoreResponse   (false)
 #define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
@@ -603,7 +609,8 @@ PHASE(All)
 #define DEFAULT_CONFIG_EnumerateSpecialPropertiesInDebugger (true)
 #endif
 
-#define DEFAULT_CONFIG_MaxJITFunctionBytecodeSize (120000)
+#define DEFAULT_CONFIG_MaxJITFunctionBytecodeByteLength (4800000)
+#define DEFAULT_CONFIG_MaxJITFunctionBytecodeCount (120000)
 
 #define DEFAULT_CONFIG_JitQueueThreshold      (6)
 
@@ -674,6 +681,8 @@ PHASE(All)
 #define DEFAULT_CONFIG_PerfHintLevel (1)
 #define DEFAULT_CONFIG_OOPJITMissingOpts (true)
 #define DEFAULT_CONFIG_OOPCFGRegistration (true)
+#define DEFAULT_CONFIG_ForceJITCFGCheck (false)
+#define DEFAULT_CONFIG_UseJITTrampoline (true)
 
 #define DEFAULT_CONFIG_FailFastIfDisconnectedDelegate    (false)
 
@@ -862,16 +871,20 @@ FLAGNR(Boolean, AsmJsEdge             , "Enable asm.js features which may have b
 FLAGNR(Boolean, Wasm                  , "Enable WebAssembly", DEFAULT_CONFIG_Wasm)
 FLAGNR(Boolean, WasmI64               , "Enable Int64 testing for WebAssembly. ArgIns can be [number,string,{low:number,high:number}]. Return values will be {low:number,high:number}", DEFAULT_CONFIG_WasmI64)
 FLAGNR(Boolean, WasmFastArray         , "Enable fast array implementation for WebAssembly", DEFAULT_CONFIG_WasmFastArray)
+FLAGNR(Boolean, WasmMathExFilter      , "Enable Math exception filter for WebAssembly", DEFAULT_CONFIG_WasmMathExFilter)
 FLAGNR(Boolean, WasmCheckVersion      , "Check the binary version for WebAssembly", DEFAULT_CONFIG_WasmCheckVersion)
 FLAGNR(Boolean, WasmFold              , "Enable i32/i64 const folding", DEFAULT_CONFIG_WasmFold)
 FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
 
+#ifdef ENABLE_SIMDJS
 #ifndef COMPILE_DISABLE_Simdjs
     #define COMPILE_DISABLE_Simdjs 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, Simdjs, "Enable Simdjs", DEFAULT_CONFIG_SIMDJS)
 FLAGR(Boolean, Simd128TypeSpec, "Enable type-specialization of Simd128 symbols", false)
+#endif // #ifdef ENABLE_SIMDJS
+
 FLAGNR(Boolean, AssertBreak           , "Debug break on assert", false)
 FLAGNR(Boolean, AssertPopUp           , "Pop up asserts (default: false)", false)
 FLAGNR(Boolean, AssertIgnore          , "Ignores asserts if set", false)
@@ -1105,7 +1118,7 @@ FLAGNR(Boolean, ForceFloatPref        , "Force float preferencing (JIT only)", f
 FLAGNR(Boolean, ForceJITLoopBody      , "Force jit loop body only", DEFAULT_CONFIG_ForceJITLoopBody)
 FLAGNR(Boolean, ForceStaticInterpreterThunk, "Force using static interpreter thunk", DEFAULT_CONFIG_ForceStaticInterpreterThunk)
 FLAGNR(Boolean, DumpCommentsFromReferencedFiles, "Allow printing comments of comment-table of the referenced file as well (use with -trace:CommentTable)", DEFAULT_CONFIG_DumpCommentsFromReferencedFiles)
-FLAGNR(Number,  DelayFullJITSmallFunc , "Scale Full JIT threshold for small functions which are going to be inlined soon. To provide fraction scale, the final scale is scale following this option devided by 10", DEFAULT_CONFIG_DelayFullJITSmallFunc)
+FLAGNR(Number,  DelayFullJITSmallFunc , "Scale Full JIT threshold for small functions which are going to be inlined soon. To provide fraction scale, the final scale is scale following this option divided by 10", DEFAULT_CONFIG_DelayFullJITSmallFunc)
 
 #ifdef _M_ARM
 FLAGNR(Boolean, ForceLocalsPtr        , "Force use of alternative locals pointer (JIT only)", false)
@@ -1231,13 +1244,16 @@ FLAGR(Number,   MinDeferredFuncTokenCount, "Minimum length in tokens of defer-pa
 #if DBG
 FLAGNR(Number,  SkipFuncCountForBailOnNoProfile,  "Initial Number of functions in a func body to be skipped from forcibly inserting BailOnNoProfile.", DEFAULT_CONFIG_SkipFuncCountForBailOnNoProfile)
 #endif
-FLAGNR(Number,  MaxJITFunctionBytecodeSize, "The biggest function we'll JIT (bytecode size)", DEFAULT_CONFIG_MaxJITFunctionBytecodeSize)
+FLAGNR(Number, MaxJITFunctionBytecodeByteLength, "The biggest function we'll JIT (bytecode bytelength)", DEFAULT_CONFIG_MaxJITFunctionBytecodeByteLength)
+FLAGNR(Number, MaxJITFunctionBytecodeCount, "The biggest function we'll JIT (bytecode count)", DEFAULT_CONFIG_MaxJITFunctionBytecodeCount)
 FLAGNR(Number,  MaxLoopsPerFunction   , "Maximum number of loops in any function in the script", DEFAULT_CONFIG_MaxLoopsPerFunction)
 FLAGNR(Number,  FuncObjectInlineCacheThreshold  , "Maximum number of inline caches a function body may have to allow for inline caches to be allocated on the function object", DEFAULT_CONFIG_FuncObjectInlineCacheThreshold)
 FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)
 FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways", false)
 FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", DEFAULT_CONFIG_OOPJITMissingOpts)
 FLAGNR(Boolean, OOPCFGRegistration    , "Do CFG registration OOP (under OOP JIT)", DEFAULT_CONFIG_OOPCFGRegistration)
+FLAGNR(Boolean, ForceJITCFGCheck      , "Have JIT code always do CFG check even if range check succeeded", DEFAULT_CONFIG_ForceJITCFGCheck)
+FLAGNR(Boolean, UseJITTrampoline      , "Use trampoline for JIT entry points and emit range checks for it", DEFAULT_CONFIG_UseJITTrampoline)
 #ifdef _ARM64_
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else

@@ -14,6 +14,17 @@ typedef TTD::TTDJsRTActionResultAutoRecorder TTDRecorder;
 typedef struct {} TTDRecorder;
 #endif
 
+#ifdef NTBUILD // non-browser
+#define JSRT_VERIFY_RUNTIME_STATE
+#endif
+
+// JSRT Unsafe mode leaves runtime health-state responsibility to the host
+#ifndef JSRT_VERIFY_RUNTIME_STATE
+#define JSRT_MAYBE_TRUE false
+#else
+#define JSRT_MAYBE_TRUE true
+#endif
+
 #define PARAM_NOT_NULL(p) \
     if (p == nullptr) \
     { \
@@ -234,10 +245,12 @@ JsErrorCode ContextAPIWrapper_NoRecord(Fn fn)
 
 // allowInObjectBeforeCollectCallback only when current API is guaranteed not to do recycler allocation.
 template <class Fn>
-JsErrorCode ContextAPINoScriptWrapper_Core(Fn fn, bool allowInObjectBeforeCollectCallback = false, bool scriptExceptionAllowed = false)
+JsErrorCode ContextAPINoScriptWrapper_Core(Fn fn, bool allowInObjectBeforeCollectCallback = false,
+    bool scriptExceptionAllowed = false)
 {
     JsrtContext *currentContext = JsrtContext::GetCurrent();
-    JsErrorCode errCode = CheckContext(currentContext, /*verifyRuntimeState*/true, allowInObjectBeforeCollectCallback);
+    JsErrorCode errCode = CheckContext(currentContext, /*verifyRuntimeState*/JSRT_MAYBE_TRUE,
+        allowInObjectBeforeCollectCallback);
 
     if(errCode != JsNoError)
     {

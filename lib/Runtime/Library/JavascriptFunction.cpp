@@ -135,18 +135,10 @@ namespace Js
     /* static */
     bool JavascriptFunction::IsBuiltinProperty(Var objectWithProperty, PropertyIds propertyId)
     {
-        return ScriptFunction::Is(objectWithProperty)
+        return ScriptFunctionBase::Is(objectWithProperty)
             && (propertyId == PropertyIds::length || (JavascriptFunction::FromVar(objectWithProperty)->HasRestrictedProperties() && (propertyId == PropertyIds::arguments || propertyId == PropertyIds::caller)));
     }
 #endif
-
-    static char16 const funcName[] = _u("function anonymous");
-    static char16 const genFuncName[] = _u("function* anonymous");
-    static char16 const asyncFuncName[] = _u("async function anonymous");
-    static char16 const openFormals[] = _u("(");
-    static char16 const closeFormals[] = _u("\n)");
-    static char16 const openFuncBody[] = _u(" {");
-    static char16 const closeFuncBody[] = _u("\n}");
 
     Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
@@ -164,7 +156,7 @@ namespace Js
         JavascriptString* separator = library->GetCommaDisplayString();
 
         // Gather all the formals into a string like (fml1, fml2, fml3)
-        JavascriptString *formals = library->CreateStringFromCppLiteral(openFormals);
+        JavascriptString *formals = library->GetOpenRBracketString();
         for (uint i = 1; i < args.Info.Count - 1; ++i)
         {
             if (i != 1)
@@ -173,7 +165,7 @@ namespace Js
             }
             formals = JavascriptString::Concat(formals, JavascriptConversion::ToString(args.Values[i], scriptContext));
         }
-        formals = JavascriptString::Concat(formals, library->CreateStringFromCppLiteral(closeFormals));
+        formals = JavascriptString::Concat(formals, library->GetNewLineCloseRBracketString());
         // Function body, last argument to Function(...)
         JavascriptString *fnBody = NULL;
         if (args.Info.Count > 1)
@@ -183,25 +175,25 @@ namespace Js
 
         // Create a string representing the anonymous function
         Assert(
-            CountNewlines(funcName) +
-            CountNewlines(openFormals) +
-            CountNewlines(closeFormals) +
-            CountNewlines(openFuncBody)
+            0 + // "function anonymous" GetFunctionAnonymousString
+            0 + // "("   GetOpenRBracketString
+            1 + // "\n)" GetNewLineCloseRBracketString
+            0 // " {"  GetSpaceOpenBracketString
             == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
 
         JavascriptString *bs = functionKind == FunctionKind::Async ?
-            library->CreateStringFromCppLiteral(asyncFuncName) :
+            library->GetAsyncFunctionAnonymouseString() :
             functionKind == FunctionKind::Generator ?
-            library->CreateStringFromCppLiteral(genFuncName) :
-            library->CreateStringFromCppLiteral(funcName);
+            library->GetFunctionPTRAnonymousString() :
+            library->GetFunctionAnonymousString();
         bs = JavascriptString::Concat(bs, formals);
-        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(openFuncBody));
+        bs = JavascriptString::Concat(bs, library->GetSpaceOpenBracketString());
         if (fnBody != NULL)
         {
             bs = JavascriptString::Concat(bs, fnBody);
         }
 
-        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(closeFuncBody));
+        bs = JavascriptString::Concat(bs, library->GetNewLineCloseBracketString());
         // Bug 1105479. Get the module id from the caller
         ModuleID moduleID = kmodGlobal;
 
@@ -543,7 +535,7 @@ namespace Js
                 {
                     for (uint i = 0; i < len; i++)
                     {
-                        Var element;
+                        Var element = nullptr;
                         if (!JavascriptOperators::GetItem(dynamicObject, i, &element, scriptContext))
                         {
                             element = undefined;
@@ -621,13 +613,20 @@ namespace Js
         /// Check Argument[0] has internal [[Call]] property
         /// If not, throw TypeError
         ///
-        if (args.Info.Count == 0 || !JavascriptConversion::IsCallable(args[0]))
+        uint argCount = args.Info.Count;
+        if (callInfo.Flags & CallFlags_ExtraArg)
+        {
+            // The last argument is the "extra". Don't consider it in the logic below.
+            // It will either remain in place (argCount == 1) or be copied.
+            argCount--;
+        }
+        if (argCount == 0 || !JavascriptConversion::IsCallable(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.call"));
         }
 
         RecyclableObject *pFunc = RecyclableObject::FromVar(args[0]);
-        if (args.Info.Count == 1)
+        if (argCount == 1)
         {
             args.Values[0] = scriptContext->GetLibrary()->GetUndefined();
         }
@@ -938,13 +937,15 @@ namespace Js
                 resultObject,
                 JavascriptFunction::Is(functionObj) && functionObj->GetScriptContext() == scriptContext ?
                 JavascriptFunction::FromVar(functionObj) :
-                nullptr);
+                nullptr,
+                overridingNewTarget != nullptr);
     }
 
     Var JavascriptFunction::FinishConstructor(
         const Var constructorReturnValue,
         Var newObject,
-        JavascriptFunction *const function)
+        JavascriptFunction *const function,
+        bool hasOverridingNewTarget)
     {
         Assert(constructorReturnValue);
 
@@ -954,7 +955,9 @@ namespace Js
             newObject = constructorReturnValue;
         }
 
-        if (function && function->GetConstructorCache()->NeedsUpdateAfterCtor())
+        // #3217: Cases with overriding newTarget are not what constructor cache is intended for;
+        //     Bypass constructor cache to avoid prototype mismatch/confusion.
+        if (function && function->GetConstructorCache()->NeedsUpdateAfterCtor() && !hasOverridingNewTarget)
         {
             JavascriptOperators::UpdateNewScObjectCache(function, newObject, function->GetScriptContext());
         }
@@ -1669,7 +1672,7 @@ LABEL1:
 
         if (funcObjectWithInlineCache && !funcObjectWithInlineCache->GetHasOwnInlineCaches())
         {
-            // If the function object needs to use the inline caches from the function body, point them to the 
+            // If the function object needs to use the inline caches from the function body, point them to the
             // function body's caches. This is required in two redeferral cases:
             //
             // 1. We might have cleared the caches on the function object (ClearBorrowedInlineCacheOnFunctionObject)
@@ -1854,7 +1857,107 @@ LABEL1:
     9)  Return EXCEPTION_CONTINUE_EXECUTION
 
     */
-#if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
+#if ENABLE_NATIVE_CODEGEN
+#if defined(_M_IX86) || defined(_M_X64)
+    class ExceptionFilterHelper
+    {
+        Js::ScriptFunction* m_func = nullptr;
+        bool m_checkedForFunc = false;
+        PEXCEPTION_POINTERS exceptionInfo;
+    public:
+        ExceptionFilterHelper(PEXCEPTION_POINTERS exceptionInfo) : exceptionInfo(exceptionInfo) {}
+        PEXCEPTION_POINTERS GetExceptionInfo() const
+        {
+            return exceptionInfo;
+        }
+
+        uintptr_t GetFaultingAddress() const
+        {
+            // For AVs, the second element of ExceptionInformation array is address of inaccessible data
+            // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363082.aspx
+            Assert(this->exceptionInfo->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION);
+            Assert(this->exceptionInfo->ExceptionRecord->NumberParameters >= 2);
+            return exceptionInfo->ExceptionRecord->ExceptionInformation[1];
+        }
+        Var GetIPAddress() const
+        {
+#if _M_IX86
+            return (Var)exceptionInfo->ContextRecord->Eip;
+#elif _M_X64
+            return (Var)exceptionInfo->ContextRecord->Rip;
+#else
+#error Not yet Implemented
+#endif
+        }
+        Var* GetAddressOfFuncObj() const
+        {
+#if _M_IX86
+            return (Var*)(exceptionInfo->ContextRecord->Ebp + 2 * sizeof(Var));
+#elif _M_X64
+            return (Var*)(exceptionInfo->ContextRecord->Rbp + 2 * sizeof(Var));
+#else
+#error Not yet Implemented
+#endif
+        }
+        Js::ScriptFunction* GetScriptFunction()
+        {
+            if (m_checkedForFunc)
+            {
+                return m_func;
+            }
+            m_checkedForFunc = true;
+            ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+
+            // AV should come from JITed code, since we don't eliminate bound checks in interpreter
+            if (!threadContext->IsNativeAddress(GetIPAddress()))
+            {
+                return nullptr;
+            }
+
+            Var* addressOfFuncObj = GetAddressOfFuncObj();
+            if (!addressOfFuncObj || *addressOfFuncObj == nullptr || !ScriptFunction::Is(*addressOfFuncObj))
+            {
+                return nullptr;
+            }
+
+            Js::ScriptFunction* func = (Js::ScriptFunction*)(*addressOfFuncObj);
+
+            RecyclerHeapObjectInfo heapObject;
+            Recycler* recycler = threadContext->GetRecycler();
+
+            bool isFuncObjHeapAllocated = recycler->FindHeapObject(func, FindHeapObjectFlags_NoFlags, heapObject); // recheck if this needs to be removed
+            bool isEntryPointHeapAllocated = recycler->FindHeapObject(func->GetEntryPointInfo(), FindHeapObjectFlags_NoFlags, heapObject);
+            bool isFunctionBodyHeapAllocated = recycler->FindHeapObject(func->GetFunctionBody(), FindHeapObjectFlags_NoFlags, heapObject);
+
+            // ensure that all our objects are heap allocated
+            if (!(isFuncObjHeapAllocated && isEntryPointHeapAllocated && isFunctionBodyHeapAllocated))
+            {
+                return nullptr;
+            }
+            m_func = func;
+            return m_func;
+        }
+    };
+
+    void CheckWasmMathException(int exceptionCode, ExceptionFilterHelper& helper)
+    {
+        if (CONFIG_FLAG(WasmMathExFilter) && (exceptionCode == STATUS_INTEGER_DIVIDE_BY_ZERO || exceptionCode == STATUS_INTEGER_OVERFLOW))
+        {
+            Js::ScriptFunction* func = helper.GetScriptFunction();
+            if (func)
+            {
+                Js::FunctionBody* funcBody = func->GetFunctionBody();
+                if (funcBody && funcBody->IsWasmFunction())
+                {
+                    int32 code = exceptionCode == STATUS_INTEGER_DIVIDE_BY_ZERO ? WASMERR_DivideByZero : VBSERR_Overflow;
+                    JavascriptError::ThrowWebAssemblyRuntimeError(func->GetScriptContext(), code);
+                }
+            }
+        }
+    }
+
+    // x64 specific exception filters
+#ifdef _M_X64
     ArrayAccessDecoder::InstructionData ArrayAccessDecoder::CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo) // get the reg operand and isLoad and
     {
         InstructionData instrData;
@@ -2187,49 +2290,21 @@ LABEL1:
         return instrData;
     }
 
-    bool JavascriptFunction::ResumeForOutOfBoundsArrayRefs(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo)
+#if ENABLE_FAST_ARRAYBUFFER
+    bool ResumeForOutOfBoundsArrayRefs(int exceptionCode, ExceptionFilterHelper& helper)
     {
         if (exceptionCode != STATUS_ACCESS_VIOLATION)
         {
             return false;
         }
-
-        ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
-
-        // AV should come from JITed code, since we don't eliminate bound checks in interpreter
-        if (!threadContext->IsNativeAddress((Var)exceptionInfo->ContextRecord->Rip))
-        {
-            return false;
-        }
-
-        Var* addressOfFuncObj = (Var*)(exceptionInfo->ContextRecord->Rbp + 2 * sizeof(Var));
-        if (!addressOfFuncObj)
-        {
-            return false;
-        }
-
-        Js::ScriptFunction* func = (ScriptFunction::Is(*addressOfFuncObj))?(Js::ScriptFunction*)(*addressOfFuncObj):nullptr;
+        Js::ScriptFunction* func = helper.GetScriptFunction();
         if (!func)
-        {
-            return false;
-        }
-
-        RecyclerHeapObjectInfo heapObject;
-        Recycler* recycler = threadContext->GetRecycler();
-
-        bool isFuncObjHeapAllocated = recycler->FindHeapObject(func, FindHeapObjectFlags_NoFlags, heapObject); // recheck if this needs to be removed
-        bool isEntryPointHeapAllocated = recycler->FindHeapObject(func->GetEntryPointInfo(), FindHeapObjectFlags_NoFlags, heapObject);
-        bool isFunctionBodyHeapAllocated = recycler->FindHeapObject(func->GetFunctionBody(), FindHeapObjectFlags_NoFlags, heapObject);
-
-        // ensure that all our objects are heap allocated
-        if (!(isFuncObjHeapAllocated && isEntryPointHeapAllocated && isFunctionBodyHeapAllocated))
         {
             return false;
         }
         Js::FunctionBody* funcBody = func->GetFunctionBody();
         bool isWAsmJs = funcBody->GetIsAsmJsFunction();
         bool isWasmOnly = funcBody->IsWasmFunction();
-        BYTE* buffer = nullptr;
         if (isWAsmJs)
         {
             // some extra checks for asm.js because we have slightly more information that we can validate
@@ -2240,16 +2315,19 @@ LABEL1:
             }
 
             ArrayBuffer* arrayBuffer = nullptr;
+            size_t reservationSize = 0;
 #ifdef ENABLE_WASM
             if (isWasmOnly)
             {
                 WebAssemblyMemory* mem = *(WebAssemblyMemory**)(moduleMemory + WebAssemblyModule::GetMemoryOffset());
                 arrayBuffer = mem->GetBuffer();
+                reservationSize = MAX_WASM__ARRAYBUFFER_LENGTH;
             }
             else
 #endif
             {
                 arrayBuffer = *(ArrayBuffer**)(moduleMemory + AsmJsModuleMemory::MemoryTableBeginOffset);
+                reservationSize = MAX_ASMJS_ARRAYBUFFER_LENGTH;
             }
 
             if (!arrayBuffer || !arrayBuffer->GetBuffer())
@@ -2257,7 +2335,7 @@ LABEL1:
                 // don't have a heap buffer for asm.js... so this shouldn't be an asm.js heap access
                 return false;
             }
-            buffer = arrayBuffer->GetBuffer();
+            uintptr_t bufferAddr = (uintptr_t)arrayBuffer->GetBuffer();
 
             uint bufferLength = arrayBuffer->GetByteLength();
 
@@ -2265,8 +2343,18 @@ LABEL1:
             {
                 return false;
             }
+            uintptr_t faultingAddr = helper.GetFaultingAddress();
+            if (faultingAddr < bufferAddr)
+            {
+                return false;
+            }
+            if (faultingAddr >= bufferAddr + reservationSize)
+            {
+                return false;
+            }
         }
 
+        PEXCEPTION_POINTERS exceptionInfo = helper.GetExceptionInfo();
         BYTE* pc = (BYTE*)exceptionInfo->ExceptionRecord->ExceptionAddress;
         ArrayAccessDecoder::InstructionData instrData = ArrayAccessDecoder::CheckValidInstr(pc, exceptionInfo);
         // Check If the instruction is valid
@@ -2281,15 +2369,7 @@ LABEL1:
             return false;
         }
 
-        // If asm.js, make sure the base address is that of the heap buffer
-        if (instrData.bufferValue != (uint64)buffer)
-        {
-            if (isWAsmJs)
-            {
-                return false;
-            }
-        }
-        else if (isWasmOnly)
+        if (isWasmOnly)
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(func->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
         }
@@ -2335,14 +2415,23 @@ LABEL1:
         return true;
     }
 #endif
+#endif
+#endif
+#endif
 
     int JavascriptFunction::CallRootEventFilter(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo)
     {
-#if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
-        if (ResumeForOutOfBoundsArrayRefs(exceptionCode, exceptionInfo))
+#if ENABLE_NATIVE_CODEGEN
+#if defined(_M_IX86) || defined(_M_X64)
+        ExceptionFilterHelper helper(exceptionInfo);
+        CheckWasmMathException(exceptionCode, helper);
+#if ENABLE_FAST_ARRAYBUFFER
+        if (ResumeForOutOfBoundsArrayRefs(exceptionCode, helper))
         {
             return EXCEPTION_CONTINUE_EXECUTION;
         }
+#endif
+#endif
 #endif
         return EXCEPTION_CONTINUE_SEARCH;
     }
@@ -2397,13 +2486,13 @@ LABEL1:
         case PropertyIds::arguments:
             if (this->HasRestrictedProperties())
             {
-                return Property_Found;
+                return PropertyQueryFlags::Property_Found;
             }
             break;
         case PropertyIds::length:
             if (this->IsScriptFunction())
             {
-                return Property_Found;
+                return PropertyQueryFlags::Property_Found;
             }
             break;
         }
@@ -2629,27 +2718,30 @@ LABEL1:
                 break;
             }
 
-            if (funcCaller->GetScriptContext() != requestContext && funcCaller->GetTypeId() == TypeIds_Null)
+            if (funcCaller == nullptr)
             {
-                // There are cases where StackWalker might return null value from different scriptContext
-                // Caller of this function expects nullValue from the requestContext.
+                // We no longer return Null objects as JavascriptFunctions, so we don't have to worry about
+                // cross-context null objects. We do want to clean up null pointers though, since some call
+                // later in this function may depend on non-nullptr calls.
                 funcCaller = nullValue;
             }
+
             if (ScriptFunction::Is(funcCaller))
             {
                 // If this is the internal function of a generator function then return the original generator function
                 funcCaller = ScriptFunction::FromVar(funcCaller)->GetRealFunctionObject();
 
-                // This function is escaping, so make sure there isn't some caller that has a cached scope.
-                JavascriptFunction * func;
-                while (walker.GetCaller(&func))
+                // This function is escaping, so make sure there isn't some nested parent that has a cached scope.
+                if (ScriptFunction::Is(funcCaller))
                 {
-                    if (ScriptFunction::Is(func))
+                    FrameDisplay * pFrameDisplay = Js::ScriptFunction::FromVar(funcCaller)->GetEnvironment();
+                    uint length = (uint)pFrameDisplay->GetLength();
+                    for (uint i = 0; i < length; i++)
                     {
-                        ActivationObjectEx * obj = ScriptFunction::FromVar(func)->GetCachedScope();
-                        if (obj)
+                        void * scope = pFrameDisplay->GetItem(i);
+                        if (!Js::ScopeSlots::Is(scope) && Js::ActivationObjectEx::Is(scope))
                         {
-                            obj->InvalidateCachedScope();
+                            Js::ActivationObjectEx::FromVar(scope)->InvalidateCachedScope();
                         }
                     }
                 }
@@ -2705,7 +2797,7 @@ LABEL1:
             {
                 JavascriptFunction* exceptionFunction = unhandledExceptionObject->GetFunction();
                 // This is for getcaller in window.onError. The behavior is different in different browsers
-                if (exceptionFunction 
+                if (exceptionFunction
                     && scriptContext == exceptionFunction->GetScriptContext()
                     && exceptionFunction->IsScriptFunction()
                     && !exceptionFunction->GetFunctionBody()->GetIsGlobalFunc())
@@ -2719,7 +2811,11 @@ LABEL1:
             HRESULT hr = scriptContext->GetHostScriptContext()->CheckCrossDomainScriptContext(funcCaller->GetScriptContext());
             if (S_OK != hr)
             {
-                *value = scriptContext->GetLibrary()->GetNull();
+                *value = nullValue;
+            }
+            else
+            {
+                *value = CrossSite::MarshalVar(requestContext, funcCaller);
             }
         }
 
@@ -3149,7 +3245,7 @@ LABEL1:
         FunctionProxy* proxy = this->GetFunctionProxy();
         JavascriptFunction* thisFunction = const_cast<JavascriptFunction*>(this);
 
-        if (proxy || thisFunction->IsBoundFunction() || JavascriptGeneratorFunction::Is(thisFunction) || JavascriptAsyncFunction::Is(thisFunction))
+        if (proxy || thisFunction->IsBoundFunction() || JavascriptGeneratorFunction::Test(thisFunction) || JavascriptAsyncFunction::Test(thisFunction))
         {
             *name = GetDisplayNameImpl();
             return true;
@@ -3221,12 +3317,12 @@ LABEL1:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        RecyclableObject * constructor = RecyclableObject::FromVar(args[0]);
-        if (!JavascriptConversion::IsCallable(constructor) || args.Info.Count < 2)
+        if (!JavascriptConversion::IsCallable(args[0]) || args.Info.Count < 2)
         {
             return JavascriptBoolean::ToVar(FALSE, scriptContext);
         }
 
+        RecyclableObject * constructor = RecyclableObject::FromVar(args[0]);
         Var instance = args[1];
 
         Assert(JavascriptProxy::Is(constructor) || JavascriptFunction::Is(constructor));

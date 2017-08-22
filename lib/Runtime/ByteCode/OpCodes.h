@@ -379,6 +379,7 @@ MACRO_WMS(              ScopedInitFunc,             ElementScopedC, OpSideEffect
 MACRO_WMS(              ScopedStFld,                ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Store to function's scope stack
 MACRO_EXTEND_WMS(       ConsoleScopedStFld,         ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Store to function's scope stack
 MACRO_WMS(              ScopedStFldStrict,          ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Store to function's scope stack
+MACRO_EXTEND_WMS(       ConsoleScopedStFldStrict,   ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Store to function's scope stack in strict mode for console scope
 MACRO_WMS(              ScopedDeleteFld,            ElementScopedC, OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Remove a property through a stack of scopes
 MACRO_WMS(              ScopedDeleteFldStrict,      ElementScopedC, OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Remove a property through a stack of scopes in strict mode
 MACRO_WMS_PROFILED(     LdSlot,                     ElementSlot,    OpTempNumberSources)
@@ -749,7 +750,7 @@ MACRO_BACKEND_ONLY(     PopCnt,             Empty,          OpTempNumberSources|
 MACRO_BACKEND_ONLY(     Copysign_A,         Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Trunc_A,            Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
 MACRO_BACKEND_ONLY(     Nearest_A,          Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     Unreachable_Void,   Empty,          OpSideEffect)
+MACRO_BACKEND_ONLY(     ThrowRuntimeError,  Empty,          OpSideEffect)
 MACRO_BACKEND_ONLY(     TrapIfMinIntOverNegOne, Reg3,       OpSideEffect)
 MACRO_BACKEND_ONLY(     TrapIfZero,         Reg3,           OpSideEffect)
 

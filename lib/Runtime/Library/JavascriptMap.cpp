@@ -64,6 +64,16 @@ namespace Js
 
         Var iterable = (args.Info.Count > 1) ? args[1] : library->GetUndefined();
 
+        if (mapObject->map != nullptr)
+        {
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Map"), _u("Map"));
+        }
+
+        /* Ensure mapObject->map is created before trying to fetch the adder function. If Map.prototype.set has
+           its getter set to another Map method (such as Map.prototype.get) and we try to get the function before
+           the map is initialized, it will cause a null dereference. See github#2747 */
+        mapObject->map = RecyclerNew(scriptContext->GetRecycler(), MapDataMap, scriptContext->GetRecycler());
+
         RecyclableObject* iter = nullptr;
         RecyclableObject* adder = nullptr;
 
@@ -78,13 +88,6 @@ namespace Js
             adder = RecyclableObject::FromVar(adderVar);
         }
 
-        if (mapObject->map != nullptr)
-        {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Map"), _u("Map"));
-        }
-
-        mapObject->map = RecyclerNew(scriptContext->GetRecycler(), MapDataMap, scriptContext->GetRecycler());
-
         if (iter != nullptr)
         {
             Var undefined = library->GetUndefined();
@@ -97,7 +100,7 @@ namespace Js
 
                 RecyclableObject* obj = RecyclableObject::FromVar(nextItem);
 
-                Var key, value;
+                Var key = nullptr, value = nullptr;
 
                 if (!JavascriptOperators::GetItem(obj, 0u, &key, scriptContext))
                 {

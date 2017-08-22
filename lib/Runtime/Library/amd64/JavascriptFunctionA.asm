@@ -221,41 +221,41 @@ extrn ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z : PROC
 
 ; int64 CallAsmJsFunction<int64>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 align 16
-??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SA_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SQ_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
     .setframe rbp, 0
     .endprolog
-    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
-??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SA_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
+??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SQ_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
 
 ; float CallAsmJsFunction<float>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 align 16
-??$CallAsmJsFunction@M@JavascriptFunction@Js@@SAMPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@M@JavascriptFunction@Js@@SQMPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
     .setframe rbp, 0
     .endprolog
-    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
-??$CallAsmJsFunction@M@JavascriptFunction@Js@@SAMPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
+??$CallAsmJsFunction@M@JavascriptFunction@Js@@SQMPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
 
 ; double CallAsmJsFunction<double>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 align 16
-??$CallAsmJsFunction@N@JavascriptFunction@Js@@SANPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@N@JavascriptFunction@Js@@SQNPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
     .setframe rbp, 0
     .endprolog
-    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
-??$CallAsmJsFunction@N@JavascriptFunction@Js@@SANPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
+??$CallAsmJsFunction@N@JavascriptFunction@Js@@SQNPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
 
 ; __m128 JavascriptFunction::CallAsmJsFunction(RecyclableObject * function, void* entryPoint, uint argc, Var * argv);
 align 16
-??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SA?AT__m128@@PEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SQ?AT__m128@@PEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
     .setframe rbp, 0
     .endprolog
-    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
-??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SA?AT__m128@@PEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
+??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SQ?AT__m128@@PEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
 
 
 
 ; int CallAsmJsFunction<int>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 align 16
-??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
 
         ; save these to stack for interpreter
         mov qword ptr [rsp + 8h],  rcx
@@ -330,17 +330,17 @@ endif
         push rcx
         sub rsp, 20h
         call ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z
-        mov r13, rax
         add rsp, 20h
         pop rcx
-        pop rax
+        pop r13
 
-setup_stack_and_reg_args:
-
-        ; OP_CallAsmInternal checks stack space
-
+        ; OP_CallAsmInternal probes stack
+        ; Check if we need to commit more stack
+        cmp rax, 2000h ; x64 has 2 guard pages
+        jl stack_alloc
+        call __chkstk
 stack_alloc:
-        sub  rsp, r13
+        sub rsp, rax
 
         ;; copy all args to the new stack frame.
         lea r11, [rsi]
@@ -350,8 +350,8 @@ copy_stack_args:
         mov qword ptr [r10], rdi
         add r11, 8
         add r10, 8
-        sub r13, 8
-        cmp r13, 0
+        sub rax, 8
+        cmp rax, 0
         jg copy_stack_args
 
         ; r12 points to arg size map
@@ -399,7 +399,7 @@ SIMDArg3:
         movups xmm3, xmmword ptr [r11]
 
 setup_args_done:
-        call rax
+        call r13
 done:
         lea rsp, [rbp]
         pop rbp
@@ -410,7 +410,7 @@ done:
         pop rbx
         ret
 
-??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
 
 endif ;; _ENABLE_DYNAMIC_THUNKS
 

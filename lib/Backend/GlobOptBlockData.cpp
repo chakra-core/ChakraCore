@@ -18,10 +18,11 @@ GlobOptBlockData::NullOutBlockData(GlobOpt* globOpt, Func* func)
     this->liveInt32Syms = nullptr;
     this->liveLossyInt32Syms = nullptr;
     this->liveFloat64Syms = nullptr;
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     this->liveSimd128F4Syms = nullptr;
     this->liveSimd128I4Syms = nullptr;
-
+#endif
     this->hoistableFields = nullptr;
     this->argObjSyms = nullptr;
     this->maybeTempObjectSyms = nullptr;
@@ -61,11 +62,11 @@ GlobOptBlockData::InitBlockData(GlobOpt* globOpt, Func* func)
     this->liveInt32Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->liveLossyInt32Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->liveFloat64Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     this->liveSimd128F4Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->liveSimd128I4Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-
+#endif
     this->hoistableFields = nullptr;
     this->argObjSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->maybeTempObjectSyms = nullptr;
@@ -110,11 +111,11 @@ GlobOptBlockData::ReuseBlockData(GlobOptBlockData *fromData)
     this->liveInt32Syms = fromData->liveInt32Syms;
     this->liveLossyInt32Syms = fromData->liveLossyInt32Syms;
     this->liveFloat64Syms = fromData->liveFloat64Syms;
-
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     this->liveSimd128F4Syms = fromData->liveSimd128F4Syms;
     this->liveSimd128I4Syms = fromData->liveSimd128I4Syms;
-
+#endif
     if (this->globOpt->TrackHoistableFields())
     {
         this->hoistableFields = fromData->hoistableFields;
@@ -162,11 +163,11 @@ GlobOptBlockData::CopyBlockData(GlobOptBlockData *fromData)
     this->liveInt32Syms = fromData->liveInt32Syms;
     this->liveLossyInt32Syms = fromData->liveLossyInt32Syms;
     this->liveFloat64Syms = fromData->liveFloat64Syms;
-
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     this->liveSimd128F4Syms = fromData->liveSimd128F4Syms;
     this->liveSimd128I4Syms = fromData->liveSimd128I4Syms;
-
+#endif
     this->hoistableFields = fromData->hoistableFields;
     this->argObjSyms = fromData->argObjSyms;
     this->maybeTempObjectSyms = fromData->maybeTempObjectSyms;
@@ -207,11 +208,11 @@ GlobOptBlockData::DeleteBlockData()
     JitAdelete(alloc, this->liveInt32Syms);
     JitAdelete(alloc, this->liveLossyInt32Syms);
     JitAdelete(alloc, this->liveFloat64Syms);
-
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     JitAdelete(alloc, this->liveSimd128F4Syms);
     JitAdelete(alloc, this->liveSimd128I4Syms);
-
+#endif
     if (this->hoistableFields)
     {
         JitAdelete(alloc, this->hoistableFields);
@@ -300,14 +301,14 @@ void GlobOptBlockData::CloneBlockData(BasicBlock *const toBlockContext, BasicBlo
 
     this->liveFloat64Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->liveFloat64Syms->Copy(fromData->liveFloat64Syms);
-
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     this->liveSimd128F4Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->liveSimd128F4Syms->Copy(fromData->liveSimd128F4Syms);
 
     this->liveSimd128I4Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->liveSimd128I4Syms->Copy(fromData->liveSimd128I4Syms);
-
+#endif
     if (this->globOpt->TrackHoistableFields())
     {
         if (fromData->hoistableFields)
@@ -596,6 +597,7 @@ GlobOptBlockData::MergeBlockData(
             tempBv1.And(loop->likelyNumberSymsUsedBeforeDefined);
             this->liveFloat64Syms->Or(&tempBv1);
 
+#ifdef ENABLE_SIMDJS
             // Force to Simd128 type:
             // if live on the backedge and we are hoisting the operand.
             // or if live on the backedge only and used before def in the loop.
@@ -610,8 +612,10 @@ GlobOptBlockData::MergeBlockData(
             tempBv1.Minus(fromData->liveSimd128I4Syms, this->liveSimd128I4Syms);
             tempBv1.And(loop->likelySimd128I4SymsUsedBeforeDefined);
             this->liveSimd128I4Syms->Or(&tempBv1);
+#endif
         }
 
+#ifdef ENABLE_SIMDJS
         BVSparse<JitArenaAllocator> simdSymsToVar(this->globOpt->tempAlloc);
         {
             // SIMD_JS
@@ -682,6 +686,7 @@ GlobOptBlockData::MergeBlockData(
                 }
             } NEXT_BITSET_IN_SPARSEBV;
         }
+#endif
 
         {
             BVSparse<JitArenaAllocator> tempBv3(this->globOpt->tempAlloc);
@@ -743,9 +748,11 @@ GlobOptBlockData::MergeBlockData(
                 }
             } NEXT_BITSET_IN_SPARSEBV;
 
+#ifdef ENABLE_SIMDJS
             // SIMD_JS
             // Simd syms that need boxing
             this->liveVarSyms->Or(&simdSymsToVar);
+#endif
         }
 
         //     fromData.float64 & ((this.int32 - this.lossyInt32) | this.float64)
@@ -1432,6 +1439,18 @@ GlobOptBlockData::FindObjectTypeValue(SymID typeSymId)
     {
         return nullptr;
     }
+    return FindObjectTypeValueNoLivenessCheck(typeSymId);
+}
+
+Value *
+GlobOptBlockData::FindObjectTypeValueNoLivenessCheck(StackSym* typeSym)
+{
+    return FindObjectTypeValueNoLivenessCheck(typeSym->m_id);
+}
+
+Value *
+GlobOptBlockData::FindObjectTypeValueNoLivenessCheck(SymID typeSymId)
+{
     Value* value = this->FindValueFromMapDirect(typeSymId);
     Assert(value == nullptr || value->GetValueInfo()->IsJsType());
     return value;
@@ -1716,7 +1735,7 @@ GlobOptBlockData::MakeLive(StackSym *sym, const bool lossy)
             this->liveFloat64Syms->Set(varSymId);
             return;
         }
-
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         if (sym->IsSimd128F4())
         {
@@ -1729,7 +1748,7 @@ GlobOptBlockData::MakeLive(StackSym *sym, const bool lossy)
             this->liveSimd128I4Syms->Set(varSymId);
             return;
         }
-
+#endif
     }
 
     this->liveVarSyms->Set(sym->m_id);
@@ -1744,16 +1763,21 @@ GlobOptBlockData::IsLive(Sym const * sym) const
         (
         this->liveVarSyms->Test(sym->m_id) ||
         this->liveInt32Syms->Test(sym->m_id) ||
-        this->liveFloat64Syms->Test(sym->m_id) ||
-        this->liveSimd128F4Syms->Test(sym->m_id) ||
-        this->liveSimd128I4Syms->Test(sym->m_id)
+        this->liveFloat64Syms->Test(sym->m_id)
+#ifdef ENABLE_SIMDJS
+            || this->liveSimd128F4Syms->Test(sym->m_id) || this->liveSimd128I4Syms->Test(sym->m_id)
+#endif
         );
 }
 
 bool
 GlobOptBlockData::IsTypeSpecialized(Sym const * sym) const
 {
-    return this->IsInt32TypeSpecialized(sym) || this->IsFloat64TypeSpecialized(sym) || this->IsSimd128TypeSpecialized(sym);
+    return this->IsInt32TypeSpecialized(sym) || this->IsFloat64TypeSpecialized(sym)
+#ifdef ENABLE_SIMDJS
+        || this->IsSimd128TypeSpecialized(sym)
+#endif
+        ;
 }
 
 bool
@@ -1778,6 +1802,7 @@ GlobOptBlockData::IsFloat64TypeSpecialized(Sym const * sym) const
     return sym && this->liveFloat64Syms->Test(sym->m_id);
 }
 
+#ifdef ENABLE_SIMDJS
 // SIMD_JS
 bool
 GlobOptBlockData::IsSimd128TypeSpecialized(Sym const * sym) const
@@ -1840,6 +1865,7 @@ GlobOptBlockData::IsLiveAsSimd128I4(Sym const * sym) const
     sym = StackSym::GetVarEquivStackSym_NoCreate(sym);
     return sym && this->liveSimd128I4Syms->Test(sym->m_id);
 }
+#endif
 
 void
 GlobOptBlockData::KillStateForGeneratorYield()
@@ -1877,11 +1903,11 @@ GlobOptBlockData::KillStateForGeneratorYield()
     this->liveInt32Syms->ClearAll();
     this->liveLossyInt32Syms->ClearAll();
     this->liveFloat64Syms->ClearAll();
-
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     this->liveSimd128F4Syms->ClearAll();
     this->liveSimd128I4Syms->ClearAll();
-
+#endif
     if (this->hoistableFields)
     {
         this->hoistableFields->ClearAll();

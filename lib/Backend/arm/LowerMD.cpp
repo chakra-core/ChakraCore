@@ -2424,11 +2424,13 @@ LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, 
 IR::Instr *
 LowererMD::LowerRet(IR::Instr * retInstr)
 {
-    IR::RegOpnd *retReg = IR::RegOpnd::New(nullptr, RETURN_REG, TyMachReg, m_func);
+    IR::RegOpnd *retReg = IR::RegOpnd::New(TyMachReg, m_func);
+    retReg->SetReg(RETURN_REG);
+    Lowerer::InsertMove(retReg, retInstr->UnlinkSrc1(), retInstr);
 
-    retInstr->SetDst(retReg);
+    retInstr->SetSrc1(retReg);
 
-    return this->ChangeToAssign(retInstr);
+    return retInstr;
 }
 
 
@@ -4361,13 +4363,13 @@ LowererMD::GenerateFlagInlineCacheCheckForGetterSetter(
 
     // Generate:
     //
-    //      TST [&(inlineCache->u.flags.flags)], Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag
+    //      TST [&(inlineCache->u.accessor.flags)], Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag
     //      BEQ $next
     IR::Instr * instr;
     IR::Opnd* flagsOpnd;
 
-    flagsOpnd = IR::IndirOpnd::New(opndInlineCache, 0, TyInt8, this->m_func);
-    // AND [&(inlineCache->u.flags.flags)], InlineCacheGetterFlag | InlineCacheSetterFlag
+    flagsOpnd = IR::IndirOpnd::New(opndInlineCache, (int32)offsetof(Js::InlineCache, u.accessor.rawUInt16), TyInt8, this->m_func);
+    // AND [&(inlineCache->u.accessor.flags)], InlineCacheGetterFlag | InlineCacheSetterFlag
     instr = IR::Instr::New(Js::OpCode::TST,this->m_func);
     instr->SetSrc1(flagsOpnd);
     instr->SetSrc2(IR::IntConstOpnd::New(accessorFlagMask, TyInt8, this->m_func));
@@ -4377,33 +4379,6 @@ LowererMD::GenerateFlagInlineCacheCheckForGetterSetter(
     // BEQ $next
     instr = IR::BranchInstr::New(Js::OpCode::BEQ, labelNext, this->m_func);
     insertBeforeInstr->InsertBefore(instr);
-}
-
-IR::BranchInstr *
-LowererMD::GenerateFlagInlineCacheCheckForNoGetterSetter(
-    IR::Instr * instrLdSt,
-    IR::RegOpnd * opndInlineCache,
-    IR::LabelInstr * labelNext)
-{
-    // Generate:
-    //
-    //      TST [&(inlineCache->u.flags.flags)], (Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag)
-    //      BNE $next
-    IR::Instr * instr;
-    IR::Opnd* flagsOpnd;
-
-    flagsOpnd = IR::IndirOpnd::New(opndInlineCache, 0, TyInt8, instrLdSt->m_func);
-    instr = IR::Instr::New(Js::OpCode::TST, instrLdSt->m_func);
-    instr->SetSrc1(flagsOpnd);
-    instr->SetSrc2(IR::IntConstOpnd::New((Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag) << 1, TyInt8, instrLdSt->m_func));
-    instrLdSt->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
-
-    // BNQ $next
-    IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::BNE, labelNext, instrLdSt->m_func);
-    instrLdSt->InsertBefore(branchInstr);
-
-    return branchInstr;
 }
 
 IR::BranchInstr *
@@ -5762,8 +5737,8 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
     return labelDone;
 }
 
-IR::RegOpnd *
-LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, bool bailOutOnHelperCall)
+void
+LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, IR::Instr * instrBailOut, IR::LabelInstr * labelBailOut)
 {
     IR::LabelInstr *labelDone;
     IR::Instr *instr;
@@ -5782,24 +5757,18 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, b
     if (labelDone == nullptr)
     {
         // We're done
-        return nullptr;
+        return;
     }
 
-    if (bailOutOnHelperCall)
-    {
-        if(!GlobOpt::DoEliminateArrayAccessHelperCall(this->m_func))
-        {
-            // Array access helper call removal is already off for some reason. Prevent trying to rejit again
-            // because it won't help and the same thing will happen again. Just abort jitting this function.
-            if(PHASE_TRACE(Js::BailOutPhase, this->m_func))
-            {
-                Output::Print(_u("    Aborting JIT because EliminateArrayAccessHelperCall is already off\n"));
-                Output::Flush();
-            }
-            throw Js::OperationAbortedException();
-        }
+    IR::BailOutKind bailOutKind = instrBailOut && instrBailOut->HasBailOutInfo() ? instrBailOut->GetBailOutKind() : IR::BailOutInvalid;
 
-        throw Js::RejitException(RejitReason::ArrayAccessHelperCallEliminationDisabled);
+    if (bailOutKind & IR::BailOutOnArrayAccessHelperCall)
+    {
+        // Bail out instead of making the helper call.
+        Assert(labelBailOut);
+        m_lowerer->InsertBranch(Js::OpCode::Br, labelBailOut, insertInstr);
+        insertInstr->InsertBefore(labelDone);
+        return;
     }
 
     IR::Opnd *memAddress = dst;
@@ -5832,6 +5801,17 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, b
     instr->SetSrc2(reg3Opnd);
     insertInstr->InsertBefore(instr);
 
+    if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
+    {
+        _Analysis_assume_(instrBailOut != nullptr);
+        instr = instr->ConvertToBailOutInstr(instrBailOut->GetBailOutInfo(), bailOutKind);
+        if (instrBailOut->GetBailOutInfo()->bailOutInstr == instrBailOut)
+        {
+            IR::Instr * instrShare = instrBailOut->ShareBailOut();
+            m_lowerer->LowerBailTarget(instrShare);
+        }
+    }
+
     IR::JnHelperMethod helper;
     if (dst->GetType() == TyFloat32)
     {
@@ -5854,7 +5834,6 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, b
 
     // $Done
     insertInstr->InsertBefore(labelDone);
-    return nullptr;
 }
 
 void
@@ -8419,8 +8398,21 @@ LowererMD::CheckOverflowOnFloatToInt32(IR::Instr* instrInsert, IR::Opnd* intOpnd
 }
 
 void
-LowererMD::EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+LowererMD::EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert, IR::Instr * instrBailOut, IR::LabelInstr * labelBailOut)
 {
+    IR::BailOutKind bailOutKind = IR::BailOutInvalid;
+    if (instrBailOut && instrBailOut->HasBailOutInfo())
+    {
+        bailOutKind = instrBailOut->GetBailOutKind(); 
+        if (bailOutKind & IR::BailOutOnArrayAccessHelperCall)
+        {
+            // Bail out instead of calling helper. If this is happening unconditionally, the caller should instead throw a rejit exception.
+            Assert(labelBailOut);
+            m_lowerer->InsertBranch(Js::OpCode::Br, labelBailOut, instrInsert);
+            return;
+        }
+    }
+
     IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
     IR::Instr *instr;
@@ -8430,11 +8422,23 @@ LowererMD::EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
     // $Helper
     instrInsert->InsertBefore(labelHelper);
 
-    // dst = ToInt32Core(src);
-    LoadDoubleHelperArgument(instrInsert, src);
-
     instr = IR::Instr::New(Js::OpCode::Call, dst, this->m_func);
     instrInsert->InsertBefore(instr);
+
+    if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
+    {
+        _Analysis_assume_(instrBailOut != nullptr);
+        instr = instr->ConvertToBailOutInstr(instrBailOut->GetBailOutInfo(), bailOutKind);
+        if (instrBailOut->GetBailOutInfo()->bailOutInstr == instrBailOut)
+        {
+            IR::Instr * instrShare = instrBailOut->ShareBailOut();
+            m_lowerer->LowerBailTarget(instrShare);
+        }
+    }
+
+    // dst = ToInt32Core(src);
+    LoadDoubleHelperArgument(instr, src);
+
     this->ChangeToHelperCall(instr, IR::HelperConv_ToInt32Core);
 
     // $Done
@@ -8555,7 +8559,7 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
 #if DBG
             NativeCodeData::GetDataDescription(pValue, instrInsert->m_func->m_alloc),
 #endif
-            instrInsert->m_func);
+            instrInsert->m_func, true);
     }
     else
     {
@@ -8675,6 +8679,9 @@ LowererMD::FinalLower()
 
             switch (instr->m_opcode)
             {
+            case Js::OpCode::Ret:
+                instr->Remove();
+                break;
             case Js::OpCode::Leave:
                 Assert(this->m_func->DoOptimizeTry() && !this->m_func->IsLoopBodyInTry());
                 instrPrev = this->LowerLeave(instr, instr->AsBranchInstr()->GetTarget(), true /*fromFinalLower*/);

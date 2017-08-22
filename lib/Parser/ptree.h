@@ -170,7 +170,7 @@ enum PnodeBlockType : unsigned
     Parameter
 };
 
-enum FncFlags
+enum FncFlags : uint
 {
     kFunctionNone                               = 0,
     kFunctionNested                             = 1 << 0, // True if function is nested in another.
@@ -182,9 +182,9 @@ enum FncFlags
     kFunctionIsAccessor                         = 1 << 6, // function is a property getter or setter
     kFunctionHasNonThisStmt                     = 1 << 7,
     kFunctionStrictMode                         = 1 << 8,
-    kFunctionDoesNotEscape                      = 1 << 9, // function is known not to escape its declaring scope
+    kFunctionHasDestructuredParams              = 1 << 9,
     kFunctionIsModule                           = 1 << 10, // function is a module body
-    kFunctionHasThisStmt                        = 1 << 11, // function has at least one this.assignment and might be a constructor
+    // Free = 1 << 11,
     kFunctionHasWithStmt                        = 1 << 12, // function (or child) uses with
     kFunctionIsLambda                           = 1 << 13,
     kFunctionChildCallsEval                     = 1 << 14,
@@ -200,11 +200,11 @@ enum FncFlags
     kFunctionIsStaticMember                     = 1 << 24,
     kFunctionIsGenerator                        = 1 << 25, // Function is an ES6 generator function
     kFunctionAsmjsMode                          = 1 << 26,
-    kFunctionHasNewTargetReference              = 1 << 27, // function has a reference to new.target
+    // Free = 1 << 27,
     kFunctionIsAsync                            = 1 << 28, // function is async
     kFunctionHasDirectSuper                     = 1 << 29, // super()
     kFunctionIsDefaultModuleExport              = 1 << 30, // function is the default export of a module
-    kFunctionHasAnyWriteToFormals               = 1 << 31  // To Track if there are any writes to formals.
+    kFunctionHasAnyWriteToFormals               = (uint)1 << 31  // To Track if there are any writes to formals.
 };
 
 struct RestorePoint;
@@ -235,7 +235,7 @@ struct PnFnc
 
     uint16 firstDefaultArg; // Position of the first default argument, if any
 
-    unsigned int fncFlags;
+    FncFlags fncFlags;
     int32 astSize;
     size_t cbMin; // Min an Lim UTF8 offsets.
     size_t cbLim;
@@ -250,22 +250,21 @@ struct PnFnc
     bool canBeDeferred;
     bool isBodyAndParamScopeMerged; // Indicates whether the param scope and the body scope of the function can be merged together or not.
                                     // We cannot merge both scopes together if there is any closure capture or eval is present in the param scope.
-    bool fibPreventsDeferral;
 
     static const int32 MaxStackClosureAST = 800000;
 
-    static bool CanBeRedeferred(unsigned int flags) { return !(flags & (kFunctionIsGenerator | kFunctionIsAsync)); }
+    static bool CanBeRedeferred(FncFlags flags) { return !(flags & (kFunctionIsGenerator | kFunctionIsAsync)); }
 
 private:
     void SetFlags(uint flags, bool set)
     {
         if (set)
         {
-            fncFlags |= flags;
+            fncFlags = (FncFlags)(fncFlags | flags);
         }
         else
         {
-            fncFlags &= ~flags;
+            fncFlags = (FncFlags)(fncFlags & ~flags);
         }
     }
 
@@ -289,14 +288,15 @@ public:
     {
         fncFlags = kFunctionNone;
         canBeDeferred = false;
+        isBodyAndParamScopeMerged = true;
     }
 
     void SetAsmjsMode(bool set = true) { SetFlags(kFunctionAsmjsMode, set); }
     void SetCallsEval(bool set = true) { SetFlags(kFunctionCallsEval, set); }
     void SetChildCallsEval(bool set = true) { SetFlags(kFunctionChildCallsEval, set); }
     void SetDeclaration(bool set = true) { SetFlags(kFunctionDeclaration, set); }
-    void SetDoesNotEscape(bool set = true) { SetFlags(kFunctionDoesNotEscape, set); }
     void SetHasDefaultArguments(bool set = true) { SetFlags(kFunctionHasDefaultArguments, set); }
+    void SetHasDestructuredParams(bool set = true) { SetFlags(kFunctionHasDestructuredParams, set); }
     void SetHasHeapArguments(bool set = true) { SetFlags(kFunctionHasHeapArguments, set); }
     void SetHasAnyWriteToFormals(bool set = true) { SetFlags((uint)kFunctionHasAnyWriteToFormals, set); }
     void SetHasNonSimpleParameterList(bool set = true) { SetFlags(kFunctionHasNonSimpleParameterList, set); }
@@ -304,8 +304,6 @@ public:
     void SetHasReferenceableBuiltInArguments(bool set = true) { SetFlags(kFunctionHasReferenceableBuiltInArguments, set); }
     void SetHasSuperReference(bool set = true) { SetFlags(kFunctionHasSuperReference, set); }
     void SetHasDirectSuper(bool set = true) { SetFlags(kFunctionHasDirectSuper, set); }
-    void SetHasNewTargetReference(bool set = true) { SetFlags(kFunctionHasNewTargetReference, set); }
-    void SetHasThisStmt(bool set = true) { SetFlags(kFunctionHasThisStmt, set); }
     void SetHasWithStmt(bool set = true) { SetFlags(kFunctionHasWithStmt, set); }
     void SetIsAccessor(bool set = true) { SetFlags(kFunctionIsAccessor, set); }
     void SetIsAsync(bool set = true) { SetFlags(kFunctionIsAsync, set); }
@@ -326,24 +324,21 @@ public:
     void SetNestedFuncEscapes(bool set = true) { nestedFuncEscapes = set; }
     void SetCanBeDeferred(bool set = true) { canBeDeferred = set; }
     void ResetBodyAndParamScopeMerged() { isBodyAndParamScopeMerged = false; }
-    void SetFIBPreventsDeferral(bool set = true) { fibPreventsDeferral = set; }
 
     bool CallsEval() const { return HasFlags(kFunctionCallsEval); }
     bool ChildCallsEval() const { return HasFlags(kFunctionChildCallsEval); }
-    bool DoesNotEscape() const { return HasFlags(kFunctionDoesNotEscape); }
     bool GetArgumentsObjectEscapes() const { return HasFlags(kFunctionHasHeapArguments); }
     bool GetAsmjsMode() const { return HasFlags(kFunctionAsmjsMode); }
     bool GetStrictMode() const { return HasFlags(kFunctionStrictMode); }
     bool HasDefaultArguments() const { return HasFlags(kFunctionHasDefaultArguments); }
+    bool HasDestructuredParams() const { return HasFlags(kFunctionHasDestructuredParams); }
     bool HasHeapArguments() const { return true; /* HasFlags(kFunctionHasHeapArguments); Disabling stack arguments. Always return HeapArguments as True */ }
     bool HasAnyWriteToFormals() const { return HasFlags((uint)kFunctionHasAnyWriteToFormals); }
     bool HasOnlyThisStmts() const { return !HasFlags(kFunctionHasNonThisStmt); }
     bool HasReferenceableBuiltInArguments() const { return HasFlags(kFunctionHasReferenceableBuiltInArguments); }
     bool HasSuperReference() const { return HasFlags(kFunctionHasSuperReference); }
     bool HasDirectSuper() const { return HasFlags(kFunctionHasDirectSuper); }
-    bool HasNewTargetReference() const { return HasFlags(kFunctionHasNewTargetReference); }
     bool HasNonSimpleParameterList() { return HasFlags(kFunctionHasNonSimpleParameterList); }
-    bool HasThisStmt() const { return HasFlags(kFunctionHasThisStmt); }
     bool HasWithStmt() const { return HasFlags(kFunctionHasWithStmt); }
     bool IsAccessor() const { return HasFlags(kFunctionIsAccessor); }
     bool IsAsync() const { return HasFlags(kFunctionIsAsync); }
@@ -366,7 +361,18 @@ public:
     bool NestedFuncEscapes() const { return nestedFuncEscapes; }
     bool CanBeDeferred() const { return canBeDeferred; }
     bool IsBodyAndParamScopeMerged() { return isBodyAndParamScopeMerged; }
-    bool FIBPreventsDeferral() const { return fibPreventsDeferral; }
+    // Only allow the normal functions to be asm.js
+    bool IsAsmJsAllowed() const { return (fncFlags & ~(
+        kFunctionAsmjsMode |
+        kFunctionNested |
+        kFunctionDeclaration |
+        kFunctionStrictMode |
+        kFunctionNameIsHidden |
+        kFunctionHasReferenceableBuiltInArguments |
+        kFunctionHasNonThisStmt |
+        // todo:: we shouldn't accept kFunctionHasAnyWriteToFormals on the asm module, but it looks like a bug is setting that flag incorrectly
+        kFunctionHasAnyWriteToFormals
+    )) == 0; }
 
     size_t LengthInBytes()
     {

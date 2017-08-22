@@ -1,1 +1,62 @@
-[]
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "mem": "WebAssembly.Memory {...}",
+      "table": "WebAssembly.Table {...}",
+      "lastModule": "WebAssembly.Module {...}",
+      "lastInstance": "WebAssembly.Instance {...}"
+    }
+  },
+  {
+    "evaluate": {
+      "String(lastInstance)": "string [object WebAssembly.Instance]"
+    }
+  },
+  {
+    "evaluate": {
+      "String(lastModule)": "string [object WebAssembly.Module]"
+    }
+  },
+  {
+    "evaluate": {
+      "String(mem)": "string [object WebAssembly.Memory]"
+    }
+  },
+  {
+    "evaluate": {
+      "String(table)": "string [object WebAssembly.Table]"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "mem": "WebAssembly.Memory {...}",
+      "table": "WebAssembly.Table {...}",
+      "lastModule": "WebAssembly.Module {...}",
+      "lastInstance": "WebAssembly.Instance {...}"
+    }
+  },
+  {
+    "evaluate": {
+      "String(lastInstance)": "string [object WebAssembly.Instance]"
+    }
+  },
+  {
+    "evaluate": {
+      "String(lastModule)": "string [object WebAssembly.Module]"
+    }
+  },
+  {
+    "evaluate": {
+      "String(mem)": "string [object WebAssembly.Memory]"
+    }
+  },
+  {
+    "evaluate": {
+      "String(table)": "string [object WebAssembly.Table]"
+    }
+  }
+]

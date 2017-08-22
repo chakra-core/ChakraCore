@@ -56,7 +56,7 @@ namespace Js
         DebugOnly(VerifyEntryPoint());
     }
 
-    void __cdecl JavascriptExternalFunction::DeferredInitializer(DynamicObject* instance, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode)
+    bool __cdecl JavascriptExternalFunction::DeferredInitializer(DynamicObject* instance, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode)
     {
         JavascriptExternalFunction* object = static_cast<JavascriptExternalFunction*>(instance);
         HRESULT hr = E_FAIL;
@@ -68,7 +68,7 @@ namespace Js
         {
             scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_External);
             //we will return if we get call further into implicitcalls.
-            return;
+            return false;
         }
 
         if (scriptContext->IsClosed() || scriptContext->IsInvalidatedForHostObjects())
@@ -101,6 +101,7 @@ namespace Js
             object->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
         }
 
+        return true;
     }
 
     void JavascriptExternalFunction::PrepareExternalCall(Js::Arguments * args)

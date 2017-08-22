@@ -169,6 +169,9 @@ namespace TTD
             CodeParseActionTag,
             CallExistingFunctionActionTag,
 
+            HasOwnPropertyActionTag,
+            GetDataViewInfoActionTag,
+
             Count
         };
 

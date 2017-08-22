@@ -6,7 +6,7 @@
 ;; Reference: https://github.com/WebAssembly/spec/blob/master/interpreter/test/custom_section.wast
 ;; See ..\..\WasmSpec\testsuite\LICENSE for license details
 (module
-  "\00asm" "\0d\00\00\00"
+  "\00asm" "\01\00\00\00"
   "\00\24\10" "a custom section" "this is the payload"
   "\00\20\10" "a custom section" "this is payload"
   "\00\11\10" "a custom section" ""
@@ -16,7 +16,7 @@
 )
 
 (module
-  "\00asm" "\0d\00\00\00"
+  "\00asm" "\01\00\00\00"
   "\00\0e\06" "custom" "payload"
   "\00\0e\06" "custom" "payload"
   "\01\01\00"  ;; type section
@@ -52,7 +52,7 @@
 )
 
 (module
-  "\00asm" "\0d\00\00\00"
+  "\00asm" "\01\00\00\00"
   "\01\07\01\60\02\7f\7f\01\7f"                ;; type section
   "\00\1a\06" "custom" "this is the payload"   ;; custom section
   "\03\02\01\00"                               ;; function section

@@ -27,7 +27,7 @@ private:
 
     static DictionaryType* dictionaryTypes;
 
-    static CRITICAL_SECTION dictionaryTypesCriticalSection;
+    static CriticalSection dictionaryTypesCriticalSection;
 
 public:
     void Resize(uint newSize, uint emptyBucketCount);

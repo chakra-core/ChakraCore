@@ -60,7 +60,7 @@ CONST BYTE WAKEUPCODE=0x2A;
 suspension mutex or spinlock. The downside is that it restricts us to only
 performing one suspension or resumption in the PAL at a time. */
 #ifdef USE_GLOBAL_LOCK_FOR_SUSPENSION
-static LONG g_ssSuspensionLock = 0;
+static CCSpinLock<false> g_ssSuspensionLock;
 #endif
 
 /*++
@@ -348,20 +348,18 @@ CThreadSuspensionInfo::TryAcquireSuspensionLock(
     CPalThread* pthrTarget
     )
 {
-    int iPthreadRet = 0;
 #if DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
 {
-    iPthreadRet = SPINLOCKTryAcquire(pthrTarget->suspensionInfo.GetSuspensionSpinlock());
+    return pthrTarget->suspensionInfo.GetSuspensionSpinlock()->TryEnter();
 }
 #else // DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
 {
-    iPthreadRet = pthread_mutex_trylock(pthrTarget->suspensionInfo.GetSuspensionMutex());
+    int iPthreadRet = pthread_mutex_trylock(pthrTarget->suspensionInfo.GetSuspensionMutex());
     _ASSERT_MSG(iPthreadRet == 0 || iPthreadRet == EBUSY, "pthread_mutex_trylock returned %d\n", iPthreadRet);
-}
-#endif // DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
-
     // If iPthreadRet is 0, lock acquisition was successful. Otherwise, it failed.
     return (iPthreadRet == 0);
+}
+#endif // DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
 }
 
 /*++
@@ -380,13 +378,13 @@ CThreadSuspensionInfo::AcquireSuspensionLock(
 {
 #ifdef USE_GLOBAL_LOCK_FOR_SUSPENSION
 {
-    SPINLOCKAcquire(&g_ssSuspensionLock, 0);
+    g_ssSuspensionLock.Enter();
 }
 #else // USE_GLOBAL_LOCK_FOR_SUSPENSION
 {
     #if DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
     {
-        SPINLOCKAcquire(&pthrCurrent->suspensionInfo.m_nSpinlock, 0);
+        pthrCurrent->suspensionInfo.m_nSpinlock.Enter();
     }
     #else // DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
     {
@@ -414,13 +412,13 @@ CThreadSuspensionInfo::ReleaseSuspensionLock(
 {
 #ifdef USE_GLOBAL_LOCK_FOR_SUSPENSION
 {
-    SPINLOCKRelease(&g_ssSuspensionLock);
+    g_ssSuspensionLock.Leave();
 }
 #else // USE_GLOBAL_LOCK_FOR_SUSPENSION
 {
     #if DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
     {
-        SPINLOCKRelease(&pthrCurrent->suspensionInfo.m_nSpinlock);
+        pthrCurrent->suspensionInfo.m_nSpinlock.Leave();
     }
     #else // DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
     {
@@ -776,9 +774,7 @@ constructor.
 VOID
 CThreadSuspensionInfo::InitializeSuspensionLock()
 {
-#if DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
-    SPINLOCKInit(&m_nSpinlock);
-#else
+#if !DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
     int iError = pthread_mutex_init(&m_ptmSuspmutex, NULL);
     if (0 != iError )
     {

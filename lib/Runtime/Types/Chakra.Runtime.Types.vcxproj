@@ -29,6 +29,7 @@
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\JITClient;
         $(ChakraJITIDLIntDir);
+        $(IcuIncludeDir)\common;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>

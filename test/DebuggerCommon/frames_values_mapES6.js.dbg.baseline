@@ -21,7 +21,7 @@
             "#__proto__": "function <large string>",
             "length": "number 0",
             "prototype": "Object {...}",
-            "[Symbol.species]": "function <large string>",
+            "Symbol.species": "function <large string>",
             "name": "string Map",
             "caller": "object null",
             "arguments": "object null"
@@ -187,7 +187,7 @@
             "#__proto__": "function <large string>",
             "length": "number 0",
             "prototype": "Object {...}",
-            "[Symbol.species]": "function <large string>",
+            "Symbol.species": "function <large string>",
             "name": "string Map",
             "caller": "object null",
             "arguments": "object null"
@@ -291,7 +291,7 @@
             "#__proto__": "function <large string>",
             "length": "number 0",
             "prototype": "Object {...}",
-            "[Symbol.species]": "function <large string>",
+            "Symbol.species": "function <large string>",
             "name": "string Map",
             "caller": "object null",
             "arguments": "object null"
@@ -457,7 +457,7 @@
             "#__proto__": "function <large string>",
             "length": "number 0",
             "prototype": "Object {...}",
-            "[Symbol.species]": "function <large string>",
+            "Symbol.species": "function <large string>",
             "name": "string Map",
             "caller": "object null",
             "arguments": "object null"

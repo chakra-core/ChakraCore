@@ -77,7 +77,7 @@ JITThunkEmitter<TAlloc>::CreateThunk(uintptr_t entryPoint)
 
     if (IsThunkPageEmpty(pageStartAddress))
     {
-        if (this->codeAllocator->Alloc((PVOID)pageStartAddress, AutoSystemInfo::PageSize, MEM_COMMIT, PAGE_EXECUTE, true) == nullptr)
+        if (this->codeAllocator->Alloc((PVOID)pageStartAddress, AutoSystemInfo::PageSize, MEM_COMMIT, PAGE_EXECUTE_READ, true) == nullptr)
         {
             this->codeAllocator->FreeLocal(localPageAddress);
             return NULL;
@@ -165,7 +165,7 @@ JITThunkEmitter<TAlloc>::EnsureInitialized()
         // check again because we did the first one outside of lock
         if (this->baseAddress == NULL)
         {
-            this->baseAddress = (uintptr_t)this->codeAllocator->Alloc(nullptr, TotalThunkSize, MEM_RESERVE, PAGE_EXECUTE, true);
+            this->baseAddress = (uintptr_t)this->codeAllocator->Alloc(nullptr, TotalThunkSize, MEM_RESERVE, PAGE_EXECUTE_READ, true);
         }
     }
     return this->baseAddress;
@@ -230,7 +230,7 @@ JITThunkEmitter<VirtualAllocWrapper>::ProtectPage(void * address)
     AutoEnableDynamicCodeGen enableCodeGen(true);
 #endif
     DWORD oldProtect;
-    BOOL result = VirtualProtectEx(this->processHandle, address, ThunkSize, PAGE_EXECUTE, &oldProtect);
+    BOOL result = VirtualProtectEx(this->processHandle, address, ThunkSize, PAGE_EXECUTE_READ, &oldProtect);
     AssertOrFailFast(result && oldProtect == PAGE_EXECUTE_READWRITE);
 }
 
@@ -243,7 +243,7 @@ JITThunkEmitter<VirtualAllocWrapper>::UnprotectPage(void * address)
 #endif
     DWORD oldProtect;
     BOOL result = VirtualProtectEx(this->processHandle, address, ThunkSize, PAGE_EXECUTE_READWRITE, &oldProtect);
-    AssertOrFailFast(result && oldProtect == PAGE_EXECUTE);
+    AssertOrFailFast(result && oldProtect == PAGE_EXECUTE_READ);
 }
 
 #if ENABLE_OOP_NATIVE_CODEGEN

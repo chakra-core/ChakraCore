@@ -21,11 +21,11 @@ namespace Js
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         else if (this->hostObject && JavascriptOperators::HasProperty(this->hostObject, propertyId))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return this->GetLibrary()->GetGlobalObject()->GlobalObject::HasPropertyQuery(propertyId);
     }
@@ -73,11 +73,11 @@ namespace Js
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
             }
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (this->hostObject && JavascriptOperators::GetProperty(this->hostObject, propertyId, value, requestContext))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         //
@@ -86,7 +86,7 @@ namespace Js
         //
 
         GlobalObject* globalObj = this->GetLibrary()->GetGlobalObject();
-        return JavascriptConversion::BooleanToPropertyQueryFlags(globalObj->GlobalObject::GetPropertyQuery(originalInstance, propertyId, value, NULL, requestContext));
+        return globalObj->GlobalObject::GetPropertyQuery(originalInstance, propertyId, value, NULL, requestContext);
     }
 
     BOOL ModuleRoot::GetRootProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -157,11 +157,11 @@ namespace Js
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
             }
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (this->hostObject && JavascriptOperators::GetPropertyReference(this->hostObject, propertyId, value, requestContext))
         {
-            return Property_NotFound;
+            return PropertyQueryFlags::Property_NotFound;
         }
 
         //
@@ -421,14 +421,14 @@ namespace Js
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemReferenceQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (this->hostObject && JavascriptConversion::PropertyQueryFlagsToBoolean(this->hostObject->GetItemReferenceQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         *value = requestContext->GetMissingItemResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL ModuleRoot::SetItem(uint32 index, Var value, PropertyOperationFlags flags)
@@ -449,14 +449,14 @@ namespace Js
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (this->hostObject && this->hostObject->GetItem(originalInstance, index, value, requestContext))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         *value = requestContext->GetMissingItemResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL ModuleRoot::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)

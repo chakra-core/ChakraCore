@@ -27,7 +27,7 @@ IRBuilderAsmJs::Build()
     m_switchBuilder.Init(m_func, m_tempAlloc, true);
 
     m_firstVarConst = 0;
-    Js::RegSlot tempCount = 0;
+    m_tempCount = 0;
     m_firstsType[0] = m_firstVarConst + AsmJsRegSlots::RegCount;
     for (int i = 0, j = 1; i < WAsmJs::LIMIT; ++i, ++j)
     {
@@ -36,7 +36,7 @@ IRBuilderAsmJs::Build()
         m_firstsType[j] = typedInfo.constCount;
         m_firstsType[j + WAsmJs::LIMIT] = typedInfo.varCount;
         m_firstsType[j + 2 * WAsmJs::LIMIT] = typedInfo.tmpCount;
-        tempCount += typedInfo.tmpCount;
+        m_tempCount += typedInfo.tmpCount;
     }
     // Fixup the firsts by looking at the previous value
     for (int i = 1; i < m_firstsTypeCount; ++i)
@@ -66,10 +66,10 @@ IRBuilderAsmJs::Build()
     // we will be using lower space for type specialized syms, so bump up where new temp syms can be created
     m_func->m_symTable->IncreaseStartingID(m_firstIRTemp - m_func->m_symTable->GetMaxSymID());
 
-    if (tempCount > 0)
+    if (m_tempCount > 0)
     {
-        m_tempMap = (SymID*)m_tempAlloc->AllocZero(sizeof(SymID) * tempCount);
-        m_fbvTempUsed = BVFixed::New<JitArenaAllocator>(tempCount, m_tempAlloc);
+        m_tempMap = AnewArrayZ(m_tempAlloc, SymID, m_tempCount);
+        m_fbvTempUsed = BVFixed::New<JitArenaAllocator>(m_tempCount, m_tempAlloc);
     }
     else
     {
@@ -359,9 +359,10 @@ IRBuilderAsmJs::BuildIntConstOpnd(Js::RegSlot regSlot)
     Js::Var * constTable = (Js::Var*)m_func->GetJITFunctionBody()->GetConstTable();
     const WAsmJs::TypedSlotInfo& info = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetTypedSlotInfo(WAsmJs::INT32);
     Assert(info.constSrcByteOffset != Js::Constants::InvalidOffset);
+    AssertOrFailFast(info.constSrcByteOffset < UInt32Math::Mul<sizeof(Js::Var)>(m_func->GetJITFunctionBody()->GetConstCount()));
     int* intConstTable = reinterpret_cast<int*>(((byte*)constTable) + info.constSrcByteOffset);
     Js::RegSlot srcReg = GetTypedRegFromRegSlot(regSlot, WAsmJs::INT32);
-    Assert(srcReg >= Js::FunctionBody::FirstRegSlot && srcReg < info.constCount);
+    AssertOrFailFast(srcReg >= Js::FunctionBody::FirstRegSlot && srcReg < info.constCount);
     const int32 value = intConstTable[srcReg];
     IR::IntConstOpnd *opnd = IR::IntConstOpnd::New(value, TyInt32, m_func);
 
@@ -536,7 +537,9 @@ IRBuilderAsmJs::GetMappedTemp(Js::RegSlot reg)
     AssertMsg(RegIsTemp(reg), "Processing non-temp reg as a temp?");
     AssertMsg(m_tempMap, "Processing non-temp reg without a temp map?");
 
-    return m_tempMap[reg - GetFirstTmp(WAsmJs::FirstType)];
+    Js::RegSlot tempIndex = reg - GetFirstTmp(WAsmJs::FirstType);
+    AssertOrFailFast(tempIndex < m_tempCount);
+    return m_tempMap[tempIndex];
 }
 
 void
@@ -545,7 +548,9 @@ IRBuilderAsmJs::SetMappedTemp(Js::RegSlot reg, SymID tempId)
     AssertMsg(RegIsTemp(reg), "Processing non-temp reg as a temp?");
     AssertMsg(m_tempMap, "Processing non-temp reg without a temp map?");
 
-    m_tempMap[reg - GetFirstTmp(WAsmJs::FirstType)] = tempId;
+    Js::RegSlot tempIndex = reg - GetFirstTmp(WAsmJs::FirstType);
+    AssertOrFailFast(tempIndex < m_tempCount);
+    m_tempMap[tempIndex] = tempId;
 }
 
 BOOL
@@ -554,7 +559,9 @@ IRBuilderAsmJs::GetTempUsed(Js::RegSlot reg)
     AssertMsg(RegIsTemp(reg), "Processing non-temp reg as a temp?");
     AssertMsg(m_fbvTempUsed, "Processing non-temp reg without a used BV?");
 
-    return m_fbvTempUsed->Test(reg - GetFirstTmp(WAsmJs::FirstType));
+    Js::RegSlot tempIndex = reg - GetFirstTmp(WAsmJs::FirstType);
+    AssertOrFailFast(tempIndex < m_tempCount);
+    return m_fbvTempUsed->Test(tempIndex);
 }
 
 void
@@ -563,13 +570,15 @@ IRBuilderAsmJs::SetTempUsed(Js::RegSlot reg, BOOL used)
     AssertMsg(RegIsTemp(reg), "Processing non-temp reg as a temp?");
     AssertMsg(m_fbvTempUsed, "Processing non-temp reg without a used BV?");
 
+    Js::RegSlot tempIndex = reg - GetFirstTmp(WAsmJs::FirstType);
+    AssertOrFailFast(tempIndex < m_tempCount);
     if (used)
     {
-        m_fbvTempUsed->Set(reg - GetFirstTmp(WAsmJs::FirstType));
+        m_fbvTempUsed->Set(tempIndex);
     }
     else
     {
-        m_fbvTempUsed->Clear(reg - GetFirstTmp(WAsmJs::FirstType));
+        m_fbvTempUsed->Clear(tempIndex);
     }
 }
 
@@ -697,6 +706,8 @@ void IRBuilderAsmJs::CreateLoadConstInstrForType(
 )
 {
     T* typedTable = (T*)(table + byteOffset);
+    AssertOrFailFast(byteOffset < UInt32Math::Mul<sizeof(Js::Var)>(m_func->GetJITFunctionBody()->GetConstCount()));
+    AssertOrFailFast(AllocSizeMath::Add((size_t)typedTable, UInt32Math::Mul<sizeof(T)>(constCount)) <= (size_t)((Js::Var*)m_func->GetJITFunctionBody()->GetConstTable() + m_func->GetJITFunctionBody()->GetConstCount()));
     // 1 for return register
     ++regAllocated;
     ++typedTable;
@@ -771,7 +782,7 @@ IRBuilderAsmJs::BuildConstantLoads()
             );
             break;
         case WAsmJs::FLOAT32:
-            CreateLoadConstInstrForType<float, IR::FloatConstOpnd>(
+            CreateLoadConstInstrForType<float, IR::Float32ConstOpnd>(
                 table,
                 regAllocated,
                 info.constCount,
@@ -933,7 +944,7 @@ IRBuilderAsmJs::InsertLabels()
 
     while (iter.Next())
     {
-        IR::LabelInstr * labelInstr;
+        IR::LabelInstr * labelInstr = nullptr;
         BranchReloc * reloc = iter.Data();
         IR::BranchInstr * branchInstr = reloc->GetBranchInstr();
         uint offset = reloc->GetOffset();
@@ -1017,7 +1028,7 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::Unreachable_Void:
-        instr = IR::Instr::New(Js::OpCode::Unreachable_Void, m_func);
+        instr = IR::Instr::New(Js::OpCode::ThrowRuntimeError, m_func);
         instr->SetSrc1(IR::IntConstOpnd::New(SCODE_CODE(WASMERR_Unreachable), TyInt32, instr->m_func));
         AddInstr(instr, offset);
         break;
@@ -1452,6 +1463,37 @@ IRBuilderAsmJs::BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset, uin
         instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
     }
     AddInstr(instr, offset);
+
+#if DBG
+    if (newOpcode == Js::OpCodeAsmJs::StArrWasm && PHASE_TRACE(Js::WasmMemWritesPhase, m_func))
+    {
+        IR::Opnd* prevArg = nullptr;
+        auto PushArg = [&](ValueType valueType, IR::Opnd* srcOpnd) {
+            IR::RegOpnd* dstOpnd = IR::RegOpnd::New(srcOpnd->GetType(), m_func);
+            dstOpnd->SetValueType(valueType);
+            IR::Instr* instr = IR::Instr::New(Js::OpCode::ArgOut_A, dstOpnd, srcOpnd, m_func);
+            if (prevArg)
+            {
+                instr->SetSrc2(prevArg);
+            }
+            prevArg = dstOpnd;
+            AddInstr(instr, offset);
+        };
+
+        // static void TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint32 offset, Js::ArrayBufferView::ViewType viewType, uint bytecodeOffset, ScriptContext* context);
+        // ScriptContext is added automatically by CallHelper lower
+        PushArg(ValueType::GetInt(false), IR::IntConstOpnd::New(offset, TyUint32, m_func, true));
+        PushArg(ValueType::GetInt(false), IR::IntConstOpnd::New(viewType, TyUint8, m_func, true));
+        PushArg(ValueType::GetInt(false), IR::IntConstOpnd::New(constOffset, TyUint32, m_func));
+        PushArg(ValueType::GetInt(false), indexOpnd);
+        PushArg(ValueType::GetObject(ObjectType::Object), BuildSrcOpnd(AsmJsRegSlots::WasmMemoryReg, TyVar));
+
+        IR::Instr* callInstr = IR::Instr::New(Js::OpCode::CallHelper, m_func);
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperOp_WasmMemoryTraceWrite, m_func));
+        callInstr->SetSrc2(prevArg);
+        AddInstr(callInstr, offset);
+    }
+#endif
 }
 
 template <typename SizePolicy>
@@ -1686,11 +1728,13 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
         prevInstr->SetSrc2(argInstr->GetDst());
         prevInstr = argInstr;
 
+#ifdef ENABLE_SIMDJS
 #if defined(_M_X64)
         if (m_func->IsSIMDEnabled())
         {
             m_tempList->Push(argInstr);
         }
+#endif
 #endif
 
 #if DBG
@@ -1701,6 +1745,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
     AnalysisAssert(argInstr);
     prevInstr->SetSrc2(argInstr->GetDst());
 
+#ifdef ENABLE_SIMDJS
 #if defined(_M_X64)
     // Without SIMD vars, all args are Var in size. So offset in Var = arg position in args list.
     // With SIMD, args have variable size, so we need to track argument position in the args list to be able to assign arg register for first four args on x64.
@@ -1725,7 +1770,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
         }
     }
 #endif
-
+#endif
     if (m_func->m_argSlotsForFunctionsCalled < argCount)
     {
         m_func->m_argSlotsForFunctionsCalled = argCount;
@@ -1953,6 +1998,7 @@ IRBuilderAsmJs::BuildInt1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
         tmpDst->SetValueType(ValueType::Float);
         AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, srcOpnd, m_func), offset);
         dstOpnd = BuildDstOpnd(dstRegSlot, newOpcode == Js::OpCodeAsmJs::Conv_Check_DTI ? TyInt32 : TyUint32);
+        dstOpnd->m_dontDeadStore = true;
         srcOpnd = tmpDst;
         break;
     }
@@ -1993,6 +2039,7 @@ IRBuilderAsmJs::BuildInt1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Re
         tmpDst->SetValueType(ValueType::Float);
         AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, srcOpnd, m_func), offset);
         dstOpnd = BuildDstOpnd(dstRegSlot, newOpcode == Js::OpCodeAsmJs::Conv_Check_FTI ? TyInt32 : TyUint32);
+        dstOpnd->m_dontDeadStore = true;
         srcOpnd = tmpDst;
         op = Js::OpCode::Conv_Prim;
         break;
@@ -2166,7 +2213,7 @@ IRBuilderAsmJs::BuildFloat1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::
     IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyFloat32);
     dstOpnd->SetValueType(ValueType::Float);
 
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::LdC_F8_R8, dstOpnd, IR::FloatConstOpnd::New(constVal, TyFloat32, m_func), m_func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::LdC_F8_R8, dstOpnd, IR::Float32ConstOpnd::New(constVal, TyFloat32, m_func), m_func);
 
     AddInstr(instr, offset);
 }
@@ -2406,10 +2453,20 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         src2Opnd->SetType(TyUint32);
         // Fall through for trap
     case Js::OpCodeAsmJs::Div_Trap_Int:
-        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
-        if (newOpcode == Js::OpCodeAsmJs::Div_Trap_Int)
+#ifdef _WIN32
+        if (CONFIG_FLAG(WasmMathExFilter))
         {
-            src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+            // Do not emit traps, but make sure we don't remove the div
+            dstOpnd->m_dontDeadStore = true;
+        }
+        else
+#endif
+        {
+            src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+            if (newOpcode == Js::OpCodeAsmJs::Div_Trap_Int)
+            {
+                src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+            }
         }
         instr = IR::Instr::New(newOpcode == Js::OpCodeAsmJs::Div_Trap_UInt ? Js::OpCode::DivU_I4 : Js::OpCode::Div_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
@@ -2426,7 +2483,17 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         src2Opnd->SetType(TyUint32);
         // Fall through for trap
     case Js::OpCodeAsmJs::Rem_Trap_Int:
-        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+#ifdef _WIN32
+        if (CONFIG_FLAG(WasmMathExFilter))
+        {
+            // Do not emit traps, but make sure we don't remove the rem
+            dstOpnd->m_dontDeadStore = true;
+        }
+        else
+#endif
+        {
+            src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+        }
         instr = IR::Instr::New(newOpcode == Js::OpCodeAsmJs::Rem_Trap_UInt ? Js::OpCode::RemU_I4 : Js::OpCode::Rem_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
     case Js::OpCodeAsmJs::Rem_UInt:
@@ -3017,8 +3084,21 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
         // Fall Through for trap
     case Js::OpCodeAsmJs::Div_Trap_Long:
     {
-        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
-        src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+#ifdef _WIN32
+        if (CONFIG_FLAG(WasmMathExFilter))
+        {
+            // Do not emit traps, but make sure we don't remove the div
+            dstOpnd->m_dontDeadStore = true;
+        }
+        else
+#endif
+        {
+            src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+            if (newOpcode == Js::OpCodeAsmJs::Div_Trap_Long)
+            {
+                src1Opnd = BuildTrapIfMinIntOverNegOne(src1Opnd, src2Opnd, offset);
+            }
+        }
         Js::OpCode op = newOpcode == Js::OpCodeAsmJs::Div_Trap_ULong ? Js::OpCode::DivU_I4 : Js::OpCode::Div_I4;
         instr = IR::Instr::New(op, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
@@ -3029,7 +3109,17 @@ IRBuilderAsmJs::BuildLong3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
         // Fall Through for trap
     case Js::OpCodeAsmJs::Rem_Trap_Long:
     {
-        src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+#ifdef _WIN32
+        if (CONFIG_FLAG(WasmMathExFilter))
+        {
+            // Do not emit traps, but make sure we don't remove the rem
+            dstOpnd->m_dontDeadStore = true;
+        }
+        else
+#endif
+        {
+            src2Opnd = BuildTrapIfZero(src2Opnd, offset);
+        }
         Js::OpCode op = newOpcode == Js::OpCodeAsmJs::Rem_Trap_ULong ? Js::OpCode::RemU_I4 : Js::OpCode::Rem_I4;
         instr = IR::Instr::New(op, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
@@ -3185,6 +3275,7 @@ IRBuilderAsmJs::BuildLong1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
     IR::RegOpnd* tmpDst = IR::RegOpnd::New(src1Opnd->GetType(), m_func);
     tmpDst->SetValueType(ValueType::Float);
     AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, src1Opnd, m_func), offset);
+    dstOpnd->m_dontDeadStore = true;
     IR::Instr * instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, tmpDst, m_func);
     AddInstr(instr, offset);
 }
@@ -3246,6 +3337,7 @@ IRBuilderAsmJs::BuildLong1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::
         IR::RegOpnd* tmpDst = IR::RegOpnd::New(srcOpnd->GetType(), m_func);
         tmpDst->SetValueType(ValueType::Float);
         AddInstr(IR::Instr::New(Js::OpCode::TrapIfTruncOverflow, tmpDst, srcOpnd, m_func), offset);
+        dstOpnd->m_dontDeadStore = true;
         srcOpnd = tmpDst;
     }
     IR::Instr * instr = IR::Instr::New(op, dstOpnd, srcOpnd, m_func);

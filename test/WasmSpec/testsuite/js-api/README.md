@@ -15,5 +15,5 @@ library.
   a try/catch and maybe asserts in case of failure.
 - A function `promise_test(function, description)` where `function` returns a
   `Promise` run by `promise_test`; a rejection means a failure here.
-- Assertion functions: `assert_equals(x, y)`, `assert_true(x)`,
-  `assert_false(x)`, `assert_unreached()`.
+- Assertion functions: `assert_equals(x, y)`, `assert_not_equals(x, y)`,
+  `assert_true(x)`, `assert_false(x)`, `assert_unreached()`.

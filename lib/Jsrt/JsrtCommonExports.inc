@@ -119,4 +119,7 @@
     JsCreateWeakReference
     JsGetWeakReferenceValue
     JsGetAndClearExceptionWithMetadata
+    JsHasOwnProperty
+    JsCopyStringOneByte
+    JsGetDataViewInfo
 #endif

@@ -84,6 +84,19 @@ var wordUsage = {
     propertyNameInElementNotation: 7
 };
 
+function leftPadZero(str, len)
+{
+    var pad = len - str.length;
+    for (var i = 0; i < pad; i++) {
+        str = "0" + str;
+    }
+    return str;
+}
+function escapeFirstChar(word)
+{
+    return "\\u" + leftPadZero(word.charCodeAt(0).toString(16), 4) + word.substring(1);
+}
+
 function generateAndRunTest(word, usage) {
     var f = "(function(){";
     if(usage === wordUsage.varDeclaration)
@@ -119,6 +132,7 @@ for(var wordUsagePropertyName in wordUsage) {
         for(var wordSetPropertyName in wordSet) {
             var word = wordSet[wordSetPropertyName];
             generateAndRunTest(word, usage);
+            generateAndRunTest(escapeFirstChar(word), usage);
         }
     }
 }

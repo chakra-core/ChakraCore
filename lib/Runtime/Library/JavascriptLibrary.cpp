@@ -35,10 +35,9 @@ namespace Js
         SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::name), PropertyConfigurable)
     };
 
-    SimplePropertyDescriptor const JavascriptLibrary::ModuleNamespaceTypeDescriptors[2] =
+    SimplePropertyDescriptor const JavascriptLibrary::ModuleNamespaceTypeDescriptors[1] =
     {
-        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::_symbolToStringTag), PropertyConfigurable),
-        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::_symbolIterator), PropertyConfigurable)
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::_symbolToStringTag), PropertyConfigurable)
     };
 
     SimpleTypeHandler<1> JavascriptLibrary::SharedPrototypeTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::constructor), PropertyWritable | PropertyConfigurable, PropertyTypesWritableDataOnly, 4, sizeof(DynamicObject));
@@ -48,7 +47,7 @@ namespace Js
     SimpleTypeHandler<1> JavascriptLibrary::SharedIdMappedFunctionWithPrototypeTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype));
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length));
     SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithLengthAndNameTypeDescriptors));
-    SimpleTypeHandler<2> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors));
+    SimpleTypeHandler<1> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors));
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
 
 
@@ -662,7 +661,7 @@ namespace Js
             SimplePathTypeHandler::New(scriptContext, regexResultPath, regexResultPath->GetPathLength(), JavascriptRegularExpressionResult::InlineSlotCount, sizeof(JavascriptArray), true, true), true, true);
 
         // Initialize string types
-        stringTypeStatic = StaticType::New(scriptContext, TypeIds_String, stringPrototype, nullptr);
+        // static type is handled under StringCache.h
         stringTypeDynamic = DynamicType::New(scriptContext, TypeIds_StringObject, stringPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
         // Initialize Throw error object type
@@ -714,7 +713,7 @@ namespace Js
 #endif
     }
 
-    void JavascriptLibrary::InitializeGeneratorFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeGeneratorFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         bool isAnonymousFunction = JavascriptGeneratorFunction::FromVar(function)->IsAnonymousFunction();
 
@@ -729,9 +728,11 @@ namespace Js
             Assert(status);
             function->SetPropertyWithAttributes(PropertyIds::name,functionName, PropertyConfigurable, nullptr);
         }
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeAsyncFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeAsyncFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         // Async function instances do not have a prototype property as they are not constructable
         typeHandler->Convert(function, mode, 1);
@@ -743,6 +744,8 @@ namespace Js
             Assert(status);
             function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
         }
+
+        return true;
     }
 
     /* static */
@@ -754,7 +757,7 @@ namespace Js
     }
 
     template<bool addPrototype>
-    void JavascriptLibrary::InitializeFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
         ScriptFunction *scriptFunction = nullptr;
@@ -789,7 +792,7 @@ namespace Js
         {
             if(scriptFunction && (useAnonymous || scriptFunction->GetFunctionProxy()->EnsureDeserialized()->GetIsStaticNameFunction()))
             {
-                return;
+                return true;
             }
             JavascriptString * functionName = nullptr;
             if (((Js::JavascriptFunction*)function)->GetFunctionName(&functionName))
@@ -797,6 +800,8 @@ namespace Js
                 function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
             }
         }
+
+        return true;
     }
 
     DynamicType* JavascriptLibrary::GetErrorType(ErrorTypeEnum typeToFind) const
@@ -1086,7 +1091,9 @@ namespace Js
     {
         RecyclableObject* globalObjectPrototype = GetObjectPrototype();
         globalObject->SetPrototype(globalObjectPrototype);
-        Recycler * recycler = this->GetRecycler();
+        Recycler* recycler = this->GetRecycler();
+        StaticType* staticString = StaticType::New(scriptContext, TypeIds_String, stringPrototype, nullptr);
+        stringCache.Initialize(scriptContext, staticString);
 
         pi = JavascriptNumber::New(Math::PI, scriptContext);
         nan = JavascriptNumber::New(JavascriptNumber::NaN, scriptContext);
@@ -1104,67 +1111,13 @@ namespace Js
 
         emptyString = CreateEmptyString(); // Must be created before other calls to CreateString
         nullString = CreateEmptyString(); // Must be distinct from emptyString (for the DOM)
-        quotesString = CreateStringFromCppLiteral(_u("\"\""));
-        whackString = CreateStringFromCppLiteral(_u("/"));
-        commaDisplayString = CreateStringFromCppLiteral(_u(","));
-        commaSpaceDisplayString = CreateStringFromCppLiteral(_u(", "));
 
-        objectDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Object);
-        objectArgumentsDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Arguments);
-        objectArrayDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Array);
-        objectBooleanDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Boolean);
-        objectDateDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Date);
-        objectErrorDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Error);
-        objectFunctionDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Function);
-        objectNumberDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Number);
-        objectRegExpDisplayString = scriptContext->GetPropertyString(PropertyIds::object_RegExp);
-        objectStringDisplayString = scriptContext->GetPropertyString(PropertyIds::object_String);
-        functionPrefixString = CreateStringFromCppLiteral(_u("function "));
-        generatorFunctionPrefixString = CreateStringFromCppLiteral(_u("function* "));
-        asyncFunctionPrefixString = CreateStringFromCppLiteral(_u("async function "));
-        functionDisplayString = CreateStringFromCppLiteral(JS_DISPLAY_STRING_FUNCTION_ANONYMOUS);
-        xDomainFunctionDisplayString = CreateStringFromCppLiteral(_u("function anonymous() {\n    [x-domain code]\n}"));
-        invalidDateString = CreateStringFromCppLiteral(_u("Invalid Date"));
-        undefinedDisplayString = scriptContext->GetPropertyString(PropertyIds::undefined);
-        nanDisplayString = scriptContext->GetPropertyString(PropertyIds::NaN);
-        nullDisplayString = scriptContext->GetPropertyString(PropertyIds::null);
-        unknownDisplayString = scriptContext->GetPropertyString(PropertyIds::unknown);
-        trueDisplayString = scriptContext->GetPropertyString(PropertyIds::true_);
-        falseDisplayString = scriptContext->GetPropertyString(PropertyIds::false_);
-        stringTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::string);
-        objectTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::object);
-        functionTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::function);
-        booleanTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::boolean_);
-        numberTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::number);
-        moduleTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::Module);
-        variantDateTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::date);
-        symbolTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::symbol);
         promiseResolveFunction = nullptr;
         promiseThenFunction = nullptr;
         generatorNextFunction = nullptr;
         generatorThrowFunction = nullptr;
         jsonStringifyFunction = nullptr;
         objectFreezeFunction = nullptr;
-
-#ifdef ENABLE_SIMDJS
-        if (GetScriptContext()->GetConfig()->IsSimdjsEnabled())
-        {
-            simdFloat32x4DisplayString = CreateStringFromCppLiteral(_u("float32x4"));
-            //simdFloat64x2DisplayString = CreateStringFromCppLiteral(_u("float64x2"));
-            simdInt32x4DisplayString = CreateStringFromCppLiteral(_u("int32x4"));
-            simdInt16x8DisplayString = CreateStringFromCppLiteral(_u("int16x8"));
-            simdInt8x16DisplayString = CreateStringFromCppLiteral(_u("int8x16"));
-
-            simdBool32x4DisplayString = CreateStringFromCppLiteral(_u("bool32x4"));
-            simdBool16x8DisplayString = CreateStringFromCppLiteral(_u("bool16x8"));
-            simdBool8x16DisplayString = CreateStringFromCppLiteral(_u("bool8x16"));
-
-            simdUint32x4DisplayString = CreateStringFromCppLiteral(_u("uint32x4"));
-            simdUint16x8DisplayString = CreateStringFromCppLiteral(_u("uint16x8"));
-            simdUint8x16DisplayString = CreateStringFromCppLiteral(_u("uint8x16"));
-        }
-#endif
-
 
         symbolHasInstance = CreateSymbol(BuiltInPropertyRecords::_symbolHasInstance);
         symbolIsConcatSpreadable = CreateSymbol(BuiltInPropertyRecords::_symbolIsConcatSpreadable);
@@ -1624,7 +1577,7 @@ namespace Js
         debugObjectDebugModeGetterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
     }
 
-    void JavascriptLibrary::InitializeArrayConstructor(DynamicObject* arrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeArrayConstructor(DynamicObject* arrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(arrayConstructor, mode, 6);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterArray
@@ -1635,10 +1588,7 @@ namespace Js
 
         library->AddMember(arrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
         library->AddMember(arrayConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->arrayPrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            library->AddAccessorsToLibraryObject(arrayConstructor, PropertyIds::_symbolSpecies, &JavascriptArray::EntryInfo::GetterSymbolSpecies, nullptr);
-        }
+        library->AddSpeciesAccessorsToLibraryObject(arrayConstructor, &JavascriptArray::EntryInfo::GetterSymbolSpecies);
 
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -1652,6 +1602,8 @@ namespace Js
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
         arrayConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
     JavascriptFunction* JavascriptLibrary::EnsureArrayPrototypeForEachFunction()
@@ -1694,7 +1646,7 @@ namespace Js
         return arrayPrototypeEntriesFunction;
     }
 
-    void JavascriptLibrary::InitializeArrayPrototype(DynamicObject* arrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeArrayPrototype(DynamicObject* arrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(arrayPrototype, mode, 24);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterArray
@@ -1788,9 +1740,11 @@ namespace Js
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
         arrayPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void  JavascriptLibrary::InitializeSharedArrayBufferConstructor(DynamicObject* sharedArrayBufferConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSharedArrayBufferConstructor(DynamicObject* sharedArrayBufferConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(sharedArrayBufferConstructor, mode, 4);
 
@@ -1798,8 +1752,7 @@ namespace Js
         JavascriptLibrary* library = sharedArrayBufferConstructor->GetLibrary();
         library->AddMember(sharedArrayBufferConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
         library->AddMember(sharedArrayBufferConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->sharedArrayBufferPrototype, PropertyNone);
-
-        library->AddAccessorsToLibraryObject(sharedArrayBufferConstructor, PropertyIds::_symbolSpecies, &SharedArrayBuffer::EntryInfo::GetterSymbolSpecies, nullptr);
+        library->AddSpeciesAccessorsToLibraryObject(sharedArrayBufferConstructor, &SharedArrayBuffer::EntryInfo::GetterSymbolSpecies);
 
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -1807,9 +1760,11 @@ namespace Js
         }
 
         sharedArrayBufferConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void  JavascriptLibrary::InitializeSharedArrayBufferPrototype(DynamicObject* sharedArrayBufferPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSharedArrayBufferPrototype(DynamicObject* sharedArrayBufferPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(sharedArrayBufferPrototype, mode, 4);
 
@@ -1825,9 +1780,11 @@ namespace Js
         }
 
         sharedArrayBufferPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void  JavascriptLibrary::InitializeAtomicsObject(DynamicObject* atomicsObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeAtomicsObject(DynamicObject* atomicsObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(atomicsObject, mode, 12);
 
@@ -1850,11 +1807,13 @@ namespace Js
         {
             library->AddMember(atomicsObject, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Atomics")), PropertyConfigurable);
         }
-        
+
         atomicsObject->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void  JavascriptLibrary::InitializeArrayBufferConstructor(DynamicObject* arrayBufferConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeArrayBufferConstructor(DynamicObject* arrayBufferConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(arrayBufferConstructor, mode, 4);
 
@@ -1862,11 +1821,7 @@ namespace Js
         JavascriptLibrary* library = arrayBufferConstructor->GetLibrary();
         library->AddMember(arrayBufferConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
         library->AddMember(arrayBufferConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->arrayBufferPrototype, PropertyNone);
-
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            library->AddAccessorsToLibraryObject(arrayBufferConstructor, PropertyIds::_symbolSpecies, &ArrayBuffer::EntryInfo::GetterSymbolSpecies, nullptr);
-        }
+        library->AddSpeciesAccessorsToLibraryObject(arrayBufferConstructor, &ArrayBuffer::EntryInfo::GetterSymbolSpecies);       
 
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -1880,9 +1835,11 @@ namespace Js
         }
 
         arrayBufferConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void  JavascriptLibrary::InitializeArrayBufferPrototype(DynamicObject* arrayBufferPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeArrayBufferPrototype(DynamicObject* arrayBufferPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(arrayBufferPrototype, mode, 2);
 
@@ -1899,9 +1856,11 @@ namespace Js
         }
 
         arrayBufferPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void  JavascriptLibrary::InitializeDataViewConstructor(DynamicObject* dataViewConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeDataViewConstructor(DynamicObject* dataViewConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(dataViewConstructor, mode, 3);
 
@@ -1914,9 +1873,11 @@ namespace Js
             library->AddMember(dataViewConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::DataView), PropertyConfigurable);
         }
         dataViewConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeDataViewPrototype(DynamicObject* dataViewPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeDataViewPrototype(DynamicObject* dataViewPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(dataViewPrototype, mode, 2);
 
@@ -1950,9 +1911,11 @@ namespace Js
         }
 
         dataViewPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeTypedArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeTypedArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(typedArrayConstructor, mode, 5);
 
@@ -1968,15 +1931,14 @@ namespace Js
 
         library->AddFunctionToLibraryObject(typedArrayConstructor, PropertyIds::from, &TypedArrayBase::EntryInfo::From, 1);
         library->AddFunctionToLibraryObject(typedArrayConstructor, PropertyIds::of, &TypedArrayBase::EntryInfo::Of, 0);
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            library->AddAccessorsToLibraryObject(typedArrayConstructor, PropertyIds::_symbolSpecies, &TypedArrayBase::EntryInfo::GetterSymbolSpecies, nullptr);
-        }
+        library->AddSpeciesAccessorsToLibraryObject(typedArrayConstructor, &TypedArrayBase::EntryInfo::GetterSymbolSpecies);
 
         typedArrayConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeTypedArrayPrototype(DynamicObject* typedarrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeTypedArrayPrototype(DynamicObject* typedarrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(typedarrayPrototype, mode, 31);
 
@@ -2041,10 +2003,12 @@ namespace Js
         }
 
         typedarrayPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
 #define INIT_TYPEDARRAY_CONSTRUCTOR(typedArray, typedarrayPrototype, TypeName) \
-    void  JavascriptLibrary::Initialize##typedArray##Constructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode) \
+    bool  JavascriptLibrary::Initialize##typedArray##Constructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode) \
     { \
         typeHandler->Convert(typedArrayConstructor, mode, 4); \
         ScriptContext* scriptContext = typedArrayConstructor->GetScriptContext(); \
@@ -2057,6 +2021,7 @@ namespace Js
         library->AddMember(typedArrayConstructor, PropertyIds::BYTES_PER_ELEMENT, TaggedInt::ToVarUnchecked(sizeof(TypeName)), PropertyNone); \
         library->AddMember(typedArrayConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->##typedarrayPrototype##, PropertyNone); \
         typedArrayConstructor->SetHasNoEnumerableProperties(true); \
+        return true; \
     } \
 
     INIT_TYPEDARRAY_CONSTRUCTOR(Int8Array, Int8ArrayPrototype, int8);
@@ -2070,13 +2035,14 @@ namespace Js
     INIT_TYPEDARRAY_CONSTRUCTOR(Float64Array, Float64ArrayPrototype, double);
 
 #define INIT_TYPEDARRAY_PROTOTYPE(typedArray, typedarrayPrototype, TypeName) \
-    void JavascriptLibrary::Initialize##typedarrayPrototype##(DynamicObject* typedarrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode) \
+    bool JavascriptLibrary::Initialize##typedarrayPrototype##(DynamicObject* typedarrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode) \
     { \
         typeHandler->Convert(typedarrayPrototype, mode, 2); \
         JavascriptLibrary* library = typedarrayPrototype->GetLibrary(); \
         library->AddMember(typedarrayPrototype, PropertyIds::constructor, library->##typedArray##Constructor); \
         library->AddMember(typedarrayPrototype, PropertyIds::BYTES_PER_ELEMENT, TaggedInt::ToVarUnchecked(sizeof(TypeName)), PropertyNone); \
         typedarrayPrototype->SetHasNoEnumerableProperties(true); \
+        return true; \
     } \
 
     INIT_TYPEDARRAY_PROTOTYPE(Int8Array, Int8ArrayPrototype, int8);
@@ -2092,12 +2058,13 @@ namespace Js
     // For Microsoft extension typed array, like Int64Array, BoolArray, we don't have constructor as they can only be created from the projection arguments.
     // there is no subarray method either as that's another way to create typed array.
 #define INIT_MSINTERNAL_TYPEDARRAY_PROTOTYPE(typedArray, typedarrayPrototype) \
-    void JavascriptLibrary::Initialize##typedarrayPrototype##(DynamicObject* typedarrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)  \
+    bool JavascriptLibrary::Initialize##typedarrayPrototype##(DynamicObject* typedarrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)  \
     {   \
         typeHandler->Convert(typedarrayPrototype, mode, 1); \
         JavascriptLibrary* library = typedarrayPrototype->GetLibrary(); \
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::set, &##typedArray##::EntryInfo::Set, 2); \
         typedarrayPrototype->SetHasNoEnumerableProperties(true); \
+        return true; \
     }   \
 
     INIT_MSINTERNAL_TYPEDARRAY_PROTOTYPE(Int64Array, Int64ArrayPrototype);
@@ -2105,7 +2072,7 @@ namespace Js
     INIT_MSINTERNAL_TYPEDARRAY_PROTOTYPE(BoolArray, BoolArrayPrototype);
     INIT_MSINTERNAL_TYPEDARRAY_PROTOTYPE(CharArray, CharArrayPrototype);
 
-    void JavascriptLibrary::InitializeErrorConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeErrorConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(constructor, mode, 4);
 
@@ -2125,9 +2092,11 @@ namespace Js
         }
 
         constructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(prototype, mode, 4);
 
@@ -2143,10 +2112,12 @@ namespace Js
         library->AddFunctionToLibraryObject(prototype, PropertyIds::toString, &JavascriptError::EntryInfo::ToString, 0);
 
         prototype->SetHasNoEnumerableProperties(hasNoEnumerableProperties);
+
+        return true;
     }
 
 #define INIT_ERROR_IMPL(error, errorName) \
-    void JavascriptLibrary::Initialize##error##Constructor(DynamicObject* constructor, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
+    bool JavascriptLibrary::Initialize##error##Constructor(DynamicObject* constructor, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
     { \
         typeHandler->Convert(constructor, mode, 3); \
         ScriptContext* scriptContext = constructor->GetScriptContext(); \
@@ -2159,8 +2130,9 @@ namespace Js
             library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#errorName)), prototypeNameMessageAttributes); \
         } \
         constructor->SetHasNoEnumerableProperties(true); \
+        return true; \
     } \
-    void JavascriptLibrary::Initialize##error##Prototype(DynamicObject* prototype, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
+    bool JavascriptLibrary::Initialize##error##Prototype(DynamicObject* prototype, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
     { \
         typeHandler->Convert(prototype, mode, 4); \
         JavascriptLibrary* library = prototype->GetLibrary(); \
@@ -2171,6 +2143,7 @@ namespace Js
         library->AddMember(prototype, PropertyIds::message, library->GetEmptyString(), prototypeNameMessageAttributes); \
         library->AddFunctionToLibraryObject(prototype, PropertyIds::toString, &JavascriptError::EntryInfo::ToString, 0); \
         prototype->SetHasNoEnumerableProperties(hasNoEnumerableProperties); \
+        return true; \
     }
 
 #define INIT_ERROR(error) INIT_ERROR_IMPL(error, error)
@@ -2186,7 +2159,7 @@ namespace Js
 
 #undef INIT_ERROR
 
-    void JavascriptLibrary::InitializeBooleanConstructor(DynamicObject* booleanConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeBooleanConstructor(DynamicObject* booleanConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(booleanConstructor, mode, 3);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterBoolean
@@ -2201,9 +2174,11 @@ namespace Js
         }
 
         booleanConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeBooleanPrototype(DynamicObject* booleanPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeBooleanPrototype(DynamicObject* booleanPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(booleanPrototype, mode, 3);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterBoolean
@@ -2216,9 +2191,11 @@ namespace Js
         scriptContext->SetBuiltInLibraryFunction(JavascriptBoolean::EntryInfo::ToString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(booleanPrototype, PropertyIds::toString, &JavascriptBoolean::EntryInfo::ToString, 0));
         booleanPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSymbolConstructor(DynamicObject* symbolConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSymbolConstructor(DynamicObject* symbolConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(symbolConstructor, mode, 16);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
@@ -2268,9 +2245,11 @@ namespace Js
         library->AddFunctionToLibraryObject(symbolConstructor, PropertyIds::keyFor, &JavascriptSymbol::EntryInfo::KeyFor, 1);
 
         symbolConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSymbolPrototype(DynamicObject* symbolPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSymbolPrototype(DynamicObject* symbolPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(symbolPrototype, mode, 5);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
@@ -2297,9 +2276,11 @@ namespace Js
             symbolPrototype->SetWritable(PropertyIds::_symbolToPrimitive, false);
         }
         symbolPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializePromiseConstructor(DynamicObject* promiseConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializePromiseConstructor(DynamicObject* promiseConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(promiseConstructor, mode, 8);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterPromise
@@ -2308,11 +2289,7 @@ namespace Js
         ScriptContext* scriptContext = promiseConstructor->GetScriptContext();
         library->AddMember(promiseConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
         library->AddMember(promiseConstructor, PropertyIds::prototype, library->promisePrototype, PropertyNone);
-
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            library->AddAccessorsToLibraryObject(promiseConstructor, PropertyIds::_symbolSpecies, &JavascriptPromise::EntryInfo::GetterSymbolSpecies, nullptr);
-        }
+        library->AddSpeciesAccessorsToLibraryObject(promiseConstructor, &JavascriptPromise::EntryInfo::GetterSymbolSpecies);
 
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -2325,6 +2302,8 @@ namespace Js
         library->AddMember(promiseConstructor, PropertyIds::resolve, library->EnsurePromiseResolveFunction(), PropertyBuiltInMethodDefaults);
 
         promiseConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
     JavascriptFunction* JavascriptLibrary::EnsurePromiseResolveFunction()
@@ -2335,8 +2314,8 @@ namespace Js
         }
         return promiseResolveFunction;
     }
-    
-    void JavascriptLibrary::InitializePromisePrototype(DynamicObject* promisePrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+
+    bool JavascriptLibrary::InitializePromisePrototype(DynamicObject* promisePrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(promisePrototype, mode, 4);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterPromise
@@ -2355,6 +2334,8 @@ namespace Js
         scriptContext->SetBuiltInLibraryFunction(JavascriptPromise::EntryInfo::Then.GetOriginalEntryPoint(), library->EnsurePromiseThenFunction());
 
         promisePrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
     JavascriptFunction* JavascriptLibrary::EnsurePromiseThenFunction()
@@ -2367,7 +2348,7 @@ namespace Js
         return promiseThenFunction;
     }
 
-    void JavascriptLibrary::InitializeGeneratorFunctionConstructor(DynamicObject* generatorFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeGeneratorFunctionConstructor(DynamicObject* generatorFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(generatorFunctionConstructor, mode, 3);
         JavascriptLibrary* library = generatorFunctionConstructor->GetLibrary();
@@ -2379,9 +2360,11 @@ namespace Js
             library->AddMember(generatorFunctionConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("GeneratorFunction")), PropertyConfigurable);
         }
         generatorFunctionConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeGeneratorFunctionPrototype(DynamicObject* generatorFunctionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeGeneratorFunctionPrototype(DynamicObject* generatorFunctionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(generatorFunctionPrototype, mode, 3);
         JavascriptLibrary* library = generatorFunctionPrototype->GetLibrary();
@@ -2394,9 +2377,11 @@ namespace Js
             library->AddMember(generatorFunctionPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("GeneratorFunction")), PropertyConfigurable);
         }
         generatorFunctionPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeGeneratorPrototype(DynamicObject* generatorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeGeneratorPrototype(DynamicObject* generatorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(generatorPrototype, mode, 5);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterGenerator
@@ -2414,6 +2399,8 @@ namespace Js
         library->AddMember(generatorPrototype, PropertyIds::throw_, library->EnsureGeneratorThrowFunction(), PropertyBuiltInMethodDefaults);
 
         generatorPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
     JavascriptFunction* JavascriptLibrary::EnsureGeneratorNextFunction()
@@ -2434,7 +2421,7 @@ namespace Js
         return generatorThrowFunction;
     }
 
-    void JavascriptLibrary::InitializeAsyncFunctionConstructor(DynamicObject* asyncFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeAsyncFunctionConstructor(DynamicObject* asyncFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(asyncFunctionConstructor, mode, 3);
         JavascriptLibrary* library = asyncFunctionConstructor->GetLibrary();
@@ -2446,9 +2433,11 @@ namespace Js
             library->AddMember(asyncFunctionConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AsyncFunction")), PropertyConfigurable);
         }
         asyncFunctionConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeAsyncFunctionPrototype(DynamicObject* asyncFunctionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeAsyncFunctionPrototype(DynamicObject* asyncFunctionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(asyncFunctionPrototype, mode, 2);
         JavascriptLibrary* library = asyncFunctionPrototype->GetLibrary();
@@ -2460,9 +2449,11 @@ namespace Js
             library->AddMember(asyncFunctionPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("AsyncFunction")), PropertyConfigurable);
         }
         asyncFunctionPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeProxyConstructor(DynamicObject* proxyConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeProxyConstructor(DynamicObject* proxyConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(proxyConstructor, mode, 4);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
@@ -2477,9 +2468,11 @@ namespace Js
         library->AddFunctionToLibraryObject(proxyConstructor, PropertyIds::revocable, &JavascriptProxy::EntryInfo::Revocable, 2, PropertyConfigurable);
 
         proxyConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeProxyPrototype(DynamicObject* proxyPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeProxyPrototype(DynamicObject* proxyPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(proxyPrototype, mode, 1);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
@@ -2488,9 +2481,11 @@ namespace Js
         library->AddMember(proxyPrototype, PropertyIds::constructor, library->proxyConstructor);
 
         proxyPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeDateConstructor(DynamicObject* dateConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeDateConstructor(DynamicObject* dateConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(dateConstructor, mode, 6);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterDate
@@ -2508,9 +2503,11 @@ namespace Js
         library->AddFunctionToLibraryObject(dateConstructor, PropertyIds::UTC, &JavascriptDate::EntryInfo::UTC, 7);     // should be static
 
         dateConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeDatePrototype(DynamicObject* datePrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeDatePrototype(DynamicObject* datePrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(datePrototype, mode, 51);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterDate
@@ -2598,7 +2595,7 @@ namespace Js
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToISOString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toISOString, &JavascriptDate::EntryInfo::ToISOString, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToJSON.GetOriginalEntryPoint(),
-             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toJSON, &JavascriptDate::EntryInfo::ToJSON, 1));
+            library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toJSON, &JavascriptDate::EntryInfo::ToJSON, 1));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToLocaleDateString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toLocaleDateString, &JavascriptDate::EntryInfo::ToLocaleDateString, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToLocaleString.GetOriginalEntryPoint(),
@@ -2609,9 +2606,12 @@ namespace Js
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toString, &JavascriptDate::EntryInfo::ToString, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToTimeString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toTimeString, &JavascriptDate::EntryInfo::ToTimeString, 0));
-        scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToUTCString.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toUTCString, &JavascriptDate::EntryInfo::ToUTCString, 0));
-        library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toGMTString, &JavascriptDate::EntryInfo::ToGMTString, 0);
+
+        // Spec stipulates toGMTString must be the same function object as toUTCString
+        JavascriptFunction *toUTCStringFunc = library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toUTCString, &JavascriptDate::EntryInfo::ToUTCString, 0);
+        scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToUTCString.GetOriginalEntryPoint(), toUTCStringFunc);
+        library->AddMember(datePrototype, PropertyIds::toGMTString, toUTCStringFunc, PropertyBuiltInMethodDefaults);
+
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ValueOf.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::valueOf, &JavascriptDate::EntryInfo::ValueOf, 0));
 
@@ -2623,10 +2623,12 @@ namespace Js
             datePrototype->SetWritable(PropertyIds::_symbolToPrimitive, false);
         }
         datePrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
 
-    void JavascriptLibrary::InitializeFunctionConstructor(DynamicObject* functionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeFunctionConstructor(DynamicObject* functionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(functionConstructor, mode, 3);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterFunction
@@ -2640,9 +2642,11 @@ namespace Js
             library->AddMember(functionConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Function), PropertyConfigurable);
         }
         functionConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeFunctionPrototype(DynamicObject* functionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeFunctionPrototype(DynamicObject* functionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(functionPrototype, mode, 7);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterFunction
@@ -2679,6 +2683,8 @@ namespace Js
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
         functionPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
     void JavascriptLibrary::InitializeComplexThings()
@@ -2713,7 +2719,7 @@ namespace Js
         regexType = DynamicType::New(scriptContext, TypeIds_RegEx, regexPrototype, nullptr, typeHandler, true, true);
     }
 
-    void JavascriptLibrary::InitializeMathObject(DynamicObject* mathObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeMathObject(DynamicObject* mathObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(mathObject, mode, 42);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterMath
@@ -2780,11 +2786,13 @@ namespace Js
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
         mathObject->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
 #ifdef ENABLE_WASM
 
-    void JavascriptLibrary::InitializeWebAssemblyTablePrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWebAssemblyTablePrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(prototype, mode, 6);
 
@@ -2808,9 +2816,11 @@ namespace Js
         library->AddAccessorsToLibraryObject(prototype, PropertyIds::length, &WebAssemblyTable::EntryInfo::GetterLength, nullptr);
 
         prototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWebAssemblyTableConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWebAssemblyTableConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(constructor, mode, 3);
         JavascriptLibrary* library = constructor->GetLibrary();
@@ -2822,9 +2832,11 @@ namespace Js
             library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Table")), PropertyConfigurable);
         }
         constructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWebAssemblyMemoryPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWebAssemblyMemoryPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(prototype, mode, 4);
 
@@ -2842,9 +2854,11 @@ namespace Js
         library->AddAccessorsToLibraryObject(prototype, PropertyIds::buffer, &WebAssemblyMemory::EntryInfo::GetterBuffer, nullptr);
 
         prototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWebAssemblyMemoryConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWebAssemblyMemoryConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(constructor, mode, 3);
         JavascriptLibrary* library = constructor->GetLibrary();
@@ -2856,9 +2870,11 @@ namespace Js
             library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Memory")), PropertyConfigurable);
         }
         constructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWebAssemblyInstancePrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWebAssemblyInstancePrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(prototype, mode, 3);
 
@@ -2872,9 +2888,11 @@ namespace Js
             library->AddMember(prototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssembly.Instance")), PropertyConfigurable);
         }
         prototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWebAssemblyInstanceConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWebAssemblyInstanceConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(constructor, mode, 3);
         JavascriptLibrary* library = constructor->GetLibrary();
@@ -2886,9 +2904,11 @@ namespace Js
             library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Instance")), PropertyConfigurable);
         }
         constructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWebAssemblyModulePrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWebAssemblyModulePrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(prototype, mode, 2);
 
@@ -2901,9 +2921,11 @@ namespace Js
             library->AddMember(prototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssembly.Module")), PropertyConfigurable);
         }
         prototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWebAssemblyModuleConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWebAssemblyModuleConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(constructor, mode, 5);
         JavascriptLibrary* library = constructor->GetLibrary();
@@ -2920,9 +2942,11 @@ namespace Js
             library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Module")), PropertyConfigurable);
         }
         constructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWebAssemblyObject(DynamicObject* webAssemblyObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWebAssemblyObject(DynamicObject* webAssemblyObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptLibrary* library = webAssemblyObject->GetLibrary();
         int slots = 9;
@@ -2940,8 +2964,10 @@ namespace Js
 #endif
         library->webAssemblyCompileFunction =
             library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WebAssembly::EntryInfo::Compile, 1);
+        library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compileStreaming, &WebAssembly::EntryInfo::CompileStreaming, 1);
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::validate, &WebAssembly::EntryInfo::Validate, 1);
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::instantiate, &WebAssembly::EntryInfo::Instantiate, 1);
+        library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::instantiateStreaming, &WebAssembly::EntryInfo::InstantiateStreaming, 1);
         library->webAssemblyQueryResponseFunction = library->DefaultCreateFunction(&WebAssembly::EntryInfo::QueryResponse, 1, nullptr, nullptr, PropertyIds::undefined);
         library->webAssemblyInstantiateBoundFunction = library->DefaultCreateFunction(&WebAssembly::EntryInfo::InstantiateBound, 1, nullptr, nullptr, PropertyIds::undefined);
 
@@ -2960,12 +2986,14 @@ namespace Js
         {
             library->AddMember(webAssemblyObject, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssembly")), PropertyConfigurable);
         }
+
+        return true;
     }
 #endif
 
     // SIMD_JS
 #ifdef ENABLE_SIMDJS
-    void JavascriptLibrary::InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         // Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSIMD so that the update is in sync with profiler
         typeHandler->Convert(simdObject, mode, 2);
@@ -3443,10 +3471,12 @@ namespace Js
         library->AddFunctionToLibraryObject(uint8x16Function, PropertyIds::shuffle, &SIMDUint8x16Lib::EntryInfo::Shuffle, 19);
         library->AddFunctionToLibraryObject(uint8x16Function, PropertyIds::select, &SIMDUint8x16Lib::EntryInfo::Select, 4);
         /** end Uint8x16 **/
+
+        return true;
     }
 #endif
 
-    void JavascriptLibrary::InitializeReflectObject(DynamicObject* reflectObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeReflectObject(DynamicObject* reflectObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(reflectObject, mode, 12);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterReflect
@@ -3479,6 +3509,8 @@ namespace Js
             library->AddFunctionToLibraryObject(reflectObject, PropertyIds::apply, &JavascriptReflect::EntryInfo::Apply, 3));
         scriptContext->SetBuiltInLibraryFunction(JavascriptReflect::EntryInfo::Construct.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(reflectObject, PropertyIds::construct, &JavascriptReflect::EntryInfo::Construct, 2));
+
+        return true;
     }
 
     void JavascriptLibrary::InitializeStaticValues()
@@ -3495,7 +3527,7 @@ namespace Js
         defaultPropertyDescriptor.SetConfigurable(false);
 
 #if !defined(_M_X64_OR_ARM64)
-        
+
         VirtualTableRecorder<Js::JavascriptNumber>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptNumber);
 #else
         vtableAddresses[VTableValue::VtableJavascriptNumber] = 0;
@@ -3556,70 +3588,70 @@ namespace Js
             switch (typeId)
             {
             case TypeIds_Undefined:
-                typeDisplayStrings[typeId] = undefinedDisplayString;
+                typeDisplayStrings[typeId] = GetUndefinedDisplayString();
                 break;
 
             case TypeIds_Function:
-                typeDisplayStrings[typeId] = functionTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetFunctionTypeDisplayString();
                 break;
 
             case TypeIds_Boolean:
-                typeDisplayStrings[typeId] = booleanTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetBooleanTypeDisplayString();
                 break;
 
             case TypeIds_String:
-                typeDisplayStrings[typeId] = stringTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetStringTypeDisplayString();
                 break;
 
             case TypeIds_Symbol:
-                typeDisplayStrings[typeId] = symbolTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSymbolTypeDisplayString();
                 break;
 
             case TypeIds_VariantDate:
-                typeDisplayStrings[typeId] = variantDateTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetVariantDateTypeDisplayString();
                 break;
 
             case TypeIds_Integer:
             case TypeIds_Number:
             case TypeIds_Int64Number:
             case TypeIds_UInt64Number:
-                typeDisplayStrings[typeId] = numberTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetNumberTypeDisplayString();
                 break;
 
 #ifdef ENABLE_SIMDJS
             case TypeIds_SIMDFloat32x4:
-                typeDisplayStrings[typeId] = simdFloat32x4DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDFloat32x4DisplayString();
                 break;
-            
+
            //case TypeIds_SIMDFloat64x2:  //Type under review by the spec.
                 // typeDisplayStrings[typeId] = simdFloat64x2DisplayString;
                 // break;
             case TypeIds_SIMDInt32x4:
-                typeDisplayStrings[typeId] = simdInt32x4DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDInt32x4DisplayString();
                 break;
             case TypeIds_SIMDInt16x8:
-                typeDisplayStrings[typeId] = simdInt16x8DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDInt16x8DisplayString();
                 break;
             case TypeIds_SIMDInt8x16:
-                typeDisplayStrings[typeId] = simdInt8x16DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDInt8x16DisplayString();
                 break;
             case TypeIds_SIMDUint32x4:
-                typeDisplayStrings[typeId] = simdUint32x4DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDUint32x4DisplayString();
                 break;
             case TypeIds_SIMDUint16x8:
-                typeDisplayStrings[typeId] = simdUint16x8DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDUint16x8DisplayString();
                 break;
             case TypeIds_SIMDUint8x16:
-                typeDisplayStrings[typeId] = simdUint8x16DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDUint8x16DisplayString();
                 break;
             case TypeIds_SIMDBool32x4:
-                typeDisplayStrings[typeId] = simdBool32x4DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDBool32x4DisplayString();
                 break;
             case TypeIds_SIMDBool16x8:
-                typeDisplayStrings[typeId] = simdBool16x8DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDBool16x8DisplayString();
                 break;
             case TypeIds_SIMDBool8x16:
-                typeDisplayStrings[typeId] = simdBool8x16DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDBool8x16DisplayString();
                 break;
 #endif
             case TypeIds_Enumerator:
@@ -3632,7 +3664,7 @@ namespace Js
                 break;
 
             default:
-                typeDisplayStrings[typeId] = objectTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetObjectTypeDisplayString();
                 break;
             }
         }
@@ -3850,7 +3882,7 @@ namespace Js
     BuiltinFunction JavascriptLibrary::GetBuiltInForFuncInfo(intptr_t funcInfoAddr, ThreadContextInfo * context)
     {
 #define LIBRARY_FUNCTION(target, name, argc, flags, EntryInfo) \
-        if(funcInfoAddr == SHIFT_ADDR(context, (intptr_t)&EntryInfo)) \
+        if(funcInfoAddr == (intptr_t)ShiftAddr(context, &EntryInfo)) \
         { \
             return BuiltinFunction::##target##_##name; \
         }
@@ -3994,7 +4026,7 @@ namespace Js
         return (flags != ImplicitCall_None) || arrayIteratorPrototypeNext != scriptContext->GetLibrary()->GetArrayIteratorPrototypeBuiltinNextFunction();
     }
 
-    void JavascriptLibrary::InitializeNumberConstructor(DynamicObject* numberConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeNumberConstructor(DynamicObject* numberConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(numberConstructor, mode, 17);
 
@@ -4039,9 +4071,11 @@ namespace Js
         }
 
         numberConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeNumberPrototype(DynamicObject* numberPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeNumberPrototype(DynamicObject* numberPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(numberPrototype, mode, 8);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterNumber
@@ -4063,6 +4097,8 @@ namespace Js
             library->AddFunctionToLibraryObject(numberPrototype, PropertyIds::valueOf, &JavascriptNumber::EntryInfo::ValueOf, 0));
 
         numberPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
 #ifdef ENABLE_SIMDJS
@@ -4096,88 +4132,98 @@ namespace Js
 
     }
 
-    void JavascriptLibrary::InitializeSIMDBool8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSIMDBool8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDBool8x16>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMDBool8x16Lib_Bool8x16],
             library->CreateStringFromCppLiteral(_u("SIMD.Bool8x16")));
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSIMDBool16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSIMDBool16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDBool16x8>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMDBool16x8Lib_Bool16x8],
             library->CreateStringFromCppLiteral(_u("SIMD.Bool16x8")));
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSIMDBool32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSIMDBool32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDBool32x4>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMDBool32x4Lib_Bool32x4],
             library->CreateStringFromCppLiteral(_u("SIMD.Bool32x4")));
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSIMDInt8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSIMDInt8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDInt8x16>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMDInt8x16Lib_Int8x16],
             library->CreateStringFromCppLiteral(_u("SIMD.Int8x16")));
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSIMDInt16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSIMDInt16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDInt16x8>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMDInt16x8Lib_Int16x8],
             library->CreateStringFromCppLiteral(_u("SIMD.Int16x8")));
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSIMDInt32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSIMDInt32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDInt32x4>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMDInt32x4Lib_Int32x4],
             library->CreateStringFromCppLiteral(_u("SIMD.Int32x4")));
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSIMDUint8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSIMDUint8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDUint8x16>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMDUint8x16Lib_Uint8x16],
             library->CreateStringFromCppLiteral(_u("SIMD.Uint8x16")));
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSIMDUint16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSIMDUint16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDUint16x8>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMDUint16x8Lib_Uint16x8],
             library->CreateStringFromCppLiteral(_u("SIMD.Uint16x8")));
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSIMDUint32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSIMDUint32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDUint32x4>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMDUint32x4Lib_Uint32x4],
             library->CreateStringFromCppLiteral(_u("SIMD.Uint32x4")));
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSIMDFloat32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSIMDFloat32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDFloat32x4>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMDFloat32x4Lib_Float32x4],
             library->CreateStringFromCppLiteral(_u("SIMD.Float32x4")));
+        return true;
     }
 #endif
 
-    void JavascriptLibrary::InitializeObjectConstructor(DynamicObject* objectConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeObjectConstructor(DynamicObject* objectConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterObject
         // so that the update is in sync with profiler
@@ -4254,6 +4300,8 @@ namespace Js
         }
 
         objectConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
     JavascriptFunction* JavascriptLibrary::EnsureObjectFreezeFunction()
@@ -4265,7 +4313,7 @@ namespace Js
         return objectFreezeFunction;
     }
 
-    void JavascriptLibrary::InitializeObjectPrototype(DynamicObject* objectPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeObjectPrototype(DynamicObject* objectPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptLibrary* library = objectPrototype->GetLibrary();
         ScriptContext* scriptContext = objectPrototype->GetScriptContext();
@@ -4300,9 +4348,11 @@ namespace Js
         library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::__lookupSetter__, &JavascriptObject::EntryInfo::LookupSetter, 1);
 
         objectPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeRegexConstructor(DynamicObject* regexConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeRegexConstructor(DynamicObject* regexConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptLibrary* library = regexConstructor->GetLibrary();
         ScriptContext* scriptContext = regexConstructor->GetScriptContext();
@@ -4311,11 +4361,7 @@ namespace Js
         // so that the update is in sync with profiler
         library->AddMember(regexConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(2), PropertyNone);
         library->AddMember(regexConstructor, PropertyIds::prototype, library->regexPrototype, PropertyNone);
-
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            library->AddAccessorsToLibraryObject(regexConstructor, PropertyIds::_symbolSpecies, &JavascriptRegExp::EntryInfo::GetterSymbolSpecies, nullptr);
-        }
+        library->AddSpeciesAccessorsToLibraryObject(regexConstructor, &JavascriptRegExp::EntryInfo::GetterSymbolSpecies);
 
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -4323,9 +4369,11 @@ namespace Js
         }
 
         regexConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeRegexPrototype(DynamicObject* regexPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeRegexPrototype(DynamicObject* regexPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(regexPrototype, mode, 24);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterRegExp
@@ -4418,9 +4466,11 @@ namespace Js
         regexPrototype->SetHasNoEnumerableProperties(true);
 
         library->regexPrototypeType = regexPrototype->GetDynamicType();
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeStringConstructor(DynamicObject* stringConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeStringConstructor(DynamicObject* stringConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(stringConstructor, mode, 6);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterString
@@ -4449,9 +4499,11 @@ namespace Js
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
         stringConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeStringPrototype(DynamicObject* stringPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeStringPrototype(DynamicObject* stringPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(stringPrototype, mode, 38);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterString
@@ -4524,9 +4576,11 @@ namespace Js
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
         stringPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeMapConstructor(DynamicObject* mapConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeMapConstructor(DynamicObject* mapConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(mapConstructor, mode, 3);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterMap
@@ -4535,11 +4589,7 @@ namespace Js
         ScriptContext* scriptContext = mapConstructor->GetScriptContext();
         library->AddMember(mapConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone);
         library->AddMember(mapConstructor, PropertyIds::prototype, library->mapPrototype, PropertyNone);
-
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            library->AddAccessorsToLibraryObject(mapConstructor, PropertyIds::_symbolSpecies, &JavascriptMap::EntryInfo::GetterSymbolSpecies, nullptr);
-        }
+        library->AddSpeciesAccessorsToLibraryObject(mapConstructor, &JavascriptMap::EntryInfo::GetterSymbolSpecies);
 
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -4547,9 +4597,11 @@ namespace Js
         }
 
         mapConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeMapPrototype(DynamicObject* mapPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeMapPrototype(DynamicObject* mapPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(mapPrototype, mode, 13, true);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterMap
@@ -4579,9 +4631,11 @@ namespace Js
         }
 
         mapPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSetConstructor(DynamicObject* setConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSetConstructor(DynamicObject* setConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(setConstructor, mode, 3);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSet
@@ -4590,11 +4644,7 @@ namespace Js
         ScriptContext* scriptContext = setConstructor->GetScriptContext();
         library->AddMember(setConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone);
         library->AddMember(setConstructor, PropertyIds::prototype, library->setPrototype, PropertyNone);
-
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            library->AddAccessorsToLibraryObject(setConstructor, PropertyIds::_symbolSpecies, &JavascriptSet::EntryInfo::GetterSymbolSpecies, nullptr);
-        }
+        library->AddSpeciesAccessorsToLibraryObject(setConstructor, &JavascriptSet::EntryInfo::GetterSymbolSpecies);
 
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -4602,9 +4652,11 @@ namespace Js
         }
 
         setConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSetPrototype(DynamicObject* setPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSetPrototype(DynamicObject* setPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(setPrototype, mode, 12, true);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSet
@@ -4633,9 +4685,11 @@ namespace Js
         }
 
         setPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWeakMapConstructor(DynamicObject* weakMapConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWeakMapConstructor(DynamicObject* weakMapConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(weakMapConstructor, mode, 3);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterWeakMap
@@ -4650,9 +4704,11 @@ namespace Js
         }
 
         weakMapConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWeakMapPrototype(DynamicObject* weakMapPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWeakMapPrototype(DynamicObject* weakMapPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(weakMapPrototype, mode, 6);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterWeakMap
@@ -4672,9 +4728,11 @@ namespace Js
         }
 
         weakMapPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWeakSetConstructor(DynamicObject* weakSetConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWeakSetConstructor(DynamicObject* weakSetConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(weakSetConstructor, mode, 3);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterWeakSet
@@ -4689,9 +4747,11 @@ namespace Js
         }
 
         weakSetConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeWeakSetPrototype(DynamicObject* weakSetPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeWeakSetPrototype(DynamicObject* weakSetPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(weakSetPrototype, mode, 5);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterWeakSet
@@ -4710,9 +4770,11 @@ namespace Js
         }
 
         weakSetPrototype->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeIteratorPrototype(DynamicObject* iteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeIteratorPrototype(DynamicObject* iteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(iteratorPrototype, mode, 1);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterIterator
@@ -4722,9 +4784,11 @@ namespace Js
 
         library->AddFunctionToLibraryObjectWithName(iteratorPrototype, PropertyIds::_symbolIterator, PropertyIds::_RuntimeFunctionNameId_iterator,
             &JavascriptIterator::EntryInfo::SymbolIterator, 0);
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeArrayIteratorPrototype(DynamicObject* arrayIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeArrayIteratorPrototype(DynamicObject* arrayIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(arrayIteratorPrototype, mode, 2);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterArrayIterator
@@ -4739,9 +4803,11 @@ namespace Js
         {
             library->AddMember(arrayIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Array Iterator")), PropertyConfigurable);
         }
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeMapIteratorPrototype(DynamicObject* mapIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeMapIteratorPrototype(DynamicObject* mapIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(mapIteratorPrototype, mode, 2);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterMapIterator
@@ -4756,9 +4822,11 @@ namespace Js
         {
             library->AddMember(mapIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Map Iterator")), PropertyConfigurable);
         }
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeSetIteratorPrototype(DynamicObject* setIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeSetIteratorPrototype(DynamicObject* setIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(setIteratorPrototype, mode, 2);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSetIterator
@@ -4772,9 +4840,11 @@ namespace Js
         {
             library->AddMember(setIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Set Iterator")), PropertyConfigurable);
         }
+
+        return true;
     }
 
-    void JavascriptLibrary::InitializeStringIteratorPrototype(DynamicObject* stringIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeStringIteratorPrototype(DynamicObject* stringIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(stringIteratorPrototype, mode, 2);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterStringIterator
@@ -4788,6 +4858,8 @@ namespace Js
         {
             library->AddMember(stringIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("String Iterator")), PropertyConfigurable);
         }
+
+        return true;
     }
 
     RuntimeFunction* JavascriptLibrary::CreateBuiltinConstructor(FunctionInfo * functionInfo, DynamicTypeHandler * typeHandler, DynamicObject* prototype)
@@ -4931,10 +5003,9 @@ namespace Js
 
     JavascriptFunction* JavascriptLibrary::AddFunction(DynamicObject* object, PropertyId propertyId, RuntimeFunction* function)
     {
-
-       AddMember(object, propertyId, function);
-       function->SetFunctionNameId(TaggedInt::ToVarUnchecked((int)propertyId));
-       return function;
+        AddMember(object, propertyId, function);
+        function->SetFunctionNameId(TaggedInt::ToVarUnchecked((int)propertyId));
+        return function;
     }
 
     JavascriptFunction * JavascriptLibrary::AddFunctionToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * functionInfo, int length, PropertyAttributes attributes)
@@ -4997,6 +5068,14 @@ namespace Js
         AddAccessorsToLibraryObject(object, propertyId, getterFunction, setterFunction);
     }
 
+    void JavascriptLibrary::AddSpeciesAccessorsToLibraryObject(DynamicObject* object, FunctionInfo * getterFunctionInfo)
+    {
+        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
+        {
+            AddAccessorsToLibraryObjectWithName(object, PropertyIds::_symbolSpecies, PropertyIds::_RuntimeFunctionNameId_species, getterFunctionInfo, nullptr);
+        }
+    }
+
     RuntimeFunction* JavascriptLibrary::CreateGetterFunction(PropertyId nameId, FunctionInfo* functionInfo)
     {
         Var name_withGetPrefix = LiteralString::Concat(LiteralString::NewCopySz(_u("get "), scriptContext), scriptContext->GetPropertyString(nameId));
@@ -5024,7 +5103,7 @@ namespace Js
         object->SetPropertyWithAttributes(propertyId, value, attributes, nullptr, PropertyOperation_None, SideEffects_None);
     }
 
-    void JavascriptLibrary::InitializeJSONObject(DynamicObject* JSONObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeJSONObject(DynamicObject* JSONObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(JSONObject, mode, 3);
         JavascriptLibrary* library = JSONObject->GetLibrary();
@@ -5038,6 +5117,8 @@ namespace Js
         }
 
         JSONObject->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 
     JavascriptFunction* JavascriptLibrary::EnsureJSONStringifyFunction()
@@ -5050,13 +5131,15 @@ namespace Js
     }
 
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
-    void JavascriptLibrary::InitializeEngineInterfaceObject(DynamicObject* engineInterface, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeEngineInterfaceObject(DynamicObject* engineInterface, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(engineInterface, mode, 3);
 
         EngineInterfaceObject::FromVar(engineInterface)->Initialize();
 
         engineInterface->SetHasNoEnumerableProperties(true);
+
+        return true;
     }
 #endif
 
@@ -5166,7 +5249,7 @@ namespace Js
             HRESULT hr = scriptContext->GetHostScriptContext()->EnqueuePromiseTask(taskVar);
             if (hr != S_OK)
             {
-                Js::JavascriptError::MapAndThrowError(scriptContext, hr);
+                Js::JavascriptError::MapAndThrowError(scriptContext, JSERR_HostMaybeMissingPromiseContinuationCallback);
             }
         }
     }
@@ -5208,15 +5291,17 @@ namespace Js
         }
     }
 
-    void JavascriptLibrary::InitializeIntlObject(DynamicObject* IntlObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeIntlObject(DynamicObject* IntlObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(IntlObject, mode,  /*initSlotCapacity*/ 2);
+        typeHandler->Convert(IntlObject, mode, /*initSlotCapacity*/ 2);
 
         auto intlInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::Intl);
         };
         IntlObject->GetLibrary()->InitializeIntlForPrototypes(intlInitializer);
+
+        return true;
     }
 
     void JavascriptLibrary::InitializeIntlForStringPrototype()
@@ -5292,7 +5377,7 @@ namespace Js
     }
     JavascriptString* JavascriptLibrary::CreateEmptyString()
     {
-        return LiteralString::CreateEmptyString(stringTypeStatic);
+        return LiteralString::CreateEmptyString(GetStringTypeStatic());
     }
 
     JavascriptRegExp* JavascriptLibrary::CreateEmptyRegExp()
@@ -6082,7 +6167,9 @@ namespace Js
             argumentsType = heapArgumentsType;
         }
 
-        return RecyclerNew(recycler, HeapArgumentsObject, recycler, (ActivationObject*)frameObj, formalCount, argumentsType);
+        return RecyclerNew(recycler, HeapArgumentsObject, recycler,
+            frameObj != GetNull() ? static_cast<ActivationObject*>(frameObj) : nullptr,
+            formalCount, argumentsType);
     }
 
     JavascriptArray* JavascriptLibrary::CreateArray()
@@ -6512,12 +6599,32 @@ namespace Js
         return CreateStdCallExternalFunction(entryPoint, TaggedInt::ToVarUnchecked(nameId), callbackState);
     }
 
-    JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, Var nameId, void *callbackState)
+    JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, Var name, void *callbackState)
     {
-        JavascriptExternalFunction* function = this->CreateIdMappedExternalFunction(entryPoint, stdCallFunctionWithDeferredPrototypeType);
-        function->SetFunctionNameId(nameId);
-        function->SetCallbackState(callbackState);
+        Var functionNameOrId = name;
+        if (JavascriptString::Is(name))
+        {
+            JavascriptString * functionName = JavascriptString::FromVar(name);
+            const char16 * functionNameBuffer = functionName->GetString();
+            int functionNameBufferLength = functionName->GetLengthAsSignedInt();
 
+            PropertyId functionNamePropertyId = scriptContext->GetOrAddPropertyIdTracked(functionNameBuffer, functionNameBufferLength);
+            functionNameOrId = TaggedInt::ToVarUnchecked(functionNamePropertyId);
+        }
+#if ENABLE_TTD
+        else if (scriptContext->GetThreadContext()->IsRuntimeInTTDMode() && TaggedInt::Is(name))
+        {
+            PropertyId pid = TaggedInt::ToInt32(name);
+            if (!scriptContext->IsTrackedPropertyId(pid))
+            {
+                scriptContext->TrackPid(pid);
+            }
+        }
+#endif
+        AssertOrFailFast(TaggedInt::Is(functionNameOrId));
+        JavascriptExternalFunction* function = this->CreateIdMappedExternalFunction(entryPoint, stdCallFunctionWithDeferredPrototypeType);
+        function->SetFunctionNameId(functionNameOrId);
+        function->SetCallbackState(callbackState);
         return function;
     }
 
@@ -6831,8 +6938,7 @@ namespace Js
 
     PropertyString* JavascriptLibrary::CreatePropertyString(const Js::PropertyRecord* propertyRecord)
     {
-        AssertMsg(stringTypeStatic, "Where's stringTypeStatic?");
-        return PropertyString::New(stringTypeStatic, propertyRecord, this->GetRecycler());
+        return PropertyString::New(GetStringTypeStatic(), propertyRecord, this->GetRecycler());
     }
 
     JavascriptVariantDate* JavascriptLibrary::CreateVariantDate(const double value)
@@ -7044,8 +7150,12 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         if (JITManager::GetJITManager()->IsOOPJITEnabled() && JITManager::GetJITManager()->IsConnected())
         {
-            HRESULT hr = JITManager::GetJITManager()->SetIsPRNGSeeded(GetScriptContext()->GetRemoteScriptAddr(), val);
+            PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr();
+            if (remoteScriptContext)
+            {
+                HRESULT hr = JITManager::GetJITManager()->SetIsPRNGSeeded(remoteScriptContext, val);
             JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+        }
         }
 #endif
     }
@@ -7221,7 +7331,6 @@ namespace Js
         if (this->dynamicFunctionReference == nullptr)
         {
             this->dynamicFunctionReference = RecyclerNew(this->recycler, FunctionReferenceList, this->recycler);
-            this->BindReference(this->dynamicFunctionReference);
             this->dynamicFunctionReferenceDepth = 0;
         }
 
@@ -7246,7 +7355,7 @@ namespace Js
         this->dynamicFunctionReference->Push(func);
     }
 
-
+#ifdef ENABLE_SCRIPT_PROFILING
     // Register for profiler
 #define DEFINE_OBJECT_NAME(object) const char16 *pwszObjectName = _u(#object);
 
@@ -7557,7 +7666,6 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(toString, JavascriptDate::EntryToString);
         REG_OBJECTS_LIB_FUNC(toTimeString, JavascriptDate::EntryToTimeString);
         REG_OBJECTS_LIB_FUNC(toUTCString, JavascriptDate::EntryToUTCString);
-        REG_OBJECTS_LIB_FUNC(toGMTString, JavascriptDate::EntryToGMTString);
         REG_OBJECTS_LIB_FUNC(valueOf, JavascriptDate::EntryValueOf);
 
         return hr;
@@ -8363,6 +8471,7 @@ namespace Js
         return hr;
     }
 #endif
+#endif // ENABLE_SCRIPT_PROFILING
 
 #if DBG
     void JavascriptLibrary::DumpLibraryByteCode()

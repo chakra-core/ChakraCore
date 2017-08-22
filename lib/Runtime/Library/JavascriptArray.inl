@@ -106,6 +106,8 @@ namespace Js
                 Assert(prior->next);
             }
         }
+
+        bool isInlineSegment = JavascriptArray::IsInlineSegment(seg, this);
         SparseArraySegment<T> *newSeg = nullptr;
         Recycler *recycler = this->GetScriptContext()->GetRecycler();
         if (forceNonLeaf)
@@ -129,6 +131,12 @@ namespace Js
         {
             segmentMap->SwapSegment(seg->left, seg, newSeg);
         }
+
+        if (isInlineSegment)
+        {
+            this->ClearElements(seg, 0);
+        }
+
         return newSeg;
     }
 
@@ -725,10 +733,17 @@ SECOND_PASS:
                 && startIndex - head->size <= MergeSegmentsLengthHeuristics     // Distance to next index is relatively small
                 )
             {
+                SparseArraySegmentBase *oldHead = head;
+                bool isInlineSegment = JavascriptArray::IsInlineSegment(oldHead, this);
                 current = SparseArraySegment<T>::From(head)->GrowByMin(recycler, startIndex + length - head->size);
                 current->length = endIndex + 1;
                 current->CheckLengthvsSize();
                 head = current;
+                if (isInlineSegment)
+                {
+                    this->ClearElements(oldHead, 0);
+                }
+
                 SetHasNoMissingValues(false);
             }
             else
@@ -749,12 +764,15 @@ SECOND_PASS:
 
         const auto ExtendStartSegmentForMemOp = [&]()
         {
+            SparseArraySegmentBase *oldStartSeg = startSeg;
+            bool isInlineSegment = false;
             startOffset = startIndex - startSeg->left;
             if ((startIndex >= startSeg->left) && (startOffset < startSeg->size))
             {
                 // startIndex is within startSeg
                 if ((startOffset + length) > startSeg->size)
                 {
+                    isInlineSegment = JavascriptArray::IsInlineSegment(startSeg, this);
                     // if we don't have enough space in startSeg
                     growby = length - (startSeg->size - startOffset);
                     current = ((Js::SparseArraySegment<T>*)startSeg)->GrowByMin(recycler, growby);
@@ -800,10 +818,12 @@ SECOND_PASS:
                     }
                     current->length = current->length >  (startOffset + length) ? current->length : (startOffset + length);
                     current->CheckLengthvsSize();
+                    Assert(current == oldStartSeg);
                 }
             }
             else if ((startIndex + 1) <= startSeg->left)
             {
+                isInlineSegment = JavascriptArray::IsInlineSegment(startSeg, this);
                 if (startIndex + 1 == startSeg->left && startPrev == head)
                 {
                     current = SparseArraySegment<T>::From(head)->GrowByMin(recycler, startIndex + length - head->size);
@@ -826,6 +846,7 @@ SECOND_PASS:
             }
             else
             {
+                isInlineSegment = JavascriptArray::IsInlineSegment(startSeg, this);
                 Assert(startIndex == startSeg->left + startSeg->size);
 
                 current = ((Js::SparseArraySegment<T>*)startSeg)->GrowByMin(recycler, length);
@@ -845,15 +866,23 @@ SECOND_PASS:
             }
 
             startSeg = current;
+            Assert(startSeg != oldStartSeg || !isInlineSegment); // ensure isInlineSegment implies startSeg != oldStartSeg
+            if (isInlineSegment)
+            {
+                this->ClearElements(oldStartSeg, 0);
+            }
         };
 
         const auto AppendLeftOverItemsFromEndSegment = [&]()
         {
+            SparseArraySegmentBase *oldCurrent = current;
+            bool isInlineSegment = false;
             if (!endSeg)
             {
                 // end is beyond the length of the array
                 Assert(endIndex == (current->left + current->length - 1));
                 current->next = nullptr;
+                Assert(oldCurrent == current);
             }
             else
             {
@@ -866,6 +895,8 @@ SECOND_PASS:
                     {
                         if (startSeg != endSeg)
                         {
+                            isInlineSegment = JavascriptArray::IsInlineSegment(current, this);
+
                             // we have some leftover items on endseg
                             growby = (endSeg->length - endOffset - 1);
                             current = current->GrowByMin(recycler, growby);
@@ -890,6 +921,7 @@ SECOND_PASS:
                     // endIndex is between endSeg and the segment before
                     if (endIndex + 1 == endSeg->left && current == head)
                     {
+                        isInlineSegment = JavascriptArray::IsInlineSegment(current, this);
 
                         // extend current to hold endSeg
                         growby = endSeg->length;
@@ -911,6 +943,7 @@ SECOND_PASS:
                     else
                     {
                         current->next = endSeg;
+                        Assert(oldCurrent == current);
                     }
                 }
                 else
@@ -918,7 +951,14 @@ SECOND_PASS:
                     //endIndex is at the boundary of endSeg segment at the left + size
                     Assert(endIndex == endSeg->left + endSeg->size);
                     current->next = endSeg->next;
+                    Assert(oldCurrent == current);
                 }
+            }
+
+            Assert(oldCurrent != current || !isInlineSegment); // ensure isInlineSegment implies oldCurrent != current
+            if (isInlineSegment)
+            {
+                this->ClearElements(oldCurrent, 0);
             }
         };
         FindStartAndEndSegment();
@@ -1357,6 +1397,8 @@ SECOND_PASS:
                     const bool currentWasFull = current->length == current->size;
 
                     Assert(itemIndex == current->left + current->size);
+                    SparseArraySegmentBase* oldSegment = current;
+                    bool isInlineSegment = JavascriptArray::IsInlineSegment(oldSegment, this);
                     current = SparseArraySegment<T>::CopySegment(recycler, (SparseArraySegment<T>*)current, next->left, next, next->left, next->length);
                     current->next = next->next;
                     current->SetElement(recycler, itemIndex, newValue);
@@ -1376,6 +1418,11 @@ SECOND_PASS:
                             ScanForMissingValues<T>(offset + 1);
                         }
                     }
+
+                    if (isInlineSegment && current != oldSegment)
+                    {
+                        this->ClearElements(oldSegment, 0);
+                    }
                 }
                 else
                 {
@@ -1386,6 +1433,7 @@ SECOND_PASS:
 
                     const bool currentWasHead = current == head;
                     SparseArraySegmentBase* oldSegment = current;
+                    bool isInlineSegment = JavascriptArray::IsInlineSegment(oldSegment, this);
                     uint originalKey = oldSegment->left;
 
                     current = current->SetElementGrow(recycler, prev, itemIndex, newValue);
@@ -1401,6 +1449,11 @@ SECOND_PASS:
                     if(!currentWasHead && current == head)
                     {
                         ScanForMissingValues<T>();
+                    }
+
+                    if (isInlineSegment)
+                    {
+                        this->ClearElements(oldSegment, 0);
                     }
                 }
             }
@@ -1419,6 +1472,11 @@ SECOND_PASS:
                 current->elements[itemIndex] = newValue;
                 current->length =  itemIndex + 1;
                 current->CheckLengthvsSize();
+
+                if (JavascriptArray::IsInlineSegment(head, this))
+                {
+                    this->ClearElements(head, 0);
+                }
 
                 head = current;
 
@@ -1523,6 +1581,8 @@ SECOND_PASS:
             && current->length == current->size       // Why did we miss the fastpath?
             && !SparseArraySegment<unitType>::IsMissingItem(&iValue))      // value to set is not a missing value.
         {
+            SparseArraySegmentBase *oldCurrent = current;
+            bool isInlineSegment = JavascriptArray::IsInlineSegment(oldCurrent, this);
             current= current->GrowByMin(this->GetRecycler(), indexInt + 1);
 
             DebugOnly(VerifyNotNeedMarshal(iValue));
@@ -1535,6 +1595,11 @@ SECOND_PASS:
             // SetHeadAndLastUsedSegment which asserts if a segment map exists.
             ClearSegmentMap();
             SetHeadAndLastUsedSegment(current);
+
+            if (isInlineSegment)
+            {
+                this->ClearElements(oldCurrent, 0);
+            }
 
             if (this->length <= indexInt)
             {

@@ -77,6 +77,25 @@ namespace Js
             bool bailedOut;
             bool bailedOutOfInlinee;
         };
+
+        struct AsmJsReturnStruct
+        {
+#ifdef ASMJS_PLAT
+            int32 i;
+            int64 l;
+            float f;
+            double d;
+            AsmJsSIMDValue simd;
+
+            template<typename T> T GetRetVal();
+            template<> int32 GetRetVal<int32>() { return i; }
+            template<> int64 GetRetVal<int64>() { return l; }
+            template<> float GetRetVal<float>() { return f; }
+            template<> double GetRetVal<double>() { return d; }
+            template<> X86SIMDValue GetRetVal<X86SIMDValue>() { return X86SIMDValue::ToX86SIMDValue(simd); }
+#endif
+        };
+
     private:
         ByteCodeReader m_reader;        // Reader for current function
         int m_inSlotsCount;             // Count of actual incoming parameters to this function
@@ -212,11 +231,11 @@ namespace Js
         template <typename RegSlotType> void SetRegRawInt( RegSlotType localRegisterID, int bValue );
         template <typename RegSlotType> int64 GetRegRawInt64( RegSlotType localRegisterID ) const;
         template <typename RegSlotType> void SetRegRawInt64( RegSlotType localRegisterID, int64 bValue );
-        template <typename RegSlotType> double GetRegRawDouble(RegSlotType localRegisterID) const;
-        template <typename RegSlotType> float GetRegRawFloat(RegSlotType localRegisterID) const;
+        template <typename RegSlotType> double VECTORCALL GetRegRawDouble(RegSlotType localRegisterID) const;
+        template <typename RegSlotType> float VECTORCALL GetRegRawFloat(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetRegRawDouble(RegSlotType localRegisterID, double bValue);
         template <typename RegSlotType> void SetRegRawFloat(RegSlotType localRegisterID, float bValue);
-        template <typename T> T GetRegRaw( RegSlot localRegisterID ) const;
+        template <typename T> T VECTORCALL GetRegRaw( RegSlot localRegisterID ) const;
         template <typename T> void SetRegRaw( RegSlot localRegisterID, T bValue );
 
         template <typename RegSlotType> AsmJsSIMDValue GetRegRawSimd(RegSlotType localRegisterID) const;
@@ -297,8 +316,6 @@ namespace Js
         DWORD_PTR GetStackAddress() const;
         void* GetAddressOfReturnAddress() const;
 
-        template <typename T>
-        static T GetAsmJsRetVal(InterpreterStackFrame* instance);
 #if _M_IX86
         static int GetRetType(JavascriptFunction* func);
         static int GetAsmJsArgSize(AsmJsCallStackLayout * stack);
@@ -328,7 +345,7 @@ namespace Js
 #else
         _NOINLINE static Var InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
-        static Var InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, const bool isAsmJs = false);
+        static Var InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, AsmJsReturnStruct* asmReturn = nullptr);
     private:
 #if DYNAMIC_INTERPRETER_THUNK
         static JavascriptMethod EnsureDynamicInterpreterThunk(Js::ScriptFunction * function);
@@ -385,8 +402,11 @@ namespace Js
         const byte* ProcessWithDebuggingExtendedLargeLayoutPrefix(const byte* ip);
         const byte* ProcessAsmJsExtendedLargeLayoutPrefix(const byte* ip);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         Var ProcessWithDebugging();
         Var DebugProcess();
+        bool IsInDebugMode() const { return this->GetFunctionBody()->IsInDebugMode(); }
+#endif
 
 #if ENABLE_TTD
         Var ProcessWithDebugging_PreviousStmtTracking();
@@ -405,9 +425,6 @@ namespace Js
         const byte* ProcessUnprofiled_PreviousStmtTrackingExtendedLargeLayoutPrefix(const byte* ip);
 #endif
 #endif
-
-        bool IsInDebugMode() const { return this->GetFunctionBody()->IsInDebugMode(); }
-
         // This will be called for reseting outs when resume from break on error happened
         void ResetOut();
 
@@ -524,6 +541,7 @@ namespace Js
         template <class T> void OP_SetPropertyScoped_NoFastPath(unaligned T* playout, PropertyOperationFlags flags);
         template <class T> void OP_SetPropertyScopedStrict(unaligned T* playout);
         template <class T> void OP_ConsoleSetPropertyScoped(unaligned T* playout);
+        template <class T> void OP_ConsoleSetPropertyScopedStrict(unaligned T* playout);
 
         template <class T> void DoSetProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags);
         template <class T> void DoSetSuperProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags);
@@ -590,7 +608,7 @@ namespace Js
 
         template <class T> void OP_LdArrayHeadSegment(const unaligned T* playout);
 
-        inline Var GetFunctionExpression();
+        inline JavascriptFunction* GetFunctionExpression();
 
         template <class T> inline void OP_LdFunctionExpression(const unaligned T* playout);
         template <class T> inline void OP_StFunctionExpression(const unaligned T* playout);
@@ -629,7 +647,6 @@ namespace Js
         template <class T> inline void OP_LdArrFunc(const unaligned T* playout);
         template <class T> inline void OP_LdArrWasmFunc(const unaligned T* playout);
         template <class T> inline void OP_CheckSignature(const unaligned T* playout);
-        template <class T> inline void OP_ReturnDb(const unaligned T* playout);
         template<typename T> T GetArrayViewOverflowVal();
         template <typename ArrayType, typename RegType = ArrayType> inline void OP_StArr( uint32 index, RegSlot value );
         template <class T> inline Var OP_LdAsmJsSlot(Var instance, const unaligned T* playout );

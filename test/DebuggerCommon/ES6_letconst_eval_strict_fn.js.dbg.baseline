@@ -6,7 +6,6 @@
     "locals": {
       "arguments": {
         "#__proto__": "Object {...}",
-        "caller": "Error <large string>",
         "callee": "Error <large string>",
         "length": "number 0",
         "Symbol.iterator": "function <large string>"

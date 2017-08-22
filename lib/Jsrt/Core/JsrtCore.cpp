@@ -110,10 +110,6 @@ JsModuleEvaluation(
         return JsErrorInvalidArgument;
     }
     Js::SourceTextModuleRecord* moduleRecord = Js::SourceTextModuleRecord::FromHost(requestModule);
-    if (moduleRecord->WasEvaluated())
-    {
-        return JsErrorModuleEvaluated;
-    }
     if (result != nullptr)
     {
         *result = JS_INVALID_REFERENCE;

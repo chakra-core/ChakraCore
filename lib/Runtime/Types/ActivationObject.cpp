@@ -262,9 +262,9 @@ namespace Js
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(__super::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext)))
         {
             GetPropertyCore(info, requestContext);
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags ActivationObjectEx::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var *value, PropertyValueInfo *info, ScriptContext *requestContext)
@@ -272,9 +272,9 @@ namespace Js
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(__super::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext)))
         {
             GetPropertyCore(info, requestContext);
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     void ActivationObjectEx::InvalidateCachedScope()

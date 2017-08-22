@@ -12,5 +12,5 @@ function dummy() {
 
 dummy();
 var obj = {};
-  obj.nosuchfunc(); //10,3
+  obj.nosuchfunc();
 dummy();

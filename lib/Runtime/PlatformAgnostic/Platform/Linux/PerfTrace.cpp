@@ -18,13 +18,13 @@ using namespace Js;
 //
 void handle_signal(int signum)
 {
-    PlatformAgnostic::PerfTrace::mapsRequested = true;
+    PlatformAgnostic::PerfTrace::mapsRequested = 1;
 }
 
 namespace PlatformAgnostic
 {
 
-volatile bool PerfTrace::mapsRequested = false;
+volatile sig_atomic_t PerfTrace::mapsRequested = 0;
   
 //
 // Registers a signal handler for SIGUSR2 
@@ -145,7 +145,7 @@ void  PerfTrace::WritePerfMap()
     fflush(perfMapFile);
     fclose(perfMapFile);
 #endif
-    PerfTrace::mapsRequested = false;
+    PerfTrace::mapsRequested = 0;
 }
 
 }

@@ -424,9 +424,18 @@ WasmOp WasmBinaryReader::ReadExpr()
         break;
     case wbCurrentMemory:
     case wbGrowMemory:
+    {
         // Reserved value currently unused
-        ReadConst<uint8>();
+        uint8 reserved = ReadConst<uint8>();
+        if (reserved != 0)
+        {
+            ThrowDecodingError(op == wbCurrentMemory
+                ? _u("current_memory reserved value must be 0")
+                : _u("grow_memory reserved value must be 0")
+            );
+        }
         break;
+    }
 #define WASM_MEM_OPCODE(opname, opcode, sig, nyi) \
     case wb##opname: \
         MemNode(); \
@@ -460,12 +469,7 @@ void WasmBinaryReader::ValidateModuleHeader()
 
     if (CONFIG_FLAG(WasmCheckVersion))
     {
-        // Accept version 0xd to avoid problem in our test infrastructure
-        // We should eventually remove support for 0xd.
-        // The Assert is here as a reminder in case we change the binary version and we haven't removed 0xd support yet
-        CompileAssert(binaryVersion == 0x1);
-
-        if (version != binaryVersion && version != 0xd)
+        if (version != binaryVersion)
         {
             ThrowDecodingError(_u("Invalid WASM version!"));
         }
@@ -493,7 +497,11 @@ void WasmBinaryReader::CallIndirectNode()
 
     uint32 funcNum = LEB128(length);
     // Reserved value currently unused
-    ReadConst<uint8>();
+    uint8 reserved = ReadConst<uint8>();
+    if (reserved != 0)
+    {
+        ThrowDecodingError(_u("call_indirect reserved value must be 0"));
+    }
     if (!m_module->HasTable() && !m_module->HasTableImport())
     {
         ThrowDecodingError(_u("Found call_indirect operator, but no table"));
@@ -580,11 +588,15 @@ void WasmBinaryReader::ConstNode()
         m_funcState.count += len;
         break;
     case WasmTypes::F32:
-        m_currentNode.cnst.f32 = ReadConst<float>();
+    {
+        m_currentNode.cnst.i32 = ReadConst<int32>();
+        CompileAssert(sizeof(int32) == sizeof(float));
         m_funcState.count += sizeof(float);
         break;
+    }
     case WasmTypes::F64:
-        m_currentNode.cnst.f64 = ReadConst<double>();
+        m_currentNode.cnst.i64 = ReadConst<int64>();
+        CompileAssert(sizeof(int64) == sizeof(double));
         m_funcState.count += sizeof(double);
         break;
     }
@@ -637,8 +649,6 @@ void WasmBinaryReader::ReadSignatureTypeSection()
     // signatures table
     for (uint32 i = 0; i < numTypes; i++)
     {
-        TRACE_WASM_DECODER(_u("Signature #%u"), i);
-
         WasmSignature* sig = m_module->GetSignature(i);
         sig->SetSignatureId(i);
         int8 form = ReadConst<int8>();
@@ -672,6 +682,14 @@ void WasmBinaryReader::ReadSignatureTypeSection()
             sig->SetResultType(type);
         }
         sig->FinalizeSignature();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (DO_WASM_TRACE_DECODER)
+        {
+            Output::Print(_u("Signature #%u: "), i);
+            sig->Dump();
+            Output::Print(_u("\n"));
+        }
+#endif
     }
 }
 
@@ -720,7 +738,7 @@ void WasmBinaryReader::ReadExportSection()
         const char16* exportName = ReadInlineName(length, nameLength);
 
         // Check if the name is already used
-        NameList* list;
+        NameList* list = nullptr;
         if (exportsNameDict.TryGetValue(nameLength, &list))
         {
             const char16** found = list->Find([exportName, nameLength](const char16* existing) { 
@@ -1246,6 +1264,9 @@ SectionLimits WasmBinaryReader::ReadSectionLimits(uint32 maxInitial, uint32 maxM
     return limits;
 }
 
+// Do not use float version of ReadConst. Instead use integer version and reinterpret bits.
+template<> double WasmBinaryReader::ReadConst<double>() { Assert(false); return 0; }
+template<> float WasmBinaryReader::ReadConst<float>() { Assert(false); return 0;  }
 template <typename T>
 T WasmBinaryReader::ReadConst()
 {

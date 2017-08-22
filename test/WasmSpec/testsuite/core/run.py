@@ -12,8 +12,7 @@ import sys
 
 ownDir = os.path.dirname(os.path.abspath(sys.argv[0]))
 inputDir = ownDir
-expectDir = "expected-output"
-outputDir = os.path.join(inputDir, "output")
+outputDir = os.path.join(inputDir, "_output")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--wasm", metavar="<wasm-command>", default=os.path.join(os.getcwd(), "wasm"))
@@ -51,13 +50,11 @@ class RunTests(unittest.TestCase):
   def _runTestFile(self, inputPath):
     dir, inputFile = os.path.split(inputPath)
     outputPath = os.path.join(outputDir, inputFile)
-    expectPath = os.path.join(dir, os.path.join(expectDir, inputFile))
 
     # Run original file
     expectedExitCode = 1 if ".fail." in inputFile else 0
     logPath = self._auxFile(outputPath + ".log")
     self._runCommand(('%s "%s"') % (wasmCommand, inputPath), logPath, expectedExitCode)
-    self._compareFile(expectPath + ".log", logPath)
 
     if expectedExitCode != 0:
       return
