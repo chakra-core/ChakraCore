@@ -12,6 +12,7 @@
 #include "Warnings.h"
 #include "ChakraCoreVersion.h"
 
+
 //----------------------------------------------------------------------------------------------------
 // Default debug/fretest/release flags values
 //  - Set the default values of debug/fretest/release flags if it is not set by the command line
@@ -122,7 +123,15 @@
 
 // Type system features
 #define PERSISTENT_INLINE_CACHES                    // *** TODO: Won't build if disabled currently
-#define SUPPORT_FIXED_FIELDS_ON_PATH_TYPES          // *** TODO: Won't build if disabled currently
+
+#if !DISABLE_JIT
+#define ENABLE_FIXED_FIELDS 1                       // Turn on fixed fields if JIT is enabled
+#endif
+
+#if ENABLE_FIXED_FIELDS
+#define SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+#endif
+
 
 // xplat-todo: revisit these features
 #ifdef _WIN32

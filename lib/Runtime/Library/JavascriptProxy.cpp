@@ -850,11 +850,13 @@ namespace Js
         return TRUE;
     }
 
+#if ENABLE_FIXED_FIELDS
     BOOL JavascriptProxy::IsFixedProperty(PropertyId propertyId)
     {
         // TODO: can we add support for fixed property? don't see a clear way to invalidate...
         return false;
     }
+#endif
 
     PropertyQueryFlags JavascriptProxy::HasItemQuery(uint32 index)
     {

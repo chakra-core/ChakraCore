@@ -327,11 +327,13 @@ namespace Js
         return GetTypeHandler()->DeleteProperty(this, propertyNameString, flags);
     }
 
+#if ENABLE_FIXED_FIELDS
     BOOL DynamicObject::IsFixedProperty(PropertyId propertyId)
     {
         Assert(!Js::IsInternalPropertyId(propertyId));
         return GetTypeHandler()->IsFixedProperty(this, propertyId);
     }
+#endif
 
     PropertyQueryFlags DynamicObject::HasItemQuery(uint32 index)
     {

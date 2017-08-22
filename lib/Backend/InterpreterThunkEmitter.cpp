@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
 #ifdef _M_X64
 #ifdef _WIN32
 const BYTE InterpreterThunkEmitter::FunctionInfoOffset = 23;

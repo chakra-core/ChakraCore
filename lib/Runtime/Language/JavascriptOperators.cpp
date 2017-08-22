@@ -1722,7 +1722,7 @@ CommonNumber:
 
         if (foundProperty)
         {
-#if DBG
+#if ENABLE_FIXED_FIELDS && DBG
             if (DynamicObject::Is(object))
             {
                 DynamicObject* dynamicObject = (DynamicObject*)object;
@@ -2067,7 +2067,8 @@ CommonNumber:
         {
             JavascriptError::ThrowReferenceError(requestContext, JSERR_UseBeforeDeclaration);
         }
-#if DBG
+
+#if ENABLE_FIXED_FIELDS && DBG
         if (DynamicObject::Is(object))
         {
             DynamicObject* dynamicObject = (DynamicObject*)object;
@@ -5435,7 +5436,9 @@ CommonNumber:
 
         if (!newType->GetIsShared())
         {
+#if ENABLE_FIXED_FIELDS
             newType->GetTypeHandler()->SetSingletonInstanceIfNeeded(instance);
+#endif
         }
 #ifdef PROFILE_OBJECT_LITERALS
         else
@@ -8135,6 +8138,7 @@ CommonNumber:
         }
     }
 
+#if ENABLE_NATIVE_CODEGEN
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     void JavascriptOperators::TracePropertyEquivalenceCheck(const JitEquivalentTypeGuard* guard, const Type* type, const Type* refType, bool isEquivalent, uint failedPropertyIndex)
     {
@@ -8440,6 +8444,7 @@ CommonNumber:
         guard->SetTypeAddr((intptr_t)type);
         return true;
     }
+#endif
 
     void JavascriptOperators::GetPropertyIdForInt(uint64 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord)
     {

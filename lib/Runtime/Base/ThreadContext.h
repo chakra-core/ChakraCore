@@ -572,6 +572,7 @@ private:
         // that would not get removed, but it would also not get any bigger.
         Field(PropertyIdToTypeHashSetDictionary) typesWithProtoPropertyCache;
 
+#if ENABLE_NATIVE_CODEGEN
         // The property guard dictionary contains property guards which need to be invalidated in response to properties changing
         // from writable to read-only and vice versa, properties being shadowed or unshadowed on prototypes, etc.  The dictionary
         // holds only weak references to property guards and their lifetimes are controlled by their creators (typically entry points).
@@ -579,7 +580,7 @@ private:
         // the guards for a given property get invalidated.
         // TODO: Create and use a self-cleaning weak reference dictionary, which would periodically remove any unused weak references.
         Field(PropertyGuardDictionary) propertyGuards;
-
+#endif
 
         Field(PropertyNoCaseSetType *) caseInvariantPropertySet;
 

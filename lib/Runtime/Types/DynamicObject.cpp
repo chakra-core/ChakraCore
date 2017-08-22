@@ -649,6 +649,7 @@ namespace Js
         DynamicType * oldType = this->GetDynamicType();
         DynamicTypeHandler* oldTypeHandler = oldType->GetTypeHandler();
 
+#if ENABLE_FIXED_FIELDS
         // Consider: Because we've disabled fixed properties on DOM objects, we don't need to rely on a type change here to
         // invalidate fixed properties.  Under some circumstances (with F12 tools enabled) an object which
         // is already in the new context can be reset and newType == oldType. If we re-enable fixed properties on DOM objects
@@ -656,6 +657,7 @@ namespace Js
         // Assert(newType != oldType);
         // We only expect DOM objects to ever be reset and we explicitly disable fixed properties on DOM objects.
         Assert(!oldTypeHandler->HasAnyFixedProperties());
+#endif
 
         this->type = newType;
         if (!IsAnyArray(this))

@@ -290,7 +290,9 @@ namespace Js {
         virtual BOOL InitFuncScoped(PropertyId propertyId, Var value);
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags);
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags);
+#if ENABLE_FIXED_FIELDS
         virtual BOOL IsFixedProperty(PropertyId propertyId);
+#endif
         virtual PropertyQueryFlags HasItemQuery(uint32 index);
         virtual BOOL HasOwnItem(uint32 index);
         virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext);

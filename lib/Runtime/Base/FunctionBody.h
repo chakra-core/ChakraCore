@@ -79,6 +79,8 @@ namespace Js
         Type * type;
         void * data;
     };
+
+#if ENABLE_NATIVE_CODEGEN
     class PropertyGuard
     {
         friend class PropertyGuardValidator;
@@ -271,6 +273,7 @@ namespace Js
             this->cache = cache;
         }
     };
+#endif // ENABLE_NATIVE_CODEGEN
 
 #pragma region Inline Cache Info class declarations
     class PolymorphicCacheUtilizationArray

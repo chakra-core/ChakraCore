@@ -349,7 +349,9 @@ namespace Js
         }
     #endif
 
+#if ENABLE_FIXED_FIELDS
         Assert(!object->IsFixedProperty(propertyId));
+#endif
         Assert(
             (
                 DynamicObject
