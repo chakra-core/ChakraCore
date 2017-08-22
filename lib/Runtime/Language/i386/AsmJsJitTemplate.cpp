@@ -1478,7 +1478,7 @@ namespace Js
             int32 stackSize = asmInfo->GetTotalSizeinBytes();
             stackSize = ::Math::Align<int32>(stackSize, 8);
 
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
             if (Js::Configuration::Global.flags.DebugBreak.Contains(funcBody->GetFunctionNumber()) ||
                 PHASE_ON(DebugBreakPhase, funcBody))
             {
