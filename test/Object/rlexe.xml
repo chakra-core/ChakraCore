@@ -72,6 +72,8 @@
         <files>toLocaleStringBasics.js</files>
         <baseline>toLocaleStringBasics.baseline</baseline>
         <compile-flags>-args summary -endargs</compile-flags>
+        <!-- The output is different on windows with Intl off, may want to merge the windows and linux implementation -->
+        <tags>Intl</tags>
     </default>
   </test>
   <!-- Disabled until we can resolve failures on Windows Server 2012 R2 (Microsoft/ChakraCore#3030)
