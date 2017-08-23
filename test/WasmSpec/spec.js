@@ -218,7 +218,7 @@ function createModule(baseDir, buffer, registry, output) {
   }
   output.module = new WebAssembly.Module(buffer);
   // We'll know if an error occurs at instanciation because output.module will be set
-  output.instance = new WebAssembly.Instance(output.module, registry);
+  output.instance = new WebAssembly.Instance(output.module, registry || undefined);
 }
 
 function moduleCommand(baseDir, command, registry, moduleRegistry) {
