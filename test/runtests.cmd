@@ -207,8 +207,11 @@ goto :main
     goto :ArgOk
   )
   if /i "%1" == "-disablejit" (
-    set _DisableJit=1
     set _Variants=disable_jit
+    goto :ArgOk
+  )
+  if /i "%1" == "-lite" (
+    set _Variants=lite
     goto :ArgOk
   )
   
@@ -400,6 +403,10 @@ goto :main
   if "%_TESTCONFIG%"=="disable_jit" (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -nonative
     set EXTRA_RL_FLAGS=-nottags:exclude_interpreted -nottags:fails_interpreted -nottags:require_backend
+  )
+  if "%_TESTCONFIG%"=="lite" (
+    set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -nonative
+    set EXTRA_RL_FLAGS=-nottags:exclude_interpreted -nottags:fails_interpreted -nottags:require_backend -nottags:require_debugger -nottags:Intl
   )
   if "%_TESTCONFIG%"=="dynapogo"    (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -forceNative -off:simpleJit -bgJitDelay:0 %_dynamicprofileinput%
