@@ -4209,7 +4209,7 @@ Instr::DumpByteCodeOffset()
 void
 Instr::DumpGlobOptInstrString()
 {
-    if(this->globOptInstrString)
+    if(this->globOptInstrString && Js::Configuration::Global.flags.PrintGlobOptInstrString)
     {
         Output::Print(_u("\n\n GLOBOPT INSTR: %s\n\n"), this->globOptInstrString);
     }
