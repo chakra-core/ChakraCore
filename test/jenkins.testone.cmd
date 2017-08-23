@@ -45,6 +45,7 @@ set _HadFailures=0
   set _TestDir=%CD%
 
   call jenkins.parsetestargs.cmd %*
+
   set _LogDir=%_TestDir%\logs\%_TestArch%_%_TestType%
   set _TestArgs=%_TestArch%%_TestType%
   set _BinDir=%_RootDir%\Build\VcBuild%_SpecialBuild%\bin
@@ -57,7 +58,8 @@ set _HadFailures=0
   call :summarizeLogs
 
   echo.
-  if "%_HadFailures%" == "1" (
+  echo %_HadFailures%
+  if "%_HadFailures%" NEQ "0" (
     echo -- jenkins.testone.cmd ^>^> Tests failed! 1>&2
   ) else (
     echo -- jenkins.testone.cmd ^>^> Tests passed!
@@ -76,7 +78,10 @@ set _HadFailures=0
 
   call :do %_TestDir%\runtests.cmd -%1 -quiet -cleanupall -nottags exclude_jenkins %_ExtraTestArgs% -binDir %_BinDir%
 
-  if ERRORLEVEL 1 set _HadFailures=1
+  if "%ERRORLEVEL%" NEQ "0" (
+    echo -- runcitests.cmd ^>^> runtests.cmd failed
+    set _HadFailures=3
+  )
 
   goto :eof
 
@@ -85,9 +90,14 @@ set _HadFailures=0
 :: ============================================================================
 :runNativeTests
 
-  call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% > %_LogDir%\nativetests.log 2>&1
+  set _LogFile=%_LogDir%\nativetests.log
+  call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% > %_LogFile% 2>&1
 
-  if ERRORLEVEL 1 set _HadFailures=1
+  if "%ERRORLEVEL%" NEQ "0" (
+    echo -- runcitests.cmd ^>^> runnativetests.cmd failed (printing %_LogFile% below)
+    powershell "if (Test-Path %_LogFile%) { Get-Content  %_LogFile% }"
+    set _HadFailures=4
+  )
 
   goto :eof
 

@@ -71,7 +71,7 @@ goto :main
   call :copyScriptsAndBinaries
 
   call :runtest
-  
+
   call :cleanup
 
   exit /b %_HadFailures%
@@ -167,7 +167,7 @@ goto :main
 :copyScriptsAndBinaries
   echo -- runnativetests.cmd ^>^> copying scripts from '%_RootDir%\bin\nativetests\Scripts' to '%_TestTempDir%'
   copy /y %_RootDir%\bin\nativetests\Scripts\*.js %_TestTempDir%
-  
+
   copy /y %_BinDir%ChakraCore.dll %_TestTempDir%
   copy /y %_BinDir%nativetests.exe %_TestTempDir%
 
@@ -179,7 +179,8 @@ goto :main
 :runtest
   pushd %_TestTempDir%
   call :do nativetests.exe
-  if ERRORLEVEL 1 set _HadFailures=1
+  if %ERRORLEVEL% NEQ 0 set _HadFailures=1
+  echo -- runnativetests.cmd ^>^> nativetests.exe exiting with exit code %_HadFailures%
   popd
 
   goto :eof
