@@ -383,6 +383,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "../JITClient/JITManager.h"
 
 #include "Base/SourceHolder.h"
+#include "Base/LineOffsetCache.h"
 #include "Base/Utf8SourceInfo.h"
 #include "Base/PropertyRecord.h"
 #ifdef ENABLE_GLOBALIZATION

@@ -133,12 +133,6 @@ namespace Js {
     };
 
     template <typename SizePolicy>
-    struct OpLayoutT_Reg2WithICIndex : public OpLayoutT_Reg2<SizePolicy>
-    {
-        InlineCacheIndex inlineCacheIndex;
-    };
-
-    template <typename SizePolicy>
     struct OpLayoutT_Reg3         // R0 <- R1 op R2   -- or --   R0 op R1 <- R2
     {
         typename SizePolicy::RegSlotType     R0;
@@ -371,7 +365,7 @@ namespace Js {
     template <typename SizePolicy>
     struct OpLayoutT_ElementSlot    // Value = Instance[SlotIndex] or Instance[SlotIndex] = Value
     {
-        int32                                SlotIndex; // TODO: Make this one byte?
+        typename SizePolicy::UnsignedType    SlotIndex;
         typename SizePolicy::RegSlotType     Value;
         typename SizePolicy::RegSlotType     Instance;
     };
@@ -379,15 +373,15 @@ namespace Js {
     template <typename SizePolicy>
     struct OpLayoutT_ElementSlotI1
     {
-        int32       SlotIndex;          // TODO: Make this one byte?
+        typename SizePolicy::UnsignedType    SlotIndex;
         typename SizePolicy::RegSlotType     Value;
     };
 
     template <typename SizePolicy>
     struct OpLayoutT_ElementSlotI2
     {
-        int32       SlotIndex1;          // TODO: Make this one byte?
-        int32       SlotIndex2;          // TODO: Make this one byte?
+        typename SizePolicy::UnsignedType    SlotIndex1;
+        typename SizePolicy::UnsignedType    SlotIndex2;
         typename SizePolicy::RegSlotType     Value;
     };
 
@@ -457,13 +451,6 @@ namespace Js {
     struct OpLayoutW1
     {
         unsigned short C1;
-    };
-
-    struct OpLayoutReg1Int2          // R0 <- Var(C1, C2)
-    {
-        RegSlot     R0;
-        int32       C1;
-        int32       C2;
     };
 
     template <typename SizePolicy>

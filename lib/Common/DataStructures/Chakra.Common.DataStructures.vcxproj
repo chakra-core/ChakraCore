@@ -60,7 +60,6 @@
     <ClInclude Include="GrowingArray.h" />
     <ClInclude Include="ImmutableList.h" />
     <ClInclude Include="Interval.h" />
-    <ClInclude Include="LineOffsetCache.h" />
     <ClInclude Include="LeafValueDictionary.h" />
     <ClInclude Include="MruDictionary.h" />
     <ClInclude Include="PageStack.h" />

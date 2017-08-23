@@ -304,7 +304,7 @@ namespace Js
             int64 byteStartOffset = (sourceAfterBOM - sourceStart);
 
             Recycler* recycler = this->m_scriptContext->GetRecycler();
-            this->m_lineOffsetCache = RecyclerNew(recycler, JsUtil::LineOffsetCache<Recycler>, recycler, sourceAfterBOM, sourceEnd, startChar, (int)byteStartOffset);
+            this->m_lineOffsetCache = RecyclerNew(recycler, LineOffsetCache, recycler, sourceAfterBOM, sourceEnd, startChar, (int)byteStartOffset);
         }
     }
 
@@ -343,7 +343,7 @@ namespace Js
             Assert((sourceAfterBOM - sourceStart) < MAXUINT32);
             charcount_t byteStartOffset = (charcount_t)(sourceAfterBOM - sourceStart);
 
-            line = JsUtil::LineOffsetCache<Recycler>::FindLineForCharacterOffset(sourceAfterBOM, sourceEnd, lineCharOffset, byteStartOffset, charPosition);
+            line = LineOffsetCache::FindLineForCharacterOffset(sourceAfterBOM, sourceEnd, lineCharOffset, byteStartOffset, charPosition);
 
             *outLineByteOffset = byteStartOffset;
         }
@@ -358,11 +358,11 @@ namespace Js
         *outColumn = charPosition - lineCharOffset;
     }
 
-    void Utf8SourceInfo::CreateLineOffsetCache(const JsUtil::LineOffsetCache<Recycler>::LineOffsetCacheItem *items, charcount_t numberOfItems)
+    void Utf8SourceInfo::CreateLineOffsetCache(const charcount_t *lineCharacterOffsets, const charcount_t *lineByteOffsets, charcount_t numberOfItems)
     {
         AssertMsg(this->m_lineOffsetCache == nullptr, "LineOffsetCache is already initialized!");
         Recycler* recycler = this->m_scriptContext->GetRecycler();
-        this->m_lineOffsetCache = RecyclerNew(recycler, JsUtil::LineOffsetCache<Recycler>, recycler, items, numberOfItems);
+        this->m_lineOffsetCache = RecyclerNew(recycler, LineOffsetCache, recycler, lineCharacterOffsets, lineByteOffsets, numberOfItems);
     }
 
     DWORD_PTR Utf8SourceInfo::GetHostSourceContext() const

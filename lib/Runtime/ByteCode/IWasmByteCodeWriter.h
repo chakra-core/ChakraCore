@@ -30,7 +30,7 @@ namespace Js
         virtual void AsmReg1(OpCodeAsmJs op, RegSlot R0) = 0;
         virtual void AsmReg2(OpCodeAsmJs op, RegSlot R0, RegSlot R1) = 0;
         virtual void AsmReg3(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2) = 0;
-        virtual void AsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, int32 slotId) = 0;
+        virtual void AsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, uint32 slotId) = 0;
         virtual void AsmBr(ByteCodeLabel labelID, OpCodeAsmJs op = OpCodeAsmJs::AsmBr) = 0;
         virtual void AsmBrReg1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1) = 0;
         virtual void AsmBrReg1Const1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1) = 0;

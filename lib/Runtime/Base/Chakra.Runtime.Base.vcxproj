@@ -52,6 +52,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionBody.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LeaveScriptObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)LineOffsetCache.cpp" />    
     <ClCompile Include="$(MSBuildThisFileDirectory)PerfHint.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecord.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ScriptContext.cpp" />
@@ -99,6 +100,7 @@
     <ClInclude Include="FunctionInfo.h" />
     <ClInclude Include="JnDirectFields.h" />
     <ClInclude Include="LeaveScriptObject.h" />
+    <ClInclude Include="LineOffsetCache.h" />
     <ClInclude Include="PerfHint.h" />
     <ClInclude Include="PerfHintDescriptions.h" />
     <ClInclude Include="PropertyRecord.h" />
