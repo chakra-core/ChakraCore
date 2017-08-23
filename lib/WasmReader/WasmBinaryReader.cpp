@@ -1012,24 +1012,23 @@ const char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLengt
     m_pc += rawNameLength;
     length += rawNameLength;
 
-    utf8::DecodeOptions decodeOptions = utf8::doDefault;
-    nameLength = (uint32)utf8::ByteIndexIntoCharacterIndex(rawName, rawNameLength, decodeOptions);
-    char16* contents = AnewArray(m_alloc, char16, nameLength + 1);
-    size_t decodedLength = utf8::DecodeUnitsIntoAndNullTerminate(contents, rawName, rawName + rawNameLength, decodeOptions);
-    if (decodedLength != nameLength)
+    utf8::DecodeOptions decodeOptions = utf8::doThrowOnInvalidWCHARs;
+    try
     {
-        AssertMsg(UNREACHED, "We calculated the length before decoding, what happened ?");
-        ThrowDecodingError(_u("Error while decoding utf8 string"));
-    }
-    for (size_t i = 0; i < decodedLength; ++i)
-    {
-        const char16 c = contents[i];
-        if (!utf8::IsValidWideChar(c) || c == UNICODE_UNKNOWN_CHAR_MARK)
+        nameLength = (uint32)utf8::ByteIndexIntoCharacterIndex(rawName, rawNameLength, decodeOptions);
+        char16* contents = AnewArray(m_alloc, char16, nameLength + 1);
+        size_t decodedLength = utf8::DecodeUnitsIntoAndNullTerminate(contents, rawName, rawName + rawNameLength, decodeOptions);
+        if (decodedLength != nameLength)
         {
-            ThrowDecodingError(_u("Invalid UTF-8 encoding"));
+            AssertMsg(UNREACHED, "We calculated the length before decoding, what happened ?");
+            ThrowDecodingError(_u("Error while decoding utf8 string"));
         }
+        return contents;
     }
-    return contents;
+    catch (utf8::InvalidWideCharException)
+    {
+        ThrowDecodingError(_u("Invalid UTF-8 encoding"));
+    }
 }
 
 void WasmBinaryReader::ReadImportSection()

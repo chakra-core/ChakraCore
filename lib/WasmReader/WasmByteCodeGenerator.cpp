@@ -1181,18 +1181,18 @@ void WasmBytecodeGenerator::EmitBrTable()
     EmitInfo scrutineeInfo = PopEvalStack(WasmTypes::I32, _u("br_table expression must be of type i32"));
 
     m_writer->AsmReg2(Js::OpCodeAsmJs::BeginSwitch_Int, scrutineeInfo.location, scrutineeInfo.location);
-    EmitInfo yieldvalue;
+    EmitInfo yieldValue;
     BlockInfo defaultBlockInfo = GetBlockInfo(defaultEntry);
     if (defaultBlockInfo.HasYield())
     {
         // If the scrutinee is any then check the stack before popping
         if (scrutineeInfo.type == WasmTypes::Any && m_evalStack.Peek().type == WasmTypes::Limit)
         {
-            yieldvalue = scrutineeInfo;
+            yieldValue = scrutineeInfo;
         }
         else
         {
-            yieldvalue = PopEvalStack();
+            yieldValue = PopEvalStack();
         }
     }
 
@@ -1207,14 +1207,14 @@ void WasmBytecodeGenerator::EmitBrTable()
             WasmTypes::WasmType type = blockInfo.yieldInfo ? blockInfo.yieldInfo->info.type : WasmTypes::Void;
             throw WasmCompilationException(_u("br_table target %u signature mismatch. Expected ()->%s, got ()->%s"), target, GetTypeName(defaultType), GetTypeName(type));
         }
-        YieldToBlock(blockInfo, yieldvalue);
+        YieldToBlock(blockInfo, yieldValue);
         m_writer->AsmBrReg1Const1(Js::OpCodeAsmJs::Case_IntConst, blockInfo.label, scrutineeInfo.location, i);
     }
 
-    YieldToBlock(defaultBlockInfo, yieldvalue);
+    YieldToBlock(defaultBlockInfo, yieldValue);
     m_writer->AsmBr(defaultBlockInfo.label, Js::OpCodeAsmJs::EndSwitch_Int);
     ReleaseLocation(&scrutineeInfo);
-    ReleaseLocation(&yieldvalue);
+    ReleaseLocation(&yieldValue);
 
     SetUnreachableState(true);
 }
