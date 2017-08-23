@@ -70,18 +70,26 @@ namespace utf8
         return ((0x5B >> (((prefix ^ 0xF0) >> 3) & 0x1E)) & 0x03) + 1;
     }
 
-    const char16 g_chUnknown = char16(UNICODE_UNKNOWN_CHAR_MARK);
     const char16 WCH_UTF16_HIGH_FIRST  =  char16(0xd800);
     const char16 WCH_UTF16_HIGH_LAST   =  char16(0xdbff);
     const char16 WCH_UTF16_LOW_FIRST   =  char16(0xdc00);
     const char16 WCH_UTF16_LOW_LAST    =  char16(0xdfff);
+
+    char16 GetUnknownCharacter(DecodeOptions options = doDefault)
+    {
+        if ((options & doThrowOnInvalidWCHARs) != 0)
+        {
+            throw InvalidWideCharException();
+        }
+        return char16(UNICODE_UNKNOWN_CHAR_MARK);
+    }
 
     inline BOOL InRange(const char16 ch, const char16 chMin, const char16 chMax)
     {
         return (unsigned)(ch - chMin) <= (unsigned)(chMax - chMin);
     }
 
-    inline BOOL IsValidWideChar(const char16 ch)
+    BOOL IsValidWideChar(char16 ch)
     {
         return (ch < 0xfdd0) || ((ch > 0xfdef) && (ch <= 0xffef)) || ((ch >= 0xfff9) && (ch <= 0xfffd));
     }
@@ -122,7 +130,7 @@ namespace utf8
             }
 
             // 10xxxxxx (trail byte appearing in a lead byte position
-            return g_chUnknown;
+            return GetUnknownCharacter(options);
 
         case 2:
             // Look for an overlong utf-8 sequence.
@@ -138,7 +146,7 @@ namespace utf8
                         *chunkEndsAtTruncatedSequence = true;
                     }
                 }
-                return g_chUnknown;
+                return GetUnknownCharacter(options);
             }
             c2 = *ptr++;
             // 110XXXXx 10xxxxxx
@@ -152,12 +160,14 @@ namespace utf8
                 ch |= WCHAR(c1 & 0x1f) << 6;     // 0x0080 - 0x07ff
                 ch |= WCHAR(c2 & 0x3f);
                 if (!IsValidWideChar(ch) && ((options & doAllowInvalidWCHARs) == 0))
-                    ch = g_chUnknown;
+                {
+                    ch = GetUnknownCharacter(options);
+                }
             }
             else
             {
                 ptr--;
-                ch = g_chUnknown;
+                ch = GetUnknownCharacter(options);
             }
             break;
 
@@ -177,7 +187,7 @@ namespace utf8
                     }
                 }
 
-                return g_chUnknown;
+                return GetUnknownCharacter(options);
             }
 
             //      UTF16       |   UTF8 1st byte  2nd byte 3rd byte
@@ -217,12 +227,14 @@ namespace utf8
                 ch |= WCHAR(c2 & 0x3f) << 6;     // 0x0080 - 0x07ff
                 ch |= WCHAR(c3 & 0x3f);
                 if (!IsValidWideChar(ch) && ((options & (doAllowThreeByteSurrogates | doAllowInvalidWCHARs)) == 0))
-                    ch = g_chUnknown;
+                {
+                    ch = GetUnknownCharacter(options);
+                }
                 ptr += 2;
             }
             else
             {
-                ch = g_chUnknown;
+                ch = GetUnknownCharacter(options);
                 // Windows OS 1713952. Only drop the illegal leading byte
                 // Retry next byte.
                 // ptr is already advanced.
@@ -246,7 +258,7 @@ LFourByte:
                     }
                 }
 
-                ch = g_chUnknown;
+                ch = GetUnknownCharacter(options);
                 break;
             }
 
@@ -281,7 +293,7 @@ LFourByte:
                 // Windows OS 1713952. Only drop the illegal leading byte.
                 // Retry next byte.
                 // ptr is already advanced 1.
-                ch = g_chUnknown;
+                ch = GetUnknownCharacter(options);
                 break;
             }
 
