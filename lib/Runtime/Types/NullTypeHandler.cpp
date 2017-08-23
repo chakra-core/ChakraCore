@@ -132,6 +132,11 @@ namespace Js
         return ConvertToSimpleType(instance)->SetProperty(instance, propertyNameString, value, flags, info);
     }
 
+    BOOL NullTypeHandlerBase::SetInternalProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags)
+    {
+        return SetPropertyWithAttributes(instance, propertyId, value, PropertyWritable & PropertyConfigurable, nullptr, flags);
+    }
+
     BOOL NullTypeHandlerBase::AddProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects)
     {
         if (this->isPrototype && (ChangeTypeOnProto() || (GetIsShared() && IsolatePrototypes())))

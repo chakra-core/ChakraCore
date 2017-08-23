@@ -1059,6 +1059,12 @@ namespace Js
         ConvertToSimpleDictionaryType(instance)->SetIsPrototype(instance);
     }
 
+    template<size_t size>
+    BOOL SimpleTypeHandler<size>::SetInternalProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags)
+    {
+        return SetPropertyWithAttributes(instance, propertyId, value, PropertyWritable & PropertyConfigurable, nullptr, flags);
+    }
+
 #if DBG
     template<size_t size>
     bool SimpleTypeHandler<size>::CanStorePropertyValueDirectly(const DynamicObject* instance, PropertyId propertyId, bool allowLetConst)
