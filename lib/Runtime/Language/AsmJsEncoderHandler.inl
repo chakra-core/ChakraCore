@@ -50,6 +50,7 @@ EXDEF3    ( CUSTOM     , InvalidOpCode     , OP_Empty                , Empty    
 // External Calls
   DEF3    ( CUSTOM     , StartCall         , OP_StartCall            , StartCall     )
   DEF3_WMS( CUSTOM     , Call              , OP_Call                 , AsmCall       )
+  DEF3    ( CUSTOM     , CheckHeap         , OP_CheckHeap            , Empty         ) // TODO:: Implement CheckHeap in Templatized jit
   DEF3_WMS( CUSTOM     , ArgOut_Db         , OP_ArgOut_Db            , Reg1Double1   )
   DEF3_WMS( CUSTOM     , ArgOut_Int        , OP_ArgOut_Int           , Reg1Int1      )
   DEF3_WMS( CUSTOM     , Conv_VTD          , OP_Conv_VTD             , Double1Reg1   )

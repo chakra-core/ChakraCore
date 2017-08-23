@@ -1398,6 +1398,13 @@ namespace Js
         default:
             break;
         }
+
+        // after foreign function call, we need to make sure that the heap hasn't been detached
+        if (isFFI && mCompiler->UsesHeapBuffer())
+        {
+            mWriter.EmptyAsm(OpCodeAsmJs::CheckHeap);
+            mCompiler->SetUsesHeapBuffer(true);
+        }
         EndStatement(pnode);
         --mNestedCallCount;
         Assert(mNestedCallCount >= 0);

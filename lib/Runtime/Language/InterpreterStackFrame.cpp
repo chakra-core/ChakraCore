@@ -3861,7 +3861,11 @@ namespace Js
     void InterpreterStackFrame::OP_AsmCall(const unaligned T* playout)
     {
         OP_CallCommon(playout, OP_CallGetFunc(GetRegAllowStackVar(playout->Function)), CallFlags_None);
+    }
 
+    template <class T>
+    void InterpreterStackFrame::OP_EnsureHeapAttached(const unaligned T* playout)
+    {
         AsmJsModuleInfo::EnsureHeapAttached(this->function);
     }
 

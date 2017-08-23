@@ -152,6 +152,12 @@ namespace Js
 
     }
 
+    template <class T>
+    void AsmJsEncoder::OP_CheckHeap(const unaligned T* playout)
+    {
+        // Todo
+    }
+
     void AsmJsEncoder::OP_Label( const unaligned OpLayoutEmpty* playout )
     {
         const int labelOffset = mReader.GetCurrentOffset() - 1;
