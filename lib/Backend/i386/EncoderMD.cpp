@@ -609,7 +609,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
                 }
             }
         }
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
         if (instr->IsEntryInstr() && (
             Js::Configuration::Global.flags.DebugBreak.Contains(m_func->GetFunctionNumber()) ||
             PHASE_ON(Js::DebugBreakPhase, m_func)
