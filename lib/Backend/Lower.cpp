@@ -13373,6 +13373,14 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         // src1 on BailOnNotStackArgs is helping CSE
         instr->FreeSrc1();
     }
+
+    if (instr->GetSrc2() != nullptr)
+    {
+        // Ideally we should never be in this situation but incase we reached a
+        // condition where we didn't freed src2. Free it here.
+        instr->FreeSrc2();
+    }
+
     // Call the bail out wrapper
     instr->m_opcode = Js::OpCode::Call;
     if(instr->GetDst())
