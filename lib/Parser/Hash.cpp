@@ -131,18 +131,6 @@ void HashTbl::Grow()
 #endif
 }
 
-void HashTbl::ClearPidRefStacks()
-{
-    // Clear pidrefstack pointers from all existing pid's.
-    for (uint i = 0; i < m_luMask; i++)
-    {
-        for (IdentPtr pid = m_prgpidName[i]; pid; pid = pid->m_pidNext)
-        {
-            pid->m_pidRefStack = nullptr;
-        }
-    }
-}
-
 #if DEBUG
 uint HashTbl::CountAndVerifyItems(IdentPtr *buckets, uint bucketCount, uint mask)
 {

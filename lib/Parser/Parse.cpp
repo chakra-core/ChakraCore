@@ -1726,6 +1726,10 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
         {
             Assert(ref->GetFuncScopeId() > funcId);
             sym->SetHasNonLocalReference();
+            if (ref->IsDynamicBinding())
+            {
+                sym->SetNeedsScopeObject();
+            }
         }
 
         if (ref->IsFuncAssignment())
@@ -1855,15 +1859,13 @@ void Parser::PopDynamicBlock()
         return;
     }
     Assert(m_currentDynamicBlock);
-    for (BlockInfoStack *blockInfo = m_currentBlockInfo; blockInfo; blockInfo = blockInfo->pBlockInfoOuter)
-    {
-        for (ParseNodePtr pnodeDecl = blockInfo->pnodeBlock->sxBlock.pnodeLexVars;
-             pnodeDecl;
-             pnodeDecl = pnodeDecl->sxVar.pnodeNext)
+
+    m_phtbl->VisitPids([&](IdentPtr pid) {
+        for (PidRefStack *ref = pid->GetTopRef(); ref && ref->GetScopeId() >= blockId; ref = ref->prev)
         {
-            this->SetPidRefsInScopeDynamic(pnodeDecl->sxVar.pid, blockId);
+            ref->SetDynamicBinding();
         }
-    }
+    });
 
     m_currentDynamicBlock = m_currentDynamicBlock->prev;
 }
@@ -9931,10 +9933,6 @@ LEndSwitch:
         {
             GetCurrentFunctionNode()->sxFnc.SetHasWithStmt(); // Used by DeferNested
         }
-        for (Scope *scope = this->m_currentScope; scope; scope = scope->GetEnclosingScope())
-        {
-            scope->SetContainsWith();
-        }
 
         ichMin = m_pscan->IchMinTok();
         ChkNxtTok(tkLParen, ERRnoLparen);
@@ -10772,7 +10770,7 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
             auto addArgsToScope = [&](ParseNodePtr pnodeArg) {
                 if (pnodeArg->IsVarLetOrConst())
                 {
-                    PidRefStack *ref = this->FindOrAddPidRef(pnodeArg->sxVar.pid, blockId, funcId);//this->PushPidRef(pnodeArg->sxVar.pid);
+                    PidRefStack *ref = this->FindOrAddPidRef(pnodeArg->sxVar.pid, blockId, funcId);
                     pnodeArg->sxVar.symRef = ref->GetSymRef();
                     if (ref->GetSym() != nullptr)
                     {
@@ -11193,7 +11191,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
         FinishParseBlock(pnodeGlobalBlock);
 
         // Clear out references to undeclared identifiers.
-        m_phtbl->ClearPidRefStacks();
+        m_phtbl->VisitPids([&](IdentPtr pid) { pid->SetTopRef(nullptr); });
 
         // Restore global scope and blockinfo stacks preparatory to reparsing deferred functions.
         PushScope(pnodeGlobalBlock->sxBlock.scope);
