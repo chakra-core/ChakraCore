@@ -359,8 +359,6 @@ namespace Js {
         virtual RecyclableObject* ToObject(ScriptContext * requestContext);
         virtual Var GetTypeOfString(ScriptContext* requestContext);
 
-        // don't need cross-site: only supported in HostDispatch.
-        virtual Var InvokePut(Arguments args);
         virtual BOOL GetRemoteTypeId(TypeId* typeId);
 
         // Only implemented by the HostDispatch object for cross-thread support

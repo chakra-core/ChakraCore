@@ -128,24 +128,10 @@
 
 #define PROCESS_CALL(name, func, layout) PROCESS_CALL_COMMON(name, func, layout,)
 
-#define PROCESS_CALL_FLAGS_COMMON(name, func, layout, flags, suffix) \
-    case OpCode::name: \
-    { \
-        PROCESS_READ_LAYOUT(name, layout, suffix); \
-        func(playout, flags); \
-        break; \
-    }
 
-#define PROCESS_CALL_FLAGS(name, func, layout, regslot) PROCESS_CALL_FLAGS_COMMON(name, func, layout, regslot,)
+#define PROCESS_CALL_FLAGS_None_COMMON(name, func, layout, suffix) PROCESS_CALL_COMMON(name, func, layout, suffix)
+#define PROCESS_CALL_FLAGS_Value_COMMON(name, func, layout, suffix) PROCESS_CALL_COMMON(name, func, layout, suffix)
 
-#define PROCESS_CALL_FLAGS_None_COMMON(name, func, layout, suffix) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_None, suffix)
-#define PROCESS_CALL_FLAGS_None(name, func, layout) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_None,)
-
-#define PROCESS_CALL_FLAGS_Value_COMMON(name, func, layout, suffix) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_Value, suffix)
-#define PROCESS_CALL_FLAGS_Value(name, func, layout) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_Value,)
-
-#define PROCESS_CALL_FLAGS_CallEval_COMMON(name, func, layout, suffix) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_ExtraArg, suffix)
-#define PROCESS_CALL_FLAGS_CallEval(name, func, layout) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_ExtraArg,)
 
 #define PROCESS_A1toXX_ALLOW_STACK_COMMON(name, func, suffix) \
     case OpCode::name: \
@@ -3954,20 +3940,6 @@ namespace Js
         }
     }
 #endif
-
-    template <class T>
-    void InterpreterStackFrame::OP_CallPutCommon(const unaligned T *playout, RecyclableObject * function)
-    {
-        Arguments args(CallInfo(CallFlags_None, playout->ArgCount), m_outParams);
-        SetReg((RegSlot)playout->Return, function->InvokePut(args));
-        PopOut(playout->ArgCount);
-    }
-
-    template <class T>
-    void InterpreterStackFrame::OP_CallPutCommonI(const unaligned T *playout, RecyclableObject * function)
-    {
-        OP_CallPutCommon(playout, function);
-    }
 
     template <class T>
     void InterpreterStackFrame::OP_GetRootProperty(unaligned T* playout)

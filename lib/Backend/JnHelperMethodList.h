@@ -363,7 +363,6 @@ HELPERCALL(Op_WebAssemblyRuntimeError, Js::JavascriptExceptionOperators::OP_WebA
 HELPERCALL(Op_OutOfMemoryError, Js::Throw::OutOfMemory, AttrCanThrow)
 HELPERCALL(Op_FatalInternalError, Js::Throw::FatalInternalError, AttrCanThrow)
 
-HELPERCALL(Op_InvokePut, Js::JavascriptOperators::OP_InvokePut, 0)
 #if ENABLE_REGEX_CONFIG_OPTIONS
 HELPERCALL(ScrRegEx_OP_NewRegEx, Js::JavascriptRegExp::OP_NewRegEx, 0)
 #endif

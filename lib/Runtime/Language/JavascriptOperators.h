@@ -531,8 +531,6 @@ namespace Js
         template <bool isAccessor>
         static PropertyDescriptor FillMissingPropertyDescriptorFields(PropertyDescriptor descriptor, ScriptContext* scriptContext);
 
-        static Var OP_InvokePut(Js::ScriptContext *scriptContext, Var function, CallInfo callInfo, ...);
-
         static Var DefaultAccessor(RecyclableObject* function, CallInfo callInfo, ...);
         static bool IsUndefinedAccessor(Var accessor, ScriptContext* scriptContext);
 

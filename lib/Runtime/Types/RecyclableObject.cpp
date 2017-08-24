@@ -768,13 +768,6 @@ namespace Js
         return requestContext->GetLibrary()->GetUnknownDisplayString();
     }
 
-    Var RecyclableObject::InvokePut(Arguments args)
-    {
-        // Handle x(y) = z.
-        // Native jscript object behavior: throw an error in all such cases.
-        JavascriptError::ThrowReferenceError(GetScriptContext(), JSERR_CantAsgCall);
-    }
-
     BOOL RecyclableObject::GetRemoteTypeId(TypeId * typeId)
     {
         return FALSE;
