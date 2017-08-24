@@ -1780,6 +1780,11 @@ Symbol * ByteCodeGenerator::AddSymbolToScope(Scope *scope, const char16 *key, in
 
     Assert(sym && sym->GetScope() && (sym->GetScope() == scope || sym->GetScope()->GetScopeType() == ScopeType_Parameter));
 
+    if (sym->NeedsScopeObject())
+    {
+        scope->SetIsObject();
+    }
+
     return sym;
 }
 
@@ -2794,34 +2799,6 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                     byteCodeGenerator->AssignParamSlotsRegister();
                 }
 
-                if (top->GetBodyScope()->ContainsWith() && 
-                    (top->GetBodyScope()->GetHasOwnLocalInClosure() ||
-                     (top->GetParamScope()->GetHasOwnLocalInClosure() &&
-                      top->IsBodyAndParamScopeMerged())))
-                {
-                    // Parent scopes may contain symbols called inside the with.
-                    // Current implementation needs the symScope isObject.
-
-                    top->GetBodyScope()->SetIsObject();
-                    if (top->byteCodeFunction->IsFunctionBody())
-                    {
-                        // Record this for future use in the no-refresh debugging.
-                        top->byteCodeFunction->GetFunctionBody()->SetHasSetIsObject(true);
-                    }
-                }
-
-                if (top->GetParamScope()->ContainsWith() &&
-                    (top->GetParamScope()->GetHasOwnLocalInClosure() &&
-                     !top->IsBodyAndParamScopeMerged()))
-                {
-                    top->GetParamScope()->SetIsObject();
-                    if (top->byteCodeFunction->IsFunctionBody())
-                    {
-                        // Record this for future use in the no-refresh debugging.
-                        top->byteCodeFunction->GetFunctionBody()->SetHasSetIsObject(true);
-                    }
-                }
-
                 if (byteCodeGenerator->NeedObjectAsFunctionScope(top, top->root)
                     || top->bodyScope->GetIsObject()
                     || top->paramScope->GetIsObject())
@@ -3151,11 +3128,6 @@ void ByteCodeGenerator::ProcessCapturedSym(Symbol *sym)
 void ByteCodeGenerator::ProcessScopeWithCapturedSym(Scope *scope)
 {
     Assert(scope->GetHasOwnLocalInClosure());
-
-    if (scope->ContainsWith() && scope->GetScopeType() != ScopeType_Global)
-    {
-        scope->SetIsObject();
-    }
 
     // (Note: if any catch var is closure-captured, we won't merge the catch scope with the function scope.
     // So don't mark the function scope "has local in closure".)

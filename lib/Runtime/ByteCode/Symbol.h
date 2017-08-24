@@ -47,6 +47,7 @@ private:
     BYTE isModuleExportStorage : 1; // If true, this symbol should be stored in the global scope export storage array.
     BYTE isModuleImport : 1; // If true, this symbol is the local name of a module import statement
     BYTE isUsedInLdElem : 1;
+    BYTE needsScopeObject : 1;
 
     // These are get and set a lot, don't put it in bit fields, we are exceeding the number of bits anyway
     bool hasFuncAssignment;
@@ -84,6 +85,7 @@ public:
         isModuleExportStorage(false),
         isModuleImport(false),
         isUsedInLdElem(false),
+        needsScopeObject(false),
         moduleIndex(Js::Constants::NoProperty)
     {
         SetSymbolType(symbolType);
@@ -182,6 +184,16 @@ public:
     bool IsUsedInLdElem() const
     {
         return isUsedInLdElem;
+    }
+
+    void SetNeedsScopeObject(bool does = true)
+    {
+        needsScopeObject = does;
+    }
+
+    bool NeedsScopeObject() const
+    {
+        return needsScopeObject;
     }
 
     void SetModuleIndex(Js::PropertyId index)
