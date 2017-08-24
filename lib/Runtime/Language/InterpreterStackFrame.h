@@ -163,10 +163,16 @@ namespace Js
         int64* m_localInt64Slots;
         double* m_localDoubleSlots;
         float* m_localFloatSlots;
+        union
+        {
+            JavascriptArrayBuffer* m_asmJsBuffer;
+#ifdef ENABLE_WASM
+            WebAssemblyMemory * m_wasmMemory;
+#endif
+        };
 
 #ifdef ENABLE_WASM
         Wasm::WasmSignature* m_signatures;
-        WebAssemblyMemory * m_wasmMemory;
 #endif
          _SIMDValue* m_localSimdSlots;
 
@@ -187,6 +193,10 @@ namespace Js
         //This class must have an empty ctor (otherwise it will break the code in InterpreterStackFrame::InterpreterThunk
         inline InterpreterStackFrame() { }
 
+        JavascriptArrayBuffer* GetAsmJsBuffer() const;
+#ifdef ENABLE_WASM
+        WebAssemblyMemory* GetWebAssemblyMemory() const;
+#endif
         void ProcessTryFinally(const byte* ip, Js::JumpOffset jumpOffset, Js::RegSlot regException = Js::Constants::NoRegister, Js::RegSlot regOffset = Js::Constants::NoRegister, bool hasYield = false);
     public:
         void OP_SetOutAsmInt(RegSlot outRegisterID, int val);
