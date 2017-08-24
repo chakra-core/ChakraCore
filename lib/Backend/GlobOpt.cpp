@@ -16212,10 +16212,10 @@ GlobOpt::OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, 
         return false;
     }
 
-    // If the loopHeadVal is primitive, the current value should be as well.
-    printf("loopHeadVal->GetValueInfo()->IsPrimitive(): %s\n", loopHeadVal->GetValueInfo()->IsPrimitive() ? "true" : "false");
-    printf("srcVal->GetValueInfo()->IsPrimitive(): %s\n", srcVal->GetValueInfo()->IsPrimitive() ? "true" : "false");
-    Assert((!loopHeadVal->GetValueInfo()->IsPrimitive()) || srcVal->GetValueInfo()->IsPrimitive());
+    // If the loopHeadVal is primitive, the current value should be as well.  This really should be
+    // srcVal->GetValueInfo()->IsPrimitive() instead of IsLikelyPrimitive, but this stronger assertion
+    // doesn't hold in some cases when this method is called out of the array code.
+    Assert((!loopHeadVal->GetValueInfo()->IsPrimitive()) || srcVal->GetValueInfo()->IsLikelyPrimitive());
 
     return true;
 }
