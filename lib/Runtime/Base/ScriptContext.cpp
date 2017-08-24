@@ -3890,7 +3890,7 @@ namespace Js
 #if defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
         RUNTIME_ARGUMENTS(args, callInfo);
 
-        Assert(!AsmJsScriptFunction::IsWasmScriptFunction(callable));
+        Assert(!WasmScriptFunction::Is(callable));
         JavascriptFunction* function = JavascriptFunction::FromVar(callable);
         ScriptContext* scriptContext = function->GetScriptContext();
         bool functionEnterEventSent = false;

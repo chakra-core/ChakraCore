@@ -202,6 +202,7 @@ namespace Js
     class JavascriptGeneratorFunction;
     class JavascriptAsyncFunction;
     class AsmJsScriptFunction;
+    class WasmScriptFunction;
     class JavascriptRegExpConstructor;
     class JavascriptRegExpEnumerator;
     class BoundFunction;
