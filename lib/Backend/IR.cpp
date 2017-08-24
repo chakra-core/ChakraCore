@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
+#include "RuntimeMathPch.h"
 
 namespace IR
 {
@@ -4208,7 +4209,7 @@ Instr::DumpByteCodeOffset()
 void
 Instr::DumpGlobOptInstrString()
 {
-    if(this->globOptInstrString)
+    if(this->globOptInstrString && !PHASE_OFF(Js::DumpGlobOptInstrPhase, m_func))
     {
         Output::Print(_u("\n\n GLOBOPT INSTR: %s\n\n"), this->globOptInstrString);
     }

@@ -21,7 +21,7 @@
 
 namespace wabt {
 
-bool is_valid_utf8(const char* s, size_t length);
+bool IsValidUtf8(const char* s, size_t length);
 
 }  // namespace wabt
 

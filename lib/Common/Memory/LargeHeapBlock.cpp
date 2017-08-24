@@ -8,8 +8,10 @@ CompileAssert(
     sizeof(LargeObjectHeader) == HeapConstants::ObjectGranularity ||
     sizeof(LargeObjectHeader) == HeapConstants::ObjectGranularity * 2);
 
+#ifdef RECYCLER_PAGE_HEAP
 #ifdef STACK_BACK_TRACE
 const StackBackTrace* PageHeapData::s_StackTraceAllocFailed = (StackBackTrace*)1;
+#endif
 #endif
 
 void *
@@ -635,6 +637,7 @@ LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
     DUMP_OBJECT_REFERENCE(markContext->GetRecycler(), objectAddress);
 
     size_t objectSize = header->objectSize;
+#ifdef RECYCLER_PAGE_HEAP
     if (this->InPageHeapMode())
     {        
         this->VerifyPageHeapPattern();
@@ -651,6 +654,7 @@ LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
         this->pageHeapData->lastMarkedBy = markContext->parentRef ? (char*)markContext->parentRef : "root";
 #endif
     }
+#endif
 
     bool markSucceed = UpdateAttributesOfMarkedObjects<doSpecialMark>(markContext, objectAddress, objectSize, attributes,
         [&](unsigned char attributes)
@@ -807,6 +811,7 @@ LargeObjectHeader *
 LargeHeapBlock::GetHeader(void * objectAddress) const
 {
     LargeObjectHeader * header = nullptr;
+#ifdef RECYCLER_PAGE_HEAP
     if (this->InPageHeapMode())
     {
         header = (LargeObjectHeader*)this->address;
@@ -816,6 +821,7 @@ LargeHeapBlock::GetHeader(void * objectAddress) const
         }
     }
     else
+#endif
     {
         Assert(objectAddress >= this->address && objectAddress < this->addressEnd);
         header = GetHeaderFromAddress(objectAddress);
@@ -982,6 +988,7 @@ LargeHeapBlock::ScanInitialImplicitRoots(Recycler * recycler)
         // TODO: Assume scan interior?
         DUMP_IMPLICIT_ROOT(recycler, objectAddress);
 
+#ifdef RECYCLER_PAGE_HEAP
         if (this->InPageHeapMode())
         {
             size_t objectSize = header->objectSize;
@@ -993,6 +1000,7 @@ LargeHeapBlock::ScanInitialImplicitRoots(Recycler * recycler)
             }
         }
         else
+#endif
         {
             recycler->ScanObjectInlineInterior((void **)objectAddress, header->objectSize);
         }
@@ -1037,6 +1045,7 @@ LargeHeapBlock::ScanNewImplicitRoots(Recycler * recycler)
                 continue;
             }
 
+#ifdef RECYCLER_PAGE_HEAP
             if (this->InPageHeapMode())
             {
                 size_t objectSize = header->objectSize;
@@ -1048,6 +1057,7 @@ LargeHeapBlock::ScanNewImplicitRoots(Recycler * recycler)
                 }
             }
             else
+#endif
             {
                 // TODO: Assume scan interior
                 recycler->ScanObjectInlineInterior((void **)objectAddress, header->objectSize);
@@ -1185,11 +1195,13 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
         RECYCLER_STATS_ADD(recycler, markData.rescanLargeByteCount, header->objectSize);
 
         size_t objectSize = header->objectSize;
+#ifdef RECYCLER_PAGE_HEAP
         if (this->InPageHeapMode())
         {
             // trim off the trailing part which is not a pointer
             objectSize = HeapInfo::RoundObjectSize(objectSize);
         }
+#endif
         if (objectSize > 0) // otherwize the object total size is less than a pointer size
         {
             if (!recycler->AddMark(objectAddress, objectSize))
@@ -1294,11 +1306,13 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
 #endif
 
         size_t objectSize = header->objectSize;
+#ifdef RECYCLER_PAGE_HEAP
         if (this->InPageHeapMode())
         {
             // trim off the trailing part which is not a pointer
             objectSize = HeapInfo::RoundObjectSize(objectSize);
         }
+#endif
 
         Assert(objectSize > 0);
         Assert(oldNeedOOMRescan || !header->markOnOOMRescan);

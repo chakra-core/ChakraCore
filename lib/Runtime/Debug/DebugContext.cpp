@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 namespace Js
 {
     DebugContext::DebugContext(Js::ScriptContext * scriptContext) :
@@ -12,7 +13,8 @@ namespace Js
         diagProbesContainer(nullptr),
         isClosed(false),
         debuggerMode(DebuggerMode::NotDebugging),
-        isDebuggerRecording(true)
+        isDebuggerRecording(true),
+        isReparsingSource(false)
     {
         Assert(scriptContext != nullptr);
     }
@@ -161,6 +163,30 @@ namespace Js
 
     HRESULT DebugContext::RundownSourcesAndReparse(bool shouldPerformSourceRundown, bool shouldReparseFunctions)
     {
+        struct AutoRestoreIsReparsingSource
+        {
+            AutoRestoreIsReparsingSource(DebugContext* debugContext, bool shouldReparseFunctions)
+                : debugContext(debugContext)
+                , shouldReparseFunctions(shouldReparseFunctions)
+            {
+                if (this->shouldReparseFunctions)
+                {
+                    this->debugContext->isReparsingSource = true;
+                }
+            }
+            ~AutoRestoreIsReparsingSource()
+            {
+                if (this->shouldReparseFunctions)
+                {
+                    this->debugContext->isReparsingSource = false;
+                }
+            }
+
+        private:
+            DebugContext* debugContext;
+            bool shouldReparseFunctions;
+        } autoRestoreIsReparsingSource(this, shouldReparseFunctions);
+
         OUTPUT_TRACE(Js::DebuggerPhase, _u("DebugContext::RundownSourcesAndReparse scriptContext 0x%p, shouldPerformSourceRundown %d, shouldReparseFunctions %d\n"),
             this->scriptContext, shouldPerformSourceRundown, shouldReparseFunctions);
 
@@ -382,3 +408,4 @@ namespace Js
         });
     }
 }
+#endif

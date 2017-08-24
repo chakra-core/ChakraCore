@@ -151,20 +151,20 @@ struct InfoBitsWrapper{};
 #endif
 
 #ifndef RECYCLER_WRITE_BARRIER
-#define RecyclerNewWithBarrier                          RecyclerNew                     
-#define RecyclerNewWithBarrierPlus                      RecyclerNewPlus                 
-#define RecyclerNewWithBarrierPlusZ                     RecyclerNewPlusZ                
-#define RecyclerNewWithBarrierZ                         RecyclerNewZ                    
-#define RecyclerNewWithBarrierStruct                    RecyclerNewStruct               
-#define RecyclerNewWithBarrierStructZ                   RecyclerNewStructZ              
-#define RecyclerNewWithBarrierStructPlus                RecyclerNewStructPlus           
-#define RecyclerNewWithBarrierArray                     RecyclerNewArray                
-#define RecyclerNewWithBarrierArrayZ                    RecyclerNewArrayZ               
-#define RecyclerNewWithBarrierFinalized                 RecyclerNewFinalized            
-#define RecyclerNewWithBarrierFinalizedPlus             RecyclerNewFinalizedPlus        
-#define RecyclerNewWithBarrierTracked                   RecyclerNewTracked              
-#define RecyclerNewWithBarrierEnumClass                 RecyclerNewEnumClass            
-#define RecyclerNewWithBarrierWithInfoBits              RecyclerNewWithInfoBits         
+#define RecyclerNewWithBarrier                          RecyclerNew
+#define RecyclerNewWithBarrierPlus                      RecyclerNewPlus
+#define RecyclerNewWithBarrierPlusZ                     RecyclerNewPlusZ
+#define RecyclerNewWithBarrierZ                         RecyclerNewZ
+#define RecyclerNewWithBarrierStruct                    RecyclerNewStruct
+#define RecyclerNewWithBarrierStructZ                   RecyclerNewStructZ
+#define RecyclerNewWithBarrierStructPlus                RecyclerNewStructPlus
+#define RecyclerNewWithBarrierArray                     RecyclerNewArray
+#define RecyclerNewWithBarrierArrayZ                    RecyclerNewArrayZ
+#define RecyclerNewWithBarrierFinalized                 RecyclerNewFinalized
+#define RecyclerNewWithBarrierFinalizedPlus             RecyclerNewFinalizedPlus
+#define RecyclerNewWithBarrierTracked                   RecyclerNewTracked
+#define RecyclerNewWithBarrierEnumClass                 RecyclerNewEnumClass
+#define RecyclerNewWithBarrierWithInfoBits              RecyclerNewWithInfoBits
 #define RecyclerNewWithBarrierFinalizedClientTracked    RecyclerNewFinalizedClientTracked
 #endif
 
@@ -302,7 +302,7 @@ enum CollectionFlags
     FinishConcurrentDefault         = CollectMode_Concurrent | CollectOverride_DisableIdleFinish | CollectOverride_BackgroundFinishMark,
     FinishConcurrentOnExitScript    = FinishConcurrentDefault,
     FinishConcurrentOnEnterScript   = FinishConcurrentDefault,
-    FinishConcurrentOnAllocation    = FinishConcurrentDefault, 
+    FinishConcurrentOnAllocation    = FinishConcurrentDefault,
     FinishDispose                   = CollectOverride_AllowDispose,
     FinishDisposeTimed              = CollectOverride_AllowDispose | CollectHeuristic_TimeIfScriptActive,
     ForceFinishCollection           = CollectOverride_ForceFinish | CollectOverride_ForceInThread,
@@ -693,7 +693,7 @@ private:
 public:
     template<typename Action>
     void ForEachPageAllocator(Action action)
-    {        
+    {
         action(&this->recyclerPageAllocator);
         action(&this->recyclerLargeBlockPageAllocator);
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
@@ -1267,10 +1267,10 @@ public:
     DEFINE_RECYCLER_ALLOC(AllocTrackedWithBarrier, ClientTrackableObjectWithBarrierBits);
     DEFINE_RECYCLER_ALLOC(AllocFinalizedClientTrackedWithBarrier, ClientFinalizableObjectWithBarrierBits);
 #endif
-    
+
     DEFINE_RECYCLER_ALLOC(AllocLeaf, LeafBit);
     DEFINE_RECYCLER_ALLOC(AllocFinalizedLeaf, FinalizableLeafBits);
-    DEFINE_RECYCLER_ALLOC(AllocTrackedLeaf, ClientTrackableLeafBits);    
+    DEFINE_RECYCLER_ALLOC(AllocTrackedLeaf, ClientTrackableLeafBits);
     DEFINE_RECYCLER_ALLOC_ZERO(AllocLeafZero, LeafBit);
     DEFINE_RECYCLER_ALLOC_ZERO(AllocZeroTrackedLeaf, ClientTrackableLeafBits);
     DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocImplicitRootLeaf, ImplicitRootLeafBits);
@@ -1576,6 +1576,10 @@ private:
     void SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep);
     void FinishSweep(RecyclerSweep& recyclerSweep);
 
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    void FinishConcurrentSweep();
+#endif
+
     bool FinishDisposeObjects();
     template <CollectionFlags flags>
     bool FinishDisposeObjectsWrapped();
@@ -1629,6 +1633,8 @@ private:
     BOOL IsConcurrentFindRootState() const;
     BOOL IsConcurrentExecutingState() const;
     BOOL IsConcurrentSweepExecutingState() const;
+    BOOL IsConcurrentSweepSetupState() const;
+    BOOL IsConcurrentSweepState() const;
     BOOL IsConcurrentState() const;
     BOOL InConcurrentSweep()
     {
@@ -1662,6 +1668,7 @@ private:
     BOOL WaitForConcurrentThread(DWORD waitTime);
     void FlushBackgroundPages();
     BOOL FinishConcurrentCollect(CollectionFlags flags);
+    void FinishTransferSwept(CollectionFlags flags);
     BOOL FinishConcurrentCollectWrapped(CollectionFlags flags);
     void BackgroundMark();
     void BackgroundResetMarks();
@@ -1824,7 +1831,7 @@ private:
     typedef JsUtil::BaseDictionary<void *, TrackerData *, NoCheckHeapAllocator, PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, JsUtil::NoResizeLock> PointerToTrackerDataMap;
 
     TypeInfotoTrackerItemMap * trackerDictionary;
-    CRITICAL_SECTION trackerCriticalSection;
+    CriticalSection * trackerCriticalSection;
 #endif
     TrackAllocData nextAllocData;
 #endif
@@ -2380,7 +2387,7 @@ public:
 
 // Partial template specialization to allocate as non leaf
 template <typename T>
-class TypeAllocatorFunc<RecyclerNonLeafAllocator, T> : 
+class TypeAllocatorFunc<RecyclerNonLeafAllocator, T> :
 #if GLOBAL_ENABLE_WRITE_BARRIER
     public _RecyclerAllocatorFunc<_RecyclerWriteBarrierPolicy>
 #else
@@ -2504,7 +2511,7 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, Recycler * recycler, const
     AssertCanHandleOutOfMemory();
     Assert(byteSize != 0);
     void * buffer;
-    
+
     if (infoBits & EnumClass_1_Bit)
     {
         buffer = recycler->AllocEnumClass<infoBits>(byteSize);

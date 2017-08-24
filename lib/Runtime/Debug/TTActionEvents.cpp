@@ -5,6 +5,8 @@
 #include "RuntimeDebugPch.h"
 
 #include "Library/JavascriptExceptionMetadata.h"
+#include "Common/ByteSwap.h"
+#include "Library/DataView.h"
 
 #if ENABLE_TTD
 
@@ -490,6 +492,17 @@ namespace TTD
             Js::JavascriptOperators::OP_HasProperty(var, GetPropertyIdItem(action), ctx);
         }
 
+        void HasOwnPropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
+        {
+            TTD_REPLAY_ACTIVE_CONTEXT(executeContext);
+            const JsRTSingleVarScalarArgumentAction* action = GetInlineEventDataAs<JsRTSingleVarScalarArgumentAction, EventKind::HasOwnPropertyActionTag>(evt);
+            Js::Var var = InflateVarInReplay(executeContext, GetVarItem_0(action));
+            TTD_REPLAY_VALIDATE_INCOMING_OBJECT(var, ctx);
+
+            //Result is not needed but trigger computation for any effects
+            Js::JavascriptOperators::OP_HasOwnProperty(var, GetPropertyIdItem(action), ctx);
+        }
+
         void InstanceOfAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
         {
             TTD_REPLAY_ACTIVE_CONTEXT(executeContext);
@@ -706,6 +719,20 @@ namespace TTD
             //Failure will kick all the way out to replay loop -- which is what we want
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE(ExceptionType_OutOfMemory);
             JsRTActionHandleResultForReplay<JsRTSingleVarArgumentAction, EventKind::GetTypedArrayInfoActionTag>(executeContext, evt, res);
+        }
+
+        void GetDataViewInfoAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
+        {
+            const JsRTSingleVarArgumentAction* action = GetInlineEventDataAs<JsRTSingleVarArgumentAction, EventKind::GetDataViewInfoActionTag>(evt);
+            Js::Var var = InflateVarInReplay(executeContext, GetVarItem_0(action));
+
+            Js::DataView* dataView = Js::DataView::FromVar(var);
+            Js::Var res = dataView->GetArrayBuffer();
+
+            //Need additional notify since JsRTActionHandleResultForReplay may allocate but GetDataViewInfo does not enter runtime
+            //Failure will kick all the way out to replay loop -- which is what we want
+            AUTO_NESTED_HANDLED_EXCEPTION_TYPE(ExceptionType_OutOfMemory);
+            JsRTActionHandleResultForReplay<JsRTSingleVarArgumentAction, EventKind::GetDataViewInfoActionTag>(executeContext, evt, res);
         }
 
         //////////////////

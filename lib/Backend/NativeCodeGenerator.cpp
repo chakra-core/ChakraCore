@@ -1174,8 +1174,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     {
         body->SetDisableInlineSpread(true);
     }
-    
-    NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
 
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
     if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
@@ -2735,6 +2733,7 @@ NativeCodeGenerator::GatherCodeGenData(
             }
 
             Js::JavascriptFunction* fixedFunctionObject = nullptr;
+#if ENABLE_FIXED_FIELDS
             if (inlineCache && (inlineCache->IsLocal() || inlineCache->IsProto()))
             {
                 inlineCache->TryGetFixedMethodFromCache(functionBody, ldFldInlineCacheIndex, &fixedFunctionObject);
@@ -2744,6 +2743,7 @@ NativeCodeGenerator::GatherCodeGenData(
             {
                 fixedFunctionObject = nullptr;
             }
+#endif
 
             if (!PHASE_OFF(Js::InlineRecursivePhase, functionBody))
             {

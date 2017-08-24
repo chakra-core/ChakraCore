@@ -444,7 +444,7 @@ namespace Js
                 inlineeOffset = inlinedFrameWalker.GetCurrentInlineeOffset();
             }
         }
-        else if (ScriptFunction::Is(parentFunction) && HasInlinedFramesOnStack())
+        else if (ScriptFunction::Test(parentFunction) && HasInlinedFramesOnStack())
         {
             // Inlined frames are not being walked right now. However, if there
             // are inlined frames on the stack the InlineeCallInfo of the first inlined frame
@@ -537,11 +537,7 @@ namespace Js
                 {
                     this->previousInterpreterFrameIsForLoopBody = true;
                 }
-                else
 #endif
-                {
-                    this->previousInterpreterFrameIsForLoopBody = false;
-                }
 
                 // We might've bailed out of an inlinee, so check if there were any inlinees.
                 if (this->interpreterFrame->GetFlags() & InterpreterStackFrameFlags_FromBailOut)
@@ -678,6 +674,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         if (lastInternalFrameInfo.codeAddress != nullptr && this->previousInterpreterFrameIsForLoopBody)
         {
+            this->previousInterpreterFrameIsForLoopBody = false;
             ClearCachedInternalFrameInfo();
         }
 
@@ -761,7 +758,7 @@ namespace Js
                 Assert(entryExitRecord != NULL);
                 if (ppFunc)
                 {
-                    *ppFunc = this->GetCurrentFunction();
+                *ppFunc = this->GetCurrentFunction();
                 }
                 AssertMsg(!this->shouldDetectPartiallyInitializedInterpreterFrame, "must have skipped first frame if needed");
                 return true;
@@ -1120,7 +1117,7 @@ namespace Js
         {
             if (ppFunc)
             {
-                *ppFunc = nullptr;
+            *ppFunc = nullptr;
             }
             return FALSE;
         }

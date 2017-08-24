@@ -3,8 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
+#include "WindowsGlobalizationAdapter.h"
 
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_ES6_CHAR_CLASSIFIER)
+
+#ifdef INTL_WINGLOB
 
 #include "strsafe.h"
 
@@ -20,6 +23,8 @@ using namespace ABI::Windows::Globalization;
 using namespace ABI::Windows::Foundation::Collections;
 #endif
 
+#endif // INTL_WINGLOB
+
 #define IfFailThrowHr(op) \
     if (FAILED(hr=(op))) \
     { \
@@ -34,6 +39,8 @@ using namespace ABI::Windows::Foundation::Collections;
 
 namespace Js
 {
+#ifdef INTL_WINGLOB
+
 #ifdef ENABLE_INTL_OBJECT
     class HSTRINGIterator : public Microsoft::WRL::RuntimeClass<IIterator<HSTRING>>
     {
@@ -255,7 +262,6 @@ namespace Js
         return hr;
     }
 
-
     HRESULT WindowsGlobalizationAdapter::EnsureDateTimeFormatObjectsInitialized(DelayLoadWindowsGlobalization *library)
     {
         HRESULT hr = S_OK;
@@ -305,7 +311,6 @@ namespace Js
 
         return hr;
     }
-
 #endif
 
 #if ENABLE_UNICODE_API
@@ -694,7 +699,152 @@ if (this->object) \
         return hr;
     }
 #endif
-}
 
+#endif // INTL_WINGLOB
 
-#endif
+#ifdef INTL_ICU
+#ifdef ENABLE_INTL_OBJECT
+    bool IcuIntlAdapter::IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch)
+    {
+        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
+        const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
+        // REVIEW (doilij): not perf critical so I used HeapNewArrayZ to zero-out the allocated array
+        utf8char_t *inputLangTagUtf8 = HeapNewArrayZ(utf8char_t, inputLangTagUtf8SizeAllocated);
+        if (!inputLangTagUtf8)
+        {
+            AssertOrFailFastMsg(false, "OOM: HeapNewArrayZ failed to allocate.");
+        }
+        const size_t inputLangTagUtf8SizeActual = utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
+
+        bool success = false;
+        UErrorCode error = UErrorCode::U_ZERO_ERROR;
+
+        // REVIEW (doilij): should we / do we need to zero these stack-allocated arrays?
+        char icuLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
+        char icuLangTag[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int32_t parsedLength = 0;
+        int32_t forLangTagResultLength = 0;
+        int32_t toLangTagResultLength = 0;
+
+        // Convert input language tag to a locale ID for use in uloc_toLanguageTag API.
+        forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<const char *>(inputLangTagUtf8),
+            icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
+        success = (forLangTagResultLength > 0) && (parsedLength > 0) &&
+            U_SUCCESS(error) && ((size_t)parsedLength == inputLangTagUtf8SizeActual);
+        if (!success)
+        {
+            goto cleanup;
+        }
+
+        toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, TRUE, &error);
+        success = toLangTagResultLength && U_SUCCESS(error);
+        if (!success)
+        {
+            if (error == U_ILLEGAL_ARGUMENT_ERROR)
+            {
+                AssertMsg(false, "uloc_toLanguageTag: error U_ILLEGAL_ARGUMENT_ERROR");
+            }
+            else
+            {
+                AssertMsg(false, "uloc_toLanguageTag: unexpected error (besides U_ILLEGAL_ARGUMENT_ERROR)");
+            }
+
+            goto cleanup;
+        }
+
+    cleanup:
+        HeapDeleteArray(inputLangTagUtf8SizeAllocated, inputLangTagUtf8);
+        inputLangTagUtf8 = nullptr;
+        return success;
+    }
+
+    HRESULT IcuIntlAdapter::NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
+        _Out_ char16 *normalized, _Out_ size_t *normalizedLength)
+    {
+        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
+        const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
+        // REVIEW (doilij): not perf critical so I used HeapNewArrayZ to zero-out the allocated array
+        utf8char_t *inputLangTagUtf8 = HeapNewArrayZ(utf8char_t, inputLangTagUtf8SizeAllocated);
+        if (!inputLangTagUtf8)
+        {
+            AssertOrFailFastMsg(false, "OOM: HeapNewArrayZ failed to allocate.");
+        }
+        const size_t inputLangTagUtf8SizeActual = utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
+
+        // REVIEW (doilij): should we / do we need to zero these stack-allocated arrays?
+        char icuLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
+        char icuLangTag[ULOC_FULLNAME_CAPACITY] = { 0 };
+        bool success = false;
+        UErrorCode error = U_ZERO_ERROR;
+        int32_t parsedLength = 0;
+        int32_t forLangTagResultLength = 0;
+        int32_t toLangTagResultLength = 0;
+
+        // Convert input language tag to a locale ID for use in uloc_toLanguageTag API.
+        forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<const char *>(inputLangTagUtf8), icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
+        success = forLangTagResultLength && parsedLength && U_SUCCESS(error);
+        if (!success)
+        {
+            AssertMsg(false, "uloc_forLanguageTag failed");
+            goto cleanup;
+        }
+
+        // Try to convert icuLocaleId (locale ID version of input locale string) to BCP47 language tag, using strict checks
+        toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, TRUE, &error);
+        success = toLangTagResultLength && U_SUCCESS(error);
+        if (!success)
+        {
+            if (error == U_ILLEGAL_ARGUMENT_ERROR)
+            {
+                AssertMsg(false, "uloc_toLanguageTag: error U_ILLEGAL_ARGUMENT_ERROR");
+            }
+            else
+            {
+                AssertMsg(false, "uloc_toLanguageTag: unexpected error (besides U_ILLEGAL_ARGUMENT_ERROR)");
+            }
+
+            goto cleanup;
+        }
+
+        *normalizedLength = utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(normalized,
+            reinterpret_cast<const utf8char_t *>(icuLangTag), reinterpret_cast<utf8char_t *>(icuLangTag + toLangTagResultLength), utf8::doDefault);
+
+    cleanup:
+        HeapDeleteArray(inputLangTagUtf8SizeAllocated, inputLangTagUtf8);
+        inputLangTagUtf8 = nullptr;
+        return success ? S_OK : E_INVALIDARG;
+    }
+
+    bool IcuIntlAdapter::ResolveLocaleLookup(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved)
+    {
+        // TODO (doilij): implement ResolveLocaleLookup
+        resolved[0] = '\0';
+        return false;
+    }
+
+    bool IcuIntlAdapter::ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved)
+    {
+        // Note: the "best fit" matcher is implementation-defined, so it is okay to return the same result as ResolveLocaleLookup.
+        // TODO (doilij): implement a better "best fit" matcher
+        return ResolveLocaleLookup(scriptContext, locale, resolved);
+    }
+
+    int IcuIntlAdapter::GetUserDefaultLocaleName(_Out_ LPWSTR lpLocaleName, _In_ int cchLocaleName)
+    {
+        // XPLAT-TODO (doilij): implement GetUserDefaultLocaleName
+        const auto locale = _u("en-US");
+        const size_t len = 5;
+        if (lpLocaleName)
+        {
+            wcsncpy_s(lpLocaleName, LOCALE_NAME_MAX_LENGTH, locale, len);
+        }
+
+        // REVIEW (doilij): assuming the return value is the length of the output string in lpLocaleName
+        return len;
+    }
+
+#endif // ENABLE_INTL_OBJECT
+#endif // INTL_ICU
+} // namespace Js
+
+#endif // defined(ENABLE_INTL_OBJECT) || defined(ENABLE_ES6_CHAR_CLASSIFIER)

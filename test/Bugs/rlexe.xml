@@ -357,6 +357,13 @@
   </test>
   <test>
     <default>
+      <files>bug11576900.js</files>
+      <compile-flags>-lic:1 -bgjit-</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug13213828.js</files>
       <compile-flags>-mic:1 -off:simplejit</compile-flags>
     </default>

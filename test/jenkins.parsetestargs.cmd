@@ -62,6 +62,11 @@ if not "%1"=="" (
         REM fallthrough to default (also add this to %_ExtraTestArgs%)
     )
 
+    if "%1"=="-lite" (
+        set _SpecialBuild=.Lite
+        REM fallthrough to default (also add this to %_ExtraTestArgs%)
+    )
+
     :: default
     set _ExtraTestArgs=%_ExtraTestArgs% %1
     shift

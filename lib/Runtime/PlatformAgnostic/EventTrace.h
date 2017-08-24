@@ -4,6 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#define SSE2MATH
-#include "JavascriptMath.inl"
-#undef SSE2MATH
+#include "Core/CommonTypedefs.h"
+
+namespace PlatformAgnostic
+{
+    namespace EventTrace
+    {
+        void FireGenericEventTrace(const void* traceData);
+    }
+}

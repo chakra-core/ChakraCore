@@ -66,6 +66,7 @@ var controllerObj = (function () {
             "ArrayBuffer",
             "Atomics",
             "Boolean",
+            "chWriteTraceEvent",
             "CollectGarbage",
             "console",
             "DataView",

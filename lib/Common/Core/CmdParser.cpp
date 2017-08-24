@@ -68,11 +68,12 @@ CmdLineArgsParser::ParseString(__inout_ecount(ceBuffer) LPWSTR buffer, size_t ce
             case ' ':
             case ',':
             case 0:
-                fDone = 1;
+                fDone = true;
                 break;
             case '-':
+            case '=':
             case ':':
-                if(fTreatColonAsSeparator)
+                if (fTreatColonAsSeparator)
                 {
                     fDone = true;
                     break;
@@ -82,7 +83,7 @@ CmdLineArgsParser::ParseString(__inout_ecount(ceBuffer) LPWSTR buffer, size_t ce
                     // Fallthrough
                 }
             default:
-                if(len >= MaxTokenSize -1)
+                if (len >= MaxTokenSize - 1)
                 {
                     throw Exception(_u("String token too large to parse"));
                 }

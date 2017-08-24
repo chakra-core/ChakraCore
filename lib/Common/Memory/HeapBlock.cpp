@@ -894,7 +894,7 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
                 //TODO: (leish)(swb) analyze pdb to check if the field is a pointer field or not
                 Output::Print(_u("Missing Barrier\nOn type %S+0x%x\n"), typeName, offset);
             }
-        }
+        }        
 
 
         targetStartAddress = target - targetOffset;
@@ -1505,6 +1505,8 @@ SmallHeapBlockT<TBlockAttributes>::Check(bool expectFull, bool expectPending)
 
     Assert(expectPending == HasAnyDisposeObjects());
 
+    // As the blocks are added to the SLIST and used from there during concurrent sweep, the exepectFull assertion doesn't hold anymore.
+#if !(ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP)
     if (this->isInAllocator || this->isClearedFromAllocator)
     {
         Assert(expectFull && !expectPending);
@@ -1513,6 +1515,7 @@ SmallHeapBlockT<TBlockAttributes>::Check(bool expectFull, bool expectPending)
     {
         Assert(expectFull == (!this->HasFreeObject() && !HasAnyDisposeObjects()));
     }
+#endif
 }
 
 
@@ -1633,12 +1636,12 @@ SmallHeapBlockT<TBlockAttributes>::CheckFreeBitVector(bool isCollecting)
 
 template <class TBlockAttributes>
 typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector *
-SmallHeapBlockT<TBlockAttributes>::EnsureFreeBitVector()
+SmallHeapBlockT<TBlockAttributes>::EnsureFreeBitVector(bool isCollecting)
 {
     if (this->IsFreeBitsValid())
     {
         // the free object list hasn't change, so the free vector should be valid
-        RECYCLER_SLOW_CHECK(CheckFreeBitVector(true));
+        RECYCLER_SLOW_CHECK(CheckFreeBitVector(isCollecting));
         return this->GetFreeBitVector();
     }
     return BuildFreeBitVector();

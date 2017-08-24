@@ -38,28 +38,16 @@ uint32 GetTypeByteSize(WasmType type)
 
 const char16 * GetTypeName(WasmType type)
 {
-    const char16* typestring = _u("unknown");
     switch (type) {
-    case WasmTypes::WasmType::Void:
-        typestring = _u("void");
-        break;
-    case WasmTypes::WasmType::I32:
-        typestring = _u("i32");
-        break;
-    case WasmTypes::WasmType::I64:
-        typestring = _u("i64");
-        break;
-    case WasmTypes::WasmType::F32:
-        typestring = _u("f32");
-        break;
-    case WasmTypes::WasmType::F64:
-        typestring = _u("f64");
-        break;
-    default:
-        Assert(false);
-        break;
+    case WasmTypes::WasmType::Void: return _u("void");
+    case WasmTypes::WasmType::I32: return _u("i32");
+    case WasmTypes::WasmType::I64: return _u("i64");
+    case WasmTypes::WasmType::F32: return _u("f32");
+    case WasmTypes::WasmType::F64: return _u("f64");
+    case WasmTypes::WasmType::Any: return _u("any");
+    default: Assert(UNREACHED); break;
     }
-    return typestring;
+    return _u("unknown");
 }
 
 } // namespace WasmTypes
@@ -588,11 +576,15 @@ void WasmBinaryReader::ConstNode()
         m_funcState.count += len;
         break;
     case WasmTypes::F32:
-        m_currentNode.cnst.f32 = ReadConst<float>();
+    {
+        m_currentNode.cnst.i32 = ReadConst<int32>();
+        CompileAssert(sizeof(int32) == sizeof(float));
         m_funcState.count += sizeof(float);
         break;
+    }
     case WasmTypes::F64:
-        m_currentNode.cnst.f64 = ReadConst<double>();
+        m_currentNode.cnst.i64 = ReadConst<int64>();
+        CompileAssert(sizeof(int64) == sizeof(double));
         m_funcState.count += sizeof(double);
         break;
     }
@@ -645,8 +637,6 @@ void WasmBinaryReader::ReadSignatureTypeSection()
     // signatures table
     for (uint32 i = 0; i < numTypes; i++)
     {
-        TRACE_WASM_DECODER(_u("Signature #%u"), i);
-
         WasmSignature* sig = m_module->GetSignature(i);
         sig->SetSignatureId(i);
         int8 form = ReadConst<int8>();
@@ -680,6 +670,14 @@ void WasmBinaryReader::ReadSignatureTypeSection()
             sig->SetResultType(type);
         }
         sig->FinalizeSignature();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (DO_WASM_TRACE_DECODER)
+        {
+            Output::Print(_u("Signature #%u: "), i);
+            sig->Dump();
+            Output::Print(_u("\n"));
+        }
+#endif
     }
 }
 
@@ -1014,16 +1012,23 @@ const char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLengt
     m_pc += rawNameLength;
     length += rawNameLength;
 
-    utf8::DecodeOptions decodeOptions = utf8::doDefault;
-    nameLength = (uint32)utf8::ByteIndexIntoCharacterIndex(rawName, rawNameLength, decodeOptions);
-    char16* contents = AnewArray(m_alloc, char16, nameLength + 1);
-    size_t decodedLength = utf8::DecodeUnitsIntoAndNullTerminate(contents, rawName, rawName + rawNameLength, decodeOptions);
-    if (decodedLength != nameLength)
+    utf8::DecodeOptions decodeOptions = utf8::doThrowOnInvalidWCHARs;
+    try
     {
-        AssertMsg(UNREACHED, "We calculated the length before decoding, what happened ?");
-        ThrowDecodingError(_u("Error while decoding utf8 string"));
+        nameLength = (uint32)utf8::ByteIndexIntoCharacterIndex(rawName, rawNameLength, decodeOptions);
+        char16* contents = AnewArray(m_alloc, char16, nameLength + 1);
+        size_t decodedLength = utf8::DecodeUnitsIntoAndNullTerminate(contents, rawName, rawName + rawNameLength, decodeOptions);
+        if (decodedLength != nameLength)
+        {
+            AssertMsg(UNREACHED, "We calculated the length before decoding, what happened ?");
+            ThrowDecodingError(_u("Error while decoding utf8 string"));
+        }
+        return contents;
     }
-    return contents;
+    catch (utf8::InvalidWideCharException)
+    {
+        ThrowDecodingError(_u("Invalid UTF-8 encoding"));
+    }
 }
 
 void WasmBinaryReader::ReadImportSection()
@@ -1254,6 +1259,9 @@ SectionLimits WasmBinaryReader::ReadSectionLimits(uint32 maxInitial, uint32 maxM
     return limits;
 }
 
+// Do not use float version of ReadConst. Instead use integer version and reinterpret bits.
+template<> double WasmBinaryReader::ReadConst<double>() { Assert(false); return 0; }
+template<> float WasmBinaryReader::ReadConst<float>() { Assert(false); return 0;  }
 template <typename T>
 T WasmBinaryReader::ReadConst()
 {

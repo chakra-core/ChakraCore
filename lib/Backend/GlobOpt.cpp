@@ -360,6 +360,7 @@ GlobOpt::ForwardPass()
     this->byteCodeConstantValueNumbersBv = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->tempBv = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->prePassCopyPropSym = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+    this->slotSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->byteCodeUses = nullptr;
     this->propertySymUse = nullptr;
 
@@ -1274,6 +1275,21 @@ void GlobOpt::InsertValueCompensation(
 
     GlobOptBlockData &predecessorBlockData = predecessor->globOptData;
     GlobOptBlockData &successorBlockData = *CurrentBlockData();
+    struct DelayChangeValueInfo
+    {
+        Value* predecessorValue;
+        ArrayValueInfo* valueInfo;
+        void ChangeValueInfo(BasicBlock* predecessor, GlobOpt* g)
+        {
+            g->ChangeValueInfo(
+                predecessor,
+                predecessorValue,
+                valueInfo,
+                false /*allowIncompatibleType*/,
+                true /*compensated*/);
+        }
+    };
+    JsUtil::List<DelayChangeValueInfo, ArenaAllocator> delayChangeValueInfo(alloc);
     for(auto it = symsRequiringCompensationToMergedValueInfoMap.GetIterator(); it.IsValid(); it.MoveNext())
     {
         const auto &entry = it.Current();
@@ -1399,8 +1415,9 @@ void GlobOpt::InsertValueCompensation(
 
         if(compensated)
         {
-            ChangeValueInfo(
-                predecessor,
+            // Save the new ValueInfo for later.
+            // We don't want other symbols needing compensation to see this new one
+            delayChangeValueInfo.Add({
                 predecessorValue,
                 ArrayValueInfo::New(
                     alloc,
@@ -1408,11 +1425,13 @@ void GlobOpt::InsertValueCompensation(
                     mergedHeadSegmentSym ? mergedHeadSegmentSym : predecessorHeadSegmentSym,
                     mergedHeadSegmentLengthSym ? mergedHeadSegmentLengthSym : predecessorHeadSegmentLengthSym,
                     mergedLengthSym ? mergedLengthSym : predecessorLengthSym,
-                    predecessorValueInfo->GetSymStore()),
-                false /*allowIncompatibleType*/,
-                compensated);
+                    predecessorValueInfo->GetSymStore())
+            });
         }
     }
+
+    // Once we've compensated all the symbols, update the new ValueInfo.
+    delayChangeValueInfo.Map([predecessor, this](int, DelayChangeValueInfo d) { d.ChangeValueInfo(predecessor, this); });
 
     if(setLastInstrInPredecessor)
     {
@@ -2553,7 +2572,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     else if (instr->m_opcode == Js::OpCode::BrOnException || instr->m_opcode == Js::OpCode::BrOnNoException)
     {
         if (this->ProcessExceptionHandlingEdges(instr))
-        {
+            {
             *isInstrRemoved = true;
             return instrNext;
         }
@@ -3498,7 +3517,11 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
     if (val)
     {
         ValueType valueType(val->GetValueInfo()->Type());
-        if (valueType.IsLikelyNativeArray() && !valueType.IsObject() && instr->IsProfiledInstr())
+
+        // This block uses local profiling data to optimize the case of a native array being passed to a function that fills it with other types. When the function is inlined
+        // into different call paths which use different types this can cause a perf hit by performing unnecessary array conversions, so only perform this optimization when 
+        // the function is not inlined.
+        if (valueType.IsLikelyNativeArray() && !valueType.IsObject() && instr->IsProfiledInstr() && !instr->m_func->IsInlined())
         {
             // See if we have profile data for the array type
             IR::ProfiledInstr *const profiledInstr = instr->AsProfiledInstr();
@@ -5181,6 +5204,18 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
 
     case Js::OpCode::Typeof:
         return this->NewGenericValue(ValueType::String, dst);
+    case Js::OpCode::InitLocalClosure:
+        Assert(instr->GetDst());
+        Assert(instr->GetDst()->IsRegOpnd());
+        IR::RegOpnd *regOpnd = instr->GetDst()->AsRegOpnd();
+        StackSym *opndStackSym = regOpnd->m_sym;
+        Assert(opndStackSym != nullptr);
+        ObjectSymInfo *objectSymInfo = opndStackSym->m_objectInfo;
+        Assert(objectSymInfo != nullptr);
+        for (PropertySym *localVarSlotList = objectSymInfo->m_propertySymList; localVarSlotList; localVarSlotList = localVarSlotList->m_nextInStackSymList)
+        {
+            this->slotSyms->Set(localVarSlotList->m_id);
+        }
         break;
     }
 
@@ -17721,9 +17756,9 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
 
     Assert(finallyBlock && predBlock);
 
-    if (this->func->m_fg->FindEdge(predBlock, finallyBlock))
-    {
-        predBlock->RemoveDeadSucc(finallyBlock, this->func->m_fg);
+        if (this->func->m_fg->FindEdge(predBlock, finallyBlock))
+        {
+            predBlock->RemoveDeadSucc(finallyBlock, this->func->m_fg);
 
         if (instr->m_opcode == Js::OpCode::BrOnException)
         {
@@ -17747,11 +17782,11 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
             } NEXT_PREDECESSOR_BLOCK;
         }
 
-        if (predBlock == this->currentBlock)
-        {
-            predBlock->DecrementDataUseCount();
+            if (predBlock == this->currentBlock)
+            {
+                predBlock->DecrementDataUseCount();
+            }
         }
-    }
 
     return true;
 }

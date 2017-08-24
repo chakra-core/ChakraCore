@@ -32,7 +32,7 @@ bool Parser::IsES6DestructuringEnabled() const
 struct DeferredFunctionStub
 {
     Field(RestorePoint) restorePoint;
-    Field(uint) fncFlags;
+    Field(FncFlags) fncFlags;
     Field(uint) nestedCount;
     Field(DeferredFunctionStub *) deferredStubs;
     Field(charcount_t) ichMin;
@@ -83,13 +83,15 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
 {
     AssertMsg(size == sizeof(Parser), "verify conditionals affecting the size of Parser agree");
     Assert(scriptContext != nullptr);
-    m_isInBackground = isBackground;
     m_phtbl = nullptr;
     m_pscan = nullptr;
     m_deferringAST = FALSE;
     m_stoppedDeferredParse = FALSE;
+#if ENABLE_BACKGROUND_PARSING
+    m_isInBackground = isBackground;
     m_hasParallelJob = false;
     m_doingFastScan = false;
+#endif
     m_scriptContext = scriptContext;
     m_pCurrentAstSize = nullptr;
     m_arrayDepth = 0;
@@ -113,8 +115,6 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_length = 0;
     m_originalLength = 0;
     m_nextFunctionId = nullptr;
-    m_errorCallback = nullptr;
-    m_uncertainStructure = FALSE;
     m_reparsingLambdaParams = false;
     currBackgroundParseItem = nullptr;
     backgroundParseItems = nullptr;
@@ -144,9 +144,9 @@ Parser::~Parser(void)
         m_registeredRegexPatterns.Reset();
     }
 
+#if ENABLE_BACKGROUND_PARSING
     if (this->m_hasParallelJob)
     {
-#if ENABLE_BACKGROUND_PARSING
         // Let the background threads know that they can decommit their arena pages.
         BackgroundParser *bgp = m_scriptContext->GetBackgroundParser();
         Assert(bgp);
@@ -160,8 +160,8 @@ Parser::~Parser(void)
             });
             Assert(result);
         }
-#endif
     }
+#endif
 
     Release();
 
@@ -411,9 +411,9 @@ HRESULT Parser::ParseSourceInternal(
         hr = pse->ProcessError(m_pscan, hr, pnodeBase);
     }
 
+#if ENABLE_BACKGROUND_PARSING
     if (this->m_hasParallelJob)
     {
-#if ENABLE_BACKGROUND_PARSING
         ///// Wait here for remaining jobs to finish. Then look for errors, do final const bindings.
         // pleath TODO: If there are remaining jobs, let the main thread help finish them.
         BackgroundParser *bgp = m_scriptContext->GetBackgroundParser();
@@ -442,8 +442,8 @@ HRESULT Parser::ParseSourceInternal(
             Parser *parser = item->GetParser();
             parser->FinishBackgroundPidRefs(item, this != parser);
         }
-#endif
     }
+#endif
 
     // done with the scanner
     RELEASEPTR(m_pscan);
@@ -3018,7 +3018,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             m_pscan->Scan();
 
             // If the token after the right paren is not => or if there was a newline between () and => this is a syntax error
-            if (!m_doingFastScan && (m_token.tk != tkDArrow || m_pscan->FHadNewLine()))
+            if (!IsDoingFastScan() && (m_token.tk != tkDArrow || m_pscan->FHadNewLine()))
             {
                 Error(ERRsyntax);
             }
@@ -3307,6 +3307,7 @@ LFunction :
         }
         break;
 
+#if ENABLE_BACKGROUND_PARSING
     case tkCASE:
     {
         if (!m_doingFastScan)
@@ -3326,6 +3327,7 @@ LFunction :
         m_pscan->Scan();
         ParseStatement<buildAST>();
         break;
+#endif
 
     default:
     LUnknown :
@@ -3366,17 +3368,20 @@ ParseNodePtr Parser::ParseRegExp()
 {
     ParseNodePtr pnode = nullptr;
 
-    if (buildAST || m_doingFastScan)
+    if (buildAST || IsDoingFastScan())
     {
         m_pscan->RescanRegExp();
 
+#if ENABLE_BACKGROUND_PARSING
         BOOL saveDeferringAST = this->m_deferringAST;
         if (m_doingFastScan)
         {
             this->m_deferringAST = false;
         }
+#endif
         pnode = CreateNodeWithScanner<knopRegExp>();
         pnode->sxPid.regexPattern = m_token.GetRegex();
+#if ENABLE_BACKGROUND_PARSING
         if (m_doingFastScan)
         {
             this->m_deferringAST = saveDeferringAST;
@@ -3386,7 +3391,6 @@ ParseNodePtr Parser::ParseRegExp()
                 pnode = nullptr;
             }
         }
-#if ENABLE_BACKGROUND_PARSING
         else if (this->IsBackgroundParser())
         {
             Assert(pnode->sxPid.regexPattern == nullptr);
@@ -5049,12 +5053,14 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
     bool isTopLevelDeferredFunc = false;
 
+#if ENABLE_BACKGROUND_PARSING
     struct AutoFastScanFlag {
         bool savedDoingFastScan;
         AutoFastScanFlag(Parser *parser) : m_parser(parser) { savedDoingFastScan = m_parser->m_doingFastScan; }
         ~AutoFastScanFlag() { m_parser->m_doingFastScan = savedDoingFastScan; }
         Parser *m_parser;
     } flag(this);
+#endif
 
     bool doParallel = false;
     bool parallelJobStarted = false;
@@ -5083,7 +5089,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         // These are heuristic conditions that prohibit upfront deferral but not redeferral.
         isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc && 
             (!isLikelyIIFE || !topLevelStmt || PHASE_FORCE_RAW(Js::DeferParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->sxFnc.functionId));
-;
+
+#if ENABLE_BACKGROUND_PARSING
         if (!fLambda &&
             !isDeferredFnc &&
             !isLikelyIIFE &&
@@ -5093,7 +5100,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             !(this->m_parseType == ParseType_Deferred && this->m_functionBody && this->m_functionBody->GetScopeInfo() && !isTopLevelDeferredFunc))
         {
             doParallel = DoParallelParse(pnodeFnc);
-#if ENABLE_BACKGROUND_PARSING
+
             if (doParallel)
             {
                 BackgroundParser *bgp = m_scriptContext->GetBackgroundParser();
@@ -5119,8 +5126,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
                     }
                 }
             }
-#endif
         }
+#endif
     }
 
     if (!doParallel)
@@ -6312,6 +6319,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                 {
                     // Mark that the function has a non simple parameter list before parsing the pattern since the pattern can have function definitions.
                     this->GetCurrentFunctionNode()->sxFnc.SetHasNonSimpleParameterList();
+                    this->GetCurrentFunctionNode()->sxFnc.SetHasDestructuredParams();
 
                     ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
                     m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
@@ -10111,7 +10119,7 @@ LGetJumpStatement:
         {
             // If we're doing a fast scan, we're not tracking labels, so we can't accurately do this analysis.
             // Let the thread that's doing the full parse detect the error, if there is one.
-            if (!this->m_doingFastScan)
+            if (!this->IsDoingFastScan())
             {
                 // Unlabeled break or continue.
                 if (buildAST)
@@ -10249,7 +10257,7 @@ LGetJumpStatement:
 
         if (needTerminator)
         {
-            goto LNeedTerminator;
+        goto LNeedTerminator;
         }
         else
         {
@@ -11175,14 +11183,14 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
 
     if (m_stoppedDeferredParse)
     {
+#if ENABLE_BACKGROUND_PARSING
         if (this->m_hasParallelJob)
         {
-#if ENABLE_BACKGROUND_PARSING
             BackgroundParser *bgp = static_cast<BackgroundParser*>(m_scriptContext->GetBackgroundParser());
             Assert(bgp);
             this->WaitForBackgroundJobs(bgp, pse);
-#endif
         }
+#endif
 
         // Do any remaining bindings of globals referenced in non-deferred functions.
         if (pnodeGlobalEvalBlock)
@@ -11308,6 +11316,7 @@ bool Parser::CheckAsmjsModeStrPid(IdentPtr pid)
         !m_pscan->IsEscapeOnLastTkStrCon() &&
         wcsncmp(pid->Psz(), _u("use asm"), 10) == 0);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     if (isAsmCandidate && m_scriptContext->IsScriptContextInDebugMode())
     {
         // We would like to report this to debugger - they may choose to disable debugging.
@@ -11315,6 +11324,7 @@ bool Parser::CheckAsmjsModeStrPid(IdentPtr pid)
         m_scriptContext->RaiseMessageToDebugger(DEIT_ASMJS_IN_DEBUGGING, _u("AsmJs initialization error - AsmJs disabled due to script debugger"), m_sourceContextInfo && !m_sourceContextInfo->IsDynamic() ? m_sourceContextInfo->url : nullptr);
         return false;
     }
+#endif
 
     return isAsmCandidate && !(m_grfscr & fscrNoAsmJs);
 #else
@@ -11376,7 +11386,6 @@ void Parser::AddBackgroundParseItem(BackgroundParseItem *const item)
     }
     currBackgroundParseItem = item;
 }
-#endif
 
 void Parser::AddFastScannedRegExpNode(ParseNodePtr const pnode)
 {
@@ -11390,7 +11399,6 @@ void Parser::AddFastScannedRegExpNode(ParseNodePtr const pnode)
     fastScannedRegExpNodes->Append(pnode);
 }
 
-#if ENABLE_BACKGROUND_PARSING
 void Parser::AddBackgroundRegExpNode(ParseNodePtr const pnode)
 {
     Assert(IsBackgroundParser());
@@ -13575,14 +13583,13 @@ void ParseNode::Dump()
         }
 
         Output::Print(_u("%s (%d) [%d, %d]:\n"), name, this->sxFnc.functionId, this->sxFnc.lineNumber, this->sxFnc.columnNumber);
-        Output::Print(_u("hasArguments: %s callsEval:%s childCallsEval:%s HasReferenceableBuiltInArguments:%s ArgumentsObjectEscapes:%s HasWith:%s HasThis:%s HasOnlyThis:%s \n"),
+        Output::Print(_u("hasArguments: %s callsEval:%s childCallsEval:%s HasReferenceableBuiltInArguments:%s ArgumentsObjectEscapes:%s HasWith:%s HasOnlyThis:%s \n"),
             IsTrueOrFalse(this->sxFnc.HasHeapArguments()),
             IsTrueOrFalse(this->sxFnc.CallsEval()),
             IsTrueOrFalse(this->sxFnc.ChildCallsEval()),
             IsTrueOrFalse(this->sxFnc.HasReferenceableBuiltInArguments()),
             IsTrueOrFalse(this->sxFnc.GetArgumentsObjectEscapes()),
             IsTrueOrFalse(this->sxFnc.HasWithStmt()),
-            IsTrueOrFalse(this->sxFnc.HasThisStmt()),
             IsTrueOrFalse(this->sxFnc.HasOnlyThisStmts()));
         if(this->sxFnc.funcInfo)
         {

@@ -75,10 +75,10 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
                function, callInfo, ##__VA_ARGS__)
 #elif defined(_ARM_)
 // xplat-todo: fix me ARM
-#define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
+#define CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ...) \
     entryPoint(function, callInfo, ##__VA_ARGS__)
 #else
-#error CALL_ENTRYPOINT not yet implemented
+#error CALL_ENTRYPOINT_NOASSERT not yet implemented
 #endif
 
 #define CALL_FUNCTION_NOASSERT(function, callInfo, ...) \
@@ -88,10 +88,10 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 #if ENABLE_JS_REENTRANCY_CHECK
 #define CALL_FUNCTION(threadContext, function, callInfo, ...) \
     (threadContext->AssertJsReentrancy(), \
-    CALL_FUNCTION_NOASSERT(function, callInfo, __VA_ARGS__));
+    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__));
 #define CALL_ENTRYPOINT(threadContext, entryPoint, function, callInfo, ...) \
     (threadContext->AssertJsReentrancy(), \
-    CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, __VA_ARGS__));
+    CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__));
 #define JS_REENTRANT(reentrancyLock, ...) \
     reentrancyLock.unlock(); \
     __VA_ARGS__; \
@@ -103,9 +103,9 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
     JsReentLock reentrancyLock(threadContext);
 #else
 #define CALL_FUNCTION(threadContext, function, callInfo, ...) \
-    CALL_FUNCTION_NOASSERT(function, callInfo, __VA_ARGS__);
+    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__);
 #define CALL_ENTRYPOINT(threadContext, entryPoint, function, callInfo, ...) \
-    CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, __VA_ARGS__);
+    CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__);
 #define JS_REENTRANT(reentrancyLock, ...) \
     __VA_ARGS__;
 #define JS_REENTRANT_UNLOCK(reentrancyLock, ...) \

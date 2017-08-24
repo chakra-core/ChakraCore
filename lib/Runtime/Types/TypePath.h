@@ -161,6 +161,7 @@ public:
     private:
         int AddInternal(const PropertyRecord* propId);
 
+#if ENABLE_FIXED_FIELDS
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         uint8 GetMaxInitializedLength() { return this->GetData()->maxInitializedLength; }
         void SetMaxInitializedLength(int newMaxInitializedLength)
@@ -264,7 +265,7 @@ public:
 #endif
 
 #else
-        int GetMaxInitializedLength() { Assert(false); return this->pathLength; }
+        int GetMaxInitializedLength() { Assert(false); return this->GetPathLength(); }
 
         Var GetSingletonFixedFieldAt(PropertyIndex index, int typePathLength, ScriptContext * requestContext);
 
@@ -272,8 +273,8 @@ public:
         RecyclerWeakReference<DynamicObject>* GetSingletonInstance() const { Assert(false); return nullptr; }
         void SetSingletonInstance(RecyclerWeakReference<DynamicObject>* instance, int typePathLength) { Assert(false); }
         void ClearSingletonInstance() { Assert(false); }
-        void ClearSingletonInstanceIfSame(RecyclerWeakReference<DynamicObject>* instance) { Assert(false); }
-        void ClearSingletonInstanceIfDifferent(RecyclerWeakReference<DynamicObject>* instance) { Assert(false); }
+        void ClearSingletonInstanceIfSame(DynamicObject* instance) { Assert(false); }
+        void ClearSingletonInstanceIfDifferent(DynamicObject* instance) { Assert(false); }
 
         bool GetIsFixedFieldAt(PropertyIndex index, int typePathLength) { Assert(false); return false; }
         bool GetIsUsedFixedFieldAt(PropertyIndex index, int typePathLength) { Assert(false); return false; }
@@ -287,7 +288,8 @@ public:
         bool HasSingletonInstanceOnlyIfNeeded();
 #endif
 #endif
+#endif
     };
 }
 
-CompileAssert((sizeof(Js::TypePath) % HeapConstants::ObjectGranularity) / sizeof(void *) == TYPE_PATH_ALLOC_GRANULARITY_GAP);
+CompileAssert((sizeof(Js::TypePath) % HeapConstants::ObjectGranularity) == (HeapConstants::ObjectGranularity - TYPE_PATH_ALLOC_GRANULARITY_GAP * sizeof(void *)) % HeapConstants::ObjectGranularity);

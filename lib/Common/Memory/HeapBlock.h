@@ -353,6 +353,15 @@ public:
 #endif
 };
 
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+template <typename TBlockType>
+struct HeapBlockSListItem {
+    // SLIST_ENTRY needs to be the first element in the structure to avoid calculating offset with the SList API calls.
+    SLIST_ENTRY itemEntry;
+    TBlockType * itemHeapBlock;
+};
+#endif
+
 enum SweepMode
 {
     SweepMode_InThread,
@@ -380,11 +389,22 @@ template <class TBlockAttributes>
 class ValidPointers
 {
 public:
-    ValidPointers(ushort const * validPointers);
+    ValidPointers(ushort const * validPointers, uint bucketIndex);
     ushort GetInteriorAddressIndex(uint index) const;
     ushort GetAddressIndex(uint index) const;
 private:
+#if USE_VPM_TABLE
     ushort const * validPointers;
+#endif
+
+#if !USE_VPM_TABLE || DBG
+    uint indexPerObject;
+    uint maxObjectIndex;
+
+    static uint CalculateBucketInfo(uint bucketIndex, uint * stride);
+    static ushort CalculateAddressIndex(uint index, uint indexPerObject, uint maxObjectIndex);
+    static ushort CalculateInteriorAddressIndex(uint index, uint indexPerObject, uint maxObjectIndex);
+#endif
 };
 
 template <class TBlockAttributes>
@@ -694,7 +714,7 @@ protected:
     void CheckFreeBitVector(bool isCollecting);
 #endif
 
-    SmallHeapBlockBitVector * EnsureFreeBitVector();
+    SmallHeapBlockBitVector * EnsureFreeBitVector(bool isCollecting = true);
     SmallHeapBlockBitVector * BuildFreeBitVector();
     ushort BuildFreeBitVector(SmallHeapBlockBitVector * bv);
 

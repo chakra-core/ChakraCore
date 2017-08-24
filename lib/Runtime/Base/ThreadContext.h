@@ -7,11 +7,13 @@
 namespace Js
 {
     class ScriptContext;
-    struct InlineCache;
-    class DebugManager;
+    struct InlineCache;    
     class CodeGenRecyclableData;
+#ifdef ENABLE_SCRIPT_DEBUGGING
+    class DebugManager;
     struct ReturnedValue;
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;
+#endif
 }
 
 typedef BVSparse<ArenaAllocator> ActiveFunctionSet;
@@ -427,7 +429,9 @@ private:
     Js::JavascriptExceptionObject * pendingFinallyException;
     bool noScriptScope;
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     Js::DebugManager * debugManager;
+#endif
 
     static uint const MaxTemporaryArenaAllocators = 5;
 
@@ -568,6 +572,7 @@ private:
         // that would not get removed, but it would also not get any bigger.
         Field(PropertyIdToTypeHashSetDictionary) typesWithProtoPropertyCache;
 
+#if ENABLE_NATIVE_CODEGEN
         // The property guard dictionary contains property guards which need to be invalidated in response to properties changing
         // from writable to read-only and vice versa, properties being shadowed or unshadowed on prototypes, etc.  The dictionary
         // holds only weak references to property guards and their lifetimes are controlled by their creators (typically entry points).
@@ -575,7 +580,7 @@ private:
         // the guards for a given property get invalidated.
         // TODO: Create and use a self-cleaning weak reference dictionary, which would periodically remove any unused weak references.
         Field(PropertyGuardDictionary) propertyGuards;
-
+#endif
 
         Field(PropertyNoCaseSetType *) caseInvariantPropertySet;
 
@@ -594,8 +599,10 @@ private:
         // See ES6 (draft 22) 19.4.2.2
         Field(SymbolRegistrationMap*) symbolRegistrationMap;
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         // Just holding the reference to the returnedValueList of the stepController. This way that list will not get recycled prematurely.
         Field(Js::ReturnedValueList *) returnedValueList;
+#endif
 
         Field(uint) constructorCacheInvalidationCount;
 
@@ -772,8 +779,10 @@ private:
     Js::DelayLoadWinRtRoParameterizedIID delayLoadWinRtRoParameterizedIID;
 #endif
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_ES6_CHAR_CLASSIFIER)
+#ifdef INTL_WINGLOB
     Js::DelayLoadWindowsGlobalization delayLoadWindowsGlobalizationLibrary;
     Js::WindowsGlobalizationAdapter windowsGlobalizationAdapter;
+#endif
 #endif
 #ifdef ENABLE_FOUNDATION_OBJECT
     Js::DelayLoadWinRtFoundation delayLoadWinRtFoundationLibrary;
@@ -873,8 +882,10 @@ public:
     Js::DelayLoadWinRtRoParameterizedIID* GetWinRTRoParameterizedIIDLibrary();
 #endif
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_ES6_CHAR_CLASSIFIER)
+#ifdef INTL_WINGLOB
     Js::DelayLoadWindowsGlobalization *GetWindowsGlobalizationLibrary();
     Js::WindowsGlobalizationAdapter *GetWindowsGlobalizationAdapter();
+#endif
 #endif
 #ifdef ENABLE_FOUNDATION_OBJECT
     Js::DelayLoadWinRtFoundation *GetWinRtFoundationLibrary();
@@ -942,6 +953,7 @@ public:
     Js::PropertyId handlerPropertyId = Js::Constants::NoProperty;
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     void SetReturnedValueList(Js::ReturnedValueList *returnedValueList)
     {
         Assert(this->recyclableData != nullptr);
@@ -953,6 +965,8 @@ public:
         Assert(this->recyclableData == nullptr || this->recyclableData->returnedValueList == nullptr);
     }
 #endif
+#endif
+
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
     uint GetScriptContextCount() const { return this->scriptContextCount; }
 #endif
@@ -1240,11 +1254,13 @@ public:
     Js::TempGuestArenaAllocatorObject * GetTemporaryGuestAllocator(LPCWSTR name);
     void ReleaseTemporaryGuestAllocator(Js::TempGuestArenaAllocatorObject * tempAllocator);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     // Should be called from script context, at the time when construction for scriptcontext is just done.
     void EnsureDebugManager();
 
     // Should be called from script context 's destructor,
     void ReleaseDebugManager();
+#endif
 
     void RegisterScriptContext(Js::ScriptContext *scriptContext);
     void UnregisterScriptContext(Js::ScriptContext *scriptContext);
@@ -1295,8 +1311,8 @@ public:
     virtual intptr_t GetDisableImplicitFlagsAddr() const override;
     virtual intptr_t GetImplicitCallFlagsAddr() const override;
 
-    ptrdiff_t GetChakraBaseAddressDifference() const;
-    ptrdiff_t GetCRTBaseAddressDifference() const;
+    virtual ptrdiff_t GetChakraBaseAddressDifference() const override;
+    virtual ptrdiff_t GetCRTBaseAddressDifference() const override;
 
 private:
     void RegisterInlineCache(InlineCacheListMapByPropertyId& inlineCacheMap, Js::InlineCache* inlineCache, Js::PropertyId propertyId);
@@ -1638,7 +1654,9 @@ public:
 
     bool IsInThreadServiceCallback() const { return threadService.IsInCallback(); }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     Js::DebugManager * GetDebugManager() const { return this->debugManager; }
+#endif
 
     const NativeLibraryEntryRecord::Entry* PeekNativeLibraryEntry() const { return this->nativeLibraryEntry.Peek(); }
     void PushNativeLibraryEntry(_In_ NativeLibraryEntryRecord::Entry* entry) { this->nativeLibraryEntry.Push(entry); }
@@ -1781,7 +1799,7 @@ extern void(*InitializeAdditionalProperties)(ThreadContext *threadContext);
 class AutoDisableInterrupt
 {
 public:
-    AutoDisableInterrupt::AutoDisableInterrupt(ThreadContext *threadContext, bool explicitCompletion = true)
+    AutoDisableInterrupt(ThreadContext *threadContext, bool explicitCompletion = true)
         : m_operationCompleted(false), m_interruptDisableState(false), m_threadContext(threadContext), m_explicitCompletion(explicitCompletion)
     {
         if (m_threadContext->HasInterruptPoller())
@@ -1790,7 +1808,7 @@ public:
             m_threadContext->GetInterruptPoller()->SetDisabled(true);
         }
     }
-    AutoDisableInterrupt::~AutoDisableInterrupt()
+    ~AutoDisableInterrupt()
     {
         if (m_threadContext->HasInterruptPoller())
         {

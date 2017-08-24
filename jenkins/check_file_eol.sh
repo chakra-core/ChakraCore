@@ -20,7 +20,7 @@ fi
 # We can't rely on dos2unix being installed, so simply grep for the CR octet 0x0d via xxd.
 # We don't want to simply detect a literal 0d in the file or output so configure xxd to emit
 # octets in such a way that we can grep for the CR octet and not accidentally detect
-# text of the file or 0d spanning 2 octets in xxd output, e.g., 20d1 (' Ñ').
+# text of the file or 0d spanning 2 octets in xxd output (e.g. the 0d in 20d1)
 xxd -i -c 16 $1 | grep '0x0d' > $ERRFILETEMP
 if [ $? -eq 0 ]; then # grep found matches ($?==0), so we found CR (0x0d) in the file
     echo "ERROR: CR (0x0d) was introduced in $1" >> $ERRFILE

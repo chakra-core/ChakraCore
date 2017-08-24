@@ -26,38 +26,117 @@ HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>  HeapInfo::smallAlloc
 HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes> HeapInfo::mediumAllocValidPointersMap;
 
 template <class TBlockAttributes>
-ValidPointers<TBlockAttributes>::ValidPointers(ushort const * validPointers)
+ValidPointers<TBlockAttributes>::ValidPointers(ushort const * validPointers, uint bucketIndex)
+#if USE_VPM_TABLE
     : validPointers(validPointers)
+#endif
 {
+#if !USE_VPM_TABLE
+    Assert(validPointers == nullptr);
+    maxObjectIndex = CalculateBucketInfo(bucketIndex, &indexPerObject);
+#endif
+#if DBG && USE_VPM_TABLE
+    uint localIndexPerObject;
+    uint localMaxObjectIndex = CalculateBucketInfo(bucketIndex, &localIndexPerObject);
+    for (uint index = 0; index < TBlockAttributes::MaxSmallObjectCount; index++)
+    {
+        Assert(CalculateAddressIndex(index, localIndexPerObject, localMaxObjectIndex) == validPointers[index]);
+        Assert(CalculateInteriorAddressIndex(index, localIndexPerObject, localMaxObjectIndex) == validPointers[index + TBlockAttributes::MaxSmallObjectCount]);
+    }
+#endif
 }
 
 template <class TBlockAttributes>
 ushort ValidPointers<TBlockAttributes>::GetAddressIndex(uint index) const
 {
     Assert(index < TBlockAttributes::MaxSmallObjectCount);
+#if USE_VPM_TABLE    
     return validPointers[index];
+#else
+    return CalculateAddressIndex(index, indexPerObject, maxObjectIndex);
+#endif
+    
 }
 
 template <class TBlockAttributes>
 ushort ValidPointers<TBlockAttributes>::GetInteriorAddressIndex(uint index) const
 {
     Assert(index < TBlockAttributes::MaxSmallObjectCount);
+#if USE_VPM_TABLE    
     return validPointers[index + TBlockAttributes::MaxSmallObjectCount];
+#else
+    return CalculateInteriorAddressIndex(index, indexPerObject, maxObjectIndex);
+#endif
+}
+
+#if !USE_VPM_TABLE || DBG
+template <class TBlockAttributes>
+uint ValidPointers<TBlockAttributes>::CalculateBucketInfo(uint bucketIndex, uint * indexPerObject)
+{
+    uint bucketSize;
+    if (TBlockAttributes::IsSmallBlock)
+    {
+        bucketSize = TBlockAttributes::MinObjectSize + HeapConstants::ObjectGranularity * bucketIndex;
+    }
+    else
+    {
+        bucketSize = TBlockAttributes::MinObjectSize + HeapConstants::MediumObjectGranularity * (bucketIndex + 1);
+    }
+    *indexPerObject = bucketSize / HeapConstants::ObjectGranularity;
+    return ((TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / bucketSize) * bucketSize / HeapConstants::ObjectGranularity;
 }
 
 template <class TBlockAttributes>
-void HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMap(ValidPointersMapTable& validTable, InvalidBitsTable& invalidTable, BlockInfoMapTable& blockInfoTable)
+ushort ValidPointers<TBlockAttributes>::CalculateAddressIndex(uint index, uint indexPerObject, uint maxObjectIndex)
+{
+    Assert(index < TBlockAttributes::MaxSmallObjectCount);
+    if (index >= maxObjectIndex)
+    {
+        return (ushort)-1;
+    }
+    uint addressIndex = index / indexPerObject;
+    Assert(addressIndex < USHRT_MAX);
+    if (addressIndex * indexPerObject != index)
+    {
+        return (ushort)-1;
+    }
+    return (ushort)addressIndex;
+}
+
+template <class TBlockAttributes>
+ushort ValidPointers<TBlockAttributes>::CalculateInteriorAddressIndex(uint index, uint indexPerObject, uint maxObjectIndex)
+{
+    Assert(index < TBlockAttributes::MaxSmallObjectCount);
+    if (index >= maxObjectIndex)
+    {
+        return (ushort)-1;
+    }
+    uint addressIndex = index / indexPerObject;
+    Assert(addressIndex < USHRT_MAX);
+    return (ushort)addressIndex;
+}
+#endif
+
+#if defined(ENABLE_TEST_HOOKS) || !USE_STATIC_VPM
+template <class TBlockAttributes>
+void HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMap(ValidPointersMapTable * validTable, InvalidBitsTable& invalidTable, BlockInfoMapTable& blockInfoTable)
 {
     // Create the valid pointer map to be shared by the buckets.
     // Also create the invalid objects bit vector.
-    ushort * buffer = &validTable[0][0];
-    memset(buffer, -1, sizeof(ushort)* 2 * TBlockAttributes::MaxSmallObjectCount * TBlockAttributes::BucketCount);
+    ushort * buffer = &((*validTable)[0][0]);
+    if (buffer)
+    {
+        memset(buffer, -1, sizeof(ushort) * 2 * TBlockAttributes::MaxSmallObjectCount * TBlockAttributes::BucketCount);
+    }
 
     for (uint i = 0; i < TBlockAttributes::BucketCount; i++)
     {
         // Non-interior first
         ushort * validPointers = buffer;
-        buffer += TBlockAttributes::MaxSmallObjectCount;
+        if (buffer)
+        {            
+            buffer += TBlockAttributes::MaxSmallObjectCount;
+        }
 
         typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector * invalidBitVector = &invalidTable[i];
         invalidBitVector->SetAll();
@@ -82,7 +161,10 @@ void HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMap(Vali
 
         for (ushort j = 0; j < maxObjectCountForBucket; j++)
         {
-            validPointers[j * stride] = j;
+            if (validPointers)
+            {
+                validPointers[j * stride] = j;
+            }
 
             uintptr_t objectAddress = j * bucketSize;
             Assert(objectAddress / AutoSystemInfo::PageSize < USHRT_MAX);
@@ -94,21 +176,26 @@ void HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMap(Vali
             invalidBitVector->Clear(j * stride);
         }
 
-        // interior pointer
-        ushort * validInteriorPointers = buffer;
-        buffer += TBlockAttributes::MaxSmallObjectCount;
-        for (ushort j = 0; j < maxObjectCountForBucket; j++)
+        if (buffer)
         {
-            uint start = j * stride;
-            uint end = min(start + stride, TBlockAttributes::MaxSmallObjectCount);
-            for (uint k = start; k < end; k++)
+            // interior pointer
+            ushort * validInteriorPointers = buffer;
+            buffer += TBlockAttributes::MaxSmallObjectCount;
+            for (ushort j = 0; j < maxObjectCountForBucket; j++)
             {
-                validInteriorPointers[k] = j;
+                uint start = j * stride;
+                uint end = min(start + stride, TBlockAttributes::MaxSmallObjectCount);
+                for (uint k = start; k < end; k++)
+                {
+                    validInteriorPointers[k] = j;
+                }
             }
         }
     }
 }
+#endif
 
+#ifdef ENABLE_TEST_HOOKS
 template <>
 HRESULT HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>::GenerateValidPointersMapForBlockType(FILE* file)
 {
@@ -128,8 +215,9 @@ HRESULT HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>::GenerateVali
         hr = E_FAIL;
         goto cleanup;
     }
-    GenerateValidPointersMap(*valid, *invalid, *blockMap);
+    GenerateValidPointersMap(valid, *invalid, *blockMap);
 
+    IfErrorGotoCleanup(fwprintf(file, _u("#if USE_VPM_TABLE\n")))
     IfErrorGotoCleanup(fwprintf(file, _u("const ushort HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>::validPointersBuffer[HeapConstants::BucketCount][HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>::rowSize] = \n{\n")));
     // Generate the full buffer.
     for (unsigned i = 0; i < HeapConstants::BucketCount; ++i)
@@ -145,6 +233,7 @@ HRESULT HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>::GenerateVali
         IfErrorGotoCleanup(fwprintf(file, (i < HeapConstants::BucketCount - 1 ? _u("\n    },\n") : _u("\n    }\n"))));
     }
     IfErrorGotoCleanup(fwprintf(file, _u("};\n")));
+    IfErrorGotoCleanup(fwprintf(file, _u("#endif // USE_VPM_TABLE\n\n")))
 
     // Generate the invalid bitvectors.
     IfErrorGotoCleanup(fwprintf(
@@ -194,7 +283,7 @@ HRESULT HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>::GenerateVali
             IfErrorGotoCleanup(fwprintf(file, format, (*blockMap)[i][j].lastObjectIndexOnPage, (*blockMap)[i][j].pageObjectCount));
             IfErrorGotoCleanup(fwprintf(file, (j < SmallAllocationBlockAttributes::PageCount - 1 ? _u(" },\n") : _u(" }\n"))));
         }
-        IfErrorGotoCleanup(fwprintf(file, (i < HeapConstants::BucketCount - 1 ? _u("\n    },\n") : _u("\n        }\n"))));
+        IfErrorGotoCleanup(fwprintf(file, (i < HeapConstants::BucketCount - 1 ? _u("    },\n") : _u("    }\n"))));
     }
 
     IfErrorGotoCleanup(fwprintf(file, _u("};\n")));
@@ -225,8 +314,9 @@ HRESULT HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>::GenerateVal
         hr = E_FAIL;
         goto cleanup;
     }
-    GenerateValidPointersMap(*valid, *invalid, *blockMap);
+    GenerateValidPointersMap(valid, *invalid, *blockMap);
 
+    IfErrorGotoCleanup(fwprintf(file, _u("#if USE_VPM_TABLE\n")))
     IfErrorGotoCleanup(fwprintf(file, _u("const ushort HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>::validPointersBuffer[MediumAllocationBlockAttributes::BucketCount][HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>::rowSize] = \n{\n")));
     // Generate the full buffer.
     for (unsigned i = 0; i < HeapConstants::MediumBucketCount; ++i)
@@ -242,6 +332,7 @@ HRESULT HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>::GenerateVal
         IfErrorGotoCleanup(fwprintf(file, (i < HeapConstants::MediumBucketCount - 1 ? _u("\n    },\n") : _u("\n    }\n"))));
     }
     IfErrorGotoCleanup(fwprintf(file, _u("};\n")));
+    IfErrorGotoCleanup(fwprintf(file, _u("#endif // USE_VPM_TABLE\n\n")))
 
     // Generate the invalid bitvectors.
     IfErrorGotoCleanup(fwprintf(
@@ -291,7 +382,7 @@ HRESULT HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>::GenerateVal
             IfErrorGotoCleanup(fwprintf(file, format, (*blockMap)[i][j].lastObjectIndexOnPage, (*blockMap)[i][j].pageObjectCount));
             IfErrorGotoCleanup(fwprintf(file, (j < MediumAllocationBlockAttributes::PageCount - 1 ? _u(" },\n") : _u(" }\n"))));
         }
-        IfErrorGotoCleanup(fwprintf(file, (i < HeapConstants::MediumBucketCount - 1 ? _u("\n    },\n") : _u("\n        }\n"))));
+        IfErrorGotoCleanup(fwprintf(file, (i < HeapConstants::MediumBucketCount - 1 ? _u("    },\n") : _u("    }\n"))));
     }
 
     IfErrorGotoCleanup(fwprintf(file, _u("};\n")));
@@ -343,6 +434,7 @@ HRESULT HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMapHe
 
     return hr;
 }
+#endif
 
 HeapInfo::HeapInfo() :
     recycler(nullptr),
@@ -1168,6 +1260,39 @@ HeapInfo::SweepPendingObjects(RecyclerSweep& recyclerSweep)
 #endif
 
     largeObjectBucket.SweepPendingObjects(recyclerSweep);
+}
+#endif
+
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+void HeapInfo::StartAllocationsDuringConcurrentSweep()
+{
+    for (uint i = 0; i < HeapConstants::BucketCount; i++)
+    {
+        heapBuckets[i].StartAllocationDuringConcurrentSweep();
+    }
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
+    for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
+    {
+        mediumHeapBuckets[i].StartAllocationDuringConcurrentSweep();
+    }
+#endif
+}
+
+void
+HeapInfo::FinishConcurrentSweep()
+{
+    for (uint i = 0; i < HeapConstants::BucketCount; i++)
+    {
+        heapBuckets[i].FinishConcurrentSweep();
+    }
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
+    for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
+    {
+        mediumHeapBuckets[i].FinishConcurrentSweep();
+    }
+#endif
 }
 #endif
 

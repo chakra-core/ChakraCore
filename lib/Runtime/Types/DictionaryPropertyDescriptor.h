@@ -14,23 +14,38 @@ namespace Js
     public:
         DictionaryPropertyDescriptor(TPropertyIndex dataSlot, bool isInitialized = false, bool isFixed = false, bool usedAsFixed = false) :
             Data(dataSlot), Getter(NoSlots), Setter(NoSlots), Attributes(PropertyDynamicTypeDefaults),
-            PreventFalseReference(true), IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed), IsShadowed(false), IsAccessor(false) { }
+#if ENABLE_FIXED_FIELDS
+            IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed),
+#endif
+            PreventFalseReference(true), IsShadowed(false), IsAccessor(false) {}
 
         DictionaryPropertyDescriptor(TPropertyIndex getterSlot, TPropertyIndex setterSlot, bool isInitialized = false, bool isFixed = false, bool usedAsFixed = false) :
             Data(NoSlots), Getter(getterSlot), Setter(setterSlot), Attributes(PropertyDynamicTypeDefaults),
-            PreventFalseReference(true), IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed), IsShadowed(false), IsAccessor(true) { }
+#if ENABLE_FIXED_FIELDS
+            IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed),
+#endif
+            PreventFalseReference(true), IsShadowed(false), IsAccessor(true) {}
 
         DictionaryPropertyDescriptor(TPropertyIndex dataSlot, PropertyAttributes attributes, bool isInitialized = false, bool isFixed = false, bool usedAsFixed = false) :
             Data(dataSlot), Getter(NoSlots), Setter(NoSlots), Attributes(attributes),
-            PreventFalseReference(true), IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed), IsShadowed(false), IsAccessor(false) { }
+#if ENABLE_FIXED_FIELDS
+            IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed),
+#endif
+            PreventFalseReference(true), IsShadowed(false), IsAccessor(false) { }
 
         DictionaryPropertyDescriptor(TPropertyIndex getterSlot, TPropertyIndex setterSlot, PropertyAttributes attributes, bool isInitialized = false, bool isFixed = false, bool usedAsFixed = false) :
             Data(NoSlots), Getter(getterSlot), Setter(setterSlot), Attributes(attributes),
-            PreventFalseReference(true), IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed), IsShadowed(false), IsAccessor(true) { }
+#if ENABLE_FIXED_FIELDS
+            IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed),
+#endif
+            PreventFalseReference(true), IsShadowed(false), IsAccessor(true) { }
 
         // this is for initialization.
         DictionaryPropertyDescriptor() : Data(NoSlots), Getter(NoSlots), Setter(NoSlots), Attributes(PropertyDynamicTypeDefaults),
-            PreventFalseReference(true), IsInitialized(false), IsOnlyOneAccessorInitialized(false), IsFixed(false), UsedAsFixed(false), IsShadowed(false), IsAccessor(false) { }
+#if ENABLE_FIXED_FIELDS
+            IsInitialized(false), IsOnlyOneAccessorInitialized(false), IsFixed(false), UsedAsFixed(false),
+#endif
+            PreventFalseReference(true), IsShadowed(false), IsAccessor(false) { }
 
         template <typename TPropertyIndexFrom>
         void CopyFrom(DictionaryPropertyDescriptor<TPropertyIndexFrom>& descriptor);
@@ -38,13 +53,15 @@ namespace Js
         // SimpleDictionaryPropertyDescriptor is allocated by a dictionary along with the PropertyRecord
         // so it cannot be allocated as leaf, tag the lower bit to prevent false reference.
         bool PreventFalseReference:1;
-
+        bool IsShadowed : 1;
+        bool IsAccessor : 1;
+#if ENABLE_FIXED_FIELDS
         bool IsInitialized:1;
         bool IsOnlyOneAccessorInitialized:1;
         bool IsFixed:1;
         bool UsedAsFixed:1;
-        bool IsShadowed : 1;
-        bool IsAccessor : 1;
+#endif
+
         PropertyAttributes Attributes;
     private:
         TPropertyIndex Data;
@@ -68,7 +85,15 @@ namespace Js
         static const TPropertyIndex NoSlots = PropertyIndexRanges<TPropertyIndex>::NoSlots;
 
     public:
-#if DBG
+        bool IsOrMayBecomeFixed()
+        {
+#if ENABLE_FIXED_FIELDS
+            return !IsInitialized || IsFixed;
+#else
+            return false;
+#endif
+        }
+#if ENABLE_FIXED_FIELDS && DBG
         bool SanityCheckFixedBits()
         {
             return
@@ -242,10 +267,12 @@ namespace Js
         this->Data = (descriptor.Data == DictionaryPropertyDescriptor<TPropertyIndexFrom>::NoSlots) ? NoSlots : descriptor.Data;
         this->Getter = (descriptor.Getter == DictionaryPropertyDescriptor<TPropertyIndexFrom>::NoSlots) ? NoSlots : descriptor.Getter;
         this->Setter = (descriptor.Setter == DictionaryPropertyDescriptor<TPropertyIndexFrom>::NoSlots) ? NoSlots : descriptor.Setter;
+        this->IsAccessor = descriptor.IsAccessor;
 
+#if ENABLE_FIXED_FIELDS
         this->IsInitialized = descriptor.IsInitialized;
         this->IsFixed = descriptor.IsFixed;
-        this->UsedAsFixed = descriptor.UsedAsFixed;
-        this->IsAccessor = descriptor.IsAccessor;
+        this->UsedAsFixed = descriptor.UsedAsFixed;        
+#endif
     }
 }

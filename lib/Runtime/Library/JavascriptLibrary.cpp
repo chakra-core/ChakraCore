@@ -661,7 +661,7 @@ namespace Js
             SimplePathTypeHandler::New(scriptContext, regexResultPath, regexResultPath->GetPathLength(), JavascriptRegularExpressionResult::InlineSlotCount, sizeof(JavascriptArray), true, true), true, true);
 
         // Initialize string types
-        stringTypeStatic = StaticType::New(scriptContext, TypeIds_String, stringPrototype, nullptr);
+        // static type is handled under StringCache.h
         stringTypeDynamic = DynamicType::New(scriptContext, TypeIds_StringObject, stringPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
         // Initialize Throw error object type
@@ -1091,7 +1091,9 @@ namespace Js
     {
         RecyclableObject* globalObjectPrototype = GetObjectPrototype();
         globalObject->SetPrototype(globalObjectPrototype);
-        Recycler * recycler = this->GetRecycler();
+        Recycler* recycler = this->GetRecycler();
+        StaticType* staticString = StaticType::New(scriptContext, TypeIds_String, stringPrototype, nullptr);
+        stringCache.Initialize(scriptContext, staticString);
 
         pi = JavascriptNumber::New(Math::PI, scriptContext);
         nan = JavascriptNumber::New(JavascriptNumber::NaN, scriptContext);
@@ -1109,67 +1111,13 @@ namespace Js
 
         emptyString = CreateEmptyString(); // Must be created before other calls to CreateString
         nullString = CreateEmptyString(); // Must be distinct from emptyString (for the DOM)
-        quotesString = CreateStringFromCppLiteral(_u("\"\""));
-        whackString = CreateStringFromCppLiteral(_u("/"));
-        commaDisplayString = CreateStringFromCppLiteral(_u(","));
-        commaSpaceDisplayString = CreateStringFromCppLiteral(_u(", "));
 
-        objectDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Object);
-        objectArgumentsDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Arguments);
-        objectArrayDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Array);
-        objectBooleanDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Boolean);
-        objectDateDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Date);
-        objectErrorDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Error);
-        objectFunctionDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Function);
-        objectNumberDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Number);
-        objectRegExpDisplayString = scriptContext->GetPropertyString(PropertyIds::object_RegExp);
-        objectStringDisplayString = scriptContext->GetPropertyString(PropertyIds::object_String);
-        functionPrefixString = CreateStringFromCppLiteral(_u("function "));
-        generatorFunctionPrefixString = CreateStringFromCppLiteral(_u("function* "));
-        asyncFunctionPrefixString = CreateStringFromCppLiteral(_u("async function "));
-        functionDisplayString = CreateStringFromCppLiteral(JS_DISPLAY_STRING_FUNCTION_ANONYMOUS);
-        xDomainFunctionDisplayString = CreateStringFromCppLiteral(_u("function anonymous() {\n    [x-domain code]\n}"));
-        invalidDateString = CreateStringFromCppLiteral(_u("Invalid Date"));
-        undefinedDisplayString = scriptContext->GetPropertyString(PropertyIds::undefined);
-        nanDisplayString = scriptContext->GetPropertyString(PropertyIds::NaN);
-        nullDisplayString = scriptContext->GetPropertyString(PropertyIds::null);
-        unknownDisplayString = scriptContext->GetPropertyString(PropertyIds::unknown);
-        trueDisplayString = scriptContext->GetPropertyString(PropertyIds::true_);
-        falseDisplayString = scriptContext->GetPropertyString(PropertyIds::false_);
-        stringTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::string);
-        objectTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::object);
-        functionTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::function);
-        booleanTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::boolean_);
-        numberTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::number);
-        moduleTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::Module);
-        variantDateTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::date);
-        symbolTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::symbol);
         promiseResolveFunction = nullptr;
         promiseThenFunction = nullptr;
         generatorNextFunction = nullptr;
         generatorThrowFunction = nullptr;
         jsonStringifyFunction = nullptr;
         objectFreezeFunction = nullptr;
-
-#ifdef ENABLE_SIMDJS
-        if (GetScriptContext()->GetConfig()->IsSimdjsEnabled())
-        {
-            simdFloat32x4DisplayString = CreateStringFromCppLiteral(_u("float32x4"));
-            //simdFloat64x2DisplayString = CreateStringFromCppLiteral(_u("float64x2"));
-            simdInt32x4DisplayString = CreateStringFromCppLiteral(_u("int32x4"));
-            simdInt16x8DisplayString = CreateStringFromCppLiteral(_u("int16x8"));
-            simdInt8x16DisplayString = CreateStringFromCppLiteral(_u("int8x16"));
-
-            simdBool32x4DisplayString = CreateStringFromCppLiteral(_u("bool32x4"));
-            simdBool16x8DisplayString = CreateStringFromCppLiteral(_u("bool16x8"));
-            simdBool8x16DisplayString = CreateStringFromCppLiteral(_u("bool8x16"));
-
-            simdUint32x4DisplayString = CreateStringFromCppLiteral(_u("uint32x4"));
-            simdUint16x8DisplayString = CreateStringFromCppLiteral(_u("uint16x8"));
-            simdUint8x16DisplayString = CreateStringFromCppLiteral(_u("uint8x16"));
-        }
-#endif
-
 
         symbolHasInstance = CreateSymbol(BuiltInPropertyRecords::_symbolHasInstance);
         symbolIsConcatSpreadable = CreateSymbol(BuiltInPropertyRecords::_symbolIsConcatSpreadable);
@@ -1270,6 +1218,9 @@ namespace Js
             AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("enabledDiagnosticsTrace"), &GlobalObject::EntryInfo::EnabledDiagnosticsTrace, 1);
             AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("emitTTDLog"), &GlobalObject::EntryInfo::EmitTTDLog, 2);
         }
+#endif
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("chWriteTraceEvent"), &GlobalObject::EntryInfo::ChWriteTraceEvent, 1);
 #endif
 
 #ifdef IR_VIEWER
@@ -2644,7 +2595,7 @@ namespace Js
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToISOString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toISOString, &JavascriptDate::EntryInfo::ToISOString, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToJSON.GetOriginalEntryPoint(),
-             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toJSON, &JavascriptDate::EntryInfo::ToJSON, 1));
+            library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toJSON, &JavascriptDate::EntryInfo::ToJSON, 1));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToLocaleDateString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toLocaleDateString, &JavascriptDate::EntryInfo::ToLocaleDateString, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToLocaleString.GetOriginalEntryPoint(),
@@ -2655,9 +2606,12 @@ namespace Js
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toString, &JavascriptDate::EntryInfo::ToString, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToTimeString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toTimeString, &JavascriptDate::EntryInfo::ToTimeString, 0));
-        scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToUTCString.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toUTCString, &JavascriptDate::EntryInfo::ToUTCString, 0));
-        library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toGMTString, &JavascriptDate::EntryInfo::ToGMTString, 0);
+
+        // Spec stipulates toGMTString must be the same function object as toUTCString
+        JavascriptFunction *toUTCStringFunc = library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toUTCString, &JavascriptDate::EntryInfo::ToUTCString, 0);
+        scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToUTCString.GetOriginalEntryPoint(), toUTCStringFunc);
+        library->AddMember(datePrototype, PropertyIds::toGMTString, toUTCStringFunc, PropertyBuiltInMethodDefaults);
+
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ValueOf.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::valueOf, &JavascriptDate::EntryInfo::ValueOf, 0));
 
@@ -3634,70 +3588,70 @@ namespace Js
             switch (typeId)
             {
             case TypeIds_Undefined:
-                typeDisplayStrings[typeId] = undefinedDisplayString;
+                typeDisplayStrings[typeId] = GetUndefinedDisplayString();
                 break;
 
             case TypeIds_Function:
-                typeDisplayStrings[typeId] = functionTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetFunctionTypeDisplayString();
                 break;
 
             case TypeIds_Boolean:
-                typeDisplayStrings[typeId] = booleanTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetBooleanTypeDisplayString();
                 break;
 
             case TypeIds_String:
-                typeDisplayStrings[typeId] = stringTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetStringTypeDisplayString();
                 break;
 
             case TypeIds_Symbol:
-                typeDisplayStrings[typeId] = symbolTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSymbolTypeDisplayString();
                 break;
 
             case TypeIds_VariantDate:
-                typeDisplayStrings[typeId] = variantDateTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetVariantDateTypeDisplayString();
                 break;
 
             case TypeIds_Integer:
             case TypeIds_Number:
             case TypeIds_Int64Number:
             case TypeIds_UInt64Number:
-                typeDisplayStrings[typeId] = numberTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetNumberTypeDisplayString();
                 break;
 
 #ifdef ENABLE_SIMDJS
             case TypeIds_SIMDFloat32x4:
-                typeDisplayStrings[typeId] = simdFloat32x4DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDFloat32x4DisplayString();
                 break;
 
            //case TypeIds_SIMDFloat64x2:  //Type under review by the spec.
                 // typeDisplayStrings[typeId] = simdFloat64x2DisplayString;
                 // break;
             case TypeIds_SIMDInt32x4:
-                typeDisplayStrings[typeId] = simdInt32x4DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDInt32x4DisplayString();
                 break;
             case TypeIds_SIMDInt16x8:
-                typeDisplayStrings[typeId] = simdInt16x8DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDInt16x8DisplayString();
                 break;
             case TypeIds_SIMDInt8x16:
-                typeDisplayStrings[typeId] = simdInt8x16DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDInt8x16DisplayString();
                 break;
             case TypeIds_SIMDUint32x4:
-                typeDisplayStrings[typeId] = simdUint32x4DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDUint32x4DisplayString();
                 break;
             case TypeIds_SIMDUint16x8:
-                typeDisplayStrings[typeId] = simdUint16x8DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDUint16x8DisplayString();
                 break;
             case TypeIds_SIMDUint8x16:
-                typeDisplayStrings[typeId] = simdUint8x16DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDUint8x16DisplayString();
                 break;
             case TypeIds_SIMDBool32x4:
-                typeDisplayStrings[typeId] = simdBool32x4DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDBool32x4DisplayString();
                 break;
             case TypeIds_SIMDBool16x8:
-                typeDisplayStrings[typeId] = simdBool16x8DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDBool16x8DisplayString();
                 break;
             case TypeIds_SIMDBool8x16:
-                typeDisplayStrings[typeId] = simdBool8x16DisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetSIMDBool8x16DisplayString();
                 break;
 #endif
             case TypeIds_Enumerator:
@@ -3710,7 +3664,7 @@ namespace Js
                 break;
 
             default:
-                typeDisplayStrings[typeId] = objectTypeDisplayString;
+                typeDisplayStrings[typeId] = stringCache.GetObjectTypeDisplayString();
                 break;
             }
         }
@@ -3928,7 +3882,7 @@ namespace Js
     BuiltinFunction JavascriptLibrary::GetBuiltInForFuncInfo(intptr_t funcInfoAddr, ThreadContextInfo * context)
     {
 #define LIBRARY_FUNCTION(target, name, argc, flags, EntryInfo) \
-        if(funcInfoAddr == SHIFT_ADDR(context, (intptr_t)&EntryInfo)) \
+        if(funcInfoAddr == (intptr_t)ShiftAddr(context, &EntryInfo)) \
         { \
             return BuiltinFunction::##target##_##name; \
         }
@@ -5049,10 +5003,9 @@ namespace Js
 
     JavascriptFunction* JavascriptLibrary::AddFunction(DynamicObject* object, PropertyId propertyId, RuntimeFunction* function)
     {
-
-       AddMember(object, propertyId, function);
-       function->SetFunctionNameId(TaggedInt::ToVarUnchecked((int)propertyId));
-       return function;
+        AddMember(object, propertyId, function);
+        function->SetFunctionNameId(TaggedInt::ToVarUnchecked((int)propertyId));
+        return function;
     }
 
     JavascriptFunction * JavascriptLibrary::AddFunctionToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * functionInfo, int length, PropertyAttributes attributes)
@@ -5340,7 +5293,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializeIntlObject(DynamicObject* IntlObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(IntlObject, mode,  /*initSlotCapacity*/ 2);
+        typeHandler->Convert(IntlObject, mode, /*initSlotCapacity*/ 2);
 
         auto intlInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
         {
@@ -5424,7 +5377,7 @@ namespace Js
     }
     JavascriptString* JavascriptLibrary::CreateEmptyString()
     {
-        return LiteralString::CreateEmptyString(stringTypeStatic);
+        return LiteralString::CreateEmptyString(GetStringTypeStatic());
     }
 
     JavascriptRegExp* JavascriptLibrary::CreateEmptyRegExp()
@@ -6985,8 +6938,7 @@ namespace Js
 
     PropertyString* JavascriptLibrary::CreatePropertyString(const Js::PropertyRecord* propertyRecord)
     {
-        AssertMsg(stringTypeStatic, "Where's stringTypeStatic?");
-        return PropertyString::New(stringTypeStatic, propertyRecord, this->GetRecycler());
+        return PropertyString::New(GetStringTypeStatic(), propertyRecord, this->GetRecycler());
     }
 
     JavascriptVariantDate* JavascriptLibrary::CreateVariantDate(const double value)
@@ -7202,8 +7154,8 @@ namespace Js
             if (remoteScriptContext)
             {
                 HRESULT hr = JITManager::GetJITManager()->SetIsPRNGSeeded(remoteScriptContext, val);
-                JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
-            }
+            JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+        }
         }
 #endif
     }
@@ -7403,7 +7355,7 @@ namespace Js
         this->dynamicFunctionReference->Push(func);
     }
 
-
+#ifdef ENABLE_SCRIPT_PROFILING
     // Register for profiler
 #define DEFINE_OBJECT_NAME(object) const char16 *pwszObjectName = _u(#object);
 
@@ -7714,7 +7666,6 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(toString, JavascriptDate::EntryToString);
         REG_OBJECTS_LIB_FUNC(toTimeString, JavascriptDate::EntryToTimeString);
         REG_OBJECTS_LIB_FUNC(toUTCString, JavascriptDate::EntryToUTCString);
-        REG_OBJECTS_LIB_FUNC(toGMTString, JavascriptDate::EntryToGMTString);
         REG_OBJECTS_LIB_FUNC(valueOf, JavascriptDate::EntryValueOf);
 
         return hr;
@@ -8520,6 +8471,7 @@ namespace Js
         return hr;
     }
 #endif
+#endif // ENABLE_SCRIPT_PROFILING
 
 #if DBG
     void JavascriptLibrary::DumpLibraryByteCode()

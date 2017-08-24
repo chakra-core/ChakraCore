@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "CommonDefines.h"
+
 #ifdef __midl
 import "wtypes.idl";
 #include "sdkddkver.h"
@@ -363,10 +365,12 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR numberAllocatorAddr;
     CHAKRA_PTR recyclerAddr;
     CHAKRA_PTR builtinFunctionsBaseAddr;
+#ifdef ENABLE_SCRIPT_DEBUGGING
     CHAKRA_PTR debuggingFlagsAddr;
     CHAKRA_PTR debugStepTypeAddr;
     CHAKRA_PTR debugFrameAddressAddr;
     CHAKRA_PTR debugScriptIdWhenSetAddr;
+#endif
 } ScriptContextDataIDL;
 
 typedef struct SmallSpanSequenceIDL

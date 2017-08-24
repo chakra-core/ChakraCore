@@ -30,6 +30,10 @@ BUILTIN(GlobalObject, EnabledDiagnosticsTrace, EntryEnabledDiagnosticsTrace, Fun
 BUILTIN(GlobalObject, EmitTTDLog, EntryEmitTTDLog, FunctionInfo::ErrorOnNew)
 #endif
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+BUILTIN(GlobalObject, ChWriteTraceEvent, EntryChWriteTraceEvent, FunctionInfo::ErrorOnNew)
+#endif
+
 #ifdef IR_VIEWER
     BUILTIN(GlobalObject, ParseIR, EntryParseIR, FunctionInfo::ErrorOnNew)
     BUILTIN(GlobalObject, FunctionList, EntryFunctionList, FunctionInfo::ErrorOnNew)
@@ -121,7 +125,6 @@ BUILTIN(JavascriptDate, ToLocaleTimeString, EntryToLocaleTimeString, FunctionInf
 BUILTIN(JavascriptDate, ToString, EntryToString, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptDate, ToTimeString, EntryToTimeString, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, ToUTCString, EntryToUTCString, FunctionInfo::ErrorOnNew)
-BUILTIN(JavascriptDate, ToGMTString, EntryToGMTString, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, UTC, EntryUTC, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, ValueOf, EntryValueOf, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptDate, SymbolToPrimitive, EntrySymbolToPrimitive, FunctionInfo::ErrorOnNew)

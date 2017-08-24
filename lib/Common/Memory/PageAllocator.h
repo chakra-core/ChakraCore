@@ -17,7 +17,7 @@ namespace Memory
 {
 typedef void* FunctionTableHandle;
 
-#if DBG_DUMP && !defined(JD_PRIVATE)
+#if DBG_DUMP
 
 #define GUARD_PAGE_TRACE(...) \
     if (Js::Configuration::Global.flags.PrintGuardPageBounds) \
@@ -397,7 +397,7 @@ public:
 #if ENABLE_OOP_NATIVE_CODEGEN
         if (MemOpLastError == S_OK)
         {
-            MemOpLastError = GetLastError();
+            MemOpLastError = HRESULT_FROM_WIN32(::GetLastError());
         }
 #endif
     }
@@ -407,7 +407,7 @@ public:
 #if ENABLE_OOP_NATIVE_CODEGEN
         if (MemOpLastError == S_OK)
         {
-            MemOpLastError = HRESULT_FROM_WIN32(error);
+            MemOpLastError = error;
         }
 #endif
     }
@@ -628,9 +628,7 @@ public:
 #endif
 
     PageAllocatorBase(AllocationPolicyManager * policyManager,
-#ifndef JD_PRIVATE
         Js::ConfigFlagsTable& flags = Js::Configuration::Global.flags,
-#endif
         PageAllocatorType type = PageAllocatorType_Max,
         uint maxFreePageCount = DefaultMaxFreePageCount,
         bool zeroPages = false,
@@ -823,9 +821,7 @@ protected:
     bool enableWriteBarrier;
     AllocationPolicyManager * policyManager;
 
-#ifndef JD_PRIVATE
     Js::ConfigFlagsTable& pageAllocatorFlagTable;
-#endif
 
     // zero pages
     bool zeroPages;

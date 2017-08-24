@@ -26,7 +26,9 @@ namespace Js
         GlobalObject* globalObject = RecyclerNewPlus(scriptContext->GetRecycler(),
             sizeof(Var) * InlineSlotCapacity, GlobalObject, globalType, scriptContext);
 
+#if ENABLE_FIXED_FIELDS
         globalTypeHandler->SetSingletonInstanceIfNeeded(scriptContext->GetRecycler()->CreateWeakReferenceHandle<DynamicObject>(globalObject));
+#endif
 
         return globalObject;
     }
@@ -587,9 +589,11 @@ namespace Js
             return evalArg;
         }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         // It might happen that no script parsed on this context (scriptContext) till now,
         // so this Eval acts as the first source compile for scriptContext, transition to debugMode as needed
         scriptContext->TransitionToDebugModeIfFirstSource(/* utf8SourceInfo = */ nullptr);
+#endif
 
         JavascriptString *argString = JavascriptString::FromVar(evalArg);
         ScriptFunction *pfuncScript = nullptr;
@@ -690,14 +694,14 @@ namespace Js
                 bool successful = false;
                 if (JavascriptStackWalker::GetCaller(&pfuncCaller, scriptContext))
                 {
-                    FunctionInfo* functionInfo = pfuncCaller->GetFunctionInfo();
-                    if (functionInfo != nullptr && (functionInfo->IsLambda() || functionInfo->IsClassConstructor()))
-                    {
-                        Var defaultInstance = (moduleID == kmodGlobal) ? JavascriptOperators::OP_LdRoot(scriptContext)->ToThis() : (Var)JavascriptOperators::GetModuleRoot(moduleID, scriptContext);
-                        varThis = JavascriptOperators::OP_GetThisScoped(environment, defaultInstance, scriptContext);
-                        UpdateThisForEval(varThis, moduleID, scriptContext, strictMode);
+                FunctionInfo* functionInfo = pfuncCaller->GetFunctionInfo();
+                if (functionInfo != nullptr && (functionInfo->IsLambda() || functionInfo->IsClassConstructor()))
+                {
+                    Var defaultInstance = (moduleID == kmodGlobal) ? JavascriptOperators::OP_LdRoot(scriptContext)->ToThis() : (Var)JavascriptOperators::GetModuleRoot(moduleID, scriptContext);
+                    varThis = JavascriptOperators::OP_GetThisScoped(environment, defaultInstance, scriptContext);
+                    UpdateThisForEval(varThis, moduleID, scriptContext, strictMode);
                         successful = true;
-                    }
+                }
                 }
 
                 if (!successful)
@@ -1602,6 +1606,23 @@ LHexError:
 
         return scriptContext->GetLibrary()->GetUndefined();
     }
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    Var GlobalObject::EntryChWriteTraceEvent(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        if (args.Info.Count < 2)
+        {
+            return function->GetScriptContext()->GetLibrary()->GetUndefined();
+        }
+
+        Js::JavascriptString* jsString = Js::JavascriptConversion::ToString(args[1], function->GetScriptContext());
+        PlatformAgnostic::EventTrace::FireGenericEventTrace(jsString->GetSz());
+        return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+#endif
 
 #if ENABLE_TTD
     //Log a string in the telemetry system (and print to the console)

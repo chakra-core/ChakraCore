@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLanguagePch.h"
+#include "RuntimeMathPch.h"
 #include "EHBailoutData.h"
 #include "Library/JavascriptRegularExpression.h"
 #if DBG_DUMP
@@ -2039,6 +2040,7 @@ namespace Js
         Var aReturn = nullptr;
 
         {
+#ifdef ENABLE_SCRIPT_DEBUGGING
             if (!isAsmJs && executeFunction->IsInDebugMode())
             {
 #if DYNAMIC_INTERPRETER_THUNK
@@ -2049,6 +2051,7 @@ namespace Js
 #endif
             }
             else
+#endif
             {
 #if DYNAMIC_INTERPRETER_THUNK
                 PushPopFrameHelper pushPopFrameHelper(newInstance, returnAddress, addressOfReturnAddress);
@@ -2391,6 +2394,7 @@ namespace Js
         m_outSpCached  = nullptr;
     }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     _NOINLINE
     Var InterpreterStackFrame::DebugProcessThunk(void* returnAddress, void* addressOfReturnAddress)
     {
@@ -2460,6 +2464,7 @@ namespace Js
             }
         }
     }
+#endif
 
     template<typename OpCodeType, Js::OpCode (ReadOpFunc)(const byte*&), void (TracingFunc)(InterpreterStackFrame*, OpCodeType)>
     OpCodeType InterpreterStackFrame::ReadOp(const byte *& ip)
@@ -3299,7 +3304,7 @@ namespace Js
 
 // For now, always collect profile data when debugging,
 // otherwise the backend will be confused if there's no profile data.
-
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #define INTERPRETERLOOPNAME ProcessWithDebugging
 #define PROVIDE_DEBUGGING
 #if ENABLE_PROFILE_INFO
@@ -3311,6 +3316,7 @@ namespace Js
 #endif
 #undef PROVIDE_DEBUGGING
 #undef INTERPRETERLOOPNAME
+#endif
 
 #if ENABLE_TTD
 #define PROVIDE_INTERPRETER_STMTS
@@ -3357,9 +3363,9 @@ namespace Js
         } autoRestore(this);
 #endif
 
-        if ((m_flags & Js::InterpreterStackFrameFlags_FromBailOut) && !(m_flags & InterpreterStackFrameFlags_ProcessingBailOutFromEHCode))
+        if (this->ehBailoutData)
         {
-            if (this->ehBailoutData)
+            if ((m_flags & Js::InterpreterStackFrameFlags_FromBailOut) && !(m_flags & InterpreterStackFrameFlags_ProcessingBailOutFromEHCode))
             {
                 m_flags |= Js::InterpreterStackFrameFlags_ProcessingBailOutFromEHCode;
                 EHBailoutData * topLevelEHBailoutData = this->ehBailoutData;
@@ -3373,6 +3379,7 @@ namespace Js
                 this->ehBailoutData = nullptr;
             }
         }
+
 #ifdef ASMJS_PLAT
         if( GetFunctionBody()->GetIsAsmjsMode() )
         {
@@ -3870,11 +3877,13 @@ namespace Js
         ThreadContext * threadContext = scriptContext->GetThreadContext();
         Js::ImplicitCallFlags savedImplicitCallFlags = threadContext->GetImplicitCallFlags();
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #if DBG
         if (this->IsInDebugMode())
         {
             JavascriptFunction::CheckValidDebugThunk(scriptContext, function);
         }
+#endif
 #endif
 
         if (playout->Return == Js::Constants::NoRegister)
@@ -6552,6 +6561,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
             if (this->IsInDebugMode())
             {
 #if ENABLE_TTD
@@ -6570,6 +6580,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 this->TrySetRetOffset();
             }
             else
+#endif
             {
                 this->Process();
                 this->TrySetRetOffset();
@@ -6645,12 +6656,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             this->scriptContext->GetThreadContext()->TTDExecutionInfo->ProcessCatchInfoForLastExecutedStatements();
         }
 #endif
-
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (this->IsInDebugMode())
         {
             this->DebugProcess();
         }
         else
+#endif
         {
             this->Process();
         }
@@ -6661,11 +6673,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->nestedFinallyDepth++;
 
         int newOffset = 0;
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (this->IsInDebugMode())
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->DebugProcess());
         }
         else
+#endif
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->Process());
         }
@@ -6697,6 +6711,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                     Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
                 }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
                 if (this->IsInDebugMode())
                 {
 #if ENABLE_TTD
@@ -6715,6 +6730,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                     this->TrySetRetOffset();
                 }
                 else
+#endif
                 {
                     this->Process();
                     this->TrySetRetOffset();
@@ -6960,11 +6976,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         this->m_flags |= InterpreterStackFrameFlags_WithinCatchBlock;
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (this->IsInDebugMode())
         {
             this->DebugProcess();
         }
         else
+#endif
         {
             this->Process();
         }
@@ -6997,6 +7015,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 CacheSp();
             }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
             if (this->IsInDebugMode())
             {
 #if ENABLE_TTD
@@ -7013,6 +7032,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #endif
             }
             else
+#endif
             {
                 result = this->Process();
             }
@@ -7060,6 +7080,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
         }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (pExceptionObject && this->IsInDebugMode() &&
             pExceptionObject != scriptContext->GetThreadContext()->GetPendingSOErrorObject())
         {
@@ -7067,6 +7088,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             // (This appears to be the same behavior as ie8)
             pExceptionObject->SetDebuggerSkip(false);
         }
+#endif
 
         // Call into the finally by setting the IP, consuming the Finally, and letting the interpreter recurse.
         m_reader.SetCurrentRelativeOffset(ip, jumpOffset);
@@ -7131,11 +7153,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->m_flags |= InterpreterStackFrameFlags_WithinFinallyBlock;
 
         int newOffset = 0;
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (this->IsInDebugMode())
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->DebugProcess());
         }
         else
+#endif
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->Process());
         }
@@ -7443,7 +7467,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             const Js::PropertyIdArray *propIds = this->m_functionBody->GetFormalsPropIdArray();
 
-            Var funcExpr = this->GetFunctionExpression();
+            JavascriptFunction* funcExpr = this->GetFunctionExpression();
             PropertyId objectId = ActivationObjectEx::GetLiteralObjectRef(propIds);
             scopeObject = JavascriptOperators::OP_InitCachedScope(funcExpr, propIds,
                 this->GetFunctionBody()->GetObjectLiteralTypeRef(objectId),
@@ -7680,11 +7704,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         JavascriptOperators::OP_InitClass(GetReg(playout->Constructor), playout->Extends != Js::Constants::NoRegister ? GetReg(playout->Extends) : NULL, GetScriptContext());
     }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     template <class T>
     void InterpreterStackFrame::OP_EmitTmpRegCount(const unaligned OpLayoutT_Unsigned1<T> * playout)
     {
         this->scriptContext->GetDebugContext()->GetProbeContainer()->SetCurrentTmpRegCount(playout->C1);
     }
+#endif
 
     Var InterpreterStackFrame::OP_LdHomeObj(ScriptContext * scriptContext)
     {
@@ -7764,13 +7790,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     // specialized version for doubles
     template <>
-    double InterpreterStackFrame::GetRegRaw(RegSlot localRegisterID) const
+    double VECTORCALL InterpreterStackFrame::GetRegRaw(RegSlot localRegisterID) const
     {
         return (double)m_localDoubleSlots[localRegisterID];
     }
 
     template <>
-    float InterpreterStackFrame::GetRegRaw(RegSlot localRegisterID) const
+    float VECTORCALL InterpreterStackFrame::GetRegRaw(RegSlot localRegisterID) const
     {
         return (float)m_localFloatSlots[localRegisterID];
     }
@@ -8425,7 +8451,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     }
 #endif
 
-    Var InterpreterStackFrame::GetFunctionExpression()
+    JavascriptFunction* InterpreterStackFrame::GetFunctionExpression()
     {
         // Make sure we get the boxed function object if is there, (or the function itself)
         return StackScriptFunction::GetCurrentFunctionObject(this->function->GetRealFunctionObject());

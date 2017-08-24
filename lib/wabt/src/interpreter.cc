@@ -20,6 +20,8 @@
 #include <cassert>
 #include <cinttypes>
 #include <cmath>
+#include <limits>
+#include <type_traits>
 #include <vector>
 
 #include "stream.h"
@@ -27,12 +29,13 @@
 namespace wabt {
 namespace interpreter {
 
-static const char* s_opcode_name[256] = {
-
-#define WABT_OPCODE(rtype, type1, type2, mem_size, code, NAME, text) text,
+static const char* s_opcode_name[] = {
+#define WABT_OPCODE(rtype, type1, type2, mem_size, prefix, code, NAME, text) \
+  text,
 #include "interpreter-opcode.def"
 #undef WABT_OPCODE
 
+  "<invalid>",
 };
 
 #define CHECK_RESULT(expr)  \
@@ -41,26 +44,40 @@ static const char* s_opcode_name[256] = {
       return Result::Error; \
   } while (0)
 
-static const char* get_opcode_name(Opcode opcode) {
-  return s_opcode_name[static_cast<int>(opcode)];
+// Differs from CHECK_RESULT since it can return different traps, not just
+// Error. Also uses __VA_ARGS__ so templates can be passed without surrounding
+// parentheses.
+#define CHECK_TRAP(...)            \
+  do {                             \
+    Result result = (__VA_ARGS__); \
+    if (result != Result::Ok) {    \
+      return result;               \
+    }                              \
+  } while (0)
+
+static const char* GetOpcodeName(Opcode opcode) {
+  int value = static_cast<int>(opcode);
+  return value < static_cast<int>(WABT_ARRAY_SIZE(s_opcode_name))
+             ? s_opcode_name[value]
+             : "<invalid>";
 }
 
 Environment::Environment() : istream_(new OutputBuffer()) {}
 
-Index Environment::FindModuleIndex(StringSlice name) const {
-  auto iter = module_bindings_.find(string_slice_to_string(name));
+Index Environment::FindModuleIndex(string_view name) const {
+  auto iter = module_bindings_.find(name.to_string());
   if (iter == module_bindings_.end())
     return kInvalidIndex;
   return iter->second.index;
 }
 
-Module* Environment::FindModule(StringSlice name) {
+Module* Environment::FindModule(string_view name) {
   Index index = FindModuleIndex(name);
   return index == kInvalidIndex ? nullptr : modules_[index].get();
 }
 
-Module* Environment::FindRegisteredModule(StringSlice name) {
-  auto iter = registered_module_bindings_.find(string_slice_to_string(name));
+Module* Environment::FindRegisteredModule(string_view name) {
+  auto iter = registered_module_bindings_.find(name.to_string());
   if (iter == registered_module_bindings_.end())
     return nullptr;
   return modules_[iter->second.index].get();
@@ -91,9 +108,7 @@ FuncSignature::FuncSignature(Index param_count,
       result_types(result_types, result_types + result_count) {}
 
 Import::Import() : kind(ExternalKind::Func) {
-  WABT_ZERO_MEMORY(module_name);
-  WABT_ZERO_MEMORY(field_name);
-  WABT_ZERO_MEMORY(func.sig_index);
+  func.sig_index = kInvalidIndex;
 }
 
 Import::Import(Import&& other) {
@@ -102,10 +117,8 @@ Import::Import(Import&& other) {
 
 Import& Import::operator=(Import&& other) {
   kind = other.kind;
-  module_name = other.module_name;
-  WABT_ZERO_MEMORY(other.module_name);
-  field_name = other.field_name;
-  WABT_ZERO_MEMORY(other.field_name);
+  module_name = std::move(other.module_name);
+  field_name = std::move(other.field_name);
   switch (kind) {
     case ExternalKind::Func:
       func.sig_index = other.func.sig_index;
@@ -128,46 +141,18 @@ Import& Import::operator=(Import&& other) {
   return *this;
 }
 
-Import::~Import() {
-  destroy_string_slice(&module_name);
-  destroy_string_slice(&field_name);
-}
-
-Export::Export(Export&& other)
-    : name(other.name), kind(other.kind), index(other.index) {
-  WABT_ZERO_MEMORY(other.name);
-}
-
-Export& Export::operator=(Export&& other) {
-  name = other.name;
-  kind = other.kind;
-  index = other.index;
-  WABT_ZERO_MEMORY(other.name);
-  return *this;
-}
-
-Export::~Export() {
-  destroy_string_slice(&name);
-}
-
 Module::Module(bool is_host)
     : memory_index(kInvalidIndex),
       table_index(kInvalidIndex),
-      is_host(is_host) {
-  WABT_ZERO_MEMORY(name);
-}
+      is_host(is_host) {}
 
-Module::Module(const StringSlice& name, bool is_host)
-    : name(name),
+Module::Module(string_view name, bool is_host)
+    : name(name.to_string()),
       memory_index(kInvalidIndex),
       table_index(kInvalidIndex),
       is_host(is_host) {}
 
-Module::~Module() {
-  destroy_string_slice(&name);
-}
-
-Export* Module::GetExport(StringSlice name) {
+Export* Module::GetExport(string_view name) {
   int field_index = export_bindings.FindIndex(name);
   if (field_index < 0)
     return nullptr;
@@ -180,7 +165,7 @@ DefinedModule::DefinedModule()
       istream_start(kInvalidIstreamOffset),
       istream_end(kInvalidIstreamOffset) {}
 
-HostModule::HostModule(const StringSlice& name) : Module(name, true) {}
+HostModule::HostModule(string_view name) : Module(name, true) {}
 
 Environment::MarkPoint Environment::Mark() {
   MarkPoint mark;
@@ -197,9 +182,9 @@ Environment::MarkPoint Environment::Mark() {
 void Environment::ResetToMarkPoint(const MarkPoint& mark) {
   // Destroy entries in the binding hash.
   for (size_t i = mark.modules_size; i < modules_.size(); ++i) {
-    const StringSlice* name = &modules_[i]->name;
-    if (!string_slice_is_empty(name))
-      module_bindings_.erase(string_slice_to_string(*name));
+    std::string name = modules_[i]->name;
+    if (!name.empty())
+      module_bindings_.erase(name);
   }
 
   // registered_module_bindings_ maps from an arbitrary name to a module index,
@@ -221,19 +206,12 @@ void Environment::ResetToMarkPoint(const MarkPoint& mark) {
   istream_->data.resize(mark.istream_size);
 }
 
-HostModule* Environment::AppendHostModule(StringSlice name) {
-  HostModule* module = new HostModule(dup_string_slice(name));
+HostModule* Environment::AppendHostModule(string_view name) {
+  HostModule* module = new HostModule(name);
   modules_.emplace_back(module);
-  registered_module_bindings_.emplace(string_slice_to_string(name),
+  registered_module_bindings_.emplace(name.to_string(),
                                       Binding(modules_.size() - 1));
   return module;
-}
-
-Result Thread::PushValue(Value value) {
-  if (value_stack_top_ >= value_stack_end_)
-    return Result::TrapValueStackExhausted;
-  *value_stack_top_++ = value;
-  return Result::Ok;
 }
 
 Result Thread::PushArgs(const FuncSignature* sig,
@@ -245,7 +223,7 @@ Result Thread::PushArgs(const FuncSignature* sig,
     if (sig->param_types[i] != args[i].type)
       return interpreter::Result::ArgumentTypeMismatch;
 
-    interpreter::Result iresult = PushValue(args[i].value);
+    interpreter::Result iresult = Push(args[i].value);
     if (iresult != interpreter::Result::Ok) {
       value_stack_top_ = value_stack_.data();
       return iresult;
@@ -265,6 +243,44 @@ void Thread::CopyResults(const FuncSignature* sig,
   for (size_t i = 0; i < expected_results; ++i)
     out_results->emplace_back(sig->result_types[i], value_stack_[i]);
 }
+
+template <typename Dst, typename Src>
+Dst Bitcast(Src value) {
+  static_assert(sizeof(Src) == sizeof(Dst), "Bitcast sizes must match.");
+  Dst result;
+  memcpy(&result, &value, sizeof(result));
+  return result;
+}
+
+uint32_t ToRep(bool x) { return x ? 1 : 0; }
+uint32_t ToRep(uint32_t x) { return x; }
+uint64_t ToRep(uint64_t x) { return x; }
+uint32_t ToRep(int32_t x) { return Bitcast<uint32_t>(x); }
+uint64_t ToRep(int64_t x) { return Bitcast<uint64_t>(x); }
+uint32_t ToRep(float x) { return Bitcast<uint32_t>(x); }
+uint64_t ToRep(double x) { return Bitcast<uint64_t>(x); }
+
+template <typename Dst, typename Src>
+Dst FromRep(Src x);
+
+template <>
+uint32_t FromRep<uint32_t>(uint32_t x) { return x; }
+template <>
+uint64_t FromRep<uint64_t>(uint64_t x) { return x; }
+template <>
+int32_t FromRep<int32_t>(uint32_t x) { return Bitcast<int32_t>(x); }
+template <>
+int64_t FromRep<int64_t>(uint64_t x) { return Bitcast<int64_t>(x); }
+template <>
+float FromRep<float>(uint32_t x) { return Bitcast<float>(x); }
+template <>
+double FromRep<double>(uint64_t x) { return Bitcast<double>(x); }
+
+template <typename T>
+struct FloatTraits;
+
+template <typename R, typename T>
+bool IsConversionInRange(ValueTypeRep<T> bits);
 
 /* 3 32222222 222...00
  * 1 09876543 210...10
@@ -290,54 +306,68 @@ void Thread::CopyResults(const FuncSignature* sig,
  * 1 11111111 111...11 => 0xffffffff => -nan(0x7fffff)
  */
 
-#define F32_MAX 0x7f7fffffU
-#define F32_INF 0x7f800000U
-#define F32_NEG_MAX 0xff7fffffU
-#define F32_NEG_INF 0xff800000U
-#define F32_NEG_ONE 0xbf800000U
-#define F32_NEG_ZERO 0x80000000U
-#define F32_QUIET_NAN 0x7fc00000U
-#define F32_QUIET_NEG_NAN 0xffc00000U
-#define F32_QUIET_NAN_BIT 0x00400000U
-#define F32_SIG_BITS 23
-#define F32_SIG_MASK 0x7fffff
-#define F32_SIGN_MASK 0x80000000U
+template <>
+struct FloatTraits<float> {
+  static const uint32_t kMax = 0x7f7fffffU;
+  static const uint32_t kInf = 0x7f800000U;
+  static const uint32_t kNegMax = 0xff7fffffU;
+  static const uint32_t kNegInf = 0xff800000U;
+  static const uint32_t kNegOne = 0xbf800000U;
+  static const uint32_t kNegZero =0x80000000U;
+  static const uint32_t kQuietNan = 0x7fc00000U;
+  static const uint32_t kQuietNegNan = 0xffc00000U;
+  static const uint32_t kQuietNanBit = 0x00400000U;
+  static const int kSigBits = 23;
+  static const uint32_t kSigMask = 0x7fffff;
+  static const uint32_t kSignMask = 0x80000000U;
 
-static bool is_nan_f32(uint32_t f32_bits) {
-  return (f32_bits > F32_INF && f32_bits < F32_NEG_ZERO) ||
-         (f32_bits > F32_NEG_INF);
+  static bool IsNan(uint32_t bits) {
+    return (bits > kInf && bits < kNegZero) || (bits > kNegInf);
+  }
+
+  static bool IsZero(uint32_t bits) {
+    return bits == 0 || bits == kNegZero;
+  }
+
+  static bool IsCanonicalNan(uint32_t bits) {
+    return bits == kQuietNan || bits == kQuietNegNan;
+  }
+
+  static bool IsArithmeticNan(uint32_t bits) {
+    return (bits & kQuietNan) == kQuietNan;
+  }
+};
+
+bool IsCanonicalNan(uint32_t bits) {
+  return FloatTraits<float>::IsCanonicalNan(bits);
 }
 
-bool is_canonical_nan_f32(uint32_t f32_bits) {
-  return f32_bits == F32_QUIET_NAN || f32_bits == F32_QUIET_NEG_NAN;
+bool IsArithmeticNan(uint32_t bits) {
+  return FloatTraits<float>::IsArithmeticNan(bits);
 }
 
-bool is_arithmetic_nan_f32(uint32_t f32_bits) {
-  return (f32_bits & F32_QUIET_NAN) == F32_QUIET_NAN;
+template <>
+bool IsConversionInRange<int32_t, float>(uint32_t bits) {
+  return (bits < 0x4f000000U) ||
+         (bits >= FloatTraits<float>::kNegZero && bits <= 0xcf000000U);
 }
 
-static WABT_INLINE bool is_zero_f32(uint32_t f32_bits) {
-  return f32_bits == 0 || f32_bits == F32_NEG_ZERO;
+template <>
+bool IsConversionInRange<int64_t, float>(uint32_t bits) {
+  return (bits < 0x5f000000U) ||
+         (bits >= FloatTraits<float>::kNegZero && bits <= 0xdf000000U);
 }
 
-static WABT_INLINE bool is_in_range_i32_trunc_s_f32(uint32_t f32_bits) {
-  return (f32_bits < 0x4f000000U) ||
-         (f32_bits >= F32_NEG_ZERO && f32_bits <= 0xcf000000U);
+template <>
+bool IsConversionInRange<uint32_t, float>(uint32_t bits) {
+  return (bits < 0x4f800000U) || (bits >= FloatTraits<float>::kNegZero &&
+                                  bits < FloatTraits<float>::kNegOne);
 }
 
-static WABT_INLINE bool is_in_range_i64_trunc_s_f32(uint32_t f32_bits) {
-  return (f32_bits < 0x5f000000U) ||
-         (f32_bits >= F32_NEG_ZERO && f32_bits <= 0xdf000000U);
-}
-
-static WABT_INLINE bool is_in_range_i32_trunc_u_f32(uint32_t f32_bits) {
-  return (f32_bits < 0x4f800000U) ||
-         (f32_bits >= F32_NEG_ZERO && f32_bits < F32_NEG_ONE);
-}
-
-static WABT_INLINE bool is_in_range_i64_trunc_u_f32(uint32_t f32_bits) {
-  return (f32_bits < 0x5f800000U) ||
-         (f32_bits >= F32_NEG_ZERO && f32_bits < F32_NEG_ONE);
+template <>
+bool IsConversionInRange<uint64_t, float>(uint32_t bits) {
+  return (bits < 0x5f800000U) || (bits >= FloatTraits<float>::kNegZero &&
+                                  bits < FloatTraits<float>::kNegOne);
 }
 
 /*
@@ -366,152 +396,172 @@ static WABT_INLINE bool is_in_range_i64_trunc_u_f32(uint32_t f32_bits) {
  * 1 11111111111 1111..1..111111...111 0xffffffffffffffff => -nan(0xfff...)
  */
 
-#define F64_INF 0x7ff0000000000000ULL
-#define F64_NEG_INF 0xfff0000000000000ULL
-#define F64_NEG_ONE 0xbff0000000000000ULL
-#define F64_NEG_ZERO 0x8000000000000000ULL
-#define F64_QUIET_NAN 0x7ff8000000000000ULL
-#define F64_QUIET_NEG_NAN 0xfff8000000000000ULL
-#define F64_QUIET_NAN_BIT 0x0008000000000000ULL
-#define F64_SIG_BITS 52
-#define F64_SIG_MASK 0xfffffffffffffULL
-#define F64_SIGN_MASK 0x8000000000000000ULL
+template <>
+struct FloatTraits<double> {
+  static const uint64_t kInf = 0x7ff0000000000000ULL;
+  static const uint64_t kNegInf = 0xfff0000000000000ULL;
+  static const uint64_t kNegOne = 0xbff0000000000000ULL;
+  static const uint64_t kNegZero = 0x8000000000000000ULL;
+  static const uint64_t kQuietNan = 0x7ff8000000000000ULL;
+  static const uint64_t kQuietNegNan = 0xfff8000000000000ULL;
+  static const uint64_t kQuietNanBit = 0x0008000000000000ULL;
+  static const int kSigBits = 52;
+  static const uint64_t kSigMask = 0xfffffffffffffULL;
+  static const uint64_t kSignMask = 0x8000000000000000ULL;
 
-static bool is_nan_f64(uint64_t f64_bits) {
-  return (f64_bits > F64_INF && f64_bits < F64_NEG_ZERO) ||
-         (f64_bits > F64_NEG_INF);
-}
-
-bool is_canonical_nan_f64(uint64_t f64_bits) {
-  return f64_bits == F64_QUIET_NAN || f64_bits == F64_QUIET_NEG_NAN;
-}
-
-bool is_arithmetic_nan_f64(uint64_t f64_bits) {
-  return (f64_bits & F64_QUIET_NAN) == F64_QUIET_NAN;
-}
-
-static WABT_INLINE bool is_zero_f64(uint64_t f64_bits) {
-  return f64_bits == 0 || f64_bits == F64_NEG_ZERO;
-}
-
-static WABT_INLINE bool is_in_range_i32_trunc_s_f64(uint64_t f64_bits) {
-  return (f64_bits <= 0x41dfffffffc00000ULL) ||
-         (f64_bits >= F64_NEG_ZERO && f64_bits <= 0xc1e0000000000000ULL);
-}
-
-static WABT_INLINE bool is_in_range_i32_trunc_u_f64(uint64_t f64_bits) {
-  return (f64_bits <= 0x41efffffffe00000ULL) ||
-         (f64_bits >= F64_NEG_ZERO && f64_bits < F64_NEG_ONE);
-}
-
-static WABT_INLINE bool is_in_range_i64_trunc_s_f64(uint64_t f64_bits) {
-  return (f64_bits < 0x43e0000000000000ULL) ||
-         (f64_bits >= F64_NEG_ZERO && f64_bits <= 0xc3e0000000000000ULL);
-}
-
-static WABT_INLINE bool is_in_range_i64_trunc_u_f64(uint64_t f64_bits) {
-  return (f64_bits < 0x43f0000000000000ULL) ||
-         (f64_bits >= F64_NEG_ZERO && f64_bits < F64_NEG_ONE);
-}
-
-static WABT_INLINE bool is_in_range_f64_demote_f32(uint64_t f64_bits) {
-  return (f64_bits <= 0x47efffffe0000000ULL) ||
-         (f64_bits >= F64_NEG_ZERO && f64_bits <= 0xc7efffffe0000000ULL);
-}
-
-/* The WebAssembly rounding mode means that these values (which are > F32_MAX)
- * should be rounded to F32_MAX and not set to infinity. Unfortunately, UBSAN
- * complains that the value is not representable as a float, so we'll special
- * case them. */
-static WABT_INLINE bool is_in_range_f64_demote_f32_round_to_f32_max(
-    uint64_t f64_bits) {
-  return f64_bits > 0x47efffffe0000000ULL && f64_bits < 0x47effffff0000000ULL;
-}
-
-static WABT_INLINE bool is_in_range_f64_demote_f32_round_to_neg_f32_max(
-    uint64_t f64_bits) {
-  return f64_bits > 0xc7efffffe0000000ULL && f64_bits < 0xc7effffff0000000ULL;
-}
-
-#define IS_NAN_F32 is_nan_f32
-#define IS_NAN_F64 is_nan_f64
-#define IS_ZERO_F32 is_zero_f32
-#define IS_ZERO_F64 is_zero_f64
-
-#define DEFINE_BITCAST(name, src, dst) \
-  static WABT_INLINE dst name(src x) { \
-    dst result;                        \
-    memcpy(&result, &x, sizeof(dst));  \
-    return result;                     \
+  static bool IsNan(uint64_t bits) {
+    return (bits > kInf && bits < kNegZero) || (bits > kNegInf);
   }
 
-DEFINE_BITCAST(bitcast_u32_to_i32, uint32_t, int32_t)
-DEFINE_BITCAST(bitcast_u64_to_i64, uint64_t, int64_t)
-DEFINE_BITCAST(bitcast_f32_to_u32, float, uint32_t)
-DEFINE_BITCAST(bitcast_u32_to_f32, uint32_t, float)
-DEFINE_BITCAST(bitcast_f64_to_u64, double, uint64_t)
-DEFINE_BITCAST(bitcast_u64_to_f64, uint64_t, double)
+  static bool IsZero(uint64_t bits) {
+    return bits == 0 || bits == kNegZero;
+  }
 
-#define bitcast_i32_to_u32(x) (static_cast<uint32_t>(x))
-#define bitcast_i64_to_u64(x) (static_cast<uint64_t>(x))
+  static bool IsCanonicalNan(uint64_t bits) {
+    return bits == kQuietNan || bits == kQuietNegNan;
+  }
 
-#define VALUE_TYPE_I32 uint32_t
-#define VALUE_TYPE_I64 uint64_t
-#define VALUE_TYPE_F32 uint32_t
-#define VALUE_TYPE_F64 uint64_t
+  static bool IsArithmeticNan(uint64_t bits) {
+    return (bits & kQuietNan) == kQuietNan;
+  }
+};
 
-#define VALUE_TYPE_SIGNED_MAX_I32 (0x80000000U)
-#define VALUE_TYPE_UNSIGNED_MAX_I32 (0xFFFFFFFFU)
-#define VALUE_TYPE_SIGNED_MAX_I64 static_cast<uint64_t>(0x8000000000000000ULL)
-#define VALUE_TYPE_UNSIGNED_MAX_I64 static_cast<uint64_t>(0xFFFFFFFFFFFFFFFFULL)
+bool IsCanonicalNan(uint64_t bits) {
+  return FloatTraits<double>::IsCanonicalNan(bits);
+}
 
-#define FLOAT_TYPE_F32 float
-#define FLOAT_TYPE_F64 double
+bool IsArithmeticNan(uint64_t bits) {
+  return FloatTraits<double>::IsArithmeticNan(bits);
+}
 
-#define MEM_TYPE_I8 int8_t
-#define MEM_TYPE_U8 uint8_t
-#define MEM_TYPE_I16 int16_t
-#define MEM_TYPE_U16 uint16_t
-#define MEM_TYPE_I32 int32_t
-#define MEM_TYPE_U32 uint32_t
-#define MEM_TYPE_I64 int64_t
-#define MEM_TYPE_U64 uint64_t
-#define MEM_TYPE_F32 uint32_t
-#define MEM_TYPE_F64 uint64_t
+template <>
+bool IsConversionInRange<int32_t, double>(uint64_t bits) {
+  return (bits <= 0x41dfffffffc00000ULL) ||
+         (bits >= FloatTraits<double>::kNegZero &&
+          bits <= 0xc1e0000000000000ULL);
+}
 
-#define MEM_TYPE_EXTEND_I32_I8 int32_t
-#define MEM_TYPE_EXTEND_I32_U8 uint32_t
-#define MEM_TYPE_EXTEND_I32_I16 int32_t
-#define MEM_TYPE_EXTEND_I32_U16 uint32_t
-#define MEM_TYPE_EXTEND_I32_I32 int32_t
-#define MEM_TYPE_EXTEND_I32_U32 uint32_t
+template <>
+bool IsConversionInRange<int64_t, double>(uint64_t bits) {
+  return (bits < 0x43e0000000000000ULL) ||
+         (bits >= FloatTraits<double>::kNegZero &&
+          bits <= 0xc3e0000000000000ULL);
+}
 
-#define MEM_TYPE_EXTEND_I64_I8 int64_t
-#define MEM_TYPE_EXTEND_I64_U8 uint64_t
-#define MEM_TYPE_EXTEND_I64_I16 int64_t
-#define MEM_TYPE_EXTEND_I64_U16 uint64_t
-#define MEM_TYPE_EXTEND_I64_I32 int64_t
-#define MEM_TYPE_EXTEND_I64_U32 uint64_t
-#define MEM_TYPE_EXTEND_I64_I64 int64_t
-#define MEM_TYPE_EXTEND_I64_U64 uint64_t
+template <>
+bool IsConversionInRange<uint32_t, double>(uint64_t bits) {
+  return (bits <= 0x41efffffffe00000ULL) ||
+         (bits >= FloatTraits<double>::kNegZero &&
+          bits < FloatTraits<double>::kNegOne);
+}
 
-#define MEM_TYPE_EXTEND_F32_F32 uint32_t
-#define MEM_TYPE_EXTEND_F64_F64 uint64_t
+template <>
+bool IsConversionInRange<uint64_t, double>(uint64_t bits) {
+  return (bits < 0x43f0000000000000ULL) ||
+         (bits >= FloatTraits<double>::kNegZero &&
+          bits < FloatTraits<double>::kNegOne);
+}
 
-#define BITCAST_I32_TO_SIGNED bitcast_u32_to_i32
-#define BITCAST_I64_TO_SIGNED bitcast_u64_to_i64
-#define BITCAST_I32_TO_UNSIGNED bitcast_i32_to_u32
-#define BITCAST_I64_TO_UNSIGNED bitcast_i64_to_u64
+template <>
+bool IsConversionInRange<float, double>(uint64_t bits) {
+  return (bits <= 0x47efffffe0000000ULL) ||
+         (bits >= FloatTraits<double>::kNegZero &&
+          bits <= 0xc7efffffe0000000ULL);
+}
 
-#define BITCAST_TO_F32 bitcast_u32_to_f32
-#define BITCAST_TO_F64 bitcast_u64_to_f64
-#define BITCAST_FROM_F32 bitcast_f32_to_u32
-#define BITCAST_FROM_F64 bitcast_f64_to_u64
+// The WebAssembly rounding mode means that these values (which are > F32_MAX)
+// should be rounded to F32_MAX and not set to infinity. Unfortunately, UBSAN
+// complains that the value is not representable as a float, so we'll special
+// case them.
+bool IsInRangeF64DemoteF32RoundToF32Max(uint64_t bits) {
+  return bits > 0x47efffffe0000000ULL && bits < 0x47effffff0000000ULL;
+}
 
-#define TYPE_FIELD_NAME_I32 i32
-#define TYPE_FIELD_NAME_I64 i64
-#define TYPE_FIELD_NAME_F32 f32_bits
-#define TYPE_FIELD_NAME_F64 f64_bits
+bool IsInRangeF64DemoteF32RoundToNegF32Max(uint64_t bits) {
+  return bits > 0xc7efffffe0000000ULL && bits < 0xc7effffff0000000ULL;
+}
+
+template <typename T, typename MemType> struct ExtendMemType;
+template<> struct ExtendMemType<uint32_t, uint8_t> { typedef uint32_t type; };
+template<> struct ExtendMemType<uint32_t, int8_t> { typedef int32_t type; };
+template<> struct ExtendMemType<uint32_t, uint16_t> { typedef uint32_t type; };
+template<> struct ExtendMemType<uint32_t, int16_t> { typedef int32_t type; };
+template<> struct ExtendMemType<uint32_t, uint32_t> { typedef uint32_t type; };
+template<> struct ExtendMemType<uint32_t, int32_t> { typedef int32_t type; };
+template<> struct ExtendMemType<uint64_t, uint8_t> { typedef uint64_t type; };
+template<> struct ExtendMemType<uint64_t, int8_t> { typedef int64_t type; };
+template<> struct ExtendMemType<uint64_t, uint16_t> { typedef uint64_t type; };
+template<> struct ExtendMemType<uint64_t, int16_t> { typedef int64_t type; };
+template<> struct ExtendMemType<uint64_t, uint32_t> { typedef uint64_t type; };
+template<> struct ExtendMemType<uint64_t, int32_t> { typedef int64_t type; };
+template<> struct ExtendMemType<uint64_t, uint64_t> { typedef uint64_t type; };
+template<> struct ExtendMemType<uint64_t, int64_t> { typedef int64_t type; };
+template<> struct ExtendMemType<float, float> { typedef float type; };
+template<> struct ExtendMemType<double, double> { typedef double type; };
+
+template <typename T, typename MemType> struct WrapMemType;
+template<> struct WrapMemType<uint32_t, uint8_t> { typedef uint8_t type; };
+template<> struct WrapMemType<uint32_t, uint16_t> { typedef uint16_t type; };
+template<> struct WrapMemType<uint32_t, uint32_t> { typedef uint32_t type; };
+template<> struct WrapMemType<uint64_t, uint8_t> { typedef uint8_t type; };
+template<> struct WrapMemType<uint64_t, uint16_t> { typedef uint16_t type; };
+template<> struct WrapMemType<uint64_t, uint32_t> { typedef uint32_t type; };
+template<> struct WrapMemType<uint64_t, uint64_t> { typedef uint64_t type; };
+template<> struct WrapMemType<float, float> { typedef uint32_t type; };
+template<> struct WrapMemType<double, double> { typedef uint64_t type; };
+
+template <typename T>
+Value MakeValue(ValueTypeRep<T>);
+
+template <>
+Value MakeValue<uint32_t>(uint32_t v) {
+  Value result;
+  result.i32 = v;
+  return result;
+}
+
+template <>
+Value MakeValue<int32_t>(uint32_t v) {
+  Value result;
+  result.i32 = v;
+  return result;
+}
+
+template <>
+Value MakeValue<uint64_t>(uint64_t v) {
+  Value result;
+  result.i64 = v;
+  return result;
+}
+
+template <>
+Value MakeValue<int64_t>(uint64_t v) {
+  Value result;
+  result.i64 = v;
+  return result;
+}
+
+template <>
+Value MakeValue<float>(uint32_t v) {
+  Value result;
+  result.f32_bits = v;
+  return result;
+}
+
+template <>
+Value MakeValue<double>(uint64_t v) {
+  Value result;
+  result.f64_bits = v;
+  return result;
+}
+
+template <typename T> ValueTypeRep<T> GetValue(Value);
+template<> uint32_t GetValue<int32_t>(Value v) { return v.i32; }
+template<> uint32_t GetValue<uint32_t>(Value v) { return v.i32; }
+template<> uint64_t GetValue<int64_t>(Value v) { return v.i64; }
+template<> uint64_t GetValue<uint64_t>(Value v) { return v.i64; }
+template<> uint32_t GetValue<float>(Value v) { return v.f32_bits; }
+template<> uint64_t GetValue<double>(Value v) { return v.f64_bits; }
 
 #define TRAP(type) return Result::Trap##type
 #define TRAP_UNLESS(cond, type) TRAP_IF(!(cond), type)
@@ -526,233 +576,11 @@ DEFINE_BITCAST(bitcast_u64_to_f64, uint64_t, double)
 
 #define PUSH_NEG_1_AND_BREAK_IF(cond) \
   if (WABT_UNLIKELY(cond)) {          \
-    PUSH_I32(-1);                     \
+    CHECK_TRAP(Push<int32_t>(-1));  \
     break;                            \
   }
 
-#define PUSH(v)                  \
-  do {                           \
-    CHECK_STACK();               \
-    (*value_stack_top_++) = (v); \
-  } while (0)
-
-#define PUSH_TYPE(type, v)                         \
-  do {                                             \
-    CHECK_STACK();                                 \
-    (*value_stack_top_++).TYPE_FIELD_NAME_##type = \
-        static_cast<VALUE_TYPE_##type>(v);         \
-  } while (0)
-
-#define PUSH_I32(v) PUSH_TYPE(I32, (v))
-#define PUSH_I64(v) PUSH_TYPE(I64, (v))
-#define PUSH_F32(v) PUSH_TYPE(F32, (v))
-#define PUSH_F64(v) PUSH_TYPE(F64, (v))
-
-#define PICK(depth) (*(value_stack_top_ - (depth)))
-#define TOP() (PICK(1))
-#define POP() (*--value_stack_top_)
-#define POP_I32() (POP().i32)
-#define POP_I64() (POP().i64)
-#define POP_F32() (POP().f32_bits)
-#define POP_F64() (POP().f64_bits)
-#define DROP_KEEP(drop, keep)   \
-  do {                          \
-    assert((keep) <= 1);        \
-    if ((keep) == 1)            \
-      PICK((drop) + 1) = TOP(); \
-    value_stack_top_ -= (drop); \
-  } while (0)
-
 #define GOTO(offset) pc = &istream[offset]
-
-#define PUSH_CALL()                                                  \
-  do {                                                               \
-    TRAP_IF(call_stack_top_ >= call_stack_end_, CallStackExhausted); \
-    (*call_stack_top_++) = (pc - istream);                           \
-  } while (0)
-
-#define POP_CALL() (*--call_stack_top_)
-
-#define GET_MEMORY(var)               \
-  Index memory_index = read_u32(&pc); \
-  Memory* var = &env_->memories_[memory_index]
-
-#define LOAD(type, mem_type)                                              \
-  do {                                                                    \
-    GET_MEMORY(memory);                                                   \
-    uint64_t offset = static_cast<uint64_t>(POP_I32()) + read_u32(&pc);   \
-    MEM_TYPE_##mem_type value;                                            \
-    TRAP_IF(offset + sizeof(value) > memory->data.size(),                 \
-            MemoryAccessOutOfBounds);                                     \
-    void* src = memory->data.data() + static_cast<IstreamOffset>(offset); \
-    memcpy(&value, src, sizeof(MEM_TYPE_##mem_type));                     \
-    PUSH_##type(static_cast<MEM_TYPE_EXTEND_##type##_##mem_type>(value)); \
-  } while (0)
-
-#define STORE(type, mem_type)                                             \
-  do {                                                                    \
-    GET_MEMORY(memory);                                                   \
-    VALUE_TYPE_##type value = POP_##type();                               \
-    uint64_t offset = static_cast<uint64_t>(POP_I32()) + read_u32(&pc);   \
-    MEM_TYPE_##mem_type src = static_cast<MEM_TYPE_##mem_type>(value);    \
-    TRAP_IF(offset + sizeof(src) > memory->data.size(),                   \
-            MemoryAccessOutOfBounds);                                     \
-    void* dst = memory->data.data() + static_cast<IstreamOffset>(offset); \
-    memcpy(dst, &src, sizeof(MEM_TYPE_##mem_type));                       \
-  } while (0)
-
-#define BINOP(rtype, type, op)            \
-  do {                                    \
-    VALUE_TYPE_##type rhs = POP_##type(); \
-    VALUE_TYPE_##type lhs = POP_##type(); \
-    PUSH_##rtype(lhs op rhs);             \
-  } while (0)
-
-#define BINOP_SIGNED(rtype, type, op)                     \
-  do {                                                    \
-    VALUE_TYPE_##type rhs = POP_##type();                 \
-    VALUE_TYPE_##type lhs = POP_##type();                 \
-    PUSH_##rtype(BITCAST_##type##_TO_SIGNED(lhs)          \
-                     op BITCAST_##type##_TO_SIGNED(rhs)); \
-  } while (0)
-
-#define SHIFT_MASK_I32 31
-#define SHIFT_MASK_I64 63
-
-#define BINOP_SHIFT(type, op, sign)                                          \
-  do {                                                                       \
-    VALUE_TYPE_##type rhs = POP_##type();                                    \
-    VALUE_TYPE_##type lhs = POP_##type();                                    \
-    PUSH_##type(BITCAST_##type##_TO_##sign(lhs) op(rhs& SHIFT_MASK_##type)); \
-  } while (0)
-
-#define ROT_LEFT_0_SHIFT_OP <<
-#define ROT_LEFT_1_SHIFT_OP >>
-#define ROT_RIGHT_0_SHIFT_OP >>
-#define ROT_RIGHT_1_SHIFT_OP <<
-
-#define BINOP_ROT(type, dir)                                               \
-  do {                                                                     \
-    VALUE_TYPE_##type rhs = POP_##type();                                  \
-    VALUE_TYPE_##type lhs = POP_##type();                                  \
-    uint32_t amount = rhs & SHIFT_MASK_##type;                             \
-    if (WABT_LIKELY(amount != 0)) {                                        \
-      PUSH_##type(                                                         \
-          (lhs ROT_##dir##_0_SHIFT_OP amount) |                            \
-          (lhs ROT_##dir##_1_SHIFT_OP((SHIFT_MASK_##type + 1) - amount))); \
-    } else {                                                               \
-      PUSH_##type(lhs);                                                    \
-    }                                                                      \
-  } while (0)
-
-#define BINOP_DIV_REM_U(type, op)                          \
-  do {                                                     \
-    VALUE_TYPE_##type rhs = POP_##type();                  \
-    VALUE_TYPE_##type lhs = POP_##type();                  \
-    TRAP_IF(rhs == 0, IntegerDivideByZero);                \
-    PUSH_##type(BITCAST_##type##_TO_UNSIGNED(lhs)          \
-                    op BITCAST_##type##_TO_UNSIGNED(rhs)); \
-  } while (0)
-
-/* {i32,i64}.{div,rem}_s are special-cased because they trap when dividing the
- * max signed value by -1. The modulo operation on x86 uses the same
- * instruction to generate the quotient and the remainder. */
-#define BINOP_DIV_S(type)                              \
-  do {                                                 \
-    VALUE_TYPE_##type rhs = POP_##type();              \
-    VALUE_TYPE_##type lhs = POP_##type();              \
-    TRAP_IF(rhs == 0, IntegerDivideByZero);            \
-    TRAP_IF(lhs == VALUE_TYPE_SIGNED_MAX_##type &&     \
-                rhs == VALUE_TYPE_UNSIGNED_MAX_##type, \
-            IntegerOverflow);                          \
-    PUSH_##type(BITCAST_##type##_TO_SIGNED(lhs) /      \
-                BITCAST_##type##_TO_SIGNED(rhs));      \
-  } while (0)
-
-#define BINOP_REM_S(type)                                       \
-  do {                                                          \
-    VALUE_TYPE_##type rhs = POP_##type();                       \
-    VALUE_TYPE_##type lhs = POP_##type();                       \
-    TRAP_IF(rhs == 0, IntegerDivideByZero);                     \
-    if (WABT_UNLIKELY(lhs == VALUE_TYPE_SIGNED_MAX_##type &&    \
-                      rhs == VALUE_TYPE_UNSIGNED_MAX_##type)) { \
-      PUSH_##type(0);                                           \
-    } else {                                                    \
-      PUSH_##type(BITCAST_##type##_TO_SIGNED(lhs) %             \
-                  BITCAST_##type##_TO_SIGNED(rhs));             \
-    }                                                           \
-  } while (0)
-
-#define UNOP_FLOAT(type, func)                                   \
-  do {                                                           \
-    FLOAT_TYPE_##type value = BITCAST_TO_##type(POP_##type());   \
-    VALUE_TYPE_##type result = BITCAST_FROM_##type(func(value)); \
-    if (WABT_UNLIKELY(IS_NAN_##type(result))) {                  \
-      result |= type##_QUIET_NAN_BIT;                            \
-    }                                                            \
-    PUSH_##type(result);                                         \
-    break;                                                       \
-  } while (0)
-
-#define BINOP_FLOAT(type, op)                                \
-  do {                                                       \
-    FLOAT_TYPE_##type rhs = BITCAST_TO_##type(POP_##type()); \
-    FLOAT_TYPE_##type lhs = BITCAST_TO_##type(POP_##type()); \
-    PUSH_##type(BITCAST_FROM_##type(lhs op rhs));            \
-  } while (0)
-
-#define BINOP_FLOAT_DIV(type)                                    \
-  do {                                                           \
-    VALUE_TYPE_##type rhs = POP_##type();                        \
-    VALUE_TYPE_##type lhs = POP_##type();                        \
-    if (WABT_UNLIKELY(IS_ZERO_##type(rhs))) {                    \
-      if (IS_NAN_##type(lhs)) {                                  \
-        PUSH_##type(lhs | type##_QUIET_NAN);                     \
-      } else if (IS_ZERO_##type(lhs)) {                          \
-        PUSH_##type(type##_QUIET_NAN);                           \
-      } else {                                                   \
-        VALUE_TYPE_##type sign =                                 \
-            (lhs & type##_SIGN_MASK) ^ (rhs & type##_SIGN_MASK); \
-        PUSH_##type(sign | type##_INF);                          \
-      }                                                          \
-    } else {                                                     \
-      PUSH_##type(BITCAST_FROM_##type(BITCAST_TO_##type(lhs) /   \
-                                      BITCAST_TO_##type(rhs)));  \
-    }                                                            \
-  } while (0)
-
-#define BINOP_FLOAT_COMPARE(type, op)                        \
-  do {                                                       \
-    FLOAT_TYPE_##type rhs = BITCAST_TO_##type(POP_##type()); \
-    FLOAT_TYPE_##type lhs = BITCAST_TO_##type(POP_##type()); \
-    PUSH_I32(lhs op rhs);                                    \
-  } while (0)
-
-#define MIN_OP <
-#define MAX_OP >
-
-#define MINMAX_FLOAT(type, op)                                                 \
-  do {                                                                         \
-    VALUE_TYPE_##type rhs = POP_##type();                                      \
-    VALUE_TYPE_##type lhs = POP_##type();                                      \
-    VALUE_TYPE_##type result;                                                  \
-    if (WABT_UNLIKELY(IS_NAN_##type(lhs))) {                                   \
-      result = lhs | type##_QUIET_NAN_BIT;                                     \
-    } else if (WABT_UNLIKELY(IS_NAN_##type(rhs))) {                            \
-      result = rhs | type##_QUIET_NAN_BIT;                                     \
-    } else if ((lhs ^ rhs) & type##_SIGN_MASK) {                               \
-      /* min(-0.0, 0.0) => -0.0; since we know the sign bits are different, we \
-       * can just use the inverse integer comparison (because the sign bit is  \
-       * set when the value is negative) */                                    \
-      result = !(lhs op##_OP rhs) ? lhs : rhs;                                 \
-    } else {                                                                   \
-      FLOAT_TYPE_##type float_rhs = BITCAST_TO_##type(rhs);                    \
-      FLOAT_TYPE_##type float_lhs = BITCAST_TO_##type(lhs);                    \
-      result = BITCAST_FROM_##type(float_lhs op##_OP float_rhs ? float_lhs     \
-                                                               : float_rhs);   \
-    }                                                                          \
-    PUSH_##type(result);                                                       \
-  } while (0)
 
 static WABT_INLINE uint32_t read_u32_at(const uint8_t* pc) {
   uint32_t result;
@@ -785,6 +613,462 @@ static WABT_INLINE void read_table_entry_at(const uint8_t* pc,
   *out_offset = read_u32_at(pc + WABT_TABLE_ENTRY_OFFSET_OFFSET);
   *out_drop = read_u32_at(pc + WABT_TABLE_ENTRY_DROP_OFFSET);
   *out_keep = *(pc + WABT_TABLE_ENTRY_KEEP_OFFSET);
+}
+
+Memory* Thread::ReadMemory(const uint8_t** pc) {
+  Index memory_index = read_u32(pc);
+  return &env_->memories_[memory_index];
+}
+
+Value& Thread::Top() {
+  return Pick(1);
+}
+
+Value& Thread::Pick(Index depth) {
+  return *(value_stack_top_ - depth);
+}
+
+Result Thread::Push(Value value) {
+  CHECK_STACK();
+  *value_stack_top_++ = value;
+  return Result::Ok;
+}
+
+Value Thread::Pop() {
+  return *--value_stack_top_;
+}
+
+template <typename T>
+Result Thread::Push(T value) {
+  return PushRep<T>(ToRep(value));
+}
+
+template <typename T>
+T Thread::Pop() {
+  return FromRep<T>(PopRep<T>());
+}
+
+template <typename T>
+Result Thread::PushRep(ValueTypeRep<T> value) {
+  return Push(MakeValue<T>(value));
+}
+
+template <typename T>
+ValueTypeRep<T> Thread::PopRep() {
+  return GetValue<T>(Pop());
+}
+
+void Thread::DropKeep(uint32_t drop_count, uint8_t keep_count) {
+  assert(keep_count <= 1);
+  if (keep_count == 1)
+    Pick(drop_count + 1) = Top();
+  value_stack_top_ -= drop_count;
+}
+
+Result Thread::PushCall(const uint8_t* pc) {
+  TRAP_IF(call_stack_top_ >= call_stack_end_, CallStackExhausted);
+  *call_stack_top_++ = pc - GetIstream();
+  return Result::Ok;
+}
+
+IstreamOffset Thread::PopCall() {
+  return *--call_stack_top_;
+}
+
+template <typename MemType, typename ResultType>
+Result Thread::Load(const uint8_t** pc) {
+  typedef typename ExtendMemType<ResultType, MemType>::type ExtendedType;
+  static_assert(std::is_floating_point<MemType>::value ==
+                    std::is_floating_point<ExtendedType>::value,
+                "Extended type should be float iff MemType is float");
+
+  Memory* memory = ReadMemory(pc);
+  uint64_t offset = static_cast<uint64_t>(Pop<uint32_t>()) + read_u32(pc);
+  MemType value;
+  TRAP_IF(offset + sizeof(value) > memory->data.size(),
+          MemoryAccessOutOfBounds);
+  void* src = memory->data.data() + static_cast<IstreamOffset>(offset);
+  memcpy(&value, src, sizeof(value));
+  return Push<ResultType>(static_cast<ExtendedType>(value));
+}
+
+template <typename MemType, typename ResultType>
+Result Thread::Store(const uint8_t** pc) {
+  typedef typename WrapMemType<ResultType, MemType>::type WrappedType;
+  Memory* memory = ReadMemory(pc);
+  WrappedType value = PopRep<ResultType>();
+  uint64_t offset = static_cast<uint64_t>(Pop<uint32_t>()) + read_u32(pc);
+  TRAP_IF(offset + sizeof(value) > memory->data.size(),
+          MemoryAccessOutOfBounds);
+  void* dst = memory->data.data() + static_cast<IstreamOffset>(offset);
+  memcpy(dst, &value, sizeof(value));
+  return Result::Ok;
+}
+
+template <typename R, typename T>
+Result Thread::Unop(UnopFunc<R, T> func) {
+  auto value = PopRep<T>();
+  return PushRep<R>(func(value));
+}
+
+template <typename R, typename T>
+Result Thread::UnopTrap(UnopTrapFunc<R, T> func) {
+  auto value = PopRep<T>();
+  ValueTypeRep<R> result_value;
+  CHECK_TRAP(func(value, &result_value));
+  return PushRep<R>(result_value);
+}
+
+template <typename R, typename T>
+Result Thread::Binop(BinopFunc<R, T> func) {
+  auto rhs_rep = PopRep<T>();
+  auto lhs_rep = PopRep<T>();
+  return PushRep<R>(func(lhs_rep, rhs_rep));
+}
+
+template <typename R, typename T>
+Result Thread::BinopTrap(BinopTrapFunc<R, T> func) {
+  auto rhs_rep = PopRep<T>();
+  auto lhs_rep = PopRep<T>();
+  ValueTypeRep<R> result_value;
+  CHECK_TRAP(func(lhs_rep, rhs_rep, &result_value));
+  return PushRep<R>(result_value);
+}
+
+// {i,f}{32,64}.add
+template <typename T>
+ValueTypeRep<T> Add(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) + FromRep<T>(rhs_rep));
+}
+
+// {i,f}{32,64}.sub
+template <typename T>
+ValueTypeRep<T> Sub(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) - FromRep<T>(rhs_rep));
+}
+
+// {i,f}{32,64}.mul
+template <typename T>
+ValueTypeRep<T> Mul(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) * FromRep<T>(rhs_rep));
+}
+
+// i{32,64}.{div,rem}_s are special-cased because they trap when dividing the
+// max signed value by -1. The modulo operation on x86 uses the same
+// instruction to generate the quotient and the remainder.
+template <typename T>
+bool IsNormalDivRemS(T lhs, T rhs) {
+  static_assert(std::is_signed<T>::value, "T should be a signed type.");
+  return !(lhs == std::numeric_limits<T>::min() && rhs == -1);
+}
+
+// i{32,64}.div_s
+template <typename T>
+Result IntDivS(ValueTypeRep<T> lhs_rep,
+               ValueTypeRep<T> rhs_rep,
+               ValueTypeRep<T>* out_result) {
+  auto lhs = FromRep<T>(lhs_rep);
+  auto rhs = FromRep<T>(rhs_rep);
+  TRAP_IF(rhs == 0, IntegerDivideByZero);
+  TRAP_UNLESS(IsNormalDivRemS(lhs, rhs), IntegerOverflow);
+  *out_result = ToRep(lhs / rhs);
+  return Result::Ok;
+}
+
+// i{32,64}.rem_s
+template <typename T>
+Result IntRemS(ValueTypeRep<T> lhs_rep,
+               ValueTypeRep<T> rhs_rep,
+               ValueTypeRep<T>* out_result) {
+  auto lhs = FromRep<T>(lhs_rep);
+  auto rhs = FromRep<T>(rhs_rep);
+  TRAP_IF(rhs == 0, IntegerDivideByZero);
+  if (WABT_LIKELY(IsNormalDivRemS(lhs, rhs))) {
+    *out_result = ToRep(lhs % rhs);
+  } else {
+    *out_result = 0;
+  }
+  return Result::Ok;
+}
+
+// i{32,64}.div_u
+template <typename T>
+Result IntDivU(ValueTypeRep<T> lhs_rep,
+               ValueTypeRep<T> rhs_rep,
+               ValueTypeRep<T>* out_result) {
+  auto lhs = FromRep<T>(lhs_rep);
+  auto rhs = FromRep<T>(rhs_rep);
+  TRAP_IF(rhs == 0, IntegerDivideByZero);
+  *out_result = ToRep(lhs / rhs);
+  return Result::Ok;
+}
+
+// i{32,64}.rem_u
+template <typename T>
+Result IntRemU(ValueTypeRep<T> lhs_rep,
+               ValueTypeRep<T> rhs_rep,
+               ValueTypeRep<T>* out_result) {
+  auto lhs = FromRep<T>(lhs_rep);
+  auto rhs = FromRep<T>(rhs_rep);
+  TRAP_IF(rhs == 0, IntegerDivideByZero);
+  *out_result = ToRep(lhs % rhs);
+  return Result::Ok;
+}
+
+// f{32,64}.div
+template <typename T>
+ValueTypeRep<T> FloatDiv(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  typedef FloatTraits<T> Traits;
+  ValueTypeRep<T> result;
+  if (WABT_UNLIKELY(Traits::IsZero(rhs_rep))) {
+    if (Traits::IsNan(lhs_rep)) {
+      result = lhs_rep | Traits::kQuietNan;
+    } else if (Traits::IsZero(lhs_rep)) {
+      result = Traits::kQuietNan;
+    } else {
+      auto sign = (lhs_rep & Traits::kSignMask) ^ (rhs_rep & Traits::kSignMask);
+      result = sign | Traits::kInf;
+    }
+  } else {
+    result = ToRep(FromRep<T>(lhs_rep) / FromRep<T>(rhs_rep));
+  }
+  return result;
+}
+
+// i{32,64}.and
+template <typename T>
+ValueTypeRep<T> IntAnd(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) & FromRep<T>(rhs_rep));
+}
+
+// i{32,64}.or
+template <typename T>
+ValueTypeRep<T> IntOr(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) | FromRep<T>(rhs_rep));
+}
+
+// i{32,64}.xor
+template <typename T>
+ValueTypeRep<T> IntXor(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) ^ FromRep<T>(rhs_rep));
+}
+
+// i{32,64}.shl
+template <typename T>
+ValueTypeRep<T> IntShl(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  const int mask = sizeof(T) * 8 - 1;
+  return ToRep(FromRep<T>(lhs_rep) << (FromRep<T>(rhs_rep) & mask));
+}
+
+// i{32,64}.shr_{s,u}
+template <typename T>
+ValueTypeRep<T> IntShr(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  const int mask = sizeof(T) * 8 - 1;
+  return ToRep(FromRep<T>(lhs_rep) >> (FromRep<T>(rhs_rep) & mask));
+}
+
+// i{32,64}.rotl
+template <typename T>
+ValueTypeRep<T> IntRotl(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  const int mask = sizeof(T) * 8 - 1;
+  int amount = FromRep<T>(rhs_rep) & mask;
+  auto lhs = FromRep<T>(lhs_rep);
+  if (amount == 0) {
+    return ToRep(lhs);
+  } else {
+    return ToRep((lhs << amount) | (lhs >> (mask + 1 - amount)));
+  }
+}
+
+// i{32,64}.rotr
+template <typename T>
+ValueTypeRep<T> IntRotr(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  const int mask = sizeof(T) * 8 - 1;
+  int amount = FromRep<T>(rhs_rep) & mask;
+  auto lhs = FromRep<T>(lhs_rep);
+  if (amount == 0) {
+    return ToRep(lhs);
+  } else {
+    return ToRep((lhs >> amount) | (lhs << (mask + 1 - amount)));
+  }
+}
+
+// i{32,64}.eqz
+template <typename R, typename T>
+ValueTypeRep<R> IntEqz(ValueTypeRep<T> v_rep) {
+  return ToRep(v_rep == 0);
+}
+
+// f{32,64}.abs
+template <typename T>
+ValueTypeRep<T> FloatAbs(ValueTypeRep<T> v_rep) {
+  return v_rep & ~FloatTraits<T>::kSignMask;
+}
+
+// f{32,64}.neg
+template <typename T>
+ValueTypeRep<T> FloatNeg(ValueTypeRep<T> v_rep) {
+  return v_rep ^ FloatTraits<T>::kSignMask;
+}
+
+// f{32,64}.ceil
+template <typename T>
+ValueTypeRep<T> FloatCeil(ValueTypeRep<T> v_rep) {
+  auto result = ToRep(std::ceil(FromRep<T>(v_rep)));
+  if (WABT_UNLIKELY(FloatTraits<T>::IsNan(result))) {
+    result |= FloatTraits<T>::kQuietNanBit;
+  }
+  return result;
+}
+
+// f{32,64}.floor
+template <typename T>
+ValueTypeRep<T> FloatFloor(ValueTypeRep<T> v_rep) {
+  auto result = ToRep(std::floor(FromRep<T>(v_rep)));
+  if (WABT_UNLIKELY(FloatTraits<T>::IsNan(result))) {
+    result |= FloatTraits<T>::kQuietNanBit;
+  }
+  return result;
+}
+
+// f{32,64}.trunc
+template <typename T>
+ValueTypeRep<T> FloatTrunc(ValueTypeRep<T> v_rep) {
+  auto result = ToRep(std::trunc(FromRep<T>(v_rep)));
+  if (WABT_UNLIKELY(FloatTraits<T>::IsNan(result))) {
+    result |= FloatTraits<T>::kQuietNanBit;
+  }
+  return result;
+}
+
+// f{32,64}.nearest
+template <typename T>
+ValueTypeRep<T> FloatNearest(ValueTypeRep<T> v_rep) {
+  auto result = ToRep(std::nearbyint(FromRep<T>(v_rep)));
+  if (WABT_UNLIKELY(FloatTraits<T>::IsNan(result))) {
+    result |= FloatTraits<T>::kQuietNanBit;
+  }
+  return result;
+}
+
+// f{32,64}.sqrt
+template <typename T>
+ValueTypeRep<T> FloatSqrt(ValueTypeRep<T> v_rep) {
+  auto result = ToRep(std::sqrt(FromRep<T>(v_rep)));
+  if (WABT_UNLIKELY(FloatTraits<T>::IsNan(result))) {
+    result |= FloatTraits<T>::kQuietNanBit;
+  }
+  return result;
+}
+
+// f{32,64}.min
+template <typename T>
+ValueTypeRep<T> FloatMin(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  typedef FloatTraits<T> Traits;
+
+  if (WABT_UNLIKELY(Traits::IsNan(lhs_rep))) {
+    return lhs_rep | Traits::kQuietNanBit;
+  } else if (WABT_UNLIKELY(Traits::IsNan(rhs_rep))) {
+    return rhs_rep | Traits::kQuietNanBit;
+  } else if (WABT_UNLIKELY(Traits::IsZero(lhs_rep) &&
+                           Traits::IsZero(rhs_rep))) {
+    // min(0.0, -0.0) == -0.0, but std::min won't produce the correct result.
+    // We can instead compare using the unsigned integer representation, but
+    // just max instead (since the sign bit makes the value larger).
+    return std::max(lhs_rep, rhs_rep);
+  } else {
+    return ToRep(std::min(FromRep<T>(lhs_rep), FromRep<T>(rhs_rep)));
+  }
+}
+
+// f{32,64}.max
+template <typename T>
+ValueTypeRep<T> FloatMax(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  typedef FloatTraits<T> Traits;
+
+  if (WABT_UNLIKELY(Traits::IsNan(lhs_rep))) {
+    return lhs_rep | Traits::kQuietNanBit;
+  } else if (WABT_UNLIKELY(Traits::IsNan(rhs_rep))) {
+    return rhs_rep | Traits::kQuietNanBit;
+  } else if (WABT_UNLIKELY(Traits::IsZero(lhs_rep) &&
+                           Traits::IsZero(rhs_rep))) {
+    // min(0.0, -0.0) == -0.0, but std::min won't produce the correct result.
+    // We can instead compare using the unsigned integer representation, but
+    // just max instead (since the sign bit makes the value larger).
+    return std::min(lhs_rep, rhs_rep);
+  } else {
+    return ToRep(std::max(FromRep<T>(lhs_rep), FromRep<T>(rhs_rep)));
+  }
+}
+
+// f{32,64}.copysign
+template <typename T>
+ValueTypeRep<T> FloatCopySign(ValueTypeRep<T> lhs_rep,
+                              ValueTypeRep<T> rhs_rep) {
+  typedef FloatTraits<T> Traits;
+  return (lhs_rep & ~Traits::kSignMask) | (rhs_rep & Traits::kSignMask);
+}
+
+// {i,f}{32,64}.eq
+template <typename T>
+uint32_t Eq(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) == FromRep<T>(rhs_rep));
+}
+
+// {i,f}{32,64}.ne
+template <typename T>
+uint32_t Ne(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) != FromRep<T>(rhs_rep));
+}
+
+// f{32,64}.lt | i{32,64}.lt_{s,u}
+template <typename T>
+uint32_t Lt(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) < FromRep<T>(rhs_rep));
+}
+
+// f{32,64}.le | i{32,64}.le_{s,u}
+template <typename T>
+uint32_t Le(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) <= FromRep<T>(rhs_rep));
+}
+
+// f{32,64}.gt | i{32,64}.gt_{s,u}
+template <typename T>
+uint32_t Gt(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) > FromRep<T>(rhs_rep));
+}
+
+// f{32,64}.ge | i{32,64}.ge_{s,u}
+template <typename T>
+uint32_t Ge(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return ToRep(FromRep<T>(lhs_rep) >= FromRep<T>(rhs_rep));
+}
+
+// i{32,64}.trunc_{s,u}/f{32,64}
+template <typename R, typename T>
+Result IntTrunc(ValueTypeRep<T> v_rep, ValueTypeRep<R>* out_result) {
+  TRAP_IF(FloatTraits<T>::IsNan(v_rep), InvalidConversionToInteger);
+  TRAP_UNLESS((IsConversionInRange<R, T>(v_rep)), IntegerOverflow);
+  *out_result = ToRep(static_cast<R>(FromRep<T>(v_rep)));
+  return Result::Ok;
+}
+
+// i{32,64}.trunc_{s,u}:sat/f{32,64}
+template <typename R, typename T>
+ValueTypeRep<R> IntTruncSat(ValueTypeRep<T> v_rep) {
+  typedef FloatTraits<T> Traits;
+  if (WABT_UNLIKELY(Traits::IsNan(v_rep))) {
+    return 0;
+  } else if (WABT_UNLIKELY((!IsConversionInRange<R, T>(v_rep)))) {
+    if (v_rep & Traits::kSignMask) {
+      return ToRep(std::numeric_limits<R>::min());
+    } else {
+      return ToRep(std::numeric_limits<R>::max());
+    }
+  } else {
+    return ToRep(static_cast<R>(FromRep<T>(v_rep)));
+  }
 }
 
 bool Environment::FuncSignaturesAreEqual(Index sig_index_0,
@@ -880,7 +1164,7 @@ Result Thread::CallHost(HostFunc* func) {
   std::vector<TypedValue> results(num_results + 1);
 
   for (size_t i = num_params; i > 0; --i) {
-    params[i - 1].value = POP();
+    params[i - 1].value = Pop();
     params[i - 1].type = sig->param_types[i - 1];
   }
 
@@ -891,7 +1175,7 @@ Result Thread::CallHost(HostFunc* func) {
 
   for (size_t i = 0; i < num_results; ++i) {
     TRAP_IF(results[i].type != sig->result_types[i], HostResultTypeMismatch);
-    PUSH(results[i].value);
+    CHECK_TRAP(Push(results[i].value));
   }
 
   return Result::Ok;
@@ -901,16 +1185,16 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
   Result result = Result::Ok;
   assert(call_stack_return_top < call_stack_end_);
 
-  const uint8_t* istream = env_->istream_->data.data();
+  const uint8_t* istream = GetIstream();
   const uint8_t* pc = &istream[pc_];
   for (int i = 0; i < num_instructions; ++i) {
     Opcode opcode = static_cast<Opcode>(*pc++);
     switch (opcode) {
       case Opcode::Select: {
-        VALUE_TYPE_I32 cond = POP_I32();
-        Value false_ = POP();
-        Value true_ = POP();
-        PUSH(cond ? true_ : false_);
+        uint32_t cond = Pop<uint32_t>();
+        Value false_ = Pop();
+        Value true_ = Pop();
+        CHECK_TRAP(Push(cond ? true_ : false_));
         break;
       }
 
@@ -920,7 +1204,7 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
 
       case Opcode::BrIf: {
         IstreamOffset new_pc = read_u32(&pc);
-        if (POP_I32())
+        if (Pop<uint32_t>())
           GOTO(new_pc);
         break;
       }
@@ -928,7 +1212,7 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
       case Opcode::BrTable: {
         Index num_targets = read_u32(&pc);
         IstreamOffset table_offset = read_u32(&pc);
-        VALUE_TYPE_I32 key = POP_I32();
+        uint32_t key = Pop<uint32_t>();
         IstreamOffset key_offset =
             (key >= num_targets ? num_targets : key) * WABT_TABLE_ENTRY_SIZE;
         const uint8_t* entry = istream + table_offset + key_offset;
@@ -936,7 +1220,7 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
         uint32_t drop_count;
         uint8_t keep_count;
         read_table_entry_at(entry, &new_pc, &drop_count, &keep_count);
-        DROP_KEEP(drop_count, keep_count);
+        DropKeep(drop_count, keep_count);
         GOTO(new_pc);
         break;
       }
@@ -946,7 +1230,7 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
           result = Result::Returned;
           goto exit_loop;
         }
-        GOTO(POP_CALL());
+        GOTO(PopCall());
         break;
 
       case Opcode::Unreachable:
@@ -954,54 +1238,54 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
         break;
 
       case Opcode::I32Const:
-        PUSH_I32(read_u32(&pc));
+        CHECK_TRAP(Push<uint32_t>(read_u32(&pc)));
         break;
 
       case Opcode::I64Const:
-        PUSH_I64(read_u64(&pc));
+        CHECK_TRAP(Push<uint64_t>(read_u64(&pc)));
         break;
 
       case Opcode::F32Const:
-        PUSH_F32(read_u32(&pc));
+        CHECK_TRAP(PushRep<float>(read_u32(&pc)));
         break;
 
       case Opcode::F64Const:
-        PUSH_F64(read_u64(&pc));
+        CHECK_TRAP(PushRep<double>(read_u64(&pc)));
         break;
 
       case Opcode::GetGlobal: {
         Index index = read_u32(&pc);
         assert(index < env_->globals_.size());
-        PUSH(env_->globals_[index].typed_value.value);
+        CHECK_TRAP(Push(env_->globals_[index].typed_value.value));
         break;
       }
 
       case Opcode::SetGlobal: {
         Index index = read_u32(&pc);
         assert(index < env_->globals_.size());
-        env_->globals_[index].typed_value.value = POP();
+        env_->globals_[index].typed_value.value = Pop();
         break;
       }
 
       case Opcode::GetLocal: {
-        Value value = PICK(read_u32(&pc));
-        PUSH(value);
+        Value value = Pick(read_u32(&pc));
+        CHECK_TRAP(Push(value));
         break;
       }
 
       case Opcode::SetLocal: {
-        Value value = POP();
-        PICK(read_u32(&pc)) = value;
+        Value value = Pop();
+        Pick(read_u32(&pc)) = value;
         break;
       }
 
       case Opcode::TeeLocal:
-        PICK(read_u32(&pc)) = TOP();
+        Pick(read_u32(&pc)) = Top();
         break;
 
       case Opcode::Call: {
         IstreamOffset offset = read_u32(&pc);
-        PUSH_CALL();
+        CHECK_TRAP(PushCall(pc));
         GOTO(offset);
         break;
       }
@@ -1010,7 +1294,7 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
         Index table_index = read_u32(&pc);
         Table* table = &env_->tables_[table_index];
         Index sig_index = read_u32(&pc);
-        VALUE_TYPE_I32 entry_index = POP_I32();
+        Index entry_index = Pop<uint32_t>();
         TRAP_IF(entry_index >= table->func_indexes.size(), UndefinedTableIndex);
         Index func_index = table->func_indexes[entry_index];
         TRAP_IF(func_index == kInvalidIndex, UninitializedTableElement);
@@ -1020,7 +1304,7 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
         if (func->is_host) {
           CallHost(func->as_host());
         } else {
-          PUSH_CALL();
+          CHECK_TRAP(PushCall(pc));
           GOTO(func->as_defined()->offset);
         }
         break;
@@ -1033,107 +1317,105 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
       }
 
       case Opcode::I32Load8S:
-        LOAD(I32, I8);
+        CHECK_TRAP(Load<int8_t, uint32_t>(&pc));
         break;
 
       case Opcode::I32Load8U:
-        LOAD(I32, U8);
+        CHECK_TRAP(Load<uint8_t, uint32_t>(&pc));
         break;
 
       case Opcode::I32Load16S:
-        LOAD(I32, I16);
+        CHECK_TRAP(Load<int16_t, uint32_t>(&pc));
         break;
 
       case Opcode::I32Load16U:
-        LOAD(I32, U16);
+        CHECK_TRAP(Load<uint16_t, uint32_t>(&pc));
         break;
 
       case Opcode::I64Load8S:
-        LOAD(I64, I8);
+        CHECK_TRAP(Load<int8_t, uint64_t>(&pc));
         break;
 
       case Opcode::I64Load8U:
-        LOAD(I64, U8);
+        CHECK_TRAP(Load<uint8_t, uint64_t>(&pc));
         break;
 
       case Opcode::I64Load16S:
-        LOAD(I64, I16);
+        CHECK_TRAP(Load<int16_t, uint64_t>(&pc));
         break;
 
       case Opcode::I64Load16U:
-        LOAD(I64, U16);
+        CHECK_TRAP(Load<uint16_t, uint64_t>(&pc));
         break;
 
       case Opcode::I64Load32S:
-        LOAD(I64, I32);
+        CHECK_TRAP(Load<int32_t, uint64_t>(&pc));
         break;
 
       case Opcode::I64Load32U:
-        LOAD(I64, U32);
+        CHECK_TRAP(Load<uint32_t, uint64_t>(&pc));
         break;
 
       case Opcode::I32Load:
-        LOAD(I32, U32);
+        CHECK_TRAP(Load<uint32_t>(&pc));
         break;
 
       case Opcode::I64Load:
-        LOAD(I64, U64);
+        CHECK_TRAP(Load<uint64_t>(&pc));
         break;
 
       case Opcode::F32Load:
-        LOAD(F32, F32);
+        CHECK_TRAP(Load<float>(&pc));
         break;
 
       case Opcode::F64Load:
-        LOAD(F64, F64);
+        CHECK_TRAP(Load<double>(&pc));
         break;
 
       case Opcode::I32Store8:
-        STORE(I32, U8);
+        CHECK_TRAP(Store<uint8_t, uint32_t>(&pc));
         break;
 
       case Opcode::I32Store16:
-        STORE(I32, U16);
+        CHECK_TRAP(Store<uint16_t, uint32_t>(&pc));
         break;
 
       case Opcode::I64Store8:
-        STORE(I64, U8);
+        CHECK_TRAP(Store<uint8_t, uint64_t>(&pc));
         break;
 
       case Opcode::I64Store16:
-        STORE(I64, U16);
+        CHECK_TRAP(Store<uint16_t, uint64_t>(&pc));
         break;
 
       case Opcode::I64Store32:
-        STORE(I64, U32);
+        CHECK_TRAP(Store<uint32_t, uint64_t>(&pc));
         break;
 
       case Opcode::I32Store:
-        STORE(I32, U32);
+        CHECK_TRAP(Store<uint32_t>(&pc));
         break;
 
       case Opcode::I64Store:
-        STORE(I64, U64);
+        CHECK_TRAP(Store<uint64_t>(&pc));
         break;
 
       case Opcode::F32Store:
-        STORE(F32, F32);
+        CHECK_TRAP(Store<float>(&pc));
         break;
 
       case Opcode::F64Store:
-        STORE(F64, F64);
+        CHECK_TRAP(Store<double>(&pc));
         break;
 
-      case Opcode::CurrentMemory: {
-        GET_MEMORY(memory);
-        PUSH_I32(memory->page_limits.initial);
+      case Opcode::CurrentMemory:
+        CHECK_TRAP(Push<uint32_t>(ReadMemory(&pc)->page_limits.initial));
         break;
-      }
 
       case Opcode::GrowMemory: {
-        GET_MEMORY(memory);
+        Memory* memory = ReadMemory(&pc);
         uint32_t old_page_size = memory->page_limits.initial;
-        VALUE_TYPE_I32 grow_pages = POP_I32();
+        uint32_t grow_pages = Pop<uint32_t>();
         uint32_t new_page_size = old_page_size + grow_pages;
         uint32_t max_page_size = memory->page_limits.has_max
                                      ? memory->page_limits.max
@@ -1143,607 +1425,564 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
             static_cast<uint64_t>(new_page_size) * WABT_PAGE_SIZE > UINT32_MAX);
         memory->data.resize(new_page_size * WABT_PAGE_SIZE);
         memory->page_limits.initial = new_page_size;
-        PUSH_I32(old_page_size);
+        CHECK_TRAP(Push<uint32_t>(old_page_size));
         break;
       }
 
       case Opcode::I32Add:
-        BINOP(I32, I32, +);
+        CHECK_TRAP(Binop(Add<uint32_t>));
         break;
 
       case Opcode::I32Sub:
-        BINOP(I32, I32, -);
+        CHECK_TRAP(Binop(Sub<uint32_t>));
         break;
 
       case Opcode::I32Mul:
-        BINOP(I32, I32, *);
+        CHECK_TRAP(Binop(Mul<uint32_t>));
         break;
 
       case Opcode::I32DivS:
-        BINOP_DIV_S(I32);
+        CHECK_TRAP(BinopTrap(IntDivS<int32_t>));
         break;
 
       case Opcode::I32DivU:
-        BINOP_DIV_REM_U(I32, /);
+        CHECK_TRAP(BinopTrap(IntDivU<uint32_t>));
         break;
 
       case Opcode::I32RemS:
-        BINOP_REM_S(I32);
+        CHECK_TRAP(BinopTrap(IntRemS<int32_t>));
         break;
 
       case Opcode::I32RemU:
-        BINOP_DIV_REM_U(I32, %);
+        CHECK_TRAP(BinopTrap(IntRemU<uint32_t>));
         break;
 
       case Opcode::I32And:
-        BINOP(I32, I32, &);
+        CHECK_TRAP(Binop(IntAnd<uint32_t>));
         break;
 
       case Opcode::I32Or:
-        BINOP(I32, I32, |);
+        CHECK_TRAP(Binop(IntOr<uint32_t>));
         break;
 
       case Opcode::I32Xor:
-        BINOP(I32, I32, ^);
+        CHECK_TRAP(Binop(IntXor<uint32_t>));
         break;
 
       case Opcode::I32Shl:
-        BINOP_SHIFT(I32, <<, UNSIGNED);
+        CHECK_TRAP(Binop(IntShl<uint32_t>));
         break;
 
       case Opcode::I32ShrU:
-        BINOP_SHIFT(I32, >>, UNSIGNED);
+        CHECK_TRAP(Binop(IntShr<uint32_t>));
         break;
 
       case Opcode::I32ShrS:
-        BINOP_SHIFT(I32, >>, SIGNED);
+        CHECK_TRAP(Binop(IntShr<int32_t>));
         break;
 
       case Opcode::I32Eq:
-        BINOP(I32, I32, ==);
+        CHECK_TRAP(Binop(Eq<uint32_t>));
         break;
 
       case Opcode::I32Ne:
-        BINOP(I32, I32, !=);
+        CHECK_TRAP(Binop(Ne<uint32_t>));
         break;
 
       case Opcode::I32LtS:
-        BINOP_SIGNED(I32, I32, <);
+        CHECK_TRAP(Binop(Lt<int32_t>));
         break;
 
       case Opcode::I32LeS:
-        BINOP_SIGNED(I32, I32, <=);
+        CHECK_TRAP(Binop(Le<int32_t>));
         break;
 
       case Opcode::I32LtU:
-        BINOP(I32, I32, <);
+        CHECK_TRAP(Binop(Lt<uint32_t>));
         break;
 
       case Opcode::I32LeU:
-        BINOP(I32, I32, <=);
+        CHECK_TRAP(Binop(Le<uint32_t>));
         break;
 
       case Opcode::I32GtS:
-        BINOP_SIGNED(I32, I32, >);
+        CHECK_TRAP(Binop(Gt<int32_t>));
         break;
 
       case Opcode::I32GeS:
-        BINOP_SIGNED(I32, I32, >=);
+        CHECK_TRAP(Binop(Ge<int32_t>));
         break;
 
       case Opcode::I32GtU:
-        BINOP(I32, I32, >);
+        CHECK_TRAP(Binop(Gt<uint32_t>));
         break;
 
       case Opcode::I32GeU:
-        BINOP(I32, I32, >=);
+        CHECK_TRAP(Binop(Ge<uint32_t>));
         break;
 
       case Opcode::I32Clz: {
-        VALUE_TYPE_I32 value = POP_I32();
-        PUSH_I32(value != 0 ? wabt_clz_u32(value) : 32);
+        uint32_t value = Pop<uint32_t>();
+        CHECK_TRAP(Push<uint32_t>(value != 0 ? wabt_clz_u32(value) : 32));
         break;
       }
 
       case Opcode::I32Ctz: {
-        VALUE_TYPE_I32 value = POP_I32();
-        PUSH_I32(value != 0 ? wabt_ctz_u32(value) : 32);
+        uint32_t value = Pop<uint32_t>();
+        CHECK_TRAP(Push<uint32_t>(value != 0 ? wabt_ctz_u32(value) : 32));
         break;
       }
 
       case Opcode::I32Popcnt: {
-        VALUE_TYPE_I32 value = POP_I32();
-        PUSH_I32(wabt_popcount_u32(value));
+        uint32_t value = Pop<uint32_t>();
+        CHECK_TRAP(Push<uint32_t>(wabt_popcount_u32(value)));
         break;
       }
 
-      case Opcode::I32Eqz: {
-        VALUE_TYPE_I32 value = POP_I32();
-        PUSH_I32(value == 0);
+      case Opcode::I32Eqz:
+        CHECK_TRAP(Unop(IntEqz<uint32_t, uint32_t>));
         break;
-      }
 
       case Opcode::I64Add:
-        BINOP(I64, I64, +);
+        CHECK_TRAP(Binop(Add<uint64_t>));
         break;
 
       case Opcode::I64Sub:
-        BINOP(I64, I64, -);
+        CHECK_TRAP(Binop(Sub<uint64_t>));
         break;
 
       case Opcode::I64Mul:
-        BINOP(I64, I64, *);
+        CHECK_TRAP(Binop(Mul<uint64_t>));
         break;
 
       case Opcode::I64DivS:
-        BINOP_DIV_S(I64);
+        CHECK_TRAP(BinopTrap(IntDivS<int64_t>));
         break;
 
       case Opcode::I64DivU:
-        BINOP_DIV_REM_U(I64, /);
+        CHECK_TRAP(BinopTrap(IntDivU<uint64_t>));
         break;
 
       case Opcode::I64RemS:
-        BINOP_REM_S(I64);
+        CHECK_TRAP(BinopTrap(IntRemS<int64_t>));
         break;
 
       case Opcode::I64RemU:
-        BINOP_DIV_REM_U(I64, %);
+        CHECK_TRAP(BinopTrap(IntRemU<uint64_t>));
         break;
 
       case Opcode::I64And:
-        BINOP(I64, I64, &);
+        CHECK_TRAP(Binop(IntAnd<uint64_t>));
         break;
 
       case Opcode::I64Or:
-        BINOP(I64, I64, |);
+        CHECK_TRAP(Binop(IntOr<uint64_t>));
         break;
 
       case Opcode::I64Xor:
-        BINOP(I64, I64, ^);
+        CHECK_TRAP(Binop(IntXor<uint64_t>));
         break;
 
       case Opcode::I64Shl:
-        BINOP_SHIFT(I64, <<, UNSIGNED);
+        CHECK_TRAP(Binop(IntShl<uint64_t>));
         break;
 
       case Opcode::I64ShrU:
-        BINOP_SHIFT(I64, >>, UNSIGNED);
+        CHECK_TRAP(Binop(IntShr<uint64_t>));
         break;
 
       case Opcode::I64ShrS:
-        BINOP_SHIFT(I64, >>, SIGNED);
+        CHECK_TRAP(Binop(IntShr<int64_t>));
         break;
 
       case Opcode::I64Eq:
-        BINOP(I32, I64, ==);
+        CHECK_TRAP(Binop(Eq<uint64_t>));
         break;
 
       case Opcode::I64Ne:
-        BINOP(I32, I64, !=);
+        CHECK_TRAP(Binop(Ne<uint64_t>));
         break;
 
       case Opcode::I64LtS:
-        BINOP_SIGNED(I32, I64, <);
+        CHECK_TRAP(Binop(Lt<int64_t>));
         break;
 
       case Opcode::I64LeS:
-        BINOP_SIGNED(I32, I64, <=);
+        CHECK_TRAP(Binop(Le<int64_t>));
         break;
 
       case Opcode::I64LtU:
-        BINOP(I32, I64, <);
+        CHECK_TRAP(Binop(Lt<uint64_t>));
         break;
 
       case Opcode::I64LeU:
-        BINOP(I32, I64, <=);
+        CHECK_TRAP(Binop(Le<uint64_t>));
         break;
 
       case Opcode::I64GtS:
-        BINOP_SIGNED(I32, I64, >);
+        CHECK_TRAP(Binop(Gt<int64_t>));
         break;
 
       case Opcode::I64GeS:
-        BINOP_SIGNED(I32, I64, >=);
+        CHECK_TRAP(Binop(Ge<int64_t>));
         break;
 
       case Opcode::I64GtU:
-        BINOP(I32, I64, >);
+        CHECK_TRAP(Binop(Gt<uint64_t>));
         break;
 
       case Opcode::I64GeU:
-        BINOP(I32, I64, >=);
+        CHECK_TRAP(Binop(Ge<uint64_t>));
         break;
 
       case Opcode::I64Clz: {
-        VALUE_TYPE_I64 value = POP_I64();
-        PUSH_I64(value != 0 ? wabt_clz_u64(value) : 64);
+        uint64_t value = Pop<uint64_t>();
+        CHECK_TRAP(Push<uint64_t>(value != 0 ? wabt_clz_u64(value) : 64));
         break;
       }
 
       case Opcode::I64Ctz: {
-        VALUE_TYPE_I64 value = POP_I64();
-        PUSH_I64(value != 0 ? wabt_ctz_u64(value) : 64);
+        uint64_t value = Pop<uint64_t>();
+        CHECK_TRAP(Push<uint64_t>(value != 0 ? wabt_ctz_u64(value) : 64));
         break;
       }
 
-      case Opcode::I64Popcnt: {
-        VALUE_TYPE_I64 value = POP_I64();
-        PUSH_I64(wabt_popcount_u64(value));
+      case Opcode::I64Popcnt:
+        CHECK_TRAP(Push<uint64_t>(wabt_popcount_u64(Pop<uint64_t>())));
         break;
-      }
 
       case Opcode::F32Add:
-        BINOP_FLOAT(F32, +);
+        CHECK_TRAP(Binop(Add<float>));
         break;
 
       case Opcode::F32Sub:
-        BINOP_FLOAT(F32, -);
+        CHECK_TRAP(Binop(Sub<float>));
         break;
 
       case Opcode::F32Mul:
-        BINOP_FLOAT(F32, *);
+        CHECK_TRAP(Binop(Mul<float>));
         break;
 
       case Opcode::F32Div:
-        BINOP_FLOAT_DIV(F32);
+        CHECK_TRAP(Binop(FloatDiv<float>));
         break;
 
       case Opcode::F32Min:
-        MINMAX_FLOAT(F32, MIN);
+        CHECK_TRAP(Binop(FloatMin<float>));
         break;
 
       case Opcode::F32Max:
-        MINMAX_FLOAT(F32, MAX);
+        CHECK_TRAP(Binop(FloatMax<float>));
         break;
 
       case Opcode::F32Abs:
-        TOP().f32_bits &= ~F32_SIGN_MASK;
+        CHECK_TRAP(Unop(FloatAbs<float>));
         break;
 
       case Opcode::F32Neg:
-        TOP().f32_bits ^= F32_SIGN_MASK;
+        CHECK_TRAP(Unop(FloatNeg<float>));
         break;
 
-      case Opcode::F32Copysign: {
-        VALUE_TYPE_F32 rhs = POP_F32();
-        VALUE_TYPE_F32 lhs = POP_F32();
-        PUSH_F32((lhs & ~F32_SIGN_MASK) | (rhs & F32_SIGN_MASK));
+      case Opcode::F32Copysign:
+        CHECK_TRAP(Binop(FloatCopySign<float>));
         break;
-      }
 
       case Opcode::F32Ceil:
-        UNOP_FLOAT(F32, ceilf);
+        CHECK_TRAP(Unop(FloatCeil<float>));
         break;
 
       case Opcode::F32Floor:
-        UNOP_FLOAT(F32, floorf);
+        CHECK_TRAP(Unop(FloatFloor<float>));
         break;
 
       case Opcode::F32Trunc:
-        UNOP_FLOAT(F32, truncf);
+        CHECK_TRAP(Unop(FloatTrunc<float>));
         break;
 
       case Opcode::F32Nearest:
-        UNOP_FLOAT(F32, nearbyintf);
+        CHECK_TRAP(Unop(FloatNearest<float>));
         break;
 
       case Opcode::F32Sqrt:
-        UNOP_FLOAT(F32, sqrtf);
+        CHECK_TRAP(Unop(FloatSqrt<float>));
         break;
 
       case Opcode::F32Eq:
-        BINOP_FLOAT_COMPARE(F32, ==);
+        CHECK_TRAP(Binop(Eq<float>));
         break;
 
       case Opcode::F32Ne:
-        BINOP_FLOAT_COMPARE(F32, !=);
+        CHECK_TRAP(Binop(Ne<float>));
         break;
 
       case Opcode::F32Lt:
-        BINOP_FLOAT_COMPARE(F32, <);
+        CHECK_TRAP(Binop(Lt<float>));
         break;
 
       case Opcode::F32Le:
-        BINOP_FLOAT_COMPARE(F32, <=);
+        CHECK_TRAP(Binop(Le<float>));
         break;
 
       case Opcode::F32Gt:
-        BINOP_FLOAT_COMPARE(F32, >);
+        CHECK_TRAP(Binop(Gt<float>));
         break;
 
       case Opcode::F32Ge:
-        BINOP_FLOAT_COMPARE(F32, >=);
+        CHECK_TRAP(Binop(Ge<float>));
         break;
 
       case Opcode::F64Add:
-        BINOP_FLOAT(F64, +);
+        CHECK_TRAP(Binop(Add<double>));
         break;
 
       case Opcode::F64Sub:
-        BINOP_FLOAT(F64, -);
+        CHECK_TRAP(Binop(Sub<double>));
         break;
 
       case Opcode::F64Mul:
-        BINOP_FLOAT(F64, *);
+        CHECK_TRAP(Binop(Mul<double>));
         break;
 
       case Opcode::F64Div:
-        BINOP_FLOAT_DIV(F64);
+        CHECK_TRAP(Binop(FloatDiv<double>));
         break;
 
       case Opcode::F64Min:
-        MINMAX_FLOAT(F64, MIN);
+        CHECK_TRAP(Binop(FloatMin<double>));
         break;
 
       case Opcode::F64Max:
-        MINMAX_FLOAT(F64, MAX);
+        CHECK_TRAP(Binop(FloatMax<double>));
         break;
 
       case Opcode::F64Abs:
-        TOP().f64_bits &= ~F64_SIGN_MASK;
+        CHECK_TRAP(Unop(FloatAbs<double>));
         break;
 
       case Opcode::F64Neg:
-        TOP().f64_bits ^= F64_SIGN_MASK;
+        CHECK_TRAP(Unop(FloatNeg<double>));
         break;
 
-      case Opcode::F64Copysign: {
-        VALUE_TYPE_F64 rhs = POP_F64();
-        VALUE_TYPE_F64 lhs = POP_F64();
-        PUSH_F64((lhs & ~F64_SIGN_MASK) | (rhs & F64_SIGN_MASK));
+      case Opcode::F64Copysign:
+        CHECK_TRAP(Binop(FloatCopySign<double>));
         break;
-      }
 
       case Opcode::F64Ceil:
-        UNOP_FLOAT(F64, ceil);
+        CHECK_TRAP(Unop(FloatCeil<double>));
         break;
 
       case Opcode::F64Floor:
-        UNOP_FLOAT(F64, floor);
+        CHECK_TRAP(Unop(FloatFloor<double>));
         break;
 
       case Opcode::F64Trunc:
-        UNOP_FLOAT(F64, trunc);
+        CHECK_TRAP(Unop(FloatTrunc<double>));
         break;
 
       case Opcode::F64Nearest:
-        UNOP_FLOAT(F64, nearbyint);
+        CHECK_TRAP(Unop(FloatNearest<double>));
         break;
 
       case Opcode::F64Sqrt:
-        UNOP_FLOAT(F64, sqrt);
+        CHECK_TRAP(Unop(FloatSqrt<double>));
         break;
 
       case Opcode::F64Eq:
-        BINOP_FLOAT_COMPARE(F64, ==);
+        CHECK_TRAP(Binop(Eq<double>));
         break;
 
       case Opcode::F64Ne:
-        BINOP_FLOAT_COMPARE(F64, !=);
+        CHECK_TRAP(Binop(Ne<double>));
         break;
 
       case Opcode::F64Lt:
-        BINOP_FLOAT_COMPARE(F64, <);
+        CHECK_TRAP(Binop(Lt<double>));
         break;
 
       case Opcode::F64Le:
-        BINOP_FLOAT_COMPARE(F64, <=);
+        CHECK_TRAP(Binop(Le<double>));
         break;
 
       case Opcode::F64Gt:
-        BINOP_FLOAT_COMPARE(F64, >);
+        CHECK_TRAP(Binop(Gt<double>));
         break;
 
       case Opcode::F64Ge:
-        BINOP_FLOAT_COMPARE(F64, >=);
+        CHECK_TRAP(Binop(Ge<double>));
         break;
 
-      case Opcode::I32TruncSF32: {
-        VALUE_TYPE_F32 value = POP_F32();
-        TRAP_IF(is_nan_f32(value), InvalidConversionToInteger);
-        TRAP_UNLESS(is_in_range_i32_trunc_s_f32(value), IntegerOverflow);
-        PUSH_I32(static_cast<int32_t>(BITCAST_TO_F32(value)));
+      case Opcode::I32TruncSF32:
+        CHECK_TRAP(UnopTrap(IntTrunc<int32_t, float>));
         break;
-      }
 
-      case Opcode::I32TruncSF64: {
-        VALUE_TYPE_F64 value = POP_F64();
-        TRAP_IF(is_nan_f64(value), InvalidConversionToInteger);
-        TRAP_UNLESS(is_in_range_i32_trunc_s_f64(value), IntegerOverflow);
-        PUSH_I32(static_cast<int32_t>(BITCAST_TO_F64(value)));
+      case Opcode::I32TruncSSatF32:
+        CHECK_TRAP(Unop(IntTruncSat<int32_t, float>));
         break;
-      }
 
-      case Opcode::I32TruncUF32: {
-        VALUE_TYPE_F32 value = POP_F32();
-        TRAP_IF(is_nan_f32(value), InvalidConversionToInteger);
-        TRAP_UNLESS(is_in_range_i32_trunc_u_f32(value), IntegerOverflow);
-        PUSH_I32(static_cast<uint32_t>(BITCAST_TO_F32(value)));
+      case Opcode::I32TruncSF64:
+        CHECK_TRAP(UnopTrap(IntTrunc<int32_t, double>));
         break;
-      }
 
-      case Opcode::I32TruncUF64: {
-        VALUE_TYPE_F64 value = POP_F64();
-        TRAP_IF(is_nan_f64(value), InvalidConversionToInteger);
-        TRAP_UNLESS(is_in_range_i32_trunc_u_f64(value), IntegerOverflow);
-        PUSH_I32(static_cast<uint32_t>(BITCAST_TO_F64(value)));
+      case Opcode::I32TruncSSatF64:
+        CHECK_TRAP(Unop(IntTruncSat<int32_t, double>));
         break;
-      }
 
-      case Opcode::I32WrapI64: {
-        VALUE_TYPE_I64 value = POP_I64();
-        PUSH_I32(static_cast<uint32_t>(value));
+      case Opcode::I32TruncUF32:
+        CHECK_TRAP(UnopTrap(IntTrunc<uint32_t, float>));
         break;
-      }
 
-      case Opcode::I64TruncSF32: {
-        VALUE_TYPE_F32 value = POP_F32();
-        TRAP_IF(is_nan_f32(value), InvalidConversionToInteger);
-        TRAP_UNLESS(is_in_range_i64_trunc_s_f32(value), IntegerOverflow);
-        PUSH_I64(static_cast<int64_t>(BITCAST_TO_F32(value)));
+      case Opcode::I32TruncUSatF32:
+        CHECK_TRAP(Unop(IntTruncSat<uint32_t, float>));
         break;
-      }
 
-      case Opcode::I64TruncSF64: {
-        VALUE_TYPE_F64 value = POP_F64();
-        TRAP_IF(is_nan_f64(value), InvalidConversionToInteger);
-        TRAP_UNLESS(is_in_range_i64_trunc_s_f64(value), IntegerOverflow);
-        PUSH_I64(static_cast<int64_t>(BITCAST_TO_F64(value)));
+      case Opcode::I32TruncUF64:
+        CHECK_TRAP(UnopTrap(IntTrunc<uint32_t, double>));
         break;
-      }
 
-      case Opcode::I64TruncUF32: {
-        VALUE_TYPE_F32 value = POP_F32();
-        TRAP_IF(is_nan_f32(value), InvalidConversionToInteger);
-        TRAP_UNLESS(is_in_range_i64_trunc_u_f32(value), IntegerOverflow);
-        PUSH_I64(static_cast<uint64_t>(BITCAST_TO_F32(value)));
+      case Opcode::I32TruncUSatF64:
+        CHECK_TRAP(Unop(IntTruncSat<uint32_t, double>));
         break;
-      }
 
-      case Opcode::I64TruncUF64: {
-        VALUE_TYPE_F64 value = POP_F64();
-        TRAP_IF(is_nan_f64(value), InvalidConversionToInteger);
-        TRAP_UNLESS(is_in_range_i64_trunc_u_f64(value), IntegerOverflow);
-        PUSH_I64(static_cast<uint64_t>(BITCAST_TO_F64(value)));
+      case Opcode::I32WrapI64:
+        CHECK_TRAP(Push<uint32_t>(Pop<uint64_t>()));
         break;
-      }
 
-      case Opcode::I64ExtendSI32: {
-        VALUE_TYPE_I32 value = POP_I32();
-        PUSH_I64(static_cast<int64_t>(BITCAST_I32_TO_SIGNED(value)));
+      case Opcode::I64TruncSF32:
+        CHECK_TRAP(UnopTrap(IntTrunc<int64_t, float>));
         break;
-      }
 
-      case Opcode::I64ExtendUI32: {
-        VALUE_TYPE_I32 value = POP_I32();
-        PUSH_I64(static_cast<uint64_t>(value));
+      case Opcode::I64TruncSSatF32:
+        CHECK_TRAP(Unop(IntTruncSat<int64_t, float>));
         break;
-      }
 
-      case Opcode::F32ConvertSI32: {
-        VALUE_TYPE_I32 value = POP_I32();
-        PUSH_F32(
-            BITCAST_FROM_F32(static_cast<float>(BITCAST_I32_TO_SIGNED(value))));
+      case Opcode::I64TruncSF64:
+        CHECK_TRAP(UnopTrap(IntTrunc<int64_t, double>));
         break;
-      }
 
-      case Opcode::F32ConvertUI32: {
-        VALUE_TYPE_I32 value = POP_I32();
-        PUSH_F32(BITCAST_FROM_F32(static_cast<float>(value)));
+      case Opcode::I64TruncSSatF64:
+        CHECK_TRAP(Unop(IntTruncSat<int64_t, double>));
         break;
-      }
 
-      case Opcode::F32ConvertSI64: {
-        VALUE_TYPE_I64 value = POP_I64();
-        PUSH_F32(
-            BITCAST_FROM_F32(static_cast<float>(BITCAST_I64_TO_SIGNED(value))));
+      case Opcode::I64TruncUF32:
+        CHECK_TRAP(UnopTrap(IntTrunc<uint64_t, float>));
         break;
-      }
 
-      case Opcode::F32ConvertUI64: {
-        VALUE_TYPE_I64 value = POP_I64();
-        PUSH_F32(BITCAST_FROM_F32(wabt_convert_uint64_to_float(value)));
+      case Opcode::I64TruncUSatF32:
+        CHECK_TRAP(Unop(IntTruncSat<uint64_t, float>));
         break;
-      }
+
+      case Opcode::I64TruncUF64:
+        CHECK_TRAP(UnopTrap(IntTrunc<uint64_t, double>));
+        break;
+
+      case Opcode::I64TruncUSatF64:
+        CHECK_TRAP(Unop(IntTruncSat<uint64_t, double>));
+        break;
+
+      case Opcode::I64ExtendSI32:
+        CHECK_TRAP(Push<uint64_t>(Pop<int32_t>()));
+        break;
+
+      case Opcode::I64ExtendUI32:
+        CHECK_TRAP(Push<uint64_t>(Pop<uint32_t>()));
+        break;
+
+      case Opcode::F32ConvertSI32:
+        CHECK_TRAP(Push<float>(Pop<int32_t>()));
+        break;
+
+      case Opcode::F32ConvertUI32:
+        CHECK_TRAP(Push<float>(Pop<uint32_t>()));
+        break;
+
+      case Opcode::F32ConvertSI64:
+        CHECK_TRAP(Push<float>(Pop<int64_t>()));
+        break;
+
+      case Opcode::F32ConvertUI64:
+        CHECK_TRAP(Push<float>(wabt_convert_uint64_to_float(Pop<uint64_t>())));
+        break;
 
       case Opcode::F32DemoteF64: {
-        VALUE_TYPE_F64 value = POP_F64();
-        if (WABT_LIKELY(is_in_range_f64_demote_f32(value))) {
-          PUSH_F32(BITCAST_FROM_F32(static_cast<float>(BITCAST_TO_F64(value))));
-        } else if (is_in_range_f64_demote_f32_round_to_f32_max(value)) {
-          PUSH_F32(F32_MAX);
-        } else if (is_in_range_f64_demote_f32_round_to_neg_f32_max(value)) {
-          PUSH_F32(F32_NEG_MAX);
+        typedef FloatTraits<float> F32Traits;
+        typedef FloatTraits<double> F64Traits;
+
+        uint64_t value = PopRep<double>();
+        if (WABT_LIKELY((IsConversionInRange<float, double>(value)))) {
+          CHECK_TRAP(Push<float>(FromRep<double>(value)));
+        } else if (IsInRangeF64DemoteF32RoundToF32Max(value)) {
+          CHECK_TRAP(PushRep<float>(F32Traits::kMax));
+        } else if (IsInRangeF64DemoteF32RoundToNegF32Max(value)) {
+          CHECK_TRAP(PushRep<float>(F32Traits::kNegMax));
         } else {
-          uint32_t sign = (value >> 32) & F32_SIGN_MASK;
+          uint32_t sign = (value >> 32) & F32Traits::kSignMask;
           uint32_t tag = 0;
-          if (IS_NAN_F64(value)) {
-            tag = F32_QUIET_NAN_BIT |
-                  ((value >> (F64_SIG_BITS - F32_SIG_BITS)) & F32_SIG_MASK);
+          if (F64Traits::IsNan(value)) {
+            tag = F32Traits::kQuietNanBit |
+                  ((value >> (F64Traits::kSigBits - F32Traits::kSigBits)) &
+                   F32Traits::kSigMask);
           }
-          PUSH_F32(sign | F32_INF | tag);
+          CHECK_TRAP(PushRep<float>(sign | F32Traits::kInf | tag));
         }
         break;
       }
 
-      case Opcode::F32ReinterpretI32: {
-        VALUE_TYPE_I32 value = POP_I32();
-        PUSH_F32(value);
+      case Opcode::F32ReinterpretI32:
+        CHECK_TRAP(PushRep<float>(Pop<uint32_t>()));
         break;
-      }
 
-      case Opcode::F64ConvertSI32: {
-        VALUE_TYPE_I32 value = POP_I32();
-        PUSH_F64(BITCAST_FROM_F64(
-            static_cast<double>(BITCAST_I32_TO_SIGNED(value))));
+      case Opcode::F64ConvertSI32:
+        CHECK_TRAP(Push<double>(Pop<int32_t>()));
         break;
-      }
 
-      case Opcode::F64ConvertUI32: {
-        VALUE_TYPE_I32 value = POP_I32();
-        PUSH_F64(BITCAST_FROM_F64(static_cast<double>(value)));
+      case Opcode::F64ConvertUI32:
+        CHECK_TRAP(Push<double>(Pop<uint32_t>()));
         break;
-      }
 
-      case Opcode::F64ConvertSI64: {
-        VALUE_TYPE_I64 value = POP_I64();
-        PUSH_F64(BITCAST_FROM_F64(
-            static_cast<double>(BITCAST_I64_TO_SIGNED(value))));
+      case Opcode::F64ConvertSI64:
+        CHECK_TRAP(Push<double>(Pop<int64_t>()));
         break;
-      }
 
-      case Opcode::F64ConvertUI64: {
-        VALUE_TYPE_I64 value = POP_I64();
-        PUSH_F64(BITCAST_FROM_F64(wabt_convert_uint64_to_double(value)));
+      case Opcode::F64ConvertUI64:
+        CHECK_TRAP(
+            Push<double>(wabt_convert_uint64_to_double(Pop<uint64_t>())));
         break;
-      }
 
-      case Opcode::F64PromoteF32: {
-        VALUE_TYPE_F32 value = POP_F32();
-        PUSH_F64(BITCAST_FROM_F64(static_cast<double>(BITCAST_TO_F32(value))));
+      case Opcode::F64PromoteF32:
+        CHECK_TRAP(Push<double>(Pop<float>()));
         break;
-      }
 
-      case Opcode::F64ReinterpretI64: {
-        VALUE_TYPE_I64 value = POP_I64();
-        PUSH_F64(value);
+      case Opcode::F64ReinterpretI64:
+        CHECK_TRAP(PushRep<double>(Pop<uint64_t>()));
         break;
-      }
 
-      case Opcode::I32ReinterpretF32: {
-        VALUE_TYPE_F32 value = POP_F32();
-        PUSH_I32(value);
+      case Opcode::I32ReinterpretF32:
+        CHECK_TRAP(Push<uint32_t>(PopRep<float>()));
         break;
-      }
 
-      case Opcode::I64ReinterpretF64: {
-        VALUE_TYPE_F64 value = POP_F64();
-        PUSH_I64(value);
+      case Opcode::I64ReinterpretF64:
+        CHECK_TRAP(Push<uint64_t>(PopRep<double>()));
         break;
-      }
 
       case Opcode::I32Rotr:
-        BINOP_ROT(I32, RIGHT);
+        CHECK_TRAP(Binop(IntRotr<uint32_t>));
         break;
 
       case Opcode::I32Rotl:
-        BINOP_ROT(I32, LEFT);
+        CHECK_TRAP(Binop(IntRotl<uint32_t>));
         break;
 
       case Opcode::I64Rotr:
-        BINOP_ROT(I64, RIGHT);
+        CHECK_TRAP(Binop(IntRotr<uint64_t>));
         break;
 
       case Opcode::I64Rotl:
-        BINOP_ROT(I64, LEFT);
+        CHECK_TRAP(Binop(IntRotl<uint64_t>));
         break;
 
-      case Opcode::I64Eqz: {
-        VALUE_TYPE_I64 value = POP_I64();
-        PUSH_I64(value == 0);
+      case Opcode::I64Eqz:
+        CHECK_TRAP(Unop(IntEqz<uint32_t, uint64_t>));
         break;
-      }
 
       case Opcode::Alloca: {
         Value* old_value_stack_top = value_stack_top_;
@@ -1756,19 +1995,19 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
 
       case Opcode::BrUnless: {
         IstreamOffset new_pc = read_u32(&pc);
-        if (!POP_I32())
+        if (!Pop<uint32_t>())
           GOTO(new_pc);
         break;
       }
 
       case Opcode::Drop:
-        (void)POP();
+        (void)Pop();
         break;
 
       case Opcode::DropKeep: {
         uint32_t drop_count = read_u32(&pc);
         uint8_t keep_count = *pc++;
-        DROP_KEEP(drop_count, keep_count);
+        DropKeep(drop_count, keep_count);
         break;
       }
 
@@ -1792,37 +2031,36 @@ exit_loop:
 }
 
 void Thread::Trace(Stream* stream) {
-  const uint8_t* istream = env_->istream_->data.data();
+  const uint8_t* istream = GetIstream();
   const uint8_t* pc = &istream[pc_];
   size_t value_stack_depth = value_stack_top_ - value_stack_.data();
   size_t call_stack_depth = call_stack_top_ - call_stack_.data();
 
   stream->Writef("#%" PRIzd ". %4" PRIzd ": V:%-3" PRIzd "| ", call_stack_depth,
-                 pc - env_->istream_->data.data(), value_stack_depth);
+                 pc - istream, value_stack_depth);
 
   Opcode opcode = static_cast<Opcode>(*pc++);
   switch (opcode) {
     case Opcode::Select:
-      stream->Writef("%s %u, %" PRIu64 ", %" PRIu64 "\n",
-                     get_opcode_name(opcode), PICK(3).i32, PICK(2).i64,
-                     PICK(1).i64);
+      stream->Writef("%s %u, %" PRIu64 ", %" PRIu64 "\n", GetOpcodeName(opcode),
+                     Pick(3).i32, Pick(2).i64, Pick(1).i64);
       break;
 
     case Opcode::Br:
-      stream->Writef("%s @%u\n", get_opcode_name(opcode), read_u32_at(pc));
+      stream->Writef("%s @%u\n", GetOpcodeName(opcode), read_u32_at(pc));
       break;
 
     case Opcode::BrIf:
-      stream->Writef("%s @%u, %u\n", get_opcode_name(opcode), read_u32_at(pc),
-                     TOP().i32);
+      stream->Writef("%s @%u, %u\n", GetOpcodeName(opcode), read_u32_at(pc),
+                     Top().i32);
       break;
 
     case Opcode::BrTable: {
       Index num_targets = read_u32_at(pc);
       IstreamOffset table_offset = read_u32_at(pc + 4);
-      VALUE_TYPE_I32 key = TOP().i32;
+      uint32_t key = Top().i32;
       stream->Writef("%s %u, $#%" PRIindex ", table:$%u\n",
-                     get_opcode_name(opcode), key, num_targets, table_offset);
+                     GetOpcodeName(opcode), key, num_targets, table_offset);
       break;
     }
 
@@ -1830,58 +2068,58 @@ void Thread::Trace(Stream* stream) {
     case Opcode::Return:
     case Opcode::Unreachable:
     case Opcode::Drop:
-      stream->Writef("%s\n", get_opcode_name(opcode));
+      stream->Writef("%s\n", GetOpcodeName(opcode));
       break;
 
     case Opcode::CurrentMemory: {
       Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex "\n", get_opcode_name(opcode),
+      stream->Writef("%s $%" PRIindex "\n", GetOpcodeName(opcode),
                      memory_index);
       break;
     }
 
     case Opcode::I32Const:
-      stream->Writef("%s $%u\n", get_opcode_name(opcode), read_u32_at(pc));
+      stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32_at(pc));
       break;
 
     case Opcode::I64Const:
-      stream->Writef("%s $%" PRIu64 "\n", get_opcode_name(opcode),
+      stream->Writef("%s $%" PRIu64 "\n", GetOpcodeName(opcode),
                      read_u64_at(pc));
       break;
 
     case Opcode::F32Const:
-      stream->Writef("%s $%g\n", get_opcode_name(opcode),
-                     bitcast_u32_to_f32(read_u32_at(pc)));
+      stream->Writef("%s $%g\n", GetOpcodeName(opcode),
+                     Bitcast<float>(read_u32_at(pc)));
       break;
 
     case Opcode::F64Const:
-      stream->Writef("%s $%g\n", get_opcode_name(opcode),
-                     bitcast_u64_to_f64(read_u64_at(pc)));
+      stream->Writef("%s $%g\n", GetOpcodeName(opcode),
+                     Bitcast<double>(read_u64_at(pc)));
       break;
 
     case Opcode::GetLocal:
     case Opcode::GetGlobal:
-      stream->Writef("%s $%u\n", get_opcode_name(opcode), read_u32_at(pc));
+      stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32_at(pc));
       break;
 
     case Opcode::SetLocal:
     case Opcode::SetGlobal:
     case Opcode::TeeLocal:
-      stream->Writef("%s $%u, %u\n", get_opcode_name(opcode), read_u32_at(pc),
-                     TOP().i32);
+      stream->Writef("%s $%u, %u\n", GetOpcodeName(opcode), read_u32_at(pc),
+                     Top().i32);
       break;
 
     case Opcode::Call:
-      stream->Writef("%s @%u\n", get_opcode_name(opcode), read_u32_at(pc));
+      stream->Writef("%s @%u\n", GetOpcodeName(opcode), read_u32_at(pc));
       break;
 
     case Opcode::CallIndirect:
-      stream->Writef("%s $%u, %u\n", get_opcode_name(opcode), read_u32_at(pc),
-                     TOP().i32);
+      stream->Writef("%s $%u, %u\n", GetOpcodeName(opcode), read_u32_at(pc),
+                     Top().i32);
       break;
 
     case Opcode::CallHost:
-      stream->Writef("%s $%u\n", get_opcode_name(opcode), read_u32_at(pc));
+      stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32_at(pc));
       break;
 
     case Opcode::I32Load8S:
@@ -1899,8 +2137,8 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F32Load:
     case Opcode::F64Load: {
       Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u\n", get_opcode_name(opcode),
-                     memory_index, TOP().i32, read_u32_at(pc));
+      stream->Writef("%s $%" PRIindex ":%u+$%u\n", GetOpcodeName(opcode),
+                     memory_index, Top().i32, read_u32_at(pc));
       break;
     }
 
@@ -1908,8 +2146,8 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I32Store16:
     case Opcode::I32Store: {
       Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %u\n", get_opcode_name(opcode),
-                     memory_index, PICK(2).i32, read_u32_at(pc), PICK(1).i32);
+      stream->Writef("%s $%" PRIindex ":%u+$%u, %u\n", GetOpcodeName(opcode),
+                     memory_index, Pick(2).i32, read_u32_at(pc), Pick(1).i32);
       break;
     }
 
@@ -1919,31 +2157,31 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I64Store: {
       Index memory_index = read_u32(&pc);
       stream->Writef("%s $%" PRIindex ":%u+$%u, %" PRIu64 "\n",
-                     get_opcode_name(opcode), memory_index, PICK(2).i32,
-                     read_u32_at(pc), PICK(1).i64);
+                     GetOpcodeName(opcode), memory_index, Pick(2).i32,
+                     read_u32_at(pc), Pick(1).i64);
       break;
     }
 
     case Opcode::F32Store: {
       Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %g\n", get_opcode_name(opcode),
-                     memory_index, PICK(2).i32, read_u32_at(pc),
-                     bitcast_u32_to_f32(PICK(1).f32_bits));
+      stream->Writef("%s $%" PRIindex ":%u+$%u, %g\n", GetOpcodeName(opcode),
+                     memory_index, Pick(2).i32, read_u32_at(pc),
+                     Bitcast<float>(Pick(1).f32_bits));
       break;
     }
 
     case Opcode::F64Store: {
       Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %g\n", get_opcode_name(opcode),
-                     memory_index, PICK(2).i32, read_u32_at(pc),
-                     bitcast_u64_to_f64(PICK(1).f64_bits));
+      stream->Writef("%s $%" PRIindex ":%u+$%u, %g\n", GetOpcodeName(opcode),
+                     memory_index, Pick(2).i32, read_u32_at(pc),
+                     Bitcast<double>(Pick(1).f64_bits));
       break;
     }
 
     case Opcode::GrowMemory: {
       Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u\n", get_opcode_name(opcode),
-                     memory_index, TOP().i32);
+      stream->Writef("%s $%" PRIindex ":%u\n", GetOpcodeName(opcode),
+                     memory_index, Top().i32);
       break;
     }
 
@@ -1972,15 +2210,15 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I32GeU:
     case Opcode::I32Rotr:
     case Opcode::I32Rotl:
-      stream->Writef("%s %u, %u\n", get_opcode_name(opcode), PICK(2).i32,
-                     PICK(1).i32);
+      stream->Writef("%s %u, %u\n", GetOpcodeName(opcode), Pick(2).i32,
+                     Pick(1).i32);
       break;
 
     case Opcode::I32Clz:
     case Opcode::I32Ctz:
     case Opcode::I32Popcnt:
     case Opcode::I32Eqz:
-      stream->Writef("%s %u\n", get_opcode_name(opcode), TOP().i32);
+      stream->Writef("%s %u\n", GetOpcodeName(opcode), Top().i32);
       break;
 
     case Opcode::I64Add:
@@ -2008,15 +2246,15 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I64GeU:
     case Opcode::I64Rotr:
     case Opcode::I64Rotl:
-      stream->Writef("%s %" PRIu64 ", %" PRIu64 "\n", get_opcode_name(opcode),
-                     PICK(2).i64, PICK(1).i64);
+      stream->Writef("%s %" PRIu64 ", %" PRIu64 "\n", GetOpcodeName(opcode),
+                     Pick(2).i64, Pick(1).i64);
       break;
 
     case Opcode::I64Clz:
     case Opcode::I64Ctz:
     case Opcode::I64Popcnt:
     case Opcode::I64Eqz:
-      stream->Writef("%s %" PRIu64 "\n", get_opcode_name(opcode), TOP().i64);
+      stream->Writef("%s %" PRIu64 "\n", GetOpcodeName(opcode), Top().i64);
       break;
 
     case Opcode::F32Add:
@@ -2032,9 +2270,8 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F32Le:
     case Opcode::F32Gt:
     case Opcode::F32Ge:
-      stream->Writef("%s %g, %g\n", get_opcode_name(opcode),
-                     bitcast_u32_to_f32(PICK(2).i32),
-                     bitcast_u32_to_f32(PICK(1).i32));
+      stream->Writef("%s %g, %g\n", GetOpcodeName(opcode),
+                     Bitcast<float>(Pick(2).i32), Bitcast<float>(Pick(1).i32));
       break;
 
     case Opcode::F32Abs:
@@ -2044,8 +2281,8 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F32Trunc:
     case Opcode::F32Nearest:
     case Opcode::F32Sqrt:
-      stream->Writef("%s %g\n", get_opcode_name(opcode),
-                     bitcast_u32_to_f32(TOP().i32));
+      stream->Writef("%s %g\n", GetOpcodeName(opcode),
+                     Bitcast<float>(Top().i32));
       break;
 
     case Opcode::F64Add:
@@ -2061,9 +2298,9 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F64Le:
     case Opcode::F64Gt:
     case Opcode::F64Ge:
-      stream->Writef("%s %g, %g\n", get_opcode_name(opcode),
-                     bitcast_u64_to_f64(PICK(2).i64),
-                     bitcast_u64_to_f64(PICK(1).i64));
+      stream->Writef("%s %g, %g\n", GetOpcodeName(opcode),
+                     Bitcast<double>(Pick(2).i64),
+                     Bitcast<double>(Pick(1).i64));
       break;
 
     case Opcode::F64Abs:
@@ -2073,8 +2310,8 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F64Trunc:
     case Opcode::F64Nearest:
     case Opcode::F64Sqrt:
-      stream->Writef("%s %g\n", get_opcode_name(opcode),
-                     bitcast_u64_to_f64(TOP().i64));
+      stream->Writef("%s %g\n", GetOpcodeName(opcode),
+                     Bitcast<double>(Top().i64));
       break;
 
     case Opcode::I32TruncSF32:
@@ -2083,8 +2320,12 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I64TruncUF32:
     case Opcode::F64PromoteF32:
     case Opcode::I32ReinterpretF32:
-      stream->Writef("%s %g\n", get_opcode_name(opcode),
-                     bitcast_u32_to_f32(TOP().i32));
+    case Opcode::I32TruncSSatF32:
+    case Opcode::I32TruncUSatF32:
+    case Opcode::I64TruncSSatF32:
+    case Opcode::I64TruncUSatF32:
+      stream->Writef("%s %g\n", GetOpcodeName(opcode),
+                     Bitcast<float>(Top().i32));
       break;
 
     case Opcode::I32TruncSF64:
@@ -2093,8 +2334,12 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I64TruncUF64:
     case Opcode::F32DemoteF64:
     case Opcode::I64ReinterpretF64:
-      stream->Writef("%s %g\n", get_opcode_name(opcode),
-                     bitcast_u64_to_f64(TOP().i64));
+    case Opcode::I32TruncSSatF64:
+    case Opcode::I32TruncUSatF64:
+    case Opcode::I64TruncSSatF64:
+    case Opcode::I64TruncUSatF64:
+      stream->Writef("%s %g\n", GetOpcodeName(opcode),
+                     Bitcast<double>(Top().i64));
       break;
 
     case Opcode::I32WrapI64:
@@ -2103,7 +2348,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F64ConvertSI64:
     case Opcode::F64ConvertUI64:
     case Opcode::F64ReinterpretI64:
-      stream->Writef("%s %" PRIu64 "\n", get_opcode_name(opcode), TOP().i64);
+      stream->Writef("%s %" PRIu64 "\n", GetOpcodeName(opcode), Top().i64);
       break;
 
     case Opcode::I64ExtendSI32:
@@ -2113,20 +2358,20 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F32ReinterpretI32:
     case Opcode::F64ConvertSI32:
     case Opcode::F64ConvertUI32:
-      stream->Writef("%s %u\n", get_opcode_name(opcode), TOP().i32);
+      stream->Writef("%s %u\n", GetOpcodeName(opcode), Top().i32);
       break;
 
     case Opcode::Alloca:
-      stream->Writef("%s $%u\n", get_opcode_name(opcode), read_u32_at(pc));
+      stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32_at(pc));
       break;
 
     case Opcode::BrUnless:
-      stream->Writef("%s @%u, %u\n", get_opcode_name(opcode), read_u32_at(pc),
-                     TOP().i32);
+      stream->Writef("%s @%u, %u\n", GetOpcodeName(opcode), read_u32_at(pc),
+                     Top().i32);
       break;
 
     case Opcode::DropKeep:
-      stream->Writef("%s $%u $%u\n", get_opcode_name(opcode), read_u32_at(pc),
+      stream->Writef("%s $%u $%u\n", GetOpcodeName(opcode), read_u32_at(pc),
                      *(pc + 4));
       break;
 
@@ -2158,15 +2403,15 @@ void Environment::Disassemble(Stream* stream,
     Opcode opcode = static_cast<Opcode>(*pc++);
     switch (opcode) {
       case Opcode::Select:
-        stream->Writef("%s %%[-3], %%[-2], %%[-1]\n", get_opcode_name(opcode));
+        stream->Writef("%s %%[-3], %%[-2], %%[-1]\n", GetOpcodeName(opcode));
         break;
 
       case Opcode::Br:
-        stream->Writef("%s @%u\n", get_opcode_name(opcode), read_u32(&pc));
+        stream->Writef("%s @%u\n", GetOpcodeName(opcode), read_u32(&pc));
         break;
 
       case Opcode::BrIf:
-        stream->Writef("%s @%u, %%[-1]\n", get_opcode_name(opcode),
+        stream->Writef("%s @%u, %%[-1]\n", GetOpcodeName(opcode),
                        read_u32(&pc));
         break;
 
@@ -2174,7 +2419,7 @@ void Environment::Disassemble(Stream* stream,
         Index num_targets = read_u32(&pc);
         IstreamOffset table_offset = read_u32(&pc);
         stream->Writef("%s %%[-1], $#%" PRIindex ", table:$%u\n",
-                       get_opcode_name(opcode), num_targets, table_offset);
+                       GetOpcodeName(opcode), num_targets, table_offset);
         break;
       }
 
@@ -2182,60 +2427,60 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::Return:
       case Opcode::Unreachable:
       case Opcode::Drop:
-        stream->Writef("%s\n", get_opcode_name(opcode));
+        stream->Writef("%s\n", GetOpcodeName(opcode));
         break;
 
       case Opcode::CurrentMemory: {
         Index memory_index = read_u32(&pc);
-        stream->Writef("%s $%" PRIindex "\n", get_opcode_name(opcode),
+        stream->Writef("%s $%" PRIindex "\n", GetOpcodeName(opcode),
                        memory_index);
         break;
       }
 
       case Opcode::I32Const:
-        stream->Writef("%s $%u\n", get_opcode_name(opcode), read_u32(&pc));
+        stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32(&pc));
         break;
 
       case Opcode::I64Const:
-        stream->Writef("%s $%" PRIu64 "\n", get_opcode_name(opcode),
+        stream->Writef("%s $%" PRIu64 "\n", GetOpcodeName(opcode),
                        read_u64(&pc));
         break;
 
       case Opcode::F32Const:
-        stream->Writef("%s $%g\n", get_opcode_name(opcode),
-                       bitcast_u32_to_f32(read_u32(&pc)));
+        stream->Writef("%s $%g\n", GetOpcodeName(opcode),
+                       Bitcast<float>(read_u32(&pc)));
         break;
 
       case Opcode::F64Const:
-        stream->Writef("%s $%g\n", get_opcode_name(opcode),
-                       bitcast_u64_to_f64(read_u64(&pc)));
+        stream->Writef("%s $%g\n", GetOpcodeName(opcode),
+                       Bitcast<double>(read_u64(&pc)));
         break;
 
       case Opcode::GetLocal:
       case Opcode::GetGlobal:
-        stream->Writef("%s $%u\n", get_opcode_name(opcode), read_u32(&pc));
+        stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32(&pc));
         break;
 
       case Opcode::SetLocal:
       case Opcode::SetGlobal:
       case Opcode::TeeLocal:
-        stream->Writef("%s $%u, %%[-1]\n", get_opcode_name(opcode),
+        stream->Writef("%s $%u, %%[-1]\n", GetOpcodeName(opcode),
                        read_u32(&pc));
         break;
 
       case Opcode::Call:
-        stream->Writef("%s @%u\n", get_opcode_name(opcode), read_u32(&pc));
+        stream->Writef("%s @%u\n", GetOpcodeName(opcode), read_u32(&pc));
         break;
 
       case Opcode::CallIndirect: {
         Index table_index = read_u32(&pc);
-        stream->Writef("%s $%" PRIindex ":%u, %%[-1]\n",
-                       get_opcode_name(opcode), table_index, read_u32(&pc));
+        stream->Writef("%s $%" PRIindex ":%u, %%[-1]\n", GetOpcodeName(opcode),
+                       table_index, read_u32(&pc));
         break;
       }
 
       case Opcode::CallHost:
-        stream->Writef("%s $%u\n", get_opcode_name(opcode), read_u32(&pc));
+        stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32(&pc));
         break;
 
       case Opcode::I32Load8S:
@@ -2253,8 +2498,8 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::F32Load:
       case Opcode::F64Load: {
         Index memory_index = read_u32(&pc);
-        stream->Writef("%s $%" PRIindex ":%%[-1]+$%u\n",
-                       get_opcode_name(opcode), memory_index, read_u32(&pc));
+        stream->Writef("%s $%" PRIindex ":%%[-1]+$%u\n", GetOpcodeName(opcode),
+                       memory_index, read_u32(&pc));
         break;
       }
 
@@ -2269,7 +2514,7 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::F64Store: {
         Index memory_index = read_u32(&pc);
         stream->Writef("%s %%[-2]+$%" PRIindex ", $%u:%%[-1]\n",
-                       get_opcode_name(opcode), memory_index, read_u32(&pc));
+                       GetOpcodeName(opcode), memory_index, read_u32(&pc));
         break;
       }
 
@@ -2349,7 +2594,7 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::F64Le:
       case Opcode::F64Gt:
       case Opcode::F64Ge:
-        stream->Writef("%s %%[-2], %%[-1]\n", get_opcode_name(opcode));
+        stream->Writef("%s %%[-2], %%[-1]\n", GetOpcodeName(opcode));
         break;
 
       case Opcode::I32Clz:
@@ -2399,35 +2644,43 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::F32ReinterpretI32:
       case Opcode::F64ConvertSI32:
       case Opcode::F64ConvertUI32:
-        stream->Writef("%s %%[-1]\n", get_opcode_name(opcode));
+      case Opcode::I32TruncSSatF32:
+      case Opcode::I32TruncUSatF32:
+      case Opcode::I64TruncSSatF32:
+      case Opcode::I64TruncUSatF32:
+      case Opcode::I32TruncSSatF64:
+      case Opcode::I32TruncUSatF64:
+      case Opcode::I64TruncSSatF64:
+      case Opcode::I64TruncUSatF64:
+        stream->Writef("%s %%[-1]\n", GetOpcodeName(opcode));
         break;
 
       case Opcode::GrowMemory: {
         Index memory_index = read_u32(&pc);
-        stream->Writef("%s $%" PRIindex ":%%[-1]\n", get_opcode_name(opcode),
+        stream->Writef("%s $%" PRIindex ":%%[-1]\n", GetOpcodeName(opcode),
                        memory_index);
         break;
       }
 
       case Opcode::Alloca:
-        stream->Writef("%s $%u\n", get_opcode_name(opcode), read_u32(&pc));
+        stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32(&pc));
         break;
 
       case Opcode::BrUnless:
-        stream->Writef("%s @%u, %%[-1]\n", get_opcode_name(opcode),
+        stream->Writef("%s @%u, %%[-1]\n", GetOpcodeName(opcode),
                        read_u32(&pc));
         break;
 
       case Opcode::DropKeep: {
         uint32_t drop = read_u32(&pc);
         uint8_t keep = *pc++;
-        stream->Writef("%s $%u $%u\n", get_opcode_name(opcode), drop, keep);
+        stream->Writef("%s $%u $%u\n", GetOpcodeName(opcode), drop, keep);
         break;
       }
 
       case Opcode::Data: {
         uint32_t num_bytes = read_u32(&pc);
-        stream->Writef("%s $%u\n", get_opcode_name(opcode), num_bytes);
+        stream->Writef("%s $%u\n", GetOpcodeName(opcode), num_bytes);
         /* for now, the only reason this is emitted is for br_table, so display
          * it as a list of table entries */
         if (num_bytes % WABT_TABLE_ENTRY_SIZE == 0) {

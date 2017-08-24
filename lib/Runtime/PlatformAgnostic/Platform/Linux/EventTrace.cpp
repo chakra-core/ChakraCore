@@ -2,9 +2,17 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#pragma once
 
+#include "RuntimePlatformAgnosticPch.h"
+#include "CommonPal.h"
 
-#define SSE2MATH
-#include "JavascriptMath.h"
-#undef SSE2MATH
+namespace PlatformAgnostic
+{
+    namespace EventTrace
+    {
+        void FireGenericEventTrace(const void* /*traceData*/)
+        {
+            // TODO: Implement this on Linux
+        }
+    } // namespace EventTrace
+} // namespace PlatformAgnostic

@@ -34,8 +34,8 @@ public:
 
     virtual bool IsNumericProperty(Js::PropertyId propId) override;
 
-    ptrdiff_t GetChakraBaseAddressDifference() const;
-    ptrdiff_t GetCRTBaseAddressDifference() const;
+    virtual ptrdiff_t GetChakraBaseAddressDifference() const override;
+    virtual ptrdiff_t GetCRTBaseAddressDifference() const override;
 
     OOPCodeGenAllocators * GetCodeGenAllocators();
 #if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
@@ -50,9 +50,7 @@ public:
     void Release();
     void Close();
     PageAllocator * GetForegroundPageAllocator();
-#ifdef STACK_BACK_TRACE
     DWORD GetRuntimePid() { return m_pid; }
-#endif
 
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;

@@ -95,6 +95,7 @@ typedef const utf8char_t *LPCUTF8;
 
 namespace utf8
 {
+    class InvalidWideCharException {};
 
     // Terminology -
     //   Code point      - A ordinal value mapped to a standard ideograph as defined by ISO/IEC 10646-1. Here
@@ -138,8 +139,11 @@ namespace utf8
                                             // surrogate pair. The second call will return the second word and reset
                                             // this 'option'.
         doAllowInvalidWCHARs        = 0x08, // Don't replace invalid wide chars with 0xFFFD
+        doThrowOnInvalidWCHARs      = 0x10, // throw InvalidWideCharException if an invalid wide char is seen. Incompatible with doAllowInvalidWCHARs
     };
     DEFINE_ENUM_FLAG_OPERATORS(DecodeOptions);
+
+    BOOL IsValidWideChar(char16 ch);
 
     // Decode the trail bytes after the UTF8 lead byte c1 but returning 0xFFFD if trail bytes are expected after end.
     _At_(ptr, _In_reads_(end - ptr) _Post_satisfies_(ptr >= _Old_(ptr) - 1 && ptr <= end))

@@ -433,10 +433,10 @@ namespace Js
             }
 
             if ((propertyRecord->GetPropertyId() == PropertyIds::caller || propertyRecord->GetPropertyId() == PropertyIds::arguments))
-            {
-                // JavascriptFunction has special case for caller and arguments; call DynamicObject:: virtual directly to skip that.
-                return DynamicObject::GetSetter(propertyNameString, setterValue, info, requestContext);
-            }
+        {
+            // JavascriptFunction has special case for caller and arguments; call DynamicObject:: virtual directly to skip that.
+            return DynamicObject::GetSetter(propertyNameString, setterValue, info, requestContext);
+        }
         }
 
         return JavascriptFunction::GetSetter(propertyNameString, setterValue, info, requestContext);
@@ -532,7 +532,7 @@ namespace Js
 
     void JavascriptAsyncFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTDAssert(false, "Invalid -- JavascriptGeneratorFunction");
+        TTDAssert(false, "Invalid -- JavascriptAsyncFunction");
     }
 
     TTD::NSSnapObjects::SnapObjectType GeneratorVirtualScriptFunction::GetSnapTag_TTD() const

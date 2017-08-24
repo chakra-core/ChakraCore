@@ -191,6 +191,7 @@ PHASE(All)
                     PHASE(MarkTempNumber)
                     PHASE(MarkTempObject)
                     PHASE(MarkTempNumberOnTempObject)
+        PHASE(DumpGlobOptInstr) // Print the Globopt instr string in post lower dumps
         PHASE(Lowerer)
             PHASE(FastPath)
                 PHASE(LoopFastPath)
@@ -1118,7 +1119,7 @@ FLAGNR(Boolean, ForceFloatPref        , "Force float preferencing (JIT only)", f
 FLAGNR(Boolean, ForceJITLoopBody      , "Force jit loop body only", DEFAULT_CONFIG_ForceJITLoopBody)
 FLAGNR(Boolean, ForceStaticInterpreterThunk, "Force using static interpreter thunk", DEFAULT_CONFIG_ForceStaticInterpreterThunk)
 FLAGNR(Boolean, DumpCommentsFromReferencedFiles, "Allow printing comments of comment-table of the referenced file as well (use with -trace:CommentTable)", DEFAULT_CONFIG_DumpCommentsFromReferencedFiles)
-FLAGNR(Number,  DelayFullJITSmallFunc , "Scale Full JIT threshold for small functions which are going to be inlined soon. To provide fraction scale, the final scale is scale following this option devided by 10", DEFAULT_CONFIG_DelayFullJITSmallFunc)
+FLAGNR(Number,  DelayFullJITSmallFunc , "Scale Full JIT threshold for small functions which are going to be inlined soon. To provide fraction scale, the final scale is scale following this option divided by 10", DEFAULT_CONFIG_DelayFullJITSmallFunc)
 
 #ifdef _M_ARM
 FLAGNR(Boolean, ForceLocalsPtr        , "Force use of alternative locals pointer (JIT only)", false)
@@ -1337,6 +1338,7 @@ FLAGNR(Boolean, RecyclerForceMarkInterior, "Force all the mark as interior", DEF
 #if ENABLE_CONCURRENT_GC
 FLAGNR(Number,  RecyclerPriorityBoostTimeout, "Adjust priority boost timeout", 5000)
 FLAGNR(Number,  RecyclerThreadCollectTimeout, "Adjust thread collect timeout", 1000)
+FLAGRA(Boolean, EnableConcurrentSweepAlloc, ecsa, "Turns off the feature to allow allocations during concurrent sweep.", true)
 #endif
 #ifdef RECYCLER_PAGE_HEAP
 FLAGNR(Number,      PageHeap,             "Use full page for heap allocations", DEFAULT_CONFIG_PageHeap)

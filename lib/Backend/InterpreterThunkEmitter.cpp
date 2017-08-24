@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
 #ifdef _M_X64
 #ifdef _WIN32
 const BYTE InterpreterThunkEmitter::FunctionInfoOffset = 23;
@@ -456,12 +456,12 @@ void InterpreterThunkEmitter::FillBuffer(
 #ifdef ASMJS_PLAT
     if (asmJsThunk)
     {
-        interpreterThunk = SHIFT_ADDR(threadContext, &Js::InterpreterStackFrame::InterpreterAsmThunk);
+        interpreterThunk = ShiftAddr(threadContext, &Js::InterpreterStackFrame::InterpreterAsmThunk);
     }
     else
 #endif
     {
-        interpreterThunk = SHIFT_ADDR(threadContext, &Js::InterpreterStackFrame::InterpreterThunk);
+        interpreterThunk = ShiftAddr(threadContext, &Js::InterpreterStackFrame::InterpreterThunk);
     }
 
 

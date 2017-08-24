@@ -256,6 +256,7 @@ RT_ERROR_MSG(JSERR_InvalidCurrencyCode, 5122, "Currency code '%s' is invalid", "
 RT_ERROR_MSG(JSERR_MissingCurrencyCode, 5123, "", "Currency code was not specified", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_InvalidDate, 5124, "", "Invalid Date", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_IntlNotAvailable, 5125, "", "Intl is not available.", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_IntlNotImplemented, 5126, "", "Intl operation '%s' is not implemented.", kjstTypeError, 0)
 
 RT_ERROR_MSG(JSERR_ArgumentOutOfRange, 5130, "%s: argument out of range", "argument out of range", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_ErrorOnNew, 5131, "", "Function is not a constructor", kjstTypeError, 0)
@@ -379,7 +380,7 @@ RT_ERROR_MSG(WASMERR_NeedBufferSource, 7002, "%s is not a BufferSource", "Buffer
 RT_ERROR_MSG(WASMERR_NeedModule, 7003, "%s is not a WebAssembly.Module", "WebAssembly.Module expected", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_DataSegOutOfRange, 7004, "", "Data segment is out of range", kjstWebAssemblyLinkError, 0)
 RT_ERROR_MSG(WASMERR_MutableGlobal, 7005, "", "Cannot export mutable global", kjstTypeError, 0)
-RT_ERROR_MSG(WASMERR_InvalidImport, 7006, "", "Import is invalid", kjstTypeError, 0)
+ // 7006 free
 RT_ERROR_MSG(WASMERR_InvalidGlobalRef, 7007, "", "Global initialization does not support forward reference", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_NeedMemoryObject, 7008, "%s is not a WebAssembly.Memory", "WebAssembly.Memory object expected", kjstWebAssemblyLinkError, 0)
 RT_ERROR_MSG(WASMERR_InvalidTypeConversion, 7009, "Invalid WebAssembly type conversion %s to %s", "Invalid WebAssembly type conversion", kjstTypeError, 0)
@@ -399,6 +400,11 @@ RT_ERROR_MSG(WASMERR_BufferGrowOnly, 7022, "", "WebAssembly.Memory can only grow
 RT_ERROR_MSG(WASMERR_LinkSignatureMismatch, 7023, "Cannot link import %s in link table due to a signature mismatch", "Function called with invalid signature", kjstWebAssemblyRuntimeError, 0)
 RT_ERROR_MSG(WASMERR_MemoryCreateFailed, 7024, "", "Failed to create WebAssembly.Memory", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_NeedInstanceObject, 7025, "%s is not a WebAssembly.Instance", "WebAssembly.Instance object expected", kjstWebAssemblyRuntimeError, 0)
+
+RT_ERROR_MSG(WASMERR_InvalidImportModule, 7026, "Import module '%s' is invalid", "Import module is invalid", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_InvalidImport, 7027, "Import '%s.%s' is invalid. Expected type %s", "Import is invalid", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_InvalidInitialSize, 7028, "Imported %s initial size (%u) is smaller than declared (%u)", "Invalid initial size", kjstWebAssemblyLinkError, 0)
+RT_ERROR_MSG(WASMERR_InvalidMaximumSize, 7029, "Imported %s maximum size (%u) is larger than declared (%u)", "Invalid initial size", kjstWebAssemblyLinkError, 0)
 
 // Wabt Errors
 RT_ERROR_MSG(WABTERR_WabtError, 7200, "%s", "Wabt Error.", kjstTypeError, 0)

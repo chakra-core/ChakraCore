@@ -4,9 +4,14 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+/*****************************************************************************************************
+ * This file contains defines that switch feature on or off, or configuration a feature at build time
+ *****************************************************************************************************/
+
 #include "TargetVer.h"
 #include "Warnings.h"
 #include "ChakraCoreVersion.h"
+
 
 //----------------------------------------------------------------------------------------------------
 // Default debug/fretest/release flags values
@@ -69,9 +74,9 @@
 
 // Memory Protections
 #ifdef _CONTROL_FLOW_GUARD
-#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE | PAGE_TARGETS_INVALID)
+#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE_READ | PAGE_TARGETS_INVALID)
 #else
-#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE)
+#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE_READ)
 #endif
 
 //----------------------------------------------------------------------------------------------------
@@ -82,13 +87,13 @@
 // Even if it builds, it may not work properly. Disable at your own risk
 
 // Config options
+#define CONFIG_PARSE_CONFIG_FILE 1
+
 #ifdef _WIN32
 #define CONFIG_CONSOLE_AVAILABLE 1
-#define CONFIG_PARSE_CONFIG_FILE 1
 #define CONFIG_RICH_TRACE_FORMAT 1
 #else
 #define CONFIG_CONSOLE_AVAILABLE 0
-#define CONFIG_PARSE_CONFIG_FILE 0
 #define CONFIG_RICH_TRACE_FORMAT 0
 #endif
 
@@ -98,23 +103,40 @@
 #if defined(_WIN32) || defined(HAS_REAL_ICU)
 #define ENABLE_UNICODE_API 1                        // Enable use of Unicode-related APIs
 #endif
+
 // Language features
-// xplat-todo: revisit these features
-#ifdef _WIN32
+
+#if !defined(CHAKRACORE_LITE) && (defined(_WIN32) || defined(INTL_ICU))
 #define ENABLE_INTL_OBJECT                          // Intl support
 #endif
+#ifdef INTL_ICU
+#ifdef DBG
+//#define INTL_ICU_DEBUG 1              // NOTE: uncomment this to display INTL_ICU-specific debug output
+#endif
+//#define INTL_ICU_ALLOW_HYBRID 1       // NOTE: uncomment this line to test INTL_ICU SxS with INTL_WINGLOB while INTL_ICU is in-development
+#endif
+#if defined(_WIN32) && (!defined(INTL_ICU) || (defined(INTL_ICU) && defined(INTL_ICU_ALLOW_HYBRID)))
+#define INTL_WINGLOB 1
+#endif
+
 #define ENABLE_ES6_CHAR_CLASSIFIER                  // ES6 Unicode character classifier support
 
 // Type system features
 #define PERSISTENT_INLINE_CACHES                    // *** TODO: Won't build if disabled currently
-#define SUPPORT_FIXED_FIELDS_ON_PATH_TYPES          // *** TODO: Won't build if disabled currently
+
+#if !DISABLE_JIT
+#define ENABLE_FIXED_FIELDS 1                       // Turn on fixed fields if JIT is enabled
+#endif
+
+#if ENABLE_FIXED_FIELDS
+#define SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+#endif
+
 
 // xplat-todo: revisit these features
 #ifdef _WIN32
 // dep: TIME_ZONE_INFORMATION, DaylightTimeHelper, Windows.Globalization
 #define ENABLE_GLOBALIZATION
-// dep: IActiveScriptProfilerCallback, IActiveScriptProfilerHeapEnum
-#define ENABLE_SCRIPT_PROFILING
 // #ifndef __clang__
 // xplat-todo: change DISABLE_SEH to ENABLE_SEH and move here
 // #define ENABLE_SIMDJS
@@ -124,32 +146,59 @@
 #endif
 
 // dep: IDebugDocumentContext
+#if !BUILD_WITHOUT_SCRIPT_DEBUG
 #define ENABLE_SCRIPT_DEBUGGING
+#endif
 
 // GC features
 #define BUCKETIZE_MEDIUM_ALLOCATIONS 1              // *** TODO: Won't build if disabled currently
 #define SMALLBLOCK_MEDIUM_ALLOC 1                   // *** TODO: Won't build if disabled currently
 #define LARGEHEAPBLOCK_ENCODING 1                   // Large heap block metadata encoding
+#ifndef CHAKRACORE_LITE
 #define IDLE_DECOMMIT_ENABLED 1                     // Idle Decommit
-#define RECYCLER_PAGE_HEAP                          // PageHeap support
+#endif
+
+#if defined(NTBUILD) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+#define RECYCLER_PAGE_HEAP                          // PageHeap support, on by default, off in ChakraCore release build
+#endif
+
 
 #ifdef _WIN32
 #define SYSINFO_IMAGE_BASE_AVAILABLE 1
 #define ENABLE_CONCURRENT_GC 1
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 1 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST 1 // Use Interlocked SLIST for allocableHeapBlockList
 #define SUPPORT_WIN32_SLIST 1
+#ifndef CHAKRACORE_LITE
 #define ENABLE_JS_ETW                               // ETW support
+#endif
 #else
 #define SYSINFO_IMAGE_BASE_AVAILABLE 0
 #ifndef ENABLE_VALGRIND
 #define ENABLE_CONCURRENT_GC 1
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 1 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
 #else
 #define ENABLE_CONCURRENT_GC 0
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 0 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
 #endif
 #define SUPPORT_WIN32_SLIST 0
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST 0 // Use Interlocked SLIST for allocableHeapBlockList
 #endif
 
+#ifdef CHAKRACORE_LITE
+#define USE_VPM_TABLE 0
+#else
+#define USE_VPM_TABLE 1
+#endif
 
-#define MAKE_HR(errnum) (MAKE_HRESULT(SEVERITY_ERROR, FACILITY_CONTROL, errnum))
+// xplat-todo: fix up vpm.64b.h generation to generate correctly
+// templatized code
+#if defined(_MSC_VER) && !defined(__clang__)
+#define USE_STATIC_VPM 1 // Disable to force generation at runtime
+#else
+#define USE_STATIC_VPM 0
+#endif
+
 
 #if ENABLE_CONCURRENT_GC
 // Write-barrier refers to a software write barrier implementation using a card table.
@@ -236,19 +285,23 @@
 // Other features
 // #define CHAKRA_CORE_DOWN_COMPAT 1
 
-// VS2015 RTM has bugs with constexpr, so require min of VS2015 Update 3 (known good version)
-#if !defined(_MSC_VER) || _MSC_FULL_VER >= 190024210
-#define HAS_CONSTEXPR 1
-#endif
-
-#ifdef HAS_CONSTEXPR
-#define OPT_CONSTEXPR constexpr
+#ifdef _WIN32
+#define VECTORCALL __vectorcall
 #else
-#define OPT_CONSTEXPR
+#define VECTORCALL
 #endif
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) || defined(CHAKRA_CORE_DOWN_COMPAT)
 #define DELAYLOAD_SET_CFG_TARGET 1
+#endif
+
+// Configure whether we configure a signal handler
+// to produce perf-<pid>.map files
+#ifndef PERFMAP_TRACE_ENABLED
+#define PERFMAP_TRACE_ENABLED 0
+#endif
+#ifndef PERFMAP_SIGNAL
+#define PERFMAP_SIGNAL SIGUSR2
 #endif
 
 #ifndef NTBUILD
@@ -264,6 +317,7 @@
 #define ENABLE_DOM_FAST_PATH
 #define EDIT_AND_CONTINUE
 #define ENABLE_JIT_CLAMP
+#define ENABLE_SCRIPT_PROFILING
 #endif
 
 // Telemetry flags
@@ -381,7 +435,7 @@
 ////////
 //Time Travel flags
 //Include TTD code in the build when building for Chakra (except NT/Edge) or for debug/test builds
-#if !defined(NTBUILD) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+#if defined(ENABLE_SCRIPT_DEBUGGING) && (!defined(NTBUILD) || defined(ENABLE_DEBUG_CONFIG_OPTIONS))
 #define ENABLE_TTD 1
 #else
 #define ENABLE_TTD 0
@@ -796,19 +850,3 @@
 #ifndef PROFILE_DICTIONARY
 #define PROFILE_DICTIONARY 0
 #endif
-
-#ifndef THREAD_LOCAL
-#ifndef __APPLE__
-    #if defined(_MSC_VER) && _MSC_VER <= 1800 // VS2013?
-        #define THREAD_LOCAL __declspec(thread)
-    #else // VS2015+, linux Clang etc.
-        #define THREAD_LOCAL thread_local
-    #endif // VS2013?
-#else // __APPLE__
-    #ifndef __IOS__
-        #define THREAD_LOCAL _Thread_local
-    #else
-        #define THREAD_LOCAL
-    #endif
-#endif // __APPLE__
-#endif // THREAD_LOCAL

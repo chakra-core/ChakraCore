@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "JsrtPch.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "JsrtDebugManager.h"
 #include "JsrtDebugEventObject.h"
 #include "JsrtDebugUtils.h"
@@ -154,6 +155,21 @@ HRESULT JsrtDebugManager::DbgRegisterFunction(Js::ScriptContext* scriptContext, 
         {
             utf8SourceInfo->SetDebugDocument(debugDocument);
         }
+
+        // Raising events during the middle of a source reparse allows the host to reenter the
+        // script context and cause memory race conditions. Suppressing these events during a
+        // reparse prevents the issue. Since the host was already expected to call JsDiagGetScripts
+        // once the attach is completed to get the list of parsed scripts, there is no change in
+        // behavior.
+        if (this->debugEventCallback != nullptr &&
+            !scriptContext->GetDebugContext()->GetIsReparsingSource())
+        {
+            JsrtDebugEventObject debugEventObject(scriptContext);
+            Js::DynamicObject* eventDataObject = debugEventObject.GetEventDataObject();
+            JsrtDebugUtils::AddSourceMetadataToObject(eventDataObject, utf8SourceInfo);
+
+            this->CallDebugEventCallback(JsDiagDebugEventSourceCompile, eventDataObject, scriptContext, false /*isBreak*/);
+        }
     }
 
     return S_OK;
@@ -170,15 +186,7 @@ void JsrtDebugManager::ReportScriptCompile_TTD(Js::FunctionBody* body, Js::Utf8S
     Js::ScriptContext* scriptContext = utf8SourceInfo->GetScriptContext();
 
     JsrtDebugEventObject debugEventObject(scriptContext);
-
     Js::DynamicObject* eventDataObject = debugEventObject.GetEventDataObject();
-
-    JsrtDebugUtils::AddFileNameOrScriptTypeToObject(eventDataObject, utf8SourceInfo);
-    JsrtDebugUtils::AddLineCountToObject(eventDataObject, utf8SourceInfo);
-    JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
-
-    JsDiagDebugEvent jsDiagDebugEvent = JsDiagDebugEventCompileError;
-
 
     JsrtDebugDocumentManager* debugDocumentManager = this->GetDebugDocumentManager();
     Assert(debugDocumentManager != nullptr);
@@ -188,15 +196,13 @@ void JsrtDebugManager::ReportScriptCompile_TTD(Js::FunctionBody* body, Js::Utf8S
     if(debugDocument != nullptr)
     {
         utf8SourceInfo->SetDebugDocument(debugDocument);
-
-        // Only add scriptId if everything is ok as scriptId is used for other operations
-        JsrtDebugUtils::AddScriptIdToObject(eventDataObject, utf8SourceInfo);
     }
-    jsDiagDebugEvent = JsDiagDebugEventSourceCompile;
+
+    JsrtDebugUtils::AddSourceMetadataToObject(eventDataObject, utf8SourceInfo);
 
     if(notify)
     {
-        this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject, scriptContext, false /*isBreak*/);
+        this->CallDebugEventCallback(JsDiagDebugEventSourceCompile, eventDataObject, scriptContext, false /*isBreak*/);
     }
 }
 #endif
@@ -208,12 +214,7 @@ void JsrtDebugManager::ReportScriptCompile(Js::JavascriptFunction* scriptFunctio
         Js::ScriptContext* scriptContext = utf8SourceInfo->GetScriptContext();
 
         JsrtDebugEventObject debugEventObject(scriptContext);
-
         Js::DynamicObject* eventDataObject = debugEventObject.GetEventDataObject();
-
-        JsrtDebugUtils::AddFileNameOrScriptTypeToObject(eventDataObject, utf8SourceInfo);
-        JsrtDebugUtils::AddLineCountToObject(eventDataObject, utf8SourceInfo);
-        JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
 
         JsDiagDebugEvent jsDiagDebugEvent = JsDiagDebugEventCompileError;
 
@@ -235,12 +236,12 @@ void JsrtDebugManager::ReportScriptCompile(Js::JavascriptFunction* scriptFunctio
             if (debugDocument != nullptr)
             {
                 utf8SourceInfo->SetDebugDocument(debugDocument);
-
-                // Only add scriptId if everything is ok as scriptId is used for other operations
-                JsrtDebugUtils::AddScriptIdToObject(eventDataObject, utf8SourceInfo);
             }
+
             jsDiagDebugEvent = JsDiagDebugEventSourceCompile;
         }
+
+        JsrtDebugUtils::AddSourceMetadataToObject(eventDataObject, utf8SourceInfo);
 
         this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject, scriptContext, false /*isBreak*/);
     }
@@ -460,11 +461,7 @@ void JsrtDebugManager::CallDebugEventCallbackForBreak(JsDiagDebugEvent debugEven
 Js::DynamicObject* JsrtDebugManager::GetScript(Js::Utf8SourceInfo* utf8SourceInfo)
 {
     Js::DynamicObject* scriptObject = utf8SourceInfo->GetScriptContext()->GetLibrary()->CreateObject();
-
-    JsrtDebugUtils::AddScriptIdToObject(scriptObject, utf8SourceInfo);
-    JsrtDebugUtils::AddFileNameOrScriptTypeToObject(scriptObject, utf8SourceInfo);
-    JsrtDebugUtils::AddLineCountToObject(scriptObject, utf8SourceInfo);
-    JsrtDebugUtils::AddPropertyToObject(scriptObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
+    JsrtDebugUtils::AddSourceMetadataToObject(scriptObject, utf8SourceInfo);
 
     return scriptObject;
 }
@@ -542,11 +539,8 @@ Js::DynamicObject* JsrtDebugManager::GetSource(Js::ScriptContext* scriptContext,
     {
         sourceObject = (Js::DynamicObject*)Js::CrossSite::MarshalVar(utf8SourceInfo->GetScriptContext(), scriptContext->GetLibrary()->CreateObject());
 
-        JsrtDebugUtils::AddScriptIdToObject(sourceObject, utf8SourceInfo);
-        JsrtDebugUtils::AddFileNameOrScriptTypeToObject(sourceObject, utf8SourceInfo);
-        JsrtDebugUtils::AddLineCountToObject(sourceObject, utf8SourceInfo);
-        JsrtDebugUtils::AddPropertyToObject(sourceObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
-        JsrtDebugUtils::AddSouceToObject(sourceObject, utf8SourceInfo);
+        JsrtDebugUtils::AddSourceMetadataToObject(sourceObject, utf8SourceInfo);
+        JsrtDebugUtils::AddSourceToObject(sourceObject, utf8SourceInfo);
     }
 
     return sourceObject;
@@ -768,3 +762,4 @@ JsDiagDebugEvent JsrtDebugManager::GetDebugEventFromStopType(Js::StopType stopTy
 
     return JsDiagDebugEventBreakpoint;
 }
+#endif

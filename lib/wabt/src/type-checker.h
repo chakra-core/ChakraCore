@@ -61,6 +61,8 @@ class TypeChecker {
   Result OnCall(const TypeVector* param_types, const TypeVector* result_types);
   Result OnCallIndirect(const TypeVector* param_types,
                         const TypeVector* result_types);
+  Result OnCatch(const TypeVector* sig);
+  Result OnCatchBlock(const TypeVector* sig);
   Result OnCompare(Opcode);
   Result OnConst(Type);
   Result OnConvert(Opcode);
@@ -74,12 +76,15 @@ class TypeChecker {
   Result OnIf(const TypeVector* sig);
   Result OnLoad(Opcode);
   Result OnLoop(const TypeVector* sig);
+  Result OnRethrow(Index depth);
   Result OnReturn();
   Result OnSelect();
   Result OnSetGlobal(Type);
   Result OnSetLocal(Type);
   Result OnStore(Opcode);
   Result OnTeeLocal(Type);
+  Result OnThrow(const TypeVector* sig);
+  Result OnTryBlock(const TypeVector* sig);
   Result OnUnary(Opcode);
   Result OnUnreachable();
   Result EndFunction();

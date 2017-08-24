@@ -300,7 +300,7 @@ Below test fails with difference in space. Investigate the cause and re-enable t
       <files>transfer.js</files>
       <baseline>transfer.baseline</baseline>
       <compile-flags>-ArrayBufferTransfer</compile-flags>
-      <tags>typedarray,exclude_sanitize_address</tags>
+      <tags>typedarray</tags>
     </default>
   </test>
   <test>

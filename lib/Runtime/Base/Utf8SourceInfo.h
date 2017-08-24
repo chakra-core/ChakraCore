@@ -40,11 +40,17 @@ namespace Js
             this->byteCodeGenerationFlags = byteCodeGenerationFlags;
         }
 
+
         bool IsInDebugMode() const
         {
+#ifdef ENABLE_SCRIPT_DEBUGGING
             return (this->debugModeSource != nullptr || this->debugModeSourceIsEmpty) && this->m_isInDebugMode;
+#else
+            return false;
+#endif
         }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         void SetInDebugMode(bool inDebugMode)
         {
             AssertMsg(!GetIsLibraryCode(), "Shouldn't call SetInDebugMode for Library code.");
@@ -75,6 +81,7 @@ namespace Js
                 this->debugModeSourceLength = 0;
             }
         }
+#endif
 
         size_t CharacterIndexToByteIndex(charcount_t cchIndex) const
         {
@@ -211,6 +218,7 @@ namespace Js
 
         void SetHostBuffer(BYTE * pcszCode);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         bool HasDebugDocument() const
         {
             return m_debugDocument != nullptr;
@@ -229,6 +237,7 @@ namespace Js
         }
 
         void ClearDebugDocument(bool close = true);
+#endif
 
         void SetIsCesu8(bool isCesu8)
         {
@@ -358,7 +367,9 @@ namespace Js
         void SetCallerUtf8SourceInfo(Utf8SourceInfo* callerUtf8SourceInfo);
         Utf8SourceInfo* GetCallerUtf8SourceInfo() const;
 
+#ifdef NTBUILD
         bool GetDebugDocumentName(BSTR * sourceName);
+#endif
     private:
 
         Field(charcount_t) m_cchLength;               // The number of characters encoded in m_utf8Source.
@@ -370,14 +381,17 @@ namespace Js
         Field(DeferredFunctionsDictionary*) m_deferredFunctionsDictionary;
         Field(FunctionInfoList*) topLevelFunctionInfoList;
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         Field(DebugDocument*) m_debugDocument;
+#endif
 
         Field(const SRCINFO*) m_srcInfo;
         Field(DWORD_PTR) m_secondaryHostSourceContext;
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         Field(LPCUTF8) debugModeSource;
         Field(size_t) debugModeSourceLength;
-
+#endif
         Field(ScriptContext* const) m_scriptContext;   // Pointer to ScriptContext under which this source info was created
 
         // Line offset cache used for quickly finding line/column offsets.
@@ -393,9 +407,10 @@ namespace Js
         Field(bool) m_isXDomain : 1;
         // we found that m_isXDomain could cause regression without CORS, so the new flag is just for callee.caller in window.onerror
         Field(bool) m_isXDomainString : 1;
+#ifdef ENABLE_SCRIPT_DEBUGGING
         Field(bool) debugModeSourceIsEmpty : 1;
         Field(bool) m_isInDebugMode : 1;
-
+#endif
         Field(uint) m_sourceInfoId;
 
         // Various flags preserved for Edit-and-Continue re-compile purpose

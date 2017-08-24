@@ -48,6 +48,7 @@
         $(MSBuildThisFileDirectory)..\Backend\$(PlatformPathNameAlt);
         $(MSBuildThisFileDirectory)..\Backend;
         $(ChakraJITIDLIntDir);
+        $(IcuIncludeDir)\common;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>

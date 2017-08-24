@@ -3,9 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/DebuggingFlags.h"
 #include "Debug/DiagProbe.h"
 #include "Debug/DebugManager.h"
+#endif
 
 // Parser includes
 #include "RegexCommon.h"
@@ -932,8 +934,15 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::LdC_F8_R8:
         {
             IR::Opnd *src1 = instr->UnlinkSrc1();
-            AssertMsg(src1->IsFloatConstOpnd(), "Source of LdC_F8_R8 should be a FloatConst...");
-            instrPrev = m_lowererMD.LoadFloatValue(instr->UnlinkDst()->AsRegOpnd(), src1->AsFloatConstOpnd()->m_value, instr);
+            AssertMsg(src1->IsFloatConstOpnd() || src1->IsFloat32ConstOpnd(), "Source of LdC_F8_R8 should be a FloatConst...");
+            if (src1->IsFloatConstOpnd())
+            {
+                instrPrev = m_lowererMD.LoadFloatValue(instr->UnlinkDst()->AsRegOpnd(), src1->AsFloatConstOpnd()->m_value, instr);
+            }
+            else
+            {
+                instrPrev = m_lowererMD.LoadFloatValue(instr->UnlinkDst()->AsRegOpnd(), src1->AsFloat32ConstOpnd()->m_value, instr);
+            }
 
             src1->Free(this->m_func);
             instr->Remove();
@@ -2649,9 +2658,11 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             LowerBailOnNegative(instr);
             break;
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         case Js::OpCode::BailForDebugger:
             instrPrev = this->LowerBailForDebugger(instr);
             break;
+#endif
 
         case Js::OpCode::BailOnNotObject:
             instrPrev = this->LowerBailOnNotObject(instr);
@@ -11417,6 +11428,7 @@ Lowerer::LowerCondBranchCheckBailOut(IR::BranchInstr * branchInstr, IR::Instr * 
     Assert(branchInstr->m_opcode == Js::OpCode::BrTrue_A || branchInstr->m_opcode == Js::OpCode::BrFalse_A);
     if (branchInstr->HasBailOutInfo())
     {
+#ifdef ENABLE_SCRIPT_DEBUGGING
         IR::BailOutKind debuggerBailOutKind = IR::BailOutInvalid;
         if (branchInstr->HasAuxBailOut())
         {
@@ -11427,10 +11439,12 @@ Lowerer::LowerCondBranchCheckBailOut(IR::BranchInstr * branchInstr, IR::Instr * 
             debuggerBailOutKind = branchInstr->GetAuxBailOutKind() & IR::BailOutForDebuggerBits;
             AssertMsg((debuggerBailOutKind & ~(IR::BailOutIgnoreException | IR::BailOutForceByFlag)) == 0, "Only IR::BailOutIgnoreException|ForceByFlag supported here.");
         }
+#endif
 
         IR::Instr * bailOutInstr = this->SplitBailOnImplicitCall(branchInstr, helperCall, branchInstr);
         IR::Instr* prevInstr = this->LowerBailOnEqualOrNotEqual(bailOutInstr, branchInstr, nullptr, nullptr, isHelper);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (debuggerBailOutKind != IR::BailOutInvalid)
         {
             // Note that by this time implicit calls bailout is already lowered.
@@ -11457,6 +11471,9 @@ Lowerer::LowerCondBranchCheckBailOut(IR::BranchInstr * branchInstr, IR::Instr * 
             this->LowerBailForDebugger(debuggerBailoutInstr, isHelper);
             // After lowering this we will have a check which on bailout condition will JMP to $L11.
         }
+#else
+        (prevInstr);
+#endif
     }
 
     return m_lowererMD.LowerCondBranch(branchInstr);
@@ -11808,6 +11825,7 @@ Lowerer::LowerBailOnNotBuiltIn(IR::Instr       *instr,
     return prevInstr;
 }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 IR::Instr *
 Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false */)
 {
@@ -11985,6 +12003,7 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
 
     return prevInstr;
 }
+#endif
 
 IR::Instr*
 Lowerer::LowerBailOnException(IR::Instr * instr)
@@ -13627,6 +13646,11 @@ Lowerer::LoadFloatFromNonReg(IR::Opnd * opndSrc, IR::Opnd * opndDst, IR::Instr *
     else if (opndSrc->IsFloatConstOpnd())
     {
         value = (double)opndSrc->AsFloatConstOpnd()->m_value;
+    }
+    else if (opndSrc->IsFloat32ConstOpnd())
+    {
+        float floatValue = opndSrc->AsFloat32ConstOpnd()->m_value;
+        return LowererMD::LoadFloatValue(opndDst, floatValue, instrInsert);
     }
     else
     {

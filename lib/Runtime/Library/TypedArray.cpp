@@ -1279,7 +1279,6 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        JavascriptLibrary* library = scriptContext->GetLibrary();
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -1290,7 +1289,7 @@ namespace Js
         {
             if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
             {
-                return library->GetUndefined();
+                return scriptContext->GetLibrary()->GetUndefined();
             }
             else
             {
@@ -1305,43 +1304,43 @@ namespace Js
         switch (JavascriptOperators::GetTypeId(args[0]))
         {
         case TypeIds_Int8Array:
-            name = library->CreateStringFromCppLiteral(_u("Int8Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Int8Array);
             break;
 
         case TypeIds_Uint8Array:
-            name = library->CreateStringFromCppLiteral(_u("Uint8Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Uint8Array);
             break;
 
         case TypeIds_Uint8ClampedArray:
-            name = library->CreateStringFromCppLiteral(_u("Uint8ClampedArray"));
+            name = scriptContext->GetPropertyString(PropertyIds::Uint8ClampedArray);
             break;
 
         case TypeIds_Int16Array:
-            name = library->CreateStringFromCppLiteral(_u("Int16Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Int16Array);
             break;
 
         case TypeIds_Uint16Array:
-            name = library->CreateStringFromCppLiteral(_u("Uint16Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Uint16Array);
             break;
 
         case TypeIds_Int32Array:
-            name = library->CreateStringFromCppLiteral(_u("Int32Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Int32Array);
             break;
 
         case TypeIds_Uint32Array:
-            name = library->CreateStringFromCppLiteral(_u("Uint32Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Uint32Array);
             break;
 
         case TypeIds_Float32Array:
-            name = library->CreateStringFromCppLiteral(_u("Float32Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Float32Array);
             break;
 
         case TypeIds_Float64Array:
-            name = library->CreateStringFromCppLiteral(_u("Float64Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Float64Array);
             break;
 
         default:
-            name = library->GetUndefinedDisplayString();
+            name = scriptContext->GetLibrary()->GetUndefinedDisplayString();
             break;
         }
 

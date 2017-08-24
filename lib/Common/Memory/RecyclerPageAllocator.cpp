@@ -5,15 +5,10 @@
 #include "CommonMemoryPch.h"
 
 RecyclerPageAllocator::RecyclerPageAllocator(Recycler* recycler, AllocationPolicyManager * policyManager,
-#ifndef JD_PRIVATE
-    Js::ConfigFlagsTable& flagTable,
-#endif
-    uint maxFreePageCount, uint maxAllocPageCount, bool enableWriteBarrier)
+    Js::ConfigFlagsTable& flagTable, uint maxFreePageCount, uint maxAllocPageCount, bool enableWriteBarrier)
     : IdleDecommitPageAllocator(policyManager,
         PageAllocatorType_Recycler,
-#ifndef JD_PRIVATE
         flagTable,
-#endif
         0, maxFreePageCount,
         true,
 #if ENABLE_BACKGROUND_PAGE_ZEROING

@@ -1,4 +1,4 @@
-﻿//-------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -740,31 +740,31 @@ namespace Js
         }
         else
         {
-            double current = JavascriptConversion::ToNumber(args[1], scriptContext);
-            if (JavascriptNumber::IsNan(current))
+        double current = JavascriptConversion::ToNumber(args[1], scriptContext);
+        if(JavascriptNumber::IsNan(current))
+        {
+            return scriptContext->GetLibrary()->GetNaN();
+        }
+
+        for (uint idxArg = 2; idxArg < args.Info.Count; idxArg++)
+        {
+            double compare = JavascriptConversion::ToNumber(args[idxArg], scriptContext);
+            if(JavascriptNumber::IsNan(compare))
             {
                 return scriptContext->GetLibrary()->GetNaN();
             }
 
-            for (uint idxArg = 2; idxArg < args.Info.Count; idxArg++)
-            {
-                double compare = JavascriptConversion::ToNumber(args[idxArg], scriptContext);
-                if (JavascriptNumber::IsNan(compare))
-                {
-                    return scriptContext->GetLibrary()->GetNaN();
-                }
-
                 // In C++, -0.0f == 0.0f; however, in ES, -0.0f < 0.0f. Thus, use additional library 
                 // call to test this comparison.
                 if ((compare == 0 && JavascriptNumber::IsNegZero(current)) ||
-                    current < compare)
-                {
-                    current = compare;
-                }
+                current < compare )
+            {
+                current = compare;
             }
-
-            return JavascriptNumber::ToVarNoCheck(current, scriptContext);
         }
+
+        return JavascriptNumber::ToVarNoCheck(current, scriptContext);
+    }
     }
 
 
@@ -820,31 +820,31 @@ namespace Js
         }
         else
         {
-            double current = JavascriptConversion::ToNumber(args[1], scriptContext);
-            if (JavascriptNumber::IsNan(current))
+        double current = JavascriptConversion::ToNumber(args[1], scriptContext);
+        if(JavascriptNumber::IsNan(current))
+        {
+            return scriptContext->GetLibrary()->GetNaN();
+        }
+
+        for (uint idxArg = 2; idxArg < args.Info.Count; idxArg++)
+        {
+            double compare = JavascriptConversion::ToNumber(args[idxArg], scriptContext);
+            if(JavascriptNumber::IsNan(compare))
             {
                 return scriptContext->GetLibrary()->GetNaN();
             }
 
-            for (uint idxArg = 2; idxArg < args.Info.Count; idxArg++)
-            {
-                double compare = JavascriptConversion::ToNumber(args[idxArg], scriptContext);
-                if (JavascriptNumber::IsNan(compare))
-                {
-                    return scriptContext->GetLibrary()->GetNaN();
-                }
-
                 // In C++, -0.0f == 0.0f; however, in ES, -0.0f < 0.0f. Thus, use additional library 
                 // call to test this comparison.
                 if ((current == 0 && JavascriptNumber::IsNegZero(compare)) ||
-                    current > compare)
-                {
-                    current = compare;
-                }
+                current > compare )
+            {
+                current = compare;
             }
-
-            return JavascriptNumber::ToVarNoCheck(current, scriptContext);
         }
+
+        return JavascriptNumber::ToVarNoCheck(current, scriptContext);
+    }
     }
 
 
@@ -1564,9 +1564,9 @@ namespace Js
 
         // ES6 20.2.2.18 Math.hypot(value1, value2, ...values)
         // If no arguments are passed, the result is +0.
-        // If any argument is +∞, the result is +∞.
-        // If any argument is -∞, the result is +∞.
-        // If no argument is +∞ or -∞, and any argument is NaN, the result is NaN.
+        // If any argument is +Infinity, the result is +Infinity.
+        // If any argument is -Infinity, the result is +Infinity.
+        // If no argument is +Infinity or -Infinity, and any argument is NaN, the result is NaN.
         // If all arguments are either +0 or -0, the result is +0.
 
         double result = JavascriptNumber::k_Zero; // If there are no arguments return value is positive zero.
@@ -1635,7 +1635,7 @@ namespace Js
             {
                 if (JavascriptNumber::IsNan(doubleVal))
                 {
-                    //Even though we found NaN, we still need to validate none of the other arguments are +∞ or -∞
+                    //Even though we found NaN, we still need to validate none of the other arguments are +Infinity or -Infinity
                     foundNaN = true;
                 }
                 else

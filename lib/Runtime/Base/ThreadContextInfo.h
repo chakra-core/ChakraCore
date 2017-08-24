@@ -99,6 +99,9 @@ public:
     virtual intptr_t GetDisableImplicitFlagsAddr() const = 0;
     virtual intptr_t GetImplicitCallFlagsAddr() const = 0;
 
+    virtual ptrdiff_t GetChakraBaseAddressDifference() const = 0;
+    virtual ptrdiff_t GetCRTBaseAddressDifference() const = 0;
+
 #if ENABLE_NATIVE_CODEGEN
 #if defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const = 0;
@@ -139,19 +142,11 @@ protected:
 
 };
 
-// TODO: OOP JIT, is there any issue when crossing over 2^31/2^63?
 template<typename T>
-intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, T* address)
+uintptr_t ShiftAddr(const ThreadContextInfo*const context, T* address)
 {
-    return SHIFT_ADDR(context, (intptr_t)address);
+    return ShiftAddr(context, (uintptr_t)address);
 }
 
-template<typename T>
-intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, T* address)
-{
-    return SHIFT_CRT_ADDR(context, (intptr_t)address);
-}
-
-intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address);
-intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, intptr_t address);
+uintptr_t ShiftAddr(const ThreadContextInfo*const context, uintptr_t address);
 

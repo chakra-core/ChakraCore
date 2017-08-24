@@ -87,6 +87,10 @@ public:
 #endif
 #if ENABLE_CONCURRENT_GC
     void PrepareSweep();
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    void StartAllocationsDuringConcurrentSweep();
+    void FinishConcurrentSweep();
+#endif
 
     void TransferPendingHeapBlocks(RecyclerSweep& recyclerSweep);
     void ConcurrentTransferSweptObjects(RecyclerSweep& recyclerSweep);
@@ -281,14 +285,6 @@ private:
     template <typename TBlockAttributes>
     class ValidPointersMap
     {
-        // xplat-todo: fix up vpm.64b.h generation to generate correctly
-        // templatized code
-#if defined(_MSC_VER) && !defined(__clang__)
-#define USE_STATIC_VPM 1 // Disable to force generation at runtime
-#else
-#define USE_STATIC_VPM 0
-#endif
-
     private:
         static const uint rowSize = TBlockAttributes::MaxSmallObjectCount * 2;
         typedef ushort ValidPointersMapRow[rowSize];
@@ -298,10 +294,12 @@ private:
         typedef BlockInfoMapRow BlockInfoMapTable[TBlockAttributes::BucketCount];
 
         // Architecture-dependent initialization done in ValidPointersMap/vpm.(32b|64b).h
+#if USE_VPM_TABLE
 #if USE_STATIC_VPM
         static const
 #endif
             ValidPointersMapTable validPointersBuffer;
+#endif
 
 #if USE_STATIC_VPM
         static const
@@ -316,48 +314,62 @@ private:
     public:
 #if !USE_STATIC_VPM
         InvalidBitsTable invalidBitsBuffers;
-        ValidPointersMap() { GenerateValidPointersMap(validPointersBuffer, invalidBitsBuffers, blockInfoBuffer); }
+        ValidPointersMap() 
+        { 
+#if USE_VPM_TABLE
+            GenerateValidPointersMap(&validPointersBuffer, invalidBitsBuffers, blockInfoBuffer);
+#else
+            GenerateValidPointersMap(nullptr, invalidBitsBuffers, blockInfoBuffer);
 #endif
-        static void GenerateValidPointersMap(ValidPointersMapTable& validTable, InvalidBitsTable& invalidTable, BlockInfoMapTable& blockInfoTable);
+        }
+#endif
 
-        inline const ValidPointers<TBlockAttributes> GetValidPointersForIndex(uint index) const
+#if defined(ENABLE_TEST_HOOKS) || !USE_STATIC_VPM
+        static void GenerateValidPointersMap(ValidPointersMapTable * validTable, InvalidBitsTable& invalidTable, BlockInfoMapTable& blockInfoTable);
+#endif
+
+        inline const ValidPointers<TBlockAttributes> GetValidPointersForIndex(uint bucketIndex) const
         {
-            Assert(index < TBlockAttributes::BucketCount);
-            __analysis_assume(index < TBlockAttributes::BucketCount);
-            return validPointersBuffer[index];
+            AnalysisAssert(bucketIndex < TBlockAttributes::BucketCount);  
+            ushort const * validPointers = nullptr;
+#if USE_VPM_TABLE
+            validPointers = validPointersBuffer[bucketIndex];
+#endif
+            return ValidPointers<TBlockAttributes>(validPointers, bucketIndex);
         }
 
         inline const typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector * GetInvalidBitVector(uint index) const
         {
-            Assert(index < TBlockAttributes::BucketCount);
-            __analysis_assume(index < TBlockAttributes::BucketCount);
-        #if USE_STATIC_VPM
+            AnalysisAssert(index < TBlockAttributes::BucketCount);            
+#if USE_STATIC_VPM
             return &(*invalidBitsBuffers)[index];
-        #else
+#else
             return &invalidBitsBuffers[index];
-        #endif
+#endif
         }
 
         inline const typename SmallHeapBlockT<TBlockAttributes>::BlockInfo * GetBlockInfo(uint index) const
         {
-            Assert(index < TBlockAttributes::BucketCount);
-            __analysis_assume(index < TBlockAttributes::BucketCount);
+            AnalysisAssert(index < TBlockAttributes::BucketCount);
             return blockInfoBuffer[index];
         }
 
+#ifdef ENABLE_TEST_HOOKS
         static HRESULT GenerateValidPointersMapHeader(LPCWSTR vpmFullPath);
-
         static HRESULT GenerateValidPointersMapForBlockType(FILE* file);
+#endif
     };
 
     static ValidPointersMap<SmallAllocationBlockAttributes>  smallAllocValidPointersMap;
     static ValidPointersMap<MediumAllocationBlockAttributes> mediumAllocValidPointersMap;
 
 public:
+#ifdef ENABLE_TEST_HOOKS
     static HRESULT GenerateValidPointersMapHeader(LPCWSTR vpmFullPath)
     {
         return smallAllocValidPointersMap.GenerateValidPointersMapHeader(vpmFullPath);
     }
+#endif
 
     template <typename TBlockAttributes>
     static typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector const * GetInvalidBitVector(uint objectSize);
@@ -577,16 +589,17 @@ HeapInfo::SmallAllocatorAlloc(Recycler * recycler, SmallHeapBlockAllocatorType *
     return bucket.SnailAlloc(recycler, allocator, sizeCat, size, attributes, /* nothrow = */ false);
 }
 
+#ifdef ENABLE_TEST_HOOKS
 // Forward declaration of explicit specialization before instantiation
 template <>
 HRESULT HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>::GenerateValidPointersMapForBlockType(FILE* file);
 template <>
 HRESULT HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>::GenerateValidPointersMapForBlockType(FILE* file);
+#endif
 
 // Template instantiation
 extern template class HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>;
 extern template class HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>;
-
 
 template <typename TBlockAttributes>
 inline uint HeapInfo::GetObjectSizeForBucketIndex(uint bucketIndex)
@@ -645,7 +658,6 @@ HeapInfo::GetValidPointersMapForBucket<MediumAllocationBlockAttributes>(uint buc
 {
     return mediumAllocValidPointersMap.GetValidPointersForIndex(bucketIndex);
 }
-
 
 template <typename TBlockAttributes>
 inline typename SmallHeapBlockT<TBlockAttributes>::BlockInfo const *

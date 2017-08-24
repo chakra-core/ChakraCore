@@ -231,11 +231,11 @@ namespace Js
         template <typename RegSlotType> void SetRegRawInt( RegSlotType localRegisterID, int bValue );
         template <typename RegSlotType> int64 GetRegRawInt64( RegSlotType localRegisterID ) const;
         template <typename RegSlotType> void SetRegRawInt64( RegSlotType localRegisterID, int64 bValue );
-        template <typename RegSlotType> double GetRegRawDouble(RegSlotType localRegisterID) const;
-        template <typename RegSlotType> float GetRegRawFloat(RegSlotType localRegisterID) const;
+        template <typename RegSlotType> double VECTORCALL GetRegRawDouble(RegSlotType localRegisterID) const;
+        template <typename RegSlotType> float VECTORCALL GetRegRawFloat(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetRegRawDouble(RegSlotType localRegisterID, double bValue);
         template <typename RegSlotType> void SetRegRawFloat(RegSlotType localRegisterID, float bValue);
-        template <typename T> T GetRegRaw( RegSlot localRegisterID ) const;
+        template <typename T> T VECTORCALL GetRegRaw( RegSlot localRegisterID ) const;
         template <typename T> void SetRegRaw( RegSlot localRegisterID, T bValue );
 
         template <typename RegSlotType> AsmJsSIMDValue GetRegRawSimd(RegSlotType localRegisterID) const;
@@ -402,8 +402,11 @@ namespace Js
         const byte* ProcessWithDebuggingExtendedLargeLayoutPrefix(const byte* ip);
         const byte* ProcessAsmJsExtendedLargeLayoutPrefix(const byte* ip);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         Var ProcessWithDebugging();
         Var DebugProcess();
+        bool IsInDebugMode() const { return this->GetFunctionBody()->IsInDebugMode(); }
+#endif
 
 #if ENABLE_TTD
         Var ProcessWithDebugging_PreviousStmtTracking();
@@ -422,9 +425,6 @@ namespace Js
         const byte* ProcessUnprofiled_PreviousStmtTrackingExtendedLargeLayoutPrefix(const byte* ip);
 #endif
 #endif
-
-        bool IsInDebugMode() const { return this->GetFunctionBody()->IsInDebugMode(); }
-
         // This will be called for reseting outs when resume from break on error happened
         void ResetOut();
 
@@ -608,7 +608,7 @@ namespace Js
 
         template <class T> void OP_LdArrayHeadSegment(const unaligned T* playout);
 
-        inline Var GetFunctionExpression();
+        inline JavascriptFunction* GetFunctionExpression();
 
         template <class T> inline void OP_LdFunctionExpression(const unaligned T* playout);
         template <class T> inline void OP_StFunctionExpression(const unaligned T* playout);

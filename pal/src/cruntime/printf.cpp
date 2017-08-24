@@ -1186,23 +1186,23 @@ int PAL_vsscanf(LPCSTR Buffer, LPCSTR Format, va_list ap)
 
                 if (Store)
                 {
-                    // sscanf_s requires that if we are trying to read "%s" or "%c" or “%[“, then
+                    // sscanf_s requires that if we are trying to read "%s" or "%c" or "%[", then
                     // the size of the buffer must follow the buffer we are trying to read into.
                     voidPtr = va_arg(ap, LPVOID);
                     unsigned typeLen = 0;
                     if ((Type == SCANF_TYPE_STRING) || (Type == SCANF_TYPE_BRACKETS))
                     {
-                        // Since this is not a Safe CRT API we don’t really know the size of the destination
+                        // Since this is not a Safe CRT API we don't really know the size of the destination
                         // buffer provided by the caller. So we have to assume that the caller has allocated
                         // enough space to hold either the width specified in the format or the entire input
-                        // string plus ‘\0’.
+                        // string plus '\0'.
                         typeLen = ((Width > 0) ? Width : strlen(Buffer)) + 1;
                     }
                     else if (Type == SCANF_TYPE_CHAR)
                     {
                         // Check whether the format string contains number of characters
                         // that should be read from the input string.
-                        // Note: ‘\0’ does not get appended in the “%c” case.
+                        // Note: '\0' does not get appended in the "%c" case.
                         typeLen = (Width > 0) ? Width : 1;
                     }
 
@@ -1431,17 +1431,17 @@ int PAL_wvsscanf(LPCWSTR Buffer, LPCWSTR Format, va_list ap)
                         unsigned typeLen = 0;
                         if (Type == SCANF_TYPE_STRING)
                         {
-                            // We don’t really know the size of the destination buffer provided by the
+                            // We don't really know the size of the destination buffer provided by the
                             // caller. So we have to assume that the caller has allocated enough space
                             // to hold either the width specified in the format or the entire input
-                            // string plus ‘\0’.
+                            // string plus '\0'.
                             typeLen = ((Width > 0) ? Width : PAL_wcslen(Buffer)) + 1;
                         }
                         else if (Type == SCANF_TYPE_CHAR)
                         {
                             // Check whether the format string contains number of characters
                             // that should be read from the input string.
-                            // Note: ‘\0’ does not get appended in the “%c” case.
+                            // Note: '\0' does not get appended in the "%c" case.
                             typeLen = (Width > 0) ? Width : 1;
                         }
 

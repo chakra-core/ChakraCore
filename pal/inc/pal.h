@@ -3782,7 +3782,18 @@ GetStringTypeExW(
 #define NORM_IGNORESYMBOLS        0x00000004  // ignore symbols
 #define NORM_IGNOREKANATYPE       0x00010000  // ignore kanatype
 #define SORT_STRINGSORT           0x00001000  // use string sort method
+#else // LINUX
+// Flags with no value on a given platform are given 0 so that program logic can be unaltered (a|0==a)
+#define NORM_IGNORENONSPACE       0x00000000  // ignore nonspacing chars
+#define NORM_IGNORESYMBOLS        0x00000000  // ignore symbols
+#define NORM_IGNOREKANATYPE       0x00000000  // ignore kanatype
+#define SORT_STRINGSORT           0x00000000  // use string sort method
 #endif // __APPLE__
+// __APPLE__ and LINUX
+// Flags with no value on a given platform are given 0 so that program logic can be unaltered (a|0==a)
+#define LINGUISTIC_IGNOREDIACRITIC 0x00000000  // linguistically appropriate 'ignore case'
+#define LINGUISTIC_IGNORECASE     0x00000000  // linguistically appropriate 'ignore nonspace'
+#define SORT_DIGITSASNUMBERS      0x00000000  // Sort digits as numbers (ie: 2 comes before 10)
 
 
 typedef struct nlsversioninfo {
@@ -6878,6 +6889,8 @@ ULONG_PTR __stdcall GetCurrentSP();
 
 #ifdef  __cplusplus
 }
+
+#include "CCSpinLock.hpp"
 #endif
 
 #endif // __PAL_H__

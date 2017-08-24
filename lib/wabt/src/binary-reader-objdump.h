@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "common.h"
+#include "feature.h"
 #include "stream.h"
 
 namespace wabt {
@@ -44,6 +45,7 @@ struct ObjdumpOptions {
   bool disassemble;
   bool debug;
   bool relocs;
+  Features features;
   ObjdumpMode mode;
   const char* filename;
   const char* section_name;
@@ -53,13 +55,14 @@ struct ObjdumpOptions {
 // and use it to display more useful information.
 struct ObjdumpState {
   std::vector<Reloc> code_relocations;
+  std::vector<Reloc> data_relocations;
   std::vector<std::string> function_names;
 };
 
-Result read_binary_objdump(const uint8_t* data,
-                           size_t size,
-                           ObjdumpOptions* options,
-                           ObjdumpState* state);
+Result ReadBinaryObjdump(const uint8_t* data,
+                         size_t size,
+                         ObjdumpOptions* options,
+                         ObjdumpState* state);
 
 }  // namespace wabt
 

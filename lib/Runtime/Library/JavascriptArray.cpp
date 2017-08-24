@@ -1560,11 +1560,11 @@ namespace Js
         {
 #if DBG
             Js::JavascriptStackWalker walker(intArray->GetScriptContext());
-            Js::JavascriptFunction* caller = NULL;
+            Js::JavascriptFunction* caller = nullptr;
             bool foundScriptCaller = false;
             while(walker.GetCaller(&caller))
             {
-                if(caller != NULL && Js::ScriptFunction::Is(caller))
+                if(caller != nullptr && Js::ScriptFunction::Test(caller))
                 {
                     foundScriptCaller = true;
                     break;
@@ -2006,11 +2006,11 @@ namespace Js
         {
 #if DBG
             Js::JavascriptStackWalker walker(intArray->GetScriptContext());
-            Js::JavascriptFunction* caller = NULL;
+            Js::JavascriptFunction* caller = nullptr;
             bool foundScriptCaller = false;
             while(walker.GetCaller(&caller))
             {
-                if(caller != NULL && Js::ScriptFunction::Is(caller))
+                if(caller != nullptr && Js::ScriptFunction::Test(caller))
                 {
                     foundScriptCaller = true;
                     break;
@@ -2210,11 +2210,11 @@ namespace Js
         {
 #if DBG
             Js::JavascriptStackWalker walker(fArray->GetScriptContext());
-            Js::JavascriptFunction* caller = NULL;
+            Js::JavascriptFunction* caller = nullptr;
             bool foundScriptCaller = false;
             while(walker.GetCaller(&caller))
             {
-                if(caller != NULL && Js::ScriptFunction::Is(caller))
+                if(caller != nullptr && Js::ScriptFunction::Test(caller))
                 {
                     foundScriptCaller = true;
                     break;
@@ -3224,7 +3224,7 @@ namespace Js
         if (!pDestArray)
         {
             JS_REENTRANT(jsReentLock, pDestObj->SetProperty(PropertyIds::length, ConvertToIndex<T, Var>(idxDest, scriptContext), Js::PropertyOperation_None, nullptr));
-        }
+       }
         else if (pDestArray->GetLength() != ConvertToIndex<T, uint32>(idxDest, scriptContext))
         {
             pDestArray->SetLength(ConvertToIndex<T, uint32>(idxDest, scriptContext));
@@ -5474,16 +5474,16 @@ Case0:
                     CopyHeadIfInlinedHeadSegment<int32>(pArr, recycler);
                     if (pArr->head->next)
                     {
-                        ReallocateNonLeafLastSegmentIfLeaf<int32>(pArr, recycler);
-                    }
+                    ReallocateNonLeafLastSegmentIfLeaf<int32>(pArr, recycler);
+                }
                 }
                 else if (isFloatArray)
                 {
                     CopyHeadIfInlinedHeadSegment<double>(pArr, recycler);
                     if (pArr->head->next)
                     {
-                        ReallocateNonLeafLastSegmentIfLeaf<double>(pArr, recycler);
-                    }
+                    ReallocateNonLeafLastSegmentIfLeaf<double>(pArr, recycler);
+                }
                 }
                 else
                 {
@@ -7780,7 +7780,7 @@ Case0:
             pArr = JavascriptArray::FromVar(args[0]);
         }
 
-        uint32 unshiftElements = args.Info.Count - 1;
+            uint32 unshiftElements = args.Info.Count - 1;
 
         // forceCheckProtoChain - since the array expand to accommodate new items thus we have to check if we have accessor on the proto chain.
         bool useNoSideEffectUnshift = pArr != nullptr && (unshiftElements == 0 || !HasAnyES5ArrayInPrototypeChain(pArr, true /*forceCheckProtoChain*/));

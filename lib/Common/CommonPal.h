@@ -28,7 +28,6 @@
 #else // Windows
     #define _ALWAYSINLINE __forceinline
     #define _NOINLINE __declspec(noinline)
-    #define __forceinline inline
 #endif
 
 // Only VC compiler support overflow guard
@@ -36,6 +35,33 @@
 #define DECLSPEC_GUARD_OVERFLOW
 #else // Windows
 #define DECLSPEC_GUARD_OVERFLOW __declspec(guard(overflow))
+#endif
+
+#ifndef THREAD_LOCAL
+#ifndef __APPLE__
+#if defined(_MSC_VER) && _MSC_VER <= 1800 // VS2013?
+#define THREAD_LOCAL __declspec(thread)
+#else // VS2015+, linux Clang etc.
+#define THREAD_LOCAL thread_local
+#endif // VS2013?
+#else // __APPLE__
+#ifndef __IOS__
+#define THREAD_LOCAL _Thread_local
+#else
+#define THREAD_LOCAL
+#endif
+#endif // __APPLE__
+#endif // THREAD_LOCAL
+
+// VS2015 RTM has bugs with constexpr, so require min of VS2015 Update 3 (known good version)
+#if !defined(_MSC_VER) || _MSC_FULL_VER >= 190024210
+#define HAS_CONSTEXPR 1
+#endif
+
+#ifdef HAS_CONSTEXPR
+#define OPT_CONSTEXPR constexpr
+#else
+#define OPT_CONSTEXPR
 #endif
 
 #ifdef __clang__
@@ -60,6 +86,7 @@
 #pragma warning(disable: 4995) /* 'function': name was marked as #pragma deprecated */
 
 // === Windows Header Files ===
+#define WIN32_LEAN_AND_MEAN 1
 #define INC_OLE2                 /* for windows.h */
 #define CONST_VTABLE             /* for objbase.h */
 #include <windows.h>

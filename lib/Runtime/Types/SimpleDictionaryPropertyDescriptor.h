@@ -11,23 +11,33 @@ namespace Js
     {
     public:
         SimpleDictionaryPropertyDescriptor() :
-            propertyIndex(NoSlots), Attributes(PropertyDynamicTypeDefaults),
-            preventFalseReference(true), isInitialized(false), isFixed(false), usedAsFixed(false) { }
+#if ENABLE_FIXED_FIELDS
+            preventFalseReference(true), isInitialized(false), isFixed(false), usedAsFixed(false),
+#endif
+            propertyIndex(NoSlots), Attributes(PropertyDynamicTypeDefaults) {}
 
         SimpleDictionaryPropertyDescriptor(TPropertyIndex inPropertyIndex) :
-            propertyIndex(inPropertyIndex), Attributes(PropertyDynamicTypeDefaults),
-            preventFalseReference(true), isInitialized(false), isFixed(false), usedAsFixed(false) { }
+#if ENABLE_FIXED_FIELDS
+            preventFalseReference(true), isInitialized(false), isFixed(false), usedAsFixed(false),
+#endif
+            propertyIndex(inPropertyIndex), Attributes(PropertyDynamicTypeDefaults) {}
+            
 
         SimpleDictionaryPropertyDescriptor(TPropertyIndex inPropertyIndex, PropertyAttributes attributes) :
-            propertyIndex(inPropertyIndex), Attributes(attributes),
-            preventFalseReference(true), isInitialized(false), isFixed(false), usedAsFixed(false) { }
+#if ENABLE_FIXED_FIELDS
+            preventFalseReference(true), isInitialized(false), isFixed(false), usedAsFixed(false),
+#endif
+            propertyIndex(inPropertyIndex), Attributes(attributes) {}
 
+
+#if ENABLE_FIXED_FIELDS
         // SimpleDictionaryPropertyDescriptor is allocated by a dictionary along with the PropertyRecord
         // so it can not allocate as leaf, tag the lower bit to prevent false reference
         bool preventFalseReference:1;
         bool isInitialized: 1;
         bool isFixed:1;
         bool usedAsFixed:1;
+#endif
 
         PropertyAttributes Attributes;
         TPropertyIndex propertyIndex;
@@ -37,6 +47,14 @@ namespace Js
             return (this->Attributes & PropertyLetConstGlobal) == 0;
         }
 
+        bool IsOrMayBecomeFixed() const
+        {
+#if ENABLE_FIXED_FIELDS
+            return !isInitialized || isFixed;
+#else
+            return false;
+#endif
+        }
      private:
         static const TPropertyIndex NoSlots = PropertyIndexRanges<TPropertyIndex>::NoSlots;
     };

@@ -12,6 +12,7 @@ namespace IR {
 class IntConstOpnd;
 class Int64ConstOpnd;
 class FloatConstOpnd;
+class Float32ConstOpnd;
 class Simd128ConstOpnd;
 class HelperCallOpnd;
 class SymOpnd;
@@ -29,6 +30,7 @@ enum OpndKind : BYTE {
     OpndKindIntConst,
     OpndKindInt64Const,
     OpndKindFloatConst,
+    OpndKindFloat32Const,
     OpndKindSimd128Const,
     OpndKindHelperCall,
     OpndKindSym,
@@ -168,6 +170,8 @@ public:
     bool                IsFloatConstOpnd() const;
     FloatConstOpnd *    AsFloatConstOpnd();
     const FloatConstOpnd * AsFloatConstOpnd() const;
+    bool                IsFloat32ConstOpnd() const;
+    Float32ConstOpnd *  AsFloat32ConstOpnd();
     bool                IsSimd128ConstOpnd() const;
     Simd128ConstOpnd *  AsSimd128ConstOpnd();
     const Simd128ConstOpnd * AsSimd128ConstOpnd() const;
@@ -429,6 +433,25 @@ protected:
 #endif
 };
 
+///---------------------------------------------------------------------------
+///
+/// class Float32ConstOpnd
+///
+///---------------------------------------------------------------------------
+
+class Float32ConstOpnd : public Opnd
+{
+public:
+    static Float32ConstOpnd * New(float value, IRType type, Func *func);
+
+public:
+    //Note: type OpndKindFloat32Const
+    Float32ConstOpnd         *CopyInternal(Func *func);
+    bool                    IsEqualInternal(Opnd *opnd);
+    void                    FreeInternal(Func * func);
+public:
+    float                   m_value;
+};
 
 class Simd128ConstOpnd sealed : public Opnd
 {
@@ -1648,13 +1671,11 @@ public:
         {
             return;
         }
+
+        opnd->UnUse();
         if(autoDelete)
         {
             opnd->Free(func);
-        }
-        else
-        {
-            opnd->UnUse();
         }
     }
 
