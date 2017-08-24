@@ -11,8 +11,9 @@
 
 #include "ByteCode/ByteCodeApi.h"
 #include "Library/ProfileString.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/DiagHelperMethodWrapper.h"
-#include "BackendApi.h"
+#endif
 #if PROFILE_DICTIONARY
 #include "DictionaryStats.h"
 #endif

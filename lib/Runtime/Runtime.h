@@ -261,6 +261,8 @@ namespace Js
     class PolymorphicInlineCacheInfo;
     class PropertyGuard;
 
+    class DetachedStateBase;
+
     // asm.js
     namespace ArrayBufferView
     {
@@ -390,10 +392,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/ExecutionMode.h"
 #include "Types/TypeId.h"
 
-#include "BackendApi.h"
-#include "DetachedStateBase.h"
-
 #include "Base/Constants.h"
+#include "Language/ConstructorCache.h"
+#include "BackendApi.h"
 #include "ByteCode/OpLayoutsCommon.h"
 #include "ByteCode/OpLayouts.h"
 #include "ByteCode/OpLayoutsAsmJs.h"
@@ -519,6 +520,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/JavascriptArray.h"
 
 #include "Library/AtomicsObject.h"
+#include "DetachedStateBase.h"
 #include "Library/ArrayBuffer.h"
 #include "Library/SharedArrayBuffer.h"
 #include "Library/TypedArray.h"
