@@ -16151,6 +16151,10 @@ GlobOpt::OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, 
 
     // A symbol is invariant if its current value is the same as it was upon entering the loop.
     loopHeadVal = loop->landingPad->globOptData.FindValue(sym);
+    if (loopHeadVal == NULL || loopHeadVal->GetValueNumber() != srcVal->GetValueNumber())
+    {
+        return false;
+    }
 
     // Can't hoist non-primitives, unless we have safeguards against valueof/tostring.  Additionally, we need to consider
     // the value annotations on the source *before* the loop: if we hoist this instruction outside the loop, we can't
@@ -16192,11 +16196,6 @@ GlobOpt::OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, 
         return false;
     }
 
-    if (loopHeadVal == NULL || loopHeadVal->GetValueNumber() != srcVal->GetValueNumber())
-    {
-        return false;
-    }
-
     // For values with an int range, require additionally that the range is the same as in the landing pad, as the range may
     // have been changed on this path based on branches, and int specialization and invariant hoisting may rely on the range
     // being the same. For type spec conversions, only require that if the value is an int constant in the current block, that
@@ -16214,6 +16213,8 @@ GlobOpt::OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, 
     }
 
     // If the loopHeadVal is primitive, the current value should be as well.
+    printf("loopHeadVal->GetValueInfo()->IsPrimitive(): %s\n", loopHeadVal->GetValueInfo()->IsPrimitive() ? "true" : "false");
+    printf("srcVal->GetValueInfo()->IsPrimitive(): %s\n", srcVal->GetValueInfo()->IsPrimitive() ? "true" : "false");
     Assert((!loopHeadVal->GetValueInfo()->IsPrimitive()) || srcVal->GetValueInfo()->IsPrimitive());
 
     return true;
