@@ -194,7 +194,7 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
     {
         value = nullptr;
     }
-    else if (!AsmJsScriptFunction::IsWasmScriptFunction(args[2]))
+    else if (!WasmScriptFunction::Is(args[2]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedWebAssemblyFunc);
     }
@@ -229,7 +229,7 @@ void
 WebAssemblyTable::DirectSetValue(uint index, Var val)
 {
     Assert(index < m_currentLength);
-    Assert(!val || AsmJsScriptFunction::Is(val));
+    Assert(!val || WasmScriptFunction::Is(val));
     m_values[index] = val;
 }
 
@@ -238,7 +238,7 @@ WebAssemblyTable::DirectGetValue(uint index) const
 {
     Assert(index < m_currentLength);
     Var val = m_values[index];
-    Assert(!val || AsmJsScriptFunction::Is(val));
+    Assert(!val || WasmScriptFunction::Is(val));
     return val;
 }
 

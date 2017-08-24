@@ -1029,6 +1029,7 @@ namespace Js
         DynamicType * CreateFunctionWithLengthAndPrototypeType(DynamicObject * prototype, FunctionInfo * functionInfo);
         ScriptFunction * CreateScriptFunction(FunctionProxy* proxy);
         AsmJsScriptFunction * CreateAsmJsScriptFunction(FunctionProxy* proxy);
+        WasmScriptFunction * CreateWasmScriptFunction(FunctionProxy* proxy);
         ScriptFunctionWithInlineCache * CreateScriptFunctionWithInlineCache(FunctionProxy* proxy);
         GeneratorVirtualScriptFunction * CreateGeneratorVirtualScriptFunction(FunctionProxy* proxy);
         DynamicType * CreateGeneratorType(RecyclableObject* prototype);

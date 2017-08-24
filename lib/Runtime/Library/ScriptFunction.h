@@ -97,6 +97,8 @@ namespace Js
         virtual JavascriptString* GetDisplayNameImpl() const;
         JavascriptString* GetComputedName() const;
         virtual bool IsAnonymousFunction() const override;
+        virtual bool IsAsmJsFunction() const { return false; }
+        virtual bool IsWasmFunction() const { return false; }
 
         virtual JavascriptFunction* GetRealFunctionObject() { return this; }
 
@@ -124,19 +126,17 @@ namespace Js
         AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
 
         static bool Is(Var func);
-        static bool IsWasmScriptFunction(Var func);
         static AsmJsScriptFunction* FromVar(Var func);
         static AsmJsScriptFunction * OP_NewAsmJsFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
+        virtual bool IsAsmJsFunction() const { return true; }
+
         void SetModuleMemory(Field(Var)* mem) { m_moduleMemory = mem; }
         Field(Var)* GetModuleMemory() const { return m_moduleMemory; }
-
-#ifdef ENABLE_WASM
-        void SetSignature(Wasm::WasmSignature * sig) { m_signature = sig; }
-        Wasm::WasmSignature * GetSignature() const { return m_signature; }
-        static uint32 GetOffsetOfSignature() { return offsetof(AsmJsScriptFunction, m_signature); }
-#endif
         static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleMemory); }
+
+        JavascriptArrayBuffer** GetAsmJsArrayBufferAddr() const;
+        JavascriptArrayBuffer* GetAsmJsArrayBuffer() const;
     protected:
         AsmJsScriptFunction(DynamicType * type);
         DEFINE_VTABLE_CTOR(AsmJsScriptFunction, ScriptFunction);
@@ -144,10 +144,32 @@ namespace Js
 
     private:
         Field(Field(Var)*) m_moduleMemory;
-#ifdef ENABLE_WASM
-        Field(Wasm::WasmSignature *) m_signature;
-#endif
     };
+
+#ifdef ENABLE_WASM
+    class WasmScriptFunction : public AsmJsScriptFunction
+    {
+    public:
+        WasmScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
+
+        static bool Is(Var func);
+        static WasmScriptFunction* FromVar(Var func);
+
+        void SetSignature(Wasm::WasmSignature * sig) { m_signature = sig; }
+        Wasm::WasmSignature * GetSignature() const { return m_signature; }
+        static uint32 GetOffsetOfSignature() { return offsetof(WasmScriptFunction, m_signature); }
+
+        WebAssemblyMemory* GetWebAssemblyMemory() const;
+
+        virtual bool IsWasmFunction() const { return true; }
+    protected:
+        WasmScriptFunction(DynamicType * type);
+        DEFINE_VTABLE_CTOR(WasmScriptFunction, AsmJsScriptFunction);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WasmScriptFunction);
+    private:
+        Field(Wasm::WasmSignature *) m_signature;
+    };
+#endif
 
     class ScriptFunctionWithInlineCache : public ScriptFunction
     {

@@ -3022,20 +3022,20 @@ namespace Js
         }
 
         // Load module environment
-        FrameDisplay* frame = this->function->GetEnvironment();
-        m_localSlots[AsmJsFunctionMemory::ModuleEnvRegister] = frame->GetItem(0);
+        AsmJsScriptFunction* asmJsFunc = AsmJsScriptFunction::FromVar(this->function);
+        m_localSlots[AsmJsFunctionMemory::ModuleEnvRegister] = asmJsFunc->GetModuleMemory();
 #ifdef ENABLE_WASM
-        if (func->GetFunctionBody()->IsWasmFunction())
+        if (WasmScriptFunction::Is(func))
         {
-            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
+            WasmScriptFunction* wasmFunc = WasmScriptFunction::FromVar(func);
+            m_wasmMemory = wasmFunc->GetWebAssemblyMemory();
             m_signatures = func->GetFunctionBody()->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetSignatures();
-            m_wasmMemory = wasmMem;
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = nullptr;
         }
         else
 #endif
         {
-            m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = (Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
+            m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = asmJsFunc->GetAsmJsArrayBufferAddr();
         }
 
         m_localSlots[AsmJsFunctionMemory::ArraySizeRegister] = 0; // do not cache ArraySize in the interpreter

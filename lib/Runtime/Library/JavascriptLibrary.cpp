@@ -6564,6 +6564,12 @@ namespace Js
         return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, AsmJsScriptFunction, proxy, deferredPrototypeType);
     }
 
+    WasmScriptFunction * JavascriptLibrary::CreateWasmScriptFunction(FunctionProxy* proxy)
+    {
+        ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, WasmScriptFunction, proxy, deferredPrototypeType);
+    }
+
     ScriptFunctionWithInlineCache* JavascriptLibrary::CreateScriptFunctionWithInlineCache(FunctionProxy * proxy)
     {
         ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();

@@ -290,7 +290,7 @@ WebAssemblyModule::ValidateModule(
             if (PHASE_ON(WasmValidatePrejitPhase, body))
             {
                 CONFIG_FLAG(MaxAsmJsInterpreterRunCount) = 0;
-                AsmJsScriptFunction * funcObj = scriptContext->GetLibrary()->CreateAsmJsScriptFunction(body);
+                WasmScriptFunction * funcObj = scriptContext->GetLibrary()->CreateWasmScriptFunction(body);
                 FunctionEntryPointInfo * entrypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
                 entrypointInfo->SetIsAsmJSFunction(true);
                 GenerateFunction(scriptContext->GetNativeCodeGenerator(), body, funcObj);

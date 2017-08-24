@@ -653,16 +653,7 @@ namespace Js
 
     bool AsmJsScriptFunction::Is(Var func)
     {
-        return ScriptFunction::Is(func) &&
-            ScriptFunction::FromVar(func)->HasFunctionBody() &&
-            ScriptFunction::FromVar(func)->GetFunctionBody()->GetIsAsmJsFunction();
-    }
-
-    bool AsmJsScriptFunction::IsWasmScriptFunction(Var func)
-    {
-        return ScriptFunction::Is(func) &&
-            ScriptFunction::FromVar(func)->HasFunctionBody() &&
-            ScriptFunction::FromVar(func)->GetFunctionBody()->IsWasmFunction();
+        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->IsAsmJsFunction();
     }
 
     AsmJsScriptFunction* AsmJsScriptFunction::FromVar(Var func)
@@ -691,6 +682,40 @@ namespace Js
 
         return asmJsFunc;
     }
+
+    Js::JavascriptArrayBuffer** AsmJsScriptFunction::GetAsmJsArrayBufferAddr() const
+    {
+        return (JavascriptArrayBuffer**)(this->GetModuleMemory() + AsmJsModuleMemory::MemoryTableBeginOffset);
+    }
+
+    JavascriptArrayBuffer* AsmJsScriptFunction::GetAsmJsArrayBuffer() const
+    {
+        return *GetAsmJsArrayBufferAddr();
+    }
+
+    bool WasmScriptFunction::Is(Var func)
+    {
+        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->IsWasmFunction();
+    }
+
+    WasmScriptFunction* WasmScriptFunction::FromVar(Var func)
+    {
+        Assert(WasmScriptFunction::Is(func));
+        return reinterpret_cast<WasmScriptFunction *>(func);
+    }
+
+    WebAssemblyMemory* WasmScriptFunction::GetWebAssemblyMemory() const
+    {
+        return *(WebAssemblyMemory**)(this->GetModuleMemory() + AsmJsModuleMemory::MemoryTableBeginOffset);
+    }
+
+    WasmScriptFunction::WasmScriptFunction(DynamicType * type) :
+        AsmJsScriptFunction(type), m_signature(nullptr)
+    {}
+
+    WasmScriptFunction::WasmScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
+        AsmJsScriptFunction(proxy, deferredPrototypeType), m_signature(nullptr)
+    {}
 
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         ScriptFunction(proxy, deferredPrototypeType), hasOwnInlineCaches(false)
