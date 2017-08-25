@@ -2770,8 +2770,10 @@ namespace Js
         threadContext->SetImplicitCallFlags(saveImplicitcallFlags);
         // scope
         {
-            FrameDisplay* pDisplay = RecyclerNewPlus(scriptContext->GetRecycler(), sizeof(void*), FrameDisplay, 1);
-            pDisplay->SetItem(0, moduleMemoryPtr);
+            FrameDisplay* pDisplay = RecyclerNewPlus(scriptContext->GetRecycler(), sizeof(void*), FrameDisplay, 0);
+            //DynamicObject* asmModule = scriptContext->GetLibrary()->CreateObject(false, 1);
+            //JavascriptOperators::OP_SetProperty(asmModule, PropertyIds::module, moduleMemoryPtr, scriptContext);
+            //pDisplay->SetItem(0, this->function);
             for (int i = 0; i < info->GetFunctionCount(); i++)
             {
                 const auto& modFunc = info->GetFunction(i);
@@ -2789,7 +2791,7 @@ namespace Js
 
                 scriptFuncObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
                 scriptFuncObj->GetFunctionBody()->GetAsmJsFunctionInfo()->SetModuleFunctionBody(asmJsModuleFunctionBody);
-                scriptFuncObj->SetModuleMemory((Field(Var)*)moduleMemoryPtr);
+                scriptFuncObj->SetModuleEnvironment((Field(Var)*)moduleMemoryPtr);
                 if (!info->IsRuntimeProcessed())
                 {
                     // don't reset entrypoint upon relinking
@@ -3029,7 +3031,7 @@ namespace Js
 
         // Load module environment
         AsmJsScriptFunction* asmJsFunc = AsmJsScriptFunction::FromVar(this->function);
-        m_localSlots[AsmJsFunctionMemory::ModuleEnvRegister] = asmJsFunc->GetModuleMemory();
+        m_localSlots[AsmJsFunctionMemory::ModuleEnvRegister] = asmJsFunc->GetModuleEnvironment();
         m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = nullptr;
 #ifdef ENABLE_WASM
         if (WasmScriptFunction::Is(func))

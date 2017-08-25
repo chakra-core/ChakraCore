@@ -165,8 +165,7 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
 
 void WebAssemblyInstance::CreateWasmFunctions(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env)
 {
-    FrameDisplay * frameDisplay = RecyclerNewPlus(ctx->GetRecycler(), sizeof(void*), FrameDisplay, 1);
-    frameDisplay->SetItem(0, env->GetStartPtr());
+    FrameDisplay * frameDisplay = RecyclerNewPlus(ctx->GetRecycler(), sizeof(void*), FrameDisplay, 0);
 
     for (uint i = 0; i < wasmModule->GetWasmFunctionCount(); ++i)
     {
@@ -177,7 +176,7 @@ void WebAssemblyInstance::CreateWasmFunctions(WebAssemblyModule * wasmModule, Sc
         Wasm::WasmFunctionInfo* wasmFuncInfo = wasmModule->GetWasmFunctionInfo(i);
         FunctionBody* body = wasmFuncInfo->GetBody();
         WasmScriptFunction* funcObj = ctx->GetLibrary()->CreateWasmScriptFunction(body);
-        funcObj->SetModuleMemory((Field(Var)*)env->GetStartPtr());
+        funcObj->SetModuleEnvironment((Field(Var)*)env->GetStartPtr());
         funcObj->SetSignature(body->GetAsmJsFunctionInfo()->GetWasmSignature());
         funcObj->SetEnvironment(frameDisplay);
 

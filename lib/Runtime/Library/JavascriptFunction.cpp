@@ -2309,7 +2309,7 @@ LABEL1:
         {
             AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(func);
             // some extra checks for asm.js because we have slightly more information that we can validate
-            if (!asmFunc->GetModuleMemory())
+            if (!asmFunc->GetModuleEnvironment())
             {
                 return false;
             }

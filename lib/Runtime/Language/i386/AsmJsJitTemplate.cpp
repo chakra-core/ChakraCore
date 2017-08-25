@@ -552,7 +552,7 @@ namespace Js
 
         // setup stack memory
         AsmJsScriptFunction* asmJsFunc = AsmJsScriptFunction::FromVar(func);
-        Var moduleEnv = asmJsFunc->GetModuleMemory();
+        Var moduleEnv = asmJsFunc->GetModuleEnvironment();
         JavascriptArrayBuffer* arrayBuffer = asmJsFunc->GetAsmJsArrayBuffer();
         int arraySize = 0;
         BYTE* arrayPtr = nullptr;
