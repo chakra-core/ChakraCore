@@ -2472,7 +2472,7 @@ namespace Js
 
     }
 
-    void * AsmJsModuleInfo::ConvertFrameForJavascript(Var* asmJsEnvironment, AsmJsScriptFunction* func)
+    void * AsmJsModuleInfo::ConvertFrameForJavascript(void* env, AsmJsScriptFunction* func)
     {
         FunctionBody * body = func->GetFunctionBody();
         AsmJsFunctionInfo * asmFuncInfo = body->GetAsmJsFunctionInfo();
@@ -2482,6 +2482,7 @@ namespace Js
 
         ScriptContext * scriptContext = func->GetScriptContext();
         // AsmJsModuleEnvironment is all laid out here
+        Var * asmJsEnvironment = static_cast<Var*>(env);
         Var * asmBufferPtr = asmJsEnvironment + asmModuleInfo->GetModuleMemory().mArrayBufferOffset;
         ArrayBuffer * asmBuffer = *asmBufferPtr ? ArrayBuffer::FromVar(*asmBufferPtr) : nullptr;
 

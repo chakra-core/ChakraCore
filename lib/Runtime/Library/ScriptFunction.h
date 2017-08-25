@@ -135,7 +135,6 @@ namespace Js
         Field(Var)* GetModuleEnvironment() const { return m_moduleEnvironment; }
         static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleEnvironment); }
 
-        JavascriptArrayBuffer** GetAsmJsArrayBufferAddr() const;
         JavascriptArrayBuffer* GetAsmJsArrayBuffer() const;
     protected:
         AsmJsScriptFunction(DynamicType * type);
@@ -168,6 +167,12 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WasmScriptFunction);
     private:
         Field(Wasm::WasmSignature *) m_signature;
+    };
+#else
+    class WasmScriptFunction
+    {
+    public:
+        static bool Is(Var) { return false; }
     };
 #endif
 

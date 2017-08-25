@@ -3464,7 +3464,7 @@ namespace Js
                 scriptFunction->GetFunctionBody()->GetAsmJsFunctionInfo()->GetModuleFunctionBody() != nullptr)
             {
                 AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(scriptFunction);
-                Var* env = asmFunc->GetModuleEnvironment();
+                void* env = (void*)asmFunc->GetModuleEnvironment();
                 SList<AsmJsScriptFunction*> * funcList = nullptr;
                 if (asmJsEnvironmentMap->TryGetValue(env, &funcList))
                 {

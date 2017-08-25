@@ -683,15 +683,24 @@ namespace Js
         return asmJsFunc;
     }
 
-    Js::JavascriptArrayBuffer** AsmJsScriptFunction::GetAsmJsArrayBufferAddr() const
-    {
-        return (JavascriptArrayBuffer**)(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset);
-    }
-
     JavascriptArrayBuffer* AsmJsScriptFunction::GetAsmJsArrayBuffer() const
     {
-        return *GetAsmJsArrayBufferAddr();
+#ifdef ASMJS_PLAT
+        return *(JavascriptArrayBuffer**)(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset);
+#else
+        Assert(UNREACHED);
+        return nullptr;
+#endif
     }
+
+#ifdef ENABLE_WASM
+    WasmScriptFunction::WasmScriptFunction(DynamicType * type) :
+        AsmJsScriptFunction(type), m_signature(nullptr)
+    {}
+
+    WasmScriptFunction::WasmScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
+        AsmJsScriptFunction(proxy, deferredPrototypeType), m_signature(nullptr)
+    {}
 
     bool WasmScriptFunction::Is(Var func)
     {
@@ -708,14 +717,7 @@ namespace Js
     {
         return *(WebAssemblyMemory**)(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset);
     }
-
-    WasmScriptFunction::WasmScriptFunction(DynamicType * type) :
-        AsmJsScriptFunction(type), m_signature(nullptr)
-    {}
-
-    WasmScriptFunction::WasmScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
-        AsmJsScriptFunction(proxy, deferredPrototypeType), m_signature(nullptr)
-    {}
+#endif
 
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         ScriptFunction(proxy, deferredPrototypeType), hasOwnInlineCaches(false)
