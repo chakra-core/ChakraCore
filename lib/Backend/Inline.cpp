@@ -3755,7 +3755,11 @@ void Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const Function
 
     StackSym * tmpSym = StackSym::New(ldFldInstr->GetDst()->GetType(), ldFldInstr->m_func);
     IR::Opnd * tmpDst = IR::RegOpnd::New(tmpSym, tmpSym->GetType(), ldFldInstr->m_func);
-
+    // Ensure that the original LdFld's dst profile data is also copied to the new instruction for later
+    // type-specific optimizations. Otherwise, this optimization to reduce calls into the host will also
+    // result in relatively more expensive calls in the runtime.
+    tmpDst->SetValueType(ldFldInstr->GetDst()->GetValueType());
+    
     IR::Opnd * callInstrDst = ldFldInstr->UnlinkDst();
     ldFldInstr->SetDst(tmpDst);
 
