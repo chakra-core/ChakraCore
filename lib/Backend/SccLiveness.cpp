@@ -165,8 +165,6 @@ SCCLiveness::Build()
                 if (labelInstr->isOpHelper == (this->lastOpHelperLabel != nullptr)
                     && lastLabelInstr && labelInstr->isOpHelper == lastLabelInstr->isOpHelper)
                 {
-                    // No such transition. Remove the label.
-                    Assert(!labelInstr->GetRegion() || labelInstr->GetRegion() == this->curRegion);
                     labelInstr->Remove();
                     continue;
                 }
