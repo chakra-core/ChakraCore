@@ -329,10 +329,7 @@ namespace Js
             return TRUE;
         }
 
-        DynamicTypeHandler * typeHandler = GetCurrentTypeHandler(instance);
-        return typeHandler->IsPathTypeHandler() ?
-            typeHandler->SetProperty(instance, propertyId, value, flags, nullptr) :
-            typeHandler->SetPropertyWithAttributes(instance, propertyId, value, PropertyWritable & PropertyConfigurable, nullptr, flags);
+        return GetCurrentTypeHandler(instance)->SetInternalProperty(instance, propertyId, value, flags);
     }
 
     template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
