@@ -32,11 +32,6 @@ IR::LabelInstr * FlowGraph::DeleteLeaveChainBlocks(IR::BranchInstr *leaveInstr, 
         IR::LabelInstr * nextLabel = leaveChain->m_next->AsLabelInstr();
         leaveChain = nextLabel->m_next->AsBranchInstr();
         BasicBlock *curBlock = curLabel->GetBasicBlock();
-        FOREACH_SLISTBASECOUNTED_ENTRY_EDITING(FlowEdge*, edge, curBlock->GetPredList(), iter1)
-        {
-            BasicBlock * pred = edge->GetPred();
-            pred->RemoveSucc(curBlock, this);
-        } NEXT_SLISTBASECOUNTED_ENTRY_EDITING;
         this->RemoveBlock(curBlock);
         curLabel = nextLabel;
     }
@@ -44,11 +39,6 @@ IR::LabelInstr * FlowGraph::DeleteLeaveChainBlocks(IR::BranchInstr *leaveInstr, 
     instrPrev = leaveChain->m_next;
     IR::LabelInstr * exitLabel = leaveChain->GetTarget();
     BasicBlock * curBlock = curLabel->GetBasicBlock();
-    FOREACH_SLISTBASECOUNTED_ENTRY_EDITING(FlowEdge*, edge, curBlock->GetPredList(), iter1)
-    {
-        BasicBlock * pred = edge->GetPred();
-        pred->RemoveSucc(curBlock, this);
-    } NEXT_SLISTBASECOUNTED_ENTRY_EDITING;
     this->RemoveBlock(curBlock);
     return exitLabel;
 }
@@ -90,7 +80,7 @@ bool FlowGraph::DoesExitLabelDominate(IR::BranchInstr *leaveInstr)
     return Dominates(exitLabel->GetRegion(), finallyLabelStack->Top()->GetRegion());
 }
 
-bool FlowGraph::IsEarlyExitFromFinally(IR::BranchInstr *leaveInstr, Region *currentRegion, Region *branchTargetRegion, IR::Instr * &instrPrev, IR::LabelInstr * &exitLabel)
+bool FlowGraph::CheckIfEarlyExitAndAddEdgeToFinally(IR::BranchInstr *leaveInstr, Region *currentRegion, Region *branchTargetRegion, IR::Instr * &instrPrev, IR::LabelInstr * &exitLabel)
 {
     if (finallyLabelStack->Empty())
     {
@@ -171,9 +161,7 @@ FlowGraph::Build(void)
         (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody())))
     {
         this->finallyLabelStack = JitAnew(this->alloc, SList<IR::LabelInstr*>, this->alloc);
-        this->leaveNullLabelStack = JitAnew(this->alloc, SList<IR::LabelInstr*>, this->alloc);
         this->regToFinallyEndMap = JitAnew(this->alloc, RegionToFinallyEndMapType, this->alloc, 0);
-        this->leaveNullLabelToFinallyLabelMap = JitAnew(this->alloc, LeaveNullLabelToFinallyLabelMapType, this->alloc, 0);
     }
 
     IR::Instr * currLastInstr = nullptr;
@@ -214,14 +202,6 @@ FlowGraph::Build(void)
                 if (this->finallyLabelStack && !this->finallyLabelStack->Empty())
                 {
                     brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, this->finallyLabelStack->Top(), instr->m_func);
-                    instr->InsertAfter(brOnException);
-                }
-                // Insert a BrOnException after the loop top if we are in a finally block. This is required so
-                // that LeaveNull is not eliminated in the presence of loops with no exit condition
-                // LeaveNull is needed to get the end of the finally block, this is important when adding edge from the finally block to the early exit block
-                if (this->leaveNullLabelStack && !this->leaveNullLabelStack->Empty())
-                {
-                    brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, this->leaveNullLabelStack->Top(), instr->m_func);
                     instr->InsertAfter(brOnException);
                 }
                 if (brOnException)
@@ -301,9 +281,6 @@ FlowGraph::Build(void)
             insertPoint->Remove();
 
             this->finallyLabelStack->Push(finallyLabel);
-            Assert(!this->leaveNullLabelStack->Empty());
-            IR::LabelInstr * leaveNullLabel = this->leaveNullLabelStack->Pop();
-            this->leaveNullLabelToFinallyLabelMap->Item(leaveNullLabel, leaveTarget /*new finally label*/);
 
             Assert(leaveTarget->labelRefs.HasOne());
             IR::BranchInstr * brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, finallyLabel, instr->m_func);
@@ -326,33 +303,6 @@ FlowGraph::Build(void)
                 this->finallyLabelStack->Pop();
             }
             break;
-        case Js::OpCode::LeaveNull:
-        {
-            if (!this->leaveNullLabelStack)
-            {
-                break;
-            }
-            IR::Instr * label = instr->GetPrevRealInstrOrLabel();
-            if (label->IsLabelInstr())
-            {
-                this->leaveNullLabelStack->Push(label->AsLabelInstr());
-                break;
-            }
-            // Create a new label before LeaveNull
-            IR::LabelInstr *leaveNullLabel = IR::LabelInstr::New(Js::OpCode::Label, this->func);
-            instr->InsertBefore(leaveNullLabel);
-            this->leaveNullLabelStack->Push(leaveNullLabel);
-            leaveNullLabel->SetByteCodeOffset(instr);
-
-            // Wrap up the current block and get ready to process a new one.
-            nextBlock = currBlock;
-            currBlock = this->AddBlock(leaveNullLabel, instr, nextBlock);
-            currBlock->hasCall = hasCall;
-            hasCall = false;
-            currLastInstr = nullptr;
-        }
-        break;
-
         case Js::OpCode::CloneBlockScope:
         case Js::OpCode::CloneInnerScopeSlots:
             // It would be nice to do this in IRBuilder, but doing so gives us
@@ -413,7 +363,6 @@ FlowGraph::Build(void)
     this->func->isFlowGraphValid = true;
     Assert(!this->catchLabelStack || this->catchLabelStack->Empty());
     Assert(!this->finallyLabelStack || this->finallyLabelStack->Empty());
-    Assert(!this->leaveNullLabelStack || this->leaveNullLabelStack->Empty());
 
     // We've been walking backward so that edge lists would be in the right order. Now walk the blocks
     // forward to number the blocks in lexical order.
@@ -514,23 +463,23 @@ FlowGraph::Build(void)
                 // Currently we bailout on early exits
                 // For all such edges add edge from eh region -> finally and finally -> earlyexit
                 Assert(currentLabel != nullptr);
-                if (currentLabel && IsEarlyExitFromFinally(instr->AsBranchInstr(), currentLabel->GetRegion(), branchTarget->GetRegion(), instrNext, exitLabel))
+                if (currentLabel && CheckIfEarlyExitAndAddEdgeToFinally(instr->AsBranchInstr(), currentLabel->GetRegion(), branchTarget->GetRegion(), instrNext, exitLabel))
                 {
                     Assert(exitLabel);
                     IR::Instr * bailOnEarlyExit = IR::BailOutInstr::New(Js::OpCode::BailOnEarlyExit, IR::BailOutOnEarlyExit, instr, instr->m_func); 
                     instr->InsertBefore(bailOnEarlyExit);
                     IR::LabelInstr *exceptFinallyLabel = this->finallyLabelStack->Top();
                     IR::LabelInstr *nonExceptFinallyLabel = exceptFinallyLabel->m_next->m_next->AsLabelInstr();
-                    BasicBlock *nonExceptFinallyBlock = nonExceptFinallyLabel->GetBasicBlock();
 
-                    if (Dominates(nonExceptFinallyBlock->firstInstr->AsLabelInstr()->GetRegion(), exitLabel->GetRegion()))
+                    // It is possible for the finally region to have a non terminating loop, in which case the end of finally is eliminated
+                    // We can skip adding edge from finally to early exit in this case
+                    IR::Instr * leaveToFinally = IR::BranchInstr::New(Js::OpCode::Leave, exceptFinallyLabel, this->func);
+                    instr->InsertBefore(leaveToFinally);
+                    instr->Remove();
+                    this->AddEdge(currentLabel->GetBasicBlock(), exceptFinallyLabel->GetBasicBlock());
+
+                    if (this->regToFinallyEndMap->ContainsKey(nonExceptFinallyLabel->GetRegion()))
                     {
-                        IR::Instr * leaveToFinally = IR::BranchInstr::New(Js::OpCode::Leave, exceptFinallyLabel, this->func);
-                        instr->InsertBefore(leaveToFinally);
-                        instr->Remove();
-                        this->AddEdge(currentLabel->GetBasicBlock(), exceptFinallyLabel->GetBasicBlock());
-
-                        Assert(this->regToFinallyEndMap->ContainsKey(nonExceptFinallyLabel->GetRegion()));
                         BasicBlock * finallyEndBlock = this->regToFinallyEndMap->Item(nonExceptFinallyLabel->GetRegion());
                         Assert(finallyEndBlock);
                         Assert(finallyEndBlock->GetFirstInstr()->AsLabelInstr()->GetRegion() == nonExceptFinallyLabel->GetRegion());
@@ -553,13 +502,15 @@ FlowGraph::Build(void)
             }
         }
         NEXT_INSTR_IN_FUNC_EDITING;
-    }
 
-    blockNum = 0;
-    FOREACH_BLOCK_ALL(block, this)
-    {
-        block->SetBlockNum(blockNum++);
-    } NEXT_BLOCK_ALL;
+        this->RemoveUnreachableBlocks();
+
+        blockNum = 0;
+        FOREACH_BLOCK_ALL(block, this)
+        {
+            block->SetBlockNum(blockNum++);
+        } NEXT_BLOCK_ALL;
+    }
 
     this->FindLoops();
 
@@ -672,13 +623,6 @@ void FlowGraph::InsertEdgeFromFinallyToEarlyExit(BasicBlock *finallyEndBlock, IR
 
     IR::LabelInstr *leaveLabel = IR::LabelInstr::New(Js::OpCode::Label, this->func);
     lastInstr->InsertBefore(leaveLabel);
-
-    if (this->leaveNullLabelToFinallyLabelMap->ContainsKey(finallyEndBlock->GetFirstInstr()->AsLabelInstr()))
-    {
-        // Add new LeaveNull label to the map, we don't delete old LeaveNull label from the map
-        Assert(this->leaveNullLabelToFinallyLabelMap->ContainsKey(finallyEndBlock->GetFirstInstr()->AsLabelInstr()));
-        this->leaveNullLabelToFinallyLabelMap->Item(leaveLabel, this->leaveNullLabelToFinallyLabelMap->Item(finallyEndBlock->GetFirstInstr()->AsLabelInstr()));
-    }
 
     this->AddBlock(leaveLabel, lastInstr, nextBB, finallyEndBlock /*prevBlock*/);
     leaveLabel->SetRegion(lastLabel->GetRegion());
@@ -1896,22 +1840,6 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block)
         // Head of the graph: create the root region.
         region = Region::New(RegionTypeRoot, nullptr, this->func);
     }
-    else if (this->leaveNullLabelToFinallyLabelMap && block->GetLastInstr()->m_opcode == Js::OpCode::LeaveNull)
-    {
-        // We hold on to the LeaveNull block by adding BrOnException from loop tops
-        // So that LeaveNull doesn't get removed due to unreachable block elimination
-        // We need the finally end block to insert edge from finally to early exit
-        // If a LeaveNull block had only BrOnException edges from predecessor
-        // We will end up in inaccurate region propagation if we propagate from the predecessor edges
-        // So pick up the finally region from the map
-        IR::LabelInstr * finallyLabel = this->leaveNullLabelToFinallyLabelMap->Item(block->GetFirstInstr()->AsLabelInstr());
-        Assert(finallyLabel);
-        region = finallyLabel->GetRegion();
-        if (this->regToFinallyEndMap)
-        {
-            regToFinallyEndMap->Item(region, block);
-        }
-    }
     else
     {
         // Propagate the region forward by finding a predecessor we've already processed.
@@ -1927,6 +1855,23 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block)
             }
         }
         NEXT_PREDECESSOR_BLOCK;
+
+        if (block->GetLastInstr()->m_opcode == Js::OpCode::LeaveNull || block->GetLastInstr()->m_opcode == Js::OpCode::Leave)
+        {
+            if (this->regToFinallyEndMap && region->IsNonExceptingFinally())
+            {
+                BasicBlock *endOfFinally = regToFinallyEndMap->ContainsKey(region) ? regToFinallyEndMap->Item(region) : nullptr;
+                if (!endOfFinally)
+                {
+                    regToFinallyEndMap->Add(region, block);
+                }
+                else
+                {
+                    Assert(endOfFinally->GetLastInstr()->m_opcode != Js::OpCode::LeaveNull || block == endOfFinally);
+                    regToFinallyEndMap->Item(region, block);
+                }
+            }
+        }
     }
 
     Assert(region || block->GetPredList()->Count() == 0);
@@ -1950,8 +1895,8 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block)
         // One of the pred blocks maybe an eh region, in that case it is important to mark this label's m_hasNonBranchRef
         // If not later in codegen, this label can get deleted. And during SccLiveness, region is propagated to newly created labels in lowerer from the previous label's region
         // We can end up assigning an eh region to a label in a non eh region. And if there is a bailout in such a region, bad things will happen in the interpreter :)
-        // See test2() in tryfinallytests.js
-        if (region && region->GetType() == RegionTypeRoot && !labelInstr->m_hasNonBranchRef)
+        // See test2()/test3() in tryfinallytests.js
+        if (!labelInstr->m_hasNonBranchRef)
         {
             FOREACH_PREDECESSOR_BLOCK(predBlock, block)
             {
@@ -1991,23 +1936,6 @@ FlowGraph::UpdateRegionForBlockFromEHPred(BasicBlock * block, bool reassign)
     {
         // Head of the graph: create the root region.
         region = Region::New(RegionTypeRoot, nullptr, this->func);
-    }
-    else if (this->leaveNullLabelToFinallyLabelMap && block->GetLastInstr()->m_opcode == Js::OpCode::LeaveNull)
-    {
-        // We hold on to the LeaveNull block by adding BrOnException from loop tops
-        // So that LeaveNull doesn't get removed due to unreachable block elimination
-        // We need the finally end block to insert edge from finally to early exit
-        // If a LeaveNull block had only BrOnException edges from predecessor
-        // We will end up in inaccurate region propagation if we propagate from the predecessor edges
-        // So pick up the finally region from the map
-        Assert(this->leaveNullLabelToFinallyLabelMap->ContainsKey(block->GetFirstInstr()->AsLabelInstr()));
-        IR::LabelInstr * finallyLabel = this->leaveNullLabelToFinallyLabelMap->Item(block->GetFirstInstr()->AsLabelInstr());
-        Assert(finallyLabel);
-        region = finallyLabel->GetRegion();
-        if (this->regToFinallyEndMap)
-        {
-            regToFinallyEndMap->Item(region, block);
-        }
     }
     else if (block->GetPredList()->Count() == 1)
     {
@@ -2148,21 +2076,6 @@ FlowGraph::PropagateRegionFromPred(BasicBlock * block, BasicBlock * predBlock, R
             break;
 
         case Js::OpCode::Leave:
-            // When there is an unconditional Leave within a finally due to early exit,
-            // we may not be able to find LeaveNull, due to unreachable block elimination
-            // Update the endOfFinally here to handle such cases
-            if (this->regToFinallyEndMap && predRegion->IsNonExceptingFinally())
-            {
-                BasicBlock *endOfFinally = regToFinallyEndMap->ContainsKey(predRegion) ? regToFinallyEndMap->Item(predRegion) : nullptr;
-                if (!endOfFinally)
-                {
-                    regToFinallyEndMap->Add(predRegion, predBlock);
-                }
-                else if (endOfFinally && endOfFinally->GetLastInstr()->m_opcode != Js::OpCode::LeaveNull)
-                {
-                    regToFinallyEndMap->Item(predRegion, predBlock);
-                }
-            }
             if (firstInstr->m_next && firstInstr->m_next->m_opcode == Js::OpCode::Finally)
             {
                 tryRegion = predRegion;
