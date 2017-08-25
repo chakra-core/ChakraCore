@@ -813,7 +813,7 @@ private:
 #ifdef ASMJS_PLAT
         InterpreterThunkEmitter* asmJsInterpreterThunkEmitter;
         AsmJsCodeGenerator* asmJsCodeGenerator;
-        typedef JsUtil::BaseDictionary<void *, SList<AsmJsScriptFunction *>*, ArenaAllocator> AsmFunctionMap;
+        typedef JsUtil::BaseDictionary<Var*, SList<AsmJsScriptFunction *>*, ArenaAllocator> AsmFunctionMap;
         AsmFunctionMap* asmJsEnvironmentMap;
         ArenaAllocator* debugTransitionAlloc;
 #endif

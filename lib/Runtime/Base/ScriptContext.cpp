@@ -3078,6 +3078,7 @@ namespace Js
                 void* newEnv = AsmJsModuleInfo::ConvertFrameForJavascript(asmEnvIter.CurrentKey(), funcList->Head());
                 funcList->Iterate([&](AsmJsScriptFunction * func)
                 {
+                    func->SetEnvironment(RecyclerNewPlus(this->GetRecycler(), sizeof(void*), FrameDisplay, 1));
                     func->GetEnvironment()->SetItem(0, newEnv);
                 });
                 asmEnvIter.MoveNext();
@@ -3091,7 +3092,7 @@ namespace Js
                 Assert(!funcList->Empty());
                 funcList->Iterate([](AsmJsScriptFunction * func)
                 {
-                    func->SetModuleMemory(nullptr);
+                    func->SetModuleEnvironment(nullptr);
                     func->GetFunctionBody()->ResetAsmJsInfo();
                 });
                 asmCleanupIter.MoveNext();
@@ -3462,17 +3463,18 @@ namespace Js
                 scriptFunction->GetFunctionBody()->GetAsmJsFunctionInfo() != nullptr &&
                 scriptFunction->GetFunctionBody()->GetAsmJsFunctionInfo()->GetModuleFunctionBody() != nullptr)
             {
-                void* env = scriptFunction->GetEnvironment()->GetItem(0);
+                AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(scriptFunction);
+                Var* env = asmFunc->GetModuleEnvironment();
                 SList<AsmJsScriptFunction*> * funcList = nullptr;
                 if (asmJsEnvironmentMap->TryGetValue(env, &funcList))
                 {
-                    funcList->Push((AsmJsScriptFunction*)scriptFunction);
+                    funcList->Push(asmFunc);
                 }
                 else
                 {
                     SList<AsmJsScriptFunction*> * newList = Anew(debugTransitionAlloc, SList<AsmJsScriptFunction*>, debugTransitionAlloc);
                     asmJsEnvironmentMap->AddNew(env, newList);
-                    newList->Push((AsmJsScriptFunction*)scriptFunction);
+                    newList->Push(asmFunc);
                 }
             }
         }

@@ -644,11 +644,11 @@ namespace Js
 #endif
 
     AsmJsScriptFunction::AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
-        ScriptFunction(proxy, deferredPrototypeType), m_moduleMemory(nullptr)
+        ScriptFunction(proxy, deferredPrototypeType), m_moduleEnvironment(nullptr)
     {}
 
     AsmJsScriptFunction::AsmJsScriptFunction(DynamicType * type) :
-        ScriptFunction(type), m_moduleMemory(nullptr)
+        ScriptFunction(type), m_moduleEnvironment(nullptr)
     {}
 
     bool AsmJsScriptFunction::Is(Var func)
@@ -685,7 +685,7 @@ namespace Js
 
     Js::JavascriptArrayBuffer** AsmJsScriptFunction::GetAsmJsArrayBufferAddr() const
     {
-        return (JavascriptArrayBuffer**)(this->GetModuleMemory() + AsmJsModuleMemory::MemoryTableBeginOffset);
+        return (JavascriptArrayBuffer**)(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset);
     }
 
     JavascriptArrayBuffer* AsmJsScriptFunction::GetAsmJsArrayBuffer() const
@@ -706,7 +706,7 @@ namespace Js
 
     WebAssemblyMemory* WasmScriptFunction::GetWebAssemblyMemory() const
     {
-        return *(WebAssemblyMemory**)(this->GetModuleMemory() + AsmJsModuleMemory::MemoryTableBeginOffset);
+        return *(WebAssemblyMemory**)(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset);
     }
 
     WasmScriptFunction::WasmScriptFunction(DynamicType * type) :

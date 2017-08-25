@@ -131,9 +131,9 @@ namespace Js
 
         virtual bool IsAsmJsFunction() const { return true; }
 
-        void SetModuleMemory(Field(Var)* mem) { m_moduleMemory = mem; }
-        Field(Var)* GetModuleMemory() const { return m_moduleMemory; }
-        static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleMemory); }
+        void SetModuleEnvironment(Field(Var)* mem) { m_moduleEnvironment = mem; }
+        Field(Var)* GetModuleEnvironment() const { return m_moduleEnvironment; }
+        static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleEnvironment); }
 
         JavascriptArrayBuffer** GetAsmJsArrayBufferAddr() const;
         JavascriptArrayBuffer* GetAsmJsArrayBuffer() const;
@@ -143,7 +143,7 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(AsmJsScriptFunction);
 
     private:
-        Field(Field(Var)*) m_moduleMemory;
+        Field(Field(Var)*) m_moduleEnvironment;
     };
 
 #ifdef ENABLE_WASM
