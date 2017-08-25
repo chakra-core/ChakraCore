@@ -60,8 +60,6 @@ FuncInfo::FuncInfo(
     funcExprNameReference(false),
     applyEnclosesArgs(false),
     escapes(false),
-    hasDeferredChild(false),
-    hasRedeferrableChild(false),
     hasLoop(false),
     hasEscapedUseNestedFunc(false),
     needEnvRegister(false),
@@ -120,11 +118,6 @@ bool FuncInfo::IsGlobalFunction() const
 bool FuncInfo::IsDeferred() const
 {
     return root && root->sxFnc.pnodeBody == nullptr;
-}
-
-bool FuncInfo::IsRedeferrable() const
-{
-    return byteCodeFunction && byteCodeFunction->CanBeDeferred();
 }
 
 BOOL FuncInfo::HasSuperReference() const
