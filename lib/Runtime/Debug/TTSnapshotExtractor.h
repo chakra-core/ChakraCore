@@ -92,7 +92,7 @@ namespace TTD
 
         //Evacuate all the marked javascript objects into the snapshot (can do lazily/incrementally if desired)
         //All of the external elements are evacuated during the mark phase while propertyRecords and primitiveObjects are evacuated during the complete phase
-        void EvacuateMarkedIntoSnapshot(ThreadContext* threadContext);
+        void EvacuateMarkedIntoSnapshot(ThreadContext* threadContext, JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>& liveTopLevelBodies);
 
         //Tidy up and save the snapshot return the completed snapshot
         SnapShot* CompleteSnapshot();

@@ -265,7 +265,7 @@ namespace TTD
         void UpdateComputedMode();
 
         //A helper for extracting snapshots
-        SnapShot* DoSnapshotExtract_Helper(double gcTime);
+        SnapShot* DoSnapshotExtract_Helper(double gcTime, JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>& liveTopLevelBodies);
 
         //Replay a snapshot event -- either just advance the event position or, if running diagnostics, take new snapshot and compare
         void ReplaySnapshotEvent();
