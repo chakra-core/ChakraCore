@@ -346,7 +346,6 @@ private:
         entry = AllocatorNewBase(Recycler, recycler, AllocWeakReferenceEntry, RecyclerWeakReferenceBase);
         entry->strongRef = strongReference;
         entry->strongRefHeapBlock = recycler->FindHeapBlock(strongReference);
-        Assert(entry->strongRefHeapBlock != nullptr);
 
         HeapBlock * weakRefHeapBlock = recycler->FindHeapBlock(entry);
         Assert(!weakRefHeapBlock->IsLargeHeapBlock() || ((LargeHeapBlock*)weakRefHeapBlock)->InPageHeapMode());
