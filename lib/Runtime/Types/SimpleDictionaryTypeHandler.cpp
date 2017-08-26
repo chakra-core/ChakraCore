@@ -1447,6 +1447,12 @@ namespace Js
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SetInternalProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags)
+    {
+        return SetPropertyWithAttributes(instance, propertyId, value, PropertyWritable & PropertyConfigurable, nullptr, flags);
+    }
+
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     DescriptorFlags SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         return GetSetter_Internal<false>(instance, propertyId, setterValue, info, requestContext);

@@ -879,6 +879,12 @@ namespace Js
     }
 
     template <typename T>
+    BOOL DictionaryTypeHandlerBase<T>::SetInternalProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags)
+    {
+        return SetPropertyWithAttributes(instance, propertyId, value, PropertyWritable & PropertyConfigurable, nullptr, flags);
+    }
+
+    template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::DeleteProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)
     {
         return DeleteProperty_Internal<false>(instance, propertyId, propertyOperationFlags);
