@@ -5195,7 +5195,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
                 saveDeferredStub = m_currDeferredStub;
                 m_currDeferredStub = nullptr;
             }
-            this->ParseFncFormals<buildAST>(pnodeFnc, pnodeFncParent, flags);
+            this->ParseFncFormals<buildAST>(pnodeFnc, pnodeFncParent, flags, isTopLevelDeferredFunc);
             if (buildAST)
             {
                 m_currDeferredStub = saveDeferredStub;
@@ -6227,7 +6227,7 @@ void Parser::UpdateOrCheckForDuplicateInFormals(IdentPtr pid, SList<IdentPtr> *f
 }
 
 template<bool buildAST>
-void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc, ushort flags)
+void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc, ushort flags, bool isTopLevelDeferredFunc)
 {
     bool fLambda = (flags & fFncLambda) != 0;
     bool fMethod = (flags & fFncMethod) != 0;
@@ -6439,9 +6439,21 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                     }
 
                     m_pscan->Scan();
-                    ParseNodePtr pnodeInit = ParseExpr<buildAST>(koplCma, nullptr, TRUE, FALSE, pNameHint, &nameHintLength, &nameHintOffset);
 
-                    if (buildAST && pnodeInit->nop == knopFncDecl)
+                    ParseNodePtr pnodeInit;
+                    if (isTopLevelDeferredFunc)
+                    {
+                        // Defer default expressions if the function will be deferred, since we know they can't be evaluated
+                        // until the function is fully compiled, and generating code for a function nested inside a deferred function
+                        // creates inconsistencies.
+                        pnodeInit = ParseExpr<false>(koplCma, nullptr, TRUE, FALSE, pNameHint, &nameHintLength, &nameHintOffset);
+                    }
+                    else
+                    {
+                        pnodeInit = ParseExpr<buildAST>(koplCma, nullptr, TRUE, FALSE, pNameHint, &nameHintLength, &nameHintOffset);
+                    }
+
+                    if (buildAST && pnodeInit && pnodeInit->nop == knopFncDecl)
                     {
                         Assert(nameHintLength >= nameHintOffset);
                         pnodeInit->sxFnc.hint = pNameHint;
