@@ -1148,25 +1148,25 @@ namespace Js
         if (scriptContext->GetConfig()->IsErrorStackTraceEnabled())
         {
             stackTraceAccessorFunction = CreateNonProfiledFunction(&JavascriptExceptionOperators::EntryInfo::StackTraceAccessor);
-            stackTraceAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
+            stackTraceAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable, nullptr);
         }
 
         throwTypeErrorRestrictedPropertyAccessorFunction = CreateNonProfiledFunction(&JavascriptExceptionOperators::EntryInfo::ThrowTypeErrorRestrictedPropertyAccessor);
-        throwTypeErrorRestrictedPropertyAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
+        throwTypeErrorRestrictedPropertyAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable, nullptr);
 
         __proto__getterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__getter);
-        __proto__getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
+        __proto__getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable, nullptr);
 
         __proto__setterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__setter);
-        __proto__setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
+        __proto__setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 
         if (scriptContext->GetConfig()->IsES6PromiseEnabled())
         {
             identityFunction = CreateNonProfiledFunction(&JavascriptPromise::EntryInfo::Identity);
-            identityFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
+            identityFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 
             throwerFunction = CreateNonProfiledFunction(&JavascriptPromise::EntryInfo::Thrower);
-            throwerFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
+            throwerFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
         }
 
         booleanTrue = RecyclerNew(recycler, JavascriptBoolean, true, booleanTypeStatic);
@@ -1549,10 +1549,10 @@ namespace Js
         Assert(funcSetter);
 
         debugObjectNonUserGetterFunction = CreateNonProfiledFunction(funcGetter);
-        debugObjectNonUserGetterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
+        debugObjectNonUserGetterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable, nullptr);
 
         debugObjectNonUserSetterFunction = CreateNonProfiledFunction(funcSetter);
-        debugObjectNonUserSetterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
+        debugObjectNonUserSetterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -1562,10 +1562,10 @@ namespace Js
         Assert(funcSetter);
 
         debugObjectFaultInjectionCookieGetterFunction = CreateNonProfiledFunction(funcGetter);
-        debugObjectFaultInjectionCookieGetterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
+        debugObjectFaultInjectionCookieGetterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable, nullptr);
 
         debugObjectFaultInjectionCookieSetterFunction = CreateNonProfiledFunction(funcSetter);
-        debugObjectFaultInjectionCookieSetterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
+        debugObjectFaultInjectionCookieSetterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
     }
 #endif
 
@@ -1574,7 +1574,7 @@ namespace Js
         Assert(funcGetter);
 
         debugObjectDebugModeGetterFunction = CreateNonProfiledFunction(funcGetter);
-        debugObjectDebugModeGetterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
+        debugObjectDebugModeGetterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable, nullptr);
     }
 
     bool JavascriptLibrary::InitializeArrayConstructor(DynamicObject* arrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -1586,7 +1586,7 @@ namespace Js
         JavascriptLibrary* library = arrayConstructor->GetLibrary();
         Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
 
-        library->AddMember(arrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
+        library->AddMember(arrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(arrayConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->arrayPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(arrayConstructor, &JavascriptArray::EntryInfo::GetterSymbolSpecies);
 
@@ -1750,7 +1750,7 @@ namespace Js
 
         ScriptContext* scriptContext = sharedArrayBufferConstructor->GetScriptContext();
         JavascriptLibrary* library = sharedArrayBufferConstructor->GetLibrary();
-        library->AddMember(sharedArrayBufferConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
+        library->AddMember(sharedArrayBufferConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(sharedArrayBufferConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->sharedArrayBufferPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(sharedArrayBufferConstructor, &SharedArrayBuffer::EntryInfo::GetterSymbolSpecies);
 
@@ -1819,7 +1819,7 @@ namespace Js
 
         ScriptContext* scriptContext = arrayBufferConstructor->GetScriptContext();
         JavascriptLibrary* library = arrayBufferConstructor->GetLibrary();
-        library->AddMember(arrayBufferConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
+        library->AddMember(arrayBufferConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(arrayBufferConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->arrayBufferPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(arrayBufferConstructor, &ArrayBuffer::EntryInfo::GetterSymbolSpecies);       
 
@@ -1866,7 +1866,7 @@ namespace Js
 
         ScriptContext* scriptContext = dataViewConstructor->GetScriptContext();
         JavascriptLibrary* library = dataViewConstructor->GetLibrary();
-        library->AddMember(dataViewConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
+        library->AddMember(dataViewConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyConfigurable);
         library->AddMember(dataViewConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->dataViewPrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -1884,14 +1884,14 @@ namespace Js
         ScriptContext* scriptContext = dataViewPrototype->GetScriptContext();
         JavascriptLibrary* library = dataViewPrototype->GetLibrary();
         library->AddMember(dataViewPrototype, PropertyIds::constructor, library->dataViewConstructor);
-        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setInt8, &DataView::EntryInfo::SetInt8, 1);
-        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setUint8, &DataView::EntryInfo::SetUint8, 1);
-        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setInt16, &DataView::EntryInfo::SetInt16, 1);
-        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setUint16, &DataView::EntryInfo::SetUint16, 1);
-        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setInt32, &DataView::EntryInfo::SetInt32, 1);
-        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setUint32, &DataView::EntryInfo::SetUint32, 1);
-        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setFloat32, &DataView::EntryInfo::SetFloat32, 1);
-        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setFloat64, &DataView::EntryInfo::SetFloat64, 1);
+        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setInt8, &DataView::EntryInfo::SetInt8, 2);
+        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setUint8, &DataView::EntryInfo::SetUint8, 2);
+        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setInt16, &DataView::EntryInfo::SetInt16, 2);
+        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setUint16, &DataView::EntryInfo::SetUint16, 2);
+        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setInt32, &DataView::EntryInfo::SetInt32, 2);
+        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setUint32, &DataView::EntryInfo::SetUint32, 2);
+        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setFloat32, &DataView::EntryInfo::SetFloat32, 2);
+        library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::setFloat64, &DataView::EntryInfo::SetFloat64, 2);
         library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::getInt8, &DataView::EntryInfo::GetInt8, 1);
         library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::getUint8, &DataView::EntryInfo::GetUint8, 1);
         library->AddFunctionToLibraryObject(dataViewPrototype, PropertyIds::getInt16, &DataView::EntryInfo::GetInt16, 1);
@@ -1922,7 +1922,7 @@ namespace Js
         ScriptContext* scriptContext = typedArrayConstructor->GetScriptContext();
         JavascriptLibrary* library = typedArrayConstructor->GetLibrary();
 
-        library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyNone);
+        library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyConfigurable);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
             library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("TypedArray")), PropertyConfigurable);
@@ -2013,7 +2013,7 @@ namespace Js
         typeHandler->Convert(typedArrayConstructor, mode, 4); \
         ScriptContext* scriptContext = typedArrayConstructor->GetScriptContext(); \
         JavascriptLibrary* library = typedArrayConstructor->GetLibrary(); \
-        library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyNone); \
+        library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyConfigurable); \
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled()) \
         { \
             library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#typedArray)), PropertyConfigurable); \
@@ -2080,7 +2080,7 @@ namespace Js
         JavascriptLibrary* library = constructor->GetLibrary();
 
         library->AddMember(constructor, PropertyIds::prototype, library->errorPrototype, PropertyNone);
-        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
+        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
 
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -2123,7 +2123,7 @@ namespace Js
         ScriptContext* scriptContext = constructor->GetScriptContext(); \
         JavascriptLibrary* library = constructor->GetLibrary(); \
         library->AddMember(constructor, PropertyIds::prototype, library->Get##error##Prototype(), PropertyNone); \
-        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone); \
+        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable); \
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled()) \
         { \
             PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable; \
@@ -2166,7 +2166,7 @@ namespace Js
         // so that the update is in sync with profiler
         ScriptContext* scriptContext = booleanConstructor->GetScriptContext();
         JavascriptLibrary* library = booleanConstructor->GetLibrary();
-        library->AddMember(booleanConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
+        library->AddMember(booleanConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(booleanConstructor, PropertyIds::prototype, library->booleanPrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -2202,7 +2202,7 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptLibrary* library = symbolConstructor->GetLibrary();
         ScriptContext* scriptContext = symbolConstructor->GetScriptContext();
-        library->AddMember(symbolConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone);
+        library->AddMember(symbolConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
         library->AddMember(symbolConstructor, PropertyIds::prototype, library->symbolPrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -2287,7 +2287,7 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptLibrary* library = promiseConstructor->GetLibrary();
         ScriptContext* scriptContext = promiseConstructor->GetScriptContext();
-        library->AddMember(promiseConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
+        library->AddMember(promiseConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(promiseConstructor, PropertyIds::prototype, library->promisePrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(promiseConstructor, &JavascriptPromise::EntryInfo::GetterSymbolSpecies);
 
@@ -2492,7 +2492,7 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptLibrary* library = dateConstructor->GetLibrary();
         ScriptContext* scriptContext = dateConstructor->GetScriptContext();
-        library->AddMember(dateConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(7), PropertyNone);
+        library->AddMember(dateConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(7), PropertyConfigurable);
         library->AddMember(dateConstructor, PropertyIds::prototype, library->datePrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -4034,7 +4034,7 @@ namespace Js
         // so that the update is in sync with profiler
         ScriptContext* scriptContext = numberConstructor->GetScriptContext();
         JavascriptLibrary* library = numberConstructor->GetLibrary();
-        library->AddMember(numberConstructor, PropertyIds::length,            TaggedInt::ToVarUnchecked(1), PropertyNone);
+        library->AddMember(numberConstructor, PropertyIds::length,            TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(numberConstructor, PropertyIds::prototype,         library->numberPrototype,     PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -4242,7 +4242,7 @@ namespace Js
 
         typeHandler->Convert(objectConstructor, mode, propertyCount);
 
-        library->AddMember(objectConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
+        library->AddMember(objectConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(objectConstructor, PropertyIds::prototype, library->objectPrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -4359,7 +4359,7 @@ namespace Js
         typeHandler->Convert(regexConstructor, mode, 3);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterRegExp
         // so that the update is in sync with profiler
-        library->AddMember(regexConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(2), PropertyNone);
+        library->AddMember(regexConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(2), PropertyConfigurable);
         library->AddMember(regexConstructor, PropertyIds::prototype, library->regexPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(regexConstructor, &JavascriptRegExp::EntryInfo::GetterSymbolSpecies);
 
@@ -4479,7 +4479,7 @@ namespace Js
         ScriptContext* scriptContext = stringConstructor->GetScriptContext();
 
         Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
-        library->AddMember(stringConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
+        library->AddMember(stringConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(stringConstructor, PropertyIds::prototype, library->stringPrototype, PropertyNone);
 
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
@@ -4587,7 +4587,7 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptLibrary* library = mapConstructor->GetLibrary();
         ScriptContext* scriptContext = mapConstructor->GetScriptContext();
-        library->AddMember(mapConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone);
+        library->AddMember(mapConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
         library->AddMember(mapConstructor, PropertyIds::prototype, library->mapPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(mapConstructor, &JavascriptMap::EntryInfo::GetterSymbolSpecies);
 
@@ -4642,7 +4642,7 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptLibrary* library = setConstructor->GetLibrary();
         ScriptContext* scriptContext = setConstructor->GetScriptContext();
-        library->AddMember(setConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone);
+        library->AddMember(setConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
         library->AddMember(setConstructor, PropertyIds::prototype, library->setPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(setConstructor, &JavascriptSet::EntryInfo::GetterSymbolSpecies);
 
@@ -4696,7 +4696,7 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptLibrary* library = weakMapConstructor->GetLibrary();
         ScriptContext* scriptContext = weakMapConstructor->GetScriptContext();
-        library->AddMember(weakMapConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone);
+        library->AddMember(weakMapConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
         library->AddMember(weakMapConstructor, PropertyIds::prototype, library->weakMapPrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -4739,7 +4739,7 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptLibrary* library = weakSetConstructor->GetLibrary();
         ScriptContext* scriptContext = weakSetConstructor->GetScriptContext();
-        library->AddMember(weakSetConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone);
+        library->AddMember(weakSetConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
         library->AddMember(weakSetConstructor, PropertyIds::prototype, library->weakSetPrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
@@ -5080,7 +5080,7 @@ namespace Js
     {
         Var name_withGetPrefix = LiteralString::Concat(LiteralString::NewCopySz(_u("get "), scriptContext), scriptContext->GetPropertyString(nameId));
         RuntimeFunction* getterFunction = DefaultCreateFunction(functionInfo, 0, nullptr, nullptr, name_withGetPrefix);
-        getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
+        getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable, nullptr);
         return getterFunction;
     }
 
@@ -5088,7 +5088,7 @@ namespace Js
     {
         Var name_withSetPrefix = LiteralString::Concat(LiteralString::NewCopySz(_u("set "), scriptContext), scriptContext->GetPropertyString(nameId));
         RuntimeFunction* setterFunction = DefaultCreateFunction(functionInfo, 0, nullptr, nullptr, name_withSetPrefix);
-        setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
+        setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
         return setterFunction;
     }
 

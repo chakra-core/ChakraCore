@@ -3,7 +3,7 @@ length = 0
 [object Object]
 undefined
 undefined
-V:0, W:false, E:false, C:false, get:false, set:false
+V:0, W:false, E:false, C:true, get:false, set:false
 ***************** g.caller ***************** 
 [object Object]
 function() {

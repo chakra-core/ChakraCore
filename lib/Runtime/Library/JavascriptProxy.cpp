@@ -129,7 +129,7 @@ namespace Js
             JavascriptLibrary::EnumFunctionClass, RuntimeFunction,
             type, &EntryInfo::Revoke);
 
-        revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(0), PropertyNone, NULL);
+        revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(2), PropertyConfigurable, NULL);
         revoker->SetInternalProperty(Js::InternalPropertyIds::RevocableProxy, proxy, PropertyOperationFlags::PropertyOperation_Force, nullptr);
 
         DynamicObject* obj = scriptContext->GetLibrary()->CreateObject(true, 2);
