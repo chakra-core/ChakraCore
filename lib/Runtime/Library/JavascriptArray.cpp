@@ -6533,7 +6533,15 @@ Case0:
         TryFinally([&]()
         {
             //The array is a continuous array if there is only one segment
-            if (startSeg->next == nullptr) // Single segment fast path
+            if (startSeg->next == nullptr
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+                // If this flag is specified, we want to improve the consistency of our array sorts
+                // by removing missing values from all kinds of arrays before sorting (done here by
+                // using the copy-to-one-segment path for array sorts) and by using a stronger sort
+                // comparer than the spec requires (done in CompareElements).
+                && !Js::Configuration::Global.flags.StrongArraySort
+#endif
+                ) // Single segment fast path
             {
                 if (compFn != nullptr)
                 {
@@ -6702,7 +6710,42 @@ Case0:
         Assert(element1 != NULL);
         Assert(element2 != NULL);
 
+#ifndef ENABLE_DEBUG_CONFIG_OPTIONS
         return JavascriptString::strcmp(element1->StringValue, element2->StringValue);
+#else
+        if (!Js::Configuration::Global.flags.StrongArraySort)
+        {
+            return JavascriptString::strcmp(element1->StringValue, element2->StringValue);
+        }
+        else
+        {
+            int str_cmp = JavascriptString::strcmp(element1->StringValue, element2->StringValue);
+            if (str_cmp != 0)
+            {
+                return str_cmp;
+            }
+            // If they are equal, we get to a slightly more complex problem. We want to make a very
+            // predictable sort here, regardless of the structure of the array. To achieve this, we
+            // need to get an order for every pair of non-identical elements, else there will be an
+            // identifiable difference between sparse and dense array sorts in some cases.
+
+            // Handle a common set of equivalent nodes first for speed/convenience
+            if (element1->Value == element2->Value)
+            {
+                return 0;
+            }
+
+            // Easy way to do most remaining cases is to just compare the type ids if they differ.
+            if (JavascriptOperators::GetTypeId(element1->Value) != JavascriptOperators::GetTypeId(element2->Value))
+            {
+                return JavascriptOperators::GetTypeId(element1->Value) - JavascriptOperators::GetTypeId(element2->Value);
+            }
+
+            // Further comparisons are possible, but get increasingly complex, and aren't necessary
+            // for the cases on hand.
+            return 0;
+        }
+#endif
     }
 
     void JavascriptArray::SortElements(Element* elements, uint32 left, uint32 right)
@@ -9799,11 +9842,13 @@ Case0:
                 }
 
                 JS_REENTRANT(jsReentLock,
-                    accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5), undefinedValue,
+                    accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5),
+                        undefinedValue,
                         accumulator,
                         element,
                         JavascriptNumber::ToVar(k, scriptContext),
-                        pArr));
+                        pArr
+                ));
 
                 // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
                 // we will process the rest of the array elements like an ES5Array.
