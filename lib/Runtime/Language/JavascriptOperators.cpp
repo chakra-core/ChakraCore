@@ -8771,26 +8771,6 @@ CommonNumber:
         }
     }
 
-    Var JavascriptOperators::OP_InvokePut(Js::ScriptContext *scriptContext, Var instance, CallInfo callInfo, ...)
-    {
-        // Handle a store to a call result: x(y) = z.
-        // This is not strictly permitted in JScript, but some scripts expect to be able to use
-        // the syntax to set properties of ActiveX objects.
-        // We handle this by deferring to a virtual method of type. This incurs an extra level of
-        // indirection but seems preferable to adding the "put" method as a member of every type
-        // and using the normal JScript calling mechanism.
-
-        RUNTIME_ARGUMENTS(args, callInfo);
-        AssertMsg(args.Info.Count > 0, "Missing this argument in InvokePut");
-
-        if (TaggedNumber::Is(instance))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction /* TODO-ERROR: get arg name - aFunc */);
-        }
-        RecyclableObject* function = RecyclableObject::FromVar(instance);
-        return function->InvokePut(args);
-    }
-
     // Conformance to: ES5 8.6.1.
     // Set attributes on the object as provided by property descriptor.
     // If force parameter is true, we force SetAttributes call even if none of the attributes are defined by the descriptor.
