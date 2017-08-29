@@ -210,7 +210,8 @@ namespace Js
 
         static bool Is(void* instance)
         {
-            return VirtualTableInfo<Js::ActivationObjectEx>::HasVirtualTable(instance);
+            return VirtualTableInfo<ActivationObjectEx>::HasVirtualTable(instance) ||
+                VirtualTableInfo<CrossSiteObject<ActivationObjectEx>>::HasVirtualTable(instance);
         }
 
         static ActivationObjectEx * FromVar(Var instance)
