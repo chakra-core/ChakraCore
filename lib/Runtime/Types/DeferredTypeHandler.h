@@ -74,7 +74,7 @@ namespace Js
         DEFINE_GETCPPNAME();
 
     private:
-        DeferredTypeHandler() : DeferredTypeHandlerBase(isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots) { }
+        DeferredTypeHandler() : DeferredTypeHandlerBase(isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots), m_initializer(initializer) { }
 
     public:
         static DeferredTypeHandler *GetDefaultInstance() { return &defaultInstance; }
@@ -139,6 +139,9 @@ namespace Js
 
     private:
         static DeferredTypeHandler defaultInstance;
+
+        DeferredTypeInitializer m_initializer;
+
         bool EnsureObjectReady(DynamicObject* instance, DeferredInitializeMode mode);
         virtual BOOL FreezeImpl(DynamicObject *instance, bool isConvertedType) override;
     };
@@ -232,7 +235,8 @@ namespace Js
     template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
     bool DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::EnsureObjectReady(DynamicObject* instance, DeferredInitializeMode mode)
     {
-        return initializer(instance, this, mode);
+        Assert(initializer == m_initializer);
+        return m_initializer(instance, this, mode);
     }
 
     template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
