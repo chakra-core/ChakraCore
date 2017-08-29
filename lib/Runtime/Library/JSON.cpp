@@ -638,7 +638,7 @@ namespace JSON
             {
                 uint32 precisePropertyCount = 0;
                 Js::JavascriptStaticEnumerator enumerator;
-                if (object->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics, scriptContext))
+                if (object->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EphemeralReference, scriptContext))
                 {
                     bool isPrecise;
                     uint32 propertyCount = GetPropertyCount(object, &enumerator, &isPrecise);

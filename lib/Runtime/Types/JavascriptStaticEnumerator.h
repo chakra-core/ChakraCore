@@ -12,7 +12,8 @@ namespace Js
         EnumNonEnumerable   = 0x1,
         EnumSymbols         = 0x2,
         SnapShotSemantics   = 0x4,
-        UseCache            = 0x8
+        UseCache            = 0x8,
+        EphemeralReference  = 0x10
     };
     ENUM_CLASS_HELPERS(EnumeratorFlags, byte);
 
