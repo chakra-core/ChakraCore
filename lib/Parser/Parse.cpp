@@ -1612,7 +1612,7 @@ void Parser::FinishParseFncExprScope(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFn
     if (pnodeName)
     {
         Assert(pnodeName->nop == knopVarDecl);
-        BindPidRefsInScope(pnodeName->sxVar.pid, pnodeName->sxVar.sym, fncExprScopeId);
+        BindPidRefsInScope(pnodeName->sxVar.pid, pnodeName->sxVar.sym, fncExprScopeId, m_nextBlockId - 1);
     }
     FinishParseBlock(pnodeFncExprScope);
 }
