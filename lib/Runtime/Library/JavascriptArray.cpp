@@ -6534,13 +6534,11 @@ Case0:
         {
             //The array is a continuous array if there is only one segment
             if (startSeg->next == nullptr
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
                 // If this flag is specified, we want to improve the consistency of our array sorts
                 // by removing missing values from all kinds of arrays before sorting (done here by
                 // using the copy-to-one-segment path for array sorts) and by using a stronger sort
                 // comparer than the spec requires (done in CompareElements).
-                && !Js::Configuration::Global.flags.StrongArraySort
-#endif
+                && !CONFIG_FLAG(StrongArraySort)
                 ) // Single segment fast path
             {
                 if (compFn != nullptr)
@@ -6710,10 +6708,7 @@ Case0:
         Assert(element1 != NULL);
         Assert(element2 != NULL);
 
-#ifndef ENABLE_DEBUG_CONFIG_OPTIONS
-        return JavascriptString::strcmp(element1->StringValue, element2->StringValue);
-#else
-        if (!Js::Configuration::Global.flags.StrongArraySort)
+        if (CONFIG_FLAG(StrongArraySort))
         {
             return JavascriptString::strcmp(element1->StringValue, element2->StringValue);
         }
@@ -6745,7 +6740,6 @@ Case0:
             // for the cases on hand.
             return 0;
         }
-#endif
     }
 
     void JavascriptArray::SortElements(Element* elements, uint32 left, uint32 right)
