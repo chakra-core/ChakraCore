@@ -92,18 +92,4 @@
       <tags>exclude_xplat</tags>
     </default>
   </test>
-  <test>
-    <default>
-      <files>arraybuffer_transfer.js</files>
-      <compile-flags>-es6experimental -args 0x1000 -endargs</compile-flags>
-      <tags>exclude_amd64</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>arraybuffer_transfer.js</files>
-      <compile-flags>-es6experimental -args 0 -endargs</compile-flags>
-      <tags>exclude_amd64</tags>
-    </default>
-  </test>
 </regress-exe>
