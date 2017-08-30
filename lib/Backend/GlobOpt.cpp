@@ -16152,6 +16152,12 @@ GlobOpt::OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, 
     // Can't hoist non-primitives, unless we have safeguards against valueof/tostring.  Additionally, we need to consider
     // the value annotations on the source *before* the loop: if we hoist this instruction outside the loop, we can't
     // necessarily rely on type annotations added (and enforced) earlier in the loop's body.
+    //
+    // It might look as though !loopHeadVal->GetValueInfo()->IsPrimitive() implies
+    // !loop->landingPad->globOptData.IsTypeSpecialized(sym), but it turns out that this is not always the case.  We
+    // encountered a test case in which we had previously hoisted a FromVar (to float 64) instruction, but its bailout code was
+    // BailoutPrimitiveButString, rather than BailoutNumberOnly, which would have allowed us to conclude that the dest was
+    // definitely a float64.  Instead, it was only *likely* a float64, causing IsPrimitive to return false.
     if (!allowNonPrimitives && !loopHeadVal->GetValueInfo()->IsPrimitive() && !loop->landingPad->globOptData.IsTypeSpecialized(sym))
     {
         return false;
