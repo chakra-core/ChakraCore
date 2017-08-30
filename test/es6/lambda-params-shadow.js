@@ -33,4 +33,14 @@ if (count !== 4) {
 
 (omabpn = (function(x) {return { getOwnPropertyNames: function(){ switch({}) { case 0:  "" ; }},  }; }), pkgrln = (TypeError(x))) => {};
 
+var error = false;
+try {
+    eval('( oqixuw = function  window () {}, (window)) => undefined;');
+}
+catch(e) {
+    // Above all should throw syntax error on parenthesized name in formals list
+    error = true;    
+}
+if (!error) WScript.Echo('fail');
+
 WScript.Echo('pass');
