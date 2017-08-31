@@ -6708,7 +6708,7 @@ Case0:
         Assert(element1 != NULL);
         Assert(element2 != NULL);
 
-        if (CONFIG_FLAG(StrongArraySort))
+        if (!CONFIG_FLAG(StrongArraySort))
         {
             return JavascriptString::strcmp(element1->StringValue, element2->StringValue);
         }
