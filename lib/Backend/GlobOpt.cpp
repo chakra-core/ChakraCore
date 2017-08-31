@@ -2834,6 +2834,11 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
         Value *value = CurrentBlockData()->FindValue(stackSym);
         if (value)
         {
+            ValueInfo *valInfo = value->GetValueInfo();
+            if (valInfo->GetSymStore() && valInfo->GetSymStore()->IsStackSym() && valInfo->GetSymStore()->AsStackSym()->IsFromByteCodeConstantTable())
+            {
+                return false;
+            }
             ValueType valueType = value->GetValueInfo()->Type();
             if (instr->m_opcode == Js::OpCode::BailOnNotObject)
             {
@@ -12473,6 +12478,8 @@ GlobOpt::ChangeValueType(
         !preserveSubclassInfo ||
         !valueInfo->IsArrayValueInfo() ||
         newValueType.IsObject() && newValueType.GetObjectType() == valueInfo->GetObjectType());
+
+    Assert(!valueInfo->GetSymStore() || !valueInfo->GetSymStore()->IsStackSym() || !valueInfo->GetSymStore()->AsStackSym()->IsFromByteCodeConstantTable());
 
     ValueInfo *const newValueInfo =
         preserveSubclassInfo

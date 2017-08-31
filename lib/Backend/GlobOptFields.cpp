@@ -3220,6 +3220,14 @@ GlobOpt::UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr)
         return;
     }
 
+    ValueInfo *objValueInfo = objVal->GetValueInfo();
+
+    // It is possible for a valueInfo to be not definite and still have a byteCodeConstant as symStore, this is because we conservatively copy valueInfo in prePass
+    if (objValueInfo->GetSymStore() && objValueInfo->GetSymStore()->IsStackSym() && objValueInfo->GetSymStore()->AsStackSym()->IsFromByteCodeConstantTable())
+    {
+        return;
+    }
+
     // Verify that the types we're checking for here have been locked so that the type ID's can't be changed
     // without changing the type.
     if (!propertySymOpnd->HasObjectTypeSym())
