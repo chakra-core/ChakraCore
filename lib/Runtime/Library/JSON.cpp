@@ -433,9 +433,20 @@ namespace JSON
         // can end up being serialized. Well, that is the ES5 spec word.
         //if(!Js::RecyclableObject::FromVar(holder)->GetType()->GetProperty(holder, keyId, &value))
 
-        if(!Js::JavascriptOperators::GetProperty(Js::RecyclableObject::FromVar(holder),keyId, &value, scriptContext))
+        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(key))
         {
-            return scriptContext->GetLibrary()->GetUndefined();
+            PropertyValueInfo info;
+            Js::PropertyString* propertyString = (Js::PropertyString*)key;
+            PropertyValueInfo::SetCacheInfo(&info, propertyString, propertyString->GetLdElemInlineCache(), false);
+            CacheOperators::TryGetProperty<true, false, true, false, true, false, false, true, false>(holder, false, Js::RecyclableObject::FromVar(holder), keyId, &value, scriptContext, nullptr, &info);
+        }
+
+        if (value == nullptr)
+        {
+            if (!Js::JavascriptOperators::GetProperty(Js::RecyclableObject::FromVar(holder), keyId, &value, scriptContext))
+            {
+                return scriptContext->GetLibrary()->GetUndefined();
+            }
         }
         return StrHelper(key, value, holder);
     }
