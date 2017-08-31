@@ -1038,6 +1038,11 @@ namespace Js
 #endif
     }
 
+    ArrayBufferDetachedStateBase* WebAssemblyArrayBuffer::CreateDetachedState(BYTE* buffer, uint32 bufferLength)
+    {
+        JavascriptError::ThrowTypeError(GetScriptContext(), WASMERR_CantDetach);
+    }
+
     WebAssemblyArrayBuffer* WebAssemblyArrayBuffer::GrowMemory(uint32 newBufferLength)
     {
         if (newBufferLength < this->bufferLength)
