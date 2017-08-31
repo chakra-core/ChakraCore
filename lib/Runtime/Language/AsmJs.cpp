@@ -1253,7 +1253,9 @@ AsmJsCompilationError:
         {
             size = 2048;
         }
+#ifdef ENABLE_SCRIPT_DEBUGGING
         scriptContext->RaiseMessageToDebugger(messageType, buf, scriptContext->GetUrl());
+#endif
         if (PHASE_TRACE1(AsmjsPhase) || PHASE_TESTTRACE1(AsmjsPhase))
         {
             Output::PrintBuffer(buf, size);

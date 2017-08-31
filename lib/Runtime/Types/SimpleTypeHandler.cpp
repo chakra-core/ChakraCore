@@ -91,11 +91,12 @@ namespace Js
         ScriptContext* scriptContext = instance->GetScriptContext();
         Recycler* recycler = scriptContext->GetRecycler();
 
-#if DBG
+#if ENABLE_FIXED_FIELDS && DBG
         DynamicType* oldType = instance->GetDynamicType();
 #endif
 
         T* newTypeHandler = RecyclerNew(recycler, T, recycler, SimpleTypeHandler<size>::GetSlotCapacity(), GetInlineSlotCapacity(), GetOffsetOfInlineSlots());
+#if ENABLE_FIXED_FIELDS
         Assert(HasSingletonInstanceOnlyIfNeeded());
 
         bool const hasSingletonInstance = newTypeHandler->SetSingletonInstanceIfNeeded(instance);
@@ -103,13 +104,18 @@ namespace Js
         // guarantees that any existing fast path field stores (which could quietly overwrite a fixed field
         // on this instance) will be invalidated.  It is safe to mark all fields as fixed.
         bool const allowFixedFields = hasSingletonInstance && instance->HasLockedType();
+#endif
 
         for (int i = 0; i < propertyCount; i++)
         {
             Var value = instance->GetSlot(i);
             Assert(value != nullptr || IsInternalPropertyId(descriptors[i].Id->GetPropertyId()));
+#if ENABLE_FIXED_FIELDS
             bool markAsFixed = allowFixedFields && !IsInternalPropertyId(descriptors[i].Id->GetPropertyId()) &&
                 (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : false);
+#else
+            bool markAsFixed = false;
+#endif
             newTypeHandler->Add(PointerValue(descriptors[i].Id), descriptors[i].Attributes, true, markAsFixed, false, scriptContext);
         }
 
@@ -121,7 +127,7 @@ namespace Js
         newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, this->GetPropertyTypes());
         newTypeHandler->SetInstanceTypeHandler(instance);
 
-#if DBG
+#if ENABLE_FIXED_FIELDS && DBG
         // If we marked fields as fixed we had better forced a type transition.
         Assert(!allowFixedFields || instance->GetDynamicType() != oldType);
 #endif
@@ -252,6 +258,7 @@ namespace Js
         return Constants::NoSlot;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     template<size_t size>
     bool SimpleTypeHandler<size>::GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info)
     {
@@ -326,7 +333,7 @@ namespace Js
 
         return true;
     }
-
+#endif
 
     template<size_t size>
     BOOL SimpleTypeHandler<size>::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl)
@@ -1057,6 +1064,12 @@ namespace Js
         }
 
         ConvertToSimpleDictionaryType(instance)->SetIsPrototype(instance);
+    }
+
+    template<size_t size>
+    BOOL SimpleTypeHandler<size>::SetInternalProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags)
+    {
+        return SetPropertyWithAttributes(instance, propertyId, value, PropertyWritable & PropertyConfigurable, nullptr, flags);
     }
 
 #if DBG

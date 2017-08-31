@@ -793,16 +793,6 @@ LowererMDArch::LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper
     return ret;
 }
 
-IR::Instr *
-LowererMDArch::LowerCallPut(IR::Instr *callInstr)
-{
-    // Note: what we have to do here is call a helper with the Jscript calling convention,
-    // so we need to factor the lowering of arguments out of the CallI expansion.
-
-    AssertMsg(FALSE, "TODO: LowerCallPut not implemented");
-    return nullptr;
-}
-
 static inline IRType ExtendHelperArg(IRType type)
 {
 #ifdef __clang__

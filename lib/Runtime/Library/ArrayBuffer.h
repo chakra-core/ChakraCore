@@ -297,6 +297,9 @@ namespace Js
         virtual bool IsValidVirtualBufferLength(uint length) const override;
         virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
         virtual bool IsWebAssemblyArrayBuffer() override { return true; }
+
+    protected:
+        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override;
     };
 
     // the memory must be allocated via CoTaskMemAlloc.

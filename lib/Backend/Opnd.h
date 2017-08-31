@@ -1671,13 +1671,11 @@ public:
         {
             return;
         }
+
+        opnd->UnUse();
         if(autoDelete)
         {
             opnd->Free(func);
-        }
-        else
-        {
-            opnd->UnUse();
         }
     }
 

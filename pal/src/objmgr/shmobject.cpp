@@ -660,7 +660,7 @@ CSharedMemoryObject::CleanupForProcessShutdown(
 
 /*++
 Function:
-  CSharedMemoryObject::AcquiteObjectDestructionLock
+  CSharedMemoryObject::AcquireObjectDestructionLock
 
   Acquires the lock that must be held when decrementing the object's
   reference count (and, if the count drops to 0, while removing the

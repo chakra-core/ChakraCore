@@ -2,6 +2,8 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+#pragma once
+
 namespace Js
 {
 #if ENABLE_NATIVE_CODEGEN
@@ -125,6 +127,24 @@ namespace Js
     {
     public:
         static void * Op_SwitchStringLookUp(JavascriptString* str, Js::BranchDictionaryWrapper<Js::JavascriptString*>* stringDictionary, uintptr_t funcStart, uintptr_t funcEnd);
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        static void TracePropertyEquivalenceCheck(const JitEquivalentTypeGuard* guard, const Type* type, const Type* refType, bool isEquivalent, uint failedPropertyIndex);
+#endif        
+        static bool CheckIfTypeIsEquivalent(Type* type, JitEquivalentTypeGuard* guard);
+        static bool CheckIfTypeIsEquivalentForFixedField(Type* type, JitEquivalentTypeGuard* guard);
+
+        static Var OP_GetElementI_JIT_ExpectingNativeFloatArray(Var instance, Var index, ScriptContext *scriptContext);
+        static Var OP_GetElementI_JIT_ExpectingVarArray(Var instance, Var index, ScriptContext *scriptContext);
+
+        static Var OP_GetElementI_UInt32_ExpectingNativeFloatArray(Var instance, uint32 aElementIndex, ScriptContext* scriptContext);
+        static Var OP_GetElementI_UInt32_ExpectingVarArray(Var instance, uint32 aElementIndex, ScriptContext* scriptContext);
+
+        static Var OP_GetElementI_Int32_ExpectingNativeFloatArray(Var instance, int32 aElementIndex, ScriptContext* scriptContext);
+        static Var OP_GetElementI_Int32_ExpectingVarArray(Var instance, int32 aElementIndex, ScriptContext* scriptContext);
+    private:
+        static bool IsStaticTypeObjTypeSpecEquivalent(const TypeEquivalenceRecord& equivalenceRecord, uint& failedIndex);
+        static bool IsStaticTypeObjTypeSpecEquivalent(const EquivalentPropertyEntry *entry);
     };
 #endif
 };

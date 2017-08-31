@@ -3,9 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/DebuggingFlags.h"
 #include "Debug/DiagProbe.h"
 #include "Debug/DebugManager.h"
+#endif
 
 // Parser includes
 #include "RegexCommon.h"
@@ -875,10 +877,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 #endif
             break;
         }
-
-        case Js::OpCode::CallIPut:
-            m_lowererMD.LowerCallPut(instr);
-            break;
 
         case Js::OpCode::CallHelper:
             instrPrev = m_lowererMD.LowerCallHelper(instr);
@@ -2656,9 +2654,11 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             LowerBailOnNegative(instr);
             break;
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         case Js::OpCode::BailForDebugger:
             instrPrev = this->LowerBailForDebugger(instr);
             break;
+#endif
 
         case Js::OpCode::BailOnNotObject:
             instrPrev = this->LowerBailOnNotObject(instr);
@@ -11424,6 +11424,7 @@ Lowerer::LowerCondBranchCheckBailOut(IR::BranchInstr * branchInstr, IR::Instr * 
     Assert(branchInstr->m_opcode == Js::OpCode::BrTrue_A || branchInstr->m_opcode == Js::OpCode::BrFalse_A);
     if (branchInstr->HasBailOutInfo())
     {
+#ifdef ENABLE_SCRIPT_DEBUGGING
         IR::BailOutKind debuggerBailOutKind = IR::BailOutInvalid;
         if (branchInstr->HasAuxBailOut())
         {
@@ -11434,10 +11435,12 @@ Lowerer::LowerCondBranchCheckBailOut(IR::BranchInstr * branchInstr, IR::Instr * 
             debuggerBailOutKind = branchInstr->GetAuxBailOutKind() & IR::BailOutForDebuggerBits;
             AssertMsg((debuggerBailOutKind & ~(IR::BailOutIgnoreException | IR::BailOutForceByFlag)) == 0, "Only IR::BailOutIgnoreException|ForceByFlag supported here.");
         }
+#endif
 
         IR::Instr * bailOutInstr = this->SplitBailOnImplicitCall(branchInstr, helperCall, branchInstr);
         IR::Instr* prevInstr = this->LowerBailOnEqualOrNotEqual(bailOutInstr, branchInstr, nullptr, nullptr, isHelper);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (debuggerBailOutKind != IR::BailOutInvalid)
         {
             // Note that by this time implicit calls bailout is already lowered.
@@ -11464,6 +11467,9 @@ Lowerer::LowerCondBranchCheckBailOut(IR::BranchInstr * branchInstr, IR::Instr * 
             this->LowerBailForDebugger(debuggerBailoutInstr, isHelper);
             // After lowering this we will have a check which on bailout condition will JMP to $L11.
         }
+#else
+        (prevInstr);
+#endif
     }
 
     return m_lowererMD.LowerCondBranch(branchInstr);
@@ -11815,6 +11821,7 @@ Lowerer::LowerBailOnNotBuiltIn(IR::Instr       *instr,
     return prevInstr;
 }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 IR::Instr *
 Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false */)
 {
@@ -11992,6 +11999,7 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
 
     return prevInstr;
 }
+#endif
 
 IR::Instr*
 Lowerer::LowerBailOnException(IR::Instr * instr)

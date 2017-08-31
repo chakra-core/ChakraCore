@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "Core/AtomLockGuids.h"
-#include <CommonPal.h>
 #ifdef _WIN32
 #include <winver.h>
 #include <process.h>

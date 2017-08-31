@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 namespace Js
 {
     DebugContext::DebugContext(Js::ScriptContext * scriptContext) :
@@ -407,3 +408,4 @@ namespace Js
         });
     }
 }
+#endif

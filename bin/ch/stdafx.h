@@ -24,17 +24,11 @@
 #define IfFalseGo(expr) do { if(!(expr)) { hr = E_FAIL; goto Error; } } while(0)
 #define IfFalseGoLabel(expr, label) do { if(!(expr)) { hr = E_FAIL; goto label; } } while(0)
 
-#define WIN32_LEAN_AND_MEAN 1
-
 #include "CommonDefines.h"
 #include <map>
 #include <string>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
 #include <CommonPal.h>
-#endif // _WIN32
 
 #include <stdarg.h>
 #ifdef _MSC_VER
@@ -207,7 +201,6 @@ public:
             strValue = value;
         }
         int strLen = 0;
-        size_t writtenLen = 0;
         size_t actualLen = 0;
         if (errorCode == JsNoError)
         {
@@ -216,19 +209,19 @@ public:
             {
                 // Assume ascii characters
                 data = (char*)malloc((strLen + 1) * sizeof(char));
-                errorCode = ChakraRTInterface::JsCopyString(strValue, data, strLen, &writtenLen, &actualLen);
+                errorCode = ChakraRTInterface::JsCopyString(strValue, data, strLen, &length, &actualLen);
                 if (errorCode == JsNoError)
                 {
                     // If non-ascii, take slow path
-                    if (writtenLen != actualLen)
+                    if (length != actualLen)
                     {
                         free(data);
                         data = (char*)malloc((actualLen + 1) * sizeof(char));
 
-                        errorCode = ChakraRTInterface::JsCopyString(strValue, data, actualLen + 1, &writtenLen, nullptr);
+                        errorCode = ChakraRTInterface::JsCopyString(strValue, data, actualLen + 1, &length, nullptr);
                         if (errorCode == JsNoError)
                         {
-                            AssertMsg(actualLen == writtenLen, "If you see this message.. There is something seriously wrong. Good Luck!");
+                            AssertMsg(actualLen == length, "If you see this message.. There is something seriously wrong. Good Luck!");
                             
                         }
                     }

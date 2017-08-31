@@ -134,8 +134,6 @@ public:
     uint funcExprNameReference : 1;
     uint applyEnclosesArgs : 1;
     uint escapes : 1;
-    uint hasDeferredChild : 1; // switch for DeferNested to persist outer scopes
-    uint hasRedeferrableChild : 1;
     uint hasLoop : 1;
     uint hasEscapedUseNestedFunc : 1;
     uint needEnvRegister : 1;
@@ -408,24 +406,6 @@ public:
         // FuncInfo are from RestoredScopeInfo
         return root == nullptr;
     }
-
-    bool HasDeferredChild() const {
-        return hasDeferredChild;
-    }
-
-    void SetHasDeferredChild() {
-        hasDeferredChild = true;
-    }
-
-    bool HasRedeferrableChild() const {
-        return hasRedeferrableChild;
-    }
-
-    void SetHasRedeferrableChild() {
-        hasRedeferrableChild = true;
-    }
-
-    bool IsRedeferrable() const;
 
     Js::FunctionBody* GetParsedFunctionBody() const
     {

@@ -76,10 +76,12 @@ namespace Js
 
                 PropertyValueInfo::SetCacheInfo(info, propertyString, propertyString->GetLdElemInlineCache(), false);
                 PropertyValueInfo::Set(info, instance, index);
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
                 if (FixPropsOnPathTypes() && (index >= this->typePath->GetMaxInitializedLength() || this->typePath->GetIsFixedFieldAt(index, GetPathLength())))
                 {
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
+#endif
                 return TRUE;
             }
             PropertyValueInfo::SetNoCache(info, instance);
@@ -121,6 +123,7 @@ namespace Js
         return typePath->LookupInline(propertyId, GetPathLength());
     }
 
+#if ENABLE_NATIVE_CODEGEN
     bool PathTypeHandlerBase::GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info)
     {
         Js::PropertyIndex absSlotIndex = typePath->LookupInline(propertyRecord->GetPropertyId(), GetPathLength());
@@ -159,11 +162,13 @@ namespace Js
                 return false;
             }
 
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
             int maxInitializedLength = this->typePath->GetMaxInitializedLength();
             if (entry->mustBeWritable && FixPropsOnPathTypes() && (absSlotIndex >= maxInitializedLength || this->typePath->GetIsFixedFieldAt(absSlotIndex, this->GetPathLength())))
             {
                 return false;
             }
+#endif
         }
         else
         {
@@ -175,6 +180,7 @@ namespace Js
 
         return true;
     }
+#endif
 
     BOOL PathTypeHandlerBase::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl)
     {
@@ -214,10 +220,12 @@ namespace Js
         {
             *value = instance->GetSlot(index);
             PropertyValueInfo::Set(info, instance, index);
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
             if (FixPropsOnPathTypes() && (index >= this->typePath->GetMaxInitializedLength() || this->typePath->GetIsFixedFieldAt(index, GetPathLength())))
             {
                 PropertyValueInfo::DisableStoreFieldCache(info);
             }
+#endif
             return true;
         }
 
@@ -270,6 +278,40 @@ namespace Js
         return PathTypeHandlerBase::SetProperty(instance, propertyRecord->GetPropertyId(), value, flags, info);
     }
 
+    void PathTypeHandlerBase::SetSlotAndCache(DynamicObject* instance, PropertyId propertyId, PropertyRecord const * propertyRecord, PropertyIndex index, Var value, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects)
+    {
+#if ENABLE_FIXED_FIELDS
+        // Don't populate inline cache if this handler isn't yet shared.  If we did, a new instance could
+        // reach this handler without us noticing and we could fail to release the old singleton instance, which may later
+        // become collectible (not referenced by anything other than this handler), thus we would leak the old singleton instance.
+        bool populateInlineCache = GetIsShared() ||
+            ProcessFixedFieldChange(instance, propertyId, index, value, (flags & PropertyOperation_NonFixedValue) != 0, propertyRecord);
+#else
+        bool populateInlineCache = true;
+#endif
+
+        SetSlotUnchecked(instance, index, value);
+
+        if (populateInlineCache)
+        {
+#if ENABLE_FIXED_FIELDS
+            Assert((instance->GetDynamicType()->GetIsShared()) || (FixPropsOnPathTypes() && instance->GetDynamicType()->GetTypeHandler()->GetIsOrMayBecomeShared()));
+#endif
+            // Can't assert the following.  With NewScObject we can jump to the type handler at the tip (where the singleton is),
+            // even though we haven't yet initialized the properties all the way to the tip, and we don't want to kill
+            // the singleton in that case yet.  It's basically a transient inconsistent state, but we have to live with it.
+            // The user's code will never see the object in this state.
+            //Assert(!instance->GetTypeHandler()->HasSingletonInstance());
+            PropertyValueInfo::Set(info, instance, index);
+        }
+        else
+        {
+            PropertyValueInfo::SetNoCache(info, instance);
+        }
+
+        SetPropertyUpdateSideEffect(instance, propertyId, value, possibleSideEffects);
+    }
+
     BOOL PathTypeHandlerBase::SetPropertyInternal(DynamicObject* instance, PropertyId propertyId, Var value, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects)
     {
         // Path type handler doesn't support pre-initialization (PropertyOperation_PreInit). Pre-initialized properties
@@ -290,27 +332,7 @@ namespace Js
 
             Assert(instance->GetDynamicType()->GetIsShared() == GetIsShared());
 
-            bool populateInlineCache = GetIsShared() ||
-                ProcessFixedFieldChange(instance, propertyId, index, value, (flags & PropertyOperation_NonFixedValue) != 0);
-
-            SetSlotUnchecked(instance, index, value);
-
-            if (populateInlineCache)
-            {
-                Assert((instance->GetDynamicType()->GetIsShared()) || (FixPropsOnPathTypes() && instance->GetDynamicType()->GetTypeHandler()->GetIsOrMayBecomeShared()));
-                // Can't assert the following.  With NewScObject we can jump to the type handler at the tip (where the singleton is),
-                // even though we haven't yet initialized the properties all the way to the tip, and we don't want to kill
-                // the singleton in that case yet.  It's basically a transient inconsistent state, but we have to live with it.
-                // The user's code will never see the object in this state.
-                //Assert(!instance->GetTypeHandler()->HasSingletonInstance());
-                PropertyValueInfo::Set(info, instance, index);
-            }
-            else
-            {
-                PropertyValueInfo::SetNoCache(info, instance);
-            }
-
-            SetPropertyUpdateSideEffect(instance, propertyId, value, possibleSideEffects);
+            this->SetSlotAndCache(instance, propertyId, nullptr, index, value, info, flags, possibleSideEffects);
             return true;
         }
 
@@ -419,7 +441,9 @@ namespace Js
         // ShareType will take care of invalidating fixed fields and removing singleton object from predecessorType
         predecessorType->ShareType();
 
+#if ENABLE_FIXED_FIELDS
         this->typePath->ClearSingletonInstanceIfSame(object);
+#endif
 
         object->ReplaceTypeWithPredecessorType(predecessorType);
 
@@ -462,20 +486,7 @@ namespace Js
 
         return deleteResult;
     }
-
-    BOOL PathTypeHandlerBase::IsFixedProperty(const DynamicObject* instance, PropertyId propertyId)
-    {
-        if (!FixPropsOnPathTypes())
-        {
-            return false;
-        }
-
-        PropertyIndex index = PathTypeHandlerBase::GetPropertyIndex(propertyId);
-        Assert(index != Constants::NoSlot);
-
-        return this->typePath->GetIsFixedFieldAt(index, GetPathLength());
-    }
-
+    
     BOOL PathTypeHandlerBase::IsEnumerable(DynamicObject* instance, PropertyId propertyId)
     {
         return true;
@@ -639,7 +650,9 @@ namespace Js
             // There should be nothing to transfer.
             // Assert(!IsolatePrototypes() || (this->GetFlags() & IsPrototypeFlag) == 0);
             newTypeHandler->SetFlags(IsPrototypeFlag, this->GetFlags());
+#if ENABLE_FIXED_FIELDS
             Assert(!newTypeHandler->HasSingletonInstance());
+#endif
 
             if(instance->IsObjectHeaderInlinedTypeHandler())
             {
@@ -697,6 +710,7 @@ namespace Js
         // We expect the new type handler to start off marked as having only writable data properties.
         Assert(newTypeHandler->GetHasOnlyWritableDataProperties());
 
+#if ENABLE_FIXED_FIELDS
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         DynamicType* oldType = instance->GetDynamicType();
         RecyclerWeakReference<DynamicObject>* oldSingletonInstance = oldTypeHandler->GetSingletonInstance();
@@ -741,9 +755,11 @@ namespace Js
         // If we are a prototype or may become a prototype we must transfer used as fixed bits.  See point 4 in ConvertToSimpleDictionaryType.
         Assert(!DynamicTypeHandler::IsolatePrototypes() || ((oldTypeHandler->GetFlags() & IsPrototypeFlag) == 0));
         bool transferUsedAsFixed = ((oldTypeHandler->GetFlags() & IsPrototypeFlag) != 0 || (oldTypeHandler->GetIsOrMayBecomeShared() && !DynamicTypeHandler::IsolatePrototypes()));
+#endif
 
         for (PropertyIndex i = 0; i < oldTypeHandler->GetPathLength(); i++)
         {
+#if ENABLE_FIXED_FIELDS
             // Consider: As noted in point 2 in ConvertToSimpleDictionaryType, when converting to non-shared handler we could be more
             // aggressive and mark every field as fixed, because we will always take a type transition. We have to remember to respect
             // the switches as to which kinds of properties we should fix, and for that we need the values from the instance. Even if
@@ -758,6 +774,7 @@ namespace Js
                     scriptContext);
             }
             else
+#endif
             {
                 newTypeHandler->Add(oldTypeHandler->typePath->GetPropertyId(i), PropertyDynamicTypeDefaults, true, false, false, scriptContext);
             }
@@ -782,10 +799,13 @@ namespace Js
         Assert(newTypeHandler->GetIsInlineSlotCapacityLocked());
         newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, oldTypeHandler->GetPropertyTypes());
         newTypeHandler->SetInstanceTypeHandler(instance);
+
+#if ENABLE_FIXED_FIELDS
         Assert(!newTypeHandler->HasSingletonInstance() || !instance->HasSharedType());
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         PathTypeHandlerBase::TraceFixedFieldsAfterTypeHandlerChange(instance, oldTypeHandler, newTypeHandler, oldType, instance->GetDynamicType(), oldSingletonInstance);
+#endif
 #endif
 
         return newTypeHandler;
@@ -829,7 +849,9 @@ namespace Js
 
         Assert(oldTypeHandler);
 
+#if ENABLE_FIXED_FIELDS
         DynamicType* oldType = instance->GetDynamicType();
+#endif
         T* newTypeHandler = RecyclerNew(recycler, T, recycler, oldTypeHandler->GetSlotCapacity(), propertyCapacity, oldTypeHandler->GetInlineSlotCapacity(), oldTypeHandler->GetOffsetOfInlineSlots());
         // We expect the new type handler to start off marked as having only writable data properties.
         Assert(newTypeHandler->GetHasOnlyWritableDataProperties());
@@ -899,6 +921,7 @@ namespace Js
         //    No.  With the rules above any necessary invalidation will be triggered when the value actually gets overwritten.
         //
 
+#if ENABLE_FIXED_FIELDS
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         RecyclerWeakReference<DynamicObject>* oldSingletonInstance = oldTypeHandler->GetSingletonInstance();
         oldTypeHandler->TraceFixedFieldsBeforeTypeHandlerChange(_u("converting"), _u("PathTypeHandler"), _u("SimpleDictionaryTypeHandler"), instance, oldTypeHandler, oldType, oldSingletonInstance);
@@ -940,6 +963,7 @@ namespace Js
         Assert(instance->GetTypeId() != TypeIds_GlobalObject);
         // If the type isn't locked, we may not change the type of the instance, and we must also track the used fixed fields on the new handler.
         bool transferUsedAsFixed = !instance->GetDynamicType()->GetIsLocked() || ((oldTypeHandler->GetFlags() & IsPrototypeFlag) != 0 || (oldTypeHandler->GetIsOrMayBecomeShared() && !DynamicTypeHandler::IsolatePrototypes()));
+#endif
 
         // Consider: As noted in point 2 above, when converting to non-shared SimpleDictionaryTypeHandler we could be more aggressive
         // and mark every field as fixed, because we will always take a type transition.  We have to remember to respect the switches as
@@ -947,6 +971,7 @@ namespace Js
         // says the property is initialized, the current instance may not have a value for it.  Check for value != null.
         for (PropertyIndex i = 0; i < oldTypeHandler->GetPathLength(); i++)
         {
+#if ENABLE_FIXED_FIELDS
             if (PathTypeHandlerBase::FixPropsOnPathTypes())
             {
                 Js::TypePath * typePath = oldTypeHandler->typePath;
@@ -957,6 +982,7 @@ namespace Js
                     scriptContext);
             }
             else
+#endif
             {
                 newTypeHandler->Add(oldTypeHandler->typePath->GetPropertyId(i), PropertyDynamicTypeDefaults, true, false, false, scriptContext);
             }
@@ -989,12 +1015,15 @@ namespace Js
         Assert(newTypeHandler->GetIsInlineSlotCapacityLocked());
         newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, oldTypeHandler->GetPropertyTypes());
         newTypeHandler->SetInstanceTypeHandler(instance);
+
+#if ENABLE_FIXED_FIELDS
         Assert(!newTypeHandler->HasSingletonInstance() || !instance->HasSharedType());
         // We assumed that we don't need to transfer used as fixed bits unless we are a prototype, which is only valid if we also changed the type.
         Assert(transferUsedAsFixed || (instance->GetType() != oldType && oldType->GetTypeId() != TypeIds_GlobalObject));
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         PathTypeHandlerBase::TraceFixedFieldsAfterTypeHandlerChange(instance, oldTypeHandler, newTypeHandler, oldType, instance->GetDynamicType(), oldSingletonInstance);
+#endif
 #endif
 
 #ifdef PROFILE_TYPES
@@ -1155,11 +1184,13 @@ namespace Js
         if (!GetSuccessor(propertyRecord, &nextTypeWeakRef) || nextTypeWeakRef->Get() == nullptr)
         {
 
+#if ENABLE_FIXED_FIELDS
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             DynamicType* oldType = predecessorType;
             RecyclerWeakReference<DynamicObject>* oldSingletonInstance = GetSingletonInstance();
             bool branching = typePath->GetPathLength() > GetPathLength();
             TraceFixedFieldsBeforeTypeHandlerChange(branching ? _u("branching") : _u("advancing"), _u("PathTypeHandler"), _u("PathTypeHandler"), instance, this, oldType, oldSingletonInstance);
+#endif
 #endif
 
             TypePath * newTypePath = typePath;
@@ -1222,17 +1253,23 @@ namespace Js
                 newInlineSlotCapacity -= GetObjectHeaderInlinableSlotCapacity();
                 newOffsetOfInlineSlots = sizeof(DynamicObject);
             }
+#if ENABLE_FIXED_FIELDS
             bool markTypeAsShared = !FixPropsOnPathTypes() || shareType;
+#else
+            bool markTypeAsShared = true;
+#endif
             nextPath = SimplePathTypeHandler::New(scriptContext, newTypePath, newPropertyCount, newSlotCapacity, newInlineSlotCapacity, newOffsetOfInlineSlots, true, markTypeAsShared, predecessorType);
             if (!markTypeAsShared) nextPath->SetMayBecomeShared();
             Assert(nextPath->GetHasOnlyWritableDataProperties());
             nextPath->CopyPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, GetPropertyTypes());
             nextPath->SetPropertyTypes(PropertyTypesInlineSlotCapacityLocked, GetPropertyTypes());
 
+#if ENABLE_FIXED_FIELDS
             if (shareType)
             {
                 nextPath->AddBlankFieldAt(propertyRecord->GetPropertyId(), index, scriptContext);
             }
+#endif
 
 #ifdef PROFILE_TYPES
             scriptContext->maxPathLength = max(GetPathLength() + 1, scriptContext->maxPathLength);
@@ -1258,8 +1295,12 @@ namespace Js
             // We just extended the current type path to a new tip or created a brand new type path.  We should
             // be at the tip of the path and there should be no instances there yet.
             Assert(nextPath->GetPathLength() == newTypePath->GetPathLength());
+#if ENABLE_FIXED_FIELDS
             Assert(!FixPropsOnPathTypes() || shareType || nextPath->GetPathLength() > newTypePath->GetMaxInitializedLength());
-
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+            TraceFixedFieldsAfterTypeHandlerChange(instance, this, nextPath, oldType, nextType, oldSingletonInstance);
+#endif
+#endif
 #ifdef PROFILE_TYPES
             scriptContext->promoteCount++;
 #endif
@@ -1268,10 +1309,6 @@ namespace Js
             {
                 scriptContext->objectLiteralPromoteCount++;
             }
-#endif
-
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            TraceFixedFieldsAfterTypeHandlerChange(instance, this, nextPath, oldType, nextType, oldSingletonInstance);
 #endif
         }
         else
@@ -1287,6 +1324,7 @@ namespace Js
 
             index = nextPath->GetPropertyIndex(propertyRecord);
 
+#if ENABLE_FIXED_FIELDS
             Assert((FixPropsOnPathTypes() && nextPath->GetMayBecomeShared()) || (nextPath->GetIsShared() && nextType->GetIsShared()));
             if (FixPropsOnPathTypes() && !nextType->GetIsShared())
             {
@@ -1297,6 +1335,7 @@ namespace Js
                 }
                 nextType->ShareType();
             }
+#endif
         }
 
         Assert(!IsolatePrototypes() || !GetIsOrMayBecomeShared() || !GetIsPrototype());
@@ -1326,6 +1365,7 @@ namespace Js
         // object has changed and/or property guards have already been invalidated through some other means.
         int propertyCount = GetPathLength();
 
+#if ENABLE_FIXED_FIELDS
         if (invalidateFixedFields)
         {
             Js::ScriptContext* scriptContext = instance->GetScriptContext();
@@ -1335,6 +1375,7 @@ namespace Js
                 InvalidateFixedFieldAt(propertyId, propertyIndex, scriptContext);
             }
         }
+#endif
 
         Js::RecyclableObject* undefined = instance->GetLibrary()->GetUndefined();
         for (PropertyIndex propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++)
@@ -1352,6 +1393,7 @@ namespace Js
         // object has changed and/or property guards have already been invalidated through some other means.
         int propertyCount = GetPathLength();
 
+#if ENABLE_FIXED_FIELDS
         if (invalidateFixedFields)
         {
             ScriptContext* scriptContext = instance->GetScriptContext();
@@ -1361,6 +1403,7 @@ namespace Js
                 InvalidateFixedFieldAt(propertyId, propertyIndex, scriptContext);
             }
         }
+#endif
 
         for (int slotIndex = 0; slotIndex < propertyCount; slotIndex++)
         {
@@ -1412,34 +1455,13 @@ namespace Js
 
         Assert(newType->GetIsShared() == newTypeHandler->GetIsShared());
 
-        // Don't populate inline cache if this handler isn't yet shared.  If we did, a new instance could
-        // reach this handler without us noticing and we could fail to release the old singleton instance, which may later
-        // become collectible (not referenced by anything other than this handler), thus we would leak the old singleton instance.
-        bool populateInlineCache = newTypeHandler->GetIsShared() ||
-            ProcessFixedFieldChange(instance, propertyId, index, value, (flags & PropertyOperation_NonFixedValue) != 0, propertyRecord);
-
-        SetSlotUnchecked(instance, index, value);
-
-        if (populateInlineCache)
-        {
-            Assert((instance->GetDynamicType()->GetIsShared()) || (FixPropsOnPathTypes() && instance->GetDynamicType()->GetTypeHandler()->GetIsOrMayBecomeShared()));
-            // Can't assert this.  With NewScObject we can jump to the type handler at the tip (where the singleton is),
-            // even though we haven't yet initialized the properties all the way to the tip, and we don't want to kill
-            // the singleton in that case yet.  It's basically a transient inconsistent state, but we have to live with it.
-            // Assert(!instance->GetTypeHandler()->HasSingletonInstance());
-            PropertyValueInfo::Set(info, instance, index);
-        }
-        else
-        {
-            PropertyValueInfo::SetNoCache(info, instance);
-        }
+        newTypeHandler->SetSlotAndCache(instance, propertyId, propertyRecord, index, value, info, flags, possibleSideEffects);
 
         Assert(!IsolatePrototypes() || ((this->GetFlags() & IsPrototypeFlag) == 0));
         if (this->GetFlags() & IsPrototypeFlag)
         {
             scriptContext->InvalidateProtoCaches(propertyId);
         }
-        SetPropertyUpdateSideEffect(instance, propertyId, value, possibleSideEffects);
         return true;
     }
 
@@ -1698,9 +1720,11 @@ namespace Js
             return;
         }
 
+#if ENABLE_FIXED_FIELDS
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         DynamicType* oldTypeDebug = instance->GetDynamicType();
         RecyclerWeakReference<DynamicObject>* oldSingletonInstance = GetSingletonInstance();
+#endif
 #endif
 
         if ((GetIsOrMayBecomeShared() && IsolatePrototypes()))
@@ -1718,9 +1742,10 @@ namespace Js
         }
         else
         {
-
+#if ENABLE_FIXED_FIELDS
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             TraceFixedFieldsBeforeSetIsProto(instance, this, oldTypeDebug, oldSingletonInstance);
+#endif
 #endif
 
             if (ChangeTypeOnProto())
@@ -1751,11 +1776,67 @@ namespace Js
         {
             SetFlags(IsPrototypeFlag);
 
+#if ENABLE_FIXED_FIELDS
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             TraceFixedFieldsAfterSetIsProto(instance, this, typeHandler, oldTypeDebug, instance->GetDynamicType(), oldSingletonInstance);
 #endif
+#endif
 
         }
+    }
+
+    PathTypeHandlerBase* PathTypeHandlerBase::GetRootPathTypeHandler()
+    {
+        PathTypeHandlerBase* rootTypeHandler = this;
+        while (rootTypeHandler->predecessorType != nullptr)
+        {
+            rootTypeHandler = PathTypeHandlerBase::FromTypeHandler(rootTypeHandler->predecessorType->GetTypeHandler());
+        }
+        Assert(rootTypeHandler->predecessorType == nullptr);
+        return rootTypeHandler;
+    }
+
+#if DBG
+    bool PathTypeHandlerBase::CanStorePropertyValueDirectly(const DynamicObject* instance, PropertyId propertyId, bool allowLetConst)
+    {
+        Assert(!allowLetConst);
+        // We pass Constants::NoProperty for ActivationObjects for functions with same named formals, but we don't
+        // use PathTypeHandlers for those.
+        Assert(propertyId != Constants::NoProperty);
+        Js::PropertyIndex index = GetPropertyIndex(propertyId);
+        if (index != Constants::NoSlot)
+        {
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+            if (FixPropsOnPathTypes())
+            {
+                return index < this->typePath->GetMaxInitializedLength() && !this->typePath->GetIsFixedFieldAt(index, this->GetPathLength());
+            }
+            else
+#endif
+            {
+                return true;
+            }
+        }
+        else
+        {
+            AssertMsg(false, "Asking about a property this type handler doesn't know about?");
+            return false;
+        }
+    }
+#endif
+
+#if ENABLE_FIXED_FIELDS
+    BOOL PathTypeHandlerBase::IsFixedProperty(const DynamicObject* instance, PropertyId propertyId)
+    {
+        if (!FixPropsOnPathTypes())
+        {
+            return false;
+        }
+
+        PropertyIndex index = PathTypeHandlerBase::GetPropertyIndex(propertyId);
+        Assert(index != Constants::NoSlot);
+
+        return this->typePath->GetIsFixedFieldAt(index, GetPathLength());
     }
 
     bool PathTypeHandlerBase::HasSingletonInstance() const
@@ -1976,31 +2057,6 @@ namespace Js
     }
 
 #if DBG
-    bool PathTypeHandlerBase::CanStorePropertyValueDirectly(const DynamicObject* instance, PropertyId propertyId, bool allowLetConst)
-    {
-        Assert(!allowLetConst);
-        // We pass Constants::NoProperty for ActivationObjects for functions with same named formals, but we don't
-        // use PathTypeHandlers for those.
-        Assert(propertyId != Constants::NoProperty);
-        Js::PropertyIndex index = GetPropertyIndex(propertyId);
-        if (index != Constants::NoSlot)
-        {
-            if (FixPropsOnPathTypes())
-            {
-                return index < this->typePath->GetMaxInitializedLength() && !this->typePath->GetIsFixedFieldAt(index, this->GetPathLength());
-            }
-            else
-            {
-                return true;
-            }
-        }
-        else
-        {
-            AssertMsg(false, "Asking about a property this type handler doesn't know about?");
-            return false;
-        }
-    }
-
     bool PathTypeHandlerBase::HasOnlyInitializedNonFixedProperties()
     {
 
@@ -2070,17 +2126,6 @@ namespace Js
         {
             return false;
         }
-    }
-
-    PathTypeHandlerBase* PathTypeHandlerBase::GetRootPathTypeHandler()
-    {
-        PathTypeHandlerBase* rootTypeHandler = this;
-        while (rootTypeHandler->predecessorType != nullptr)
-        {
-            rootTypeHandler = PathTypeHandlerBase::FromTypeHandler(rootTypeHandler->predecessorType->GetTypeHandler());
-        }
-        Assert(rootTypeHandler->predecessorType == nullptr);
-        return rootTypeHandler;
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -2211,6 +2256,7 @@ namespace Js
         }
     }
 #endif
+#endif // ENABLE_FIXED_FIELDS
 
 #if ENABLE_TTD
     void PathTypeHandlerBase::MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const

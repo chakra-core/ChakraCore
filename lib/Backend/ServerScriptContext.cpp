@@ -271,6 +271,7 @@ ServerScriptContext::IsPRNGSeeded() const
     return m_isPRNGSeeded;
 }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 intptr_t
 ServerScriptContext::GetDebuggingFlagsAddr() const
 {
@@ -294,6 +295,7 @@ ServerScriptContext::GetDebugScriptIdWhenSetAddr() const
 {
     return static_cast<intptr_t>(m_contextData.debugScriptIdWhenSetAddr);
 }
+#endif
 
 bool
 ServerScriptContext::IsClosed() const

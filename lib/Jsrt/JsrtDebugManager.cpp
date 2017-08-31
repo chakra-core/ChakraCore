@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "JsrtPch.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "JsrtDebugManager.h"
 #include "JsrtDebugEventObject.h"
 #include "JsrtDebugUtils.h"
@@ -761,3 +762,4 @@ JsDiagDebugEvent JsrtDebugManager::GetDebugEventFromStopType(Js::StopType stopTy
 
     return JsDiagDebugEventBreakpoint;
 }
+#endif

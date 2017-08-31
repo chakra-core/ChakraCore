@@ -4,12 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeBasePch.h"
-#include "BackendApi.h"
 #include "ThreadServiceWrapper.h"
 #include "Types/TypePropertyCache.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/DebuggingFlags.h"
 #include "Debug/DiagProbe.h"
 #include "Debug/DebugManager.h"
+#endif
 #include "Chars.h"
 #include "CaseInsensitive.h"
 #include "CharSet.h"
@@ -86,9 +87,13 @@ ThreadContext::RecyclableData::RecyclableData(Recycler *const recycler) :
     oomErrorObject(nullptr, nullptr, nullptr, true),
     terminatedErrorObject(nullptr, nullptr, nullptr),
     typesWithProtoPropertyCache(recycler),
+#if ENABLE_NATIVE_CODEGEN
     propertyGuards(recycler, 128),
+#endif
     oldEntryPointInfo(nullptr),
+#ifdef ENABLE_SCRIPT_DEBUGGING
     returnedValueList(nullptr),
+#endif
     constructorCacheInvalidationCount(0)
 {
 }
@@ -197,8 +202,10 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     gcSinceLastRedeferral(0),
     gcSinceCallCountsCollected(0),
     tridentLoadAddress(nullptr),
-    m_remoteThreadContextInfo(nullptr),
-    debugManager(nullptr)
+    m_remoteThreadContextInfo(nullptr)
+#ifdef ENABLE_SCRIPT_DEBUGGING
+    , debugManager(nullptr)
+#endif
 #if ENABLE_TTD
     , TTDContext(nullptr)
     , TTDExecutionInfo(nullptr)
@@ -475,11 +482,13 @@ ThreadContext::~ThreadContext()
             this->recyclableData->symbolRegistrationMap = nullptr;
         }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (this->recyclableData->returnedValueList != nullptr)
         {
             this->recyclableData->returnedValueList->Clear();
             this->recyclableData->returnedValueList = nullptr;
         }
+#endif
 
         if (this->propertyMap != nullptr)
         {
@@ -527,9 +536,9 @@ ThreadContext::~ThreadContext()
         }
 #endif
 #endif
-
+#ifdef ENABLE_SCRIPT_DEBUGGING
         Assert(this->debugManager == nullptr);
-
+#endif
         HeapDelete(recycler);
     }
 
@@ -2269,6 +2278,7 @@ void ThreadContext::SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::
     }
 }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 void ThreadContext::EnsureDebugManager()
 {
     if (this->debugManager == nullptr)
@@ -2302,7 +2312,7 @@ void ThreadContext::ReleaseDebugManager()
     }
 }
 
-
+#endif
 
 Js::TempArenaAllocatorObject *
 ThreadContext::GetTemporaryAllocator(LPCWSTR name)
@@ -2953,9 +2963,13 @@ ThreadContext::InExpirableCollectMode()
     // and when debugger is attaching, it might have set the function to deferredParse.
     return (expirableObjectList != nullptr &&
             numExpirableObjects > 0 &&
-            expirableCollectModeGcCount >= 0 &&
+            expirableCollectModeGcCount >= 0 
+#ifdef ENABLE_SCRIPT_DEBUGGING
+        &&
             (this->GetDebugManager() != nullptr &&
-            !this->GetDebugManager()->IsDebuggerAttaching()));
+            !this->GetDebugManager()->IsDebuggerAttaching())
+#endif
+        );
 }
 
 void
@@ -3086,6 +3100,7 @@ ThreadContext::ClearInlineCachesWithDeadWeakRefs()
     }
 }
 
+#if ENABLE_NATIVE_CODEGEN
 void
 ThreadContext::ClearInvalidatedUniqueGuards()
 {
@@ -3118,6 +3133,7 @@ ThreadContext::ClearInvalidatedUniqueGuards()
         });
     });
 }
+#endif
 
 void
 ThreadContext::ClearInlineCaches()

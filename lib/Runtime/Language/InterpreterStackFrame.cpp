@@ -128,24 +128,10 @@
 
 #define PROCESS_CALL(name, func, layout) PROCESS_CALL_COMMON(name, func, layout,)
 
-#define PROCESS_CALL_FLAGS_COMMON(name, func, layout, flags, suffix) \
-    case OpCode::name: \
-    { \
-        PROCESS_READ_LAYOUT(name, layout, suffix); \
-        func(playout, flags); \
-        break; \
-    }
 
-#define PROCESS_CALL_FLAGS(name, func, layout, regslot) PROCESS_CALL_FLAGS_COMMON(name, func, layout, regslot,)
+#define PROCESS_CALL_FLAGS_None_COMMON(name, func, layout, suffix) PROCESS_CALL_COMMON(name, func, layout, suffix)
+#define PROCESS_CALL_FLAGS_Value_COMMON(name, func, layout, suffix) PROCESS_CALL_COMMON(name, func, layout, suffix)
 
-#define PROCESS_CALL_FLAGS_None_COMMON(name, func, layout, suffix) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_None, suffix)
-#define PROCESS_CALL_FLAGS_None(name, func, layout) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_None,)
-
-#define PROCESS_CALL_FLAGS_Value_COMMON(name, func, layout, suffix) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_Value, suffix)
-#define PROCESS_CALL_FLAGS_Value(name, func, layout) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_Value,)
-
-#define PROCESS_CALL_FLAGS_CallEval_COMMON(name, func, layout, suffix) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_ExtraArg, suffix)
-#define PROCESS_CALL_FLAGS_CallEval(name, func, layout) PROCESS_CALL_FLAGS_COMMON(name, func, layout, CallFlags_ExtraArg,)
 
 #define PROCESS_A1toXX_ALLOW_STACK_COMMON(name, func, suffix) \
     case OpCode::name: \
@@ -2040,6 +2026,7 @@ namespace Js
         Var aReturn = nullptr;
 
         {
+#ifdef ENABLE_SCRIPT_DEBUGGING
             if (!isAsmJs && executeFunction->IsInDebugMode())
             {
 #if DYNAMIC_INTERPRETER_THUNK
@@ -2050,6 +2037,7 @@ namespace Js
 #endif
             }
             else
+#endif
             {
 #if DYNAMIC_INTERPRETER_THUNK
                 PushPopFrameHelper pushPopFrameHelper(newInstance, returnAddress, addressOfReturnAddress);
@@ -2392,6 +2380,7 @@ namespace Js
         m_outSpCached  = nullptr;
     }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     _NOINLINE
     Var InterpreterStackFrame::DebugProcessThunk(void* returnAddress, void* addressOfReturnAddress)
     {
@@ -2461,6 +2450,7 @@ namespace Js
             }
         }
     }
+#endif
 
     template<typename OpCodeType, Js::OpCode (ReadOpFunc)(const byte*&), void (TracingFunc)(InterpreterStackFrame*, OpCodeType)>
     OpCodeType InterpreterStackFrame::ReadOp(const byte *& ip)
@@ -3300,7 +3290,7 @@ namespace Js
 
 // For now, always collect profile data when debugging,
 // otherwise the backend will be confused if there's no profile data.
-
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #define INTERPRETERLOOPNAME ProcessWithDebugging
 #define PROVIDE_DEBUGGING
 #if ENABLE_PROFILE_INFO
@@ -3312,6 +3302,7 @@ namespace Js
 #endif
 #undef PROVIDE_DEBUGGING
 #undef INTERPRETERLOOPNAME
+#endif
 
 #if ENABLE_TTD
 #define PROVIDE_INTERPRETER_STMTS
@@ -3872,11 +3863,13 @@ namespace Js
         ThreadContext * threadContext = scriptContext->GetThreadContext();
         Js::ImplicitCallFlags savedImplicitCallFlags = threadContext->GetImplicitCallFlags();
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #if DBG
         if (this->IsInDebugMode())
         {
             JavascriptFunction::CheckValidDebugThunk(scriptContext, function);
         }
+#endif
 #endif
 
         if (playout->Return == Js::Constants::NoRegister)
@@ -3947,20 +3940,6 @@ namespace Js
         }
     }
 #endif
-
-    template <class T>
-    void InterpreterStackFrame::OP_CallPutCommon(const unaligned T *playout, RecyclableObject * function)
-    {
-        Arguments args(CallInfo(CallFlags_None, playout->ArgCount), m_outParams);
-        SetReg((RegSlot)playout->Return, function->InvokePut(args));
-        PopOut(playout->ArgCount);
-    }
-
-    template <class T>
-    void InterpreterStackFrame::OP_CallPutCommonI(const unaligned T *playout, RecyclableObject * function)
-    {
-        OP_CallPutCommon(playout, function);
-    }
 
     template <class T>
     void InterpreterStackFrame::OP_GetRootProperty(unaligned T* playout)
@@ -6554,6 +6533,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
             if (this->IsInDebugMode())
             {
 #if ENABLE_TTD
@@ -6572,6 +6552,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 this->TrySetRetOffset();
             }
             else
+#endif
             {
                 this->Process();
                 this->TrySetRetOffset();
@@ -6647,12 +6628,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             this->scriptContext->GetThreadContext()->TTDExecutionInfo->ProcessCatchInfoForLastExecutedStatements();
         }
 #endif
-
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (this->IsInDebugMode())
         {
             this->DebugProcess();
         }
         else
+#endif
         {
             this->Process();
         }
@@ -6663,11 +6645,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->nestedFinallyDepth++;
 
         int newOffset = 0;
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (this->IsInDebugMode())
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->DebugProcess());
         }
         else
+#endif
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->Process());
         }
@@ -6699,6 +6683,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                     Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
                 }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
                 if (this->IsInDebugMode())
                 {
 #if ENABLE_TTD
@@ -6717,6 +6702,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                     this->TrySetRetOffset();
                 }
                 else
+#endif
                 {
                     this->Process();
                     this->TrySetRetOffset();
@@ -6962,11 +6948,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         this->m_flags |= InterpreterStackFrameFlags_WithinCatchBlock;
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (this->IsInDebugMode())
         {
             this->DebugProcess();
         }
         else
+#endif
         {
             this->Process();
         }
@@ -6999,6 +6987,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 CacheSp();
             }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
             if (this->IsInDebugMode())
             {
 #if ENABLE_TTD
@@ -7015,6 +7004,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #endif
             }
             else
+#endif
             {
                 result = this->Process();
             }
@@ -7062,6 +7052,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
         }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (pExceptionObject && this->IsInDebugMode() &&
             pExceptionObject != scriptContext->GetThreadContext()->GetPendingSOErrorObject())
         {
@@ -7069,6 +7060,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             // (This appears to be the same behavior as ie8)
             pExceptionObject->SetDebuggerSkip(false);
         }
+#endif
 
         // Call into the finally by setting the IP, consuming the Finally, and letting the interpreter recurse.
         m_reader.SetCurrentRelativeOffset(ip, jumpOffset);
@@ -7133,11 +7125,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->m_flags |= InterpreterStackFrameFlags_WithinFinallyBlock;
 
         int newOffset = 0;
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (this->IsInDebugMode())
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->DebugProcess());
         }
         else
+#endif
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->Process());
         }
@@ -7682,11 +7676,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         JavascriptOperators::OP_InitClass(GetReg(playout->Constructor), playout->Extends != Js::Constants::NoRegister ? GetReg(playout->Extends) : NULL, GetScriptContext());
     }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     template <class T>
     void InterpreterStackFrame::OP_EmitTmpRegCount(const unaligned OpLayoutT_Unsigned1<T> * playout)
     {
         this->scriptContext->GetDebugContext()->GetProbeContainer()->SetCurrentTmpRegCount(playout->C1);
     }
+#endif
 
     Var InterpreterStackFrame::OP_LdHomeObj(ScriptContext * scriptContext)
     {

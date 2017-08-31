@@ -41,6 +41,7 @@ namespace Js
         return Constants::NoSlot;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     bool NullTypeHandlerBase::GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info)
     {
         info.slotIndex = Constants::NoSlot;
@@ -69,6 +70,7 @@ namespace Js
     {
         return entry->slotIndex == Constants::NoSlot && !entry->mustBeWritable;
     }
+#endif
 
     BOOL NullTypeHandlerBase::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl)
     {
@@ -130,6 +132,11 @@ namespace Js
     BOOL NullTypeHandlerBase::SetProperty(DynamicObject* instance, JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         return ConvertToSimpleType(instance)->SetProperty(instance, propertyNameString, value, flags, info);
+    }
+
+    BOOL NullTypeHandlerBase::SetInternalProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags)
+    {
+        return SetPropertyWithAttributes(instance, propertyId, value, PropertyWritable & PropertyConfigurable, nullptr, flags);
     }
 
     BOOL NullTypeHandlerBase::AddProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects)

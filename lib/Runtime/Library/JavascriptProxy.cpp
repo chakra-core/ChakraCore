@@ -129,7 +129,7 @@ namespace Js
             JavascriptLibrary::EnumFunctionClass, RuntimeFunction,
             type, &EntryInfo::Revoke);
 
-        revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(0), PropertyNone, NULL);
+        revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(2), PropertyConfigurable, NULL);
         revoker->SetInternalProperty(Js::InternalPropertyIds::RevocableProxy, proxy, PropertyOperationFlags::PropertyOperation_Force, nullptr);
 
         DynamicObject* obj = scriptContext->GetLibrary()->CreateObject(true, 2);
@@ -850,11 +850,13 @@ namespace Js
         return TRUE;
     }
 
+#if ENABLE_FIXED_FIELDS
     BOOL JavascriptProxy::IsFixedProperty(PropertyId propertyId)
     {
         // TODO: can we add support for fixed property? don't see a clear way to invalidate...
         return false;
     }
+#endif
 
     PropertyQueryFlags JavascriptProxy::HasItemQuery(uint32 index)
     {

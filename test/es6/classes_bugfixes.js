@@ -464,6 +464,16 @@ var tests = [
         assert.areEqual('Bsetter;Bgetter;', result);
     }
   },
+  {
+    name: "MSFT:13209141: Confusion on deferred function containing non-deferred extends cause calling eval",
+    body: function () {
+      function foo(a = class c extends eval("") {}) {}
+      try {
+        foo();
+      }
+      catch(e) {}
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

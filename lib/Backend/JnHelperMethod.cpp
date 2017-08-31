@@ -9,7 +9,9 @@
 
 #include "Library/RegexHelper.h"
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/DiagHelperMethodWrapper.h"
+#endif
 #include "Math/CrtSSE2Math.h"
 #include "Library/JavascriptGeneratorFunction.h"
 #include "RuntimeMathPch.h"
@@ -65,6 +67,7 @@ void CheckJnHelperTable(intptr_t const* table)
 }
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 static intptr_t const helperMethodWrappers[] = {
     reinterpret_cast<intptr_t>(&Js::HelperMethodWrapper0),
     reinterpret_cast<intptr_t>(&Js::HelperMethodWrapper1),
@@ -84,6 +87,7 @@ static intptr_t const helperMethodWrappers[] = {
     reinterpret_cast<intptr_t>(&Js::HelperMethodWrapper15),
     reinterpret_cast<intptr_t>(&Js::HelperMethodWrapper16),
 };
+#endif
 
 ///----------------------------------------------------------------------------
 ///
@@ -97,7 +101,7 @@ intptr_t
 GetMethodAddress(ThreadContextInfo * context, IR::HelperCallOpnd* opnd)
 {
     Assert(opnd);
-
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #if defined(_M_ARM32_OR_ARM64)
 #define LowererMDFinal LowererMD
 #else
@@ -120,7 +124,7 @@ GetMethodAddress(ThreadContextInfo * context, IR::HelperCallOpnd* opnd)
             AssertMsg(FALSE, "Unsupported arg count (need to implement).");
         }
     }
-
+#endif
     return GetMethodOriginalAddress(context, opnd->m_fnHelper);
 }
 

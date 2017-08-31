@@ -130,6 +130,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBlockData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ValueInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITThunkEmitter.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)EquivalentTypeSet.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -345,6 +347,9 @@
     <ClInclude Include="GlobOptBlockData.h" />
     <ClInclude Include="ValueInfo.h" />
     <ClInclude Include="JITThunkEmitter.h" />
+    <ClInclude Include="PropertyGuard.h" />
+    <ClInclude Include="JavascriptNativeOperators.h" />
+    <ClInclude Include="EquivalentTypeSet.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

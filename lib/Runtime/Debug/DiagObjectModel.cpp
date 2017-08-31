@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 // Parser includes
 #include "CharClassifier.h"
 // TODO: clean up the need of these regex related header here just for GroupInfo needed in JavascriptRegExpConstructor
@@ -4402,3 +4403,4 @@ namespace Js
 
 #endif // #ifdef ENABLE_SIMDJS
 }
+#endif

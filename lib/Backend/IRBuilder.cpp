@@ -5859,7 +5859,6 @@ IRBuilder::BuildCallIFlags(Js::OpCode newOpcode, uint32 offset)
     if (instr->m_opcode == Js::OpCode::CallIFlags)
     {
         instr->m_opcode =
-            layout->callFlags == Js::CallFlags::CallFlags_NewTarget ? Js::OpCode::CallIPut :
             layout->callFlags == (Js::CallFlags::CallFlags_NewTarget | Js::CallFlags::CallFlags_New | Js::CallFlags::CallFlags_ExtraArg) ? Js::OpCode::CallINewTargetNew :
             layout->callFlags == Js::CallFlags::CallFlags_New ? Js::OpCode::CallINew :
             instr->m_opcode;
@@ -5984,7 +5983,6 @@ IRBuilder::BuildProfiledCallIFlagsWithICIndex(Js::OpCode newOpcode, uint32 offse
     if (instr->m_opcode == Js::OpCode::CallIFlags)
     {
         instr->m_opcode =
-            layout->callFlags == Js::CallFlags::CallFlags_NewTarget ? Js::OpCode::CallIPut :
             layout->callFlags == (Js::CallFlags::CallFlags_NewTarget | Js::CallFlags::CallFlags_New | Js::CallFlags::CallFlags_ExtraArg) ? Js::OpCode::CallINewTargetNew :
             layout->callFlags == Js::CallFlags::CallFlags_New ? Js::OpCode::CallINew :
             instr->m_opcode;
@@ -6135,10 +6133,7 @@ IRBuilder::BuildProfiledCallIFlags(Js::OpCode newOpcode, uint32 offset)
     Assert(instr->m_opcode == Js::OpCode::CallIFlags);
     if (instr->m_opcode == Js::OpCode::CallIFlags)
     {
-        instr->m_opcode = Js::OpCode::CallIPut;
-
         instr->m_opcode =
-            layout->callFlags == Js::CallFlags::CallFlags_NewTarget ? Js::OpCode::CallIPut :
             layout->callFlags == (Js::CallFlags::CallFlags_NewTarget | Js::CallFlags::CallFlags_New | Js::CallFlags::CallFlags_ExtraArg) ? Js::OpCode::CallINewTargetNew :
             layout->callFlags == Js::CallFlags::CallFlags_New ? Js::OpCode::CallINew :
             instr->m_opcode;

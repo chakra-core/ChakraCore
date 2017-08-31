@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "JsrtPch.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "JsrtDebugUtils.h"
 #include "RuntimeDebugPch.h"
 #include "screrror.h"   // For CompileScriptException
@@ -509,3 +510,4 @@ const char16 * JsrtDebugUtils::GetDebugPropertyName(JsrtDebugPropertyId property
     Assert(false);
     return _u("");
 }
+#endif

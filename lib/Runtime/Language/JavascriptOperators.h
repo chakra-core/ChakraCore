@@ -53,9 +53,8 @@ namespace Js
         JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration); \
     }
 
-#define BEGIN_TYPEOF_ERROR_HANDLER(scriptContext)  \
-    try { \
-    Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext); \
+#ifdef ENABLE_SCRIPT_DEBUGGING
+#define BEGIN_TYPEOF_ERROR_HANDLER_DEBUGGER_THROW_IS_INTERNAL \
     class AutoCleanup \
     { \
     private: \
@@ -76,6 +75,14 @@ namespace Js
             } \
         } \
     } autoCleanup(scriptContext);
+#else
+#define BEGIN_TYPEOF_ERROR_HANDLER_DEBUGGER_THROW_IS_INTERNAL
+#endif
+
+#define BEGIN_TYPEOF_ERROR_HANDLER(scriptContext)  \
+    try { \
+        Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext); \
+        BEGIN_TYPEOF_ERROR_HANDLER_DEBUGGER_THROW_IS_INTERNAL
 
 
 #define END_TYPEOF_ERROR_HANDLER(scriptContext, var) \
@@ -301,18 +308,10 @@ namespace Js
 
         static BOOL OP_HasItem(Var instance, Var aElementIndex, ScriptContext* scriptContext);
         static Var OP_GetElementI(Var instance, Var aElementIndex, ScriptContext* scriptContext);
-        static Var OP_GetElementI_JIT(Var instance, Var index, ScriptContext *scriptContext);
-#if ENABLE_NATIVE_CODEGEN
-        static Var OP_GetElementI_JIT_ExpectingNativeFloatArray(Var instance, Var index, ScriptContext *scriptContext);
-        static Var OP_GetElementI_JIT_ExpectingVarArray(Var instance, Var index, ScriptContext *scriptContext);
-#endif
-
         static Var OP_GetElementI_UInt32(Var instance, uint32 aElementIndex, ScriptContext* scriptContext);
-        static Var OP_GetElementI_UInt32_ExpectingNativeFloatArray(Var instance, uint32 aElementIndex, ScriptContext* scriptContext);
-        static Var OP_GetElementI_UInt32_ExpectingVarArray(Var instance, uint32 aElementIndex, ScriptContext* scriptContext);
         static Var OP_GetElementI_Int32(Var instance, int32 aElementIndex, ScriptContext* scriptContext);
-        static Var OP_GetElementI_Int32_ExpectingNativeFloatArray(Var instance, int32 aElementIndex, ScriptContext* scriptContext);
-        static Var OP_GetElementI_Int32_ExpectingVarArray(Var instance, int32 aElementIndex, ScriptContext* scriptContext);
+        static Var OP_GetElementI_JIT(Var instance, Var index, ScriptContext *scriptContext);
+
         static Var GetElementIHelper(Var instance, Var index, Var receiver, ScriptContext* scriptContext);
         static int32 OP_GetNativeIntElementI(Var instance, Var index);
         static int32 OP_GetNativeIntElementI_Int32(Var instance, int32 index, ScriptContext *scriptContext);
@@ -510,14 +509,6 @@ namespace Js
 
         static Var PatchGetMethodFromObject(Var instance, RecyclableObject * propertyObject, PropertyId propertyId, PropertyValueInfo * info, ScriptContext * scriptContext, bool isRootLd);
 
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-        static void TracePropertyEquivalenceCheck(const JitEquivalentTypeGuard* guard, const Type* type, const Type* refType, bool isEquivalent, uint failedPropertyIndex);
-#endif
-        static bool IsStaticTypeObjTypeSpecEquivalent(const TypeEquivalenceRecord& equivalenceRecord, uint& failedIndex);
-        static bool IsStaticTypeObjTypeSpecEquivalent(const EquivalentPropertyEntry *entry);
-        static bool CheckIfTypeIsEquivalent(Type* type, JitEquivalentTypeGuard* guard);
-        static bool CheckIfTypeIsEquivalentForFixedField(Type* type, JitEquivalentTypeGuard* guard);
-
         static void GetPropertyIdForInt(uint64 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
         static void GetPropertyIdForInt(uint32 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
         static BOOL TryConvertToUInt32(const char16* str, int length, uint32* value);
@@ -539,8 +530,6 @@ namespace Js
 
         template <bool isAccessor>
         static PropertyDescriptor FillMissingPropertyDescriptorFields(PropertyDescriptor descriptor, ScriptContext* scriptContext);
-
-        static Var OP_InvokePut(Js::ScriptContext *scriptContext, Var function, CallInfo callInfo, ...);
 
         static Var DefaultAccessor(RecyclableObject* function, CallInfo callInfo, ...);
         static bool IsUndefinedAccessor(Var accessor, ScriptContext* scriptContext);

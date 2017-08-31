@@ -21,8 +21,10 @@
 #endif
 #include "Language/SourceDynamicProfileManager.h"
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/ProbeContainer.h"
 #include "Debug/DebugContext.h"
+#endif
 
 #include "Parser.h"
 #include "RegexCommon.h"
@@ -199,8 +201,10 @@ namespace Js
 
     void ParseableFunctionInfo::RegisterFuncToDiag(ScriptContext * scriptContext, char16 const * pszTitle)
     {
+#ifdef ENABLE_SCRIPT_DEBUGGING
         // Register the function to the PDM as eval code (the debugger app will show file as 'eval code')
         scriptContext->GetDebugContext()->RegisterFunction(this, pszTitle);
+#endif
     }
 
     bool ParseableFunctionInfo::IsES6ModuleCode() const
@@ -2577,6 +2581,7 @@ namespace Js
         return GetIsGlobalFunc() && !(flags & fscrGlobalCode);
     }
 
+#ifdef NTBUILD
     bool ParseableFunctionInfo::GetExternalDisplaySourceName(BSTR* sourceName)
     {
         Assert(sourceName);
@@ -2589,6 +2594,7 @@ namespace Js
         *sourceName = ::SysAllocString(GetSourceName());
         return *sourceName != nullptr;
     }
+#endif
 
     const char16* FunctionProxy::WrapWithBrackets(const char16* name, charcount_t sz, ScriptContext* scriptContext)
     {
@@ -3883,6 +3889,7 @@ namespace Js
         return loopNum;
     }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     bool FunctionBody::InstallProbe(int offset)
     {
         if (offset < 0 || ((uint)offset + 1) >= byteCodeBlock->GetLength())
@@ -3959,6 +3966,7 @@ namespace Js
             return false;
         }
     }
+#endif
 
     void FunctionBody::SetStackNestedFuncParent(FunctionInfo * parentFunctionInfo)
     {
@@ -5022,6 +5030,7 @@ namespace Js
         this->m_isAsmJsFunction = false;
     }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     void FunctionBody::SetEntryToDeferParseForDebugger()
     {
         ProxyEntryPointInfo* defaultEntryPointInfo = this->GetDefaultEntryPointInfo();
@@ -5062,6 +5071,7 @@ namespace Js
         this->UnlockCounters(); // asuming background jit is stopped and allow the counter setters access again
 #endif
     }
+#endif
 
     void FunctionBody::ClearEntryPoints()
     {
@@ -8096,6 +8106,7 @@ namespace Js
     }
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     void FunctionBody::CheckAndRegisterFuncToDiag(ScriptContext *scriptContext)
     {
         // We will register function if, this is not host managed and it was not registered before.
@@ -8128,6 +8139,7 @@ namespace Js
         }
 
     }
+#endif
 
     DebuggerScope* FunctionBody::RecordStartScopeObject(DiagExtraScopesType scopeType, int start, RegSlot scopeLocation, int* index)
     {
@@ -9965,8 +9977,8 @@ namespace Js
         if (this->IsCodeGenDone())
 #endif
         {
-            uint loopNumber = this->loopHeader->functionBody->GetLoopNumber(this->loopHeader);
-            JS_ETW(EtwTrace::LogLoopBodyUnloadEvent(this->loopHeader->functionBody, this, loopNumber));
+            JS_ETW(EtwTrace::LogLoopBodyUnloadEvent(this->loopHeader->functionBody, this, 
+                this->loopHeader->functionBody->GetLoopNumber(this->loopHeader)));
 
 #if ENABLE_NATIVE_CODEGEN
             if (nullptr != this->inlineeFrameMap)

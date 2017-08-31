@@ -1048,27 +1048,6 @@ LowererMDArch::LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore /*= fa
     return doneLabel;
 }
 
-IR::Instr *
-LowererMDArch::LowerCallPut(IR::Instr *callInstr)
-{
-    int32 argCount = this->LowerCallArgs(callInstr, Js::CallFlags_None);
-
-    //  load native entry point from script function into eax
-
-    IR::Opnd * functionWrapOpnd = callInstr->UnlinkSrc1();
-    AssertMsg(functionWrapOpnd->IsRegOpnd() && functionWrapOpnd->AsRegOpnd()->m_sym->IsStackSym(),
-        "Expected call src to be stackSym");
-
-    // push function wrapper
-
-    this->LoadHelperArgument(callInstr, functionWrapOpnd);
-
-    IR::HelperCallOpnd  *helperCallOpnd = IR::HelperCallOpnd::New(IR::HelperOp_InvokePut, this->m_func);
-    callInstr->SetSrc1(helperCallOpnd);
-
-    return this->LowerCall(callInstr, argCount);
-}
-
 int32
 LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot extraArgs, IR::IntConstOpnd **callInfoOpndRef)
 {
