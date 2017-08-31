@@ -209,7 +209,7 @@ namespace Js
 
                     Assert(StackScriptFunction::GetCurrentFunctionObject(interpreterFrame->GetJavascriptFunction()) == caller);
 
-                    if (callerFunctionBody->DoStackFrameDisplay())
+                    if (callerFunctionBody->DoStackFrameDisplay() && interpreterFrame->IsClosureInitDone())
                     {
                         Js::FrameDisplay *stackFrameDisplay = interpreterFrame->GetLocalFrameDisplay();
                         // Local frame display may be null if bailout didn't restore it, which means we don't need it.
@@ -219,7 +219,7 @@ namespace Js
                             interpreterFrame->SetLocalFrameDisplay(boxedFrameDisplay);
                         }
                     }
-                    if (callerFunctionBody->DoStackScopeSlots())
+                    if (callerFunctionBody->DoStackScopeSlots() && interpreterFrame->IsClosureInitDone())
                     {
                         Var* stackScopeSlots = (Var*)interpreterFrame->GetLocalClosure();
                         if (stackScopeSlots)
@@ -327,9 +327,12 @@ namespace Js
                 // Everything from that point outward must be boxed.
                 FrameDisplay *frameDisplay;
                 InterpreterStackFrame *interpreterFrame = walker.GetCurrentInterpreterFrame();
+                bool closureInitDone = true; // Set to true as for native frame bailout will always restore the frameDisplay but for interpreter frame if PROBE_STACK fails closureInitDone won't have completed.
+
                 if (interpreterFrame)
                 {
                     frameDisplay = interpreterFrame->GetLocalFrameDisplay();
+                    closureInitDone = interpreterFrame->IsClosureInitDone();
                 }
                 else
                 {
@@ -340,7 +343,7 @@ namespace Js
 #endif
                         JavascriptFunctionArgIndex_StackFrameDisplay];
                 }
-                if (ThreadContext::IsOnStack(frameDisplay))
+                if (ThreadContext::IsOnStack(frameDisplay) && closureInitDone)
                 {
                     int i;
                     for (i = 0; i < frameDisplay->GetLength(); i++)

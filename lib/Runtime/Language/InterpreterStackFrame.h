@@ -213,6 +213,7 @@ namespace Js
         FrameDisplay * GetFrameDisplayForNestedFunc() const;
         Var InnerScopeFromRegSlot(RegSlot reg) const;
         void SetClosureInitDone(bool done) { closureInitDone = done; }
+        bool IsClosureInitDone() const { return closureInitDone; }
 
         void ValidateRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         int OP_GetMemorySize();

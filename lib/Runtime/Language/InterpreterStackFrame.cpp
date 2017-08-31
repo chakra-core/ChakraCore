@@ -1251,6 +1251,7 @@ namespace Js
                     uint16 envDepth = this->executeFunction->GetEnvDepth();
                     Assert(envDepth != (uint16)-1);
                     newInstance->localFrameDisplay = (FrameDisplay*)nextAllocBytes;
+                    newInstance->localFrameDisplay->SetLength(0); // Start with no scopes. It will get set in NewFrameDisplay
                     nextAllocBytes += sizeof(FrameDisplay) + (envDepth + 1) * sizeof(Var);
                 }
 
@@ -1258,7 +1259,7 @@ namespace Js
                 {
                     uint32 scopeSlots = this->executeFunction->scopeSlotArraySize;
                     Assert(scopeSlots != 0);
-                    ScopeSlots((Var*)nextAllocBytes).SetCount(scopeSlots);
+                    ScopeSlots((Var*)nextAllocBytes).SetCount(0); // Start with count as 0. It will get set in NewScopeSlots
                     newInstance->localClosure = nextAllocBytes;
                     nextAllocBytes += (scopeSlots + ScopeSlots::FirstSlotIndex) * sizeof(Var);
                 }
@@ -7341,6 +7342,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     FrameDisplay* InterpreterStackFrame::GetLocalFrameDisplay() const
     {
+        Assert(this->localFrameDisplay == nullptr || this->IsClosureInitDone() || this->localFrameDisplay->GetLength() == 0);
         return this->localFrameDisplay;
     }
 
