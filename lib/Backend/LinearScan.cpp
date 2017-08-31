@@ -1412,6 +1412,14 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         // To indicate this is a subsequent bailout from an inlinee
         bailOutRecord->bailOutOpcode = Js::OpCode::InlineeEnd;
 #endif
+        if (this->func->HasTry())
+        {
+            RegionType currentRegionType = this->currentRegion->GetType();
+            if (currentRegionType == RegionTypeTry || currentRegionType == RegionTypeCatch || currentRegionType == RegionTypeFinally)
+            {
+                bailOutRecord->ehBailoutData = this->currentRegion->ehBailoutData;
+            }
+        }
         funcBailOutData[funcIndex].bailOutRecord->parent = bailOutRecord;
         funcIndex--;
         funcBailOutData[funcIndex].bailOutRecord = bailOutRecord;

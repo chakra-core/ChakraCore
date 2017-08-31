@@ -1608,6 +1608,10 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     {
         newInstance->OrFlags(Js::InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall);
     }
+    if (isInlinee)
+    {
+        newInstance->OrFlags(Js::InterpreterStackFrameFlags_FromInlineeCodeInEHBailOut);
+    }
 
     ThreadContext *threadContext = newInstance->GetScriptContext()->GetThreadContext();
 

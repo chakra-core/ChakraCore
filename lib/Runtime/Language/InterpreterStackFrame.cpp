@@ -3284,7 +3284,7 @@ namespace Js
         } autoRestore(this);
 #endif
 
-        if (this->ehBailoutData)
+        if (this->ehBailoutData && !(m_flags & InterpreterStackFrameFlags_FromInlineeCodeInEHBailOut))
         {
             if ((m_flags & Js::InterpreterStackFrameFlags_FromBailOut) && !(m_flags & InterpreterStackFrameFlags_ProcessingBailOutFromEHCode))
             {
@@ -6752,7 +6752,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 // Generator return scenario, so no need to go into the catch block and we must rethrow to propagate the exception to down level
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
-
             if (catchOffset != 0)
             {
                 exception = exception->CloneIfStaticExceptionObject(scriptContext);
