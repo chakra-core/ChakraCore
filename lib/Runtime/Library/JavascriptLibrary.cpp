@@ -5523,7 +5523,19 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreateExternalFunction_TTD(Js::Var fname)
     {
-        return this->CreateStdCallExternalFunction(&JavascriptExternalFunction::TTDReplayDummyExternalMethod, fname, nullptr);
+        if(TaggedInt::Is(fname))
+        {
+            PropertyId pid = TaggedInt::ToInt32(fname);
+            if(!scriptContext->IsTrackedPropertyId(pid))
+            {
+                scriptContext->TrackPid(pid);
+            }
+        }
+
+        JavascriptExternalFunction* function = this->CreateIdMappedExternalFunction(&JavascriptExternalFunction::TTDReplayDummyExternalMethod, stdCallFunctionWithDeferredPrototypeType);
+        function->SetFunctionNameId(fname);
+        function->SetCallbackState(nullptr);
+        return function;
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreateBoundFunction_TTD(RecyclableObject* function, Var bThis, uint32 ct, Var* args)
@@ -6611,16 +6623,7 @@ namespace Js
             PropertyId functionNamePropertyId = scriptContext->GetOrAddPropertyIdTracked(functionNameBuffer, functionNameBufferLength);
             functionNameOrId = TaggedInt::ToVarUnchecked(functionNamePropertyId);
         }
-#if ENABLE_TTD
-        else if (scriptContext->GetThreadContext()->IsRuntimeInTTDMode() && TaggedInt::Is(name))
-        {
-            PropertyId pid = TaggedInt::ToInt32(name);
-            if (!scriptContext->IsTrackedPropertyId(pid))
-            {
-                scriptContext->TrackPid(pid);
-            }
-        }
-#endif
+
         AssertOrFailFast(TaggedInt::Is(functionNameOrId));
         JavascriptExternalFunction* function = this->CreateIdMappedExternalFunction(entryPoint, stdCallFunctionWithDeferredPrototypeType);
         function->SetFunctionNameId(functionNameOrId);

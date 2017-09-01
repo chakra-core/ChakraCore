@@ -1582,7 +1582,7 @@ namespace TTD
 
         //////////////////
 
-        void ExtractScriptContext(SnapContext* snapCtx, Js::ScriptContext* ctx, const JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap, SlabAllocator& alloc)
+        void ExtractScriptContext(SnapContext* snapCtx, Js::ScriptContext* ctx, const JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap, const JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>& liveTopLevelBodies, SlabAllocator& alloc)
         {
             snapCtx->ScriptContextLogId = ctx->ScriptContextLogTag;
 
@@ -1595,7 +1595,7 @@ namespace TTD
             JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance);
             JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelEval(&HeapAllocator::Instance);
 
-            ctx->TTDContextInfo->GetLoadedSources(topLevelScriptLoad, topLevelNewFunction, topLevelEval);
+            ctx->TTDContextInfo->GetLoadedSources(&liveTopLevelBodies, topLevelScriptLoad, topLevelNewFunction, topLevelEval);
 
             snapCtx->LoadedTopLevelScriptCount = topLevelScriptLoad.Count();
             if(snapCtx->LoadedTopLevelScriptCount == 0)

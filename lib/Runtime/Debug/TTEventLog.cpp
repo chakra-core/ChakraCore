@@ -385,7 +385,7 @@ namespace TTD
         }
     }
 
-    SnapShot* EventLog::DoSnapshotExtract_Helper(double gcTime)
+    SnapShot* EventLog::DoSnapshotExtract_Helper(double gcTime, JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>& liveTopLevelBodies)
     {
         SnapShot* snap = nullptr;
 
@@ -397,7 +397,7 @@ namespace TTD
         //Phase 2: Evacuate marked objects
         //Allows for parallel execute and evacuate (in conjunction with later refactoring)
 
-        this->m_snapExtractor.EvacuateMarkedIntoSnapshot(this->m_threadContext);
+        this->m_snapExtractor.EvacuateMarkedIntoSnapshot(this->m_threadContext, liveTopLevelBodies);
 
         ///////////////////////////
         //Phase 3: Complete and return snapshot
@@ -429,7 +429,13 @@ namespace TTD
             this->SetSnapshotOrInflateInProgress(true);
             this->PushMode(TTDMode::ExcludedExecutionTTAction);
 
-            snap = this->DoSnapshotExtract_Helper(0.0);
+            JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator> liveTopLevelBodies(&HeapAllocator::Instance);
+            snap = this->DoSnapshotExtract_Helper(0.0, liveTopLevelBodies);
+
+            for(int32 i = 0; i < this->m_threadContext->TTDContext->GetTTDContexts().Count(); ++i)
+            {
+                this->m_threadContext->TTDContext->GetTTDContexts().Item(i)->TTDContextInfo->CleanUnreachableTopLevelBodies(liveTopLevelBodies);
+            }
 
             NSLogEvents::EventLogEntry* evt = this->m_currentReplayEventIterator.Current();
             NSLogEvents::SnapshotEventLogEntry_EnsureSnapshotDeserialized(evt, this->m_threadContext);
@@ -1256,7 +1262,14 @@ namespace TTD
         //Create the event object and add it to the log
         NSLogEvents::SnapshotEventLogEntry* snapEvent = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::SnapshotEventLogEntry, NSLogEvents::EventKind::SnapshotTag>();
         snapEvent->RestoreTimestamp = this->GetLastEventTime();
-        snapEvent->Snap = this->DoSnapshotExtract_Helper((endTime - startTime) / 1000.0);
+
+        JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator> liveTopLevelBodies(&HeapAllocator::Instance);
+        snapEvent->Snap = this->DoSnapshotExtract_Helper((endTime - startTime) / 1000.0, liveTopLevelBodies);
+
+        for(int32 i = 0; i < this->m_threadContext->TTDContext->GetTTDContexts().Count(); ++i)
+        {
+            this->m_threadContext->TTDContext->GetTTDContexts().Item(i)->TTDContextInfo->CleanUnreachableTopLevelBodies(liveTopLevelBodies);
+        }
 
         //get info about live weak roots etc. we want to use in the replay from the snapshot into the event as well
         snapEvent->LiveContextCount = snapEvent->Snap->GetContextList().Count();
@@ -1323,7 +1336,8 @@ namespace TTD
             //Be careful to ensure that caller is actually doing this
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
 
-            rootCall->AdditionalReplayInfo->RtRSnap = this->DoSnapshotExtract_Helper(0.0);
+            JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator> liveTopLevelBodies(&HeapAllocator::Instance); //don't actually care about the result here
+            rootCall->AdditionalReplayInfo->RtRSnap = this->DoSnapshotExtract_Helper(0.0, liveTopLevelBodies);
         }
 
         this->PopMode(TTDMode::ExcludedExecutionTTAction);

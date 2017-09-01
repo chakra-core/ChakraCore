@@ -453,7 +453,7 @@ namespace TTD
             SnapPendingAsyncBufferModification* PendingAsyncModArray;
         };
 
-        void ExtractScriptContext(SnapContext* snapCtx, Js::ScriptContext* ctx, const JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap, SlabAllocator& alloc);
+        void ExtractScriptContext(SnapContext* snapCtx, Js::ScriptContext* ctx, const JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap, const JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>& liveTopLevelBodies, SlabAllocator& alloc);
 
         void InflateScriptContext(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator,
             const TTDIdentifierDictionary<uint64, TopLevelScriptLoadFunctionBodyResolveInfo*>& topLevelLoadScriptMap,
