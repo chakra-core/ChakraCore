@@ -3118,7 +3118,8 @@ Recycler::SweepWeakReference()
             return false;
         }
 
-        if (!weakRef->strongRefHeapBlock->TestObjectMarkedBit(weakRef->strongRef))
+        if (weakRef->strongRefHeapBlock != nullptr &&
+            !weakRef->strongRefHeapBlock->TestObjectMarkedBit(weakRef->strongRef))
         {
             hasCleanup = true;
             weakRef->strongRef = nullptr;
