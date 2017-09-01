@@ -385,13 +385,36 @@ namespace TTD
         this->m_ttdPendingAsyncModList.Clear();
     }
 
-    void ScriptContextTTD::GetLoadedSources(JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval)
+    void ScriptContextTTD::GetLoadedSources(const JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>* onlyLiveTopLevelBodies, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval)
     {
         TTDAssert(topLevelScriptLoad.Count() == 0 && topLevelNewFunction.Count() == 0 && topLevelEval.Count() == 0, "Should be empty when you call this.");
 
-        topLevelScriptLoad.AddRange(this->m_ttdTopLevelScriptLoad);
-        topLevelNewFunction.AddRange(this->m_ttdTopLevelNewFunction);
-        topLevelEval.AddRange(this->m_ttdTopLevelEval);
+        for(auto iter = this->m_ttdTopLevelScriptLoad.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
+            if(onlyLiveTopLevelBodies == nullptr || onlyLiveTopLevelBodies->Contains(body))
+            {
+                topLevelScriptLoad.Add(iter.CurrentValue());
+            }
+        }
+
+        for(auto iter = this->m_ttdTopLevelNewFunction.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
+            if(onlyLiveTopLevelBodies == nullptr || onlyLiveTopLevelBodies->Contains(body))
+            {
+                topLevelNewFunction.Add(iter.CurrentValue());
+            }
+        }
+
+        for(auto iter = this->m_ttdTopLevelEval.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
+            if(onlyLiveTopLevelBodies == nullptr || onlyLiveTopLevelBodies->Contains(body))
+            {
+                topLevelEval.Add(iter.CurrentValue());
+            }
+        }
     }
 
     bool ScriptContextTTD::IsBodyAlreadyLoadedAtTopLevel(Js::FunctionBody* body) const
@@ -419,13 +442,33 @@ namespace TTD
         }
     }
 
+    void ScriptContextTTD::ProcessFunctionBodyOnUnLoad(Js::FunctionBody* body, Js::FunctionBody* parent)
+    {
+        //if this is a root (parent is null) then put this in the rootbody pin set so it isn't reclaimed on us
+        if(parent == nullptr)
+        {
+            TTDAssert(this->m_ttdPinnedRootFunctionSet->Contains(body), "We already added this function!!!");
+            this->m_ttdPinnedRootFunctionSet->Remove(body);
+        }
+
+        this->m_ttdFunctionBodyParentMap.Remove(body);
+
+        for(uint32 i = 0; i < body->GetNestedCount(); ++i)
+        {
+            Js::ParseableFunctionInfo* pfiMid = body->GetNestedFunctionForExecution(i);
+            Js::FunctionBody* currfb = TTD::JsSupport::ForceAndGetFunctionBody(pfiMid);
+
+            this->ProcessFunctionBodyOnUnLoad(currfb, body);
+        }
+    }
+
     void ScriptContextTTD::RegisterLoadedScript(Js::FunctionBody* body, uint32 bodyCtrId)
     {
         TTD::TopLevelFunctionInContextRelation relation;
         relation.TopLevelBodyCtr = bodyCtrId;
         relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
 
-        this->m_ttdTopLevelScriptLoad.Add(relation);
+        this->m_ttdTopLevelScriptLoad.Add(relation.ContextSpecificBodyPtrId, relation);
     }
 
     void ScriptContextTTD::RegisterNewScript(Js::FunctionBody* body, uint32 bodyCtrId)
@@ -434,7 +477,7 @@ namespace TTD
         relation.TopLevelBodyCtr = bodyCtrId;
         relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
 
-        this->m_ttdTopLevelNewFunction.Add(relation);
+        this->m_ttdTopLevelNewFunction.Add(relation.ContextSpecificBodyPtrId, relation);
     }
 
     void ScriptContextTTD::RegisterEvalScript(Js::FunctionBody* body, uint32 bodyCtrId)
@@ -443,7 +486,38 @@ namespace TTD
         relation.TopLevelBodyCtr = bodyCtrId;
         relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
 
-        this->m_ttdTopLevelEval.Add(relation);
+        this->m_ttdTopLevelEval.Add(relation.ContextSpecificBodyPtrId, relation);
+    }
+
+    void ScriptContextTTD::CleanUnreachableTopLevelBodies(const JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>& liveTopLevelBodies)
+    {
+        //don't clear top-level loaded bodies
+
+        this->m_ttdTopLevelNewFunction.MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<TTD_PTR_ID, TTD::TopLevelFunctionInContextRelation>& entry) -> bool {
+            Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(entry.Value().ContextSpecificBodyPtrId);
+            if(liveTopLevelBodies.Contains(body))
+            {
+                return false;
+            }
+            else
+            {
+                this->ProcessFunctionBodyOnUnLoad(body, nullptr);
+                return true;
+            }
+        });
+
+        this->m_ttdTopLevelEval.MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<TTD_PTR_ID, TTD::TopLevelFunctionInContextRelation>& entry) -> bool {
+            Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(entry.Value().ContextSpecificBodyPtrId);
+            if(liveTopLevelBodies.Contains(body))
+            {
+                return false;
+            }
+            else
+            {
+                this->ProcessFunctionBodyOnUnLoad(body, nullptr);
+                return true;
+            }
+        });
     }
 
     Js::FunctionBody* ScriptContextTTD::ResolveParentBody(Js::FunctionBody* body) const
@@ -462,27 +536,27 @@ namespace TTD
 
         TTD_PTR_ID trgtid = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(rootBody);
 
-        for(int32 i = 0; i < this->m_ttdTopLevelScriptLoad.Count(); ++i)
+        for(auto iter = this->m_ttdTopLevelScriptLoad.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            if(this->m_ttdTopLevelScriptLoad.Item(i).ContextSpecificBodyPtrId == trgtid)
+            if(iter.CurrentValue().ContextSpecificBodyPtrId == trgtid)
             {
-                return this->m_ttdTopLevelScriptLoad.Item(i).TopLevelBodyCtr;
+                return iter.CurrentValue().TopLevelBodyCtr;
             }
         }
 
-        for(int32 i = 0; i < this->m_ttdTopLevelNewFunction.Count(); ++i)
+        for(auto iter = this->m_ttdTopLevelNewFunction.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            if(this->m_ttdTopLevelNewFunction.Item(i).ContextSpecificBodyPtrId == trgtid)
+            if(iter.CurrentValue().ContextSpecificBodyPtrId == trgtid)
             {
-                return this->m_ttdTopLevelNewFunction.Item(i).TopLevelBodyCtr;
+                return iter.CurrentValue().TopLevelBodyCtr;
             }
         }
 
-        for(int32 i = 0; i < this->m_ttdTopLevelEval.Count(); ++i)
+        for(auto iter = this->m_ttdTopLevelEval.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            if(this->m_ttdTopLevelEval.Item(i).ContextSpecificBodyPtrId == trgtid)
+            if(iter.CurrentValue().ContextSpecificBodyPtrId == trgtid)
             {
-                return this->m_ttdTopLevelEval.Item(i).TopLevelBodyCtr;
+                return iter.CurrentValue().TopLevelBodyCtr;
             }
         }
 
@@ -492,31 +566,30 @@ namespace TTD
 
     Js::FunctionBody* ScriptContextTTD::FindRootBodyByTopLevelCtr(uint32 bodyCtrId) const
     {
-        for(int32 i = 0; i < this->m_ttdTopLevelScriptLoad.Count(); ++i)
+        for(auto iter = this->m_ttdTopLevelScriptLoad.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            if(this->m_ttdTopLevelScriptLoad.Item(i).TopLevelBodyCtr == bodyCtrId)
+            if(iter.CurrentValue().TopLevelBodyCtr == bodyCtrId)
             {
-                return TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(this->m_ttdTopLevelScriptLoad.Item(i).ContextSpecificBodyPtrId);
+                return TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
             }
         }
 
-        for(int32 i = 0; i < this->m_ttdTopLevelNewFunction.Count(); ++i)
+        for(auto iter = this->m_ttdTopLevelNewFunction.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            if(this->m_ttdTopLevelNewFunction.Item(i).TopLevelBodyCtr == bodyCtrId)
+            if(iter.CurrentValue().TopLevelBodyCtr == bodyCtrId)
             {
-                return TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(this->m_ttdTopLevelNewFunction.Item(i).ContextSpecificBodyPtrId);
+                return TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
             }
         }
 
-        for(int32 i = 0; i < this->m_ttdTopLevelEval.Count(); ++i)
+        for(auto iter = this->m_ttdTopLevelEval.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            if(this->m_ttdTopLevelEval.Item(i).TopLevelBodyCtr == bodyCtrId)
+            if(iter.CurrentValue().TopLevelBodyCtr == bodyCtrId)
             {
-                return TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(this->m_ttdTopLevelEval.Item(i).ContextSpecificBodyPtrId);
+                return TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
             }
         }
 
-        //TTDAssert(false, "We are missing a top level body counter.");
         return nullptr;
     }
 
