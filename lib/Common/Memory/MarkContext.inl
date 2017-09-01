@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -196,6 +196,8 @@ void MarkContext::ProcessMark()
 
             // Process the previously retrieved entry.
             ScanObject<parallel, interior>(current.obj, current.byteCount);
+
+            _mm_prefetch((char *)*(next.obj), _MM_HINT_T0);
 
             current = next;
         }
