@@ -465,26 +465,6 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         return tkID;
     }
 
-    // During syntax coloring, scanner doesn't need to convert the escape sequence to get actual characters, it just needs the classification information
-    // So call up hashtables custom method to check if the string scanned is identifier or keyword.
-    // Do the same for deferred parsing, but use a custom method that only tokenizes JS keywords.
-    if ((m_DeferredParseFlags & ScanFlagSuppressIdPid) != 0)
-    {
-        m_ptoken->SetIdentifier(NULL);
-        if (!fHasEscape)
-        {
-            // If there are no escape, that the main scan loop would have found the keyword already
-            // So we can just assume it is an ID
-            DebugOnly(int32 cch = UnescapeToTempBuf(pchMin, p));
-            DebugOnly(tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
-            Assert(tk == tkID || (tk == tkYIELD && !this->YieldIsKeyword()) || (tk == tkAWAIT && !this->AwaitIsKeyword()));
-            return tkID;
-        }
-        int32 cch = UnescapeToTempBuf(pchMin, p);
-        tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode());
-        return (!this->YieldIsKeyword() && tk == tkYIELD) || (!this->AwaitIsKeyword() && tk == tkAWAIT) ? tkID : tk;
-    }
-
     // UTF16 Scanner are only for syntax coloring, so it shouldn't come here.
     if (EncodingPolicy::MultiUnitEncoding && !fHasMultiChar && !fHasEscape)
     {
@@ -493,7 +473,7 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         // If there are no escape, that the main scan loop would have found the keyword already
         // So we can just assume it is an ID
         DebugOnly(int32 cch = UnescapeToTempBuf(pchMin, p));
-        DebugOnly(tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
+        DebugOnly(tokens tk = Ident::TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
         Assert(tk == tkID || (tk == tkYIELD && !this->YieldIsKeyword()) || (tk == tkAWAIT && !this->AwaitIsKeyword()));
 
         m_ptoken->SetIdentifier(reinterpret_cast<const char *>(pchMin), (int32)(p - pchMin));
@@ -506,8 +486,8 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
     if (!fHasEscape)
     {
         // If it doesn't have escape, then Scan() should have taken care of keywords (except
-        // yield if this->YieldIsKeyword() is false, in which case yield is treated as an identifier, and except
-        // await if this->AwaitIsKeyword() is false, in which case await is treated as an identifier).
+        // yield if m_fYieldIsKeyword is false, in which case yield is treated as an identifier, and except
+        // await if m_fAwaitIsKeyword is false, in which case await is treated as an identifier).
         // We don't have to check if the name is reserved word and return it as an Identifier
         Assert(pid->Tk(IsStrictMode()) == tkID
             || (pid->Tk(IsStrictMode()) == tkYIELD && !this->YieldIsKeyword())
