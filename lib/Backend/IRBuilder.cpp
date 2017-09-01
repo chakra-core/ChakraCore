@@ -1988,36 +1988,6 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
     this->AddInstr(instr, offset);
 }
 
-template <typename SizePolicy>
-void
-IRBuilder::BuildReg2WithICIndex(Js::OpCode newOpcode, uint32 offset)
-{
-    AssertMsg(false, "NYI");
-}
-
-template <typename SizePolicy>
-void
-IRBuilder::BuildProfiledReg2WithICIndex(Js::OpCode newOpcode, uint32 offset)
-{
-    Assert(OpCodeAttr::IsProfiledOpWithICIndex(newOpcode));
-    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
-    auto layout = m_jnReader.GetLayout<Js::OpLayoutDynamicProfile<Js::OpLayoutT_Reg2WithICIndex<SizePolicy>>>();
-
-    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
-    {
-        this->DoClosureRegCheck(layout->R0);
-        this->DoClosureRegCheck(layout->R1);
-    }
-
-    BuildProfiledReg2WithICIndex(newOpcode, offset, layout->R0, layout->R1, layout->profileId, layout->inlineCacheIndex);
-}
-
-void
-IRBuilder::BuildProfiledReg2WithICIndex(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot, Js::ProfileId profileId, Js::InlineCacheIndex inlineCacheIndex)
-{
-    BuildProfiledReg2(newOpcode, offset, dstRegSlot, srcRegSlot, profileId, inlineCacheIndex);
-}
-
 ///----------------------------------------------------------------------------
 ///
 /// IRBuilder::BuildProfiledReg2
@@ -2043,7 +2013,7 @@ IRBuilder::BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset)
 }
 
 void
-IRBuilder::BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot, Js::ProfileId profileId, Js::InlineCacheIndex inlineCacheIndex)
+IRBuilder::BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot, Js::ProfileId profileId)
 {
     bool switchFound = false;
 
@@ -2112,7 +2082,6 @@ IRBuilder::BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
         IR::JitProfilingInstr *profiledInstr = IR::JitProfilingInstr::New(newOpcode, dstOpnd, src1Opnd, m_func);
         profiledInstr->profileId = profileId;
         profiledInstr->isBeginSwitch = newOpcode == Js::OpCode::Ld_A;
-        profiledInstr->inlineCacheIndex = inlineCacheIndex;
         instr = profiledInstr;
     }
     else if(isProfiled)
@@ -2832,30 +2801,6 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
             Assert(false);
             __assume(false);
     }
-}
-
-void
-IRBuilder::BuildReg1Int2(Js::OpCode newOpcode, uint32 offset)
-{
-    Assert(!OpCodeAttr::HasMultiSizeLayout(newOpcode));
-
-    const unaligned Js::OpLayoutReg1Int2 *regLayout = m_jnReader.Reg1Int2();
-    Js::RegSlot     R0 = regLayout->R0;
-    int32           C1 = regLayout->C1;
-    int32           C2 = regLayout->C2;
-
-    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
-    {
-        this->DoClosureRegCheck(R0);
-    }
-
-    IR::RegOpnd* dstOpnd = this->BuildDstOpnd(R0);
-
-    IR::IntConstOpnd * srcOpnd = IR::IntConstOpnd::New(C1, TyInt32, m_func);
-    IR::IntConstOpnd * src2Opnd = IR::IntConstOpnd::New(C2, TyInt32, m_func);
-    IR::Instr* instr = IR::Instr::New(newOpcode, dstOpnd, srcOpnd, src2Opnd, m_func);
-
-    this->AddInstr(instr, offset);
 }
 
 template <typename SizePolicy>

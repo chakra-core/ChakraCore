@@ -540,7 +540,7 @@ MACRO_BACKEND_ONLY(     NewStackScopeSlots, Reg1,           None)
 MACRO_BACKEND_ONLY(     InitLocalClosure,   Reg1,           None)
 MACRO_WMS(              NewInnerScopeSlots, Reg3,           None)
 MACRO_WMS(              CloneInnerScopeSlots, Unsigned1,    OpSideEffect)   // Clone existing inner scope slots in place for for-loop iterations
-MACRO_BACKEND_ONLY(     NewScopeSlotsWithoutPropIds, Reg1Int2, None)
+MACRO_BACKEND_ONLY(     NewScopeSlotsWithoutPropIds, Reg3,  None)
 MACRO_WMS(              NewRegEx,           Reg1Unsigned1,  OpTempObjectCanStoreTemp|OpSideEffect)              // Create a new RegEx expression
 MACRO_WMS(              IsInst,             Reg3C,          OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)  // instanceof() - SideEffect: can throw...
 

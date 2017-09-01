@@ -118,7 +118,6 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 #include "DataStructures/GrowingArray.h"
 #include "DataStructures/EvalMapString.h"
 #include "DataStructures/RegexKey.h"
-#include "DataStructures/LineOffsetCache.h"
 
 #include "Core/ICustomConfigFlags.h"
 #include "Core/CmdParser.h"

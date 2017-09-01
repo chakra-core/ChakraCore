@@ -273,12 +273,12 @@ namespace Js
         void ElementUnsigned1(OpCode op, RegSlot value, RegSlot instance, uint32 element);
         void Property(OpCode op, RegSlot Value, RegSlot Instance, PropertyIdIndexType propertyIdIndex);
         void ScopedProperty(OpCode op, RegSlot Value, PropertyIdIndexType propertyIdIndex);
-        void Slot(OpCode op, RegSlot value, RegSlot instance, int32 slotId);
-        void Slot(OpCode op, RegSlot value, RegSlot instance, int32 slotId, ProfileId profileId);
-        void SlotI1(OpCode op, RegSlot value, int32 slotId1);
-        void SlotI1(OpCode op, RegSlot value, int32 slotId1, ProfileId profileId);
-        void SlotI2(OpCode op, RegSlot value, int32 slotId1, int32 slotId2);
-        void SlotI2(OpCode op, RegSlot value, int32 slotId1, int32 slotId2, ProfileId profileId);
+        void Slot(OpCode op, RegSlot value, RegSlot instance, uint32 slotId);
+        void Slot(OpCode op, RegSlot value, RegSlot instance, uint32 slotId, ProfileId profileId);
+        void SlotI1(OpCode op, RegSlot value, uint32 slotId1);
+        void SlotI1(OpCode op, RegSlot value, uint32 slotId1, ProfileId profileId);
+        void SlotI2(OpCode op, RegSlot value, uint32 slotId1, uint32 slotId2);
+        void SlotI2(OpCode op, RegSlot value, uint32 slotId1, uint32 slotId2, ProfileId profileId);
         void ElementU(OpCode op, RegSlot instance, PropertyIdIndexType propertyIdIndex);
         void ElementScopedU(OpCode op, PropertyIdIndexType propertyIdIndex);
         void ElementRootU(OpCode op, PropertyIdIndexType propertyIdIndex);
@@ -289,14 +289,12 @@ namespace Js
         void PatchablePropertyWithThisPtr(OpCode op, RegSlot value, RegSlot instance, RegSlot thisInstance, uint cacheId, bool isCtor = false, bool registerCacheIdForCall = true);
         void ScopedProperty2(OpCode op, RegSlot Value, PropertyIdIndexType propertyIdIndex, RegSlot R2);
         void W1(OpCode op, unsigned short C1);
-        void Reg1Int2(OpCode op, RegSlot R0, int C1, int C2);
         void Reg2Int1(OpCode op, RegSlot R0, RegSlot R1, int C1);
         void Unsigned1(OpCode op, uint C1);
         void Num3(OpCode op, RegSlot C0, RegSlot C1, RegSlot C2);
 
         template <typename SizePolicy> bool TryWriteReg1(OpCode op, RegSlot R0);
         template <typename SizePolicy> bool TryWriteReg2(OpCode op, RegSlot R0, RegSlot R1);
-        template <typename SizePolicy> bool TryWriteReg2WithICIndex(OpCode op, RegSlot R0, RegSlot R1, uint32 inlineCacheIndex, bool isRootLoad);
         template <typename SizePolicy> bool TryWriteReg3(OpCode op, RegSlot R0, RegSlot R1, RegSlot R2);
         template <typename SizePolicy> bool TryWriteReg3C(OpCode op, RegSlot R0, RegSlot R1, RegSlot R2, CacheId cacheId);
         template <typename SizePolicy> bool TryWriteReg4(OpCode op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3);
@@ -321,9 +319,9 @@ namespace Js
         template <typename SizePolicy> bool TryWriteElementUnsigned1(OpCode op, RegSlot Value, RegSlot Instance, uint32 Element);
         template <typename SizePolicy> bool TryWriteElementC(OpCode op, RegSlot value, RegSlot instance, PropertyIdIndexType propertyIdIndex);
         template <typename SizePolicy> bool TryWriteElementScopedC(OpCode op, RegSlot value, PropertyIdIndexType propertyIdIndex);
-        template <typename SizePolicy> bool TryWriteElementSlot(OpCode op, RegSlot value, RegSlot instance, int32 slotId);
-        template <typename SizePolicy> bool TryWriteElementSlotI1(OpCode op, RegSlot value, int32 slotId);
-        template <typename SizePolicy> bool TryWriteElementSlotI2(OpCode op, RegSlot value, int32 slotId1, int32 slotId2);
+        template <typename SizePolicy> bool TryWriteElementSlot(OpCode op, RegSlot value, RegSlot instance, uint32 slotId);
+        template <typename SizePolicy> bool TryWriteElementSlotI1(OpCode op, RegSlot value, uint32 slotId);
+        template <typename SizePolicy> bool TryWriteElementSlotI2(OpCode op, RegSlot value, uint32 slotId1, uint32 slotId2);
         template <typename SizePolicy> bool TryWriteElementU(OpCode op, RegSlot instance, PropertyIdIndexType index);
         template <typename SizePolicy> bool TryWriteElementScopedU(OpCode op, PropertyIdIndexType index);
         template <typename SizePolicy> bool TryWriteElementRootU(OpCode op, PropertyIdIndexType index);
