@@ -377,10 +377,13 @@ Instr::Free()
     if (this->GetSrc1())
     {
         this->FreeSrc1();
-        if (this->GetSrc2())
-        {
-            this->FreeSrc2();
-        }
+    }
+    if (this->GetSrc2())
+    {
+        // This pattern isn't so unusual:
+        //     src = instr->UnlinkSrc1();
+        //     instr->Remove();
+        this->FreeSrc2();
     }
 
     ClearBailOutInfo();
