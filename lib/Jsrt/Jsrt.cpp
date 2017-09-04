@@ -2233,56 +2233,6 @@ CHAKRA_API JsStrictEquals(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out
     });
 }
 
-CHAKRA_API JsHasExternalData(_In_ JsValueRef object, _Out_ bool *value)
-{
-    VALIDATE_JSREF(object);
-    PARAM_NOT_NULL(value);
-
-    BEGIN_JSRT_NO_EXCEPTION
-    {
-        *value = JsrtExternalObject::Is(object);
-    }
-    END_JSRT_NO_EXCEPTION
-}
-
-CHAKRA_API JsGetExternalData(_In_ JsValueRef object, _Out_ void **data)
-{
-    VALIDATE_JSREF(object);
-    PARAM_NOT_NULL(data);
-
-    BEGIN_JSRT_NO_EXCEPTION
-    {
-        if (JsrtExternalObject::Is(object))
-        {
-            *data = JsrtExternalObject::FromVar(object)->GetSlotData();
-        }
-        else
-        {
-            *data = nullptr;
-            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
-        }
-    }
-    END_JSRT_NO_EXCEPTION
-}
-
-CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
-{
-    VALIDATE_JSREF(object);
-
-    BEGIN_JSRT_NO_EXCEPTION
-    {
-        if (JsrtExternalObject::Is(object))
-        {
-            JsrtExternalObject::FromVar(object)->SetSlotData(data);
-        }
-        else
-        {
-            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
-        }
-    }
-    END_JSRT_NO_EXCEPTION
-}
-
 CHAKRA_API JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
 {
     if(result != nullptr)
@@ -4739,7 +4689,7 @@ CHAKRA_API JsGetAndClearExceptionWithMetadata(_Out_ JsValueRef *metadata)
 
 CHAKRA_API JsHasOwnProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _Out_ bool *hasOwnProperty)
 {
-    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTHasOwnProperty, (Js::PropertyRecord *)propertyId, object);
 
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
@@ -4816,4 +4766,164 @@ CHAKRA_API JsGetDataViewInfo(
     END_JSRT_NO_EXCEPTION
 }
 
-#endif // _CHAKRACOREBUILD
+CHAKRA_API JsObjectSetExternalDataWithCallback(
+    _In_     JsValueRef         value,
+    _In_opt_ void               *data,
+    _In_opt_ JsFinalizeCallback finalizeCallback)
+{
+    PARAM_NOT_NULL(value);
+
+    return ContextAPINoScriptWrapper([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+        VALIDATE_INCOMING_REFERENCE(value, scriptContext);
+
+        if (!Js::RecyclableObject::Is(value)) return JsErrorInvalidArgument;
+        Js::TypeId tid = Js::RecyclableObject::FromVar(value)->GetTypeId();
+        if (tid <= Js::TypeIds_Undefined) return JsErrorInvalidArgument; // null / undefined
+
+        if (JsrtExternalObject::Is(value))
+        {
+            JsrtExternalObject *object = JsrtExternalObject::FromVar(value);
+            object->SetSlotData(data);
+            object->GetExternalType()->SetJsFinalizeCallback(finalizeCallback);
+            return JsNoError;
+        }
+
+        if ((tid >= Js::TypeIds_Function && tid <= Js::TypeIds_ArrayBuffer) || Js::DynamicObject::Is(value))
+        {
+            JsValueRef externalObject = JsrtExternalObject::Create(data, finalizeCallback, scriptContext);
+            Js::DynamicObject *object = Js::DynamicObject::FromVar(value);
+            object->SetExternalData(scriptContext, externalObject);
+        }
+        else
+        {
+            return JsErrorInvalidArgument;
+        }
+        return JsNoError;
+    });
+}
+
+JsErrorCode JsObjectHasExternalData(
+    _In_     JsValueRef         value,
+    _Out_    bool               *hasExternalObjectData)
+{
+    VALIDATE_JSREF(value);
+    PARAM_NOT_NULL(hasExternalObjectData);
+
+    *hasExternalObjectData = false;
+
+    if (!Js::RecyclableObject::Is(value)) return JsErrorInvalidArgument;
+    Js::TypeId tid = Js::RecyclableObject::FromVar(value)->GetTypeId();
+    if (tid <= Js::TypeIds_Undefined) return JsErrorInvalidArgument; // null / undefined
+
+    if (JsrtExternalObject::Is(value))
+    {
+        *hasExternalObjectData = JsrtExternalObject::FromVar(value)->GetSlotData() != nullptr;
+        return JsNoError;
+    }
+
+    if ((tid >= Js::TypeIds_Function && tid <= Js::TypeIds_ArrayBuffer) || Js::DynamicObject::Is(value))
+    {
+        JsValueRef result = Js::DynamicObject::FromVar(value)->GetExternalData();
+        *hasExternalObjectData = result != nullptr;
+    }
+    else
+    {
+        return JsErrorInvalidArgument;
+    }
+
+    return JsNoError;
+}
+
+JsErrorCode JsObjectGetExternalData(
+    _In_     JsValueRef         value,
+    _Out_    void*              *data)
+{
+    VALIDATE_JSREF(value);
+    PARAM_NOT_NULL(data);
+
+    *data = nullptr;
+
+    if (!Js::RecyclableObject::Is(value)) return JsErrorInvalidArgument;
+    Js::TypeId tid = Js::RecyclableObject::FromVar(value)->GetTypeId();
+    if (tid <= Js::TypeIds_Undefined) return JsErrorInvalidArgument; // null / undefined
+
+    if (JsrtExternalObject::Is(value))
+    {
+        *data = JsrtExternalObject::FromVar(value)->GetSlotData();
+        return JsNoError;
+    }
+
+    if ((tid >= Js::TypeIds_Function && tid <= Js::TypeIds_ArrayBuffer) || Js::DynamicObject::Is(value))
+    {
+        JsValueRef result = Js::DynamicObject::FromVar(value)->GetExternalData();
+
+        if (result != nullptr)
+        {
+            *data = JsrtExternalObject::FromVar(result)->GetSlotData();
+        }
+    }
+    else
+    {
+        return JsErrorInvalidArgument;
+    }
+
+    return JsNoError;
+}
+
+CHAKRA_API JsObjectSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
+{
+    return JsObjectSetExternalDataWithCallback(object, data, nullptr);
+}
+
+#else // !_CHAKRACOREBUILD
+
+CHAKRA_API JsHasExternalData(_In_ JsValueRef object, _Out_ bool *value)
+{
+    VALIDATE_JSREF(object);
+    PARAM_NOT_NULL(value);
+
+    bool isExternalObject = JsrtExternalObject::Is(object);
+
+    *value = isExternalObject;
+
+    return JsNoError;
+}
+
+CHAKRA_API JsGetExternalData(_In_ JsValueRef object, _Out_ void **data)
+{
+    VALIDATE_JSREF(object);
+    PARAM_NOT_NULL(data);
+
+    if (JsrtExternalObject::Is(object))
+    {
+        *data = JsrtExternalObject::FromVar(object)->GetSlotData();
+    }
+    else
+    {
+        *data = nullptr;
+        RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
+    }
+
+    return JsNoError;
+}
+
+CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
+{
+    VALIDATE_JSREF(object);
+
+    BEGIN_JSRT_NO_EXCEPTION
+    {
+        if (JsrtExternalObject::Is(object))
+        {
+            JsrtExternalObject::FromVar(object)->SetSlotData(data);
+        }
+        else
+        {
+            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
+        }
+    }
+    END_JSRT_NO_EXCEPTION
+}
+#endif

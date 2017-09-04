@@ -1336,4 +1336,13 @@ namespace Js
 
     template class ES5ArrayTypeHandlerBase<PropertyIndex>;
     template class ES5ArrayTypeHandlerBase<BigPropertyIndex>;
+
+    template class ES5ArrayTypeHandlerBaseWithExternal<PropertyIndex>;
+    template class ES5ArrayTypeHandlerBaseWithExternal<BigPropertyIndex>;
+
+    template <class T>
+    DynamicTypeHandler* ES5ArrayTypeHandlerBase<T>::ConvertToExternalDataSupport(Recycler* recycler)
+    {
+        return ES5ArrayTypeHandlerBaseWithExternal<T>::New(recycler, this);
+    }
 }

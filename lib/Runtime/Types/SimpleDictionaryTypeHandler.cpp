@@ -293,6 +293,37 @@ namespace Js
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::
+      SimpleDictionaryTypeHandlerBase(Recycler * recycler, SimpleDictionaryTypeHandlerBase
+        <TPropertyIndex, TMapKey, IsNotExtensibleSupported> * base) :
+        DynamicTypeHandler((DynamicTypeHandler*) base),
+        nextPropertyIndex(0),
+        singletonInstance(nullptr),
+        _gc_tag(true),
+        isUnordered(false),
+        hasNamelessPropertyId(false),
+        numDeletedProperties(0)
+    {
+        uint32 count = base->propertyMap->Count();
+        propertyMap = RecyclerNew(recycler, SimplePropertyDescriptorMap, recycler, count);
+
+        for (uint32 i = 0; i < count; i++)
+        {
+            auto key = base->propertyMap->GetKeyAt(i);
+            auto descriptor = propertyMap->GetReferenceAt(i);
+            propertyMap->Add(key, *descriptor);
+        }
+    }
+
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    DynamicTypeHandler* SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::
+    ConvertToExternalDataSupport(Recycler* recycler)
+    {
+        return (DynamicTypeHandler*) SimpleDictionaryTypeHandlerBaseWithExternal
+          <TPropertyIndex, TMapKey, IsNotExtensibleSupported>::New(recycler, this);
+    }
+
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SimpleDictionaryTypeHandlerBase(Recycler * recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked, bool isShared) :
         // Do not RoundUp passed in slotCapacity. This may be called by ConvertTypeHandler for an existing DynamicObject and should use the real existing slotCapacity.
         DynamicTypeHandler(slotCapacity, inlineSlotCapacity, offsetOfInlineSlots, DefaultFlags | (isLocked ? IsLockedFlag : 0) | (isShared ? (MayBecomeSharedFlag | IsSharedFlag) : 0)),
@@ -431,6 +462,10 @@ namespace Js
         U* newTypeHandler = RecyclerNew(recycler, U, recycler, GetSlotCapacity(), GetInlineSlotCapacity(), GetOffsetOfInlineSlots());
         // We expect the new type handler to start off marked as having only writable data properties.
         Assert(newTypeHandler->GetHasOnlyWritableDataProperties());
+        if (instance->GetTypeHandler()->HasExternalDataSupport() && !newTypeHandler->HasExternalDataSupport())
+        {
+            newTypeHandler = (U*) newTypeHandler->ConvertToExternalDataSupport(recycler);
+        }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         DynamicType* oldType = instance->GetDynamicType();
@@ -3438,6 +3473,16 @@ namespace Js
 
     template void Js::SimpleDictionaryTypeHandlerBase<unsigned short, Js::PropertyRecord const*, false>::Add<Js::PropertyRecord const*>(Js::PropertyRecord const*, unsigned char, bool, bool, bool, Js::ScriptContext* const);
     template void Js::SimpleDictionaryTypeHandlerBase<unsigned short, Js::PropertyRecord const*, true>::Add<Js::PropertyRecord const*>(Js::PropertyRecord const*, unsigned char, bool, bool, bool, Js::ScriptContext* const);
+
+    template class SimpleDictionaryTypeHandlerBaseWithExternal<PropertyIndex, const PropertyRecord*, false>;
+    template class SimpleDictionaryTypeHandlerBaseWithExternal<PropertyIndex, const PropertyRecord*, true>;
+    template class SimpleDictionaryTypeHandlerBaseWithExternal<BigPropertyIndex, const PropertyRecord*, false>;
+    template class SimpleDictionaryTypeHandlerBaseWithExternal<BigPropertyIndex, const PropertyRecord*, true>;
+
+    template class SimpleDictionaryTypeHandlerBaseWithExternal<PropertyIndex, JavascriptString*, false>;
+    template class SimpleDictionaryTypeHandlerBaseWithExternal<PropertyIndex, JavascriptString*, true>;
+    template class SimpleDictionaryTypeHandlerBaseWithExternal<BigPropertyIndex, JavascriptString*, false>;
+    template class SimpleDictionaryTypeHandlerBaseWithExternal<BigPropertyIndex, JavascriptString*, true>;
 
     // Instantiated here since this method is defined in this file
     template void Js::PropertyIndexRangesBase<Js::PropertyIndexRanges<int> >::VerifySlotCapacity(int);

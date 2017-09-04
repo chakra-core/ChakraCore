@@ -155,6 +155,8 @@ namespace Js
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> class SimpleDictionaryTypeHandlerBase;
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> class SimpleDictionaryUnorderedTypeHandler;
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> class SimpleDictionaryTypeHandlerBaseWithExternal;
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> class SimpleDictionaryUnorderedTypeHandlerWithExternal;
     template <typename TPropertyIndex> class DictionaryTypeHandlerBase;
     template <typename TPropertyIndex> class ES5ArrayTypeHandlerBase;
 
@@ -166,6 +168,11 @@ namespace Js
     typedef SimpleDictionaryTypeHandlerBase<BigPropertyIndex, const PropertyRecord*, false> BigSimpleDictionaryTypeHandler;
     typedef SimpleDictionaryTypeHandlerBase<BigPropertyIndex, const PropertyRecord*, true>  BigSimpleDictionaryTypeHandlerNotExtensible;
 
+    typedef SimpleDictionaryTypeHandlerBaseWithExternal<PropertyIndex, const PropertyRecord*, false>    SimpleDictionaryTypeHandlerWithExternal;
+    typedef SimpleDictionaryTypeHandlerBaseWithExternal<PropertyIndex, const PropertyRecord*, true>     SimpleDictionaryTypeHandlerNotExtensibleWithExternal;
+    typedef SimpleDictionaryTypeHandlerBaseWithExternal<BigPropertyIndex, const PropertyRecord*, false> BigSimpleDictionaryTypeHandlerWithExternal;
+    typedef SimpleDictionaryTypeHandlerBaseWithExternal<BigPropertyIndex, const PropertyRecord*, true>  BigSimpleDictionaryTypeHandlerNotExtensibleWithExternal;
+
     typedef SimpleDictionaryUnorderedTypeHandler<PropertyIndex, const PropertyRecord*, false>    SimpleDictionaryUnorderedPropertyRecordKeyedTypeHandler;
     typedef SimpleDictionaryUnorderedTypeHandler<PropertyIndex, const PropertyRecord*, true>     SimpleDictionaryUnorderedPropertyRecordKeyedTypeHandlerNotExtensible;
     typedef SimpleDictionaryUnorderedTypeHandler<BigPropertyIndex, const PropertyRecord*, false> BigSimpleDictionaryUnorderedPropertyRecordKeyedTypeHandler;
@@ -176,11 +183,31 @@ namespace Js
     typedef SimpleDictionaryUnorderedTypeHandler<BigPropertyIndex, JavascriptString*, false> BigSimpleDictionaryUnorderedStringKeyedTypeHandler;
     typedef SimpleDictionaryUnorderedTypeHandler<BigPropertyIndex, JavascriptString*, true>  BigSimpleDictionaryUnorderedStringKeyedTypeHandlerNotExtensible;
 
+    typedef SimpleDictionaryUnorderedTypeHandlerWithExternal<PropertyIndex, const PropertyRecord*, false>    SimpleDictionaryUnorderedPropertyRecordKeyedTypeHandlerWithExternal;
+    typedef SimpleDictionaryUnorderedTypeHandlerWithExternal<PropertyIndex, const PropertyRecord*, true>     SimpleDictionaryUnorderedPropertyRecordKeyedTypeHandlerNotExtensibleWithExternal;
+    typedef SimpleDictionaryUnorderedTypeHandlerWithExternal<BigPropertyIndex, const PropertyRecord*, false> BigSimpleDictionaryUnorderedPropertyRecordKeyedTypeHandlerWithExternal;
+    typedef SimpleDictionaryUnorderedTypeHandlerWithExternal<BigPropertyIndex, const PropertyRecord*, true>  BigSimpleDictionaryUnorderedPropertyRecordKeyedTypeHandlerNotExtensibleWithExternal;
+
+    typedef SimpleDictionaryUnorderedTypeHandlerWithExternal<PropertyIndex, JavascriptString*, false>    SimpleDictionaryUnorderedStringKeyedTypeHandlerWithExternal;
+    typedef SimpleDictionaryUnorderedTypeHandlerWithExternal<PropertyIndex, JavascriptString*, true>     SimpleDictionaryUnorderedStringKeyedTypeHandlerNotExtensibleWithExternal;
+    typedef SimpleDictionaryUnorderedTypeHandlerWithExternal<BigPropertyIndex, JavascriptString*, false> BigSimpleDictionaryUnorderedStringKeyedTypeHandlerWithExternal;
+    typedef SimpleDictionaryUnorderedTypeHandlerWithExternal<BigPropertyIndex, JavascriptString*, true>  BigSimpleDictionaryUnorderedStringKeyedTypeHandlerNotExtensibleWithExternal;
+
     typedef DictionaryTypeHandlerBase<PropertyIndex> DictionaryTypeHandler;
     typedef DictionaryTypeHandlerBase<BigPropertyIndex> BigDictionaryTypeHandler;
 
+    template <class T> class DictionaryTypeHandlerBaseWithExternal;
+
+    typedef DictionaryTypeHandlerBaseWithExternal<PropertyIndex> DictionaryTypeHandlerWithExternal;
+    typedef DictionaryTypeHandlerBaseWithExternal<BigPropertyIndex> BigDictionaryTypeHandlerWithExternal;
+
     typedef ES5ArrayTypeHandlerBase<PropertyIndex> ES5ArrayTypeHandler;
     typedef ES5ArrayTypeHandlerBase<BigPropertyIndex> BigES5ArrayTypeHandler;
+
+    template <class T> class ES5ArrayTypeHandlerBaseWithExternal;
+
+    typedef ES5ArrayTypeHandlerBaseWithExternal<PropertyIndex> ES5ArrayTypeHandlerWithExternal;
+    typedef ES5ArrayTypeHandlerBaseWithExternal<BigPropertyIndex> BigES5ArrayTypeHandlerWithExternal;
 
     template <int N> class ConcatStringN;
     typedef ConcatStringN<2> ConcatStringN2;
@@ -225,4 +252,3 @@ namespace JSON
 #define JS_DIAG_TYPE_JavascriptRegExpConstructor    _u("Object, (RegExp constructor)")
 
 #include "Language/SimdUtils.h"
-

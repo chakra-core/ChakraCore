@@ -7,18 +7,21 @@
 namespace Js
 {
     class SimplePathTypeHandler;
+    template<class T> class PathTypeHandlerWithExternal;
 
     class PathTypeHandlerBase : public DynamicTypeHandler
     {
         friend class DynamicObject;
         friend class SimplePathTypeHandler;
         friend class PathTypeHandler;
+        template<class T> friend class PathTypeHandlerWithExternal;
     private:
         Field(TypePath*) typePath;
         Field(DynamicType*) predecessorType; // Strong reference to predecessor type so that predecessor types remain in the cache even though they might not be used
 
     public:
         DEFINE_GETCPPNAME();
+
         typedef JsUtil::WeaklyReferencedKeyDictionary<DynamicType, DynamicType*> TypeTransitionMap;
 
     protected:
@@ -206,6 +209,8 @@ namespace Js
         void MoveAuxSlotsToObjectHeader(DynamicObject *const object);
         BOOL DeleteLastProperty(DynamicObject *const object);
 
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
+
 #if ENABLE_TTD
     public:
         virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override;
@@ -220,14 +225,17 @@ namespace Js
 
     typedef SimpleDictionaryTypeHandlerBase<PropertyIndex, const PropertyRecord*, true> SimpleDictionaryTypeHandlerWithNontExtensibleSupport;
 
-    class SimplePathTypeHandler sealed : public PathTypeHandlerBase
+    class SimplePathTypeHandler : public PathTypeHandlerBase
     {
+        template<class T> friend class PathTypeHandlerWithExternal;
     private:
         Field(const PropertyRecord *) successorPropertyRecord;
         Field(RecyclerWeakReference<DynamicType> *) successorTypeWeakRef;
 
     public:
         DEFINE_GETCPPNAME();
+
+        SimplePathTypeHandler(Recycler * recycler, SimplePathTypeHandler * base);
 
     private:
         SimplePathTypeHandler(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
@@ -245,14 +253,17 @@ namespace Js
         virtual void EnsureInlineSlotCapacityIsLocked(bool startFromRoot) override;
         virtual void VerifyInlineSlotCapacityIsLocked(bool startFromRoot) override;
 
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
+
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, SimplePathTypeHandler * typeHandler, bool isLocked, bool isShared);
     };
 
-    class PathTypeHandler sealed : public PathTypeHandlerBase
+    class PathTypeHandler : public PathTypeHandlerBase
     {
         friend class SimplePathTypeHandler;
+        template<class T> friend class PathTypeHandlerWithExternal;
 
     private:
         typedef JsUtil::WeakReferenceDictionary<PropertyId, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> PropertySuccessorsMap;
@@ -260,6 +271,8 @@ namespace Js
 
     public:
         DEFINE_GETCPPNAME();
+
+        PathTypeHandler(Recycler * recycler, PathTypeHandler * base);
 
     private:
         PathTypeHandler(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
@@ -280,5 +293,51 @@ namespace Js
         static PathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandler * New(ScriptContext * scriptContext, PathTypeHandler * typeHandler, bool isLocked, bool isShared);
+
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
+    };
+
+    template<class T>
+    class PathTypeHandlerWithExternal sealed: public T
+    {
+    public:
+        DEFINE_GETCPPNAME();
+
+    private:
+        PathTypeHandlerWithExternal(Recycler * recycler, T *base): T(recycler, base)
+        { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+        PathTypeHandlerWithExternal(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr)
+        : T(typePath, pathLength, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared, predecessorType)
+        {
+            DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this)
+        }
+
+    protected:
+        virtual bool GetSuccessor(const PropertyRecord* propertyRecord, RecyclerWeakReference<DynamicType> ** typeWeakRef) override;
+        virtual void SetSuccessor(DynamicType * type, const PropertyRecord* propertyRecord, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) override;
+
+    public:
+        virtual void ShrinkSlotAndInlineSlotCapacity(uint16 newInlineSlotCapacity) override;
+        virtual void LockInlineSlotCapacity() override;
+        virtual bool GetMaxPathLength(uint16 * maxPathLength) override;
+        virtual void EnsureInlineSlotCapacityIsLocked(bool startFromRoot) override;
+        virtual void VerifyInlineSlotCapacityIsLocked(bool startFromRoot) override;
+
+        DEFINE_HANDLERWITHEXTERNAL_INTERFACE(T, PathTypeHandlerWithExternal<T>);
+
+        static PathTypeHandlerWithExternal<T> * New(ScriptContext * scriptContext, TypePath* typePath,
+          uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr)
+        {
+            return RecyclerNew(scriptContext->GetRecycler(), PathTypeHandlerWithExternal<T>,
+              typePath, pathLength, max(pathLength, inlineSlotCapacity), inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared, predecessorType);
+        }
+
+        static PathTypeHandlerWithExternal<T> * New(ScriptContext * scriptContext, TypePath* typePath,
+          uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr)
+        {
+            return RecyclerNew(scriptContext->GetRecycler(), PathTypeHandlerWithExternal<T>,
+              typePath, pathLength, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared, predecessorType);
+        }
     };
 }

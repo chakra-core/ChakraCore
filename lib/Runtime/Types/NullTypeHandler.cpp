@@ -231,6 +231,11 @@ namespace Js
 
         T * newTypeHandler = RecyclerNew(recycler, T, recycler);
         Assert((newTypeHandler->GetFlags() & IsPrototypeFlag) == 0);
+        if (instance->GetTypeHandler()->HasExternalDataSupport())
+        {
+            newTypeHandler = (T*) newTypeHandler->ConvertToExternalDataSupport(recycler);
+        }
+
         // EnsureSlots before updating the type handler and instance, as EnsureSlots allocates and may throw.
         instance->EnsureSlots(0, newTypeHandler->GetSlotCapacity(), scriptContext, newTypeHandler);
         Assert(((this->GetFlags() & IsPrototypeFlag) != 0) == this->isPrototype);
@@ -240,8 +245,8 @@ namespace Js
         {
             newTypeHandler->ClearHasOnlyWritableDataProperties();
         }
-        newTypeHandler->SetInstanceTypeHandler(instance);
 
+        newTypeHandler->SetInstanceTypeHandler(instance);
         return newTypeHandler;
     }
 
@@ -255,6 +260,17 @@ namespace Js
         return newTypeHandler;
     }
 
+    DynamicTypeHandler* NullTypeHandlerBase::ConvertToExternalDataSupport(Recycler* recycler)
+    {
+        AssertMsg(false, "Not Supported!");
+        Throw::FatalInternalError();
+    }
+
+    template<bool IsPrototypeTemplate>
+    DynamicTypeHandler* NullTypeHandler<IsPrototypeTemplate>::ConvertToExternalDataSupport(Recycler* recycler)
+    {
+        return (DynamicTypeHandler*) NullTypeHandlerWithExternal<IsPrototypeTemplate>::New(recycler, this);
+    }
 
     SimpleDictionaryTypeHandler * NullTypeHandlerBase::ConvertToSimpleDictionaryType(DynamicObject * instance)
     {
@@ -343,4 +359,13 @@ namespace Js
 
     template class NullTypeHandler<false>;
     template class NullTypeHandler<true>;
+
+    template<bool IsPrototypeTemplate>
+    NullTypeHandlerWithExternal<IsPrototypeTemplate> NullTypeHandlerWithExternal<IsPrototypeTemplate>::defaultInstanceWithExternal;
+
+    template<bool IsPrototypeTemplate>
+    NullTypeHandlerWithExternal<IsPrototypeTemplate> * NullTypeHandlerWithExternal<IsPrototypeTemplate>::GetDefaultInstanceWithExternal() { return &defaultInstanceWithExternal; }
+
+    template class NullTypeHandlerWithExternal<false>;
+    template class NullTypeHandlerWithExternal<true>;
 }

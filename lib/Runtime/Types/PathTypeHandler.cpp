@@ -337,13 +337,8 @@ namespace Js
         AssertMsg(this->GetUnusedBytesValue() - this->GetInlineSlotCapacity() == 3, "Should have only 3 values in auxSlot");
 
         // Get the auxSlot[0] and auxSlot[1] value as we will over write it
-        Var auxSlotZero = object->GetAuxSlot(0);
-        Var auxSlotOne = object->GetAuxSlot(1);
+        Var oldAuxSlots[2] = { object->GetAuxSlotAt(0), object->GetAuxSlotAt(1) };
 
-#ifdef EXPLICIT_FREE_SLOTS
-        Var auxSlots = object->auxSlots;
-        const int auxSlotsCapacity = this->GetSlotCapacity() - this->GetInlineSlotCapacity();
-#endif
         // Move all current inline slots up to object header inline offset
         Var *const oldInlineSlots = reinterpret_cast<Var *>(reinterpret_cast<uintptr_t>(object) + this->GetOffsetOfInlineSlots());
         Field(Var) *const newInlineSlots = reinterpret_cast<Field(Var) *>(reinterpret_cast<uintptr_t>(object) + this->GetOffsetOfObjectHeaderInlineSlots());
@@ -358,11 +353,11 @@ namespace Js
         }
 
         // auxSlot should only have 2 entry, move that to inlineSlot
-        newInlineSlots[propertyIndex++] = auxSlotZero;
-        newInlineSlots[propertyIndex++] = auxSlotOne;
+        newInlineSlots[propertyIndex++] = oldAuxSlots[0];
+        newInlineSlots[propertyIndex++] = oldAuxSlots[1];
 
 #ifdef EXPLICIT_FREE_SLOTS
-        object->GetRecycler()->ExplicitFreeNonLeaf(auxSlots, auxSlotsCapacity * sizeof(Var));
+        object->ResetAuxSlots(object->GetRecycler(), 0);
 #endif
 
         Assert(this->GetPredecessorType()->GetTypeHandler()->IsPathTypeHandler());
@@ -403,7 +398,7 @@ namespace Js
 
         if (!isCurrentTypeOHI && isPredecessorTypeOHI)
         {
-            if (object->HasObjectArray())
+            if (object->HasObjectArray() || object->GetExternalData() != nullptr)
             {
                 // We can't move auxSlots
                 return FALSE;
@@ -696,6 +691,10 @@ namespace Js
         T* newTypeHandler = RecyclerNew(recycler, T, recycler, oldTypeHandler->GetSlotCapacity(), oldTypeHandler->GetInlineSlotCapacity(), oldTypeHandler->GetOffsetOfInlineSlots());
         // We expect the new type handler to start off marked as having only writable data properties.
         Assert(newTypeHandler->GetHasOnlyWritableDataProperties());
+        if (instance->GetTypeHandler()->HasExternalDataSupport())
+        {
+            newTypeHandler = (T*) newTypeHandler->ConvertToExternalDataSupport(recycler);
+        }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         DynamicType* oldType = instance->GetDynamicType();
@@ -832,6 +831,11 @@ namespace Js
         DynamicType* oldType = instance->GetDynamicType();
         T* newTypeHandler = RecyclerNew(recycler, T, recycler, oldTypeHandler->GetSlotCapacity(), propertyCapacity, oldTypeHandler->GetInlineSlotCapacity(), oldTypeHandler->GetOffsetOfInlineSlots());
         // We expect the new type handler to start off marked as having only writable data properties.
+        if (instance->GetTypeHandler()->HasExternalDataSupport())
+        {
+            newTypeHandler = (T*) newTypeHandler->ConvertToExternalDataSupport(recycler);
+        }
+
         Assert(newTypeHandler->GetHasOnlyWritableDataProperties());
 
         // Care must be taken to correctly set up fixed field bits whenever a type's handler is changed.  Exactly what needs to
@@ -1115,6 +1119,10 @@ namespace Js
         Recycler* recycler = scriptContext->GetRecycler();
 
         SimpleDictionaryTypeHandler* typeHandler = SimpleDictionaryTypeHandler::New(recycler, count, 0, 0, true, true);
+        if (type->GetTypeHandler()->HasExternalDataSupport())
+        {
+            typeHandler = (SimpleDictionaryTypeHandler*) typeHandler->ConvertToExternalDataSupport(recycler);
+        }
 
         for (uint i = 0; i < count; i++)
         {
@@ -1223,7 +1231,17 @@ namespace Js
                 newOffsetOfInlineSlots = sizeof(DynamicObject);
             }
             bool markTypeAsShared = !FixPropsOnPathTypes() || shareType;
-            nextPath = SimplePathTypeHandler::New(scriptContext, newTypePath, newPropertyCount, newSlotCapacity, newInlineSlotCapacity, newOffsetOfInlineSlots, true, markTypeAsShared, predecessorType);
+            if (HasExternalDataSupport())
+            {
+                nextPath = PathTypeHandlerWithExternal<SimplePathTypeHandler>::New(scriptContext,
+                  newTypePath, newPropertyCount, newSlotCapacity, newInlineSlotCapacity, newOffsetOfInlineSlots, true, markTypeAsShared, predecessorType);
+            }
+            else
+            {
+                nextPath = SimplePathTypeHandler::New(scriptContext, newTypePath,
+                  newPropertyCount, newSlotCapacity, newInlineSlotCapacity, newOffsetOfInlineSlots, true, markTypeAsShared, predecessorType);
+            }
+
             if (!markTypeAsShared) nextPath->SetMayBecomeShared();
             Assert(nextPath->GetHasOnlyWritableDataProperties());
             nextPath->CopyPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, GetPropertyTypes());
@@ -1510,7 +1528,7 @@ namespace Js
         }
 
         // We don't copy the fixed fields, as we will be sharing this type anyways later and the fixed fields vector has to be invalidated.
-        SimplePathTypeHandler *const clonedTypeHandler =
+        SimplePathTypeHandler * clonedTypeHandler =
             SimplePathTypeHandler::New(
                 library->GetScriptContext(),
                 clonedPath,
@@ -1520,6 +1538,11 @@ namespace Js
                 sizeof(DynamicObject),
                 false,
                 false);
+        if (HasExternalDataSupport())
+        {
+            clonedTypeHandler = (SimplePathTypeHandler*) clonedTypeHandler->ConvertToExternalDataSupport(library->GetRecycler());
+        }
+
         clonedTypeHandler->SetMayBecomeShared();
         return clonedTypeHandler;
     }
@@ -1595,6 +1618,10 @@ namespace Js
         if (cachedDynamicType == nullptr)
         {
             SimplePathTypeHandler* newTypeHandler = SimplePathTypeHandler::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, static_cast<PropertyIndex>(this->GetSlotCapacity()), this->GetInlineSlotCapacity(), this->GetOffsetOfInlineSlots(), true, true);
+            if (instance->GetTypeHandler()->HasExternalDataSupport())
+            {
+                newTypeHandler = (SimplePathTypeHandler*) newTypeHandler->ConvertToExternalDataSupport(scriptContext->GetRecycler());
+            }
 
             cachedDynamicType = instance->DuplicateType();
             cachedDynamicType->SetPrototype(newPrototype);
@@ -2280,6 +2307,12 @@ namespace Js
     {
     }
 
+    SimplePathTypeHandler::SimplePathTypeHandler(Recycler * Recycler, SimplePathTypeHandler * base):
+        PathTypeHandlerBase(base->typePath, (uint16) base->GetPropertyCount(), (const PropertyIndex) base->GetSlotCapacity(),
+        (uint16) base->GetInlineSlotCapacity(), (uint16) base->GetOffsetOfInlineSlots(), base->GetIsLocked(), base->GetIsShared(), base->predecessorType)
+    {
+    }
+
     void SimplePathTypeHandler::ShrinkSlotAndInlineSlotCapacity(uint16 newInlineSlotCapacity)
     {
         Assert(!this->GetIsInlineSlotCapacityLocked());
@@ -2420,6 +2453,10 @@ namespace Js
         // we will have two different type handlers at the exact same point in type path evolution sharing the same type path, and
         // consequently all fixed field info as well.  This is fine, because fixed field management is done at the type path level.
         PathTypeHandler * newTypeHandler = PathTypeHandler::New(scriptContext, GetTypePath(), GetPathLength(), static_cast<PropertyIndex>(GetSlotCapacity()), GetInlineSlotCapacity(), GetOffsetOfInlineSlots(), true, true, GetPredecessorType());
+        if (HasExternalDataSupport())
+        {
+            newTypeHandler = (PathTypeHandler*) newTypeHandler->ConvertToExternalDataSupport(scriptContext->GetRecycler());
+        }
         newTypeHandler->SetSuccessor(type, this->successorPropertyRecord, this->successorTypeWeakRef, scriptContext);
         newTypeHandler->SetSuccessor(type, propertyRecord, typeWeakRef, scriptContext);
         newTypeHandler->SetFlags(IsPrototypeFlag, GetFlags());
@@ -2458,6 +2495,12 @@ namespace Js
     PathTypeHandler::PathTypeHandler(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked, bool isShared, DynamicType* predecessorType) :
         PathTypeHandlerBase(typePath, pathLength, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared, predecessorType),
         propertySuccessors(nullptr)
+    {
+    }
+
+    PathTypeHandler::PathTypeHandler(Recycler * recycler, PathTypeHandler * base):
+      PathTypeHandlerBase(base->typePath, (uint16) base->GetPropertyCount(), (const PropertyIndex) base->GetSlotCapacity(),
+      (uint16) base->GetInlineSlotCapacity(), (uint16) base->GetOffsetOfInlineSlots(), base->GetIsLocked(), base->GetIsShared(), base->predecessorType)
     {
     }
 
@@ -2625,4 +2668,65 @@ namespace Js
         }
         propertySuccessors->Item(propertyRecord->GetPropertyId(), typeWeakRef);
     }
+
+    DynamicTypeHandler* PathTypeHandlerBase::ConvertToExternalDataSupport(Recycler* recycler)
+    {
+        AssertMsg(false, "This is unexpected..");
+        return nullptr;
+    }
+
+    DynamicTypeHandler* PathTypeHandler::ConvertToExternalDataSupport(Recycler* recycler)
+    {
+        return PathTypeHandlerWithExternal<PathTypeHandler>::New(recycler, this);
+    }
+
+    DynamicTypeHandler* SimplePathTypeHandler::ConvertToExternalDataSupport(Recycler* recycler)
+    {
+        return PathTypeHandlerWithExternal<SimplePathTypeHandler>::New(recycler, this);
+    }
+
+    template<class T>
+    bool PathTypeHandlerWithExternal<T>::GetSuccessor(const PropertyRecord* propertyRecord, RecyclerWeakReference<DynamicType> ** typeWeakRef)
+    {
+        return T::GetSuccessor(propertyRecord, typeWeakRef);
+    }
+
+    template<class T>
+    void PathTypeHandlerWithExternal<T>::SetSuccessor(DynamicType * type, const PropertyRecord* propertyRecord, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext)
+    {
+        T::SetSuccessor(type, propertyRecord, typeWeakRef, scriptContext);
+    }
+
+    template<class T>
+    void PathTypeHandlerWithExternal<T>::ShrinkSlotAndInlineSlotCapacity(uint16 newInlineSlotCapacity)
+    {
+        T::ShrinkSlotAndInlineSlotCapacity(newInlineSlotCapacity);
+    }
+
+    template<class T>
+    void PathTypeHandlerWithExternal<T>::LockInlineSlotCapacity()
+    {
+        T::LockInlineSlotCapacity();
+    }
+
+    template<class T>
+    bool PathTypeHandlerWithExternal<T>::GetMaxPathLength(uint16 * maxPathLength)
+    {
+        return T::GetMaxPathLength(maxPathLength);
+    }
+
+    template<class T>
+    void PathTypeHandlerWithExternal<T>::EnsureInlineSlotCapacityIsLocked(bool startFromRoot)
+    {
+        T::EnsureInlineSlotCapacityIsLocked(startFromRoot);
+    }
+
+    template<class T>
+    void PathTypeHandlerWithExternal<T>::VerifyInlineSlotCapacityIsLocked(bool startFromRoot)
+    {
+        T::VerifyInlineSlotCapacityIsLocked(startFromRoot);
+    }
+
+    template class PathTypeHandlerWithExternal<PathTypeHandler>;
+    template class PathTypeHandlerWithExternal<SimplePathTypeHandler>;
 }

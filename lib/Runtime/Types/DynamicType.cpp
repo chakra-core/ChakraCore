@@ -192,22 +192,6 @@ namespace Js
         return false;
     }
 
-    void DynamicObject::InitSlots(DynamicObject* instance)
-    {
-        InitSlots(instance, GetScriptContext());
-    }
-
-    void DynamicObject::InitSlots(DynamicObject * instance, ScriptContext * scriptContext)
-    {
-        Recycler * recycler = scriptContext->GetRecycler();
-        int slotCapacity = GetTypeHandler()->GetSlotCapacity();
-        int inlineSlotCapacity = GetTypeHandler()->GetInlineSlotCapacity();
-        if (slotCapacity > inlineSlotCapacity)
-        {
-            instance->auxSlots = RecyclerNewArrayZ(recycler, Field(Var), slotCapacity - inlineSlotCapacity);
-        }
-    }
-
     int DynamicObject::GetPropertyCount()
     {
         if (!this->GetTypeHandler()->EnsureObjectReady(this))
@@ -231,7 +215,13 @@ namespace Js
     {
         Assert(!Js::IsInternalPropertyId(propertyId));
         Assert(propertyId != Constants::NoProperty);
-        return GetTypeHandler()->GetPropertyIndex(this->GetScriptContext()->GetPropertyName(propertyId));
+
+        return GetPropertyIndex(this->GetScriptContext()->GetPropertyName(propertyId));
+    }
+
+    PropertyIndex DynamicObject::GetPropertyIndex(const PropertyRecord* propertyRecord)
+    {
+        return GetTypeHandler()->GetPropertyIndex(propertyRecord);
     }
 
     PropertyQueryFlags DynamicObject::HasPropertyQuery(PropertyId propertyId)

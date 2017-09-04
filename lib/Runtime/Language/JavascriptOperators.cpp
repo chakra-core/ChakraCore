@@ -5604,7 +5604,7 @@ CommonNumber:
                 if (scopeSlot != Constants::NoProperty)
                 {
                     // CONSIDER: Store property IDs in FuncInfoArray in debug builds so we can properly assert in SetAuxSlot
-                    scopeObj->SetAuxSlot(SetSlotArguments(Constants::NoProperty, scopeSlot, entry->func));
+                    scopeObj->SetAuxSlotAt(SetSlotArguments(Constants::NoProperty, scopeSlot, entry->func));
                 }
             }
             return;
@@ -5629,7 +5629,7 @@ CommonNumber:
             if (scopeSlot != Constants::NoProperty)
             {
                 // CONSIDER: Store property IDs in FuncInfoArray in debug builds so we can properly assert in SetAuxSlot
-                scopeObj->SetAuxSlot(SetSlotArguments(Constants::NoProperty, scopeSlot, func));
+                scopeObj->SetAuxSlotAt(SetSlotArguments(Constants::NoProperty, scopeSlot, func));
             }
         }
     }
@@ -6070,10 +6070,13 @@ CommonNumber:
         // after we fail the guard check.  When invalidating the cache for proto change, make sure we zap the prototype field of the cache in
         // addition to the guard value.
         bool prototypeCanBeCached;
+        auto functionTypeHandler = ((Js::DynamicObject*)function)->GetTypeHandler();
+        bool hasExternalDataSupport = functionTypeHandler->HasExternalDataSupport();
+
         RecyclableObject* prototype = JavascriptOperators::GetPrototypeObjectForConstructorCache(function, constructorScriptContext, prototypeCanBeCached);
         prototype = RecyclableObject::FromVar(CrossSite::MarshalVar(requestContext, prototype));
 
-        DynamicObject* newObject = requestContext->GetLibrary()->CreateObject(prototype, 8);
+        DynamicObject* newObject = requestContext->GetLibrary()->CreateObject(prototype, 8, hasExternalDataSupport);
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(newObject));
 #if ENABLE_DEBUG_CONFIG_OPTIONS

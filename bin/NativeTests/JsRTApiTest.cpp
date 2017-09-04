@@ -10,6 +10,16 @@
 #pragma warning(disable:6387) // suppressing preFAST which raises warning for passing null to the JsRT APIs
 #pragma warning(disable:6262) // CATCH is using stack variables to report errors, suppressing the preFAST warning.
 
+#ifndef NTBUILD
+#define JS_HAS_EXTERNAL_DATA JsObjectHasExternalData
+#define JS_GET_EXTERNAL_DATA JsObjectGetExternalData
+#define JS_SET_EXTERNAL_DATA JsObjectSetExternalData
+#else
+#define JS_HAS_EXTERNAL_DATA JsHasExternalData
+#define JS_GET_EXTERNAL_DATA JsGetExternalData
+#define JS_SET_EXTERNAL_DATA JsSetExternalData
+#endif
+
 namespace JsRTApiTest
 {
     bool TestSetup(JsRuntimeAttributes attributes, JsRuntimeHandle *runtime)
@@ -283,7 +293,7 @@ namespace JsRTApiTest
         REQUIRE(JsSetIndexedProperty(mainObjectRef, indexRef, secondValueRef) == JsNoError);
         REQUIRE(JsSetIndexedProperty(mainObjectRef, indexRef, secondObjectRef) == JsNoError);
         REQUIRE(JsSetPrototype(jsrtExternalObjectRef, mainObjectRef) == JsNoError);
-        REQUIRE(JsHasExternalData(jsrtExternalObjectRef, &hasExternalData) == JsNoError);
+        REQUIRE(JS_HAS_EXTERNAL_DATA(jsrtExternalObjectRef, &hasExternalData) == JsNoError);
         REQUIRE(hasExternalData);
     }
 

@@ -87,6 +87,9 @@ RUN "test-char16"
 # test-static-native
 RUN "test-static-native"
 
+# test-external-object
+RUN "test-external-object"
+
 # shared lib tests
 LIB_DIR="$(dirname ${CH_DIR})"
 if [[ `uname -a` =~ "Darwin" ]]; then

@@ -266,6 +266,7 @@ namespace Js {
         virtual PropertyId GetPropertyId(PropertyIndex index) { return Constants::NoProperty; }
         virtual PropertyId GetPropertyId(BigPropertyIndex index) { return Constants::NoProperty; }
         virtual PropertyIndex GetPropertyIndex(PropertyId propertyId) { return Constants::NoSlot; }
+        virtual PropertyIndex GetPropertyIndex(const PropertyRecord* propertyRecord) { return Constants::NoSlot; }
         virtual int GetPropertyCount() { return 0; }
         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId);
         virtual BOOL HasOwnProperty( PropertyId propertyId);

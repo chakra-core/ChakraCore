@@ -32,6 +32,9 @@ public:
 
     //Js::PropertyId GetNameId() const { return ((Js::PropertyRecord *)typeDescription.className)->GetPropertyId(); }
     JsFinalizeCallback GetJsFinalizeCallback() const { return this->jsFinalizeCallback; }
+    
+    void SetJsFinalizeCallback(JsFinalizeCallback finalizeCallback)
+    { this->jsFinalizeCallback = finalizeCallback; }
 
 private:
     FieldNoBarrier(JsFinalizeCallback) jsFinalizeCallback;

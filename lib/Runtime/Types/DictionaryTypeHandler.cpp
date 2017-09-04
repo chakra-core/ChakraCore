@@ -2181,6 +2181,8 @@ namespace Js
         Recycler* recycler = instance->GetRecycler();
 
         ES5ArrayTypeHandlerBase<T>* newTypeHandler = RecyclerNew(recycler, ES5ArrayTypeHandlerBase<T>, recycler, this);
+        newTypeHandler = instance->GetTypeHandler()->HasExternalDataSupport() ? (ES5ArrayTypeHandlerBaseWithExternal<T>*) newTypeHandler->ConvertToExternalDataSupport(recycler) : newTypeHandler;
+
         // Don't need to transfer the singleton instance, because the new handler takes over this handler.
         AssertMsg((newTypeHandler->GetFlags() & IsPrototypeFlag) == 0, "Why did we create a brand new type handler with a prototype flag set?");
         newTypeHandler->SetFlags(IsPrototypeFlag, this->GetFlags());
@@ -2858,5 +2860,11 @@ namespace Js
     PropertyAttributes GetLetConstGlobalPropertyAttributes(PropertyAttributes attributes)
     {
         return (allowLetConstGlobal && (attributes & PropertyLetConstGlobal) != 0) ? (attributes | PropertyWritable) : attributes;
+    }
+
+    template<typename T>
+    DynamicTypeHandler * DictionaryTypeHandlerBase<T>::ConvertToExternalDataSupport(Recycler* recycler)
+    {
+        return DictionaryTypeHandlerBaseWithExternal<T>::New(recycler, this);
     }
 }

@@ -14,13 +14,22 @@ namespace Js
         friend class DeferredTypeHandlerBase;
         template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots>
         friend class DeferredTypeHandler;
+        template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots>
+        friend class DeferredTypeHandlerWithExternal;
         friend class PathTypeHandlerBase;
-        template<size_t size>
-        friend class SimpleTypeHandler;
+        template<size_t size> friend class SimpleTypeHandler;
+        template<size_t size> friend class SimpleTypeHandlerExternal;
         friend class DynamicObject;
         friend class DynamicTypeHandler;
         template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryTypeHandlerBase;
+        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryTypeHandlerBaseWithExternal;
         template <typename T> friend class DictionaryTypeHandlerBase;
+        template <typename T> friend class DictionaryTypeHandlerBaseExternal;
+        template <typename T> friend class DictionaryTypeHandlerBaseWithExternal;
+        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+        friend class SimpleDictionaryUnorderedTypeHandler;
+        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+        friend class SimpleDictionaryUnorderedTypeHandlerWithExternal;
 
         // Explicit non leaf allocator as the key is non-leaf
         typedef JsUtil::BaseDictionary<const PropertyRecord*, DictionaryPropertyDescriptor<T>, RecyclerNonLeafAllocator, DictionarySizePolicy<PowerOf2Policy, 1>, PropertyRecordStringHashComparer>
@@ -246,6 +255,9 @@ namespace Js
         virtual BigDictionaryTypeHandler* NewBigDictionaryTypeHandler(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
         static Var CanonicalizeAccessor(Var accessor, /*const*/ JavascriptLibrary* library);
 
+    public:
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
+
 #if ENABLE_TTD
     public:
         virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override;
@@ -258,4 +270,29 @@ namespace Js
 
     template <bool allowLetConstGlobal>
     inline PropertyAttributes GetLetConstGlobalPropertyAttributes(PropertyAttributes attributes);
+
+    template <typename T>
+    class DictionaryTypeHandlerBaseWithExternal sealed: public DictionaryTypeHandlerBase<T>
+    {
+    public:
+        DEFINE_GETCPPNAME();
+
+        DictionaryTypeHandlerBaseWithExternal(Recycler* recycler):
+            DictionaryTypeHandlerBase<T>(recycler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+        DictionaryTypeHandlerBaseWithExternal(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots):
+            DictionaryTypeHandlerBase<T>(recycler, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+        DictionaryTypeHandlerBaseWithExternal(DictionaryTypeHandlerBase<T>* typeHandler):
+            DictionaryTypeHandlerBase<T>(typeHandler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+        DEFINE_VTABLE_CTOR_NO_REGISTER(DictionaryTypeHandlerBaseWithExternal, DictionaryTypeHandlerBase<T>);
+
+    private:
+        DictionaryTypeHandlerBaseWithExternal(Recycler * recycler, DictionaryTypeHandlerBase<T>* sth):
+            DictionaryTypeHandlerBase<T>(sth) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+    public:
+        DEFINE_HANDLERWITHEXTERNAL_INTERFACE(DictionaryTypeHandlerBase<T>, DictionaryTypeHandlerBaseWithExternal<T>)
+    };
 }

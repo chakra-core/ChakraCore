@@ -215,7 +215,7 @@ namespace Js
             *propertyValue =
                 isInlineSlot
                     ? DynamicObject::FromVar(propertyObject)->GetInlineSlot(propertyIndex)
-                    : DynamicObject::FromVar(propertyObject)->GetAuxSlot(propertyIndex);
+                    : DynamicObject::FromVar(propertyObject)->GetAuxSlotAt(propertyIndex);
             if(propertyObject->GetScriptContext() == requestContext)
             {
                 Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
@@ -271,7 +271,7 @@ namespace Js
         *propertyValue =
             isInlineSlot
                 ? prototypeObjectWithProperty->GetInlineSlot(propertyIndex)
-                : prototypeObjectWithProperty->GetAuxSlot(propertyIndex);
+                : prototypeObjectWithProperty->GetAuxSlotAt(propertyIndex);
         if(prototypeObjectWithProperty->GetScriptContext() == requestContext)
         {
             Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
@@ -373,7 +373,7 @@ namespace Js
         }
         else
         {
-            DynamicObject::FromVar(object)->SetAuxSlot(SetSlotArguments(propertyId, propertyIndex, propertyValue));
+            DynamicObject::FromVar(object)->SetAuxSlotAt(SetSlotArguments(propertyId, propertyIndex, propertyValue));
         }
 
         if(objectScriptContext == requestContext)

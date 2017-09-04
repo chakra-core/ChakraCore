@@ -79,6 +79,9 @@ namespace Js
         BOOL AddProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects);
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
 
+    public:
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
+
 #if ENABLE_TTD
     public:
         virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override
@@ -91,5 +94,20 @@ namespace Js
             return 0;
         }
 #endif
+    };
+
+    class MissingPropertyTypeHandlerWithExternal sealed : public MissingPropertyTypeHandler
+    {
+    public:
+        DEFINE_GETCPPNAME();
+        MissingPropertyTypeHandlerWithExternal():
+            MissingPropertyTypeHandler() { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+    private:
+        MissingPropertyTypeHandlerWithExternal(Recycler * recycler, MissingPropertyTypeHandler *base):
+            MissingPropertyTypeHandler() { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+    public:
+        DEFINE_HANDLERWITHEXTERNAL_INTERFACE(MissingPropertyTypeHandler, MissingPropertyTypeHandlerWithExternal)
     };
 }
