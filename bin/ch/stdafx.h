@@ -206,38 +206,24 @@ public:
         {
             strValue = value;
         }
-        int strLen = 0;
-        size_t writtenLen = 0;
-        size_t actualLen = 0;
+        size_t length = 0;
         if (errorCode == JsNoError)
         {
-            errorCode = ChakraRTInterface::JsGetStringLength(strValue, &strLen);
+            errorCode = ChakraRTInterface::JsCopyString(strValue, nullptr, 0, &length);
             if (errorCode == JsNoError)
             {
-                // Assume ascii characters
-                data = (char*)malloc((strLen + 1) * sizeof(char));
-                errorCode = ChakraRTInterface::JsCopyString(strValue, data, strLen, &writtenLen, &actualLen);
+                data = (char*)malloc((length + 1) * sizeof(char));
+                size_t writtenLength = 0;
+                errorCode = ChakraRTInterface::JsCopyString(strValue, data, length, &writtenLength);
                 if (errorCode == JsNoError)
                 {
-                    // If non-ascii, take slow path
-                    if (writtenLen != actualLen)
-                    {
-                        free(data);
-                        data = (char*)malloc((actualLen + 1) * sizeof(char));
-
-                        errorCode = ChakraRTInterface::JsCopyString(strValue, data, actualLen + 1, &writtenLen, nullptr);
-                        if (errorCode == JsNoError)
-                        {
-                            AssertMsg(actualLen == writtenLen, "If you see this message.. There is something seriously wrong. Good Luck!");
-                            
-                        }
-                    }
+                    AssertMsg(length == writtenLength, "Inconsistent length in utf8 encoding");
                 }
             }
         }
         if (errorCode == JsNoError)
         {
-            *(data + actualLen) = char(0);
+            *(data + length) = char(0);
         }
         return errorCode;
     }

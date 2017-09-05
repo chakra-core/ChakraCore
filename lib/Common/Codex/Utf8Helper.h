@@ -46,6 +46,37 @@ namespace utf8
         return S_OK;
     }
 
+    ///
+    /// Use the codex library to encode a UTF16 string to UTF8.
+    /// The caller is responsible for providing the buffer
+    /// The returned string is null terminated.
+    ///
+    inline HRESULT WideStringToNarrowNoAlloc(_In_ LPCWSTR sourceString, size_t sourceCount, __out_ecount(destCount) LPSTR destString, size_t destCount, size_t* writtenCount = nullptr)
+    {
+        size_t cchSourceString = sourceCount;
+
+        if (cchSourceString >= MAXUINT32)
+        {
+            return E_OUTOFMEMORY;
+        }
+
+        static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
+
+        size_t cbEncoded = 0;
+        if (destString == nullptr)
+        {
+            cbEncoded = utf8::CountTrueUtf8(sourceString, (charcount_t)cchSourceString);
+        }
+        else
+        {
+            cbEncoded = utf8::EncodeTrueUtf8IntoBoundsChecked((utf8char_t*)destString, sourceString, (charcount_t)cchSourceString, &destString[destCount]);
+            Assert(cbEncoded <= destCount);
+        }
+
+        if (writtenCount != nullptr) *writtenCount = cbEncoded;
+        return S_OK;
+    }
+
     template <class Allocator>
     HRESULT WideStringToNarrow(_In_ LPCWSTR sourceString, size_t sourceCount, _Out_ LPSTR* destStringPtr, _Out_ size_t* destCount, size_t* allocateCount = nullptr)
     {
@@ -156,6 +187,8 @@ namespace utf8
         static size_t Length(const SrcType& src);
         static HRESULT Convert(
             SrcType src, size_t srcCount, DstType* dst, size_t* dstCount, size_t* allocateCount = nullptr);
+        static HRESULT ConvertNoAlloc(
+            SrcType src, size_t srcCount, DstType dst, size_t dstCount, size_t* written);
     };
 
     template <class Allocator>
@@ -175,6 +208,14 @@ namespace utf8
         {
             return NarrowStringToWide<Allocator>(
                 sourceString, sourceCount, destStringPtr, destCount, allocateCount);
+        }
+
+        static HRESULT ConvertNoAlloc(
+            LPCSTR sourceString, size_t sourceCount,
+            LPWSTR destStringPtr, size_t destCount, size_t* written)
+        {
+            return NarrowStringToWideNoAlloc(
+                sourceString, sourceCount, destStringPtr, destCount, written);
         }
     };
 
@@ -196,6 +237,14 @@ namespace utf8
             return WideStringToNarrow<Allocator>(
                 sourceString, sourceCount, destStringPtr, destCount, allocateCount);
         }
+
+        static HRESULT ConvertNoAlloc(
+            LPCWSTR sourceString, size_t sourceCount,
+            LPSTR destStringPtr, size_t destCount, size_t* written)
+        {
+            return WideStringToNarrowNoAlloc(
+                sourceString, sourceCount, destStringPtr, destCount, written);
+        }
     };
 
     template <class Allocator, class SrcType, class DstType>
@@ -207,6 +256,7 @@ namespace utf8
         DstType dst;
         size_t dstCount;
         size_t allocateCount;
+        bool freeDst;
 
     public:
         NarrowWideConverter() : dst()
@@ -219,6 +269,11 @@ namespace utf8
             Initialize(src, srcCount);
         }
 
+        NarrowWideConverter(const SrcType& src, size_t srcCount, DstType dst, size_t dstSize) : dst(dst), freeDst(false)
+        {
+            StringConverter::ConvertNoAlloc(src, srcCount, dst, dstSize, &dstCount);
+        }
+
         void Initialize(const SrcType& src, size_t srcCount = -1)
         {
             if (srcCount == -1)
@@ -227,11 +282,12 @@ namespace utf8
             }
 
             StringConverter::Convert(src, srcCount, &dst, &dstCount, &allocateCount);
+            freeDst = true;
         }
 
         ~NarrowWideConverter()
         {
-            if (dst)
+            if (dst && freeDst)
             {
                 Allocator::free(dst, allocateCount);
             }

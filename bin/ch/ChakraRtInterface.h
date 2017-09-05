@@ -78,7 +78,7 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtSerialize)(JsValueRef script, JsValueRef *buffer, JsParseScriptAttributes parseAttributes);
     typedef JsErrorCode(WINAPI *JsrtRunSerialized)(JsValueRef buffer, JsSerializedLoadScriptCallback scriptLoadCallback, JsSourceContext sourceContext, JsValueRef sourceUrl, JsValueRef * result);
     typedef JsErrorCode(WINAPI *JsrtGetStringLength)(JsValueRef value, int *stringLength);
-    typedef JsErrorCode(WINAPI *JsrtCopyString)(JsValueRef value, char* buffer, size_t bufferSize, size_t* writtenLength, size_t* actualLength);
+    typedef JsErrorCode(WINAPI *JsrtCopyString)(JsValueRef value, char* buffer, size_t bufferSize, size_t* length);
     typedef JsErrorCode(WINAPI *JsrtCreateString)(const char *content, size_t length, JsValueRef *value);
     typedef JsErrorCode(WINAPI *JsrtCreateStringUtf16)(const uint16_t *content, size_t length, JsValueRef *value);
     
@@ -399,7 +399,7 @@ public:
     static JsErrorCode WINAPI JsSerialize(JsValueRef script, JsValueRef *buffer, JsParseScriptAttributes parseAttributes) { return HOOK_JS_API(Serialize(script, buffer, parseAttributes)); }
     static JsErrorCode WINAPI JsRunSerialized(JsValueRef buffer, JsSerializedLoadScriptCallback scriptLoadCallback, JsSourceContext sourceContext, JsValueRef sourceUrl, JsValueRef * result) { return HOOK_JS_API(RunSerialized(buffer, scriptLoadCallback, sourceContext, sourceUrl, result)); }
     static JsErrorCode WINAPI JsGetStringLength(JsValueRef value, int *stringLength) { return HOOK_JS_API(GetStringLength(value, stringLength)); }
-    static JsErrorCode WINAPI JsCopyString(JsValueRef value, char* buffer, size_t bufferSize, size_t* writtenLength, size_t* actualLength) { return HOOK_JS_API(CopyString(value, buffer, bufferSize, writtenLength, actualLength)); }
+    static JsErrorCode WINAPI JsCopyString(JsValueRef value, char* buffer, size_t bufferSize, size_t* length) { return HOOK_JS_API(CopyString(value, buffer, bufferSize, length)); }
     static JsErrorCode WINAPI JsCreateString(const char *content, size_t length, JsValueRef *value) { return HOOK_JS_API(CreateString(content, length, value)); }
     static JsErrorCode WINAPI JsCreateStringUtf16(const uint16_t *content, size_t length, JsValueRef *value) { return HOOK_JS_API(CreateStringUtf16(content, length, value)); }
     static JsErrorCode WINAPI JsCreatePropertyId(const char *name, size_t length, JsPropertyIdRef *propertyId) { return HOOK_JS_API(CreatePropertyId(name, length, propertyId)); }

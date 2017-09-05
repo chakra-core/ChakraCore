@@ -14,7 +14,6 @@
 #include <stdint.h>
 #endif
 
-
 // Utf8Codex.h needs to be self contained, so these type defs are duplicated from CommonTypeDefs.h
 #ifdef _WIN32
 typedef WCHAR char16;
@@ -27,6 +26,19 @@ typedef char16 wchar;
 
 #ifndef Unused
 #define Unused(var) var
+#endif
+
+extern void CodexAssert(bool condition);
+extern void CodexAssertOrFailFast(bool condition);
+
+#ifdef _MSC_VER
+//=============================
+// Disabled Warnings
+//=============================
+
+#pragma warning(push)
+
+#pragma warning(disable: 4127)  // constant expression for template parameter
 #endif
 
 #ifndef _WIN32
@@ -165,34 +177,127 @@ namespace utf8
     // Encode ch into a UTF8 sequence ignoring surrogate pairs (which are encoded as two
     // separate code points). Use Encode() instead of EncodeFull() directly because it
     // special cases ASCII to avoid a call the most common characters.
-    LPUTF8 EncodeFull(char16 ch, __out_ecount(3) LPUTF8 ptr);
+    template <bool countBytesOnly>
+    LPUTF8 EncodeFull(char16 ch, __out_ecount(3) LPUTF8 ptr, const void * bufferEnd)
+    {
+        if (ch < 0x0080)
+        {
+            // One byte
+            if (countBytesOnly)
+            {
+                ptr++;
+            }
+            else
+            {
+                CodexAssertOrFailFast(ptr < bufferEnd);
+                *ptr++ = static_cast<utf8char_t>(ch);
+            }
+        }
+        else if (ch < 0x0800)
+        {
+            // Two bytes   : 110yyyxx 10xxxxxx
+            if (countBytesOnly)
+            {
+                ptr += 2;
+            }
+            else
+            {
+                CodexAssertOrFailFast(ptr + 2 <= bufferEnd);
+                *ptr++ = static_cast<utf8char_t>(ch >> 6) | 0xc0;
+                *ptr++ = static_cast<utf8char_t>(ch & 0x3F) | 0x80;
+            }
+        }
+        else
+        {
+            // Three bytes : 1110yyyy 10yyyyxx 10xxxxxx
+            if (countBytesOnly)
+            {
+                ptr += 3;
+            }
+            else
+            {
+                CodexAssertOrFailFast(ptr + 3 <= bufferEnd);
+                *ptr++ = static_cast<utf8char_t>(ch >> 12) | 0xE0;
+                *ptr++ = static_cast<utf8char_t>((ch >> 6) & 0x3F) | 0x80;
+                *ptr++ = static_cast<utf8char_t>(ch & 0x3F) | 0x80;
+            }
+        }
+
+        return ptr;
+    }
 
     // Encode a surrogate pair into a utf8 sequence
-    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, __out_ecount(4) LPUTF8 ptr);
+    template <bool countBytesOnly>
+        LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, __out_ecount(4) LPUTF8 ptr)
+    {
+        // A unicode codepoint is encoded into a surrogate pair by doing the following:
+        //  subtract 0x10000 from the codepoint
+        //  Split the resulting value into the high-ten bits and low-ten bits
+        //  Add 0xD800 to the high ten bits, and 0xDC00 to the low ten bits
+        // Below, we want to decode the surrogate pair to its original codepoint
+        // So we do the above process in reverse
+        uint32 highTen = (surrogateHigh - 0xD800);
+        uint32 lowTen = (surrogateLow - 0xDC00);
+        uint32 codepoint = 0x10000 + ((highTen << 10) | lowTen);
+
+        // This is the maximum valid unicode codepoint
+        // This should be ensured anyway since you can't encode a value higher
+        // than this as a surrogate pair, so we assert this here
+        CodexAssert(codepoint <= 0x10FFFF);
+
+        // Now we need to encode the code point into utf-8
+        // Codepoints in the range that gets encoded into a surrogate pair
+        // gets encoded into 4 bytes under utf8
+        // Since the codepoint can be represented by 21 bits, the encoding
+        // does the following: first 3 bits in the first byte, the next 6 in the
+        // second, the next six in the third, and the last six in the 4th byte
+        if (countBytesOnly) {
+            ptr += 4;
+        }
+        else
+        {
+            *ptr++ = static_cast<utf8char_t>(codepoint >> 18) | 0xF0;
+            *ptr++ = static_cast<utf8char_t>((codepoint >> 12) & 0x3F) | 0x80;
+            *ptr++ = static_cast<utf8char_t>((codepoint >> 6) & 0x3F) | 0x80;
+            *ptr++ = static_cast<utf8char_t>(codepoint & 0x3F) | 0x80;
+        }
+
+        return ptr;
+    }
 
     // Encode ch into a UTF8 sequence ignoring surrogate pairs (which are encoded as two
     // separate code points).
-    inline LPUTF8 Encode(char16 ch, __out_ecount(3) LPUTF8 ptr)
+    template <bool countBytesOnly>
+    inline LPUTF8 Encode(char16 ch, _When_(!countBytesOnly, __out_ecount(3)) LPUTF8 ptr, const void * bufferEnd)
     {
         if (ch < 0x80)
         {
-            *ptr = static_cast<utf8char_t>(ch);
+            if (!countBytesOnly)
+            {
+                *ptr = static_cast<utf8char_t>(ch);
+            }
             return ptr + 1;
         }
-        return EncodeFull(ch, ptr);
+        return EncodeFull<countBytesOnly>(ch, ptr, bufferEnd);
     }
 
     // Encode ch into a UTF8 sequence while being aware of surrogate pairs.
-    inline LPUTF8 EncodeTrueUtf8(char16 ch, const char16** source, charcount_t* cch, __out_ecount((*cch + 1) * 3) LPUTF8 ptr)
+    template <bool countBytesOnly>
+    inline LPUTF8 EncodeTrueUtf8(char16 ch, const char16** source, charcount_t* cch, _When_(!countBytesOnly, __out_ecount((*cch + 1) * 3)) LPUTF8 ptr, const void * bufferEnd)
     {
         if (ch < 0x80)
         {
-            *ptr = static_cast<utf8char_t>(ch);
+            if (!countBytesOnly)
+            {
+                CodexAssertOrFailFast(ptr < bufferEnd);
+                *ptr = static_cast<utf8char_t>(ch);
+            }
+
             return ptr + 1;
         }
         else if (ch < 0xD800 || (ch >= 0xE000 && ch <= 0xFFFF))
         {
-            return EncodeFull(ch, ptr);
+            return EncodeFull<countBytesOnly>(ch, ptr, bufferEnd);
         }
 
         // We're now decoding a surrogate pair. If the input is malformed (eg. low surrogate is absent)
@@ -207,7 +312,7 @@ namespace utf8
             if ((surrogateHigh >= 0xD800 && surrogateHigh <= 0xDBFF) &&
                 (surrogateLow >= 0xDC00 && surrogateLow <= 0xDFFF))
             {
-                LPUTF8 retptr = EncodeSurrogatePair(surrogateHigh, surrogateLow, ptr);
+                LPUTF8 retptr = EncodeSurrogatePair<countBytesOnly>(surrogateHigh, surrogateLow, ptr);
 
                 // SAL analysis gets confused if we call EncodeSurrogatePair after
                 // modifying cch
@@ -221,9 +326,13 @@ namespace utf8
         }
 
         // Invalid input: insert the unicode replacement character instead
-        ptr[0] = 0xEF;
-        ptr[1] = 0xBF;
-        ptr[2] = 0xBD;
+        if (!countBytesOnly)
+        {
+            CodexAssertOrFailFast(ptr + 3 <= bufferEnd);
+            ptr[0] = 0xEF;
+            ptr[1] = 0xBF;
+            ptr[2] = 0xBD;
+        }
         return ptr + 3;
     }
 
@@ -309,6 +418,14 @@ namespace utf8
     __range(0, cch * 3)
     size_t EncodeTrueUtf8IntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch);
 
+    // Like EncodeInto but ensures that we do not write anywhere other than between buffer and bufferEnd.
+    __range(0, cch * 3)
+    size_t EncodeTrueUtf8IntoBoundsChecked(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch, const void * bufferEnd);
+
+    // Determine the number of bytes that a UTF-8 sequence representing a UTF16-LE sequence of cch words
+    __range(0, cch * 3)
+    size_t CountTrueUtf8(__in_ecount(cch) const char16 *source, charcount_t cch);
+
     // Returns true if the pch refers to a UTF-16LE encoding of the given UTF-8 encoding bch.
     bool CharsAreEqual(LPCOLESTR pch, LPCUTF8 bch, LPCUTF8 end, DecodeOptions options = doDefault);
 
@@ -319,3 +436,7 @@ namespace utf8
     // Convert byte index into character index
     charcount_t ByteIndexIntoCharacterIndex(__in_ecount(cbIndex) LPCUTF8 pch, size_t cbIndex, DecodeOptions options = doDefault);
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
