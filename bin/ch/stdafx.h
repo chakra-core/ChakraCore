@@ -24,17 +24,11 @@
 #define IfFalseGo(expr) do { if(!(expr)) { hr = E_FAIL; goto Error; } } while(0)
 #define IfFalseGoLabel(expr, label) do { if(!(expr)) { hr = E_FAIL; goto label; } } while(0)
 
-#define WIN32_LEAN_AND_MEAN 1
-
 #include "CommonDefines.h"
 #include <map>
 #include <string>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
 #include <CommonPal.h>
-#endif // _WIN32
 
 #include <stdarg.h>
 #ifdef _MSC_VER
