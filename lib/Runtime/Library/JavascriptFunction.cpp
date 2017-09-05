@@ -2304,6 +2304,7 @@ LABEL1:
         Js::FunctionBody* funcBody = func->GetFunctionBody();
         bool isWAsmJs = funcBody->GetIsAsmJsFunction();
         bool isWasmOnly = funcBody->IsWasmFunction();
+        uintptr_t faultingAddr = helper.GetFaultingAddress();
         if (isWAsmJs)
         {
             // some extra checks for asm.js because we have slightly more information that we can validate
@@ -2342,12 +2343,33 @@ LABEL1:
             {
                 return false;
             }
-            uintptr_t faultingAddr = helper.GetFaultingAddress();
             if (faultingAddr < bufferAddr)
             {
                 return false;
             }
             if (faultingAddr >= bufferAddr + reservationSize)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            MEMORY_BASIC_INFORMATION info = { 0 };
+            size_t size = VirtualQuery((LPCVOID)faultingAddr, &info, sizeof(info));
+            if (size == 0)
+            {
+                return false;
+            }
+            size_t allocationSize = info.RegionSize + ((uintptr_t)info.BaseAddress - (uintptr_t)info.AllocationBase);
+            if (allocationSize != MAX_WASM__ARRAYBUFFER_LENGTH && allocationSize != MAX_ASMJS_ARRAYBUFFER_LENGTH)
+            {
+                return false;
+            }
+            if (info.State != MEM_RESERVE)
+            {
+                return false;
+            }
+            if (info.Type != MEM_PRIVATE)
             {
                 return false;
             }
