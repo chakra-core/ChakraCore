@@ -27,5 +27,6 @@ try { eval("WScript.Echo('test 21'); const x = 1; {const x = 2; x++;}"); WScript
 try { eval("WScript.Echo('test 22'); const x = 1; {const x = 2;} x++;"); WScript.Echo("passed"); } catch (e) { WScript.Echo(e); }
 try { eval("WScript.Echo('test 23'); x = 1; {let x = 2;} const x = 10;"); WScript.Echo("passed"); } catch (e) { WScript.Echo(e); }
 try { eval("WScript.Echo('test 24'); function f() {x = 1; {let x = 2;} const x = 10;} f();"); WScript.Echo("passed"); } catch (e) { WScript.Echo(e); }
+try { eval("WScript.Echo('test 25'); const x = 10; function f() {x = 1; {let x = 2;} } f();"); WScript.Echo("passed"); } catch (e) { WScript.Echo(e); }
 
 

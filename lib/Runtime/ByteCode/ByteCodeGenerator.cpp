@@ -3552,6 +3552,7 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
 #endif
             sym->SetIsGlobal(isGlobalScope);
             sym->SetIsBlockVar(true);
+            sym->SetIsConst(pnode->nop == knopConstDecl);
             sym->SetNeedDeclaration(true);
             pnode->sxVar.sym = sym;
         };
