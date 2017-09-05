@@ -24,11 +24,17 @@
 #define IfFalseGo(expr) do { if(!(expr)) { hr = E_FAIL; goto Error; } } while(0)
 #define IfFalseGoLabel(expr, label) do { if(!(expr)) { hr = E_FAIL; goto label; } } while(0)
 
+#define WIN32_LEAN_AND_MEAN 1
+
 #include "CommonDefines.h"
 #include <map>
 #include <string>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <CommonPal.h>
+#endif // _WIN32
 
 #include <stdarg.h>
 #ifdef _MSC_VER
@@ -200,37 +206,24 @@ public:
         {
             strValue = value;
         }
-        int strLen = 0;
-        size_t actualLen = 0;
+        size_t length = 0;
         if (errorCode == JsNoError)
         {
-            errorCode = ChakraRTInterface::JsGetStringLength(strValue, &strLen);
+            errorCode = ChakraRTInterface::JsCopyString(strValue, nullptr, 0, &length);
             if (errorCode == JsNoError)
             {
-                // Assume ascii characters
-                data = (char*)malloc((strLen + 1) * sizeof(char));
-                errorCode = ChakraRTInterface::JsCopyString(strValue, data, strLen, &length, &actualLen);
+                data = (char*)malloc((length + 1) * sizeof(char));
+                size_t writtenLength = 0;
+                errorCode = ChakraRTInterface::JsCopyString(strValue, data, length, &writtenLength);
                 if (errorCode == JsNoError)
                 {
-                    // If non-ascii, take slow path
-                    if (length != actualLen)
-                    {
-                        free(data);
-                        data = (char*)malloc((actualLen + 1) * sizeof(char));
-
-                        errorCode = ChakraRTInterface::JsCopyString(strValue, data, actualLen + 1, &length, nullptr);
-                        if (errorCode == JsNoError)
-                        {
-                            AssertMsg(actualLen == length, "If you see this message.. There is something seriously wrong. Good Luck!");
-                            
-                        }
-                    }
+                    AssertMsg(length == writtenLength, "Inconsistent length in utf8 encoding");
                 }
             }
         }
         if (errorCode == JsNoError)
         {
-            *(data + actualLen) = char(0);
+            *(data + length) = char(0);
         }
         return errorCode;
     }
