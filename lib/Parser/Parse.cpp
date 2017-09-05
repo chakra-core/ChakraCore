@@ -730,7 +730,7 @@ ParseNodePtr Parser::CreateNodeT(charcount_t ichMin,charcount_t ichLim)
     return pnode;
 }
 
-ParseNodePtr Parser::CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl, bool *isRedecl)
+ParseNodePtr Parser::CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl)
 {
     ParseNodePtr pnode = CreateNode(nop);
 
@@ -738,23 +738,17 @@ ParseNodePtr Parser::CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolT
 
     if (symbolType != STUnknown)
     {
-        pnode->sxVar.sym = AddDeclForPid(pnode, pid, symbolType, errorOnRedecl, isRedecl);
+        pnode->sxVar.sym = AddDeclForPid(pnode, pid, symbolType, errorOnRedecl);
     }
 
     return pnode;
 }
 
-Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl, bool *isRedecl)
+Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl)
 {
     Assert(pnode->IsVarLetOrConst());
 
     PidRefStack *refForUse = nullptr, *refForDecl = nullptr;
-
-    if (isRedecl)
-    {
-        *isRedecl = false;
-    }
-
     BlockInfoStack *blockInfo;
     bool fBlockScope = false;
     if (pnode->nop != knopVarDecl || symbolType == STFunction)
@@ -813,10 +807,6 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
     Symbol *sym = refForDecl->GetSym();
     if (sym != nullptr)
     {
-        if (isRedecl)
-        {
-            *isRedecl = true;
-        }
         // Multiple declarations in the same scope. 3 possibilities: error, existing one wins, new one wins.
         switch (pnode->nop)
         {
@@ -1385,9 +1375,9 @@ ParseNodePtr Parser::CreateModuleImportDeclNode(IdentPtr localName)
     return declNode;
 }
 
-ParseNodePtr Parser::CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool autoArgumentsObject, ParseNodePtr pnodeFnc, bool errorOnRedecl, bool *isRedecl)
+ParseNodePtr Parser::CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool autoArgumentsObject, ParseNodePtr pnodeFnc, bool errorOnRedecl)
 {
-    ParseNodePtr pnode = CreateDeclNode(knopVarDecl, pid, symbolType, errorOnRedecl, isRedecl);
+    ParseNodePtr pnode = CreateDeclNode(knopVarDecl, pid, symbolType, errorOnRedecl);
 
     // Append the variable to the end of the current variable list.
     AssertMem(m_ppnodeVar);
@@ -1413,7 +1403,6 @@ ParseNodePtr Parser::CreateBlockScopedDeclNode(IdentPtr pid, OpCode nodeType)
     if (nullptr != pid)
     {
         AssertMem(pid);
-        pid->SetIsLetOrConst();
         AddVarDeclToBlock(pnode);
         CheckPidIsValid(pid);
     }
@@ -4855,13 +4844,8 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
             // level and we accomplish this by having each block scoped function
             // declaration assign to both the block scoped "let" binding, as well
             // as the function scoped "var" binding.
-            bool isRedecl = false;
-            ParseNodePtr vardecl = CreateVarDeclNode(pnodeFnc->sxFnc.pnodeName->sxVar.pid, STVariable, false, nullptr, false, &isRedecl);
+            ParseNodePtr vardecl = CreateVarDeclNode(pnodeFnc->sxFnc.pnodeName->sxVar.pid, STVariable, false, nullptr, false);
             vardecl->sxVar.isBlockScopeFncDeclVar = true;
-            if (isRedecl)
-            {
-                vardecl->sxVar.sym->SetHasBlockFncVarRedecl();
-            }
         }
     }
 
@@ -4972,8 +4956,11 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
     Scope *fncExprScope = nullptr;
     if (!fDeclaration)
     {
-        pnodeFncExprScope = StartParseBlock<buildAST>(PnodeBlockType::Function, ScopeType_FuncExpr);
-        fncExprScope = pnodeFncExprScope->sxBlock.scope;
+        if (!fLambda)
+        {
+            pnodeFncExprScope = StartParseBlock<buildAST>(PnodeBlockType::Function, ScopeType_FuncExpr);
+            fncExprScope = pnodeFncExprScope->sxBlock.scope;
+        }
 
         // Function expression: push the new function onto the stack now so that the name (if any) will be
         // local to the new function.

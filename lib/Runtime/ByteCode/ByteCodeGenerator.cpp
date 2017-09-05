@@ -1648,64 +1648,6 @@ Symbol * ByteCodeGenerator::FindSymbol(Symbol **symRef, IdentPtr pid, bool forRe
             }
         }
 
-        bool didTransferToFncVarSym = false;
-
-        #pragma prefast(suppress:6237, "The right hand side condition does not have any side effects.")
-        if (PHASE_ON(Js::OptimizeBlockScopePhase, top->byteCodeFunction) &&
-            sym->GetIsBlockVar() &&
-            !sym->GetScope()->IsBlockInLoop() &&
-            sym->GetSymbolType() == STFunction)
-        {
-            // Try to use the var-scoped function binding in place of the lexically scoped one.
-            // This can be done if neither binding is explicitly assigned to, if there's no ambiguity in the binding
-            // (with/eval), and if the function is not declared in a loop. (Loops are problematic, because as the loop
-            // iterates different instances can be captured. If we always capture the var-scoped binding, then we
-            // always get the latest instance, when we should get the instance belonging to the iteration that captured it.)
-            if (sym->GetHasNonLocalReference())
-            {
-                if (!scope)
-                {
-                    Js::PropertyId i;
-                    scope = FindScopeForSym(symScope, nullptr, &i, top);
-                }
-                if (scope == symScope && !scope->GetIsObject())
-                {
-                    Symbol *fncVarSym = sym->GetFuncScopeVarSym();
-                    if (fncVarSym &&
-                        !fncVarSym->HasBlockFncVarRedecl() &&
-                        sym->GetAssignmentState() == NotAssigned &&
-                        fncVarSym->GetAssignmentState() == NotAssigned)
-                    {
-                        // Make sure no dynamic scope intrudes between the two bindings.
-                        bool foundDynamicScope = false;
-                        for (Scope *tmpScope = symScope->GetEnclosingScope(); tmpScope != fncVarSym->GetScope(); tmpScope = tmpScope->GetEnclosingScope())
-                        {
-                            Assert(tmpScope);
-                            if (tmpScope->GetIsDynamic())
-                            {
-                                foundDynamicScope = true;
-                                break;
-                            }
-                        }
-                        if (!foundDynamicScope)
-                        {
-                            didTransferToFncVarSym = true;
-                            sym = fncVarSym;
-                            symScope = sym->GetScope();
-                            if (nonLocalRef)
-                            {
-                                sym->SetHasNonLocalReference();
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if (!didTransferToFncVarSym)
-        {
-            sym->SetHasRealBlockVarRef();
-        }
-
         // This may not be a non-local reference, but the symbol may still be accessed non-locally. ('with', e.g.)
         // In that case, make sure we still process the symbol and its scope for closure capture.
         if (nonLocalRef || sym->GetHasNonLocalReference())
@@ -3242,7 +3184,6 @@ void AddFunctionsToScope(ParseNodePtr scope, ByteCodeGenerator * byteCodeGenerat
                 sym->GetScope() != sym->GetScope()->GetFunc()->GetParamScope())
             {
                 sym->SetIsBlockVar(true);
-                sym->SetHasRealBlockVarRef(true);
             }
         }
     });

@@ -40,8 +40,6 @@ private:
     BYTE isGlobalCatch : 1;
     BYTE isCommittedToSlot : 1;
     BYTE hasNonCommittedReference : 1;
-    BYTE hasRealBlockVarRef : 1;
-    BYTE hasBlockFncVarRedecl : 1;
     BYTE hasVisitedCapturingFunc : 1;
     BYTE isTrackedForDebugger : 1; // Whether the sym is tracked for debugger scope. This is fine because a sym can only be added to (not more than) one scope.
     BYTE isModuleExportStorage : 1; // If true, this symbol should be stored in the global scope export storage array.
@@ -75,8 +73,6 @@ public:
         isGlobalCatch(false),
         isCommittedToSlot(false),
         hasNonCommittedReference(false),
-        hasRealBlockVarRef(false),
-        hasBlockFncVarRedecl(false),
         hasVisitedCapturingFunc(false),
         isTrackedForDebugger(false),
         isNonSimpleParameter(false),
@@ -314,26 +310,6 @@ public:
     void SetIsUsed(bool is)
     {
         isUsed = is;
-    }
-
-    bool HasRealBlockVarRef() const
-    {
-        return hasRealBlockVarRef;
-    }
-
-    void SetHasRealBlockVarRef(bool has = true)
-    {
-        hasRealBlockVarRef = has;
-    }
-
-    bool HasBlockFncVarRedecl() const
-    {
-        return hasBlockFncVarRedecl;
-    }
-
-    void SetHasBlockFncVarRedecl(bool has = true)
-    {
-        hasBlockFncVarRedecl = has;
     }
 
     AssignmentState GetAssignmentState() const
