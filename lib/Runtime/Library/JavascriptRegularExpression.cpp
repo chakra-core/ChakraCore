@@ -184,7 +184,7 @@ namespace Js
 
         if (JavascriptOperators::GetTypeId(var) == TypeIds_HostDispatch)
         {
-            TypeId remoteTypeId;
+            TypeId remoteTypeId = TypeIds_Limit;
             RecyclableObject* reclObj = RecyclableObject::FromVar(var);
             reclObj->GetRemoteTypeId(&remoteTypeId);
             if (remoteTypeId == TypeIds_RegEx)
