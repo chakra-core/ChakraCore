@@ -4104,6 +4104,7 @@ LowererMDArch::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stack
     IR::RegOpnd* stackArgs = stackArgsInstr->GetSrc1()->AsRegOpnd();
 
     IR::RegOpnd* ldLenDstOpnd = IR::RegOpnd::New(TyUint32, func);
+    const IR::AutoReuseOpnd autoReuseLdLenDstOpnd(ldLenDstOpnd, func);
     IR::Instr* ldLen = IR::Instr::New(Js::OpCode::LdLen_A, ldLenDstOpnd, stackArgs, func);
     ldLenDstOpnd->SetValueType(ValueType::GetTaggedInt()); // LdLen_A works only on stack arguments
     callInstr->InsertBefore(ldLen);
@@ -4129,6 +4130,7 @@ LowererMDArch::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stack
     IR::IndirOpnd *nthArgument = IR::IndirOpnd::New(stackArgs, ldLenDstOpnd, TyMachReg, func);
     nthArgument->SetOffset(-1);
     IR::RegOpnd* ldElemDstOpnd = IR::RegOpnd::New(TyMachReg,func);
+    const IR::AutoReuseOpnd autoReuseldElemDstOpnd(ldElemDstOpnd, func);
     IR::Instr* ldElem = IR::Instr::New(Js::OpCode::LdElemI_A, ldElemDstOpnd, nthArgument, func);
     callInstr->InsertBefore(ldElem);
     this->lowererMD->m_lowerer->GenerateFastStackArgumentsLdElemI(ldElem);

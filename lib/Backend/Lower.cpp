@@ -11543,6 +11543,7 @@ Lowerer::LowerBailOnNotStackArgs(IR::Instr * instr)
     {
         //BailOut if the number of actuals (except "this" argument) is greater than or equal to 15.
         IR::RegOpnd* ldLenDstOpnd = IR::RegOpnd::New(TyUint32, instr->m_func);
+        const IR::AutoReuseOpnd autoReuseldLenDstOpnd(ldLenDstOpnd, instr->m_func);
         IR::Instr* ldLen = IR::Instr::New(Js::OpCode::LdLen_A, ldLenDstOpnd, instr->m_func);
         ldLenDstOpnd->SetValueType(ValueType::GetTaggedInt()); //LdLen_A works only on stack arguments
         instr->InsertBefore(ldLen);
@@ -19533,7 +19534,8 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
     IR::RegOpnd* stackArgs = stackArgsInstr->GetSrc1()->AsRegOpnd();
 
     IR::RegOpnd* ldLenDstOpnd = IR::RegOpnd::New(TyMachReg, func);
-    IR::Instr* ldLen = IR::Instr::New(Js::OpCode::LdLen_A, ldLenDstOpnd ,stackArgs, func);
+    const IR::AutoReuseOpnd autoReuseLdLenDstOpnd(ldLenDstOpnd, func);
+    IR::Instr* ldLen = IR::Instr::New(Js::OpCode::LdLen_A, ldLenDstOpnd, stackArgs, func);
     ldLenDstOpnd->SetValueType(ValueType::GetTaggedInt()); /*LdLen_A works only on stack arguments*/
     callInstr->InsertBefore(ldLen);
     GenerateFastRealStackArgumentsLdLen(ldLen);
@@ -19561,6 +19563,7 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
 
     IR::IndirOpnd *nthArgument = IR::IndirOpnd::New(stackArgs, ldLenDstOpnd, TyMachReg, func);
     IR::RegOpnd* ldElemDstOpnd = IR::RegOpnd::New(TyMachReg,func);
+    const IR::AutoReuseOpnd autoReuseldElemDstOpnd(ldElemDstOpnd, func);
     IR::Instr* ldElem = IR::Instr::New(Js::OpCode::LdElemI_A, ldElemDstOpnd, nthArgument, func);
     callInstr->InsertBefore(ldElem);
     GenerateFastStackArgumentsLdElemI(ldElem);
@@ -19584,6 +19587,7 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
 
     nthArgument = IR::IndirOpnd::New(stackArgs, ldLenDstOpnd, TyMachReg, func);
     ldElemDstOpnd = IR::RegOpnd::New(TyMachReg,func);
+    const IR::AutoReuseOpnd autoReuseldElemDstOpnd2(ldElemDstOpnd, func);
     ldElem = IR::Instr::New(Js::OpCode::LdElemI_A, ldElemDstOpnd, nthArgument, func);
     callInstr->InsertBefore(ldElem);
     GenerateFastStackArgumentsLdElemI(ldElem);
@@ -22529,6 +22533,7 @@ Lowerer::GenerateFastCmTypeOf(IR::Instr *compare, IR::RegOpnd *object, IR::IntCo
     else // Other primitive types don't need helper
     {
         typeOf->Remove();
+        dst = compare->UnlinkDst()->AsRegOpnd();
         compare->Remove();
         *pfNoLower = true;
     }

@@ -3353,7 +3353,7 @@ LinearScan::InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg)
         else
         {
             StackSym * oldSym = sym;
-            sym = StackSym::New(TyVar, this->func);
+            sym = StackSym::New(sym->GetType(), this->func);
             sym->m_isConst = true;
             sym->m_isIntConst = oldSym->m_isIntConst;
             sym->m_isInt64Const = oldSym->m_isInt64Const;
@@ -4182,7 +4182,7 @@ LinearScan::ReconcileRegContent(Lifetime ** branchRegContent, Lifetime **labelRe
     }
     else
     {
-        Assert(type == TyFloat64 || IRType_IsSimd128(type));
+        Assert(type == TyFloat64 || IRType_IsSimd(type));
 
         FOREACH_FLOAT_REG(regIter)
         {
@@ -4611,7 +4611,7 @@ LinearScan::SaveRegContent(IR::Instr *instr)
 
 bool LinearScan::RegsAvailable(IRType type)
 {
-    if (IRType_IsFloat(type) || IRType_IsSimd128(type))
+    if (IRType_IsFloat(type) || IRType_IsSimd(type))
     {
         return (this->floatRegUsedCount < FLOAT_REG_COUNT);
     }

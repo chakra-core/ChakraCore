@@ -359,7 +359,6 @@ Instr::Free()
                         return;
                     }
                     Assert(this->m_func->GetTopFunc()->allowRemoveBailOutArgInstr || !stackSym->m_isBailOutReferenced);
-                    stackSym->m_instrDef = nullptr;
                 }
                 else
                 {
@@ -373,6 +372,18 @@ Instr::Free()
                     || (stackSym->m_isEncodedConstant && stackSym->constantValue != 0));
             }
         }
+        this->FreeDst();
+    }
+    if (this->GetSrc1())
+    {
+        this->FreeSrc1();
+    }
+    if (this->GetSrc2())
+    {
+        // This pattern isn't so unusual:
+        //     src = instr->UnlinkSrc1();
+        //     instr->Remove();
+        this->FreeSrc2();
     }
 
     ClearBailOutInfo();
@@ -2155,17 +2166,23 @@ Instr::UnlinkDst()
         }
     }
 
+    if (stackSym && stackSym->m_isSingleDef)
+    {
+        if (stackSym->m_instrDef == this)
+        {
+            stackSym->m_instrDef = nullptr;
+        }
+        else
+        {
+            Assert(oldDst->isFakeDst);
+        }
+    }
 #if DBG
     if (oldDst->isFakeDst)
     {
         oldDst->isFakeDst = false;
     }
 #endif
-    if (stackSym && stackSym->m_isSingleDef)
-    {
-        AssertMsg(stackSym->m_instrDef == this, "m_instrDef incorrectly set");
-        stackSym->m_instrDef = nullptr;
-    }
 
     oldDst->UnUse();
     this->m_dst = nullptr;
@@ -2217,7 +2234,7 @@ Instr::ReplaceDst(Opnd * newDst)
 Instr *
 Instr::SinkDst(Js::OpCode assignOpcode, RegNum regNum, IR::Instr *insertAfterInstr)
 {
-    return SinkDst(assignOpcode, StackSym::New(TyVar, m_func), regNum, insertAfterInstr);
+    return SinkDst(assignOpcode, StackSym::New(this->GetDst()->GetType(), m_func), regNum, insertAfterInstr);
 }
 
 Instr *
@@ -4559,7 +4576,7 @@ PragmaInstr::Dump(IRDumpFlags flags)
         {
             functionBody = ((Js::FunctionBody*)m_func->GetJITFunctionBody()->GetAddr());
         }
-        if (functionBody)
+        if (functionBody && !functionBody->GetUtf8SourceInfo()->GetIsLibraryCode())
         {
             functionBody->PrintStatementSourceLine(this->m_statementIndex);
         }

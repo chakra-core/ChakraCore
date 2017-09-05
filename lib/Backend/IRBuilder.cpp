@@ -437,7 +437,7 @@ IRBuilder::Build()
         // those as if they are local for the value of the with statement
         this->m_ldSlots = BVFixed::New<JitArenaAllocator>(m_func->GetJITFunctionBody()->GetLocalsCount(), m_tempAlloc);
         this->m_stSlots = BVFixed::New<JitArenaAllocator>(m_func->GetJITFunctionBody()->GetFirstTmpReg(), m_tempAlloc);
-        this->m_loopBodyRetIPSym = StackSym::New(TyInt32, this->m_func);
+        this->m_loopBodyRetIPSym = StackSym::New(TyMachReg, this->m_func);
 #if DBG
         if (m_func->GetJITFunctionBody()->GetTempCount() != 0)
         {
