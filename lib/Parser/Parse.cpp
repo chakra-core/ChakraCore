@@ -9252,6 +9252,11 @@ ParseNodePtr Parser::ParseCatch()
             FinishParseBlock(pnodeCatchScope);
         }
 
+        if (pnodeCatchScope->sxBlock.GetCallsEval() || pnodeCatchScope->sxBlock.GetChildCallsEval())
+        {
+            GetCurrentBlock()->sxBlock.SetChildCallsEval(true);
+        }
+
         if (buildAST)
         {
             PopStmt(&stmt);
