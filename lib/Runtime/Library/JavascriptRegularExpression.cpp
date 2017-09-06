@@ -186,8 +186,7 @@ namespace Js
         {
             TypeId remoteTypeId = TypeIds_Limit;
             RecyclableObject* reclObj = RecyclableObject::FromVar(var);
-            reclObj->GetRemoteTypeId(&remoteTypeId);
-            if (remoteTypeId == TypeIds_RegEx)
+            if (reclObj->GetRemoteTypeId(&remoteTypeId) && remoteTypeId == TypeIds_RegEx)
             {
                 return static_cast<JavascriptRegExp *>(reclObj->GetRemoteObject());
             }
