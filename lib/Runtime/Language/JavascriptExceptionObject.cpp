@@ -111,7 +111,7 @@ namespace Js
                 {
                     if (RecyclableObject::Is(rethrownObject))
                     {
-                        if (((RecyclableObject*)rethrownObject)->GetScriptContext() != requestingScriptContext)
+                        if (CrossSite::NeedMarshalVar(rethrownObject, requestingScriptContext))
                         {
                             Assert(requestingScriptContext->GetHostScriptContext());
                             HRESULT hrSecurityCheck = requestingScriptContext->GetHostScriptContext()->CheckCrossDomainScriptContext(((RecyclableObject*)rethrownObject)->GetScriptContext());
