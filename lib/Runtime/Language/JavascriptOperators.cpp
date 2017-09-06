@@ -5089,7 +5089,7 @@ CommonNumber:
         return thisVar;
     }
 
-    BOOL JavascriptOperators::GetRemoteTypeId(Var aValue, TypeId* typeId)
+    BOOL JavascriptOperators::GetRemoteTypeId(Var aValue, __out TypeId* typeId)
     {
         *typeId = TypeIds_Limit;
         if (GetTypeId(aValue) != TypeIds_HostDispatch)
