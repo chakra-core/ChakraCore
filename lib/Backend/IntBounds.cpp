@@ -178,7 +178,7 @@ void IntBounds::SetBound(
 
     // Aggressively merge the constant lower or upper bound of the base value, adjusted by the offset
     ValueInfo const * const baseValueInfo = baseValue->GetValueInfo();
-    int constantBoundBase;
+    int constantBoundBase = 0xCCCCCCCC;
     const bool success =
         Lower
             ? baseValueInfo->TryGetIntConstantLowerBound(&constantBoundBase, true)
@@ -342,7 +342,7 @@ bool IntBounds::IsGreaterThanOrEqualTo(const Value *const value, const int offse
     Assert(value);
 
     ValueInfo const * const valueInfo = value->GetValueInfo();
-    int constantBoundBase;
+    int constantBoundBase = INT32_MAX;
     const bool success = valueInfo->TryGetIntConstantUpperBound(&constantBoundBase, true);
     Assert(success);
     if(IsGreaterThanOrEqualTo(constantBoundBase, offset))
@@ -360,7 +360,7 @@ bool IntBounds::IsLessThanOrEqualTo(const Value *const value, const int offset) 
     Assert(value);
 
     ValueInfo const * const valueInfo = value->GetValueInfo();
-    int constantBoundBase;
+    int constantBoundBase = INT32_MIN;
     const bool success = valueInfo->TryGetIntConstantLowerBound(&constantBoundBase, true);
     Assert(success);
     if(IsLessThanOrEqualTo(constantBoundBase, offset))

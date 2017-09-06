@@ -572,7 +572,7 @@ StackSym::GetIntConstValue() const
         {
             return Js::TaggedInt::ToInt32(var);
         }
-        int32 value;
+        int32 value = 0xCCCCCCCC;
         const bool isInt32 = Js::JavascriptNumber::TryGetInt32Value(Js::JavascriptNumber::GetValue(var), &value);
         Assert(isInt32);
         return value;

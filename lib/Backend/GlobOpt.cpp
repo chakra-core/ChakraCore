@@ -7507,7 +7507,11 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
             if(src1Val->GetValueInfo()->IsLikelyInt() && src2Val->GetValueInfo()->IsLikelyInt())
             {
                 // Compute resulting range info
-                int32 min1, max1, min2, max2, newMin, newMax;
+                int32 min1 = INT32_MIN;
+                int32 max1 = INT32_MAX; 
+                int32 min2 = INT32_MIN;
+                int32 max2 = INT32_MAX;
+                int32 newMin, newMax;
 
                 Assert(this->DoAggressiveIntTypeSpec());
                 src1Val->GetValueInfo()->GetIntValMinMax(&min1, &max1, this->DoAggressiveIntTypeSpec());
