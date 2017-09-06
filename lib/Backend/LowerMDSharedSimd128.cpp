@@ -434,7 +434,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_8(IR::Instr *instr)
     while (!args->Empty() && i < 8)
     {
         srcs[i] = args->Pop();
-        // src's might have been constant prop'ed. Enregister them if so.
+        // src's might have been constant prop'd. Enregister them if so.
         srcs[i] = EnregisterIntConst(instr, srcs[i], TyInt16);
         Assert(srcs[i]->GetType() == TyInt16 && srcs[i]->IsRegOpnd());
         // PINSRW dst, srcs[i], i
@@ -473,7 +473,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_16(IR::Instr *instr)
     while (!args->Empty() && i < 16)
     {
         srcs[i] = args->Pop();
-        // src's might have been constant prop'ed. Enregister them if so.
+        // src's might have been constant prop'd. Enregister them if so.
         srcs[i] = EnregisterIntConst(instr, srcs[i], TyInt8);
         Assert(srcs[i]->GetType() == TyInt8 && srcs[i]->IsRegOpnd());
 
@@ -591,7 +591,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_4(IR::Instr *instr)
         //Simd128_IntsToI4/U4
         IR::RegOpnd *temp = IR::RegOpnd::New(TyFloat32, m_func);
 
-        // src's might have been constant prop'ed. Enregister them if so.
+        // src's might have been constant prop'd. Enregister them if so.
         src4 = EnregisterIntConst(instr, src4);
         src3 = EnregisterIntConst(instr, src3);
         src2 = EnregisterIntConst(instr, src2);

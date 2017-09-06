@@ -336,7 +336,7 @@ CommonNumber:
     //    Boolean:  The result equals the input argument (no conversion).
     //    Number:   The result equals the input argument (no conversion).
     //    String:   The result equals the input argument (no conversion).
-    //    VariantDate:Returns the value for variant date by calling ToPrimitve directly.
+    //    VariantDate:Returns the value for variant date by calling ToPrimitive directly.
     //    Object:   Return a default value for the Object.
     //              The default value of an object is retrieved by calling the [[DefaultValue]]
     //              internal method of the object, passing the optional hint PreferredType.

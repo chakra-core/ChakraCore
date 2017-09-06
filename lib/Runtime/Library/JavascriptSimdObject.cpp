@@ -179,7 +179,7 @@ namespace Js
             newArgs[2] = args[2];
         }
 
-        //Locale specifc seperator?? 
+        //Locale specific separator??
         JavascriptString *seperator = JavascriptString::NewWithSz(_u(", "), scriptContext);
         uint idx = 0;
         Var laneVar = nullptr;
