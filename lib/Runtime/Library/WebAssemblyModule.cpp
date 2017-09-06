@@ -291,8 +291,8 @@ WebAssemblyModule::ValidateModule(
             {
                 CONFIG_FLAG(MaxAsmJsInterpreterRunCount) = 0;
                 AsmJsScriptFunction * funcObj = scriptContext->GetLibrary()->CreateAsmJsScriptFunction(body);
-                FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
-                entypointInfo->SetIsAsmJSFunction(true);
+                FunctionEntryPointInfo * entrypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
+                entrypointInfo->SetIsAsmJSFunction(true);
                 GenerateFunction(scriptContext->GetNativeCodeGenerator(), body, funcObj);
             }
 #endif
