@@ -30,6 +30,7 @@ private:
     BYTE defCount;
     BYTE needDeclaration : 1;
     BYTE isBlockVar : 1;
+    BYTE isConst : 1;
     BYTE isGlobal : 1;
     BYTE isEval : 1;
     BYTE hasNonLocalReference : 1;  // if true, then this symbol needs to be heap-allocated
@@ -61,6 +62,7 @@ public:
         location(Js::Constants::NoRegister),
         needDeclaration(false),
         isBlockVar(false),
+        isConst(false),
         isGlobal(false),
         hasNonLocalReference(false),
         isFuncExpr(false),
@@ -148,6 +150,16 @@ public:
     bool GetIsBlockVar() const
     {
         return isBlockVar;
+    }
+
+    void SetIsConst(bool is)
+    {
+        isConst = is;
+    }
+
+    bool GetIsConst() const
+    {
+        return isConst;
     }
 
     void SetIsModuleExportStorage(bool is)

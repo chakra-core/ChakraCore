@@ -46,3 +46,5 @@ test 23
 ReferenceError: Use before declaration
 test 24
 ReferenceError: Use before declaration
+test 25
+TypeError: Assignment to const

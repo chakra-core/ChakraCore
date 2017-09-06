@@ -33,6 +33,7 @@ namespace Js
             this->SetSymbolType(scopeSlot, sym->GetSymbolType());
             this->SetHasFuncAssignment(scopeSlot, sym->GetHasFuncAssignment());
             this->SetIsBlockVariable(scopeSlot, sym->GetIsBlockVar());
+            this->SetIsConst(scopeSlot, sym->GetIsConst());
             this->SetIsFuncExpr(scopeSlot, sym->GetIsFuncExpr());
             this->SetIsModuleExportStorage(scopeSlot, sym->GetIsModuleExportStorage());
             this->SetIsModuleImport(scopeSlot, sym->GetIsModuleImport());
@@ -235,6 +236,7 @@ namespace Js
 
                 sym->SetScopeSlot(static_cast<PropertyId>(i));
                 sym->SetIsBlockVar(GetIsBlockVariable(i));
+                sym->SetIsConst(GetIsConst(i));
                 sym->SetIsFuncExpr(GetIsFuncExpr(i));
                 sym->SetIsModuleExportStorage(GetIsModuleExportStorage(i));
                 sym->SetIsModuleImport(GetIsModuleImport(i));
