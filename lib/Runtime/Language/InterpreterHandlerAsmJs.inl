@@ -15,15 +15,15 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2    ( NOPASMJS         , Label        , Empty                                              )
   DEF2    ( BR_ASM           , AsmBr        , OP_Br                                              )
 
-  DEF2_WMS( FALLTHROUGH_ASM  , LdSlotArr    , /* Common case with LdSlot */                      )
-  DEF3_WMS( GET_ELEM_SLOT_ASM, LdSlot       , OP_LdAsmJsSlot               , ElementSlot         )
-  DEF2_WMS( FUNCtoA1Mem      , LdUndef      , JavascriptOperators::OP_LdUndef                    )
+  DEF2_WMS( FALLTHROUGH_ASM  , LdSlotArr    ,  /* Common case with LdSlot */                     )
+  DEF3_WMS( CUSTOM_ASMJS     , LdSlot       , OP_LdAsmJsSlot               , ElementSlot         )
 
 // Function Calls
   DEF2    ( FALLTHROUGH_ASM  , I_StartCall, /* Common case with StartCall */                     )
   DEF3    ( CUSTOM_ASMJS     , StartCall    , OP_AsmStartCall              , StartCall           )
 
   DEF3_WMS( CUSTOM_ASMJS     , I_Call       , OP_I_AsmCall                 , AsmCall             )
+  DEF3_WMS( CUSTOM_ASMJS     , ProfiledI_Call, OP_ProfiledI_AsmCall        , ProfiledAsmCall     )
   DEF3_WMS( CUSTOM_ASMJS     , Call         , OP_AsmCall                   , AsmCall             )
   DEF2_WMS( D1toR1Out        , I_ArgOut_Db  , OP_I_SetOutAsmDb                                   ) // set double as internal outparam
   DEF2_WMS( D1toR1Out        , ArgOut_Db    , OP_SetOutAsmDb                                     ) // convert double to var and set it as outparam
@@ -32,14 +32,11 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( F1toR1Out        , I_ArgOut_Flt , OP_I_SetOutAsmFlt                                  ) // set float as internal outparam
   DEF2_WMS( F1toR1Out        , ArgOut_Flt   , OP_SetOutAsmFlt                                    ) // convert float to var and set as outparam
   DEF2_WMS( L1toR1Out        , I_ArgOut_Long, OP_I_SetOutAsmLong                                 ) // set int64 as internal outparam
-  DEF2_WMS( D1toD1Mem        , I_Conv_VTD   , (double)                                           )
   DEF2_WMS( R1toD1Mem        , Conv_VTD     , JavascriptConversion::ToNumber                     ) // convert var to double
-  DEF2_WMS( F1toF1Mem        , I_Conv_VTF   , (float)                                            )
   DEF2_WMS( R1toF1Mem        , Conv_VTF     , JavascriptConversion::ToNumber                     ) // convert var to float
-  DEF2_WMS( I1toI1Mem        , I_Conv_VTI   , (int)                                              )
   DEF2_WMS( R1toI1Mem        , Conv_VTI     , JavascriptMath::ToInt32                            ) // convert var to int
-  DEF3_WMS( CUSTOM_ASMJS     , ArgOut_Long  , OP_InvalidWasmTypeConversion<true>  , Reg1Long1    ) // convert int64 to Var
   DEF3_WMS( CUSTOM_ASMJS     , Conv_VTL     , OP_InvalidWasmTypeConversion<false> , Long1Reg1    ) // convert var to int64
+  DEF3_WMS( CUSTOM_ASMJS     , ArgOut_Long  , OP_InvalidWasmTypeConversion<true>  , Reg1Long1    ) // convert int64 to Var
 
   DEF3_WMS( CUSTOM_ASMJS     , LdArr_Func   , OP_LdArrFunc                 , ElementSlot         )
   DEF3_WMS( CUSTOM_ASMJS     , LdArr_WasmFunc,OP_LdArrWasmFunc             , ElementSlot         )
@@ -392,9 +389,6 @@ EXDEF2_WMS( SIMD_B16_1U16_2toU16_1   , Simd128_Select_U16  , Js::SIMDInt32x4Oper
 EXDEF2_WMS   ( SIMD_F4_1toR1Mem  , Simd128_I_ArgOut_F4     , OP_I_SetOutAsmSimd                          )
   DEF2_WMS   ( SIMD_I4_1toR1Mem  , Simd128_I_ArgOut_I4     , OP_I_SetOutAsmSimd                          )
 
-EXDEF2_WMS   ( SIMD_F4_1toF4_1   , Simd128_I_Conv_VTF4     , (AsmJsSIMDValue)                            )
-  DEF2_WMS   ( SIMD_I4_1toI4_1   , Simd128_I_Conv_VTI4     , (AsmJsSIMDValue)                            )
-
 EXDEF2_WMS   ( SIMD_F4_1I4toF4_1   , Simd128_Swizzle_F4      , SIMDUtils::SIMD128InnerShuffle            )
 EXDEF2_WMS   ( SIMD_F4_2I4toF4_1   , Simd128_Shuffle_F4      , SIMDUtils::SIMD128InnerShuffle            )
 
@@ -451,7 +445,6 @@ EXDEF2_WMS ( SIMD_I16_2toI16_1  , Simd128_Xor_I16           , Js::SIMDInt32x4Ope
 
 EXDEF2_WMS ( SIMD_I16_1toI16_1  , Simd128_Return_I16       , (AsmJsSIMDValue)                            )
 EXDEF2_WMS ( SIMD_I16_1toR1Mem  , Simd128_I_ArgOut_I16     , OP_I_SetOutAsmSimd                          )
-EXDEF2_WMS ( SIMD_I16_1toI16_1  , Simd128_I_Conv_VTI16     , (AsmJsSIMDValue)                            )
 
   //Lane Access
 EXDEF2_WMS   ( SIMD_I16_1I1toI1    , Simd128_ExtractLane_I16 , SIMDUtils::SIMD128InnerExtractLaneI16       )
@@ -512,14 +505,6 @@ EXDEF2_WMS   ( SIMD_U16_1toR1Mem , Simd128_I_ArgOut_U16    , OP_I_SetOutAsmSimd 
 EXDEF2_WMS   ( SIMD_B4_1toR1Mem  , Simd128_I_ArgOut_B4     , OP_I_SetOutAsmSimd                          )
 EXDEF2_WMS   ( SIMD_B8_1toR1Mem  , Simd128_I_ArgOut_B8     , OP_I_SetOutAsmSimd                          )
 EXDEF2_WMS   ( SIMD_B16_1toR1Mem , Simd128_I_ArgOut_B16    , OP_I_SetOutAsmSimd                          )
-
-EXDEF2_WMS   ( SIMD_I8_1toI8_1   , Simd128_I_Conv_VTI8     , (AsmJsSIMDValue)                            )
-EXDEF2_WMS   ( SIMD_U4_1toU4_1   , Simd128_I_Conv_VTU4     , (AsmJsSIMDValue)                            )
-EXDEF2_WMS   ( SIMD_U8_1toU8_1   , Simd128_I_Conv_VTU8     , (AsmJsSIMDValue)                            )
-EXDEF2_WMS   ( SIMD_U16_1toU16_1 , Simd128_I_Conv_VTU16    , (AsmJsSIMDValue)                            )
-EXDEF2_WMS   ( SIMD_B4_1toB4_1   , Simd128_I_Conv_VTB4     , (AsmJsSIMDValue)                            )
-EXDEF2_WMS   ( SIMD_B8_1toB8_1   , Simd128_I_Conv_VTB8     , (AsmJsSIMDValue)                            )
-EXDEF2_WMS   ( SIMD_B16_1toB16_1 , Simd128_I_Conv_VTB16    , (AsmJsSIMDValue)                            )
 
 EXDEF2_WMS   ( SIMD_I8_1toI8_1   , Simd128_Return_I8       , (AsmJsSIMDValue)                            )
 EXDEF2_WMS   ( SIMD_U4_1toU4_1   , Simd128_Return_U4       , (AsmJsSIMDValue)                            )
@@ -727,7 +712,6 @@ EXDEF2_WMS(SIMD_I4_1D2_2toD2_1, Simd128_Select_D2, Js::SIMDFloat64x2Operation::O
 EXDEF2_WMS(SIMD_D2_3toD2_1, Simd128_Clamp_D2, Js::SIMDFloat64x2Operation::OpClamp)
 EXDEF2_WMS(SIMD_D2_1toI1, Simd128_LdSignMask_D2, Js::SIMDFloat64x2Operation::OpGetSignMask)
 EXDEF2_WMS(SIMD_D2_1toR1Mem, Simd128_I_ArgOut_D2, OP_I_SetOutAsmSimd)
-EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_I_Conv_VTD2, (AsmJsSIMDValue))
 EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_Ld_D2, (AsmJsSIMDValue)
 EXDEF2_WMS(SIMD_D2_1I2toD2_1, Simd128_Swizzle_D2, SIMD128InnerShuffle)
 EXDE2_WMS(SIMD_D2_2I2toD2_1, Simd128_Shuffle_D2, SIMD128InnerShuffle)

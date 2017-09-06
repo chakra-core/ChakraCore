@@ -18,6 +18,7 @@ namespace Wasm
             F32 = 3,
             F64 = 4,
             Limit,
+            Ptr,
             Any
         };
         bool IsLocalType(WasmTypes::WasmType type);

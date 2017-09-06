@@ -434,6 +434,8 @@ public:
     IR::Instr* GetArgOutSnapshot();
     FixedFieldInfo* GetFixedFunction() const;
     uint       GetArgOutCount(bool getInterpreterArgOutCount);
+    uint       GetArgOutSize(bool getInterpreterArgOutCount);
+    uint       GetAsmJsArgOutSize();
     IR::PropertySymOpnd *GetPropertySymOpnd() const;
     bool       CallsAccessor(IR::PropertySymOpnd * methodOpnd = nullptr);
     bool       CallsGetter();

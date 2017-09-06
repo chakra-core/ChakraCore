@@ -2105,7 +2105,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     {
         this->SpillInlineeArgs(instr);
     }
-    else
+    else if (!instr->m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         // There is a chance that the instruction was hoisting from an inlinee func
         // but if there are no inlinee frames - make sure the instr belongs to the outer func
@@ -3467,7 +3467,7 @@ LinearScan::KillImplicitRegs(IR::Instr *instr)
     {
         this->SpillInlineeArgs(instr);
     }
-    else
+    else if(!instr->m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         instr->m_func = this->func;
     }

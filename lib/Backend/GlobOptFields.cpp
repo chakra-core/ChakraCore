@@ -2040,8 +2040,8 @@ GlobOpt::AssertCanCopyPropOrCSEFieldLoad(IR::Instr * instr)
         || instr->m_opcode == Js::OpCode::CheckFixedFld
         || instr->m_opcode == Js::OpCode::CheckPropertyGuardAndLoadType);
 
-    Assert(instr->m_opcode == Js::OpCode::CheckFixedFld || instr->GetDst()->GetType() == TyVar);
-    Assert(instr->GetSrc1()->GetType() == TyVar);
+    Assert(instr->m_opcode == Js::OpCode::CheckFixedFld || instr->GetDst()->GetType() == TyVar || instr->m_func->GetJITFunctionBody()->IsAsmJsMode());
+    Assert(instr->GetSrc1()->GetType() == TyVar || instr->m_func->GetJITFunctionBody()->IsAsmJsMode());
     Assert(instr->GetSrc1()->AsSymOpnd()->m_sym->IsPropertySym());
     Assert(instr->GetSrc2() == nullptr);
 }
@@ -2755,24 +2755,14 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
     return isSpecialized;
 }
 
-IR::Instr*
+void
 GlobOpt::OptNewScObject(IR::Instr** instrPtr, Value* srcVal)
 {
     IR::Instr *&instr = *instrPtr;
 
-    if (IsLoopPrePass())
+    if (!instr->IsNewScObjectInstr() || IsLoopPrePass() || !this->DoFieldRefOpts() || PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->func))
     {
-        return instr;
-    }
-
-    if (PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->func) || !this->DoFieldRefOpts())
-    {
-        return instr;
-    }
-
-    if (!instr->IsNewScObjectInstr())
-    {
-        return nullptr;
+        return;
     }
 
     bool isCtorInlined = instr->m_opcode == Js::OpCode::NewScObjectNoCtor;
@@ -2787,8 +2777,6 @@ GlobOpt::OptNewScObject(IR::Instr** instrPtr, Value* srcVal)
     {
         GenerateBailAtOperation(instrPtr, IR::BailOutFailedCtorGuardCheck);
     }
-
-    return instr;
 }
 
 void

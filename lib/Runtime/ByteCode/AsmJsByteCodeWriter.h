@@ -39,7 +39,7 @@ namespace Js
         IMP_IWASM void AsmBrReg1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1);
         IMP_IWASM void AsmBrReg1Const1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1);
         IMP_IWASM void AsmStartCall(OpCodeAsmJs op, ArgSlot ArgCount, bool isPatching = false);
-        IMP_IWASM void AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType);
+        IMP_IWASM void AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType, ProfileId profileId);
         IMP_IWASM void AsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, uint32 slotId);
         IMP_IWASM void WasmMemAccess(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint32 offset, ArrayBufferView::ViewType viewType);
 
@@ -113,6 +113,7 @@ namespace Js
         virtual void End() override;
         virtual void Reset() override;
         virtual ByteCodeLabel DefineLabel() override;
+        virtual void SetCallSiteCount(Js::ProfileId callSiteCount) override;
 #endif
     };
 }

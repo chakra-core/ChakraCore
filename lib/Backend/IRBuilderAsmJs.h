@@ -80,7 +80,7 @@ private:
     BranchReloc *           AddBranchInstr(IR::BranchInstr *instr, uint32 offset, uint32 targetOffset);
     BranchReloc *           CreateRelocRecord(IR::BranchInstr * branchInstr, uint32 offset, uint32 targetOffset);
     void                    BuildHeapBufferReload(uint32 offset);
-    template<typename T, typename ConstOpnd, typename F> 
+    template<typename T, typename ConstOpnd, typename F>
     void                    CreateLoadConstInstrForType(byte* table, Js::RegSlot& regAllocated, uint32 constCount, uint32 offset, IRType irType, ValueType valueType, Js::OpCode opcode, F extraProcess);
     void                    BuildConstantLoads();
     void                    BuildImplicitArgIns();
@@ -91,6 +91,15 @@ private:
 #endif
     Js::RegSlot             GetTypedRegFromRegSlot(Js::RegSlot reg, WAsmJs::Types type);
     Js::RegSlot             GetRegSlotFromTypedReg(Js::RegSlot srcReg, WAsmJs::Types type);
+    Js::RegSlot             GetRegSlotFromPtrReg(Js::RegSlot srcReg)
+    {
+#if TARGET_32
+        return GetRegSlotFromIntReg(srcReg);
+#elif TARGET_64
+        return GetRegSlotFromInt64Reg(srcReg);
+#endif
+    }
+
     Js::RegSlot             GetRegSlotFromIntReg(Js::RegSlot srcIntReg) {return GetRegSlotFromTypedReg(srcIntReg, WAsmJs::INT32);}
     Js::RegSlot             GetRegSlotFromInt64Reg(Js::RegSlot srcIntReg) {return GetRegSlotFromTypedReg(srcIntReg, WAsmJs::INT64);}
     Js::RegSlot             GetRegSlotFromFloatReg(Js::RegSlot srcFloatReg) {return GetRegSlotFromTypedReg(srcFloatReg, WAsmJs::FLOAT32);}
@@ -139,7 +148,7 @@ private:
     void                    BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, uint32 constOffset, Js::ArrayBufferView::ViewType viewType);
     void                    BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, Js::ArrayBufferView::ViewType viewType);
     void                    BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, Js::ArrayBufferView::ViewType viewType, uint8 DataWidth);
-    void                    BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSlot argCount, Js::RegSlot ret, Js::RegSlot function, int8 returnType);
+    void                    BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSlot argCount, Js::RegSlot ret, Js::RegSlot function, int8 returnType, Js::ProfileId profileId);
     void                    BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstReg);
     void                    BuildBrInt1(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, Js::RegSlot src);
     void                    BuildBrInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, Js::RegSlot src1, Js::RegSlot src2);
@@ -163,7 +172,7 @@ private:
     IR::Instr **            m_offsetToInstruction;
     Js::ByteCodeReader      m_jnReader;
     Js::StatementReader<Js::FunctionBody::ArenaStatementMapList> m_statementReader;
-    SList<IR::Instr *> *    m_argStack;
+    SListCounted<IR::Instr *> *m_argStack;
     SList<IR::Instr *> *    m_tempList;
     SList<int32> *          m_argOffsetStack;
     SList<BranchReloc *> *  m_branchRelocList;
@@ -171,7 +180,6 @@ private:
     static const uint32     m_firstsTypeCount = WAsmJs::LIMIT * 3 + 1;
     Js::RegSlot             m_firstsType[m_firstsTypeCount];
     Js::RegSlot             m_firstVarConst;
-    Js::RegSlot             m_firstIRTemp;
     Js::RegSlot             m_tempCount;
 
     Js::OpCode *            m_simdOpcodesMap;

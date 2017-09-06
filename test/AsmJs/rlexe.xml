@@ -25,6 +25,7 @@
       <files>BasicBranching.js</files>
       <baseline>BasicBranchingLinkFail.baseline</baseline>
       <compile-flags>-testtrace:asmjs -forceAsmJsLinkFail</compile-flags>
+      <tags>Slow</tags>
     </default>
   </test>
 
@@ -609,7 +610,7 @@
     <default>
       <files>cseBug.js</files>
       <baseline>cseBug.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -forcedeferparse</compile-flags>
+      <compile-flags>-testtrace:asmjs -off:deferparse</compile-flags>
     </default>
   </test>
   <test>

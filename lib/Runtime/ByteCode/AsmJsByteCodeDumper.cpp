@@ -129,11 +129,6 @@ namespace Js
             Output::Print(_u("\n"));
         }
 
-        if (funcInfo->GetReturnType() == AsmJsRetType::Void)
-        {
-            Output::Print(_u("    0000   %-20s R0\n"), OpCodeUtilAsmJs::GetOpCodeName(OpCodeAsmJs::LdUndef));
-        }
-
         uint32 statementIndex = 0;
         while (true)
         {
@@ -599,6 +594,17 @@ namespace Js
             Output::Print(_u("="));
         }
         Output::Print(_u(" R%d(ArgCount: %d)"), data->Function, data->ArgCount);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpProfiledAsmCall(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        if (data->Return != Constants::NoRegister)
+        {
+            DumpReg((RegSlot)data->Return);
+            Output::Print(_u("="));
+        }
+        Output::Print(_u(" R%d(ArgCount: %d, profileId: %d)"), data->Function, data->ArgCount, data->profileId);
     }
 
     template <class T>

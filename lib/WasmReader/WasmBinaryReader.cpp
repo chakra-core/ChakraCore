@@ -31,6 +31,7 @@ uint32 GetTypeByteSize(WasmType type)
     case I64: return sizeof(int64);
     case F32: return sizeof(float);
     case F64: return sizeof(double);
+    case Ptr: return sizeof(void*);
     default:
         Js::Throw::InternalError();
     }

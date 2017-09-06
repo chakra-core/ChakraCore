@@ -90,7 +90,6 @@ MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_LdSlot_I4                 , ElementSlot   
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_StSlot_I4                 , ElementSlot                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_Return_I4                 , Int32x4_2                         , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_I_ArgOut_I4               , Reg1Int32x4_1                     , None           ,        None                      )
-MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_I_Conv_VTI4               , Int32x4_2                         , None           ,        None                      )
 
 // Extended opcodes. Running out of 1-byte opcode space. Add new opcodes here.
 MACRO_SIMD(Simd128_End, Empty, None, None) // Just a marker to indicate SIMD opcodes region
@@ -129,7 +128,6 @@ MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_LdSlot_F4                 , ElementSlo
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_StSlot_F4                 , ElementSlot                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_Return_F4                 , Float32x4_2                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_I_ArgOut_F4               , Reg1Float32x4_1                   , None           ,        None                      )
-MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_I_Conv_VTF4               , Float32x4_2                       , None           ,        None                      )
 
 // Float64x2
 #if 0 //Disabling this type until the specification decides to include or not.
@@ -161,7 +159,6 @@ MACRO_SIMD_EXTEND_WMS(Simd128_Gt_D2, Float64x2_3, None, None, 0)
 MACRO_SIMD_EXTEND_WMS(Simd128_GtEq_D2, Float64x2_3, None, None, 0)
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS(Simd128_Return_D2, Float64x2_2, None, None)
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS(Simd128_I_ArgOut_D2, Reg1Float64x2_1, None, None)
-MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS(Simd128_I_Conv_VTD2, Float64x2_2, None, None)
 
 #endif // 0 //Disabling this type until the specification decides to include or not.
 //Int8x16
@@ -237,31 +234,24 @@ MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_LdSlot_U16         , ElementSlot   
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_StSlot_U16         , ElementSlot                       , None           ,        None                      )
 
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_ArgOut_I8        , Reg1Int16x8_1                     , None           ,        None                      )
-MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_Conv_VTI8        , Int16x8_2                         , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_Return_I8          , Int16x8_2                         , None           ,        None                      )
 
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_ArgOut_U4        , Reg1Uint32x4_1                    , None           ,        None                      )
-MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_Conv_VTU4        , Uint32x4_2                        , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_Return_U4          , Uint32x4_2                        , None           ,        None                      )
 
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_ArgOut_U8        , Reg1Uint16x8_1                    , None           ,        None                      )
-MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_Conv_VTU8        , Uint16x8_2                        , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_Return_U8          , Uint16x8_2                        , None           ,        None                      )
 
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_ArgOut_U16        , Reg1Uint8x16_1                   , None           ,        None                      )
-MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_Conv_VTU16        , Uint8x16_2                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_Return_U16          , Uint8x16_2                       , None           ,        None                      )
 
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_ArgOut_B4         , Reg1Bool32x4_1                   , None           ,        None                      )
-MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_Conv_VTB4         , Bool32x4_2                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_Return_B4           , Bool32x4_2                       , None           ,        None                      )
 
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_ArgOut_B8         , Reg1Bool16x8_1                   , None           ,        None                      )
-MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_Conv_VTB8         , Bool16x8_2                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_Return_B8           , Bool16x8_2                       , None           ,        None                      )
 
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_ArgOut_B16        , Reg1Bool8x16_1                   , None           ,        None                      )
-MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_I_Conv_VTB16        , Bool8x16_2                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS   ( Simd128_Return_B16          , Bool8x16_2                       , None           ,        None                      )
 
 MACRO_SIMD_EXTEND_WMS     ( Simd128_LdArr_I4                    , AsmSimdTypedArr                   , None           ,        OpCanCSE          ,      4, &Js::SIMDInt32x4Lib::EntryInfo::Load, T_I4, ValueType::GetObject(ObjectType::Int8Array) /*dummy place-holder for any typed array*/, T_INT)
@@ -345,7 +335,6 @@ MACRO_SIMD_ASMJS_ONLY_WMS           (Simd128_LdSlot_I16      , ElementSlot      
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS    (Simd128_StSlot_I16      , ElementSlot                          , None         ,          None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS    (Simd128_Return_I16      , Int8x16_2                            , None         ,          None                      )
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS    (Simd128_I_ArgOut_I16    , Reg1Int8x16_1                        , None         ,          None                      )
-MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS    (Simd128_I_Conv_VTI16    , Int8x16_2                            , None         ,          None                      )
 
 // Uint32x4
 MACRO_SIMD_EXTEND_WMS     ( Simd128_IntsToU4                    , Uint32x4_1Int4                   , None           ,        None               ,      0)

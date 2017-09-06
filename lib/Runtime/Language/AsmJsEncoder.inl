@@ -174,12 +174,6 @@ namespace Js
     }
 
     template <class T>
-    void AsmJsEncoder::OP_LdUndef( const unaligned T* playout )
-    {
-        AsmJsJitTemplate::LdUndef::ApplyTemplate( this, mPc, CalculateOffset<Var>(playout->R0) );
-    }
-
-    template <class T>
     void AsmJsEncoder::OP_Br( const unaligned T* playout )
     {
         if( playout->RelativeJumpOffset )
@@ -432,21 +426,6 @@ namespace Js
     template <class T> void Js::AsmJsEncoder::OP_I_ArgOut_Int( const unaligned T* playout )
     {
         AsmJsJitTemplate::I_ArgOut_Int::ApplyTemplate( this, mPc, playout->R0, CalculateOffset<int>(playout->I1));
-    }
-
-    template <class T> void Js::AsmJsEncoder::OP_I_Conv_VTD( const unaligned T* playout )
-    {
-        AsmJsJitTemplate::I_Conv_VTD::ApplyTemplate(this, mPc, CalculateOffset<double>(playout->D0), CalculateOffset<double>(playout->D1));
-    }
-
-    template <class T> void Js::AsmJsEncoder::OP_I_Conv_VTF(const unaligned T* playout)
-    {
-        AsmJsJitTemplate::I_Conv_VTF::ApplyTemplate(this, mPc, CalculateOffset<float>(playout->F0), CalculateOffset<float>(playout->F1));
-    }
-
-    template <class T> void Js::AsmJsEncoder::OP_I_Conv_VTI( const unaligned T* playout )
-    {
-        AsmJsJitTemplate::I_Conv_VTI::ApplyTemplate( this, mPc, CalculateOffset<int>(playout->I0), CalculateOffset<int>(playout->I1));
     }
 
     template <class T>
@@ -992,18 +971,5 @@ namespace Js
     void Js::AsmJsEncoder::OP_Simd128_I_ArgOutD2(const unaligned T* playout)
     {
         AsmJsJitTemplate::Simd128_I_ArgOut_D2::ApplyTemplate(this, mPc, playout->R0, CalculateOffset<AsmJsSIMDValue>(playout->D2_1));
-    }
-
-    template <class T> void Js::AsmJsEncoder::OP_Simd128_I_Conv_VTF4(const unaligned T* playout)
-    {
-        AsmJsJitTemplate::Simd128_I_Conv_VTF4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->F4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1));
-    }
-    template <class T> void Js::AsmJsEncoder::OP_Simd128_I_Conv_VTI4(const unaligned T* playout)
-    {
-        AsmJsJitTemplate::Simd128_I_Conv_VTI4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->I4_0), CalculateOffset<AsmJsSIMDValue>(playout->I4_1));
-    }
-    template <class T> void Js::AsmJsEncoder::OP_Simd128_I_Conv_VTD2(const unaligned T* playout)
-    {
-        AsmJsJitTemplate::Simd128_I_Conv_VTD2::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->D2_0), CalculateOffset<AsmJsSIMDValue>(playout->D2_1));
     }
 }

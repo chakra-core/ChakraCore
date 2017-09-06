@@ -176,6 +176,7 @@ public:
     bool            IsFromByteCodeConstantTable() const { return m_isFromByteCodeConstantTable; }
     void            SetIsFromByteCodeConstantTable() { this->m_isFromByteCodeConstantTable = true; }
     Js::ArgSlot     GetArgSlotNum() const { Assert(HasArgSlotNum()); return m_slotNum; }
+    void            SetArgSlotNum(Js::ArgSlot newNum) { m_slotNum = newNum; }
     bool            HasArgSlotNum() const { return !!(m_isArgSlotSym | m_isArgSlotRegSym); }
     void            IncrementArgSlotNum();
     void            DecrementArgSlotNum();

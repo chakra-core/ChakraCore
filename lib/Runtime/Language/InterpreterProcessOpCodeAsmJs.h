@@ -31,19 +31,6 @@
         break; \
     }
 
-
-#define PROCESS_GET_ELEM_SLOT_ASM_COMMON(name, func, layout, suffix) \
-    case OpCodeAsmJs::name: \
-    { \
-        PROCESS_READ_LAYOUT_ASMJS(name, layout, suffix); \
-        SetNonVarReg(playout->Value, \
-                func(GetNonVarReg(playout->Instance), playout)); \
-        break; \
-    }
-
-#define PROCESS_GET_ELEM_SLOT_ASM(name, func, layout) PROCESS_GET_ELEM_SLOT_ASM_COMMON(name, func, layout,)
-
-
 #define PROCESS_FUNCtoA1Mem_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
     { \
@@ -387,7 +374,7 @@ if (switchProfileMode) \
                                 { \
         PROCESS_READ_LAYOUT_ASMJS(name, Double1Reg1, suffix); \
         SetRegRawDouble(playout->D0, \
-                func(GetReg(playout->R1),scriptContext)); \
+                func(GetRegRawPtr(playout->R1),scriptContext)); \
         break; \
                                 }
 
@@ -398,7 +385,7 @@ if (switchProfileMode) \
                                 { \
         PROCESS_READ_LAYOUT_ASMJS(name, Float1Reg1, suffix); \
         SetRegRawFloat(playout->F0, \
-        (float)func(GetReg(playout->R1), scriptContext)); \
+        (float)func(GetRegRawPtr(playout->R1), scriptContext)); \
         break; \
                                 }
 
@@ -410,7 +397,7 @@ if (switchProfileMode) \
                                                                 { \
         PROCESS_READ_LAYOUT_ASMJS(name, Int1Reg1, suffix); \
         SetRegRawInt(playout->I0, \
-                func(GetReg(playout->R1),scriptContext)); \
+                func(GetRegRawPtr(playout->R1),scriptContext)); \
         break; \
                                                                 }
 
@@ -421,7 +408,7 @@ if (switchProfileMode) \
                                                                 { \
         PROCESS_READ_LAYOUT_ASMJS(name, Long1Reg1, suffix); \
         SetRegRawInt64(playout->L0, \
-                func(GetReg(playout->R1),scriptContext)); \
+                func(GetRegRawPtr(playout->R1),scriptContext)); \
         break; \
                                                                 }
 

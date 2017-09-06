@@ -323,12 +323,6 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
 }
 
 IR::Instr *
-LowererMD::LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr)
-{
-    return this->lowererMDArch.LowerEntryInstrAsmJs(entryInstr);
-}
-
-IR::Instr *
 LowererMD::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
 {
     return this->lowererMDArch.LowerExitInstrAsmJs(exitInstr);
@@ -801,8 +795,8 @@ LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, 
 IR::Instr *
 LowererMD::LowerRet(IR::Instr * retInstr)
 {
-    IR::RegOpnd * retReg;
-
+    IR::RegOpnd * retReg = nullptr;
+    bool needsRetReg = true;
 #ifdef ASMJS_PLAT
     if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody()) // for loop body ret is the bytecodeoffset
     {
@@ -852,8 +846,10 @@ LowererMD::LowerRet(IR::Instr * retInstr)
 #endif
             break;
         }
-        case Js::AsmJsRetType::Signed:
         case Js::AsmJsRetType::Void:
+            needsRetReg = false;
+            break;
+        case Js::AsmJsRetType::Signed:
             regType = TyInt32;
             break;
         case Js::AsmJsRetType::Float32x4:
@@ -893,8 +889,11 @@ LowererMD::LowerRet(IR::Instr * retInstr)
             Assert(UNREACHED);
         }
 
-        retReg = IR::RegOpnd::New(regType, m_func);
-        retReg->SetReg(lowererMDArch.GetRegReturnAsmJs(regType));
+        if (needsRetReg)
+        {
+            retReg = IR::RegOpnd::New(regType, m_func);
+            retReg->SetReg(lowererMDArch.GetRegReturnAsmJs(regType));
+        }
     }
     else
 #endif
@@ -902,9 +901,11 @@ LowererMD::LowerRet(IR::Instr * retInstr)
         retReg = IR::RegOpnd::New(TyMachReg, m_func);
         retReg->SetReg(lowererMDArch.GetRegReturn(TyMachReg));
     }
-
-    Lowerer::InsertMove(retReg, retInstr->UnlinkSrc1(), retInstr);
-    retInstr->SetSrc1(retReg);
+    if (needsRetReg)
+    {
+        Lowerer::InsertMove(retReg, retInstr->UnlinkSrc1(), retInstr);
+        retInstr->SetSrc1(retReg);
+    }
     return retInstr;
 }
 

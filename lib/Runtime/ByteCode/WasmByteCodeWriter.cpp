@@ -35,6 +35,10 @@ ByteCodeLabel WasmByteCodeWriter::DefineLabel()
 {
     return ByteCodeWriter::DefineLabel();
 }
+void WasmByteCodeWriter::SetCallSiteCount(Js::ProfileId callSiteCount)
+{
+    ByteCodeWriter::SetCallSiteCount(callSiteCount);
+}
 }
 
 #endif
