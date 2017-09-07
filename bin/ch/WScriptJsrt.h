@@ -100,7 +100,7 @@ public:
 private:
     static bool CreateArgumentsObject(JsValueRef *argsObject);
     static bool CreateNamedFunction(const char*, JsNativeFunction callback, JsValueRef* functionVar);
-    static char* GetDir(LPCSTR fullPathNarrow, __out_ecount(260) char* const fullDirNarrow);
+    static void GetDir(LPCSTR fullPathNarrow, std::string *fullDirNarrow);
     static JsValueRef CALLBACK EchoCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef CALLBACK QuitCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef CALLBACK LoadScriptFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
