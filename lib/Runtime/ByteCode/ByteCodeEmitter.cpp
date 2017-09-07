@@ -3481,7 +3481,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
 
     FuncInfo *funcInfo = pnodeFnc->sxFnc.funcInfo;
 
-    if (funcInfo->byteCodeFunction->IsFunctionParsed())
+    if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr)
     {
         if (!(flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
         {
