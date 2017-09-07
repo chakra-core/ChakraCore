@@ -587,12 +587,6 @@ PHASE(All)
     #define DEFAULT_CONFIG_ES6RegExSymbols         (false)
 #endif
 #define DEFAULT_CONFIG_ES6HasInstance          (true)
-#ifdef COMPILE_DISABLE_ArrayBufferTransfer
-    // If ArrayBufferTransfer needs to be disabled by compile flag, DEFAULT_CONFIG_ArrayBufferTransfer should be false
-    #define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
-#else
-    #define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
-#endif
 #define DEFAULT_CONFIG_ES7AsyncAwait           (true)
 #define DEFAULT_CONFIG_ES7ExponentionOperator  (true)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
@@ -1061,12 +1055,6 @@ FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols        , "Enable ES6 RegExp symb
 
 FLAGPR           (Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstance)
 FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose trace"                                 , DEFAULT_CONFIG_ES6Verbose)
-
-#ifndef COMPILE_DISABLE_ArrayBufferTransfer
-    #define COMPILE_DISABLE_ArrayBufferTransfer 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ArrayBufferTransfer    , "Enable ArrayBuffer.transfer"                              , DEFAULT_CONFIG_ArrayBufferTransfer)
-
 FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Object.getOwnPropertyDescriptors"        , DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors)
 
 #ifndef COMPILE_DISABLE_ESSharedArrayBuffer
