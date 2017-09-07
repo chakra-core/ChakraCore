@@ -1326,8 +1326,9 @@ namespace Js
         DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
 
         NumberFormatting::INumberFormatter *numberFormatter;
-        Var hiddenObject;
-        obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext);
+        Var hiddenObject = nullptr;
+        AssertOrFailFastMsg(obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
+            "EntryIntl_FormatNumber: Could not retrieve hiddenObject.");
 
         numberFormatter = static_cast<NumberFormatting::INumberFormatter *>(((AutoCOMJSObject *)hiddenObject)->GetInstance());
 
@@ -1381,9 +1382,9 @@ namespace Js
         }
 
         DynamicObject* obj = DynamicObject::FromVar(args.Values[2]);
-        Var hiddenObject;
-
-        obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext);
+        Var hiddenObject = nullptr;
+        AssertOrFailFastMsg(obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
+            "EntryIntl_FormatDateTime: Could not retrieve hiddenObject.");
 
         //We are going to perform the same check for timeZone as when caching the formatter.
         Var propertyValue = nullptr;
@@ -1554,7 +1555,7 @@ namespace Js
         }
 
         DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
-        Var hiddenObject;
+        Var hiddenObject = nullptr;
         if (!obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext))
         {
             return scriptContext->GetLibrary()->GetUndefined();
