@@ -6733,12 +6733,33 @@ namespace Js
         return GetExecutionMode() <= ExecutionMode::ProfilingInterpreter;
     }
 
+    // Safely moves from one execution mode to another and updates appropriate execution state for the next
+    // mode. Note that there are other functions that modify executionMode that do not involve this function.
+    // This function transitions ExecutionMode in the following order:
+    //
+    //       +-- Interpreter
+    //       |
+    //       |  AutoProfilingInterpreter --+
+    //       |      |   ^                  |
+    //       |      |   |                  v
+    //       |      |   |               SimpleJit
+    //       |      v   |                  |
+    //       |  ProfilingInterpreter  <----+
+    //       |      |
+    //       |      |
+    //       |      v
+    //       +-> FullJit
+    //
+    // Returns true when a transition occurs (i.e., the execution mode was updated since the beginning of
+    // this function call). Otherwise, returns false to indicate no change in state.
+    // See more details of each mode in ExecutionModes.h
     bool FunctionBody::TryTransitionToNextExecutionMode()
     {
         Assert(initializedExecutionModeAndLimits);
 
         switch(GetExecutionMode())
         {
+            // Managing transition from Interpreter
             case ExecutionMode::Interpreter:
                 if(GetInterpretedCount() < interpreterLimit)
                 {
@@ -6748,6 +6769,7 @@ namespace Js
                 CommitExecutedIterations(interpreterLimit, interpreterLimit);
                 goto TransitionToFullJit;
 
+            // Managing transition to and from AutoProfilingInterpreter
             TransitionToAutoProfilingInterpreter:
                 if(autoProfilingInterpreter0Limit != 0 || autoProfilingInterpreter1Limit != 0)
                 {
@@ -6780,6 +6802,7 @@ namespace Js
                 }
                 // fall through
 
+            // Managing transition to and from ProfilingInterpreter
             TransitionToProfilingInterpreter:
                 if(profilingInterpreter0Limit != 0 || profilingInterpreter1Limit != 0)
                 {
@@ -6812,6 +6835,7 @@ namespace Js
                 }
                 goto TransitionToAutoProfilingInterpreter;
 
+            // Managing transition to and from SimpleJit
             TransitionToSimpleJit:
                 if(simpleJitLimit != 0)
                 {
@@ -6844,6 +6868,7 @@ namespace Js
                 }
                 // fall through
 
+            // Managing transtion to FullJit
             case ExecutionMode::FullJit:
                 VerifyExecutionMode(GetExecutionMode());
                 return false;
