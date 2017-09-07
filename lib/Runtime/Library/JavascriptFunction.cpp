@@ -2302,10 +2302,10 @@ LABEL1:
             return false;
         }
 
-        bool isWAsmJs = AsmJsScriptFunction::Is(func);
+        bool isAsmJs = AsmJsScriptFunction::Is(func);
         bool isWasmOnly = WasmScriptFunction::Is(func);
         uintptr_t faultingAddr = helper.GetFaultingAddress();
-        if (isWAsmJs)
+        if (isAsmJs)
         {
             AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(func);
             // some extra checks for asm.js because we have slightly more information that we can validate

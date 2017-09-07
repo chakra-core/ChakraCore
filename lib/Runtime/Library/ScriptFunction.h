@@ -129,7 +129,7 @@ namespace Js
         static AsmJsScriptFunction* FromVar(Var func);
         static AsmJsScriptFunction * OP_NewAsmJsFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
-        virtual bool IsAsmJsFunction() const { return true; }
+        virtual bool IsAsmJsFunction() const override { return true; }
 
         void SetModuleEnvironment(Field(Var)* mem) { m_moduleEnvironment = mem; }
         Field(Var)* GetModuleEnvironment() const { return m_moduleEnvironment; }
@@ -160,7 +160,7 @@ namespace Js
 
         WebAssemblyMemory* GetWebAssemblyMemory() const;
 
-        virtual bool IsWasmFunction() const { return true; }
+        virtual bool IsWasmFunction() const override { return true; }
     protected:
         WasmScriptFunction(DynamicType * type);
         DEFINE_VTABLE_CTOR(WasmScriptFunction, AsmJsScriptFunction);

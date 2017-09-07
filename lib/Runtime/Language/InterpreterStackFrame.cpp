@@ -1152,6 +1152,10 @@ namespace Js
         newInstance->localClosure = nullptr;
         newInstance->paramClosure = nullptr;
         newInstance->innerScopeArray = nullptr;
+        newInstance->m_asmJsBuffer = nullptr;
+#ifdef ENABLE_WASM
+        newInstance->m_wasmMemory = nullptr;
+#endif
 
         bool doInterruptProbe = newInstance->scriptContext->GetThreadContext()->DoInterruptProbe(this->executeFunction);
 #if ENABLE_NATIVE_CODEGEN
