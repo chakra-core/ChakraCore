@@ -409,7 +409,7 @@ namespace Js
             if (pnode->sxCall.pnodeTarget->nop == knopName)
             {
                 AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(pnode->sxCall.pnodeTarget->name());
-                if (AsmJsMathFunction::IsFround(funcDecl))
+                if (AsmJsMathFunction::IsFround(funcDecl) && pnode->sxCall.argCount > 0)
                 {
                     switch (pnode->sxCall.pnodeArgs->nop)
                     {
