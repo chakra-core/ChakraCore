@@ -781,6 +781,44 @@ var controllerObj = (function () {
                     'sources': sources
                 });
             },
+            dumpFunctionProperties: function (frameIdOrArrayOfIds = [0], expandLevel = 0) {
+                if (typeof frameIdOrArrayOfIds != "number" && !(frameIdOrArrayOfIds instanceof Array)) {
+                    frameIdOrArrayOfIds = [0];
+                }
+                if (typeof expandLevel != "number" || expandLevel < 0) {
+                    expandLevel = 0;
+                }
+                let stackTrace = callHostFunction(hostDebugObject.JsDiagGetStackTrace);
+                let functionHandles = [];
+                let requestedFrameIndexes = [];
+                if (typeof frameIdOrArrayOfIds === "number") {
+                    requestedFrameIndexes.push(frameIdOrArrayOfIds);
+                } else if (frameIdOrArrayOfIds instanceof Array) {
+                    frameIdOrArrayOfIds.forEach((s) => {
+                        if (typeof s === "number") {
+                            requestedFrameIndexes.push(s);
+                        }
+                    });
+                }
+                if (requestedFrameIndexes.length == 0) {
+                    requestedFrameIndexes.push(0);
+                }
+
+                stackTrace.forEach((stackFrame) => {
+                    let stackFrameIndex = stackFrame.index;
+                    if (requestedFrameIndexes.includes(stackFrameIndex) && !functionHandles.includes(stackFrame.functionHandle)) {
+                        functionHandles.push(stackFrame.functionHandle);
+                    }
+                });
+
+                let functionProperties = [];
+                functionHandles.forEach((handle) => {
+                    functionProperties.push(GetChild({ handle: handle }, expandLevel));
+                });
+                recordEvent({
+                    'functionProperties': functionProperties
+                });
+            },
             trace: function (traceFlag) {
                 _trace |= traceFlag;
             }
@@ -924,6 +962,9 @@ function dumpBreak() {
 }
 function dumpSourceList() {
     controllerObj.pushCommand(controllerObj.debuggerCommands.dumpSourceList, arguments);
+}
+function dumpFunctionProperties() {
+    controllerObj.pushCommand(controllerObj.debuggerCommands.dumpFunctionProperties, arguments);
 }
 
 // Start internal tracing. E.g.: /**bp:trace(TRACE_COMMANDS)**/

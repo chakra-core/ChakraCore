@@ -68,4 +68,10 @@
       <files>MultipleContextStack.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <compile-flags>-debuglaunch -dbgbaseline:dumpFunctionProperties.js.dbg.baseline</compile-flags>
+      <files>dumpFunctionProperties.js</files>
+    </default>
+  </test>
 </regress-exe>
