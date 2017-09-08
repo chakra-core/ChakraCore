@@ -4657,36 +4657,77 @@ IRBuilderAsmJs::BuildInt64x2_2(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_S
 }
 
 /* Float64x2 */
-// Disabled for now
-#if 0
+
+//IRBuilderAsmJs::BuildDouble1Float64x2_1Int1(enum Js::OpCodeAsmJs,unsigned int,unsigned int,unsigned int,unsigned int)
+
+void
+IRBuilderAsmJs::BuildDouble1Float64x2_1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG3)
+{
+    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128F4);
+    src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
+
+    IR::RegOpnd * src2Opnd = BuildSrcOpnd(src2RegSlot, TyInt32);
+    src2Opnd->SetValueType(ValueType::GetInt(false));
+
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyFloat64);
+    dstOpnd->SetValueType(ValueType::Float);
+
+    Js::OpCode opcode = GetSimdOpcode(newOpcode);
+
+    AssertMsg((opcode == Js::OpCode::Simd128_ExtractLane_D2), "Unexpected opcode for this format.");
+
+    IR::Instr * instr = IR::Instr::New(opcode, dstOpnd, src1Opnd, src2Opnd, m_func);
+    AddInstr(instr, offset);
+}
+
+void IRBuilderAsmJs::BuildFloat64x2_1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG2)
+{
+    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TyFloat64);
+    src1Opnd->SetValueType(ValueType::Float);
+
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128F4);
+    dstOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
+
+    Js::OpCode opcode = GetSimdOpcode(newOpcode);
+
+    AssertMsg(opcode == Js::OpCode::Simd128_Splat_D2, "Invalid backend SIMD opcode");
+    IR::Instr * instr = IR::Instr::New(opcode, dstOpnd, src1Opnd, m_func);
+    AddInstr(instr, offset);
+}
+
 void
 IRBuilderAsmJs::BuildFloat64x2_2(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG2)
 {
-    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128D2);
-    src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float64x2));
+    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128F4);
+    src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
 
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128D2);
-    dstOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float64x2));
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128F4);
+    dstOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
 
     Js::OpCode opcode;
 
+    opcode = GetSimdOpcode(newOpcode);
+    /*
     switch (newOpcode)
     {
+
     case Js::OpCodeAsmJs::Simd128_Return_D2:
     if (m_func->IsLoopBody())
     {
-        IR::Instr* slotInstr = GenerateStSlotForReturn(src1Opnd, IRType::TySimd128D2);
-        AddInstr(slotInstr, offset);
+    IR::Instr* slotInstr = GenerateStSlotForReturn(src1Opnd, IRType::TySimd128F4);
+    AddInstr(slotInstr, offset);
     }
     opcode = Js::OpCode::Ld_A;
     break;
     case Js::OpCodeAsmJs::Simd128_Ld_D2:
-        opcode = Js::OpCode::Ld_A;
-        break;
-    default:
-        opcode = GetSimdOpcode(newOpcode);
-    }
+    opcode = Js::OpCode::Ld_A; //to make the compiler happy
+    Assert(false); //should be unreachable
+    break;
 
+    default:
+    opcode = GetSimdOpcode(newOpcode);
+    }
+    */
     AssertMsg((uint32)opcode, "Invalid backend SIMD opcode");
 
     IR::Instr * instr = IR::Instr::New(opcode, dstOpnd, src1Opnd, m_func);
@@ -4696,14 +4737,14 @@ IRBuilderAsmJs::BuildFloat64x2_2(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD
 void
 IRBuilderAsmJs::BuildFloat64x2_3(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG3)
 {
-    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128D2);
-    src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float64x2));
+    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128F4);
+    src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
 
-    IR::RegOpnd * src2Opnd = BuildSrcOpnd(src2RegSlot, TySimd128D2);
-    src2Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float64x2));
+    IR::RegOpnd * src2Opnd = BuildSrcOpnd(src2RegSlot, TySimd128F4);
+    src2Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
 
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128D2);
-    dstOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float64x2));
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128F4);
+    dstOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
 
     Js::OpCode opcode;
 
@@ -4715,6 +4756,40 @@ IRBuilderAsmJs::BuildFloat64x2_3(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD
     AddInstr(instr, offset);
 }
 
+void
+IRBuilderAsmJs::BuildFloat64x2_2Int1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG4)
+{
+    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128F4);
+    src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
+
+    IR::RegOpnd * src2Opnd = BuildSrcOpnd(src2RegSlot, TyInt32);
+    src2Opnd->SetValueType(ValueType::GetInt(false));
+
+    IR::RegOpnd * src3Opnd = BuildSrcOpnd(src3RegSlot, TyFloat64);
+    src3Opnd->SetValueType(ValueType::Float);
+
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128F4);
+    dstOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
+
+    // Given bytecode: dst = op s1, s2, s3
+    // Generate:
+    // t1 = ExtendedArg_A s1
+    // t2 = ExtendedArg_A s2, t1
+    // t3 = ExtendedArg_A s3, t2
+    // dst = op t3
+
+    IR::Instr* instr = nullptr;
+
+    instr = AddExtendedArg(src1Opnd, nullptr, offset);
+    instr = AddExtendedArg(src2Opnd, instr->GetDst()->AsRegOpnd(), offset);
+    instr = AddExtendedArg(src3Opnd, instr->GetDst()->AsRegOpnd(), offset);
+
+    Js::OpCode opcode = GetSimdOpcode(newOpcode);
+    AssertMsg((opcode == Js::OpCode::Simd128_ReplaceLane_D2), "Unexpected opcode for this format.");
+    AddInstr(IR::Instr::New(opcode, dstOpnd, instr->GetDst(), m_func), offset);
+}
+// Disabled for now
+#if 0
 void
 IRBuilderAsmJs::BuildFloat64x2_4(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG4)
 {
@@ -4765,20 +4840,7 @@ void IRBuilderAsmJs::BuildFloat64x2_1Double2(Js::OpCodeAsmJs newOpcode, uint32 o
     AddInstr(instr, offset);
 }
 
-void IRBuilderAsmJs::BuildFloat64x2_1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG2)
-{
-    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TyFloat64);
-    src1Opnd->SetValueType(ValueType::Float);
 
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128D2);
-    dstOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float64x2));
-
-    Js::OpCode opcode = GetSimdOpcode(newOpcode);
-
-    AssertMsg(opcode == Js::OpCode::Simd128_Splat_D2, "Invalid backend SIMD opcode");
-    IR::Instr * instr = IR::Instr::New(opcode, dstOpnd, src1Opnd, m_func);
-    AddInstr(instr, offset);
-}
 
 void
 IRBuilderAsmJs::BuildFloat64x2_2Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG3)

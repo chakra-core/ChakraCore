@@ -1478,6 +1478,15 @@ if (switchProfileMode) \
     }
 #define PROCESS_SIMD_B16_1toI1(name, func, suffix) PROCESS_SIMD_B16_1toI1_COMMON(name, func, suffix)
 
+#define PROCESS_SIMD_D2_1I1D1toD2_1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Float64x2_2Int1Double1, suffix); \
+    SetRegRawSimd(playout->D2_0, func(GetRegRawSimd(playout->D2_1), GetRegRawInt(playout->I2), GetRegRawDouble(playout->D3))); \
+    break; \
+    }
+#define PROCESS_SIMD_D2_1I1D1toD2_1_1(name, func) PROCESS_SIMD_D2_1I1D1toD2_1_COMMON(name, func, )
+
 #define PROCESS_SIMD_F4_1toF4_1_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
     { \
@@ -2249,6 +2258,15 @@ if (switchProfileMode) \
     break; \
     }
 #define PROCESS_SIMD_I16_1I1toI16_1(name, func) PROCESS_SIMD_I16_1I1toI16_1_COMMON(name, func,)
+
+#define PROCESS_SIMD_D2_1I1toD1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Double1Float64x2_1Int1, suffix); \
+    SetRegRawDouble(playout->D0, func(GetRegRawSimd(playout->D2_1), GetRegRawInt(playout->I2))); \
+    break; \
+    }
+#define PROCESS_SIMD_D2_1I1toD1(name, func) PROCESS_SIMD_D2_1I1toD1_COMMON(name, func, )
 
 #define PROCESS_SIMD_U4_1I1toU4_1_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \

@@ -35,7 +35,8 @@ const arrays = {
     "i32x4" : { arr : new Int32Array (memObj.buffer)   , len : 4 } ,
     "i16x8" : { arr : new Int16Array (memObj.buffer)   , len : 8 } ,
     "i8x16" : { arr : new Int8Array (memObj.buffer)    , len : 16 } ,
-    "f32x4" : { arr : new Float32Array (memObj.buffer) , len : 4 } 
+    "f32x4" : { arr : new Float32Array (memObj.buffer) , len : 4 },
+    "f64x2" : { arr : new Float64Array (memObj.buffer) , len : 2 }
 };
 
 //SPLAT
@@ -47,7 +48,7 @@ let testSplat = function (funcname, val) {
     const type = funcname.split('_')[0];
     const arr = arrays [type].arr;
     const len = arrays [type].len;
-    
+
     for (let i = 0; i < len; i++) {
         arr[i] = val;
     }
@@ -77,13 +78,18 @@ testSplat("f32x4_splat", 1001.0);
 testSplat("f32x4_splat", Number.POSITIVE_INFINITY);
 testSplat("f32x4_splat", 1.7014118346046924e+38);
 
+testSplat("f64x2_splat", 0.125);
+testSplat("f64x2_splat", 1001.0);
+testSplat("f64x2_splat", Number.POSITIVE_INFINITY);
+testSplat("f64x2_splat", 1.7014118346046924e+38);
+
 //NEG
 const module = new WebAssembly.Module(readbuffer('neg.wasm'));
 const instance = new WebAssembly.Instance(module, { "dummy" : { "memory" : memObj } }).exports;
 
 
 let testNeg = function (funcname, val) {
-    
+
     const type = funcname.split('_')[0];
     const arr = arrays [type].arr;
     const len = arrays [type].len;
@@ -115,6 +121,11 @@ testNeg("f32x4_neg", 0.0);
 testNeg("f32x4_neg", 1.0);
 testNeg("f32x4_neg", 1000.0);
 testNeg("f32x4_neg", Number.POSITIVE_INFINITY, 32);
+
+testNeg("f64x2_neg", -0.0);
+testNeg("f64x2_neg", 1.0);
+testNeg("f64x2_neg", 1234.56);
+testNeg("f64x2_neg", Number.POSITIVE_INFINITY);
 
 if (passed) {
     print("Passed");

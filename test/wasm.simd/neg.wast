@@ -29,4 +29,10 @@
         (set_local 2 (f32x4.neg (get_local 2)))
         (m128.store offset=0 align=4 (get_local 0) (get_local 2))
     )
+
+    (func (export "f64x2_neg") (param i32 f32) (local m128)
+        (set_local 2 (m128.load offset=0 align=4 (get_local 0)))
+        (set_local 2 (f64x2.neg (get_local 2)))
+        (m128.store offset=0 align=4 (get_local 0) (get_local 2))
+    )
 )

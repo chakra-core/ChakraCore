@@ -18,7 +18,8 @@ const arrays = {
     "i32x4" : { arr : new Int32Array (memObj.buffer)   , len : 4 } ,
     "i16x8" : { arr : new Int16Array (memObj.buffer)   , len : 8 } ,
     "i8x16" : { arr : new Int8Array (memObj.buffer)    , len : 16 } ,
-    "f32x4" : { arr : new Float32Array (memObj.buffer) , len : 4 } 
+    "f32x4" : { arr : new Float32Array (memObj.buffer) , len : 4 } ,
+    "f64x2" : { arr : new Float64Array (memObj.buffer) , len : 2 }
 };
 
 const module = new WebAssembly.Module(readbuffer('replace.wasm'));
@@ -59,6 +60,11 @@ testIntFloatReplace("f32x4_replace", Number.NEGATIVE_INFINITY, 0.125);
 testIntFloatReplace("f32x4_replace", 777.0, 1001.0);
 testIntFloatReplace("f32x4_replace", -1.0, Number.POSITIVE_INFINITY);
 testIntFloatReplace("f32x4_replace", -100.0, 1.7014118346046924e+38);
+
+testIntFloatReplace("f64x2_replace", Number.NEGATIVE_INFINITY, 0.125);
+testIntFloatReplace("f64x2_replace", 777.0, 1001.0);
+testIntFloatReplace("f64x2_replace", -1.0, Number.POSITIVE_INFINITY);
+testIntFloatReplace("f64x2_replace", -100.0, 1.7014118346046924e+38);
 
 if (passed) {
     print("Passed");

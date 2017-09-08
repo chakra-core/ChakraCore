@@ -25,4 +25,9 @@
         (set_local 2 (f32x4.splat (get_local 1)))
         (m128.store offset=0 align=4 (get_local 0) (get_local 2))
     )
+
+    (func (export "f64x2_splat") (param i32 f64) (local m128)
+        (set_local 2 (f64x2.splat (get_local 1)))
+        (m128.store offset=0 align=4 (get_local 0) (get_local 2))
+    )
 )
