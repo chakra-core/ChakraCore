@@ -9587,6 +9587,12 @@ Case0:
             Assert(length <= UINT_MAX);
             for (uint32 k = 0; k < (uint32)length; k++)
             {
+                JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(pArr, k));
+                if (!hasItem)
+                {
+                    continue;
+                }
+
                 JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull(k, &element));
                 if (!gotItem)
                 {
