@@ -321,4 +321,9 @@
     <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger</tags>
   </default>
 </dir>
+<dir>
+  <default>
+    <files>Scanner</files>
+  </default>
+</dir>
 </regress-exe>

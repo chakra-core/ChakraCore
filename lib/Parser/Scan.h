@@ -767,7 +767,6 @@ private:
     tokens SkipComment(EncodedCharPtr *pp, /* out */ bool* containTypeDef);
     tokens ScanRegExpConstant(ArenaAllocator* alloc);
     tokens ScanRegExpConstantNoAST(ArenaAllocator* alloc);
-    BOOL oFScanNumber(double *pdbl, bool& likelyInt);
     EncodedCharPtr FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last, bool fHadEscape, bool fHasMultiChar);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last);
