@@ -1474,6 +1474,12 @@
   </test>
   <test>
     <default>
+      <files>deferSpreadRestError.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug_OS10898061.js</files>
       <tags>BugFix</tags>
     </default>

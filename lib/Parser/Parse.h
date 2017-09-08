@@ -416,7 +416,6 @@ private:
     charcount_t m_funcInArray;
     uint m_scopeCountNoAst;
 
-
     /*
      * Parsing states for super restriction
      */
@@ -426,10 +425,10 @@ private:
     uint m_parsingSuperRestrictionState;
     friend class AutoParsingSuperRestrictionStateRestorer;
 
-    // Used for issuing spread and rest errors when there is ambiguity with parameter list and parenthesized expressions
-    uint m_parenDepth;
+    // Used for issuing spread and rest errors when there is ambiguity with lambda parameter lists and parenthesized expressions
+    uint m_funcParenExprDepth;
     bool m_deferEllipsisError;
-    RestorePoint m_EllipsisErrLoc;
+    RestorePoint m_deferEllipsisErrorLoc;
 
     uint m_tryCatchOrFinallyDepth;  // Used to determine if parsing is currently in a try/catch/finally block in order to throw error on yield expressions inside them
 
