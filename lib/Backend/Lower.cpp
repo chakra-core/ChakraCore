@@ -23374,7 +23374,7 @@ Lowerer::GenerateRecyclerAlloc(IR::JnHelperMethod allocHelper, size_t allocSize,
 }
 
 void
-Lowerer::GenerateMemInit(IR::RegOpnd * opnd, int32 offset, int value, IR::Instr * insertBeforeInstr, bool isZeroed)
+Lowerer::GenerateMemInit(IR::RegOpnd * opnd, int32 offset, int32 value, IR::Instr * insertBeforeInstr, bool isZeroed)
 {
     IRType type = TyInt32;
     if (isZeroed)
@@ -24199,7 +24199,7 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
     IR::RegOpnd * dst = instr->UnlinkDst()->AsRegOpnd();
 
     // dst = RecyclerAlloc(allocSize)
-    // dst[EncodedSlotCountSlotIndex = EncodedSlotCountSlotIOndex];
+    // dst[EncodedSlotCountSlotIndex] = min(actualSlotCount, MaxEncodedSlotCount);
     // dst[ScopeMetadataSlotIndex] = FunctionBody;
     // mov undefinedOpnd, undefined
     // dst[FirstSlotIndex..count] = undefinedOpnd;
@@ -24210,8 +24210,10 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
     {
         GenerateRecyclerAlloc(IR::HelperAllocMemForVarArray, allocSize, dst, instr);
     }
-    GenerateMemInit(dst, Js::ScopeSlots::EncodedSlotCountSlotIndex * sizeof(Js::Var),
-        min<uint>(actualSlotCount, Js::ScopeSlots::MaxEncodedSlotCount), instr, !doStackSlots);
+   
+    m_lowererMD.GenerateMemInit(dst, Js::ScopeSlots::EncodedSlotCountSlotIndex * sizeof(Js::Var),
+            (size_t)min<uint>(actualSlotCount, Js::ScopeSlots::MaxEncodedSlotCount), instr, !doStackSlots);
+
     IR::Opnd * functionInfoOpnd = this->LoadFunctionInfoOpnd(instr);
     GenerateMemInit(dst, Js::ScopeSlots::ScopeMetadataSlotIndex * sizeof(Js::Var),
         functionInfoOpnd, instr, !doStackSlots);
@@ -25151,7 +25153,7 @@ Lowerer::LowerFrameDisplayCheck(IR::Instr * instr)
 
                 indirOpnd = IR::IndirOpnd::New(slotArrayOpnd,
                                                Js::ScopeSlots::EncodedSlotCountSlotIndex * sizeof(Js::Var),
-                                               TyUint32, m_func, true);
+                                               TyVar, m_func, true);
                 IR::IntConstOpnd * slotIdOpnd = IR::IntConstOpnd::New(slotId - Js::ScopeSlots::FirstSlotIndex,
                                                                       TyUint32, m_func);
                 InsertCompareBranch(indirOpnd, slotIdOpnd, Js::OpCode::BrLe_A, true, errorLabel, insertInstr);
@@ -25206,7 +25208,7 @@ Lowerer::LowerSlotArrayCheck(IR::Instr * instr)
 
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(stackSym, TyVar, m_func),
                                                        Js::ScopeSlots::EncodedSlotCountSlotIndex * sizeof(Js::Var),
-                                                       TyUint32, m_func, true);
+                                                       TyVar, m_func, true);
 
         slotIdOpnd->SetValue(slotId - Js::ScopeSlots::FirstSlotIndex);
         InsertCompareBranch(indirOpnd, slotIdOpnd, Js::OpCode::BrGt_A, true, continueLabel, insertInstr);

@@ -560,7 +560,7 @@ namespace Js
             case Js::ScopeType::ScopeType_SlotArray:
             {
                 Js::ScopeSlots slotArray = (Js::Var*)scope;
-                uint slotArrayCount = slotArray.GetCount();
+                uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
 
                 //get the function body associated with the scope
                 if(slotArray.IsFunctionScopeSlotArray())
