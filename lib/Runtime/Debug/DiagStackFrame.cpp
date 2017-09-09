@@ -359,8 +359,7 @@ namespace Js
             varThis = scriptContext->GetLibrary()->GetNull();
         }
 
-        Js::Arguments args(1, (Js::Var*) &varThis);
-        varResult = pfuncScript->CallFunction(args);
+        varResult = CALL_FUNCTION(pfuncScript->GetScriptContext()->GetThreadContext(), pfuncScript, CallInfo(1), varThis);
 
         debugManager->UpdateConsoleScope(dummyObject, scriptContext);
 

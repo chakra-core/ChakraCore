@@ -85,10 +85,21 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
     CALL_ENTRYPOINT_NOASSERT(function->GetEntryPoint(), \
                     function, callInfo, ##__VA_ARGS__)
 
-#if ENABLE_JS_REENTRANCY_CHECK
+#if ENABLE_JS_REENTRANCY_CHECK && DBG && ENABLE_NATIVE_CODEGEN
+#define CALL_FUNCTION(threadContext, function, callInfo, ...) \
+    (threadContext->AssertJsReentrancy(), \
+    CheckIsExecutable(function, function->GetEntryPoint()), \
+    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__));
+#elif ENABLE_JS_REENTRANCY_CHECK
 #define CALL_FUNCTION(threadContext, function, callInfo, ...) \
     (threadContext->AssertJsReentrancy(), \
     CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__));
+#else
+#define CALL_FUNCTION(threadContext, function, callInfo, ...) \
+    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__);
+#endif
+
+#if ENABLE_JS_REENTRANCY_CHECK
 #define CALL_ENTRYPOINT(threadContext, entryPoint, function, callInfo, ...) \
     (threadContext->AssertJsReentrancy(), \
     CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__));
@@ -102,8 +113,7 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 #define JS_REENTRANCY_LOCK(reentrancyLock, threadContext) \
     JsReentLock reentrancyLock(threadContext);
 #else
-#define CALL_FUNCTION(threadContext, function, callInfo, ...) \
-    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__);
+
 #define CALL_ENTRYPOINT(threadContext, entryPoint, function, callInfo, ...) \
     CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__);
 #define JS_REENTRANT(reentrancyLock, ...) \
