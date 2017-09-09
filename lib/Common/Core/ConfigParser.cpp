@@ -424,15 +424,17 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser, const cha
     {
         CharType curChar = ReadChar(configFile);
 
-        if (curChar == EndChar || isspace(curChar))
+        if (curChar == EndChar || isspace(curChar) || curChar == 0)
         {
             configBuffer[index] = 0;
-            if ((err = parser.Parse(configBuffer)) != 0)
+
+            // Parse only if there's something in configBuffer
+            if (index > 0 && (err = parser.Parse(configBuffer)) != 0)
             {
                 break;
             }
 
-            while(curChar != EndChar && isspace(curChar))
+            while(curChar != EndChar && (isspace(curChar) || curChar == 0))
             {
                 curChar = ReadChar(configFile);
             }

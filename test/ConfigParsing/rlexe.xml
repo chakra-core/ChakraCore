@@ -35,5 +35,4 @@
       <custom-config-file>interspersednewline_leadingwhitespace.testconfig</custom-config-file>
     </default>
   </test>
-
 </regress-exe>

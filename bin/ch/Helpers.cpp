@@ -257,6 +257,11 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UIN
         bufferLength = lengthBytes + sizeof(BYTE);
         pRawBytes = (LPBYTE)malloc(bufferLength);
     }
+    else
+    {
+        bufferLength = 1;
+        pRawBytes = (LPBYTE)malloc(bufferLength);
+    }
 
     if (nullptr == pRawBytes)
     {
@@ -264,24 +269,27 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UIN
         IfFailGo(E_OUTOFMEMORY);
     }
 
-    if (file != NULL)
+    if (lengthBytes != 0)
     {
-        //
-        // Read the entire content as a binary block.
-        //
-        size_t readBytes = fread(pRawBytes, sizeof(BYTE), lengthBytes, file);
-        if (readBytes < lengthBytes * sizeof(BYTE))
+        if (file != NULL)
         {
-            IfFailGo(E_FAIL);
+            //
+            // Read the entire content as a binary block.
+            //
+            size_t readBytes = fread(pRawBytes, sizeof(BYTE), lengthBytes, file);
+            if (readBytes < lengthBytes * sizeof(BYTE))
+            {
+                IfFailGo(E_FAIL);
+            }
         }
-    }
-    else // from module source register
-    {
-        // Q: module source is on persistent memory. Why do we use the copy instead?
-        // A: if we use the same memory twice, ch doesn't know that during FinalizeCallback free.
-        // the copy memory will be freed by the finalizer
-        Assert(pRawBytesFromMap);
-        memcpy_s(pRawBytes, bufferLength, pRawBytesFromMap, lengthBytes);
+        else // from module source register
+        {
+            // Q: module source is on persistent memory. Why do we use the copy instead?
+            // A: if we use the same memory twice, ch doesn't know that during FinalizeCallback free.
+            // the copy memory will be freed by the finalizer
+            Assert(pRawBytesFromMap);
+            memcpy_s(pRawBytes, bufferLength, pRawBytesFromMap, lengthBytes);
+        }
     }
 
     if (pRawBytes)
