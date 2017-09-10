@@ -228,20 +228,15 @@ namespace Js
         }
 
         PropertyId propertyId = getPropertyId();
-        CallInfo callInfo(CallFlags_Value, 3);
-        Var varArgs[3];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handlerObj;
-        varArgs[1] = targetObj;
-        varArgs[2] = GetName(requestContext, propertyId);
+        Var propertyName = GetName(requestContext, propertyId);
 
-        Assert(JavascriptString::Is(varArgs[2]) || JavascriptSymbol::Is(varArgs[2]));
+        Assert(JavascriptString::Is(propertyName) || JavascriptSymbol::Is(propertyName));
         //8. Let trapResultObj be the result of calling the[[Call]] internal method of trap with handler as the this value and a new List containing target and P.
         //9. ReturnIfAbrupt(trapResultObj).
         //10. If Type(trapResultObj) is neither Object nor Undefined, then throw a TypeError exception.
 
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        getResult = JavascriptFunction::FromVar(gOPDMethod)->CallFunction(arguments);
+        getResult = CALL_FUNCTION(threadContext, gOPDMethod, CallInfo(CallFlags_Value, 3), handlerObj, targetObj, propertyName);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
         TypeId getResultTypeId = JavascriptOperators::GetTypeId(getResult);
@@ -349,16 +344,10 @@ namespace Js
 
         PropertyId propertyId = getPropertyId();
         propertyDescriptor->SetFromProxy(true);
-        CallInfo callInfo(CallFlags_Value, 4);
-        Var varArgs[4];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handlerObj;
-        varArgs[1] = targetObj;
-        varArgs[2] = GetName(requestContext, propertyId);
-        varArgs[3] = instance;
+        Var propertyName = GetName(requestContext, propertyId);
 
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        getGetResult = getGetMethod->CallFunction(arguments);
+        getGetResult = CALL_FUNCTION(threadContext, getGetMethod, CallInfo(CallFlags_Value, 4), handlerObj, targetObj, propertyName, instance);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
         //    9. Let targetDesc be the result of calling the[[GetOwnProperty]] internal method of target with argument P.
@@ -433,15 +422,10 @@ namespace Js
         }
 
         PropertyId propertyId = getPropertyId();
-        CallInfo callInfo(CallFlags_Value, 3);
-        Var varArgs[3];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handlerObj;
-        varArgs[1] = targetObj;
-        varArgs[2] = GetName(requestContext, propertyId);
+        Var propertyName = GetName(requestContext, propertyId);
 
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        getHasResult = hasMethod->CallFunction(arguments);
+        getHasResult = CALL_FUNCTION(threadContext, hasMethod, CallInfo(CallFlags_Value, 3), handlerObj, targetObj, propertyName);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
         //9. Let booleanTrapResult be ToBoolean(trapResult).
@@ -804,15 +788,11 @@ namespace Js
         //9. Let booleanTrapResult be ToBoolean(trapResult).
         //10. ReturnIfAbrupt(booleanTrapResult).
         //11. If booleanTrapResult is false, then return false.
-        CallInfo callInfo(CallFlags_Value, 3);
-        Var varArgs[3];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handlerObj;
-        varArgs[1] = targetObj;
-        varArgs[2] = GetName(requestContext, propertyId);
+
+        Var propertyName = GetName(requestContext, propertyId);
 
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        deletePropertyResult = deleteMethod->CallFunction(arguments);
+        deletePropertyResult = CALL_FUNCTION(threadContext, deleteMethod, CallInfo(CallFlags_Value, 3), handlerObj, targetObj, propertyName);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
         BOOL trapResult = JavascriptConversion::ToBoolean(deletePropertyResult, requestContext);
@@ -1158,14 +1138,9 @@ namespace Js
         {
             return targetObj->IsExtensible();
         }
-        CallInfo callInfo(CallFlags_Value, 2);
-        Var varArgs[2];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handlerObj;
-        varArgs[1] = targetObj;
-
+        
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        Var isExtensibleResult = isExtensibleMethod->CallFunction(arguments);
+        Var isExtensibleResult = CALL_FUNCTION(threadContext, isExtensibleMethod, CallInfo(CallFlags_Value, 2), handlerObj, targetObj);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
         BOOL trapResult = JavascriptConversion::ToBoolean(isExtensibleResult, requestContext);
@@ -1218,12 +1193,7 @@ namespace Js
         {
             return targetObj->PreventExtensions();
         }
-        CallInfo callInfo(CallFlags_Value, 2);
-        Var varArgs[2];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handlerObj;
-        varArgs[1] = targetObj;
-
+        
         //8. Let booleanTrapResult be ToBoolean(trapResult)
         //9. ReturnIfAbrupt(booleanTrapResult).
         //10. Let targetIsExtensible be the result of calling the[[IsExtensible]] internal method of target.
@@ -1231,7 +1201,7 @@ namespace Js
         //12. If booleanTrapResult is true and targetIsExtensible is true, then throw a TypeError exception.
         //13. Return booleanTrapResult.
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        Var preventExtensionsResult = preventExtensionsMethod->CallFunction(arguments);
+        Var preventExtensionsResult = CALL_FUNCTION(threadContext, preventExtensionsMethod, CallInfo(CallFlags_Value, 2), handlerObj, targetObj);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
         BOOL trapResult = JavascriptConversion::ToBoolean(preventExtensionsResult, requestContext);
@@ -1486,14 +1456,9 @@ namespace Js
         {
             return RecyclableObject::FromVar(JavascriptObject::GetPrototypeOf(targetObj, requestContext));
         }
-        CallInfo callInfo(CallFlags_Value, 2);
-        Var varArgs[2];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handlerObj;
-        varArgs[1] = targetObj;
-
+        
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        getPrototypeOfResult = getPrototypeOfMethod->CallFunction(arguments);
+        getPrototypeOfResult = CALL_FUNCTION(threadContext, getPrototypeOfMethod, CallInfo(CallFlags_Value, 2), handlerObj, targetObj);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
         TypeId prototypeTypeId = JavascriptOperators::GetTypeId(getPrototypeOfResult);
@@ -1575,15 +1540,9 @@ namespace Js
             return TRUE;
         }
         //8. Let trapResult be the result of calling the[[Call]] internal method of trap with handler as the this value and a new List containing target and V.
-        CallInfo callInfo(CallFlags_Value, 3);
-        Var varArgs[3];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handlerObj;
-        varArgs[1] = targetObj;
-        varArgs[2] = newPrototype;
 
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        Var setPrototypeResult = setPrototypeOfMethod->CallFunction(arguments);
+        Var setPrototypeResult = CALL_FUNCTION(threadContext, setPrototypeOfMethod, CallInfo(CallFlags_Value, 3), handlerObj, targetObj, newPrototype);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
         //9. Let booleanTrapResult be ToBoolean(trapResult).
@@ -1746,16 +1705,10 @@ namespace Js
             descVar = JavascriptOperators::FromPropertyDescriptor(descriptor, requestContext);
         }
 
-        CallInfo callInfo(CallFlags_Value, 4);
-        Var varArgs[4];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handlerObj;
-        varArgs[1] = targetObj;
-        varArgs[2] = GetName(requestContext, propId);
-        varArgs[3] = descVar;
+        Var propertyName = GetName(requestContext, propId);
 
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        definePropertyResult = defineOwnPropertyMethod->CallFunction(arguments);
+        definePropertyResult = CALL_FUNCTION(threadContext, defineOwnPropertyMethod, CallInfo(CallFlags_Value, 4), handlerObj, targetObj, propertyName, descVar);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
         BOOL defineResult = JavascriptConversion::ToBoolean(definePropertyResult, requestContext);
@@ -1874,7 +1827,7 @@ namespace Js
                 return JavascriptOperators::SetPropertyWPCache(receiver, targetObj, propertyId, newValue, requestContext, PropertyOperationFlags::PropertyOperation_None, &propertyValueInfo);
             }
             default:
-                Assert(FALSE);
+                AnalysisAssert(FALSE);
             }
         }
         //8. Let trapResult be the result of calling the[[Call]] internal method of trap with handler as the this value and a new List containing target, P, V, and Receiver.
@@ -1882,17 +1835,10 @@ namespace Js
         //10. ReturnIfAbrupt(booleanTrapResult).
         //11. If booleanTrapResult is false, then return false.
 
-        CallInfo callInfo(CallFlags_Value, 5);
-        Var varArgs[5];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handlerObj;
-        varArgs[1] = targetObj;
-        varArgs[2] = GetName(requestContext, propertyId);
-        varArgs[3] = newValue;
-        varArgs[4] = receiver;
-
+        Var propertyName = GetName(requestContext, propertyId);
+        
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        setPropertyResult = setMethod->CallFunction(arguments);
+        setPropertyResult = CALL_FUNCTION(threadContext, setMethod, CallInfo(CallFlags_Value, 5), handlerObj, targetObj, propertyName, newValue, receiver);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
         BOOL setResult = JavascriptConversion::ToBoolean(setPropertyResult, requestContext);
@@ -2294,14 +2240,9 @@ namespace Js
         //12. ReturnIfAbrupt(extensibleTarget).
         //13. Let targetKeys be target.[[OwnPropertyKeys]]().
         //14. ReturnIfAbrupt(targetKeys).
-        CallInfo callInfo(CallFlags_Value, 2);
-        Var varArgs[2];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handlerObj;
-        varArgs[1] = targetObj;
-
+        
         Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        Var ownKeysResult = ownKeysMethod->CallFunction(arguments);
+        Var ownKeysResult = CALL_FUNCTION(threadContext, ownKeysMethod, CallInfo(CallFlags_Value, 2), handlerObj, targetObj);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
         if (!JavascriptOperators::IsObject(ownKeysResult))
