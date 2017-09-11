@@ -88,9 +88,11 @@
 
 #include "Language/JavascriptStackWalker.h"
 #include "Language/CacheOperators.h"
+#include "Types/TypePropertyCache.h"
 // .inl files
 #include "Library/JavascriptString.inl"
 #include "Library/ConcatString.inl"
+#include "Language/CacheOperators.inl"
 
 #ifdef INTL_ICU
 #define U_STATIC_IMPLEMENTATION
