@@ -43,6 +43,11 @@ LoweredBasicBlock* LoweredBasicBlock::New(JitArenaAllocator* allocator)
     return JitAnew(allocator, LoweredBasicBlock, allocator);
 }
 
+void LoweredBasicBlock::Delete(JitArenaAllocator* allocator)
+{
+    JitAdelete(allocator, this);
+}
+
 void LoweredBasicBlock::Copy(LoweredBasicBlock* block)
 {
     this->inlineeFrameLifetimes.Copy(&block->inlineeFrameLifetimes);
@@ -171,6 +176,12 @@ LinearScan::RegAlloc()
             this->lastLabel = instr->AsLabelInstr();
             if (this->lastLabel->m_loweredBasicBlock)
             {
+                IR::Instr *const prevInstr = instr->GetPrevRealInstrOrLabel();
+                Assert(prevInstr);
+                if (prevInstr->HasFallThrough())
+                {
+                    this->currentBlock->Delete(&tempAlloc);
+                }
                 this->currentBlock = this->lastLabel->m_loweredBasicBlock;
             }
             else if(currentBlock->HasData())
@@ -467,6 +478,10 @@ LinearScan::CheckIfInLoop(IR::Instr *instr)
             while (this->IsInLoop() && instr->GetNumber() >= this->curLoop->regAlloc.loopEnd)
             {
                 this->loopNest--;
+                this->curLoop->regAlloc.defdInLoopBv->ClearAll();
+                this->curLoop->regAlloc.symRegUseBv->ClearAll();
+                this->curLoop->regAlloc.liveOnBackEdgeSyms->ClearAll();
+                this->curLoop->regAlloc.exitRegContentList->Clear();
                 this->curLoop->isProcessed = true;
                 this->curLoop = this->curLoop->parent;
                 if (this->loopNest == 0)
@@ -3889,7 +3904,6 @@ LinearScan::ProcessSecondChanceBoundaryHelper(IR::BranchInstr *branchInstr, IR::
                 {
                     // Clone with shallow copy
                     branchLabel->m_loweredBasicBlock = this->currentBlock;
-
                 }
             }
         }
@@ -3929,7 +3943,18 @@ LinearScan::ProcessSecondChanceBoundary(IR::LabelInstr *labelInstr)
         if (branchInstr->GetNumber() < labelInstr->GetNumber())
         {
             // Normal branch
-            this->InsertSecondChanceCompensation(branchInstr->m_regContent, this->regContent, branchInstr, labelInstr);
+            Lifetime ** branchRegContent = branchInstr->m_regContent;
+            bool isMultiBranch = true;
+            if (!branchInstr->IsMultiBranch())
+            {
+                branchInstr->m_regContent = nullptr;
+                isMultiBranch = false;
+            }
+            this->InsertSecondChanceCompensation(branchRegContent, this->regContent, branchInstr, labelInstr);
+            if (!isMultiBranch)
+            {
+                JitAdeleteArray(this->tempAlloc, RegNumCount, branchRegContent);
+            }
         }
         else
         {
