@@ -51,9 +51,6 @@ include_directories(chakra src ${CMAKE_CURRENT_SOURCE_DIR}/built)
 # disable -Wunused-parameter: this is really common when implementing
 #   interfaces, etc.
 # disable -Wpointer-arith: this is a GCC extension, and doesn't work in MSVC.
-add_definitions(
-  -g -std=c++11
-)
 
 if (MINGW)
   # Mingw won't define format (e.g. PRIu64) or limit (e.g. UINT32_MAX) macros

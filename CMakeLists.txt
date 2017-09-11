@@ -370,6 +370,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Test)
     add_definitions(
         -DENABLE_DEBUG_CONFIG_OPTIONS=1
     )
+    add_compile_options(-g)
 endif(CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
