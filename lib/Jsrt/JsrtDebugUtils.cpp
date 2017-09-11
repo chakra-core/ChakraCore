@@ -145,6 +145,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
     bool addValue = false;
 
     Js::Var varValue = objectDisplayRef->GetVarValue(FALSE);
+    Js::IDiagObjectAddress* varAddress = objectDisplayRef->GetDiagAddress();
 
     if (varValue != nullptr)
     {
@@ -364,6 +365,11 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
     if (objectDisplayRef->HasChildren())
     {
         propertyAttributes |= JsrtDebugPropertyAttribute::HAVE_CHILDRENS;
+    }
+
+    if (varAddress != nullptr && varAddress->IsInDeadZone())
+    {
+        propertyAttributes |= JsrtDebugPropertyAttribute::IN_TDZ;
     }
 
     JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::propertyAttributes, (UINT)propertyAttributes, scriptContext);
