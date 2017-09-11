@@ -428,7 +428,11 @@ public:
     {
         if (!emptyStringPropertyRecord)
         {
-            emptyStringPropertyRecord = this->UncheckedAddPropertyId(_u(""), 0);
+            emptyStringPropertyRecord = propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(_u(""), 0));
+            if (emptyStringPropertyRecord == nullptr)
+            {
+                emptyStringPropertyRecord = this->UncheckedAddPropertyId(_u(""), 0);
+            }
         }
         return emptyStringPropertyRecord;
     }

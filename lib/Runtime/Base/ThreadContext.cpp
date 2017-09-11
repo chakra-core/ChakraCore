@@ -913,7 +913,10 @@ ThreadContext::FindPropertyRecord(const char16 * propertyName, int propertyNameL
 {
     if (propertyNameLength < 2)
     {
-        if (propertyNameLength == 0) return this->GetEmptyStringPropertyRecord();
+        if (propertyNameLength == 0)
+        {
+            return this->GetEmptyStringPropertyRecord();
+        }
 
         if (IsDirectPropertyName(propertyName, propertyNameLength))
         {
@@ -1084,7 +1087,7 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
 #if DBG
     // Only Assert we can't find the property if we are not adding a symbol.
     // For a symbol, the propertyName is not used and may collide with something in the map already.
-    if (propertyNameLength && !propertyRecord->IsSymbol())
+    if (propertyNameLength > 0 && !propertyRecord->IsSymbol())
     {
         Assert(FindPropertyRecord(propertyName, propertyNameLength) == nullptr);
     }
