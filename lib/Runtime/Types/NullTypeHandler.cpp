@@ -134,7 +134,7 @@ namespace Js
 
     BOOL NullTypeHandlerBase::SetInternalProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags)
     {
-        return SetPropertyWithAttributes(instance, propertyId, value, PropertyWritable & PropertyConfigurable, nullptr, flags);
+        return SetPropertyWithAttributes(instance, propertyId, value, PropertyInternalDefaults, nullptr, flags);
     }
 
     BOOL NullTypeHandlerBase::AddProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects)

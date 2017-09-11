@@ -293,7 +293,7 @@ namespace Js
     BOOL DynamicObject::SetInternalProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         Assert(Js::IsInternalPropertyId(propertyId));
-        return GetTypeHandler()->SetProperty(this, propertyId, value, flags, nullptr);
+        return GetTypeHandler()->SetInternalProperty(this, propertyId, value, flags);
     }
 
     DescriptorFlags DynamicObject::GetSetter(PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
