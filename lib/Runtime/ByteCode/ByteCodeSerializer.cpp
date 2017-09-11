@@ -1407,7 +1407,6 @@ public:
         for (uint32 i = 0; i < callsite->GetLength(); i++)
         {
             callsite->DirectGetItemAt(i, &element);
-            Assert(!VirtualTableInfo<Js::PropertyString>::HasVirtualTable(element));
             size += PrependStringConstant(builder, element);
         }
 
@@ -1417,7 +1416,6 @@ public:
         for (uint32 i = 0; i < rawArray->GetLength(); i++)
         {
             rawArray->DirectGetItemAt(i, &element);
-            Assert(!VirtualTableInfo<Js::PropertyString>::HasVirtualTable(element));
             size += PrependStringConstant(builder, element);
         }
 
