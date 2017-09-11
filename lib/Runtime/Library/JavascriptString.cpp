@@ -404,7 +404,7 @@ case_2:
             break;
 
         default:
-            js_memcpy_s(dst, sizeof(char16) * countNeeded, str, sizeof(char16) * countNeeded);
+            js_wmemcpy_s(dst, countNeeded, str, countNeeded);
         }
     }
 
@@ -3551,7 +3551,7 @@ case_2:
                 // Quick check for first character.
                 if (stringSz[i] == substringSz[0])
                 {
-                    if (substringLen == 1 || memcmp(stringSz+i+1, substringSz+1, (substringLen-1)*sizeof(char16)) == 0)
+                    if (substringLen == 1 || wmemcmp(stringSz + i + 1, substringSz + 1, substringLen - 1) == 0)
                     {
                         return i + start;
                     }

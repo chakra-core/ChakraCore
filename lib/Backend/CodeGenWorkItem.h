@@ -218,7 +218,7 @@ public:
         {
            return nameSizeInChars;
         }
-        js_memcpy_s(displayName, sizeInChars * sizeof(WCHAR), name, sizeInBytes);
+        js_wmemcpy_s(displayName, sizeInChars, name, sizeInBytes);
         return nameSizeInChars;
     }
 
