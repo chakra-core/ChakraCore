@@ -1449,7 +1449,7 @@ namespace Js
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SetInternalProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags)
     {
-        return SetPropertyWithAttributes(instance, propertyId, value, PropertyWritable & PropertyConfigurable, nullptr, flags);
+        return SetPropertyWithAttributes(instance, propertyId, value, PropertyInternalDefaults, nullptr, flags);
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
