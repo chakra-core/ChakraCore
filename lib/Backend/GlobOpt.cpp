@@ -3317,6 +3317,13 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         }
         originalPropertySym = sym->AsPropertySym();
 
+        // Dont give a vale to 'arguments' property sym to prevent field copy prop of 'arguments'
+        if (originalPropertySym->AsPropertySym()->m_propertyId == Js::PropertyIds::arguments &&
+            originalPropertySym->AsPropertySym()->m_fieldKind == PropertyKindData)
+        {
+            return nullptr;
+        }
+
         Value *const objectValue = CurrentBlockData()->FindValue(originalPropertySym->m_stackSym);
         opnd->AsSymOpnd()->SetPropertyOwnerValueType(
             objectValue ? objectValue->GetValueInfo()->Type() : ValueType::Uninitialized);
