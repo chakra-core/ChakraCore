@@ -327,12 +327,22 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
 #endif // _WIN32
 }
 
-
-void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
+void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser, const char16* strCustomConfigFile)
 {
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && CONFIG_PARSE_CONFIG_FILE
-    Assert(!_hasReadConfig);
+    Assert(!_hasReadConfig || strCustomConfigFile != nullptr);
     _hasReadConfig = true;
+
+    const char16* configFileName = strCustomConfigFile;
+    const char16* configFileExt = _u(""); /* in the custom config case,
+                                             ext is expected to be passed
+                                             in as part of the filename */
+
+    if (configFileName == nullptr)
+    {
+        configFileName = _configFileName;
+        configFileExt = _u(".config");
+    }
 
     int err = 0;
     char16 modulename[_MAX_PATH];
@@ -343,7 +353,7 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
     char16 dir[_MAX_DIR];
 
     _wsplitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
-    _wmakepath_s(filename, drive, dir, _configFileName, _u(".config"));
+    _wmakepath_s(filename, drive, dir, configFileName, configFileExt);
 
     FILE* configFile;
 #ifdef _WIN32
@@ -351,7 +361,7 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
     {
         WCHAR configFileFullName[MAX_PATH];
 
-        StringCchPrintf(configFileFullName, MAX_PATH, _u("%s.config"), _configFileName);
+        StringCchPrintf(configFileFullName, MAX_PATH, _u("%s%s"), configFileName, configFileExt);
 
         // try the one in the current working directory (Desktop)
         if (_wfullpath(filename, configFileFullName, _MAX_PATH) == nullptr)
@@ -381,7 +391,7 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
         
         WCHAR configFileFullName[MAX_PATH];
 
-        StringCchPrintf(configFileFullName, MAX_PATH, _u("%s/%s.config"), homeDir, _configFileName);
+        StringCchPrintf(configFileFullName, MAX_PATH, _u("%s/%s%s"), homeDir, configFileName, configFileExt);
         if (_wfopen_s(&configFile, configFileFullName, _u("r")) != 0 || configFile == nullptr)
         {
             return;

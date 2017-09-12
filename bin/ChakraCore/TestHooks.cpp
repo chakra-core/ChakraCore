@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Runtime.h"
+#include "Core/ConfigParser.h"
 #include "TestHooks.h"
 
 #ifdef ENABLE_TEST_HOOKS
@@ -15,6 +16,13 @@ HRESULT __stdcall SetConfigFlags(__in int argc, __in_ecount(argc) LPWSTR argv[],
         return E_FAIL;
     }
 
+    return S_OK;
+}
+
+HRESULT __stdcall SetConfigFile(__in LPWSTR strConfigFile)
+{
+    CmdLineArgsParser parser;
+    ConfigParser::ParseCustomConfigFile(parser, strConfigFile);
     return S_OK;
 }
 
@@ -141,6 +149,7 @@ HRESULT OnChakraCoreLoaded(OnChakraCoreLoadedPtr pfChakraCoreLoaded)
     TestHooks testHooks =
     {
         SetConfigFlags,
+        SetConfigFile,
         PrintConfigFlagsUsageString,
         SetAssertToConsoleFlag,
         SetEnableCheckMemoryLeakOutput,

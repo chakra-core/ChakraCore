@@ -275,6 +275,7 @@ const char * const TestInfoKindName[] =
    "timeout",
    "sourcepath",
    "eol-normalization",
+   "custom-config-file",
    NULL
 };
 static_assert((sizeof(TestInfoKindName) / sizeof(TestInfoKindName[0])) - 1 == TestInfoKind::_TIK_COUNT, "Fix the buffer size");

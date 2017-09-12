@@ -22,6 +22,12 @@
 </dir>
 <dir>
   <default>
+    <files>ConfigParsing</files>
+    <tags>exclude_jshost,exclude_xplat</tags>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>es5</files>
   </default>
 </dir>
