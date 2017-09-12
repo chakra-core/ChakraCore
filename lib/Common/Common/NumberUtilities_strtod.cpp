@@ -2528,7 +2528,7 @@ BOOL Js::NumberUtilities::FNonZeroFiniteDblToStr(double dbl, _In_range_(2, 36) i
     maxOutDigits = g_rgcchSig[radix];
     __analysis_assume(maxOutDigits > 0);
 
-    if (wExp2 < -60 || wExp2 > 60)
+    if (dbl < 1e-21 || dbl > 1e+21)
     {
         // Use exponential notation. Get the exponent and normalize.
         if (cbitDigit != 0)
