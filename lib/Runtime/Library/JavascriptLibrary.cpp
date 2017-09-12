@@ -6906,7 +6906,7 @@ namespace Js
     {
         if (this->propertyStringMap == nullptr)
         {
-            this->propertyStringMap = RecyclerNew(this->recycler, PropertyStringCacheMap, this->GetRecycler());
+            this->propertyStringMap = RecyclerNew(this->recycler, PropertyStringCacheMap, this->GetRecycler(), 71);
             this->scriptContext->RegisterWeakReferenceDictionary((JsUtil::IWeakReferenceDictionary*) this->propertyStringMap);
         }
         return this->propertyStringMap;

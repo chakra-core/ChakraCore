@@ -306,7 +306,7 @@ namespace Js
     class AsmJSByteCodeGenerator;
     enum AsmJSMathBuiltinFunction: int;
     //////////////////////////////////////////////////////////////////////////
-    typedef JsUtil::WeakReferenceDictionary<PropertyId, PropertyString, PowerOf2SizePolicy> PropertyStringCacheMap;
+    typedef JsUtil::WeakReferenceDictionary<PropertyId, PropertyString, PrimeSizePolicy> PropertyStringCacheMap;
 
     extern const FrameDisplay NullFrameDisplay;
     extern const FrameDisplay StrictNullFrameDisplay;

@@ -4734,7 +4734,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             {
                 Assert(this->recycler);
 
-                builtInLibraryFunctions = RecyclerNew(this->recycler, BuiltInLibraryFunctionMap, this->recycler);
+                builtInLibraryFunctions = RecyclerNew(this->recycler, BuiltInLibraryFunctionMap, this->recycler, 131);
                 Cache()->builtInLibraryFunctions = builtInLibraryFunctions;
             }
 

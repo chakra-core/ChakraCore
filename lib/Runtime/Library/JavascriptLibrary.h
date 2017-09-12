@@ -42,7 +42,7 @@ namespace Js
     // This is the dictionary used by script context to cache the eval.
     typedef TwoLevelHashDictionary<FastEvalMapString, ScriptFunction*, EvalMapRecord, EvalCacheTopLevelDictionary, EvalMapString> EvalCacheDictionary;
 
-    typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
+    typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PrimeSizePolicy> BuiltInLibraryFunctionMap;
 
     // valid if object!= NULL
     struct EnumeratedObjectCache
