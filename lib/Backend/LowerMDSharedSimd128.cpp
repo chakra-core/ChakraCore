@@ -772,6 +772,18 @@ IR::Instr* LowererMD::Simd128LowerUnMappedInstruction(IR::Instr *instr)
     case Js::OpCode::Simd128_FromFloat32x4_U4:
         return Simd128LowerUint32x4FromFloat32x4(instr);
 
+    case Js::OpCode::Simd128_FromInt64x2_D2:
+        EmitSimdConversion(instr, IR::HelperSimd128ConvertSD2);
+        return removeInstr(instr);
+    case Js::OpCode::Simd128_FromUint64x2_D2:
+        EmitSimdConversion(instr, IR::HelperSimd128ConvertUD2);
+        return removeInstr(instr);
+    case Js::OpCode::Simd128_FromFloat64x2_I2:
+        EmitSimdConversion(instr, IR::HelperSimd128TruncateI2);
+        return removeInstr(instr);
+    case Js::OpCode::Simd128_FromFloat64x2_U2:
+        EmitSimdConversion(instr, IR::HelperSimd128TruncateU2);
+        return removeInstr(instr);
     case Js::OpCode::Simd128_Neq_I4:
     case Js::OpCode::Simd128_Neq_I8:
     case Js::OpCode::Simd128_Neq_I16:
@@ -899,6 +911,18 @@ IR::Instr* LowererMD::Simd128CanonicalizeToBools(IR::Instr* instr, const Js::OpC
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
     return instr;
+}
+
+void LowererMD::EmitSimdConversion(IR::Instr *instr, IR::JnHelperMethod helper)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::MemRefOpnd* srcMemRef = LoadSimdHelperArgument(instr, 0);
+    IR::MemRefOpnd* dstMemRef = LoadSimdHelperArgument(instr, 1);
+    m_lowerer->InsertMove(srcMemRef, instr->GetSrc1(), instr);
+    IR::Instr * helperCall = IR::Instr::New(Js::OpCode::CALL, this->m_func);
+    instr->InsertBefore(helperCall);
+    this->ChangeToHelperCall(helperCall, helper);
+    m_lowerer->InsertMove(dst, dstMemRef, instr);
 }
 
 void LowererMD::EmitShiftByScalarI2(IR::Instr *instr, IR::JnHelperMethod helper)
