@@ -144,6 +144,8 @@ MACRO_SIMD_EXTEND_WMS(Simd128_ShRtByScalar_I2, Int64x2_2Int1, None, None, 0)
 MACRO_SIMD_EXTEND_WMS(Simd128_ShRtByScalar_U2, Int64x2_2Int1, None, None, 0)
 MACRO_SIMD_EXTEND_WMS(Simd128_AnyTrue_B2, Int1Bool64x2_1, None, None, 0)
 MACRO_SIMD_EXTEND_WMS(Simd128_AllTrue_B2, Int1Bool64x2_1, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_FromFloat64x2_I2, Int64x2_2, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_FromFloat64x2_U2, Int64x2_2, None, None, 0)
 
 // Float64x2
 MACRO_SIMD_EXTEND_WMS(Simd128_Splat_D2, Float64x2_1Double1, None, None, 0)
@@ -164,6 +166,8 @@ MACRO_SIMD_EXTEND_WMS(Simd128_Sub_D2, Float64x2_3, None, None, 0)
 MACRO_SIMD_EXTEND_WMS(Simd128_Mul_D2, Float64x2_3, None, None, 0)
 MACRO_SIMD_EXTEND_WMS(Simd128_Div_D2, Float64x2_3, None, None, 0)
 MACRO_SIMD_EXTEND_WMS(Simd128_Sqrt_D2, Float64x2_2, None, None, 0)
+MACRO_SIMD_EXTEND_WMS(Simd128_FromInt64x2_D2, Int64x2_2, None, None, 0)  //Int64x2_2 is intentional
+MACRO_SIMD_EXTEND_WMS(Simd128_FromUint64x2_D2, Int64x2_2, None, None, 0)
 // Float64x2
 #if 0 //Disabling this type until the specification decides to include or not.
 MACRO_SIMD_EXTEND_WMS(Simd128_DoublesToD2, Float64x2_1Double2, None, None, 0)

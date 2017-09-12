@@ -347,6 +347,7 @@ public:
     void                EmitExtractInt64(IR::Opnd* dst, IR::Opnd* src, uint index, IR::Instr *instr);
     void                EmitInsertInt64(IR::Opnd* dst, uint index, IR::Instr *instr);
     void                EmitShiftByScalarI2(IR::Instr *instr, IR::JnHelperMethod helper);
+    IR::Instr*          EmitSimdConversion(IR::Instr *instr, IR::JnHelperMethod helper);
     IR::Instr*          SIMD128LowerReplaceLane_4(IR::Instr *instr);
     IR::Instr*          SIMD128LowerReplaceLane_8(IR::Instr *instr);
     IR::Instr*          SIMD128LowerReplaceLane_16(IR::Instr *instr);

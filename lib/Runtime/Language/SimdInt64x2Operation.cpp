@@ -7,7 +7,6 @@
 
 namespace Js
 {
-
     SIMDValue SIMDInt64x2Operation::OpSplat(int64 val)
     {
         SIMDValue result;
@@ -39,6 +38,57 @@ namespace Js
         result.i64[1] = -a.i64[1];
         return result;
     }
+
+    static bool IsInRange(double val, uint64& out)
+    {
+        if (val != val || val <= (double)0)
+        {
+            out = 0;
+            return false;
+        }
+
+        if (val >= (double)ULLONG_MAX)
+        {
+            out = ULLONG_MAX;
+            return false;
+        }
+
+        return true;
+    }
+
+    static bool IsInRange(double val, int64& out)
+    {
+        if (val != val)
+        {
+            out = 0;
+            return false;
+        }
+
+        if (val <= (double)LLONG_MIN)
+        {
+            out = LLONG_MIN;
+            return false;
+        }
+
+        if (val >= (double)LLONG_MAX)
+        {
+            out = LLONG_MAX;
+            return false;
+        }
+
+        return true;
+    }
+
+    template<typename T>
+    void SIMDInt64x2Operation::OpTrunc(SIMDValue* dst, SIMDValue* src)
+    {
+        T convertedVal;
+        dst->i64[0] = IsInRange(src->f64[0], convertedVal) ? (T)src->f64[0] : convertedVal;
+        dst->i64[1] = IsInRange(src->f64[1], convertedVal) ? (T)src->f64[1] : convertedVal;
+    }
+
+    template void SIMDInt64x2Operation::OpTrunc<int64>(SIMDValue* dst, SIMDValue* src);
+    template void SIMDInt64x2Operation::OpTrunc<uint64>(SIMDValue* dst, SIMDValue* src);
 
     void SIMDInt64x2Operation::OpShiftLeftByScalar(SIMDValue* dst, SIMDValue* src, int count)
     {
