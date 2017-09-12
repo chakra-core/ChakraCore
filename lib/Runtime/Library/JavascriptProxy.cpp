@@ -218,7 +218,7 @@ namespace Js
         Assert((static_cast<DynamicType*>(GetType()))->GetTypeHandler()->GetPropertyCount() == 0 ||
             (static_cast<DynamicType*>(GetType()))->GetTypeHandler()->GetPropertyId(GetScriptContext(), 0) == InternalPropertyIds::WeakMapKeyMap);
         JavascriptFunction* gOPDMethod = GetMethodHelper(PropertyIds::getOwnPropertyDescriptor, requestContext);
-        Var getResult;
+
         //7. If trap is undefined, then
         //    a.Return the result of calling the[[GetOwnProperty]] internal method of target with argument P.
         if (nullptr == gOPDMethod || GetScriptContext()->IsHeapEnumInProgress())
@@ -235,7 +235,7 @@ namespace Js
         //9. ReturnIfAbrupt(trapResultObj).
         //10. If Type(trapResultObj) is neither Object nor Undefined, then throw a TypeError exception.
 
-        getResult = threadContext->ExecuteImplicitCall(gOPDMethod, ImplicitCall_Accessor, [=]()->Js::Var
+        Var getResult = threadContext->ExecuteImplicitCall(gOPDMethod, ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(threadContext, gOPDMethod, CallInfo(CallFlags_Value, 3), handlerObj, targetObj, propertyName);
         });
@@ -336,7 +336,7 @@ namespace Js
         RecyclableObject *targetObj = this->MarshalTarget(requestContext);
 
         JavascriptFunction* getGetMethod = GetMethodHelper(PropertyIds::get, requestContext);
-        Var getGetResult;
+
         if (nullptr == getGetMethod || requestContext->IsHeapEnumInProgress())
         {
             propertyDescriptor->SetFromProxy(false);
@@ -347,7 +347,7 @@ namespace Js
         propertyDescriptor->SetFromProxy(true);
         Var propertyName = GetName(requestContext, propertyId);
 
-        getGetResult = threadContext->ExecuteImplicitCall(getGetMethod, ImplicitCall_Accessor, [=]()->Js::Var
+        Var getGetResult = threadContext->ExecuteImplicitCall(getGetMethod, ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(threadContext, getGetMethod, CallInfo(CallFlags_Value, 4), handlerObj, targetObj, propertyName, instance);
         });
@@ -417,7 +417,7 @@ namespace Js
         Js::RecyclableObject *targetObj = this->MarshalTarget(requestContext);
 
         JavascriptFunction* hasMethod = GetMethodHelper(PropertyIds::has, requestContext);
-        Var getHasResult;
+
         if (nullptr == hasMethod || requestContext->IsHeapEnumInProgress())
         {
             return fn(targetObj);
@@ -426,7 +426,7 @@ namespace Js
         PropertyId propertyId = getPropertyId();
         Var propertyName = GetName(requestContext, propertyId);
 
-        getHasResult = threadContext->ExecuteImplicitCall(hasMethod, ImplicitCall_Accessor, [=]()->Js::Var
+        Var getHasResult = threadContext->ExecuteImplicitCall(hasMethod, ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(threadContext, hasMethod, CallInfo(CallFlags_Value, 3), handlerObj, targetObj, propertyName);
         });
@@ -771,7 +771,7 @@ namespace Js
 
         //5. Let trap be the result of GetMethod(handler, "deleteProperty").
         JavascriptFunction* deleteMethod = GetMethodHelper(PropertyIds::deleteProperty, requestContext);
-        Var deletePropertyResult;
+
         //7. If trap is undefined, then
         //a.Return the result of calling the[[Delete]] internal method of target with argument P.
         Assert(!GetScriptContext()->IsHeapEnumInProgress());
@@ -794,7 +794,7 @@ namespace Js
 
         Var propertyName = GetName(requestContext, propertyId);
 
-        deletePropertyResult = threadContext->ExecuteImplicitCall(deleteMethod, ImplicitCall_Accessor, [=]()->Js::Var
+        Var deletePropertyResult = threadContext->ExecuteImplicitCall(deleteMethod, ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(threadContext, deleteMethod, CallInfo(CallFlags_Value, 3), handlerObj, targetObj, propertyName);
         });
@@ -1457,13 +1457,13 @@ namespace Js
         Js::RecyclableObject *targetObj = this->MarshalTarget(requestContext);
 
         JavascriptFunction* getPrototypeOfMethod = GetMethodHelper(PropertyIds::getPrototypeOf, requestContext);
-        Var getPrototypeOfResult;
+
         if (nullptr == getPrototypeOfMethod || GetScriptContext()->IsHeapEnumInProgress())
         {
             return RecyclableObject::FromVar(JavascriptObject::GetPrototypeOf(targetObj, requestContext));
         }
         
-        getPrototypeOfResult = threadContext->ExecuteImplicitCall(getPrototypeOfMethod, ImplicitCall_Accessor, [=]()->Js::Var
+        Var getPrototypeOfResult = threadContext->ExecuteImplicitCall(getPrototypeOfMethod, ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(threadContext, getPrototypeOfMethod, CallInfo(CallFlags_Value, 2), handlerObj, targetObj);
         });
@@ -1692,7 +1692,7 @@ namespace Js
         //7. If trap is undefined, then
         //a.Return the result of calling the[[DefineOwnProperty]] internal method of target with arguments P and Desc.
         JavascriptFunction* defineOwnPropertyMethod = proxy->GetMethodHelper(PropertyIds::defineProperty, requestContext);
-        Var definePropertyResult;
+
         Assert(!requestContext->IsHeapEnumInProgress());
         if (nullptr == defineOwnPropertyMethod)
         {
@@ -1715,7 +1715,7 @@ namespace Js
 
         Var propertyName = GetName(requestContext, propId);
 
-        definePropertyResult = threadContext->ExecuteImplicitCall(defineOwnPropertyMethod, ImplicitCall_Accessor, [=]()->Js::Var
+        Var definePropertyResult = threadContext->ExecuteImplicitCall(defineOwnPropertyMethod, ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(threadContext, defineOwnPropertyMethod, CallInfo(CallFlags_Value, 4), handlerObj, targetObj, propertyName, descVar);
         });
@@ -1805,7 +1805,7 @@ namespace Js
         //7. If trap is undefined, then
         //a.Return the result of calling the[[Set]] internal method of target with arguments P, V, and Receiver.
         JavascriptFunction* setMethod = GetMethodHelper(PropertyIds::set, requestContext);
-        Var setPropertyResult;
+
         Assert(!GetScriptContext()->IsHeapEnumInProgress());
         if (nullptr == setMethod)
         {
@@ -1846,7 +1846,7 @@ namespace Js
 
         Var propertyName = GetName(requestContext, propertyId);
         
-        setPropertyResult = threadContext->ExecuteImplicitCall(setMethod, ImplicitCall_Accessor, [=]()->Js::Var
+        Var setPropertyResult = threadContext->ExecuteImplicitCall(setMethod, ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(threadContext, setMethod, CallInfo(CallFlags_Value, 5), handlerObj, targetObj, propertyName, newValue, receiver);
         });
