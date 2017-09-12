@@ -135,7 +135,7 @@ namespace Js
         Field(Var)* GetModuleEnvironment() const { return m_moduleEnvironment; }
         static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleEnvironment); }
 
-        JavascriptArrayBuffer* GetAsmJsArrayBuffer() const;
+        class JavascriptArrayBuffer* GetAsmJsArrayBuffer() const;
     protected:
         AsmJsScriptFunction(DynamicType * type);
         DEFINE_VTABLE_CTOR(AsmJsScriptFunction, ScriptFunction);
