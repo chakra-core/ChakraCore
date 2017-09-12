@@ -1978,6 +1978,7 @@ public:
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 private:
     static Recycler* recyclerList;
+    static CriticalSection recyclerListLock;
     Recycler* next;
 public:
     static void WBSetBitJIT(char* addr)
