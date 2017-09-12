@@ -963,7 +963,9 @@ EmitInfo WasmBytecodeGenerator::EmitCall()
         funcNum = GetReader()->m_currentNode.call.num;
         WasmFunctionInfo* calleeInfo = m_module->GetWasmFunctionInfo(funcNum);
         calleeSignature = calleeInfo->GetSignature();
-        if (!isImportCall)
+        // currently only handle inlining internal function calls
+        // in future we can expand to all calls by adding checks in inliner and falling back to call in case ScriptFunction doesn't match
+        if (GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::Function)
         {
             profileId = GetNextProfileId();
         }
