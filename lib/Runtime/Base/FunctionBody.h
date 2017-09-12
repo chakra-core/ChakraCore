@@ -1724,13 +1724,12 @@ namespace Js
         void SetIsAsmjsMode(bool value)
         {
             m_isAsmjsMode = value;
-    #if DBG
             if (value)
             {
                 m_wasEverAsmjsMode = true;
             }
-    #endif
         }
+        bool WasEverAsmJsMode() const { return m_wasEverAsmjsMode; }
 
         void SetIsWasmFunction(bool val)
         {
@@ -1965,6 +1964,7 @@ namespace Js
 
         // Indicates if the function has been reparsed for debug attach/detach scenario.
         FieldWithBarrier(bool) m_reparsed : 1;
+        FieldWithBarrier(bool) m_wasEverAsmjsMode : 1; // has m_isAsmjsMode ever been true
 
         // This field is not required for deferred parsing but because our thunks can't handle offsets > 128 bytes
         // yet, leaving this here for now. We can look at optimizing the function info and function proxy structures some
@@ -1993,7 +1993,6 @@ namespace Js
 
     public:
 #if DBG
-        FieldWithBarrier(bool) m_wasEverAsmjsMode; // has m_isAsmjsMode ever been true
         FieldWithBarrier(Js::LocalFunctionId) deferredParseNextFunctionId;
 #endif
 #if DBG

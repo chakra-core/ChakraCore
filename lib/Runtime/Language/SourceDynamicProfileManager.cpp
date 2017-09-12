@@ -445,7 +445,9 @@ namespace Js
         for (int i = 0; i < this->dynamicProfileInfoMapSaving.Count(); i++)
         {
             DynamicProfileInfo * dynamicProfileInfo = this->dynamicProfileInfoMapSaving.GetValueAt(i);
-            if (dynamicProfileInfo == nullptr || !dynamicProfileInfo->HasFunctionBody())
+            if (dynamicProfileInfo == nullptr || !dynamicProfileInfo->HasFunctionBody() ||
+                // in case asm.js was reparsed, the profile info here could either reflect the old or new function, so don't save it
+               (dynamicProfileInfo->GetFunctionBody()->WasEverAsmJsMode() && !dynamicProfileInfo->GetFunctionBody()->GetIsAsmjsMode()))
             {
                 continue;
             }

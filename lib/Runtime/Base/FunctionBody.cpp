@@ -1609,9 +1609,9 @@ namespace Js
       paramScopeSlotArraySize(0),
       m_reparsed(false),
       m_isAsmJsFunction(false),
-      m_tag21(true)
+      m_tag21(true),
+      m_wasEverAsmjsMode(false)
 #if DBG
-      ,m_wasEverAsmjsMode(false)
       ,scopeObjectSize(0)
 #endif
     {
@@ -1659,10 +1659,8 @@ namespace Js
       m_isStaticNameFunction(proxy->GetIsStaticNameFunction()),
       m_reportedInParamCount(proxy->GetReportedInParamsCount()),
       m_reparsed(proxy->IsReparsed()),
-      m_tag21(true)
-#if DBG
-      ,m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
-#endif
+      m_tag21(true),
+      m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
     {
         FunctionInfo * functionInfo = proxy->GetFunctionInfo();
         this->functionInfo = functionInfo;

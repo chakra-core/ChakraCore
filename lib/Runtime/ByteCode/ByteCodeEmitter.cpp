@@ -1803,7 +1803,7 @@ void ByteCodeGenerator::InitScopeSlotArray(FuncInfo * funcInfo)
     {
         Js::PropertyId *propertyIdsForScopeSlotArray = RecyclerNewArrayLeafZ(scriptContext->GetRecycler(), Js::PropertyId, scopeSlotCount);
         byteCodeFunction->SetPropertyIdsForScopeSlotArray(propertyIdsForScopeSlotArray, scopeSlotCount, scopeSlotCountForParamScope);
-        AssertMsg(!byteCodeFunction->IsReparsed() || byteCodeFunction->m_wasEverAsmjsMode || byteCodeFunction->scopeSlotArraySize == scopeSlotCount,
+        AssertMsg(!byteCodeFunction->IsReparsed() || byteCodeFunction->WasEverAsmJsMode() || byteCodeFunction->scopeSlotArraySize == scopeSlotCount,
             "The slot array size is different between debug and non-debug mode");
 #if DEBUG
         for (UINT i = 0; i < scopeSlotCount; i++)
@@ -1930,7 +1930,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
         // A reparse should result in the same size of the activation object.
         // Exclude functions which were created from the ByteCodeCache.
         AssertMsg(!byteCodeFunction->IsReparsed() || byteCodeFunction->HasGeneratedFromByteCodeCache() ||
-            byteCodeFunction->scopeObjectSize == count || byteCodeFunction->m_wasEverAsmjsMode,
+            byteCodeFunction->scopeObjectSize == count || byteCodeFunction->WasEverAsmJsMode(),
             "The activation object size is different between debug and non-debug mode");
         byteCodeFunction->scopeObjectSize = count;
 #endif
