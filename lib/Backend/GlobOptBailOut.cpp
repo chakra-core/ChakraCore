@@ -740,8 +740,9 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
             {
                 frameInfoValue = InlineFrameInfoValue(argOpnd->GetConstValue());
             }
-            else if (argSym->IsConst())
+            else if (argSym->IsConst() && !argSym->IsInt64Const())
             {
+                // InlineFrameInfo doesn't currently support Int64Const
                 frameInfoValue = InlineFrameInfoValue(argSym->GetConstValueForBailout());
             }
             else
@@ -789,7 +790,7 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
                     Assert(globOptData.liveVarSyms->Test(argSym->m_id));
                 }
 
-                if (argSym->IsConst())
+                if (argSym->IsConst() && !argSym->IsInt64Const())
                 {
                     frameInfoValue = InlineFrameInfoValue(argSym->GetConstValueForBailout());
                 }
