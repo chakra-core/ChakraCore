@@ -24,7 +24,8 @@ namespace Js {
         }
         else
         {
-            size = PowerOf2Policy::GetSize(size - TYPE_PATH_ALLOC_GRANULARITY_GAP);
+            int _;
+            size = PowerOf2Policy::GetSize(size - TYPE_PATH_ALLOC_GRANULARITY_GAP, &_ /* modFunctionIndex */);
             if (size < MaxPathTypeHandlerLength)
             {
                 size += TYPE_PATH_ALLOC_GRANULARITY_GAP;
@@ -329,4 +330,3 @@ namespace Js {
 #endif
 
 }
-
