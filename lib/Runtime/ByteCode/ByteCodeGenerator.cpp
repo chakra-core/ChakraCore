@@ -3302,7 +3302,6 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                         && reuseNestedFunc->IsFunctionBody())
                     {
                         byteCodeGenerator->pCurrentFunction = reuseNestedFunc->GetFunctionBody();
-                        byteCodeGenerator->pCurrentFunction->CleanupToReparse();
                     }
                 }
             }
