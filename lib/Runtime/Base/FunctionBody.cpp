@@ -1611,8 +1611,8 @@ namespace Js
       m_isAsmJsFunction(false),
       m_tag21(true)
 #if DBG
-      ,m_wasEverAsmjsMode(false)
-      ,scopeObjectSize(0)
+        ,m_wasEverAsmjsMode(false)
+        ,scopeObjectSize(0)
 #endif
     {
         this->functionInfo = RecyclerNew(scriptContext->GetRecycler(), FunctionInfo, entryPoint, attributes, functionId, this);
@@ -1661,7 +1661,7 @@ namespace Js
       m_reparsed(proxy->IsReparsed()),
       m_tag21(true)
 #if DBG
-      ,m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
+      , m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
 #endif
     {
         FunctionInfo * functionInfo = proxy->GetFunctionInfo();
@@ -4936,7 +4936,24 @@ namespace Js
         this->SetByteCodeInLoopCount(0);
 
 #if ENABLE_PROFILE_INFO
-        this->dynamicProfileInfo = nullptr;
+        if (this->dynamicProfileInfo != nullptr)
+        {
+            GetSourceContextInfo()->sourceDynamicProfileManager->RemoveDynamicProfileInfo(GetFunctionInfo()->GetLocalFunctionId());
+
+#ifdef DYNAMIC_PROFILE_STORAGE
+            DynamicProfileInfoList * profileInfoList = GetScriptContext()->GetProfileInfoList();
+            for (auto iter = profileInfoList->GetEditingIterator(); iter.IsValid(); iter.Next())
+            {
+                DynamicProfileInfo * info = iter.Data();
+                if (info->HasFunctionBody() && info->GetFunctionBody() == this)
+                {
+                    iter.UnlinkCurrent();
+                    break;
+                }
+            }
+#endif
+            this->dynamicProfileInfo = nullptr;
+        }
 #endif
         this->hasExecutionDynamicProfileInfo = false;
 

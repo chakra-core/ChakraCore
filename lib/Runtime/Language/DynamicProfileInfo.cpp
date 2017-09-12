@@ -1843,7 +1843,6 @@ namespace Js
 #if DBG_DUMP
         writer->Log(this);
 #endif
-
         FunctionBody * functionBody = this->GetFunctionBody();
         Js::ArgSlot paramInfoCount = functionBody->GetProfiledInParamsCount();
         if (!writer->Write(functionBody->GetLocalFunctionId())
