@@ -551,14 +551,13 @@ namespace Js
         AsmJsSIMDValue* simdArg;
 
         // setup stack memory
-        FrameDisplay* frame = func->GetEnvironment();
-        Var moduleEnv = frame->GetItem(0);
-        Var* arrayBufferVar = (Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
+        AsmJsScriptFunction* asmJsFunc = AsmJsScriptFunction::FromVar(func);
+        Var moduleEnv = asmJsFunc->GetModuleEnvironment();
+        JavascriptArrayBuffer* arrayBuffer = asmJsFunc->GetAsmJsArrayBuffer();
         int arraySize = 0;
         BYTE* arrayPtr = nullptr;
-        if (*arrayBufferVar && JavascriptArrayBuffer::Is(*arrayBufferVar))
+        if (JavascriptArrayBuffer::Is(arrayBuffer))
         {
-            JavascriptArrayBuffer* arrayBuffer = *(JavascriptArrayBuffer**)arrayBufferVar;
             arrayPtr = arrayBuffer->GetBuffer();
             arraySize = arrayBuffer->GetByteLength();
         }

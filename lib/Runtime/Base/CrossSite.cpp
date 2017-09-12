@@ -326,7 +326,7 @@ namespace Js
         TTD_XSITE_LOG(callable->GetScriptContext(), "DefaultOrProfileThunk", callable);
 
 #ifdef ENABLE_WASM
-        if (AsmJsScriptFunction::IsWasmScriptFunction(function))
+        if (WasmScriptFunction::Is(function))
         {
             AsmJsFunctionInfo* asmInfo = funcInfo->GetFunctionBody()->GetAsmJsFunctionInfo();
             Assert(asmInfo);

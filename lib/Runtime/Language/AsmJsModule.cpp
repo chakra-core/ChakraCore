@@ -2449,30 +2449,30 @@ namespace Js
 
     void AsmJsModuleInfo::EnsureHeapAttached(ScriptFunction * func)
     {
-        FrameDisplay* frame = func->GetEnvironment();
-        ArrayBuffer* moduleArrayBuffer = nullptr;
 #ifdef ENABLE_WASM
-        if (func->GetFunctionBody()->IsWasmFunction())
+        if (WasmScriptFunction::Is(func))
         {
-            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
-            if (wasmMem != nullptr)
+            WasmScriptFunction* wasmFunc = WasmScriptFunction::FromVar(func);
+            WebAssemblyMemory * wasmMem = wasmFunc->GetWebAssemblyMemory();
+            if (wasmMem && wasmMem->GetBuffer() && wasmMem->GetBuffer()->IsDetached())
             {
-                moduleArrayBuffer = wasmMem->GetBuffer();
+                Throw::OutOfMemory();
             }
         }
         else
 #endif
         {
-            moduleArrayBuffer = *(ArrayBuffer**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
+            AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(func);
+            ArrayBuffer* moduleArrayBuffer = asmFunc->GetAsmJsArrayBuffer();
+            if (moduleArrayBuffer && moduleArrayBuffer->IsDetached())
+            {
+                Throw::OutOfMemory();
+            }
         }
 
-        if (moduleArrayBuffer && moduleArrayBuffer->IsDetached())
-        {
-            Throw::OutOfMemory();
-        }
     }
 
-    void * AsmJsModuleInfo::ConvertFrameForJavascript(void * asmMemory, ScriptFunction* func)
+    void * AsmJsModuleInfo::ConvertFrameForJavascript(void* env, AsmJsScriptFunction* func)
     {
         FunctionBody * body = func->GetFunctionBody();
         AsmJsFunctionInfo * asmFuncInfo = body->GetAsmJsFunctionInfo();
@@ -2482,7 +2482,7 @@ namespace Js
 
         ScriptContext * scriptContext = func->GetScriptContext();
         // AsmJsModuleEnvironment is all laid out here
-        Var * asmJsEnvironment = static_cast<Var*>(func->GetEnvironment()->GetItem(0));
+        Var * asmJsEnvironment = static_cast<Var*>(env);
         Var * asmBufferPtr = asmJsEnvironment + asmModuleInfo->GetModuleMemory().mArrayBufferOffset;
         ArrayBuffer * asmBuffer = *asmBufferPtr ? ArrayBuffer::FromVar(*asmBufferPtr) : nullptr;
 

@@ -2301,15 +2301,15 @@ LABEL1:
         {
             return false;
         }
-        Js::FunctionBody* funcBody = func->GetFunctionBody();
-        bool isWAsmJs = funcBody->GetIsAsmJsFunction();
-        bool isWasmOnly = funcBody->IsWasmFunction();
+
+        bool isAsmJs = AsmJsScriptFunction::Is(func);
+        bool isWasmOnly = WasmScriptFunction::Is(func);
         uintptr_t faultingAddr = helper.GetFaultingAddress();
-        if (isWAsmJs)
+        if (isAsmJs)
         {
+            AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(func);
             // some extra checks for asm.js because we have slightly more information that we can validate
-            uintptr_t moduleMemory = (uintptr_t)((AsmJsScriptFunction*)func)->GetModuleMemory();
-            if (!moduleMemory)
+            if (!asmFunc->GetModuleEnvironment())
             {
                 return false;
             }
@@ -2319,14 +2319,14 @@ LABEL1:
 #ifdef ENABLE_WASM
             if (isWasmOnly)
             {
-                WebAssemblyMemory* mem = *(WebAssemblyMemory**)(moduleMemory + WebAssemblyModule::GetMemoryOffset());
+                WebAssemblyMemory* mem = WasmScriptFunction::FromVar(func)->GetWebAssemblyMemory();
                 arrayBuffer = mem->GetBuffer();
                 reservationSize = MAX_WASM__ARRAYBUFFER_LENGTH;
             }
             else
 #endif
             {
-                arrayBuffer = *(ArrayBuffer**)(moduleMemory + AsmJsModuleMemory::MemoryTableBeginOffset);
+                arrayBuffer = asmFunc->GetAsmJsArrayBuffer();
                 reservationSize = MAX_ASMJS_ARRAYBUFFER_LENGTH;
             }
 

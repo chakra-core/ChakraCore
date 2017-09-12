@@ -7991,7 +7991,7 @@ Lowerer::LowerCheckWasmSignature(IR::Instr * instr)
 
     IR::Instr *instrPrev = instr->m_prev;
 
-    IR::IndirOpnd * actualSig = IR::IndirOpnd::New(instr->UnlinkSrc1()->AsRegOpnd(), Js::AsmJsScriptFunction::GetOffsetOfSignature(), TyMachReg, m_func);
+    IR::IndirOpnd * actualSig = IR::IndirOpnd::New(instr->UnlinkSrc1()->AsRegOpnd(), Js::WasmScriptFunction::GetOffsetOfSignature(), TyMachReg, m_func);
 
     Wasm::WasmSignature * expectedSig = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetWasmSignature(sigId);
     if (expectedSig->GetShortSig() == Js::Constants::InvalidSignature)

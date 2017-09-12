@@ -644,25 +644,16 @@ namespace Js
 #endif
 
     AsmJsScriptFunction::AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
-        ScriptFunction(proxy, deferredPrototypeType), m_moduleMemory(nullptr)
+        ScriptFunction(proxy, deferredPrototypeType), m_moduleEnvironment(nullptr)
     {}
 
     AsmJsScriptFunction::AsmJsScriptFunction(DynamicType * type) :
-        ScriptFunction(type), m_moduleMemory(nullptr)
+        ScriptFunction(type), m_moduleEnvironment(nullptr)
     {}
 
     bool AsmJsScriptFunction::Is(Var func)
     {
-        return ScriptFunction::Is(func) &&
-            ScriptFunction::FromVar(func)->HasFunctionBody() &&
-            ScriptFunction::FromVar(func)->GetFunctionBody()->GetIsAsmJsFunction();
-    }
-
-    bool AsmJsScriptFunction::IsWasmScriptFunction(Var func)
-    {
-        return ScriptFunction::Is(func) &&
-            ScriptFunction::FromVar(func)->HasFunctionBody() &&
-            ScriptFunction::FromVar(func)->GetFunctionBody()->IsWasmFunction();
+        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->IsAsmJsFunction();
     }
 
     AsmJsScriptFunction* AsmJsScriptFunction::FromVar(Var func)
@@ -691,6 +682,42 @@ namespace Js
 
         return asmJsFunc;
     }
+
+    JavascriptArrayBuffer* AsmJsScriptFunction::GetAsmJsArrayBuffer() const
+    {
+#ifdef ASMJS_PLAT
+        return *(JavascriptArrayBuffer**)(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset);
+#else
+        Assert(UNREACHED);
+        return nullptr;
+#endif
+    }
+
+#ifdef ENABLE_WASM
+    WasmScriptFunction::WasmScriptFunction(DynamicType * type) :
+        AsmJsScriptFunction(type), m_signature(nullptr)
+    {}
+
+    WasmScriptFunction::WasmScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
+        AsmJsScriptFunction(proxy, deferredPrototypeType), m_signature(nullptr)
+    {}
+
+    bool WasmScriptFunction::Is(Var func)
+    {
+        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->IsWasmFunction();
+    }
+
+    WasmScriptFunction* WasmScriptFunction::FromVar(Var func)
+    {
+        Assert(WasmScriptFunction::Is(func));
+        return reinterpret_cast<WasmScriptFunction *>(func);
+    }
+
+    WebAssemblyMemory* WasmScriptFunction::GetWebAssemblyMemory() const
+    {
+        return *(WebAssemblyMemory**)(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset);
+    }
+#endif
 
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         ScriptFunction(proxy, deferredPrototypeType), hasOwnInlineCaches(false)

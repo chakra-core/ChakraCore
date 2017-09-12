@@ -14,7 +14,7 @@ namespace Js
 
     Var WasmLibrary::WasmLazyTrapCallback(RecyclableObject *callee, CallInfo, ...)
     {
-        AsmJsScriptFunction* asmFunction = static_cast<AsmJsScriptFunction*>(callee);
+        WasmScriptFunction* asmFunction = static_cast<WasmScriptFunction*>(callee);
         Assert(asmFunction);
         ScriptContext * scriptContext = asmFunction->GetScriptContext();
         Assert(scriptContext);
@@ -24,7 +24,7 @@ namespace Js
 
     void WasmLibrary::SetWasmEntryPointToInterpreter(Js::ScriptFunction* func, bool deferParse)
     {
-        Assert(AsmJsScriptFunction::Is(func));
+        Assert(WasmScriptFunction::Is(func));
         FunctionEntryPointInfo* entrypointInfo = (FunctionEntryPointInfo*)func->GetEntryPointInfo();
         entrypointInfo->SetIsAsmJSFunction(true);
 

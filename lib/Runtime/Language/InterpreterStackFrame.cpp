@@ -1152,6 +1152,10 @@ namespace Js
         newInstance->localClosure = nullptr;
         newInstance->paramClosure = nullptr;
         newInstance->innerScopeArray = nullptr;
+        newInstance->m_asmJsBuffer = nullptr;
+#ifdef ENABLE_WASM
+        newInstance->m_wasmMemory = nullptr;
+#endif
 
         bool doInterruptProbe = newInstance->scriptContext->GetThreadContext()->DoInterruptProbe(this->executeFunction);
 #if ENABLE_NATIVE_CODEGEN
@@ -2531,10 +2535,11 @@ namespace Js
         return this->Process();
     }
 
+
+#ifdef ASMJS_PLAT
     Var InterpreterStackFrame::ProcessAsmJsModule()
     {
-#ifdef ASMJS_PLAT
-        Js::FunctionBody* asmJsModuleFunctionBody = GetFunctionBody();
+        FunctionBody* asmJsModuleFunctionBody = GetFunctionBody();
         AsmJsModuleInfo* info = asmJsModuleFunctionBody->GetAsmJsModuleInfo();
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -2544,7 +2549,7 @@ namespace Js
             return this->ProcessLinkFailedAsmJsModule();
         }
 #endif
-        if( m_inSlotsCount != info->GetArgInCount() + 1 )
+        if (m_inSlotsCount != info->GetArgInCount() + 1)
         {
             // Error reparse without asm.js
             AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Invalid module argument count"));
@@ -2588,17 +2593,17 @@ namespace Js
             // don't need to print, because checkParams will do it for us
             goto linkFailure;
         }
-        else if(this->CheckAndResetImplicitCall(prevDisableImplicitFlags, saveImplicitcallFlags))
+        else if (this->CheckAndResetImplicitCall(prevDisableImplicitFlags, saveImplicitcallFlags))
         {
             AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Params have side effects"));
-             return this->ProcessLinkFailedAsmJsModule();
+            return this->ProcessLinkFailedAsmJsModule();
         }
         // Initialize Variables
         for (int i = 0; i < info->GetVarCount(); i++)
         {
-            const auto& var = info->GetVar( i );
+            const auto& var = info->GetVar(i);
             const AsmJsVarType type(var.type);
-            if(type.isInt() )
+            if (type.isInt())
             {
                 localIntSlots[var.location] = var.initialiser.intInit;
             }
@@ -2624,12 +2629,12 @@ namespace Js
         }
 
         // Load constant variables
-        for( int i = 0; i < info->GetVarImportCount(); i++ )
+        for (int i = 0; i < info->GetVarImportCount(); i++)
         {
-            const auto& import = info->GetVarImport( i );
+            const auto& import = info->GetVarImport(i);
             const AsmJsVarType type(import.type);
             // this might throw, but it would anyway in non-asm.js
-            Var value = JavascriptOperators::OP_GetProperty( foreign, import.field, scriptContext );
+            Var value = JavascriptOperators::OP_GetProperty(foreign, import.field, scriptContext);
             // check if there is implicit call and if there is implicit call then clear the disableimplicitcall flag
             if (this->CheckAndResetImplicitCall(prevDisableImplicitFlags, saveImplicitcallFlags))
             {
@@ -2646,9 +2651,9 @@ namespace Js
                 }
             }
 
-            if(type.isInt() )
+            if (type.isInt())
             {
-                int val = JavascriptMath::ToInt32( value, scriptContext );
+                int val = JavascriptMath::ToInt32(value, scriptContext);
                 localIntSlots[import.location] = val;
             }
             else if (type.isFloat())
@@ -2658,7 +2663,7 @@ namespace Js
             }
             else if (type.isDouble())
             {
-                double val = JavascriptConversion::ToNumber( value, scriptContext );
+                double val = JavascriptConversion::ToNumber(value, scriptContext);
                 localDoubleSlots[import.location] = val;
             }
 #ifdef ENABLE_SIMDJS
@@ -2670,52 +2675,52 @@ namespace Js
                 val.Zero();
                 switch (type.which())
                 {
-                    case AsmJsVarType::Int32x4:
-                        valid = JavascriptSIMDInt32x4::Is(value);
-                        val = (valid) ? ((JavascriptSIMDInt32x4*)value)->GetValue() : val;
-                        break;
-                    case AsmJsVarType::Bool32x4:
-                        valid = JavascriptSIMDBool32x4::Is(value);
-                        val = (valid) ? ((JavascriptSIMDBool32x4*)value)->GetValue() : val;
-                        break;
-                    case AsmJsVarType::Bool16x8:
-                        valid = JavascriptSIMDBool16x8::Is(value);
-                        val = (valid) ? ((JavascriptSIMDBool16x8*)value)->GetValue() : val;
-                        break;
-                    case AsmJsVarType::Bool8x16:
-                        valid = JavascriptSIMDBool8x16::Is(value);
-                        val = (valid) ? ((JavascriptSIMDBool8x16*)value)->GetValue() : val;
-                        break;
-                    case AsmJsVarType::Float32x4:
-                        valid = JavascriptSIMDFloat32x4::Is(value);
-                        val = (valid) ? ((JavascriptSIMDFloat32x4*)value)->GetValue() : val;
-                        break;
-                    case AsmJsVarType::Float64x2:
-                        valid = JavascriptSIMDFloat64x2::Is(value);
-                        val = (valid) ? ((JavascriptSIMDFloat64x2*)value)->GetValue() : val;
-                        break;
-                    case AsmJsVarType::Int16x8:
-                        valid = JavascriptSIMDInt16x8::Is(value);
-                        val = (valid) ? ((JavascriptSIMDInt16x8*)value)->GetValue() : val;
-                        break;
-                    case AsmJsVarType::Int8x16:
-                        valid = JavascriptSIMDInt8x16::Is(value);
-                        val = ((JavascriptSIMDInt8x16*)value)->GetValue();
-                        break;
-                    case AsmJsVarType::Uint32x4:
-                        valid = JavascriptSIMDUint32x4::Is(value);
-                        val = (valid) ? ((JavascriptSIMDUint32x4*)value)->GetValue() : val;
-                        break;
-                    case AsmJsVarType::Uint16x8:
-                        valid = JavascriptSIMDUint16x8::Is(value);
-                        val = (valid) ? ((JavascriptSIMDUint16x8*)value)->GetValue() : val;
-                        break;
-                    case AsmJsVarType::Uint8x16:
-                        valid = JavascriptSIMDUint8x16::Is(value);
-                        val = (valid) ? ((JavascriptSIMDUint8x16*)value)->GetValue() : val;
-                        break;
-                    default:
-                        Assert(UNREACHED);
+                case AsmJsVarType::Int32x4:
+                    valid = JavascriptSIMDInt32x4::Is(value);
+                    val = (valid) ? ((JavascriptSIMDInt32x4*)value)->GetValue() : val;
+                    break;
+                case AsmJsVarType::Bool32x4:
+                    valid = JavascriptSIMDBool32x4::Is(value);
+                    val = (valid) ? ((JavascriptSIMDBool32x4*)value)->GetValue() : val;
+                    break;
+                case AsmJsVarType::Bool16x8:
+                    valid = JavascriptSIMDBool16x8::Is(value);
+                    val = (valid) ? ((JavascriptSIMDBool16x8*)value)->GetValue() : val;
+                    break;
+                case AsmJsVarType::Bool8x16:
+                    valid = JavascriptSIMDBool8x16::Is(value);
+                    val = (valid) ? ((JavascriptSIMDBool8x16*)value)->GetValue() : val;
+                    break;
+                case AsmJsVarType::Float32x4:
+                    valid = JavascriptSIMDFloat32x4::Is(value);
+                    val = (valid) ? ((JavascriptSIMDFloat32x4*)value)->GetValue() : val;
+                    break;
+                case AsmJsVarType::Float64x2:
+                    valid = JavascriptSIMDFloat64x2::Is(value);
+                    val = (valid) ? ((JavascriptSIMDFloat64x2*)value)->GetValue() : val;
+                    break;
+                case AsmJsVarType::Int16x8:
+                    valid = JavascriptSIMDInt16x8::Is(value);
+                    val = (valid) ? ((JavascriptSIMDInt16x8*)value)->GetValue() : val;
+                    break;
+                case AsmJsVarType::Int8x16:
+                    valid = JavascriptSIMDInt8x16::Is(value);
+                    val = ((JavascriptSIMDInt8x16*)value)->GetValue();
+                    break;
+                case AsmJsVarType::Uint32x4:
+                    valid = JavascriptSIMDUint32x4::Is(value);
+                    val = (valid) ? ((JavascriptSIMDUint32x4*)value)->GetValue() : val;
+                    break;
+                case AsmJsVarType::Uint16x8:
+                    valid = JavascriptSIMDUint16x8::Is(value);
+                    val = (valid) ? ((JavascriptSIMDUint16x8*)value)->GetValue() : val;
+                    break;
+                case AsmJsVarType::Uint8x16:
+                    valid = JavascriptSIMDUint8x16::Is(value);
+                    val = (valid) ? ((JavascriptSIMDUint8x16*)value)->GetValue() : val;
+                    break;
+                default:
+                    Assert(UNREACHED);
                 };
                 if (!valid)
                 {
@@ -2736,18 +2741,18 @@ namespace Js
             }
         }
         // Load external functions
-        for( int i = 0; i < info->GetFunctionImportCount(); i++ )
+        for (int i = 0; i < info->GetFunctionImportCount(); i++)
         {
-            const auto& import = info->GetFunctionImport( i );
+            const auto& import = info->GetFunctionImport(i);
             // this might throw, but it would anyway in non-asm.js
-            Var importFunc = JavascriptOperators::OP_GetProperty( foreign, import.field, scriptContext );
+            Var importFunc = JavascriptOperators::OP_GetProperty(foreign, import.field, scriptContext);
             // check if there is implicit call and if there is implicit call then clear the disableimplicitcall flag
             if (this->CheckAndResetImplicitCall(prevDisableImplicitFlags, saveImplicitcallFlags))
             {
                 AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Accessing foreign function import %s has side effects"), this->scriptContext->GetPropertyName(import.field)->GetBuffer());
                 return this->ProcessLinkFailedAsmJsModule();
             }
-            if( !JavascriptFunction::Is( importFunc ) )
+            if (!JavascriptFunction::Is(importFunc))
             {
                 AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Foreign function import %s is not a function"), this->scriptContext->GetPropertyName(import.field)->GetBuffer());
                 goto linkFailure;
@@ -2759,8 +2764,10 @@ namespace Js
         threadContext->SetImplicitCallFlags(saveImplicitcallFlags);
         // scope
         {
-            FrameDisplay* pDisplay = RecyclerNewPlus(scriptContext->GetRecycler(), sizeof(void*), FrameDisplay, 1);
-            pDisplay->SetItem( 0, moduleMemoryPtr );
+            FrameDisplay* pDisplay = RecyclerNewPlus(scriptContext->GetRecycler(), sizeof(void*), FrameDisplay, 0);
+            //DynamicObject* asmModule = scriptContext->GetLibrary()->CreateObject(false, 1);
+            //JavascriptOperators::OP_SetProperty(asmModule, PropertyIds::module, moduleMemoryPtr, scriptContext);
+            //pDisplay->SetItem(0, this->function);
             for (int i = 0; i < info->GetFunctionCount(); i++)
             {
                 const auto& modFunc = info->GetFunction(i);
@@ -2778,29 +2785,29 @@ namespace Js
 
                 scriptFuncObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
                 scriptFuncObj->GetFunctionBody()->GetAsmJsFunctionInfo()->SetModuleFunctionBody(asmJsModuleFunctionBody);
-                scriptFuncObj->SetModuleMemory((Field(Var)*)moduleMemoryPtr);
+                scriptFuncObj->SetModuleEnvironment((Field(Var)*)moduleMemoryPtr);
                 if (!info->IsRuntimeProcessed())
                 {
                     // don't reset entrypoint upon relinking
                     FunctionEntryPointInfo* entrypointInfo = (FunctionEntryPointInfo*)scriptFuncObj->GetEntryPointInfo();
                     entrypointInfo->SetIsAsmJSFunction(true);
 
-    #if DYNAMIC_INTERPRETER_THUNK
+#if DYNAMIC_INTERPRETER_THUNK
                     if (!PHASE_ON1(AsmJsJITTemplatePhase))
                     {
                         entrypointInfo->jsMethod = AsmJsDefaultEntryThunk;
                     }
-    #endif
+#endif
                 }
             }
         }
 
         // Initialize function table arrays
-        for( int i = 0; i < info->GetFunctionTableCount(); i++ )
+        for (int i = 0; i < info->GetFunctionTableCount(); i++)
         {
-            const auto& modFuncTable = info->GetFunctionTable( i );
-            Field(Var)* funcTableArray = RecyclerNewArray( scriptContext->GetRecycler(), Field(Var), modFuncTable.size );
-            for (uint j = 0; j < modFuncTable.size ; j++)
+            const auto& modFuncTable = info->GetFunctionTable(i);
+            Field(Var)* funcTableArray = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), modFuncTable.size);
+            for (uint j = 0; j < modFuncTable.size; j++)
             {
                 // get the module function index
                 const RegSlot index = modFuncTable.moduleFunctionIndex[j];
@@ -2810,12 +2817,12 @@ namespace Js
             }
             localFunctionTables[i] = funcTableArray;
         }
-// Do MTJRC/MAIC:0 check
+        // Do MTJRC/MAIC:0 check
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (
             (PHASE_ON1(Js::AsmJsJITTemplatePhase) && CONFIG_FLAG(MaxTemplatizedJitRunCount) == 0) ||
             (!PHASE_ON1(Js::AsmJsJITTemplatePhase) && (CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0 || CONFIG_FLAG(ForceNative)))
-        )
+            )
         {
             if (PHASE_TRACE1(AsmjsEntryPointInfoPhase))
             {
@@ -2838,17 +2845,17 @@ namespace Js
         info->SetIsRuntimeProcessed(true);
 
         // create export object
-        if( info->GetExportsCount() )
+        if (info->GetExportsCount())
         {
-            Var newObj = JavascriptOperators::NewScObjectLiteral( GetScriptContext(), info->GetExportsIdArray(),
-                                                                  this->GetFunctionBody()->GetObjectLiteralTypeRef(0));
-            for( int i = 0; i < info->GetExportsCount(); i++ )
+            Var newObj = JavascriptOperators::NewScObjectLiteral(GetScriptContext(), info->GetExportsIdArray(),
+                this->GetFunctionBody()->GetObjectLiteralTypeRef(0));
+            for (int i = 0; i < info->GetExportsCount(); i++)
             {
-                auto ex = info->GetExport( i );
+                auto ex = info->GetExport(i);
                 Var func = localModuleFunctions[*ex.location];
-                JavascriptOperators::OP_InitProperty( newObj, *ex.id, func );
+                JavascriptOperators::OP_InitProperty(newObj, *ex.id, func);
             }
-            SetReg( (RegSlot) 0, newObj );
+            SetReg((RegSlot)0, newObj);
             return newObj;
         }
 
@@ -2942,17 +2949,12 @@ namespace Js
         }
 
         return retVal;
-#else
-        Assert(UNREACHED);
-        return nullptr;
-#endif
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     int AsmJsCallDepth = 0;
 #endif
 
-#ifdef ASMJS_PLAT
     // Function memory allocation should be done the same way as
     // T AsmJsCommunEntryPoint(Js::ScriptFunction* func, ...)  (AsmJSJitTemplate.cpp)
     // update any changes there
@@ -3022,20 +3024,20 @@ namespace Js
         }
 
         // Load module environment
-        FrameDisplay* frame = this->function->GetEnvironment();
-        m_localSlots[AsmJsFunctionMemory::ModuleEnvRegister] = frame->GetItem(0);
+        AsmJsScriptFunction* asmJsFunc = AsmJsScriptFunction::FromVar(this->function);
+        m_localSlots[AsmJsFunctionMemory::ModuleEnvRegister] = asmJsFunc->GetModuleEnvironment();
+        m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = nullptr;
 #ifdef ENABLE_WASM
-        if (func->GetFunctionBody()->IsWasmFunction())
+        if (WasmScriptFunction::Is(func))
         {
-            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
+            WasmScriptFunction* wasmFunc = WasmScriptFunction::FromVar(func);
+            m_wasmMemory = wasmFunc->GetWebAssemblyMemory();
             m_signatures = func->GetFunctionBody()->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetSignatures();
-            m_wasmMemory = wasmMem;
-            m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = nullptr;
         }
         else
 #endif
         {
-            m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = (Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
+            m_asmJsBuffer = asmJsFunc->GetAsmJsArrayBuffer();
         }
 
         m_localSlots[AsmJsFunctionMemory::ArraySizeRegister] = 0; // do not cache ArraySize in the interpreter
@@ -7937,7 +7939,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     int InterpreterStackFrame::OP_GetMemorySize()
     {
 #ifdef ENABLE_WASM
-        return (int)m_wasmMemory->GetCurrentMemoryPages();
+        return (int)GetWebAssemblyMemory()->GetCurrentMemoryPages();
 #else
         Assert(UNREACHED);
         return 0;
@@ -7947,7 +7949,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     int InterpreterStackFrame::OP_GrowMemory(int32 delta)
     {
 #ifdef ENABLE_WASM
-        return m_wasmMemory->GrowInternal((uint32)delta);
+        return GetWebAssemblyMemory()->GrowInternal((uint32)delta);
 #else
         Assert(UNREACHED);
         return 0;
@@ -8003,9 +8005,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         const uint64 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        JavascriptArrayBuffer* arr = GetAsmJsBuffer();
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
         RegSlot dstReg = playout->Value;
@@ -8025,9 +8026,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdLdArrConstIndex(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         const uint64 index = (uint32)playout->SlotIndex;
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        JavascriptArrayBuffer* arr = GetAsmJsBuffer();
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
         RegSlot dstReg = playout->Value;
@@ -8047,9 +8047,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdStArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         const uint64 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        JavascriptArrayBuffer* arr = GetAsmJsBuffer();
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
         RegSlot srcReg = playout->Value;
@@ -8067,9 +8066,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_SimdStArrConstIndex(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
         const uint64 index = (uint32)playout->SlotIndex;
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        JavascriptArrayBuffer* arr = GetAsmJsBuffer();
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
         RegSlot srcReg = playout->Value;
@@ -8510,8 +8508,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_StArr(uint32 index, RegSlot regSlot)
     {
         CompileAssert(Js::ArrayBufferView::TYPE_COUNT == (sizeof(InterpreterStackFrame::StArrFunc) / sizeof(InterpreterStackFrame::ArrFunc)));
-        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        JavascriptArrayBuffer* arr = GetAsmJsBuffer();
         if (index < arr->GetByteLength())
         {
             BYTE* buffer = arr->GetBuffer();
@@ -8592,8 +8589,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_LdArr(uint32 index, RegSlot regSlot)
     {
         CompileAssert(Js::ArrayBufferView::TYPE_COUNT == (sizeof(InterpreterStackFrame::LdArrFunc) / sizeof(InterpreterStackFrame::ArrFunc)));
-        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use AsmJsFunctionMemory::ArrayBufferRegister for Wasm, Use WebAssemblyMemory directly instead");
-        JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
+        JavascriptArrayBuffer* arr = GetAsmJsBuffer();
         BYTE* buffer = arr->GetBuffer();
         ArrayType val = index < (arr->GetByteLength()) ? *(ArrayType*)(buffer + index) : GetArrayViewOverflowVal<ArrayType>();
         SetRegRaw<RegType>(regSlot, (RegType)val);
@@ -8634,7 +8630,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #ifdef ENABLE_WASM
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
-        WebAssemblyArrayBuffer* arr = m_wasmMemory->GetBuffer();
+        WebAssemblyArrayBuffer* arr = GetWebAssemblyMemory()->GetBuffer();
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_ArrayIndexOutOfRange);
@@ -8685,7 +8681,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #ifdef ENABLE_WASM
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
-        WebAssemblyArrayBuffer* arr = m_wasmMemory->GetBuffer();
+        WebAssemblyArrayBuffer* arr = GetWebAssemblyMemory()->GetBuffer();
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_ArrayIndexOutOfRange);
@@ -8714,7 +8710,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #if DBG
         if (PHASE_TRACE(WasmMemWritesPhase, m_functionBody))
         {
-            m_wasmMemory->TraceMemWrite(m_wasmMemory, (uint32)GetRegRawInt(playout->SlotIndex), playout->Offset, playout->ViewType, (uint32)(size_t)this->DEBUG_currentByteOffset, scriptContext);
+            GetWebAssemblyMemory()->TraceMemWrite(GetWebAssemblyMemory(), (uint32)GetRegRawInt(playout->SlotIndex), playout->Offset, playout->ViewType, (uint32)(size_t)this->DEBUG_currentByteOffset, scriptContext);
         }
 #endif
         return;
@@ -9169,6 +9165,20 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Output::Print(_u("("));
 #endif
     }
+
+    JavascriptArrayBuffer* InterpreterStackFrame::GetAsmJsBuffer() const
+    {
+        AssertMsg(!m_functionBody->IsWasmFunction(), "Do not use GetAsmJsBuffer for WebAssembly, Use GetWebAssemblyMemory instead");
+        return m_asmJsBuffer;
+    }
+
+#ifdef ENABLE_WASM
+    WebAssemblyMemory* InterpreterStackFrame::GetWebAssemblyMemory() const
+    {
+        AssertMsg(m_functionBody->IsWasmFunction(), "Do not use GetWebAssemblyMemory for Asm.js, Use GetAsmJsBuffer instead");
+        return m_wasmMemory;
+    }
+#endif
 
     template void* Js::InterpreterStackFrame::GetReg<unsigned int>(unsigned int) const;
     template void Js::InterpreterStackFrame::SetReg<unsigned int>(unsigned int, void*);
