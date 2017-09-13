@@ -2786,7 +2786,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         deferParseFunction->SetReportedInParamsCount(funcInfo->inArgsCount);
     }
 
-    if (deferParseFunction->IsDeferred() || deferParseFunction->CanBeDeferred())
+    // Note: Don't check the actual attributes on the functionInfo here, since CanDefer has been cleared while
+    // we're generating byte code.
+    if (deferParseFunction->IsDeferred() || (funcInfo->originalAttributes & Js::FunctionInfo::Attributes::CanDefer))
     {
         Js::ScopeInfo::SaveEnclosingScopeInfo(this, funcInfo);        
     }
