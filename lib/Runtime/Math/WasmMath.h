@@ -27,6 +27,8 @@ public:
     template <typename T> using CmpPtr = bool(*)(T a, T b);
     template <typename STYPE, typename UTYPE, UTYPE MAX, UTYPE NEG_ZERO, UTYPE NEG_ONE, CmpPtr<UTYPE> CMP1, CmpPtr<UTYPE> CMP2> static bool isInRange(STYPE srcVal);
     template <typename STYPE> static bool isNaN(STYPE src);
+
+    template<typename To, typename From> static To SignExtend(To value);
 };
 
 } //namespace Wasm
