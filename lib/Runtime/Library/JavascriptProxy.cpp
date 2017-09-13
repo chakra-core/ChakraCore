@@ -1997,7 +1997,7 @@ namespace Js
     void JavascriptProxy::PropertyIdFromInt(uint32 index, PropertyRecord const** propertyRecord)
     {
         char16 buffer[22];
-        int pos = TaggedInt::ToBuffer(index, buffer, 22);
+        int pos = TaggedInt::ToBuffer(index, buffer, _countof(buffer));
 
         GetScriptContext()->GetOrAddPropertyRecord((LPCWSTR)buffer + pos, (_countof(buffer) - 1) - pos, propertyRecord);
     }

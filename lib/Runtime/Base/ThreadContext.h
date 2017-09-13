@@ -431,7 +431,7 @@ public:
             emptyStringPropertyRecord = propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(_u(""), 0));
             if (emptyStringPropertyRecord == nullptr)
             {
-                emptyStringPropertyRecord = this->UncheckedAddPropertyId(_u(""), 0);
+                emptyStringPropertyRecord = this->UncheckedAddPropertyId(_u(""), 0, true);
             }
         }
         return emptyStringPropertyRecord;

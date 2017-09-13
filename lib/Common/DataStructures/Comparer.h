@@ -115,10 +115,18 @@ struct RecyclerPointerComparer
 };
 
 // FNV-1a hash -> https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
-#define CC_HASH_OFFSET_VALUE 2166136261
+// #define CC_HASH_OFFSET_VALUE 2166136261
+// #define CC_HASH_LOGIC(hash, byte) \
+//    hash ^= byte;                  \
+//    hash *= 16777619
+
+// previous hash function.
+// TODO: hash function below is bad for key distribution.
+//       FNV-1a above results better but expensive for lookups in small data sets.
+#define CC_HASH_OFFSET_VALUE 0
 #define CC_HASH_LOGIC(hash, byte) \
-    hash ^= byte;                 \
-    hash *= 16777619
+    hash ^= _rotl(hash, 7);       \
+    hash ^= byte;
 
 template <>
 struct DefaultComparer<GUID>
