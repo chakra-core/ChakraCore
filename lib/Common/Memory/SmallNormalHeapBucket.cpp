@@ -683,6 +683,9 @@ namespace Memory
     template class SmallNormalHeapBucketBase<SmallFinalizableHeapBlock>;
     template class SmallNormalHeapBucketBase<MediumFinalizableHeapBlock>;
 
+    template class SmallNormalHeapBucketBase<SmallRecyclerVisitedHostHeapBlock>;
+    template class SmallNormalHeapBucketBase<MediumRecyclerVisitedHostHeapBlock>;
+
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallNormalHeapBucketBase<SmallFinalizableWithBarrierHeapBlock>;
     template class SmallNormalHeapBucketBase<MediumFinalizableWithBarrierHeapBlock>;

@@ -658,6 +658,7 @@ HeapBlockMap32::RescanPage(void * dirtyPage, bool* anyObjectsMarkedOnPage, Recyc
 #endif
             return RescanHeapBlock<SmallNormalHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
         case HeapBlock::HeapBlockType::SmallFinalizableBlockType:
+        case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
         case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
 #endif
@@ -668,6 +669,7 @@ HeapBlockMap32::RescanPage(void * dirtyPage, bool* anyObjectsMarkedOnPage, Recyc
 #endif
             return RescanHeapBlock<MediumNormalHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
         case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
+        case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
         case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
 #endif
@@ -1014,6 +1016,7 @@ HeapBlockMap32::OOMRescan(Recycler * recycler)
                                 break;
 
                             case HeapBlock::HeapBlockType::SmallFinalizableBlockType:
+                            case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
                             case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
 #endif
@@ -1034,6 +1037,7 @@ HeapBlockMap32::OOMRescan(Recycler * recycler)
                                 break;
 
                             case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
+                            case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
                             case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
 #endif

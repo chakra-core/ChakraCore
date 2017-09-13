@@ -5,6 +5,7 @@
 namespace Memory
 {
 template <class TBlockAttributes> class SmallFinalizableHeapBucketT;
+template <class TBlockAttributes> class SmallRecyclerVisitedHostHeapBlockT;
 #ifdef RECYCLER_WRITE_BARRIER
 template <class TBlockAttributes> class SmallFinalizableWithBarrierHeapBlockT;
 #endif
@@ -115,6 +116,7 @@ public:
     }
 protected:
     SmallFinalizableHeapBlockT(HeapBucketT<SmallFinalizableHeapBlockT>  * bucket, ushort objectSize, ushort objectCount);
+    SmallFinalizableHeapBlockT(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>> * bucket, ushort objectSize, ushort objectCount, HeapBlockType blockType);
 #ifdef RECYCLER_WRITE_BARRIER
     SmallFinalizableHeapBlockT(HeapBucketT<SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>> * bucket, ushort objectSize, ushort objectCount, HeapBlockType blockType);
 #endif
@@ -132,6 +134,41 @@ protected:
 #ifdef RECYCLER_MEMORY_VERIFY
     friend void SmallHeapBlockT<TBlockAttributes>::Verify(bool pendingDispose);
 #endif
+};
+
+template <class TBlockAttributes>
+class SmallRecyclerVisitedHostHeapBlockT : public SmallFinalizableHeapBlockT<TBlockAttributes>
+{
+    typedef SmallFinalizableHeapBlockT<TBlockAttributes> Base;
+    friend class HeapBucketT<SmallRecyclerVisitedHostHeapBlockT>;
+public:
+    typedef TBlockAttributes HeapBlockAttributes;
+
+    static const ObjectInfoBits RequiredAttributes = (ObjectInfoBits)(RecyclerVisitedHostBit | LeafBit);
+    static const bool IsLeafOnly = true;
+
+    static SmallRecyclerVisitedHostHeapBlockT * New(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT> * bucket);
+    static void Delete(SmallRecyclerVisitedHostHeapBlockT * block);
+
+    void SetAttributes(void * address, unsigned char attributes);
+
+    // EdgeGC-TODO: Specialize ProcessMarkedObject for this heap block type to call new Mark/Trace method.
+
+    SmallRecyclerVisitedHostHeapBlockT * GetNextBlock() const
+    {
+        HeapBlock* block = SmallHeapBlockT<TBlockAttributes>::GetNextBlock();
+        return block ? block->template AsRecyclerVisitedHostBlock<TBlockAttributes>() : nullptr;
+    }
+
+    virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override sealed
+    {
+        return this->template FindHeapObjectImpl<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>>(objectAddress, recycler, flags, heapObject);
+    }
+protected:
+    SmallRecyclerVisitedHostHeapBlockT(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT> * bucket, ushort objectSize, ushort objectCount)
+        : SmallFinalizableHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, TBlockAttributes::IsSmallBlock ? Base::SmallRecyclerVisitedHostBlockType : Base::MediumRecyclerVisitedHostBlockType)
+    {
+    }
 };
 
 #ifdef RECYCLER_WRITE_BARRIER
@@ -169,6 +206,9 @@ protected:
 
 typedef SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>  SmallFinalizableHeapBlock;
 typedef SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>    MediumFinalizableHeapBlock;
+
+typedef SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes> SmallRecyclerVisitedHostHeapBlock;
+typedef SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes> MediumRecyclerVisitedHostHeapBlock;
 
 #ifdef RECYCLER_WRITE_BARRIER
 typedef SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>   SmallFinalizableWithBarrierHeapBlock;
