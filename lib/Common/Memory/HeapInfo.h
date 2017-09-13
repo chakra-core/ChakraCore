@@ -214,6 +214,12 @@ private:
         // so new block can't go into heapBlockList
         return this->newFinalizableHeapBlockList;
     }
+    template <>
+    SmallRecyclerVisitedHostHeapBlock *& GetNewHeapBlockList<SmallRecyclerVisitedHostHeapBlock>(HeapBucketT<SmallRecyclerVisitedHostHeapBlock> * HeapBucket)
+    {
+        // EdgeGC-TODO: Figure out what the above comment related to finalizable means for this function (same comment applies or do we have to do something else)
+        return this->newRecyclerVisitedHostHeapBlockList;
+    }
 
 #ifdef RECYCLER_WRITE_BARRIER
     template <>
@@ -246,6 +252,12 @@ private:
         // find some partial swept block to be reused, thus modifying the heapBlockList in the background
         // so new block can't go into heapBlockList
         return this->newMediumFinalizableHeapBlockList;
+    }
+    template <>
+    MediumRecyclerVisitedHostHeapBlock *& GetNewHeapBlockList<MediumRecyclerVisitedHostHeapBlock>(HeapBucketT<MediumRecyclerVisitedHostHeapBlock> * HeapBucket)
+    {
+        // EdgeGC-TODO: Figure out what the above comment related to finalizable means for this function (same comment applies or do we have to do something else)
+        return this->newMediumRecyclerVisitedHostHeapBlockList;
     }
 
 #ifdef RECYCLER_WRITE_BARRIER
@@ -401,6 +413,7 @@ private:
     SmallLeafHeapBlock * newLeafHeapBlockList;
     SmallNormalHeapBlock * newNormalHeapBlockList;
     SmallFinalizableHeapBlock * newFinalizableHeapBlockList;
+    SmallRecyclerVisitedHostHeapBlock * newRecyclerVisitedHostHeapBlockList;
 
 #ifdef RECYCLER_WRITE_BARRIER
     SmallNormalWithBarrierHeapBlock * newNormalWithBarrierHeapBlockList;
@@ -412,6 +425,7 @@ private:
     MediumLeafHeapBlock * newMediumLeafHeapBlockList;
     MediumNormalHeapBlock * newMediumNormalHeapBlockList;
     MediumFinalizableHeapBlock * newMediumFinalizableHeapBlockList;
+    MediumRecyclerVisitedHostHeapBlock* newMediumRecyclerVisitedHostHeapBlockList;
 
 #ifdef RECYCLER_WRITE_BARRIER
     MediumNormalWithBarrierHeapBlock * newMediumNormalWithBarrierHeapBlockList;
@@ -471,6 +485,8 @@ private:
     friend class SmallLeafHeapBlockT;
     template <typename TBlockAttributes>
     friend class SmallFinalizableHeapBlockT;
+    template <typename TBlockAttributes>
+    friend class SmallRecyclerVisitedHostHeapBlockT;
     friend class LargeHeapBlock;
     friend class RecyclerSweep;
 };

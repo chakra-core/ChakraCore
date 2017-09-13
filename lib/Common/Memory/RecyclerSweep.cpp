@@ -72,6 +72,7 @@ RecyclerSweep::BeginSweep(Recycler * recycler)
     finalizableWithBarrierData.pendingMergeNewHeapBlockList = recycler->autoHeap.newFinalizableWithBarrierHeapBlockList;
 #endif
     finalizableData.pendingMergeNewHeapBlockList = recycler->autoHeap.newFinalizableHeapBlockList;
+    recyclerVisitedHostData.pendingMergeNewHeapBlockList = recycler->autoHeap.newRecyclerVisitedHostHeapBlockList;
 
     mediumLeafData.pendingMergeNewHeapBlockList = recycler->autoHeap.newMediumLeafHeapBlockList;
     mediumNormalData.pendingMergeNewHeapBlockList = recycler->autoHeap.newMediumNormalHeapBlockList;
@@ -80,11 +81,13 @@ RecyclerSweep::BeginSweep(Recycler * recycler)
     mediumFinalizableWithBarrierData.pendingMergeNewHeapBlockList = recycler->autoHeap.newMediumFinalizableWithBarrierHeapBlockList;
 #endif
     mediumFinalizableData.pendingMergeNewHeapBlockList = recycler->autoHeap.newMediumFinalizableHeapBlockList;
+    mediumRecyclerVisitedHostData.pendingMergeNewHeapBlockList = recycler->autoHeap.newMediumRecyclerVisitedHostHeapBlockList;
 
 
     recycler->autoHeap.newLeafHeapBlockList = nullptr;
     recycler->autoHeap.newNormalHeapBlockList = nullptr;
     recycler->autoHeap.newFinalizableHeapBlockList = nullptr;
+    recycler->autoHeap.newRecyclerVisitedHostHeapBlockList = nullptr;
 #ifdef RECYCLER_WRITE_BARRIER
     recycler->autoHeap.newNormalWithBarrierHeapBlockList = nullptr;
     recycler->autoHeap.newFinalizableWithBarrierHeapBlockList = nullptr;
@@ -93,6 +96,7 @@ RecyclerSweep::BeginSweep(Recycler * recycler)
     recycler->autoHeap.newMediumLeafHeapBlockList = nullptr;
     recycler->autoHeap.newMediumNormalHeapBlockList = nullptr;
     recycler->autoHeap.newMediumFinalizableHeapBlockList = nullptr;
+    recycler->autoHeap.newMediumRecyclerVisitedHostHeapBlockList = nullptr;
 #ifdef RECYCLER_WRITE_BARRIER
     recycler->autoHeap.newMediumNormalWithBarrierHeapBlockList = nullptr;
     recycler->autoHeap.newMediumFinalizableWithBarrierHeapBlockList = nullptr;
@@ -401,6 +405,7 @@ RecyclerSweep::MergePendingNewHeapBlockList()
 template void RecyclerSweep::MergePendingNewHeapBlockList<SmallLeafHeapBlock>();
 template void RecyclerSweep::MergePendingNewHeapBlockList<SmallNormalHeapBlock>();
 template void RecyclerSweep::MergePendingNewHeapBlockList<SmallFinalizableHeapBlock>();
+template void RecyclerSweep::MergePendingNewHeapBlockList<SmallRecyclerVisitedHostHeapBlock>();
 #ifdef RECYCLER_WRITE_BARRIER
 template void RecyclerSweep::MergePendingNewHeapBlockList<SmallNormalWithBarrierHeapBlock>();
 template void RecyclerSweep::MergePendingNewHeapBlockList<SmallFinalizableWithBarrierHeapBlock>();
@@ -424,6 +429,7 @@ RecyclerSweep::MergePendingNewMediumHeapBlockList()
 template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumLeafHeapBlock>();
 template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumNormalHeapBlock>();
 template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumFinalizableHeapBlock>();
+template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumRecyclerVisitedHostHeapBlock>();
 #ifdef RECYCLER_WRITE_BARRIER
 template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumNormalWithBarrierHeapBlock>();
 template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumFinalizableWithBarrierHeapBlock>();
@@ -492,6 +498,7 @@ RecyclerSweep::SetPendingMergeNewHeapBlockCount()
     return HeapBlockList::Count(leafData.pendingMergeNewHeapBlockList)
         + HeapBlockList::Count(normalData.pendingMergeNewHeapBlockList)
         + HeapBlockList::Count(finalizableData.pendingMergeNewHeapBlockList)
+        + HeapBlockList::Count(recyclerVisitedHostData.pendingMergeNewHeapBlockList)
 #ifdef RECYCLER_WRITE_BARRIER
         + HeapBlockList::Count(withBarrierData.pendingMergeNewHeapBlockList)
         + HeapBlockList::Count(finalizableWithBarrierData.pendingMergeNewHeapBlockList)
@@ -499,6 +506,7 @@ RecyclerSweep::SetPendingMergeNewHeapBlockCount()
         + HeapBlockList::Count(mediumLeafData.pendingMergeNewHeapBlockList)
         + HeapBlockList::Count(mediumNormalData.pendingMergeNewHeapBlockList)
         + HeapBlockList::Count(mediumFinalizableData.pendingMergeNewHeapBlockList)
+        + HeapBlockList::Count(mediumRecyclerVisitedHostData.pendingMergeNewHeapBlockList)
 #ifdef RECYCLER_WRITE_BARRIER
         + HeapBlockList::Count(mediumWithBarrierData.pendingMergeNewHeapBlockList)
         + HeapBlockList::Count(mediumFinalizableWithBarrierData.pendingMergeNewHeapBlockList)

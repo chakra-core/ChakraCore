@@ -239,11 +239,13 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::VerifyMark()
 namespace Memory
 {
     template class SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlock>;
+    template class SmallFinalizableHeapBucketBaseT<SmallRecyclerVisitedHostHeapBlock>;
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlock>;
 #endif
 
     template class SmallFinalizableHeapBucketBaseT<MediumFinalizableHeapBlock>;
+    template class SmallFinalizableHeapBucketBaseT<MediumRecyclerVisitedHostHeapBlock>;
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallFinalizableHeapBucketBaseT<MediumFinalizableWithBarrierHeapBlock>;
 #endif

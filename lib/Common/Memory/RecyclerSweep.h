@@ -122,6 +122,7 @@ private:
     template <> Data<SmallLeafHeapBlock>& GetData<SmallLeafHeapBlock>() { return leafData; }
     template <> Data<SmallNormalHeapBlock>& GetData<SmallNormalHeapBlock>() { return normalData; }
     template <> Data<SmallFinalizableHeapBlock>& GetData<SmallFinalizableHeapBlock>() { return finalizableData; }
+    template <> Data<SmallRecyclerVisitedHostHeapBlock>& GetData<SmallRecyclerVisitedHostHeapBlock>() { return recyclerVisitedHostData; }
 #ifdef RECYCLER_WRITE_BARRIER
     template <> Data<SmallNormalWithBarrierHeapBlock>& GetData<SmallNormalWithBarrierHeapBlock>() { return withBarrierData; }
     template <> Data<SmallFinalizableWithBarrierHeapBlock>& GetData<SmallFinalizableWithBarrierHeapBlock>() { return finalizableWithBarrierData; }
@@ -130,6 +131,7 @@ private:
     template <> Data<MediumLeafHeapBlock>& GetData<MediumLeafHeapBlock>() { return mediumLeafData; }
     template <> Data<MediumNormalHeapBlock>& GetData<MediumNormalHeapBlock>() { return mediumNormalData; }
     template <> Data<MediumFinalizableHeapBlock>& GetData<MediumFinalizableHeapBlock>() { return mediumFinalizableData; }
+    template <> Data<MediumRecyclerVisitedHostHeapBlock>& GetData<MediumRecyclerVisitedHostHeapBlock>() { return mediumRecyclerVisitedHostData; }
 #ifdef RECYCLER_WRITE_BARRIER
     template <> Data<MediumNormalWithBarrierHeapBlock>& GetData<MediumNormalWithBarrierHeapBlock>() { return mediumWithBarrierData; }
     template <> Data<MediumFinalizableWithBarrierHeapBlock>& GetData<MediumFinalizableWithBarrierHeapBlock>() { return mediumFinalizableWithBarrierData; }
@@ -142,6 +144,7 @@ private:
     Data<SmallLeafHeapBlock> leafData;
     Data<SmallNormalHeapBlock> normalData;
     Data<SmallFinalizableHeapBlock> finalizableData;
+    Data<SmallRecyclerVisitedHostHeapBlock> recyclerVisitedHostData;
 #ifdef RECYCLER_WRITE_BARRIER
     Data<SmallNormalWithBarrierHeapBlock> withBarrierData;
     Data<SmallFinalizableWithBarrierHeapBlock> finalizableWithBarrierData;
@@ -149,6 +152,7 @@ private:
     Data<MediumLeafHeapBlock> mediumLeafData;
     Data<MediumNormalHeapBlock> mediumNormalData;
     Data<MediumFinalizableHeapBlock> mediumFinalizableData;
+    Data<MediumRecyclerVisitedHostHeapBlock> mediumRecyclerVisitedHostData;
 #ifdef RECYCLER_WRITE_BARRIER
     Data<MediumNormalWithBarrierHeapBlock> mediumWithBarrierData;
     Data<MediumFinalizableWithBarrierHeapBlock> mediumFinalizableWithBarrierData;

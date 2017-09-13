@@ -46,8 +46,8 @@ template <ObjectInfoBits attributes, bool nothrow>
 inline char *
 Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 {
-    // All tracked objects are client tracked objects
-    CompileAssert((attributes & TrackBit) == 0 || (attributes & ClientTrackedBit) != 0);
+    // All tracked objects are client tracked or recycler host visited objects
+    CompileAssert((attributes & TrackBit) == 0 || (attributes & ClientTrackedBit) != 0 || (attributes & RecyclerVisitedHostBit) != 0);
     Assert(this->enableScanImplicitRoots || (attributes & ImplicitRootBit) == 0);
     AssertMsg(this->disableThreadAccessCheck || this->mainThreadId == GetCurrentThreadContextId(),
         "Allocating from the recycler can only be done on the main thread");

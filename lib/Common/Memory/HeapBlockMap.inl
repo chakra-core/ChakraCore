@@ -137,12 +137,14 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
         }
         break;
     case HeapBlock::HeapBlockType::SmallFinalizableBlockType:
+    case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
 #endif
         ((SmallFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(candidate, markContext);
         break;
     case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
+    case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
 #endif

@@ -30,6 +30,28 @@ SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>::Delete(SmallFinalizable
 #endif
 
 template <class TBlockAttributes>
+SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>*
+SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>> * bucket)
+{
+    CompileAssert(TBlockAttributes::MaxObjectSize <= USHRT_MAX);
+    Assert(bucket->sizeCat <= TBlockAttributes::MaxObjectSize);
+    Assert((TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / bucket->sizeCat <= USHRT_MAX);
+
+    ushort objectSize = (ushort)bucket->sizeCat;
+    ushort objectCount = (ushort)(TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / objectSize;
+    return NoMemProtectHeapNewNoThrowPlusPrefixZ(Base::GetAllocPlusSize(objectCount), SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount);
+}
+
+template <class TBlockAttributes>
+void
+SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::Delete(SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>* heapBlock)
+{
+    Assert(heapBlock->IsRecyclerVisitedHostBlock());
+
+    NoMemProtectHeapDeletePlusPrefix(Base::GetAllocPlusSize(heapBlock->objectCount), heapBlock);
+}
+
+template <class TBlockAttributes>
 SmallFinalizableHeapBlockT<TBlockAttributes> *
 SmallFinalizableHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallFinalizableHeapBlockT<TBlockAttributes>> * bucket)
 {
@@ -74,6 +96,18 @@ SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::SmallFinalizableHea
     Assert(!this->isPendingDispose);
 }
 
+template <class TBlockAttributes>
+SmallFinalizableHeapBlockT<TBlockAttributes>::SmallFinalizableHeapBlockT(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>> * bucket, ushort objectSize, ushort objectCount, HeapBlockType blockType)
+    : SmallNormalHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, blockType)
+{
+    // We used AllocZ
+    Assert(this->finalizeCount == 0);
+    Assert(this->pendingDisposeCount == 0);
+    Assert(this->disposedObjectList == nullptr);
+    Assert(this->disposedObjectListTail == nullptr);
+    Assert(!this->isPendingDispose);
+}
+
 #ifdef RECYCLER_WRITE_BARRIER
 template <class TBlockAttributes>
 SmallFinalizableHeapBlockT<TBlockAttributes>::SmallFinalizableHeapBlockT(HeapBucketT<SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>> * bucket, ushort objectSize, ushort objectCount, HeapBlockType blockType)
@@ -100,6 +134,31 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsi
     HeapInfo * heapInfo = this->heapBucket->heapInfo;
     heapInfo->liveFinalizableObjectCount++;
     heapInfo->newFinalizableObjectCount++;
+#endif
+}
+
+template <class TBlockAttributes>
+void
+SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsigned char attributes)
+{
+    // Currently we require all objects in the recycler visited heap block to either be traced (which
+    // is designated by TrackBit) or finalized, otherwise it's not actually visited.
+    Assert((attributes & (TrackBit | FinalizeBit)) != 0);
+
+    // Don't call __super, since that has behavior we don't want (it asserts that FinalizeBit is set
+    // but recycler visited block allows traced only objects; it also unconditionally bumps the heap info
+    // live/new finalizable object counts which will become unbalance if FinalizeBit is not set).
+    // We do want the grandparent class behavior though, which actually sets the ObjectInfo bits.
+    SmallFinalizableHeapBlockT<TBlockAttributes>::Base::SetAttributes(address, attributes);
+
+#ifdef RECYCLER_FINALIZE_CHECK
+    if (attributes & FinalizeBit)
+    {
+        finalizeCount++;
+        HeapInfo * heapInfo = this->HeapBucket->heapInfo;
+        heapInfo->liveFinalizableObjectCount++;
+        heapInfo->newFinalizableObjectCount++;
+    }
 #endif
 }
 
@@ -476,6 +535,8 @@ namespace Memory
     template class SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>;
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
+    template class SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>;
+    template class SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>;
 
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;
