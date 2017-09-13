@@ -14,23 +14,17 @@
  * limitations under the License.
  */
 
-#include "expr-visitor.h"
+#include "src/expr-visitor.h"
 
-#include "cast.h"
-#include "ir.h"
-
-#define CHECK_RESULT(expr)   \
-  do {                       \
-    if (Failed((expr)))      \
-      return Result::Error;  \
-  } while (0)
+#include "src/cast.h"
+#include "src/ir.h"
 
 namespace wabt {
 
 ExprVisitor::ExprVisitor(Delegate* delegate) : delegate_(delegate) {}
 
 Result ExprVisitor::VisitExpr(Expr* expr) {
-  switch (expr->type) {
+  switch (expr->type()) {
     case ExprType::Binary:
       CHECK_RESULT(delegate_->OnBinaryExpr(cast<BinaryExpr>(expr)));
       break;
@@ -38,7 +32,7 @@ Result ExprVisitor::VisitExpr(Expr* expr) {
     case ExprType::Block: {
       auto block_expr = cast<BlockExpr>(expr);
       CHECK_RESULT(delegate_->BeginBlockExpr(block_expr));
-      CHECK_RESULT(VisitExprList(block_expr->block->exprs));
+      CHECK_RESULT(VisitExprList(block_expr->block.exprs));
       CHECK_RESULT(delegate_->EndBlockExpr(block_expr));
       break;
     }
@@ -99,7 +93,7 @@ Result ExprVisitor::VisitExpr(Expr* expr) {
     case ExprType::If: {
       auto if_expr = cast<IfExpr>(expr);
       CHECK_RESULT(delegate_->BeginIfExpr(if_expr));
-      CHECK_RESULT(VisitExprList(if_expr->true_->exprs));
+      CHECK_RESULT(VisitExprList(if_expr->true_.exprs));
       CHECK_RESULT(delegate_->AfterIfTrueExpr(if_expr));
       CHECK_RESULT(VisitExprList(if_expr->false_));
       CHECK_RESULT(delegate_->EndIfExpr(if_expr));
@@ -113,7 +107,7 @@ Result ExprVisitor::VisitExpr(Expr* expr) {
     case ExprType::Loop: {
       auto loop_expr = cast<LoopExpr>(expr);
       CHECK_RESULT(delegate_->BeginLoopExpr(loop_expr));
-      CHECK_RESULT(VisitExprList(loop_expr->block->exprs));
+      CHECK_RESULT(VisitExprList(loop_expr->block.exprs));
       CHECK_RESULT(delegate_->EndLoopExpr(loop_expr));
       break;
     }
@@ -157,10 +151,10 @@ Result ExprVisitor::VisitExpr(Expr* expr) {
     case ExprType::TryBlock: {
       auto try_expr = cast<TryExpr>(expr);
       CHECK_RESULT(delegate_->BeginTryExpr(try_expr));
-      CHECK_RESULT(VisitExprList(try_expr->block->exprs));
-      for (Catch* catch_ : try_expr->catches) {
-        CHECK_RESULT(delegate_->OnCatchExpr(try_expr, catch_));
-        CHECK_RESULT(VisitExprList(catch_->exprs));
+      CHECK_RESULT(VisitExprList(try_expr->block.exprs));
+      for (Catch& catch_ : try_expr->catches) {
+        CHECK_RESULT(delegate_->OnCatchExpr(try_expr, &catch_));
+        CHECK_RESULT(VisitExprList(catch_.exprs));
       }
       CHECK_RESULT(delegate_->EndTryExpr(try_expr));
       break;

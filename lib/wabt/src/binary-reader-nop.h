@@ -17,7 +17,7 @@
 #ifndef WABT_BINARY_READER_NOP_H_
 #define WABT_BINARY_READER_NOP_H_
 
-#include "binary-reader.h"
+#include "src/binary-reader.h"
 
 namespace wabt {
 
@@ -330,6 +330,10 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result OnStackGlobal(Index stack_global) override { return Result::Ok; }
   Result OnSymbolInfoCount(Index count) override { return Result::Ok; }
   Result OnSymbolInfo(string_view name, uint32_t flags) override {
+    return Result::Ok;
+  }
+  Result OnDataSize(uint32_t data_size) override { return Result::Ok; }
+  Result OnDataAlignment(uint32_t data_alignment) override {
     return Result::Ok;
   }
   Result EndLinkingSection() override { return Result::Ok; }

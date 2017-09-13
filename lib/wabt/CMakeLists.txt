@@ -46,7 +46,7 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/built/config.h
 )
 
-include_directories(chakra src ${CMAKE_CURRENT_SOURCE_DIR}/built)
+include_directories(chakra ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/built)
 
 # disable -Wunused-parameter: this is really common when implementing
 #   interfaces, etc.
@@ -119,12 +119,12 @@ add_library(libwabt OBJECT
   src/common.cc
   src/config.cc
   src/feature.cc
+  src/leb128.cc
   src/literal.cc
   src/option-parser.cc
   src/stream.cc
   src/tracing.cc
   src/utf8.cc
-  src/writer.cc
 
   chakra/wabtapi.cc
 

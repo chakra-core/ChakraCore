@@ -21,8 +21,7 @@
 #include <memory>
 #include <vector>
 
-#include "common.h"
-#include "writer.h"
+#include "src/common.h"
 
 namespace wabt {
 
@@ -35,7 +34,8 @@ enum class PrintChars {
 
 class Stream {
  public:
-  Stream(Writer* writer, Stream* log_stream = nullptr);
+  explicit Stream(Stream* log_stream = nullptr);
+  virtual ~Stream() = default;
 
   size_t offset() { return offset_; }
   Result result() { return result_; }
@@ -117,55 +117,82 @@ class Stream {
     WriteU8(static_cast<uint32_t>(value), desc, print_chars);
   }
 
+ protected:
+  virtual Result WriteDataImpl(size_t offset,
+                               const void* data,
+                               size_t size) = 0;
+  virtual Result MoveDataImpl(size_t dst_offset,
+                              size_t src_offset,
+                              size_t size) = 0;
+
  private:
   template <typename T>
   void Write(const T& data, const char* desc, PrintChars print_chars) {
     WriteData(&data, sizeof(data), desc, print_chars);
   }
 
-  Writer* writer_;  // Not owned.
   size_t offset_;
   Result result_;
   // Not owned. If non-null, log all writes to this stream.
   Stream* log_stream_;
 };
 
+struct OutputBuffer {
+  Result WriteToFile(string_view filename) const;
+
+  size_t size() const { return data.size(); }
+
+  std::vector<uint8_t> data;
+};
+
 class MemoryStream : public Stream {
  public:
   WABT_DISALLOW_COPY_AND_ASSIGN(MemoryStream);
-  MemoryStream();
+  explicit MemoryStream(Stream* log_stream = nullptr);
+  explicit MemoryStream(std::unique_ptr<OutputBuffer>&&,
+                        Stream* log_stream = nullptr);
 
-  MemoryWriter& writer() { return writer_; }
-
-  std::unique_ptr<OutputBuffer> ReleaseOutputBuffer() {
-    return writer_.ReleaseOutputBuffer();
-  }
+  OutputBuffer& output_buffer() { return *buf_; }
+  std::unique_ptr<OutputBuffer> ReleaseOutputBuffer();
 
   Result WriteToFile(string_view filename) {
-    return writer_.output_buffer().WriteToFile(filename);
+    return buf_->WriteToFile(filename);
   }
 
+ protected:
+  Result WriteDataImpl(size_t offset, const void* data, size_t size) override;
+  Result MoveDataImpl(size_t dst_offset,
+                      size_t src_offset,
+                      size_t size) override;
+
  private:
-  MemoryWriter writer_;
+  std::unique_ptr<OutputBuffer> buf_;
 };
 
 class FileStream : public Stream {
  public:
   WABT_DISALLOW_COPY_AND_ASSIGN(FileStream);
-  explicit FileStream(string_view filename);
-  explicit FileStream(FILE*);
+  explicit FileStream(string_view filename, Stream* log_stream = nullptr);
+  explicit FileStream(FILE*, Stream* log_stream = nullptr);
   FileStream(FileStream&&);
   FileStream& operator=(FileStream&&);
-
-  FileWriter& writer() { return writer_; }
+  ~FileStream();
 
   static std::unique_ptr<FileStream> CreateStdout();
   static std::unique_ptr<FileStream> CreateStderr();
 
-  bool is_open() const { return writer_.is_open(); }
+  bool is_open() const { return file_ != nullptr; }
+
+ protected:
+  Result WriteDataImpl(size_t offset, const void* data, size_t size) override;
+  Result MoveDataImpl(size_t dst_offset,
+                      size_t src_offset,
+                      size_t size) override;
 
  private:
-  FileWriter writer_;
+  FILE* file_;
+  size_t offset_;
+  bool should_close_;
 };
 
 }  // namespace wabt

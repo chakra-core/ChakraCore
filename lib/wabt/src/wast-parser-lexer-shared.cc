@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#include "wast-parser-lexer-shared.h"
+#include "src/wast-parser-lexer-shared.h"
 
-#include "common.h"
-#include "error-handler.h"
-#include "wast-lexer.h"
+#include "src/common.h"
+#include "src/error-handler.h"
+#include "src/wast-lexer.h"
 
 namespace wabt {
 

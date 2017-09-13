@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-#include "resolve-names.h"
+#include "src/resolve-names.h"
 
 #include <cassert>
 #include <cstdio>
 
-#include "cast.h"
-#include "error-handler.h"
-#include "expr-visitor.h"
-#include "ir.h"
-#include "wast-lexer.h"
-#include "wast-parser-lexer-shared.h"
+#include "src/cast.h"
+#include "src/error-handler.h"
+#include "src/expr-visitor.h"
+#include "src/ir.h"
+#include "src/wast-lexer.h"
+#include "src/wast-parser-lexer-shared.h"
 
 namespace wabt {
 
@@ -203,7 +203,7 @@ void NameResolver::ResolveLocalVar(Var* var) {
 }
 
 Result NameResolver::BeginBlockExpr(BlockExpr* expr) {
-  PushLabel(expr->block->label);
+  PushLabel(expr->block.label);
   return Result::Ok;
 }
 
@@ -213,7 +213,7 @@ Result NameResolver::EndBlockExpr(BlockExpr* expr) {
 }
 
 Result NameResolver::BeginLoopExpr(LoopExpr* expr) {
-  PushLabel(expr->block->label);
+  PushLabel(expr->block.label);
   return Result::Ok;
 }
 
@@ -233,7 +233,7 @@ Result NameResolver::OnBrIfExpr(BrIfExpr* expr) {
 }
 
 Result NameResolver::OnBrTableExpr(BrTableExpr* expr) {
-  for (Var& target : *expr->targets)
+  for (Var& target : expr->targets)
     ResolveLabelVar(&target);
   ResolveLabelVar(&expr->default_target);
   return Result::Ok;
@@ -260,7 +260,7 @@ Result NameResolver::OnGetLocalExpr(GetLocalExpr* expr) {
 }
 
 Result NameResolver::BeginIfExpr(IfExpr* expr) {
-  PushLabel(expr->true_->label);
+  PushLabel(expr->true_.label);
   return Result::Ok;
 }
 
@@ -285,7 +285,7 @@ Result NameResolver::OnTeeLocalExpr(TeeLocalExpr* expr) {
 }
 
 Result NameResolver::BeginTryExpr(TryExpr* expr) {
-  PushLabel(expr->block->label);
+  PushLabel(expr->block.label);
   return Result::Ok;
 }
 
@@ -390,14 +390,14 @@ Result NameResolver::VisitModule(Module* module) {
 }
 
 void NameResolver::VisitScriptModule(ScriptModule* script_module) {
-  if (script_module->type == ScriptModule::Type::Text)
-    VisitModule(script_module->text);
+  if (auto* tsm = dyn_cast<TextScriptModule>(script_module))
+    VisitModule(&tsm->module);
 }
 
 void NameResolver::VisitCommand(Command* command) {
   switch (command->type) {
     case CommandType::Module:
-      VisitModule(cast<ModuleCommand>(command)->module);
+      VisitModule(&cast<ModuleCommand>(command)->module);
       break;
 
     case CommandType::Action:
@@ -423,16 +423,17 @@ void NameResolver::VisitCommand(Command* command) {
        * should try to resolve names when possible. */
       ErrorHandlerNop new_error_handler;
       NameResolver new_resolver(lexer_, script_, &new_error_handler);
-      new_resolver.VisitScriptModule(assert_invalid_command->module);
+      new_resolver.VisitScriptModule(assert_invalid_command->module.get());
       break;
     }
 
     case CommandType::AssertUnlinkable:
-      VisitScriptModule(cast<AssertUnlinkableCommand>(command)->module);
+      VisitScriptModule(cast<AssertUnlinkableCommand>(command)->module.get());
       break;
 
     case CommandType::AssertUninstantiable:
-      VisitScriptModule(cast<AssertUninstantiableCommand>(command)->module);
+      VisitScriptModule(
+          cast<AssertUninstantiableCommand>(command)->module.get());
       break;
   }
 }

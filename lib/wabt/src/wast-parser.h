@@ -19,11 +19,11 @@
 
 #include <array>
 
-#include "circular-array.h"
-#include "feature.h"
-#include "ir.h"
-#include "intrusive-list.h"
-#include "wast-lexer.h"
+#include "src/circular-array.h"
+#include "src/feature.h"
+#include "src/ir.h"
+#include "src/intrusive-list.h"
+#include "src/wast-lexer.h"
 
 namespace wabt {
 
@@ -43,7 +43,10 @@ class WastParser {
   WastParser(WastLexer*, ErrorHandler*, WastParseOptions*);
 
   void WABT_PRINTF_FORMAT(3, 4) Error(Location, const char* format, ...);
-  Result ParseScript(Script*);
+  Result ParseModule(std::unique_ptr<Module>* out_module);
+  Result ParseScript(std::unique_ptr<Script>* out_script);
+
+  std::unique_ptr<Script> ReleaseScript();
 
  private:
   void ErrorUnlessOpcodeEnabled(const Token&);
@@ -167,8 +170,8 @@ class WastParser {
   template <typename T>
   Result ParsePlainInstrVar(Location, std::unique_ptr<Expr>*);
 
-  Result ParseCommandList(CommandPtrVector*);
-  Result ParseCommand(CommandPtr*);
+  Result ParseCommandList(Script*, CommandPtrVector*);
+  Result ParseCommand(Script*, CommandPtr*);
   Result ParseAssertExhaustionCommand(CommandPtr*);
   Result ParseAssertInvalidCommand(CommandPtr*);
   Result ParseAssertMalformedCommand(CommandPtr*);
@@ -178,10 +181,10 @@ class WastParser {
   Result ParseAssertTrapCommand(CommandPtr*);
   Result ParseAssertUnlinkableCommand(CommandPtr*);
   Result ParseActionCommand(CommandPtr*);
-  Result ParseModuleCommand(CommandPtr*);
+  Result ParseModuleCommand(Script*, CommandPtr*);
   Result ParseRegisterCommand(CommandPtr*);
 
-  Result ParseAction(Action*);
+  Result ParseAction(ActionPtr*);
   Result ParseScriptModule(std::unique_ptr<ScriptModule>*);
 
   template <typename T>
@@ -196,7 +199,6 @@ class WastParser {
   void CheckImportOrdering(Module*);
 
   WastLexer* lexer_;
-  Script* script_ = nullptr;
   Index last_module_index_ = kInvalidIndex;
   ErrorHandler* error_handler_;
   int errors_ = 0;
@@ -205,10 +207,15 @@ class WastParser {
   CircularArray<Token, 2> tokens_;
 };
 
-Result ParseWast(WastLexer* lexer,
-                 Script** out_script,
-                 ErrorHandler*,
-                 WastParseOptions* options = nullptr);
+Result ParseWatModule(WastLexer* lexer,
+                      std::unique_ptr<Module>* out_module,
+                      ErrorHandler*,
+                      WastParseOptions* options = nullptr);
+
+Result ParseWastScript(WastLexer* lexer,
+                       std::unique_ptr<Script>* out_script,
+                       ErrorHandler*,
+                       WastParseOptions* options = nullptr);
 
 }  // namespace wabt
 
