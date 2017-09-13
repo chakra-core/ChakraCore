@@ -965,7 +965,7 @@ EmitInfo WasmBytecodeGenerator::EmitCall()
         calleeSignature = calleeInfo->GetSignature();
         // currently only handle inlining internal function calls
         // in future we can expand to all calls by adding checks in inliner and falling back to call in case ScriptFunction doesn't match
-        if (GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::Function)
+        if (GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::Function && !PHASE_TRACE1(Js::WasmInOutPhase))
         {
             profileId = GetNextProfileId();
         }
@@ -1135,10 +1135,7 @@ EmitInfo WasmBytecodeGenerator::EmitCall()
             default:
                 throw WasmCompilationException(_u("Unknown call return type %u"), retInfo.type);
             }
-            if (retInfo.type != WasmTypes::Void)
-            {
-                retInfo.location = GetRegisterSpace(retInfo.type)->AcquireTmpRegister();
-            }
+            retInfo.location = GetRegisterSpace(retInfo.type)->AcquireTmpRegister();
             m_writer->AsmReg2(convertOp, retInfo.location, varRetReg);
         }
     }

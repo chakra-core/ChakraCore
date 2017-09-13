@@ -13,8 +13,7 @@ namespace OpCodeAttrAsmJs
         OpNoFallThrough = 1 << 0, // Opcode doesn't fallthrough in flow  and its always jump to the return from this opcode.
         OpHasMultiSizeLayout = 1 << 1,
         OpHasProfiled = 1 << 2,
-        OpProfiled = 1 << 3,
-        OpByteCodeOnly = 1 << 4
+        OpProfiled = 1 << 3
     };
 
     static const int OpcodeAttributesAsmJs[] =

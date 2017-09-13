@@ -4948,15 +4948,15 @@ namespace Js
             DynamicProfileInfoList * profileInfoList = GetScriptContext()->GetProfileInfoList();
             if (profileInfoList)
             {
-                for (auto iter = profileInfoList->GetEditingIterator(); iter.IsValid(); iter.Next())
+                FOREACH_SLISTBASE_ENTRY_EDITING(Field(DynamicProfileInfo*), info, profileInfoList, iter)
                 {
-                    DynamicProfileInfo * info = iter.Data();
                     if (info->HasFunctionBody() && info->GetFunctionBody() == this)
                     {
                         iter.UnlinkCurrent();
                         break;
                     }
                 }
+                NEXT_SLISTBASE_ENTRY_EDITING;
             }
 #endif
             this->dynamicProfileInfo = nullptr;

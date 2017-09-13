@@ -21,7 +21,7 @@
 
 #define MACRO_WMS_PROFILED( opcode, layout, attr) \
     MACRO_WMS(opcode, layout, OpHasProfiled|attr) \
-    MACRO_WMS(Profiled##opcode, Profiled##layout, OpByteCodeOnly|OpProfiled|attr) \
+    MACRO_WMS(Profiled##opcode, Profiled##layout, OpProfiled|attr) \
 
 
 //              (   OpCodeAsmJs              , LayoutAsmJs     , OpCodeAttrAsmJs )

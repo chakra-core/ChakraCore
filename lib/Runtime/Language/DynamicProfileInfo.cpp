@@ -217,7 +217,11 @@ namespace Js
     bool DynamicProfileInfo::IsEnabled(const FunctionBody *const functionBody)
     {
         Assert(functionBody);
-        return IsEnabled_OptionalFunctionBody(functionBody, functionBody->GetScriptContext());
+        return (IsEnabled_OptionalFunctionBody(functionBody, functionBody->GetScriptContext())
+#ifdef ENABLE_WASM
+            && !(PHASE_TRACE1(Js::WasmInOutPhase) && functionBody->IsWasmFunction())
+#endif
+            );
     }
 
     bool DynamicProfileInfo::IsEnabled_OptionalFunctionBody(const FunctionBody *const functionBody, const ScriptContext *const scriptContext)
@@ -248,7 +252,11 @@ namespace Js
     bool DynamicProfileInfo::IsEnabled(const Js::Phase phase, const FunctionBody *const functionBody)
     {
         Assert(functionBody);
-        return IsEnabled_OptionalFunctionBody(phase, functionBody, functionBody->GetScriptContext());
+        return (IsEnabled_OptionalFunctionBody(phase, functionBody, functionBody->GetScriptContext())
+#ifdef ENABLE_WASM
+            && !(PHASE_TRACE1(Js::WasmInOutPhase) && functionBody->IsWasmFunction())
+#endif
+            );
     }
 
     bool DynamicProfileInfo::IsEnabled_OptionalFunctionBody(
@@ -414,7 +422,7 @@ namespace Js
     {
         if (!callerBody || !callerBody->GetIsAsmjsMode() || !calleeBody || !calleeBody->GetIsAsmjsMode())
         {
-            AssertMsg(UNREACHED, "Call to RecordAsmJsCallSiteInfo without 2 wasm function body");
+            AssertMsg(UNREACHED, "Call to RecordAsmJsCallSiteInfo without two asm.js/wasm FunctionBody");
             return;
         }
         

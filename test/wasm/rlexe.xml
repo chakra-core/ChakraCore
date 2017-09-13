@@ -160,6 +160,13 @@
 </test>
 <test>
   <default>
+    <files>inlining.js</files>
+    <baseline>inlining.baseline</baseline>
+    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>params.js</files>
     <baseline>baselines/params.baseline</baseline>
     <compile-flags>-wasm -args 14000 -endargs</compile-flags>
