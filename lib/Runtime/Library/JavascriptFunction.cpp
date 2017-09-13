@@ -806,7 +806,7 @@ namespace Js
         if (scriptContext->IsScriptContextInDebugMode()
             && !scriptContext->IsInterpreted() && !CONFIG_FLAG(ForceDiagnosticsMode)    // Does not work nicely if we change the default settings.
             && function->GetEntryPoint() != scriptContext->CurrentThunk
-            && function->GetEntryPoint() != scriptContext->CurrentCrossSiteThunk
+            && !CrossSite::IsThunk(function->GetEntryPoint())
             && JavascriptFunction::Is(function))
         {
 
