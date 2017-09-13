@@ -344,7 +344,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
         if (type != localCache.u.proto.type)
         {
             usesAuxSlot = true;
-            fieldValue = prototypeObject->GetAuxSlot(slotIndex);
+            fieldValue = prototypeObject->GetAuxSlotAt(slotIndex);
         }
         else
         {
@@ -359,7 +359,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
         if (type != localCache.u.accessor.type)
         {
             usesAuxSlot = true;
-            fieldValue = localCache.u.accessor.object->GetAuxSlot(slotIndex);
+            fieldValue = localCache.u.accessor.object->GetAuxSlotAt(slotIndex);
         }
         else
         {

@@ -81,7 +81,9 @@ namespace Js
 #endif
 
     private:
-        Field(Field(Var)*) auxSlots;
+        Field(Field(Var)*) auxSlots_; // _ ? -> do not access to this variable directly!
+                                      // Use helper methods defined below
+
         // The objectArrayOrFlags field can store one of two things:
         //   a) a pointer to the object array holding numeric properties of this object, or
         //   b) a bitfield of flags.
@@ -106,7 +108,7 @@ namespace Js
         CompileAssert(sizeof(ProfileId) == 2);
         CompileAssert(static_cast<intptr_t>(DynamicObjectFlags::ObjectArrayFlagsTag) != 0);
 
-        void InitSlots(DynamicObject * instance, ScriptContext * scriptContext);
+        void InitSlots(DynamicObject * instance, ScriptContext * scriptContext, bool hasExternalDataSupport);
         void SetTypeHandler(DynamicTypeHandler * typeHandler, bool hasChanged);
         void ReplaceType(DynamicType * type);
         void ReplaceTypeWithPredecessorType(DynamicType * previousType);
@@ -121,7 +123,6 @@ namespace Js
         // For boxing stack instance
         DynamicObject(DynamicObject * instance);
 
-        DynamicTypeHandler * GetTypeHandler() const;
         uint16 GetOffsetOfInlineSlots() const;
 
         template <class T>
@@ -133,21 +134,28 @@ namespace Js
         static bool Is(Var aValue);
         static DynamicObject* FromVar(Var value);
 
+        DynamicTypeHandler * GetTypeHandler() const;
         void EnsureSlots(int oldCount, int newCount, ScriptContext * scriptContext, DynamicTypeHandler * newTypeHandler = nullptr);
         void EnsureSlots(int newCount, ScriptContext *scriptContext);
 
         Var GetSlot(int index);
         Var GetInlineSlot(int index);
-        Var GetAuxSlot(int index);
+        uint32_t GetAuxSlotsCount();
+        void ExpandAuxSlots(Recycler* recycler, int expected, int prevSlotCount = 0);
+        void ResetAuxSlots(Recycler* recycler, int expected, int prevSlotCount = 0);
+        Var  GetAuxSlotAt(int index);
+        void SetAuxSlotAt(int index, Var data);
+
+        void* GetExternalData();
+        void  SetExternalData(ScriptContext* scriptContext, void* data);
 
 #if DBG
         void SetSlot(PropertyId propertyId, bool allowLetConst, int index, Var value);
         void SetInlineSlot(PropertyId propertyId, bool allowLetConst, int index, Var value);
-        void SetAuxSlot(PropertyId propertyId, bool allowLetConst, int index, Var value);
+        void SetAuxSlotAt(PropertyId propertyId, bool allowLetConst, int index, Var value);
 #else
         void SetSlot(int index, Var value);
         void SetInlineSlot(int index, Var value);
-        void SetAuxSlot(int index, Var value);
 #endif
 
     private:
@@ -217,11 +225,12 @@ namespace Js
         bool SetHasNoEnumerableProperties(bool value);
         virtual bool HasReadOnlyPropertiesInvisibleToTypeHandler() { return false; }
 
-        void InitSlots(DynamicObject* instance);
+        void InitSlots(DynamicObject* instance, bool hasExternalDataSupport);
         virtual int GetPropertyCount() override;
         virtual PropertyId GetPropertyId(PropertyIndex index) override;
         virtual PropertyId GetPropertyId(BigPropertyIndex index) override;
         PropertyIndex GetPropertyIndex(PropertyId propertyId) sealed;
+        virtual PropertyIndex GetPropertyIndex(const PropertyRecord* propertyRecord) override;
         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
         virtual BOOL HasOwnProperty(PropertyId propertyId) override;
         virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -311,7 +320,7 @@ namespace Js
         void SetArrayCallSiteIndex(ProfileId profileId);
 
         static DynamicObject * BoxStackInstance(DynamicObject * instance);
-        
+
     private:
         ArrayObject* EnsureObjectArray();
         ArrayObject* GetObjectArrayOrFlagsAsArray() const { return objectArray; }
@@ -348,8 +357,8 @@ namespace Js
     public:
         virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
         {
-            // This virtual function hinders linker to do ICF vtable of this class with other classes. 
-            // ICF vtable causes unexpected behavior in type check code. Objects uses vtable as identify should 
+            // This virtual function hinders linker to do ICF vtable of this class with other classes.
+            // ICF vtable causes unexpected behavior in type check code. Objects uses vtable as identify should
             // override this function and return a unique value.
             return VTableValue::VtableDynamicObject;
         }

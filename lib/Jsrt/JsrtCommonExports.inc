@@ -60,9 +60,6 @@
     JsSetIndexedPropertiesToExternalData
     JsEquals
     JsStrictEquals
-    JsHasExternalData
-    JsGetExternalData
-    JsSetExternalData
     JsCallFunction
     JsCreateFunction
     JsCreateNamedFunction
@@ -122,4 +119,12 @@
     JsHasOwnProperty
     JsCopyStringOneByte
     JsGetDataViewInfo
+    JsObjectHasExternalData
+    JsObjectGetExternalData
+    JsObjectSetExternalData
+    JsObjectSetExternalDataWithCallback
+#else
+    JsHasExternalData
+    JsGetExternalData
+    JsSetExternalData
 #endif

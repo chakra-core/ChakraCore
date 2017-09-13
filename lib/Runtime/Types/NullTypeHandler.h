@@ -60,6 +60,8 @@ namespace Js
 
         virtual void SetIsPrototype(DynamicObject* instance) override;
 
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
+
 #if DBG
         virtual bool SupportsPrototypeInstances() const override { return this->isPrototype; }
         virtual bool RespectsIsolatePrototypes() const { return false; }
@@ -79,9 +81,12 @@ namespace Js
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
     };
 
+    template <bool IsPrototypeTemplate> class NullTypeHandlerWithExternal;
+
     template <bool IsPrototypeTemplate>
     class NullTypeHandler : public NullTypeHandlerBase
     {
+        template <bool IsPrototypeTemplate> friend class NullTypeHandlerWithExternal;
     public:
         DEFINE_GETCPPNAME();
 
@@ -93,6 +98,8 @@ namespace Js
 
     public:
         static NullTypeHandler * GetDefaultInstance();
+
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
 
 #if ENABLE_TTD
     public:
@@ -107,4 +114,26 @@ namespace Js
         }
 #endif
     };
+
+    template <bool IsPrototypeTemplate>
+    class NullTypeHandlerWithExternal sealed : public NullTypeHandler<IsPrototypeTemplate>
+    {
+    public:
+        DEFINE_GETCPPNAME();
+
+    private:
+        NullTypeHandlerWithExternal<IsPrototypeTemplate>():
+            NullTypeHandler<IsPrototypeTemplate>() { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+        NullTypeHandlerWithExternal(Recycler * recycler, NullTypeHandler<IsPrototypeTemplate> * base):
+            NullTypeHandler<IsPrototypeTemplate>() { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+        static NullTypeHandlerWithExternal defaultInstanceWithExternal;
+    public:
+        static NullTypeHandlerWithExternal * GetDefaultInstanceWithExternal();
+
+        DEFINE_HANDLERWITHEXTERNAL_INTERFACE(NullTypeHandler<IsPrototypeTemplate>, NullTypeHandlerWithExternal<IsPrototypeTemplate>)
+    };
+
+
 }

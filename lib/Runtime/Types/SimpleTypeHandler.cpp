@@ -85,6 +85,12 @@ namespace Js
     }
 
     template<size_t size>
+    DynamicTypeHandler * SimpleTypeHandler<size>::ConvertToExternalDataSupport(Recycler* recycler)
+    {
+        return SimpleTypeHandlerWithExternal<size>::New(recycler, this);
+    }
+
+    template<size_t size>
     template <typename T>
     T* SimpleTypeHandler<size>::ConvertToTypeHandler(DynamicObject* instance)
     {
@@ -96,6 +102,11 @@ namespace Js
 #endif
 
         T* newTypeHandler = RecyclerNew(recycler, T, recycler, SimpleTypeHandler<size>::GetSlotCapacity(), GetInlineSlotCapacity(), GetOffsetOfInlineSlots());
+        if (instance->GetTypeHandler()->HasExternalDataSupport() && !newTypeHandler->HasExternalDataSupport())
+        {
+            newTypeHandler = (T*) newTypeHandler->ConvertToExternalDataSupport(recycler);
+        }
+
         Assert(HasSingletonInstanceOnlyIfNeeded());
 
         bool const hasSingletonInstance = newTypeHandler->SetSingletonInstanceIfNeeded(instance);
@@ -132,7 +143,16 @@ namespace Js
     template<size_t size>
     DictionaryTypeHandler* SimpleTypeHandler<size>::ConvertToDictionaryType(DynamicObject* instance)
     {
-        DictionaryTypeHandler* newTypeHandler = ConvertToTypeHandler<DictionaryTypeHandler>(instance);
+        DictionaryTypeHandler* newTypeHandler;
+
+        if (HasExternalDataSupport())
+        {
+            newTypeHandler = ConvertToTypeHandler<DictionaryTypeHandlerWithExternal>(instance);
+        }
+        else
+        {
+            newTypeHandler = ConvertToTypeHandler<DictionaryTypeHandler>(instance);
+        }
 
 #ifdef PROFILE_TYPES
         instance->GetScriptContext()->convertSimpleToDictionaryCount++;
@@ -143,7 +163,15 @@ namespace Js
     template<size_t size>
     SimpleDictionaryTypeHandler* SimpleTypeHandler<size>::ConvertToSimpleDictionaryType(DynamicObject* instance)
     {
-        SimpleDictionaryTypeHandler* newTypeHandler = ConvertToTypeHandler<SimpleDictionaryTypeHandler >(instance);
+        SimpleDictionaryTypeHandler* newTypeHandler;
+        if (HasExternalDataSupport())
+        {
+            newTypeHandler = ConvertToTypeHandler<SimpleDictionaryTypeHandlerWithExternal >(instance);
+        }
+        else
+        {
+            newTypeHandler = ConvertToTypeHandler<SimpleDictionaryTypeHandler >(instance);
+        }
 
 #ifdef PROFILE_TYPES
         instance->GetScriptContext()->convertSimpleToSimpleDictionaryCount++;
@@ -154,7 +182,16 @@ namespace Js
     template<size_t size>
     ES5ArrayTypeHandler* SimpleTypeHandler<size>::ConvertToES5ArrayType(DynamicObject* instance)
     {
-        ES5ArrayTypeHandler* newTypeHandler = ConvertToTypeHandler<ES5ArrayTypeHandler>(instance);
+        ES5ArrayTypeHandler* newTypeHandler;
+
+        if (HasExternalDataSupport())
+        {
+            newTypeHandler = ConvertToTypeHandler<ES5ArrayTypeHandlerWithExternal>(instance);
+        }
+        else
+        {
+            newTypeHandler = ConvertToTypeHandler<ES5ArrayTypeHandler>(instance);
+        }
 
 #ifdef PROFILE_TYPES
         instance->GetScriptContext()->convertSimpleToDictionaryCount++;
@@ -1128,11 +1165,30 @@ namespace Js
         TTDAssert(false, "We found this during enum so what is going on here?");
         return Js::Constants::NoBigSlot;
     }
-
 #endif
+
+    template<size_t size>
+    SimpleTypeHandlerWithExternal<size>::SimpleTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG_TYPE(const PropertyRecord* id),
+      PropertyAttributes attributes, PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
+      SimpleTypeHandler<size>(NO_WRITE_BARRIER_TAG(id), attributes, propertyTypes, inlineSlotCapacity, offsetOfInlineSlots)
+    {
+        DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this)
+    }
+
+    template<size_t size>
+    SimpleTypeHandlerWithExternal<size>::SimpleTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG_TYPE(SimplePropertyDescriptor const
+      (&SharedFunctionPropertyDescriptors)[size]), PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
+      SimpleTypeHandler<size>(NO_WRITE_BARRIER_TAG(SharedFunctionPropertyDescriptors), propertyTypes, inlineSlotCapacity, offsetOfInlineSlots)
+    {
+        DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this)
+    }
+
 
     template class SimpleTypeHandler<1>;
     template class SimpleTypeHandler<2>;
     template class SimpleTypeHandler<6>;
 
+    template class SimpleTypeHandlerWithExternal<1>;
+    template class SimpleTypeHandlerWithExternal<2>;
+    template class SimpleTypeHandlerWithExternal<6>;
 }

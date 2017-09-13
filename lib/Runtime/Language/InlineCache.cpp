@@ -321,7 +321,7 @@ namespace Js
             }
             else if (taggedType == u.accessor.type)
             {
-                *callee = RecyclableObject::FromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
+                *callee = RecyclableObject::FromVar(u.accessor.object->GetAuxSlotAt(u.accessor.slotIndex));
                 return true;
             }
         }
@@ -347,10 +347,10 @@ namespace Js
             }
             else if (taggedType == u.local.type)
             {
-                const Var objectAtAuxSlot = DynamicObject::FromVar(obj)->GetAuxSlot(u.local.slotIndex);
+                const Var objectAtAuxSlot = DynamicObject::FromVar(obj)->GetAuxSlotAt(u.local.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtAuxSlot))
                 {
-                    *callee = RecyclableObject::FromVar(DynamicObject::FromVar(obj)->GetAuxSlot(u.local.slotIndex));
+                    *callee = RecyclableObject::FromVar(DynamicObject::FromVar(obj)->GetAuxSlotAt(u.local.slotIndex));
                     return true;
                 }
             }
@@ -369,7 +369,7 @@ namespace Js
             }
             else if (taggedType == u.proto.type)
             {
-                const Var objectAtAuxSlot = u.proto.prototypeObject->GetAuxSlot(u.proto.slotIndex);
+                const Var objectAtAuxSlot = u.proto.prototypeObject->GetAuxSlotAt(u.proto.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtAuxSlot))
                 {
                     *callee = RecyclableObject::FromVar(objectAtAuxSlot);
@@ -1416,7 +1416,7 @@ namespace Js
             this->Set(instanceType, function, result);
         }
     }
-    
+
     /* static */
     uint32 IsInstInlineCache::OffsetOfFunction()
     {

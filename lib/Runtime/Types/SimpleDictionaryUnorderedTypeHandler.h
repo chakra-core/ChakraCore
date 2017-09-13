@@ -20,10 +20,12 @@ namespace Js
     // property indexes from deleted properties for new properties, even if the property ID is different. That is when it
     // transitions into this unordered type handler.
     template<class TPropertyIndex, class TMapKey, bool IsNotExtensibleSupported>
-    class SimpleDictionaryUnorderedTypeHandler sealed : public SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>
+    class SimpleDictionaryUnorderedTypeHandler : public SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>
     {
         template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryUnorderedTypeHandler;
         template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryTypeHandlerBase;
+        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryTypeHandlerBaseWithExternal;
+        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryUnorderedTypeHandlerWithExternal;
 
     private:
         // A deleted property ID that will be reused for the next property add. The object's slot corresponding to this property
@@ -34,6 +36,9 @@ namespace Js
         DEFINE_GETCPPNAME();
 
     public:
+        SimpleDictionaryUnorderedTypeHandler(Recycler * recycler, SimpleDictionaryUnorderedTypeHandler * base)
+          :SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>(recycler, base) { }
+
         SimpleDictionaryUnorderedTypeHandler(Recycler * recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
         SimpleDictionaryUnorderedTypeHandler(ScriptContext * scriptContext, SimplePropertyDescriptor* propertyDescriptors, int propertyCount, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
         SimpleDictionaryUnorderedTypeHandler(Recycler* recycler, int slotCapacity, int propertyCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
@@ -77,5 +82,26 @@ namespace Js
             DynamicObject *const object,
             const TPropertyIndex existingPropertyIndex,
             TPropertyIndex *const propertyIndex);
+
+    public:
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
+    };
+
+    template<class TPropertyIndex, class TMapKey, bool IsNotExtensibleSupported>
+    class SimpleDictionaryUnorderedTypeHandlerWithExternal sealed : public SimpleDictionaryUnorderedTypeHandler<TPropertyIndex, TMapKey, IsNotExtensibleSupported>
+    {
+        typedef SimpleDictionaryUnorderedTypeHandler<TPropertyIndex, TMapKey, IsNotExtensibleSupported> SimpleDictionaryUnorderedTypeHandlerTypeDef;
+        typedef SimpleDictionaryUnorderedTypeHandlerWithExternal<TPropertyIndex, TMapKey, IsNotExtensibleSupported> SimpleDictionaryUnorderedTypeHandlerWithExternalTypeDef;
+    public:
+        DEFINE_GETCPPNAME();
+
+    private:
+        SimpleDictionaryUnorderedTypeHandlerWithExternal(Recycler * recycler,
+          SimpleDictionaryUnorderedTypeHandlerTypeDef * base):
+        SimpleDictionaryUnorderedTypeHandlerTypeDef(recycler, base) { }
+
+    public:
+        DEFINE_HANDLERWITHEXTERNAL_INTERFACE(SimpleDictionaryUnorderedTypeHandlerTypeDef,
+          SimpleDictionaryUnorderedTypeHandlerWithExternalTypeDef)
     };
 }

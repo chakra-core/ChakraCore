@@ -92,7 +92,7 @@ namespace Js
         }
         else
         {
-            Var value = instance->auxSlots[index - inlineSlotCapacity];
+            Var value = instance->GetAuxSlotAt(index - inlineSlotCapacity);
             Assert(ThreadContext::IsOnStack(instance) || !ThreadContext::IsOnStack(value) || TaggedNumber::Is(value));
             return value;
         }
@@ -113,7 +113,7 @@ namespace Js
         // We should only assign a stack value only to a stack object (current mark temp number in mark temp object)
 
         Assert(index < GetSlotCapacity() - GetInlineSlotCapacity());
-        Var value = instance->auxSlots[index];
+        Var value = instance->GetAuxSlotAt(index);
         Assert(ThreadContext::IsOnStack(instance) || !ThreadContext::IsOnStack(value) || TaggedNumber::Is(value));
         return value;
     }
@@ -133,9 +133,10 @@ namespace Js
     {
         // We should only assign a stack value only to a stack object (current mark temp number in mark temp object)
         Assert(ThreadContext::IsOnStack(instance) || !ThreadContext::IsOnStack(value) || TaggedNumber::Is(value));
-        uint16 inlineSlotCapacity = instance->GetTypeHandler()->GetInlineSlotCapacity();
-        uint16 offsetOfInlineSlots = instance->GetTypeHandler()->GetOffsetOfInlineSlots();
-        int slotCapacity = instance->GetTypeHandler()->GetSlotCapacity();
+        auto typeHandler = instance->GetTypeHandler();
+        uint16 inlineSlotCapacity = typeHandler->GetInlineSlotCapacity();
+        uint16 offsetOfInlineSlots = typeHandler->GetOffsetOfInlineSlots();
+        int slotCapacity = typeHandler->GetSlotCapacity();
 
         if (index < inlineSlotCapacity)
         {
@@ -145,7 +146,7 @@ namespace Js
         else
         {
             Assert((index - inlineSlotCapacity) < (slotCapacity - inlineSlotCapacity));
-            instance->auxSlots[index - inlineSlotCapacity] = value;
+            instance->SetAuxSlotAt(index - inlineSlotCapacity, value);
         }
     }
 
@@ -175,7 +176,7 @@ namespace Js
         Assert(ThreadContext::IsOnStack(instance) || !ThreadContext::IsOnStack(value) || TaggedNumber::Is(value));
         Assert(index < GetSlotCapacity() - GetInlineSlotCapacity());
         Assert(propertyId == Constants::NoProperty || CanStorePropertyValueDirectly(instance, propertyId, allowLetConst));
-        instance->auxSlots[index] = value;
+        instance->SetAuxSlotAt(index, value);
     }
 
     void
@@ -208,12 +209,12 @@ namespace Js
     {
         Assert(IsObjectHeaderInlined(GetOffsetOfInlineSlots()));
         Assert(GetInlineSlotCapacity() >= GetObjectHeaderInlinableSlotCapacity());
-        Assert(GetInlineSlotCapacity() == GetSlotCapacity());
+        Assert(GetInlineSlotCapacity() == GetSlotCapacity() || GetInlineSlotCapacity() + 4 /* externalData slots */ == GetSlotCapacity());
     }
 
     uint16 DynamicTypeHandler::GetOffsetOfObjectHeaderInlineSlots()
     {
-        return offsetof(DynamicObject, auxSlots);
+        return offsetof(DynamicObject, auxSlots_);
     }
 
     PropertyIndex DynamicTypeHandler::GetObjectHeaderInlinableSlotCapacity()
@@ -625,6 +626,7 @@ namespace Js
         {
             const PropertyIndex newInlineSlotCapacity = newTypeHandler->GetInlineSlotCapacity();
             Assert(newCount > newInlineSlotCapacity);
+
             AdjustSlots(instance, newInlineSlotCapacity, newCount - newInlineSlotCapacity);
         }
     }
@@ -655,12 +657,7 @@ namespace Js
         const int newAuxSlotCapacity)
     {
         Assert(object);
-
-        // Allocate new aux slot array
         Recycler *const recycler = object->GetRecycler();
-        TRACK_ALLOC_INFO(recycler, Var, Recycler, 0, newAuxSlotCapacity);
-        Field(Var) *const newAuxSlots = reinterpret_cast<Field(Var) *>(
-            recycler->AllocZero(newAuxSlotCapacity * sizeof(Field(Var))));
 
         DynamicTypeHandler *const oldTypeHandler = object->GetTypeHandler();
         const PropertyIndex oldInlineSlotCapacity = oldTypeHandler->GetInlineSlotCapacity();
@@ -668,23 +665,8 @@ namespace Js
         {
             const int oldAuxSlotCapacity = oldTypeHandler->GetSlotCapacity() - oldInlineSlotCapacity;
             Assert(oldAuxSlotCapacity < newAuxSlotCapacity);
-            if(oldAuxSlotCapacity > 0)
-            {
-                // Copy aux slots to the new array
-                Field(Var) *const oldAuxSlots = object->auxSlots;
-                Assert(oldAuxSlots);
-                int i = 0;
-                do
-                {
-                    newAuxSlots[i] = oldAuxSlots[i];
-                } while(++i < oldAuxSlotCapacity);
 
-            #ifdef EXPLICIT_FREE_SLOTS
-                recycler->ExplicitFreeNonLeaf(oldAuxSlots, oldAuxSlotCapacity * sizeof(Var));
-            #endif
-            }
-
-            object->auxSlots = newAuxSlots;
+            object->ExpandAuxSlots(recycler, newAuxSlotCapacity);
             return;
         }
 
@@ -705,8 +687,8 @@ namespace Js
             reinterpret_cast<Var *>(
                 reinterpret_cast<uintptr_t>(object) + DynamicTypeHandler::GetOffsetOfObjectHeaderInlineSlots());
         Assert(DynamicTypeHandler::GetObjectHeaderInlinableSlotCapacity() == 2);
-        newAuxSlots[0] = oldInlineSlots[oldInlineSlotCapacity - 2];
-        newAuxSlots[1] = oldInlineSlots[oldInlineSlotCapacity - 1];
+
+        Var oldSlotsTemp[2] =  { oldInlineSlots[oldInlineSlotCapacity - 2], oldInlineSlots[oldInlineSlotCapacity - 1] };
 
         if(newInlineSlotCapacity > 0)
         {
@@ -726,7 +708,10 @@ namespace Js
             } while(i > 0);
         }
 
-        object->auxSlots = newAuxSlots;
+        object->ResetAuxSlots(recycler, newAuxSlotCapacity);
+        object->SetAuxSlotAt(0, oldSlotsTemp[0]);
+        object->SetAuxSlotAt(1, oldSlotsTemp[1]);
+
         object->objectArray = nullptr;
     }
 

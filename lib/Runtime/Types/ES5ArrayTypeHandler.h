@@ -81,11 +81,13 @@ namespace Js
         }
     };
 
+    template <class T>
+    class ES5ArrayTypeHandlerBaseWithExternal;
     //
     // Private type handler used by ES5Array
     //
     template <class T>
-    class ES5ArrayTypeHandlerBase sealed: public DictionaryTypeHandlerBase<T>
+    class ES5ArrayTypeHandlerBase: public DictionaryTypeHandlerBase<T>
     {
         friend class NullTypeHandlerBase;
         friend class DeferredTypeHandlerBase;
@@ -97,6 +99,7 @@ namespace Js
         template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryTypeHandlerBase;
         template <typename T> friend class DictionaryTypeHandlerBase;
         template <typename T> friend class ES5ArrayTypeHandlerBase;
+        template <class T> friend class ES5ArrayTypeHandlerBaseWithExternal;
 
     private:
         Field(IndexPropertyDescriptorMap*) indexPropertyMap;
@@ -199,10 +202,34 @@ namespace Js
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
         virtual BigDictionaryTypeHandler* NewBigDictionaryTypeHandler(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) override;
 
+    public:
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
 #if ENABLE_TTD
         //
         //We let the handler processing fall through -- the snap object extraction will take care of visiting/copying the info from this type into the object representation.
         //
 #endif
+    };
+
+    template <class T>
+    class ES5ArrayTypeHandlerBaseWithExternal sealed: public ES5ArrayTypeHandlerBase<T>
+    {
+    public:
+        DEFINE_GETCPPNAME();
+
+        DEFINE_VTABLE_CTOR_NO_REGISTER(ES5ArrayTypeHandlerBaseWithExternal, ES5ArrayTypeHandlerBase<T>);
+
+        ES5ArrayTypeHandlerBaseWithExternal(Recycler* recycler):
+          ES5ArrayTypeHandlerBase<T>(recycler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+        ES5ArrayTypeHandlerBaseWithExternal(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots):
+          ES5ArrayTypeHandlerBase<T>(recycler, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+    private:
+        ES5ArrayTypeHandlerBaseWithExternal(Recycler * recycler,
+          ES5ArrayTypeHandlerBase<T>* sth): ES5ArrayTypeHandlerBase<T>(recycler, sth) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+    public:
+        DEFINE_HANDLERWITHEXTERNAL_INTERFACE(ES5ArrayTypeHandlerBase<T>, ES5ArrayTypeHandlerBaseWithExternal<T>)
     };
 }

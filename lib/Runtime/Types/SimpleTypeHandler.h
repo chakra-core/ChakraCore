@@ -7,9 +7,12 @@
 namespace Js
 {
     template<size_t size>
-    class SimpleTypeHandler sealed: public DynamicTypeHandler
+    class SimpleTypeHandler: public DynamicTypeHandler
     {
         friend class NullTypeHandlerBase;
+        friend class ExternalSimpleTypeHandler;
+
+        template<size_t size> friend class SimpleTypeHandlerWithExternal;
     private:
         Field(int) propertyCount;
         Field(SimplePropertyDescriptor) descriptors[size];
@@ -17,7 +20,7 @@ namespace Js
     public:
         DEFINE_GETCPPNAME();
 
-    private:
+    protected:
         SimpleTypeHandler(Recycler*);        // only used by NullTypeHandler
         SimpleTypeHandler(SimpleTypeHandler<size> * typeHandler);
         DEFINE_VTABLE_CTOR_NO_REGISTER(SimpleTypeHandler, DynamicTypeHandler);
@@ -103,9 +106,41 @@ namespace Js
 
         virtual Js::BigPropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord) override;
 #endif
+
+    public:
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
     };
 
     typedef SimpleTypeHandler<1> SimpleTypeHandlerSize1;
     typedef SimpleTypeHandler<2> SimpleTypeHandlerSize2;
 
+    template <size_t size>
+    class SimpleTypeHandlerWithExternal sealed : public SimpleTypeHandler<size>
+    {
+    public:
+        DEFINE_GETCPPNAME();
+
+        SimpleTypeHandlerWithExternal(
+          NO_WRITE_BARRIER_TAG_TYPE(const PropertyRecord* pid),
+          PropertyAttributes attributes = PropertyNone,
+              PropertyTypes propertyTypes = PropertyTypesNone, uint16 inlineSlotCapacity = 0, uint16 offsetOfInlineSlots = 0);
+
+        SimpleTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG_TYPE(SimplePropertyDescriptor const
+          (&SharedFunctionPropertyDescriptors)[size]), PropertyTypes propertyTypes = PropertyTypesNone, uint16 inlineSlotCapacity = 0, uint16 offsetOfInlineSlots = 0);
+
+        DEFINE_VTABLE_CTOR_NO_REGISTER(SimpleTypeHandlerWithExternal, SimpleTypeHandler<size>);
+
+    private:
+        SimpleTypeHandlerWithExternal(Recycler * recycler, SimpleTypeHandler<size>* sth) : SimpleTypeHandler<size>(sth) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+        SimpleTypeHandlerWithExternal(Recycler * recycler) : SimpleTypeHandler<size>(recycler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+        SimpleTypeHandlerWithExternal(SimpleTypeHandlerWithExternal<size> * typeHandler) : SimpleTypeHandler<size>(typeHandler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+    public:
+        DEFINE_HANDLERWITHEXTERNAL_INTERFACE(SimpleTypeHandler<size>, SimpleTypeHandlerWithExternal<size>)
+    };
+
+    typedef SimpleTypeHandlerWithExternal<1> SimpleTypeHandlerWithExternalSize1;
+    typedef SimpleTypeHandlerWithExternal<2> SimpleTypeHandlerWithExternalSize2;
 }

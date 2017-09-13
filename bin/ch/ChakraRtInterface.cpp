@@ -99,8 +99,8 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtNumberToDouble = (JsAPIHooks::JsrtNumberToDoublePtr)GetChakraCoreSymbol(library, "JsNumberToDouble");
     m_jsApiHooks.pfJsrtNumberToInt = (JsAPIHooks::JsrtNumberToIntPtr)GetChakraCoreSymbol(library, "JsNumberToInt");
     m_jsApiHooks.pfJsrtDoubleToNumber = (JsAPIHooks::JsrtDoubleToNumberPtr)GetChakraCoreSymbol(library, "JsDoubleToNumber");
-    m_jsApiHooks.pfJsrtGetExternalData = (JsAPIHooks::JsrtGetExternalDataPtr)GetChakraCoreSymbol(library, "JsGetExternalData");
-    m_jsApiHooks.pfJsrtSetExternalData = (JsAPIHooks::JsrtSetExternalDataPtr)GetChakraCoreSymbol(library, "JsSetExternalData");
+    m_jsApiHooks.pfJsrtObjectGetExternalData = (JsAPIHooks::JsrtObjectGetExternalDataPtr)GetChakraCoreSymbol(library, "JsObjectGetExternalData");
+    m_jsApiHooks.pfJsrtObjectSetExternalData = (JsAPIHooks::JsrtObjectSetExternalDataPtr)GetChakraCoreSymbol(library, "JsObjectSetExternalData");
     m_jsApiHooks.pfJsrtCreateArray = (JsAPIHooks::JsrtCreateArrayPtr)GetChakraCoreSymbol(library, "JsCreateArray");
     m_jsApiHooks.pfJsrtCreateArrayBuffer = (JsAPIHooks::JsrtCreateArrayBufferPtr)GetChakraCoreSymbol(library, "JsCreateArrayBuffer");
     m_jsApiHooks.pfJsrtCreateSharedArrayBufferWithSharedContent = (JsAPIHooks::JsrtCreateSharedArrayBufferWithSharedContentPtr)GetChakraCoreSymbol(library, "JsCreateSharedArrayBufferWithSharedContent");

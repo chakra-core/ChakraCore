@@ -50,6 +50,16 @@ namespace Js
     SimpleTypeHandler<1> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors));
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
 
+    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedPrototypeTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::constructor), PropertyWritable | PropertyConfigurable, PropertyTypesWritableDataOnly, 4, sizeof(DynamicObject));
+    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedFunctionWithoutPrototypeTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::name), PropertyConfigurable);
+    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandlerV11WithExternal(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyWritable);
+    SimpleTypeHandlerWithExternal<2> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(SharedFunctionPropertyDescriptors));
+    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedIdMappedFunctionWithPrototypeTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype));
+    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length));
+    SimpleTypeHandlerWithExternal<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(FunctionWithLengthAndNameTypeDescriptors));
+    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedNamespaceSymbolTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors));
+    MissingPropertyTypeHandlerWithExternal JavascriptLibrary::MissingPropertyHolderTypeHandlerWithExternal;
+
 
     SimplePropertyDescriptor const JavascriptLibrary::HeapArgumentsPropertyDescriptors[3] =
     {
@@ -120,10 +130,14 @@ namespace Js
             DynamicType::New(scriptContext, TypeIds_Object, nullValue, nullptr,
             DeferredTypeHandler<InitializeObjectPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-        constructorPrototypeObjectType = DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+        constructorPrototypeObjectType[ 0 /* normal */ ] = DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
             &SharedPrototypeTypeHandler, true, true);
 
-        constructorPrototypeObjectType->SetHasNoEnumerableProperties(true);
+        constructorPrototypeObjectType[ 1 /* withExternalData */ ] = DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                                                          &SharedPrototypeTypeHandlerWithExternal, true, true);
+
+        constructorPrototypeObjectType[0]->SetHasNoEnumerableProperties(true);
+        constructorPrototypeObjectType[1]->SetHasNoEnumerableProperties(true);
 
         arrayBufferPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -525,26 +539,34 @@ namespace Js
         variantDateType = StaticType::New(scriptContext, TypeIds_VariantDate, nullValue, nullptr);
 
         anonymousFunctionTypeHandler = NullTypeHandler<false>::GetDefaultInstance();
+        anonymousFunctionTypeHandlerWithExternal = NullTypeHandlerWithExternal<false>::GetDefaultInstanceWithExternal();
         anonymousFunctionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeTypeHandlerV11;
+        anonymousFunctionWithPrototypeTypeHandlerWithExternal = &SharedFunctionWithPrototypeTypeHandlerV11WithExternal;
+
         //  Initialize function types
         if (config->IsES6FunctionNameEnabled())
         {
             functionTypeHandler = &SharedFunctionWithoutPrototypeTypeHandler;
+            functionTypeHandlerWithExternal = &SharedFunctionWithoutPrototypeTypeHandlerWithExternal;
         }
         else
         {
             functionTypeHandler = anonymousFunctionTypeHandler;
+            functionTypeHandlerWithExternal = anonymousFunctionTypeHandlerWithExternal;
         }
 
         if (config->IsES6FunctionNameEnabled())
         {
             functionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeTypeHandler;
+            functionWithPrototypeTypeHandlerWithExternal = &SharedFunctionWithPrototypeTypeHandlerWithExternal;
         }
         else
         {
             functionWithPrototypeTypeHandler = anonymousFunctionWithPrototypeTypeHandler;
+            functionWithPrototypeTypeHandlerWithExternal = anonymousFunctionWithPrototypeTypeHandlerWithExternal;
         }
         functionWithPrototypeTypeHandler->SetHasKnownSlot0();
+
 
         externalFunctionWithDeferredPrototypeType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptExternalFunction::ExternalFunctionThunk, true /*isShared*/);
         wrappedFunctionWithDeferredPrototypeType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptExternalFunction::WrappedFunctionThunk, true /*isShared*/);
@@ -698,10 +720,14 @@ namespace Js
 
         if (config->IsES6GeneratorsEnabled())
         {
-            generatorConstructorPrototypeObjectType = DynamicType::New(scriptContext, TypeIds_Object, generatorPrototype, nullptr,
+            generatorConstructorPrototypeObjectType[0 /* normal */] = DynamicType::New(scriptContext, TypeIds_Object, generatorPrototype, nullptr,
                 NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
-            generatorConstructorPrototypeObjectType->SetHasNoEnumerableProperties(true);
+            generatorConstructorPrototypeObjectType[1 /* withExternalData */] = DynamicType::New(scriptContext, TypeIds_Object, generatorPrototype, nullptr,
+                NullTypeHandlerWithExternal<false>::GetDefaultInstanceWithExternal(), true, true);
+
+            generatorConstructorPrototypeObjectType[0]->SetHasNoEnumerableProperties(true);
+            generatorConstructorPrototypeObjectType[1]->SetHasNoEnumerableProperties(true);
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -718,8 +744,14 @@ namespace Js
         bool isAnonymousFunction = JavascriptGeneratorFunction::FromVar(function)->IsAnonymousFunction();
 
         JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
-        typeHandler->Convert(function, isAnonymousFunction ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
-        function->SetPropertyWithAttributes(PropertyIds::prototype, javascriptLibrary->CreateGeneratorConstructorPrototypeObject(), PropertyWritable, nullptr);
+        bool hasExternal = typeHandler->HasExternalDataSupport();
+        auto baseTypeHandler = isAnonymousFunction ?
+          (hasExternal) ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandlerWithExternal : javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler
+          : // else
+          (hasExternal) ? javascriptLibrary->functionWithPrototypeTypeHandlerWithExternal : javascriptLibrary->functionWithPrototypeTypeHandler;
+
+        typeHandler->Convert(function, baseTypeHandler);
+        function->SetPropertyWithAttributes(PropertyIds::prototype, javascriptLibrary->CreateGeneratorConstructorPrototypeObject(hasExternal), PropertyWritable, nullptr);
 
         if (function->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled() && !isAnonymousFunction)
         {
@@ -771,12 +803,21 @@ namespace Js
         if (!addPrototype)
         {
             Assert(!useAnonymous);
-            typeHandler->Convert(function, javascriptLibrary->functionTypeHandler);
+            bool hasExternal = typeHandler->HasExternalDataSupport();
+            typeHandler->Convert(function, hasExternal ? javascriptLibrary->functionTypeHandlerWithExternal :  javascriptLibrary->functionTypeHandler);
         }
         else
         {
-            typeHandler->Convert(function, useAnonymous ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
-            function->SetProperty(PropertyIds::prototype, javascriptLibrary->CreateConstructorPrototypeObject((Js::JavascriptFunction *)function), PropertyOperation_None, nullptr);
+            bool hasExternal = typeHandler->HasExternalDataSupport();
+            auto baseTypeHandler = useAnonymous ?
+              (hasExternal) ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandlerWithExternal : javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler
+              : // else
+              (hasExternal) ? javascriptLibrary->functionWithPrototypeTypeHandlerWithExternal : javascriptLibrary->functionWithPrototypeTypeHandler;
+
+            typeHandler->Convert(function, baseTypeHandler);
+            function->SetProperty(PropertyIds::prototype,
+              javascriptLibrary->CreateConstructorPrototypeObject((Js::JavascriptFunction *)function,
+              hasExternal), PropertyOperation_None, nullptr);
         }
 
         if (scriptFunction)
@@ -4888,7 +4929,7 @@ namespace Js
         Js::RecyclableObject* objPrototype;
         if (prototype == nullptr)
         {
-            objPrototype = CreateConstructorPrototypeObject(function);
+            objPrototype = CreateConstructorPrototypeObject(function, false);
             Assert(!objPrototype->IsEnumerable(Js::PropertyIds::constructor));
         }
         else
@@ -5691,7 +5732,7 @@ namespace Js
             }
             else
             {
-                Assert(typeHandler == &SharedIdMappedFunctionWithPrototypeTypeHandler);
+                Assert(typeHandler == &SharedIdMappedFunctionWithPrototypeTypeHandler || typeHandler == &SharedIdMappedFunctionWithPrototypeTypeHandlerWithExternal);
                 function->ReplaceType(crossSiteIdMappedFunctionWithPrototypeType);
             }
         }
@@ -6716,18 +6757,18 @@ namespace Js
 
 #endif
 
-    DynamicObject* JavascriptLibrary::CreateGeneratorConstructorPrototypeObject()
+    DynamicObject* JavascriptLibrary::CreateGeneratorConstructorPrototypeObject(bool hasExternalData)
     {
-        AssertMsg(generatorConstructorPrototypeObjectType, "Where's generatorConstructorPrototypeObjectType?");
-        DynamicObject * prototype = DynamicObject::New(this->GetRecycler(), generatorConstructorPrototypeObjectType);
+        AssertMsg(generatorConstructorPrototypeObjectType[(int)hasExternalData], "Where's generatorConstructorPrototypeObjectType?");
+        DynamicObject * prototype = DynamicObject::New(this->GetRecycler(), generatorConstructorPrototypeObjectType[(int)hasExternalData]);
         // Generator functions' prototype objects are not created with a .constructor property
         return prototype;
     }
 
-    DynamicObject* JavascriptLibrary::CreateConstructorPrototypeObject(JavascriptFunction * constructor)
+    DynamicObject* JavascriptLibrary::CreateConstructorPrototypeObject(JavascriptFunction * constructor, bool hasExternalData)
     {
-        AssertMsg(constructorPrototypeObjectType, "Where's constructorPrototypeObjectType?");
-        DynamicObject * prototype = DynamicObject::New(this->GetRecycler(), constructorPrototypeObjectType);
+        AssertMsg(constructorPrototypeObjectType[(int)hasExternalData], "Where's constructorPrototypeObjectType?");
+        DynamicObject * prototype = DynamicObject::New(this->GetRecycler(), constructorPrototypeObjectType[(int)hasExternalData]);
         AddMember(prototype, PropertyIds::constructor, constructor);
         return prototype;
     }
@@ -6755,9 +6796,11 @@ namespace Js
                 RecyclableObject::DefaultEntryPoint, typeHandler, false, false));
     }
 
-    DynamicType* JavascriptLibrary::CreateObjectType(RecyclableObject* prototype, Js::TypeId typeId, uint16 requestedInlineSlotCapacity)
+    DynamicType* JavascriptLibrary::CreateObjectType(RecyclableObject* prototype, Js::TypeId typeId, uint16 requestedInlineSlotCapacity, bool hasExternalData)
     {
-        const bool useObjectHeaderInlining = FunctionBody::DoObjectHeaderInliningForConstructor(requestedInlineSlotCapacity);
+        // why !hasExternalData? -> when typeHandler has external data, member object will allocate initial auxSlot memory
+        // Thus, offsetOfInlineSlots shouldn't be the offset of aux slots.
+        const bool useObjectHeaderInlining = !hasExternalData && FunctionBody::DoObjectHeaderInliningForConstructor(requestedInlineSlotCapacity);
         const uint16 offsetOfInlineSlots =
             useObjectHeaderInlining
             ? DynamicTypeHandler::GetOffsetOfObjectHeaderInlineSlots()
@@ -6849,7 +6892,16 @@ namespace Js
         }
         oldCachedType = dynamicType;
 #endif
-        SimplePathTypeHandler* typeHandler = SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, requestedInlineSlotCapacity, offsetOfInlineSlots, true, true);
+        SimplePathTypeHandler* typeHandler;
+        if (!hasExternalData)
+        {
+            typeHandler = SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, requestedInlineSlotCapacity, offsetOfInlineSlots, true, true);
+        }
+        else
+        {
+            typeHandler = PathTypeHandlerWithExternal<SimplePathTypeHandler>::New(scriptContext, this->GetRootPath(), 0, requestedInlineSlotCapacity, offsetOfInlineSlots, true, true);
+        }
+
         dynamicType = DynamicType::New(scriptContext, typeId, prototype, RecyclableObject::DefaultEntryPoint, typeHandler, true, true);
 
         if (useCache)
@@ -6876,23 +6928,33 @@ namespace Js
         return dynamicType;
     }
 
-    DynamicType* JavascriptLibrary::CreateObjectTypeNoCache(RecyclableObject* prototype, Js::TypeId typeId)
+    DynamicType* JavascriptLibrary::CreateObjectTypeNoCache(RecyclableObject* prototype, Js::TypeId typeId, bool hasExternalData)
     {
+        SimplePathTypeHandler* typeHandler = nullptr;
+        if (hasExternalData)
+        {
+            typeHandler = PathTypeHandlerWithExternal<SimplePathTypeHandler>::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true);
+        }
+        else
+        {
+            typeHandler = SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true);
+        }
+
         return DynamicType::New(scriptContext, typeId, prototype, RecyclableObject::DefaultEntryPoint,
-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
+            typeHandler, true, true);
     }
 
-    DynamicType* JavascriptLibrary::CreateObjectType(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity)
+    DynamicType* JavascriptLibrary::CreateObjectType(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity, bool hasExternalData)
     {
         // We can't reuse the type in objectType even if the prototype is the object prototype, because those has inline slot capacity fixed
-        return CreateObjectType(prototype, TypeIds_Object, requestedInlineSlotCapacity);
+        return CreateObjectType(prototype, TypeIds_Object, requestedInlineSlotCapacity, hasExternalData);
     }
 
-    DynamicObject* JavascriptLibrary::CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity)
+    DynamicObject* JavascriptLibrary::CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity, bool hasExternalData)
     {
         Assert(JavascriptOperators::IsObjectOrNull(prototype));
 
-        DynamicType* dynamicType = CreateObjectType(prototype, requestedInlineSlotCapacity);
+        DynamicType* dynamicType = CreateObjectType(prototype, requestedInlineSlotCapacity, hasExternalData);
         return DynamicObject::New(this->GetRecycler(), dynamicType);
     }
 

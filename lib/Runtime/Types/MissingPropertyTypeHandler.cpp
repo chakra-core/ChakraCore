@@ -64,7 +64,6 @@ namespace Js
         return false;
     }
 
-
     BOOL MissingPropertyTypeHandler::HasProperty(DynamicObject* instance, JavascriptString* propertyNameString)
     {
         return false;
@@ -172,6 +171,11 @@ namespace Js
     }
 
     BOOL MissingPropertyTypeHandler::FreezeImpl(DynamicObject* instance, bool isConvertedType)
+    {
+        Throw::FatalInternalError();
+    }
+
+    DynamicTypeHandler* MissingPropertyTypeHandler::ConvertToExternalDataSupport(Recycler* recycler)
     {
         Throw::FatalInternalError();
     }

@@ -176,6 +176,11 @@ namespace Js
         static hash_t GetHashCode(RecyclerWeakReference<Js::RecyclableObject>* o);
     };
 
+    template <size_t size>
+    class SimpleTypeHandlerWithExternal;
+
+    class MissingPropertyTypeHandlerWithExternal;
+
     class JavascriptLibrary : public JavascriptLibraryBase
     {
         friend class EditAndContinue;
@@ -244,8 +249,9 @@ namespace Js
 
         Field(UndeclaredBlockVariable*) undeclBlockVarSentinel;
 
-        Field(DynamicType *) generatorConstructorPrototypeObjectType;
-        Field(DynamicType *) constructorPrototypeObjectType;
+        Field(DynamicType *) generatorConstructorPrototypeObjectType[2]; // 0: normal 1: hasExternalData
+        Field(DynamicType *) constructorPrototypeObjectType[2]; // 0: normal 1: hasExternalData
+
         Field(DynamicType *) heapArgumentsType;
         Field(DynamicType *) activationObjectType;
         Field(DynamicType *) arrayType;
@@ -297,6 +303,12 @@ namespace Js
         Field(DynamicTypeHandler *) anonymousFunctionWithPrototypeTypeHandler;
         Field(DynamicTypeHandler *) functionTypeHandler;
         Field(DynamicTypeHandler *) functionWithPrototypeTypeHandler;
+
+        Field(DynamicTypeHandler *) anonymousFunctionTypeHandlerWithExternal;
+        Field(DynamicTypeHandler *) anonymousFunctionWithPrototypeTypeHandlerWithExternal;
+        Field(DynamicTypeHandler *) functionTypeHandlerWithExternal;
+        Field(DynamicTypeHandler *) functionWithPrototypeTypeHandlerWithExternal;
+
         Field(DynamicType *) externalFunctionWithDeferredPrototypeType;
         Field(DynamicType *) wrappedFunctionWithDeferredPrototypeType;
         Field(DynamicType *) stdCallFunctionWithDeferredPrototypeType;
@@ -540,6 +552,16 @@ namespace Js
         static SimpleTypeHandler<1> SharedIdMappedFunctionWithPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedNamespaceSymbolTypeHandler;
         static MissingPropertyTypeHandler MissingPropertyHolderTypeHandler;
+
+        static SimpleTypeHandlerWithExternal<1> SharedPrototypeTypeHandlerWithExternal;
+        static SimpleTypeHandlerWithExternal<1> SharedFunctionWithoutPrototypeTypeHandlerWithExternal;
+        static SimpleTypeHandlerWithExternal<1> SharedFunctionWithPrototypeTypeHandlerV11WithExternal;
+        static SimpleTypeHandlerWithExternal<2> SharedFunctionWithPrototypeTypeHandlerWithExternal;
+        static SimpleTypeHandlerWithExternal<1> SharedFunctionWithLengthTypeHandlerWithExternal;
+        static SimpleTypeHandlerWithExternal<2> SharedFunctionWithLengthAndNameTypeHandlerWithExternal;
+        static SimpleTypeHandlerWithExternal<1> SharedIdMappedFunctionWithPrototypeTypeHandlerWithExternal;
+        static SimpleTypeHandlerWithExternal<1> SharedNamespaceSymbolTypeHandlerWithExternal;
+        static MissingPropertyTypeHandlerWithExternal MissingPropertyHolderTypeHandlerWithExternal;
 
         static SimplePropertyDescriptor const SharedFunctionPropertyDescriptors[2];
         static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptors[3];
@@ -1058,18 +1080,18 @@ namespace Js
 #endif
 #endif
 
-        DynamicObject* CreateGeneratorConstructorPrototypeObject();
-        DynamicObject* CreateConstructorPrototypeObject(JavascriptFunction * constructor);
+        DynamicObject* CreateGeneratorConstructorPrototypeObject(bool hasExternalData);
+        DynamicObject* CreateConstructorPrototypeObject(JavascriptFunction * constructor, bool hasExternalData);
         DynamicObject* CreateObject(const bool allowObjectHeaderInlining = false, const PropertyIndex requestedInlineSlotCapacity = 0);
         DynamicObject* CreateObject(DynamicTypeHandler * typeHandler);
         DynamicObject* CreateActivationObject();
         DynamicObject* CreatePseudoActivationObject();
         DynamicObject* CreateBlockActivationObject();
         DynamicObject* CreateConsoleScopeActivationObject();
-        DynamicType* CreateObjectType(RecyclableObject* prototype, Js::TypeId typeId, uint16 requestedInlineSlotCapacity);
-        DynamicType* CreateObjectTypeNoCache(RecyclableObject* prototype, Js::TypeId typeId);
-        DynamicType* CreateObjectType(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity);
-        DynamicObject* CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity = 0);
+        DynamicType* CreateObjectType(RecyclableObject* prototype, Js::TypeId typeId, uint16 requestedInlineSlotCapacity, bool hasExternalData = false);
+        DynamicType* CreateObjectTypeNoCache(RecyclableObject* prototype, Js::TypeId typeId, bool hasExternalData = false);
+        DynamicType* CreateObjectType(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity, bool hasExternalData = false);
+        DynamicObject* CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity = 0, bool hasExternalData = false);
 
         typedef JavascriptString* LibStringType; // used by diagnostics template
         template< size_t N > JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[N]) const;

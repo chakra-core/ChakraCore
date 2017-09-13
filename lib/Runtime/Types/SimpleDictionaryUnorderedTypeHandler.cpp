@@ -138,6 +138,14 @@ namespace Js
         return true;
     }
 
+    template<class TPropertyIndex, class TMapKey, bool IsNotExtensibleSupported>
+    DynamicTypeHandler* SimpleDictionaryUnorderedTypeHandler<TPropertyIndex, TMapKey,
+      IsNotExtensibleSupported>::ConvertToExternalDataSupport(Recycler* recycler)
+    {
+        return SimpleDictionaryUnorderedTypeHandlerWithExternal<TPropertyIndex, TMapKey,
+          IsNotExtensibleSupported>::New(recycler, this);
+    }
+
     template class SimpleDictionaryUnorderedTypeHandler<PropertyIndex, const PropertyRecord*, false>;
     template class SimpleDictionaryUnorderedTypeHandler<PropertyIndex, const PropertyRecord*, true>;
     template class SimpleDictionaryUnorderedTypeHandler<BigPropertyIndex, const PropertyRecord*, false>;
@@ -146,4 +154,13 @@ namespace Js
     template class SimpleDictionaryUnorderedTypeHandler<PropertyIndex, JavascriptString*, true>;
     template class SimpleDictionaryUnorderedTypeHandler<BigPropertyIndex, JavascriptString*, false>;
     template class SimpleDictionaryUnorderedTypeHandler<BigPropertyIndex, JavascriptString*, true>;
+
+    template class SimpleDictionaryUnorderedTypeHandlerWithExternal<PropertyIndex, const PropertyRecord*, false>;
+    template class SimpleDictionaryUnorderedTypeHandlerWithExternal<PropertyIndex, const PropertyRecord*, true>;
+    template class SimpleDictionaryUnorderedTypeHandlerWithExternal<BigPropertyIndex, const PropertyRecord*, false>;
+    template class SimpleDictionaryUnorderedTypeHandlerWithExternal<BigPropertyIndex, const PropertyRecord*, true>;
+    template class SimpleDictionaryUnorderedTypeHandlerWithExternal<PropertyIndex, JavascriptString*, false>;
+    template class SimpleDictionaryUnorderedTypeHandlerWithExternal<PropertyIndex, JavascriptString*, true>;
+    template class SimpleDictionaryUnorderedTypeHandlerWithExternal<BigPropertyIndex, JavascriptString*, false>;
+    template class SimpleDictionaryUnorderedTypeHandlerWithExternal<BigPropertyIndex, JavascriptString*, true>;
 }

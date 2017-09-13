@@ -8,6 +8,11 @@
 
 namespace Js
 {
+    DeferredTypeHandlerBase::DeferredTypeHandlerBase(Recycler * recycler,
+      DeferredTypeHandlerBase * base) : DynamicTypeHandler(base)
+    {
+    }
+
     void DeferredTypeHandlerBase::Convert(DynamicObject * instance, DynamicTypeHandler * typeHandler)
     {
         Assert(instance->GetDynamicType()->GetTypeHandler() == this);
@@ -23,7 +28,7 @@ namespace Js
         BOOL isProto = (GetFlags() & IsPrototypeFlag);
 
         ScriptContext* scriptContext = instance->GetScriptContext();
-        instance->EnsureSlots(0, typeHandler->GetSlotCapacity(), scriptContext, typeHandler);
+        instance->EnsureSlots(instance->GetTypeHandler()->GetSlotCapacity(), typeHandler->GetSlotCapacity(), scriptContext, typeHandler);
         typeHandler->SetInstanceTypeHandler(instance);
 
         // We may be changing to a type handler that already has some properties. Initialize those to undefined.
@@ -83,6 +88,11 @@ namespace Js
 
         // Create new type handler, allowing slotCapacity round up here. We'll allocate instance slots below.
         T* newTypeHandler = T::New(recycler, initSlotCapacity, GetInlineSlotCapacity(), GetOffsetOfInlineSlots());
+        if (instance->GetTypeHandler()->HasExternalDataSupport())
+        {
+            newTypeHandler = (T*) newTypeHandler->ConvertToExternalDataSupport(recycler);
+        }
+
         newTypeHandler->SetSingletonInstanceIfNeeded(instance);
 
         // EnsureSlots before updating the type handler and instance, as EnsureSlots allocates and may throw.
@@ -144,4 +154,3 @@ namespace Js
         return newTypeHandler;
     }
 };
-

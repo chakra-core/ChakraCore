@@ -20,6 +20,8 @@ namespace Js
                                                         // be certain that the type has only writable data properties.
         }
 
+        DeferredTypeHandlerBase(Recycler * recycler, DeferredTypeHandlerBase * base);
+
     public:
         void Convert(DynamicObject * instance, DynamicTypeHandler * handler);
         void Convert(DynamicObject * instance, DeferredInitializeMode mode, int initSlotCapacity,  BOOL hasAccessor = false);
@@ -56,6 +58,8 @@ namespace Js
             return 0;
         }
 #endif
+    public:
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override { AssertMsg(false, "Why Base class?"); return nullptr; }
     };
 
     class DefaultDeferredTypeFilter
@@ -65,16 +69,23 @@ namespace Js
         static bool HasProperty(PropertyId propertyId) { Assert(false); return false; }
     };
 
+
+#define DEFERRED_TYPE_HANDLER_TEMPLATE template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
+
     template <DeferredTypeInitializer initializer, typename DeferredTypeFilter = DefaultDeferredTypeFilter, bool isPrototypeTemplate = false, uint16 _inlineSlotCapacity = 0, uint16 _offsetOfInlineSlots = 0>
     class DeferredTypeHandler : public DeferredTypeHandlerBase
     {
         friend class DynamicTypeHandler;
+
+        DEFERRED_TYPE_HANDLER_TEMPLATE friend class DeferredTypeHandlerWithExternal;
 
     public:
         DEFINE_GETCPPNAME();
 
     private:
         DeferredTypeHandler() : DeferredTypeHandlerBase(isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots) { }
+        DeferredTypeHandler(Recycler * recycler, DeferredTypeHandler* base):
+        DeferredTypeHandlerBase(recycler, base) { }
 
     public:
         static DeferredTypeHandler *GetDefaultInstance() { return &defaultInstance; }
@@ -139,46 +150,76 @@ namespace Js
         static DeferredTypeHandler defaultInstance;
         bool EnsureObjectReady(DynamicObject* instance, DeferredInitializeMode mode);
         virtual BOOL FreezeImpl(DynamicObject *instance, bool isConvertedType) override;
+
+    public:
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
     };
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots> DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::defaultInstance;
+#define DeferredTypeHandlerTypeDef DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>
+#define DeferredTypeHandlerWithExternalTypeDef DeferredTypeHandlerWithExternal<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    int DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetPropertyCount()
+    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter = DefaultDeferredTypeFilter, bool isPrototypeTemplate = false, uint16 _inlineSlotCapacity = 0, uint16 _offsetOfInlineSlots = 0>
+    class DeferredTypeHandlerWithExternal sealed : public DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>
+
+    {
+        typedef DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots> _DeferredTypeHandlerTypeDef;
+        typedef DeferredTypeHandlerWithExternal<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots> _DeferredTypeHandlerWithExternalTypeDef;
+    public:
+        DEFINE_GETCPPNAME();
+
+    private:
+        DeferredTypeHandlerWithExternal(Recycler * recycler, _DeferredTypeHandlerTypeDef* sth):
+          _DeferredTypeHandlerTypeDef(recycler, sth) { }
+
+    public:
+        DEFINE_HANDLERWITHEXTERNAL_INTERFACE(_DeferredTypeHandlerTypeDef, _DeferredTypeHandlerWithExternalTypeDef)
+    };
+
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    DynamicTypeHandler* DeferredTypeHandlerTypeDef::ConvertToExternalDataSupport(Recycler* recycler)
+    {
+        return (DynamicTypeHandler*)DeferredTypeHandlerWithExternalTypeDef::New(recycler, this);
+    }
+
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    DeferredTypeHandlerTypeDef DeferredTypeHandlerTypeDef::defaultInstance;
+
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    int DeferredTypeHandlerTypeDef::GetPropertyCount()
     {
         return 0;
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    PropertyId DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetPropertyId(ScriptContext* scriptContext, PropertyIndex index)
-    {
-        Assert(false);
-        return Constants::NoProperty;
-    }
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    PropertyId DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetPropertyId(ScriptContext* scriptContext, BigPropertyIndex index)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    PropertyId DeferredTypeHandlerTypeDef::GetPropertyId(ScriptContext* scriptContext, PropertyIndex index)
     {
         Assert(false);
         return Constants::NoProperty;
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index,
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    PropertyId DeferredTypeHandlerTypeDef::GetPropertyId(ScriptContext* scriptContext, BigPropertyIndex index)
+    {
+        Assert(false);
+        return Constants::NoProperty;
+    }
+
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index,
         __out JavascriptString** propertyString, __out PropertyId* propertyId, __out_opt PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info)
     {
         Assert(false);
         return FALSE;
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    PropertyIndex DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetPropertyIndex(PropertyRecord const* propertyRecord)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    PropertyIndex DeferredTypeHandlerTypeDef::GetPropertyIndex(PropertyRecord const* propertyRecord)
     {
         return Constants::NoSlot;
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    bool DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    bool DeferredTypeHandlerTypeDef::GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info)
     {
         info.slotIndex = Constants::NoSlot;
         info.isAuxSlot = false;
@@ -186,15 +227,16 @@ namespace Js
         return false;
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    bool DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::IsObjTypeSpecEquivalent(const Type* type, const TypeEquivalenceRecord& record, uint& failedPropertyIndex)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    bool DeferredTypeHandlerTypeDef::IsObjTypeSpecEquivalent(const Type* type,
+      const TypeEquivalenceRecord& record, uint& failedPropertyIndex)
     {
         uint propertyCount = record.propertyCount;
         EquivalentPropertyEntry* properties = record.properties;
         for (uint pi = 0; pi < propertyCount; pi++)
         {
             const EquivalentPropertyEntry* refInfo = &properties[pi];
-            if (!this->DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::IsObjTypeSpecEquivalent(type, refInfo))
+            if (!this->DeferredTypeHandlerTypeDef::IsObjTypeSpecEquivalent(type, refInfo))
             {
                 failedPropertyIndex = pi;
                 return false;
@@ -203,8 +245,9 @@ namespace Js
         return true;
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    bool DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::IsObjTypeSpecEquivalent(const Type* type, const EquivalentPropertyEntry* entry)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    bool DeferredTypeHandlerTypeDef::IsObjTypeSpecEquivalent(const Type* type,
+      const EquivalentPropertyEntry* entry)
     {
         if (!DeferredTypeFilter::HasFilter())
         {
@@ -219,20 +262,22 @@ namespace Js
         return true;
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    bool DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::EnsureObjectReady(DynamicObject* instance)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    bool DeferredTypeHandlerTypeDef::EnsureObjectReady(DynamicObject* instance)
     {
         return EnsureObjectReady(instance, DeferredInitializeMode_Default);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    bool DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::EnsureObjectReady(DynamicObject* instance, DeferredInitializeMode mode)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    bool DeferredTypeHandlerTypeDef::EnsureObjectReady(DynamicObject* instance,
+      DeferredInitializeMode mode)
     {
         return initializer(instance, this, mode);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::HasProperty(DynamicObject* instance,
+      PropertyId propertyId, __out_opt bool *noRedecl)
     {
         if (noRedecl != nullptr)
         {
@@ -252,8 +297,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->HasProperty(instance, propertyId, noRedecl);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::HasProperty(DynamicObject* instance, JavascriptString* propertyNameString)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::HasProperty(DynamicObject* instance, JavascriptString* propertyNameString)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -263,8 +308,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->HasProperty(instance, propertyNameString);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetProperty(DynamicObject* instance, Var originalInstance,
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::GetProperty(DynamicObject* instance, Var originalInstance,
         PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         if (DeferredTypeFilter::HasFilter() && !DeferredTypeFilter::HasProperty(propertyId))
@@ -284,8 +329,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->GetProperty(instance, originalInstance, propertyId, value, info, requestContext);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetProperty(DynamicObject* instance, Var originalInstance,
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::GetProperty(DynamicObject* instance, Var originalInstance,
         JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
@@ -296,11 +341,13 @@ namespace Js
             return TRUE;
         }
 
-        return GetCurrentTypeHandler(instance)->GetProperty(instance, originalInstance, propertyNameString, value, info, requestContext);
+        return GetCurrentTypeHandler(instance)->GetProperty(instance, originalInstance,
+          propertyNameString, value, info, requestContext);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetProperty(DynamicObject* instance,
+      PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Set))
         {
@@ -310,8 +357,9 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetProperty(instance, propertyId, value, flags, info);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetProperty(DynamicObject* instance, JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetProperty(DynamicObject* instance,
+      JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Set))
         {
@@ -321,8 +369,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetProperty(instance, propertyNameString, value, flags, info);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetInternalProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetInternalProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Set))
         {
@@ -332,8 +380,9 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetInternalProperty(instance, propertyId, value, flags);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    DescriptorFlags DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    DescriptorFlags DeferredTypeHandlerTypeDef::GetSetter(DynamicObject* instance,
+      PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         if (setterValue != nullptr)
         {
@@ -353,8 +402,9 @@ namespace Js
         return GetCurrentTypeHandler(instance)->GetSetter(instance, propertyId, setterValue, info, requestContext);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    DescriptorFlags DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetSetter(DynamicObject* instance, JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    DescriptorFlags DeferredTypeHandlerTypeDef::GetSetter(DynamicObject* instance,
+      JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         if (setterValue != nullptr)
         {
@@ -369,8 +419,9 @@ namespace Js
         return GetCurrentTypeHandler(instance)->GetSetter(instance, propertyNameString, setterValue, info, requestContext);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::DeleteProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags flags)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::DeleteProperty(DynamicObject* instance,
+      PropertyId propertyId, PropertyOperationFlags flags)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -380,8 +431,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->DeleteProperty(instance, propertyId, flags);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::HasItem(DynamicObject* instance, uint32 index)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::HasItem(DynamicObject* instance, uint32 index)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -391,8 +442,9 @@ namespace Js
         return GetCurrentTypeHandler(instance)->HasItem(instance, index);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetItem(DynamicObject* instance, uint32 index, Var value, PropertyOperationFlags flags)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetItem(DynamicObject* instance, uint32 index,
+      Var value, PropertyOperationFlags flags)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -402,8 +454,9 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetItem(instance, index, value, flags);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetItemWithAttributes(DynamicObject* instance, uint32 index, Var value, PropertyAttributes attributes)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetItemWithAttributes(DynamicObject* instance,
+      uint32 index, Var value, PropertyAttributes attributes)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -412,8 +465,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetItemWithAttributes(instance, index, value, attributes);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetItemAttributes(DynamicObject* instance, uint32 index, PropertyAttributes attributes)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetItemAttributes(DynamicObject* instance, uint32 index, PropertyAttributes attributes)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -423,8 +476,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetItemAttributes(instance, index, attributes);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetItemAccessors(DynamicObject* instance, uint32 index, Var getter, Var setter)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetItemAccessors(DynamicObject* instance, uint32 index, Var getter, Var setter)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -434,8 +487,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetItemAccessors(instance, index, getter, setter);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::DeleteItem(DynamicObject* instance, uint32 index, PropertyOperationFlags flags)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::DeleteItem(DynamicObject* instance, uint32 index, PropertyOperationFlags flags)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -444,8 +497,8 @@ namespace Js
 
         return GetCurrentTypeHandler(instance)->DeleteItem(instance, index, flags);
     }
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetItem(DynamicObject* instance, Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::GetItem(DynamicObject* instance, Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -456,8 +509,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->GetItem(instance, originalInstance, index, value, requestContext);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    DescriptorFlags DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetItemSetter(DynamicObject* instance, uint32 index, Var* setterValue, ScriptContext* requestContext)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    DescriptorFlags DeferredTypeHandlerTypeDef::GetItemSetter(DynamicObject* instance, uint32 index, Var* setterValue, ScriptContext* requestContext)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -467,8 +520,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->GetItemSetter(instance, index, setterValue, requestContext);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::IsEnumerable(DynamicObject* instance, PropertyId propertyId)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::IsEnumerable(DynamicObject* instance, PropertyId propertyId)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -478,8 +531,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->IsEnumerable(instance, propertyId);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::IsWritable(DynamicObject* instance, PropertyId propertyId)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::IsWritable(DynamicObject* instance, PropertyId propertyId)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -489,8 +542,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->IsWritable(instance, propertyId);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::IsConfigurable(DynamicObject* instance, PropertyId propertyId)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::IsConfigurable(DynamicObject* instance, PropertyId propertyId)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -500,8 +553,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->IsConfigurable(instance, propertyId);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetEnumerable(DynamicObject* instance, PropertyId propertyId, BOOL value)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetEnumerable(DynamicObject* instance, PropertyId propertyId, BOOL value)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -511,8 +564,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetEnumerable(instance, propertyId, value);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetWritable(DynamicObject* instance, PropertyId propertyId, BOOL value)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetWritable(DynamicObject* instance, PropertyId propertyId, BOOL value)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -522,8 +575,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetWritable(instance, propertyId, value);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetConfigurable(DynamicObject* instance, PropertyId propertyId, BOOL value)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetConfigurable(DynamicObject* instance, PropertyId propertyId, BOOL value)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -533,8 +586,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetConfigurable(instance, propertyId, value);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetAccessors(DynamicObject* instance, PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetAccessors(DynamicObject* instance, PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_SetAccessors))
         {
@@ -544,8 +597,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetAccessors(instance, propertyId, getter, setter, flags);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetAccessors(DynamicObject* instance, PropertyId propertyId, Var *getter, Var *setter)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::GetAccessors(DynamicObject* instance, PropertyId propertyId, Var *getter, Var *setter)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -555,8 +608,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->GetAccessors(instance, propertyId, getter, setter);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::IsSealed(DynamicObject *instance)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::IsSealed(DynamicObject *instance)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -566,8 +619,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->IsSealed(instance);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::IsFrozen(DynamicObject *instance)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::IsFrozen(DynamicObject *instance)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -577,8 +630,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->IsFrozen(instance);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::PreventExtensions(DynamicObject* instance)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::PreventExtensions(DynamicObject* instance)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Extensions))
         {
@@ -588,8 +641,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->PreventExtensions(instance);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::Seal(DynamicObject* instance)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::Seal(DynamicObject* instance)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Extensions))
         {
@@ -599,8 +652,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->Seal(instance);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::FreezeImpl(DynamicObject* instance, bool isConvertedType)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::FreezeImpl(DynamicObject* instance, bool isConvertedType)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Extensions))
         {
@@ -610,8 +663,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->Freeze(instance, true);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetPropertyWithAttributes(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetPropertyWithAttributes(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Set))
         {
@@ -621,8 +674,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetPropertyWithAttributes(instance, propertyId, value, attributes, info, flags, possibleSideEffects);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetAttributes(DynamicObject* instance, PropertyId propertyId, PropertyAttributes attributes)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::SetAttributes(DynamicObject* instance, PropertyId propertyId, PropertyAttributes attributes)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Set))
         {
@@ -632,8 +685,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->SetAttributes(instance, propertyId, attributes);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetAttributesWithPropertyIndex(DynamicObject * instance, PropertyId propertyId, BigPropertyIndex index, PropertyAttributes * attributes)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    BOOL DeferredTypeHandlerTypeDef::GetAttributesWithPropertyIndex(DynamicObject * instance, PropertyId propertyId, BigPropertyIndex index, PropertyAttributes * attributes)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
@@ -647,8 +700,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->GetAttributesWithPropertyIndex(instance, propertyId, index, attributes);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    DynamicTypeHandler* DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::ConvertToTypeWithItemAttributes(DynamicObject* instance)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    DynamicTypeHandler* DeferredTypeHandlerTypeDef::ConvertToTypeWithItemAttributes(DynamicObject* instance)
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Set))
         {
@@ -659,8 +712,8 @@ namespace Js
         return GetCurrentTypeHandler(instance)->ConvertToTypeWithItemAttributes(instance);
     }
 
-    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    void DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::SetIsPrototype(DynamicObject* instance)
+    DEFERRED_TYPE_HANDLER_TEMPLATE
+    void DeferredTypeHandlerTypeDef::SetIsPrototype(DynamicObject* instance)
     {
         if (!isPrototypeTemplate)
         {

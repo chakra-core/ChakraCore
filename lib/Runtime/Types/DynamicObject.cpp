@@ -11,17 +11,18 @@ namespace Js
 
     DynamicObject::DynamicObject(DynamicType * type, const bool initSlots) :
         RecyclableObject(type),
-        auxSlots(nullptr),
+        auxSlots_(nullptr),
         objectArray(nullptr)
     {
         Assert(!UsesObjectArrayOrFlagsAsFlags());
-        if(initSlots)
+        auto typeHandler = this->GetTypeHandler();
+        if(initSlots || typeHandler->HasExternalDataSupport())
         {
-            InitSlots(this);
+            InitSlots(this, typeHandler->HasExternalDataSupport());
         }
         else
         {
-            Assert(type->GetTypeHandler()->GetInlineSlotCapacity() == type->GetTypeHandler()->GetSlotCapacity());
+            Assert(typeHandler->GetInlineSlotCapacity() == typeHandler->GetSlotCapacity());
         }
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
@@ -35,11 +36,11 @@ namespace Js
 #else
         RecyclableObject(type),
 #endif
-        auxSlots(nullptr),
+        auxSlots_(nullptr),
         objectArray(nullptr)
     {
         Assert(!UsesObjectArrayOrFlagsAsFlags());
-        InitSlots(this, scriptContext);
+        InitSlots(this, scriptContext, GetTypeHandler()->HasExternalDataSupport());
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
         TTD::InitializeDiagnosticOriginInformation(this->TTDDiagOriginInfo);
@@ -48,13 +49,13 @@ namespace Js
 
     DynamicObject::DynamicObject(DynamicObject * instance) :
         RecyclableObject(instance->type),
-        auxSlots(instance->auxSlots),
+        auxSlots_(instance->auxSlots_),
         objectArray(instance->objectArray)  // copying the array should copy the array flags and array call site index as well
     {
         DynamicTypeHandler * typeHandler = this->GetTypeHandler();
 
-        // TODO: stack allocate aux Slots
-        Assert(typeHandler->IsObjectHeaderInlinedTypeHandler() || !ThreadContext::IsOnStack(this->auxSlots));
+        // TODO: stack allocate auxSlots_
+        Assert(typeHandler->IsObjectHeaderInlinedTypeHandler() || !ThreadContext::IsOnStack(this->auxSlots_));
         int propertyCount = typeHandler->GetPropertyCount();
         int inlineSlotCapacity = GetTypeHandler()->GetInlineSlotCapacity();
         int inlineSlotCount = min(inlineSlotCapacity, propertyCount);
@@ -74,20 +75,18 @@ namespace Js
 
         }
 
+#if !FLOATVAR
         if (propertyCount > inlineSlotCapacity)
         {
             uint auxSlotCount = propertyCount - inlineSlotCapacity;
 
             for (uint i = 0; i < auxSlotCount; i++)
             {
-#if !FLOATVAR
                 // Currently we only support temp numbers assigned to stack objects
-                auxSlots[i] = JavascriptNumber::BoxStackNumber(instance->auxSlots[i], scriptContext);
-#else
-                auxSlots[i] = instance->auxSlots[i];
-#endif
+                SetAuxSlotAt(i, JavascriptNumber::BoxStackNumber(instance->GetAuxSlotAt(i), scriptContext));
             }
         }
+#endif
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
         TTD::InitializeDiagnosticOriginInformation(this->TTDDiagOriginInfo);
@@ -107,6 +106,7 @@ namespace Js
     DynamicObject* DynamicObject::FromVar(Var aValue)
     {
         RecyclableObject* obj = RecyclableObject::FromVar(aValue);
+
         AssertMsg(obj->DbgIsDynamicObject(), "Ensure instance is actually a DynamicObject");
         Assert(DynamicType::Is(obj->GetTypeId()));
         return static_cast<DynamicObject*>(obj);
@@ -317,7 +317,7 @@ namespace Js
 
     DWORD DynamicObject::GetOffsetOfAuxSlots()
     {
-        return offsetof(DynamicObject, auxSlots);
+        return offsetof(DynamicObject, auxSlots_);
     }
 
     DWORD DynamicObject::GetOffsetOfObjectArray()
@@ -350,11 +350,6 @@ namespace Js
         return this->GetTypeHandler()->GetInlineSlot(this, index);
     }
 
-    Var DynamicObject::GetAuxSlot(int index)
-    {
-        return this->GetTypeHandler()->GetAuxSlot(this, index);
-    }
-
 #if DBG
     void DynamicObject::SetSlot(PropertyId propertyId, bool allowLetConst, int index, Var value)
     {
@@ -366,7 +361,7 @@ namespace Js
         this->GetTypeHandler()->SetInlineSlot(this, propertyId, allowLetConst, index, value);
     }
 
-    void DynamicObject::SetAuxSlot(PropertyId propertyId, bool allowLetConst, int index, Var value)
+    void DynamicObject::SetAuxSlotAt(PropertyId propertyId, bool allowLetConst, int index, Var value)
     {
         this->GetTypeHandler()->SetAuxSlot(this, propertyId, allowLetConst, index, value);
     }
@@ -379,11 +374,6 @@ namespace Js
     void DynamicObject::SetInlineSlot(int index, Var value)
     {
         this->GetTypeHandler()->SetInlineSlot(this, index, value);
-    }
-
-    void DynamicObject::SetAuxSlot(int index, Var value)
-    {
-        this->GetTypeHandler()->SetAuxSlot(this, index, value);
     }
 #endif
 
@@ -859,6 +849,158 @@ namespace Js
     }
 #endif
 
+    void DynamicObject::InitSlots(DynamicObject* instance, bool hasExternalDataSupport)
+    {
+        InitSlots(instance, GetScriptContext(), hasExternalDataSupport);
+    }
+
+    void DynamicObject::InitSlots(DynamicObject * instance, ScriptContext * scriptContext, bool hasExternalDataSupport)
+    {
+        Recycler * recycler = scriptContext->GetRecycler();
+        int slotCapacity = GetTypeHandler()->GetSlotCapacity();
+        int inlineSlotCapacity = GetTypeHandler()->GetInlineSlotCapacity();
+        int auxSlotCount = slotCapacity - inlineSlotCapacity;
+        if (auxSlotCount > 0 || hasExternalDataSupport)
+        {
+            if (auxSlotCount == 0)
+            {
+                auto typeHandler = GetTypeHandler();
+
+                auxSlotCount = 4;
+                typeHandler->SetSlotCapacity(4 + typeHandler->GetInlineSlotCapacity());
+            }
+
+            instance->ResetAuxSlots(recycler, auxSlotCount, 0);
+        }
+    }
+
+    uint32_t DynamicObject::GetAuxSlotsCount()
+    {
+        auto typeHandler = GetTypeHandler();
+        const int slotCapacity = typeHandler->GetSlotCapacity();
+        const int inlineSlotCapacity = typeHandler->GetInlineSlotCapacity();
+
+        Assert(slotCapacity >= inlineSlotCapacity);
+        return slotCapacity - inlineSlotCapacity;
+    }
+
+    Var DynamicObject::GetAuxSlotAt(int index)
+    {
+        Assert(auxSlots_ != nullptr);
+
+        return this->auxSlots_[index];
+    }
+
+    void DynamicObject::SetAuxSlotAt(int index, Var value)
+    {
+        Assert(auxSlots_ != nullptr);
+
+        this->auxSlots_[index] = value;
+    }
+
+    void* DynamicObject::GetExternalData()
+    {
+        auto typeHandler = this->GetTypeHandler();
+        if (this->auxSlots_ == nullptr || !typeHandler->HasExternalDataSupport())
+            return nullptr;
+
+        const uint32_t slotCount = GetAuxSlotsCount();
+        return slotCount == 0 ? nullptr : this->auxSlots_[slotCount];
+    }
+
+    void DynamicObject::SetExternalData(ScriptContext* scriptContext, void* data)
+    {
+        Assert(DynamicObject::Is(data));
+        uint32_t slotCount = GetAuxSlotsCount();
+
+        auto typeHandler = this->GetTypeHandler();
+        if (!typeHandler->HasExternalDataSupport())
+        {
+            Recycler *recycler = scriptContext->GetRecycler();
+
+            DynamicType *const newType = DuplicateType();
+            newType->typeHandler = typeHandler->ConvertToExternalDataSupport(recycler);
+
+            uint32_t newSlotCount = slotCount > 0 ? slotCount : 4;
+            this->ExpandAuxSlots(scriptContext->GetRecycler(), newSlotCount + 2, slotCount);
+
+            type = newType;
+            typeHandler = newType->typeHandler;
+            typeHandler->SetInstanceTypeHandler(this);
+            typeHandler->SetSlotCapacity(newSlotCount + typeHandler->GetInlineSlotCapacity());
+
+            slotCount = newSlotCount;
+        }
+        else if (slotCount == 0)
+        {
+            this->ResetAuxSlots(scriptContext->GetRecycler(), 4, 0);
+            slotCount = 4;
+            typeHandler->SetSlotCapacity(slotCount + typeHandler->GetInlineSlotCapacity());
+        }
+
+        this->auxSlots_[slotCount] = data;
+    }
+
+    void DynamicObject::ResetAuxSlots(Recycler* recycler, int expected, int prevSlotCount)
+    {
+        const uint32_t current = prevSlotCount != 0 ? prevSlotCount : (this->auxSlots_ == nullptr ? 0 : GetAuxSlotsCount());
+
+        if (expected == 0)
+        {
+#ifdef EXPLICIT_FREE_SLOTS
+            if (this->GetTypeHandler()->HasExternalDataSupport()) slotCount += 2;
+            recycler->ExplicitFreeNonLeaf(tmpAddr, current * sizeof(Var));
+#endif
+            auxSlots_ = nullptr;
+        }
+        else
+        {
+            void* tmpData = nullptr;
+            if (this->GetTypeHandler()->HasExternalDataSupport())
+            {
+                if (current != 0)
+                {
+                    tmpData = this->auxSlots_[current];
+                    if (tmpData)
+                    {
+                        Assert(DynamicObject::Is(tmpData));
+                    }
+                }
+
+                const int maxSlotCapacity =
+                    expected <= PropertyIndexRanges<PropertyIndex>::MaxValue
+                    ? PropertyIndexRanges<PropertyIndex>::MaxValue
+                    : PropertyIndexRanges<BigPropertyIndex>::MaxValue;
+
+                expected = min(expected + 2, maxSlotCapacity + 2);
+            }
+
+            this->auxSlots_ = RecyclerNewArrayZ(recycler, Field(Var), expected);
+
+            if (tmpData != nullptr) this->auxSlots_[expected - 2] = tmpData;
+        }
+    }
+
+    void DynamicObject::ExpandAuxSlots(Recycler* recycler, int expected, int prevSlotCount)
+    {
+        Field(Var)* tmpAddr = this->auxSlots_;
+        uint32_t slotCount = prevSlotCount != 0 ? prevSlotCount : GetAuxSlotsCount();
+
+        ResetAuxSlots(recycler, expected, slotCount);
+
+        if (tmpAddr != nullptr)
+        {
+            for(uint32_t i = 0; i < slotCount; i++)
+            {
+                this->SetAuxSlotAt(i, tmpAddr[i]);
+            }
+    #ifdef EXPLICIT_FREE_SLOTS
+            if (this->GetTypeHandler()->HasExternalDataSupport()) slotCount += 2;
+            recycler->ExplicitFreeNonLeaf(tmpAddr, slotCount * sizeof(Var));
+    #endif
+        }
+    }
+
 #if ENABLE_TTD
 
     TTD::NSSnapObjects::SnapObjectType DynamicObject::GetSnapTag_TTD() const
@@ -879,7 +1021,7 @@ namespace Js
 
     Js::Var const* DynamicObject::GetAuxSlots_TTD() const
     {
-        return AddressOf(this->auxSlots[0]);
+        return AddressOf(auxSlots_[0]);
     }
 
 #if ENABLE_OBJECT_SOURCE_TRACKING

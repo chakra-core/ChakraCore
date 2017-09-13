@@ -74,6 +74,12 @@ namespace Js
         Field(uint16) inlineSlotCapacity;
         Field(bool) isNotPathTypeHandlerOrHasUserDefinedCtor;
 
+#ifdef DEBUG
+    public:
+        Field(bool) hasExternalDataSupport;
+    private:
+#endif
+
     public:
         DEFINE_GETCPPNAME_ABSTRACT();
         DynamicTypeHandler(DynamicTypeHandler * typeHandler) :
@@ -83,6 +89,9 @@ namespace Js
             offsetOfInlineSlots(typeHandler->offsetOfInlineSlots),
             isNotPathTypeHandlerOrHasUserDefinedCtor(typeHandler->isNotPathTypeHandlerOrHasUserDefinedCtor),
             unusedBytes(typeHandler->unusedBytes)
+#ifdef DEBUG
+            , hasExternalDataSupport(typeHandler->hasExternalDataSupport)
+#endif
         {
         }
 
@@ -152,7 +161,10 @@ namespace Js
             return inlineSlotsToAllocate * sizeof(Var);
         }
 
-        uint16 GetOffsetOfInlineSlots() const { return this->offsetOfInlineSlots; }
+        uint16 GetOffsetOfInlineSlots() const
+        {
+            return this->offsetOfInlineSlots;
+        }
 
         void EnsureSlots(DynamicObject * instance, int oldCount, int newCount, ScriptContext * scriptContext, DynamicTypeHandler * newTypeHandler = nullptr);
 
@@ -638,6 +650,10 @@ namespace Js
     private:
         virtual BOOL FreezeImpl(DynamicObject *instance, bool isConvertedType) = 0;
 
+    public:
+        virtual bool HasExternalDataSupport() const { Assert(this->hasExternalDataSupport == false); return false; }
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) = 0;
+
 #if ENABLE_TTD
      public:
          //Use the handler to identify all of the values in an object slot array and mark them
@@ -653,7 +669,7 @@ namespace Js
          //Use to extract the handler specific information during snapshot
          virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const = 0;
 
-         //Use to lookup the slotid for a propertyid 
+         //Use to lookup the slotid for a propertyid
          virtual Js::BigPropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord);
 
          //Extract the snap handler info
@@ -666,4 +682,33 @@ namespace Js
          virtual bool IsResetableForTTD(uint32 snapMaxIndex) const;
 #endif
     };
+
+#ifdef DEBUG
+#define DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(base) \
+    base->hasExternalDataSupport = true;
+#else
+#define DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(base)
+#endif
+
+#define DEFINE_HANDLERWITHEXTERNAL_INTERFACE(AA, BB) \
+    virtual bool HasExternalDataSupport() const override \
+    { \
+        Assert(this->hasExternalDataSupport); \
+        return true; \
+    } \
+\
+    virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override \
+    { \
+        AssertMsg(false, "did you forget calling HasExternalDataSupport?"); \
+        return this; \
+    } \
+\
+    static AA* New(Recycler* recycler, AA* base) \
+    { \
+        AssertMsg(!base->HasExternalDataSupport(), "ConvertToExternalDataSupport for XXXX_WithExternal shouldn't be implemented or reached!"); \
+        AA* baseWithExternal = RecyclerNew(recycler, BB, recycler, base); \
+        DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(baseWithExternal) \
+        return baseWithExternal; \
+    }
+
 }

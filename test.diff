@@ -1,0 +1,1141 @@
+diff --git a/lib/Runtime/Language/JavascriptOperators.cpp b/lib/Runtime/Language/JavascriptOperators.cpp
+index 45ca92049..03ed26f24 100644
+--- a/lib/Runtime/Language/JavascriptOperators.cpp
++++ b/lib/Runtime/Language/JavascriptOperators.cpp
+@@ -6070,10 +6070,13 @@ CommonNumber:
+         // after we fail the guard check.  When invalidating the cache for proto change, make sure we zap the prototype field of the cache in
+         // addition to the guard value.
+         bool prototypeCanBeCached;
++        auto functionTypeHandler = ((Js::DynamicObject*)function)->GetTypeHandler();
++        bool hasExternalDataSupport = functionTypeHandler->HasExternalDataSupport();
++
+         RecyclableObject* prototype = JavascriptOperators::GetPrototypeObjectForConstructorCache(function, constructorScriptContext, prototypeCanBeCached);
+         prototype = RecyclableObject::FromVar(CrossSite::MarshalVar(requestContext, prototype));
+ 
+-        DynamicObject* newObject = requestContext->GetLibrary()->CreateObject(prototype, 8);
++        DynamicObject* newObject = requestContext->GetLibrary()->CreateObject(prototype, 8, hasExternalDataSupport);
+ 
+         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(newObject));
+ #if ENABLE_DEBUG_CONFIG_OPTIONS
+diff --git a/lib/Runtime/Library/JavascriptGeneratorFunction.cpp b/lib/Runtime/Library/JavascriptGeneratorFunction.cpp
+index 9f9168a1a..8ed92b236 100644
+--- a/lib/Runtime/Library/JavascriptGeneratorFunction.cpp
++++ b/lib/Runtime/Library/JavascriptGeneratorFunction.cpp
+@@ -125,7 +125,8 @@ namespace Js
+         CopyArray(argsHeapCopy, stackArgs.Info.Count, stackArgs.Values, stackArgs.Info.Count);
+         Arguments heapArgs(callInfo, (Var*)argsHeapCopy);
+ 
+-        DynamicObject* prototype = scriptContext->GetLibrary()->CreateGeneratorConstructorPrototypeObject();
++        auto typeHandler = ((DynamicObject*)function)->GetTypeHandler();
++        DynamicObject* prototype = scriptContext->GetLibrary()->CreateGeneratorConstructorPrototypeObject(typeHandler->HasExternalDataSupport());
+         JavascriptGenerator* generator = scriptContext->GetLibrary()->CreateGenerator(heapArgs, generatorFunction->scriptFunction, prototype);
+         // Set the prototype from constructor
+         JavascriptOperators::OrdinaryCreateFromConstructor(function, generator, prototype, scriptContext);
+diff --git a/lib/Runtime/Library/JavascriptLibrary.cpp b/lib/Runtime/Library/JavascriptLibrary.cpp
+index d7344cecb..4c9bdbb07 100644
+--- a/lib/Runtime/Library/JavascriptLibrary.cpp
++++ b/lib/Runtime/Library/JavascriptLibrary.cpp
+@@ -50,6 +50,16 @@ namespace Js
+     SimpleTypeHandler<1> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors));
+     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
+ 
++    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedPrototypeTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::constructor), PropertyWritable | PropertyConfigurable, PropertyTypesWritableDataOnly, 4, sizeof(DynamicObject));
++    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedFunctionWithoutPrototypeTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::name), PropertyConfigurable);
++    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandlerV11WithExternal(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyWritable);
++    SimpleTypeHandlerWithExternal<2> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(SharedFunctionPropertyDescriptors));
++    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedIdMappedFunctionWithPrototypeTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype));
++    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length));
++    SimpleTypeHandlerWithExternal<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(FunctionWithLengthAndNameTypeDescriptors));
++    SimpleTypeHandlerWithExternal<1> JavascriptLibrary::SharedNamespaceSymbolTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors));
++    MissingPropertyTypeHandlerWithExternal JavascriptLibrary::MissingPropertyHolderTypeHandlerWithExternal;
++
+ 
+     SimplePropertyDescriptor const JavascriptLibrary::HeapArgumentsPropertyDescriptors[3] =
+     {
+@@ -120,10 +130,14 @@ namespace Js
+             DynamicType::New(scriptContext, TypeIds_Object, nullValue, nullptr,
+             DeferredTypeHandler<InitializeObjectPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+ 
+-        constructorPrototypeObjectType = DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
++        constructorPrototypeObjectType[ 0 /* normal */ ] = DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+             &SharedPrototypeTypeHandler, true, true);
+ 
+-        constructorPrototypeObjectType->SetHasNoEnumerableProperties(true);
++        constructorPrototypeObjectType[ 1 /* withExternalData */ ] = DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
++                                                          &SharedPrototypeTypeHandlerWithExternal, true, true);
++
++        constructorPrototypeObjectType[0]->SetHasNoEnumerableProperties(true);
++        constructorPrototypeObjectType[1]->SetHasNoEnumerableProperties(true);
+ 
+         arrayBufferPrototype = DynamicObject::New(recycler,
+             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+@@ -525,34 +539,34 @@ namespace Js
+         variantDateType = StaticType::New(scriptContext, TypeIds_VariantDate, nullValue, nullptr);
+ 
+         anonymousFunctionTypeHandler = NullTypeHandler<false>::GetDefaultInstance();
++        anonymousFunctionTypeHandlerWithExternal = NullTypeHandlerWithExternal<false>::GetDefaultInstanceWithExternal();
+         anonymousFunctionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeTypeHandlerV11;
+-
+-        anonymousFunctionTypeHandlerWithExternal = anonymousFunctionTypeHandler->ConvertToExternalDataSupport(recycler);
+-        anonymousFunctionWithPrototypeTypeHandlerWithExternal = anonymousFunctionWithPrototypeTypeHandler->ConvertToExternalDataSupport(recycler);
++        anonymousFunctionWithPrototypeTypeHandlerWithExternal = &SharedFunctionWithPrototypeTypeHandlerV11WithExternal;
+ 
+         //  Initialize function types
+         if (config->IsES6FunctionNameEnabled())
+         {
+             functionTypeHandler = &SharedFunctionWithoutPrototypeTypeHandler;
++            functionTypeHandlerWithExternal = &SharedFunctionWithoutPrototypeTypeHandlerWithExternal;
+         }
+         else
+         {
+             functionTypeHandler = anonymousFunctionTypeHandler;
++            functionTypeHandlerWithExternal = anonymousFunctionTypeHandlerWithExternal;
+         }
+ 
+-        functionTypeHandlerWithExternal = functionTypeHandler->ConvertToExternalDataSupport(recycler);
+-
+         if (config->IsES6FunctionNameEnabled())
+         {
+             functionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeTypeHandler;
++            functionWithPrototypeTypeHandlerWithExternal = &SharedFunctionWithPrototypeTypeHandlerWithExternal;
+         }
+         else
+         {
+             functionWithPrototypeTypeHandler = anonymousFunctionWithPrototypeTypeHandler;
++            functionWithPrototypeTypeHandlerWithExternal = anonymousFunctionWithPrototypeTypeHandlerWithExternal;
+         }
+         functionWithPrototypeTypeHandler->SetHasKnownSlot0();
+ 
+-        functionWithPrototypeTypeHandlerWithExternal = functionWithPrototypeTypeHandler->ConvertToExternalDataSupport(recycler);
+ 
+         externalFunctionWithDeferredPrototypeType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptExternalFunction::ExternalFunctionThunk, true /*isShared*/);
+         wrappedFunctionWithDeferredPrototypeType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptExternalFunction::WrappedFunctionThunk, true /*isShared*/);
+@@ -706,10 +720,14 @@ namespace Js
+ 
+         if (config->IsES6GeneratorsEnabled())
+         {
+-            generatorConstructorPrototypeObjectType = DynamicType::New(scriptContext, TypeIds_Object, generatorPrototype, nullptr,
++            generatorConstructorPrototypeObjectType[0 /* normal */] = DynamicType::New(scriptContext, TypeIds_Object, generatorPrototype, nullptr,
+                 NullTypeHandler<false>::GetDefaultInstance(), true, true);
+ 
+-            generatorConstructorPrototypeObjectType->SetHasNoEnumerableProperties(true);
++            generatorConstructorPrototypeObjectType[1 /* withExternalData */] = DynamicType::New(scriptContext, TypeIds_Object, generatorPrototype, nullptr,
++                NullTypeHandlerWithExternal<false>::GetDefaultInstanceWithExternal(), true, true);
++
++            generatorConstructorPrototypeObjectType[0]->SetHasNoEnumerableProperties(true);
++            generatorConstructorPrototypeObjectType[1]->SetHasNoEnumerableProperties(true);
+         }
+ 
+ #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+@@ -733,7 +751,7 @@ namespace Js
+           (hasExternal) ? javascriptLibrary->functionWithPrototypeTypeHandlerWithExternal : javascriptLibrary->functionWithPrototypeTypeHandler;
+ 
+         typeHandler->Convert(function, baseTypeHandler);
+-        function->SetPropertyWithAttributes(PropertyIds::prototype, javascriptLibrary->CreateGeneratorConstructorPrototypeObject(), PropertyWritable, nullptr);
++        function->SetPropertyWithAttributes(PropertyIds::prototype, javascriptLibrary->CreateGeneratorConstructorPrototypeObject(hasExternal), PropertyWritable, nullptr);
+ 
+         if (function->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled() && !isAnonymousFunction)
+         {
+@@ -797,7 +815,9 @@ namespace Js
+               (hasExternal) ? javascriptLibrary->functionWithPrototypeTypeHandlerWithExternal : javascriptLibrary->functionWithPrototypeTypeHandler;
+ 
+             typeHandler->Convert(function, baseTypeHandler);
+-            function->SetProperty(PropertyIds::prototype, javascriptLibrary->CreateConstructorPrototypeObject((Js::JavascriptFunction *)function), PropertyOperation_None, nullptr);
++            function->SetProperty(PropertyIds::prototype,
++              javascriptLibrary->CreateConstructorPrototypeObject((Js::JavascriptFunction *)function,
++              hasExternal), PropertyOperation_None, nullptr);
+         }
+ 
+         if (scriptFunction)
+@@ -4909,7 +4929,7 @@ namespace Js
+         Js::RecyclableObject* objPrototype;
+         if (prototype == nullptr)
+         {
+-            objPrototype = CreateConstructorPrototypeObject(function);
++            objPrototype = CreateConstructorPrototypeObject(function, false);
+             Assert(!objPrototype->IsEnumerable(Js::PropertyIds::constructor));
+         }
+         else
+@@ -5712,7 +5732,7 @@ namespace Js
+             }
+             else
+             {
+-                Assert(typeHandler == &SharedIdMappedFunctionWithPrototypeTypeHandler);
++                Assert(typeHandler == &SharedIdMappedFunctionWithPrototypeTypeHandler || typeHandler == &SharedIdMappedFunctionWithPrototypeTypeHandlerWithExternal);
+                 function->ReplaceType(crossSiteIdMappedFunctionWithPrototypeType);
+             }
+         }
+@@ -6737,18 +6757,18 @@ namespace Js
+ 
+ #endif
+ 
+-    DynamicObject* JavascriptLibrary::CreateGeneratorConstructorPrototypeObject()
++    DynamicObject* JavascriptLibrary::CreateGeneratorConstructorPrototypeObject(bool hasExternalData)
+     {
+-        AssertMsg(generatorConstructorPrototypeObjectType, "Where's generatorConstructorPrototypeObjectType?");
+-        DynamicObject * prototype = DynamicObject::New(this->GetRecycler(), generatorConstructorPrototypeObjectType);
++        AssertMsg(generatorConstructorPrototypeObjectType[(int)hasExternalData], "Where's generatorConstructorPrototypeObjectType?");
++        DynamicObject * prototype = DynamicObject::New(this->GetRecycler(), generatorConstructorPrototypeObjectType[(int)hasExternalData]);
+         // Generator functions' prototype objects are not created with a .constructor property
+         return prototype;
+     }
+ 
+-    DynamicObject* JavascriptLibrary::CreateConstructorPrototypeObject(JavascriptFunction * constructor)
++    DynamicObject* JavascriptLibrary::CreateConstructorPrototypeObject(JavascriptFunction * constructor, bool hasExternalData)
+     {
+-        AssertMsg(constructorPrototypeObjectType, "Where's constructorPrototypeObjectType?");
+-        DynamicObject * prototype = DynamicObject::New(this->GetRecycler(), constructorPrototypeObjectType);
++        AssertMsg(constructorPrototypeObjectType[(int)hasExternalData], "Where's constructorPrototypeObjectType?");
++        DynamicObject * prototype = DynamicObject::New(this->GetRecycler(), constructorPrototypeObjectType[(int)hasExternalData]);
+         AddMember(prototype, PropertyIds::constructor, constructor);
+         return prototype;
+     }
+@@ -6776,9 +6796,11 @@ namespace Js
+                 RecyclableObject::DefaultEntryPoint, typeHandler, false, false));
+     }
+ 
+-    DynamicType* JavascriptLibrary::CreateObjectType(RecyclableObject* prototype, Js::TypeId typeId, uint16 requestedInlineSlotCapacity)
++    DynamicType* JavascriptLibrary::CreateObjectType(RecyclableObject* prototype, Js::TypeId typeId, uint16 requestedInlineSlotCapacity, bool hasExternalData)
+     {
+-        const bool useObjectHeaderInlining = FunctionBody::DoObjectHeaderInliningForConstructor(requestedInlineSlotCapacity);
++        // why !hasExternalData? -> when typeHandler has external data, member object will allocate initial auxSlot memory
++        // Thus, offsetOfInlineSlots shouldn't be the offset of aux slots.
++        const bool useObjectHeaderInlining = !hasExternalData && FunctionBody::DoObjectHeaderInliningForConstructor(requestedInlineSlotCapacity);
+         const uint16 offsetOfInlineSlots =
+             useObjectHeaderInlining
+             ? DynamicTypeHandler::GetOffsetOfObjectHeaderInlineSlots()
+@@ -6870,7 +6892,16 @@ namespace Js
+         }
+         oldCachedType = dynamicType;
+ #endif
+-        SimplePathTypeHandler* typeHandler = SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, requestedInlineSlotCapacity, offsetOfInlineSlots, true, true);
++        SimplePathTypeHandler* typeHandler;
++        if (!hasExternalData)
++        {
++            typeHandler = SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, requestedInlineSlotCapacity, offsetOfInlineSlots, true, true);
++        }
++        else
++        {
++            typeHandler = PathTypeHandlerWithExternal<SimplePathTypeHandler>::New(scriptContext, this->GetRootPath(), 0, requestedInlineSlotCapacity, offsetOfInlineSlots, true, true);
++        }
++
+         dynamicType = DynamicType::New(scriptContext, typeId, prototype, RecyclableObject::DefaultEntryPoint, typeHandler, true, true);
+ 
+         if (useCache)
+@@ -6897,23 +6928,33 @@ namespace Js
+         return dynamicType;
+     }
+ 
+-    DynamicType* JavascriptLibrary::CreateObjectTypeNoCache(RecyclableObject* prototype, Js::TypeId typeId)
++    DynamicType* JavascriptLibrary::CreateObjectTypeNoCache(RecyclableObject* prototype, Js::TypeId typeId, bool hasExternalData)
+     {
++        SimplePathTypeHandler* typeHandler = nullptr;
++        if (hasExternalData)
++        {
++            typeHandler = PathTypeHandlerWithExternal<SimplePathTypeHandler>::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true);
++        }
++        else
++        {
++            typeHandler = SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true);
++        }
++
+         return DynamicType::New(scriptContext, typeId, prototype, RecyclableObject::DefaultEntryPoint,
+-            SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
++            typeHandler, true, true);
+     }
+ 
+-    DynamicType* JavascriptLibrary::CreateObjectType(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity)
++    DynamicType* JavascriptLibrary::CreateObjectType(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity, bool hasExternalData)
+     {
+         // We can't reuse the type in objectType even if the prototype is the object prototype, because those has inline slot capacity fixed
+-        return CreateObjectType(prototype, TypeIds_Object, requestedInlineSlotCapacity);
++        return CreateObjectType(prototype, TypeIds_Object, requestedInlineSlotCapacity, hasExternalData);
+     }
+ 
+-    DynamicObject* JavascriptLibrary::CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity)
++    DynamicObject* JavascriptLibrary::CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity, bool hasExternalData)
+     {
+         Assert(JavascriptOperators::IsObjectOrNull(prototype));
+ 
+-        DynamicType* dynamicType = CreateObjectType(prototype, requestedInlineSlotCapacity);
++        DynamicType* dynamicType = CreateObjectType(prototype, requestedInlineSlotCapacity, hasExternalData);
+         return DynamicObject::New(this->GetRecycler(), dynamicType);
+     }
+ 
+diff --git a/lib/Runtime/Library/JavascriptLibrary.h b/lib/Runtime/Library/JavascriptLibrary.h
+index bfcaa9e6e..65aa849ed 100644
+--- a/lib/Runtime/Library/JavascriptLibrary.h
++++ b/lib/Runtime/Library/JavascriptLibrary.h
+@@ -176,6 +176,11 @@ namespace Js
+         static hash_t GetHashCode(RecyclerWeakReference<Js::RecyclableObject>* o);
+     };
+ 
++    template <size_t size>
++    class SimpleTypeHandlerWithExternal;
++
++    class MissingPropertyTypeHandlerWithExternal;
++
+     class JavascriptLibrary : public JavascriptLibraryBase
+     {
+         friend class EditAndContinue;
+@@ -244,8 +249,9 @@ namespace Js
+ 
+         Field(UndeclaredBlockVariable*) undeclBlockVarSentinel;
+ 
+-        Field(DynamicType *) generatorConstructorPrototypeObjectType;
+-        Field(DynamicType *) constructorPrototypeObjectType;
++        Field(DynamicType *) generatorConstructorPrototypeObjectType[2]; // 0: normal 1: hasExternalData
++        Field(DynamicType *) constructorPrototypeObjectType[2]; // 0: normal 1: hasExternalData
++
+         Field(DynamicType *) heapArgumentsType;
+         Field(DynamicType *) activationObjectType;
+         Field(DynamicType *) arrayType;
+@@ -547,6 +553,16 @@ namespace Js
+         static SimpleTypeHandler<1> SharedNamespaceSymbolTypeHandler;
+         static MissingPropertyTypeHandler MissingPropertyHolderTypeHandler;
+ 
++        static SimpleTypeHandlerWithExternal<1> SharedPrototypeTypeHandlerWithExternal;
++        static SimpleTypeHandlerWithExternal<1> SharedFunctionWithoutPrototypeTypeHandlerWithExternal;
++        static SimpleTypeHandlerWithExternal<1> SharedFunctionWithPrototypeTypeHandlerV11WithExternal;
++        static SimpleTypeHandlerWithExternal<2> SharedFunctionWithPrototypeTypeHandlerWithExternal;
++        static SimpleTypeHandlerWithExternal<1> SharedFunctionWithLengthTypeHandlerWithExternal;
++        static SimpleTypeHandlerWithExternal<2> SharedFunctionWithLengthAndNameTypeHandlerWithExternal;
++        static SimpleTypeHandlerWithExternal<1> SharedIdMappedFunctionWithPrototypeTypeHandlerWithExternal;
++        static SimpleTypeHandlerWithExternal<1> SharedNamespaceSymbolTypeHandlerWithExternal;
++        static MissingPropertyTypeHandlerWithExternal MissingPropertyHolderTypeHandlerWithExternal;
++
+         static SimplePropertyDescriptor const SharedFunctionPropertyDescriptors[2];
+         static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptors[3];
+         static SimplePropertyDescriptor const FunctionWithLengthAndPrototypeTypeDescriptors[2];
+@@ -1064,18 +1080,18 @@ namespace Js
+ #endif
+ #endif
+ 
+-        DynamicObject* CreateGeneratorConstructorPrototypeObject();
+-        DynamicObject* CreateConstructorPrototypeObject(JavascriptFunction * constructor);
++        DynamicObject* CreateGeneratorConstructorPrototypeObject(bool hasExternalData);
++        DynamicObject* CreateConstructorPrototypeObject(JavascriptFunction * constructor, bool hasExternalData);
+         DynamicObject* CreateObject(const bool allowObjectHeaderInlining = false, const PropertyIndex requestedInlineSlotCapacity = 0);
+         DynamicObject* CreateObject(DynamicTypeHandler * typeHandler);
+         DynamicObject* CreateActivationObject();
+         DynamicObject* CreatePseudoActivationObject();
+         DynamicObject* CreateBlockActivationObject();
+         DynamicObject* CreateConsoleScopeActivationObject();
+-        DynamicType* CreateObjectType(RecyclableObject* prototype, Js::TypeId typeId, uint16 requestedInlineSlotCapacity);
+-        DynamicType* CreateObjectTypeNoCache(RecyclableObject* prototype, Js::TypeId typeId);
+-        DynamicType* CreateObjectType(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity);
+-        DynamicObject* CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity = 0);
++        DynamicType* CreateObjectType(RecyclableObject* prototype, Js::TypeId typeId, uint16 requestedInlineSlotCapacity, bool hasExternalData = false);
++        DynamicType* CreateObjectTypeNoCache(RecyclableObject* prototype, Js::TypeId typeId, bool hasExternalData = false);
++        DynamicType* CreateObjectType(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity, bool hasExternalData = false);
++        DynamicObject* CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity = 0, bool hasExternalData = false);
+ 
+         typedef JavascriptString* LibStringType; // used by diagnostics template
+         template< size_t N > JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[N]) const;
+diff --git a/lib/Runtime/RuntimeCommon.h b/lib/Runtime/RuntimeCommon.h
+index 7c9af88c7..ee402c642 100644
+--- a/lib/Runtime/RuntimeCommon.h
++++ b/lib/Runtime/RuntimeCommon.h
+@@ -196,9 +196,19 @@ namespace Js
+     typedef DictionaryTypeHandlerBase<PropertyIndex> DictionaryTypeHandler;
+     typedef DictionaryTypeHandlerBase<BigPropertyIndex> BigDictionaryTypeHandler;
+ 
++    template <class T> class DictionaryTypeHandlerBaseWithExternal;
++
++    typedef DictionaryTypeHandlerBaseWithExternal<PropertyIndex> DictionaryTypeHandlerWithExternal;
++    typedef DictionaryTypeHandlerBaseWithExternal<BigPropertyIndex> BigDictionaryTypeHandlerWithExternal;
++
+     typedef ES5ArrayTypeHandlerBase<PropertyIndex> ES5ArrayTypeHandler;
+     typedef ES5ArrayTypeHandlerBase<BigPropertyIndex> BigES5ArrayTypeHandler;
+ 
++    template <class T> class ES5ArrayTypeHandlerBaseWithExternal;
++
++    typedef ES5ArrayTypeHandlerBaseWithExternal<PropertyIndex> ES5ArrayTypeHandlerWithExternal;
++    typedef ES5ArrayTypeHandlerBaseWithExternal<BigPropertyIndex> BigES5ArrayTypeHandlerWithExternal;
++
+     template <int N> class ConcatStringN;
+     typedef ConcatStringN<2> ConcatStringN2;
+     typedef ConcatStringN<4> ConcatStringN4;
+diff --git a/lib/Runtime/Types/DictionaryTypeHandler.h b/lib/Runtime/Types/DictionaryTypeHandler.h
+index 73e097990..4d1634342 100644
+--- a/lib/Runtime/Types/DictionaryTypeHandler.h
++++ b/lib/Runtime/Types/DictionaryTypeHandler.h
+@@ -256,7 +256,6 @@ namespace Js
+         static Var CanonicalizeAccessor(Var accessor, /*const*/ JavascriptLibrary* library);
+ 
+     public:
+-        virtual bool HasExternalDataSupport() override { return false; }
+         virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
+ 
+ #if ENABLE_TTD
+@@ -278,8 +277,20 @@ namespace Js
+     public:
+         DEFINE_GETCPPNAME();
+ 
++        DictionaryTypeHandlerBaseWithExternal(Recycler* recycler):
++            DictionaryTypeHandlerBase<T>(recycler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++
++        DictionaryTypeHandlerBaseWithExternal(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots):
++            DictionaryTypeHandlerBase<T>(recycler, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++
++        DictionaryTypeHandlerBaseWithExternal(DictionaryTypeHandlerBase<T>* typeHandler):
++            DictionaryTypeHandlerBase<T>(typeHandler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++
++        DEFINE_VTABLE_CTOR_NO_REGISTER(DictionaryTypeHandlerBaseWithExternal, DictionaryTypeHandlerBase<T>);
++
+     private:
+-        DictionaryTypeHandlerBaseWithExternal(Recycler * recycler, DictionaryTypeHandlerBase<T>* sth): DictionaryTypeHandlerBase<T>(sth) { }
++        DictionaryTypeHandlerBaseWithExternal(Recycler * recycler, DictionaryTypeHandlerBase<T>* sth):
++            DictionaryTypeHandlerBase<T>(sth) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+ 
+     public:
+         DEFINE_HANDLERWITHEXTERNAL_INTERFACE(DictionaryTypeHandlerBase<T>, DictionaryTypeHandlerBaseWithExternal<T>)
+diff --git a/lib/Runtime/Types/DynamicObject.cpp b/lib/Runtime/Types/DynamicObject.cpp
+index 94a221600..121e52b3b 100644
+--- a/lib/Runtime/Types/DynamicObject.cpp
++++ b/lib/Runtime/Types/DynamicObject.cpp
+@@ -15,13 +15,14 @@ namespace Js
+         objectArray(nullptr)
+     {
+         Assert(!UsesObjectArrayOrFlagsAsFlags());
+-        if(initSlots)
++        auto typeHandler = this->GetTypeHandler();
++        if(initSlots || typeHandler->HasExternalDataSupport())
+         {
+-            InitSlots(this);
++            InitSlots(this, typeHandler->HasExternalDataSupport());
+         }
+         else
+         {
+-            Assert(type->GetTypeHandler()->GetInlineSlotCapacity() == type->GetTypeHandler()->GetSlotCapacity());
++            Assert(typeHandler->GetInlineSlotCapacity() == typeHandler->GetSlotCapacity());
+         }
+ 
+ #if ENABLE_OBJECT_SOURCE_TRACKING
+@@ -39,7 +40,7 @@ namespace Js
+         objectArray(nullptr)
+     {
+         Assert(!UsesObjectArrayOrFlagsAsFlags());
+-        InitSlots(this, scriptContext);
++        InitSlots(this, scriptContext, GetTypeHandler()->HasExternalDataSupport());
+ 
+ #if ENABLE_OBJECT_SOURCE_TRACKING
+         TTD::InitializeDiagnosticOriginInformation(this->TTDDiagOriginInfo);
+@@ -848,19 +849,28 @@ namespace Js
+     }
+ #endif
+ 
+-    void DynamicObject::InitSlots(DynamicObject* instance)
++    void DynamicObject::InitSlots(DynamicObject* instance, bool hasExternalDataSupport)
+     {
+-        InitSlots(instance, GetScriptContext());
++        InitSlots(instance, GetScriptContext(), hasExternalDataSupport);
+     }
+ 
+-    void DynamicObject::InitSlots(DynamicObject * instance, ScriptContext * scriptContext)
++    void DynamicObject::InitSlots(DynamicObject * instance, ScriptContext * scriptContext, bool hasExternalDataSupport)
+     {
+         Recycler * recycler = scriptContext->GetRecycler();
+         int slotCapacity = GetTypeHandler()->GetSlotCapacity();
+         int inlineSlotCapacity = GetTypeHandler()->GetInlineSlotCapacity();
+-        if (slotCapacity > inlineSlotCapacity)
++        int auxSlotCount = slotCapacity - inlineSlotCapacity;
++        if (auxSlotCount > 0 || hasExternalDataSupport)
+         {
+-            instance->ResetAuxSlots(recycler, (slotCapacity - inlineSlotCapacity), 0);
++            if (auxSlotCount == 0)
++            {
++                auto typeHandler = GetTypeHandler();
++
++                auxSlotCount = 4;
++                typeHandler->SetSlotCapacity(4 + typeHandler->GetInlineSlotCapacity());
++            }
++
++            instance->ResetAuxSlots(recycler, auxSlotCount, 0);
+         }
+     }
+ 
+@@ -921,6 +931,12 @@ namespace Js
+ 
+             slotCount = newSlotCount;
+         }
++        else if (slotCount == 0)
++        {
++            this->ResetAuxSlots(scriptContext->GetRecycler(), 4, 0);
++            slotCount = 4;
++            typeHandler->SetSlotCapacity(slotCount + typeHandler->GetInlineSlotCapacity());
++        }
+ 
+         this->auxSlots_[slotCount] = data;
+     }
+diff --git a/lib/Runtime/Types/DynamicObject.h b/lib/Runtime/Types/DynamicObject.h
+index e83c2ea23..6a7a9f062 100644
+--- a/lib/Runtime/Types/DynamicObject.h
++++ b/lib/Runtime/Types/DynamicObject.h
+@@ -108,7 +108,7 @@ namespace Js
+         CompileAssert(sizeof(ProfileId) == 2);
+         CompileAssert(static_cast<intptr_t>(DynamicObjectFlags::ObjectArrayFlagsTag) != 0);
+ 
+-        void InitSlots(DynamicObject * instance, ScriptContext * scriptContext);
++        void InitSlots(DynamicObject * instance, ScriptContext * scriptContext, bool hasExternalDataSupport);
+         void SetTypeHandler(DynamicTypeHandler * typeHandler, bool hasChanged);
+         void ReplaceType(DynamicType * type);
+         void ReplaceTypeWithPredecessorType(DynamicType * previousType);
+@@ -225,11 +225,12 @@ namespace Js
+         bool SetHasNoEnumerableProperties(bool value);
+         virtual bool HasReadOnlyPropertiesInvisibleToTypeHandler() { return false; }
+ 
+-        void InitSlots(DynamicObject* instance);
++        void InitSlots(DynamicObject* instance, bool hasExternalDataSupport);
+         virtual int GetPropertyCount() override;
+         virtual PropertyId GetPropertyId(PropertyIndex index) override;
+         virtual PropertyId GetPropertyId(BigPropertyIndex index) override;
+         PropertyIndex GetPropertyIndex(PropertyId propertyId) sealed;
++        virtual PropertyIndex GetPropertyIndex(const PropertyRecord* propertyRecord) override;
+         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
+         virtual BOOL HasOwnProperty(PropertyId propertyId) override;
+         virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+diff --git a/lib/Runtime/Types/DynamicType.cpp b/lib/Runtime/Types/DynamicType.cpp
+index 2f745761e..52b1d32d9 100644
+--- a/lib/Runtime/Types/DynamicType.cpp
++++ b/lib/Runtime/Types/DynamicType.cpp
+@@ -215,7 +215,13 @@ namespace Js
+     {
+         Assert(!Js::IsInternalPropertyId(propertyId));
+         Assert(propertyId != Constants::NoProperty);
+-        return GetTypeHandler()->GetPropertyIndex(this->GetScriptContext()->GetPropertyName(propertyId));
++
++        return GetPropertyIndex(this->GetScriptContext()->GetPropertyName(propertyId));
++    }
++
++    PropertyIndex DynamicObject::GetPropertyIndex(const PropertyRecord* propertyRecord)
++    {
++        return GetTypeHandler()->GetPropertyIndex(propertyRecord);
+     }
+ 
+     PropertyQueryFlags DynamicObject::HasPropertyQuery(PropertyId propertyId)
+diff --git a/lib/Runtime/Types/ES5ArrayTypeHandler.h b/lib/Runtime/Types/ES5ArrayTypeHandler.h
+index 33f3fefeb..f5822bdf8 100644
+--- a/lib/Runtime/Types/ES5ArrayTypeHandler.h
++++ b/lib/Runtime/Types/ES5ArrayTypeHandler.h
+@@ -203,7 +203,6 @@ namespace Js
+         virtual BigDictionaryTypeHandler* NewBigDictionaryTypeHandler(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) override;
+ 
+     public:
+-        virtual bool HasExternalDataSupport() override { return false; }
+         virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
+ #if ENABLE_TTD
+         //
+@@ -218,9 +217,17 @@ namespace Js
+     public:
+         DEFINE_GETCPPNAME();
+ 
++        DEFINE_VTABLE_CTOR_NO_REGISTER(ES5ArrayTypeHandlerBaseWithExternal, ES5ArrayTypeHandlerBase<T>);
++
++        ES5ArrayTypeHandlerBaseWithExternal(Recycler* recycler):
++          ES5ArrayTypeHandlerBase<T>(recycler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++
++        ES5ArrayTypeHandlerBaseWithExternal(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots):
++          ES5ArrayTypeHandlerBase<T>(recycler, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++
+     private:
+         ES5ArrayTypeHandlerBaseWithExternal(Recycler * recycler,
+-          ES5ArrayTypeHandlerBase<T>* sth): ES5ArrayTypeHandlerBase<T>(recycler, sth) { }
++          ES5ArrayTypeHandlerBase<T>* sth): ES5ArrayTypeHandlerBase<T>(recycler, sth) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+ 
+     public:
+         DEFINE_HANDLERWITHEXTERNAL_INTERFACE(ES5ArrayTypeHandlerBase<T>, ES5ArrayTypeHandlerBaseWithExternal<T>)
+diff --git a/lib/Runtime/Types/MissingPropertyTypeHandler.h b/lib/Runtime/Types/MissingPropertyTypeHandler.h
+index 9f94045d7..fc3313ab9 100644
+--- a/lib/Runtime/Types/MissingPropertyTypeHandler.h
++++ b/lib/Runtime/Types/MissingPropertyTypeHandler.h
+@@ -80,7 +80,6 @@ namespace Js
+         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
+ 
+     public:
+-        virtual bool HasExternalDataSupport() override { return false; }
+         virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
+ 
+ #if ENABLE_TTD
+@@ -101,13 +100,12 @@ namespace Js
+     {
+     public:
+         DEFINE_GETCPPNAME();
++        MissingPropertyTypeHandlerWithExternal():
++            MissingPropertyTypeHandler() { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+ 
+     private:
+-        MissingPropertyTypeHandlerWithExternal(Recycler * recycler, MissingPropertyTypeHandler *base)
+-        {
+-            fprintf(stderr, "How this happened? MissingPropertyTypeHandler doesn't really convert to external!");
+-            abort();
+-        }
++        MissingPropertyTypeHandlerWithExternal(Recycler * recycler, MissingPropertyTypeHandler *base):
++            MissingPropertyTypeHandler() { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+ 
+     public:
+         DEFINE_HANDLERWITHEXTERNAL_INTERFACE(MissingPropertyTypeHandler, MissingPropertyTypeHandlerWithExternal)
+diff --git a/lib/Runtime/Types/NullTypeHandler.cpp b/lib/Runtime/Types/NullTypeHandler.cpp
+index 1b28789e1..00d3cb804 100644
+--- a/lib/Runtime/Types/NullTypeHandler.cpp
++++ b/lib/Runtime/Types/NullTypeHandler.cpp
+@@ -265,7 +265,7 @@ namespace Js
+         AssertMsg(false, "Not Supported!");
+         Throw::FatalInternalError();
+     }
+-    
++
+     template<bool IsPrototypeTemplate>
+     DynamicTypeHandler* NullTypeHandler<IsPrototypeTemplate>::ConvertToExternalDataSupport(Recycler* recycler)
+     {
+@@ -359,4 +359,13 @@ namespace Js
+ 
+     template class NullTypeHandler<false>;
+     template class NullTypeHandler<true>;
++
++    template<bool IsPrototypeTemplate>
++    NullTypeHandlerWithExternal<IsPrototypeTemplate> NullTypeHandlerWithExternal<IsPrototypeTemplate>::defaultInstanceWithExternal;
++
++    template<bool IsPrototypeTemplate>
++    NullTypeHandlerWithExternal<IsPrototypeTemplate> * NullTypeHandlerWithExternal<IsPrototypeTemplate>::GetDefaultInstanceWithExternal() { return &defaultInstanceWithExternal; }
++
++    template class NullTypeHandlerWithExternal<false>;
++    template class NullTypeHandlerWithExternal<true>;
+ }
+diff --git a/lib/Runtime/Types/NullTypeHandler.h b/lib/Runtime/Types/NullTypeHandler.h
+index 8dc580429..fcd62fd24 100644
+--- a/lib/Runtime/Types/NullTypeHandler.h
++++ b/lib/Runtime/Types/NullTypeHandler.h
+@@ -80,7 +80,7 @@ namespace Js
+         BOOL AddProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects);
+         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
+     };
+-    
++
+     template <bool IsPrototypeTemplate> class NullTypeHandlerWithExternal;
+ 
+     template <bool IsPrototypeTemplate>
+@@ -98,6 +98,7 @@ namespace Js
+ 
+     public:
+         static NullTypeHandler * GetDefaultInstance();
++
+         virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
+ 
+ #if ENABLE_TTD
+@@ -113,19 +114,26 @@ namespace Js
+         }
+ #endif
+     };
+-    
++
+     template <bool IsPrototypeTemplate>
+     class NullTypeHandlerWithExternal sealed : public NullTypeHandler<IsPrototypeTemplate>
+     {
+     public:
+         DEFINE_GETCPPNAME();
+-        
++
+     private:
+-        NullTypeHandlerWithExternal(Recycler * recycler, NullTypeHandler<IsPrototypeTemplate> * base): NullTypeHandler<IsPrototypeTemplate>() { }
+-    
++        NullTypeHandlerWithExternal<IsPrototypeTemplate>():
++            NullTypeHandler<IsPrototypeTemplate>() { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++
++        NullTypeHandlerWithExternal(Recycler * recycler, NullTypeHandler<IsPrototypeTemplate> * base):
++            NullTypeHandler<IsPrototypeTemplate>() { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++
++        static NullTypeHandlerWithExternal defaultInstanceWithExternal;
+     public:
++        static NullTypeHandlerWithExternal * GetDefaultInstanceWithExternal();
++
+         DEFINE_HANDLERWITHEXTERNAL_INTERFACE(NullTypeHandler<IsPrototypeTemplate>, NullTypeHandlerWithExternal<IsPrototypeTemplate>)
+     };
+-    
+-    
++
++
+ }
+diff --git a/lib/Runtime/Types/PathTypeHandler.cpp b/lib/Runtime/Types/PathTypeHandler.cpp
+index 5f8ab350f..c8cc1960c 100644
+--- a/lib/Runtime/Types/PathTypeHandler.cpp
++++ b/lib/Runtime/Types/PathTypeHandler.cpp
+@@ -1231,10 +1231,15 @@ namespace Js
+                 newOffsetOfInlineSlots = sizeof(DynamicObject);
+             }
+             bool markTypeAsShared = !FixPropsOnPathTypes() || shareType;
+-            nextPath = SimplePathTypeHandler::New(scriptContext, newTypePath, newPropertyCount, newSlotCapacity, newInlineSlotCapacity, newOffsetOfInlineSlots, true, markTypeAsShared, predecessorType);
+             if (HasExternalDataSupport())
+             {
+-                nextPath = (SimplePathTypeHandler*) nextPath->ConvertToExternalDataSupport(recycler);
++                nextPath = PathTypeHandlerWithExternal<SimplePathTypeHandler>::New(scriptContext,
++                  newTypePath, newPropertyCount, newSlotCapacity, newInlineSlotCapacity, newOffsetOfInlineSlots, true, markTypeAsShared, predecessorType);
++            }
++            else
++            {
++                nextPath = SimplePathTypeHandler::New(scriptContext, newTypePath,
++                  newPropertyCount, newSlotCapacity, newInlineSlotCapacity, newOffsetOfInlineSlots, true, markTypeAsShared, predecessorType);
+             }
+ 
+             if (!markTypeAsShared) nextPath->SetMayBecomeShared();
+diff --git a/lib/Runtime/Types/PathTypeHandler.h b/lib/Runtime/Types/PathTypeHandler.h
+index 51055cf57..25f769ee0 100644
+--- a/lib/Runtime/Types/PathTypeHandler.h
++++ b/lib/Runtime/Types/PathTypeHandler.h
+@@ -7,12 +7,14 @@
+ namespace Js
+ {
+     class SimplePathTypeHandler;
++    template<class T> class PathTypeHandlerWithExternal;
+ 
+     class PathTypeHandlerBase : public DynamicTypeHandler
+     {
+         friend class DynamicObject;
+         friend class SimplePathTypeHandler;
+         friend class PathTypeHandler;
++        template<class T> friend class PathTypeHandlerWithExternal;
+     private:
+         Field(TypePath*) typePath;
+         Field(DynamicType*) predecessorType; // Strong reference to predecessor type so that predecessor types remain in the cache even though they might not be used
+@@ -225,6 +227,7 @@ namespace Js
+ 
+     class SimplePathTypeHandler : public PathTypeHandlerBase
+     {
++        template<class T> friend class PathTypeHandlerWithExternal;
+     private:
+         Field(const PropertyRecord *) successorPropertyRecord;
+         Field(RecyclerWeakReference<DynamicType> *) successorTypeWeakRef;
+@@ -260,6 +263,7 @@ namespace Js
+     class PathTypeHandler : public PathTypeHandlerBase
+     {
+         friend class SimplePathTypeHandler;
++        template<class T> friend class PathTypeHandlerWithExternal;
+ 
+     private:
+         typedef JsUtil::WeakReferenceDictionary<PropertyId, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> PropertySuccessorsMap;
+@@ -300,7 +304,14 @@ namespace Js
+         DEFINE_GETCPPNAME();
+ 
+     private:
+-        PathTypeHandlerWithExternal(Recycler * recycler, T *base): T(recycler, base) { }
++        PathTypeHandlerWithExternal(Recycler * recycler, T *base): T(recycler, base)
++        { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++
++        PathTypeHandlerWithExternal(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr)
++        : T(typePath, pathLength, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared, predecessorType)
++        {
++            DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this)
++        }
+ 
+     protected:
+         virtual bool GetSuccessor(const PropertyRecord* propertyRecord, RecyclerWeakReference<DynamicType> ** typeWeakRef) override;
+@@ -314,5 +325,19 @@ namespace Js
+         virtual void VerifyInlineSlotCapacityIsLocked(bool startFromRoot) override;
+ 
+         DEFINE_HANDLERWITHEXTERNAL_INTERFACE(T, PathTypeHandlerWithExternal<T>);
++
++        static PathTypeHandlerWithExternal<T> * New(ScriptContext * scriptContext, TypePath* typePath,
++          uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr)
++        {
++            return RecyclerNew(scriptContext->GetRecycler(), PathTypeHandlerWithExternal<T>,
++              typePath, pathLength, max(pathLength, inlineSlotCapacity), inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared, predecessorType);
++        }
++
++        static PathTypeHandlerWithExternal<T> * New(ScriptContext * scriptContext, TypePath* typePath,
++          uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr)
++        {
++            return RecyclerNew(scriptContext->GetRecycler(), PathTypeHandlerWithExternal<T>,
++              typePath, pathLength, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared, predecessorType);
++        }
+     };
+ }
+diff --git a/lib/Runtime/Types/RecyclableObject.h b/lib/Runtime/Types/RecyclableObject.h
+index 82343cb53..db774385d 100644
+--- a/lib/Runtime/Types/RecyclableObject.h
++++ b/lib/Runtime/Types/RecyclableObject.h
+@@ -266,6 +266,7 @@ namespace Js {
+         virtual PropertyId GetPropertyId(PropertyIndex index) { return Constants::NoProperty; }
+         virtual PropertyId GetPropertyId(BigPropertyIndex index) { return Constants::NoProperty; }
+         virtual PropertyIndex GetPropertyIndex(PropertyId propertyId) { return Constants::NoSlot; }
++        virtual PropertyIndex GetPropertyIndex(const PropertyRecord* propertyRecord) { return Constants::NoSlot; }
+         virtual int GetPropertyCount() { return 0; }
+         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId);
+         virtual BOOL HasOwnProperty( PropertyId propertyId);
+diff --git a/lib/Runtime/Types/SimpleDictionaryTypeHandler.cpp b/lib/Runtime/Types/SimpleDictionaryTypeHandler.cpp
+index 1e7a3c004..c8f91316e 100644
+--- a/lib/Runtime/Types/SimpleDictionaryTypeHandler.cpp
++++ b/lib/Runtime/Types/SimpleDictionaryTypeHandler.cpp
+@@ -462,7 +462,7 @@ namespace Js
+         U* newTypeHandler = RecyclerNew(recycler, U, recycler, GetSlotCapacity(), GetInlineSlotCapacity(), GetOffsetOfInlineSlots());
+         // We expect the new type handler to start off marked as having only writable data properties.
+         Assert(newTypeHandler->GetHasOnlyWritableDataProperties());
+-        if (instance->GetTypeHandler()->HasExternalDataSupport())
++        if (instance->GetTypeHandler()->HasExternalDataSupport() && !newTypeHandler->HasExternalDataSupport())
+         {
+             newTypeHandler = (U*) newTypeHandler->ConvertToExternalDataSupport(recycler);
+         }
+diff --git a/lib/Runtime/Types/SimpleDictionaryTypeHandler.h b/lib/Runtime/Types/SimpleDictionaryTypeHandler.h
+index 3d2e0cbbd..81d499385 100644
+--- a/lib/Runtime/Types/SimpleDictionaryTypeHandler.h
++++ b/lib/Runtime/Types/SimpleDictionaryTypeHandler.h
+@@ -333,9 +333,16 @@ namespace Js
+     public:
+         DEFINE_GETCPPNAME();
+ 
++        SimpleDictionaryTypeHandlerBaseWithExternal(Recycler * recycler):
++            SimpleDictionaryTypeHandlerBaseTypeDef(recycler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++        SimpleDictionaryTypeHandlerBaseWithExternal(Recycler * recycler, int slotCapacity,
++          uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false):
++            SimpleDictionaryTypeHandlerBaseTypeDef(recycler, slotCapacity,
++              inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++
+     private:
+         SimpleDictionaryTypeHandlerBaseWithExternal(Recycler * recycler, SimpleDictionaryTypeHandlerBaseTypeDef * base):
+-          SimpleDictionaryTypeHandlerBaseTypeDef(recycler, base) { }
++          SimpleDictionaryTypeHandlerBaseTypeDef(recycler, base) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+ 
+     public:
+         DEFINE_HANDLERWITHEXTERNAL_INTERFACE(SimpleDictionaryTypeHandlerBaseTypeDef,
+diff --git a/lib/Runtime/Types/SimpleTypeHandler.cpp b/lib/Runtime/Types/SimpleTypeHandler.cpp
+index 7f06e7923..7348d2721 100644
+--- a/lib/Runtime/Types/SimpleTypeHandler.cpp
++++ b/lib/Runtime/Types/SimpleTypeHandler.cpp
+@@ -102,7 +102,7 @@ namespace Js
+ #endif
+ 
+         T* newTypeHandler = RecyclerNew(recycler, T, recycler, SimpleTypeHandler<size>::GetSlotCapacity(), GetInlineSlotCapacity(), GetOffsetOfInlineSlots());
+-        if (instance->GetTypeHandler()->HasExternalDataSupport())
++        if (instance->GetTypeHandler()->HasExternalDataSupport() && !newTypeHandler->HasExternalDataSupport())
+         {
+             newTypeHandler = (T*) newTypeHandler->ConvertToExternalDataSupport(recycler);
+         }
+@@ -143,7 +143,16 @@ namespace Js
+     template<size_t size>
+     DictionaryTypeHandler* SimpleTypeHandler<size>::ConvertToDictionaryType(DynamicObject* instance)
+     {
+-        DictionaryTypeHandler* newTypeHandler = ConvertToTypeHandler<DictionaryTypeHandler>(instance);
++        DictionaryTypeHandler* newTypeHandler;
++
++        if (HasExternalDataSupport())
++        {
++            newTypeHandler = ConvertToTypeHandler<DictionaryTypeHandlerWithExternal>(instance);
++        }
++        else
++        {
++            newTypeHandler = ConvertToTypeHandler<DictionaryTypeHandler>(instance);
++        }
+ 
+ #ifdef PROFILE_TYPES
+         instance->GetScriptContext()->convertSimpleToDictionaryCount++;
+@@ -154,7 +163,15 @@ namespace Js
+     template<size_t size>
+     SimpleDictionaryTypeHandler* SimpleTypeHandler<size>::ConvertToSimpleDictionaryType(DynamicObject* instance)
+     {
+-        SimpleDictionaryTypeHandler* newTypeHandler = ConvertToTypeHandler<SimpleDictionaryTypeHandler >(instance);
++        SimpleDictionaryTypeHandler* newTypeHandler;
++        if (HasExternalDataSupport())
++        {
++            newTypeHandler = ConvertToTypeHandler<SimpleDictionaryTypeHandlerWithExternal >(instance);
++        }
++        else
++        {
++            newTypeHandler = ConvertToTypeHandler<SimpleDictionaryTypeHandler >(instance);
++        }
+ 
+ #ifdef PROFILE_TYPES
+         instance->GetScriptContext()->convertSimpleToSimpleDictionaryCount++;
+@@ -165,7 +182,16 @@ namespace Js
+     template<size_t size>
+     ES5ArrayTypeHandler* SimpleTypeHandler<size>::ConvertToES5ArrayType(DynamicObject* instance)
+     {
+-        ES5ArrayTypeHandler* newTypeHandler = ConvertToTypeHandler<ES5ArrayTypeHandler>(instance);
++        ES5ArrayTypeHandler* newTypeHandler;
++
++        if (HasExternalDataSupport())
++        {
++            newTypeHandler = ConvertToTypeHandler<ES5ArrayTypeHandlerWithExternal>(instance);
++        }
++        else
++        {
++            newTypeHandler = ConvertToTypeHandler<ES5ArrayTypeHandler>(instance);
++        }
+ 
+ #ifdef PROFILE_TYPES
+         instance->GetScriptContext()->convertSimpleToDictionaryCount++;
+@@ -1139,9 +1165,25 @@ namespace Js
+         TTDAssert(false, "We found this during enum so what is going on here?");
+         return Js::Constants::NoBigSlot;
+     }
+-
+ #endif
+ 
++    template<size_t size>
++    SimpleTypeHandlerWithExternal<size>::SimpleTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG_TYPE(const PropertyRecord* id),
++      PropertyAttributes attributes, PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
++      SimpleTypeHandler<size>(NO_WRITE_BARRIER_TAG(id), attributes, propertyTypes, inlineSlotCapacity, offsetOfInlineSlots)
++    {
++        DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this)
++    }
++
++    template<size_t size>
++    SimpleTypeHandlerWithExternal<size>::SimpleTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG_TYPE(SimplePropertyDescriptor const
++      (&SharedFunctionPropertyDescriptors)[size]), PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
++      SimpleTypeHandler<size>(NO_WRITE_BARRIER_TAG(SharedFunctionPropertyDescriptors), propertyTypes, inlineSlotCapacity, offsetOfInlineSlots)
++    {
++        DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this)
++    }
++
++
+     template class SimpleTypeHandler<1>;
+     template class SimpleTypeHandler<2>;
+     template class SimpleTypeHandler<6>;
+diff --git a/lib/Runtime/Types/SimpleTypeHandler.h b/lib/Runtime/Types/SimpleTypeHandler.h
+index ad47bf27a..98fa5adc9 100644
+--- a/lib/Runtime/Types/SimpleTypeHandler.h
++++ b/lib/Runtime/Types/SimpleTypeHandler.h
+@@ -20,7 +20,7 @@ namespace Js
+     public:
+         DEFINE_GETCPPNAME();
+ 
+-    private:
++    protected:
+         SimpleTypeHandler(Recycler*);        // only used by NullTypeHandler
+         SimpleTypeHandler(SimpleTypeHandler<size> * typeHandler);
+         DEFINE_VTABLE_CTOR_NO_REGISTER(SimpleTypeHandler, DynamicTypeHandler);
+@@ -120,12 +120,27 @@ namespace Js
+     public:
+         DEFINE_GETCPPNAME();
+ 
++        SimpleTypeHandlerWithExternal(
++          NO_WRITE_BARRIER_TAG_TYPE(const PropertyRecord* pid),
++          PropertyAttributes attributes = PropertyNone,
++              PropertyTypes propertyTypes = PropertyTypesNone, uint16 inlineSlotCapacity = 0, uint16 offsetOfInlineSlots = 0);
++
++        SimpleTypeHandlerWithExternal(NO_WRITE_BARRIER_TAG_TYPE(SimplePropertyDescriptor const
++          (&SharedFunctionPropertyDescriptors)[size]), PropertyTypes propertyTypes = PropertyTypesNone, uint16 inlineSlotCapacity = 0, uint16 offsetOfInlineSlots = 0);
++
++        DEFINE_VTABLE_CTOR_NO_REGISTER(SimpleTypeHandlerWithExternal, SimpleTypeHandler<size>);
++
+     private:
+-        SimpleTypeHandlerWithExternal(Recycler * recycler, SimpleTypeHandler<size>* sth):
+-          SimpleTypeHandler<size>(sth) { }
++        SimpleTypeHandlerWithExternal(Recycler * recycler, SimpleTypeHandler<size>* sth) : SimpleTypeHandler<size>(sth) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++
++        SimpleTypeHandlerWithExternal(Recycler * recycler) : SimpleTypeHandler<size>(recycler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
++
++        SimpleTypeHandlerWithExternal(SimpleTypeHandlerWithExternal<size> * typeHandler) : SimpleTypeHandler<size>(typeHandler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+ 
+     public:
+         DEFINE_HANDLERWITHEXTERNAL_INTERFACE(SimpleTypeHandler<size>, SimpleTypeHandlerWithExternal<size>)
+     };
+ 
++    typedef SimpleTypeHandlerWithExternal<1> SimpleTypeHandlerWithExternalSize1;
++    typedef SimpleTypeHandlerWithExternal<2> SimpleTypeHandlerWithExternalSize2;
+ }
+diff --git a/lib/Runtime/Types/TypeHandler.cpp b/lib/Runtime/Types/TypeHandler.cpp
+index c0a937529..9a1744710 100644
+--- a/lib/Runtime/Types/TypeHandler.cpp
++++ b/lib/Runtime/Types/TypeHandler.cpp
+@@ -133,9 +133,10 @@ namespace Js
+     {
+         // We should only assign a stack value only to a stack object (current mark temp number in mark temp object)
+         Assert(ThreadContext::IsOnStack(instance) || !ThreadContext::IsOnStack(value) || TaggedNumber::Is(value));
+-        uint16 inlineSlotCapacity = instance->GetTypeHandler()->GetInlineSlotCapacity();
+-        uint16 offsetOfInlineSlots = instance->GetTypeHandler()->GetOffsetOfInlineSlots();
+-        int slotCapacity = instance->GetTypeHandler()->GetSlotCapacity();
++        auto typeHandler = instance->GetTypeHandler();
++        uint16 inlineSlotCapacity = typeHandler->GetInlineSlotCapacity();
++        uint16 offsetOfInlineSlots = typeHandler->GetOffsetOfInlineSlots();
++        int slotCapacity = typeHandler->GetSlotCapacity();
+ 
+         if (index < inlineSlotCapacity)
+         {
+@@ -208,7 +209,7 @@ namespace Js
+     {
+         Assert(IsObjectHeaderInlined(GetOffsetOfInlineSlots()));
+         Assert(GetInlineSlotCapacity() >= GetObjectHeaderInlinableSlotCapacity());
+-        Assert(GetInlineSlotCapacity() == GetSlotCapacity());
++        Assert(GetInlineSlotCapacity() == GetSlotCapacity() || GetInlineSlotCapacity() + 4 /* externalData slots */ == GetSlotCapacity());
+     }
+ 
+     uint16 DynamicTypeHandler::GetOffsetOfObjectHeaderInlineSlots()
+diff --git a/lib/Runtime/Types/TypeHandler.h b/lib/Runtime/Types/TypeHandler.h
+index 25a5698a8..29b8dd840 100644
+--- a/lib/Runtime/Types/TypeHandler.h
++++ b/lib/Runtime/Types/TypeHandler.h
+@@ -161,7 +161,10 @@ namespace Js
+             return inlineSlotsToAllocate * sizeof(Var);
+         }
+ 
+-        uint16 GetOffsetOfInlineSlots() const { return this->offsetOfInlineSlots; }
++        uint16 GetOffsetOfInlineSlots() const
++        {
++            return this->offsetOfInlineSlots;
++        }
+ 
+         void EnsureSlots(DynamicObject * instance, int oldCount, int newCount, ScriptContext * scriptContext, DynamicTypeHandler * newTypeHandler = nullptr);
+ 
+@@ -648,7 +651,7 @@ namespace Js
+         virtual BOOL FreezeImpl(DynamicObject *instance, bool isConvertedType) = 0;
+ 
+     public:
+-        virtual bool HasExternalDataSupport() { Assert(this->hasExternalDataSupport == false); return false; }
++        virtual bool HasExternalDataSupport() const { Assert(this->hasExternalDataSupport == false); return false; }
+         virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) = 0;
+ 
+ #if ENABLE_TTD
+@@ -681,14 +684,14 @@ namespace Js
+     };
+ 
+ #ifdef DEBUG
+-#define DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL \
+-    baseWithExternal->hasExternalDataSupport = true;
++#define DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(base) \
++    base->hasExternalDataSupport = true;
+ #else
+-#define DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL
++#define DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(base)
+ #endif
+ 
+ #define DEFINE_HANDLERWITHEXTERNAL_INTERFACE(AA, BB) \
+-    virtual bool HasExternalDataSupport() override \
++    virtual bool HasExternalDataSupport() const override \
+     { \
+         Assert(this->hasExternalDataSupport); \
+         return true; \
+@@ -704,7 +707,7 @@ namespace Js
+     { \
+         AssertMsg(!base->HasExternalDataSupport(), "ConvertToExternalDataSupport for XXXX_WithExternal shouldn't be implemented or reached!"); \
+         AA* baseWithExternal = RecyclerNew(recycler, BB, recycler, base); \
+-        DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL \
++        DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(baseWithExternal) \
+         return baseWithExternal; \
+     }
+ 
+diff --git a/test/native-tests/CommonDefinitions.h b/test/native-tests/CommonDefinitions.h
+index 998fe9bb1..49e0b4b80 100644
+--- a/test/native-tests/CommonDefinitions.h
++++ b/test/native-tests/CommonDefinitions.h
+@@ -11,7 +11,6 @@
+ 
+ #define ERROR_INSPECT                                                   \
+     do {                                                                \
+-        bool hasException = false;                                      \
+         JsValueRef exception = nullptr, exceptionString;                \
+         JsGetAndClearException(&exception);                             \
+         if (exception) {                                                \
+diff --git a/test/native-tests/test-char/sample.cpp b/test/native-tests/test-char/sample.cpp
+index 931bf4769..f4cf74396 100644
+--- a/test/native-tests/test-char/sample.cpp
++++ b/test/native-tests/test-char/sample.cpp
+@@ -3,7 +3,23 @@
+ // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+ //-------------------------------------------------------------------------------------------------------
+ 
+-#include "../CommonDefinitions.h"
++#include "ChakraCore.h"
++#include <stdlib.h>
++#include <stdio.h>
++#include <string>
++#include <cstring>
++
++#define FAIL_CHECK(cmd)                     \
++    do                                      \
++    {                                       \
++        JsErrorCode errCode = cmd;          \
++        if (errCode != JsNoError)           \
++        {                                   \
++            printf("Error %d at '%s'\n",    \
++                errCode, #cmd);             \
++            return 1;                       \
++        }                                   \
++    } while(0)
+ 
+ using namespace std;
+ 
+diff --git a/test/native-tests/test-external-object/sample.cpp b/test/native-tests/test-external-object/sample.cpp
+index e8e9012b1..2a15e574c 100644
+--- a/test/native-tests/test-external-object/sample.cpp
++++ b/test/native-tests/test-external-object/sample.cpp
+@@ -30,11 +30,43 @@ JsValueRef addExternalDataId(JsValueRef callee, bool isConstructCall,
+     return nullptr;
+ }
+ 
++JsValueRef sameTypeHandler(JsValueRef callee, bool isConstructCall,
++    JsValueRef * arguments, unsigned short argumentCount, void * callbackState)
++{
++    bool hasExternal = false;
++    JsValueRef obj1 = arguments[1];
++    JsValueRef obj2 = arguments[2];
++
++    char * fmem1 = (char*) obj1;
++    char * fmem2 = (char*) obj2;
++
++    union MemBlock
++    {
++      void* addr;
++      char  mem[8];
++    };
++
++    MemBlock first;
++    memcpy(first.mem, fmem1, 8); // copy the address of Type
++
++    MemBlock second;
++    memcpy(second.mem, fmem2, 8); // copy the address of Type
++
++    fprintf(stderr, "First: %p Second: %p \n", first.addr, second.addr);
++
++    JsValueRef boolValue;
++    JsBoolToBoolean(second.addr == second.addr, &boolValue);
++
++    return boolValue;
++}
++
+ JsValueRef hasExternalDataId(JsValueRef callee, bool isConstructCall,
+     JsValueRef * arguments, unsigned short argumentCount, void * callbackState)
+ {
+     bool hasExternal = false;
+-    JsErrorCode code = JsObjectHasExternalData(arguments[1], &hasExternal);
++    JsValueRef obj = arguments[1];
++
++    JsErrorCode code = JsObjectHasExternalData(obj, &hasExternal);
+     if (code != JsNoError) printf("FAILED to check external data %d \n", code);
+ 
+     JsValueRef boolValue;
+@@ -71,6 +103,8 @@ int main()
+ 
+     // Each array item triggers a letter from ESS!\n on their  ExternalData finalization.
+ 
++    // First part tests type sharing among objects with externalData
++
+     // obj[.....] parts (Date.now() + a / b) are to push type fork. (so we test type handler converters)
+     // prior to setting unique property, we set CommonPropertyName to force shared type handling
+ 
+@@ -79,6 +113,18 @@ int main()
+     // object property loop is to test auxSlot expansion
+     const char* script = "\
+     (function(){\
++        var fncBase = function(nn) { this.xyz = nn; };\
++        AddExternalData(fncBase);\
++        var obj1 = new fncBase(1), obj2 = new fncBase(2);\
++        obj1.y = 1;\
++        obj2.y = 2;\
++        AddExternalData(obj1);\
++        AddExternalData(obj2);\
++        obj1.a = 1;\
++        obj2.b = 2;\
++        if (!HasExternalData(obj1)) throw new Error('HasExternalData TypeHandler transfer failed (a)');\
++        if (!HasExternalData(obj2)) throw new Error('HasExternalData TypeHandler transfer failed (b)');\
++        if (!SameTypeHandler(obj1, obj2)) throw new Error('TypeHandler sharing failed');\
+         var retVal = \"UCC\";\
+         var arr = [ {}, [], function(r) { if (!r) return \"S\"; else this.X=r; }, new Date(), new Object() ];\
+         for (var i = 0; i < arr.length; i++) {\
+@@ -128,6 +174,8 @@ int main()
+ 
+     FAIL_CHECK(AddMethodProperty(global, "GetExternalData", &getExternalDataId));
+ 
++    FAIL_CHECK(AddMethodProperty(global, "SameTypeHandler", &sameTypeHandler));
++
+     // Run the script.
+     FAIL_CHECK(JsRun(scriptSource, currentSourceContext++, fname, JsParseScriptAttributeNone, &result));
+ 

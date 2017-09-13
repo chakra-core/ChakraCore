@@ -52,10 +52,20 @@ namespace Js
         friend class NullTypeHandlerBase;
         friend class DeferredTypeHandlerBase;
         friend class PathTypeHandlerBase;
+        template<class T>
+        friend class PathTypeHandlerWithExternal;
         template<size_t size>
         friend class SimpleTypeHandler;
-
-        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryTypeHandlerBase;
+        template<size_t size>
+        friend class SimpleTypeHandlerWithExternal;
+        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+        friend class SimpleDictionaryTypeHandlerBase;
+        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+        friend class SimpleDictionaryTypeHandlerBaseWithExternal;
+        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+        friend class SimpleDictionaryUnorderedTypeHandler;
+        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+        friend class SimpleDictionaryUnorderedTypeHandlerWithExternal;
 
         // Explicit non leaf allocator now that the key is non-leaf
         typedef JsUtil::BaseDictionary<TMapKey, SimpleDictionaryPropertyDescriptor<TPropertyIndex>, RecyclerNonLeafAllocator, DictionarySizePolicy<PowerOf2Policy, 1>, PropertyRecordStringHashComparer, PropertyMapKeyTraits<TMapKey>::template Entry>
@@ -86,7 +96,9 @@ namespace Js
         SimpleDictionaryTypeHandlerBase(Recycler * recycler);
         SimpleDictionaryTypeHandlerBase(Recycler * recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false);
         SimpleDictionaryTypeHandlerBase(ScriptContext * scriptContext, SimplePropertyDescriptor const* propertyDescriptors, int propertyCount, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false);
+        SimpleDictionaryTypeHandlerBase(Recycler * recycler, SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>* base);
         SimpleDictionaryTypeHandlerBase(Recycler* recycler, int slotCapacity, int propertyCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false);
+
         DEFINE_VTABLE_CTOR_NO_REGISTER(SimpleDictionaryTypeHandlerBase, DynamicTypeHandler);
 
         typedef PropertyIndexRanges<TPropertyIndex> PropertyIndexRangesType;
@@ -309,6 +321,31 @@ namespace Js
 
         virtual Js::BigPropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord) override;
 #endif
+    public:
+        virtual DynamicTypeHandler* ConvertToExternalDataSupport(Recycler* recycler) override;
     };
 
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    class SimpleDictionaryTypeHandlerBaseWithExternal sealed : public SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>
+    {
+        typedef SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported> SimpleDictionaryTypeHandlerBaseTypeDef;
+        typedef SimpleDictionaryTypeHandlerBaseWithExternal<TPropertyIndex, TMapKey, IsNotExtensibleSupported> SimpleDictionaryTypeHandlerBaseWithExternalTypeDef;
+    public:
+        DEFINE_GETCPPNAME();
+
+        SimpleDictionaryTypeHandlerBaseWithExternal(Recycler * recycler):
+            SimpleDictionaryTypeHandlerBaseTypeDef(recycler) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+        SimpleDictionaryTypeHandlerBaseWithExternal(Recycler * recycler, int slotCapacity,
+          uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false):
+            SimpleDictionaryTypeHandlerBaseTypeDef(recycler, slotCapacity,
+              inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+    private:
+        SimpleDictionaryTypeHandlerBaseWithExternal(Recycler * recycler, SimpleDictionaryTypeHandlerBaseTypeDef * base):
+          SimpleDictionaryTypeHandlerBaseTypeDef(recycler, base) { DEBUG_CHECKS_FOR_HANDLER_WITH_EXTERNAL(this) }
+
+    public:
+        DEFINE_HANDLERWITHEXTERNAL_INTERFACE(SimpleDictionaryTypeHandlerBaseTypeDef,
+          SimpleDictionaryTypeHandlerBaseWithExternalTypeDef)
+    };
 }

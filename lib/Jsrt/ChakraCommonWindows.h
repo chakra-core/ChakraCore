@@ -364,4 +364,48 @@
             _Outptr_result_buffer_(*stringLength) const wchar_t **stringValue,
             _Out_ size_t *stringLength);
 
+    /// <summary>
+    ///     Determines whether an object is an external object.
+    /// </summary>
+    /// <param name="object">The object.</param>
+    /// <param name="value">Whether the object is an external object.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsHasExternalData(
+            _In_ JsValueRef object,
+            _Out_ bool *value);
+
+    /// <summary>
+    ///     Retrieves the data from an external object.
+    /// </summary>
+    /// <param name="object">The external object.</param>
+    /// <param name="externalData">
+    ///     The external data stored in the object. Can be null if no external data is stored in the
+    ///     object.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetExternalData(
+            _In_ JsValueRef object,
+            _Out_ void **externalData);
+
+    /// <summary>
+    ///     Sets the external data on an external object.
+    /// </summary>
+    /// <param name="object">The external object.</param>
+    /// <param name="externalData">
+    ///     The external data to be stored in the object. Can be null if no external data is
+    ///     to be stored in the object.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSetExternalData(
+            _In_ JsValueRef object,
+            _In_opt_ void *externalData);
 #endif // _CHAKRACOMMONWINDOWS_H_
