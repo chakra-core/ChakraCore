@@ -32,11 +32,11 @@ for (const folder of folders) {
 }
 
 function hostFlags(specFile) {
-  return `-wasm -args ${slash(path.relative(rlRoot, specFile))} -endargs`;
+  return `-wasm -args ${slash(specFile.relative)} -endargs`;
 }
 
 function getBaselinePath(specFile) {
-  return `${slash(path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, path.extname(specFile)))))}.baseline`;
+  return `${slash(path.relative(rlRoot, path.join(baselineDir, specFile.basename)))}.baseline`;
 }
 
 function removePossiblyEmptyFolder(folder) {
@@ -90,7 +90,13 @@ function main() {
           ) &&
           !config.excludes.includes(basename)
         ) {
-          specFiles.push(item.path);
+          specFiles.push({
+            path: item.path,
+            basename,
+            ext,
+            dirname: path.dirname(item.path),
+            relative: path.relative(rlRoot, item.path)
+          });
         }
       })
       .on("end", () => {
@@ -98,30 +104,55 @@ function main() {
       });
   }), [])
   ).then(specFiles => {
+    // Verify that no 2 file have the same name. We use the name as key even if they're in different folders
+    const map = {};
+    for (const file of specFiles) {
+      if (map[file.basename]) {
+        throw new Error(`Duplicate filename entry
+original : ${map[file.basename].path}
+duplicate: ${file.path}`);
+      }
+      map[file.basename] = file;
+    }
+    return specFiles;
+  }).then(specFiles => {
     const runners = {
       ".wast": "spec.js",
       ".js": "jsapi.js",
     };
     runs = specFiles.map(specFile => {
-      const ext = path.extname(specFile);
-      const basename = path.basename(specFile, ext);
+      const ext = specFile.ext;
+      const basename = specFile.basename;
+      const dirname = path.dirname(specFile.path);
 
-      const isXplatExcluded = config["xplat-excludes"].indexOf(path.basename(specFile, ext)) !== -1;
+      const useFeature = (allowRequired, feature) => !(allowRequired ^ feature.required) && (
+        (feature.files || []).includes(basename) ||
+        (feature.folders || []).map(folder => path.join(rlRoot, folder)).includes(dirname)
+      );
+
+      const isXplatExcluded = config["xplat-excludes"].indexOf(basename) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
       const runner = runners[ext];
+
+      const requiredFeature = config.features
+        // Use first required feature found
+        .filter(useFeature.bind(null, true))[0] ||
+        // Or use default
+        {rltags: [], flags: []};
+
       const tests = [{
         runner,
-        tags: [],
+        tags: [].concat(requiredFeature.rltags || []),
         baseline,
-        flags: [flags]
+        flags: [flags].concat(requiredFeature.flags || [])
       }, {
         runner,
-        tags: ["exclude_dynapogo"],
+        tags: ["exclude_dynapogo"].concat(requiredFeature.rltags || []),
         baseline,
-        flags: [flags, "-nonative"]
+        flags: [flags, "-nonative"].concat(requiredFeature.flags || [])
       }].concat(config.features
-        .filter(feature => feature.files.includes(basename))
+        .filter(useFeature.bind(null, false))
         .map(feature => ({
           runner,
           baseline,

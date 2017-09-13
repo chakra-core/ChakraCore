@@ -2,7 +2,9 @@
   "folders": [
     "chakra",
     "testsuite/core",
-    "testsuite/js-api"
+    "testsuite/js-api",
+
+    "features/extends"
   ],
   "features": [{
     "flags": ["-wasmfastarray-"],
@@ -24,6 +26,12 @@
       "chakra_i32",
       "chakra_i64",
       "traps"
+    ]
+  }, {
+    "required": true,
+    "flags": ["-wasmSignExtend2"],
+    "folders": [
+      "features/extends"
     ]
   }],
   "excludes": [
