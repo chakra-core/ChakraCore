@@ -76,7 +76,7 @@ function extractModule(moduleNode) {
 }
 
 module.exports = function(src, suite) {
-  const originalI64Wast = path.resolve(suite, "core", `${src}.wast`);
+  const originalI64Wast = path.resolve(suite, `${src}.wast`);
   const originalContent = fs.readFileSync(originalI64Wast).toString();
   return new Promise((resolve, reject) => {
     let id = 0;

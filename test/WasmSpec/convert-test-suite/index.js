@@ -5,24 +5,20 @@
 /* eslint-env node */
 const path = require("path");
 const fs = require("fs-extra");
+const bluebird = require("bluebird");
 const {spawn} = require("child_process");
 const slash = require("slash");
 
+bluebird.promisifyAll(fs);
 const config = require("./config.json");
-const rlRoot = path.join(__dirname, "..");
+const rlRoot = path.resolve(__dirname, "..");
+const folders = config.folders.map(folder => path.resolve(rlRoot, folder));
 const baselineDir = path.join(rlRoot, "baselines");
 
 const argv = require("yargs")
   .help()
   .alias("help", "h")
   .options({
-    suite: {
-      string: true,
-      alias: "s",
-      description: "Path to the test suite",
-      default: path.join(rlRoot, "testsuite"),
-      demand: true,
-    },
     rebase: {
       string: true,
       description: "Path to host to run the test create/update the baselines"
@@ -31,7 +27,9 @@ const argv = require("yargs")
   .argv;
 
 // Make sure all arguments are valid
-fs.statSync(argv.suite).isDirectory();
+for (const folder of folders) {
+  fs.statSync(folder).isDirectory();
+}
 
 function hostFlags(specFile) {
   return `-wasm -args ${slash(path.relative(rlRoot, specFile))} -endargs`;
@@ -53,18 +51,17 @@ function removePossiblyEmptyFolder(folder) {
   });
 }
 
-function main() {
-  const chakraTestsDestination = path.join(argv.suite, "chakra");
-  const chakraTests = require("./generateTests");
+function generateChakraTests() {
+  const chakraTestsDestination = path.join(rlRoot, "chakra");
+  const coreTests = path.join(rlRoot, "testsuite", "core");
 
-  return Promise.all([
-    removePossiblyEmptyFolder(chakraTestsDestination),
-  ]).then(() => {
-    fs.ensureDirSync(chakraTestsDestination);
-    return Promise.all(chakraTests.map(test => test.getContent(argv.suite)
-      .then(content => new Promise((resolve, reject) => {
+  const chakraTests = require("./generateTests");
+  return removePossiblyEmptyFolder(chakraTestsDestination)
+    .then(() => fs.ensureDirAsync(chakraTestsDestination))
+    .then(() => Promise.all(chakraTests.map(test => test.getContent(coreTests)
+      .then(content => {
         if (!content) {
-          return resolve();
+          return;
         }
         const testPath = path.join(chakraTestsDestination, `${test.name}.wast`);
         const copyrightHeader =
@@ -73,22 +70,25 @@ function main() {
 ;; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 ;;-------------------------------------------------------------------------------------------------------
 `;
-        fs.writeFile(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`, err => {
-          if (err) {
-            return reject(err);
-          }
-          console.log(`Generated ${testPath}`);
-          return resolve(testPath);
-        });
-      }))));
-  }).then(chakraTests => new Promise((resolve) => {
-    const specFiles = [...chakraTests];
-    fs.walk(path.join(argv.suite, "core"))
+        return fs.writeFileAsync(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`);
+      })
+    )));
+}
+
+function main() {
+  let runs;
+  return generateChakraTests(
+    // Walk all the folders to find test files
+  ).then(() => bluebird.reduce(folders, (specFiles, folder) => new Promise((resolve) => {
+    fs.walk(folder)
       .on("data", item => {
-        if (
-          path.extname(item.path) === ".wast" &&
-          item.path.indexOf(".fail") === -1 &&
-          !config.excludes.includes(path.basename(item.path, ".wast"))
+        const ext = path.extname(item.path);
+        const basename = path.basename(item.path, ext);
+        if ((
+            (ext === ".wast" && item.path.indexOf(".fail") === -1) ||
+            (ext === ".js")
+          ) &&
+          !config.excludes.includes(basename)
         ) {
           specFiles.push(item.path);
         }
@@ -96,24 +96,16 @@ function main() {
       .on("end", () => {
         resolve(specFiles);
       });
-  })).then(specFiles => new Promise((resolve) => {
-    fs.walk(path.join(argv.suite, "js-api"))
-      .on("data", item => {
-        if (path.extname(item.path) === ".js") {
-          specFiles.push(item.path);
-        }
-      })
-      .on("end", () => {
-        resolve(specFiles);
-      });
-  })).then(specFiles => {
+  }), [])
+  ).then(specFiles => {
     const runners = {
       ".wast": "spec.js",
       ".js": "jsapi.js",
     };
-    const runs = specFiles.map(specFile => {
+    runs = specFiles.map(specFile => {
       const ext = path.extname(specFile);
       const basename = path.basename(specFile, ext);
+
       const isXplatExcluded = config["xplat-excludes"].indexOf(path.basename(specFile, ext)) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
@@ -158,10 +150,8 @@ function main() {
 }
 </regress-exe>
 `);
-    return new Promise((resolve, reject) => {
-      fs.writeFile(path.join(__dirname, "..", "rlexe.xml"), rlexe, err => err ? reject(err) : resolve(runs));
-    });
-  }).then(runs => {
+    return fs.writeFileAsync(path.join(rlRoot, "rlexe.xml"), rlexe);
+  }).then(() => {
     if (!argv.rebase) {
       return;
     }

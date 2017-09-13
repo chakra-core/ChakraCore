@@ -1,4 +1,9 @@
 {
+  "folders": [
+    "chakra",
+    "testsuite/core",
+    "testsuite/js-api"
+  ],
   "features": [{
     "flags": ["-wasmfastarray-"],
     "rltags": ["exclude_x86"],
