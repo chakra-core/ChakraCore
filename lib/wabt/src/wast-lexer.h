@@ -21,10 +21,10 @@
 #include <cstdio>
 #include <memory>
 
-#include "common.h"
-#include "lexer-source-line-finder.h"
-#include "literal.h"
-#include "opcode.h"
+#include "src/common.h"
+#include "src/lexer-source-line-finder.h"
+#include "src/literal.h"
+#include "src/opcode.h"
 
 namespace wabt {
 

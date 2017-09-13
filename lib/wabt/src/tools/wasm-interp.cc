@@ -23,16 +23,19 @@
 #include <string>
 #include <vector>
 
-#include "binary-reader-interpreter.h"
-#include "binary-reader.h"
-#include "error-handler.h"
-#include "feature.h"
-#include "interpreter.h"
-#include "literal.h"
-#include "option-parser.h"
-#include "stream.h"
-#include "wast-lexer.h"
-#include "wast-parser.h"
+#include "src/binary-reader-interpreter.h"
+#include "src/binary-reader.h"
+#include "src/cast.h"
+#include "src/error-handler.h"
+#include "src/feature.h"
+#include "src/interpreter.h"
+#include "src/literal.h"
+#include "src/option-parser.h"
+#include "src/resolve-names.h"
+#include "src/stream.h"
+#include "src/validator.h"
+#include "src/wast-lexer.h"
+#include "src/wast-parser.h"
 
 using namespace wabt;
 using namespace wabt::interpreter;
@@ -166,8 +169,7 @@ static void SPrintTypedValue(char* buffer, size_t size, const TypedValue* tv) {
     }
 
     default:
-      assert(0);
-      break;
+      WABT_UNREACHABLE;
   }
 }
 
@@ -344,12 +346,12 @@ static interpreter::Result DefaultHostCallback(
 
 class SpectestHostImportDelegate : public HostImportDelegate {
  public:
-  wabt::Result ImportFunc(interpreter::Import* import,
+  wabt::Result ImportFunc(interpreter::FuncImport* import,
                           interpreter::Func* func,
                           interpreter::FuncSignature* func_sig,
                           const ErrorCallback& callback) override {
     if (import->field_name == "print") {
-      func->as_host()->callback = DefaultHostCallback;
+      cast<HostFunc>(func)->callback = DefaultHostCallback;
       return wabt::Result::Ok;
     } else {
       PrintError(callback, "unknown host function import " PRIimport,
@@ -358,7 +360,7 @@ class SpectestHostImportDelegate : public HostImportDelegate {
     }
   }
 
-  wabt::Result ImportTable(interpreter::Import* import,
+  wabt::Result ImportTable(interpreter::TableImport* import,
                            interpreter::Table* table,
                            const ErrorCallback& callback) override {
     if (import->field_name == "table") {
@@ -373,7 +375,7 @@ class SpectestHostImportDelegate : public HostImportDelegate {
     }
   }
 
-  wabt::Result ImportMemory(interpreter::Import* import,
+  wabt::Result ImportMemory(interpreter::MemoryImport* import,
                             interpreter::Memory* memory,
                             const ErrorCallback& callback) override {
     if (import->field_name == "memory") {
@@ -389,7 +391,7 @@ class SpectestHostImportDelegate : public HostImportDelegate {
     }
   }
 
-  wabt::Result ImportGlobal(interpreter::Import* import,
+  wabt::Result ImportGlobal(interpreter::GlobalImport* import,
                             interpreter::Global* global,
                             const ErrorCallback& callback) override {
     if (import->field_name == "global") {
@@ -474,7 +476,7 @@ struct Action {
 };
 
 // An extremely simple JSON parser that only knows how to parse the expected
-// format from wast2wasm.
+// format from wat2wasm.
 class SpecJSONParser {
  public:
   SpecJSONParser() : thread_(&env_, s_thread_options) {}
@@ -559,12 +561,6 @@ class SpecJSONParser {
   int passed_ = 0;
   int total_ = 0;
 };
-
-#define CHECK_RESULT(x)           \
-  do {                            \
-    if (Failed(x))                \
-      return wabt::Result::Error; \
-  } while (0)
 
 #define EXPECT(x) CHECK_RESULT(Expect(x))
 #define EXPECT_KEY(x) CHECK_RESULT(ExpectKey(x))
@@ -1017,7 +1013,16 @@ wabt::Result SpecJSONParser::ReadInvalidTextModule(
     ErrorHandler* error_handler) {
   std::unique_ptr<WastLexer> lexer =
       WastLexer::CreateFileLexer(module_filename);
-  wabt::Result result = ParseWast(lexer.get(), nullptr, error_handler);
+  std::unique_ptr<Script> script;
+  wabt::Result result = ParseWastScript(lexer.get(), &script, error_handler);
+  if (Succeeded(result)) {
+    wabt::Module* module = script->GetFirstModule();
+    result = ResolveNamesModule(lexer.get(), module, error_handler);
+    if (Succeeded(result)) {
+      // Don't do a full validation, just validate the function signatures.
+      result = ValidateFuncSignatures(lexer.get(), module, error_handler);
+    }
+  }
   return result;
 }
 
@@ -1043,10 +1048,9 @@ wabt::Result SpecJSONParser::ReadInvalidModule(const char* module_filename,
                                      ErrorHandlerFile::PrintHeader::Once);
       return ReadModule(module_filename, env, &error_handler, &module);
     }
-
-    default:
-      return wabt::Result::Error;
   }
+
+  WABT_UNREACHABLE;
 }
 
 wabt::Result SpecJSONParser::OnAssertMalformedCommand(string_view filename,
@@ -1175,8 +1179,7 @@ static bool TypedValuesAreEqual(const TypedValue* tv1, const TypedValue* tv2) {
     case Type::F64:
       return tv1->value.f64_bits == tv2->value.f64_bits;
     default:
-      assert(0);
-      return false;
+      WABT_UNREACHABLE;
   }
 }
 

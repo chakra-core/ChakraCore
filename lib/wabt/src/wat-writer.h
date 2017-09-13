@@ -17,19 +17,19 @@
 #ifndef WABT_WAT_WRITER_H_
 #define WABT_WAT_WRITER_H_
 
-#include "common.h"
+#include "src/common.h"
 
 namespace wabt {
 
 struct Module;
-class Writer;
+class Stream;
 
 struct WriteWatOptions {
   bool fold_exprs = false;  // Write folded expressions.
   bool inline_export = false;
 };
 
-Result WriteWat(Writer*, const Module*, const WriteWatOptions*);
+Result WriteWat(Stream*, const Module*, const WriteWatOptions*);
 
 }  // namespace wabt
 

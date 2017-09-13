@@ -22,8 +22,8 @@
 #include <vector>
 #include <unordered_map>
 
-#include "common.h"
-#include "string-view.h"
+#include "src/common.h"
+#include "src/string-view.h"
 
 namespace wabt {
 

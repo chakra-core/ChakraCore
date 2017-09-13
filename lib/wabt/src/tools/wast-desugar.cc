@@ -20,18 +20,18 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "apply-names.h"
-#include "common.h"
 #include "config.h"
-#include "error-handler.h"
-#include "feature.h"
-#include "generate-names.h"
-#include "ir.h"
-#include "option-parser.h"
-#include "stream.h"
-#include "wast-parser.h"
-#include "wat-writer.h"
-#include "writer.h"
+
+#include "src/apply-names.h"
+#include "src/common.h"
+#include "src/error-handler.h"
+#include "src/feature.h"
+#include "src/generate-names.h"
+#include "src/ir.h"
+#include "src/option-parser.h"
+#include "src/stream.h"
+#include "src/wast-parser.h"
+#include "src/wat-writer.h"
 
 using namespace wabt;
 
@@ -86,10 +86,10 @@ int ProgramMain(int argc, char** argv) {
     WABT_FATAL("unable to read %s\n", s_infile);
 
   ErrorHandlerFile error_handler(Location::Type::Text);
-  Script* script;
+  std::unique_ptr<Script> script;
   WastParseOptions parse_wast_options(s_features);
-  Result result =
-      ParseWast(lexer.get(), &script, &error_handler, &parse_wast_options);
+  Result result = ParseWastScript(lexer.get(), &script, &error_handler,
+                                  &parse_wast_options);
 
   if (Succeeded(result)) {
     Module* module = script->GetFirstModule();
@@ -103,12 +103,11 @@ int ProgramMain(int argc, char** argv) {
       result = ApplyNames(module);
 
     if (Succeeded(result)) {
-      FileWriter writer(s_outfile ? FileWriter(s_outfile) : FileWriter(stdout));
-      result = WriteWat(&writer, module, &s_write_wat_options);
+      FileStream stream(s_outfile ? FileStream(s_outfile) : FileStream(stdout));
+      result = WriteWat(&stream, module, &s_write_wat_options);
     }
   }
 
-  delete script;
   return result != Result::Ok;
 }
 

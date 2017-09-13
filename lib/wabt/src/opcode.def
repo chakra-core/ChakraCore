@@ -18,6 +18,8 @@
 #error "You must define WABT_OPCODE before including this file."
 #endif
 
+/* *** NOTE *** This list must be kept sorted so it can be binary searched */
+
 /*
  *     tr: result type
  *     t1: type of the 1st parameter
@@ -209,6 +211,19 @@ WABT_OPCODE(I64, F64, ___, 0, 0,     0xbd, I64ReinterpretF64, "i64.reinterpret/f
 WABT_OPCODE(F32, I32, ___, 0, 0,     0xbe, F32ReinterpretI32, "f32.reinterpret/i32")
 WABT_OPCODE(F64, I64, ___, 0, 0,     0xbf, F64ReinterpretI64, "f64.reinterpret/i64")
 
+WABT_OPCODE(I32, I32, ___, 0, 0,     0xC0, I32Extend8S, "i32.extend8_s")
+WABT_OPCODE(I32, I32, ___, 0, 0,     0xC1, I32Extend16S, "i32.extend16_s")
+WABT_OPCODE(I64, I64, ___, 0, 0,     0xC2, I64Extend8S, "i64.extend8_s")
+WABT_OPCODE(I64, I64, ___, 0, 0,     0xC3, I64Extend16S, "i64.extend16_s")
+WABT_OPCODE(I64, I64, ___, 0, 0,     0xC4, I64Extend32S, "i64.extend32_s")
+
+/* Interpreter-only opcodes */
+WABT_OPCODE(___, ___, ___, 0, 0,     0xe0, InterpreterAlloca, "alloca")
+WABT_OPCODE(___, ___, ___, 0, 0,     0xe1, InterpreterBrUnless, "br_unless")
+WABT_OPCODE(___, ___, ___, 0, 0,     0xe2, InterpreterCallHost, "call_host")
+WABT_OPCODE(___, ___, ___, 0, 0,     0xe3, InterpreterData, "data")
+WABT_OPCODE(___, ___, ___, 0, 0,     0xe4, InterpreterDropKeep, "drop_keep")
+
 WABT_OPCODE(I32, F32, ___, 0, 0xfc,  0x00, I32TruncSSatF32, "i32.trunc_s:sat/f32")
 WABT_OPCODE(I32, F32, ___, 0, 0xfc,  0x01, I32TruncUSatF32, "i32.trunc_u:sat/f32")
 WABT_OPCODE(I32, F64, ___, 0, 0xfc,  0x02, I32TruncSSatF64, "i32.trunc_s:sat/f64")
@@ -217,3 +232,4 @@ WABT_OPCODE(I64, F32, ___, 0, 0xfc,  0x04, I64TruncSSatF32, "i64.trunc_s:sat/f32
 WABT_OPCODE(I64, F32, ___, 0, 0xfc,  0x05, I64TruncUSatF32, "i64.trunc_u:sat/f32")
 WABT_OPCODE(I64, F64, ___, 0, 0xfc,  0x06, I64TruncSSatF64, "i64.trunc_s:sat/f64")
 WABT_OPCODE(I64, F64, ___, 0, 0xfc,  0x07, I64TruncUSatF64, "i64.trunc_u:sat/f64")
+

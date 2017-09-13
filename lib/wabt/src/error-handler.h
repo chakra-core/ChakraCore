@@ -19,8 +19,8 @@
 
 #include <string>
 
-#include "color.h"
-#include "common.h"
+#include "src/color.h"
+#include "src/common.h"
 
 namespace wabt {
 

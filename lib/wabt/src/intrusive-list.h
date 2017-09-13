@@ -19,6 +19,9 @@
 
 #include <cassert>
 #include <iterator>
+#include <memory>
+
+#include "src/make-unique.h"
 
 // This uses a similar interface as std::list, but is missing the following
 // features:
@@ -62,7 +65,7 @@ class intrusive_list {
 
   // construct/copy/destroy:
   intrusive_list();
-  explicit intrusive_list(T* node);
+  explicit intrusive_list(std::unique_ptr<T> node);
   explicit intrusive_list(T&& node);
   intrusive_list(const intrusive_list&) = delete;
   intrusive_list(intrusive_list&&);
@@ -101,20 +104,20 @@ class intrusive_list {
   void emplace_front(Args&&... args);
   template <class... Args>
   void emplace_back(Args&&... args);
-  void push_front(T* node);
+  void push_front(std::unique_ptr<T> node);
   void push_front(T&& node);
-  void push_back(T* node);
+  void push_back(std::unique_ptr<T> node);
   void push_back(T&& node);
   void pop_front();
   void pop_back();
-  T* extract_front();
-  T* extract_back();
+  std::unique_ptr<T> extract_front();
+  std::unique_ptr<T> extract_back();
 
   template <class... Args>
   iterator emplace(iterator pos, Args&&... args);
-  iterator insert(iterator pos, T* node);
+  iterator insert(iterator pos, std::unique_ptr<T> node);
   iterator insert(iterator pos, T&& node);
-  T* extract(iterator it);
+  std::unique_ptr<T> extract(iterator it);
 
   iterator erase(iterator pos);
   iterator erase(iterator first, iterator last);
@@ -266,8 +269,8 @@ template <typename T>
 inline intrusive_list<T>::intrusive_list() {}
 
 template <typename T>
-inline intrusive_list<T>::intrusive_list(T* node) {
-  push_back(node);
+inline intrusive_list<T>::intrusive_list(std::unique_ptr<T> node) {
+  push_back(std::move(node));
 }
 
 template <typename T>
@@ -410,67 +413,69 @@ inline typename intrusive_list<T>::const_reference intrusive_list<T>::back()
 template <typename T>
 template <class... Args>
 inline void intrusive_list<T>::emplace_front(Args&&... args) {
-  push_front(new T(std::forward<Args>(args)...));
+  push_front(MakeUnique<T>(std::forward<Args>(args)...));
 }
 
 template <typename T>
 template <class... Args>
 inline void intrusive_list<T>::emplace_back(Args&&... args) {
-  push_back(new T(std::forward<Args>(args)...));
+  push_back(MakeUnique<T>(std::forward<Args>(args)...));
 }
 
 template <typename T>
-inline void intrusive_list<T>::push_front(T* node) {
+inline void intrusive_list<T>::push_front(std::unique_ptr<T> node) {
   assert(node->prev_ == nullptr &&
          node->next_ == nullptr);
 
+  T* node_p = node.release();
   if (first_) {
-    node->next_ = first_;
-    first_->prev_ = node;
+    node_p->next_ = first_;
+    first_->prev_ = node_p;
   } else {
-    last_ = node;
+    last_ = node_p;
   }
-  first_ = node;
+  first_ = node_p;
   size_++;
 }
 
 template <typename T>
 inline void intrusive_list<T>::push_front(T&& node) {
-  push_front(new T(std::move(node)));
+  push_front(MakeUnique<T>(std::move(node)));
 }
 
 template <typename T>
-inline void intrusive_list<T>::push_back(T* node) {
+inline void intrusive_list<T>::push_back(std::unique_ptr<T> node) {
   assert(node->prev_ == nullptr &&
          node->next_ == nullptr);
 
+  T* node_p = node.release();
   if (last_) {
-    node->prev_ = last_;
-    last_->next_ = node;
+    node_p->prev_ = last_;
+    last_->next_ = node_p;
   } else {
-    first_ = node;
+    first_ = node_p;
   }
-  last_ = node;
+  last_ = node_p;
   size_++;
 }
 
 template <typename T>
 inline void intrusive_list<T>::push_back(T&& node) {
-  push_back(new T(std::move(node)));
+  push_back(MakeUnique<T>(std::move(node)));
 }
 
 template <typename T>
 inline void intrusive_list<T>::pop_front() {
-  delete extract_front();
+  extract_front();
 }
 
 template <typename T>
 inline void intrusive_list<T>::pop_back() {
-  delete extract_back();
+  extract_back();
 }
 
 template <typename T>
-inline T* intrusive_list<T>::extract_front() {
+inline std::unique_ptr<T> intrusive_list<T>::extract_front() {
   assert(!empty());
   T* node = first_;
   if (first_ == last_) {
@@ -481,11 +486,11 @@ inline T* intrusive_list<T>::extract_front() {
   }
   node->next_ = node->prev_ = nullptr;
   size_--;
-  return node;
+  return std::unique_ptr<T>(node);
 }
 
 template <typename T>
-inline T* intrusive_list<T>::extract_back() {
+inline std::unique_ptr<T> intrusive_list<T>::extract_back() {
   assert(!empty());
   T* node = last_;
   if (first_ == last_) {
@@ -496,7 +501,7 @@ inline T* intrusive_list<T>::extract_back() {
   }
   node->next_ = node->prev_ = nullptr;
   size_--;
-  return node;
+  return std::unique_ptr<T>(node);
 }
 
 template <typename T>
@@ -504,40 +509,43 @@ template <class... Args>
 inline typename intrusive_list<T>::iterator intrusive_list<T>::emplace(
     iterator pos,
     Args&&... args) {
-  return insert(pos, new T(std::forward<Args>(args)...));
+  return insert(pos, MakeUnique<T>(std::forward<Args>(args)...));
 }
 
 template <typename T>
 inline typename intrusive_list<T>::iterator intrusive_list<T>::insert(
     iterator pos,
-    T* node) {
+    std::unique_ptr<T> node) {
   assert(node->prev_ == nullptr &&
          node->next_ == nullptr);
 
+  T* node_p;
   if (pos == end()) {
-    push_back(node);
+    push_back(std::move(node));
+    node_p = &back();
   } else {
-    node->prev_ = pos->prev_;
-    node->next_ = &*pos;
+    node_p = node.release();
+    node_p->prev_ = pos->prev_;
+    node_p->next_ = &*pos;
     if (pos->prev_)
-      pos->prev_->next_ = node;
+      pos->prev_->next_ = node_p;
     else
-      first_ = node;
-    pos->prev_ = node;
+      first_ = node_p;
+    pos->prev_ = node_p;
     size_++;
   }
-  return iterator(*this, node);
+  return iterator(*this, node_p);
 }
 
 template <typename T>
 inline typename intrusive_list<T>::iterator intrusive_list<T>::insert(
     iterator pos,
     T&& node) {
-  return insert(pos, new T(std::move(node)));
+  return insert(pos, MakeUnique<T>(std::move(node)));
 }
 
 template <typename T>
-inline T* intrusive_list<T>::extract(iterator pos) {
+inline std::unique_ptr<T> intrusive_list<T>::extract(iterator pos) {
   assert(!empty());
   assert(pos != end());
   T* node = &*pos;
@@ -556,14 +564,14 @@ inline T* intrusive_list<T>::extract(iterator pos) {
   }
   node->next_ = node->prev_ = nullptr;
   size_--;
-  return node;
+  return std::unique_ptr<T>(node);
 }
 
 template <typename T>
 inline typename intrusive_list<T>::iterator intrusive_list<T>::erase(
     iterator pos) {
   iterator next = std::next(pos);
-  delete extract(pos);
+  extract(pos);
   return next;
 }
 

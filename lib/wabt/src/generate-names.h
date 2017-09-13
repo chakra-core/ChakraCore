@@ -17,7 +17,7 @@
 #ifndef WABT_GENERATE_NAMES_H_
 #define WABT_GENERATE_NAMES_H_
 
-#include "common.h"
+#include "src/common.h"
 
 namespace wabt {
 

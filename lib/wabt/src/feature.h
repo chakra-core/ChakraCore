@@ -17,7 +17,7 @@
 #ifndef WABT_FEATURE_H_
 #define WABT_FEATURE_H_
 
-#include "common.h"
+#include "src/common.h"
 
 namespace wabt {
 
@@ -29,13 +29,13 @@ class Features {
 
 #define WABT_FEATURE(variable, flag, help) \
   bool variable##_enabled() const { return variable##_enabled_; }
-#include "feature.def"
+#include "src/feature.def"
 #undef WABT_FEATURE
 
  private:
 #define WABT_FEATURE(variable, flag, help) \
   bool variable##_enabled_ = false;
-#include "feature.def"
+#include "src/feature.def"
 #undef WABT_FEATURE
 };
 

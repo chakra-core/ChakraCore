@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#include "opcode.h"
+#include "src/opcode.h"
 
 #include <algorithm>
 
-#include "feature.h"
+#include "src/feature.h"
 
 namespace wabt {
 
@@ -27,13 +27,13 @@ Opcode::Info Opcode::infos_[] = {
 #define WABT_OPCODE(rtype, type1, type2, mem_size, prefix, code, Name, text) \
   {text,     Type::rtype, Type::type1, Type::type2,                          \
    mem_size, prefix,      code,        PrefixCode(prefix, code)},
-#include "opcode.def"
+#include "src/opcode.def"
 #undef WABT_OPCODE
 };
 
 #define WABT_OPCODE(rtype, type1, type2, mem_size, prefix, code, Name, text) \
   /* static */ Opcode Opcode::Name##_Opcode(Opcode::Name);
-#include "opcode.def"
+#include "src/opcode.def"
 #undef WABT_OPCODE
 
 // static
@@ -94,6 +94,21 @@ bool Opcode::IsEnabled(const Features& features) const {
     case Opcode::I64TruncSSatF64:
     case Opcode::I64TruncUSatF64:
       return features.sat_float_to_int_enabled();
+
+    case Opcode::I32Extend8S:
+    case Opcode::I32Extend16S:
+    case Opcode::I64Extend8S:
+    case Opcode::I64Extend16S:
+    case Opcode::I64Extend32S:
+      return features.threads_enabled();
+
+    // Interpreter opcodes are never "enabled".
+    case Opcode::InterpreterAlloca:
+    case Opcode::InterpreterBrUnless:
+    case Opcode::InterpreterCallHost:
+    case Opcode::InterpreterData:
+    case Opcode::InterpreterDropKeep:
+      return false;
 
     default:
       return true;

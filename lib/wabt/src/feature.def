@@ -24,3 +24,4 @@
 
 WABT_FEATURE(exceptions,       "exceptions",              "Experimental exception handling")
 WABT_FEATURE(sat_float_to_int, "saturating-float-to-int", "Saturating float-to-int operators")
+WABT_FEATURE(threads,          "threads",                 "Threading support")

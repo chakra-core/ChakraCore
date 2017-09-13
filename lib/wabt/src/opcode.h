@@ -17,7 +17,7 @@
 #ifndef WABT_OPCODE_H_
 #define WABT_OPCODE_H_
 
-#include "common.h"
+#include "src/common.h"
 
 namespace wabt {
 
@@ -31,7 +31,7 @@ struct Opcode {
   enum Enum {
 #define WABT_OPCODE(rtype, type1, type2, mem_size, prefix, code, Name, text) \
   Name,
-#include "opcode.def"
+#include "src/opcode.def"
 #undef WABT_OPCODE
     Invalid,
   };
@@ -39,7 +39,7 @@ struct Opcode {
   // Static opcode objects.
 #define WABT_OPCODE(rtype, type1, type2, mem_size, prefix, code, Name, text) \
   static Opcode Name##_Opcode;
-#include "opcode.def"
+#include "src/opcode.def"
 #undef WABT_OPCODE
 
   Opcode() = default;  // Provided so Opcode can be member of a union.

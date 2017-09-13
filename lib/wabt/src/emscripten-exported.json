@@ -28,5 +28,7 @@
 "_wabt_write_module_result_get_result",
 "_wabt_write_module_result_release_log_output_buffer",
 "_wabt_write_module_result_release_output_buffer",
-"_wabt_write_text_module"
+"_wabt_write_text_module",
+"_wabt_new_text_error_handler_buffer",
+"_wabt_new_binary_error_handler_buffer"
 ]

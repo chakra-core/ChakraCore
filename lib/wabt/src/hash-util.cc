@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "hash-util.h"
+#include "src/hash-util.h"
 
 #include "config.h"
 

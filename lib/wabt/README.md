@@ -4,8 +4,8 @@
 
 WABT (we pronounce it "wabbit") is a suite of tools for WebAssembly, including:
 
- - **wast2wasm**: translate from [WebAssembly text format](http://webassembly.github.io/spec/text/index.html) to the [WebAssembly binary format](http://webassembly.github.io/spec/binary/index.html)
- - **wasm2wast**: the inverse of wast2wasm, translate from the binary format back to the text format (also known as a .wast)
+ - **wat2wasm**: translate from [WebAssembly text format](http://webassembly.github.io/spec/text/index.html) to the [WebAssembly binary format](http://webassembly.github.io/spec/binary/index.html)
+ - **wasm2wat**: the inverse of wat2wasm, translate from the binary format back to the text format (also known as a .wat)
  - **wasm-objdump**: print information about a wasm binary. Similiar to objdump.
  - **wasm-interp**: decode and run a WebAssembly binary file using a stack-based interpreter
  - **wast-desugar**: parse .wast text form as supported by the spec interpreter (s-expressions, flat syntax, or mixed) and print "canonical" flat format
@@ -24,9 +24,9 @@ target; instead they aim for full fidelity and compliance with the spec (e.g.
 
 Wabt has been compiled to JavaScript via emscripten. Some of the functionality is available in the following demos:
 
-- [index](https://cdn.rawgit.com/WebAssembly/wabt/013802ca01035365e2459c70f0508481393ac075/demo/index.html)
-- [wast2wasm](https://cdn.rawgit.com/WebAssembly/wabt/013802ca01035365e2459c70f0508481393ac075/demo/wast2wasm/)
-- [wasm2wast](https://cdn.rawgit.com/WebAssembly/wabt/013802ca01035365e2459c70f0508481393ac075/demo/wasm2wast/)
+- [index](https://cdn.rawgit.com/WebAssembly/wabt/7e56ca56/demo/index.html)
+- [wat2wasm](https://cdn.rawgit.com/WebAssembly/wabt/7e56ca56/demo/wast2wasm/)
+- [wasm2wat](https://cdn.rawgit.com/WebAssembly/wabt/7e56ca56/demo/wasm2wast/)
 
 ## Cloning
 
@@ -129,50 +129,50 @@ update-re2c` to update the prebuilt C sources in `src/prebuilt/`.
 CMake will detect if you don't have re2c installed and use the prebuilt source
 files instead.
 
-## Running wast2wasm
+## Running wat2wasm and wast2json
 
 Some examples:
 
 ```sh
-# parse and typecheck test.wast
-$ out/wast2wasm test.wast
+# parse and typecheck test.wat
+$ out/wat2wasm test.wat
 
-# parse test.wast and write to binary file test.wasm
-$ out/wast2wasm test.wast -o test.wasm
+# parse test.wat and write to binary file test.wasm
+$ out/wat2wasm test.wat -o test.wasm
 
 # parse spec-test.wast, and write verbose output to stdout (including the
 # meaning of every byte)
-$ out/wast2wasm spec-test.wast -v
+$ out/wat2wasm spec-test.wast -v
 
 # parse spec-test.wast, and write files to spec-test.json. Modules are written
 # to spec-test.0.wasm, spec-test.1.wasm, etc.
-$ out/wast2wasm spec-test.wast --spec -o spec-test.json
+$ out/wast2json spec-test.wast -o spec-test.json
 ```
 
 You can use `-h` to get additional help:
 
 ```console
-$ out/wast2wasm -h
+$ out/wat2wasm -h
 ```
 
 Or try the [online demo](https://cdn.rawgit.com/WebAssembly/wabt/013802ca01035365e2459c70f0508481393ac075/demo/wast2wasm/).
 
-## Running wasm2wast
+## Running wasm2wat
 
 Some examples:
 
 ```sh
-# parse binary file test.wasm and write s-expression file test.wast
-$ out/wasm2wast test.wasm -o test.wast
+# parse binary file test.wasm and write text file test.wat
+$ out/wasm2wat test.wasm -o test.wat
 
-# parse test.wasm and write test.wast
-$ out/wasm2wast test.wasm -o test.wast
+# parse test.wasm and write test.wat
+$ out/wasm2wat test.wasm -o test.wat
 ```
 
 You can use `-h` to get additional help:
 
 ```console
-$ out/wasm2wast -h
+$ out/wasm2wat -h
 ```
 
 Or try the [online demo](https://cdn.rawgit.com/WebAssembly/wabt/013802ca01035365e2459c70f0508481393ac075/demo/wasm2wast/).
@@ -199,11 +199,11 @@ $ out/wasm-interp test.json --spec
 $ out/wasm-interp test.wasm -V 100 --run-all-exports
 ```
 
-As a convenience, you can use `test/run-interp.py` to convert a .wast file to
+As a convenience, you can use `test/run-interp.py` to convert a .wat file to
 binary first, then run it in the interpreter:
 
 ```console
-$ test/run-interp.py --spec spec-test.wast
+$ test/run-interp.py --spec spec-test.wat
 20/20 tests.passed.
 ```
 

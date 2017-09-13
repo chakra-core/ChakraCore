@@ -22,8 +22,8 @@
 #include <string>
 #include <vector>
 
-#include "common.h"
-#include "range.h"
+#include "src/common.h"
+#include "src/range.h"
 
 namespace wabt {
 

@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-#include "utf8.h"
+#include "src/utf8.h"
 
 using namespace wabt;
 

@@ -17,7 +17,7 @@
 #ifndef WABT_BINARY_READER_LOGGING_H_
 #define WABT_BINARY_READER_LOGGING_H_
 
-#include "binary-reader.h"
+#include "src/binary-reader.h"
 
 namespace wabt {
 
@@ -235,6 +235,8 @@ class BinaryReaderLogging : public BinaryReaderDelegate {
   Result OnStackGlobal(Index stack_global) override;
   Result OnSymbolInfo(string_view name, uint32_t flags) override;
   Result OnSymbolInfoCount(Index count) override;
+  Result OnDataSize(uint32_t data_size) override;
+  Result OnDataAlignment(uint32_t data_alignment) override;
   Result EndLinkingSection() override;
 
   Result BeginExceptionSection(Offset size) override;
@@ -256,9 +258,9 @@ class BinaryReaderLogging : public BinaryReaderDelegate {
   void LogTypes(Index type_count, Type* types);
   void LogTypes(TypeVector& types);
 
-  Stream* stream;
-  BinaryReaderDelegate* reader;
-  int indent;
+  Stream* stream_;
+  BinaryReaderDelegate* reader_;
+  int indent_;
 };
 
 }  // namespace wabt

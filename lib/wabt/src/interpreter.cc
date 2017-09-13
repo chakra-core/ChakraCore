@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "interpreter.h"
+#include "src/interpreter.h"
 
 #include <algorithm>
 #include <cassert>
@@ -24,20 +24,15 @@
 #include <type_traits>
 #include <vector>
 
-#include "stream.h"
+#include "src/cast.h"
+#include "src/stream.h"
 
 namespace wabt {
 namespace interpreter {
 
-static const char* s_opcode_name[] = {
-#define WABT_OPCODE(rtype, type1, type2, mem_size, prefix, code, NAME, text) \
-  text,
-#include "interpreter-opcode.def"
-#undef WABT_OPCODE
-
-  "<invalid>",
-};
-
+// Differs from the normal CHECK_RESULT because this one is meant to return the
+// interpreter Result type.
+#undef CHECK_RESULT
 #define CHECK_RESULT(expr)  \
   do {                      \
     if (WABT_FAILED(expr))  \
@@ -54,13 +49,6 @@ static const char* s_opcode_name[] = {
       return result;               \
     }                              \
   } while (0)
-
-static const char* GetOpcodeName(Opcode opcode) {
-  int value = static_cast<int>(opcode);
-  return value < static_cast<int>(WABT_ARRAY_SIZE(s_opcode_name))
-             ? s_opcode_name[value]
-             : "<invalid>";
-}
 
 Environment::Environment() : istream_(new OutputBuffer()) {}
 
@@ -106,40 +94,6 @@ FuncSignature::FuncSignature(Index param_count,
                              Type* result_types)
     : param_types(param_types, param_types + param_count),
       result_types(result_types, result_types + result_count) {}
-
-Import::Import() : kind(ExternalKind::Func) {
-  func.sig_index = kInvalidIndex;
-}
-
-Import::Import(Import&& other) {
-  *this = std::move(other);
-}
-
-Import& Import::operator=(Import&& other) {
-  kind = other.kind;
-  module_name = std::move(other.module_name);
-  field_name = std::move(other.field_name);
-  switch (kind) {
-    case ExternalKind::Func:
-      func.sig_index = other.func.sig_index;
-      break;
-    case ExternalKind::Table:
-      table.limits = other.table.limits;
-      break;
-    case ExternalKind::Memory:
-      memory.limits = other.memory.limits;
-      break;
-    case ExternalKind::Global:
-      global.type = other.global.type;
-      global.mutable_ = other.global.mutable_;
-      break;
-    case ExternalKind::Except:
-      // TODO(karlschimpf) Define
-      WABT_FATAL("Import::operator=() not implemented for exceptions");
-      break;
-  }
-  return *this;
-}
 
 Module::Module(bool is_host)
     : memory_index(kInvalidIndex),
@@ -244,14 +198,6 @@ void Thread::CopyResults(const FuncSignature* sig,
     out_results->emplace_back(sig->result_types[i], value_stack_[i]);
 }
 
-template <typename Dst, typename Src>
-Dst Bitcast(Src value) {
-  static_assert(sizeof(Src) == sizeof(Dst), "Bitcast sizes must match.");
-  Dst result;
-  memcpy(&result, &value, sizeof(result));
-  return result;
-}
-
 uint32_t ToRep(bool x) { return x ? 1 : 0; }
 uint32_t ToRep(uint32_t x) { return x; }
 uint64_t ToRep(uint64_t x) { return x; }
@@ -313,7 +259,7 @@ struct FloatTraits<float> {
   static const uint32_t kNegMax = 0xff7fffffU;
   static const uint32_t kNegInf = 0xff800000U;
   static const uint32_t kNegOne = 0xbf800000U;
-  static const uint32_t kNegZero =0x80000000U;
+  static const uint32_t kNegZero = 0x80000000U;
   static const uint32_t kQuietNan = 0x7fc00000U;
   static const uint32_t kQuietNegNan = 0xffc00000U;
   static const uint32_t kQuietNanBit = 0x00400000U;
@@ -325,9 +271,7 @@ struct FloatTraits<float> {
     return (bits > kInf && bits < kNegZero) || (bits > kNegInf);
   }
 
-  static bool IsZero(uint32_t bits) {
-    return bits == 0 || bits == kNegZero;
-  }
+  static bool IsZero(uint32_t bits) { return bits == 0 || bits == kNegZero; }
 
   static bool IsCanonicalNan(uint32_t bits) {
     return bits == kQuietNan || bits == kQuietNegNan;
@@ -413,9 +357,7 @@ struct FloatTraits<double> {
     return (bits > kInf && bits < kNegZero) || (bits > kNegInf);
   }
 
-  static bool IsZero(uint64_t bits) {
-    return bits == 0 || bits == kNegZero;
-  }
+  static bool IsZero(uint64_t bits) { return bits == 0 || bits == kNegZero; }
 
   static bool IsCanonicalNan(uint64_t bits) {
     return bits == kQuietNan || bits == kQuietNegNan;
@@ -576,47 +518,75 @@ template<> uint64_t GetValue<double>(Value v) { return v.f64_bits; }
 
 #define PUSH_NEG_1_AND_BREAK_IF(cond) \
   if (WABT_UNLIKELY(cond)) {          \
-    CHECK_TRAP(Push<int32_t>(-1));  \
+    CHECK_TRAP(Push<int32_t>(-1));    \
     break;                            \
   }
 
 #define GOTO(offset) pc = &istream[offset]
 
-static WABT_INLINE uint32_t read_u32_at(const uint8_t* pc) {
-  uint32_t result;
-  memcpy(&result, pc, sizeof(uint32_t));
+template <typename T>
+inline T ReadUxAt(const uint8_t* pc) {
+  T result;
+  memcpy(&result, pc, sizeof(T));
   return result;
 }
 
-static WABT_INLINE uint32_t read_u32(const uint8_t** pc) {
-  uint32_t result = read_u32_at(*pc);
-  *pc += sizeof(uint32_t);
+template <typename T>
+inline T ReadUx(const uint8_t** pc) {
+  T result = ReadUxAt<T>(*pc);
+  *pc += sizeof(T);
   return result;
 }
 
-static WABT_INLINE uint64_t read_u64_at(const uint8_t* pc) {
-  uint64_t result;
-  memcpy(&result, pc, sizeof(uint64_t));
-  return result;
+inline uint8_t ReadU8At(const uint8_t* pc) {
+  return ReadUxAt<uint8_t>(pc);
 }
 
-static WABT_INLINE uint64_t read_u64(const uint8_t** pc) {
-  uint64_t result = read_u64_at(*pc);
-  *pc += sizeof(uint64_t);
-  return result;
+inline uint8_t ReadU8(const uint8_t** pc) {
+  return ReadUx<uint8_t>(pc);
 }
 
-static WABT_INLINE void read_table_entry_at(const uint8_t* pc,
-                                            IstreamOffset* out_offset,
-                                            uint32_t* out_drop,
-                                            uint8_t* out_keep) {
-  *out_offset = read_u32_at(pc + WABT_TABLE_ENTRY_OFFSET_OFFSET);
-  *out_drop = read_u32_at(pc + WABT_TABLE_ENTRY_DROP_OFFSET);
-  *out_keep = *(pc + WABT_TABLE_ENTRY_KEEP_OFFSET);
+inline uint32_t ReadU32At(const uint8_t* pc) {
+  return ReadUxAt<uint32_t>(pc);
+}
+
+inline uint32_t ReadU32(const uint8_t** pc) {
+  return ReadUx<uint32_t>(pc);
+}
+
+inline uint64_t ReadU64At(const uint8_t* pc) {
+  return ReadUxAt<uint64_t>(pc);
+}
+
+inline uint64_t ReadU64(const uint8_t** pc) {
+  return ReadUx<uint64_t>(pc);
+}
+
+inline Opcode ReadOpcode(const uint8_t** pc) {
+  uint8_t value = ReadU8(pc);
+  if (Opcode::IsPrefixByte(value)) {
+    // For now, assume all instructions are encoded with just one extra byte
+    // so we don't have to decode LEB128 here.
+    uint32_t code = ReadU8(pc);
+    return Opcode::FromCode(value, code);
+  } else {
+    // TODO(binji): Optimize if needed; Opcode::FromCode does a log2(n) lookup
+    // from the encoding.
+    return Opcode::FromCode(value);
+  }
+}
+
+inline void read_table_entry_at(const uint8_t* pc,
+                                IstreamOffset* out_offset,
+                                uint32_t* out_drop,
+                                uint8_t* out_keep) {
+  *out_offset = ReadU32At(pc + WABT_TABLE_ENTRY_OFFSET_OFFSET);
+  *out_drop = ReadU32At(pc + WABT_TABLE_ENTRY_DROP_OFFSET);
+  *out_keep = ReadU8At(pc + WABT_TABLE_ENTRY_KEEP_OFFSET);
 }
 
 Memory* Thread::ReadMemory(const uint8_t** pc) {
-  Index memory_index = read_u32(pc);
+  Index memory_index = ReadU32(pc);
   return &env_->memories_[memory_index];
 }
 
@@ -683,7 +653,7 @@ Result Thread::Load(const uint8_t** pc) {
                 "Extended type should be float iff MemType is float");
 
   Memory* memory = ReadMemory(pc);
-  uint64_t offset = static_cast<uint64_t>(Pop<uint32_t>()) + read_u32(pc);
+  uint64_t offset = static_cast<uint64_t>(Pop<uint32_t>()) + ReadU32(pc);
   MemType value;
   TRAP_IF(offset + sizeof(value) > memory->data.size(),
           MemoryAccessOutOfBounds);
@@ -697,7 +667,7 @@ Result Thread::Store(const uint8_t** pc) {
   typedef typename WrapMemType<ResultType, MemType>::type WrappedType;
   Memory* memory = ReadMemory(pc);
   WrappedType value = PopRep<ResultType>();
-  uint64_t offset = static_cast<uint64_t>(Pop<uint32_t>()) + read_u32(pc);
+  uint64_t offset = static_cast<uint64_t>(Pop<uint32_t>()) + ReadU32(pc);
   TRAP_IF(offset + sizeof(value) > memory->data.size(),
           MemoryAccessOutOfBounds);
   void* dst = memory->data.data() + static_cast<IstreamOffset>(offset);
@@ -1071,6 +1041,21 @@ ValueTypeRep<R> IntTruncSat(ValueTypeRep<T> v_rep) {
   }
 }
 
+// i{32,64}.extend{8,16,32}_s
+template <typename T, typename E>
+ValueTypeRep<T> IntExtendS(ValueTypeRep<T> v_rep) {
+  // To avoid undefined/implementation-defined behavior, convert from unsigned
+  // type (T), to an unsigned value of the smaller size (EU), then bitcast from
+  // unsigned to signed, then cast from the smaller signed type to the larger
+  // signed type (TS) to sign extend. ToRep then will bitcast back from signed
+  // to unsigned.
+  static_assert(std::is_unsigned<ValueTypeRep<T>>::value, "T must be unsigned");
+  static_assert(std::is_signed<E>::value, "E must be signed");
+  typedef typename std::make_unsigned<E>::type EU;
+  typedef typename std::make_signed<T>::type TS;
+  return ToRep(static_cast<TS>(Bitcast<E>(static_cast<EU>(v_rep))));
+}
+
 bool Environment::FuncSignaturesAreEqual(Index sig_index_0,
                                          Index sig_index_1) const {
   if (sig_index_0 == sig_index_1)
@@ -1089,8 +1074,9 @@ Result Thread::RunFunction(Index func_index,
 
   Result result = PushArgs(sig, args);
   if (result == Result::Ok) {
-    result = func->is_host ? CallHost(func->as_host())
-                           : RunDefinedFunction(func->as_defined()->offset);
+    result = func->is_host
+                 ? CallHost(cast<HostFunc>(func))
+                 : RunDefinedFunction(cast<DefinedFunc>(func)->offset);
     if (result == Result::Ok)
       CopyResults(sig, out_results);
   }
@@ -1110,9 +1096,9 @@ Result Thread::TraceFunction(Index func_index,
 
   Result result = PushArgs(sig, args);
   if (result == Result::Ok) {
-    result = func->is_host
-                 ? CallHost(func->as_host())
-                 : TraceDefinedFunction(func->as_defined()->offset, stream);
+    result = func->is_host ? CallHost(cast<HostFunc>(func))
+                           : TraceDefinedFunction(
+                                 cast<DefinedFunc>(func)->offset, stream);
     if (result == Result::Ok)
       CopyResults(sig, out_results);
   }
@@ -1188,7 +1174,7 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
   const uint8_t* istream = GetIstream();
   const uint8_t* pc = &istream[pc_];
   for (int i = 0; i < num_instructions; ++i) {
-    Opcode opcode = static_cast<Opcode>(*pc++);
+    Opcode opcode = ReadOpcode(&pc);
     switch (opcode) {
       case Opcode::Select: {
         uint32_t cond = Pop<uint32_t>();
@@ -1199,19 +1185,19 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
       }
 
       case Opcode::Br:
-        GOTO(read_u32(&pc));
+        GOTO(ReadU32(&pc));
         break;
 
       case Opcode::BrIf: {
-        IstreamOffset new_pc = read_u32(&pc);
+        IstreamOffset new_pc = ReadU32(&pc);
         if (Pop<uint32_t>())
           GOTO(new_pc);
         break;
       }
 
       case Opcode::BrTable: {
-        Index num_targets = read_u32(&pc);
-        IstreamOffset table_offset = read_u32(&pc);
+        Index num_targets = ReadU32(&pc);
+        IstreamOffset table_offset = ReadU32(&pc);
         uint32_t key = Pop<uint32_t>();
         IstreamOffset key_offset =
             (key >= num_targets ? num_targets : key) * WABT_TABLE_ENTRY_SIZE;
@@ -1238,62 +1224,62 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
         break;
 
       case Opcode::I32Const:
-        CHECK_TRAP(Push<uint32_t>(read_u32(&pc)));
+        CHECK_TRAP(Push<uint32_t>(ReadU32(&pc)));
         break;
 
       case Opcode::I64Const:
-        CHECK_TRAP(Push<uint64_t>(read_u64(&pc)));
+        CHECK_TRAP(Push<uint64_t>(ReadU64(&pc)));
         break;
 
       case Opcode::F32Const:
-        CHECK_TRAP(PushRep<float>(read_u32(&pc)));
+        CHECK_TRAP(PushRep<float>(ReadU32(&pc)));
         break;
 
       case Opcode::F64Const:
-        CHECK_TRAP(PushRep<double>(read_u64(&pc)));
+        CHECK_TRAP(PushRep<double>(ReadU64(&pc)));
         break;
 
       case Opcode::GetGlobal: {
-        Index index = read_u32(&pc);
+        Index index = ReadU32(&pc);
         assert(index < env_->globals_.size());
         CHECK_TRAP(Push(env_->globals_[index].typed_value.value));
         break;
       }
 
       case Opcode::SetGlobal: {
-        Index index = read_u32(&pc);
+        Index index = ReadU32(&pc);
         assert(index < env_->globals_.size());
         env_->globals_[index].typed_value.value = Pop();
         break;
       }
 
       case Opcode::GetLocal: {
-        Value value = Pick(read_u32(&pc));
+        Value value = Pick(ReadU32(&pc));
         CHECK_TRAP(Push(value));
         break;
       }
 
       case Opcode::SetLocal: {
         Value value = Pop();
-        Pick(read_u32(&pc)) = value;
+        Pick(ReadU32(&pc)) = value;
         break;
       }
 
       case Opcode::TeeLocal:
-        Pick(read_u32(&pc)) = Top();
+        Pick(ReadU32(&pc)) = Top();
         break;
 
       case Opcode::Call: {
-        IstreamOffset offset = read_u32(&pc);
+        IstreamOffset offset = ReadU32(&pc);
         CHECK_TRAP(PushCall(pc));
         GOTO(offset);
         break;
       }
 
       case Opcode::CallIndirect: {
-        Index table_index = read_u32(&pc);
+        Index table_index = ReadU32(&pc);
         Table* table = &env_->tables_[table_index];
-        Index sig_index = read_u32(&pc);
+        Index sig_index = ReadU32(&pc);
         Index entry_index = Pop<uint32_t>();
         TRAP_IF(entry_index >= table->func_indexes.size(), UndefinedTableIndex);
         Index func_index = table->func_indexes[entry_index];
@@ -1302,17 +1288,17 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
         TRAP_UNLESS(env_->FuncSignaturesAreEqual(func->sig_index, sig_index),
                     IndirectCallSignatureMismatch);
         if (func->is_host) {
-          CallHost(func->as_host());
+          CallHost(cast<HostFunc>(func));
         } else {
           CHECK_TRAP(PushCall(pc));
-          GOTO(func->as_defined()->offset);
+          GOTO(cast<DefinedFunc>(func)->offset);
         }
         break;
       }
 
-      case Opcode::CallHost: {
-        Index func_index = read_u32(&pc);
-        CallHost(env_->funcs_[func_index]->as_host());
+      case Opcode::InterpreterCallHost: {
+        Index func_index = ReadU32(&pc);
+        CallHost(cast<HostFunc>(env_->funcs_[func_index].get()));
         break;
       }
 
@@ -1984,17 +1970,37 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
         CHECK_TRAP(Unop(IntEqz<uint32_t, uint64_t>));
         break;
 
-      case Opcode::Alloca: {
+      case Opcode::I32Extend8S:
+        CHECK_TRAP(Unop(IntExtendS<uint32_t, int8_t>));
+        break;
+
+      case Opcode::I32Extend16S:
+        CHECK_TRAP(Unop(IntExtendS<uint32_t, int16_t>));
+        break;
+
+      case Opcode::I64Extend8S:
+        CHECK_TRAP(Unop(IntExtendS<uint64_t, int8_t>));
+        break;
+
+      case Opcode::I64Extend16S:
+        CHECK_TRAP(Unop(IntExtendS<uint64_t, int16_t>));
+        break;
+
+      case Opcode::I64Extend32S:
+        CHECK_TRAP(Unop(IntExtendS<uint64_t, int32_t>));
+        break;
+
+      case Opcode::InterpreterAlloca: {
         Value* old_value_stack_top = value_stack_top_;
-        value_stack_top_ += read_u32(&pc);
+        value_stack_top_ += ReadU32(&pc);
         CHECK_STACK();
         memset(old_value_stack_top, 0,
                (value_stack_top_ - old_value_stack_top) * sizeof(Value));
         break;
       }
 
-      case Opcode::BrUnless: {
-        IstreamOffset new_pc = read_u32(&pc);
+      case Opcode::InterpreterBrUnless: {
+        IstreamOffset new_pc = ReadU32(&pc);
         if (!Pop<uint32_t>())
           GOTO(new_pc);
         break;
@@ -2004,14 +2010,14 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
         (void)Pop();
         break;
 
-      case Opcode::DropKeep: {
-        uint32_t drop_count = read_u32(&pc);
+      case Opcode::InterpreterDropKeep: {
+        uint32_t drop_count = ReadU32(&pc);
         uint8_t keep_count = *pc++;
         DropKeep(drop_count, keep_count);
         break;
       }
 
-      case Opcode::Data:
+      case Opcode::InterpreterData:
         /* shouldn't ever execute this */
         assert(0);
         break;
@@ -2039,28 +2045,28 @@ void Thread::Trace(Stream* stream) {
   stream->Writef("#%" PRIzd ". %4" PRIzd ": V:%-3" PRIzd "| ", call_stack_depth,
                  pc - istream, value_stack_depth);
 
-  Opcode opcode = static_cast<Opcode>(*pc++);
+  Opcode opcode = ReadOpcode(&pc);
   switch (opcode) {
     case Opcode::Select:
-      stream->Writef("%s %u, %" PRIu64 ", %" PRIu64 "\n", GetOpcodeName(opcode),
+      stream->Writef("%s %u, %" PRIu64 ", %" PRIu64 "\n", opcode.GetName(),
                      Pick(3).i32, Pick(2).i64, Pick(1).i64);
       break;
 
     case Opcode::Br:
-      stream->Writef("%s @%u\n", GetOpcodeName(opcode), read_u32_at(pc));
+      stream->Writef("%s @%u\n", opcode.GetName(), ReadU32At(pc));
       break;
 
     case Opcode::BrIf:
-      stream->Writef("%s @%u, %u\n", GetOpcodeName(opcode), read_u32_at(pc),
+      stream->Writef("%s @%u, %u\n", opcode.GetName(), ReadU32At(pc),
                      Top().i32);
       break;
 
     case Opcode::BrTable: {
-      Index num_targets = read_u32_at(pc);
-      IstreamOffset table_offset = read_u32_at(pc + 4);
+      Index num_targets = ReadU32At(pc);
+      IstreamOffset table_offset = ReadU32At(pc + 4);
       uint32_t key = Top().i32;
-      stream->Writef("%s %u, $#%" PRIindex ", table:$%u\n",
-                     GetOpcodeName(opcode), key, num_targets, table_offset);
+      stream->Writef("%s %u, $#%" PRIindex ", table:$%u\n", opcode.GetName(),
+                     key, num_targets, table_offset);
       break;
     }
 
@@ -2068,58 +2074,56 @@ void Thread::Trace(Stream* stream) {
     case Opcode::Return:
     case Opcode::Unreachable:
     case Opcode::Drop:
-      stream->Writef("%s\n", GetOpcodeName(opcode));
+      stream->Writef("%s\n", opcode.GetName());
       break;
 
     case Opcode::CurrentMemory: {
-      Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex "\n", GetOpcodeName(opcode),
-                     memory_index);
+      Index memory_index = ReadU32(&pc);
+      stream->Writef("%s $%" PRIindex "\n", opcode.GetName(), memory_index);
       break;
     }
 
     case Opcode::I32Const:
-      stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32_at(pc));
+      stream->Writef("%s $%u\n", opcode.GetName(), ReadU32At(pc));
       break;
 
     case Opcode::I64Const:
-      stream->Writef("%s $%" PRIu64 "\n", GetOpcodeName(opcode),
-                     read_u64_at(pc));
+      stream->Writef("%s $%" PRIu64 "\n", opcode.GetName(), ReadU64At(pc));
       break;
 
     case Opcode::F32Const:
-      stream->Writef("%s $%g\n", GetOpcodeName(opcode),
-                     Bitcast<float>(read_u32_at(pc)));
+      stream->Writef("%s $%g\n", opcode.GetName(),
+                     Bitcast<float>(ReadU32At(pc)));
       break;
 
     case Opcode::F64Const:
-      stream->Writef("%s $%g\n", GetOpcodeName(opcode),
-                     Bitcast<double>(read_u64_at(pc)));
+      stream->Writef("%s $%g\n", opcode.GetName(),
+                     Bitcast<double>(ReadU64At(pc)));
       break;
 
     case Opcode::GetLocal:
     case Opcode::GetGlobal:
-      stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32_at(pc));
+      stream->Writef("%s $%u\n", opcode.GetName(), ReadU32At(pc));
       break;
 
     case Opcode::SetLocal:
     case Opcode::SetGlobal:
     case Opcode::TeeLocal:
-      stream->Writef("%s $%u, %u\n", GetOpcodeName(opcode), read_u32_at(pc),
+      stream->Writef("%s $%u, %u\n", opcode.GetName(), ReadU32At(pc),
                      Top().i32);
       break;
 
     case Opcode::Call:
-      stream->Writef("%s @%u\n", GetOpcodeName(opcode), read_u32_at(pc));
+      stream->Writef("%s @%u\n", opcode.GetName(), ReadU32At(pc));
       break;
 
     case Opcode::CallIndirect:
-      stream->Writef("%s $%u, %u\n", GetOpcodeName(opcode), read_u32_at(pc),
+      stream->Writef("%s $%u, %u\n", opcode.GetName(), ReadU32At(pc),
                      Top().i32);
       break;
 
-    case Opcode::CallHost:
-      stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32_at(pc));
+    case Opcode::InterpreterCallHost:
+      stream->Writef("%s $%u\n", opcode.GetName(), ReadU32At(pc));
       break;
 
     case Opcode::I32Load8S:
@@ -2136,18 +2140,18 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I64Load:
     case Opcode::F32Load:
     case Opcode::F64Load: {
-      Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u\n", GetOpcodeName(opcode),
-                     memory_index, Top().i32, read_u32_at(pc));
+      Index memory_index = ReadU32(&pc);
+      stream->Writef("%s $%" PRIindex ":%u+$%u\n", opcode.GetName(),
+                     memory_index, Top().i32, ReadU32At(pc));
       break;
     }
 
     case Opcode::I32Store8:
     case Opcode::I32Store16:
     case Opcode::I32Store: {
-      Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %u\n", GetOpcodeName(opcode),
-                     memory_index, Pick(2).i32, read_u32_at(pc), Pick(1).i32);
+      Index memory_index = ReadU32(&pc);
+      stream->Writef("%s $%" PRIindex ":%u+$%u, %u\n", opcode.GetName(),
+                     memory_index, Pick(2).i32, ReadU32At(pc), Pick(1).i32);
       break;
     }
 
@@ -2155,33 +2159,33 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I64Store16:
     case Opcode::I64Store32:
     case Opcode::I64Store: {
-      Index memory_index = read_u32(&pc);
+      Index memory_index = ReadU32(&pc);
       stream->Writef("%s $%" PRIindex ":%u+$%u, %" PRIu64 "\n",
-                     GetOpcodeName(opcode), memory_index, Pick(2).i32,
-                     read_u32_at(pc), Pick(1).i64);
+                     opcode.GetName(), memory_index, Pick(2).i32, ReadU32At(pc),
+                     Pick(1).i64);
       break;
     }
 
     case Opcode::F32Store: {
-      Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %g\n", GetOpcodeName(opcode),
-                     memory_index, Pick(2).i32, read_u32_at(pc),
+      Index memory_index = ReadU32(&pc);
+      stream->Writef("%s $%" PRIindex ":%u+$%u, %g\n", opcode.GetName(),
+                     memory_index, Pick(2).i32, ReadU32At(pc),
                      Bitcast<float>(Pick(1).f32_bits));
       break;
     }
 
     case Opcode::F64Store: {
-      Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %g\n", GetOpcodeName(opcode),
-                     memory_index, Pick(2).i32, read_u32_at(pc),
+      Index memory_index = ReadU32(&pc);
+      stream->Writef("%s $%" PRIindex ":%u+$%u, %g\n", opcode.GetName(),
+                     memory_index, Pick(2).i32, ReadU32At(pc),
                      Bitcast<double>(Pick(1).f64_bits));
       break;
     }
 
     case Opcode::GrowMemory: {
-      Index memory_index = read_u32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u\n", GetOpcodeName(opcode),
-                     memory_index, Top().i32);
+      Index memory_index = ReadU32(&pc);
+      stream->Writef("%s $%" PRIindex ":%u\n", opcode.GetName(), memory_index,
+                     Top().i32);
       break;
     }
 
@@ -2210,15 +2214,14 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I32GeU:
     case Opcode::I32Rotr:
     case Opcode::I32Rotl:
-      stream->Writef("%s %u, %u\n", GetOpcodeName(opcode), Pick(2).i32,
-                     Pick(1).i32);
+      stream->Writef("%s %u, %u\n", opcode.GetName(), Pick(2).i32, Pick(1).i32);
       break;
 
     case Opcode::I32Clz:
     case Opcode::I32Ctz:
     case Opcode::I32Popcnt:
     case Opcode::I32Eqz:
-      stream->Writef("%s %u\n", GetOpcodeName(opcode), Top().i32);
+      stream->Writef("%s %u\n", opcode.GetName(), Top().i32);
       break;
 
     case Opcode::I64Add:
@@ -2246,7 +2249,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I64GeU:
     case Opcode::I64Rotr:
     case Opcode::I64Rotl:
-      stream->Writef("%s %" PRIu64 ", %" PRIu64 "\n", GetOpcodeName(opcode),
+      stream->Writef("%s %" PRIu64 ", %" PRIu64 "\n", opcode.GetName(),
                      Pick(2).i64, Pick(1).i64);
       break;
 
@@ -2254,7 +2257,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I64Ctz:
     case Opcode::I64Popcnt:
     case Opcode::I64Eqz:
-      stream->Writef("%s %" PRIu64 "\n", GetOpcodeName(opcode), Top().i64);
+      stream->Writef("%s %" PRIu64 "\n", opcode.GetName(), Top().i64);
       break;
 
     case Opcode::F32Add:
@@ -2270,7 +2273,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F32Le:
     case Opcode::F32Gt:
     case Opcode::F32Ge:
-      stream->Writef("%s %g, %g\n", GetOpcodeName(opcode),
+      stream->Writef("%s %g, %g\n", opcode.GetName(),
                      Bitcast<float>(Pick(2).i32), Bitcast<float>(Pick(1).i32));
       break;
 
@@ -2281,8 +2284,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F32Trunc:
     case Opcode::F32Nearest:
     case Opcode::F32Sqrt:
-      stream->Writef("%s %g\n", GetOpcodeName(opcode),
-                     Bitcast<float>(Top().i32));
+      stream->Writef("%s %g\n", opcode.GetName(), Bitcast<float>(Top().i32));
       break;
 
     case Opcode::F64Add:
@@ -2298,7 +2300,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F64Le:
     case Opcode::F64Gt:
     case Opcode::F64Ge:
-      stream->Writef("%s %g, %g\n", GetOpcodeName(opcode),
+      stream->Writef("%s %g, %g\n", opcode.GetName(),
                      Bitcast<double>(Pick(2).i64),
                      Bitcast<double>(Pick(1).i64));
       break;
@@ -2310,8 +2312,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F64Trunc:
     case Opcode::F64Nearest:
     case Opcode::F64Sqrt:
-      stream->Writef("%s %g\n", GetOpcodeName(opcode),
-                     Bitcast<double>(Top().i64));
+      stream->Writef("%s %g\n", opcode.GetName(), Bitcast<double>(Top().i64));
       break;
 
     case Opcode::I32TruncSF32:
@@ -2324,8 +2325,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I32TruncUSatF32:
     case Opcode::I64TruncSSatF32:
     case Opcode::I64TruncUSatF32:
-      stream->Writef("%s %g\n", GetOpcodeName(opcode),
-                     Bitcast<float>(Top().i32));
+      stream->Writef("%s %g\n", opcode.GetName(), Bitcast<float>(Top().i32));
       break;
 
     case Opcode::I32TruncSF64:
@@ -2338,8 +2338,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I32TruncUSatF64:
     case Opcode::I64TruncSSatF64:
     case Opcode::I64TruncUSatF64:
-      stream->Writef("%s %g\n", GetOpcodeName(opcode),
-                     Bitcast<double>(Top().i64));
+      stream->Writef("%s %g\n", opcode.GetName(), Bitcast<double>(Top().i64));
       break;
 
     case Opcode::I32WrapI64:
@@ -2348,7 +2347,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F64ConvertSI64:
     case Opcode::F64ConvertUI64:
     case Opcode::F64ReinterpretI64:
-      stream->Writef("%s %" PRIu64 "\n", GetOpcodeName(opcode), Top().i64);
+      stream->Writef("%s %" PRIu64 "\n", opcode.GetName(), Top().i64);
       break;
 
     case Opcode::I64ExtendSI32:
@@ -2358,24 +2357,24 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F32ReinterpretI32:
     case Opcode::F64ConvertSI32:
     case Opcode::F64ConvertUI32:
-      stream->Writef("%s %u\n", GetOpcodeName(opcode), Top().i32);
+      stream->Writef("%s %u\n", opcode.GetName(), Top().i32);
       break;
 
-    case Opcode::Alloca:
-      stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32_at(pc));
+    case Opcode::InterpreterAlloca:
+      stream->Writef("%s $%u\n", opcode.GetName(), ReadU32At(pc));
       break;
 
-    case Opcode::BrUnless:
-      stream->Writef("%s @%u, %u\n", GetOpcodeName(opcode), read_u32_at(pc),
+    case Opcode::InterpreterBrUnless:
+      stream->Writef("%s @%u, %u\n", opcode.GetName(), ReadU32At(pc),
                      Top().i32);
       break;
 
-    case Opcode::DropKeep:
-      stream->Writef("%s $%u $%u\n", GetOpcodeName(opcode), read_u32_at(pc),
+    case Opcode::InterpreterDropKeep:
+      stream->Writef("%s $%u $%u\n", opcode.GetName(), ReadU32At(pc),
                      *(pc + 4));
       break;
 
-    case Opcode::Data:
+    case Opcode::InterpreterData:
       /* shouldn't ever execute this */
       assert(0);
       break;
@@ -2400,26 +2399,25 @@ void Environment::Disassemble(Stream* stream,
   while (static_cast<IstreamOffset>(pc - istream) < to) {
     stream->Writef("%4" PRIzd "| ", pc - istream);
 
-    Opcode opcode = static_cast<Opcode>(*pc++);
+    Opcode opcode = ReadOpcode(&pc);
     switch (opcode) {
       case Opcode::Select:
-        stream->Writef("%s %%[-3], %%[-2], %%[-1]\n", GetOpcodeName(opcode));
+        stream->Writef("%s %%[-3], %%[-2], %%[-1]\n", opcode.GetName());
         break;
 
       case Opcode::Br:
-        stream->Writef("%s @%u\n", GetOpcodeName(opcode), read_u32(&pc));
+        stream->Writef("%s @%u\n", opcode.GetName(), ReadU32(&pc));
         break;
 
       case Opcode::BrIf:
-        stream->Writef("%s @%u, %%[-1]\n", GetOpcodeName(opcode),
-                       read_u32(&pc));
+        stream->Writef("%s @%u, %%[-1]\n", opcode.GetName(), ReadU32(&pc));
         break;
 
       case Opcode::BrTable: {
-        Index num_targets = read_u32(&pc);
-        IstreamOffset table_offset = read_u32(&pc);
+        Index num_targets = ReadU32(&pc);
+        IstreamOffset table_offset = ReadU32(&pc);
         stream->Writef("%s %%[-1], $#%" PRIindex ", table:$%u\n",
-                       GetOpcodeName(opcode), num_targets, table_offset);
+                       opcode.GetName(), num_targets, table_offset);
         break;
       }
 
@@ -2427,60 +2425,57 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::Return:
       case Opcode::Unreachable:
       case Opcode::Drop:
-        stream->Writef("%s\n", GetOpcodeName(opcode));
+        stream->Writef("%s\n", opcode.GetName());
         break;
 
       case Opcode::CurrentMemory: {
-        Index memory_index = read_u32(&pc);
-        stream->Writef("%s $%" PRIindex "\n", GetOpcodeName(opcode),
-                       memory_index);
+        Index memory_index = ReadU32(&pc);
+        stream->Writef("%s $%" PRIindex "\n", opcode.GetName(), memory_index);
         break;
       }
 
       case Opcode::I32Const:
-        stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32(&pc));
+        stream->Writef("%s $%u\n", opcode.GetName(), ReadU32(&pc));
         break;
 
       case Opcode::I64Const:
-        stream->Writef("%s $%" PRIu64 "\n", GetOpcodeName(opcode),
-                       read_u64(&pc));
+        stream->Writef("%s $%" PRIu64 "\n", opcode.GetName(), ReadU64(&pc));
         break;
 
       case Opcode::F32Const:
-        stream->Writef("%s $%g\n", GetOpcodeName(opcode),
-                       Bitcast<float>(read_u32(&pc)));
+        stream->Writef("%s $%g\n", opcode.GetName(),
+                       Bitcast<float>(ReadU32(&pc)));
         break;
 
       case Opcode::F64Const:
-        stream->Writef("%s $%g\n", GetOpcodeName(opcode),
-                       Bitcast<double>(read_u64(&pc)));
+        stream->Writef("%s $%g\n", opcode.GetName(),
+                       Bitcast<double>(ReadU64(&pc)));
         break;
 
       case Opcode::GetLocal:
       case Opcode::GetGlobal:
-        stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32(&pc));
+        stream->Writef("%s $%u\n", opcode.GetName(), ReadU32(&pc));
         break;
 
       case Opcode::SetLocal:
       case Opcode::SetGlobal:
       case Opcode::TeeLocal:
-        stream->Writef("%s $%u, %%[-1]\n", GetOpcodeName(opcode),
-                       read_u32(&pc));
+        stream->Writef("%s $%u, %%[-1]\n", opcode.GetName(), ReadU32(&pc));
         break;
 
       case Opcode::Call:
-        stream->Writef("%s @%u\n", GetOpcodeName(opcode), read_u32(&pc));
+        stream->Writef("%s @%u\n", opcode.GetName(), ReadU32(&pc));
         break;
 
       case Opcode::CallIndirect: {
-        Index table_index = read_u32(&pc);
-        stream->Writef("%s $%" PRIindex ":%u, %%[-1]\n", GetOpcodeName(opcode),
-                       table_index, read_u32(&pc));
+        Index table_index = ReadU32(&pc);
+        stream->Writef("%s $%" PRIindex ":%u, %%[-1]\n", opcode.GetName(),
+                       table_index, ReadU32(&pc));
         break;
       }
 
-      case Opcode::CallHost:
-        stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32(&pc));
+      case Opcode::InterpreterCallHost:
+        stream->Writef("%s $%u\n", opcode.GetName(), ReadU32(&pc));
         break;
 
       case Opcode::I32Load8S:
@@ -2497,9 +2492,9 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::I64Load:
       case Opcode::F32Load:
       case Opcode::F64Load: {
-        Index memory_index = read_u32(&pc);
-        stream->Writef("%s $%" PRIindex ":%%[-1]+$%u\n", GetOpcodeName(opcode),
-                       memory_index, read_u32(&pc));
+        Index memory_index = ReadU32(&pc);
+        stream->Writef("%s $%" PRIindex ":%%[-1]+$%u\n", opcode.GetName(),
+                       memory_index, ReadU32(&pc));
         break;
       }
 
@@ -2512,9 +2507,9 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::I64Store:
       case Opcode::F32Store:
       case Opcode::F64Store: {
-        Index memory_index = read_u32(&pc);
+        Index memory_index = ReadU32(&pc);
         stream->Writef("%s %%[-2]+$%" PRIindex ", $%u:%%[-1]\n",
-                       GetOpcodeName(opcode), memory_index, read_u32(&pc));
+                       opcode.GetName(), memory_index, ReadU32(&pc));
         break;
       }
 
@@ -2594,7 +2589,7 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::F64Le:
       case Opcode::F64Gt:
       case Opcode::F64Ge:
-        stream->Writef("%s %%[-2], %%[-1]\n", GetOpcodeName(opcode));
+        stream->Writef("%s %%[-2], %%[-1]\n", opcode.GetName());
         break;
 
       case Opcode::I32Clz:
@@ -2652,35 +2647,34 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::I32TruncUSatF64:
       case Opcode::I64TruncSSatF64:
       case Opcode::I64TruncUSatF64:
-        stream->Writef("%s %%[-1]\n", GetOpcodeName(opcode));
+        stream->Writef("%s %%[-1]\n", opcode.GetName());
         break;
 
       case Opcode::GrowMemory: {
-        Index memory_index = read_u32(&pc);
-        stream->Writef("%s $%" PRIindex ":%%[-1]\n", GetOpcodeName(opcode),
+        Index memory_index = ReadU32(&pc);
+        stream->Writef("%s $%" PRIindex ":%%[-1]\n", opcode.GetName(),
                        memory_index);
         break;
       }
 
-      case Opcode::Alloca:
-        stream->Writef("%s $%u\n", GetOpcodeName(opcode), read_u32(&pc));
+      case Opcode::InterpreterAlloca:
+        stream->Writef("%s $%u\n", opcode.GetName(), ReadU32(&pc));
         break;
 
-      case Opcode::BrUnless:
-        stream->Writef("%s @%u, %%[-1]\n", GetOpcodeName(opcode),
-                       read_u32(&pc));
+      case Opcode::InterpreterBrUnless:
+        stream->Writef("%s @%u, %%[-1]\n", opcode.GetName(), ReadU32(&pc));
         break;
 
-      case Opcode::DropKeep: {
-        uint32_t drop = read_u32(&pc);
+      case Opcode::InterpreterDropKeep: {
+        uint32_t drop = ReadU32(&pc);
         uint8_t keep = *pc++;
-        stream->Writef("%s $%u $%u\n", GetOpcodeName(opcode), drop, keep);
+        stream->Writef("%s $%u $%u\n", opcode.GetName(), drop, keep);
         break;
       }
 
-      case Opcode::Data: {
-        uint32_t num_bytes = read_u32(&pc);
-        stream->Writef("%s $%u\n", GetOpcodeName(opcode), num_bytes);
+      case Opcode::InterpreterData: {
+        uint32_t num_bytes = ReadU32(&pc);
+        stream->Writef("%s $%u\n", opcode.GetName(), num_bytes);
         /* for now, the only reason this is emitted is for br_table, so display
          * it as a list of table entries */
         if (num_bytes % WABT_TABLE_ENTRY_SIZE == 0) {
@@ -2713,8 +2707,9 @@ void Environment::Disassemble(Stream* stream,
 
 void Environment::DisassembleModule(Stream* stream, Module* module) {
   assert(!module->is_host);
-  Disassemble(stream, module->as_defined()->istream_start,
-              module->as_defined()->istream_end);
+  auto* defined_module = cast<DefinedModule>(module);
+  Disassemble(stream, defined_module->istream_start,
+              defined_module->istream_end);
 }
 
 }  // namespace interpreter

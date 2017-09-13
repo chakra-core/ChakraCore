@@ -14,15 +14,9 @@
  * limitations under the License.
  */
 
-#include "lexer-source.h"
+#include "src/lexer-source.h"
 
 #include <algorithm>
-
-#define CHECK_RESULT(expr)  \
-  do {                      \
-    if (Failed(expr))       \
-      return Result::Error; \
-  } while (0)
 
 namespace wabt {
 

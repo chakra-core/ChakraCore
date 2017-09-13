@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "binary-reader.h"
+#include "src/binary-reader.h"
 
 #include <cassert>
 #include <cinttypes>
@@ -24,21 +24,16 @@
 #include <cstring>
 #include <vector>
 
-#include "binary.h"
-#include "binary-reader-logging.h"
 #include "config.h"
-#include "stream.h"
-#include "utf8.h"
+
+#include "src/binary.h"
+#include "src/binary-reader-logging.h"
+#include "src/stream.h"
+#include "src/utf8.h"
 
 #if HAVE_ALLOCA
 #include <alloca.h>
 #endif
-
-#define CHECK_RESULT(expr)  \
-  do {                      \
-    if (Failed(expr))       \
-      return Result::Error; \
-  } while (0)
 
 #define ERROR_UNLESS(expr, ...) \
   do {                          \
@@ -181,7 +176,8 @@ class BinaryReader {
   Index NumTotalMemories();
   Index NumTotalGlobals();
 
-  Result ReadInitExpr(Index index) WABT_WARN_UNUSED;
+  Result ReadI32InitExpr(Index index) WABT_WARN_UNUSED;
+  Result ReadInitExpr(Index index, bool require_i32 = false) WABT_WARN_UNUSED;
   Result ReadTable(Type* out_elem_type,
                    Limits* out_elem_limits) WABT_WARN_UNUSED;
   Result ReadMemory(Limits* out_page_limits) WABT_WARN_UNUSED;
@@ -497,9 +493,14 @@ Index BinaryReader::NumTotalGlobals() {
   return num_global_imports_ + num_globals_;
 }
 
-Result BinaryReader::ReadInitExpr(Index index) {
+Result BinaryReader::ReadI32InitExpr(Index index) {
+  return ReadInitExpr(index, true);
+}
+
+Result BinaryReader::ReadInitExpr(Index index, bool require_i32) {
   Opcode opcode;
   CHECK_RESULT(ReadOpcode(&opcode, "opcode"));
+
   switch (opcode) {
     case Opcode::I32Const: {
       uint32_t value = 0;
@@ -541,6 +542,12 @@ Result BinaryReader::ReadInitExpr(Index index) {
 
     default:
       return ReportUnexpectedOpcode(opcode, "in initializer expression");
+  }
+
+  if (require_i32 && opcode != Opcode::I32Const &&
+      opcode != Opcode::GetGlobal) {
+    PrintError("expected i32 init_expr");
+    return Result::Error;
   }
 
   CHECK_RESULT(ReadOpcode(&opcode, "opcode"));
@@ -1065,6 +1072,16 @@ Result BinaryReader::ReadFunctionBody(Offset end_offset) {
         break;
       }
 
+      case Opcode::I32Extend8S:
+      case Opcode::I32Extend16S:
+      case Opcode::I64Extend8S:
+      case Opcode::I64Extend16S:
+      case Opcode::I64Extend32S:
+        ERROR_UNLESS_OPCODE_ENABLED(opcode);
+        CALLBACK(OnUnaryExpr, opcode);
+        CALLBACK0(OnOpcodeBare);
+        break;
+
       case Opcode::I32TruncSSatF32:
       case Opcode::I32TruncUSatF32:
       case Opcode::I32TruncSSatF64:
@@ -1210,9 +1227,9 @@ Result BinaryReader::ReadRelocSection(Offset section_size) {
     CHECK_RESULT(ReadIndex(&index, "index"));
     RelocType type = static_cast<RelocType>(reloc_type);
     switch (type) {
-      case RelocType::GlobalAddressLEB:
-      case RelocType::GlobalAddressSLEB:
-      case RelocType::GlobalAddressI32:
+      case RelocType::MemoryAddressLEB:
+      case RelocType::MemoryAddressSLEB:
+      case RelocType::MemoryAddressI32:
         CHECK_RESULT(ReadI32Leb128(&addend, "addend"));
         break;
       default:
@@ -1255,6 +1272,18 @@ Result BinaryReader::ReadLinkingSection(Offset section_size) {
           CHECK_RESULT(ReadU32Leb128(&info, "sym flags"));
           CALLBACK(OnSymbolInfo, name, info);
         }
+        break;
+      }
+      case LinkingEntryType::DataSize: {
+        uint32_t data_size;
+        CHECK_RESULT(ReadU32Leb128(&data_size, "data size"));
+        CALLBACK(OnDataSize, data_size);
+        break;
+      }
+      case LinkingEntryType::DataAlignment: {
+        uint32_t data_alignment;
+        CHECK_RESULT(ReadU32Leb128(&data_alignment, "data alignment"));
+        CALLBACK(OnDataAlignment, data_alignment);
         break;
       }
       default:
@@ -1439,10 +1468,6 @@ Result BinaryReader::ReadImportSection(Offset section_size) {
         num_exception_imports_++;
         break;
       }
-
-      default:
-        PrintError("invalid import kind: %d", kind);
-        return Result::Error;
     }
   }
   CALLBACK0(EndImportSection);
@@ -1586,7 +1611,7 @@ Result BinaryReader::ReadElemSection(Offset section_size) {
     CHECK_RESULT(ReadIndex(&table_index, "elem segment table index"));
     CALLBACK(BeginElemSegment, i, table_index);
     CALLBACK(BeginElemSegmentInitExpr, i);
-    CHECK_RESULT(ReadInitExpr(i));
+    CHECK_RESULT(ReadI32InitExpr(i));
     CALLBACK(EndElemSegmentInitExpr, i);
 
     Index num_function_indexes;
@@ -1652,7 +1677,7 @@ Result BinaryReader::ReadDataSection(Offset section_size) {
     CHECK_RESULT(ReadIndex(&memory_index, "data segment memory index"));
     CALLBACK(BeginDataSegment, i, memory_index);
     CALLBACK(BeginDataSegmentInitExpr, i);
-    CHECK_RESULT(ReadInitExpr(i));
+    CHECK_RESULT(ReadI32InitExpr(i));
     CALLBACK(EndDataSegmentInitExpr, i);
 
     Address data_size;
@@ -1700,10 +1725,8 @@ Result BinaryReader::ReadSections() {
 
     switch (section) {
       WABT_FOREACH_BINARY_SECTION(V)
-
-      default:
-        assert(0);
-        break;
+      case BinarySection::Invalid:
+        WABT_UNREACHABLE;
     }
 
 #undef V
