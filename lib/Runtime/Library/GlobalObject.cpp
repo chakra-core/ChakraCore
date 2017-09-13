@@ -1872,6 +1872,14 @@ LHexError:
         return DynamicObject::SetPropertyWithAttributes(propertyId, value, attributes, info, flags);
     }
 
+    BOOL GlobalObject::InitPropertyInEval(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
+    {
+        // This is var/function declared inside the 'eval'
+        PropertyAttributes attributes = PropertyDynamicTypeDefaults | PropertyDeclaredGlobal;
+        flags = static_cast<PropertyOperationFlags>(flags | PropertyOperation_ThrowIfNotExtensible);
+        return DynamicObject::SetPropertyWithAttributes(propertyId, value, attributes, info, flags);
+    }
+
     BOOL GlobalObject::InitPropertyScoped(PropertyId propertyId, Var value)
     {
         // var x = 10; variables declared with "var" inside "eval"

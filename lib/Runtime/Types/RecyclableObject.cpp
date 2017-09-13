@@ -380,6 +380,11 @@ namespace Js
         return false;
     }
 
+    BOOL RecyclableObject::InitPropertyInEval(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
+    {
+        return false;
+    }
+
     BOOL RecyclableObject::InitPropertyScoped(PropertyId propertyId, Var value)
     {
         return false;
