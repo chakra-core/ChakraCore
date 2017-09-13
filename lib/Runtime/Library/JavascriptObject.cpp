@@ -365,12 +365,12 @@ namespace Js
         // 1. If the this value is undefined, return "[object Undefined]".
         if (type == TypeIds_Undefined)
         {
-            return library->CreateStringFromCppLiteral(_u("[object Undefined]"));
+            return library->GetObjectUndefinedDisplayString();
         }
         // 2. If the this value is null, return "[object Null]".
         if (type == TypeIds_Null)
         {
-            return library->CreateStringFromCppLiteral(_u("[object Null]"));
+            return library->GetObjectNullDisplayString();
         }
 
         // 3. Let O be ToObject(this value).

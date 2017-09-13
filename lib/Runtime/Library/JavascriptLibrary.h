@@ -649,6 +649,8 @@ namespace Js
         SCACHE_FUNCTION_PROXY(GetObjectNumberDisplayString)
         SCACHE_FUNCTION_PROXY(GetObjectRegExpDisplayString)
         SCACHE_FUNCTION_PROXY(GetObjectStringDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectNullDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectUndefinedDisplayString)
         SCACHE_FUNCTION_PROXY(GetUndefinedDisplayString)
         SCACHE_FUNCTION_PROXY(GetNaNDisplayString)
         SCACHE_FUNCTION_PROXY(GetNullDisplayString)

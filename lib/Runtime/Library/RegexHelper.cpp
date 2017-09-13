@@ -665,15 +665,41 @@ namespace Js
         CharCount inputLength = input->GetLength();
         UnifiedRegex::GroupInfo match; // initially undefined
 
-#if ENABLE_REGEX_CONFIG_OPTIONS
-        RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Test, regularExpression, input);
-#endif
         const bool isGlobal = pattern->IsGlobal();
         const bool isSticky = pattern->IsSticky();
+        const bool useCache = !isGlobal && !isSticky;
+
+        RegExpTestCache* cache = nullptr;
+        JavascriptString * cachedValue = nullptr;
+        uint cacheIndex = 0;
+        if (useCache)
+        {
+            cache = regularExpression->EnsureTestCache();
+            cacheIndex = JavascriptRegExp::GetTestCacheIndex(input);
+            cachedValue = cache[cacheIndex].input;
+        }
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+        RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Test, regularExpression, input);
+        JavascriptRegExp::TraceTestCache(cachedValue == input, input, cachedValue, !useCache);
+#endif
+
+        if (useCache && cachedValue == input)
+        {
+            return JavascriptBoolean::ToVar(cache[cacheIndex].result, scriptContext);
+        }
+
         CharCount offset;
         if (!GetInitialOffset(isGlobal, isSticky, regularExpression, inputLength, offset))
+        {
+            if (useCache)
+            {
+                Assert(offset == 0);
+                cache[cacheIndex].input = input;
+                cache[cacheIndex].result = false;
+            }
             return scriptContext->GetLibrary()->GetFalse();
-
+        }
         if (offset <= inputLength)
         {
             match = SimpleMatch(scriptContext, pattern, inputStr, inputLength, offset);
@@ -681,8 +707,15 @@ namespace Js
 
         // else: match remains undefined
         PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, match, match, true, true);
+        bool wasFound = !match.IsUndefined();
 
-        return JavascriptBoolean::ToVar(!match.IsUndefined(), scriptContext);
+        if (useCache)
+        {
+            Assert(offset == 0);
+            cache[cacheIndex].input = input;
+            cache[cacheIndex].result = wasFound;
+        }
+        return JavascriptBoolean::ToVar(wasFound, scriptContext);
     }
 
     template<typename GroupFn>
