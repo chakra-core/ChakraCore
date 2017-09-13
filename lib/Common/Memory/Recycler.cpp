@@ -467,6 +467,7 @@ Recycler::~Recycler()
     Assert(!this->isAborting);
 #endif
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    recyclerListLock.Enter();
     if (recyclerList == this)
     {
         recyclerList = this->next;
@@ -480,6 +481,7 @@ Recycler::~Recycler()
         }
         list->next = this->next;
     }
+    recyclerListLock.Leave();
 #endif
 
     // Stop any further collection
@@ -739,6 +741,7 @@ Recycler::RootRelease(void* obj, uint *count)
 }
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 Recycler* Recycler::recyclerList = nullptr;
+CriticalSection Recycler::recyclerListLock;
 #endif
 
 void
@@ -923,8 +926,10 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
     Assert(!needWriteWatch);
 #endif
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    recyclerListLock.Enter();
     this->next = recyclerList;
     recyclerList = this;
+    recyclerListLock.Leave();
 #endif
 }
 
@@ -8616,6 +8621,7 @@ Recycler::UnRegisterPendingWriteBarrierBlock(void* address)
 void
 Recycler::WBVerifyBitIsSet(char* addr, char* target)
 {
+    AutoCriticalSection lock(&recyclerListLock);
     Recycler* recycler = Recycler::recyclerList;
     while (recycler)
     {
@@ -8633,6 +8639,7 @@ Recycler::WBSetBit(char* addr)
 {
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
     {
+        AutoCriticalSection lock(&recyclerListLock);
         Recycler* recycler = Recycler::recyclerList;
         while (recycler)
         {
@@ -8651,6 +8658,7 @@ Recycler::WBSetBitRange(char* addr, uint count)
 {
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
     {
+        AutoCriticalSection lock(&recyclerListLock);
         Recycler* recycler = Recycler::recyclerList;
         while (recycler)
         {
@@ -8667,6 +8675,7 @@ Recycler::WBSetBitRange(char* addr, uint count)
 bool
 Recycler::WBCheckIsRecyclerAddress(char* addr)
 {
+    AutoCriticalSection lock(&recyclerListLock);
     Recycler* recycler = Recycler::recyclerList;
     while (recycler)
     {
