@@ -635,7 +635,7 @@ namespace Js
     BOOL JavascriptObject::GetOwnPropertyDescriptorHelper(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor& propertyDescriptor)
     {
         BOOL isPropertyDescriptorDefined;
-        if (obj->CanHaveInterceptors())
+        if (obj->IsExternal())
         {
             isPropertyDescriptorDefined = obj->HasOwnProperty(propertyId) ?
                 JavascriptOperators::GetOwnPropertyDescriptor(obj, propertyId, scriptContext, &propertyDescriptor) : obj->GetDefaultPropertyDescriptor(propertyDescriptor);

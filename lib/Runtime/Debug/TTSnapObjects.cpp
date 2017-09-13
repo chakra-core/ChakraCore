@@ -12,7 +12,7 @@ namespace TTD
     {
         void ExtractCompoundObject(NSSnapObjects::SnapObject* sobj, Js::RecyclableObject* obj, bool isWellKnown, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc)
         {
-            TTDAssert(!obj->CanHaveInterceptors(), "We are not prepared for custom external objects yet");
+            TTDAssert(!obj->IsExternal(), "We are not prepared for custom external objects yet");
 
             sobj->ObjectPtrId = TTD_CONVERT_VAR_TO_PTR_ID(obj);
             sobj->SnapObjectTag = obj->GetSnapTag_TTD();
@@ -158,7 +158,7 @@ namespace TTD
                     if(Js::IsInternalPropertyId(pid))
                     {
                         propertyReset.Clear();
-                        return true; 
+                        return true;
                     }
 
                     //someone added a property that is not simple to remove so let's just be safe an recreate contexts
