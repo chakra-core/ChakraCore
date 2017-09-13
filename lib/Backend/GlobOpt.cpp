@@ -17122,7 +17122,7 @@ GlobOpt::IsSwitchOptEnabled(Func const * func)
 {
     Assert(func->IsTopFunc());
     return !PHASE_OFF(Js::SwitchOptPhase, func) && !func->IsSwitchOptDisabled() && !IsTypeSpecPhaseOff(func)
-        && func->DoGlobOpt() && !func->HasTry();
+        && DoAggressiveIntTypeSpec(func) && func->DoGlobOpt() && !func->HasTry();
 }
 
 bool
