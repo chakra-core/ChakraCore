@@ -19,19 +19,18 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "apply-names.h"
-#include "binary-reader.h"
-#include "binary-reader-ir.h"
-#include "error-handler.h"
-#include "feature.h"
-#include "generate-names.h"
-#include "ir.h"
-#include "option-parser.h"
-#include "stream.h"
-#include "validator.h"
-#include "wast-lexer.h"
-#include "wat-writer.h"
-#include "writer.h"
+#include "src/apply-names.h"
+#include "src/binary-reader.h"
+#include "src/binary-reader-ir.h"
+#include "src/error-handler.h"
+#include "src/feature.h"
+#include "src/generate-names.h"
+#include "src/ir.h"
+#include "src/option-parser.h"
+#include "src/stream.h"
+#include "src/validator.h"
+#include "src/wast-lexer.h"
+#include "src/wat-writer.h"
 
 using namespace wabt;
 
@@ -46,19 +45,19 @@ static std::unique_ptr<FileStream> s_log_stream;
 static bool s_validate = true;
 
 static const char s_description[] =
-R"(  read a file in the wasm binary format, and convert it to the wasm
-  s-expression file format.
+R"(  Read a file in the WebAssembly binary format, and convert it to
+  the WebAssembly text format.
 
 examples:
-  # parse binary file test.wasm and write s-expression file test.wast
-  $ wasm2wast test.wasm -o test.wast
+  # parse binary file test.wasm and write text file test.wast
+  $ wasm2wat test.wasm -o test.wat
 
-  # parse test.wasm, write test.wast, but ignore the debug names, if any
-  $ wasm2wast test.wasm --no-debug-names -o test.wast
+  # parse test.wasm, write test.wat, but ignore the debug names, if any
+  $ wasm2wat test.wasm --no-debug-names -o test.wat
 )";
 
 static void ParseOptions(int argc, char** argv) {
-  OptionParser parser("wasm2wast", s_description);
+  OptionParser parser("wasm2wat", s_description);
 
   parser.AddOption('v', "verbose", "Use multiple times for more info", []() {
     s_verbose++;
@@ -125,9 +124,9 @@ int ProgramMain(int argc, char** argv) {
       }
 
       if (Succeeded(result)) {
-        FileWriter writer(!s_outfile.empty() ? FileWriter(s_outfile.c_str())
-                                             : FileWriter(stdout));
-        result = WriteWat(&writer, &module, &s_write_wat_options);
+        FileStream stream(!s_outfile.empty() ? FileStream(s_outfile.c_str())
+                                             : FileStream(stdout));
+        result = WriteWat(&stream, &module, &s_write_wat_options);
       }
     }
   }

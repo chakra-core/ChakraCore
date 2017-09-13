@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-#include "string-view.h"
+#include "src/string-view.h"
 
 #include <cstring>
 #include <functional>

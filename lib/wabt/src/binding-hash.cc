@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "binding-hash.h"
+#include "src/binding-hash.h"
 
 #include <algorithm>
 #include <vector>
 
-#include "ir.h"
+#include "src/ir.h"
 
 namespace wabt {
 

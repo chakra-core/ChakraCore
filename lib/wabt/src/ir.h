@@ -25,11 +25,11 @@
 #include <vector>
 #include <type_traits>
 
-#include "binding-hash.h"
-#include "common.h"
-#include "intrusive-list.h"
-#include "opcode.h"
-#include "string-view.h"
+#include "src/binding-hash.h"
+#include "src/common.h"
+#include "src/intrusive-list.h"
+#include "src/opcode.h"
+#include "src/string-view.h"
 
 namespace wabt {
 
@@ -72,17 +72,23 @@ struct Var {
 typedef std::vector<Var> VarVector;
 
 struct Const {
-  // Struct tags to differentiate constructors.
-  struct I32 {};
-  struct I64 {};
-  struct F32 {};
-  struct F64 {};
+  Const() : Const(I32Tag(), 0, Location()) {}
 
-  Const() : Const(I32(), 0, Location()) {}
-  Const(I32, uint32_t val = 0, const Location& loc = Location());
-  Const(I64, uint64_t val = 0, const Location& loc = Location());
-  Const(F32, uint32_t val = 0, const Location& loc = Location());
-  Const(F64, uint64_t val = 0, const Location& loc = Location());
+  static Const I32(uint32_t val = 0, const Location& loc = Location()) {
+    return Const(I32Tag(), val, loc);
+  }
+
+  static Const I64(uint64_t val = 0, const Location& loc = Location()) {
+    return Const(I64Tag(), val, loc);
+  }
+
+  static Const F32(uint32_t val = 0, const Location& loc = Location()) {
+    return Const(F32Tag(), val, loc);
+  }
+
+  static Const F64(uint64_t val = 0, const Location& loc = Location()) {
+    return Const(F64Tag(), val, loc);
+  }
 
   Location loc;
   Type type;
@@ -92,6 +98,18 @@ struct Const {
     uint32_t f32_bits;
     uint64_t f64_bits;
   };
+
+ private:
+  // Struct tags to differentiate constructors.
+  struct I32Tag {};
+  struct I64Tag {};
+  struct F32Tag {};
+  struct F64Tag {};
+
+  Const(I32Tag, uint32_t val = 0, const Location& loc = Location());
+  Const(I64Tag, uint64_t val = 0, const Location& loc = Location());
+  Const(F32Tag, uint32_t val = 0, const Location& loc = Location());
+  Const(F64Tag, uint64_t val = 0, const Location& loc = Location());
 };
 typedef std::vector<Const> ConstVector;
 
@@ -140,7 +158,7 @@ typedef intrusive_list<Expr> ExprList;
 
 struct Block {
   Block() = default;
-  explicit Block(ExprList exprs);
+  explicit Block(ExprList exprs) : exprs(std::move(exprs)) {}
 
   std::string label;
   BlockSignature sig;
@@ -148,11 +166,9 @@ struct Block {
 };
 
 struct Catch {
-  WABT_DISALLOW_COPY_AND_ASSIGN(Catch);
-  Catch();
-  explicit Catch(const Var& var);
-  explicit Catch(ExprList exprs);
-  Catch(const Var& var, ExprList exprs);
+  explicit Catch(const Location& loc = Location()) : loc(loc) {}
+  explicit Catch(const Var& var, const Location& loc = Location())
+      : loc(loc), var(var) {}
   Location loc;
   Var var;
   ExprList exprs;
@@ -161,7 +177,7 @@ struct Catch {
   }
 };
 
-typedef std::vector<Catch*> CatchVector;
+typedef std::vector<Catch> CatchVector;
 
 class Expr : public intrusive_list_base<Expr> {
  public:
@@ -169,12 +185,15 @@ class Expr : public intrusive_list_base<Expr> {
   Expr() = delete;
   virtual ~Expr() = default;
 
+  ExprType type() const { return type_; }
+
   Location loc;
-  ExprType type;
 
  protected:
-  explicit Expr(ExprType);
-  Expr(ExprType, Location);
+  explicit Expr(ExprType type, const Location& loc = Location())
+      : loc(loc), type_(type) {}
+
+  ExprType type_;
 };
 
 const char* GetExprTypeName(const Expr& expr);
@@ -182,10 +201,9 @@ const char* GetExprTypeName(const Expr& expr);
 template <ExprType TypeEnum>
 class ExprMixin : public Expr {
  public:
-  static bool classof(const Expr* expr) { return expr->type == TypeEnum; }
+  static bool classof(const Expr* expr) { return expr->type() == TypeEnum; }
 
-  ExprMixin() : Expr(TypeEnum) {}
-  explicit ExprMixin(Location loc) : Expr(TypeEnum, loc) {}
+  explicit ExprMixin(const Location& loc = Location()) : Expr(TypeEnum, loc) {}
 };
 
 typedef ExprMixin<ExprType::CurrentMemory> CurrentMemoryExpr;
@@ -234,11 +252,10 @@ typedef VarExpr<ExprType::Throw> ThrowExpr;
 template <ExprType TypeEnum>
 class BlockExprBase : public ExprMixin<TypeEnum> {
  public:
-  explicit BlockExprBase(Block* block, const Location& loc = Location())
-      : ExprMixin<TypeEnum>(loc), block(block) {}
-  ~BlockExprBase() { delete block; }
+  explicit BlockExprBase(const Location& loc = Location())
+      : ExprMixin<TypeEnum>(loc) {}
 
-  Block* block;
+  Block block;
 };
 
 typedef BlockExprBase<ExprType::Block> BlockExpr;
@@ -246,40 +263,28 @@ typedef BlockExprBase<ExprType::Loop> LoopExpr;
 
 class IfExpr : public ExprMixin<ExprType::If> {
  public:
-  explicit IfExpr(Block* true_block,
-                  ExprList false_expr = ExprList(),
-                  const Location& loc = Location())
-      : ExprMixin<ExprType::If>(loc),
-        true_(true_block),
-        false_(std::move(false_expr)) {}
+  explicit IfExpr(const Location& loc = Location())
+      : ExprMixin<ExprType::If>(loc) {}
 
-  ~IfExpr();
-
-  Block* true_;
+  Block true_;
   ExprList false_;
 };
 
 class TryExpr : public ExprMixin<ExprType::TryBlock> {
  public:
   explicit TryExpr(const Location& loc = Location())
-      : ExprMixin<ExprType::TryBlock>(loc), block(nullptr) {}
-  ~TryExpr();
+      : ExprMixin<ExprType::TryBlock>(loc) {}
 
-  Block* block;
+  Block block;
   CatchVector catches;
 };
 
 class BrTableExpr : public ExprMixin<ExprType::BrTable> {
  public:
-  BrTableExpr(VarVector* targets,
-              Var default_target,
-              const Location& loc = Location())
-      : ExprMixin<ExprType::BrTable>(loc),
-        targets(targets),
-        default_target(default_target) {}
-  ~BrTableExpr() { delete targets; }
+  BrTableExpr(const Location& loc = Location())
+      : ExprMixin<ExprType::BrTable>(loc) {}
 
-  VarVector* targets;
+  VarVector targets;
   Var default_target;
 };
 
@@ -313,8 +318,7 @@ typedef LoadStoreExpr<ExprType::Store> StoreExpr;
 
 struct Exception {
   Exception() = default;
-  Exception(const TypeVector& sig) : sig(sig) {}
-  Exception(string_view name, const TypeVector& sig) : name(name), sig(sig) {}
+  explicit Exception(string_view name) : name(name.to_string()) {}
 
   std::string name;
   TypeVector sig;
@@ -333,6 +337,9 @@ struct FuncSignature {
 };
 
 struct FuncType {
+  FuncType() = default;
+  explicit FuncType(string_view name) : name(name.to_string()) {}
+
   Index GetNumParams() const { return sig.GetNumParams(); }
   Index GetNumResults() const { return sig.GetNumResults(); }
   Type GetParamType(Index index) const { return sig.GetParamType(index); }
@@ -354,6 +361,9 @@ struct FuncDeclaration {
 };
 
 struct Func {
+  Func() = default;
+  explicit Func(string_view name) : name(name.to_string()) {}
+
   Type GetParamType(Index index) const { return decl.GetParamType(index); }
   Type GetResultType(Index index) const { return decl.GetResultType(index); }
   Index GetNumParams() const { return decl.GetNumParams(); }
@@ -373,6 +383,9 @@ struct Func {
 };
 
 struct Global {
+  Global() = default;
+  explicit Global(string_view name) : name(name.to_string()) {}
+
   std::string name;
   Type type = Type::Void;
   bool mutable_ = false;
@@ -380,7 +393,8 @@ struct Global {
 };
 
 struct Table {
-  Table();
+  Table() = default;
+  explicit Table(string_view name) : name(name.to_string()) {}
 
   std::string name;
   Limits elem_limits;
@@ -393,7 +407,8 @@ struct ElemSegment {
 };
 
 struct Memory {
-  Memory();
+  Memory() = default;
+  explicit Memory(string_view name) : name(name.to_string()) {}
 
   std::string name;
   Limits page_limits;
@@ -405,24 +420,71 @@ struct DataSegment {
   std::vector<uint8_t> data;
 };
 
-struct Import {
+class Import {
+ public:
   WABT_DISALLOW_COPY_AND_ASSIGN(Import);
-  Import();
-  ~Import();
+  Import() = delete;
+  virtual ~Import() = default;
+
+  ExternalKind kind() const { return kind_; }
 
   std::string module_name;
   std::string field_name;
-  ExternalKind kind;
-  union {
-    // An imported func has the type Func so it can be more easily included in
-    // the Module's vector of funcs, but only the FuncDeclaration will have any
-    // useful information.
-    Func* func;
-    Table* table;
-    Memory* memory;
-    Global* global;
-    Exception* except;
-  };
+
+ protected:
+  Import(ExternalKind kind) : kind_(kind) {}
+
+  ExternalKind kind_;
+};
+
+template <ExternalKind TypeEnum>
+class ImportMixin : public Import {
+ public:
+  static bool classof(const Import* import) {
+    return import->kind() == TypeEnum;
+  }
+
+  ImportMixin() : Import(TypeEnum) {}
+};
+
+class FuncImport : public ImportMixin<ExternalKind::Func> {
+ public:
+  explicit FuncImport(string_view name = string_view())
+      : ImportMixin<ExternalKind::Func>(), func(name) {}
+
+  Func func;
+};
+
+class TableImport : public ImportMixin<ExternalKind::Table> {
+ public:
+  explicit TableImport(string_view name = string_view())
+      : ImportMixin<ExternalKind::Table>(), table(name) {}
+
+  Table table;
+};
+
+class MemoryImport : public ImportMixin<ExternalKind::Memory> {
+ public:
+  explicit MemoryImport(string_view name = string_view())
+      : ImportMixin<ExternalKind::Memory>(), memory(name) {}
+
+  Memory memory;
+};
+
+class GlobalImport : public ImportMixin<ExternalKind::Global> {
+ public:
+  explicit GlobalImport(string_view name = string_view())
+      : ImportMixin<ExternalKind::Global>(), global(name) {}
+
+  Global global;
+};
+
+class ExceptionImport : public ImportMixin<ExternalKind::Except> {
+ public:
+  explicit ExceptionImport(string_view name = string_view())
+      : ImportMixin<ExternalKind::Except>(), except(name) {}
+
+  Exception except;
 };
 
 struct Export {
@@ -449,13 +511,17 @@ class ModuleField : public intrusive_list_base<ModuleField> {
  public:
   WABT_DISALLOW_COPY_AND_ASSIGN(ModuleField);
   ModuleField() = delete;
-  virtual ~ModuleField() {}
+  virtual ~ModuleField() = default;
+
+  ModuleFieldType type() const { return type_; }
 
   Location loc;
-  ModuleFieldType type;
 
  protected:
-  explicit ModuleField(ModuleFieldType, const Location& loc);
+  ModuleField(ModuleFieldType type, const Location& loc)
+      : loc(loc), type_(type) {}
+
+  ModuleFieldType type_;
 };
 
 typedef intrusive_list<ModuleField> ModuleFieldList;
@@ -464,7 +530,7 @@ template <ModuleFieldType TypeEnum>
 class ModuleFieldMixin : public ModuleField {
  public:
   static bool classof(const ModuleField* field) {
-    return field->type == TypeEnum;
+    return field->type() == TypeEnum;
   }
 
   explicit ModuleFieldMixin(const Location& loc) : ModuleField(TypeEnum, loc) {}
@@ -472,105 +538,94 @@ class ModuleFieldMixin : public ModuleField {
 
 class FuncModuleField : public ModuleFieldMixin<ModuleFieldType::Func> {
  public:
-  explicit FuncModuleField(Func* func, const Location& loc = Location())
-      : ModuleFieldMixin<ModuleFieldType::Func>(loc), func(func) {}
-  ~FuncModuleField() { delete func; }
+  explicit FuncModuleField(const Location& loc = Location(),
+                           string_view name = string_view())
+      : ModuleFieldMixin<ModuleFieldType::Func>(loc), func(name) {}
 
-  Func* func;
+  Func func;
 };
 
 class GlobalModuleField : public ModuleFieldMixin<ModuleFieldType::Global> {
  public:
-  explicit GlobalModuleField(Global* global,
-                             const Location& loc = Location())
-      : ModuleFieldMixin<ModuleFieldType::Global>(loc), global(global) {}
-  ~GlobalModuleField() { delete global; }
+  explicit GlobalModuleField(const Location& loc = Location(),
+                             string_view name = string_view())
+      : ModuleFieldMixin<ModuleFieldType::Global>(loc), global(name) {}
 
-  Global* global;
+  Global global;
 };
 
 class ImportModuleField : public ModuleFieldMixin<ModuleFieldType::Import> {
  public:
-  explicit ImportModuleField(Import* import,
+  explicit ImportModuleField(const Location& loc = Location())
+      : ModuleFieldMixin<ModuleFieldType::Import>(loc) {}
+  explicit ImportModuleField(std::unique_ptr<Import> import,
                              const Location& loc = Location())
-      : ModuleFieldMixin<ModuleFieldType::Import>(loc), import(import) {}
-  ~ImportModuleField() { delete import; }
+      : ModuleFieldMixin<ModuleFieldType::Import>(loc),
+        import(std::move(import)) {}
 
-  Import* import;
+  std::unique_ptr<Import> import;
 };
 
 class ExportModuleField : public ModuleFieldMixin<ModuleFieldType::Export> {
  public:
-  explicit ExportModuleField(Export* export_,
-                             const Location& loc = Location())
-      : ModuleFieldMixin<ModuleFieldType::Export>(loc), export_(export_) {}
-  ~ExportModuleField() { delete export_; }
+  explicit ExportModuleField(const Location& loc = Location())
+      : ModuleFieldMixin<ModuleFieldType::Export>(loc) {}
 
-  Export* export_;
+  Export export_;
 };
 
 class FuncTypeModuleField : public ModuleFieldMixin<ModuleFieldType::FuncType> {
  public:
-  explicit FuncTypeModuleField(FuncType* func_type,
-                               const Location& loc = Location())
-      : ModuleFieldMixin<ModuleFieldType::FuncType>(loc),
-        func_type(func_type) {}
-  ~FuncTypeModuleField() { delete func_type; }
+  explicit FuncTypeModuleField(const Location& loc = Location(),
+                               string_view name = string_view())
+      : ModuleFieldMixin<ModuleFieldType::FuncType>(loc), func_type(name) {}
 
-  FuncType* func_type;
+  FuncType func_type;
 };
 
 class TableModuleField : public ModuleFieldMixin<ModuleFieldType::Table> {
  public:
-  explicit TableModuleField(Table* table, const Location& loc = Location())
-      : ModuleFieldMixin<ModuleFieldType::Table>(loc), table(table) {}
-  ~TableModuleField() { delete table; }
+  explicit TableModuleField(const Location& loc = Location(),
+                            string_view name = string_view())
+      : ModuleFieldMixin<ModuleFieldType::Table>(loc), table(name) {}
 
-  Table* table;
+  Table table;
 };
 
 class ElemSegmentModuleField
     : public ModuleFieldMixin<ModuleFieldType::ElemSegment> {
  public:
-  explicit ElemSegmentModuleField(ElemSegment* elem_segment,
-                                  const Location& loc = Location())
-      : ModuleFieldMixin<ModuleFieldType::ElemSegment>(loc),
-        elem_segment(elem_segment) {}
-  ~ElemSegmentModuleField() { delete elem_segment; }
+  explicit ElemSegmentModuleField(const Location& loc = Location())
+      : ModuleFieldMixin<ModuleFieldType::ElemSegment>(loc) {}
 
-  ElemSegment* elem_segment;
+  ElemSegment elem_segment;
 };
 
 class MemoryModuleField : public ModuleFieldMixin<ModuleFieldType::Memory> {
  public:
-  explicit MemoryModuleField(Memory* memory,
-                             const Location& loc = Location())
-      : ModuleFieldMixin<ModuleFieldType::Memory>(loc), memory(memory) {}
-  ~MemoryModuleField() { delete memory; }
+  explicit MemoryModuleField(const Location& loc = Location(),
+                             string_view name = string_view())
+      : ModuleFieldMixin<ModuleFieldType::Memory>(loc), memory(name) {}
 
-  Memory* memory;
+  Memory memory;
 };
 
 class DataSegmentModuleField
     : public ModuleFieldMixin<ModuleFieldType::DataSegment> {
  public:
-  explicit DataSegmentModuleField(DataSegment* data_segment,
-                                  const Location& loc = Location())
-      : ModuleFieldMixin<ModuleFieldType::DataSegment>(loc),
-        data_segment(data_segment) {}
-  ~DataSegmentModuleField() { delete data_segment; }
+  explicit DataSegmentModuleField( const Location& loc = Location())
+      : ModuleFieldMixin<ModuleFieldType::DataSegment>(loc) {}
 
-  DataSegment* data_segment;
+  DataSegment data_segment;
 };
 
 class ExceptionModuleField : public ModuleFieldMixin<ModuleFieldType::Except> {
  public:
-  explicit ExceptionModuleField(Exception* except,
-                                const Location& loc = Location())
-      : ModuleFieldMixin<ModuleFieldType::Except>(loc), except(except) {}
-  ~ExceptionModuleField() { delete except; }
+  explicit ExceptionModuleField(const Location& loc = Location(),
+                                string_view name = string_view())
+      : ModuleFieldMixin<ModuleFieldType::Except>(loc), except(name) {}
 
-  Exception* except;
+  Exception except;
 };
 
 class StartModuleField : public ModuleFieldMixin<ModuleFieldType::Start> {
@@ -603,18 +658,18 @@ struct Module {
   Index GetExceptIndex(const Var&) const;
 
   // TODO(binji): move this into a builder class?
-  void AppendField(DataSegmentModuleField*);
-  void AppendField(ElemSegmentModuleField*);
-  void AppendField(ExceptionModuleField*);
-  void AppendField(ExportModuleField*);
-  void AppendField(FuncModuleField*);
-  void AppendField(FuncTypeModuleField*);
-  void AppendField(GlobalModuleField*);
-  void AppendField(ImportModuleField*);
-  void AppendField(MemoryModuleField*);
-  void AppendField(StartModuleField*);
-  void AppendField(TableModuleField*);
-  void AppendField(ModuleField*);
+  void AppendField(std::unique_ptr<DataSegmentModuleField>);
+  void AppendField(std::unique_ptr<ElemSegmentModuleField>);
+  void AppendField(std::unique_ptr<ExceptionModuleField>);
+  void AppendField(std::unique_ptr<ExportModuleField>);
+  void AppendField(std::unique_ptr<FuncModuleField>);
+  void AppendField(std::unique_ptr<FuncTypeModuleField>);
+  void AppendField(std::unique_ptr<GlobalModuleField>);
+  void AppendField(std::unique_ptr<ImportModuleField>);
+  void AppendField(std::unique_ptr<MemoryModuleField>);
+  void AppendField(std::unique_ptr<StartModuleField>);
+  void AppendField(std::unique_ptr<TableModuleField>);
+  void AppendField(std::unique_ptr<ModuleField>);
   void AppendFields(ModuleFieldList*);
 
   Location loc;
@@ -650,65 +705,108 @@ struct Module {
   BindingHash memory_bindings;
 };
 
+enum class ScriptModuleType {
+  Text,
+  Binary,
+  Quoted,
+};
+
 // A ScriptModule is a module that may not yet be decoded. This allows for text
 // and binary parsing errors to be deferred until validation time.
-struct ScriptModule {
-  enum class Type {
-    Text,
-    Binary,
-    Quoted,
-  };
-
+class ScriptModule {
+ public:
   WABT_DISALLOW_COPY_AND_ASSIGN(ScriptModule);
-  explicit ScriptModule(Type);
-  ~ScriptModule();
+  ScriptModule() = delete;
+  virtual ~ScriptModule() = default;
 
-  const Location& GetLocation() const {
-    switch (type) {
-      case Type::Binary: return binary.loc;
-      case Type::Quoted: return quoted.loc;
-      default: assert(0); // Fallthrough.
-      case Type::Text: return text->loc;
-    }
+  ScriptModuleType type() const { return type_; }
+  virtual const Location& location() const = 0;
+
+ protected:
+  explicit ScriptModule(ScriptModuleType type) : type_(type) {}
+
+  ScriptModuleType type_;
+};
+
+template <ScriptModuleType TypeEnum>
+class ScriptModuleMixin : public ScriptModule {
+ public:
+  static bool classof(const ScriptModule* script_module) {
+    return script_module->type() == TypeEnum;
   }
 
-  Type type;
-
-  union {
-    Module* text;
-    struct {
-      Location loc;
-      std::string name;
-      std::vector<uint8_t> data;
-    } binary, quoted;
-  };
+  ScriptModuleMixin() : ScriptModule(TypeEnum) {}
 };
+
+class TextScriptModule : public ScriptModuleMixin<ScriptModuleType::Text> {
+ public:
+  const Location& location() const override { return module.loc; }
+
+  Module module;
+};
+
+template <ScriptModuleType TypeEnum>
+class DataScriptModule : public ScriptModuleMixin<TypeEnum> {
+ public:
+  const Location& location() const override { return loc; }
+
+  Location loc;
+  std::string name;
+  std::vector<uint8_t> data;
+};
+
+typedef DataScriptModule<ScriptModuleType::Binary> BinaryScriptModule;
+typedef DataScriptModule<ScriptModuleType::Quoted> QuotedScriptModule;
 
 enum class ActionType {
   Invoke,
   Get,
 };
 
-struct ActionInvoke {
-  WABT_DISALLOW_COPY_AND_ASSIGN(ActionInvoke);
-  ActionInvoke() = default;
-
-  ConstVector args;
-};
-
-struct Action {
+class Action {
+ public:
   WABT_DISALLOW_COPY_AND_ASSIGN(Action);
-  Action();
-  ~Action();
+  Action() = delete;
+  virtual ~Action() = default;
+
+  ActionType type() const { return type_; }
 
   Location loc;
-  ActionType type;
   Var module_var;
   std::string name;
-  union {
-    ActionInvoke* invoke;
-    struct {} get;
-  };
+
+ protected:
+  explicit Action(ActionType type, const Location& loc = Location())
+      : loc(loc), type_(type) {}
+
+  ActionType type_;
+};
+
+typedef std::unique_ptr<Action> ActionPtr;
+
+template <ActionType TypeEnum>
+class ActionMixin : public Action {
+ public:
+  static bool classof(const Action* action) {
+    return action->type() == TypeEnum;
+  }
+
+  explicit ActionMixin(const Location& loc = Location())
+      : Action(TypeEnum, loc) {}
+};
+
+class GetAction : public ActionMixin<ActionType::Get> {
+ public:
+  explicit GetAction(const Location& loc = Location())
+      : ActionMixin<ActionType::Get>(loc) {}
+};
+
+class InvokeAction : public ActionMixin<ActionType::Invoke> {
+ public:
+  explicit InvokeAction(const Location& loc = Location())
+      : ActionMixin<ActionType::Invoke>(loc) {}
+
+  ConstVector args;
 };
 
 enum class CommandType {
@@ -734,7 +832,7 @@ class Command {
  public:
   WABT_DISALLOW_COPY_AND_ASSIGN(Command);
   Command() = delete;
-  virtual ~Command() {}
+  virtual ~Command() = default;
 
   CommandType type;
 
@@ -751,19 +849,13 @@ class CommandMixin : public Command {
 
 class ModuleCommand : public CommandMixin<CommandType::Module> {
  public:
-  explicit ModuleCommand(Module* module) : module(module) {}
-  ~ModuleCommand() { delete module; }
-
-  Module* module;
+  Module module;
 };
 
 template <CommandType TypeEnum>
 class ActionCommandBase : public CommandMixin<TypeEnum> {
  public:
-  explicit ActionCommandBase(Action* action) : action(action) {}
-  ~ActionCommandBase() { delete action; }
-
-  Action* action;
+  ActionPtr action;
 };
 
 typedef ActionCommandBase<CommandType::Action> ActionCommand;
@@ -783,27 +875,14 @@ class RegisterCommand : public CommandMixin<CommandType::Register> {
 
 class AssertReturnCommand : public CommandMixin<CommandType::AssertReturn> {
  public:
-  AssertReturnCommand(Action* action, ConstVector* expected)
-      : action(action), expected(expected) {}
-  ~AssertReturnCommand() {
-    delete action;
-    delete expected;
-  }
-
-  Action* action;
-  ConstVector* expected;
+  ActionPtr action;
+  ConstVector expected;
 };
 
 template <CommandType TypeEnum>
 class AssertTrapCommandBase : public CommandMixin<TypeEnum> {
  public:
-  AssertTrapCommandBase(Action* action, string_view text)
-      : action(action), text(text) {}
-  ~AssertTrapCommandBase() {
-    delete action;
-  }
-
-  Action* action;
+  ActionPtr action;
   std::string text;
 };
 
@@ -814,11 +893,7 @@ typedef AssertTrapCommandBase<CommandType::AssertExhaustion>
 template <CommandType TypeEnum>
 class AssertModuleCommand : public CommandMixin<TypeEnum> {
  public:
-  AssertModuleCommand(ScriptModule* module, string_view text)
-      : module(module), text(text) {}
-  ~AssertModuleCommand() { delete module; }
-
-  ScriptModule* module;
+  std::unique_ptr<ScriptModule> module;
   std::string text;
 };
 

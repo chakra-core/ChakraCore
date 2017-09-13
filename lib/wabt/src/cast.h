@@ -17,9 +17,10 @@
 #ifndef WABT_CAST_H_
 #define WABT_CAST_H_
 
+#include <memory>
 #include <type_traits>
 
-#include "common.h"
+#include "src/common.h"
 
 // Modeled after LLVM's dynamic casts:
 // http://llvm.org/docs/ProgrammersManual.html#the-isa-cast-and-dyn-cast-templates
@@ -86,6 +87,21 @@ const Derived* dyn_cast(const Base* base) {
 template <typename Derived, typename Base>
 Derived* dyn_cast(Base* base) {
   return isa<Derived>(base) ? static_cast<Derived*>(base) : nullptr;
+};
+
+// Cast functionality for unique_ptr. isa and dyn_cast are not included because
+// they won't always pass ownership back to the caller.
+
+template <typename Derived, typename Base>
+std::unique_ptr<const Derived> cast(std::unique_ptr<const Base>&& base) {
+  assert(isa<Derived>(base.get()));
+  return std::unique_ptr<Derived>(static_cast<const Derived*>(base.release()));
+};
+
+template <typename Derived, typename Base>
+std::unique_ptr<Derived> cast(std::unique_ptr<Base>&& base) {
+  assert(isa<Derived>(base.get()));
+  return std::unique_ptr<Derived>(static_cast<Derived*>(base.release()));
 };
 
 } // namespace wabt

@@ -22,7 +22,7 @@
 #include <iterator>
 #include <string>
 
-#include "hash-util.h"
+#include "src/hash-util.h"
 
 namespace wabt {
 

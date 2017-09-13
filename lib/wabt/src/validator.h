@@ -17,7 +17,7 @@
 #ifndef WABT_VALIDATOR_H_
 #define WABT_VALIDATOR_H_
 
-#include "wast-lexer.h"
+#include "src/wast-lexer.h"
 
 namespace wabt {
 
@@ -29,6 +29,15 @@ class ErrorHandler;
 // succeeds.
 Result ValidateScript(WastLexer*, const Script*, ErrorHandler*);
 Result ValidateModule(WastLexer*, const Module*, ErrorHandler*);
+
+// Validate that all functions that have an explicit function signature and a
+// function type use match.
+//
+// This needs to be separated out because the spec interpreter considers it to
+// be malformed text, not a validation error. We can't handle that error in the
+// parser because the parser doesn't resolve names to indexes, which is
+// required to perform this check.
+Result ValidateFuncSignatures(WastLexer*, const Module*, ErrorHandler*);
 
 }  // namespace wabt
 

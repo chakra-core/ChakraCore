@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "literal.h"
+#include "src/literal.h"
 
 #include <cassert>
 #include <cerrno>
@@ -225,8 +225,7 @@ Result FloatParser<T>::ParseNan(const char* s,
 
     for (; s < end; ++s) {
       uint32_t digit;
-      if (Failed(ParseHexdigit(*s, &digit)))
-        return Result::Error;
+      CHECK_RESULT(ParseHexdigit(*s, &digit));
       tag = tag * 16 + digit;
       // Check for overflow.
       if (tag > Traits::kSigMask)
@@ -421,11 +420,9 @@ Result FloatParser<T>::Parse(LiteralType literal_type,
 
     case LiteralType::Nan:
       return ParseNan(s, end, out_bits);
-
-    default:
-      assert(0);
-      return Result::Error;
   }
+
+  WABT_UNREACHABLE;
 }
 
 // static
@@ -552,8 +549,7 @@ Result ParseUint64(const char* s, const char* end, uint64_t* out) {
       uint32_t digit;
       if (*s == '_')
         continue;
-      if (Failed(ParseHexdigit(*s, &digit)))
-        return Result::Error;
+      CHECK_RESULT(ParseHexdigit(*s, &digit));
       uint64_t old_value = value;
       value = value * 16 + digit;
       // Check for overflow.
@@ -617,8 +613,7 @@ Result ParseInt32(const char* s,
       has_sign = true;
     s++;
   }
-  if (Failed(ParseUint64(s, end, &value)))
-    return Result::Error;
+  CHECK_RESULT(ParseUint64(s, end, &value));
 
   if (has_sign) {
     // abs(INT32_MIN) == INT32_MAX + 1.

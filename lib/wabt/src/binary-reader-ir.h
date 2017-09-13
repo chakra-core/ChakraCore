@@ -17,7 +17,7 @@
 #ifndef WABT_BINARY_READER_IR_H_
 #define WABT_BINARY_READER_IR_H_
 
-#include "common.h"
+#include "src/common.h"
 
 namespace wabt {
 

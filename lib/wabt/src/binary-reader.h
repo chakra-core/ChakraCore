@@ -20,11 +20,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "binary.h"
-#include "common.h"
-#include "feature.h"
-#include "opcode.h"
-#include "string-view.h"
+#include "src/binary.h"
+#include "src/common.h"
+#include "src/feature.h"
+#include "src/opcode.h"
+#include "src/string-view.h"
 
 namespace wabt {
 
@@ -283,6 +283,8 @@ class BinaryReaderDelegate {
   virtual Result OnStackGlobal(Index stack_global) = 0;
   virtual Result OnSymbolInfoCount(Index count) = 0;
   virtual Result OnSymbolInfo(string_view name, uint32_t flags) = 0;
+  virtual Result OnDataSize(uint32_t data_size) = 0;
+  virtual Result OnDataAlignment(uint32_t data_alignment) = 0;
   virtual Result EndLinkingSection() = 0;
 
   /* Exception section */

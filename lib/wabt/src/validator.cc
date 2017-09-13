@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
-#include "validator.h"
-#include "config.h"
+#include "src/validator.h"
 
 #include <cassert>
 #include <cinttypes>
 #include <cstdarg>
 #include <cstdio>
 
-#include "binary-reader.h"
-#include "cast.h"
-#include "error-handler.h"
-#include "ir.h"
-#include "type-checker.h"
-#include "wast-parser-lexer-shared.h"
+#include "config.h"
+
+#include "src/binary-reader.h"
+#include "src/cast.h"
+#include "src/error-handler.h"
+#include "src/ir.h"
+#include "src/type-checker.h"
+#include "src/wast-parser-lexer-shared.h"
 
 namespace wabt {
 
@@ -40,6 +41,7 @@ class Validator {
 
   Result CheckModule(const Module* module);
   Result CheckScript(const Script* script);
+  Result CheckAllFuncSignatures(const Module* module);
 
  private:
   struct ActionResult {
@@ -53,11 +55,6 @@ class Validator {
       const TypeVector* types;
       Type type;
     };
-  };
-
-  struct TryContext {
-    const TryExpr* try_ = nullptr;
-    const Catch* catch_ = nullptr;
   };
 
   void WABT_PRINTF_FORMAT(3, 4)
@@ -112,9 +109,7 @@ class Validator {
                      Opcode opcode,
                      const BlockSignature* sig);
   void CheckExpr(const Expr* expr);
-  void CheckFuncSignatureMatchesFuncType(const Location* loc,
-                                         const FuncSignature& sig,
-                                         const FuncType* func_type);
+  void CheckFuncSignature(const Location* loc, const Func* func);
   void CheckFunc(const Location* loc, const Func* func);
   void PrintConstExprError(const Location* loc, const char* desc);
   void CheckConstInitExpr(const Location* loc,
@@ -134,8 +129,8 @@ class Validator {
   void CheckExport(const Location* loc, const Export* export_);
 
   void CheckDuplicateExportBindings(const Module* module);
-  const TypeVector* CheckInvoke(const Action* action);
-  Result CheckGet(const Action* action, Type* out_type);
+  const TypeVector* CheckInvoke(const InvokeAction* action);
+  Result CheckGet(const GetAction* action, Type* out_type);
   ActionResult CheckAction(const Action* action);
   void CheckAssertReturnNanCommand(const Action* action);
   void CheckCommand(const Command* command);
@@ -157,7 +152,6 @@ class Validator {
   // Cached for access by OnTypecheckerError.
   const Location* expr_loc_ = nullptr;
   Result result_ = Result::Ok;
-  std::vector<TryContext> try_contexts_;
 };
 
 Validator::Validator(ErrorHandler* error_handler,
@@ -206,11 +200,7 @@ Result Validator::CheckVar(Index max_index,
 
 Result Validator::CheckFuncVar(const Var* var, const Func** out_func) {
   Index index;
-  if (Failed(
-          CheckVar(current_module_->funcs.size(), var, "function", &index))) {
-    return Result::Error;
-  }
-
+  CHECK_RESULT(CheckVar(current_module_->funcs.size(), var, "function", &index));
   if (out_func)
     *out_func = current_module_->funcs[index];
   return Result::Ok;
@@ -220,11 +210,8 @@ Result Validator::CheckGlobalVar(const Var* var,
                                  const Global** out_global,
                                  Index* out_global_index) {
   Index index;
-  if (Failed(
-          CheckVar(current_module_->globals.size(), var, "global", &index))) {
-    return Result::Error;
-  }
-
+  CHECK_RESULT(
+      CheckVar(current_module_->globals.size(), var, "global", &index));
   if (out_global)
     *out_global = current_module_->globals[index];
   if (out_global_index)
@@ -242,11 +229,8 @@ Type Validator::GetGlobalVarTypeOrAny(const Var* var) {
 Result Validator::CheckFuncTypeVar(const Var* var,
                                    const FuncType** out_func_type) {
   Index index;
-  if (Failed(CheckVar(current_module_->func_types.size(), var,
-                      "function type", &index))) {
-    return Result::Error;
-  }
-
+  CHECK_RESULT(CheckVar(current_module_->func_types.size(), var,
+                        "function type", &index));
   if (out_func_type)
     *out_func_type = current_module_->func_types[index];
   return Result::Ok;
@@ -254,10 +238,7 @@ Result Validator::CheckFuncTypeVar(const Var* var,
 
 Result Validator::CheckTableVar(const Var* var, const Table** out_table) {
   Index index;
-  if (Failed(CheckVar(current_module_->tables.size(), var, "table", &index))) {
-    return Result::Error;
-  }
-
+  CHECK_RESULT(CheckVar(current_module_->tables.size(), var, "table", &index));
   if (out_table)
     *out_table = current_module_->tables[index];
   return Result::Ok;
@@ -265,11 +246,8 @@ Result Validator::CheckTableVar(const Var* var, const Table** out_table) {
 
 Result Validator::CheckMemoryVar(const Var* var, const Memory** out_memory) {
   Index index;
-  if (Failed(
-          CheckVar(current_module_->memories.size(), var, "memory", &index))) {
-    return Result::Error;
-  }
-
+  CHECK_RESULT(
+      CheckVar(current_module_->memories.size(), var, "memory", &index));
   if (out_memory)
     *out_memory = current_module_->memories[index];
   return Result::Ok;
@@ -419,16 +397,16 @@ void Validator::CheckBlockSig(const Location* loc,
 void Validator::CheckExpr(const Expr* expr) {
   expr_loc_ = &expr->loc;
 
-  switch (expr->type) {
+  switch (expr->type()) {
     case ExprType::Binary:
       typechecker_.OnBinary(cast<BinaryExpr>(expr)->opcode);
       break;
 
     case ExprType::Block: {
       auto block_expr = cast<BlockExpr>(expr);
-      CheckBlockSig(&block_expr->loc, Opcode::Block, &block_expr->block->sig);
-      typechecker_.OnBlock(&block_expr->block->sig);
-      CheckExprList(&block_expr->loc, block_expr->block->exprs);
+      CheckBlockSig(&block_expr->loc, Opcode::Block, &block_expr->block.sig);
+      typechecker_.OnBlock(&block_expr->block.sig);
+      CheckExprList(&block_expr->loc, block_expr->block.exprs);
       typechecker_.OnEnd();
       break;
     }
@@ -444,7 +422,7 @@ void Validator::CheckExpr(const Expr* expr) {
     case ExprType::BrTable: {
       auto br_table_expr = cast<BrTableExpr>(expr);
       typechecker_.BeginBrTable();
-      for (Var& var : *br_table_expr->targets) {
+      for (const Var& var : br_table_expr->targets) {
         typechecker_.OnBrTableTarget(var.index());
       }
       typechecker_.OnBrTableTarget(br_table_expr->default_target.index());
@@ -507,9 +485,9 @@ void Validator::CheckExpr(const Expr* expr) {
 
     case ExprType::If: {
       auto if_expr = cast<IfExpr>(expr);
-      CheckBlockSig(&if_expr->loc, Opcode::If, &if_expr->true_->sig);
-      typechecker_.OnIf(&if_expr->true_->sig);
-      CheckExprList(&if_expr->loc, if_expr->true_->exprs);
+      CheckBlockSig(&if_expr->loc, Opcode::If, &if_expr->true_.sig);
+      typechecker_.OnIf(&if_expr->true_.sig);
+      CheckExprList(&if_expr->loc, if_expr->true_.exprs);
       if (!if_expr->false_.empty()) {
         typechecker_.OnElse();
         CheckExprList(&if_expr->loc, if_expr->false_);
@@ -529,9 +507,9 @@ void Validator::CheckExpr(const Expr* expr) {
 
     case ExprType::Loop: {
       auto loop_expr = cast<LoopExpr>(expr);
-      CheckBlockSig(&loop_expr->loc, Opcode::Loop, &loop_expr->block->sig);
-      typechecker_.OnLoop(&loop_expr->block->sig);
-      CheckExprList(&loop_expr->loc, loop_expr->block->exprs);
+      CheckBlockSig(&loop_expr->loc, Opcode::Loop, &loop_expr->block.sig);
+      typechecker_.OnLoop(&loop_expr->block.sig);
+      CheckExprList(&loop_expr->loc, loop_expr->block.exprs);
       typechecker_.OnEnd();
       break;
     }
@@ -589,34 +567,29 @@ void Validator::CheckExpr(const Expr* expr) {
 
     case ExprType::TryBlock: {
       auto try_expr = cast<TryExpr>(expr);
-      TryContext context;
-      context.try_ = try_expr;
-      try_contexts_.push_back(context);
-      CheckBlockSig(&try_expr->loc, Opcode::Try, &try_expr->block->sig);
+      CheckBlockSig(&try_expr->loc, Opcode::Try, &try_expr->block.sig);
 
-      typechecker_.OnTryBlock(&try_expr->block->sig);
-      CheckExprList(&try_expr->loc, try_expr->block->exprs);
+      typechecker_.OnTryBlock(&try_expr->block.sig);
+      CheckExprList(&try_expr->loc, try_expr->block.exprs);
 
       if (try_expr->catches.empty())
         PrintError(&try_expr->loc, "TryBlock: doesn't have any catch clauses");
       bool found_catch_all = false;
-      for (const Catch* catch_ : try_expr->catches) {
-        try_contexts_.back().catch_ = catch_;
-        typechecker_.OnCatchBlock(&try_expr->block->sig);
-        if (catch_->IsCatchAll()) {
+      for (const Catch& catch_ : try_expr->catches) {
+        typechecker_.OnCatchBlock(&try_expr->block.sig);
+        if (catch_.IsCatchAll()) {
           found_catch_all = true;
         } else {
           if (found_catch_all)
-            PrintError(&catch_->loc, "Appears after catch all block");
+            PrintError(&catch_.loc, "Appears after catch all block");
           const Exception* except = nullptr;
-          if (Succeeded(CheckExceptVar(&catch_->var, &except))) {
+          if (Succeeded(CheckExceptVar(&catch_.var, &except))) {
             typechecker_.OnCatch(&except->sig);
           }
         }
-        CheckExprList(&catch_->loc, catch_->exprs);
+        CheckExprList(&catch_.loc, catch_.exprs);
       }
       typechecker_.OnEnd();
-      try_contexts_.pop_back();
       break;
     }
 
@@ -630,27 +603,25 @@ void Validator::CheckExpr(const Expr* expr) {
   }
 }
 
-void Validator::CheckFuncSignatureMatchesFuncType(const Location* loc,
-                                                  const FuncSignature& sig,
-                                                  const FuncType* func_type) {
-  CheckTypes(loc, sig.result_types, func_type->sig.result_types, "function",
-             "result");
-  CheckTypes(loc, sig.param_types, func_type->sig.param_types, "function",
-             "argument");
+void Validator::CheckFuncSignature(const Location* loc, const Func* func) {
+  if (func->decl.has_func_type) {
+    const FuncType* func_type;
+    if (Succeeded(CheckFuncTypeVar(&func->decl.type_var, &func_type))) {
+      CheckTypes(loc, func->decl.sig.result_types, func_type->sig.result_types,
+                 "function", "result");
+      CheckTypes(loc, func->decl.sig.param_types, func_type->sig.param_types,
+                 "function", "argument");
+    }
+  }
 }
 
 void Validator::CheckFunc(const Location* loc, const Func* func) {
   current_func_ = func;
+  CheckFuncSignature(loc, func);
   if (func->GetNumResults() > 1) {
     PrintError(loc, "multiple result values not currently supported.");
     // Don't run any other checks, the won't test the result_type properly.
     return;
-  }
-  if (func->decl.has_func_type) {
-    const FuncType* func_type;
-    if (Succeeded(CheckFuncTypeVar(&func->decl.type_var, &func_type))) {
-      CheckFuncSignatureMatchesFuncType(loc, func->decl.sig, func_type);
-    }
   }
 
   expr_loc_ = loc;
@@ -681,7 +652,7 @@ void Validator::CheckConstInitExpr(const Location* loc,
     const Expr* expr = &exprs.front();
     loc = &expr->loc;
 
-    switch (expr->type) {
+    switch (expr->type()) {
       case ExprType::Const:
         type = cast<ConstExpr>(expr)->const_.type;
         break;
@@ -754,17 +725,16 @@ void Validator::CheckTable(const Location* loc, const Table* table) {
 void Validator::CheckElemSegments(const Module* module) {
   for (const ModuleField& field : module->fields) {
     if (auto elem_segment_field = dyn_cast<ElemSegmentModuleField>(&field)) {
-      ElemSegment* elem_segment = elem_segment_field->elem_segment;
+      auto&& elem_segment = elem_segment_field->elem_segment;
       const Table* table;
-      if (!Succeeded(CheckTableVar(&elem_segment->table_var, &table)))
+      if (Failed(CheckTableVar(&elem_segment.table_var, &table)))
         continue;
 
-      for (const Var& var : elem_segment->vars) {
-        if (!Succeeded(CheckFuncVar(&var, nullptr)))
-          continue;
+      for (const Var& var : elem_segment.vars) {
+        CheckFuncVar(&var, nullptr);
       }
 
-      CheckConstInitExpr(&field.loc, elem_segment->offset, Type::I32,
+      CheckConstInitExpr(&field.loc, elem_segment.offset, Type::I32,
                          "elem segment offset");
     }
   }
@@ -779,42 +749,50 @@ void Validator::CheckMemory(const Location* loc, const Memory* memory) {
 void Validator::CheckDataSegments(const Module* module) {
   for (const ModuleField& field : module->fields) {
     if (auto data_segment_field = dyn_cast<DataSegmentModuleField>(&field)) {
-      DataSegment* data_segment = data_segment_field->data_segment;
+      auto&& data_segment = data_segment_field->data_segment;
       const Memory* memory;
-      if (!Succeeded(CheckMemoryVar(&data_segment->memory_var, &memory)))
+      if (Failed(CheckMemoryVar(&data_segment.memory_var, &memory)))
         continue;
 
-      CheckConstInitExpr(&field.loc, data_segment->offset, Type::I32,
+      CheckConstInitExpr(&field.loc, data_segment.offset, Type::I32,
                          "data segment offset");
     }
   }
 }
 
 void Validator::CheckImport(const Location* loc, const Import* import) {
-  switch (import->kind) {
+  switch (import->kind()) {
     case ExternalKind::Except:
       ++current_except_index_;
-      CheckExcept(loc, import->except);
+      CheckExcept(loc, &cast<ExceptionImport>(import)->except);
       break;
-    case ExternalKind::Func:
-      if (import->func->decl.has_func_type)
-        CheckFuncTypeVar(&import->func->decl.type_var, nullptr);
+
+    case ExternalKind::Func: {
+      auto* func_import = cast<FuncImport>(import);
+      if (func_import->func.decl.has_func_type)
+        CheckFuncTypeVar(&func_import->func.decl.type_var, nullptr);
       break;
+    }
+
     case ExternalKind::Table:
-      CheckTable(loc, import->table);
+      CheckTable(loc, &cast<TableImport>(import)->table);
       ++current_table_index_;
       break;
+
     case ExternalKind::Memory:
-      CheckMemory(loc, import->memory);
+      CheckMemory(loc, &cast<MemoryImport>(import)->memory);
       ++current_memory_index_;
       break;
-    case ExternalKind::Global:
-      if (import->global->mutable_) {
+
+    case ExternalKind::Global: {
+      auto* global_import = cast<GlobalImport>(import);
+      if (global_import->global.mutable_) {
         PrintError(loc, "mutable globals cannot be imported");
       }
       ++num_imported_globals_;
       ++current_global_index_;
       break;
+    }
   }
 }
 
@@ -866,31 +844,31 @@ Result Validator::CheckModule(const Module* module) {
   current_except_index_ = 0;
 
   for (const ModuleField& field : module->fields) {
-    switch (field.type) {
+    switch (field.type()) {
       case ModuleFieldType::Except:
         ++current_except_index_;
-        CheckExcept(&field.loc, cast<ExceptionModuleField>(&field)->except);
+        CheckExcept(&field.loc, &cast<ExceptionModuleField>(&field)->except);
         break;
 
       case ModuleFieldType::Func:
-        CheckFunc(&field.loc, cast<FuncModuleField>(&field)->func);
+        CheckFunc(&field.loc, &cast<FuncModuleField>(&field)->func);
         break;
 
       case ModuleFieldType::Global:
-        CheckGlobal(&field.loc, cast<GlobalModuleField>(&field)->global);
+        CheckGlobal(&field.loc, &cast<GlobalModuleField>(&field)->global);
         current_global_index_++;
         break;
 
       case ModuleFieldType::Import:
-        CheckImport(&field.loc, cast<ImportModuleField>(&field)->import);
+        CheckImport(&field.loc, cast<ImportModuleField>(&field)->import.get());
         break;
 
       case ModuleFieldType::Export:
-        CheckExport(&field.loc, cast<ExportModuleField>(&field)->export_);
+        CheckExport(&field.loc, &cast<ExportModuleField>(&field)->export_);
         break;
 
       case ModuleFieldType::Table:
-        CheckTable(&field.loc, cast<TableModuleField>(&field)->table);
+        CheckTable(&field.loc, &cast<TableModuleField>(&field)->table);
         current_table_index_++;
         break;
 
@@ -899,7 +877,7 @@ Result Validator::CheckModule(const Module* module) {
         break;
 
       case ModuleFieldType::Memory:
-        CheckMemory(&field.loc, cast<MemoryModuleField>(&field)->memory);
+        CheckMemory(&field.loc, &cast<MemoryModuleField>(&field)->memory);
         current_memory_index_++;
         break;
 
@@ -942,8 +920,7 @@ Result Validator::CheckModule(const Module* module) {
 // Returns the result type of the invoked function, checked by the caller;
 // returning nullptr means that another error occured first, so the result type
 // should be ignored.
-const TypeVector* Validator::CheckInvoke(const Action* action) {
-  const ActionInvoke* invoke = action->invoke;
+const TypeVector* Validator::CheckInvoke(const InvokeAction* action) {
   const Module* module = script_->GetModule(action->module_var);
   if (!module) {
     PrintError(&action->loc, "unknown module");
@@ -963,7 +940,7 @@ const TypeVector* Validator::CheckInvoke(const Action* action) {
     return nullptr;
   }
 
-  size_t actual_args = invoke->args.size();
+  size_t actual_args = action->args.size();
   size_t expected_args = func->GetNumParams();
   if (expected_args != actual_args) {
     PrintError(&action->loc, "too %s parameters to function. got %" PRIzd
@@ -973,7 +950,7 @@ const TypeVector* Validator::CheckInvoke(const Action* action) {
     return nullptr;
   }
   for (size_t i = 0; i < actual_args; ++i) {
-    const Const* const_ = &invoke->args[i];
+    const Const* const_ = &action->args[i];
     CheckTypeIndex(&const_->loc, const_->type, func->GetParamType(i), "invoke",
                    i, "argument");
   }
@@ -981,7 +958,7 @@ const TypeVector* Validator::CheckInvoke(const Action* action) {
   return &func->decl.sig.result_types;
 }
 
-Result Validator::CheckGet(const Action* action, Type* out_type) {
+Result Validator::CheckGet(const GetAction* action, Type* out_type) {
   const Module* module = script_->GetModule(action->module_var);
   if (!module) {
     PrintError(&action->loc, "unknown module");
@@ -1007,10 +984,8 @@ Result Validator::CheckGet(const Action* action, Type* out_type) {
 
 Result Validator::CheckExceptVar(const Var* var, const Exception** out_except) {
   Index index;
-  if (Failed(
-          CheckVar(current_module_->excepts.size(), var, "except", &index))) {
-    return Result::Error;
-  }
+  CHECK_RESULT(
+      CheckVar(current_module_->excepts.size(), var, "except", &index));
   if (out_except)
     *out_except = current_module_->excepts[index];
   return Result::Ok;
@@ -1035,15 +1010,15 @@ Validator::ActionResult Validator::CheckAction(const Action* action) {
   ActionResult result;
   ZeroMemory(result);
 
-  switch (action->type) {
+  switch (action->type()) {
     case ActionType::Invoke:
-      result.types = CheckInvoke(action);
+      result.types = CheckInvoke(cast<InvokeAction>(action));
       result.kind =
           result.types ? ActionResult::Kind::Types : ActionResult::Kind::Error;
       break;
 
     case ActionType::Get:
-      if (Succeeded(CheckGet(action, &result.type)))
+      if (Succeeded(CheckGet(cast<GetAction>(action), &result.type)))
         result.kind = ActionResult::Kind::Type;
       else
         result.kind = ActionResult::Kind::Error;
@@ -1078,12 +1053,12 @@ void Validator::CheckAssertReturnNanCommand(const Action* action) {
 void Validator::CheckCommand(const Command* command) {
   switch (command->type) {
     case CommandType::Module:
-      CheckModule(cast<ModuleCommand>(command)->module);
+      CheckModule(&cast<ModuleCommand>(command)->module);
       break;
 
     case CommandType::Action:
       // Ignore result type.
-      CheckAction(cast<ActionCommand>(command)->action);
+      CheckAction(cast<ActionCommand>(command)->action.get());
       break;
 
     case CommandType::Register:
@@ -1096,17 +1071,17 @@ void Validator::CheckCommand(const Command* command) {
 
     case CommandType::AssertReturn: {
       auto* assert_return_command = cast<AssertReturnCommand>(command);
-      const Action* action = assert_return_command->action;
+      const Action* action = assert_return_command->action.get();
       ActionResult result = CheckAction(action);
       switch (result.kind) {
         case ActionResult::Kind::Types:
           CheckConstTypes(&action->loc, *result.types,
-                          *assert_return_command->expected, "action");
+                          assert_return_command->expected, "action");
           break;
 
         case ActionResult::Kind::Type:
           CheckConstType(&action->loc, result.type,
-                         *assert_return_command->expected, "action");
+                         assert_return_command->expected, "action");
           break;
 
         case ActionResult::Kind::Error:
@@ -1118,21 +1093,21 @@ void Validator::CheckCommand(const Command* command) {
 
     case CommandType::AssertReturnCanonicalNan:
       CheckAssertReturnNanCommand(
-          cast<AssertReturnCanonicalNanCommand>(command)->action);
+          cast<AssertReturnCanonicalNanCommand>(command)->action.get());
       break;
 
     case CommandType::AssertReturnArithmeticNan:
       CheckAssertReturnNanCommand(
-          cast<AssertReturnArithmeticNanCommand>(command)->action);
+          cast<AssertReturnArithmeticNanCommand>(command)->action.get());
       break;
 
     case CommandType::AssertTrap:
       // ignore result type.
-      CheckAction(cast<AssertTrapCommand>(command)->action);
+      CheckAction(cast<AssertTrapCommand>(command)->action.get());
       break;
     case CommandType::AssertExhaustion:
       // ignore result type.
-      CheckAction(cast<AssertExhaustionCommand>(command)->action);
+      CheckAction(cast<AssertExhaustionCommand>(command)->action.get());
       break;
   }
 }
@@ -1140,6 +1115,21 @@ void Validator::CheckCommand(const Command* command) {
 Result Validator::CheckScript(const Script* script) {
   for (const std::unique_ptr<Command>& command : script->commands)
     CheckCommand(command.get());
+  return result_;
+}
+
+Result Validator::CheckAllFuncSignatures(const Module* module) {
+  current_module_ = module;
+  for (const ModuleField& field : module->fields) {
+    switch (field.type()) {
+      case ModuleFieldType::Func:
+        CheckFuncSignature(&field.loc, &cast<FuncModuleField>(&field)->func);
+        break;
+
+      default:
+        break;
+    }
+  }
   return result_;
 }
 
@@ -1159,6 +1149,14 @@ Result ValidateModule(WastLexer* lexer,
   Validator validator(error_handler, lexer, nullptr);
 
   return validator.CheckModule(module);
+}
+
+Result ValidateFuncSignatures(WastLexer* lexer,
+                              const Module* module,
+                              ErrorHandler* error_handler) {
+  Validator validator(error_handler, lexer, nullptr);
+
+  return validator.CheckAllFuncSignatures(module);
 }
 
 }  // namespace wabt

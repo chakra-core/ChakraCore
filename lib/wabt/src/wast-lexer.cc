@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-#include "wast-lexer.h"
+#include "src/wast-lexer.h"
 
 #include <cassert>
 #include <cstdio>
 
 #include "config.h"
 
-#include "circular-array.h"
-#include "error-handler.h"
-#include "lexer-source.h"
-#include "wast-parser.h"
+#include "src/circular-array.h"
+#include "src/error-handler.h"
+#include "src/lexer-source.h"
+#include "src/wast-parser.h"
 
 /*!max:re2c */
 
@@ -463,6 +463,11 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "f64.trunc"           { RETURN_OPCODE(Unary, F64Trunc); }
       <i> "f32.nearest"         { RETURN_OPCODE(Unary, F32Nearest); }
       <i> "f64.nearest"         { RETURN_OPCODE(Unary, F64Nearest); }
+      <i> "i32.extend8_s"       { RETURN_OPCODE(Unary, I32Extend8S); }
+      <i> "i32.extend16_s"      { RETURN_OPCODE(Unary, I32Extend16S); }
+      <i> "i64.extend8_s"       { RETURN_OPCODE(Unary, I64Extend8S); }
+      <i> "i64.extend16_s"      { RETURN_OPCODE(Unary, I64Extend16S); }
+      <i> "i64.extend32_s"      { RETURN_OPCODE(Unary, I64Extend32S); }
       <i> "i32.add"             { RETURN_OPCODE(Binary, I32Add); }
       <i> "i64.add"             { RETURN_OPCODE(Binary, I64Add); }
       <i> "i32.sub"             { RETURN_OPCODE(Binary, I32Sub); }

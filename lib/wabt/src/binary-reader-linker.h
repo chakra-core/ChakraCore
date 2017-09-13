@@ -17,8 +17,8 @@
 #ifndef WABT_BINARY_READER_LINKER_H_
 #define WABT_BINARY_READER_LINKER_H_
 
-#include "common.h"
-#include "stream.h"
+#include "src/common.h"
+#include "src/stream.h"
 
 namespace wabt {
 

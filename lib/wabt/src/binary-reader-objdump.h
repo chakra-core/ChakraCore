@@ -20,9 +20,9 @@
 #include <string>
 #include <vector>
 
-#include "common.h"
-#include "feature.h"
-#include "stream.h"
+#include "src/common.h"
+#include "src/feature.h"
+#include "src/stream.h"
 
 namespace wabt {
 

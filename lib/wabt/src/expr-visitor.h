@@ -17,8 +17,8 @@
 #ifndef WABT_EXPR_VISITOR_H_
 #define WABT_EXPR_VISITOR_H_
 
-#include "common.h"
-#include "ir.h"
+#include "src/common.h"
+#include "src/ir.h"
 
 namespace wabt {
 
