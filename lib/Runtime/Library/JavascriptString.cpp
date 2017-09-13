@@ -3357,7 +3357,7 @@ case_2:
         BufferStringBuilder builder(count, scriptContext);
         char16* stringBuffer = builder.DangerousGetWritableBuffer();
 
-        int count1 = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, count, stringBuffer, count, &err);
+        int count1 = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, strLength, stringBuffer, count, &err);
 
         if (count1 <= 0)
         {
