@@ -589,17 +589,27 @@ namespace Js
         return FALSE;
     }
   
-    BOOL JavascriptProxy::GetAccessors(PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext)
+    BOOL JavascriptProxy::GetAccessors(PropertyId propertyId, __out Var* getter, __out Var* setter, ScriptContext * requestContext)
     {
         PropertyDescriptor result;
+        if (getter != nullptr)
+        {
+            *getter = nullptr;
+        }
+
+        if (setter != nullptr)
+        {
+            *setter = nullptr;
+        }
+
         BOOL foundProperty = GetOwnPropertyDescriptor(this, propertyId, requestContext, &result);
         if (foundProperty && result.IsFromProxy())
         {
-            if (result.GetterSpecified())
+            if (result.GetterSpecified() && getter != nullptr)
             {
                 *getter = result.GetGetter();
             }
-            if (result.SetterSpecified())
+            if (result.SetterSpecified() && setter != nullptr)
             {
                 *setter = result.GetSetter();
             }

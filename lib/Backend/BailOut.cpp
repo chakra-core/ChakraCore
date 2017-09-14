@@ -863,12 +863,12 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
         {
             // Register save space (offset is the register number and index into the register save space)
             // Index is one based, so subtract one
-            Js::Var * registerSaveSpace = registerSaves ? registerSaves : (Js::Var *)scriptContext->GetThreadContext()->GetBailOutRegisterSaveSpace();
+            AssertOrFailFast(registerSaves);
 
             if (isFloat64)
             {
                 Assert(RegTypes[LinearScanMD::GetRegisterFromSaveIndex(offset)] == TyFloat64);
-                dblValue = *((double*)&(registerSaveSpace[offset - 1]));
+                dblValue = *((double*)&(registerSaves[offset - 1]));
 #ifdef _M_ARM
                 BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("Register %-4S  %4d"), RegNames[(offset - RegD0) / 2 + RegD0], offset);
 #else
@@ -883,17 +883,17 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
                     isSimd128B8 || isSimd128B16
                    )
                 {
-                    simdValue = *((SIMDValue *)&(registerSaveSpace[offset - 1]));
+                    simdValue = *((SIMDValue *)&(registerSaves[offset - 1]));
                 }
                 else if (isInt32)
                 {
                     Assert(RegTypes[LinearScanMD::GetRegisterFromSaveIndex(offset)] != TyFloat64);
-                    int32Value = ::Math::PointerCastToIntegralTruncate<int32>(registerSaveSpace[offset - 1]);
+                    int32Value = ::Math::PointerCastToIntegralTruncate<int32>(registerSaves[offset - 1]);
                 }
                 else
                 {
                     Assert(RegTypes[LinearScanMD::GetRegisterFromSaveIndex(offset)] != TyFloat64);
-                    value = registerSaveSpace[offset - 1];
+                    value = registerSaves[offset - 1];
                 }
 
                 BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("Register %-4S  %4d"), RegNames[LinearScanMD::GetRegisterFromSaveIndex(offset)], offset);
@@ -1169,11 +1169,19 @@ uint32 bailOutOffset, void * returnAddress, IR::BailOutKind bailOutKind, Js::Imp
     // Do not remove the following code.
     // Need to capture the int registers on stack as threadContext->bailOutRegisterSaveSpace is allocated from ThreadAlloc and is not scanned by recycler.
     // We don't want to save float (xmm) registers as they can be huge and they cannot contain a var.
-    Js::Var registerSaves[INT_REG_COUNT];
+    // However, we're somewhat stuck. We need to keep the references around until we restore values, but
+    // we don't have a use for them. The easiest solution is to simply pass this into the corresponding
+    // parameter for BailOutcommonNoCodeGen, but that requires us to save all of the vars, not just the
+    // int ones. This is ultimately significantly more predictable than attempting to manage the lifetimes
+    // in some other way though. We can't just do what we were doing previously, which is saving values
+    // here and not passing them into BailOutCommonNoCodeGen, because then the compiler will likely get
+    // rid of the memcpy and then the dead registerSaves array, since it can figure out that there's no
+    // side effect (due to the GC not being something that the optimizer can, or should, reason about).
+    Js::Var registerSaves[BailOutRegisterSaveSlotCount];
     js_memcpy_s(registerSaves, sizeof(registerSaves), (Js::Var *)layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
         sizeof(registerSaves));
 
-    Js::Var result = BailOutCommonNoCodeGen(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutKind, branchValue, nullptr, bailOutReturnValue, argoutRestoreAddress);
+    Js::Var result = BailOutCommonNoCodeGen(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutKind, branchValue, registerSaves, bailOutReturnValue, argoutRestoreAddress);
     ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
     return result;
 }
@@ -1203,7 +1211,14 @@ uint32
 BailOutRecord::BailOutFromLoopBodyCommon(Js::JavascriptCallStackLayout * layout, BailOutRecord const * bailOutRecord, uint32 bailOutOffset,
     IR::BailOutKind bailOutKind, Js::Var branchValue)
 {
-    uint32 result = BailOutFromLoopBodyHelper(layout, bailOutRecord, bailOutOffset, bailOutKind, branchValue);
+    // This isn't strictly necessary if there's no allocations on this path, but because such an
+    // issue would be hard to notice and introduce some significant issues, we can do this copy.
+    // The problem from not doing this and then doing an allocation before RestoreValues is that
+    // the GC doesn't check the BailOutRegisterSaveSpace.
+    Js::Var registerSaves[BailOutRegisterSaveSlotCount];
+    js_memcpy_s(registerSaves, sizeof(registerSaves), (Js::Var *)layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
+        sizeof(registerSaves));
+    uint32 result = BailOutFromLoopBodyHelper(layout, bailOutRecord, bailOutOffset, bailOutKind, branchValue, registerSaves);
     ScheduleLoopBodyCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind);
     return result;
 }

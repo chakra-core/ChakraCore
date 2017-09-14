@@ -4221,7 +4221,20 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
         {
             bodyScope->SetMustInstantiate(funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
         }
-        paramScope->SetMustInstantiate(!pnodeFnc->sxFnc.IsBodyAndParamScopeMerged());
+
+        if (!pnodeFnc->sxFnc.IsBodyAndParamScopeMerged())
+        {
+            if (funcInfo->frameObjRegister != Js::Constants::NoRegister)
+            {
+                paramScope->SetMustInstantiate(true);
+            }
+            else
+            {
+                // In the case of function expression being captured in the param scope the hasownlocalinclosure will be false for param scope,
+                // as function expression symbol stays in the function expression scope. We don't have to set mustinstantiate for param scope in that case.
+                paramScope->SetMustInstantiate(paramScope->GetHasOwnLocalInClosure());
+            }
+        }
     }
     else
     {
@@ -8534,7 +8547,7 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
 
     if (nameNode->nop == knopComputedName)
     {
-        Assert(memberNode->nop == knopGetMember || memberNode->nop == knopSetMember || memberNode->nop == knopMember);
+        AssertOrFailFast(memberNode->nop == knopGetMember || memberNode->nop == knopSetMember || memberNode->nop == knopMember);
 
         Js::OpCode setOp = memberNode->nop == knopGetMember ?
             (isClassMember ? Js::OpCode::InitClassMemberGetComputedName : Js::OpCode::InitGetElemI) :
@@ -8606,7 +8619,7 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
     }
     else
     {
-        Assert(memberNode->nop == knopGetMember || memberNode->nop == knopSetMember);
+        AssertOrFailFast(memberNode->nop == knopGetMember || memberNode->nop == knopSetMember);
 
         Js::OpCode setOp = memberNode->nop == knopGetMember ?
             (isClassMember ? Js::OpCode::InitClassMemberGet : Js::OpCode::InitGetFld) :

@@ -37,8 +37,6 @@ namespace Js
 
         if (key->GetScriptContext()->GetLibrary()->GetUndefined() == weakMapKeyData)
         {
-            // Assert to find out where this can happen.
-            Assert(false);
             return nullptr;
         }
 
