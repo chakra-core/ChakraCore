@@ -483,7 +483,7 @@ namespace Js
 
     bool JavascriptArray::IsMissingItem(uint32 index)
     {
-        if (this->length <= index)
+        if (!(this->head->left <= index && index < (this->head->left+ this->head->length)))
         {
             return false;
         }
@@ -5464,6 +5464,9 @@ Case0:
                 isFloatArray = true;
             }
 
+            // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
+            AutoDisableInterrupt failFastOnError(scriptContext->GetThreadContext());
+
             // During the loop below we are going to reverse the segments list. The head segment will become the last segment.
             // We have to verify that the current head segment is not the inilined segement, otherwise due to shuffling below (of EnsureHeadStartsFromZero call below), the inlined segment will no longer
             // be the head and that can create issue down the line. Create new segment if it is an inilined segment.
@@ -5549,6 +5552,9 @@ Case0:
 #ifdef VALIDATE_ARRAY
             pArr->ValidateArray();
 #endif
+
+            failFastOnError.Completed();
+
         }
         else if (typedArrayBase)
         {
@@ -5980,8 +5986,12 @@ Case0:
         // Prototype lookup for missing elements
         if (!pArr->HasNoMissingValues())
         {
-            for (uint32 i = 0; i < newLen && (i + start) < pArr->length; i++)
+            for (uint32 i = 0; i < newLen; i++)
             {
+                if (!(pArr->head->left <= (i + start) && (i + start) <  (pArr->head->left + pArr->head->length)))
+            {
+                    break;
+                }
                 // array type might be changed in the below call to DirectGetItemAtFull
                 // need recheck array type before checking array item [i + start]
                 if (pArr->IsMissingItem(i + start))

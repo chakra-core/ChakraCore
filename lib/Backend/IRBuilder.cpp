@@ -415,6 +415,11 @@ IRBuilder::Build()
     m_func->m_headInstr->InsertAfter(m_func->m_tailInstr);
     m_func->m_isLeaf = true;  // until proven otherwise
 
+    if (m_func->GetJITFunctionBody()->IsParamAndBodyScopeMerged())
+    {
+        this->SetParamScopeDone();
+    }
+
     if (m_func->GetJITFunctionBody()->GetLocalClosureReg() != Js::Constants::NoRegister)
     {
         m_func->InitLocalClosureSyms();
@@ -3465,8 +3470,9 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
     StackSym *   stackFuncPtrSym = nullptr;
     SymID        symID = m_func->GetJITFunctionBody()->GetLocalClosureReg();
     bool isLdSlotThatWasNotProfiled = false;
-    uint scopeSlotSize = m_func->GetJITFunctionBody()->GetScopeSlotArraySize();
     StackSym* closureSym = m_func->GetLocalClosureSym();
+
+    uint scopeSlotSize = this->IsParamScopeDone() ? m_func->GetJITFunctionBody()->GetScopeSlotArraySize() : m_func->GetJITFunctionBody()->GetParamScopeSlotArraySize();
 
     switch (newOpcode)
     {
@@ -3477,7 +3483,7 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             // Fall through
 
         case Js::OpCode::LdLocalSlot:
-            if (PHASE_ON(Js::ClosureRangeCheckPhase, m_func))
+            if (!PHASE_OFF(Js::ClosureRangeCheckPhase, m_func))
             {
                 if ((uint32)slotId >= scopeSlotSize + Js::ScopeSlots::FirstSlotIndex)
                 {
@@ -3583,7 +3589,7 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
 
         case Js::OpCode::StLocalSlot:
         case Js::OpCode::StLocalSlotChkUndecl:
-            if (PHASE_ON(Js::ClosureRangeCheckPhase, m_func))
+            if (!PHASE_OFF(Js::ClosureRangeCheckPhase, m_func))
             {
                 if ((uint32)slotId >= scopeSlotSize + Js::ScopeSlots::FirstSlotIndex)
                 {
@@ -6760,6 +6766,9 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
         // This marks the end of a param socpe which is not merged with body scope.
         // So we have to first cache the closure so that we can use it to copy the initial values for
         // body syms from corresponding param syms (LdParamSlot). Body should get its own scope slot.
+        Assert(!this->IsParamScopeDone());
+        this->SetParamScopeDone();
+
         this->AddInstr(
             IR::Instr::New(
                 Js::OpCode::Ld_A,

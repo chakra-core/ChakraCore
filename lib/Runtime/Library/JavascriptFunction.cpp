@@ -1687,8 +1687,9 @@ LABEL1:
     void JavascriptFunction::ReparseAsmJsModule(ScriptFunction** functionRef)
     {
         ParseableFunctionInfo* functionInfo = (*functionRef)->GetParseableFunctionInfo();
-
         Assert(functionInfo);
+        try
+        {
         functionInfo->GetFunctionBody()->AddDeferParseAttribute();
         functionInfo->GetFunctionBody()->ResetEntryPoint();
         functionInfo->GetFunctionBody()->ResetInParams();
@@ -1701,6 +1702,11 @@ LABEL1:
 #endif
 
         (*functionRef)->UpdateUndeferredBody(funcBody);
+    }
+        catch (JavascriptException&)
+        {
+                Js::Throw::FatalInternalError();
+        }
     }
 
     // Thunk for handling calls to functions that have not had byte code generated for them.

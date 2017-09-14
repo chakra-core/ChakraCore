@@ -71,6 +71,7 @@ public:
         , m_switchBuilder(&m_switchAdapter)
         , m_stackFuncPtrSym(nullptr)
         , m_loopBodyForInEnumeratorArrayOpnd(nullptr)
+        , m_paramScopeDone(false)
 #if DBG
         , m_callsOnStack(0)
         , m_usedAsTemp(nullptr)
@@ -276,6 +277,9 @@ private:
         return reg > 0 && reg < m_func->GetJITFunctionBody()->GetConstCount();
     }
 
+    bool                IsParamScopeDone() const { return m_paramScopeDone; }
+    void                SetParamScopeDone(bool done = true) { m_paramScopeDone = done; }
+
     Js::RegSlot         InnerScopeIndexToRegSlot(uint32) const;
     Js::RegSlot         GetEnvReg() const;
     Js::RegSlot         GetEnvRegForEvalCode() const;
@@ -347,6 +351,7 @@ private:
     StackSym *          m_loopBodyRetIPSym;
     StackSym*           m_loopCounterSym;
     StackSym *          m_stackFuncPtrSym;
+    bool                m_paramScopeDone;
     bool                callTreeHasSomeProfileInfo;
     uint                finallyBlockLevel;
 

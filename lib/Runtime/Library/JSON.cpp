@@ -708,7 +708,8 @@ namespace JSON
                             }
 
                             // walk the property name list
-                            for (uint k = 0; k < precisePropertyCount; k++)
+                            // Note that we're only walking up to index, not precisePropertyCount, as we only know that we've filled the array up to index
+                            for (uint k = 0; k < index; k++)
                             {
                                 propertyName = Js::JavascriptString::FromVar(nameTable[k]);
                                 scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);

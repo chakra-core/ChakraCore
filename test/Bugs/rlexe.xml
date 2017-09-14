@@ -364,6 +364,12 @@
   </test>
   <test>
     <default>
+      <files>bug12628506.js</files>
+      <compile-flags>-loopinterpretcount:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug13172050.js</files>
       <compile-flags>-pageheap:2</compile-flags>
     </default>

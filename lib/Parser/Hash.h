@@ -379,7 +379,18 @@ public:
     NoReleaseAllocator* GetAllocator() {return &m_noReleaseAllocator;}
 
     bool Contains(_In_reads_(cch) LPCOLESTR prgch, int32 cch);
-    void ClearPidRefStacks();
+
+    template<typename Fn>
+    void VisitPids(Fn fn)
+    {
+        for (uint i = 0; i <= m_luMask; i++)
+        {
+            for (IdentPtr pid = m_prgpidName[i]; pid; pid = pid->m_pidNext)
+            {
+                fn(pid);
+            }
+        }
+    }
 
 private:
     NoReleaseAllocator m_noReleaseAllocator;            // to allocate identifiers
