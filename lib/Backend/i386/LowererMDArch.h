@@ -82,6 +82,7 @@ public:
             static void         EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             static void         EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             static void         EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
+            void                EmitSignExtend(IR::Instr * instr);
             bool                EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed, bool bailOutOnHelper = false, IR::LabelInstr * labelBailOut = nullptr);
 
             IR::Instr *         LoadCheckedFloat(IR::RegOpnd *opndOrig, IR::RegOpnd *opndFloat, IR::LabelInstr *labelInline, IR::LabelInstr *labelHelper, IR::Instr *instrInsert, const bool checkForNullInLoopBody = false);

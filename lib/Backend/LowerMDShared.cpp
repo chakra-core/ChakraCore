@@ -7620,6 +7620,12 @@ LowererMD::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
     this->lowererMDArch.EmitLongToInt(dst, src, instrInsert);
 }
 
+
+void LowererMD::EmitSignExtend(IR::Instr * instr)
+{
+    this->lowererMDArch.EmitSignExtend(instr);
+}
+
 void
 LowererMD::EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 {

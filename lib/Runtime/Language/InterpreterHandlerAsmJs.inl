@@ -91,6 +91,13 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( I1toI1Mem        , Return_Int   , (int)                                              )
   DEF2_WMS( L1toL1Mem        , Return_Long  , (int64)                                            )
 
+// Wasm Sign Extension operators
+  DEF2_WMS( I1toI1Mem        , I32Extend8_s , (Wasm::WasmMath::SignExtend<int32, int8> )         )
+  DEF2_WMS( I1toI1Mem        , I32Extend16_s, (Wasm::WasmMath::SignExtend<int32, int16>)         )
+  DEF2_WMS( L1toL1Mem        , I64Extend8_s , (Wasm::WasmMath::SignExtend<int64, int8> )         )
+  DEF2_WMS( L1toL1Mem        , I64Extend16_s, (Wasm::WasmMath::SignExtend<int64, int16>)         )
+  DEF2_WMS( L1toL1Mem        , I64Extend32_s, (Wasm::WasmMath::SignExtend<int64, int32>)         )
+
   DEF2_WMS( I1toI1Mem        , BeginSwitch_Int, (int)                                            )
   DEF2    ( BR_ASM           , EndSwitch_Int, OP_Br                                              )
   DEF2_WMS( BR_ASM_Mem       , Case_Int     , AsmJsMath::CmpEq<int>                              )

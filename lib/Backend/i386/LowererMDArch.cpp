@@ -2686,6 +2686,52 @@ LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllo
     return false;
 }
 
+void LowererMDArch::EmitSignExtend(IR::Instr * instr)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+
+    // Src2 is used to determine what's the from type size
+    Assert(src2->GetSize() < dst->GetSize());
+    IRType fromType = src2->GetType();
+    Js::OpCode op = Js::OpCode::MOVSX;
+    if (src2->GetSize() == 2)
+    {
+        op = Js::OpCode::MOVSXW;
+    }
+    if (!dst->IsInt64())
+    {
+        IR::RegOpnd * tempReg = IR::RegOpnd::New(fromType, this->m_func);
+
+        lowererMD->m_lowerer->InsertMove(tempReg, src1, instr);
+        instr->InsertBefore(IR::Instr::New(op, dst, tempReg, m_func));
+    }
+    else
+    {
+        Int64RegPair dstPair = m_func->FindOrCreateInt64Pair(dst);
+        Int64RegPair srcPair = m_func->FindOrCreateInt64Pair(src1);
+
+        IR::RegOpnd * eaxReg = IR::RegOpnd::New(TyInt32, this->m_func);
+        eaxReg->SetReg(RegEAX);
+        IR::RegOpnd * edxReg = IR::RegOpnd::New(TyInt32, this->m_func);
+        edxReg->SetReg(RegEDX);
+        if (fromType == TyInt32)
+        {
+            lowererMD->m_lowerer->InsertMove(eaxReg, srcPair.low, instr);
+        }
+        else
+        {
+            IR::RegOpnd * tempReg = IR::RegOpnd::New(fromType, this->m_func);
+            lowererMD->m_lowerer->InsertMove(tempReg, srcPair.low, instr);
+            instr->InsertBefore(IR::Instr::New(op, eaxReg, tempReg, m_func));
+        }
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::CDQ, edxReg, m_func));
+        lowererMD->m_lowerer->InsertMove(dstPair.low, eaxReg, instr);
+        lowererMD->m_lowerer->InsertMove(dstPair.high, edxReg, instr);
+    }
+}
+
 IR::Instr *
 LowererMDArch::LoadCheckedFloat(
     IR::RegOpnd *opndOrig,

@@ -207,6 +207,7 @@ public:
             void                EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void                EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void                EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
+            void                EmitSignExtend(IR::Instr * instr) { Assert(UNREACHED); }
             void                EmitReinterpretPrimitive(IR::Opnd* dst, IR::Opnd* src, IR::Instr* insertBeforeInstr) { Assert(UNREACHED); }
             void                EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr);
             IR::LabelInstr*     EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, bool needHelperLabel);
