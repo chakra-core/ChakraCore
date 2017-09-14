@@ -8057,6 +8057,15 @@ CommonNumber:
 
         Type *typeWithoutProperty = object->GetType();
 
+        if (functionBody->IsEval())
+        {
+            if (object->InitPropertyInEval(propertyId, newValue, flags, &info))
+            {
+                CacheOperators::CachePropertyWrite(object, false, typeWithoutProperty, propertyId, &info, scriptContext);
+                return;
+            }
+        }
+
         // Ideally the lowerer would emit a call to the right flavor of PatchInitValue, so that we can ensure that we only
         // ever initialize to NULL in the right cases.  But the backend uses the StFld opcode for initialization, and it
         // would be cumbersome to thread the different helper calls all the way down
@@ -8075,6 +8084,16 @@ CommonNumber:
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, true);
         Type *typeWithoutProperty = object->GetType();
+
+        if (functionBody->IsEval())
+        {
+            if (object->InitPropertyInEval(propertyId, newValue, PropertyOperation_None, &info))
+            {
+                CacheOperators::CachePropertyWrite(object, false, typeWithoutProperty, propertyId, &info, functionBody->GetScriptContext());
+                return;
+            }
+        }
+
         if (object->InitProperty(propertyId, newValue, PropertyOperation_None, &info))
         {
             CacheOperators::CachePropertyWrite(object, false, typeWithoutProperty, propertyId, &info, functionBody->GetScriptContext());

@@ -381,6 +381,11 @@
   </test>
   <test>
     <default>
+      <files>os11907290.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug13383062.js</files>
       <compile-flags>-maxinterpretcount:2 -off:simplejit -off:lossyinttypespec -bgjit-</compile-flags>
       <baseline>bug13383062.baseline</baseline>
