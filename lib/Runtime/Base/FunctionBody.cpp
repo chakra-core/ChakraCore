@@ -550,7 +550,6 @@ namespace Js
         m_constTable(nullptr),
         inlineCaches(nullptr),
         cacheIdToPropertyIdMap(nullptr),
-        executionMode(ExecutionMode::Interpreter),
         interpreterLimit(0),
         autoProfilingInterpreter0Limit(0),
         profilingInterpreter0Limit(0),
@@ -692,7 +691,6 @@ namespace Js
         m_constTable(nullptr),
         inlineCaches(nullptr),
         cacheIdToPropertyIdMap(nullptr),
-        executionMode(ExecutionMode::Interpreter),
         interpreterLimit(0),
         autoProfilingInterpreter0Limit(0),
         profilingInterpreter0Limit(0),
@@ -6681,8 +6679,8 @@ namespace Js
 
     ExecutionMode FunctionBody::GetExecutionMode() const
     {
-        VerifyExecutionMode(executionMode);
-        return executionMode;
+        VerifyExecutionMode(executionState.GetExecutionMode());
+        return executionState.GetExecutionMode();
     }
 
     ExecutionMode FunctionBody::GetInterpreterExecutionMode(const bool isPostBailout)
@@ -6725,7 +6723,7 @@ namespace Js
     void FunctionBody::SetExecutionMode(const ExecutionMode executionMode)
     {
         VerifyExecutionMode(executionMode);
-        this->executionMode = executionMode;
+        executionState.SetExecutionMode(executionMode);
     }
 
     bool FunctionBody::IsInterpreterExecutionMode() const
@@ -7417,7 +7415,7 @@ namespace Js
                 _u("limits: %hu.%hu.%hu.%hu.%hu = %hu"),
             GetDisplayName(),
                 GetDebugNumberSet(functionIdString),
-            ExecutionModeName(executionMode),
+            ExecutionModeName(executionState.GetExecutionMode()),
             GetByteCodeCount(),
             interpreterLimit + autoProfilingInterpreter0Limit,
                 profilingInterpreter0Limit,

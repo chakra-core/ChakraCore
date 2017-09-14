@@ -7,6 +7,9 @@
 #include "AuxPtrs.h"
 #include "CompactCounters.h"
 
+// Where should I include this file?
+#include "FunctionExecutionStateMachine.h"
+
 struct CodeGenWorkItem;
 class SourceContextInfo;
 struct DeferredFunctionStub;
@@ -2362,8 +2365,7 @@ namespace Js
 
         FieldWithBarrier(byte) inlineDepth; // Used by inlining to avoid recursively inlining functions excessively
 
-        // Tracks the current execution mode. See ExecutionModes.h for more info.
-        FieldWithBarrier(ExecutionMode) executionMode;
+        FieldWithBarrier(FunctionExecutionStateMachine) executionState;
 
         // Each of the following limits below is decremented when transitioning from its related mode:
         // Number of times to run interpreter (no profiling) before advancing to next mode
