@@ -1,4 +1,4 @@
-SyntaxError: Let/Const redeclaration
+SyntaxError: Identifier redeclaration
 var x
 undefined
 let y

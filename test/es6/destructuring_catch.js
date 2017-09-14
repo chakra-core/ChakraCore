@@ -45,11 +45,11 @@ var tests = [
   {
     name: "Destructuring syntax as params - redeclarations",
     body: function () {
-      assert.throws(function () { eval("function foo() {try {} catch({x:x, x:x}) {} }"); },  SyntaxError,  "Catch param as object pattern has duplicate binding identifiers is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo() {try {} catch([x, x]) {} }"); }, SyntaxError,   "Catch param as array pattern has duplicate binding identifiers is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo() {try {} catch({z1, x:{z:[z1]}}) {} }"); }, SyntaxError,  "Catch param has nesting pattern has has matching is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo() {try {} catch([x]) { let x = 10;} }"); }, SyntaxError,  "Catch param as a pattern and matching name with let/const variable in body is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo() {try {} catch([x]) { function x() {} } }"); }, SyntaxError,  "Catch param as a pattern and matching name with function name in body is not valid syntax", "Let/Const redeclaration");
+      assert.throws(function () { eval("function foo() {try {} catch({x:x, x:x}) {} }"); },  SyntaxError,  "Catch param as object pattern has duplicate binding identifiers is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo() {try {} catch([x, x]) {} }"); }, SyntaxError,   "Catch param as array pattern has duplicate binding identifiers is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo() {try {} catch({z1, x:{z:[z1]}}) {} }"); }, SyntaxError,  "Catch param has nesting pattern has has matching is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo() {try {} catch([x]) { let x = 10;} }"); }, SyntaxError,  "Catch param as a pattern and matching name with let/const variable in body is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("function foo() {try {} catch([x]) { function x() {} } }"); }, SyntaxError,  "Catch param as a pattern and matching name with function name in body is not valid syntax", "Identifier redeclaration");
       assert.doesNotThrow(function () { eval("function foo() {try {} catch([x]) { var x = 10;} }"); },  "Catch param as a pattern and matching name with var declared name in body is valid syntax");
 
       (function () {

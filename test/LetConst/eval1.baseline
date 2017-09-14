@@ -1,18 +1,18 @@
 global z
 ReferenceError: 'x' is not defined
 ReferenceError: 'y' is not defined
-ReferenceError: Let/Const redeclaration
-ReferenceError: Let/Const redeclaration
+ReferenceError: Identifier redeclaration
+ReferenceError: Identifier redeclaration
 global block z
 ReferenceError: 'x' is not defined
 ReferenceError: 'y' is not defined
-ReferenceError: Let/Const redeclaration
+ReferenceError: Identifier redeclaration
 outer w
 outer z
 ReferenceError: 'x' is not defined
 ReferenceError: 'y' is not defined
 outer var y
-ReferenceError: Let/Const redeclaration
+ReferenceError: Identifier redeclaration
 inner w
 inner z
 ReferenceError: 'x' is not defined

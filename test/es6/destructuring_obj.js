@@ -62,7 +62,7 @@ var tests = [
   {
     name: "Object destructuring syntax with identifier reference",
     body: function () {
-      assert.throws(function () { eval("function foo() { return {}; }; let {x:foo()} = {};"); }, SyntaxError,  "Object declaration pattern with a call expression is not valid syntax", "Let/Const redeclaration");
+      assert.throws(function () { eval("function foo() { return {}; }; let {x:foo()} = {};"); }, SyntaxError,  "Object declaration pattern with a call expression is not valid syntax", "Identifier redeclaration");
       assert.throws(function () { eval("function foo() { return {}; }; ({x:foo()} = {});"); }, SyntaxError,  "Object expression pattern with a call expression is not valid syntax", "Invalid destructuring assignment target");
       assert.throws(function () { eval("function foo() { return {}; }; var {x:foo().x} = {};"); }, SyntaxError,  "Object declaration pattern with property reference on call is not valid syntax", "Syntax error");
 
@@ -127,12 +127,12 @@ var tests = [
     name: "Object destructuring syntax with repeated identifier",
     body: function () {
       assert.doesNotThrow(function () { eval("var {a:a, a:a} = {};"); },    "var declaration pattern with a repeated identifier is valid syntax");
-      assert.throws(function () { eval("let {a:a, a:a} = {};"); },   SyntaxError, "let declaration pattern with a repeated identifier is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("const {a:a, a:a} = {};"); }, SyntaxError, "const declaration pattern with a repeated identifier is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("let {b, b} = {};"); },   SyntaxError, "let declaration pattern with a repeated identifier as shorthand is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("const {b, b} = {};"); }, SyntaxError, "const declaration pattern with a repeated identifier as shorthand is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("let {x:c, y:c} = {};"); },   SyntaxError, "let declaration pattern with a repeated identifier but different matching pattern is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("const {x:c, y:c} = {};"); }, SyntaxError, "const declaration pattern with a repeated identifier but different matching pattern is not valid syntax", "Let/Const redeclaration");
+      assert.throws(function () { eval("let {a:a, a:a} = {};"); },   SyntaxError, "let declaration pattern with a repeated identifier is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("const {a:a, a:a} = {};"); }, SyntaxError, "const declaration pattern with a repeated identifier is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("let {b, b} = {};"); },   SyntaxError, "let declaration pattern with a repeated identifier as shorthand is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("const {b, b} = {};"); }, SyntaxError, "const declaration pattern with a repeated identifier as shorthand is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("let {x:c, y:c} = {};"); },   SyntaxError, "let declaration pattern with a repeated identifier but different matching pattern is not valid syntax", "Identifier redeclaration");
+      assert.throws(function () { eval("const {x:c, y:c} = {};"); }, SyntaxError, "const declaration pattern with a repeated identifier but different matching pattern is not valid syntax", "Identifier redeclaration");
       assert.doesNotThrow(function () { eval("let a; ({a:a, a:a} = {});"); }, "Object expression pattern with a repeated identifier is valid syntax");
     }
    },

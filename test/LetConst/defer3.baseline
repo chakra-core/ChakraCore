@@ -12,27 +12,27 @@ Syntax check succeeded
 SyntaxError: Const must be initialized
 SyntaxError: Const must be initialized
 SyntaxError: Const must be initialized
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
 Syntax check succeeded
 Syntax check succeeded
 Syntax check succeeded
 Syntax check succeeded
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
-SyntaxError: Let/Const redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration
+SyntaxError: Identifier redeclaration

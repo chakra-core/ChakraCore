@@ -1,5 +1,5 @@
-eval('var x = 5') threw 'Let/Const redeclaration'
+eval('var x = 5') threw 'Identifier redeclaration'
 x: 5
-eval('var y = 5') threw 'Let/Const redeclaration'
+eval('var y = 5') threw 'Identifier redeclaration'
 eval('y = 5') threw 'Assignment to const'
 y: 1

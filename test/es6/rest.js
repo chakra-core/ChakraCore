@@ -29,26 +29,26 @@ var tests = [
       assert.throws(function () { function foo(...a) { eval('var a;'); }; foo(); },
           ReferenceError,
           "Var redeclaration throws with a non-simple parameter list inside an eval",
-          "Let/Const redeclaration");
+          "Identifier redeclaration");
       assert.throws(function () { function foo(a, ...b) { eval('var b;'); }; foo(); },
           ReferenceError,
           "Var redeclaration throws with a non-simple parameter list inside an eval",
-          "Let/Const redeclaration");
+          "Identifier redeclaration");
       assert.throws(function () { function foo(a = 1, ...b) { eval('var b;'); }; foo(); },
           ReferenceError,
           "Var redeclaration throws with a non-simple parameter list inside an eval",
-          "Let/Const redeclaration");
+          "Identifier redeclaration");
       assert.throws(function () { function foo(a, b = 1, ...c) { eval('var c;'); }; foo(); },
           ReferenceError,
           "Var redeclaration throws with a non-simple parameter list inside an eval",
-          "Let/Const redeclaration");
+          "Identifier redeclaration");
 
       assert.doesNotThrow(function () { function foo(...a) { eval('let a;'); }; foo(); }, "Let redeclaration inside an eval does not throw with a non-simple parameter list");
       assert.doesNotThrow(function () { function foo(...a) { eval('const a = "str";'); }; foo() }, "Const redeclaration inside an eval does not throw with a non-simple parameter list");
       assert.throws(function () { function foo(a, ...b) { eval('var a;'); }; foo(); },
                     ReferenceError,
                     "Var redeclaration throws with a non-simple parameter list on a non-rest parameter inside eval",
-                    "Let/Const redeclaration");
+                    "Identifier redeclaration");
       assert.doesNotThrow(function () { function foo(...a) { eval('let a;'); }; foo(); }, "Let redeclaration of a non-default parameter inside an eval does not throw with a non-simple parameter list");
       assert.doesNotThrow(function () { function foo(...a) { eval('const a = 0;'); }; foo(); }, "Const redeclaration of a non-default parameter inside an eval does not throw with a non-simple parameter list");
 

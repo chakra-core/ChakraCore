@@ -348,9 +348,9 @@ var tests = [
     {
         name: "Formal names redeclared by local variables behave as if formals are var-like",
         body: function () {
-            assert.doesNotThrow(function () { eval('x => { var x; }'); }, "lambda formal parameters do not cause redeclaration error with local var bindings of the same name", "Let/Const redeclaration");
-            assert.throws(function () { eval('x => { let x; }'); }, SyntaxError, "lambda formal parameters cause redeclaration error with local function scoped let bindings of the same name", "Let/Const redeclaration");
-            assert.throws(function () { eval('x => { const x = 0; }'); }, SyntaxError, "lambda formal parameters cause redeclaration error with local function scoped const bindings of the same name", "Let/Const redeclaration");
+            assert.doesNotThrow(function () { eval('x => { var x; }'); }, "lambda formal parameters do not cause redeclaration error with local var bindings of the same name", "Identifier redeclaration");
+            assert.throws(function () { eval('x => { let x; }'); }, SyntaxError, "lambda formal parameters cause redeclaration error with local function scoped let bindings of the same name", "Identifier redeclaration");
+            assert.throws(function () { eval('x => { const x = 0; }'); }, SyntaxError, "lambda formal parameters cause redeclaration error with local function scoped const bindings of the same name", "Identifier redeclaration");
         }
     },
     {
