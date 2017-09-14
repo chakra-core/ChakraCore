@@ -488,17 +488,6 @@ PAL_InitializeChakraCore()
         return GetLastError();
     }
 
-    CPalThread *pThread = InternalGetCurrentThread();
-    //
-    // Tell the synchronization manager to start its worker thread
-    //
-    int error = CPalSynchMgrController::StartWorker(pThread);
-    if (NO_ERROR != error)
-    {
-        ERROR("Synch manager failed to start worker thread\n");
-        return error;
-    }
-
     if (FALSE == VIRTUALInitialize())
     {
         ERROR("Unable to initialize virtual memory support\n");
