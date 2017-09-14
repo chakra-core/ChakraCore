@@ -2332,6 +2332,7 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
     dstOpnd->SetValueType(ValueType::GetInt(false));
 
     IR::Instr * instr = nullptr;
+    IRType signExtendFromType = TyIllegal;
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::BeginSwitch_Int:
@@ -2393,6 +2394,13 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
 
     case Js::OpCodeAsmJs::GrowMemory:
         instr = IR::Instr::New(Js::OpCode::GrowWasmMemory, dstOpnd, BuildSrcOpnd(AsmJsRegSlots::WasmMemoryReg, TyVar), srcOpnd, m_func);
+        break;
+
+    case Js::OpCodeAsmJs::I32Extend8_s:  signExtendFromType = TyInt8;  goto make_sign_extend;
+    case Js::OpCodeAsmJs::I32Extend16_s: signExtendFromType = TyInt16; goto make_sign_extend;
+make_sign_extend:
+        // Src2 is a dummy source, used only to carry the type to cast from
+        instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, srcOpnd, IR::IntConstOpnd::New(0, signExtendFromType, m_func), m_func);
         break;
     default:
         Assume(UNREACHED);
@@ -3020,6 +3028,7 @@ IRBuilderAsmJs::BuildLong2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
     dstOpnd->SetValueType(ValueType::GetInt(false));
 
     IR::Instr * instr = nullptr;
+    IRType signExtendFromType = TyIllegal;
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::Ld_Long:
@@ -3045,6 +3054,13 @@ IRBuilderAsmJs::BuildLong2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
             IR::Instr* slotInstr = GenerateStSlotForReturn(srcOpnd, IRType::TyInt64);
             AddInstr(slotInstr, offset);
         }
+        break;
+    case Js::OpCodeAsmJs::I64Extend8_s:  signExtendFromType = TyInt8;  goto make_sign_extend;
+    case Js::OpCodeAsmJs::I64Extend16_s: signExtendFromType = TyInt16; goto make_sign_extend;
+    case Js::OpCodeAsmJs::I64Extend32_s: signExtendFromType = TyInt32;
+    make_sign_extend:
+        // Src2 is a dummy source, used only to carry the type to cast from
+        instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, srcOpnd, IR::IntConstOpnd::New(0, signExtendFromType, m_func), m_func);
         break;
     default:
         Assume(UNREACHED);
