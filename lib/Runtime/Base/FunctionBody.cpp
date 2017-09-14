@@ -6750,6 +6750,7 @@ namespace Js
     //       |      v
     //       +-> FullJit
     //
+    // Transition to the next mode occurs when the limit for the current execution mode reaches 0.
     // Returns true when a transition occurs (i.e., the execution mode was updated since the beginning of
     // this function call). Otherwise, returns false to indicate no change in state.
     // See more details of each mode in ExecutionModes.h
@@ -6781,6 +6782,9 @@ namespace Js
 
             case ExecutionMode::AutoProfilingInterpreter:
             {
+                // autoProfilingInterpreter0Limit is the default limit for this mode
+                // autoProfilingInterpreter1Limit becomes the limit for this mode when this FunctionBody has
+                // already previously run in ProfilingInterpreter and AutoProfilingInterpreter
                 uint16 &autoProfilingInterpreterLimit =
                     autoProfilingInterpreter0Limit == 0 && profilingInterpreter0Limit == 0
                         ? autoProfilingInterpreter1Limit
@@ -6814,6 +6818,9 @@ namespace Js
 
             case ExecutionMode::ProfilingInterpreter:
             {
+                // profilingInterpreter0Limit is the default limit for this mode
+                // profilingInterpreter1Limit becomes the limit for this mode when this FunctionBody has already
+                // previously run in ProfilingInterpreter, AutoProfilingInterpreter, and SimpleJIT
                 uint16 &profilingInterpreterLimit =
                     profilingInterpreter0Limit == 0 && autoProfilingInterpreter1Limit == 0 && simpleJitLimit == 0
                         ? profilingInterpreter1Limit
