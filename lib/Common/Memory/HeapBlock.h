@@ -142,18 +142,18 @@ enum ObjectInfoBits : unsigned short
     //
     // RecyclerVisitedHostBit is implicit in the heap block type and thus isn't part of the StoredObjectInfoBitMask.
     // LeafBit is also a requirement, since no objects in this heap block are conservatively traced.
-    RecyclerVisitedHost_RequiredBits = LeafBit | RecyclerVisitedHostBit,
-    RecyclerVisitedHost_TracedBits = RecyclerVisitedHost_RequiredBits | TrackBit | NewTrackBit,
-    RecyclerVisitedHost_FinalizableBits = RecyclerVisitedHost_RequiredBits | FinalizeBit | NewFinalizeBit,
-    RecyclerVisitedHost_TracedFinalizableBits = RecyclerVisitedHost_TracedBits | FinalizeBit,
+    RecyclerVisitedHostLeafBits = RecyclerVisitedHostBit | LeafBit,
+    RecyclerVisitedHostTracedBits = RecyclerVisitedHostLeafBits | TrackBit | NewTrackBit,
+    RecyclerVisitedHostFinalizableBits = RecyclerVisitedHostLeafBits | FinalizeBit | NewFinalizeBit,
+    RecyclerVisitedHostTracedFinalizableBits = RecyclerVisitedHostTracedBits | FinalizeBit,
 
     // These set of bits describe to two possible types of blocktype bits for recycler visited host heap blocks.
     // The reason we have to distinguish between the two is because we have some objects with FinalizeBit, which
     // is part of the GetBlockTypeBitMask below, and some without (i.e. traced only). In the end, these are treated
     // the same (they result in the same recycler visited heap block/bucket type being used),
     // but are defined here for ease of use.
-    RecyclerVisitedHost_BlockTypeBits = RecyclerVisitedHost_RequiredBits,
-    RecyclerVisitedHost_FinalizableBlockTypeBits = RecyclerVisitedHost_RequiredBits | FinalizeBit,
+    RecyclerVisitedHostBlockTypeBits = RecyclerVisitedHostBit | LeafBit,
+    RecyclerVisitedHostFinalizableBlockTypeBits = RecyclerVisitedHostBlockTypeBits | FinalizeBit,
 
 #ifdef RECYCLER_WRITE_BARRIER
     GetBlockTypeBitMask = FinalizeBit | LeafBit | WithBarrierBit | RecyclerVisitedHostBit,

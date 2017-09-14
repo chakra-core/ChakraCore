@@ -182,13 +182,10 @@ struct InfoBitsWrapper{};
 #define RecyclerNewTrackedLeaf(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocTrackedLeafInlined, T, __VA_ARGS__)))
 #define RecyclerNewTrackedLeafPlusZ(recycler,size,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocZeroTrackedLeafInlined, size, T, __VA_ARGS__)))
 
-#define RecyclerAllocVisitedHost_TracedAndFinalized(recycler,size) AllocatorNewBase(Recycler, recycler, AllocRecyclerVisitedHost_TracedAndFinalizedInlined, char[size])
-#define RecyclerAllocVisitedHost_TracedAndFinalizedZero(recycler,size) AllocatorNewBase(Recycler, recycler,AllocRecyclerVisitedHost_TracedAndFinalizedZeroInlined, char[size])
-#define RecyclerAllocVisitedHost_Finalized(recycler,size) AllocatorNewBase(Recycler, recycler, AllocRecyclerVisitedHost_FinalizedInlined, char[size])
-#define RecyclerAllocVisitedHost_FinalizedZero(recycler,size) AllocatorNewBase(Recycler, recycler, AllocRecyclerVisitedHost_FinalizedZeroInlined, char[size])
-#define RecyclerAllocVisitedHost_Traced(recycler,size) AllocatorNewBase(Recycler, recycler, AllocRecyclerVisitedHost_TracedInlined, char[size])
-#define RecyclerAllocVisitedHost_TracedZero(recycler,size) AllocatorNewBase(Recycler, recycler, AllocRecyclerVisitedHost_TracedZeroInlined, char[size])
-
+#define RecyclerAllocVisitedHostTracedAndFinalizedZero(recycler,size) AllocatorNewBase(Recycler, recycler,AllocRecyclerVisitedHostTracedAndFinalizedZeroInlined, char[size])
+#define RecyclerAllocVisitedHostFinalizedZero(recycler,size) AllocatorNewBase(Recycler, recycler, AllocRecyclerVisitedHostFinalizedZeroInlined, char[size])
+#define RecyclerAllocVisitedHostTracedZero(recycler,size) AllocatorNewBase(Recycler, recycler, AllocRecyclerVisitedHostTracedZeroInlined, char[size])
+#define RecyclerAllocVisitedHostLeafZero(recycler,size) AllocatorNewBase(Recycler, recycler, AllocRecyclerVisitedHostLeafZeroInlined, char[size])
 
 #ifdef TRACE_OBJECT_LIFETIME
 #define RecyclerNewLeafTrace(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocLeafTrace, T, __VA_ARGS__)
@@ -1280,12 +1277,10 @@ public:
     DEFINE_RECYCLER_ALLOC_ZERO(AllocLeafZero, LeafBit);
     DEFINE_RECYCLER_ALLOC_ZERO(AllocZeroTrackedLeaf, ClientTrackableLeafBits);
 
-    DEFINE_RECYCLER_ALLOC(AllocRecyclerVisitedHost_TracedAndFinalized, RecyclerVisitedHost_TracedFinalizableBits);
-    DEFINE_RECYCLER_ALLOC_ZERO(AllocRecyclerVisitedHost_TracedAndFinalizedZero, RecyclerVisitedHost_TracedFinalizableBits);
-    DEFINE_RECYCLER_ALLOC(AllocRecyclerVisitedHost_Traced, RecyclerVisitedHost_TracedBits);
-    DEFINE_RECYCLER_ALLOC_ZERO(AllocRecyclerVisitedHost_TracedZero, RecyclerVisitedHost_TracedBits);
-    DEFINE_RECYCLER_ALLOC(AllocRecyclerVisitedHost_Finalized, RecyclerVisitedHost_FinalizableBits);
-    DEFINE_RECYCLER_ALLOC_ZERO(AllocRecyclerVisitedHost_FinalizedZero, RecyclerVisitedHost_FinalizableBits);
+    DEFINE_RECYCLER_ALLOC_ZERO(AllocRecyclerVisitedHostTracedAndFinalizedZero, RecyclerVisitedHostTracedFinalizableBits);
+    DEFINE_RECYCLER_ALLOC_ZERO(AllocRecyclerVisitedHostTracedZero, RecyclerVisitedHostTracedBits);
+    DEFINE_RECYCLER_ALLOC_ZERO(AllocRecyclerVisitedHostFinalizedZero, RecyclerVisitedHostFinalizableBits);
+    DEFINE_RECYCLER_ALLOC_ZERO(AllocRecyclerVisitedHostLeafZero, RecyclerVisitedHostLeafBits);
 
     DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocImplicitRootLeaf, ImplicitRootLeafBits);
     DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocImplicitRoot, ImplicitRootBit);
