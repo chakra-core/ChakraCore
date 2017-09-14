@@ -56,7 +56,7 @@ PeepsMD::PeepAssign(IR::Instr *instr)
     IR::Opnd *dst = instr->GetDst();
 
     if (instr->m_opcode == Js::OpCode::MOV && src->IsIntConstOpnd()
-        && src->AsIntConstOpnd()->GetValue() == 0 && dst->IsRegOpnd())
+        && src->AsIntConstOpnd()->GetValue() == 0 && dst->IsRegOpnd() && !instr->isInlineeEntryInstr)
     {
         Assert(instr->GetSrc2() == NULL);
 

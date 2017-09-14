@@ -173,8 +173,6 @@ namespace Wasm
         static const Js::RegSlot ModuleSlotRegister = 0;
         static const Js::RegSlot ReturnRegister = 0;
 
-        static const Js::RegSlot FunctionRegister = 0;
-        static const Js::RegSlot CallReturnRegister = 0;
         static const Js::RegSlot ModuleEnvRegister = 1;
         static const Js::RegSlot ArrayBufferRegister = 2;
         static const Js::RegSlot ArraySizeRegister = 3;
@@ -252,6 +250,7 @@ namespace Wasm
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
         WasmReaderBase* GetReader() const;
 
+        Js::ProfileId GetNextProfileId();
         bool IsValidating() const { return m_originalWriter == m_emptyWriter; }
 
         ArenaAllocator m_alloc;
@@ -271,6 +270,7 @@ namespace Wasm
 
         WAsmJs::TypedRegisterAllocator mTypedRegisterAllocator;
 
+        Js::ProfileId currentProfileId;
         JsUtil::Stack<BlockInfo> m_blockInfos;
         JsUtil::Stack<EmitInfo> m_evalStack;
     };

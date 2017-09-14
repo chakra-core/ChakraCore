@@ -194,7 +194,7 @@ public:
     CapturedValues *                        capturedValues;
     BVSparse<JitArenaAllocator> *           changedSyms;
 
-    uint                                    inlinedArgOutCount;
+    uint                                    inlinedArgOutSize;
 
     bool                                    hasCSECandidates;
 

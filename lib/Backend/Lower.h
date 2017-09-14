@@ -496,7 +496,7 @@ private:
     void            LowerRemR8(IR::Instr * const instr);
     void            LowerRemR4(IR::Instr * const instr);
 
-    void            LowerInlineeStart(IR::Instr * instr);
+    IR::Instr*      LowerInlineeStart(IR::Instr * instr);
     void            LowerInlineeEnd(IR::Instr * instr);
 
     static

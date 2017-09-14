@@ -19,6 +19,11 @@
 #define MACRO_EXTEND_WMS(opcode, layout, attr)
 #endif
 
+#define MACRO_WMS_PROFILED( opcode, layout, attr) \
+    MACRO_WMS(opcode, layout, OpHasProfiled|attr) \
+    MACRO_WMS(Profiled##opcode, Profiled##layout, OpProfiled|attr) \
+
+
 //              (   OpCodeAsmJs              , LayoutAsmJs     , OpCodeAttrAsmJs )
 //              (        |                   ,     |           ,       |         )
 //              (        |                   ,     |           ,       |         )
@@ -37,6 +42,19 @@ MACRO_EXTEND    ( InvalidOpCode              , Empty           , None           
 MACRO           ( Label                      , Empty           , None            ) // No operation (Default value = 0)
 MACRO           ( Ret                        , Empty           , None            )
 
+
+// loads
+// Note: bytecode generator assumes this is a contiguous group with this ordering, so don't insert other opcodes in the middle
+// (See ByteCodeWriter::Data::EncodeT in AsmJsBytecodeWriter.cpp)
+MACRO_WMS       ( Ld_IntConst                , Int1Const1      , None            ) // Sets an int register from a const int
+MACRO_WMS       ( Ld_Int                     , Int2            , None            ) // Sets an int from another int register
+MACRO_WMS       ( Ld_LongConst               , Long1Const1      , None           ) // Sets an int64 register from a const int64
+MACRO_WMS       ( Ld_Long                    , Long2            , None           ) // Sets an int64 from another int64 register
+MACRO_WMS       ( Ld_FltConst                , Float1Const1    , None            ) // Sets a float register from a const float
+MACRO_WMS       ( Ld_Flt                     , Float2          , None            ) // Sets a float from another float register
+MACRO_WMS       ( Ld_DbConst                 , Double1Const1   , None            ) // Sets a double register from a const double
+MACRO_WMS       ( Ld_Db                      , Double2         , None            ) // Sets a double from another double register
+
 // External Function calls
 MACRO           ( StartCall                  , StartCall       , None            ) // Initialize memory for a call
 MACRO_WMS       ( Call                       , AsmCall         , None            ) // Execute call and place return value in register
@@ -45,19 +63,16 @@ MACRO_WMS       ( ArgOut_Long                , Reg1Long1       , None           
 MACRO_WMS       ( ArgOut_Flt                 , Reg1Float1      , None            ) // convert float to var and place it for function call
 MACRO_WMS       ( ArgOut_Db                  , Reg1Double1     , None            ) // convert double to var and place it for function call
 MACRO_WMS       ( Conv_VTI                   , Int1Reg1        , None            ) // convert var to int
-MACRO_WMS       ( Conv_VTL                   , Long1Reg1       , None            ) // convert var to int64
 MACRO_WMS       ( Conv_VTF                   , Float1Reg1      , None            ) // convert var to float
 MACRO_WMS       ( Conv_VTD                   , Double1Reg1     , None            ) // convert var to double
+MACRO_WMS       ( Conv_VTL                   , Long1Reg1       , None            ) // convert var to int64
 // Internal calls
 MACRO           ( I_StartCall                , StartCall       , None            )    // Initialize memory for a call
-MACRO_WMS       ( I_Call                     , AsmCall         , None            )    // Execute call and place return value in register
+MACRO_WMS_PROFILED( I_Call                   , AsmCall         , None            )    // Execute call and place return value in register
 MACRO_WMS       ( I_ArgOut_Db                , Reg1Double1     , None            )    // place double arg for function call
 MACRO_WMS       ( I_ArgOut_Int               , Reg1Int1        , None            )    // place int arg for function call
 MACRO_WMS       ( I_ArgOut_Long              , Reg1Long1       , None            )    // place int64 arg for function call
 MACRO_WMS       ( I_ArgOut_Flt               , Reg1Float1      , None            )    // place float arg for function call
-MACRO_WMS       ( I_Conv_VTI                 , Int2            , None            )    // convert var to int
-MACRO_WMS       ( I_Conv_VTF                 , Float2          , None            )    // convert var to float
-MACRO_WMS       ( I_Conv_VTD                 , Double2         , None            )    // convert var to double
 
 // loop
 MACRO_WMS       ( AsmJsLoopBodyStart         , AsmUnsigned1    , None            )    // Marks the start of a loop body
@@ -103,7 +118,6 @@ MACRO_WMS       ( Return_Flt                 , Float2          , None           
 MACRO_WMS       ( Return_Int                 , Int2            , None            ) // convert int to var
 
 // Module memory manipulation
-MACRO_WMS       ( LdUndef                    , AsmReg1         , None            ) // Load 'undefined' usually in return register
 MACRO_WMS       ( LdSlotArr                  , ElementSlot     , None            ) // Loads an array of Var from an array of Var
 MACRO_WMS       ( LdSlot                     , ElementSlot     , None            ) // Loads a Var from an array of Var
 MACRO_WMS       ( LdSlot_Db                  , ElementSlot     , None            ) // Loads a double from the Module
@@ -126,9 +140,8 @@ MACRO_WMS       ( LdArrConst                 , AsmTypedArr     , None           
 MACRO_WMS       ( StArr                      , AsmTypedArr     , None            )
 MACRO_WMS       ( StArrConst                 , AsmTypedArr     , None            )
 
+
 // Int math
-MACRO_WMS       ( Ld_IntConst                , Int1Const1      , None            ) // Sets an int register from a const int
-MACRO_WMS       ( Ld_Int                     , Int2            , None            ) // Sets an int from another int register
 MACRO_WMS       ( Neg_Int                    , Int2            , None            ) // int unary '-'
 MACRO_WMS       ( Not_Int                    , Int2            , None            ) // int unary '~'
 MACRO_WMS       ( LogNot_Int                 , Int2            , None            ) // int unary '!'
@@ -157,8 +170,6 @@ MACRO_WMS       ( Rem_UInt                   , Int3            , None           
 MACRO_WMS       ( Rem_Trap_UInt             , Int3            , None            ) // (checked) uint32 Arithmetic '%'
 
 // Int64 Math
-MACRO_WMS       ( Ld_LongConst               , Long1Const1      , None            ) // Sets an int64 register from a const int64
-MACRO_WMS       ( Ld_Long                    , Long2            , None            ) // Sets an int64 from another int64 register
 MACRO_WMS       ( Add_Long                   , Long3            , None            ) // int64 Arithmetic '+'
 MACRO_WMS       ( Sub_Long                   , Long3            , None            ) // int64 Arithmetic '-' (subtract)
 MACRO_WMS       ( Mul_Long                   , Long3            , None            ) // int64 Arithmetic '*'
@@ -179,8 +190,6 @@ MACRO_WMS       ( Ctz_Long                   , Long2            , None          
 MACRO_WMS       ( PopCnt_Long                , Long2            , None            )
 
 // Double math
-MACRO_WMS       ( Ld_DbConst                 , Double1Const1   , None            ) // Sets a double register from a const double
-MACRO_WMS       ( Ld_Db                      , Double2         , None            ) // Sets a double from another double register
 MACRO_WMS       ( Neg_Db                     , Double2         , None            ) // Double Unary '-'
 MACRO_WMS       ( Add_Db                     , Double3         , None            ) // Double Arithmetic '+'
 MACRO_WMS       ( Sub_Db                     , Double3         , None            ) // Double Arithmetic '-' (subtract)
@@ -189,8 +198,6 @@ MACRO_WMS       ( Div_Db                     , Double3         , None           
 MACRO_WMS       ( Rem_Db                     , Double3         , None            ) // Double Arithmetic '%'
 
 // float math
-MACRO_WMS       ( Ld_FltConst                , Float1Const1    , None            ) // Sets a float register from a const float
-MACRO_WMS       ( Ld_Flt                     , Float2          , None            ) // Sets a float from another float register
 MACRO_WMS       ( Neg_Flt                    , Float2          , None            ) // Float  Unary '-'
 MACRO_WMS       ( Add_Flt                    , Float3          , None            ) // Float Arithmetic '+'
 MACRO_WMS       ( Sub_Flt                    , Float3          , None            ) // Float Arithmetic '-' (subtract)
@@ -323,3 +330,4 @@ MACRO_EXTEND_WMS( PrintF64, Double2, None)
 #undef MACRO_WMS
 #undef MACRO_EXTEND
 #undef MACRO_EXTEND_WMS
+#undef MACRO_WMS_PROFILED

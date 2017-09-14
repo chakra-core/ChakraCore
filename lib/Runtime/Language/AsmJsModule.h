@@ -101,10 +101,7 @@ namespace Js {
         {
             // Register where module slots are loaded
             ModuleSlotRegister = 0,
-            ReturnRegister = 0,
 
-            FunctionRegister = 0,
-            CallReturnRegister = 0,
             // These are created from the const table which starts after the FirstRegSlot
             ModuleEnvRegister = FunctionBody::FirstRegSlot,
             ArrayBufferRegister,

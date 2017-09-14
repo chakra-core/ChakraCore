@@ -281,6 +281,10 @@ GlobOpt::CaptureArguments(BasicBlock *block, BailOutInfo * bailOutInfo, JitArena
 void
 GlobOpt::TrackByteCodeSymUsed(IR::Instr * instr, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed, PropertySym **pPropertySym)
 {
+    if(instr->m_func->GetJITFunctionBody()->IsAsmJsMode())
+    {
+        return;
+    }
     IR::Opnd * src = instr->GetSrc1();
     if (src)
     {
@@ -427,7 +431,7 @@ GlobOpt::MarkNonByteCodeUsed(IR::Opnd * opnd)
 void
 GlobOpt::CaptureByteCodeSymUses(IR::Instr * instr)
 {
-    if (this->byteCodeUses)
+    if (this->byteCodeUses || this->func->GetJITFunctionBody()->IsAsmJsMode())
     {
         // We already captured it before.
         return;
@@ -493,7 +497,8 @@ GlobOpt::TrackCalls(IR::Instr * instr)
             Assert(stackSym->IsArgSlotSym());
             if (stackSym->m_isInlinedArgSlot)
             {
-                this->currentBlock->globOptData.inlinedArgOutCount++;
+                uint size = TySize[instr->GetDst()->GetType()];
+                this->currentBlock->globOptData.inlinedArgOutSize += size < MachPtr ? MachPtr : size;
                 // We want to update the offsets only once: don't do in prepass.
                 if (!this->IsLoopPrePass() && stackSym->m_offset >= 0)
                 {
@@ -523,7 +528,7 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         this->currentBlock->globOptData.curFunc = instr->m_func;
         this->currentBlock->globOptData.curFunc = instr->m_func;
 
-        this->func->UpdateMaxInlineeArgOutCount(this->currentBlock->globOptData.inlinedArgOutCount);
+        this->func->UpdateMaxInlineeArgOutSize(this->currentBlock->globOptData.inlinedArgOutSize);
         this->EndTrackCall(instr);
 
         if (DoInlineArgsOpt(instr->m_func))
@@ -560,8 +565,8 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         }
         EndTrackingOfArgObjSymsForInlinee();
 
-        Assert(this->currentBlock->globOptData.inlinedArgOutCount >= instr->GetArgOutCount(/*getInterpreterArgOutCount*/ false));
-        this->currentBlock->globOptData.inlinedArgOutCount -= instr->GetArgOutCount(/*getInterpreterArgOutCount*/ false);
+        Assert(this->currentBlock->globOptData.inlinedArgOutSize >= instr->GetArgOutSize(/*getInterpreterArgOutCount*/ false));
+        this->currentBlock->globOptData.inlinedArgOutSize -= instr->GetArgOutSize(/*getInterpreterArgOutCount*/ false);
         break;
 
     case Js::OpCode::InlineeMetaArg:
@@ -578,7 +583,7 @@ GlobOpt::TrackCalls(IR::Instr * instr)
             Func * currentFunc = instr->m_func->GetParentFunc();
             stackSym->FixupStackOffset(currentFunc);
         }
-        this->currentBlock->globOptData.inlinedArgOutCount++;
+        this->currentBlock->globOptData.inlinedArgOutSize += MachPtr;
         break;
     }
 
@@ -651,8 +656,8 @@ GlobOpt::TrackCalls(IR::Instr * instr)
             this->EndTrackCall(instr);
         }
 
-        Assert(this->currentBlock->globOptData.inlinedArgOutCount >= instr->GetArgOutCount(/*getInterpreterArgOutCount*/ false));
-        this->currentBlock->globOptData.inlinedArgOutCount -= instr->GetArgOutCount(/*getInterpreterArgOutCount*/ false);
+        Assert(this->currentBlock->globOptData.inlinedArgOutSize >= instr->GetArgOutSize(/*getInterpreterArgOutCount*/ false));
+        this->currentBlock->globOptData.inlinedArgOutSize -= instr->GetArgOutSize(/*getInterpreterArgOutCount*/ false);
 
         this->inInlinedBuiltIn = false;
         break;
@@ -735,8 +740,9 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
             {
                 frameInfoValue = InlineFrameInfoValue(argOpnd->GetConstValue());
             }
-            else if (argSym->IsConst())
+            else if (argSym->IsConst() && !argSym->IsInt64Const())
             {
+                // InlineFrameInfo doesn't currently support Int64Const
                 frameInfoValue = InlineFrameInfoValue(argSym->GetConstValueForBailout());
             }
             else
@@ -784,7 +790,7 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
                     Assert(globOptData.liveVarSyms->Test(argSym->m_id));
                 }
 
-                if (argSym->IsConst())
+                if (argSym->IsConst() && !argSym->IsInt64Const())
                 {
                     frameInfoValue = InlineFrameInfoValue(argSym->GetConstValueForBailout());
                 }
@@ -1043,7 +1049,11 @@ IR::ByteCodeUsesInstr *
 GlobOpt::InsertByteCodeUses(IR::Instr * instr, bool includeDef)
 {
     IR::ByteCodeUsesInstr * byteCodeUsesInstr = nullptr;
-    Assert(this->byteCodeUses);
+    if (!this->byteCodeUses)
+    {
+        Assert(this->isAsmJSFunc);
+        return nullptr;
+    }
     IR::RegOpnd * dstOpnd = nullptr;
     if (includeDef)
     {

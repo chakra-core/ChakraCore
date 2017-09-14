@@ -268,7 +268,6 @@ public:
             IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LowerEntryInstr(IR::EntryInstr * entryInstr);
             IR::Instr *         LowerExitInstr(IR::ExitInstr * exitInstr);
-            IR::Instr *         LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr);
             IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr);
             IR::Instr *         LoadNewScObjFirstArg(IR::Instr * instr, IR::Opnd * dst, ushort extraArgs = 0);
             IR::Instr *         LowerToFloat(IR::Instr *instr);

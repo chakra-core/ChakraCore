@@ -1577,6 +1577,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
 
     if (instr->HasAnyLoadHeapArgsOpCode())
     {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (instr->m_func->IsStackArgsEnabled())
         {
             if (instr->GetSrc1()->IsRegOpnd() && instr->m_func->GetJITFunctionBody()->GetInParamsCount() > 1)
@@ -1593,6 +1594,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                 }
             }
         }
+#endif
 
         if (instr->m_func->GetJITFunctionBody()->GetInParamsCount() != 1 && !instr->m_func->IsStackArgsEnabled())
         {
@@ -2632,11 +2634,8 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     }
 
     // Track calls after any pre-op bailouts have been inserted before the call, because they will need to restore out params.
-    // We don't inline in asmjs and hence we don't need to track calls in asmjs too, skipping this step for asmjs.
-    if (!GetIsAsmJSFunc())
-    {
-        this->TrackCalls(instr);
-    }
+
+    this->TrackCalls(instr);
 
     if (instr->GetSrc1())
     {
@@ -6771,17 +6770,13 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         // this path would probably work outside of asm.js, but we should verify that if we ever hit this scenario
         Assert(GetIsAsmJSFunc());
         constVal = 0;
-        if (src1Val->GetValueInfo()->TryGetIntConstantValue(&constVal) && constVal != 0)
+        if (!src1Val->GetValueInfo()->TryGetIntConstantValue(&constVal))
         {
-            instr->FreeSrc1();
-            if (instr->GetSrc2())
-            {
-                instr->FreeSrc2();
-            }
-            instr->m_opcode = Js::OpCode::Nop;
-            return true;
+            return false;
         }
-        return false;
+
+        result = constVal == 0;
+        break;
 
     default:
         return false;

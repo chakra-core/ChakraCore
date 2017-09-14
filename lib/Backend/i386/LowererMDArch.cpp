@@ -1093,7 +1093,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
     }
 
     AssertMsg(startCallInstr->m_opcode == Js::OpCode::StartCall || startCallInstr->m_opcode == Js::OpCode::LoweredStartCall, "Problem with arg chain.");
-    AssertMsg(m_func->GetJITFunctionBody()->IsAsmJsMode() || startCallInstr->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == argCount, "ArgCount doesn't match StartCall count");
+    AssertMsg(startCallInstr->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == argCount, "ArgCount doesn't match StartCall count");
 
     //
     // Machine dependent lowering
@@ -1152,7 +1152,7 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount, RegNum regNum)
     callInstr->m_opcode = Js::OpCode::CALL;
 
     // This is required here due to calls created during lowering
-    callInstr->m_func->SetHasCalls();
+    callInstr->m_func->SetHasCallsOnSelfAndParents();
 
     if (callInstr->GetDst())
     {
@@ -1285,15 +1285,11 @@ int32
 LowererMDArch::LowerStartCallAsmJs(IR::Instr * startCallInstr, IR::Instr * insertInstr, IR::Instr * callInstr)
 {
     AssertMsg(startCallInstr->GetSrc1()->IsIntConstOpnd(), "Bad src on StartCall");
+    AssertMsg(startCallInstr->GetSrc2()->IsIntConstOpnd(), "Bad src on StartCall");
 
-    IR::IntConstOpnd * sizeOpnd = startCallInstr->GetSrc1()->AsIntConstOpnd();
+    IR::IntConstOpnd * sizeOpnd = startCallInstr->GetSrc2()->AsIntConstOpnd();
 
     IntConstType sizeValue = sizeOpnd->GetValue();
-    if (callInstr->m_opcode == Js::OpCode::AsmJsCallI)
-    {
-        // we will push FunctionObject, so don't need to worry about that
-        sizeValue -= MachPtr;
-    }
 
     // Maintain 8 byte alignment of the stack.
     // We do this by adjusting the SUB for stackCall to make sure it maintains 8 byte alignment.
@@ -1494,7 +1490,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
     // Allocate the inlined arg out stack in the locals. Allocate an additional slot so that
     // we can unconditionally clear the argc slot of the next frame.
-    this->m_func->m_localStackHeight += ((this->m_func->GetMaxInlineeArgOutCount() + 1) * MachPtr);
+    this->m_func->m_localStackHeight += m_func->GetMaxInlineeArgOutSize() + MachPtr;
 
     bytesOnStack += this->m_func->m_localStackHeight;
 
@@ -1508,14 +1504,10 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     Assert(this->m_func->hasBailout || this->bailOutStackRestoreLabel == nullptr);
     this->m_func->frameSize = bytesOnStack;
 
-    if (this->m_func->GetMaxInlineeArgOutCount())
+    if (this->m_func->HasInlinee())
     {
         this->m_func->GetJITOutput()->SetFrameHeight(this->m_func->m_localStackHeight);
-    }
 
-    // Zero initialize the first inlinee frames argc.
-    if (this->m_func->GetMaxInlineeArgOutCount())
-    {
         StackSym *sym           = this->m_func->m_symTable->GetArgSlotSym((Js::ArgSlot)-1);
         sym->m_isInlinedArgSlot = true;
         sym->m_offset           = 0;
@@ -1580,115 +1572,6 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     IR::Instr * pushInstr = IR::Instr::New(Js::OpCode::PUSH, this->m_func);
     pushInstr->SetSrc1(ebpOpnd);
     entryInstr->InsertAfter(pushInstr);
-
-    return entryInstr;
-}
-
-IR::Instr *
-LowererMDArch::LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr)
-{
-    // PUSH EBP
-    // MOV EBP, ESP
-    // StackProbe
-    // MOV EAX, LocalStackHeight / LEA ESP, [ESP - stackSize]
-    // CALL chkstk               /
-    // PUSH used nonvolatiles
-
-    // Calculate stack size
-    int32 bytesOnStack = MachRegInt + MachRegInt;  // Account for return address+push EBP...
-
-    for (RegNum reg = (RegNum)(RegNOREG + 1); reg < RegNumCount; reg = (RegNum)(reg + 1))
-    {
-        if (LinearScan::IsCalleeSaved(reg) && (m_func->m_regsUsed.Test(reg)))
-        {
-            bytesOnStack += MachRegInt;
-        }
-    }
-    m_func->m_localStackHeight += MachPtr;
-    bytesOnStack += m_func->m_localStackHeight;
-
-    int32 alignment = Math::Align<int32>(bytesOnStack, MachStackAlignment) - bytesOnStack;
-
-    // Make sure this frame allocation maintains 8-byte alignment.  Our point of reference is the return address
-    m_func->m_localStackHeight += alignment;
-    bytesOnStack += alignment;
-    Assert(Math::Align<int32>(bytesOnStack, MachStackAlignment) == bytesOnStack);
-
-    m_func->frameSize = bytesOnStack;
-
-
-    IR::Instr * insertInstr = entryInstr->m_next;
-
-    IR::RegOpnd * ebpOpnd = IR::RegOpnd::New(nullptr, GetRegBlockPointer(), TyMachReg, m_func);
-    IR::RegOpnd * espOpnd = IR::RegOpnd::New(nullptr, GetRegStackPointer(), TyMachReg, m_func);
-
-    // Generate PUSH EBP    
-    IR::Instr * pushEbpInstr = IR::Instr::New(Js::OpCode::PUSH, m_func);
-    pushEbpInstr->SetSrc1(ebpOpnd);
-    insertInstr->InsertBefore(pushEbpInstr);
-
-    // Generate MOV EBP, ESP
-    IR::Instr * movInstr = IR::Instr::New(Js::OpCode::MOV, ebpOpnd, espOpnd, m_func);
-    insertInstr->InsertBefore(movInstr);
-
-    // Generate StackProbe
-    size_t frameSize = bytesOnStack + m_func->m_argSlotsForFunctionsCalled * MachPtr + Js::Constants::MinStackJIT;
-    GeneratePrologueStackProbe(insertInstr->m_prev, frameSize);
-
-    if (m_func->m_localStackHeight != 0)
-    {
-        int32 stackSize = m_func->m_localStackHeight - MachPtr;
-        if (m_func->m_localStackHeight <= PAGESIZE)
-        {
-            // Generate LEA ESP, [ESP - LocalStackHeight]   // Atom prefers LEA for address computations
-
-            IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(espOpnd, -stackSize, TyMachReg, m_func);
-            IR::Instr * subInstr = IR::Instr::New(Js::OpCode::LEA, espOpnd, indirOpnd, m_func);
-
-            insertInstr->InsertBefore(subInstr);
-        }
-        else
-        {
-            IR::RegOpnd *eaxOpnd = IR::RegOpnd::New(nullptr, GetRegChkStkParam(), TyMachReg, m_func);
-
-            // Generate MOV EAX, LocalStackHeight
-            IR::IntConstOpnd * stackSizeOpnd = IR::IntConstOpnd::New(stackSize, TyMachReg, m_func);
-            lowererMD->CreateAssign(eaxOpnd, stackSizeOpnd, insertInstr);
-
-            // Generate CALL chkstk
-            IR::Instr * callInstr = IR::Instr::New(Js::OpCode::Call, eaxOpnd,
-                IR::HelperCallOpnd::New(IR::HelperCRT_chkstk, m_func), m_func);
-            insertInstr->InsertBefore(callInstr);
-
-            LowerCall(callInstr, 0, RegECX);
-
-        }
-    }
-
-    // PUSH used callee-saved registers
-
-    for (RegNum reg = (RegNum)(RegNumCount - 1); reg > RegNOREG; reg = (RegNum)(reg - 1))
-    {
-        if (LinearScan::IsCalleeSaved(reg) && (m_func->m_regsUsed.Test(reg)))
-        {
-            IR::RegOpnd * regOpnd = IR::RegOpnd::New(nullptr, reg, TyMachReg, m_func);
-            IR::Instr * pushInstr = IR::Instr::New(Js::OpCode::PUSH, m_func);
-            pushInstr->SetSrc1(regOpnd);
-            insertInstr->InsertBefore(pushInstr);
-        }
-    }
-
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    if (Js::Configuration::Global.flags.IsEnabled(Js::CheckAlignmentFlag))
-    {
-        // CALL CheckAlignment
-        IR::Instr * callInstr = IR::Instr::New(Js::OpCode::Call, m_func);
-        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperScrFunc_CheckAlignment, m_func));
-        insertInstr->InsertBefore(callInstr);
-
-        LowerCall(callInstr, 0, RegEAX);
-    }
-#endif
 
     return entryInstr;
 }
@@ -1879,18 +1762,20 @@ LowererMDArch::LowerExitInstrCommon(IR::ExitInstr * exitInstr)
 IR::Instr *
 LowererMDArch::LowerInt64Assign(IR::Instr * instr)
 {
-    IR::Opnd* dst = instr->GetDst();
-    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* dst = instr->UnlinkDst();
+    IR::Opnd* src1 = instr->UnlinkSrc1();
     if (dst && (dst->IsRegOpnd() || dst->IsSymOpnd() || dst->IsIndirOpnd()) && src1)
     {
         int dstSize = dst->GetSize();
         int srcSize = src1->GetSize();
         Int64RegPair dstPair = m_func->FindOrCreateInt64Pair(dst);
         Int64RegPair src1Pair = m_func->FindOrCreateInt64Pair(src1);
-        IR::Instr* lowLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.low, src1Pair.low, m_func);
 
-        instr->InsertBefore(lowLoadInstr);
-        lowererMD->ChangeToAssign(lowLoadInstr);
+        instr->SetSrc1(src1Pair.low);
+        instr->SetDst(dstPair.low);
+        instr->m_opcode = Js::OpCode::Ld_I4;
+        lowererMD->ChangeToAssign(instr);
+        IR::Instr * insertBeforeInstr = instr->m_next;
 
         // Do not store to memory if we wanted less than 8 bytes
         const bool canAssignHigh = !dst->IsIndirOpnd() || dstSize == 8;
@@ -1901,7 +1786,7 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
             {
                 // Normal case, assign source's high bits to dst's high bits
                 IR::Instr* highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, src1Pair.high, m_func);
-                instr->InsertBefore(highLoadInstr);
+                insertBeforeInstr->InsertBefore(highLoadInstr);
                 lowererMD->ChangeToAssign(highLoadInstr);
             }
             else
@@ -1913,23 +1798,22 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
                     // If this is an unsigned assign from memory, we can simply set the high bits to 0
                     IR::Instr* highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, IR::IntConstOpnd::New(0, TyInt32, m_func), m_func);
                     lowererMD->ChangeToAssign(highLoadInstr);
-                    instr->InsertBefore(highLoadInstr);
+                    insertBeforeInstr->InsertBefore(highLoadInstr);
                 }
                 else
                 {
                     // If this is a signed assign from memory, we need to extend the sign
                     IR::Instr* highExtendInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, dstPair.low, m_func);
-                    instr->InsertBefore(highExtendInstr);
+                    insertBeforeInstr->InsertBefore(highExtendInstr);
                     lowererMD->ChangeToAssign(highExtendInstr);
 
                     highExtendInstr = IR::Instr::New(Js::OpCode::SAR, dstPair.high, dstPair.high, IR::IntConstOpnd::New(31, TyInt32, m_func), m_func);
-                    instr->InsertBefore(highExtendInstr);
+                    insertBeforeInstr->InsertBefore(highExtendInstr);
                 }
             }
         }
-        
-        instr->Remove();
-        return lowLoadInstr->m_prev;
+
+        return instr->m_prev;
     }
     return instr;
 }

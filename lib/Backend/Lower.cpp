@@ -850,11 +850,11 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
         }
         case Js::OpCode::AsmJsCallI:
-            m_lowererMD.LowerAsmJsCallI(instr);
+            instrPrev = m_lowererMD.LowerAsmJsCallI(instr);
             break;
 
         case Js::OpCode::AsmJsCallE:
-            m_lowererMD.LowerAsmJsCallE(instr);
+            instrPrev = m_lowererMD.LowerAsmJsCallE(instr);
             break;
 
         case Js::OpCode::CallIEval:
@@ -5439,7 +5439,7 @@ Lowerer::LowerPrologEpilogAsmJs()
     instr = m_func->m_headInstr;
     AssertMsg(instr->IsEntryInstr(), "First instr isn't an EntryInstr...");
 
-    m_lowererMD.LowerEntryInstrAsmJs(instr->AsEntryInstr());
+    m_lowererMD.LowerEntryInstr(instr->AsEntryInstr());
 
     instr = m_func->m_exitInstr;
     AssertMsg(instr->IsExitInstr(), "Last instr isn't an ExitInstr...");
@@ -13508,14 +13508,14 @@ Lowerer::GenerateFastCondBranch(IR::BranchInstr * instrBranch, bool *pIsHelper)
     return true;
 }
 
-void
+IR::Instr *
 Lowerer::LowerInlineeStart(IR::Instr * inlineeStartInstr)
 {
     IR::Opnd *linkOpnd   = inlineeStartInstr->GetSrc2();
     if (!linkOpnd)
     {
         Assert(inlineeStartInstr->m_func->m_hasInlineArgsOpt);
-        return;
+        return inlineeStartInstr->m_prev;
     }
 
     AssertMsg(inlineeStartInstr->m_func->firstActualStackOffset != -1, "This should have been already done in backward pass");
@@ -13529,7 +13529,16 @@ Lowerer::LowerInlineeStart(IR::Instr * inlineeStartInstr)
 #pragma prefast(suppress:6235, "Non-Zero Constant in Condition")
         if (!PHASE_ON(Js::EliminateArgoutForInlineePhase, this->m_func) || inlineeStartInstr->m_func->GetJITFunctionBody()->HasOrParentHasArguments())
         {
-            m_lowererMD.ChangeToAssign(argInstr);
+#ifdef _M_IX86
+            if (argInstr->GetDst()->IsInt64())
+            {
+                m_lowererMD.LowerInt64Assign(argInstr);
+            }
+            else
+#endif
+            {
+                m_lowererMD.ChangeToAssign(argInstr);
+            }
         }
         else
         {
@@ -13573,6 +13582,9 @@ Lowerer::LowerInlineeStart(IR::Instr * inlineeStartInstr)
         i++;
         return false;
     });
+
+    IR::Instr* prev = inlineeStartInstr->m_prev;
+
     if (inlineeStartInstr->m_func->m_hasInlineArgsOpt)
     {
         inlineeStartInstr->FreeSrc1();
@@ -13583,6 +13595,7 @@ Lowerer::LowerInlineeStart(IR::Instr * inlineeStartInstr)
     {
         inlineeStartInstr->Remove();
     }
+    return prev;
 }
 
 void

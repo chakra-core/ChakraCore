@@ -1611,8 +1611,8 @@ namespace Js
       m_isAsmJsFunction(false),
       m_tag21(true)
 #if DBG
-      ,m_wasEverAsmjsMode(false)
-      ,scopeObjectSize(0)
+        ,m_wasEverAsmjsMode(false)
+        ,scopeObjectSize(0)
 #endif
     {
         this->functionInfo = RecyclerNew(scriptContext->GetRecycler(), FunctionInfo, entryPoint, attributes, functionId, this);
@@ -1661,7 +1661,7 @@ namespace Js
       m_reparsed(proxy->IsReparsed()),
       m_tag21(true)
 #if DBG
-      ,m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
+      , m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
 #endif
     {
         FunctionInfo * functionInfo = proxy->GetFunctionInfo();
@@ -3405,10 +3405,6 @@ namespace Js
         // and dynamic profile collection is enabled
         return
             !this->m_isFromNativeCodeModule &&
-            !this->m_isAsmJsFunction &&
-#ifdef ASMJS_PLAT
-            !this->GetAsmJsModuleInfo() &&
-#endif
             !this->HasExecutionDynamicProfileInfo() &&
             DynamicProfileInfo::IsEnabled(this);
     }
@@ -4940,7 +4936,31 @@ namespace Js
         this->SetByteCodeInLoopCount(0);
 
 #if ENABLE_PROFILE_INFO
-        this->dynamicProfileInfo = nullptr;
+        if (this->dynamicProfileInfo != nullptr)
+        {
+            SourceContextInfo * sourceContextInfo = GetSourceContextInfo();
+            if(sourceContextInfo && sourceContextInfo->sourceDynamicProfileManager)
+            {
+                sourceContextInfo->sourceDynamicProfileManager->RemoveDynamicProfileInfo(GetFunctionInfo()->GetLocalFunctionId());
+            }
+
+#ifdef DYNAMIC_PROFILE_STORAGE
+            DynamicProfileInfoList * profileInfoList = GetScriptContext()->GetProfileInfoList();
+            if (profileInfoList)
+            {
+                FOREACH_SLISTBASE_ENTRY_EDITING(Field(DynamicProfileInfo*), info, profileInfoList, iter)
+                {
+                    if (info->HasFunctionBody() && info->GetFunctionBody() == this)
+                    {
+                        iter.UnlinkCurrent();
+                        break;
+                    }
+                }
+                NEXT_SLISTBASE_ENTRY_EDITING;
+            }
+#endif
+            this->dynamicProfileInfo = nullptr;
+        }
 #endif
         this->hasExecutionDynamicProfileInfo = false;
 
@@ -7387,6 +7407,9 @@ namespace Js
     {
         return
             !PHASE_OFF(Js::SimpleJitPhase, this) &&
+#ifdef ASMJS_PLAT
+            !GetIsAsmjsMode() &&
+#endif
             !GetScriptContext()->GetConfig()->IsNoNative() &&
             !GetScriptContext()->IsScriptContextInDebugMode() &&
             DoInterpreterProfile() &&
@@ -7399,6 +7422,9 @@ namespace Js
     {
         return
             !PHASE_OFF(Js::SimpleJitPhase, this) &&
+#ifdef ASMJS_PLAT
+            !GetIsAsmjsMode() &&
+#endif
             !GetScriptContext()->GetConfig()->IsNoNative() &&
             !this->IsInDebugMode() &&
             DoInterpreterProfileWithLock() &&
@@ -7417,17 +7443,7 @@ namespace Js
     bool FunctionBody::DoInterpreterProfile() const
     {
 #if ENABLE_PROFILE_INFO
-#ifdef ASMJS_PLAT
-        // Switch off profiling is asmJsFunction
-        if (this->GetIsAsmJsFunction() || this->GetAsmJsModuleInfo())
-        {
-            return false;
-        }
-        else
-#endif
-        {
-            return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
-        }
+        return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
 #else
         return false;
 #endif
@@ -7436,17 +7452,7 @@ namespace Js
     bool FunctionBody::DoInterpreterProfileWithLock() const
     {
 #if ENABLE_PROFILE_INFO
-#ifdef ASMJS_PLAT
-        // Switch off profiling is asmJsFunction
-        if (this->GetIsAsmJsFunction() || this->GetAsmJsModuleInfoWithLock())
-        {
-            return false;
-        }
-        else
-#endif
-        {
-            return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
-        }
+        return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
 #else
         return false;
 #endif
@@ -7455,6 +7461,10 @@ namespace Js
     bool FunctionBody::DoInterpreterAutoProfile() const
     {
         Assert(DoInterpreterProfile());
+
+#ifdef ASMJS_PLAT
+        if (this->GetIsAsmjsMode()) return false;
+#endif
 
         return !PHASE_OFF(InterpreterAutoProfilePhase, this) && !this->IsInDebugMode();
     }

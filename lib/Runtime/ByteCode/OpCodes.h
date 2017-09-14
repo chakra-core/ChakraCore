@@ -330,8 +330,6 @@ MACRO_BACKEND_ONLY(     ArgOut_A_Dynamic,           Empty,          OpSideEffect
 MACRO_BACKEND_ONLY(     ArgOut_A_FromStackArgs,     Empty,          OpSideEffect)       // Copy from "local slot" to "out slot"
 MACRO_BACKEND_ONLY(     ArgOut_A_FixupForStackArgs, Empty,          OpSideEffect)
 MACRO_BACKEND_ONLY(     ArgOut_A_SpreadArg,         Empty,          OpSideEffect)
-MACRO_BACKEND_ONLY(     ArgOutAsmJsI_A,             Empty,          OpSideEffect)
-MACRO_BACKEND_ONLY(     ArgOutAsmJsE_A,             Empty,          OpSideEffect)
 MACRO_WMS(              Delete_A,                   Reg2,           OpSideEffect|OpPostOpDbgBailOut)        // Delete Var
 
 // Object operations
@@ -767,7 +765,7 @@ MACRO_BACKEND_ONLY(     TrapIfZero,         Reg3,           OpSideEffect)
 
 #undef MACRO_WMS_PROFILED
 #undef MACRO_WMS_PROFILED2
-#undef MACRO_WMS_PROFILED_OPCODE
+#undef MACRO_WMS_PROFILED_OP
 #undef MACRO_PROFILED
 #undef MACRO_DEBUG_WMS
 #undef MACRO_DEBUG

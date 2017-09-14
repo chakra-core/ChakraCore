@@ -255,6 +255,11 @@ Js::WebAssemblyModule* WasmModuleGenerator::GenerateModule()
     }
 
     uint32 funcCount = m_module->GetWasmFunctionCount();
+    SourceContextInfo * sourceContextInfo = m_sourceInfo->GetSrcInfo()->sourceContextInfo;
+    m_sourceInfo->EnsureInitialized(funcCount);
+    sourceContextInfo->nextLocalFunctionId += funcCount;
+    sourceContextInfo->EnsureInitialized();
+
     for (uint32 i = 0; i < funcCount; ++i)
     {
         GenerateFunctionHeader(i);
@@ -451,6 +456,7 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
     m_evalStack(&m_alloc),
     mTypedRegisterAllocator(&m_alloc, AllocateRegisterSpace, 1 << WAsmJs::SIMD),
     m_blockInfos(&m_alloc),
+    currentProfileId(0),
     isUnreachable(false)
 {
     m_emptyWriter = Anew(&m_alloc, Js::EmptyWasmByteCodeWriter);
@@ -505,6 +511,7 @@ void WasmBytecodeGenerator::GenerateFunction()
         SetUnreachableState(false);
         m_writer->MarkAsmJsLabel(exitLabel);
         m_writer->EmptyAsm(Js::OpCodeAsmJs::Ret);
+        m_writer->SetCallSiteCount(this->currentProfileId);
         m_writer->End();
         GetReader()->FunctionEnd();
     }
@@ -530,7 +537,6 @@ void WasmBytecodeGenerator::GenerateFunction()
     mTypedRegisterAllocator.CommitToFunctionInfo(info, GetFunctionBody());
 
     GetFunctionBody()->CheckAndSetOutParamMaxDepth(m_maxArgOutDepth);
-
     autoDisableInterrupt.Completed();
 }
 
@@ -946,20 +952,29 @@ EmitInfo WasmBytecodeGenerator::EmitCall()
     uint32 funcNum = Js::Constants::UninitializedValue;
     uint32 signatureId = Js::Constants::UninitializedValue;
     WasmSignature* calleeSignature = nullptr;
+    Js::ProfileId profileId = Js::Constants::NoProfileId;
     EmitInfo indirectIndexInfo;
     const bool isImportCall = GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::Import;
     Assert(isImportCall || GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::Function || GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::ImportThunk);
     switch (wasmOp)
     {
     case wbCall:
+    {
         funcNum = GetReader()->m_currentNode.call.num;
-        calleeSignature = m_module->GetWasmFunctionInfo(funcNum)->GetSignature();
+        WasmFunctionInfo* calleeInfo = m_module->GetWasmFunctionInfo(funcNum);
+        calleeSignature = calleeInfo->GetSignature();
+        // currently only handle inlining internal function calls
+        // in future we can expand to all calls by adding checks in inliner and falling back to call in case ScriptFunction doesn't match
+        if (GetReader()->m_currentNode.call.funcType == FunctionIndexTypes::Function && !PHASE_TRACE1(Js::WasmInOutPhase))
+        {
+            profileId = GetNextProfileId();
+        }
         break;
+    }
     case wbCallIndirect:
         indirectIndexInfo = PopEvalStack(WasmTypes::I32, _u("Indirect call index must be int type"));
         signatureId = GetReader()->m_currentNode.call.num;
         calleeSignature = m_module->GetSignature(signatureId);
-        ReleaseLocation(&indirectIndexInfo);
         break;
     default:
         Assume(UNREACHED);
@@ -1001,7 +1016,6 @@ EmitInfo WasmBytecodeGenerator::EmitCall()
     {
         EmitInfo info = PopEvalStack(calleeSignature->GetParam((Js::ArgSlot)i), _u("Call argument does not match formal type"));
         // We can release the location of the arguments now, because we won't create new temps between start/call
-        ReleaseLocation(&info);
         argsList[i] = info;
     }
 
@@ -1054,7 +1068,7 @@ EmitInfo WasmBytecodeGenerator::EmitCall()
         }
     }
 
-    AdeleteArray(&m_alloc, nArgs, argsList);
+    Js::RegSlot funcReg = GetRegisterSpace(WasmTypes::Ptr)->AcquireTmpRegister();
 
     // emit call
     switch (wasmOp)
@@ -1063,62 +1077,88 @@ EmitInfo WasmBytecodeGenerator::EmitCall()
     {
         uint32 offset = isImportCall ? m_module->GetImportFuncOffset() : m_module->GetFuncOffset();
         uint32 index = UInt32Math::Add(offset, funcNum);
-        m_writer->AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, index);
+        m_writer->AsmSlot(Js::OpCodeAsmJs::LdSlot, funcReg, Js::AsmJsFunctionMemory::ModuleEnvRegister, index);
         break;
     }
     case wbCallIndirect:
-        m_writer->AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, m_module->GetTableEnvironmentOffset());
-        m_writer->AsmSlot(Js::OpCodeAsmJs::LdArr_WasmFunc, 0, 0, indirectIndexInfo.location);
-        m_writer->AsmReg1IntConst1(Js::OpCodeAsmJs::CheckSignature, 0, calleeSignature->GetSignatureId());
+    {
+        Js::RegSlot slotReg = GetRegisterSpace(WasmTypes::Ptr)->AcquireTmpRegister();
+        m_writer->AsmSlot(Js::OpCodeAsmJs::LdSlotArr, slotReg, Js::AsmJsFunctionMemory::ModuleEnvRegister, m_module->GetTableEnvironmentOffset());
+        m_writer->AsmSlot(Js::OpCodeAsmJs::LdArr_WasmFunc, funcReg, slotReg, indirectIndexInfo.location);
+        GetRegisterSpace(WasmTypes::Ptr)->ReleaseTmpRegister(slotReg);
+        m_writer->AsmReg1IntConst1(Js::OpCodeAsmJs::CheckSignature, funcReg, calleeSignature->GetSignatureId());
         break;
+    }
     default:
         Assume(UNREACHED);
     }
 
+    EmitInfo retInfo;
+    retInfo.type = calleeSignature->GetResultType();
     // calculate number of RegSlots(Js::Var) the call consumes
     Js::ArgSlot args;
-    Js::OpCodeAsmJs callOp = Js::OpCodeAsmJs::Nop;
     if (isImportCall)
     {
         args = calleeSignature->GetParamCount();
         ArgSlotMath::Inc(args, argOverflow);
-        callOp = Js::OpCodeAsmJs::Call;
+
+        Js::RegSlot varRetReg = GetRegisterSpace(WasmTypes::Ptr)->AcquireTmpRegister();
+        m_writer->AsmCall(Js::OpCodeAsmJs::Call, varRetReg, funcReg, args, WasmToAsmJs::GetAsmJsReturnType(calleeSignature->GetResultType()), profileId);
+
+        GetRegisterSpace(WasmTypes::Ptr)->ReleaseTmpRegister(varRetReg);
+        GetRegisterSpace(WasmTypes::Ptr)->ReleaseTmpRegister(funcReg);
+
+        ReleaseLocation(&indirectIndexInfo);
+        //registers need to be released from higher ordinals to lower
+        for (uint32 i = nArgs; i > 0; --i)
+        {
+            ReleaseLocation(&(argsList[i - 1]));
+        }
+        // emit result coercion
+        if (retInfo.type != WasmTypes::Void)
+        {
+            Js::OpCodeAsmJs convertOp = Js::OpCodeAsmJs::Nop;
+            switch (retInfo.type)
+            {
+            case WasmTypes::F32:
+                convertOp = Js::OpCodeAsmJs::Conv_VTF;
+                break;
+            case WasmTypes::F64:
+                convertOp = Js::OpCodeAsmJs::Conv_VTD;
+                break;
+            case WasmTypes::I32:
+                convertOp = Js::OpCodeAsmJs::Conv_VTI;
+                break;
+            case WasmTypes::I64:
+                convertOp = Js::OpCodeAsmJs::Conv_VTL;
+                break;
+            default:
+                throw WasmCompilationException(_u("Unknown call return type %u"), retInfo.type);
+            }
+            retInfo.location = GetRegisterSpace(retInfo.type)->AcquireTmpRegister();
+            m_writer->AsmReg2(convertOp, retInfo.location, varRetReg);
+        }
     }
     else
     {
-        Assert(Math::IsAligned<Js::ArgSlot>(argSize, sizeof(Js::Var)));
-        args = argSize / sizeof(Js::Var);
-        callOp = Js::OpCodeAsmJs::I_Call;
-    }
 
-    m_writer->AsmCall(callOp, 0, 0, args, WasmToAsmJs::GetAsmJsReturnType(calleeSignature->GetResultType()));
+        GetRegisterSpace(WasmTypes::Ptr)->ReleaseTmpRegister(funcReg);
 
-    // emit result coercion
-    EmitInfo retInfo;
-    retInfo.type = calleeSignature->GetResultType();
-    if (retInfo.type != WasmTypes::Void)
-    {
-        Js::OpCodeAsmJs convertOp = Js::OpCodeAsmJs::Nop;
-        retInfo.location = GetRegisterSpace(retInfo.type)->AcquireTmpRegister();
-        switch (retInfo.type)
+        ReleaseLocation(&indirectIndexInfo);
+        //registers need to be released from higher ordinals to lower
+        for (uint32 i = nArgs; i > 0; --i)
         {
-        case WasmTypes::F32:
-            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::Ld_Flt;
-            break;
-        case WasmTypes::F64:
-            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTD : Js::OpCodeAsmJs::Ld_Db;
-            break;
-        case WasmTypes::I32:
-            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::Ld_Int;
-            break;
-        case WasmTypes::I64:
-            convertOp = isImportCall ? Js::OpCodeAsmJs::Conv_VTL : Js::OpCodeAsmJs::Ld_Long;
-            break;
-        default:
-            throw WasmCompilationException(_u("Unknown call return type %u"), retInfo.type);
+            ReleaseLocation(&(argsList[i - 1]));
         }
-        m_writer->AsmReg2(convertOp, retInfo.location, 0);
+        if (retInfo.type != WasmTypes::Void)
+        {
+            retInfo.location = GetRegisterSpace(retInfo.type)->AcquireTmpRegister();
+        }
+
+        args = (Js::ArgSlot)(::ceil((double)(argSize / sizeof(Js::Var))));
+        m_writer->AsmCall(Js::OpCodeAsmJs::I_Call, retInfo.location, funcReg, args, WasmToAsmJs::GetAsmJsReturnType(calleeSignature->GetResultType()), profileId);
     }
+    AdeleteArray(&m_alloc, nArgs, argsList);
 
     // track stack requirements for out params
 
@@ -1321,12 +1361,7 @@ EmitInfo WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::Wa
 
 void WasmBytecodeGenerator::EmitReturnExpr(EmitInfo* explicitRetInfo)
 {
-    if (m_funcInfo->GetResultType() == WasmTypes::Void)
-    {
-        // TODO (michhol): consider moving off explicit 0 for return reg
-        m_writer->AsmReg1(Js::OpCodeAsmJs::LdUndef, 0);
-    }
-    else
+    if (m_funcInfo->GetResultType() != WasmTypes::Void)
     {
         EmitInfo retExprInfo = explicitRetInfo ? *explicitRetInfo : PopEvalStack();
         if (retExprInfo.type != WasmTypes::Any && m_funcInfo->GetResultType() != retExprInfo.type)
@@ -1561,11 +1596,25 @@ Wasm::BlockInfo WasmBytecodeGenerator::GetBlockInfo(uint32 relativeDepth) const
     return m_blockInfos.Peek(relativeDepth);
 }
 
+Js::ProfileId
+WasmBytecodeGenerator::GetNextProfileId()
+{
+    Js::ProfileId nextProfileId = this->currentProfileId;
+    UInt16Math::Inc(this->currentProfileId);
+    return nextProfileId;
+}
+
 WasmRegisterSpace* WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type)
 {
     switch (type)
     {
+#if TARGET_32
+    case WasmTypes::Ptr:
+#endif
     case WasmTypes::I32: return mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::INT32);
+#if TARGET_64
+    case WasmTypes::Ptr:
+#endif
     case WasmTypes::I64: return mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::INT64);
     case WasmTypes::F32: return mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::FLOAT32);
     case WasmTypes::F64: return mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::FLOAT64);

@@ -35,7 +35,9 @@ namespace Js
         virtual uint32 EnterLoop(ByteCodeLabel loopEntrance) override {return 0;}
         virtual void ExitLoop(uint32 loopId) override {}
         virtual void AsmStartCall(OpCodeAsmJs op, ArgSlot ArgCount, bool isPatching = false) override {}
-        virtual void AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType) override {}
+        virtual void AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType, Js::ProfileId profileId) override {}
+
+        virtual void SetCallSiteCount(Js::ProfileId callSiteCount) override {}
     };
 }
 #endif

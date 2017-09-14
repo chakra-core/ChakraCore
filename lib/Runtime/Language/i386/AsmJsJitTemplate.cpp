@@ -3286,6 +3286,24 @@ namespace Js
             templateData->InternalCallDone();
 
             size += EncodingHelpers::ReloadArrayBuffer(context, buffer);
+
+            switch (retType.which())
+            {
+            case AsmJsRetType::Signed:
+                size += EncodingHelpers::SetStackReg<int>(buffer, templateData, targetOffset, RegEAX);
+            case AsmJsRetType::Double:
+                size += MOVSD::EncodeInstruction<double>(buffer, InstrParamsAddrReg(RegEBP, targetOffset, RegXMM0));
+                templateData->OverwriteStack(targetOffset);
+                break;
+            case AsmJsRetType::Float:
+                size += MOVSS::EncodeInstruction<float>(buffer, InstrParamsAddrReg(RegEBP, targetOffset, RegXMM0));
+                templateData->OverwriteStack(targetOffset);
+                break;
+            case AsmJsRetType::Void:
+                break;
+            default:
+                Assert(UNREACHED);
+            }
             return size;
         }
         int AsmJsLoopBody::ApplyTemplate(TemplateContext context, BYTE*& buffer, int loopNumber)
@@ -3363,43 +3381,6 @@ namespace Js
 
             //$LabelCount:
             relocLabelCount.ApplyReloc<int8>();
-
-            return size;
-        }
-
-        int I_Conv_VTI::ApplyTemplate( TemplateContext context, BYTE*& buffer,  int targetOffset, int srcOffset )
-        {
-            X86TemplateData* templateData = GetTemplateData( context );
-            int size = 0;
-            targetOffset -= templateData->GetBaseOffSet();
-            srcOffset -= templateData->GetBaseOffSet();
-
-            size += EncodingHelpers::SetStackReg<int>( buffer, templateData, targetOffset , RegEAX);
-
-            return size;
-        }
-        int I_Conv_VTD::ApplyTemplate( TemplateContext context, BYTE*& buffer,  int targetOffset, int srcOffset )
-        {
-            X86TemplateData* templateData = GetTemplateData( context );
-            int size = 0;
-            targetOffset -= templateData->GetBaseOffSet();
-            srcOffset -= templateData->GetBaseOffSet();
-
-            size += MOVSD::EncodeInstruction<double>(buffer, InstrParamsAddrReg(RegEBP, targetOffset,RegXMM0));
-            templateData->OverwriteStack( targetOffset );
-
-            return size;
-        }
-
-        int I_Conv_VTF::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffset, int srcOffset)
-        {
-            X86TemplateData* templateData = GetTemplateData(context);
-            int size = 0;
-            targetOffset -= templateData->GetBaseOffSet();
-            srcOffset -= templateData->GetBaseOffSet();
-
-            size += MOVSS::EncodeInstruction<float>(buffer, InstrParamsAddrReg(RegEBP, targetOffset, RegXMM0));
-            templateData->OverwriteStack(targetOffset);
 
             return size;
         }
@@ -4693,23 +4674,6 @@ namespace Js
         int Simd128_I_ArgOut_D2::ApplyTemplate(TemplateContext context, BYTE*& buffer, int argIndex, int offset)
         {
             return Simd128_I_ArgOut_F4::ApplyTemplate(context, buffer, argIndex, offset);
-        }
-
-        int Simd128_I_Conv_VTF4::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffset, int srcOffset)
-        {
-            X86TemplateData* templateData = GetTemplateData(context);
-            targetOffset -= templateData->GetBaseOffSet();
-            srcOffset -= templateData->GetBaseOffSet();
-
-            return EncodingHelpers::SIMDSetStackReg(buffer, templateData, targetOffset, RegXMM0);
-        }
-        int Simd128_I_Conv_VTI4::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffset, int srcOffset)
-        {
-            return Simd128_I_Conv_VTF4::ApplyTemplate(context, buffer, targetOffset, srcOffset);
-        }
-        int Simd128_I_Conv_VTD2::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffset, int srcOffset)
-        {
-            return Simd128_I_Conv_VTF4::ApplyTemplate(context, buffer, targetOffset, srcOffset);
         }
     };
 }

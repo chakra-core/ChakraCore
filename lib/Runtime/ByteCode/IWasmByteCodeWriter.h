@@ -39,7 +39,9 @@ namespace Js
         virtual void ExitLoop(uint loopId) = 0;
 
         virtual void AsmStartCall(OpCodeAsmJs op, ArgSlot ArgCount, bool isPatching = false) = 0;
-        virtual void AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType) = 0;
+        virtual void AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType, Js::ProfileId profileId) = 0;
+
+        virtual void SetCallSiteCount(Js::ProfileId callSiteCount) = 0;
     };
 }
 #endif

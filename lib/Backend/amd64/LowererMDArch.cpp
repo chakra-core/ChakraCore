@@ -818,7 +818,7 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount)
     callInstr->m_opcode = Js::OpCode::CALL;
 
     // This is required here due to calls create during lowering
-    callInstr->m_func->SetHasCalls();
+    callInstr->m_func->SetHasCallsOnSelfAndParents();
 
     if (callInstr->GetDst())
     {
@@ -1543,7 +1543,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
     // Allocate the inlined arg out stack in the locals. Allocate an additional slot so that
     // we can unconditionally clear the first slot past the current frame.
-    this->m_func->m_localStackHeight += ((this->m_func->GetMaxInlineeArgOutCount() + 1) * MachPtr);
+    this->m_func->m_localStackHeight += m_func->GetMaxInlineeArgOutSize() + MachPtr;
 
     uint32 stackLocalsSize  = this->m_func->m_localStackHeight;
     if(xmmOffset != 0)
@@ -1574,7 +1574,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
         throw Js::OperationAbortedException();
     }
 
-    if (this->m_func->GetMaxInlineeArgOutCount())
+    if (m_func->HasInlinee())
     {
         this->m_func->GetJITOutput()->SetFrameHeight(this->m_func->m_localStackHeight);
     }
@@ -1639,7 +1639,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     }
 
     // Zero initialize the first inlinee frames argc.
-    if (this->m_func->GetMaxInlineeArgOutCount())
+    if (m_func->HasInlinee())
     {
         if(!movRax0)
         {
@@ -2053,8 +2053,9 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
             break;
         case Js::AsmJsRetType::Int64:
         case Js::AsmJsRetType::Signed:
-        case Js::AsmJsRetType::Void:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturn(TyMachReg), TyMachReg, this->m_func);
+            break;
+        case Js::AsmJsRetType::Void:
             break;
         default:
             Assume(UNREACHED);
@@ -2069,20 +2070,16 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
     // Generate RET
     IR::Instr * retInstr = IR::Instr::New(Js::OpCode::RET, this->m_func);
     retInstr->SetSrc1(intSrc);
-    retInstr->SetSrc2(retReg);
+    if (retReg)
+    {
+        retInstr->SetSrc2(retReg);
+    }
     exitInstr->InsertBefore(retInstr);
 
     retInstr->m_opcode = Js::OpCode::RET;
 
 
     return exitInstr;
-}
-
-IR::Instr *
-LowererMDArch::LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr)
-{
-    // prologue is almost identical on x64, except for loading args
-    return LowerEntryInstr(entryInstr);
 }
 
 IR::Instr *

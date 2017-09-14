@@ -3243,10 +3243,6 @@ namespace Js
             Output::Flush();
         }
 #endif
-        if( info->GetReturnType() == AsmJsRetType::Void )
-        {
-            m_localSlots[0] = JavascriptOperators::OP_LdUndef( scriptContext );
-        }
     }
 #endif
 
@@ -3768,30 +3764,46 @@ namespace Js
     }
 
 #ifdef ASMJS_PLAT
-#if _M_X64 || _M_IX86
-    void InterpreterStackFrame::OP_CallAsmInternal(RecyclableObject * function)
+    void InterpreterStackFrame::OP_ProfiledCallAsmInternal(RegSlot funcReg, RegSlot returnReg, ProfileId profileId)
     {
-        AsmJsFunctionInfo* asmInfo = ((ScriptFunction*)function)->GetFunctionBody()->GetAsmJsFunctionInfo();
+        Var target = GetRegRawPtr(funcReg);
+        ScriptFunction* function = (ScriptFunction*)OP_CallGetFunc(target);
+
+        Js::FunctionBody * body = function->GetFunctionBody();
+        DynamicProfileInfo * dynamicProfileInfo = GetFunctionBody()->GetDynamicProfileInfo();
+        dynamicProfileInfo->RecordAsmJsCallSiteInfo(GetFunctionBody(), profileId, body);
+        return OP_CallAsmInternalCommon(function, returnReg);
+    }
+    void InterpreterStackFrame::OP_CallAsmInternal(RegSlot funcReg, RegSlot returnReg)
+    {
+        Var target = GetRegRawPtr(funcReg);
+        ScriptFunction* function = (ScriptFunction*)OP_CallGetFunc(target);
+        return OP_CallAsmInternalCommon(function, returnReg);
+    }
+    void InterpreterStackFrame::OP_CallAsmInternalCommon(ScriptFunction* function, RegSlot returnReg)
+    {
+        AsmJsFunctionInfo* asmInfo = function->GetFunctionBody()->GetAsmJsFunctionInfo();
         uint argsSize = asmInfo->GetArgByteSize();
-        ScriptFunction* scriptFunc = (ScriptFunction*)function;
         ScriptContext * scriptContext = function->GetScriptContext();
         PROBE_STACK_CALL(scriptContext, function, argsSize);
 
-        Js::FunctionEntryPointInfo* entrypointInfo = (Js::FunctionEntryPointInfo*)scriptFunc->GetEntryPointInfo();
+        Js::FunctionEntryPointInfo* entrypointInfo = (Js::FunctionEntryPointInfo*)function->GetEntryPointInfo();
         switch (asmInfo->GetReturnType().which())
         {
         case AsmJsRetType::Void:
+            JavascriptFunction::CallAsmJsFunction<int>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            break;
         case AsmJsRetType::Signed:
-            m_localIntSlots[0] = JavascriptFunction::CallAsmJsFunction<int>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            m_localIntSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<int>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
         case AsmJsRetType::Int64:
-            m_localInt64Slots[0] = JavascriptFunction::CallAsmJsFunction<int64>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            m_localInt64Slots[returnReg] = JavascriptFunction::CallAsmJsFunction<int64>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
         case AsmJsRetType::Double:
-            m_localDoubleSlots[0] = JavascriptFunction::CallAsmJsFunction<double>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            m_localDoubleSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<double>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
         case AsmJsRetType::Float:
-            m_localFloatSlots[0] = JavascriptFunction::CallAsmJsFunction<float>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            m_localFloatSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<float>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
 #ifdef ENABLE_SIMDJS
         case AsmJsRetType::Float32x4:
@@ -3808,9 +3820,9 @@ namespace Js
 #if _M_X64
             X86SIMDValue simdVal;
             simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
-            m_localSimdSlots[0] = X86SIMDValue::ToSIMDValue(simdVal);
+            m_localSimdSlots[returnReg] = X86SIMDValue::ToSIMDValue(simdVal);
 #else
-            m_localSimdSlots[0] = JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
+            m_localSimdSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
 #endif
             break;
 #endif
@@ -3841,18 +3853,35 @@ namespace Js
 #endif
         Assert(function);
     }
-#else
-    void InterpreterStackFrame::OP_CallAsmInternal(RecyclableObject * function)
-    {
-        __debugbreak();
-    }
-#endif
 #endif
 
     template <class T>
     void InterpreterStackFrame::OP_AsmCall(const unaligned T* playout)
     {
-        OP_CallCommon(playout, OP_CallGetFunc(GetRegAllowStackVar(playout->Function)), CallFlags_None);
+        Var target = GetRegRawPtr(playout->Function);
+
+        RecyclableObject * function = OP_CallGetFunc(target);
+
+#if DBG
+        if (this->IsInDebugMode())
+        {
+            JavascriptFunction::CheckValidDebugThunk(scriptContext, function);
+        }
+#endif
+
+        if (playout->Return == Js::Constants::NoRegister)
+        {
+            Arguments args(CallInfo(CallFlags_NotUsed, playout->ArgCount), m_outParams);
+            JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), args);
+        }
+        else
+        {
+            Arguments args(CallInfo(CallFlags_Value, playout->ArgCount), m_outParams);
+            Var retVal = JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), args);
+            SetRegRawPtr(playout->Return, retVal);
+        }
+
+        PopOut(playout->ArgCount);
 
         AsmJsModuleInfo::EnsureHeapAttached(this->function);
     }
@@ -6059,11 +6088,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             }
             else
             {
-                // we do not support this in asmjs, need to add support in IrBuilderAsmjs if we need this support for asmjs
-                if (!entryPointInfo->GetIsAsmJSFunction())
-                {
-                    this->CheckIfLoopIsHot(loopHeader->profiledLoopCounter);
-                }
+                this->CheckIfLoopIsHot(loopHeader->profiledLoopCounter);
 
                 if (newOffset >= loopHeader->endOffset)
                 {
@@ -7835,6 +7860,26 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     }
 
     template <typename RegSlotType>
+    void* InterpreterStackFrame::GetRegRawPtr(RegSlotType localRegisterID) const
+    {
+#if TARGET_32
+        return (void*)m_localIntSlots[localRegisterID];
+#elif TARGET_64
+        return (void*)m_localInt64Slots[localRegisterID];
+#endif
+    }
+
+    template <typename RegSlotType>
+    void InterpreterStackFrame::SetRegRawPtr(RegSlotType localRegisterID, void* val)
+    {
+#if TARGET_32
+        m_localIntSlots[localRegisterID] = (int32)val;
+#elif TARGET_64
+        m_localInt64Slots[localRegisterID] = (int64)val;
+#endif
+    }
+
+    template <typename RegSlotType>
     void InterpreterStackFrame::SetRegRawInt64(RegSlotType localRegisterID, int64 bValue)
     {
         m_localInt64Slots[localRegisterID] = bValue;
@@ -8535,16 +8580,16 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_LdArrFunc(const unaligned T* playout)
     {
-        Var* arr = (Var*)GetNonVarReg(playout->Instance);
+        Var* arr = (Var*)GetRegRawPtr(playout->Instance);
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
-        m_localSlots[playout->Value] = arr[index];
+        SetRegRawPtr(playout->Value, arr[index]);
     }
 
     template <class T>
     void InterpreterStackFrame::OP_LdArrWasmFunc(const unaligned T* playout)
     {
 #ifdef ENABLE_WASM
-        WebAssemblyTable * table = WebAssemblyTable::FromVar(GetNonVarReg(playout->Instance));
+        WebAssemblyTable * table = WebAssemblyTable::FromVar(GetRegRawPtr(playout->Instance));
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         if (index >= table->GetCurrentLength())
         {
@@ -8555,7 +8600,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc);
         }
-        m_localSlots[playout->Value] = func;
+        SetRegRawPtr(playout->Value, func);
 #endif
     }
 
@@ -8563,7 +8608,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_CheckSignature(const unaligned T* playout)
     {
 #ifdef ENABLE_WASM
-        ScriptFunction * func = ScriptFunction::FromVar(GetNonVarReg(playout->R0));
+        ScriptFunction * func = ScriptFunction::FromVar(GetRegRawPtr(playout->R0));
         int sigIndex = playout->C1;
         Wasm::WasmSignature * expected = &m_signatures[sigIndex];
         if (func->GetFunctionInfo()->IsDeferredParseFunction())
@@ -8604,9 +8649,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     }
 
     template <class T>
-    Var InterpreterStackFrame::OP_LdAsmJsSlot(Var instance, const unaligned T* playout)
+    void InterpreterStackFrame::OP_LdAsmJsSlot(const unaligned T* playout)
     {
-        return ((Var*)instance)[playout->SlotIndex];
+        Var * slotArray = (Var*)GetNonVarReg(playout->Instance);
+        SetRegRawPtr(playout->Value, slotArray[playout->SlotIndex]);
     }
 
     template <class T, typename T2>

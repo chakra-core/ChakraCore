@@ -215,7 +215,6 @@ public:
 
             IR::Instr *         LowerEntryInstr(IR::EntryInstr * entryInstr);
             IR::Instr *         LowerExitInstr(IR::ExitInstr * exitInstr);
-            IR::Instr *         LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr) { Assert(UNREACHED); return nullptr; }
             IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr) { Assert(UNREACHED); return nullptr; }
             IR::Instr *         LoadNewScObjFirstArg(IR::Instr * instr, IR::Opnd * dst, ushort extraArgs = 0);
             IR::Instr *         LowerTry(IR::Instr *instr, IR::JnHelperMethod helperMethod);

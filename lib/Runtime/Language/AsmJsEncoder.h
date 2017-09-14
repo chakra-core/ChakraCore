@@ -67,7 +67,6 @@ namespace Js
 
 
         void OP_Label( const unaligned OpLayoutEmpty* playout );
-        template <class T> void OP_LdUndef( const unaligned T* playout );
         template <class T> void OP_Br( const unaligned T* playout );
         template <class T> void OP_BrEq( const unaligned T* playout );
         template <class T> void OP_BrEqConst( const unaligned T* playout );
@@ -113,9 +112,6 @@ namespace Js
         template <class T> void OP_I_ArgOut_Db( const unaligned T* playout );
         template <class T> void OP_I_ArgOut_Int(const unaligned T* playout);
         template <class T> void OP_I_ArgOut_Flt(const unaligned T* playout);
-        template <class T> void OP_I_Conv_VTD( const unaligned T* playout );
-        template <class T> void OP_I_Conv_VTI( const unaligned T* playout );
-        template <class T> void OP_I_Conv_VTF( const unaligned T* playout );
 
         template <class T> void OP_AsmJsLoopBody(const unaligned T* playout);
 
@@ -222,10 +218,6 @@ namespace Js
         template <class T> void OP_Simd128_I_ArgOutF4(const unaligned T* playout);
         template <class T> void OP_Simd128_I_ArgOutI4(const unaligned T* playout);
         template <class T> void OP_Simd128_I_ArgOutD2(const unaligned T* playout);
-
-        template <class T> void OP_Simd128_I_Conv_VTF4(const unaligned T* playout);
-        template <class T> void OP_Simd128_I_Conv_VTI4(const unaligned T* playout);
-        template <class T> void OP_Simd128_I_Conv_VTD2(const unaligned T* playout);
     };
 }
 
