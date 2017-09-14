@@ -69,8 +69,8 @@ namespace Js
         bool Has(RecyclableObject* key) const;
         void Set(RecyclableObject* key, Var value);
 
-        virtual void Finalize(bool isShutdown) override { Clear(); }
-        virtual void Dispose(bool isShutdown) override { }
+        virtual void __stdcall Finalize(bool isShutdown) override { Clear(); }
+        virtual void __stdcall Dispose(bool isShutdown) override { }
 
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 

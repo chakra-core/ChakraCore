@@ -78,15 +78,15 @@ namespace Js
             return JsUtil::CharacterBuffer<utf8char_t>::StaticGetHashCode(source, (charcount_t)byteLength);
         }
 
-        virtual void Finalize(bool isShutdown) override
+        virtual void __stdcall Finalize(bool isShutdown) override
         {
         }
 
-        virtual void Dispose(bool isShutdown) override
+        virtual void __stdcall Dispose(bool isShutdown) override
         {
         }
 
-        virtual void Mark(Recycler * recycler) override
+        virtual void __stdcall Mark(Recycler * recycler) override
         {
         }
 

@@ -291,15 +291,15 @@ namespace Js
 
     public:
         // Finalizable support
-        virtual void Finalize(bool isShutdown)
+        virtual void __stdcall Finalize(bool isShutdown)
         {
         }
 
-        virtual void Dispose(bool isShutdown)
+        virtual void __stdcall Dispose(bool isShutdown)
         {
         }
 
-        virtual void Mark(Recycler *recycler) override
+        virtual void __stdcall Mark(Recycler *recycler) override
         {
             AssertMsg(false, "Mark called on object that isnt TrackableObject");
         }
@@ -336,15 +336,15 @@ namespace Js
 
     public:
         // Finalizable support
-        virtual void Finalize(bool isShutdown)
+        virtual void __stdcall Finalize(bool isShutdown)
         {
         }
 
-        virtual void Dispose(bool isShutdown)
+        virtual void __stdcall Dispose(bool isShutdown)
         {
         }
 
-        virtual void Mark(Recycler *recycler) override
+        virtual void __stdcall Mark(Recycler *recycler) override
         {
             AssertMsg(false, "Mark called on object that isnt TrackableObject");
         }

@@ -112,8 +112,8 @@ namespace Js
     public:
         static JavascriptSharedArrayBuffer* Create(uint32 length, DynamicType * type);
         static JavascriptSharedArrayBuffer* Create(SharedContents *sharedContents, DynamicType * type);
-        virtual void Dispose(bool isShutdown) override;
-        virtual void Finalize(bool isShutdown) override;
+        virtual void __stdcall Dispose(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
 
     private:
         JavascriptSharedArrayBuffer(uint32 length, DynamicType * type);

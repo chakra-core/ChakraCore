@@ -36,9 +36,9 @@ namespace Js
         virtual ModuleNamespace* GetNamespace();
         virtual void SetNamespace(ModuleNamespace* moduleNamespace);
 
-        void Finalize(bool isShutdown) override;
-        void Dispose(bool isShutdown) override { return; }
-        void Mark(Recycler * recycler) override { return; }
+        void __stdcall Finalize(bool isShutdown) override;
+        void __stdcall Dispose(bool isShutdown) override { return; }
+        void __stdcall Mark(Recycler * recycler) override { return; }
 
         HRESULT ResolveExternalModuleDependencies();
         void EnsureChildModuleSet(ScriptContext *scriptContext);

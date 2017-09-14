@@ -428,7 +428,7 @@ namespace Js
 #endif
 
     public:
-        virtual void Finalize(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
         virtual bool IsFunctionEntryPointInfo() const override { return true; }
 
 #if ENABLE_NATIVE_CODEGEN
@@ -1189,11 +1189,11 @@ namespace Js
             SetDisplayNameFlagsRecyclerAllocated = 2
         };
 
-        virtual void Dispose(bool isShutdown) override
+        virtual void __stdcall Dispose(bool isShutdown) override
         {
         }
 
-        virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
+        virtual void __stdcall Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
         static const uint GetOffsetOfFunctionInfo() { return offsetof(FunctionProxy, functionInfo); }
         FunctionInfo * GetFunctionInfo() const
@@ -1259,7 +1259,7 @@ namespace Js
 
         uint GetFunctionNumber() const { return m_functionNumber; }
 
-        virtual void Finalize(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
 
         void UpdateFunctionBodyImpl(FunctionBody* body);
         bool IsFunctionBody() const;
@@ -1587,7 +1587,7 @@ namespace Js
     public:
         static DeferDeserializeFunctionInfo* New(ScriptContext* scriptContext, int nestedFunctionCount, LocalFunctionId functionId, ByteCodeCache* byteCodeCache, const byte* serializedFunction, Utf8SourceInfo* utf8SourceInfo, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, NativeModule *nativeModule, FunctionInfo::Attributes attributes);
 
-        virtual void Finalize(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
         FunctionBody* Deserialize();
 
         virtual const char16* GetDisplayName() const override;
@@ -1905,7 +1905,7 @@ namespace Js
         void SetDisplayName(const char16* displayName);
         virtual void SetDisplayName(const char16* displayName, uint displayNameLength, uint displayShortNameOffset, SetDisplayNameFlags flags = SetDisplayNameFlagsNone) override;
 
-        virtual void Finalize(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
 
         Var GetCachedSourceString() { return this->GetAuxPtr(AuxPointerType::CachedSourceString); }
         void SetCachedSourceString(Var sourceString)
@@ -2705,8 +2705,8 @@ namespace Js
 #if DBG
         int GetProfileSession() { return m_iProfileSession; }
 #endif
-        virtual void Finalize(bool isShutdown) override;
-        virtual void OnMark() override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
+        virtual void __stdcall OnMark() override;
 
         void Cleanup(bool isScriptContextClosing);
         void CleanupSourceInfo(bool isScriptContextClosing);

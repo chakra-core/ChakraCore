@@ -64,7 +64,7 @@ namespace Js
         InterpreterStackFrame* GetFrame() const { return frame; }
 
 #if GLOBAL_ENABLE_WRITE_BARRIER
-        virtual void Finalize(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
 #endif
 
         const Arguments& GetArguments() const { return args; }

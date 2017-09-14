@@ -53,8 +53,8 @@ public:
 
     JsrtExternalType * GetExternalType() const { return (JsrtExternalType *)this->GetType(); }
 
-    void Finalize(bool isShutdown) override;
-    void Dispose(bool isShutdown) override;
+    void __stdcall Finalize(bool isShutdown) override;
+    void __stdcall Dispose(bool isShutdown) override;
 
     bool HasReadOnlyPropertiesInvisibleToTypeHandler() override { return true; }
 

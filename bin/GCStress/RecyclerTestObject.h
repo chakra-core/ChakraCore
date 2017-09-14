@@ -14,9 +14,9 @@ protected:
 
 public:
     // FinalizableObject implementation
-    virtual void Finalize(bool isShutdown) override { VerifyCondition(false); };
-    virtual void Dispose(bool isShutdown) override { VerifyCondition(false); };
-    virtual void Mark(Recycler * recycler) override { VerifyCondition(false); };
+    virtual void __stdcall Finalize(bool isShutdown) override { VerifyCondition(false); };
+    virtual void __stdcall Dispose(bool isShutdown) override { VerifyCondition(false); };
+    virtual void __stdcall Mark(Recycler * recycler) override { VerifyCondition(false); };
 
 public:
     static void BeginWalk()
@@ -262,7 +262,7 @@ public:
     }
 
     // Tracked object implementation
-    virtual void Mark(Recycler * recycler) override
+    virtual void __stdcall Mark(Recycler * recycler) override
     {
         for (unsigned int i = 0; i < count; i++)
         {
@@ -275,8 +275,8 @@ public:
     };
 
     // Tracked objects are always finalize as well. Just do nothing.
-    virtual void Finalize(bool isShutdown) override { }
-    virtual void Dispose(bool isShutdown) override { };
+    virtual void __stdcall Finalize(bool isShutdown) override { }
+    virtual void __stdcall Dispose(bool isShutdown) override { };
 
 
 protected:

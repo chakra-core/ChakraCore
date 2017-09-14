@@ -36,9 +36,9 @@ namespace Memory
 class DummyVTableObject : public FinalizableObject
 {
 public:
-    virtual void Finalize(bool isShutdown) {}
-    virtual void Dispose(bool isShutdown) {}
-    virtual void Mark(Recycler * recycler) {}
+    virtual void __stdcall Finalize(bool isShutdown) {}
+    virtual void __stdcall Dispose(bool isShutdown) {}
+    virtual void __stdcall Mark(Recycler * recycler) {}
 };
 }
 

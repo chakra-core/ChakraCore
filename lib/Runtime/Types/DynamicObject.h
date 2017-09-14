@@ -328,9 +328,9 @@ namespace Js
 
 #ifdef RECYCLER_STRESS
     public:
-        virtual void Finalize(bool isShutdown) override;
-        virtual void Dispose(bool isShutdown) override;
-        virtual void Mark(Recycler *recycler) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
+        virtual void __stdcall Dispose(bool isShutdown) override;
+        virtual void __stdcall Mark(Recycler *recycler) override;
 #endif
 
 #if ENABLE_TTD
