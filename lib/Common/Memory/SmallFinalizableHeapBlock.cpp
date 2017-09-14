@@ -141,10 +141,6 @@ template <class TBlockAttributes>
 void
 SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsigned char attributes)
 {
-    // Currently we require all objects in the recycler visited heap block to either be traced (which
-    // is designated by TrackBit) or finalized, otherwise it's not actually visited.
-    Assert((attributes & (TrackBit | FinalizeBit)) != 0);
-
     // Don't call __super, since that has behavior we don't want (it asserts that FinalizeBit is set
     // but recycler visited block allows traced only objects; it also unconditionally bumps the heap info
     // live/new finalizable object counts which will become unbalance if FinalizeBit is not set).

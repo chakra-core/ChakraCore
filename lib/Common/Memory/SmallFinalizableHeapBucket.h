@@ -94,7 +94,7 @@ public:
 };
 
 template <>
-class SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHost_BlockTypeBits), SmallAllocationBlockAttributes>
+class SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHostBlockTypeBits), SmallAllocationBlockAttributes>
 {
 public:
     typedef SmallRecyclerVisitedHostHeapBlock BlockType;
@@ -102,7 +102,7 @@ public:
 };
 
 template <>
-class SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHost_FinalizableBlockTypeBits), SmallAllocationBlockAttributes>
+class SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHostFinalizableBlockTypeBits), SmallAllocationBlockAttributes>
 {
 public:
     typedef SmallRecyclerVisitedHostHeapBlock BlockType;
@@ -161,7 +161,7 @@ public:
 };
 
 template <>
-class SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHost_BlockTypeBits), MediumAllocationBlockAttributes>
+class SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHostBlockTypeBits), MediumAllocationBlockAttributes>
 {
 public:
     typedef MediumRecyclerVisitedHostHeapBlock BlockType;
@@ -169,7 +169,7 @@ public:
 };
 
 template <>
-class SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHost_FinalizableBlockTypeBits), MediumAllocationBlockAttributes>
+class SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHostFinalizableBlockTypeBits), MediumAllocationBlockAttributes>
 {
 public:
     typedef MediumRecyclerVisitedHostHeapBlock BlockType;
@@ -269,10 +269,10 @@ class HeapBucketGroup
     };
 
     template <>
-    class BucketGetter<(ObjectInfoBits)(RecyclerVisitedHost_BlockTypeBits)>
+    class BucketGetter<(ObjectInfoBits)(RecyclerVisitedHostBlockTypeBits)>
     {
     public:
-        typedef typename SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHost_BlockTypeBits), TBlockAttributes>::BucketType BucketType;
+        typedef typename SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHostBlockTypeBits), TBlockAttributes>::BucketType BucketType;
         static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * HeapBucketGroup)
         {
             return HeapBucketGroup->recyclerVisitedHostHeapBucket;
@@ -280,10 +280,10 @@ class HeapBucketGroup
     };
 
     template <>
-    class BucketGetter<(ObjectInfoBits)(RecyclerVisitedHost_FinalizableBlockTypeBits)>
+    class BucketGetter<(ObjectInfoBits)(RecyclerVisitedHostFinalizableBlockTypeBits)>
     {
     public:
-        typedef typename SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHost_FinalizableBlockTypeBits), TBlockAttributes>::BucketType BucketType;
+        typedef typename SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHostFinalizableBlockTypeBits), TBlockAttributes>::BucketType BucketType;
         static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * HeapBucketGroup)
         {
             return HeapBucketGroup->recyclerVisitedHostHeapBucket;

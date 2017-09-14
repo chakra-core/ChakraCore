@@ -168,7 +168,7 @@ public:
 protected:
     static bool const IsLeafBucket = TBlockType::RequiredAttributes == LeafBit;
     // Not all objects in the recycler visited host heap block are finalizable, but we still require finalizable semantics
-    static bool const IsFinalizableBucket = TBlockType::RequiredAttributes == FinalizeBit || TBlockType::RequiredAttributes == (RecyclerVisitedHost_RequiredBits);
+    static bool const IsFinalizableBucket = TBlockType::RequiredAttributes == FinalizeBit || ((TBlockType::RequiredAttributes & RecyclerVisitedHostBit) == (RecyclerVisitedHostBit));
     static bool const IsNormalBucket = TBlockType::RequiredAttributes == NoBit;
 #ifdef RECYCLER_WRITE_BARRIER
     static bool const IsWriteBarrierBucket = TBlockType::RequiredAttributes == WithBarrierBit;
