@@ -186,6 +186,14 @@ var tests = [
         };
         f13();
 
+        var f14 = function f15(a = (function() {
+                return f15(1);
+            })()) {
+                with({}) {
+                };
+                return a === 1 ? 10 : a;
+        };
+        assert.areEqual(10, f14(), "Function expresison is captured in the param scope when no other formals are captured");
     }
  },
  {

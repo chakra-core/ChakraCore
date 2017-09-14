@@ -715,6 +715,13 @@ namespace Js
             mutationBpValue = nullptr;
         }
 
+        // If value of TypeOfPrototypeObjectDictionary was set undefined above, reset it to nullptr so we don't type cast it wrongly to TypeTransitionMap* or we don't marshal the non-Var dictionary below
+        Var typeTransitionMap = nullptr;
+        if (this->GetInternalProperty(this, InternalPropertyIds::TypeOfPrototypeObjectDictionary, &typeTransitionMap, nullptr, this->GetScriptContext()))
+        {
+            this->SetInternalProperty(InternalPropertyIds::TypeOfPrototypeObjectDictionary, nullptr, PropertyOperation_Force, nullptr);
+        }
+
         if (keepProperties)
         {
             this->GetTypeHandler()->MarshalAllPropertiesToScriptContext(this, this->GetScriptContext(), false);

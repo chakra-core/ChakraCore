@@ -4985,7 +4985,7 @@ CommonNumber:
         }
         else if (typeId == TypeIds_HostDispatch)
         {
-            TypeId remoteTypeId;
+            TypeId remoteTypeId = TypeIds_Limit;
             if (RecyclableObject::FromVar(thisVar)->GetRemoteTypeId(&remoteTypeId))
             {
                 if (remoteTypeId == TypeIds_Null || remoteTypeId == TypeIds_Undefined || remoteTypeId == TypeIds_ActivationObject)
@@ -5089,8 +5089,9 @@ CommonNumber:
         return thisVar;
     }
 
-    BOOL JavascriptOperators::GetRemoteTypeId(Var aValue, TypeId* typeId)
+    BOOL JavascriptOperators::GetRemoteTypeId(Var aValue, __out TypeId* typeId)
     {
+        *typeId = TypeIds_Limit;
         if (GetTypeId(aValue) != TypeIds_HostDispatch)
         {
             return FALSE;
