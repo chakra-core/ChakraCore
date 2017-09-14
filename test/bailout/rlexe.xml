@@ -257,4 +257,9 @@
       <compile-flags>-force:fieldcopyprop</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug13674598.js</files>
+    </default>
+  </test>
 </regress-exe>
