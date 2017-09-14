@@ -2564,6 +2564,31 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
         tempReg->UseWithNewType(TyInt64, this->m_func), this->m_func));
 }
 
+void
+LowererMDArch::EmitSignExtend(IR::Instr * instr)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+
+    // Src2 is used to determine what's the from type size
+    Assert(src2->GetSize() < dst->GetSize());
+    IRType fromType = src2->GetType();
+    Js::OpCode op = Js::OpCode::MOVSX;
+    if (src2->GetSize() == 2)
+    {
+        op = Js::OpCode::MOVSXW;
+    }
+    else if (src2->GetSize() == 4)
+    {
+        op = Js::OpCode::MOVSXD;
+    }
+
+    IR::RegOpnd * tempReg = IR::RegOpnd::New(fromType, this->m_func);
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV_TRUNC, tempReg, src1, m_func));
+    instr->InsertBefore(IR::Instr::New(op, dst, tempReg, m_func));
+}
+
 bool
 LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed, bool bailOutOnHelper, IR::LabelInstr * labelBailOut)
 {

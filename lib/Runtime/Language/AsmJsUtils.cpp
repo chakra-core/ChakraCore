@@ -631,7 +631,9 @@ namespace Js
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (CONFIG_FLAG(WasmI64))
             {
-                returnValue = CreateI64ReturnObject((int64)iLow | ((int64)iHigh << 32), func->GetScriptContext());
+                uint64 lHigh = ((uint64)iHigh) << 32;
+                uint64 lLow = (uint64)(uint32)iLow;
+                returnValue = CreateI64ReturnObject((int64)(lHigh | lLow), func->GetScriptContext());
                 break;
             }
 #endif

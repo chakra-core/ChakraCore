@@ -5534,7 +5534,7 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
             case Js::OpCode::Conv_Prim:
                 Assert(dstSym);
                 Assert(instr->GetSrc1());
-                Assert(!instr->GetSrc2());
+                Assert(!instr->GetSrc2() || instr->GetDst()->GetType() == instr->GetSrc1()->GetType());
 
                 if(instr->GetDst()->IsInt32())
                 {
