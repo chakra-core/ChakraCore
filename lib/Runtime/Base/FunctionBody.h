@@ -2645,15 +2645,7 @@ namespace Js
         void TransitionToSimpleJitExecutionMode();
         void TransitionToFullJitExecutionMode();
 
-    private:
-        void VerifyExecutionModeLimits();
-        void InitializeExecutionModeAndLimits();
-    public:
         void ReinitializeExecutionModeAndLimits();
-    private:
-        void SetFullJitThreshold(const uint16 newFullJitThreshold, const bool skipSimpleJit = false);
-        void CommitExecutedIterations();
-        void CommitExecutedIterations(uint16 &limit, const uint executedIterations);
 
     private:
         uint16 GetSimpleJitExecutedIterations() const;

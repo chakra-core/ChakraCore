@@ -11,7 +11,7 @@ namespace Js
     public:
         FunctionExecutionStateMachine();
         void InitializeExecutionModeAndLimits(FunctionBody* functionBody);
-        void ReinitializeExecutionModeAndLimits();
+        void ReinitializeExecutionModeAndLimits(FunctionBody* functionBody);
 
         // Public Getters and Setters
         ExecutionMode GetExecutionMode() const;
@@ -23,10 +23,11 @@ namespace Js
         uint32 GetInterpretedCount() const { return interpretedCount; }
         uint32 SetInterpretedCount(uint32 val) { return interpretedCount = val; }
         uint32 IncreaseInterpretedCount() { return interpretedCount++; }
+        void CommitExecutedIterations(FunctionBody* functionBody);
+
         uint16 GetSimpleJitExecutedIterations(FunctionBody* functionBody) const;
         void SetFullJitThreshold(const uint16 newFullJitThreshold, FunctionBody* functionBody, const bool skipSimpleJit = false);
         void SetSimpleJitCallCount(const uint16 simpleJitLimit, FunctionBody* functionBody) const;
-
 
         // Transition functions
         bool TryTransitionToNextExecutionMode(FunctionBody* functionBody);
@@ -39,7 +40,7 @@ namespace Js
     private:
         void VerifyExecutionMode(const ExecutionMode executionMode, FunctionBody* functionBody) const;
         void VerifyExecutionModeLimits() const;
-        void CommitExecutedIterations(FunctionBody* functionBody);
+        
         void CommitExecutedIterations(uint16 &limit, const uint executedIterations);
 
 
