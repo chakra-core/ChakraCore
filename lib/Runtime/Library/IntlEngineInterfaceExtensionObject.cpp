@@ -1232,23 +1232,22 @@ namespace Js
             return scriptContext->GetLibrary()->GetFalse();
         }
 
-#ifdef INTL_WINGLOB
-        HRESULT hr;
         JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
+        const char16 *currencyCode = argString->GetSz();
+
+#if defined(INTL_ICU)
+        int32_t digits = IcuIntlAdapter::GetCurrencyFractionDigits(scriptContext, currencyCode);
+        return JavascriptNumber::ToVar(digits, scriptContext);
+#else
+        HRESULT hr;
         AutoCOMPtr<NumberFormatting::ICurrencyFormatter> currencyFormatter(nullptr);
-        IfFailThrowHr(GetWindowsGlobalizationAdapter(scriptContext)->CreateCurrencyFormatterCode(scriptContext, argString->GetSz(), &currencyFormatter));
+        IfFailThrowHr(GetWindowsGlobalizationAdapter(scriptContext)->CreateCurrencyFormatterCode(scriptContext, currencyCode, &currencyFormatter));
         AutoCOMPtr<NumberFormatting::INumberFormatterOptions> numberFormatterOptions;
         IfFailThrowHr(currencyFormatter->QueryInterface(__uuidof(NumberFormatting::INumberFormatterOptions), reinterpret_cast<void**>(&numberFormatterOptions)));
         Assert(numberFormatterOptions);
         INT32 fractionDigits;
         IfFailThrowHr(numberFormatterOptions->get_FractionDigits(&fractionDigits));
         return JavascriptNumber::ToVar(fractionDigits, scriptContext);
-#else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_CurrencyDigits > returning null, fallback to JS\n"));
-#endif
-        return scriptContext->GetLibrary()->GetNull();
 #endif
     }
 

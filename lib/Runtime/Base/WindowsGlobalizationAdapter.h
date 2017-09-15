@@ -13,6 +13,8 @@
 #pragma warning(push)
 #pragma warning(disable:4995) // deprecation warning
 #include <unicode/uloc.h>
+#include <unicode/numfmt.h>
+//#include <unicode/decimfmt.h>
 #pragma warning(pop)
 #endif // INTL_ICU
 
@@ -172,6 +174,8 @@ namespace Js
         //static bool ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_ JavascriptString *locale, _Out_ char16 *resolved);
         static bool ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved);
         static size_t GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLangtag);
+
+        static int32_t GetCurrencyFractionDigits(_In_ ScriptContext *scriptContext, _In_z_ const char16 *currencyCode);
     };
 #endif // ENABLE_INTL_OBJECT
 #endif // INTL_ICU

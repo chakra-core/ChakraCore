@@ -864,6 +864,64 @@ if (this->object) \
             return 0;
         }
     }
+	
+    // REVIEW (doilij): Is scriptContext needed as a param here?
+    int32_t IcuIntlAdapter::GetCurrencyFractionDigits(_In_ ScriptContext * scriptContext, _In_z_ const char16 * currencyCode)
+    {
+        UErrorCode error = UErrorCode::U_ZERO_ERROR;
+        const UChar *uCurrencyCode = (const UChar *)currencyCode; // UChar, like char16, is guaranteed to be 2 bytes on all platforms.
+        int32_t minFracDigits = 2; // REVIEW: fallback value is a good starting value here
+
+        // Note: The number of fractional digits specified for a currency is not locale-dependent.
+        icu::NumberFormat *nf = icu::NumberFormat::createCurrencyInstance(error); // using default locale
+        if (U_FAILURE(error))
+        {
+#ifdef INTL_ICU_DEBUG
+            if (error == UErrorCode::U_MISSING_RESOURCE_ERROR)
+            {
+                Output::Print(_u("EntryIntl_CurrencyDigits > icu::NumberFormat::createCurrencyInstance(error) > U_MISSING_RESOURCE_ERROR (%d)\n"), error);
+            }
+            else
+            {
+                Output::Print(_u("EntryIntl_CurrencyDigits > icu::NumberFormat::createCurrencyInstance(error) > UErrorCode (%d)\n"), error);
+            }
+#endif
+            goto cleanup;
+        }
+
+        nf->setCurrency(uCurrencyCode, error);
+        if (U_FAILURE(error))
+        {
+#ifdef INTL_ICU_DEBUG
+            if (error == UErrorCode::U_MISSING_RESOURCE_ERROR)
+            {
+                Output::Print(_u("EntryIntl_CurrencyDigits > nf->setCurrency(uCurrencyCode (%s), error) > U_MISSING_RESOURCE_ERROR (%d)\n"), currencyCode, error);
+            }
+            else
+            {
+                Output::Print(_u("EntryIntl_CurrencyDigits > nf->setCurrency(uCurrencyCode (%s), error) > UErrorCode (%d)\n"), currencyCode, error);
+            }
+#endif
+            goto cleanup;
+        }
+
+        minFracDigits = nf->getMinimumFractionDigits();
+
+#ifdef INTL_ICU_DEBUG
+        Output::Print(_u("EntryIntl_CurrencyDigits > nf->getMinimumFractionDigits() successful > returned (%d)\n"), minFracDigits);
+#endif
+
+    cleanup:
+        // Since something failed, return "reasonable" default of 2 fractional digits (obviously won't be the case for some currencies like JPY).
+        // REVIEW (doilij): What does the spec say to do if a currency is not supported?
+
+#ifdef INTL_ICU_DEBUG
+        Output::Print(_u("EntryIntl_CurrencyDigits > returning (%d)\n"), minFracDigits);
+#endif
+
+        return minFracDigits;
+    }
+
 #endif // ENABLE_INTL_OBJECT
 #endif // INTL_ICU
 } // namespace Js
