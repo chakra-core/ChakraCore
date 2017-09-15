@@ -2678,8 +2678,6 @@ namespace Js
         bool DoSimpleJit() const;
         bool DoSimpleJitWithLock() const;
         bool DoSimpleJitDynamicProfile() const;
-
-    private:
         bool DoInterpreterProfile() const;
         bool DoInterpreterProfileWithLock() const;
         bool DoInterpreterAutoProfile() const;
