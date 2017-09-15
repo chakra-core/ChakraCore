@@ -69,7 +69,7 @@ namespace ChakraWabt
 
         struct
         {
-            bool sign_extend2 : 1;
+            bool sign_extends : 1;
         } features;
     };
 

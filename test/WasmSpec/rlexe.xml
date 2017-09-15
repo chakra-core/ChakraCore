@@ -5,14 +5,14 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_extends_i32.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -wasmSignExtend2</compile-flags>
+      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -wasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_extends_i32.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -nonative -wasmSignExtend2</compile-flags>
+      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -nonative -wasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -20,14 +20,14 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_extends_i64.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -wasmSignExtend2</compile-flags>
+      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -wasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_extends_i64.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -nonative -wasmSignExtend2</compile-flags>
+      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -nonative -wasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -1175,14 +1175,14 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/extends_i32.baseline</baseline>
-      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -wasmSignExtend2</compile-flags>
+      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -wasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/extends_i32.baseline</baseline>
-      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -nonative -wasmSignExtend2</compile-flags>
+      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -nonative -wasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -1190,14 +1190,14 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/extends_i64.baseline</baseline>
-      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -wasmSignExtend2</compile-flags>
+      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -wasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/extends_i64.baseline</baseline>
-      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -nonative -wasmSignExtend2</compile-flags>
+      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -nonative -wasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>

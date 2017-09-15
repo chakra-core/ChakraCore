@@ -29,7 +29,7 @@
     ]
   }, {
     "required": true,
-    "flags": ["-wasmSignExtend2"],
+    "flags": ["-WasmSignExtends"],
     "folders": [
       "features/extends"
     ],

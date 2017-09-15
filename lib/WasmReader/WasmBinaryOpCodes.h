@@ -297,11 +297,11 @@ WASM_UNARY__OPCODE(F32ReinterpretI32, 0xbe, F_I , Reinterpret_ITF, false)
 WASM_UNARY__OPCODE(F64ReinterpretI64, 0xbf, D_L , Reinterpret_LTD, false)
 
 // New sign extend operators
-WASM_UNARY__OPCODE(I32Extend8_s , 0xc0, I_I, I32Extend8_s , !CONFIG_FLAG(WasmSignExtend2))
-WASM_UNARY__OPCODE(I32Extend16_s, 0xc1, I_I, I32Extend16_s, !CONFIG_FLAG(WasmSignExtend2))
-WASM_UNARY__OPCODE(I64Extend8_s , 0xc2, L_L, I64Extend8_s , !CONFIG_FLAG(WasmSignExtend2))
-WASM_UNARY__OPCODE(I64Extend16_s, 0xc3, L_L, I64Extend16_s, !CONFIG_FLAG(WasmSignExtend2))
-WASM_UNARY__OPCODE(I64Extend32_s, 0xc4, L_L, I64Extend32_s, !CONFIG_FLAG(WasmSignExtend2))
+WASM_UNARY__OPCODE(I32Extend8_s , 0xc0, I_I, I32Extend8_s , !CONFIG_FLAG(WasmSignExtends))
+WASM_UNARY__OPCODE(I32Extend16_s, 0xc1, I_I, I32Extend16_s, !CONFIG_FLAG(WasmSignExtends))
+WASM_UNARY__OPCODE(I64Extend8_s , 0xc2, L_L, I64Extend8_s , !CONFIG_FLAG(WasmSignExtends))
+WASM_UNARY__OPCODE(I64Extend16_s, 0xc3, L_L, I64Extend16_s, !CONFIG_FLAG(WasmSignExtends))
+WASM_UNARY__OPCODE(I64Extend32_s, 0xc4, L_L, I64Extend32_s, !CONFIG_FLAG(WasmSignExtends))
 
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS

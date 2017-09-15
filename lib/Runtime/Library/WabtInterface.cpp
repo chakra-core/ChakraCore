@@ -147,7 +147,7 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
         ChakraWabt::Context wabtCtx;
         wabtCtx.user_data = &context;
         wabtCtx.createBuffer = CreateBuffer;
-        wabtCtx.features.sign_extend2 = CONFIG_FLAG(WasmSignExtend2);
+        wabtCtx.features.sign_extends = CONFIG_FLAG(WasmSignExtends);
         if (isSpecText)
         {
             wabtCtx.spec = &spec;

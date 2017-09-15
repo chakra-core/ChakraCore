@@ -452,7 +452,7 @@ void CheckResult(Result result, const char* errorMessage)
 Features GetWabtFeatures(Context& ctx)
 {
     Features features;
-    if (ctx.features.sign_extend2)
+    if (ctx.features.sign_extends)
     {
         features.enable_threads();
     }
