@@ -128,6 +128,12 @@ namespace Js
         TryTransitionToNextInterpreterExecutionMode(functionBody);
     }
 
+    void FunctionExecutionStateMachine::ReinitializeExecutionModeAndLimits()
+    {
+        fullJitRequeueThreshold = 0;
+        committedProfiledIterations = 0;
+        InitializeExecutionModeAndLimits();
+    }
 
     ExecutionMode FunctionExecutionStateMachine::GetExecutionMode() const
     {

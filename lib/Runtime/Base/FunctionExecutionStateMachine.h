@@ -11,6 +11,7 @@ namespace Js
     public:
         FunctionExecutionStateMachine();
         void InitializeExecutionModeAndLimits(FunctionBody* functionBody);
+        void ReinitializeExecutionModeAndLimits();
 
         // Public Getters and Setters
         ExecutionMode GetExecutionMode() const;

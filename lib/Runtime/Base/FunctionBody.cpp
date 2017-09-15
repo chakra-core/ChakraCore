@@ -7110,6 +7110,7 @@ namespace Js
 
     void FunctionBody::ReinitializeExecutionModeAndLimits()
     {
+        // Do not remove wasCalledFromLoop 
         wasCalledFromLoop = false;
         fullJitRequeueThreshold = 0;
         committedProfiledIterations = 0;
