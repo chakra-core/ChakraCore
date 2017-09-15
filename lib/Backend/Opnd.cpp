@@ -222,6 +222,10 @@ void Opnd::Free(Func *func)
         static_cast<FloatConstOpnd*>(this)->FreeInternal(func);
         break;
 
+    case OpndKindFloat32Const:
+        static_cast<Float32ConstOpnd*>(this)->FreeInternal(func);
+        break;
+
     case OpndKindHelperCall:
         static_cast<HelperCallOpnd*>(this)->FreeInternal(func);
         break;
@@ -258,6 +262,7 @@ void Opnd::Free(Func *func)
     case OpndKindRegBV:
         static_cast<RegBVOpnd*>(this)->FreeInternal(func);
         break;
+
     default:
         Assert(UNREACHED);
         __assume(UNREACHED);
@@ -287,6 +292,8 @@ bool Opnd::IsEqual(Opnd *opnd)
 
     case OpndKindFloatConst:
         return static_cast<FloatConstOpnd*>(this)->IsEqualInternal(opnd);
+    case OpndKindFloat32Const:
+        return static_cast<Float32ConstOpnd*>(this)->IsEqualInternal(opnd);
 
     case OpndKindHelperCall:
         if ((*static_cast<HelperCallOpnd*>(this)).IsDiagHelperCallOpnd())
@@ -1779,6 +1786,73 @@ FloatConstOpnd::FreeInternal(Func *func)
 
 ///----------------------------------------------------------------------------
 ///
+/// Float32ConstOpnd::New
+///
+///     Creates a new Float32ConstOpnd.
+///
+///----------------------------------------------------------------------------
+
+Float32ConstOpnd *
+Float32ConstOpnd::New(float value, IRType type, Func *func)
+{
+    Assert(type == IRType::TyFloat32); //TODO: should we even allow specifying a type here? It should always be TyFloat32
+    Float32ConstOpnd * Float32ConstOpnd;
+
+    Float32ConstOpnd = JitAnew(func->m_alloc, IR::Float32ConstOpnd);
+
+    Float32ConstOpnd->m_value = value;
+    Float32ConstOpnd->m_type = type;
+    Float32ConstOpnd->m_kind = OpndKindFloat32Const;
+
+    return Float32ConstOpnd;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Float32ConstOpnd::Copy
+///
+///     Returns a copy of this opnd.
+///
+///----------------------------------------------------------------------------
+
+Float32ConstOpnd *
+Float32ConstOpnd::CopyInternal(Func *func)
+{
+    Assert(m_kind == OpndKindFloat32Const);
+    Float32ConstOpnd * newOpnd;
+
+    newOpnd = Float32ConstOpnd::New(m_value, m_type, func);
+    newOpnd->m_valueType = m_valueType;
+
+    return newOpnd;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Float32ConstOpnd::IsEqual
+///
+///----------------------------------------------------------------------------
+bool
+Float32ConstOpnd::IsEqualInternal(Opnd *opnd)
+{
+    Assert(m_kind == OpndKindFloat32Const);
+    if (!opnd->IsFloat32ConstOpnd() || this->GetType() != opnd->GetType() /* TODO: could this be turned into an assert*/)
+    {
+        return false;
+    }
+
+    return m_value == opnd->AsFloat32ConstOpnd()->m_value;
+}
+
+void
+Float32ConstOpnd::FreeInternal(Func *func)
+{
+    Assert(m_kind == OpndKindFloat32Const);
+    JitAdelete(func->m_alloc, this);
+}
+
+///----------------------------------------------------------------------------
+///
 /// Simd128ConstOpnd::New
 ///
 ///     Creates a new FloatConstOpnd.
@@ -3182,6 +3256,10 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
     case OpndKindFloatConst:
         floatValue = this->AsFloatConstOpnd()->m_value;
         Output::Print(_u("%G"), floatValue);
+        break;
+
+    case OpndKindFloat32Const:
+        Output::Print(_u("%G"), this->AsFloat32ConstOpnd()->m_value);
         break;
 
     case OpndKindAddr:

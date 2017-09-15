@@ -483,7 +483,7 @@ namespace Js
 
     bool JavascriptArray::IsMissingItem(uint32 index)
     {
-        if (this->length <= index)
+        if (!(this->head->left <= index && index < (this->head->left+ this->head->length)))
         {
             return false;
         }
@@ -1601,12 +1601,11 @@ namespace Js
         }
 #endif
 
-        // Grow the segments
-
         // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
-        AutoFailFastOnError failFastError;
-
         ScriptContext *scriptContext = intArray->GetScriptContext();
+        AutoDisableInterrupt failFastError(scriptContext->GetThreadContext());
+
+        // Grow the segments
         Recycler *recycler = scriptContext->GetRecycler();
         SparseArraySegmentBase *seg, *nextSeg, *prevSeg = nullptr;
         for (seg = intArray->head; seg; seg = nextSeg)
@@ -1884,7 +1883,7 @@ namespace Js
         SparseArraySegmentBase *seg, *nextSeg, *prevSeg = nullptr;
 
         // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
-        AutoFailFastOnError failFastError;
+        AutoDisableInterrupt failFastError(scriptContext->GetThreadContext());
 
         for (seg = intArray->head; seg; seg = nextSeg)
         {
@@ -2074,7 +2073,7 @@ namespace Js
         SparseArraySegmentBase *seg, *nextSeg, *prevSeg = nullptr;
 
         // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
-        AutoFailFastOnError failFastError;
+        AutoDisableInterrupt failFastError(scriptContext->GetThreadContext());
 
         for (seg = fArray->head; seg; seg = nextSeg)
         {
@@ -3089,7 +3088,8 @@ namespace Js
 
         if (JavascriptArray::Is(pDestObj))
         {
-            pDestArray = JavascriptArray::FromVar(pDestObj);
+            // ConcatArgs function expects to work on the Var array so we are ensuring it.
+            pDestArray = EnsureNonNativeArray(JavascriptArray::FromVar(pDestObj));
         }
 
         T idxDest = startIdxDest;
@@ -3161,7 +3161,7 @@ namespace Js
                         // in EntryConcat like we do with Arrays because a getProperty on an object Length
                         // is observable. The result is we have to check for overflows separately for
                         // spreadable objects and promote to a bigger index type when we find them.
-                        ConcatArgs<BigIndex>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, /*firstPromotedItemIsSpreadable*/true, length);
+                        ConcatArgs<BigIndex>(pDestObj, remoteTypeIds, args, scriptContext, idxArg, idxDest, /*firstPromotedItemIsSpreadable*/true, length);
                         return;
                     }
 
@@ -3218,6 +3218,8 @@ namespace Js
                     ++idxDest;
                 }
             }
+
+            firstPromotedItemIsSpreadable = false;
         }
         if (!pDestArray)
         {
@@ -5462,20 +5464,29 @@ Case0:
                 isFloatArray = true;
             }
 
+            // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
+            AutoDisableInterrupt failFastOnError(scriptContext->GetThreadContext());
+
             // During the loop below we are going to reverse the segments list. The head segment will become the last segment.
-            // We have to verify that the current head segment is not the inlined segement, otherwise due to shuffling below, the inlined segment will no longer
-            // be the head and that can create issue down the line. Create new segment if it is an inlined segment.
-            if (pArr->head && pArr->head->next)
+            // We have to verify that the current head segment is not the inilined segement, otherwise due to shuffling below (of EnsureHeadStartsFromZero call below), the inlined segment will no longer
+            // be the head and that can create issue down the line. Create new segment if it is an inilined segment.
+            if (pArr->head && (pArr->head->next || (pArr->head->left + pArr->head->length) < length))
             {
                 if (isIntArray)
                 {
                     CopyHeadIfInlinedHeadSegment<int32>(pArr, recycler);
+                    if (pArr->head->next)
+                    {
                     ReallocateNonLeafLastSegmentIfLeaf<int32>(pArr, recycler);
+                }
                 }
                 else if (isFloatArray)
                 {
                     CopyHeadIfInlinedHeadSegment<double>(pArr, recycler);
+                    if (pArr->head->next)
+                    {
                     ReallocateNonLeafLastSegmentIfLeaf<double>(pArr, recycler);
+                }
                 }
                 else
                 {
@@ -5541,6 +5552,9 @@ Case0:
 #ifdef VALIDATE_ARRAY
             pArr->ValidateArray();
 #endif
+
+            failFastOnError.Completed();
+
         }
         else if (typedArrayBase)
         {
@@ -5972,8 +5986,12 @@ Case0:
         // Prototype lookup for missing elements
         if (!pArr->HasNoMissingValues())
         {
-            for (uint32 i = 0; i < newLen && (i + start) < pArr->length; i++)
+            for (uint32 i = 0; i < newLen; i++)
             {
+                if (!(pArr->head->left <= (i + start) && (i + start) <  (pArr->head->left + pArr->head->length)))
+            {
+                    break;
+                }
                 // array type might be changed in the below call to DirectGetItemAtFull
                 // need recheck array type before checking array item [i + start]
                 if (pArr->IsMissingItem(i + start))
@@ -6525,7 +6543,13 @@ Case0:
         TryFinally([&]()
         {
             //The array is a continuous array if there is only one segment
-            if (startSeg->next == nullptr) // Single segment fast path
+            if (startSeg->next == nullptr
+                // If this flag is specified, we want to improve the consistency of our array sorts
+                // by removing missing values from all kinds of arrays before sorting (done here by
+                // using the copy-to-one-segment path for array sorts) and by using a stronger sort
+                // comparer than the spec requires (done in CompareElements).
+                && !CONFIG_FLAG(StrongArraySort)
+                ) // Single segment fast path
             {
                 if (compFn != nullptr)
                 {
@@ -6694,7 +6718,38 @@ Case0:
         Assert(element1 != NULL);
         Assert(element2 != NULL);
 
-        return JavascriptString::strcmp(element1->StringValue, element2->StringValue);
+        if (!CONFIG_FLAG(StrongArraySort))
+        {
+            return JavascriptString::strcmp(element1->StringValue, element2->StringValue);
+        }
+        else
+        {
+            int str_cmp = JavascriptString::strcmp(element1->StringValue, element2->StringValue);
+            if (str_cmp != 0)
+            {
+                return str_cmp;
+            }
+            // If they are equal, we get to a slightly more complex problem. We want to make a very
+            // predictable sort here, regardless of the structure of the array. To achieve this, we
+            // need to get an order for every pair of non-identical elements, else there will be an
+            // identifiable difference between sparse and dense array sorts in some cases.
+
+            // Handle a common set of equivalent nodes first for speed/convenience
+            if (element1->Value == element2->Value)
+            {
+                return 0;
+            }
+
+            // Easy way to do most remaining cases is to just compare the type ids if they differ.
+            if (JavascriptOperators::GetTypeId(element1->Value) != JavascriptOperators::GetTypeId(element2->Value))
+            {
+                return JavascriptOperators::GetTypeId(element1->Value) - JavascriptOperators::GetTypeId(element2->Value);
+            }
+
+            // Further comparisons are possible, but get increasingly complex, and aren't necessary
+            // for the cases on hand.
+            return 0;
+        }
     }
 
     void JavascriptArray::SortElements(Element* elements, uint32 left, uint32 right)
@@ -7377,7 +7432,7 @@ Case0:
         if (newArr && isBuiltinArrayCtor && len == pArr->length)
         {
             // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
-            AutoFailFastOnError failFastOnError;
+            AutoDisableInterrupt failFastOnError(scriptContext->GetThreadContext());
 
             // Array has a single segment (need not start at 0) and splice start lies in the range
             // of that segment we optimize splice - Fast path.
@@ -8068,7 +8123,7 @@ Case0:
             return JavascriptString::NewCopyBuffer(szSeparator, count, scriptContext);
         }
 #else
-        // xplat-todo: Support locale-specific seperator
+        // xplat-todo: Support locale-specific separator
         return scriptContext->GetLibrary()->GetCommaSpaceDisplayString();
 #endif
     }
@@ -9791,11 +9846,13 @@ Case0:
                 }
 
                 JS_REENTRANT(jsReentLock,
-                    accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5), undefinedValue,
+                    accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5),
+                        undefinedValue,
                         accumulator,
                         element,
                         JavascriptNumber::ToVar(k, scriptContext),
-                        pArr));
+                        pArr
+                ));
 
                 // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
                 // we will process the rest of the array elements like an ES5Array.
@@ -10177,9 +10234,8 @@ Case0:
                     Assert(mapFn != nullptr);
                     Assert(mapFnThisArg != nullptr);
 
-                    Js::Var mapFnArgs[] = { mapFnThisArg, nextValue, JavascriptNumber::ToVar(k, scriptContext) };
-                    Js::CallInfo mapFnCallInfo(Js::CallFlags_Value, _countof(mapFnArgs));
-                    nextValue = mapFn->CallFunction(Js::Arguments(mapFnCallInfo, mapFnArgs));
+                    Var kVar = JavascriptNumber::ToVar(k, scriptContext);
+                    nextValue = CALL_FUNCTION(scriptContext->GetThreadContext(), mapFn, CallInfo(CallFlags_Value, 3), mapFnThisArg, nextValue, kVar);
                 }
 
                 if (newArr)
@@ -10248,9 +10304,8 @@ Case0:
                     Assert(mapFn != nullptr);
                     Assert(mapFnThisArg != nullptr);
 
-                    Js::Var mapFnArgs[] = { mapFnThisArg, kValue, JavascriptNumber::ToVar(k, scriptContext) };
-                    Js::CallInfo mapFnCallInfo(Js::CallFlags_Value, _countof(mapFnArgs));
-                    JS_REENTRANT(jsReentLock, kValue = mapFn->CallFunction(Js::Arguments(mapFnCallInfo, mapFnArgs)));
+                    Var kVar = JavascriptNumber::ToVar(k, scriptContext);
+                    JS_REENTRANT(jsReentLock, kValue = CALL_FUNCTION(scriptContext->GetThreadContext(), mapFn, CallInfo(CallFlags_Value, 3), mapFnThisArg, kValue, kVar));
                 }
 
                 if (newArr)
@@ -12706,14 +12761,6 @@ Case0:
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptNativeFloatArray'");
 
         return static_cast<JavascriptNativeFloatArray *>(RecyclableObject::FromVar(aValue));
-    }
-
-    AutoFailFastOnError::~AutoFailFastOnError()
-    {
-        if (!m_operationCompleted)
-        {
-            AssertOrFailFast(false);
-        }
     }
 
     template int   Js::JavascriptArray::GetParamForIndexOf<unsigned int>(unsigned int, Js::Arguments const&, void*&, unsigned int&, Js::ScriptContext*);

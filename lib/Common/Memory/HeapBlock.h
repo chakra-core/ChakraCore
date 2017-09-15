@@ -389,11 +389,22 @@ template <class TBlockAttributes>
 class ValidPointers
 {
 public:
-    ValidPointers(ushort const * validPointers);
+    ValidPointers(ushort const * validPointers, uint bucketIndex);
     ushort GetInteriorAddressIndex(uint index) const;
     ushort GetAddressIndex(uint index) const;
 private:
+#if USE_VPM_TABLE
     ushort const * validPointers;
+#endif
+
+#if !USE_VPM_TABLE || DBG
+    uint indexPerObject;
+    uint maxObjectIndex;
+
+    static uint CalculateBucketInfo(uint bucketIndex, uint * stride);
+    static ushort CalculateAddressIndex(uint index, uint indexPerObject, uint maxObjectIndex);
+    static ushort CalculateInteriorAddressIndex(uint index, uint indexPerObject, uint maxObjectIndex);
+#endif
 };
 
 template <class TBlockAttributes>

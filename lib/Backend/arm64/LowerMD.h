@@ -175,7 +175,6 @@ public:
   public:
               IR::Instr *         LowerCall(IR::Instr * callInstr, Js::ArgSlot argCount) { __debugbreak(); return 0; }
               IR::Instr *         LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper = false, IR::Instr* insertBeforeInstrForCFG = nullptr) { __debugbreak(); return 0; }
-              IR::Instr *         LowerCallPut(IR::Instr * callInstr) { __debugbreak(); return 0; }
               int32               LowerCallArgs(IR::Instr * callInstr, IR::Instr * stackParamInsert, ushort callFlags) { __debugbreak(); return 0; }
               int32               LowerCallArgs(IR::Instr * callInstr, ushort callFlags, Js::ArgSlot extraParams = 1 /* for function object */, IR::IntConstOpnd **callInfoOpndRef = nullptr) { __debugbreak(); return 0; }
               IR::Instr *         LowerStartCall(IR::Instr * instr) { __debugbreak(); return 0; }
@@ -213,7 +212,6 @@ public:
 
               IR::Instr *         LowerEntryInstr(IR::EntryInstr * entryInstr) { __debugbreak(); return 0; }
               IR::Instr *         LowerExitInstr(IR::ExitInstr * exitInstr) { __debugbreak(); return 0; }
-              IR::Instr *         LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr) { Assert(UNREACHED); return NULL; }
               IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr) { Assert(UNREACHED); return NULL; }
               IR::Instr *         LoadNewScObjFirstArg(IR::Instr * instr, IR::Opnd * dst, ushort extraArgs = 0) { __debugbreak(); return 0; }
               IR::Instr *         LowerTry(IR::Instr *instr, IR::JnHelperMethod helperMethod) { __debugbreak(); return 0; }

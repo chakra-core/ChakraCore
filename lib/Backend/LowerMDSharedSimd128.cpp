@@ -162,7 +162,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_8(IR::Instr *instr)
     while (!args->Empty() && i < 8)
     {
         srcs[i] = args->Pop();
-        // src's might have been constant prop'ed. Enregister them if so.
+        // src's might have been constant prop'd. Enregister them if so.
         srcs[i] = (instr->m_opcode == Js::OpCode::Simd128_IntsToB8) ?
             EnregisterBoolConst(instr, srcs[i], TyInt16) :
             EnregisterIntConst(instr, srcs[i], TyInt16);
@@ -204,7 +204,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_16(IR::Instr *instr)
     while (!args->Empty() && i < 16)
     {
         srcs[i] = args->Pop();
-        // src's might have been constant prop'ed. Enregister them if so.
+        // src's might have been constant prop'd. Enregister them if so.
         srcs[i] = (instr->m_opcode == Js::OpCode::Simd128_IntsToB16) ?
             EnregisterBoolConst(instr, srcs[i], TyInt8) :
             EnregisterIntConst(instr, srcs[i], TyInt8);
@@ -856,7 +856,7 @@ IR::Instr* LowererMD::Simd128LoadConst(IR::Instr* instr)
 #if DBG
             NativeCodeData::GetDataDescription(pValue, m_func->m_alloc),
 #endif
-            m_func);
+            m_func, true);
 
         GetLowerer()->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
     }

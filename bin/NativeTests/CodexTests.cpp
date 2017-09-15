@@ -84,7 +84,7 @@ namespace CodexTest
     {
         // Each of these test cases verifies the encoding 
         // of a single surrogate pair into a 6 byte CESU string
-        // Each surrogate-pair unit is encoded seperately into utf8
+        // Each surrogate-pair unit is encoded separately into utf8
         struct TestCase
         {
             char16     surrogatePair[2];

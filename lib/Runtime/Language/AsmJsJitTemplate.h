@@ -167,9 +167,6 @@ namespace Js
         CreateTemplate( I_ArgOut_Db, int argIndex, int offset);
         CreateTemplate( I_ArgOut_Flt, int argIndex, int offset);
         CreateTemplate( I_Call, int targetOffset, int funcOffset, int nbArgs, AsmJsRetType retType);
-        CreateTemplate( I_Conv_VTI, int targetOffset, int srcOffset);
-        CreateTemplate( I_Conv_VTD, int targetOffset, int srcOffset);
-        CreateTemplate( I_Conv_VTF, int targetOffset, int srcOffset);
 
         CreateTemplate( LdArr, int targetOffset, int slotVarIndex, ArrayBufferView::ViewType viewType);
         CreateTemplate( LdArrDb, int targetOffset, int slotVarIndex, ArrayBufferView::ViewType viewType);
@@ -307,10 +304,6 @@ namespace Js
         CreateTemplate(Simd128_I_ArgOut_F4, int argIndex, int offset);
         CreateTemplate(Simd128_I_ArgOut_I4, int argIndex, int offset);
         CreateTemplate(Simd128_I_ArgOut_D2, int argIndex, int offset);
-
-        CreateTemplate(Simd128_I_Conv_VTF4, int targetOffset, int srcOffset);
-        CreateTemplate(Simd128_I_Conv_VTI4, int targetOffset, int srcOffset);
-        CreateTemplate(Simd128_I_Conv_VTD2, int targetOffset, int srcOffset);
     };
 
 };

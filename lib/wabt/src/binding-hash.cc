@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "binding-hash.h"
+#include "src/binding-hash.h"
 
 #include <algorithm>
 #include <vector>
 
-#include "ir.h"
+#include "src/ir.h"
 
 namespace wabt {
 
@@ -33,9 +33,9 @@ void BindingHash::FindDuplicates(DuplicateCallback callback) const {
 }
 
 Index BindingHash::FindIndex(const Var& var) const {
-  if (var.type == VarType::Name)
-    return FindIndex(var.name);
-  return var.index;
+  if (var.is_name())
+    return FindIndex(var.name());
+  return var.index();
 }
 
 void BindingHash::CreateDuplicatesVector(

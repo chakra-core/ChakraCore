@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-#include "lexer-source-line-finder.h"
+#include "src/lexer-source-line-finder.h"
 
 #include <algorithm>
 
-#include "lexer-source.h"
-
-#define CHECK_RESULT(expr)  \
-  do {                      \
-    if (WABT_FAILED(expr))  \
-      return Result::Error; \
-  } while (0)
+#include "src/lexer-source.h"
 
 namespace wabt {
 

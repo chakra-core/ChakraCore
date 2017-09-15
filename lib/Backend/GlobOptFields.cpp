@@ -332,19 +332,19 @@ GlobOpt::KillLiveFields(PropertySym * propertySym, BVSparse<JitArenaAllocator> *
     KillLiveFields(propertySym->m_propertyEquivSet, bv);
 }
 
-void GlobOpt::KillLiveFields(BVSparse<JitArenaAllocator> *const propertyEquivSet, BVSparse<JitArenaAllocator> *const bv) const
+void GlobOpt::KillLiveFields(BVSparse<JitArenaAllocator> *const fieldsToKill, BVSparse<JitArenaAllocator> *const bv) const
 {
     Assert(bv);
 
-    if (propertyEquivSet)
+    if (fieldsToKill)
     {
-        bv->Minus(propertyEquivSet);
+        bv->Minus(fieldsToKill);
 
         if (this->IsLoopPrePass())
         {
             for (Loop * loop = this->rootLoopPrePass; loop != nullptr; loop = loop->parent)
             {
-                loop->fieldKilled->Or(propertyEquivSet);
+                loop->fieldKilled->Or(fieldsToKill);
             }
         }
     }
@@ -561,6 +561,15 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         {
             // Consider: We may not need to kill all fields here.
             this->KillAllFields(bv);
+        }
+        break;
+
+    case Js::OpCode::LdHeapArguments:
+    case Js::OpCode::LdLetHeapArguments:
+    case Js::OpCode::LdHeapArgsCached:
+    case Js::OpCode::LdLetHeapArgsCached:
+        if (inGlobOpt) {
+            this->KillLiveFields(this->slotSyms, bv);
         }
         break;
 
@@ -2031,8 +2040,8 @@ GlobOpt::AssertCanCopyPropOrCSEFieldLoad(IR::Instr * instr)
         || instr->m_opcode == Js::OpCode::CheckFixedFld
         || instr->m_opcode == Js::OpCode::CheckPropertyGuardAndLoadType);
 
-    Assert(instr->m_opcode == Js::OpCode::CheckFixedFld || instr->GetDst()->GetType() == TyVar);
-    Assert(instr->GetSrc1()->GetType() == TyVar);
+    Assert(instr->m_opcode == Js::OpCode::CheckFixedFld || instr->GetDst()->GetType() == TyVar || instr->m_func->GetJITFunctionBody()->IsAsmJsMode());
+    Assert(instr->GetSrc1()->GetType() == TyVar || instr->m_func->GetJITFunctionBody()->IsAsmJsMode());
     Assert(instr->GetSrc1()->AsSymOpnd()->m_sym->IsPropertySym());
     Assert(instr->GetSrc2() == nullptr);
 }
@@ -2746,24 +2755,14 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
     return isSpecialized;
 }
 
-IR::Instr*
+void
 GlobOpt::OptNewScObject(IR::Instr** instrPtr, Value* srcVal)
 {
     IR::Instr *&instr = *instrPtr;
 
-    if (IsLoopPrePass())
+    if (!instr->IsNewScObjectInstr() || IsLoopPrePass() || !this->DoFieldRefOpts() || PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->func))
     {
-        return instr;
-    }
-
-    if (PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->func) || !this->DoFieldRefOpts())
-    {
-        return instr;
-    }
-
-    if (!instr->IsNewScObjectInstr())
-    {
-        return nullptr;
+        return;
     }
 
     bool isCtorInlined = instr->m_opcode == Js::OpCode::NewScObjectNoCtor;
@@ -2778,8 +2777,6 @@ GlobOpt::OptNewScObject(IR::Instr** instrPtr, Value* srcVal)
     {
         GenerateBailAtOperation(instrPtr, IR::BailOutFailedCtorGuardCheck);
     }
-
-    return instr;
 }
 
 void
@@ -3207,6 +3204,14 @@ GlobOpt::UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr)
 
     ValueType objValueType = objVal->GetValueInfo()->Type();
     if (objValueType.IsDefinite())
+    {
+        return;
+    }
+
+    ValueInfo *objValueInfo = objVal->GetValueInfo();
+
+    // It is possible for a valueInfo to be not definite and still have a byteCodeConstant as symStore, this is because we conservatively copy valueInfo in prePass
+    if (objValueInfo->GetSymStore() && objValueInfo->GetSymStore()->IsStackSym() && objValueInfo->GetSymStore()->AsStackSym()->IsFromByteCodeConstantTable())
     {
         return;
     }

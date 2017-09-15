@@ -56,7 +56,6 @@ public:
             IR::Instr *         LowerCall(IR::Instr * callInstr, uint32 argCount, RegNum regNum = RegNOREG);
             IR::Instr *         LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper = false, IR::Instr * insertBeforeInstrForCFG = nullptr);
             IR::Instr *         LowerCallIDynamic(IR::Instr * callInstr, IR::Instr* saveThis, IR::Opnd* argsLengthOpnd, ushort callFlags, IR::Instr * insertBeforeInstrForCFG = nullptr);
-            IR::Instr *         LowerCallPut(IR::Instr * callInstr);
             int32               LowerCallArgs(IR::Instr * callInstr, ushort callFlags, Js::ArgSlot extraArgs = 1 /* for function object */, IR::IntConstOpnd **callInfoOpndRef = nullptr);
             int32               LowerStartCall(IR::Instr * startCallInstr, IR::Instr* insertInstr);
             int32               LowerStartCallAsmJs(IR::Instr * startCallInstr, IR::Instr * insertInstr, IR::Instr * callInstr);
@@ -70,7 +69,6 @@ public:
             IR::Instr *         LoadHeapArgsCached(IR::Instr * instr);
             IR::Instr *         LowerEntryInstr(IR::EntryInstr * entryInstr);
             IR::Instr *         LowerExitInstr(IR::ExitInstr * exitInstr);
-            IR::Instr *         LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr);
             IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr);
             IR::ExitInstr *     LowerExitInstrCommon(IR::ExitInstr * exitInstr);
             IR::Instr *         LowerInt64Assign(IR::Instr * instr);

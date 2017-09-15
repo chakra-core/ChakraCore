@@ -1174,8 +1174,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     {
         body->SetDisableInlineSpread(true);
     }
-    
-    NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
 
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
     if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
@@ -1672,7 +1670,11 @@ NativeCodeGenerator::CheckCodeGenDone(
             entryPointInfo->GetNativeEntrypoint());
         jsMethod = entryPointInfo->jsMethod;
 
-        Assert(!functionBody->NeedEnsureDynamicProfileInfo() || jsMethod == Js::DynamicProfileInfo::EnsureDynamicProfileInfoThunk);
+        Assert(!functionBody->NeedEnsureDynamicProfileInfo() || jsMethod == Js::DynamicProfileInfo::EnsureDynamicProfileInfoThunk || functionBody->GetIsAsmjsMode());
+        if (functionBody->GetIsAsmjsMode() && functionBody->NeedEnsureDynamicProfileInfo())
+        {
+            functionBody->EnsureDynamicProfileInfo();
+        }
     }
 
     Assert(!IsThunk(jsMethod));
@@ -1783,7 +1785,8 @@ NativeCodeGenerator::WorkItemExceedsJITLimits(CodeGenWorkItem *const codeGenWork
     return
         (codeGenWork->GetScriptContext()->GetThreadContext()->GetCodeSize() >= Js::Constants::MaxThreadJITCodeHeapSize) ||
         (ThreadContext::GetProcessCodeSize() >= Js::Constants::MaxProcessJITCodeHeapSize) ||
-        (codeGenWork->GetByteCodeCount() >= (uint)CONFIG_FLAG(MaxJITFunctionBytecodeSize));
+        (codeGenWork->GetByteCodeLength() >= (uint)CONFIG_FLAG(MaxJITFunctionBytecodeByteLength)) ||
+        (codeGenWork->GetByteCodeCount() >= (uint)CONFIG_FLAG(MaxJITFunctionBytecodeCount));
 }
 bool
 NativeCodeGenerator::Process(JsUtil::Job *const job, JsUtil::ParallelThreadData *threadData)
@@ -2734,6 +2737,7 @@ NativeCodeGenerator::GatherCodeGenData(
             }
 
             Js::JavascriptFunction* fixedFunctionObject = nullptr;
+#if ENABLE_FIXED_FIELDS
             if (inlineCache && (inlineCache->IsLocal() || inlineCache->IsProto()))
             {
                 inlineCache->TryGetFixedMethodFromCache(functionBody, ldFldInlineCacheIndex, &fixedFunctionObject);
@@ -2743,6 +2747,7 @@ NativeCodeGenerator::GatherCodeGenData(
             {
                 fixedFunctionObject = nullptr;
             }
+#endif
 
             if (!PHASE_OFF(Js::InlineRecursivePhase, functionBody))
             {

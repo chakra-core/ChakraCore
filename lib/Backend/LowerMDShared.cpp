@@ -285,25 +285,6 @@ LowererMD::LowerAsmJsStElemHelper(IR::Instr * callInstr)
 {
     return this->lowererMDArch.LowerAsmJsStElemHelper(callInstr);
 }
-IR::Instr *
-LowererMD::LowerCallPut(IR::Instr * callInstr)
-{
-    int32 argCount = this->lowererMDArch.LowerCallArgs(callInstr, Js::CallFlags_None, 2);
-
-    //  load native entry point from script function into eax
-
-    IR::Opnd * functionWrapOpnd = callInstr->UnlinkSrc1();
-    AssertMsg(functionWrapOpnd->IsRegOpnd() && functionWrapOpnd->AsRegOpnd()->m_sym->IsStackSym(),
-              "Expected call src to be stackSym");
-
-    this->LoadHelperArgument(callInstr, functionWrapOpnd);
-    this->m_lowerer->LoadScriptContext(callInstr);
-
-    IR::HelperCallOpnd  *helperCallOpnd = IR::HelperCallOpnd::New(IR::HelperOp_InvokePut, this->m_func);
-    callInstr->SetSrc1(helperCallOpnd);
-
-    return this->lowererMDArch.LowerCall(callInstr, argCount);
-}
 
 IR::Instr *
 LowererMD::LoadInt64HelperArgument(IR::Instr * instr, IR::Opnd* opnd)
@@ -339,12 +320,6 @@ IR::Instr *
 LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
 {
     return this->lowererMDArch.LowerExitInstr(exitInstr);
-}
-
-IR::Instr *
-LowererMD::LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr)
-{
-    return this->lowererMDArch.LowerEntryInstrAsmJs(entryInstr);
 }
 
 IR::Instr *
@@ -820,8 +795,8 @@ LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, 
 IR::Instr *
 LowererMD::LowerRet(IR::Instr * retInstr)
 {
-    IR::RegOpnd * retReg;
-
+    IR::RegOpnd * retReg = nullptr;
+    bool needsRetReg = true;
 #ifdef ASMJS_PLAT
     if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody()) // for loop body ret is the bytecodeoffset
     {
@@ -871,8 +846,10 @@ LowererMD::LowerRet(IR::Instr * retInstr)
 #endif
             break;
         }
-        case Js::AsmJsRetType::Signed:
         case Js::AsmJsRetType::Void:
+            needsRetReg = false;
+            break;
+        case Js::AsmJsRetType::Signed:
             regType = TyInt32;
             break;
         case Js::AsmJsRetType::Float32x4:
@@ -915,8 +892,11 @@ LowererMD::LowerRet(IR::Instr * retInstr)
             Assert(UNREACHED);
         }
 
-        retReg = IR::RegOpnd::New(regType, m_func);
-        retReg->SetReg(lowererMDArch.GetRegReturnAsmJs(regType));
+        if (needsRetReg)
+        {
+            retReg = IR::RegOpnd::New(regType, m_func);
+            retReg->SetReg(lowererMDArch.GetRegReturnAsmJs(regType));
+        }
     }
     else
 #endif
@@ -924,9 +904,11 @@ LowererMD::LowerRet(IR::Instr * retInstr)
         retReg = IR::RegOpnd::New(TyMachReg, m_func);
         retReg->SetReg(lowererMDArch.GetRegReturn(TyMachReg));
     }
-
-    Lowerer::InsertMove(retReg, retInstr->UnlinkSrc1(), retInstr);
-    retInstr->SetSrc1(retReg);
+    if (needsRetReg)
+    {
+        Lowerer::InsertMove(retReg, retInstr->UnlinkSrc1(), retInstr);
+        retInstr->SetSrc1(retReg);
+    }
     return retInstr;
 }
 
@@ -6208,7 +6190,7 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
 #if DBG
                 NativeCodeData::GetDataDescription(pDouble, m_func->m_alloc),
 #endif
-                m_func);
+                m_func, true);
 
             GetLowerer()->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
         }
@@ -7002,8 +6984,9 @@ LowererMD::LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert)
     return instr;
 }
 
+template <typename T>
 IR::Instr *
-LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrInsert)
+LowererMD::LoadFloatValue(IR::Opnd * opndDst, T value, IR::Instr * instrInsert)
 {
     if (value == 0.0 && !Js::JavascriptNumber::IsNegZero(value))
     {
@@ -7014,20 +6997,22 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
     IR::Opnd * opnd;
 
     void* pValue = nullptr;
-    bool isFloat64 = opndDst->IsFloat64();
+    const bool isFloat64 = opndDst->IsFloat64();
+    IRType irtype = isFloat64 ? TyMachDouble : TyFloat32;
+    // Cast the value to the matching opndDst's type because T might not match
     if (isFloat64)
     {
-        pValue = NativeCodeDataNewNoFixup(instrInsert->m_func->GetNativeCodeDataAllocator(), DoubleType<DataDesc_LowererMD_LoadFloatValue_Double>, value);
+        pValue = NativeCodeDataNewNoFixup(instrInsert->m_func->GetNativeCodeDataAllocator(), DoubleType<DataDesc_LowererMD_LoadFloatValue_Double>, (double)value);
     }
     else
     {
         Assert(opndDst->IsFloat32());
-        pValue = (float*)NativeCodeDataNewNoFixup(instrInsert->m_func->GetNativeCodeDataAllocator(), FloatType<DataDesc_LowererMD_LoadFloatValue_Float>, (float)value);
+        pValue = NativeCodeDataNewNoFixup(instrInsert->m_func->GetNativeCodeDataAllocator(), FloatType<DataDesc_LowererMD_LoadFloatValue_Float>, (float)value);
     }
 
     if (!instrInsert->m_func->IsOOPJIT())
     {
-        opnd = IR::MemRefOpnd::New((void*)pValue, isFloat64 ? TyMachDouble : TyFloat32,
+        opnd = IR::MemRefOpnd::New((void*)pValue, irtype,
             instrInsert->m_func, isFloat64 ? IR::AddrOpndKindDynamicDoubleRef : IR::AddrOpndKindDynamicFloatRef);
     }
     else // OOP JIT
@@ -7040,11 +7025,11 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
             IR::MemRefOpnd::New(instrInsert->m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, instrInsert->m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
             instrInsert);
 
-        opnd = IR::IndirOpnd::New(addressRegOpnd, offset, isFloat64 ? TyMachDouble : TyFloat32,
+        opnd = IR::IndirOpnd::New(addressRegOpnd, offset, irtype,
 #if DBG
             NativeCodeData::GetDataDescription(pValue, instrInsert->m_func->m_alloc),
 #endif
-            instrInsert->m_func);
+            instrInsert->m_func, true);
     }
 
     // movsd xmm, [reg+offset]
@@ -7055,6 +7040,9 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
     return instr;
 
 }
+
+template IR::Instr * LowererMD::LoadFloatValue<float>(IR::Opnd * opndDst, float value, IR::Instr * instrInsert);
+template IR::Instr * LowererMD::LoadFloatValue<double>(IR::Opnd * opndDst, double value, IR::Instr * instrInsert);
 
 IR::Instr *
 LowererMD::EnsureAdjacentArgs(IR::Instr * instrArg)
@@ -9429,7 +9417,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
 void LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr* inlineInstr)
 {
-    IR::Opnd* src = inlineInstr->GetSrc1();
+    IR::Opnd* src = inlineInstr->GetSrc1()->Copy(this->m_func);
     IR::Opnd* dst = inlineInstr->UnlinkDst();
     Assert(src);
     IR::Instr* tmpInstr;

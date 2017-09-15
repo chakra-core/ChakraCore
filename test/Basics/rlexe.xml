@@ -274,6 +274,12 @@
   </test>
   <test>
     <default>
+      <files>With-defer-block-scope.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>withBug940841.js</files>
       <compile-flags>-MaxinterpretCount:1 -MaxSimpleJITRunCount:1</compile-flags>
     </default>
@@ -309,6 +315,11 @@
       <files>DeleteProperty1.js</files>
       <baseline>DeleteProperty1.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeleteAndReAddNonExtensible.js</files>
     </default>
   </test>
   <test>

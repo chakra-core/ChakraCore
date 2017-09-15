@@ -17,7 +17,7 @@
 #ifndef WABT_APPLY_NAMES_H_
 #define WABT_APPLY_NAMES_H_
 
-#include "common.h"
+#include "src/common.h"
 
 namespace wabt {
 
@@ -38,7 +38,7 @@ struct Module;
  *    ...
  *    (call $foo ...)
  */
-Result apply_names(struct Module*);
+Result ApplyNames(struct Module*);
 
 }  // namespace wabt
 

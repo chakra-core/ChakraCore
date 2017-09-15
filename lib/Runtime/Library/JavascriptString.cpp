@@ -404,7 +404,7 @@ case_2:
             break;
 
         default:
-            js_memcpy_s(dst, sizeof(char16) * countNeeded, str, sizeof(char16) * countNeeded);
+            js_wmemcpy_s(dst, countNeeded, str, countNeeded);
         }
     }
 
@@ -2842,17 +2842,18 @@ case_2:
         const char16* pchEnd =  pchStart + m_charLength;
         const char16 *pch = this->GetScriptContext()->GetCharClassifier()->SkipWhiteSpace(pchStart, pchEnd);
         bool isNegative = false;
+
+        if (pch < pchEnd)
+        {
         switch (*pch)
         {
         case '-':
             isNegative = true;
             // Fall through.
         case '+':
-            if(pch < pchEnd)
-            {
                 pch++;
-            }
             break;
+        }
         }
 
         if (0 == radix)
@@ -2861,7 +2862,7 @@ case_2:
             {
                 radix = 10;
             }
-            else if (('x' == pch[1] || 'X' == pch[1]) && pchEnd - pch >= 2)
+            else if (pchEnd - pch >= 2 && ('x' == pch[1] || 'X' == pch[1]))
             {
                 radix = 16;
                 pch += 2;
@@ -2875,7 +2876,7 @@ case_2:
         }
         else if (16 == radix)
         {
-            if('0' == pch[0] && ('x' == pch[1] || 'X' == pch[1]) && pchEnd - pch >= 2)
+            if(pchEnd - pch >= 2 && '0' == pch[0] && ('x' == pch[1] || 'X' == pch[1]))
             {
                 pch += 2;
             }
@@ -3356,7 +3357,7 @@ case_2:
         BufferStringBuilder builder(count, scriptContext);
         char16* stringBuffer = builder.DangerousGetWritableBuffer();
 
-        int count1 = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, count, stringBuffer, count, &err);
+        int count1 = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, strLength, stringBuffer, count, &err);
 
         if (count1 <= 0)
         {
@@ -3550,7 +3551,7 @@ case_2:
                 // Quick check for first character.
                 if (stringSz[i] == substringSz[0])
                 {
-                    if (substringLen == 1 || memcmp(stringSz+i+1, substringSz+1, (substringLen-1)*sizeof(char16)) == 0)
+                    if (substringLen == 1 || wmemcmp(stringSz + i + 1, substringSz + 1, substringLen - 1) == 0)
                     {
                         return i + start;
                     }

@@ -857,7 +857,7 @@ namespace Js
             PropertyValueInfo propertyValueInfo;
             PropertyValueInfo::SetCacheInfo(&propertyValueInfo, functionBody, inlineCache, inlineCacheIndex, true);
             if (!CacheOperators::TryGetProperty<true, true, true, !Root && !Method, true, !Root, true, false, true>(
-                    thisObject,
+                    object,
                     Root,
                     object,
                     propertyId,
@@ -888,12 +888,6 @@ namespace Js
                 {
                     fldInfoFlags = DynamicProfileInfo::MergeFldInfoFlags(fldInfoFlags, FldInfo_Polymorphic);
                 }
-            }
-
-            if (propertyId == Js::PropertyIds::arguments)
-            {
-                fldInfoFlags = DynamicProfileInfo::MergeFldInfoFlags(fldInfoFlags, FldInfo_FromAccessor);
-                scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
             }
 
             if (!Root && operationInfo.isPolymorphic)
@@ -1102,7 +1096,7 @@ namespace Js
             PropertyValueInfo propertyValueInfo;
             PropertyValueInfo::SetCacheInfo(&propertyValueInfo, functionBody, inlineCache, inlineCacheIndex, true);
             if(!CacheOperators::TrySetProperty<true, true, true, true, !Root, true, false, true>(
-                    thisObject,
+                    object,
                     Root,
                     propertyId,
                     value,

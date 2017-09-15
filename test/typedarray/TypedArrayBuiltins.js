@@ -241,7 +241,7 @@ var tests = [
                 var overrideBuiltinArrayPrototypeIterator = function() {
                     Array.prototype[Symbol.iterator] = getIterableObj([99,0])[Symbol.iterator];
                 };
-                testAllTypedArrayConstructorsWithIterableArray(a, overrideBuiltinArrayPrototypeIterator, "Array.prototype overriden");
+                testAllTypedArrayConstructorsWithIterableArray(a, overrideBuiltinArrayPrototypeIterator, "Array.prototype overridden");
                 Object.defineProperty(Array.prototype, Symbol.iterator, builtinArrayPrototypeIteratorDesc);
             })();
 
@@ -253,7 +253,7 @@ var tests = [
                     arrayIteratorProto.next = getIterableObj([99,0])[Symbol.iterator]().next;
                 }
                 var a = [1,2,3,4];
-                testAllTypedArrayConstructorsWithIterableArray(a, overrideBuiltinArrayIteratorNext, "%ArrayIteratorPrototype%.next overriden");
+                testAllTypedArrayConstructorsWithIterableArray(a, overrideBuiltinArrayIteratorNext, "%ArrayIteratorPrototype%.next overridden");
                 arrayIteratorProto.next = builtinArrayPrototypeIteratorNext;
             })();
 
@@ -265,7 +265,7 @@ var tests = [
                     Object.defineProperty(arrayIteratorProto, "next", getIterableObjNextDesc([0,99,0]));
                 }
                 var a = [1,2,3,4];
-                testAllTypedArrayConstructorsWithIterableArray(a, overrideBuiltinArrayIteratorNext, "%ArrayIteratorPrototype%.next overriden by getter");
+                testAllTypedArrayConstructorsWithIterableArray(a, overrideBuiltinArrayIteratorNext, "%ArrayIteratorPrototype%.next overridden by getter");
                 Object.defineProperty(arrayIteratorProto, "next", builtinArrayPrototypeIteratorNextDesc);
             })();
         }

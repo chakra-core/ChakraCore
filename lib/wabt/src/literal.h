@@ -19,7 +19,7 @@
 
 #include <cstdint>
 
-#include "common.h"
+#include "src/common.h"
 
 namespace wabt {
 
@@ -30,6 +30,14 @@ namespace wabt {
  * result, the only validation that is done is for overflow, not for otherwise
  * bogus input. */
 
+enum class LiteralType {
+  Int,
+  Float,
+  Hexfloat,
+  Infinity,
+  Nan,
+};
+
 enum class ParseIntType {
   UnsignedOnly = 0,
   SignedAndUnsigned = 1,
@@ -39,27 +47,27 @@ enum class ParseIntType {
 #define WABT_MAX_FLOAT_HEX 20
 #define WABT_MAX_DOUBLE_HEX 40
 
-Result parse_hexdigit(char c, uint32_t* out);
-Result parse_int32(const char* s,
-                   const char* end,
-                   uint32_t* out,
-                   ParseIntType parse_type);
-Result parse_int64(const char* s,
-                   const char* end,
-                   uint64_t* out,
-                   ParseIntType parse_type);
-Result parse_uint64(const char* s, const char* end, uint64_t* out);
-Result parse_float(LiteralType literal_type,
+Result ParseHexdigit(char c, uint32_t* out);
+Result ParseInt32(const char* s,
+                  const char* end,
+                  uint32_t* out,
+                  ParseIntType parse_type);
+Result ParseInt64(const char* s,
+                  const char* end,
+                  uint64_t* out,
+                  ParseIntType parse_type);
+Result ParseUint64(const char* s, const char* end, uint64_t* out);
+Result ParseFloat(LiteralType literal_type,
+                  const char* s,
+                  const char* end,
+                  uint32_t* out_bits);
+Result ParseDouble(LiteralType literal_type,
                    const char* s,
                    const char* end,
-                   uint32_t* out_bits);
-Result parse_double(LiteralType literal_type,
-                    const char* s,
-                    const char* end,
-                    uint64_t* out_bits);
+                   uint64_t* out_bits);
 
-void write_float_hex(char* buffer, size_t size, uint32_t bits);
-void write_double_hex(char* buffer, size_t size, uint64_t bits);
+void WriteFloatHex(char* buffer, size_t size, uint32_t bits);
+void WriteDoubleHex(char* buffer, size_t size, uint64_t bits);
 
 }  // namespace wabt
 

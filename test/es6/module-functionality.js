@@ -276,6 +276,22 @@ var tests = [
         }
     },
     {
+        name: "Circular module dependency: starExportList should allow multiple/recursive visits to re-resolve different names",
+        body: function () {
+            let functionBody =
+                `import './module-3250-bug-dep.js';`;
+            testModuleScript(functionBody);
+        }
+    },
+    {
+        name: "Circular module dependency: non-root GetExportNames should not be cached",
+        body: function () {
+            let functionBody =
+                `import './module-3250-ext-a.js';`;
+            testModuleScript(functionBody);
+        }
+    },
+    {
         name: "Implicitly re-exporting an import binding (import { foo } from ''; export { foo };)",
         body: function () {
             let functionBody =

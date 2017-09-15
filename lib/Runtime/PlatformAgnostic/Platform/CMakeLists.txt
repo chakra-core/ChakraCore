@@ -3,6 +3,7 @@ project(CHAKRA_PLATFORM_AGNOSTIC)
 set(PL_SOURCE_FILES
   Common/UnicodeText.Common.cpp
   Common/HiResTimer.cpp
+  Common/DateTime.cpp
   Linux/EventTrace.cpp
   Linux/UnicodeText.ICU.cpp
   Linux/NumbersUtility.cpp
@@ -14,13 +15,11 @@ set(PL_SOURCE_FILES
 
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
 set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
-  Linux/DateTime.cpp
   Linux/SystemInfo.cpp
   )
 elseif(CC_TARGET_OS_OSX)
 set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
   Unix/AssemblyCommon.cpp
-  Unix/DateTime.cpp
   Unix/SystemInfo.cpp
   )
 endif()

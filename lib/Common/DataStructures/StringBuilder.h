@@ -166,7 +166,7 @@ namespace Js
 
                 if (this->count)
                 {
-                    js_memcpy_s(newChunk->u.single.buffer, newLength * sizeof(char16), this->firstChunk->u.single.buffer, sizeof(char16) * this->count);
+                    js_wmemcpy_s(newChunk->u.single.buffer, newLength, this->firstChunk->u.single.buffer, this->count);
                 }
 
                 this->firstChunk = this->lastChunk = newChunk;
@@ -234,7 +234,7 @@ namespace Js
                 {
                     Throw::FatalInternalError();
                 }
-                js_memcpy_s(pBuf, bufLen * sizeof(char16), pSrcBuf, sizeof(char16) * srcLength);
+                js_wmemcpy_s(pBuf, bufLen, pSrcBuf, srcLength);
                 bufLen -= srcLength;
                 pBuf += srcLength;
                 lastChunkCount -= srcLength;
@@ -248,7 +248,7 @@ namespace Js
             {
                 Throw::FatalInternalError();
             }
-            js_memcpy_s(pBuf, bufLen * sizeof(char16), this->lastChunk->u.chained.buffer, sizeof(char16) * lastChunkCount);
+            js_wmemcpy_s(pBuf, bufLen, this->lastChunk->u.chained.buffer, lastChunkCount);
         }
 
         void UnChain()
@@ -280,7 +280,7 @@ namespace Js
                 {
                     Throw::FatalInternalError();
                 }
-                js_memcpy_s(pBuf, bufLen * sizeof(char16), this->firstChunk->u.single.buffer, this->count * sizeof(char16));
+                js_wmemcpy_s(pBuf, bufLen, this->firstChunk->u.single.buffer, this->count);
             }
         }
 
@@ -357,7 +357,7 @@ namespace Js
 
             char16 *dst = this->appendPtr;
 
-            js_memcpy_s(dst, sizeof(WCHAR) * countNeeded, str, sizeof(WCHAR) * countNeeded);
+            js_wmemcpy_s(dst, countNeeded, str, countNeeded);
 
             this->appendPtr += countNeeded;
             this->count += countNeeded;

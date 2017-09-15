@@ -1202,9 +1202,12 @@ public:
 
     template <CollectionFlags flags>
     bool FinishDisposeObjectsNow();
-    BOOL ReportExternalMemoryAllocation(size_t size);
+    bool RequestExternalMemoryAllocation(size_t size);
     void ReportExternalMemoryFailure(size_t size);
     void ReportExternalMemoryFree(size_t size);
+    // ExternalAllocFunc returns true when allocation succeeds
+    template <typename ExternalAllocFunc>
+    bool DoExternalAllocation(size_t size, ExternalAllocFunc externalAllocFunc);
 
 #ifdef TRACE_OBJECT_LIFETIME
 #define DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributesFunc, attributes) \
@@ -1975,6 +1978,7 @@ public:
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 private:
     static Recycler* recyclerList;
+    static CriticalSection recyclerListLock;
     Recycler* next;
 public:
     static void WBSetBitJIT(char* addr)
@@ -2462,7 +2466,7 @@ struct ForceLeafAllocator<RecyclerNonLeafAllocator>
 };
 
 // TODO: enable -profile for GC phases.
-// access the same profiler object from multiple GC threads which shares one recyler object,
+// access the same profiler object from multiple GC threads which shares one recycler object,
 // but profiler object is not thread safe
 #if defined(PROFILE_EXEC) && 0
 #define RECYCLER_PROFILE_EXEC_BEGIN(recycler, phase) if (recycler->profiler != nullptr) { recycler->profiler->Begin(phase); }
@@ -2532,3 +2536,35 @@ extern bool IsLikelyRuntimeFalseReference(
 #else
 #define DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
 #endif
+
+template <typename ExternalAllocFunc>
+bool Recycler::DoExternalAllocation(size_t size, ExternalAllocFunc externalAllocFunc)
+{
+    // Request external memory allocation
+    if (!RequestExternalMemoryAllocation(size))
+    {
+        // Attempt to free some memory then try again
+        CollectNow<CollectOnTypedArrayAllocation>();
+        if (!RequestExternalMemoryAllocation(size))
+        {
+            return false;
+        }
+    }
+    struct AutoExternalAllocation
+    {
+        bool allocationSucceeded = false;
+        Recycler* recycler;
+        size_t size;
+        AutoExternalAllocation(Recycler* recycler, size_t size): recycler(recycler), size(size) {}
+        // In case the externalAllocFunc throws or fails, the destructor will report the failure
+        ~AutoExternalAllocation() { if (!allocationSucceeded) recycler->ReportExternalMemoryFailure(size); }
+    };
+    AutoExternalAllocation externalAllocation(this, size);
+    if (externalAllocFunc())
+    {
+        this->AddExternalMemoryUsage(size);
+        externalAllocation.allocationSucceeded = true;
+        return true;
+    }
+    return false;
+}

@@ -240,7 +240,7 @@ LowererMD::LowerCall(IR::Instr * callInstr, Js::ArgSlot argCount)
     AssertMsg(targetOpnd, "Call without a target?");
 
     // This is required here due to calls created during lowering
-    callInstr->m_func->SetHasCalls();
+    callInstr->m_func->SetHasCallsOnSelfAndParents();
 
     if (targetOpnd->IsRegOpnd())
     {
@@ -654,27 +654,6 @@ LowererMD::LowerCallArgs(IR::Instr *callInstr, IR::Instr *stackParamInsert, usho
 }
 
 IR::Instr *
-LowererMD::LowerCallPut(IR::Instr * callInstr)
-{
-    Js::ArgSlot argCount = (Js::ArgSlot)this->LowerCallArgs(callInstr, Js::CallFlags_None, 2);
-
-    //  load native entry point from script function
-    IR::Opnd * functionWrapOpnd = callInstr->UnlinkSrc1();
-    AssertMsg(functionWrapOpnd->IsRegOpnd() && functionWrapOpnd->AsRegOpnd()->m_sym->IsStackSym(),
-              "Expected call src to be stackSym");
-
-    // push function wrapper
-
-    this->LoadHelperArgument(callInstr, functionWrapOpnd);
-    this->m_lowerer->LoadScriptContext(callInstr);
-
-    IR::HelperCallOpnd  *helperCallOpnd = IR::HelperCallOpnd::New(IR::HelperOp_InvokePut, this->m_func);
-    callInstr->SetSrc1(helperCallOpnd);
-
-    return this->LowerCall(callInstr, argCount);
-}
-
-IR::Instr *
 LowererMD::LowerStartCall(IR::Instr * instr)
 {
     // StartCall doesn't need to generate a stack adjustment. Just delete it.
@@ -1076,9 +1055,8 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         this->m_func->m_localStackHeight = Math::Align<int32>(this->m_func->m_localStackHeight, MachStackAlignment);
     }
 
-    if (this->m_func->GetMaxInlineeArgOutCount())
+    if (this->m_func->HasInlinee())
     {
-        Assert(this->m_func->HasInlinee());
         // Allocate the inlined arg out stack in the locals. Allocate an additional slot so that
         // we can unconditionally clear the first slot past the current frame.
         this->m_func->m_localStackHeight += this->m_func->GetInlineeArgumentStackSize();
@@ -1335,7 +1313,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     }
     Assert(fpOffsetSize >= 0);
 
-    if (this->m_func->GetMaxInlineeArgOutCount())
+    if (m_func->HasInlinee())
     {
         // subtracting 2 for frame pointer & return address
         this->m_func->GetJITOutput()->SetFrameHeight(this->m_func->m_localStackHeight + this->m_func->m_ArgumentsOffset - 2 * MachRegInt);
@@ -1474,7 +1452,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     //As we have already allocated the stack here, we can safely zero out the inlinee argout slot.
 
     // Zero initialize the first inlinee frames argc.
-    if (this->m_func->GetMaxInlineeArgOutCount())
+    if (m_func->HasInlinee())
     {
         // This is done post prolog. so we don't have to emit unwind data.
         if (r12Opnd == nullptr || isScratchRegisterThrashed)
@@ -7786,7 +7764,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 void
 LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr *inlineInstr)
 {
-    IR::Opnd* src = inlineInstr->GetSrc1();
+    IR::Opnd* src = inlineInstr->GetSrc1()->Copy(this->m_func);
     IR::Opnd* dst = inlineInstr->UnlinkDst();
     Assert(src);
     IR::Instr* tmpInstr;
@@ -8559,7 +8537,7 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
 #if DBG
             NativeCodeData::GetDataDescription(pValue, instrInsert->m_func->m_alloc),
 #endif
-            instrInsert->m_func);
+            instrInsert->m_func, true);
     }
     else
     {

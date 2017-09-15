@@ -9,11 +9,12 @@
 
 #include "Library/RegexHelper.h"
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/DiagHelperMethodWrapper.h"
-#include "Math/JavascriptSSE2MathOperators.h"
-#include "Math/JavascriptSSE2MathOperators.inl"
+#endif
 #include "Math/CrtSSE2Math.h"
 #include "Library/JavascriptGeneratorFunction.h"
+#include "RuntimeMathPch.h"
 
 namespace IR
 {
@@ -29,34 +30,10 @@ intptr_t const JnHelperMethodAddresses[] =
     NULL
 };
 
-#if defined(_M_IX86)
-intptr_t const JnHelperMethodAddresses_SSE2[] =
-{
-#define SSE2MATH
-#define HELPERCALL(Name, Address, Attributes) reinterpret_cast<intptr_t>(Address),
-// Because of order-of-initialization problems with the vtable address static field
-// and this array, we're going to have to fill these in as we go along.
-#include "JnHelperMethodList.h"
-#undef HELPERCALL
-#undef SSE2MATH
-    NULL
-};
-
-intptr_t const *GetHelperMethods()
-{
-    if (AutoSystemInfo::Data.SSE2Available())
-    {
-        return JnHelperMethodAddresses_SSE2;
-    }
-    return JnHelperMethodAddresses;
-}
-#else
-
 intptr_t const *GetHelperMethods()
 {
     return JnHelperMethodAddresses;
 }
-#endif
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS && defined(_CONTROL_FLOW_GUARD)
 class HelperTableCheck
@@ -64,9 +41,6 @@ class HelperTableCheck
 public:
     HelperTableCheck() {
         CheckJnHelperTable(JnHelperMethodAddresses);
-#if defined(_M_IX86)
-        CheckJnHelperTable(JnHelperMethodAddresses_SSE2);
-#endif
     }
 };
 
@@ -93,6 +67,7 @@ void CheckJnHelperTable(intptr_t const* table)
 }
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 static intptr_t const helperMethodWrappers[] = {
     reinterpret_cast<intptr_t>(&Js::HelperMethodWrapper0),
     reinterpret_cast<intptr_t>(&Js::HelperMethodWrapper1),
@@ -112,6 +87,7 @@ static intptr_t const helperMethodWrappers[] = {
     reinterpret_cast<intptr_t>(&Js::HelperMethodWrapper15),
     reinterpret_cast<intptr_t>(&Js::HelperMethodWrapper16),
 };
+#endif
 
 ///----------------------------------------------------------------------------
 ///
@@ -125,7 +101,7 @@ intptr_t
 GetMethodAddress(ThreadContextInfo * context, IR::HelperCallOpnd* opnd)
 {
     Assert(opnd);
-
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #if defined(_M_ARM32_OR_ARM64)
 #define LowererMDFinal LowererMD
 #else
@@ -141,14 +117,14 @@ GetMethodAddress(ThreadContextInfo * context, IR::HelperCallOpnd* opnd)
 
         if (0 <= diagOpnd->m_argCount && diagOpnd->m_argCount <= LowererMDFinal::MaxArgumentsToHelper)
         {
-            return SHIFT_ADDR(context, helperMethodWrappers[diagOpnd->m_argCount]);
+            return ShiftAddr(context, helperMethodWrappers[diagOpnd->m_argCount]);
         }
         else
         {
             AssertMsg(FALSE, "Unsupported arg count (need to implement).");
         }
     }
-
+#endif
     return GetMethodOriginalAddress(context, opnd->m_fnHelper);
 }
 
@@ -175,109 +151,109 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
 #if defined(_M_IX86)
         // TODO: OOP JIT, have some way to validate that these are all loaded from CRT
     case HelperDirectMath_Acos:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))__libm_sse2_acos);
+        return ShiftAddr(context, (double(*)(double))__libm_sse2_acos);
 
     case HelperDirectMath_Asin:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))__libm_sse2_asin);
+        return ShiftAddr(context, (double(*)(double))__libm_sse2_asin);
 
     case HelperDirectMath_Atan:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))__libm_sse2_atan);
+        return ShiftAddr(context, (double(*)(double))__libm_sse2_atan);
 
     case HelperDirectMath_Atan2:
-        return SHIFT_CRT_ADDR(context, (double(*)(double, double))__libm_sse2_atan2);
+        return ShiftAddr(context, (double(*)(double, double))__libm_sse2_atan2);
 
     case HelperDirectMath_Cos:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))__libm_sse2_cos);
+        return ShiftAddr(context, (double(*)(double))__libm_sse2_cos);
 
     case HelperDirectMath_Exp:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))__libm_sse2_exp);
+        return ShiftAddr(context, (double(*)(double))__libm_sse2_exp);
 
     case HelperDirectMath_Log:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))__libm_sse2_log);
+        return ShiftAddr(context, (double(*)(double))__libm_sse2_log);
 
     case HelperDirectMath_Sin:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))__libm_sse2_sin);
+        return ShiftAddr(context, (double(*)(double))__libm_sse2_sin);
 
     case HelperDirectMath_Tan:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))__libm_sse2_tan);
+        return ShiftAddr(context, (double(*)(double))__libm_sse2_tan);
 #endif
 
     case HelperDirectMath_FloorDb:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))floor);
+        return ShiftAddr(context, (double(*)(double))floor);
 
     case HelperDirectMath_CeilDb:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))ceil);
+        return ShiftAddr(context, (double(*)(double))ceil);
 
     //
     // These are statically initialized to an import thunk, but let's keep them out of the table in case a new CRT changes this
     //
     case HelperWMemCmp:
-        return SHIFT_CRT_ADDR(context, (int(*)(const char16 *, const char16 *, size_t))wmemcmp);
+        return ShiftAddr(context, (int(*)(const char16 *, const char16 *, size_t))wmemcmp);
 
     case HelperMemCpy:
-        return SHIFT_CRT_ADDR(context, (void*(*)(void *, void const*, size_t))memcpy);
+        return ShiftAddr(context, (void*(*)(void *, void const*, size_t))memcpy);
 
     case HelperDirectMath_FloorFlt:
-        return SHIFT_CRT_ADDR(context, (float(*)(float))floor);
+        return ShiftAddr(context, (float(*)(float))floor);
 
     case HelperDirectMath_CeilFlt:
-        return SHIFT_CRT_ADDR(context, (float(*)(float))ceil);
+        return ShiftAddr(context, (float(*)(float))ceil);
 
 #if defined(_M_X64)
     case HelperDirectMath_Acos:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))acos);
+        return ShiftAddr(context, (double(*)(double))acos);
 
     case HelperDirectMath_Asin:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))asin);
+        return ShiftAddr(context, (double(*)(double))asin);
 
     case HelperDirectMath_Atan:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))atan);
+        return ShiftAddr(context, (double(*)(double))atan);
 
     case HelperDirectMath_Atan2:
-        return SHIFT_CRT_ADDR(context, (double(*)(double, double))atan2);
+        return ShiftAddr(context, (double(*)(double, double))atan2);
 
     case HelperDirectMath_Cos:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))cos);
+        return ShiftAddr(context, (double(*)(double))cos);
 
     case HelperDirectMath_Exp:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))exp);
+        return ShiftAddr(context, (double(*)(double))exp);
 
     case HelperDirectMath_Log:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))log);
+        return ShiftAddr(context, (double(*)(double))log);
 
     case HelperDirectMath_Sin:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))sin);
+        return ShiftAddr(context, (double(*)(double))sin);
 
     case HelperDirectMath_Tan:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))tan);
+        return ShiftAddr(context, (double(*)(double))tan);
 
 #elif defined(_M_ARM32_OR_ARM64)
     case HelperDirectMath_Acos:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))acos);
+        return ShiftAddr(context, (double(*)(double))acos);
 
     case HelperDirectMath_Asin:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))asin);
+        return ShiftAddr(context, (double(*)(double))asin);
 
     case HelperDirectMath_Atan:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))atan);
+        return ShiftAddr(context, (double(*)(double))atan);
 
     case HelperDirectMath_Atan2:
-        return SHIFT_CRT_ADDR(context, (double(*)(double, double))atan2);
+        return ShiftAddr(context, (double(*)(double, double))atan2);
 
     case HelperDirectMath_Cos:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))cos);
+        return ShiftAddr(context, (double(*)(double))cos);
 
     case HelperDirectMath_Exp:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))exp);
+        return ShiftAddr(context, (double(*)(double))exp);
 
     case HelperDirectMath_Log:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))log);
+        return ShiftAddr(context, (double(*)(double))log);
 
     case HelperDirectMath_Sin:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))sin);
+        return ShiftAddr(context, (double(*)(double))sin);
 
     case HelperDirectMath_Tan:
-        return SHIFT_CRT_ADDR(context, (double(*)(double))tan);
+        return ShiftAddr(context, (double(*)(double))tan);
 #endif
 
     //
@@ -290,28 +266,28 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
 #endif
 
     case HelperOp_TryCatch:
-        return SHIFT_ADDR(context, Js::JavascriptExceptionOperators::OP_TryCatch);
+        return ShiftAddr(context, Js::JavascriptExceptionOperators::OP_TryCatch);
 
     case HelperOp_TryFinally:
-        return SHIFT_ADDR(context, Js::JavascriptExceptionOperators::OP_TryFinally);
+        return ShiftAddr(context, Js::JavascriptExceptionOperators::OP_TryFinally);
 
 
     case HelperOp_TryFinallySimpleJit:
-        return SHIFT_ADDR(context, Js::JavascriptExceptionOperators::OP_TryFinallySimpleJit);
+        return ShiftAddr(context, Js::JavascriptExceptionOperators::OP_TryFinallySimpleJit);
 
     //
     // Methods that we don't want to get marked as CFG targets as they dump all registers to a controlled address
     //
     case HelperSaveAllRegistersAndBailOut:
-        return SHIFT_ADDR(context, LinearScanMD::SaveAllRegistersAndBailOut);
+        return ShiftAddr(context, LinearScanMD::SaveAllRegistersAndBailOut);
     case HelperSaveAllRegistersAndBranchBailOut:
-        return SHIFT_ADDR(context, LinearScanMD::SaveAllRegistersAndBranchBailOut);
+        return ShiftAddr(context, LinearScanMD::SaveAllRegistersAndBranchBailOut);
 
     #ifdef _M_IX86
     case HelperSaveAllRegistersNoSse2AndBailOut:
-        return SHIFT_ADDR(context, LinearScanMD::SaveAllRegistersNoSse2AndBailOut);
+        return ShiftAddr(context, LinearScanMD::SaveAllRegistersNoSse2AndBailOut);
     case HelperSaveAllRegistersNoSse2AndBranchBailOut:
-        return SHIFT_ADDR(context, LinearScanMD::SaveAllRegistersNoSse2AndBranchBailOut);
+        return ShiftAddr(context, LinearScanMD::SaveAllRegistersNoSse2AndBranchBailOut);
     #endif
 
     }
@@ -337,7 +313,7 @@ intptr_t GetMethodOriginalAddress(ThreadContextInfo * context, JnHelperMethod he
         return GetNonTableMethodAddress(context, helperMethod);
     }
 
-    return SHIFT_ADDR(context, address);
+    return ShiftAddr(context, address);
 }
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)

@@ -21,8 +21,10 @@
 #endif
 #include "Language/SourceDynamicProfileManager.h"
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/ProbeContainer.h"
 #include "Debug/DebugContext.h"
+#endif
 
 #include "Parser.h"
 #include "RegexCommon.h"
@@ -199,8 +201,10 @@ namespace Js
 
     void ParseableFunctionInfo::RegisterFuncToDiag(ScriptContext * scriptContext, char16 const * pszTitle)
     {
+#ifdef ENABLE_SCRIPT_DEBUGGING
         // Register the function to the PDM as eval code (the debugger app will show file as 'eval code')
         scriptContext->GetDebugContext()->RegisterFunction(this, pszTitle);
+#endif
     }
 
     bool ParseableFunctionInfo::IsES6ModuleCode() const
@@ -948,6 +952,23 @@ namespace Js
             Js::ParseableFunctionInfo::NewDeferredFunctionFromFunctionBody(this);
         FunctionInfo * functionInfo = this->GetFunctionInfo();
 
+        this->RedeferFunctionObjectTypes();
+
+        this->Cleanup(false);
+        if (GetIsFuncRegistered())
+        {
+            this->GetUtf8SourceInfo()->RemoveFunctionBody(this);
+        }
+
+        // New allocation is done at this point, so update existing structures
+        // Adjust functionInfo attributes, point to new proxy
+        functionInfo->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
+        functionInfo->SetFunctionProxy(parseableFunctionInfo);
+        functionInfo->SetOriginalEntryPoint(DefaultEntryThunk);
+    }
+
+    void FunctionBody::RedeferFunctionObjectTypes()
+    {
         this->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
             Assert(functionType->GetTypeId() == TypeIds_Function);
@@ -961,18 +982,6 @@ namespace Js
                 functionType->GetEntryPointInfo()->jsMethod = GetScriptContext()->DeferredParsingThunk;
             }
         });
-
-        this->Cleanup(false);
-        if (GetIsFuncRegistered())
-        {
-            this->GetUtf8SourceInfo()->RemoveFunctionBody(this);
-        }
-
-        // New allocation is done at this point, so update existing structures
-        // Adjust functionInfo attributes, point to new proxy
-        functionInfo->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
-        functionInfo->SetFunctionProxy(parseableFunctionInfo);
-        functionInfo->SetOriginalEntryPoint(DefaultEntryThunk);
     }
 
     void FunctionBody::SetDefaultFunctionEntryPointInfo(FunctionEntryPointInfo* entryPointInfo, const JavascriptMethod originalEntryPoint)
@@ -1602,8 +1611,8 @@ namespace Js
       m_isAsmJsFunction(false),
       m_tag21(true)
 #if DBG
-      ,m_wasEverAsmjsMode(false)
-      ,scopeObjectSize(0)
+        ,m_wasEverAsmjsMode(false)
+        ,scopeObjectSize(0)
 #endif
     {
         this->functionInfo = RecyclerNew(scriptContext->GetRecycler(), FunctionInfo, entryPoint, attributes, functionId, this);
@@ -1652,7 +1661,7 @@ namespace Js
       m_reparsed(proxy->IsReparsed()),
       m_tag21(true)
 #if DBG
-      ,m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
+      , m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
 #endif
     {
         FunctionInfo * functionInfo = proxy->GetFunctionInfo();
@@ -1923,15 +1932,6 @@ namespace Js
 
         FunctionInfoArray nested = this->GetNestedFuncArray();
         nested[index] = nestedFunc;
-
-        if (nestedFunc)
-        {
-            if (!this->GetSourceContextInfo()->IsDynamic() && nestedFunc->IsDeferredParseFunction() && nestedFunc->GetParseableFunctionInfo()->GetIsDeclaration() && this->GetIsTopLevel() && !(flags & fscrEvalCode))
-            {
-                this->GetUtf8SourceInfo()->TrackDeferredFunction(nestedFunc->GetLocalFunctionId(), nestedFunc->GetParseableFunctionInfo());
-            }
-        }
-
     }
 
     FunctionInfo* ParseableFunctionInfo::GetNestedFunc(uint index)
@@ -2581,6 +2581,7 @@ namespace Js
         return GetIsGlobalFunc() && !(flags & fscrGlobalCode);
     }
 
+#ifdef NTBUILD
     bool ParseableFunctionInfo::GetExternalDisplaySourceName(BSTR* sourceName)
     {
         Assert(sourceName);
@@ -2593,6 +2594,7 @@ namespace Js
         *sourceName = ::SysAllocString(GetSourceName());
         return *sourceName != nullptr;
     }
+#endif
 
     const char16* FunctionProxy::WrapWithBrackets(const char16* name, charcount_t sz, ScriptContext* scriptContext)
     {
@@ -3403,10 +3405,6 @@ namespace Js
         // and dynamic profile collection is enabled
         return
             !this->m_isFromNativeCodeModule &&
-            !this->m_isAsmJsFunction &&
-#ifdef ASMJS_PLAT
-            !this->GetAsmJsModuleInfo() &&
-#endif
             !this->HasExecutionDynamicProfileInfo() &&
             DynamicProfileInfo::IsEnabled(this);
     }
@@ -3887,6 +3885,7 @@ namespace Js
         return loopNum;
     }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     bool FunctionBody::InstallProbe(int offset)
     {
         if (offset < 0 || ((uint)offset + 1) >= byteCodeBlock->GetLength())
@@ -3963,6 +3962,7 @@ namespace Js
             return false;
         }
     }
+#endif
 
     void FunctionBody::SetStackNestedFuncParent(FunctionInfo * parentFunctionInfo)
     {
@@ -4915,6 +4915,7 @@ namespace Js
         this->SetFormalsPropIdArray(nullptr);
         this->SetReferencedPropertyIdMap(nullptr);
         this->SetLiteralRegexs(nullptr);
+        this->SetSlotIdInCachedScopeToNestedIndexArray(nullptr);
         this->SetStatementMaps(nullptr);
         this->SetCodeGenGetSetRuntimeData(nullptr);
         this->SetPropertyIdOnRegSlotsContainer(nullptr);
@@ -4935,7 +4936,31 @@ namespace Js
         this->SetByteCodeInLoopCount(0);
 
 #if ENABLE_PROFILE_INFO
-        this->dynamicProfileInfo = nullptr;
+        if (this->dynamicProfileInfo != nullptr)
+        {
+            SourceContextInfo * sourceContextInfo = GetSourceContextInfo();
+            if(sourceContextInfo && sourceContextInfo->sourceDynamicProfileManager)
+            {
+                sourceContextInfo->sourceDynamicProfileManager->RemoveDynamicProfileInfo(GetFunctionInfo()->GetLocalFunctionId());
+            }
+
+#ifdef DYNAMIC_PROFILE_STORAGE
+            DynamicProfileInfoList * profileInfoList = GetScriptContext()->GetProfileInfoList();
+            if (profileInfoList)
+            {
+                FOREACH_SLISTBASE_ENTRY_EDITING(Field(DynamicProfileInfo*), info, profileInfoList, iter)
+                {
+                    if (info->HasFunctionBody() && info->GetFunctionBody() == this)
+                    {
+                        iter.UnlinkCurrent();
+                        break;
+                    }
+                }
+                NEXT_SLISTBASE_ENTRY_EDITING;
+            }
+#endif
+            this->dynamicProfileInfo = nullptr;
+        }
 #endif
         this->hasExecutionDynamicProfileInfo = false;
 
@@ -5025,6 +5050,7 @@ namespace Js
         this->m_isAsmJsFunction = false;
     }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     void FunctionBody::SetEntryToDeferParseForDebugger()
     {
         ProxyEntryPointInfo* defaultEntryPointInfo = this->GetDefaultEntryPointInfo();
@@ -5065,6 +5091,7 @@ namespace Js
         this->UnlockCounters(); // asuming background jit is stopped and allow the counter setters access again
 #endif
     }
+#endif
 
     void FunctionBody::ClearEntryPoints()
     {
@@ -6302,6 +6329,13 @@ namespace Js
         this->SetLiteralRegexs(nullptr);
     }
 
+    Js::AuxArray<uint32> * FunctionBody::AllocateSlotIdInCachedScopeToNestedIndexArray(uint32 slotCount)
+    {
+        Js::AuxArray<uint32> * slotIdToNestedIndexArray = RecyclerNewPlusLeaf(GetScriptContext()->GetRecycler(), slotCount * sizeof(uint32), Js::AuxArray<uint32>, slotCount);
+        SetSlotIdInCachedScopeToNestedIndexArray(slotIdToNestedIndexArray);
+        return slotIdToNestedIndexArray;
+    }
+
     void FunctionBody::ResetProfileIds()
     {
 #if ENABLE_PROFILE_INFO
@@ -6329,6 +6363,7 @@ namespace Js
         ResetLiteralRegexes();
         ResetLoops();
         ResetProfileIds();
+        ResetSlotIdInCachedScopeToNestedIndexArray();
 
         SetFirstTmpRegister(Constants::NoRegister);
         SetLocalClosureRegister(Constants::NoRegister);
@@ -7372,6 +7407,9 @@ namespace Js
     {
         return
             !PHASE_OFF(Js::SimpleJitPhase, this) &&
+#ifdef ASMJS_PLAT
+            !GetIsAsmjsMode() &&
+#endif
             !GetScriptContext()->GetConfig()->IsNoNative() &&
             !GetScriptContext()->IsScriptContextInDebugMode() &&
             DoInterpreterProfile() &&
@@ -7384,6 +7422,9 @@ namespace Js
     {
         return
             !PHASE_OFF(Js::SimpleJitPhase, this) &&
+#ifdef ASMJS_PLAT
+            !GetIsAsmjsMode() &&
+#endif
             !GetScriptContext()->GetConfig()->IsNoNative() &&
             !this->IsInDebugMode() &&
             DoInterpreterProfileWithLock() &&
@@ -7402,17 +7443,7 @@ namespace Js
     bool FunctionBody::DoInterpreterProfile() const
     {
 #if ENABLE_PROFILE_INFO
-#ifdef ASMJS_PLAT
-        // Switch off profiling is asmJsFunction
-        if (this->GetIsAsmJsFunction() || this->GetAsmJsModuleInfo())
-        {
-            return false;
-        }
-        else
-#endif
-        {
-            return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
-        }
+        return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
 #else
         return false;
 #endif
@@ -7421,17 +7452,7 @@ namespace Js
     bool FunctionBody::DoInterpreterProfileWithLock() const
     {
 #if ENABLE_PROFILE_INFO
-#ifdef ASMJS_PLAT
-        // Switch off profiling is asmJsFunction
-        if (this->GetIsAsmJsFunction() || this->GetAsmJsModuleInfoWithLock())
-        {
-            return false;
-        }
-        else
-#endif
-        {
-            return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
-        }
+        return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
 #else
         return false;
 #endif
@@ -7440,6 +7461,10 @@ namespace Js
     bool FunctionBody::DoInterpreterAutoProfile() const
     {
         Assert(DoInterpreterProfile());
+
+#ifdef ASMJS_PLAT
+        if (this->GetIsAsmjsMode()) return false;
+#endif
 
         return !PHASE_OFF(InterpreterAutoProfilePhase, this) && !this->IsInDebugMode();
     }
@@ -8091,6 +8116,7 @@ namespace Js
     }
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     void FunctionBody::CheckAndRegisterFuncToDiag(ScriptContext *scriptContext)
     {
         // We will register function if, this is not host managed and it was not registered before.
@@ -8123,6 +8149,7 @@ namespace Js
         }
 
     }
+#endif
 
     DebuggerScope* FunctionBody::RecordStartScopeObject(DiagExtraScopesType scopeType, int start, RegSlot scopeLocation, int* index)
     {
@@ -9960,8 +9987,8 @@ namespace Js
         if (this->IsCodeGenDone())
 #endif
         {
-            uint loopNumber = this->loopHeader->functionBody->GetLoopNumber(this->loopHeader);
-            JS_ETW(EtwTrace::LogLoopBodyUnloadEvent(this->loopHeader->functionBody, this, loopNumber));
+            JS_ETW(EtwTrace::LogLoopBodyUnloadEvent(this->loopHeader->functionBody, this, 
+                this->loopHeader->functionBody->GetLoopNumber(this->loopHeader)));
 
 #if ENABLE_NATIVE_CODEGEN
             if (nullptr != this->inlineeFrameMap)

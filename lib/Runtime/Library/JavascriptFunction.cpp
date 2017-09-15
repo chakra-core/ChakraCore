@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "BackendApi.h"
 #include "Library/StackScriptFunction.h"
 #include "Types/SpreadArgument.h"
 
@@ -613,13 +612,20 @@ namespace Js
         /// Check Argument[0] has internal [[Call]] property
         /// If not, throw TypeError
         ///
-        if (args.Info.Count == 0 || !JavascriptConversion::IsCallable(args[0]))
+        uint argCount = args.Info.Count;
+        if (callInfo.Flags & CallFlags_ExtraArg)
+        {
+            // The last argument is the "extra". Don't consider it in the logic below.
+            // It will either remain in place (argCount == 1) or be copied.
+            argCount--;
+        }
+        if (argCount == 0 || !JavascriptConversion::IsCallable(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.call"));
         }
 
         RecyclableObject *pFunc = RecyclableObject::FromVar(args[0]);
-        if (args.Info.Count == 1)
+        if (argCount == 1)
         {
             args.Values[0] = scriptContext->GetLibrary()->GetUndefined();
         }
@@ -799,7 +805,7 @@ namespace Js
         if (scriptContext->IsScriptContextInDebugMode()
             && !scriptContext->IsInterpreted() && !CONFIG_FLAG(ForceDiagnosticsMode)    // Does not work nicely if we change the default settings.
             && function->GetEntryPoint() != scriptContext->CurrentThunk
-            && function->GetEntryPoint() != scriptContext->CurrentCrossSiteThunk
+            && !CrossSite::IsThunk(function->GetEntryPoint())
             && JavascriptFunction::Is(function))
         {
 
@@ -1681,8 +1687,9 @@ LABEL1:
     void JavascriptFunction::ReparseAsmJsModule(ScriptFunction** functionRef)
     {
         ParseableFunctionInfo* functionInfo = (*functionRef)->GetParseableFunctionInfo();
-
         Assert(functionInfo);
+        try
+        {
         functionInfo->GetFunctionBody()->AddDeferParseAttribute();
         functionInfo->GetFunctionBody()->ResetEntryPoint();
         functionInfo->GetFunctionBody()->ResetInParams();
@@ -1695,6 +1702,11 @@ LABEL1:
 #endif
 
         (*functionRef)->UpdateUndeferredBody(funcBody);
+    }
+        catch (JavascriptException&)
+        {
+                Js::Throw::FatalInternalError();
+        }
     }
 
     // Thunk for handling calls to functions that have not had byte code generated for them.
@@ -2295,14 +2307,15 @@ LABEL1:
         {
             return false;
         }
-        Js::FunctionBody* funcBody = func->GetFunctionBody();
-        bool isWAsmJs = funcBody->GetIsAsmJsFunction();
-        bool isWasmOnly = funcBody->IsWasmFunction();
-        if (isWAsmJs)
+
+        bool isAsmJs = AsmJsScriptFunction::Is(func);
+        bool isWasmOnly = WasmScriptFunction::Is(func);
+        uintptr_t faultingAddr = helper.GetFaultingAddress();
+        if (isAsmJs)
         {
+            AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(func);
             // some extra checks for asm.js because we have slightly more information that we can validate
-            uintptr_t moduleMemory = (uintptr_t)((AsmJsScriptFunction*)func)->GetModuleMemory();
-            if (!moduleMemory)
+            if (!asmFunc->GetModuleEnvironment())
             {
                 return false;
             }
@@ -2312,14 +2325,14 @@ LABEL1:
 #ifdef ENABLE_WASM
             if (isWasmOnly)
             {
-                WebAssemblyMemory* mem = *(WebAssemblyMemory**)(moduleMemory + WebAssemblyModule::GetMemoryOffset());
+                WebAssemblyMemory* mem = WasmScriptFunction::FromVar(func)->GetWebAssemblyMemory();
                 arrayBuffer = mem->GetBuffer();
                 reservationSize = MAX_WASM__ARRAYBUFFER_LENGTH;
             }
             else
 #endif
             {
-                arrayBuffer = *(ArrayBuffer**)(moduleMemory + AsmJsModuleMemory::MemoryTableBeginOffset);
+                arrayBuffer = asmFunc->GetAsmJsArrayBuffer();
                 reservationSize = MAX_ASMJS_ARRAYBUFFER_LENGTH;
             }
 
@@ -2336,12 +2349,33 @@ LABEL1:
             {
                 return false;
             }
-            uintptr_t faultingAddr = helper.GetFaultingAddress();
             if (faultingAddr < bufferAddr)
             {
                 return false;
             }
             if (faultingAddr >= bufferAddr + reservationSize)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            MEMORY_BASIC_INFORMATION info = { 0 };
+            size_t size = VirtualQuery((LPCVOID)faultingAddr, &info, sizeof(info));
+            if (size == 0)
+            {
+                return false;
+            }
+            size_t allocationSize = info.RegionSize + ((uintptr_t)info.BaseAddress - (uintptr_t)info.AllocationBase);
+            if (allocationSize != MAX_WASM__ARRAYBUFFER_LENGTH && allocationSize != MAX_ASMJS_ARRAYBUFFER_LENGTH)
+            {
+                return false;
+            }
+            if (info.State != MEM_RESERVE)
+            {
+                return false;
+            }
+            if (info.Type != MEM_PRIVATE)
             {
                 return false;
             }
@@ -2711,12 +2745,14 @@ LABEL1:
                 break;
             }
 
-            if (funcCaller->GetScriptContext() != requestContext && funcCaller->GetTypeId() == TypeIds_Null)
+            if (funcCaller == nullptr)
             {
-                // There are cases where StackWalker might return null value from different scriptContext
-                // Caller of this function expects nullValue from the requestContext.
+                // We no longer return Null objects as JavascriptFunctions, so we don't have to worry about
+                // cross-context null objects. We do want to clean up null pointers though, since some call
+                // later in this function may depend on non-nullptr calls.
                 funcCaller = nullValue;
             }
+
             if (ScriptFunction::Is(funcCaller))
             {
                 // If this is the internal function of a generator function then return the original generator function

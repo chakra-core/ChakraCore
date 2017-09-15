@@ -414,6 +414,11 @@ private:
     BVSparse<JitArenaAllocator> *  objectTypeSyms;
     BVSparse<JitArenaAllocator> *  prePassCopyPropSym;  // Symbols that were copy prop'd during loop prepass
 
+    // Symbols that refer to slots in the stack frame.  We still use currentBlock->liveFields to tell us
+    // which of these slots are live; this bit-vector just identifies which entries in liveFields represent
+    // slots, so we can zero them all out quickly.
+    BVSparse<JitArenaAllocator> *  slotSyms;
+
     PropertySym *               propertySymUse;
 
     BVSparse<JitArenaAllocator> *  lengthEquivBv;
@@ -580,7 +585,7 @@ private:
     IR::Instr *             GetExtendedArg(IR::Instr *instr);
     int                     GetBoundCheckOffsetForSimd(ValueType arrValueType, const IR::Instr *instr, const int oldOffset = -1);
 
-    IR::Instr *             OptNewScObject(IR::Instr** instrPtr, Value* srcVal);
+    void                    OptNewScObject(IR::Instr** instrPtr, Value* srcVal);
     template <typename T>
     bool                    OptConstFoldBinaryWasm(IR::Instr * *pInstr, const Value* src1, const Value* src2, Value **pDstVal);
     template <typename T>
@@ -673,7 +678,8 @@ private:
     void                    DetectUnknownChangesToInductionVariables(GlobOptBlockData *const blockData);
     void                    SetInductionVariableValueNumbers(GlobOptBlockData *const blockData);
     void                    FinalizeInductionVariables(Loop *const loop, GlobOptBlockData *const headerData);
-    bool                    DetermineSymBoundOffsetOrValueRelativeToLandingPad(StackSym *const sym, const bool landingPadValueIsLowerBound, ValueInfo *const valueInfo, const IntBounds *const bounds, GlobOptBlockData *const landingPadGlobOptBlockData, int *const boundOffsetOrValueRef);
+    enum class SymBoundType {OFFSET, VALUE, UNKNOWN};
+    SymBoundType DetermineSymBoundOffsetOrValueRelativeToLandingPad(StackSym *const sym, const bool landingPadValueIsLowerBound, ValueInfo *const valueInfo, const IntBounds *const bounds, GlobOptBlockData *const landingPadGlobOptBlockData, int *const boundOffsetOrValueRef);
 
 private:
     void                    DetermineDominatingLoopCountableBlock(Loop *const loop, BasicBlock *const headerBlock);
@@ -837,7 +843,7 @@ private:
     void                    ProcessFieldKills(IR::Instr * instr);
     void                    KillLiveFields(StackSym * stackSym, BVSparse<JitArenaAllocator> * bv);
     void                    KillLiveFields(PropertySym * propertySym, BVSparse<JitArenaAllocator> * bv);
-    void                    KillLiveFields(BVSparse<JitArenaAllocator> *const propertyEquivSet, BVSparse<JitArenaAllocator> *const bv) const;
+    void                    KillLiveFields(BVSparse<JitArenaAllocator> *const fieldsToKill, BVSparse<JitArenaAllocator> *const bv) const;
     void                    KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * bv, bool inGlobOpt, Func *func);
     void                    KillAllFields(BVSparse<JitArenaAllocator> * bv);
     void                    SetAnyPropertyMayBeWrittenTo();

@@ -318,7 +318,6 @@ enum ScanFlag
 {
     ScanFlagNone = 0,
     ScanFlagSuppressStrPid = 1,   // Force strings to always have pid
-    ScanFlagSuppressIdPid = 2     // Force identifiers to always have pid (currently unused)
 };
 
 typedef HRESULT (*CommentCallback)(void *data, OLECHAR firstChar, OLECHAR secondChar, bool containTypeDef, charcount_t min, charcount_t lim, bool adjacent, bool multiline, charcount_t startLine, charcount_t endLine);
@@ -369,7 +368,7 @@ public:
     }
     void Release(void)
     {
-        delete this;  // invokes overrided operator delete
+        delete this;  // invokes overridden operator delete
     }
 
     tokens Scan();
@@ -768,7 +767,6 @@ private:
     tokens SkipComment(EncodedCharPtr *pp, /* out */ bool* containTypeDef);
     tokens ScanRegExpConstant(ArenaAllocator* alloc);
     tokens ScanRegExpConstantNoAST(ArenaAllocator* alloc);
-    BOOL oFScanNumber(double *pdbl, bool& likelyInt);
     EncodedCharPtr FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last, bool fHadEscape, bool fHasMultiChar);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last);

@@ -148,7 +148,7 @@ function setUTCMonth() { [native code] }
 function setFullYear() { [native code] }
 function setUTCFullYear() { [native code] }
 function toUTCString() { [native code] }
-function toGMTString() { [native code] }
+function toUTCString() { [native code] }
 function toLocaleTimeString() { [native code] }
 function toUTCString() { [native code] }
 function setYear() { [native code] }

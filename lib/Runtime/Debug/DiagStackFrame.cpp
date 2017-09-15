@@ -3,6 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
+
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Language/JavascriptFunctionArgIndex.h"
 #include "Language/InterpreterStackFrame.h"
 #include "Language/JavascriptStackWalker.h"
@@ -357,8 +359,7 @@ namespace Js
             varThis = scriptContext->GetLibrary()->GetNull();
         }
 
-        Js::Arguments args(1, (Js::Var*) &varThis);
-        varResult = pfuncScript->CallFunction(args);
+        varResult = CALL_FUNCTION(pfuncScript->GetScriptContext()->GetThreadContext(), pfuncScript, CallInfo(1), varThis);
 
         debugManager->UpdateConsoleScope(dummyObject, scriptContext);
 
@@ -653,3 +654,4 @@ namespace Js
     }
 
 }  // namespace Js
+#endif

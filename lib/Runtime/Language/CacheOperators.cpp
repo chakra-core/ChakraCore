@@ -38,9 +38,11 @@ namespace Js
             (RootObjectBase::Is(objectWithProperty) && propertyIndex == RootObjectBase::FromVar(objectWithProperty)->GetRootPropertyIndex(propertyId)));
         Assert(DynamicType::Is(objectWithProperty->GetTypeId()));
 
+#if ENABLE_FIXED_FIELDS
         // We are populating a cache guarded by the instance's type (not the type of the object with property somewhere in the prototype chain),
         // so we only care if the instance's property (if any) is fixed.
         Assert(info->IsNoCache() || !info->IsStoreFieldCacheEnabled() || info->GetInstance() != objectWithProperty || !objectWithProperty->IsFixedProperty(propertyId));
+#endif
 
         PropertyIndex slotIndex;
         bool isInlineSlot;
@@ -210,7 +212,9 @@ namespace Js
         {
             AssertMsg(instance == object, "invalid instance for non setter");
             Assert(DynamicType::Is(typeWithoutProperty->GetTypeId()));
+#if ENABLE_FIXED_FIELDS
             Assert(info->IsNoCache() || !info->IsStoreFieldCacheEnabled() || object->CanStorePropertyValueDirectly(propertyId, isRoot));
+#endif
             Assert(info->IsWritable());
 
             DynamicType* newType = (DynamicType*)object->GetType();

@@ -125,7 +125,6 @@ BUILTIN(JavascriptDate, ToLocaleTimeString, EntryToLocaleTimeString, FunctionInf
 BUILTIN(JavascriptDate, ToString, EntryToString, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptDate, ToTimeString, EntryToTimeString, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, ToUTCString, EntryToUTCString, FunctionInfo::ErrorOnNew)
-BUILTIN(JavascriptDate, ToGMTString, EntryToGMTString, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, UTC, EntryUTC, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, ValueOf, EntryValueOf, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptDate, SymbolToPrimitive, EntrySymbolToPrimitive, FunctionInfo::ErrorOnNew)
@@ -911,7 +910,9 @@ BUILTIN(ArrayBuffer, Slice, EntrySlice, FunctionInfo::ErrorOnNew)
 BUILTIN(ArrayBuffer, IsView, EntryIsView, FunctionInfo::ErrorOnNew)
 BUILTIN(ArrayBuffer, GetterByteLength, EntryGetterByteLength, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(ArrayBuffer, GetterSymbolSpecies, EntryGetterSymbolSpecies, FunctionInfo::ErrorOnNew)
-BUILTIN(ArrayBuffer, Transfer, EntryTransfer, FunctionInfo::ErrorOnNew)
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+BUILTIN(ArrayBuffer, Detach, EntryDetach, FunctionInfo::ErrorOnNew)
+#endif
 BUILTIN(DataView, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(DataView, SetInt8, EntrySetInt8, FunctionInfo::ErrorOnNew)
 BUILTIN(DataView, SetUint8, EntrySetUint8, FunctionInfo::ErrorOnNew)

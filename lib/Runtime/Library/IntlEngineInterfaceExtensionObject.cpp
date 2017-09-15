@@ -466,9 +466,11 @@ namespace Js
             }
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
             // Mark we are profiling library code already, so that any initialization library code called here won't be reported to profiler.
             // Also tell the debugger not to record events during intialization so that we don't leak information about initialization.
             AutoInitLibraryCodeScope autoInitLibraryCodeScope(scriptContext);
+#endif
 
             Js::Var args[] = { scriptContext->GetLibrary()->GetUndefined(), scriptContext->GetLibrary()->GetEngineInterfaceObject(), initType };
             Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args));
@@ -1326,8 +1328,9 @@ namespace Js
         DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
 
         NumberFormatting::INumberFormatter *numberFormatter;
-        Var hiddenObject;
-        obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext);
+        Var hiddenObject = nullptr;
+        AssertOrFailFastMsg(obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
+            "EntryIntl_FormatNumber: Could not retrieve hiddenObject.");
 
         numberFormatter = static_cast<NumberFormatting::INumberFormatter *>(((AutoCOMJSObject *)hiddenObject)->GetInstance());
 
@@ -1381,9 +1384,9 @@ namespace Js
         }
 
         DynamicObject* obj = DynamicObject::FromVar(args.Values[2]);
-        Var hiddenObject;
-
-        obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext);
+        Var hiddenObject = nullptr;
+        AssertOrFailFastMsg(obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
+            "EntryIntl_FormatDateTime: Could not retrieve hiddenObject.");
 
         //We are going to perform the same check for timeZone as when caching the formatter.
         Var propertyValue = nullptr;
@@ -1554,7 +1557,7 @@ namespace Js
         }
 
         DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
-        Var hiddenObject;
+        Var hiddenObject = nullptr;
         if (!obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext))
         {
             return scriptContext->GetLibrary()->GetUndefined();

@@ -118,6 +118,7 @@ enum IRDumpFlags
 #include "JITTimeConstructorCache.h"
 #include "JITTypeHandler.h"
 #include "JITType.h"
+#include "EquivalentTypeSet.h"
 #include "ObjTypeSpecFldInfo.h"
 #include "FunctionCodeGenJitTimeData.h"
 #include "ServerScriptContext.h"

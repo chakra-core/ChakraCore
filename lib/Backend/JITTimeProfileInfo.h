@@ -34,6 +34,8 @@ public:
     Js::ImplicitCallFlags GetImplicitCallFlags() const;
     Js::LoopFlags GetLoopFlags(uint loopNum) const;
 
+    uint GetLoopCount() const;
+
     uint16 GetConstantArgInfo(Js::ProfileId callSiteId) const;
 
     bool IsModulusOpByPowerOf2(Js::ProfileId profileId) const;
@@ -116,7 +118,6 @@ private:
     Js::ProfileId GetProfiledSlotCount() const;
     Js::ArgSlot GetProfiledInParamsCount() const;
     uint GetProfiledFldCount() const;
-    uint GetLoopCount() const;
     BVFixed * GetLoopFlags() const;
 
     bool TestFlag(ProfileDataFlags flag) const;

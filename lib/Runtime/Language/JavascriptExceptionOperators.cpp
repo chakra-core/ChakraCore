@@ -970,7 +970,7 @@ namespace Js
     // We might be trying to raise a stack overflow exception from the interpreter before
     // we've executed code in the current script stack frame. In that case the current byte
     // code offset is 0. In such cases walk to the caller's caller.
-    BOOL JavascriptExceptionOperators::GetCaller(JavascriptStackWalker& walker, JavascriptFunction*& jsFunc)
+    BOOL JavascriptExceptionOperators::GetCaller(JavascriptStackWalker& walker, _Out_opt_ JavascriptFunction*& jsFunc)
     {
         if (! walker.GetCaller(&jsFunc))
         {
@@ -1034,6 +1034,21 @@ namespace Js
             scriptContext->GetThreadContext() :
             ThreadContext::GetContextForCurrentThread();
         threadContext->ClearDisableImplicitFlags();
+#if DBG
+        if (scriptContext)
+        {
+            ++scriptContext->oomExceptionCount;
+        }
+        else
+        {
+            ScriptContext* ctx = threadContext->GetScriptContextList();
+            while (ctx)
+            {
+                ++ctx->oomExceptionCount;
+                ctx = ctx->next;
+            }
+        }
+#endif
 
         JavascriptExceptionObject *oom = JavascriptExceptionOperators::GetOutOfMemoryExceptionObject(scriptContext);
 
@@ -1043,6 +1058,7 @@ namespace Js
     void JavascriptExceptionOperators::ThrowStackOverflow(ScriptContext *scriptContext, PVOID returnAddress)
     {
         Assert(scriptContext);
+        DebugOnly(++scriptContext->soExceptionCount);
 
         ThreadContext *threadContext = scriptContext->GetThreadContext();
         JavascriptExceptionObject *so = threadContext->GetPendingSOErrorObject();
@@ -1125,6 +1141,7 @@ namespace Js
         Assert(exceptionObject != NULL);
         Assert(scriptContext != NULL);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (scriptContext->IsScriptContextInDebugMode()
             && scriptContext->GetDebugContext()->GetProbeContainer()->HasAllowedForException(exceptionObject))
         {
@@ -1134,6 +1151,7 @@ namespace Js
 
             scriptContext->GetDebugContext()->GetProbeContainer()->DispatchExceptionBreakpoint(&haltState);
         }
+#endif
     }
 
     void JavascriptExceptionOperators::ThrowExceptionObject(Js::JavascriptExceptionObject * exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger, PVOID returnAddress, bool resetStack)

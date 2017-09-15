@@ -879,7 +879,7 @@ public:
 
         if (0 == refs)
         {
-            delete this;  // invokes overrided operator delete
+            delete this;  // invokes overridden operator delete
         }
 
         return refs;

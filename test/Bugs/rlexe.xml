@@ -355,4 +355,46 @@
       <files>bug11026788.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug11576900.js</files>
+      <compile-flags>-lic:1 -bgjit-</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug12628506.js</files>
+      <compile-flags>-loopinterpretcount:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug13172050.js</files>
+      <compile-flags>-pageheap:2</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug13213828.js</files>
+      <compile-flags>-mic:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>valueInfoLossBug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>os11907290.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug13383062.js</files>
+      <compile-flags>-maxinterpretcount:2 -off:simplejit -off:lossyinttypespec -bgjit-</compile-flags>
+      <baseline>bug13383062.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

@@ -5,7 +5,7 @@
 #include "Backend.h"
 
 InliningDecider::InliningDecider(Js::FunctionBody *const topFunc, bool isLoopBody, bool isInDebugMode, const ExecutionMode jitMode)
-    : topFunc(topFunc), isLoopBody(isLoopBody), isInDebugMode(isInDebugMode), jitMode(jitMode), bytecodeInlinedCount(0), numberOfInlineesWithLoop (0), threshold(topFunc->GetByteCodeWithoutLDACount(), isLoopBody)
+    : topFunc(topFunc), isLoopBody(isLoopBody), isInDebugMode(isInDebugMode), jitMode(jitMode), bytecodeInlinedCount(0), numberOfInlineesWithLoop (0), threshold(topFunc->GetByteCodeWithoutLDACount(), isLoopBody, topFunc->GetIsAsmjsMode())
 {
     Assert(topFunc);
 }
@@ -68,7 +68,7 @@ bool InliningDecider::InlineIntoInliner(Js::FunctionBody *const inliner) const
         return false;
     }
 
-    if (!inliner->GetAnyDynamicProfileInfo()->HasCallSiteInfo(inliner))
+    if (!Js::DynamicProfileInfo::HasCallSiteInfo(inliner))
     {
         INLINE_TESTTRACE(_u("INLINING: Skip Inline: No call site info\tCaller: %s (#%d)\n"), inliner->GetDisplayName(),
             inliner->GetDebugNumberSet(debugStringBuffer));
@@ -235,7 +235,8 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
             return nullptr;
         }
 
-        if (inlinee->GetInParamsCount() == 0)
+        // Wasm functions can have no params
+        if (inlinee->GetInParamsCount() == 0 && !inlinee->GetIsAsmjsMode())
         {
             // Inline candidate has no params, not even a this pointer.  This can only be the global function,
             // which we shouldn't inline.
@@ -624,26 +625,8 @@ bool InliningDecider::GetBuiltInInfoCommon(
         break;
 #endif
 
-#ifdef ENABLE_SIMDJS
-    // SIMD_JS
-    // we only inline, and hence type-spec on IA
-#if defined(_M_X64) || defined(_M_IX86)
     default:
-    {
-#if 0 // TODO OOP JIT, inline SIMD
-        // inline only if simdjs and simd128 type-spec is enabled.
-        if (scriptContext->GetConfig()->IsSimdjsEnabled() && SIMD128_TYPE_SPEC_FLAG)
-        {
-            *inlineCandidateOpCode = scriptContext->GetThreadContext()->GetSimdOpcodeFromFuncInfo(funcInfo);
-        }
-        else
-#endif
-        {
-            return false;
-        }
-    }
-#endif
-#endif // ENABLE_SIMDJS
+        return false;
     }
     return true;
 }
@@ -688,7 +671,7 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
         return false;
     }
 
-    if (inlinee->GetIsAsmjsMode() || inliner->GetIsAsmjsMode())
+    if (inliner->GetIsAsmjsMode() != inlinee->GetIsAsmjsMode())
     {
         return false;
     }

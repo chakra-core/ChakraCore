@@ -1,0 +1,74 @@
+
+Running test 0: kFunctionIsAccessor
+invalid function flags detected
+Asm.js compilation failed.
+
+Running test 1: kFunctionIsClassConstructor & kFunctionIsBaseClassConstructor
+invalid function flags detected
+Asm.js compilation failed.
+
+Running test 2: kFunctionIsStaticMember
+static functions are not allowed
+Asm.js compilation failed.
+
+Running test 3: kFunctionIsClassMember
+invalid function flags detected
+Asm.js compilation failed.
+
+Running test 4: kFunctionIsMethod
+invalid function flags detected
+Asm.js compilation failed.
+
+Running test 5: kFunctionCallsEval
+invalid function flags detected
+Asm.js compilation failed.
+
+Running test 6: kFunctionChildCallsEval
+invalid function flags detected
+Asm.js compilation failed.
+
+Running test 7: kFunctionUsesArguments
+invalid function flags detected
+Asm.js compilation failed.
+
+Running test 8: kFunctionHasWithStmt
+invalid function flags detected
+Asm.js compilation failed.
+
+Running test 9: kFunctionIsLambda
+lambda functions are not allowed
+Asm.js compilation failed.
+
+Running test 10: kFunctionHasNonSimpleParameterList: Module destructuring
+default, rest & destructuring args not allowed
+Asm.js compilation failed.
+
+Running test 11: kFunctionHasNonSimpleParameterList: function destructuring
+default, rest & destructuring args not allowed
+Asm.js compilation failed.
+
+Running test 12: kFunctionHasNonSimpleParameterList: rest
+default, rest & destructuring args not allowed
+Asm.js compilation failed.
+
+Running test 13: kFunctionHasDefaultArguments
+default, rest & destructuring args not allowed
+Asm.js compilation failed.
+
+Running test 14: kFunctionIsModule
+
+Running test 15: asm.js function in Module
+
+Running test 16: kFunctionIsDefaultModuleExport
+
+Running test 17: kFunctionHasSuperReference
+invalid function flags detected
+Asm.js compilation failed.
+
+Running test 18: kFunctionIsGenerator
+generator functions are not allowed
+Asm.js compilation failed.
+
+Running test 19: kFunctionIsAsync
+async functions are not allowed
+Asm.js compilation failed.

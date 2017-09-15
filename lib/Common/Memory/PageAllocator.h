@@ -397,7 +397,7 @@ public:
 #if ENABLE_OOP_NATIVE_CODEGEN
         if (MemOpLastError == S_OK)
         {
-            MemOpLastError = GetLastError();
+            MemOpLastError = HRESULT_FROM_WIN32(::GetLastError());
         }
 #endif
     }
@@ -407,7 +407,7 @@ public:
 #if ENABLE_OOP_NATIVE_CODEGEN
         if (MemOpLastError == S_OK)
         {
-            MemOpLastError = HRESULT_FROM_WIN32(error);
+            MemOpLastError = error;
         }
 #endif
     }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "string-view.h"
+#include "src/string-view.h"
 
 #include <algorithm>
 #include <limits>
@@ -123,9 +123,9 @@ string_view::size_type string_view::find(const char* s, size_type pos) const {
 
 string_view::size_type string_view::rfind(string_view s, size_type pos) const
     noexcept {
-  pos = std::min(pos, size_  - s.size_);
-  reverse_iterator iter = std::search(reverse_iterator(begin() + pos + s.size_),
-                                      rend(), s.rbegin(), s.rend());
+  pos = std::min(std::min(pos, size_  - s.size_) + s.size_, size_);
+  reverse_iterator iter = std::search(reverse_iterator(begin() + pos), rend(),
+                                      s.rbegin(), s.rend());
   return iter == rend() ? npos : (rend() - iter - s.size_);
 }
 

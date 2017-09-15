@@ -14,7 +14,7 @@ dummy();
 var obj = {
     func: function () {
         dummy();
-        throw 123; //12,9
+        throw 123;
         dummy();
     }
 };

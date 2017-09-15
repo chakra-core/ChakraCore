@@ -44,6 +44,7 @@ namespace Js {
         static bool Is(Var aValue);
         static bool Is(intptr_t aValue);
         static bool IsPair(Var aLeft, Var aRight);
+        static bool OnlyContainsTaggedInt(Js::Arguments& args);
         static double ToDouble(Var aValue);
         static int32 ToInt32(Var aValue);
         static int32 ToInt32(intptr_t aValue);

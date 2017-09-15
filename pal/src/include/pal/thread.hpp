@@ -359,7 +359,7 @@ namespace CorUnix
         void* m_stackLimit;
 
         // The default stack size of a newly created thread (currently 256KB)
-        // when the dwStackSize paramter of PAL_CreateThread()
+        // when the dwStackSize parameter of PAL_CreateThread()
         // is zero. This value can be set by setting the
         // environment variable PAL_THREAD_DEFAULT_STACK_SIZE
         // (the value should be in bytes and in hex).

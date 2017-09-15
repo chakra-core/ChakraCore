@@ -27,11 +27,12 @@ namespace Js {
                 Field(PropertyRecord const*) name;
             };
             Field(SymbolType) symbolType;
-            Field(bool) hasFuncAssignment;
-            Field(bool) isBlockVariable;
-            Field(bool) isFuncExpr;
-            Field(bool) isModuleExportStorage;
-            Field(bool) isModuleImport;
+            Field(bool) hasFuncAssignment : 1;
+            Field(bool) isBlockVariable : 1;
+            Field(bool) isConst : 1;
+            Field(bool) isFuncExpr : 1;
+            Field(bool) isModuleExportStorage : 1;
+            Field(bool) isModuleImport : 1;
         };
 
     private:
@@ -84,6 +85,13 @@ namespace Js {
             Assert(!areNamesCached);
             Assert(i >= 0 && i < symbolCount);
             symbols[i].isBlockVariable = is;
+        }
+
+        void SetIsConst(int i, bool is)
+        {
+            Assert(!areNamesCached);
+            Assert(i >= 0 && i < symbolCount);
+            symbols[i].isConst = is;
         }
 
         void SetIsFuncExpr(int i, bool is)
@@ -149,6 +157,12 @@ namespace Js {
         {
             Assert(i >= 0 && i < symbolCount);
             return symbols[i].isBlockVariable;
+        }
+
+        bool GetIsConst(int i)
+        {
+            Assert(i >= 0 && i < symbolCount);
+            return symbols[i].isConst;
         }
 
         bool GetIsFuncExpr(int i)

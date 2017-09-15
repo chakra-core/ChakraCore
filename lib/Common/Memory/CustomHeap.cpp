@@ -223,7 +223,8 @@ Allocation* Heap<TAlloc, TPreReservedAlloc>::Alloc(size_t bytes, ushort pdataCou
     Assert(pdataCount > 0 || (pdataCount == 0 && xdataSize == 0));
 
     // Round up to power of two to allocate, and figure out which bucket to allocate in
-    size_t bytesToAllocate = PowerOf2Policy::GetSize(bytes);
+    int _;
+    size_t bytesToAllocate = PowerOf2Policy::GetSize(bytes, &_ /* modFunctionIndex */);
     BucketId bucket = (BucketId) GetBucketForSize(bytesToAllocate);
 
     if (bucket == BucketId::LargeObjectList)

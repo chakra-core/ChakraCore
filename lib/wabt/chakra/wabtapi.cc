@@ -6,26 +6,27 @@
 #include "wabtapi.h"
 
 #pragma warning(push, 0)
-#include "writer.h"
-#include "wast-parser.h"
-#include "wast-lexer.h"
-#include "resolve-names.h"
-#include "binary-writer.h"
-#include "source-error-handler.h"
-#include "ir.h"
+#include "src/wast-parser.h"
+#include "src/wast-lexer.h"
+#include "src/resolve-names.h"
+#include "src/binary-writer.h"
+#include "src/error-handler.h"
+#include "src/ir.h"
+#include "src/cast.h"
 #pragma warning(pop)
 
 using namespace wabt;
 using namespace ChakraWabt;
 
-class MySourceErrorHandler : public SourceErrorHandler
+class MyErrorHandler : public ErrorHandler
 {
 public:
+    MyErrorHandler() : ErrorHandler(Location::Type::Text) {}
 
-    virtual bool OnError(const Location* loc, const std::string& error, const std::string& source_line, size_t source_line_column_offset) override
+    virtual bool OnError(const Location& loc, const std::string& error, const std::string& source_line, size_t source_line_column_offset) override
     {
-        int colStart = loc->first_column - 1 - (int)source_line_column_offset;
-        int sourceErrorLength = (loc->last_column - loc->first_column) - 2;
+        int colStart = loc.first_column - 1 - (int)source_line_column_offset;
+        int sourceErrorLength = (loc.last_column - loc.first_column) - 2;
         if (sourceErrorLength < 0)
         {
             // -2 probably overflowed
@@ -33,36 +34,20 @@ public:
         }
         char buf[4096];
         wabt_snprintf(buf, 4096, "Wast Parsing error:%u:%u:\n%s\n%s\n%*s^%*s^",
-                      loc->line,
-                      loc->first_column,
-                      error.c_str(),
-                      source_line.c_str(),
-                      colStart, "",
-                      sourceErrorLength, "");
+            loc.line,
+            loc.first_column,
+            error.c_str(),
+            source_line.c_str(),
+            colStart, "",
+            sourceErrorLength, "");
         throw Error(buf);
     }
-
 
     virtual size_t source_line_max_length() const override
     {
         return 256;
     }
 
-};
-
-struct MemoryWriterContext
-{
-    MemoryWriter* writer;
-    Context* ctx;
-};
-
-struct AutoCleanScript
-{
-    Script* script;
-    ~AutoCleanScript()
-    {
-        delete script;
-    }
 };
 
 uint TruncSizeT(size_t value)
@@ -95,15 +80,15 @@ void write_int64(Context* ctx, Js::Var obj, PropertyId id, int64 value)
     set_property(ctx, obj, id, line, "Unable to write number");
 }
 
-void write_string(Context* ctx, Js::Var obj, PropertyId id, StringSlice src)
+void write_string(Context* ctx, Js::Var obj, PropertyId id, const char* src, size_t length = 0xFFFFFFFF)
 {
-    Js::Var str = ctx->spec->stringToVar(src.start, TruncSizeT(src.length), ctx->user_data);
+    Js::Var str = ctx->spec->stringToVar(src, TruncSizeT(length == 0xFFFFFFFF ? strlen(src) : length), ctx->user_data);
     set_property(ctx, obj, id, str, "Unable to write string");
 }
 
-void write_string(Context* ctx, Js::Var obj, PropertyId id, const char* src)
+void write_string(Context* ctx, Js::Var obj, PropertyId id, const std::string& src)
 {
-    write_string(ctx, obj, id, {src, strlen(src)});
+    write_string(ctx, obj, id, src.c_str(), src.size());
 }
 
 void write_location(Context* ctx, Js::Var obj, const Location* loc)
@@ -113,14 +98,14 @@ void write_location(Context* ctx, Js::Var obj, const Location* loc)
 
 void write_var(Context* ctx, Js::Var obj, PropertyId id, const Var* var)
 {
-    if (var->type == VarType::Index)
+    if (var->is_index())
     {
-        write_int64(ctx, obj, id, var->index);
+        write_int64(ctx, obj, id, var->index());
     }
     else
     {
-        assert(var->type == VarType::Name);
-        write_string(ctx, obj, id, var->name);
+        assert(var->is_name());
+        write_string(ctx, obj, id, var->name());
     }
 }
 
@@ -132,8 +117,6 @@ void write_command_type(Context* ctx, CommandType type, Js::Var cmdObj)
         "register",
         "assert_malformed",
         "assert_invalid",
-        nullptr, /* ASSERT_INVALID_NON_BINARY, this command will never be
-                 written */
         "assert_unlinkable",
         "assert_uninstantiable",
         "assert_return",
@@ -142,7 +125,7 @@ void write_command_type(Context* ctx, CommandType type, Js::Var cmdObj)
         "assert_trap",
         "assert_exhaustion",
     };
-    WABT_STATIC_ASSERT(sizeof(s_command_names)/sizeof(char*) == (int)CommandType::Last + 1);
+    WABT_STATIC_ASSERT(sizeof(s_command_names) / sizeof(char*) == (int)CommandType::Last + 1);
     uint i = (uint)type;
     if (i > (uint)CommandType::Last)
     {
@@ -151,18 +134,18 @@ void write_command_type(Context* ctx, CommandType type, Js::Var cmdObj)
     write_string(ctx, cmdObj, PropertyIds::type, s_command_names[i]);
 }
 
-Js::Var create_const_vector(Context* ctx, const ConstVector* consts)
+Js::Var create_const_vector(Context* ctx, const ConstVector& consts)
 {
     Js::Var constsArr = ctx->spec->createArray(ctx->user_data);
 
     size_t i;
-    for (i = 0; i < consts->size(); ++i)
+    for (i = 0; i < consts.size(); ++i)
     {
         Js::Var constDescriptor = ctx->spec->createObject(ctx->user_data);
         ctx->spec->push(constsArr, constDescriptor, ctx->user_data);
 
         char buf[32];
-        const Const& const_ = consts->at(i);
+        const Const& const_ = consts.at(i);
         switch (const_.type)
         {
         case Type::I32:
@@ -190,7 +173,7 @@ Js::Var create_const_vector(Context* ctx, const ConstVector* consts)
     return constsArr;
 }
 
-void write_const_vector(Context* ctx, Js::Var obj, PropertyId id, const ConstVector* consts)
+void write_const_vector(Context* ctx, Js::Var obj, PropertyId id, const ConstVector& consts)
 {
     Js::Var constsArr = create_const_vector(ctx, consts);
     set_property(ctx, obj, id, constsArr, "Unable to write const vector");
@@ -199,21 +182,18 @@ void write_const_vector(Context* ctx, Js::Var obj, PropertyId id, const ConstVec
 Js::Var create_type_object(Context* ctx, Type type)
 {
     Js::Var typeObj = ctx->spec->createObject(ctx->user_data);
-    StringSlice str;
-    str.start = get_type_name(type);
-    str.length = strlen(str.start);
-    write_string(ctx, typeObj, PropertyIds::type, str);
+    write_string(ctx, typeObj, PropertyIds::type, GetTypeName(type));
     return typeObj;
 }
 
-void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* script, const Action* action)
+void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* script, const ActionPtr& action)
 {
     const Module* module = script->GetModule(action->module_var);
     const Export* export_;
     Js::Var resultArr = ctx->spec->createArray(ctx->user_data);
     set_property(ctx, obj, id, resultArr, "Unable to set action result type");
 
-    switch (action->type)
+    switch (action->type())
     {
     case ActionType::Invoke:
     {
@@ -242,183 +222,204 @@ void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* 
     }
 }
 
-void write_action(Context* ctx, Js::Var obj, const Action* action)
+void write_action(Context* ctx, Js::Var obj, const ActionPtr& action)
 {
     Js::Var actionObj = ctx->spec->createObject(ctx->user_data);
     set_property(ctx, obj, PropertyIds::action, actionObj, "Unable to set action");
 
-    if (action->type == ActionType::Invoke)
-    {
-        write_string(ctx, actionObj, PropertyIds::type, "invoke");
-    }
-    else
-    {
-        assert(action->type == ActionType::Get);
-        write_string(ctx, actionObj, PropertyIds::type, "get");
-    }
-
-    if (action->module_var.type != VarType::Index)
+    if (action->module_var.is_name())
     {
         write_var(ctx, actionObj, PropertyIds::module, &action->module_var);
     }
-    if (action->type == ActionType::Invoke)
+    if (action->type() == ActionType::Invoke)
     {
-        write_string(ctx, actionObj, PropertyIds::field, action->name);
-        write_const_vector(ctx, actionObj, PropertyIds::args, &action->invoke->args);
-
+        const InvokeAction* iaction = cast<InvokeAction>(action.get());
+        write_string(ctx, actionObj, PropertyIds::type, "invoke");
+        write_string(ctx, actionObj, PropertyIds::field, iaction->name);
+        write_const_vector(ctx, actionObj, PropertyIds::args, iaction->args);
     }
     else
     {
+        assert(action->type() == ActionType::Get);
+        write_string(ctx, actionObj, PropertyIds::type, "get");
         write_string(ctx, actionObj, PropertyIds::field, action->name);
     }
 }
 
-Js::Var create_module(Context* ctx, Module* module)
+Js::Var create_module(Context* ctx, const Module* module)
 {
     if (!module)
     {
         throw Error("No module found");
     }
-    MemoryWriter writer;
-    MemoryWriterContext context{ &writer, ctx };
-    WriteBinaryOptions s_write_binary_options = { nullptr, true, false, false };
-    Result result = write_binary_module(&writer, module, &s_write_binary_options);
-    if (!WABT_SUCCEEDED(result))
+    MemoryStream stream;
+    WriteBinaryOptions s_write_binary_options;
+    Result result = WriteBinaryModule(&stream, module, &s_write_binary_options);
+    if (!Succeeded(result))
     {
         throw Error("Error while writing module");
     }
-    const char* data = (const char*)writer.output_buffer().data.data();
-    const size_t size = writer.output_buffer().size();
+    const uint8_t* data = stream.output_buffer().data.data();
+    const size_t size = stream.output_buffer().size();
     return ctx->createBuffer(data, TruncSizeT(size), ctx->user_data);
 }
 
-void write_module(Context* ctx, Js::Var obj, Module* module)
+void write_module(Context* ctx, Js::Var obj, const Module* module)
 {
     Js::Var buffer = create_module(ctx, module);
     set_property(ctx, obj, PropertyIds::buffer, buffer, "Unable to set module");
 }
 
-static void write_invalid_module(Context* ctx, Js::Var obj, const ScriptModule* module, StringSlice text)
+static void write_invalid_module(Context* ctx, Js::Var obj, const ScriptModule* module, const std::string& text)
 {
-    write_location(ctx, obj, &module->GetLocation());
+    write_location(ctx, obj, &module->location());
     write_string(ctx, obj, PropertyIds::text, text);
-    switch (module->type)
+    const std::vector<uint8_t>* data = nullptr;
+    switch (module->type())
     {
-    case ScriptModule::Type::Text:
-        write_module(ctx, obj, module->text);
+    case ScriptModuleType::Text:
+        write_module(ctx, obj, &cast<TextScriptModule>(module)->module);
         break;
-    case ScriptModule::Type::Binary:
-    {
-        Js::Var buffer = ctx->createBuffer(module->binary.data, TruncSizeT(module->binary.size), ctx->user_data);
-        set_property(ctx, obj, PropertyIds::buffer, buffer, "Unable to set invalid module");
-        break;
-    }
-    case ScriptModule::Type::Quoted:
-    {
-        Js::Var buffer = ctx->createBuffer(module->quoted.data, TruncSizeT(module->quoted.size), ctx->user_data);
-        set_property(ctx, obj, PropertyIds::buffer, buffer, "Unable to set invalid module");
-        break;
-    }
+    case ScriptModuleType::Binary:
+        data = &cast<BinaryScriptModule>(module)->data;
+        goto create_binary_module;
+    case ScriptModuleType::Quoted:
+        data = &cast<QuotedScriptModule>(module)->data;
+    create_binary_module:
+        {
+            Js::Var buffer = ctx->createBuffer(data->data(), TruncSizeT(data->size()), ctx->user_data);
+            set_property(ctx, obj, PropertyIds::buffer, buffer, "Unable to set invalid module");
+            break;
+        }
     default:
         assert(false);
         break;
     }
 }
-
-Js::Var write_commands(Context* ctx, Script* script) {
+Js::Var write_commands(Context* ctx, Script* script)
+{
 
     Js::Var resultObj = ctx->spec->createObject(ctx->user_data);
     Js::Var commandsArr = ctx->spec->createArray(ctx->user_data);
     set_property(ctx, resultObj, PropertyIds::commands, commandsArr, "Unable to set commands");
-    wabt::Index last_module_index = (wabt::Index)-1;
-    for (wabt::Index i = 0; i < script->commands.size(); ++i) {
+    wabt::Index last_module_index = (wabt::Index) - 1;
+    for (wabt::Index i = 0; i < script->commands.size(); ++i)
+    {
         const Command* command = script->commands[i].get();
 
-        if (command->type == CommandType::AssertInvalidNonBinary)
-            continue;
         Js::Var cmdObj = ctx->spec->createObject(ctx->user_data);
         ctx->spec->push(commandsArr, cmdObj, ctx->user_data);
         write_command_type(ctx, command->type, cmdObj);
 
-        switch (command->type) {
-        case CommandType::Module: {
-            Module* module = command->module;
-            write_location(ctx, cmdObj, &module->loc);
-            if (module->name.start) {
-                write_string(ctx, cmdObj, PropertyIds::name, module->name);
+        switch (command->type)
+        {
+        case CommandType::Module:
+        {
+            const Module& module = cast<ModuleCommand>(command)->module;
+            write_location(ctx, cmdObj, &module.loc);
+            if (!module.name.empty())
+            {
+                write_string(ctx, cmdObj, PropertyIds::name, module.name);
             }
-            write_module(ctx, cmdObj, module);
+            write_module(ctx, cmdObj, &module);
             last_module_index = i;
             break;
         }
 
         case CommandType::Action:
-            write_location(ctx, cmdObj, &command->action->loc);
-            write_action(ctx, cmdObj, command->action);
+        {
+            const ActionPtr& action = cast<ActionCommand>(command)->action;
+            write_location(ctx, cmdObj, &action->loc);
+            write_action(ctx, cmdObj, action);
             break;
-
+        }
         case CommandType::Register:
-            write_location(ctx, cmdObj, &command->register_.var.loc);
-            if (command->register_.var.type == VarType::Name) {
-                write_var(ctx, cmdObj, PropertyIds::name, &command->register_.var);
-            } else {
+        {
+            auto* register_command = cast<RegisterCommand>(command);
+            write_location(ctx, cmdObj, &register_command->var.loc);
+            if (register_command->var.is_name())
+            {
+                write_var(ctx, cmdObj, PropertyIds::name, &register_command->var);
+            }
+            else
+            {
                 /* If we're not registering by name, then we should only be
                 * registering the last module. */
                 WABT_USE(last_module_index);
-                assert(command->register_.var.index == last_module_index);
+                assert(register_command->var.index() == last_module_index);
             }
-            write_string(ctx, cmdObj, PropertyIds::as, command->register_.module_name);
+            write_string(ctx, cmdObj, PropertyIds::as, register_command->module_name);
             break;
-
+        }
         case CommandType::AssertMalformed:
-            write_invalid_module(ctx, cmdObj, command->assert_malformed.module,
-                                 command->assert_malformed.text);
+        {
+            auto* assert_malformed_command = cast<AssertMalformedCommand>(command);
+            write_invalid_module(ctx, cmdObj, assert_malformed_command->module.get(),
+                assert_malformed_command->text);
             break;
-
+        }
         case CommandType::AssertInvalid:
-            write_invalid_module(ctx, cmdObj, command->assert_invalid.module,
-                                 command->assert_invalid.text);
+        {
+            auto* assert_invalid_command = cast<AssertInvalidCommand>(command);
+            write_invalid_module(ctx, cmdObj, assert_invalid_command->module.get(),
+                assert_invalid_command->text);
             break;
-
+        }
         case CommandType::AssertUnlinkable:
-            write_invalid_module(ctx, cmdObj, command->assert_unlinkable.module,
-                                 command->assert_unlinkable.text);
+        {
+            auto* assert_unlinkable_command = cast<AssertUnlinkableCommand>(command);
+            write_invalid_module(ctx, cmdObj, assert_unlinkable_command->module.get(),
+                assert_unlinkable_command->text);
             break;
-
+        }
         case CommandType::AssertUninstantiable:
-            write_invalid_module(ctx, cmdObj, command->assert_uninstantiable.module,
-                                 command->assert_uninstantiable.text);
+        {
+            auto* assert_uninstantiable_command = cast<AssertUninstantiableCommand>(command);
+            write_invalid_module(ctx, cmdObj, assert_uninstantiable_command->module.get(),
+                assert_uninstantiable_command->text);
             break;
-
+        }
         case CommandType::AssertReturn:
-            write_location(ctx, cmdObj, &command->assert_return.action->loc);
-            write_action(ctx, cmdObj, command->assert_return.action);
-            write_const_vector(ctx, cmdObj, PropertyIds::expected, command->assert_return.expected);
+        {
+            auto* assert_return_command = cast<AssertReturnCommand>(command);
+            write_location(ctx, cmdObj, &assert_return_command->action->loc);
+            write_action(ctx, cmdObj, assert_return_command->action);
+            write_const_vector(ctx, cmdObj, PropertyIds::expected, assert_return_command->expected);
             break;
-
+        }
         case CommandType::AssertReturnCanonicalNan:
-        case CommandType::AssertReturnArithmeticNan:
-            WABT_STATIC_ASSERT(offsetof(Command, assert_return_canonical_nan) == offsetof(Command, assert_return_arithmetic_nan));
-            write_location(ctx, cmdObj, &command->assert_return_canonical_nan.action->loc);
-            write_action(ctx, cmdObj, command->assert_return_canonical_nan.action);
+        {
+            auto* assert_return_canonical_nan_command = cast<AssertReturnCanonicalNanCommand>(command);
+            write_location(ctx, cmdObj, &assert_return_canonical_nan_command->action->loc);
+            write_action(ctx, cmdObj, assert_return_canonical_nan_command->action);
             write_action_result_type(ctx, cmdObj, PropertyIds::expected, script,
-                                     command->assert_return_canonical_nan.action);
+                assert_return_canonical_nan_command->action);
             break;
-
+        }
+        case CommandType::AssertReturnArithmeticNan:
+        {
+            auto* assert_return_arithmetic_nan_command = cast<AssertReturnArithmeticNanCommand>(command);
+            write_location(ctx, cmdObj, &assert_return_arithmetic_nan_command->action->loc);
+            write_action(ctx, cmdObj, assert_return_arithmetic_nan_command->action);
+            write_action_result_type(ctx, cmdObj, PropertyIds::expected, script,
+                assert_return_arithmetic_nan_command->action);
+            break;
+        }
         case CommandType::AssertTrap:
-            write_location(ctx, cmdObj, &command->assert_trap.action->loc);
-            write_action(ctx, cmdObj, command->assert_trap.action);
-            write_string(ctx, cmdObj, PropertyIds::text, command->assert_trap.text);
+        {
+            auto* assert_trap_command = cast<AssertTrapCommand>(command);
+            write_location(ctx, cmdObj, &assert_trap_command->action->loc);
+            write_action(ctx, cmdObj, assert_trap_command->action);
+            write_string(ctx, cmdObj, PropertyIds::text, assert_trap_command->text);
             break;
-
+        }
         case CommandType::AssertExhaustion:
-            write_location(ctx, cmdObj, &command->assert_trap.action->loc);
-            write_action(ctx, cmdObj, command->assert_trap.action);
+        {
+            auto* assert_exhaustion_command = cast<AssertExhaustionCommand>(command);
+            write_location(ctx, cmdObj, &assert_exhaustion_command->action->loc);
+            write_action(ctx, cmdObj, assert_exhaustion_command->action);
             break;
-
-        case CommandType::AssertInvalidNonBinary:
-            assert(0);
-            break;
+        }
         }
     }
     return resultObj;
@@ -441,37 +442,42 @@ void Context::Validate(bool isSpec) const
     }
 }
 
+void CheckResult(Result result, const char* errorMessage)
+{
+    if (!Succeeded(result))
+    {
+        throw Error(errorMessage);
+    }
+}
+
 Js::Var ChakraWabt::ConvertWast2Wasm(Context& ctx, char* buffer, uint bufferSize, bool isSpecText)
 {
     ctx.Validate(isSpecText);
 
     std::unique_ptr<WastLexer> lexer = WastLexer::CreateBufferLexer("", buffer, (size_t)bufferSize);
 
-    MySourceErrorHandler s_error_handler;
+    MyErrorHandler s_error_handler;
 
-    Script* script;
-    Result result = parse_wast(lexer.get(), &script, &s_error_handler);
-    AutoCleanScript autoCleanScript = { script };
-    if (!WABT_SUCCEEDED(result))
-    {
-        throw Error("Invalid wast script");
-    }
-
-    result = resolve_names_script(lexer.get(), script, &s_error_handler);
-    if (!WABT_SUCCEEDED(result))
-    {
-        throw Error("Unable to resolve script's names");
-    }
-
-    void* returnValue = nullptr;
     if (isSpecText)
     {
-        returnValue = write_commands(&ctx, script);
+        std::unique_ptr<Script> script;
+        Result result = ParseWastScript(lexer.get(), &script, &s_error_handler);
+        CheckResult(result, "Invalid wast script");
+
+        result = ResolveNamesScript(lexer.get(), script.get(), &s_error_handler);
+        CheckResult(result, "Unable to resolve script's names");
+
+        return write_commands(&ctx, script.get());
     }
     else
     {
-        Module* module = script->GetFirstModule();
-        returnValue = create_module(&ctx, module);
+        std::unique_ptr<Module> module;
+        Result result = ParseWatModule(lexer.get(), &module, &s_error_handler);
+        CheckResult(result, "Invalid wat script");
+
+        result = ResolveNamesModule(lexer.get(), module.get(), &s_error_handler);
+        CheckResult(result, "Unable to resolve module's names");
+
+        return create_module(&ctx, module.get());
     }
-    return returnValue;
 }

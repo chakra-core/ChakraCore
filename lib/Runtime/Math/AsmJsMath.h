@@ -18,9 +18,9 @@ namespace Js
         template<typename T> static bool RemWouldTrap(T aLeft, T aRight);
         template<typename T> static T RemUnsafe(T aLeft, T aRight);
         template<typename T> static T RemChecked(T aLeft, T aRight);
-        template<typename T> static T Min( T aLeft, T aRight );
-        template<typename T> static T Max( T aLeft, T aRight );
-        template<typename T> static T Abs( T aLeft );
+        template<typename T> static T VECTORCALL Min( T aLeft, T aRight );
+        template<typename T> static T VECTORCALL Max( T aLeft, T aRight );
+        template<typename T> static T VECTORCALL Abs( T aLeft );
 
         template<typename T = int> static T And( T aLeft, T aRight );
         template<typename T = int> static T Or( T aLeft, T aRight );
@@ -28,7 +28,7 @@ namespace Js
         template<typename T = int> static T Shl( T aLeft, T aRight );
         template<typename T = int> static T Shr( T aLeft, T aRight );
         template<typename T = int> static T ShrU( T aLeft, T aRight );
-        template<typename T> static T Neg( T aLeft);
+        template<typename T> static T VECTORCALL Neg( T aLeft);
         static int Not( int aLeft);
         static int LogNot( int aLeft);
         static int ToBool( int aLeft );

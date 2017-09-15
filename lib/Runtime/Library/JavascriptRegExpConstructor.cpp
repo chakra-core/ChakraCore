@@ -394,7 +394,6 @@ namespace Js
         JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
         if (BuiltInPropertyRecords::input.Equals(propertyName)
             || BuiltInPropertyRecords::$_.Equals(propertyName)
-            || BuiltInPropertyRecords::length.Equals(propertyName)
             || BuiltInPropertyRecords::lastMatch.Equals(propertyName)
             || BuiltInPropertyRecords::$Ampersand.Equals(propertyName)
             || BuiltInPropertyRecords::lastParen.Equals(propertyName)

@@ -19,6 +19,12 @@ namespace Js
         uint offset = GetCurrentOffset();
         EncodeOpCode<layoutSize>((ushort)op, writer);
 
+        if (op > Js::OpCodeAsmJs::Ld_Db || op < Js::OpCodeAsmJs::Ld_IntConst)
+        {
+            writer->m_byteCodeWithoutLDACount++;
+        }
+        CompileAssert((int)Js::OpCodeAsmJs::Ld_Db - (int)Js::OpCodeAsmJs::Ld_IntConst == 7);
+
         if (!isPatching)
         {
             writer->IncreaseByteCodeCount();
@@ -363,7 +369,7 @@ namespace Js
     }
 
     template <typename SizePolicy>
-    bool AsmJsByteCodeWriter::TryWriteAsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, int32 slotId)
+    bool AsmJsByteCodeWriter::TryWriteAsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, uint32 slotId)
     {
         OpLayoutT_ElementSlot<SizePolicy> layout;
         if (SizePolicy::Assign(layout.Value, value) && SizePolicy::Assign(layout.Instance, instance)
@@ -568,9 +574,17 @@ namespace Js
         m_byteCodeData.Encode(op, &data, sizeof(data), this, isPatching);
     }
 
-    void AsmJsByteCodeWriter::AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType)
+    void AsmJsByteCodeWriter::AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType, Js::ProfileId profileId)
     {
+        if (DoDynamicProfileOpcode(InlinePhase) && profileId != Js::Constants::NoProfileId && OpCodeAttrAsmJs::HasProfiledOp(op))
+        {
+            OpCodeUtilAsmJs::ConvertOpToProfiled(&op);
+        }
         MULTISIZE_LAYOUT_WRITE(AsmCall, op, returnValueRegister, functionRegister, givenArgCount, retType);
+        if (OpCodeAttrAsmJs::IsProfiledOp(op))
+        {
+            m_byteCodeData.Encode(&profileId, sizeof(Js::ProfileId));
+        }
     }
 
     void AsmJsByteCodeWriter::AsmTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, ArrayBufferView::ViewType viewType)
@@ -589,7 +603,7 @@ namespace Js
         MULTISIZE_LAYOUT_WRITE(AsmSimdTypedArr, op, value, slotIndex, dataWidth, viewType, offset);
     }
 
-    void AsmJsByteCodeWriter::AsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, int32 slotId)
+    void AsmJsByteCodeWriter::AsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, uint32 slotId)
     {
         MULTISIZE_LAYOUT_WRITE(AsmSlot, op, value, instance, slotId);
     }

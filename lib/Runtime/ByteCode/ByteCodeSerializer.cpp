@@ -39,12 +39,12 @@ namespace Js
     const int magicEndOfCacheIdToPropIdMap = *(int*)"]cid";
     const int magicStartOfReferencedPropIdMap = *(int*)"rid[";
     const int magicEndOfReferencedPropIdMap = *(int*)"]rid";
-    const int magicStartOfPropertyIdsForScopeSlotArray = *(int*)"scope[";
-    const int magicEndOfPropertyIdsForScopeSlotArray = *(int*)"]scope";
-    const int magicStartOfDebuggerScopes = *(int*)"dbgscope[";
-    const int magicEndOfDebuggerScopes = *(int*)"]dbgscope";
-    const int magicStartOfDebuggerScopeProperties = *(int*)"dbgscopeprop[";
-    const int magicEndOfDebuggerScopeProperties = *(int*)"]dbgscopeprop";
+    const int magicStartOfPropertyIdsForScopeSlotArray = *(int*)"scp[";
+    const int magicEndOfPropertyIdsForScopeSlotArray = *(int*)"]scp";
+    const int magicStartOfDebuggerScopes = *(int*)"dsc[";
+    const int magicEndOfDebuggerScopes = *(int*)"]dsc";
+    const int magicStartOfDebuggerScopeProperties = *(int*)"dsp[";
+    const int magicEndOfDebuggerScopeProperties = *(int*)"]dsp";
     const int magicStartOfAux = *(int*)"aux[";
     const int magicEndOfAux = *(int*)"]aux";
     const int magicStartOfAuxVarArray = *(int*)"ava[";
@@ -57,12 +57,14 @@ namespace Js
     const int magicEndOfAuxPropIdArray = *(int*)"]api";
     const int magicStartOfAuxFuncInfoArray = *(int*)"afi[";
     const int magicEndOfAuxFuncInfoArray = *(int*)"]afi";
-    const int magicStartOfAsmJsFuncInfo = *(int*)"asmfuncinfo[";
-    const int magicEndOfAsmJsFuncInfo = *(int*)"]asmfuncinfo";
-    const int magicStartOfAsmJsModuleInfo = *(int*)"asmmodinfo[";
-    const int magicEndOfAsmJsModuleInfo = *(int*)"]asmmodinfo";
-    const int magicStartOfPropIdsOfFormals = *(int*)"propIdOfFormals[";
-    const int magicEndOfPropIdsOfFormals = *(int*)"]propIdOfFormals";
+    const int magicStartOfAsmJsFuncInfo = *(int*)"aFI[";
+    const int magicEndOfAsmJsFuncInfo = *(int*)"]aFI";
+    const int magicStartOfAsmJsModuleInfo = *(int*)"ami[";
+    const int magicEndOfAsmJsModuleInfo = *(int*)"]ami";
+    const int magicStartOfPropIdsOfFormals = *(int*)"pif[";
+    const int magicEndOfPropIdsOfFormals = *(int*)"]pif";
+    const int magicStartOfSlotIdToNestedIndexArray = *(int*)"sni[";
+    const int magicEndOfSlotIdToNestedIndexArray = *(int*)"]sni";
 #endif
 
     // Serialized files are architecture specific
@@ -121,14 +123,21 @@ enum FileVersionScheme : byte
 
 // Used for selective serialization of Function Body fields to make the representation compact
 #define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) bool has_##name : 1
-#define DECLARE_SERIALIZABLE_ACCESSOR_FIELD(type, name, serializableType) bool has_##name : 1
+#define DECLARE_SERIALIZABLE_ACCESSOR_FIELD(type, name, serializableType, defaultValue) bool has_##name : 1
 
 #define DEFINE_ALL_FIELDS
 struct SerializedFieldList {
 #include "SerializableFunctionFields.h"
     bool has_m_lineNumber: 1;
     bool has_m_columnNumber: 1;
+    bool has_attributes : 1;
     bool has_m_nestedCount: 1;
+    bool has_loopHeaderArray : 1;
+    bool has_asmJsInfo : 1;
+    bool has_auxiliary : 1;
+    bool has_propertyIdOfFormals: 1;
+    bool has_slotIdInCachedScopeToNestedIndexArray : 1;
+    bool has_debuggerScopeSlotArray : 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
@@ -220,16 +229,19 @@ enum FunctionFlags
 // Kinds of constant
 enum ConstantType : byte
 {
-    ctInt = 1,
-    ctString16 = 2,
-    ctNull = 3,
-    ctUndefined = 4,
-    ctNumber = 5,
-    ctNullDisplay = 6,
-    ctStrictNullDisplay = 7,
-    ctTrue = 8,
-    ctFalse = 9,
-    ctStringTemplateCallsite = 10
+    ctInt8 = 1,
+    ctInt16 = 2,
+    ctInt32 = 3,
+    ctNumber = 4,
+    ctString16 = 5,
+    ctPropertyString16 = 6,
+    ctNull = 7,
+    ctUndefined = 8,
+    ctNullDisplay = 9,
+    ctStrictNullDisplay = 10,
+    ctTrue = 11,
+    ctFalse = 12,
+    ctStringTemplateCallsite = 13,
 };
 
 
@@ -340,16 +352,16 @@ class ByteCodeBufferBuilder
     BufferBuilderInt32 originalSourceSize;
     BufferBuilderInt32 originalCharLength;
     BufferBuilderRelativeOffset string16sOffset;
-    BufferBuilderRelativeOffset sourceSpansOffset;
     BufferBuilderRelativeOffset lineInfoCacheOffset;
     BufferBuilderRelativeOffset functionsOffset;
     BufferBuilderInt32 string16Count;
     BufferBuilderList string16IndexTable;
     BufferBuilderList string16Table;
     BufferBuilderAligned alignedString16Table;
-    BufferBuilderList sourceSpans;
     BufferBuilderInt32 lineInfoCacheCount;
-    BufferBuilderRaw lineInfoCache;
+    BufferBuilderRaw lineCharacterOffsetCacheBuffer;
+    BufferBuilderByte lineInfoHasByteCache;
+    BufferBuilderRaw lineByteOffsetCacheBuffer;
     BufferBuilderInt32 functionCount;
     BufferBuilderList functionsTable;
     // End File Layout ---------------------------------
@@ -393,17 +405,17 @@ public:
           originalSourceSize(_u("Source Size"), sourceSize),
           originalCharLength(_u("Source Char Length"), sourceCharLength),
           string16sOffset(_u("Offset of String16s"), &string16Count),
-          sourceSpansOffset(_u("Offset of Source Spans"), &sourceSpans),
-          lineInfoCacheOffset(_u("Offset of Source Spans"), &lineInfoCacheCount),
+          lineInfoCacheOffset(_u("Offset of Line Info Cache"), &lineInfoCacheCount),
           functionCount(_u("Function Count"), 0),
           functionsOffset(_u("Offset of Functions"), &functionCount),
           string16Count(_u("String16 Count"), 0),
           string16IndexTable(_u("String16 Indexes")),
           string16Table(_u("String16 Table")),
           alignedString16Table(_u("Alignment for String16 Table"), &string16Table, sizeof(char16)),
-          sourceSpans(_u("Source Spans")),
           lineInfoCacheCount(_u("Line Info Cache"), sourceInfo->GetLineOffsetCache()->GetLineCount()),
-          lineInfoCache(_u("Line Info Cache"), lineInfoCacheCount.value * sizeof(JsUtil::LineOffsetCache<Recycler>::LineOffsetCacheItem), (byte *)sourceInfo->GetLineOffsetCache()->GetItems()),
+          lineCharacterOffsetCacheBuffer(_u("Line Info Character Cache"), lineInfoCacheCount.value * sizeof(charcount_t), (byte *)sourceInfo->GetLineOffsetCache()->GetLineCharacterOffsetBuffer()),
+          lineInfoHasByteCache(_u("Line Info Has Byte Cache"), sourceInfo->GetLineOffsetCache()->GetLineByteOffsetBuffer() != nullptr),
+          lineByteOffsetCacheBuffer(_u("Line Info Byte Cache"), lineInfoCacheCount.value * sizeof(charcount_t), (byte *)sourceInfo->GetLineOffsetCache()->GetLineByteOffsetBuffer()),
           functionsTable(_u("Functions")),
           nextString16Id(builtInPropertyCount), // Reserve the built-in property ids
           topFunctionId(0),
@@ -495,13 +507,17 @@ public:
         // Prepend all sections (in reverse order because of prepend)
         all.list = regex::ImmutableList<Js::BufferBuilder*>::OfSingle(&functionsTable, alloc);
         all.list = all.list->Prepend(&functionCount, alloc);
-        all.list = all.list->Prepend(&lineInfoCache, alloc);
+        if (lineByteOffsetCacheBuffer.raw != nullptr)
+        {
+            all.list = all.list->Prepend(&lineByteOffsetCacheBuffer, alloc);
+        }
+        all.list = all.list->Prepend(&lineInfoHasByteCache, alloc);
+        all.list = all.list->Prepend(&lineCharacterOffsetCacheBuffer, alloc);
         all.list = all.list->Prepend(&lineInfoCacheCount, alloc);
         all.list = all.list->Prepend(&alignedString16Table, alloc);
         all.list = all.list->Prepend(&string16IndexTable, alloc);
         all.list = all.list->Prepend(&string16Count, alloc);
         all.list = all.list->Prepend(&functionsOffset, alloc);
-        all.list = all.list->Prepend(&sourceSpansOffset, alloc);
         all.list = all.list->Prepend(&lineInfoCacheOffset, alloc);
         all.list = all.list->Prepend(&string16sOffset, alloc);
         all.list = all.list->Prepend(&originalCharLength, alloc);
@@ -778,7 +794,7 @@ public:
     };
 
 #ifdef ASMJS_PLAT
-    HRESULT RewriteAsmJsByteCodesInto(BufferBuilderList & builder, LPCWSTR clue, FunctionBody * function, ByteBlock * byteBlock)
+    HRESULT RewriteAsmJsByteCodesInto(BufferBuilderList & builder, LPCWSTR clue, FunctionBody * function, ByteBlock * byteBlock, SerializedFieldList& definedFields)
     {
         SListCounted<AuxRecord> auxRecords(alloc);
 
@@ -872,12 +888,12 @@ public:
         }
         finalSize->value = size;
 
-        RewriteAuxiliaryInto(builder, auxRecords, reader, function);
+        RewriteAuxiliaryInto(builder, auxRecords, reader, function, definedFields);
         return S_OK;
     }
 #endif
 
-    HRESULT RewriteByteCodesInto(BufferBuilderList & builder, LPCWSTR clue, FunctionBody * function, ByteBlock * byteBlock)
+    HRESULT RewriteByteCodesInto(BufferBuilderList & builder, LPCWSTR clue, FunctionBody * function, ByteBlock * byteBlock, SerializedFieldList& definedFields)
     {
         SListCounted<AuxRecord> auxRecords(alloc);
 
@@ -957,7 +973,6 @@ public:
                 DEFAULT_LAYOUT(Empty);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg2WithICIndex);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg3);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg4);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg5);
@@ -984,7 +999,6 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(ElementSlotI1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(ElementSlotI2);
                 DEFAULT_LAYOUT(W1);
-                DEFAULT_LAYOUT(Reg1Int2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg1Unsigned1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg2Int1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Unsigned1);
@@ -1190,21 +1204,23 @@ public:
         }
         finalSize->value = size;
 
-        RewriteAuxiliaryInto(builder, auxRecords, reader, function);
+        RewriteAuxiliaryInto(builder, auxRecords, reader, function, definedFields);
         return S_OK;
     }
 
 
     void RewriteAuxiliaryInto(BufferBuilderList& builder, SListCounted<AuxRecord> const& auxRecordList,
-        ByteCodeReader& reader, FunctionBody * functionBody)
+        ByteCodeReader& reader, FunctionBody * functionBody, SerializedFieldList& definedFields)
     {
         uint count = auxRecordList.Count();
-        PrependInt32(builder, _u("Auxiliary Structure Count"), count);
+
         if (count == 0)
         {
             return;
         }
 
+        definedFields.has_auxiliary = true;
+        PrependInt32(builder, _u("Auxiliary Structure Count"), count);
         auto writeAuxVarArray = [&](uint offset, bool isVarCount, int count, const Var * elements)  {
             typedef serialization_alignment SerializedVarArray T;
             T header(offset, isVarCount, count);
@@ -1372,8 +1388,6 @@ public:
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         size += PrependInt32(builder, _u("Start String Constant"), magicStartStringConstant);
 #endif
-        size += PrependBool(builder, _u("Is Property String"), VirtualTableInfo<Js::PropertyString>::HasVirtualTable(str));
-
         auto bb = Anew(alloc, ByteBuffer, (str->GetLength() + 1) * sizeof(char16), (void*)str->GetSz());
         size += PrependByteBuffer(builder, _u("String Constant 16 Value"), bb);
 
@@ -1439,13 +1453,28 @@ public:
 
         case TypeIds_Integer:
         {
-            auto size = PrependByte(builder, _u("Integer Constant"), ctInt);
-            return size + PrependConstantInt32(builder,  _u("Integer Constant Value"), TaggedInt::ToInt32(var));
+            int32 value = TaggedInt::ToInt32(var);
+            if ((int8)value == value)
+            {
+                auto size = PrependByte(builder, _u("Integer Constant"), ctInt8);
+                return size + PrependByte(builder, _u("Integer Constant Value"), (byte)value);
+            }
+            else if ((int16)value == value)
+            {
+                auto size = PrependByte(builder, _u("Integer Constant"), ctInt16);
+                return size + PrependConstantInt16(builder, _u("Integer Constant Value"), (int16)value);
+            }
+            else
+            {
+                auto size = PrependByte(builder, _u("Integer Constant"), ctInt32);
+                return size + PrependConstantInt32(builder, _u("Integer Constant Value"), value);
+            }
         }
 
         case TypeIds_String:
         {
-            auto size = PrependByte(builder, _u("String Constant 16"), ctString16);
+            auto size = PrependByte(builder, _u("String Constant 16"), 
+                VirtualTableInfo<Js::PropertyString>::HasVirtualTable(var)? ctPropertyString16 : ctString16);
             return size + PrependStringConstant(builder, var);
         }
 
@@ -1563,6 +1592,27 @@ public:
         size += PrependInt32(builder, _u("End PropertyIdsForScopeSlotsArray"), magicEndOfPropertyIdsForScopeSlotArray);
 #endif
 
+        return size;
+    }
+
+    uint32 AddSlotIdInCachedScopeToNestedIndexArray(BufferBuilderList& builder, FunctionBody * functionBody)
+    {
+        uint32 size = 0;
+
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        size += PrependInt32(builder, _u("Start SlotIdInCachedScopeToNestedIndexArray"), magicStartOfSlotIdToNestedIndexArray);
+#endif
+
+        Js::AuxArray<uint32> * slotIdToNestedIndexArray = functionBody->GetSlotIdInCachedScopeToNestedIndexArray();
+        size += PrependInt32(builder, _u("SlotIdInCachedScopeToNestedIndexArray count"), slotIdToNestedIndexArray->count);
+        for (uint i = 0; i < slotIdToNestedIndexArray->count; i++)
+        {
+            size += PrependInt32(builder, _u("Nested function index for slot id in cached scope"), slotIdToNestedIndexArray->elements[i]);
+        }
+
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        size += PrependInt32(builder, _u("End magicStartOfSlotIdToNestedIndexArray"), magicEndOfSlotIdToNestedIndexArray);
+#endif
         return size;
     }
 
@@ -1760,45 +1810,35 @@ public:
         return sizeof(serialization_alignment TStructType);
     }
 
-    uint32 AddPropertyIdOfFormals(BufferBuilderList & builder, FunctionBody * function)
+    uint32 AddPropertyIdOfFormals(BufferBuilderList & builder, PropertyIdArray * propIds, FunctionBody * function)
     {
         uint32 size = 0;
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         size += PrependInt32(builder, _u("Start propertyids of formals"), magicStartOfPropIdsOfFormals);
 #endif
 
-        PropertyIdArray * propIds = function->GetFormalsPropIdArray(false);
-        if (propIds == nullptr)
+        byte extraSlotCount = 0;
+        if (function->HasCachedScopePropIds())
         {
-            size += PrependBool(builder, _u("ExportsIdArrayLength"), false);
+            extraSlotCount = ActivationObjectEx::ExtraSlotCount();
         }
-        else
+
+        size += PrependInt32(builder, _u("ExportsIdArrayLength"), propIds->count);
+        size += PrependByte(builder, _u("ExtraSlotsCount"), extraSlotCount);
+        size += PrependByte(builder, _u("ExportsIdArrayDups"), propIds->hadDuplicates);
+        size += PrependByte(builder, _u("ExportsIdArray__proto__"), propIds->has__proto__);
+        size += PrependByte(builder, _u("ExportsIdArrayHasNonSimpleParams"), propIds->hasNonSimpleParams);
+
+        for (uint i = 0; i < propIds->count; i++)
         {
-            size += PrependBool(builder, _u("ExportsIdArrayLength"), true);
+            PropertyId propertyId = encodePossiblyBuiltInPropertyId(propIds->elements[i]);
+            size += PrependInt32(builder, _u("ExportsIdArrayElem"), propertyId);
+        }
 
-            byte extraSlotCount = 0;
-            if (function->HasCachedScopePropIds())
-            {
-                extraSlotCount = ActivationObjectEx::ExtraSlotCount();
-            }
-
-            size += PrependInt32(builder, _u("ExportsIdArrayLength"), propIds->count);
-            size += PrependByte(builder, _u("ExtraSlotsCount"), extraSlotCount);
-            size += PrependByte(builder, _u("ExportsIdArrayDups"), propIds->hadDuplicates);
-            size += PrependByte(builder, _u("ExportsIdArray__proto__"), propIds->has__proto__);
-            size += PrependByte(builder, _u("ExportsIdArrayHasNonSimpleParams"), propIds->hasNonSimpleParams);
-
-            for (uint i = 0; i < propIds->count; i++)
-            {
-                PropertyId propertyId = encodePossiblyBuiltInPropertyId(propIds->elements[i]);
-                size += PrependInt32(builder, _u("ExportsIdArrayElem"), propertyId);
-            }
-
-            auto slots = propIds->elements + propIds->count;
-            for (byte i = 0; i < extraSlotCount; i++)
-            {
-                size += PrependInt32(builder, _u("Extra Slot"), slots[i]);
-            }
+        auto slots = propIds->elements + propIds->count;
+        for (byte i = 0; i < extraSlotCount; i++)
+        {
+            size += PrependInt32(builder, _u("Extra Slot"), slots[i]);
         }
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         size += PrependInt32(builder, _u("End of prop ids for formals array"), magicEndOfPropIdsOfFormals);
@@ -1961,11 +2001,6 @@ public:
             return ByteCodeSerializer::CantGenerate;
         }
 
-        bool isAnonymous = function->GetIsAnonymousFunction();
-        const char16* displayName = isAnonymous ? nullptr : function->GetDisplayName();
-        uint displayNameLength = isAnonymous ? 0 : function->m_displayNameLength;
-        PrependString16(builder, _u("Display Name"), displayName, (displayNameLength + 1)* sizeof(char16));
-
         if (function->m_lineNumber != 0)
         {
             definedFields.has_m_lineNumber = true;
@@ -1977,6 +2012,8 @@ public:
             definedFields.has_m_columnNumber = true;
             PrependInt32(builder, _u("Column Number"), function->m_columnNumber);
         }
+
+        bool isAnonymous = function->GetIsAnonymousFunction();
 
         // FunctionBody Details
         DWORD bitFlags =
@@ -2008,22 +2045,35 @@ public:
 #endif
             ;
 
-        PrependInt32(builder, _u("BitFlags"), bitFlags);
-        PrependInt32(builder, _u("Relative Function ID"), function->GetLocalFunctionId() - topFunctionId); // Serialized function ids are relative to the top function ID
-        PrependInt32(builder, _u("Attributes"), function->GetAttributes());
-        AssertMsg((function->GetAttributes() &
-                ~(FunctionInfo::Attributes::ErrorOnNew
-                  | FunctionInfo::Attributes::SuperReference
-                  | FunctionInfo::Attributes::Lambda
-                  | FunctionInfo::Attributes::Async
-                  | FunctionInfo::Attributes::CapturesThis
-                  | FunctionInfo::Attributes::Generator
-                  | FunctionInfo::Attributes::ClassConstructor
-                  | FunctionInfo::Attributes::ClassMethod
-                  | FunctionInfo::Attributes::EnclosedByGlobalFunc
-                  | FunctionInfo::Attributes::AllowDirectSuper)) == 0,
-                "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember|EnclosedByGlobalFunc|AllowDirectSuper attributes should be set on a serialized function");
+        PrependConstantInt32(builder, _u("BitFlags"), bitFlags);
 
+        if (!isAnonymous)
+        {
+            const char16* displayName = function->GetDisplayName();
+            uint displayNameLength = function->m_displayNameLength;
+            PrependString16(builder, _u("Display Name"), displayName, (displayNameLength + 1) * sizeof(char16));
+        }
+
+        PrependInt32(builder, _u("Relative Function ID"), function->GetLocalFunctionId() - topFunctionId); // Serialized function ids are relative to the top function ID
+        auto attributes = function->GetAttributes();
+        AssertMsg((attributes &
+            ~(FunctionInfo::Attributes::ErrorOnNew
+                | FunctionInfo::Attributes::SuperReference
+                | FunctionInfo::Attributes::Lambda
+                | FunctionInfo::Attributes::Async
+                | FunctionInfo::Attributes::CapturesThis
+                | FunctionInfo::Attributes::Generator
+                | FunctionInfo::Attributes::ClassConstructor
+                | FunctionInfo::Attributes::ClassMethod
+                | FunctionInfo::Attributes::EnclosedByGlobalFunc
+                | FunctionInfo::Attributes::AllowDirectSuper)) == 0,
+            "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember|EnclosedByGlobalFunc|AllowDirectSuper attributes should be set on a serialized function");
+        if (attributes != FunctionInfo::Attributes::None)
+        {
+            definedFields.has_attributes = true;
+            PrependInt32(builder, _u("Attributes"), attributes);
+        }
+       
         PrependInt32(builder, _u("Offset Into Source"), sourceDiff);
         if (function->GetNestedCount() > 0)
         {
@@ -2058,21 +2108,24 @@ public:
                 definedFields.has_##name = true; \
                 Prepend##serializableType(builder, _u(#name), function->##name); \
             }
-#define DECLARE_SERIALIZABLE_ACCESSOR_FIELD(type, name, serializableType) \
-            if (function->Get##name##() != 0) { \
-                definedFields.has_##name = true; \
-                Prepend##serializableType(builder, _u(#name), function->Get##name##()); \
-            }
 
+#define DECLARE_SERIALIZABLE_ACCESSOR_FIELD_NO_CHECK(type, name, serializableType) \
+            Prepend##serializableType(builder, _u(#name), function->Get##name##());
+
+#define DECLARE_SERIALIZABLE_ACCESSOR_FIELD(type, name, serializableType, defaultValue) \
+            if (function->Get##name##() != defaultValue) { \
+                definedFields.has_##name = true; \
+                DECLARE_SERIALIZABLE_ACCESSOR_FIELD_NO_CHECK(type, name, serializableType); \
+            }
 
 #include "SerializableFunctionFields.h"
         }
 
         {
             auto loopHeaderArray = function->GetLoopHeaderArray();
-            if (loopHeaderArray)
+            if (loopHeaderArray != nullptr)
             {
-                PrependByte(builder, _u("Loop Header Array Exists"), 1);
+                definedFields.has_loopHeaderArray = true;
                 uint loopCount = function->GetLoopCount();
                 for (uint i = 0; i < loopCount; ++i)
                 {
@@ -2080,33 +2133,27 @@ public:
                     PrependInt32(builder, _u("Loop Header End"), loopHeaderArray[i].endOffset);
                 }
             }
-            else
-            {
-                PrependByte(builder, _u("Loop Header Array Exists"), 0);
-            }
 
 #ifdef ASMJS_PLAT
             if (function->GetAsmJsFunctionInfo())
             {
-                PrependByte(builder, _u("Asm.js Info Exists"), 1);
+                definedFields.has_asmJsInfo = true;
+                PrependByte(builder, _u("Asm.js Info Kind"), 1);
                 AddAsmJsFunctionInfo(builder, function);
             }
             else if (function->GetIsAsmjsMode())
             {
-                PrependByte(builder, _u("Asm.js Info Exists"), 2);
+                definedFields.has_asmJsInfo = true;
+                PrependByte(builder, _u("Asm.js Info Kind"), 2);
                 AddAsmJsModuleInfo(builder, function);
             }
-            else
 #endif
-            {
-                PrependByte(builder, _u("Asm.js Info Exists"), 0);
-            }
 
 #ifdef ASMJS_PLAT
             if (function->GetIsAsmJsFunction())
             {
                 AddAsmJsConstantTable(builder, function);
-                auto hr = RewriteAsmJsByteCodesInto(builder, _u("Rewritten Byte Code"), function, function->byteCodeBlock);
+                auto hr = RewriteAsmJsByteCodesInto(builder, _u("Rewritten Asm.js Byte Code"), function, function->byteCodeBlock, definedFields);
                 if (FAILED(hr))
                 {
                     return hr;
@@ -2116,23 +2163,42 @@ public:
 #endif
             {
                 AddConstantTable(builder, function);
-                auto hr = RewriteByteCodesInto(builder, _u("Rewritten Byte Code"), function, function->byteCodeBlock);
+                auto hr = RewriteByteCodesInto(builder, _u("Rewritten Byte Code"), function, function->byteCodeBlock, definedFields);
                 if (FAILED(hr))
                 {
                     return hr;
                 }
             }
 
-            AddPropertyIdOfFormals(builder, function);
+            PropertyIdArray * propIds = function->GetFormalsPropIdArray(false);
+            if (propIds != nullptr)
+            {
+                definedFields.has_propertyIdOfFormals = true;
+                AddPropertyIdOfFormals(builder, propIds, function);
+            }
 
             AddCacheIdToPropertyIdMap(builder, function);
             AddReferencedPropertyIdMap(builder, function);
 
             AddPropertyIdsForScopeSlotArray(builder, function);
 
+            if (function->GetSlotIdInCachedScopeToNestedIndexArray() == nullptr)
+            {
+                definedFields.has_slotIdInCachedScopeToNestedIndexArray = false;
+            }
+            else
+            {
+                definedFields.has_slotIdInCachedScopeToNestedIndexArray = true;
+                AddSlotIdInCachedScopeToNestedIndexArray(builder, function);
+            }
+
             uint debuggerScopeSlotArraySize = GetDebuggerScopeSlotArrayCount(function);
-            PrependInt32(builder, _u("Debugger Scope Slot Array Size"), debuggerScopeSlotArraySize);
-            AddSlotArrayDebuggerScopes(builder, function, debuggerScopeSlotArraySize);
+            if (debuggerScopeSlotArraySize != 0)
+            {
+                definedFields.has_debuggerScopeSlotArray = true;
+                PrependInt32(builder, _u("Debugger Scope Slot Array Size"), debuggerScopeSlotArraySize);
+                AddSlotArrayDebuggerScopes(builder, function, debuggerScopeSlotArraySize);
+            }
 
             // Literal regexes
             for (uint i = 0; i < function->GetLiteralRegexCount(); ++i)
@@ -2230,10 +2296,10 @@ public:
     int string16Count;
     const unaligned StringIndexRecord * string16IndexTable;
     const byte * string16Table;
-    const byte * sourceSpans;
     int lineInfoCacheCount;
     const byte * lineInfoCaches;
-    const JsUtil::LineOffsetCache<Recycler>::LineOffsetCacheItem * lineInfoCache;
+    const charcount_t * lineCharacterOffsetCacheBuffer;
+    const charcount_t * lineByteOffsetCacheBuffer;
     const byte * functions;
     int sourceSize;
     int sourceCharLength;
@@ -2288,6 +2354,19 @@ public:
         return ReadByte(buffer, remainingBytes, value);
     }
 
+    static const byte * ReadConstantSizedInt16(const byte * buffer, size_t remainingBytes, int16 * value)
+    {
+        Assert(remainingBytes >= sizeof(int16));
+        *value = *(int16 *)buffer;
+        return buffer + sizeof(int16);
+    }
+
+    const byte * ReadConstantSizedInt16(const byte * buffer, int16 * value)
+    {
+        auto remainingBytes = (raw + totalSize) - buffer;
+        return ReadConstantSizedInt16(buffer, remainingBytes, value);
+    }
+
     static const byte * ReadInt16(const byte * buffer, size_t remainingBytes, int16 * value)
     {
 #if VARIABLE_INT_ENCODING
@@ -2329,6 +2408,11 @@ public:
     {
         auto remainingBytes = (raw + totalSize) - buffer;
         return ReadConstantSizedInt32(buffer, remainingBytes, value);
+    }
+
+    const byte * ReadConstantSizedUInt32(const byte * buffer, uint * value)
+    {
+        return ReadConstantSizedInt32(buffer, (int *)value);
     }
 
     static const byte * ReadInt32(const byte * buffer, size_t remainingBytes, int * value)
@@ -2473,10 +2557,8 @@ public:
         const byte * current = buffer;
         uint32 countOfAuxiliaryStructure;
         current = ReadUInt32(current, &countOfAuxiliaryStructure);
-        if (countOfAuxiliaryStructure == 0)
-        {
-            return current;
-        }
+        Assert(countOfAuxiliaryStructure != 0);
+        
         uint32 sizeOfAuxiliaryBlock;
         uint32 sizeOfAuxiliaryContextBlock;
         current = ReadUInt32(current, &sizeOfAuxiliaryBlock);
@@ -2704,12 +2786,21 @@ public:
 
         current = ReadOffsetAsPointer(current, &string16s);
         current = ReadOffsetAsPointer(current, &lineInfoCaches);
-        current = ReadOffsetAsPointer(current, &sourceSpans);
         current = ReadOffsetAsPointer(current, &functions);
 
         // Read strings header
         string16IndexTable = (StringIndexRecord*)ReadInt32(string16s, &string16Count);
-        lineInfoCache = (JsUtil::LineOffsetCache<Recycler>::LineOffsetCacheItem *)ReadInt32(lineInfoCaches, &lineInfoCacheCount);
+        lineCharacterOffsetCacheBuffer = (charcount_t *)ReadInt32(lineInfoCaches, &lineInfoCacheCount);
+        byte haslineByteOffsetCacheBuffer;
+        current = ReadByte(lineInfoCaches + sizeof(charcount_t) * lineInfoCacheCount, &haslineByteOffsetCacheBuffer);
+        if (haslineByteOffsetCacheBuffer)
+        {
+            lineByteOffsetCacheBuffer = (charcount_t *)current;
+        }
+        else
+        {
+            lineByteOffsetCacheBuffer = nullptr;
+        }
 
         string16Table = (byte*)(string16IndexTable + string16Count + 1);
 
@@ -2721,14 +2812,13 @@ public:
         return S_OK;
     }
 
-    const byte* ReadStringConstant(const byte* current, FunctionBody* function, _Out_ LPCWSTR * string, _Out_ uint32 * len, _Out_ bool * isPropertyString)
+    const byte* ReadStringConstant(const byte* current, FunctionBody* function, _Out_ LPCWSTR * string, _Out_ uint32 * len)
     {
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         int constant;
         current = ReadInt32(current, &constant);
         Assert(constant == magicStartStringConstant);
 #endif
-        current = ReadBool(current, isPropertyString);
         int stringId;
         current = ReadInt32(current, &stringId);
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -2753,23 +2843,12 @@ public:
 
         LPCWSTR string;
         uint32 len;
-        bool isPropertyString = false;
         uint32 rawlen = 0;
 
         for (int i = 0; i < arrayLength; i++)
         {
-            current = ReadStringConstant(current, function, &string, &len, &isPropertyString);
-            JavascriptString* str = nullptr;
-            if (isPropertyString)
-            {
-                PropertyRecord const * propertyRecord;
-                scriptContext->GetOrAddPropertyRecord(string, len, &propertyRecord);
-                str = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
-            }
-            else
-            {
-                str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
-            }
+            current = ReadStringConstant(current, function, &string, &len);
+            JavascriptString* str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
             callsite->SetItemWithAttributes(i, str, PropertyEnumerable);
         }
 
@@ -2777,20 +2856,10 @@ public:
 
         for (int i = 0; i < arrayLength; i++)
         {
-            current = ReadStringConstant(current, function, &string, &len, &isPropertyString);
+            current = ReadStringConstant(current, function, &string, &len);
             rawlen += len;
 
-            JavascriptString* str = nullptr;
-            if (isPropertyString)
-            {
-                PropertyRecord const * propertyRecord;
-                scriptContext->GetOrAddPropertyRecord(string, len, &propertyRecord);
-                str = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
-            }
-            else
-            {
-                str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
-            }
+            JavascriptString* str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
             rawArray->SetItemWithAttributes(i, str, PropertyEnumerable);
         }
 
@@ -2895,10 +2964,18 @@ public:
                 {
                     LPCWSTR string;
                     uint32 len;
-                    bool isPropertyString = false;
-                    current = ReadStringConstant(current, function, &string, &len, &isPropertyString);
+                    current = ReadStringConstant(current, function, &string, &len);
 
-                    function->RecordStrConstant(reg, string, len, isPropertyString);
+                    function->RecordStrConstant(reg, string, len, false);
+                    break;
+                }
+            case ctPropertyString16:
+                {
+                    LPCWSTR string;
+                    uint32 len;
+                    current = ReadStringConstant(current, function, &string, &len);
+
+                    function->RecordStrConstant(reg, string, len, true);
                     break;
                 }
             case ctStringTemplateCallsite:
@@ -2909,10 +2986,24 @@ public:
                     function->RecordConstant(reg, callsite);
                     break;
                 }
-            case ctInt:
+            case ctInt32:
                 {
                     int value;
                     current = ReadConstantSizedInt32(current, &value);
+                    function->RecordIntConstant(reg, value);
+                    break;
+                }
+            case ctInt16:
+                {
+                    int16 value;
+                    current = ReadConstantSizedInt16(current, &value);
+                    function->RecordIntConstant(reg, value);
+                    break;
+                }
+            case ctInt8:
+                {
+                    int8 value;
+                    current = ReadByte(current, (byte *)&value);
                     function->RecordIntConstant(reg, value);
                     break;
                 }
@@ -2985,6 +3076,33 @@ public:
         return current;
     }
 
+    const byte * ReadSlotIdInCachedScopeToNestedIndexArray(const byte * current, FunctionBody * functionBody)
+    {
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        int constant;
+        current = ReadInt32(current, &constant);
+        Assert(constant == magicStartOfSlotIdToNestedIndexArray);
+#endif
+        uint32 count;
+        current = ReadUInt32(current, &count);
+
+        Js::AuxArray<uint32> * slotIdInCachedScopeToNestedIndexArray = functionBody->AllocateSlotIdInCachedScopeToNestedIndexArray(count);
+            
+        uint32 value;
+        for (uint i = 0; i < count; i++)
+        {
+            current = ReadUInt32(current, &value);
+            slotIdInCachedScopeToNestedIndexArray->elements[i] = value;
+        }
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        current = ReadInt32(current, &constant);
+        Assert(constant == magicEndOfSlotIdToNestedIndexArray);
+#endif
+
+        return current;
+    }
+
+
     const byte * ReadSlotArrayDebuggerScopeProperties(const byte * current, FunctionBody* function, DebuggerScope* debuggerScope, uint propertyCount)
     {
         Assert(function);
@@ -3024,11 +3142,8 @@ public:
     const byte * ReadSlotArrayDebuggerScopes(const byte * current, FunctionBody * function, uint debuggerScopeCount)
     {
         Assert(function);
-        if (debuggerScopeCount == 0)
-        {
-            return current;
-        }
-
+        Assert(debuggerScopeCount != 0);
+        
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         int constant;
         current = ReadInt32(current, &constant);
@@ -3187,7 +3302,6 @@ public:
         current = ReadInt32(current, &constant);
         Assert(constant == magicStartOfFunctionBody);
 #endif
-        current = ReadInt32(current, &displayNameId);
         if (definedFields->has_m_lineNumber)
         {
             current = ReadInt32(current, &lineNumber);
@@ -3206,7 +3320,16 @@ public:
             columnNumber = 0;
         }
 
-        current = ReadUInt32(current, &bitflags);
+        current = ReadConstantSizedUInt32(current, &bitflags);
+
+        if (bitflags & ffIsAnonymous)
+        {
+            displayNameId = -1;
+        }
+        else
+        {
+            current = ReadInt32(current, &displayNameId);
+        }
         return current;
     }
 
@@ -3218,45 +3341,39 @@ public:
         Assert(constant == magicStartOfPropIdsOfFormals);
 #endif
 
-        bool isPropertyIdArrayAvailable = false;
-        current = ReadBool(current, &isPropertyIdArrayAvailable);
+        uint32 count = 0;
+        current = ReadUInt32(current, &count);
 
-        if (isPropertyIdArrayAvailable)
+        byte extraSlotCount = 0;
+        current = ReadByte(current, &extraSlotCount);
+
+        PropertyIdArray * propIds = function->AllocatePropertyIdArrayForFormals((extraSlotCount + count) * sizeof(PropertyId), count, extraSlotCount);
+        propIds->count = count;
+
+        bool hadDuplicates = false;
+        current = ReadBool(current, &hadDuplicates);
+        propIds->hadDuplicates = hadDuplicates;
+
+        bool has__proto__ = false;
+        current = ReadBool(current, &has__proto__);
+        propIds->has__proto__ = has__proto__;
+
+        bool hasNonSimpleParams = false;
+        current = ReadBool(current, &hasNonSimpleParams);
+        propIds->hasNonSimpleParams = hasNonSimpleParams;
+
+        int id = 0;
+        for (uint i = 0; i < propIds->count; ++i)
         {
-            uint32 count = 0;
-            current = ReadUInt32(current, &count);
+            current = ReadInt32(current, &id);
+            PropertyId propertyId = function->GetByteCodeCache()->LookupPropertyId(id);
+            propIds->elements[i] = propertyId;
+        }
 
-            byte extraSlotCount = 0;
-            current = ReadByte(current, &extraSlotCount);
-
-            PropertyIdArray * propIds = function->AllocatePropertyIdArrayForFormals((extraSlotCount + count) * sizeof(PropertyId), count, extraSlotCount);
-            propIds->count = count;
-
-            bool hadDuplicates = false;
-            current = ReadBool(current, &hadDuplicates);
-            propIds->hadDuplicates = hadDuplicates;
-
-            bool has__proto__ = false;
-            current = ReadBool(current, &has__proto__);
-            propIds->has__proto__ = has__proto__;
-
-            bool hasNonSimpleParams = false;
-            current = ReadBool(current, &hasNonSimpleParams);
-            propIds->hasNonSimpleParams = hasNonSimpleParams;
-
-            int id = 0;
-            for (uint i = 0; i < propIds->count; ++i)
-            {
-                current = ReadInt32(current, &id);
-                PropertyId propertyId = function->GetByteCodeCache()->LookupPropertyId(id);
-                propIds->elements[i] = propertyId;
-            }
-
-            for (int i = 0; i < extraSlotCount; ++i)
-            {
-                current = ReadInt32(current, &id);
-                propIds->elements[propIds->count + i] = id;
-            }
+        for (int i = 0; i < extraSlotCount; ++i)
+        {
+            current = ReadInt32(current, &id);
+            propIds->elements[propIds->count + i] = id;
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -3545,8 +3662,11 @@ public:
         int functionId;
         current = ReadInt32(current, &functionId);
 
-        int32 attributes;
-        current = ReadInt32(current, &attributes);
+        int32 attributes = 0;
+        if (definedFields->has_attributes)
+        {
+            current = ReadInt32(current, &attributes);
+        }
 
         uint32 offsetIntoSource = 0;
         current = ReadUInt32(current, &offsetIntoSource);
@@ -3645,11 +3765,15 @@ public:
             if (definedFields->has_##name == true) { \
                 current = Read##serializableType(current, &(*functionBody)->##name); \
             }
-#define DECLARE_SERIALIZABLE_ACCESSOR_FIELD(type, name, serializableType) \
+
+#define DECLARE_SERIALIZABLE_ACCESSOR_FIELD_NO_CHECK(type, name, serializableType) \
+            type tmp##name=0; \
+            current = Read##serializableType(current, &tmp##name); \
+            (*functionBody)->Set##name##(tmp##name);
+
+#define DECLARE_SERIALIZABLE_ACCESSOR_FIELD(type, name, serializableType, defaultValue) \
             if (definedFields->has_##name == true) { \
-                type tmp##name=0; \
-                current = Read##serializableType(current, &tmp##name); \
-                (*functionBody)->Set##name##(tmp##name); \
+                DECLARE_SERIALIZABLE_ACCESSOR_FIELD_NO_CHECK(type, name, serializableType); \
             }
 
 #include "SerializableFunctionFields.h"
@@ -3665,11 +3789,6 @@ public:
             else
             {
                 (*functionBody)->flags = (FunctionBody::FunctionBodyFlags)((*functionBody)->flags & ~FunctionBody::Flags_StackNestedFunc);
-            }
-
-            if (definedFields->has_FirstTmpRegister == false)
-            {
-                (*functionBody)->SetFirstTmpRegister(0);
             }
 
             if (definedFields->has_m_envDepth == false)
@@ -3693,10 +3812,8 @@ public:
             (*functionBody)->m_isAsmJsFunction = (bitflags & ffIsAsmJsFunction) ? true : false;
             (*functionBody)->m_isAsmjsMode = (bitflags & ffIsAsmJsMode) ? true : false;
 #endif
-
-            byte loopHeaderExists;
-            current = ReadByte(current, &loopHeaderExists);
-            if (loopHeaderExists)
+            
+            if (definedFields->has_loopHeaderArray)
             {
                 (*functionBody)->AllocateLoopHeaders();
                 auto loopHeaderArray = (*functionBody)->GetLoopHeaderArray();
@@ -3711,22 +3828,25 @@ public:
                 }
             }
 
-            byte asmJsInfoExists;
-            current = ReadByte(current, &asmJsInfoExists);
 #ifdef ASMJS_PLAT
-            if (asmJsInfoExists == 1)
+            if (definedFields->has_asmJsInfo)
             {
-                current = ReadAsmJsFunctionInfo(current, *functionBody);
+                byte asmJsInfoKind;
+                current = ReadByte(current, &asmJsInfoKind);
+                if (asmJsInfoKind == 1)
+                {
+                    current = ReadAsmJsFunctionInfo(current, *functionBody);
+                }
+                else if (asmJsInfoKind == 2)
+                {
+                    current = ReadAsmJsModuleInfo(current, *functionBody);
+                }
+                else
+                {
+                    Assert(false);
+                }
             }
-            else if (asmJsInfoExists == 2)
-            {
-                current = ReadAsmJsModuleInfo(current, *functionBody);
-            }
-            else
 #endif
-            {
-                Assert(asmJsInfoExists == 0);
-            }
 
             // Read constants table
 #ifdef ASMJS_PLAT
@@ -3755,9 +3875,15 @@ public:
             });
 
             // Auxiliary
-            current = ReadAuxiliary(current, *functionBody);
+            if (definedFields->has_auxiliary)
+            {
+                current = ReadAuxiliary(current, *functionBody);
+            }
 
-            current = ReadPropertyIdOfFormals(current, *functionBody);
+            if (definedFields->has_propertyIdOfFormals)
+            {
+                current = ReadPropertyIdOfFormals(current, *functionBody);
+            }
 
             // Inline cache
             current = ReadCacheIdToPropertyIdMap(current, *functionBody);
@@ -3766,9 +3892,17 @@ public:
 
             current = ReadPropertyIdsForScopeSlotArray(current, *functionBody);
 
-            uint debuggerScopeCount = 0;
-            current = ReadUInt32(current, &debuggerScopeCount);
-            current = ReadSlotArrayDebuggerScopes(current, *functionBody, debuggerScopeCount);
+            if (definedFields->has_slotIdInCachedScopeToNestedIndexArray)
+            {
+                current = ReadSlotIdInCachedScopeToNestedIndexArray(current, *functionBody);
+            }
+
+            if (definedFields->has_debuggerScopeSlotArray)
+            {
+                uint debuggerScopeCount = 0;
+                current = ReadUInt32(current, &debuggerScopeCount);
+                current = ReadSlotArrayDebuggerScopes(current, *functionBody, debuggerScopeCount);
+            }
 
             (*functionBody)->AllocateObjectLiteralTypeArray();
 
@@ -3997,10 +4131,24 @@ public:
             current = ReadByte(current, &code);
             switch(code)
             {
-                case ctInt:
+                case ctInt32:
                     {
                         int value;
                         current = ReadConstantSizedInt32(current, &value);
+                        result->elements[index] = Js::TaggedInt::ToVarUnchecked(value);
+                        break;
+                    }
+                case ctInt16:
+                    {
+                        int16 value;
+                        current = ReadConstantSizedInt16(current, &value);
+                        result->elements[index] = Js::TaggedInt::ToVarUnchecked(value);
+                        break;
+                    }
+                case ctInt8:
+                    {
+                        int8 value;
+                        current = ReadByte(current, (byte *)&value);
                         result->elements[index] = Js::TaggedInt::ToVarUnchecked(value);
                         break;
                     }
@@ -4202,7 +4350,7 @@ HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * script
         reader->utf8SourceInfo = sourceInfo;
         reader->sourceIndex = scriptContext->SaveSourceNoCopy(sourceInfo, reader->sourceCharLength, false);
 
-        sourceInfo->CreateLineOffsetCache(reader->lineInfoCache, reader->lineInfoCacheCount);
+        sourceInfo->CreateLineOffsetCache(reader->lineCharacterOffsetCacheBuffer, reader->lineByteOffsetCacheBuffer, reader->lineInfoCacheCount);
     }
     else
     {

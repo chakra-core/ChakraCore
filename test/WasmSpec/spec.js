@@ -50,18 +50,34 @@ if (noTrap) {
 
 let file = "";
 let iTest = 0;
-function getValueStr(value) {
-  if (typeof value === "object") {
-    const {high, low} = value;
-    const convert = a => (a >>> 0).toString(16).padStart(8, "0");
-    return `0x${convert(high)}${convert(low)}`;
+function getValueStr(value, type) {
+  if (typeof value === "undefined") {
+    return "undefined";
   }
-  return "" + value;
+  switch (type) {
+    case "i64":
+      if (typeof value === "object") {
+        const {high, low} = value;
+        const convert = a => (a >>> 0).toString(16);
+        return `0x${convert(high)}${convert(low).padStart(8, "0")}`;
+      }
+      // Fallthrough
+    case "i32": return value.toString();
+    case "f64":
+      // Fallthrough
+    case "f32":
+      if (Object.is(value, -0)) {
+        return "-0";
+      }
+      // Fallthrough
+  }
+  // Default case
+  return value.toString();
 }
 
 function getArgsStr(args) {
   return args
-    .map(({type, value}) => `${type}:${getValueStr(mapWasmArg({type, value}))}`)
+    .map(({type, value}) => `${type}:${getValueStr(mapWasmArg({type, value}), type)}`)
     .join(", ");
 }
 
@@ -84,6 +100,8 @@ function getCommandStr(command) {
     case "assert_uninstantiable":
     case "assert_invalid": return `${base}: ${command.type} module`;
     case "assert_return": return `${base}: assert_return(${getActionStr(command.action)} == ${getArgsStr(command.expected)})`;
+    case "assert_return_canonical_nan": return `${base}: assert_return_canonical_nan(${getActionStr(command.action)}`;
+    case "assert_return_arithmetic_nan": return `${base}: assert_return_arithmetic_nan(${getActionStr(command.action)})`;
     case "action":
     case "assert_trap":
     case "assert_return_nan":
@@ -92,6 +110,13 @@ function getCommandStr(command) {
   }
   return base;
 }
+
+const CompareType = {
+  none: Symbol(),
+  exact: Symbol(),
+  arithmeticNan: Symbol(),
+  canonicalNan: Symbol()
+};
 
 function run(inPath, iStart, iEnd) {
   const lastSlash = Math.max(inPath.lastIndexOf("/"), inPath.lastIndexOf("\\"));
@@ -157,15 +182,15 @@ function run(inPath, iStart, iEnd) {
         break;
 
       case "assert_return":
-        assertReturn(moduleRegistry, command);
+        assertReturn(moduleRegistry, command, CompareType.exact);
         break;
 
       case "assert_return_canonical_nan":
-        assertReturn(moduleRegistry, command, {canonicalNan: true});
+        assertReturn(moduleRegistry, command, CompareType.canonicalNan);
         break;
 
       case "assert_return_arithmetic_nan":
-        assertReturn(moduleRegistry, command, {arithmeticNan: true});
+        assertReturn(moduleRegistry, command, CompareType.arithmeticNan);
         break;
 
       case "assert_exhaustion":
@@ -193,7 +218,7 @@ function createModule(baseDir, buffer, registry, output) {
   }
   output.module = new WebAssembly.Module(buffer);
   // We'll know if an error occurs at instanciation because output.module will be set
-  output.instance = new WebAssembly.Instance(output.module, registry);
+  output.instance = new WebAssembly.Instance(output.module, registry || undefined);
 }
 
 function moduleCommand(baseDir, command, registry, moduleRegistry) {
@@ -318,65 +343,131 @@ function mapWasmArg({type, value}) {
   throw new Error("Unknown argument type");
 }
 
-const wrappers = {};
-
-function getArthimeticNanWrapper(action, expected) {
-  if (action.type === "invoke") {
-    const args = action.args.map(({type}) => type);
-    const resultType = expected[0].type;
-    const signature = resultType + args.join("");
-
-    let wasmModule = wrappers[signature];
-    if (!wasmModule) {
-      const resultSize = resultType === "f32" ? 32 : 64;
-      const matchingIntType = resultSize === 32 ? "i32" : "i64";
-      const expectedResult = resultSize === 32 ? "0x7f800000" : "0x7ff0000000000000";
-
-      const params = args.length > 0 ? `(param ${args.join(" ")})` : "";
-      const newMod = `
+function runCompare(wasmFn, action, expected, compareType) {
+  let moduleTxt;
+  const argTypes = action.args.map(({type}) => type);
+  const params = argTypes.length > 0 ? `(param ${argTypes.join(" ")})` : "";
+  let returnType = "void";
+  if (expected.length === 0) {
+    if (compareType !== CompareType.exact) {
+      throw new Error("Must have expected type to runCompare if not doing Exact comparison");
+    }
+    // Without expected result, we are just making sure we are able to call the function
+    moduleTxt = `
 (module
-  (import "test" "fn" (func $fn ${params} (result ${resultType})))
-  (func (export "compare") ${params} (result i32)
-    ${args.map((arg, i) => `(get_local ${i|0})`).join(" ")}
+  (import "test" "fn" (func $fn ${params}))
+  (func (export "res"))
+  (func (export "compare") (result i32)
+    ${action.args.map(({type, value}) => {
+      switch (type) {
+        case "i32": return `(i32.const ${value})`;
+        case "i64": return `(i64.const ${value})`;
+        case "f32": return `(f32.reinterpret/i32 (i32.const ${value}))`;
+        case "f64": return `(f64.reinterpret/i64 (i64.const ${value}))`;
+      }
+      throw new Error("Unknown argument type");
+    }).join("\n")}
     (call $fn)
-    (${matchingIntType}.reinterpret/${resultType})
-    (${matchingIntType}.and (${matchingIntType}.const ${expectedResult}))
-    (${matchingIntType}.eq (${matchingIntType}.const ${expectedResult}))
+    (i32.const 1)
   )
 )`;
-      if (verbose) {
-        console.log(newMod);
+  } else {
+    let compareTxt = "";
+    const {type: expectedType, value: expectedValue} = expected[0];
+    returnType = expectedType;
+    const resultSize = expectedType.endsWith("32") ? 32 : 64;
+    const matchingIntType = resultSize === 32 ? "i32" : "i64";
+    switch (compareType) {
+      case CompareType.exact:
+        switch (expectedType) {
+          case "i32":
+          case "i64":
+            compareTxt += `(${expectedType}.eq (${expectedType}.const ${expectedValue}))`;
+            break;
+          case "f32":
+            compareTxt += `(i32.reinterpret/f32) (i32.eq (i32.const ${expectedValue}))`;
+            break;
+          case "f64":
+            compareTxt += `(i64.reinterpret/f64) (i64.eq (i64.const ${expectedValue}))`;
+            break;
+        }
+        break;
+      case CompareType.arithmeticNan: {
+        const expectedResult = resultSize === 32 ? "0x7f800000" : "0x7ff0000000000000";
+        compareTxt = `
+        (${matchingIntType}.reinterpret/${expectedType})
+        (${matchingIntType}.and (${matchingIntType}.const ${expectedResult}))
+        (${matchingIntType}.eq (${matchingIntType}.const ${expectedResult}))`;
+        break;
       }
-      const buf = WebAssembly.wabt.convertWast2Wasm(newMod);
-      wrappers[signature] = wasmModule = new WebAssembly.Module(buf);
+      case CompareType.canonicalNan: {
+        const posNaN = resultSize === 32 ? "0x7fc00000" : "0x7ff8000000000000";
+        const negNaN = resultSize === 32 ? "0xffc00000" : "0xfff8000000000000";
+        compareTxt = `
+        (${matchingIntType}.reinterpret/${expectedType})
+        (tee_local $intNan)
+        (${matchingIntType}.eq (${matchingIntType}.const ${posNaN}))
+        (get_local $intNan)
+        (${matchingIntType}.eq (${matchingIntType}.const ${negNaN}))
+        (i32.or)`;
+        break;
+      }
+      default:
+        throw new Error("runCompare: Unsupported compare type");
     }
-
-    return (fn, ...args) => {
-      const {exports: {compare}} = new WebAssembly.Instance(wasmModule, {test: {fn}});
-      return compare(...args);
-    }
+    moduleTxt = `
+(module
+  (import "test" "fn" (func $fn ${params} (result ${expectedType})))
+  (global $res (mut ${expectedType}) (${expectedType}.const 0))
+  (func (export "res") (result ${expectedType}) (get_global $res))
+  (func (export "compare") (result i32)
+    (local $localRes ${expectedType}) (local $intNan ${matchingIntType})
+    ${action.args.map(({type, value}) => {
+      switch (type) {
+        case "i32": return `(i32.const ${value})`;
+        case "i64": return `(i64.const ${value})`;
+        case "f32": return `(f32.reinterpret/i32 (i32.const ${value}))`;
+        case "f64": return `(f64.reinterpret/i64 (i64.const ${value}))`;
+      }
+      throw new Error("Unknown argument type");
+    }).join("\n")}
+    (call $fn)
+    (tee_local $localRes)
+    (set_global $res)
+    (get_local $localRes)
+    ${compareTxt}
+  )
+)`;
   }
+  if (verbose) {
+    console.log(moduleTxt);
+  }
+  const module = new WebAssembly.Module(WebAssembly.wabt.convertWast2Wasm(moduleTxt));
+  const {exports: {compare, res}} = new WebAssembly.Instance(module, {test: {fn: wasmFn}});
+  const hasPassed = compare() === 1;
+  const original = res();
+  return {passed: hasPassed, original: {value: original, type: returnType}};
 }
 
-function assertReturn(moduleRegistry, command, {canonicalNan, arithmeticNan} = {}) {
+function assertReturn(moduleRegistry, command, compareType) {
   const {action, expected} = command;
   try {
-    const wrapper = null; // arithmeticNan ? getArthimeticNanWrapper(action, expected) : null;
-    const res = runAction(moduleRegistry, action, wrapper);
-    let success = true;
-    if (expected.length === 0) {
-      success = typeof res === "undefined";
-    } else {
-      // We don't support multi return right now
-      const [ex1] = expected;
-      const expectedResult = mapWasmArg(ex1);
-      if (ex1.type === "i64") {
-        success = expectedResult.low === res.low && expectedResult.high === res.high;
-      } else if (arithmeticNan || canonicalNan || isNaN(expectedResult)) {
-        // todo:: do exact compare for nan once bug resolved
-        success = isNaN(res);
-      } else {
-        success = res === expectedResult;
+    let success = false;
+    let originalResult;
+    if (action.type === "invoke") {
+      const wasmFn = getField(moduleRegistry, action);
+      const res = runCompare(wasmFn, action, expected, compareType);
+      originalResult = res.original;
+      success = res.passed;
+    } else if (action.type === "get") {
+      const field = getField(moduleRegistry, action);
+      originalResult = {value: field, type: expected[0].type};
+      switch (compareType) {
+        case CompareType.exact: success = field === mapWasmArg(expected[0]); break;
+        case CompareType.arithmeticNan:
+        case CompareType.canonicalNan: success = isNaN(field); break;
+        default:
+          throw new Error("assertReturn: Unsupported compare type");
       }
     }
 
@@ -386,7 +477,7 @@ function assertReturn(moduleRegistry, command, {canonicalNan, arithmeticNan} = {
         print(`${getCommandStr(command)} passed.`);
       }
     } else {
-      print(`${getCommandStr(command)} failed. Returned ${getValueStr(res)}`);
+      print(`${getCommandStr(command)} failed. Returned ${getValueStr(originalResult.value, originalResult.type)}`);
       failed++;
     }
   } catch (e) {
@@ -423,7 +514,7 @@ function assertStackExhaustion(moduleRegistry, command) {
     try { (function f() { 1 + f() })() } catch (e) { StackOverflow = e.constructor }
   }
 
-  const {action, text} = command;
+  const {action} = command;
   try {
     runAction(moduleRegistry, action);
     print(`${getCommandStr(command)} failed. Should have exhausted the stack`);
@@ -455,29 +546,31 @@ function runSimpleAction(moduleRegistry, command) {
   }
 }
 
-function runAction(moduleRegistry, action, wrapper) {
-  const m = action.module ? moduleRegistry[action.module] : moduleRegistry.currentModule;
+function getField(moduleRegistry, action) {
+  const moduleName = action.module !== undefined ? action.module : "currentModule";
+  const m = moduleRegistry[moduleName];
   if (!m) {
-    print("Module unavailable to run action");
-    return;
+    throw new Error("Module unavailable to run action");
   }
+  const {field} = action;
+  if (!(field in m.exports)) {
+    throw new Error(`Unable to find field ${field} in ${moduleName}`)
+  }
+  return m.exports[field];
+}
+
+function runAction(moduleRegistry, action) {
+  const field = getField(moduleRegistry, action);
   switch (action.type) {
     case "invoke": {
-      const {field, args} = action;
+      const {args} = action;
       const mappedArgs = args.map(({value}) => value);
-      let wasmFn = m.exports[field];
-      if (wrapper) {
-        wasmFn = wrapper.bind(null, wasmFn);
-      }
+      const wasmFn = field;
       const res = wasmFn(...mappedArgs);
       return res;
     }
     case "get": {
-      const {field} = action;
-      if (wrapper) {
-        return wrapper(m, field);
-      }
-      return m.exports[field];
+      return field;
     }
     default:
       print(`Unknown action: ${JSON.stringify(action)}`);

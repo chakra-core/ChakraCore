@@ -283,6 +283,7 @@ namespace Js {
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info);
         virtual BOOL SetInternalProperty(PropertyId internalPropertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info);
         virtual BOOL InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = NULL);
+        virtual BOOL InitPropertyInEval(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = NULL);
         virtual BOOL EnsureProperty(PropertyId propertyId);
         virtual BOOL EnsureNoRedeclProperty(PropertyId propertyId);
         virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any);
@@ -290,7 +291,9 @@ namespace Js {
         virtual BOOL InitFuncScoped(PropertyId propertyId, Var value);
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags);
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags);
+#if ENABLE_FIXED_FIELDS
         virtual BOOL IsFixedProperty(PropertyId propertyId);
+#endif
         virtual PropertyQueryFlags HasItemQuery(uint32 index);
         virtual BOOL HasOwnItem(uint32 index);
         virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext);
@@ -357,8 +360,6 @@ namespace Js {
         virtual RecyclableObject* ToObject(ScriptContext * requestContext);
         virtual Var GetTypeOfString(ScriptContext* requestContext);
 
-        // don't need cross-site: only supported in HostDispatch.
-        virtual Var InvokePut(Arguments args);
         virtual BOOL GetRemoteTypeId(TypeId* typeId);
 
         // Only implemented by the HostDispatch object for cross-thread support

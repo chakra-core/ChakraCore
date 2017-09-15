@@ -30,6 +30,7 @@ private:
     BYTE defCount;
     BYTE needDeclaration : 1;
     BYTE isBlockVar : 1;
+    BYTE isConst : 1;
     BYTE isGlobal : 1;
     BYTE isEval : 1;
     BYTE hasNonLocalReference : 1;  // if true, then this symbol needs to be heap-allocated
@@ -40,13 +41,12 @@ private:
     BYTE isGlobalCatch : 1;
     BYTE isCommittedToSlot : 1;
     BYTE hasNonCommittedReference : 1;
-    BYTE hasRealBlockVarRef : 1;
-    BYTE hasBlockFncVarRedecl : 1;
     BYTE hasVisitedCapturingFunc : 1;
     BYTE isTrackedForDebugger : 1; // Whether the sym is tracked for debugger scope. This is fine because a sym can only be added to (not more than) one scope.
     BYTE isModuleExportStorage : 1; // If true, this symbol should be stored in the global scope export storage array.
     BYTE isModuleImport : 1; // If true, this symbol is the local name of a module import statement
     BYTE isUsedInLdElem : 1;
+    BYTE needsScopeObject : 1;
 
     // These are get and set a lot, don't put it in bit fields, we are exceeding the number of bits anyway
     bool hasFuncAssignment;
@@ -63,6 +63,7 @@ public:
         location(Js::Constants::NoRegister),
         needDeclaration(false),
         isBlockVar(false),
+        isConst(false),
         isGlobal(false),
         hasNonLocalReference(false),
         isFuncExpr(false),
@@ -75,8 +76,6 @@ public:
         isGlobalCatch(false),
         isCommittedToSlot(false),
         hasNonCommittedReference(false),
-        hasRealBlockVarRef(false),
-        hasBlockFncVarRedecl(false),
         hasVisitedCapturingFunc(false),
         isTrackedForDebugger(false),
         isNonSimpleParameter(false),
@@ -84,6 +83,7 @@ public:
         isModuleExportStorage(false),
         isModuleImport(false),
         isUsedInLdElem(false),
+        needsScopeObject(false),
         moduleIndex(Js::Constants::NoProperty)
     {
         SetSymbolType(symbolType);
@@ -154,6 +154,16 @@ public:
         return isBlockVar;
     }
 
+    void SetIsConst(bool is)
+    {
+        isConst = is;
+    }
+
+    bool GetIsConst() const
+    {
+        return isConst;
+    }
+
     void SetIsModuleExportStorage(bool is)
     {
         isModuleExportStorage = is;
@@ -182,6 +192,16 @@ public:
     bool IsUsedInLdElem() const
     {
         return isUsedInLdElem;
+    }
+
+    void SetNeedsScopeObject(bool does = true)
+    {
+        needsScopeObject = does;
+    }
+
+    bool NeedsScopeObject() const
+    {
+        return needsScopeObject;
     }
 
     void SetModuleIndex(Js::PropertyId index)
@@ -314,26 +334,6 @@ public:
     void SetIsUsed(bool is)
     {
         isUsed = is;
-    }
-
-    bool HasRealBlockVarRef() const
-    {
-        return hasRealBlockVarRef;
-    }
-
-    void SetHasRealBlockVarRef(bool has = true)
-    {
-        hasRealBlockVarRef = has;
-    }
-
-    bool HasBlockFncVarRedecl() const
-    {
-        return hasBlockFncVarRedecl;
-    }
-
-    void SetHasBlockFncVarRedecl(bool has = true)
-    {
-        hasBlockFncVarRedecl = has;
     }
 
     AssignmentState GetAssignmentState() const

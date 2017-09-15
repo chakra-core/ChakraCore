@@ -1648,64 +1648,6 @@ Symbol * ByteCodeGenerator::FindSymbol(Symbol **symRef, IdentPtr pid, bool forRe
             }
         }
 
-        bool didTransferToFncVarSym = false;
-
-        #pragma prefast(suppress:6237, "The right hand side condition does not have any side effects.")
-        if (PHASE_ON(Js::OptimizeBlockScopePhase, top->byteCodeFunction) &&
-            sym->GetIsBlockVar() &&
-            !sym->GetScope()->IsBlockInLoop() &&
-            sym->GetSymbolType() == STFunction)
-        {
-            // Try to use the var-scoped function binding in place of the lexically scoped one.
-            // This can be done if neither binding is explicitly assigned to, if there's no ambiguity in the binding
-            // (with/eval), and if the function is not declared in a loop. (Loops are problematic, because as the loop
-            // iterates different instances can be captured. If we always capture the var-scoped binding, then we
-            // always get the latest instance, when we should get the instance belonging to the iteration that captured it.)
-            if (sym->GetHasNonLocalReference())
-            {
-                if (!scope)
-                {
-                    Js::PropertyId i;
-                    scope = FindScopeForSym(symScope, nullptr, &i, top);
-                }
-                if (scope == symScope && !scope->GetIsObject())
-                {
-                    Symbol *fncVarSym = sym->GetFuncScopeVarSym();
-                    if (fncVarSym &&
-                        !fncVarSym->HasBlockFncVarRedecl() &&
-                        sym->GetAssignmentState() == NotAssigned &&
-                        fncVarSym->GetAssignmentState() == NotAssigned)
-                    {
-                        // Make sure no dynamic scope intrudes between the two bindings.
-                        bool foundDynamicScope = false;
-                        for (Scope *tmpScope = symScope->GetEnclosingScope(); tmpScope != fncVarSym->GetScope(); tmpScope = tmpScope->GetEnclosingScope())
-                        {
-                            Assert(tmpScope);
-                            if (tmpScope->GetIsDynamic())
-                            {
-                                foundDynamicScope = true;
-                                break;
-                            }
-                        }
-                        if (!foundDynamicScope)
-                        {
-                            didTransferToFncVarSym = true;
-                            sym = fncVarSym;
-                            symScope = sym->GetScope();
-                            if (nonLocalRef)
-                            {
-                                sym->SetHasNonLocalReference();
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if (!didTransferToFncVarSym)
-        {
-            sym->SetHasRealBlockVarRef();
-        }
-
         // This may not be a non-local reference, but the symbol may still be accessed non-locally. ('with', e.g.)
         // In that case, make sure we still process the symbol and its scope for closure capture.
         if (nonLocalRef || sym->GetHasNonLocalReference())
@@ -1779,6 +1721,11 @@ Symbol * ByteCodeGenerator::AddSymbolToScope(Scope *scope, const char16 *key, in
     }
 
     Assert(sym && sym->GetScope() && (sym->GetScope() == scope || sym->GetScope()->GetScopeType() == ScopeType_Parameter));
+
+    if (sym->NeedsScopeObject())
+    {
+        scope->SetIsObject();
+    }
 
     return sym;
 }
@@ -2473,7 +2420,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
 #endif
 
                 //With statements - need scope object to be present.
-                if ((doStackArgsOpt && pnode->sxFnc.funcInfo->GetParamScope()->Count() > 1) && (pnode->sxFnc.funcInfo->HasDeferredChild() || (byteCodeGenerator->GetFlags() & fscrEval) ||
+                if ((doStackArgsOpt && pnode->sxFnc.funcInfo->GetParamScope()->Count() > 1) && ((byteCodeGenerator->GetFlags() & fscrEval) ||
                     pnode->sxFnc.HasWithStmt() || byteCodeGenerator->IsInDebugMode() || PHASE_OFF1(Js::StackArgFormalsOptPhase) || PHASE_OFF1(Js::StackArgOptPhase)))
                 {
                     doStackArgsOpt = false;
@@ -2794,34 +2741,6 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                     byteCodeGenerator->AssignParamSlotsRegister();
                 }
 
-                if (top->GetBodyScope()->ContainsWith() && 
-                    (top->GetBodyScope()->GetHasOwnLocalInClosure() ||
-                     (top->GetParamScope()->GetHasOwnLocalInClosure() &&
-                      top->IsBodyAndParamScopeMerged())))
-                {
-                    // Parent scopes may contain symbols called inside the with.
-                    // Current implementation needs the symScope isObject.
-
-                    top->GetBodyScope()->SetIsObject();
-                    if (top->byteCodeFunction->IsFunctionBody())
-                    {
-                        // Record this for future use in the no-refresh debugging.
-                        top->byteCodeFunction->GetFunctionBody()->SetHasSetIsObject(true);
-                    }
-                }
-
-                if (top->GetParamScope()->ContainsWith() &&
-                    (top->GetParamScope()->GetHasOwnLocalInClosure() &&
-                     !top->IsBodyAndParamScopeMerged()))
-                {
-                    top->GetParamScope()->SetIsObject();
-                    if (top->byteCodeFunction->IsFunctionBody())
-                    {
-                        // Record this for future use in the no-refresh debugging.
-                        top->byteCodeFunction->GetFunctionBody()->SetHasSetIsObject(true);
-                    }
-                }
-
                 if (byteCodeGenerator->NeedObjectAsFunctionScope(top, top->root)
                     || top->bodyScope->GetIsObject()
                     || top->paramScope->GetIsObject())
@@ -2948,8 +2867,6 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
     Js::FunctionBody * parentFunctionBody = parentFunc->byteCodeFunction->GetFunctionBody();
     Assert(parentFunctionBody != nullptr);
-    bool const hasAnyDeferredChild = top->HasDeferredChild() || top->IsDeferred();
-    bool const hasAnyRedeferrableChild = top->HasRedeferrableChild() || top->IsRedeferrable();
     bool setHasNonLocalReference = parentFunctionBody->HasAllNonLocalReferenced();
 
     // If we have any deferred child, we need to instantiate the fake global block scope if it is not empty
@@ -2961,14 +2878,6 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
             if (globalEvalBlockScope->GetHasOwnLocalInClosure())
             {
                 globalEvalBlockScope->SetMustInstantiate(true);
-            }
-            if (hasAnyDeferredChild)
-            {
-                parentFunc->SetHasDeferredChild();
-            }
-            if (hasAnyRedeferrableChild)
-            {
-                parentFunc->SetHasRedeferrableChild();
             }
         }
     }
@@ -2984,18 +2893,6 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 parentFunc->GetParamScope()->SetIsObject();
             }
         }
-
-        // Propagate "hasDeferredChild" attribute back to parent.
-        if (hasAnyDeferredChild)
-        {
-            Assert(CONFIG_FLAG(DeferNested));
-            parentFunc->SetHasDeferredChild();
-        }
-        if (hasAnyRedeferrableChild)
-        {
-            parentFunc->SetHasRedeferrableChild();
-        }
-
         // Propagate HasMaybeEscapedNestedFunc
         if (!byteCodeGenerator->CanStackNestedFunc(top, false) ||
             byteCodeGenerator->NeedObjectAsFunctionScope(top, pnode))
@@ -3174,11 +3071,6 @@ void ByteCodeGenerator::ProcessScopeWithCapturedSym(Scope *scope)
 {
     Assert(scope->GetHasOwnLocalInClosure());
 
-    if (scope->ContainsWith() && scope->GetScopeType() != ScopeType_Global)
-    {
-        scope->SetIsObject();
-    }
-
     // (Note: if any catch var is closure-captured, we won't merge the catch scope with the function scope.
     // So don't mark the function scope "has local in closure".)
     FuncInfo *func = scope->GetFunc();
@@ -3264,7 +3156,6 @@ void AddFunctionsToScope(ParseNodePtr scope, ByteCodeGenerator * byteCodeGenerat
                 sym->GetScope() != sym->GetScope()->GetFunc()->GetParamScope())
             {
                 sym->SetIsBlockVar(true);
-                sym->SetHasRealBlockVarRef(true);
             }
         }
     });
@@ -3633,6 +3524,7 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
 #endif
             sym->SetIsGlobal(isGlobalScope);
             sym->SetIsBlockVar(true);
+            sym->SetIsConst(pnode->nop == knopConstDecl);
             sym->SetNeedDeclaration(true);
             pnode->sxVar.sym = sym;
         };
@@ -3688,6 +3580,8 @@ void PreVisitCatch(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                     item->sxVar.pid->Psz(), sym->GetSymbolTypeName());
             }
 #endif
+            sym->SetIsCatch(true);
+            sym->SetIsBlockVar(true);
         });
     }
     else
@@ -5025,7 +4919,6 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
         if (nonLambdaFunc != func || (func->IsGlobalFunction() && (byteCodeGenerator->GetFlags() & fscrEval)))
         {
-            nonLambdaFunc->root->sxFnc.SetHasNewTargetReference();
             nonLambdaFunc->AssignNewTargetRegister();
             nonLambdaFunc->SetIsNewTargetLexicallyCaptured();
 
@@ -5059,7 +4952,6 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             {
                 func->AssignNewTargetRegister();
 
-                nonLambdaFunc->root->sxFnc.SetHasNewTargetReference();
                 nonLambdaFunc->AssignNewTargetRegister();
                 nonLambdaFunc->SetIsNewTargetLexicallyCaptured();
                 nonLambdaFunc->AssignUndefinedConstRegister();
@@ -5258,6 +5150,14 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 #endif
                     auto symName = sym->GetName();
                     sym = funcInfo->bodyScope->FindLocalSymbol(symName);
+
+                    if (sym == nullptr && nop == knopLetDecl && pnode->sxVar.sym->GetIsCatch())
+                    {
+                        // This should be  a scenario like try {} catch([x]) {} with no duplicate definition inside the catch block.
+                        // In non-destructured catch block param case, the created node will be a name node, not a var node.
+                        break;
+                    }
+
                     if (sym == nullptr)
                     {
                         sym = funcInfo->paramScope->FindLocalSymbol(symName);

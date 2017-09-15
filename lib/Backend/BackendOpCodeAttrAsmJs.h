@@ -9,5 +9,7 @@ namespace OpCodeAttrAsmJs
     bool HasFallThrough(Js::OpCodeAsmJs opcode);
     // True if the opcode has a small/large layout
     bool HasMultiSizeLayout(Js::OpCodeAsmJs opcode);
+    bool HasProfiledOp(Js::OpCodeAsmJs opcode);
+    bool IsProfiledOp(Js::OpCodeAsmJs opcode);
 };
 #endif

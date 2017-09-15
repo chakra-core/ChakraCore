@@ -54,6 +54,7 @@ StackSym::New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func)
     stackSym->m_isArgCaptured = false;
     stackSym->m_requiresBailOnNotNumber = false;
     stackSym->m_isCatchObjectSym = false;
+    stackSym->m_isClosureSym = false;
     stackSym->m_builtInIndex = Js::BuiltinFunction::None;
     stackSym->m_slotNum = StackSym::InvalidSlot;
 
@@ -503,7 +504,7 @@ StackSym::CloneDef(Func *func)
         newSym->m_allocated = m_allocated;
         newSym->m_isInlinedArgSlot = m_isInlinedArgSlot;
         newSym->m_isCatchObjectSym = m_isCatchObjectSym;
-
+        newSym->m_isClosureSym = m_isClosureSym;
         newSym->m_type = m_type;
 
         newSym->CopySymAttrs(this);
@@ -571,7 +572,7 @@ StackSym::GetIntConstValue() const
         {
             return Js::TaggedInt::ToInt32(var);
         }
-        int32 value;
+        int32 value = 0xCCCCCCCC;
         const bool isInt32 = Js::JavascriptNumber::TryGetInt32Value(Js::JavascriptNumber::GetValue(var), &value);
         Assert(isInt32);
         return value;
@@ -760,6 +761,11 @@ StackSym::GetConstOpnd() const
         defInstr->ReplaceSrc1(src1);
         defInstr->m_opcode = Js::OpCode::Ld_A;
 
+    }
+    else if (src1->IsFloat32ConstOpnd())
+    {
+        Assert(this->IsFloatConst());
+        Assert(defInstr->m_opcode == Js::OpCode::LdC_F8_R8 || LowererMD::IsAssign(defInstr));
     }
     else if (src1->IsAddrOpnd())
     {

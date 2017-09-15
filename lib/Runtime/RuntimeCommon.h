@@ -53,6 +53,7 @@ namespace Js
     #define PropertyLet             0x40
     #define PropertyConst           0x80
     // No more flags will fit unless PropertyAttributes is bumped up to a short instead of char
+    #define PropertyInternalDefaults        (PropertyConfigurable|PropertyWritable)
     #define PropertyBuiltInMethodDefaults   (PropertyConfigurable|PropertyWritable)
     #define PropertyDynamicTypeDefaults     (PropertyConfigurable|PropertyWritable|PropertyEnumerable)
     #define PropertyLetDefaults             (PropertyEnumerable|PropertyConfigurable|PropertyWritable|PropertyLet)

@@ -88,7 +88,6 @@ public:
     IR::Instr *         LowerCall(IR::Instr * callInstr, uint32 argCount);
     IR::Instr *         LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper = false, IR::Instr * insertBeforeInstrForCFG = nullptr);
     IR::Instr *         LowerCallIDynamic(IR::Instr * callInstr, IR::Instr* saveThis, IR::Opnd* argsLengthOpnd, ushort callFlags, IR::Instr * insertBeforeInstrForCFG = nullptr);
-    IR::Instr *         LowerCallPut(IR::Instr * callInstr);
     IR::Instr *         LowerStartCall(IR::Instr * instr);
     IR::Instr *         LowerAsmJsCallI(IR::Instr * callInstr);
     IR::Instr *         LowerAsmJsCallE(IR::Instr * callInstr);
@@ -108,7 +107,6 @@ public:
     IR::Instr *         LowerEntryInstr(IR::EntryInstr * entryInstr);
     void                GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType frameSize);
     IR::Instr *         LowerExitInstr(IR::ExitInstr * exitInstr);
-    IR::Instr *         LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr);
     IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr);
     IR::Instr *         LowerInt64Assign(IR::Instr * instr);
     static void         EmitInt4Instr(IR::Instr *instr, bool signExtend = false);

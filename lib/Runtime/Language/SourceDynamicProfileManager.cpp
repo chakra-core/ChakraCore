@@ -52,6 +52,14 @@ namespace Js
         dynamicProfileInfoMap.Item(functionId, dynamicProfileInfo);
     }
 
+    void SourceDynamicProfileManager::RemoveDynamicProfileInfo(LocalFunctionId functionId)
+    {
+        dynamicProfileInfoMap.Remove(functionId);
+#ifdef DYNAMIC_PROFILE_STORAGE
+        dynamicProfileInfoMapSaving.Remove(functionId);
+#endif
+    }
+
     void SourceDynamicProfileManager::MarkAsExecuted(LocalFunctionId functionId)
     {
         Assert(startupFunctions != nullptr);

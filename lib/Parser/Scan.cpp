@@ -465,26 +465,6 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         return tkID;
     }
 
-    // During syntax coloring, scanner doesn't need to convert the escape sequence to get actual characters, it just needs the classification information
-    // So call up hashtables custom method to check if the string scanned is identifier or keyword.
-    // Do the same for deferred parsing, but use a custom method that only tokenizes JS keywords.
-    if ((m_DeferredParseFlags & ScanFlagSuppressIdPid) != 0)
-    {
-        m_ptoken->SetIdentifier(NULL);
-        if (!fHasEscape)
-        {
-            // If there are no escape, that the main scan loop would have found the keyword already
-            // So we can just assume it is an ID
-            DebugOnly(int32 cch = UnescapeToTempBuf(pchMin, p));
-            DebugOnly(tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
-            Assert(tk == tkID || (tk == tkYIELD && !this->YieldIsKeyword()) || (tk == tkAWAIT && !this->AwaitIsKeyword()));
-            return tkID;
-        }
-        int32 cch = UnescapeToTempBuf(pchMin, p);
-        tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode());
-        return (!this->YieldIsKeyword() && tk == tkYIELD) || (!this->AwaitIsKeyword() && tk == tkAWAIT) ? tkID : tk;
-    }
-
     // UTF16 Scanner are only for syntax coloring, so it shouldn't come here.
     if (EncodingPolicy::MultiUnitEncoding && !fHasMultiChar && !fHasEscape)
     {
@@ -493,7 +473,7 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         // If there are no escape, that the main scan loop would have found the keyword already
         // So we can just assume it is an ID
         DebugOnly(int32 cch = UnescapeToTempBuf(pchMin, p));
-        DebugOnly(tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
+        DebugOnly(tokens tk = Ident::TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
         Assert(tk == tkID || (tk == tkYIELD && !this->YieldIsKeyword()) || (tk == tkAWAIT && !this->AwaitIsKeyword()));
 
         m_ptoken->SetIdentifier(reinterpret_cast<const char *>(pchMin), (int32)(p - pchMin));
@@ -506,8 +486,8 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
     if (!fHasEscape)
     {
         // If it doesn't have escape, then Scan() should have taken care of keywords (except
-        // yield if this->YieldIsKeyword() is false, in which case yield is treated as an identifier, and except
-        // await if this->AwaitIsKeyword() is false, in which case await is treated as an identifier).
+        // yield if m_fYieldIsKeyword is false, in which case yield is treated as an identifier, and except
+        // await if m_fAwaitIsKeyword is false, in which case await is treated as an identifier).
         // We don't have to check if the name is reserved word and return it as an Identifier
         Assert(pid->Tk(IsStrictMode()) == tkID
             || (pid->Tk(IsStrictMode()) == tkYIELD && !this->YieldIsKeyword())
@@ -585,9 +565,25 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
 {
     EncodedCharPtr last = m_pchLast;
     EncodedCharPtr pchT = nullptr;
+    bool baseSpecified = false;
     likelyInt = true;
     // Reset
     m_OctOrLeadingZeroOnLastTKNumber = false;
+
+    auto baseSpecifierCheck = [&pchT, &pdbl, p, &baseSpecified]()
+    {
+        if (pchT == p + 2)
+        {
+            // An octal token '0' was followed by a base specifier: /0[xXoObB]/
+            // This literal can no longer be a double
+            *pdbl = 0;
+            // Advance the character pointer to the base specifier
+            pchT = p + 1;
+            // Set the flag so we know to offset the potential identifier search after the literal
+            baseSpecified = true;
+        }
+    };
+
     if ('0' == this->PeekFirst(p, last))
     {
         switch(this->PeekFirst(p + 1, last))
@@ -603,37 +599,21 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
         case 'X':
             // Hex
             *pdbl = Js::NumberUtilities::DblFromHex(p + 2, &pchT);
-            if (pchT == p + 2)
-            {
-                // "Octal zero token "0" followed by an identifier token beginning with character 'x'/'X'
-                *pdbl = 0;
-                return p + 1;
-            }
-            else
-                return pchT;
+            baseSpecifierCheck();
+            goto LIdCheck;
         case 'o':
         case 'O':
             // Octal
             *pdbl = Js::NumberUtilities::DblFromOctal(p + 2, &pchT);
-            if (pchT == p + 2)
-            {
-                // "Octal zero token "0" followed by an identifier token beginning with character 'o'/'O'
-                *pdbl = 0;
-                return p + 1;
-            }
-            return pchT;
+            baseSpecifierCheck();
+            goto LIdCheck;
 
         case 'b':
         case 'B':
             // Binary
             *pdbl = Js::NumberUtilities::DblFromBinary(p + 2, &pchT);
-            if (pchT == p + 2)
-            {
-                // "Octal zero token "0" followed by an identifier token beginning with character 'b'/'B'
-                *pdbl = 0;
-                return p + 1;
-            }
-            return  pchT;
+            baseSpecifierCheck();
+            goto LIdCheck;
 
         default:
             // Octal
@@ -656,7 +636,7 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
                 m_OctOrLeadingZeroOnLastTKNumber = false;  //08...  or 09....
                 goto LFloat;
             }
-            return pchT;
+            goto LIdCheck;
         }
     }
     else
@@ -664,105 +644,37 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
 LFloat:
         *pdbl = Js::NumberUtilities::StrToDbl(p, &pchT, likelyInt);
         Assert(pchT == p || !Js::NumberUtilities::IsNan(*pdbl));
-        return pchT;
+        // fall through to LIdCheck
     }
-}
 
-template <typename EncodingPolicy>
-BOOL Scanner<EncodingPolicy>::oFScanNumber(double *pdbl, bool& likelyInt)
-{
-    EncodedCharPtr pchT;
-    m_OctOrLeadingZeroOnLastTKNumber = false;
-    likelyInt = true;
-    if  ('0' == *m_currentCharacter)
+LIdCheck:
+    // https://tc39.github.io/ecma262/#sec-literals-numeric-literals
+    // The SourceCharacter immediately following a NumericLiteral must not be an IdentifierStart or DecimalDigit.
+    // For example : 3in is an error and not the two input elements 3 and in
+    codepoint_t outChar = 0;
+    // If a base was speficied, use the first character denoting the constant. In this case, pchT is pointing to the base specifier.
+    EncodedCharPtr startingLocation = baseSpecified ? pchT + 1 : pchT;
+    if (this->charClassifier->IsIdStart(*startingLocation))
     {
-        switch (m_currentCharacter[1])
+        Error(ERRIdAfterLit);
+    }
+
+    // IsIdStart does not cover the unicode escape case. Try to read a unicode escape from the 'u' char.
+    if (*pchT == '\\')
+    {
+        startingLocation++; // TryReadEscape expects us to point to the 'u', and since it is by reference we need to do it beforehand.
+        if (TryReadEscape(startingLocation, m_pchLast, &outChar))
         {
-        case '.':
-        case 'e':
-        case 'E':
-            likelyInt = false;
-            // Floating point.
-            goto LFloat;
-
-        case 'x':
-        case 'X':
-            // Hex.
-            *pdbl = Js::NumberUtilities::DblFromHex<EncodedChar>(m_currentCharacter + 2, &pchT);
-            if (pchT == m_currentCharacter + 2)
-            {
-                // "Octal zero token "0" followed by an identifier token beginning with character 'x'/'X'
-                *pdbl = 0;
-                m_currentCharacter++;
-            }
-            else
-                m_currentCharacter = pchT;
-            break;
-        case 'o':
-        case 'O':
-            *pdbl = Js::NumberUtilities::DblFromOctal(m_currentCharacter + 2, &pchT);
-            if (pchT == m_currentCharacter + 2)
-            {
-                // "Octal zero token "0" followed by an identifier token beginning with character 'o'/'O'
-                *pdbl = 0;
-                m_currentCharacter++;
-            }
-            else
-                m_currentCharacter = pchT;
-            break;
-
-        case 'b':
-        case 'B':
-            *pdbl = Js::NumberUtilities::DblFromBinary(m_currentCharacter + 2, &pchT);
-            if (pchT == m_currentCharacter + 2)
-            {
-                // "Octal zero token "0" followed by an identifier token beginning with character 'b'/'B'
-                *pdbl = 0;
-                m_currentCharacter++;
-            }
-            else
-                m_currentCharacter = pchT;
-            break;
-
-        default:
-            // Octal.
-            *pdbl = Js::NumberUtilities::DblFromOctal(m_currentCharacter, &pchT);
-            Assert(pchT > m_currentCharacter);
-
-
-#if !SOURCERELEASE
-            // If an octal literal is malformed then it is in fact a decimal literal.
-#endif // !SOURCERELEASE
-            if(*pdbl != 0 || pchT > m_currentCharacter + 1)
-                m_OctOrLeadingZeroOnLastTKNumber = true; //report as an octal or hex for JSON when leading 0. Just '0' is ok
-            switch (*pchT)
-            {
-            case '8':
-            case '9':
-                //            case 'e':
-                //            case 'E':
-                //            case '.':
-                m_OctOrLeadingZeroOnLastTKNumber = false;  //08...  or 09....
-                goto LFloat;
-            }
-
-            m_currentCharacter = pchT;
-            break;
+            Error(ERRIdAfterLit);
         }
     }
-    else
-    {
-LFloat:
-        // Let StrToDbl do all the work.
 
-        *pdbl = Js::NumberUtilities::StrToDbl(m_currentCharacter, &pchT, likelyInt);
-        if (pchT == m_currentCharacter)
-            return FALSE;
-        m_currentCharacter = pchT;
-        Assert(!Js::NumberUtilities::IsNan(*pdbl));
+    if (Js::NumberUtilities::IsDigit(*startingLocation))
+    {
+        Error(ERRbadNumber);
     }
 
-    return TRUE;
+    return pchT;
 }
 
 template <typename EncodingPolicy>

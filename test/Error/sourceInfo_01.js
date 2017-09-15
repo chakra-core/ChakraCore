@@ -11,5 +11,5 @@ function dummy() {
 }
 
 dummy();
-  throw 123; //9,3
+  throw 123;
 dummy();

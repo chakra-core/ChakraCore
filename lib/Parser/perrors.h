@@ -22,6 +22,7 @@ LSC_ERROR_MSG( 1013, ERRbadNumber     , "Invalid number")
 LSC_ERROR_MSG( 1014, ERRillegalChar   , "Invalid character")
 LSC_ERROR_MSG( 1015, ERRnoStrEnd      , "Unterminated string constant")
 LSC_ERROR_MSG( 1016, ERRnoCmtEnd      , "Unterminated comment")
+LSC_ERROR_MSG( 1017, ERRIdAfterLit    , "Unexpected identifier after numeric literal")
 
 LSC_ERROR_MSG( 1018, ERRbadReturn     , "'return' statement outside of function")
 LSC_ERROR_MSG( 1019, ERRbadBreak      , "Can't have 'break' outside of loop")

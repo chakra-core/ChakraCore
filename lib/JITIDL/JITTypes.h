@@ -5,8 +5,18 @@
 
 #pragma once
 
+#include "CommonDefines.h"
+
 #ifdef __midl
 import "wtypes.idl";
+#include "sdkddkver.h"
+#endif
+
+#if defined(WINVER) && WINVER >= _WIN32_WINNT_WINBLUE // on 8.1+, RPC can marshal process handle for us
+#ifdef __midl
+cpp_quote("#define USE_RPC_HANDLE_MARSHALLING 1")
+#endif
+#define USE_RPC_HANDLE_MARSHALLING 1
 #endif
 
 #if defined(_M_IX86) || defined(_M_ARM)
@@ -155,6 +165,7 @@ typedef struct ObjTypeSpecFldIDL
     IDL_Field(int) propertyId;
     IDL_Field(int) typeId;
     IDL_Field(unsigned int) id;
+    X64_PAD4(0)
     IDL_Field(CHAKRA_WB_PTR) protoObjectAddr;
     IDL_Field(CHAKRA_WB_PTR) propertyGuardValueAddr;
     IDL_Field(EquivalentTypeSetIDL *) typeSet;
@@ -302,7 +313,6 @@ typedef struct ThreadContextDataIDL
 
     IDL_PAD2(0)
     X64_PAD4(1)
-    CHAKRA_PTR processHandle;
     CHAKRA_PTR chakraBaseAddress;
     CHAKRA_PTR crtBaseAddress;
     CHAKRA_PTR threadStackLimitAddr;
@@ -321,8 +331,10 @@ typedef struct ScriptContextDataIDL
     boolean recyclerAllowNativeCodeBumpAllocation;
 #ifdef ENABLE_SIMDJS
     boolean isSIMDEnabled;
-#endif
+#else
     IDL_PAD1(0)
+#endif
+    IDL_PAD1(1)
     unsigned int recyclerVerifyPad;
     CHAKRA_PTR vtableAddresses[VTABLE_COUNT];
 
@@ -353,10 +365,12 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR numberAllocatorAddr;
     CHAKRA_PTR recyclerAddr;
     CHAKRA_PTR builtinFunctionsBaseAddr;
+#ifdef ENABLE_SCRIPT_DEBUGGING
     CHAKRA_PTR debuggingFlagsAddr;
     CHAKRA_PTR debugStepTypeAddr;
     CHAKRA_PTR debugFrameAddressAddr;
     CHAKRA_PTR debugScriptIdWhenSetAddr;
+#endif
 } ScriptContextDataIDL;
 
 typedef struct SmallSpanSequenceIDL
@@ -397,6 +411,7 @@ typedef struct WasmSignatureIDL
     unsigned int id;
     unsigned short paramSize;
     unsigned short paramsCount;
+    X64_PAD4(0)
     CHAKRA_PTR shortSig;
     IDL_DEF([size_is(paramsCount)]) int * params;
 } WasmSignatureIDL;
@@ -546,10 +561,11 @@ typedef struct FunctionBodyDataIDL
     unsigned int literalRegexCount;
     unsigned int auxDataCount;
     unsigned int auxContextDataCount;
+    unsigned int functionSlotsInCachedScopeCount;
 
     unsigned int fullStatementMapCount;
     unsigned int propertyIdsForRegSlotsCount;
-
+    X64_PAD4(1)
     IDL_DEF([size_is(propertyIdsForRegSlotsCount)]) int * propertyIdsForRegSlots;
 
     SmallSpanSequenceIDL * statementMap;
@@ -575,6 +591,8 @@ typedef struct FunctionBodyDataIDL
     IDL_DEF([size_is(auxDataCount)]) byte * auxData;
 
     IDL_DEF([size_is(auxContextDataCount)]) byte * auxContextData;
+
+    IDL_DEF([size_is(functionSlotsInCachedScopeCount)]) unsigned int * slotIdInCachedScopeToNestedIndexArray;
 
     ProfileDataIDL * profileData;
 
@@ -692,7 +710,6 @@ typedef struct CodeGenWorkItemIDL
     CHAKRA_PTR functionBodyAddr;
     CHAKRA_PTR globalThisAddr;
     CHAKRA_PTR nativeDataAddr;
-    X86_PAD4(2)
     __int64 startTime;
 } CodeGenWorkItemIDL;
 
@@ -814,6 +831,8 @@ typedef struct JITOutputIDL
     CHAKRA_PTR xdataAddr;
 #elif defined(_M_ARM) || defined(_M_ARM64)
     unsigned int xdataOffset;
+#else
+    X86_PAD4(0)
 #endif
     CHAKRA_PTR codeAddress;
     CHAKRA_PTR thunkAddress;

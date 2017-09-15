@@ -14,15 +14,9 @@
  * limitations under the License.
  */
 
-#include "lexer-source.h"
+#include "src/lexer-source.h"
 
 #include <algorithm>
-
-#define CHECK_RESULT(expr)  \
-  do {                      \
-    if (WABT_FAILED(expr))  \
-      return Result::Error; \
-  } while (0)
 
 namespace wabt {
 
@@ -40,7 +34,7 @@ std::unique_ptr<LexerSource> LexerSourceFile::Clone() {
   std::unique_ptr<LexerSourceFile> result(new LexerSourceFile(filename_));
 
   Offset offset = 0;
-  if (WABT_FAILED(Tell(&offset)) || WABT_FAILED(result->Seek(offset)))
+  if (Failed(Tell(&offset)) || Failed(result->Seek(offset)))
     result.reset();
 
   return std::move(result);

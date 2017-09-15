@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "JsrtPch.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "JsrtDebugUtils.h"
 #include "RuntimeDebugPch.h"
 #include "screrror.h"   // For CompileScriptException
@@ -144,6 +145,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
     bool addValue = false;
 
     Js::Var varValue = objectDisplayRef->GetVarValue(FALSE);
+    Js::IDiagObjectAddress* varAddress = objectDisplayRef->GetDiagAddress();
 
     if (varValue != nullptr)
     {
@@ -291,6 +293,12 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_Promise:
         case Js::TypeIds_GlobalObject:
         case Js::TypeIds_SpreadArgument:
+#ifdef ENABLE_WASM
+        case Js::TypeIds_WebAssemblyModule:
+        case Js::TypeIds_WebAssemblyInstance:
+        case Js::TypeIds_WebAssemblyMemory:
+        case Js::TypeIds_WebAssemblyTable:
+#endif
 
         case Js::TypeIds_Proxy:
         {
@@ -357,6 +365,11 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
     if (objectDisplayRef->HasChildren())
     {
         propertyAttributes |= JsrtDebugPropertyAttribute::HAVE_CHILDRENS;
+    }
+
+    if (varAddress != nullptr && varAddress->IsInDeadZone())
+    {
+        propertyAttributes |= JsrtDebugPropertyAttribute::IN_TDZ;
     }
 
     JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::propertyAttributes, (UINT)propertyAttributes, scriptContext);
@@ -480,7 +493,12 @@ const char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     case Js::TypeIds_Promise:           return _u("Promise");
     case Js::TypeIds_GlobalObject:      return _u("Object");
     case Js::TypeIds_SpreadArgument:    return _u("Spread");
-
+#ifdef ENABLE_WASM
+    case Js::TypeIds_WebAssemblyModule:  return _u("WebAssembly.Module");
+    case Js::TypeIds_WebAssemblyInstance:return _u("WebAssembly.Instance");
+    case Js::TypeIds_WebAssemblyMemory:  return _u("WebAssembly.Memory");
+    case Js::TypeIds_WebAssemblyTable:   return _u("WebAssembly.Table");
+#endif
     default:
         Assert(false);
     }
@@ -498,3 +516,4 @@ const char16 * JsrtDebugUtils::GetDebugPropertyName(JsrtDebugPropertyId property
     Assert(false);
     return _u("");
 }
+#endif

@@ -34,7 +34,7 @@ GlobOptBlockData::NullOutBlockData(GlobOpt* globOpt, Func* func)
     this->startCallCount = 0;
     this->argOutCount = 0;
     this->totalOutParamCount = 0;
-    this->inlinedArgOutCount = 0;
+    this->inlinedArgOutSize = 0;
     this->hasCSECandidates = false;
     this->curFunc = func;
 
@@ -84,7 +84,7 @@ GlobOptBlockData::InitBlockData(GlobOpt* globOpt, Func* func)
     this->startCallCount = 0;
     this->argOutCount = 0;
     this->totalOutParamCount = 0;
-    this->inlinedArgOutCount = 0;
+    this->inlinedArgOutSize = 0;
     this->hasCSECandidates = false;
     this->curFunc = func;
 
@@ -137,7 +137,7 @@ GlobOptBlockData::ReuseBlockData(GlobOptBlockData *fromData)
     this->startCallCount = fromData->startCallCount;
     this->argOutCount = fromData->argOutCount;
     this->totalOutParamCount = fromData->totalOutParamCount;
-    this->inlinedArgOutCount = fromData->inlinedArgOutCount;
+    this->inlinedArgOutSize = fromData->inlinedArgOutSize;
     this->hasCSECandidates = fromData->hasCSECandidates;
 
     this->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
@@ -180,7 +180,7 @@ GlobOptBlockData::CopyBlockData(GlobOptBlockData *fromData)
     this->startCallCount = fromData->startCallCount;
     this->argOutCount = fromData->argOutCount;
     this->totalOutParamCount = fromData->totalOutParamCount;
-    this->inlinedArgOutCount = fromData->inlinedArgOutCount;
+    this->inlinedArgOutSize = fromData->inlinedArgOutSize;
     this->hasCSECandidates = fromData->hasCSECandidates;
 
     this->changedSyms = fromData->changedSyms;
@@ -348,7 +348,7 @@ void GlobOptBlockData::CloneBlockData(BasicBlock *const toBlockContext, BasicBlo
     this->startCallCount = fromData->startCallCount;
     this->argOutCount = fromData->argOutCount;
     this->totalOutParamCount = fromData->totalOutParamCount;
-    this->inlinedArgOutCount = fromData->inlinedArgOutCount;
+    this->inlinedArgOutSize = fromData->inlinedArgOutSize;
     this->hasCSECandidates = fromData->hasCSECandidates;
 
     // Although we don't need the data on loop pre pass, we need to do it for the loop header
@@ -835,7 +835,7 @@ GlobOptBlockData::MergeBlockData(
     Assert(this->startCallCount == fromData->startCallCount);
     Assert(this->argOutCount == fromData->argOutCount);
     Assert(this->totalOutParamCount == fromData->totalOutParamCount);
-    Assert(this->inlinedArgOutCount == fromData->inlinedArgOutCount);
+    Assert(this->inlinedArgOutSize == fromData->inlinedArgOutSize);
 
     // stackLiteralInitFldDataMap is a union of the stack literal from two path.
     // Although we don't need the data on loop prepass, we need to do it for the loop header

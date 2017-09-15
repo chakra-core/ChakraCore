@@ -58,6 +58,13 @@ public:
         return functionBody->GetScriptContext();
     }
 
+    uint GetByteCodeLength() const
+    {
+        return this->functionBody->IsInDebugMode()
+            ? this->functionBody->GetOriginalByteCode()->GetLength()
+            : this->functionBody->GetByteCode()->GetLength();
+    }
+
     Js::FunctionBody* GetFunctionBody() const
     {
         return functionBody;
@@ -211,7 +218,7 @@ public:
         {
            return nameSizeInChars;
         }
-        js_memcpy_s(displayName, sizeInChars * sizeof(WCHAR), name, sizeInBytes);
+        js_wmemcpy_s(displayName, sizeInChars, name, sizeInBytes);
         return nameSizeInChars;
     }
 

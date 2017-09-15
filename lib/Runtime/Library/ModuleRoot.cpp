@@ -68,10 +68,12 @@ namespace Js
             if (info) // Avoid testing IsWritable if info not being queried
             {
                 PropertyValueInfo::Set(info, this, index, IsWritable(propertyId) ? PropertyWritable : PropertyNone);
+#if ENABLE_FIXED_FIELDS
                 if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
+#endif
             }
             return PropertyQueryFlags::Property_Found;
         }
@@ -98,10 +100,12 @@ namespace Js
             if (info) // Avoid testing IsWritable if info not being queried
             {
                 PropertyValueInfo::Set(info, this, index, IsWritable(propertyId) ? PropertyWritable : PropertyNone);
+#if ENABLE_FIXED_FIELDS
                 if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
+#endif
             }
             return TRUE;
         }
@@ -152,10 +156,12 @@ namespace Js
             if (info) // Avoid testing IsWritable if info not being queried
             {
                 PropertyValueInfo::Set(info, this, index, IsWritable(propertyId) ? PropertyWritable : PropertyNone);
+#if ENABLE_FIXED_FIELDS
                 if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
+#endif
             }
             return PropertyQueryFlags::Property_Found;
         }
@@ -183,10 +189,12 @@ namespace Js
             if (info) // Avoid testing IsWritable if info not being queried
             {
                 PropertyValueInfo::Set(info, this, index, IsWritable(propertyId) ? PropertyWritable : PropertyNone);
+#if ENABLE_FIXED_FIELDS
                 if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
+#endif
             }
             return TRUE;
         }
@@ -213,24 +221,28 @@ namespace Js
             {
                 JavascriptError::ThrowCantAssignIfStrictMode(flags, this->GetScriptContext());
 
-                if (!this->IsFixedProperty(propertyId))
-                {
-                    PropertyValueInfo::Set(info, this, index, PropertyNone); // Try to cache property info even if not writable
-                }
-                else
+#if ENABLE_FIXED_FIELDS
+                if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::SetNoCache(info, this);
+                }
+                else
+#endif
+                {
+                    PropertyValueInfo::Set(info, this, index, PropertyNone); // Try to cache property info even if not writable
                 }
                 return FALSE;
             }
             this->SetSlot(SetSlotArguments(propertyId, index, value));
-            if (!this->IsFixedProperty(propertyId))
-            {
-                PropertyValueInfo::Set(info, this, index);
-            }
-            else
+#if ENABLE_FIXED_FIELDS
+            if (this->IsFixedProperty(propertyId))
             {
                 PropertyValueInfo::SetNoCache(info, this);
+            }
+            else
+#endif
+            {
+                PropertyValueInfo::Set(info, this, index);
             }
             return TRUE;
         }
@@ -272,25 +284,29 @@ namespace Js
             {
                 JavascriptError::ThrowCantAssignIfStrictMode(flags, this->GetScriptContext());
 
-                if (!this->IsFixedProperty(propertyId))
-                {
-                    PropertyValueInfo::Set(info, this, index, PropertyNone); // Try to cache property info even if not writable
-                }
-                else
+#if ENABLE_FIXED_FIELDS
+                if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::SetNoCache(info, this);
+                }
+                else
+#endif
+                {
+                    PropertyValueInfo::Set(info, this, index, PropertyNone); // Try to cache property info even if not writable
                 }
                 return FALSE;
             }
             this->SetSlot(SetSlotArgumentsRoot(propertyId, true, index, value));
-            if (!this->IsFixedProperty(propertyId))
-            {
-                PropertyValueInfo::Set(info, this, index);
-            }
-            else
+#if ENABLE_FIXED_FIELDS
+            if (this->IsFixedProperty(propertyId))
             {
                 PropertyValueInfo::SetNoCache(info, this);
             }
+            else
+#endif
+            {
+                PropertyValueInfo::Set(info, this, index);
+            }            
             return TRUE;
         }
         else if (this->hostObject && this->hostObject->HasProperty(propertyId))

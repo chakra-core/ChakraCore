@@ -26,6 +26,7 @@ namespace Wasm
             F64 = 4,
             M128 = 5,
             Limit,
+            Ptr,
             Any
         };
 
@@ -104,10 +105,6 @@ namespace Wasm
     struct WasmVarNode
     {
         uint32 num;
-        union
-        {
-            LPCUTF8 exportName;
-        };
     };
 
     struct WasmMemOpNode

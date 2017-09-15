@@ -158,7 +158,7 @@ namespace Js
             CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
             return proxy->SetPrototypeTrap(newPrototype, shouldThrow, scriptContext);
         }
-        
+
         // 2.   Let extensible be the value of the [[Extensible]] internal data property of O.
         // 3.   Let current be the value of the [[Prototype]] internal data property of O.
         // 4.   If SameValue(V, current), then return true.
@@ -383,18 +383,19 @@ namespace Js
         // 15. Let tag be ? Get(O, @@toStringTag).
         Var tag = JavascriptOperators::GetProperty(thisArgAsObject, PropertyIds::_symbolToStringTag, scriptContext); // Let tag be the result of Get(O, @@toStringTag).
 
-        // 17. Return the String that is the result of concatenating "[object ", tag, and "]". 
+        // 17. Return the String that is the result of concatenating "[object ", tag, and "]".
         auto buildToString = [&scriptContext](Var tag) {
             JavascriptString *tagStr = JavascriptString::FromVar(tag);
+            const WCHAR objectStartString[9] = _u("[object ");
+            const WCHAR objectEndString[1] = { _u(']') };
+            CompoundString *const cs = CompoundString::NewWithCharCapacity(_countof(objectStartString)
+              + _countof(objectEndString) + tagStr->GetLength(), scriptContext->GetLibrary());
 
-            CompoundString::Builder<32> stringBuilder(scriptContext);
+            cs->AppendChars(objectStartString, _countof(objectStartString) - 1 /* ditch \0 */);
+            cs->AppendChars(tagStr);
+            cs->AppendChars(objectEndString, _countof(objectEndString));
 
-            stringBuilder.AppendChars(_u("[object "));
-
-            stringBuilder.AppendChars(tagStr);
-            stringBuilder.AppendChars(_u(']'));
-
-            return stringBuilder.ToString();
+            return cs;
         };
         if (tag != nullptr && JavascriptString::Is(tag))
         {
@@ -652,7 +653,7 @@ namespace Js
 
         JavascriptArray* ownPropertyKeys = JavascriptOperators::GetOwnPropertyKeys(obj, scriptContext);
         RecyclableObject* resultObj = scriptContext->GetLibrary()->CreateObject(true, (Js::PropertyIndex) ownPropertyKeys->GetLength());
-        
+
         PropertyDescriptor propDesc;
         Var propKey = nullptr;
 
@@ -665,7 +666,7 @@ namespace Js
             {
                 continue;
             }
-            
+
             PropertyRecord const * propertyRecord;
             JavascriptConversion::ToPropertyKey(propKey, scriptContext, &propertyRecord);
 

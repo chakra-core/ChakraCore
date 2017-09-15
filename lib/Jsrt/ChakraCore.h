@@ -286,23 +286,13 @@ CHAKRA_API
 ///     <para>
 ///         When size of the `buffer` is unknown,
 ///         `buffer` argument can be nullptr.
-///         In that case, `actualLength` argument will return the length needed to
-///         accomodate all the UTF8 decoded bytes present in `value`.
-///         `writtenLength` will only get populated when valid `buffer` is passed as
-///          argument.
+///         In that case, `length` argument will return the length needed.
 ///     </para>
 /// </remarks>
 /// <param name="value">JavascriptString value</param>
 /// <param name="buffer">Pointer to buffer</param>
 /// <param name="bufferSize">Buffer size</param>
-/// <param name="writtenLength">Total number of UTF8 decoded bytes written. This is only
-///                             populated when passed with non-null `buffer`,else is
-///                             set to 0.
-/// </param>
-/// <param name="actualLength">Total number of UTF8 decoded bytes present in `value`.
-///                            Useful to initialize buffer of appropriate size that
-///                            can be passed in to this API.
-/// </param>
+/// <param name="length">Total number of characters needed or written</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
@@ -311,8 +301,7 @@ CHAKRA_API
         _In_ JsValueRef value,
         _Out_opt_ char* buffer,
         _In_ size_t bufferSize,
-        _Out_opt_ size_t* writtenLength,
-        _Out_opt_ size_t* actualLength);
+        _Out_opt_ size_t* length);
 
 /// <summary>
 ///     Write string value into Utf16 string buffer

@@ -25,7 +25,7 @@ var tests = [
             var descriptor = Object.getOwnPropertyDescriptor(Promise, 'length');
             assert.isFalse(descriptor.writable, "Promise.length.writable === false");
             assert.isFalse(descriptor.enumerable, "Promise.length.enumerable === false");
-            assert.isFalse(descriptor.configurable, "Promise.length.configurable === false");
+            assert.isTrue(descriptor.configurable, "Promise.length.configurable === true");
             assert.areEqual('number', typeof descriptor.value, "typeof Promise.length === 'number'");
             assert.areEqual(1, Promise.length, "Promise.length === 1");
 

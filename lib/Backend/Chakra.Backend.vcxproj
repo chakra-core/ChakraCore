@@ -151,6 +151,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)CodeGenAllocators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CodeGenNumberAllocator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DbCheckPostLower.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)EquivalentTypeSet.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBailOut.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptExpr.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptSimd128.cpp" />
@@ -177,6 +178,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)IRBuilder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IRViewer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IRType.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JnHelperMethod.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LinearScan.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Lower.cpp" />
@@ -256,6 +258,7 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="AsmJsJITInfo.h" />
+    <ClInclude Include="EquivalentTypeSet.h" />
     <ClInclude Include="FunctionCodeGenJitTimeData.h" />
     <ClInclude Include="FunctionJITRuntimeInfo.h" />
     <ClInclude Include="FunctionJITTimeInfo.h" />
@@ -392,6 +395,7 @@
     <ClInclude Include="IRViewer.h" />
     <ClInclude Include="IRType.h" />
     <ClInclude Include="IRTypeList.h" />
+    <ClInclude Include="JavascriptNativeOperators.h" />
     <ClInclude Include="JITThunkEmitter.h" />
     <ClInclude Include="ObjTypeSpecFldInfo.h" />
     <ClInclude Include="JITOutput.h" />
@@ -421,6 +425,7 @@
     <ClInclude Include="NativeCodeGenerator.h" />
     <ClInclude Include="Opnd.h" />
     <ClInclude Include="Peeps.h" />
+    <ClInclude Include="PropertyGuard.h" />
     <ClInclude Include="QueuedFullJitWorkItem.h" />
     <ClInclude Include="Region.h" />
     <ClInclude Include="SccLiveness.h" />
@@ -476,7 +481,7 @@
     <ClInclude Include="CRC.h">
       <FileType>CppCode</FileType>
     </ClInclude>
-  </ItemGroup>
+  </ItemGroup>  
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

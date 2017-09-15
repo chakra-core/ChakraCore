@@ -5,39 +5,44 @@
 #pragma once
 
 
+#define UNKNOWN_MOD_INDEX 75 // count of the known mod array (under SizePolicy.cpp)
+
+
 struct PrimePolicy
 {
-    inline static uint GetBucket(hash_t hashCode, int size)
+    inline static hash_t GetBucket(hash_t hashCode, uint size, int modFunctionIndex)
     {
-        uint targetBucket = hashCode % size;
+        hash_t targetBucket = ModPrime(hashCode, size, modFunctionIndex);
         return targetBucket;
     }
 
-    inline static uint GetSize(uint capacity)
+    inline static uint GetSize(uint capacity, int *modFunctionIndex)
     {
-        return GetPrime(capacity);
+        return GetPrime(capacity, modFunctionIndex);
     }
 
 private:
     static bool IsPrime(uint candidate);
-    static uint GetPrime(uint min);
+    static uint GetPrime(uint min, int *modFunctionIndex);
+    static hash_t ModPrime(hash_t key, uint prime, int modFunctionIndex);
 };
 
 struct PowerOf2Policy
 {
-    inline static uint GetBucket(hash_t hashCode, int size)
+    inline static hash_t GetBucket(hash_t hashCode, uint size, int modFunctionIndex)
     {
-        AssertMsg(Math::IsPow2(size), "Size is not a power of 2.");
-        uint targetBucket = hashCode & (size-1);
+        AssertMsg(Math::IsPow2(size) && size > 1, "Size is not a power of 2.");
+        hash_t targetBucket = hashCode & (size-1);
         return targetBucket;
     }
 
     /// Returns a size that is power of 2 and
     /// greater than specified capacity.
-    inline static uint GetSize(size_t minCapacity_t)
+    inline static uint GetSize(size_t minCapacity_t, int *modFunctionIndex)
     {
         AssertMsg(minCapacity_t <= MAXINT32, "the next higher power of 2  must fit in uint32");
         uint minCapacity = static_cast<uint>(minCapacity_t);
+        *modFunctionIndex = UNKNOWN_MOD_INDEX;
 
         if(minCapacity <= 0)
         {
@@ -60,22 +65,22 @@ struct DictionarySizePolicy
 {
     CompileAssert(growthRateNumerator > growthRateDenominator);
     CompileAssert(growthRateDenominator != 0);
-    inline static uint GetBucket(hash_t hashCode, uint bucketCount)
+    inline static hash_t GetBucket(hash_t hashCode, uint bucketCount, int modFunctionIndex)
     {
-        return SizePolicy::GetBucket(hashCode, bucketCount);
+        return SizePolicy::GetBucket(hashCode, bucketCount, modFunctionIndex);
     }
     inline static uint GetNextSize(uint minCapacity)
     {
         uint nextSize = minCapacity * growthRateNumerator / growthRateDenominator;
         return (growthRateDenominator != 1 && nextSize <= minCapacity)? minCapacity + 1 : nextSize;
     }
-    inline static uint GetBucketSize(uint size)
+    inline static uint GetBucketSize(uint size, int *modFunctionIndex)
     {
         if (minBucket * averageChainLength >= size)
         {
-            return SizePolicy::GetSize(minBucket);
+            return SizePolicy::GetSize(minBucket, modFunctionIndex);
         }
-        return SizePolicy::GetSize((size + (averageChainLength - 1)) / averageChainLength);
+        return SizePolicy::GetSize((size + (averageChainLength - 1)) / averageChainLength, modFunctionIndex);
     }
 };
 

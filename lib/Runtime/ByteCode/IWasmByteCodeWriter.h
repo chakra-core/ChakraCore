@@ -38,7 +38,7 @@ namespace Js
         virtual void AsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType, uint32 offset = 0) = 0;
         virtual void WasmSimdConst(OpCodeAsmJs op, RegSlot R0, int C0, int C1, int C2, int C3) = 0;
 
-        virtual void AsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, int32 slotId) = 0;
+        virtual void AsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, uint32 slotId) = 0;
         virtual void AsmBr(ByteCodeLabel labelID, OpCodeAsmJs op = OpCodeAsmJs::AsmBr) = 0;
         virtual void AsmBrReg1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1) = 0;
         virtual void AsmBrReg1Const1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1) = 0;
@@ -47,7 +47,9 @@ namespace Js
         virtual void ExitLoop(uint loopId) = 0;
 
         virtual void AsmStartCall(OpCodeAsmJs op, ArgSlot ArgCount, bool isPatching = false) = 0;
-        virtual void AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType) = 0;
+        virtual void AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType, Js::ProfileId profileId) = 0;
+
+        virtual void SetCallSiteCount(Js::ProfileId callSiteCount) = 0;
     };
 }
 #endif

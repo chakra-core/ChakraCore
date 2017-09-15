@@ -17,13 +17,13 @@
 #ifndef WABT_GENERATE_NAMES_H_
 #define WABT_GENERATE_NAMES_H_
 
-#include "common.h"
+#include "src/common.h"
 
 namespace wabt {
 
 struct Module;
 
-Result generate_names(struct Module*);
+Result GenerateNames(struct Module*);
 
 }  // namespace wabt
 

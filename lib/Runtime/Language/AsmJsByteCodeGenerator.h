@@ -79,6 +79,8 @@ namespace Js
             LoadTypedArray,
             StoreTypedArray,
         };
+        RegSlot EmitIndirectCallIndex(ParseNode* identifierNode, ParseNode* indexNode);
+
         EmitExpressionInfo EmitTypedArrayIndex(ParseNode* indexNode, OpCodeAsmJs &op, uint32 &indexSlot, ArrayBufferView::ViewType viewType, TypedArrayEmitType emitType);
         EmitExpressionInfo EmitAssignment( ParseNode * pnode );
         EmitExpressionInfo EmitReturn( ParseNode * pnode );

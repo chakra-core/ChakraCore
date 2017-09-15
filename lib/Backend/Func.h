@@ -687,6 +687,7 @@ public:
     uint32              inlineDepth;
     uint32              postCallByteCodeOffset;
     Js::RegSlot         returnValueRegSlot;
+    Js::RegSlot         firstIRTemp;
     Js::ArgSlot         actualCount;
     int32               firstActualStackOffset;
     uint32              tryCatchNestingLevel;
@@ -760,8 +761,8 @@ public:
     bool                DoMaintainByteCodeOffset() const { return this->HasByteCodeOffset() && this->GetTopFunc()->maintainByteCodeOffset; }
     void                StopMaintainByteCodeOffset() { this->GetTopFunc()->maintainByteCodeOffset = false; }
     Func *              GetParentFunc() const { return parentFunc; }
-    uint                GetMaxInlineeArgOutCount() const { return maxInlineeArgOutCount; }
-    void                UpdateMaxInlineeArgOutCount(uint inlineeArgOutCount);
+    uint                GetMaxInlineeArgOutSize() const { return this->maxInlineeArgOutSize; }
+    void                UpdateMaxInlineeArgOutSize(uint inlineeArgOutSize);
 #if DBG_DUMP
     ptrdiff_t           m_codeSize;
 #endif
@@ -983,10 +984,10 @@ public:
 #if defined(_M_ARM32_OR_ARM64)
     int32               GetInlineeArgumentStackSize()
     {
-        int32 count = this->GetMaxInlineeArgOutCount();
-        if (count)
+        int32 size = this->GetMaxInlineeArgOutSize();
+        if (size)
         {
-            return ((count + 1) * MachPtr); // +1 for the dedicated zero out argc slot
+            return size + MachPtr; // +1 for the dedicated zero out argc slot
         }
         return 0;
     }
@@ -1014,7 +1015,7 @@ private:
 #endif
     Func * const        parentFunc;
     StackSym *          m_inlineeFrameStartSym;
-    uint                maxInlineeArgOutCount;
+    uint                maxInlineeArgOutSize;
     const bool          m_isBackgroundJIT;
     bool                hasInstrNumber;
     bool                maintainByteCodeOffset;

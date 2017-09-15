@@ -312,6 +312,7 @@ namespace Js
         instance->GetDynamicType()->SetPrototype(newPrototype);
     }
 
+#if ENABLE_FIXED_FIELDS
     bool DynamicTypeHandler::TryUseFixedProperty(PropertyRecord const* propertyRecord, Var * pProperty, FixedPropertyKind propertyType, ScriptContext * requestContext)
     {
         if (PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase) ||
@@ -452,6 +453,7 @@ namespace Js
             Output::Flush();
         }
     }
+#endif // ENABLE_FIXED_FIELDS
 
     BOOL DynamicTypeHandler::GetInternalProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value)
     {

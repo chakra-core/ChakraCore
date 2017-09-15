@@ -17,6 +17,7 @@
 #ifndef WABT_COMMON_H_
 #define WABT_COMMON_H_
 
+#include <algorithm>
 #include <cassert>
 #include <cstdarg>
 #include <cstddef>
@@ -24,18 +25,19 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <vector>
 
 #include "config.h"
 
+#include "src/make-unique.h"
+#include "src/result.h"
+#include "src/string-view.h"
+
 #define WABT_FATAL(...) fprintf(stderr, __VA_ARGS__), exit(1)
 #define WABT_ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
-#define WABT_ZERO_MEMORY(var)                                          \
-  WABT_STATIC_ASSERT(                                                  \
-      std::is_pod<std::remove_reference<decltype(var)>::type>::value); \
-  memset(static_cast<void*>(&(var)), 0, sizeof(var))
 
 #define WABT_USE(x) static_cast<void>(x)
 
@@ -45,8 +47,9 @@
 #define WABT_ALIGN_UP_TO_PAGE(x) \
   (((x) + WABT_PAGE_SIZE - 1) & ~(WABT_PAGE_SIZE - 1))
 
-#define PRIstringslice "%.*s"
-#define WABT_PRINTF_STRING_SLICE_ARG(x) static_cast<int>((x).length), (x).start
+#define PRIstringview "%.*s"
+#define WABT_PRINTF_STRING_VIEW_ARG(x) \
+  static_cast<int>((x).length()), (x).data()
 
 #define WABT_DEFAULT_SNPRINTF_ALLOCA_BUFSIZE 128
 #define WABT_SNPRINTF_ALLOCA(buffer, len, format)                          \
@@ -97,16 +100,43 @@ static const Address kInvalidAddress = ~0;
 static const Index kInvalidIndex = ~0;
 static const Offset kInvalidOffset = ~0;
 
-enum class Result {
-  Ok,
-  Error,
-};
+template <typename Dst, typename Src>
+Dst Bitcast(Src value) {
+  static_assert(sizeof(Src) == sizeof(Dst), "Bitcast sizes must match.");
+  Dst result;
+  memcpy(&result, &value, sizeof(result));
+  return result;
+}
 
-#define WABT_SUCCEEDED(x) ((x) == ::wabt::Result::Ok)
-#define WABT_FAILED(x) ((x) == ::wabt::Result::Error)
+template<typename T>
+void ZeroMemory(T& v) {
+  WABT_STATIC_ASSERT(std::is_pod<T>::value);
+  memset(&v, 0, sizeof(v));
+}
+
+// Placement construct
+template <typename T, typename... Args>
+void Construct(T& placement, Args&&... args) {
+  new (&placement) T(std::forward<Args>(args)...);
+}
+
+// Placement destruct
+template <typename T>
+void Destruct(T& placement) {
+  placement.~T();
+}
+
+// Calls data() on vector, string, etc. but will return nullptr if the
+// container is empty.
+// TODO(binji): this should probably be removed when there is a more direct way
+// to represent a memory slice (e.g. something similar to GSL's span)
+template <typename T>
+typename T::value_type* DataOrNull(T& container) {
+  return container.empty() ? nullptr : container.data();
+}
 
 inline std::string WABT_PRINTF_FORMAT(1, 2)
-    string_printf(const char* format, ...) {
+    StringPrintf(const char* format, ...) {
   va_list args;
   va_list args_copy;
   va_start(args, format);
@@ -125,22 +155,41 @@ enum class LabelType {
   Loop,
   If,
   Else,
+  Try,
+  Catch,
 
   First = Func,
-  Last = Else,
+  Last = Catch,
 };
 static const int kLabelTypeCount = WABT_ENUM_COUNT(LabelType);
 
-struct StringSlice {
-  const char* start;
-  size_t length;
-};
-
 struct Location {
-  const char* filename;
-  int line;
-  int first_column;
-  int last_column;
+  enum class Type {
+    Text,
+    Binary,
+  };
+
+  Location() : line(0), first_column(0), last_column(0) {}
+  Location(const char* filename, int line, int first_column, int last_column)
+      : filename(filename),
+        line(line),
+        first_column(first_column),
+        last_column(last_column) {}
+  explicit Location(size_t offset) : offset(offset) {}
+
+  const char* filename = nullptr;
+  union {
+    // For text files.
+    struct {
+      int line;
+      int first_column;
+      int last_column;
+    };
+    // For binary files.
+    struct {
+      size_t offset;
+    };
+  };
 };
 
 /* matches binary format, do not change */
@@ -158,14 +207,14 @@ enum class Type {
 typedef std::vector<Type> TypeVector;
 
 enum class RelocType {
-  FuncIndexLEB = 0,   /* e.g. immediate of call instruction */
-  TableIndexSLEB = 1, /* e.g. loading address of function */
-  TableIndexI32 = 2,  /* e.g. function address in DATA */
-  GlobalAddressLEB = 3,
-  GlobalAddressSLEB = 4,
-  GlobalAddressI32 = 5,
-  TypeIndexLEB = 6, /* e.g immediate type in call_indirect */
-  GlobalIndexLEB = 7, /* e.g immediate of get_global inst */
+  FuncIndexLEB = 0,       // e.g. Immediate of call instruction
+  TableIndexSLEB = 1,     // e.g. Loading address of function
+  TableIndexI32 = 2,      // e.g. Function address in DATA
+  MemoryAddressLEB = 3,   // e.g. Memory address in load/store offset immediate
+  MemoryAddressSLEB = 4,  // e.g. Memory address in i32.const
+  MemoryAddressI32 = 5,   // e.g. Memory address in DATA
+  TypeIndexLEB = 6,       // e.g. Immediate type in call_indirect
+  GlobalIndexLEB = 7,     // e.g. Immediate of get_global inst
 
   First = FuncIndexLEB,
   Last = GlobalIndexLEB,
@@ -179,6 +228,19 @@ struct Reloc {
   size_t offset;
   Index index;
   int32_t addend;
+};
+
+enum class LinkingEntryType {
+  StackPointer = 1,
+  SymbolInfo = 2,
+  DataSize = 3,
+  DataAlignment = 4,
+};
+
+enum class SymbolBinding {
+  Global = 0,
+  Weak = 1,
+  Local = 2,
 };
 
 /* matches binary format, do not change */
@@ -195,81 +257,27 @@ enum class ExternalKind {
 static const int kExternalKindCount = WABT_ENUM_COUNT(ExternalKind);
 
 struct Limits {
-  uint64_t initial;
-  uint64_t max;
-  bool has_max;
+  uint64_t initial = 0;
+  uint64_t max = 0;
+  bool has_max = false;
 };
 
 enum { WABT_USE_NATURAL_ALIGNMENT = 0xFFFFFFFF };
-
-enum class LiteralType {
-  Int,
-  Float,
-  Hexfloat,
-  Infinity,
-  Nan,
-};
-
-struct Literal {
-  LiteralType type;
-  StringSlice text;
-};
 
 enum class NameSectionSubsection {
   Function = 1,
   Local = 2,
 };
 
-static WABT_INLINE char* wabt_strndup(const char* s, size_t len) {
-  size_t real_len = 0;
-  const char* p = s;
-  while (real_len < len && *p) {
-    p++;
-    real_len++;
-  }
+Result ReadFile(const char* filename, std::vector<uint8_t>* out_data);
 
-  char* new_s = new char[real_len + 1];
-  memcpy(new_s, s, real_len);
-  new_s[real_len] = 0;
-  return new_s;
-}
-
-static WABT_INLINE StringSlice dup_string_slice(StringSlice str) {
-  StringSlice result;
-  char* new_data = new char[str.length];
-  memcpy(new_data, str.start, str.length);
-  result.start = new_data;
-  result.length = str.length;
-  return result;
-}
-
-StringSlice empty_string_slice(void);
-bool string_slice_eq_cstr(const StringSlice* s1, const char* s2);
-bool string_slice_startswith(const StringSlice* s1, const char* s2);
-StringSlice string_slice_from_cstr(const char* string);
-bool string_slice_is_empty(const StringSlice*);
-bool string_slices_are_equal(const StringSlice*, const StringSlice*);
-void destroy_string_slice(StringSlice*);
-Result read_file(const char* filename, char** out_data, size_t* out_size);
-
-inline std::string string_slice_to_string(const StringSlice& ss) {
-  return std::string(ss.start, ss.length);
-}
-
-inline StringSlice string_to_string_slice(const std::string& s) {
-  StringSlice ss;
-  ss.start = s.data();
-  ss.length = s.length();
-  return ss;
-}
-
-void init_stdio();
+void InitStdio();
 
 /* external kind */
 
 extern const char* g_kind_name[];
 
-static WABT_INLINE const char* get_kind_name(ExternalKind kind) {
+static WABT_INLINE const char* GetKindName(ExternalKind kind) {
   assert(static_cast<int>(kind) < kExternalKindCount);
   return g_kind_name[static_cast<size_t>(kind)];
 }
@@ -278,14 +286,14 @@ static WABT_INLINE const char* get_kind_name(ExternalKind kind) {
 
 extern const char* g_reloc_type_name[];
 
-static WABT_INLINE const char* get_reloc_type_name(RelocType reloc) {
+static WABT_INLINE const char* GetRelocTypeName(RelocType reloc) {
   assert(static_cast<int>(reloc) < kRelocTypeCount);
   return g_reloc_type_name[static_cast<size_t>(reloc)];
 }
 
 /* type */
 
-static WABT_INLINE const char* get_type_name(Type type) {
+static WABT_INLINE const char* GetTypeName(Type type) {
   switch (type) {
     case Type::I32:
       return "i32";
@@ -303,11 +311,27 @@ static WABT_INLINE const char* get_type_name(Type type) {
       return "void";
     case Type::Any:
       return "any";
-    default:
-      return nullptr;
   }
+  WABT_UNREACHABLE;
 }
 
-}  // namespace
+template <typename T>
+void ConvertBackslashToSlash(T begin, T end) {
+  std::replace(begin, end, '\\', '/');
+}
 
-#endif /* WABT_COMMON_H_ */
+inline void ConvertBackslashToSlash(char* s, size_t length) {
+  ConvertBackslashToSlash(s, s + length);
+}
+
+inline void ConvertBackslashToSlash(char* s) {
+  ConvertBackslashToSlash(s, strlen(s));
+}
+
+inline void ConvertBackslashToSlash(std::string* s) {
+  ConvertBackslashToSlash(s->begin(), s->end());
+}
+
+}  // namespace wabt
+
+#endif // WABT_COMMON_H_

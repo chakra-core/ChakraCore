@@ -380,6 +380,11 @@ namespace Js
         return false;
     }
 
+    BOOL RecyclableObject::InitPropertyInEval(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
+    {
+        return false;
+    }
+
     BOOL RecyclableObject::InitPropertyScoped(PropertyId propertyId, Var value)
     {
         return false;
@@ -410,10 +415,12 @@ namespace Js
         return true;
     }
 
+#if ENABLE_FIXED_FIELDS
     BOOL RecyclableObject::IsFixedProperty(PropertyId propertyId)
     {
         return false;
     }
+#endif
 
     PropertyQueryFlags RecyclableObject::HasItemQuery(uint32 index)
     {
@@ -764,13 +771,6 @@ namespace Js
     Var RecyclableObject::GetTypeOfString(ScriptContext * requestContext)
     {
         return requestContext->GetLibrary()->GetUnknownDisplayString();
-    }
-
-    Var RecyclableObject::InvokePut(Arguments args)
-    {
-        // Handle x(y) = z.
-        // Native jscript object behavior: throw an error in all such cases.
-        JavascriptError::ThrowReferenceError(GetScriptContext(), JSERR_CantAsgCall);
     }
 
     BOOL RecyclableObject::GetRemoteTypeId(TypeId * typeId)

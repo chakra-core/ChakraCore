@@ -2,9 +2,9 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
 #pragma once
 
+#ifdef ENABLE_WASM
 #include "../WasmReader/WasmParseTree.h"
 
 namespace Wasm
@@ -24,6 +24,10 @@ namespace Js
 {
 class WebAssemblyModule : public DynamicObject
 {
+protected:
+    DEFINE_VTABLE_CTOR(WebAssemblyModule, DynamicObject);
+    DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WebAssemblyModule);
+
 public:
 
     class EntryInfo
@@ -79,7 +83,8 @@ public:
     WebAssemblyTable * CreateTable() const;
     bool HasTable() const { return m_hasTable; }
     bool HasTableImport() const { return m_tableImport != nullptr; }
-    bool IsValidTableImport(const WebAssemblyTable * table) const;
+    uint32 GetTableInitSize() const { return m_tableInitSize; }
+    uint32 GetTableMaxSize() const { return m_tableMaxSize; }
 
     uint GetWasmFunctionCount() const;
     Wasm::WasmFunctionInfo* AddWasmFunctionInfo(Wasm::WasmSignature* funsig);
@@ -186,7 +191,8 @@ private:
 
     Field(uint32) m_startFuncIndex;
 
-    FieldNoBarrier(ArenaAllocator) m_alloc;
+    FieldNoBarrier(ArenaAllocator*) m_alloc;
 };
 
 } // namespace Js
+#endif

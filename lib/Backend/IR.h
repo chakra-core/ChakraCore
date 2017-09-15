@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "Language/JavascriptNativeOperators.h"
+#include "JavascriptNativeOperators.h"
 
 class Func;
 class BasicBlock;
@@ -203,6 +203,7 @@ public:
     bool            HasAuxBailOut() const { return hasAuxBailOut; }
     bool            HasTypeCheckBailOut() const;
     bool            HasEquivalentTypeCheckBailOut() const;
+    bool            HasBailOnNoProfile() const;
     void            ClearBailOutInfo();
     bool            IsDstNotAlwaysConvertedToInt32() const;
     bool            IsDstNotAlwaysConvertedToNumber() const;
@@ -433,6 +434,8 @@ public:
     IR::Instr* GetArgOutSnapshot();
     FixedFieldInfo* GetFixedFunction() const;
     uint       GetArgOutCount(bool getInterpreterArgOutCount);
+    uint       GetArgOutSize(bool getInterpreterArgOutCount);
+    uint       GetAsmJsArgOutSize();
     IR::PropertySymOpnd *GetPropertySymOpnd() const;
     bool       CallsAccessor(IR::PropertySymOpnd * methodOpnd = nullptr);
     bool       CallsGetter();
@@ -455,9 +458,6 @@ private:
     void            SetBailOutKind_NoAssert(const IR::BailOutKind bailOutKind);
 
 public:
-    // used only for SIMD Ld/St from typed arrays.
-    // we keep these here to avoid increase in number of opcodes and to not use ExtendedArgs
-    uint8           dataWidth;
 
 #ifdef BAILOUT_INJECTION
     uint            bailOutByteCodeLocation;
@@ -471,6 +471,11 @@ public:
     // These should be together to pack into a uint32
     Js::OpCode      m_opcode;
     uint8           ignoreOverflowBitCount;      // Number of bits after which ovf matters. Currently used for MULs.
+
+    // used only for SIMD Ld/St from typed arrays.
+    // we keep these here to avoid increase in number of opcodes and to not use ExtendedArgs
+    uint8           dataWidth;
+
 
     bool            isFsBased : 1; // TEMP : just for BS testing
     bool            dstIsTempNumber : 1;

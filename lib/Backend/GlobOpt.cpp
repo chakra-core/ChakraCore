@@ -360,6 +360,7 @@ GlobOpt::ForwardPass()
     this->byteCodeConstantValueNumbersBv = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->tempBv = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->prePassCopyPropSym = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+    this->slotSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->byteCodeUses = nullptr;
     this->propertySymUse = nullptr;
 
@@ -1274,6 +1275,21 @@ void GlobOpt::InsertValueCompensation(
 
     GlobOptBlockData &predecessorBlockData = predecessor->globOptData;
     GlobOptBlockData &successorBlockData = *CurrentBlockData();
+    struct DelayChangeValueInfo
+    {
+        Value* predecessorValue;
+        ArrayValueInfo* valueInfo;
+        void ChangeValueInfo(BasicBlock* predecessor, GlobOpt* g)
+        {
+            g->ChangeValueInfo(
+                predecessor,
+                predecessorValue,
+                valueInfo,
+                false /*allowIncompatibleType*/,
+                true /*compensated*/);
+        }
+    };
+    JsUtil::List<DelayChangeValueInfo, ArenaAllocator> delayChangeValueInfo(alloc);
     for(auto it = symsRequiringCompensationToMergedValueInfoMap.GetIterator(); it.IsValid(); it.MoveNext())
     {
         const auto &entry = it.Current();
@@ -1399,8 +1415,9 @@ void GlobOpt::InsertValueCompensation(
 
         if(compensated)
         {
-            ChangeValueInfo(
-                predecessor,
+            // Save the new ValueInfo for later.
+            // We don't want other symbols needing compensation to see this new one
+            delayChangeValueInfo.Add({
                 predecessorValue,
                 ArrayValueInfo::New(
                     alloc,
@@ -1408,11 +1425,13 @@ void GlobOpt::InsertValueCompensation(
                     mergedHeadSegmentSym ? mergedHeadSegmentSym : predecessorHeadSegmentSym,
                     mergedHeadSegmentLengthSym ? mergedHeadSegmentLengthSym : predecessorHeadSegmentLengthSym,
                     mergedLengthSym ? mergedLengthSym : predecessorLengthSym,
-                    predecessorValueInfo->GetSymStore()),
-                false /*allowIncompatibleType*/,
-                compensated);
+                    predecessorValueInfo->GetSymStore())
+            });
         }
     }
+
+    // Once we've compensated all the symbols, update the new ValueInfo.
+    delayChangeValueInfo.Map([predecessor, this](int, DelayChangeValueInfo d) { d.ChangeValueInfo(predecessor, this); });
 
     if(setLastInstrInPredecessor)
     {
@@ -1558,6 +1577,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
 
     if (instr->HasAnyLoadHeapArgsOpCode())
     {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (instr->m_func->IsStackArgsEnabled())
         {
             if (instr->GetSrc1()->IsRegOpnd() && instr->m_func->GetJITFunctionBody()->GetInParamsCount() > 1)
@@ -1574,6 +1594,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                 }
             }
         }
+#endif
 
         if (instr->m_func->GetJITFunctionBody()->GetInParamsCount() != 1 && !instr->m_func->IsStackArgsEnabled())
         {
@@ -2613,11 +2634,8 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     }
 
     // Track calls after any pre-op bailouts have been inserted before the call, because they will need to restore out params.
-    // We don't inline in asmjs and hence we don't need to track calls in asmjs too, skipping this step for asmjs.
-    if (!GetIsAsmJSFunc())
-    {
-        this->TrackCalls(instr);
-    }
+
+    this->TrackCalls(instr);
 
     if (instr->GetSrc1())
     {
@@ -2815,12 +2833,19 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
         Value *value = CurrentBlockData()->FindValue(stackSym);
         if (value)
         {
+            ValueInfo *valInfo = value->GetValueInfo();
+            if (valInfo->GetSymStore() && valInfo->GetSymStore()->IsStackSym() && valInfo->GetSymStore()->AsStackSym()->IsFromByteCodeConstantTable())
+            {
+                return false;
+            }
             ValueType valueType = value->GetValueInfo()->Type();
             if (instr->m_opcode == Js::OpCode::BailOnNotObject)
             {
                 if (valueType.CanBeTaggedValue())
                 {
-                    ChangeValueType(nullptr, value, valueType.SetCanBeTaggedValue(false), false);
+                    // We're not adding new information to the value other than changing the value type. Preserve any existing
+                    // information and just change the value type.
+                    ChangeValueType(nullptr, value, valueType.SetCanBeTaggedValue(false), true /*preserveSubClassInfo*/);
                     return false;
                 }
                 if (this->byteCodeUses)
@@ -3290,6 +3315,13 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
             break;
         }
         originalPropertySym = sym->AsPropertySym();
+
+        // Dont give a vale to 'arguments' property sym to prevent field copy prop of 'arguments'
+        if (originalPropertySym->AsPropertySym()->m_propertyId == Js::PropertyIds::arguments &&
+            originalPropertySym->AsPropertySym()->m_fieldKind == PropertyKindData)
+        {
+            return nullptr;
+        }
 
         Value *const objectValue = CurrentBlockData()->FindValue(originalPropertySym->m_stackSym);
         opnd->AsSymOpnd()->SetPropertyOwnerValueType(
@@ -5183,6 +5215,18 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
 
     case Js::OpCode::Typeof:
         return this->NewGenericValue(ValueType::String, dst);
+    case Js::OpCode::InitLocalClosure:
+        Assert(instr->GetDst());
+        Assert(instr->GetDst()->IsRegOpnd());
+        IR::RegOpnd *regOpnd = instr->GetDst()->AsRegOpnd();
+        StackSym *opndStackSym = regOpnd->m_sym;
+        Assert(opndStackSym != nullptr);
+        ObjectSymInfo *objectSymInfo = opndStackSym->m_objectInfo;
+        Assert(objectSymInfo != nullptr);
+        for (PropertySym *localVarSlotList = objectSymInfo->m_propertySymList; localVarSlotList; localVarSlotList = localVarSlotList->m_nextInStackSymList)
+        {
+            this->slotSyms->Set(localVarSlotList->m_id);
+        }
         break;
     }
 
@@ -6726,17 +6770,13 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         // this path would probably work outside of asm.js, but we should verify that if we ever hit this scenario
         Assert(GetIsAsmJSFunc());
         constVal = 0;
-        if (src1Val->GetValueInfo()->TryGetIntConstantValue(&constVal) && constVal != 0)
+        if (!src1Val->GetValueInfo()->TryGetIntConstantValue(&constVal))
         {
-            instr->FreeSrc1();
-            if (instr->GetSrc2())
-            {
-                instr->FreeSrc2();
-            }
-            instr->m_opcode = Js::OpCode::Nop;
-            return true;
+            return false;
         }
-        return false;
+
+        result = constVal == 0;
+        break;
 
     default:
         return false;
@@ -7469,7 +7509,11 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
             if(src1Val->GetValueInfo()->IsLikelyInt() && src2Val->GetValueInfo()->IsLikelyInt())
             {
                 // Compute resulting range info
-                int32 min1, max1, min2, max2, newMin, newMax;
+                int32 min1 = INT32_MIN;
+                int32 max1 = INT32_MAX; 
+                int32 min2 = INT32_MIN;
+                int32 max2 = INT32_MAX;
+                int32 newMin, newMax;
 
                 Assert(this->DoAggressiveIntTypeSpec());
                 src1Val->GetValueInfo()->GetIntValMinMax(&min1, &max1, this->DoAggressiveIntTypeSpec());
@@ -11984,8 +12028,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
             else
             {
                 varSym = block->globOptData.GetCopyPropSym(nullptr, val);
-                // If there is no float 64 type specialized sym for this - create a new sym.
-                if(!varSym || !block->globOptData.IsFloat64TypeSpecialized(varSym))
+                if(!varSym)
                 {
                     // Clear the symstore to ensure it's set below to this new symbol
                     this->SetSymStoreDirect(val->GetValueInfo(), nullptr);
@@ -12440,6 +12483,8 @@ GlobOpt::ChangeValueType(
         !preserveSubclassInfo ||
         !valueInfo->IsArrayValueInfo() ||
         newValueType.IsObject() && newValueType.GetObjectType() == valueInfo->GetObjectType());
+
+    Assert(!valueInfo->GetSymStore() || !valueInfo->GetSymStore()->IsStackSym() || !valueInfo->GetSymStore()->AsStackSym()->IsFromByteCodeConstantTable());
 
     ValueInfo *const newValueInfo =
         preserveSubclassInfo
@@ -16109,8 +16154,23 @@ GlobOpt::OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, 
         return false;
     }
 
-    // Can't hoist non-primitives, unless we have safeguards against valueof/tostring.
-    if (!allowNonPrimitives && !srcVal->GetValueInfo()->IsPrimitive() && !loop->landingPad->globOptData.IsTypeSpecialized(sym))
+    // A symbol is invariant if its current value is the same as it was upon entering the loop.
+    loopHeadVal = loop->landingPad->globOptData.FindValue(sym);
+    if (loopHeadVal == NULL || loopHeadVal->GetValueNumber() != srcVal->GetValueNumber())
+    {
+        return false;
+    }
+
+    // Can't hoist non-primitives, unless we have safeguards against valueof/tostring.  Additionally, we need to consider
+    // the value annotations on the source *before* the loop: if we hoist this instruction outside the loop, we can't
+    // necessarily rely on type annotations added (and enforced) earlier in the loop's body.
+    //
+    // It might look as though !loopHeadVal->GetValueInfo()->IsPrimitive() implies
+    // !loop->landingPad->globOptData.IsTypeSpecialized(sym), but it turns out that this is not always the case.  We
+    // encountered a test case in which we had previously hoisted a FromVar (to float 64) instruction, but its bailout code was
+    // BailoutPrimitiveButString, rather than BailoutNumberOnly, which would have allowed us to conclude that the dest was
+    // definitely a float64.  Instead, it was only *likely* a float64, causing IsPrimitive to return false.
+    if (!allowNonPrimitives && !loopHeadVal->GetValueInfo()->IsPrimitive() && !loop->landingPad->globOptData.IsTypeSpecialized(sym))
     {
         return false;
     }
@@ -16147,14 +16207,6 @@ GlobOpt::OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, 
         return false;
     }
 
-    // A symbol is invariant if it's current value is the same as it was upon entering the loop.
-    loopHeadVal = loop->landingPad->globOptData.FindValue(sym);
-
-    if (loopHeadVal == NULL || loopHeadVal->GetValueNumber() != srcVal->GetValueNumber())
-    {
-        return false;
-    }
-
     // For values with an int range, require additionally that the range is the same as in the landing pad, as the range may
     // have been changed on this path based on branches, and int specialization and invariant hoisting may rely on the range
     // being the same. For type spec conversions, only require that if the value is an int constant in the current block, that
@@ -16170,6 +16222,11 @@ GlobOpt::OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, 
     {
         return false;
     }
+
+    // If the loopHeadVal is primitive, the current value should be as well.  This really should be
+    // srcVal->GetValueInfo()->IsPrimitive() instead of IsLikelyPrimitive, but this stronger assertion
+    // doesn't hold in some cases when this method is called out of the array code.
+    Assert((!loopHeadVal->GetValueInfo()->IsPrimitive()) || srcVal->GetValueInfo()->IsLikelyPrimitive());
 
     return true;
 }

@@ -7,7 +7,7 @@ namespace Js
 {
 
     template<typename T>
-    inline T minCheckNan(T aLeft, T aRight)
+    inline T VECTORCALL minCheckNan(T aLeft, T aRight)
     {
         if (NumberUtilities::IsNan(aLeft) || NumberUtilities::IsNan(aRight))
         {
