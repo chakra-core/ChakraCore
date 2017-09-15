@@ -32,6 +32,10 @@
     "flags": ["-wasmSignExtend2"],
     "folders": [
       "features/extends"
+    ],
+    "files": [
+      "chakra_extends_i32",
+      "chakra_extends_i64"
     ]
   }],
   "excludes": [

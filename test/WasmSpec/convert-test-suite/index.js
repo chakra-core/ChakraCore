@@ -5,11 +5,11 @@
 /* eslint-env node */
 const path = require("path");
 const fs = require("fs-extra");
-const bluebird = require("bluebird");
+const Bluebird = require("bluebird");
 const {spawn} = require("child_process");
 const slash = require("slash");
 
-bluebird.promisifyAll(fs);
+Bluebird.promisifyAll(fs);
 const config = require("./config.json");
 const rlRoot = path.resolve(__dirname, "..");
 const folders = config.folders.map(folder => path.resolve(rlRoot, folder));
@@ -53,12 +53,11 @@ function removePossiblyEmptyFolder(folder) {
 
 function generateChakraTests() {
   const chakraTestsDestination = path.join(rlRoot, "chakra");
-  const coreTests = path.join(rlRoot, "testsuite", "core");
 
   const chakraTests = require("./generateTests");
   return removePossiblyEmptyFolder(chakraTestsDestination)
     .then(() => fs.ensureDirAsync(chakraTestsDestination))
-    .then(() => Promise.all(chakraTests.map(test => test.getContent(coreTests)
+    .then(() => Promise.all(chakraTests.map(test => test.getContent(rlRoot)
       .then(content => {
         if (!content) {
           return;
@@ -79,7 +78,7 @@ function main() {
   let runs;
   return generateChakraTests(
     // Walk all the folders to find test files
-  ).then(() => bluebird.reduce(folders, (specFiles, folder) => new Promise((resolve) => {
+  ).then(() => Bluebird.reduce(folders, (specFiles, folder) => new Promise((resolve) => {
     fs.walk(folder)
       .on("data", item => {
         const ext = path.extname(item.path);
@@ -188,7 +187,7 @@ duplicate: ${file.path}`);
     }
     fs.removeSync(baselineDir);
     fs.ensureDirSync(baselineDir);
-    return Promise.all(runs.map(run => new Promise((resolve, reject) => {
+    const startRuns = runs.map(run => () => new Bluebird((resolve, reject) => {
       const test = run[0];
       const baseline = fs.createWriteStream(test.baseline);
       baseline.on("open", () => {
@@ -207,7 +206,23 @@ duplicate: ${file.path}`);
         engine.on("close", resolve);
       });
       baseline.on("error", reject);
-    })));
+    }));
+
+    const cucurrentRuns = 8;
+    let running = startRuns.splice(0, cucurrentRuns).map(start => start());
+    return new Promise((resolve, reject) => {
+      const checkIfContinue = () => {
+        // Keep only runs that are not done
+        running = running.filter(run => !run.isFulfilled());
+        // If we have nothing left to run, terminate
+        if (running.length === 0 && startRuns.length === 0) {
+          return resolve();
+        }
+        running.push(...(startRuns.splice(0, cucurrentRuns - running.length).map(start => start())));
+        Bluebird.any(running).then(checkIfContinue).catch(reject);
+      };
+      checkIfContinue();
+    });
   });
 }
 
