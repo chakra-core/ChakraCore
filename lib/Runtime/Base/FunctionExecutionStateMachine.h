@@ -10,6 +10,7 @@ namespace Js
     {
     public:
         FunctionExecutionStateMachine();
+        void InitializeExecutionModeAndLimits(FunctionBody* functionBody);
 
         // Public Getters and Setters
         ExecutionMode GetExecutionMode() const;
@@ -22,6 +23,8 @@ namespace Js
         uint32 SetInterpretedCount(uint32 val) { return interpretedCount = val; }
         uint32 IncreaseInterpretedCount() { return interpretedCount++; }
         uint16 GetSimpleJitExecutedIterations(FunctionBody* functionBody) const;
+        void SetFullJitThreshold(const uint16 newFullJitThreshold, FunctionBody* functionBody, const bool skipSimpleJit = false);
+        void SetSimpleJitCallCount(const uint16 simpleJitLimit, FunctionBody* functionBody) const;
 
 
         // Transition functions

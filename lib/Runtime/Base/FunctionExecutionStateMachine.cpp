@@ -12,6 +12,123 @@ namespace Js
     {
     }
 
+    void FunctionExecutionStateMachine::InitializeExecutionModeAndLimits(FunctionBody* functionBody)
+    {
+        DebugOnly(initializedExecutionModeAndLimits = true);
+
+        const ConfigFlagsTable &configFlags = Configuration::Global.flags;
+
+        interpreterLimit = 0;
+        autoProfilingInterpreter0Limit = static_cast<uint16>(configFlags.AutoProfilingInterpreter0Limit);
+        profilingInterpreter0Limit = static_cast<uint16>(configFlags.ProfilingInterpreter0Limit);
+        autoProfilingInterpreter1Limit = static_cast<uint16>(configFlags.AutoProfilingInterpreter1Limit);
+        simpleJitLimit = static_cast<uint16>(configFlags.SimpleJitLimit);
+        profilingInterpreter1Limit = static_cast<uint16>(configFlags.ProfilingInterpreter1Limit);
+
+        // Based on which execution modes are disabled, calculate the number of additional iterations that need to be covered by
+        // the execution mode that will scale with the full JIT threshold
+        uint16 scale = 0;
+        const bool doInterpreterProfile = functionBody->DoInterpreterProfile();
+        if (!doInterpreterProfile)
+        {
+            scale +=
+                autoProfilingInterpreter0Limit +
+                profilingInterpreter0Limit +
+                autoProfilingInterpreter1Limit +
+                profilingInterpreter1Limit;
+            autoProfilingInterpreter0Limit = 0;
+            profilingInterpreter0Limit = 0;
+            autoProfilingInterpreter1Limit = 0;
+            profilingInterpreter1Limit = 0;
+        }
+        else if (!functionBody->DoInterpreterAutoProfile())
+        {
+            scale += autoProfilingInterpreter0Limit + autoProfilingInterpreter1Limit;
+            autoProfilingInterpreter0Limit = 0;
+            autoProfilingInterpreter1Limit = 0;
+            if (!CONFIG_FLAG(NewSimpleJit))
+            {
+                simpleJitLimit += profilingInterpreter0Limit;
+                profilingInterpreter0Limit = 0;
+            }
+        }
+        if (!functionBody->DoSimpleJit())
+        {
+            if (!CONFIG_FLAG(NewSimpleJit) && doInterpreterProfile)
+            {
+                // The old simple JIT is off, but since it does profiling, it will be replaced with the profiling interpreter
+                profilingInterpreter1Limit += simpleJitLimit;
+            }
+            else
+            {
+                scale += simpleJitLimit;
+            }
+            simpleJitLimit = 0;
+        }
+        if (PHASE_OFF(FullJitPhase, functionBody))
+        {
+            scale += profilingInterpreter1Limit;
+            profilingInterpreter1Limit = 0;
+        }
+
+        uint16 fullJitThreshold =
+            static_cast<uint16>(
+                configFlags.AutoProfilingInterpreter0Limit +
+                configFlags.ProfilingInterpreter0Limit +
+                configFlags.AutoProfilingInterpreter1Limit +
+                configFlags.SimpleJitLimit +
+                configFlags.ProfilingInterpreter1Limit);
+        if (!configFlags.EnforceExecutionModeLimits)
+        {
+            /*
+            Scale the full JIT threshold based on some heuristics:
+            - If the % of code in loops is > 50, scale by 1
+            - Byte-code size of code outside loops
+            - If the size is < 50, scale by 1.2
+            - If the size is < 100, scale by 1.4
+            - If the size is >= 100, scale by 1.6
+            */
+            const uint loopPercentage = functionBody->GetByteCodeInLoopCount() * 100 / max(1u, functionBody->GetByteCodeCount());
+            const int byteCodeSizeThresholdForInlineCandidate = CONFIG_FLAG(LoopInlineThreshold);
+            bool delayFullJITThisFunc =
+                (CONFIG_FLAG(DelayFullJITSmallFunc) > 0) && (functionBody->GetByteCodeWithoutLDACount() <= (uint)byteCodeSizeThresholdForInlineCandidate);
+
+            if (loopPercentage <= 50 || delayFullJITThisFunc)
+            {
+                const uint straightLineSize = functionBody->GetByteCodeCount() - functionBody->GetByteCodeInLoopCount();
+                double fullJitDelayMultiplier;
+                if (delayFullJITThisFunc)
+                {
+                    fullJitDelayMultiplier = CONFIG_FLAG(DelayFullJITSmallFunc) / 10.0;
+                }
+                else if (straightLineSize < 50)
+                {
+                    fullJitDelayMultiplier = 1.2;
+                }
+                else if (straightLineSize < 100)
+                {
+                    fullJitDelayMultiplier = 1.4;
+                }
+                else
+                {
+                    fullJitDelayMultiplier = 1.6;
+                }
+
+                const uint16 newFullJitThreshold = static_cast<uint16>(fullJitThreshold * fullJitDelayMultiplier);
+                scale += newFullJitThreshold - fullJitThreshold;
+                fullJitThreshold = newFullJitThreshold;
+            }
+        }
+
+        Assert(fullJitThreshold >= scale);
+        this->fullJitThreshold = fullJitThreshold - scale;
+        SetInterpretedCount(0);
+        SetExecutionMode(GetDefaultInterpreterExecutionMode(functionBody));
+        SetFullJitThreshold(fullJitThreshold, functionBody);
+        TryTransitionToNextInterpreterExecutionMode(functionBody);
+    }
+
+
     ExecutionMode FunctionExecutionStateMachine::GetExecutionMode() const
     {
         return executionMode;
@@ -97,6 +214,105 @@ namespace Js
         return callCount == 0 ?
             static_cast<uint16>(simpleJitLimit) :
             static_cast<uint16>(simpleJitLimit) - static_cast<uint16>(callCount) - 1;
+    }
+
+    void FunctionExecutionStateMachine::SetSimpleJitCallCount(const uint16 simpleJitLimit, FunctionBody* functionBody) const
+    {
+        Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
+        Assert(functionBody->GetDefaultFunctionEntryPointInfo() == functionBody->GetSimpleJitEntryPointInfo());
+
+        // Simple JIT counts down and transitions on overflow
+        const uint8 limit = static_cast<uint8>(min(0xffui16, simpleJitLimit));
+        functionBody->GetSimpleJitEntryPointInfo()->callsCount = limit == 0 ? 0 : limit - 1;
+    }
+
+    void FunctionExecutionStateMachine::SetFullJitThreshold(const uint16 newFullJitThreshold, FunctionBody* functionBody, const bool skipSimpleJit)
+    {
+        Assert(initializedExecutionModeAndLimits);
+        Assert(GetExecutionMode() != ExecutionMode::FullJit);
+
+        int scale = newFullJitThreshold - fullJitThreshold;
+        if (scale == 0)
+        {
+            VerifyExecutionModeLimits();
+            return;
+        }
+        fullJitThreshold = newFullJitThreshold;
+
+        const auto ScaleLimit = [&](uint16 &limit) -> bool
+        {
+            Assert(scale != 0);
+            const int limitScale = max(-static_cast<int>(limit), scale);
+            const int newLimit = limit + limitScale;
+            Assert(static_cast<int>(static_cast<uint16>(newLimit)) == newLimit);
+            limit = static_cast<uint16>(newLimit);
+            scale -= limitScale;
+            Assert(limit == 0 || scale == 0);
+
+            if (&limit == &simpleJitLimit)
+            {
+                FunctionEntryPointInfo *const simpleJitEntryPointInfo = functionBody->GetSimpleJitEntryPointInfo();
+                if (functionBody->GetDefaultFunctionEntryPointInfo() == simpleJitEntryPointInfo)
+                {
+                    Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
+                    const int newSimpleJitCallCount = max(0, (int)simpleJitEntryPointInfo->callsCount + limitScale);
+                    Assert(static_cast<int>(static_cast<uint16>(newSimpleJitCallCount)) == newSimpleJitCallCount);
+                    SetSimpleJitCallCount(static_cast<uint16>(newSimpleJitCallCount), functionBody);
+                }
+            }
+
+            return scale == 0;
+        };
+
+        /*
+        Determine which execution mode's limit scales with the full JIT threshold, in order of preference:
+        - New simple JIT
+        - Auto-profiling interpreter 1
+        - Auto-profiling interpreter 0
+        - Interpreter
+        - Profiling interpreter 0 (when using old simple JIT)
+        - Old simple JIT
+        - Profiling interpreter 1
+        - Profiling interpreter 0 (when using new simple JIT)
+        */
+        const bool doSimpleJit = functionBody->DoSimpleJit();
+        const bool doInterpreterProfile = functionBody->DoInterpreterProfile();
+        const bool fullyScaled =
+            (CONFIG_FLAG(NewSimpleJit) && doSimpleJit && ScaleLimit(simpleJitLimit)) ||
+            (
+                doInterpreterProfile
+                ? functionBody->DoInterpreterAutoProfile() &&
+                (ScaleLimit(autoProfilingInterpreter1Limit) || ScaleLimit(autoProfilingInterpreter0Limit))
+                : ScaleLimit(interpreterLimit)
+                ) ||
+                (
+                    CONFIG_FLAG(NewSimpleJit)
+                    ? doInterpreterProfile &&
+                    (ScaleLimit(profilingInterpreter1Limit) || ScaleLimit(profilingInterpreter0Limit))
+                    : (doInterpreterProfile && ScaleLimit(profilingInterpreter0Limit)) ||
+                    (doSimpleJit && ScaleLimit(simpleJitLimit)) ||
+                    (doInterpreterProfile && ScaleLimit(profilingInterpreter1Limit))
+                    );
+        Assert(fullyScaled);
+        Assert(scale == 0);
+
+        if (GetExecutionMode() != ExecutionMode::SimpleJit)
+        {
+            Assert(IsInterpreterExecutionMode());
+            if (simpleJitLimit != 0 &&
+                (skipSimpleJit || simpleJitLimit < DEFAULT_CONFIG_MinSimpleJitIterations) &&
+                !PHASE_FORCE(Phase::SimpleJitPhase, functionBody))
+            {
+                // Simple JIT code has not yet been generated, and was either requested to be skipped, or the limit was scaled
+                // down too much. Skip simple JIT by moving any remaining iterations to an equivalent interpreter execution
+                // mode.
+                (CONFIG_FLAG(NewSimpleJit) ? autoProfilingInterpreter1Limit : profilingInterpreter1Limit) += simpleJitLimit;
+                simpleJitLimit = 0;
+                TryTransitionToNextInterpreterExecutionMode(functionBody);
+            }
+        }
+
+        VerifyExecutionModeLimits();
     }
 
     // Safely moves from one execution mode to another and updates appropriate execution state for the next
