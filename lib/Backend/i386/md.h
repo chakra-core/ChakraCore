@@ -36,6 +36,7 @@ const IRType TyMachSimd128B4 = TySimd128B4;
 const IRType TyMachSimd128B8 = TySimd128B8;
 const IRType TyMachSimd128B16 = TySimd128B16;
 const IRType TyMachSimd128D2  = TySimd128D2;
+const IRType TyMachSimd128I2 = TySimd128I2;
 
 const DWORD EMIT_BUFFER_ALIGNMENT = 16;
 const DWORD INSTR_ALIGNMENT = 1;

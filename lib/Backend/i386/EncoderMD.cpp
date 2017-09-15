@@ -1070,6 +1070,7 @@ modrm:
             case Js::OpCode::MOVAPS:
             case Js::OpCode::MOVUPS:
             case Js::OpCode::MOVHPD:
+            case Js::OpCode::MOVLPD:
                 if (!opr1->IsRegOpnd())
                 {
                     Assert(opr2->IsRegOpnd());
@@ -1136,6 +1137,9 @@ modrm:
                 {
                     continue;
                 }
+                break;
+            case Js::OpCode::PEXTRD:
+                this->EmitModRM(instr, opr1, this->GetRegEncode(opr2->AsRegOpnd()));
                 break;
             case Js::OpCode::BT:
             case Js::OpCode::BTR:

@@ -109,6 +109,7 @@ LowererMDArch::GetAssignOp(IRType type)
     case TySimd128B8:
     case TySimd128B16:
     case TySimd128D2:
+    case TySimd128I2:
         return Js::OpCode::MOVUPS;
     default:
         return Js::OpCode::MOV;
@@ -1984,6 +1985,7 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
     }
     return instr;
 }
+
 
 
 void

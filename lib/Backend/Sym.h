@@ -151,6 +151,7 @@ public:
     bool            IsSimd128B8()  const { return this->GetType() == TySimd128B8;  }
     bool            IsSimd128B16() const { return this->GetType() == TySimd128B16; }
     bool            IsSimd128D2()  const { return this->GetType() == TySimd128D2;  }
+    bool            IsSimd128I2()  const { return this->GetType() == TySimd128I2; }
 
     StackSym *      GetFloat64EquivSym(Func *func);
     bool            IsFloat64() const { return this->GetType() == TyFloat64; }

@@ -263,6 +263,7 @@ public:
             IR::Instr *         LowerCallPut(IR::Instr * callInstr);
             IR::Instr *         LoadInt64HelperArgument(IR::Instr * instr, IR::Opnd* opnd);
             IR::Instr *         LoadHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
+            IR::MemRefOpnd *    LoadSimdHelperArgument(IR::Instr * instr, uint8 index);
             IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LowerEntryInstr(IR::EntryInstr * entryInstr);
@@ -340,6 +341,10 @@ public:
     bool                Simd128TryLowerMappedInstruction(IR::Instr *instr);
     IR::Instr*          Simd128LowerUnMappedInstruction(IR::Instr *instr);
     IR::Instr*          Simd128LowerLdLane(IR::Instr *instr);
+    IR::Instr*          SIMD128LowerReplaceLane_2(IR::Instr *instr);
+    void                EmitExtractInt64(IR::Opnd* dst, IR::Opnd* src, uint index, IR::Instr *instr);
+    void                EmitInsertInt64(IR::Opnd* dst, uint index, IR::Instr *instr);
+    void                EmitShiftByScalarI2(IR::Instr *instr, IR::JnHelperMethod helper);
     IR::Instr*          SIMD128LowerReplaceLane_4(IR::Instr *instr);
     IR::Instr*          SIMD128LowerReplaceLane_8(IR::Instr *instr);
     IR::Instr*          SIMD128LowerReplaceLane_16(IR::Instr *instr);

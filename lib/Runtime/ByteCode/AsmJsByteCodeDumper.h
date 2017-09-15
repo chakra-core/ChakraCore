@@ -34,6 +34,7 @@ namespace Js {
         static void DumpBool8x16Reg(RegSlot reg);
 
         static void DumpFloat64x2Reg(RegSlot reg);
+        static void DumpInt64x2Reg(RegSlot reg);
 
         static void DumpRegReg(RegSlot reg) { DumpReg(reg); }
         static void DumpIntConstReg(int val) { DumpI4(val); }

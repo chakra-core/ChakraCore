@@ -287,6 +287,7 @@ namespace Js
 #define Bool32x4LayoutType typename SizePolicy::RegSlotType
 #define Int32x4LayoutType typename SizePolicy::RegSlotType
 #define Float64x2LayoutType typename SizePolicy::RegSlotType
+#define Int64x2LayoutType typename SizePolicy::RegSlotType
 #define Int16x8LayoutType typename SizePolicy::RegSlotType
 #define Bool16x8LayoutType typename SizePolicy::RegSlotType
 #define Int8x16LayoutType typename SizePolicy::RegSlotType
@@ -296,6 +297,7 @@ namespace Js
 #define Uint8x16LayoutType typename SizePolicy::RegSlotType
 #define LAYOUT_FIELDS_HELPER(x, y) x ## y
 #define LAYOUT_FIELDS_DEF(x, y) LAYOUT_FIELDS_HELPER(x, y)
+
 #define LAYOUT_TYPE_WMS_REG2(layout, t0, t1) \
     template <typename SizePolicy> struct OpLayoutT_##layout\
     {\
@@ -477,6 +479,7 @@ namespace Js
 #undef Uint32x4LayoutType
 #undef Uint16x8LayoutType
 #undef Uint8x16LayoutType
+#undef Int64x2LayoutType
 
     template <typename SizePolicy>
     struct OpLayoutT_AsmUnsigned1
