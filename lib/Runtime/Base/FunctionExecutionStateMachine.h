@@ -14,6 +14,10 @@ namespace Js
         // Public Getters and Setters
         ExecutionMode GetExecutionMode() const;
         void SetExecutionMode(ExecutionMode mode); // This should eventually become private
+        ExecutionMode GetDefaultInterpreterExecutionMode(FunctionBody* functionBody) const;
+        ExecutionMode GetInterpreterExecutionMode(const bool isPostBailout, FunctionBody* functionBody);
+        bool IsInterpreterExecutionMode() const;
+
         uint32 GetInterpretedCount() const { return interpretedCount; }
         uint32 SetInterpretedCount(uint32 val) { return interpretedCount = val; }
         uint32 IncreaseInterpretedCount() { return interpretedCount++; }
@@ -21,12 +25,13 @@ namespace Js
 
         // Transition functions
         bool TryTransitionToNextExecutionMode(FunctionBody* functionBody);
+        void TryTransitionToNextInterpreterExecutionMode(FunctionBody* functionBody);
+
 
     private:
         void VerifyExecutionMode(const ExecutionMode executionMode, FunctionBody* functionBody) const;
         void VerifyExecutionModeLimits() const;
         void CommitExecutedIterations(uint16 &limit, const uint executedIterations);
-
 
 
         // Tracks the current execution mode. See ExecutionModes.h for more info.

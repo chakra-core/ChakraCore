@@ -22,6 +22,63 @@ namespace Js
         executionMode = mode;
     }
 
+    ExecutionMode FunctionExecutionStateMachine::GetDefaultInterpreterExecutionMode(FunctionBody* functionBody) const
+    {
+        if (!functionBody->DoInterpreterProfile())
+        {
+            VerifyExecutionMode(ExecutionMode::Interpreter, functionBody);
+            return ExecutionMode::Interpreter;
+        }
+        if (functionBody->DoInterpreterAutoProfile())
+        {
+            VerifyExecutionMode(ExecutionMode::AutoProfilingInterpreter, functionBody);
+            return ExecutionMode::AutoProfilingInterpreter;
+        }
+        VerifyExecutionMode(ExecutionMode::ProfilingInterpreter, functionBody);
+        return ExecutionMode::ProfilingInterpreter;
+    }
+
+    ExecutionMode FunctionExecutionStateMachine::GetInterpreterExecutionMode(const bool isPostBailout, FunctionBody* functionBody)
+    {
+        Assert(initializedExecutionModeAndLimits);
+
+        if (isPostBailout && functionBody->DoInterpreterProfile())
+        {
+            return ExecutionMode::ProfilingInterpreter;
+        }
+
+        switch (GetExecutionMode())
+        {
+        case ExecutionMode::Interpreter:
+        case ExecutionMode::AutoProfilingInterpreter:
+        case ExecutionMode::ProfilingInterpreter:
+            return GetExecutionMode();
+
+        case ExecutionMode::SimpleJit:
+            if (CONFIG_FLAG(NewSimpleJit))
+            {
+                return GetDefaultInterpreterExecutionMode(functionBody);
+            }
+            // fall through
+
+        case ExecutionMode::FullJit:
+        {
+            const ExecutionMode executionMode =
+                functionBody->DoInterpreterProfile() ? ExecutionMode::ProfilingInterpreter : ExecutionMode::Interpreter;
+            VerifyExecutionMode(executionMode, functionBody);
+            return executionMode;
+        }
+
+        default:
+            Assert(false);
+            __assume(false);
+        }
+    }
+
+    bool FunctionExecutionStateMachine::IsInterpreterExecutionMode() const
+    {
+        return GetExecutionMode() <= ExecutionMode::ProfilingInterpreter;
+    }
 
     // Safely moves from one execution mode to another and updates appropriate execution state for the next
     // mode. Note that there are other functions that modify executionMode that do not involve this function.
@@ -174,6 +231,14 @@ namespace Js
             Assert(false);
             __assume(false);
         }
+    }
+
+    void FunctionExecutionStateMachine::TryTransitionToNextInterpreterExecutionMode(FunctionBody* functionBody)
+    {
+        Assert(IsInterpreterExecutionMode());
+
+        TryTransitionToNextExecutionMode(functionBody);
+        SetExecutionMode(GetInterpreterExecutionMode(false, functionBody));
     }
 
     void FunctionExecutionStateMachine::CommitExecutedIterations(uint16 &limit, const uint executedIterations)
