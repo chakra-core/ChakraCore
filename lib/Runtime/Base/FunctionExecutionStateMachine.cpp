@@ -12,7 +12,7 @@ namespace Js
     {
     }
 
-    void FunctionExecutionStateMachine::InitializeExecutionModeAndLimits(FunctionBody* functionBody)
+    void FunctionExecutionStateMachine::InitializeExecutionModeAndLimits()
     {
         DebugOnly(initializedExecutionModeAndLimits = true);
 
@@ -28,7 +28,7 @@ namespace Js
         // Based on which execution modes are disabled, calculate the number of additional iterations that need to be covered by
         // the execution mode that will scale with the full JIT threshold
         uint16 scale = 0;
-        const bool doInterpreterProfile = functionBody->DoInterpreterProfile();
+        const bool doInterpreterProfile = owner->DoInterpreterProfile();
         if (!doInterpreterProfile)
         {
             scale +=
@@ -41,7 +41,7 @@ namespace Js
             autoProfilingInterpreter1Limit = 0;
             profilingInterpreter1Limit = 0;
         }
-        else if (!functionBody->DoInterpreterAutoProfile())
+        else if (!owner->DoInterpreterAutoProfile())
         {
             scale += autoProfilingInterpreter0Limit + autoProfilingInterpreter1Limit;
             autoProfilingInterpreter0Limit = 0;
@@ -52,7 +52,7 @@ namespace Js
                 profilingInterpreter0Limit = 0;
             }
         }
-        if (!functionBody->DoSimpleJit())
+        if (!owner->DoSimpleJit())
         {
             if (!CONFIG_FLAG(NewSimpleJit) && doInterpreterProfile)
             {
@@ -65,7 +65,7 @@ namespace Js
             }
             simpleJitLimit = 0;
         }
-        if (PHASE_OFF(FullJitPhase, functionBody))
+        if (PHASE_OFF(FullJitPhase, owner))
         {
             scale += profilingInterpreter1Limit;
             profilingInterpreter1Limit = 0;
@@ -88,14 +88,14 @@ namespace Js
             - If the size is < 100, scale by 1.4
             - If the size is >= 100, scale by 1.6
             */
-            const uint loopPercentage = functionBody->GetByteCodeInLoopCount() * 100 / max(1u, functionBody->GetByteCodeCount());
+            const uint loopPercentage = owner->GetByteCodeInLoopCount() * 100 / max(1u, owner->GetByteCodeCount());
             const int byteCodeSizeThresholdForInlineCandidate = CONFIG_FLAG(LoopInlineThreshold);
             bool delayFullJITThisFunc =
-                (CONFIG_FLAG(DelayFullJITSmallFunc) > 0) && (functionBody->GetByteCodeWithoutLDACount() <= (uint)byteCodeSizeThresholdForInlineCandidate);
+                (CONFIG_FLAG(DelayFullJITSmallFunc) > 0) && (owner->GetByteCodeWithoutLDACount() <= (uint)byteCodeSizeThresholdForInlineCandidate);
 
             if (loopPercentage <= 50 || delayFullJITThisFunc)
             {
-                const uint straightLineSize = functionBody->GetByteCodeCount() - functionBody->GetByteCodeInLoopCount();
+                const uint straightLineSize = owner->GetByteCodeCount() - owner->GetByteCodeInLoopCount();
                 double fullJitDelayMultiplier;
                 if (delayFullJITThisFunc)
                 {
@@ -123,16 +123,16 @@ namespace Js
         Assert(fullJitThreshold >= scale);
         this->fullJitThreshold = fullJitThreshold - scale;
         SetInterpretedCount(0);
-        SetExecutionMode(GetDefaultInterpreterExecutionMode(functionBody));
-        SetFullJitThreshold(fullJitThreshold, functionBody);
-        TryTransitionToNextInterpreterExecutionMode(functionBody);
+        SetExecutionMode(GetDefaultInterpreterExecutionMode());
+        SetFullJitThreshold(fullJitThreshold, owner);
+        TryTransitionToNextInterpreterExecutionMode();
     }
 
-    void FunctionExecutionStateMachine::ReinitializeExecutionModeAndLimits(FunctionBody* functionBody)
+    void FunctionExecutionStateMachine::ReinitializeExecutionModeAndLimits()
     {
         fullJitRequeueThreshold = 0;
         committedProfiledIterations = 0;
-        InitializeExecutionModeAndLimits(functionBody);
+        InitializeExecutionModeAndLimits();
     }
 
     ExecutionMode FunctionExecutionStateMachine::GetExecutionMode() const
@@ -145,27 +145,27 @@ namespace Js
         executionMode = mode;
     }
 
-    ExecutionMode FunctionExecutionStateMachine::GetDefaultInterpreterExecutionMode(FunctionBody* functionBody) const
+    ExecutionMode FunctionExecutionStateMachine::GetDefaultInterpreterExecutionMode() const
     {
-        if (!functionBody->DoInterpreterProfile())
+        if (!owner->DoInterpreterProfile())
         {
-            VerifyExecutionMode(ExecutionMode::Interpreter, functionBody);
+            VerifyExecutionMode(ExecutionMode::Interpreter);
             return ExecutionMode::Interpreter;
         }
-        if (functionBody->DoInterpreterAutoProfile())
+        if (owner->DoInterpreterAutoProfile())
         {
-            VerifyExecutionMode(ExecutionMode::AutoProfilingInterpreter, functionBody);
+            VerifyExecutionMode(ExecutionMode::AutoProfilingInterpreter);
             return ExecutionMode::AutoProfilingInterpreter;
         }
-        VerifyExecutionMode(ExecutionMode::ProfilingInterpreter, functionBody);
+        VerifyExecutionMode(ExecutionMode::ProfilingInterpreter);
         return ExecutionMode::ProfilingInterpreter;
     }
 
-    ExecutionMode FunctionExecutionStateMachine::GetInterpreterExecutionMode(const bool isPostBailout, FunctionBody* functionBody)
+    ExecutionMode FunctionExecutionStateMachine::GetInterpreterExecutionMode(const bool isPostBailout)
     {
         Assert(initializedExecutionModeAndLimits);
 
-        if (isPostBailout && functionBody->DoInterpreterProfile())
+        if (isPostBailout && owner->DoInterpreterProfile())
         {
             return ExecutionMode::ProfilingInterpreter;
         }
@@ -180,15 +180,15 @@ namespace Js
         case ExecutionMode::SimpleJit:
             if (CONFIG_FLAG(NewSimpleJit))
             {
-                return GetDefaultInterpreterExecutionMode(functionBody);
+                return GetDefaultInterpreterExecutionMode();
             }
             // fall through
 
         case ExecutionMode::FullJit:
         {
             const ExecutionMode executionMode =
-                functionBody->DoInterpreterProfile() ? ExecutionMode::ProfilingInterpreter : ExecutionMode::Interpreter;
-            VerifyExecutionMode(executionMode, functionBody);
+                owner->DoInterpreterProfile() ? ExecutionMode::ProfilingInterpreter : ExecutionMode::Interpreter;
+            VerifyExecutionMode(executionMode);
             return executionMode;
         }
 
@@ -203,12 +203,12 @@ namespace Js
         return GetExecutionMode() <= ExecutionMode::ProfilingInterpreter;
     }
 
-    uint16 FunctionExecutionStateMachine::GetSimpleJitExecutedIterations(FunctionBody* functionBody) const
+    uint16 FunctionExecutionStateMachine::GetSimpleJitExecutedIterations() const
     {
         Assert(initializedExecutionModeAndLimits);
         Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
 
-        FunctionEntryPointInfo *const simpleJitEntryPointInfo = functionBody->GetSimpleJitEntryPointInfo();
+        FunctionEntryPointInfo *const simpleJitEntryPointInfo = owner->GetSimpleJitEntryPointInfo();
         if (!simpleJitEntryPointInfo)
         {
             return 0;
@@ -222,17 +222,17 @@ namespace Js
             static_cast<uint16>(simpleJitLimit) - static_cast<uint16>(callCount) - 1;
     }
 
-    void FunctionExecutionStateMachine::SetSimpleJitCallCount(const uint16 simpleJitLimit, FunctionBody* functionBody) const
+    void FunctionExecutionStateMachine::SetSimpleJitCallCount(const uint16 simpleJitLimit) const
     {
         Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
-        Assert(functionBody->GetDefaultFunctionEntryPointInfo() == functionBody->GetSimpleJitEntryPointInfo());
+        Assert(owner->GetDefaultFunctionEntryPointInfo() == owner->GetSimpleJitEntryPointInfo());
 
         // Simple JIT counts down and transitions on overflow
         const uint8 limit = static_cast<uint8>(min(0xffui16, simpleJitLimit));
-        functionBody->GetSimpleJitEntryPointInfo()->callsCount = limit == 0 ? 0 : limit - 1;
+        owner->GetSimpleJitEntryPointInfo()->callsCount = limit == 0 ? 0 : limit - 1;
     }
 
-    void FunctionExecutionStateMachine::SetFullJitThreshold(const uint16 newFullJitThreshold, FunctionBody* functionBody, const bool skipSimpleJit)
+    void FunctionExecutionStateMachine::SetFullJitThreshold(const uint16 newFullJitThreshold, const bool skipSimpleJit)
     {
         Assert(initializedExecutionModeAndLimits);
         Assert(GetExecutionMode() != ExecutionMode::FullJit);
@@ -257,13 +257,13 @@ namespace Js
 
             if (&limit == &simpleJitLimit)
             {
-                FunctionEntryPointInfo *const simpleJitEntryPointInfo = functionBody->GetSimpleJitEntryPointInfo();
-                if (functionBody->GetDefaultFunctionEntryPointInfo() == simpleJitEntryPointInfo)
+                FunctionEntryPointInfo *const simpleJitEntryPointInfo = owner->GetSimpleJitEntryPointInfo();
+                if (owner->GetDefaultFunctionEntryPointInfo() == simpleJitEntryPointInfo)
                 {
                     Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
                     const int newSimpleJitCallCount = max(0, (int)simpleJitEntryPointInfo->callsCount + limitScale);
                     Assert(static_cast<int>(static_cast<uint16>(newSimpleJitCallCount)) == newSimpleJitCallCount);
-                    SetSimpleJitCallCount(static_cast<uint16>(newSimpleJitCallCount), functionBody);
+                    SetSimpleJitCallCount(static_cast<uint16>(newSimpleJitCallCount));
                 }
             }
 
@@ -281,13 +281,13 @@ namespace Js
         - Profiling interpreter 1
         - Profiling interpreter 0 (when using new simple JIT)
         */
-        const bool doSimpleJit = functionBody->DoSimpleJit();
-        const bool doInterpreterProfile = functionBody->DoInterpreterProfile();
+        const bool doSimpleJit = owner->DoSimpleJit();
+        const bool doInterpreterProfile = owner->DoInterpreterProfile();
         const bool fullyScaled =
             (CONFIG_FLAG(NewSimpleJit) && doSimpleJit && ScaleLimit(simpleJitLimit)) ||
             (
                 doInterpreterProfile
-                ? functionBody->DoInterpreterAutoProfile() &&
+                ? owner->DoInterpreterAutoProfile() &&
                 (ScaleLimit(autoProfilingInterpreter1Limit) || ScaleLimit(autoProfilingInterpreter0Limit))
                 : ScaleLimit(interpreterLimit)
                 ) ||
@@ -307,14 +307,14 @@ namespace Js
             Assert(IsInterpreterExecutionMode());
             if (simpleJitLimit != 0 &&
                 (skipSimpleJit || simpleJitLimit < DEFAULT_CONFIG_MinSimpleJitIterations) &&
-                !PHASE_FORCE(Phase::SimpleJitPhase, functionBody))
+                !PHASE_FORCE(Phase::SimpleJitPhase, owner))
             {
                 // Simple JIT code has not yet been generated, and was either requested to be skipped, or the limit was scaled
                 // down too much. Skip simple JIT by moving any remaining iterations to an equivalent interpreter execution
                 // mode.
                 (CONFIG_FLAG(NewSimpleJit) ? autoProfilingInterpreter1Limit : profilingInterpreter1Limit) += simpleJitLimit;
                 simpleJitLimit = 0;
-                TryTransitionToNextInterpreterExecutionMode(functionBody);
+                TryTransitionToNextInterpreterExecutionMode();
             }
         }
 
@@ -342,7 +342,7 @@ namespace Js
     // Returns true when a transition occurs (i.e., the execution mode was updated since the beginning of
     // this function call). Otherwise, returns false to indicate no change in state.
     // See more details of each mode in ExecutionModes.h
-    bool FunctionExecutionStateMachine::TryTransitionToNextExecutionMode(FunctionBody* functionBody)
+    bool FunctionExecutionStateMachine::TryTransitionToNextExecutionMode()
     {
         Assert(initializedExecutionModeAndLimits);
 
@@ -352,7 +352,7 @@ namespace Js
         case ExecutionMode::Interpreter:
             if (GetInterpretedCount() < interpreterLimit)
             {
-                VerifyExecutionMode(GetExecutionMode(), functionBody);
+                VerifyExecutionMode(GetExecutionMode());
                 return false;
             }
             CommitExecutedIterations(interpreterLimit, interpreterLimit);
@@ -371,7 +371,7 @@ namespace Js
         case ExecutionMode::AutoProfilingInterpreter:
         {
             // autoProfilingInterpreter0Limit is the default limit for this mode
-            // autoProfilingInterpreter1Limit becomes the limit for this mode when this FunctionBody has
+            // autoProfilingInterpreter1Limit becomes the limit for this mode when this owner has
             // already previously run in ProfilingInterpreter and AutoProfilingInterpreter
             uint16 &autoProfilingInterpreterLimit =
                 autoProfilingInterpreter0Limit == 0 && profilingInterpreter0Limit == 0
@@ -379,7 +379,7 @@ namespace Js
                 : autoProfilingInterpreter0Limit;
             if (GetInterpretedCount() < autoProfilingInterpreterLimit)
             {
-                VerifyExecutionMode(GetExecutionMode(), functionBody);
+                VerifyExecutionMode(GetExecutionMode());
                 return false;
             }
             CommitExecutedIterations(autoProfilingInterpreterLimit, autoProfilingInterpreterLimit);
@@ -407,7 +407,7 @@ namespace Js
         case ExecutionMode::ProfilingInterpreter:
         {
             // profilingInterpreter0Limit is the default limit for this mode
-            // profilingInterpreter1Limit becomes the limit for this mode when this FunctionBody has already
+            // profilingInterpreter1Limit becomes the limit for this mode when this owner has already
             // previously run in ProfilingInterpreter, AutoProfilingInterpreter, and SimpleJIT
             uint16 &profilingInterpreterLimit =
                 profilingInterpreter0Limit == 0 && autoProfilingInterpreter1Limit == 0 && simpleJitLimit == 0
@@ -415,7 +415,7 @@ namespace Js
                 : profilingInterpreter0Limit;
             if (GetInterpretedCount() < profilingInterpreterLimit)
             {
-                VerifyExecutionMode(GetExecutionMode(), functionBody);
+                VerifyExecutionMode(GetExecutionMode());
                 return false;
             }
             CommitExecutedIterations(profilingInterpreterLimit, profilingInterpreterLimit);
@@ -445,10 +445,10 @@ namespace Js
 
         case ExecutionMode::SimpleJit:
         {
-            FunctionEntryPointInfo *const simpleJitEntryPointInfo = functionBody->GetSimpleJitEntryPointInfo();
+            FunctionEntryPointInfo *const simpleJitEntryPointInfo = owner->GetSimpleJitEntryPointInfo();
             if (!simpleJitEntryPointInfo || simpleJitEntryPointInfo->callsCount != 0)
             {
-                VerifyExecutionMode(GetExecutionMode(), functionBody);
+                VerifyExecutionMode(GetExecutionMode());
                 return false;
             }
             CommitExecutedIterations(simpleJitLimit, simpleJitLimit);
@@ -456,7 +456,7 @@ namespace Js
         }
 
     TransitionToFullJit:
-        if (!PHASE_OFF(FullJitPhase, functionBody))
+        if (!PHASE_OFF(FullJitPhase, owner))
         {
             SetExecutionMode(ExecutionMode::FullJit);
             return true;
@@ -465,7 +465,7 @@ namespace Js
 
         // Managing transtion to FullJit
         case ExecutionMode::FullJit:
-            VerifyExecutionMode(GetExecutionMode(), functionBody);
+            VerifyExecutionMode(GetExecutionMode());
             return false;
 
         default:
@@ -474,19 +474,19 @@ namespace Js
         }
     }
 
-    void FunctionExecutionStateMachine::TryTransitionToNextInterpreterExecutionMode(FunctionBody* functionBody)
+    void FunctionExecutionStateMachine::TryTransitionToNextInterpreterExecutionMode()
     {
         Assert(IsInterpreterExecutionMode());
 
-        TryTransitionToNextExecutionMode(functionBody);
-        SetExecutionMode(GetInterpreterExecutionMode(false, functionBody));
+        TryTransitionToNextExecutionMode();
+        SetExecutionMode(GetInterpreterExecutionMode(false));
     }
 
-    bool FunctionExecutionStateMachine::TryTransitionToJitExecutionMode(FunctionBody* functionBody)
+    bool FunctionExecutionStateMachine::TryTransitionToJitExecutionMode()
     {
         const ExecutionMode previousExecutionMode = GetExecutionMode();
 
-        TryTransitionToNextExecutionMode(functionBody);
+        TryTransitionToNextExecutionMode();
         switch (GetExecutionMode())
         {
         case ExecutionMode::SimpleJit:
@@ -506,14 +506,14 @@ namespace Js
 
         if (GetExecutionMode() != previousExecutionMode)
         {
-            functionBody->TraceExecutionMode();
+            owner->TraceExecutionMode();
         }
         return true;
     }
 
-    void FunctionExecutionStateMachine::TransitionToSimpleJitExecutionMode(FunctionBody* functionBody)
+    void FunctionExecutionStateMachine::TransitionToSimpleJitExecutionMode()
     {
-        CommitExecutedIterations(functionBody);
+        CommitExecutedIterations();
 
         interpreterLimit = 0;
         autoProfilingInterpreter0Limit = 0;
@@ -525,9 +525,9 @@ namespace Js
         SetExecutionMode(ExecutionMode::SimpleJit);
     }
 
-    void FunctionExecutionStateMachine::TransitionToFullJitExecutionMode(FunctionBody* functionBody)
+    void FunctionExecutionStateMachine::TransitionToFullJitExecutionMode()
     {
-        CommitExecutedIterations(functionBody);
+        CommitExecutedIterations();
 
         interpreterLimit = 0;
         autoProfilingInterpreter0Limit = 0;
@@ -541,7 +541,7 @@ namespace Js
         SetExecutionMode(ExecutionMode::FullJit);
     }
 
-    void FunctionExecutionStateMachine::CommitExecutedIterations(FunctionBody* functionBody)
+    void FunctionExecutionStateMachine::CommitExecutedIterations()
     {
         Assert(initializedExecutionModeAndLimits);
 
@@ -561,14 +561,14 @@ namespace Js
 
         case ExecutionMode::ProfilingInterpreter:
             CommitExecutedIterations(
-                functionBody->GetSimpleJitEntryPointInfo()
+                owner->GetSimpleJitEntryPointInfo()
                 ? profilingInterpreter1Limit
                 : profilingInterpreter0Limit,
                 GetInterpretedCount());
             break;
 
         case ExecutionMode::SimpleJit:
-            CommitExecutedIterations(simpleJitLimit, GetSimpleJitExecutedIterations(functionBody));
+            CommitExecutedIterations(simpleJitLimit, GetSimpleJitExecutedIterations());
             break;
 
         case ExecutionMode::FullJit:
@@ -621,7 +621,7 @@ namespace Js
                 ) == fullJitThreshold);
     }
 
-    void FunctionExecutionStateMachine::VerifyExecutionMode(const ExecutionMode executionMode, FunctionBody* functionBody) const
+    void FunctionExecutionStateMachine::VerifyExecutionMode(const ExecutionMode executionMode) const
     {
 #if DBG
         Assert(initializedExecutionModeAndLimits);
@@ -630,24 +630,24 @@ namespace Js
         switch (executionMode)
         {
         case ExecutionMode::Interpreter:
-            Assert(!functionBody->DoInterpreterProfile());
+            Assert(!owner->DoInterpreterProfile());
             break;
 
         case ExecutionMode::AutoProfilingInterpreter:
-            Assert(functionBody->DoInterpreterProfile());
-            Assert(functionBody->DoInterpreterAutoProfile());
+            Assert(owner->DoInterpreterProfile());
+            Assert(owner->DoInterpreterAutoProfile());
             break;
 
         case ExecutionMode::ProfilingInterpreter:
-            Assert(functionBody->DoInterpreterProfile());
+            Assert(owner->DoInterpreterProfile());
             break;
 
         case ExecutionMode::SimpleJit:
-            Assert(functionBody->DoSimpleJit());
+            Assert(owner->DoSimpleJit());
             break;
 
         case ExecutionMode::FullJit:
-            Assert(!PHASE_OFF(FullJitPhase, functionBody));
+            Assert(!PHASE_OFF(FullJitPhase, owner));
             break;
 
         default:

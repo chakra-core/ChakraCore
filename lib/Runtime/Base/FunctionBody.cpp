@@ -3844,7 +3844,7 @@ namespace Js
         SetByteCodeInLoopCount(byteCodeInLoopCount);
         SetByteCodeWithoutLDACount(byteCodeWithoutLDACount);
 
-        executionState.InitializeExecutionModeAndLimits(this);
+        executionState.InitializeExecutionModeAndLimits();
 
         this->SetAuxiliaryData(auxBlock);
         this->SetAuxiliaryContextData(auxContextBlock);
@@ -6733,7 +6733,7 @@ namespace Js
 
     bool FunctionBody::TryTransitionToNextExecutionMode()
     {
-        return executionState.TryTransitionToNextExecutionMode(this);
+        return executionState.TryTransitionToNextExecutionMode();
     }
 
     void FunctionBody::TryTransitionToNextInterpreterExecutionMode()
@@ -6773,24 +6773,24 @@ namespace Js
 
     bool FunctionBody::TryTransitionToJitExecutionMode()
     {
-        return executionState.TryTransitionToJitExecutionMode(this);
+        return executionState.TryTransitionToJitExecutionMode();
     }
 
     void FunctionBody::TransitionToSimpleJitExecutionMode()
     {
-        executionState.TransitionToSimpleJitExecutionMode(this);
+        executionState.TransitionToSimpleJitExecutionMode();
     }
 
     void FunctionBody::TransitionToFullJitExecutionMode()
     {
-        executionState.TransitionToSimpleJitExecutionMode(this);
+        executionState.TransitionToSimpleJitExecutionMode();
     }
 
     void FunctionBody::ReinitializeExecutionModeAndLimits()
     {
         // Do not remove wasCalledFromLoop 
         wasCalledFromLoop = false;
-        executionState.ReinitializeExecutionModeAndLimits(this);
+        executionState.ReinitializeExecutionModeAndLimits();
     }
 
     uint16 FunctionBody::GetSimpleJitExecutedIterations() const
@@ -7038,7 +7038,7 @@ namespace Js
         {
             if(PHASE_TRACE(Phase::ExecutionModePhase, this))
             {
-                executionState.CommitExecutedIterations(this);
+                executionState.CommitExecutedIterations();
                 TraceExecutionMode("WasCalledFromLoop (before)");
             }
         }
@@ -7046,11 +7046,11 @@ namespace Js
         {
             // This function is likely going to be called frequently since it's called from a loop. Reduce the full JIT
             // threshold to realize the full JIT perf benefit sooner.
-            executionState.CommitExecutedIterations(this);
+            executionState.CommitExecutedIterations();
             TraceExecutionMode("WasCalledFromLoop (before)");
             if(fullJitThreshold > 1)
             {
-                executionState.SetFullJitThreshold(fullJitThreshold / 2, this, !CONFIG_FLAG(NewSimpleJit));
+                executionState.SetFullJitThreshold(fullJitThreshold / 2, !CONFIG_FLAG(NewSimpleJit));
             }
         }
 
@@ -7605,11 +7605,11 @@ namespace Js
             return;
         }
 
-        executionState.CommitExecutedIterations(this);
+        executionState.CommitExecutedIterations();
         TraceExecutionMode("HasHotLoop (before)");
         if(fullJitThreshold > 1)
         {
-            executionState.SetFullJitThreshold(1, this, true);
+            executionState.SetFullJitThreshold(1, true);
         }
         TraceExecutionMode("HasHotLoop");
     }
