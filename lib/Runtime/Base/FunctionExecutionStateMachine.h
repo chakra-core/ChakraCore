@@ -21,16 +21,21 @@ namespace Js
         uint32 GetInterpretedCount() const { return interpretedCount; }
         uint32 SetInterpretedCount(uint32 val) { return interpretedCount = val; }
         uint32 IncreaseInterpretedCount() { return interpretedCount++; }
+        uint16 GetSimpleJitExecutedIterations(FunctionBody* functionBody) const;
 
 
         // Transition functions
         bool TryTransitionToNextExecutionMode(FunctionBody* functionBody);
         void TryTransitionToNextInterpreterExecutionMode(FunctionBody* functionBody);
+        bool TryTransitionToJitExecutionMode(FunctionBody* functionBody);
+        void TransitionToSimpleJitExecutionMode(FunctionBody* functionBody);
+        void TransitionToFullJitExecutionMode(FunctionBody* functionBody);
 
 
     private:
         void VerifyExecutionMode(const ExecutionMode executionMode, FunctionBody* functionBody) const;
         void VerifyExecutionModeLimits() const;
+        void CommitExecutedIterations(FunctionBody* functionBody);
         void CommitExecutedIterations(uint16 &limit, const uint executedIterations);
 
 

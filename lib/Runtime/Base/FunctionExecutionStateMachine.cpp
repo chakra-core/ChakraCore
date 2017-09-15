@@ -80,6 +80,25 @@ namespace Js
         return GetExecutionMode() <= ExecutionMode::ProfilingInterpreter;
     }
 
+    uint16 FunctionExecutionStateMachine::GetSimpleJitExecutedIterations(FunctionBody* functionBody) const
+    {
+        Assert(initializedExecutionModeAndLimits);
+        Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
+
+        FunctionEntryPointInfo *const simpleJitEntryPointInfo = functionBody->GetSimpleJitEntryPointInfo();
+        if (!simpleJitEntryPointInfo)
+        {
+            return 0;
+        }
+
+        // Simple JIT counts down and transitions on overflow
+        const uint32 callCount = simpleJitEntryPointInfo->callsCount;
+        Assert(simpleJitLimit == 0 ? callCount == 0 : simpleJitLimit > callCount);
+        return callCount == 0 ?
+            static_cast<uint16>(simpleJitLimit) :
+            static_cast<uint16>(simpleJitLimit) - static_cast<uint16>(callCount) - 1;
+    }
+
     // Safely moves from one execution mode to another and updates appropriate execution state for the next
     // mode. Note that there are other functions that modify executionMode that do not involve this function.
     // This function transitions ExecutionMode in the following order:
@@ -239,6 +258,104 @@ namespace Js
 
         TryTransitionToNextExecutionMode(functionBody);
         SetExecutionMode(GetInterpreterExecutionMode(false, functionBody));
+    }
+
+    bool FunctionExecutionStateMachine::TryTransitionToJitExecutionMode(FunctionBody* functionBody)
+    {
+        const ExecutionMode previousExecutionMode = GetExecutionMode();
+
+        TryTransitionToNextExecutionMode(functionBody);
+        switch (GetExecutionMode())
+        {
+        case ExecutionMode::SimpleJit:
+            break;
+
+        case ExecutionMode::FullJit:
+            if (fullJitRequeueThreshold == 0)
+            {
+                break;
+            }
+            --fullJitRequeueThreshold;
+            return false;
+
+        default:
+            return false;
+        }
+
+        if (GetExecutionMode() != previousExecutionMode)
+        {
+            functionBody->TraceExecutionMode();
+        }
+        return true;
+    }
+
+    void FunctionExecutionStateMachine::TransitionToSimpleJitExecutionMode(FunctionBody* functionBody)
+    {
+        CommitExecutedIterations(functionBody);
+
+        interpreterLimit = 0;
+        autoProfilingInterpreter0Limit = 0;
+        profilingInterpreter0Limit = 0;
+        autoProfilingInterpreter1Limit = 0;
+        fullJitThreshold = simpleJitLimit + profilingInterpreter1Limit;
+
+        VerifyExecutionModeLimits();
+        SetExecutionMode(ExecutionMode::SimpleJit);
+    }
+
+    void FunctionExecutionStateMachine::TransitionToFullJitExecutionMode(FunctionBody* functionBody)
+    {
+        CommitExecutedIterations(functionBody);
+
+        interpreterLimit = 0;
+        autoProfilingInterpreter0Limit = 0;
+        profilingInterpreter0Limit = 0;
+        autoProfilingInterpreter1Limit = 0;
+        simpleJitLimit = 0;
+        profilingInterpreter1Limit = 0;
+        fullJitThreshold = 0;
+
+        VerifyExecutionModeLimits();
+        SetExecutionMode(ExecutionMode::FullJit);
+    }
+
+    void FunctionExecutionStateMachine::CommitExecutedIterations(FunctionBody* functionBody)
+    {
+        Assert(initializedExecutionModeAndLimits);
+
+        switch (GetExecutionMode())
+        {
+        case ExecutionMode::Interpreter:
+            CommitExecutedIterations(interpreterLimit, GetInterpretedCount());
+            break;
+
+        case ExecutionMode::AutoProfilingInterpreter:
+            CommitExecutedIterations(
+                autoProfilingInterpreter0Limit == 0 && profilingInterpreter0Limit == 0
+                ? autoProfilingInterpreter1Limit
+                : autoProfilingInterpreter0Limit,
+                GetInterpretedCount());
+            break;
+
+        case ExecutionMode::ProfilingInterpreter:
+            CommitExecutedIterations(
+                functionBody->GetSimpleJitEntryPointInfo()
+                ? profilingInterpreter1Limit
+                : profilingInterpreter0Limit,
+                GetInterpretedCount());
+            break;
+
+        case ExecutionMode::SimpleJit:
+            CommitExecutedIterations(simpleJitLimit, GetSimpleJitExecutedIterations(functionBody));
+            break;
+
+        case ExecutionMode::FullJit:
+            break;
+
+        default:
+            Assert(false);
+            __assume(false);
+        }
     }
 
     void FunctionExecutionStateMachine::CommitExecutedIterations(uint16 &limit, const uint executedIterations)
