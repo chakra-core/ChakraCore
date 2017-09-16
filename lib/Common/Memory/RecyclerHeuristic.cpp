@@ -96,7 +96,7 @@ RecyclerHeuristic::BackgroundFinishMarkWaitTime(bool backgroundFinishMarkWaitTim
 {
     if (RECYCLER_HEURISTIC_VERSION == 10)
     {
-        backgroundFinishMarkWaitTime = backgroundFinishMarkWaitTime && CUSTOM_PHASE_ON1(flags, Js::BackgroundFinishMarkPhase);
+        backgroundFinishMarkWaitTime = backgroundFinishMarkWaitTime && CUSTOM_PHASE_FORCE1(flags, Js::BackgroundFinishMarkPhase);
     }
     else
     {
@@ -169,7 +169,7 @@ RecyclerHeuristic::PartialConcurrentNextCollection(double ratio, Js::ConfigFlags
     if (RECYCLER_HEURISTIC_VERSION == 10)
     {
         // Default off for version == 10
-        if (!CUSTOM_PHASE_ON1(flags, Js::ConcurrentPartialCollectPhase))
+        if (!CUSTOM_PHASE_FORCE1(flags, Js::ConcurrentPartialCollectPhase))
         {
             return false;
         }

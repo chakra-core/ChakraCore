@@ -269,7 +269,7 @@ namespace Js
 
     const char16* const PhaseNames[PhaseCount + 1] =
     {
-    #define PHASE(name) _u(#name),
+    #define PHASE(name, ...) _u(#name),
     #include "ConfigFlagsList.h"
         NULL
     #undef PHASE
@@ -335,6 +335,12 @@ namespace Js
         if ((int)parentName##Flag < FlagCount) this->flagIsParent[(int) parentName##Flag] = true;
 #include "ConfigFlagsList.h"
 #undef FLAG
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#define PHASE(name, defaultValue) if (defaultValue) { On.Enable(name##Phase); } else { Off.Enable(name##Phase); }
+#include "ConfigFlagsList.h"
+#undef PHASE
+#endif
 
         // set all parent flags to their default (setting all child flags to their right values)
         this->SetAllParentFlagsAsDefaultValue();
