@@ -2912,6 +2912,10 @@ FlowGraph::PeepCm(IR::Instr *instr)
         StackSym *dstSym = instr->GetDst()->AsRegOpnd()->m_sym;
         instrBr->AsBranchInstr()->SetByteCodeReg(dstSym->GetByteCodeRegSlot());
     }
+
+    brSrc = brSrc->Copy(this->func);
+    // We need brSrc later, but instr->Remove() might delete it...
+    IR::AutoReuseOpnd brSrcAutoCopy(brSrc, this->func, true);
     instr->Remove();
 
     //
