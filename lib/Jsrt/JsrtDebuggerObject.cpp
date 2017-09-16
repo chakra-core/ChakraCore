@@ -258,7 +258,14 @@ Js::DynamicObject * JsrtDebuggerStackFrame::GetJSONObject(Js::ScriptContext* scr
     JsrtDebugUtils::AddLineColumnToObject(stackTraceObject, functionBody, currentByteCodeOffset);
     JsrtDebugUtils::AddSourceLengthAndTextToObject(stackTraceObject, functionBody, currentByteCodeOffset);
 
-    JsrtDebuggerObjectBase* functionObject = JsrtDebuggerObjectFunction::Make(this->debuggerObjectsManager, functionBody);
+    Js::JavascriptFunction* javascriptFunction = stackFrame->GetJavascriptFunction();
+    JsrtDebuggerObjectBase* functionObject = nullptr;
+
+    if (!this->debuggerObjectsManager->TryGetDataFromDataToDebuggerObjectsDictionary(javascriptFunction, &functionObject))
+    {
+        functionObject = JsrtDebuggerObjectFunction::Make(this->debuggerObjectsManager, javascriptFunction);
+    }
+
     JsrtDebugUtils::AddPropertyToObject(stackTraceObject, JsrtDebugPropertyId::functionHandle, functionObject->GetHandle(), frameScriptContext);
 
     return stackTraceObject;
@@ -661,30 +668,40 @@ Js::DynamicObject * JsrtDebuggerObjectScope::GetChildren(Js::ScriptContext * scr
     return childrens;
 }
 
-JsrtDebuggerObjectFunction::JsrtDebuggerObjectFunction(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::FunctionBody* functionBody) :
+JsrtDebuggerObjectFunction::JsrtDebuggerObjectFunction(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::JavascriptFunction* javascriptFunction) :
     JsrtDebuggerObjectBase(JsrtDebuggerObjectType::Function, debuggerObjectsManager),
-    functionBody(functionBody)
+    javascriptFunction(javascriptFunction),
+    objectDisplay(nullptr),
+    walkerRef(nullptr)
 {
 }
 
 JsrtDebuggerObjectFunction::~JsrtDebuggerObjectFunction()
 {
-    this->functionBody = nullptr;
+    if (this->objectDisplay != nullptr)
+    {
+        HeapDelete(this->objectDisplay);
+        this->objectDisplay = nullptr;
+    }
+
+    if (this->walkerRef != nullptr)
+    {
+        HeapDelete(this->walkerRef);
+        this->walkerRef = nullptr;
+    }
+
+    this->javascriptFunction = nullptr;
 }
 
-JsrtDebuggerObjectBase * JsrtDebuggerObjectFunction::Make(JsrtDebuggerObjectsManager * debuggerObjectsManager, Js::FunctionBody * functionBody)
+JsrtDebuggerObjectBase * JsrtDebuggerObjectFunction::Make(JsrtDebuggerObjectsManager * debuggerObjectsManager, Js::JavascriptFunction* javascriptFunction)
 {
     JsrtDebuggerObjectBase* debuggerObject = nullptr;
 
-    if (debuggerObjectsManager->TryGetDataFromDataToDebuggerObjectsDictionary(functionBody, &debuggerObject))
-    {
-        Assert(debuggerObject != nullptr);
-        return debuggerObject;
-    }
+    Assert(!debuggerObjectsManager->TryGetDataFromDataToDebuggerObjectsDictionary(javascriptFunction, &debuggerObject));
+    
+    debuggerObject = Anew(debuggerObjectsManager->GetDebugObjectArena(), JsrtDebuggerObjectFunction, debuggerObjectsManager, javascriptFunction);
 
-    debuggerObject = Anew(debuggerObjectsManager->GetDebugObjectArena(), JsrtDebuggerObjectFunction, debuggerObjectsManager, functionBody);
-
-    debuggerObjectsManager->AddToDataToDebuggerObjectsDictionary(functionBody, debuggerObject);
+    debuggerObjectsManager->AddToDataToDebuggerObjectsDictionary(javascriptFunction, debuggerObject);
 
     return debuggerObject;
 }
@@ -693,14 +710,45 @@ Js::DynamicObject * JsrtDebuggerObjectFunction::GetJSONObject(Js::ScriptContext 
 {
     Js::DynamicObject* functionObject = scriptContext->GetLibrary()->CreateObject();
 
-    JsrtDebugUtils::AddScriptIdToObject(functionObject, this->functionBody->GetUtf8SourceInfo());
-    JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::line, (uint32) this->functionBody->GetLineNumber(), scriptContext);
-    JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::column, (uint32) this->functionBody->GetColumnNumber(), scriptContext);
-    JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::name, this->functionBody->GetDisplayName(), this->functionBody->GetDisplayNameLength(), scriptContext);
+    Js::FunctionBody* functionBody  = this->javascriptFunction->GetFunctionBody();
+    JsrtDebugUtils::AddScriptIdToObject(functionObject, functionBody->GetUtf8SourceInfo());
+    JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::line, (uint32)functionBody->GetLineNumber(), scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::column, (uint32)functionBody->GetColumnNumber(), scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::name, functionBody->GetDisplayName(), functionBody->GetDisplayNameLength(), scriptContext);
     JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetFunctionTypeDisplayString(), scriptContext);
     JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::handle, this->GetHandle(), scriptContext);
 
     return functionObject;
+}
+
+Js::DynamicObject * JsrtDebuggerObjectFunction::GetChildren(Js::ScriptContext * scriptContext, uint fromCount, uint totalCount)
+{
+    if (this->objectDisplay == nullptr)
+    {
+        Js::ResolvedObject functionResolvedObject;
+        functionResolvedObject.obj = this->javascriptFunction;
+        functionResolvedObject.scriptContext = scriptContext;
+        functionResolvedObject.name = _u("Function");
+        functionResolvedObject.typeId = Js::JavascriptOperators::GetTypeId(functionResolvedObject.obj);
+        this->objectDisplay = functionResolvedObject.GetObjectDisplay();
+    }
+
+    Js::IDiagObjectModelDisplay* objectDisplayRef = this->objectDisplay->GetStrongReference();
+    if (objectDisplayRef == nullptr)
+    {
+        return nullptr;
+    }
+
+    if (this->walkerRef == nullptr)
+    {
+        this->walkerRef = objectDisplayRef->CreateWalker();
+    }
+
+    Js::DynamicObject* childrens = __super::GetChildren(this->walkerRef, scriptContext, fromCount, totalCount);
+
+    this->objectDisplay->ReleaseStrongReference();
+
+    return childrens;
 }
 
 JsrtDebuggerObjectGlobalsNode::JsrtDebuggerObjectGlobalsNode(JsrtDebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay) :
