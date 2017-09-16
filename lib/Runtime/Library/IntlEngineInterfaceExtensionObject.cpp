@@ -311,6 +311,12 @@ namespace Js
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::getHiddenObject, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetHiddenObject, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::setHiddenObject, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_SetHiddenObject, 1);
 
+#if INTL_WINGLOB
+        library->AddMember(intlNativeInterfaces, Js::PropertyIds::winglob, library->GetTrue());
+#else
+        library->AddMember(intlNativeInterfaces, Js::PropertyIds::winglob, library->GetFalse());
+#endif
+
         intlNativeInterfaces->SetHasNoEnumerableProperties(true);
 
         return true;
