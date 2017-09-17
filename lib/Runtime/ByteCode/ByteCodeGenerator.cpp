@@ -2902,6 +2902,10 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
             }
         }
 
+        if (top->GetNewTargetSymbol())
+        {
+            byteCodeGenerator->AssignRegister(top->GetNewTargetSymbol());
+        }
         if (top->GetThisSymbol())
         {
             byteCodeGenerator->AssignRegister(top->GetThisSymbol());
@@ -2911,10 +2915,6 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 // Global function or lambda at global need to load this from null
                 byteCodeGenerator->AssignNullConstRegister();
             }
-        }
-        if (top->GetNewTargetSymbol())
-        {
-            byteCodeGenerator->AssignRegister(top->GetNewTargetSymbol());
         }
         if (top->GetSuperSymbol())
         {

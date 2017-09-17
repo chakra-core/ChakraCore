@@ -1326,6 +1326,20 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
 
         if (sym != nullptr && !(pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
         {
+            if (sym->IsSpecialSymbol())
+            {
+                // Special symbols have already had their initial values stored into their registers.
+                // In split-scope case we've stored those values into their slot locations, as well.
+                // We must do that because a default parameter may access a special symbol through a scope slot.
+                // In the non-split-scope case, though, we didn't yet store the values into the slots so let's do that now.
+                if (funcInfo->IsBodyAndParamScopeMerged())
+                {
+                    EmitPropStoreForSpecialSymbol(sym->GetLocation(), sym, sym->GetPid(), funcInfo, true);
+                }
+
+                continue;
+            }
+
             if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar()))
             {
                 // The init node was bound to the catch object, because it's inside a catch and has the
@@ -1349,7 +1363,7 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                 Assert(sym && !sym->GetIsCatch() && !sym->GetIsBlockVar());
             }
 
-            if (sym->GetSymbolType() == STVariable && !sym->GetIsModuleExportStorage() && !sym->IsSpecialSymbol())
+            if (sym->GetSymbolType() == STVariable && !sym->GetIsModuleExportStorage())
             {
                 if (fGlobal)
                 {
@@ -2151,62 +2165,53 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
         Js::RegSlot root = funcInfo->nullConstantRegister;
         EmitThis(funcInfo, root);
     }
-
-    EmitPropStoreThis(thisSym->GetLocation(), thisSym, thisSym->GetPid(), funcInfo, true);
 }
 
 void ByteCodeGenerator::LoadNewTargetObject(FuncInfo *funcInfo)
 {
+    Symbol* newTargetSym = funcInfo->GetNewTargetSymbol();
+    Assert(newTargetSym);
+
     if (funcInfo->IsClassConstructor())
     {
         Assert(!funcInfo->IsLambda());
 
-        m_writer.ArgIn0(funcInfo->GetNewTargetSymbol()->GetLocation());
+        m_writer.ArgIn0(newTargetSym->GetLocation());
     }
     else if (funcInfo->IsGlobalFunction())
     {
-        m_writer.Reg1(Js::OpCode::LdUndef, funcInfo->GetNewTargetSymbol()->GetLocation());
+        m_writer.Reg1(Js::OpCode::LdUndef, newTargetSym->GetLocation());
     }
     else
     {
-        m_writer.Reg1(Js::OpCode::LdNewTarget, funcInfo->GetNewTargetSymbol()->GetLocation());
-    }
-
-    if (!funcInfo->IsGlobalFunction() || (this->flags & fscrEval))
-    {
-        EmitLocalPropInit(funcInfo->GetNewTargetSymbol()->GetLocation(), funcInfo->GetNewTargetSymbol(), funcInfo);
+        m_writer.Reg1(Js::OpCode::LdNewTarget, newTargetSym->GetLocation());
     }
 }
 
 void ByteCodeGenerator::LoadSuperConstructorObject(FuncInfo *funcInfo)
 {
+    Symbol* superConstructorSym = funcInfo->GetSuperConstructorSymbol();
+    Assert(superConstructorSym);
+
     if (funcInfo->IsClassMember())
     {
         Assert(!funcInfo->IsLambda());
 
-        m_writer.Reg1(Js::OpCode::LdFuncObj, funcInfo->GetSuperConstructorSymbol()->GetLocation());
+        m_writer.Reg1(Js::OpCode::LdFuncObj, superConstructorSym->GetLocation());
     }
     else
     {
-        m_writer.Reg1(Js::OpCode::LdUndef, funcInfo->GetSuperConstructorSymbol()->GetLocation());
-    }
-
-    if (!funcInfo->IsGlobalFunction() || (this->flags & fscrEval))
-    {
-        EmitLocalPropInit(funcInfo->GetSuperConstructorSymbol()->GetLocation(), funcInfo->GetSuperConstructorSymbol(), funcInfo);
+        m_writer.Reg1(Js::OpCode::LdUndef, superConstructorSym->GetLocation());
     }
 }
 
 void ByteCodeGenerator::LoadSuperObject(FuncInfo *funcInfo)
 {
+    Symbol* superSym = funcInfo->GetSuperSymbol();
+    Assert(superSym);
     Assert(!funcInfo->IsLambda());
 
-    m_writer.Reg1(Js::OpCode::LdHomeObj, funcInfo->GetSuperSymbol()->GetLocation());
-
-    if (!funcInfo->IsGlobalFunction() || (this->flags & fscrEval))
-    {
-        EmitLocalPropInit(funcInfo->GetSuperSymbol()->GetLocation(), funcInfo->GetSuperSymbol(), funcInfo);
-    }
+    m_writer.Reg1(Js::OpCode::LdHomeObj, superSym->GetLocation());
 }
 
 void ByteCodeGenerator::EmitSuperCall(FuncInfo* funcInfo, ParseNode* pnode, BOOL fReturnValue)
@@ -2303,7 +2308,7 @@ void ByteCodeGenerator::EmitSuperCall(FuncInfo* funcInfo, ParseNode* pnode, BOOL
     Symbol* thisSym = pnode->sxSuperCall.pnodeThis->sxPid.sym;
     this->Writer()->Reg2(Js::OpCode::StrictLdThis, pnode->sxSuperCall.pnodeThis->location, valueForThis);
 
-    EmitPropStoreThis(pnode->sxSuperCall.pnodeThis->location, thisSym, pnode->sxSuperCall.pnodeThis->sxPid.pid, funcInfo, false);
+    EmitPropStoreForSpecialSymbol(pnode->sxSuperCall.pnodeThis->location, thisSym, pnode->sxSuperCall.pnodeThis->sxPid.pid, funcInfo, false);
 
     funcInfo->ReleaseTmpRegister(tmpUndeclReg);
     funcInfo->ReleaseTmpRegister(valueForThis);
@@ -2953,6 +2958,16 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         if (pnode->sxFnc.HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
         {
             Assert(pnode->sxFnc.HasNonSimpleParameterList() || CONFIG_FLAG(ForceSplitScope));
+
+            if (paramScope)
+            {
+                paramScope->ForEachSymbol([&](Symbol* sym) {
+                    if (sym && sym->IsSpecialSymbol())
+                    {
+                        EmitPropStoreForSpecialSymbol(sym->GetLocation(), sym, sym->GetPid(), funcInfo, true);
+                    }
+                });
+            }
 
             this->InitBlockScopedNonTemps(funcInfo->root->sxFnc.pnodeScopes, funcInfo);
 
@@ -3612,23 +3627,6 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                     sym->EnsureScopeSlot(funcInfo);
                 }
             }
-            
-            if (funcInfo->GetNewTargetSymbol())
-            {
-                funcInfo->GetNewTargetSymbol()->EnsureScopeSlot(funcInfo);
-            }
-            if (funcInfo->GetThisSymbol())
-            {
-                funcInfo->GetThisSymbol()->EnsureScopeSlot(funcInfo);
-            }
-            if (funcInfo->GetSuperSymbol())
-            {
-                funcInfo->GetSuperSymbol()->EnsureScopeSlot(funcInfo);
-            }
-            if (funcInfo->GetSuperConstructorSymbol())
-            {
-                funcInfo->GetSuperConstructorSymbol()->EnsureScopeSlot(funcInfo);
-            }
 
             if (!funcInfo->GetHasArguments())
             {
@@ -3688,7 +3686,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                     {
                         sym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
                     }
-                    if (sym->GetSymbolType() == STVariable && !sym->IsArguments() && !sym->IsSpecialSymbol())
+                    if (sym->GetSymbolType() == STVariable && !sym->IsArguments())
                     {
                         sym->EnsureScopeSlot(funcInfo);
                     }
@@ -4869,14 +4867,14 @@ void ByteCodeGenerator::EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pno
 {
     this->EmitPropLoad(lhsLocation, pnode->sxPid.sym, pnode->sxPid.pid, funcInfo, true);
 
-    Symbol* thisSym = pnode->sxPid.sym;
-    if ((!thisSym || thisSym->GetNeedDeclaration()) && chkUndecl)
+    Symbol* sym = pnode->sxPid.sym;
+    if ((!sym || sym->GetNeedDeclaration()) && chkUndecl)
     {
         this->Writer()->Reg1(Js::OpCode::ChkUndecl, lhsLocation);
     }
 }
 
-void ByteCodeGenerator::EmitPropStoreThis(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool init)
+void ByteCodeGenerator::EmitPropStoreForSpecialSymbol(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool init)
 {
     if (!funcInfo->IsGlobalFunction() || (this->flags & fscrEval))
     {

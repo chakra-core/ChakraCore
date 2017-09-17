@@ -804,7 +804,8 @@ var tests = [
             function f2({a:a}, c = eval('this')) {
                 return c;
             }
-            assert.isTrue('this' == f2.call('this', {}), "Eval references 'this' binding");
+            var _this = {};
+            assert.areEqual(_this, f2.call(_this, {}), "Eval references 'this' binding");
             
             function f3({a:a}, c = eval('new.target')) {
                 return c;
@@ -813,7 +814,13 @@ var tests = [
             
             class base {
                 prop() {
+                    assert.areEqual(c1, this.constructor, "Be sure the 'this' binding flows down the super reference calls")
                     return 'prop';
+                }
+                
+                returnThis() {
+                    assert.areEqual(c2, this.constructor, "Be sure the 'this' binding flows down the super reference calls")
+                    return this;
                 }
             }
             
@@ -822,6 +829,7 @@ var tests = [
                 constructor({a:a}, c = eval('super()')) {
                     assert.areEqual(c1, new.target, "'new.target' binding is correct in class constructor with split-scope");
                     assert.areEqual(this, c, "Result of super() should be the same as 'this'");
+                    assert.areEqual('prop', super.prop(), "Super reference should bind correctly");
                 }
                 
                 doSuperRefViaDot({a:a}, c = eval('super.prop()')) {
@@ -832,11 +840,30 @@ var tests = [
                     return c;
                 }
             }
-            
             var inst = new c1({});
-            assert(c1, inst.constructor, "Eval references 'super' in a constructor call");
-            assert('prop', inst.doSuperRefViaDot({}), "Eval references 'super' as a super property reference via dot");
-            assert('prop', inst.doSuperRefViaIndex({}), "Eval references 'super' as a super property reference via index");
+            assert.areEqual(c1, inst.constructor, "Eval references 'super' in a constructor call");
+            assert.areEqual('prop', inst.doSuperRefViaDot({}), "Eval references 'super' as a super property reference via dot");
+            assert.areEqual('prop', inst.doSuperRefViaIndex({}), "Eval references 'super' as a super property reference via index");
+            
+            class c2 extends base {
+                constructor({a:a}, c = eval('super(); super.returnThis();')) {
+                    assert.areEqual(c2, new.target, "'new.target' binding is correct in class constructor with split-scope");
+                    assert.areEqual(this, c, "Result of super.returnThis() should be the same as 'this'");
+                }
+            }
+            var inst = new c2({});
+            assert.areEqual(c2, inst.constructor, "Eval references 'super' in a constructor call");
+        }
+    },
+    {
+        name: "Formal argument named 'arguments'",
+        body: function() {
+            function foo(arguments) {
+                assert.areEqual('arguments', arguments, "Arguments named formal accessed directly");
+                assert.areEqual('arguments', (() => arguments)(), "Arguments named formal accessed through a lambda capture");
+                assert.areEqual('arguments', eval('arguments'), "Arguments named formal accessed through an eval");
+            }
+            foo('arguments');
         }
     }
 ]
