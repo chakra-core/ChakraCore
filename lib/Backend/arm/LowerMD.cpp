@@ -1313,7 +1313,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     }
     Assert(fpOffsetSize >= 0);
 
-    if (m_func->HasInlinee())
+    if (m_func->GetMaxInlineeArgOutSize() != 0)
     {
         // subtracting 2 for frame pointer & return address
         this->m_func->GetJITOutput()->SetFrameHeight(this->m_func->m_localStackHeight + this->m_func->m_ArgumentsOffset - 2 * MachRegInt);
@@ -1452,7 +1452,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     //As we have already allocated the stack here, we can safely zero out the inlinee argout slot.
 
     // Zero initialize the first inlinee frames argc.
-    if (m_func->HasInlinee())
+    if (m_func->GetMaxInlineeArgOutSize() != 0)
     {
         // This is done post prolog. so we don't have to emit unwind data.
         if (r12Opnd == nullptr || isScratchRegisterThrashed)
