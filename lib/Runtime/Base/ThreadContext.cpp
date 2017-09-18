@@ -1230,6 +1230,8 @@ void ThreadContext::AddBuiltInPropertyRecord(const Js::PropertyRecord *propertyR
 
 BOOL ThreadContext::IsNumericPropertyId(Js::PropertyId propertyId, uint32* value)
 {
+    if (Js::IsInternalPropertyId(propertyId)) return false;
+
     Js::PropertyRecord const * propertyRecord = this->GetPropertyName(propertyId);
     Assert(propertyRecord != nullptr);
     if (propertyRecord == nullptr || !propertyRecord->IsNumeric())
