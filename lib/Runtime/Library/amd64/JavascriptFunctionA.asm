@@ -219,122 +219,67 @@ ifdef _ENABLE_DYNAMIC_THUNKS
 extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
 extrn ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z : PROC
 
-; int64 CallAsmJsFunction<int64>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+; int64 JavascriptFunction::CallAsmJsFunction<int64>(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg)
 align 16
-??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SQ_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SA_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z PROC FRAME
     .setframe rbp, 0
     .endprolog
-    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
-??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SQ_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z
+??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SA_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z ENDP
 
-; float CallAsmJsFunction<float>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+; float JavascriptFunction::CallAsmJsFunction<float>(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg)
 align 16
-??$CallAsmJsFunction@M@JavascriptFunction@Js@@SQMPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@N@JavascriptFunction@Js@@SANPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z PROC FRAME
     .setframe rbp, 0
     .endprolog
-    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
-??$CallAsmJsFunction@M@JavascriptFunction@Js@@SQMPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z
+??$CallAsmJsFunction@N@JavascriptFunction@Js@@SANPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z ENDP
 
-; double CallAsmJsFunction<double>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+; double JavascriptFunction::CallAsmJsFunction<double>(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg)
 align 16
-??$CallAsmJsFunction@N@JavascriptFunction@Js@@SQNPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@M@JavascriptFunction@Js@@SAMPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z PROC FRAME
     .setframe rbp, 0
     .endprolog
-    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
-??$CallAsmJsFunction@N@JavascriptFunction@Js@@SQNPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z
+??$CallAsmJsFunction@M@JavascriptFunction@Js@@SAMPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z ENDP
 
-; __m128 JavascriptFunction::CallAsmJsFunction(RecyclableObject * function, void* entryPoint, uint argc, Var * argv);
+; __m128 JavascriptFunction::CallAsmJsFunction<__m128>(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg)
 align 16
-??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SQ?AT__m128@@PEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SA?AT__m128@@PEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z PROC FRAME
     .setframe rbp, 0
     .endprolog
-    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
-??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SQ?AT__m128@@PEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z
+??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SA?AT__m128@@PEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z ENDP
 
-
-
-; int CallAsmJsFunction<int>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+; int JavascriptFunction::CallAsmJsFunction<int>(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg)
 align 16
-??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z PROC FRAME
+        ; save arguments to stack for interpreter
+        mov qword ptr [rsp + 8h],  rcx ;; function
+        mov qword ptr [rsp + 10h], rdx ;; entrypoint
+        mov qword ptr [rsp + 18h], r8 ;; argv
+        mov qword ptr [rsp + 20h], r9 ;; argsSize
+        ;; reg is at [rsp + 28h]
 
-        ; save these to stack for interpreter
-        mov qword ptr [rsp + 8h],  rcx
-        mov qword ptr [rsp + 10h], rdx
-        mov qword ptr [rsp + 18h], r8
-        mov qword ptr [rsp + 20h], r9
-
-        push rbx
-        .pushreg rbx
+        ; push rbx unused
+        ; .pushreg rbx
         push rsi
         .pushreg rsi
         push rdi
         .pushreg rdi
-        push r12
-        .pushreg r12
-        push r13
-        .pushreg r13
+        ; push r12 unused
+        ; .pushreg r12
+        ; push r13 unused
+        ; .pushreg r13
         push rbp
         .pushreg rbp
-        lea rbp, [rsp]
+        mov rbp, rsp
         .setframe rbp, 0
         .endprolog
 
-        ; The first 4 QWORD args are passed in rcx, rdx/xmm1, r8/xmm2 and r9/xmm3,
-        ; upon entry rcx contains function *.
-        sub rsp, 8h
+        and rsp, -16 ; Make sure the stack is 16 bytes aligned
+        lea rax, [r9 + 16] ; add 16 bytes to argsSize to account for ScriptFunction and stay 16 bytes aligned
 
-
-
-        ;; rbx = argc
-        mov rbx, r8
-
-ifdef _CONTROL_FLOW_GUARD
-        mov     rdi, rcx                ; save function *
-        mov     rcx, rdx                ; save entry point (the call target)
-                                        ; it is guaranteed that icall check will preserve rcx
-        ;[b-namost]:  are the push/pops necessary ?
-        push rdx
-        push r8
-        push r9
-        call    amd64_CheckICall        ; verify that the call target is valid
-        pop r9
-        pop r8
-        pop rdx
-
-        mov     rax, rcx                ; restore entry point to rax - same as non-CFG path
-        mov     rcx, rdi                ; restore function * back to rcx
-else
-        ; save entry point into rax.
-        mov rax, rdx
-endif
-
-        xor r10d, r10d
-
-        ;; rsi = argv
-        mov rsi, r9
-        add rsi, 8h
-
-        ; get map of args sizes for this function
-         push rax
-         push rcx
-         sub rsp, 20h
-         call ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z
-         mov r12, rax
-         add rsp, 20h
-         pop rcx
-         pop rax
-
-        ; int GetStackSizeForAsmJsUnboxing(ScriptFunction* func)
-        ; This will return 0x20 bytes if size is below minimum. Includes space for function*.
-        push rax
-        push rcx
-        sub rsp, 20h
-        call ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z
-        add rsp, 20h
-        pop rcx
-        pop r13
-
-        ; OP_CallAsmInternal probes stack
         ; Check if we need to commit more stack
         cmp rax, 2000h ; x64 has 2 guard pages
         jl stack_alloc
@@ -342,75 +287,50 @@ endif
 stack_alloc:
         sub rsp, rax
 
+        ;; Make sure ScriptFunction* is first argument
+        mov qword ptr [r8], rcx
+
         ;; copy all args to the new stack frame.
-        lea r11, [rsi]
-        lea r10, [rsp + 8] ; copy after ScriptFunction*
-copy_stack_args:
-        mov rdi, qword ptr [r11]
-        mov qword ptr [r10], rdi
-        add r11, 8
-        add r10, 8
-        sub rax, 8
-        cmp rax, 0
-        jg copy_stack_args
+        ;; Move argSize in rcx for rep movs
+        mov rcx, rax
+        shr rcx, 3 ;; rcx = rcx / 8 for qword size mov
+        mov rsi, r8 ;; rsi = argv
+        mov rdi, rsp ;; rdi = arguments destination
+        rep movsq
 
-        ; r12 points to arg size map
-setup_reg_args_1:
-        lea r11, [rsi]
-        ; argc < 1 ?
-        cmp rbx, 1h
-        jl setup_args_done
-        cmp dword ptr[r12], 10h
-        je SIMDArg1
-        mov rdx, qword ptr [r11]
-        movq xmm1, qword ptr [r11]
-        add r11, 8h
-        jmp setup_reg_args_2
-SIMDArg1:
-        movups xmm1, xmmword ptr [r11]
-        add r11, 10h
+        ;; Move entrypoint in rax
+        mov rax, rdx
 
-setup_reg_args_2:
-        ; argc < 2 ?
-        cmp rbx, 2h
-        jl setup_args_done
+        ;; Load 4 first arguments in registers
+        ;; First argument (aka ScriptFunction*)
+        mov rcx, qword ptr [rsp]
+        mov r10, [rbp + 40h] ;; r10 = byte* reg
+        ;; Second argument
+        mov rdx, qword ptr [r10]
+        movaps xmm1, xmmword ptr [r10]
+        ;; Third argument
+        mov r8, qword ptr [r10 + 10h]
+        movaps xmm2, xmmword ptr [r10 + 10h]
+        ;; Fourth argument
+        mov r9, qword ptr [r10 + 20h]
+        movaps xmm3, xmmword ptr [r10 + 20h]
 
-        add r12, 4
-        cmp dword ptr[r12], 10h
-        je SIMDArg2
-        mov r8, qword ptr [r11]
-        movq xmm2, qword ptr [r11]
-        add r11, 8h
-        jmp setup_reg_args_3
-SIMDArg2:
-        movups xmm2, xmmword ptr [r11]
-        add r11, 10h
+ifdef _CONTROL_FLOW_GUARD
+        call    [__guard_dispatch_icall_fptr]
+else
+        call rax
+endif
 
-setup_reg_args_3:
-        ; argc < 3 ?
-        cmp rbx, 3h
-        jl setup_args_done
-        add r12, 4
-        cmp dword ptr[r12], 10h
-        je SIMDArg3
-        mov r9, qword ptr [r11]
-        movq xmm3, qword ptr [r11]
-SIMDArg3:
-        movups xmm3, xmmword ptr [r11]
-
-setup_args_done:
-        call r13
-done:
         lea rsp, [rbp]
         pop rbp
-        pop r13
-        pop r12
+        ; pop r13
+        ; pop r12
         pop rdi
         pop rsi
-        pop rbx
+        ; pop rbx
         ret
 
-??$CallAsmJsFunction@H@JavascriptFunction@Js@@SQHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZPEAPEAXIPEAE@Z ENDP
 
 endif ;; _ENABLE_DYNAMIC_THUNKS
 

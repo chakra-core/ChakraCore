@@ -9,7 +9,7 @@ namespace Js
     class WasmLibrary
     {
     public:
-        static JavascriptMethod WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
+        static JavascriptMethod WasmDeferredParseEntryPoint(AsmJsScriptFunction* funcPtr, int internalCall);
         static void SetWasmEntryPointToInterpreter(Js::ScriptFunction* func, bool deferParse);
 #ifdef ENABLE_WASM
         static Var WasmLazyTrapCallback(RecyclableObject *callee, CallInfo, ...);

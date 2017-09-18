@@ -115,145 +115,74 @@ NESTED_END amd64_CallFunction, _TEXT
 
 // int CallAsmJsFunction<int>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 .balign 16
-NESTED_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT, NoHandler
+NESTED_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh, _TEXT, NoHandler
         push_nonvol_reg rbp
         mov rbp, rsp
 
         // Set to compute CFA as: rbp + 2 words (RA, rbp)
         set_cfa_register rbp, (2*8)
 
-        push rbx
-        push r12
-        push r13
-        push r15
+        // rdi: function, rsi: entryPoint, rdx: argv, rcx: argSizes, r8: reg
 
-        // rdi: function
+        and rsp, -16 // Make sure the stack is 16 bytes aligned
+        // add 16 bytes to argsSize to account for ScriptFunction and stay 16 bytes aligned
+        add rcx, 16
+        // Stack allocation
+        sub rsp, rcx
 
-        // rax: entry point
-        mov rax, rsi
+        // Set entrypoint to r11
+        mov r11, rsi
 
-        // rbx: argc
-        mov rbx, rdx
+        // Make sure ScriptFunction* is first argument
+        mov qword ptr [rdx], rdi
 
-        // r15: argv
-        mov r15, rcx
-        add r15, 8h
+        shr rcx, 3 // rcx = rcx / 8 for qword size mov
+        mov rsi, rdx // rsi = argv
+        mov rdi, rsp // rdi = arguments destination
+        rep movsq
 
-        // int GetArgsSizesArray(ScriptFunction* func)
-        push rax
-        push rdi
-        call C_FUNC(_ZN2Js17GetArgsSizesArrayEPNS_14ScriptFunctionE)
-        mov r12, rax
-        pop rdi
-        pop rax
+        // Load 4 first arguments
+        // First Argument
+        mov rdi, qword ptr [rsp]
+        // Review:: Is this really our calling convention on xplat ?
+        // Second Argument
+        mov rsi, qword ptr [r8]
+        movaps xmm1, xmmword ptr [r8]
+        // Third Argument
+        mov rdx, qword ptr [r8 + 10h]
+        movaps xmm2, xmmword ptr [r8 + 10h]
+        // Fourth Argument
+        mov rcx, qword ptr [r8 + 20h]
+        movaps xmm3, xmmword ptr [r8 + 20h]
 
-        // int GetStackSizeForAsmJsUnboxing(ScriptFunction* func)
-        // This will return 0x20 bytes if size is below minimum. Includes space for function*.
-        push rax
-        push rdi
-        call C_FUNC(_ZN2Js28GetStackSizeForAsmJsUnboxingEPNS_14ScriptFunctionE)
-        mov r13, rax
-        pop rdi
-        pop rax
-
-LOCAL_LABEL(setup_stack_and_reg_args):
-
-        // OP_CallAsmInternal checks stack space
-
-LOCAL_LABEL(stack_alloc):
-        sub  rsp, r13
-
-        // copy all args to the new stack frame.
-        lea r11, [r15]
-        lea r10, [rsp + 8]      // copy after ScriptFunction*
-        push r13                // save r13
-LOCAL_LABEL(copy_stack_args):
-        mov rsi, qword ptr [r11]
-        mov qword ptr [r10], rsi
-        add r11, 8
-        add r10, 8
-        sub r13, 8
-        cmp r13, 8  // skipped 1
-        jg LOCAL_LABEL(copy_stack_args)
-        pop r13                 // restore r13
-
-        // r12 points to arg size map
-LOCAL_LABEL(setup_reg_args_1):
-        lea r11, [r15]
-        // argc < 1 ?
-        cmp rbx, 1h
-        jl LOCAL_LABEL(setup_args_done)
-        cmp dword ptr[r12], 10h
-        je LOCAL_LABEL(SIMDArg1)
-        mov rsi, qword ptr [r11]
-        movq xmm1, qword ptr [r11]
-        add r11, 8h
-        jmp LOCAL_LABEL(setup_reg_args_2)
-LOCAL_LABEL(SIMDArg1):
-        movups xmm1, xmmword ptr [r11]
-        add r11, 10h
-
-LOCAL_LABEL(setup_reg_args_2):
-        // argc < 2 ?
-        cmp rbx, 2h
-        jl LOCAL_LABEL(setup_args_done)
-
-        add r12, 4
-        cmp dword ptr[r12], 10h
-        je LOCAL_LABEL(SIMDArg2)
-        mov rdx, qword ptr [r11]
-        movq xmm2, qword ptr [r11]
-        add r11, 8h
-        jmp LOCAL_LABEL(setup_reg_args_3)
-LOCAL_LABEL(SIMDArg2):
-        movups xmm2, xmmword ptr [r11]
-        add r11, 10h
-
-LOCAL_LABEL(setup_reg_args_3):
-        // argc < 3 ?
-        cmp rbx, 3h
-        jl LOCAL_LABEL(setup_args_done)
-        add r12, 4
-        cmp dword ptr[r12], 10h
-        je LOCAL_LABEL(SIMDArg3)
-        mov rcx, qword ptr [r11]
-        movq xmm3, qword ptr [r11]
-LOCAL_LABEL(SIMDArg3):
-        movups xmm3, xmmword ptr [r11]
-
-LOCAL_LABEL(setup_args_done):
-        // "home" arg0. other args already copied.
-        mov [rsp], rdi
-        call rax
-        add rsp, r13            // restore stack
+        xor rax, rax // Zero out rax in case r11 expects varags
+        call r11
 
 // done:
-        pop r15
-        pop r13
-        pop r12
-        pop rbx
+        // restore stack
+        mov rsp, rbp
         pop_nonvol_reg rbp
         ret
-NESTED_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
+NESTED_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh, _TEXT
 
 
 // int64 CallAsmJsFunction<int64>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 .balign 16
-LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIlEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
-    jmp C_FUNC(_ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_)
-LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIlEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
+LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIlEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh, _TEXT
+    jmp C_FUNC(_ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh)
+LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIlEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh, _TEXT
 
 // float CallAsmJsFunction<float>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 .balign 16
-LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIfEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
-    jmp C_FUNC(_ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_)
-LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIfEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
+LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIfEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh, _TEXT
+    jmp C_FUNC(_ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh)
+LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIfEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh, _TEXT
 
 // double CallAsmJsFunction<double>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 .balign 16
-LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIdEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
-    jmp C_FUNC(_ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_)
-LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIdEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEjPS5_, _TEXT
+LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIdEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh, _TEXT
+    jmp C_FUNC(_ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh)
+LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIdEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh, _TEXT
 
 #endif // _ENABLE_DYNAMIC_THUNKS
 //------------------------------------------------------------------------------
