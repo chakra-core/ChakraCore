@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -403,6 +403,10 @@ inline
 void
 HeapBlockMap64::Mark(void * candidate, MarkContext * markContext)
 {
+    if (!list || !HeapInfo::IsAlignedAddress(candidate) || (size_t)candidate < 0x10000)
+    {
+        return;
+    }
     uint index = GetNodeIndex(candidate);
 
     Node * node = list;
@@ -427,6 +431,10 @@ inline
 void
 HeapBlockMap64::MarkInterior(void * candidate, MarkContext * markContext)
 {
+    if (!list || (size_t)candidate < 0x10000)
+    {
+        return;
+    }
     uint index = GetNodeIndex(candidate);
 
     Node * node = list;

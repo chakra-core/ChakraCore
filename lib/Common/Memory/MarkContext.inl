@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -22,8 +22,15 @@ bool MarkContext::AddMarkedObject(void * objectAddress, size_t objectSize)
     RECYCLER_STATS_INTERLOCKED_INC(recycler, scanCount);
 
     MarkCandidate markCandidate;
-    markCandidate.obj = (void **) objectAddress;
+
+#if defined(_WIN64) && defined(_M_X64)
+    // Enabling store forwards. The intrinsic generates stores matching the load in size.
+    // This enables skipping caches and forwarding the store data to the following load.
+    *(__m128i *)&markCandidate = _mm_set_epi64x(objectSize, (__int64)objectAddress);
+#else
+    markCandidate.obj = (void**)objectAddress;
     markCandidate.byteCount = objectSize;
+#endif
     return markStack.Push(markCandidate);
 }
 
@@ -117,11 +124,13 @@ void MarkContext::Mark(void * candidate, void * parentReference)
     // Otherwise our rescanState could be out of sync with mark state.
     Assert(!recycler->isProcessingRescan);
 
+#if defined(RECYCLER_STATS) || !defined(_M_X64)
     if ((size_t)candidate < 0x10000)
     {
         RECYCLER_STATS_INTERLOCKED_INC(recycler, tryMarkNullCount);
         return;
     }
+#endif
 
     if (interior)
     {
@@ -135,11 +144,13 @@ void MarkContext::Mark(void * candidate, void * parentReference)
         return;
     }
 
+#if defined(RECYCLER_STATS) || !defined(_M_X64)
     if (!HeapInfo::IsAlignedAddress(candidate))
     {
         RECYCLER_STATS_INTERLOCKED_INC(recycler, tryMarkUnalignedCount);
         return;
     }
+#endif
 
     recycler->heapBlockMap.Mark<parallel, doSpecialMark>(candidate, this);
 
