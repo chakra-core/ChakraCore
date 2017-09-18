@@ -153,7 +153,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     -v | --verbose)
-        _VERBOSE="V=1"
+        _VERBOSE="VERBOSE=1"
         ;;
 
     -d | --debug)
