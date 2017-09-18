@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 template <typename T>
@@ -96,6 +96,9 @@ bool PageStack<T>::Pop(T * item)
     Assert(nextEntry > chunkStart && nextEntry <= chunkEnd);
 
     nextEntry--;
+#if defined(_M_IX86) || defined(_M_X64)
+    _mm_prefetch((char*) (nextEntry - 1), _MM_HINT_T0);
+#endif
     *item = *nextEntry;
 
 #if DBG
