@@ -130,6 +130,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBlockData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ValueInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITThunkEmitter.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)IntConstMath.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -345,6 +346,7 @@
     <ClInclude Include="GlobOptBlockData.h" />
     <ClInclude Include="ValueInfo.h" />
     <ClInclude Include="JITThunkEmitter.h" />
+    <ClInclude Include="IntConstMath.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

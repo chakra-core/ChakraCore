@@ -4419,7 +4419,7 @@ bool Inline::InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_op
     {
         IntConstType src2Constant = *pValue;
 
-        if (!instr->BinaryCalculator(src1Constant, src2Constant, pValue)
+        if (!instr->BinaryCalculator(src1Constant, src2Constant, pValue, TyInt32)
             || !Math::FitsInDWord(*pValue))
         {
             return false;
@@ -4457,7 +4457,7 @@ bool Inline::InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_op
     }
     else
     {
-        if (!instr->UnaryCalculator(src1Constant, pValue)
+        if (!instr->UnaryCalculator(src1Constant, pValue, TyInt32)
             || !Math::FitsInDWord(*pValue))
         {
             // Skip over BytecodeArgOutCapture
