@@ -40,6 +40,7 @@ public:
     }
 
     static LoweredBasicBlock* New(JitArenaAllocator * allocator);
+    void Delete(JitArenaAllocator* allocator);
     void Copy(LoweredBasicBlock* block);
     LoweredBasicBlock* Clone(JitArenaAllocator * allocator);
     bool HasData();

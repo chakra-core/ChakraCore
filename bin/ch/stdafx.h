@@ -218,6 +218,7 @@ public:
         if (errorCode == JsNoError)
         {
             *(data + length) = char(0);
+            this->length = length;
         }
         return errorCode;
     }

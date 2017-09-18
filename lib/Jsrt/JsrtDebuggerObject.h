@@ -58,13 +58,16 @@ private:
 class JsrtDebuggerObjectFunction : public JsrtDebuggerObjectBase
 {
 public:
-    static JsrtDebuggerObjectBase* Make(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::FunctionBody* functionBody);
+    static JsrtDebuggerObjectBase* Make(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::JavascriptFunction* javascriptFunction);
     Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext, bool forceSetValueProp);
+    Js::DynamicObject* GetChildren(Js::ScriptContext* scriptContext, uint fromCount, uint totalCount);
 
 private:
-    JsrtDebuggerObjectFunction(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::FunctionBody* functionBody);
+    JsrtDebuggerObjectFunction(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::JavascriptFunction* javascriptFunction);
     ~JsrtDebuggerObjectFunction();
-    Js::FunctionBody* functionBody;
+    Js::JavascriptFunction* javascriptFunction;
+    WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay;
+    WeakArenaReference<Js::IDiagObjectModelWalkerBase>* walkerRef;
 };
 
 class JsrtDebuggerObjectProperty : public JsrtDebuggerObjectBase
