@@ -152,7 +152,12 @@ public:
 
     void SetAttributes(void * address, unsigned char attributes);
 
-    // EdgeGC-TODO: Specialize ProcessMarkedObject for this heap block type to call new Mark/Trace method.
+    template <bool doSpecialMark>
+    void ProcessMarkedObject(void* candidate, MarkContext * markContext);
+
+    template <bool doSpecialMark, typename Fn>
+    bool UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn);
+    
 
     SmallRecyclerVisitedHostHeapBlockT * GetNextBlock() const
     {

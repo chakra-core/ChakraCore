@@ -159,6 +159,81 @@ SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::SetAttributes(void * addre
 }
 
 template <class TBlockAttributes>
+template <bool doSpecialMark>
+_NOINLINE
+void SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::ProcessMarkedObject(void* objectAddress, MarkContext * markContext)
+{
+    unsigned char * attributes = nullptr;
+    if (!this->TryGetAddressOfAttributes(objectAddress, &attributes))
+    {
+        return;
+    }
+
+    if (!this->template UpdateAttributesOfMarkedObjects<doSpecialMark>(markContext, objectAddress, this->objectSize, *attributes,
+        [&](unsigned char _attributes) { *attributes = _attributes; }))
+    {
+        // Couldn't mark children- bail out and come back later
+        this->SetNeedOOMRescan(markContext->GetRecycler());
+    }
+}
+
+template <class TBlockAttributes>
+template <bool doSpecialMark, typename Fn>
+bool SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn)
+{
+    bool noOOMDuringMark = true;
+
+    if (attributes & TrackBit)
+    {
+        IRecyclerVisitedObject* recyclerVisited = static_cast<IRecyclerVisitedObject*>(objectAddress);
+        noOOMDuringMark = recyclerVisited->Trace(markContext);
+
+        if (noOOMDuringMark)
+        {
+            // Object has been successfully processed, so clear NewTrackBit
+            attributes &= ~NewTrackBit;
+        }
+        else
+        {
+            // Set the NewTrackBit, so that the main thread will redo tracking
+            attributes |= NewTrackBit;
+            noOOMDuringMark = false;
+        }
+        fn(attributes);
+    }
+
+    // We only expect 'leaf' objects in here (though they are potentially precisely traced)
+    Assert((attributes & LeafBit) == LeafBit);
+
+#ifdef RECYCLER_STATS
+    RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
+    RECYCLER_STATS_INTERLOCKED_ADD(markContext->GetRecycler(), markData.markBytes, objectSize);
+
+    // Count track or finalize if we don't have to process it in thread because of OOM.
+    if ((attributes & (TrackBit | NewTrackBit)) != (TrackBit | NewTrackBit))
+    {
+        // Only count those we have queued, so we don't double count
+        if (attributes & TrackBit)
+        {
+            RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), trackCount);
+        }
+        if (attributes & FinalizeBit)
+        {
+            // we counted the finalizable object here,
+            // turn off the new bit so we don't count it again
+            // on Rescan
+            attributes &= ~NewFinalizeBit;
+            fn(attributes);
+            RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), finalizeCount);
+        }
+    }
+#endif
+
+    return noOOMDuringMark;
+}
+
+
+template <class TBlockAttributes>
 bool
 SmallFinalizableHeapBlockT<TBlockAttributes>::TryGetAttributes(void* objectAddress, unsigned char * pAttr)
 {
@@ -532,7 +607,11 @@ namespace Memory
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
     template class SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>;
+    template void SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);
+    template void SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);
     template class SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>;
+    template void SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
+    template void SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
 
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;

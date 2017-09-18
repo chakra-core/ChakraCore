@@ -1725,6 +1725,7 @@ private:
     template <class TBlockAttributes> friend class SmallNormalHeapBlockT;
     template <class TBlockAttributes> friend class SmallLeafHeapBlockT;
     template <class TBlockAttributes> friend class SmallFinalizableHeapBlockT;
+    template <class TBlockAttributes> friend class SmallRecyclerVisitedHostHeapBlockT;
     friend class LargeHeapBlock;
     friend class HeapInfo;
     friend class LargeHeapBucket;
