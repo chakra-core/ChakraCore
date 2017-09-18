@@ -503,8 +503,6 @@ namespace Js
         hasCachedScopePropIds(false),
         m_argUsedForBranch(0),
         m_envDepth((uint16)-1),
-        interpretedCount(0),
-        lastInterpretedCount(0),
         loopInterpreterLimit(CONFIG_FLAG(LoopInterpretCount)),
         savedPolymorphicCacheState(0),
         debuggerScopeIndex(0),
@@ -550,15 +548,6 @@ namespace Js
         m_constTable(nullptr),
         inlineCaches(nullptr),
         cacheIdToPropertyIdMap(nullptr),
-        interpreterLimit(0),
-        autoProfilingInterpreter0Limit(0),
-        profilingInterpreter0Limit(0),
-        autoProfilingInterpreter1Limit(0),
-        simpleJitLimit(0),
-        profilingInterpreter1Limit(0),
-        fullJitThreshold(0),
-        fullJitRequeueThreshold(0),
-        committedProfiledIterations(0),
         wasCalledFromLoop(false),
         hasScopeObject(false),
         hasNestedLoop(false),
@@ -644,8 +633,6 @@ namespace Js
         hasCachedScopePropIds(false),
         m_argUsedForBranch(0),
         m_envDepth((uint16)-1),
-        interpretedCount(0),
-        lastInterpretedCount(0),
         loopInterpreterLimit(CONFIG_FLAG(LoopInterpretCount)),
         savedPolymorphicCacheState(0),
         debuggerScopeIndex(0),
@@ -691,15 +678,6 @@ namespace Js
         m_constTable(nullptr),
         inlineCaches(nullptr),
         cacheIdToPropertyIdMap(nullptr),
-        interpreterLimit(0),
-        autoProfilingInterpreter0Limit(0),
-        profilingInterpreter0Limit(0),
-        autoProfilingInterpreter1Limit(0),
-        simpleJitLimit(0),
-        profilingInterpreter1Limit(0),
-        fullJitThreshold(0),
-        fullJitRequeueThreshold(0),
-        committedProfiledIterations(0),
         wasCalledFromLoop(false),
         hasScopeObject(false),
         hasNestedLoop(false),
@@ -772,12 +750,12 @@ namespace Js
 
     bool FunctionBody::InterpretedSinceCallCountCollection() const
     {
-        return this->interpretedCount != this->lastInterpretedCount;
+        return executionState.InterpretedSinceCallCountCollection();
     }
 
     void FunctionBody::CollectInterpretedCounts()
     {
-        this->lastInterpretedCount = this->interpretedCount;
+        executionState.CollectInterpretedCounts();
     }
 
     void FunctionBody::IncrInactiveCount(uint increment)
@@ -4988,7 +4966,7 @@ namespace Js
         this->SetPolymorphicCallSiteInfoHead(nullptr);
 #endif
 
-        this->SetInterpretedCount(0);
+        this->executionState.SetInterpretedCount(0);
 
         this->m_hasDoneAllNonLocalReferenced = false;
 
@@ -6625,6 +6603,17 @@ namespace Js
         this->SetAuxPtr(AuxPointerType::SimpleJitEntryPointInfo, entryPointInfo);
     }
 
+
+    uint32 FunctionBody::GetInterpretedCount() const
+    {
+        return executionState.GetInterpretedCount();
+    }
+
+    uint32 FunctionBody::IncreaseInterpretedCount()
+    { 
+        return executionState.IncreaseInterpretedCount();
+    }
+
     ExecutionMode FunctionBody::GetDefaultInterpreterExecutionMode() const
     {
         return executionState.GetDefaultInterpreterExecutionMode();
@@ -6692,19 +6681,10 @@ namespace Js
 
     void FunctionBody::ResetSimpleJitLimitAndCallCount()
     {
-        Assert(initializedExecutionModeAndLimits);
-        Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
         Assert(GetDefaultFunctionEntryPointInfo() == GetSimpleJitEntryPointInfo());
 
-        const uint16 simpleJitNewLimit = static_cast<uint8>(Configuration::Global.flags.SimpleJitLimit);
-        Assert(simpleJitNewLimit == Configuration::Global.flags.SimpleJitLimit);
-        if(simpleJitLimit < simpleJitNewLimit)
-        {
-            fullJitThreshold += simpleJitNewLimit - simpleJitLimit;
-            simpleJitLimit = simpleJitNewLimit;
-        }
+        executionState.ResetSimpleJitLimit();
 
-        SetInterpretedCount(0);
         ResetSimpleJitCallCount();
     }
 
@@ -6721,6 +6701,7 @@ namespace Js
     void FunctionBody::ResetSimpleJitCallCount()
     {
         uint32 interpretedCount = GetInterpretedCount();
+        uint16 simpleJitLimit = static_cast<uint16>(executionState.GetSimpleJitLimit());
         SetSimpleJitCallCount(
             simpleJitLimit > interpretedCount
                 ? simpleJitLimit - static_cast<uint16>(interpretedCount)
@@ -6744,7 +6725,7 @@ namespace Js
         }
 
         // Re-queue the full JIT work item after this many iterations
-        fullJitRequeueThreshold = static_cast<uint16>(DEFAULT_CONFIG_FullJitRequeueThreshold);
+        executionState.SetFullJitRequeueThreshold(static_cast<uint16>(DEFAULT_CONFIG_FullJitRequeueThreshold));
     }
 
     void FunctionBody::TraceExecutionMode(const char *const eventDescription) const
@@ -6786,18 +6767,13 @@ namespace Js
             _u("ExecutionMode - ")
                 _u("function: %s (%s), ")
                 _u("mode: %S, ")
-                _u("size: %u, ")
-                _u("limits: %hu.%hu.%hu.%hu.%hu = %hu"),
+                _u("size: %u, "),
             GetDisplayName(),
                 GetDebugNumberSet(functionIdString),
             ExecutionModeName(executionState.GetExecutionMode()),
-            GetByteCodeCount(),
-            interpreterLimit + autoProfilingInterpreter0Limit,
-                profilingInterpreter0Limit,
-                autoProfilingInterpreter1Limit,
-                simpleJitLimit,
-                profilingInterpreter1Limit,
-                fullJitThreshold);
+            GetByteCodeCount());
+
+        executionState.PrintLimits();
 
         if(eventDescription)
         {
@@ -6901,6 +6877,7 @@ namespace Js
             // threshold to realize the full JIT perf benefit sooner.
             executionState.CommitExecutedIterations();
             TraceExecutionMode("WasCalledFromLoop (before)");
+            uint16 fullJitThreshold = executionState.GetFullJitThreshold();
             if(fullJitThreshold > 1)
             {
                 executionState.SetFullJitThreshold(fullJitThreshold / 2, !CONFIG_FLAG(NewSimpleJit));
@@ -7460,7 +7437,7 @@ namespace Js
 
         executionState.CommitExecutedIterations();
         TraceExecutionMode("HasHotLoop (before)");
-        if(fullJitThreshold > 1)
+        if(executionState.GetFullJitThreshold() > 1)
         {
             executionState.SetFullJitThreshold(1, true);
         }

@@ -8,7 +8,18 @@
 namespace Js
 {
     FunctionExecutionStateMachine::FunctionExecutionStateMachine() :
-        executionMode(ExecutionMode::Interpreter)
+        executionMode(ExecutionMode::Interpreter),
+        interpreterLimit(0),
+        autoProfilingInterpreter0Limit(0),
+        profilingInterpreter0Limit(0),
+        autoProfilingInterpreter1Limit(0),
+        simpleJitLimit(0),
+        profilingInterpreter1Limit(0),
+        interpretedCount(0),
+        fullJitThreshold(0),
+        fullJitRequeueThreshold(0),
+        committedProfiledIterations(0),
+        lastInterpretedCount(0)
     {
     }
 
@@ -135,6 +146,16 @@ namespace Js
         InitializeExecutionModeAndLimits();
     }
 
+    bool FunctionExecutionStateMachine::InterpretedSinceCallCountCollection() const
+    {
+        return this->interpretedCount != this->lastInterpretedCount;
+    }
+
+    void FunctionExecutionStateMachine::CollectInterpretedCounts()
+    {
+        this->lastInterpretedCount = this->interpretedCount;
+    }
+
     ExecutionMode FunctionExecutionStateMachine::GetExecutionMode() const
     {
         VerifyExecutionMode(executionMode);
@@ -232,6 +253,11 @@ namespace Js
         // Simple JIT counts down and transitions on overflow
         const uint8 limit = static_cast<uint8>(min(0xffui16, simpleJitLimit));
         owner->GetSimpleJitEntryPointInfo()->callsCount = limit == 0 ? 0 : limit - 1;
+    }
+
+    void FunctionExecutionStateMachine::SetFullJitRequeueThreshold(const uint16 newFullJitRequeueThreshold)
+    {
+        fullJitRequeueThreshold = newFullJitRequeueThreshold;
     }
 
     void FunctionExecutionStateMachine::SetFullJitThreshold(const uint16 newFullJitThreshold, const bool skipSimpleJit)
@@ -571,6 +597,23 @@ namespace Js
         TryTransitionToNextInterpreterExecutionMode();
     }
 
+    void FunctionExecutionStateMachine::ResetSimpleJitLimit()
+    {
+        Assert(initializedExecutionModeAndLimits);
+        Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
+
+        const uint16 simpleJitNewLimit = static_cast<uint8>(Configuration::Global.flags.SimpleJitLimit);
+        // Why do we need this assert?
+        Assert(simpleJitNewLimit == Configuration::Global.flags.SimpleJitLimit);
+        if (simpleJitLimit < simpleJitNewLimit)
+        {
+            fullJitThreshold += simpleJitNewLimit - simpleJitLimit;
+            simpleJitLimit = simpleJitNewLimit;
+        }
+
+        SetInterpretedCount(0);
+    }
+
     uint16 FunctionExecutionStateMachine::GetProfiledIterations() const
     {
         Assert(initializedExecutionModeAndLimits);
@@ -715,5 +758,17 @@ namespace Js
             __assume(false);
         }
 #endif
+    }
+
+    void FunctionExecutionStateMachine::PrintLimits() const
+    {
+        Output::Print(
+            _u("limits: %hu.%hu.%hu.%hu.%hu = %hu"),
+            interpreterLimit + autoProfilingInterpreter0Limit,
+            profilingInterpreter0Limit,
+            autoProfilingInterpreter1Limit,
+            simpleJitLimit,
+            profilingInterpreter1Limit,
+            fullJitThreshold);
     }
 }

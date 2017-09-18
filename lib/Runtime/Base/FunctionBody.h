@@ -2367,32 +2367,9 @@ namespace Js
 
         FieldWithBarrier(FunctionExecutionStateMachine) executionState;
 
-        // Each of the following limits below is decremented when transitioning from its related mode:
-        // Number of times to run interpreter (no profiling) before advancing to next mode
-        FieldWithBarrier(uint16) interpreterLimit;
-        // Number of times to run interpreter (min profiling) before advancing to next mode
-        FieldWithBarrier(uint16) autoProfilingInterpreter0Limit;
-        // Number of times to run interpreter (full profiling) before advancing to next mode
-        FieldWithBarrier(uint16) profilingInterpreter0Limit;
-        // Number of times to run interpreter (min profiling) after already running min and full profiling
-        FieldWithBarrier(uint16) autoProfilingInterpreter1Limit;
-        // Number of times to run simple JIT before advancing to next mode
-        FieldWithBarrier(uint16) simpleJitLimit;
-        // Number of times to run interpreter (full profiling) before advancing to next mode
-        FieldWithBarrier(uint16) profilingInterpreter1Limit;
-
-        // Total limit to run in non-full JIT execution mode. Typically the sum of the other limits
-        FieldWithBarrier(uint16) fullJitThreshold;
-        // Number of attempts to schedule FullJIT until it becomes forced
-        FieldWithBarrier(uint16) fullJitRequeueThreshold;
-        // Total number of times this function has run under the interpreter with full profiling
-        FieldWithBarrier(uint16) committedProfiledIterations;
         // Indicates how many times the function has been entered (so increases by one on each recursive call, decreases by one when we're done)
         FieldWithBarrier(uint) m_depth;
-        // Number of times this function has run under the interpreter in the current execution mode
-        FieldWithBarrier(uint32) interpretedCount;
-        // Used to detect when interpretedCount changed from a particular call
-        FieldWithBarrier(uint32) lastInterpretedCount;
+
         FieldWithBarrier(uint32) loopInterpreterLimit;
         FieldWithBarrier(uint32) debuggerScopeIndex;
         FieldWithBarrier(uint32) savedPolymorphicCacheState;
@@ -2549,9 +2526,8 @@ namespace Js
         bool HasCachedScopePropIds() const { return hasCachedScopePropIds; }
         void SetHasCachedScopePropIds(bool has) { hasCachedScopePropIds = has; }
 
-        uint32 GetInterpretedCount() const { return interpretedCount; }
-        uint32 SetInterpretedCount(uint32 val) { return interpretedCount = val; }
-        uint32 IncreaseInterpretedCount() { return interpretedCount++; }
+        uint32 GetInterpretedCount() const;
+        uint32 IncreaseInterpretedCount();
 
         uint32 GetLoopInterpreterLimit() const { return loopInterpreterLimit; }
         uint32 SetLoopInterpreterLimit(uint32 val) { return loopInterpreterLimit = val; }

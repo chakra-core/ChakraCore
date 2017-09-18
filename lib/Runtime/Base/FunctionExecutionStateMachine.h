@@ -24,12 +24,17 @@ namespace Js
         uint32 GetInterpretedCount() const { return interpretedCount; }
         uint32 SetInterpretedCount(uint32 val) { return interpretedCount = val; }
         uint32 IncreaseInterpretedCount() { return interpretedCount++; }
+        bool InterpretedSinceCallCountCollection() const;
+        void CollectInterpretedCounts();
         void CommitExecutedIterations();
 
         void SetIsSpeculativeJitCandidate();
         uint16 GetSimpleJitLimit() const { return simpleJitLimit; }
+        void ResetSimpleJitLimit();
         uint16 GetSimpleJitExecutedIterations() const;
         void SetFullJitThreshold(const uint16 newFullJitThreshold, const bool skipSimpleJit = false);
+        uint16 GetFullJitThreshold() const { return fullJitThreshold; }
+        void SetFullJitRequeueThreshold(const uint16 newFullJitRequeueThreshold);
         void SetSimpleJitCallCount(const uint16 simpleJitLimit) const;
 
         // Transition functions
@@ -38,6 +43,8 @@ namespace Js
         bool TryTransitionToJitExecutionMode();
         void TransitionToSimpleJitExecutionMode();
         void TransitionToFullJitExecutionMode();
+
+        void PrintLimits() const;
 
 
     private:
@@ -74,6 +81,8 @@ namespace Js
         FieldWithBarrier(uint16) committedProfiledIterations;
         // Number of times this function has run under the interpreter in the current execution mode
         FieldWithBarrier(uint32) interpretedCount;
+        // Used to detect when interpretedCount changed from a particular call
+        FieldWithBarrier(uint32) lastInterpretedCount;
 
 #if DBG
         FieldWithBarrier(bool) initializedExecutionModeAndLimits : 1;
