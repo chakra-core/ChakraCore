@@ -19,12 +19,15 @@ namespace Js
         ExecutionMode GetDefaultInterpreterExecutionMode() const;
         ExecutionMode GetInterpreterExecutionMode(const bool isPostBailout);
         bool IsInterpreterExecutionMode() const;
+        uint16 GetProfiledIterations() const;
 
         uint32 GetInterpretedCount() const { return interpretedCount; }
         uint32 SetInterpretedCount(uint32 val) { return interpretedCount = val; }
         uint32 IncreaseInterpretedCount() { return interpretedCount++; }
         void CommitExecutedIterations();
 
+        void SetIsSpeculativeJitCandidate();
+        uint16 GetSimpleJitLimit() const { return simpleJitLimit; }
         uint16 GetSimpleJitExecutedIterations() const;
         void SetFullJitThreshold(const uint16 newFullJitThreshold, const bool skipSimpleJit = false);
         void SetSimpleJitCallCount(const uint16 simpleJitLimit) const;

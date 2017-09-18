@@ -6625,104 +6625,23 @@ namespace Js
         this->SetAuxPtr(AuxPointerType::SimpleJitEntryPointInfo, entryPointInfo);
     }
 
-    void FunctionBody::VerifyExecutionMode(const ExecutionMode executionMode) const
-    {
-#if DBG
-        Assert(initializedExecutionModeAndLimits);
-        Assert(executionMode < ExecutionMode::Count);
-
-        switch(executionMode)
-        {
-            case ExecutionMode::Interpreter:
-                Assert(!DoInterpreterProfile());
-                break;
-
-            case ExecutionMode::AutoProfilingInterpreter:
-                Assert(DoInterpreterProfile());
-                Assert(DoInterpreterAutoProfile());
-                break;
-
-            case ExecutionMode::ProfilingInterpreter:
-                Assert(DoInterpreterProfile());
-                break;
-
-            case ExecutionMode::SimpleJit:
-                Assert(DoSimpleJit());
-                break;
-
-            case ExecutionMode::FullJit:
-                Assert(!PHASE_OFF(FullJitPhase, this));
-                break;
-
-            default:
-                Assert(false);
-                __assume(false);
-        }
-#endif
-    }
-
     ExecutionMode FunctionBody::GetDefaultInterpreterExecutionMode() const
     {
-        if(!DoInterpreterProfile())
-        {
-            VerifyExecutionMode(ExecutionMode::Interpreter);
-            return ExecutionMode::Interpreter;
-        }
-        if(DoInterpreterAutoProfile())
-        {
-            VerifyExecutionMode(ExecutionMode::AutoProfilingInterpreter);
-            return ExecutionMode::AutoProfilingInterpreter;
-        }
-        VerifyExecutionMode(ExecutionMode::ProfilingInterpreter);
-        return ExecutionMode::ProfilingInterpreter;
+        return executionState.GetDefaultInterpreterExecutionMode();
     }
 
     ExecutionMode FunctionBody::GetExecutionMode() const
     {
-        VerifyExecutionMode(executionState.GetExecutionMode());
         return executionState.GetExecutionMode();
     }
 
     ExecutionMode FunctionBody::GetInterpreterExecutionMode(const bool isPostBailout)
     {
-        Assert(initializedExecutionModeAndLimits);
-
-        if(isPostBailout && DoInterpreterProfile())
-        {
-            return ExecutionMode::ProfilingInterpreter;
-        }
-
-        switch(GetExecutionMode())
-        {
-            case ExecutionMode::Interpreter:
-            case ExecutionMode::AutoProfilingInterpreter:
-            case ExecutionMode::ProfilingInterpreter:
-                return GetExecutionMode();
-
-            case ExecutionMode::SimpleJit:
-                if(CONFIG_FLAG(NewSimpleJit))
-                {
-                    return GetDefaultInterpreterExecutionMode();
-                }
-                // fall through
-
-            case ExecutionMode::FullJit:
-            {
-                const ExecutionMode executionMode =
-                    DoInterpreterProfile() ? ExecutionMode::ProfilingInterpreter : ExecutionMode::Interpreter;
-                VerifyExecutionMode(executionMode);
-                return executionMode;
-            }
-
-            default:
-                Assert(false);
-                __assume(false);
-        }
+        return executionState.GetInterpreterExecutionMode(isPostBailout);
     }
 
     void FunctionBody::SetExecutionMode(const ExecutionMode executionMode)
     {
-        VerifyExecutionMode(executionMode);
         executionState.SetExecutionMode(executionMode);
     }
 
@@ -6746,29 +6665,7 @@ namespace Js
 
     void FunctionBody::SetIsSpeculativeJitCandidate()
     {
-        // This function is a candidate for speculative JIT. Ensure that it is profiled immediately by transitioning out of the
-        // auto-profiling interpreter mode.
-        if(GetExecutionMode() != ExecutionMode::AutoProfilingInterpreter || GetProfiledIterations() != 0)
-        {
-            return;
-        }
-
-        TraceExecutionMode("IsSpeculativeJitCandidate (before)");
-
-        if(autoProfilingInterpreter0Limit != 0)
-        {
-            (profilingInterpreter0Limit == 0 ? profilingInterpreter0Limit : autoProfilingInterpreter1Limit) +=
-                autoProfilingInterpreter0Limit;
-            autoProfilingInterpreter0Limit = 0;
-        }
-        else if(profilingInterpreter0Limit == 0)
-        {
-            profilingInterpreter0Limit += autoProfilingInterpreter1Limit;
-            autoProfilingInterpreter1Limit = 0;
-        }
-
-        TraceExecutionMode("IsSpeculativeJitCandidate");
-        TryTransitionToNextInterpreterExecutionMode();
+        executionState.SetIsSpeculativeJitCandidate();
     }
 
     bool FunctionBody::TryTransitionToJitExecutionMode()
@@ -6791,25 +6688,6 @@ namespace Js
         // Do not remove wasCalledFromLoop 
         wasCalledFromLoop = false;
         executionState.ReinitializeExecutionModeAndLimits();
-    }
-
-    uint16 FunctionBody::GetSimpleJitExecutedIterations() const
-    {
-        Assert(initializedExecutionModeAndLimits);
-        Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
-
-        FunctionEntryPointInfo *const simpleJitEntryPointInfo = GetSimpleJitEntryPointInfo();
-        if(!simpleJitEntryPointInfo)
-        {
-            return 0;
-        }
-
-        // Simple JIT counts down and transitions on overflow
-        const uint32 callCount = simpleJitEntryPointInfo->callsCount;
-        Assert(simpleJitLimit == 0 ? callCount == 0 : simpleJitLimit > callCount);
-        return callCount == 0 ?
-            static_cast<uint16>(simpleJitLimit) :
-            static_cast<uint16>(simpleJitLimit) - static_cast<uint16>(callCount) - 1;
     }
 
     void FunctionBody::ResetSimpleJitLimitAndCallCount()
@@ -6851,32 +6729,7 @@ namespace Js
 
     uint16 FunctionBody::GetProfiledIterations() const
     {
-        Assert(initializedExecutionModeAndLimits);
-
-        uint16 profiledIterations = committedProfiledIterations;
-        switch(GetExecutionMode())
-        {
-            case ExecutionMode::ProfilingInterpreter:
-            {
-                uint32 interpretedCount = GetInterpretedCount();
-                const uint16 clampedInterpretedCount =
-                    interpretedCount <= UINT16_MAX
-                        ? static_cast<uint16>(interpretedCount)
-                        : UINT16_MAX;
-                const uint16 newProfiledIterations = profiledIterations + clampedInterpretedCount;
-                profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : UINT16_MAX;
-                break;
-            }
-
-            case ExecutionMode::SimpleJit:
-                if(!CONFIG_FLAG(NewSimpleJit))
-                {
-                    const uint16 newProfiledIterations = profiledIterations + GetSimpleJitExecutedIterations();
-                    profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : UINT16_MAX;
-                }
-                break;
-        }
-        return profiledIterations;
+        return executionState.GetProfiledIterations();
     }
 
     void FunctionBody::OnFullJitDequeued(const FunctionEntryPointInfo *const entryPointInfo)

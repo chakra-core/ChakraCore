@@ -137,11 +137,13 @@ namespace Js
 
     ExecutionMode FunctionExecutionStateMachine::GetExecutionMode() const
     {
+        VerifyExecutionMode(executionMode);
         return executionMode;
     }
 
     void FunctionExecutionStateMachine::SetExecutionMode(ExecutionMode mode)
     {
+        VerifyExecutionMode(mode);
         executionMode = mode;
     }
 
@@ -539,6 +541,64 @@ namespace Js
 
         VerifyExecutionModeLimits();
         SetExecutionMode(ExecutionMode::FullJit);
+    }
+
+    void FunctionExecutionStateMachine::SetIsSpeculativeJitCandidate()
+    {
+        // This function is a candidate for speculative JIT. Ensure that it is profiled immediately by transitioning out of the
+        // auto-profiling interpreter mode.
+        if (GetExecutionMode() != ExecutionMode::AutoProfilingInterpreter || GetProfiledIterations() != 0)
+        {
+            return;
+        }
+
+        owner->TraceExecutionMode("IsSpeculativeJitCandidate (before)");
+
+        if (autoProfilingInterpreter0Limit != 0)
+        {
+            (profilingInterpreter0Limit == 0 ? profilingInterpreter0Limit : autoProfilingInterpreter1Limit) +=
+                autoProfilingInterpreter0Limit;
+            autoProfilingInterpreter0Limit = 0;
+        }
+        else if (profilingInterpreter0Limit == 0)
+        {
+            profilingInterpreter0Limit += autoProfilingInterpreter1Limit;
+            autoProfilingInterpreter1Limit = 0;
+        }
+
+        owner->TraceExecutionMode("IsSpeculativeJitCandidate");
+
+        TryTransitionToNextInterpreterExecutionMode();
+    }
+
+    uint16 FunctionExecutionStateMachine::GetProfiledIterations() const
+    {
+        Assert(initializedExecutionModeAndLimits);
+
+        uint16 profiledIterations = committedProfiledIterations;
+        switch (GetExecutionMode())
+        {
+        case ExecutionMode::ProfilingInterpreter:
+        {
+            uint32 interpretedCount = GetInterpretedCount();
+            const uint16 clampedInterpretedCount =
+                interpretedCount <= UINT16_MAX
+                ? static_cast<uint16>(interpretedCount)
+                : UINT16_MAX;
+            const uint16 newProfiledIterations = profiledIterations + clampedInterpretedCount;
+            profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : UINT16_MAX;
+            break;
+        }
+
+        case ExecutionMode::SimpleJit:
+            if (!CONFIG_FLAG(NewSimpleJit))
+            {
+                const uint16 newProfiledIterations = profiledIterations + GetSimpleJitExecutedIterations();
+                profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : UINT16_MAX;
+            }
+            break;
+        }
+        return profiledIterations;
     }
 
     void FunctionExecutionStateMachine::CommitExecutedIterations()

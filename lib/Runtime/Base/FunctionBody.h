@@ -2627,9 +2627,6 @@ namespace Js
         FunctionEntryPointInfo *GetSimpleJitEntryPointInfo() const;
         void SetSimpleJitEntryPointInfo(FunctionEntryPointInfo *const entryPointInfo);
 
-    private:
-        void VerifyExecutionMode(const ExecutionMode executionMode) const;
-    public:
         ExecutionMode GetDefaultInterpreterExecutionMode() const;
         ExecutionMode GetExecutionMode() const;
         ExecutionMode GetInterpreterExecutionMode(const bool isPostBailout);
