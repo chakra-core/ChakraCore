@@ -8074,7 +8074,7 @@ LPCOLESTR Parser::ConstructNameHint(ParseNodePtr pNode, uint32* fullNameHintLeng
     {
         leftNode = ConstructNameHint(pNode->sxBin.pnode1, fullNameHintLength, pShortNameOffset);
     }
-    else if (pNode->sxBin.pnode1->nop == knopName)
+    else if (pNode->sxBin.pnode1->nop == knopName && !pNode->sxBin.pnode1->isSpecialName)
     {
         leftNode = pNode->sxBin.pnode1->sxPid.pid->Psz();
         *fullNameHintLength = pNode->sxBin.pnode1->sxPid.pid->Cch();

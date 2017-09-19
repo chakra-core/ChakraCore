@@ -357,6 +357,19 @@ namespace Js
             varThis = scriptContext->GetLibrary()->GetNull();
         }
 
+        // If there was no 'this' binding found by the LocalsWalker, let's add the 'this' value we
+        // collected from the frame to the scope. Eval loads 'this' by walking the scope chain so
+        // it has to have some value in the chain or we'll be stuck with the global 'this' binding value.
+        if (!activeScopeObject->HasProperty(Js::PropertyIds::_this))
+        {
+            activeScopeObject->SetPropertyWithAttributes(
+                Js::PropertyIds::_this,
+                JavascriptOperators::BoxStackInstance(varThis, scriptContext), //The value escapes, box if necessary.
+                PropertyConstDefaults,
+                nullptr);
+            countForVerification++;
+        }
+
         Js::Arguments args(1, (Js::Var*) &varThis);
         varResult = pfuncScript->CallFunction(args);
 
