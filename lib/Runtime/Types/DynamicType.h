@@ -61,6 +61,7 @@ namespace Js
         bool PrepareForTypeSnapshotEnumeration();
 
         static bool Is(TypeId typeId);
+        static bool Is(const Type *type) { return DynamicType::Is(type->GetTypeId()); }
         static DynamicType * New(ScriptContext* scriptContext, TypeId typeId, RecyclableObject* prototype, JavascriptMethod entryPoint, DynamicTypeHandler * typeHandler, bool isLocked = false, bool isShared = false);
 
         static uint32 GetOffsetOfTypeHandler() { return offsetof(DynamicType, typeHandler); }

@@ -211,7 +211,7 @@ namespace Js
         if (!isSetter)
         {
             AssertMsg(instance == object, "invalid instance for non setter");
-            Assert(DynamicType::Is(typeWithoutProperty->GetTypeId()));
+            Assert(DynamicType::Is(typeWithoutProperty));
 #if ENABLE_FIXED_FIELDS
             Assert(info->IsNoCache() || !info->IsStoreFieldCacheEnabled() || object->CanStorePropertyValueDirectly(propertyId, isRoot));
 #endif

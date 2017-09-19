@@ -189,7 +189,7 @@ namespace Js
         sType->TypeHandlerInfo = optHandler;
 
         sType->HasNoEnumerableProperties = false;
-        if(Js::DynamicType::Is(this->typeId))
+        if(Js::DynamicType::Is(this))
         {
             sType->HasNoEnumerableProperties = static_cast<const Js::DynamicType*>(this)->GetHasNoEnumerableProperties();
         }
