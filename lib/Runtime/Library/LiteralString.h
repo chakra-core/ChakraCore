@@ -12,7 +12,6 @@ namespace Js
         LiteralString(StaticType* type);
         LiteralString(StaticType* type, const char16* content, charcount_t charLength);
         DEFINE_VTABLE_CTOR(LiteralString, JavascriptString);
-        DECLARE_CONCRETE_STRING_CLASS;
 
     public:
         static LiteralString* New(StaticType* type, const char16* content, charcount_t charLength, Recycler* recycler);
@@ -24,7 +23,6 @@ namespace Js
     protected:
         ArenaLiteralString(StaticType* type, const char16* content, charcount_t charLength);
         DEFINE_VTABLE_CTOR(ArenaLiteralString, JavascriptString);
-        DECLARE_CONCRETE_STRING_CLASS;
 
     public:
         static ArenaLiteralString* New(StaticType* type, const char16* content, charcount_t charLength, Recycler* recycler);

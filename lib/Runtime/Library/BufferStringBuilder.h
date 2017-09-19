@@ -54,7 +54,6 @@ namespace Js
 
         protected:
             DEFINE_VTABLE_CTOR(WritableString, JavascriptString);
-            DECLARE_CONCRETE_STRING_CLASS;
 
         private:
             WritableString(StaticType * type, charcount_t length, const char16* szValue)

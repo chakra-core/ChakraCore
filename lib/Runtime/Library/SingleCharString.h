@@ -18,7 +18,6 @@ namespace Js
 
     protected:
         DEFINE_VTABLE_CTOR(SingleCharString, JavascriptString);
-        DECLARE_CONCRETE_STRING_CLASS;
 
     private:
         SingleCharString(char16 ch, StaticType * type);
