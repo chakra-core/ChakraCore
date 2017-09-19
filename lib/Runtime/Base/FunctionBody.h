@@ -2350,10 +2350,6 @@ namespace Js
         FieldWithBarrier(bool) m_canDoStackNestedFunc : 1;
 #endif
 
-#if DBG
-        FieldWithBarrier(bool) initializedExecutionModeAndLimits : 1;
-#endif
-
 #ifdef IR_VIEWER
         // whether IR Dump is enabled for this function (used by parseIR)
         FieldWithBarrier(bool) m_isIRDumpEnabled : 1;

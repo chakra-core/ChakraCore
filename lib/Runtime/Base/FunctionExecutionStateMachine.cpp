@@ -8,6 +8,7 @@
 namespace Js
 {
     FunctionExecutionStateMachine::FunctionExecutionStateMachine() :
+        owner(nullptr),
         executionMode(ExecutionMode::Interpreter),
         interpreterLimit(0),
         autoProfilingInterpreter0Limit(0),
@@ -20,12 +21,18 @@ namespace Js
         fullJitRequeueThreshold(0),
         committedProfiledIterations(0),
         lastInterpretedCount(0)
+#if DBG
+        ,initializedExecutionModeAndLimits(false)
+#endif
     {
     }
 
-    void FunctionExecutionStateMachine::InitializeExecutionModeAndLimits()
+    void FunctionExecutionStateMachine::InitializeExecutionModeAndLimits(FunctionBody* functionBody)
     {
         DebugOnly(initializedExecutionModeAndLimits = true);
+        // Assert we're either uninitialized, or being reinitialized on the same FunctionBody
+        Assert(owner == nullptr || owner == functionBody);
+        owner = functionBody;
 
         const ConfigFlagsTable &configFlags = Configuration::Global.flags;
 
@@ -139,11 +146,11 @@ namespace Js
         TryTransitionToNextInterpreterExecutionMode();
     }
 
-    void FunctionExecutionStateMachine::ReinitializeExecutionModeAndLimits()
+    void FunctionExecutionStateMachine::ReinitializeExecutionModeAndLimits(FunctionBody* functionBody)
     {
         fullJitRequeueThreshold = 0;
         committedProfiledIterations = 0;
-        InitializeExecutionModeAndLimits();
+        InitializeExecutionModeAndLimits(functionBody);
     }
 
     bool FunctionExecutionStateMachine::InterpretedSinceCallCountCollection() const
@@ -770,5 +777,13 @@ namespace Js
             simpleJitLimit,
             profilingInterpreter1Limit,
             fullJitThreshold);
+    }
+
+    void FunctionExecutionStateMachine::AssertIsInitialized() const
+    {
+#if DBG
+        Assert(initializedExecutionModeAndLimits);
+        Assert(owner != nullptr);
+#endif
     }
 }

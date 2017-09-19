@@ -577,7 +577,6 @@ namespace Js
         , m_canDoStackNestedFunc(false)
         , m_inlineCacheTypes(nullptr)
         , m_iProfileSession(-1)
-        , initializedExecutionModeAndLimits(false)
 #endif
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         , regAllocLoadCount(0)
@@ -707,7 +706,6 @@ namespace Js
         , m_canDoStackNestedFunc(false)
         , m_inlineCacheTypes(nullptr)
         , m_iProfileSession(-1)
-        , initializedExecutionModeAndLimits(false)
 #endif
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         , regAllocLoadCount(0)
@@ -3822,7 +3820,7 @@ namespace Js
         SetByteCodeInLoopCount(byteCodeInLoopCount);
         SetByteCodeWithoutLDACount(byteCodeWithoutLDACount);
 
-        executionState.InitializeExecutionModeAndLimits();
+        executionState.InitializeExecutionModeAndLimits(this);
 
         this->SetAuxiliaryData(auxBlock);
         this->SetAuxiliaryContextData(auxContextBlock);
@@ -6669,14 +6667,14 @@ namespace Js
 
     void FunctionBody::TransitionToFullJitExecutionMode()
     {
-        executionState.TransitionToSimpleJitExecutionMode();
+        executionState.TransitionToFullJitExecutionMode();
     }
 
     void FunctionBody::ReinitializeExecutionModeAndLimits()
     {
         // Do not remove wasCalledFromLoop 
         wasCalledFromLoop = false;
-        executionState.ReinitializeExecutionModeAndLimits();
+        executionState.ReinitializeExecutionModeAndLimits(this);
     }
 
     void FunctionBody::ResetSimpleJitLimitAndCallCount()
@@ -6715,7 +6713,7 @@ namespace Js
 
     void FunctionBody::OnFullJitDequeued(const FunctionEntryPointInfo *const entryPointInfo)
     {
-        Assert(initializedExecutionModeAndLimits);
+        executionState.AssertIsInitialized();
         Assert(GetExecutionMode() == ExecutionMode::FullJit);
         Assert(entryPointInfo);
 
@@ -6730,7 +6728,7 @@ namespace Js
 
     void FunctionBody::TraceExecutionMode(const char *const eventDescription) const
     {
-        Assert(initializedExecutionModeAndLimits);
+        executionState.AssertIsInitialized();
 
         if(PHASE_TRACE(Phase::ExecutionModePhase, this))
         {
@@ -6740,7 +6738,7 @@ namespace Js
 
     void FunctionBody::TraceInterpreterExecutionMode() const
     {
-        Assert(initializedExecutionModeAndLimits);
+        executionState.AssertIsInitialized();
 
         if(!PHASE_TRACE(Phase::ExecutionModePhase, this))
         {
@@ -6760,7 +6758,7 @@ namespace Js
     void FunctionBody::DoTraceExecutionMode(const char *const eventDescription) const
     {
         Assert(PHASE_TRACE(Phase::ExecutionModePhase, this));
-        Assert(initializedExecutionModeAndLimits);
+        executionState.AssertIsInitialized();
 
         char16 functionIdString[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(

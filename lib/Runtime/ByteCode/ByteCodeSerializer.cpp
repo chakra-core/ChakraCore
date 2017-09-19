@@ -3933,7 +3933,7 @@ public:
             // Read source information
             current = ReadSmallSpanSequence(current, &(*functionBody)->m_sourceInfo.pSpanSequence);
 
-            (*functionBody)->executionState.InitializeExecutionModeAndLimits();
+            (*functionBody)->executionState.InitializeExecutionModeAndLimits(*functionBody);
         }
 
         // Read lexically nested functions

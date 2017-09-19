@@ -10,8 +10,8 @@ namespace Js
     {
     public:
         FunctionExecutionStateMachine();
-        void InitializeExecutionModeAndLimits();
-        void ReinitializeExecutionModeAndLimits();
+        void InitializeExecutionModeAndLimits(FunctionBody* functionBody);
+        void ReinitializeExecutionModeAndLimits(FunctionBody* functionBody);
 
         // Public Getters and Setters
         ExecutionMode GetExecutionMode() const;
@@ -45,6 +45,7 @@ namespace Js
         void TransitionToFullJitExecutionMode();
 
         void PrintLimits() const;
+        void AssertIsInitialized() const;
 
 
     private:
