@@ -367,7 +367,9 @@ namespace Js
                 JavascriptOperators::BoxStackInstance(varThis, scriptContext), //The value escapes, box if necessary.
                 PropertyConstDefaults,
                 nullptr);
+#if DBG
             countForVerification++;
+#endif
         }
 
         Js::Arguments args(1, (Js::Var*) &varThis);

@@ -3068,9 +3068,12 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             isAsyncExpr = true;
         }
 
-        bool previousAwaitIsKeyword = m_pscan->SetAwaitIsKeywordRegion(isAsyncExpr);
-        m_pscan->Scan();
-        m_pscan->SetAwaitIsKeywordRegion(previousAwaitIsKeyword);
+        // Put this into a block to avoid previousAwaitIsKeyword being not initialized after jump to LIdentifier
+        {
+            bool previousAwaitIsKeyword = m_pscan->SetAwaitIsKeywordRegion(isAsyncExpr);
+            m_pscan->Scan();
+            m_pscan->SetAwaitIsKeywordRegion(previousAwaitIsKeyword);
+        }
 
         // We search for an Async expression (a function declaration or an async lambda expression)
         if (isAsyncExpr && !m_pscan->FHadNewLine())
