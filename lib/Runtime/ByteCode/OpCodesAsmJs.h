@@ -117,6 +117,13 @@ MACRO_WMS       ( Return_Db                  , Double2         , None           
 MACRO_WMS       ( Return_Flt                 , Float2          , None            ) // convert float to var
 MACRO_WMS       ( Return_Int                 , Int2            , None            ) // convert int to var
 
+// Wasm Sign Extension operators
+MACRO_WMS       ( I32Extend8_s               , Int2            , None            )
+MACRO_WMS       ( I32Extend16_s              , Int2            , None            )
+MACRO_WMS       ( I64Extend8_s               , Long2           , None            )
+MACRO_WMS       ( I64Extend16_s              , Long2           , None            )
+MACRO_WMS       ( I64Extend32_s              , Long2           , None            )
+
 // Module memory manipulation
 MACRO_WMS       ( LdSlotArr                  , ElementSlot     , None            ) // Loads an array of Var from an array of Var
 MACRO_WMS       ( LdSlot                     , ElementSlot     , None            ) // Loads a Var from an array of Var

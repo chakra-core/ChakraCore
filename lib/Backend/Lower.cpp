@@ -1953,6 +1953,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 {
                     m_lowererMD.EmitUIntToLong(instr->GetDst(), instr->GetSrc1(), instr);
                 }
+                else if (instr->GetSrc1()->IsInt64() && instr->GetSrc2())
+                {
+                    m_lowererMD.EmitSignExtend(instr);
+                }
                 else
                 {
                     Assert(0);
@@ -1964,6 +1968,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 if (instr->GetSrc1()->IsInt64())
                 {
                     m_lowererMD.EmitLongToInt(instr->GetDst(), instr->GetSrc1(), instr);
+                }
+                else if ((instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32()) && instr->GetSrc2())
+                {
+                    m_lowererMD.EmitSignExtend(instr);
                 }
                 else
                 {

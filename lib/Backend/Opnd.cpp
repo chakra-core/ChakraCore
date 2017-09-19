@@ -1093,9 +1093,15 @@ void RegOpnd::Initialize(StackSym *sym, RegNum reg, IRType type)
 ///----------------------------------------------------------------------------
 
 RegOpnd *
-    RegOpnd::New(IRType type, Func *func)
+RegOpnd::New(IRType type, Func *func)
 {
     return RegOpnd::New(StackSym::New(type, func), RegNOREG, type, func);
+}
+
+IR::RegOpnd *
+RegOpnd::New(RegNum reg, IRType type, Func *func)
+{
+    return RegOpnd::New(StackSym::New(type, func), reg, type, func);
 }
 
 RegOpnd *
@@ -1103,14 +1109,6 @@ RegOpnd::New(StackSym *sym, IRType type, Func *func)
 {
     return RegOpnd::New(sym, RegNOREG, type, func);
 }
-
-///----------------------------------------------------------------------------
-///
-/// RegOpnd::New
-///
-///     Creates a new RegOpnd.
-///
-///----------------------------------------------------------------------------
 
 RegOpnd *
 RegOpnd::New(StackSym *sym, RegNum reg, IRType type, Func *func)

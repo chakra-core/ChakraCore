@@ -268,6 +268,13 @@
 </test>
 <test>
   <default>
+    <files>signextend.js</files>
+    <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
+    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>unsigned.js</files>
     <baseline>baselines/unsigned.baseline</baseline>
     <compile-flags>-wasm</compile-flags>

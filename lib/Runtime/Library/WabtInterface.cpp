@@ -101,12 +101,6 @@ Js::Var CreateBuffer(const uint8* buf, uint size, void* user_data)
     return arrayBuffer;
 }
 
-void* Allocate(uint size, void* user_data)
-{
-    Context* ctx = (Context*)user_data;
-    return (void*)AnewArrayZ(ctx->allocator, byte, size);
-};
-
 Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInfo callInfo, ...)
 {
     ScriptContext* scriptContext = function->GetScriptContext();
@@ -152,8 +146,8 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
         ChakraWabt::SpecContext spec;
         ChakraWabt::Context wabtCtx;
         wabtCtx.user_data = &context;
-        wabtCtx.allocator = Allocate;
         wabtCtx.createBuffer = CreateBuffer;
+        wabtCtx.features.sign_extends = CONFIG_FLAG(WasmSignExtends);
         if (isSpecText)
         {
             wabtCtx.spec = &spec;

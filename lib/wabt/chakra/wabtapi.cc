@@ -425,20 +425,19 @@ Js::Var write_commands(Context* ctx, Script* script)
     return resultObj;
 }
 
-void Context::Validate(bool isSpec) const
+void Validate(const Context& ctx, bool isSpec)
 {
-    if (!allocator) throw Error("Missing allocator");
-    if (!createBuffer) throw Error("Missing createBuffer");
+    if (!ctx.createBuffer) throw Error("Missing createBuffer");
     if (isSpec)
     {
-        if (!spec) throw Error("Missing Spec context");
-        if (!spec->setProperty) throw Error("Missing spec->setProperty");
-        if (!spec->int32ToVar) throw Error("Missing spec->int32ToVar");
-        if (!spec->int64ToVar) throw Error("Missing spec->int64ToVar");
-        if (!spec->stringToVar) throw Error("Missing spec->stringToVar");
-        if (!spec->createObject) throw Error("Missing spec->createObject");
-        if (!spec->createArray) throw Error("Missing spec->createArray");
-        if (!spec->push) throw Error("Missing spec->push");
+        if (!ctx.spec) throw Error("Missing Spec context");
+        if (!ctx.spec->setProperty) throw Error("Missing spec->setProperty");
+        if (!ctx.spec->int32ToVar) throw Error("Missing spec->int32ToVar");
+        if (!ctx.spec->int64ToVar) throw Error("Missing spec->int64ToVar");
+        if (!ctx.spec->stringToVar) throw Error("Missing spec->stringToVar");
+        if (!ctx.spec->createObject) throw Error("Missing spec->createObject");
+        if (!ctx.spec->createArray) throw Error("Missing spec->createArray");
+        if (!ctx.spec->push) throw Error("Missing spec->push");
     }
 }
 
@@ -450,18 +449,28 @@ void CheckResult(Result result, const char* errorMessage)
     }
 }
 
+Features GetWabtFeatures(Context& ctx)
+{
+    Features features;
+    if (ctx.features.sign_extends)
+    {
+        features.enable_threads();
+    }
+    return features;
+}
+
 Js::Var ChakraWabt::ConvertWast2Wasm(Context& ctx, char* buffer, uint bufferSize, bool isSpecText)
 {
-    ctx.Validate(isSpecText);
+    Validate(ctx, isSpecText);
 
     std::unique_ptr<WastLexer> lexer = WastLexer::CreateBufferLexer("", buffer, (size_t)bufferSize);
 
     MyErrorHandler s_error_handler;
-
+    WastParseOptions options(GetWabtFeatures(ctx));
     if (isSpecText)
     {
         std::unique_ptr<Script> script;
-        Result result = ParseWastScript(lexer.get(), &script, &s_error_handler);
+        Result result = ParseWastScript(lexer.get(), &script, &s_error_handler, &options);
         CheckResult(result, "Invalid wast script");
 
         result = ResolveNamesScript(lexer.get(), script.get(), &s_error_handler);
@@ -472,7 +481,7 @@ Js::Var ChakraWabt::ConvertWast2Wasm(Context& ctx, char* buffer, uint bufferSize
     else
     {
         std::unique_ptr<Module> module;
-        Result result = ParseWatModule(lexer.get(), &module, &s_error_handler);
+        Result result = ParseWatModule(lexer.get(), &module, &s_error_handler, &options);
         CheckResult(result, "Invalid wat script");
 
         result = ResolveNamesModule(lexer.get(), module.get(), &s_error_handler);

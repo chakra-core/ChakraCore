@@ -1275,6 +1275,7 @@ private:
 
 public:
     static RegOpnd *        New(IRType type, Func *func);
+    static RegOpnd *        New(RegNum reg, IRType type, Func *func);
     static RegOpnd *        New(StackSym *sym, IRType type, Func *func);
     static RegOpnd *        New(StackSym *sym, RegNum reg, IRType type, Func *func);
 

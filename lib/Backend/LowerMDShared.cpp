@@ -1609,6 +1609,17 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
 
             break;
         }
+        case Js::OpCode::MOVSX:
+        case Js::OpCode::MOVSXW:
+            Assert(instr->GetDst()->GetSize() == 4 || instr->GetDst()->GetSize() == 8);
+            Assert(instr->m_opcode != Js::OpCode::MOVSX || instr->GetSrc1()->GetSize() == 1);
+            Assert(instr->m_opcode != Js::OpCode::MOVSXW || instr->GetSrc1()->GetSize() == 2);
+            LegalizeOpnds<verify>(
+                instr,
+                L_Reg,
+                L_Reg | L_Mem,
+                L_None);
+            break;
 
         case Js::OpCode::MOVUPS:
         case Js::OpCode::MOVAPS:
@@ -7618,6 +7629,58 @@ void
 LowererMD::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 {
     this->lowererMDArch.EmitLongToInt(dst, src, instrInsert);
+}
+
+
+void LowererMD::EmitSignExtend(IR::Instr * instr)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+    Assert(dst && src1 && src2);
+
+    // Src2 is used to determine what's the from type size
+    Assert(src2->GetSize() < dst->GetSize());
+    IRType fromType = src2->GetType();
+    Js::OpCode op = Js::OpCode::MOVSX;
+    switch (src2->GetSize())
+    {
+    case 1: break; // default
+    case 2: op = Js::OpCode::MOVSXW; break;
+    case 4:
+#if _M_X64
+        op = Js::OpCode::MOVSXD;
+#else
+        op = LowererMDArch::GetAssignOp(fromType);
+#endif
+        break;
+    default:
+        Assert(UNREACHED);
+    }
+
+#if _M_IX86
+    // Special handling of int64 on x86
+    if (dst->IsInt64())
+    {
+        Int64RegPair dstPair = m_func->FindOrCreateInt64Pair(dst);
+        Int64RegPair srcPair = m_func->FindOrCreateInt64Pair(src1);
+
+        IR::RegOpnd * eaxReg = IR::RegOpnd::New(RegEAX, TyInt32, m_func);
+        IR::RegOpnd * edxReg = IR::RegOpnd::New(RegEDX, TyInt32, m_func);
+
+        instr->InsertBefore(IR::Instr::New(op, eaxReg, srcPair.low->UseWithNewType(fromType, m_func), m_func)); 
+        Legalize(instr->m_prev);
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::CDQ, edxReg, m_func));
+        Legalize(instr->m_prev);
+        m_lowerer->InsertMove(dstPair.low, eaxReg, instr);
+        m_lowerer->InsertMove(dstPair.high, edxReg, instr);
+    }
+    else
+#endif
+    {
+        instr->InsertBefore(IR::Instr::New(op, dst, src1->UseWithNewType(fromType, m_func), m_func));
+        Legalize(instr->m_prev);
+    }
 }
 
 void

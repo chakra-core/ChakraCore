@@ -28,7 +28,8 @@ class Features {
   void AddOptions(OptionParser*);
 
 #define WABT_FEATURE(variable, flag, help) \
-  bool variable##_enabled() const { return variable##_enabled_; }
+  bool variable##_enabled() const { return variable##_enabled_; } \
+  void enable_##variable() { variable##_enabled_ = true; }
 #include "src/feature.def"
 #undef WABT_FEATURE
 

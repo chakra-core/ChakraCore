@@ -61,19 +61,16 @@ namespace ChakraWabt
     };
 
     typedef Js::Var(*CreateBufferFn)(const unsigned char* start, uint size, void* user_data);
-    typedef void*(*AllocatorFn)(uint size, void* user_data);
     struct Context
     {
-        AllocatorFn allocator;
         CreateBufferFn createBuffer;
         SpecContext* spec;
         void* user_data;
 
-        void* Allocate(uint size)
+        struct
         {
-            return allocator(size, user_data);
-        }
-        void Validate(bool isSpec) const;
+            bool sign_extends : 1;
+        } features;
     };
 
     Js::Var ConvertWast2Wasm(Context& ctx, char* buffer, uint bufferSize, bool isSpecText);
