@@ -2332,7 +2332,6 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
     dstOpnd->SetValueType(ValueType::GetInt(false));
 
     IR::Instr * instr = nullptr;
-    IRType signExtendFromType = TyIllegal;
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::BeginSwitch_Int:
@@ -2396,11 +2395,11 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         instr = IR::Instr::New(Js::OpCode::GrowWasmMemory, dstOpnd, BuildSrcOpnd(AsmJsRegSlots::WasmMemoryReg, TyVar), srcOpnd, m_func);
         break;
 
-    case Js::OpCodeAsmJs::I32Extend8_s:  signExtendFromType = TyInt8;  goto make_sign_extend;
-    case Js::OpCodeAsmJs::I32Extend16_s: signExtendFromType = TyInt16; goto make_sign_extend;
-make_sign_extend:
-        // Src2 is a dummy source, used only to carry the type to cast from
-        instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, srcOpnd, IR::IntConstOpnd::New(signExtendFromType, signExtendFromType, m_func), m_func);
+    case Js::OpCodeAsmJs::I32Extend8_s: 
+        instr = CreateSignExtendInstr(dstOpnd, srcOpnd, TyInt8);
+        break;
+    case Js::OpCodeAsmJs::I32Extend16_s:
+        instr = CreateSignExtendInstr(dstOpnd, srcOpnd, TyInt16);
         break;
     default:
         Assume(UNREACHED);
@@ -2428,6 +2427,15 @@ IR::RegOpnd* IRBuilderAsmJs::BuildTrapIfMinIntOverNegOne(IR::RegOpnd* src1Opnd, 
     newSrc->SetValueType(ValueType::GetInt(false));
     AddInstr(IR::Instr::New(Js::OpCode::TrapIfMinIntOverNegOne, newSrc, src1Opnd, src2Opnd, m_func), offset);
     return newSrc;
+}
+
+IR::Instr* IRBuilderAsmJs::CreateSignExtendInstr(IR::Opnd* dst, IR::Opnd* src, IRType fromType)
+{
+    // Since CSE ignores the type of the type, the int const value carries that information to prevent
+    // cse of sign extension of different types.
+    IR::Opnd* fromTypeOpnd = IR::IntConstOpnd::New(fromType, fromType, m_func);
+    // Src2 is a dummy source, used only to carry the type to cast from
+    return IR::Instr::New(Js::OpCode::Conv_Prim, dst, src, fromTypeOpnd, m_func);
 }
 
 void
@@ -3028,7 +3036,6 @@ IRBuilderAsmJs::BuildLong2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
     dstOpnd->SetValueType(ValueType::GetInt(false));
 
     IR::Instr * instr = nullptr;
-    IRType signExtendFromType = TyIllegal;
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::Ld_Long:
@@ -3055,12 +3062,14 @@ IRBuilderAsmJs::BuildLong2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
             AddInstr(slotInstr, offset);
         }
         break;
-    case Js::OpCodeAsmJs::I64Extend8_s:  signExtendFromType = TyInt8;  goto make_sign_extend;
-    case Js::OpCodeAsmJs::I64Extend16_s: signExtendFromType = TyInt16; goto make_sign_extend;
-    case Js::OpCodeAsmJs::I64Extend32_s: signExtendFromType = TyInt32;
-    make_sign_extend:
-        // Src2 is a dummy source, used only to carry the type to cast from
-        instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, srcOpnd, IR::IntConstOpnd::New(signExtendFromType, signExtendFromType, m_func), m_func);
+    case Js::OpCodeAsmJs::I64Extend8_s:
+        instr = CreateSignExtendInstr(dstOpnd, srcOpnd, TyInt8);
+        break;
+    case Js::OpCodeAsmJs::I64Extend16_s:
+        instr = CreateSignExtendInstr(dstOpnd, srcOpnd, TyInt16);
+        break;
+    case Js::OpCodeAsmJs::I64Extend32_s:
+        instr = CreateSignExtendInstr(dstOpnd, srcOpnd, TyInt32);
         break;
     default:
         Assume(UNREACHED);
