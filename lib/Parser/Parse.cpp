@@ -3789,6 +3789,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         pnode = CreateBinNode(knopIndex, pnode, pnodeExpr);
                     }
 
+                    AnalysisAssert(pnode);
                     pnode->ichLim = m_pscan->IchLimTok();
                 }
                 else
