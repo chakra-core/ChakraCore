@@ -14,6 +14,7 @@ MarkContext::MarkContext(Recycler * recycler, PagePool * pagePool) :
     recycler(recycler),
     pagePool(pagePool),
     markStack(pagePool),
+    preciseStack(pagePool),
     trackStack(pagePool)
 {
 }
@@ -39,18 +40,21 @@ void MarkContext::OnObjectMarked(void* object, void* parent)
 void MarkContext::Init(uint reservedPageCount)
 {
     markStack.Init(reservedPageCount);
+    preciseStack.Init();
     trackStack.Init();
 }
 
 void MarkContext::Clear()
 {
     markStack.Clear();
+    preciseStack.Clear();
     trackStack.Clear();
 }
 
 void MarkContext::Abort()
 {
     markStack.Abort();
+    preciseStack.Abort();
     trackStack.Abort();
 
     pagePool->ReleaseFreePages();
@@ -60,6 +64,7 @@ void MarkContext::Abort()
 void MarkContext::Release()
 {
     markStack.Release();
+    preciseStack.Release();
     trackStack.Release();
 
     pagePool->ReleaseFreePages();
@@ -68,17 +73,25 @@ void MarkContext::Release()
 
 uint MarkContext::Split(uint targetCount, __in_ecount(targetCount) MarkContext ** targetContexts)
 {
-    Assert(targetCount > 0 && targetCount <= PageStack<MarkCandidate>::MaxSplitTargets);
+    Assert(targetCount > 0 && targetCount <= PageStack<MarkCandidate>::MaxSplitTargets && targetCount <= PageStack<IRecyclerVisitedObject*>::MaxSplitTargets);
     __analysis_assume(targetCount <= PageStack<MarkCandidate>::MaxSplitTargets);
+    __analysis_assume(targetCount <= PageStack<IRecyclerVisitedObject*>::MaxSplitTargets);
 
-    PageStack<MarkCandidate> * targetStacks[PageStack<MarkCandidate>::MaxSplitTargets];
+    PageStack<MarkCandidate> * targetMarkStacks[PageStack<MarkCandidate>::MaxSplitTargets];
+    PageStack<IRecyclerVisitedObject*> * targetPreciseStacks[PageStack<IRecyclerVisitedObject*>::MaxSplitTargets];
 
     for (uint i = 0; i < targetCount; i++)
     {
-        targetStacks[i] = &targetContexts[i]->markStack;
+        targetMarkStacks[i] = &targetContexts[i]->markStack;
+        targetPreciseStacks[i] = &targetContexts[i]->preciseStack;
     }
 
-    return this->markStack.Split(targetCount, targetStacks);
+    // Return the max count of the two splits - since the stacks have more or less unrelated sizes, they
+    // could yield different number of splits, but the caller wants to know the max parallelism it
+    // should use on the results of the split.
+    const uint markStackSplitCount = this->markStack.Split(targetCount, targetMarkStacks);
+    const uint preciseStackSplitCount = this->preciseStack.Split(targetCount, targetPreciseStacks);
+    return max(markStackSplitCount, preciseStackSplitCount);
 }
 
 

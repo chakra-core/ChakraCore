@@ -185,8 +185,9 @@ bool SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::UpdateAttributesOfMar
 
     if (attributes & TrackBit)
     {
+        Assert((attributes & LeafBit) == 0);
         IRecyclerVisitedObject* recyclerVisited = static_cast<IRecyclerVisitedObject*>(objectAddress);
-        noOOMDuringMark = recyclerVisited->Trace(markContext);
+        noOOMDuringMark = markContext->AddPreciselyTracedObject(recyclerVisited);
 
         if (noOOMDuringMark)
         {
@@ -201,9 +202,6 @@ bool SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::UpdateAttributesOfMar
         }
         fn(attributes);
     }
-
-    // We only expect 'leaf' objects in here (though they are potentially precisely traced)
-    Assert((attributes & LeafBit) == LeafBit);
 
 #ifdef RECYCLER_STATS
     RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);

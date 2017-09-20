@@ -40,5 +40,6 @@ class FinalizableObject;
 #include "Memory/RecyclerSweep.h"
 #include "Memory/RecyclerHeuristic.h"
 #include "Memory/MarkContext.h"
+#include "Memory/MarkContextWrapper.h"
 #include "Memory/RecyclerWatsonTelemetry.h"
 #include "Memory/Recycler.h"

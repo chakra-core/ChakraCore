@@ -5,6 +5,7 @@
 #pragma once
 
 typedef void* RecyclerHeapMarkingContext;
+interface IRecyclerHeapMarkingContext;
 
 interface IRecyclerVisitedObject
 {
@@ -26,6 +27,6 @@ interface IRecyclerVisitedObject
     STDMETHOD_(void, OnMark)() = 0;
 
     // Used only by RecyclerVisitedHost objects (created with RecyclerAllocVistedHost_Traced*)
-    STDMETHOD_(bool, Trace)(RecyclerHeapMarkingContext markingContext) = 0;
+    STDMETHOD_(bool, Trace)(IRecyclerHeapMarkingContext* markingContext) = 0;
 };
 
