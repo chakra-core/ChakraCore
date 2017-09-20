@@ -2481,6 +2481,13 @@ namespace Js
 #endif
     }
 
+#if DBG_DUMP
+	void SimplePathTypeHandler::Dump(unsigned indent) const
+    {
+        Output::Print(_u("%*sSimplePathTypeHandler (0x%p): Dump unimplemented\n"), indent, _u(""), this);
+    }
+#endif
+
     PathTypeHandler * PathTypeHandler::New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked, bool isShared, DynamicType* predecessorType)
     {
         return New(scriptContext, typePath, pathLength, max(pathLength, inlineSlotCapacity), inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared, predecessorType);
@@ -2670,5 +2677,10 @@ namespace Js
             propertySuccessors = RecyclerNew(recycler, PropertySuccessorsMap, recycler, 3);
         }
         propertySuccessors->Item(propertyRecord->GetPropertyId(), typeWeakRef);
+    }
+
+	void PathTypeHandler::Dump(unsigned indent) const
+    {
+        Output::Print(_u("%*sPathTypeHandler (0x%p): Dump unimplemented\n"), indent, _u(""), this);
     }
 }
