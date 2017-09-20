@@ -27,7 +27,7 @@ JITType::BuildFromJsType(__in Js::Type * jsType, __out JITType * jitType)
     data->protoAddr = jsType->GetPrototype();
     data->entrypointAddr = (intptr_t)jsType->GetEntryPoint();
     data->propertyCacheAddr = jsType->GetPropertyCache();
-    if (Js::DynamicType::Is(jsType->GetTypeId()))
+    if (Js::DynamicType::Is(jsType))
     {
         Js::DynamicType * dynamicType = static_cast<Js::DynamicType*>(jsType);
 

@@ -19,7 +19,7 @@ namespace TTD
 
         if(this->m_marks.MarkAndTestAddr<MarkTableTag::TypeTag>(type))
         {
-            if(Js::DynamicType::Is(type->GetTypeId()))
+            if(Js::DynamicType::Is(type))
             {
                 Js::DynamicTypeHandler* handler = (static_cast<Js::DynamicType*>(type))->GetTypeHandler();
 
@@ -68,14 +68,12 @@ namespace TTD
     {
         if(this->m_marks.IsMarked(jstype))
         {
-            if(Js::DynamicType::Is(jstype->GetTypeId()))
+            NSSnapType::SnapHandler* sHandler = nullptr;
+
+            if(Js::DynamicType::Is(jstype))
             {
                 this->ExtractHandlerIfNeeded(static_cast<Js::DynamicType*>(jstype)->GetTypeHandler(), threadContext);
-            }
 
-            NSSnapType::SnapHandler* sHandler = nullptr;
-            if(Js::DynamicType::Is(jstype->GetTypeId()))
-            {
                 Js::DynamicTypeHandler* dhandler = static_cast<const Js::DynamicType*>(jstype)->GetTypeHandler();
 
                 TTD_PTR_ID handlerId = TTD_CONVERT_TYPEINFO_TO_PTR_ID(dhandler);

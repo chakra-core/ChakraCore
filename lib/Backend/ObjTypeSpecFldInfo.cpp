@@ -380,7 +380,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
     if (!allFixedPhaseOFF)
     {
         Assert(propertyOwnerType != nullptr);
-        if (Js::DynamicType::Is(propertyOwnerType->GetTypeId()))
+        if (Js::DynamicType::Is(propertyOwnerType))
         {
             Js::DynamicTypeHandler* propertyOwnerTypeHandler = ((Js::DynamicType*)propertyOwnerType)->GetTypeHandler();
             Js::PropertyRecord const * const fixedPropertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
@@ -562,7 +562,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
         // Fixed field checks allow us to assume a specific type ID, but the assumption is only
         // valid if we lock the type. Otherwise, the type ID may change out from under us without
         // evolving the type.
-        if (Js::DynamicType::Is(type->GetTypeId()))
+        if (Js::DynamicType::Is(type))
         {
             Js::DynamicType *dynamicType = static_cast<Js::DynamicType*>(type);
             if (!dynamicType->GetIsLocked())
@@ -912,7 +912,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
                 // Fixed field checks allow us to assume a specific type ID, but the assumption is only
                 // valid if we lock the type. Otherwise, the type ID may change out from under us without
                 // evolving the type.
-                if (Js::DynamicType::Is(localTypes[i]->GetTypeId()))
+                if (Js::DynamicType::Is(localTypes[i]))
                 {
                     Js::DynamicType *dynamicType = static_cast<Js::DynamicType*>(localTypes[i]);
                     if (!dynamicType->GetIsLocked())
