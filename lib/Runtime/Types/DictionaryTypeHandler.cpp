@@ -2910,7 +2910,7 @@ namespace Js
 #endif
 
 #if DBG_DUMP
-	template<typename T> void DictionaryTypeHandlerBase<T>::Dump() {
+	template<typename T> void DictionaryTypeHandlerBase<T>::Dump() const {
         Output::Print(_u("DictionaryTypeHandlerBase:\n"));
         if (this->propertyMap == nullptr)
         {

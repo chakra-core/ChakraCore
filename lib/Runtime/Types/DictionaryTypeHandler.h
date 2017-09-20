@@ -266,7 +266,7 @@ namespace Js
 
 #if DBG_DUMP
     public:
-        void Dump();
+        void Dump() const;
 #endif
     };
 
