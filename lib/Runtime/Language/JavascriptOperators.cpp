@@ -6641,6 +6641,11 @@ CommonNumber:
         return JavascriptFunction::Is(instance) && (JavascriptFunction::FromVar(instance)->GetFunctionInfo()->IsClassConstructor() || !JavascriptFunction::FromVar(instance)->IsScriptFunction());
     }
 
+    BOOL JavascriptOperators::IsClassMethod(Var instance)
+    {
+        return JavascriptFunction::Is(instance) && JavascriptFunction::FromVar(instance)->GetFunctionInfo()->IsClassMethod();
+    }
+
     BOOL JavascriptOperators::IsBaseConstructorKind(Var instance)
     {
         return JavascriptFunction::Is(instance) && (JavascriptFunction::FromVar(instance)->GetFunctionInfo()->GetBaseConstructorKind());
