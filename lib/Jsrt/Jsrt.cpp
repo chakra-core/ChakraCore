@@ -4612,6 +4612,13 @@ CHAKRA_API JsCreateWeakReference(
     PARAM_NOT_NULL(weakRef);
     *weakRef = nullptr;
 
+    if (Js::TaggedNumber::Is(value)) {
+        // non-recyclable-objects do not get GCd, so there is no difference
+        // between strong and weak references
+        *weakRef = value;
+        return JsNoError;
+    }
+
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
         if (threadContext == nullptr)
@@ -4639,6 +4646,12 @@ CHAKRA_API JsGetWeakReferenceValue(
     VALIDATE_JSREF(weakRef);
     PARAM_NOT_NULL(value);
     *value = JS_INVALID_REFERENCE;
+
+    if (Js::TaggedNumber::Is(weakRef))
+    {
+        *value = weakRef;
+        return JsNoError;
+    }
 
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         Memory::RecyclerWeakReference<char>* recyclerWeakReference =
