@@ -880,7 +880,11 @@ Func::SetDoFastPaths()
 #if LOWER_SPLIT_INT64
 Int64RegPair Func::FindOrCreateInt64Pair(IR::Opnd* opnd)
 {
-    AssertMsg(this->GetTopFunc()->currentPhases.Top() == Js::LowererPhase, "New Int64 sym map is only allowed during lower");
+    if (!this->IsTopFunc())
+    {
+        return GetTopFunc()->FindOrCreateInt64Pair(opnd);
+    }
+    AssertMsg(currentPhases.Top() == Js::LowererPhase, "New Int64 sym map is only allowed during lower");
     Int64RegPair pair;
     IRType pairType = opnd->GetType();
     if (opnd->IsInt64())
@@ -963,6 +967,11 @@ Int64RegPair Func::FindOrCreateInt64Pair(IR::Opnd* opnd)
 
 void Func::Int64SplitExtendLoopLifetime(Loop* loop)
 {
+    if (!this->IsTopFunc())
+    {
+        GetTopFunc()->Int64SplitExtendLoopLifetime(loop);
+        return;
+    }
     if (m_int64SymPairMap)
     {
         BVSparse<JitArenaAllocator> *liveOnBackEdgeSyms = loop->regAlloc.liveOnBackEdgeSyms;
