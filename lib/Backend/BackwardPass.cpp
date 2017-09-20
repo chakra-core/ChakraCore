@@ -1728,6 +1728,55 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
             */
             StackSym * stackSym = copyPropSyms.Key(); // assume that we'll use the original sym to restore
             SymID symId = stackSym->m_id;
+
+            // Prefer to restore from type-specialized versions of the sym, as that will reduce the need for potentially
+            // expensive ToVars that can more easily be eliminated due to being dead stores
+            StackSym * int32StackSym = nullptr;
+            StackSym * float64StackSym = nullptr;
+            StackSym * simd128StackSym = nullptr;
+
+            // If the sym is type specialized, we need to check for upward exposed uses of the specialized sym and not the equivalent var sym. If there are no 
+            // uses and we use the copy prop sym to restore, we'll need to find the type specialize sym for that sym as well.
+            StackSym * typeSpecSym = nullptr;
+            auto findTypeSpecSym = [&]()
+            {
+            if (bailOutInfo->liveLosslessInt32Syms->Test(symId))
+            {
+                // Var version of the sym is not live, use the int32 version
+                int32StackSym = stackSym->GetInt32EquivSym(nullptr);
+                    typeSpecSym = int32StackSym;
+                Assert(int32StackSym);
+            }
+            else if(bailOutInfo->liveFloat64Syms->Test(symId))
+            {
+                // Var/int32 version of the sym is not live, use the float64 version
+                float64StackSym = stackSym->GetFloat64EquivSym(nullptr);
+                    typeSpecSym = float64StackSym;
+                Assert(float64StackSym);
+            }
+#ifdef ENABLE_SIMDJS
+            // SIMD_JS
+            else if (bailOutInfo->liveSimd128F4Syms->Test(symId))
+            {
+                simd128StackSym = stackSym->GetSimd128F4EquivSym(nullptr);
+                    typeSpecSym = simd128StackSym;
+            }
+            else if (bailOutInfo->liveSimd128I4Syms->Test(symId))
+            {
+                simd128StackSym = stackSym->GetSimd128I4EquivSym(nullptr);
+                    typeSpecSym = simd128StackSym;
+            }
+#endif
+            else
+            {
+                Assert(bailOutInfo->liveVarSyms->Test(symId));
+                    typeSpecSym = stackSym;
+                }
+            };
+
+            findTypeSpecSym();
+            Assert(typeSpecSym != nullptr);
+
             IR::Instr *const instr = bailOutInfo->bailOutInstr;
             StackSym *const dstSym = IR::RegOpnd::TryGetStackSym(instr->GetDst());
             if(instr->GetBailOutKind() & IR::BailOutOnResultConditions &&
@@ -1749,7 +1798,7 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
                 // original sym will also be made upwards-exposed from here, so the aforementioned transferring store of the
                 // copy-prop sym to the original sym will not be a dead store.
             }
-            else if (block->upwardExposedUses->Test(stackSym->m_id) && !block->upwardExposedUses->Test(copyPropSyms.Value()->m_id))
+            else if (block->upwardExposedUses->Test(typeSpecSym->m_id) && !block->upwardExposedUses->Test(copyPropSyms.Value()->m_id))
             {
                 // Don't use the copy prop sym if it is not used and the orig sym still has uses.
                 // No point in extending the lifetime of the copy prop sym unnecessarily.
@@ -1759,39 +1808,10 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
                 // Need to use the copy-prop sym to restore
                 stackSym = copyPropSyms.Value();
                 symId = stackSym->m_id;
-            }
-
-            // Prefer to restore from type-specialized versions of the sym, as that will reduce the need for potentially
-            // expensive ToVars that can more easily be eliminated due to being dead stores
-            StackSym * int32StackSym = nullptr;
-            StackSym * float64StackSym = nullptr;
-            StackSym * simd128StackSym = nullptr;
-            if (bailOutInfo->liveLosslessInt32Syms->Test(symId))
-            {
-                // Var version of the sym is not live, use the int32 version
-                int32StackSym = stackSym->GetInt32EquivSym(nullptr);
-                Assert(int32StackSym);
-            }
-            else if(bailOutInfo->liveFloat64Syms->Test(symId))
-            {
-                // Var/int32 version of the sym is not live, use the float64 version
-                float64StackSym = stackSym->GetFloat64EquivSym(nullptr);
-                Assert(float64StackSym);
-            }
-#ifdef ENABLE_SIMDJS
-            // SIMD_JS
-            else if (bailOutInfo->liveSimd128F4Syms->Test(symId))
-            {
-                simd128StackSym = stackSym->GetSimd128F4EquivSym(nullptr);
-            }
-            else if (bailOutInfo->liveSimd128I4Syms->Test(symId))
-            {
-                simd128StackSym = stackSym->GetSimd128I4EquivSym(nullptr);
-            }
-#endif
-            else
-            {
-                Assert(bailOutInfo->liveVarSyms->Test(symId));
+                int32StackSym = nullptr;
+                float64StackSym = nullptr;
+                simd128StackSym = nullptr;
+                findTypeSpecSym();
             }
 
             // We did not end up using the copy prop sym. Let's make sure the use of the original sym by the bailout is captured.
