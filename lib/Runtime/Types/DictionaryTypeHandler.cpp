@@ -2909,6 +2909,36 @@ namespace Js
     }
 #endif
 
+#if DBG_DUMP
+	template<typename T> void DictionaryTypeHandlerBase<T>::Dump() {
+        Output::Print(_u("DictionaryTypeHandlerBase:\n"));
+        if (this->propertyMap == nullptr)
+        {
+            Output::Print(_u("  propertyMap: null\n"));
+        }
+        else
+        {
+            Output::Print(_u("  propertyMap: 0x%p\n"), this->propertyMap);
+            for (auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+            {
+                Output::Print(_u("    Key:\n"));
+                if (iter.CurrentKey() == nullptr)
+                {
+                    Output::Print(_u("      <null>\n"));
+                }
+                else
+                {
+                    iter.CurrentKey()->Dump(6);
+                }
+                Output::Print(_u("    Value\n"));
+                iter.CurrentValue().Dump(6);
+            }
+        }
+        Output::Print(_u("  nextPropertyIndex: %d\n"), static_cast<int32>(this->nextPropertyIndex));
+    }
+
+#endif
+
     template class DictionaryTypeHandlerBase<PropertyIndex>;
     template class DictionaryTypeHandlerBase<BigPropertyIndex>;
 

@@ -263,6 +263,11 @@ namespace Js
 
         virtual Js::BigPropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord) override;
 #endif
+
+#if DBG_DUMP
+    public:
+        void Dump();
+#endif
     };
 
     template <bool allowLetConstGlobal>
