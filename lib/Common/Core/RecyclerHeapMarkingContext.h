@@ -3,15 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-#include "RecyclerVisitedObject.h"
 
-class FinalizableObject : public IRecyclerVisitedObject
+interface IRecyclerHeapMarkingContext
 {
-public:
-    virtual void OnMark() {}
-    bool Trace(IRecyclerHeapMarkingContext* markingContext) final
-    {
-        AssertMsg(false, "Trace called on object that isn't implemented by the host");
-        return true;
-    }
+    STDMETHOD_(void, MarkObjects)(void** objects, size_t count, void* parent) = 0;
 };
+

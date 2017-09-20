@@ -136,24 +136,24 @@ enum ObjectInfoBits : unsigned short
     PendingDisposeObjectBits    = PendingDisposeBit | LeafBit,
 
     // Bits for use with recycler visited host heap block.
-    // Recycler visited host heap block will both mark and finalize based on FinalizableObject v-table, as specified
+    // Recycler visited host heap block will both mark and finalize based on IRecyclerVisitedHost v-table, as specified
     // by TrackBit and FinalizeBit. These objects are expected to be allocated by chakra, but implemented by
-    // the host, including construction of the FinalizableObject v-table.
+    // the host, including construction of the IRecyclerVisitedHost v-table.
     //
     // RecyclerVisitedHostBit is implicit in the heap block type and thus isn't part of the StoredObjectInfoBitMask.
-    // LeafBit is also a requirement, since no objects in this heap block are conservatively traced.
+    // LeafBit is also set for any object that is not precisely traced.
     RecyclerVisitedHostLeafBits = RecyclerVisitedHostBit | LeafBit,
-    RecyclerVisitedHostTracedBits = RecyclerVisitedHostLeafBits | TrackBit | NewTrackBit,
+    RecyclerVisitedHostTracedBits = RecyclerVisitedHostBit | TrackBit | NewTrackBit,
     RecyclerVisitedHostFinalizableBits = RecyclerVisitedHostLeafBits | FinalizeBit | NewFinalizeBit,
     RecyclerVisitedHostTracedFinalizableBits = RecyclerVisitedHostTracedBits | FinalizeBit,
 
-    // These set of bits describe to two possible types of blocktype bits for recycler visited host heap blocks.
-    // The reason we have to distinguish between the two is because we have some objects with FinalizeBit, which
-    // is part of the GetBlockTypeBitMask below, and some without (i.e. traced only). In the end, these are treated
-    // the same (they result in the same recycler visited heap block/bucket type being used),
+    // These set of bits describe the four possible types of blocktype bits for recycler visited host heap blocks.
+    // These are the four combinations of the above bits, AND'd with GetBlockTypeBitMask.
+    // In the end, these are treated the same in terms of which heap block/bucket type they end up using and
     // but are defined here for ease of use.
-    RecyclerVisitedHostBlockTypeBits = RecyclerVisitedHostBit | LeafBit,
-    RecyclerVisitedHostFinalizableBlockTypeBits = RecyclerVisitedHostBlockTypeBits | FinalizeBit,
+    RecyclerVisitedHostLeafBlockTypeBits = RecyclerVisitedHostBit | LeafBit,
+    RecyclerVisitedHostFinalizableBlockTypeBits = RecyclerVisitedHostLeafBlockTypeBits | FinalizeBit,
+    RecyclerVisitedHostTracedFinalizableBlockTypeBits = RecyclerVisitedHostBit | FinalizeBit,
 
 #ifdef RECYCLER_WRITE_BARRIER
     GetBlockTypeBitMask = FinalizeBit | LeafBit | WithBarrierBit | RecyclerVisitedHostBit,
