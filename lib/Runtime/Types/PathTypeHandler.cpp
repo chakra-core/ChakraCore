@@ -2679,8 +2679,10 @@ namespace Js
         propertySuccessors->Item(propertyRecord->GetPropertyId(), typeWeakRef);
     }
 
+#if DBG_DUMP
 	void PathTypeHandler::Dump(unsigned indent) const
     {
         Output::Print(_u("%*sPathTypeHandler (0x%p): Dump unimplemented\n"), indent, _u(""), this);
     }
+#endif
 }
