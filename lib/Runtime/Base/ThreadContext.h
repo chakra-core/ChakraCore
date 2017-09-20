@@ -727,7 +727,7 @@ private:
     DListBase<Js::EntryPointInfo *> equivalentTypeCacheEntryPoints;
 
     typedef SList<Js::InlineCache*> InlineCacheList;
-    typedef JsUtil::BaseDictionary<Js::PropertyId, InlineCacheList*, ArenaAllocator> InlineCacheListMapByPropertyId;
+    typedef JsUtil::BaseDictionary<Js::PropertyId, InlineCacheList*, ArenaAllocator, PrimeSizePolicy> InlineCacheListMapByPropertyId;
     InlineCacheListMapByPropertyId protoInlineCacheByPropId;
     InlineCacheListMapByPropertyId storeFieldInlineCacheByPropId;
 
@@ -737,7 +737,7 @@ private:
     uint totalUnregisteredCacheCount;
 #endif
 
-    typedef JsUtil::BaseDictionary<Js::Var, Js::IsInstInlineCache*, ArenaAllocator> IsInstInlineCacheListMapByFunction;
+    typedef JsUtil::BaseDictionary<Js::Var, Js::IsInstInlineCache*, ArenaAllocator, PrimeSizePolicy> IsInstInlineCacheListMapByFunction;
     IsInstInlineCacheListMapByFunction isInstInlineCacheByFunction;
 
     Js::IsConcatSpreadableCache isConcatSpreadableCache;
