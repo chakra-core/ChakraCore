@@ -5824,6 +5824,7 @@ namespace Js
         return arr;
     }
 
+#ifdef ENABLE_WASM
     Js::WebAssemblyArrayBuffer* JavascriptLibrary::CreateWebAssemblyArrayBuffer(uint32 length)
     {
         return WebAssemblyArrayBuffer::Create(nullptr, length, arrayBufferType);
@@ -5834,6 +5835,19 @@ namespace Js
         return WebAssemblyArrayBuffer::Create(buffer, length, arrayBufferType);
     }
 
+#ifdef ENABLE_WASM_THREADS
+    WebAssemblySharedArrayBuffer* JavascriptLibrary::CreateWebAssemblySharedArrayBuffer(uint32 length, uint32 maxLength)
+    {
+        return WebAssemblySharedArrayBuffer::Create(length, maxLength, sharedArrayBufferType);
+    }
+
+    WebAssemblySharedArrayBuffer* JavascriptLibrary::CreateWebAssemblySharedArrayBuffer(SharedContents *contents)
+    {
+        return WebAssemblySharedArrayBuffer::Create(contents, sharedArrayBufferType);
+    }
+#endif
+#endif
+
     SharedArrayBuffer* JavascriptLibrary::CreateSharedArrayBuffer(uint32 length)
     {
         return JavascriptSharedArrayBuffer::Create(length, sharedArrayBufferType);
@@ -5841,6 +5855,12 @@ namespace Js
 
     SharedArrayBuffer* JavascriptLibrary::CreateSharedArrayBuffer(SharedContents *contents)
     {
+#ifdef ENABLE_WASM_THREADS
+        if (contents && contents->IsWebAssembly())
+        {
+            return CreateWebAssemblySharedArrayBuffer(contents);
+        }
+#endif
         return JavascriptSharedArrayBuffer::Create(contents, sharedArrayBufferType);
     }
 

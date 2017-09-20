@@ -7879,7 +7879,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = ((uint64)(uint32)GetRegRawInt(playout->SlotIndex) + playout->Offset /* WASM only */) & (int64)(int)ArrayBufferView::ViewMask[playout->ViewType];
 
-        JavascriptArrayBuffer* arr =
+        ArrayBufferBase* arr =
 #ifdef ENABLE_WASM_SIMD
             (m_functionBody->IsWasmFunction()) ?
                 m_wasmMemory->GetBuffer() :
@@ -7927,7 +7927,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = ((uint64)(uint32)GetRegRawInt(playout->SlotIndex) + playout->Offset /* WASM only */) & (int64)(int)ArrayBufferView::ViewMask[playout->ViewType];
 
-        JavascriptArrayBuffer* arr =
+        ArrayBufferBase* arr =
 #ifdef ENABLE_WASM_SIMD
             (m_functionBody->IsWasmFunction()) ?
                 m_wasmMemory->GetBuffer() :
@@ -8602,7 +8602,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 #ifdef ENABLE_WASM
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
-        WebAssemblyArrayBuffer* arr = GetWebAssemblyMemory()->GetBuffer();
+        ArrayBufferBase* arr = GetWebAssemblyMemory()->GetBuffer();
 
         uint32 byteLength = arr->GetByteLength();
         BYTE* buffer = arr->GetBuffer();
@@ -8625,10 +8625,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
     void InterpreterStackFrame::OP_LdArrAtomic(const unaligned T* playout)
     {
 #ifdef ENABLE_WASM
-        Assert(CONFIG_FLAG(WasmThreads));
+        Assert(Wasm::Threads::IsEnabled());
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
-        WebAssemblyArrayBuffer* arr = GetWebAssemblyMemory()->GetBuffer();
+        ArrayBufferBase* arr = GetWebAssemblyMemory()->GetBuffer();
 
         uint32 byteLength = arr->GetByteLength();
         BYTE* buffer = arr->GetBuffer();
@@ -8653,10 +8653,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
     void InterpreterStackFrame::OP_StArrAtomic(const unaligned T* playout)
     {
 #ifdef ENABLE_WASM
-        Assert(CONFIG_FLAG(WasmThreads));
+        Assert(Wasm::Threads::IsEnabled());
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
-        WebAssemblyArrayBuffer* arr = GetWebAssemblyMemory()->GetBuffer();
+        ArrayBufferBase* arr = GetWebAssemblyMemory()->GetBuffer();
 
         uint32 byteLength = arr->GetByteLength();
         BYTE* buffer = arr->GetBuffer();
@@ -8711,7 +8711,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 #ifdef ENABLE_WASM
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
-        WebAssemblyArrayBuffer* arr = GetWebAssemblyMemory()->GetBuffer();
+        ArrayBufferBase* arr = GetWebAssemblyMemory()->GetBuffer();
 
         uint32 byteLength = arr->GetByteLength();
         BYTE* buffer = arr->GetBuffer();

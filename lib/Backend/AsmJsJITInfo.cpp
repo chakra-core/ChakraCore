@@ -78,6 +78,12 @@ AsmJsJITInfo::GetWasmSignatureAddr(uint index) const
     Assert(index < m_data.wasmSignatureCount);
     return m_data.wasmSignaturesBaseAddr + index * sizeof(Wasm::WasmSignature);
 }
+
+bool AsmJsJITInfo::IsSharedMemory() const
+{
+    return !!m_data.wasmIsSharedMemory;
+}
+
 #endif
 
 bool

@@ -41,7 +41,7 @@
     ]
   }, {
     "required": true,
-    "flags": ["-WasmThreads"],
+    "flags": ["-WasmThreads", "-ESSharedArrayBuffer"],
     "folders": [
       "features/threads"
     ],

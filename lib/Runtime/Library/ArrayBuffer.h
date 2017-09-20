@@ -11,6 +11,7 @@ namespace Js
     class ArrayBufferParent;
     class ArrayBuffer;
     class SharedArrayBuffer;
+
     class ArrayBufferBase : public DynamicObject
     {
     protected:
@@ -20,8 +21,17 @@ namespace Js
         typedef void*(*AllocWrapperType)(size_t);
 #define AsmJsVirtualAllocator ((AllocWrapperType)Js::ArrayBuffer::AllocWrapper<MAX_ASMJS_ARRAYBUFFER_LENGTH>)
 #define WasmVirtualAllocator ((AllocWrapperType)Js::ArrayBuffer::AllocWrapper<MAX_WASM__ARRAYBUFFER_LENGTH>)
-        template<size_t MaxVirtualSize = MAX_ASMJS_ARRAYBUFFER_LENGTH>
-        static void* __cdecl AllocWrapper(DECLSPEC_GUARD_OVERFLOW size_t length)
+#else
+#define AsmJsVirtualAllocator Js::ArrayBuffer::BadAllocCall
+#define WasmVirtualAllocator Js::ArrayBuffer::BadAllocCall
+        static void* __cdecl BadAllocCall(DECLSPEC_GUARD_OVERFLOW size_t length)
+        {
+            // This allocator should never be used
+            Js::Throw::FatalInternalError();
+        }
+#endif
+#ifdef _WIN32
+        static void* __cdecl AllocWrapper(DECLSPEC_GUARD_OVERFLOW size_t length, size_t MaxVirtualSize)
         {
             LPVOID address = VirtualAlloc(nullptr, MaxVirtualSize, MEM_RESERVE, PAGE_NOACCESS);
             //throw out of memory
@@ -43,20 +53,17 @@ namespace Js
             }
             return arrayAddress;
         }
+        template<size_t MaxVirtualSize>
+        static void* __cdecl AllocWrapper(DECLSPEC_GUARD_OVERFLOW size_t length)
+        {
+            return AllocWrapper(length, MaxVirtualSize);
+        }
 
         static void FreeMemAlloc(Var ptr)
         {
             BOOL fSuccess = VirtualFree((LPVOID)ptr, 0, MEM_RELEASE);
             Assert(fSuccess);
         }
-#else
-        static void* __cdecl AllocWrapper(DECLSPEC_GUARD_OVERFLOW size_t length)
-        {
-            // This allocator should never be used
-            Js::Throw::FatalInternalError();
-        }
-#define AsmJsVirtualAllocator Js::ArrayBuffer::AllocWrapper
-#define WasmVirtualAllocator Js::ArrayBuffer::AllocWrapper
 #endif
     public:
         DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBufferBase, DynamicObject);
@@ -271,6 +278,7 @@ namespace Js
 #endif
     };
 
+#ifdef ENABLE_WASM
     class WebAssemblyArrayBuffer : public JavascriptArrayBuffer
     {
         template<typename Allocator>
@@ -282,7 +290,7 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WebAssemblyArrayBuffer);
     public:
         static WebAssemblyArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
-        WebAssemblyArrayBuffer* GrowMemory(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength);
+        WebAssemblyArrayBuffer* GrowMemory(uint32 newBufferLength);
 
         virtual bool IsValidVirtualBufferLength(uint length) const override;
         virtual bool IsWebAssemblyArrayBuffer() override { return true; }
@@ -290,6 +298,7 @@ namespace Js
     protected:
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override;
     };
+#endif
 
     // the memory must be allocated via CoTaskMemAlloc.
     class ProjectionArrayBuffer : public ArrayBuffer
