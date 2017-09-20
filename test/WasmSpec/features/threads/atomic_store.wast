@@ -1,6 +1,5 @@
 (module
-  ;; todo make this a shared memory
-  (memory 1)
+  (memory (shared 1 1))
 
   (func (export "i32.atomic.store8") (result i32)
       i32.const 0 i32.const 0xfb i32.atomic.store8

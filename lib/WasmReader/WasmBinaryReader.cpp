@@ -682,8 +682,12 @@ void WasmBinaryReader::ReadMemorySection(bool isImportSection)
 
     if (count == 1)
     {
-        SectionLimits limits = ReadSectionLimits(Limits::GetMaxMemoryInitialPages(), Limits::GetMaxMemoryMaximumPages(), _u("memory size too big"));
-        m_module->InitializeMemory(limits.initial, limits.maximum);
+        MemorySectionLimits limits = ReadSectionLimitsBase<MemorySectionLimits>(Limits::GetMaxMemoryInitialPages(), Limits::GetMaxMemoryMaximumPages(), _u("memory size too big"));
+        if (CONFIG_FLAG(WasmThreads) && limits.IsShared() && !limits.HasMaximum())
+        {
+            ThrowDecodingError(_u("Shared memory must have a maximum size"));
+        }
+        m_module->InitializeMemory(&limits);
     }
 }
 
@@ -890,8 +894,8 @@ void WasmBinaryReader::ReadTableSection(bool isImportSection)
         {
             ThrowDecodingError(_u("Only anyfunc type is supported. Unknown type %d"), elementType);
         }
-        SectionLimits limits = ReadSectionLimits(Limits::GetMaxTableSize(), Limits::GetMaxTableSize(), _u("table too big"));
-        m_module->InitializeTable(limits.initial, limits.maximum);
+        TableSectionLimits limits = ReadSectionLimitsBase<TableSectionLimits>(Limits::GetMaxTableSize(), Limits::GetMaxTableSize(), _u("table too big"));
+        m_module->InitializeTable(&limits);
         TRACE_WASM_DECODER(_u("Indirect table: %u to %u entries"), limits.initial, limits.maximum);
     }
 }
@@ -1284,14 +1288,15 @@ WasmNode WasmBinaryReader::ReadInitExpr(bool isOffset)
     return node;
 }
 
-SectionLimits WasmBinaryReader::ReadSectionLimits(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg)
+template<typename SectionLimitType>
+SectionLimitType WasmBinaryReader::ReadSectionLimitsBase(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg)
 {
-    SectionLimits limits;
+    SectionLimitType limits;
     uint32 length = 0;
-    uint32 flags = LEB128(length);
+    limits.flags = (SectionLimits::Flags)LEB128(length);
     limits.initial = LEB128(length);
     limits.maximum = maxMaximum;
-    if (flags & 0x1)
+    if (limits.HasMaximum())
     {
         limits.maximum = LEB128(length);
         if (limits.maximum > maxMaximum)

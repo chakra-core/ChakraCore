@@ -94,6 +94,7 @@ namespace Js
     class SourceTextModuleRecord;
     class ArrayBufferBase;
     class SharedContents;
+    class SharedContents;
     typedef RecyclerFastAllocator<JavascriptNumber, LeafBit> RecyclerJavascriptNumberAllocator;
     typedef JsUtil::List<Var, Recycler> ListForListIterator;
 
@@ -933,6 +934,8 @@ namespace Js
         ArrayBuffer* CreateArrayBuffer(byte* buffer, uint32 length);
         class WebAssemblyArrayBuffer* CreateWebAssemblyArrayBuffer(uint32 length);
         class WebAssemblyArrayBuffer* CreateWebAssemblyArrayBuffer(byte* buffer, uint32 length);
+        class WebAssemblySharedArrayBuffer* CreateWebAssemblySharedArrayBuffer(uint32 length, uint32 maxLength);
+        class WebAssemblySharedArrayBuffer* CreateWebAssemblySharedArrayBuffer(SharedContents *contents);
         SharedArrayBuffer* CreateSharedArrayBuffer(uint32 length);
         SharedArrayBuffer* CreateSharedArrayBuffer(SharedContents *contents);
         ArrayBuffer* CreateProjectionArraybuffer(uint32 length);

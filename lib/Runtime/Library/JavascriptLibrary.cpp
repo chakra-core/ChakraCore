@@ -6322,6 +6322,16 @@ namespace Js
         return WebAssemblyArrayBuffer::Create(buffer, length, arrayBufferType);
     }
 
+    WebAssemblySharedArrayBuffer* JavascriptLibrary::CreateWebAssemblySharedArrayBuffer(uint32 length, uint32 maxLength)
+    {
+        return WebAssemblySharedArrayBuffer::Create(length, maxLength, sharedArrayBufferType);
+    }
+
+    WebAssemblySharedArrayBuffer* JavascriptLibrary::CreateWebAssemblySharedArrayBuffer(SharedContents *contents)
+    {
+        return WebAssemblySharedArrayBuffer::Create(contents, sharedArrayBufferType);
+    }
+
     SharedArrayBuffer* JavascriptLibrary::CreateSharedArrayBuffer(uint32 length)
     {
         return JavascriptSharedArrayBuffer::Create(length, sharedArrayBufferType);
@@ -6329,6 +6339,10 @@ namespace Js
 
     SharedArrayBuffer* JavascriptLibrary::CreateSharedArrayBuffer(SharedContents *contents)
     {
+        if (contents && contents->IsWebAssembly())
+        {
+            return CreateWebAssemblySharedArrayBuffer(contents);
+        }
         return JavascriptSharedArrayBuffer::Create(contents, sharedArrayBufferType);
     }
 

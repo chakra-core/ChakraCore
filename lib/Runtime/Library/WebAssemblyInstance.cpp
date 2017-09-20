@@ -213,7 +213,7 @@ void WebAssemblyInstance::InitializeDataSegs(WebAssemblyModule * wasmModule, Scr
 {
     WebAssemblyMemory* mem = env->GetMemory(0);
     Assert(mem);
-    ArrayBuffer* buffer = mem->GetBuffer();
+    ArrayBufferBase* buffer = mem->GetBuffer();
 
     for (uint32 iSeg = 0; iSeg < wasmModule->GetDataSegCount(); ++iSeg)
     {
@@ -354,6 +354,12 @@ void WebAssemblyInstance::LoadImports(
                 if (mem->GetMaximumLength() > wasmModule->GetMemoryMaxSize())
                 {
                     JavascriptError::ThrowWebAssemblyLinkErrorVar(ctx, WASMERR_InvalidMaximumSize, _u("WebAssembly.Memory"), mem->GetMaximumLength(), wasmModule->GetMemoryMaxSize());
+                }
+                if (mem->IsSharedMemory() != wasmModule->IsSharedMemory())
+                {
+                    const char16* memType = mem->IsSharedMemory() ? _u("shared") : _u("unshared");
+                    const char16* modType = wasmModule->IsSharedMemory() ? _u("shared") : _u("unshared");
+                    JavascriptError::ThrowWebAssemblyLinkErrorVar(ctx, WASMERR_InvalidMemoryType, _u("WebAssembly.Memory"), memType, modType);
                 }
                 env->SetMemory(counter, mem);
             }
@@ -505,7 +511,7 @@ void WebAssemblyInstance::ValidateTableAndMemory(WebAssemblyModule * wasmModule,
         }
         env->SetMemory(0, mem);
     }
-    ArrayBuffer * buffer = mem->GetBuffer();
+    ArrayBufferBase * buffer = mem->GetBuffer();
     if (buffer->IsDetached())
     {
         JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), JSERR_DetachedTypedArray);

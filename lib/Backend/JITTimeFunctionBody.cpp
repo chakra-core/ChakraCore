@@ -276,6 +276,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
 #ifdef ENABLE_WASM
         if (functionBody->IsWasmFunction())
         {
+            jitBody->asmJsData->wasmIsSharedMemory = asmFuncInfo->GetWebAssemblyModule()->IsSharedMemory();
             jitBody->asmJsData->wasmSignatureCount = asmFuncInfo->GetWebAssemblyModule()->GetSignatureCount();
             jitBody->asmJsData->wasmSignaturesBaseAddr = (intptr_t)asmFuncInfo->GetWebAssemblyModule()->GetSignatures();
             jitBody->asmJsData->wasmSignatures = (WasmSignatureIDL*)asmFuncInfo->GetWebAssemblyModule()->GetSignatures();

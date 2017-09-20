@@ -2260,7 +2260,7 @@ LABEL1:
                 return false;
             }
 
-            ArrayBuffer* arrayBuffer = nullptr;
+            ArrayBufferBase* arrayBuffer = nullptr;
             size_t reservationSize = 0;
 #ifdef ENABLE_WASM
             if (isWasmOnly)
@@ -2285,7 +2285,7 @@ LABEL1:
 
             uint bufferLength = arrayBuffer->GetByteLength();
 
-            if (!isWasmOnly && !arrayBuffer->IsValidAsmJsBufferLength(bufferLength))
+            if (!isWasmOnly && !((ArrayBuffer*)arrayBuffer)->IsValidAsmJsBufferLength(bufferLength))
             {
                 return false;
             }

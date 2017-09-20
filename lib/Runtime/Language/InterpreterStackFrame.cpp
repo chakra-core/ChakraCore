@@ -8554,7 +8554,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #ifdef ENABLE_WASM
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
-        WebAssemblyArrayBuffer* arr = GetWebAssemblyMemory()->GetBuffer();
+        ArrayBufferBase* arr = GetWebAssemblyMemory()->GetBuffer();
 
         uint32 byteLength = arr->GetByteLength();
         BYTE* buffer = arr->GetBuffer();
@@ -8580,7 +8580,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(CONFIG_FLAG(WasmThreads));
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
-        WebAssemblyArrayBuffer* arr = GetWebAssemblyMemory()->GetBuffer();
+        ArrayBufferBase* arr = GetWebAssemblyMemory()->GetBuffer();
 
         uint32 byteLength = arr->GetByteLength();
         BYTE* buffer = arr->GetBuffer();
@@ -8608,7 +8608,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(CONFIG_FLAG(WasmThreads));
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
-        WebAssemblyArrayBuffer* arr = GetWebAssemblyMemory()->GetBuffer();
+        ArrayBufferBase* arr = GetWebAssemblyMemory()->GetBuffer();
 
         uint32 byteLength = arr->GetByteLength();
         BYTE* buffer = arr->GetBuffer();
@@ -8663,7 +8663,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #ifdef ENABLE_WASM
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
         const uint64 index = playout->Offset + (uint64)(uint32)GetRegRawInt(playout->SlotIndex);
-        WebAssemblyArrayBuffer* arr = GetWebAssemblyMemory()->GetBuffer();
+        ArrayBufferBase* arr = GetWebAssemblyMemory()->GetBuffer();
 
         uint32 byteLength = arr->GetByteLength();
         BYTE* buffer = arr->GetBuffer();
