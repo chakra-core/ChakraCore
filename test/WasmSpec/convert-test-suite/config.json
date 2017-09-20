@@ -41,7 +41,16 @@
     ]
   }, {
     "required": true,
-    "flags": ["-WasmThreads"],
+    "flags": ["-WasmThreads", "-ESSharedArrayBuffer"],
+    "folders": [
+      "features/threads"
+    ],
+    "files": [
+      "chakra_atomic_load",
+      "chakra_atomic_store"
+    ]
+  }, {
+    "flags": ["-WasmThreads", "-ESSharedArrayBuffer", "-WasmSharedArrayVirtualBuffer-", "-WasmFastArray-"],
     "folders": [
       "features/threads"
     ],

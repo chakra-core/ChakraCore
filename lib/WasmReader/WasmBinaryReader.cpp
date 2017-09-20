@@ -5,23 +5,6 @@
 
 #include "WasmReaderPch.h"
 
-
-namespace Wasm
-{
-namespace Simd
-{
-bool IsEnabled()
-{
-#ifdef ENABLE_WASM_SIMD
-    return CONFIG_FLAG(WasmSimd);
-#else
-    return false;
-#endif
-}
-
-}
-}
-
 #ifdef ENABLE_WASM
 #include "WasmLimits.h"
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -30,96 +13,6 @@ bool IsEnabled()
 
 namespace Wasm
 {
-namespace Simd
-{
-void EnsureSimdIsEnabled()
-{
-    if (!Wasm::Simd::IsEnabled())
-    {
-        throw WasmCompilationException(_u("Wasm.Simd support is not enabled"));
-    }
-}
-}
-
-namespace WasmTypes
-{
-
-bool IsLocalType(WasmTypes::WasmType type)
-{
-    // Check if type in range ]Void,Limit[
-#ifdef ENABLE_WASM_SIMD
-    if (type == WasmTypes::M128 && !Simd::IsEnabled())
-    {
-        return false;
-    }
-#endif
-    return (uint32)(type - 1) < (WasmTypes::Limit - 1);
-}
-
-uint32 GetTypeByteSize(WasmType type)
-{
-    switch (type)
-    {
-    case Void: return sizeof(Js::Var);
-    case I32: return sizeof(int32);
-    case I64: return sizeof(int64);
-    case F32: return sizeof(float);
-    case F64: return sizeof(double);
-#ifdef ENABLE_WASM_SIMD
-    case M128:
-        Simd::EnsureSimdIsEnabled();
-        CompileAssert(sizeof(Simd::simdvec) == 16);
-        return sizeof(Simd::simdvec);
-#endif
-    case Ptr: return sizeof(void*);
-    default:
-        Js::Throw::InternalError();
-    }
-}
-
-const char16 * GetTypeName(WasmType type)
-{
-    switch (type) {
-    case WasmTypes::WasmType::Void: return _u("void");
-    case WasmTypes::WasmType::I32: return _u("i32");
-    case WasmTypes::WasmType::I64: return _u("i64");
-    case WasmTypes::WasmType::F32: return _u("f32");
-    case WasmTypes::WasmType::F64: return _u("f64");
-#ifdef ENABLE_WASM_SIMD
-    case WasmTypes::WasmType::M128: 
-        Simd::EnsureSimdIsEnabled();
-        return _u("m128");
-#endif
-    case WasmTypes::WasmType::Any: return _u("any");
-    default: Assert(UNREACHED); break;
-    }
-    return _u("unknown");
-}
-
-} // namespace WasmTypes
-
-WasmTypes::WasmType LanguageTypes::ToWasmType(int8 binType)
-{
-    switch (binType)
-    {
-    case LanguageTypes::i32: return WasmTypes::I32;
-    case LanguageTypes::i64: return WasmTypes::I64;
-    case LanguageTypes::f32: return WasmTypes::F32;
-    case LanguageTypes::f64: return WasmTypes::F64;
-#ifdef ENABLE_WASM_SIMD
-    case LanguageTypes::m128:
-        Simd::EnsureSimdIsEnabled();
-        return WasmTypes::M128;
-#endif
-    default:
-        throw WasmCompilationException(_u("Invalid binary type %d"), binType);
-    }
-}
-
-bool FunctionIndexTypes::CanBeExported(FunctionIndexTypes::Type funcType)
-{
-    return funcType == FunctionIndexTypes::Function || funcType == FunctionIndexTypes::ImportThunk;
-}
 
 WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule* module, const byte* source, size_t length) :
     m_alloc(alloc),
@@ -831,8 +724,12 @@ void WasmBinaryReader::ReadMemorySection(bool isImportSection)
 
     if (count == 1)
     {
-        SectionLimits limits = ReadSectionLimits(Limits::GetMaxMemoryInitialPages(), Limits::GetMaxMemoryMaximumPages(), _u("memory size too big"));
-        m_module->InitializeMemory(limits.initial, limits.maximum);
+        MemorySectionLimits limits = ReadSectionLimitsBase<MemorySectionLimits>(Limits::GetMaxMemoryInitialPages(), Limits::GetMaxMemoryMaximumPages(), _u("memory size too big"));
+        if (Wasm::Threads::IsEnabled() && limits.IsShared() && !limits.HasMaximum())
+        {
+            ThrowDecodingError(_u("Shared memory must have a maximum size"));
+        }
+        m_module->InitializeMemory(&limits);
     }
 }
 
@@ -1040,8 +937,8 @@ void WasmBinaryReader::ReadTableSection(bool isImportSection)
         {
             ThrowDecodingError(_u("Only anyfunc type is supported. Unknown type %d"), elementType);
         }
-        SectionLimits limits = ReadSectionLimits(Limits::GetMaxTableSize(), Limits::GetMaxTableSize(), _u("table too big"));
-        m_module->InitializeTable(limits.initial, limits.maximum);
+        TableSectionLimits limits = ReadSectionLimitsBase<TableSectionLimits>(Limits::GetMaxTableSize(), Limits::GetMaxTableSize(), _u("table too big"));
+        m_module->InitializeTable(&limits);
         TRACE_WASM_DECODER(_u("Indirect table: %u to %u entries"), limits.initial, limits.maximum);
     }
 }
@@ -1417,14 +1314,15 @@ WasmNode WasmBinaryReader::ReadInitExpr(bool isOffset)
     return node;
 }
 
-SectionLimits WasmBinaryReader::ReadSectionLimits(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg)
+template<typename SectionLimitType>
+SectionLimitType WasmBinaryReader::ReadSectionLimitsBase(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg)
 {
-    SectionLimits limits;
+    SectionLimitType limits;
     uint32 length = 0;
-    uint32 flags = LEB128(length);
+    limits.flags = (SectionLimits::Flags)LEB128(length);
     limits.initial = LEB128(length);
     limits.maximum = maxMaximum;
-    if (flags & 0x1)
+    if (limits.HasMaximum())
     {
         limits.maximum = LEB128(length);
         if (limits.maximum > maxMaximum)

@@ -736,6 +736,7 @@
 
 #if defined(ASMJS_PLAT)
 #define ENABLE_WASM
+#define ENABLE_WASM_THREADS
 #define ENABLE_WASM_SIMD
 
 #ifdef CAN_BUILD_WABT

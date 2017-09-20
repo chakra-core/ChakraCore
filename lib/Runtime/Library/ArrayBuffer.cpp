@@ -804,17 +804,6 @@ namespace Js
         /* See JavascriptArrayBuffer::Finalize */
     }
 
-    // Same as realloc but zero newly allocated portion if newSize > oldSize
-    static BYTE* ReallocZero(BYTE* ptr, size_t oldSize, size_t newSize)
-    {
-        BYTE* ptrNew = (BYTE*)realloc(ptr, newSize);
-        if (ptrNew && newSize > oldSize)
-        {
-            ZeroMemory(ptrNew + oldSize, newSize - oldSize);
-        }
-        return ptrNew;
-    }
-
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType JavascriptArrayBuffer::GetSnapTag_TTD() const
     {
@@ -840,6 +829,17 @@ namespace Js
     }
 #endif
 
+#ifdef ENABLE_WASM
+    // Same as realloc but zero newly allocated portion if newSize > oldSize
+    static BYTE* ReallocZero(BYTE* ptr, size_t oldSize, size_t newSize)
+    {
+        BYTE* ptrNew = (BYTE*)realloc(ptr, newSize);
+        if (ptrNew && newSize > oldSize)
+        {
+            ZeroMemory(ptrNew + oldSize, newSize - oldSize);
+        }
+        return ptrNew;
+    }
 
     template<typename Allocator>
     Js::WebAssemblyArrayBuffer::WebAssemblyArrayBuffer(uint32 length, DynamicType * type, Allocator allocator):
@@ -996,6 +996,7 @@ namespace Js
             return newArrayBuffer;
         }
     }
+#endif
 
     ProjectionArrayBuffer::ProjectionArrayBuffer(uint32 length, DynamicType * type) :
         ArrayBuffer(length, type, CoTaskMemAlloc)

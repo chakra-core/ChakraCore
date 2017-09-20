@@ -1,11 +1,13 @@
 (module
-  ;; todo make this a shared memory
-  (memory 1)
+  (memory 1 3 shared)
   (data (i32.const 16) "\ff\ff\ff\ff\ff\ff\ff\ff")
   (data (i32.const 24) "\12\34\56\78\00\00\ce\41")
 
   (func (export "load") (param i32) (result i64)
     (i64.atomic.load32_u offset=15 (get_local 0))
+  )
+  (func (export "grow") (param i32) (result i32)
+    (grow_memory (get_local 0))
   )
 )
 
@@ -27,3 +29,9 @@
 
 (assert_return (invoke "load" (i32.const 65517)) (i64.const 0))
 (assert_trap (invoke "load" (i32.const 65521)) "out of bounds memory access")
+
+(assert_return (invoke "grow" (i32.const 1)) (i32.const 1))
+(assert_return (invoke "grow" (i32.const 1)) (i32.const 2))
+(assert_return (invoke "grow" (i32.const 1)) (i32.const -1))
+
+(assert_return (invoke "load" (i32.const 65521)) (i64.const 0))

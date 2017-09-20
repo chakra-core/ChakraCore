@@ -1,6 +1,5 @@
 (module
-  ;; todo make this a shared memory
-  (memory 1)
+  (memory 1 1 shared)
   (data (i32.const 0) "\ff\ff\ff\ff")
   (data (i32.const 4) "\00\00\ce\41")
   (data (i32.const 8) "\00\00\00\00\00\ff\8f\40")

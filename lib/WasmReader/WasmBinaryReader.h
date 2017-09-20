@@ -30,12 +30,6 @@ namespace Wasm
         const char16* name;
     };
 
-    struct SectionLimits
-    {
-        uint32 initial;
-        uint32 maximum;
-    };
-
     struct BinaryLocation
     {
         intptr_t offset;
@@ -117,7 +111,8 @@ namespace Wasm
             return LEB128<LEBType, bits>(length);
         }
         WasmNode ReadInitExpr(bool isOffset = false);
-        SectionLimits ReadSectionLimits(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg);
+        template<typename SectionLimitType>
+        SectionLimitType ReadSectionLimitsBase(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg);
 
         void CheckBytesLeft(uint32 bytesNeeded);
         bool EndOfFunc();
