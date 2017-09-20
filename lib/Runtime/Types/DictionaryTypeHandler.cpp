@@ -2910,31 +2910,36 @@ namespace Js
 #endif
 
 #if DBG_DUMP
-	template<typename T> void DictionaryTypeHandlerBase<T>::Dump() const {
-        Output::Print(_u("DictionaryTypeHandlerBase (0x%p):\n"), this);
+	template<typename T> void DictionaryTypeHandlerBase<T>::Dump(unsigned indent) const {
+        const auto padding(_u(""));
+        const unsigned fieldIndent(indent + 2);
+        const unsigned mapLabelIndent(indent + 4);
+        const unsigned mapValueIndent(indent + 6);
+
+        Output::Print(_u("%*sDictionaryTypeHandlerBase (0x%p):\n"), indent, padding, this);
         if (this->propertyMap == nullptr)
         {
-            Output::Print(_u("  propertyMap: null\n"));
+            Output::Print(_u("%*spropertyMap: null\n"), fieldIndent, padding);
         }
         else
         {
-            Output::Print(_u("  propertyMap: 0x%p\n"), this->propertyMap);
+            Output::Print(_u("%*spropertyMap: 0x%p\n"), fieldIndent, padding, this->propertyMap);
             for (auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
             {
-                Output::Print(_u("    Key:\n"));
+                Output::Print(_u("%*sKey:\n"), mapLabelIndent, padding);
                 if (iter.CurrentKey() == nullptr)
                 {
-                    Output::Print(_u("      <null>\n"));
+                    Output::Print(_u("%*s<null>\n"), mapValueIndent, padding);
                 }
                 else
                 {
-                    iter.CurrentKey()->Dump(6);
+                    iter.CurrentKey()->Dump(mapValueIndent);
                 }
-                Output::Print(_u("    Value\n"));
-                iter.CurrentValue().Dump(6);
+                Output::Print(_u("%*sValue\n"), mapLabelIndent, padding);
+                iter.CurrentValue().Dump(mapValueIndent);
             }
         }
-        Output::Print(_u("  nextPropertyIndex: %d\n"), static_cast<int32>(this->nextPropertyIndex));
+        Output::Print(_u("%*snextPropertyIndex: %d\n"), fieldIndent, padding, static_cast<int32>(this->nextPropertyIndex));
     }
 
 #endif
