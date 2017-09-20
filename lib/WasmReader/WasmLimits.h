@@ -29,22 +29,22 @@ namespace Wasm {
         static const uint32 MaxFunctionSize = 128 * 1024;
     public:
         // Use accessors to easily switch to config flags if needed
-        static uint32 GetMaxTypes() { return MaxTypes; }
-        static uint32 GetMaxFunctions() { return MaxFunctions; }
-        static uint32 GetMaxImports() { return MaxImports; }
-        static uint32 GetMaxExports() { return MaxExports; }
-        static uint32 GetMaxGlobals() { return MaxGlobals; }
-        static uint32 GetMaxDataSegments() { return MaxDataSegments; }
-        static uint32 GetMaxElementSegments() { return MaxElementSegments; }
-        static uint32 GetMaxTableSize() { return CONFIG_FLAG(WasmMaxTableSize); }
-        static uint32 GetMaxStringSize() { return MaxStringSize; }
-        static uint32 GetMaxFunctionLocals() { return MaxFunctionLocals; }
-        static uint32 GetMaxFunctionParams() { return MaxFunctionParams; }
-        static uint64 GetMaxBrTableElems() { return MaxBrTableElems; }
-        static uint32 GetMaxMemoryInitialPages() { return MaxMemoryInitialPages; }
-        static uint32 GetMaxMemoryMaximumPages() { return MaxMemoryMaximumPages; }
-        static uint32 GetMaxModuleSize() { return MaxModuleSize; }
-        static uint32 GetMaxFunctionSize() { return MaxFunctionSize; }
+        static uint32 GetMaxTypes() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxTypes; }
+        static uint32 GetMaxFunctions() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxFunctions; }
+        static uint32 GetMaxImports() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxImports; }
+        static uint32 GetMaxExports() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxExports; }
+        static uint32 GetMaxGlobals() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxGlobals; }
+        static uint32 GetMaxDataSegments() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxDataSegments; }
+        static uint32 GetMaxElementSegments() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxElementSegments; }
+        static uint32 GetMaxTableSize() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : CONFIG_FLAG(WasmMaxTableSize); }
+        static uint32 GetMaxStringSize() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxStringSize; }
+        static uint32 GetMaxFunctionLocals() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxFunctionLocals; }
+        static uint32 GetMaxFunctionParams() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxFunctionParams; }
+        static uint64 GetMaxBrTableElems() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxBrTableElems; }
+        static uint32 GetMaxMemoryInitialPages() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxMemoryInitialPages; }
+        static uint32 GetMaxMemoryMaximumPages() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxMemoryMaximumPages; }
+        static uint32 GetMaxModuleSize() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxModuleSize; }
+        static uint32 GetMaxFunctionSize() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxFunctionSize; }
     };
 }
 #endif
