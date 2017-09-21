@@ -6530,8 +6530,6 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             if (propertySym->m_fieldKind == PropertyKindLocalSlots || propertySym->m_fieldKind == PropertyKindSlots)
             {
                 BOOLEAN isPropertySymUsed = !block->slotDeadStoreCandidates->TestAndSet(propertySym->m_id);
-                // we should not do any dead slots in asmjs loop body
-                Assert(!(this->func->GetJITFunctionBody()->IsAsmJsMode() && this->func->IsLoopBody() && !isPropertySymUsed));
                 Assert(isPropertySymUsed || !block->upwardExposedUses->Test(propertySym->m_id));
 
                 isUsed = isPropertySymUsed || block->upwardExposedUses->Test(propertySym->m_stackSym->m_id);
