@@ -53,7 +53,7 @@
         $(IntDir)..\CoreManifests;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(IcuIncludeDir)'!=''">
+      <AdditionalIncludeDirectories Condition="'$(IntlICU)'=='true'">
         $(IcuIncludeDir)\common;
         $(IcuIncludeDir)\i18n;
         %(AdditionalIncludeDirectories)
