@@ -56,7 +56,8 @@ namespace Wasm
         virtual void SeekToFunctionBody(class WasmFunctionInfo* funcInfo) override;
         virtual bool IsCurrentFunctionCompleted() const override;
 
-        WasmOp ReadOpCode(); //@TODO might need to be moved into WasmReaderBase
+        WasmOp ReadPrefixedOpCode(WasmOp prefix, bool isSupported, const char16* notSupportedMsg);
+        WasmOp ReadOpCode();
         virtual WasmOp ReadExpr() override;
         virtual void FunctionEnd() override;
         virtual const uint32 EstimateCurrentFunctionBytecodeSize() const override;

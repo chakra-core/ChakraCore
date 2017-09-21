@@ -5,8 +5,8 @@
 
 /* global assert,testRunner */ // eslint rule
 WScript.LoadScriptFile("../UnitTestFrameWork/UnitTestFrameWork.js");
-WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-constants.js");
-WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-module-builder.js");
+WScript.LoadScriptFile("../WasmSpec/testsuite/harness/wasm-constants.js");
+WScript.LoadScriptFile("../WasmSpec/testsuite/harness/wasm-module-builder.js");
 WScript.Flag("-off:wasmdeferred");
 
 function makeReservedTest(name, body, msg) {
