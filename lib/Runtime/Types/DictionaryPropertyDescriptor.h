@@ -298,7 +298,7 @@ namespace Js
         Output::Print(_u("%*sIsFixed: %d\n"), fieldIndent, padding, this->IsFixed);
         Output::Print(_u("%*sUsedAsFixed: %d\n"), fieldIndent, padding, this->UsedAsFixed);
 #endif
-        Output::Print(_u("%*sAttributes: %#02x "), fieldIndent, padding, this->Attributes);
+        Output::Print(_u("%*sAttributes: 0x%02x "), fieldIndent, padding, this->Attributes);
         if (this->Attributes != PropertyNone)
         {
             if (this->Attributes & PropertyEnumerable) Output::Print(_u("PropertyEnumerable "));

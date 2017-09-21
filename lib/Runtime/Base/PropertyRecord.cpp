@@ -142,7 +142,7 @@ namespace Js
 
         Output::Print(_u("%*sPropertyRecord (0x%p):\n"), indent, padding, this);
         Output::Print(_u("%*spid: %d\n"), fieldIndent, padding, this->pid);
-        Output::Print(_u("%*shash: %#08x\n"), fieldIndent, padding, this->hash);
+        Output::Print(_u("%*shash: 0x%08x\n"), fieldIndent, padding, this->hash);
         Output::Print(_u("%*sisNumeric: %d\n"), fieldIndent, padding, this->isNumeric);
         Output::Print(_u("%*sIsBound: %d\n"), fieldIndent, padding, this->isBound);
         Output::Print(_u("%*sIsSymbol: %d\n"), fieldIndent, padding, this->isSymbol);
