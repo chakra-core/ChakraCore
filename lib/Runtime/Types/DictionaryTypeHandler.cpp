@@ -2923,7 +2923,7 @@ namespace Js
         }
         else
         {
-            Output::Print(_u("%*spropertyMap: 0x%p\n"), fieldIndent, padding, this->propertyMap);
+            Output::Print(_u("%*spropertyMap: 0x%p\n"), fieldIndent, padding, static_cast<void*>(this->propertyMap));
             for (auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
             {
                 Output::Print(_u("%*sKey:\n"), mapLabelIndent, padding);
