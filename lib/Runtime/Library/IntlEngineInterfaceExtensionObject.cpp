@@ -723,21 +723,13 @@ namespace Js
 
         if (
 #if defined(INTL_WINGLOB)
-            // XPLAT-TODO (doilij): Implement this in PlatformAgnostic
             GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
 #else
             IcuIntlAdapter::GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
 #endif
             || defaultLocale[0] == '\0')
         {
-#if defined(INTL_WINGLOB)
             return scriptContext->GetLibrary()->GetUndefined();
-#else
-#ifdef INTL_ICU_DEBUG
-            Output::Print(_u("EntryIntl_GetDefaultLocale > IcuIntlAdapter::GetUserDefaultLocaleName returned 0: returning null to fallback to JS\n"));
-#endif
-            return scriptContext->GetLibrary()->GetNull();
-#endif
         }
 
         return JavascriptString::NewCopySz(defaultLocale, scriptContext);
