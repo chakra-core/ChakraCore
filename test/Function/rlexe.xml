@@ -189,7 +189,7 @@
   </test>
   <test>
     <default>
-      <files>deferredStubOob.js</files>
+      <files>deferredstuboob.js</files>
       <compile-flags>-force:deferparse -pageheap:2</compile-flags>
     </default>
   </test>

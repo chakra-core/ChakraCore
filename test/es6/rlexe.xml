@@ -730,7 +730,7 @@
   </test>
   <test>
     <default>
-      <files>proxycall.js</files>
+      <files>ProxyCall.js</files>
     </default>
   </test>
   <test>
