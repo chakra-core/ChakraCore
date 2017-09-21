@@ -653,8 +653,10 @@ namespace Js
         ScriptContext* scriptContext = func->GetScriptContext();
         if (scriptContext->GetThreadContext()->HasPreviousHostScriptContext())
         {
-            ScriptContext* requestContext = scriptContext->GetThreadContext()->GetPreviousHostScriptContext()->GetScriptContext();
-            func = JavascriptFunction::FromVar(CrossSite::MarshalVar(requestContext, func));
+            ScriptContext* requestContext = scriptContext->GetThreadContext()->
+              GetPreviousHostScriptContext()->GetScriptContext();
+            func = JavascriptFunction::FromVar(CrossSite::MarshalVar(requestContext,
+              func, scriptContext));
         }
         return func->CallRootFunction(args, scriptContext, true);
     }
@@ -2821,7 +2823,7 @@ LABEL1:
             }
             else
             {
-                *value = CrossSite::MarshalVar(requestContext, funcCaller);
+                *value = CrossSite::MarshalVar(requestContext, funcCaller, funcCaller->GetScriptContext());
             }
         }
 

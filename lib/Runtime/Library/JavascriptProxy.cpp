@@ -588,7 +588,7 @@ namespace Js
         }
         return FALSE;
     }
-  
+
     BOOL JavascriptProxy::GetAccessors(PropertyId propertyId, __out Var* getter, __out Var* setter, ScriptContext * requestContext)
     {
         PropertyDescriptor result;
@@ -681,7 +681,7 @@ namespace Js
         }
         else
         {
-            // ES2017 Spec'ed (9.1.9.1): 
+            // ES2017 Spec'ed (9.1.9.1):
             // If existingDescriptor is not undefined, then
             //    If IsAccessorDescriptor(existingDescriptor) is true, return false.
             //    If existingDescriptor.[[Writable]] is false, return false.
@@ -1031,7 +1031,8 @@ namespace Js
                                 // if (desc.enumerable) yield key;
                                 if (desc.IsEnumerable())
                                 {
-                                    return JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext, propertyName));
+                                    return JavascriptString::FromVar(CrossSite::MarshalVar(
+                                      scriptContext, propertyName, propertyName->GetScriptContext()));
                                 }
                             }
                         }
@@ -1975,9 +1976,10 @@ namespace Js
             JavascriptError::ThrowTypeError(requestContext, JSERR_NeedFunction, requestContext->GetPropertyName(methodId)->GetBuffer());
         }
 
-        varMethod = CrossSite::MarshalVar(requestContext, varMethod);
+        JavascriptFunction* function = JavascriptFunction::FromVar(varMethod);
 
-        return JavascriptFunction::FromVar(varMethod);
+        return JavascriptFunction::FromVar(CrossSite::MarshalVar(requestContext,
+          function, function->GetScriptContext()));
     }
 
     Var JavascriptProxy::GetValueFromDescriptor(Var instance, PropertyDescriptor propertyDescriptor, ScriptContext* requestContext)
