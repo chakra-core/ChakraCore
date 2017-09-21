@@ -310,9 +310,9 @@ void WasmBinaryReader::PrintOps()
     {
         switch (ops[i])
         {
-#define WASM_OPCODE(opname, opcode, sig, nyi) \
+#define WASM_OPCODE(opname, opcode, sig, imp, wat) \
     case opcode: \
-        Output::Print(_u("%s\r\n"), _u(#opname)); \
+        Output::Print(_u("%s: %s\r\n"), _u(#opname), _u(wat)); \
         break;
 #include "WasmBinaryOpCodes.h"
         }
@@ -438,33 +438,38 @@ const uint32 WasmBinaryReader::EstimateCurrentFunctionBytecodeSize() const
     return m_funcState.size;
 }
 
+WasmOp WasmBinaryReader::ReadPrefixedOpCode(WasmOp prefix, bool isSupported, const char16* notSupportedMsg)
+{
+    CompileAssert(sizeof(WasmOp) >= 2);
+    if (!isSupported)
+    {
+        ThrowDecodingError(notSupportedMsg);
+    }
+    CheckBytesLeft(1);
+    ++m_funcState.count;
+    return (WasmOp)((prefix << 8) | (*m_pc++));
+}
+
 WasmOp WasmBinaryReader::ReadOpCode()
 {
     CheckBytesLeft(1);
-    WasmOp op = m_currentNode.op = (WasmOp)*m_pc++;
+    WasmOp op = (WasmOp)*m_pc++;
     ++m_funcState.count;
 
-#ifdef ENABLE_WASM_SIMD
-    if (op == wbSimdStart)
+    switch (op)
     {
-        if (!Wasm::Simd::IsEnabled())
-        {
-            ThrowDecodingError(_u("WebAssembly SIMD support is not enabled"));
-        }
-
-        uint32 len;
-        uint32 extOpCode = LEB128(len) + wbM128Const;
-        Assert((WasmOp)(extOpCode) == extOpCode);
-        op = (WasmOp)extOpCode;
-        m_funcState.count += len;
+#define WASM_PREFIX(name, value, imp, errorMsg) \
+    case prefix##name: \
+        return ReadPrefixedOpCode(op, imp, _u(errorMsg));
+#include "WasmBinaryOpCodes.h"
     }
-#endif
+
     return op;
 }
 
 WasmOp WasmBinaryReader::ReadExpr()
 {
-    WasmOp op = ReadOpCode();
+    WasmOp op = m_currentNode.op = ReadOpCode();
 
     if (EndOfFunc())
     {
@@ -549,12 +554,12 @@ WasmOp WasmBinaryReader::ReadExpr()
     case wbV8X16Shuffle:
         ShuffleNode();
         break;
-#define WASM_LANE_OPCODE(opname, opcode, sig, nyi) \
+#define WASM_LANE_OPCODE(opname, ...) \
     case wb##opname: \
         LaneNode(); \
         break;
 #endif
-#define WASM_MEM_OPCODE(opname, opcode, sig, nyi) \
+#define WASM_MEM_OPCODE(opname, ...) \
     case wb##opname: \
         MemNode(); \
         break;

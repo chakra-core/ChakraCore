@@ -398,4 +398,9 @@
     <tags>exclude_win7,exclude_xplat</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>tracing_regress.js</files>
+  </default>
+</test>
 </regress-exe>
