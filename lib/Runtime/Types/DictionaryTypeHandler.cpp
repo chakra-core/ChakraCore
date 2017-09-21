@@ -2910,7 +2910,7 @@ namespace Js
 #endif
 
 #if DBG_DUMP
-	template<typename T> void DictionaryTypeHandlerBase<T>::Dump(unsigned indent) const {
+    template<typename T> void DictionaryTypeHandlerBase<T>::Dump(unsigned indent) const {
         const auto padding(_u(""));
         const unsigned fieldIndent(indent + 2);
         const unsigned mapLabelIndent(indent + 4);

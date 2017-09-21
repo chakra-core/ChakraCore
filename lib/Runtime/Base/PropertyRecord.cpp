@@ -135,7 +135,7 @@ namespace Js
     }
 
 #if DBG_DUMP
-	void PropertyRecord::Dump(unsigned indent) const
+    void PropertyRecord::Dump(unsigned indent) const
     {
         const auto padding(_u(""));
         const unsigned fieldIndent(indent + 2);
