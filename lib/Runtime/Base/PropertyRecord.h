@@ -100,6 +100,11 @@ namespace Js
         }
 
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
+
+#if DBG_DUMP
+    public:
+        void Dump(unsigned indent = 0) const;
+#endif
     };
 
     // This struct maps to the layout of runtime allocated PropertyRecord. Used for creating built-in PropertyRecords statically.

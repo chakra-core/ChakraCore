@@ -134,6 +134,22 @@ namespace Js
         }
     }
 
+#if DBG_DUMP
+    void PropertyRecord::Dump(unsigned indent) const
+    {
+        const auto padding(_u(""));
+        const unsigned fieldIndent(indent + 2);
+
+        Output::Print(_u("%*sPropertyRecord (0x%p):\n"), indent, padding, this);
+        Output::Print(_u("%*spid: %d\n"), fieldIndent, padding, this->pid);
+        Output::Print(_u("%*shash: 0x%08x\n"), fieldIndent, padding, this->hash);
+        Output::Print(_u("%*sisNumeric: %d\n"), fieldIndent, padding, this->isNumeric);
+        Output::Print(_u("%*sIsBound: %d\n"), fieldIndent, padding, this->isBound);
+        Output::Print(_u("%*sIsSymbol: %d\n"), fieldIndent, padding, this->isSymbol);
+        Output::Print(_u("%*sbyteCount: %u\n"), fieldIndent, padding, this->byteCount);
+    }
+#endif
+
     // Initialize all BuiltIn property records
     const BuiltInPropertyRecord<1> BuiltInPropertyRecords::EMPTY = { PropertyRecord(PropertyIds::_none, 0, false, 0, false), _u("") };
 #define ENTRY_INTERNAL_SYMBOL(n) const BuiltInPropertyRecord<ARRAYSIZE(_u("<") _u(#n) _u(">"))> BuiltInPropertyRecords::n = { PropertyRecord(PropertyIds::n, (uint)PropertyIds::n, false, (ARRAYSIZE(_u("<") _u(#n) _u(">")) - 1) * sizeof(char16), true), _u("<") _u(#n) _u(">") };

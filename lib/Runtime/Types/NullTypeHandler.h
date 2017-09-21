@@ -108,5 +108,9 @@ namespace Js
             return 0;
         }
 #endif
+#if DBG_DUMP
+    public:
+        void Dump(unsigned indent = 0) const override;
+#endif
     };
 }

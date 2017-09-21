@@ -2909,6 +2909,42 @@ namespace Js
     }
 #endif
 
+#if DBG_DUMP
+    template<typename T> void DictionaryTypeHandlerBase<T>::Dump(unsigned indent) const {
+        const auto padding(_u(""));
+        const unsigned fieldIndent(indent + 2);
+        const unsigned mapLabelIndent(indent + 4);
+        const unsigned mapValueIndent(indent + 6);
+
+        Output::Print(_u("%*sDictionaryTypeHandlerBase (0x%p):\n"), indent, padding, this);
+        DynamicTypeHandler::Dump(indent + 2);
+        if (this->propertyMap == nullptr)
+        {
+            Output::Print(_u("%*spropertyMap: <null>\n"), fieldIndent, padding);
+        }
+        else
+        {
+            Output::Print(_u("%*spropertyMap: 0x%p\n"), fieldIndent, padding, static_cast<void*>(this->propertyMap));
+            this->propertyMap->Map([&](const PropertyRecord *key, const DictionaryPropertyDescriptor<T> &value)
+            {
+                Output::Print(_u("%*sKey:\n"), mapLabelIndent, padding);
+                if (key == nullptr)
+                {
+                    Output::Print(_u("%*s<null>\n"), mapValueIndent, padding);
+                }
+                else
+                {
+                    key->Dump(mapValueIndent);
+                }
+                Output::Print(_u("%*sValue\n"), mapLabelIndent, padding);
+                value.Dump(mapValueIndent);
+            });
+        }
+        Output::Print(_u("%*snextPropertyIndex: %d\n"), fieldIndent, padding, static_cast<int32>(this->nextPropertyIndex));
+    }
+
+#endif
+
     template class DictionaryTypeHandlerBase<PropertyIndex>;
     template class DictionaryTypeHandlerBase<BigPropertyIndex>;
 

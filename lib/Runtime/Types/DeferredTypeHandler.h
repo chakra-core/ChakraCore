@@ -144,6 +144,13 @@ namespace Js
 
         bool EnsureObjectReady(DynamicObject* instance, DeferredInitializeMode mode);
         virtual BOOL FreezeImpl(DynamicObject *instance, bool isConvertedType) override;
+#if DBG_DUMP
+    public:
+        void Dump(unsigned indent = 0) const override
+        {
+            Output::Print(_u("%*sDeferredTypeHandler (0x%p): Dump unimplemented\n"), indent, _u(""), this);
+        }
+#endif
     };
 
     template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
