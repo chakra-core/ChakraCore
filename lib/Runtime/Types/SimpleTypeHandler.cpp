@@ -1139,7 +1139,7 @@ namespace Js
 #endif
 
 #if DBG_DUMP
-	template<size_t size>
+    template<size_t size>
     void SimpleTypeHandler<size>::Dump(unsigned indent) const
     {
         Output::Print(_u("%*sSimpleTypeHandler<%u> (0x%p): Dump unimplemented\n"), indent, _u(""), size, this);

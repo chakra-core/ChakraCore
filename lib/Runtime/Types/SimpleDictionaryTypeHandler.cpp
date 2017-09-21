@@ -3434,7 +3434,7 @@ namespace Js
 #endif
 
 #if DBG_DUMP
-	template<typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    template<typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     void SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::Dump(unsigned indent) const
     {
         Output::Print(_u("%*sSimpleDictionaryTypeHandlerBase (0x%p): Dump unimplemented"), indent, _u(""), this);
