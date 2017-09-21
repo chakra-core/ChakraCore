@@ -55,6 +55,13 @@ namespace Js
         Field(int) validPropStrings;
     };
 
+    struct ObjectCreateTypeCache
+    {
+        static const uint MaxCachedTypes = 32;
+        Field(RecyclerWeakReference<RecyclableObject>*) prototype;
+        Field(RecyclerWeakReference<DynamicType>*) type;
+    };
+
     struct PropertyStringMap
     {
         Field(PropertyString*) strLen2[80];
@@ -71,6 +78,7 @@ namespace Js
         Field(PropertyStringMap*) propertyStrings[80];
         Field(JavascriptString *) lastNumberToStringRadix10String;
         Field(EnumeratedObjectCache) enumObjCache;
+        Field(ObjectCreateTypeCache) objectCreateTypeCache[ObjectCreateTypeCache::MaxCachedTypes];
         Field(JavascriptString *) lastUtcTimeFromStrString;
         Field(EvalCacheDictionary*) evalCacheDictionary;
         Field(EvalCacheDictionary*) indirectEvalCacheDictionary;
@@ -360,6 +368,7 @@ namespace Js
         Field(DynamicType *) numberTypeDynamic;
         Field(DynamicType *) objectTypes[PreInitializedObjectTypeCount];
         Field(DynamicType *) objectHeaderInlinedTypes[PreInitializedObjectTypeCount];
+        Field(DynamicType *) nullPrototypeObjectType;
         Field(DynamicType *) regexPrototypeType;
         Field(DynamicType *) regexType;
         Field(DynamicType *) regexResultType;
@@ -813,6 +822,8 @@ namespace Js
         DynamicType * GetObjectLiteralType(uint16 requestedInlineSlotCapacity);
         DynamicType * GetObjectHeaderInlinedLiteralType(uint16 requestedInlineSlotCapacity);
         DynamicType * GetObjectType() const { return objectTypes[0]; }
+        DynamicType * GetNullPrototypeObjectType() const { return nullPrototypeObjectType; }
+        DynamicType * GetObjectCreateType(_In_ RecyclableObject* prototype);
         DynamicType * GetObjectHeaderInlinedType() const { return objectHeaderInlinedTypes[0]; }
         StaticType  * GetSymbolTypeStatic() const { return symbolTypeStatic; }
         DynamicType * GetSymbolTypeDynamic() const { return symbolTypeDynamic; }

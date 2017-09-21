@@ -653,6 +653,10 @@ namespace Js
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr, typeHandler, true, true);
         }
 
+        SimplePathTypeHandler * typeHandler = SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, sizeof(DynamicObject), true, true);
+        typeHandler->SetIsInlineSlotCapacityLocked();
+        nullPrototypeObjectType = DynamicType::New(scriptContext, TypeIds_Object, nullValue, nullptr, typeHandler, true, true);
+
         // Initialize regex types
         TypePath *const regexResultPath = TypePath::New(recycler);
         regexResultPath->Add(BuiltInPropertyRecords::input);
@@ -7271,6 +7275,58 @@ namespace Js
         return BuiltinFunction::None;
     }
 #endif
+
+    // Finds or creates a shareable DynamicType for Object.create
+    DynamicType* JavascriptLibrary::GetObjectCreateType(_In_ RecyclableObject* prototype)
+    {
+        // If prototype is Object.prototype, we can use our normal Object Type
+        if (this->GetObjectPrototype() == prototype)
+        {
+            return GetObjectType();
+        }
+
+        // Object.create(null) is a common case, so we can keep a Type especially for this
+        if (JavascriptOperators::IsNull(prototype))
+        {
+            return this->GetNullPrototypeObjectType();
+        }
+
+        // If prototype is some other object, check our cache see if we already have a Type available
+
+        // For fast lookup, cache index is a function of prototype address
+        const uint cacheIndex = (uint)(((uintptr_t)prototype) >> PolymorphicInlineCacheShift) & (ObjectCreateTypeCache::MaxCachedTypes - 1);
+
+        RecyclerWeakReference<RecyclableObject>* cachedWeakProto = this->cache.objectCreateTypeCache[cacheIndex].prototype;
+
+        // Check for nullptr, because the cache will not have a weak ref yet if this is first access
+        if (cachedWeakProto != nullptr)
+        {
+            Assert(this->cache.objectCreateTypeCache[cacheIndex].type != nullptr);
+
+            DynamicType* cachedType = this->cache.objectCreateTypeCache[cacheIndex].type->Get();
+            RecyclableObject* cachedProto = cachedWeakProto->Get();
+
+            // We can use cache if the prototypes match and the Type hasn't been collected
+            if (cachedProto == prototype && cachedType != nullptr)
+            {
+                return cachedType;
+            }
+        }
+
+        // If we didn't already have a Type in our cache, we need to create a new one
+
+        SimplePathTypeHandler* typeHandler = SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, sizeof(DynamicObject), true, true);
+        typeHandler->SetIsInlineSlotCapacityLocked();
+        DynamicType* newType = DynamicType::New(scriptContext, TypeIds_Object, prototype, nullptr, typeHandler, true, true);
+
+        // Store the Type and prototype as weak references to avoid unnecessarily extending their lifetimes
+        RecyclerWeakReference<RecyclableObject> *  newWeakProtoHandle = this->GetRecycler()->CreateWeakReferenceHandle(prototype);
+        RecyclerWeakReference<DynamicType> * newWeakTypeHandle = this->GetRecycler()->CreateWeakReferenceHandle(newType);
+
+        this->cache.objectCreateTypeCache[cacheIndex].prototype = newWeakProtoHandle;
+        this->cache.objectCreateTypeCache[cacheIndex].type = newWeakTypeHandle;
+        return newType;
+    }
 
     // Parses given flags and arg kind (dst or src1, or src2) returns the type the arg must be type-specialized to.
     // static
