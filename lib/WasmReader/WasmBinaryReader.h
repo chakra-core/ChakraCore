@@ -69,6 +69,7 @@ namespace Wasm
             uint32 count; // current entry
             uint32 size;  // binary size of the function
         };
+        WasmOp ReadPrefixedOpCode(WasmOp prefix, bool isSupported, const char16* notSupportedMsg);
         WasmOp ReadOpCode();
 
         void BlockNode();

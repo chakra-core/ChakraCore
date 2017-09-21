@@ -70,6 +70,7 @@ namespace ChakraWabt
         struct
         {
             bool sign_extends : 1;
+            bool threads : 1;
         } features;
     };
 

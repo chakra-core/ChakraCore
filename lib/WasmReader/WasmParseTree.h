@@ -65,9 +65,11 @@ namespace Wasm
 #include "WasmBinaryOpCodes.h"
     };
 
-    enum WasmOp : byte
+    enum WasmOp : ushort
     {
-#define WASM_OPCODE(opname, opcode, sig, nyi) wb##opname = opcode,
+#define WASM_OPCODE(opname, opcode, ...) wb##opname = opcode,
+// Add prefix to the enum to get a compiler error if there is a collision between operators and prefixes
+#define WASM_PREFIX(name, value, ...) prefix##name = value,
 #include "WasmBinaryOpCodes.h"
     };
 

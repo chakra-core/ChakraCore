@@ -262,9 +262,9 @@ void WasmBinaryReader::PrintOps()
     {
         switch (ops[i])
         {
-#define WASM_OPCODE(opname, opcode, sig, nyi) \
+#define WASM_OPCODE(opname, opcode, sig, imp, wat) \
     case opcode: \
-        Output::Print(_u("%s\r\n"), _u(#opname)); \
+        Output::Print(_u("%s: %s\r\n"), _u(#opname), _u(wat)); \
         break;
 #include "WasmBinaryOpCodes.h"
         }
@@ -380,18 +380,38 @@ bool WasmBinaryReader::IsCurrentFunctionCompleted() const
     return m_pc == m_curFuncEnd;
 }
 
+WasmOp WasmBinaryReader::ReadPrefixedOpCode(WasmOp prefix, bool isSupported, const char16* notSupportedMsg)
+{
+    CompileAssert(sizeof(WasmOp) >= 2);
+    if (!isSupported)
+    {
+        ThrowDecodingError(notSupportedMsg);
+    }
+    CheckBytesLeft(1);
+    ++m_funcState.count;
+    return (WasmOp)((prefix << 8) | (*m_pc++));
+}
+
 WasmOp WasmBinaryReader::ReadOpCode()
 {
     CheckBytesLeft(1);
-    WasmOp op = m_currentNode.op = (WasmOp)*m_pc++;
+    WasmOp op = (WasmOp)*m_pc++;
     ++m_funcState.count;
+
+    switch (op)
+    {
+#define WASM_PREFIX(name, value, imp, errorMsg) \
+    case prefix##name: \
+        return ReadPrefixedOpCode(op, imp, _u(errorMsg));
+#include "WasmBinaryOpcodes.h"
+    }
 
     return op;
 }
 
 WasmOp WasmBinaryReader::ReadExpr()
 {
-    WasmOp op = ReadOpCode();
+    WasmOp op = m_currentNode.op = ReadOpCode();
 
     if (EndOfFunc())
     {
@@ -467,7 +487,7 @@ WasmOp WasmBinaryReader::ReadExpr()
         }
         break;
     }
-#define WASM_MEM_OPCODE(opname, opcode, sig, nyi) \
+#define WASM_MEM_OPCODE(opname, ...) \
     case wb##opname: \
         MemNode(); \
     break;
