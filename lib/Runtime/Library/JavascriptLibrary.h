@@ -360,6 +360,7 @@ namespace Js
         Field(DynamicType *) numberTypeDynamic;
         Field(DynamicType *) objectTypes[PreInitializedObjectTypeCount];
         Field(DynamicType *) objectHeaderInlinedTypes[PreInitializedObjectTypeCount];
+        Field(DynamicType *) nullPrototypeObjectType;
         Field(DynamicType *) regexPrototypeType;
         Field(DynamicType *) regexType;
         Field(DynamicType *) regexResultType;
@@ -813,6 +814,7 @@ namespace Js
         DynamicType * GetObjectLiteralType(uint16 requestedInlineSlotCapacity);
         DynamicType * GetObjectHeaderInlinedLiteralType(uint16 requestedInlineSlotCapacity);
         DynamicType * GetObjectType() const { return objectTypes[0]; }
+        DynamicType * GetNullPrototypeObjectType() const { return nullPrototypeObjectType; }
         DynamicType * GetObjectHeaderInlinedType() const { return objectHeaderInlinedTypes[0]; }
         StaticType  * GetSymbolTypeStatic() const { return symbolTypeStatic; }
         DynamicType * GetSymbolTypeDynamic() const { return symbolTypeDynamic; }
