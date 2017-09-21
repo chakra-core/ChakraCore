@@ -171,7 +171,7 @@ namespace Js
         static bool ResolveLocaleLookup(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved);
         //static bool ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_ JavascriptString *locale, _Out_ char16 *resolved);
         static bool ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved);
-        static int GetUserDefaultLocaleName(_Out_ LPWSTR lpLocaleName, _In_ int cchLocaleName);
+        static int GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLocaleName);
     };
 #endif // ENABLE_INTL_OBJECT
 #endif // INTL_ICU

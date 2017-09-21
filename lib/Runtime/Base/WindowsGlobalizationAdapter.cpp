@@ -829,18 +829,40 @@ if (this->object) \
         return ResolveLocaleLookup(scriptContext, locale, resolved);
     }
 
-    int IcuIntlAdapter::GetUserDefaultLocaleName(_Out_ LPWSTR lpLocaleName, _In_ int cchLocaleName)
+    int IcuIntlAdapter::GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLocaleName)
     {
-        // XPLAT-TODO (doilij): implement GetUserDefaultLocaleName
-        const auto locale = _u("en-US");
-        const size_t len = 5;
-        if (lpLocaleName)
+        // // XPLAT-TODO (doilij): implement GetUserDefaultLocaleName
+        // const auto locale = _u("en-US");
+        // const size_t len = 5;
+        // if (lpLocaleName)
+        // {
+        //     wcsncpy_s(lpLocaleName, LOCALE_NAME_MAX_LENGTH, locale, len);
+        // }
+
+        // // REVIEW (doilij): assuming the return value is the length of the output string in lpLocaleName
+        // return len;
+        UErrorCode error = U_ZERO_ERROR;
+        char langtag[LOCALE_NAME_MAX_LENGTH];
+
+        int32_t written = uloc_toLanguageTag(nullptr, langtag, LOCALE_NAME_MAX_LENGTH, true, &error);
+
+        // REVIEW (jahorto): if getting the language tag for NULL (default) fails, is there any backup?
+        if (!U_SUCCESS(error) || written <= 0)
         {
-            wcsncpy_s(lpLocaleName, LOCALE_NAME_MAX_LENGTH, locale, len);
+            AssertMsg(false, "uloc_toLanguageTag: unexpected error getting default locale");
+            return 0;
         }
 
-        // REVIEW (doilij): assuming the return value is the length of the output string in lpLocaleName
-        return len;
+        if (written < cchLocaleName)
+        {
+            utf8::DecodeUnitsIntoAndNullTerminate(langtag, reinterpret_cast<utf8char_t *>(langtag), reinterpret_cast<utf8char_t *>(langtag + written));
+            return written;
+        }
+        else
+        {
+            AssertMsg(false, "User default language tag is larger than the provided buffer");
+            return 0;
+        }
     }
 
 #endif // ENABLE_INTL_OBJECT
