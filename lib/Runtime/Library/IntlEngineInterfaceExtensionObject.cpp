@@ -583,7 +583,7 @@ namespace Js
         JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
 
 #if defined(INTL_ICU)
-        return TO_JSBOOL(scriptContext, IcuIntlAdapter::IsWellFormedLanguageTag(argString->GetSz(), argString->GetLength()));
+        return TO_JSBOOL(scriptContext, PlatformAgnostic::Intl::IsWellFormedLanguageTag(argString->GetSz(), argString->GetLength()));
 #else
         return TO_JSBOOL(scriptContext, GetWindowsGlobalizationAdapter(scriptContext)->IsWellFormedLanguageTag(scriptContext, argString->GetSz()));
 #endif
@@ -610,7 +610,7 @@ namespace Js
         // Therefore the max length of that char* (ULOC_FULLNAME_CAPACITY) is big enough to hold the result (including null terminator)
         char16 normalized[ULOC_FULLNAME_CAPACITY] = { 0 };
         size_t normalizedLength = 0;
-        hr = IcuIntlAdapter::NormalizeLanguageTag(argString->GetSz(), argString->GetLength(), normalized, &normalizedLength);
+        hr = PlatformAgnostic::Intl::NormalizeLanguageTag(argString->GetSz(), argString->GetLength(), normalized, &normalizedLength);
         retVal = Js::JavascriptString::NewCopyBuffer(normalized, static_cast<charcount_t>(normalizedLength), scriptContext);
 #else
         AutoHSTRING str;
@@ -811,18 +811,23 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-#ifdef INTL_WINGLOB
+        DynamicObject *options = DynamicObject::FromVar(args.Values[1]);
+
+#if defined(INTL_ICU)
+        return IcuIntlAdapter::CacheNumberFormat(scriptContext, options);
+#else
+        HRESULT hr;
         DelayLoadWindowsGlobalization* wgl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
 
-        HRESULT hr;
-        Var propertyValue = nullptr;
-        JavascriptString* localeJSstr;
-        DynamicObject* options = DynamicObject::FromVar(args.Values[1]);
+        Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
+        JavascriptString* localeJSstr = nullptr;
 
-        //Verify locale is present
+        // Verify locale is present
+        // REVIEW (doilij): Fix comparison of the unsigned value <= 0
         if (!GetTypedPropertyBuiltInFrom(options, __locale, JavascriptString) || (localeJSstr = JavascriptString::FromVar(propertyValue))->GetLength() <= 0)
         {
+            // REVIEW (doilij): Should we throw? Or otherwise, from Intl.js, should detect something didn't work right here...
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
@@ -830,7 +835,8 @@ namespace Js
         //Note some options might not be present.
         AutoCOMPtr<NumberFormatting::INumberFormatter> numberFormatter(nullptr);
         PCWSTR locale = localeJSstr->GetSz();
-        uint16 formatterToUseVal = 0; // number is default, 1 is percent, 2 is currency
+
+        uint16 formatterToUseVal = 0; // 0 (default) is number, 1 is percent, 2 is currency
         if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt) && (formatterToUseVal = TaggedInt::ToUInt16(propertyValue)) == 1)
         {
             //Use the percent formatter
@@ -942,12 +948,6 @@ namespace Js
         options->SetInternalProperty(Js::InternalPropertyIds::HiddenObject, AutoCOMJSObject::New(scriptContext->GetRecycler(), numberFormatter), Js::PropertyOperationFlags::PropertyOperation_None, NULL);
 
         return scriptContext->GetLibrary()->GetUndefined();
-#else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_CacheNumberFormat > returning null, fallback to JS\n"));
-#endif
-        return scriptContext->GetLibrary()->GetNull();
 #endif
     }
 
@@ -1236,7 +1236,7 @@ namespace Js
         const char16 *currencyCode = argString->GetSz();
 
 #if defined(INTL_ICU)
-        int32_t digits = IcuIntlAdapter::GetCurrencyFractionDigits(scriptContext, currencyCode);
+        int32_t digits = PlatformAgnostic::Intl::GetCurrencyFractionDigits(currencyCode);
         return JavascriptNumber::ToVar(digits, scriptContext);
 #else
         HRESULT hr;
@@ -1325,21 +1325,34 @@ namespace Js
 
 #if defined(INTL_ICU)
         // REVIEW (doilij): Assuming the logic doesn't allow us to get to this point and have this cast be invalid (otherwise, would throw earlier).
-        icu::NumberFormat *numberFormatter = ((AutoIcuJsObject<icu::NumberFormat> *)hiddenObject)->GetInstance();
+        PlatformAgnostic::Resource::IPlatformAgnosticResource *numberFormatter = ((AutoIcuJsObject<PlatformAgnostic::Resource::IPlatformAgnosticResource> *)hiddenObject)->GetInstance();
 
-        icu::UnicodeString result = icu::UnicodeString::UnicodeString();
+        const char16 *strBuf = nullptr;
+
+        // REVIEW (doilij): should StringBufAutoPtr be refactored?
+        class StringBufAutoPtr
+        {
+            const char16 *strBuf;
+        public:
+            StringBufAutoPtr(const char16 *buffer) : strBuf(buffer) {}
+            ~StringBufAutoPtr()
+            {
+                delete[] strBuf;
+            }
+        };
+
         if (TaggedInt::Is(args.Values[1]))
         {
             int32 val = TaggedInt::ToInt32(args.Values[1]);
-            numberFormatter->format(val, result);
+            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val);
         }
         else
         {
             double val = JavascriptNumber::GetValue(args.Values[1]);
-            numberFormatter->format(val, result);
+            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val);
         }
 
-        const char16 *strBuf = (const char16 *)result.getTerminatedBuffer(); // char16_t and char16 are the same size
+        StringBufAutoPtr guard(strBuf); // ensure strBuf is deleted no matter what
 #else
         DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
 

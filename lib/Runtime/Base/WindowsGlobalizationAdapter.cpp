@@ -704,117 +704,6 @@ if (this->object) \
 
 #ifdef INTL_ICU
 #ifdef ENABLE_INTL_OBJECT
-    bool IcuIntlAdapter::IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch)
-    {
-        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
-        const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
-        // REVIEW (doilij): not perf critical so I used HeapNewArrayZ to zero-out the allocated array
-        utf8char_t *inputLangTagUtf8 = HeapNewArrayZ(utf8char_t, inputLangTagUtf8SizeAllocated);
-        if (!inputLangTagUtf8)
-        {
-            AssertOrFailFastMsg(false, "OOM: HeapNewArrayZ failed to allocate.");
-        }
-        const size_t inputLangTagUtf8SizeActual = utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
-
-        bool success = false;
-        UErrorCode error = UErrorCode::U_ZERO_ERROR;
-
-        // REVIEW (doilij): should we / do we need to zero these stack-allocated arrays?
-        char icuLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
-        char icuLangTag[ULOC_FULLNAME_CAPACITY] = { 0 };
-        int32_t parsedLength = 0;
-        int32_t forLangTagResultLength = 0;
-        int32_t toLangTagResultLength = 0;
-
-        // Convert input language tag to a locale ID for use in uloc_toLanguageTag API.
-        forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<const char *>(inputLangTagUtf8),
-            icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
-        success = (forLangTagResultLength > 0) && (parsedLength > 0) &&
-            U_SUCCESS(error) && ((size_t)parsedLength == inputLangTagUtf8SizeActual);
-        if (!success)
-        {
-            goto cleanup;
-        }
-
-        toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, TRUE, &error);
-        success = toLangTagResultLength && U_SUCCESS(error);
-        if (!success)
-        {
-            if (error == UErrorCode::U_ILLEGAL_ARGUMENT_ERROR)
-            {
-                AssertMsg(false, "uloc_toLanguageTag: error U_ILLEGAL_ARGUMENT_ERROR");
-            }
-            else
-            {
-                AssertMsg(false, "uloc_toLanguageTag: unexpected error (besides U_ILLEGAL_ARGUMENT_ERROR)");
-            }
-
-            goto cleanup;
-        }
-
-    cleanup:
-        HeapDeleteArray(inputLangTagUtf8SizeAllocated, inputLangTagUtf8);
-        inputLangTagUtf8 = nullptr;
-        return success;
-    }
-
-    HRESULT IcuIntlAdapter::NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
-        _Out_ char16 *normalized, _Out_ size_t *normalizedLength)
-    {
-        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
-        const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
-        // REVIEW (doilij): not perf critical so I used HeapNewArrayZ to zero-out the allocated array
-        utf8char_t *inputLangTagUtf8 = HeapNewArrayZ(utf8char_t, inputLangTagUtf8SizeAllocated);
-        if (!inputLangTagUtf8)
-        {
-            AssertOrFailFastMsg(false, "OOM: HeapNewArrayZ failed to allocate.");
-        }
-        const size_t inputLangTagUtf8SizeActual = utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
-
-        // REVIEW (doilij): should we / do we need to zero these stack-allocated arrays?
-        char icuLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
-        char icuLangTag[ULOC_FULLNAME_CAPACITY] = { 0 };
-        bool success = false;
-        UErrorCode error = UErrorCode::U_ZERO_ERROR;
-        int32_t parsedLength = 0;
-        int32_t forLangTagResultLength = 0;
-        int32_t toLangTagResultLength = 0;
-
-        // Convert input language tag to a locale ID for use in uloc_toLanguageTag API.
-        forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<const char *>(inputLangTagUtf8), icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
-        success = forLangTagResultLength && parsedLength && U_SUCCESS(error);
-        if (!success)
-        {
-            AssertMsg(false, "uloc_forLanguageTag failed");
-            goto cleanup;
-        }
-
-        // Try to convert icuLocaleId (locale ID version of input locale string) to BCP47 language tag, using strict checks
-        toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, TRUE, &error);
-        success = toLangTagResultLength && U_SUCCESS(error);
-        if (!success)
-        {
-            if (error == UErrorCode::U_ILLEGAL_ARGUMENT_ERROR)
-            {
-                AssertMsg(false, "uloc_toLanguageTag: error U_ILLEGAL_ARGUMENT_ERROR");
-            }
-            else
-            {
-                AssertMsg(false, "uloc_toLanguageTag: unexpected error (besides U_ILLEGAL_ARGUMENT_ERROR)");
-            }
-
-            goto cleanup;
-        }
-
-        *normalizedLength = utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(normalized,
-            reinterpret_cast<const utf8char_t *>(icuLangTag), reinterpret_cast<utf8char_t *>(icuLangTag + toLangTagResultLength), utf8::doDefault);
-
-    cleanup:
-        HeapDeleteArray(inputLangTagUtf8SizeAllocated, inputLangTagUtf8);
-        inputLangTagUtf8 = nullptr;
-        return success ? S_OK : E_INVALIDARG;
-    }
-
     bool IcuIntlAdapter::ResolveLocaleLookup(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved)
     {
         // TODO (doilij): implement ResolveLocaleLookup
@@ -865,61 +754,70 @@ if (this->object) \
         }
     }
 	
-    // REVIEW (doilij): Is scriptContext needed as a param here?
-    int32_t IcuIntlAdapter::GetCurrencyFractionDigits(_In_ ScriptContext * scriptContext, _In_z_ const char16 * currencyCode)
+    /*
+    template <typename T>
+    bool ReadTypedBuiltIn(ScriptContext *scriptContext, Var *obj, Js::PropertyId propertyID, T *propertyValue)
     {
-        UErrorCode error = UErrorCode::U_ZERO_ERROR;
-        const UChar *uCurrencyCode = (const UChar *)currencyCode; // UChar, like char16, is guaranteed to be 2 bytes on all platforms.
-        int32_t minFracDigits = 2; // REVIEW: fallback value is a good starting value here
-
-        // Note: The number of fractional digits specified for a currency is not locale-dependent.
-        icu::NumberFormat *nf = icu::NumberFormat::createCurrencyInstance(error); // using default locale
-        if (U_FAILURE(error))
+        Js::JavascriptOperators::GetProperty(obj, propertyID, &propertyValue, scriptContext);
+        if (T::Is(propertyValue))
         {
-#ifdef INTL_ICU_DEBUG
-            if (error == UErrorCode::U_MISSING_RESOURCE_ERROR)
-            {
-                Output::Print(_u("EntryIntl_CurrencyDigits > icu::NumberFormat::createCurrencyInstance(error) > U_MISSING_RESOURCE_ERROR (%d)\n"), error);
-            }
-            else
-            {
-                Output::Print(_u("EntryIntl_CurrencyDigits > icu::NumberFormat::createCurrencyInstance(error) > UErrorCode (%d)\n"), error);
-            }
-#endif
-            goto cleanup;
+            return true;
+        }
+        else
+        {
+            &propertyValue = nullptr;
+            return false;
+        }
+    }
+    //*/
+
+#define GetPropertyFrom(obj, propertyID) \
+    Js::JavascriptOperators::GetProperty(obj, propertyID, &propertyValue, scriptContext) \
+
+#define GetTypedPropertyBuiltInFrom(obj, builtInPropID, Type) \
+    (GetPropertyFrom(obj, Js::PropertyIds::builtInPropID) && Type::Is(propertyValue)) \
+
+    Var IcuIntlAdapter::CacheNumberFormat(_In_ ScriptContext * scriptContext, _In_ DynamicObject *options)
+    {
+        Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
+
+        uint16 formatterToUseVal = 0; // 0 (default) is number, 1 is percent, 2 is currency
+        if (!GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt))
+        {
+            AssertMsg(false, "__formatterToUse should always be set at this point");
+            JavascriptExceptionOperators::Throw(JavascriptError::FromVar((Var)options), scriptContext);
+        }
+        formatterToUseVal = TaggedInt::ToUInt16(propertyValue);
+
+        /*
+        icu::NumberFormat *numberFormatter = nullptr;
+        if (formatterToUseVal == 0)
+        {
+            numberFormatter = icu::NumberFormat::createCurrencyInstance(error);
+        }
+        else if (formatterToUseVal == 1)
+        {
+            // TODO (doilij)
+        }
+        else if (formatterToUseVal == 2)
+        {
+            // TODO (doilij)
+        }
+        */
+
+        PlatformAgnostic::Resource::IPlatformAgnosticResource *numberFormatter = PlatformAgnostic::Intl::CreateNumberFormat();
+
+        // TODO (doilij) a bunch of other stuff in between
+
+        if (numberFormatter == nullptr)
+        {
+            AssertMsg(false, "NumberFormat must be initialized at this point.");
+            JavascriptExceptionOperators::Throw(JavascriptError::FromVar(JavascriptNumber::ToVar(0, scriptContext)), scriptContext);
         }
 
-        nf->setCurrency(uCurrencyCode, error);
-        if (U_FAILURE(error))
-        {
-#ifdef INTL_ICU_DEBUG
-            if (error == UErrorCode::U_MISSING_RESOURCE_ERROR)
-            {
-                Output::Print(_u("EntryIntl_CurrencyDigits > nf->setCurrency(uCurrencyCode (%s), error) > U_MISSING_RESOURCE_ERROR (%d)\n"), currencyCode, error);
-            }
-            else
-            {
-                Output::Print(_u("EntryIntl_CurrencyDigits > nf->setCurrency(uCurrencyCode (%s), error) > UErrorCode (%d)\n"), currencyCode, error);
-            }
-#endif
-            goto cleanup;
-        }
-
-        minFracDigits = nf->getMinimumFractionDigits();
-
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_CurrencyDigits > nf->getMinimumFractionDigits() successful > returned (%d)\n"), minFracDigits);
-#endif
-
-    cleanup:
-        // Since something failed, return "reasonable" default of 2 fractional digits (obviously won't be the case for some currencies like JPY).
-        // REVIEW (doilij): What does the spec say to do if a currency is not supported?
-
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_CurrencyDigits > returning (%d)\n"), minFracDigits);
-#endif
-
-        return minFracDigits;
+        auto *autoObject = AutoIcuJsObject<PlatformAgnostic::Resource::IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), numberFormatter);
+        options->SetInternalProperty(Js::InternalPropertyIds::HiddenObject, autoObject, Js::PropertyOperationFlags::PropertyOperation_None, NULL);
+        return scriptContext->GetLibrary()->GetUndefined();
     }
 
 #endif // ENABLE_INTL_OBJECT

@@ -8,14 +8,7 @@
 
 #ifdef INTL_ICU
 #include <CommonPal.h>
-#define U_STATIC_IMPLEMENTATION
-#define U_SHOW_CPLUSPLUS_API 0
-#pragma warning(push)
-#pragma warning(disable:4995) // deprecation warning
-#include <unicode/uloc.h>
-#include <unicode/numfmt.h>
-//#include <unicode/decimfmt.h>
-#pragma warning(pop)
+#include "PlatformAgnostic/Intl.h"
 #endif // INTL_ICU
 
 #ifdef INTL_WINGLOB
@@ -175,7 +168,49 @@ namespace Js
         static bool ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved);
         static size_t GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLangtag);
 
-        static int32_t GetCurrencyFractionDigits(_In_ ScriptContext *scriptContext, _In_z_ const char16 *currencyCode);
+        static Var CacheNumberFormat(_In_ ScriptContext * scriptContext, _In_ DynamicObject *options);
+    };
+
+    template<typename T>
+    class AutoIcuJsObject : public FinalizableObject
+    {
+    private:
+        T *instance;
+
+    public:
+        DEFINE_VTABLE_CTOR_NOBASE(AutoIcuJsObject<T>);
+
+        AutoIcuJsObject(T *object)
+            : instance(object)
+        { }
+
+        static AutoIcuJsObject<T> * New(Recycler *recycler, T *object)
+        {
+            return RecyclerNewFinalized(recycler, AutoIcuJsObject<T>, object);
+        }
+
+        void Finalize(bool isShutdown) override
+        {
+        }
+
+        void Dispose(bool isShutdown) override
+        {
+            if (!isShutdown)
+            {
+                // REVIEW (doilij): here we use Cleanup() because we can't rely on delete (not dealing with virtual destructors)
+                // TODO (doilij): ^ therefore, maybe this as a template is too general since we can't rely on the destructor
+                instance->Cleanup();
+            }
+        }
+
+        void Mark(Recycler *recycler) override
+        {
+        }
+
+        T * GetInstance()
+        {
+            return instance;
+        }
     };
 #endif // ENABLE_INTL_OBJECT
 #endif // INTL_ICU
