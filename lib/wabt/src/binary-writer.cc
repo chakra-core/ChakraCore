@@ -60,6 +60,7 @@ void WriteType(Stream* stream, Type type) {
 
 void WriteLimits(Stream* stream, const Limits* limits) {
   uint32_t flags = limits->has_max ? WABT_BINARY_LIMITS_HAS_MAX_FLAG : 0;
+  flags |= limits->is_shared ? WABT_BINARY_LIMITS_IS_SHARED_FLAG : 0;
   WriteU32Leb128(stream, flags, "limits: flags");
   WriteU32Leb128(stream, limits->initial, "limits: initial");
   if (limits->has_max)
@@ -122,6 +123,11 @@ class BinaryWriter {
   void WriteU32Leb128WithReloc(Index index,
                                const char* desc,
                                RelocType reloc_type);
+  template <typename T>
+  void WriteLoadStoreExpr(const Module* module,
+                          const Func* func,
+                          const Expr* expr,
+                          const char* desc);
   void WriteExpr(const Module* module, const Func* func, const Expr* expr);
   void WriteExprList(const Module* module,
                      const Func* func,
@@ -323,10 +329,35 @@ Index BinaryWriter::GetLocalIndex(const Func* func, const Var& var) {
   }
 }
 
+template <typename T>
+void BinaryWriter::WriteLoadStoreExpr(const Module* module,
+                                      const Func* func,
+                                      const Expr* expr,
+                                      const char* desc) {
+  auto* typed_expr = cast<T>(expr);
+  WriteOpcode(stream_, typed_expr->opcode);
+  Address align = typed_expr->opcode.GetAlignment(typed_expr->align);
+  stream_->WriteU8(log2_u32(align), "alignment");
+  WriteU32Leb128(stream_, typed_expr->offset, desc);
+}
+
 void BinaryWriter::WriteExpr(const Module* module,
                              const Func* func,
                              const Expr* expr) {
   switch (expr->type()) {
+    case ExprType::AtomicLoad:
+      WriteLoadStoreExpr<AtomicLoadExpr>(module, func, expr, "memory offset");
+      break;
+    case ExprType::AtomicRmw:
+      WriteLoadStoreExpr<AtomicRmwExpr>(module, func, expr, "memory offset");
+      break;
+    case ExprType::AtomicRmwCmpxchg:
+      WriteLoadStoreExpr<AtomicRmwCmpxchgExpr>(module, func, expr,
+                                               "memory offset");
+      break;
+    case ExprType::AtomicStore:
+      WriteLoadStoreExpr<AtomicStoreExpr>(module, func, expr, "memory offset");
+      break;
     case ExprType::Binary:
       WriteOpcode(stream_, cast<BinaryExpr>(expr)->opcode);
       break;
@@ -347,7 +378,7 @@ void BinaryWriter::WriteExpr(const Module* module,
                      "break depth");
       break;
     case ExprType::BrTable: {
-      auto br_table_expr = cast<BrTableExpr>(expr);
+      auto* br_table_expr = cast<BrTableExpr>(expr);
       WriteOpcode(stream_, Opcode::BrTable);
       WriteU32Leb128(stream_, br_table_expr->targets.size(), "num targets");
       Index depth;
@@ -428,7 +459,7 @@ void BinaryWriter::WriteExpr(const Module* module,
       WriteU32Leb128(stream_, 0, "grow_memory reserved");
       break;
     case ExprType::If: {
-      auto if_expr = cast<IfExpr>(expr);
+      auto* if_expr = cast<IfExpr>(expr);
       WriteOpcode(stream_, Opcode::If);
       write_inline_signature_type(stream_, if_expr->true_.sig);
       WriteExprList(module, func, if_expr->true_.exprs);
@@ -439,14 +470,9 @@ void BinaryWriter::WriteExpr(const Module* module,
       WriteOpcode(stream_, Opcode::End);
       break;
     }
-    case ExprType::Load: {
-      auto load_expr = cast<LoadExpr>(expr);
-      WriteOpcode(stream_, load_expr->opcode);
-      Address align = load_expr->opcode.GetAlignment(load_expr->align);
-      stream_->WriteU8(log2_u32(align), "alignment");
-      WriteU32Leb128(stream_, load_expr->offset, "load offset");
+    case ExprType::Load:
+      WriteLoadStoreExpr<LoadExpr>(module, func, expr, "load offset");
       break;
-    }
     case ExprType::Loop:
       WriteOpcode(stream_, Opcode::Loop);
       write_inline_signature_type(stream_, cast<LoopExpr>(expr)->block.sig);
@@ -479,14 +505,9 @@ void BinaryWriter::WriteExpr(const Module* module,
       WriteU32Leb128(stream_, index, "local index");
       break;
     }
-    case ExprType::Store: {
-      auto store_expr = cast<StoreExpr>(expr);
-      WriteOpcode(stream_, store_expr->opcode);
-      Address align = store_expr->opcode.GetAlignment(store_expr->align);
-      stream_->WriteU8(log2_u32(align), "alignment");
-      WriteU32Leb128(stream_, store_expr->offset, "store offset");
+    case ExprType::Store:
+      WriteLoadStoreExpr<StoreExpr>(module, func, expr, "store offset");
       break;
-    }
     case ExprType::TeeLocal: {
       Index index = GetLocalIndex(func, cast<TeeLocalExpr>(expr)->var);
       WriteOpcode(stream_, Opcode::TeeLocal);
@@ -499,7 +520,7 @@ void BinaryWriter::WriteExpr(const Module* module,
                      "throw exception");
       break;
     case ExprType::TryBlock: {
-      auto try_expr = cast<TryExpr>(expr);
+      auto* try_expr = cast<TryExpr>(expr);
       WriteOpcode(stream_, Opcode::Try);
       write_inline_signature_type(stream_, try_expr->block.sig);
       WriteExprList(module, func, try_expr->block.exprs);

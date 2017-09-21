@@ -1127,10 +1127,9 @@ Result ReadBinaryObjdump(const uint8_t* data,
                          size_t size,
                          ObjdumpOptions* options,
                          ObjdumpState* state) {
-  ReadBinaryOptions read_options;
-  read_options.read_debug_names = true;
-  read_options.log_stream = options->log_stream;
-  read_options.features = options->features;
+  Features features;
+  features.EnableAll();
+  ReadBinaryOptions read_options(features, options->log_stream, true);
 
   switch (options->mode) {
     case ObjdumpMode::Prepass: {

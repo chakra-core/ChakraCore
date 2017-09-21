@@ -176,6 +176,18 @@ class BinaryReaderDelegate {
   virtual Result OnOpcodeF32(uint32_t value) = 0;
   virtual Result OnOpcodeF64(uint64_t value) = 0;
   virtual Result OnOpcodeBlockSig(Index num_types, Type* sig_types) = 0;
+  virtual Result OnAtomicLoadExpr(Opcode opcode,
+                                  uint32_t alignment_log2,
+                                  Address offset) = 0;
+  virtual Result OnAtomicStoreExpr(Opcode opcode,
+                                   uint32_t alignment_log2,
+                                   Address offset) = 0;
+  virtual Result OnAtomicRmwExpr(Opcode opcode,
+                                 uint32_t alignment_log2,
+                                 Address offset) = 0;
+  virtual Result OnAtomicRmwCmpxchgExpr(Opcode opcode,
+                                        uint32_t alignment_log2,
+                                        Address offset) = 0;
   virtual Result OnBinaryExpr(Opcode opcode) = 0;
   virtual Result OnBlockExpr(Index num_types, Type* sig_types) = 0;
   virtual Result OnBrExpr(Index depth) = 0;

@@ -19,7 +19,6 @@
 #include <cstring>
 
 #include "src/common.h"
-#include "src/feature.h"
 #include "src/option-parser.h"
 #include "src/stream.h"
 #include "src/binary-reader.h"
@@ -35,7 +34,6 @@ examples:
 )";
 
 static ObjdumpOptions s_objdump_options;
-static Features s_features;
 
 static std::vector<const char*> s_infiles;
 
@@ -58,7 +56,6 @@ static void ParseOptions(int argc, char** argv) {
     s_log_stream = FileStream::CreateStdout();
     s_objdump_options.log_stream = s_log_stream.get();
   });
-  s_features.AddOptions(&parser);
   parser.AddOption('x', "details", "Show section details",
                    []() { s_objdump_options.details = true; });
   parser.AddOption('r', "reloc", "Show relocations inline with disassembly",
@@ -81,7 +78,6 @@ Result dump_file(const char* filename) {
   // Perform serveral passed over the binary in order to print out different
   // types of information.
   s_objdump_options.filename = filename;
-  s_objdump_options.features = s_features;
   printf("\n");
 
   ObjdumpState state;

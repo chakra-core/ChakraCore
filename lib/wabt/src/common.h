@@ -260,7 +260,9 @@ struct Limits {
   uint64_t initial = 0;
   uint64_t max = 0;
   bool has_max = false;
+  bool is_shared = false;
 };
+enum class LimitsShareable { Allowed, NotAllowed };
 
 enum { WABT_USE_NATURAL_ALIGNMENT = 0xFFFFFFFF };
 
