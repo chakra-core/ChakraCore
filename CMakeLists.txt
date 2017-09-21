@@ -456,7 +456,8 @@ include_directories(
     pal
     pal/inc
     pal/inc/rt
-    ${ICU_INCLUDE_PATH}
+    ${ICU_INCLUDE_PATH}/common
+    ${ICU_INCLUDE_PATH}/i18n
     )
 
 if(ICU_INCLUDE_PATH)

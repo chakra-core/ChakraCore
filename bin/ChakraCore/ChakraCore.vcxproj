@@ -31,7 +31,6 @@
         $(ChakraCoreRootDirectory)Lib\Jsrt;
         $(IntDir);
         $(ChakraJITIDLIntDir);
-        $(IcuIncludeDir)\common;
         $(MSBuildThisFileDirectory)..\..\lib\JITClient;
         %(AdditionalIncludeDirectories);
       </AdditionalIncludeDirectories>
