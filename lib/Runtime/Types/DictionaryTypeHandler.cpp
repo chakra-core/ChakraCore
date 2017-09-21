@@ -2924,20 +2924,20 @@ namespace Js
         else
         {
             Output::Print(_u("%*spropertyMap: 0x%p\n"), fieldIndent, padding, static_cast<void*>(this->propertyMap));
-            for (auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+            this->propertyMap->Map([&](const PropertyRecord *key, const DictionaryPropertyDescriptor<T> &value)
             {
                 Output::Print(_u("%*sKey:\n"), mapLabelIndent, padding);
-                if (iter.CurrentKey() == nullptr)
+                if (key == nullptr)
                 {
                     Output::Print(_u("%*s<null>\n"), mapValueIndent, padding);
                 }
                 else
                 {
-                    iter.CurrentKey()->Dump(mapValueIndent);
+                    key->Dump(mapValueIndent);
                 }
                 Output::Print(_u("%*sValue\n"), mapLabelIndent, padding);
-                iter.CurrentValue().Dump(mapValueIndent);
-            }
+                value.Dump(mapValueIndent);
+            });
         }
         Output::Print(_u("%*snextPropertyIndex: %d\n"), fieldIndent, padding, static_cast<int32>(this->nextPropertyIndex));
     }
