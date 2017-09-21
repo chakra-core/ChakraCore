@@ -2919,7 +2919,7 @@ namespace Js
         Output::Print(_u("%*sDictionaryTypeHandlerBase (0x%p):\n"), indent, padding, this);
         if (this->propertyMap == nullptr)
         {
-            Output::Print(_u("%*spropertyMap: null\n"), fieldIndent, padding);
+            Output::Print(_u("%*spropertyMap: <null>\n"), fieldIndent, padding);
         }
         else
         {
