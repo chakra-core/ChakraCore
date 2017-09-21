@@ -2917,6 +2917,7 @@ namespace Js
         const unsigned mapValueIndent(indent + 6);
 
         Output::Print(_u("%*sDictionaryTypeHandlerBase (0x%p):\n"), indent, padding, this);
+        DynamicTypeHandler::Dump(indent + 2);
         if (this->propertyMap == nullptr)
         {
             Output::Print(_u("%*spropertyMap: <null>\n"), fieldIndent, padding);

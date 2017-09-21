@@ -655,7 +655,7 @@ namespace Js
 
 #if DBG_DUMP
     public:
-         virtual void Dump(unsigned indent = 0) const = 0;
+         virtual void Dump(unsigned indent = 0) const;
 #endif
     };
 }
