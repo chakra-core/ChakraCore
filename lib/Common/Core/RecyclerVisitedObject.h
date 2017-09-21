@@ -7,6 +7,11 @@
 typedef void* RecyclerHeapMarkingContext;
 interface IRecyclerHeapMarkingContext;
 
+namespace Memory
+{
+    class Recycler;
+}
+
 interface IRecyclerVisitedObject
 {
     // Called right after finish marking and this object is determined to be dead.
@@ -17,11 +22,10 @@ interface IRecyclerVisitedObject
 
     // Call after sweeping is done.
     // Can call other script or cause another collection.
-
     STDMETHOD_(void, Dispose)(bool isShutdown) = 0;
 
     // Used only by TrackableObjects (created with TrackedBit on by RecyclerNew*Tracked)
-    STDMETHOD_(void, Mark)(Recycler * recycler) = 0;
+    STDMETHOD_(void, Mark)(Memory::Recycler* recycler) = 0;
 
     // Special behavior on certain GC's
     STDMETHOD_(void, OnMark)() = 0;
