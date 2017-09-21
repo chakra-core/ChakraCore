@@ -340,4 +340,11 @@
     <tags>exclude_xplat,exclude_jshost,exclude_win7,exclude_chk,exclude_dynapogo,exclude_x86,Slow</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>loopstslot.js</files>
+    <compile-flags>-forcejitloopbody</compile-flags>
+    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
+  </default>
+</test>
 </regress-exe>
