@@ -285,7 +285,8 @@
 // Other features
 // #define CHAKRA_CORE_DOWN_COMPAT 1
 
-#if defined(_WIN32) && defined(_M_IX86)
+// todo:: Enable vectorcall on NTBUILD. OS#13609380
+#if defined(_WIN32) && !defined(NTBUILD) && defined(_M_IX86)
 #define VECTORCALL __vectorcall
 #else
 #define VECTORCALL
