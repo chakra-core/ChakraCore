@@ -314,7 +314,7 @@ namespace Js
 
         Output::Print(_u("%*sData: %d\n"), fieldIndent, padding, static_cast<int32>(this->Data));
         Output::Print(_u("%*sGetter: %d\n"), fieldIndent, padding, static_cast<int32>(this->Getter));
-        Output::Print(_u("%*sSetter: "), fieldIndent, padding, static_cast<int32>(this->Setter));
+        Output::Print(_u("%*sSetter: %d\n"), fieldIndent, padding, static_cast<int32>(this->Setter));
     }
 #endif
 }
