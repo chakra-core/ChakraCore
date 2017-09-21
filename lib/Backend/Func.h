@@ -872,6 +872,19 @@ public:
             top->DoGlobOpt() && !PHASE_OFF(Js::LoopFastPathPhase, top);
     }
 
+    static Js::OpCode GetLoadOpForType(IRType type)
+    {
+        if (type == TyVar || IRType_IsFloat(type))
+        {
+            return Js::OpCode::Ld_A;
+        }
+        else
+        {
+            Assert(IRType_IsNativeInt(type));
+            return Js::OpCode::Ld_I4;
+        }
+    }
+
     static Js::BuiltinFunction GetBuiltInIndex(IR::Opnd* opnd)
     {
         Assert(opnd);
