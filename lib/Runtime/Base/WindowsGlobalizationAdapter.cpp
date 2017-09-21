@@ -740,7 +740,7 @@ if (this->object) \
         success = toLangTagResultLength && U_SUCCESS(error);
         if (!success)
         {
-            if (error == U_ILLEGAL_ARGUMENT_ERROR)
+            if (error == UErrorCode::U_ILLEGAL_ARGUMENT_ERROR)
             {
                 AssertMsg(false, "uloc_toLanguageTag: error U_ILLEGAL_ARGUMENT_ERROR");
             }
@@ -775,7 +775,7 @@ if (this->object) \
         char icuLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
         char icuLangTag[ULOC_FULLNAME_CAPACITY] = { 0 };
         bool success = false;
-        UErrorCode error = U_ZERO_ERROR;
+        UErrorCode error = UErrorCode::U_ZERO_ERROR;
         int32_t parsedLength = 0;
         int32_t forLangTagResultLength = 0;
         int32_t toLangTagResultLength = 0;
@@ -794,7 +794,7 @@ if (this->object) \
         success = toLangTagResultLength && U_SUCCESS(error);
         if (!success)
         {
-            if (error == U_ILLEGAL_ARGUMENT_ERROR)
+            if (error == UErrorCode::U_ILLEGAL_ARGUMENT_ERROR)
             {
                 AssertMsg(false, "uloc_toLanguageTag: error U_ILLEGAL_ARGUMENT_ERROR");
             }
