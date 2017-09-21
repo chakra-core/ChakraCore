@@ -1318,16 +1318,32 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-#ifdef INTL_WINGLOB
         DynamicObject *obj = DynamicObject::FromVar(args.Values[2]);
-
-        DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
-
-        NumberFormatting::INumberFormatter *numberFormatter;
         Var hiddenObject = nullptr;
         AssertOrFailFastMsg(obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
             "EntryIntl_FormatNumber: Could not retrieve hiddenObject.");
 
+#if defined(INTL_ICU)
+        // REVIEW (doilij): Assuming the logic doesn't allow us to get to this point and have this cast be invalid (otherwise, would throw earlier).
+        icu::NumberFormat *numberFormatter = ((AutoIcuJsObject<icu::NumberFormat> *)hiddenObject)->GetInstance();
+
+        icu::UnicodeString result = icu::UnicodeString::UnicodeString();
+        if (TaggedInt::Is(args.Values[1]))
+        {
+            int32 val = TaggedInt::ToInt32(args.Values[1]);
+            numberFormatter->format(val, result);
+        }
+        else
+        {
+            double val = JavascriptNumber::GetValue(args.Values[1]);
+            numberFormatter->format(val, result);
+        }
+
+        const char16 *strBuf = (const char16 *)result.getTerminatedBuffer(); // char16_t and char16 are the same size
+#else
+        DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
+
+        NumberFormatting::INumberFormatter *numberFormatter;
         numberFormatter = static_cast<NumberFormatting::INumberFormatter *>(((AutoCOMJSObject *)hiddenObject)->GetInstance());
 
         AutoHSTRING result;
@@ -1340,16 +1356,12 @@ namespace Js
         {
             IfFailThrowHr(numberFormatter->FormatDouble(JavascriptNumber::GetValue(args.Values[1]), &result));
         }
+
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*result, NULL);
+#endif
+
         JavascriptStringObject *retVal = scriptContext->GetLibrary()->CreateStringObject(Js::JavascriptString::NewCopySz(strBuf, scriptContext));
         return retVal;
-#else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_FormatNumber > returning null, fallback to JS\n"));
-#endif
-        return scriptContext->GetLibrary()->GetNull();
-#endif
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_FormatDateTime(RecyclableObject* function, CallInfo callInfo, ...)
