@@ -25,8 +25,6 @@
 namespace wabt {
 
 // TODO(karlschimpf) Complete the API
-// TODO(karlschimpf) Apply constructors/destructors on base type T
-//                   as collection size changes (if not POD).
 // Note: Capacity must be a power of 2.
 template<class T, size_t kCapacity>
 class CircularArray {
@@ -37,9 +35,19 @@ class CircularArray {
   typedef size_t size_type;
   typedef ptrdiff_t difference_type;
 
-  CircularArray() : size_(0), front_(0), mask_(kCapacity - 1) {
+  CircularArray() {
     static_assert(kCapacity && ((kCapacity & (kCapacity - 1)) == 0),
                   "Capacity must be a power of 2.");
+  }
+
+  CircularArray(const CircularArray&) = default;
+  CircularArray& operator =(const CircularArray&) = default;
+
+  CircularArray(CircularArray&&) = default;
+  CircularArray& operator =(CircularArray&&) = default;
+
+  ~CircularArray() {
+    clear();
   }
 
   reference at(size_type index) {
@@ -82,33 +90,44 @@ class CircularArray {
 
   void pop_back() {
     assert(size_ > 0);
+    SetElement(back());
     --size_;
   }
 
   void pop_front() {
     assert(size_ > 0);
-    front_ = (front_ + 1) & mask_;
+    SetElement(front());
+    front_ = (front_ + 1) & kMask;
     --size_;
   }
 
   void push_back(const value_type& value) {
     assert(size_ < kCapacity);
-    contents_[position(size_++)] = value;
+    SetElement(at(size_++), value);
   }
 
   size_type size() const { return size_; }
 
   void clear() {
-    size_ = 0;
+    while (!empty()) {
+      pop_back();
+    }
   }
 
  private:
-  std::array<T, kCapacity> contents_;
-  size_type size_;
-  size_type front_;
-  size_type mask_;
+  static const size_type kMask = kCapacity - 1;
 
-  size_t position(size_t index) const { return (front_ + index) & mask_; }
+  size_t position(size_t index) const { return (front_ + index) & kMask; }
+
+  template <typename... Args>
+  void SetElement(reference element, Args&&... args) {
+    element.~T();
+    new (&element) T(std::forward<Args>(args)...);
+  }
+
+  std::array<T, kCapacity> contents_;
+  size_type size_ = 0;
+  size_type front_ = 0;
 };
 
 }

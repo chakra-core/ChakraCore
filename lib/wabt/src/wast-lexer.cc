@@ -21,7 +21,6 @@
 
 #include "config.h"
 
-#include "src/circular-array.h"
 #include "src/error-handler.h"
 #include "src/lexer-source.h"
 #include "src/wast-parser.h"
@@ -83,144 +82,6 @@
 
 namespace wabt {
 
-const char* GetTokenTypeName(TokenType token_type) {
-  static const char* s_names[] = {
-      "Invalid",
-      "Reserved",
-      "EOF",
-      "(",
-      ")",
-      "NAT",
-      "INT",
-      "FLOAT",
-      "TEXT",
-      "VAR",
-      "VALUETYPE",
-      "anyfunc",
-      "mut",
-      "nop",
-      "drop",
-      "block",
-      "end",
-      "if",
-      "then",
-      "else",
-      "loop",
-      "br",
-      "br_if",
-      "br_table",
-      "try",
-      "catch",
-      "catch_all",
-      "throw",
-      "rethrow",
-      "call",
-      "call_indirect",
-      "return",
-      "get_local",
-      "set_local",
-      "tee_local",
-      "get_global",
-      "set_global",
-      "LOAD",
-      "STORE",
-      "offset=",
-      "align=",
-      "CONST",
-      "UNARY",
-      "BINARY",
-      "COMPARE",
-      "CONVERT",
-      "select",
-      "unreachable",
-      "current_memory",
-      "grow_memory",
-      "func",
-      "start",
-      "type",
-      "param",
-      "result",
-      "local",
-      "global",
-      "table",
-      "elem",
-      "memory",
-      "data",
-      "offset",
-      "import",
-      "export",
-      "except",
-      "module",
-      "bin",
-      "quote",
-      "register",
-      "invoke",
-      "get",
-      "assert_malformed",
-      "assert_invalid",
-      "assert_unlinkable",
-      "assert_return",
-      "assert_return_canonical_nan",
-      "assert_return_arithmetic_nan",
-      "assert_trap",
-      "assert_exhaustion",
-  };
-
-  static_assert(
-      WABT_ARRAY_SIZE(s_names) == WABT_ENUM_COUNT(TokenType),
-      "Expected TokenType names list length to match number of TokenTypes.");
-
-  int x = static_cast<int>(token_type);
-  if (x < WABT_ENUM_COUNT(TokenType))
-    return s_names[x];
-
-  return "Invalid";
-}
-
-Token::Token(Location loc, TokenType token_type)
-    : loc(loc), token_type(token_type) {}
-
-Token::Token(Location loc, TokenType token_type, Type type)
-    : loc(loc), token_type(token_type), type(type) {}
-
-Token::Token(Location loc, TokenType token_type, StringTerminal text)
-    : loc(loc), token_type(token_type), text(text) {}
-
-Token::Token(Location loc, TokenType token_type, Opcode opcode)
-    : loc(loc), token_type(token_type), opcode(opcode) {}
-
-Token::Token(Location loc, TokenType token_type, LiteralTerminal literal)
-    : loc(loc), token_type(token_type), literal(literal) {}
-
-std::string Token::to_string() const {
-  switch (token_type) {
-    case TokenType::Nat:
-    case TokenType::Int:
-    case TokenType::Float:
-      return literal.text.to_string();
-
-    case TokenType::Reserved:
-    case TokenType::Text:
-    case TokenType::Var:
-      return text.to_string();
-
-    case TokenType::ValueType:
-      return GetTypeName(type);
-
-    case TokenType::Load:
-    case TokenType::Store:
-    case TokenType::Const:
-    case TokenType::Unary:
-    case TokenType::Binary:
-    case TokenType::Compare:
-    case TokenType::Convert:
-      return opcode.GetName();
-
-    default:
-      return GetTokenTypeName(token_type);
-  }
-}
-
 WastLexer::WastLexer(std::unique_ptr<LexerSource> source, const char* filename)
     : source_(std::move(source)),
       line_finder_(source_->Clone()),
@@ -259,12 +120,12 @@ Location WastLexer::GetLocation() {
   return Location(filename_, line_, COLUMN(next_pos_), COLUMN(cursor_));
 }
 
-LiteralTerminal WastLexer::MakeLiteral(LiteralType type) {
-  return LiteralTerminal(type, GetText());
+Literal WastLexer::MakeLiteral(LiteralType type) {
+  return Literal(type, GetText());
 }
 
-StringTerminal WastLexer::GetText(size_t offset) {
-  return StringTerminal(yytext + offset, yyleng - offset);
+std::string WastLexer::GetText(size_t offset) {
+  return std::string(yytext + offset, yyleng - offset);
 }
 
 Result WastLexer::Fill(size_t need) {
@@ -393,11 +254,11 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "f64"                 { RETURN_TYPE(ValueType, F64); }
       <i> "anyfunc"             { RETURN(Anyfunc); }
       <i> "mut"                 { RETURN(Mut); }
-      <i> "nop"                 { RETURN(Nop); }
-      <i> "block"               { RETURN(Block); }
+      <i> "nop"                 { RETURN_OPCODE0(Nop); }
+      <i> "block"               { RETURN_OPCODE0(Block); }
       <i> "if"                  { RETURN_OPCODE0(If); }
       <i> "then"                { RETURN(Then); }
-      <i> "else"                { RETURN(Else); }
+      <i> "else"                { RETURN_OPCODE0(Else); }
       <i> "loop"                { RETURN_OPCODE0(Loop); }
       <i> "br"                  { RETURN_OPCODE0(Br); }
       <i> "br_if"               { RETURN_OPCODE0(BrIf); }
@@ -581,6 +442,71 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "unreachable"         { RETURN_OPCODE0(Unreachable); }
       <i> "current_memory"      { RETURN_OPCODE0(CurrentMemory); }
       <i> "grow_memory"         { RETURN_OPCODE0(GrowMemory); }
+
+      <i> "i32.atomic.load"     { RETURN_OPCODE(AtomicLoad, I32AtomicLoad); }
+      <i> "i64.atomic.load"     { RETURN_OPCODE(AtomicLoad, I64AtomicLoad); }
+      <i> "i32.atomic.load8_u"  { RETURN_OPCODE(AtomicLoad, I32AtomicLoad8U); }
+      <i> "i32.atomic.load16_u" { RETURN_OPCODE(AtomicLoad, I32AtomicLoad16U); }
+      <i> "i64.atomic.load8_u"  { RETURN_OPCODE(AtomicLoad, I64AtomicLoad8U); }
+      <i> "i64.atomic.load16_u" { RETURN_OPCODE(AtomicLoad, I64AtomicLoad16U); }
+      <i> "i64.atomic.load32_u" { RETURN_OPCODE(AtomicLoad, I64AtomicLoad32U); }
+      <i> "i32.atomic.store"    { RETURN_OPCODE(AtomicStore, I32AtomicStore); }
+      <i> "i64.atomic.store"    { RETURN_OPCODE(AtomicStore, I64AtomicStore); }
+      <i> "i32.atomic.store8"   { RETURN_OPCODE(AtomicStore, I32AtomicStore8); }
+      <i> "i32.atomic.store16"  { RETURN_OPCODE(AtomicStore, I32AtomicStore16); }
+      <i> "i64.atomic.store8"   { RETURN_OPCODE(AtomicStore, I64AtomicStore8); }
+      <i> "i64.atomic.store16"  { RETURN_OPCODE(AtomicStore, I64AtomicStore16); }
+      <i> "i64.atomic.store32"  { RETURN_OPCODE(AtomicStore, I64AtomicStore32); }
+      <i> "i32.atomic.rmw.add"         { RETURN_OPCODE(AtomicRmw, I32AtomicRmwAdd); }
+      <i> "i64.atomic.rmw.add"         { RETURN_OPCODE(AtomicRmw, I64AtomicRmwAdd); }
+      <i> "i32.atomic.rmw8_u.add"      { RETURN_OPCODE(AtomicRmw, I32AtomicRmw8UAdd); }
+      <i> "i32.atomic.rmw16_u.add"     { RETURN_OPCODE(AtomicRmw, I32AtomicRmw16UAdd); }
+      <i> "i64.atomic.rmw8_u.add"      { RETURN_OPCODE(AtomicRmw, I64AtomicRmw8UAdd); }
+      <i> "i64.atomic.rmw16_u.add"     { RETURN_OPCODE(AtomicRmw, I64AtomicRmw16UAdd); }
+      <i> "i64.atomic.rmw32_u.add"     { RETURN_OPCODE(AtomicRmw, I64AtomicRmw32UAdd); }
+      <i> "i32.atomic.rmw.sub"         { RETURN_OPCODE(AtomicRmw, I32AtomicRmwSub); }
+      <i> "i64.atomic.rmw.sub"         { RETURN_OPCODE(AtomicRmw, I64AtomicRmwSub); }
+      <i> "i32.atomic.rmw8_u.sub"      { RETURN_OPCODE(AtomicRmw, I32AtomicRmw8USub); }
+      <i> "i32.atomic.rmw16_u.sub"     { RETURN_OPCODE(AtomicRmw, I32AtomicRmw16USub); }
+      <i> "i64.atomic.rmw8_u.sub"      { RETURN_OPCODE(AtomicRmw, I64AtomicRmw8USub); }
+      <i> "i64.atomic.rmw16_u.sub"     { RETURN_OPCODE(AtomicRmw, I64AtomicRmw16USub); }
+      <i> "i64.atomic.rmw32_u.sub"     { RETURN_OPCODE(AtomicRmw, I64AtomicRmw32USub); }
+      <i> "i32.atomic.rmw.and"         { RETURN_OPCODE(AtomicRmw, I32AtomicRmwAnd); }
+      <i> "i64.atomic.rmw.and"         { RETURN_OPCODE(AtomicRmw, I64AtomicRmwAnd); }
+      <i> "i32.atomic.rmw8_u.and"      { RETURN_OPCODE(AtomicRmw, I32AtomicRmw8UAnd); }
+      <i> "i32.atomic.rmw16_u.and"     { RETURN_OPCODE(AtomicRmw, I32AtomicRmw16UAnd); }
+      <i> "i64.atomic.rmw8_u.and"      { RETURN_OPCODE(AtomicRmw, I64AtomicRmw8UAnd); }
+      <i> "i64.atomic.rmw16_u.and"     { RETURN_OPCODE(AtomicRmw, I64AtomicRmw16UAnd); }
+      <i> "i64.atomic.rmw32_u.and"     { RETURN_OPCODE(AtomicRmw, I64AtomicRmw32UAnd); }
+      <i> "i32.atomic.rmw.or"          { RETURN_OPCODE(AtomicRmw, I32AtomicRmwOr); }
+      <i> "i64.atomic.rmw.or"          { RETURN_OPCODE(AtomicRmw, I64AtomicRmwOr); }
+      <i> "i32.atomic.rmw8_u.or"       { RETURN_OPCODE(AtomicRmw, I32AtomicRmw8UOr); }
+      <i> "i32.atomic.rmw16_u.or"      { RETURN_OPCODE(AtomicRmw, I32AtomicRmw16UOr); }
+      <i> "i64.atomic.rmw8_u.or"       { RETURN_OPCODE(AtomicRmw, I64AtomicRmw8UOr); }
+      <i> "i64.atomic.rmw16_u.or"      { RETURN_OPCODE(AtomicRmw, I64AtomicRmw16UOr); }
+      <i> "i64.atomic.rmw32_u.or"      { RETURN_OPCODE(AtomicRmw, I64AtomicRmw32UOr); }
+      <i> "i32.atomic.rmw.xor"         { RETURN_OPCODE(AtomicRmw, I32AtomicRmwXor); }
+      <i> "i64.atomic.rmw.xor"         { RETURN_OPCODE(AtomicRmw, I64AtomicRmwXor); }
+      <i> "i32.atomic.rmw8_u.xor"      { RETURN_OPCODE(AtomicRmw, I32AtomicRmw8UXor); }
+      <i> "i32.atomic.rmw16_u.xor"     { RETURN_OPCODE(AtomicRmw, I32AtomicRmw16UXor); }
+      <i> "i64.atomic.rmw8_u.xor"      { RETURN_OPCODE(AtomicRmw, I64AtomicRmw8UXor); }
+      <i> "i64.atomic.rmw16_u.xor"     { RETURN_OPCODE(AtomicRmw, I64AtomicRmw16UXor); }
+      <i> "i64.atomic.rmw32_u.xor"     { RETURN_OPCODE(AtomicRmw, I64AtomicRmw32UXor); }
+      <i> "i32.atomic.rmw.xchg"        { RETURN_OPCODE(AtomicRmw, I32AtomicRmwXchg); }
+      <i> "i64.atomic.rmw.xchg"        { RETURN_OPCODE(AtomicRmw, I64AtomicRmwXchg); }
+      <i> "i32.atomic.rmw8_u.xchg"     { RETURN_OPCODE(AtomicRmw, I32AtomicRmw8UXchg); }
+      <i> "i32.atomic.rmw16_u.xchg"    { RETURN_OPCODE(AtomicRmw, I32AtomicRmw16UXchg); }
+      <i> "i64.atomic.rmw8_u.xchg"     { RETURN_OPCODE(AtomicRmw, I64AtomicRmw8UXchg); }
+      <i> "i64.atomic.rmw16_u.xchg"    { RETURN_OPCODE(AtomicRmw, I64AtomicRmw16UXchg); }
+      <i> "i64.atomic.rmw32_u.xchg"    { RETURN_OPCODE(AtomicRmw, I64AtomicRmw32UXchg); }
+      <i> "i32.atomic.rmw.cmpxchg"     { RETURN_OPCODE(AtomicRmwCmpxchg, I32AtomicRmwCmpxchg); }
+      <i> "i64.atomic.rmw.cmpxchg"     { RETURN_OPCODE(AtomicRmwCmpxchg, I64AtomicRmwCmpxchg); }
+      <i> "i32.atomic.rmw8_u.cmpxchg"  { RETURN_OPCODE(AtomicRmwCmpxchg, I32AtomicRmw8UCmpxchg); }
+      <i> "i32.atomic.rmw16_u.cmpxchg" { RETURN_OPCODE(AtomicRmwCmpxchg, I32AtomicRmw16UCmpxchg); }
+      <i> "i64.atomic.rmw8_u.cmpxchg"  { RETURN_OPCODE(AtomicRmwCmpxchg, I64AtomicRmw8UCmpxchg); }
+      <i> "i64.atomic.rmw16_u.cmpxchg" { RETURN_OPCODE(AtomicRmwCmpxchg, I64AtomicRmw16UCmpxchg); }
+      <i> "i64.atomic.rmw32_u.cmpxchg" { RETURN_OPCODE(AtomicRmwCmpxchg, I64AtomicRmw32UCmpxchg); }
+
       <i> "type"                { RETURN(Type); }
       <i> "func"                { RETURN(Func); }
       <i> "param"               { RETURN(Param); }
@@ -616,6 +542,7 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "throw"               { RETURN_OPCODE0(Throw); }
       <i> "rethrow"             { RETURN_OPCODE0(Rethrow); }
       <i> name                  { RETURN_TEXT(Var); }
+      <i> "shared"              { RETURN(Shared); }
 
       <i> ";;" => LINE_COMMENT  { continue; }
       <LINE_COMMENT> "\n" => i  { NEWLINE; continue; }
