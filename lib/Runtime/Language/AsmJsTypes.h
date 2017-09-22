@@ -59,41 +59,22 @@ namespace Js
     {
         enum ViewType: uint8
         {
-            TYPE_INT8 = 0,
-            TYPE_UINT8,
-            TYPE_INT16,
-            TYPE_UINT16,
-            TYPE_INT32,
-            TYPE_UINT32,
-            TYPE_FLOAT32,
-            TYPE_FLOAT64,
-            TYPE_INT64,
-            TYPE_INT8_TO_INT64,
-            TYPE_UINT8_TO_INT64,
-            TYPE_INT16_TO_INT64,
-            TYPE_UINT16_TO_INT64,
-            TYPE_INT32_TO_INT64,
-            TYPE_UINT32_TO_INT64,
+#define ARRAYBUFFER_VIEW(name, ...) TYPE_##name,
+#include "AsmJsArrayBufferViews.h"
             TYPE_COUNT
         };
 
+        const uint32 NaturalAlignment[ArrayBufferView::TYPE_COUNT] =
+        {
+#define ARRAYBUFFER_VIEW(name, align, ...) align,
+#include "AsmJsArrayBufferViews.h"
+        };
+
+#define ARRAYBUFFER_VIEW_MASK(align) ((uint32)~((1 << align) - 1))
         const uint32 ViewMask[] =
         {
-            (uint32)~0 //TYPE_INT8
-            , (uint32)~0 //TYPE_UINT8
-            , (uint32)~1 //TYPE_INT16
-            , (uint32)~1 //TYPE_UINT16
-            , (uint32)~3 //TYPE_INT32
-            , (uint32)~3 //TYPE_UINT32
-            , (uint32)~3 //TYPE_FLOAT32
-            , (uint32)~7 //TYPE_FLOAT64
-            , (uint32)~7 //TYPE_INT64
-            , (uint32)~0 //TYPE_INT8_TO_INT64
-            , (uint32)~0 //TYPE_UINT8_TO_UINT64
-            , (uint32)~1 //TYPE_INT16_TO_INT64
-            , (uint32)~1 //TYPE_UINT16_TO_UINT64
-            , (uint32)~3 //TYPE_INT32_TO_INT64
-            , (uint32)~3 //TYPE_UINT32_TO_UINT64
+#define ARRAYBUFFER_VIEW(name, align, ...) ARRAYBUFFER_VIEW_MASK(align),
+#include "AsmJsArrayBufferViews.h"
         };
 
     } /* namespace ArrayBufferView */
