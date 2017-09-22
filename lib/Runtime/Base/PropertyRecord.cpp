@@ -147,6 +147,14 @@ namespace Js
         Output::Print(_u("%*sIsBound: %d\n"), fieldIndent, padding, this->isBound);
         Output::Print(_u("%*sIsSymbol: %d\n"), fieldIndent, padding, this->isSymbol);
         Output::Print(_u("%*sbyteCount: %u\n"), fieldIndent, padding, this->byteCount);
+        if (this->isNumeric)
+        {
+            Output::Print(_u("%*sbuffer (numeric): %u\n"), fieldIndent, padding, this->GetNumericValue());
+        }
+        else
+        {
+            Output::Print(_u("%*sbuffer (string): %s\n"), fieldIndent, padding, this->GetBuffer());
+        }
     }
 #endif
 
