@@ -9,9 +9,17 @@ class FinalizableObject : public IRecyclerVisitedObject
 {
 public:
     virtual void __stdcall OnMark() {}
+
+    void __stdcall Mark(RecyclerHeapHandle recycler) final
+    {
+        Mark(static_cast<Recycler*>(recycler));
+    }
+
     bool __stdcall Trace(IRecyclerHeapMarkingContext* markingContext) final
     {
         AssertMsg(false, "Trace called on object that isn't implemented by the host");
         return true;
     }
+
+    virtual void __stdcall Mark(Recycler* recycler) = 0;
 };
