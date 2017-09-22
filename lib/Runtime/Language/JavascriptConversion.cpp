@@ -290,24 +290,28 @@ CommonNumber:
             // For all other types, convert the key into a string and use that as the property name
             JavascriptString * propName = JavascriptConversion::ToString(key, scriptContext);
 
-            if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(propName))
+            PropertyString * propertyString = PropertyString::TryFromVar(propName);
+            if (propertyString == nullptr)
             {
-                PropertyString * propertyString = (PropertyString *)propName;
-                *propertyRecord = propertyString->GetPropertyRecord();
+                LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(propName);
+                if (strWithPtr != nullptr)
+                {
+                    if (!strWithPtr->GetPropertyString())
+                    {
+                        propertyString = strWithPtr->GetPropertyString();
+                    }
+                    else
+                    {
+                        scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
+                        propertyString = scriptContext->GetPropertyString((*propertyRecord)->GetPropertyId());
+                        strWithPtr->SetPropertyString(propertyString);
+                    }
+                }
             }
-            else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(propName))
+
+            if (propertyString != nullptr)
             {
-                LiteralStringWithPropertyStringPtr * str = (LiteralStringWithPropertyStringPtr *)propName;
-                if (str->GetPropertyString())
-                {
-                    *propertyRecord = str->GetPropertyString()->GetPropertyRecord();
-                }
-                else
-                {
-                    scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
-                    PropertyString * propStr = scriptContext->GetPropertyString((*propertyRecord)->GetPropertyId());
-                    str->SetPropertyString(propStr);
-                }
+                *propertyRecord = propertyString->GetPropertyRecord();
             }
             else
             {

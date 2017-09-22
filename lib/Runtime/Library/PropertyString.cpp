@@ -37,6 +37,18 @@ namespace Js
         return this->stElemInlineCache;
     }
 
+    /* static */
+    bool PropertyString::Is(RecyclableObject * obj)
+    {
+        return VirtualTableInfo<Js::PropertyString>::HasVirtualTable(obj);
+    }
+
+    /* static */
+    bool PropertyString::Is(Var var)
+    {
+        return RecyclableObject::Is(var) && PropertyString::Is(RecyclableObject::FromVar(var));
+    }
+
     void const * PropertyString::GetOriginalStringReference()
     {
         // Property record is the allocation containing the string buffer
@@ -46,6 +58,88 @@ namespace Js
     bool PropertyString::ShouldUseCache() const
     {
         return this->hitRate > (int)CONFIG_FLAG(StringCacheMissThreshold);
+    }
+
+    bool PropertyString::TryGetPropertyFromCache(
+        Var const instance,
+        RecyclableObject *const object,
+        Var *const propertyValue,
+        ScriptContext *const requestContext,
+        PropertyValueInfo *const propertyValueInfo)
+    {
+        if (ShouldUseCache())
+        {
+            PropertyValueInfo::SetCacheInfo(propertyValueInfo, this, GetLdElemInlineCache(), true);
+            if (CacheOperators::TryGetProperty<true, true, true, true, true, true, false, true, false>(
+                instance, false, object, this->propertyRecord->GetPropertyId(), propertyValue, requestContext, nullptr, propertyValueInfo))
+            {
+                LogCacheHit();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+                if (PHASE_TRACE1(PropertyStringCachePhase))
+                {
+                    Output::Print(_u("PropertyCache: GetElem cache hit for '%s': type %p\n"), GetString(), object->GetType());
+                }
+#endif
+                return true;
+            }
+        }
+
+        LogCacheMiss();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (PHASE_TRACE1(PropertyStringCachePhase))
+        {
+            Output::Print(_u("PropertyCache: GetElem cache miss for '%s': type %p, index %d\n"),
+                GetString(),
+                object->GetType(),
+                GetLdElemInlineCache()->GetInlineCacheIndexForType(object->GetType()));
+            DumpCache(true);
+        }
+#endif
+        return false;
+    }
+
+    bool PropertyString::TrySetPropertyFromCache(
+        RecyclableObject *const object,
+        Var propertyValue,
+        ScriptContext *const requestContext,
+        const PropertyOperationFlags propertyOperationFlags,
+        PropertyValueInfo *const propertyValueInfo)
+    {
+        if (ShouldUseCache())
+        {
+            PropertyValueInfo::SetCacheInfo(propertyValueInfo, this, GetStElemInlineCache(), true);
+            if (CacheOperators::TrySetProperty<true, true, true, true, true, false, true, false>(
+                object,
+                false,
+                this->propertyRecord->GetPropertyId(),
+                propertyValue,
+                requestContext,
+                propertyOperationFlags,
+                nullptr,
+                propertyValueInfo))
+            {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+                if (PHASE_TRACE1(PropertyStringCachePhase))
+                {
+                    Output::Print(_u("PropertyCache: SetElem cache hit for '%s': type %p\n"), GetString(), object->GetType());
+                }
+#endif
+                LogCacheHit();
+                return true;
+            }
+        }
+        LogCacheMiss();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (PHASE_TRACE1(PropertyStringCachePhase))
+        {
+            Output::Print(_u("PropertyCache: SetElem cache miss for '%s': type %p, index %d\n"),
+                GetString(),
+                object->GetType(),
+                GetStElemInlineCache()->GetInlineCacheIndexForType(object->GetType()));
+            DumpCache(false);
+        }
+#endif
+        return false;
     }
 
     void PropertyString::LogCacheMiss()

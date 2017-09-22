@@ -437,10 +437,10 @@ namespace JSON
 
         if (value == nullptr)
         {
-            if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(key))
+            Js::PropertyString* propertyString = Js::PropertyString::TryFromVar(key);
+            if (propertyString)
             {
                 PropertyValueInfo info;
-                Js::PropertyString* propertyString = (Js::PropertyString*)key;
                 PropertyValueInfo::SetCacheInfo(&info, propertyString, propertyString->GetLdElemInlineCache(), false);
                 CacheOperators::TryGetProperty<true, false, true, false, true, false, false, true, false>(holder, false, Js::RecyclableObject::FromVar(holder), keyId, &value, scriptContext, nullptr, &info);
             }

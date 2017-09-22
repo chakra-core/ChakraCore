@@ -184,11 +184,11 @@ namespace Js
                 // Property Id does not exist.
                 if (propertyId == Constants::NoProperty)
                 {
-                    if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(currentIndex))
+                    PropertyString * propertyString = PropertyString::TryFromVar(currentIndex);
+                    if(propertyString != nullptr)
                     {
                         // If we have a property string, it is assumed that the propertyId is being
                         // kept alive with the object
-                        PropertyString * propertyString = (PropertyString *)currentIndex;
                         propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
                     }
                     else

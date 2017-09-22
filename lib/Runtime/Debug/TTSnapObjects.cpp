@@ -328,7 +328,7 @@ namespace TTD
                         {
                             //get the value to see if it is alreay ok
                             Js::Var currentValue = nullptr;
-                            Js::JavascriptOperators::GetOwnProperty(obj, pid, &currentValue, obj->GetScriptContext());
+                            Js::JavascriptOperators::GetOwnProperty(obj, pid, &currentValue, obj->GetScriptContext(), nullptr);
 
                             if(currentValue == pVal)
                             {

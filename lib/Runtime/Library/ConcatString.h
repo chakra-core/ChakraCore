@@ -18,7 +18,9 @@ namespace Js
         template <typename StringType> static LiteralStringWithPropertyStringPtr * ConvertString(StringType * originalString);
 
         static uint GetOffsetOfPropertyString() { return offsetof(LiteralStringWithPropertyStringPtr, propertyString); }
-
+        static bool Is(Var var);
+        static bool Is(RecyclableObject* var);
+        template <typename T> static LiteralStringWithPropertyStringPtr* TryFromVar(T var);
     protected:
         LiteralStringWithPropertyStringPtr(StaticType* stringTypeStatic);
         DEFINE_VTABLE_CTOR(LiteralStringWithPropertyStringPtr, LiteralString);

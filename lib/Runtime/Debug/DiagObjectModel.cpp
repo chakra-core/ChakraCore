@@ -2471,11 +2471,11 @@ namespace Js
                                 {
                                     if (propertyId == Constants::NoProperty)
                                     {
-                                        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(obj))
+                                        PropertyString * propertyString = PropertyString::TryFromVar(obj);
+                                        if (propertyString != nullptr)
                                         {
                                             // If we have a property string, it is assumed that the propertyId is being
                                             // kept alive with the object
-                                            PropertyString * propertyString = (PropertyString *)obj;
                                             propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
                                         }
                                         else

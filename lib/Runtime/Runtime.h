@@ -581,6 +581,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/JavascriptOperators.inl"
 #include "Language/TaggedInt.inl"
 #include "Library/JavascriptGeneratorFunction.h"
+#include "Library/ConcatString.inl"
 
 #ifndef USED_IN_STATIC_LIB
 #ifdef ENABLE_INTL_OBJECT

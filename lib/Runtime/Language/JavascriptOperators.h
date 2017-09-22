@@ -155,7 +155,7 @@ namespace Js
         static BOOL NotStrictEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
 
         static BOOL HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext * requestContext);
-        static BOOL GetOwnProperty(Var instance, PropertyId propertyId, Var* value, ScriptContext* requestContext);
+        static BOOL GetOwnProperty(Var instance, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo * propertyValueInfo);
         static BOOL GetOwnAccessors(Var instance, PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext);
         static BOOL EnsureProperty(Var instance, PropertyId propertyId);
         static void OP_EnsureNoRootProperty(Var instance, PropertyId propertyId);

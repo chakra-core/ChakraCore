@@ -1538,15 +1538,28 @@ namespace Js
                 scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
                 nextKey = propertyRecord->GetPropertyId();
             }
+            PropertyString * propertyString = PropertyString::TryFromVar(propertyName);
 
-            if (!JavascriptOperators::GetOwnProperty(from, nextKey, &propValue, scriptContext))
+            PropertyValueInfo getPropertyInfo;
+            if (!propertyString || !propertyString->TryGetPropertyFromCache(from, from, &propValue, scriptContext, &getPropertyInfo))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
+                if (!JavascriptOperators::GetOwnProperty(from, nextKey, &propValue, scriptContext, &getPropertyInfo))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
+                }
+                if (propertyString)
+                {
+                    CacheOperators::CachePropertyRead(from, from, false, nextKey, false, &getPropertyInfo, scriptContext);
+                }
             }
 
-            if (!JavascriptOperators::SetProperty(to, to, nextKey, propValue, scriptContext, PropertyOperationFlags::PropertyOperation_ThrowIfNonWritable))
+            PropertyValueInfo setPropertyInfo;
+            if (!propertyString || !propertyString->TrySetPropertyFromCache(to, propValue, scriptContext, PropertyOperation_ThrowIfNonWritable, &setPropertyInfo))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
+                if (!JavascriptOperators::SetProperty(to, to, nextKey, propValue, &setPropertyInfo, scriptContext, PropertyOperation_ThrowIfNonWritable))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
+                }
             }
         }
     }
@@ -1581,7 +1594,7 @@ namespace Js
             {
                 if (propertyDescriptor.IsEnumerable())
                 {
-                    if (!JavascriptOperators::GetOwnProperty(from, propertyId, &propValue, scriptContext))
+                    if (!JavascriptOperators::GetOwnProperty(from, propertyId, &propValue, scriptContext, nullptr))
                     {
                         JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
                     }

@@ -20,6 +20,15 @@ namespace Js
         convertedString->SetPropertyString(nullptr);
         return convertedString;
     }
+    
+    template <typename T>
+    inline LiteralStringWithPropertyStringPtr * LiteralStringWithPropertyStringPtr::TryFromVar(T var)
+    {
+        return LiteralStringWithPropertyStringPtr::Is(var)
+            ? reinterpret_cast<LiteralStringWithPropertyStringPtr*>(var)
+            : nullptr;
+    }
+
 
     /////////////////////// ConcatStringBase //////////////////////////
     template <typename ConcatStringType>
