@@ -4,15 +4,45 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/chakra_extends_i32.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -WasmSignExtends</compile-flags>
+      <baseline>baselines/chakra_atomic_load.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_atomic_load.wast -endargs -WasmThreads</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_atomic_load.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_atomic_load.wast -endargs -nonative -WasmThreads</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_atomic_store.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_atomic_store.wast -endargs -WasmThreads</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_atomic_store.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_atomic_store.wast -endargs -nonative -WasmThreads</compile-flags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_extends_i32.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -nonative -WasmSignExtends</compile-flags>
+      <compile-flags>-wasm -args chakra_generated/chakra_extends_i32.wast -endargs -WasmSignExtends</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_extends_i32.baseline</baseline>
+      <compile-flags>-wasm -args chakra_generated/chakra_extends_i32.wast -endargs -nonative -WasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -20,14 +50,14 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_extends_i64.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -WasmSignExtends</compile-flags>
+      <compile-flags>-wasm -args chakra_generated/chakra_extends_i64.wast -endargs -WasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_extends_i64.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -nonative -WasmSignExtends</compile-flags>
+      <compile-flags>-wasm -args chakra_generated/chakra_extends_i64.wast -endargs -nonative -WasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -35,14 +65,14 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_i32.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_i32.wast -endargs</compile-flags>
+      <compile-flags>-wasm -args chakra_generated/chakra_i32.wast -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_i32.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_i32.wast -endargs -nonative</compile-flags>
+      <compile-flags>-wasm -args chakra_generated/chakra_i32.wast -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -50,21 +80,21 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_i32.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_i32.wast -endargs -wasmMathExFilter</compile-flags>
+      <compile-flags>-wasm -args chakra_generated/chakra_i32.wast -endargs -wasmMathExFilter</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_i64.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_i64.wast -endargs</compile-flags>
+      <compile-flags>-wasm -args chakra_generated/chakra_i64.wast -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_i64.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_i64.wast -endargs -nonative</compile-flags>
+      <compile-flags>-wasm -args chakra_generated/chakra_i64.wast -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -72,7 +102,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_i64.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_i64.wast -endargs -wasmMathExFilter</compile-flags>
+      <compile-flags>-wasm -args chakra_generated/chakra_i64.wast -endargs -wasmMathExFilter</compile-flags>
     </default>
   </test>
   <test>
@@ -1213,6 +1243,36 @@
       <files>spec.js</files>
       <baseline>baselines/extends_i64.baseline</baseline>
       <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -nonative -WasmSignExtends</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/atomic_load.baseline</baseline>
+      <compile-flags>-wasm -args features/threads/atomic_load.wast -endargs -WasmThreads</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/atomic_load.baseline</baseline>
+      <compile-flags>-wasm -args features/threads/atomic_load.wast -endargs -nonative -WasmThreads</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/atomic_store.baseline</baseline>
+      <compile-flags>-wasm -args features/threads/atomic_store.wast -endargs -WasmThreads</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/atomic_store.baseline</baseline>
+      <compile-flags>-wasm -args features/threads/atomic_store.wast -endargs -nonative -WasmThreads</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
