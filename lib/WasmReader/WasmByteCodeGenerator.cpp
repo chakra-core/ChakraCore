@@ -37,12 +37,10 @@ void WasmBytecodeGenerator::WriteTypeStack(WriteFn writefn) const
     while (i >= 0)
     {
         EmitInfo info = m_evalStack.Peek(i--);
-        if (!isFirst)
-        {
-            writefn(_u(", "));
-        }
+        writefn(_u("%s%s"),
+            !isFirst ? _u(", ") : _u(""),
+            GetTypeName(info.type));
         isFirst = false;
-        writefn(GetTypeName(info.type));
     }
     writefn(_u("]"));
 }
@@ -51,9 +49,12 @@ uint32 WasmBytecodeGenerator::WriteTypeStackToString(_Out_writes_(maxlen) char16
 {
     AssertOrFailFast(out != nullptr);
     uint32 numwritten = 0;
-    WriteTypeStack([&] (const char16* msg)
+    WriteTypeStack([&] (const char16* msg, ...)
     {
-        numwritten += _snwprintf_s(out + numwritten, maxlen - numwritten, _TRUNCATE, msg);
+        va_list argptr;
+        va_start(argptr, msg);
+        numwritten += _vsnwprintf_s(out + numwritten, maxlen - numwritten, _TRUNCATE, msg, argptr);
+        va_end(argptr);
     });
     if (numwritten >= maxlen - 5)
     {
@@ -71,7 +72,13 @@ uint32 WasmBytecodeGenerator::WriteTypeStackToString(_Out_writes_(maxlen) char16
 #if DBG_DUMP
 void WasmBytecodeGenerator::PrintTypeStack() const
 {
-    WriteTypeStack([](const char16* msg) { Output::Print(msg); });
+    WriteTypeStack([](const char16* msg, ...)
+    {
+        va_list argptr;
+        va_start(argptr, msg);
+        Output::VPrint(msg, argptr);
+        va_end(argptr);
+    });
 }
 
 void WasmBytecodeGenerator::PrintOpBegin(WasmOp op)
@@ -99,10 +106,24 @@ case wb##opname: \
     case wbBr:
     case wbBrIf: Output::Print(_u(" depth: %u"), GetReader()->m_currentNode.br.depth); break;
     case wbBrTable: Output::Print(_u(" %u cases, default: %u"), GetReader()->m_currentNode.brTable.numTargets, GetReader()->m_currentNode.brTable.defaultTarget); break;
-    case wbCall:
     case wbCallIndirect:
     {
-        uint id = GetReader()->m_currentNode.call.num;
+        uint32 sigId = GetReader()->m_currentNode.call.num;
+        if (sigId < m_module->GetSignatureCount())
+        {
+            Output::Print(_u(" "));
+            WasmSignature* sig = m_module->GetSignature(sigId);
+            sig->Dump(20);
+        }
+        else
+        {
+            Output::Print(_u(" invalid signature id %u"), sigId);
+        }
+        break;
+    }
+    case wbCall:
+    {
+        uint32 id = GetReader()->m_currentNode.call.num;
         if (id < m_module->GetWasmFunctionCount())
         {
             FunctionIndexTypes::Type funcType = GetReader()->m_currentNode.call.funcType;
@@ -119,7 +140,7 @@ case wb##opname: \
         }
         else
         {
-            Output::Print(_u(" invalid id"));
+            Output::Print(_u(" invalid id %u"), id);
         }
         break;
     }
@@ -213,6 +234,9 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::W
 
 Js::WebAssemblyModule* WasmModuleGenerator::GenerateModule()
 {
+    Js::AutoProfilingPhase wasmPhase(m_scriptContext, Js::WasmReaderPhase);
+    Unused(wasmPhase);
+
     m_module->GetReader()->InitializeReader();
 
     BVStatic<bSectLimit + 1> visitedSections;
@@ -305,12 +329,6 @@ Js::WebAssemblyModule* WasmModuleGenerator::GenerateModule()
     }
 #endif
 
-#if DBG_DUMP
-    if (PHASE_TRACE1(Js::WasmReaderPhase))
-    {
-        GetReader()->PrintOps();
-    }
-#endif
     // If we see a FunctionSignatures section we need to see a FunctionBodies section
     if (visitedSections.Test(bSectFunction) && !visitedSections.Test(bSectFunctionBodies))
     {
@@ -526,9 +544,16 @@ void WasmBytecodeGenerator::GenerateFunction()
     AutoDisableInterrupt autoDisableInterrupt(m_scriptContext->GetThreadContext(), true);
 
 #if DBG_DUMP
-    if (PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()) && !IsValidating())
+    if ((
+        PHASE_DUMP(Js::WasmBytecodePhase, GetFunctionBody()) ||
+        PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()) 
+        ) && !IsValidating())
     {
         Js::AsmJsByteCodeDumper::Dump(GetFunctionBody(), &mTypedRegisterAllocator, nullptr);
+    }
+    if (PHASE_DUMP(Js::WasmOpCodeDistributionPhase, GetFunctionBody()))
+    {
+        m_module->GetReader()->PrintOps();
     }
 #endif
 

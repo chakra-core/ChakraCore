@@ -196,11 +196,11 @@ uint32 WasmSignature::WriteSignatureToString(_Out_writes_(maxlen) char16* out, u
     return numwritten;
 }
 
-void WasmSignature::Dump()
+void WasmSignature::Dump(uint32 maxlen)
 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     char16 buf[512] = { 0 };
-    this->WriteSignatureToString(buf, 512);
+    this->WriteSignatureToString(buf, min(maxlen, 512u));
     Output::Print(buf);
 #endif
 }

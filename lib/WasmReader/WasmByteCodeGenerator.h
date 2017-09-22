@@ -159,6 +159,7 @@ namespace Wasm
         Js::WebAssemblyModule* GenerateModule();
         void GenerateFunctionHeader(uint32 index);
     private:
+        Js::FunctionBody* GetFunctionBody() const { return nullptr; }
         WasmBinaryReader* GetReader() const;
 
         Memory::Recycler* m_recycler;
