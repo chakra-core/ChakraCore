@@ -1,10 +1,12 @@
 {
   "folders": [
     "chakra",
+    "chakra_generated",
     "testsuite/core",
     "testsuite/js-api",
 
-    "features/extends"
+    "features/extends",
+    "features/threads"
   ],
   "features": [{
     "flags": ["-wasmfastarray-"],
@@ -36,6 +38,16 @@
     "files": [
       "chakra_extends_i32",
       "chakra_extends_i64"
+    ]
+  }, {
+    "required": true,
+    "flags": ["-WasmThreads"],
+    "folders": [
+      "features/threads"
+    ],
+    "files": [
+      "chakra_atomic_load",
+      "chakra_atomic_store"
     ]
   }],
   "excludes": [

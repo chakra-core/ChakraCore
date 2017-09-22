@@ -1,0 +1,50 @@
+(module
+  ;; todo make this a shared memory
+  (memory 1)
+  (data (i32.const 0) "\ff\ff\ff\ff")
+  (data (i32.const 4) "\00\00\ce\41")
+  (data (i32.const 8) "\00\00\00\00\00\ff\8f\40")
+
+  (func (export "i32.atomic.load8_u") (result i32)
+    i32.const 1 i32.atomic.load8_u)
+  (func (export "i32.atomic.load16_u") (result i32)
+    i32.const 2 i32.atomic.load16_u)
+  (func (export "i32.atomic.load") (result i32)
+    i32.const 4 i32.atomic.load)
+
+  (func (export "i64.atomic.load8_u") (result i64)
+    i32.const 1 i64.atomic.load8_u)
+  (func (export "i64.atomic.load16_u") (result i64)
+    i32.const 2 i64.atomic.load16_u)
+  (func (export "i64.atomic.load32_u") (result i64)
+    i32.const 4 i64.atomic.load32_u)
+  (func (export "i64.atomic.load") (result i64)
+    i32.const 0 i64.atomic.load)
+
+  ;; Test bad alignment
+
+  (func (export "bad.align-i32.atomic.load16_u") (result i32)
+    i32.const 1 i32.atomic.load16_u)
+  (func (export "bad.align-i32.atomic.load") (result i32)
+    i32.const 2 i32.atomic.load)
+
+  (func (export "bad.align-i64.atomic.load16_u") (result i64)
+    i32.const 1 i64.atomic.load16_u)
+  (func (export "bad.align-i64.atomic.load32_u") (result i64)
+    i32.const 2 i64.atomic.load32_u)
+  (func (export "bad.align-i64.atomic.load") (result i64)
+    i32.const 4 i64.atomic.load)
+)
+
+(assert_return (invoke "i32.atomic.load8_u") (i32.const 255))
+(assert_return (invoke "i32.atomic.load16_u") (i32.const 65535))
+(assert_return (invoke "i32.atomic.load") (i32.const 1104019456))
+(assert_return (invoke "i64.atomic.load8_u") (i64.const 255))
+(assert_return (invoke "i64.atomic.load16_u") (i64.const 65535))
+(assert_return (invoke "i64.atomic.load32_u") (i64.const 1104019456))
+(assert_return (invoke "i64.atomic.load") (i64.const 4741727461962678271))
+(assert_trap (invoke "bad.align-i32.atomic.load16_u") "atomic memory access is unaligned")
+(assert_trap (invoke "bad.align-i32.atomic.load") "atomic memory access is unaligned")
+(assert_trap (invoke "bad.align-i64.atomic.load16_u") "atomic memory access is unaligned")
+(assert_trap (invoke "bad.align-i64.atomic.load32_u") "atomic memory access is unaligned")
+(assert_trap (invoke "bad.align-i64.atomic.load") "atomic memory access is unaligned")
