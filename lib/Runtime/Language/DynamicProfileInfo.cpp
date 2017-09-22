@@ -898,7 +898,7 @@ namespace Js
                         if (srcInfo && srcInfo->GetHostSourceContext() == Js::Constants::JsBuiltInSourceContext)
                         {
                             FunctionProxy *inlineeProxy = srcInfo->FindFunction(functionId);
-                            if (inlineeProxy && inlineeProxy->IsJsBuiltInCode())
+                            if (inlineeProxy)
                             {
                                 return inlineeProxy->GetFunctionInfo();
                             }

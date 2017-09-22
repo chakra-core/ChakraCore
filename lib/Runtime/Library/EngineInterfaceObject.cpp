@@ -200,12 +200,6 @@ namespace Js
 
         JavascriptLibrary* library = commonNativeInterfaces->GetScriptContext()->GetLibrary();
 
-#ifdef ENABLE_JS_BUILTINS
-        library->EnsureBuiltInEngineIsReady();
-        EngineExtensionObjectBase* builtInExtensionObject = library->GetEngineInterfaceObject()->GetEngineExtension(EngineInterfaceExtensionKind_JsBuiltIn);
-        builtInExtensionObject->Initialize();
-#endif
-
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \
     library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtIn##global##method, &EngineInterfaceObject::EntryInfo::BuiltIn_##global##_##method##, 1); \

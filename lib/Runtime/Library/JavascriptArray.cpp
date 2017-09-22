@@ -8453,6 +8453,11 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
+
+#ifdef ENABLE_JS_BUILTINS
+        Assert(!scriptContext->IsJsBuiltInEnabled());
+#endif
+
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
@@ -8485,6 +8490,11 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
+
+#ifdef ENABLE_JS_BUILTINS
+        Assert(!scriptContext->IsJsBuiltInEnabled());
+#endif
+
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
@@ -8517,6 +8527,11 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
+
+#ifdef ENABLE_JS_BUILTINS
+        Assert(!scriptContext->IsJsBuiltInEnabled());
+#endif
+
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));

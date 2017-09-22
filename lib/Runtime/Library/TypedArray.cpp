@@ -1867,6 +1867,26 @@ namespace Js
     Var TypedArrayBase::GetKeysEntriesValuesHelper(Arguments& args, ScriptContext *scriptContext, LPCWSTR apiName, JavascriptArrayIteratorKind kind)
     {
         TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, apiName);
+#ifdef ENABLE_JS_BUILTINS
+        JavascriptLibrary * library = scriptContext->GetLibrary();
+        if (scriptContext->IsJsBuiltInEnabled())
+        {
+            JavascriptString* methodName = JavascriptString::NewWithSz(_u("CreateArrayIterator"), scriptContext);
+            PropertyIds functionIdentifier = JavascriptOperators::GetPropertyId(methodName, scriptContext);
+            Var scriptFunction = JavascriptOperators::OP_GetProperty(library->GetChakraLib(), functionIdentifier, scriptContext);
+
+            Assert(!JavascriptOperators::IsUndefinedOrNull(scriptFunction));
+            Assert(JavascriptConversion::IsCallable(scriptFunction));
+
+            RecyclableObject* function = RecyclableObject::FromVar(scriptFunction);
+
+            Var chakraLibObj = JavascriptOperators::OP_GetProperty(library->GetGlobalObject(), PropertyIds::__chakraLibrary, scriptContext);
+            Var argsIt[] = { chakraLibObj, args[0], TaggedInt::ToVarUnchecked((int)kind) };
+            CallInfo callInfo(CallFlags_Value, 3);
+            return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), Js::Arguments(callInfo, argsIt));
+        }
+        else
+#endif
         return scriptContext->GetLibrary()->CreateArrayIterator(typedArrayBase, kind);
     }
 

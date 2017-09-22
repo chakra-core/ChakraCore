@@ -45,6 +45,11 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
+
+#ifdef ENABLE_JS_BUILTINS
+        Assert(!scriptContext->IsJsBuiltInEnabled());
+#endif
+
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
         Assert(!(callInfo.Flags & CallFlags_New));

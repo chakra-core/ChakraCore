@@ -726,6 +726,10 @@ ENTRY(className)
 ENTRY(methodName)
 ENTRY(argumentsCount)
 ENTRY(forceInline)
+ENTRY(alias)
+ENTRY(GetLength)
+ENTRY(GetIteratorPrototype)
+ENTRY(InitInternalProperties)
 
 // These are ES5/6/7+ builtins that are tracked for telemetry purposes, but currently not implemented by Chakra or are otherwise special.
 // IMPORTANT NOTE: See notes at top of this file regarding GenByteCode and test failures after changing this list.

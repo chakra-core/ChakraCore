@@ -415,6 +415,11 @@ namespace Js
         Field(JavascriptFunction*) objectValueOfFunction;
         Field(JavascriptFunction*) objectToStringFunction;
 
+#ifdef ENABLE_JS_BUILTINS
+        Field(JavascriptFunction*) arrayPrototypeDefaultValuesFunction;
+        Field(JavascriptFunction*) isArrayFunction;
+#endif
+
 #ifdef ENABLE_WASM
         Field(DynamicObject*) webAssemblyObject;
         Field(JavascriptFunction*) webAssemblyQueryResponseFunction;
@@ -1216,6 +1221,7 @@ namespace Js
         void TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(Type *const type);
         void NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
 
+        static bool IsDefaultArrayValuesFunction(RecyclableObject * function, ScriptContext *scriptContext);
         static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);
 
         CharStringCache& GetCharStringCache() { return charStringCache;  }

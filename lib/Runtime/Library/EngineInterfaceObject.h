@@ -25,10 +25,13 @@ namespace Js
             extensionKind(kind),
             scriptContext(context)
         {
+            hasBytecode = false;
         }
 
         EngineInterfaceExtensionKind GetExtensionKind() const { return extensionKind; }
         ScriptContext* GetScriptContext() const { return scriptContext; }
+        bool GetHasByteCode() const { return hasBytecode; }
+        void SetHasBytecode() { hasBytecode = true; }
         virtual void Initialize() = 0;
 #if DBG
         virtual void DumpByteCode() = 0;
@@ -37,6 +40,7 @@ namespace Js
     protected:
         Field(EngineInterfaceExtensionKind) extensionKind;
         Field(ScriptContext*) scriptContext;
+        Field(bool) hasBytecode;
     };
 
 #define EngineInterfaceObject_CommonFunctionProlog(function, callInfo) \

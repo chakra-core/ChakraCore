@@ -363,10 +363,33 @@
               "__lookupGetter__": "function <large string>",
               "__lookupSetter__": "function <large string>"
             },
-            "indexOf": {
+            "values": {
               "#__proto__": "function <large string>",
-              "name": "string indexOf",
-              "length": "number 1"
+              "name": "string values",
+              "length": "number 0",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "Symbol.iterator": {
+              "#__proto__": "function <large string>",
+              "name": "string values",
+              "length": "number 0",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "entries": {
+              "#__proto__": "function <large string>",
+              "name": "string entries",
+              "length": "number 0",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "keys": {
+              "#__proto__": "function <large string>",
+              "name": "string keys",
+              "length": "number 0",
+              "caller": "object null",
+              "arguments": "object null"
             },
             "constructor": {
               "#__proto__": "function <large string>",
@@ -464,6 +487,13 @@
               "caller": "object null",
               "arguments": "object null"
             },
+            "indexOf": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string indexOf",
+              "caller": "object null",
+              "arguments": "object null"
+            },
             "every": {
               "#__proto__": "function <large string>",
               "length": "number 1",
@@ -531,34 +561,6 @@
               "#__proto__": "function <large string>",
               "length": "number 1",
               "name": "string findIndex",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "entries": {
-              "#__proto__": "function <large string>",
-              "length": "number 0",
-              "name": "string entries",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "keys": {
-              "#__proto__": "function <large string>",
-              "length": "number 0",
-              "name": "string keys",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "values": {
-              "#__proto__": "function <large string>",
-              "length": "number 0",
-              "name": "string values",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "Symbol.iterator": {
-              "#__proto__": "function <large string>",
-              "length": "number 0",
-              "name": "string values",
               "caller": "object null",
               "arguments": "object null"
             },
@@ -640,10 +642,33 @@
               "__lookupGetter__": "function <large string>",
               "__lookupSetter__": "function <large string>"
             },
-            "indexOf": {
+            "values": {
               "#__proto__": "function <large string>",
-              "name": "string indexOf",
-              "length": "number 1"
+              "name": "string values",
+              "length": "number 0",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "Symbol.iterator": {
+              "#__proto__": "function <large string>",
+              "name": "string values",
+              "length": "number 0",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "entries": {
+              "#__proto__": "function <large string>",
+              "name": "string entries",
+              "length": "number 0",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "keys": {
+              "#__proto__": "function <large string>",
+              "name": "string keys",
+              "length": "number 0",
+              "caller": "object null",
+              "arguments": "object null"
             },
             "constructor": {
               "#__proto__": "function <large string>",
@@ -741,6 +766,13 @@
               "caller": "object null",
               "arguments": "object null"
             },
+            "indexOf": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string indexOf",
+              "caller": "object null",
+              "arguments": "object null"
+            },
             "every": {
               "#__proto__": "function <large string>",
               "length": "number 1",
@@ -808,34 +840,6 @@
               "#__proto__": "function <large string>",
               "length": "number 1",
               "name": "string findIndex",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "entries": {
-              "#__proto__": "function <large string>",
-              "length": "number 0",
-              "name": "string entries",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "keys": {
-              "#__proto__": "function <large string>",
-              "length": "number 0",
-              "name": "string keys",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "values": {
-              "#__proto__": "function <large string>",
-              "length": "number 0",
-              "name": "string values",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "Symbol.iterator": {
-              "#__proto__": "function <large string>",
-              "length": "number 0",
-              "name": "string values",
               "caller": "object null",
               "arguments": "object null"
             },
