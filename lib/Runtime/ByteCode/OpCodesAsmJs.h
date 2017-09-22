@@ -144,6 +144,8 @@ MACRO_WMS       ( CheckSignature             , Reg1IntConst1   , None           
 // Array Buffer manipulations
 MACRO_WMS       ( LdArrWasm                  , WasmMemAccess   , None            )
 MACRO_WMS       ( StArrWasm                  , WasmMemAccess   , None            )
+MACRO_EXTEND_WMS( LdArrAtomic                , WasmMemAccess   , None            )
+MACRO_EXTEND_WMS( StArrAtomic                , WasmMemAccess   , None            )
 MACRO_WMS       ( LdArr                      , AsmTypedArr     , None            )
 MACRO_WMS       ( LdArrConst                 , AsmTypedArr     , None            )
 MACRO_WMS       ( StArr                      , AsmTypedArr     , None            )

@@ -404,6 +404,7 @@ RT_ERROR_MSG(WASMERR_InvalidImportModule, 7026, "Import module '%s' is invalid",
 RT_ERROR_MSG(WASMERR_InvalidImport, 7027, "Import '%s.%s' is invalid. Expected type %s", "Import is invalid", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_InvalidInitialSize, 7028, "Imported %s initial size (%u) is smaller than declared (%u)", "Invalid initial size", kjstWebAssemblyLinkError, 0)
 RT_ERROR_MSG(WASMERR_InvalidMaximumSize, 7029, "Imported %s maximum size (%u) is larger than declared (%u)", "Invalid initial size", kjstWebAssemblyLinkError, 0)
+RT_ERROR_MSG(WASMERR_UnalignedAtomicAccess, 7030, "", "Atomic memory access is unaligned", kjstWebAssemblyRuntimeError, 0)
 
 // Wabt Errors
 RT_ERROR_MSG(WABTERR_WabtError, 7200, "%s", "Wabt Error.", kjstTypeError, 0)
