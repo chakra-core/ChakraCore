@@ -26,6 +26,6 @@ interface IRecyclerVisitedObject
     virtual void OnMark() = 0;
 
     // Used only by RecyclerVisitedHost objects (created with RecyclerAllocVistedHost_Traced*)
-    virtual bool Trace(IRecyclerHeapMarkingContext* markingContext) = 0;
+    virtual void Trace(IRecyclerHeapMarkingContext* markingContext) = 0;
 };
 
