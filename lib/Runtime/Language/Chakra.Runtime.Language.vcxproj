@@ -188,6 +188,7 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="AsmJs.h" />
+    <ClInclude Include="AsmJsArrayBufferViews.h" />
     <ClInclude Include="AsmJsByteCodeGenerator.h" />
     <ClInclude Include="AsmJsCodeGenerator.h" />
     <ClInclude Include="AsmJsEncoder.h">

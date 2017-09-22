@@ -187,12 +187,6 @@ namespace Js
 
         static const int LocalsThreshold = 32 * 1024; // Number of locals vars we'll allocate on the frame.
                                                       // If there are more, we'll use an arena.
-#ifndef TEMP_DISABLE_ASMJS
-        typedef void(InterpreterStackFrame::*ArrFunc)(uint32, RegSlot);
-        static const ArrFunc StArrFunc[15];
-        static const ArrFunc LdArrFunc[15];
-        static const int     TypeToSizeMap[15];
-#endif
 
         //This class must have an empty ctor (otherwise it will break the code in InterpreterStackFrame::InterpreterThunk
         inline InterpreterStackFrame() { }
@@ -684,6 +678,11 @@ namespace Js
         template <class T> inline void OP_StArrGeneric   ( const unaligned T* playout );
         template <class T> inline void OP_StArrWasm      ( const unaligned T* playout );
         template <class T> inline void OP_StArrConstIndex( const unaligned T* playout );
+        template <class T> inline void OP_LdArrAtomic    ( const unaligned T* playout );
+        template <class T> inline void OP_StArrAtomic    ( const unaligned T* playout );
+        template<typename RegType, typename MemType> void UnsafeAtomicLoad(RegSlot dst, byte* buffer, uint64 index);
+        template<typename RegType, typename MemType> void UnsafeAtomicStore(RegSlot reg, byte* buffer, uint64 index);
+        template<typename MemType> void WasmArrayBoundsCheck(uint64 index, uint32 byteLength);
         inline Var OP_LdSlot(Var instance, int32 slotIndex);
         inline Var OP_LdObjSlot(Var instance, int32 slotIndex);
         inline Var OP_LdFrameDisplaySlot(Var instance, int32 slotIndex);

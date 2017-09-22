@@ -792,12 +792,22 @@ void WasmBytecodeGenerator::EmitExpr(WasmOp op)
 #define WASM_MEMREAD_OPCODE(opname, opcode, sig, imp, viewtype, wat) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig > 0);\
-        info = EmitMemAccess(wb##opname, WasmOpCodeSignatures::sig, viewtype, false); \
+        info = EmitMemAccess<false, false>(wb##opname, WasmOpCodeSignatures::sig, viewtype); \
+        break;
+#define WASM_ATOMICREAD_OPCODE(opname, opcode, sig, imp, viewtype, wat) \
+    case wb##opname: \
+        Assert(WasmOpCodeSignatures::n##sig > 0);\
+        info = EmitMemAccess<false, true>(wb##opname, WasmOpCodeSignatures::sig, viewtype); \
         break;
 #define WASM_MEMSTORE_OPCODE(opname, opcode, sig, imp, viewtype, wat) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig > 0);\
-        info = EmitMemAccess(wb##opname, WasmOpCodeSignatures::sig, viewtype, true); \
+        info = EmitMemAccess<true, false>(wb##opname, WasmOpCodeSignatures::sig, viewtype); \
+        break;
+#define WASM_ATOMICSTORE_OPCODE(opname, opcode, sig, imp, viewtype, wat) \
+    case wb##opname: \
+        Assert(WasmOpCodeSignatures::n##sig > 0);\
+        info = EmitMemAccess<true, true>(wb##opname, WasmOpCodeSignatures::sig, viewtype); \
         break;
 #define WASM_SIMD_MEMREAD_OPCODE(opname, opcode, sig, asmjsop, viewtype, dataWidth, ...) \
     case wb##opname: \
@@ -1625,47 +1635,47 @@ EmitInfo WasmBytecodeGenerator::EmitSimdMemAccess(Js::OpCodeAsmJs op, const Wasm
 }
 #endif
 
-EmitInfo WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore)
+template<bool isStore, bool isAtomic>
+EmitInfo WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType)
 {
+    Assert(!isAtomic || CONFIG_FLAG(WasmThreads));
     WasmTypes::WasmType type = signature[0];
     SetUsesMemory(0);
 
-    const uint32 mask = Js::ArrayBufferView::ViewMask[viewType];
+    const uint32 naturalAlignment = Js::ArrayBufferView::NaturalAlignment[viewType];
     const uint32 alignment = GetReader()->m_currentNode.mem.alignment;
     const uint32 offset = GetReader()->m_currentNode.mem.offset;
 
-    if ((mask << 1) & (1 << alignment))
+    if (alignment > naturalAlignment)
     {
         throw WasmCompilationException(_u("alignment must not be larger than natural"));
     }
+    if (isAtomic && alignment != naturalAlignment)
+    {
+        throw WasmCompilationException(_u("invalid alignment for atomic RW. Expected %u, got %u"), naturalAlignment, alignment);
+    }
 
-    EmitInfo rhsInfo;
+    // Stores
     if (isStore)
     {
-        rhsInfo = PopEvalStack(type, _u("Invalid type for store op"));
-    }
-    EmitInfo exprInfo = PopEvalStack(WasmTypes::I32, _u("Index expression must be of type i32"));
-
-    if (isStore) // Stores
-    {
-        m_writer->WasmMemAccess(Js::OpCodeAsmJs::StArrWasm, rhsInfo.location, exprInfo.location, offset, viewType);
+        EmitInfo rhsInfo = PopEvalStack(type, _u("Invalid type for store op"));
+        EmitInfo exprInfo = PopEvalStack(WasmTypes::I32, _u("Index expression must be of type i32"));
+        Js::OpCodeAsmJs op = isAtomic ? Js::OpCodeAsmJs::StArrAtomic : Js::OpCodeAsmJs::StArrWasm;
+        m_writer->WasmMemAccess(op, rhsInfo.location, exprInfo.location, offset, viewType);
         ReleaseLocation(&rhsInfo);
         ReleaseLocation(&exprInfo);
 
         return EmitInfo();
     }
 
+    // Loads
+    EmitInfo exprInfo = PopEvalStack(WasmTypes::I32, _u("Index expression must be of type i32"));
     ReleaseLocation(&exprInfo);
     Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
-    m_writer->WasmMemAccess(Js::OpCodeAsmJs::LdArrWasm, resultReg, exprInfo.location, offset, viewType);
+    Js::OpCodeAsmJs op = isAtomic ? Js::OpCodeAsmJs::LdArrAtomic : Js::OpCodeAsmJs::LdArrWasm;
+    m_writer->WasmMemAccess(op, resultReg, exprInfo.location, offset, viewType);
 
-    EmitInfo yieldInfo;
-    if (!isStore)
-    {
-        // Yield only on load
-        yieldInfo = EmitInfo(resultReg, type);
-    }
-    return yieldInfo;
+    return EmitInfo(resultReg, type);
 }
 
 void WasmBytecodeGenerator::EmitReturnExpr(EmitInfo* explicitRetInfo)

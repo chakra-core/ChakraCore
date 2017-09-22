@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="$(MsBuildThisFileDirectory)AsmJS.cpp" />
@@ -149,6 +149,7 @@
     <ClInclude Include="ModuleNamespaceEnumerator.h" />
     <ClInclude Include="WebAssemblySource.h" />
     <ClInclude Include="ConstructorCache.h" />
+    <ClInclude Include="AsmJsArrayBufferViews.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\amd64_Thunks.asm">
