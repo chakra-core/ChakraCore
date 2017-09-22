@@ -4,13 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-typedef void* RecyclerHeapMarkingContext;
 interface IRecyclerHeapMarkingContext;
-
-namespace Memory
-{
-    class Recycler;
-}
+typedef void* RecyclerHeapHandle;
 
 interface IRecyclerVisitedObject
 {
@@ -25,7 +20,7 @@ interface IRecyclerVisitedObject
     virtual void Dispose(bool isShutdown) = 0;
 
     // Used only by TrackableObjects (created with TrackedBit on by RecyclerNew*Tracked)
-    virtual void Mark(Memory::Recycler* recycler) = 0;
+    virtual void Mark(RecyclerHeapHandle recycler) = 0;
 
     // Special behavior on certain GC's
     virtual void OnMark() = 0;

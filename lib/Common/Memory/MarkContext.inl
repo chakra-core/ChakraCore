@@ -141,12 +141,6 @@ void MarkContext::Mark(void * candidate, void * parentReference)
 
     if (interior)
     {
-#if ENABLE_CONCURRENT_GC
-        Assert(recycler->enableScanInteriorPointers
-            || (!recycler->IsConcurrentState() && recycler->collectionState != CollectionStateParallelMark));
-#else
-        Assert(recycler->enableScanInteriorPointers || recycler->collectionState != CollectionStateParallelMark);
-#endif
         recycler->heapBlockMap.MarkInterior<parallel>(candidate, this);
         return;
     }
