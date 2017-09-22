@@ -99,10 +99,24 @@ case wb##opname: \
     case wbBr:
     case wbBrIf: Output::Print(_u(" depth: %u"), GetReader()->m_currentNode.br.depth); break;
     case wbBrTable: Output::Print(_u(" %u cases, default: %u"), GetReader()->m_currentNode.brTable.numTargets, GetReader()->m_currentNode.brTable.defaultTarget); break;
-    case wbCall:
     case wbCallIndirect:
     {
-        uint id = GetReader()->m_currentNode.call.num;
+        uint32 sigId = GetReader()->m_currentNode.call.num;
+        if (sigId < m_module->GetSignatureCount())
+        {
+            Output::Print(_u(" "));
+            WasmSignature* sig = m_module->GetSignature(sigId);
+            sig->Dump(20);
+        }
+        else
+        {
+            Output::Print(_u(" invalid signature id %u"), sigId);
+        }
+        break;
+    }
+    case wbCall:
+    {
+        uint32 id = GetReader()->m_currentNode.call.num;
         if (id < m_module->GetWasmFunctionCount())
         {
             FunctionIndexTypes::Type funcType = GetReader()->m_currentNode.call.funcType;
@@ -119,7 +133,7 @@ case wb##opname: \
         }
         else
         {
-            Output::Print(_u(" invalid id"));
+            Output::Print(_u(" invalid id %u"), id);
         }
         break;
     }
@@ -213,6 +227,9 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::W
 
 Js::WebAssemblyModule* WasmModuleGenerator::GenerateModule()
 {
+    Js::AutoProfilingPhase wasmPhase(m_scriptContext, Js::WasmReaderPhase);
+    Unused(wasmPhase);
+
     m_module->GetReader()->InitializeReader();
 
     BVStatic<bSectLimit + 1> visitedSections;
@@ -224,7 +241,7 @@ Js::WebAssemblyModule* WasmModuleGenerator::GenerateModule()
         SectionCode sectionCode = sectionHeader.code;
         if (sectionCode == bSectLimit)
         {
-            TRACE_WASM_SECTION(_u("Done reading module's sections"));
+            TRACE_WASM(PHASE_TRACE1(Js::WasmSectionPhase), _u("Done reading module's sections"));
             break;
         }
 
@@ -305,12 +322,6 @@ Js::WebAssemblyModule* WasmModuleGenerator::GenerateModule()
     }
 #endif
 
-#if DBG_DUMP
-    if (PHASE_TRACE1(Js::WasmReaderPhase))
-    {
-        GetReader()->PrintOps();
-    }
-#endif
     // If we see a FunctionSignatures section we need to see a FunctionBodies section
     if (visitedSections.Test(bSectFunction) && !visitedSections.Test(bSectFunctionBodies))
     {
@@ -526,9 +537,16 @@ void WasmBytecodeGenerator::GenerateFunction()
     AutoDisableInterrupt autoDisableInterrupt(m_scriptContext->GetThreadContext(), true);
 
 #if DBG_DUMP
-    if (PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()) && !IsValidating())
+    if ((
+        PHASE_DUMP(Js::WasmBytecodePhase, GetFunctionBody()) ||
+        PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()) 
+        ) && !IsValidating())
     {
         Js::AsmJsByteCodeDumper::Dump(GetFunctionBody(), &mTypedRegisterAllocator, nullptr);
+    }
+    if (PHASE_DUMP(Js::WasmOpCodeDistributionPhase, GetFunctionBody()))
+    {
+        m_module->GetReader()->PrintOps();
     }
 #endif
 

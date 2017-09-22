@@ -206,8 +206,6 @@ WebAssemblyModule::CreateModule(
     WebAssemblySource* src)
 {
     Assert(src);
-    AutoProfilingPhase wasmPhase(scriptContext, Js::WasmBytecodePhase);
-    Unused(wasmPhase);
 
     WebAssemblyModule * webAssemblyModule = nullptr;
     Wasm::WasmReaderInfo * readerInfo = nullptr;
@@ -799,8 +797,7 @@ WebAssemblyModule::SetStartFunction(uint32 i)
 {
     if (i >= GetWasmFunctionCount())
     {
-        TRACE_WASM_DECODER(_u("Invalid start function index"));
-        return;
+        throw Wasm::WasmCompilationException(_u("Invalid start function index %u"), i);
     }
     m_startFuncIndex = i;
 }

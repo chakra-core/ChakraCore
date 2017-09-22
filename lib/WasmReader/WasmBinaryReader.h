@@ -63,8 +63,11 @@ namespace Wasm
     private:
         struct ReaderState
         {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            Js::FunctionBody* body = nullptr;
+#endif
             uint32 count; // current entry
-            size_t size;  // number of entries
+            uint32 size;  // binary size of the function
         };
 
         void BlockNode();
@@ -125,6 +128,9 @@ namespace Wasm
             READER_STATE_MODULE
         } m_readerState;
         Js::WebAssemblyModule* m_module;
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        Js::FunctionBody* GetFunctionBody() const;
+#endif
 #if DBG_DUMP
         typedef JsUtil::BaseHashSet<WasmOp, ArenaAllocator, PowerOf2SizePolicy> OpSet;
         OpSet* m_ops;

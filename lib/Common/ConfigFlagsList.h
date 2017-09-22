@@ -36,10 +36,10 @@ PHASE(All)
         PHASE(GatherCodeGenData)
     PHASE(Wasm)
         // Wasm frontend
-        PHASE(WasmBytecode)
-        PHASE(WasmReader)
-            PHASE(WasmSection)
-            PHASE(WasmLEB128)
+        PHASE(WasmBytecode) // Supports -off,-dump,-trace,-profile
+        PHASE(WasmReader) // Support -trace,-profile
+        PHASE(WasmSection) // Supports -trace
+        PHASE(WasmOpCodeDistribution) // Support -dump
         // Wasm features per functions
         PHASE(WasmDeferred)
         PHASE(WasmValidatePrejit)
