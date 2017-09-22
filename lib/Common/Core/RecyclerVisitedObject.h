@@ -26,6 +26,6 @@ interface IRecyclerVisitedObject
     STDMETHOD_(void, OnMark)() = 0;
 
     // Used only by RecyclerVisitedHost objects (created with RecyclerAllocVistedHost_Traced*)
-    STDMETHOD_(bool, Trace)(IRecyclerHeapMarkingContext* markingContext) = 0;
+    STDMETHOD_(void, Trace)(IRecyclerHeapMarkingContext* markingContext) = 0;
 };
 
