@@ -3437,7 +3437,7 @@ namespace Js
     template<typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     void SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::Dump(unsigned indent) const
     {
-        Output::Print(_u("%*sSimpleDictionaryTypeHandlerBase (0x%p): Dump unimplemented"), indent, _u(""), this);
+        Output::Print(_u("%*sSimpleDictionaryTypeHandlerBase (0x%p): Dump unimplemented\n"), indent, _u(""), this);
     }
 #endif
 
