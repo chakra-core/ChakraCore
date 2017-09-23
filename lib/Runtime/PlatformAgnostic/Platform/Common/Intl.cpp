@@ -7,8 +7,28 @@
 
 #ifdef INTL_ICU
 
-#include "Common.h"
-#include "ChakraPlatform.h"
+// REVIEW (doilij): Where are these defined that is safe to include in PlatformAgnostic?
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int64_t int64;
+#include "Codex/Utf8Codex.h"
+
+#ifndef _WIN32
+// REVIEW (doilij): The PCH allegedly defines enough stuff to get AssertMsg to work -- why was compile failing for this file?
+#ifdef AssertMsg
+#undef AssertMsg
+#define AssertMsg(test, message)
+#endif
+#ifdef AssertOrFailFastMessage
+#undef AssertOrFailFastMessage
+#define AssertOrFailFastMessage(test, message)
+#endif
+#define DECLSPEC_GUARD_OVERFLOW
+#endif // !_WIN32
+
+#include "Common/MathUtil.h"
+#include "Core/AllocSizeMath.h"
+
 #include "Intl.h"
 
 #define U_STATIC_IMPLEMENTATION
@@ -55,7 +75,7 @@ namespace Intl
         // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
         const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
         // REVIEW (doilij): not perf critical so I used HeapNewArrayZ to zero-out the allocated array
-        utf8char_t *inputLangTagUtf8 = HeapNewArrayZ(utf8char_t, inputLangTagUtf8SizeAllocated);
+        unsigned char *inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
         if (!inputLangTagUtf8)
         {
             AssertOrFailFastMsg(false, "OOM: HeapNewArrayZ failed to allocate.");
@@ -99,7 +119,7 @@ namespace Intl
         }
 
     cleanup:
-        HeapDeleteArray(inputLangTagUtf8SizeAllocated, inputLangTagUtf8);
+        delete[] inputLangTagUtf8;
         inputLangTagUtf8 = nullptr;
         return success;
     }
@@ -110,7 +130,7 @@ namespace Intl
         // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
         const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
         // REVIEW (doilij): not perf critical so I used HeapNewArrayZ to zero-out the allocated array
-        utf8char_t *inputLangTagUtf8 = HeapNewArrayZ(utf8char_t, inputLangTagUtf8SizeAllocated);
+        unsigned char *inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
         if (!inputLangTagUtf8)
         {
             AssertOrFailFastMsg(false, "OOM: HeapNewArrayZ failed to allocate.");
@@ -156,7 +176,7 @@ namespace Intl
             reinterpret_cast<const utf8char_t *>(icuLangTag), reinterpret_cast<utf8char_t *>(icuLangTag + toLangTagResultLength), utf8::doDefault);
 
     cleanup:
-        HeapDeleteArray(inputLangTagUtf8SizeAllocated, inputLangTagUtf8);
+        delete[] inputLangTagUtf8;
         inputLangTagUtf8 = nullptr;
         return success ? S_OK : E_INVALIDARG;
     }
@@ -228,7 +248,7 @@ namespace Intl
         return obj;
     }
 
-    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, int32 val);
+    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, int32_t val);
     template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, double val);
 
     template <typename T>
@@ -243,7 +263,7 @@ namespace Intl
         numberFormatter->format(val, result);
         int32_t length = result.length();
         char16 *ret = new char16[length + 1];
-        result.extract(0, length, ret);
+        result.extract(0, length, (UChar *)ret);
         ret[length] = 0;
         return ret;
     }
