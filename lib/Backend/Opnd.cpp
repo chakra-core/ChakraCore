@@ -104,7 +104,7 @@ Opnd::IsWriteBarrierTriggerableValue()
     }
 
     // If this operand is known address, then it doesn't need a write barrier, the address is either not a GC address or is pinned
-    if (this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar)
+    if (this->IsAddrOpnd() && this->AsAddrOpnd()->GetAddrOpndKind() == AddrOpndKindDynamicVar)
     {
         return false;
     }
