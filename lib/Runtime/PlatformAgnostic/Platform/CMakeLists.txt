@@ -24,6 +24,12 @@ set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
   )
 endif()
 
+if(ICU_INTL_ENABLED)
+set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
+  Common/Intl.cpp
+  )
+endif()
+
 if(NOT STATIC_LIBRARY)
   # CH has a direct dependency to this project
   add_library (Chakra.Runtime.PlatformAgnostic.Singular STATIC
