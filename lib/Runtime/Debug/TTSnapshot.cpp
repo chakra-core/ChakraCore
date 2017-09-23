@@ -265,9 +265,9 @@ namespace TTD
         snapwriter->WriteRecordEnd();
     }
 
-    void SnapShot::SnapRootPinEntryParse(NSSnapValues::SnapRootInfoEntry* spe, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+    void SnapShot::SnapRootPinEntryParse(NSSnapValues::SnapRootInfoEntry* spe, bool readSeparator, FileReader* reader, SlabAllocator& alloc)
     {
-        reader->ReadRecordStart(readSeperator);
+        reader->ReadRecordStart(readSeparator);
         spe->LogId = reader->ReadLogTag(NSTokens::Key::logTag);
         spe->LogObject = reader->ReadAddr(NSTokens::Key::objectId, true);
         spe->MaybeLongLivedRoot = reader->ReadBool(NSTokens::Key::boolVal, true);

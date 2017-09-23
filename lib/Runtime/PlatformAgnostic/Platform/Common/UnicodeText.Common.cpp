@@ -15,10 +15,10 @@ CharacterTypeFlags GetLegacyCharacterTypeFlags(char16 ch)
 {
     Assert(ch >= 128);
 
-    const char16 lineSeperatorChar = 0x2028;
-    const char16 paraSeperatorChar = 0x2029;
+    const char16 lineSeparatorChar = 0x2028;
+    const char16 paraSeparatorChar = 0x2029;
 
-    if (ch == lineSeperatorChar || ch == paraSeperatorChar)
+    if (ch == lineSeparatorChar || ch == paraSeparatorChar)
     {
         return LineCharGroup;
     }
