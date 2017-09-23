@@ -855,8 +855,7 @@ if (this->object) \
 
         if (written < cchLocaleName)
         {
-            utf8::DecodeUnitsIntoAndNullTerminate(langtag, reinterpret_cast<utf8char_t *>(langtag), reinterpret_cast<utf8char_t *>(langtag + written));
-            return written;
+            return utf8::DecodeUnitsIntoAndNullTerminate(langtag, reinterpret_cast<utf8char_t *>(langtag), reinterpret_cast<utf8char_t *>(langtag + written));
         }
         else
         {
