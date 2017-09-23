@@ -244,6 +244,9 @@ typedef bool (CHAKRA_CALLBACK * JsSerializedLoadScriptCallback)
 /// </summary>
 /// <remarks>
 ///     <para>
+///        Requires an active script context.
+///     </para>
+///     <para>
 ///         Input string can be either ASCII or Utf8
 ///     </para>
 /// </remarks>
@@ -263,6 +266,9 @@ CHAKRA_API
 ///     Create JavascriptString variable from Utf16 string
 /// </summary>
 /// <remarks>
+///     <para>
+///        Requires an active script context.
+///     </para>
 ///     <para>
 ///         Expects Utf16 string
 ///     </para>
