@@ -136,7 +136,7 @@ CSharedMemoryObject::Initialize(
 
 InitializeExit:
 
-    LOGEXIT("CSharedMemoryObject::Initalize returns %d\n", palError);
+    LOGEXIT("CSharedMemoryObject::Initialize returns %d\n", palError);
 
     return palError;
 }

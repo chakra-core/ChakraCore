@@ -403,7 +403,7 @@ RecyclerWriteBarrierManager::ToggleBarrier(void * address, size_t bytes, bool en
             }
         }
 
-        GlobalSwbVerboseTrace(_u("Enableing 0x%p (CIndex: %u-%u)\n"), address, startIndex, endIndex);
+        GlobalSwbVerboseTrace(_u("Enabling 0x%p (CIndex: %u-%u)\n"), address, startIndex, endIndex);
     }
 }
 

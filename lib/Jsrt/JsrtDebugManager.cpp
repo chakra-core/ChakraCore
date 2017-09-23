@@ -653,7 +653,7 @@ Js::BreakpointProbe* JsrtDebugManager::SetBreakpointHelper_TTD(int64 desiredBpId
         // Don't see a use case for supporting multiple breakpoints at same location.
         // If a breakpoint already exists, just return that
         Js::BreakpointProbe* probe = debugDocument->FindBreakpoint(statement);
-        TTDAssert(probe == nullptr || desiredBpId == -1, "We shouldn't be resetting this BP unless it was cleared eariler!");
+        TTDAssert(probe == nullptr || desiredBpId == -1, "We shouldn't be resetting this BP unless it was cleared earlier!");
 
         if(probe == nullptr)
         {

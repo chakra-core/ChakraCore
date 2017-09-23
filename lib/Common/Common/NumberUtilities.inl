@@ -25,7 +25,7 @@
 #define X_BYTE_ORDER BYTE_ORDER
 #define X_LITTLE_ENDIAN LITTLE_ENDIAN
 #else // BYTE_ORDER not defined
-#error "Endiannes of this platform is undefined"
+#error "Endianness of this platform is undefined"
 #endif // __BYTE_ORDER
 
 #if X_BYTE_ORDER == X_LITTLE_ENDIAN
