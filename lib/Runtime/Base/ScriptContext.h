@@ -924,7 +924,6 @@ private:
         char16 const * url;
 
         void PrintStats();
-        BOOL LeaveScriptStartCore(void * frameAddress, bool leaveForHost);
 
         void InternalClose();
 
@@ -1061,7 +1060,6 @@ private:
 
         template <typename TCacheType>
         void CleanDynamicFunctionCache(TCacheType* cacheType);
-        void CleanEvalMapCache(Js::EvalCacheTopLevelDictionary * cacheType);
 
         template <class TDelegate>
         void MapFunction(TDelegate mapper);
@@ -1197,7 +1195,6 @@ private:
         void SetFastDOMenabled();
         BOOL VerifyAlive(BOOL isJSFunction = FALSE, ScriptContext* requestScriptContext = nullptr);
         void VerifyAliveWithHostContext(BOOL isJSFunction, HostScriptContext* requestHostScriptContext);
-        void AddFunctionBodyToPropIdMap(FunctionBody* body);
 
         void BindReference(void* addr);
 
