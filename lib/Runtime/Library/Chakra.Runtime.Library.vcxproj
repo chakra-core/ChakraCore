@@ -145,6 +145,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsOperations.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringBuilder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LazyJSONString.cpp" />
@@ -157,6 +158,7 @@
     <ClInclude Include="..\RuntimeCommon.h" />
     <ClInclude Include="..\SerializableFunctionFields.h" />
     <ClInclude Include="AtomicsObject.h" />
+    <ClInclude Include="AtomicsOperations.h" />
     <ClInclude Include="PropertyRecordUsageCache.h" />
     <ClInclude Include="CustomExternalIterator.h" />
     <ClInclude Include="JsBuiltInEngineInterfaceExtensionObject.h" />

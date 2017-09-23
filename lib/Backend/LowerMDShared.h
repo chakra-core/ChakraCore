@@ -71,7 +71,6 @@ public:
 
     UINT FloatPrefThreshold;
 
-public:
             void            Init(Lowerer *lowerer);
             IR::Opnd *      GenerateMemRef(intptr_t addr, IRType type, IR::Instr *instr, bool dontEncode = false);
             void            GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
@@ -102,7 +101,9 @@ public:
             IR::Instr *     LowerCondBranch(IR::Instr * instr);
             IR::Instr *     LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd);
             IR::Instr *     LowerNewScObject(IR::Instr *newObjInstr);
-            IR::Instr *     LowerWasmMemOp(IR::Instr *instr, IR::Opnd *addrOpnd);
+            IR::Instr *     LowerWasmArrayBoundsCheck(IR::Instr *instr, IR::Opnd *addrOpnd);
+            void            LowerAtomicStore(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr);
+            void            LowerAtomicLoad(IR::Opnd* dst, IR::Opnd* src1, IR::Instr* insertBeforeInstr);
             void            ForceDstToReg(IR::Instr *instr);
 
 public:

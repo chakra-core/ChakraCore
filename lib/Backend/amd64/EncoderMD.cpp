@@ -685,6 +685,11 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
 
     instrRestart = instrStart = m_pc;
 
+    // Emit the lock byte first if needed
+    if (opdope & DLOCK)
+    {
+        *instrRestart++ = 0xf0;
+    }
 
     // put out 16bit override if any
     if (instrSize == 2 && (opdope & (DNO16 | DFLT)) == 0)
@@ -727,7 +732,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
     prexByte = instrRestart;
 
     // This is a heuristic to determine whether we really need to have the Rex bytes
-    // This heuristics is always correct for instrSize == 8
+    // This heuristics is almost always correct for instrSize == 8
     // For instrSize < 8, we might use extended registers and we will have to adjust in EmitRexByte
     bool reservedRexByte = (instrSize == 8);
     if (reservedRexByte)
@@ -1026,6 +1031,25 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
                     rexByte |= this->EmitModRM(instr, src1, this->GetRegEncode(src2->AsRegOpnd()));
                 }
                 break;
+
+            case Js::OpCode::CMPXCHG8B:
+            case Js::OpCode::LOCKCMPXCHG8B:
+            {
+                if (instrSize == 8)
+                {
+                    skipRexByte = true;
+                    Assert(!opr2);
+                    BYTE byte2 = (this->GetOpcodeByte2(instr) >> 3);
+                    this->EmitModRM(instr, opr1, byte2);
+                }
+                else
+                {
+                    Assert(instrSize == 16);
+                    continue;
+                }
+                break;
+            }
+
             case Js::OpCode::SHLD:
                 /*
                  *       0F A4   SHLD r/m32, r32, imm8

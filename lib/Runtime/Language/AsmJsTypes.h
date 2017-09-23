@@ -786,7 +786,7 @@ namespace Js
         inline void SetDeferred() { mDeferred = true; }
         inline bool IsDeferred()const { return mDeferred; }
         template<typename T> inline AsmJsRegisterSpace<T>& GetRegisterSpace() {
-            return *(AsmJsRegisterSpace<T>*)mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::RegisterSpace::GetRegisterSpaceType<T>());
+            return *(AsmJsRegisterSpace<T>*)mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::FromPrimitiveType<T>());
         }
         const WAsmJs::TypedRegisterAllocator& GetTypedRegisterAllocator() const { return mTypedRegisterAllocator; }
 

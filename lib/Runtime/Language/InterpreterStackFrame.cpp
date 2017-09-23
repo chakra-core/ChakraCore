@@ -14,6 +14,7 @@
 #include "Language/InterpreterStackFrame.h"
 #include "Library/JavascriptGeneratorFunction.h"
 #include "Library/ForInObjectEnumerator.h"
+#include "Library/AtomicsOperations.h"
 #include "../../WasmReader/WasmParseTree.h"
 ///----------------------------------------------------------------------------
 ///
@@ -8566,12 +8567,25 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
     }
 
     template<typename MemType>
-    void Js::InterpreterStackFrame::WasmArrayBoundsCheck(uint64 index, uint32 byteLength)
+    void InterpreterStackFrame::WasmArrayBoundsCheck(uint64 index, uint32 byteLength)
     {
         if (index + sizeof(MemType) > byteLength)
         {
             JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_ArrayIndexOutOfRange);
         }
+    }
+
+    template<typename MemType>
+    MemType* InterpreterStackFrame::WasmAtomicsArrayBoundsCheck(byte* buffer, uint64 index, uint32 byteLength)
+    {
+        MemType* readBuffer = (MemType*)(buffer + index);
+        // Do alignment check to be coherent with the order the jit does the checks
+        if (!::Math::IsAligned<intptr_t>((intptr_t)readBuffer, sizeof(MemType)))
+        {
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_UnalignedAtomicAccess);
+        }
+        WasmArrayBoundsCheck<MemType>(index, byteLength);
+        return readBuffer;
     }
 
     template <class T>
@@ -8599,21 +8613,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 #endif
     }
 
-    template<typename RegType, typename MemType>
-    void InterpreterStackFrame::UnsafeAtomicLoad(RegSlot dst, byte* buffer, uint64 index)
-    {
-#ifdef ENABLE_WASM
-        MemType* readBuffer = (MemType*)(buffer + index);
-        if (!::Math::IsAligned<intptr_t>((intptr_t)readBuffer, sizeof(MemType)))
-        {
-            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_UnalignedAtomicAccess);
-        }
-        MemoryBarrier();
-        MemType value = *readBuffer;
-        SetRegRaw<RegType>(dst, (RegType)value);
-#endif
-    }
-
     template <class T>
     void InterpreterStackFrame::OP_LdArrAtomic(const unaligned T* playout)
     {
@@ -8627,31 +8626,18 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         BYTE* buffer = arr->GetBuffer();
         switch (playout->ViewType)
         {
-#define ARRAYBUFFER_VIEW(name, align, RegType, MemType, ...) \
-        case ArrayBufferView::ViewType::TYPE_##name: \
-            WasmArrayBoundsCheck<MemType>(index, byteLength); \
-            UnsafeAtomicLoad<RegType, MemType>(playout->Value, buffer, index); \
-            return;
+#define ARRAYBUFFER_VIEW_INT(name, align, RegType, MemType, ...) \
+        case ArrayBufferView::ViewType::TYPE_##name: {\
+            MemType* readBuffer = WasmAtomicsArrayBoundsCheck<MemType>(buffer, index, byteLength); \
+            MemType value = AtomicsOperations::Load<MemType>(readBuffer); \
+            SetRegRaw<RegType>(playout->Value, (RegType)value); \
+            return; \
+        }
 #include "AsmJsArrayBufferViews.h"
         default:Assert(UNREACHED);
         }
 #else
         Assert(UNREACHED);
-#endif
-    }
-
-    template<typename RegType, typename MemType>
-    void InterpreterStackFrame::UnsafeAtomicStore(RegSlot reg, byte* buffer, uint64 index)
-    {
-#ifdef ENABLE_WASM
-        MemType* readBuffer = (MemType*)(buffer + index);
-        if (!::Math::IsAligned<intptr_t>((intptr_t)readBuffer, sizeof(MemType)))
-        {
-            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_UnalignedAtomicAccess);
-        }
-        RegType value = GetRegRaw<RegType>(reg);
-        MemoryBarrier();
-        *readBuffer = (MemType)value;
 #endif
     }
 
@@ -8668,11 +8654,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         BYTE* buffer = arr->GetBuffer();
         switch (playout->ViewType)
         {
-#define ARRAYBUFFER_VIEW(name, align, RegType, MemType, ...) \
-        case ArrayBufferView::ViewType::TYPE_##name: \
-            WasmArrayBoundsCheck<MemType>(index, byteLength); \
-            UnsafeAtomicStore<RegType, MemType>(playout->Value, buffer, index); \
-            return;
+#define ARRAYBUFFER_VIEW_INT(name, align, RegType, MemType, ...) \
+        case ArrayBufferView::ViewType::TYPE_##name: {\
+            MemType* readBuffer = WasmAtomicsArrayBoundsCheck<MemType>(buffer, index, byteLength); \
+            MemType value = (MemType)GetRegRaw<RegType>(playout->Value); \
+            MemType storedValue = AtomicsOperations::Store<MemType>(readBuffer, value); \
+            Assert(storedValue == value); \
+            return; \
+        }
 #include "AsmJsArrayBufferViews.h"
         default:Assert(UNREACHED);
         }
