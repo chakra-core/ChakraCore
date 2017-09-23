@@ -219,6 +219,7 @@ namespace Js
     class TypedArray : public TypedArrayBase
     {
     protected:
+        typedef TypeName TypedArrayType;
         DEFINE_VTABLE_CTOR(TypedArray, TypedArrayBase);
         virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext)
         {

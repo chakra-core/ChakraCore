@@ -685,6 +685,11 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
 
     instrRestart = instrStart = m_pc;
 
+    // Emit the lock byte first if needed
+    if (opdope & DLOCK)
+    {
+        *instrRestart++ = 0xf0;
+    }
 
     // put out 16bit override if any
     if (instrSize == 2 && (opdope & (DNO16 | DFLT)) == 0)

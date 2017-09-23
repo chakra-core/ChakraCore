@@ -1537,6 +1537,22 @@ CommonNumber:
         return (uint16) result;
     }
 
+    int16 JavascriptConversion::ToInt16(double aValue)
+    {
+        return (int16)ToInt32(aValue);
+    }
+
+    int8 JavascriptConversion::ToInt8(double aValue)
+    {
+        return (int8)ToInt32(aValue);
+    }
+
+    uint8 JavascriptConversion::ToUInt8(double aValue)
+    {
+        return (uint8)ToUInt32(aValue);
+    }
+
+
     JavascriptString * JavascriptConversion::ToPrimitiveString(Var aValue, ScriptContext * scriptContext)
     {
         return ToString(ToPrimitive(aValue, JavascriptHint::None, scriptContext), scriptContext);

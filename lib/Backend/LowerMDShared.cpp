@@ -270,9 +270,19 @@ LowererMD::LowerAsmJsCallE(IR::Instr * callInstr)
 }
 
 IR::Instr *
-LowererMD::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
+LowererMD::LowerWasmArrayBoundsCheck(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
-    return this->lowererMDArch.LowerWasmMemOp(instr, addrOpnd);
+    return this->lowererMDArch.LowerWasmArrayBoundsCheck(instr, addrOpnd);
+}
+
+void LowererMD::LowerAtomicStore(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr)
+{
+    return this->lowererMDArch.LowerAtomicStore(dst, src1, insertBeforeInstr);
+}
+
+void LowererMD::LowerAtomicLoad(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr)
+{
+    return this->lowererMDArch.LowerAtomicLoad(dst, src1, insertBeforeInstr);
 }
 
 IR::Instr *
@@ -284,12 +294,6 @@ IR::Instr *
 LowererMD::LowerAsmJsStElemHelper(IR::Instr * callInstr)
 {
     return this->lowererMDArch.LowerAsmJsStElemHelper(callInstr);
-}
-
-IR::Instr *
-LowererMD::LoadInt64HelperArgument(IR::Instr * instr, IR::Opnd* opnd)
-{
-    return this->lowererMDArch.LoadInt64HelperArgument(instr, opnd);
 }
 
 IR::Instr *
@@ -7709,7 +7713,7 @@ LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
 #ifdef _M_IX86
     IR::Opnd *srcOpnd = instr->UnlinkSrc1();
 
-    LoadInt64HelperArgument(instr, srcOpnd);
+    lowererMDArch.LoadInt64HelperArgument(instr, srcOpnd);
 
     IR::Instr* callinstr = IR::Instr::New(Js::OpCode::CALL, dst, this->m_func);
     instr->InsertBefore(callinstr);

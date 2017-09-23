@@ -44,6 +44,7 @@
 #define DF3     0x400000 // 0xF3 0x0F style KNI opcodes
 #define NDPinc  0x800000    /* instruction incs stack level by 1 */
 #define NDPdec  0x1000000    /* instruction decs stack level by 1 */
+#define DLOCK   0x2000000 /* Prefix the instruction with the lock byte (0xf0) */
 
 // 2nd 3 bits is options
 #define SBIT 0x20
@@ -161,6 +162,8 @@ enum Forms : BYTE
 #define OPBYTE_CMOVP    {0x4A}                  // modrm
 #define OPBYTE_CMOVS    {0x48}                  // modrm
 #define OPBYTE_CMP      {0x3c, 0x80, 0x38}      // binop, byte2=7
+#define OPBYTE_CMPXCHG8B {0xC7}                  // modrm
+
 
 #define OPBYTE_CMPPD    {0xc2}                  // modrm
 #define OPBYTE_CMPPS    {0xc2}                  // modrm

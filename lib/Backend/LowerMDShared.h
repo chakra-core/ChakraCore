@@ -69,7 +69,6 @@ public:
 
     UINT FloatPrefThreshold;
 
-public:
             void            Init(Lowerer *lowerer);
             IR::Opnd *      GenerateMemRef(intptr_t addr, IRType type, IR::Instr *instr, bool dontEncode = false);
             IR::Instr *     ChangeToHelperCall(IR::Instr * instr, IR::JnHelperMethod helperMethod, IR::LabelInstr *labelBailOut = nullptr,
@@ -104,7 +103,9 @@ public:
             IR::Instr *     LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd);
             IR::Instr *     LowerLdSuper(IR::Instr *instr, IR::JnHelperMethod helperOpCode);
             IR::Instr *     LowerNewScObject(IR::Instr *newObjInstr);
-            IR::Instr *     LowerWasmMemOp(IR::Instr *instr, IR::Opnd *addrOpnd);
+            IR::Instr *     LowerWasmArrayBoundsCheck(IR::Instr *instr, IR::Opnd *addrOpnd);
+            void            LowerAtomicStore(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr);
+            void            LowerAtomicLoad(IR::Opnd* dst, IR::Opnd* src1, IR::Instr* insertBeforeInstr);
             void            ForceDstToReg(IR::Instr *instr);
 
 public:
@@ -263,7 +264,6 @@ public:
             IR::Instr *         LowerAsmJsStElemHelper(IR::Instr * callInstr);
             IR::Instr *         LowerCall(IR::Instr * callInstr, Js::ArgSlot argCount);
             IR::Instr *         LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper = false, IR::Instr * insertBeforeInstrForCFG = nullptr);
-            IR::Instr *         LoadInt64HelperArgument(IR::Instr * instr, IR::Opnd* opnd);
             IR::Instr *         LoadHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);

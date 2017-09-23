@@ -124,6 +124,8 @@ MACRO(MAXPS,    Reg2,       None,           RNON,   f(MODRM),   o(MAXPS),   DNO1
 MACRO(MINPD,    Reg2,       None,           RNON,   f(MODRM),   o(MINPD),   DNO16|DOPEQ|D66,        OLB_0F)
 MACRO(MINPS,    Reg2,       None,           RNON,   f(MODRM),   o(MINPS),   DNO16|DOPEQ,            OLB_0F)
 
+MACRO(LOCKOR,   Reg2,   OpSideEffect,  R001,   f(BINOP),   o(OR),      DOPEQ|DSETCC|DCOMMOP|DLOCK,  OLB_NONE)
+
 MACRO(LZCNT,    Reg2,   None,          RNON,   f(MODRM),   o(LZCNT),   DF3|DSETCC|DDST,             OLB_0F)
 
 MACRO(MOV,      Reg2,   None,          R000,   f(MOV),     o(MOV),     DDST|DMOV,                   OLB_NONE)

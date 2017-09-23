@@ -63,6 +63,8 @@ MACRO(CMPLTPD,  Empty,      None,           RNON,   f(MODRM),   o(CMPPD),   D66|
 MACRO(CMPLEPD,  Empty,      None,           RNON,   f(MODRM),   o(CMPPD),   D66|DSSE,                   OLB_NONE)
 MACRO(CMPEQPD,  Empty,      None,           RNON,   f(MODRM),   o(CMPPD),   D66|DSSE,                   OLB_NONE)
 MACRO(CMPNEQPD, Empty,      None,           RNON,   f(MODRM),   o(CMPPD),   D66|DSSE,                   OLB_NONE)
+MACRO(CMPXCHG8B, Reg1,      OpSideEffect,   R001,   f(MODRM),   o(CMPXCHG8B), DNO16|DZEROF|DSETCC,      OLB_NONE)
+MACRO(LOCKCMPXCHG8B, Reg1,  OpSideEffect,   R001,   f(MODRM),   o(CMPXCHG8B), DNO16|DZEROF|DSETCC|DLOCK,OLB_NONE)
 
 MACRO(COMISD,   Empty,      OpSideEffect,   RNON,   f(MODRM),   o(COMISD),  DNO16|D66|DSETCC,           OLB_NONE)
 MACRO(COMISS,   Empty,      OpSideEffect,   RNON,   f(MODRM),   o(COMISS),  DNO16|DZEROF|DSETCC,        OLB_NONE)

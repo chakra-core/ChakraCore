@@ -25,6 +25,7 @@ set(CRLIB_SOURCE_CODES
     ArgumentsObject.cpp
     ArgumentsObjectEnumerator.cpp
     ArrayBuffer.cpp
+    AtomicsOperations.cpp
     AtomicsObject.cpp
     BoundFunction.cpp
     BufferStringBuilder.cpp

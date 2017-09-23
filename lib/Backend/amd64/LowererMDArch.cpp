@@ -1074,7 +1074,7 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 }
 
 IR::Instr *
-LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
+LowererMDArch::LowerWasmArrayBoundsCheck(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
 #if ENABLE_FAST_ARRAYBUFFER
     if (CONFIG_FLAG(WasmFastArray))
@@ -1109,6 +1109,39 @@ LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
     lowererMD->m_lowerer->GenerateThrow(IR::IntConstOpnd::New(WASMERR_ArrayIndexOutOfRange, TyInt32, m_func), loadLabel);
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
     return doneLabel;
+}
+
+void
+LowererMDArch::LowerAtomicStore(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr)
+{
+    src1->SetType(dst->GetType());
+    // Put src1 as dst to make sure we know that register is modified
+    IR::Instr* xchgInstr = IR::Instr::New(Js::OpCode::XCHG, src1, src1, dst, insertBeforeInstr->m_func);
+    insertBeforeInstr->InsertBefore(xchgInstr);
+}
+
+void
+LowererMDArch::LowerAtomicLoad(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr)
+{
+    IR::Instr* newMove = Lowerer::InsertMove(dst, src1, insertBeforeInstr);
+
+#if ENABLE_FAST_ARRAYBUFFER
+    // We need to have an AV when accessing out of bounds memory even if the dst is not used
+    // Make sure LinearScan doesn't dead store this instruction
+    newMove->hasSideEffects = true;
+#endif
+
+    // Need to add Memory Barrier before the load
+    // MemoryBarrier is implemented with `lock or [rsp], 0` on x64
+    IR::IndirOpnd* stackTop = IR::IndirOpnd::New(
+        IR::RegOpnd::New(nullptr, RegRSP, TyMachReg, m_func),
+        0,
+        TyMachReg,
+        m_func
+    );
+    IR::IntConstOpnd* zero = IR::IntConstOpnd::New(0, TyMachReg, m_func);
+    IR::Instr* memoryBarrier = IR::Instr::New(Js::OpCode::LOCKOR, stackTop, stackTop, zero, m_func);
+    newMove->InsertBefore(memoryBarrier);
 }
 
 IR::Instr*
@@ -1270,12 +1303,6 @@ LowererMDArch::LowerStartCall(IR::Instr * startCallInstr)
 {
     startCallInstr->m_opcode = Js::OpCode::LoweredStartCall;
     return startCallInstr;
-}
-
-IR::Instr *
-LowererMDArch::LoadInt64HelperArgument(IR::Instr * instrInsert, IR::Opnd * opndArg)
-{
-    return LoadHelperArgument(instrInsert, opndArg);
 }
 
 ///----------------------------------------------------------------------------
