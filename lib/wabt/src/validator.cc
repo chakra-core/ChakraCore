@@ -940,7 +940,7 @@ Result Validator::CheckModule(const Module* module) {
 }
 
 // Returns the result type of the invoked function, checked by the caller;
-// returning nullptr means that another error occured first, so the result type
+// returning nullptr means that another error occurred first, so the result type
 // should be ignored.
 const TypeVector* Validator::CheckInvoke(const Action* action) {
   const ActionInvoke* invoke = action->invoke;

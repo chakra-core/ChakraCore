@@ -1699,7 +1699,7 @@ namespace TTD
     {
         uint32 wlen = 0;
         this->ReadBytesInto_Fixed<uint32>(wlen);
-        TTDAssert(wlen == length, "Not exepcted string length!!!");
+        TTDAssert(wlen == length, "Not expected string length!!!");
 
         this->ReadBytesInto((byte*)code, length * sizeof(char16));
     }

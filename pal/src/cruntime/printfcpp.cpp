@@ -110,16 +110,16 @@ static int Internal_Convertfwrite(CPalThread *pthrCurrent, const void *buffer, s
 Function:
   Internal_ExtractFormatA
 
-Paramaters:
+Parameters:
   Fmt
     - format string to parse
     - first character must be a '%'
-    - paramater gets updated to point to the character after
+    - parameter gets updated to point to the character after
       the %<foo> format string
   Out
     - buffer will contain the %<foo> format string
   Flags
-    - paramater will be set with the PRINTF_FORMAT_FLAGS defined above
+    - parameter will be set with the PRINTF_FORMAT_FLAGS defined above
   Width
     - will contain the width specified by the format string
     - -1 if none given
@@ -136,7 +136,7 @@ Notes:
   - %#10x, when we have a width greater than the length (i.e padding) the
     length of the padding is not consistent with MS's wsprintf
     (MS adds an extra 2 padding chars, length of "0x")
-  - MS's wsprintf seems to ingore a 'h' prefix for number types
+  - MS's wsprintf seems to ignore a 'h' prefix for number types
   - MS's "%p" is different than gcc's
     e.g. printf("%p", NULL);
         MS  -->  00000000

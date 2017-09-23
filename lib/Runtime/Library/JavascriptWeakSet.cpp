@@ -254,7 +254,7 @@ namespace Js
 
         this->Map([&](RecyclableObject* key)
         {
-            AssertMsg(ssi->SetSize < setCountEst, "We are writting junk");
+            AssertMsg(ssi->SetSize < setCountEst, "We are writing junk");
 
             ssi->SetValueArray[ssi->SetSize] = key;
             ssi->SetSize++;
