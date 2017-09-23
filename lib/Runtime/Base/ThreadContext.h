@@ -925,7 +925,7 @@ public:
         return
             (this->TestThreadContextFlag(ThreadContextFlagCanDisableExecution) &&
              !PHASE_OFF(Js::InterruptProbePhase, func)) ||
-            PHASE_ON(Js::InterruptProbePhase, func);
+            PHASE_FORCE(Js::InterruptProbePhase, func);
     }
 
     bool DoInterruptProbe() const
@@ -933,7 +933,7 @@ public:
         return
             (this->TestThreadContextFlag(ThreadContextFlagCanDisableExecution) &&
              !PHASE_OFF1(Js::InterruptProbePhase)) ||
-            PHASE_ON1(Js::InterruptProbePhase);
+            PHASE_FORCE1(Js::InterruptProbePhase);
     }
 
     bool EvalDisabled() const

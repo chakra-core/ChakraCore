@@ -79,7 +79,7 @@ namespace Js
 
     enum Phase: unsigned short
     {
-#define PHASE(name) name##Phase,
+#define PHASE(name, ...) name##Phase,
 #include "ConfigFlagsList.h"
         PhaseCount,
         InvalidPhase
@@ -553,6 +553,14 @@ namespace Js
         void TranslateFlagConfiguration();
     };
 
+#ifndef ENABLE_DEBUG_CONFIG_OPTIONS
+    // default phase values
+    const bool PhaseDefaultOn[PhaseCount] = {
+#define PHASE(name, defaultValue) defaultValue,
+#include "ConfigFlagsList.h"
+#undef PHASE
+    };
+#endif
 
     class Profiler;
 
@@ -775,17 +783,17 @@ namespace Js
 #define PHASE_OFF_PROFILED_BYTE_CODE_ALL(phase) (false)
 #define PHASE_OFF_PROFILED_BYTE_CODE_OPTFUNC(phase, func) (false)
 
-#define PHASE_OFF1(phase)           (false)             //All flags.Off.IsEnabled(foo) are false by default
-#define CUSTOM_PHASE_OFF1(flags, phase)           (false)             //All flags.Off.IsEnabled(foo) are false by default
-#define PHASE_OFF_ALL(phase)        (false)
-#define PHASE_OFF(phase, func)      (false)
-#define PHASE_OFF_RAW(phase, sourceId, functionId) (false)
-#define PHASE_OFF_OPTFUNC(phase, func) (false)
+#define PHASE_OFF1(phase)           (!Js::PhaseDefaultOn[phase])
+#define CUSTOM_PHASE_OFF1(flags, phase)           (!Js::PhaseDefaultOn[phase])
+#define PHASE_OFF_ALL(phase)        (!Js::PhaseDefaultOn[phase])
+#define PHASE_OFF(phase, func)      (!Js::PhaseDefaultOn[phase])
+#define PHASE_OFF_RAW(phase, sourceId, functionId) (!Js::PhaseDefaultOn[phase])
+#define PHASE_OFF_OPTFUNC(phase, func) (!Js::PhaseDefaultOn[phase])
 
-#define PHASE_ON1(phase)            (false)
-#define CUSTOM_PHASE_ON1(flags, phase) (false)
-#define PHASE_ON(phase, func)       (false)
-#define PHASE_ON_RAW(phase, sourceId, functionId) (false)
+#define PHASE_ON1(phase)            (Js::PhaseDefaultOn[phase])
+#define CUSTOM_PHASE_ON1(flags, phase) (Js::PhaseDefaultOn[phase])
+#define PHASE_ON(phase, func)       (Js::PhaseDefaultOn[phase])
+#define PHASE_ON_RAW(phase, sourceId, functionId) (Js::PhaseDefaultOn[phase])
 
 #define PHASE_FORCE1(phase)         (false)
 #define CUSTOM_PHASE_FORCE1(flags, phase)         (false)
