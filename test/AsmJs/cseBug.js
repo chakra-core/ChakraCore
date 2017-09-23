@@ -26,3 +26,15 @@ var buffer = new ArrayBuffer(1<<20);
 var asmModule = AsmModule(stdlib,env,buffer);
 print(asmModule(0));
 print(asmModule(0));
+
+let m = function (stdlib, foreign) {
+  'use asm';
+  function f() {
+    +4294967295;
+    return + +(-1 | 0);
+  }
+  return f;
+}({}, {});
+
+print(m());
+print(m());

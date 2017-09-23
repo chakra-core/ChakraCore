@@ -47,6 +47,20 @@ PeepsMD::ProcessImplicitRegs(IR::Instr *instr)
             this->peeps->ClearReg(RegEDX);
         }
     }
+    else if (instr->m_opcode == Js::OpCode::XCHG)
+    {
+        // At time of writing, I believe that src1 is always identical to dst, but clear both for robustness.
+
+        // Either of XCHG's operands (but not both) can be a memory address, so only clear registers.
+        if (instr->GetSrc1()->IsRegOpnd())
+        {
+            this->peeps->ClearReg(instr->GetSrc1()->AsRegOpnd()->GetReg());
+        }
+        if (instr->GetSrc2()->IsRegOpnd())
+        {
+            this->peeps->ClearReg(instr->GetSrc2()->AsRegOpnd()->GetReg());
+        }
+    }
 }
 
 void
@@ -56,7 +70,7 @@ PeepsMD::PeepAssign(IR::Instr *instr)
     IR::Opnd *dst = instr->GetDst();
 
     if (instr->m_opcode == Js::OpCode::MOV && src->IsIntConstOpnd()
-        && src->AsIntConstOpnd()->GetValue() == 0 && dst->IsRegOpnd())
+        && src->AsIntConstOpnd()->GetValue() == 0 && dst->IsRegOpnd() && !instr->isInlineeEntryInstr)
     {
         Assert(instr->GetSrc2() == NULL);
 

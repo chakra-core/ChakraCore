@@ -10,7 +10,7 @@
 // Page heap mode is supported currently only in the Recycler
 // Defining here so that other allocators can take advantage of this
 // in the future
-enum PageHeapMode
+enum PageHeapMode : byte
 {
     PageHeapModeOff = 0,   // No Page heap
     PageHeapModeBlockStart = 1,   // Allocate the object at the beginning of the page
@@ -25,8 +25,16 @@ enum PageHeapMode
 #define DbgMemFill 0XFE
 #endif
 
+#ifdef RECYCLER_PAGE_HEAP
+#define PageHeapMemFill 0XF0
+#endif
+
 namespace Memory
 {
+
+    template<typename> class WriteBarrierPtr;
+    template<typename> class NoWriteBarrierPtr;
+
 #ifdef TRACK_ALLOC
 struct TrackAllocData
 {
@@ -139,21 +147,34 @@ inline T* PostAllocationCallback(const type_info& objType, T *obj)
 #define AllocatorNewNoThrowArrayZ(AllocatorType, alloc, T, count) AllocatorNewNoThrowArrayBase(AllocatorType, alloc, AllocZero, T, count)
 
 #define AllocatorNewNoThrowNoRecoveryArrayBase(AllocatorType, alloc, AllocFunc, T, count) AllocateArray<AllocatorType, T, true>(TRACK_ALLOC_INFO(alloc, T, AllocatorType, 0, count), &AllocatorType::NoThrowNoRecovery ## AllocFunc, count)
+#define AllocatorNewNoThrowNoRecoveryPlusBase(AllocatorType, alloc, AllocFunc, size, T, ...) new (TRACK_ALLOC_INFO(static_cast<AllocatorType *>(alloc), T, AllocatorType, size, (size_t)-1), true, &AllocatorType::NoThrowNoRecovery ## AllocFunc, size) T(__VA_ARGS__)
 
 #define AllocatorNewNoThrowNoRecoveryArrayZ(AllocatorType, alloc, T, count) AllocatorNewNoThrowNoRecoveryArrayBase(AllocatorType, alloc, AllocZero, T, count)
+#define AllocatorNewNoThrowNoRecoveryPlus(AllocatorType, alloc, size, T, ...) AllocatorNewNoThrowNoRecoveryPlusBase(AllocatorType, alloc, Alloc, size, T, __VA_ARGS__)
 
-#define AllocatorDelete(AllocatorType, alloc, obj) DeleteObject<AllocatorType>(alloc, obj)
-#define AllocatorDeleteInline(AllocatorType, alloc, obj) DeleteObjectInline<AllocatorType>(alloc, obj)
-#define AllocatorDeleteLeaf(TAllocator, alloc, obj) DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj)
-#define AllocatorDeletePlus(AllocatorType, alloc, size,  obj)  DeleteObject<AllocatorType>(alloc, obj, size);
-#define AllocatorDeletePlusLeaf(TAllocator, alloc, size,  obj)  DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj, size);
-#define AllocatorDeletePlusPrefix(AllocatorType, alloc, size,  obj)  DeleteObject<AllocatorType>(alloc, obj, size, true);
-#define AllocatorDeletePlusPrefixLeaf(TAllocator, alloc, size,  obj)  DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj, size, true);
-#define AllocatorDeleteArray(AllocatorType, alloc, count, obj) DeleteArray<AllocatorType>(alloc, count, obj)
-#define AllocatorDeleteArrayLeaf(TAllocator, alloc, count, obj) DeleteArray<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, count, obj)
+// A few versions below supplies optional flags through ..., used by HeapDelete.
+#define AllocatorDelete(AllocatorType, alloc, obj, ...) \
+        DeleteObject<AllocatorType, ##__VA_ARGS__>(alloc, obj)
+#define AllocatorDeleteInline(AllocatorType, alloc, obj) \
+        DeleteObjectInline<AllocatorType>(alloc, obj)
+#define AllocatorDeleteLeaf(TAllocator, alloc, obj) \
+        DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj)
+#define AllocatorDeletePlus(AllocatorType, alloc, size,  obj, ...) \
+        DeleteObject<AllocatorType, ##__VA_ARGS__>(alloc, obj, size);
+#define AllocatorDeletePlusLeaf(TAllocator, alloc, size,  obj) \
+        DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj, size);
+#define AllocatorDeletePlusPrefix(AllocatorType, alloc, size, obj, ...) \
+        DeleteObject<AllocatorType, ##__VA_ARGS__>(alloc, obj, size, true);
+#define AllocatorDeletePlusPrefixLeaf(TAllocator, alloc, size,  obj) \
+        DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj, size, true);
+#define AllocatorDeleteArray(AllocatorType, alloc, count, obj) \
+        DeleteArray<AllocatorType>(alloc, count, obj)
+#define AllocatorDeleteArrayLeaf(TAllocator, alloc, count, obj) \
+        DeleteArray<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, count, obj)
 
 // Free routine where we don't care about following C++ semantics (e.g. calling the destructor)
-#define AllocatorFree(alloc, freeFunc, obj, size) (alloc->*freeFunc)(obj, size)
+#define AllocatorFree(alloc, freeFunc, obj, size) \
+        (alloc->*freeFunc)((void*)obj, size)
 
 // default type allocator implementation
 template <typename TAllocator, typename T>
@@ -184,6 +205,7 @@ template <typename TAllocator, bool isLeaf>
 class ListTypeAllocatorFunc
 {
 public:
+    typedef TAllocator EffectiveAllocatorType;  // used by write barrier type traits
     typedef char * (TAllocator::*AllocFuncType)(size_t);
     typedef void(TAllocator::*FreeFuncType)(void*, size_t);
 
@@ -211,6 +233,7 @@ struct AllocatorInfo
 template <typename TAllocator>
 struct ForceNonLeafAllocator
 {
+    static const bool FakeZeroLengthArray = true;
     typedef TAllocator AllocatorType;
 };
 
@@ -219,15 +242,46 @@ template <typename TAllocator>
 struct ForceLeafAllocator
 {
     typedef TAllocator AllocatorType;
+    static const bool FakeZeroLengthArray = true;
 };
 
-template <typename TAllocator, typename T>
+// Optional AllocatorDelete flags
+enum class AllocatorDeleteFlags
+{
+    None,
+    UnknownSize,  // used to bypass size check
+};
+template <typename T, AllocatorDeleteFlags deleteFlags>
+struct _AllocatorDelete
+{
+    static size_t Size() { return sizeof(T); }
+    static size_t Size(size_t plusSize) { return sizeof(T) + plusSize; }
+};
+template <typename T>
+struct _AllocatorDelete<T, AllocatorDeleteFlags::UnknownSize>
+{
+    static size_t Size() { return (size_t)-1; }
+    static size_t Size(size_t plusSize) { return (size_t)-1; }
+};
+
+template <typename TAllocator,
+          AllocatorDeleteFlags deleteFlags = AllocatorDeleteFlags::None,
+          typename T>
 void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, T * obj)
 {
     obj->~T();
 
     auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
-    (allocator->*freeFunc)(obj, sizeof(T));
+    (allocator->*freeFunc)(
+        (void*)obj, _AllocatorDelete<T, deleteFlags>::Size());
+}
+
+template <typename TAllocator,
+          AllocatorDeleteFlags deleteFlags = AllocatorDeleteFlags::None,
+          typename T>
+void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, WriteBarrierPtr<T> obj)
+{
+    DeleteObject<TAllocator, deleteFlags>(allocator, PointerValue(obj));
 }
 
 template <typename TAllocator, typename T>
@@ -237,7 +291,9 @@ void DeleteObjectInline(TAllocator * allocator, T * obj)
     allocator->FreeInline(obj, sizeof(T));
 }
 
-template <typename TAllocator, typename T>
+template <typename TAllocator,
+          AllocatorDeleteFlags deleteFlags = AllocatorDeleteFlags::None,
+          typename T>
 void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, T * obj, size_t plusSize)
 {
     obj->~T();
@@ -247,10 +303,13 @@ void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocat
     Assert(sizeof(T) + plusSize >= sizeof(T));
 
     auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
-    (allocator->*freeFunc)(obj, sizeof(T) + plusSize);
+    (allocator->*freeFunc)(
+        (void*)obj, _AllocatorDelete<T, deleteFlags>::Size(plusSize));
 }
 
-template <typename TAllocator, typename T>
+template <typename TAllocator,
+          AllocatorDeleteFlags deleteFlags = AllocatorDeleteFlags::None,
+          typename T>
 void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, T * obj, size_t plusSize, bool prefix)
 {
     Assert(prefix);
@@ -264,7 +323,8 @@ void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocat
     Assert(plusSize == Math::Align<size_t>(plusSize, sizeof(size_t)));
 
     auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
-    (allocator->*freeFunc)(((char *)obj) - plusSize, sizeof(T) + plusSize);
+    (allocator->*freeFunc)(((char *)obj) - plusSize,
+        _AllocatorDelete<T, deleteFlags>::Size(plusSize));
 }
 
 #define ZERO_LENGTH_ARRAY (void *)sizeof(void *)
@@ -288,22 +348,61 @@ inline T * AllocateArray(TAllocator * allocator, char * (TAllocator::*AllocFunc)
     return new (allocator, AllocFunc) T[count];
 }
 
+// Skip item destructor loop on some trivial types. The loop is likely to be
+// optimized away in release build. Skipping it improves debug build.
+//
+struct _true_value { static const bool value = true; };
+struct _false_value { static const bool value = false; };
+template <typename T> struct _has_trivial_destructor : _false_value {};
+template <typename T> struct _has_trivial_destructor<T*> : _true_value {};
+template <> struct _has_trivial_destructor<char> : _true_value {};
+template <> struct _has_trivial_destructor<const char> : _true_value {};
+template <> struct _has_trivial_destructor<unsigned char> : _true_value {};
+template <> struct _has_trivial_destructor<char16> : _true_value {};
+template <> struct _has_trivial_destructor<const char16> : _true_value {};
+template <> struct _has_trivial_destructor<int> : _true_value {};
+
+template <bool trivial_destructor>
+struct _DestructArray
+{
+    template <typename T>
+    static void Destruct(size_t count, T* obj)
+    {
+        for (size_t i = 0; i < count; i++)
+        {
+            obj[i].~T();
+        }
+    }
+};
+template <>
+struct _DestructArray</*trivial_destructor*/true>
+{
+    template <typename T>
+    static void Destruct(size_t count, T* obj) {}
+};
+
+template <typename T>
+void DestructArray(size_t count, T* obj)
+{
+    _DestructArray<_has_trivial_destructor<T>::value>::Destruct(count, obj);
+}
+
 template <typename TAllocator, typename T>
 void DeleteArray(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, size_t count, T * obj)
 {
-    if(count == 0)
+    if (count == 0 && AllocatorInfo<TAllocator, T>::AllocatorType::FakeZeroLengthArray)
     {
         return;
     }
 
-    for (size_t i = 0; i < count; i++)
+    if (count != 0)
     {
-        obj[i].~T();
-    }
+        DestructArray(count, obj);
 
-    // DeleteArray can only be called when an array is allocated successfully.
-    // So the add should never overflow
-    Assert(count * sizeof(T) / count == sizeof(T));
+        // DeleteArray can only be called when an array is allocated successfully.
+        // So the add should never overflow
+        Assert(count * sizeof(T) / count == sizeof(T));
+    }
 
     auto freeFunc = AllocatorInfo<TAllocator, T>::AllocatorFunc::GetFreeFunc();
     (allocator->*freeFunc)((void *)obj, sizeof(T) * count);
@@ -328,7 +427,6 @@ public:
     void (*recoverMemoryFunc)();
 };
 
-
 template <typename T>
 void AssertValue(void * mem, T value, uint byteCount)
 {
@@ -342,12 +440,20 @@ void AssertValue(void * mem, T value, uint byteCount)
 }
 }
 
+#ifndef _WIN32
+#define NO_EXPORT(x) \
+    __attribute__((visibility("hidden"))) \
+    x
+#else
+#define NO_EXPORT(x) x
+#endif
+
 // For the debugger extension, we don't need the placement news
 #ifndef __PLACEMENT_NEW_INLINE
 #define __PLACEMENT_NEW_INLINE
 
 _Ret_notnull_
-inline void * __cdecl
+NO_EXPORT(inline void *) __cdecl
 operator new(
 DECLSPEC_GUARD_OVERFLOW size_t byteSize,
 _In_ void * previousAllocation) throw()
@@ -356,7 +462,7 @@ _In_ void * previousAllocation) throw()
 }
 
 
-inline  void __cdecl
+NO_EXPORT(inline void) __cdecl
 operator delete(
 void * allocationToFree,                // Allocation to free
 void * previousAllocation               // Previously allocated memory
@@ -371,7 +477,8 @@ void * previousAllocation               // Previously allocated memory
 // throwing operator new overrides
 //----------------------------------------
 template <typename TAllocator>
-_Ret_notnull_ void * __cdecl
+_Ret_notnull_
+NO_EXPORT(void *) __cdecl
 operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t))
 {
     AssertCanHandleOutOfMemory();
@@ -382,7 +489,8 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char *
 }
 
 template <typename TAllocator>
-_Ret_notnull_ inline void * __cdecl
+_Ret_notnull_
+NO_EXPORT(inline void *) __cdecl
 operator new[](DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t))
 {
     AssertCanHandleOutOfMemory();
@@ -393,7 +501,8 @@ operator new[](DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char
 }
 
 template <typename TAllocator>
-_Ret_notnull_ inline void * __cdecl
+_Ret_notnull_
+NO_EXPORT(inline void *) __cdecl
 operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t), DECLSPEC_GUARD_OVERFLOW size_t plusSize)
 {
     AssertCanHandleOutOfMemory();
@@ -410,7 +519,8 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char *
 // nothrow operator new overrides
 //----------------------------------------
 template <typename TAllocator>
-_Ret_maybenull_ inline void * __cdecl
+_Ret_maybenull_
+NO_EXPORT(inline void *) __cdecl
 operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t))
 {
     Assert(nothrow);
@@ -419,9 +529,9 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool n
     return buffer;
 }
 
-
 template <typename TAllocator>
-_Ret_maybenull_ inline void * __cdecl
+_Ret_maybenull_
+NO_EXPORT(inline void *) __cdecl
 operator new[](DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t))
 {
     Assert(nothrow);
@@ -430,9 +540,9 @@ operator new[](DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool
     return buffer;
 }
 
-
 template <typename TAllocator>
-_Ret_maybenull_ inline void * __cdecl
+_Ret_maybenull_
+NO_EXPORT(inline void *) __cdecl
 operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t), DECLSPEC_GUARD_OVERFLOW size_t plusSize)
 {
     Assert(nothrow);
@@ -444,9 +554,9 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool n
     return buffer;
 }
 
-
 template <typename TAllocator>
-_Ret_maybenull_ inline void * __cdecl
+_Ret_maybenull_
+NO_EXPORT(inline void *) __cdecl
 operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t), DECLSPEC_GUARD_OVERFLOW size_t plusSize, bool prefix)
 {
     Assert(nothrow);
@@ -462,5 +572,5 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool n
     char * buffer = (alloc->*AllocFunc)(AllocSizeMath::Add(plusSize, byteSize));
 
     // This seems to generate the most compact code
-    return buffer + (buffer > 0 ? plusSize : (size_t)buffer);
+    return buffer + ((uintptr_t)buffer > 0 ? plusSize : (size_t)buffer);
 }

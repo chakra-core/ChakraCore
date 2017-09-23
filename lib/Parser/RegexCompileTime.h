@@ -620,20 +620,20 @@ namespace UnifiedRegex
 
         // The instruction buffer may move, so we need to remember label fixup's relative to the instruction base
         // rather than as machine addresses
-        inline Label Compiler::GetFixup(Label* pLabel)
+        inline Label GetFixup(Label* pLabel)
         {
             Assert((uint8*)pLabel >= instBuf && (uint8*)pLabel < instBuf + instNext);
             return (Label)((uint8*)pLabel - instBuf);
         }
 
-        inline void Compiler::DoFixup(Label fixup, Label label)
+        inline void DoFixup(Label fixup, Label label)
         {
             Assert(fixup < instNext);
             Assert(label <= instNext);
             *(Label*)(instBuf + fixup) = label;
         }
 
-        inline Label Compiler::CurrentLabel()
+        inline Label CurrentLabel()
         {
             return instNext;
         }
@@ -646,7 +646,7 @@ namespace UnifiedRegex
             return (T*)(instBuf + label);
         }
 
-        inline int Compiler::NextLoopId()
+        inline int NextLoopId()
         {
             return nextLoopId++;
         }

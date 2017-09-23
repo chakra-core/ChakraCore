@@ -16,7 +16,7 @@ namespace Js
         static PropertyId const specialPropertyIdsWithoutUnicode[];
         static const uint defaultSpecialPropertyIdsCount = 6;
 
-        UnifiedRegex::RegexPattern* pattern;
+        Field(UnifiedRegex::RegexPattern*) pattern;
 
         // The pattern used by String.prototype.split could be different than the normal pattern. Even
         // when the sticky flag is present in the normal pattern, split() should look for the pattern
@@ -24,9 +24,9 @@ namespace Js
         //
         // Initialization of this pattern is deferred until split() is called, or it's copied from another
         // RegExp object.
-        UnifiedRegex::RegexPattern* splitPattern;
+        Field(UnifiedRegex::RegexPattern*) splitPattern;
 
-        Var lastIndexVar;  // null => must build lastIndexVar from current lastIndex
+        Field(Var) lastIndexVar;  // null => must build lastIndexVar from current lastIndex
 
     public:
 
@@ -37,7 +37,7 @@ namespace Js
         //  2. ToNumber(lastIndexVar) yields +inf or -inf or an integer not in range [0, MaxCharCount]
         static const CharCount InvalidValue = CharCountFlag;
         //  3. ToNumber(lastIndexVar) yields NaN, +0, -0 or an integer in range [0, MaxCharCount]
-        CharCount lastIndexOrFlag;
+        Field(CharCount) lastIndexOrFlag;
 
         static JavascriptRegExp * GetJavascriptRegExp(Arguments& args, PCWSTR varName, ScriptContext* scriptContext);
         static JavascriptRegExp * ToRegExp(Var var, PCWSTR varName, ScriptContext* scriptContext);
@@ -117,7 +117,7 @@ namespace Js
         inline void SetLastIndex(CharCount lastIndex)
         {
             Assert(lastIndex <= MaxCharCount);
-            lastIndexVar = 0;
+            lastIndexVar = nullptr;
             this->lastIndexOrFlag = lastIndex;
         }
 
@@ -181,10 +181,10 @@ namespace Js
 
         virtual bool HasReadOnlyPropertiesInvisibleToTypeHandler() override { return true; }
 
-        virtual BOOL HasProperty(PropertyId propertyId) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = NULL) override;
@@ -197,7 +197,7 @@ namespace Js
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL IsConfigurable(PropertyId propertyId) override;
         virtual BOOL IsWritable(PropertyId propertyId) override;
-        virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) override;
+        virtual BOOL GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext) override;
         virtual uint GetSpecialPropertyCount() const override;
         virtual PropertyId const * GetSpecialPropertyIds() const override;
 
@@ -210,6 +210,12 @@ namespace Js
 
         void SetLastIndexInfo_TTD(CharCount lastIndex, Js::Var lastVar);
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableJavascriptRegExp;
+        }
     };
 
 } // namespace Js

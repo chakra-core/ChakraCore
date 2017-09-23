@@ -59,6 +59,9 @@ namespace TTD
         Js::RecyclableObject* FindReusableObjectIfExists(TTD_PTR_ID objid) const;
         Js::FunctionBody* FindReusableFunctionBodyIfExists(TTD_PTR_ID fbodyid) const;
 
+        //A version of FindReusableObjectIfExists but we haven't moved the last inflate objects to oldObjects yet so we need to look in a differnt location
+        Js::RecyclableObject* FindReusableObject_WellKnowReuseCheck(TTD_PTR_ID objid) const;
+
         ////
 
         Js::DynamicTypeHandler* LookupHandler(TTD_PTR_ID handlerId) const;
@@ -170,7 +173,7 @@ namespace TTD
 
         ~TTDComparePath();
 
-        void WritePathToConsole(ThreadContext* threadContext, bool printNewline, char16* namebuff) const;
+        void WritePathToConsole(ThreadContext* threadContext, bool printNewline, _Out_writes_z_(namebuffLength) char16* namebuff, charcount_t namebuffLength) const;
     };
 
     //A class that we use to manage all the dictionaries we need when comparing 2 snapshots

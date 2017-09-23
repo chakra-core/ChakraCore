@@ -38,4 +38,6 @@ function testFunction()
 
     telemetryLog(`post update 2 -- x.has(5): ${x.has(5)}`, true); //true
     telemetryLog(`post update 2 -- x.size: ${x.size}`, true); //2
+
+    emitTTDLog(ttdLogURI);
 }

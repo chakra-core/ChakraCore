@@ -803,6 +803,11 @@ namespace Js
         return mOverload && mOverload->SupportsMathCall(argCount, args, op, retType);
     }
 
+    bool AsmJsMathFunction::IsFround(AsmJsFunctionDeclaration* sym)
+    {
+        return sym && sym->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction && sym->Cast<AsmJsMathFunction>()->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround;
+    }
+
     WAsmJs::RegisterSpace*
         AllocateRegisterSpace(ArenaAllocator* alloc, WAsmJs::Types type)
     {
@@ -812,6 +817,9 @@ namespace Js
         case WAsmJs::FLOAT32: return Anew(alloc, AsmJsRegisterSpace<float>, alloc);
         case WAsmJs::FLOAT64: return Anew(alloc, AsmJsRegisterSpace<double>, alloc);
         case WAsmJs::SIMD: return Anew(alloc, AsmJsRegisterSpace<AsmJsSIMDValue>, alloc);
+#if TARGET_64
+        case WAsmJs::INT64: return Anew(alloc, AsmJsRegisterSpace<int64>, alloc);
+#endif
         default:
             AssertMsg(false, "Invalid native asm.js type");
             Js::Throw::InternalError();
@@ -824,16 +832,24 @@ namespace Js
         , mVarMap(allocator)
         , mBodyNode(nullptr)
         , mFncNode(pnodeFnc)
+        , mCurrentProfileId(0)
         , mTypedRegisterAllocator(
             allocator,
             AllocateRegisterSpace,
-            // Exclude int64 and simd if not enabled
-            1 << WAsmJs::INT64 | (scriptContext->GetConfig()->IsSimdjsEnabled() ? 0 : 1 << WAsmJs::SIMD)
+#if TARGET_32
+            1 << WAsmJs::INT64 | 
+#endif
+            // Exclude simd if not enabled
+            (
+#ifdef ENABLE_SIMDJS
+                scriptContext->GetConfig()->IsSimdjsEnabled() ? 0 :
+#endif
+                1 << WAsmJs::SIMD
+            )
         )
         , mFuncInfo(pnodeFnc->sxFnc.funcInfo)
         , mFuncBody(nullptr)
         , mSimdVarsList(allocator)
-        , mArgOutDepth(0)
         , mMaxArgOutDepth(0)
         , mDefined( false )
     {
@@ -871,6 +887,12 @@ namespace Js
         return var;
     }
 
+    ProfileId AsmJsFunc::GetNextProfileId()
+    {
+        ProfileId nextProfileId = mCurrentProfileId;
+        UInt16Math::Inc(mCurrentProfileId);
+        return nextProfileId;
+    }
 
     AsmJsVarBase* AsmJsFunc::FindVar(const PropertyName name) const
     {
@@ -908,11 +930,6 @@ namespace Js
             *lookupSource = AsmJsLookupSource::AsmJsFunction;
         }
         return var;
-    }
-
-    void AsmJsFunc::SetArgOutDepth( int outParamsCount )
-    {
-        mArgOutDepth = outParamsCount;
     }
 
     void AsmJsFunc::UpdateMaxArgOutDepth(int outParamsCount)
@@ -1007,7 +1024,7 @@ namespace Js
             argSize = (ArgSlot)MachPtr;
         }
 
-        mArgByteSize = UInt16Math::Add(mArgByteSize, argSize);
+        mArgByteSize = ArgSlotMath::Add(mArgByteSize, argSize);
         mArgSizes[index] = argSize;
     }
 

@@ -1,0 +1,10 @@
+/bin
+/out
+/fuzz-out
+/emscripten
+*.pyc
+
+.gitmodules
+/test
+/tests
+/third_party

@@ -9,7 +9,6 @@
 #include "pal/mutex.hpp"
 #include "pal/handlemgr.hpp"
 #include "pal/cs.hpp"
-#include "pal/seh.hpp"
 
 #include "procprivate.hpp"
 #include "pal/process.h"
@@ -89,7 +88,7 @@ static Volatile<CPalThread*> free_threads_list PAL_GLOBAL = NULL;
 
 /* lock to access list of free THREAD structures */
 /* NOTE: can't use a CRITICAL_SECTION here (see comment in FreeTHREAD) */
-int free_threads_spinlock = 0;
+static CCSpinLock<false> free_threads_spinlock;
 
 /* lock to access iEndingThreads counter, condition variable to signal shutdown
 thread when any remaining threads have died, and count of exiting threads that
@@ -192,6 +191,10 @@ Function:
 --*/
 BOOL TLSInitialize()
 {
+    // This will be called once and can't be called during/after another lock
+    // in place due to PAL is not yet initialized. The underlying issue here is
+    // related to whole lib/pal initialization on start.
+    free_threads_spinlock.Reset();
     /* Create the pthread key for thread objects, which we use
        for fast access to the current thread object. */
     if (pthread_key_create(&thObjKey, InternalEndCurrentThreadWrapper))
@@ -200,20 +203,7 @@ BOOL TLSInitialize()
         return FALSE;
     }
 
-    SPINLOCKInit(&free_threads_spinlock);
-
     return TRUE;
-}
-
-/*++
-Function:
-    TLSCleanup
-
-    Shutdown the TLS subsystem
---*/
-VOID TLSCleanup()
-{
-    SPINLOCKDestroy(&free_threads_spinlock);
 }
 
 /*++
@@ -230,8 +220,7 @@ CPalThread* AllocTHREAD()
 {
     CPalThread* pThread = NULL;
 
-    /* Get the lock */
-    SPINLOCKAcquire(&free_threads_spinlock, 0);
+    free_threads_spinlock.Enter();
 
     pThread = free_threads_list;
     if (pThread != NULL)
@@ -239,8 +228,7 @@ CPalThread* AllocTHREAD()
         free_threads_list = pThread->GetNext();
     }
 
-    /* Release the lock */
-    SPINLOCKRelease(&free_threads_spinlock);
+    free_threads_spinlock.Leave();
 
     if (pThread == NULL)
     {
@@ -299,70 +287,14 @@ static void FreeTHREAD(CPalThread *pThread)
        Update: [TODO] PROCSuspendOtherThreads has been removed. Can this
        code be changed?*/
 
-    /* Get the lock */
-    SPINLOCKAcquire(&free_threads_spinlock, 0);
+    free_threads_spinlock.Enter();
 
     pThread->SetNext(free_threads_list);
     free_threads_list = pThread;
 
-    /* Release the lock */
-    SPINLOCKRelease(&free_threads_spinlock);
+    free_threads_spinlock.Leave();
 }
 
-
-/*++
-Function:
-  THREADGetThreadProcessId
-
-returns the process owner ID of the indicated hThread
---*/
-DWORD
-THREADGetThreadProcessId(
-    HANDLE hThread
-    // UNIXTODO Should take pThread parameter here (modify callers)
-    )
-{
-    CPalThread *pThread;
-    CPalThread *pTargetThread;
-    IPalObject *pobjThread = NULL;
-    PAL_ERROR palError = NO_ERROR;
-
-    DWORD dwProcessId = 0;
-
-    pThread = InternalGetCurrentThread();
-
-    palError = InternalGetThreadDataFromHandle(
-        pThread,
-        hThread,
-        0,
-        &pTargetThread,
-        &pobjThread
-        );
-
-    if (NO_ERROR != palError)
-    {
-        if (!pThread->IsDummy())
-        {
-            dwProcessId = GetCurrentProcessId();
-        }
-        else
-        {
-            ASSERT("Dummy thread passed to THREADGetProcessId\n");
-        }
-
-        if (NULL != pobjThread)
-        {
-           pobjThread->ReleaseReference(pThread);
-        }
-    }
-    else
-    {
-        ERROR("Couldn't retreive the hThread:%p pid owner !\n", hThread);
-    }
-
-
-    return dwProcessId;
-}
 
 /*++
 Function:
@@ -412,6 +344,7 @@ GetThreadId(
     return dwThreadId;
 }
 
+static THREAD_LOCAL DWORD cachedCurrentThreadId = 0;
 /*++
 Function:
   GetCurrentThreadId
@@ -423,22 +356,18 @@ PALAPI
 GetCurrentThreadId(
             VOID)
 {
+    if (cachedCurrentThreadId != 0) return cachedCurrentThreadId;
     DWORD dwThreadId;
 
     PERF_ENTRY(GetCurrentThreadId);
     ENTRY("GetCurrentThreadId()\n");
-
-    //
-    // TODO: should do perf test to see how this compares
-    // with calling InternalGetCurrentThread (i.e., is our lookaside
-    // cache faster on average than pthread_self?)
-    //
 
     dwThreadId = (DWORD)THREADSilentGetCurrentThreadId();
 
     LOGEXIT("GetCurrentThreadId returns DWORD %#x\n", dwThreadId);
     PERF_EXIT(GetCurrentThreadId);
 
+    cachedCurrentThreadId = dwThreadId;
     return dwThreadId;
 }
 
@@ -1058,8 +987,6 @@ CorUnix::InternalEndCurrentThread(
         PROCRemoveThread(pThread, pThread);
 
 #ifdef FEATURE_PAL_SXS
-        // Ensure that EH is disabled on the current thread
-        SEHDisable(pThread);
         PAL_Leave(PAL_BoundaryTop);
 #endif // FEATURE_PAL_SXS
 
@@ -1168,6 +1095,7 @@ SetThreadPriority(
     CPalThread *pThread;
     PAL_ERROR palError = NO_ERROR;
 
+#if !defined(__IOS__) && !defined(__ANDROID__)
     PERF_ENTRY(SetThreadPriority);
     ENTRY("SetThreadPriority(hThread=%p, nPriority=%#x)\n", hThread, nPriority);
 
@@ -1186,7 +1114,7 @@ SetThreadPriority(
 
     LOGEXIT("SetThreadPriority returns BOOL %d\n", NO_ERROR == palError);
     PERF_EXIT(SetThreadPriority);
-
+#endif
     return NO_ERROR == palError;
 }
 
@@ -1202,6 +1130,7 @@ CorUnix::InternalSetThreadPriority(
     IPalObject *pobjThread = NULL;
 
     int policy;
+    int set_sched_error;
     struct sched_param schedParam;
     int max_priority;
     int min_priority;
@@ -1235,12 +1164,6 @@ CorUnix::InternalSetThreadPriority(
     case THREAD_PRIORITY_NORMAL:        /* fall through */
     case THREAD_PRIORITY_BELOW_NORMAL:  /* fall through */
     case THREAD_PRIORITY_LOWEST:
-#if PAL_IGNORE_NORMAL_THREAD_PRIORITY
-        /* We aren't going to set the thread priority. Just record what it is,
-           and exit */
-        pTargetThread->m_iThreadPriority = iNewPriority;
-        goto InternalSetThreadPriorityExit;
-#endif
         break;
 
     default:
@@ -1266,7 +1189,8 @@ CorUnix::InternalSetThreadPriority(
             &schedParam
             ) != 0)
     {
-        ASSERT("Unable to get current thread scheduling information\n");
+        // permission denied ? do not assert
+        TRACE("Unable to get current thread scheduling information\n");
         palError = ERROR_INTERNAL_ERROR;
         goto InternalSetThreadPriorityExit;
     }
@@ -1325,23 +1249,24 @@ CorUnix::InternalSetThreadPriority(
           iNewPriority, schedParam.sched_priority);
 
     /* Finally, set the new priority into place */
-    if (pthread_setschedparam(
-            pTargetThread->GetPThreadSelf(),
-            policy,
-            &schedParam
-            ) != 0)
+    set_sched_error = pthread_setschedparam(
+          pTargetThread->GetPThreadSelf(),
+          policy,
+          &schedParam
+          );
+    if (set_sched_error != 0)
     {
-#if SET_SCHEDPARAM_NEEDS_PRIVS
-        if (EPERM == errno)
+        if (EPERM == set_sched_error)
         {
-            // UNIXTODO: Should log a warning to the event log
             TRACE("Caller does not have OS privileges to call pthread_setschedparam\n");
             pTargetThread->m_iThreadPriority = iNewPriority;
             goto InternalSetThreadPriorityExit;
         }
-#endif
 
-        ASSERT("Unable to set thread priority (errno %d)\n", errno);
+        // do not assert fail here. OS may not update the priority...
+        TRACE("Unable to set thread priority (error %d)\n", set_sched_error);
+        if (ESRCH == set_sched_error) goto InternalSetThreadPriorityExit;
+
         palError = ERROR_INTERNAL_ERROR;
         goto InternalSetThreadPriorityExit;
     }
@@ -2311,15 +2236,6 @@ CPalThread::RunPostCreateInitializers(
         goto RunPostCreateInitializersExit;
     }
 
-#ifdef FEATURE_PAL_SXS
-    _ASSERTE(m_fInPal);
-    palError = SEHEnable(this);
-    if (NO_ERROR != palError)
-    {
-        goto RunPostCreateInitializersExit;
-    }
-#endif // FEATURE_PAL_SXS
-
 RunPostCreateInitializersExit:
 
     return palError;
@@ -2842,8 +2758,21 @@ int CorUnix::CThreadMachExceptionHandlers::GetIndexOfHandler(exception_mask_t bm
 
 #endif // HAVE_MACH_EXCEPTIONS
 
+#ifndef __IOS__
+static THREAD_LOCAL ULONG_PTR s_cachedHighLimit = 0;
+static THREAD_LOCAL ULONG_PTR s_cachedLowLimit = 0;
+#endif
+
 void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
 {
+#ifndef __IOS__
+    if (s_cachedLowLimit)
+    {
+        *lowLimit = s_cachedLowLimit;
+        *highLimit = s_cachedHighLimit;
+        return;
+    }
+#endif
     pthread_t currentThreadHandle = pthread_self();
 
 #ifdef __APPLE__
@@ -2861,7 +2790,7 @@ void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
     status = pthread_getattr_np(currentThreadHandle, &attr);
     _ASSERT_MSG(status == 0, "pthread_getattr_np call failed");
 #else
-#   error "Dont know how to get thread attributes on this platform!"
+#   error "Don't know how to get thread attributes on this platform!"
 #endif
 
     status = pthread_attr_getstack(&attr, &stackend, &stacksize);
@@ -2874,14 +2803,12 @@ void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
     *lowLimit = (ULONG_PTR) stackend;
     *highLimit = (ULONG_PTR) stackbase;
 #endif
-}
 
-#ifndef __APPLE__
-#define THREAD_LOCAL thread_local
-#else
-#define THREAD_LOCAL _Thread_local
+#ifndef __IOS__
+    s_cachedLowLimit = *lowLimit;
+    s_cachedHighLimit = *highLimit;
 #endif
-static THREAD_LOCAL ULONG_PTR s_cachedThreadStackHighLimit = 0;
+}
 
 bool IsAddressOnStack(ULONG_PTR address)
 {
@@ -2890,28 +2817,59 @@ bool IsAddressOnStack(ULONG_PTR address)
     // bounds to speed up checking if a given address is on the stack
     // The semantics of IsAddressOnStack is that we care if a given address is
     // in the range of the current stack pointer
-    if (s_cachedThreadStackHighLimit == 0)
-    {
-        ULONG_PTR lowLimit, highLimit;
-        GetCurrentThreadStackLimits(&lowLimit, &highLimit);
+    ULONG_PTR lowLimit, highLimit;
+    GetCurrentThreadStackLimits(&lowLimit, &highLimit);
 
-        s_cachedThreadStackHighLimit = highLimit;
-    }
+    ULONG_PTR currentStackPtr = GetCurrentSP();
 
-    ULONG_PTR currentStackPtr = 0;
-
-#ifdef _AMD64_
-    asm("mov %%rsp, %0;":"=r"(currentStackPtr));
-#elif defined(__i686__)
-    asm("mov %%esp, %0;":"=r"(currentStackPtr));
-#else
-#error "Implement this!!"
-#endif
-
-    if (currentStackPtr <= address && address < s_cachedThreadStackHighLimit)
+    if (currentStackPtr <= address && address < highLimit)
     {
         return true;
     }
 
     return false;
+}
+
+#ifndef __IOS__
+// why _Thread_local ? Because it is faster(.)
+// why not replace PAL to use _Thread_local instead of front caching? _Thread_local is not cross platform
+
+// Why ULONG_PTR? keeping type for localThread `simple` may affect implementation hence the perf. positively.
+THREAD_LOCAL ULONG_PTR localThread = 0;
+CPalThread *CorUnix::GetCurrentPalThread(bool force)
+{
+    ULONG_PTR pThread = localThread;
+    if (pThread == 0)
+    {
+        pThread = (ULONG_PTR) reinterpret_cast<CPalThread*>(pthread_getspecific(thObjKey));
+#ifdef FEATURE_PAL_SXS
+        if (pThread == 0 && force)
+        {
+            pThread = (ULONG_PTR) CreateCurrentThreadData();
+        }
+#endif
+        localThread = pThread;
+    }
+
+    return (CPalThread*)pThread;
+}
+#else // !__IOS__
+CPalThread *CorUnix::GetCurrentPalThread(bool force)
+{
+    CPalThread *pThread = reinterpret_cast<CPalThread*>(pthread_getspecific(thObjKey));
+
+#ifdef FEATURE_PAL_SXS
+    if (pThread == nullptr && force)
+    {
+        pThread = CreateCurrentThreadData();
+    }
+#endif
+
+    return pThread;
+}
+#endif
+
+CPalThread *CorUnix::InternalGetCurrentThread()
+{
+    return GetCurrentPalThread(true);
 }

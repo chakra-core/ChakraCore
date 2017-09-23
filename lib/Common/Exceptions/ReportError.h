@@ -23,9 +23,10 @@ enum ErrorReason
     Fatal_Debugger_AttachDetach_Failure = 15,
     Fatal_EntryExitRecordCorruption = 16,
     Fatal_UnexpectedExceptionHandling = 17,
-    Fatal_RpcFailure = 18, 
-    // Reserved = 19,
-    Fatal_TTDAbort = 20
+    Fatal_RpcFailure = 18,
+    Fatal_JsReentrancy_Error = 19,
+    Fatal_TTDAbort = 20,
+    Fatal_Failed_API_Result = 21,
 };
 
 extern "C" void ReportFatalException(
@@ -59,7 +60,7 @@ void MarkStack_OOM_fatal_error();
 void Binary_Inconsistency_fatal_error();
 void Version_Inconsistency_fatal_error();
 void EntryExitRecord_Corrupted_fatal_error();
-void UnexpectedExceptionHandling_fatal_error(EXCEPTION_POINTERS * originalException);
+void UnexpectedExceptionHandling_fatal_error();
 
 #ifdef LARGEHEAPBLOCK_ENCODING
 void LargeHeapBlock_Metadata_Corrupted(

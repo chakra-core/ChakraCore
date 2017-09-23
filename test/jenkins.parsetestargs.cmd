@@ -50,9 +50,20 @@ if not "%1"=="" (
         shift
         goto :ContinueArgParse
     )
+    
+    if "%1"=="-swb" (
+        :: todo: disallow -swb -disablejit combination
+        set _SpecialBuild=.SWB
+        goto :ContinueArgParse
+    )
 
     if "%1"=="-disablejit" (
-        set _NoJIT=.NoJIT
+        set _SpecialBuild=.NoJIT
+        REM fallthrough to default (also add this to %_ExtraTestArgs%)
+    )
+
+    if "%1"=="-lite" (
+        set _SpecialBuild=.Lite
         REM fallthrough to default (also add this to %_ExtraTestArgs%)
     )
 

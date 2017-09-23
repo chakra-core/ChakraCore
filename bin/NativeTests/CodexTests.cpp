@@ -84,7 +84,7 @@ namespace CodexTest
     {
         // Each of these test cases verifies the encoding 
         // of a single surrogate pair into a 6 byte CESU string
-        // Each surrogate-pair unit is encoded seperately into utf8
+        // Each surrogate-pair unit is encoded separately into utf8
         struct TestCase
         {
             char16     surrogatePair[2];
@@ -204,12 +204,80 @@ namespace CodexTest
     {
         const charcount_t charCount = 3;
         utf8char_t encodedBuffer[(charCount + 1) * 3]; // +1 since the buffer will be null terminated
-        char16* sourceBuffer = L"abc";
+        const char16* sourceBuffer = L"abc";
         size_t numEncodedBytes = utf8::EncodeTrueUtf8IntoAndNullTerminate(encodedBuffer, sourceBuffer, charCount);
         CHECK(numEncodedBytes == charCount);
         for (int i = 0; i < charCount; i++)
         {
-            CHECK(sourceBuffer[i] == (char16)encodedBuffer[i]);
+            CHECK(sourceBuffer[i] == (const char16)encodedBuffer[i]);
         }
+    }
+
+    template <typename TTestCase, typename TDecodeFunc>
+    void RunUtf8DecodeTestCase(const TTestCase &testCases, const TDecodeFunc func)
+    {
+        const int numTestCases = _countof(testCases);
+        const charcount_t charCount = _countof(testCases[0].result);
+        char16 decodedBuffer[charCount + 1]; // +1 in case a null-terminating func is passed in
+
+        for (int i = 0; i < numTestCases; i++)
+        {
+            bool chunkEndsInTruncatedSequence = false;
+            size_t decodedCount = func(decodedBuffer, testCases[i].utf8Encoding, testCases[i].utf8Encoding + testCases[i].bytesToDecode, utf8::DecodeOptions::doChunkedEncoding, &chunkEndsInTruncatedSequence);
+            CHECK(decodedCount == testCases[i].expectedDecodedChars);
+
+            for (size_t j = 0; j < decodedCount; j++)
+            {
+                CHECK(decodedBuffer[j] == testCases[i].result[j]);
+            }
+
+            CHECK(testCases[i].shouldEndInTruncation == chunkEndsInTruncatedSequence);
+        }
+    }
+
+    TEST_CASE("CodexTest_DecodeUnitsInto_ChunkEndsInTruncatedSequence", "[CodexTest]")
+    {
+        struct TestCase
+        {
+            int bytesToDecode;
+            size_t expectedDecodedChars;
+            bool shouldEndInTruncation;
+            char16 result[8];
+            utf8char_t utf8Encoding[8];
+        };
+
+        TestCase testCases[] = {
+            { 2, 1, false, { 0xc1 }, { 0xc3, 0x81 } }, // Valid 2-byte sequence
+            { 1, 0, true, { 0x0 }, { 0xc3, 0x81 } }, // Valid 2-byte sequence truncated at the end of the chunk
+            { 2, 2, false, { 0xfffd, 0x79 },{ 0xc3, 0x79 } }, // Invalid 2-byte sequence
+            { 1, 0, true, { 0x0 }, { 0xc3, 0x79 } }, // Invalid 2-byte sequence truncated at the end of the chunk
+            { 3, 1, false, { 0x3042 },{ 0xe3, 0x81, 0x82 } }, // Valid 3-byte sequence
+            { 1, 0, true, { 0x0 }, { 0xe3, 0x81, 0x82 } }, // Valid 3-byte sequence truncated at the end of the chunk
+            { 2, 0, true, { 0x0 }, { 0xe3, 0x81, 0x82 } }, // Valid 3-byte sequence truncated at the end of the chunk
+            { 3, 3, false, { 0xfffd, 0x79, 0xfffd }, { 0xe3, 0x79, 0x82 } }, // Invalid 3-byte sequence
+            { 1, 0, true, { 0x0 }, { 0xe3, 0x79, 0x82 } }, // Invalid 3-byte sequence truncated at the end of the chunk
+            { 2, 0, true, { 0x0 }, { 0xe3, 0x79, 0x82 } }, // Invalid 3-byte sequence truncated at the end of the chunk
+            { 3, 3, false, { 0xfffd, 0xfffd, 0x79 }, { 0xe3, 0x81, 0x79 } }, // Invalid 3-byte sequence
+            { 1, 0, true, { 0x0 }, { 0xe3, 0x81, 0x79 } }, // Invalid 3-byte sequence truncated at the end of the chunk
+            { 2, 0, true, { 0x0 }, { 0xe3, 0x81, 0x79 } }, // Invalid 3-byte sequence truncated at the end of the chunk
+            { 4, 2, false, { 0xd9c4, 0xdc83 }, { 0xf2, 0x81, 0x82, 0x83 } }, // Valid 4-byte sequence
+            { 1, 0, true, { 0x0 }, { 0xf2, 0x81, 0x82, 0x83 } }, // Valid 4-byte sequence truncated at the end of the chunk
+            { 2, 0, true, { 0x0 }, { 0xf2, 0x81, 0x82, 0x83 } }, // Valid 4-byte sequence truncated at the end of the chunk
+            { 3, 0, true, { 0x0 }, { 0xf2, 0x81, 0x82, 0x83 } }, // Valid 4-byte sequence truncated at the end of the chunk
+            { 4, 4, false, { 0xfffd, 0x79, 0xfffd, 0xfffd }, { 0xf2, 0x79, 0x82, 0x83 } }, // Invalid 4-byte sequence
+            { 1, 0, true, { 0x0 }, { 0xf2, 0x79, 0x82, 0x83 } }, // Invalid 4-byte sequence truncated at the end of the chunk
+            { 2, 0, true, { 0x0 }, { 0xf2, 0x79, 0x82, 0x83 } }, // Invalid 4-byte sequence truncated at the end of the chunk
+            { 3, 0, true, { 0x0 }, { 0xf2, 0x79, 0x82, 0x83 } }, // Invalid 4-byte sequence truncated at the end of the chunk
+            { 4, 4, false, { 0xfffd, 0xfffd, 0x79, 0xfffd }, { 0xf2, 0x81, 0x79, 0x83 } }, // Invalid 4-byte sequence
+            { 1, 0, true, { 0x0 }, { 0xf2, 0x81, 0x79, 0x83 } }, // Invalid 4-byte sequence truncated at the end of the chunk
+            { 2, 0, true, { 0x0 }, { 0xf2, 0x81, 0x79, 0x83 } }, // Invalid 4-byte sequence truncated at the end of the chunk
+            { 3, 0, true, { 0x0 }, { 0xf2, 0x81, 0x79, 0x83 } }, // Invalid 4-byte sequence truncated at the end of the chunk
+            { 4, 4, false, { 0xfffd, 0xfffd, 0xfffd, 0x79 }, { 0xf2, 0x81, 0x82, 0x79 } }, // Invalid 4-byte sequence
+            { 1, 0, true, { 0x0 }, { 0xf2, 0x81, 0x82, 0x79 } }, // Invalid 4-byte sequence truncated at the end of the chunk
+            { 2, 0, true, { 0x0 }, { 0xf2, 0x81, 0x82, 0x79 } }, // Invalid 4-byte sequence truncated at the end of the chunk
+            { 3, 0, true, { 0x0 }, { 0xf2, 0x81, 0x82, 0x79 } }, // Invalid 4-byte sequence truncated at the end of the chunk
+        };
+        
+        RunUtf8DecodeTestCase(testCases, utf8::DecodeUnitsIntoAndNullTerminateNoAdvance);
     }
 };

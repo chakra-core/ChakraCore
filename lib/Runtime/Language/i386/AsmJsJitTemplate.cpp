@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLanguagePch.h"
+#include "RuntimeMathPch.h"
 
 #if ENABLE_NATIVE_CODEGEN
 
@@ -515,23 +516,14 @@ namespace Js
     // Function memory allocation should be done the same way as
     // void InterpreterStackFrame::AlignMemoryForAsmJs()  (InterpreterStackFrame.cpp)
     // update any changes there
-    void AsmJsCommonEntryPoint(Js::ScriptFunction* func, void* savedEbpPtr)
+    void AsmJsCommonEntryPoint(Js::ScriptFunction* func, void* localSlot, void* args)
     {
-        int savedEbp = (int)savedEbpPtr;
         FunctionBody* body = func->GetFunctionBody();
         Js::FunctionEntryPointInfo * entryPointInfo = body->GetDefaultFunctionEntryPointInfo();
-        //CodeGenDone status is set by TJ
-        if ((entryPointInfo->IsNotScheduled() || entryPointInfo->IsCodeGenDone()) && !PHASE_OFF(BackEndPhase, body) && !PHASE_OFF(FullJitPhase, body))
+        const uint32 minTemplatizedJitRunCount = (uint32)CONFIG_FLAG(MinTemplatizedJitRunCount);
+        if ((entryPointInfo->IsNotScheduled() || entryPointInfo->IsCodeGenDone()) && (entryPointInfo->callsCount >= minTemplatizedJitRunCount || body->IsHotAsmJsLoop()))
         {
-            const uint32 minTemplatizedJitRunCount = (uint32)CONFIG_FLAG(MinTemplatizedJitRunCount);
-            if ((entryPointInfo->callsCount >= minTemplatizedJitRunCount || body->IsHotAsmJsLoop()))
-            {
-                if (PHASE_TRACE1(AsmjsEntryPointInfoPhase))
-                {
-                    Output::Print(_u("Scheduling %s For Full JIT at callcount:%d\n"), body->GetDisplayName(), entryPointInfo->callsCount);
-                }
-                GenerateFunction(body->GetScriptContext()->GetNativeCodeGenerator(), body, func);
-            }
+            WAsmJs::JitFunctionIfReady(func, 9999);
         }
         void* constTable = body->GetConstTable();
         constTable = (void*)(((Var*)constTable)+AsmJsFunctionMemory::RequiredVarConstants-1);
@@ -540,18 +532,18 @@ namespace Js
         const int intConstCount = asmInfo->GetIntConstCount();
         const int doubleConstCount = asmInfo->GetDoubleConstCount();
         const int floatConstCount = asmInfo->GetFloatConstCount();
-        const int simdConstCount = asmInfo->GetSimdConstCount();
 
         // Offset of doubles from (double*)m_localSlot
         const int intOffsets = asmInfo->GetIntByteOffset() / sizeof(int);
         const int doubleOffsets = asmInfo->GetDoubleByteOffset() / sizeof(double);
         const int floatOffset = asmInfo->GetFloatByteOffset() / sizeof(float);
-        const int simdByteOffset = asmInfo->GetSimdByteOffset(); // in bytes
 
-        // (2*sizeof(Var)) -- push ebp and ret address
-        //sizeof(ScriptFunction*) -- this is the argument passed to the TJ function
-        int argoffset = (2*sizeof(Var)) + sizeof(ScriptFunction*);
-        argoffset = argoffset +  savedEbp ;
+#ifdef ENABLE_SIMDJS
+        const int simdConstCount = asmInfo->GetSimdConstCount();
+        const int simdByteOffset = asmInfo->GetSimdByteOffset(); // in bytes
+#endif
+
+        int argoffset = (int)args;
         // initialize argument location
         int* intArg;
         double* doubleArg;
@@ -559,14 +551,13 @@ namespace Js
         AsmJsSIMDValue* simdArg;
 
         // setup stack memory
-        FrameDisplay* frame = func->GetEnvironment();
-        Var moduleEnv = frame->GetItem(0);
-        Var* arrayBufferVar = (Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
+        AsmJsScriptFunction* asmJsFunc = AsmJsScriptFunction::FromVar(func);
+        Var moduleEnv = asmJsFunc->GetModuleEnvironment();
+        JavascriptArrayBuffer* arrayBuffer = asmJsFunc->GetAsmJsArrayBuffer();
         int arraySize = 0;
         BYTE* arrayPtr = nullptr;
-        if (*arrayBufferVar && JavascriptArrayBuffer::Is(*arrayBufferVar))
+        if (JavascriptArrayBuffer::Is(arrayBuffer))
         {
-            JavascriptArrayBuffer* arrayBuffer = *(JavascriptArrayBuffer**)arrayBufferVar;
             arrayPtr = arrayBuffer->GetBuffer();
             arraySize = arrayBuffer->GetByteLength();
         }
@@ -574,8 +565,9 @@ namespace Js
         int* m_localIntSlots;
         double* m_localDoubleSlots;
         float* m_localFloatSlots;
+#ifdef ENABLE_SIMDJS
         AsmJsSIMDValue* m_localSimdSlots;
-
+#endif
 #if DBG_DUMP
         const bool tracingFunc = PHASE_TRACE( AsmjsFunctionEntryPhase, body );
         if( tracingFunc )
@@ -588,16 +580,8 @@ namespace Js
             ++AsmJsCallDepth;
         }
 #endif
-        // two args i.e. (ScriptFunction and savedEbp) + 2* (void*) i.e.(ebp + return address)
-        int beginSlotOffset = sizeof(ScriptFunction*) + sizeof(void*) + 2 * sizeof(void*);
-        __asm
         {
-            mov  eax, ebp
-            add  eax, beginSlotOffset
-            mov m_localSlots,eax
-        };
-
-        {
+            m_localSlots = (Var*)localSlot;
             const ArgSlot argCount = asmInfo->GetArgCount();
             m_localSlots[AsmJsFunctionMemory::ModuleEnvRegister] = moduleEnv;
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = (Var)arrayPtr;
@@ -613,19 +597,19 @@ namespace Js
 
             m_localDoubleSlots = ((double*)m_localSlots) + doubleOffsets;
             memcpy_s(m_localDoubleSlots, doubleConstCount*sizeof(double), constTable, doubleConstCount*sizeof(double));
-
+#ifdef ENABLE_SIMDJS
             if (func->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
             {
                 // Copy SIMD constants to TJ stack frame. No data alignment.
                 constTable = (void*)(((double*)constTable) + doubleConstCount);
                 m_localSimdSlots = (AsmJsSIMDValue*)((char*)m_localSlots + simdByteOffset);
                 memcpy_s(m_localSimdSlots, simdConstCount*sizeof(AsmJsSIMDValue), constTable, simdConstCount*sizeof(AsmJsSIMDValue));
+                simdArg = m_localSimdSlots + simdConstCount;
             }
-
+#endif
             intArg = m_localIntSlots + intConstCount;
             doubleArg = m_localDoubleSlots + doubleConstCount;
             floatArg = m_localFloatSlots + floatConstCount;
-            simdArg = m_localSimdSlots + simdConstCount;
 
             for(ArgSlot i = 0; i < argCount; i++ )
             {
@@ -1323,20 +1307,6 @@ namespace Js
             int ReloadArrayBuffer(TemplateContext context, BYTE*& buffer)
             {
                 int size = 0;
-                if (!context->GetFunctionBody()->GetAsmJsFunctionInfo()->IsHeapBufferConst())
-                {
-                    X86TemplateData* templateData = GetTemplateData(context);
-                    // mov buffer, [mod+bufferOffset]
-                    size += MOV::EncodeInstruction<int>(buffer, InstrParamsRegAddr(ArrayBufferReg, ModuleEnvReg, AsmJsModuleMemory::MemoryTableBeginOffset));
-                    // mov tmpReg, [buffer+lenOffset]
-                    RegNum reg = templateData->GetReg<int>(1 << RegEAX);
-                    templateData->InvalidateReg(reg);
-                    size += MOV::EncodeInstruction<int>(buffer, InstrParamsRegAddr(reg, ArrayBufferReg, ArrayBuffer::GetByteLengthOffset()));
-                    // mov [mod+offset], tmpReg
-                    size += EncodingHelpers::SetStackReg<int>(buffer, templateData, templateData->GetArraySizeOffset(), reg);
-                    // mov buffer, [buffer+buffOffset]
-                    size += MOV::EncodeInstruction<int>(buffer, InstrParamsRegAddr(ArrayBufferReg, ArrayBufferReg, ArrayBuffer::GetBufferOffset()));
-                }
                 return size;
             }
 
@@ -1507,6 +1477,16 @@ namespace Js
             int32 stackSize = asmInfo->GetTotalSizeinBytes();
             stackSize = ::Math::Align<int32>(stackSize, 8);
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            if (Js::Configuration::Global.flags.DebugBreak.Contains(funcBody->GetFunctionNumber()) ||
+                PHASE_ON(DebugBreakPhase, funcBody))
+            {
+                // int 3
+                *buffer++ = 0xCC;
+                size++;
+            }
+#endif
+
             //Prolog , save EBP and callee saved reg
             size += PUSH::EncodeInstruction<int>( buffer, InstrParamsReg( RegEBP ) );
             size += MOV::EncodeInstruction<int>( buffer, InstrParams2Reg( RegEBP, RegESP ) );
@@ -1565,10 +1545,17 @@ namespace Js
             int baseOffSet = stackSize + templateData->GetEBPOffsetCorrection();
             templateData->SetBaseOffset(baseOffSet);
 
-            // push EBP and push funcobj
+            // At this point EBP = [old ebp, return address, funcObj, args]
+
+            // AsmJsCommonEntryPoint(Js::ScriptFunction* func, void* localSlot, void* args);
             int funcOffSet = 2 * sizeof(Var);
+            int argsOffSet = 3 * sizeof(Var);
+
             //push args for CEP
-            size += PUSH::EncodeInstruction<int>(buffer, InstrParamsReg(RegEBP));
+            size += LEA::EncodeInstruction<int>(buffer, InstrParamsRegAddr(RegEAX, RegEBP, argsOffSet));
+            size += PUSH::EncodeInstruction<int>(buffer, InstrParamsReg(RegEAX));
+            size += LEA::EncodeInstruction<int>(buffer, InstrParamsRegAddr(RegEAX, RegEBP, templateData->GetModuleSlotOffset()));
+            size += PUSH::EncodeInstruction<int>(buffer, InstrParamsReg(RegEAX));
             size += PUSH::EncodeInstruction<int>(buffer, InstrParamsAddr(RegEBP, funcOffSet));
 
             // Call CEP
@@ -2281,80 +2268,6 @@ namespace Js
             return size;
         }
 
-        int Mul_UInt::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int leftOffset, int rightOffset )
-        {
-            X86TemplateData* templateData = GetTemplateData( context );
-            int size = 0;
-            targetOffset -= templateData->GetBaseOffSet();
-            leftOffset -= templateData->GetBaseOffSet();
-            rightOffset -= templateData->GetBaseOffSet();
-
-            RegNum reg1, reg2;
-            const int reg1Found = templateData->FindRegWithStackOffset<int>( reg1, rightOffset, 1<<RegEDX );
-            const int reg2Found = templateData->FindRegWithStackOffset<int>( reg2, leftOffset, 1<<RegEDX );
-
-            size += XOR::EncodeInstruction<int>( buffer, InstrParams2Reg(RegEDX,RegEDX) );
-            switch( reg1Found & ( reg2Found << 1 ) )
-            {
-            case 0: // none found
-                reg1 = RegEAX;
-                size += MOV::EncodeInstruction<int>( buffer, InstrParamsRegAddr( reg1, RegEBP, leftOffset ) );
-                templateData->SetStackInfo( reg1, leftOffset );
-                size += MUL::EncodeInstruction<int>( buffer, InstrParamsAddr(RegEBP, rightOffset) );
-                break;
-            case 1: // found 2
-                if( reg2 == RegEAX )
-                {
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsAddr(RegEBP, leftOffset) );
-                }
-                else
-                {
-                    size += MOV::EncodeInstruction<int>( buffer, InstrParamsRegAddr( RegEAX, RegEBP, leftOffset ) );
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsReg(reg2) );
-                }
-                break;
-            case 2: // found 1
-                if( reg1 == RegEAX )
-                {
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsAddr(RegEBP, rightOffset) );
-                }
-                else
-                {
-                    size += MOV::EncodeInstruction<int>( buffer, InstrParamsRegAddr( RegEAX, RegEBP, rightOffset ) );
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsReg(reg1) );
-                }
-                break;
-            case 3: // found both
-                if( reg1 == RegEAX )
-                {
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsReg(reg2) );
-                }
-                else if( reg2 == RegEAX )
-                {
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsReg(reg1) );
-                }
-                else
-                {
-                    size += MOV::EncodeInstruction<int>( buffer, InstrParams2Reg( RegEAX, reg1 ) );
-                    size += MUL::EncodeInstruction<int>( buffer, InstrParamsReg(reg2) );
-                }
-                break;
-            default:
-                __assume( false );
-            }
-
-            size += TEST::EncodeInstruction<int>( buffer, InstrParams2Reg( RegEDX, RegEDX ) );
-            JumpRelocation reloc;
-            EncodingHelpers::EncodeShortJump<JE>( buffer, reloc, &size );
-            size += XOR::EncodeInstruction<int>( buffer, InstrParams2Reg( RegEAX, RegEAX ) );
-            reloc.ApplyReloc<int8>();
-            templateData->InvalidateReg( RegEDX );
-
-            size += EncodingHelpers::SetStackReg<int>( buffer, templateData, targetOffset , RegEAX);
-
-            return size;
-        }
-
         int Div_UInt::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int leftOffset, int rightOffset )
         {
             X86TemplateData* templateData = GetTemplateData( context );
@@ -2684,7 +2597,7 @@ namespace Js
             size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsAddrReg( RegESP, 8, RegXMM0 ) );
             size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsRegAddr( RegXMM0, RegEBP, leftOffset ) );
             size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsAddrReg( RegESP, 0, RegXMM0 ) );
-            void* ptr = (double (*)(double,double)) AsmJsMath::Rem < double > ;
+            void* ptr = (double (*)(double,double)) AsmJsMath::RemChecked<double>;
             size += MOV::EncodeInstruction<int>( buffer, InstrParamsRegImm<int32>(RegEAX,(int)ptr) );
             size += CALL::EncodeInstruction<int>( buffer, InstrParamsReg(RegEAX) );
 
@@ -2786,6 +2699,7 @@ namespace Js
             return CompareDbOrFlt<JB, COMISD, double>(context, buffer, targetOffset, leftOffset, rightOffset);
         }
 
+        __declspec(align(8)) const double MaskConvUintDouble[] = { 0.0, 4294967296.0 };
 
         int UInt_To_Db::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int rightOffset )
         {
@@ -2806,7 +2720,6 @@ namespace Js
             size += SHR::EncodeInstruction<int32>( buffer, InstrParamsRegImm<int8>( regInt, 31 ) );
             templateData->InvalidateReg( regInt );
 
-            static __declspec(align(8)) const double MaskConvUintDouble[] = { 0.0, 4294967296.0 };
             size += ADDSD::EncodeInstruction<double>( buffer, InstrParamsRegAddr( regDouble, RegNOREG, regInt, 8, (int)MaskConvUintDouble ) );
 
             size += EncodingHelpers::SetStackReg<double>( buffer, templateData, targetOffset , regDouble);
@@ -2905,6 +2818,14 @@ namespace Js
             return size;
         }
 
+        __declspec(align(16)) const double MaskNegDouble[] = { -0.0, -0.0 };
+        const BYTE maskNegDoubleTemp[] = {
+            0x66, 0x0F, 0x57, 0x05,
+            (BYTE)(((int)(MaskNegDouble)) & 0xFF),
+            (BYTE)((((int)(MaskNegDouble)) >> 8) & 0xFF),
+            (BYTE)((((int)(MaskNegDouble)) >> 16) & 0xFF),
+            (BYTE)((((int)(MaskNegDouble)) >> 24) & 0xFF),
+        };
 
         int Neg_Db::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int rightOffset )
         {
@@ -2920,15 +2841,7 @@ namespace Js
                 size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsRegAddr( reg, RegEBP, rightOffset ) );
             }
 
-            static __declspec(align(16)) const double MaskNegDouble[] = { -0.0, -0.0 };
-            static const BYTE temp[] = {
-                0x66, 0x0F, 0x57, 0x05,
-                (BYTE)( ( (int)( MaskNegDouble ) ) & 0xFF ),
-                (BYTE)( ( ( (int)( MaskNegDouble ) ) >> 8 ) & 0xFF ),
-                (BYTE)( ( ( (int)( MaskNegDouble ) ) >> 16 ) & 0xFF ),
-                (BYTE)( ( ( (int)( MaskNegDouble ) ) >> 24 ) & 0xFF ),
-            };
-            size += ApplyCustomTemplate( buffer, temp, 8 );
+            size += ApplyCustomTemplate( buffer, maskNegDoubleTemp, 8 );
             //fix template for register
             buffer[-5] |= RegEncode[reg] << 3;
 
@@ -2936,6 +2849,14 @@ namespace Js
 
             return size;
         }
+
+        static const BYTE negFltTemp[] = {
+            0x0F, 0x57, 0x05,
+            (BYTE)(((int)(JavascriptNumber::MaskNegFloat)) & 0xFF),
+            (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 8) & 0xFF),
+            (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 16) & 0xFF),
+            (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 24) & 0xFF),
+        };
 
         int Neg_Flt::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffset, int rightOffset)
         {
@@ -2951,14 +2872,7 @@ namespace Js
                 size += MOVSS::EncodeInstruction<float>(buffer, InstrParamsRegAddr(reg, RegEBP, rightOffset));
             }
 
-            static const BYTE temp[] = {
-                0x0F, 0x57, 0x05,
-                (BYTE)(((int)(JavascriptNumber::MaskNegFloat)) & 0xFF),
-                (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 8) & 0xFF),
-                (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 16) & 0xFF),
-                (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 24) & 0xFF),
-            };
-            size += ApplyCustomTemplate(buffer, temp, 7);
+            size += ApplyCustomTemplate(buffer, negFltTemp, 7);
             //fix template for register
             buffer[-5] |= RegEncode[reg] << 3;
 
@@ -3372,6 +3286,24 @@ namespace Js
             templateData->InternalCallDone();
 
             size += EncodingHelpers::ReloadArrayBuffer(context, buffer);
+
+            switch (retType.which())
+            {
+            case AsmJsRetType::Signed:
+                size += EncodingHelpers::SetStackReg<int>(buffer, templateData, targetOffset, RegEAX);
+            case AsmJsRetType::Double:
+                size += MOVSD::EncodeInstruction<double>(buffer, InstrParamsAddrReg(RegEBP, targetOffset, RegXMM0));
+                templateData->OverwriteStack(targetOffset);
+                break;
+            case AsmJsRetType::Float:
+                size += MOVSS::EncodeInstruction<float>(buffer, InstrParamsAddrReg(RegEBP, targetOffset, RegXMM0));
+                templateData->OverwriteStack(targetOffset);
+                break;
+            case AsmJsRetType::Void:
+                break;
+            default:
+                Assert(UNREACHED);
+            }
             return size;
         }
         int AsmJsLoopBody::ApplyTemplate(TemplateContext context, BYTE*& buffer, int loopNumber)
@@ -3449,43 +3381,6 @@ namespace Js
 
             //$LabelCount:
             relocLabelCount.ApplyReloc<int8>();
-
-            return size;
-        }
-
-        int I_Conv_VTI::ApplyTemplate( TemplateContext context, BYTE*& buffer,  int targetOffset, int srcOffset )
-        {
-            X86TemplateData* templateData = GetTemplateData( context );
-            int size = 0;
-            targetOffset -= templateData->GetBaseOffSet();
-            srcOffset -= templateData->GetBaseOffSet();
-
-            size += EncodingHelpers::SetStackReg<int>( buffer, templateData, targetOffset , RegEAX);
-
-            return size;
-        }
-        int I_Conv_VTD::ApplyTemplate( TemplateContext context, BYTE*& buffer,  int targetOffset, int srcOffset )
-        {
-            X86TemplateData* templateData = GetTemplateData( context );
-            int size = 0;
-            targetOffset -= templateData->GetBaseOffSet();
-            srcOffset -= templateData->GetBaseOffSet();
-
-            size += MOVSD::EncodeInstruction<double>(buffer, InstrParamsAddrReg(RegEBP, targetOffset,RegXMM0));
-            templateData->OverwriteStack( targetOffset );
-
-            return size;
-        }
-
-        int I_Conv_VTF::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffset, int srcOffset)
-        {
-            X86TemplateData* templateData = GetTemplateData(context);
-            int size = 0;
-            targetOffset -= templateData->GetBaseOffSet();
-            srcOffset -= templateData->GetBaseOffSet();
-
-            size += MOVSS::EncodeInstruction<float>(buffer, InstrParamsAddrReg(RegEBP, targetOffset, RegXMM0));
-            templateData->OverwriteStack(targetOffset);
 
             return size;
         }
@@ -4779,23 +4674,6 @@ namespace Js
         int Simd128_I_ArgOut_D2::ApplyTemplate(TemplateContext context, BYTE*& buffer, int argIndex, int offset)
         {
             return Simd128_I_ArgOut_F4::ApplyTemplate(context, buffer, argIndex, offset);
-        }
-
-        int Simd128_I_Conv_VTF4::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffset, int srcOffset)
-        {
-            X86TemplateData* templateData = GetTemplateData(context);
-            targetOffset -= templateData->GetBaseOffSet();
-            srcOffset -= templateData->GetBaseOffSet();
-
-            return EncodingHelpers::SIMDSetStackReg(buffer, templateData, targetOffset, RegXMM0);
-        }
-        int Simd128_I_Conv_VTI4::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffset, int srcOffset)
-        {
-            return Simd128_I_Conv_VTF4::ApplyTemplate(context, buffer, targetOffset, srcOffset);
-        }
-        int Simd128_I_Conv_VTD2::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffset, int srcOffset)
-        {
-            return Simd128_I_Conv_VTF4::ApplyTemplate(context, buffer, targetOffset, srcOffset);
         }
     };
 }

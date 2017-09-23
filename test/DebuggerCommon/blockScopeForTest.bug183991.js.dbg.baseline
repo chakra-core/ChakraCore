@@ -1,31 +1,10 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "a": "Object {...}"
     },
     "locals": {
       "y": "string x",
-      "read": {
-        "#__proto__": "function function() {\n    [native code]\n}",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function function() {\n    [native code]\n}",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "a": {
         "#__proto__": "Object {...}",
         "x": "number 2",
@@ -36,31 +15,10 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "a": "Object {...}"
     },
     "locals": {
       "y": "string y",
-      "read": {
-        "#__proto__": "function function() {\n    [native code]\n}",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function function() {\n    [native code]\n}",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "a": {
         "#__proto__": "Object {...}",
         "x": "number 2",

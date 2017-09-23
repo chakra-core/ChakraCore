@@ -27,7 +27,7 @@ namespace Js
         JavascriptFunction* GetDateToLocaleDateString() { return dateToLocaleDateString; }
         JavascriptFunction* GetNumberToLocaleString() { return numberToLocaleString; }
         JavascriptFunction* GetStringLocaleCompare() { return stringLocaleCompare; }
-        static void __cdecl InitializeIntlNativeInterfaces(DynamicObject* intlNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static bool __cdecl InitializeIntlNativeInterfaces(DynamicObject* intlNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
 #if DBG
         void DumpByteCode() override;
@@ -95,23 +95,26 @@ namespace Js
         static Var EntryIntl_BuiltIn_CallInstanceFunction(RecyclableObject *function, CallInfo callInfo, ...);
 
     private:
-        JavascriptFunction* dateToLocaleString;
-        JavascriptFunction* dateToLocaleTimeString;
-        JavascriptFunction* dateToLocaleDateString;
-        JavascriptFunction* numberToLocaleString;
-        JavascriptFunction* stringLocaleCompare;
+        Field(JavascriptFunction*) dateToLocaleTimeString;
+        Field(JavascriptFunction*) dateToLocaleDateString;
+        Field(JavascriptFunction*) numberToLocaleString;
+        Field(JavascriptFunction*) stringLocaleCompare;
+        Field(JavascriptFunction*) dateToLocaleString;
 
-        DynamicObject* intlNativeInterfaces;
-        FunctionBody* intlByteCode;
+        Field(DynamicObject*) intlNativeInterfaces;
+        Field(FunctionBody*) intlByteCode;
 
-        bool wasInitialized;
+        Field(bool) wasInitialized;
         void EnsureIntlByteCode(_In_ ScriptContext * scriptContext);
         static void deletePrototypePropertyHelper(ScriptContext* scriptContext, DynamicObject* intlObject, Js::PropertyId objectPropertyId, Js::PropertyId getterFunctionId);
+
+#ifdef INTL_WINGLOB
         static WindowsGlobalizationAdapter* GetWindowsGlobalizationAdapter(_In_ ScriptContext*);
         static void prepareWithFractionIntegerDigits(ScriptContext* scriptContext, Windows::Globalization::NumberFormatting::INumberRounderOption* rounderOptions,
             Windows::Globalization::NumberFormatting::INumberFormatterOptions* formatterOptions, uint16 minFractionDigits, uint16 maxFractionDigits, uint16 minIntegerDigits);
         static void prepareWithSignificantDigits(ScriptContext* scriptContext, Windows::Globalization::NumberFormatting::INumberRounderOption* rounderOptions, Windows::Globalization::NumberFormatting::INumberFormatter *numberFormatter,
             Windows::Globalization::NumberFormatting::INumberFormatterOptions* formatterOptions, uint16 minSignificantDigits, uint16 maxSignificantDigits);
+#endif
 
         void cleanUpIntl(ScriptContext* scriptContext, DynamicObject* intlObject);
 

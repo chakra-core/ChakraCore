@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     JavascriptSIMDFloat64x2::JavascriptSIMDFloat64x2(SIMDValue *val, StaticType *type) : RecyclableObject(type), value(*val)
@@ -42,9 +42,9 @@ namespace Js
         return JavascriptSIMDFloat64x2::New(&result, requestContext);
     }
 
-    BOOL JavascriptSIMDFloat64x2::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptSIMDFloat64x2::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return GetPropertyBuiltIns(propertyId, value, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetPropertyBuiltIns(propertyId, value, requestContext));
     }
 
     RecyclableObject * JavascriptSIMDFloat64x2::CloneToScriptContext(ScriptContext* requestContext)
@@ -52,23 +52,23 @@ namespace Js
         return JavascriptSIMDFloat64x2::New(&value, requestContext);
     }
 
-    BOOL JavascriptSIMDFloat64x2::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptSIMDFloat64x2::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyRecord const* propertyRecord;
         this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, requestContext))
         {
-            return true;
+            return PropertyQueryFlags::Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return false;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
-    BOOL JavascriptSIMDFloat64x2::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptSIMDFloat64x2::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return JavascriptSIMDFloat64x2::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptSIMDFloat64x2::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
     bool JavascriptSIMDFloat64x2::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
@@ -121,3 +121,4 @@ namespace Js
         return JavascriptSIMDFloat64x2::New(&this->value, requestContext);
     }
 }
+#endif

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Runtime.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #ifdef ENABLE_MUTATION_BREAKPOINT
 // Not enabled in ChakraCore
 #include "activdbg_private.h"
@@ -24,4 +25,5 @@
 
 #ifdef ENABLE_MUTATION_BREAKPOINT
 #include "Debug/MutationBreakpoint.h"
+#endif
 #endif

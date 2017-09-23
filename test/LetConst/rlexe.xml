@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -139,6 +139,13 @@
     <default>
       <files>AssignmentToConst.js</files>
       <baseline>AssignmentToConst.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>AssignmentToConst.js</files>
+      <baseline>AssignmentToConst.baseline</baseline>
+      <compile-flags>-force:deferparse</compile-flags>
     </default>
   </test>
   <test>
@@ -377,6 +384,11 @@
     <default>
       <files>letlet.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>shadowedsetter.js</files>
     </default>
   </test>
 </regress-exe>

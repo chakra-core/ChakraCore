@@ -2,7 +2,6 @@ LIBRARY ChakraCore
 
 EXPORTS
 #include "JsrtCommonExports.inc"
-
 JsDiagEvaluate
 JsDiagGetBreakOnException
 JsDiagGetBreakpoints
@@ -27,12 +26,12 @@ JsTTDCreateContext
 JsTTDNotifyContextDestroy
 JsTTDStart
 JsTTDStop
-JsTTDEmitRecording
 
 JsTTDPauseTimeTravelBeforeRuntimeOperation
 JsTTDReStartTimeTravelAfterRuntimeOperation
 
 JsTTDNotifyYield
+JsTTDNotifyLongLivedReferenceAdd
 JsTTDHostExit
 JsTTDRawBufferCopySyncIndirect
 JsTTDRawBufferModifySyncIndirect
@@ -52,4 +51,7 @@ JsModuleEvaluation
 JsSetModuleHostInfo
 JsGetModuleHostInfo
 JsInitializeJITServer
-JsShutdownJITServer
+
+JsCreateSharedArrayBufferWithSharedContent
+JsGetSharedArrayBufferContent
+JsReleaseSharedArrayBufferContentHandle

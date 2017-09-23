@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
-
+#ifdef ENABLE_SIMDJS
 class JavascriptSIMDInt32x4;
 class JavascriptSIMDFloat32x4;
 
@@ -13,7 +13,7 @@ namespace Js
     class JavascriptSIMDFloat64x2 sealed : public RecyclableObject
     {
     private:
-        SIMDValue value;
+        Field(SIMDValue) value;
 
         DEFINE_VTABLE_CTOR(JavascriptSIMDFloat64x2, RecyclableObject);
 
@@ -38,9 +38,9 @@ namespace Js
 
         inline SIMDValue GetValue() { return value; }
 
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
         // Entry Points
@@ -66,3 +66,4 @@ namespace Js
 
     };
 }
+#endif

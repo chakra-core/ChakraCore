@@ -35,4 +35,6 @@ function testFunction()
             delete o.a;
         telemetryLog(`${i}`, true);
     }
+
+    emitTTDLog(ttdLogURI);
 }

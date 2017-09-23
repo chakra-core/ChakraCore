@@ -1,2 +1,2 @@
-ReferenceError: 'x' is undefined
+ReferenceError: 'x' is not defined
 SyntaxError: Expected ';'

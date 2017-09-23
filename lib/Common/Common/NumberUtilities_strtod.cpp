@@ -2262,9 +2262,9 @@ static int RoundTo(byte *pbSrc, byte *pbLim, int nDigits, __out_bcount(nDigits+1
 int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType ft, int nDigits, __out_ecount(cchDst) char16 *pchDst, int cchDst)
 {
     int n = 0; // the no. of chars in the result.
-    int wExp10;
+    int wExp10 = 0;
     byte rgb[kcbMaxRgb];
-    byte *pbLim;
+    byte *pbLim = nullptr;
 
     if (!Js::NumberUtilities::IsFinite(dbl))
     {
@@ -2528,7 +2528,7 @@ BOOL Js::NumberUtilities::FNonZeroFiniteDblToStr(double dbl, _In_range_(2, 36) i
     maxOutDigits = g_rgcchSig[radix];
     __analysis_assume(maxOutDigits > 0);
 
-    if (wExp2 < -60 || wExp2 > 60)
+    if (dbl < 1e-21 || dbl > 1e+21)
     {
         // Use exponential notation. Get the exponent and normalize.
         if (cbitDigit != 0)

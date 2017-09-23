@@ -5,10 +5,6 @@
 #pragma once
 #include "CommonDefines.h"
 
-#ifdef JD_PRIVATE
-class HeapBlockHelper;
-#endif
-
 namespace Memory
 {
 class HeapBlockMap32
@@ -25,7 +21,7 @@ public:
     static const uint PageMarkBitCount = PageSize / HeapConstants::ObjectGranularity;
     static const uint L2ChunkMarkBitCount = L2Count * PageMarkBitCount;
 
-#if defined(_M_X64_OR_ARM64) && !defined(JD_PRIVATE)
+#if defined(_M_X64_OR_ARM64)
     static const size_t TotalSize = 0x100000000;        // 4GB
 #endif
 
@@ -58,7 +54,7 @@ public:
     BVStatic<BitCount>* GetMarkBitVectorForPages(void * address);
 
     uint GetMarkCount(void* address, uint pageCount);
-    template <bool interlocked>
+    template <bool interlocked, bool doSpecialMark>
     void Mark(void * candidate, MarkContext * markContext);
     template <bool interlocked>
     void MarkInterior(void * candidate, MarkContext * markContext);
@@ -70,7 +66,7 @@ public:
     void ResetMarks();
 
 #if ENABLE_CONCURRENT_GC || ENABLE_PARTIAL_GC
-    void ResetWriteWatch(Recycler * recycler);
+    void ResetDirtyPages(Recycler * recycler);
     uint Rescan(Recycler * recycler, bool resetWriteWatch);
 #endif
     void MakeAllPagesReadOnly(Recycler* recycler);
@@ -91,10 +87,6 @@ public:
 private:
     friend class PageSegmentBase<VirtualAllocWrapper>;
 
-#ifdef JD_PRIVATE
-    friend class HeapBlockHelper;
-#endif
-
     template <class Fn>
     void ForEachSegment(Recycler * recycler, Fn func);
 
@@ -106,16 +98,24 @@ private:
     }
 
 public:
+
+    static const uint L2CountPageSizePow2Modulo = (L2Count * PageSize) - 1;
     static uint GetLevel2Id(void * address)
     {
-        return ::Math::PointerCastToIntegralTruncate<uint>(address) % (L2Count * PageSize) / PageSize;
+        Assert((::Math::PointerCastToIntegralTruncate<uint>(address) & L2CountPageSizePow2Modulo) / PageSize
+              ==    (::Math::PointerCastToIntegralTruncate<uint>(address) % (L2Count * PageSize)) / PageSize); // see if L2Count * PageSize is no longer Pow2
+        return (::Math::PointerCastToIntegralTruncate<uint>(address) & L2CountPageSizePow2Modulo) / PageSize;
     }
 
 private:
+#if ENABLE_CONCURRENT_GC
+#ifdef RECYCLER_WRITE_WATCH
     static UINT GetWriteWatchHelper(Recycler * recycler, DWORD writeWatchFlags, void* baseAddress, size_t regionSize,
         void** addresses, ULONG_PTR* count, LPDWORD granularity);
     static UINT GetWriteWatchHelperOnOOM(DWORD writeWatchFlags, _In_ void* baseAddress, size_t regionSize,
         _Out_writes_(*count) void** addresses, _Inout_ ULONG_PTR* count, LPDWORD granularity);
+#endif
+#endif
 
     static void * GetAddressFromIds(uint id1, uint id2)
     {
@@ -188,6 +188,8 @@ private:
     template <bool interlocked>
     bool MarkInternal(L2MapChunk * chunk, void * candidate);
 
+    void OnSpecialMark(L2MapChunk * chunk, void * candidate);
+
     template <bool interlocked, bool updateChunk>
     bool MarkInteriorInternal(MarkContext * markContext, L2MapChunk *& chunk, void * originalCandidate, void * realCandidate);
 
@@ -246,7 +248,7 @@ public:
     BVStatic<BitCount>* GetMarkBitVectorForPages(void * address);
 
     uint GetMarkCount(void* address, uint pageCount);
-    template <bool interlocked>
+    template <bool interlocked, bool doSpecialMark>
     void Mark(void * candidate, MarkContext * markContext);
     template <bool interlocked>
     void MarkInterior(void * candidate, MarkContext * markContext);
@@ -258,7 +260,7 @@ public:
     void ResetMarks();
 
 #if ENABLE_CONCURRENT_GC || ENABLE_PARTIAL_GC
-    void ResetWriteWatch(Recycler * recycler);
+    void ResetDirtyPages(Recycler * recycler);
     uint Rescan(Recycler * recycler, bool resetWriteWatch);
 #endif
     void MakeAllPagesReadOnly(Recycler* recycler);
@@ -277,9 +279,6 @@ public:
 
 private:
     friend class HeapBlockMap32;
-#ifdef JD_PRIVATE
-    friend class HeapBlockHelper;
-#endif
 
     struct Node
     {
@@ -319,12 +318,10 @@ public:
     void VerifyMarkCountForPages(void * address, uint pageCount);
 #endif
 
-#if !defined(JD_PRIVATE)
     static char * GetNodeStartAddress(void * address)
     {
         return (char *)(((size_t)address) & ~(HeapBlockMap32::TotalSize - 1));
     }
-#endif
 };
 
 typedef HeapBlockMap64 HeapBlockMap;

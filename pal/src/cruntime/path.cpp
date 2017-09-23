@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -89,7 +89,7 @@ _wsplitpath(
           dospath?dospath:W16_NULLSTRING, drive, dir, fname, ext);
 
     /* Do performance intensive error checking only in debug builds.
-    
+
     NOTE: This function must fail predictably across all platforms.
     Under Windows this function throw an access violation if NULL
     was passed in as the value for path.
@@ -101,7 +101,7 @@ _wsplitpath(
         ERROR( "path cannot be NULL!\n" );
     }
 #endif
-    
+
     if( lstrlenW( dospath ) >= _MAX_PATH )
     {
         ERROR("Path length is > _MAX_PATH (%d)!\n", _MAX_PATH);
@@ -159,7 +159,7 @@ _wsplitpath(
                   size+1, _MAX_DIR);
             ON_ERROR;
         }
-        
+
         memcpy(dir, path, size*sizeof(WCHAR));
         dir[size] = 0;
 
@@ -200,11 +200,11 @@ _wsplitpath(
         memcpy(ext, period_ptr, size*sizeof(WCHAR));
         ext[size-1] = 0;
     }
-    
+
     TRACE("Path components are '%S' '%S' '%S'\n", dir, fname, ext);
 
 done:
-    
+
     LOGEXIT("_wsplitpath returns.\n");
     PERF_EXIT(_wsplitpath);
 }
@@ -237,23 +237,23 @@ _splitpath(
           path?path:"NULL", drive, dir, fname, ext);
 
    /* Do performance intensive error checking only in debug builds.
-    
+
     NOTE: This function must fail predictably across all platforms.
     Under Windows this function throw an access violation if NULL
     was passed in as the value for path.
-    
+
     */
 #if _DEBUG
     if ( !path )
     {
         ERROR( "path cannot be NULL!\n" );
     }
-    
+
     if( strlen( path ) >= _MAX_PATH )
     {
         ERROR( "Path length is > _MAX_PATH (%d)!\n", _MAX_PATH);
     }
-#endif    
+#endif
 
     /* no drive letters in the PAL */
     if(drive)
@@ -269,7 +269,7 @@ _splitpath(
 
     /* Call up to Unicode version; pass NULL for parameters the caller doesn't
        care about */
-    _wsplitpath(w_path, NULL, dir?w_dir:NULL, 
+    _wsplitpath(w_path, NULL, dir?w_dir:NULL,
 	                fname?w_fname:NULL, ext?w_ext:NULL);
 
     /* Convert result back to MultiByte; report conversion errors but don't
@@ -317,21 +317,21 @@ Function:
 See MSDN doc.
 
 --*/
-void   
-__cdecl 
+void
+__cdecl
 _makepath(
-          char *path, 
-          const char *drive, 
-          const char *dir, 
-          const char *fname, 
+          char *path,
+          const char *drive,
+          const char *dir,
+          const char *fname,
           const char *ext)
 {
     UINT Length = 0;
 
     PERF_ENTRY(_makepath);
-    ENTRY( "_makepath (path=%p, drive=%p (%s), dir=%p (%s), fname=%p (%s), ext=%p (%s))\n", 
-           path, drive ? drive:"NULL", drive ? drive:"NULL", dir ? dir:"NULL", dir ? dir:"NULL", fname ? fname:"NULL", fname ? fname:"NULL", 
-           ext ? ext:"NULL", 
+    ENTRY( "_makepath (path=%p, drive=%p (%s), dir=%p (%s), fname=%p (%s), ext=%p (%s))\n",
+           path, drive ? drive:"NULL", drive ? drive:"NULL", dir ? dir:"NULL", dir ? dir:"NULL", fname ? fname:"NULL", fname ? fname:"NULL",
+           ext ? ext:"NULL",
            ext ? ext:"NULL");
 
     path[ 0 ] = '\0';
@@ -348,7 +348,7 @@ _makepath(
     {
         UINT DirLength = strlen( dir );
         Length += DirLength ;
-        
+
         if ( Length < _MAX_PATH )
         {
             strncat( path, dir, DirLength );
@@ -376,7 +376,7 @@ _makepath(
     {
         UINT fNameLength = strlen( fname );
         Length += fNameLength;
-        
+
         if ( Length < _MAX_PATH )
         {
             strncat( path, fname, fNameLength );
@@ -391,7 +391,7 @@ _makepath(
     {
         UINT ExtLength = strlen( ext );
         Length += ExtLength;
-        
+
         if ( ext[ 0 ] !=  '.' )
         {
             /* Add a '.' */
@@ -412,7 +412,7 @@ _makepath(
             /* Already has a '.' */
             if ( Length < _MAX_PATH )
             {
-                strncat( path, ext, ExtLength );    
+                strncat( path, ext, ExtLength );
             }
             else
             {
@@ -428,7 +428,7 @@ _makepath(
 
 Max_Path_Error:
 
-    ERROR( "path cannot be greater then _MAX_PATH\n" ); 
+    ERROR( "path cannot be greater then _MAX_PATH\n" );
     path[ 0 ] = '\0';
     LOGEXIT( "_makepath returning void \n" );
     PERF_EXIT(_makepath);
@@ -442,20 +442,20 @@ Function:
 See MSDN doc.
 
 --*/
-void   
-__cdecl 
+void
+__cdecl
 _wmakepath(
-          char16_t *path, 
-          const char16_t *drive, 
-          const char16_t *dir, 
-          const char16_t *fname, 
+          char16_t *path,
+          const char16_t *drive,
+          const char16_t *dir,
+          const char16_t *fname,
           const char16_t *ext)
 {
     CHAR Dir[ _MAX_DIR ]={0};
     CHAR FileName[ _MAX_FNAME ]={0};
     CHAR Ext[ _MAX_EXT ]={0};
     CHAR Path[ _MAX_PATH ]={0};
-    
+
     PERF_ENTRY(_wmakepath);
     ENTRY("_wmakepath (path=%p, drive=%p (%S), dir=%p (%S), fname=%p (%S), ext=%p (%S))\n",
           path, drive ? drive:W16_NULLSTRING, drive ? drive:W16_NULLSTRING, dir ? dir:W16_NULLSTRING, dir ? dir:W16_NULLSTRING,
@@ -470,7 +470,7 @@ _wmakepath(
               "support drive letters. drive is being ignored!.\n" );
     }
 
-    if ((dir != NULL) &&  WideCharToMultiByte( CP_ACP, 0, dir, -1, Dir, 
+    if ((dir != NULL) &&  WideCharToMultiByte( CP_ACP, 0, dir, -1, Dir,
                                                _MAX_DIR, NULL, NULL ) == 0 )
     {
         ASSERT( "An error occurred while converting dir to multibyte."
@@ -523,11 +523,11 @@ Function:
 See MSDN doc.
 
 --*/
-char *   
-__cdecl 
+char *
+__cdecl
 _fullpath(
-          char *absPath, 
-          const char *relPath, 
+          char *absPath,
+          const char *relPath,
           size_t maxLength)
 {
     char realpath_buf[PATH_MAX+1];
@@ -540,7 +540,7 @@ _fullpath(
     PERF_ENTRY(_fullpath);
     ENTRY("_fullpath (absPath=%p, relPath=%p (%s), maxLength = %lu)\n",
           absPath, relPath ? relPath:"NULL", relPath ? relPath:"NULL", maxLength);
-    
+
     if (strncpy_s(path_copy, sizeof(path_copy), relPath ? relPath : ".", cPathCopy) != SAFECRT_SUCCESS)
     {
         TRACE("_fullpath: strncpy_s failed!\n");
@@ -551,10 +551,8 @@ _fullpath(
 
     if(NULL == realpath(path_copy, realpath_buf))
     {
-        ERROR("realpath() failed; problem path is '%s'. errno is %d (%s)\n",
-                realpath_buf, errno, strerror(errno));
-        goto fullpathExit;
-    }   
+        // do nothing. filename may not be there yet..
+    }
 
     TRACE("real path is %s\n", realpath_buf);
     min_length = strlen(realpath_buf)+1; // +1 for the NULL terminator
@@ -586,12 +584,9 @@ _fullpath(
 
     strcpy_s(absPath, maxLength, realpath_buf);
     retval = absPath;
-    
+
 fullpathExit:
     LOGEXIT("_fullpath returns char * %p\n", retval);
     PERF_EXIT(_fullpath);
     return retval;
 }
-
-
-

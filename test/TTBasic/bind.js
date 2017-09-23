@@ -60,4 +60,6 @@ function testFunction()
     telemetryLog(`f Test ${f()}`, true);
 
     telemetryLog(`Proto Test ${add.prototype.isPrototypeOf(f2)}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

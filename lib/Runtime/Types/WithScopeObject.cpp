@@ -16,9 +16,9 @@ namespace Js
         return static_cast<WithScopeObject*>(aValue);
     }
 
-    BOOL WithScopeObject::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags WithScopeObject::HasPropertyQuery(PropertyId propertyId)
     {
-        return JavascriptOperators::HasPropertyUnscopables(wrappedObject, propertyId);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptOperators::HasPropertyUnscopables(wrappedObject, propertyId));
     }
 
     BOOL WithScopeObject::HasOwnProperty(PropertyId propertyId)
@@ -32,9 +32,9 @@ namespace Js
         return JavascriptOperators::SetPropertyUnscopable(wrappedObject, wrappedObject, propertyId, value, info, wrappedObject->GetScriptContext());
     }
 
-    BOOL WithScopeObject::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags WithScopeObject::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return JavascriptOperators::GetPropertyUnscopable(wrappedObject, wrappedObject, propertyId, value, requestContext, info);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptOperators::GetPropertyUnscopable(wrappedObject, wrappedObject, propertyId, value, requestContext, info));
     }
 
 
@@ -48,10 +48,10 @@ namespace Js
         return JavascriptOperators::GetterSetterUnscopable(wrappedObject, propertyId, setterValue, info, requestContext);
     }
 
-    BOOL WithScopeObject::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags WithScopeObject::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         RecyclableObject* copyState = wrappedObject;
-        return JavascriptOperators::PropertyReferenceWalkUnscopable(wrappedObject, &copyState, propertyId, value, info, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptOperators::PropertyReferenceWalkUnscopable(wrappedObject, &copyState, propertyId, value, info, requestContext));
     }
 
 } // namespace Js

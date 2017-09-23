@@ -173,9 +173,10 @@ protected:
     static void RestoreMultiUnits(size_t multiUnits) { }
     static size_t CharacterOffsetToUnitOffset(EncodedCharPtr start, EncodedCharPtr current, EncodedCharPtr last, charcount_t offset) { return offset; }
 
-    static void ConvertToUnicode(__out_ecount_full(cch) LPOLESTR pch, charcount_t cch, EncodedCharPtr pu)
+    static void ConvertToUnicode(__out_ecount_full(cch) LPOLESTR pch, charcount_t cch, EncodedCharPtr start, EncodedCharPtr end)
     {
-        js_memcpy_s(pch, cch * sizeof(OLECHAR), pu, cch * sizeof(OLECHAR));
+        Unused(end);
+        js_memcpy_s(pch, cch * sizeof(OLECHAR), start, cch * sizeof(OLECHAR));
     }
 
 public:
@@ -290,10 +291,10 @@ protected:
         return utf8::CharacterIndexToByteIndex(start, currentUnitOffset, offset, decodeOptions);
     }
 
-    void ConvertToUnicode(__out_ecount_full(cch) LPOLESTR pch, charcount_t cch, EncodedCharPtr pu)
+    void ConvertToUnicode(__out_ecount_full(cch) LPOLESTR pch, charcount_t cch, EncodedCharPtr start, EncodedCharPtr end)
     {
         m_decodeOptions = (utf8::DecodeOptions)(m_decodeOptions & ~utf8::doSecondSurrogatePair);
-        utf8::DecodeInto(pch, pu, cch, m_decodeOptions);
+        utf8::DecodeUnitsInto(pch, start, end, m_decodeOptions);
     }
 
 
@@ -303,7 +304,6 @@ public:
     bool IsFromExternalSource() { return (m_decodeOptions & utf8::doAllowThreeByteSurrogates) == 0; }
 };
 
-typedef UTF8EncodingPolicyBase<true> NullTerminatedUTF8EncodingPolicy;
 typedef UTF8EncodingPolicyBase<false> NotNullTerminatedUTF8EncodingPolicy;
 
 interface IScanner
@@ -318,7 +318,6 @@ enum ScanFlag
 {
     ScanFlagNone = 0,
     ScanFlagSuppressStrPid = 1,   // Force strings to always have pid
-    ScanFlagSuppressIdPid = 2     // Force identifiers to always have pid (currently unused)
 };
 
 typedef HRESULT (*CommentCallback)(void *data, OLECHAR firstChar, OLECHAR secondChar, bool containTypeDef, charcount_t min, charcount_t lim, bool adjacent, bool multiline, charcount_t startLine, charcount_t endLine);
@@ -326,17 +325,17 @@ typedef HRESULT (*CommentCallback)(void *data, OLECHAR firstChar, OLECHAR second
 // Restore point defined using a relative offset rather than a pointer.
 struct RestorePoint
 {
-    charcount_t m_ichMinTok;
-    charcount_t m_ichMinLine;
-    size_t m_cMinTokMultiUnits;
-    size_t m_cMinLineMultiUnits;
-    charcount_t m_line;
-    uint functionIdIncrement;
-    size_t lengthDecr;
-    BOOL m_fHadEol;
+    Field(charcount_t) m_ichMinTok;
+    Field(charcount_t) m_ichMinLine;
+    Field(size_t) m_cMinTokMultiUnits;
+    Field(size_t) m_cMinLineMultiUnits;
+    Field(charcount_t) m_line;
+    Field(uint) functionIdIncrement;
+    Field(size_t) lengthDecr;
+    Field(BOOL) m_fHadEol;
 
 #ifdef DEBUG
-    size_t m_cMultiUnits;
+    Field(size_t) m_cMultiUnits;
 #endif
 
     RestorePoint()
@@ -363,53 +362,60 @@ class Scanner : public IScanner, public EncodingPolicy
     typedef typename EncodingPolicy::EncodedCharPtr EncodedCharPtr;
 
 public:
-    static Scanner * Create(Parser* parser, HashTbl *phtbl, Token *ptoken, ErrHandler *perr, Js::ScriptContext *scriptContext)
+    static Scanner * Create(Parser* parser, HashTbl *phtbl, Token *ptoken, Js::ScriptContext *scriptContext)
     {
-        return HeapNewNoThrow(Scanner, parser, phtbl, ptoken, perr, scriptContext);
+        return HeapNewNoThrow(Scanner, parser, phtbl, ptoken, scriptContext);
     }
     void Release(void)
     {
-        delete this;
+        delete this;  // invokes overridden operator delete
     }
 
     tokens Scan();
     tokens ScanNoKeywords();
     tokens ScanForcingPid();
     void SetText(EncodedCharPtr psz, size_t offset, size_t length, charcount_t characterOffset, ULONG grfscr, ULONG lineNumber = 0);
+#if ENABLE_BACKGROUND_PARSING
     void PrepareForBackgroundParse(Js::ScriptContext *scriptContext);
-
+#endif
     enum ScanState
     {
-        ScanStateNormal = 0,
-        ScanStateMultiLineComment = 1,
-        ScanStateMultiLineSingleQuoteString = 2,
-        ScanStateMultiLineDoubleQuoteString = 3,
-        ScanStateStringTemplateMiddleOrEnd = 4,
+        ScanStateNormal = 0,       
+        ScanStateStringTemplateMiddleOrEnd = 1,
     };
 
     ScanState GetScanState() { return m_scanState; }
     void SetScanState(ScanState state) { m_scanState = state; }
 
-    bool SetYieldIsKeyword(bool fYieldIsKeyword)
+    bool SetYieldIsKeywordRegion(bool fYieldIsKeywordRegion)
     {
-        bool fPrevYieldIsKeyword = m_fYieldIsKeyword;
-        m_fYieldIsKeyword = fYieldIsKeyword;
-        return fPrevYieldIsKeyword;
+        bool fPrevYieldIsKeywordRegion = m_fYieldIsKeywordRegion;
+        m_fYieldIsKeywordRegion = fYieldIsKeywordRegion;
+        return fPrevYieldIsKeywordRegion;
+    }
+    bool YieldIsKeywordRegion()
+    {
+        return m_fYieldIsKeywordRegion;
     }
     bool YieldIsKeyword()
     {
-        return m_fYieldIsKeyword;
+        return YieldIsKeywordRegion() || this->IsStrictMode();
     }
 
-    bool SetAwaitIsKeyword(bool fAwaitIsKeyword)
+    bool SetAwaitIsKeywordRegion(bool fAwaitIsKeywordRegion)
     {
-        bool fPrevAwaitIsKeyword = m_fAwaitIsKeyword;
-        m_fAwaitIsKeyword = fAwaitIsKeyword;
-        return fPrevAwaitIsKeyword;
+        bool fPrevAwaitIsKeywordRegion = m_fAwaitIsKeywordRegion;
+        m_fAwaitIsKeywordRegion = fAwaitIsKeywordRegion;
+        return fPrevAwaitIsKeywordRegion;
     }
+    bool AwaitIsKeywordRegion()
+    {
+        return m_fAwaitIsKeywordRegion;
+    }
+
     bool AwaitIsKeyword()
     {
-        return m_fAwaitIsKeyword;
+        return AwaitIsKeywordRegion() || this->m_fIsModuleCode;
     }
 
     tokens TryRescanRegExp();
@@ -676,20 +682,18 @@ private:
     EncodedCharPtr m_pchPrevLine;      // beginning of previous line
     size_t m_cMinTokMultiUnits;        // number of multi-unit characters previous to m_pchMinTok
     size_t m_cMinLineMultiUnits;       // number of multi-unit characters previous to m_pchMinLine
-    ErrHandler *m_perr;                // error handler to use
     uint16 m_fStringTemplateDepth;     // we should treat } as string template middle starting character (depth instead of flag)
     BOOL m_fHadEol;
     BOOL m_fIsModuleCode : 1;
     BOOL m_doubleQuoteOnLastTkStrCon :1;
     bool m_OctOrLeadingZeroOnLastTKNumber :1;
-    BOOL m_fSyntaxColor : 1;            // whether we're just syntax coloring
     bool m_EscapeOnLastTkStrCon:1;
     BOOL m_fNextStringTemplateIsTagged:1;   // the next string template scanned has a tag (must create raw strings)
     BYTE m_DeferredParseFlags:2;            // suppressStrPid and suppressIdPid
     charcount_t m_ichCheck;             // character at which completion is to be computed.
     bool es6UnicodeMode;                // True if ES6Unicode Extensions are enabled.
-    bool m_fYieldIsKeyword;             // Whether to treat 'yield' as an identifier or keyword
-    bool m_fAwaitIsKeyword;             // Whether to treat 'await' as an identifier or keyword
+    bool m_fYieldIsKeywordRegion;       // Whether to treat 'yield' as an identifier or keyword
+    bool m_fAwaitIsKeywordRegion;       // Whether to treat 'await' as an identifier or keyword
 
     // Temporary buffer.
     TemporaryBuffer m_tempChBuf;
@@ -710,8 +714,13 @@ private:
     tokens m_tkPrevious;
     size_t m_iecpLimTokPrevious;
 
-    Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, ErrHandler *perr, Js::ScriptContext *scriptContext);
+    Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, Js::ScriptContext *scriptContext);
     ~Scanner(void);
+
+    void operator delete(void* p, size_t size)
+    {
+        HeapFree(p, size);
+    }
 
     template <bool forcePid>
     void SeekAndScan(const RestorePoint& restorePoint);
@@ -728,11 +737,9 @@ private:
 
     __declspec(noreturn) void Error(HRESULT hr)
     {
-        Assert(FAILED(hr));
         m_pchMinTok = m_currentCharacter;
         m_cMinTokMultiUnits = this->m_cMultiUnits;
-        AssertMem(m_perr);
-        m_perr->Throw(hr);
+        throw ParseExceptionObject(hr);
     }
 
     const EncodedCharPtr PchBase(void)
@@ -760,7 +767,6 @@ private:
     tokens SkipComment(EncodedCharPtr *pp, /* out */ bool* containTypeDef);
     tokens ScanRegExpConstant(ArenaAllocator* alloc);
     tokens ScanRegExpConstantNoAST(ArenaAllocator* alloc);
-    BOOL oFScanNumber(double *pdbl, bool& likelyInt);
     EncodedCharPtr FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last, bool fHadEscape, bool fHasMultiChar);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last);
@@ -818,5 +824,3 @@ private:
     }
 
 };
-
-typedef Scanner<NullTerminatedUTF8EncodingPolicy> UTF8Scanner;

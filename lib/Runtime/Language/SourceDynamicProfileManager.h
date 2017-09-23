@@ -21,12 +21,19 @@ namespace Js
     class SourceDynamicProfileManager
     {
     public:
-        SourceDynamicProfileManager(Recycler* allocator) : isNonCachableScript(false), cachedStartupFunctions(nullptr), recycler(allocator), dynamicProfileInfoMap(allocator), startupFunctions(nullptr), profileDataCache(nullptr) {}
+        SourceDynamicProfileManager(Recycler* allocator) : isNonCachableScript(false), cachedStartupFunctions(nullptr), recycler(allocator),
+#ifdef DYNAMIC_PROFILE_STORAGE
+            dynamicProfileInfoMapSaving(&HeapAllocator::Instance),
+#endif
+            dynamicProfileInfoMap(allocator), startupFunctions(nullptr), profileDataCache(nullptr) 
+        {
+        }
 
         ExecutionFlags IsFunctionExecuted(Js::LocalFunctionId functionId);
         DynamicProfileInfo * GetDynamicProfileInfo(FunctionBody * functionBody);
         Recycler* GetRecycler() { return recycler; }
         void UpdateDynamicProfileInfo(LocalFunctionId functionId, DynamicProfileInfo * dynamicProfileInfo);
+        void RemoveDynamicProfileInfo(LocalFunctionId functionId);
         void MarkAsExecuted(LocalFunctionId functionId);
         static SourceDynamicProfileManager * LoadFromDynamicProfileStorage(SourceContextInfo* info, ScriptContext* scriptContext, IActiveScriptDataCache* profileDataCache);
         void EnsureStartupFunctions(uint numberOfFunctions);
@@ -37,14 +44,22 @@ namespace Js
         bool LoadFromProfileCache(IActiveScriptDataCache* profileDataCache, LPCWSTR url);
         IActiveScriptDataCache* GetProfileCache() { return profileDataCache; }
         uint GetStartupFunctionsLength() { return (this->startupFunctions ? this->startupFunctions->Length() : 0); }
+#ifdef DYNAMIC_PROFILE_STORAGE
+        void ClearSavingData();
+        void CopySavingData();
+#endif
 
     private:
         friend class DynamicProfileInfo;
-        Recycler* recycler;
+        FieldNoBarrier(Recycler*) recycler;
 
 #ifdef DYNAMIC_PROFILE_STORAGE
+        typedef JsUtil::BaseDictionary<LocalFunctionId, DynamicProfileInfo *, HeapAllocator> DynamicProfileInfoMapSavingType;
+        FieldNoBarrier(DynamicProfileInfoMapSavingType) dynamicProfileInfoMapSaving;
+        
         void SaveDynamicProfileInfo(LocalFunctionId functionId, DynamicProfileInfo * dynamicProfileInfo);
         void SaveToDynamicProfileStorage(char16 const * url);
+        void AddItem(LocalFunctionId functionId, DynamicProfileInfo *info);
         template <typename T>
         static SourceDynamicProfileManager * Deserialize(T * reader, Recycler* allocator);
         template <typename T>
@@ -52,16 +67,16 @@ namespace Js
 #endif
         uint SaveToProfileCache();
         bool ShouldSaveToProfileCache(SourceContextInfo* info) const;
-        void Reset(uint numberOfFunctions);
 
     //------ Private data members -------- /
     private:
-        bool isNonCachableScript;                    // Indicates if this script can be cached in WININET
-        IActiveScriptDataCache* profileDataCache;    // WININET based cache to store profile info
-        BVFixed* startupFunctions;                   // Bit vector representing functions that are executed at startup
-        BVFixed const * cachedStartupFunctions;      // Bit vector representing functions executed at startup that are loaded from a persistent or in-memory cache
-                                                     // It's not modified but used as an input for deferred parsing/bytecodegen
-        JsUtil::BaseDictionary<LocalFunctionId, DynamicProfileInfo *, Recycler, PowerOf2SizePolicy> dynamicProfileInfoMap;
+        Field(bool) isNonCachableScript;                    // Indicates if this script can be cached in WININET
+        Field(IActiveScriptDataCache*) profileDataCache;    // WININET based cache to store profile info
+        Field(BVFixed*) startupFunctions;                   // Bit vector representing functions that are executed at startup
+        Field(BVFixed const *) cachedStartupFunctions;      // Bit vector representing functions executed at startup that are loaded from a persistent or in-memory cache
+                                                            // It's not modified but used as an input for deferred parsing/bytecodegen
+        typedef JsUtil::BaseDictionary<LocalFunctionId, DynamicProfileInfo *, Recycler, PowerOf2SizePolicy>  DynamicProfileInfoMapType;
+        Field(DynamicProfileInfoMapType) dynamicProfileInfoMap;
 
         static const uint MAX_FUNCTION_COUNT = 10000;  // Consider data corrupt if there are more functions than this
 

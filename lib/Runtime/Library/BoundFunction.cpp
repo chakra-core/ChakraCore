@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    FunctionInfo BoundFunction::functionInfo(&BoundFunction::NewInstance, FunctionInfo::DoNotProfile);
+    FunctionInfo BoundFunction::functionInfo(FORCE_NO_WRITE_BARRIER_TAG(BoundFunction::NewInstance), FunctionInfo::DoNotProfile);
 
     BoundFunction::BoundFunction(DynamicType * type)
         : JavascriptFunction(type, &functionInfo),
@@ -69,7 +69,7 @@ namespace Js
             // Store the args excluding function obj and "this" arg
             if (args.Info.Count > 2)
             {
-                boundArgs = RecyclerNewArray(scriptContext->GetRecycler(), Var, count);
+                boundArgs = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), count);
 
                 for (uint i=0; i<count; i++)
                 {
@@ -96,7 +96,7 @@ namespace Js
 
         if (argsCount != 0)
         {
-            this->boundArgs = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Var, argsCount);
+            this->boundArgs = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Field(Var), argsCount);
 
             for (uint i = 0; i < argsCount; i++)
             {
@@ -159,7 +159,7 @@ namespace Js
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgListTooLarge);
             }
 
-            Var *newValues = RecyclerNewArray(scriptContext->GetRecycler(), Var, boundFunction->count + argCount);
+            Field(Var) *newValues = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), boundFunction->count + argCount);
 
             uint index = 0;
 
@@ -189,6 +189,9 @@ namespace Js
                 // it is possible that the bound arguments are not marshalled yet.
                 for (uint i = 0; i < boundFunction->count; i++)
                 {
+                    //warning C6386: Buffer overrun while writing to 'newValues':  the writable size is 'boundFunction->count+argCount*8' bytes, but '40' bytes might be written.
+                    // there's throw with args.Info.Count == 0, so here won't hit buffer overrun, and __analyze_assume(argCount>0) does not work
+#pragma warning(suppress: 6386)
                     newValues[index++] = CrossSite::MarshalVar(scriptContext, boundFunction->boundArgs[i]);
                 }
             }
@@ -199,7 +202,7 @@ namespace Js
                 newValues[index++] = args[i];
             }
 
-            actualArgs = Arguments(args.Info, newValues);
+            actualArgs = Arguments(args.Info, (Var*)newValues);
             actualArgs.Info.Count = boundFunction->count + argCount;
         }
         else
@@ -300,28 +303,28 @@ namespace Js
         return false;
     }
 
-    BOOL BoundFunction::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags BoundFunction::HasPropertyQuery(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)
         {
-            return true;
+            return PropertyQueryFlags::Property_Found;
         }
 
-        return JavascriptFunction::HasProperty(propertyId);
+        return JavascriptFunction::HasPropertyQuery(propertyId);
     }
 
-    BOOL BoundFunction::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags BoundFunction::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         if (GetPropertyBuiltIns(originalInstance, propertyId, value, info, requestContext, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
-        return JavascriptFunction::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptFunction::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL BoundFunction::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags BoundFunction::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         PropertyRecord const* propertyRecord;
@@ -329,10 +332,10 @@ namespace Js
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
-        return JavascriptFunction::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
+        return JavascriptFunction::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
     }
 
     bool BoundFunction::GetPropertyBuiltIns(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext, BOOL* result)
@@ -359,9 +362,9 @@ namespace Js
         return false;
     }
 
-    BOOL BoundFunction::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags BoundFunction::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return BoundFunction::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return BoundFunction::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
     BOOL BoundFunction::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
@@ -511,8 +514,9 @@ namespace Js
     {
         TTD::NSSnapObjects::SnapBoundFunctionInfo* bfi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapBoundFunctionInfo>();
 
-        bfi->TargetFunction = TTD_CONVERT_VAR_TO_PTR_ID(this->targetFunction);
-        bfi->BoundThis = (this->boundThis != nullptr) ? TTD_CONVERT_VAR_TO_PTR_ID(this->boundThis) : TTD_INVALID_PTR_ID;
+        bfi->TargetFunction = TTD_CONVERT_VAR_TO_PTR_ID(static_cast<RecyclableObject*>(this->targetFunction));
+        bfi->BoundThis = (this->boundThis != nullptr) ?
+            TTD_CONVERT_VAR_TO_PTR_ID(static_cast<Var>(this->boundThis)) : TTD_INVALID_PTR_ID;
 
         bfi->ArgCount = this->count;
         bfi->ArgArray = nullptr;
@@ -558,7 +562,7 @@ namespace Js
 
         res->boundThis = bThis;
         res->count = ct;
-        res->boundArgs = args;
+        res->boundArgs = (Field(Var)*)args;
 
         res->targetFunction = function;
 

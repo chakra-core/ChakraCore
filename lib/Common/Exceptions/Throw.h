@@ -22,6 +22,9 @@ namespace Js {
         static void __declspec(noreturn) FatalInternalError();
         static void __declspec(noreturn) FatalInternalErrorEx(int scenario);
         static void __declspec(noreturn) FatalProjectionError();
+#if ENABLE_JS_REENTRANCY_CHECK
+        static void __declspec(noreturn) FatalJsReentrancyError();
+#endif
 
         static void CheckAndThrowOutOfMemory(BOOLEAN status);
 
@@ -110,10 +113,6 @@ namespace Js {
 
 #define END_TRANSLATE_KNOWN_EXCEPTION_TO_HRESULT(hr) \
     } \
-    catch (Js::InternalErrorException)   \
-    {   \
-        hr = E_FAIL;    \
-    }   \
     catch (Js::OutOfMemoryException) \
     {   \
         hr = E_OUTOFMEMORY; \
@@ -135,13 +134,42 @@ namespace Js {
         hr = JSERR_AsmJsCompileError; \
     }
 
+// This should be the inverse of END_TRANSLATE_KNOWN_EXCEPTION_TO_HRESULT, and catch all the same cases.
+#define THROW_KNOWN_HRESULT_EXCEPTIONS(hr, scriptContext) \
+    if (hr == E_OUTOFMEMORY) \
+    { \
+        JavascriptError::ThrowOutOfMemoryError(scriptContext); \
+    } \
+    else if (hr == VBSERR_OutOfStack) \
+    { \
+        JavascriptError::ThrowStackOverflowError(scriptContext); \
+    } \
+    else if (hr == E_NOTIMPL) \
+    { \
+        throw Js::NotImplementedException(); \
+    } \
+    else if (hr == E_ABORT) \
+    { \
+        throw Js::ScriptAbortException(); \
+    } \
+    else if (hr == JSERR_AsmJsCompileError) \
+    { \
+        throw Js::AsmJsParseException(); \
+    } \
+    else if (FAILED(hr)) \
+    { \
+        /* Intended to be the inverse of E_FAIL in CATCH_UNHANDLED_EXCEPTION */ \
+        AssertOrFailFast(false); \
+    }
+
 #define CATCH_UNHANDLED_EXCEPTION(hr) \
     catch (...) \
-    {   \
-        AssertMsg(FALSE, "invalid exception thrown and didn't get handled");    \
-        hr = E_FAIL;    \
+    { \
+        AssertOrFailFastMsg(FALSE, "invalid exception thrown and didn't get handled"); \
+        hr = E_FAIL; /* Suppress C4701 */ \
     } \
     }
+
 
 #define END_TRANSLATE_EXCEPTION_TO_HRESULT(hr) \
     END_TRANSLATE_KNOWN_EXCEPTION_TO_HRESULT(hr)\
@@ -180,6 +208,10 @@ namespace Js {
         {       \
             hr = GetRuntimeErrorFunc(Js::RecyclableObject::FromVar(errorObject), nullptr);   \
         }   \
+        else if (errorObject != nullptr) \
+        {  \
+            hr = JSERR_UncaughtException; \
+        }  \
         else \
         {  \
             AssertMsg(errorObject == nullptr, "errorObject should be NULL");  \

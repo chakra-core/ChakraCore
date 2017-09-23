@@ -97,7 +97,6 @@ public:
         m_ptr = m_origPtr;
     }
 
-
     bool                isLabel()           const { return isAlignedLabel() || m_type == RelocTypeLabel; }
     bool                isAlignedLabel()    const { return m_type == RelocTypeAlignedLabel; }
     bool                isLongBr()          const { return m_type == RelocTypeBranch && m_shortBrLabel == NULL; }
@@ -217,6 +216,7 @@ public:
     static bool     SetsConditionCode(IR::Instr *instr);
     static bool     UsesConditionCode(IR::Instr *instr);
     static bool     IsOPEQ(IR::Instr *instr);
+    static bool     IsSHIFT(IR::Instr *instr);
     RelocList*      GetRelocList() const { return m_relocList; }
     int             AppendRelocEntry(RelocType type, void *ptr, IR::LabelInstr * labelInstr = nullptr, const void * fnAddress = nullptr);
     int             FixRelocListEntry(uint32 index, int32 totalBytesSaved, BYTE *buffStart, BYTE* buffEnd);

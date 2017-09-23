@@ -291,6 +291,18 @@ test19(1, 2);
 test19(3, 4);
 verify([4, 8], "TEST 19");
 
+function test20(v16) {
+  while ({}.prop0) {
+    var v17 = 0;
+    function test20_inner() {
+      v17;
+    }
+    arguments;
+  }
+}
+test20();
+test20();
+
 if(hasAllPassed)
 {
     print("PASSED");

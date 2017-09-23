@@ -6,13 +6,14 @@
 #include "RuntimeLibraryPch.h"
 
 #ifdef ENABLE_WASM
+#include "WasmLimits.h"
 
 namespace Js
 {
 
 WebAssemblyTable::WebAssemblyTable(Var * values, uint32 currentLength, uint32 initialLength, uint32 maxLength, DynamicType * type) :
     DynamicObject(type),
-    m_values(values),
+    m_values((Field(Var)*)values),
     m_currentLength(currentLength),
     m_initialLength(initialLength),
     m_maxLength(maxLength)
@@ -50,28 +51,28 @@ WebAssemblyTable::NewInstance(RecyclableObject* function, CallInfo callInfo, ...
 
     if (!(callInfo.Flags & CallFlags_New) || (newTarget && JavascriptOperators::IsUndefinedObject(newTarget)))
     {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew);
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew, _u("WebAssembly.Table"));
     }
 
     if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
     {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("tableDescriptor"));
     }
-    DynamicObject * memoryDescriptor = JavascriptObject::FromVar(args[1]);
+    DynamicObject * tableDescriptor = JavascriptObject::FromVar(args[1]);
 
-    Var elementVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::element, scriptContext);
+    Var elementVar = JavascriptOperators::OP_GetProperty(tableDescriptor, PropertyIds::element, scriptContext);
     if (!JavascriptOperators::StrictEqualString(elementVar, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("anyfunc"))))
     {
-        JavascriptError::ThrowTypeError(scriptContext, WASMERR_ExpectedAnyFunc);
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_ExpectedAnyFunc, _u("tableDescriptor.element"));
     }
 
-    Var initVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::initial, scriptContext);
+    Var initVar = JavascriptOperators::OP_GetProperty(tableDescriptor, PropertyIds::initial, scriptContext);
     uint32 initial = WebAssembly::ToNonWrappingUint32(initVar, scriptContext);
 
-    uint32 maximum = UINT_MAX;
-    if (JavascriptOperators::OP_HasProperty(memoryDescriptor, PropertyIds::maximum, scriptContext))
+    uint32 maximum = Wasm::Limits::GetMaxTableSize();
+    if (JavascriptOperators::OP_HasProperty(tableDescriptor, PropertyIds::maximum, scriptContext))
     {
-        Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::maximum, scriptContext);
+        Var maxVar = JavascriptOperators::OP_GetProperty(tableDescriptor, PropertyIds::maximum, scriptContext);
         maximum = WebAssembly::ToNonWrappingUint32(maxVar, scriptContext);
     }
     return Create(initial, maximum, scriptContext);
@@ -110,27 +111,26 @@ WebAssemblyTable::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedTableObject);
     }
     WebAssemblyTable * table = WebAssemblyTable::FromVar(args[0]);
+    uint32 oldLength = table->m_currentLength;
 
-    Var deltaVar = scriptContext->GetLibrary()->GetUndefined();
-    if (args.Info.Count >= 2)
-    {
-        deltaVar = args[1];
-    }
+    Var deltaVar = args.Info.Count >= 2 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
     uint32 delta = WebAssembly::ToNonWrappingUint32(deltaVar, scriptContext);
-    if ((uint64)table->m_currentLength + delta > (uint64)table->m_maxLength)
+    if (delta > 0)
     {
-        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
+        uint32 newLength = 0;
+        if (UInt32Math::Add(table->m_currentLength, delta, &newLength) || newLength > table->m_maxLength)
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
+        }
+
+        Field(Var) * newValues = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), newLength);
+        CopyArray(newValues, newLength, table->m_values, table->m_currentLength);
+
+        table->m_values = newValues;
+        table->m_currentLength = newLength;
     }
-    CompileAssert(sizeof(m_maxLength) == sizeof(uint32));
 
-    uint32 newLength = table->m_currentLength + delta;
-    Var * newValues = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, newLength);
-    memcpy_s(newValues, newLength, table->m_values, table->m_currentLength);
-
-    table->m_values = newValues;
-    table->m_currentLength = newLength;
-
-    return scriptContext->GetLibrary()->GetUndefined();
+    return JavascriptNumber::ToVar(oldLength, scriptContext);
 }
 
 Var
@@ -155,7 +155,7 @@ WebAssemblyTable::EntryGet(RecyclableObject* function, CallInfo callInfo, ...)
         indexVar = args[1];
     }
     uint32 index = WebAssembly::ToNonWrappingUint32(indexVar, scriptContext);
-    if (index > table->m_currentLength)
+    if (index >= table->m_currentLength)
     {
         JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
@@ -194,13 +194,13 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
     {
         value = nullptr;
     }
-    else if (!AsmJsScriptFunction::IsWasmScriptFunction(args[2]))
+    else if (!WasmScriptFunction::Is(args[2]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedWebAssemblyFunc);
     }
 
     uint32 index = WebAssembly::ToNonWrappingUint32(indexVar, scriptContext);
-    if (index > table->m_currentLength)
+    if (index >= table->m_currentLength)
     {
         JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
@@ -213,19 +213,23 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
 WebAssemblyTable *
 WebAssemblyTable::Create(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
-    Var * values = nullptr;
+    if (initial > maximum || initial > Wasm::Limits::GetMaxTableSize() || maximum > Wasm::Limits::GetMaxTableSize())
+    {
+        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
+    }
+    Field(Var) * values = nullptr;
     if (initial > 0)
     {
-        values = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, initial);
+        values = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), initial);
     }
-    return RecyclerNew(scriptContext->GetRecycler(), WebAssemblyTable, values, initial, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyTableType());
+    return RecyclerNew(scriptContext->GetRecycler(), WebAssemblyTable, (Var*)values, initial, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyTableType());
 }
 
 void
 WebAssemblyTable::DirectSetValue(uint index, Var val)
 {
     Assert(index < m_currentLength);
-    Assert(!val || AsmJsScriptFunction::Is(val));
+    Assert(!val || WasmScriptFunction::Is(val));
     m_values[index] = val;
 }
 
@@ -234,14 +238,8 @@ WebAssemblyTable::DirectGetValue(uint index) const
 {
     Assert(index < m_currentLength);
     Var val = m_values[index];
-    Assert(!val || AsmJsScriptFunction::Is(val));
+    Assert(!val || WasmScriptFunction::Is(val));
     return val;
-}
-
-Var *
-WebAssemblyTable::GetValues() const
-{
-    return m_values;
 }
 
 uint32

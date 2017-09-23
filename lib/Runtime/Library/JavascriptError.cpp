@@ -146,6 +146,7 @@ namespace Js
     NEW_ERROR(URIError);
     NEW_ERROR(WebAssemblyCompileError);
     NEW_ERROR(WebAssemblyRuntimeError);
+    NEW_ERROR(WebAssemblyLinkError);
 
 #undef NEW_ERROR
 
@@ -301,6 +302,7 @@ namespace Js
     THROW_ERROR_IMPL(ThrowURIError, CreateURIError, GetURIErrorType, kjstURIError)
     THROW_ERROR_IMPL(ThrowWebAssemblyCompileError, CreateWebAssemblyCompileError, GetWebAssemblyCompileErrorType, kjstWebAssemblyCompileError)
     THROW_ERROR_IMPL(ThrowWebAssemblyRuntimeError, CreateWebAssemblyRuntimeError, GetWebAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError)
+    THROW_ERROR_IMPL(ThrowWebAssemblyLinkError, CreateWebAssemblyLinkError, GetWebAssemblyLinkErrorType, kjstWebAssemblyLinkError)
 #undef THROW_ERROR_IMPL
 
     void __declspec(noreturn) JavascriptError::ThrowUnreachable(ScriptContext* scriptContext) { ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_Unreachable); }
@@ -320,6 +322,12 @@ namespace Js
           return CreateReferenceError(scriptContext);
         case kjstURIError:
           return CreateURIError(scriptContext);
+        case kjstWebAssemblyCompileError:
+          return CreateWebAssemblyCompileError(scriptContext);
+        case kjstWebAssemblyRuntimeError:
+          return CreateWebAssemblyRuntimeError(scriptContext);
+        case kjstWebAssemblyLinkError:
+            return CreateWebAssemblyLinkError(scriptContext);
         default:
             AssertMsg(FALSE, "Invalid error type");
             __assume(false);
@@ -367,7 +375,9 @@ namespace Js
 
         if (FACILITY_CONTROL == HRESULT_FACILITY(hr) || FACILITY_JSCRIPT == HRESULT_FACILITY(hr))
         {
+#if !(defined(_M_ARM) && defined(__clang__))
             if (argList != nullptr)
+#endif
             {
                 HRESULT hrAdjusted = GetAdjustedResourceStringHr(hr, /* isFormatString */ true);
 
@@ -776,6 +786,12 @@ namespace Js
         case kjstURIError:
             jsNewError = targetJavascriptLibrary->CreateURIError();
             break;
+        case kjstWebAssemblyCompileError:
+            jsNewError = targetJavascriptLibrary->CreateWebAssemblyCompileError();
+        case kjstWebAssemblyRuntimeError:
+            jsNewError = targetJavascriptLibrary->CreateWebAssemblyRuntimeError();
+        case kjstWebAssemblyLinkError:
+            jsNewError = targetJavascriptLibrary->CreateWebAssemblyLinkError();
 
         case kjstCustomError:
         default:
@@ -806,11 +822,10 @@ namespace Js
         }
     }
 
-    JavascriptError* JavascriptError::CreateFromCompileScriptException(ScriptContext* scriptContext, CompileScriptException* cse)
+    JavascriptError* JavascriptError::CreateFromCompileScriptException(ScriptContext* scriptContext, CompileScriptException* cse, const WCHAR * sourceUrl)
     {
         HRESULT hr = cse->ei.scode;
         Js::JavascriptError * error = Js::JavascriptError::MapParseError(scriptContext, hr);
-        const Js::PropertyRecord *record;
         Var value;
 
         if (cse->ei.bstrDescription)
@@ -822,15 +837,13 @@ namespace Js
         if (cse->hasLineNumberInfo)
         {
             value = JavascriptNumber::New(cse->line, scriptContext);
-            scriptContext->GetOrAddPropertyRecord(_u("line"), &record);
-            JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::line, value, scriptContext);
         }
 
         if (cse->hasLineNumberInfo)
         {
             value = JavascriptNumber::New(cse->ichMin - cse->ichMinLine, scriptContext);
-            scriptContext->GetOrAddPropertyRecord(_u("column"), &record);
-            JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::column, value, scriptContext);
         }
 
         if (cse->hasLineNumberInfo)
@@ -844,6 +857,13 @@ namespace Js
             value = JavascriptString::NewCopySz(cse->bstrLine, scriptContext);
             JavascriptOperators::OP_SetProperty(error, PropertyIds::source, value, scriptContext);
         }
+
+        if (sourceUrl != nullptr)
+        {
+            value = JavascriptString::NewCopySz(sourceUrl, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::url, value, scriptContext);
+        }
+
         return error;
     }
 

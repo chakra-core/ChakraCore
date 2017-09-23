@@ -8,7 +8,9 @@ include ksamd64.inc
 
 ifdef _CONTROL_FLOW_GUARD
     extrn __guard_check_icall_fptr:QWORD
+    extrn __guard_dispatch_icall_fptr:QWORD
 endif
+extrn __chkstk: PROC
 
 ifdef _ENABLE_DYNAMIC_THUNKS
 
@@ -307,9 +309,9 @@ endif
 ;;============================================================================================================
 
 extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
-extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@_N@Z : PROC
-; extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNM@Z : PROC
-extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNMT__m128@@@Z : PROC
+extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z : PROC
+; extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@_JNMT__m128@@@Z : PROC
+extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@_JNMT__m128@@@Z : PROC
 
 extrn ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z : PROC
 
@@ -345,22 +347,22 @@ align 16
         mov rdi, rdx ; save orig stack pointer, so that we can add it back later
         add rdx, 68h ; account for the changes we have already made to rsp
 
+        ; Check if we need to commit more stack
+        cmp rax, 2000h ; x64 has 2 guard pages
+        jl stack_alloc
+        call __chkstk
+stack_alloc:
         sub rsp, rax ; allocate additional stack space for args
+
         ; UnboxAsmJsArguments(func, origArgsLoc, argDst, callInfo)
         mov rcx, rsi
         mov r8, rsp
 
         sub rsp, 20h ; so stack space for unboxing function isn't same as where it is unboxing into. allocate args spill space for unboxing function.
         ; unboxing function also does stack probe
-        call ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@_N@Z
+        call ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z
         ; rax = target function address
 
-ifdef _CONTROL_FLOW_GUARD
-        mov     rcx, rax
-        ; it is guaranteed that icall check will preserve rcx
-        call    [__guard_check_icall_fptr]
-        mov     rax, rcx ; restore entry point to rax
-endif
         add rsp, 20h
 
         ; move first 4 arguments into registers.
@@ -418,12 +420,15 @@ endif
         pop rsi
         pop rdi
 
+ifdef _CONTROL_FLOW_GUARD
+        call    [__guard_dispatch_icall_fptr]
+else
         ; call entry point
         call rax
-
+endif
         ; Var BoxAsmJsReturnValue(ScriptFunction* func, int intRetVal, double doubleRetVal, float floatRetVal)
         mov rcx, rsi
-        mov edx, eax
+        mov rdx, rax
         movsd xmm2, xmm0
         movss xmm3, xmm0
 
@@ -433,7 +438,7 @@ endif
         movups [rsp + 30h], xmm0
         lea rsi, [rsp + 30h]
         mov qword ptr [rsp + 20h], rsi
-        call ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNMT__m128@@@Z
+        call ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@_JNMT__m128@@@Z
 
         mov rsp, rdi ; restore stack pointer
     Epilogue:
@@ -452,7 +457,7 @@ endif
 ;;============================================================================================================
 
 ;;  JavascriptMethod WasmLibrary::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
-extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z : PROC
+extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z : PROC
 
 ;; Var WasmLibrary::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
 align 16
@@ -470,16 +475,14 @@ align 16
         .endprolog
 
         sub rsp, 20h
-        lea rcx, [rsp + 30h]
         mov rdx, 0
-        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z
+        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z
 
 ifdef _CONTROL_FLOW_GUARD
         mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
         call [__guard_check_icall_fptr]         ; verify that the call target is valid
         mov rax, rcx                            ;restore call target
 endif
-        add rsp, 20h
 
         lea rsp, [rbp]
         pop rbp
@@ -500,7 +503,7 @@ endif
 ;;============================================================================================================
 
 ;;  JavascriptMethod WasmLibrary::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
-extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z : PROC
+extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z : PROC
 
 ;; Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
 align 16
@@ -523,22 +526,18 @@ align 16
         movaps xmmword ptr [rsp + 30h], xmm1
         movaps xmmword ptr [rsp + 40h], xmm2
         movaps xmmword ptr [rsp + 50h], xmm3
-
-        lea rcx, [rsp + 70h]
         mov rdx, 1
-        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z
+        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z
 
 ifdef _CONTROL_FLOW_GUARD
         mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
         call [__guard_check_icall_fptr]         ; verify that the call target is valid
         mov rax, rcx                            ;restore call target
 endif
-
         ; restore potential floating point arguments from stack
         movaps xmm1, xmmword ptr [rsp + 30h]
         movaps xmm2, xmmword ptr [rsp + 40h]
         movaps xmm3, xmmword ptr [rsp + 50h]
-        add rsp, 60h
 
         lea rsp, [rbp]
         pop rbp

@@ -8,7 +8,7 @@
 
 void TTDAbort_fatal_error(const char* msg)
 {
-    printf("TTD assert failed -- existing with msg:\n%s\n", msg);
+    printf("TTD assert failed: %s\n", msg);
 
     int scenario = 101;
     ReportFatalException(NULL, E_UNEXPECTED, Fatal_TTDAbort, scenario);
@@ -66,14 +66,14 @@ namespace TTD
 
     TTDMode TTModeStack::Peek() const
     {
-        TTDAssert(this->m_stackTop > 0, "Undeflow in stack pop.");
+        TTDAssert(this->m_stackTop > 0, "Underflow in stack pop.");
 
         return this->m_stackEntries[this->m_stackTop - 1];
     }
 
     void TTModeStack::Pop()
     {
-        TTDAssert(this->m_stackTop > 0, "Undeflow in stack pop.");
+        TTDAssert(this->m_stackTop > 0, "Underflow in stack pop.");
 
         this->m_stackTop--;
     }
@@ -310,33 +310,6 @@ namespace TTD
         return true;
     }
 #endif
-
-    TTUriString::TTUriString()
-        : UriByteLength(0), UriBytes(nullptr)
-    {
-        ;
-    }
-
-    TTUriString::~TTUriString()
-    {
-        if(this->UriBytes != nullptr)
-        {
-            CoTaskMemFree(this->UriBytes);
-            this->UriBytes = nullptr;
-        }
-    }
-
-    void TTUriString::SetUriValue(size_t byteLength, const byte* data)
-    {
-        TTDAssert(this->UriBytes == nullptr, "Should not set this if it is already set!!!");
-        TTDAssert(data != nullptr, "This shouldn't happen");
-
-        this->UriByteLength = byteLength;
-        this->UriBytes = (byte*)CoTaskMemAlloc(byteLength);
-        TTDAssert(this->UriBytes != nullptr, "Allocation failed!");
-
-        js_memcpy_s(this->UriBytes, this->UriByteLength, data, byteLength);
-    }
 
     //////////////////
 

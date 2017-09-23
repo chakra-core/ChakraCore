@@ -1782,6 +1782,68 @@ var tests = [
             assert.areEqual(gf, callergf, "Generator function returned through the caller property should be the same as the original generator function");
             assert.areEqual(100, callergf(true, 10).next().value, "Generator returned through the caller property should behave the same as the original generator function");
         }
+    },
+    {
+        name: "generator function with default parameters",
+        body: function () {
+            var yGf1 = 1;
+            function *gf1(x = yGf1 = 100) {
+                assert.areEqual(100, x, "Default parameter value is updated insided the body");
+            }
+            gf1();
+            assert.areEqual(100, yGf1, "Default parameter expression should be evaluated when the generator function is called");
+
+            var yGf2 = 1;
+            function *gf2(x, y = yGf2 = 100) {
+                yGf2 = 101;
+                yield yGf2;
+                yGf2++;
+                return yGf2;
+            }
+            var g2 = gf2();
+            assert.areEqual(100, yGf2, "Default parameter expression should be evaluated when the generator function is called even if the generator function has yield in the body");
+            var result = g2.next();
+            assert.areEqual(101, result.value, "First next call start the execution of body");
+            assert.areEqual(false, result.done, "Generator is not done yet")
+            result = g2.next();
+            assert.areEqual(102, result.value, "Second next call increments the outside var");
+            assert.areEqual(true, result.done, "Generator is done");
+
+            var yGf3 = 1;
+            function *gf3(x = yGf3 = 100, y = () => x) {
+                assert.areEqual(100, x, "Default parameter value is updated inside the body");
+            }
+            gf3();
+            assert.areEqual(100, yGf3, "Default parameter expression should be evaluated when the generator function with split scope is called");
+
+            var yGf4 = 1;
+            function *gf4(x = eval("yGf4 = 100")) {
+                assert.areEqual(100, x, "Default parameter value is updated inside the body");
+            }
+            gf4();
+            assert.areEqual(100, yGf4, "Default parameter expression should be evaluated when the generator function with eval is called");
+
+            var yGf5 = 1;
+            function *gf5(x = yGf5 = 100) {
+                assert.fail("Body is not expected to be executed!");
+            }
+            gf5.prototype.next = function () {
+                yGf5++;
+            }
+            var g5 = gf5();
+            assert.areEqual(100, yGf5, "Default parameter expression should be evaluated when the generator function is called even if the next function is overwritten");
+            g5.next();
+            assert.areEqual(101, yGf5, "Call to next method executes the new method instead of the built-in one");
+
+            var yGf6 = 1;
+            var yield = 200;
+            function *gf6(x = yGf6, y = yGf6 = 100, z = () => yield) {
+                assert.areEqual(1, x, "Default parameter value is updated inside the body");
+                assert.areEqual(200, z(), "Function defined in the parameter captures the yield variable from outside");
+            }
+            gf6();
+            assert.areEqual(100, yGf6, "Default parameter expression should be evaluated when the generator function is called");
+        }
     }
     // TODO: Test yield in expression positions of control flow constructs, e.g. initializer, condition, and increment of a for loop
 ];

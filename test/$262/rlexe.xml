@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <compile-flags>-$262</compile-flags>
+      <tags>exclude_xplat</tags>
+      <files>$262test.js</files>
+    </default>
+  </test>
+</regress-exe>

@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -38,11 +35,6 @@
       "e": "Error <large string>"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -60,9 +52,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -97,11 +86,6 @@
       "e": "Error <large string>"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -119,9 +103,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -160,11 +141,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -182,9 +158,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -209,11 +182,6 @@
       "e": "Error <large string>"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -231,9 +199,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -267,11 +232,6 @@
       "k": "number 10"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -289,9 +249,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -326,11 +283,6 @@
       "k": "number 10"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -348,9 +300,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -385,11 +334,6 @@
       "k": "number 10"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -407,9 +351,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -440,11 +381,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -462,9 +398,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -495,11 +428,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -517,9 +445,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -550,11 +475,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -572,9 +492,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -606,11 +523,6 @@
       "m1": "number 10"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -628,9 +540,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -652,24 +561,6 @@
         "description": "string <large string>",
         "number": "number -2146823279",
         "stack": "string <large string>"
-      },
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
       },
       "bar": {
         "#__proto__": "function <large string>",
@@ -839,9 +730,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -872,11 +760,6 @@
       "fa": "number 123"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -916,9 +799,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -943,11 +823,6 @@
       "e1": "number -1"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -993,9 +868,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -1023,11 +895,6 @@
       "foo0": "number 12"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",

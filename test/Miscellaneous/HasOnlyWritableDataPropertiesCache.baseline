@@ -2,134 +2,134 @@ var proto = {};var Construct = function(){};Construct.prototype = proto;var o = 
 proto:  {}
 o:      {}
 var proto = {};proto[p0] = 0;var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "p0", {writable: false});o[p0] = 0;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "p0", {writable: false});o[p0] = 0;o[p1] = 1;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "p0", {writable: false});o[p0] = 0;o[p1] = 1;o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "p0", {get: function(){return 0;}});echo("proto:  ", proto);echo("o:      ", o);
 proto:  {}
 o:      {}
 var proto = {};proto[p0] = 0;var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "p0", {get: function(){return 0;}});o[p0] = 0;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "p0", {get: function(){return 0;}});o[p0] = 0;o[p1] = 1;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "p0", {get: function(){return 0;}});o[p0] = 0;o[p1] = 1;o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "p0", {get: function(){return 0;},set: function(v){}});echo("proto:  ", proto);echo("o:      ", o);
 proto:  {}
 o:      {}
 var proto = {};proto[p0] = 0;var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "p0", {get: function(){return 0;},set: function(v){}});o[p0] = 0;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "p0", {get: function(){return 0;},set: function(v){}});o[p0] = 0;o[p1] = 1;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "p0", {get: function(){return 0;},set: function(v){}});o[p0] = 0;o[p1] = 1;o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};var Construct = function(){};Construct.prototype = proto;var o = new Construct;CollectGarbage();echo("proto:  ", proto);echo("o:      ", o);
 proto:  {}
 o:      {}
 var proto = {};proto[p0] = 0;var Construct = function(){};Construct.prototype = proto;var o = new Construct;CollectGarbage();o[p0] = 0;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;CollectGarbage();o[p0] = 0;o[p1] = 1;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;CollectGarbage();o[p0] = 0;o[p1] = 1;o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {writable: false});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {writable: false});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {writable: false});o[p1] = 1;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {writable: false});o[p1] = 1;o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {get: function(){return 0;}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {get: function(){return 0;}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {get: function(){return 0;}});o[p1] = 1;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {get: function(){return 0;}});o[p1] = 1;o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {get: function(){return 0;},set: function(v){}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {get: function(){return 0;},set: function(v){}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {get: function(){return 0;},set: function(v){}});o[p1] = 1;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;Object.defineProperty(proto, "p1", {get: function(){return 0;},set: function(v){}});o[p1] = 1;o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;CollectGarbage();echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;CollectGarbage();echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;CollectGarbage();o[p1] = 1;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;CollectGarbage();o[p1] = 1;o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {writable: false});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {writable: false});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {writable: false});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {writable: false});o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {get: function(){return 0;}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {get: function(){return 0;}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {get: function(){return 0;}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {get: function(){return 0;}});o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {get: function(){return 0;},set: function(v){}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {get: function(){return 0;},set: function(v){}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {get: function(){return 0;},set: function(v){}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;Object.defineProperty(proto, "p2", {get: function(){return 0;},set: function(v){}});o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;CollectGarbage();echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;CollectGarbage();echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;CollectGarbage();echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;CollectGarbage();o[p2] = 2;echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {writable: false});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {writable: false});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {writable: false});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;proto[p5] = 5;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {writable: false});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {get: function(){return 0;}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {get: function(){return 0;}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {get: function(){return 0;}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;proto[p5] = 5;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {get: function(){return 0;}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {get: function(){return 0;},set: function(v){}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {get: function(){return 0;},set: function(v){}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {get: function(){return 0;},set: function(v){}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;proto[p5] = 5;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;Object.defineProperty(proto, "p3", {get: function(){return 0;},set: function(v){}});echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;CollectGarbage();echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;CollectGarbage();echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;CollectGarbage();echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};proto[p0] = 0;proto[p1] = 1;proto[p2] = 2;proto[p3] = 3;proto[p4] = 4;proto[p5] = 5;var Construct = function(){};Construct.prototype = proto;var o = new Construct;o[p0] = 0;o[p1] = 1;o[p2] = 2;CollectGarbage();echo("proto:  ", proto);echo("o:      ", o);
-ReferenceError: 'p0' is undefined
+ReferenceError: 'p0' is not defined
 var proto = {};var Construct = function(){};Construct.prototype = proto;var o = new Construct;Object.defineProperty(proto, "0", {writable: false});echo("proto:  ", proto);echo("o:      ", o);
 proto:  {}
 o:      {}

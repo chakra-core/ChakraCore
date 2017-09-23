@@ -11,10 +11,11 @@ namespace Js
     public:
         static const uint32 MaxLength;
 
-        uint32 left;
-        uint32 length; //we use length instead of right so that we can denote a segment is empty
-        uint32 size;
-        SparseArraySegmentBase* next;
+        Field(uint32) left; // TODO: (leish)(swb) this can easily be recycler false positive on x86, or on x64 if combine with length field
+                            // find a way to either tag this or find a better solution
+        Field(uint32) length; //we use length instead of right so that we can denote a segment is empty
+        Field(uint32) size;
+        Field(SparseArraySegmentBase*) next;
 
         static const uint32 CHUNK_SIZE = 16;
         static const uint32 HEAD_CHUNK_SIZE = 16;
@@ -28,6 +29,7 @@ namespace Js
 
         uint32  RemoveUndefined(ScriptContext* scriptContext); //returns count of undefined removed
         void    EnsureSizeInBound();
+        void    CheckLengthvsSize() { AssertOrFailFast(this->length <= this->size); }
 
         static uint32 GetOffsetOfLeft() { return offsetof(SparseArraySegmentBase, left); }
         static uint32 GetOffsetOfLength() { return offsetof(SparseArraySegmentBase, length); }
@@ -48,7 +50,7 @@ namespace Js
         SparseArraySegment(uint32 left, uint32 length, uint32 size) :
             SparseArraySegmentBase(left, length, size) {}
 
-        T elements[]; // actual elements will follow this determined by size
+        Field(T) elements[]; // actual elements will follow this determined by size
 
         void FillSegmentBuffer(uint start, uint size);
         T GetElement(uint32 index);
@@ -83,13 +85,24 @@ namespace Js
         template<bool isLeaf>
         static SparseArraySegment<T> *AllocateLiteralHeadSegmentImpl(Recycler *const recycler, const uint32 length);
 
-        static void ClearElements(__out_ecount(len) T* elements, uint32 len);
+        static void ClearElements(__out_ecount(len) Field(T)* elements, uint32 len);
         static SparseArraySegment<T>* CopySegment(Recycler *recycler, SparseArraySegment<T>* dst, uint32 dstIndex, SparseArraySegment<T>* src, uint32 srcIndex, uint32 inputLen);
 
         static T GetMissingItem();
         static bool IsMissingItem(const T* value);
 
+        template <class S>
+        static bool IsMissingItem(const WriteBarrierPtr<S>* value)
+        {
+            return IsMissingItem(AddressOf(value[0]));
+        }
+
         static uint32 GetAlignedSize(uint32 size);
+
+        static inline SparseArraySegment* From(SparseArraySegmentBase* seg)
+        {
+            return static_cast<SparseArraySegment*>(seg);
+        }
 
     private:
         template<bool isLeaf>

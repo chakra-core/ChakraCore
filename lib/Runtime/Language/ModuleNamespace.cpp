@@ -13,10 +13,8 @@
 
 namespace Js
 {
-    Js::FunctionInfo ModuleNamespace::EntryInfo::SymbolIterator(ModuleNamespace::EntrySymbolIterator);
-
     ModuleNamespace::ModuleNamespace(ModuleRecordBase* moduleRecord, DynamicType* type) :
-        moduleRecord(moduleRecord), DynamicObject(type), unambiguousNonLocalExports(nullptr), 
+        moduleRecord(moduleRecord), DynamicObject(type), unambiguousNonLocalExports(nullptr),
         sortedExportedNames(nullptr), nsSlots(nullptr)
     {
 
@@ -45,20 +43,15 @@ namespace Js
     {
         ScriptContext* scriptContext = moduleRecord->GetRealm()->GetScriptContext();
         Recycler* recycler = scriptContext->GetRecycler();
-        SourceTextModuleRecord* sourceTextModuleRecord = static_cast<SourceTextModuleRecord*>(moduleRecord);
+        SourceTextModuleRecord* sourceTextModuleRecord = static_cast<SourceTextModuleRecord*>(
+            static_cast<ModuleRecordBase*>(moduleRecord));
         JavascriptLibrary* library = GetLibrary();
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
             DynamicObject::SetPropertyWithAttributes(PropertyIds::_symbolToStringTag, library->GetModuleTypeDisplayString(),
-                PropertyConfigurable, nullptr);
+                PropertyNone, nullptr);
         }
-
-        DynamicType* type = library->CreateFunctionWithLengthType(&EntryInfo::SymbolIterator);
-        RuntimeFunction* iteratorFunction = RecyclerNewEnumClass(scriptContext->GetRecycler(),
-            library->EnumFunctionClass, RuntimeFunction,
-            type, &EntryInfo::SymbolIterator);
-        DynamicObject::SetPropertyWithAttributes(PropertyIds::_symbolIterator, iteratorFunction, PropertyBuiltInMethodDefaults, nullptr);
 
         ModuleImportOrExportEntryList* localExportList = sourceTextModuleRecord->GetLocalExportEntryList();
         // We don't have a type handler that can handle ModuleNamespace object. We have properties that could be aliased
@@ -76,8 +69,7 @@ namespace Js
                 AssertMsg(exportNameId != Js::Constants::NoProperty, "should have been initialized already");
                 // ignore local exports that are actually indirect exports.
                 if (sourceTextModuleRecord->GetImportEntryList() == nullptr ||
-                    (sourceTextModuleRecord->ResolveImport(localNameId, &importRecord)
-                    && importRecord == nullptr))
+                    !sourceTextModuleRecord->ResolveImport(localNameId, &importRecord))
                 {
                     BigPropertyIndex index = sourceTextModuleRecord->GetLocalExportSlotIndexByExportName(exportNameId);
                     Assert((uint)index < sourceTextModuleRecord->GetLocalExportCount());
@@ -89,9 +81,10 @@ namespace Js
         // update the local slot to use the storage for local exports.
         SetNSSlotsForModuleNS(sourceTextModuleRecord->GetLocalExportSlots());
 
-        // For items that are not in the local export list, we need to resolve them to get it 
+        // For items that are not in the local export list, we need to resolve them to get it
         ExportedNames* exportedNames = sourceTextModuleRecord->GetExportedNames(nullptr);
         ModuleNameRecord* moduleNameRecord = nullptr;
+        sortedExportedNames = ListForListIterator::New(scriptContext->GetRecycler());
 #if DBG
         uint unresolvableExportsCount = 0;
         uint localExportCount = 0;
@@ -99,7 +92,9 @@ namespace Js
         if (exportedNames != nullptr)
         {
             exportedNames->Map([&](PropertyId propertyId) {
-                if (!moduleRecord->ResolveExport(propertyId, nullptr, nullptr, &moduleNameRecord))
+                JavascriptString* propertyString = scriptContext->GetPropertyString(propertyId);
+                sortedExportedNames->Add(propertyString);
+                if (!moduleRecord->ResolveExport(propertyId, nullptr, &moduleNameRecord))
                 {
                     // ignore ambigious resolution.
 #if DBG
@@ -124,6 +119,13 @@ namespace Js
                 this->AddUnambiguousNonLocalExport(propertyId, moduleNameRecord);
             });
         }
+
+        sortedExportedNames->Sort([](void* context, const void* left, const void* right) ->int {
+            JavascriptString** leftString = (JavascriptString**)(left);
+            JavascriptString** rightString = (JavascriptString**)(right);
+            return JavascriptString::strcmp(*leftString, *rightString);
+        }, nullptr);
+
 #if DBG
         uint totalExportCount = exportedNames != nullptr ? exportedNames->Count() : 0;
         uint unambiguousNonLocalCount = (this->GetUnambiguousNonLocalExports() != nullptr) ? this->GetUnambiguousNonLocalExports()->Count() : 0;
@@ -144,23 +146,23 @@ namespace Js
         unambiguousNonLocalExports->AddNew(propertyId, *nonLocalExportNameRecord);
     }
 
-    BOOL ModuleNamespace::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags ModuleNamespace::HasPropertyQuery(PropertyId propertyId)
     {
         SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
         const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
         if (propertyRecord->IsSymbol())
         {
-            return this->DynamicObject::HasProperty(propertyId);
+            return this->DynamicObject::HasPropertyQuery(propertyId);
         }
         if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
         {
-            return TRUE;
+            return PropertyQueryFlags::Property_Found;
         }
         if (unambiguousNonLocalExports != nullptr)
         {
-            return unambiguousNonLocalExports->ContainsKey(propertyId);
+            return JavascriptConversion::BooleanToPropertyQueryFlags(unambiguousNonLocalExports->ContainsKey(propertyId));
         }
-        return FALSE;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL ModuleNamespace::HasOwnProperty(PropertyId propertyId)
@@ -168,24 +170,102 @@ namespace Js
         return HasProperty(propertyId);
     }
 
-    BOOL ModuleNamespace::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    BOOL ModuleNamespace::IsConfigurable(PropertyId propertyId)
+    {
+        SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
+        const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
+        if (propertyRecord->IsSymbol())
+        {
+            return this->DynamicObject::IsConfigurable(propertyId);
+        }
+
+        if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
+        {
+            return !!(propertyDescriptor.Attributes & PropertyConfigurable);
+        }
+
+        if (unambiguousNonLocalExports != nullptr)
+        {
+            ModuleNameRecord moduleNameRecord;
+            if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
+            {
+                return !!(PropertyModuleNamespaceDefault & PropertyConfigurable);
+            }
+        }
+
+        return DynamicObject::IsConfigurable(propertyId);
+    }
+
+    BOOL ModuleNamespace::IsEnumerable(PropertyId propertyId)
+    {
+        SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
+        const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
+        if (propertyRecord->IsSymbol())
+        {
+            return this->DynamicObject::IsEnumerable(propertyId);
+        }
+
+        if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
+        {
+            return !!(propertyDescriptor.Attributes & PropertyEnumerable);
+        }
+
+        if (unambiguousNonLocalExports != nullptr)
+        {
+            ModuleNameRecord moduleNameRecord;
+            if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
+            {
+                return !!(PropertyModuleNamespaceDefault & PropertyEnumerable);
+            }
+        }
+
+        return DynamicObject::IsEnumerable(propertyId);
+    }
+
+    BOOL ModuleNamespace::IsWritable(PropertyId propertyId)
+    {
+        SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
+        const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
+        if (propertyRecord->IsSymbol())
+        {
+            return this->DynamicObject::IsWritable(propertyId);
+        }
+
+        if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
+        {
+            return !!(propertyDescriptor.Attributes & PropertyWritable);
+        }
+
+        if (unambiguousNonLocalExports != nullptr)
+        {
+            ModuleNameRecord moduleNameRecord;
+            if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
+            {
+                return !!(PropertyModuleNamespaceDefault & PropertyWritable);
+            }
+        }
+
+        return DynamicObject::IsWritable(propertyId);
+    }
+
+    PropertyQueryFlags ModuleNamespace::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
         const Js::PropertyRecord* propertyRecord = requestContext->GetThreadContext()->GetPropertyName(propertyId);
         if (propertyRecord->IsSymbol())
         {
-            return this->DynamicObject::GetProperty(originalInstance, propertyId, value, info, requestContext);
+            return this->DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
         }
         if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
         {
-            Assert((uint)propertyDescriptor.propertyIndex < ((SourceTextModuleRecord*)moduleRecord)->GetLocalExportCount());
+            Assert((uint)propertyDescriptor.propertyIndex < ((SourceTextModuleRecord*)static_cast<ModuleRecordBase*>(moduleRecord))->GetLocalExportCount());
             PropertyValueInfo::SetNoCache(info, this); // Disable inlinecache for localexport slot for now.
             //if ((PropertyIndex)propertyDescriptor.propertyIndex == propertyDescriptor.propertyIndex)
             //{
             //    PropertyValueInfo::Set(info, this, (PropertyIndex)propertyDescriptor.propertyIndex, propertyDescriptor.Attributes);
             //}
             *value = this->GetNSSlot(propertyDescriptor.propertyIndex);
-            return TRUE;
+            return PropertyQueryFlags::Property_Found;
         }
         if (unambiguousNonLocalExports != nullptr)
         {
@@ -193,17 +273,17 @@ namespace Js
             // TODO: maybe we can cache the slot address & offset, instead of looking up everytime? We do need to look up the reference everytime.
             if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
             {
-                return moduleNameRecord.module->GetNamespace()->GetProperty(originalInstance, moduleNameRecord.bindingName, value, info, requestContext);
+                return JavascriptConversion::BooleanToPropertyQueryFlags(moduleNameRecord.module->GetNamespace()->GetProperty(originalInstance, moduleNameRecord.bindingName, value, info, requestContext));
             }
         }
-        return FALSE;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
-    BOOL ModuleNamespace::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags ModuleNamespace::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         const PropertyRecord* propertyRecord = nullptr;
         GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
-        return GetProperty(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetProperty(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext));
     }
 
     BOOL ModuleNamespace::GetInternalProperty(Var instance, PropertyId internalPropertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -211,9 +291,9 @@ namespace Js
         return FALSE;
     }
 
-    BOOL ModuleNamespace::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags ModuleNamespace::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetProperty(originalInstance, propertyId, value, info, requestContext));
     }
 
     BOOL ModuleNamespace::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
@@ -265,7 +345,7 @@ namespace Js
 
     Var ModuleNamespace::GetNSSlot(BigPropertyIndex propertyIndex)
     {
-        Assert((uint)propertyIndex < (static_cast<SourceTextModuleRecord*>(moduleRecord))->GetLocalExportCount());
+        Assert((uint)propertyIndex < static_cast<SourceTextModuleRecord*>(static_cast<ModuleRecordBase*>(moduleRecord))->GetLocalExportCount());
         return this->nsSlots[propertyIndex];
     }
 
@@ -307,59 +387,5 @@ namespace Js
             }
         }
         return FALSE;
-    }
-
-    // We will make sure the iterator will iterate through the exported properties in sorted order.
-    // There is no such requirement for enumerator (forin).
-    ListForListIterator* ModuleNamespace::EnsureSortedExportedNames()
-    {
-        if (sortedExportedNames == nullptr)
-        {
-            ExportedNames* exportedNames = moduleRecord->GetExportedNames(nullptr);
-            ScriptContext* scriptContext = GetScriptContext();
-            sortedExportedNames = ListForListIterator::New(scriptContext->GetRecycler());
-            exportedNames->Map([&](PropertyId propertyId) {
-                JavascriptString* propertyString = scriptContext->GetPropertyString(propertyId);
-                sortedExportedNames->Add(propertyString);
-            });
-            sortedExportedNames->Sort([](void* context, const void* left, const void* right) ->int {
-                JavascriptString** leftString = (JavascriptString**) (left);
-                JavascriptString** rightString = (JavascriptString**) (right);
-                if (JavascriptString::LessThan(*leftString, *rightString))
-                {
-                    return -1;
-                }
-                if (JavascriptString::LessThan(*rightString, *leftString))
-                {
-                    return 1;
-                }
-                return 0;
-            }, nullptr);
-        }
-        return sortedExportedNames;
-    }
-
-    Var ModuleNamespace::EntrySymbolIterator(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        if (args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedNamespace, _u("Namespace[Symbol.iterator]"));
-        }
-
-        if (JavascriptOperators::GetTypeId(args[0]) != TypeIds_ModuleNamespace)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedNamespace, _u("Namespace[Symbol.iterator]"));
-        }
-
-        ModuleNamespace* moduleNamespace = ModuleNamespace::FromVar(args[0]);
-        ListForListIterator* sortedExportedNames = moduleNamespace->EnsureSortedExportedNames();
-        return scriptContext->GetLibrary()->CreateListIterator(sortedExportedNames);
     }
 }

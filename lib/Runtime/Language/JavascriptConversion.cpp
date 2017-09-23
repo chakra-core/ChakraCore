@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
+#include "RuntimeMathPch.h"
 #include "Library/JavascriptNumberObject.h"
 #include "Library/JavascriptStringObject.h"
 #include "Library/JavascriptSimdObject.h"
@@ -305,6 +306,20 @@ CommonNumber:
                 PropertyString * propertyString = (PropertyString *)propName;
                 *propertyRecord = propertyString->GetPropertyRecord();
             }
+            else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(propName))
+            {
+                LiteralStringWithPropertyStringPtr * str = (LiteralStringWithPropertyStringPtr *)propName;
+                if (str->GetPropertyString())
+                {
+                    *propertyRecord = str->GetPropertyString()->GetPropertyRecord();
+                }
+                else
+                {
+                    scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
+                    PropertyString * propStr = scriptContext->GetPropertyString((*propertyRecord)->GetPropertyId());
+                    str->SetPropertyString(propStr);
+                }
+            }
             else
             {
                 scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
@@ -321,7 +336,7 @@ CommonNumber:
     //    Boolean:  The result equals the input argument (no conversion).
     //    Number:   The result equals the input argument (no conversion).
     //    String:   The result equals the input argument (no conversion).
-    //    VariantDate:Returns the value for variant date by calling ToPrimitve directly.
+    //    VariantDate:Returns the value for variant date by calling ToPrimitive directly.
     //    Object:   Return a default value for the Object.
     //              The default value of an object is retrieved by calling the [[DefaultValue]]
     //              internal method of the object, passing the optional hint PreferredType.
@@ -415,8 +430,7 @@ CommonNumber:
                         // if IsES6ToPrimitiveEnabled flag is off we also fall back to OrdinaryToPrimitive
                         return MethodCallToPrimitive(aValue, hint, requestContext);
                     }
-                    //NOTE: Consider passing requestContext to JavascriptDate::ToString
-                    return CrossSite::MarshalVar(requestContext, JavascriptDate::ToString(dateObject));
+                    return JavascriptDate::ToString(dateObject, requestContext);
                 }
             }
 
@@ -443,27 +457,28 @@ CommonNumber:
     }
 
     //----------------------------------------------------------------------------
-    //7.1.16 CanonicalNumericIndexString(argument)
+    //https://tc39.github.io/ecma262/#sec-canonicalnumericindexstring
     //1. Assert : Type(argument) is String.
     //2. If argument is "-0", then return -0.
     //3. Let n be ToNumber(argument).
     //4. If SameValue(ToString(n), argument) is false, then return undefined.
     //5. Return n.
     //----------------------------------------------------------------------------
-    BOOL JavascriptConversion::CanonicalNumericIndexString(Var aValue, double *indexValue, ScriptContext * scriptContext)
+    BOOL JavascriptConversion::CanonicalNumericIndexString(JavascriptString *aValue, double *indexValue, ScriptContext * scriptContext)
     {
-        AssertMsg(JavascriptString::Is(aValue), "CanonicalNumericIndexString expects only string");
-        if (JavascriptString::IsNegZero(JavascriptString::FromVar(aValue)))
+        if (JavascriptString::IsNegZero(aValue))
         {
             *indexValue = -0;
             return TRUE;
         }
-        Var indexNumberValue = JavascriptOperators::ToNumber(aValue, scriptContext);
-        if (JavascriptString::Equals(JavascriptConversion::ToString(indexNumberValue, scriptContext), aValue))
+
+        double indexDoubleValue = aValue->ToDouble();
+        if (JavascriptString::Equals(JavascriptNumber::ToStringRadix10(indexDoubleValue, scriptContext), aValue))
         {
-            *indexValue = JavascriptNumber::GetValue(indexNumberValue);
+            *indexValue = indexDoubleValue;
             return TRUE;
         }
+
         return FALSE;
     }
 
@@ -482,7 +497,7 @@ CommonNumber:
         //  3. If func is either undefined or null, return undefined.
         //  4. If IsCallable(func) is false, throw a TypeError exception.
         //  5. Return func.
-        Var varMethod;
+        Var varMethod = nullptr;
 
         if (!(requestContext->GetConfig()->IsES6ToPrimitiveEnabled()
             && JavascriptOperators::GetPropertyReference(recyclableObject, PropertyIds::_symbolToPrimitive, &varMethod, requestContext)
@@ -503,15 +518,15 @@ CommonNumber:
 
         if (hint == JavascriptHint::HintString)
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("string"));
+            hintString = requestContext->GetLibrary()->GetStringTypeDisplayString();
         }
         else if (hint == JavascriptHint::HintNumber)
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("number"));
+            hintString = requestContext->GetLibrary()->GetNumberTypeDisplayString();
         }
         else
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("default"));
+            hintString = requestContext->GetPropertyString(PropertyIds::default_);
         }
 
         // If exoticToPrim is not undefined, then
@@ -524,7 +539,7 @@ CommonNumber:
                 Assert(!ThreadContext::IsOnStack(recyclableObject));
 
                 // Let result be the result of calling the[[Call]] internal method of exoticToPrim, with input as thisArgument and(hint) as argumentsList.
-                return CALL_FUNCTION(exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
+                return CALL_FUNCTION(threadContext, exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
             });
 
             if (!result)
@@ -754,7 +769,7 @@ CommonNumber:
                 if (JavascriptConversion::IsCallable(value))
                 {
                     RecyclableObject* toLocaleStringFunction = RecyclableObject::FromVar(value);
-                    Var aResult = CALL_FUNCTION(toLocaleStringFunction, CallInfo(1), aValue);
+                    Var aResult = CALL_FUNCTION(scriptContext->GetThreadContext(), toLocaleStringFunction, CallInfo(1), aValue);
                     if (JavascriptString::Is(aResult))
                     {
                         return JavascriptString::FromVar(aResult);
@@ -1530,10 +1545,13 @@ CommonNumber:
         return static_cast<double>(aValue);
     }
 
+    // Windows x64 version implemented in masm to work around precision limitation
+#if !defined(_WIN32 ) || !defined(_M_X64)
     double JavascriptConversion::ULongToDouble(unsigned __int64 aValue)
     {
         return static_cast<double>(aValue);
     }
+#endif
 
     float JavascriptConversion::LongToFloat(__int64 aValue)
     {
@@ -1554,7 +1572,7 @@ CommonNumber:
             return (int32)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     uint32 JavascriptConversion::F32TOU32(float src, ScriptContext * ctx)
@@ -1566,7 +1584,7 @@ CommonNumber:
             return (uint32)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     int32 JavascriptConversion::F64TOI32(double src, ScriptContext * ctx)
@@ -1578,7 +1596,7 @@ CommonNumber:
             return (int32)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     uint32 JavascriptConversion::F64TOU32(double src, ScriptContext * ctx)
@@ -1590,7 +1608,7 @@ CommonNumber:
             return (uint32)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     int64 JavascriptConversion::F32TOI64(float src, ScriptContext * ctx)
@@ -1602,7 +1620,7 @@ CommonNumber:
             return (int64)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     uint64 JavascriptConversion::F32TOU64(float src, ScriptContext * ctx)
@@ -1614,7 +1632,7 @@ CommonNumber:
             return (uint64)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     int64 JavascriptConversion::F64TOI64(double src, ScriptContext * ctx)
@@ -1626,7 +1644,7 @@ CommonNumber:
             return (int64)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     uint64 JavascriptConversion::F64TOU64(double src, ScriptContext * ctx)
@@ -1638,7 +1656,7 @@ CommonNumber:
             return (uint64)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     int64 JavascriptConversion::ToLength(Var aValue, ScriptContext* scriptContext)

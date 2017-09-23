@@ -57,7 +57,7 @@ GenerateFunction(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody * fn, Js:
 {
     nativeCodeGen->GenerateFunction(fn, function);
 }
-CodeGenAllocators* GetForegroundAllocator(NativeCodeGenerator * nativeCodeGen, PageAllocator* pageallocator)
+InProcCodeGenAllocators* GetForegroundAllocator(NativeCodeGenerator * nativeCodeGen, PageAllocator* pageallocator)
 {
     return nativeCodeGen->GetCodeGenAllocator(pageallocator);
 }
@@ -149,11 +149,13 @@ void CheckIsExecutable(Js::RecyclableObject * function, Js::JavascriptMethod ent
     {
         return;
     }
-    if (Js::JavascriptOperators::GetTypeId(function) == Js::TypeIds_HostDispatch)
+    
+    Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(function);
+    if (typeId == Js::TypeIds_HostDispatch)
     {
         AssertMsg(false, "Has to go through CallRootFunction to start calling Javascript function");
     }
-    else if (Js::JavascriptFunction::Is(function))
+    else if (typeId == Js::TypeId::TypeIds_Function)
     {
         if (((Js::JavascriptFunction*)function)->IsExternalFunction())
         {
@@ -197,5 +199,8 @@ SetProfilerFromNativeCodeGen(NativeCodeGenerator * toNativeCodeGen, NativeCodeGe
 
 void DeleteNativeCodeData(NativeCodeData * data)
 {
-    delete data;
+    if (data)
+    {
+        HeapDelete(data);
+    }
 }

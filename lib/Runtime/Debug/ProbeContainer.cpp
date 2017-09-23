@@ -3,6 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
+
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Language/JavascriptStackWalker.h"
 #include "Language/InterpreterStackFrame.h"
 
@@ -75,11 +77,13 @@ namespace Js
 
     void ProbeContainer::StartRecordingCall()
     {
+        Assert(this->pScriptContext->GetDebugContext() && this->pScriptContext->GetDebugContext()->IsDebuggerRecording());
         this->debugManager->stepController.StartRecordingCall();
     }
 
     void ProbeContainer::EndRecordingCall(Js::Var returnValue, Js::JavascriptFunction * function)
     {
+        Assert(this->pScriptContext->GetDebugContext() && this->pScriptContext->GetDebugContext()->IsDebuggerRecording());
         this->debugManager->stepController.EndRecordingCall(returnValue, function);
     }
 
@@ -1086,3 +1090,4 @@ namespace Js
     }
 #endif
 } // namespace Js.
+#endif

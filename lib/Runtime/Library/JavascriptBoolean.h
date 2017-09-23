@@ -9,7 +9,7 @@ namespace Js
     class JavascriptBoolean sealed : public RecyclableObject
     {
     private:
-        BOOL value;
+        Field(BOOL) value;
 
         DEFINE_VTABLE_CTOR(JavascriptBoolean, RecyclableObject);
     public:
@@ -47,6 +47,12 @@ namespace Js
         // should never be called, JavascriptConversion::ToPrimitive() short-circuits and returns input value
         virtual BOOL ToPrimitive(JavascriptHint hint, Var* value, ScriptContext* requestContext) override {AssertMsg(false, "Boolean ToPrimitive should not be called"); *value = this; return true;}
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableJavascriptBoolean;
+        }
 
     private:
         static BOOL Equals(JavascriptBoolean* left, Var right, BOOL* value, ScriptContext * requestContext);

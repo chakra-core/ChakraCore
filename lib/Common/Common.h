@@ -11,6 +11,8 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 #endif
 
+#define MAKE_HR(errnum) (MAKE_HRESULT(SEVERITY_ERROR, FACILITY_CONTROL, errnum))
+
 // If we're using the PAL for C++ standard library compat,
 // we don't need to include wchar for string handling
 #ifndef USING_PAL_STDLIB
@@ -74,7 +76,6 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 
 // Exceptions
 #include "Exceptions/ExceptionBase.h"
-#include "Exceptions/InternalErrorException.h"
 #include "Exceptions/JavascriptException.h"
 #include "Exceptions/OutOfMemoryException.h"
 #include "Exceptions/OperationAbortedException.h"
@@ -97,11 +98,11 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 #include "Core/FinalizableObject.h"
 #include "Memory/RecyclerRootPtr.h"
 #include "Memory/RecyclerFastAllocator.h"
-#include "Memory/RecyclerPointers.h"
 #include "Util/Pinned.h"
 
 // Data Structures 2
 
+#include "DataStructures/QuickSort.h"
 #include "DataStructures/StringBuilder.h"
 #include "DataStructures/WeakReferenceDictionary.h"
 #include "DataStructures/LeafValueDictionary.h"
@@ -117,7 +118,6 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 #include "DataStructures/GrowingArray.h"
 #include "DataStructures/EvalMapString.h"
 #include "DataStructures/RegexKey.h"
-#include "DataStructures/LineOffsetCache.h"
 
 #include "Core/ICustomConfigFlags.h"
 #include "Core/CmdParser.h"

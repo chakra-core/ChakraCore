@@ -47,6 +47,11 @@ bool IRType_IsNativeInt(IRType type)
 }
 bool IRType_IsInt64(IRType type) { return type == TyInt64 || type == TyUint64; }
 
+bool IRType_IsNativeIntOrVar(IRType type)
+{
+    return IRType_IsNativeInt(type) || type == TyVar;
+}
+
 bool IRType_IsSimd(IRType type)
 {
     return TyBaseType[type] == IRBaseType_Simd;
@@ -55,6 +60,36 @@ bool IRType_IsSimd(IRType type)
 bool IRType_IsSimd128(IRType type)
 {
     return type >= TySimd128F4 && type <= TySimd128D2;
+}
+
+IRType IRType_EnsureSigned(IRType type)
+{
+    CompileAssert(TyUint8 > TyInt8);
+    CompileAssert((TyUint8 - TyInt8) == (TyUint16 - TyInt16));
+    CompileAssert((TyUint8 - TyInt8) == (TyUint32 - TyInt32));
+    CompileAssert((TyUint8 - TyInt8) == (TyUint64 - TyInt64));
+    if (IRType_IsUnsignedInt(type))
+    {
+        IRType signedType = (IRType)(type - (TyUint8 - TyInt8));
+        Assert(IRType_IsSignedInt(signedType));
+        return signedType;
+    }
+    return type;
+}
+
+IRType IRType_EnsureUnsigned(IRType type)
+{
+    CompileAssert(TyUint8 > TyInt8);
+    CompileAssert((TyUint8 - TyInt8) == (TyUint16 - TyInt16));
+    CompileAssert((TyUint8 - TyInt8) == (TyUint32 - TyInt32));
+    CompileAssert((TyUint8 - TyInt8) == (TyUint64 - TyInt64));
+    if (IRType_IsSignedInt(type))
+    {
+        IRType unsignedType = (IRType)(type + (TyUint8 - TyInt8));
+        Assert(IRType_IsUnsignedInt(unsignedType));
+        return unsignedType;
+    }
+    return type;
 }
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)

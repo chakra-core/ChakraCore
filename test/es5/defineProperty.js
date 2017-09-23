@@ -320,7 +320,7 @@ var tests = {
       var pd = { value: 1 };
       Object.defineProperty(o, propertyName, pd);
       pd = { value: 2, writable: true };
-      assert.throws(function() { Object.defineProperty(o, propertyName, pd); }, TypeError);
+      assert.throws(function() { Object.defineProperty(o, propertyName, pd); }, TypeError, '', 'Cannot redefine non-configurable property \'foo21\'');
       return true;
     }
   },
@@ -333,7 +333,7 @@ var tests = {
       var pd = { value: 1 };
       Object.defineProperty(o, propertyName, pd);
       pd = { value: 2, writable: false };
-      assert.throws(function() { Object.defineProperty(o, propertyName, pd); }, TypeError);
+      assert.throws(function() { Object.defineProperty(o, propertyName, pd); }, TypeError, '', 'Cannot modify non-writable property \'foo22\'');
     }
   },
 

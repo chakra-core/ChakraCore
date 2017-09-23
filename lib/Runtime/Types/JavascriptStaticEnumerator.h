@@ -12,7 +12,8 @@ namespace Js
         EnumNonEnumerable   = 0x1,
         EnumSymbols         = 0x2,
         SnapShotSemantics   = 0x4,
-        UseCache            = 0x8
+        UseCache            = 0x8,
+        EphemeralReference  = 0x10
     };
     ENUM_CLASS_HELPERS(EnumeratorFlags, byte);
 
@@ -20,12 +21,12 @@ namespace Js
     {
     protected:
         friend class ForInObjectEnumerator;
-        DynamicObjectPropertyEnumerator propertyEnumerator;
-        JavascriptEnumerator* currentEnumerator;
-        JavascriptEnumerator* prefixEnumerator;
-        JavascriptEnumerator* arrayEnumerator;
+        Field(DynamicObjectPropertyEnumerator) propertyEnumerator;
+        Field(JavascriptEnumerator*) currentEnumerator;
+        Field(JavascriptEnumerator*) prefixEnumerator;
+        Field(JavascriptEnumerator*) arrayEnumerator;
 
-        Var MoveAndGetNextFromEnumerator(PropertyId& propertyId, PropertyAttributes* attributes);
+        JavascriptString * MoveAndGetNextFromEnumerator(PropertyId& propertyId, PropertyAttributes* attributes);
     public:
         JavascriptStaticEnumerator() { Clear(EnumeratorFlags::None, nullptr); }
         bool Initialize(JavascriptEnumerator * prefixEnumerator, ArrayObject * arrayToEnumerate, DynamicObject* objectToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache);
@@ -37,7 +38,7 @@ namespace Js
         void Clear(EnumeratorFlags flags, ScriptContext * requestContext);
         void Reset();
         uint32 GetCurrentItemIndex();
-        Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
+        JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
 
         static uint32 GetOffsetOfCurrentEnumerator() { return offsetof(JavascriptStaticEnumerator, currentEnumerator); }
         static uint32 GetOffsetOfPrefixEnumerator() { return offsetof(JavascriptStaticEnumerator, prefixEnumerator); }

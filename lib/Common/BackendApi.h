@@ -19,7 +19,7 @@
 #define ProfileEntryThunk Js::ScriptContext::DebugProfileProbeThunk
 
 #define DefaultDeferredParsingThunk Js::JavascriptFunction::DeferredParsingThunk
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
 #define ProfileDeferredParsingThunk Js::ScriptContext::ProfileModeDeferredParsingThunk
 #endif
 
@@ -42,6 +42,7 @@ typedef double  FloatConstType;
 
 #include "EmitBuffer.h"
 #include "InterpreterThunkEmitter.h"
+#include "JITThunkEmitter.h"
 #include "BackendOpCodeAttr.h"
 #include "BackendOpCodeAttrAsmJs.h"
 #include "CodeGenNumberAllocator.h"
@@ -49,6 +50,8 @@ typedef double  FloatConstType;
 #include "JnHelperMethod.h"
 #include "IRType.h"
 #include "InlineeFrameInfo.h"
+#include "CodeGenAllocators.h"
+#include "PropertyGuard.h"
 
 NativeCodeGenerator * NewNativeCodeGenerator(Js::ScriptContext * nativeCodeGen);
 void DeleteNativeCodeGenerator(NativeCodeGenerator * nativeCodeGen);
@@ -60,8 +63,8 @@ void UpdateNativeCodeGeneratorForDebugMode(NativeCodeGenerator* nativeCodeGen);
 CriticalSection *GetNativeCodeGenCriticalSection(NativeCodeGenerator *pNativeCodeGen);
 bool TryReleaseNonHiPriWorkItem(Js::ScriptContext* scriptContext, CodeGenWorkItem* workItem);
 void NativeCodeGenEnterScriptStart(NativeCodeGenerator * nativeCodeGen);
-void FreeNativeCodeGenAllocation(Js::ScriptContext* scriptContext, Js::JavascriptMethod address);
-CodeGenAllocators* GetForegroundAllocator(NativeCodeGenerator * nativeCodeGen, PageAllocator* pageallocator);
+void FreeNativeCodeGenAllocation(Js::ScriptContext* scriptContext, Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);
+InProcCodeGenAllocators* GetForegroundAllocator(NativeCodeGenerator * nativeCodeGen, PageAllocator* pageallocator);
 void GenerateFunction(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody * functionBody, Js::ScriptFunction * function = NULL);
 void GenerateLoopBody(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody * functionBody, Js::LoopHeader * loopHeader, Js::EntryPointInfo* entryPointInfo, uint localCount, Js::Var localSlots[]);
 #ifdef ENABLE_PREJIT
@@ -232,6 +235,7 @@ enum VTableValue {
     VtableDynamicObject,
     VtableInvalid,
     VtablePropertyString,
+    VtableLiteralStringWithPropertyStringPtr,
     VtableJavascriptBoolean,
     VtableJavascriptArray,
     VtableInt8Array,

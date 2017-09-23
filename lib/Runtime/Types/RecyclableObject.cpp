@@ -24,6 +24,23 @@ namespace Js
 
     void PropertyValueInfo::SetCacheInfo(
         PropertyValueInfo* info,
+        PropertyString *const propertyString,
+        PolymorphicInlineCache *const polymorphicInlineCache,
+        bool allowResizing)
+    {
+        Assert(info);
+        Assert(polymorphicInlineCache);
+
+        info->functionBody = nullptr;
+        info->propertyString = propertyString;
+        info->inlineCache = nullptr;
+        info->polymorphicInlineCache = polymorphicInlineCache;
+        info->inlineCacheIndex = Js::Constants::NoInlineCacheIndex;
+        info->allowResizingPolymorphicInlineCache = allowResizing;
+    }
+
+    void PropertyValueInfo::SetCacheInfo(
+        PropertyValueInfo* info,
         FunctionBody *const functionBody,
         InlineCache *const inlineCache,
         const InlineCacheIndex inlineCacheIndex,
@@ -67,6 +84,7 @@ namespace Js
             info->functionBody = nullptr;
             info->inlineCache = nullptr;
             info->polymorphicInlineCache = nullptr;
+            info->propertyString = nullptr;
             info->inlineCacheIndex = Constants::NoInlineCacheIndex;
             info->allowResizingPolymorphicInlineCache = true;
         }
@@ -269,7 +287,7 @@ namespace Js
             this->SetAttributes(propertyId, attributes);
     }
 
-    void RecyclableObject::ThrowIfCannotDefineProperty(PropertyId propId, PropertyDescriptor descriptor)
+    void RecyclableObject::ThrowIfCannotDefineProperty(PropertyId propId, const PropertyDescriptor& descriptor)
     {
         // Do nothing
     }
@@ -307,9 +325,9 @@ namespace Js
             /* TODO-ERROR: args.Info.Count > 0? args[0] : nullptr); */);
     }
 
-    BOOL RecyclableObject::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags RecyclableObject::HasPropertyQuery(PropertyId propertyId)
     {
-        return false;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL RecyclableObject::HasOwnProperty(PropertyId propertyId)
@@ -322,14 +340,14 @@ namespace Js
         return HasOwnProperty(propertyId);
     }
 
-    BOOL RecyclableObject::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags RecyclableObject::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return false;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
-    BOOL RecyclableObject::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags RecyclableObject::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return false;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL RecyclableObject::GetInternalProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -337,9 +355,9 @@ namespace Js
         return false;
     }
 
-    BOOL RecyclableObject::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags RecyclableObject::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return false;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL RecyclableObject::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
@@ -358,6 +376,11 @@ namespace Js
     }
 
     BOOL RecyclableObject::InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
+    {
+        return false;
+    }
+
+    BOOL RecyclableObject::InitPropertyInEval(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         return false;
     }
@@ -392,14 +415,16 @@ namespace Js
         return true;
     }
 
+#if ENABLE_FIXED_FIELDS
     BOOL RecyclableObject::IsFixedProperty(PropertyId propertyId)
     {
         return false;
     }
+#endif
 
-    BOOL RecyclableObject::HasItem(uint32 index)
+    PropertyQueryFlags RecyclableObject::HasItemQuery(uint32 index)
     {
-        return false;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL RecyclableObject::HasOwnItem(uint32 index)
@@ -407,14 +432,14 @@ namespace Js
         return false;
     }
 
-    BOOL RecyclableObject::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags RecyclableObject::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
-        return false;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
-    BOOL RecyclableObject::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags RecyclableObject::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
-        return false;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL RecyclableObject::SetItem(uint32 index, Var value, PropertyOperationFlags flags)
@@ -746,13 +771,6 @@ namespace Js
     Var RecyclableObject::GetTypeOfString(ScriptContext * requestContext)
     {
         return requestContext->GetLibrary()->GetUnknownDisplayString();
-    }
-
-    Var RecyclableObject::InvokePut(Arguments args)
-    {
-        // Handle x(y) = z.
-        // Native jscript object behavior: throw an error in all such cases.
-        JavascriptError::ThrowReferenceError(GetScriptContext(), JSERR_CantAsgCall);
     }
 
     BOOL RecyclableObject::GetRemoteTypeId(TypeId * typeId)

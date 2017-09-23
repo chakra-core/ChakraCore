@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -13,16 +13,6 @@
       <tags>exclude_fre</tags>
     </default>
   </test>
-<!-- Disabled in core; see OS 9760284
-  <test>
-    <default>
-      <files>etwtest.js</files>
-      <baseline />
-      <compile-flags>-testEtwDll:NativeUnitTests.dll</compile-flags>
-      <tags>exclude_ship</tags>
-    </default>
-  </test>
--->
   <test>
     <default>
       <files>evalAlias.js</files>
@@ -33,6 +23,9 @@
     <default>
       <files>oom.js</files>
       <baseline>oom.baseline</baseline>
+      <!-- TODO fix and re-enable (Microsoft/ChakraCore#3119) -->
+      <!-- Investigate: adding -bgjit makes this test pass -->
+      <!-- <compile-flags>-forcefragmentaddressspace:8000000 -bgjit</compile-flags> -->
       <compile-flags>-forcefragmentaddressspace:8000000</compile-flags>
       <tags>exclude_amd64,fail</tags>
     </default>

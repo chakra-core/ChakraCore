@@ -350,6 +350,130 @@ var tests = [
         assert.areEqual('B1', B.n1(), "static method.call()");
     }
   },
+  {
+    name: "Issue3054: NULL pointer crash when calling constructor with Proxy new_target",
+    body: function () {
+        var result = "";
+        class B {
+            constructor() {
+                assert.areEqual(P, new.target, "B(): new.target === P");
+                result += "b";
+            }
+        }
+
+        class A extends B {
+            constructor() {
+                assert.areEqual(P, new.target, "A(): new.target === P");
+                result += "a";
+                super();
+                result += "c";
+            }
+        }
+
+        var P = new Proxy(B, {});
+        Reflect.construct(A, [], P);
+
+        assert.areEqual('abc', result, "result == 'abc'");
+    }
+  },
+  {
+    name: "Issue3064: Caching conflict of super property access",
+    body: function () {
+        function Base() { }
+        Base.prototype = {
+            x: 15,
+            f() { return this.x; },
+        };
+
+        function Derived() {}
+        Derived.prototype = {
+            __proto__: Base.prototype,
+            x: 27,
+            f() {
+              var a = super.x;
+              var b = eval("super.x");
+              return this.x;
+           }
+        };
+
+        assert.areEqual(15, new Base().f());
+        assert.areEqual(27, new Derived().f());
+      }
+  },
+  {
+    name: "Issue3423: Repeated calls to class setter triggers assertion",
+    body: function () {
+        var result = "";
+        class B {
+            set x(v) { result += "Bset;"; this._x = v; }
+            get x() { result += "Bget;"; return this._x; }
+        }
+
+        class A extends B {
+            set x(v) { result += "Aset;"; super.x = v + 100; }
+            get x() { result += "Aget;"; return super.x; }
+        }
+
+        var a = new A();
+        a.x = 100;
+        assert.areEqual(200, a.x);
+        assert.areEqual("Aset;Bset;Aget;Bget;", result);
+
+        var a1 = new A();
+        a1.x = -100;
+        assert.areEqual(0, a1.x);
+        assert.areEqual("Aset;Bset;Aget;Bget;Aset;Bset;Aget;Bget;", result);
+      }
+  },
+  {
+    name: "Issue3217: Reflect.construct permanently corrupts the invoked constructor",
+    body: function () {
+        function Base() {}
+        function Derived() {}
+        Derived.prototype = Object.create(Base.prototype);
+
+        assert.isFalse(new Base() instanceof Derived);
+        Reflect.construct(Base, [], Derived);
+        assert.isFalse(new Base() instanceof Derived);
+    }
+  },
+  {
+    name: "OS12503560: assignment to super[prop] not accessing base class property",
+    body: function () {
+        var result = "";
+        class B {
+            get x1() { result += "Bgetter;"; return 0; }
+            set x1(v){ result += "Bsetter;"; }
+        }
+
+        class A extends B {
+            constructor() {
+                (()=>{
+                    super();
+                    var s = 'x';
+                    super[(s+s).substr(0,1)+1] = null;
+                    s = super[s+'1'];
+                })();
+            }
+
+            get x1() { result += "Agetter;"; return 0; } // should not be called
+            set x1(v){ result += "Asetter;"; }  // should not be called
+        };
+
+        new A();
+        assert.areEqual('Bsetter;Bgetter;', result);
+    }
+  },
+  {
+    name: "MSFT:13209141: Confusion on deferred function containing non-deferred extends cause calling eval",
+    body: function () {
+      function foo(a = class c extends eval("") {}) {}
+      try {
+        foo();
+      }
+      catch(e) {}
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

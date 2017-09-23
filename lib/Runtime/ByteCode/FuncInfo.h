@@ -83,6 +83,8 @@ private:
     uint        nextForInLoopLevel;
     uint        maxForInLoopLevel;
 public:
+    static const Js::RegSlot InitialConstRegsCount = 2; // constRegsCount is set to 2 because R0 is the return register, and R1 is the root object
+
     ArenaAllocator *alloc;
     // set in Bind/Assign pass
     Js::RegSlot varRegsCount; // number of registers used for non-constants
@@ -128,17 +130,14 @@ public:
     uint isTopLevelEventHandler : 1;
     uint hasLocalInClosure : 1;
     uint hasClosureReference : 1;
-    uint hasGlobalReference : 1;
     uint hasCachedScope : 1;
     uint funcExprNameReference : 1;
     uint applyEnclosesArgs : 1;
     uint escapes : 1;
-    uint hasDeferredChild : 1; // switch for DeferNested to persist outer scopes
-    uint childHasWith : 1; // deferNested needs to know if child has with
     uint hasLoop : 1;
     uint hasEscapedUseNestedFunc : 1;
     uint needEnvRegister : 1;
-    uint hasCapturedThis : 1;
+    uint isBodyAndParamScopeMerged : 1;
 #if DBG
     // FunctionBody was reused on recompile of a redeferred enclosing function.
     uint isReused:1;
@@ -176,22 +175,16 @@ public:
     typedef JsUtil::BaseDictionary<SlotKey, Js::ProfileId, ArenaAllocator, PowerOf2SizePolicy, SlotKeyComparer> SlotProfileIdMap;
     SlotProfileIdMap slotProfileIdMap;
     Js::PropertyId thisScopeSlot;
-    Js::PropertyId innerThisScopeSlot; // Used in case of split scope
     Js::PropertyId superScopeSlot;
-    Js::PropertyId innerSuperScopeSlot; // Used in case of split scope
     Js::PropertyId superCtorScopeSlot;
-    Js::PropertyId innerSuperCtorScopeSlot; // Used in case of split scope
     Js::PropertyId newTargetScopeSlot;
-    Js::PropertyId innerNewTargetScopeSlot; // Used in case of split scope
     bool isThisLexicallyCaptured;
     bool isSuperLexicallyCaptured;
     bool isSuperCtorLexicallyCaptured;
     bool isNewTargetLexicallyCaptured;
     Symbol *argumentsSymbol;
-    Symbol *innerArgumentsSymbol;
     JsUtil::List<Js::RegSlot, ArenaAllocator> nonUserNonTempRegistersToInitialize;
 
-    // constRegsCount is set to 2 because R0 is the return register, and R1 is the root object.
     FuncInfo(
         const char16 *name,
         ArenaAllocator *alloc,
@@ -262,24 +255,39 @@ public:
     //    1) new Function code's global code
     //    2) global code generated from the reparsing deferred parse function
 
-    bool IsFakeGlobalFunction(uint32 flags) const {
+    bool IsFakeGlobalFunction(uint32 flags) const 
+    {
         return IsGlobalFunction() && !(flags & fscrGlobalCode);
     }
 
-    Scope *GetBodyScope() const {
+    Scope *GetBodyScope() const 
+    {
         return bodyScope;
     }
 
-    Scope *GetParamScope() const {
+    void SetBodyScope(Scope * scope)
+    {
+        bodyScope = scope;
+    }
+
+    Scope *GetParamScope() const 
+    {
         return paramScope;
     }
 
-    Scope *GetTopLevelScope() const {
+    void SetParamScope(Scope * scope)
+    {
+        paramScope = scope;
+    }
+
+    Scope *GetTopLevelScope() const 
+    {
         // Top level scope will be the same for knopProg and knopFncDecl.
         return paramScope;
     }
 
-    Scope* GetFuncExprScope() const {
+    Scope* GetFuncExprScope() const 
+    {
         return funcExprScope;
     }
 
@@ -296,22 +304,6 @@ public:
     {
         Assert(argumentsSymbol == nullptr || argumentsSymbol == sym);
         argumentsSymbol = sym;
-    }
-
-    Symbol *GetInnerArgumentsSymbol() const
-    {
-        return innerArgumentsSymbol;
-    }
-
-    void SetInnerArgumentsSymbol(Symbol *sym)
-    {
-        Assert(innerArgumentsSymbol == nullptr || innerArgumentsSymbol == sym);
-        innerArgumentsSymbol = sym;
-    }
-
-    bool IsInnerArgumentsSymbol(Symbol* sym)
-    {
-        return innerArgumentsSymbol != nullptr && innerArgumentsSymbol == sym;
     }
 
     bool GetCallsEval() const {
@@ -389,14 +381,6 @@ public:
         hasClosureReference = has;
     }
 
-    bool GetHasGlobalRef() const {
-        return hasGlobalReference;
-    }
-
-    void SetHasGlobalRef(bool has) {
-        hasGlobalReference = has;
-    }
-
     bool GetIsStrictMode() const {
         return this->byteCodeFunction->GetIsStrictMode();
     }
@@ -423,14 +407,6 @@ public:
         return root == nullptr;
     }
 
-    bool HasDeferredChild() const {
-        return hasDeferredChild;
-    }
-
-    void SetHasDeferredChild() {
-        hasDeferredChild = true;
-    }
-
     Js::FunctionBody* GetParsedFunctionBody() const
     {
         AssertMsg(this->byteCodeFunction->IsFunctionParsed(), "Function must be parsed in order to call this method");
@@ -439,20 +415,12 @@ public:
         return this->byteCodeFunction->GetFunctionBody();
     }
 
-    bool ChildHasWith() const {
-        return childHasWith;
+    bool IsBodyAndParamScopeMerged() const {
+        return isBodyAndParamScopeMerged;
     }
 
-    void SetChildHasWith() {
-        childHasWith = true;
-    }
-
-    bool HasCapturedThis() const {
-        return hasCapturedThis;
-    }
-
-    void SetHasCapturedThis() {
-        hasCapturedThis = true;
+    void ResetBodyAndParamScopeMerged() {
+        isBodyAndParamScopeMerged = false;
     }
 
     BOOL HasSuperReference() const;
@@ -786,7 +754,6 @@ public:
     void EnsureSuperScopeSlot();
     void EnsureSuperCtorScopeSlot();
     void EnsureNewTargetScopeSlot();
-    void UseInnerSpecialScopeSlots();
 
     void SetIsThisLexicallyCaptured()
     {

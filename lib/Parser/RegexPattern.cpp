@@ -10,8 +10,8 @@ namespace UnifiedRegex
         : library(library), isLiteral(isLiteral), isShallowClone(false)
     {
         rep.unified.program = program;
-        rep.unified.matcher = 0;
-        rep.unified.trigramInfo = 0;
+        rep.unified.matcher = nullptr;
+        rep.unified.trigramInfo = nullptr;
     }
 
     RegexPattern *RegexPattern::New(Js::ScriptContext *scriptContext, Program* program, bool isLiteral)

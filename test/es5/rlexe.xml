@@ -4,7 +4,6 @@
     <default>
       <files>reservedWords.js</files>
       <baseline>reservedWords.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -12,7 +11,6 @@
       <compile-flags>-ES6Unicode-</compile-flags>
       <files>Lex_u3.js</files>
       <baseline>Lex_u3.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -73,14 +71,12 @@
     <default>
       <files>exceptions.js</files>
       <baseline>exceptions3.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>ObjLitGetSet.js</files>
       <baseline>ObjLitGetSet.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -299,7 +295,6 @@
     <default>
       <files>es5array_arrayproto_opt.js</files>
       <baseline>es5array_arrayproto_opt.baseline</baseline>
-      <tags>fail</tags>
     </default>
   </test>
   <test>
@@ -347,6 +342,11 @@
     <default>
       <files>es5array_enum_edit.js</files>
       <baseline>es5array_enum_edit.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>es5_defineProperty_arrayLength.js</files>
     </default>
   </test>
 </regress-exe>

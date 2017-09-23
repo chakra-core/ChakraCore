@@ -843,6 +843,12 @@ namespace Js
             return 1;
         }
 
+        OpFuncSignature( LEA )
+        {
+            *buffer++ = 0x8D;
+            return 1;
+        }
+
         OpFuncSignature( MOV )
         {
             int size = 1;

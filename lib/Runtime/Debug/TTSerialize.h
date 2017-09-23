@@ -24,7 +24,7 @@ namespace TTD
 {
     namespace NSTokens
     {
-        //Seperator tokens for records
+        //Separator tokens for records
         enum class Separator : byte
         {
             NoSeparator = 0x0,
@@ -85,7 +85,6 @@ namespace TTD
         TTDWriteBytesToStreamCallback m_pfWrite;
         TTDFlushAndCloseStreamCallback m_pfClose;
 
-        bool m_doCompression;
         size_t m_cursor;
         byte* m_buffer;
 
@@ -181,14 +180,14 @@ namespace TTD
         }
 
     public:
-        FileWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
+        FileWriter(JsTTDStreamHandle handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~FileWriter();
 
         void FlushAndClose();
 
         ////
 
-        virtual void WriteSeperator(NSTokens::Separator separator) = 0;
+        virtual void WriteSeparator(NSTokens::Separator separator) = 0;
         virtual void WriteKey(NSTokens::Key key, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
 
         void WriteLengthValue(uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
@@ -250,7 +249,8 @@ namespace TTD
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
         void WriteWellKnownToken(NSTokens::Key key, TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
 
-        virtual void WriteInlineCode(_In_reads_(length) char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
+        virtual void WriteInlineCode(_In_reads_(length) const char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
+        virtual void WriteInlinePropertyRecordName(_In_reads_(length) const char16* pname, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
     };
 
     //A implements the writer for verbose text formatted output
@@ -265,12 +265,12 @@ namespace TTD
         uint32 m_indentSize;
 
     public:
-        TextFormatWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
+        TextFormatWriter(JsTTDStreamHandle handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~TextFormatWriter();
 
         ////
 
-        virtual void WriteSeperator(NSTokens::Separator separator) override;
+        virtual void WriteSeparator(NSTokens::Separator separator) override;
         virtual void WriteKey(NSTokens::Key key, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
         virtual void WriteSequenceStart(NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
@@ -304,19 +304,20 @@ namespace TTD
 
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
-        virtual void WriteInlineCode(_In_reads_(length) char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteInlineCode(_In_reads_(length) const char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteInlinePropertyRecordName(_In_reads_(length) const char16* pname, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
     };
 
     //A implements the writer for a compact binary formatted output
     class BinaryFormatWriter : public FileWriter
     {
     public:
-        BinaryFormatWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
+        BinaryFormatWriter(JsTTDStreamHandle handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~BinaryFormatWriter();
 
         ////
 
-        virtual void WriteSeperator(NSTokens::Separator separator) override;
+        virtual void WriteSeparator(NSTokens::Separator separator) override;
         virtual void WriteKey(NSTokens::Key key, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
         virtual void WriteSequenceStart(NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
@@ -350,7 +351,8 @@ namespace TTD
 
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
-        virtual void WriteInlineCode(_In_reads_(length) char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteInlineCode(_In_reads_(length) const char16* code, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteInlinePropertyRecordName(_In_reads_(length) const char16* pname, uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
     };
 
     //////////////////
@@ -365,7 +367,6 @@ namespace TTD
 
         int32 m_peekChar;
 
-        bool m_doDecompress;
         size_t m_cursor;
         size_t m_buffCount;
         byte* m_buffer;
@@ -431,6 +432,8 @@ namespace TTD
                 {
                     size_t readCount = 0;
                     this->ReadBlock(remainingBuff, &readCount);
+
+                    TTDAssert(readCount > 0, "We are out of data but still need more");
                     remainingBuff += readCount;
                     remainingBytes -= readCount;
                 }
@@ -447,7 +450,7 @@ namespace TTD
             }
         }
 
-        bool PeekRawChar(char16* c)
+        bool PeekRawChar(_Out_ char16* c)
         {
             if(this->m_peekChar != -1)
             {
@@ -465,7 +468,7 @@ namespace TTD
             }
         }
 
-        bool ReadRawChar(char16* c)
+        bool ReadRawChar(_Out_ char16* c)
         {
             if(this->m_peekChar != -1)
             {
@@ -484,6 +487,9 @@ namespace TTD
 
                 if(this->m_cursor == this->m_buffCount)
                 {
+                    // Make sure to set a value before we return.
+                    *c = _u('\0');
+
                     return false;
                 }
                 else
@@ -497,10 +503,10 @@ namespace TTD
         }
 
     public:
-        FileReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
+        FileReader(JsTTDStreamHandle handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~FileReader();
 
-        virtual void ReadSeperator(bool readSeparator) = 0;
+        virtual void ReadSeparator(bool readSeparator) = 0;
         virtual void ReadKey(NSTokens::Key keyCheck, bool readSeparator = false) = 0;
 
         uint32 ReadLengthValue(bool readSeparator = false);
@@ -611,10 +617,10 @@ namespace TTD
         double ReadDoubleFromCharArray(const char16* buff);
 
     public:
-        TextFormatReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
+        TextFormatReader(JsTTDStreamHandle handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~TextFormatReader();
 
-        virtual void ReadSeperator(bool readSeparator) override;
+        virtual void ReadSeparator(bool readSeparator) override;
         virtual void ReadKey(NSTokens::Key keyCheck, bool readSeparator = false) override;
 
         virtual void ReadSequenceStart(bool readSeparator = false) override;
@@ -653,10 +659,10 @@ namespace TTD
     class BinaryFormatReader : public FileReader
     {
     public:
-        BinaryFormatReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
+        BinaryFormatReader(JsTTDStreamHandle handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~BinaryFormatReader();
 
-        virtual void ReadSeperator(bool readSeparator) override;
+        virtual void ReadSeparator(bool readSeparator) override;
         virtual void ReadKey(NSTokens::Key keyCheck, bool readSeparator = false) override;
 
         virtual void ReadSequenceStart(bool readSeparator = false) override;
@@ -709,7 +715,7 @@ namespace TTD
     void SetDiagnosticOriginInformation(DiagnosticOrigin& info, uint32 sourceLine, uint64 eTime, uint64 fTime, uint64 lTime);
 
     void EmitDiagnosticOriginInformation(const DiagnosticOrigin& info, FileWriter* writer, NSTokens::Separator separator);
-    void ParseDiagnosticOriginInformation(DiagnosticOrigin& info, bool readSeperator, FileReader* reader);
+    void ParseDiagnosticOriginInformation(DiagnosticOrigin& info, bool readSeparator, FileReader* reader);
 #endif
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE

@@ -11,10 +11,10 @@ add_library (Chakra.Runtime.Debug OBJECT
     MutationBreakpoint.cpp
     ProbeContainer.cpp
     RuntimeDebugPch.cpp
-    SourceContextInfo.cpp
     TTActionEvents.cpp
     TTEventLog.cpp
     TTEvents.cpp
+    TTExecutionInfo.cpp
     TTInflateMap.cpp
     TTRuntmeInfoTracker.cpp
     TTSerialize.cpp

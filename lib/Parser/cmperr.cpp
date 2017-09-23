@@ -4,14 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
 
-#if DEBUG
-#include <stdarg.h>
-#endif //DEBUG
-
-void ErrHandler::Throw(HRESULT hr)
+ParseExceptionObject::ParseExceptionObject(HRESULT hr) : m_hr(hr)
 {
-    Assert(fInited);
     Assert(FAILED(hr));
-    m_hr = hr;
-    throw ParseExceptionObject(hr);
 }
+

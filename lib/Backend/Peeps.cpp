@@ -207,7 +207,7 @@ Peeps::PeepFunc()
 
                     if (pattern_found)
                     {
-                        IR::IntConstOpnd* constOne  = IR::IntConstOpnd::New((IntConstType) 1, TyInt32, instr->m_func);
+                        IR::IntConstOpnd* constOne  = IR::IntConstOpnd::New((IntConstType) 1, instr->GetDst()->GetType(), instr->m_func);
                         IR::Instr * addOrSubInstr = IR::Instr::New(Js::OpCode::ADD, instr->GetDst(), instr->GetDst(), constOne, instr->m_func);
 
                         if (instr->m_opcode == Js::OpCode::DEC)
@@ -384,9 +384,14 @@ Peeps::ClearRegMap()
 void
 Peeps::SetReg(RegNum reg, StackSym *sym)
 {
-    this->ClearReg(sym->scratch.peeps.reg);
     this->ClearReg(reg);
 
+    if (sym->m_isClosureSym)
+    {
+        return;
+    }
+
+    this->ClearReg(sym->scratch.peeps.reg);
     this->regMap[reg] = sym;
     sym->scratch.peeps.reg = reg;
 }
@@ -1113,7 +1118,7 @@ Peeps::PeepCondMove(IR::LabelInstr *labelInstr, IR::Instr *nextInstr, const bool
 {
     IR::Instr *instr = labelInstr->GetPrevRealInstrOrLabel();
 
-    Js::OpCode newOpCode;
+    Js::OpCode newOpCode = Js::OpCode::InvalidOpCode;
 
     // Check if BB is all MOVs with both RegOpnd
     while(instr->m_opcode == Js::OpCode::MOV)

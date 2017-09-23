@@ -99,6 +99,70 @@ var tests = [
             assert.isTrue(result instanceof Boolean, "new ReturnArgumentBaseClass(new Boolean(false)); returns an instance of Boolean");
         }
     },
+    {
+        name: "Class that extends null has right prototypes",
+        body: function () {
+            class A extends null {}
+            assert.areEqual(Function.prototype, Object.getPrototypeOf(A));
+            assert.areEqual(null, Object.getPrototypeOf(A.prototype));
+        }
+    },
+    {
+        name: "Class that extends null binds this in constructor",
+        body: function () {
+            var thisVal;
+            class B extends null {
+                constructor() {  thisVal = this;  }
+            }
+
+            var b = new B();
+            assert.areEqual(true, b instanceof B);
+            assert.areEqual(thisVal, b);
+        }
+    },
+    {
+        name: "Class that extends null throws TypeError upon super call in constructor",
+        body: function () {
+            var beforeSuper = 0;
+            var afterSuper = 0;
+
+            class C extends null {
+              constructor() {
+                beforeSuper++;
+                super();
+                afterSuper++;
+              }
+            }
+
+            assert.throws(function(){new C();}, TypeError, "super", "Function is not a constructor");
+            assert.areEqual(1, beforeSuper);
+            assert.areEqual(0, afterSuper);
+        }
+    },
+    {
+        name: "Class that extends null with implicit return in constructor",
+        body: function () {
+            class A extends null {
+                constructor() {}
+            }
+
+            var a;
+            assert.doesNotThrow(()=>{a = new A()});
+            assert.areEqual(A.prototype, Object.getPrototypeOf(a));
+        }
+    },
+    {
+        name: "Class that extends null with explicit return in constructor",
+        body: function () {
+            class A extends null {
+                constructor() { return {}; }
+            }
+
+            var a;
+            assert.doesNotThrow(()=>{a = new A()});
+            assert.areEqual(Object.prototype, Object.getPrototypeOf(a));
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

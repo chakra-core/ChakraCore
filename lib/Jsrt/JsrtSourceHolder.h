@@ -13,16 +13,17 @@ namespace Js
     private:
         enum MapRequestFor { Source = 1, Length = 2 };
 
-        TLoadCallback scriptLoadCallback;
-        TUnloadCallback scriptUnloadCallback;
-        JsSourceContext sourceContext;
+        FieldNoBarrier(TLoadCallback) scriptLoadCallback;
+        FieldNoBarrier(TUnloadCallback) scriptUnloadCallback;
+        Field(JsSourceContext) sourceContext;
 
 #ifndef NTBUILD
-        JsValueRef mappedScriptValue;
+        Field(JsValueRef) mappedScriptValue;
+        Field(JsValueRef) mappedSerializedScriptValue;
 #endif
-        utf8char_t const * mappedSource;
-        size_t mappedSourceByteLength;
-        size_t mappedAllocLength;
+        Field(utf8char_t const *) mappedSource;
+        Field(size_t) mappedSourceByteLength;
+        Field(size_t) mappedAllocLength;
 
         // Wrapper methods with Asserts to ensure that we aren't trying to access unmapped source
         utf8char_t const * GetMappedSource()
@@ -39,17 +40,19 @@ namespace Js
             return mappedSourceByteLength;
         };
 
-        void EnsureSource(MapRequestFor requestedFor, const wchar_t* reasonString);
+        void EnsureSource(MapRequestFor requestedFor, const WCHAR* reasonString);
 
     public:
         JsrtSourceHolder(_In_ TLoadCallback scriptLoadCallback,
             _In_ TUnloadCallback scriptUnloadCallback,
-            _In_ JsSourceContext sourceContext) :
+            _In_ JsSourceContext sourceContext,
+            JsValueRef serializedScriptValue = nullptr) :
             scriptLoadCallback(scriptLoadCallback),
             scriptUnloadCallback(scriptUnloadCallback),
             sourceContext(sourceContext),
 #ifndef NTBUILD
             mappedScriptValue(nullptr),
+            mappedSerializedScriptValue(serializedScriptValue),
 #endif
             mappedSourceByteLength(0),
             mappedSource(nullptr)
@@ -70,13 +73,13 @@ namespace Js
         }
 
         // Following two methods are calls to EnsureSource before attempting to get the source
-        virtual LPCUTF8 GetSource(const wchar_t* reasonString) override
+        virtual LPCUTF8 GetSource(const WCHAR* reasonString) override
         {
             this->EnsureSource(MapRequestFor::Source, reasonString);
             return this->GetMappedSource();
         }
 
-        virtual size_t GetByteLength(const wchar_t* reasonString) override
+        virtual size_t GetByteLength(const WCHAR* reasonString) override
         {
             this->EnsureSource(MapRequestFor::Length, reasonString);
             return this->GetMappedSourceLength();

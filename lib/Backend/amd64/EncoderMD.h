@@ -54,7 +54,6 @@ public:
         else
         {
             m_origPtr = ptr;
-            
             if (type == RelocTypeBranch)
             {
                 Assert(labelInstr);
@@ -190,6 +189,7 @@ public:
     static bool     SetsConditionCode(IR::Instr *instr);
     static bool     UsesConditionCode(IR::Instr *instr);
     static bool     IsOPEQ(IR::Instr *instr);
+    static bool     IsSHIFT(IR::Instr *instr);
     static bool     IsMOVEncoding(IR::Instr *instr);
     RelocList*      GetRelocList() const { return m_relocList; }
     int             AppendRelocEntry(RelocType type, void *ptr, IR::LabelInstr *label= nullptr);

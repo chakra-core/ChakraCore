@@ -160,9 +160,6 @@
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -220,13 +217,13 @@
   {
     "this": "Object {...}",
     "locals": {
+      "b21": "number 26.8",
+      "b22": "undefined undefined",
       "f3": "function <large string>",
       "f32": "function <large string>",
       "arguments": "Object {...}",
       "j2": "number 1",
-      "k2": "number 10",
-      "b21": "number 26.8",
-      "b22": "undefined undefined"
+      "k2": "number 10"
     },
     "scopes0": "undefined undefined"
   },
@@ -234,11 +231,11 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "j": "number 10",
       "a1": "number 112",
       "f2": "function <large string>",
       "k": "number 26.8",
-      "m": "number 132",
-      "j": "number 10"
+      "m": "number 132"
     }
   },
   {
@@ -411,9 +408,6 @@
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -471,13 +465,13 @@
   {
     "this": "Object {...}",
     "locals": {
+      "b21": "number 26.8",
+      "b22": "undefined undefined",
       "f3": "function <large string>",
       "f32": "function <large string>",
       "arguments": "Object {...}",
       "j2": "number 1",
-      "k2": "number 10",
-      "b21": "number 26.8",
-      "b22": "undefined undefined"
+      "k2": "number 10"
     },
     "scopes0": "undefined undefined"
   },
@@ -485,11 +479,11 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "j": "number 10",
       "a1": "number 21",
       "f2": "function <large string>",
       "k": "number 26.8",
-      "m": "number 41",
-      "j": "number 10"
+      "m": "number 41"
     }
   },
   {
@@ -662,9 +656,6 @@
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -722,13 +713,13 @@
   {
     "this": "Object {...}",
     "locals": {
+      "b21": "number 26.8",
+      "b22": "undefined undefined",
       "f3": "function <large string>",
       "f32": "function <large string>",
       "arguments": "Object {...}",
       "j2": "number 1",
-      "k2": "number 10",
-      "b21": "number 26.8",
-      "b22": "undefined undefined"
+      "k2": "number 10"
     },
     "scopes0": "undefined undefined"
   },
@@ -736,11 +727,11 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "j": "number 10",
       "a1": "number 112",
       "f2": "function <large string>",
       "k": "number 26.8",
-      "m": "number 132",
-      "j": "number 10"
+      "m": "number 132"
     }
   },
   {
@@ -913,9 +904,6 @@
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -973,13 +961,13 @@
   {
     "this": "Object {...}",
     "locals": {
+      "b21": "number 26.8",
+      "b22": "undefined undefined",
       "f3": "function <large string>",
       "f32": "function <large string>",
       "arguments": "Object {...}",
       "j2": "number 1",
-      "k2": "number 10",
-      "b21": "number 26.8",
-      "b22": "undefined undefined"
+      "k2": "number 10"
     },
     "scopes0": "undefined undefined"
   },
@@ -987,11 +975,11 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "j": "number 10",
       "a1": "number 21",
       "f2": "function <large string>",
       "k": "number 26.8",
-      "m": "number 41",
-      "j": "number 10"
+      "m": "number 41"
     }
   },
   {

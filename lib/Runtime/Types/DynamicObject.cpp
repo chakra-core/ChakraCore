@@ -59,7 +59,7 @@ namespace Js
         int inlineSlotCapacity = GetTypeHandler()->GetInlineSlotCapacity();
         int inlineSlotCount = min(inlineSlotCapacity, propertyCount);
         Var * srcSlots = reinterpret_cast<Var*>(reinterpret_cast<size_t>(instance) + typeHandler->GetOffsetOfInlineSlots());
-        Var * dstSlots = reinterpret_cast<Var*>(reinterpret_cast<size_t>(this) + typeHandler->GetOffsetOfInlineSlots());
+        Field(Var) * dstSlots = reinterpret_cast<Field(Var)*>(reinterpret_cast<size_t>(this) + typeHandler->GetOffsetOfInlineSlots());
 #if !FLOATVAR
         ScriptContext * scriptContext = this->GetScriptContext();
 #endif
@@ -305,6 +305,8 @@ namespace Js
         Assert(!predecessorType->GetIsLocked() || predecessorType->GetTypeHandler()->GetIsLocked());
         Assert(!predecessorType->GetIsShared() || predecessorType->GetTypeHandler()->GetIsShared());
 
+        Assert(this->GetType()->GetPrototype() == predecessorType->GetPrototype());
+
         PathTypeHandlerBase* currentPathTypeHandler = (PathTypeHandlerBase*)this->GetTypeHandler();
         PathTypeHandlerBase* predecessorPathTypeHandler = (PathTypeHandlerBase*)predecessorType->GetTypeHandler();
 
@@ -392,8 +394,8 @@ namespace Js
     }
 
     BOOL
-    DynamicObject::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, 
-        DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext) const
+    DynamicObject::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes,
+        DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext, PropertyValueInfo * info)
     {
         if(index == Constants::NoBigSlot)
         {
@@ -416,7 +418,7 @@ namespace Js
         }
         else if(this->GetScriptContext()->ShouldPerformRecordAction())
         {
-            BOOL res = this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags);
+            BOOL res = this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags, this, info);
 
             PropertyAttributes tmpAttributes = (attributes != nullptr) ? *attributes : PropertyNone;
             this->GetScriptContext()->GetThreadContext()->TTDLog->RecordPropertyEnumEvent(res, *propertyId, tmpAttributes, *propertyString);
@@ -424,10 +426,10 @@ namespace Js
         }
         else
         {
-            return this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags);
+            return this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags, this, info);
         }
 #else
-        return this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags);
+        return this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags, this, info);
 #endif
     }
 
@@ -647,6 +649,7 @@ namespace Js
         DynamicType * oldType = this->GetDynamicType();
         DynamicTypeHandler* oldTypeHandler = oldType->GetTypeHandler();
 
+#if ENABLE_FIXED_FIELDS
         // Consider: Because we've disabled fixed properties on DOM objects, we don't need to rely on a type change here to
         // invalidate fixed properties.  Under some circumstances (with F12 tools enabled) an object which
         // is already in the new context can be reset and newType == oldType. If we re-enable fixed properties on DOM objects
@@ -654,6 +657,7 @@ namespace Js
         // Assert(newType != oldType);
         // We only expect DOM objects to ever be reset and we explicitly disable fixed properties on DOM objects.
         Assert(!oldTypeHandler->HasAnyFixedProperties());
+#endif
 
         this->type = newType;
         if (!IsAnyArray(this))
@@ -687,17 +691,37 @@ namespace Js
         {
             this->SetInternalProperty(InternalPropertyIds::StackTrace, nullptr, PropertyOperation_None, nullptr);
         }
+        else
+        {
+            // Above GetInternalProperty fails - which means the stackTraceValue is filed with Missing result. Reset to null so that we will not restore it back below.
+            stackTraceValue = nullptr;
+        }
 
         Var weakMapKeyMapValue = nullptr;
         if (this->GetInternalProperty(this, InternalPropertyIds::WeakMapKeyMap, &weakMapKeyMapValue, nullptr, this->GetScriptContext()))
         {
             this->SetInternalProperty(InternalPropertyIds::WeakMapKeyMap, nullptr, PropertyOperation_Force, nullptr);
         }
+        else
+        {
+            weakMapKeyMapValue = nullptr;
+        }
 
         Var mutationBpValue = nullptr;
         if (this->GetInternalProperty(this, InternalPropertyIds::MutationBp, &mutationBpValue, nullptr, this->GetScriptContext()))
         {
             this->SetInternalProperty(InternalPropertyIds::MutationBp, nullptr, PropertyOperation_Force, nullptr);
+        }
+        else
+        {
+            mutationBpValue = nullptr;
+        }
+
+        // If value of TypeOfPrototypeObjectDictionary was set undefined above, reset it to nullptr so we don't type cast it wrongly to TypeTransitionMap* or we don't marshal the non-Var dictionary below
+        Var typeTransitionMap = nullptr;
+        if (this->GetInternalProperty(this, InternalPropertyIds::TypeOfPrototypeObjectDictionary, &typeTransitionMap, nullptr, this->GetScriptContext()))
+        {
+            this->SetInternalProperty(InternalPropertyIds::TypeOfPrototypeObjectDictionary, nullptr, PropertyOperation_Force, nullptr);
         }
 
         if (keepProperties)
@@ -856,14 +880,15 @@ namespace Js
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapDynamicObject>(objData, nullptr);
     }
 
-    Js::Var* DynamicObject::GetInlineSlots_TTD() const
+    Js::Var const* DynamicObject::GetInlineSlots_TTD() const
     {
-        return reinterpret_cast<Var*>(reinterpret_cast<size_t>(this) + this->GetTypeHandler()->GetOffsetOfInlineSlots());
+        return reinterpret_cast<Var const*>(
+            reinterpret_cast<size_t>(this) + this->GetTypeHandler()->GetOffsetOfInlineSlots());
     }
 
-    Js::Var* DynamicObject::GetAuxSlots_TTD() const
+    Js::Var const* DynamicObject::GetAuxSlots_TTD() const
     {
-        return this->auxSlots;
+        return AddressOf(this->auxSlots[0]);
     }
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
@@ -873,7 +898,7 @@ namespace Js
         {
             if(this->GetScriptContext()->ShouldPerformRecordOrReplayAction())
             {
-                this->GetScriptContext()->GetThreadContext()->TTDLog->GetTimeAndPositionForDiagnosticObjectTracking(this->TTDDiagOriginInfo);
+                this->GetScriptContext()->GetThreadContext()->TTDExecutionInfo->GetTimeAndPositionForDiagnosticObjectTracking(this->TTDDiagOriginInfo);
             }
         }
     }

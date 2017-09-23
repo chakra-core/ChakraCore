@@ -56,66 +56,73 @@ var controllerObj = (function () {
     }
 
     filterLog = (function () {
-        var parentFilter = { "this": 1, "locals": 1 };
+        var parentFilter = { "this": 1, "locals": 1, "globals": 1 };
         var filter = {};
 
         // Discard all known globals to reduce baseline noise.
         [
             "#__proto__",
-            "NaN",
-            "Infinity",
-            "undefined",
-            "eval",
-            "parseInt",
-            "parseFloat",
-            "isNaN",
-            "isFinite",
+            "Array",
+            "ArrayBuffer",
+            "Atomics",
+            "Boolean",
+            "chWriteTraceEvent",
+            "CollectGarbage",
+            "console",
+            "DataView",
+            "Date",
             "decodeURI",
             "decodeURIComponent",
             "encodeURI",
             "encodeURIComponent",
+            "Error",
             "escape",
-            "unescape",
-            "CollectGarbage",
-            "Object",
-            "Array",
-            "Boolean",
-            "Symbol",
-            "Proxy",
-            "Reflect",
-            "Promise",
-            "Date",
-            "Function",
-            "Math",
-            "Number",
-            "String",
-            "RegExp",
-            "ArrayBuffer",
-            "DataView",
-            "Int8Array",
-            "Uint8Array",
-            "Uint8ClampedArray",
-            "Int16Array",
-            "Uint16Array",
-            "Int32Array",
-            "Uint32Array",
+            "eval",
+            "EvalError",
             "Float32Array",
             "Float64Array",
-            "JSON",
+            "Function",
+            "Infinity",
+            "Int16Array",
+            "Int32Array",
+            "Int8Array",
             "Intl",
+            "isFinite",
+            "isNaN",
+            "JSON",
             "Map",
-            "Set",
-            "WeakMap",
-            "WeakSet",
-            "Error",
-            "EvalError",
+            "Math",
+            "NaN",
+            "Number",
+            "Object",
+            "parseFloat",
+            "parseInt",
+            "print",
+            "Promise",
+            "Proxy",
             "RangeError",
+            "read",
+            "readbuffer",
             "ReferenceError",
+            "Reflect",
+            "RegExp",
+            "Set",
+            "SharedArrayBuffer",
+            "String",
+            "Symbol",
             "SyntaxError",
             "TypeError",
+            "Uint16Array",
+            "Uint32Array",
+            "Uint8Array",
+            "Uint8ClampedArray",
+            "undefined",
+            "unescape",
             "URIError",
+            "WeakMap",
+            "WeakSet",
+            "WebAssembly",
             "WScript",
-            "print"
         ].forEach(function (name) {
             filter[name] = 1;
         });
@@ -496,6 +503,14 @@ var controllerObj = (function () {
         return objectDisplay;
     }
 
+    var stringToArrayBuffer = function stringToArrayBuffer(str) {
+        var arr = [];
+        for (var i = 0, len = str.length; i < len; i++) {
+            arr[i] = str.charCodeAt(i) & 0xFF;
+        }
+        return new Uint8Array(arr).buffer;
+    }
+
     function GetChild(obj, level) {
         function GetChildrens(obj, level) {
             var retArray = {};
@@ -719,6 +734,10 @@ var controllerObj = (function () {
                     if (typeof expandLevel != "number" || expandLevel <= 0) {
                         expandLevel = 0;
                     }
+
+                    if (WScript && typeof expression == 'string' && WScript.forceDebugArrayBuffer)
+                        expression = stringToArrayBuffer(expression);
+
                     var evalResult = callHostFunction(hostDebugObject.JsDiagEvaluate, _currentStackFrameIndex, expression);
                     var evaluateOutput = {};
                     evaluateOutput[evalResult.name] = GetChild(evalResult, expandLevel - 1);
@@ -760,6 +779,44 @@ var controllerObj = (function () {
                 });
                 recordEvent({
                     'sources': sources
+                });
+            },
+            dumpFunctionProperties: function (frameIdOrArrayOfIds = [0], expandLevel = 0) {
+                if (typeof frameIdOrArrayOfIds != "number" && !(frameIdOrArrayOfIds instanceof Array)) {
+                    frameIdOrArrayOfIds = [0];
+                }
+                if (typeof expandLevel != "number" || expandLevel < 0) {
+                    expandLevel = 0;
+                }
+                let stackTrace = callHostFunction(hostDebugObject.JsDiagGetStackTrace);
+                let functionHandles = [];
+                let requestedFrameIndexes = [];
+                if (typeof frameIdOrArrayOfIds === "number") {
+                    requestedFrameIndexes.push(frameIdOrArrayOfIds);
+                } else if (frameIdOrArrayOfIds instanceof Array) {
+                    frameIdOrArrayOfIds.forEach((s) => {
+                        if (typeof s === "number") {
+                            requestedFrameIndexes.push(s);
+                        }
+                    });
+                }
+                if (requestedFrameIndexes.length == 0) {
+                    requestedFrameIndexes.push(0);
+                }
+
+                stackTrace.forEach((stackFrame) => {
+                    let stackFrameIndex = stackFrame.index;
+                    if (requestedFrameIndexes.includes(stackFrameIndex) && !functionHandles.includes(stackFrame.functionHandle)) {
+                        functionHandles.push(stackFrame.functionHandle);
+                    }
+                });
+
+                let functionProperties = [];
+                functionHandles.forEach((handle) => {
+                    functionProperties.push(GetChild({ handle: handle }, expandLevel));
+                });
+                recordEvent({
+                    'functionProperties': functionProperties
                 });
             },
             trace: function (traceFlag) {
@@ -905,6 +962,9 @@ function dumpBreak() {
 }
 function dumpSourceList() {
     controllerObj.pushCommand(controllerObj.debuggerCommands.dumpSourceList, arguments);
+}
+function dumpFunctionProperties() {
+    controllerObj.pushCommand(controllerObj.debuggerCommands.dumpFunctionProperties, arguments);
 }
 
 // Start internal tracing. E.g.: /**bp:trace(TRACE_COMMANDS)**/

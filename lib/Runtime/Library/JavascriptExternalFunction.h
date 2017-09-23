@@ -49,32 +49,32 @@ namespace Js
         void SetExternalFlags(UINT64 flags) { this->flags = flags; }
 
     private:
-        Var signature;
-        void *callbackState;
+        Field(Var) signature;
+        Field(void *) callbackState;
         union
         {
-            ExternalMethod nativeMethod;
-            JavascriptExternalFunction* wrappedMethod;
-            StdCallJavascriptMethod stdCallNativeMethod;
+            FieldNoBarrier(ExternalMethod) nativeMethod;
+            Field(JavascriptExternalFunction*) wrappedMethod;
+            FieldNoBarrier(StdCallJavascriptMethod) stdCallNativeMethod;
         };
-        InitializeMethod initMethod;
+        Field(InitializeMethod) initMethod;
 
         // Ensure GC doesn't pin
-        unsigned int oneBit:1;
+        Field(unsigned int) oneBit:1;
         // Count of type slots for
-        unsigned int typeSlots:15;
+        Field(unsigned int) typeSlots:15;
         // Determines if we need are a dictionary type
-        unsigned int hasAccessors:1;
-        unsigned int unused:15;
+        Field(unsigned int) hasAccessors:1;
+        Field(unsigned int) unused:15;
 
-        JavascriptTypeId prototypeTypeId;
-        UINT64 flags;
+        Field(JavascriptTypeId) prototypeTypeId;
+        Field(UINT64) flags;
 
         static Var ExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var WrappedFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var StdCallExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var DefaultExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
-        static void __cdecl DeferredInitializer(DynamicObject* instance, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode);
+        static bool __cdecl DeferredInitializer(DynamicObject* instance, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode);
 
         void PrepareExternalCall(Arguments * args);
 

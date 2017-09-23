@@ -9,7 +9,7 @@ namespace Js
     class JavascriptArrayIndexSnapshotEnumerator : public JavascriptArrayIndexEnumeratorBase
     {
     private:
-        uint32 initialLength;
+        Field(uint32) initialLength;
 
     protected:
         DEFINE_VTABLE_CTOR(JavascriptArrayIndexSnapshotEnumerator, JavascriptArrayIndexEnumeratorBase);
@@ -17,6 +17,6 @@ namespace Js
     public:
         JavascriptArrayIndexSnapshotEnumerator(JavascriptArray* arrayObject, EnumeratorFlags flags, ScriptContext* scriptContext);
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
+        virtual JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
     };
 }

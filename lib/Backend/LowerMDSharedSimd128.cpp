@@ -386,11 +386,11 @@ IR::Instr* LowererMD::Simd128LoadConst(IR::Instr* instr)
     {
         int offset = NativeCodeData::GetDataTotalOffset(pValue);
 
-        simdRef = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), offset, TyMachDouble,
+        simdRef = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), offset, instr->GetDst()->GetType(),
 #if DBG
             NativeCodeData::GetDataDescription(pValue, m_func->m_alloc),
 #endif
-            m_func);
+            m_func, true);
 
         GetLowerer()->addToLiveOnBackEdgeSyms->Set(m_func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
     }
@@ -434,7 +434,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_8(IR::Instr *instr)
     while (!args->Empty() && i < 8)
     {
         srcs[i] = args->Pop();
-        // src's might have been constant prop'ed. Enregister them if so.
+        // src's might have been constant prop'd. Enregister them if so.
         srcs[i] = EnregisterIntConst(instr, srcs[i], TyInt16);
         Assert(srcs[i]->GetType() == TyInt16 && srcs[i]->IsRegOpnd());
         // PINSRW dst, srcs[i], i
@@ -473,7 +473,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_16(IR::Instr *instr)
     while (!args->Empty() && i < 16)
     {
         srcs[i] = args->Pop();
-        // src's might have been constant prop'ed. Enregister them if so.
+        // src's might have been constant prop'd. Enregister them if so.
         srcs[i] = EnregisterIntConst(instr, srcs[i], TyInt8);
         Assert(srcs[i]->GetType() == TyInt8 && srcs[i]->IsRegOpnd());
 
@@ -591,7 +591,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_4(IR::Instr *instr)
         //Simd128_IntsToI4/U4
         IR::RegOpnd *temp = IR::RegOpnd::New(TyFloat32, m_func);
 
-        // src's might have been constant prop'ed. Enregister them if so.
+        // src's might have been constant prop'd. Enregister them if so.
         src4 = EnregisterIntConst(instr, src4);
         src3 = EnregisterIntConst(instr, src3);
         src2 = EnregisterIntConst(instr, src2);
@@ -732,7 +732,7 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
             Legalize(shiftInstr);
         }
         // MOVSS/MOVSD/MOVD dst, tmp
-        instr->InsertBefore(IR::Instr::New(movOpcode, dst, tmp, m_func));
+        instr->InsertBefore(IR::Instr::New(movOpcode, movOpcode == Js::OpCode::MOVD ? dst : dst->UseWithNewType(tmp->GetType(), m_func), tmp, m_func));
     }
 
     // dst has the 4-byte lane
@@ -1289,7 +1289,7 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
     IR::RegOpnd *shamt = IR::RegOpnd::New(src2->GetType(), m_func);
     // en-register
     IR::Opnd *origShamt = EnregisterIntConst(instr, src2); //unnormalized shift amount
-    pInstr = IR::Instr::New(Js::OpCode::AND, shamt, origShamt, IR::IntConstOpnd::New(Js::SIMDUtils::SIMDGetShiftAmountMask(elementSizeInBytes), TyInt8, m_func), m_func); // normalizing by elm width (i.e. shamt % elm_width)
+    pInstr = IR::Instr::New(Js::OpCode::AND, shamt, origShamt, IR::IntConstOpnd::New(Js::SIMDUtils::SIMDGetShiftAmountMask(elementSizeInBytes), TyInt32, m_func), m_func); // normalizing by elm width (i.e. shamt % elm_width)
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
 

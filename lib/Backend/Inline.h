@@ -39,7 +39,7 @@ private:
     intptr_t TryOptimizeInstrWithFixedDataProperty(IR::Instr *&instr);
     IR::Instr * InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symThis, const Js::ProfileId profileId, bool* pIsInlined, uint recursiveInlineDepth);
 #ifdef ENABLE_DOM_FAST_PATH
-    IR::Instr * InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const FunctionJITTimeInfo *const inlineeData, const FunctionJITTimeInfo *const inlinerData);
+    void        InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const FunctionJITTimeInfo *const inlineeData, const FunctionJITTimeInfo *const inlinerData);
 #endif
     IR::Instr * InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symCallerThis, const uint inlineCacheIndex, bool isGetter, bool *pIsInlined, uint recursiveInlineDepth);
     IR::Instr * InlineFunctionCommon(IR::Instr *callInstr, bool originalCallTargetOpndIsJITOpt, StackSym* originalCallTargetStackSym, const FunctionJITTimeInfo *funcInfo, Func *inlinee, IR::Instr *instrNext,
@@ -91,8 +91,10 @@ private:
     IR::Instr * RemoveLdThis(IR::Instr *instr);
     bool        GetInlineeHasArgumentObject(Func * inlinee);
     bool        HasArgumentsAccess(IR::Instr * instr, SymID argumentsSymId);
+    bool        HasArgumentsAccess(IR::Instr * instr);
     bool        HasArgumentsAccess(IR::Opnd * opnd, SymID argumentsSymId);
     bool        IsArgumentsOpnd(IR::Opnd* opnd,SymID argumentsSymId);
+    bool        IsArgumentsOpnd(IR::Opnd* opnd);
     void        Cleanup(IR::Instr *callInstr);
     IR::PropertySymOpnd* GetMethodLdOpndForCallInstr(IR::Instr* callInstr);
 #ifdef ENABLE_SIMDJS
@@ -111,7 +113,7 @@ private:
         const FunctionJITTimeInfo* inlineeJitTimeData,
         __inout_ecount(inlineesDataArrayLength) const FunctionJITTimeInfo **inlineesDataArray,
         uint inlineesDataArrayLength,
-        __inout_ecount(cachedFixedInlineeCount) JITTimeFixedField* fixedFunctionInfoArray,
+        __inout_ecount(cachedFixedInlineeCount) FixedFieldInfo* fixedFunctionInfoArray,
         uint16 cachedFixedInlineeCount
         );
 
@@ -122,7 +124,7 @@ private:
     void InsertOneInlinee(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd,
         IR::Opnd* methodOpnd, const FunctionJITTimeInfo * inlineeJITData, const FunctionJITRuntimeInfo * inlineeRuntimeData, IR::LabelInstr* doneLabel, const StackSym* symCallerThis, bool fixedFunctionSafeThis, uint recursiveInlineDepth);
     void CompletePolymorphicInlining(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd, IR::LabelInstr* doneLabel, IR::Instr* dispatchStartLabel, IR::Instr* ldMethodFldInstr, IR::BailOutKind bailoutKind);
-    uint HandleDifferentTypesSameFunction(__inout_ecount(cachedFixedInlineeCount) JITTimeFixedField* fixedFunctionInfoArray, uint16 cachedFixedInlineeCount);
+    uint HandleDifferentTypesSameFunction(__inout_ecount(cachedFixedInlineeCount) FixedFieldInfo* fixedFunctionInfoArray, uint16 cachedFixedInlineeCount);
     void SetInlineeFrameStartSym(Func *inlinee, uint actualCount);
     void CloneCallSequence(IR::Instr* callInstr, IR::Instr* clonedCallInstr);
 

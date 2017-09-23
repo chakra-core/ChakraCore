@@ -71,6 +71,7 @@ typedef BYTE* ChakraBytePtr;
 #define CHAKRA_API extern "C" SET_API_VISIBILITY JsErrorCode
 #else
 #define CHAKRA_API extern     SET_API_VISIBILITY JsErrorCode
+#include <stdbool.h>
 #endif
 
 #include <stddef.h>  // for size_t
@@ -86,9 +87,14 @@ typedef void* HANDLE;
 typedef unsigned char BYTE;
 typedef BYTE byte;
 typedef UINT32 DWORD;
+typedef unsigned short WCHAR;
 #endif
 
 #endif //  defined(_WIN32) && defined(_MSC_VER)
+
+#if (defined(_MSC_VER) && _MSC_VER <= 1900) || (!defined(_MSC_VER) && __cplusplus <= 199711L) // !C++11
+typedef unsigned short uint16_t;
+#endif
 
     /// <summary>
     ///     An error code returned from a Chakra hosting API.
@@ -205,21 +211,17 @@ typedef UINT32 DWORD;
         /// </summary>
         JsErrorPropertyNotString,
         /// <summary>
-        ///     Module evaulation is called in wrong context.
+        ///     Module evaluation is called in wrong context.
         /// </summary>
         JsErrorInvalidContext,
         /// <summary>
-        ///     Module evaulation is called in wrong context.
+        ///     Module evaluation is called in wrong context.
         /// </summary>
         JsInvalidModuleHostInfoKind,
         /// <summary>
         ///     Module was parsed already when JsParseModuleSource is called.
         /// </summary>
         JsErrorModuleParsed,
-        /// <summary>
-        ///     Module was evaluated already when JsModuleEvaluation is called.
-        /// </summary>
-        JsErrorModuleEvaluated,
         /// <summary>
         ///     Category of errors that relates to errors occurring within the engine itself.
         /// </summary>
@@ -293,7 +295,7 @@ typedef UINT32 DWORD;
         /// </summary>
         JsErrorDiagObjectNotFound,
         /// <summary>
-        ///     VM was unable to perfom the request action
+        ///     VM was unable to perform the request action
         /// </summary>
         JsErrorDiagUnableToPerformAction,
     } JsErrorCode;
@@ -321,7 +323,11 @@ typedef UINT32 DWORD;
     /// <summary>
     ///     An invalid runtime handle.
     /// </summary>
-    const JsRuntimeHandle JS_INVALID_RUNTIME_HANDLE = nullptr;
+#ifdef __cplusplus
+    const JsRuntimeHandle JS_INVALID_RUNTIME_HANDLE = 0;
+#else
+    #define JS_INVALID_RUNTIME_HANDLE (JsRuntimeHandle)0
+#endif
 
     /// <summary>
     ///     A reference to an object owned by the Chakra garbage collector.
@@ -338,7 +344,11 @@ typedef UINT32 DWORD;
     /// <summary>
     ///     An invalid reference.
     /// </summary>
-    const JsRef JS_INVALID_REFERENCE = nullptr;
+#ifdef __cplusplus
+    const JsRef JS_INVALID_REFERENCE = 0;
+#else
+    #define JS_INVALID_REFERENCE (JsRef)0
+#endif
 
     /// <summary>
     ///     A reference to a script context.
@@ -373,7 +383,11 @@ typedef UINT32 DWORD;
     /// <summary>
     ///     An empty source context.
     /// </summary>
+#ifdef __cplusplus
     const JsSourceContext JS_SOURCE_CONTEXT_NONE = (JsSourceContext)-1;
+#else
+    #define JS_SOURCE_CONTEXT_NONE (JsSourceContext)-1
+#endif
 
     /// <summary>
     ///     A property identifier.
@@ -2040,6 +2054,7 @@ typedef UINT32 DWORD;
             _Outptr_result_bytebuffer_(*bufferLength) ChakraBytePtr *buffer,
             _Out_ unsigned int *bufferLength);
 
+
     /// <summary>
     ///     Invokes a function.
     /// </summary>
@@ -2365,7 +2380,7 @@ typedef UINT32 DWORD;
     /// </returns>
     CHAKRA_API
         JsSetPromiseContinuationCallback(
-            _In_ JsPromiseContinuationCallback promiseContinuationCallback,
+            _In_opt_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
 
 #ifdef _WIN32

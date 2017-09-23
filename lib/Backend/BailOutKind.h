@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#if !defined(BAIL_OUT_KIND) || !defined(BAIL_OUT_KIND_LAST) || !defined(BAIL_OUT_KIND_VALUE) || !defined(BAIL_OUT_KIND_VALUE_LAST)
-    #error BAIL_OUT_KIND, BAIL_OUT_KIND_LAST, BAIL_OUT_KIND_VALUE, and BAIL_OUT_KIND_VALUE_LAST must be defined before including this file.
+#if !defined(BAIL_OUT_KIND) || !defined(BAIL_OUT_KIND_VALUE) || !defined(BAIL_OUT_KIND_VALUE_LAST)
+    #error BAIL_OUT_KIND, BAIL_OUT_KIND_VALUE, and BAIL_OUT_KIND_VALUE_LAST must be defined before including this file.
 #endif
                /* kind */                           /* allowed bits */
 BAIL_OUT_KIND(BailOutInvalid,                       IR::BailOutOnResultConditions | IR::BailOutForArrayBits | IR::BailOutForDebuggerBits | IR::BailOutMarkTempObject)
@@ -46,12 +46,14 @@ BAIL_OUT_KIND(LazyBailOut,                          0)
 BAIL_OUT_KIND(BailOutOnFailedHoistedLoopCountBasedBoundCheck, 0)
 BAIL_OUT_KIND(BailOutForGeneratorYield,             0)
 BAIL_OUT_KIND(BailOutOnException,                   0)
+BAIL_OUT_KIND(BailOutOnEarlyExit,                   0)
 
+#ifdef ENABLE_SIMDJS
 // SIMD_JS
 BAIL_OUT_KIND(BailOutSimd128F4Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128I4Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128I8Only,                 0)
-BAIL_OUT_KIND(BailOutSimd128I16Only,                 0)
+BAIL_OUT_KIND(BailOutSimd128I16Only,                0)
 BAIL_OUT_KIND(BailOutSimd128U4Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128U8Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128U16Only,                0)
@@ -60,6 +62,7 @@ BAIL_OUT_KIND(BailOutSimd128B8Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128B16Only,                0)
 BAIL_OUT_KIND(BailOutSimd128D2Only,                 0)
 BAIL_OUT_KIND(BailOutNoSimdTypeSpec,                0)
+#endif
 
 BAIL_OUT_KIND(BailOutKindEnd,                       0)
 
@@ -77,6 +80,7 @@ BAIL_OUT_KIND_VALUE(BailOutOnMulOverflow, 1 << (BAIL_OUT_KIND_RESULT_CONDITIONS_
 BAIL_OUT_KIND_VALUE(BailOutOnNegativeZero, 1 << (BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 2))
 BAIL_OUT_KIND_VALUE(BailOutOnPowIntIntOverflow, 1 << (BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 3))
 BAIL_OUT_KIND_VALUE(BailOutOnResultConditions, BailOutOnOverflow | BailOutOnMulOverflow | BailOutOnNegativeZero | BailOutOnPowIntIntOverflow)
+
 // ================
 // Array bits
 // ================
@@ -88,17 +92,8 @@ BAIL_OUT_KIND_VALUE(BailOutOnArrayAccessHelperCall, 1 << (BAIL_OUT_KIND_ARRAY_BI
 BAIL_OUT_KIND_VALUE(BailOutOnInvalidatedArrayHeadSegment, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 4))
 BAIL_OUT_KIND_VALUE(BailOutOnInvalidatedArrayLength, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 5))
 BAIL_OUT_KIND_VALUE(BailOnStackArgsOutOfActualsRange, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 6))
-BAIL_OUT_KIND_VALUE(
-    BailOutForArrayBits,
-    (
-        BailOutOnMissingValue |
-        BailOutConventionalNativeArrayAccessOnly |
-        BailOutConvertedNativeArray |
-        BailOutOnArrayAccessHelperCall |
-        BailOutOnInvalidatedArrayHeadSegment |
-        BailOutOnInvalidatedArrayLength |
-        BailOnStackArgsOutOfActualsRange
-    ))
+BAIL_OUT_KIND_VALUE(    BailOutForArrayBits,    (        BailOutOnMissingValue |        BailOutConventionalNativeArrayAccessOnly |        BailOutConvertedNativeArray |        BailOutOnArrayAccessHelperCall |        BailOutOnInvalidatedArrayHeadSegment |        BailOutOnInvalidatedArrayLength |        BailOnStackArgsOutOfActualsRange    ))
+
 // ================
 // Debug bits
 // ================
@@ -120,8 +115,7 @@ BAIL_OUT_KIND_VALUE(BailOutExplicit, 1 << (BAIL_OUT_KIND_DEBUG_BIT_START + 4))
 BAIL_OUT_KIND_VALUE(BailOutStep, 1 << (BAIL_OUT_KIND_DEBUG_BIT_START + 5))
 BAIL_OUT_KIND_VALUE(BailOutIgnoreException, 1 << (BAIL_OUT_KIND_DEBUG_BIT_START + 6))
 
-BAIL_OUT_KIND_VALUE(BailOutForDebuggerBits, BailOutForceByFlag | BailOutBreakPointInFunction | BailOutStackFrameBase |
-    BailOutLocalValueChanged | BailOutExplicit | BailOutStep | BailOutIgnoreException)
+BAIL_OUT_KIND_VALUE(BailOutForDebuggerBits, BailOutForceByFlag | BailOutBreakPointInFunction | BailOutStackFrameBase | BailOutLocalValueChanged | BailOutExplicit | BailOutStep | BailOutIgnoreException)
 
 // ======================
 // Div Src Condition Bits
@@ -138,7 +132,6 @@ BAIL_OUT_KIND_VALUE(BailOutMarkTempObject, 1 << (BAIL_OUT_KIND_MISC_BIT_START + 
 BAIL_OUT_KIND_VALUE_LAST(BailOutKindBits, BailOutMarkTempObject | BailOutOnDivSrcConditions | BailOutOnResultConditions | BailOutForArrayBits | BailOutForDebuggerBits)
 
 // Help caller undefine the macros
-#undef BAIL_OUT_KIND_LAST
 #undef BAIL_OUT_KIND
 #undef BAIL_OUT_KIND_VALUE_LAST
 #undef BAIL_OUT_KIND_VALUE

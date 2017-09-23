@@ -184,9 +184,9 @@ namespace Js
         ~JavascriptStackWalker() { inlinedFrameWalker.Close(); }
 #endif
         BOOL Walk(bool includeInlineFrames = true);
-        BOOL GetCaller(JavascriptFunction ** ppFunc, bool includeInlineFrames = true);
-        BOOL GetCallerWithoutInlinedFrames(JavascriptFunction ** ppFunc);
-        BOOL GetNonLibraryCodeCaller(JavascriptFunction ** ppFunc);
+        BOOL GetCaller(_Out_opt_ JavascriptFunction ** ppFunc, bool includeInlineFrames = true);
+        BOOL GetCallerWithoutInlinedFrames(_Out_opt_ JavascriptFunction ** ppFunc);
+        BOOL GetNonLibraryCodeCaller(_Out_opt_ JavascriptFunction ** ppFunc);
         BOOL WalkToTarget(JavascriptFunction * funcTarget);
         BOOL WalkToArgumentsFrame(ArgumentsObject *argsObj);
 
@@ -212,8 +212,8 @@ namespace Js
 
         JavascriptFunction *GetCurrentFunction(bool includeInlinedFrames = true) const;
         void SetCurrentFunction(JavascriptFunction *  function);
-        CallInfo const *GetCallInfo(bool includeInlinedFrames = true) const;
-        CallInfo const *GetCallInfoFromPhysicalFrame() const;
+        CallInfo GetCallInfo(bool includeInlinedFrames = true) const;
+        CallInfo GetCallInfoFromPhysicalFrame() const;
         bool GetThis(Var *pThis, int moduleId) const;
         Js::Var * GetJavascriptArgs() const;
         void **GetCurrentArgv() const;
@@ -237,16 +237,17 @@ namespace Js
         bool IsCurrentPhysicalFrameForLoopBody() const;
 
         // noinline, we want to use own stack frame.
-        static _NOINLINE BOOL GetCaller(JavascriptFunction** ppFunc, ScriptContext* scriptContext);
-        static _NOINLINE BOOL GetCaller(JavascriptFunction** ppFunc, uint32* byteCodeOffset, ScriptContext* scriptContext);
+        static _NOINLINE BOOL GetCaller(_Out_opt_ JavascriptFunction** ppFunc, ScriptContext* scriptContext);
+        static _NOINLINE BOOL GetCaller(_Out_opt_ JavascriptFunction** ppFunc, uint32* byteCodeOffset, ScriptContext* scriptContext);
         static _NOINLINE bool GetThis(Var* pThis, int moduleId, ScriptContext* scriptContext);
         static _NOINLINE bool GetThis(Var* pThis, int moduleId, JavascriptFunction* func, ScriptContext* scriptContext);
 
         static bool IsDisplayCaller(JavascriptFunction* func);
-        bool GetDisplayCaller(JavascriptFunction ** ppFunc);
+        bool GetDisplayCaller(_Out_opt_ JavascriptFunction ** ppFunc);
         PCWSTR GetCurrentNativeLibraryEntryName() const;
         static bool IsLibraryStackFrameEnabled(Js::ScriptContext * scriptContext);
-        
+        static bool IsWalkable(ScriptContext *scriptContext);
+
         // Walk frames (until walkFrame returns true)
         template <class WalkFrame>
         ushort WalkUntil(ushort stackTraceLimit, WalkFrame walkFrame, bool onlyOnDebugMode = false, bool filterDiagnosticsOM = false)
@@ -348,7 +349,7 @@ namespace Js
         Js::JavascriptFunction * UpdateFrame(bool includeInlineFrames);
         bool CheckJavascriptFrame(bool includeInlineFrames);
 
-        JavascriptFunction *JavascriptStackWalker::GetCurrentFunctionFromPhysicalFrame() const;
+        JavascriptFunction *GetCurrentFunctionFromPhysicalFrame() const;
      };
 
     class AutoPushReturnAddressForStackWalker

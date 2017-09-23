@@ -50,6 +50,7 @@ namespace Js
         }
 
         uint32 GetByteOffset() const { return byteOffset; }
+        void ClearLengthAndBufferOnDetach();
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetInt8(RecyclableObject* function, CallInfo callInfo, ...);
@@ -199,8 +200,8 @@ namespace Js
         template<> void SetValue<double>(uint32 byteOffset, double value, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
 #endif
 
-        uint32 byteOffset;
-        BYTE* buffer;   // beginning of buffer
+        Field(uint32) byteOffset;
+        Field(BYTE*) buffer;   // beginning of buffer
 
     };
 }

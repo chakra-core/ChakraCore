@@ -31,12 +31,12 @@ namespace Js
     }
 
     template<size_t size>
-    SimpleTypeHandler<size>::SimpleTypeHandler(const PropertyRecord* id, PropertyAttributes attributes, PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
+    SimpleTypeHandler<size>::SimpleTypeHandler(NO_WRITE_BARRIER_TAG_TYPE(const PropertyRecord* id), PropertyAttributes attributes, PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
         DynamicTypeHandler(sizeof(descriptors) / sizeof(SimplePropertyDescriptor),
         inlineSlotCapacity, offsetOfInlineSlots, DefaultFlags | IsLockedFlag | MayBecomeSharedFlag | IsSharedFlag), propertyCount(1)
     {
         Assert((attributes & PropertyDeleted) == 0);
-        descriptors[0].Id = id;
+        NoWriteBarrierSet(descriptors[0].Id, id); // Used to init from global static BuiltInPropertyId
         descriptors[0].Attributes = attributes;
 
         Assert((propertyTypes & (PropertyTypesAll & ~PropertyTypesWritableDataOnly)) == 0);
@@ -45,15 +45,15 @@ namespace Js
     }
 
     template<size_t size>
-
-    SimpleTypeHandler<size>::SimpleTypeHandler(SimplePropertyDescriptor const (&SharedFunctionPropertyDescriptors)[size], PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
+    SimpleTypeHandler<size>::SimpleTypeHandler(NO_WRITE_BARRIER_TAG_TYPE(SimplePropertyDescriptor const (&SharedFunctionPropertyDescriptors)[size]), PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
          DynamicTypeHandler(sizeof(descriptors) / sizeof(SimplePropertyDescriptor),
          inlineSlotCapacity, offsetOfInlineSlots, DefaultFlags | IsLockedFlag | MayBecomeSharedFlag | IsSharedFlag), propertyCount(size)
     {
         for (size_t i = 0; i < size; i++)
         {
             Assert((SharedFunctionPropertyDescriptors[i].Attributes & PropertyDeleted) == 0);
-            descriptors[i].Id = SharedFunctionPropertyDescriptors[i].Id;
+             // Used to init from global static BuiltInPropertyId
+            NoWriteBarrierSet(descriptors[i].Id, SharedFunctionPropertyDescriptors[i].Id);
             descriptors[i].Attributes = SharedFunctionPropertyDescriptors[i].Attributes;
         }
         Assert((propertyTypes & (PropertyTypesAll & ~PropertyTypesWritableDataOnly)) == 0);
@@ -91,11 +91,12 @@ namespace Js
         ScriptContext* scriptContext = instance->GetScriptContext();
         Recycler* recycler = scriptContext->GetRecycler();
 
-#if DBG
+#if ENABLE_FIXED_FIELDS && DBG
         DynamicType* oldType = instance->GetDynamicType();
 #endif
 
         T* newTypeHandler = RecyclerNew(recycler, T, recycler, SimpleTypeHandler<size>::GetSlotCapacity(), GetInlineSlotCapacity(), GetOffsetOfInlineSlots());
+#if ENABLE_FIXED_FIELDS
         Assert(HasSingletonInstanceOnlyIfNeeded());
 
         bool const hasSingletonInstance = newTypeHandler->SetSingletonInstanceIfNeeded(instance);
@@ -103,14 +104,19 @@ namespace Js
         // guarantees that any existing fast path field stores (which could quietly overwrite a fixed field
         // on this instance) will be invalidated.  It is safe to mark all fields as fixed.
         bool const allowFixedFields = hasSingletonInstance && instance->HasLockedType();
+#endif
 
         for (int i = 0; i < propertyCount; i++)
         {
             Var value = instance->GetSlot(i);
             Assert(value != nullptr || IsInternalPropertyId(descriptors[i].Id->GetPropertyId()));
+#if ENABLE_FIXED_FIELDS
             bool markAsFixed = allowFixedFields && !IsInternalPropertyId(descriptors[i].Id->GetPropertyId()) &&
                 (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : false);
-            newTypeHandler->Add(descriptors[i].Id, descriptors[i].Attributes, true, markAsFixed, false, scriptContext);
+#else
+            bool markAsFixed = false;
+#endif
+            newTypeHandler->Add(PointerValue(descriptors[i].Id), descriptors[i].Attributes, true, markAsFixed, false, scriptContext);
         }
 
         newTypeHandler->SetFlags(IsPrototypeFlag | HasKnownSlot0Flag, this->GetFlags());
@@ -121,7 +127,7 @@ namespace Js
         newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, this->GetPropertyTypes());
         newTypeHandler->SetInstanceTypeHandler(instance);
 
-#if DBG
+#if ENABLE_FIXED_FIELDS && DBG
         // If we marked fields as fixed we had better forced a type transition.
         Assert(!allowFixedFields || instance->GetDynamicType() != oldType);
 #endif
@@ -196,7 +202,7 @@ namespace Js
 
     template<size_t size>
     BOOL SimpleTypeHandler<size>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -221,27 +227,22 @@ namespace Js
                 }
 
                 *propertyId = propertyRecord->GetPropertyId();
-                PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
-                *propertyStringName = propertyString;
-                if (attribs & PropertyWritable)
-                {
-                    uint16 inlineOrAuxSlotIndex;
-                    bool isInlineSlot;
-                    PropertyIndexToInlineOrAuxSlotIndex(index, &inlineOrAuxSlotIndex, &isInlineSlot);
+                PropertyString * propStr = scriptContext->GetPropertyString(*propertyId);
+                *propertyStringName = propStr;
 
-                    propertyString->UpdateCache(type, inlineOrAuxSlotIndex, isInlineSlot, true);
+                PropertyValueInfo::SetCacheInfo(info, propStr, propStr->GetLdElemInlineCache(), false);
+                if ((attribs & PropertyWritable) == PropertyWritable)
+                {
+                    PropertyValueInfo::Set(info, instance, index, attribs);
                 }
                 else
                 {
-#ifdef DEBUG
-                    PropertyCache const* cache = propertyString->GetPropertyCache();
-                    Assert(!cache || cache->type != type);
-#endif
+                    PropertyValueInfo::SetNoCache(info, instance);
                 }
-
                 return TRUE;
             }
         }
+        PropertyValueInfo::SetNoCache(info, instance);
 
         return FALSE;
     }
@@ -257,6 +258,7 @@ namespace Js
         return Constants::NoSlot;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     template<size_t size>
     bool SimpleTypeHandler<size>::GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info)
     {
@@ -331,7 +333,7 @@ namespace Js
 
         return true;
     }
-
+#endif
 
     template<size_t size>
     BOOL SimpleTypeHandler<size>::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl)
@@ -1064,6 +1066,12 @@ namespace Js
         ConvertToSimpleDictionaryType(instance)->SetIsPrototype(instance);
     }
 
+    template<size_t size>
+    BOOL SimpleTypeHandler<size>::SetInternalProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags)
+    {
+        return SetPropertyWithAttributes(instance, propertyId, value, PropertyInternalDefaults, nullptr, flags);
+    }
+
 #if DBG
     template<size_t size>
     bool SimpleTypeHandler<size>::CanStorePropertyValueDirectly(const DynamicObject* instance, PropertyId propertyId, bool allowLetConst)
@@ -1130,7 +1138,16 @@ namespace Js
 
 #endif
 
+#if DBG_DUMP
+    template<size_t size>
+    void SimpleTypeHandler<size>::Dump(unsigned indent) const
+    {
+        Output::Print(_u("%*sSimpleTypeHandler<%u> (0x%p): Dump unimplemented\n"), indent, _u(""), size, this);
+    }
+#endif
+
     template class SimpleTypeHandler<1>;
     template class SimpleTypeHandler<2>;
+    template class SimpleTypeHandler<6>;
 
 }

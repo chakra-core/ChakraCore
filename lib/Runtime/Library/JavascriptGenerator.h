@@ -30,10 +30,10 @@ namespace Js
         static uint32 GetArgsPtrOffset() { return offsetof(JavascriptGenerator, args) + Arguments::GetValuesOffset(); }
 
     private:
-        InterpreterStackFrame* frame;
-        GeneratorState state;
-        Arguments args;
-        ScriptFunction* scriptFunction;
+        Field(InterpreterStackFrame*) frame;
+        Field(GeneratorState) state;
+        Field(Arguments) args;
+        Field(ScriptFunction*) scriptFunction;
 
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptGenerator, DynamicObject, args);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptGenerator);
@@ -50,17 +50,22 @@ namespace Js
         }
 
         Var CallGenerator(ResumeYieldData* yieldData, const char16* apiNameForErrorMessage);
+        JavascriptGenerator(DynamicType* type, Arguments& args, ScriptFunction* scriptFunction);
 
     public:
-        JavascriptGenerator(DynamicType* type, Arguments& args, ScriptFunction* scriptFunction);
+        static JavascriptGenerator* New(Recycler* recycler, DynamicType* generatorType, Arguments& args, ScriptFunction* scriptFunction);
 
         bool IsExecuting() const { return state == GeneratorState::Executing; }
         bool IsSuspended() const { return state == GeneratorState::Suspended; }
         bool IsCompleted() const { return state == GeneratorState::Completed; }
         bool IsSuspendedStart() const { return state == GeneratorState::Suspended && this->frame == nullptr; }
 
-        void SetFrame(InterpreterStackFrame* frame) { Assert(this->frame == nullptr); this->frame = frame; }
+        void SetFrame(InterpreterStackFrame* frame, size_t bytes);
         InterpreterStackFrame* GetFrame() const { return frame; }
+
+#if GLOBAL_ENABLE_WRITE_BARRIER
+        virtual void Finalize(bool isShutdown) override;
+#endif
 
         const Arguments& GetArguments() const { return args; }
 

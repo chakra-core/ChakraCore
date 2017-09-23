@@ -24,7 +24,8 @@ namespace Js {
         }
         else
         {
-            size = PowerOf2Policy::GetSize(size - TYPE_PATH_ALLOC_GRANULARITY_GAP);
+            int _;
+            size = PowerOf2Policy::GetSize(size - TYPE_PATH_ALLOC_GRANULARITY_GAP, &_ /* modFunctionIndex */);
             if (size < MaxPathTypeHandlerLength)
             {
                 size += TYPE_PATH_ALLOC_GRANULARITY_GAP;
@@ -47,16 +48,18 @@ namespace Js {
 
     PropertyIndex TypePath::LookupInline(PropertyId propId,int typePathLength)
     {
-        if (propId == Constants::NoProperty) {
+        if (propId == Constants::NoProperty)
+        {
            return Constants::NoSlot;
         }
+
         PropertyIndex propIndex = Constants::NoSlot;
-        if (this->GetData()->map.TryGetValue(propId, &propIndex,
-                static_cast<const PropertyRecord **>(assignments))) {
-            if (propIndex<typePathLength) {
-                return propIndex;
-            }
+        if (this->GetData()->map.TryGetValue(propId, &propIndex, assignments) &&
+            propIndex < typePathLength)
+        {
+            return propIndex;
         }
+
         return Constants::NoSlot;
     }
 
@@ -110,7 +113,7 @@ namespace Js {
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
-            Output::Print(_u("FixedFields: TypePath::Branch: singleton: 0x%p(0x%p)\n"), this->singletonInstance, this->singletonInstance->Get());
+            Output::Print(_u("FixedFields: TypePath::Branch: singleton: 0x%p(0x%p)\n"), PointerValue(this->singletonInstance), this->singletonInstance->Get());
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -139,7 +142,7 @@ namespace Js {
 
         clonedPath->GetData()->pathLength = (uint8)currentPathLength;
         memcpy(&clonedPath->GetData()->map, &this->GetData()->map, sizeof(TinyDictionary) + currentPathLength);
-        memcpy(clonedPath->assignments, this->assignments, sizeof(PropertyRecord *) * currentPathLength);
+        CopyArray(clonedPath->assignments, currentPathLength, this->assignments, currentPathLength);
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         // Copy fixed field info
@@ -152,6 +155,7 @@ namespace Js {
         return clonedPath;
     }
 
+#if ENABLE_FIXED_FIELDS
 #if DBG
     bool TypePath::HasSingletonInstanceOnlyIfNeeded()
     {
@@ -183,8 +187,9 @@ namespace Js {
 #endif
 
     }
+#endif
 
-    int TypePath::Data::Add(const PropertyRecord* propId, const PropertyRecord ** assignments)
+    int TypePath::Data::Add(const PropertyRecord* propId, Field(const PropertyRecord *)* assignments)
     {
         uint currentPathLength = this->pathLength;
         Assert(currentPathLength < this->pathSize);
@@ -214,7 +219,7 @@ namespace Js {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddInternal: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -232,16 +237,16 @@ namespace Js {
         return propertyIndex;
     }
 
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
     void TypePath::AddBlankFieldAt(PropertyIndex index, int typePathLength)
     {
         Assert(index >= this->GetMaxInitializedLength());
         this->SetMaxInitializedLength(index + 1);
 
-#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddBlankFieldAt: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -254,7 +259,6 @@ namespace Js {
 
             Output::Print(_u("\n"));
         }
-#endif
     }
 
     void TypePath::AddSingletonInstanceFieldAt(DynamicObject* instance, PropertyIndex index, bool isFixed, int typePathLength)
@@ -279,11 +283,10 @@ namespace Js {
             this->GetData()->fixedFields.Set(index);
         }
 
-#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddSingletonInstanceFieldAt: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -296,7 +299,6 @@ namespace Js {
 
             Output::Print(_u("\n"));
         }
-#endif
     }
 
     void TypePath::AddSingletonInstanceFieldAt(PropertyIndex index, int typePathLength)
@@ -308,11 +310,10 @@ namespace Js {
 
         this->SetMaxInitializedLength(index + 1);
 
-#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddSingletonInstanceFieldAt: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -325,8 +326,7 @@ namespace Js {
 
             Output::Print(_u("\n"));
         }
-#endif
     }
+#endif
 
 }
-

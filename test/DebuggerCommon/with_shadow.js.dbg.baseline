@@ -72,15 +72,12 @@
       "Symbol.iterator": "function function values() { [native code] }"
     },
     "scopes0": {
-      "foo": "function <large string>",
       "foo1": "string foo1"
     },
+    "scopes1": {
+      "foo": "function <large string>"
+    },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "f1": "function <large string>"
     }
   }

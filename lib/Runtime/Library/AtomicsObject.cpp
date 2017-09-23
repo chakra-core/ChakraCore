@@ -24,17 +24,18 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedTypedArrayObject);
         }
 
+        TypeId typeId = JavascriptOperators::GetTypeId(typedArray);
         if (onlyInt32)
         {
-            if (!Int32Array::Is(typedArray))
+            if (typeId != TypeIds_Int32Array)
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidOperationOnTypedArray);
             }
         }
         else
         {
-            if (!(Int8Array::Is(typedArray) || Uint8Array::Is(typedArray) || Int16Array::Is(typedArray) ||
-                Uint16Array::Is(typedArray) || Int32Array::Is(typedArray) || Uint32Array::Is(typedArray)))
+            if (!(typeId == TypeIds_Int8Array || typeId == TypeIds_Uint8Array || typeId == TypeIds_Int16Array ||
+                typeId == TypeIds_Uint16Array || typeId == TypeIds_Int32Array || typeId == TypeIds_Uint32Array))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidOperationOnTypedArray);
             }
@@ -52,23 +53,27 @@ namespace Js
 
     uint32 AtomicsObject::ValidateAtomicAccess(Var typedArray, Var requestIndex, ScriptContext *scriptContext)
     {
+        Assert(TypedArrayBase::Is(typedArray));
+
         int32 accessIndex = -1;
         if (TaggedInt::Is(requestIndex))
         {
             accessIndex = TaggedInt::ToInt32(requestIndex);
         }
+        else if(Js::JavascriptOperators::IsUndefined(requestIndex))
+        {
+            accessIndex = 0;
+        }
         else
         {
             accessIndex = JavascriptConversion::ToInt32_Full(requestIndex, scriptContext);
-            double dblValue = JavascriptConversion::ToNumber(requestIndex, scriptContext);
+            double dblValue = JavascriptConversion::ToInteger(requestIndex, scriptContext);
             if (dblValue != accessIndex)
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
             }
         }
 
-        Assert(TypedArrayBase::Is(typedArray));
-        
         if (accessIndex < 0 || accessIndex >= (int32)TypedArrayBase::FromVar(typedArray)->GetLength())
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
@@ -216,7 +221,10 @@ namespace Js
             DWORD_PTR agent = (DWORD_PTR)scriptContext;
             Assert(sharedArrayBuffer->GetSharedContents()->IsValidAgent(agent));
             awoken = waiterList->AddAndSuspendWaiter(agent, timeout);
-            waiterList->RemoveWaiter(agent);
+            if (!awoken) 
+            {
+                waiterList->RemoveWaiter(agent);
+            }
         }
 
         return awoken ? scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("ok"))

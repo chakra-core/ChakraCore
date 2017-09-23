@@ -83,8 +83,9 @@ namespace Js
 
         // Create new type handler, allowing slotCapacity round up here. We'll allocate instance slots below.
         T* newTypeHandler = T::New(recycler, initSlotCapacity, GetInlineSlotCapacity(), GetOffsetOfInlineSlots());
+#if ENABLE_FIXED_FIELDS
         newTypeHandler->SetSingletonInstanceIfNeeded(instance);
-
+#endif
         // EnsureSlots before updating the type handler and instance, as EnsureSlots allocates and may throw.
         instance->EnsureSlots(0, newTypeHandler->GetSlotCapacity(), scriptContext, newTypeHandler);
         newTypeHandler->SetFlags(IsPrototypeFlag, this->GetFlags());

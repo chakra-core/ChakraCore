@@ -14,7 +14,7 @@ namespace Js
         {
         public:
             template <class SyncObject>
-            NoLock(SyncObject*)
+            NoLock(const SyncObject&)
             {
                 // No lock, do nothing.
             }

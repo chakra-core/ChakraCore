@@ -15,8 +15,8 @@ namespace Js
         Js::InlineCache * GetInlineCache() const { return inlineCache; }
         uint GetRefCount() { return refCount; }
     private:
-        uint refCount;
-        Js::InlineCache * inlineCache;
+        Field(uint) refCount;
+        Field(Js::InlineCache *) inlineCache;
     };
 
     class RootObjectBase: public DynamicObject
@@ -27,7 +27,7 @@ namespace Js
 
         Js::InlineCache * GetInlineCache(Js::PropertyRecord const* propertyRecord, bool isLoadMethod, bool isStore);
         Js::RootObjectInlineCache * GetRootInlineCache(Js::PropertyRecord const* propertyRecord, bool isLoadMethod, bool isStore);
-        void ReleaseInlineCache(PropertyId propertyId, bool isLoadMethod, bool isStore, bool isShutdown);
+        uint ReleaseInlineCache(PropertyId propertyId, bool isLoadMethod, bool isStore, bool isShutdown);
 
         virtual BOOL EnsureProperty(PropertyId propertyId) override;
         virtual BOOL EnsureNoRedeclProperty(PropertyId propertyId) override sealed;
@@ -65,12 +65,12 @@ namespace Js
         RootObjectBase(DynamicType * type);
         RootObjectBase(DynamicType * type, ScriptContext* scriptContext);
 
-        HostObjectBase * hostObject;
+        Field(HostObjectBase *) hostObject;
 
         typedef JsUtil::BaseDictionary<PropertyRecord const *, RootObjectInlineCache *, Recycler> RootObjectInlineCacheMap;
-        RootObjectInlineCacheMap * loadInlineCacheMap;
-        RootObjectInlineCacheMap * loadMethodInlineCacheMap;
-        RootObjectInlineCacheMap * storeInlineCacheMap;
+        Field(RootObjectInlineCacheMap *) loadInlineCacheMap;
+        Field(RootObjectInlineCacheMap *) loadMethodInlineCacheMap;
+        Field(RootObjectInlineCacheMap *) storeInlineCacheMap;
     };
 
     template <typename Fn>

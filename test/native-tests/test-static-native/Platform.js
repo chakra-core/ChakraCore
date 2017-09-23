@@ -20,9 +20,7 @@ if (!isStaticBuild) {
 \n\
 LIBRARY_PATH=" + binaryPath + "/lib\n\
 PLATFORM=" + platform + "\n\
-LDIR=$(LIBRARY_PATH)/../pal/src/libChakra.Pal.a \
-  $(LIBRARY_PATH)/Common/Core/libChakra.Common.Core.a \
-  $(LIBRARY_PATH)/Jsrt/libChakra.Jsrt.a \n\
+LDIR=$(LIBRARY_PATH)/libChakraCoreStatic.a \n\
 \n\
 ifeq (darwin, ${PLATFORM})\n\
 \tICU4C_LIBRARY_PATH ?= /usr/local/opt/icu4c\n\
@@ -38,7 +36,7 @@ else\n\
 \tCFLAGS=-lstdc++ -std=c++0x -I$(IDIR)\n\
 \tFORCE_STARTS=-Wl,--whole-archive\n\
 \tFORCE_ENDS=-Wl,--no-whole-archive\n\
-\tLIBS=-pthread -lm -ldl -licuuc -lunwind-x86_64 -Wno-c++11-compat-deprecated-writable-strings \
+\tLIBS=-pthread -lm -ldl -licuuc -Wno-c++11-compat-deprecated-writable-strings \
     -Wno-deprecated-declarations -Wno-unknown-warning-option -o sample.o\n\
 endif\n\
 \n\

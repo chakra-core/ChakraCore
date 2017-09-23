@@ -7,28 +7,27 @@
 
 #if ENABLE_OOP_NATIVE_CODEGEN
 #include "JITServer/JITServer.h"
-#endif //ENABLE_OOP_NATIVE_CODEGEN
 
-ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
+ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data, HANDLE processHandle) :
+    m_autoProcessHandle(processHandle),
     m_threadContextData(*data),
     m_refCount(0),
     m_numericPropertyBV(nullptr),
-    m_preReservedVirtualAllocator((HANDLE)data->processHandle),
-    m_codePageAllocators(nullptr, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
-#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    m_thunkPageAllocators(nullptr, /* allocXData */ false, /* virtualAllocator */ nullptr, (HANDLE)data->processHandle),
+    m_preReservedSectionAllocator(processHandle),
+    m_sectionAllocator(processHandle),
+    m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, processHandle),
+    m_codePageAllocators(nullptr, ALLOC_XDATA, &m_sectionAllocator, &m_preReservedSectionAllocator, processHandle),
+    m_codeGenAlloc(nullptr, nullptr, &m_codePageAllocators, processHandle),
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+    m_jitThunkEmitter(this, &m_sectionAllocator, processHandle),
 #endif
-    m_codeGenAlloc(nullptr, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
     m_pageAlloc(nullptr, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
         PageAllocator::DefaultLowMaxFreePageCount :
         PageAllocator::DefaultMaxFreePageCount
-    ),
-    m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName))
+    )
 {
-#if ENABLE_OOP_NATIVE_CODEGEN
-    m_pid = GetProcessId((HANDLE)data->processHandle);
-#endif
+    m_pid = GetProcessId(processHandle);
 
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
     m_codeGenAlloc.canCreatePreReservedSegment = data->allowPrereserveAlloc != FALSE;
@@ -46,10 +45,10 @@ ServerThreadContext::~ServerThreadContext()
 
 }
 
-PreReservedVirtualAllocWrapper *
-ServerThreadContext::GetPreReservedVirtualAllocator()
+PreReservedSectionAllocWrapper *
+ServerThreadContext::GetPreReservedSectionAllocator()
 {
-    return &m_preReservedVirtualAllocator;
+    return &m_preReservedSectionAllocator;
 }
 
 intptr_t
@@ -61,17 +60,13 @@ ServerThreadContext::GetBailOutRegisterSaveSpaceAddr() const
 ptrdiff_t
 ServerThreadContext::GetChakraBaseAddressDifference() const
 {
-#if ENABLE_OOP_NATIVE_CODEGEN
     return GetRuntimeChakraBaseAddress() - (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr();
-#else
-    return 0;
-#endif
 }
 
 ptrdiff_t
 ServerThreadContext::GetCRTBaseAddressDifference() const
 {
-    return GetRuntimeCRTBaseAddress() - m_jitCRTBaseAddress;
+    return GetRuntimeCRTBaseAddress() - GetJITCRTBaseAddress();
 }
 
 intptr_t
@@ -116,28 +111,40 @@ ServerThreadContext::IsThreadBound() const
 HANDLE
 ServerThreadContext::GetProcessHandle() const
 {
-    return reinterpret_cast<HANDLE>(m_threadContextData.processHandle);
+    return m_autoProcessHandle.GetHandle();
 }
 
-#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-CustomHeap::CodePageAllocators *
+CustomHeap::OOPCodePageAllocators *
 ServerThreadContext::GetThunkPageAllocators()
 {
     return &m_thunkPageAllocators;
 }
-#endif
 
-CustomHeap::CodePageAllocators *
+CustomHeap::OOPCodePageAllocators *
 ServerThreadContext::GetCodePageAllocators()
 {
     return &m_codePageAllocators;
 }
 
-CodeGenAllocators *
+SectionAllocWrapper *
+ServerThreadContext::GetSectionAllocator()
+{
+    return &m_sectionAllocator;
+}
+
+OOPCodeGenAllocators *
 ServerThreadContext::GetCodeGenAllocators()
 {
     return &m_codeGenAlloc;
 }
+
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+OOPJITThunkEmitter *
+ServerThreadContext::GetJITThunkEmitter()
+{
+    return &m_jitThunkEmitter;
+}
+#endif
 
 intptr_t
 ServerThreadContext::GetRuntimeChakraBaseAddress() const
@@ -149,6 +156,13 @@ intptr_t
 ServerThreadContext::GetRuntimeCRTBaseAddress() const
 {
     return static_cast<intptr_t>(m_threadContextData.crtBaseAddress);
+}
+
+/* static */
+intptr_t
+ServerThreadContext::GetJITCRTBaseAddress()
+{
+    return (intptr_t)AutoSystemInfo::Data.GetCRTHandle();
 }
 
 PageAllocator *
@@ -200,3 +214,4 @@ void ServerThreadContext::Close()
     ServerContextManager::RecordCloseContext(this);
 #endif
 }
+#endif

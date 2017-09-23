@@ -13,14 +13,15 @@ namespace Js
         struct ShadowData
         {
             ShadowData(RecyclableObject * initObject, RecyclableObject * firstPrototype, Recycler * recycler);
-            RecyclableObject * currentObject;
-            RecyclableObject * firstPrototype;
-            BVSparse<Recycler> propertyIds;
-            SListBase<Js::PropertyRecord const *> newPropertyStrings;
+            Field(RecyclableObject *) currentObject;
+            Field(RecyclableObject *) firstPrototype;
+            Field(BVSparse<Recycler>) propertyIds;
+            typedef SListBase<Js::PropertyRecord const *, Recycler> _PropertyStringsListType;
+            Field(_PropertyStringsListType) newPropertyStrings;
         } *shadowData;
 
         // States
-        bool canUseJitFastPath;
+        bool canUseJitFastPath; // used by GenerateFastBrBReturn and GenerateFastInlineHasOwnProperty
         bool enumeratingPrototype;
 
         BOOL TestAndSetEnumerated(PropertyId propertyId);
@@ -34,12 +35,13 @@ namespace Js
         ScriptContext * GetScriptContext() const { return enumerator.GetScriptContext(); }
         void Initialize(RecyclableObject* currentObject, ScriptContext * requestContext, bool enumSymbols = false, ForInCache * forInCache = nullptr);
         void Clear();
-        Var MoveAndGetNext(PropertyId& propertyId);
+        JavascriptString * MoveAndGetNext(PropertyId& propertyId);
 
-        static RecyclableObject* GetFirstPrototypeWithEnumerableProperties(RecyclableObject* object);
+        static RecyclableObject* GetFirstPrototypeWithEnumerableProperties(RecyclableObject* object, RecyclableObject** pFirstPrototype = nullptr);
 
 
         static uint32 GetOffsetOfCanUseJitFastPath() { return offsetof(ForInObjectEnumerator, canUseJitFastPath); }
+        static uint32 GetOffsetOfEnumeratingPrototype() { return offsetof(ForInObjectEnumerator, enumeratingPrototype); }
         static uint32 GetOffsetOfEnumeratorScriptContext() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfScriptContext(); }
         static uint32 GetOffsetOfEnumeratorObject() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfObject(); }
         static uint32 GetOffsetOfEnumeratorInitialType() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfInitialType(); }
@@ -54,10 +56,10 @@ namespace Js
         static uint32 GetOffsetOfEnumeratorArrayEnumerator() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfArrayEnumerator(); }
 
         static uint32 GetOffsetOfShadowData() { return offsetof(ForInObjectEnumerator, shadowData); }
-        static uint32 GetOffsetOfStates() 
-        { 
-            CompileAssert(offsetof(ForInObjectEnumerator, enumeratingPrototype) == offsetof(ForInObjectEnumerator, canUseJitFastPath) + 1);            
-            return offsetof(ForInObjectEnumerator, canUseJitFastPath); 
+        static uint32 GetOffsetOfStates()
+        {
+            CompileAssert(offsetof(ForInObjectEnumerator, enumeratingPrototype) == offsetof(ForInObjectEnumerator, canUseJitFastPath) + 1);
+            return offsetof(ForInObjectEnumerator, canUseJitFastPath);
         }
     };
 }

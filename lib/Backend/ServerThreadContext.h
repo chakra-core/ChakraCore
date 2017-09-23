@@ -7,8 +7,11 @@
 
 class ServerThreadContext : public ThreadContextInfo
 {
+#if ENABLE_OOP_NATIVE_CODEGEN
 public:
-    ServerThreadContext(ThreadContextDataIDL * data);
+    typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
+
+    ServerThreadContext(ThreadContextDataIDL * data, HANDLE processHandle);
     ~ServerThreadContext();
 
     virtual HANDLE GetProcessHandle() const override;
@@ -27,40 +30,47 @@ public:
     virtual intptr_t GetImplicitCallFlagsAddr() const override;
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const override;
 
-    virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() override;
+    PreReservedSectionAllocWrapper * GetPreReservedSectionAllocator();
 
     virtual bool IsNumericProperty(Js::PropertyId propId) override;
 
-    ptrdiff_t GetChakraBaseAddressDifference() const;
-    ptrdiff_t GetCRTBaseAddressDifference() const;
+    virtual ptrdiff_t GetChakraBaseAddressDifference() const override;
+    virtual ptrdiff_t GetCRTBaseAddressDifference() const override;
 
-    CodeGenAllocators * GetCodeGenAllocators();
-    CustomHeap::CodePageAllocators * GetCodePageAllocators();
-    void UpdateNumericPropertyBV(BVSparseNode * newProps);
-    void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
-#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    CustomHeap::CodePageAllocators * GetThunkPageAllocators();
+    OOPCodeGenAllocators * GetCodeGenAllocators();
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+    OOPJITThunkEmitter * GetJITThunkEmitter();
 #endif
+    CustomHeap::OOPCodePageAllocators * GetThunkPageAllocators();
+    CustomHeap::OOPCodePageAllocators  * GetCodePageAllocators();
+    SectionAllocWrapper * GetSectionAllocator();
+    void UpdateNumericPropertyBV(BVSparseNode * newProps);
+    void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeIds[WellKnownHostType_HTMLAllCollection] = typeId; }
     void AddRef();
     void Release();
     void Close();
     PageAllocator * GetForegroundPageAllocator();
-#ifdef STACK_BACK_TRACE
     DWORD GetRuntimePid() { return m_pid; }
-#endif
 
-private:
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
 
+    static intptr_t GetJITCRTBaseAddress();
+
+private:
+
+    AutoCloseHandle m_autoProcessHandle;
+
     BVSparse<HeapAllocator> * m_numericPropertyBV;
 
-    PreReservedVirtualAllocWrapper m_preReservedVirtualAllocator;
-#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    CustomHeap::CodePageAllocators m_thunkPageAllocators;
+    PreReservedSectionAllocWrapper m_preReservedSectionAllocator;
+    SectionAllocWrapper m_sectionAllocator;
+    CustomHeap::OOPCodePageAllocators m_thunkPageAllocators;
+    CustomHeap::OOPCodePageAllocators  m_codePageAllocators;
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+    OOPJITThunkEmitter m_jitThunkEmitter;
 #endif
-    CustomHeap::CodePageAllocators m_codePageAllocators;
-    CodeGenAllocators m_codeGenAlloc;
+    OOPCodeGenAllocators m_codeGenAlloc;
     // only allocate with this from foreground calls (never from CodeGen calls)
     PageAllocator m_pageAlloc;
 
@@ -69,6 +79,6 @@ private:
     DWORD m_pid; //save client process id for easier diagnose
 
     CriticalSection m_cs;
-    intptr_t m_jitCRTBaseAddress;
     uint m_refCount;
+#endif
 };

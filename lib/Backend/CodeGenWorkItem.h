@@ -20,7 +20,6 @@ protected:
     CodeGenWorkItemIDL jitData;
 
     Js::FunctionBody *const functionBody;
-    size_t codeAddress;
     ptrdiff_t codeSize;
 
 public:
@@ -59,13 +58,17 @@ public:
         return functionBody->GetScriptContext();
     }
 
+    uint GetByteCodeLength() const
+    {
+        return this->functionBody->IsInDebugMode()
+            ? this->functionBody->GetOriginalByteCode()->GetLength()
+            : this->functionBody->GetByteCode()->GetLength();
+    }
+
     Js::FunctionBody* GetFunctionBody() const
     {
         return functionBody;
     }
-
-    void SetCodeAddress(size_t codeAddress) { this->codeAddress = codeAddress; }
-    size_t GetCodeAddress() { return codeAddress; }
 
     void SetCodeSize(ptrdiff_t codeSize) { this->codeSize = codeSize; }
     ptrdiff_t GetCodeSize() { return codeSize; }
@@ -88,7 +91,7 @@ private:
     bool isAllocationCommitted;         // Whether the EmitBuffer allocation has been committed
 
     QueuedFullJitWorkItem *queuedFullJitWorkItem;
-    EmitBufferAllocation *allocation;
+    EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> *allocation;
 
 #ifdef IR_VIEWER
 public:
@@ -112,7 +115,8 @@ public:
     }
 #endif
 private:
-    EmitBufferAllocation *GetAllocation() { return allocation; }
+    // REVIEW: can we delete this?
+    EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> *GetAllocation() { return allocation; }
 
 public:
     Js::EntryPointInfo* GetEntryPoint() const
@@ -185,9 +189,6 @@ public:
 
     QueuedFullJitWorkItem *GetQueuedFullJitWorkItem() const;
     QueuedFullJitWorkItem *EnsureQueuedFullJitWorkItem();
-
-private:
-    bool ShouldSpeculativelyJit() const;
 };
 
 struct JsFunctionCodeGen sealed : public CodeGenWorkItem
@@ -217,7 +218,7 @@ public:
         {
            return nameSizeInChars;
         }
-        js_memcpy_s(displayName, sizeInChars * sizeof(WCHAR), name, sizeInBytes);
+        js_wmemcpy_s(displayName, sizeInChars, name, sizeInBytes);
         return nameSizeInChars;
     }
 
@@ -266,17 +267,21 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
         JsUtil::JobManager *const manager, Js::FunctionBody *const functionBody,
         Js::EntryPointInfo* entryPointInfo, bool isJitInDebugMode, Js::LoopHeader * loopHeader) :
         CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsLoopBodyWorkItemType),
+        codeAddress(NULL),
         loopHeader(loopHeader)
     {
         this->jitData.loopNumber = GetLoopNumber();
     }
-
+    uintptr_t codeAddress;
     Js::LoopHeader * loopHeader;
 
     uint GetLoopNumber() const override
     {
         return functionBody->GetLoopNumberWithLock(loopHeader);
     }
+
+    void SetCodeAddress(uintptr_t codeAddress) { this->codeAddress = codeAddress; }
+    uintptr_t GetCodeAddress() const { return codeAddress; }
 
     uint GetByteCodeCount() const override
     {

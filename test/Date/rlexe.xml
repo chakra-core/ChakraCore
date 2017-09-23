@@ -1,10 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
       <files>DateCtr.js</files>
-      <baseline>DateCtr.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <tags>exclude_jenkins</tags>
     </default>
   </test>
@@ -12,16 +11,16 @@
     <default>
       <files>DateGetSet.js</files>
       <baseline>DateGetSet.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <!-- OSX doesn't provide expected DST info for year 35816 -->
-      <tags>exclude_jenkins,exclude_mac</tags>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <!-- XPLAT doesn't provide expected DST info for year 35816 -->
+      <tags>exclude_jenkins,exclude_xplat</tags>
     </default>
   </test>
   <test>
     <default>
       <files>DateParse.js</files>
       <baseline>DateParse_es5.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <tags>exclude_jenkins</tags>
     </default>
   </test>
@@ -29,8 +28,9 @@
     <default>
       <files>DateParse2.js</files>
       <baseline>DateParse2.v5.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
-      <tags>exclude_jenkins</tags>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <!-- xplat DST info for BC years don't mach to ones for Windows. Internally trying to match them is very expensive -->
+      <tags>exclude_jenkins,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -43,9 +43,9 @@
     <default>
       <files>parseISO.js</files>
       <baseline>parseISO.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <!-- OSX doesn't provide expected DST for minus years -->
-      <tags>exclude_jenkins,exclude_mac,Slow</tags>
+      <tags>exclude_jenkins,exclude_xplat,Slow</tags>
     </default>
   </test>
   <test>
@@ -56,9 +56,14 @@
   </test>
   <test>
     <default>
+      <files>DateUTC-DateGMT-same.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>MillisecondTruncationCheckAfterCopyConstructor.js</files>
       <baseline>MillisecondTruncationCheckAfterCopyConstructor.es6.baseline</baseline>
-      <tags></tags>
     </default>
   </test>
   <test>
@@ -66,7 +71,7 @@
       <files>Conversions.js</files>
       <baseline>Conversions.win8.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <tags>exclude_win7,exclude_winBlue,exclude_snap,exclude_jenkins,exclude_xplat</tags>
     </default>
   </test>
@@ -75,7 +80,7 @@
       <files>Conversions.js</files>
       <baseline>Conversions.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <tags>exclude_win7,exclude_win8,exclude_snap,exclude_jenkins,exclude_xplat</tags>
     </default>
   </test>
@@ -87,14 +92,20 @@
   </test>
   <test>
     <default>
+      <files>formatting_xplat.js</files>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <tags>exclude_jenkins</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>formatting.js</files>
       <baseline>formatting.baseline</baseline>
       <compile-flags>-ForceOldDateAPI</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <!-- on DST pass Win OldDateAPI jumps back to 01:00 after 01:59 -->
       <!-- todo: Do not force OLDDateAPI ? -->
-      <!-- xplat: on Linux Test build (post JIT) mktime returns PST within series of PDT -->
-      <tags>exclude_jenkins,exclude_mac,exclude_xplat</tags>
+      <tags>exclude_jenkins,exclude_xplat</tags>
     </default>
     <condition order="1" type="include">
       <os>win8</os>
@@ -102,5 +113,20 @@
         <baseline>formatting.win8.baseline</baseline>
       </override>
     </condition>
+  </test>
+  <test>
+    <default>
+      <files>marshalbug.js</files>
+      <!-- only to catch debug build assertions -->
+      <compile-flags>-nonative -intl-</compile-flags>
+      <baseline/>
+      <tags>exclude_fre,exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>xplatInterval.js</files>
+      <tags>Slow</tags>
+    </default>
   </test>
 </regress-exe>

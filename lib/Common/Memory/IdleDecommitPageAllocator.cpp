@@ -5,29 +5,23 @@
 #include "CommonMemoryPch.h"
 
 IdleDecommitPageAllocator::IdleDecommitPageAllocator(AllocationPolicyManager * policyManager, PageAllocatorType type,
-#ifndef JD_PRIVATE
     Js::ConfigFlagsTable& flagTable,
-#endif
     uint maxFreePageCount, uint maxIdleFreePageCount,
     bool zeroPages,
 #if ENABLE_BACKGROUND_PAGE_FREEING 
     BackgroundPageQueue *  backgroundPageQueue,
 #endif
-    uint maxAllocPageCount) :
+    uint maxAllocPageCount, bool enableWriteBarrier) :
 #ifdef IDLE_DECOMMIT_ENABLED
     idleDecommitTryEnterWaitFactor(0),
     hasDecommitTimer(false),
     hadDecommitTimer(false),
 #endif
-    PageAllocator(policyManager,
-#ifndef JD_PRIVATE
-        flagTable,
-#endif
-    type, maxFreePageCount, zeroPages,
+    PageAllocator(policyManager, flagTable, type, maxFreePageCount, zeroPages,
 #if ENABLE_BACKGROUND_PAGE_FREEING
     backgroundPageQueue,
 #endif        
-    maxAllocPageCount),
+    maxAllocPageCount, 0, false, false, GetCurrentProcess(), enableWriteBarrier),
     maxIdleDecommitFreePageCount(maxIdleFreePageCount),
     maxNonIdleDecommitFreePageCount(maxFreePageCount)
 {

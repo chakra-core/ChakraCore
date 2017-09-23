@@ -55,4 +55,6 @@ function testFunction()
 
     telemetryLog(`post update -- y.bar: ${y.bar}`, true); //3
     telemetryLog(`post update -- x.bar: ${x.bar}`, true); //3
+
+    emitTTDLog(ttdLogURI);
 }

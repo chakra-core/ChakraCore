@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -69,7 +69,6 @@
   <test>
     <default>
       <files>so.js</files>
-      <baseline>so.baseline</baseline>
     </default>
   </test>
   <test>
@@ -88,13 +87,41 @@
       <files>alignment.js</files>
       <compile-flags>-off:inline -checkalignment</compile-flags>
       <baseline />
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
     <default>
       <files>101832.js</files>
       <baseline>101832.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>early1.js</files>
+      <baseline>early1.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>early2.js</files>
+      <baseline>early2.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>tryfinallybug0.js</files>
+      <baseline>tryfinallybug0.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>tryfinallytests.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>tryfinallyldelembug.js</files>
+      <compile-flags> -off:arraycheckhoist </compile-flags>
     </default>
   </test>
 </regress-exe>

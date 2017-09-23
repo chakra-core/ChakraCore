@@ -48,4 +48,6 @@ WScript.SetTimeout(testFunction, 50);
 function testFunction()
 {
     y();
+
+    emitTTDLog(ttdLogURI);
 }

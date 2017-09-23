@@ -4,19 +4,26 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
+#ifdef ENABLE_WASM
 
 namespace Js
 {
     class WebAssemblyInstance : public DynamicObject
     {
+    protected:
+        DEFINE_VTABLE_CTOR(WebAssemblyInstance, DynamicObject);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WebAssemblyInstance);
+
     public:
         class EntryInfo
         {
         public:
             static FunctionInfo NewInstance;
+            static FunctionInfo GetterExports;
         };
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var GetterExports(RecyclableObject* function, CallInfo callInfo, ...);
 
         static bool Is(Var aValue);
         static WebAssemblyInstance * FromVar(Var aValue);
@@ -25,16 +32,17 @@ namespace Js
     private:
         WebAssemblyInstance(WebAssemblyModule * wasmModule, DynamicType * type);
 
-        static void LoadDataSegs(WebAssemblyModule * wasmModule, Var* memory, ScriptContext* ctx);
-        static void LoadFunctions(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* moduleMemoryPtr, Var* localModuleFunctions);
-        static void BuildObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* memory, WebAssemblyTable** table, Var exportObj, Var* localModuleFunctions, Var* importFunctions);
-        static void LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var* localModuleFunctions, Var ffi, Var* memoryObject, WebAssemblyTable ** tableObject);
-        static void LoadGlobals(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var moduleEnv, Var ffi);
-        static void LoadIndirectFunctionTable(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyTable** indirectFunctionTables, Var* localModuleFunctions, Var* importFunctions);
-        static Var GetFunctionObjFromFunctionIndex(WebAssemblyModule * wasmModule, ScriptContext* ctx, uint32 funcIndex, Var* localModuleFunctions, Var* importFunctions);
+        static void InitializeDataSegs(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
+        static void CreateWasmFunctions(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
+        static Var  CreateExportObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
+        static void LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var ffi, WebAssemblyEnvironment* env);
+        static void InitialGlobals(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
+        static void InitializeFunctionTable(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
+        static void ValidateTableAndMemory(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
 
-
-        WebAssemblyModule * m_module;
+        Field(WebAssemblyModule *) m_module;
+        Field(Js::Var) m_exports;
     };
 
 } // namespace Js
+#endif

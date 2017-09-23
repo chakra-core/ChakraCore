@@ -26,6 +26,8 @@
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>CommonDataStructuresPch.h</PrecompiledHeaderFile>
+      <!-- # Check out https://osgwiki.com/wiki/Dev_14_Migration for more details about -Zc:implicitNoexcept- -->
+      <AdditionalOptions>-Zc:implicitNoexcept- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -40,7 +42,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)FixedBitVectorEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)InternalStringNoCaseComparer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SizePolicy.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SparseBitVector.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonDataStructuresPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -59,12 +60,12 @@
     <ClInclude Include="GrowingArray.h" />
     <ClInclude Include="ImmutableList.h" />
     <ClInclude Include="Interval.h" />
-    <ClInclude Include="LineOffsetCache.h" />
     <ClInclude Include="LeafValueDictionary.h" />
     <ClInclude Include="MruDictionary.h" />
     <ClInclude Include="PageStack.h" />
     <ClInclude Include="Pair.h" />
     <ClInclude Include="Queue.h" />
+    <ClInclude Include="QuickSort.h" />
     <ClInclude Include="RegexKey.h" />
     <ClInclude Include="SizePolicy.h" />
     <ClInclude Include="InternalString.h" />

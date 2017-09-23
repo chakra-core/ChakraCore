@@ -9,13 +9,20 @@
 
 // Default declaration for FunctionBody.h
 #ifndef DECLARE_SERIALIZABLE_FIELD
-#define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) type name
+#define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) Field(type) name
 #endif
 
 #ifndef DECLARE_SERIALIZABLE_ACCESSOR_FIELD
-#define DECLARE_SERIALIZABLE_ACCESSOR_FIELD(type, name, serializableType)
+#define DECLARE_SERIALIZABLE_ACCESSOR_FIELD(type, name, serializableType, defaultValue)
 #endif
 
+#ifndef DECLARE_SERIALIZABLE_ACCESSOR_FIELD_NO_CHECK
+#define DECLARE_SERIALIZABLE_ACCESSOR_FIELD_NO_CHECK(type, name, serializableType)
+#endif
+
+#ifndef DECLARE_TAG_FIELD
+#define DECLARE_TAG_FIELD(type, name, serializableType)
+#endif
 
 #ifdef CURRENT_ACCESS_MODIFIER
 #define PROTECTED_FIELDS protected:
@@ -47,14 +54,15 @@ CURRENT_ACCESS_MODIFIER
 #endif
 
 #if DEFINE_FUNCTION_BODY_FIELDS
+
 PUBLIC_FIELDS
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, VarCount, RegSlot);           // Count of non-constant locals
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ConstantCount, RegSlot);         // Count of enregistered constants
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, FirstTmpRegister, RegSlot);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, OutParamMaxDepth, RegSlot);   // Count of call depth in a nested expression
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ByteCodeCount, RegSlot);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ByteCodeWithoutLDACount, RegSlot);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ByteCodeInLoopCount, UInt32);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, VarCount, RegSlot, 0);           // Count of non-constant locals
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ConstantCount, RegSlot, 0);         // Count of enregistered constants
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD_NO_CHECK(RegSlot, FirstTmpRegister, RegSlot);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, OutParamMaxDepth, RegSlot, 0);   // Count of call depth in a nested expression
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD_NO_CHECK(uint, ByteCodeCount, RegSlot);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD_NO_CHECK(uint, ByteCodeWithoutLDACount, RegSlot);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ByteCodeInLoopCount, UInt32, 0);
     DECLARE_SERIALIZABLE_FIELD(uint16, m_envDepth, UInt16);
     DECLARE_SERIALIZABLE_FIELD(uint16, m_argUsedForBranch, UInt16);
 
@@ -67,28 +75,31 @@ PRIVATE_FIELDS
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledSwitchCount, UInt16);
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledReturnTypeCount, UInt16);
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledSlotCount, UInt16);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, LoopCount, RegSlot);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, LoopCount, RegSlot, 0);
+
+    DECLARE_TAG_FIELD(bool, m_tag31, Bool); // Used to tag the low bit to prevent possible GC false references
+
     DECLARE_SERIALIZABLE_FIELD(bool, m_hasFinally, Bool);
     DECLARE_SERIALIZABLE_FIELD(bool, hasScopeObject, Bool);
     DECLARE_SERIALIZABLE_FIELD(bool, hasCachedScopePropIds, Bool);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ForInLoopDepth, UInt32);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, InlineCacheCount, UInt32);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, RootObjectLoadInlineCacheStart, UInt32);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, RootObjectLoadMethodInlineCacheStart, UInt32);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, RootObjectStoreInlineCacheStart, UInt32);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, IsInstInlineCacheCount, UInt32);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ReferencedPropertyIdCount, UInt32);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ObjLiteralCount, UInt32);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, LiteralRegexCount, UInt32);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, InnerScopeCount, UInt32);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(ProfileId, ProfiledForInLoopCount, UInt16);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, LocalClosureRegister, RegSlot);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ParamClosureRegister, RegSlot);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, LocalFrameDisplayRegister, RegSlot);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, EnvRegister, RegSlot);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ThisRegisterForEventHandler, RegSlot);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, FirstInnerScopeRegister, RegSlot);
-    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, FuncExprScopeRegister, RegSlot);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ForInLoopDepth, UInt32, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, InlineCacheCount, UInt32, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, RootObjectLoadInlineCacheStart, UInt32, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, RootObjectLoadMethodInlineCacheStart, UInt32, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, RootObjectStoreInlineCacheStart, UInt32, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, IsInstInlineCacheCount, UInt32, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ReferencedPropertyIdCount, UInt32, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ObjLiteralCount, UInt32, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, LiteralRegexCount, UInt32, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, InnerScopeCount, UInt32, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(ProfileId, ProfiledForInLoopCount, UInt16, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, LocalClosureRegister, RegSlot, Constants::NoRegister);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ParamClosureRegister, RegSlot, Constants::NoRegister);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, LocalFrameDisplayRegister, RegSlot, Constants::NoRegister);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, EnvRegister, RegSlot, Constants::NoRegister);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ThisRegisterForEventHandler, RegSlot, Constants::NoRegister);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, FirstInnerScopeRegister, RegSlot, Constants::NoRegister);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, FuncExprScopeRegister, RegSlot, Constants::NoRegister);
 
 CURRENT_ACCESS_MODIFIER
 #endif
@@ -99,6 +110,8 @@ CURRENT_ACCESS_MODIFIER
 #undef CURRENT_ACCESS_MODIFIER
 #undef DECLARE_SERIALIZABLE_FIELD
 #undef DECLARE_SERIALIZABLE_ACCESSOR_FIELD
+#undef DECLARE_SERIALIZABLE_ACCESSOR_FIELD_NO_CHECK
 #undef PROTECTED_FIELDS
 #undef PRIVATE_FIELDS
 #undef PUBLIC_FIELDS
+#undef DECLARE_TAG_FIELD

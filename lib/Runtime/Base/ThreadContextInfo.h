@@ -5,7 +5,16 @@
 
 #pragma once
 
-// TODO michhol (OOP JIT): rename this
+// Keep in sync with WellKnownType in scriptdirect.idl
+
+typedef enum WellKnownHostType
+{
+    WellKnownHostType_HTMLAllCollection = 0,
+    WellKnownHostType_Response = 1,
+    WellKnownHostType_Last = WellKnownHostType_Response,
+    WellKnownHostType_Invalid = WellKnownHostType_Last + 1
+} WellKnownHostType;
+
 class ThreadContextInfo
 {
 public:
@@ -17,7 +26,8 @@ public:
 
     intptr_t GetAbsDoubleCstAddr() const;
     intptr_t GetAbsFloatCstAddr() const;
-    intptr_t GetSgnBitCst() const;
+    intptr_t GetSgnDoubleBitCst() const;
+    intptr_t GetSgnFloatBitCst() const;
     intptr_t GetMaskNegFloatAddr() const;
     intptr_t GetMaskNegDoubleAddr() const;
     intptr_t GetDoubleOnePointZeroAddr() const;
@@ -41,7 +51,6 @@ public:
     intptr_t GetDoubleTwoTo31Addr() const;
 
     intptr_t GetUIntConvertConstAddr() const;
-    intptr_t GetUInt64ConvertConstAddr() const;
     intptr_t GetUint8ClampedArraySetItemAddr() const;
     intptr_t GetConstructorCacheDefaultInstanceAddr() const;
     intptr_t GetJavascriptObjectNewInstanceAddr() const;
@@ -90,17 +99,19 @@ public:
     virtual intptr_t GetDisableImplicitFlagsAddr() const = 0;
     virtual intptr_t GetImplicitCallFlagsAddr() const = 0;
 
+    virtual ptrdiff_t GetChakraBaseAddressDifference() const = 0;
+    virtual ptrdiff_t GetCRTBaseAddressDifference() const = 0;
+
 #if ENABLE_NATIVE_CODEGEN
 #if defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const = 0;
 #endif
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const = 0;
-    virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() = 0;
 #endif
 
     virtual bool IsNumericProperty(Js::PropertyId propertyId) = 0;
 
-    bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeHTMLAllCollectionTypeId; }
+    bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeIds[WellKnownHostType_HTMLAllCollection]; }
 
     bool IsCFGEnabled();
     bool IsClosed();
@@ -112,27 +123,30 @@ public:
     Js::DelayLoadWinCoreMemory m_delayLoadWinCoreMemoryLibrary;
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
 #endif
+
 protected:
-    Js::TypeId wellKnownHostTypeHTMLAllCollectionTypeId;
+    class AutoCloseHandle
+    {
+    public:
+        AutoCloseHandle(HANDLE handle) : handle(handle) { Assert(this->handle != GetCurrentProcess()); }
+        ~AutoCloseHandle() { CloseHandle(this->handle); }
+        HANDLE GetHandle() const { return this->handle; }
+    private:
+        HANDLE handle;
+    };
+
+    Js::TypeId wellKnownHostTypeIds[WellKnownHostType_Last + 1];
 
     bool m_isAllJITCodeInPreReservedRegion;
     bool m_isClosed;
 
 };
 
-// TODO: OOP JIT, is there any issue when crossing over 2^31/2^63?
 template<typename T>
-intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, T* address)
+uintptr_t ShiftAddr(const ThreadContextInfo*const context, T* address)
 {
-    return SHIFT_ADDR(context, (intptr_t)address);
+    return ShiftAddr(context, (uintptr_t)address);
 }
 
-template<typename T>
-intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, T* address)
-{
-    return SHIFT_CRT_ADDR(context, (intptr_t)address);
-}
-
-intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address);
-intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, intptr_t address);
+uintptr_t ShiftAddr(const ThreadContextInfo*const context, uintptr_t address);
 

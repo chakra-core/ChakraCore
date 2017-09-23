@@ -15,7 +15,7 @@ enum
     fscrImplicitParents = 1 << 3,   // the parents of 'this' are implicit
     fscrMapQuote = 1 << 4,   // map single quote to double quote
     fscrDynamicCode = 1 << 5,   // The code is being generated dynamically (eval, new Function, etc.)
-    fscrSyntaxColor = 1 << 6,   // used by the scanner for syntax coloring
+    // Unused = 1 << 6,
     fscrNoImplicitHandlers = 1 << 7,   // same as Opt NoConnect at start of block
 
                                        // prevents the need to make a copy to strip off trailing html comments

@@ -20,11 +20,10 @@
 #ifndef _CHAKRADEBUG_H_
 #define _CHAKRADEBUG_H_
 
-#include "ChakraCommon.h"
-
 #ifdef _WIN32
 //Other platforms already include <stdint.h> and have this defined automatically
 typedef __int64 int64_t;
+typedef unsigned __int32 uint32_t;
 #endif
 
     /// <summary>
@@ -105,7 +104,11 @@ typedef __int64 int64_t;
         /// <summary>
         ///     Perform a reverse continue operation (only applicable in TTD mode).
         /// </summary>
-        JsDiagStepTypeStepReverseContinue = 4
+        JsDiagStepTypeReverseContinue = 4,
+        /// <summary>
+        ///     Perform a forward continue operation. Clears any existing step value.
+        /// </summary>
+        JsDiagStepTypeContinue = 5
     } JsDiagStepType;
 
     /// <summary>
@@ -411,9 +414,8 @@ typedef __int64 int64_t;
     ///         NONE = 0x1,
     ///         HAVE_CHILDRENS = 0x2,
     ///         READ_ONLY_VALUE = 0x4,
+    ///         IN_TDZ = 0x8,
     ///     </para>
-    /// </remarks>
-    /// <remarks>
     ///     <para>
     ///     {
     ///         "thisObject": {
@@ -551,12 +553,20 @@ typedef __int64 int64_t;
             _In_ unsigned int objectHandle,
             _Out_ JsValueRef *handleObject);
 
-#ifdef _WIN32
     /// <summary>
     ///     Evaluates an expression on given frame.
     /// </summary>
-    /// <param name="expression">A null-terminated expression to evaluate.</param>
+    /// <param name="expression">
+    ///     Javascript String or ArrayBuffer (incl. ExternalArrayBuffer).
+    /// </param>
     /// <param name="stackFrameIndex">Index of stack frame on which to evaluate the expression.</param>
+    /// <param name="parseAttributes">
+    ///     Defines how `expression` (JsValueRef) should be parsed.
+    ///     - `JsParseScriptAttributeNone` when `expression` is a Utf8 encoded ArrayBuffer and/or a Javascript String (encoding independent)
+    ///     - `JsParseScriptAttributeArrayBufferIsUtf16Encoded` when `expression` is Utf16 Encoded ArrayBuffer
+    ///     - `JsParseScriptAttributeLibraryCode` has no use for this function and has similar effect with `JsParseScriptAttributeNone`
+    /// </param>
+    /// <param name="forceSetValueProp">Forces the result to contain the raw value of the expression result.</param>
     /// <param name="evalResult">Result of evaluation.</param>
     /// <remarks>
     ///     <para>
@@ -591,59 +601,17 @@ typedef __int64 int64_t;
     /// </remarks>
     CHAKRA_API
         JsDiagEvaluate(
-            _In_z_ const wchar_t *expression,
+            _In_ JsValueRef expression,
             _In_ unsigned int stackFrameIndex,
+            _In_ JsParseScriptAttributes parseAttributes,
+            _In_ bool forceSetValueProp,
             _Out_ JsValueRef *evalResult);
-
-#endif // _WIN32
-
-    /// <summary>
-    ///     Evaluates an expression on given frame.
-    /// </summary>
-    /// <param name="expression">A null-terminated expression to evaluate.</param>
-    /// <param name="stackFrameIndex">Index of stack frame on which to evaluate the expression.</param>
-    /// <param name="evalResult">Result of evaluation.</param>
-    /// <remarks>
-    ///     <para>
-    ///     evalResult when evaluating 'this' and return is JsNoError
-    ///     {
-    ///         "name" : "this",
-    ///         "type" : "object",
-    ///         "className" : "Object",
-    ///         "display" : "{...}",
-    ///         "propertyAttributes" : 1,
-    ///         "handle" : 18
-    ///     }
-    ///
-    ///     evalResult when evaluating a script which throws JavaScript error and return is JsErrorScriptException
-    ///     {
-    ///         "name" : "a.b.c",
-    ///         "type" : "object",
-    ///         "className" : "Error",
-    ///         "display" : "'a' is undefined",
-    ///         "propertyAttributes" : 1,
-    ///         "handle" : 18
-    ///     }
-    ///     </para>
-    /// </remarks>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, evalResult will contain the result
-    ///     The code <c>JsErrorScriptException</c> if evaluate generated a JavaScript exception, evalResult will contain the error details
-    ///     Other error code for invalid parameters or API was not called at break
-    /// </returns>
-    /// <remarks>
-    ///     The current runtime should be in debug state. This API can only be called when runtime is at a break.
-    /// </remarks>
-    CHAKRA_API JsDiagEvaluateUtf8(
-        _In_z_ const char *expression,
-        _In_ unsigned int stackFrameIndex,
-        _Out_ JsValueRef *evalResult);
 
     /////////////////////
     /// <summary>
     ///     TimeTravel move options as bit flag enum.
     /// </summary>
-    typedef enum _JsTTDMoveModes : int64_t
+    typedef enum _JsTTDMoveModes
     {
         /// <summary>
         ///     Indicates no special actions needed for move.
@@ -671,6 +639,11 @@ typedef __int64 int64_t;
         JsTTDMoveScanIntervalForContinue = 0x10,
 
         /// <summary>
+        ///     Indicates if we are doing the scan for a continue operation and are in the time-segment where the active breakpoint was
+        /// </summary>
+        JsTTDMoveScanIntervalForContinueInActiveBreakpointSegment = 0x20,
+
+        /// <summary>
         ///     Indicates if we want to set break on entry or just run and let something else trigger breakpoints.
         /// </summary>
         JsTTDMoveBreakOnEntry = 0x100
@@ -683,28 +656,20 @@ typedef __int64 int64_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Ensure that the location specified for outputting the TTD data is clean. Specifically, ensure that any previous TTD
-    ///     in the location has been removed.
-    /// </summary>
-    /// <param name="uriByteLength">The length of the uriBytes array that the host passed in for storing log info.</param>
-    /// <param name="uriBytes">The bytes of the URI that the host passed in for storing log info.</param>
-    typedef void (CHAKRA_CALLBACK *JsTTDInitializeForWriteLogStreamCallback)(_In_ size_t uriByteLength, _In_reads_(uriByteLength) const byte* uriBytes);
-
-    /// <summary>
-    ///     TTD API -- may change in future versions:
     ///     Construct a JsTTDStreamHandle that will be used to read/write the event log portion of the TTD data based on the uri
     ///     provided by JsTTDInitializeUriCallback.
     /// </summary>
     /// <remarks>
     ///     <para>Exactly one of read or write will be set to true.</para>
     /// </remarks>
-    /// <param name="uriByteLength">The length of the uriBytes array that the host passed in for storing log info.</param>
-    /// <param name="uriBytes">The bytes of the URI that the host passed in for storing log info.</param>
-    /// <param name="asciiResourceName">A null terminated ascii string giving a unique name to the resource that the JsTTDStreamHandle will be created for.</param>
+    /// <param name="uriLength">The length of the uri array that the host passed in for storing log info.</param>
+    /// <param name="uri">The URI that the host passed in for storing log info.</param>
+    /// <param name="asciiNameLength">The length of the ascii name array that the host passed in for storing log info.</param>
+    /// <param name="asciiResourceName">An optional ascii string giving a unique name to the resource that the JsTTDStreamHandle will be created for.</param>
     /// <param name="read">If the handle should be opened for reading.</param>
     /// <param name="write">If the handle should be opened for writing.</param>
     /// <returns>A JsTTDStreamHandle opened in read/write mode as specified.</returns>
-    typedef JsTTDStreamHandle (CHAKRA_CALLBACK *TTDOpenResourceStreamCallback)(_In_ size_t uriByteLength, _In_reads_(uriByteLength) const byte* uriBytes, _In_z_ const char* asciiResourceName, _In_ bool read, _In_ bool write, _Out_opt_ byte** relocatedUri, _Out_opt_ size_t* relocatedUriLength);
+    typedef JsTTDStreamHandle (CHAKRA_CALLBACK *TTDOpenResourceStreamCallback)(_In_ size_t uriLength, _In_reads_(uriLength) const char* uri, _In_ size_t asciiNameLength, _In_reads_(asciiNameLength) const char* asciiResourceName, _In_ bool read, _In_ bool write);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
@@ -745,12 +710,9 @@ typedef __int64 int64_t;
     ///     Creates a new runtime in Record Mode.
     /// </summary>
     /// <param name="attributes">The attributes of the runtime to be created.</param>
-    /// <param name="infoUri">The uri where the recorded Time-Travel data should be stored.</param>
     /// <param name="snapInterval">The interval to wait between snapshots (measured in millis).</param>
     /// <param name="snapHistoryLength">The amount of history to maintain before discarding -- measured in number of snapshots and controls how far back in time a trace can be reversed.</param>
-    /// <param name="writeInitializeFunction">The <c>JsTTDInitializeForWriteLogStreamCallback</c> function for performing any initialization needed prepare uri for storing time travel recording data.</param>
     /// <param name="openResourceStream">The <c>TTDOpenResourceStreamCallback</c> function for generating a JsTTDStreamHandle to read/write serialized data.</param>
-    /// <param name="readBytesFromStream">The <c>JsTTDReadBytesFromStreamCallback</c> function for reading bytes from a JsTTDStreamHandle.</param>
     /// <param name="writeBytesToStream">The <c>JsTTDWriteBytesToStreamCallback</c> function for writing bytes to a JsTTDStreamHandle.</param>
     /// <param name="flushAndCloseStream">The <c>JsTTDFlushAndCloseStreamCallback</c> function for flushing and closing a JsTTDStreamHandle as needed.</param>
     /// <param name="threadService">The thread service for the runtime. Can be null.</param>
@@ -764,13 +726,9 @@ typedef __int64 int64_t;
     CHAKRA_API
         JsTTDCreateRecordRuntime(
             _In_ JsRuntimeAttributes attributes,
-            _In_reads_(infoUriCount) const byte* infoUri,
-            _In_ size_t infoUriCount,
             _In_ size_t snapInterval,
             _In_ size_t snapHistoryLength,
-            _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction,
             _In_ TTDOpenResourceStreamCallback openResourceStream,
-            _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream,
             _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream,
             _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream,
             _In_opt_ JsThreadServiceCallback threadService,
@@ -782,11 +740,9 @@ typedef __int64 int64_t;
     /// </summary>
     /// <param name="attributes">The attributes of the runtime to be created.</param>
     /// <param name="infoUri">The uri where the recorded Time-Travel data should be loaded from.</param>
-    /// <param name="enableDebugging">A flag to enable addtional debugging operation support during replay.</param>
-    /// <param name="writeInitializeFunction">The <c>JsTTDInitializeForWriteLogStreamCallback</c> function for performing any initialization needed prepare uri for storing time travel recording data.</param>
+    /// <param name="enableDebugging">A flag to enable additional debugging operation support during replay.</param>
     /// <param name="openResourceStream">The <c>TTDOpenResourceStreamCallback</c> function for generating a JsTTDStreamHandle to read/write serialized data.</param>
     /// <param name="readBytesFromStream">The <c>JsTTDReadBytesFromStreamCallback</c> function for reading bytes from a JsTTDStreamHandle.</param>
-    /// <param name="writeBytesToStream">The <c>JsTTDWriteBytesToStreamCallback</c> function for writing bytes to a JsTTDStreamHandle.</param>
     /// <param name="flushAndCloseStream">The <c>JsTTDFlushAndCloseStreamCallback</c> function for flushing and closing a JsTTDStreamHandle as needed.</param>
     /// <param name="threadService">The thread service for the runtime. Can be null.</param>
     /// <param name="runtime">The runtime created.</param>
@@ -799,13 +755,11 @@ typedef __int64 int64_t;
     CHAKRA_API
         JsTTDCreateReplayRuntime(
             _In_ JsRuntimeAttributes attributes,
-            _In_reads_(infoUriCount) const byte* infoUri,
+            _In_reads_(infoUriCount) const char* infoUri,
             _In_ size_t infoUriCount,
             _In_ bool enableDebugging,
-            _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, 
             _In_ TTDOpenResourceStreamCallback openResourceStream,
-            _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, 
-            _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, 
+            _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream,
             _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream,
             _In_opt_ JsThreadServiceCallback threadService,
             _Out_ JsRuntimeHandle *runtime);
@@ -821,7 +775,7 @@ typedef __int64 int64_t;
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
     CHAKRA_API JsTTDCreateContext(
-        _In_ JsRuntimeHandle runtimeHandle, 
+        _In_ JsRuntimeHandle runtimeHandle,
         _In_ bool useRuntimeTTDMode,
         _Out_ JsContextRef *newContext);
 
@@ -838,7 +792,7 @@ typedef __int64 int64_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Start Time-Travel Recording.
+    ///     Start Time-Travel record or replay at next turn of event loop.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
@@ -846,7 +800,7 @@ typedef __int64 int64_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Stop Time-Travel Recording.
+    ///     Stop Time-Travel record or replay.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
@@ -854,36 +808,36 @@ typedef __int64 int64_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Emit Time-Travel Recording.
+    ///     Pause Time-Travel recording before executing code on behalf of debugger or other diagnostic/telemetry.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
-        JsTTDEmitRecording();
-
-    /// <summary> 
-    ///     TTD API -- may change in future versions: 
-    ///     Pause Time-Travel recording before executing code on behalf of debugger or other diagnostic/telemetry. 
-    /// </summary> 
-    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns> 
-    CHAKRA_API
         JsTTDPauseTimeTravelBeforeRuntimeOperation();
-
-    /// <summary> 
-    ///     TTD API -- may change in future versions: 
-    ///     ReStart Time-Travel recording after executing code on behalf of debugger or other diagnostic/telemetry. 
-    /// </summary> 
-    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns> 
-    CHAKRA_API
-        JsTTDReStartTimeTravelAfterRuntimeOperation();
-
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Notify the Js runtime we are at a safe yield point in the event loop (i.e. no locals on the stack and we can proccess as desired).
+    ///     ReStart Time-Travel recording after executing code on behalf of debugger or other diagnostic/telemetry.
+    /// </summary>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
+    CHAKRA_API
+        JsTTDReStartTimeTravelAfterRuntimeOperation();
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     Notify the Js runtime we are at a safe yield point in the event loop (i.e. no locals on the stack and we can process as desired).
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
         JsTTDNotifyYield();
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     Notify the TTD runtime that we are doing a weak add on a reference (we may use this in external API calls and the release will happen in a GC callback).
+    /// </summary>
+    /// <param name="value">The value we are adding the ref to.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
+    CHAKRA_API
+        JsTTDNotifyLongLivedReferenceAdd(_In_ JsValueRef value);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
@@ -950,7 +904,7 @@ typedef __int64 int64_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     A check for unimplmented TTD actions in the host.
+    ///     A check for unimplemented TTD actions in the host.
     ///     This API is a TEMPORARY API while we complete the implementation of TTD support in the Node host and will be deleted once that is complete.
     /// </summary>
     /// <param name="msg">The message to print if we should be catching this as a TTD operation.</param>
@@ -966,6 +920,7 @@ typedef __int64 int64_t;
     /// </summary>
     /// <param name="runtimeHandle">The runtime handle that the script is executing in.</param>
     /// <param name="moveMode">Flags controlling the way the move it performed and how other parameters are interpreted.</param>
+    /// <param name="kthEvent">When <c>moveMode == JsTTDMoveKthEvent</c> indicates which event, otherwise this parameter is ignored.</param>
     /// <param name="targetEventTime">The event time we want to move to or -1 if not relevant.</param>
     /// <param name="targetStartSnapTime">Out parameter with the event time of the snapshot that we should inflate from.</param>
     /// <param name="targetEndSnapTime">Optional Out parameter with the snapshot time following the event.</param>
@@ -973,6 +928,7 @@ typedef __int64 int64_t;
     CHAKRA_API JsTTDGetSnapTimeTopLevelEventMove(
         _In_ JsRuntimeHandle runtimeHandle,
         _In_ JsTTDMoveMode moveMode,
+        _In_opt_ uint32_t kthEvent,
         _Inout_ int64_t* targetEventTime,
         _Out_ int64_t* targetStartSnapTime,
         _Out_opt_ int64_t* targetEndSnapTime);
@@ -1007,8 +963,8 @@ typedef __int64 int64_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     During debug operations some additional information is populated during replay. This runs the code between the given 
-    ///     snapshots to poulate this information which may be needed by the debugger to determine time-travel jump targets.
+    ///     During debug operations some additional information is populated during replay. This runs the code between the given
+    ///     snapshots to populate this information which may be needed by the debugger to determine time-travel jump targets.
     /// </summary>
     /// <param name="runtimeHandle">The runtime handle that the script is executing in.</param>
     ///<param name = "startSnapTime">The snapshot time that we will start executing from.< / param>

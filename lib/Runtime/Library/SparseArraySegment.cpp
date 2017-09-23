@@ -30,7 +30,7 @@ namespace Js
             // if it's not being changed) may cause an AV.
             size = min(size, nextLeft - left);
         }
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
     }
 
     // Test if an element value is null/undefined.
@@ -125,7 +125,7 @@ namespace Js
 
             _this->Truncate(left + newLen); // Truncate to new length (also clears moved elements)
         }
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
 
         return countUndefined;
     }

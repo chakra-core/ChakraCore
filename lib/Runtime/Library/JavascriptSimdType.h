@@ -3,13 +3,13 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     class JavascriptSIMDType : public RecyclableObject
     {
     protected:
-        SIMDValue value;
+        Field(SIMDValue) value;
     public:
         DEFINE_VTABLE_CTOR(JavascriptSIMDType, RecyclableObject);
         JavascriptSIMDType(StaticType *type);
@@ -31,12 +31,13 @@ namespace Js
         static Var EntrySymbolToPrimitive(RecyclableObject* function, CallInfo callInfo, ...);
         // End Entry Points
 
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
 
     private:
         virtual bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext);
     };
 }
+#endif
 

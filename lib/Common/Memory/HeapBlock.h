@@ -122,6 +122,11 @@ enum ObjectInfoBits : unsigned short
     ClientTrackableLeafBits     = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit | LeafBit,
     ClientTrackableObjectBits   = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit,
 
+#ifdef RECYCLER_WRITE_BARRIER
+    ClientTrackableObjectWithBarrierBits = ClientTrackableObjectBits | WithBarrierBit,
+    ClientFinalizableObjectWithBarrierBits = ClientFinalizableObjectBits | WithBarrierBit,
+#endif
+
     WeakReferenceEntryBits      = LeafBit,
 
     ImplicitRootLeafBits        = LeafBit | ImplicitRootBit,
@@ -282,7 +287,7 @@ protected:
 #endif
 
 public:
-    template <typename Fn>
+    template <bool doSpecialMark, typename Fn>
     bool UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn);
     void SetNeedOOMRescan(Recycler * recycler);
 public:
@@ -310,6 +315,17 @@ public:
 
         return false;
     }
+#if DBG
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    virtual void WBSetBit(char* addr) = 0;
+    virtual void WBSetBitRange(char* addr, uint count) = 0;
+    virtual void WBClearBit(char* addr) = 0;
+    virtual void WBVerifyBitIsSet(char* addr) = 0;
+    virtual void WBClearObject(char* addr) = 0;
+#endif
+    static void PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, char* target);
+#endif
+
 
 #if DBG
     virtual BOOL IsFreeObject(void* objectAddress) = 0;
@@ -317,13 +333,13 @@ public:
     virtual BOOL IsValidObject(void* objectAddress) = 0;
 
     virtual byte* GetRealAddressFromInterior(void* interiorAddress) = 0;
-    virtual size_t GetObjectSize(void* object) = 0;
+    virtual size_t GetObjectSize(void* object) const = 0;
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) = 0;
     virtual bool TestObjectMarkedBit(void* objectAddress) = 0;
     virtual void SetObjectMarkedBit(void* objectAddress) = 0;
 
 #ifdef RECYCLER_VERIFY_MARK
-    virtual void VerifyMark(void * objectAddress) = 0;
+    virtual bool VerifyMark(void * objectAddress, void * target) = 0;
 #endif
 #ifdef PROFILE_RECYCLER_ALLOC
     virtual void * GetTrackerData(void * address) = 0;
@@ -336,6 +352,15 @@ public:
     virtual void UpdatePerfCountersOnFree() = 0;
 #endif
 };
+
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+template <typename TBlockType>
+struct HeapBlockSListItem {
+    // SLIST_ENTRY needs to be the first element in the structure to avoid calculating offset with the SList API calls.
+    SLIST_ENTRY itemEntry;
+    TBlockType * itemHeapBlock;
+};
+#endif
 
 enum SweepMode
 {
@@ -364,11 +389,22 @@ template <class TBlockAttributes>
 class ValidPointers
 {
 public:
-    ValidPointers(ushort const * validPointers);
+    ValidPointers(ushort const * validPointers, uint bucketIndex);
     ushort GetInteriorAddressIndex(uint index) const;
     ushort GetAddressIndex(uint index) const;
 private:
+#if USE_VPM_TABLE
     ushort const * validPointers;
+#endif
+
+#if !USE_VPM_TABLE || DBG
+    uint indexPerObject;
+    uint maxObjectIndex;
+
+    static uint CalculateBucketInfo(uint bucketIndex, uint * stride);
+    static ushort CalculateAddressIndex(uint index, uint indexPerObject, uint maxObjectIndex);
+    static ushort CalculateInteriorAddressIndex(uint index, uint indexPerObject, uint maxObjectIndex);
+#endif
 };
 
 template <class TBlockAttributes>
@@ -428,6 +464,11 @@ public:
 #endif
     SmallHeapBlockBitVector* markBits;
     SmallHeapBlockBitVector  freeBits;
+#if DBG
+    // TODO: (leish)(swb) move this to the block header if memory pressure on chk build is a problem
+    // this causes 1/64 more memory usage on x64 or 1/32 more on x86
+    BVStatic<TBlockAttributes::PageCount * AutoSystemInfo::PageSize / sizeof(void*)> wbVerifyBits;
+#endif
 
 #if DBG || defined(RECYCLER_STATS)
     SmallHeapBlockBitVector debugFreeBits;
@@ -447,6 +488,45 @@ public:
     void ProtectUnusablePages() {}
     void RestoreUnusablePages() {}
 
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    virtual void WBVerifyBitIsSet(char* addr) override
+    {
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        if (!wbVerifyBits.Test(index)) // TODO: (leish)(swb) need interlocked? seems not
+        {
+            PrintVerifyMarkFailure(this->GetRecycler(), addr, *(char**)addr);
+        }
+    }
+    virtual void WBSetBit(char* addr) override
+    {
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        wbVerifyBits.TestAndSetInterlocked(index);
+    }
+    virtual void WBSetBitRange(char* addr, uint count) override
+    {
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        for (uint i = 0; i < count; i++)
+        {
+            wbVerifyBits.TestAndSetInterlocked(index + i);
+        }
+    }
+    virtual void WBClearBit(char* addr) override
+    {
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        wbVerifyBits.TestAndClearInterlocked(index);
+    }
+    virtual void WBClearObject(char* addr) override
+    {
+        Assert((uint)(addr - this->address) % this->objectSize == 0);
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        uint count = (uint)(this->objectSize / sizeof(void*));
+        for (uint i = 0; i < count; i++)
+        {
+            wbVerifyBits.TestAndClearInterlocked(index + i);
+        }
+    }
+#endif
+
     uint GetUnusablePageCount()
     {
         return 0;
@@ -461,7 +541,6 @@ public:
     uint GetObjectWordCount() const { return this->objectSize / sizeof(void *); }
     uint GetPageCount() const;
 
-    template<bool checkPageHeap=true>
     bool HasFreeObject() const
     {
         return freeObjectList != nullptr;
@@ -550,7 +629,7 @@ public:
     byte* GetRealAddressFromInterior(void* interiorAddress) override sealed;
     bool TestObjectMarkedBit(void* objectAddress) override sealed;
     void SetObjectMarkedBit(void* objectAddress) override;
-    virtual size_t GetObjectSize(void* object) override { return objectSize; }
+    virtual size_t GetObjectSize(void* object) const override { return objectSize; }
 
     uint GetMarkCountForSweep();
     SweepState Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount = 0, bool hasPendingDispose = false);
@@ -597,7 +676,7 @@ public:
 #endif
 #ifdef RECYCLER_VERIFY_MARK
     void VerifyMark();
-    virtual void VerifyMark(void * objectAddress) override;
+    virtual bool VerifyMark(void * objectAddress, void * target) override;
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override sealed;
@@ -635,7 +714,7 @@ protected:
     void CheckFreeBitVector(bool isCollecting);
 #endif
 
-    SmallHeapBlockBitVector * EnsureFreeBitVector();
+    SmallHeapBlockBitVector * EnsureFreeBitVector(bool isCollecting = true);
     SmallHeapBlockBitVector * BuildFreeBitVector();
     ushort BuildFreeBitVector(SmallHeapBlockBitVector * bv);
 

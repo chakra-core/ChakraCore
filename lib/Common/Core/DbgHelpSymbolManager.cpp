@@ -33,6 +33,7 @@ DbgHelpSymbolManager::Initialize()
     char16 *wszOldSearchPath = nullptr;
     char16 *wszNewSearchPath = nullptr;
     char16 *wszModuleName = nullptr;
+    char16 const *wszModule = nullptr;
 
     const size_t ceModuleName = _MAX_PATH;
     const size_t ceOldSearchPath = 32767;
@@ -53,7 +54,7 @@ DbgHelpSymbolManager::Initialize()
 
     // Let's make sure the directory where chakra.dll is, is on the symbol path.
 
-    char16 const * wszModule = AutoSystemInfo::GetJscriptDllFileName();
+    wszModule = AutoSystemInfo::GetJscriptDllFileName();
     wszModuleName = NoCheckHeapNewArray(char16, ceModuleName);
     if (wszModuleName == nullptr)
     {
@@ -118,23 +119,25 @@ DbgHelpSymbolManager::Initialize()
         goto end;
     }
 
-    typedef BOOL(__stdcall *PfnSymInitialize)(HANDLE, PCWSTR, BOOL);
-    PfnSymInitialize pfnSymInitialize = (PfnSymInitialize)GetProcAddress(hDbgHelpModule, "SymInitializeW");
-    if (pfnSymInitialize)
     {
-        pfnSymInitialize(hProcess, wszSearchPath, TRUE);
-        pfnSymFromAddrW = (PfnSymFromAddrW)GetProcAddress(hDbgHelpModule, "SymFromAddrW");
-        pfnSymGetLineFromAddr64W = (PfnSymGetLineFromAddr64W)GetProcAddress(hDbgHelpModule, "SymGetLineFromAddrW64");
+        typedef BOOL(__stdcall *PfnSymInitialize)(HANDLE, PCWSTR, BOOL);
+        PfnSymInitialize pfnSymInitialize = (PfnSymInitialize)GetProcAddress(hDbgHelpModule, "SymInitializeW");
+        if (pfnSymInitialize)
+        {
+            pfnSymInitialize(hProcess, wszSearchPath, TRUE);
+            pfnSymFromAddrW = (PfnSymFromAddrW)GetProcAddress(hDbgHelpModule, "SymFromAddrW");
+            pfnSymGetLineFromAddr64W = (PfnSymGetLineFromAddr64W)GetProcAddress(hDbgHelpModule, "SymGetLineFromAddrW64");
 
-        // load line information
-        typedef DWORD(__stdcall *PfnSymGetOptions)();
-        typedef VOID(__stdcall *PfnSymSetOptions)(DWORD);
-        PfnSymGetOptions pfnSymGetOptions = (PfnSymGetOptions)GetProcAddress(hDbgHelpModule, "SymGetOptions");
-        PfnSymSetOptions pfnSymSetOptions = (PfnSymSetOptions)GetProcAddress(hDbgHelpModule, "SymSetOptions");
+            // load line information
+            typedef DWORD(__stdcall *PfnSymGetOptions)();
+            typedef VOID(__stdcall *PfnSymSetOptions)(DWORD);
+            PfnSymGetOptions pfnSymGetOptions = (PfnSymGetOptions)GetProcAddress(hDbgHelpModule, "SymGetOptions");
+            PfnSymSetOptions pfnSymSetOptions = (PfnSymSetOptions)GetProcAddress(hDbgHelpModule, "SymSetOptions");
 
-        DWORD options = pfnSymGetOptions();
-        options |= SYMOPT_LOAD_LINES;
-        pfnSymSetOptions(options);
+            DWORD options = pfnSymGetOptions();
+            options |= SYMOPT_LOAD_LINES;
+            pfnSymSetOptions(options);
+        }
     }
 
 end:

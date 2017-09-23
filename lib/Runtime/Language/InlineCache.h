@@ -17,10 +17,12 @@
 #define PolymorphicInlineCacheShift 6 // On 64 bit architectures, the least 6 significant bits of a DynamicTypePointer is 0
 #endif
 
-// TODO: OOP JIT, move equiv set to backend?
 // forward decl
 class JITType;
-class JITTypeHolder;
+struct InlineCacheData;
+template <class TAllocator> class JITTypeHolderBase;
+typedef JITTypeHolderBase<void> JITTypeHolder;
+typedef JITTypeHolderBase<Recycler> RecyclerJITTypeHolder;
 
 namespace Js
 {
@@ -220,8 +222,11 @@ namespace Js
                 return false;
             }
 
+            Assert(*this->invalidationListSlotPtr == this);
+
             *this->invalidationListSlotPtr = nullptr;
             this->invalidationListSlotPtr = nullptr;
+
             return true;
         }
 
@@ -308,15 +313,18 @@ namespace Js
             PropertyCacheOperationInfo *const operationInfo,
             const PropertyOperationFlags propertyOperationFlags = PropertyOperation_None);
 
-        bool PretendTryGetProperty(Type *const type, PropertyCacheOperationInfo * operationInfo);
-        bool PretendTrySetProperty(Type *const type, Type *const oldType, PropertyCacheOperationInfo * operationInfo);
+        bool PretendTryGetProperty(Type *const type, PropertyCacheOperationInfo * operationInfo) const;
+        bool PretendTrySetProperty(Type *const type, Type *const oldType, PropertyCacheOperationInfo * operationInfo) const;
 
         void Clear();
+        void RemoveFromInvalidationListAndClear(ThreadContext* threadContext);
         template <class TAllocator>
         InlineCache *Clone(TAllocator *const allocator);
         InlineCache *Clone(Js::PropertyId propertyId, ScriptContext* scriptContext);
         void CopyTo(PropertyId propertyId, ScriptContext * scriptContext, InlineCache * const clone);
+#if ENABLE_FIXED_FIELDS
         bool TryGetFixedMethodFromCache(Js::FunctionBody* functionBody, uint cacheId, Js::JavascriptFunction** pFixedMethod);
+#endif
 
         bool GetGetterSetter(Type *const type, RecyclableObject **callee);
         bool GetCallApplyTarget(RecyclableObject* obj, RecyclableObject **callee);
@@ -362,8 +370,7 @@ namespace Js
     CompileAssert(sizeof(InlineCache) == sizeof(InlineCacheAllocator::CacheLayout));
     CompileAssert(offsetof(InlineCache, invalidationListSlotPtr) == offsetof(InlineCacheAllocator::CacheLayout, strongRef));
 
-    struct JitTimePolymorphicInlineCache;
-    struct PolymorphicInlineCache sealed : public FinalizableObject
+    class PolymorphicInlineCache _ABSTRACT : public FinalizableObject
     {
 #ifdef INLINE_CACHE_STATS
         friend class Js::ScriptContext;
@@ -372,39 +379,32 @@ namespace Js
     public:
         static const bool IsPolymorphic = true;
 
-    private:
-        InlineCache * inlineCaches;
-        FunctionBody * functionBody;
-        uint16 size;
-        bool ignoreForEquivalentObjTypeSpec;
-        bool cloneForJitTimeUse;
+    protected:
+        FieldNoBarrier(InlineCache *) inlineCaches;
+        Field(uint16) size;
+        Field(bool) ignoreForEquivalentObjTypeSpec;
+        Field(bool) cloneForJitTimeUse;
 
-        int32 inlineCachesFillInfo;
+        Field(int32) inlineCachesFillInfo;
 
-        // DList chaining all polymorphic inline caches of a FunctionBody together.
-        // Since PolymorphicInlineCache is a leaf object, these references do not keep
-        // the polymorphic inline caches alive. When a PolymorphicInlineCache is finalized,
-        // it removes itself from the list and deletes its inline cache array.
-        PolymorphicInlineCache * next;
-        PolymorphicInlineCache * prev;
-
-        PolymorphicInlineCache(InlineCache * inlineCaches, uint16 size, FunctionBody * functionBody)
-            : inlineCaches(inlineCaches), functionBody(functionBody), size(size), ignoreForEquivalentObjTypeSpec(false), cloneForJitTimeUse(true), inlineCachesFillInfo(0), next(nullptr), prev(nullptr)
+        PolymorphicInlineCache(InlineCache * inlineCaches, uint16 size)
+            : inlineCaches(inlineCaches), size(size), ignoreForEquivalentObjTypeSpec(false), cloneForJitTimeUse(true), inlineCachesFillInfo(0)
         {
-            Assert((size == 0 && inlineCaches == nullptr) ||
-                (inlineCaches != nullptr && size >= MinPolymorphicInlineCacheSize && size <= MaxPolymorphicInlineCacheSize));
         }
 
     public:
-        static PolymorphicInlineCache * New(uint16 size, FunctionBody * functionBody);
 
-        static uint16 GetInitialSize() { return MinPolymorphicInlineCacheSize; }
         bool CanAllocateBigger() { return GetSize() < MaxPolymorphicInlineCacheSize; }
         static uint16 GetNextSize(uint16 currentSize)
         {
             if (currentSize == MaxPolymorphicInlineCacheSize)
             {
                 return 0;
+            }
+            else if (currentSize == MinPropertyStringInlineCacheSize)
+            {
+                CompileAssert(MinPropertyStringInlineCacheSize < MinPolymorphicInlineCacheSize);
+                return MinPolymorphicInlineCacheSize;
             }
             else
             {
@@ -419,7 +419,6 @@ namespace Js
 
         InlineCache * GetInlineCaches() const { return inlineCaches; }
         uint16 GetSize() const { return size; }
-        PolymorphicInlineCache * GetNext() { return next; }
         bool GetIgnoreForEquivalentObjTypeSpec() const { return this->ignoreForEquivalentObjTypeSpec; }
         void SetIgnoreForEquivalentObjTypeSpec(bool value) { this->ignoreForEquivalentObjTypeSpec = value; }
         bool GetCloneForJitTimeUse() const { return this->cloneForJitTimeUse; }
@@ -427,8 +426,8 @@ namespace Js
         uint32 GetInlineCachesFillInfo() { return this->inlineCachesFillInfo; }
         void UpdateInlineCachesFillInfo(uint32 index, bool set);
         bool IsFull();
+        void Clear(Type * type);
 
-        virtual void Finalize(bool isShutdown) override;
         virtual void Dispose(bool isShutdown) override { };
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
@@ -505,6 +504,14 @@ namespace Js
             return (((size_t)type) >> PolymorphicInlineCacheShift) & (GetSize() - 1);
         }
 
+#ifdef INLINE_CACHE_STATS
+        virtual void PrintStats(InlineCacheData *data) const = 0;
+        virtual ScriptContext* GetScriptContext() const = 0;
+#endif
+
+        static uint32 GetOffsetOfSize() { return offsetof(Js::PolymorphicInlineCache, size); }
+        static uint32 GetOffsetOfInlineCaches() { return offsetof(Js::PolymorphicInlineCache, inlineCaches); }
+
     private:
         uint GetNextInlineCacheIndex(uint index) const
         {
@@ -538,423 +545,60 @@ namespace Js
 #endif
     };
 
-#if ENABLE_NATIVE_CODEGEN
-    class EquivalentTypeSet
+
+    class FunctionBodyPolymorphicInlineCache sealed : public PolymorphicInlineCache
     {
     private:
-        bool sortedAndDuplicatesRemoved;
-        uint16 count;
-        JITTypeHolder * types;
+        FunctionBody * functionBody;
 
+        // DList chaining all polymorphic inline caches of a FunctionBody together.
+        // Since PolymorphicInlineCache is a leaf object, these references do not keep
+        // the polymorphic inline caches alive. When a PolymorphicInlineCache is finalized,
+        // it removes itself from the list and deletes its inline cache array.
+        // We maintain this linked list of polymorphic caches because when we allocate a larger cache,
+        // the old one might still be used by some code on the stack.  Consequently, we can't release
+        // the inline cache array back to the arena allocator.
+        FunctionBodyPolymorphicInlineCache * next;
+        FunctionBodyPolymorphicInlineCache * prev;
+
+        FunctionBodyPolymorphicInlineCache(InlineCache * inlineCaches, uint16 size, FunctionBody * functionBody)
+            : PolymorphicInlineCache(inlineCaches, size), functionBody(functionBody), next(nullptr), prev(nullptr)
+        {
+            Assert((size == 0 && inlineCaches == nullptr) ||
+                (inlineCaches != nullptr && size >= MinPolymorphicInlineCacheSize && size <= MaxPolymorphicInlineCacheSize));
+        }
     public:
-        EquivalentTypeSet(JITTypeHolder * types, uint16 count);
+        static FunctionBodyPolymorphicInlineCache * New(uint16 size, FunctionBody * functionBody);
 
-        uint16 GetCount() const
-        {
-            return this->count;
-        }
+#ifdef INLINE_CACHE_STATS
+        virtual void PrintStats(InlineCacheData *data) const override;
+        virtual ScriptContext* GetScriptContext() const override;
+#endif
 
-        JITTypeHolder GetFirstType() const;
-
-        JITTypeHolder GetType(uint16 index) const;
-
-        JITTypeHolder * GetTypes() const;
-
-        bool GetSortedAndDuplicatesRemoved() const
-        {
-            return this->sortedAndDuplicatesRemoved;
-        }
-        bool Contains(const JITTypeHolder type, uint16 * pIndex = nullptr);
-
-        static bool AreIdentical(EquivalentTypeSet * left, EquivalentTypeSet * right);
-        static bool IsSubsetOf(EquivalentTypeSet * left, EquivalentTypeSet * right);
-        void SortAndRemoveDuplicates();
+        virtual void Finalize(bool isShutdown) override;
     };
-#endif
-    enum class CtorCacheGuardValues : intptr_t
+
+    class ScriptContextPolymorphicInlineCache sealed : public PolymorphicInlineCache
     {
-        TagFlag = 0x01,
-
-        Invalid = 0x00,
-        Special = TagFlag
-    };
-    ENUM_CLASS_HELPERS(CtorCacheGuardValues, intptr_t);
-
-#define MaxCachedSlotCount 65535
-
-    struct ConstructorCache
-    {
-        friend class JavascriptFunction;
-
-        struct GuardStruct
-        {
-            CtorCacheGuardValues value;
-        };
-
-        struct ContentStruct
-        {
-            DynamicType* type;
-            ScriptContext* scriptContext;
-            // In a pinch we could eliminate this and store type pending sharing in the type field as long
-            // as the guard value flags fit below the object alignment boundary.  However, this wouldn't
-            // keep the type alive, so it would only work if we zeroed constructor caches before GC.
-            DynamicType* pendingType;
-
-            // We cache only types whose slotCount < 64K to ensure the slotCount field doesn't look like a pointer to the recycler.
-            int slotCount;
-
-            // This layout (i.e. one-byte bit fields first, then the one-byte updateAfterCtor, and then the two byte inlineSlotCount) is
-            // chosen intentionally to make sure the whole four bytes never look like a pointer and create a false reference pinning something
-            // in recycler heap.  The isPopulated bit is always set when the cache holds any data - even if it got invalidated.
-            bool isPopulated : 1;
-            bool isPolymorphic : 1;
-            bool typeUpdatePending : 1;
-            bool ctorHasNoExplicitReturnValue : 1;
-            bool skipDefaultNewObject : 1;
-            // This field indicates that the type stored in this cache is the final type after constructor.
-            bool typeIsFinal : 1;
-            // This field indicates that the constructor cache has been invalidated due to a constructor's prototype property change.
-            // We use this flag to determine if we should mark the cache as polymorphic and not attempt subsequent optimizations.
-            // The cache may also be invalidated due to a guard invalidation resulting from some property change (e.g. in proto chain),
-            // in which case we won't deem the cache polymorphic.
-            bool hasPrototypeChanged : 1;
-
-            uint8 callCount;
-
-            // Separate from the bit field below for convenient compare from the JIT-ed code. Doesn't currently increase the size.
-            // If size becomes an issue, we could merge back into the bit field and use a TEST instead of CMP.
-            bool updateAfterCtor;
-
-            int16 inlineSlotCount;
-        };
-
-        union
-        {
-            GuardStruct guard;
-            ContentStruct content;
-        };
-
-        CompileAssert(offsetof(GuardStruct, value) == offsetof(ContentStruct, type));
-        CompileAssert(sizeof(((GuardStruct*)nullptr)->value) == sizeof(((ContentStruct*)nullptr)->type));
-        CompileAssert(static_cast<intptr_t>(CtorCacheGuardValues::Invalid) == static_cast<intptr_t>(NULL));
-
-        static ConstructorCache DefaultInstance;
-
-    public:
-        ConstructorCache()
-        {
-            this->content.type = nullptr;
-            this->content.scriptContext = nullptr;
-            this->content.slotCount = 0;
-            this->content.inlineSlotCount = 0;
-            this->content.updateAfterCtor = false;
-            this->content.ctorHasNoExplicitReturnValue = false;
-            this->content.skipDefaultNewObject = false;
-            this->content.isPopulated = false;
-            this->content.isPolymorphic = false;
-            this->content.typeUpdatePending = false;
-            this->content.typeIsFinal = false;
-            this->content.hasPrototypeChanged = false;
-            this->content.callCount = 0;
-            Assert(IsConsistent());
-        }
-
-        ConstructorCache(ConstructorCache const * other)
-        {
-            Assert(other != nullptr);
-            this->content.type = other->content.type;
-            this->content.scriptContext = other->content.scriptContext;
-            this->content.slotCount = other->content.slotCount;
-            this->content.inlineSlotCount = other->content.inlineSlotCount;
-            this->content.updateAfterCtor = other->content.updateAfterCtor;
-            this->content.ctorHasNoExplicitReturnValue = other->content.ctorHasNoExplicitReturnValue;
-            this->content.skipDefaultNewObject = other->content.skipDefaultNewObject;
-            this->content.isPopulated = other->content.isPopulated;
-            this->content.isPolymorphic = other->content.isPolymorphic;
-            this->content.typeUpdatePending = other->content.typeUpdatePending;
-            this->content.typeIsFinal = other->content.typeIsFinal;
-            this->content.hasPrototypeChanged = other->content.hasPrototypeChanged;
-            this->content.callCount = other->content.callCount;
-            Assert(IsConsistent());
-        }
-
-        static size_t const GetOffsetOfGuardValue() { return offsetof(Js::ConstructorCache, guard.value); }
-        static size_t const GetSizeOfGuardValue() { return sizeof(((Js::ConstructorCache*)nullptr)->guard.value); }
-
-        void Populate(DynamicType* type, ScriptContext* scriptContext, bool ctorHasNoExplicitReturnValue, bool updateAfterCtor)
-        {
-            Assert(scriptContext == type->GetScriptContext());
-            Assert(type->GetIsShared());
-            Assert(IsConsistent());
-            Assert(!this->content.isPopulated || this->content.isPolymorphic);
-            Assert(type->GetTypeHandler()->GetSlotCapacity() <= MaxCachedSlotCount);
-            this->content.isPopulated = true;
-            this->content.type = type;
-            this->content.scriptContext = scriptContext;
-            this->content.slotCount = type->GetTypeHandler()->GetSlotCapacity();
-            this->content.inlineSlotCount = type->GetTypeHandler()->GetInlineSlotCapacity();
-            this->content.ctorHasNoExplicitReturnValue = ctorHasNoExplicitReturnValue;
-            this->content.updateAfterCtor = updateAfterCtor;
-            Assert(IsConsistent());
-        }
-
-        void PopulateForSkipDefaultNewObject(ScriptContext* scriptContext)
-        {
-            Assert(IsConsistent());
-            Assert(!this->content.isPopulated);
-            this->content.isPopulated = true;
-            this->guard.value = CtorCacheGuardValues::Special;
-            this->content.scriptContext = scriptContext;
-            this->content.skipDefaultNewObject = true;
-            Assert(IsConsistent());
-        }
-
-        bool TryUpdateAfterConstructor(DynamicType* type, ScriptContext* scriptContext)
-        {
-            Assert(scriptContext == type->GetScriptContext());
-            Assert(type->GetTypeHandler()->GetMayBecomeShared());
-            Assert(IsConsistent());
-            Assert(this->content.isPopulated);
-            Assert(this->content.scriptContext == scriptContext);
-            Assert(!this->content.typeUpdatePending);
-            Assert(this->content.ctorHasNoExplicitReturnValue);
-
-            if (type->GetTypeHandler()->GetSlotCapacity() > MaxCachedSlotCount)
-            {
-                return false;
-            }
-
-            if (type->GetIsShared())
-            {
-                this->content.type = type;
-                this->content.typeIsFinal = true;
-                this->content.pendingType = nullptr;
-            }
-            else
-            {
-                AssertMsg(false, "No one calls this part of the code?");
-                this->guard.value = CtorCacheGuardValues::Special;
-                this->content.pendingType = type;
-                this->content.typeUpdatePending = true;
-            }
-            this->content.slotCount = type->GetTypeHandler()->GetSlotCapacity();
-            this->content.inlineSlotCount = type->GetTypeHandler()->GetInlineSlotCapacity();
-            Assert(IsConsistent());
-            return true;
-        }
-
-        void UpdateInlineSlotCount()
-        {
-            Assert(IsConsistent());
-            Assert(this->content.isPopulated);
-            Assert(IsEnabled() || NeedsTypeUpdate());
-            DynamicType* type = this->content.typeUpdatePending ? this->content.pendingType : this->content.type;
-            DynamicTypeHandler* typeHandler = type->GetTypeHandler();
-            // Inline slot capacity should never grow as a result of shrinking.
-            Assert(typeHandler->GetInlineSlotCapacity() <= this->content.inlineSlotCount);
-            // Slot capacity should never grow as a result of shrinking.
-            Assert(typeHandler->GetSlotCapacity() <= this->content.slotCount);
-            this->content.slotCount = typeHandler->GetSlotCapacity();
-            this->content.inlineSlotCount = typeHandler->GetInlineSlotCapacity();
-            Assert(IsConsistent());
-        }
-
-        void EnableAfterTypeUpdate()
-        {
-            Assert(IsConsistent());
-            Assert(this->content.isPopulated);
-            Assert(!IsEnabled());
-            Assert(this->guard.value == CtorCacheGuardValues::Special);
-            Assert(this->content.typeUpdatePending);
-            Assert(this->content.slotCount == this->content.pendingType->GetTypeHandler()->GetSlotCapacity());
-            Assert(this->content.inlineSlotCount == this->content.pendingType->GetTypeHandler()->GetInlineSlotCapacity());
-            Assert(this->content.pendingType->GetIsShared());
-            this->content.type = this->content.pendingType;
-            this->content.typeIsFinal = true;
-            this->content.pendingType = nullptr;
-            this->content.typeUpdatePending = false;
-            Assert(IsConsistent());
-        }
-
-        intptr_t GetRawGuardValue() const
-        {
-            return static_cast<intptr_t>(this->guard.value);
-        }
-
-        DynamicType* GetGuardValueAsType() const
-        {
-            return reinterpret_cast<DynamicType*>(this->guard.value & ~CtorCacheGuardValues::TagFlag);
-        }
-
-        DynamicType* GetType() const
-        {
-            Assert(static_cast<intptr_t>(this->guard.value & CtorCacheGuardValues::TagFlag) == 0);
-            return this->content.type;
-        }
-
-        DynamicType* GetPendingType() const
-        {
-            return this->content.pendingType;
-        }
-
-        ScriptContext* GetScriptContext() const
-        {
-            return this->content.scriptContext;
-        }
-
-        int GetSlotCount() const
-        {
-            return this->content.slotCount;
-        }
-
-        int16 GetInlineSlotCount() const
-        {
-            return this->content.inlineSlotCount;
-        }
-
-        static bool IsDefault(const ConstructorCache* constructorCache)
-        {
-            return constructorCache == &ConstructorCache::DefaultInstance;
-        }
-
-        bool IsDefault() const
-        {
-            return IsDefault(this);
-        }
-
-        bool IsPopulated() const
-        {
-            Assert(IsConsistent());
-            return this->content.isPopulated;
-        }
-
-        bool IsEmpty() const
-        {
-            Assert(IsConsistent());
-            return !this->content.isPopulated;
-        }
-
-        bool IsPolymorphic() const
-        {
-            Assert(IsConsistent());
-            return this->content.isPolymorphic;
-        }
-
-        bool GetSkipDefaultNewObject() const
-        {
-            return this->content.skipDefaultNewObject;
-        }
-
-        bool GetCtorHasNoExplicitReturnValue() const
-        {
-            return this->content.ctorHasNoExplicitReturnValue;
-        }
-
-        bool GetUpdateCacheAfterCtor() const
-        {
-            return this->content.updateAfterCtor;
-        }
-
-        bool GetTypeUpdatePending() const
-        {
-            return this->content.typeUpdatePending;
-        }
-
-        bool IsEnabled() const
-        {
-            return GetGuardValueAsType() != nullptr;
-        }
-
-        bool IsInvalidated() const
-        {
-            return this->guard.value == CtorCacheGuardValues::Invalid && this->content.isPopulated;
-        }
-
-        bool NeedsTypeUpdate() const
-        {
-            return this->guard.value == CtorCacheGuardValues::Special && this->content.typeUpdatePending;
-        }
-
-        uint8 CallCount() const
-        {
-            return content.callCount;
-        }
-
-        void IncCallCount()
-        {
-            ++content.callCount;
-            Assert(content.callCount != 0);
-        }
-
-        bool NeedsUpdateAfterCtor() const
-        {
-            return this->content.updateAfterCtor;
-        }
-
-        bool IsNormal() const
-        {
-            return this->guard.value != CtorCacheGuardValues::Invalid && static_cast<intptr_t>(this->guard.value & CtorCacheGuardValues::TagFlag) == 0;
-        }
-
-        bool SkipDefaultNewObject() const
-        {
-            return this->guard.value == CtorCacheGuardValues::Special && this->content.skipDefaultNewObject;
-        }
-
-        bool IsSetUpForJit() const
-        {
-            return GetRawGuardValue() != NULL && !IsPolymorphic() && !NeedsUpdateAfterCtor() && (IsNormal() || SkipDefaultNewObject());
-        }
-
-        void ClearUpdateAfterCtor()
-        {
-            Assert(IsConsistent());
-            Assert(this->content.isPopulated);
-            Assert(this->content.updateAfterCtor);
-            this->content.updateAfterCtor = false;
-            Assert(IsConsistent());
-        }
-
-        static ConstructorCache* EnsureValidInstance(ConstructorCache* currentCache, ScriptContext* scriptContext);
-
-        const void* GetAddressOfGuardValue() const
-        {
-            return reinterpret_cast<const void*>(&this->guard.value);
-        }
-
-        static uint32 GetOffsetOfUpdateAfterCtor()
-        {
-            return offsetof(ConstructorCache, content.updateAfterCtor);
-        }
-
-        void InvalidateAsGuard()
-        {
-            Assert(!IsDefault(this));
-            this->guard.value = CtorCacheGuardValues::Invalid;
-            // Make sure we don't leak the types.
-            Assert(this->content.type == nullptr);
-            Assert(this->content.pendingType == nullptr);
-            Assert(IsInvalidated());
-            Assert(IsConsistent());
-        }
-
-#if DBG
-        bool IsConsistent() const
-        {
-            return this->guard.value == CtorCacheGuardValues::Invalid ||
-                (this->content.isPopulated && (
-                    (this->guard.value == CtorCacheGuardValues::Special && !this->content.updateAfterCtor && this->content.skipDefaultNewObject && !this->content.typeUpdatePending && this->content.slotCount == 0 && this->content.inlineSlotCount == 0 && this->content.pendingType == nullptr) ||
-                    (this->guard.value == CtorCacheGuardValues::Special && !this->content.updateAfterCtor && this->content.typeUpdatePending && !this->content.skipDefaultNewObject && this->content.pendingType != nullptr) ||
-                    ((this->guard.value & CtorCacheGuardValues::TagFlag) == CtorCacheGuardValues::Invalid && !this->content.skipDefaultNewObject && !this->content.typeUpdatePending && this->content.pendingType == nullptr)));
-        }
-#endif
-
-#if DBG_DUMP
-        void Dump() const;
-#endif
-
     private:
-        void InvalidateOnPrototypeChange();
+        Field(JavascriptLibrary*) javascriptLibrary;
+
+        ScriptContextPolymorphicInlineCache(InlineCache * inlineCaches, uint16 size, JavascriptLibrary * javascriptLibrary)
+            : PolymorphicInlineCache(inlineCaches, size), javascriptLibrary(javascriptLibrary)
+        {
+            Assert((size == 0 && inlineCaches == nullptr) ||
+                (inlineCaches != nullptr && size >= MinPropertyStringInlineCacheSize && size <= MaxPolymorphicInlineCacheSize));
+        }
+
+    public:
+        static ScriptContextPolymorphicInlineCache * New(uint16 size, JavascriptLibrary * javascriptLibrary);
+
+#ifdef INLINE_CACHE_STATS
+        virtual void PrintStats(InlineCacheData *data) const override;
+        virtual ScriptContext* GetScriptContext() const override;
+#endif
+
+        virtual void Finalize(bool isShutdown) override;
     };
 
     // Caches the result of an instanceof operator over a type and a function
@@ -970,6 +614,7 @@ namespace Js
         bool TryGetResult(Var instance, JavascriptFunction * function, JavascriptBoolean ** result);
         void Cache(Type * instanceType, JavascriptFunction * function, JavascriptBoolean * result, ScriptContext * scriptContext);
         void Unregister(ScriptContext * scriptContext);
+        void Clear();
 
         static uint32 OffsetOfFunction();
         static uint32 OffsetOfResult();
@@ -977,7 +622,6 @@ namespace Js
 
     private:
         void Set(Type * instanceType, JavascriptFunction * function, JavascriptBoolean * result);
-        void Clear();
     };
 
     // Two-entry Type-indexed circular cache

@@ -9,9 +9,9 @@ namespace Js
     class JavascriptWeakSet : public DynamicObject
     {
     private:
-        typedef JsUtil::WeaklyReferencedKeyDictionary<DynamicObject, bool, RecyclerPointerComparer<const DynamicObject*>> KeySet;
+        typedef JsUtil::WeaklyReferencedKeyDictionary<RecyclableObject, bool, RecyclerPointerComparer<const RecyclableObject*>> KeySet;
 
-        KeySet keySet;
+        Field(KeySet) keySet;
 
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptWeakSet, DynamicObject, keySet);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptWeakSet);
@@ -22,9 +22,9 @@ namespace Js
         static bool Is(Var aValue);
         static JavascriptWeakSet* FromVar(Var aValue);
 
-        void Add(DynamicObject* key);
-        bool Delete(DynamicObject* key);
-        bool Has(DynamicObject* key);
+        void Add(RecyclableObject* key);
+        bool Delete(RecyclableObject* key);
+        bool Has(RecyclableObject* key);
 
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
@@ -48,7 +48,7 @@ namespace Js
         template <typename Fn>
         void Map(Fn fn)
         {
-            return keySet.Map([&](DynamicObject* key, bool, const RecyclerWeakReference<DynamicObject>*)
+            return keySet.Map([&](RecyclableObject* key, bool, const RecyclerWeakReference<RecyclableObject>*)
             {
                 fn(key);
             });

@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-//This file contains definitions for general-ish purpose structures/algorithms that we use in the TTD system 
+//This file contains definitions for general-ish purpose structures/algorithms that we use in the TTD system
 //We may want to replace them with other versions (e.g. that are already in the codebase) at some later time
 
 #if ENABLE_TTD
@@ -15,9 +15,12 @@ namespace TTD
     class ThreadContextTTD;
     class ScriptContextTTD;
     class RuntimeContextInfo;
-    //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion  
+    class ExecutionInfoManager;
+
+    //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion
     //if this bit layout is for the "live" state or potentially only for the snapshot state or the representations change later
     typedef Js::Var TTDVar;
+
     namespace NSSnapType
     {
         struct SnapPropertyRecord;
@@ -25,6 +28,7 @@ namespace TTD
         struct SnapHandler;
         struct SnapType;
     }
+
     namespace NSSnapValues
     {
         struct SnapPrimitiveValue;
@@ -37,30 +41,28 @@ namespace TTD
         struct FunctionBodyResolveInfo;
         struct SnapContext;
     }
+
     namespace NSSnapObjects
     {
         struct SnapObject;
     }
+
     class SnapShot;
     class SnapshotExtractor;
     class TTDExceptionFramePopper;
     struct SingleCallCounter;
+
     namespace NSLogEvents
     {
         struct EventLogEntry;
     }
+
     class EventLog;
     class TTDebuggerAbortException;
     class TTDebuggerSourceLocation;
 }
 
 void _NOINLINE __declspec(noreturn) TTDAbort_fatal_error(const char* msg);
-
-#if ENABLE_TTD_ASSERT
-#define TTDAssert(C, M) { if(!(C)) TTDAbort_fatal_error(M); }
-#else
-#define TTDAssert(C, M) 
-#endif
 
 ////////
 //Memory allocators used by the TT code
@@ -87,7 +89,7 @@ T* TTD_MEM_ALLOC_CHECK(T* alloc)
 #define TTD_ARRAY_BLOCK_SIZE 0x200
 #define TTD_ARRAY_SMALL_ARRAY 0x100
 
-//Convert from Js::Var to TTDVar 
+//Convert from Js::Var to TTDVar
 #define TTD_CONVERT_JSVAR_TO_TTDVAR(X) ((TTD::TTDVar)(X))
 #define TTD_CONVERT_TTDVAR_TO_JSVAR(X) ((Js::Var)(X))
 
@@ -95,7 +97,7 @@ T* TTD_MEM_ALLOC_CHECK(T* alloc)
 typedef uint64 TTD_PTR_ID;
 #define TTD_INVALID_PTR_ID 0ul
 
-#define TTD_CONVERT_VAR_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_VAR_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(PointerValue(X))
 #define TTD_CONVERT_TYPEINFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 #define TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 #define TTD_CONVERT_ENV_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
@@ -104,7 +106,7 @@ typedef uint64 TTD_PTR_ID;
 #define TTD_CONVERT_DEBUGSCOPE_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 
 //Promises have a wide range of heap allocated bits -- we define He-Man casts for all of them -- ugly but so is having a bunch of specific functions
-#define TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(PointerValue(X))
 #define TTD_CONVERT_PROMISE_INFO_TO_SPECIFIC_TYPE(T, X) static_cast<T*>(X)
 
 #define TTD_COERCE_PTR_ID_TO_VAR(X) (reinterpret_cast<Js::Var>(X))
@@ -245,6 +247,7 @@ namespace TTD
             SnapPromiseObject,
             SnapPromiseResolveOrRejectFunctionObject,
             SnapPromiseReactionTaskFunctionObject,
+            SnapPromiseAllResolveElementFunctionObject,
 
             //objects that should always be well known but which may have other info we want to restore
             SnapWellKnownObject,
@@ -257,8 +260,8 @@ namespace TTD
     //A struct that maintains the relation between a globally stable top-level body counter and the PTR id it has in this particular script context
     struct TopLevelFunctionInContextRelation
     {
-        //The globally unique body counter id from the log 
-        uint64 TopLevelBodyCtr;
+        //The globally unique body counter id from the log
+        uint32 TopLevelBodyCtr;
 
         //The PTR_ID that is used to refer to this top-level body within the given script context
         TTD_PTR_ID ContextSpecificBodyPtrId;
@@ -267,20 +270,22 @@ namespace TTD
     //Function pointer definitions and a struct for writing data out of memory (presumably to stable storage)
     typedef void* JsTTDStreamHandle;
 
-    typedef void(CALLBACK *TTDInitializeForWriteLogStreamCallback)(size_t uriByteLength, const byte* uriBytes);
-    typedef JsTTDStreamHandle(CALLBACK *TTDOpenResourceStreamCallback)(size_t uriByteLength, const byte* uriBytes, const char* asciiNameString, bool read, bool write, byte** relocatedUri, size_t* relocatedUriLength);
-
+    typedef JsTTDStreamHandle(CALLBACK *TTDOpenResourceStreamCallback)(size_t uriLength, const char* uri, size_t filenameLength, const char* filename, bool read, bool write);
     typedef bool(CALLBACK *TTDReadBytesFromStreamCallback)(JsTTDStreamHandle handle, byte* buff, size_t size, size_t* readCount);
     typedef bool(CALLBACK *TTDWriteBytesToStreamCallback)(JsTTDStreamHandle handle, const byte* buff, size_t size, size_t* writtenCount);
     typedef void(CALLBACK *TTDFlushAndCloseStreamCallback)(JsTTDStreamHandle handle, bool read, bool write);
 
-    struct IOStreamFunctions
+    struct TTDataIOInfo
     {
-        TTDOpenResourceStreamCallback pfGetResourceStream;
+        TTDOpenResourceStreamCallback pfOpenResourceStream;
 
         TTDReadBytesFromStreamCallback pfReadBytesFromStream;
         TTDWriteBytesToStreamCallback pfWriteBytesToStream;
         TTDFlushAndCloseStreamCallback pfFlushAndCloseStream;
+
+        //Current location that we are writing TT data into as a utf8 encoded uri (we may have several sub paths from the root for writing different parts of the log)
+        size_t ActiveTTUriLength;
+        const char* ActiveTTUri;
     };
 
     //Function pointer definitions for creating/interacting with external objects
@@ -361,26 +366,6 @@ namespace TTD
     //This is for diagnostic purposes only
     bool TTStringEQForDiagnostics(const TTString& str1, const TTString& str2);
 #endif
-
-    //A simple class for representing a uri from the host as an opaque sequence of bytes (which the host is responsible for interpreting as needed)
-    class TTUriString
-    {
-    public:
-        //Length of the uri data in bytes (including any null terminator)
-        size_t UriByteLength; 
-
-        //Actual URI data which the host is responsible for interpreting (ascii, utf8, wchar, etc.)
-        byte* UriBytes;
-
-        TTUriString();
-        ~TTUriString();
-
-        //ensure no copy or assign
-        TTUriString(const TTUriString&) = delete;
-        TTUriString& operator=(const TTUriString&) = delete;
-
-        void SetUriValue(size_t byteLength, const byte* data);
-    };
 
     //A class that implements a simple slab memory allocator
     template <int32 canUnlink>
@@ -670,7 +655,7 @@ namespace TTD
         SlabAllocatorBase(const SlabAllocatorBase&) = delete;
         SlabAllocatorBase& operator=(SlabAllocatorBase const&) = delete;
 
-        //clone a null terminated char16* string (or nullptr) into the allocator -- currently only used for wellknown tokens 
+        //clone a null terminated char16* string (or nullptr) into the allocator -- currently only used for wellknown tokens
         const char16* CopyRawNullTerminatedStringInto(const char16* str)
         {
             if(str == nullptr)
@@ -881,7 +866,7 @@ namespace TTD
             TTDAssert(canUnlink != 0, "Unlink not allowed with this slab allocator.");
             TTDAssert(this->m_reserveActiveBytes == 0, "We don't have anything reserved.");
 
-            //get the meta-data for this allocation and see if it is a 
+            //get the meta-data for this allocation and see if it is a
             byte* realBase = ((byte*)allocation) - canUnlink;
             ptrdiff_t offset = *((ptrdiff_t*)realBase);
 
@@ -1154,7 +1139,7 @@ namespace TTD
 
         //The hash max capcity and data array
         uint32 m_capacity;
-        Entry* m_hashArray; 
+        Entry* m_hashArray;
 
         //Count of elements in the dictionary
         uint32 m_count;
@@ -1296,6 +1281,7 @@ namespace TTD
 
         void AddItem(Tag id, const T& item)
         {
+            TTDAssert(this->m_count * TTD_DICTIONARY_LOAD_FACTOR < this->m_capacity, "The dictionary is being sized incorrectly and will likely have poor performance");
             Entry* entry = this->FindSlotForId<true>(id);
 
             InitializeEntry(entry, id, item);
@@ -1342,7 +1328,7 @@ namespace TTD
     class MarkTable
     {
     private:
-        //The addresses and their marks 
+        //The addresses and their marks
         uint64* m_addrArray;
         MarkTableTag* m_markArray;
 

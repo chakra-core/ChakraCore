@@ -63,6 +63,11 @@ if not [%1]==[] (
         set _targets=/t:Clean,Build
         goto :ContinueArgParseEnd
     )
+    :: SWB
+    if /i [%1] EQU [swb] (
+        set _msbuildArgs=%_msbuildArgs% "/p:ForceSWB=true"
+        goto :ContinueArgParseEnd
+    )
 
     :: DEFAULT - add any other params to %_msBuildArgs%
     :: _msbuildArgs

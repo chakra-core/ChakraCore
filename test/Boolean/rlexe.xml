@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -28,6 +28,18 @@
     <default>
       <files>property_and_index_of_boolean.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>equality.js</files>
+      <compile-flags>-maxsimplejitruncount:4 -maxinterpretcount:3</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>boolprop.js</files>
+      <compile-flags>-loopinterpretcount:1 -bgjit- -maxsimplejitruncount:2 -maxinterpretcount:1 -off:simplejit -off:lossyinttypespec</compile-flags>
     </default>
   </test>
 </regress-exe>

@@ -39,24 +39,6 @@
   },
   {
     "this": {
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -150,50 +132,6 @@
       }
     },
     "globals": {
-      "WScript": {
-        "#__proto__": "Object {...}",
-        "Echo": "function Echo",
-        "Quit": "function Quit",
-        "LoadScriptFile": "function LoadScriptFile",
-        "LoadScript": "function LoadScript",
-        "LoadModule": "function LoadModule",
-        "SetTimeout": "function SetTimeout",
-        "ClearTimeout": "function ClearTimeout",
-        "Attach": "function Attach",
-        "Detach": "function Detach",
-        "DumpFunctionPosition": "function <large string>",
-        "RequestAsyncBreak": "function <large string>",
-        "LoadBinaryFile": "function LoadBinaryFile",
-        "LoadTextFile": "function LoadTextFile",
-        "Edit": "function Edit",
-        "Platform": "Object {...}",
-        "Arguments": "Array []"
-      },
-      "print": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string print",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -270,24 +208,6 @@
   },
   {
     "this": {
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -381,50 +301,6 @@
       }
     },
     "globals": {
-      "WScript": {
-        "#__proto__": "Object {...}",
-        "Echo": "function Echo",
-        "Quit": "function Quit",
-        "LoadScriptFile": "function LoadScriptFile",
-        "LoadScript": "function LoadScript",
-        "LoadModule": "function LoadModule",
-        "SetTimeout": "function SetTimeout",
-        "ClearTimeout": "function ClearTimeout",
-        "Attach": "function Attach",
-        "Detach": "function Detach",
-        "DumpFunctionPosition": "function <large string>",
-        "RequestAsyncBreak": "function <large string>",
-        "LoadBinaryFile": "function LoadBinaryFile",
-        "LoadTextFile": "function LoadTextFile",
-        "Edit": "function Edit",
-        "Platform": "Object {...}",
-        "Arguments": "Array []"
-      },
-      "print": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string print",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -501,24 +377,6 @@
   },
   {
     "this": {
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -612,50 +470,6 @@
       }
     },
     "globals": {
-      "WScript": {
-        "#__proto__": "Object {...}",
-        "Echo": "function Echo",
-        "Quit": "function Quit",
-        "LoadScriptFile": "function LoadScriptFile",
-        "LoadScript": "function LoadScript",
-        "LoadModule": "function LoadModule",
-        "SetTimeout": "function SetTimeout",
-        "ClearTimeout": "function ClearTimeout",
-        "Attach": "function Attach",
-        "Detach": "function Detach",
-        "DumpFunctionPosition": "function <large string>",
-        "RequestAsyncBreak": "function <large string>",
-        "LoadBinaryFile": "function LoadBinaryFile",
-        "LoadTextFile": "function LoadTextFile",
-        "Edit": "function Edit",
-        "Platform": "Object {...}",
-        "Arguments": "Array []"
-      },
-      "print": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string print",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -732,24 +546,6 @@
   },
   {
     "this": {
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -843,50 +639,6 @@
       }
     },
     "globals": {
-      "WScript": {
-        "#__proto__": "Object {...}",
-        "Echo": "function Echo",
-        "Quit": "function Quit",
-        "LoadScriptFile": "function LoadScriptFile",
-        "LoadScript": "function LoadScript",
-        "LoadModule": "function LoadModule",
-        "SetTimeout": "function SetTimeout",
-        "ClearTimeout": "function ClearTimeout",
-        "Attach": "function Attach",
-        "Detach": "function Detach",
-        "DumpFunctionPosition": "function <large string>",
-        "RequestAsyncBreak": "function <large string>",
-        "LoadBinaryFile": "function LoadBinaryFile",
-        "LoadTextFile": "function LoadTextFile",
-        "Edit": "function Edit",
-        "Platform": "Object {...}",
-        "Arguments": "Array []"
-      },
-      "print": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string print",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -963,24 +715,6 @@
   },
   {
     "this": {
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -1074,50 +808,6 @@
       }
     },
     "globals": {
-      "WScript": {
-        "#__proto__": "Object {...}",
-        "Echo": "function Echo",
-        "Quit": "function Quit",
-        "LoadScriptFile": "function LoadScriptFile",
-        "LoadScript": "function LoadScript",
-        "LoadModule": "function LoadModule",
-        "SetTimeout": "function SetTimeout",
-        "ClearTimeout": "function ClearTimeout",
-        "Attach": "function Attach",
-        "Detach": "function Detach",
-        "DumpFunctionPosition": "function <large string>",
-        "RequestAsyncBreak": "function <large string>",
-        "LoadBinaryFile": "function LoadBinaryFile",
-        "LoadTextFile": "function LoadTextFile",
-        "Edit": "function Edit",
-        "Platform": "Object {...}",
-        "Arguments": "Array []"
-      },
-      "print": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string print",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -1156,9 +846,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "g": "function <large string>",
       "f": "function <large string>",
       "g1": "function <large string>",
@@ -1177,11 +864,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "g": "function <large string>",
       "f": "function <large string>",
       "g1": "function <large string>",
@@ -1192,9 +874,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "g": "function <large string>",
       "f": "function <large string>",
       "g1": "function <large string>",
@@ -1213,11 +892,6 @@
       }
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "g": "function <large string>",
       "f": "function <large string>",
       "g1": "function <large string>",

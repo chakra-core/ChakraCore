@@ -43,7 +43,7 @@ var tests = [
             assert.isTrue(typedArrayConstructor === Float32Array.__proto__, "All TypedArray constructors have their [[prototype]] slot set to the %TypedArray% intrinsic");
             assert.isTrue(typedArrayConstructor === Float64Array.__proto__, "All TypedArray constructors have their [[prototype]] slot set to the %TypedArray% intrinsic");
 
-            verifyTypedArrayConstructorPropertyValue(typedArrayConstructor, 'length', 'number',false);
+            verifyTypedArrayConstructorPropertyValue(typedArrayConstructor, 'length', 'number',true);
             verifyTypedArrayConstructorPropertyValue(typedArrayConstructor, 'name', 'string',true);
 
             assert.isFalse(typedArrayConstructor.from === undefined, "%TypedArray%.from !== undefined");
@@ -204,15 +204,15 @@ var tests = [
             assert.areEqual(3, Float32Array.length, "Float32Array.length === 3");
             assert.areEqual(3, Float64Array.length, "Float64Array.length === 3");
 
-            verifyTypedArrayConstructorPropertyValue(Int8Array, "length", "number",false);
-            verifyTypedArrayConstructorPropertyValue(Uint8Array, "length", "number",false);
-            verifyTypedArrayConstructorPropertyValue(Uint8ClampedArray, "length", "number", false);
-            verifyTypedArrayConstructorPropertyValue(Int16Array, "length", "number", false);
-            verifyTypedArrayConstructorPropertyValue(Uint16Array, "length", "number", false);
-            verifyTypedArrayConstructorPropertyValue(Int32Array, "length", "number", false);
-            verifyTypedArrayConstructorPropertyValue(Uint32Array, "length", "number", false);
-            verifyTypedArrayConstructorPropertyValue(Float32Array, "length", "number", false);
-            verifyTypedArrayConstructorPropertyValue(Float64Array, "length", "number", false);
+            verifyTypedArrayConstructorPropertyValue(Int8Array, "length", "number",true);
+            verifyTypedArrayConstructorPropertyValue(Uint8Array, "length", "number",true);
+            verifyTypedArrayConstructorPropertyValue(Uint8ClampedArray, "length", "number", true);
+            verifyTypedArrayConstructorPropertyValue(Int16Array, "length", "number", true);
+            verifyTypedArrayConstructorPropertyValue(Uint16Array, "length", "number", true);
+            verifyTypedArrayConstructorPropertyValue(Int32Array, "length", "number", true);
+            verifyTypedArrayConstructorPropertyValue(Uint32Array, "length", "number", true);
+            verifyTypedArrayConstructorPropertyValue(Float32Array, "length", "number", true);
+            verifyTypedArrayConstructorPropertyValue(Float64Array, "length", "number", true);
 
             verifyTypedArrayConstructorPropertyValue(Int8Array, "prototype", "object", false);
             verifyTypedArrayConstructorPropertyValue(Uint8Array, "prototype", "object", false);
@@ -1066,6 +1066,44 @@ var tests = [
         }
     },
     {
+        name: "Array.prototype.map called with a typedarray having different length",
+        body: function() {
+            var counter = 0;
+            var fn = function(elem) {
+                counter++;
+                return elem;
+            };
+            
+            // Validating how many times the map function is called.
+            [[-1, 0], [2, 2], [100, 8], [2**31, 8]].forEach(function ([len, expectedCounter]) {
+                var v = new Int8Array(8);
+                counter = 0;
+                Object.defineProperty(v, 'length', {value : len });
+                Array.prototype.map.call(v, fn);
+                assert.areEqual(counter, expectedCounter);
+            });
+        }
+    },
+    {
+        name: "Array.prototype.find called with a typedarray having different length",
+        body: function() {
+            var counter = 0;
+            var fn = function(elem) {
+                counter++;
+                return elem;
+            };
+            
+            // Validating how many times the find function is called.
+            [[-1, 0], [2, 2], [100, 100]].forEach(function ([len, expectedCounter]) {
+                var v = new Int8Array(8);
+                counter = 0;
+                Object.defineProperty(v, 'length', {value : len });
+                Array.prototype.find.call(v, fn);
+                assert.areEqual(counter, expectedCounter);
+            });
+        }
+    },
+    {
         name: "%TypedArray%.prototype.forEach behavior",
         body: function() {
             var forEachFn = Int8Array.prototype.__proto__.forEach;
@@ -1432,14 +1470,11 @@ var tests = [
             assert.areEqual([10,9,8,7,6,5,4,3,2,1], getTypedArray(10).sort(sortCallbackReverse), "%TypedArrayPrototype%.sort with a sort callback function which reverses elements");
             assert.areEqual([5,1,2,3,4,6,7,8,9,10], getTypedArray(10).sort(sortCallbackHate5), "%TypedArrayPrototype%.sort basic behavior with a lying sort callback which hates the number 5");
 
-            // exclude this particular test from xplat
-            // posix / bsd implementations of qsort is incompatible with the one on Windows
-            // result from the test below is strictly related to how qsort is implemented
-            // TODO (maybe) : implement consistent re-entrant qsort ?
-            // ChakraFull test host does not implements `Platform` below.
-            // So, consider that as Windows too
-            if (!WScript.Platform || WScript.Platform.OS == "win32") {
+            // we have a consistent qsort_r impl. on xplat.
+            if (!WScript.Platform || WScript.Platform.OS == "win32") { // Windows
                 assert.areEqual([9,8,7,2,10,5,4,3,1,6], getTypedArray(10).sort(sortCallbackMalformed), "%TypedArrayPrototype%.sort basic behavior with a sort callback which returns random values");
+            } else { // xplat
+                assert.areEqual([2,9,8,7,10,4,1,3,5,6], getTypedArray(10).sort(sortCallbackMalformed), "%TypedArrayPrototype%.sort basic behavior with a sort callback which returns random values");
             }
 
             assert.throws(function() { sort.call(); }, TypeError, "Calling %TypedArrayPrototype%.sort with no this throws TypeError", "'this' is not a typed array object");

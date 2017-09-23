@@ -28,9 +28,9 @@ namespace JsUtil
         typedef TComparer<T> TComparerType;
 
     protected:
-        T* buffer;
-        int count;
-        TAllocator* alloc;
+        Field(Field(T, TAllocator) *, TAllocator) buffer;
+        Field(int) count;
+        FieldNoBarrier(TAllocator*) alloc;
 
         ReadOnlyList(TAllocator* alloc)
             : buffer(nullptr),
@@ -52,7 +52,7 @@ namespace JsUtil
 
         const T* GetBuffer() const
         {
-            return this->buffer;
+            return AddressOf(this->buffer[0]);
         }
 
         template<class TList>
@@ -209,13 +209,22 @@ namespace JsUtil
         friend TRemovePolicy<TListType, true>;
         typedef TRemovePolicy<TListType, true /* clearOldEntries */>  TRemovePolicyType;
         typedef ListTypeAllocatorFunc<TAllocator, isLeaf> AllocatorInfo;
+        typedef typename AllocatorInfo::EffectiveAllocatorType EffectiveAllocatorType;
 
-        int length;
-        int increment;
-        TRemovePolicyType removePolicy;
+        Field(int) length;
+        Field(int) increment;
+        Field(TRemovePolicyType) removePolicy;
 
-        T * AllocArray(DECLSPEC_GUARD_OVERFLOW int size) { return AllocatorNewArrayBaseFuncPtr(TAllocator, this->alloc, AllocatorInfo::GetAllocFunc(), T, size); }
-        void FreeArray(T * oldBuffer, int oldBufferSize) { AllocatorFree(this->alloc, AllocatorInfo::GetFreeFunc(), oldBuffer, oldBufferSize);  }
+        Field(T, TAllocator) * AllocArray(DECLSPEC_GUARD_OVERFLOW int size)
+        {
+            typedef Field(T, TAllocator) TField;
+            return AllocatorNewArrayBaseFuncPtr(TAllocator, this->alloc, AllocatorInfo::GetAllocFunc(), TField, size);
+        }
+
+        void FreeArray(Field(T, TAllocator) * oldBuffer, int oldBufferSize)
+        {
+            AllocatorFree(this->alloc, AllocatorInfo::GetFreeFunc(), oldBuffer, oldBufferSize);
+        }
 
         PREVENT_COPY(List); // Disable copy constructor and operator=
 
@@ -263,12 +272,13 @@ namespace JsUtil
                     JsUtil::ExternalApi::RaiseOnIntOverflow();
                 }
 
-                T* newbuffer = AllocArray(newLength);
-                T* oldbuffer = this->buffer;
-                js_memcpy_s(newbuffer, newBufferSize, oldbuffer, oldBufferSize);
+                Field(T, TAllocator)* newbuffer = AllocArray(newLength);
+                Field(T, TAllocator)* oldbuffer = this->buffer;
+                CopyArray<Field(T, TAllocator), Field(T, TAllocator), EffectiveAllocatorType>(
+                    newbuffer, newLength, oldbuffer, length);
 
                 FreeArray(oldbuffer, oldBufferSize);
-                
+
                 this->length = newLength;
                 this->buffer = newbuffer;
             }
@@ -314,7 +324,7 @@ namespace JsUtil
             return ParentType::Item(index);
         }
 
-        T& Item(int index)
+        Field(T, TAllocator)& Item(int index)
         {
             Assert(index >= 0 && index < this->count);
             return this->buffer[index];
@@ -352,6 +362,7 @@ namespace JsUtil
         void SetItem(int index, const T& item)
         {
             EnsureArray(index + 1);
+            // TODO: (SWB)(leish) find a way to force user defined copy constructor
             this->buffer[index] = item;
             this->count = max(this->count, index + 1);
         }
@@ -474,7 +485,7 @@ namespace JsUtil
                 return;
             }
 
-            memset(this->buffer, 0, this->count * sizeof(T));
+            ClearArray(this->buffer, this->count);
             Clear();
         }
 
@@ -492,14 +503,15 @@ namespace JsUtil
                 (IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, true> >::IsTrue));
             if (this->count)
             {
-                qsort_s(this->buffer, this->count, sizeof(T), _PtFuncCompare, _Context);
+                qsort_s<Field(T, TAllocator), Field(T, TAllocator), EffectiveAllocatorType>(
+                    this->buffer, this->count, _PtFuncCompare, _Context);
             }
         }
 
         template<class DebugSite, class TMapFunction>
         HRESULT Map(DebugSite site, TMapFunction map) const // external debugging version
         {
-            return Js::Map(site, this->buffer, this->count, map);
+            return Js::Map(site, PointerValue(this->buffer), this->count, map);
         }
 
         template<class TMapFunction>
@@ -598,7 +610,7 @@ namespace Js
     class SynchronizableList sealed: private ListType // Make base class private to lock down exposed methods
     {
     private:
-        SyncObject* syncObj;
+        FieldNoBarrier(SyncObject*) syncObj;
 
     public:
         template <class Arg1>
@@ -680,6 +692,13 @@ namespace Js
             __super::Map(map);
         }
 
+        template<class TMapFunction>
+        bool MapUntil(TMapFunction map) const
+        {
+            typename LockPolicy::ReadLock autoLock(syncObj);
+            return __super::MapUntil(map);
+        }
+
         template<class DebugSite, class TMapFunction>
         HRESULT Map(DebugSite site, TMapFunction map) const // external debugging version
         {
@@ -713,7 +732,7 @@ namespace Js
 
                     if (clearOldEntries)
                     {
-                        memset(buffer + count, 0, sizeof(TElementType));
+                        ClearArray(buffer + count, 1);
                     }
                     break;
                 }
@@ -736,7 +755,7 @@ namespace Js
 
             if (clearOldEntries)
             {
-                memset(list->buffer + list->count, 0, sizeof(TElementType));
+                ClearArray(list->buffer + list->count, 1);
             }
         }
 
@@ -759,7 +778,7 @@ namespace Js
         typedef typename TListType::TElementType TElementType;
         typedef typename TListType::TComparerType TComparerType;
 
-        int freeItemIndex;
+        Field(int) freeItemIndex;
 
     public:
         FreeListedRemovePolicy(TListType * list):
@@ -844,7 +863,7 @@ namespace Js
         typedef FreeListedRemovePolicy<TListType, clearOldEntries> Base;
         typedef typename Base::TElementType TElementType;
     private:
-        uint lastWeakReferenceCleanupId;
+        Field(uint) lastWeakReferenceCleanupId;
 
         void CleanupWeakReference(TListType * list)
         {

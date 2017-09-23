@@ -150,18 +150,6 @@ HRESULT JITProcessManager::CreateServerProcess(int argc, __in_ecount(argc) LPWST
     return NOERROR;
 }
 
-typedef HRESULT(WINAPI *JsShutdownJITServerPtr)();
-
-void JITProcessManager::StopRpcServer(HINSTANCE chakraLibrary)
-{
-    if (s_rpcServerProcessHandle)
-    {
-        JsShutdownJITServerPtr shutdownJITServer = (JsShutdownJITServerPtr)GetProcAddress(chakraLibrary, "JsShutdownJITServer");
-        shutdownJITServer();
-    }
-    s_rpcServerProcessHandle = NULL;
-}
-
 void
 JITProcessManager::TerminateJITServer()
 {

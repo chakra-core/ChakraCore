@@ -1,48 +1,48 @@
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
-ReferenceError: 'baz' is undefined
-	at bar (x64stackwalkloopbody.js:18:17)
-	at Global code (x64stackwalkloopbody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)
+ReferenceError: 'baz' is not defined
+   at bar (x64StackWalkLoopBody.js:18:17)
+   at Global code (x64StackWalkLoopBody.js:27:1)

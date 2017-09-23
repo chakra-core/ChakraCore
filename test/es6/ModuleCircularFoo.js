@@ -12,4 +12,4 @@ export function circular_foo() {
         return counter;
     }
 }
-export { circular_bar as rexportbar } from "ModuleCircularBar.js"
+export { circular_bar as rexportbar, reset } from "ModuleCircularBar.js"

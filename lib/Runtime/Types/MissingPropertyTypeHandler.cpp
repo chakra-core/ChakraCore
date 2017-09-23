@@ -8,7 +8,7 @@ namespace Js
 {
     void MissingPropertyTypeHandler::SetUndefinedPropertySlot(DynamicObject* instance)
     {
-        Var * slots = reinterpret_cast<Var*>(reinterpret_cast<size_t>(instance) + sizeof(DynamicObject));
+        Field(Var)* slots = reinterpret_cast<Field(Var)*>(reinterpret_cast<size_t>(instance) + sizeof(DynamicObject));
         slots[0] = instance->GetLibrary()->GetUndefined();
     }
 
@@ -26,7 +26,7 @@ namespace Js
     }
 
     BOOL MissingPropertyTypeHandler::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info)
     {
         return FALSE;
     }
@@ -36,6 +36,7 @@ namespace Js
         return 0;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     bool MissingPropertyTypeHandler::GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info)
     {
         info.slotIndex = Constants::NoSlot;
@@ -53,6 +54,7 @@ namespace Js
     {
         return false;
     }
+#endif
 
     BOOL MissingPropertyTypeHandler::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl)
     {
@@ -220,6 +222,13 @@ namespace Js
     bool MissingPropertyTypeHandler::CanStorePropertyValueDirectly(const DynamicObject* instance, PropertyId propertyId, bool allowLetConst)
     {
         Throw::FatalInternalError();
+    }
+#endif
+
+#if DBG_DUMP
+    void MissingPropertyTypeHandler::Dump(unsigned indent) const
+    {
+        Output::Print(_u("%*sMissingPropertyTypeHandler (0x%p): Dump unimplemented\n"), indent, _u(""), this);
     }
 #endif
 }

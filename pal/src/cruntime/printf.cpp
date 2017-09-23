@@ -62,6 +62,7 @@ Parameters:
   Flags
     - padding style flags (PRINTF_FORMAT_FLAGS)
 *******************************************************************************/
+__attribute__((no_instrument_function))
 BOOL Internal_AddPaddingA(LPSTR *Out, INT Count, LPSTR In,
                                  INT Padding, INT Flags)
 {
@@ -139,6 +140,7 @@ Parameters:
   Prefix
     - the prefix for the current format option
 *******************************************************************************/
+__attribute__((no_instrument_function))
 void PAL_printf_arg_remover(va_list *ap, INT Width, INT Precision, INT Type, INT Prefix)
 {
     /* remove arg and precision if needed */
@@ -176,6 +178,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_printf(
@@ -203,6 +206,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_fprintf(PAL_FILE *stream,const char *format,...)
@@ -228,6 +232,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_wprintf(
@@ -257,6 +262,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_vprintf(
@@ -282,6 +288,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 PALAPIV
 wsprintfA(
@@ -310,6 +317,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 PALAPIV
 wsprintfW(
@@ -339,6 +347,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 _snprintf(
@@ -370,6 +379,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 _snwprintf(
@@ -400,6 +410,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_fwprintf(
@@ -426,11 +437,11 @@ PAL_fwprintf(
 Function:
   Internal_ScanfExtractFormatA
 
-Paramaters:
+Parameters:
   Fmt
     - format string to parse
     - first character must be a '%'
-    - paramater gets updated to point to the character after
+    - parameter gets updated to point to the character after
       the %<foo> format string
   Out
     - buffer will contain the %<foo> format string
@@ -458,6 +469,7 @@ Notes:
         return false;                                                                           \
     }
 
+__attribute__((no_instrument_function))
 static BOOL Internal_ScanfExtractFormatA(LPCSTR *Fmt, LPSTR Out, int iOutSize, LPBOOL Store,
                                          LPINT Width, LPINT Prefix, LPINT Type)
 {
@@ -779,6 +791,7 @@ Function:
 
   -- see Internal_ScanfExtractFormatA above
 *******************************************************************************/
+__attribute__((no_instrument_function))
 static BOOL Internal_ScanfExtractFormatW(LPCWSTR *Fmt, LPSTR Out, int iOutSize, LPBOOL Store,
                                          LPINT Width, LPINT Prefix, LPINT Type)
 {
@@ -1076,6 +1089,7 @@ Parameters:
   ap
     - stdarg parameter list
 *******************************************************************************/
+__attribute__((no_instrument_function))
 int PAL_vsscanf(LPCSTR Buffer, LPCSTR Format, va_list ap)
 {
     INT Length = 0;
@@ -1172,23 +1186,23 @@ int PAL_vsscanf(LPCSTR Buffer, LPCSTR Format, va_list ap)
 
                 if (Store)
                 {
-                    // sscanf_s requires that if we are trying to read "%s" or "%c" or “%[“, then
+                    // sscanf_s requires that if we are trying to read "%s" or "%c" or "%[", then
                     // the size of the buffer must follow the buffer we are trying to read into.
                     voidPtr = va_arg(ap, LPVOID);
                     unsigned typeLen = 0;
                     if ((Type == SCANF_TYPE_STRING) || (Type == SCANF_TYPE_BRACKETS))
                     {
-                        // Since this is not a Safe CRT API we don’t really know the size of the destination
+                        // Since this is not a Safe CRT API we don't really know the size of the destination
                         // buffer provided by the caller. So we have to assume that the caller has allocated
                         // enough space to hold either the width specified in the format or the entire input
-                        // string plus ‘\0’.
+                        // string plus '\0'.
                         typeLen = ((Width > 0) ? Width : strlen(Buffer)) + 1;
                     }
                     else if (Type == SCANF_TYPE_CHAR)
                     {
                         // Check whether the format string contains number of characters
                         // that should be read from the input string.
-                        // Note: ‘\0’ does not get appended in the “%c” case.
+                        // Note: '\0' does not get appended in the "%c" case.
                         typeLen = (Width > 0) ? Width : 1;
                     }
 
@@ -1250,6 +1264,7 @@ Function:
 
   -- see PAL_vsscanf above
 *******************************************************************************/
+__attribute__((no_instrument_function))
 int PAL_wvsscanf(LPCWSTR Buffer, LPCWSTR Format, va_list ap)
 {
     INT Length = 0;
@@ -1416,17 +1431,17 @@ int PAL_wvsscanf(LPCWSTR Buffer, LPCWSTR Format, va_list ap)
                         unsigned typeLen = 0;
                         if (Type == SCANF_TYPE_STRING)
                         {
-                            // We don’t really know the size of the destination buffer provided by the
+                            // We don't really know the size of the destination buffer provided by the
                             // caller. So we have to assume that the caller has allocated enough space
                             // to hold either the width specified in the format or the entire input
-                            // string plus ‘\0’.
+                            // string plus '\0'.
                             typeLen = ((Width > 0) ? Width : PAL_wcslen(Buffer)) + 1;
                         }
                         else if (Type == SCANF_TYPE_CHAR)
                         {
                             // Check whether the format string contains number of characters
                             // that should be read from the input string.
-                            // Note: ‘\0’ does not get appended in the “%c” case.
+                            // Note: '\0' does not get appended in the "%c" case.
                             typeLen = (Width > 0) ? Width : 1;
                         }
 
@@ -1488,6 +1503,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_sscanf(
@@ -1516,6 +1532,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_sprintf(
@@ -1545,6 +1562,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_swprintf(
@@ -1573,6 +1591,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_swscanf(
@@ -1602,6 +1621,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_vsprintf(char *buffer,
@@ -1629,6 +1649,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 _vsnprintf(char *buffer,
@@ -1658,6 +1679,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 PAL_vswprintf(char16_t *buffer,
@@ -1685,6 +1707,7 @@ Function:
 
 See MSDN doc.
 --*/
+__attribute__((no_instrument_function))
 int
 __cdecl
 _vsnwprintf(char16_t *buffer,
@@ -1733,6 +1756,7 @@ Function:
 
 --*/
 
+__attribute__((no_instrument_function))
 static int SscanfFloatCheckExponent(LPCSTR buff, LPCSTR floatFmt,
                                       void * voidPtr, int * pn)
 {

@@ -4,20 +4,24 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 namespace Js
 {
     DebugContext::DebugContext(Js::ScriptContext * scriptContext) :
         scriptContext(scriptContext),
         hostDebugContext(nullptr),
         diagProbesContainer(nullptr),
-        debuggerMode(DebuggerMode::NotDebugging)
+        isClosed(false),
+        debuggerMode(DebuggerMode::NotDebugging),
+        isDebuggerRecording(true),
+        isReparsingSource(false)
     {
         Assert(scriptContext != nullptr);
     }
 
     DebugContext::~DebugContext()
     {
-        Assert(this->scriptContext == nullptr);
+        Assert(this->scriptContext != nullptr);
         Assert(this->hostDebugContext == nullptr);
         Assert(this->diagProbesContainer == nullptr);
     }
@@ -31,8 +35,18 @@ namespace Js
 
     void DebugContext::Close()
     {
+        if (this->isClosed)
+        {
+            return;
+        }
+
+        AssertMsg(this->scriptContext->IsActuallyClosed(), "Closing DebugContext before ScriptContext close might have consequences");
+
+        this->isClosed = true;
+
+        // Release all memory and do all cleanup. No operation should be done after isClosed is set
+
         Assert(this->scriptContext != nullptr);
-        this->scriptContext = nullptr;
 
         if (this->diagProbesContainer != nullptr)
         {
@@ -48,6 +62,11 @@ namespace Js
         }
     }
 
+    bool DebugContext::IsSelfOrScriptContextClosed() const
+    {
+        return (this->IsClosed() || this->scriptContext->IsClosed());
+    }
+
     void DebugContext::SetHostDebugContext(HostDebugContext * hostDebugContext)
     {
         Assert(this->hostDebugContext == nullptr);
@@ -58,10 +77,13 @@ namespace Js
 
     bool DebugContext::CanRegisterFunction() const
     {
-        if (this->hostDebugContext == nullptr || this->scriptContext == nullptr || this->scriptContext->IsClosed() || this->IsDebugContextInNonDebugMode())
+        if (this->IsSelfOrScriptContextClosed() ||
+            this->hostDebugContext == nullptr ||
+            this->IsDebugContextInNonDebugMode())
         {
             return false;
         }
+
         return true;
     }
 
@@ -72,16 +94,38 @@ namespace Js
             return;
         }
 
-        FunctionBody * functionBody;
+        this->RegisterFunction(func, func->GetHostSourceContext(), title);
+    }
+
+    void DebugContext::RegisterFunction(Js::ParseableFunctionInfo * func, DWORD_PTR dwDebugSourceContext, LPCWSTR title)
+    {
+        if (!this->CanRegisterFunction())
+        {
+            return;
+        }
+
+        FunctionBody * functionBody = nullptr;
         if (func->IsDeferredParseFunction())
         {
-            functionBody = func->Parse();
+            HRESULT hr = S_OK;
+            Assert(!this->scriptContext->GetThreadContext()->IsScriptActive());
+
+            BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(this->scriptContext, false)
+            {
+                functionBody = func->Parse();
+            }
+            END_JS_RUNTIME_CALL_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT(hr);
+
+            if (FAILED(hr))
+            {
+                return;
+            }
         }
         else
         {
             functionBody = func->GetFunctionBody();
         }
-        this->RegisterFunction(functionBody, functionBody->GetHostSourceContext(), title);
+        this->RegisterFunction(functionBody, dwDebugSourceContext, title);
     }
 
     void DebugContext::RegisterFunction(Js::FunctionBody * functionBody, DWORD_PTR dwDebugSourceContext, LPCWSTR title)
@@ -119,11 +163,35 @@ namespace Js
 
     HRESULT DebugContext::RundownSourcesAndReparse(bool shouldPerformSourceRundown, bool shouldReparseFunctions)
     {
+        struct AutoRestoreIsReparsingSource
+        {
+            AutoRestoreIsReparsingSource(DebugContext* debugContext, bool shouldReparseFunctions)
+                : debugContext(debugContext)
+                , shouldReparseFunctions(shouldReparseFunctions)
+            {
+                if (this->shouldReparseFunctions)
+                {
+                    this->debugContext->isReparsingSource = true;
+                }
+            }
+            ~AutoRestoreIsReparsingSource()
+            {
+                if (this->shouldReparseFunctions)
+                {
+                    this->debugContext->isReparsingSource = false;
+                }
+            }
+
+        private:
+            DebugContext* debugContext;
+            bool shouldReparseFunctions;
+        } autoRestoreIsReparsingSource(this, shouldReparseFunctions);
+
         OUTPUT_TRACE(Js::DebuggerPhase, _u("DebugContext::RundownSourcesAndReparse scriptContext 0x%p, shouldPerformSourceRundown %d, shouldReparseFunctions %d\n"),
             this->scriptContext, shouldPerformSourceRundown, shouldReparseFunctions);
 
         Js::TempArenaAllocatorObject *tempAllocator = nullptr;
-        JsUtil::List<Js::FunctionBody *, ArenaAllocator>* pFunctionsToRegister = nullptr;
+        JsUtil::List<Js::FunctionInfo *, Recycler>* pFunctionsToRegister = nullptr;
         JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer>* utf8SourceInfoList = nullptr;
 
         HRESULT hr = S_OK;
@@ -132,7 +200,6 @@ namespace Js
         BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
         tempAllocator = threadContext->GetTemporaryAllocator(_u("debuggerAlloc"));
 
-        pFunctionsToRegister = JsUtil::List<Js::FunctionBody*, ArenaAllocator>::New(tempAllocator->GetAllocator());
         utf8SourceInfoList = JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer>::New(this->scriptContext->GetRecycler());
 
         this->MapUTF8SourceInfoUntil([&](Js::Utf8SourceInfo * sourceInfo) -> bool
@@ -142,20 +209,16 @@ namespace Js
         });
         END_TRANSLATE_OOM_TO_HRESULT(hr);
 
-        if (hr != S_OK)
+        if (FAILED(hr))
         {
-            Assert(FALSE);
+            Assert(hr == E_OUTOFMEMORY);
             return hr;
         }
 
-        // Cache ScriptContext as multiple calls below can go out of engine and ScriptContext can be closed which will delete DebugContext
-        Js::ScriptContext* cachedScriptContext = this->scriptContext;
-
         utf8SourceInfoList->MapUntil([&](int index, Js::Utf8SourceInfo * sourceInfo) -> bool
         {
-            if (cachedScriptContext->IsClosed())
+            if (this->IsSelfOrScriptContextClosed())
             {
-                // ScriptContext could be closed in previous iteration
                 hr = E_FAIL;
                 return true;
             }
@@ -197,9 +260,9 @@ namespace Js
                 dwDebugHostSourceContext = this->hostDebugContext->GetHostSourceContext(sourceInfo);
             }
 
-            this->FetchTopLevelFunction(pFunctionsToRegister, sourceInfo);
+            pFunctionsToRegister = sourceInfo->GetTopLevelFunctionInfoList();
 
-            if (pFunctionsToRegister->Count() == 0)
+            if (pFunctionsToRegister == nullptr || pFunctionsToRegister->Count() == 0)
             {
                 // This could happen if there are no functions to re-compile.
                 return false;
@@ -214,28 +277,26 @@ namespace Js
             bool fHasDoneSourceRundown = false;
             for (int i = 0; i < pFunctionsToRegister->Count(); i++)
             {
-                if (cachedScriptContext->IsClosed())
+                if (this->IsSelfOrScriptContextClosed())
                 {
-                    // ScriptContext could be closed in previous iteration
                     hr = E_FAIL;
                     return true;
                 }
 
-                Js::FunctionBody* pFuncBody = pFunctionsToRegister->Item(i);
-                if (pFuncBody == nullptr)
+                Js::FunctionInfo *functionInfo = pFunctionsToRegister->Item(i);
+                if (functionInfo == nullptr)
                 {
                     continue;
                 }
 
                 if (shouldReparseFunctions)
                 {
-
-                    BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(cachedScriptContext, false)
+                    BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(this->scriptContext, false)
                     {
-                        pFuncBody->Parse();
+                        functionInfo->GetParseableFunctionInfo()->Parse();
                         // This is the first call to the function, ensure dynamic profile info
 #if ENABLE_PROFILE_INFO
-                        pFuncBody->EnsureDynamicProfileInfo();
+                        functionInfo->GetFunctionBody()->EnsureDynamicProfileInfo();
 #endif
                     }
                     END_JS_RUNTIME_CALL_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT(hr);
@@ -244,13 +305,18 @@ namespace Js
                     DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
                 }
 
-                if (!fHasDoneSourceRundown && shouldPerformSourceRundown && !cachedScriptContext->IsClosed())
+                // Parsing the function may change its FunctionProxy.
+                Js::ParseableFunctionInfo *parseableFunctionInfo = functionInfo->GetParseableFunctionInfo();
+
+                if (!fHasDoneSourceRundown && shouldPerformSourceRundown && !this->IsSelfOrScriptContextClosed())
                 {
                     BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
                     {
-                        this->RegisterFunction(pFuncBody, dwDebugHostSourceContext, pFuncBody->GetSourceName());
+                        this->RegisterFunction(parseableFunctionInfo, dwDebugHostSourceContext, parseableFunctionInfo->GetSourceName());
                     }
                     END_TRANSLATE_OOM_TO_HRESULT(hr);
+
+                    DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
 
                     fHasDoneSourceRundown = true;
                 }
@@ -270,13 +336,13 @@ namespace Js
             return false;
         });
 
-        if (!cachedScriptContext->IsClosed())
+        if (!this->IsSelfOrScriptContextClosed())
         {
-            if (shouldPerformSourceRundown && cachedScriptContext->HaveCalleeSources() && this->hostDebugContext != nullptr)
+            if (shouldPerformSourceRundown && this->scriptContext->HaveCalleeSources() && this->hostDebugContext != nullptr)
             {
-                cachedScriptContext->MapCalleeSources([=](Js::Utf8SourceInfo* calleeSourceInfo)
+                this->scriptContext->MapCalleeSources([=](Js::Utf8SourceInfo* calleeSourceInfo)
                 {
-                    if (!cachedScriptContext->IsClosed())
+                    if (!this->IsSelfOrScriptContextClosed())
                     {
                         // This call goes out of engine
                         this->hostDebugContext->ReParentToCaller(calleeSourceInfo);
@@ -292,85 +358,6 @@ namespace Js
         threadContext->ReleaseTemporaryAllocator(tempAllocator);
 
         return hr;
-    }
-
-    void DebugContext::FetchTopLevelFunction(JsUtil::List<Js::FunctionBody *, ArenaAllocator>* pFunctions, Js::Utf8SourceInfo * sourceInfo)
-    {
-        Assert(pFunctions != nullptr);
-        Assert(sourceInfo != nullptr);
-
-        HRESULT hr = S_OK;
-
-        // Get FunctionBodys which are distinctly parseable, i.e. they are not enclosed in any other function (finding
-        // out root node of the sub-tree, in which root node is not enclosed in any other available function) this is
-        // by walking over all function and comparing their range.
-
-        BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
-        {
-            pFunctions->Clear();
-
-            sourceInfo->MapFunctionUntil([&](Js::FunctionBody* pFuncBody) -> bool
-            {
-                if (pFuncBody->GetIsGlobalFunc())
-                {
-                    if (pFuncBody->IsFakeGlobalFunc(pFuncBody->GetGrfscr()))
-                    {
-                        // This is created due to 'Function' code or deferred parsed functions, there is nothing to
-                        // re-compile in this function as this is just a place-holder/fake function.
-
-                        Assert(pFuncBody->GetByteCode() == NULL);
-
-                        return false;
-                    }
-
-                    if (!pFuncBody->GetIsTopLevel())
-                    {
-                        return false;
-                    }
-
-                    // If global function, there is no need to find out any other functions.
-
-                    pFunctions->Clear();
-                    pFunctions->Add(pFuncBody);
-                    return true;
-                }
-
-                if (pFuncBody->IsFunctionParsed())
-                {
-                    bool isNeedToAdd = true;
-                    for (int i = 0; i < pFunctions->Count(); i++)
-                    {
-                        Js::FunctionBody *currentFunction = pFunctions->Item(i);
-                        if (currentFunction != nullptr)
-                        {
-                            if (currentFunction->StartInDocument() > pFuncBody->StartInDocument() || !currentFunction->EndsAfter(pFuncBody->StartInDocument()))
-                            {
-                                if (pFuncBody->StartInDocument() <= currentFunction->StartInDocument() && pFuncBody->EndsAfter(currentFunction->StartInDocument()))
-                                {
-                                    // The stored item has got the parent, remove current Item
-                                    pFunctions->Item(i, nullptr);
-                                }
-                            }
-                            else
-                            {
-                                // Parent (the enclosing function) is already in the list
-                                isNeedToAdd = false;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (isNeedToAdd)
-                    {
-                        pFunctions->Add(pFuncBody);
-                    }
-                }
-                return false;
-            });
-        }
-        END_TRANSLATE_OOM_TO_HRESULT(hr);
-
-        Assert(hr == S_OK);
     }
 
     // Create an ordered flat list of sources to reparse. Caller of a source should be added to the list before we add the source itself.
@@ -421,3 +408,4 @@ namespace Js
         });
     }
 }
+#endif

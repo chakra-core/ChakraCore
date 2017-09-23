@@ -24,7 +24,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->constCount = functionBody->GetConstantCount();
     if (functionBody->GetConstantCount() > 0)
     {
-        jitBody->constTable = (intptr_t *)functionBody->GetConstTable();
+        jitBody->constTable = (intptr_t *)PointerValue(functionBody->GetConstTable());
         if (!functionBody->GetIsAsmJsFunction())
         {
             jitBody->constTableContent = AnewStructZ(arena, ConstTableContentIDL);
@@ -139,11 +139,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->attributes = functionBody->GetAttributes();
     jitBody->isInstInlineCacheCount = functionBody->GetIsInstInlineCacheCount();
 
-    if (functionBody->GetUtf8SourceInfo()->GetCbLength() > UINT_MAX)
-    {
-        Js::Throw::OutOfMemory();
-    }
-
     jitBody->byteCodeCount = functionBody->GetByteCodeCount();
     jitBody->byteCodeInLoopCount = functionBody->GetByteCodeInLoopCount();
     jitBody->nonLoadByteCodeCount = functionBody->GetByteCodeWithoutLDACount();
@@ -248,6 +243,12 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
     jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexesWithLock();
 
+    Js::AuxArray<uint32> * slotIdInCachedScopeToNestedIndexArray = functionBody->GetSlotIdInCachedScopeToNestedIndexArrayWithLock();
+    if (slotIdInCachedScopeToNestedIndexArray)
+    {
+        jitBody->functionSlotsInCachedScopeCount = slotIdInCachedScopeToNestedIndexArray->count;
+        jitBody->slotIdInCachedScopeToNestedIndexArray = slotIdInCachedScopeToNestedIndexArray->elements;
+    }
 #ifdef ASMJS_PLAT
     if (functionBody->GetIsAsmJsFunction())
     {
@@ -269,7 +270,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->asmJsData->argTypeArray = (byte*)asmFuncInfo->GetArgTypeArray();
         jitBody->asmJsData->argByteSize = asmFuncInfo->GetArgByteSize();
         jitBody->asmJsData->retType = asmFuncInfo->GetReturnType().which();
-        jitBody->asmJsData->isHeapBufferConst = asmFuncInfo->IsHeapBufferConst();
         jitBody->asmJsData->usesHeapBuffer = asmFuncInfo->UsesHeapBuffer();
         jitBody->asmJsData->totalSizeInBytes = asmFuncInfo->GetTotalSizeinBytes();
 
@@ -870,6 +870,19 @@ JITTimeFunctionBody::GetConstantContent(Js::RegSlot location) const
     return obj;
 }
 
+void
+JITTimeFunctionBody::EnsureConsistentConstCount() const
+{
+    if (GetConstCount() == 0 || IsAsmJsMode())
+    {
+        AssertOrFailFast(m_bodyData.constTableContent == nullptr);
+    }
+    else
+    {
+        AssertOrFailFast(m_bodyData.constTableContent != nullptr && GetConstCount() == m_bodyData.constTableContent->count);
+    }
+}
+
 intptr_t
 JITTimeFunctionBody::GetInlineCache(uint index) const
 {
@@ -928,6 +941,14 @@ JITTimeFunctionBody::GetLiteralRegexAddr(uint index) const
     Assert(index < m_bodyData.literalRegexCount);
 
     return m_bodyData.literalRegexes[index];
+}
+
+uint
+JITTimeFunctionBody::GetNestedFuncIndexForSlotIdInCachedScope(uint index) const
+{
+    AssertOrFailFast(m_bodyData.slotIdInCachedScopeToNestedIndexArray != nullptr);
+    AssertOrFailFast(index < m_bodyData.functionSlotsInCachedScopeCount);
+    return m_bodyData.slotIdInCachedScopeToNestedIndexArray[index];
 }
 
 void *
@@ -1051,12 +1072,14 @@ JITTimeFunctionBody::GetAuxDataAddr(uint offset) const
 void *
 JITTimeFunctionBody::ReadFromAuxData(uint offset) const
 {
+    AssertOrFailFast(offset < m_bodyData.auxDataCount);
     return (void *)(m_bodyData.auxData + offset);
 }
 
 void *
 JITTimeFunctionBody::ReadFromAuxContextData(uint offset) const
 {
+    AssertOrFailFast(offset < m_bodyData.auxContextDataCount);
     return (void *)(m_bodyData.auxContextData + offset);
 }
 
@@ -1064,7 +1087,7 @@ const Js::PropertyIdArray *
 JITTimeFunctionBody::ReadPropertyIdArrayFromAuxData(uint offset) const
 {
     Js::PropertyIdArray * auxArray = (Js::PropertyIdArray *)(m_bodyData.auxData + offset);
-    Assert(offset + auxArray->GetDataSize() <= m_bodyData.auxDataCount);
+    AssertOrFailFast(AllocSizeMath::Add(offset, auxArray->GetDataSize()) <= m_bodyData.auxDataCount);
     return auxArray;
 }
 

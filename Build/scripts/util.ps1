@@ -27,19 +27,19 @@ function GetGitPath() {
 
 function GetRepoRoot() {
     $gitExe = GetGitPath
-    return iex "$gitExe rev-parse --show-toplevel"
+    return Invoke-Expression "$gitExe rev-parse --show-toplevel"
 }
 
 function WriteMessage($str) {
     Write-Output $str
-    if ($logFile -ne "") {
+    if ($logFile) {
         Write-Output $str | Out-File $logFile -Append
     }
 }
 
 function WriteErrorMessage($str) {
     $host.ui.WriteErrorLine($str)
-    if ($logFile -ne "") {
+    if ($logFile) {
         Write-Output $str | Out-File $logFile -Append
     }
 }

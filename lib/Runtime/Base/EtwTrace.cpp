@@ -96,7 +96,7 @@ void EtwTrace::PerformRundown(bool start)
     while(threadContext != nullptr)
     {
         // Take etw rundown lock on this thread context
-        AutoCriticalSection autoEtwRundownCs(threadContext->GetEtwRundownCriticalSection());
+        AutoCriticalSection autoEtwRundownCs(threadContext->GetFunctionBodyLock());
 
         ScriptContext* scriptContext = threadContext->GetScriptContextList();
         while(scriptContext != NULL)
@@ -177,23 +177,31 @@ void EtwTrace::PerformRundown(bool start)
                     }
                 });
 
-                body->MapLoopHeadersWithLock([&](uint loopNumber, LoopHeader* header)
+                // the functionBody may have not have bytecode generated yet before registering to utf8SourceInfo
+                // accessing MapLoopHeaders in background thread can causes the functionBody counters locked for updating
+                // and cause assertion when bytecode generation is done and updating bytecodeCount counter on functionBody
+                // so check if the functionBody has done loopbody codegen in advance to not call into Map function in case 
+                // loopbody codegen is not done yet
+                if (body->GetHasDoneLoopBodyCodeGen())
                 {
-                    header->MapEntryPoints([&](int index, LoopEntryPointInfo * entryPoint)
+                    body->MapLoopHeadersWithLock([&](uint loopNumber, LoopHeader* header)
                     {
-                        if(entryPoint->IsCodeGenDone())
+                        header->MapEntryPoints([&](int index, LoopEntryPointInfo * entryPoint)
                         {
-                            if(start)
+                            if (entryPoint->IsCodeGenDone())
                             {
-                                LogLoopBodyEventBG(EventWriteMethodDCStart, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
+                                if (start)
+                                {
+                                    LogLoopBodyEvent(EventWriteMethodDCStart, body, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
+                                }
+                                else
+                                {
+                                    LogLoopBodyEvent(EventWriteMethodDCEnd, body, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
+                                }
                             }
-                            else
-                            {
-                                LogLoopBodyEventBG(EventWriteMethodDCEnd, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
-                            }
-                        }
+                        });
                     });
-                });
+                }
 #endif
             });
 
@@ -280,10 +288,10 @@ void EtwTrace::LogMethodNativeLoadEvent(FunctionBody* body, FunctionEntryPointIn
 #endif
 }
 
-void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint, uint16 loopNumber)
+void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopEntryPointInfo* entryPoint, uint16 loopNumber)
 {
 #if ENABLE_NATIVE_CODEGEN
-    LogLoopBodyEventBG(EventWriteMethodLoad, body, loopHeader, entryPoint, loopNumber);
+    LogLoopBodyEvent(EventWriteMethodLoad, body, entryPoint, loopNumber);
 #else
     Assert(false); // Caller should not be enabled if JIT is disabled
 #endif
@@ -308,10 +316,10 @@ void EtwTrace::LogMethodNativeUnloadEvent(FunctionBody* body, FunctionEntryPoint
 #endif
 }
 
-void EtwTrace::LogLoopBodyUnloadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint)
+void EtwTrace::LogLoopBodyUnloadEvent(FunctionBody* body, LoopEntryPointInfo* entryPoint, uint loopNumber)
 {
 #if ENABLE_NATIVE_CODEGEN
-    LogLoopBodyEvent(EventWriteMethodUnload, body, loopHeader, entryPoint);
+    LogLoopBodyEvent(EventWriteMethodUnload, body, entryPoint, loopNumber);
 #else
 Assert(false); // Caller should not be enabled if JIT is disabled
 #endif

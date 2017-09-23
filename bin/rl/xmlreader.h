@@ -45,7 +45,7 @@ class Node
 public:
 
    Node() {}
-   Node(Char * name, Attribute * attributeList);
+   Node(const Char * name, Attribute * attributeList);
 
    Node * GetChild(const Char * name);
    Char * GetAttributeValue(const Char * name);
@@ -58,7 +58,7 @@ public:
    Node * Next;
    Node * ChildList;
    Attribute * AttributeList;
-   Char * Name;
+   const Char * Name;
    Char * Data;
    int LineNumber;
 

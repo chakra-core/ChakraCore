@@ -400,47 +400,46 @@ namespace Js
         if (args.Info.Count > 1)
         {
             Var firstArgument = args[1];
-            if (TypedArrayBase::Is(firstArgument))
-            {
-                // Constructor(TypedArray array)
-                typedArraySource = static_cast<TypedArrayBase*>(firstArgument);
-                if (typedArraySource->IsDetachedBuffer())
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
-                }
-
-                elementCount = typedArraySource->GetLength();
-                if (elementCount >= ArrayBuffer::MaxArrayBufferLength/elementSize)
-                {
-                    JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayLength);
-                }
-            }
-            else if (ArrayBufferBase::Is(firstArgument))
-            {
-                // Constructor(ArrayBuffer buffer,
-                //  optional uint32 byteOffset, optional uint32 length)
-                arrayBuffer = ArrayBufferBase::FromVar(firstArgument);
-                if (arrayBuffer->IsDetached())
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
-                }
-            }
-            else if (JavascriptNumber::Is(firstArgument) ||
-                    TaggedInt::Is(firstArgument))
+            if (!Js::JavascriptOperators::IsObject(firstArgument))
             {
                 elementCount = ArrayBuffer::ToIndex(firstArgument, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
             }
             else
             {
-                if (JavascriptOperators::IsObject(firstArgument))
+                if (TypedArrayBase::Is(firstArgument))
+                {
+                    // Constructor(TypedArray array)
+                    typedArraySource = static_cast<TypedArrayBase*>(firstArgument);
+                    if (typedArraySource->IsDetachedBuffer())
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
+                    }
+
+                    elementCount = typedArraySource->GetLength();
+                    if (elementCount >= ArrayBuffer::MaxArrayBufferLength / elementSize)
+                    {
+                        JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayLength);
+                    }
+                }
+                else if (ArrayBufferBase::Is(firstArgument))
+                {
+                    // Constructor(ArrayBuffer buffer,
+                    //  optional uint32 byteOffset, optional uint32 length)
+                    arrayBuffer = ArrayBufferBase::FromVar(firstArgument);
+                    if (arrayBuffer->IsDetached())
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
+                    }
+                }
+                else
                 {
                     // Use GetIteratorFunction instead of GetIterator to check if it is the built-in array iterator
                     RecyclableObject* iteratorFn = JavascriptOperators::GetIteratorFunction(firstArgument, scriptContext, true /* optional */);
                     if (iteratorFn != nullptr &&
-                        (iteratorFn != scriptContext->GetLibrary()->GetArrayPrototypeValuesFunction() ||
+                        (iteratorFn != scriptContext->GetLibrary()->EnsureArrayPrototypeValuesFunction() ||
                             !JavascriptArray::Is(firstArgument) || JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(scriptContext)))
                     {
-                        Var iterator = CALL_FUNCTION(iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
+                        Var iterator = CALL_FUNCTION(scriptContext->GetThreadContext(), iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
 
                         if (!JavascriptOperators::IsObject(iterator))
                         {
@@ -448,47 +447,44 @@ namespace Js
                         }
                         return CreateNewInstanceFromIterator(RecyclableObject::FromVar(iterator), scriptContext, elementSize, pfnCreateTypedArray);
                     }
-                    else if (JavascriptConversion::ToObject(firstArgument, scriptContext, &jsArraySource))
+
+                    if (!JavascriptConversion::ToObject(firstArgument, scriptContext, &jsArraySource))
                     {
-                        ArrayBuffer *temp = nullptr;
-                        HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &temp);
-                        arrayBuffer = static_cast<ArrayBufferBase *> (temp);
-                        switch (hr)
-                        {
-                        case S_OK:
-                            // We found an IBuffer
-                            fromExternalObject = true;
-                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query succeeded with HR=0x%08X\n"), hr);
-                            // We have an ArrayBuffer now, so we can skip all the object probing.
-                            break;
-
-                        case S_FALSE:
-                            // We didn't find an IBuffer - fall through
-                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n"), hr);
-                            break;
-
-                        default:
-                            // Any FAILURE HRESULT or unexpected HRESULT
-                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query failed with HR=0x%08X\n"), hr);
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
-                            break;
-                        }
-                        if (!fromExternalObject)
-                        {
-                            Var lengthVar = JavascriptOperators::OP_GetProperty(jsArraySource, PropertyIds::length, scriptContext);
-                            if (JavascriptOperators::GetTypeId(lengthVar) == TypeIds_Undefined)
-                            {
-                                JavascriptError::ThrowTypeError(
-                                    scriptContext, JSERR_InvalidTypedArray_Constructor);
-                            }
-
-                            elementCount = ArrayBuffer::ToIndex(lengthVar, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
-                        }
+                        // REVIEW: unclear why this JavascriptConversion::ToObject() call is being made.
+                        // It ends up calling RecyclableObject::ToObject which at least Proxy objects can
+                        // hit with non-trivial behavior.
+                        Js::Throw::FatalInternalError();
                     }
-                }
-                else
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
+
+                    ArrayBuffer *temp = nullptr;
+                    HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &temp);
+                    arrayBuffer = static_cast<ArrayBufferBase *> (temp);
+                    switch (hr)
+                    {
+                    case S_OK:
+                        // We found an IBuffer
+                        fromExternalObject = true;
+                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query succeeded with HR=0x%08X\n"), hr);
+                        // We have an ArrayBuffer now, so we can skip all the object probing.
+                        break;
+
+                    case S_FALSE:
+                        // We didn't find an IBuffer - fall through
+                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n"), hr);
+                        break;
+
+                    default:
+                        // Any FAILURE HRESULT or unexpected HRESULT
+                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query failed with HR=0x%08X\n"), hr);
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
+                        break;
+                    }
+
+                    if (!fromExternalObject)
+                    {
+                        Var lengthVar = JavascriptOperators::OP_GetLength(jsArraySource, scriptContext);
+                        elementCount = ArrayBuffer::ToIndex(lengthVar, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
+                    }
                 }
             }
         }
@@ -512,13 +508,7 @@ namespace Js
 
             if (args.Info.Count > 3 && !JavascriptOperators::IsUndefinedObject(args[3]))
             {
-                mappedLength = ArrayBuffer::ToIndex(args[3], JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize, false);
-
-                if ((uint32)mappedLength > (byteLength - offset)/ elementSize)
-                {
-                    JavascriptError::ThrowRangeError(
-                        scriptContext, JSERR_InvalidTypedArrayLength);
-                }
+                mappedLength = ArrayBuffer::ToIndex(args[3], JSERR_InvalidTypedArrayLength, scriptContext, (byteLength - offset) / elementSize, false);
             }
             else
             {
@@ -530,7 +520,8 @@ namespace Js
                 mappedLength = (byteLength - offset)/elementSize;
             }
         }
-        else {
+        else
+        {
             // Null arrayBuffer - could be new constructor or copy constructor.
             byteLength = elementCount * elementSize;
             arrayBuffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
@@ -615,15 +606,39 @@ namespace Js
             object;
     };
 
-    BOOL TypedArrayBase::HasProperty(PropertyId propertyId)
+    BOOL TypedArrayBase::HasOwnProperty(PropertyId propertyId)
+    {
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(HasPropertyQuery(propertyId));
+    }
+
+    inline BOOL TypedArrayBase::CanonicalNumericIndexString(PropertyId propertyId, ScriptContext *scriptContext)
+    {
+        PropertyString *propertyString = scriptContext->GetPropertyString(propertyId);
+        return CanonicalNumericIndexString(propertyString, scriptContext);
+    }
+
+    inline BOOL TypedArrayBase::CanonicalNumericIndexString(JavascriptString *propertyString, ScriptContext *scriptContext)
+    {
+        double result;
+        return JavascriptConversion::CanonicalNumericIndexString(propertyString, &result, scriptContext);
+    }
+
+    PropertyQueryFlags TypedArrayBase::HasPropertyQuery(PropertyId propertyId)
     {
         uint32 index = 0;
-        if (GetScriptContext()->IsNumericPropertyId(propertyId, &index) && (index < this->GetLength()))
+        ScriptContext *scriptContext = GetScriptContext();
+        if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
             // All the slots within the length of the array are valid.
-            return true;
+            return index < this->GetLength() ? PropertyQueryFlags::Property_Found : PropertyQueryFlags::Property_NotFound_NoProto;
         }
-        return DynamicObject::HasProperty(propertyId);
+
+        if (!scriptContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, scriptContext))
+        {
+            return PropertyQueryFlags::Property_NotFound_NoProto;
+        }
+
+        return DynamicObject::HasPropertyQuery(propertyId);
     }
 
     BOOL TypedArrayBase::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
@@ -649,12 +664,12 @@ namespace Js
         return TRUE;
     }
 
-    BOOL TypedArrayBase::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags TypedArrayBase::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return TypedArrayBase::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return TypedArrayBase::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL TypedArrayBase::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags TypedArrayBase::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         uint32 index = 0;
         if (GetScriptContext()->IsNumericPropertyId(propertyId, &index))
@@ -662,23 +677,35 @@ namespace Js
             *value = this->DirectGetItem(index);
             if (JavascriptOperators::GetTypeId(*value) == Js::TypeIds_Undefined)
             {
-                return false;
+                return PropertyQueryFlags::Property_NotFound;
             }
-            return true;
+            return PropertyQueryFlags::Property_Found;
         }
 
-        return DynamicObject::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        if (!requestContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, requestContext))
+        {
+            *value = requestContext->GetLibrary()->GetUndefined();
+            return PropertyQueryFlags::Property_NotFound_NoProto;
+        }
+
+        return DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL TypedArrayBase::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags TypedArrayBase::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord*");
 
-        return DynamicObject::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
+        if (CanonicalNumericIndexString(propertyNameString, requestContext))
+        {
+            *value = requestContext->GetLibrary()->GetUndefined();
+            return PropertyQueryFlags::Property_NotFound_NoProto;
+        }
+
+        return DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
     }
 
-    BOOL TypedArrayBase::HasItem(uint32 index)
+    PropertyQueryFlags TypedArrayBase::HasItemQuery(uint32 index)
     {
         if (this->IsDetachedBuffer())
         {
@@ -687,31 +714,38 @@ namespace Js
 
         if (index < GetLength())
         {
-            return true;
+            return PropertyQueryFlags::Property_Found;
         }
-        return false;
+
+        return PropertyQueryFlags::Property_NotFound_NoProto;
     }
 
-    BOOL TypedArrayBase::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags TypedArrayBase::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
         *value = DirectGetItem(index);
-        return true;
+        return index < GetLength() ? PropertyQueryFlags::Property_Found : PropertyQueryFlags::Property_NotFound_NoProto;
     }
 
-    BOOL TypedArrayBase::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags TypedArrayBase::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
         *value = DirectGetItem(index);
-        return true;
+        return index < GetLength() ? PropertyQueryFlags::Property_Found : PropertyQueryFlags::Property_NotFound_NoProto;
     }
 
     BOOL TypedArrayBase::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         uint32 index;
+        ScriptContext *scriptContext = GetScriptContext();
 
         if (GetScriptContext()->IsNumericPropertyId(propertyId, &index))
         {
             this->DirectSetItem(index, value);
             return true;
+        }
+
+        if (!scriptContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, scriptContext))
+        {
+            return FALSE;
         }
         else
         {
@@ -724,8 +758,46 @@ namespace Js
         AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord*");
 
+        ScriptContext *requestContext = GetScriptContext();
+        if (CanonicalNumericIndexString(propertyNameString, requestContext))
+        {
+            return FALSE; // Integer-index exotic object should not set property that is canonical numeric index string but came to this overload
+        }
 
         return DynamicObject::SetProperty(propertyNameString, value, flags, info);
+    }
+
+    DescriptorFlags TypedArrayBase::GetSetter(PropertyId propertyId, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
+    {
+        if (!requestContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, requestContext))
+        {
+            return None_NoProto;
+        }
+
+        return __super::GetSetter(propertyId, setterValue, info, requestContext);
+    }
+
+    DescriptorFlags TypedArrayBase::GetSetter(JavascriptString* propertyNameString, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
+    {
+        if (CanonicalNumericIndexString(propertyNameString, requestContext))
+        {
+            return None_NoProto;
+        }
+
+        return __super::GetSetter(propertyNameString, setterValue, info, requestContext);
+    }
+
+    DescriptorFlags TypedArrayBase::GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext)
+    {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
+        if (index >= this->GetLength())
+        {
+            return None_NoProto;
+        }
+
+        return __super::GetItemSetter(index, setterValue, requestContext);
     }
 
     BOOL TypedArrayBase::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
@@ -740,6 +812,11 @@ namespace Js
 
     BOOL TypedArrayBase::SetItem(uint32 index, Var value, PropertyOperationFlags flags)
     {
+        if (flags == PropertyOperation_None && index >= GetLength())
+        {
+            return false;
+        }
+
         DirectSetItem(index, value);
         return true;
     }
@@ -876,6 +953,11 @@ namespace Js
         {
             VerifySetItemAttributes(propertyId, attributes);
             return SetItem(index, value);
+        }
+
+        if (!scriptContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, scriptContext))
+        {
+            return FALSE;
         }
 
         return __super::SetPropertyWithAttributes(propertyId, value, attributes, info, flags, possibleSideEffects);
@@ -1061,69 +1143,12 @@ namespace Js
 
     }
 
-    template <typename TypeName, bool clamped, bool virtualAllocated>
-    TypedArray<TypeName, clamped, virtualAllocated>::TypedArray(ArrayBufferBase* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type) :
-        TypedArrayBase(arrayBuffer, byteOffset, mappedLength, sizeof(TypeName), type)
+    void TypedArrayBase::ClearLengthAndBufferOnDetach()
     {
-        AssertMsg(arrayBuffer->GetByteLength() >= byteOffset, "invalid offset");
-        AssertMsg(mappedLength*sizeof(TypeName)+byteOffset <= arrayBuffer->GetByteLength(), "invalid length");
-        buffer = arrayBuffer->GetBuffer() + byteOffset;
-        if (arrayBuffer->IsValidVirtualBufferLength(arrayBuffer->GetByteLength()) &&
-             (byteOffset == 0) &&
-             (mappedLength == (arrayBuffer->GetByteLength() / sizeof(TypeName)))
-           )
-        {
-            // update the vtable
-            switch (type->GetTypeId())
-            {
-            case TypeIds_Int8Array:
-                VirtualTableInfo<Int8VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Uint8Array:
-                VirtualTableInfo<Uint8VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Uint8ClampedArray:
-                VirtualTableInfo<Uint8ClampedVirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Int16Array:
-                VirtualTableInfo<Int16VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Uint16Array:
-                VirtualTableInfo<Uint16VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Int32Array:
-                VirtualTableInfo<Int32VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Uint32Array:
-                VirtualTableInfo<Uint32VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Float32Array:
-                VirtualTableInfo<Float32VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Float64Array:
-                VirtualTableInfo<Float64VirtualArray>::SetVirtualTable(this);
-                break;
-            default:
-                break;
-            }
-        }
-    }
+        AssertMsg(IsDetachedBuffer(), "Array buffer should be detached if we're calling this method");
 
-    template <typename TypeName, bool clamped, bool virtualAllocated>
-    inline Var TypedArray<TypeName, clamped, virtualAllocated>::Create(ArrayBufferBase* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary)
-    {
-        uint32 totalLength, mappedByteLength;
-
-        if (UInt32Math::Mul(mappedLength, sizeof(TypeName), &mappedByteLength) ||
-            UInt32Math::Add(byteOffSet, mappedByteLength, &totalLength) ||
-            (totalLength > arrayBuffer->GetByteLength()))
-        {
-            JavascriptError::ThrowRangeError(arrayBuffer->GetScriptContext(), JSERR_InvalidTypedArrayLength);
-        }
-
-        DynamicType *type = javascriptLibrary->GetTypedArrayType<TypeName, clamped>(0);
-        return RecyclerNew(javascriptLibrary->GetRecycler(), TypedArray, arrayBuffer, byteOffSet, mappedLength, type);
-
+        this->length = 0;
+        this->buffer = nullptr;
     }
 
     Var TypedArrayBase::EntryGetterBuffer(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1254,7 +1279,6 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        JavascriptLibrary* library = scriptContext->GetLibrary();
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -1265,7 +1289,7 @@ namespace Js
         {
             if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
             {
-                return library->GetUndefined();
+                return scriptContext->GetLibrary()->GetUndefined();
             }
             else
             {
@@ -1280,43 +1304,43 @@ namespace Js
         switch (JavascriptOperators::GetTypeId(args[0]))
         {
         case TypeIds_Int8Array:
-            name = library->CreateStringFromCppLiteral(_u("Int8Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Int8Array);
             break;
 
         case TypeIds_Uint8Array:
-            name = library->CreateStringFromCppLiteral(_u("Uint8Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Uint8Array);
             break;
 
         case TypeIds_Uint8ClampedArray:
-            name = library->CreateStringFromCppLiteral(_u("Uint8ClampedArray"));
+            name = scriptContext->GetPropertyString(PropertyIds::Uint8ClampedArray);
             break;
 
         case TypeIds_Int16Array:
-            name = library->CreateStringFromCppLiteral(_u("Int16Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Int16Array);
             break;
 
         case TypeIds_Uint16Array:
-            name = library->CreateStringFromCppLiteral(_u("Uint16Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Uint16Array);
             break;
 
         case TypeIds_Int32Array:
-            name = library->CreateStringFromCppLiteral(_u("Int32Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Int32Array);
             break;
 
         case TypeIds_Uint32Array:
-            name = library->CreateStringFromCppLiteral(_u("Uint32Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Uint32Array);
             break;
 
         case TypeIds_Float32Array:
-            name = library->CreateStringFromCppLiteral(_u("Float32Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Float32Array);
             break;
 
         case TypeIds_Float64Array:
-            name = library->CreateStringFromCppLiteral(_u("Float64Array"));
+            name = scriptContext->GetPropertyString(PropertyIds::Float64Array);
             break;
 
         default:
-            name = library->GetUndefinedDisplayString();
+            name = scriptContext->GetLibrary()->GetUndefinedDisplayString();
             break;
         }
 
@@ -1424,7 +1448,8 @@ namespace Js
     uint32 TypedArrayBase::GetFromIndex(Var arg, uint32 length, ScriptContext *scriptContext)
     {
         uint32 index = JavascriptArray::GetFromIndex(arg, length, scriptContext);
-        return min(index, length);
+        Assert(index <= length);
+        return index;
     }
 
     Var TypedArrayBase::CommonSubarray(Arguments& args)
@@ -1580,9 +1605,8 @@ namespace Js
                         Assert(mapFn != nullptr);
                         Assert(mapFnThisArg != nullptr);
 
-                        Js::Var mapFnArgs[] = { mapFnThisArg, kValue, JavascriptNumber::ToVar(k, scriptContext) };
-                        Js::CallInfo mapFnCallInfo(Js::CallFlags_Value, _countof(mapFnArgs));
-                        kValue = mapFn->CallFunction(Js::Arguments(mapFnCallInfo, mapFnArgs));
+                        Var kVar = JavascriptNumber::ToVar(k, scriptContext);
+                        kValue = CALL_FUNCTION(scriptContext->GetThreadContext(), mapFn, CallInfo(CallFlags_Value, 3), mapFnThisArg, kValue, kVar);
                     }
 
                     // We're likely to have constructed a new TypedArray, but the constructor could return any object
@@ -1658,9 +1682,8 @@ namespace Js
                     Assert(mapFn != nullptr);
                     Assert(mapFnThisArg != nullptr);
 
-                    Js::Var mapFnArgs[] = { mapFnThisArg, kValue, JavascriptNumber::ToVar(k, scriptContext) };
-                    Js::CallInfo mapFnCallInfo(Js::CallFlags_Value, _countof(mapFnArgs));
-                    kValue = mapFn->CallFunction(Js::Arguments(mapFnCallInfo, mapFnArgs));
+                    Var kVar = JavascriptNumber::ToVar(k, scriptContext);
+                    kValue = CALL_FUNCTION(scriptContext->GetThreadContext(), mapFn, CallInfo(CallFlags_Value, 3), mapFnThisArg, kValue, kVar);
                 }
 
                 // If constructor built a TypedArray (likely) or Array (maybe likely) we can do a more direct set operation
@@ -1818,7 +1841,8 @@ namespace Js
                 // We know that the TypedArray.HasItem will be true because k < length and we can skip the check in the TypedArray version of filter.
                 element = typedArrayBase->DirectGetItem(k);
 
-                selected = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
+                selected = CALL_FUNCTION(scriptContext->GetThreadContext(),
+                    callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     typedArrayBase);
@@ -1931,7 +1955,8 @@ namespace Js
 
             Var element = typedArrayBase->DirectGetItem(k);
 
-            CALL_FUNCTION(callBackFn, CallInfo(CallFlags_Value, 4),
+            CALL_FUNCTION(scriptContext->GetThreadContext(),
+                callBackFn, CallInfo(CallFlags_Value, 4),
                 thisArg,
                 element,
                 JavascriptNumber::ToVar(k, scriptContext),
@@ -2213,7 +2238,8 @@ namespace Js
             ScriptContext* scriptContext = compFn->GetScriptContext();
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
             double dblResult;
-            Var retVal = CALL_FUNCTION(compFn, CallInfo(CallFlags_Value, 3),
+            Var retVal = CALL_FUNCTION(scriptContext->GetThreadContext(),
+                compFn, CallInfo(CallFlags_Value, 3),
                 undefined,
                 JavascriptNumber::ToVarWithCheck((double)x, scriptContext),
                 JavascriptNumber::ToVarWithCheck((double)y, scriptContext));
@@ -2236,6 +2262,12 @@ namespace Js
             else
             {
                 dblResult = JavascriptConversion::ToNumber_Full(retVal, scriptContext);
+
+                // ToNumber may execute user-code which can cause the array to become detached
+                if (TypedArrayBase::IsDetachedTypedArray(contextArray[0]))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
+                }
             }
 
             if (dblResult < 0)
@@ -2465,7 +2497,7 @@ namespace Js
             double dIndexValue = 0;
             if (JavascriptString::Is(index))
             {
-                if (JavascriptConversion::CanonicalNumericIndexString(index, &dIndexValue, GetScriptContext()))
+                if (JavascriptConversion::CanonicalNumericIndexString(JavascriptString::FromVar(index), &dIndexValue, GetScriptContext()))
                 {
                     if (JavascriptNumber::IsNegZero(dIndexValue))
                     {
@@ -2609,7 +2641,7 @@ namespace Js
         return Js::JavascriptNumber::ToVarNoCheck(currentRes, scriptContext);
     }
 
-    // static 
+    // static
     TypedArrayBase * TypedArrayBase::ValidateTypedArray(Arguments &args, ScriptContext *scriptContext, LPCWSTR apiName)
     {
         if (args.Info.Count == 0)
@@ -2943,19 +2975,25 @@ namespace Js
     GENERATE_FOREACH_TYPEDARRAY(TypedArrayXorOp, GenerateNotSupportedStub2, Xor)
 
     template<>
+    VTableValue Int8Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt8Array;
+    }
+
+    template<>
     inline Var Int8VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    inline BOOL Uint8Array::DirectSetItem(__in uint32 index, __in Js::Var value)
+    VTableValue Int8VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
     {
-        return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt8);
+        return VTableValue::VtableInt8VirtualArray;
     }
 
     template<>
-    inline BOOL Uint8VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
+    inline BOOL Uint8Array::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt8);
     }
@@ -2967,21 +3005,39 @@ namespace Js
     }
 
     template<>
-    inline BOOL Uint8VirtualArray::DirectSetItemNoSet(__in uint32 index, __in Js::Var value)
-    {
-        return BaseTypedDirectSetItemNoSet(index, value, JavascriptConversion::ToUInt8);
-    }
-
-    template<>
     inline Var Uint8Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
+    VTableValue Uint8Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint8Array;
+    }
+
+    template<>
+    inline BOOL Uint8VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
+    {
+        return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt8);
+    }
+
+    template<>
+    inline BOOL Uint8VirtualArray::DirectSetItemNoSet(__in uint32 index, __in Js::Var value)
+    {
+        return BaseTypedDirectSetItemNoSet(index, value, JavascriptConversion::ToUInt8);
+    }
+
+    template<>
     inline Var Uint8VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Uint8VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint8VirtualArray;
     }
 
     template<>
@@ -3003,6 +3059,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Uint8ClampedArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint8ClampedArray;
+    }
+
+    template<>
     inline BOOL Uint8ClampedVirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt8Clamped);
@@ -3018,6 +3080,12 @@ namespace Js
     inline Var Uint8ClampedVirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Uint8ClampedVirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint8ClampedVirtualArray;
     }
 
     template<>
@@ -3039,6 +3107,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Int16Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt16Array;
+    }
+
+    template<>
     inline BOOL Int16VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToInt16);
@@ -3054,6 +3128,12 @@ namespace Js
     inline Var Int16VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Int16VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt16VirtualArray;
     }
 
     template<>
@@ -3075,6 +3155,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Uint16Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint16Array;
+    }
+
+    template<>
     inline BOOL Uint16VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt16);
@@ -3090,6 +3176,12 @@ namespace Js
     inline Var Uint16VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Uint16VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint16VirtualArray;
     }
 
     template<>
@@ -3111,6 +3203,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Int32Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt32Array;
+    }
+
+    template<>
     inline BOOL Int32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToInt32);
@@ -3126,6 +3224,12 @@ namespace Js
     inline Var Int32VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Int32VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt32VirtualArray;
     }
 
     template<>
@@ -3147,6 +3251,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Uint32Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint32Array;
+    }
+
+    template<>
     inline BOOL Uint32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt32);
@@ -3162,6 +3272,12 @@ namespace Js
     inline Var Uint32VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Uint32VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint32VirtualArray;
     }
 
     template<>
@@ -3183,6 +3299,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Float32Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableFloat32Array;
+    }
+
+    template<>
     inline BOOL Float32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToFloat);
@@ -3198,6 +3320,12 @@ namespace Js
     Var Float32VirtualArray::DirectGetItem(__in uint32 index)
     {
         return TypedDirectGetItemWithCheck(index);
+    }
+
+    template<>
+    VTableValue Float32VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableFloat32VirtualArray;
     }
 
     template<>
@@ -3219,6 +3347,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Float64Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableFloat64Array;
+    }
+
+    template<>
     inline BOOL Float64VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToNumber);
@@ -3234,6 +3368,12 @@ namespace Js
     inline Var Float64VirtualArray::DirectGetItem(__in uint32 index)
     {
         return TypedDirectGetItemWithCheck(index);
+    }
+
+    template<>
+    VTableValue Float64VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableFloat64VirtualArray;
     }
 
     template<>
@@ -3255,6 +3395,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Int64Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt64Array;
+    }
+
+    template<>
     inline BOOL Uint64Array::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt64);
@@ -3270,6 +3416,12 @@ namespace Js
     inline Var Uint64Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Uint64Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint64Array;
     }
 
     template<>
@@ -3303,6 +3455,13 @@ namespace Js
         bool* typedBuffer = (bool*)buffer;
         return typedBuffer[index] ? GetLibrary()->GetTrue() : GetLibrary()->GetFalse();
     }
+
+    template<>
+    VTableValue BoolArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableBoolArray;
+    }
+
 
     Var CharArray::Create(ArrayBufferBase* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary)
     {
@@ -3483,18 +3642,4 @@ namespace Js
 #endif
         return object;
     }
-
-    // Instantiate the constructor function directly
-    template TypedArray<int8>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<uint8,false>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<uint8,true>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<int16>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<uint16>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<int32>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<uint32>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<float>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<double>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<int64>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<uint64>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<bool>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
 }

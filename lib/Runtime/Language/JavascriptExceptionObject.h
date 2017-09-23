@@ -4,7 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-namespace Js {
+namespace Js
+{
     const DWORD  ExceptionParameters = 1;
     const int    ExceptionObjectIndex = 0;
 
@@ -17,8 +18,13 @@ namespace Js {
 
         JavascriptExceptionObject(Var object, ScriptContext * scriptContext, JavascriptExceptionContext* exceptionContextIn, bool isPendingExceptionObject = false) :
             thrownObject(object), isPendingExceptionObject(isPendingExceptionObject),
-            scriptContext(scriptContext), tag(true), isDebuggerSkip(false), byteCodeOffsetAfterDebuggerSkip(Constants::InvalidByteCodeOffset), hasDebuggerLogged(false),
-            isFirstChance(false), isExceptionCaughtInNonUserCode(false), ignoreAdvanceToNextStatement(false), hostWrapperCreateFunc(nullptr), isGeneratorReturnException(false)
+            scriptContext(scriptContext), tag(true), 
+#ifdef ENABLE_SCRIPT_DEBUGGING
+            isDebuggerSkip(false), byteCodeOffsetAfterDebuggerSkip(Constants::InvalidByteCodeOffset), hasDebuggerLogged(false),
+            isFirstChance(false), isExceptionCaughtInNonUserCode(false), ignoreAdvanceToNextStatement(false),
+#endif
+            hostWrapperCreateFunc(nullptr), isGeneratorReturnException(false),
+            next(nullptr)
         {
             if (exceptionContextIn)
             {
@@ -36,7 +42,7 @@ namespace Js {
         Var GetThrownObject(ScriptContext * requestingScriptContext);
 
         // ScriptContext can be NULL in case of OOM exception.
-        ScriptContext * JavascriptExceptionObject::GetScriptContext() const
+        ScriptContext * GetScriptContext() const
         {
             return scriptContext;
         }
@@ -58,6 +64,7 @@ namespace Js {
         void FillError(JavascriptExceptionContext& exceptionContext, ScriptContext *scriptContext, HostWrapperCreateFuncType hostWrapperCreateFunc = NULL);
         void ClearError();
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         void SetDebuggerSkip(bool skip)
         {
             isDebuggerSkip = skip;
@@ -97,6 +104,7 @@ namespace Js {
         {
             return isFirstChance;
         }
+
         void SetIsExceptionCaughtInNonUserCode(bool is)
         {
             isExceptionCaughtInNonUserCode = is;
@@ -106,6 +114,17 @@ namespace Js {
         {
             return isExceptionCaughtInNonUserCode;
         }
+
+        void SetIgnoreAdvanceToNextStatement(bool is)
+        {
+            ignoreAdvanceToNextStatement = is;
+        }
+
+        bool IsIgnoreAdvanceToNextStatement()
+        {
+            return ignoreAdvanceToNextStatement;
+        }
+#endif
 
         void SetHostWrapperCreateFunc(HostWrapperCreateFuncType hostWrapperCreateFunc)
         {
@@ -130,7 +149,7 @@ namespace Js {
             Assert(this->isPendingExceptionObject || this->isGeneratorReturnException);
             this->thrownObject = object;
         }
-        JavascriptExceptionObject* JavascriptExceptionObject::CloneIfStaticExceptionObject(ScriptContext* scriptContext);
+        JavascriptExceptionObject* CloneIfStaticExceptionObject(ScriptContext* scriptContext);
 
         void ClearStackTrace()
         {
@@ -139,15 +158,6 @@ namespace Js {
 
         bool IsPendingExceptionObject() const { return isPendingExceptionObject; }
 
-        void SetIgnoreAdvanceToNextStatement(bool is)
-        {
-            ignoreAdvanceToNextStatement = is;
-        }
-
-        bool IsIgnoreAdvanceToNextStatement()
-        {
-            return ignoreAdvanceToNextStatement;
-        }
 
         void SetGeneratorReturnException(bool is)
         {
@@ -161,29 +171,43 @@ namespace Js {
         }
 
     private:
-        Var      thrownObject;
-        ScriptContext * scriptContext;
+        friend class ::ThreadContext;
+        static void Insert(Field(JavascriptExceptionObject*)* head, JavascriptExceptionObject* item);
+        static void Remove(Field(JavascriptExceptionObject*)* head, JavascriptExceptionObject* item);
 
-        int        byteCodeOffsetAfterDebuggerSkip;
-        const bool tag : 1;               // Tag the low bit to prevent possible GC false references
-        bool       isPendingExceptionObject : 1;
-        bool       isGeneratorReturnException : 1;
+    private:
+        Field(Var)      thrownObject;
+        Field(ScriptContext *) scriptContext;
+        
+#ifdef ENABLE_SCRIPT_DEBUGGING
+        Field(int)        byteCodeOffsetAfterDebuggerSkip;
+#endif
 
-        bool       isDebuggerSkip : 1;
-        bool       hasDebuggerLogged : 1;
-        bool       isFirstChance : 1;      // Mentions whether the current exception is a handled exception or not
-        bool       isExceptionCaughtInNonUserCode : 1; // Mentions if in the caller chain the exception will be handled by the non-user code.
-        bool       ignoreAdvanceToNextStatement : 1;  // This will be set when user had setnext while sitting on the exception
+        Field(const bool) tag : 1;               // Tag the low bit to prevent possible GC false references
+        Field(bool)       isPendingExceptionObject : 1;
+        Field(bool)       isGeneratorReturnException : 1;
+
+#ifdef ENABLE_SCRIPT_DEBUGGING
+        Field(bool)       isDebuggerSkip : 1;
+        Field(bool)       hasDebuggerLogged : 1;
+        Field(bool)       isFirstChance : 1;      // Mentions whether the current exception is a handled exception or not
+        Field(bool)       isExceptionCaughtInNonUserCode : 1; // Mentions if in the caller chain the exception will be handled by the non-user code.
+        Field(bool)       ignoreAdvanceToNextStatement : 1;  // This will be set when user had setnext while sitting on the exception
                                                 // So the exception eating logic shouldn't try and advance to next statement again.
+#endif
 
-        HostWrapperCreateFuncType hostWrapperCreateFunc;
+        FieldNoBarrier(HostWrapperCreateFuncType) hostWrapperCreateFunc;
 
-        JavascriptExceptionContext exceptionContext;
+        Field(JavascriptExceptionContext) exceptionContext;
 #if ENABLE_DEBUG_STACK_BACK_TRACE
-        StackBackTrace * stackBackTrace;
+        Field(StackBackTrace*) stackBackTrace;
         static const int StackToSkip = 2;
         static const int StackTraceDepth = 30;
 #endif
+
+        Field(JavascriptExceptionObject*) next;  // to temporarily store list of throwing exceptions
+
+        PREVENT_COPY(JavascriptExceptionObject)
     };
 
     class GeneratorReturnExceptionObject : public JavascriptExceptionObject
@@ -192,8 +216,10 @@ namespace Js {
         GeneratorReturnExceptionObject(Var object, ScriptContext * scriptContext)
             : JavascriptExceptionObject(object, scriptContext, nullptr)
         {
+#ifdef ENABLE_SCRIPT_DEBUGGING
             this->SetDebuggerSkip(true);
             this->SetIgnoreAdvanceToNextStatement(true);
+#endif
             this->SetGeneratorReturnException(true);
         }
     };

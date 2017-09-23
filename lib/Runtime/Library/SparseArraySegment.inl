@@ -16,7 +16,7 @@ namespace Js
     template<bool isLeaf>
     SparseArraySegment<T> * SparseArraySegment<T>::Allocate(Recycler* recycler, uint32 left, uint32 length, uint32 size, uint32 fillStart /*= 0*/)
     {
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
         Assert(size <= JavascriptArray::MaxArrayLength - left);
 
         uint32 bufferSize = UInt32Math::Mul<sizeof(T)>(size);
@@ -241,7 +241,7 @@ namespace Js
             }
             for (i = (start + step-1)/step; i < (size/step); i++)
             {
-                ((Var*)(this->elements))[i] = fill;
+                ((Var*)(this->elements))[i] = fill; // swb: no write barrier, set to non-GC pointer
             }
             if ((i *= step) < size)
             {
@@ -257,7 +257,7 @@ namespace Js
 
             for (uint i = start; i < size * step; i++)
             {
-                ((Var*)(this->elements))[i] = fill;
+                ((Var*)(this->elements))[i] = fill; // swb: no write barrier, set to non-GC pointer
             }
         }
     }
@@ -274,7 +274,7 @@ namespace Js
         {
             length =  offset + 1;
         }
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
         Assert(left + length > left);
     }
 
@@ -309,6 +309,7 @@ namespace Js
             }
             current->elements[offset] = value;
             current->length =  offset + 1;
+            current->CheckLengthvsSize();
         }
         else
         {
@@ -332,7 +333,7 @@ namespace Js
         AssertMsg(index >= left && index < left + length, "Index is out of the segment range");
         if (index + 1 < left + length)
         {
-            memmove(elements + index - left, elements + index + 1 - left, sizeof(T) * (length - (index - left) - 1));
+            MoveArray(elements + index - left, elements + index + 1 - left, length - (index - left) - 1);
         }
         Assert(length);
         length--;
@@ -351,9 +352,9 @@ namespace Js
             dst = dst->GrowBy(recycler, newLen - dst->size);
         }
         dst->length = newLen;
-        Assert(dst->length <= dst->size);
+        dst->CheckLengthvsSize();
         AssertMsg(srcIndex >= src->left,"src->left > srcIndex resulting in negative indexing of src->elements");
-        js_memcpy_s(dst->elements + dstIndex - dst->left, sizeof(T) * inputLen, src->elements + srcIndex - src->left, sizeof(T) * inputLen);
+        CopyArray(dst->elements + dstIndex - dst->left, inputLen, src->elements + srcIndex - src->left, inputLen);
         return dst;
     }
 
@@ -420,7 +421,7 @@ namespace Js
     template<bool isLeaf>
     SparseArraySegment<T>* SparseArraySegment<T>::GrowByImpl(Recycler *recycler, uint32 n)
     {
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
         Assert(n != 0);
 
         uint32 newSize = size + n;
@@ -432,7 +433,7 @@ namespace Js
         SparseArraySegment<T> *newSeg = Allocate<isLeaf>(recycler, left, length, newSize);
         newSeg->next = this->next;
         // (sizeof(T) * newSize) will throw OOM in Allocate if it overflows.
-        js_memcpy_s(newSeg->elements, sizeof(T) * newSize, this->elements, sizeof(T) * length);
+        CopyArray(newSeg->elements, newSize, this->elements, length);
 
         return newSeg;
     }
@@ -470,7 +471,7 @@ namespace Js
     template<bool isLeaf>
     SparseArraySegment<T>* SparseArraySegment<T>::GrowFrontByMaxImpl(Recycler *recycler, uint32 n)
     {
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
         Assert(n > 0);
         Assert(n <= left);
         Assert(size + n > size);
@@ -484,13 +485,13 @@ namespace Js
 
         SparseArraySegment<T> *newSeg = Allocate<isLeaf>(recycler, left - n, length + n, size + n);
         newSeg->next = this->next;
-        js_memcpy_s(&newSeg->elements[n], sizeof(T) * length, this->elements, sizeof(T) * length);
+        CopyArray(newSeg->elements + n, length, this->elements, length);
 
         return newSeg;
     }
 
     template<typename T>
-    void SparseArraySegment<T>::ClearElements(__out_ecount(len) T* elements, uint32 len)
+    void SparseArraySegment<T>::ClearElements(__out_ecount(len) Field(T)* elements, uint32 len)
     {
         T fill = SparseArraySegment<T>::GetMissingItem();
         for (uint i = 0; i < len; i++)
@@ -509,7 +510,7 @@ namespace Js
         {
             length = index - left;
         }
-        Assert(length <= size);
+        AssertOrFailFast(length <= size);
     }
 
 

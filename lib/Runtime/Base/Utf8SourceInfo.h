@@ -8,9 +8,9 @@ namespace Js
 {
     struct Utf8SourceInfo : public FinalizableObject
     {
-        // TODO: Change this to LeafValueDictionary
-        typedef JsUtil::SynchronizedDictionary<Js::LocalFunctionId, Js::FunctionBody*, Recycler> FunctionBodyDictionary;
-        typedef JsUtil::SynchronizedDictionary<Js::LocalFunctionId, Js::ParseableFunctionInfo*, Recycler> DeferredFunctionsDictionary;
+        typedef JsUtil::LeafValueDictionary<Js::LocalFunctionId, Js::FunctionBody*>::Type FunctionBodyDictionary;
+        typedef JsUtil::LeafValueDictionary<Js::LocalFunctionId, Js::ParseableFunctionInfo*>::Type DeferredFunctionsDictionary;
+        typedef JsUtil::List<Js::FunctionInfo *, Recycler> FunctionInfoList;
 
         friend class RemoteUtf8SourceInfo;
         friend class ScriptContext;
@@ -40,11 +40,17 @@ namespace Js
             this->byteCodeGenerationFlags = byteCodeGenerationFlags;
         }
 
+
         bool IsInDebugMode() const
         {
+#ifdef ENABLE_SCRIPT_DEBUGGING
             return (this->debugModeSource != nullptr || this->debugModeSourceIsEmpty) && this->m_isInDebugMode;
+#else
+            return false;
+#endif
         }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         void SetInDebugMode(bool inDebugMode)
         {
             AssertMsg(!GetIsLibraryCode(), "Shouldn't call SetInDebugMode for Library code.");
@@ -75,12 +81,7 @@ namespace Js
                 this->debugModeSourceLength = 0;
             }
         }
-
-        void RetrieveSourceText(__out_ecount_full(cchLim - cchMin) LPOLESTR cpText, charcount_t cchMin, charcount_t cchLim) const
-        {
-            size_t cbMin = GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText")) == GetCchLength() ? cchMin : utf8::CharacterIndexToByteIndex(GetSource(_u("Utf8SourceInfo::RetrieveSourceText")), GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText")), cchMin, utf8::doAllowThreeByteSurrogates);
-            utf8::DecodeInto(cpText, GetSource(_u("Utf8SourceInfo::RetrieveSourceText")) + cbMin, cchLim - cchMin, utf8::doAllowThreeByteSurrogates);
-        }
+#endif
 
         size_t CharacterIndexToByteIndex(charcount_t cchIndex) const
         {
@@ -116,6 +117,14 @@ namespace Js
         void SetFunctionBody(FunctionBody * functionBody);
         void RemoveFunctionBody(FunctionBody* functionBodyBeingRemoved);
 
+        void AddTopLevelFunctionInfo(Js::FunctionInfo * functionInfo, Recycler * recycler);
+        void ClearTopLevelFunctionInfoList();
+        JsUtil::List<Js::FunctionInfo *, Recycler> * EnsureTopLevelFunctionInfoList(Recycler * recycler);
+        JsUtil::List<Js::FunctionInfo *, Recycler> * GetTopLevelFunctionInfoList() const
+        {
+            return this->topLevelFunctionInfoList;
+        }
+
         // The following functions could get called even if EnsureInitialized hadn't gotten called
         // (Namely in the OOM scenario), so we simply guard against that condition rather than
         // asserting
@@ -130,6 +139,13 @@ namespace Js
         {
             return m_sourceInfoId;
         }
+
+#if ENABLE_TTD
+        void SetSourceInfoForDebugReplay_TTD(uint32 newSourceInfoId)
+        {
+            this->m_sourceInfoId = newSourceInfoId;
+        }
+#endif
 
         void ClearFunctions()
         {
@@ -202,6 +218,7 @@ namespace Js
 
         void SetHostBuffer(BYTE * pcszCode);
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         bool HasDebugDocument() const
         {
             return m_debugDocument != nullptr;
@@ -220,6 +237,7 @@ namespace Js
         }
 
         void ClearDebugDocument(bool close = true);
+#endif
 
         void SetIsCesu8(bool isCesu8)
         {
@@ -276,7 +294,7 @@ namespace Js
             bool isLibraryCode, Js::Var scriptSource = nullptr);
         static Utf8SourceInfo* New(ScriptContext* scriptContext, LPCUTF8 utf8String,
             int32 length, size_t numBytes, SRCINFO const* srcInfo,
-            bool isLibraryCode, Js::Var scriptSource = nullptr);
+            bool isLibraryCode);
         static Utf8SourceInfo* NewWithNoCopy(ScriptContext* scriptContext,
             LPCUTF8 utf8String, int32 length, size_t numBytes,
             SRCINFO const* srcInfo, bool isLibraryCode, Js::Var scriptSource = nullptr);
@@ -294,14 +312,14 @@ namespace Js
             this->m_lineOffsetCache = nullptr;
         }
 
-        void CreateLineOffsetCache(const JsUtil::LineOffsetCache<Recycler>::LineOffsetCacheItem *items, charcount_t numberOfItems);
+        void CreateLineOffsetCache(const charcount_t *lineCharacterOffsets, const charcount_t *lineByteOffsets, charcount_t numberOfItems);
 
         size_t GetLineCount()
         {
             return this->GetLineOffsetCache()->GetLineCount();
         }
 
-        JsUtil::LineOffsetCache<Recycler> *GetLineOffsetCache()
+        LineOffsetCache *GetLineOffsetCache()
         {
             AssertMsg(this->m_lineOffsetCache != nullptr, "LineOffsetCache wasn't created, EnsureLineOffsetCache should have been called.");
             return m_lineOffsetCache;
@@ -349,58 +367,62 @@ namespace Js
         void SetCallerUtf8SourceInfo(Utf8SourceInfo* callerUtf8SourceInfo);
         Utf8SourceInfo* GetCallerUtf8SourceInfo() const;
 
+#ifdef NTBUILD
         bool GetDebugDocumentName(BSTR * sourceName);
+#endif
     private:
 
-        charcount_t m_cchLength;               // The number of characters encoded in m_utf8Source.
-        ISourceHolder* sourceHolder;
-        union
-        {
-            BYTE* m_pHostBuffer;  // Pointer to a host source buffer (null unless this is host code that we need to free)
-            Utf8SourceInfo const* m_pOriginalSourceInfo; // Pointer to source info with original source text, created during cloning
-        };
+        Field(charcount_t) m_cchLength;               // The number of characters encoded in m_utf8Source.
+        Field(ISourceHolder*) sourceHolder;
 
-        FunctionBodyDictionary* functionBodyDictionary;
-        DeferredFunctionsDictionary* m_deferredFunctionsDictionary;
+        FieldNoBarrier(BYTE*) m_pHostBuffer;  // Pointer to a host source buffer (null unless this is host code that we need to free)
 
-        DebugDocument* m_debugDocument;
+        Field(FunctionBodyDictionary*) functionBodyDictionary;
+        Field(DeferredFunctionsDictionary*) m_deferredFunctionsDictionary;
+        Field(FunctionInfoList*) topLevelFunctionInfoList;
 
-        const SRCINFO* m_srcInfo;
-        DWORD_PTR m_secondaryHostSourceContext;
+#ifdef ENABLE_SCRIPT_DEBUGGING
+        Field(DebugDocument*) m_debugDocument;
+#endif
 
-        LPCUTF8 debugModeSource;
-        size_t debugModeSourceLength;
+        Field(const SRCINFO*) m_srcInfo;
+        Field(DWORD_PTR) m_secondaryHostSourceContext;
 
-        ScriptContext* const m_scriptContext;   // Pointer to ScriptContext under which this source info was created
+#ifdef ENABLE_SCRIPT_DEBUGGING
+        Field(LPCUTF8) debugModeSource;
+        Field(size_t) debugModeSourceLength;
+#endif
+        Field(ScriptContext* const) m_scriptContext;   // Pointer to ScriptContext under which this source info was created
 
         // Line offset cache used for quickly finding line/column offsets.
-        JsUtil::LineOffsetCache<Recycler>* m_lineOffsetCache;
+        Field(LineOffsetCache*) m_lineOffsetCache;
 
         // Utf8SourceInfo of the caller, used for mapping eval/new Function node to its caller node for debugger
-        Utf8SourceInfo* callerUtf8SourceInfo;
+        Field(Utf8SourceInfo*) callerUtf8SourceInfo;
 
-        bool m_deferredFunctionsInitialized : 1;
-        bool m_isCesu8 : 1;
-        bool m_hasHostBuffer : 1;
-        bool m_isLibraryCode : 1;           // true, the current source belongs to the internal library code. Used for debug purpose to not show in debugger
-        bool m_isXDomain : 1;
+        Field(bool) m_deferredFunctionsInitialized : 1;
+        Field(bool) m_isCesu8 : 1;
+        Field(bool) m_hasHostBuffer : 1;
+        Field(bool) m_isLibraryCode : 1;           // true, the current source belongs to the internal library code. Used for debug purpose to not show in debugger
+        Field(bool) m_isXDomain : 1;
         // we found that m_isXDomain could cause regression without CORS, so the new flag is just for callee.caller in window.onerror
-        bool m_isXDomainString : 1;
-        bool debugModeSourceIsEmpty : 1;
-        bool m_isInDebugMode : 1;
-
-        uint m_sourceInfoId;
+        Field(bool) m_isXDomainString : 1;
+#ifdef ENABLE_SCRIPT_DEBUGGING
+        Field(bool) debugModeSourceIsEmpty : 1;
+        Field(bool) m_isInDebugMode : 1;
+#endif
+        Field(uint) m_sourceInfoId;
 
         // Various flags preserved for Edit-and-Continue re-compile purpose
-        ULONG parseFlags;
-        ULONG byteCodeGenerationFlags;
+        Field(ULONG) parseFlags;
+        Field(ULONG) byteCodeGenerationFlags;
 
         Utf8SourceInfo(ISourceHolder *sourceHolder, int32 cchLength, SRCINFO const* srcInfo,
             DWORD_PTR secondaryHostSourceContext, ScriptContext* scriptContext,
             bool isLibraryCode, Js::Var scriptSource = nullptr);
 
 #ifndef NTBUILD
-        Js::Var sourceRef; // keep source string reference to prevent GC
+        Field(Js::Var) sourceRef; // keep source string reference to prevent GC
 #endif
     };
 }

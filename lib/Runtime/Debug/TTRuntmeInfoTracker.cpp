@@ -36,19 +36,26 @@ namespace TTD
         this->m_contextList.Add(ctx);
     }
 
-    ThreadContextTTD::ThreadContextTTD(ThreadContext* threadContext, void* runtimeHandle, size_t uriByteLength, const byte* ttdUri, uint32 snapInterval, uint32 snapHistoryLength)
-        : m_threadCtx(threadContext), m_runtimeHandle(runtimeHandle), m_contextCreatedOrDestoyedInReplay(false),
-        TTDUri(), SnapInterval(snapInterval), SnapHistoryLength(snapHistoryLength),
-        m_activeContext(nullptr), m_contextList(&HeapAllocator::Instance), m_deadScriptRecordList(&HeapAllocator::Instance), m_ttdContextToExternalRefMap(&HeapAllocator::Instance),
-        m_ttdRootSet(), m_ttdLocalRootSet(), m_ttdRootTagIdMap(&HeapAllocator::Instance),
-        TTDWriteInitializeFunction(nullptr), TTDStreamFunctions({ 0 }), TTDExternalObjectFunctions({ 0 })
+    void ThreadContextTTD::CleanRecordWeakRootMap()
     {
-        this->TTDUri.SetUriValue(uriByteLength, ttdUri);
+        this->m_ttdRecordRootWeakMap->Map([&](Js::RecyclableObject* key, bool, const RecyclerWeakReference<Js::RecyclableObject>*)
+        {
+            ; //nop just map to force the clean
+        });
+    }
 
+    ThreadContextTTD::ThreadContextTTD(ThreadContext* threadContext, void* runtimeHandle, uint32 snapInterval, uint32 snapHistoryLength)
+        : m_threadCtx(threadContext), m_runtimeHandle(runtimeHandle), m_contextCreatedOrDestoyedInReplay(false),
+        SnapInterval(snapInterval), SnapHistoryLength(snapHistoryLength),
+        m_activeContext(nullptr), m_contextList(&HeapAllocator::Instance), m_ttdContextToExternalRefMap(&HeapAllocator::Instance),
+        m_ttdRootTagToObjectMap(&HeapAllocator::Instance), m_ttdMayBeLongLivedRoot(&HeapAllocator::Instance), 
+        m_ttdRecordRootWeakMap(),m_ttdReplayRootPinSet(),
+        TTDataIOInfo({ 0 }), TTDExternalObjectFunctions({ 0 })
+    {
         Recycler* tctxRecycler = this->m_threadCtx->GetRecycler();
 
-        this->m_ttdRootSet.Root(RecyclerNew(tctxRecycler, TTD::ObjectPinSet, tctxRecycler), tctxRecycler);
-        this->m_ttdLocalRootSet.Root(RecyclerNew(tctxRecycler, TTD::ObjectPinSet, tctxRecycler), tctxRecycler);
+        this->m_ttdRecordRootWeakMap.Root(RecyclerNew(tctxRecycler, RecordRootMap, tctxRecycler), tctxRecycler);
+        this->m_ttdReplayRootPinSet.Root(RecyclerNew(tctxRecycler, ObjectPinSet, tctxRecycler), tctxRecycler);
     }
 
     ThreadContextTTD::~ThreadContextTTD()
@@ -61,19 +68,19 @@ namespace TTD
 
         this->m_activeContext = nullptr;
         this->m_contextList.Clear();
-        this->m_deadScriptRecordList.Clear();
 
-        if(this->m_ttdRootSet != nullptr)
+        this->m_ttdRootTagToObjectMap.Clear();
+        this->m_ttdMayBeLongLivedRoot.Clear();
+
+        if(this->m_ttdRecordRootWeakMap != nullptr)
         {
-            this->m_ttdRootSet.Unroot(this->m_ttdRootSet->GetAllocator());
+            this->m_ttdRecordRootWeakMap.Unroot(this->m_threadCtx->GetRecycler());
         }
 
-        if(this->m_ttdLocalRootSet != nullptr)
+        if(this->m_ttdReplayRootPinSet != nullptr)
         {
-            this->m_ttdLocalRootSet.Unroot(this->m_ttdLocalRootSet->GetAllocator());
+            this->m_ttdReplayRootPinSet.Unroot(this->m_threadCtx->GetRecycler());
         }
-
-        this->m_ttdRootTagIdMap.Clear();
     }
 
     ThreadContext* ThreadContextTTD::GetThreadContext()
@@ -106,22 +113,17 @@ namespace TTD
         return this->m_contextList;
     }
 
-    JsUtil::List<DeadScriptLogTagInfo, HeapAllocator>& ThreadContextTTD::GetTTDDeadContextsForRecord()
-    {
-        return this->m_deadScriptRecordList;
-    }
-
     void ThreadContextTTD::AddNewScriptContextRecord(FinalizableObject* externalCtx, Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative, bool debugMode)
     {
         this->AddNewScriptContext_Helper(ctx, callbackFunctor, noNative, debugMode);
 
-        this->AddTrackedRootSpecial(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetGlobalObject()), ctx->GetGlobalObject());
+        this->AddRootRef_Record(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetGlobalObject()), ctx->GetGlobalObject());
         ctx->ScriptContextLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetGlobalObject());
 
-        this->AddTrackedRootSpecial(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetUndefined()), ctx->GetLibrary()->GetUndefined());
-        this->AddTrackedRootSpecial(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetNull()), ctx->GetLibrary()->GetNull());
-        this->AddTrackedRootSpecial(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetTrue()), ctx->GetLibrary()->GetTrue());
-        this->AddTrackedRootSpecial(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetFalse()), ctx->GetLibrary()->GetFalse());
+        this->AddRootRef_Record(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetUndefined()), ctx->GetLibrary()->GetUndefined());
+        this->AddRootRef_Record(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetNull()), ctx->GetLibrary()->GetNull());
+        this->AddRootRef_Record(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetTrue()), ctx->GetLibrary()->GetTrue());
+        this->AddRootRef_Record(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetFalse()), ctx->GetLibrary()->GetFalse());
     }
 
     void ThreadContextTTD::AddNewScriptContextReplay(FinalizableObject* externalCtx, Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative, bool debugMode)
@@ -150,52 +152,8 @@ namespace TTD
     {
         if(this->m_contextList.Contains(ctx))
         {
-            DeadScriptLogTagInfo deadInfo = { 0 };
-            deadInfo.GlobalLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetGlobalObject());
-            deadInfo.UndefinedLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetUndefined());
-            deadInfo.NullLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetNull());
-            deadInfo.TrueLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetTrue());
-            deadInfo.FalseLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(ctx->GetLibrary()->GetFalse());
-
-            this->m_deadScriptRecordList.Add(deadInfo);
-
-            this->RemoveTrackedRootSpecial(deadInfo.GlobalLogTag);
-            this->RemoveTrackedRootSpecial(deadInfo.UndefinedLogTag);
-            this->RemoveTrackedRootSpecial(deadInfo.NullLogTag);
-            this->RemoveTrackedRootSpecial(deadInfo.TrueLogTag);
-            this->RemoveTrackedRootSpecial(deadInfo.FalseLogTag);
-
             this->m_contextList.Remove(ctx);
         }
-    }
-
-    void ThreadContextTTD::NotifyCtxDestroyedInReplay(TTD_LOG_PTR_ID globalId, TTD_LOG_PTR_ID undefId, TTD_LOG_PTR_ID nullId, TTD_LOG_PTR_ID trueId, TTD_LOG_PTR_ID falseId)
-    {
-        this->m_contextCreatedOrDestoyedInReplay = true;
-
-        Js::ScriptContext* ctx = nullptr;
-        for(int32 i = 0; i < this->m_contextList.Count(); ++i)
-        {
-            if(this->m_contextList.Item(i)->ScriptContextLogTag == globalId)
-            {
-                ctx = this->m_contextList.Item(i);
-                break;
-            }
-        }
-        TTDAssert(ctx != nullptr, "We lost a context somewhere!");
-
-        this->RemoveTrackedRootSpecial(globalId);
-        this->RemoveTrackedRootSpecial(undefId);
-        this->RemoveTrackedRootSpecial(nullId);
-        this->RemoveTrackedRootSpecial(trueId);
-        this->RemoveTrackedRootSpecial(falseId);
-
-        this->m_contextList.Remove(ctx);
-
-        FinalizableObject* externalCtx = this->m_ttdContextToExternalRefMap.Item(ctx);
-        this->m_ttdContextToExternalRefMap.Remove(ctx);
-
-        this->m_threadCtx->GetRecycler()->RootRelease(externalCtx);
     }
 
     void ThreadContextTTD::ClearContextsForSnapRestore(JsUtil::List<FinalizableObject*, HeapAllocator>& deadCtxs)
@@ -213,119 +171,122 @@ namespace TTD
         this->m_activeContext = nullptr;
     }
 
-    bool ThreadContextTTD::IsSpecialRootObject(Js::RecyclableObject* obj)
+    void ThreadContextTTD::ClearLocalRootsAndRefreshMap_Replay()
     {
-        Js::TypeId tid = obj->GetTypeId();
-        return (tid <= Js::TypeIds_Boolean) | (tid == Js::TypeIds_GlobalObject);
-    }
+        JsUtil::BaseHashSet<Js::RecyclableObject*, HeapAllocator> image(&HeapAllocator::Instance);
 
-    //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
-    void ThreadContextTTD::AddTrackedRootGeneral(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
-    {
-        TTDAssert(!ThreadContextTTD::IsSpecialRootObject(newRoot), "Should add these with special path!!!");
-        TTDAssert(!this->m_ttdRootSet->ContainsKey(newRoot), "Should not have duplicate inserts.");
-
-        this->m_ttdRootSet->AddNew(newRoot);
-        this->m_ttdRootTagIdMap.Item(origId, newRoot);
-    }
-
-    void ThreadContextTTD::RemoveTrackedRootGeneral(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot)
-    {
-        TTDAssert(!ThreadContextTTD::IsSpecialRootObject(deleteRoot), "Should add these with special path!!!");
-        TTDAssert(this->m_ttdRootSet->ContainsKey(deleteRoot), "Should not have delete elements that are not in the root set.");
-
-        this->m_ttdRootSet->Remove(deleteRoot);
-        if(!this->m_ttdLocalRootSet->ContainsKey(deleteRoot))
+        this->m_ttdRootTagToObjectMap.MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<TTD_LOG_PTR_ID, Js::RecyclableObject*>& entry) -> bool
         {
-            this->m_ttdRootTagIdMap.Remove(origId);
-        }
-    }
+            bool localonly = !this->m_ttdMayBeLongLivedRoot.LookupWithKey(entry.Key(), false);
 
-    void ThreadContextTTD::AddTrackedRootSpecial(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
-    {
-        TTDAssert(ThreadContextTTD::IsSpecialRootObject(newRoot), "Should add these with special path!!!");
-        TTDAssert(!this->m_ttdRootSet->ContainsKey(newRoot), "Should not have duplicate inserts.");
+            if(!localonly)
+            {
+                image.AddNew(entry.Value());
+            }
 
-        this->m_ttdRootTagIdMap.Item(origId, newRoot);
-    }
-
-    void ThreadContextTTD::RemoveTrackedRootSpecial(TTD_LOG_PTR_ID origId)
-    {
-        this->m_ttdRootTagIdMap.Remove(origId);
-    }
-
-    const ObjectPinSet* ThreadContextTTD::GetRootSet() const
-    {
-        return this->m_ttdRootSet;
-    }
-
-    void ThreadContextTTD::AddLocalRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
-    {
-        TTDAssert(!ThreadContextTTD::IsSpecialRootObject(newRoot), "Should not be adding these as local roots!!!");
-
-        this->m_ttdLocalRootSet->AddNew(newRoot);
-
-        //if the pinned root set already has an entry then don't overwrite that one with a local entry (e.g. we will keep the current value)
-        if(!this->m_ttdRootSet->ContainsKey(newRoot))
-        {
-            this->m_ttdRootTagIdMap.Item(origId, newRoot);
-        }
-    }
-
-    void ThreadContextTTD::ClearLocalRootsAndRefreshMap()
-    {
-        this->m_ttdLocalRootSet->Clear();
-
-        this->m_ttdRootTagIdMap.MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<TTD_LOG_PTR_ID, Js::RecyclableObject*>& entry) -> bool
-        {
-            Js::RecyclableObject* obj = entry.Value();
-            return !(ThreadContextTTD::IsSpecialRootObject(obj) || this->m_ttdRootSet->Contains(obj));
+            return localonly;
         });
-    }
 
-    const ObjectPinSet* ThreadContextTTD::GetLocalRootSet() const
-    {
-        return this->m_ttdLocalRootSet;
+        this->m_ttdReplayRootPinSet->MapAndRemoveIf([&](Js::RecyclableObject* value) -> bool
+        {
+            return !image.Contains(value);
+        });
     }
 
     void ThreadContextTTD::LoadInvertedRootMap(JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap) const
     {
-        for(auto iter = this->m_ttdRootTagIdMap.GetIterator(); iter.IsValid(); iter.MoveNext())
+        for(auto iter = this->m_ttdRootTagToObjectMap.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             objToLogIdMap.AddNew(iter.CurrentValue(), iter.CurrentKey());
-        }
-    }
-
-    void ThreadContextTTD::ExtractSnapshotRoots(JsUtil::List<Js::Var, HeapAllocator>& roots)
-    {
-        for(auto rootIter = this->m_ttdRootSet->GetIterator(); rootIter.IsValid(); rootIter.MoveNext())
-        {
-            Js::RecyclableObject* obj = rootIter.CurrentValue();
-            roots.Add(obj);
-        }
-
-        for(auto localIter = this->m_ttdLocalRootSet->GetIterator(); localIter.IsValid(); localIter.MoveNext())
-        {
-            Js::RecyclableObject* obj = localIter.CurrentValue();
-            if(!this->m_ttdRootSet->Contains(obj))
-            {
-                roots.Add(obj);
-            }
         }
     }
 
     Js::RecyclableObject* ThreadContextTTD::LookupObjectForLogID(TTD_LOG_PTR_ID origId)
     {
         //Local root always has mappings for all the ids
-        return this->m_ttdRootTagIdMap.Item(origId);
+        return this->m_ttdRootTagToObjectMap.Item(origId);
     }
 
     void ThreadContextTTD::ClearRootsForSnapRestore()
     {
-        this->m_ttdRootSet->Clear();
-        this->m_ttdLocalRootSet->Clear();
+        this->m_ttdRootTagToObjectMap.Clear();
+        this->m_ttdMayBeLongLivedRoot.Clear();
 
-        this->m_ttdRootTagIdMap.Clear();
+        this->m_ttdReplayRootPinSet->Clear();
+    }
+
+    void ThreadContextTTD::ForceSetRootInfoInRestore(TTD_LOG_PTR_ID logid, Js::RecyclableObject* obj, bool maybeLongLived)
+    {
+        this->m_ttdRootTagToObjectMap.Item(logid, obj);
+        if(maybeLongLived)
+        {
+            this->m_ttdMayBeLongLivedRoot.Item(logid, maybeLongLived);
+        }
+
+        this->m_ttdReplayRootPinSet->AddNew(obj);
+    }
+
+    void ThreadContextTTD::SyncRootsBeforeSnapshot_Record()
+    {
+        this->CleanRecordWeakRootMap();
+
+        this->m_ttdRootTagToObjectMap.MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<TTD_LOG_PTR_ID, Js::RecyclableObject*>& entry) -> bool
+        {
+            return !this->m_ttdRecordRootWeakMap->Lookup(entry.Value(), false);
+        });
+
+        this->m_ttdMayBeLongLivedRoot.MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<TTD_LOG_PTR_ID, bool>& entry) -> bool
+        {
+            return !this->m_ttdRootTagToObjectMap.ContainsKey(entry.Key());
+        });
+    }
+
+    void ThreadContextTTD::SyncCtxtsAndRootsWithSnapshot_Replay(uint32 liveContextCount, TTD_LOG_PTR_ID* liveContextIdArray, uint32 liveRootCount, TTD_LOG_PTR_ID* liveRootIdArray)
+    {
+        //First sync up the context list -- releasing any contexts that are not also there in our initial recording
+        JsUtil::BaseHashSet<TTD_LOG_PTR_ID, HeapAllocator> lctxSet(&HeapAllocator::Instance);
+        for(uint32 i = 0; i < liveContextCount; ++i)
+        {
+            lctxSet.AddNew(liveContextIdArray[i]);
+        }
+
+        int32 ctxpos = 0;
+        while(ctxpos < this->m_contextList.Count())
+        {
+            Js::ScriptContext* ctx = this->m_contextList.Item(ctxpos);
+
+            if(lctxSet.Contains(ctx->ScriptContextLogTag))
+            {
+                ctxpos++;
+            }
+            else
+            {
+                this->m_contextCreatedOrDestoyedInReplay = true;
+
+                this->m_contextList.Remove(ctx);
+
+                FinalizableObject* externalCtx = this->m_ttdContextToExternalRefMap.Item(ctx);
+                this->m_ttdContextToExternalRefMap.Remove(ctx);
+
+                this->m_threadCtx->GetRecycler()->RootRelease(externalCtx);
+
+                //no inc of ctxpos since list go shorter!!!
+            }
+        }
+
+        //Now sync up the root list wrt. long lived roots that we recorded 
+        JsUtil::BaseHashSet<TTD_LOG_PTR_ID, HeapAllocator> refInfoMap(&HeapAllocator::Instance);
+        for(uint32 i = 0; i < liveRootCount; ++i)
+        {
+            refInfoMap.AddNew(liveRootIdArray[i]);
+        }
+
+        this->m_ttdMayBeLongLivedRoot.MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<TTD_LOG_PTR_ID, bool>& entry) -> bool
+        {
+            return !refInfoMap.Contains(entry.Key());
+        });
+
+        this->ClearLocalRootsAndRefreshMap_Replay();
     }
 
     Js::ScriptContext* ThreadContextTTD::LookupContextForScriptId(TTD_LOG_PTR_ID ctxId) const
@@ -424,13 +385,36 @@ namespace TTD
         this->m_ttdPendingAsyncModList.Clear();
     }
 
-    void ScriptContextTTD::GetLoadedSources(JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval)
+    void ScriptContextTTD::GetLoadedSources(const JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>* onlyLiveTopLevelBodies, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval)
     {
         TTDAssert(topLevelScriptLoad.Count() == 0 && topLevelNewFunction.Count() == 0 && topLevelEval.Count() == 0, "Should be empty when you call this.");
 
-        topLevelScriptLoad.AddRange(this->m_ttdTopLevelScriptLoad);
-        topLevelNewFunction.AddRange(this->m_ttdTopLevelNewFunction);
-        topLevelEval.AddRange(this->m_ttdTopLevelEval);
+        for(auto iter = this->m_ttdTopLevelScriptLoad.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
+            if(onlyLiveTopLevelBodies == nullptr || onlyLiveTopLevelBodies->Contains(body))
+            {
+                topLevelScriptLoad.Add(iter.CurrentValue());
+            }
+        }
+
+        for(auto iter = this->m_ttdTopLevelNewFunction.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
+            if(onlyLiveTopLevelBodies == nullptr || onlyLiveTopLevelBodies->Contains(body))
+            {
+                topLevelNewFunction.Add(iter.CurrentValue());
+            }
+        }
+
+        for(auto iter = this->m_ttdTopLevelEval.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
+            if(onlyLiveTopLevelBodies == nullptr || onlyLiveTopLevelBodies->Contains(body))
+            {
+                topLevelEval.Add(iter.CurrentValue());
+            }
+        }
     }
 
     bool ScriptContextTTD::IsBodyAlreadyLoadedAtTopLevel(Js::FunctionBody* body) const
@@ -458,31 +442,82 @@ namespace TTD
         }
     }
 
-    void ScriptContextTTD::RegisterLoadedScript(Js::FunctionBody* body, uint64 bodyCtrId)
+    void ScriptContextTTD::ProcessFunctionBodyOnUnLoad(Js::FunctionBody* body, Js::FunctionBody* parent)
     {
-        TTD::TopLevelFunctionInContextRelation relation;
-        relation.TopLevelBodyCtr = bodyCtrId;
-        relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
+        //if this is a root (parent is null) then put this in the rootbody pin set so it isn't reclaimed on us
+        if(parent == nullptr)
+        {
+            TTDAssert(this->m_ttdPinnedRootFunctionSet->Contains(body), "We already added this function!!!");
+            this->m_ttdPinnedRootFunctionSet->Remove(body);
+        }
 
-        this->m_ttdTopLevelScriptLoad.Add(relation);
+        this->m_ttdFunctionBodyParentMap.Remove(body);
+
+        for(uint32 i = 0; i < body->GetNestedCount(); ++i)
+        {
+            Js::ParseableFunctionInfo* pfiMid = body->GetNestedFunctionForExecution(i);
+            Js::FunctionBody* currfb = TTD::JsSupport::ForceAndGetFunctionBody(pfiMid);
+
+            this->ProcessFunctionBodyOnUnLoad(currfb, body);
+        }
     }
 
-    void ScriptContextTTD::RegisterNewScript(Js::FunctionBody* body, uint64 bodyCtrId)
+    void ScriptContextTTD::RegisterLoadedScript(Js::FunctionBody* body, uint32 bodyCtrId)
     {
         TTD::TopLevelFunctionInContextRelation relation;
         relation.TopLevelBodyCtr = bodyCtrId;
         relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
 
-        this->m_ttdTopLevelNewFunction.Add(relation);
+        this->m_ttdTopLevelScriptLoad.Add(relation.ContextSpecificBodyPtrId, relation);
     }
 
-    void ScriptContextTTD::RegisterEvalScript(Js::FunctionBody* body, uint64 bodyCtrId)
+    void ScriptContextTTD::RegisterNewScript(Js::FunctionBody* body, uint32 bodyCtrId)
     {
         TTD::TopLevelFunctionInContextRelation relation;
         relation.TopLevelBodyCtr = bodyCtrId;
         relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
 
-        this->m_ttdTopLevelEval.Add(relation);
+        this->m_ttdTopLevelNewFunction.Add(relation.ContextSpecificBodyPtrId, relation);
+    }
+
+    void ScriptContextTTD::RegisterEvalScript(Js::FunctionBody* body, uint32 bodyCtrId)
+    {
+        TTD::TopLevelFunctionInContextRelation relation;
+        relation.TopLevelBodyCtr = bodyCtrId;
+        relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
+
+        this->m_ttdTopLevelEval.Add(relation.ContextSpecificBodyPtrId, relation);
+    }
+
+    void ScriptContextTTD::CleanUnreachableTopLevelBodies(const JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>& liveTopLevelBodies)
+    {
+        //don't clear top-level loaded bodies
+
+        this->m_ttdTopLevelNewFunction.MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<TTD_PTR_ID, TTD::TopLevelFunctionInContextRelation>& entry) -> bool {
+            Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(entry.Value().ContextSpecificBodyPtrId);
+            if(liveTopLevelBodies.Contains(body))
+            {
+                return false;
+            }
+            else
+            {
+                this->ProcessFunctionBodyOnUnLoad(body, nullptr);
+                return true;
+            }
+        });
+
+        this->m_ttdTopLevelEval.MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<TTD_PTR_ID, TTD::TopLevelFunctionInContextRelation>& entry) -> bool {
+            Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(entry.Value().ContextSpecificBodyPtrId);
+            if(liveTopLevelBodies.Contains(body))
+            {
+                return false;
+            }
+            else
+            {
+                this->ProcessFunctionBodyOnUnLoad(body, nullptr);
+                return true;
+            }
+        });
     }
 
     Js::FunctionBody* ScriptContextTTD::ResolveParentBody(Js::FunctionBody* body) const
@@ -491,22 +526,70 @@ namespace TTD
         return this->m_ttdFunctionBodyParentMap.LookupWithKey(body, nullptr);
     }
 
-    Js::FunctionBody* ScriptContextTTD::FindFunctionBodyByFileName(const char16* filename) const
+    uint32 ScriptContextTTD::FindTopLevelCtrForBody(Js::FunctionBody* body) const
     {
-        TTDAssert(filename != nullptr, "We don't want to set breakpoints in non-user code!!!");
-
-        for(auto iter = this->m_ttdPinnedRootFunctionSet->GetIterator(); iter.IsValid(); iter.MoveNext())
+        Js::FunctionBody* rootBody = body;
+        while(this->ResolveParentBody(rootBody) != nullptr)
         {
-            Js::FunctionBody* cfb = static_cast<Js::FunctionBody*>(iter.CurrentValue());
+            rootBody = this->ResolveParentBody(rootBody);
+        }
 
-            const char16* curi = cfb->GetSourceContextInfo()->url;
-            if(curi != nullptr && wcscmp(filename, curi) == 0)
+        TTD_PTR_ID trgtid = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(rootBody);
+
+        for(auto iter = this->m_ttdTopLevelScriptLoad.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            if(iter.CurrentValue().ContextSpecificBodyPtrId == trgtid)
             {
-                return cfb;
+                return iter.CurrentValue().TopLevelBodyCtr;
             }
         }
 
-        TTDAssert(false, "We should never get here!!!");
+        for(auto iter = this->m_ttdTopLevelNewFunction.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            if(iter.CurrentValue().ContextSpecificBodyPtrId == trgtid)
+            {
+                return iter.CurrentValue().TopLevelBodyCtr;
+            }
+        }
+
+        for(auto iter = this->m_ttdTopLevelEval.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            if(iter.CurrentValue().ContextSpecificBodyPtrId == trgtid)
+            {
+                return iter.CurrentValue().TopLevelBodyCtr;
+            }
+        }
+
+        TTDAssert(false, "We are missing a top-level function reference.");
+        return 0;
+    }
+
+    Js::FunctionBody* ScriptContextTTD::FindRootBodyByTopLevelCtr(uint32 bodyCtrId) const
+    {
+        for(auto iter = this->m_ttdTopLevelScriptLoad.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            if(iter.CurrentValue().TopLevelBodyCtr == bodyCtrId)
+            {
+                return TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
+            }
+        }
+
+        for(auto iter = this->m_ttdTopLevelNewFunction.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            if(iter.CurrentValue().TopLevelBodyCtr == bodyCtrId)
+            {
+                return TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
+            }
+        }
+
+        for(auto iter = this->m_ttdTopLevelEval.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            if(iter.CurrentValue().TopLevelBodyCtr == bodyCtrId)
+            {
+                return TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(iter.CurrentValue().ContextSpecificBodyPtrId);
+            }
+        }
+
         return nullptr;
     }
 
@@ -694,8 +777,23 @@ namespace TTD
 
         this->EnqueueRootPathObject(_u("_defaultAccessor"), ctx->GetLibrary()->GetDefaultAccessorFunction());
 
-        this->EnqueueRootPathObject(_u("_stackTraceAccessor"), ctx->GetLibrary()->GetStackTraceAccessorFunction());
+        if(ctx->GetConfig()->IsErrorStackTraceEnabled())
+        {
+            this->EnqueueRootPathObject(_u("_stackTraceAccessor"), ctx->GetLibrary()->GetStackTraceAccessorFunction());
+        }
+
         this->EnqueueRootPathObject(_u("_throwTypeErrorRestrictedPropertyAccessor"), ctx->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction());
+
+        if(ctx->GetConfig()->IsES6PromiseEnabled())
+        {
+            this->EnqueueRootPathObject(_u("_identityFunction"), ctx->GetLibrary()->GetIdentityFunction());
+            this->EnqueueRootPathObject(_u("_throwerFunction"), ctx->GetLibrary()->GetThrowerFunction());
+        }
+
+        this->EnqueueRootPathObject(_u("_arrayIteratorPrototype"), ctx->GetLibrary()->GetArrayIteratorPrototype());
+        this->EnqueueRootPathObject(_u("_mapIteratorPrototype"), ctx->GetLibrary()->GetMapIteratorPrototype());
+        this->EnqueueRootPathObject(_u("_setIteratorPrototype"), ctx->GetLibrary()->GetSetIteratorPrototype());
+        this->EnqueueRootPathObject(_u("_stringIteratorPrototype"), ctx->GetLibrary()->GetStringIteratorPrototype());
 
         uint32 counter = 0;
         while(!this->m_worklist.Empty())

@@ -63,20 +63,20 @@ private:
         // Don't use the following directly because they only apply to specific types. They're mostly for debugger-friendliness.
         struct
         {
-            TSize : VALUE_TYPE_OBJECT_BIT_INDEX;
-            TSize _objectBit : 1;
+            Field(TSize) : VALUE_TYPE_OBJECT_BIT_INDEX;
+            Field(TSize) _objectBit : 1;
         };
         struct
         {
-            Bits _nonObjectBits : VALUE_TYPE_COMMON_BIT_COUNT + VALUE_TYPE_NONOBJECT_BIT_COUNT;
+            Field(Bits) _nonObjectBits : VALUE_TYPE_COMMON_BIT_COUNT + VALUE_TYPE_NONOBJECT_BIT_COUNT;
         };
         struct
         {
-            Bits _objectBits : VALUE_TYPE_COMMON_BIT_COUNT + VALUE_TYPE_OBJECT_BIT_COUNT;
-            ObjectType _objectType : sizeof(TSize) * 8 - (VALUE_TYPE_COMMON_BIT_COUNT + VALUE_TYPE_OBJECT_BIT_COUNT); // use remaining bits
+            Field(Bits) _objectBits : VALUE_TYPE_COMMON_BIT_COUNT + VALUE_TYPE_OBJECT_BIT_COUNT;
+            Field(ObjectType) _objectType : sizeof(TSize) * 8 - (VALUE_TYPE_COMMON_BIT_COUNT + VALUE_TYPE_OBJECT_BIT_COUNT); // use remaining bits
         };
 
-        Bits bits;
+        Field(Bits) bits;
     };
 
 public:

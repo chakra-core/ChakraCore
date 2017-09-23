@@ -1,0 +1,578 @@
+[
+  {
+    "this": {
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "foo1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo2": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo2",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "length": "number 0",
+        "name": "string values",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    },
+    "locals": {
+      "j1": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "push": "function <large string>",
+          "concat": "function <large string>",
+          "join": "function <large string>",
+          "pop": "function <large string>",
+          "reverse": "function <large string>",
+          "shift": "function <large string>",
+          "slice": "function <large string>",
+          "sort": "function <large string>",
+          "splice": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "unshift": "function <large string>",
+          "indexOf": "function <large string>",
+          "every": "function <large string>",
+          "filter": "function <large string>",
+          "forEach": "function <large string>",
+          "lastIndexOf": "function <large string>",
+          "map": "function <large string>",
+          "reduce": "function <large string>",
+          "reduceRight": "function <large string>",
+          "some": "function <large string>",
+          "find": "function <large string>",
+          "findIndex": "function <large string>",
+          "entries": "function <large string>",
+          "keys": "function <large string>",
+          "values": "function <large string>",
+          "Symbol.iterator": "function <large string>",
+          "Symbol.unscopables": "Object {...}",
+          "fill": "function <large string>",
+          "copyWithin": "function <large string>",
+          "includes": "function <large string>",
+          "length": "number 25",
+          "[24]": "string 22"
+        },
+        "length": "number 1000000001",
+        "[1000000000]": "string 20"
+      },
+      "m1": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "push": "function <large string>",
+          "concat": "function <large string>",
+          "join": "function <large string>",
+          "pop": "function <large string>",
+          "reverse": "function <large string>",
+          "shift": "function <large string>",
+          "slice": "function <large string>",
+          "sort": "function <large string>",
+          "splice": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "unshift": "function <large string>",
+          "indexOf": "function <large string>",
+          "every": "function <large string>",
+          "filter": "function <large string>",
+          "forEach": "function <large string>",
+          "lastIndexOf": "function <large string>",
+          "map": "function <large string>",
+          "reduce": "function <large string>",
+          "reduceRight": "function <large string>",
+          "some": "function <large string>",
+          "find": "function <large string>",
+          "findIndex": "function <large string>",
+          "entries": "function <large string>",
+          "keys": "function <large string>",
+          "values": "function <large string>",
+          "Symbol.iterator": "function <large string>",
+          "Symbol.unscopables": "Object {...}",
+          "fill": "function <large string>",
+          "copyWithin": "function <large string>",
+          "includes": "function <large string>",
+          "length": "number 25",
+          "[24]": "string 22"
+        },
+        "length": "number 2",
+        "[0]": "string 2",
+        "[1]": "string 34"
+      },
+      "j2": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "push": "function <large string>",
+          "concat": "function <large string>",
+          "join": "function <large string>",
+          "pop": "function <large string>",
+          "reverse": "function <large string>",
+          "shift": "function <large string>",
+          "slice": "function <large string>",
+          "sort": "function <large string>",
+          "splice": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "unshift": "function <large string>",
+          "indexOf": "function <large string>",
+          "every": "function <large string>",
+          "filter": "function <large string>",
+          "forEach": "function <large string>",
+          "lastIndexOf": "function <large string>",
+          "map": "function <large string>",
+          "reduce": "function <large string>",
+          "reduceRight": "function <large string>",
+          "some": "function <large string>",
+          "find": "function <large string>",
+          "findIndex": "function <large string>",
+          "entries": "function <large string>",
+          "keys": "function <large string>",
+          "values": "function <large string>",
+          "Symbol.iterator": "function <large string>",
+          "Symbol.unscopables": "Object {...}",
+          "fill": "function <large string>",
+          "copyWithin": "function <large string>",
+          "includes": "function <large string>",
+          "length": "number 25",
+          "[24]": "string 22"
+        },
+        "length": "number 1",
+        "[0]": "string \"j2\""
+      },
+      "k1": {
+        "#__proto__": {
+          "#__proto__": "Array [...]",
+          "length": "number 1",
+          "[0]": "string \"j2\""
+        },
+        "length": "number 4",
+        "[3]": "string 123"
+      },
+      "dummy": "undefined undefined"
+    },
+    "globals": {
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "foo1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo2": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo2",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
+    }
+  },
+  {
+    "this": {
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "foo1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo2": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo2",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "length": "number 0",
+        "name": "string values",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    },
+    "locals": {
+      "j1": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "push": "function <large string>",
+          "concat": "function <large string>",
+          "join": "function <large string>",
+          "pop": "function <large string>",
+          "reverse": "function <large string>",
+          "shift": "function <large string>",
+          "slice": "function <large string>",
+          "sort": "function <large string>",
+          "splice": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "unshift": "function <large string>",
+          "indexOf": "function <large string>",
+          "every": "function <large string>",
+          "filter": "function <large string>",
+          "forEach": "function <large string>",
+          "lastIndexOf": "function <large string>",
+          "map": "function <large string>",
+          "reduce": "function <large string>",
+          "reduceRight": "function <large string>",
+          "some": "function <large string>",
+          "find": "function <large string>",
+          "findIndex": "function <large string>",
+          "entries": "function <large string>",
+          "keys": "function <large string>",
+          "values": "function <large string>",
+          "Symbol.iterator": "function <large string>",
+          "Symbol.unscopables": "Object {...}",
+          "fill": "function <large string>",
+          "copyWithin": "function <large string>",
+          "includes": "function <large string>",
+          "length": "number 25",
+          "[24]": "string 22"
+        },
+        "length": "number 1000000001",
+        "[1000000000]": "string 20"
+      },
+      "m1": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "push": "function <large string>",
+          "concat": "function <large string>",
+          "join": "function <large string>",
+          "pop": "function <large string>",
+          "reverse": "function <large string>",
+          "shift": "function <large string>",
+          "slice": "function <large string>",
+          "sort": "function <large string>",
+          "splice": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "unshift": "function <large string>",
+          "indexOf": "function <large string>",
+          "every": "function <large string>",
+          "filter": "function <large string>",
+          "forEach": "function <large string>",
+          "lastIndexOf": "function <large string>",
+          "map": "function <large string>",
+          "reduce": "function <large string>",
+          "reduceRight": "function <large string>",
+          "some": "function <large string>",
+          "find": "function <large string>",
+          "findIndex": "function <large string>",
+          "entries": "function <large string>",
+          "keys": "function <large string>",
+          "values": "function <large string>",
+          "Symbol.iterator": "function <large string>",
+          "Symbol.unscopables": "Object {...}",
+          "fill": "function <large string>",
+          "copyWithin": "function <large string>",
+          "includes": "function <large string>",
+          "length": "number 25",
+          "[24]": "string 22"
+        },
+        "length": "number 3000000001",
+        "[0]": "string 2",
+        "[1]": "string 34",
+        "[3000000000]": "string \"very far\""
+      },
+      "j2": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "push": "function <large string>",
+          "concat": "function <large string>",
+          "join": "function <large string>",
+          "pop": "function <large string>",
+          "reverse": "function <large string>",
+          "shift": "function <large string>",
+          "slice": "function <large string>",
+          "sort": "function <large string>",
+          "splice": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "unshift": "function <large string>",
+          "indexOf": "function <large string>",
+          "every": "function <large string>",
+          "filter": "function <large string>",
+          "forEach": "function <large string>",
+          "lastIndexOf": "function <large string>",
+          "map": "function <large string>",
+          "reduce": "function <large string>",
+          "reduceRight": "function <large string>",
+          "some": "function <large string>",
+          "find": "function <large string>",
+          "findIndex": "function <large string>",
+          "entries": "function <large string>",
+          "keys": "function <large string>",
+          "values": "function <large string>",
+          "Symbol.iterator": "function <large string>",
+          "Symbol.unscopables": "Object {...}",
+          "fill": "function <large string>",
+          "copyWithin": "function <large string>",
+          "includes": "function <large string>",
+          "length": "number 25",
+          "[24]": "string 22"
+        },
+        "length": "number 1",
+        "[0]": "string \"j2\""
+      },
+      "k1": {
+        "#__proto__": {
+          "#__proto__": "Array [...]",
+          "length": "number 1",
+          "[0]": "string \"j2\""
+        },
+        "length": "number 10",
+        "[3]": "string 123"
+      },
+      "dummy": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "x": {
+          "#__proto__": "Array [...]",
+          "length": "number 3000000001",
+          "[0]": "string 2",
+          "[1]": "string 34",
+          "[3000000000]": "string \"very far\""
+        }
+      }
+    },
+    "globals": {
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "foo1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "foo2": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo2",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
+    }
+  },
+  {
+    "this": {
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo2": "function <large string>"
+    },
+    "locals": {
+      "obj": {
+        "#__proto__": "Object {...}",
+        "[0]": "string 0"
+      },
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 10"
+      }
+    },
+    "globals": {
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo2": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo2": "function <large string>"
+    },
+    "locals": {
+      "obj": {
+        "#__proto__": "Object {...}",
+        "[0]": "string 0",
+        "[1]": "string 1"
+      },
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 10"
+      }
+    },
+    "globals": {
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo2": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo2": "function <large string>"
+    },
+    "locals": {
+      "obj": {
+        "#__proto__": "Object {...}",
+        "[0]": "string 0",
+        "[1]": "string 1"
+      },
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 10",
+        "[1]": "string 22"
+      }
+    },
+    "globals": {
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo2": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo2": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "o": {
+        "#__proto__": "Object {...}",
+        "a": "number 1",
+        "[1]": "Object function(){}"
+      },
+      "j": {
+        "#__proto__": "Array [...]",
+        "x": "Object {...}",
+        "length": "number 1",
+        "[0]": "string 13"
+      }
+    },
+    "globals": {
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo2": "function <large string>"
+    }
+  }
+]

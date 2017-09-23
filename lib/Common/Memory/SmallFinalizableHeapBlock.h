@@ -16,6 +16,7 @@ class SmallFinalizableHeapBlockT : public SmallNormalHeapBlockT<TBlockAttributes
     typedef typename Base::SmallHeapBlockBitVector SmallHeapBlockBitVector;
     typedef typename Base::HeapBlockType HeapBlockType;
     friend class HeapBucketT<SmallFinalizableHeapBlockT>;
+    using Base::MediumFinalizableBlockType;
 public:
     typedef TBlockAttributes HeapBlockAttributes;
 
@@ -30,6 +31,10 @@ public:
     }
     void SetNextBlock(SmallFinalizableHeapBlockT * next) { Base::SetNextBlock(next); }
 
+    bool TryGetAddressOfAttributes(void* objectAddress, unsigned char **ppAttr);
+    bool TryGetAttributes(void* objectAddress, unsigned char *pAttr);
+
+    template <bool doSpecialMark>
     void ProcessMarkedObject(void* candidate, MarkContext * markContext);
 
     void SetAttributes(void * address, unsigned char attributes);

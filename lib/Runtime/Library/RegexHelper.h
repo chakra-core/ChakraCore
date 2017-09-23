@@ -105,7 +105,7 @@ namespace Js
         static Var RegexReplace(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptString* replace, bool noResult);
         static Var RegexReplaceFunction(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replacefn);
         static Var StringReplace(JavascriptString* regularExpression, JavascriptString* input, JavascriptString* replace);
-        static Var StringReplace(JavascriptString* regularExpression, JavascriptString* input, JavascriptFunction* replacefn);
+        static Var StringReplace(ScriptContext* scriptContext, JavascriptString* regularExpression, JavascriptString* input, JavascriptFunction* replacefn);
         static Var RegexSplitResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
         static Var RegexSplitResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
         static Var RegexSplitResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
@@ -134,7 +134,7 @@ namespace Js
         static Var RegexReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replacefn);
         static Var RegexEs5ReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn);
         static Var RegexSearchImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
-        inline static UnifiedRegex::RegexPattern *RegexHelper::GetSplitPattern(ScriptContext* scriptContext, JavascriptRegExp *regularExpression);
+        inline static UnifiedRegex::RegexPattern *GetSplitPattern(ScriptContext* scriptContext, JavascriptRegExp *regularExpression);
         static bool IsRegexSymbolSplitObservable(RecyclableObject* instance, ScriptContext* scriptContext);
         static Var RegexSplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
         static Var RegexEs6SplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);

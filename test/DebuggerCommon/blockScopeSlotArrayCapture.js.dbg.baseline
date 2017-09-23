@@ -19,7 +19,6 @@
       "level_1_identifier_1": "string level1_1",
       "level_1_identifier_0": "string level1_0",
       "level_1_identifier_2": "string [Uninitialized block variable]",
-      "level_0_identifier_0": "string level0",
       "verify": {
         "#__proto__": "function function() {\n    [native code]\n}",
         "prototype": "Object {...}",
@@ -27,14 +26,10 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 3"
-      }
+      },
+      "level_0_identifier_0": "string level0"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "verify": "function function verify(){}",
       "Run": "function <large string>",
       "Run1": "function <large string>"
@@ -52,9 +47,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "verify": "function function verify(){}",
       "Run": "function <large string>",
       "Run1": "function <large string>"
@@ -78,11 +70,6 @@
       "verify": "function <large string>"
     },
     "globals": {
-      "WScript": "Object {...}",
-      "print": "function print",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "verify": "function function verify(){}",
       "Run": "function <large string>",
       "Run1": "function <large string>"

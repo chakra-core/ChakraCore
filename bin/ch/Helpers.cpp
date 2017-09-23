@@ -8,214 +8,110 @@
 
 //TODO: x-plat definitions
 #ifdef _WIN32
-typedef char16 TTDHostCharType;
-typedef struct _wfinddata_t TTDHostFileInfo;
-typedef intptr_t TTDHostFindHandle;
-typedef struct _stat TTDHostStatType;
+#define MAX_URI_LENGTH 512
+#define TTD_HOST_PATH_SEP "\\"
 
-#define TTDHostPathSeparator _u("\\")
-#define TTDHostPathSeparatorChar _u('\\')
-#define TTDHostFindInvalid -1
-
-size_t TTDHostStringLength(const TTDHostCharType* str)
-{
-    return wcslen(str);
-}
-
-void TTDHostInitEmpty(TTDHostCharType* dst)
-{
-    dst[0] = _u('\0');
-}
-
-void TTDHostInitFromUriBytes(TTDHostCharType* dst, const byte* uriBytes, size_t uriBytesLength)
-{
-    memcpy_s(dst, MAX_PATH * sizeof(TTDHostCharType), uriBytes, uriBytesLength);
-    dst[uriBytesLength / sizeof(TTDHostCharType)] = _u('\0');
-
-    AssertMsg(wcslen(dst) == (uriBytesLength / sizeof(TTDHostCharType)), "We have an null in the uri or our math is wrong somewhere.");
-}
-
-void TTDHostAppend(TTDHostCharType* dst, const TTDHostCharType* src)
-{
-    size_t dpos = TTDHostStringLength(dst);
-    size_t srcLength = TTDHostStringLength(src);
-    size_t srcByteLength = srcLength * sizeof(TTDHostCharType);
-
-    memcpy_s(dst + dpos, srcByteLength, src, srcByteLength);
-    dst[dpos + srcLength] = _u('\0');
-}
-
-void TTDHostAppendWChar(TTDHostCharType* dst, const wchar* src)
-{
-    size_t dpos = TTDHostStringLength(dst);
-    size_t srcLength = wcslen(src);
-
-    for(size_t i = 0; i < srcLength; ++i)
-    {
-        dst[dpos + i] = (char16)src[i];
-    }
-    dst[dpos + srcLength] = _u('\0');
-}
-
-void TTDHostAppendAscii(TTDHostCharType* dst, const char* src)
-{
-    size_t dpos = TTDHostStringLength(dst);
-    size_t srcLength = strlen(src);
-    for(size_t i = 0; i < srcLength; ++i)
-    {
-        dst[dpos + i] = (char16)src[i];
-    }
-    dst[dpos + srcLength] = _u('\0');
-}
-
-void TTDHostBuildCurrentExeDirectory(TTDHostCharType* path, size_t pathBufferLength)
+void TTDHostBuildCurrentExeDirectory(char* path, size_t* pathLength, size_t bufferLength)
 {
     wchar exePath[MAX_PATH];
     GetModuleFileName(NULL, exePath, MAX_PATH);
 
     size_t i = wcslen(exePath) - 1;
-    while(exePath[i] != TTDHostPathSeparatorChar)
+    while(exePath[i] != _u('\\'))
     {
         --i;
     }
-    exePath[i + 1] = _u('\0');
 
-    TTDHostAppendWChar(path, exePath);
+    if(i * 3 > bufferLength)
+    {
+        printf("Don't overflow path buffer during conversion");
+        exit(1);
+    }
+    *pathLength = utf8::EncodeInto((LPUTF8)path, exePath, (charcount_t)(i + 1));
+    path[*pathLength] = '\0';
 }
 
-JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
+int TTDHostMKDir(const char* path, size_t pathLength)
 {
+    char16 cpath[MAX_PATH];
+    LPCUTF8 pathbase = (LPCUTF8)path;
+
+    if(MAX_PATH <= pathLength) //<= to account for null terminator
+    {
+        printf("Don't overflow path buffer during conversion");
+        exit(1);
+    }
+    utf8::DecodeUnitsIntoAndNullTerminate(cpath, pathbase, pathbase + pathLength);
+
+    return _wmkdir(cpath);
+}
+
+JsTTDStreamHandle TTDHostOpen(size_t pathLength, const char* path, bool isWrite)
+{
+    char16 wpath[MAX_PATH];
+    LPCUTF8 pathbase = (LPCUTF8)path;
+
+    if(MAX_PATH <= pathLength) //<= to account for null terminator
+    {
+        printf("Don't overflow path buffer during conversion");
+        exit(1);
+    }
+    utf8::DecodeUnitsIntoAndNullTerminate(wpath, pathbase, pathbase + pathLength);
+
     FILE* res = nullptr;
-    _wfopen_s(&res, path, isWrite ? _u("w+b") : _u("r+b"));
+    _wfopen_s(&res, wpath, isWrite ? _u("w+b") : _u("r+b"));
 
     return (JsTTDStreamHandle)res;
 }
 
-#define TTDHostCWD(dst) _wgetcwd(dst, MAX_PATH)
-#define TTDDoPathInit(dst)
-#define TTDHostTok(opath, TTDHostPathSeparator, context) wcstok_s(opath, TTDHostPathSeparator, context)
-#define TTDHostStat(cpath, statVal) _wstat(cpath, statVal)
-
-#define TTDHostMKDir(cpath) _wmkdir(cpath)
-#define TTDHostCHMod(cpath, flags) _wchmod(cpath, flags)
-#define TTDHostRMFile(cpath) _wremove(cpath)
-
-#define TTDHostFindFirst(strPattern, FileInformation) _wfindfirst(strPattern, FileInformation)
-#define TTDHostFindNext(hFile, FileInformation) _wfindnext(hFile, FileInformation)
-#define TTDHostFindClose(hFile) _findclose(hFile)
-
-#define TTDHostDirInfoName(FileInformation) FileInformation.name
-
 #define TTDHostRead(buff, size, handle) fread_s(buff, size, 1, size, (FILE*)handle);
 #define TTDHostWrite(buff, size, handle) fwrite(buff, 1, size, (FILE*)handle)
 #else
-#include <unistd.h>
-#include <cstring>
-#include <libgen.h>
-#include <dirent.h>
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
+#else
+#include <unistd.h>
 #endif
+#define MAX_URI_LENGTH 512
+#define TTD_HOST_PATH_SEP "/"
 
-typedef utf8char_t TTDHostCharType;
-typedef struct dirent* TTDHostFileInfo;
-typedef DIR* TTDHostFindHandle;
-typedef struct stat TTDHostStatType;
-
-#define TTDHostPathSeparator ((TTDHostCharType*)"/")
-#define TTDHostPathSeparatorChar ((TTDHostCharType)'/')
-#define TTDHostFindInvalid nullptr
-
-#define TTDHostCharConvert(X) ((char*)X)
-#define TTDHostUtf8CharConvert(X) ((TTDHostCharType*)X)
-
-size_t TTDHostStringLength(const TTDHostCharType* str)
+void TTDHostBuildCurrentExeDirectory(char* path, size_t* pathLength, size_t bufferLength)
 {
-    return strlen(TTDHostCharConvert(str));
-}
-
-void TTDHostInitEmpty(TTDHostCharType* dst)
-{
-    dst[0] = '\0';
-}
-
-void TTDHostInitFromUriBytes(TTDHostCharType* dst, const byte* uriBytes, size_t uriBytesLength)
-{
-    memcpy_s(dst, MAX_PATH * sizeof(TTDHostCharType), uriBytes, uriBytesLength);
-    dst[uriBytesLength / sizeof(TTDHostCharType)] = '\0';
-
-    AssertMsg(TTDHostStringLength(dst) == (uriBytesLength / sizeof(TTDHostCharType)), "We have an null in the uri or our math is wrong somewhere.");
-}
-
-void TTDHostAppend(TTDHostCharType* dst, const TTDHostCharType* src)
-{
-    size_t dpos = TTDHostStringLength(dst);
-    size_t srcLength = TTDHostStringLength(src);
-    size_t srcByteLength = srcLength * sizeof(TTDHostCharType);
-
-    memcpy_s(dst + dpos, srcByteLength, src, srcByteLength);
-    dst[dpos + srcLength] = '\0';
-}
-
-void TTDHostAppendWChar(TTDHostCharType* dst, const wchar* src)
-{
-    size_t dpos = TTDHostStringLength(dst);
-    size_t srcLength = wcslen(src);
-    utf8::EncodeIntoAndNullTerminate(dst + dpos, src, srcLength);
-}
-
-void TTDHostAppendAscii(TTDHostCharType* dst, const char* src)
-{
-    size_t dpos = TTDHostStringLength(dst);
-    size_t srcLength = strlen(src);
-    size_t srcByteLength = srcLength * sizeof(TTDHostCharType);
-
-    memcpy_s(dst + dpos, srcByteLength, src, srcByteLength);
-    dst[dpos + srcLength] = '\0';
-}
-
-void TTDHostBuildCurrentExeDirectory(TTDHostCharType* path, size_t pathBufferLength)
-{
-    TTDHostCharType exePath[MAX_PATH];
+    char exePath[MAX_URI_LENGTH];
     //TODO: xplattodo move this logic to PAL
     #ifdef __APPLE__
     uint32_t tmpPathSize = sizeof(exePath);
-    _NSGetExecutablePath(TTDHostCharConvert(exePath), &tmpPathSize);
-    size_t len = TTDHostStringLength(exePath);
+    _NSGetExecutablePath(exePath, &tmpPathSize);
+    size_t i = strlen(exePath) - 1;
     #else
-    size_t len = readlink("/proc/self/exe", TTDHostCharConvert(exePath), MAX_PATH);
+    size_t i = readlink("/proc/self/exe", exePath, MAX_URI_LENGTH) - 1;
     #endif
 
-    size_t i = len - 1;
-    while(exePath[i] != TTDHostPathSeparatorChar)
+    while(exePath[i] != '/')
     {
         --i;
     }
-    exePath[i + 1] = '\0';
+    *pathLength = i + 1;
 
-    TTDHostAppend(path, exePath);
+    if(*pathLength > bufferLength)
+    {
+        printf("Don't overflow path buffer during copy.");
+        exit(1);
+    }
+
+    memcpy_s(path, bufferLength, exePath, *pathLength);
 }
 
-JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
+int TTDHostMKDir(const char* path, size_t pathLength)
 {
-    return (JsTTDStreamHandle)fopen(TTDHostCharConvert(path), isWrite ? "w+b" : "r+b");
+    return mkdir(path, 0700);
 }
 
-#define TTDHostCWD(dst) TTDHostUtf8CharConvert(getcwd(TTDHostCharConvert(dst), MAX_PATH))
-#define TTDDoPathInit(dst) TTDHostAppend(dst, TTDHostPathSeparator)
-#define TTDHostTok(opath, TTDHostPathSeparator, context) TTDHostUtf8CharConvert(strtok(TTDHostCharConvert(opath), TTDHostCharConvert(TTDHostPathSeparator)))
-#define TTDHostStat(cpath, statVal) stat(TTDHostCharConvert(cpath), statVal)
-
-#define TTDHostMKDir(cpath) mkdir(TTDHostCharConvert(cpath), 0777)
-#define TTDHostCHMod(cpath, flags) chmod(TTDHostCharConvert(cpath), flags)
-#define TTDHostRMFile(cpath) remove(TTDHostCharConvert(cpath))
-
-#define TTDHostFindFirst(strPattern, FileInformation) opendir(TTDHostCharConvert(strPattern))
-#define TTDHostFindNext(hFile, FileInformation) (*FileInformation = readdir(hFile))
-#define TTDHostFindClose(hFile) closedir(hFile)
-
-#define TTDHostDirInfoName(FileInformation) TTDHostUtf8CharConvert(FileInformation->d_name)
+JsTTDStreamHandle TTDHostOpen(size_t pathLength, const char* path, bool isWrite)
+{
+    return (JsTTDStreamHandle)fopen(path, isWrite ? "w+b" : "r+b");
+}
 
 #define TTDHostRead(buff, size, handle) fread(buff, 1, size, (FILE*)handle)
 #define TTDHostWrite(buff, size, handle) fwrite(buff, 1, size, (FILE*)handle)
@@ -235,26 +131,30 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
     //
     if (fopen_s(&file, filename, "rb") != 0)
     {
-#ifdef _WIN32
-        DWORD lastError = GetLastError();
-        char16 wszBuff[512];
-        fprintf(stderr, "Error in opening file '%s' ", filename);
-        wszBuff[0] = 0;
-        if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
-            nullptr,
-            lastError,
-            0,
-            wszBuff,
-            _countof(wszBuff),
-            nullptr))
+        if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
         {
-            fwprintf(stderr, _u(": %s"), wszBuff);
-        }
-        fwprintf(stderr, _u("\n"));
+#ifdef _WIN32
+            DWORD lastError = GetLastError();
+            char16 wszBuff[512];
+            fprintf(stderr, "Error in opening file '%s' ", filename);
+            wszBuff[0] = 0;
+            if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+                nullptr,
+                lastError,
+                0,
+                wszBuff,
+                _countof(wszBuff),
+                nullptr))
+            {
+                fwprintf(stderr, _u(": %s"), wszBuff);
+            }
+            fwprintf(stderr, _u("\n"));
 #elif defined(_POSIX_VERSION)
-        fprintf(stderr, "Error in opening file: ");
-        perror(filename);
+            fprintf(stderr, "Error in opening file: ");
+            perror(filename);
 #endif
+        }
+
         IfFailGo(E_FAIL);
     }
 
@@ -344,74 +244,58 @@ LPCWSTR Helpers::JsErrorCodeToString(JsErrorCode jsErrorCode)
 
     switch (jsErrorCode)
     {
-    case JsNoError:
-        return _u("JsNoError");
-        break;
-
-    case JsErrorInvalidArgument:
-        return _u("JsErrorInvalidArgument");
-        break;
-
-    case JsErrorNullArgument:
-        return _u("JsErrorNullArgument");
-        break;
-
-    case JsErrorNoCurrentContext:
-        return _u("JsErrorNoCurrentContext");
-        break;
-
-    case JsErrorInExceptionState:
-        return _u("JsErrorInExceptionState");
-        break;
-
-    case JsErrorNotImplemented:
-        return _u("JsErrorNotImplemented");
-        break;
-
-    case JsErrorWrongThread:
-        return _u("JsErrorWrongThread");
-        break;
-
-    case JsErrorRuntimeInUse:
-        return _u("JsErrorRuntimeInUse");
-        break;
-
-    case JsErrorBadSerializedScript:
-        return _u("JsErrorBadSerializedScript");
-        break;
-
-    case JsErrorInDisabledState:
-        return _u("JsErrorInDisabledState");
-        break;
-
-    case JsErrorCannotDisableExecution:
-        return _u("JsErrorCannotDisableExecution");
-        break;
-
-    case JsErrorHeapEnumInProgress:
-        return _u("JsErrorHeapEnumInProgress");
-        break;
-
-    case JsErrorOutOfMemory:
-        return _u("JsErrorOutOfMemory");
-        break;
-
-    case JsErrorScriptException:
-        return _u("JsErrorScriptException");
-        break;
-
-    case JsErrorScriptCompile:
-        return _u("JsErrorScriptCompile");
-        break;
-
-    case JsErrorScriptTerminated:
-        return _u("JsErrorScriptTerminated");
-        break;
-
-    case JsErrorFatal:
-        return _u("JsErrorFatal");
-        break;
-
+    case JsNoError:                            return _u("JsNoError");
+    // JsErrorCategoryUsage
+    case JsErrorCategoryUsage:                 return _u("JsErrorCategoryUsage");
+    case JsErrorInvalidArgument:               return _u("JsErrorInvalidArgument");
+    case JsErrorNullArgument:                  return _u("JsErrorNullArgument");
+    case JsErrorNoCurrentContext:              return _u("JsErrorNoCurrentContext");
+    case JsErrorInExceptionState:              return _u("JsErrorInExceptionState");
+    case JsErrorNotImplemented:                return _u("JsErrorNotImplemented");
+    case JsErrorWrongThread:                   return _u("JsErrorWrongThread");
+    case JsErrorRuntimeInUse:                  return _u("JsErrorRuntimeInUse");
+    case JsErrorBadSerializedScript:           return _u("JsErrorBadSerializedScript");
+    case JsErrorInDisabledState:               return _u("JsErrorInDisabledState");
+    case JsErrorCannotDisableExecution:        return _u("JsErrorCannotDisableExecution");
+    case JsErrorHeapEnumInProgress:            return _u("JsErrorHeapEnumInProgress");
+    case JsErrorArgumentNotObject:             return _u("JsErrorArgumentNotObject");
+    case JsErrorInProfileCallback:             return _u("JsErrorInProfileCallback");
+    case JsErrorInThreadServiceCallback:       return _u("JsErrorInThreadServiceCallback");
+    case JsErrorCannotSerializeDebugScript:    return _u("JsErrorCannotSerializeDebugScript");
+    case JsErrorAlreadyDebuggingContext:       return _u("JsErrorAlreadyDebuggingContext");
+    case JsErrorAlreadyProfilingContext:       return _u("JsErrorAlreadyProfilingContext");
+    case JsErrorIdleNotEnabled:                return _u("JsErrorIdleNotEnabled");
+    case JsCannotSetProjectionEnqueueCallback: return _u("JsCannotSetProjectionEnqueueCallback");
+    case JsErrorCannotStartProjection:         return _u("JsErrorCannotStartProjection");
+    case JsErrorInObjectBeforeCollectCallback: return _u("JsErrorInObjectBeforeCollectCallback");
+    case JsErrorObjectNotInspectable:          return _u("JsErrorObjectNotInspectable");
+    case JsErrorPropertyNotSymbol:             return _u("JsErrorPropertyNotSymbol");
+    case JsErrorPropertyNotString:             return _u("JsErrorPropertyNotString");
+    case JsErrorInvalidContext:                return _u("JsErrorInvalidContext");
+    case JsInvalidModuleHostInfoKind:          return _u("JsInvalidModuleHostInfoKind");
+    case JsErrorModuleParsed:                  return _u("JsErrorModuleParsed");
+    // JsErrorCategoryEngine
+    case JsErrorCategoryEngine:                return _u("JsErrorCategoryEngine");
+    case JsErrorOutOfMemory:                   return _u("JsErrorOutOfMemory");
+    case JsErrorBadFPUState:                   return _u("JsErrorBadFPUState");
+    // JsErrorCategoryScript
+    case JsErrorCategoryScript:                return _u("JsErrorCategoryScript");
+    case JsErrorScriptException:               return _u("JsErrorScriptException");
+    case JsErrorScriptCompile:                 return _u("JsErrorScriptCompile");
+    case JsErrorScriptTerminated:              return _u("JsErrorScriptTerminated");
+    case JsErrorScriptEvalDisabled:            return _u("JsErrorScriptEvalDisabled");
+    // JsErrorCategoryFatal
+    case JsErrorCategoryFatal:                 return _u("JsErrorCategoryFatal");
+    case JsErrorFatal:                         return _u("JsErrorFatal");
+    case JsErrorWrongRuntime:                  return _u("JsErrorWrongRuntime");
+    // JsErrorCategoryDiagError
+    case JsErrorCategoryDiagError:             return _u("JsErrorCategoryDiagError");
+    case JsErrorDiagAlreadyInDebugMode:        return _u("JsErrorDiagAlreadyInDebugMode");
+    case JsErrorDiagNotInDebugMode:            return _u("JsErrorDiagNotInDebugMode");
+    case JsErrorDiagNotAtBreak:                return _u("JsErrorDiagNotAtBreak");
+    case JsErrorDiagInvalidHandle:             return _u("JsErrorDiagInvalidHandle");
+    case JsErrorDiagObjectNotFound:            return _u("JsErrorDiagObjectNotFound");
+    case JsErrorDiagUnableToPerformAction:     return _u("JsErrorDiagUnableToPerformAction");
     default:
         return _u("<unknown>");
         break;
@@ -445,10 +329,10 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
     {
         if (printFileOpenError)
         {
+            fprintf(stderr, "Error in opening file '%s' ", filename);
 #ifdef _WIN32
             DWORD lastError = GetLastError();
             char16 wszBuff[512];
-            fprintf(stderr, "Error in opening file '%s' ", filename);
             wszBuff[0] = 0;
             if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
                 nullptr,
@@ -462,12 +346,8 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
             }
 #endif
             fprintf(stderr, "\n");
-            IfFailGo(E_FAIL);
         }
-        else
-        {
-            return E_FAIL;
-        }
+        return E_FAIL;        
     }
     // file will not be nullptr if _wfopen_s succeeds
     __analysis_assume(file != nullptr);
@@ -493,9 +373,9 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
         fwprintf(stderr, _u("Read error"));
         IfFailGo(E_FAIL);
     }
-    fclose(file);
 
 Error:
+    fclose(file);
     if (contents && FAILED(hr))
     {
         HeapFree(GetProcessHeap(), 0, (void*)contents);
@@ -504,6 +384,7 @@ Error:
 
     return hr;
 }
+
 void Helpers::TTReportLastIOErrorAsNeeded(BOOL ok, const char* msg)
 {
     if(!ok)
@@ -523,158 +404,93 @@ void Helpers::TTReportLastIOErrorAsNeeded(BOOL ok, const char* msg)
     }
 }
 
-void Helpers::CreateDirectoryIfNeeded(size_t uriByteLength, const byte* uriBytes)
+//We assume bounded ascii path length for simplicity
+#define MAX_TTD_ASCII_PATH_EXT_LENGTH 64
+
+void Helpers::CreateTTDDirectoryAsNeeded(size_t* uriLength, char* uri, const char* asciiDir1, const wchar* asciiDir2)
 {
-    TTDHostCharType opath[MAX_PATH];
-    TTDHostInitFromUriBytes(opath, uriBytes, uriByteLength);
-
-    TTDHostCharType cpath[MAX_PATH];
-    TTDHostInitEmpty(cpath);
-    TTDDoPathInit(cpath);
-
-    TTDHostStatType statVal;
-    TTDHostCharType* context = nullptr;
-    TTDHostCharType* token = TTDHostTok(opath, TTDHostPathSeparator, &context);
-    TTDHostAppend(cpath, token);
-
-    //At least 1 part of the path must exist so iterate until we find it
-    while(TTDHostStat(cpath, &statVal) == -1)
+    if(*uriLength + strlen(asciiDir1) + wcslen(asciiDir2) + 2 > MAX_URI_LENGTH || strlen(asciiDir1) >= MAX_TTD_ASCII_PATH_EXT_LENGTH || wcslen(asciiDir2) >= MAX_TTD_ASCII_PATH_EXT_LENGTH)
     {
-        token = TTDHostTok(nullptr, TTDHostPathSeparator, &context);
-        TTDHostAppend(cpath, TTDHostPathSeparator);
-        TTDHostAppend(cpath, token);
+        printf("We assume bounded MAX_URI_LENGTH for simplicity.\n");
+        printf("%s, %s, %ls\n", uri, asciiDir1, asciiDir2);
+        exit(1);
     }
 
-    //Now continue until we hit the part that doesn't exist (or the end of the path)
-    while(token != nullptr && TTDHostStat(cpath, &statVal) != -1)
+    int success = 0;
+    int extLength = 0;
+
+    extLength = sprintf_s(uri + *uriLength, MAX_TTD_ASCII_PATH_EXT_LENGTH, "%s%s", asciiDir1, TTD_HOST_PATH_SEP);
+    if(extLength == -1 || MAX_URI_LENGTH < (*uriLength) + extLength)
     {
-        token = TTDHostTok(nullptr, TTDHostPathSeparator, &context);
-        if(token != nullptr)
+        printf("Failed directory extension 1.\n");
+        printf("%s, %s, %ls\n", uri, asciiDir1, asciiDir2);
+        exit(1);
+    }
+    *uriLength += extLength;
+
+    success = TTDHostMKDir(uri, *uriLength);
+    if(success != 0)
+    {
+        //we may fail because someone else created the directory -- that is ok
+        Helpers::TTReportLastIOErrorAsNeeded(errno != ENOENT, "Failed to create directory");
+    }
+
+    char realAsciiDir2[MAX_TTD_ASCII_PATH_EXT_LENGTH];
+    size_t asciiDir2Length = wcslen(asciiDir2) + 1;
+    for(size_t i = 0; i < asciiDir2Length; ++i)
+    {
+        if(asciiDir2[i] > CHAR_MAX)
         {
-            TTDHostAppend(cpath, TTDHostPathSeparator);
-            TTDHostAppend(cpath, token);
+            printf("Test directory names can only include ascii chars.\n");
+            exit(1);
         }
+        realAsciiDir2[i] = (char)asciiDir2[i];
     }
 
-    //Now if there is path left then continue build up the directory tree as we go
-    while(token != nullptr)
+    extLength = sprintf_s(uri + *uriLength, MAX_TTD_ASCII_PATH_EXT_LENGTH, "%s%s", realAsciiDir2, TTD_HOST_PATH_SEP);
+    if(extLength == -1 || MAX_URI_LENGTH < *uriLength + extLength)
     {
-        int success = TTDHostMKDir(cpath);
-        if(success != 0)
-        {
-            //we may fail because someone else created the directory -- that is ok
-            Helpers::TTReportLastIOErrorAsNeeded(errno != ENOENT, "Failed to create directory");
-        }
+        printf("Failed directory create 2.\n");
+        printf("%s, %s, %ls\n", uri, asciiDir1, asciiDir2);
+        exit(1);
+    }
+    *uriLength += extLength;
 
-        token = TTDHostTok(nullptr, TTDHostPathSeparator, &context);
-        if(token != nullptr)
-        {
-            TTDHostAppend(cpath, TTDHostPathSeparator);
-            TTDHostAppend(cpath, token);
-        }
+    success = TTDHostMKDir(uri, *uriLength);
+    if(success != 0)
+    {
+        //we may fail because someone else created the directory -- that is ok
+        Helpers::TTReportLastIOErrorAsNeeded(errno != ENOENT, "Failed to create directory");
     }
 }
 
-void Helpers::CleanDirectory(size_t uriByteLength, const byte* uriBytes)
+void Helpers::GetTTDDirectory(const wchar* curi, size_t* uriLength, char* uri, size_t bufferLength)
 {
-    TTDHostFindHandle hFile;
-    TTDHostFileInfo FileInformation;
+    TTDHostBuildCurrentExeDirectory(uri, uriLength, bufferLength);
 
-    TTDHostCharType strPattern[MAX_PATH];
-    TTDHostInitFromUriBytes(strPattern, uriBytes, uriByteLength);
-    TTDHostAppendAscii(strPattern, "*.*");
-
-    hFile = TTDHostFindFirst(strPattern, &FileInformation);
-    if(hFile != TTDHostFindInvalid)
-    {
-        do
-        {
-            if(TTDHostDirInfoName(FileInformation)[0] != '.')
-            {
-                TTDHostCharType strFilePath[MAX_PATH];
-                TTDHostInitFromUriBytes(strFilePath, uriBytes, uriByteLength);
-                TTDHostAppend(strFilePath, TTDHostDirInfoName(FileInformation));
-
-                // Set file attributes
-                int statusch = TTDHostCHMod(strFilePath, S_IREAD | S_IWRITE);
-                Helpers::TTReportLastIOErrorAsNeeded(statusch == 0, "Failed to chmod directory");
-
-                int statusrm = TTDHostRMFile(strFilePath);
-                Helpers::TTReportLastIOErrorAsNeeded(statusrm == 0, "Failed to delete file directory");
-            }
-        } while(TTDHostFindNext(hFile, &FileInformation) != TTDHostFindInvalid);
-
-        // Close handle
-        TTDHostFindClose(hFile);
-    }
+    Helpers::CreateTTDDirectoryAsNeeded(uriLength, uri, "_ttdlog", curi);
 }
 
-void Helpers::GetTTDDirectory(const wchar* curi, size_t* uriByteLength, byte* uriBytes)
-{
-    TTDHostCharType turi[MAX_PATH];
-    TTDHostInitEmpty(turi);
-
-    if(curi[0] != _u('~'))
-    {
-        TTDHostCharType* status = TTDHostCWD(turi);
-        Helpers::TTReportLastIOErrorAsNeeded(status != nullptr, "Failed to chmod directory");
-
-        TTDHostAppend(turi, TTDHostPathSeparator);
-
-        TTDHostAppendWChar(turi, curi);
-    }
-    else
-    {
-        TTDHostBuildCurrentExeDirectory(turi, MAX_PATH);
-
-        TTDHostAppendAscii(turi, "_ttdlog");
-        TTDHostAppend(turi, TTDHostPathSeparator);
-
-        TTDHostAppendWChar(turi, curi + 1);
-    }
-
-    //add a path separator if one is not already present
-    if(curi[wcslen(curi) - 1] != (wchar)TTDHostPathSeparatorChar)
-    {
-        TTDHostAppend(turi, TTDHostPathSeparator);
-    }
-
-    size_t turiLength = TTDHostStringLength(turi);
-
-    size_t byteLengthWNull = (turiLength + 1) * sizeof(TTDHostCharType);
-    memcpy_s(uriBytes, byteLengthWNull, turi, byteLengthWNull);
-
-    *uriByteLength = turiLength * sizeof(TTDHostCharType);
-}
-
-void CALLBACK Helpers::TTInitializeForWriteLogStreamCallback(size_t uriByteLength, const byte* uriBytes)
-{
-    //If the directory does not exist then we want to create it
-    Helpers::CreateDirectoryIfNeeded(uriByteLength, uriBytes);
-
-    //Clear the logging directory so it is ready for us to write into
-    Helpers::CleanDirectory(uriByteLength, uriBytes);
-}
-
-JsTTDStreamHandle CALLBACK Helpers::TTCreateStreamCallback(size_t uriByteLength, const byte* uriBytes, const char* asciiResourceName, bool read, bool write, byte** relocatedUri, size_t* relocatedUriLength)
+JsTTDStreamHandle CALLBACK Helpers::TTCreateStreamCallback(size_t uriLength, const char* uri, size_t asciiNameLength, const char* asciiName, bool read, bool write)
 {
     AssertMsg((read | write) & (!read | !write), "Read/Write streams not supported yet -- defaulting to read only");
 
-    //relocatedUri and relocatedUriLength are ignored since we don't do code relocation for debugging in CH
+    if(uriLength + asciiNameLength + 1 > MAX_URI_LENGTH)
+    {
+        printf("We assume bounded MAX_URI_LENGTH for simplicity.");
+        exit(1);
+    }
 
-    void* res = nullptr;
-    TTDHostCharType path[MAX_PATH];
-    TTDHostInitFromUriBytes(path, uriBytes, uriByteLength);
-    TTDHostAppendAscii(path, asciiResourceName);
+    char path[MAX_URI_LENGTH];
+    memset(path, 0, MAX_URI_LENGTH);
 
-    res = TTDHostOpen(path, write);
+    memcpy_s(path, MAX_URI_LENGTH, uri, uriLength);
+    memcpy_s(path + uriLength, MAX_URI_LENGTH - uriLength, asciiName, asciiNameLength);
+
+    JsTTDStreamHandle res = TTDHostOpen(uriLength + asciiNameLength, path, write);
     if(res == nullptr)
     {
-#if _WIN32
-        fwprintf(stderr, _u("Failed to open file: %ls\n"), path);
-#else
         fprintf(stderr, "Failed to open file: %s\n", path);
-#endif
     }
 
     Helpers::TTReportLastIOErrorAsNeeded(res != nullptr, "Failed File Open");
@@ -725,3 +541,25 @@ void CALLBACK Helpers::TTFlushAndCloseStreamCallback(JsTTDStreamHandle handle, b
     fclose((FILE*)handle);
 }
 
+void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char* filename)
+{
+    char fullpath[_MAX_PATH];
+    char drive[_MAX_DRIVE];
+    char dir[_MAX_DIR];
+
+    char modulename[_MAX_PATH];
+    PlatformAgnostic::SystemInfo::GetBinaryLocation(modulename, _MAX_PATH);
+    _splitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
+    _makepath_s(fullpath, drive, dir, filename, nullptr);
+
+    size_t len = strlen(fullpath);
+    if (len < buffer_size)
+    {
+        memcpy(path, fullpath, len * sizeof(char));
+    }
+    else
+    {
+        len = 0;
+    }
+    path[len] = char(0);
+}

@@ -57,7 +57,7 @@ namespace Js
 
     namespace ArrayBufferView
     {
-        enum ViewType: int
+        enum ViewType: uint8
         {
             TYPE_INT8 = 0,
             TYPE_UINT8,
@@ -100,10 +100,10 @@ namespace Js
     // The asm.js spec recognizes this set of builtin Math functions.
     enum AsmJSMathBuiltinFunction: int
     {
-#define ASMJS_MATH_FUNC_NAMES(name, propertyName) AsmJSMathBuiltin_##name,
+#define ASMJS_MATH_FUNC_NAMES(name, propertyName, funcInfo) AsmJSMathBuiltin_##name,
 #include "AsmJsBuiltInNames.h"
         AsmJSMathBuiltinFunction_COUNT,
-#define ASMJS_MATH_CONST_NAMES(name, propertyName) AsmJSMathBuiltin_##name,
+#define ASMJS_MATH_CONST_NAMES(name, propertyName, value) AsmJSMathBuiltin_##name,
 #include "AsmJsBuiltInNames.h"
         AsmJSMathBuiltin_COUNT
     };
@@ -217,7 +217,7 @@ namespace Js
         };
 
     private:
-        Which which_;
+        Field(Which) which_;
 
     public:
         AsmJsRetType();
@@ -654,6 +654,7 @@ namespace Js
         AsmJSMathBuiltinFunction GetMathBuiltInFunction(){ return mBuiltIn; };
         virtual bool CheckAndSetReturnType( Js::AsmJsRetType val ) override;
         bool SupportsMathCall(ArgSlot argCount, AsmJsType* args, OpCodeAsmJs& op, AsmJsRetType& retType);
+        static bool IsFround(AsmJsFunctionDeclaration* sym);
     private:
         virtual bool SupportsArgCall(ArgSlot argCount, AsmJsType* args, AsmJsRetType& retType ) override;
 
@@ -742,9 +743,9 @@ namespace Js
 
         FuncInfo*       mFuncInfo;
         FunctionBody*   mFuncBody;
-        int             mArgOutDepth;
         int             mMaxArgOutDepth;
         ULONG           mOrigParseFlags;
+        ProfileId       mCurrentProfileId;
         bool            mDeferred;
         bool            mDefined : 1; // true when compiled completely without any errors
     public:
@@ -752,7 +753,8 @@ namespace Js
 
         unsigned GetCompileTime() const { return mCompileTime; }
         void AccumulateCompileTime(unsigned ms) { mCompileTime += ms; }
-
+        ProfileId GetNextProfileId();
+        ProfileId GetProfileIdCount() const { return mCurrentProfileId; }
         inline ParseNode* GetFncNode() const{ return mFncNode; }
         inline void       SetFncNode(ParseNode* fncNode) { mFncNode = fncNode; }
         inline FuncInfo*  GetFuncInfo() const{ return mFuncInfo; }
@@ -786,15 +788,14 @@ namespace Js
         template<typename T> inline bool IsVarLocation        ( const EmitExpressionInfo* pnode ){return GetRegisterSpace<T>().IsVarLocation( pnode );}
         template<typename T> inline bool IsValidLocation      ( const EmitExpressionInfo* pnode ){return GetRegisterSpace<T>().IsValidLocation( pnode );}
         void ReleaseLocationGeneric( const EmitExpressionInfo* pnode );
+        RegSlot AcquireTmpRegisterGeneric(AsmJsRetType retType);
 
         // Search for a var in the varMap of the function, return nullptr if not found
         AsmJsVarBase* FindVar( const PropertyName name ) const;
         // Defines a new variable int the function, return nullptr if already exists or theres an error
         AsmJsVarBase* DefineVar(PropertyName name, bool isArg = false, bool isMutable = true);
         AsmJsSymbol* LookupIdentifier( const PropertyName name, AsmJsLookupSource::Source* lookupSource = nullptr ) const;
-        void SetArgOutDepth(int outParamsCount);
         void UpdateMaxArgOutDepth(int outParamsCount);
-        inline int GetArgOutDepth() const{ return mArgOutDepth; }
         inline int GetMaxArgOutDepth() const{ return mMaxArgOutDepth; }
         void CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo, FunctionBody* body) {mTypedRegisterAllocator.CommitToFunctionInfo(funcInfo, body);}
         void CommitToFunctionBody(FunctionBody* body) { mTypedRegisterAllocator.CommitToFunctionBody(body); }
@@ -861,23 +862,23 @@ namespace Js
 
     class AsmJsFunctionInfo
     {
-        WAsmJs::TypedSlotInfo mTypedSlotInfos[WAsmJs::LIMIT];
-        ArgSlot mArgCount;
-        AsmJsVarType::Which * mArgType;
-        ArgSlot mArgSizesLength;
-        uint * mArgSizes;
-        ArgSlot mArgByteSize;
-        AsmJsRetType mReturnType;
+        Field(WAsmJs::TypedSlotInfo) mTypedSlotInfos[WAsmJs::LIMIT];
+        Field(ArgSlot) mArgCount;
+        Field(AsmJsVarType::Which *) mArgType;
+        Field(ArgSlot) mArgSizesLength;
+        Field(uint *) mArgSizes;
+        Field(ArgSlot) mArgByteSize;
+        Field(AsmJsRetType) mReturnType;
 #ifdef ENABLE_WASM
-        Wasm::WasmSignature * mSignature;
-        Wasm::WasmReaderInfo* mWasmReaderInfo;
-        WebAssemblyModule* mWasmModule;
+        Field(Wasm::WasmSignature *) mSignature;
+        Field(Wasm::WasmReaderInfo*) mWasmReaderInfo;
+        Field(WebAssemblyModule*) mWasmModule;
 #endif
-        bool mIsHeapBufferConst;
-        bool mUsesHeapBuffer;
+        Field(bool) mUsesHeapBuffer;
 
-        FunctionBody* asmJsModuleFunctionBody;
-        Js::JavascriptError * mLazyError;
+        Field(FunctionBody*) asmJsModuleFunctionBody;
+        Field(Js::JavascriptError *) mLazyError;
+
     public:
         AsmJsFunctionInfo() : mArgCount(0),
                               mArgSizesLength(0),
@@ -891,13 +892,12 @@ namespace Js
                               mWasmModule(nullptr),
 #endif
                               mUsesHeapBuffer(false),
-                              mIsHeapBufferConst(false),
                               mArgType(nullptr),
                               mArgSizes(nullptr) {}
         // the key is the bytecode address
         typedef JsUtil::BaseDictionary<int, ptrdiff_t, Recycler> ByteCodeToTJMap;
-        ByteCodeToTJMap* mbyteCodeTJMap;
-        BYTE* mTJBeginAddress;
+        Field(ByteCodeToTJMap*) mbyteCodeTJMap;
+        Field(BYTE*) mTJBeginAddress;
         WAsmJs::TypedSlotInfo* GetTypedSlotInfo(WAsmJs::Types type);
 
 #define TYPED_SLOT_INFO_GETTER(name, type) \
@@ -919,9 +919,6 @@ namespace Js
         inline void SetReturnType(AsmJsRetType val) { mReturnType = val; }
         inline ArgSlot GetArgByteSize() const{return mArgByteSize;}
         inline void SetArgByteSize(ArgSlot val) { mArgByteSize = val; }
-
-        inline void SetIsHeapBufferConst(bool val) { mIsHeapBufferConst = val; }
-        inline bool IsHeapBufferConst() const{ return mIsHeapBufferConst; }
 
         inline void SetUsesHeapBuffer(bool val) { mUsesHeapBuffer = val; }
         inline bool UsesHeapBuffer() const{ return mUsesHeapBuffer; }

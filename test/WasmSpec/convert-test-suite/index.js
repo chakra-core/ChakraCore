@@ -2,44 +2,23 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+/* eslint-env node */
 const path = require("path");
-const jsBeautify = require("js-beautify");
 const fs = require("fs-extra");
-const stringArgv = require("string-argv");
-const {execFile, spawn} = require("child_process");
+const Bluebird = require("bluebird");
+const {spawn} = require("child_process");
+const slash = require("slash");
 
-const rlRoot = path.join(__dirname, "..");
+Bluebird.promisifyAll(fs);
+const config = require("./config.json");
+const rlRoot = path.resolve(__dirname, "..");
+const folders = config.folders.map(folder => path.resolve(rlRoot, folder));
 const baselineDir = path.join(rlRoot, "baselines");
 
 const argv = require("yargs")
+  .help()
+  .alias("help", "h")
   .options({
-    bin: {
-      string: true,
-      alias: "b",
-      description: "Path to wast2wasm exe",
-      demand: true,
-    },
-    suite: {
-      string: true,
-      alias: "s",
-      description: "Path to the test suite",
-      default: path.join(rlRoot, "testsuite"),
-      demand: true,
-    },
-    output: {
-      string: true,
-      alias: "o",
-      description: "Output path of the converted suite",
-      default: path.join(rlRoot, "testsuite-bin"),
-      demand: true,
-    },
-    excludes: {
-      array: true,
-      alias: "e",
-      description: "Spec tests to exclude from the conversion (use for known failures)",
-      default: []
-    },
     rebase: {
       string: true,
       description: "Path to host to run the test create/update the baselines"
@@ -48,36 +27,16 @@ const argv = require("yargs")
   .argv;
 
 // Make sure all arguments are valid
-argv.output = path.resolve(argv.output);
-fs.statSync(argv.bin).isFile();
-fs.statSync(argv.suite).isDirectory();
-
-function changeExtension(filename, from, to) {
-  return `${path.basename(filename, from)}${to}`;
+for (const folder of folders) {
+  fs.statSync(folder).isDirectory();
 }
 
-function convertTest(filename) {
-  return new Promise(resolve => {
-    execFile(argv.bin, [
-      filename,
-      "--spec",
-      "-o", path.join(argv.output, changeExtension(filename, ".wast", ".json"))
-    ], () => {
-      // If an error occurs here, handle manually
-      // There are official test files that raise errors when converting and it's normal
-      resolve();
-    });
-  });
-}
-
-function hostFlags(specFile, {useFullpath} = {}) {
-  return `-on:wasm -args ${
-    useFullpath ? specFile : path.relative(rlRoot, specFile)
-  } -endargs`;
+function hostFlags(specFile) {
+  return `-wasm -args ${slash(specFile.relative)} -endargs`;
 }
 
 function getBaselinePath(specFile) {
-  return `${path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, ".json")))}.baseline`;
+  return `${slash(path.relative(rlRoot, path.join(baselineDir, specFile.basename)))}.baseline`;
 }
 
 function removePossiblyEmptyFolder(folder) {
@@ -92,19 +51,16 @@ function removePossiblyEmptyFolder(folder) {
   });
 }
 
-function main() {
-  const chakraTestsDestination = path.join(argv.suite, "chakra");
-  const chakraTests = require("./generateTests");
+function generateChakraTests() {
+  const chakraTestsDestination = path.join(rlRoot, "chakra");
 
-  return Promise.all([
-    removePossiblyEmptyFolder(argv.output),
-    removePossiblyEmptyFolder(chakraTestsDestination),
-  ]).then(() => {
-    fs.ensureDirSync(chakraTestsDestination);
-    return Promise.all(chakraTests.map(test => test.getContent(argv)
-      .then(content => new Promise((resolve, reject) => {
+  const chakraTests = require("./generateTests");
+  return removePossiblyEmptyFolder(chakraTestsDestination)
+    .then(() => fs.ensureDirAsync(chakraTestsDestination))
+    .then(() => Promise.all(chakraTests.map(test => test.getContent(rlRoot)
+      .then(content => {
         if (!content) {
-          return resolve();
+          return;
         }
         const testPath = path.join(chakraTestsDestination, `${test.name}.wast`);
         const copyrightHeader =
@@ -113,114 +69,160 @@ function main() {
 ;; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 ;;-------------------------------------------------------------------------------------------------------
 `;
-        fs.writeFile(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`, err => {
-          if (err) {
-            return reject(err);
-          }
-          return resolve();
-        });
-      }))));
-  }).then(() => new Promise((resolve, reject) => {
-    fs.ensureDirSync(argv.output);
-    const conversions = [];
-    fs.walk(argv.suite)
+        return fs.writeFileAsync(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`);
+      })
+    )));
+}
+
+function main() {
+  let runs;
+  return generateChakraTests(
+    // Walk all the folders to find test files
+  ).then(() => Bluebird.reduce(folders, (specFiles, folder) => new Promise((resolve) => {
+    fs.walk(folder)
       .on("data", item => {
-        if (
-          path.extname(item.path) === ".wast" &&
-          !argv.excludes.includes(path.basename(item.path, ".wast"))
+        const ext = path.extname(item.path);
+        const basename = path.basename(item.path, ext);
+        if ((
+            (ext === ".wast" && item.path.indexOf(".fail") === -1) ||
+            (ext === ".js")
+          ) &&
+          !config.excludes.includes(basename)
         ) {
-          conversions.push(convertTest(item.path));
+          specFiles.push({
+            path: item.path,
+            basename,
+            ext,
+            dirname: path.dirname(item.path),
+            relative: path.relative(rlRoot, item.path)
+          });
         }
-        /*
-        else if(path.extname(item.path) === ".js") {
-          const wastFilePath = path.join(path.dirname(item.path), changeExtension(item.path, ".js", ".wast"));
-          conversions.push(
-            (new Promise((resolve, reject) => {
-              const testDetails = require(item.path);
-              fs.writeFile(wastFilePath, `;;AUTO-GENERATED do not modify\n${testDetails}`, err => {
-                if (err) {
-                  return reject(err);
-                }
-                resolve();
-              });
-            }))
-            .then(() => convertTest(wastFilePath))
-          );
-        }*/
       })
       .on("end", () => {
-        Promise.all(conversions).then(resolve, reject);
+        resolve(specFiles);
       });
-  })).then(() => new Promise((resolve, reject) =>
-    fs.readdir(argv.output, (err, files) => {
-      if (err) {
-        return reject(err);
+  }), [])
+  ).then(specFiles => {
+    // Verify that no 2 file have the same name. We use the name as key even if they're in different folders
+    const map = {};
+    for (const file of specFiles) {
+      if (map[file.basename]) {
+        throw new Error(`Duplicate filename entry
+original : ${map[file.basename].path}
+duplicate: ${file.path}`);
       }
-      resolve(files
-        .filter(file => path.extname(file) === ".json")
-        .map(file => path.join(argv.output, file))
+      map[file.basename] = file;
+    }
+    return specFiles;
+  }).then(specFiles => {
+    const runners = {
+      ".wast": "spec.js",
+      ".js": "jsapi.js",
+    };
+    runs = specFiles.map(specFile => {
+      const ext = specFile.ext;
+      const basename = specFile.basename;
+      const dirname = path.dirname(specFile.path);
+
+      const useFeature = (allowRequired, feature) => !(allowRequired ^ feature.required) && (
+        (feature.files || []).includes(basename) ||
+        (feature.folders || []).map(folder => path.join(rlRoot, folder)).includes(dirname)
       );
-    })
-  )).then(specFiles => {
-    const cleanFullPaths = specFiles.map(specFile => new Promise((resolve, reject) => {
-      const specDescription = require(specFile);
-      for (const module of specDescription.modules) {
-        for (const command of module.commands) {
-          // Remove hardcoded path here
-          command.file = path.basename(command.file);
-        }
+
+      const isXplatExcluded = config["xplat-excludes"].indexOf(basename) !== -1;
+      const baseline = getBaselinePath(specFile);
+      const flags = hostFlags(specFile);
+      const runner = runners[ext];
+
+      const requiredFeature = config.features
+        // Use first required feature found
+        .filter(useFeature.bind(null, true))[0] ||
+        // Or use default
+        {rltags: [], flags: []};
+
+      const tests = [{
+        runner,
+        tags: [].concat(requiredFeature.rltags || []),
+        baseline,
+        flags: [flags].concat(requiredFeature.flags || [])
+      }, {
+        runner,
+        tags: ["exclude_dynapogo"].concat(requiredFeature.rltags || []),
+        baseline,
+        flags: [flags, "-nonative"].concat(requiredFeature.flags || [])
+      }].concat(config.features
+        .filter(useFeature.bind(null, false))
+        .map(feature => ({
+          runner,
+          baseline,
+          tags: [].concat(feature.rltags || []),
+          flags: [flags].concat(feature.flags || [])
+        }))
+      );
+      if (isXplatExcluded) {
+        for (const test of tests) test.tags.push("exclude_xplat");
       }
-      fs.writeFile(
-        specFile,
-        jsBeautify(
-          JSON.stringify(specDescription),
-          {indent_size: 2, end_with_newline: true}
-        ), err => {
-          if (err) {
-            return reject(err);
-          }
-          resolve();
-        }
-      );
-    }));
+      return tests;
+    });
     const rlexe = (
 `<?xml version="1.0" encoding="utf-8"?>
 <!-- Auto Generated by convert-test-suite -->
 <regress-exe>${
-  specFiles.map(specFile => `
+  runs.map(run => run.map(test => `
   <test>
     <default>
-      <files>spec.js</files>
-      <baseline>${getBaselinePath(specFile)}</baseline>
-      <compile-flags>${hostFlags(specFile)}</compile-flags>
+      <files>${test.runner}</files>
+      <baseline>${test.baseline}</baseline>
+      <compile-flags>${test.flags.join(" ")}</compile-flags>${test.tags.length > 0 ? `
+      <tags>${test.tags.join(",")}</tags>` : ""}
     </default>
-  </test>`
-  ).join("")
+  </test>`).join("")).join("")
 }
 </regress-exe>
 `);
-    fs.writeFileSync(path.join(__dirname, "..", "rlexe.xml"), rlexe);
-    return Promise.all(cleanFullPaths).then(() => Promise.resolve(specFiles));
-  }).then(specFiles => {
+    return fs.writeFileAsync(path.join(rlRoot, "rlexe.xml"), rlexe);
+  }).then(() => {
     if (!argv.rebase) {
       return;
     }
     fs.removeSync(baselineDir);
     fs.ensureDirSync(baselineDir);
-    return Promise.all(specFiles.map(specFile => new Promise((resolve, reject) => {
-      const baseline = fs.createWriteStream(getBaselinePath(specFile));
-      const args = [path.resolve(rlRoot, "spec.js"), "-nonative"].concat(stringArgv(hostFlags(specFile, {useFullpath: true})));
-      console.log(argv.rebase, args.join(" "));
-      const engine = spawn(
-        argv.rebase,
-        args,
-        {cwd: rlRoot}
-      );
-      engine.stdout.pipe(baseline);
-      engine.stderr.pipe(baseline);
-      engine.on("error", reject);
-      engine.on("close", resolve);
-    })));
+    const startRuns = runs.map(run => () => new Bluebird((resolve, reject) => {
+      const test = run[0];
+      const baseline = fs.createWriteStream(test.baseline);
+      baseline.on("open", () => {
+        const args = [path.resolve(rlRoot, test.runner)].concat(test.flags);
+        console.log(argv.rebase, args.join(" "));
+        const engine = spawn(
+          argv.rebase,
+          args,
+          {
+            cwd: rlRoot,
+            stdio: [baseline, baseline, baseline],
+            shell: true
+          }
+        );
+        engine.on("error", reject);
+        engine.on("close", resolve);
+      });
+      baseline.on("error", reject);
+    }));
+
+    const cucurrentRuns = 8;
+    let running = startRuns.splice(0, cucurrentRuns).map(start => start());
+    return new Promise((resolve, reject) => {
+      const checkIfContinue = () => {
+        // Keep only runs that are not done
+        running = running.filter(run => !run.isFulfilled());
+        // If we have nothing left to run, terminate
+        if (running.length === 0 && startRuns.length === 0) {
+          return resolve();
+        }
+        running.push(...(startRuns.splice(0, cucurrentRuns - running.length).map(start => start())));
+        Bluebird.any(running).then(checkIfContinue).catch(reject);
+      };
+      checkIfContinue();
+    });
   });
 }
 

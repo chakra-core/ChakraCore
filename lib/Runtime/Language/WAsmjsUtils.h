@@ -15,8 +15,22 @@ namespace WAsmJs
     static const double SIMD_SLOTS_SPACE = (sizeof(SIMDValue) / sizeof(Js::Var)); // 4 in x86 and 2 in x64
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    void TraceAsmJsArgsIn(Js::Var function, int n, ...);
+    namespace Tracing
+    {
+        int GetPrintCol();
+        void PrintArgSeparator();
+        void PrintBeginCall();
+        void PrintNewLine();
+        void PrintEndCall(int hasReturn);
+        template <class T> void PrintEndCall(const unaligned T* playout) { PrintEndCall(playout->I1); }
+        int PrintI32(int val);
+        int64 PrintI64(int64 val);
+        float PrintF32(float val);
+        double PrintF64(double val);
+    }
 #endif
+    void JitFunctionIfReady(class Js::ScriptFunction* func, uint interpretedCount = 0);
+    bool ShouldJitFunction(class Js::FunctionBody* body, uint interpretedCount = 0);
 
     typedef Js::RegSlot RegSlot;
 
@@ -242,13 +256,13 @@ namespace WAsmJs
     struct TypedSlotInfo
     {
         TypedSlotInfo(): constCount(0), varCount(0), tmpCount(0), byteOffset(0), constSrcByteOffset(0) { }
-        uint32 constCount;
-        uint32 varCount;
-        uint32 tmpCount;
+        Field(uint32) constCount;
+        Field(uint32) varCount;
+        Field(uint32) tmpCount;
         // Offset in bytes from the start of InterpreterStack::m_localSlot
-        uint32 byteOffset;
+        Field(uint32) byteOffset;
         // Offset in bytes from the start of the const table before shuffling (InterpreterStackFrame::AlignMemoryForAsmJs())
-        uint32 constSrcByteOffset;
+        Field(uint32) constSrcByteOffset;
     };
 
     typedef RegisterSpace*(*AllocateRegisterSpaceFunc)(ArenaAllocator*, WAsmJs::Types);

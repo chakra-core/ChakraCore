@@ -16,12 +16,10 @@ JsrtContext::JsrtContext(JsrtRuntime * runtime) :
 void JsrtContext::SetJavascriptLibrary(Js::JavascriptLibrary * library)
 {
     this->javascriptLibrary = library;
-}
-
-void JsrtContext::PinCurrentJsrtContext()
-{
-    Assert(this->javascriptLibrary);
-    this->javascriptLibrary->PinJsrtContextObject(this);
+    if (this->javascriptLibrary)
+    {
+        this->javascriptLibrary->SetJsrtContext(this);
+    }
 }
 
 void JsrtContext::Link()
@@ -89,6 +87,9 @@ bool JsrtContext::TrySetCurrent(JsrtContext * context)
         {
             return false;
         }
+        // no need to rootAddRef and Release for the same context
+        if (s_tlvSlot == context) return true;
+
         threadContext->GetRecycler()->RootAddRef((LPVOID)context);
     }
     else
@@ -107,10 +108,6 @@ bool JsrtContext::TrySetCurrent(JsrtContext * context)
 
     s_tlvSlot = context;
     return true;
-}
-
-void JsrtContext::Finalize(bool isShutdown)
-{
 }
 
 void JsrtContext::Mark(Recycler * recycler)

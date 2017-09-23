@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+  <metadata>
+    <id>Microsoft.ChakraCore.X86</id>
+    <!-- Note: actual version number is overridden by the NuGet package creation command. -->
+    <version>$version$</version>
+    <authors>Chakra Team</authors>
+    <owners>Chakra Team</owners>
+    <licenseUrl>https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt</licenseUrl>
+    <projectUrl>https://github.com/Microsoft/ChakraCore</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <developmentDependency>true</developmentDependency>
+    <description>ChakraCore is the core part of the Chakra Javascript engine that powers Microsoft Edge.</description>
+    <releaseNotes>https://github.com/Microsoft/ChakraCore/wiki/Roadmap#release-notes</releaseNotes>
+    <copyright>Copyright (C) 2016 Microsoft</copyright>
+    <language>en-US</language>
+    <tags>Chakra,ChakraCore,javascript,js,ecmascript,compiler,platform,oss,opensource,native</tags>
+    <dependencies>
+      <group targetFramework=".NETStandard1.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="_._" target="lib\netstandard1.0\"/>
+
+    <file src="Microsoft.ChakraCore.X86.props" target="build\netstandard1.0"/>
+    
+    <file src="..\VcBuild\bin\x86_release\ChakraCore.dll" target="runtimes\win7-x86\native\ChakraCore.dll" />
+  </files>
+</package>

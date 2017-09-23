@@ -2,8 +2,20 @@
 <regress-exe>
   <test>
     <default>
+      <files>bug_issue_2747.js</files>
+      <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>lambda1.js</files>
       <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>lambda-expr.js</files>
+      <baseline>lambda-expr.baseline</baseline>
     </default>
   </test>
   <test>
@@ -15,13 +27,13 @@
   <test>
     <default>
       <files>lambda-params-shadow.js</files>
-      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-off:deferparse -es7asyncawait</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>lambda-params-shadow.js</files>
-      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-force:deferparse -es7asyncawait</compile-flags>
     </default>
   </test>
   <test>
@@ -66,14 +78,6 @@
     <default>
       <files>BugFix2214646.js</files>
       <tags>BugFix</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>toPrimitiveJitBug654983.js</files>
-      <compile-flags>-trace:bailout</compile-flags>
-      <!-- This test sometimes fails with bailout trace output.  Pending investigation in bug OS 5244610. -->
-      <tags>fail</tags>
     </default>
   </test>
   <test>
@@ -126,12 +130,14 @@
       <baseline>proto_basic.baseline</baseline>
     </default>
   </test>
+  <!-- Microsoft/ChakraCore#2667 - Fix and Re-enable flaky test proto_disable.js
   <test>
     <default>
       <files>proto_disable.js</files>
       <baseline>proto_disable.baseline</baseline>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>proto_initializer.js</files>
@@ -498,33 +504,6 @@
   </test>
   <test>
     <default>
-      <files>es6_stable.js</files>
-      <!-- Disable OOP JIT which would cause output to print twice. -->
-      <compile-flags>-verbose -es6 -ES6DefaultArgs -oopjit- -WERExceptionSupport</compile-flags>
-      <baseline>es6_stable.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>es6_stable.js</files>
-      <!-- Disable OOP JIT which would cause output to print twice. -->
-      <compile-flags>-verbose -es6 -es6- -ES6DefaultArgs -oopjit- -WERExceptionSupport</compile-flags>
-      <baseline>es6_stable.enable_disable.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>es6_all.js</files>
-      <!-- Disable OOP JIT which would cause output to print twice. -->
-      <compile-flags>-verbose -es6all -oopjit- -WERExceptionSupport</compile-flags>
-      <baseline>es6_all.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>normalize.js</files>
       <baseline>normalize.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
@@ -541,7 +520,6 @@
       <files>unicode_escape_sequences.js</files>
       <baseline>unicode_escape_sequences.baseline</baseline>
       <compile-flags> -ES6Unicode -ES6RegExSticky</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -549,7 +527,7 @@
       <files>unicode_6_identifiers_utf8.js</files>
       <baseline>unicode_6_identifiers_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_win7,exclude_ship</tags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -557,7 +535,6 @@
       <files>unicode_regex_surrogate_atoms.js</files>
       <baseline>unicode_regex_surrogate_atoms.baseline</baseline>
       <compile-flags> -ES6Unicode -ES6RegExSticky</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -587,6 +564,16 @@
   <test>
     <default>
       <files>CrossContextSpreadfunctionCall.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>CrossContextPromiseFile1.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>CrossContextPromise.js</files>
     </default>
   </test>
   <test>
@@ -671,7 +658,7 @@
       <files>unicode_regex_surrogate_utf8.js</files>
       <baseline>unicode_regex_surrogate_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode -ES6RegExSticky</compile-flags>
-      <tags>exclude_ship,Slow</tags>
+      <tags>Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
@@ -680,7 +667,6 @@
       <files>unicode_blue_533163_utf8.js</files>
       <baseline>unicode_blue_533163_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -744,6 +730,11 @@
   </test>
   <test>
     <default>
+      <files>proxycall.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>proxyenumremoval.js</files>
     </default>
   </test>
@@ -791,19 +782,25 @@
   <test>
     <default>
       <files>default-splitscope.js</files>
-      <compile-flags>-off:deferparse -ES6DefaultArgsSplitScope -args summary -endargs</compile-flags>
+      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>default-splitscope.js</files>
-      <compile-flags>-force:deferparse -ES6DefaultArgsSplitScope -args summary -endargs</compile-flags>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>default-splitscope-undodeferparse.js</files>
-      <compile-flags>-forceundodefer -ES6DefaultArgsSplitScope</compile-flags>
+      <compile-flags>-forceundodefer</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>default-splitscope-serialized.js</files>
+      <compile-flags>-forceserialized</compile-flags>
     </default>
   </test>
   <test>
@@ -821,21 +818,21 @@
   <test>
     <default>
       <files>generators-syntax.js</files>
-      <compile-flags>-ES6Generators -JitES6Generators -ES6Classes -ES6DefaultArgs -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Generators -ES6Classes -ES6DefaultArgs -args summary -endargs</compile-flags>
       <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
     <default>
       <files>generators-deferparse.js</files>
-      <compile-flags>-force:deferparse -ES6Generators -JitES6Generators -ES6Classes -ES6DefaultArgs</compile-flags>
+      <compile-flags>-force:deferparse -ES6Generators -ES6Classes -ES6DefaultArgs</compile-flags>
       <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
     <default>
       <files>generators-apis.js</files>
-      <compile-flags>-ES6Generators -JitES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Generators -args summary -endargs</compile-flags>
       <tags>exclude_arm</tags>
     </default>
   </test>
@@ -850,14 +847,14 @@
   <test>
     <default>
       <files>generators-deferred.js</files>
-      <compile-flags>-ES6Generators -JitES6Generators -ES6Classes -force:deferparse</compile-flags>
+      <compile-flags>-ES6Generators -ES6Classes -force:deferparse</compile-flags>
       <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
     <default>
       <files>generators-deferred.js</files>
-      <compile-flags>-ES6Generators -JitES6Generators -ES6Classes -serialized</compile-flags>
+      <compile-flags>-ES6Generators -ES6Classes -serialized</compile-flags>
       <tags>exclude_arm,exclude_forceserialized</tags>
     </default>
   </test>
@@ -871,7 +868,7 @@
   <test>
     <default>
       <files>generators-cachedscope.js</files>
-      <compile-flags>-ES6Generators -JitES6Generators</compile-flags>
+      <compile-flags>-ES6Generators</compile-flags>
       <tags>exclude_arm</tags>
     </default>
   </test>
@@ -879,14 +876,14 @@
     <default>
       <files>generators-applyargs.js</files>
       <!-- -off:inlineapply triggers the use of the ApplyArgs bytecode -->
-      <compile-flags>-ES6Generators -JitES6Generators -off:inlineapply</compile-flags>
+      <compile-flags>-ES6Generators -off:inlineapply</compile-flags>
       <tags>exclude_arm</tags>
     </default>
   </test>
   <test>
     <default>
       <files>generators-applyargs.js</files>
-      <compile-flags>-ES6Generators -JitES6Generators</compile-flags>
+      <compile-flags>-ES6Generators</compile-flags>
       <tags>exclude_arm</tags>
     </default>
   </test>
@@ -906,6 +903,11 @@
     <default>
       <files>destructuring_params.js</files>
       <compile-flags>-ES6Rest -ES6Classes -ES6Destructuring -ES6DefaultArgs -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>destructuring_params_arguments_override.js</files>
     </default>
   </test>
   <test>
@@ -999,6 +1001,30 @@
   </test>
   <test>
     <default>
+      <files>regex-unicode-CaseInsensitive.js</files>
+    </default>
+  </test>
+  <!--
+    The following two tests take close to 60 seconds in interpreted mode on OS X test machines,
+    so increase the timeout and mark the test as Slow, since there is no need to include this test in non-Slow:
+    all of the important cases are covered in regex-unicode-CaseInsensitive.js
+  -->
+  <test>
+    <default>
+      <files>regex-unicode-CaseInsensitive-all-i.js</files>
+      <tags>Slow</tags>
+      <timeout>300</timeout>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regex-unicode-CaseInsensitive-all-iu.js</files>
+      <tags>Slow</tags>
+      <timeout>300</timeout>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>regex-set.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
@@ -1013,6 +1039,11 @@
     <default>
       <files>regex-symbols.js</files>
       <compile-flags>-ES6RegExSymbols -ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regex-w-sharp-s-kelvin-sign.js</files>
     </default>
   </test>
   <test>
@@ -1045,7 +1076,7 @@
       <files>utfbug.js</files>
       <baseline />
       <compile-flags>-dump:bytecode</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1147,119 +1178,118 @@
     </default>
   </test>
 
-<test>
+  <test>
     <default>
-        <files>ES6NewTarget.js</files>
-        <compile-flags>-es6classes -ES6Destructuring -args summary -endargs -es6generators</compile-flags>
+      <files>ES6NewTarget.js</files>
+      <compile-flags>-es6classes -ES6Destructuring -args summary -endargs -es6generators</compile-flags>
     </default>
-</test>
+  </test>
 
-<test>
+  <test>
     <default>
       <files>ES6NewTarget_bugfixes.js</files>
       <compile-flags>-ES6Classes -Off:Deferparse -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
       <files>ES6NewTarget_bugfixes.js</files>
       <compile-flags>-ES6Classes -Force:Deferparse -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
       <files>ES6NewTarget_bugfixes.js</files>
       <compile-flags>-ES6Classes -forceundodefer -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
-</test>
+  </test>
 
-<test>
+  <test>
     <default>
-        <files>ES6Class_SuperChain.js</files>
-        <compile-flags>-es6classes -args summary -endargs -es6generators</compile-flags>
+      <files>ES6Class_SuperChain.js</files>
+      <compile-flags>-es6classes -args summary -endargs -es6generators</compile-flags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>globalLambdaNewTargetSyntaxError.js</files>
-        <baseline>globalLambdaNewTargetSyntaxError.baseline</baseline>
-        <tags>exclude_dynapogo</tags>
+      <files>globalLambdaNewTargetSyntaxError.js</files>
+      <baseline>globalLambdaNewTargetSyntaxError.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>globalNewTargetSyntaxError.js</files>
-        <baseline>globalNewTargetSyntaxError.baseline</baseline>
-        <tags>exclude_dynapogo</tags>
+      <files>globalNewTargetSyntaxError.js</files>
+      <baseline>globalNewTargetSyntaxError.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>globalCatchNewTargetSyntaxError.js</files>
-        <baseline>globalCatchNewTargetSyntaxError.baseline</baseline>
-        <tags>exclude_dynapogo</tags>
+      <files>globalCatchNewTargetSyntaxError.js</files>
+      <baseline>globalCatchNewTargetSyntaxError.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>globalParamCatchNewTargetSyntaxError.js</files>
-        <baseline>globalParamCatchNewTargetSyntaxError.baseline</baseline>
-        <tags>exclude_dynapogo</tags>
-        <compile-flags>-ES6Destructuring</compile-flags>
+      <files>globalParamCatchNewTargetSyntaxError.js</files>
+      <baseline>globalParamCatchNewTargetSyntaxError.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+      <compile-flags>-ES6Destructuring</compile-flags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>ES6Class_BaseClassConstruction.js</files>
-        <compile-flags>-es6classes -args summary -endargs -es6generators</compile-flags>
+      <files>ES6Class_BaseClassConstruction.js</files>
+      <compile-flags>-es6classes -args summary -endargs -es6generators</compile-flags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>expo.js</files>
-        <compile-flags>-args summary -endargs -es7exponentiationoperator</compile-flags>
+      <files>expo.js</files>
+      <compile-flags>-args summary -endargs -es7exponentiationoperator</compile-flags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>trailingcomma.js</files>
-        <compile-flags>-args summary -endargs</compile-flags>
+      <files>trailingcomma.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>es6HasInstance.js</files>
-        <compile-flags>-args summary -endargs</compile-flags>
+      <files>es6HasInstance.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>ES6RestrictedProperties.js</files>
-        <compile-flags>-args summary -endargs</compile-flags>
+      <files>ES6RestrictedProperties.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>ES6Proto.js</files>
-        <compile-flags>-args summary -endargs</compile-flags>
+      <files>ES6Proto.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
       <files>object_literal_bug.js</files>
       <compile-flags>-ES6Destructuring -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
-</test>
+  </test>
   <test>
     <default>
       <files>OS_5403724.js</files>
-      <tags>BugFix,exclude_</tags>
+      <tags>BugFix,exclude_dynapogo</tags>
       <compile-flags>-maxinterpretcount:3 -off:simpleJit -ES6 -args summary -endargs</compile-flags>
-      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1268,108 +1298,184 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
-<test>
+  <test>
     <default>
-        <files>HTMLComments.js</files>
-        <baseline>HTMLComments.baseline</baseline>
+      <files>HTMLComments.js</files>
+      <baseline>HTMLComments.baseline</baseline>
     </default>
-</test>
-<test>
-  <default>
-    <files>await-futreserved-only-in-modules.js</files>
-    <compile-flags>-ES6Module</compile-flags>
-    <tags>exclude_dynapogo, exclude_xplat</tags>
-  </default>
-</test>
+  </test>
+  <test>
+    <default>
+      <files>await-futreserved-only-in-modules.js</files>
+      <compile-flags>-MuteHostErrorMsg -ES6Module</compile-flags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
+    </default>
+  </test>
   <test>
     <default>
       <files>moduletest1.js</files>
       <compile-flags>-ES6Module</compile-flags>
-      <tags>exclude_dynapogo, exclude_xplat</tags>
+      <tags>exclude_dynapogo,exclude_sanitize_address</tags>
     </default>
   </test>
-<test>
+  <test>
     <default>
-        <files>module-syntax.js</files>
-        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-        <tags>exclude_xplat</tags>
+      <files>moduletest2.js</files>
+      <compile-flags>-ES6Module</compile-flags>
+      <tags>exclude_dynapogo,exclude_sanitize_address</tags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>module-syntax1.js</files>
-        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-        <tags>exclude_xplat</tags>
+      <files>module-syntax.js</files>
+      <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
+      <tags>exclude_dynapogo,exclude_sanitize_address</tags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>module-functionality.js</files>
-        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-        <tags>exclude_xplat,exclude_dynapogo</tags>
+      <files>module-syntax1.js</files>
+      <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+      <tags>exclude_sanitize_address</tags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>module-syntax.js</files>
-        <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
-        <tags>exclude_xplat</tags>
+      <files>module-functionality.js</files>
+      <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
+      <tags>exclude_dynapogo,exclude_sanitize_address</tags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>module-syntax1.js</files>
-        <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
-        <tags>exclude_xplat</tags>
+      <files>dynamic-module-functionality.js</files>
+      <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+      <tags>exclude_sanitize_address</tags>
     </default>
-</test>
-<test>
+  </test>
+  <test>
     <default>
-        <files>module-namespace.js</files>
-        <compile-flags>-ES6Module -Es6ToStringTag</compile-flags>
-        <baseline>module-namespace.baseline</baseline>
-        <tags>exclude_xplat</tags>
+      <files>dynamic-module-import-specifier.js</files>
+      <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
+      <tags>exclude_sanitize_address</tags>
     </default>
-</test>
-<test>
-  <default>
-    <files>OS_5500719.js</files>
-    <compile-flags>-forceserialized</compile-flags>
-    <tags>exclude_dynapogo</tags>
-  </default>
-</test>
-<test>
-  <default>
-    <files>OS_8600339.js</files>
-    <compile-flags>-forceserialized</compile-flags>
-    <tags>exclude_dynapogo</tags>
-  </default>
-</test>
-<test>
-  <default>
-    <files>iteratorclose.js</files>
-    <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
-  </default>
-</test>
-<test>
-  <default>
-    <files>iteratorclose.js</files>
-    <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
-  </default>
-</test>
-<test>
-  <default>
-    <files>bug_issue_1496.js</files>
-    <compile-flags>-mic:1 -maxsimplejitruncount:2</compile-flags>
-    <baseline>bug_issue_1496.baseline</baseline>
-    <tags>BugFix</tags>
-  </default>
-</test>
-<test>
-  <default>
-    <files>typedarray_bugs.js</files>
-    <compile-flags>-args summary -endargs</compile-flags>
-    <tags>BugFix</tags>
-  </default>
-</test>
+  </test>
+  <test>
+    <default>
+      <files>module-syntax.js</files>
+      <compile-flags>-MuteHostErrorMsg -ES6Module -force:deferparse -args summary -endargs</compile-flags>
+      <tags>exclude_sanitize_address</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>module-syntax1.js</files>
+      <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
+      <tags>exclude_sanitize_address</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>module-namespace.js</files>
+      <compile-flags>-ES6Module -Es6ToStringTag -args summary -endargs</compile-flags>
+      <tags>exclude_sanitize_address</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>module-bugfixes.js</files>
+      <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+      <tags>exclude_dynapogo,exclude_sanitize_address,bugfix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_OS12095746.js</files>
+      <compile-flags>-MuteHostErrorMsg -IgnoreScriptErrorCode -TraceHostCallback -ES6Module</compile-flags>
+      <tags>exclude_dynapogo,exclude_sanitize_address,bugfix,exclude_drt</tags>
+      <baseline>bug_OS12095746.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>test_bug_2645.js</files>
+      <compile-flags>-ES6Module</compile-flags>
+      <tags>exclude_sanitize_address</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>OS_5500719.js</files>
+      <compile-flags>-forceserialized</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>OS_8600339.js</files>
+      <compile-flags>-forceserialized</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>iteratorclose.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>iteratorclose.js</files>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_issue_1496.js</files>
+      <compile-flags>-mic:1 -maxsimplejitruncount:2</compile-flags>
+      <baseline>bug_issue_1496.baseline</baseline>
+      <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_issue_3076.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+      <tags>BugFix,exclude_sanitize_address</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_issue_3247.js</files>
+      <baseline>bug_issue_3247.baseline</baseline>
+      <tags>BugFix,exclude_sanitize_address</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_issue_3257.js</files>
+      <baseline>bug_issue_3257.baseline</baseline>
+      <tags>BugFix,exclude_sanitize_address</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>typedarray_bugs.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug-OS10595959.js</files>
+      <compile-flags>-maxsimplejitruncount:1 -maxinterpretcount:1 -off:stackargopt -stress:bailonnoprofile -args summary -endargs</compile-flags>
+      <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_OS10898061.js</files>
+      <tags>BugFix</tags>
+    </default>
+  </test>
 </regress-exe>

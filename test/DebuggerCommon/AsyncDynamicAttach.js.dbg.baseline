@@ -1,0 +1,10 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "notAttachCall": "undefined undefined",
+      "i": "undefined undefined"
+    }
+  }
+]

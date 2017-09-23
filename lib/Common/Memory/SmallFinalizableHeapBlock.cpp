@@ -104,21 +104,47 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsi
 }
 
 template <class TBlockAttributes>
-_NOINLINE
-void
-SmallFinalizableHeapBlockT<TBlockAttributes>::ProcessMarkedObject(void* objectAddress, MarkContext * markContext)
+bool
+SmallFinalizableHeapBlockT<TBlockAttributes>::TryGetAttributes(void* objectAddress, unsigned char * pAttr)
+{
+    unsigned char * attributes = nullptr;
+    if (this->TryGetAddressOfAttributes(objectAddress, &attributes))
+    {
+        *pAttr = *attributes;
+        return true;
+    }
+    return false;
+}
+
+template <class TBlockAttributes>
+bool
+SmallFinalizableHeapBlockT<TBlockAttributes>::TryGetAddressOfAttributes(void* objectAddress, unsigned char ** ppAttrs)
 {
     ushort objectIndex = this->GetAddressIndex(objectAddress);
 
     if (objectIndex == SmallHeapBlockT<TBlockAttributes>::InvalidAddressBit)
     {
         // Not a valid offset within the block.  No further processing necessary.
+        return false;
+    }
+
+    *ppAttrs = &this->ObjectInfo(objectIndex);
+    return true;
+}
+
+template <class TBlockAttributes>
+template <bool doSpecialMark>
+_NOINLINE
+void
+SmallFinalizableHeapBlockT<TBlockAttributes>::ProcessMarkedObject(void* objectAddress, MarkContext * markContext)
+{
+    unsigned char * attributes = nullptr;
+    if (!this->TryGetAddressOfAttributes(objectAddress, &attributes))
+    {
         return;
     }
 
-    unsigned char * attributes = &this->ObjectInfo(objectIndex);
-
-    if (!this->UpdateAttributesOfMarkedObjects(markContext, objectAddress, this->objectSize, *attributes,
+    if (!this->template UpdateAttributesOfMarkedObjects<doSpecialMark>(markContext, objectAddress, this->objectSize, *attributes,
         [&](unsigned char _attributes) { *attributes = _attributes; }))
     {
         // Couldn't mark children- bail out and come back later
@@ -216,7 +242,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::RescanTrackedObject(FinalizableObj
     }
 
     RECYCLER_STATS_INC(recycler, trackCount);
-    RECYCLER_STATS_INC_IF(ObjectInfo(objectIndex) & FinalizeBit, recycler, finalizeCount);
+    RECYCLER_STATS_INC_IF(this->ObjectInfo(objectIndex) & FinalizeBit, recycler, finalizeCount);
 
     // We have processed this object as tracked, we can clear the NewTrackBit
     this->ObjectInfo(objectIndex) &= ~NewTrackBit;
@@ -445,7 +471,11 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::GetFreeObjectListOnAllocator(FreeO
 namespace Memory
 {
     template class SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>;
+    template void SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);
+    template void SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);
     template class SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>;
+    template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
+    template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
 
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;

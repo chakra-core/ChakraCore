@@ -50,6 +50,18 @@ namespace Js
         return set.Contains(NumberPair(x, y));
     }
 
+    NumberTrioSet::NumberTrioSet() : set(&NoCheckHeapAllocator::Instance) {}
+
+    void NumberTrioSet::Add(uint32 x, uint32 y, uint32 z)
+    {
+        set.Item(NumberTrio(x, y, z));
+    }
+
+    bool NumberTrioSet::Contains(uint32 x, uint32 y, uint32 z)
+    {
+        return set.Contains(NumberTrio(x, y, z));
+    }
+
     ///----------------------------------------------------------------------------
     ///----------------------------------------------------------------------------
     ///
@@ -141,6 +153,41 @@ namespace Js
         return false;
     }
 
+    template <>
+    Js::RangeUnit<Js::SourceFunctionNode> GetFullRange()
+    {
+        RangeUnit<SourceFunctionNode> unit;
+        unit.i.sourceContextId = 0;
+        unit.j.sourceContextId = UINT_MAX;
+        unit.i.functionId = 0;
+        unit.j.functionId = (uint)-3;
+        return unit;
+    }
+
+    template <>
+    SourceFunctionNode GetPrevious(SourceFunctionNode unit)
+    {
+        SourceFunctionNode prevUnit = unit;
+        prevUnit.functionId--;
+        if (prevUnit.functionId == UINT_MAX)
+        {
+            prevUnit.sourceContextId--;
+        }
+        return prevUnit;
+    }
+
+    template <>
+    SourceFunctionNode GetNext(SourceFunctionNode unit)
+    {
+        SourceFunctionNode nextUnit = unit;
+        nextUnit.functionId++;
+        if (nextUnit.functionId == 0)
+        {
+            nextUnit.sourceContextId++;
+        }
+        return nextUnit;
+    }
+
     ///----------------------------------------------------------------------------
     ///----------------------------------------------------------------------------
     ///
@@ -179,6 +226,13 @@ namespace Js
     Phases::Enable(Phase phase)
     {
         this->phaseList[(int)phase].valid = true;
+    }
+
+    void
+    Phases::Disable(Phase phase)
+    {
+        this->phaseList[(int)phase].valid = false;
+        this->phaseList[(int)phase].range.Clear();
     }
 
     Phase
@@ -308,6 +362,19 @@ namespace Js
         return reinterpret_cast<Phases*>(GetProperty(flag));
     }
 
+    Flag
+    ConfigFlagsTable::GetOppositePhaseFlag(Flag flag) const
+    {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        switch (flag)
+        {
+        case OnFlag: return OffFlag;
+        case OffFlag: return OnFlag;
+        }
+#endif
+        return InvalidFlag;
+    }
+
     Boolean *
     ConfigFlagsTable::GetAsBoolean(Flag flag)  const
     {
@@ -330,6 +397,12 @@ namespace Js
     ConfigFlagsTable::GetAsNumberPairSet(Flag flag)  const
     {
         return reinterpret_cast<NumberPairSet* >(GetProperty(flag));
+    }
+
+    NumberTrioSet *
+    ConfigFlagsTable::GetAsNumberTrioSet(Flag flag) const
+    {
+        return reinterpret_cast<NumberTrioSet*>(GetProperty(flag));
     }
 
     NumberRange *
@@ -832,6 +905,9 @@ namespace Js
             case FlagNumberPairSet:
                 printf("[:NumberPairSet] ");
                 break;
+            case FlagNumberTrioSet:
+                printf("[:NumberTrioSet] ");
+                break;
             case FlagNumberRange:
                 printf("[:NumberRange]   ");
                 break;
@@ -957,6 +1033,7 @@ namespace Js
 #define FLAGDEFAULTNumberSet(name, defaultValue)
 #define FLAGDEFAULTNumberRange(name, defaultValue)
 #define FLAGDEFAULTNumberPairSet(name, defaultValue)
+#define FLAGDEFAULTNumberTrioSet(name, defaultValue)
             //   * and those we do care about
 #define FLAGDEFAULTBoolean(name, defaultValue) \
         case name##Flag: \
@@ -968,6 +1045,7 @@ namespace Js
 #undef FLAGDEFAULTBoolean
 #undef FLAGDEFAULTNumberRange
 #undef FLAGDEFAULTNumberPairSet
+#undef FLAGDEFAULTNumberTrioSet
 #undef FLAGDEFAULTNumberSet
 #undef FLAGDEFAULTNumber
 #undef FLAGDEFAULTString
@@ -977,6 +1055,7 @@ namespace Js
 #undef FLAGREGOVREXPBoolean
 #undef FLAGREGOVREXPNumberRange
 #undef FLAGREGOVREXPNumberPairSet
+#undef FLAGREGOVREXPNumberTrioSet
 #undef FLAGREGOVREXPNumberSet
 #undef FLAGREGOVREXPNumber
 #undef FLAGREGOVREXPString
@@ -985,6 +1064,7 @@ namespace Js
 #undef FLAGREGOVRBoolean
 #undef FLAGREGOVRNumberRange
 #undef FLAGREGOVRNumberPairSet
+#undef FLAGREGOVRNumberTrioSet
 #undef FLAGREGOVRNumberSet
 #undef FLAGREGOVRNumber
 #undef FLAGREGOVRString
@@ -1052,6 +1132,7 @@ namespace Js
 #define FLAGDOCALLBACKNumber(name)        Assert(false);
 #define FLAGDOCALLBACKNumberSet(name)     Assert(false);
 #define FLAGDOCALLBACKNumberPairSet(name) Assert(false);
+#define FLAGDOCALLBACKNumberTrioSet(name) Assert(false);
             //   * and those we do care about
 #define FLAGDOCALLBACKBoolean(name)       if( flag == name##Flag ) this->FlagSetCallback_##name(value);
 
@@ -1060,6 +1141,7 @@ namespace Js
 #undef FLAGDOCALLBACKBoolean
 #undef FLAGDOCALLBACKNumberRange
 #undef FLAGDOCALLBACKNumberPairSet
+#undef FLAGDOCALLBACKNumberTrioSet
 #undef FLAGDOCALLBACKNumberSet
 #undef FLAGDOCALLBACKNumber
 #undef FLAGDOCALLBACKString

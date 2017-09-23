@@ -1,10 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
       <files>constructor.js</files>
       <baseline>constructor.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -73,9 +72,11 @@
         <files>toLocaleStringBasics.js</files>
         <baseline>toLocaleStringBasics.baseline</baseline>
         <compile-flags>-args summary -endargs</compile-flags>
+        <!-- The output is different on windows with Intl off, may want to merge the windows and linux implementation -->
+        <tags>Intl</tags>
     </default>
   </test>
-  <!-- Disabled until we can resolve failures on Windows Server 2012 R2
+  <!-- Disabled until we can resolve failures on Windows Server 2012 R2 (Microsoft/ChakraCore#3030)
 <test>
     <default>
         <files>toLocaleString.js</files>
@@ -172,7 +173,7 @@
   <test>
     <default>
       <files>Slow.js</files>
-      <tags>exclude_chk</tags>
+      <tags>exclude_chk,Slow</tags>
     </default>
   </test>
   <test>
@@ -221,7 +222,6 @@
   <test>
     <default>
       <files>propertyStrings.js</files>
-      <baseline>propertyStrings.baseline</baseline>
     </default>
   </test>
   <test>
@@ -258,6 +258,12 @@
     <default>
       <files>TypeSnapshotEnumeration.js</files>
       <baseline>TypeSnapshotEnumeration.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>TypeSnapshotEnumerationCachedType.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -off:ArrayCheckHoist -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -300,7 +306,6 @@
       <files>stackobject_dependency.js</files>
       <baseline />
       <compile-flags>-off:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -381,7 +386,6 @@
       <files>stackobject_dependency.js</files>
       <baseline />
       <compile-flags>-off:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -389,7 +393,6 @@
       <files>stackobject_dependency.js</files>
       <baseline />
       <compile-flags>-off:inline</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -418,6 +421,12 @@
       <files>ForInInline.js</files>
       <baseline>ForInInline.baseline</baseline>
       <compile-flags>-loopinterpretcount:1 -force:inline -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>forinenumcachebuiltin.js</files>
+      <baseline />
     </default>
   </test>
 </regress-exe>

@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "CommonDefines.h"
 #include "CommonMin.h"
 
 #ifdef _MSC_VER
@@ -14,7 +13,3 @@
 #endif
 #pragma warning(pop)
 #endif
-
-
-
-

@@ -11,6 +11,21 @@ namespace Js
     DEFINE_RECYCLER_TRACKER_PERF_COUNTER(ConcatString);
 
     // Note: see also: ConcatString.inl
+    LiteralStringWithPropertyStringPtr::LiteralStringWithPropertyStringPtr(StaticType* stringType) :
+        LiteralString(stringType),
+        propertyString(nullptr)
+    {
+    }
+
+    PropertyString * LiteralStringWithPropertyStringPtr::GetPropertyString() const
+    {
+        return this->propertyString;
+    }
+
+    void LiteralStringWithPropertyStringPtr::SetPropertyString(PropertyString * propStr)
+    {
+        this->propertyString = propStr;
+    }
 
     /////////////////////// ConcatStringBase //////////////////////////
 
@@ -129,7 +144,7 @@ namespace Js
 
     ConcatStringBuilder::ConcatStringBuilder(ScriptContext* scriptContext, int initialSlotCount) :
         ConcatStringBase(scriptContext->GetLibrary()->GetStringTypeStatic()),
-        m_count(0), m_prevChunk(NULL)
+        m_count(0), m_prevChunk(nullptr)
     {
         Assert(scriptContext);
 
@@ -164,10 +179,11 @@ namespace Js
         ConcatStringBuilder* current = this;
         while (current != NULL)
         {
-            memset(current->m_slots, 0, current->m_count * sizeof(JavascriptString*));
+            ClearArray(current->m_slots, current->m_count);
             current = current->m_prevChunk;
         }
 
+        LiteralStringWithPropertyStringPtr::ConvertString(this);
         return sz;
     }
 
@@ -194,8 +210,9 @@ namespace Js
             if (newSlotCount <= c_maxChunkSlotCount)
             {
                 // While we fit into MAX chunk size, realloc/grow current chunk.
-                JavascriptString** newSlots = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), JavascriptString*, newSlotCount);
-                memcpy_s(newSlots, newSlotCount * sizeof(JavascriptString*), m_slots, m_slotCount * sizeof(JavascriptString*));
+                Field(JavascriptString*)* newSlots = RecyclerNewArray(
+                    this->GetScriptContext()->GetRecycler(), Field(JavascriptString*), newSlotCount);
+                CopyArray(newSlots, newSlotCount, m_slots, m_slotCount);
                 m_slots = newSlots;
                 m_slotCount = newSlotCount;
             }
@@ -226,12 +243,12 @@ namespace Js
         if (requestedSlotCount > 0)
         {
             m_slotCount = min(requestedSlotCount, this->c_maxChunkSlotCount);
-            m_slots = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), JavascriptString*, m_slotCount);
+            m_slots = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Field(JavascriptString*), m_slotCount);
         }
         else
         {
             m_slotCount = 0;
-            m_slots = 0;
+            m_slots = nullptr;
         }
     }
 
@@ -303,7 +320,7 @@ namespace Js
         ConcatStringBase(stringTypeStatic), slotCount(slotCount)
     {
 #if DBG
-        memset(m_slots, 0, slotCount * sizeof(JavascriptString* ));
+        ClearArray(m_slots, slotCount);
 #endif
         m_slots[0] = CompoundString::GetImmutableOrScriptUnreferencedString(a1);
         m_slots[1] = CompoundString::GetImmutableOrScriptUnreferencedString(a2);
@@ -345,8 +362,9 @@ namespace Js
         const char16 * sz = GetSzImpl<ConcatStringMulti>();
 
         // Allow slots to be garbage collected if no more refs.
-        memset(m_slots, 0, slotCount * sizeof(JavascriptString*));
+        ClearArray(m_slots, slotCount);
 
+        LiteralStringWithPropertyStringPtr::ConvertString(this);
         return sz;
     }
 

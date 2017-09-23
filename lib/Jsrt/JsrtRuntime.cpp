@@ -27,17 +27,21 @@ JsrtRuntime::JsrtRuntime(ThreadContext * threadContext, bool useIdle, bool dispa
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     serializeByteCodeForLibrary = false;
 #endif
+#ifdef ENABLE_SCRIPT_DEBUGGING
     this->jsrtDebugManager = nullptr;
+#endif
 }
 
 JsrtRuntime::~JsrtRuntime()
 {
     HeapDelete(allocationPolicyManager);
+#ifdef ENABLE_SCRIPT_DEBUGGING
     if (this->jsrtDebugManager != nullptr)
     {
         HeapDelete(this->jsrtDebugManager);
         this->jsrtDebugManager = nullptr;
     }
+#endif
 }
 
 // This is called at process detach.
@@ -57,9 +61,16 @@ void JsrtRuntime::Uninitialize()
         tmpThreadContext = currentThreadContext;
         currentThreadContext = currentThreadContext->Next();
 
+#ifdef CHAKRA_STATIC_LIBRARY
+        // xplat-todo: Cleanup staticlib shutdown. This only shuts down threads.
+        // Other closing contexts / finalizers having trouble with current
+        // runtime/context.
+        RentalThreadContextManager::DestroyThreadContext(tmpThreadContext);
+#else
         currentRuntime->CloseContexts();
         RentalThreadContextManager::DestroyThreadContext(tmpThreadContext);
         HeapDelete(currentRuntime);
+#endif
     }
 }
 
@@ -119,6 +130,7 @@ unsigned int JsrtRuntime::Idle()
     return this->threadService.Idle();
 }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 void JsrtRuntime::EnsureJsrtDebugManager()
 {
     if (this->jsrtDebugManager == nullptr)
@@ -141,3 +153,28 @@ JsrtDebugManager * JsrtRuntime::GetJsrtDebugManager()
 {
     return this->jsrtDebugManager;
 }
+
+#if ENABLE_TTD
+uint32 JsrtRuntime::BPRegister_TTD(int64 bpID, Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* utf8SourceInfo, uint32 line, uint32 column, BOOL* isNewBP)
+{
+    TTDAssert(this->jsrtDebugManager != nullptr, "This needs to be setup before registering any breakpoints.");
+
+    Js::BreakpointProbe* probe = this->jsrtDebugManager->SetBreakpointHelper_TTD(bpID, scriptContext, utf8SourceInfo, line, column, isNewBP);
+    return probe->GetId();
+}
+
+void JsrtRuntime::BPDelete_TTD(uint32 bpID)
+{
+    TTDAssert(this->jsrtDebugManager != nullptr, "This needs to be setup before deleting any breakpoints.");
+
+    this->jsrtDebugManager->GetDebugDocumentManager()->RemoveBreakpoint(bpID);
+}
+
+void JsrtRuntime::BPClearDocument_TTD()
+{
+    TTDAssert(this->jsrtDebugManager != nullptr, "This needs to be setup before deleting any breakpoints.");
+
+    this->jsrtDebugManager->ClearBreakpointDebugDocumentDictionary();
+}
+#endif
+#endif

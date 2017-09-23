@@ -20,9 +20,10 @@ namespace TTD
         uint64 reservedSpace = 0;
         this->ComputeSnapshotMemory(&usedSpace, &reservedSpace);
 
-        writer->WriteDouble(NSTokens::Key::timeTotal, this->MarkTime + this->ExtractTime);
+        writer->WriteDouble(NSTokens::Key::timeTotal, this->GCTime + this->MarkTime + this->ExtractTime);
         writer->WriteUInt64(NSTokens::Key::usedMemory, usedSpace, NSTokens::Separator::CommaSeparator);
         writer->WriteUInt64(NSTokens::Key::reservedMemory, reservedSpace, NSTokens::Separator::CommaSeparator);
+        writer->WriteDouble(NSTokens::Key::timeGC, this->GCTime, NSTokens::Separator::CommaSeparator);
         writer->WriteDouble(NSTokens::Key::timeMark, this->MarkTime, NSTokens::Separator::CommaSeparator);
         writer->WriteDouble(NSTokens::Key::timeExtract, this->ExtractTime, NSTokens::Separator::CommaSeparator);
 
@@ -39,9 +40,19 @@ namespace TTD
         writer->AdjustIndent(-1);
         writer->WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
 
-        writer->WriteLogTag(NSTokens::Key::ctxTag, this->m_activeScriptContext, NSTokens::Separator::CommaSeparator);
-        SnapShot::EmitListHelper(&SnapShot::SnapRootPinEntryEmit, this->m_globalRootList, writer);
-        SnapShot::EmitListHelper(&SnapShot::SnapRootPinEntryEmit, this->m_localRootList, writer);
+        writer->WriteLengthValue(this->m_tcSymbolRegistrationMapContents.Count(), NSTokens::Separator::CommaAndBigSpaceSeparator);
+        writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+        bool firstTCSymbol = true;
+        for(auto iter = this->m_tcSymbolRegistrationMapContents.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            writer->WriteNakedUInt32((uint32)*iter.Current(), firstTCSymbol ? NSTokens::Separator::NoSeparator : NSTokens::Separator::CommaSeparator);
+
+            firstTCSymbol = false;
+        }
+        writer->WriteSequenceEnd();
+
+        writer->WriteLogTag(NSTokens::Key::ctxTag, this->m_activeScriptContext, NSTokens::Separator::CommaAndBigSpaceSeparator);
+        SnapShot::EmitListHelper(&SnapShot::SnapRootPinEntryEmit, this->m_rootList, writer);
 
         ////
         SnapShot::EmitListHelper(&NSSnapType::EmitSnapHandler, this->m_handlerList, writer);
@@ -95,10 +106,11 @@ namespace TTD
         reader->ReadDouble(NSTokens::Key::timeTotal);
         reader->ReadUInt64(NSTokens::Key::usedMemory, true);
         reader->ReadUInt64(NSTokens::Key::reservedMemory, true);
+        reader->ReadDouble(NSTokens::Key::timeGC, true);
         reader->ReadDouble(NSTokens::Key::timeMark, true);
         reader->ReadDouble(NSTokens::Key::timeExtract, true);
 
-        SnapShot* snap = TT_HEAP_NEW(SnapShot);
+        SnapShot* snap = TT_HEAP_NEW(SnapShot, 0.0);
 
         uint32 ctxCount = reader->ReadLengthValue(true);
         reader->ReadSequenceStart_WDefaultKey(true);
@@ -109,9 +121,17 @@ namespace TTD
         }
         reader->ReadSequenceEnd();
 
+        uint32 tcSymbolCount = reader->ReadLengthValue(true);
+        reader->ReadSequenceStart_WDefaultKey(true);
+        for(uint32 i = 0; i < tcSymbolCount; ++i)
+        {
+            Js::PropertyId* symid = snap->m_tcSymbolRegistrationMapContents.NextOpenEntry();
+            *symid = reader->ReadNakedUInt32(i != 0);
+        }
+        reader->ReadSequenceEnd();
+
         snap->m_activeScriptContext = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
-        SnapShot::ParseListHelper(&SnapShot::SnapRootPinEntryParse, snap->m_globalRootList, reader, snap->GetSnapshotSlabAllocator());
-        SnapShot::ParseListHelper(&SnapShot::SnapRootPinEntryParse, snap->m_localRootList, reader, snap->GetSnapshotSlabAllocator());
+        SnapShot::ParseListHelper(&SnapShot::SnapRootPinEntryParse, snap->m_rootList, reader, snap->GetSnapshotSlabAllocator());
 
         ////
 
@@ -190,7 +210,7 @@ namespace TTD
             res = ctx->TTDWellKnownInfo->LookupKnownObjectFromPath(snpObject->OptWellKnownToken);
 
             //Well known objects may always be dirty (e.g. we are re-using a context) so we always want to clean them
-            res = NSSnapObjects::ObjectPropertyReset(snpObject, Js::DynamicObject::FromVar(res), inflator, true);
+            res = NSSnapObjects::ObjectPropertyReset_WellKnown(snpObject, Js::DynamicObject::FromVar(res), inflator);
             TTDAssert(res != nullptr, "Should always produce a result!!!");
         }
         else
@@ -217,27 +237,12 @@ namespace TTD
 
     void SnapShot::ReLinkThreadContextInfo(InflateMap* inflator, ThreadContextTTD* intoCtx) const
     {
-        for(auto iter = this->m_globalRootList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        for(auto iter = this->m_rootList.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            const SnapRootPinEntry* rootEntry = iter.Current();
+            const NSSnapValues::SnapRootInfoEntry* rootEntry = iter.Current();
             Js::RecyclableObject* rootObj = inflator->LookupObject(rootEntry->LogObject);
 
-            if(ThreadContextTTD::IsSpecialRootObject(rootObj))
-            {
-                intoCtx->AddTrackedRootSpecial(rootEntry->LogId, rootObj);
-            }
-            else
-            {
-                intoCtx->AddTrackedRootGeneral(rootEntry->LogId, rootObj);
-            }
-        }
-
-        for(auto iter = this->m_localRootList.GetIterator(); iter.IsValid(); iter.MoveNext())
-        {
-            const SnapRootPinEntry* rootEntry = iter.Current();
-            Js::RecyclableObject* rootObj = inflator->LookupObject(rootEntry->LogObject);
-
-            intoCtx->AddLocalRoot(rootEntry->LogId, rootObj);
+            intoCtx->ForceSetRootInfoInRestore(rootEntry->LogId, rootObj, rootEntry->MaybeLongLivedRoot);
         }
 
         if(this->m_activeScriptContext == TTD_INVALID_LOG_PTR_ID)
@@ -251,19 +256,21 @@ namespace TTD
         }
     }
 
-    void SnapShot::SnapRootPinEntryEmit(const SnapRootPinEntry* spe, FileWriter* snapwriter, NSTokens::Separator separator)
+    void SnapShot::SnapRootPinEntryEmit(const NSSnapValues::SnapRootInfoEntry* spe, FileWriter* snapwriter, NSTokens::Separator separator)
     {
         snapwriter->WriteRecordStart(separator);
         snapwriter->WriteLogTag(NSTokens::Key::logTag, spe->LogId);
         snapwriter->WriteAddr(NSTokens::Key::objectId, spe->LogObject, NSTokens::Separator::CommaSeparator);
+        snapwriter->WriteBool(NSTokens::Key::boolVal, spe->MaybeLongLivedRoot, NSTokens::Separator::CommaSeparator);
         snapwriter->WriteRecordEnd();
     }
 
-    void SnapShot::SnapRootPinEntryParse(SnapRootPinEntry* spe, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+    void SnapShot::SnapRootPinEntryParse(NSSnapValues::SnapRootInfoEntry* spe, bool readSeparator, FileReader* reader, SlabAllocator& alloc)
     {
-        reader->ReadRecordStart(readSeperator);
+        reader->ReadRecordStart(readSeparator);
         spe->LogId = reader->ReadLogTag(NSTokens::Key::logTag);
         spe->LogObject = reader->ReadAddr(NSTokens::Key::objectId, true);
+        spe->MaybeLongLivedRoot = reader->ReadBool(NSTokens::Key::boolVal, true);
         reader->ReadRecordEnd();
     }
 
@@ -272,14 +279,15 @@ namespace TTD
         return this->m_slabAllocator.ComputeMemoryUsed(usedSpace, reservedSpace);
     }
 
-    SnapShot::SnapShot()
+    SnapShot::SnapShot(double gcTime)
         : m_slabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_LARGE),
-        m_ctxList(&this->m_slabAllocator), m_activeScriptContext(TTD_INVALID_LOG_PTR_ID), m_globalRootList(&this->m_slabAllocator), m_localRootList(&this->m_slabAllocator),
+        m_ctxList(&this->m_slabAllocator), m_tcSymbolRegistrationMapContents(&this->m_slabAllocator), m_activeScriptContext(TTD_INVALID_LOG_PTR_ID),
+        m_rootList(&this->m_slabAllocator),
         m_handlerList(&this->m_slabAllocator), m_typeList(&this->m_slabAllocator),
         m_functionBodyList(&this->m_slabAllocator), m_primitiveObjectList(&this->m_slabAllocator), m_compoundObjectList(&this->m_slabAllocator),
         m_scopeEntries(&this->m_slabAllocator), m_slotArrayEntries(&this->m_slabAllocator),
         m_snapObjectVTableArray(nullptr),
-        MarkTime(0.0), ExtractTime(0.0)
+        GCTime(gcTime), MarkTime(0.0), ExtractTime(0.0)
     {
         this->m_snapObjectVTableArray = this->m_slabAllocator.SlabAllocateArray<NSSnapObjects::SnapObjectVTable>((uint32)NSSnapObjects::SnapObjectType::Limit);
         memset(this->m_snapObjectVTableArray, 0, sizeof(NSSnapObjects::SnapObjectVTable) * (uint32)NSSnapObjects::SnapObjectType::Limit);
@@ -328,6 +336,7 @@ namespace TTD
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseInfo };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseResolveOrRejectFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseResolveOrRejectFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseResolveOrRejectFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseResolveOrRejectFunctionInfo };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseReactionTaskFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseReactionTaskFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseReactionTaskFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseReactionTaskFunctionInfo };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseAllResolveElementFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseAllResolveElementFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseAllResolveElementFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseAllResolveElementFunctionInfo };
 
         ////
         //For the objects that are always well known
@@ -401,6 +410,11 @@ namespace TTD
         return this->m_ctxList;
     }
 
+    UnorderedArrayList<Js::PropertyId, TTD_ARRAY_LIST_SIZE_XSMALL>& SnapShot::GetTCSymbolMapInfoList()
+    {
+        return this->m_tcSymbolRegistrationMapContents;
+    }
+
     TTD_LOG_PTR_ID SnapShot::GetActiveScriptContext() const
     {
         return this->m_activeScriptContext;
@@ -411,14 +425,9 @@ namespace TTD
         this->m_activeScriptContext = activeCtx;
     }
 
-    UnorderedArrayList<SnapRootPinEntry, TTD_ARRAY_LIST_SIZE_MID>& SnapShot::GetGlobalRootList()
+    UnorderedArrayList<NSSnapValues::SnapRootInfoEntry, TTD_ARRAY_LIST_SIZE_MID>& SnapShot::GetRootList()
     {
-        return this->m_globalRootList;
-    }
-
-    UnorderedArrayList<SnapRootPinEntry, TTD_ARRAY_LIST_SIZE_SMALL>& SnapShot::GetLocalRootList()
-    {
-        return this->m_localRootList;
+        return this->m_rootList;
     }
 
     NSSnapType::SnapHandler* SnapShot::GetNextAvailableHandlerEntry()
@@ -459,6 +468,26 @@ namespace TTD
     SlabAllocator& SnapShot::GetSnapshotSlabAllocator()
     {
         return this->m_slabAllocator;
+    }
+
+    bool SnapShot::AllWellKnownObjectsReusable(InflateMap* inflator) const
+    {
+        for(auto iter = this->m_compoundObjectList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            const NSSnapObjects::SnapObject* snpObj = iter.Current();
+            if(snpObj->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN)
+            {
+                Js::RecyclableObject* rObj = inflator->FindReusableObject_WellKnowReuseCheck(snpObj->ObjectPtrId);
+                bool blocking = NSSnapObjects::DoesObjectBlockScriptContextReuse(snpObj, Js::DynamicObject::FromVar(rObj), inflator);
+
+                if(blocking)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     void SnapShot::Inflate(InflateMap* inflator, ThreadContextTTD* tCtx) const
@@ -553,6 +582,19 @@ namespace TTD
 
             NSSnapValues::ResetPendingAsyncBufferModInfo(snpCtx, sctx, inflator);
         }
+
+        //reset the threadContext symbol map
+        JsUtil::BaseDictionary<Js::HashedCharacterBuffer<char16>*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy, Js::PropertyRecordStringHashComparer>* tcSymbolRegistrationMap = tCtx->GetThreadContext()->GetSymbolRegistrationMap_TTD();
+        tcSymbolRegistrationMap->Clear();
+
+        for(auto iter = this->m_tcSymbolRegistrationMapContents.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::PropertyId pid = *iter.Current();
+            const Js::PropertyRecord* pRecord = tCtx->GetThreadContext()->GetPropertyName(pid);
+            Js::HashedCharacterBuffer<char16> * propertyName = RecyclerNew(tCtx->GetThreadContext()->GetRecycler(), Js::HashedCharacterBuffer<char16>, pRecord->GetBuffer(), pRecord->GetLength());
+
+            tcSymbolRegistrationMap->Add(propertyName, pRecord);
+        }
     }
 
     void SnapShot::EmitSnapshot(int64 snapId, ThreadContext* threadContext) const
@@ -560,11 +602,11 @@ namespace TTD
         char asciiResourceName[64];
         sprintf_s(asciiResourceName, 64, "snap_%I64i.snp", snapId);
 
-        const TTUriString& uri = threadContext->TTDContext->TTDUri;
-        const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
-        JsTTDStreamHandle snapHandle = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, false, true, nullptr, nullptr);
+        TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
+        JsTTDStreamHandle snapHandle = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, false, true);
+        TTDAssert(snapHandle != nullptr, "Failed to open snapshot resource stream for writing.");
 
-        TTD_SNAP_WRITER snapwriter(snapHandle, TTD_COMPRESSED_OUTPUT, iops.pfWriteBytesToStream, iops.pfFlushAndCloseStream);
+        TTD_SNAP_WRITER snapwriter(snapHandle, iofp.pfWriteBytesToStream, iofp.pfFlushAndCloseStream);
 
         this->EmitSnapshotToFile(&snapwriter, threadContext);
         snapwriter.FlushAndClose();
@@ -575,11 +617,11 @@ namespace TTD
         char asciiResourceName[64];
         sprintf_s(asciiResourceName, 64, "snap_%I64i.snp", snapId);
 
-        const TTUriString& uri = threadContext->TTDContext->TTDUri;
-        const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
-        JsTTDStreamHandle snapHandle = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, true, false, nullptr, nullptr);
+        TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
+        JsTTDStreamHandle snapHandle = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, true, false);
+        TTDAssert(snapHandle != nullptr, "Failed to open snapshot resource stream for reading.");
 
-        TTD_SNAP_READER snapreader(snapHandle, TTD_COMPRESSED_OUTPUT, iops.pfReadBytesFromStream, iops.pfFlushAndCloseStream);
+        TTD_SNAP_READER snapreader(snapHandle, iofp.pfReadBytesFromStream, iofp.pfFlushAndCloseStream);
         SnapShot* snap = SnapShot::ParseSnapshotFromFile(&snapreader);
 
         return snap;
@@ -688,52 +730,26 @@ namespace TTD
     void SnapShot::DoSnapshotCompare(const SnapShot* snap1, const SnapShot* snap2, TTDCompareMap& compareMap)
     {
         //compare the roots to kick things off
-        compareMap.DiagnosticAssert(snap1->m_globalRootList.Count() == snap2->m_globalRootList.Count());
+        compareMap.DiagnosticAssert(snap1->m_rootList.Count() == snap2->m_rootList.Count());
 
-        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, TTD_PTR_ID, HeapAllocator> allRootMap1(&HeapAllocator::Instance);
-        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, TTD_PTR_ID, HeapAllocator> allRootMap2(&HeapAllocator::Instance);
+        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, NSSnapValues::SnapRootInfoEntry*, HeapAllocator> allRootMap1(&HeapAllocator::Instance);
+        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, NSSnapValues::SnapRootInfoEntry*, HeapAllocator> allRootMap2(&HeapAllocator::Instance);
 
-        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, TTD_PTR_ID, HeapAllocator> globalRootMap1(&HeapAllocator::Instance);
-        for(auto iter1 = snap1->m_globalRootList.GetIterator(); iter1.IsValid(); iter1.MoveNext())
+        for(auto iter1 = snap1->m_rootList.GetIterator(); iter1.IsValid(); iter1.MoveNext())
         {
-            const SnapRootPinEntry* rootEntry1 = iter1.Current();
-            allRootMap1.AddNew(rootEntry1->LogId, rootEntry1->LogObject);
-
-            globalRootMap1.AddNew(rootEntry1->LogId, rootEntry1->LogObject);
+            NSSnapValues::SnapRootInfoEntry* rootEntry1 = iter1.Current();
+            allRootMap1.AddNew(rootEntry1->LogId, rootEntry1);
         }
 
-        for(auto iter2 = snap2->m_globalRootList.GetIterator(); iter2.IsValid(); iter2.MoveNext())
+        for(auto iter2 = snap2->m_rootList.GetIterator(); iter2.IsValid(); iter2.MoveNext())
         {
-            const SnapRootPinEntry* rootEntry2 = iter2.Current();
-            allRootMap2.AddNew(rootEntry2->LogId, rootEntry2->LogObject);
+            NSSnapValues::SnapRootInfoEntry* rootEntry2 = iter2.Current();
+            allRootMap2.AddNew(rootEntry2->LogId, rootEntry2);
 
-            TTD_PTR_ID id1 = globalRootMap1.Item(rootEntry2->LogId);
-            compareMap.CheckConsistentAndAddPtrIdMapping_Root(id1, rootEntry2->LogObject, rootEntry2->LogId);
-        }
+            bool ll1 = allRootMap1.Item(rootEntry2->LogId)->MaybeLongLivedRoot;
+            compareMap.DiagnosticAssert(ll1 == rootEntry2->MaybeLongLivedRoot);
 
-        compareMap.DiagnosticAssert(snap1->m_localRootList.Count() == snap2->m_localRootList.Count());
-
-        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, TTD_PTR_ID, HeapAllocator> localRootMap1(&HeapAllocator::Instance);
-        for(auto iter1 = snap1->m_localRootList.GetIterator(); iter1.IsValid(); iter1.MoveNext())
-        {
-            const SnapRootPinEntry* rootEntry1 = iter1.Current();
-            if(!allRootMap1.ContainsKey(rootEntry1->LogId))
-            {
-                allRootMap1.AddNew(rootEntry1->LogId, rootEntry1->LogObject);
-            }
-
-            localRootMap1.AddNew(rootEntry1->LogId, rootEntry1->LogObject);
-        }
-
-        for(auto iter2 = snap2->m_localRootList.GetIterator(); iter2.IsValid(); iter2.MoveNext())
-        {
-            const SnapRootPinEntry* rootEntry2 = iter2.Current();
-            if(!allRootMap2.ContainsKey(rootEntry2->LogId))
-            {
-                allRootMap2.AddNew(rootEntry2->LogId, rootEntry2->LogObject);
-            }
-
-            TTD_PTR_ID id1 = localRootMap1.Item(rootEntry2->LogId);
+            TTD_PTR_ID id1 = allRootMap1.Item(rootEntry2->LogId)->LogObject;
             compareMap.CheckConsistentAndAddPtrIdMapping_Root(id1, rootEntry2->LogObject, rootEntry2->LogId);
         }
 
@@ -755,6 +771,23 @@ namespace TTD
             compareMap.DiagnosticAssert(ctx2 != nullptr);
 
             NSSnapValues::AssertSnapEquiv(ctx1, ctx2, allRootMap1, allRootMap2, compareMap);
+        }
+
+        //compare the contents of the two thread context symbol maps
+        compareMap.DiagnosticAssert(snap1->m_tcSymbolRegistrationMapContents.Count() == snap2->m_tcSymbolRegistrationMapContents.Count());
+        for(auto iter1 = snap1->m_tcSymbolRegistrationMapContents.GetIterator(); iter1.IsValid(); iter1.MoveNext())
+        {
+            const Js::PropertyId pid1 = *iter1.Current();
+            bool match = false;
+            for(auto iter2 = snap2->m_tcSymbolRegistrationMapContents.GetIterator(); iter2.IsValid(); iter2.MoveNext())
+            {
+                if(*iter2.Current() == pid1)
+                {
+                    match = true;
+                    break;
+                }
+            }
+            compareMap.DiagnosticAssert(match);
         }
 
         //Iterate on the worklist until we are done
@@ -832,10 +865,7 @@ namespace TTD
             compareMap.GetNextCompareInfo(&ctag, &ptrId1, &ptrId2);
         }
 
-        //Make sure all objects/values have been matched
-        //
-        //TODO: this is weird we do a < since weak sets/maps can't be checked without backtracking or some topo ordering on the keys 
-        //
+        //Make sure all objects/values have been matched -- well not quite since we don't align and treaverse WeakSet values we might not compare everything -- maybe improve later?
         compareMap.DiagnosticAssert(comparedSlotArrays <= snap1->m_slotArrayEntries.Count() && comparedSlotArrays <= snap2->m_slotArrayEntries.Count());
         compareMap.DiagnosticAssert(comparedScopes <= snap1->m_scopeEntries.Count() && comparedScopes <= snap2->m_scopeEntries.Count());
         compareMap.DiagnosticAssert(comparedObjects <= snap1->m_compoundObjectList.Count() && comparedObjects <= snap2->m_compoundObjectList.Count());

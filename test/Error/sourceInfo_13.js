@@ -14,9 +14,9 @@ dummy();
 var obj = {
     get foo() {    // This needs -Version:3
         dummy();
-        throw 123; //12,9
+        throw 123;
         dummy();
     }
 };
-obj.foo; //12,1
+obj.foo;
 dummy();

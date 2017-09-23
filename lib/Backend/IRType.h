@@ -29,9 +29,12 @@ extern bool IRType_IsUnsignedInt(IRType type);
 extern bool IRType_IsFloat(IRType type);
 extern bool IRType_IsNative(IRType type);
 extern bool IRType_IsNativeInt(IRType type);
+extern bool IRType_IsNativeIntOrVar(IRType type);
 extern bool IRType_IsInt64(IRType type);
 extern bool IRType_IsSimd(IRType type);
 extern bool IRType_IsSimd128(IRType type);
+extern IRType IRType_EnsureSigned(IRType type);
+extern IRType IRType_EnsureUnsigned(IRType type);
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
 extern void IRType_Dump(IRType type);

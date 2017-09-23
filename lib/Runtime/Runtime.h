@@ -75,7 +75,7 @@ namespace Js
     struct CallInfo;
     struct InlineeCallInfo;
     struct InlineCache;
-    struct PolymorphicInlineCache;
+    class PolymorphicInlineCache;
     struct Arguments;
     class StringDictionaryWrapper;
     struct ByteCodeDumper;
@@ -154,6 +154,7 @@ namespace Js
     struct RestrictedErrorStrings;
     class JavascriptError;
 
+#ifdef ENABLE_SIMDJS
 //SIMD_JS
     // SIMD
     class JavascriptSIMDObject;
@@ -179,6 +180,7 @@ namespace Js
     class JavascriptSIMDBool8x16;
     class SIMDBool16x8Lib;
     class JavascriptSIMDBool16x8;
+#endif // #ifdef ENABLE_SIMDJS
 
     class RecyclableObject;
     class JavascriptRegExp;
@@ -200,6 +202,7 @@ namespace Js
     class JavascriptGeneratorFunction;
     class JavascriptAsyncFunction;
     class AsmJsScriptFunction;
+    class WasmScriptFunction;
     class JavascriptRegExpConstructor;
     class JavascriptRegExpEnumerator;
     class BoundFunction;
@@ -259,10 +262,12 @@ namespace Js
     class PolymorphicInlineCacheInfo;
     class PropertyGuard;
 
+    class DetachedStateBase;
+
     // asm.js
     namespace ArrayBufferView
     {
-        enum ViewType: int;
+        enum ViewType: uint8;
     }
     struct EmitExpressionInfo;
     struct AsmJsModuleMemory;
@@ -301,7 +306,7 @@ namespace Js
     class AsmJSByteCodeGenerator;
     enum AsmJSMathBuiltinFunction: int;
     //////////////////////////////////////////////////////////////////////////
-    typedef JsUtil::WeakReferenceDictionary<PropertyId, PropertyString, PowerOf2SizePolicy> PropertyStringCacheMap;
+    typedef JsUtil::WeakReferenceDictionary<PropertyId, PropertyString, PrimeSizePolicy> PropertyStringCacheMap;
 
     extern const FrameDisplay NullFrameDisplay;
     extern const FrameDisplay StrictNullFrameDisplay;
@@ -337,7 +342,6 @@ namespace TTD
 }
 
 #include "PlatformAgnostic/ChakraPlatform.h"
-#include "DataStructures/EvalMapString.h"
 
 bool IsMathLibraryId(Js::PropertyId propertyId);
 #include "ByteCode/PropertyIdArray.h"
@@ -349,12 +353,22 @@ const Js::ModuleID kmodGlobal = 0;
 
 class SourceContextInfo;
 
-#ifdef ENABLE_SCRIPT_DEBUGGING
+#if defined(ENABLE_SCRIPT_DEBUGGING) && defined(_WIN32)
 #include "activdbg100.h"
+#else
+#define SCRIPT_E_RECORDED                _HRESULT_TYPEDEF_(0x86664004L)
+#define NEED_DEBUG_EVENT_INFO_TYPE
 #endif
 
 #ifndef NTDDI_WIN10
 // These are only defined for the Win10 SDK and above
+#define NEED_DEBUG_EVENT_INFO_TYPE
+#define SDO_ENABLE_LIBRARY_STACK_FRAME ((SCRIPT_DEBUGGER_OPTIONS)0x8)
+#define DBGPROP_ATTRIB_VALUE_IS_RETURN_VALUE 0x8000000
+#define DBGPROP_ATTRIB_VALUE_PENDING_MUTATION 0x10000000
+#endif
+
+#ifdef NEED_DEBUG_EVENT_INFO_TYPE
 // Consider: Refactor to avoid needing these?
 typedef
 enum tagDEBUG_EVENT_INFO_TYPE
@@ -364,20 +378,13 @@ enum tagDEBUG_EVENT_INFO_TYPE
     DEIT_ASMJS_SUCCEEDED = (DEIT_ASMJS_IN_DEBUGGING + 1),
     DEIT_ASMJS_FAILED = (DEIT_ASMJS_SUCCEEDED + 1)
 } DEBUG_EVENT_INFO_TYPE;
-
-#define SDO_ENABLE_LIBRARY_STACK_FRAME ((SCRIPT_DEBUGGER_OPTIONS)0x8)
-#define DBGPROP_ATTRIB_VALUE_IS_RETURN_VALUE 0x8000000
-#define DBGPROP_ATTRIB_VALUE_PENDING_MUTATION 0x10000000
 #endif
 
-#ifdef _MSC_VER
-#include "JITClient.h"
-#else
-#include "JITTypes.h"
+#include "../JITIDL/JITTypes.h"
 #include "../JITClient/JITManager.h"
-#endif
 
 #include "Base/SourceHolder.h"
+#include "Base/LineOffsetCache.h"
 #include "Base/Utf8SourceInfo.h"
 #include "Base/PropertyRecord.h"
 #ifdef ENABLE_GLOBALIZATION
@@ -387,10 +394,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/ExecutionMode.h"
 #include "Types/TypeId.h"
 
-#include "BackendApi.h"
-#include "DetachedStateBase.h"
-
 #include "Base/Constants.h"
+#include "Language/ConstructorCache.h"
+#include "BackendApi.h"
 #include "ByteCode/OpLayoutsCommon.h"
 #include "ByteCode/OpLayouts.h"
 #include "ByteCode/OpLayoutsAsmJs.h"
@@ -419,7 +425,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Base/TempArenaAllocatorObject.h"
 #include "Language/ValueType.h"
 #include "Language/DynamicProfileInfo.h"
-#include "Debug/SourceContextInfo.h"
+#include "Base/SourceContextInfo.h"
 #include "Language/InlineCache.h"
 #include "Language/InlineCachePointerArray.h"
 #include "Base/FunctionInfo.h"
@@ -439,6 +445,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/JavascriptFunction.h"
 #include "Library/RuntimeFunction.h"
 #include "Library/JavascriptExternalFunction.h"
+#include "Library/CustomExternalIterator.h"
 
 #include "Base/CharStringCache.h"
 
@@ -448,14 +455,18 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types/JavascriptStaticEnumerator.h"
 #include "Library/ExternalLibraryBase.h"
 #include "Library/JavascriptLibraryBase.h"
+#include "Library/MathLibrary.h"
 #include "Base/ThreadContextInfo.h"
+#include "DataStructures/EvalMapString.h"
+#include "Language/EvalMapRecord.h"
+#include "Base/RegexPatternMruMap.h"
 #include "Library/JavascriptLibrary.h"
 
 #include "Language/JavascriptExceptionOperators.h"
 #include "Language/JavascriptOperators.h"
 
-#include "Library/MathLibrary.h"
 #include "Library/WasmLibrary.h"
+#include "Library/WabtInterface.h"
 // xplat-todo: We should get rid of this altogether and move the functionality it
 // encapsulates to the Platform Agnostic Interface
 #ifdef _WIN32
@@ -484,8 +495,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Base/StackProber.h"
 #include "Base/ScriptContextProfiler.h"
 
-#include "Language/EvalMapRecord.h"
-#include "Base/RegexPatternMruMap.h"
 #include "Language/JavascriptConversion.h"
 
 #include "Base/ScriptContextOptimizationOverrideInfo.h"
@@ -513,10 +522,12 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/JavascriptArray.h"
 
 #include "Library/AtomicsObject.h"
+#include "DetachedStateBase.h"
 #include "Library/ArrayBuffer.h"
 #include "Library/SharedArrayBuffer.h"
 #include "Library/TypedArray.h"
 #include "Library/JavascriptBoolean.h"
+#include "Library/WebAssemblyEnvironment.h"
 #include "Library/WebAssemblyTable.h"
 #include "Library/WebAssemblyMemory.h"
 #include "Library/WebAssemblyModule.h"
@@ -534,6 +545,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "screrror.h"
 
 #include "Debug/TTRuntimeInfoTracker.h"
+#include "Debug/TTExecutionInfo.h"
 #include "Debug/TTInflateMap.h"
 #include "Debug/TTSnapTypes.h"
 #include "Debug/TTSnapValues.h"
@@ -546,6 +558,10 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #endif
 
 #include "../WasmReader/WasmReader.h"
+
+#include "Language/AsmJsTypes.h"
+#include "Language/AsmJsModule.h"
+#include "Language/AsmJs.h"
 
 //
 // .inl files
@@ -565,10 +581,11 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/InlineCachePointerArray.inl"
 #include "Language/JavascriptOperators.inl"
 #include "Language/TaggedInt.inl"
-
+#include "Library/JavascriptGeneratorFunction.h"
 
 #ifndef USED_IN_STATIC_LIB
 #ifdef ENABLE_INTL_OBJECT
+#ifdef INTL_WINGLOB
 
 //The "helper" methods below are to resolve external symbol references to our delay-loaded libraries.
 inline HRESULT WindowsCreateString(_In_reads_opt_(length) const WCHAR * sourceString, UINT32 length, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING * string)
@@ -600,5 +617,7 @@ inline HRESULT WindowsDuplicateString(_In_opt_ HSTRING original, _Outptr_result_
 {
     return ThreadContext::GetContextForCurrentThread()->GetWindowsGlobalizationLibrary()->WindowsDuplicateString(original, newString);
 }
-#endif
-#endif
+
+#endif // INTL_WINGLOB
+#endif // ENABLE_INTL_OBJECT
+#endif // #ifndef USED_IN_STATIC_LIB

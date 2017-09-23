@@ -47,4 +47,6 @@ function testFunction()
     telemetryLog(`f.y ${f.y}`, true);
     telemetryLog(`f1.y ${f1.y}`, true);
     telemetryLog(`b2.y8 ${b2.y8}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

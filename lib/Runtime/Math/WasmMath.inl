@@ -6,31 +6,6 @@
 
 namespace Wasm
 {
-
-template<typename T>
-inline T WasmMath::Div( T aLeft, T aRight )
-{
-    // Todo:: Trap on aRight == 0 for int64 and uint64
-    return aLeft / aRight;
-}
-
-const uint64 specialDivLeftValue = (uint64)1 << 63;
-
-template<>
-inline int64 WasmMath::Rem( int64 aLeft, int64 aRight )
-{
-    // Todo:: Trap on aRight == 0
-    return (aLeft == specialDivLeftValue && aRight == -1) ? 0 : aLeft % aRight;
-}
-
-template<>
-inline uint64 WasmMath::Rem( uint64 aLeft, uint64 aRight )
-{
-    // Todo:: Trap on aRight == 0
-    return (aLeft == specialDivLeftValue && aRight == -1) ? specialDivLeftValue : aLeft % aRight;
-}
-
-
 template<typename T> 
 inline T WasmMath::Shl( T aLeft, T aRight )
 {
@@ -127,10 +102,22 @@ inline int WasmMath::Eqz(T value)
     return value == 0;
 }
 
-template<typename T>
-inline T WasmMath::Copysign(T aLeft, T aRight)
+template<>
+inline double WasmMath::Copysign(double aLeft, double aRight)
 {
-    return (T)_copysign(aLeft, aRight);
+    uint64 aLeftI64 = *(uint64*)(&aLeft);
+    uint64 aRightI64 = *(uint64*)(&aRight);
+    uint64 res = ((aLeftI64 & 0x7fffffffffffffffull) | (aRightI64 & 0x8000000000000000ull));
+    return *(double*)(&res);
+}
+
+template<>
+inline float WasmMath::Copysign(float aLeft, float aRight)
+{
+    uint32 aLeftI32 = *(uint32*)(&aLeft);
+    uint32 aRightI32 = *(uint32*)(&aRight);
+    uint32 res = ((aLeftI32 & 0x7fffffffu) | (aRightI32 & 0x80000000u));
+    return *(float*)(&res);
 }
 
 template <typename T> bool WasmMath::LessThan(T aLeft, T aRight)
@@ -234,6 +221,12 @@ template<>
 inline int64 WasmMath::Ror(int64 aLeft, int64 aRight)
 {
     return _rotr64(aLeft, (int)aRight);
+}
+
+template<typename To, typename From>
+To WasmMath::SignExtend(To value)
+{
+    return static_cast<To>(static_cast<From>(value));
 }
 
 }

@@ -1,0 +1,63 @@
+Print all i32
+exported i32: 10
+basic: -2
+export: 10
+mutable: 0
+import: 234
+impInit: 234
+
+Print all i64
+exported i64: undefined
+basic: 0x422000800040
+mutable: 0x0
+
+Print all f32
+exported f32: -54.869998931884766
+basic: 3.140000104904175
+export: -54.869998931884766
+mutable: 0
+import: 8.470000267028808
+impInit: 8.470000267028808
+
+Print all f64
+exported f64: 7861.477
+basic: -8745.544
+export: 7861.477
+mutable: 0
+import: 78.145
+impInit: 78.145
+
+Modify mutable globals
+Print all i32
+exported i32: 10
+basic: -2
+export: 10
+mutable: 456789
+import: 234
+impInit: 234
+
+Print all i64
+exported i64: undefined
+basic: 0x422000800040
+mutable: 0xfff2d5f870000000
+
+Print all f32
+exported f32: -54.869998931884766
+basic: 3.140000104904175
+export: -54.869998931884766
+mutable: 45.779998779296875
+import: 8.470000267028808
+impInit: 8.470000267028808
+
+Print all f64
+exported f64: 7861.477
+basic: -8745.544
+export: 7861.477
+mutable: 65.7895
+import: 78.145
+impInit: 78.145
+
+Invalid cases
+Should be invalid type conversion: Invalid WebAssembly type conversion
+Should be invalid type conversion: Invalid WebAssembly type conversion
+Should be invalid init expr: initializer expression can only use imported globals

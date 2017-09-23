@@ -186,19 +186,24 @@ RecyclerSweep::FinishSweep()
 
             GCETW(GC_SWEEP_PARTIAL_REUSE_PAGE_STOP, (recycler));
 
-            if (!this->IsBackground())
+#ifdef RECYCLER_WRITE_WATCH
+            if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
             {
-                RECYCLER_PROFILE_EXEC_BEGIN(recycler, Js::ResetWriteWatchPhase);
-                if (!recycler->recyclerPageAllocator.ResetWriteWatch() ||
-                    !recycler->recyclerLargeBlockPageAllocator.ResetWriteWatch())
+                if (!this->IsBackground())
                 {
-                    // Shouldn't happen
-                    Assert(false);
-                    recycler->enablePartialCollect = false;
-                    recycler->FinishPartialCollect(this);
+                    RECYCLER_PROFILE_EXEC_BEGIN(recycler, Js::ResetWriteWatchPhase);
+                    if (!recycler->recyclerPageAllocator.ResetWriteWatch() ||
+                        !recycler->recyclerLargeBlockPageAllocator.ResetWriteWatch())
+                    {
+                        // Shouldn't happen
+                        Assert(false);
+                        recycler->enablePartialCollect = false;
+                        recycler->FinishPartialCollect(this);
+                    }
+                    RECYCLER_PROFILE_EXEC_END(recycler, Js::ResetWriteWatchPhase);
                 }
-                RECYCLER_PROFILE_EXEC_END(recycler, Js::ResetWriteWatchPhase);
             }
+#endif
         }
         else
         {
@@ -271,9 +276,16 @@ RecyclerSweep::BackgroundSweep()
 
     // Finish the concurrent part of the first pass
     this->recycler->autoHeap.SweepSmallNonFinalizable(*this);
-
+    
     // Finish the rest of the sweep
     this->FinishSweep();
+
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
+    {
+        this->recycler->FinishConcurrentSweep();
+    }
+#endif
 
     this->EndBackground();
 }

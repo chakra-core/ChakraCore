@@ -21,6 +21,41 @@ namespace Js
     {
     }
 
+    PropertyRecord::PropertyRecord(const WCHAR* buffer, const int length, DWORD bytelength, bool isSymbol)
+        : pid(Js::Constants::NoProperty), isSymbol(isSymbol), byteCount(bytelength)
+    {
+        Assert(length >= 0 && buffer != nullptr);
+
+        WCHAR* target = (WCHAR*)((PropertyRecord*)this + 1);
+        isNumeric = (isSymbol || length > 10 || length <= 0) ? false : true;
+        hash = 0;
+
+        for (int i = 0; i < length; i++)
+        {
+            const WCHAR byte = buffer[i];
+            if (isNumeric)
+            {
+                if (byte < _u('0') || byte > _u('9'))
+                  isNumeric = false;
+            }
+
+            CC_HASH_LOGIC(hash, byte);
+            target[i] = byte;
+        }
+        target[length] = WCHAR(0);
+
+        if (isNumeric)
+        {
+            uint32 numericValue;
+            isNumeric = Js::PropertyRecord::IsPropertyNameNumeric(this->GetBuffer(), this->GetLength(), &numericValue);
+            if (isNumeric)
+            {
+                *(uint32 *)(this->GetBuffer() + this->GetLength() + 1) = numericValue;
+                Assert(GetNumericValue() == numericValue);
+            }
+        }
+    }
+
     void PropertyRecord::Finalize(bool isShutdown)
     {
         if (!isShutdown)
@@ -98,6 +133,30 @@ namespace Js
             return PropertyDynamicTypeDefaults;
         }
     }
+
+#if DBG_DUMP
+    void PropertyRecord::Dump(unsigned indent) const
+    {
+        const auto padding(_u(""));
+        const unsigned fieldIndent(indent + 2);
+
+        Output::Print(_u("%*sPropertyRecord (0x%p):\n"), indent, padding, this);
+        Output::Print(_u("%*spid: %d\n"), fieldIndent, padding, this->pid);
+        Output::Print(_u("%*shash: 0x%08x\n"), fieldIndent, padding, this->hash);
+        Output::Print(_u("%*sisNumeric: %d\n"), fieldIndent, padding, this->isNumeric);
+        Output::Print(_u("%*sIsBound: %d\n"), fieldIndent, padding, this->isBound);
+        Output::Print(_u("%*sIsSymbol: %d\n"), fieldIndent, padding, this->isSymbol);
+        Output::Print(_u("%*sbyteCount: %u\n"), fieldIndent, padding, this->byteCount);
+        if (this->isNumeric)
+        {
+            Output::Print(_u("%*sbuffer (numeric): %u\n"), fieldIndent, padding, this->GetNumericValue());
+        }
+        else
+        {
+            Output::Print(_u("%*sbuffer (string): %s\n"), fieldIndent, padding, this->GetBuffer());
+        }
+    }
+#endif
 
     // Initialize all BuiltIn property records
     const BuiltInPropertyRecord<1> BuiltInPropertyRecords::EMPTY = { PropertyRecord(PropertyIds::_none, 0, false, 0, false), _u("") };

@@ -120,7 +120,12 @@ namespace TTD
 
         //Check to see if we have an old version of this object around and, if so, clean up its type/handler/standard properties and return it
         Js::DynamicObject* ReuseObjectCheckAndReset(const SnapObject* snpObject, InflateMap* inflator);
-        Js::DynamicObject* ObjectPropertyReset(const SnapObject* snpObject, Js::DynamicObject* dynObj, InflateMap* inflator, bool isForWellKnown);
+
+        //TODO: this is a workaround check until we can reliably reset objects -- allows us to early check for non-resetability and fall back to fully recreating script contexts
+        bool DoesObjectBlockScriptContextReuse(const SnapObject* snpObject, Js::DynamicObject* dynObj, InflateMap* inflator);
+
+        Js::DynamicObject* ObjectPropertyReset_WellKnown(const SnapObject* snpObject, Js::DynamicObject* dynObj, InflateMap* inflator);
+        Js::DynamicObject* ObjectPropertyReset_General(const SnapObject* snpObject, Js::DynamicObject* dynObj, InflateMap* inflator);
 
         //Set all the general properties for the object 
         void StdPropertyRestore(const SnapObject* snpObject, Js::DynamicObject* obj, InflateMap* inflator);
@@ -129,7 +134,7 @@ namespace TTD
         void EmitObject(const SnapObject* snpObject, FileWriter* writer, NSTokens::Separator separator, const SnapObjectVTable* vtable, ThreadContext* threadContext);
 
         //de-serialize a SnapObject
-        void ParseObject(SnapObject* snpObject, bool readSeperator, FileReader* reader, SlabAllocator& alloc, const SnapObjectVTable* vtable, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& ptrIdToTypeMap);
+        void ParseObject(SnapObject* snpObject, bool readSeparator, FileReader* reader, SlabAllocator& alloc, const SnapObjectVTable* vtable, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& ptrIdToTypeMap);
 
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
@@ -274,7 +279,6 @@ namespace TTD
 
             //The frame object 
             bool IsFrameNullPtr;
-            bool IsFrameJsNull;
             TTD_PTR_ID FrameObject;
 
             uint32 FormalCount;
@@ -295,7 +299,6 @@ namespace TTD
             writer->WriteUInt32(NSTokens::Key::numberOfArgs, argsInfo->NumOfArguments, NSTokens::Separator::CommaAndBigSpaceSeparator);
 
             writer->WriteBool(NSTokens::Key::boolVal, argsInfo->IsFrameNullPtr, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, argsInfo->IsFrameJsNull, NSTokens::Separator::CommaSeparator);
             writer->WriteAddr(NSTokens::Key::objectId, argsInfo->FrameObject, NSTokens::Separator::CommaSeparator);
 
             writer->WriteLengthValue(argsInfo->FormalCount, NSTokens::Separator::CommaSeparator);
@@ -317,7 +320,6 @@ namespace TTD
             argsInfo->NumOfArguments = reader->ReadUInt32(NSTokens::Key::numberOfArgs, true);
 
             argsInfo->IsFrameNullPtr = reader->ReadBool(NSTokens::Key::boolVal, true);
-            argsInfo->IsFrameJsNull = reader->ReadBool(NSTokens::Key::boolVal, true);
             argsInfo->FrameObject = reader->ReadAddr(NSTokens::Key::objectId, true);
 
             argsInfo->FormalCount = reader->ReadLengthValue(true);
@@ -352,7 +354,6 @@ namespace TTD
             compareMap.DiagnosticAssert(argsInfo1->NumOfArguments == argsInfo2->NumOfArguments);
 
             compareMap.DiagnosticAssert(argsInfo1->IsFrameNullPtr == argsInfo2->IsFrameNullPtr);
-            compareMap.DiagnosticAssert(argsInfo1->IsFrameJsNull == argsInfo2->IsFrameJsNull);
             compareMap.CheckConsistentAndAddPtrIdMapping_Special(argsInfo1->FrameObject, argsInfo2->FrameObject, _u("frameObject"));
 
             compareMap.DiagnosticAssert(argsInfo1->FormalCount == argsInfo2->FormalCount);
@@ -430,6 +431,29 @@ namespace TTD
 
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv_SnapPromiseReactionTaskFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
+#endif
+
+        ////
+        //AllResolveElementFunctionObject Info
+        struct SnapPromiseAllResolveElementFunctionInfo
+        {
+            NSSnapValues::SnapPromiseCapabilityInfo Capabilities;
+            uint32 Index;
+
+            TTD_PTR_ID RemainingElementsWrapperId;
+            uint32 RemainingElementsValue;
+
+            TTD_PTR_ID Values;
+            bool AlreadyCalled;
+        };
+
+        Js::RecyclableObject* DoObjectInflation_SnapPromiseAllResolveElementFunctionInfo(const SnapObject* snpObject, InflateMap* inflator);
+        //DoAddtlValueInstantiation is a nop
+        void EmitAddtlInfo_SnapPromiseAllResolveElementFunctionInfo(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapPromiseAllResolveElementFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapPromiseAllResolveElementFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
 #endif
 
         //////////////////
@@ -635,7 +659,23 @@ namespace TTD
 
             if(snpObject->SnapType->JsTypeId == Js::TypeIds_Array)
             {
-                return (preAllocSpace > 0) ? jslib->CreateArray(preAllocSpace) : jslib->CreateArray();
+                if(preAllocSpace == 0)
+                {
+                    return jslib->CreateArray();
+                }
+                else
+                {
+                    Js::DynamicObject* rcObj = ReuseObjectCheckAndReset(snpObject, inflator);
+                    if(rcObj != nullptr)
+                    {
+                        Js::JavascriptArray::FromVar(rcObj)->SetLength(preAllocSpace);
+                        return rcObj;
+                    }
+                    else
+                    {
+                        return jslib->CreateArray(preAllocSpace);
+                    }
+                }
             }
             else if(snpObject->SnapType->JsTypeId == Js::TypeIds_NativeIntArray)
             {

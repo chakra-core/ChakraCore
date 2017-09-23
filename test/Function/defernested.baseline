@@ -58,11 +58,11 @@ call self from with
 foo 0
 
 parent is catch scope
-ReferenceError: 'no_such_var' is undefined
+ReferenceError: 'no_such_var' is not defined
 parent func contains catch scope
-ReferenceError: 'no_such_var' is undefined
+ReferenceError: 'no_such_var' is not defined
 parent func contains catch scope and eval
-ReferenceError: 'no_such_var' is undefined
+ReferenceError: 'no_such_var' is not defined
 
 Win8 540999: arguments identifier used as parameter
 TypeError: Unable to get property 'length' of undefined or null reference

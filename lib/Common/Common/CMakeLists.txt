@@ -1,3 +1,7 @@
+if(CC_TARGETS_ARM)
+    set(ARCH_SOURCES arm/arm_GET_CURRENT_FRAME.S)
+endif()
+
 add_library (Chakra.Common.Common OBJECT
     CfgLogger.cpp
     CommonCommonPch.cpp
@@ -13,6 +17,7 @@ add_library (Chakra.Common.Common OBJECT
     SmartFpuControl.cpp
     Tick.cpp
     vtinfo.cpp
+    ${ARCH_SOURCES}
 )
 
 target_include_directories (

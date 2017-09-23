@@ -9,11 +9,8 @@ public:
     static void RegisterThreadContext(ServerThreadContext* threadContext);
     static void UnRegisterThreadContext(ServerThreadContext* threadContext);
 
-    static void CleanUpForProcess(HANDLE hProcess);
-
     static void RegisterScriptContext(ServerScriptContext* scriptContext);
-    static void UnRegisterScriptContext(ServerScriptContext* scriptContext);    
-
+    static void UnRegisterScriptContext(ServerScriptContext* scriptContext);
     static bool CheckLivenessAndAddref(ServerScriptContext* context);
     static bool CheckLivenessAndAddref(ServerThreadContext* context);
 
@@ -23,8 +20,8 @@ private:
     static JsUtil::BaseHashSet<ServerScriptContext*, HeapAllocator> scriptContexts;
     static CriticalSection cs;
 
-#ifdef STACK_BACK_TRACE
 public:
+#ifdef STACK_BACK_TRACE
     template<class T>
     struct ClosedContextEntry
     {
@@ -44,7 +41,7 @@ public:
         T* context;
         union {
             DWORD runtimeProcId;
-            ServerThreadContext* threadCtx; 
+            ServerThreadContext* threadCtx;
         };
         StackBackTrace* stack;
     };
@@ -52,11 +49,11 @@ public:
     static void RecordCloseContext(ServerThreadContext* context)
     {
         auto record = HeapNewNoThrow(ClosedContextEntry<ServerThreadContext>, context);
-        if (record) 
+        if (record)
         {
             record->runtimeProcId = context->GetRuntimePid();
         }
-        ClosedThreadContextList.PrependNoThrow(&HeapAllocator::Instance, record);
+        ClosedThreadContextList.PrependNoThrow(&NoThrowHeapAllocator::Instance, record);
     }
     static void RecordCloseContext(ServerScriptContext* context)
     {
@@ -65,7 +62,7 @@ public:
         {
             record->threadCtx = context->GetThreadContext();
         }
-        ClosedScriptContextList.PrependNoThrow(&HeapAllocator::Instance, record);
+        ClosedScriptContextList.PrependNoThrow(&NoThrowHeapAllocator::Instance, record);
     }
 
     static SList<ClosedContextEntry<ServerThreadContext>*, NoThrowHeapAllocator> ClosedThreadContextList;

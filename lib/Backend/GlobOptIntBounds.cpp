@@ -156,381 +156,6 @@ void GlobOpt::ArrayUpperBoundCheckHoistInfo::SetLoop(
     this->headSegmentLengthConstantBounds = headSegmentLengthConstantBounds;
 }
 
-bool ValueInfo::HasIntConstantValue(const bool includeLikelyInt) const
-{
-    int32 constantValue;
-    return TryGetIntConstantValue(&constantValue, includeLikelyInt);
-}
-
-bool ValueInfo::TryGetIntConstantValue(int32 *const intValueRef, const bool includeLikelyInt) const
-{
-    Assert(intValueRef);
-
-    if(!(includeLikelyInt ? IsLikelyInt() : IsInt()))
-    {
-        return false;
-    }
-
-    switch(structureKind)
-    {
-        case ValueStructureKind::IntConstant:
-            if(!includeLikelyInt || IsInt())
-            {
-                *intValueRef = AsIntConstant()->IntValue();
-                return true;
-            }
-            break;
-
-        case ValueStructureKind::IntRange:
-            Assert(includeLikelyInt && !IsInt() || !AsIntRange()->IsConstant());
-            break;
-
-        case ValueStructureKind::IntBounded:
-        {
-            const IntConstantBounds bounds(AsIntBounded()->Bounds()->ConstantBounds());
-            if(bounds.IsConstant())
-            {
-                *intValueRef = bounds.LowerBound();
-                return true;
-            }
-            break;
-        }
-    }
-    return false;
-}
-
-bool ValueInfo::TryGetIntConstantLowerBound(int32 *const intConstantBoundRef, const bool includeLikelyInt) const
-{
-    Assert(intConstantBoundRef);
-
-    if(!(includeLikelyInt ? IsLikelyInt() : IsInt()))
-    {
-        return false;
-    }
-
-    switch(structureKind)
-    {
-        case ValueStructureKind::IntConstant:
-            if(!includeLikelyInt || IsInt())
-            {
-                *intConstantBoundRef = AsIntConstant()->IntValue();
-                return true;
-            }
-            break;
-
-        case ValueStructureKind::IntRange:
-            if(!includeLikelyInt || IsInt())
-            {
-                *intConstantBoundRef = AsIntRange()->LowerBound();
-                return true;
-            }
-            break;
-
-        case ValueStructureKind::IntBounded:
-            *intConstantBoundRef = AsIntBounded()->Bounds()->ConstantLowerBound();
-            return true;
-    }
-
-    *intConstantBoundRef = IsTaggedInt() ? Js::Constants::Int31MinValue : IntConstMin;
-    return true;
-}
-
-bool ValueInfo::TryGetIntConstantUpperBound(int32 *const intConstantBoundRef, const bool includeLikelyInt) const
-{
-    Assert(intConstantBoundRef);
-
-    if(!(includeLikelyInt ? IsLikelyInt() : IsInt()))
-    {
-        return false;
-    }
-
-    switch(structureKind)
-    {
-        case ValueStructureKind::IntConstant:
-            if(!includeLikelyInt || IsInt())
-            {
-                *intConstantBoundRef = AsIntConstant()->IntValue();
-                return true;
-            }
-            break;
-
-        case ValueStructureKind::IntRange:
-            if(!includeLikelyInt || IsInt())
-            {
-                *intConstantBoundRef = AsIntRange()->UpperBound();
-                return true;
-            }
-            break;
-
-        case ValueStructureKind::IntBounded:
-            *intConstantBoundRef = AsIntBounded()->Bounds()->ConstantUpperBound();
-            return true;
-    }
-
-    *intConstantBoundRef = IsTaggedInt() ? Js::Constants::Int31MaxValue : IntConstMax;
-    return true;
-}
-
-bool ValueInfo::TryGetIntConstantBounds(IntConstantBounds *const intConstantBoundsRef, const bool includeLikelyInt) const
-{
-    Assert(intConstantBoundsRef);
-
-    if(!(includeLikelyInt ? IsLikelyInt() : IsInt()))
-    {
-        return false;
-    }
-
-    switch(structureKind)
-    {
-        case ValueStructureKind::IntConstant:
-            if(!includeLikelyInt || IsInt())
-            {
-                const int32 intValue = AsIntConstant()->IntValue();
-                *intConstantBoundsRef = IntConstantBounds(intValue, intValue);
-                return true;
-            }
-            break;
-
-        case ValueStructureKind::IntRange:
-            if(!includeLikelyInt || IsInt())
-            {
-                *intConstantBoundsRef = *AsIntRange();
-                return true;
-            }
-            break;
-
-        case ValueStructureKind::IntBounded:
-            *intConstantBoundsRef = AsIntBounded()->Bounds()->ConstantBounds();
-            return true;
-    }
-
-    *intConstantBoundsRef =
-        IsTaggedInt()
-            ? IntConstantBounds(Js::Constants::Int31MinValue, Js::Constants::Int31MaxValue)
-            : IntConstantBounds(INT32_MIN, INT32_MAX);
-    return true;
-}
-
-bool ValueInfo::WasNegativeZeroPreventedByBailout() const
-{
-    if(!IsInt())
-    {
-        return false;
-    }
-
-    switch(structureKind)
-    {
-        case ValueStructureKind::IntRange:
-            return AsIntRange()->WasNegativeZeroPreventedByBailout();
-
-        case ValueStructureKind::IntBounded:
-            return AsIntBounded()->WasNegativeZeroPreventedByBailout();
-    }
-    return false;
-}
-
-bool ValueInfo::IsEqualTo(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2)
-{
-    const bool result =
-        IsEqualTo_NoConverse(src1Value, min1, max1, src2Value, min2, max2) ||
-        IsEqualTo_NoConverse(src2Value, min2, max2, src1Value, min1, max1);
-    Assert(!result || !IsNotEqualTo_NoConverse(src1Value, min1, max1, src2Value, min2, max2));
-    Assert(!result || !IsNotEqualTo_NoConverse(src2Value, min2, max2, src1Value, min1, max1));
-    return result;
-}
-
-bool ValueInfo::IsNotEqualTo(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2)
-{
-    const bool result =
-        IsNotEqualTo_NoConverse(src1Value, min1, max1, src2Value, min2, max2) ||
-        IsNotEqualTo_NoConverse(src2Value, min2, max2, src1Value, min1, max1);
-    Assert(!result || !IsEqualTo_NoConverse(src1Value, min1, max1, src2Value, min2, max2));
-    Assert(!result || !IsEqualTo_NoConverse(src2Value, min2, max2, src1Value, min1, max1));
-    return result;
-}
-
-bool ValueInfo::IsEqualTo_NoConverse(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2)
-{
-    return
-        IsGreaterThanOrEqualTo(src1Value, min1, max1, src2Value, min2, max2) &&
-        IsLessThanOrEqualTo(src1Value, min1, max1, src2Value, min2, max2);
-}
-
-bool ValueInfo::IsNotEqualTo_NoConverse(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2)
-{
-    return
-        IsGreaterThan(src1Value, min1, max1, src2Value, min2, max2) ||
-        IsLessThan(src1Value, min1, max1, src2Value, min2, max2);
-}
-
-bool ValueInfo::IsGreaterThanOrEqualTo(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2)
-{
-    return IsGreaterThanOrEqualTo(src1Value, min1, max1, src2Value, min2, max2, 0);
-}
-
-bool ValueInfo::IsGreaterThan(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2)
-{
-    return IsGreaterThanOrEqualTo(src1Value, min1, max1, src2Value, min2, max2, 1);
-}
-
-bool ValueInfo::IsLessThanOrEqualTo(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2)
-{
-    return IsLessThanOrEqualTo(src1Value, min1, max1, src2Value, min2, max2, 0);
-}
-
-bool ValueInfo::IsLessThan(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2)
-{
-    return IsLessThanOrEqualTo(src1Value, min1, max1, src2Value, min2, max2, -1);
-}
-
-bool ValueInfo::IsGreaterThanOrEqualTo(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2,
-    const int src2Offset)
-{
-    return
-        IsGreaterThanOrEqualTo_NoConverse(src1Value, min1, max1, src2Value, min2, max2, src2Offset) ||
-        src2Offset == IntConstMin ||
-        IsLessThanOrEqualTo_NoConverse(src2Value, min2, max2, src1Value, min1, max1, -src2Offset);
-}
-
-bool ValueInfo::IsLessThanOrEqualTo(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2,
-    const int src2Offset)
-{
-    return
-        IsLessThanOrEqualTo_NoConverse(src1Value, min1, max1, src2Value, min2, max2, src2Offset) ||
-        (
-            src2Offset != IntConstMin &&
-            IsGreaterThanOrEqualTo_NoConverse(src2Value, min2, max2, src1Value, min1, max1, -src2Offset)
-        );
-}
-
-bool ValueInfo::IsGreaterThanOrEqualTo_NoConverse(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2,
-    const int src2Offset)
-{
-    Assert(src1Value || min1 == max1);
-    Assert(!src1Value || src1Value->GetValueInfo()->IsLikelyInt());
-    Assert(src2Value || min2 == max2);
-    Assert(!src2Value || src2Value->GetValueInfo()->IsLikelyInt());
-
-    if(src1Value)
-    {
-        if(src2Value && src1Value->GetValueNumber() == src2Value->GetValueNumber())
-        {
-            return src2Offset <= 0;
-        }
-
-        ValueInfo *const src1ValueInfo = src1Value->GetValueInfo();
-        if(src1ValueInfo->structureKind == ValueStructureKind::IntBounded)
-        {
-            const IntBounds *const bounds = src1ValueInfo->AsIntBounded()->Bounds();
-            return
-                src2Value
-                    ? bounds->IsGreaterThanOrEqualTo(src2Value, src2Offset)
-                    : bounds->IsGreaterThanOrEqualTo(min2, src2Offset);
-        }
-    }
-    return IntBounds::IsGreaterThanOrEqualTo(min1, max2, src2Offset);
-}
-
-bool ValueInfo::IsLessThanOrEqualTo_NoConverse(
-    const Value *const src1Value,
-    const int32 min1,
-    const int32 max1,
-    const Value *const src2Value,
-    const int32 min2,
-    const int32 max2,
-    const int src2Offset)
-{
-    Assert(src1Value || min1 == max1);
-    Assert(!src1Value || src1Value->GetValueInfo()->IsLikelyInt());
-    Assert(src2Value || min2 == max2);
-    Assert(!src2Value || src2Value->GetValueInfo()->IsLikelyInt());
-
-    if(src1Value)
-    {
-        if(src2Value && src1Value->GetValueNumber() == src2Value->GetValueNumber())
-        {
-            return src2Offset >= 0;
-        }
-
-        ValueInfo *const src1ValueInfo = src1Value->GetValueInfo();
-        if(src1ValueInfo->structureKind == ValueStructureKind::IntBounded)
-        {
-            const IntBounds *const bounds = src1ValueInfo->AsIntBounded()->Bounds();
-            return
-                src2Value
-                    ? bounds->IsLessThanOrEqualTo(src2Value, src2Offset)
-                    : bounds->IsLessThanOrEqualTo(min2, src2Offset);
-        }
-    }
-    return IntBounds::IsLessThanOrEqualTo(max1, min2, src2Offset);
-}
-
 void GlobOpt::UpdateIntBoundsForEqualBranch(
     Value *const src1Value,
     Value *const src2Value,
@@ -1152,7 +777,7 @@ void GlobOpt::TrackIntSpecializedAddSubConstant(
             ValueNumber srcValueNumber;
             if(isPostfixIncDecPattern)
             {
-                Value *const value = FindValue(sym);
+                Value *const value = this->currentBlock->globOptData.FindValue(sym);
                 Assert(value);
                 srcValueNumber = value->GetValueNumber();
             }
@@ -1160,7 +785,7 @@ void GlobOpt::TrackIntSpecializedAddSubConstant(
             {
                 srcValueNumber = addSubConstantInfo->SrcValue()->GetValueNumber();
             }
-            InductionVariableSet *const inductionVariables = blockData.inductionVariables;
+            InductionVariableSet *const inductionVariables = currentBlock->globOptData.inductionVariables;
             Assert(inductionVariables);
             InductionVariable *inductionVariable;
             if(!inductionVariables->TryGetReference(sym->m_id, &inductionVariable))
@@ -1174,7 +799,7 @@ void GlobOpt::TrackIntSpecializedAddSubConstant(
                 }
 
                 // Ensure that the sym is live in the landing pad, and that its value has not changed in an unknown way yet
-                Value *const landingPadValue = FindValue(currentBlock->loop->landingPad->globOptData.symToValueMap, sym);
+                Value *const landingPadValue = currentBlock->loop->landingPad->globOptData.FindValue(sym);
                 if(!landingPadValue || srcValueNumber != landingPadValue->GetValueNumber())
                 {
                     updateInductionVariableValueNumber = false;
@@ -1264,7 +889,7 @@ void GlobOpt::TrackIntSpecializedAddSubConstant(
     Assert(instr->m_prev->GetDst()->AsRegOpnd()->m_sym == instr->GetSrc1()->AsRegOpnd()->m_sym);
 
     InductionVariable *inductionVariable;
-    AssertVerify(blockData.inductionVariables->TryGetReference(instr->GetDst()->AsRegOpnd()->m_sym->m_id, &inductionVariable));
+    AssertVerify(currentBlock->globOptData.inductionVariables->TryGetReference(instr->GetDst()->AsRegOpnd()->m_sym->m_id, &inductionVariable));
     inductionVariable->SetSymValueNumber(dstValue->GetValueNumber());
 }
 
@@ -1277,7 +902,7 @@ void GlobOpt::CloneBoundCheckHoistBlockData(
     Assert(DoBoundCheckHoist());
     Assert(toBlock);
     Assert(toData);
-    Assert(toData == &toBlock->globOptData || toData == &blockData);
+    //Assert(toData == &toBlock->globOptData || toData == &currentBlock->globOptData);
     Assert(fromBlock);
     Assert(fromData);
     Assert(fromData == &fromBlock->globOptData);
@@ -1330,7 +955,7 @@ void GlobOpt::MergeBoundCheckHoistBlockData(
     Assert(DoBoundCheckHoist());
     Assert(toBlock);
     Assert(toData);
-    Assert(toData == &toBlock->globOptData || toData == &blockData);
+    //Assert(toData == &toBlock->globOptData || toData == &currentBlock->globOptData);
     Assert(fromBlock);
     Assert(fromData);
     Assert(fromData == &fromBlock->globOptData);
@@ -1379,17 +1004,46 @@ void GlobOpt::MergeBoundCheckHoistBlockData(
 
                 // Ensure that the sym is live in the parent loop's landing pad, and that its value has not changed in an
                 // unknown way between the parent loop's landing pad and the current loop's landing pad.
-                Value *const parentLandingPadValue =
-                    FindValue(currentBlock->loop->parent->landingPad->globOptData.symToValueMap, sym);
+                Value *const parentLandingPadValue = currentBlock->loop->parent->landingPad->globOptData.FindValue(sym);
                 if(!parentLandingPadValue)
                 {
                     continue;
                 }
-                Value *const landingPadValue = FindValue(currentBlock->loop->landingPad->globOptData.symToValueMap, sym);
+                Value *const landingPadValue = currentBlock->loop->landingPad->globOptData.FindValue(sym);
                 Assert(landingPadValue);
                 if(landingPadValue->GetValueNumber() == parentLandingPadValue->GetValueNumber())
                 {
                     mergedInductionVariables->Add(backEdgeInductionVariable);
+                }
+            }
+
+            const InductionVariableSet *const fromDataInductionVariables = fromData->inductionVariables;
+            for (auto it = mergedInductionVariables->GetIterator(); it.IsValid(); it.MoveNext())
+            {
+                InductionVariable &mergedInductionVariable = it.CurrentValueReference();
+                if (!mergedInductionVariable.IsChangeDeterminate())
+                {
+                    continue;
+                }
+
+                StackSym *const sym = mergedInductionVariable.Sym();
+                const InductionVariable *fromDataInductionVariable;
+                if (fromDataInductionVariables->TryGetReference(sym->m_id, &fromDataInductionVariable))
+                {
+                    continue;
+                }
+
+                // Process the set of symbols that are induction variables due to prior loops that share the same parent loop, but are not induction variables in the current loop
+                // If the current loop is initializing such carried over induction variables, then their value numbers will differ from the current loop's landing pad
+                // Such induction variables should be marked as indeterminate going forward, such the  induction variable analysis accurately flows to the parent loop.
+                Value *const fromDataValue = fromData->FindValue(sym);
+                if (fromDataValue)
+                {
+                    Value *const landingPadValue = toBlock->loop->landingPad->globOptData.FindValue(sym);
+                    if (landingPadValue && fromDataValue->GetValueNumber() != landingPadValue->GetValueNumber())
+                    {
+                        mergedInductionVariable.SetChangeIsIndeterminate();
+                    }
                 }
             }
             return;
@@ -1441,10 +1095,10 @@ void GlobOpt::MergeBoundCheckHoistBlockData(
 
         // Ensure that the sym is live in the landing pad, and that its value has not changed in an unknown way yet on the path
         // where the sym is not already marked as an induction variable.
-        Value *const fromDataValue = FindValue(fromData->symToValueMap, sym);
+        Value *const fromDataValue = fromData->FindValue(sym);
         if(fromDataValue)
         {
-            Value *const landingPadValue = FindValue(toBlock->loop->landingPad->globOptData.symToValueMap, sym);
+            Value *const landingPadValue = toBlock->loop->landingPad->globOptData.FindValue(sym);
             if(landingPadValue && fromDataValue->GetValueNumber() == landingPadValue->GetValueNumber())
             {
                 mergedInductionVariable.Merge(InductionVariable(sym, ZeroValueNumber, 0));
@@ -1466,10 +1120,10 @@ void GlobOpt::MergeBoundCheckHoistBlockData(
         // Ensure that the sym is live in the landing pad, and that its value has not changed in an unknown way yet on the path
         // where the sym is not already marked as an induction variable.
         bool indeterminate = true;
-        Value *const toDataValue = FindValue(toData->symToValueMap, sym);
+        Value *const toDataValue = toData->FindValue(sym);
         if(toDataValue)
         {
-            Value *const landingPadValue = FindValue(toBlock->loop->landingPad->globOptData.symToValueMap, sym);
+            Value *const landingPadValue = toBlock->loop->landingPad->globOptData.FindValue(sym);
             if(landingPadValue && toDataValue->GetValueNumber() == landingPadValue->GetValueNumber())
             {
                 indeterminate = false;
@@ -1497,7 +1151,6 @@ void GlobOpt::DetectUnknownChangesToInductionVariables(GlobOptBlockData *const b
 
     // Check induction variable value numbers, and mark those that changed in an unknown way as indeterminate. They must remain
     // in the set though, for merging purposes.
-    GlobHashTable *const symToValueMap = blockData->symToValueMap;
     for(auto it = blockData->inductionVariables->GetIterator(); it.IsValid(); it.MoveNext())
     {
         InductionVariable &inductionVariable = it.CurrentValueReference();
@@ -1506,7 +1159,7 @@ void GlobOpt::DetectUnknownChangesToInductionVariables(GlobOptBlockData *const b
             continue;
         }
 
-        Value *const value = FindValue(symToValueMap, inductionVariable.Sym());
+        Value *const value = blockData->FindValue(inductionVariable.Sym());
         if(!value || value->GetValueNumber() != inductionVariable.SymValueNumber())
         {
             inductionVariable.SetChangeIsIndeterminate();
@@ -1518,11 +1171,10 @@ void GlobOpt::SetInductionVariableValueNumbers(GlobOptBlockData *const blockData
 {
     Assert(DoBoundCheckHoist());
     Assert(IsLoopPrePass());
-    Assert(blockData == &this->blockData);
+    //Assert(blockData == &this->currentBlock->globOptData);
     Assert(blockData->inductionVariables);
 
     // Now that all values have been merged, update value numbers in the induction variable info.
-    GlobHashTable *const symToValueMap = blockData->symToValueMap;
     for(auto it = blockData->inductionVariables->GetIterator(); it.IsValid(); it.MoveNext())
     {
         InductionVariable &inductionVariable = it.CurrentValueReference();
@@ -1531,7 +1183,7 @@ void GlobOpt::SetInductionVariableValueNumbers(GlobOptBlockData *const blockData
             continue;
         }
 
-        Value *const value = FindValue(symToValueMap, inductionVariable.Sym());
+        Value *const value = blockData->FindValue(inductionVariable.Sym());
         if(value)
         {
             inductionVariable.SetSymValueNumber(value->GetValueNumber());
@@ -1551,12 +1203,10 @@ void GlobOpt::FinalizeInductionVariables(Loop *const loop, GlobOptBlockData *con
     Assert(loop->GetHeadBlock() == currentBlock);
     Assert(loop->inductionVariables);
     Assert(currentBlock->isLoopHeader);
-    Assert(headerData == &this->blockData);
+    //Assert(headerData == &this->currentBlock->globOptData);
 
     // Clean up induction variables and for each, install a relationship between its values inside and outside the loop.
-    GlobHashTable *const symToValueMap = headerData->symToValueMap;
     GlobOptBlockData &landingPadBlockData = loop->landingPad->globOptData;
-    GlobHashTable *const landingPadSymToValueMap = landingPadBlockData.symToValueMap;
     for(auto it = loop->inductionVariables->GetIterator(); it.IsValid(); it.MoveNext())
     {
         InductionVariable &inductionVariable = it.CurrentValueReference();
@@ -1571,20 +1221,20 @@ void GlobOpt::FinalizeInductionVariables(Loop *const loop, GlobOptBlockData *con
         }
 
         StackSym *const sym = inductionVariable.Sym();
-        if(!IsInt32TypeSpecialized(sym, headerData))
+        if(!headerData->IsInt32TypeSpecialized(sym))
         {
             inductionVariable.SetChangeIsIndeterminate();
             continue;
         }
-        Assert(IsInt32TypeSpecialized(sym, &landingPadBlockData));
+        Assert(landingPadBlockData.IsInt32TypeSpecialized(sym));
 
-        Value *const value = FindValue(symToValueMap, sym);
+        Value *const value = headerData->FindValue(sym);
         if(!value)
         {
             inductionVariable.SetChangeIsIndeterminate();
             continue;
         }
-        Value *const landingPadValue = FindValue(landingPadSymToValueMap, sym);
+        Value *const landingPadValue = landingPadBlockData.FindValue(sym);
         Assert(landingPadValue);
 
         IntConstantBounds constantBounds, landingPadConstantBounds;
@@ -1612,18 +1262,18 @@ void GlobOpt::FinalizeInductionVariables(Loop *const loop, GlobOptBlockData *con
     }
 }
 
-bool GlobOpt::DetermineSymBoundOffsetOrValueRelativeToLandingPad(
+GlobOpt::SymBoundType GlobOpt::DetermineSymBoundOffsetOrValueRelativeToLandingPad(
     StackSym *const sym,
     const bool landingPadValueIsLowerBound,
     ValueInfo *const valueInfo,
     const IntBounds *const bounds,
-    GlobHashTable *const landingPadSymToValueMap,
+    GlobOptBlockData *const landingPadGlobOptBlockData,
     int *const boundOffsetOrValueRef)
 {
     Assert(sym);
     Assert(!sym->IsTypeSpec());
     Assert(valueInfo);
-    Assert(landingPadSymToValueMap);
+    Assert(landingPadGlobOptBlockData);
     Assert(boundOffsetOrValueRef);
     Assert(valueInfo->IsInt());
 
@@ -1634,59 +1284,54 @@ bool GlobOpt::DetermineSymBoundOffsetOrValueRelativeToLandingPad(
         // for(; i === 1; ++i){...}, where 'i' is an induction variable but has a constant value inside the loop, or in blocks
         // inside the loop such as if(i === 1){...}
         *boundOffsetOrValueRef = constantValue;
-        return true; // 'true' indicates that *boundOffsetOrValueRef contains the constant bound value
+        return SymBoundType::VALUE;
     }
 
-    Value *const landingPadValue = FindValue(landingPadSymToValueMap, sym);
-    Assert(landingPadValue);
-    Assert(landingPadValue->GetValueInfo()->IsInt());
-    int landingPadConstantValue;
-    if(landingPadValue->GetValueInfo()->TryGetIntConstantValue(&landingPadConstantValue))
+    if (bounds)
     {
-        // The sym's bound already takes the landing pad constant value into consideration, unless the landing pad value was
-        // updated to have a more aggressive range (and hence, now a constant value) as part of hoisting a bound check or some
-        // other hoisting operation. The sym's bound also takes into consideration the change to the sym so far inside the loop,
-        // and the landing pad constant value does not, so use the sym's bound by default.
+        Value *const landingPadValue = landingPadGlobOptBlockData->FindValue(sym);
+        Assert(landingPadValue);
+        Assert(landingPadValue->GetValueInfo()->IsInt());
 
-        int constantBound;
-        if(bounds)
+        int landingPadConstantValue;
+        const ValueRelativeOffset* bound = nullptr;
+        const RelativeIntBoundSet& boundSet = landingPadValueIsLowerBound ? bounds->RelativeLowerBounds() : bounds->RelativeUpperBounds();
+        if (landingPadValue->GetValueInfo()->TryGetIntConstantValue(&landingPadConstantValue))
         {
-            constantBound = landingPadValueIsLowerBound ? bounds->ConstantLowerBound() : bounds->ConstantUpperBound();
-        }
-        else
-        {
-            AssertVerify(
-                landingPadValueIsLowerBound
-                    ? valueInfo->TryGetIntConstantLowerBound(&constantBound)
-                    : valueInfo->TryGetIntConstantUpperBound(&constantBound));
+            // The sym's bound already takes the landing pad constant value into consideration, unless the landing pad value was
+            // updated to have a more aggressive range (and hence, now a constant value) as part of hoisting a bound check or some
+            // other hoisting operation. The sym's bound also takes into consideration the change to the sym so far inside the loop,
+            // and the landing pad constant value does not, so use the sym's bound by default.
+
+            int constantBound = landingPadValueIsLowerBound ? bounds->ConstantLowerBound() : bounds->ConstantUpperBound();
+            if(landingPadValueIsLowerBound ? landingPadConstantValue > constantBound : landingPadConstantValue < constantBound)
+            {
+                // The landing pad value became a constant value as part of a hoisting operation. The landing pad constant value is
+                // a more aggressive bound, so use that instead, and take into consideration the change to the sym so far inside the
+                // loop, using the relative bound to the landing pad value.
+                if (!boundSet.TryGetReference(landingPadValue->GetValueNumber(), &bound))
+                {
+                    return SymBoundType::UNKNOWN;
+                }
+                constantBound = landingPadConstantValue + bound->Offset();
+            }
+            *boundOffsetOrValueRef = constantBound;
+            return SymBoundType::VALUE;
         }
 
-        if(landingPadValueIsLowerBound ? landingPadConstantValue > constantBound : landingPadConstantValue < constantBound)
+        if (!boundSet.TryGetReference(landingPadValue->GetValueNumber(), &bound))
         {
-            // The landing pad value became a constant value as part of a hoisting operation. The landing pad constant value is
-            // a more aggressive bound, so use that instead, and take into consideration the change to the sym so far inside the
-            // loop, using the relative bound to the landing pad value.
-            AnalysisAssert(bounds);
-            const ValueRelativeOffset *bound;
-            AssertVerify(
-                (landingPadValueIsLowerBound ? bounds->RelativeLowerBounds() : bounds->RelativeUpperBounds())
-                    .TryGetReference(landingPadValue->GetValueNumber(), &bound));
-            constantBound = landingPadConstantValue + bound->Offset();
+            return SymBoundType::UNKNOWN;
         }
-
-        *boundOffsetOrValueRef = constantBound;
-        return true; // 'true' indicates that *boundOffsetOrValueRef contains the constant bound value
+        *boundOffsetOrValueRef = bound->Offset();
+        return SymBoundType::OFFSET;
     }
-
-    AnalysisAssert(bounds);
-    const ValueRelativeOffset *bound;
     AssertVerify(
-        (landingPadValueIsLowerBound ? bounds->RelativeLowerBounds() : bounds->RelativeUpperBounds())
-            .TryGetReference(landingPadValue->GetValueNumber(), &bound));
-    *boundOffsetOrValueRef = bound->Offset();
-    // 'false' indicates that *boundOffsetOrValueRef contains the bound offset, which must be added to the sym's value in the
-    // landing pad to get the bound value
-    return false;
+        landingPadValueIsLowerBound
+        ? valueInfo->TryGetIntConstantLowerBound(boundOffsetOrValueRef)
+        : valueInfo->TryGetIntConstantUpperBound(boundOffsetOrValueRef));
+
+    return SymBoundType::VALUE;
 }
 
 void GlobOpt::DetermineDominatingLoopCountableBlock(Loop *const loop, BasicBlock *const headerBlock)
@@ -1726,7 +1371,6 @@ void GlobOpt::DetermineLoopCount(Loop *const loop)
     Assert(loop);
 
     GlobOptBlockData &landingPadBlockData = loop->landingPad->globOptData;
-    GlobHashTable *const landingPadSymToValueMap = landingPadBlockData.symToValueMap;
     const InductionVariableSet *const inductionVariables = loop->inductionVariables;
     Assert(inductionVariables);
     for(auto inductionVariablesIterator = inductionVariables->GetIterator(); inductionVariablesIterator.IsValid(); inductionVariablesIterator.MoveNext())
@@ -1758,14 +1402,14 @@ void GlobOpt::DetermineLoopCount(Loop *const loop)
         }
 
         StackSym *const inductionVariableVarSym = inductionVariable.Sym();
-        if(!IsInt32TypeSpecialized(inductionVariableVarSym, &blockData))
+        if(!this->currentBlock->globOptData.IsInt32TypeSpecialized(inductionVariableVarSym))
         {
             inductionVariable.SetChangeIsIndeterminate();
             continue;
         }
-        Assert(IsInt32TypeSpecialized(inductionVariableVarSym, &landingPadBlockData));
+        Assert(landingPadBlockData.IsInt32TypeSpecialized(inductionVariableVarSym));
 
-        Value *const inductionVariableValue = FindValue(inductionVariableVarSym);
+        Value *const inductionVariableValue = this->currentBlock->globOptData.FindValue(inductionVariableVarSym);
         if(!inductionVariableValue)
         {
             inductionVariable.SetChangeIsIndeterminate();
@@ -1797,19 +1441,19 @@ void GlobOpt::DetermineLoopCount(Loop *const loop)
 
                     StackSym *currentBoundBaseVarSym = bound.BaseSym();
 
-                    if(!currentBoundBaseVarSym || !IsInt32TypeSpecialized(currentBoundBaseVarSym, &landingPadBlockData))
+                    if(!currentBoundBaseVarSym || !landingPadBlockData.IsInt32TypeSpecialized(currentBoundBaseVarSym))
                     {
                         continue;
                     }
 
-                    Value *const boundBaseValue = FindValue(currentBoundBaseVarSym);
+                    Value *const boundBaseValue = this->currentBlock->globOptData.FindValue(currentBoundBaseVarSym);
                     const ValueNumber boundBaseValueNumber = bound.BaseValueNumber();
                     if(!boundBaseValue || boundBaseValue->GetValueNumber() != boundBaseValueNumber)
                     {
                         continue;
                     }
 
-                    Value *const landingPadBoundBaseValue = FindValue(landingPadSymToValueMap, currentBoundBaseVarSym);
+                    Value *const landingPadBoundBaseValue = landingPadBlockData.FindValue(currentBoundBaseVarSym);
                     if(!landingPadBoundBaseValue || landingPadBoundBaseValue->GetValueNumber() != boundBaseValueNumber)
                     {
                         continue;
@@ -1902,24 +1546,31 @@ void GlobOpt::DetermineLoopCount(Loop *const loop)
         }
 
         // Determine if the induction variable already changed in the loop, and by how much
-        int inductionVariableOffset;
-        StackSym *inductionVariableSymToAdd;
-        if(DetermineSymBoundOffsetOrValueRelativeToLandingPad(
-                inductionVariableVarSym,
-                minMagnitudeChange >= 0,
-                inductionVariableValueInfo,
-                inductionVariableBounds,
-                landingPadSymToValueMap,
-                &inductionVariableOffset))
+        int inductionVariableOffset = 0;
+        StackSym *inductionVariableSymToAdd = nullptr;
+        SymBoundType symBoundType = DetermineSymBoundOffsetOrValueRelativeToLandingPad(
+            inductionVariableVarSym,
+            minMagnitudeChange >= 0,
+            inductionVariableValueInfo,
+            inductionVariableBounds,
+            &landingPadBlockData,
+            &inductionVariableOffset);
+        if (symBoundType == SymBoundType::VALUE)
         {
             // The bound value is constant
             inductionVariableSymToAdd = nullptr;
         }
-        else
+        else if (symBoundType == SymBoundType::OFFSET)
         {
             // The bound value is not constant, the offset needs to be added to the induction variable in the landing pad
             inductionVariableSymToAdd = inductionVariableVarSym->GetInt32EquivSym(nullptr);
             Assert(inductionVariableSymToAdd);
+        }
+        else
+        {
+            Assert(symBoundType == SymBoundType::UNKNOWN);
+            // We were unable to determine the sym bound offset or value
+            continue;
         }
 
         // Int operands are required
@@ -2274,7 +1925,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         const int indexConstantValue = indexConstantBounds.LowerBound();
         Assert(indexConstantValue != IntConstMax);
         const IntBoundCheck *compatibleBoundCheck;
-        if(blockData.availableIntBoundChecks->TryGetReference(
+        if(currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                 IntBoundCheckCompatibilityId(ZeroValueNumber, headSegmentLengthValue->GetValueNumber()),
                 &compatibleBoundCheck))
         {
@@ -2305,7 +1956,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         {
             invariantLoop = headSegmentLengthInvariantLoop;
             landingPadHeadSegmentLengthValue =
-                FindValue(invariantLoop->landingPad->globOptData.symToValueMap, headSegmentLengthSym);
+                invariantLoop->landingPad->globOptData.FindValue(headSegmentLengthSym);
         }
         else if(currentLoop)
         {
@@ -2313,9 +1964,8 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
             for(Loop *loop = currentLoop; loop; loop = loop->parent)
             {
                 GlobOptBlockData &landingPadBlockData = loop->landingPad->globOptData;
-                GlobHashTable *const landingPadSymToValueMap = landingPadBlockData.symToValueMap;
 
-                Value *const value = FindValue(landingPadSymToValueMap, headSegmentLengthSym);
+                Value *const value = landingPadBlockData.FindValue(headSegmentLengthSym);
                 if(!value)
                 {
                     break;
@@ -2404,7 +2054,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         ValueNumber lowerHoistBlockIndexValueNumber = InvalidValueNumber;
         int lowerBoundOffset = 0;
         if(searchingLower &&
-            blockData.availableIntBoundChecks->TryGetReference(
+            currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                 IntBoundCheckCompatibilityId(ZeroValueNumber, indexValue->GetValueNumber()),
                 &lowerBoundCheck))
         {
@@ -2426,7 +2076,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         ValueNumber upperHoistBlockIndexValueNumber = InvalidValueNumber;
         int upperBoundOffset = 0;
         if(searchingUpper &&
-            blockData.availableIntBoundChecks->TryGetReference(
+            currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                 IntBoundCheckCompatibilityId(indexValue->GetValueNumber(), headSegmentLengthValue->GetValueNumber()),
                 &upperBoundCheck))
         {
@@ -2449,7 +2099,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
             searchingUpper = searchingUpper && indexBounds->RelativeUpperBounds().Count() != 0;
             if(searchingLower || searchingUpper)
             {
-                for(auto it = blockData.availableIntBoundChecks->GetIterator(); it.IsValid(); it.MoveNext())
+                for(auto it = currentBlock->globOptData.availableIntBoundChecks->GetIterator(); it.IsValid(); it.MoveNext())
                 {
                     const IntBoundCheck &boundCheck = it.CurrentValue();
 
@@ -2602,7 +2252,6 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
     for(Loop *loop = currentLoop; loop; loop = loop->parent)
     {
         GlobOptBlockData &landingPadBlockData = loop->landingPad->globOptData;
-        GlobHashTable *const landingPadSymToValueMap = landingPadBlockData.symToValueMap;
         TRACE_PHASE_VERBOSE(
             Js::Phase::BoundCheckHoistPhase,
             3,
@@ -2610,7 +2259,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
             loop->GetLoopNumber(),
             loop->landingPad->GetBlockNum());
 
-        Value *const landingPadIndexValue = FindValue(landingPadSymToValueMap, indexSym);
+        Value *const landingPadIndexValue = landingPadBlockData.FindValue(indexSym);
         if(!landingPadIndexValue)
         {
             break;
@@ -2756,7 +2405,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         }
 
         // Check if the head segment length sym is available in the landing pad
-        Value *const landingPadHeadSegmentLengthValue = FindValue(landingPadSymToValueMap, headSegmentLengthSym);
+        Value *const landingPadHeadSegmentLengthValue = landingPadBlockData.FindValue(headSegmentLengthSym);
         if(!landingPadHeadSegmentLengthValue)
         {
             TRACE_PHASE_VERBOSE(Js::Phase::BoundCheckHoistPhase, 5, _u("Head segment length is not invariant\n"));
@@ -2832,7 +2481,6 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
     for(Loop *loop = currentLoop; loop; loop = loop->parent)
     {
         GlobOptBlockData &landingPadBlockData = loop->landingPad->globOptData;
-        GlobHashTable *const landingPadSymToValueMap = landingPadBlockData.symToValueMap;
         TRACE_PHASE_VERBOSE(
             Js::Phase::BoundCheckHoistPhase,
             3,
@@ -2845,7 +2493,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         if(searchingUpper)
         {
             // Check if the head segment length sym is available in the landing pad
-            landingPadHeadSegmentLengthValue = FindValue(landingPadSymToValueMap, headSegmentLengthSym);
+            landingPadHeadSegmentLengthValue = landingPadBlockData.FindValue(headSegmentLengthSym);
             if(landingPadHeadSegmentLengthValue)
             {
                 AssertVerify(
@@ -2912,7 +2560,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
                         continue;
                     }
 
-                    Value *const landingPadIndexBoundBaseValue = FindValue(landingPadSymToValueMap, indexBoundBaseSym);
+                    Value *const landingPadIndexBoundBaseValue = landingPadBlockData.FindValue(indexBoundBaseSym);
                     if(!landingPadIndexBoundBaseValue ||
                         landingPadIndexBoundBaseValue->GetValueNumber() != indexBound.BaseValueNumber())
                     {
@@ -3027,7 +2675,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
                         _u("Found constant upper bound %d, looking for a compatible bound check\n"),
                         indexConstantBound);
                     const IntBoundCheck *boundCheck;
-                    if(blockData.availableIntBoundChecks->TryGetReference(
+                    if(currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                             IntBoundCheckCompatibilityId(ZeroValueNumber, headSegmentLengthValue->GetValueNumber()),
                             &boundCheck))
                     {
@@ -3138,7 +2786,6 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
     // Determine the maximum-magnitude change per iteration, and verify that the change is reasonably finite
     Assert(indexInductionVariable->IsChangeUnidirectional());
     GlobOptBlockData &landingPadBlockData = currentLoop->landingPad->globOptData;
-    GlobHashTable *const landingPadSymToValueMap = currentLoop->landingPad->globOptData.symToValueMap;
     int maxMagnitudeChange = indexInductionVariable->ChangeBounds().UpperBound();
     Value *landingPadHeadSegmentLengthValue;
     IntConstantBounds landingPadHeadSegmentLengthConstantBounds;
@@ -3156,7 +2803,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         }
 
         // Check whether the head segment length is available in the landing pad
-        landingPadHeadSegmentLengthValue = FindValue(landingPadSymToValueMap, headSegmentLengthSym);
+        landingPadHeadSegmentLengthValue = landingPadBlockData.FindValue(headSegmentLengthSym);
         Assert(!headSegmentLengthInvariantLoop || landingPadHeadSegmentLengthValue);
         if(!landingPadHeadSegmentLengthValue)
         {
@@ -3187,23 +2834,30 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
     }
 
     // Determine if the index already changed in the loop, and by how much
-    int indexOffset;
-    StackSym *indexSymToAdd;
-    if(DetermineSymBoundOffsetOrValueRelativeToLandingPad(
-            indexSym,
-            maxMagnitudeChange >= 0,
-            indexValueInfo,
-            indexBounds,
-            currentLoop->landingPad->globOptData.symToValueMap,
-            &indexOffset))
+    int indexOffset = 0;
+    StackSym *indexSymToAdd = nullptr;
+    SymBoundType symBoundType = DetermineSymBoundOffsetOrValueRelativeToLandingPad(
+        indexSym,
+        maxMagnitudeChange >= 0,
+        indexValueInfo,
+        indexBounds,
+        &currentLoop->landingPad->globOptData,
+        &indexOffset);
+    if (symBoundType == SymBoundType::VALUE)
     {
         // The bound value is constant
         indexSymToAdd = nullptr;
     }
-    else
+    else if (symBoundType == SymBoundType::OFFSET)
     {
         // The bound value is not constant, the offset needs to be added to the index sym in the landing pad
         indexSymToAdd = indexSym;
+    }
+    else
+    {
+        Assert(symBoundType == SymBoundType::UNKNOWN);
+        TRACE_PHASE_VERBOSE(Js::Phase::BoundCheckHoistPhase, 4, _u("Unable to determine the sym bound offset or value\n"));
+        return;
     }
     TRACE_PHASE_VERBOSE(Js::Phase::BoundCheckHoistPhase, 3, _u("Index's offset from landing pad is %d\n"), indexOffset);
 
@@ -3213,8 +2867,8 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
     // If the loop count is constant, (inductionVariableOffset + loopCount * maxMagnitudeChange) can be folded into an offset:
     //     bound = index + offset
     int offset;
-    StackSym *indexLoopCountBasedBoundBaseSym;
-    Value *indexLoopCountBasedBoundBaseValue;
+    StackSym *indexLoopCountBasedBoundBaseSym = nullptr;
+    Value *indexLoopCountBasedBoundBaseValue = nullptr;
     IntConstantBounds indexLoopCountBasedBoundBaseConstantBounds;
     bool generateLoopCountBasedIndexBound;
     if(!loopCount->HasBeenGenerated() || loopCount->LoopCountMinusOneSym())
@@ -3250,7 +2904,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
                     3,
                     _u("Loop count based bound is assigned to s%u\n"),
                     indexLoopCountBasedBoundBaseSym->m_id);
-                indexLoopCountBasedBoundBaseValue = FindValue(landingPadSymToValueMap, indexLoopCountBasedBoundBaseSym);
+                indexLoopCountBasedBoundBaseValue = landingPadBlockData.FindValue(indexLoopCountBasedBoundBaseSym);
                 Assert(indexLoopCountBasedBoundBaseValue);
                 AssertVerify(
                     indexLoopCountBasedBoundBaseValue
@@ -3268,7 +2922,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
                 indexLoopCountBasedBoundBaseSym->m_id);
             loopCountBasedBoundBaseSyms->Add(indexSymId, indexLoopCountBasedBoundBaseSym);
             indexLoopCountBasedBoundBaseValue = NewValue(ValueInfo::New(alloc, ValueType::GetInt(true)));
-            SetValue(&landingPadBlockData, indexLoopCountBasedBoundBaseValue, indexLoopCountBasedBoundBaseSym);
+            landingPadBlockData.SetValue(indexLoopCountBasedBoundBaseValue, indexLoopCountBasedBoundBaseSym);
             indexLoopCountBasedBoundBaseConstantBounds = IntConstantBounds(IntConstMin, IntConstMax);
             generateLoopCountBasedIndexBound = true;
         } while(false);
@@ -3322,7 +2976,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
             // See if a compatible bound check is already available
             TRACE_PHASE_VERBOSE(Js::Phase::BoundCheckHoistPhase, 3, _u("Looking for a compatible bound check\n"));
             const IntBoundCheck *boundCheck;
-            if(blockData.availableIntBoundChecks->TryGetReference(
+            if(currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                     IntBoundCheckCompatibilityId(ZeroValueNumber, headSegmentLengthValue->GetValueNumber()),
                     &boundCheck))
             {
@@ -3359,7 +3013,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         // of adding though, we will treat the index sym as the loop count based bound base sym and adjust the offset that will
         // be used in the bound check itself.
         indexLoopCountBasedBoundBaseSym = indexSymToAdd;
-        indexLoopCountBasedBoundBaseValue = FindValue(landingPadSymToValueMap, indexSymToAdd);
+        indexLoopCountBasedBoundBaseValue = landingPadBlockData.FindValue(indexSymToAdd);
         Assert(indexLoopCountBasedBoundBaseValue);
         AssertVerify(
             indexLoopCountBasedBoundBaseValue
@@ -3416,7 +3070,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         TRACE_PHASE_VERBOSE(Js::Phase::BoundCheckHoistPhase, 3, _u("Looking for a compatible bound check\n"));
         const ValueNumber indexLoopCountBasedBoundBaseValueNumber = indexLoopCountBasedBoundBaseValue->GetValueNumber();
         const IntBoundCheck *boundCheck;
-        if(blockData.availableIntBoundChecks->TryGetReference(
+        if(currentBlock->globOptData.availableIntBoundChecks->TryGetReference(
                 maxMagnitudeChange < 0
                     ?   IntBoundCheckCompatibilityId(
                             ZeroValueNumber,

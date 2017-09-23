@@ -5,21 +5,18 @@
 #include "CommonMemoryPch.h"
 
 RecyclerPageAllocator::RecyclerPageAllocator(Recycler* recycler, AllocationPolicyManager * policyManager,
-#ifndef JD_PRIVATE
-    Js::ConfigFlagsTable& flagTable,
-#endif
-    uint maxFreePageCount, uint maxAllocPageCount)
+    Js::ConfigFlagsTable& flagTable, uint maxFreePageCount, uint maxAllocPageCount, bool enableWriteBarrier)
     : IdleDecommitPageAllocator(policyManager,
         PageAllocatorType_Recycler,
-#ifndef JD_PRIVATE
         flagTable,
-#endif
         0, maxFreePageCount,
         true,
 #if ENABLE_BACKGROUND_PAGE_ZEROING
         &zeroPageQueue,
 #endif
-        maxAllocPageCount)
+        maxAllocPageCount,
+        enableWriteBarrier
+        )
 {
     this->recycler = recycler;
 }
@@ -30,6 +27,7 @@ bool RecyclerPageAllocator::IsMemProtectMode()
 }
 
 #if ENABLE_CONCURRENT_GC
+#ifdef RECYCLER_WRITE_WATCH
 void
 RecyclerPageAllocator::EnableWriteWatch()
 {
@@ -45,7 +43,7 @@ RecyclerPageAllocator::EnableWriteWatch()
 bool
 RecyclerPageAllocator::ResetWriteWatch()
 {
-    if (allocFlags != MEM_WRITE_WATCH)
+    if (!IsWriteWatchEnabled())
     {
         return false;
     }
@@ -126,7 +124,9 @@ RecyclerPageAllocator::ResetAllWriteWatch(DListBase<T> * segmentList)
     }
     return true;
 }
+#endif
 
+#ifdef RECYCLER_WRITE_WATCH
 #if DBG
 size_t
 RecyclerPageAllocator::GetWriteWatchPageCount()
@@ -227,5 +227,6 @@ RecyclerPageAllocator::GetAllWriteWatchPageCount(DListBase<T> * segmentList)
     }
     return totalCount;
 }
+#endif
 #endif
 #endif

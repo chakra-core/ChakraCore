@@ -88,7 +88,8 @@ namespace Js
                 for (int groupId = 1; groupId < min(numGroups, NumCtorCaptures); groupId++)
                     captures[groupId] = RegexHelper::GetGroup(scriptContext, pattern, lastInput, nonMatchValue, groupId);
 
-                this->lastParen = numGroups <= NumCtorCaptures ? captures[numGroups - 1] :
+                this->lastParen = numGroups <= NumCtorCaptures ?
+                    PointerValue(captures[numGroups - 1]) :
                     RegexHelper::GetGroup(scriptContext, pattern, lastInput, nonMatchValue, numGroups - 1);
             }
             else
@@ -140,7 +141,7 @@ namespace Js
         PropertyIds::index,
     };
 
-    BOOL JavascriptRegExpConstructor::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags JavascriptRegExpConstructor::HasPropertyQuery(PropertyId propertyId)
     {
         switch (propertyId)
         {
@@ -164,29 +165,29 @@ namespace Js
         case PropertyIds::$7:
         case PropertyIds::$8:
         case PropertyIds::$9:
-            return true;
+            return PropertyQueryFlags::Property_Found;
         default:
-            return JavascriptFunction::HasProperty(propertyId);
+            return JavascriptFunction::HasPropertyQuery(propertyId);
         }
     }
 
-    BOOL JavascriptRegExpConstructor::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptRegExpConstructor::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return JavascriptRegExpConstructor::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptRegExpConstructor::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL JavascriptRegExpConstructor::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptRegExpConstructor::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         if (GetPropertyBuiltIns(propertyId, value, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
-        return JavascriptFunction::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptFunction::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL JavascriptRegExpConstructor::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptRegExpConstructor::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         PropertyRecord const* propertyRecord;
@@ -194,10 +195,10 @@ namespace Js
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
-        return JavascriptFunction::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
+        return JavascriptFunction::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
     }
 
     bool JavascriptRegExpConstructor::GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result)
@@ -393,7 +394,6 @@ namespace Js
         JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
         if (BuiltInPropertyRecords::input.Equals(propertyName)
             || BuiltInPropertyRecords::$_.Equals(propertyName)
-            || BuiltInPropertyRecords::length.Equals(propertyName)
             || BuiltInPropertyRecords::lastMatch.Equals(propertyName)
             || BuiltInPropertyRecords::$Ampersand.Equals(propertyName)
             || BuiltInPropertyRecords::lastParen.Equals(propertyName)
@@ -522,7 +522,7 @@ namespace Js
     }
 
 
-    BOOL JavascriptRegExpConstructor::GetSpecialEnumerablePropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
+    BOOL JavascriptRegExpConstructor::GetSpecialEnumerablePropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext)
     {
         uint length = GetSpecialEnumerablePropertyCount();
         if (index < length)
@@ -555,7 +555,7 @@ namespace Js
         return _countof(specialPropertyIds);
     }
 
-    BOOL JavascriptRegExpConstructor::GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
+    BOOL JavascriptRegExpConstructor::GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext)
     {
         uint length = GetSpecialPropertyCount();
         if (index < length)

@@ -1,0 +1,159 @@
+[
+  {
+    "functionProperties": [
+      {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      }
+    ]
+  },
+  {
+    "functionProperties": [
+      {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "length": "number 0",
+          "name": "string ",
+          "apply": "function <large string>",
+          "bind": "function <large string>",
+          "call": "function <large string>",
+          "toString": "function <large string>",
+          "Symbol.hasInstance": "function <large string>",
+          "caller": "Error <large string>",
+          "arguments": "Error <large string>"
+        },
+        "prototype": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>"
+        },
+        "caller": "object null",
+        "arguments": {
+          "#__proto__": "Object {...}",
+          "length": "number 0",
+          "callee": "function <large string>",
+          "Symbol.iterator": "function <large string>"
+        },
+        "length": "number 0"
+      }
+    ]
+  },
+  {
+    "functionProperties": [
+      {
+        "#__proto__": "function <large string>",
+        "length": "number 1"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 22,
+        "column": 4,
+        "sourceText": "var x = 1",
+        "function": "same"
+      },
+      {
+        "line": 24,
+        "column": 4,
+        "sourceText": "same(!shouldBreak)",
+        "function": "same"
+      },
+      {
+        "line": 27,
+        "column": 0,
+        "sourceText": "same(false)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "functionProperties": [
+      {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string same",
+        "caller": "function <large string>",
+        "arguments": "Object {...}",
+        "length": "number 1"
+      },
+      {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string ",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number -1"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 36,
+        "column": 2,
+        "sourceText": "var x = 1",
+        "function": "three"
+      },
+      {
+        "line": 33,
+        "column": 2,
+        "sourceText": "three()",
+        "function": "two"
+      },
+      {
+        "line": 30,
+        "column": 2,
+        "sourceText": "two()",
+        "function": "one"
+      },
+      {
+        "line": 38,
+        "column": 0,
+        "sourceText": "one()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "functionProperties": [
+      {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string three",
+        "caller": "function <large string>",
+        "arguments": "Object {...}",
+        "length": "number 3"
+      },
+      {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string two",
+        "caller": "function <large string>",
+        "arguments": "Object {...}",
+        "length": "number 2"
+      },
+      {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string one",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 1"
+      },
+      {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string ",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number -1"
+      }
+    ]
+  }
+]

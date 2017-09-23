@@ -100,9 +100,12 @@ private:
 template <typename TBlockType>
 template <bool canFaultInject>
 inline char*
-SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes)
+SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, ObjectInfoBits attributes)
 {
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
+#ifdef RECYCLER_WRITE_BARRIER
+    Assert(!CONFIG_FLAG(ForceSoftwareWriteBarrier) || (attributes & WithBarrierBit) || (attributes & LeafBit));
+#endif
 
     AUTO_NO_EXCEPTION_REGION;
     if (canFaultInject)
@@ -180,7 +183,7 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, size_
 template <typename TBlockType>
 template <ObjectInfoBits attributes>
 inline char *
-SmallHeapBlockAllocator<TBlockType>::InlinedAlloc(Recycler * recycler, size_t sizeCat)
+SmallHeapBlockAllocator<TBlockType>::InlinedAlloc(Recycler * recycler, DECLSPEC_GUARD_OVERFLOW size_t sizeCat)
 {
     return InlinedAllocImpl<true /* allow fault injection */>(recycler, sizeCat, attributes);
 }
@@ -189,7 +192,7 @@ template <typename TBlockType>
 template <bool canFaultInject>
 inline
 char *
-SmallHeapBlockAllocator<TBlockType>::SlowAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes)
+SmallHeapBlockAllocator<TBlockType>::SlowAlloc(Recycler * recycler, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, ObjectInfoBits attributes)
 {
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
 

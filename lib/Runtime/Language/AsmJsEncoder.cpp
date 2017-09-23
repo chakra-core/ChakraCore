@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
+#include "RuntimeMathPch.h"
 
 #ifdef ASMJS_PLAT
 
@@ -207,7 +208,7 @@ namespace Js
             Assert( ::Math::FitsInDWord( codeSize ) );
 
             BYTE *buffer;
-            EmitBufferAllocation *allocation = GetCodeGenAllocator()->emitBufferManager.AllocateBuffer( codeSize, &buffer, 0, 0 );
+            EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> *allocation = GetCodeGenAllocator()->emitBufferManager.AllocateBuffer( codeSize, &buffer, 0, 0 );
             functionBody->GetAsmJsFunctionInfo()->mTJBeginAddress = buffer;
 
             if (buffer == nullptr)

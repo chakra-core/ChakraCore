@@ -22,6 +22,7 @@ LSC_ERROR_MSG( 1013, ERRbadNumber     , "Invalid number")
 LSC_ERROR_MSG( 1014, ERRillegalChar   , "Invalid character")
 LSC_ERROR_MSG( 1015, ERRnoStrEnd      , "Unterminated string constant")
 LSC_ERROR_MSG( 1016, ERRnoCmtEnd      , "Unterminated comment")
+LSC_ERROR_MSG( 1017, ERRIdAfterLit    , "Unexpected identifier after numeric literal")
 
 LSC_ERROR_MSG( 1018, ERRbadReturn     , "'return' statement outside of function")
 LSC_ERROR_MSG( 1019, ERRbadBreak      , "Can't have 'break' outside of loop")
@@ -93,11 +94,9 @@ LSC_ERROR_MSG(1083, ERRBadAwait, "'await' expression not allowed in this context
 
 LSC_ERROR_MSG(1084, ERRGetterMustHaveNoParameters, "Getter functions must have no parameters")
 
-LSC_ERROR_MSG(1085, ERREvalNotSupportedInParamScope, "'eval' is not allowed in the default initializer")
-LSC_ERROR_MSG(1086, ERRInvalidUseofExponentiationOperator, "Invalid unary operator on the left hand side of exponentiation (**) operator")
+LSC_ERROR_MSG(1085, ERRInvalidUseofExponentiationOperator, "Invalid unary operator on the left hand side of exponentiation (**) operator")
 
-LSC_ERROR_MSG(1087, ERRInvalidModuleImportOrExport, "Module import or export statement unexpected here")
-LSC_ERROR_MSG(1088, ERRInvalidExportName, "Unable to resolve module export name")
+LSC_ERROR_MSG(1086, ERRInvalidModuleImportOrExport, "Module import or export statement unexpected here")
+LSC_ERROR_MSG(1087, ERRInvalidExportName, "Unable to resolve module export name")
 
-LSC_ERROR_MSG(1089, ERRLetIDInLexicalDecl, "'let' is not an allowed identifier in lexical declarations")
-LSC_ERROR_MSG(1090, ERRNonSimpleParamListArgumentsUse, "Use of 'arguments' in non-simple parameter list is not supported when one of the formals is captured")
+LSC_ERROR_MSG(1088, ERRLetIDInLexicalDecl, "'let' is not an allowed identifier in lexical declarations")

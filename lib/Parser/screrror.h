@@ -7,7 +7,6 @@
 /***************************************************************************
 Exception blocks
 ***************************************************************************/
-class ErrHandler;
 struct ParseNode;
 class COleScript;
 interface IScanner;
@@ -64,7 +63,6 @@ public:
     ~CompileScriptException();
 
 public:
-    void Clear();
     void Free();
     void GetError(HRESULT *phr, EXCEPINFO *pei)
     {

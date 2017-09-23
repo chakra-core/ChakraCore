@@ -13,8 +13,8 @@ namespace utf8
     /// using Allocator.
     /// The returned string is null terminated.
     ///
-    template <class Allocator>
-    HRESULT WideStringToNarrow(_In_ LPCWSTR sourceString, size_t sourceCount, _Out_ LPSTR* destStringPtr, _Out_ size_t* destCount)
+    template <typename AllocatorFunction>
+    HRESULT WideStringToNarrow(_In_ AllocatorFunction allocator, _In_ LPCWSTR sourceString, size_t sourceCount, _Out_ LPSTR* destStringPtr, _Out_ size_t* destCount, size_t* allocateCount = nullptr)
     {
         size_t cchSourceString = sourceCount;
 
@@ -31,7 +31,7 @@ namespace utf8
             return E_OUTOFMEMORY;
         }
 
-        utf8char_t* destString = (utf8char_t*)Allocator::allocate(cbDestString);
+        utf8char_t* destString = (utf8char_t*)allocator(cbDestString);
         if (destString == nullptr)
         {
             return E_OUTOFMEMORY;
@@ -42,7 +42,45 @@ namespace utf8
         static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
         *destStringPtr = (char*)destString;
         *destCount = cbEncoded;
+        if (allocateCount != nullptr) *allocateCount = cbEncoded;
         return S_OK;
+    }
+
+    ///
+    /// Use the codex library to encode a UTF16 string to UTF8.
+    /// The caller is responsible for providing the buffer
+    /// The returned string is null terminated.
+    ///
+    inline HRESULT WideStringToNarrowNoAlloc(_In_ LPCWSTR sourceString, size_t sourceCount, __out_ecount(destCount) LPSTR destString, size_t destCount, size_t* writtenCount = nullptr)
+    {
+        size_t cchSourceString = sourceCount;
+
+        if (cchSourceString >= MAXUINT32)
+        {
+            return E_OUTOFMEMORY;
+        }
+
+        static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
+
+        size_t cbEncoded = 0;
+        if (destString == nullptr)
+        {
+            cbEncoded = utf8::CountTrueUtf8(sourceString, (charcount_t)cchSourceString);
+        }
+        else
+        {
+            cbEncoded = utf8::EncodeTrueUtf8IntoBoundsChecked((utf8char_t*)destString, sourceString, (charcount_t)cchSourceString, &destString[destCount]);
+            Assert(cbEncoded <= destCount);
+        }
+
+        if (writtenCount != nullptr) *writtenCount = cbEncoded;
+        return S_OK;
+    }
+
+    template <class Allocator>
+    HRESULT WideStringToNarrow(_In_ LPCWSTR sourceString, size_t sourceCount, _Out_ LPSTR* destStringPtr, _Out_ size_t* destCount, size_t* allocateCount = nullptr)
+    {
+        return WideStringToNarrow(Allocator::allocate, sourceString, sourceCount, destStringPtr, destCount, allocateCount);
     }
 
     ///
@@ -51,35 +89,68 @@ namespace utf8
     /// using Allocator.
     /// The returned string is null terminated.
     ///
-    template <class Allocator>
-    HRESULT NarrowStringToWide(_In_ LPCSTR sourceString, size_t sourceCount, _Out_ LPWSTR* destStringPtr, _Out_ size_t* destCount)
+    template <typename AllocatorFunction>
+    HRESULT NarrowStringToWide(_In_ AllocatorFunction allocator,_In_ LPCSTR sourceString, size_t sourceCount, _Out_ LPWSTR* destStringPtr, _Out_ size_t* destCount, size_t* allocateCount = nullptr)
     {
         size_t cbSourceString = sourceCount;
-        charcount_t cchDestString = utf8::ByteIndexIntoCharacterIndex((LPCUTF8) sourceString, cbSourceString);
-        size_t cbDestString = (cchDestString + 1) * sizeof(WCHAR);
-
-        // Check for overflow- cbDestString should be >= cchSourceString
-        if (cbDestString < cchDestString)
+        size_t sourceStart = 0;
+        size_t cbDestString = (sourceCount + 1) * sizeof(WCHAR);
+        if (cbDestString < sourceCount) // overflow ?
         {
             return E_OUTOFMEMORY;
         }
 
-        WCHAR* destString = (WCHAR*)Allocator::allocate(cbDestString);
+        WCHAR* destString = (WCHAR*)allocator(cbDestString);
         if (destString == nullptr)
         {
             return E_OUTOFMEMORY;
         }
 
-        // Some node tests depend on the utf8 decoder not swallowing invalid unicode characters
-        // instead of replacing them with the "replacement" chracter. Pass a flag to our 
-        // decoder to require such behavior
-        utf8::DecodeIntoAndNullTerminate(destString, (LPCUTF8) sourceString, cchDestString,
-            DecodeOptions::doAllowInvalidWCHARs);
-        Assert(destString[cchDestString] == 0);
-        static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
-        *destStringPtr = destString;
-        *destCount = cchDestString;
+        if (allocateCount != nullptr) *allocateCount = cbDestString;
+
+        for (; sourceStart < sourceCount; sourceStart++)
+        {
+            const char ch = sourceString[sourceStart];
+            if ( ! (ch > 0 && ch < 0x0080) )
+            {
+                size_t fallback = sourceStart > 3 ? 3 : sourceStart; // 3 + 1 -> fallback at least 1 unicode char
+                sourceStart -= fallback;
+                break;
+            }
+            destString[sourceStart] = (WCHAR) ch;
+        }
+
+        if (sourceStart == sourceCount)
+        {
+            *destCount = sourceCount;
+            destString[sourceCount] = WCHAR(0);
+            *destStringPtr = destString;
+        }
+        else
+        {
+            LPCUTF8 remSourceString = (LPCUTF8)sourceString + sourceStart;
+            WCHAR *remDestString = destString + sourceStart;
+
+            charcount_t cchDestString = utf8::ByteIndexIntoCharacterIndex(remSourceString, cbSourceString - sourceStart);
+            cchDestString += (charcount_t)sourceStart;
+            Assert (cchDestString <= sourceCount);
+
+            // Some node tests depend on the utf8 decoder not swallowing invalid unicode characters
+            // instead of replacing them with the "replacement" chracter. Pass a flag to our
+            // decoder to require such behavior
+            utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(remDestString, remSourceString, (LPCUTF8) sourceString + cbSourceString, DecodeOptions::doAllowInvalidWCHARs);
+            Assert(destString[cchDestString] == 0);
+            static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
+            *destStringPtr = destString;
+            *destCount = cchDestString;
+        }
         return S_OK;
+    }
+
+    template <class Allocator>
+    HRESULT NarrowStringToWide(_In_ LPCSTR sourceString, size_t sourceCount, _Out_ LPWSTR* destStringPtr, _Out_ size_t* destCount, size_t* allocateCount = nullptr)
+    {
+        return NarrowStringToWide(Allocator::allocate, sourceString, sourceCount, destStringPtr, destCount, allocateCount);
     }
 
     class malloc_allocator
@@ -115,7 +186,9 @@ namespace utf8
     public:
         static size_t Length(const SrcType& src);
         static HRESULT Convert(
-            SrcType src, size_t srcCount, DstType* dst, size_t* dstCount);
+            SrcType src, size_t srcCount, DstType* dst, size_t* dstCount, size_t* allocateCount = nullptr);
+        static HRESULT ConvertNoAlloc(
+            SrcType src, size_t srcCount, DstType dst, size_t dstCount, size_t* written);
     };
 
     template <class Allocator>
@@ -131,10 +204,18 @@ namespace utf8
 
         static HRESULT Convert(
             LPCSTR sourceString, size_t sourceCount,
-            LPWSTR* destStringPtr, size_t* destCount)
+            LPWSTR* destStringPtr, size_t* destCount, size_t* allocateCount = nullptr)
         {
             return NarrowStringToWide<Allocator>(
-                sourceString, sourceCount, destStringPtr, destCount);
+                sourceString, sourceCount, destStringPtr, destCount, allocateCount);
+        }
+
+        static HRESULT ConvertNoAlloc(
+            LPCSTR sourceString, size_t sourceCount,
+            LPWSTR destStringPtr, size_t destCount, size_t* written)
+        {
+            return NarrowStringToWideNoAlloc(
+                sourceString, sourceCount, destStringPtr, destCount, written);
         }
     };
 
@@ -151,10 +232,18 @@ namespace utf8
 
         static HRESULT Convert(
             LPCWSTR sourceString, size_t sourceCount,
-            LPSTR* destStringPtr, size_t* destCount)
+            LPSTR* destStringPtr, size_t* destCount, size_t* allocateCount = nullptr)
         {
             return WideStringToNarrow<Allocator>(
-                sourceString, sourceCount, destStringPtr, destCount);
+                sourceString, sourceCount, destStringPtr, destCount, allocateCount);
+        }
+
+        static HRESULT ConvertNoAlloc(
+            LPCWSTR sourceString, size_t sourceCount,
+            LPSTR destStringPtr, size_t destCount, size_t* written)
+        {
+            return WideStringToNarrowNoAlloc(
+                sourceString, sourceCount, destStringPtr, destCount, written);
         }
     };
 
@@ -166,23 +255,41 @@ namespace utf8
     private:
         DstType dst;
         size_t dstCount;
+        size_t allocateCount;
+        bool freeDst;
 
     public:
+        NarrowWideConverter() : dst()
+        {
+            // do nothing
+        }
+
         NarrowWideConverter(const SrcType& src, size_t srcCount = -1): dst()
+        {
+            Initialize(src, srcCount);
+        }
+
+        NarrowWideConverter(const SrcType& src, size_t srcCount, DstType dst, size_t dstSize) : dst(dst), freeDst(false)
+        {
+            StringConverter::ConvertNoAlloc(src, srcCount, dst, dstSize, &dstCount);
+        }
+
+        void Initialize(const SrcType& src, size_t srcCount = -1)
         {
             if (srcCount == -1)
             {
                 srcCount = StringConverter::Length(src);
             }
 
-            StringConverter::Convert(src, srcCount, &dst, &dstCount);
+            StringConverter::Convert(src, srcCount, &dst, &dstCount, &allocateCount);
+            freeDst = true;
         }
 
         ~NarrowWideConverter()
         {
-            if (dst)
+            if (dst && freeDst)
             {
-                Allocator::free(dst, dstCount);
+                Allocator::free(dst, allocateCount);
             }
         }
 

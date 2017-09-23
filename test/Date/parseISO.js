@@ -129,6 +129,16 @@ echo("// Test support for zones without colons (DEVDIV2: 481975)");
 echo("");
 runTest("2012-02-22T03:08:26+0000");
 
+echo("// Test support for zones(Issue#1402:OS8026281)");
+echo("");
+runTest("Wed Jul 22 16:04:54 2016 +0000");
+runTest("Wed Jul 22 16:04:54 +0000 2016");
+runTest("Wed Jul 22 +0000 16:04:54 2016");
+runTest("Wed Jul +0000 22 16:04:54 2016");
+runTest("Wed +0000 Jul 22 16:04:54 2016");
+runTest("+0000 Wed Jul 22 16:04:54 2016");
+runTest("Wed Jul 22 16:04:54 2016");
+
 writeStats();
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

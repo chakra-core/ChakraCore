@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     class JavascriptSIMDUint32x4;
@@ -52,5 +52,12 @@ namespace Js
 
     private:
         virtual bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext) override;
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableSimd128I4;
+        }
     };
 }
+#endif

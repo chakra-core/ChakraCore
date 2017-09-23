@@ -28,8 +28,14 @@
 @echo off
 setlocal
 
+if "%TF_BUILD_BINARIESDIRECTORY%" == "" (
+  echo TF_BUILD_BINARIESDIRECTORY is required for this script to work correctly.
+  exit /b 1
+)
+
 set _RootDir=%~dp0..
 set _StagingDir=%TF_BUILD_BINARIESDIRECTORY%
+REM %TF_BUILD_DROPLOCATION% is not required -- used only for an informational message
 set _DropRootDir=%TF_BUILD_DROPLOCATION%
 set _HadFailures=0
 
@@ -82,7 +88,7 @@ set _HadFailures=0
     
     call :summarizeLogs summary.log
   ) else (
-    call :runTests %_BuildArch% %_BuildType%
+    call :runTests %_BuildArch% %_BuildType% %_ExtraArgs%
     call :runNativeTests %_BuildArch% %_BuildType%
     call :summarizeLogs summary.%_BuildArch%%_BuildType%.log
   )
@@ -114,7 +120,7 @@ set _HadFailures=0
 :: ============================================================================
 :runTests
 
-  call :do %_TestDir%\runtests.cmd -%1%2 -quiet -cleanupall -binDir %_StagingDir%\bin
+  call :do %_TestDir%\runtests.cmd -%1%2 %3 -quiet -cleanupall -binDir %_StagingDir%\bin
 
   if ERRORLEVEL 1 set _HadFailures=1
 
@@ -152,7 +158,7 @@ set _HadFailures=0
 
   pushd %_TestDir%\logs
   findstr /sp failed rl.results.log > %1
-  findstr /sip failed nativetests.log > %1
+  findstr /sip failed nativetests.log >> %1
   rem Echo to stderr so that VSO includes the output in the build summary
   type %1 1>&2
   popd
@@ -229,7 +235,7 @@ set _HadFailures=0
 
   if /i "%1" == "-all"              set _RunAll=1&                                              goto :ArgOk
 
-  if not "%1" == "" echo Unknown argument: %1 & set fShowGetHelp=1
+  if not "%1" == ""                 set _ExtraArgs=%_ExtraArgs% %1&                             goto :ArgOk
 
   goto :eof
 

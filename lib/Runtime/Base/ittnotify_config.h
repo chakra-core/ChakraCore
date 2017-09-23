@@ -69,7 +69,7 @@
 #include <stddef.h>
 #if ITT_PLATFORM==ITT_PLATFORM_WIN
 // 4/29/2016 disable warning 4995 on deprecated _tccpy, wcsncpy, wcsncat, wcstok funcs in tchar.h
-#pragma warning( disable : 4995 )   
+#pragma warning( disable : 4995 )
 #include <tchar.h>
 #else  /* ITT_PLATFORM==ITT_PLATFORM_WIN */
 #include <stdint.h>
@@ -333,7 +333,7 @@ typedef struct ___itt_thread_info
 {
     const char* nameA; /*!< Copy of original name in ASCII. */
 #if defined(UNICODE) || defined(_UNICODE)
-    const wchar_t* nameW; /*!< Copy of original name in UNICODE. */
+    const WCHAR* nameW; /*!< Copy of original name in UNICODE. */
 #else  /* UNICODE || _UNICODE */
     void* nameW;
 #endif /* UNICODE || _UNICODE */
@@ -367,13 +367,13 @@ typedef struct __itt_counter_info
 {
     const char* nameA;  /*!< Copy of original name in ASCII. */
 #if defined(UNICODE) || defined(_UNICODE)
-    const wchar_t* nameW; /*!< Copy of original name in UNICODE. */
+    const WCHAR* nameW; /*!< Copy of original name in UNICODE. */
 #else  /* UNICODE || _UNICODE */
     void* nameW;
 #endif /* UNICODE || _UNICODE */
     const char* domainA;  /*!< Copy of original name in ASCII. */
 #if defined(UNICODE) || defined(_UNICODE)
-    const wchar_t* domainW; /*!< Copy of original name in UNICODE. */
+    const WCHAR* domainW; /*!< Copy of original name in UNICODE. */
 #else  /* UNICODE || _UNICODE */
     void* domainW;
 #endif /* UNICODE || _UNICODE */

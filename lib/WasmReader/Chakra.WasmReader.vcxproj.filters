@@ -16,6 +16,8 @@
     <ClInclude Include="WasmGlobal.h" />
     <ClInclude Include="WasmReaderBase.h" />
     <ClInclude Include="WasmCustomReader.h" />
+    <ClInclude Include="EmptyWasmByteCodeWriter.h" />
+    <ClInclude Include="WasmLimits.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmBytecodeGenerator.cpp" />
@@ -26,7 +28,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmSection.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmSignature.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmReaderPch.cpp" />
-    <ClCompile Include="WasmGlobal.cpp" />
-    <ClCompile Include="WasmCustomReader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmGlobal.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmCustomReader.cpp" />
   </ItemGroup>
 </Project>

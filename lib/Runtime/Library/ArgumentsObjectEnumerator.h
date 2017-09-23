@@ -9,10 +9,10 @@ namespace Js
     class ArgumentsObjectPrefixEnumerator : public JavascriptEnumerator
     {
     protected:
-        ArgumentsObject* argumentsObject;
-        uint32 formalArgIndex;
-        bool doneFormalArgs;
-        EnumeratorFlags flags;
+        Field(ArgumentsObject*) argumentsObject;
+        Field(uint32) formalArgIndex;
+        Field(bool) doneFormalArgs;
+        Field(EnumeratorFlags) flags;
 
     protected:
         DEFINE_VTABLE_CTOR(ArgumentsObjectPrefixEnumerator, JavascriptEnumerator);
@@ -20,7 +20,7 @@ namespace Js
     public:
         ArgumentsObjectPrefixEnumerator(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext);
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     };
 
     class ES5ArgumentsObjectEnumerator : public ArgumentsObjectPrefixEnumerator
@@ -32,9 +32,9 @@ namespace Js
     public:
         static ES5ArgumentsObjectEnumerator * New(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache);
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
     private:
-        JavascriptStaticEnumerator objectEnumerator;
-        uint enumeratedFormalsInObjectArrayCount;  // The number of enumerated formals for far.
+        Field(JavascriptStaticEnumerator) objectEnumerator;
+        Field(uint) enumeratedFormalsInObjectArrayCount;  // The number of enumerated formals for far.
     };
 }

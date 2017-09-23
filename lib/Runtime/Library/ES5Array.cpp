@@ -34,15 +34,15 @@ namespace Js
         return GetTypeHandler()->IsLengthWritable();
     }
 
-    BOOL ES5Array::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags ES5Array::HasPropertyQuery(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)
         {
-            return true;
+            return PropertyQueryFlags::Property_Found;
         }
 
         // Skip JavascriptArray override
-        return DynamicObject::HasProperty(propertyId);
+        return DynamicObject::HasPropertyQuery(propertyId);
     }
 
     BOOL ES5Array::IsWritable(PropertyId propertyId)
@@ -79,19 +79,19 @@ namespace Js
         return DynamicObject::SetAttributes(propertyId, attributes);
     }
 
-    BOOL ES5Array::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags ES5Array::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         if (GetPropertyBuiltIns(propertyId, value, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
         // Skip JavascriptArray override
-        return DynamicObject::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL ES5Array::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags ES5Array::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         PropertyRecord const* propertyRecord;
@@ -99,11 +99,11 @@ namespace Js
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
         // Skip JavascriptArray override
-        return DynamicObject::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
+        return DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
     }
 
     bool ES5Array::GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result)
@@ -118,9 +118,9 @@ namespace Js
         return false;
     }
 
-    BOOL ES5Array::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags ES5Array::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return ES5Array::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return ES5Array::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
     // Convert a Var to array length, throw RangeError if value is not valid for array length.
@@ -221,7 +221,11 @@ namespace Js
             }
 
             uint32 newLen = ToLengthValue(value, scriptContext);
-            GetTypeHandler()->SetLength(this, newLen, propertyOperationFlags);
+            uint32 assignedLen = GetTypeHandler()->SetLength(this, newLen, propertyOperationFlags);
+            if (newLen != assignedLen)
+            {
+                scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_NoOpSet);
+            }
             *result = true;
             return true;
         }
@@ -250,22 +254,22 @@ namespace Js
         return DynamicObject::DeleteItem(index, flags);
     }
 
-    BOOL ES5Array::HasItem(uint32 index)
+    PropertyQueryFlags ES5Array::HasItemQuery(uint32 index)
     {
         // Skip JavascriptArray override
-        return DynamicObject::HasItem(index);
+        return DynamicObject::HasItemQuery(index);
     }
 
-    BOOL ES5Array::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags ES5Array::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
         // Skip JavascriptArray override
-        return DynamicObject::GetItem(originalInstance, index, value, requestContext);
+        return DynamicObject::GetItemQuery(originalInstance, index, value, requestContext);
     }
 
-    BOOL ES5Array::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags ES5Array::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
         // Skip JavascriptArray override
-        return DynamicObject::GetItemReference(originalInstance, index, value, requestContext);
+        return DynamicObject::GetItemReferenceQuery(originalInstance, index, value, requestContext);
     }
 
     DescriptorFlags ES5Array::GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext)

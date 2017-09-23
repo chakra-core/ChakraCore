@@ -128,7 +128,7 @@ namespace Js
 
     OpCode OpCodeUtil::ConvertProfiledCallOpToNonProfiled(OpCode op)
     {
-        OpCode newOpcode;
+        OpCode newOpcode = Js::OpCode::InvalidOpCode;
         if (IsProfiledCallOp(op))
         {
             newOpcode = (OpCode)(op - Js::OpCode::ProfiledCallI + Js::OpCode::CallI);
@@ -148,7 +148,7 @@ namespace Js
 
     OpCode OpCodeUtil::ConvertProfiledReturnTypeCallOpToNonProfiled(OpCode op)
     {
-        OpCode newOpcode;
+        OpCode newOpcode = Js::OpCode::InvalidOpCode;
         if (IsProfiledReturnTypeCallOp(op))
         {
             newOpcode = (OpCode)(op - Js::OpCode::ProfiledReturnTypeCallI + Js::OpCode::CallI);

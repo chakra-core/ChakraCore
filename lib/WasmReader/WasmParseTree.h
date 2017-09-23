@@ -17,10 +17,13 @@ namespace Wasm
             I64 = 2,
             F32 = 3,
             F64 = 4,
-            Limit
+            Limit,
+            Ptr,
+            Any
         };
         bool IsLocalType(WasmTypes::WasmType type);
         uint32 GetTypeByteSize(WasmType type);
+        const char16* GetTypeName(WasmType type);
     }
 
     namespace ExternalKinds
@@ -30,7 +33,8 @@ namespace Wasm
             Function = 0,
             Table = 1,
             Memory = 2,
-            Global = 3
+            Global = 3,
+            Limit
         };
     }
 
@@ -46,6 +50,14 @@ namespace Wasm
         bool CanBeExported(Type funcType);
     }
 
+    namespace GlobalReferenceTypes
+    {
+        enum Type
+        {
+            Invalid, Const, LocalReference, ImportedReference
+        };
+    }
+
     struct WasmOpCodeSignatures
     {
 #define WASM_SIGNATURE(id, nTypes, ...) static const WasmTypes::WasmType id[nTypes]; DebugOnly(static const int n##id = nTypes;)
@@ -56,7 +68,6 @@ namespace Wasm
     {
 #define WASM_OPCODE(opname, opcode, sig, nyi) wb##opname = opcode,
 #include "WasmBinaryOpCodes.h"
-        wbLimit
     };
 
     struct WasmConstLitNode
@@ -72,11 +83,7 @@ namespace Wasm
 
     struct WasmVarNode
     {
-        uint num;
-        union
-        {
-            LPCUTF8 exportName;
-        };
+        uint32 num;
     };
 
     struct WasmMemOpNode
@@ -133,10 +140,18 @@ namespace Wasm
 
     struct WasmImport
     {
-        uint32 sigId;
+        ExternalKinds::ExternalKind kind;
         uint32 modNameLen;
         const char16* modName;
-        uint32 fnNameLen;
-        const char16* fnName;
+        uint32 importNameLen;
+        const char16* importName;
+    };
+
+    struct CustomSection
+    {
+        const char16* name;
+        charcount_t nameLength;
+        const byte* payload;
+        uint32 payloadSize;
     };
 }

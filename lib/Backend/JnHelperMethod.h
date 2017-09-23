@@ -17,6 +17,7 @@ extern "C"
 extern "C" PVOID __guard_check_icall_fptr;
 #endif
 
+
 namespace IR
 {
 enum JnHelperMethod

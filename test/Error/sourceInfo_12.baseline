@@ -1,1 +1,2 @@
-sourceInfo_12.js(12, 1) JavaScript runtime error: Function expected
+TypeError: Function.prototype.apply: 'this' is not a Function object
+	at Global code (sourceInfo_12.js:17:1)

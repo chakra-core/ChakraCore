@@ -14,22 +14,21 @@ namespace Js
         friend class SimplePathTypeHandler;
         friend class PathTypeHandler;
     private:
-        TypePath* typePath;
-        DynamicType* predecessorType; // Strong reference to predecessor type so that predecessor types remain in the cache even though they might not be used
+        Field(TypePath*) typePath;
+        Field(DynamicType*) predecessorType; // Strong reference to predecessor type so that predecessor types remain in the cache even though they might not be used
 
     public:
         DEFINE_GETCPPNAME();
-        typedef JsUtil::BaseDictionary<uintptr_t, DynamicType *, Recycler, PowerOf2SizePolicy> TypeTransitionMap;
+        typedef JsUtil::WeaklyReferencedKeyDictionary<DynamicType, DynamicType*> TypeTransitionMap;
 
     protected:
         PathTypeHandlerBase(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
 
-        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(PathTypeHandlerBase, DynamicTypeHandler, typePath(0));
+        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(PathTypeHandlerBase, DynamicTypeHandler, typePath(nullptr));
 
     public:
         virtual BOOL IsLockable() const override { return true; }
         virtual BOOL IsSharable() const override { return true; }
-        virtual void DoShareTypeHandler(ScriptContext* scriptContext) override;
 
         static bool UsePathTypeHandlerForObjectLiteral(const PropertyIdArray *const propIds, bool *const check__proto__Ref = nullptr);
         static DynamicType* CreateTypeForNewScObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, bool shareType);
@@ -41,11 +40,13 @@ namespace Js
         virtual PropertyId GetPropertyId(ScriptContext* scriptContext, PropertyIndex index) override;
         virtual PropertyId GetPropertyId(ScriptContext* scriptContext, BigPropertyIndex index) override;
         virtual PropertyIndex GetPropertyIndex(const PropertyRecord* propertyRecord) override;
+#if ENABLE_NATIVE_CODEGEN
         virtual bool GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info) override;
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const TypeEquivalenceRecord& record, uint& failedPropertyIndex) override;
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const EquivalentPropertyEntry* entry) override;
+#endif
         virtual BOOL FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags) override;
+            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info) override;
         virtual BOOL HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl = nullptr) override;
         virtual BOOL HasProperty(DynamicObject* instance, JavascriptString* propertyNameString) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -53,7 +54,7 @@ namespace Js
         virtual BOOL SetProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(DynamicObject* instance, JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL DeleteProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags flags) override;
-        virtual BOOL IsFixedProperty(const DynamicObject* instance, PropertyId propertyId) override;
+
         virtual BOOL IsEnumerable(DynamicObject* instance, PropertyId propertyId) override;
         virtual BOOL IsWritable(DynamicObject* instance, PropertyId propertyId) override;
         virtual BOOL IsConfigurable(DynamicObject* instance, PropertyId propertyId) override;
@@ -87,14 +88,17 @@ namespace Js
 
 #if DBG
         virtual bool SupportsPrototypeInstances() const { return !IsolatePrototypes(); }
+        virtual bool CanStorePropertyValueDirectly(const DynamicObject* instance, PropertyId propertyId, bool allowLetConst) override;
 #endif
 
+#if ENABLE_FIXED_FIELDS
+        virtual void DoShareTypeHandler(ScriptContext* scriptContext) override;
+        virtual BOOL IsFixedProperty(const DynamicObject* instance, PropertyId propertyId) override;
         virtual bool HasSingletonInstance() const override sealed;
         virtual bool TryUseFixedProperty(PropertyRecord const * propertyRecord, Var * pProperty, FixedPropertyKind propertyType, ScriptContext * requestContext) override;
         virtual bool TryUseFixedAccessor(PropertyRecord const * propertyRecord, Var * pAccessor, FixedPropertyKind propertyType, bool getter, ScriptContext * requestContext) override;
 
 #if DBG
-        virtual bool CanStorePropertyValueDirectly(const DynamicObject* instance, PropertyId propertyId, bool allowLetConst) override;
         bool HasOnlyInitializedNonFixedProperties();
         virtual bool CheckFixedProperty(PropertyRecord const * propertyRecord, Var * pProperty, ScriptContext * requestContext) override;
         virtual bool HasAnyFixedProperties() const override;
@@ -114,7 +118,6 @@ namespace Js
             DynamicObject* instance, DynamicTypeHandler* oldTypeHandler, DynamicTypeHandler* newTypeHandler,
             DynamicType* oldType, DynamicType* newType, RecyclerWeakReference<DynamicObject>* oldSingletonInstanceBefore);
 #endif
-
     private:
         static bool FixPropsOnPathTypes()
         {
@@ -153,10 +156,10 @@ namespace Js
     private:
         template <bool invalidateFixedFields> void DoShareTypeHandlerInternal(ScriptContext* scriptContext);
 
-        void CopySingletonInstance(DynamicObject* instance, DynamicTypeHandler* typeHandler);
         void InvalidateFixedFieldAt(Js::PropertyId propertyId, Js::PropertyIndex index, ScriptContext* scriptContext);
         void AddBlankFieldAt(Js::PropertyId propertyId, Js::PropertyIndex index, ScriptContext* scriptContext);
         bool ProcessFixedFieldChange(DynamicObject* instance, PropertyId propertyId, PropertyIndex slotIndex, Var value, bool isNonFixed, const PropertyRecord * propertyRecord = nullptr);
+#endif // ENABLE_FIXED_FIELDS
 
     private:
         template <typename T>
@@ -191,6 +194,7 @@ namespace Js
 
         PropertyIndex GetPropertyIndex(PropertyId propertyId);
 
+        void SetSlotAndCache(DynamicObject* instance, PropertyId propertyId, PropertyRecord const * record, PropertyIndex index, Var value, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects);
     protected:
         virtual bool GetSuccessor(const PropertyRecord* propertyRecord, RecyclerWeakReference<DynamicType> ** typeWeakRef) = 0;
         virtual void SetSuccessor(DynamicType * type, const PropertyRecord* propertyRecord, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) = 0;
@@ -213,6 +217,8 @@ namespace Js
         virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override;
 
         virtual Js::BigPropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord) override;
+
+        virtual bool IsResetableForTTD(uint32 snapMaxIndex) const override;
 #endif
     };
 
@@ -221,8 +227,8 @@ namespace Js
     class SimplePathTypeHandler sealed : public PathTypeHandlerBase
     {
     private:
-        const PropertyRecord * successorPropertyRecord;
-        RecyclerWeakReference<DynamicType> * successorTypeWeakRef;
+        Field(const PropertyRecord *) successorPropertyRecord;
+        Field(RecyclerWeakReference<DynamicType> *) successorTypeWeakRef;
 
     public:
         DEFINE_GETCPPNAME();
@@ -245,7 +251,11 @@ namespace Js
 
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
-        static SimplePathTypeHandler * SimplePathTypeHandler::New(ScriptContext * scriptContext, SimplePathTypeHandler * typeHandler, bool isLocked, bool isShared);
+        static SimplePathTypeHandler * New(ScriptContext * scriptContext, SimplePathTypeHandler * typeHandler, bool isLocked, bool isShared);
+#if DBG_DUMP
+    public:
+        void Dump(unsigned indent = 0) const override;
+#endif
     };
 
     class PathTypeHandler sealed : public PathTypeHandlerBase
@@ -254,7 +264,7 @@ namespace Js
 
     private:
         typedef JsUtil::WeakReferenceDictionary<PropertyId, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> PropertySuccessorsMap;
-        PropertySuccessorsMap * propertySuccessors;
+        Field(PropertySuccessorsMap *) propertySuccessors;
 
     public:
         DEFINE_GETCPPNAME();
@@ -278,5 +288,9 @@ namespace Js
         static PathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandler * New(ScriptContext * scriptContext, PathTypeHandler * typeHandler, bool isLocked, bool isShared);
+#if DBG_DUMP
+    public:
+        void Dump(unsigned indent = 0) const override;
+#endif
     };
 }

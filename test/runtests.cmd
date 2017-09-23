@@ -207,8 +207,11 @@ goto :main
     goto :ArgOk
   )
   if /i "%1" == "-disablejit" (
-    set _DisableJit=1
     set _Variants=disable_jit
+    goto :ArgOk
+  )
+  if /i "%1" == "-lite" (
+    set _Variants=lite
     goto :ArgOk
   )
   
@@ -303,13 +306,6 @@ goto :main
 
   :: If the user specified extra variants to run (i.e. in addition to the defaults), include them.
   if not "%_ExtraVariants%" == "" set _Variants=%_Variants%,%_ExtraVariants%
-
-  rem TODO: Move any apollo tests from core\test back into private unittests
-  set _ExcludeApolloTests=
-  if "%APOLLO%" == "1" (
-    set _ExcludeApolloTests=-nottags:exclude_apollo
-    set TARGET_OS=wp8
-  )
 
   if not "%_nightly%" == "1" (
     set _NOTTAGS=%_NOTTAGS% -nottags:nightly
@@ -407,6 +403,10 @@ goto :main
   if "%_TESTCONFIG%"=="disable_jit" (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -nonative
     set EXTRA_RL_FLAGS=-nottags:exclude_interpreted -nottags:fails_interpreted -nottags:require_backend
+  )
+  if "%_TESTCONFIG%"=="lite" (
+    set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -nonative
+    set EXTRA_RL_FLAGS=-nottags:exclude_interpreted -nottags:fails_interpreted -nottags:require_backend -nottags:require_debugger -nottags:Intl
   )
   if "%_TESTCONFIG%"=="dynapogo"    (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -forceNative -off:simpleJit -bgJitDelay:0 %_dynamicprofileinput%

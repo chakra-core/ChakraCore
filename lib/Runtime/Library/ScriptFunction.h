@@ -28,13 +28,13 @@ namespace Js
     class ScriptFunction : public ScriptFunctionBase
     {
     private:
-        FrameDisplay* environment;  // Optional environment, for closures
-        ActivationObjectEx *cachedScopeObj;
-        Var homeObj;
-        Var computedNameVar;
-        bool hasInlineCaches;
-        bool hasSuperReference;
-        bool isActiveScript;
+        Field(FrameDisplay*) environment;  // Optional environment, for closures
+        Field(ActivationObjectEx *) cachedScopeObj;
+        Field(Var) homeObj;
+        Field(Var) computedNameVar;
+        Field(bool) hasInlineCaches;
+        Field(bool) hasSuperReference;
+        Field(bool) isActiveScript;
 
         Var FormatToString(JavascriptString* inputString);
     protected:
@@ -45,6 +45,7 @@ namespace Js
     public:
         ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
         static bool Is(Var func);
+        inline static BOOL Test(JavascriptFunction *func) { return func->GetFunctionInfo()->HasBody(); }
         static ScriptFunction * FromVar(Var func);
         static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
@@ -96,6 +97,8 @@ namespace Js
         virtual JavascriptString* GetDisplayNameImpl() const;
         JavascriptString* GetComputedName() const;
         virtual bool IsAnonymousFunction() const override;
+        virtual bool IsAsmJsFunction() const { return false; }
+        virtual bool IsWasmFunction() const { return false; }
 
         virtual JavascriptFunction* GetRealFunctionObject() { return this; }
 
@@ -109,6 +112,12 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableScriptFunction;
+        }
     };
 
     class AsmJsScriptFunction : public ScriptFunction
@@ -117,45 +126,73 @@ namespace Js
         AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
 
         static bool Is(Var func);
-        static bool IsWasmScriptFunction(Var func);
         static AsmJsScriptFunction* FromVar(Var func);
+        static AsmJsScriptFunction * OP_NewAsmJsFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
-        void SetModuleMemory(Var* mem) { m_moduleMemory = mem; }
-        Var * GetModuleMemory() const { return m_moduleMemory; }
+        virtual bool IsAsmJsFunction() const override { return true; }
 
-#ifdef ENABLE_WASM
-        void SetSignature(Wasm::WasmSignature * sig) { m_signature = sig; }
-        Wasm::WasmSignature * GetSignature() const { return m_signature; }
-        static uint32 GetOffsetOfSignature() { return offsetof(AsmJsScriptFunction, m_signature); }
-#endif
-        static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleMemory); }
+        void SetModuleEnvironment(Field(Var)* mem) { m_moduleEnvironment = mem; }
+        Field(Var)* GetModuleEnvironment() const { return m_moduleEnvironment; }
+        static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleEnvironment); }
+
+        class JavascriptArrayBuffer* GetAsmJsArrayBuffer() const;
     protected:
         AsmJsScriptFunction(DynamicType * type);
         DEFINE_VTABLE_CTOR(AsmJsScriptFunction, ScriptFunction);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(AsmJsScriptFunction);
 
     private:
-        Var * m_moduleMemory;
-        Wasm::WasmSignature * m_signature;
+        Field(Field(Var)*) m_moduleEnvironment;
     };
+
+#ifdef ENABLE_WASM
+    class WasmScriptFunction : public AsmJsScriptFunction
+    {
+    public:
+        WasmScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
+
+        static bool Is(Var func);
+        static WasmScriptFunction* FromVar(Var func);
+
+        void SetSignature(Wasm::WasmSignature * sig) { m_signature = sig; }
+        Wasm::WasmSignature * GetSignature() const { return m_signature; }
+        static uint32 GetOffsetOfSignature() { return offsetof(WasmScriptFunction, m_signature); }
+
+        WebAssemblyMemory* GetWebAssemblyMemory() const;
+
+        virtual bool IsWasmFunction() const override { return true; }
+    protected:
+        WasmScriptFunction(DynamicType * type);
+        DEFINE_VTABLE_CTOR(WasmScriptFunction, AsmJsScriptFunction);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WasmScriptFunction);
+    private:
+        Field(Wasm::WasmSignature *) m_signature;
+    };
+#else
+    class WasmScriptFunction
+    {
+    public:
+        static bool Is(Var) { return false; }
+    };
+#endif
 
     class ScriptFunctionWithInlineCache : public ScriptFunction
     {
     private:
-        void** m_inlineCaches;
-        bool hasOwnInlineCaches;
+        Field(void**) m_inlineCaches;
+        Field(bool) hasOwnInlineCaches;
 
 #if DBG
 #define InlineCacheTypeNone         0x00
 #define InlineCacheTypeInlineCache  0x01
 #define InlineCacheTypeIsInst       0x02
-        byte * m_inlineCacheTypes;
+        Field(byte *) m_inlineCacheTypes;
 #endif
-        uint inlineCacheCount;
-        uint rootObjectLoadInlineCacheStart;
-        uint rootObjectLoadMethodInlineCacheStart;
-        uint rootObjectStoreInlineCacheStart;
-        uint isInstInlineCacheCount;
+        Field(uint) inlineCacheCount;
+        Field(uint) rootObjectLoadInlineCacheStart;
+        Field(uint) rootObjectLoadMethodInlineCacheStart;
+        Field(uint) rootObjectStoreInlineCacheStart;
+        Field(uint) isInstInlineCacheCount;
 
     protected:
         ScriptFunctionWithInlineCache(DynamicType * type);
@@ -173,7 +210,8 @@ namespace Js
         void ClearBorrowedInlineCacheOnFunctionObject();
         InlineCache * GetInlineCache(uint index);
         uint GetInlineCacheCount() { return inlineCacheCount; }
-        void** GetInlineCaches() { return m_inlineCaches; }
+        Field(void**) GetInlineCaches();
+        bool GetHasOwnInlineCaches() { return hasOwnInlineCaches; }
         void SetInlineCachesFromFunctionBody();
         static uint32 GetOffsetOfInlineCaches() { return offsetof(ScriptFunctionWithInlineCache, m_inlineCaches); };
         template<bool isShutdown>

@@ -1,0 +1,7 @@
+
+return3.js(10, 7)
+	Asm.js Compilation Error function : AsmModule::conditionnalReturn
+	Expected function return type to be void got signed instead
+
+Asm.js compilation failed.
+undefined

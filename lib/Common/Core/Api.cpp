@@ -37,6 +37,8 @@ void __stdcall js_memset_zero_nontemporal(__bcount(sizeInBytes) void *dst, size_
         {
             _mm_stream_si128(p, simdZero);
         }
+
+        _mm_sfence();
     }
     // cannot do non-temporal store directly if set size is not multiple of sizeof(__m128i)
     else

@@ -137,7 +137,15 @@ namespace Js
     FunctionBody* JavascriptExceptionObject::GetFunctionBody() const
     {
         // If it is a throwing function; it must be deserialized
-        return exceptionContext.ThrowingFunction() ? exceptionContext.ThrowingFunction()->GetFunctionBody() : NULL;
+        if (exceptionContext.ThrowingFunction())
+        {
+            ParseableFunctionInfo *info = exceptionContext.ThrowingFunction()->GetParseableFunctionInfo();
+            if (info->IsFunctionBody())
+            {
+                return info->GetFunctionBody();
+            }
+        }
+        return nullptr;
     }
 
     JavascriptExceptionContext::StackFrame::StackFrame(JavascriptFunction* func, const JavascriptStackWalker& walker, bool initArgumentTypes)
@@ -173,7 +181,7 @@ namespace Js
     LPCWSTR JavascriptExceptionContext::StackFrame::GetFunctionName() const
     {
         return IsScriptFunction() ?
-            GetFunctionBody()->GetExternalDisplayName() : this->name;
+            GetFunctionBody()->GetExternalDisplayName() : PointerValue(this->name);
     }
 
     // Get function name with arguments info. Used by script WER.
@@ -219,4 +227,42 @@ namespace Js
         }
     }
 #endif
+
+    void JavascriptExceptionObject::Insert(
+        Field(JavascriptExceptionObject*)* head, JavascriptExceptionObject* item)
+    {
+        Assert(!item->next);
+        item->next = *head;
+        *head = item;
+    }
+
+    void JavascriptExceptionObject::Remove(
+        Field(JavascriptExceptionObject*)* head, JavascriptExceptionObject* item)
+    {
+        // Typically Insert/Remove happens in reversed order and item should be
+        // the front one. Loop the whole list to prevent unexpected order messup.
+        for (auto p = head; *p; p = &(*p)->next)
+        {
+            if (*p == item)
+            {
+                *p = item->next;
+                item->next = nullptr;
+                return;
+            }
+        }
+
+        Assert(false);  // item not in list unexpected
+    }
+
+    //
+    // Support JavascriptException implementation
+    //
+    void SaveTempUncaughtException(ThreadContext* threadContext, Js::JavascriptExceptionObject* exceptionObject)
+    {
+        threadContext->SaveTempUncaughtException(exceptionObject);
+    }
+    void ClearTempUncaughtException(ThreadContext* threadContext, Js::JavascriptExceptionObject* exceptionObject)
+    {
+        threadContext->ClearTempUncaughtException(exceptionObject);
+    }
 }

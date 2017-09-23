@@ -3,401 +3,146 @@
     "this": "Object {...}",
     "locals": {
       "x": "string <large string>",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     }
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "y": "string <large string>",
       "x": "number 0",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 0",
       "x": "number 0",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 1",
       "x": "number 0",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 2",
       "x": "number 0",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "y": "string <large string>",
       "x": "number 1",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 0",
       "x": "number 1",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 1",
       "x": "number 1",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 2",
       "x": "number 1",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "y": "string <large string>",
       "x": "number 2",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 0",
       "x": "number 2",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 1",
       "x": "number 2",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "q": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 2",
       "x": "number 2",
-      "read": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string read",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "readbuffer": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string readbuffer",
-        "caller": "object null",
-        "arguments": "object null"
-      },
-      "console": {
-        "#__proto__": "Object {...}",
-        "log": "function log"
-      },
       "q": "number 1"
     },
     "globals": {}

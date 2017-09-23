@@ -16,30 +16,34 @@
  *  of the hash function so things don't go out of sync.
  */
 
-ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, int32 cch)
+ULONG CaseSensitiveComputeHash(LPCOLESTR prgch, LPCOLESTR end)
 {
     ULONG luHash = 0;
 
-    while (cch-- > 0)
+    while (prgch < end)
+    {
         luHash = 17 * luHash + *(char16 *)prgch++;
+    }
     return luHash;
 }
 
-ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, int32 cch)
+ULONG CaseSensitiveComputeHash(LPCUTF8 prgch, LPCUTF8 end)
 {
     utf8::DecodeOptions options = utf8::doAllowThreeByteSurrogates;
     ULONG luHash = 0;
 
-    while (cch-- > 0)
-        luHash = 17 * luHash + utf8::Decode(prgch, prgch + 4, options); // WARNING: Assume cch correct, suppress end-of-buffer checking
+    while (prgch < end)
+    {
+        luHash = 17 * luHash + utf8::Decode(prgch, end, options);
+    }
     return luHash;
 }
 
-ULONG CaseSensitiveComputeHashCch(char const * prgch, int32 cch)
+ULONG CaseSensitiveComputeHash(char const * prgch, char const * end)
 {
     ULONG luHash = 0;
 
-    while (cch-- > 0)
+    while (prgch < end)
     {
         Assert(utf8::IsStartByte(*prgch) && !utf8::IsLeadByte(*prgch));
         luHash = 17 * luHash + *prgch++;

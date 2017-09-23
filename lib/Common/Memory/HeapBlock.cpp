@@ -3,6 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
+#ifdef __clang__
+#include <cxxabi.h>
+#endif
 
 template <typename TBlockAttributes>
 SmallNormalHeapBlockT<TBlockAttributes> *
@@ -173,8 +176,12 @@ SmallHeapBlockT<MediumAllocationBlockAttributes>::ProtectUnusablePages()
         DWORD oldProtect;
         BOOL ret = ::VirtualProtect(startPage, count * AutoSystemInfo::PageSize, PAGE_READONLY, &oldProtect);
         Assert(ret && oldProtect == PAGE_READWRITE);
-
-        ::ResetWriteWatch(startPage, count*AutoSystemInfo::PageSize);
+#ifdef RECYCLER_WRITE_WATCH
+        if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            ::ResetWriteWatch(startPage, count*AutoSystemInfo::PageSize);
+        }
+#endif
     }
 }
 
@@ -778,6 +785,155 @@ SmallHeapBlockT<TBlockAttributes>::ClearExplicitFreeBitForObject(void* objectAdd
 
 #ifdef RECYCLER_VERIFY_MARK
 
+#if DBG
+void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, char* target)
+{
+    // Due to possible GC mark optimization, the pointers may point to object
+    // internal and "unaligned". Align them then FindHeapBlock.
+    HeapBlock* block = recycler->FindHeapBlock(HeapInfo::GetAlignedAddress(objectAddress));
+    if (block == nullptr)
+    {
+        return;
+    }
+    HeapBlock* targetBlock = recycler->FindHeapBlock(HeapInfo::GetAlignedAddress(target));
+    if (targetBlock == nullptr)
+    {
+        return;
+    }
+
+#ifdef TRACK_ALLOC
+    Recycler::TrackerData* trackerData = nullptr;
+    Recycler::TrackerData* targetTrackerData = nullptr;
+    const char* typeName = nullptr;
+    const char* targetTypeName = nullptr;
+    uint offset = 0;
+    uint targetOffset = 0;
+    char* objectStartAddress = nullptr;
+    char* targetStartAddress = nullptr;
+
+    if (targetBlock->IsLargeHeapBlock())
+    {
+        targetOffset = (uint)(target - (char*)((LargeHeapBlock*)targetBlock)->GetRealAddressFromInterior(target));
+    }
+    else
+    {
+        targetOffset = (uint)(target - targetBlock->GetAddress()) % targetBlock->GetObjectSize(nullptr);
+    }
+
+    if (targetOffset != 0)
+    {
+        // "target" points to internal of an object. This is not a GC pointer.
+        return;
+    }
+
+    if (Recycler::DoProfileAllocTracker())
+    {
+        // need CheckMemoryLeak or KeepRecyclerTrackData flag to have the tracker data and show following detailed info
+#ifdef __clang__
+        auto getDemangledName = [](const type_info* typeinfo) ->const char*
+        {
+            int status;
+            char buffer[1024];
+            size_t buflen = 1024;
+            char* name = abi::__cxa_demangle(typeinfo->name(), buffer, &buflen, &status);
+            if (status != 0)
+            {
+                Output::Print(_u("Demangle failed: result=%d, buflen=%d\n"), status, buflen);
+            }
+            char* demangledName = (char*)malloc(buflen);
+            memcpy(demangledName, name, buflen);
+            return demangledName;
+        };
+#else
+        auto getDemangledName = [](const type_info* typeinfo) ->const char*
+        {
+            return typeinfo->name();
+        };
+#endif
+
+        if (block->IsLargeHeapBlock())
+        {
+            offset = (uint)(objectAddress - (char*)((LargeHeapBlock*)block)->GetRealAddressFromInterior(objectAddress));
+        }
+        else
+        {
+            offset = (uint)(objectAddress - block->address) % block->GetObjectSize(objectAddress);
+        }
+        objectStartAddress = objectAddress - offset;
+        trackerData = (Recycler::TrackerData*)block->GetTrackerData(objectStartAddress);
+        if (trackerData)
+        {
+            typeName = getDemangledName(trackerData->typeinfo);
+            if (trackerData->isArray)
+            {
+                Output::Print(_u("Missing Barrier\nOn array of %S\n"), typeName);
+#ifdef STACK_BACK_TRACE
+                if (CONFIG_FLAG(KeepRecyclerTrackData))
+                {
+                    Output::Print(_u("Allocation stack:\n"));
+                    ((StackBackTrace*)(trackerData + 1))->Print();
+                }
+#endif
+            }
+            else
+            {
+                auto dumpFalsePositive = [&]() 
+                {
+                    if (CONFIG_FLAG(Verbose))
+                    {
+                        Output::Print(_u("False Positive: %S+0x%x => 0x%p -> 0x%p\n"), typeName, offset, objectAddress, target);
+                    }
+                };
+
+                if (IsLikelyRuntimeFalseReference(objectStartAddress, offset, typeName))
+                {
+                    dumpFalsePositive();
+                    return;
+                }
+
+                //TODO: (leish)(swb) analyze pdb to check if the field is a pointer field or not
+                Output::Print(_u("Missing Barrier\nOn type %S+0x%x\n"), typeName, offset);
+            }
+        }        
+
+
+        targetStartAddress = target - targetOffset;
+        targetTrackerData = (Recycler::TrackerData*)targetBlock->GetTrackerData(targetStartAddress);
+
+
+        if (targetTrackerData)
+        {
+            targetTypeName = getDemangledName(targetTrackerData->typeinfo);
+            if (targetTrackerData->isArray)
+            {
+                Output::Print(_u("Target type (missing barrier field type) is array item of %S\n"), targetTypeName);
+#ifdef STACK_BACK_TRACE
+                if (CONFIG_FLAG(KeepRecyclerTrackData))
+                {
+                    Output::Print(_u("Allocation stack:\n"));
+                    ((StackBackTrace*)(targetTrackerData + 1))->Print();
+                }
+#endif
+            }
+            else if (targetOffset == 0)
+            {
+                Output::Print(_u("Target type (missing barrier field type) is %S\n"), targetTypeName);
+            }
+            else
+            {
+                Output::Print(_u("Target type (missing barrier field type) is pointing to %S+0x%x\n"), targetTypeName, targetOffset);
+            }
+        }
+
+        Output::Print(_u("---------------------------------\n"));
+    }
+#endif
+
+    Output::Print(_u("Missing barrier on 0x%p, target is 0x%p\n"), objectAddress, target);
+    AssertMsg(false, "Missing barrier.");
+}
+#endif  // DBG
+
 template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::VerifyMark()
@@ -809,7 +965,7 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
 
             if (!this->IsLeafBlock()
 #ifdef RECYCLER_WRITE_BARRIER
-                && !this->IsWithBarrier()
+                && (!this->IsWithBarrier() || CONFIG_FLAG(ForceSoftwareWriteBarrier))
 #endif
                 )
             {
@@ -819,7 +975,15 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
                     for (uint i = 0; i < objectWordCount; i++)
                     {
                         void* target = *(void**) objectAddress;
-                        recycler->VerifyMark(target);
+                        if (recycler->VerifyMark(objectAddress, target))
+                        {
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+                            if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
+                            {
+                                this->WBVerifyBitIsSet(objectAddress);
+                            }
+#endif
+                        }
 
                         objectAddress += sizeof(void *);
                     }
@@ -831,28 +995,32 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
 }
 
 template <class TBlockAttributes>
-void
-SmallHeapBlockT<TBlockAttributes>::VerifyMark(void * objectAddress)
+bool
+SmallHeapBlockT<TBlockAttributes>::VerifyMark(void * objectAddress, void * target)
 {
     // Because we mark through new object, we might have a false reference
     // somewhere that we have scanned before this new block is allocated
     // so the object will not be marked even though it looks like a reference
     // Can't verify when the block is new
-    if (this->heapBucket->GetRecycler()->heapBlockMap.IsAddressInNewChunk(objectAddress))
+    if (this->heapBucket->GetRecycler()->heapBlockMap.IsAddressInNewChunk(target))
     {
-        return;
+        return false;
     }
 
-    ushort bitIndex = GetAddressBitIndex(objectAddress);
-
+    ushort bitIndex = GetAddressBitIndex(target);
+    bool isMarked = this->GetMarkedBitVector()->Test(bitIndex) == TRUE;
 #if DBG
-    Assert(this->GetMarkedBitVector()->Test(bitIndex));
+    if (!isMarked)
+    {
+        PrintVerifyMarkFailure(this->GetRecycler(), (char*)objectAddress, (char*)target);
+    }
 #else
-    if (!this->GetMarkedBitVector()->Test(bitIndex))
+    if (!isMarked)
     {
         DebugBreak();
     }
 #endif
+    return isMarked;
 }
 
 #endif
@@ -970,7 +1138,7 @@ SmallHeapBlockT<TBlockAttributes>::AdjustPartialUncollectedAllocBytes(RecyclerSw
 
     recyclerSweep.SubtractSweepNewObjectAllocBytes(newObjectExpectSweepCount * this->objectSize);
 }
-#endif
+#endif  // RECYCLER_VERIFY_MARK
 
 template <class TBlockAttributes>
 uint
@@ -1258,6 +1426,13 @@ SmallHeapBlockT<TBlockAttributes>::EnqueueProcessedObject(FreeObject ** list, vo
     freeObject->SetNext(*list);
     *list = freeObject;
 
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    {
+        this->WBClearObject((char*)objectAddress);
+    }
+#endif
+
     // clear the attributes so that when we are allocating a leaf, we don't have to set the attribute
     this->ObjectInfo(index) = 0;
 }
@@ -1330,6 +1505,8 @@ SmallHeapBlockT<TBlockAttributes>::Check(bool expectFull, bool expectPending)
 
     Assert(expectPending == HasAnyDisposeObjects());
 
+    // As the blocks are added to the SLIST and used from there during concurrent sweep, the exepectFull assertion doesn't hold anymore.
+#if !(ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP)
     if (this->isInAllocator || this->isClearedFromAllocator)
     {
         Assert(expectFull && !expectPending);
@@ -1338,6 +1515,7 @@ SmallHeapBlockT<TBlockAttributes>::Check(bool expectFull, bool expectPending)
     {
         Assert(expectFull == (!this->HasFreeObject() && !HasAnyDisposeObjects()));
     }
+#endif
 }
 
 
@@ -1458,12 +1636,12 @@ SmallHeapBlockT<TBlockAttributes>::CheckFreeBitVector(bool isCollecting)
 
 template <class TBlockAttributes>
 typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector *
-SmallHeapBlockT<TBlockAttributes>::EnsureFreeBitVector()
+SmallHeapBlockT<TBlockAttributes>::EnsureFreeBitVector(bool isCollecting)
 {
     if (this->IsFreeBitsValid())
     {
         // the free object list hasn't change, so the free vector should be valid
-        RECYCLER_SLOW_CHECK(CheckFreeBitVector(true));
+        RECYCLER_SLOW_CHECK(CheckFreeBitVector(isCollecting));
         return this->GetFreeBitVector();
     }
     return BuildFreeBitVector();

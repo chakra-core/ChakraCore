@@ -11,6 +11,7 @@ class JsrtContextCore sealed : public JsrtContext
 {
 public:
     static JsrtContextCore *New(JsrtRuntime * runtime);
+    virtual void Finalize(bool isShutdown) override;
     virtual void Dispose(bool isShutdown) override;
     ChakraCoreHostScriptContext* GetHostScriptContext() const { return hostContext; }
 
@@ -19,7 +20,8 @@ private:
     DEFINE_VTABLE_CTOR(JsrtContextCore, JsrtContext);
     JsrtContextCore(JsrtRuntime * runtime);
     Js::ScriptContext* EnsureScriptContext();
-    ChakraCoreHostScriptContext* hostContext;
+
+    FieldNoBarrier(ChakraCoreHostScriptContext*) hostContext;
 };
 
 class ChakraCoreHostScriptContext sealed : public HostScriptContext
@@ -161,11 +163,11 @@ public:
 
     HRESULT EnqueuePromiseTask(Js::Var taskVar) override
     {
-        AssertMsg(false, "jsrt should have set the promise callback");
         return E_NOTIMPL;
     }
 
     HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) override;
+    HRESULT FetchImportedModuleFromScript(JsSourceContext dwReferencingSourceContext, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) override;
 
     HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) override;
 
@@ -174,6 +176,9 @@ public:
 
     void SetFetchImportedModuleCallback(FetchImportedModuleCallBack fetchCallback) { this->fetchImportedModuleCallback = fetchCallback ; }
     FetchImportedModuleCallBack GetFetchImportedModuleCallback() const { return this->fetchImportedModuleCallback; }
+
+    void SetFetchImportedModuleFromScriptCallback(FetchImportedModuleFromScriptCallBack fetchCallback) { this->fetchImportedModuleFromScriptCallback = fetchCallback; }
+    FetchImportedModuleFromScriptCallBack GetFetchImportedModuleFromScriptCallback() const { return this->fetchImportedModuleFromScriptCallback; }
 
 #if DBG_DUMP || defined(PROFILE_EXEC) || defined(PROFILE_MEM)
     void EnsureParentInfo(Js::ScriptContext* scriptContext = NULL) override
@@ -184,6 +189,9 @@ public:
 #endif
 
 private:
+    template<typename Fn>
+    HRESULT FetchImportedModuleHelper(Fn fetch, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord);
     FetchImportedModuleCallBack fetchImportedModuleCallback;
+    FetchImportedModuleFromScriptCallBack fetchImportedModuleFromScriptCallback;
     NotifyModuleReadyCallback notifyModuleReadyCallback;
 };

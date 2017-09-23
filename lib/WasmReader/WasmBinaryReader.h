@@ -25,31 +25,45 @@ namespace Wasm
         SectionCode code;
         const byte* start;
         const byte* end;
+        uint32 nameLength;
+        const char16* name;
     };
 
-    static const unsigned int experimentalVersion = 0xd;
+    struct SectionLimits
+    {
+        uint32 initial;
+        uint32 maximum;
+    };
+
+    struct BinaryLocation
+    {
+        intptr_t offset;
+        intptr_t size;
+    };
+
+    static const uint32 binaryVersion = 0x1;
 
     class WasmBinaryReader : public WasmReaderBase
     {
     public:
-        WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, const byte* source, size_t length);
+        WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule* module, const byte* source, size_t length);
 
         void InitializeReader();
-        bool ReadNextSection(SectionCode nextSection);
+        SectionHeader ReadNextSection();
         // Fully read the section in the reader. Return true if the section fully read
         bool ProcessCurrentSection();
-        virtual void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo) override;
+        virtual void SeekToFunctionBody(class WasmFunctionInfo* funcInfo) override;
         virtual bool IsCurrentFunctionCompleted() const override;
         virtual WasmOp ReadExpr() override;
         virtual void FunctionEnd() override;
 #if DBG_DUMP
         void PrintOps();
 #endif
-        intptr_t GetCurrentOffset() const { return m_pc - m_start; }
+        BinaryLocation GetCurrentLocation() const { return {m_pc - m_start, m_end - m_start}; }
     private:
         struct ReaderState
         {
-            UINT32 count; // current entry
+            uint32 count; // current entry
             size_t size;  // number of entries
         };
 
@@ -65,37 +79,40 @@ namespace Wasm
         void ValidateModuleHeader();
         SectionHeader ReadSectionHeader();
         void ReadMemorySection(bool isImportSection);
-        void ReadSignatures();
-        void ReadFunctionsSignatures();
+        void ReadSignatureTypeSection();
+        void ReadFunctionSignatures();
         void ReadFunctionHeaders();
-        void ReadExportTable();
+        void ReadExportSection();
         void ReadTableSection(bool isImportSection);
-        void ReadDataSegments();
-        void ReadImportEntries();
+        void ReadDataSection();
+        void ReadImportSection();
         void ReadStartFunction();
-        void ReadNamesSection();
+        void ReadNameSection();
         void ReadElementSection();
-        void ReadGlobalsSection();
+        void ReadGlobalSection();
+        void ReadCustomSection();
 
         // Primitive reader
         template <WasmTypes::WasmType type> void ConstNode();
         template <typename T> T ReadConst();
+        uint8 ReadVarUInt7();
+        bool ReadMutableValue();
         const char16* ReadInlineName(uint32& length, uint32& nameLength);
-        const char16* CvtUtf8Str(LPCUTF8 name, uint32 nameLen);
-        template<typename MaxAllowedType = UINT>
-        MaxAllowedType LEB128(UINT &length, bool sgn = false);
-        template<typename MaxAllowedType = INT>
-        MaxAllowedType SLEB128(UINT &length);
-        WasmNode ReadInitExpr();
+        template<typename MaxAllowedType = uint32>
+        MaxAllowedType LEB128(uint32 &length, bool sgn = false);
+        template<typename MaxAllowedType = int32>
+        MaxAllowedType SLEB128(uint32 &length);
+        WasmNode ReadInitExpr(bool isOffset = false);
+        SectionLimits ReadSectionLimits(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg);
 
-        void CheckBytesLeft(UINT bytesNeeded);
+        void CheckBytesLeft(uint32 bytesNeeded);
         bool EndOfFunc();
         bool EndOfModule();
         DECLSPEC_NORETURN void ThrowDecodingError(const char16* msg, ...);
         Wasm::WasmTypes::WasmType ReadWasmType(uint32& length);
 
         ArenaAllocator* m_alloc;
-        uint m_funcNumber;
+        uint32 m_funcNumber;
         const byte* m_start, *m_end, *m_pc, *m_curFuncEnd;
         SectionHeader m_currentSection;
         ReaderState m_funcState;   // func AST level
@@ -107,7 +124,7 @@ namespace Wasm
             READER_STATE_FUNCTION,
             READER_STATE_MODULE
         } m_readerState;
-        Js::WebAssemblyModule * m_module;
+        Js::WebAssemblyModule* m_module;
 #if DBG_DUMP
         typedef JsUtil::BaseHashSet<WasmOp, ArenaAllocator, PowerOf2SizePolicy> OpSet;
         OpSet* m_ops;

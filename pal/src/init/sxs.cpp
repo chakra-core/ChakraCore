@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -15,7 +15,6 @@
 #include "pal/thread.hpp"
 #include "../thread/procprivate.hpp"
 #include "pal/module.h"
-#include "pal/seh.hpp"
 
 using namespace CorUnix;
 
@@ -56,12 +55,12 @@ PAL_Enter(PAL_Boundary boundary)
     }
     else
     {
-        // If this assert fires, we'll have to pipe this information so that 
-        // CPalThread's RunPostCreateInitializers call to SEHEnable 
+        // If this assert fires, we'll have to pipe this information so that
+        // CPalThread's RunPostCreateInitializers call to SEHEnable
         // can know what direction.
         _ASSERT_MSG(PAL_BoundaryTop == boundary, "How are we entering a PAL "
             "thread for the first time not from the top? (boundary=%u)", boundary);
-            
+
         palError = AllocatePalThread(&pThread);
         if (NO_ERROR != palError)
         {
@@ -78,9 +77,9 @@ Function:
   CreateCurrentThreadData
 
 Abstract:
-  This function is called by the InternalGetOrCreateCurrentThread inlined 
+  This function is called by the InternalGetOrCreateCurrentThread inlined
   function to create the thread data when it is null meaning the thread has
-  never been in this PAL. 
+  never been in this PAL.
 
 Warning:
   If the allocation fails, this function asserts and exits the process.
@@ -121,9 +120,9 @@ AllocatePalThread(CPalThread **ppThread)
         pThread->ReleaseThreadReference();
         goto exit;
     }
-    
-    // Like CreateInitialProcessAndThreadObjects, we do not need this 
-    // thread handle, since we're not returning it to anyone who will 
+
+    // Like CreateInitialProcessAndThreadObjects, we do not need this
+    // thread handle, since we're not returning it to anyone who will
     // possibly release it.
     (void)g_pObjectManager->RevokeHandle(pThread, hThread);
 
@@ -195,57 +194,8 @@ PAL_HasEntered()
     }
 
     LOGEXIT("PAL_HasEntered returned\n");
-    
+
     return pThread->IsInPal();
-}
-
-/*++
-Function:
-  PAL_ReenterForEH
-
-Abstract:
-  This function needs to be called on a thread when it enters
-  a region of code that depends on this instance of the PAL
-  in the process, and it is unknown whether the current thread
-  is already running in the PAL.  Returns TRUE if and only if
-  the thread was not running in the PAL previously.
-
-  NOTE: This function must not modify LastError.
---*/
-BOOL
-PALAPI
-PAL_ReenterForEH()
-{
-    // Only trace if we actually reenter (otherwise, too verbose)
-    // ENTRY_EXTERNAL("PAL_ReenterForEH()\n");
-    // Thus we have to split up what ENTRY_EXTERNAL does.
-    CHECK_STACK_ALIGN;
-
-    BOOL fEntered = FALSE;
-
-    CPalThread *pThread = GetCurrentPalThread();
-    if (pThread == NULL)
-    {
-        ASSERT("PAL_ReenterForEH called on a thread unknown to this PAL\n");
-    }
-    else if (!pThread->IsInPal())
-    {
-#if _ENABLE_DEBUG_MESSAGES_
-        DBG_PRINTF(DLI_ENTRY, defdbgchan, TRUE)("PAL_ReenterForEH()\n");
-#endif
-
-        // We ignore the return code.  This call should only fail on internal
-        // error, and we assert at the actual failure.
-        pThread->Enter(PAL_BoundaryEH);
-        fEntered = TRUE;
-        LOGEXIT("PAL_ReenterForEH returns TRUE\n");
-    }
-    else
-    {
-        // LOGEXIT("PAL_ReenterForEH returns FALSE\n");
-    }
-
-    return fEntered;
 }
 
 PAL_ERROR CPalThread::Enter(PAL_Boundary /* boundary */)
@@ -278,7 +228,7 @@ PALAPI
 PAL_Leave(PAL_Boundary boundary)
 {
     ENTRY("PAL_Leave(boundary=%u)\n", boundary);
-    
+
     CPalThread *pThread = GetCurrentPalThread();
     // We ignore the return code.  This call should only fail on internal
     // error, and we assert at the actual failure.

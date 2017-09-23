@@ -130,4 +130,6 @@ function testFunction()
 
     telemetryLog('Testing array proto enumeration', true);
     enumAndVerifyObj(s4, l4);
+
+    emitTTDLog(ttdLogURI);
 }

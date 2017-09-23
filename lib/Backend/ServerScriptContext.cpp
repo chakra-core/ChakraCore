@@ -4,10 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+
 #if ENABLE_OOP_NATIVE_CODEGEN
 #include "JITServer/JITServer.h"
-#endif
-
 
 ServerScriptContext::ThreadContextHolder::ThreadContextHolder(ServerThreadContext* threadContextInfo) : threadContextInfo(threadContextInfo)
 {
@@ -22,9 +21,9 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     m_contextData(*contextData),
     threadContextHolder(threadContextInfo),
     m_isPRNGSeeded(false),
-    m_interpreterThunkBufferManager(nullptr),
-    m_asmJsInterpreterThunkBufferManager(nullptr),
     m_sourceCodeArena(_u("JITSourceCodeArena"), threadContextInfo->GetForegroundPageAllocator(), Js::Throw::OutOfMemory, nullptr),
+    m_interpreterThunkBufferManager(&m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Interpreter thunk buffer"), GetThreadContext()->GetProcessHandle()),
+    m_asmJsInterpreterThunkBufferManager(&m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Asm.js interpreter thunk buffer"), GetThreadContext()->GetProcessHandle()),
     m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
     m_globalThisAddr(0),
@@ -39,10 +38,6 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     {
         m_codeGenProfiler = HeapNew(Js::ScriptContextProfiler);
     }
-#endif
-#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    m_interpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Interpreter thunk buffer"), GetThreadContext()->GetProcessHandle());
-    m_asmJsInterpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Asm.js interpreter thunk buffer"), GetThreadContext()->GetProcessHandle());
 #endif
     m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
 }
@@ -61,18 +56,6 @@ ServerScriptContext::~ServerScriptContext()
         HeapDelete(m_codeGenProfiler);
     }
 #endif
-    if (m_asmJsInterpreterThunkBufferManager)
-    {
-        m_asmJsInterpreterThunkBufferManager->Decommit();
-        HeapDelete(m_asmJsInterpreterThunkBufferManager);
-        m_asmJsInterpreterThunkBufferManager = nullptr;
-    }
-    if (m_interpreterThunkBufferManager)
-    {
-        m_interpreterThunkBufferManager->Decommit();
-        HeapDelete(m_interpreterThunkBufferManager);
-        m_interpreterThunkBufferManager = nullptr;
-    }
 }
 
 intptr_t
@@ -243,11 +226,13 @@ ServerScriptContext::GetRecyclerAllowNativeCodeBumpAllocation() const
     return m_contextData.recyclerAllowNativeCodeBumpAllocation != 0;
 }
 
+#ifdef ENABLE_SIMDJS
 bool
 ServerScriptContext::IsSIMDEnabled() const
 {
     return m_contextData.isSIMDEnabled != 0;
 }
+#endif
 
 intptr_t
 ServerScriptContext::GetBuiltinFunctionsBaseAddr() const
@@ -286,6 +271,7 @@ ServerScriptContext::IsPRNGSeeded() const
     return m_isPRNGSeeded;
 }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 intptr_t
 ServerScriptContext::GetDebuggingFlagsAddr() const
 {
@@ -309,6 +295,7 @@ ServerScriptContext::GetDebugScriptIdWhenSetAddr() const
 {
     return static_cast<intptr_t>(m_contextData.debugScriptIdWhenSetAddr);
 }
+#endif
 
 bool
 ServerScriptContext::IsClosed() const
@@ -328,29 +315,34 @@ ServerScriptContext::GetSourceCodeArena()
     return &m_sourceCodeArena;
 }
 
-EmitBufferManager<> *
+void
+ServerScriptContext::DecommitEmitBufferManager(bool asmJsManager)
+{
+    GetEmitBufferManager(asmJsManager)->Decommit();
+}
+
+OOPEmitBufferManager *
 ServerScriptContext::GetEmitBufferManager(bool asmJsManager)
 {
     if (asmJsManager)
     {
-        return m_asmJsInterpreterThunkBufferManager;
+        return &m_asmJsInterpreterThunkBufferManager;
     }
     else
     {
-        return m_interpreterThunkBufferManager;
+        return &m_interpreterThunkBufferManager;
     }
 }
 
 IR::JnHelperMethod
 ServerScriptContext::GetDOMFastPathHelper(intptr_t funcInfoAddr)
 {
-    IR::JnHelperMethod helper;
+    IR::JnHelperMethod helper = IR::HelperInvalid;
 
     m_domFastPathHelperMap->LockResize();
-    bool found = m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
+    m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
     m_domFastPathHelperMap->UnlockResize();
 
-    Assert(found);
     return helper;
 }
 
@@ -383,7 +375,7 @@ ServerScriptContext::Release()
     }
 }
 
-Js::Var*
+Field(Js::Var)*
 ServerScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex)
 {
     Assert(m_moduleRecords.ContainsKey(moduleIndex));
@@ -402,7 +394,7 @@ ServerScriptContext::AddModuleRecordInfo(unsigned int moduleId, __int64 localExp
 {
     Js::ServerSourceTextModuleRecord* record = HeapNewStructZ(Js::ServerSourceTextModuleRecord);
     record->moduleId = moduleId;
-    record->localExportSlotsAddr = (Js::Var*)localExportSlotsAddr;
+    record->localExportSlotsAddr = (Field(Js::Var)*)localExportSlotsAddr;
     m_moduleRecords.Add(moduleId, record);
 }
 
@@ -416,3 +408,4 @@ ServerScriptContext::GetCodeGenProfiler() const
 #endif
 }
 
+#endif

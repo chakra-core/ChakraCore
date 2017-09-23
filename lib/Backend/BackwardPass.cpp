@@ -48,7 +48,7 @@ bool
 BackwardPass::DoByteCodeUpwardExposedUsed() const
 {
     return (this->tag == Js::DeadStorePhase && this->func->hasBailout) ||
-        (this->func->HasTry() && this->func->DoOptimizeTryCatch() && this->tag == Js::BackwardPhase);
+        (this->func->HasTry() && this->func->DoOptimizeTry() && this->tag == Js::BackwardPhase);
 }
 
 bool
@@ -114,7 +114,7 @@ BackwardPass::DoDeadStore(Func* func)
 {
     return
         !PHASE_OFF(Js::DeadStorePhase, func) &&
-        (!func->HasTry() || func->DoOptimizeTryCatch());
+        (!func->HasTry() || func->DoOptimizeTry());
 }
 
 bool
@@ -191,8 +191,7 @@ BackwardPass::DoTrackCompoundedIntOverflow() const
 {
     return
         !PHASE_OFF(Js::TrackCompoundedIntOverflowPhase, func) &&
-        DoTrackIntOverflow() &&
-        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
+        DoTrackIntOverflow() && !func->IsTrackCompoundedIntOverflowDisabled();
 }
 
 bool
@@ -301,7 +300,7 @@ BackwardPass::MarkScopeObjSymUseForStackArgOpt()
     IR::Instr * instr = this->currentInstr;
     if (tag == Js::DeadStorePhase)
     {
-        if (instr->DoStackArgsOpt(this->func) && instr->m_func->GetScopeObjSym() != nullptr)
+        if (instr->DoStackArgsOpt(this->func) && instr->m_func->GetScopeObjSym() != nullptr && this->DoByteCodeUpwardExposedUsed())
         {
             if (this->currentBlock->byteCodeUpwardExposedUsed == nullptr)
             {
@@ -1111,7 +1110,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             Assert(block->typesNeedingKnownObjectLayout == nullptr);
             Assert(block->fieldHoistCandidates == nullptr);
             // byteCodeUpwardExposedUsed is required to populate the writeThroughSymbolsSet for the try region in the backwards pass
-            Assert(block->byteCodeUpwardExposedUsed == nullptr || (this->tag == Js::BackwardPhase && this->func->HasTry() && this->func->DoOptimizeTryCatch()));
+            Assert(block->byteCodeUpwardExposedUsed == nullptr || (this->tag == Js::BackwardPhase && this->func->HasTry() && this->func->DoOptimizeTry()));
             Assert(block->byteCodeRestoreSyms == nullptr);
             Assert(block->stackSymToFinalType == nullptr);
             Assert(block->stackSymToGuardedProperties == nullptr);
@@ -1729,6 +1728,55 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
             */
             StackSym * stackSym = copyPropSyms.Key(); // assume that we'll use the original sym to restore
             SymID symId = stackSym->m_id;
+
+            // Prefer to restore from type-specialized versions of the sym, as that will reduce the need for potentially
+            // expensive ToVars that can more easily be eliminated due to being dead stores
+            StackSym * int32StackSym = nullptr;
+            StackSym * float64StackSym = nullptr;
+            StackSym * simd128StackSym = nullptr;
+
+            // If the sym is type specialized, we need to check for upward exposed uses of the specialized sym and not the equivalent var sym. If there are no 
+            // uses and we use the copy prop sym to restore, we'll need to find the type specialize sym for that sym as well.
+            StackSym * typeSpecSym = nullptr;
+            auto findTypeSpecSym = [&]()
+            {
+            if (bailOutInfo->liveLosslessInt32Syms->Test(symId))
+            {
+                // Var version of the sym is not live, use the int32 version
+                int32StackSym = stackSym->GetInt32EquivSym(nullptr);
+                    typeSpecSym = int32StackSym;
+                Assert(int32StackSym);
+            }
+            else if(bailOutInfo->liveFloat64Syms->Test(symId))
+            {
+                // Var/int32 version of the sym is not live, use the float64 version
+                float64StackSym = stackSym->GetFloat64EquivSym(nullptr);
+                    typeSpecSym = float64StackSym;
+                Assert(float64StackSym);
+            }
+#ifdef ENABLE_SIMDJS
+            // SIMD_JS
+            else if (bailOutInfo->liveSimd128F4Syms->Test(symId))
+            {
+                simd128StackSym = stackSym->GetSimd128F4EquivSym(nullptr);
+                    typeSpecSym = simd128StackSym;
+            }
+            else if (bailOutInfo->liveSimd128I4Syms->Test(symId))
+            {
+                simd128StackSym = stackSym->GetSimd128I4EquivSym(nullptr);
+                    typeSpecSym = simd128StackSym;
+            }
+#endif
+            else
+            {
+                Assert(bailOutInfo->liveVarSyms->Test(symId));
+                    typeSpecSym = stackSym;
+                }
+            };
+
+            findTypeSpecSym();
+            Assert(typeSpecSym != nullptr);
+
             IR::Instr *const instr = bailOutInfo->bailOutInstr;
             StackSym *const dstSym = IR::RegOpnd::TryGetStackSym(instr->GetDst());
             if(instr->GetBailOutKind() & IR::BailOutOnResultConditions &&
@@ -1750,7 +1798,7 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
                 // original sym will also be made upwards-exposed from here, so the aforementioned transferring store of the
                 // copy-prop sym to the original sym will not be a dead store.
             }
-            else if (block->upwardExposedUses->Test(stackSym->m_id) && !block->upwardExposedUses->Test(copyPropSyms.Value()->m_id))
+            else if (block->upwardExposedUses->Test(typeSpecSym->m_id) && !block->upwardExposedUses->Test(copyPropSyms.Value()->m_id))
             {
                 // Don't use the copy prop sym if it is not used and the orig sym still has uses.
                 // No point in extending the lifetime of the copy prop sym unnecessarily.
@@ -1760,37 +1808,10 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
                 // Need to use the copy-prop sym to restore
                 stackSym = copyPropSyms.Value();
                 symId = stackSym->m_id;
-            }
-
-            // Prefer to restore from type-specialized versions of the sym, as that will reduce the need for potentially
-            // expensive ToVars that can more easily be eliminated due to being dead stores
-            StackSym * int32StackSym = nullptr;
-            StackSym * float64StackSym = nullptr;
-            StackSym * simd128StackSym = nullptr;
-            if (bailOutInfo->liveLosslessInt32Syms->Test(symId))
-            {
-                // Var version of the sym is not live, use the int32 version
-                int32StackSym = stackSym->GetInt32EquivSym(nullptr);
-                Assert(int32StackSym);
-            }
-            else if(bailOutInfo->liveFloat64Syms->Test(symId))
-            {
-                // Var/int32 version of the sym is not live, use the float64 version
-                float64StackSym = stackSym->GetFloat64EquivSym(nullptr);
-                Assert(float64StackSym);
-            }
-            // SIMD_JS
-            else if (bailOutInfo->liveSimd128F4Syms->Test(symId))
-            {
-                simd128StackSym = stackSym->GetSimd128F4EquivSym(nullptr);
-            }
-            else if (bailOutInfo->liveSimd128I4Syms->Test(symId))
-            {
-                simd128StackSym = stackSym->GetSimd128I4EquivSym(nullptr);
-            }
-            else
-            {
-                Assert(bailOutInfo->liveVarSyms->Test(symId));
+                int32StackSym = nullptr;
+                float64StackSym = nullptr;
+                simd128StackSym = nullptr;
+                findTypeSpecSym();
             }
 
             // We did not end up using the copy prop sym. Let's make sure the use of the original sym by the bailout is captured.
@@ -1847,7 +1868,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
     {
         // We don't need to fill in the bailout instruction in backward pass
         Assert(this->func->hasBailout || !instr->HasBailOutInfo());
-        Assert(!instr->HasBailOutInfo() || instr->GetBailOutInfo()->byteCodeUpwardExposedUsed == nullptr || (this->func->HasTry() && this->func->DoOptimizeTryCatch()));
+        Assert(!instr->HasBailOutInfo() || instr->GetBailOutInfo()->byteCodeUpwardExposedUsed == nullptr || (this->func->HasTry() && this->func->DoOptimizeTry()));
 
         if (instr->IsByteCodeUsesInstr())
         {
@@ -2298,7 +2319,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
     // The byteCodeUpwardExposedUsed should only be assigned once. The only case which would break this
     // assumption is when we are optimizing a function having try-catch. In that case, we need the
     // byteCodeUpwardExposedUsed analysis in the initial backward pass too.
-    Assert(bailOutInfo->byteCodeUpwardExposedUsed == nullptr || (this->func->HasTry() && this->func->DoOptimizeTryCatch()));
+    Assert(bailOutInfo->byteCodeUpwardExposedUsed == nullptr || (this->func->HasTry() && this->func->DoOptimizeTry()));
 
     // Make a copy of the byteCodeUpwardExposedUsed so we can remove the constants
     if (!this->IsPrePass())
@@ -2346,17 +2367,21 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
         // ToVars that can more easily be eliminated due to being dead stores.
 
 #if DBG
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         // Simd128 syms should be live in at most one form
         tempBv->And(bailOutInfo->liveSimd128F4Syms, bailOutInfo->liveSimd128I4Syms);
+#endif
         Assert(tempBv->IsEmpty());
 
         // Verify that all syms to restore are live in some fashion
         tempBv->Minus(byteCodeUpwardExposedUsed, bailOutInfo->liveVarSyms);
         tempBv->Minus(bailOutInfo->liveLosslessInt32Syms);
         tempBv->Minus(bailOutInfo->liveFloat64Syms);
+#ifdef ENABLE_SIMDJS
         tempBv->Minus(bailOutInfo->liveSimd128F4Syms);
         tempBv->Minus(bailOutInfo->liveSimd128I4Syms);
+#endif
         Assert(tempBv->IsEmpty());
 #endif
 
@@ -2427,6 +2452,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
             }
             NEXT_BITSET_IN_SPARSEBV;
 
+#ifdef ENABLE_SIMDJS
             // SIMD_JS
             tempBv->Or(bailOutInfo->liveSimd128F4Syms, bailOutInfo->liveSimd128I4Syms);
             tempBv->And(byteCodeUpwardExposedUsed);
@@ -2448,6 +2474,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
                 byteCodeUpwardExposedUsed->Set(simd128Sym->m_id);
             }
             NEXT_BITSET_IN_SPARSEBV;
+#endif
         }
         // Var
         // Any remaining syms to restore will be restored from their var versions
@@ -2534,6 +2561,8 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             Output::Print(_u("--------------------\n"));
         }
 #endif
+
+        AssertOrFailFastMsg(!instr->IsLowered(), "Lowered instruction detected in pre-lower context!");
 
         this->currentInstr = instr;
         this->currentRegion = this->currentBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
@@ -2763,7 +2792,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                 }
                 case Js::OpCode::Catch:
                 {
-                    if (this->func->DoOptimizeTryCatch() && !this->IsPrePass())
+                    if (this->func->DoOptimizeTry() && !this->IsPrePass())
                     {
                         // Execute the "Catch" in the JIT'ed code, and bailout to the next instruction. This way, the bailout will restore the exception object automatically.
                         IR::BailOutInstr* bailOnException = IR::BailOutInstr::New(Js::OpCode::BailOnException, IR::BailOutOnException, instr->m_next, instr->m_func);
@@ -2790,15 +2819,15 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             this->ProcessInlineeEnd(instr);
         }
 
-        if (instr->IsLabelInstr() && instr->m_next->m_opcode == Js::OpCode::Catch)
+        if ((instr->IsLabelInstr() && instr->m_next->m_opcode == Js::OpCode::Catch) || (instr->IsLabelInstr() && instr->m_next->m_opcode == Js::OpCode::Finally))
         {
             if (!this->currentRegion)
             {
-                Assert(!this->func->DoOptimizeTryCatch() && !(this->func->IsSimpleJit() && this->func->hasBailout));
+                Assert(!this->func->DoOptimizeTry() && !(this->func->IsSimpleJit() && this->func->hasBailout));
             }
             else
             {
-                Assert(this->currentRegion->GetType() == RegionTypeCatch);
+                Assert(this->currentRegion->GetType() == RegionTypeCatch || this->currentRegion->GetType() == RegionTypeFinally);
                 Region * matchingTryRegion = this->currentRegion->GetMatchingTryRegion();
                 Assert(matchingTryRegion);
 
@@ -2825,10 +2854,11 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 #if DBG
         if (instr->m_opcode == Js::OpCode::TryCatch)
         {
-            if (!this->IsPrePass() && (this->func->DoOptimizeTryCatch() || (this->func->IsSimpleJit() && this->func->hasBailout)))
+            if (!this->IsPrePass() && (this->func->DoOptimizeTry() || (this->func->IsSimpleJit() && this->func->hasBailout)))
             {
                 Assert(instr->m_next->IsLabelInstr() && (instr->m_next->AsLabelInstr()->GetRegion() != nullptr));
                 Region * tryRegion = instr->m_next->AsLabelInstr()->GetRegion();
+                Assert(tryRegion && tryRegion->GetType() == RegionType::RegionTypeTry && tryRegion->GetMatchingCatchRegion() != nullptr);
                 Assert(tryRegion->writeThroughSymbolsSet);
             }
         }
@@ -3052,8 +3082,12 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
                 {
                     instr->m_opcode = Js::OpCode::NewScFunc;
                     IR::Opnd * intConstOpnd = instr->UnlinkSrc2();
+                    Assert(intConstOpnd->IsIntConstOpnd());
 
-                    instr->ReplaceSrc1(intConstOpnd);
+                    uint nestedFuncIndex = instr->m_func->GetJITFunctionBody()->GetNestedFuncIndexForSlotIdInCachedScope(intConstOpnd->AsIntConstOpnd()->AsUint32());
+                    intConstOpnd->Free(instr->m_func);
+
+                    instr->ReplaceSrc1(IR::IntConstOpnd::New(nestedFuncIndex, TyUint32, instr->m_func));
                     instr->SetSrc2(IR::RegOpnd::New(currFunc->GetLocalFrameDisplaySym(), IRType::TyVar, currFunc));
                 }
                 break;
@@ -3274,7 +3308,7 @@ BackwardPass::ProcessNoImplicitCallUses(IR::Instr *const instr)
     {
         IR::Opnd *const src = srcs[i];
         IR::ArrayRegOpnd *arraySrc = nullptr;
-        Sym *sym;
+        Sym *sym = nullptr;
         switch(src->GetKind())
         {
             case IR::OpndKindReg:
@@ -3397,12 +3431,12 @@ BackwardPass::ProcessNoImplicitCallDef(IR::Instr *const instr)
             // field holds the value, which is up to the StFld when going backwards.
             (src->IsRegOpnd() && dst->GetValueType().IsArrayOrObjectWithArray())
         ) ||
-        !GlobOpt::TransferSrcValue(instr))
+        !instr->TransfersSrcValue())
     {
         return;
     }
 
-    Sym *srcSym;
+    Sym *srcSym = nullptr;
     switch(src->GetKind())
     {
         case IR::OpndKindReg:
@@ -4210,7 +4244,7 @@ BackwardPass::ProcessSymUse(Sym * sym, bool isRegOpndUse, BOOLEAN isNonByteCodeU
 
         Assert((block->fieldHoistCandidates != nullptr) == this->DoFieldHoistCandidates());
 
-        if (block->fieldHoistCandidates && GlobOpt::TransferSrcValue(this->currentInstr))
+        if (block->fieldHoistCandidates && this->currentInstr->TransfersSrcValue())
         {
             // If the instruction doesn't transfer the src value to dst, it will not be copyprop'd
             // So we can't hoist those.
@@ -4404,7 +4438,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
 #if DBG
         FOREACH_BITSET_IN_SPARSEBV(propOpId, guardedPropertyOps)
         {
-            JITObjTypeSpecFldInfo* existingFldInfo = this->func->GetGlobalObjTypeSpecFldInfo(propOpId);
+            ObjTypeSpecFldInfo* existingFldInfo = this->func->GetGlobalObjTypeSpecFldInfo(propOpId);
             Assert(existingFldInfo != nullptr);
 
             if (existingFldInfo->GetPropertyId() != opnd->GetPropertyId())
@@ -5520,7 +5554,7 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
             case Js::OpCode::Conv_Prim:
                 Assert(dstSym);
                 Assert(instr->GetSrc1());
-                Assert(!instr->GetSrc2());
+                Assert(!instr->GetSrc2() || instr->GetDst()->GetType() == instr->GetSrc1()->GetType());
 
                 if(instr->GetDst()->IsInt32())
                 {
@@ -5572,8 +5606,6 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
             case Js::OpCode::Coerce_Regex:
             case Js::OpCode::Coerce_StrOrRegex:
             case Js::OpCode::Conv_PrimStr:
-
-            case Js::OpCode::Add_Ptr:
                 // These instructions don't generate -0, and their behavior is the same for any src that is -0 or +0
                 SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                 SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
@@ -5583,13 +5615,13 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
             {
                 Assert(dstSym);
                 Assert(instr->GetSrc1());
-                Assert(instr->GetSrc1()->IsRegOpnd() || instr->GetSrc1()->IsIntConstOpnd());
+                Assert(instr->GetSrc1()->IsRegOpnd() || instr->GetSrc1()->IsImmediateOpnd());
                 Assert(instr->GetSrc2());
-                Assert(instr->GetSrc2()->IsRegOpnd() || instr->GetSrc2()->IsIntConstOpnd());
+                Assert(instr->GetSrc2()->IsRegOpnd() || instr->GetSrc2()->IsImmediateOpnd());
 
                 if (instr->ignoreNegativeZero ||
-                    (instr->GetSrc1()->IsIntConstOpnd() && instr->GetSrc1()->AsIntConstOpnd()->GetValue() != 0) ||
-                    (instr->GetSrc2()->IsIntConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0))
+                    (instr->GetSrc1()->IsImmediateOpnd() && instr->GetSrc1()->GetImmediateValue(func) != 0) ||
+                    (instr->GetSrc2()->IsImmediateOpnd() && instr->GetSrc2()->GetImmediateValue(func) != 0))
                 {
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
@@ -5639,13 +5671,13 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
             {
                 Assert(dstSym);
                 Assert(instr->GetSrc1());
-                Assert(instr->GetSrc1()->IsRegOpnd() || instr->GetSrc1()->IsIntConstOpnd());
+                Assert(instr->GetSrc1()->IsRegOpnd() || instr->GetSrc1()->IsImmediateOpnd());
                 Assert(instr->GetSrc2());
-                Assert(instr->GetSrc2()->IsRegOpnd() || instr->GetSrc2()->IsIntConstOpnd());
+                Assert(instr->GetSrc2()->IsRegOpnd() || instr->GetSrc2()->IsImmediateOpnd());
 
                 if (instr->ignoreNegativeZero ||
-                    (instr->GetSrc1()->IsIntConstOpnd() && instr->GetSrc1()->AsIntConstOpnd()->GetValue() != 0) ||
-                    (instr->GetSrc2()->IsIntConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0))
+                    (instr->GetSrc1()->IsImmediateOpnd() && instr->GetSrc1()->GetImmediateValue(func) != 0) ||
+                    (instr->GetSrc2()->IsImmediateOpnd() && instr->GetSrc2()->GetImmediateValue(func) != 0))
                 {
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
@@ -6377,7 +6409,7 @@ BackwardPass::TrackFloatSymEquivalence(IR::Instr *const instr)
             return;
         }
 
-        FloatSymEquivalenceClass *dstEquivalenceClass, *srcEquivalenceClass;
+        FloatSymEquivalenceClass *dstEquivalenceClass = nullptr, *srcEquivalenceClass = nullptr;
         const bool dstHasEquivalenceClass = floatSymEquivalenceMap->TryGetValue(dst->m_id, &dstEquivalenceClass);
         const bool srcHasEquivalenceClass = floatSymEquivalenceMap->TryGetValue(src->m_id, &srcEquivalenceClass);
 
@@ -6438,7 +6470,7 @@ BackwardPass::TrackFloatSymEquivalence(IR::Instr *const instr)
     // kind on the instruction. Both are checked because in functions without loops, equivalence tracking is not done and only
     // the sym's non-number bailout bit will have the information, and in functions with loops, equivalence tracking is done
     // throughout the function and checking just the sym's non-number bailout bit is insufficient.
-    FloatSymEquivalenceClass *dstEquivalenceClass;
+    FloatSymEquivalenceClass *dstEquivalenceClass = nullptr;
     if(dst->m_requiresBailOnNotNumber ||
         (floatSymEquivalenceMap->TryGetValue(dst->m_id, &dstEquivalenceClass) && dstEquivalenceClass->RequiresBailOnNotNumber()))
     {
@@ -6498,8 +6530,6 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             if (propertySym->m_fieldKind == PropertyKindLocalSlots || propertySym->m_fieldKind == PropertyKindSlots)
             {
                 BOOLEAN isPropertySymUsed = !block->slotDeadStoreCandidates->TestAndSet(propertySym->m_id);
-                // we should not do any dead slots in asmjs loop body
-                Assert(!(this->func->GetJITFunctionBody()->IsAsmJsMode() && this->func->IsLoopBody() && !isPropertySymUsed));
                 Assert(isPropertySymUsed || !block->upwardExposedUses->Test(propertySym->m_id));
 
                 isUsed = isPropertySymUsed || block->upwardExposedUses->Test(propertySym->m_stackSym->m_id);
@@ -6852,10 +6882,7 @@ BackwardPass::TrackNoImplicitCallInlinees(IR::Instr *instr)
         || OpCodeAttr::CallInstr(instr->m_opcode)
         || instr->CallsAccessor()
         || GlobOpt::MayNeedBailOnImplicitCall(instr, nullptr, nullptr)
-        || instr->m_opcode == Js::OpCode::LdHeapArguments
-        || instr->m_opcode == Js::OpCode::LdLetHeapArguments
-        || instr->m_opcode == Js::OpCode::LdHeapArgsCached
-        || instr->m_opcode == Js::OpCode::LdLetHeapArgsCached
+        || instr->HasAnyLoadHeapArgsOpCode()
         || instr->m_opcode == Js::OpCode::LdFuncExpr)
     {
         // This func has instrs with bailouts or implicit calls
@@ -6924,7 +6951,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
                 func->GetJITFunctionBody()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber(),
                 inlineeStart->m_func->GetJITFunctionBody()->GetDisplayName(), inlineeStart->m_func->GetJITFunctionBody()->GetFunctionNumber(),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasCalls()),
-                IsTrueOrFalse(inlineeStart->m_func->GetHasUnoptimizedArgumentsAcccess()),
+                IsTrueOrFalse(inlineeStart->m_func->GetHasUnoptimizedArgumentsAccess()),
                 IsTrueOrFalse(inlineeStart->m_func->m_canDoInlineArgsOpt));
         return false;
     }
@@ -6944,7 +6971,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
         if (i == Js::Constants::InlineeMetaArgIndex_ArgumentsObject &&
             inlineeStart->m_func->GetJITFunctionBody()->UsesArgumentsObject())
         {
-            Assert(!inlineeStart->m_func->GetHasUnoptimizedArgumentsAcccess());
+            Assert(!inlineeStart->m_func->GetHasUnoptimizedArgumentsAccess());
             // Do not remove arguments object meta arg if there is a reference to arguments object
         }
         else
@@ -7070,19 +7097,19 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     // because the bailout wouldn't be able to restore tmp.
     IR::Instr *curNext = curInstr->GetNextRealInstrOrLabel();
     IR::Instr *instrNope = nullptr;
-    while (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
+    if (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
     {
-        // Instead of just giving up, we can be a little trickier. We can instead treat the tmp declaration(s) as a
-        // part of the block prefix, and put the bailonnoprofile immediately after them. This has the added benefit
-        // that we can still merge up blocks beginning with bailonnoprofile, even if they would otherwise not allow
-        // us to, due to the fact that these tmp declarations would be pre-empted by the higher-level bailout.
-        instrNope = curNext;
-        curNext = curNext->GetNextRealInstrOrLabel();
-    }
-
-    if (instrNope != nullptr)
-    {
-        instrNope = curNext;
+        block->RemoveInstr(instr);
+        return true;
+        /*while (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
+        {
+            // Instead of just giving up, we can be a little trickier. We can instead treat the tmp declaration(s) as a
+            // part of the block prefix, and put the bailonnoprofile immediately after them. This has the added benefit
+            // that we can still merge up blocks beginning with bailonnoprofile, even if they would otherwise not allow
+            // us to, due to the fact that these tmp declarations would be pre-empted by the higher-level bailout.
+            instrNope = curNext;
+            curNext = curNext->GetNextRealInstrOrLabel();
+        }*/
     }
 
     curInstr = instr->m_prev;
@@ -7494,16 +7521,16 @@ BackwardPass::FoldCmBool(IR::Instr *instr)
 }
 
 void
-BackwardPass::SetWriteThroughSymbolsSetForRegion(BasicBlock * catchBlock, Region * tryRegion)
+BackwardPass::SetWriteThroughSymbolsSetForRegion(BasicBlock * catchOrFinallyBlock, Region * tryRegion)
 {
     tryRegion->writeThroughSymbolsSet = JitAnew(this->func->m_alloc, BVSparse<JitArenaAllocator>, this->func->m_alloc);
 
     if (this->DoByteCodeUpwardExposedUsed())
     {
-        Assert(catchBlock->byteCodeUpwardExposedUsed);
-        if (!catchBlock->byteCodeUpwardExposedUsed->IsEmpty())
+        Assert(catchOrFinallyBlock->byteCodeUpwardExposedUsed);
+        if (!catchOrFinallyBlock->byteCodeUpwardExposedUsed->IsEmpty())
         {
-            FOREACH_BITSET_IN_SPARSEBV(id, catchBlock->byteCodeUpwardExposedUsed)
+            FOREACH_BITSET_IN_SPARSEBV(id, catchOrFinallyBlock->byteCodeUpwardExposedUsed)
             {
                 tryRegion->writeThroughSymbolsSet->Set(id);
             }
@@ -7548,7 +7575,7 @@ BackwardPass::SetWriteThroughSymbolsSetForRegion(BasicBlock * catchBlock, Region
 bool
 BackwardPass::CheckWriteThroughSymInRegion(Region* region, StackSym* sym)
 {
-    if (region->GetType() == RegionTypeRoot || region->GetType() == RegionTypeFinally)
+    if (region->GetType() == RegionTypeRoot)
     {
         return false;
     }

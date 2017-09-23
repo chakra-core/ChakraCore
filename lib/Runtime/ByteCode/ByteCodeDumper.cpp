@@ -855,9 +855,13 @@ namespace Js
         switch (op)
         {
             case OpCode::StLocalSlot:
+            case OpCode::StParamSlot:
             case OpCode::StLocalObjSlot:
+            case OpCode::StParamObjSlot:
             case OpCode::StLocalSlotChkUndecl:
+            case OpCode::StParamSlotChkUndecl:
             case OpCode::StLocalObjSlotChkUndecl:
+            case OpCode::StParamObjSlotChkUndecl:
                 Output::Print(_u(" [%d] = R%d "),data->SlotIndex, data->Value);
                 break;
             case OpCode::LdLocalSlot:
@@ -932,6 +936,7 @@ namespace Js
             case OpCode::ScopedStFld:
             case OpCode::ConsoleScopedStFld:
             case OpCode::ScopedStFldStrict:
+            case OpCode::ConsoleScopedStFldStrict:
                 Output::Print(_u(" %s = R%d, R%d #%d"), pPropertyName->GetBuffer(), data->Value,
                     Js::FunctionBody::RootObjectRegSlot, data->inlineCacheIndex);
                 break;
@@ -1191,13 +1196,6 @@ namespace Js
     }
 
     template <class T> void
-    ByteCodeDumper::DumpReg2WithICIndex(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpReg2(op, data, dumpFunction, reader);
-        Output::Print(_u(" <%d> "), data->inlineCacheIndex);
-    }
-
-    template <class T> void
     ByteCodeDumper::DumpReg3(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         switch (op)
@@ -1268,15 +1266,6 @@ namespace Js
     ByteCodeDumper::DumpW1(OpCode op, const unaligned OpLayoutW1 * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpU2(data->C1);
-    }
-
-    void
-    ByteCodeDumper::DumpReg1Int2(OpCode op, const unaligned OpLayoutReg1Int2 * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpReg(data->R0);
-        Output::Print(_u("="));
-        DumpI4(data->C1);
-        DumpI4(data->C2);
     }
 
     void

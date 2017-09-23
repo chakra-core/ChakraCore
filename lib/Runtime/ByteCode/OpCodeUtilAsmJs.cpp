@@ -97,5 +97,12 @@ namespace Js
         return IsValidByteCodeOpcode(op)
             || (op > Js::OpCodeAsmJs::ByteCodeLast && op < Js::OpCodeAsmJs::Count);
     }
+
+    void OpCodeUtilAsmJs::ConvertOpToProfiled(OpCodeAsmJs * op)
+    {
+        Assert(OpCodeAttrAsmJs::HasProfiledOp(*op));
+        *op += 1;
+        Assert(OpCodeAttrAsmJs::IsProfiledOp(*op));
+    }
 };
 #endif

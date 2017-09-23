@@ -31,6 +31,8 @@
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>CommonMemoryPch.h</PrecompiledHeaderFile>
+      <!-- # Check out https://osgwiki.com/wiki/Dev_14_Migration for more details about -Zc:implicitNoexcept- -->
+      <AdditionalOptions>-Zc:implicitNoexcept- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -84,10 +86,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SmallNormalHeapBucket.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)StressTest.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VirtualAllocWrapper.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)MemUtils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonMemoryPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)SectionAllocWrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllocationPolicyManager.h" />
@@ -120,7 +122,6 @@
     <ClInclude Include="LeakReport.h" />
     <ClInclude Include="LargeHeapBucket.h" />
     <ClInclude Include="MarkContext.h" />
-    <ClInclude Include="MemUtils.h" />
     <ClInclude Include="MemoryTracking.h" />
     <ClInclude Include="PageAllocator.h" />
     <ClInclude Include="PageAllocatorDefines.h" />
@@ -137,6 +138,7 @@
     <ClInclude Include="RecyclerSweep.h" />
     <ClInclude Include="RecyclerWeakReference.h" />
     <ClInclude Include="RecyclerWriteBarrierManager.h" />
+    <ClInclude Include="SectionAllocWrapper.h" />
     <ClInclude Include="SmallFinalizableHeapBlock.h" />
     <ClInclude Include="SmallFinalizableHeapBucket.h" />
     <ClInclude Include="SmallHeapBlockAllocator.h" />
@@ -147,6 +149,7 @@
     <ClInclude Include="MemoryLogger.h" />
     <ClInclude Include="StressTest.h" />
     <ClInclude Include="VirtualAllocWrapper.h" />
+    <ClInclude Include="WriteBarrierMacros.h" />
     <ClInclude Include="XDataAllocator.h" />
   </ItemGroup>
   <ItemGroup>

@@ -22,6 +22,7 @@ class Scope
 {
 private:
     Scope *enclosingScope;
+    Js::ScopeInfo *scopeInfo;
     Js::RegSlot location;
     FuncInfo *func;
     Symbol *m_symList;
@@ -39,6 +40,7 @@ private:
     BYTE hasDuplicateFormals : 1;
     BYTE canMergeWithBodyScope : 1;
     BYTE hasLocalInClosure : 1;
+    BYTE isBlockInLoop : 1;
 public:
 #if DBG
     BYTE isRestored : 1;
@@ -47,6 +49,7 @@ public:
         alloc(alloc),
         func(nullptr),
         enclosingScope(nullptr),
+        scopeInfo(nullptr),
         isDynamic(false),
         isObject(false),
         canMerge(true),
@@ -56,6 +59,7 @@ public:
         hasDuplicateFormals(false),
         canMergeWithBodyScope(true),
         hasLocalInClosure(false),
+        isBlockInLoop(false),
         location(Js::Constants::NoRegister),
         m_symList(nullptr),
         m_count(0),
@@ -175,6 +179,16 @@ public:
         return enclosingScope;
     }
 
+    void SetScopeInfo(Js::ScopeInfo * scopeInfo)
+    {
+        this->scopeInfo = scopeInfo;
+    }
+
+    Js::ScopeInfo * GetScopeInfo() const
+    {
+        return this->scopeInfo;
+    }
+
     ScopeType GetScopeType() const
     {
         return this->scopeType;
@@ -242,11 +256,11 @@ public:
     void SetHasDuplicateFormals() { hasDuplicateFormals = true; }
     bool GetHasDuplicateFormals() { return hasDuplicateFormals; }
 
-    void SetCannotMergeWithBodyScope() { Assert(this->scopeType == ScopeType_Parameter); canMergeWithBodyScope = false; }
-    bool GetCanMergeWithBodyScope() const { return canMergeWithBodyScope; }
-
     void SetHasOwnLocalInClosure(bool has) { hasLocalInClosure = has; }
     bool GetHasOwnLocalInClosure() const { return hasLocalInClosure; }
+
+    void SetIsBlockInLoop(bool is = true) { isBlockInLoop = is; }
+    bool IsBlockInLoop() const { return isBlockInLoop; }
 
     bool HasInnerScopeIndex() const { return innerScopeIndex != (uint)-1; }
     uint GetInnerScopeIndex() const { return innerScopeIndex; }

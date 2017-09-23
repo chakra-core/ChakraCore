@@ -21,10 +21,10 @@ namespace Js
         // Introduction to Algorithms by Corman, Leiserson, and Rivest.
 
     protected:
-        uint32*              keys;           // keys[i] == segments[i]->left
-        SparseArraySegmentBase** segments;   // Length of segmentCount.
-        SegmentBTree*        children;       // Length of segmentCount+1.
-        uint32               segmentCount;   // number of sparseArray segments in the Node
+        Field(uint32*)              keys;           // keys[i] == segments[i]->left
+        Field(SparseArraySegmentBase**) segments;   // Length of segmentCount. Allocated with Leaf, no need to annotate inner pointer
+        Field(SegmentBTree*)        children;       // Length of segmentCount+1.
+        Field(uint32)               segmentCount;   // number of sparseArray segments in the Node
 
     public:
         static const uint MinDegree = 20; // Degree is the minimum branching factor. (If non-root, and non-leaf.)
@@ -81,7 +81,7 @@ namespace Js
         void Add(Recycler* recycler, SparseArraySegmentBase* newSeg);
         void Find(uint itemIndex, SparseArraySegmentBase*& prevOrMatch, SparseArraySegmentBase*& matchOrNext);
 
-        SparseArraySegmentBase * lastUsedSegment;
+        Field(SparseArraySegmentBase *) lastUsedSegment;
     };
 
     class JavascriptArray : public ArrayObject
@@ -99,14 +99,17 @@ namespace Js
         DEFINE_VTABLE_CTOR(JavascriptArray, ArrayObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptArray);
     private:
-        bool isInitialized;
+        Field(bool) isInitialized;
     protected:
-        SparseArraySegmentBase* head;
-        union
+        Field(SparseArraySegmentBase*) head;
+        union SegmentUnionType
         {
-            SparseArraySegmentBase* lastUsedSegment;
-            SegmentBTreeRoot* segmentBTreeRoot;
-        }segmentUnion;
+            Field(SparseArraySegmentBase*) lastUsedSegment;
+            Field(SegmentBTreeRoot*) segmentBTreeRoot;
+
+            SegmentUnionType() {}
+        };
+        Field(SegmentUnionType) segmentUnion;
     public:
         typedef Var TElement;
 
@@ -123,7 +126,7 @@ namespace Js
         static const uint8 AllocationBucketIndex = 0;
         // 1st column in allocationBuckets that stores no. of missing elements to initialize for given bucket
         static const uint8 MissingElementsCountIndex = 1;
-        // 2nd column in allocationBuckets that stores allocation size for given bucket 
+        // 2nd column in allocationBuckets that stores allocation size for given bucket
         static const uint8 AllocationSizeIndex = 2;
 #if defined(_M_X64_OR_ARM64)
         static const uint8 AllocationBucketsCount = 3;
@@ -182,7 +185,7 @@ namespace Js
 #if ENABLE_PROFILE_INFO
         template<typename T> inline void DirectProfiledSetItemInHeadSegmentAt(const uint32 offset, const T newValue, StElemInfo *const stElemInfo);
 #endif
-        template<typename T> static void CopyValueToSegmentBuferNoCheck(T* buffer, uint32 length, T value);
+        template<typename T> static void CopyValueToSegmentBuferNoCheck(Field(T)* buffer, uint32 length, T value);
         template<typename T> void DirectSetItem_Full(uint32 itemIndex, T newValue);
         template<typename T> SparseArraySegment<T>* PrepareSegmentForMemOp(uint32 startIndex, uint32 length);
         template<typename T> bool DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue);
@@ -211,6 +214,7 @@ namespace Js
 
         static JavascriptArray* FromAnyArray(Var aValue);
         static bool IsDirectAccessArray(Var aValue);
+        static bool IsInlineSegment(SparseArraySegmentBase *seg, JavascriptArray *pArr);
 
         void SetLength(uint32 newLength);
         BOOL SetLength(Var newLength);
@@ -300,7 +304,7 @@ namespace Js
         static Var Pop(ScriptContext * scriptContext, Var object);
 
 
-        static Var EntryPopJavascriptArray(ScriptContext * scriptContext, Var object);
+        static Var EntryPopJavascriptArray(ScriptContext * scriptContext, JavascriptArray* arr);
         static Var EntryPopNonJavascriptArray(ScriptContext * scriptContext, Var object);
 
 #if DEBUG
@@ -319,7 +323,7 @@ namespace Js
         void CheckForceES5Array();
 #endif
 
-        virtual BOOL HasProperty(PropertyId propertyId) override;
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
@@ -329,16 +333,16 @@ namespace Js
         virtual BOOL SetConfigurable(PropertyId propertyId, BOOL value) override;
         virtual BOOL SetAttributes(PropertyId propertyId, PropertyAttributes attributes) override;
 
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override;
 
-        virtual BOOL HasItem(uint32 index) override;
-        virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
-        virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override;
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
 
@@ -350,7 +354,7 @@ namespace Js
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
-        virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) override;
+        virtual BOOL GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext) override;
         virtual uint GetSpecialPropertyCount() const override;
         virtual PropertyId const * GetSpecialPropertyIds() const override;
         virtual DescriptorFlags GetSetter(PropertyId propertyId, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -379,6 +383,7 @@ namespace Js
         }
 
         static JavascriptArray* CreateArrayFromConstructor(RecyclableObject* constructor, uint32 length, ScriptContext* scriptContext);
+        static JavascriptArray* CreateArrayFromConstructorNoArg(RecyclableObject* constructor, ScriptContext* scriptContext);
 
         template<typename unitType, typename className>
         static className* New(Recycler* recycler, DynamicType* arrayType);
@@ -413,7 +418,7 @@ namespace Js
         JavascriptArray(JavascriptArray * instance, bool boxHead);
 
         template<typename T> inline void LinkSegments(SparseArraySegment<T>* prev, SparseArraySegment<T>* current);
-        template<typename T> inline SparseArraySegment<T>* ReallocNonLeafSegment(SparseArraySegment<T>* seg, SparseArraySegmentBase* nextSeg);
+        template<typename T> inline SparseArraySegment<T>* ReallocNonLeafSegment(SparseArraySegment<T>* seg, SparseArraySegmentBase* nextSeg, bool forceNonLeaf = false);
         void TryAddToSegmentMap(Recycler* recycler, SparseArraySegmentBase* seg);
 
     private:
@@ -438,6 +443,10 @@ namespace Js
         bool HasNoMissingValues_Unchecked() const; // do not use except in extreme circumstances
         void SetHasNoMissingValues(const bool hasNoMissingValues = true);
 
+        template<typename T>
+        bool IsMissingItemAt(uint32 index) const;
+        bool IsMissingItem(uint32 index);
+
         virtual bool IsMissingHeadSegmentItem(const uint32 index) const;
 
         static VTableValue VtableHelper()
@@ -457,6 +466,9 @@ namespace Js
         static int64 GetIndexFromVar(Js::Var arg, int64 length, ScriptContext* scriptContext);
         template <typename T>
         static Var MapHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        template <typename T>
+        static Var MapObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* newObj, JavascriptArray* newArr,
+            bool isBuiltinArrayCtor, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
         static Var FillHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext);
         static Var CopyWithinHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext);
         template <typename T>
@@ -475,21 +487,52 @@ namespace Js
         static Var ReverseHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var SliceHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        static Var SliceObjectHelper(RecyclableObject* obj, uint32 sliceStart, uint32 start, JavascriptArray* newArr, RecyclableObject* newObj, uint32 newLen, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var EveryHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         template <typename T = uint32>
+        static Var EveryObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
+        template <typename T = uint32>
         static Var SomeHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        template <typename T = uint32>
+        static Var SomeObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
         template <bool findIndex>
         static Var FindHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext);
+        template <bool findIndex>
+        static Var FindObjectHelper(RecyclableObject* obj, int64 length, int64 start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var ReduceHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         template <typename T>
+        static Var ReduceObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var accumulator, ScriptContext* scriptContext);
+            template <typename T>
         static Var FilterHelper(JavascriptArray* pArr, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        template <typename T>
+        static Var FilterObjectHelper(RecyclableObject* obj, T length, T start, JavascriptArray* newArr, RecyclableObject* newObj, T newStart,
+            RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var ReduceRightHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        template <typename T>
+        static Var ReduceRightObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var accumulator, ScriptContext* scriptContext);
         static Var OfHelper(bool isTypedArrayEntryPoint, Arguments& args, ScriptContext* scriptContext);
 
-        static uint32 GetFromIndex(Var arg, uint32 length, ScriptContext *scriptContext);
+        template<typename T>
+        static T GetFromIndex(Var arg, T length, ScriptContext *scriptContext, bool addWithLength = true)
+        {
+            T fromIndex = 0;
+
+            double value = TaggedInt::Is(arg) ? (double)TaggedInt::ToInt64(arg) : JavascriptConversion::ToInteger(arg, scriptContext);
+
+            if (value < 0)
+            {
+                fromIndex = addWithLength ? (T)max(0i64, (int64)(value + length)) : 0;
+            }
+            else
+            {
+                fromIndex = (T)min(value, (double)length);
+            }
+            return fromIndex;
+        }
+
     protected:
         template<class T> bool IsMissingHeadSegmentItemImpl(const uint32 index) const;
         SegmentBTreeRoot * GetSegmentMap() const;
@@ -519,7 +562,6 @@ namespace Js
         template<typename T>
         static void GrowArrayHeadHelperForUnshift(JavascriptArray* pArr, uint32 unshiftElements, ScriptContext * scriptContext);
 
-        static uint64 GetFromIndex(Var arg, uint64 length, ScriptContext *scriptContext);
         static int64 GetFromLastIndex(Var arg, int64 length, ScriptContext *scriptContext);
         static JavascriptString* JoinToString(Var value, ScriptContext* scriptContext);
         static JavascriptString* JoinHelper(Var thisArg, JavascriptString* separatorStr, ScriptContext* scriptContext);
@@ -532,6 +574,10 @@ namespace Js
 
         virtual int32 HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm, ScriptContext * scriptContext);
 
+        template<typename T>
+        static void CopyHeadIfInlinedHeadSegment(JavascriptArray *array, Recycler *recycler);
+        template<typename T>
+        static void ReallocateNonLeafLastSegmentIfLeaf(JavascriptArray * arr, Recycler * recycler);
 
         template<typename T>
         static void ArraySpliceHelper(JavascriptArray* pNewArr, JavascriptArray* pArr, uint32 start, uint32 deleteLen,
@@ -540,10 +586,13 @@ namespace Js
         static void ArraySegmentSpliceHelper(JavascriptArray *pnewArr, SparseArraySegment<T> *seg, SparseArraySegment<T> **prev, uint32 start, uint32 deleteLen,
                                                     Var* insertArgs, uint32 insertLen, Recycler *recycler);
         template<typename T>
-        static RecyclableObject* ObjectSpliceHelper(RecyclableObject* pObj, uint32 len, uint32 start, uint32 deleteLen,
+        static RecyclableObject* ObjectSpliceHelper(RecyclableObject* pObj, T len, T start, T deleteLen,
                                                     Var* insertArgs, uint32 insertLen, ScriptContext *scriptContext, RecyclableObject* pNewObj = nullptr);
         static JavascriptString* ToLocaleStringHelper(Var value, ScriptContext* scriptContext);
         static Js::JavascriptArray* CreateNewArrayHelper(uint32 len, bool isIntArray, bool isFloatArray, Js::JavascriptArray *baseArray, ScriptContext* scriptContext);
+
+        static Var TryArraySplice(JavascriptArray* pArr, uint32 start, uint32 len, uint32 deleteLen,
+            Var* insertArgs, uint32 insertLen, ScriptContext *scriptContext);
 
         void FillFromPrototypes(uint32 startIndex, uint32 endIndex);
         bool IsFillFromPrototypes();
@@ -559,21 +608,26 @@ namespace Js
         template<typename T> void AllocateHead();
         template<typename T> void EnsureHead();
 
-        uint32 sort(__inout_ecount(*length) Var *orig, uint32 *length, ScriptContext *scriptContext);
+        uint32 sort(__inout_ecount(*length) Field(Var) *orig, uint32 *length, ScriptContext *scriptContext);
 
         BOOL GetPropertyBuiltIns(PropertyId propertyId, Var* value);
         bool GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* descriptorFlags);
     private:
-        struct Element {
-            Var Value;
-            JavascriptString* StringValue;
+        struct Element
+        {
+            Field(Var) Value;
+            Field(JavascriptString*) StringValue;
         };
 
         static int __cdecl CompareElements(void* context, const void* elem1, const void* elem2);
         void SortElements(Element* elements, uint32 left, uint32 right);
 
-        template <typename T, typename Fn>
-        static void ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArr, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, T destIndex, Fn fn);
+        template <typename Fn>
+        static void ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArr, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, uint32 destIndex, Fn fn);
+
+        // This helper function is mainly used as a precheck before going to the FillFromPrototype code path.
+        // Proxy and CustomExternalObject in the prototype chain will be returned as if ES5Array is there.
+        static bool HasAnyES5ArrayInPrototypeChain(JavascriptArray *arr, bool forceCheckProtoChain = false);
 
         // NativeArrays may change it's content type, but not others
         template <typename T> static bool MayChangeType() { return false; }
@@ -595,9 +649,17 @@ namespace Js
 
                 if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
                 {
-                    // The function has changed, go to another ForEachItemInRange
-                    JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
-                    return;
+                    // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to 
+                    // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
+                    if (JavascriptArray::Is(arr))
+                    {
+                        JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
+                        return;
+                    }
+                    else
+                    {
+                        AssertOrFailFastMsg(ES5Array::Is(arr), "The array should have been converted to an ES5Array");
+                    }
                 }
             }
         }
@@ -614,9 +676,17 @@ namespace Js
 
                     if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
                     {
-                        // The function has changed, go to another ForEachItemInRange
-                        JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
-                        return;
+                        // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to 
+                        // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
+                        if (JavascriptArray::Is(arr))
+                        {
+                            JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
+                            return;
+                        }
+                        else
+                        {
+                            AssertOrFailFastMsg(ES5Array::Is(arr), "The array should have been converted to an ES5Array");
+                        }
                     }
                 }
             }
@@ -743,32 +813,25 @@ namespace Js
             BOOL DeleteItem(RecyclableObject* obj, PropertyOperationFlags flags = PropertyOperation_None) const;
         };
 
-        BOOL DirectGetItemAt(const BigIndex& index, Var* outVal) { return index.GetItem(this, outVal); }
-        void DirectSetItemAt(const BigIndex& index, Var newValue) { index.SetItem(this, newValue); }
+        void GenericDirectSetItemAt(const BigIndex& index, Var newValue) { index.SetItem(this, newValue); }
+        void GenericDirectSetItemAt(const uint32 index, Var newValue) { this->DirectSetItemAt(index, newValue); }
         void DirectSetItemIfNotExist(const BigIndex& index, Var newValue) { index.SetItemIfNotExist(this, newValue); }
         void DirectAppendItem(Var newValue) { BigIndex(this->GetLength()).SetItem(this, newValue); }
         void TruncateToProperties(const BigIndex& index, uint32 start);
 
-        template<typename T>
-        static void InternalCopyArrayElements(JavascriptArray* dstArray, const T& dstIndex, JavascriptArray* srcArray, uint32 start, uint32 end);
-        template<typename T>
-        static void InternalCopyNativeFloatArrayElements(JavascriptArray* dstArray, const T& dstIndex, JavascriptNativeFloatArray* srcArray, uint32 start, uint32 end);
-        template<typename T>
-        static void InternalCopyNativeIntArrayElements(JavascriptArray* dstArray, const T& dstIndex, JavascriptNativeIntArray* srcArray, uint32 start, uint32 end);
-        template<typename T>
-        static void InternalFillFromPrototype(JavascriptArray *dstArray, const T& dstIndex, JavascriptArray *srcArray, uint32 start, uint32 end, uint32 count);
+        static void InternalCopyArrayElements(JavascriptArray* dstArray, uint32 dstIndex, JavascriptArray* srcArray, uint32 start, uint32 end);
+        static void InternalCopyNativeFloatArrayElements(JavascriptArray* dstArray, const uint32 dstIndex, JavascriptNativeFloatArray* srcArray, uint32 start, uint32 end);
+        static void InternalCopyNativeIntArrayElements(JavascriptArray* dstArray, uint32 dstIndex, JavascriptNativeIntArray* srcArray, uint32 start, uint32 end);
+        static void InternalFillFromPrototype(JavascriptArray *dstArray, const uint32 dstIndex, JavascriptArray *srcArray, uint32 start, uint32 end, uint32 count);
 
         static void CopyArrayElements(JavascriptArray* dstArray, uint32 dstIndex, JavascriptArray* srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
-        static void CopyArrayElements(JavascriptArray* dstArray, const BigIndex& dstIndex, JavascriptArray* srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         template <typename T>
         static void CopyAnyArrayElementsToVar(JavascriptArray* dstArray, T dstIndex, JavascriptArray* srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         static bool CopyNativeIntArrayElements(JavascriptNativeIntArray* dstArray, uint32 dstIndex, JavascriptNativeIntArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         static bool CopyNativeIntArrayElementsToFloat(JavascriptNativeFloatArray* dstArray, uint32 dstIndex, JavascriptNativeIntArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         static void CopyNativeIntArrayElementsToVar(JavascriptArray* dstArray, uint32 dstIndex, JavascriptNativeIntArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
-        static void CopyNativeIntArrayElementsToVar(JavascriptArray* dstArray, const BigIndex& dstIndex, JavascriptNativeIntArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         static bool CopyNativeFloatArrayElements(JavascriptNativeFloatArray* dstArray, uint32 dstIndex, JavascriptNativeFloatArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         static void CopyNativeFloatArrayElementsToVar(JavascriptArray* dstArray, uint32 dstIndex, JavascriptNativeFloatArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
-        static void CopyNativeFloatArrayElementsToVar(JavascriptArray* dstArray, const BigIndex& dstIndex, JavascriptNativeFloatArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
 
         static bool BoxConcatItem(Var aItem, uint idxArg, ScriptContext *scriptContext);
 
@@ -776,9 +839,9 @@ namespace Js
         static void SetConcatItem(Var aItem, uint idxArg, JavascriptArray* pDestArray, RecyclableObject* pDestObj, T idxDest, ScriptContext *scriptContext);
 
         template<typename T>
-        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest, BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength);
+        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest, BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength, bool spreadableCheckedAndTrue = false);
         template<typename T>
-        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u, BOOL FirstPromotedItemIsSpreadable = false, BigIndex FirstPromotedItemLength = 0u);
+        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u, BOOL FirstPromotedItemIsSpreadable = false, BigIndex FirstPromotedItemLength = 0u, bool spreadableCheckedAndTrue = false);
         static JavascriptArray* ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
         static bool PromoteToBigIndex(BigIndex lhs, BigIndex rhs);
         static bool PromoteToBigIndex(BigIndex lhs, uint32 rhs);
@@ -793,9 +856,13 @@ namespace Js
         static void ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, uint32 index);
         static void ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, BigIndex index);
 
+        template<typename T>
+        static void TryGetArrayAndLength(Var arg, ScriptContext *scriptContext, PCWSTR methodName, __out JavascriptArray** array, __out RecyclableObject** obj, __out T * length);
+        static uint64 OP_GetLength(Var obj, ScriptContext *scriptContext);
+
     public:
         template<typename T, typename P = uint32>
-        static void Unshift(RecyclableObject* obj, const T& toIndex, uint32 start, P end, ScriptContext* scriptContext);
+        static void Unshift(RecyclableObject* obj, const T& toIndex, P start, P end, ScriptContext* scriptContext);
 
         template <typename T>
         class ItemTrace
@@ -837,6 +904,12 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VtableHelper();
+        }
     };
 
     // Ideally we would propagate the throw flag setting of true from the array operations down to the [[Delete]]/[[Put]]/... methods. But that is a big change
@@ -874,7 +947,7 @@ namespace Js
         // For BoxStackInstance
         JavascriptNativeArray(JavascriptNativeArray * instance);
 
-        RecyclerWeakReference<FunctionBody> *weakRefToFuncBody;
+        Field(RecyclerWeakReference<FunctionBody> *) weakRefToFuncBody;
 
     public:
         static bool Is(Var aValue);
@@ -948,17 +1021,13 @@ namespace Js
         static uint allocationBuckets[AllocationBucketsCount][AllocationBucketsInfoSize];
         static const int32 MissingItem;
 
-        virtual BOOL HasItem(uint32 index) override;
-        virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
-        virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override;
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual BOOL DirectGetVarItemAt(uint index, Var* outval, ScriptContext *scriptContext);
         virtual BOOL DirectGetItemAtFull(uint index, Var* outVal);
         virtual Var DirectGetItem(uint32 index);
-        virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override
-        {
-            int32 value = 0;
-            return this->DirectGetItemAt(index, &value) ? WritableData : None;
-        }
+        virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override;
 
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
@@ -1013,6 +1082,12 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VtableHelper();
+        }
     };
 
 #if ENABLE_COPYONACCESS_ARRAY
@@ -1063,6 +1138,13 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VtableHelper();
+        }
+
     };
 #endif
 
@@ -1103,9 +1185,9 @@ namespace Js
         static uint allocationBuckets[AllocationBucketsCount][AllocationBucketsInfoSize];
         static const double MissingItem;
 
-        virtual BOOL HasItem(uint32 index) override;
-        virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
-        virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override;
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual BOOL DirectGetVarItemAt(uint index, Var* outval, ScriptContext *scriptContext);
         virtual BOOL DirectGetItemAtFull(uint index, Var* outVal);
         virtual Var DirectGetItem(uint32 index);
@@ -1168,6 +1250,13 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VtableHelper();
+        }
+
     };
 
     template <>

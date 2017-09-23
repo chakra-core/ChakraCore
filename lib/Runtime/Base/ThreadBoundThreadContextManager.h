@@ -7,7 +7,8 @@ class ThreadContextManagerBase
 {
 protected:
 
-    static void ShutdownThreadContext(ThreadContext* threadContext);
+    static void ShutdownThreadContext(
+        ThreadContext* threadContext, bool deleteThreadContext = true);
 };
 
 class ThreadBoundThreadContextManager : public ThreadContextManagerBase

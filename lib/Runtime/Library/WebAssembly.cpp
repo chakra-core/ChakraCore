@@ -6,9 +6,7 @@
 
 #ifdef ENABLE_WASM
 #include "../WasmReader/WasmReaderPch.h"
-// Included for AsmJsDefaultEntryThunk
-#include "Language/InterpreterStackFrame.h"
-#include "Language/AsmJsUtils.h"
+#include "Language/WebAssemblySource.h"
 
 namespace Js
 {
@@ -21,8 +19,6 @@ Var WebAssembly::EntryCompile(RecyclableObject* function, CallInfo callInfo, ...
     ScriptContext* scriptContext = function->GetScriptContext();
 
     Assert(!(callInfo.Flags & CallFlags_New));
-
-    WebAssemblyModule * module = nullptr;
     try
     {
         if (args.Info.Count < 2)
@@ -30,20 +26,46 @@ Var WebAssembly::EntryCompile(RecyclableObject* function, CallInfo callInfo, ...
             JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource);
         }
 
-        BYTE* buffer;
-        uint byteLength;
-        WebAssembly::ReadBufferSource(args[1], scriptContext, &buffer, &byteLength);
-
-        module = WebAssemblyModule::CreateModule(scriptContext, buffer, byteLength);
+        WebAssemblySource src(args[1], true, scriptContext);
+        WebAssemblyModule* wasmModule = WebAssemblyModule::CreateModule(scriptContext, &src);
+        return JavascriptPromise::CreateResolvedPromise(wasmModule, scriptContext);
     }
-    catch (JavascriptError & e)
+    catch (JavascriptException & e)
     {
-        return JavascriptPromise::CreateRejectedPromise(&e, scriptContext);
+        return JavascriptPromise::CreateRejectedPromise(e.GetAndClear()->GetThrownObject(scriptContext), scriptContext);
     }
+}
 
-    Assert(module);
+Var WebAssembly::EntryCompileStreaming(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
-    return JavascriptPromise::CreateResolvedPromise(module, scriptContext);
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    ScriptContext* scriptContext = function->GetScriptContext();
+    JavascriptLibrary* library = scriptContext->GetLibrary();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+    try
+    {
+        if (args.Info.Count < 2)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
+        }
+
+        // Check to see if it was a response object
+        Var responsePromise = TryResolveResponse(function, args[0], args[1]);
+        if (responsePromise)
+        {
+            // Once we've resolved everything, create the module
+            return JavascriptPromise::CreateThenPromise((JavascriptPromise*)responsePromise, library->GetWebAssemblyCompileFunction(), library->GetThrowerFunction(), scriptContext);
+        }
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
+    }
+    catch (JavascriptException & e)
+    {
+        return JavascriptPromise::CreateRejectedPromise(e.GetAndClear()->GetThrownObject(scriptContext), scriptContext);
+    }
 }
 
 Var WebAssembly::EntryInstantiate(RecyclableObject* function, CallInfo callInfo, ...)
@@ -76,29 +98,80 @@ Var WebAssembly::EntryInstantiate(RecyclableObject* function, CallInfo callInfo,
         }
         else
         {
-            BYTE* buffer;
-            uint byteLength;
-            WebAssembly::ReadBufferSource(args[1], scriptContext, &buffer, &byteLength);
+            WebAssemblySource src(args[1], true, scriptContext);
+            WebAssemblyModule* wasmModule = WebAssemblyModule::CreateModule(scriptContext, &src);
 
-            WebAssemblyModule * module = WebAssemblyModule::CreateModule(scriptContext, buffer, byteLength);
-
-            WebAssemblyInstance * instance = WebAssemblyInstance::CreateInstance(module, importObject);
+            WebAssemblyInstance* instance = WebAssemblyInstance::CreateInstance(wasmModule, importObject);
 
             resultObject = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
 
-            JavascriptOperators::OP_SetProperty(resultObject, PropertyIds::module, module, scriptContext);
-
+            JavascriptOperators::OP_SetProperty(resultObject, PropertyIds::module, wasmModule, scriptContext);
             JavascriptOperators::OP_SetProperty(resultObject, PropertyIds::instance, instance, scriptContext);
         }
+        return JavascriptPromise::CreateResolvedPromise(resultObject, scriptContext);
     }
-    catch (JavascriptError & e)
+    catch (JavascriptException & e)
     {
-        return JavascriptPromise::CreateRejectedPromise(&e, scriptContext);
+        return JavascriptPromise::CreateRejectedPromise(e.GetAndClear()->GetThrownObject(scriptContext), scriptContext);
     }
+}
 
-    Assert(resultObject != nullptr);
+Var WebAssembly::EntryInstantiateStreaming(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
-    return JavascriptPromise::CreateResolvedPromise(resultObject, scriptContext);
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    ScriptContext* scriptContext = function->GetScriptContext();
+    JavascriptLibrary* library = scriptContext->GetLibrary();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+
+    try
+    {
+        if (args.Info.Count < 2)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
+        }
+
+        // Check to see if it was a response object
+        Var responsePromise = TryResolveResponse(function, args[0], args[1]);
+        if (responsePromise)
+        {
+            Var importObject = scriptContext->GetLibrary()->GetUndefined();
+            if (args.Info.Count >= 3)
+            {
+                importObject = args[2];
+            }
+            // Since instantiate takes extra arguments, we have to create a bound function to carry the importsObject until the response is resolved
+            // Because function::bind() binds arguments from the left first, we have to calback a different function to reverse the order of the arguments
+            Var boundArgs[] = { library->GetWebAssemblyInstantiateBoundFunction(), args[0], importObject };
+            CallInfo boundCallInfo(CallFlags_Value, 3);
+            ArgumentReader myargs(&boundCallInfo, boundArgs);
+            RecyclableObject* boundFunction = BoundFunction::New(scriptContext, myargs);
+            return JavascriptPromise::CreateThenPromise((JavascriptPromise*)responsePromise, boundFunction, library->GetThrowerFunction(), scriptContext);
+        }
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
+    }
+    catch (JavascriptException & e)
+    {
+        return JavascriptPromise::CreateRejectedPromise(e.GetAndClear()->GetThrownObject(scriptContext), scriptContext);
+    }
+}
+
+Var WebAssembly::EntryInstantiateBound(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    Assert(!(callInfo.Flags & CallFlags_New));
+
+    Var thisVar = args[0];
+    Var importObj = callInfo.Count > 1 ? args[1] : function->GetScriptContext()->GetLibrary()->GetUndefined();
+    Var bufferSrc = callInfo.Count > 2 ? args[2] : function->GetScriptContext()->GetLibrary()->GetUndefined();
+
+    return EntryInstantiate(function, CallInfo(CallFlags_Value, 3), thisVar, bufferSrc, importObj);
 }
 
 Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ...)
@@ -116,11 +189,8 @@ Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ..
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource);
     }
 
-    BYTE* buffer;
-    uint byteLength;
-    WebAssembly::ReadBufferSource(args[1], scriptContext, &buffer, &byteLength);
-
-    if (WebAssemblyModule::ValidateModule(scriptContext, buffer, byteLength))
+    WebAssemblySource src(args[1], false, scriptContext);
+    if (WebAssemblyModule::ValidateModule(scriptContext, &src))
     {
         return scriptContext->GetLibrary()->GetTrue();
     }
@@ -130,7 +200,7 @@ Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ..
     }
 }
 
-Var WebAssembly::EntryNativeTypeCallTest(RecyclableObject* function, CallInfo callInfo, ...)
+Var WebAssembly::EntryQueryResponse(RecyclableObject* function, CallInfo callInfo, ...)
 {
     PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -139,60 +209,75 @@ Var WebAssembly::EntryNativeTypeCallTest(RecyclableObject* function, CallInfo ca
     ScriptContext* scriptContext = function->GetScriptContext();
 
     Assert(!(callInfo.Flags & CallFlags_New));
-    if (args.Info.Count < 2 || !AsmJsScriptFunction::Is(args[1]))
-    {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
-    }
-    AsmJsScriptFunction* asmFunc = (AsmJsScriptFunction*)args[1];
-    AsmJsFunctionInfo* asmFuncInfo = asmFunc->GetFunctionBody()->GetAsmJsFunctionInfo();
 
-    const uint32 argSize = asmFuncInfo->GetArgByteSize() + sizeof(Js::Var);
-    char* argsBytes = HeapNewArrayZ(char, argSize);
-    AutoArrayPtr<char> heapAutoClean(argsBytes, argSize);
-    Unused(heapAutoClean);
+    // Make sure this is a Response object
+    if (args.Info.Count < 2 || !IsResponseObject(args[1], scriptContext))
+    {
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
+    }
+    Var responseObject = args[1];
 
-    Var* argsVar = (Var*)argsBytes;
-    CallInfo newInfo = callInfo;
-    newInfo.Count--; // Remove the asm function
-    JavascriptMethod asmJSEntryPoint = (JavascriptMethod)UnboxAsmJsArguments(asmFunc, args.Values + 2 /*skip [this, asmFunc]*/, argsBytes, newInfo, true);
+    // Get the arrayBuffer method from the object
+    PropertyString* propStr = scriptContext->GetPropertyString(PropertyIds::arrayBuffer);
+    Var arrayBufferProp = JavascriptOperators::OP_GetElementI(responseObject, propStr, scriptContext);
 
-    Var returnValue = scriptContext->GetLibrary()->GetUndefined();
-    switch (asmFuncInfo->GetReturnType().which())
+    // Call res.arrayBuffer()
+    if (!JavascriptConversion::IsCallable(arrayBufferProp))
     {
-    case AsmJsRetType::Void:
-    case AsmJsRetType::Signed:
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
+    }
+
+    RecyclableObject* arrayBufferFunc = RecyclableObject::FromVar(arrayBufferProp);
+    Var arrayBufferRes = CALL_FUNCTION(scriptContext->GetThreadContext(), arrayBufferFunc, Js::CallInfo(CallFlags_Value, 1), responseObject);
+
+    // Make sure res.arrayBuffer() is a Promise
+    if (!JavascriptPromise::Is(arrayBufferRes))
     {
-        int intRetVal = JavascriptFunction::CallAsmJsFunction<int>(asmFunc, asmJSEntryPoint, asmFuncInfo->GetArgCount(), argsVar);
-        if (asmFuncInfo->GetReturnType().which() == AsmJsRetType::Signed)
-        {
-            returnValue = JavascriptNumber::ToVar(intRetVal, scriptContext);
-        }
-        break;
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
     }
-    case AsmJsRetType::Int64:
+    return arrayBufferRes;
+}
+
+bool WebAssembly::IsResponseObject(Var responseObject, ScriptContext* scriptContext)
+{
+    if (!RecyclableObject::Is(responseObject))
     {
-        int64 val = JavascriptFunction::CallAsmJsFunction<int64>(asmFunc, asmJSEntryPoint, asmFuncInfo->GetArgCount(), argsVar);
-        char16 buf[24];
-        _i64tow_s(val, buf, 24, 10);
-        returnValue = JavascriptString::NewCopySz(buf, scriptContext);
-        break;
+        return false;
     }
-    case AsmJsRetType::Double:
+    TypeId typeId = RecyclableObject::FromVar(responseObject)->GetTypeId();
+    if (!CONFIG_FLAG(WasmIgnoreResponse))
     {
-        double val = JavascriptFunction::CallAsmJsFunction<double>(asmFunc, asmJSEntryPoint, asmFuncInfo->GetArgCount(), argsVar);
-        returnValue = JavascriptNumber::NewWithCheck(val, scriptContext);
-        break;
+        return scriptContext->IsWellKnownHostType<WellKnownHostType_Response>(typeId) && typeId != TypeIds_Undefined;
     }
-    case AsmJsRetType::Float:
+    // Consider all object as Response objects under -wasmIgnoreResponse
+    return typeId == TypeIds_Object;
+}
+
+Var WebAssembly::TryResolveResponse(RecyclableObject* function, Var thisArg, Var responseArg)
+{
+    ScriptContext* scriptContext = function->GetScriptContext();
+    JavascriptLibrary* library = scriptContext->GetLibrary();
+    Var responsePromise = nullptr;
+    bool isResponse = IsResponseObject(responseArg, scriptContext);
+    if (isResponse)
     {
-        float val = JavascriptFunction::CallAsmJsFunction<float>(asmFunc, asmJSEntryPoint, asmFuncInfo->GetArgCount(), argsVar);
-        returnValue = JavascriptNumber::NewWithCheck(val, scriptContext);
-        break;
+        CallInfo newCallInfo;
+        newCallInfo.Count = 2;
+        // We already have a response object, query it now
+        responsePromise = EntryQueryResponse(function, Js::CallInfo(CallFlags_Value, 2), thisArg, responseArg);
     }
-    default:
-        Assume(UNREACHED);
+    else if (JavascriptPromise::Is(responseArg))
+    {
+        JavascriptPromise* promise = (JavascriptPromise*)responseArg;
+        // Wait until this promise resolves and then try to query the response object (if it's a response object)
+        responsePromise = JavascriptPromise::CreateThenPromise(promise, library->GetWebAssemblyQueryResponseFunction(), library->GetThrowerFunction(), scriptContext);
     }
-    return returnValue;
+    if (responsePromise && !JavascriptPromise::Is(responsePromise))
+    {
+        AssertMsg(UNREACHED, "How did we end up with something other than a promise here ?");
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
+    }
+    return responsePromise;
 }
 
 uint32
@@ -204,33 +289,6 @@ WebAssembly::ToNonWrappingUint32(Var val, ScriptContext * ctx)
         JavascriptError::ThrowRangeError(ctx, JSERR_ArgumentOutOfRange);
     }
     return (uint32)i;
-}
-
-void
-WebAssembly::ReadBufferSource(Var val, ScriptContext * ctx, _Out_ BYTE** buffer, _Out_ uint *byteLength)
-{
-    const BOOL isTypedArray = Js::TypedArrayBase::Is(val);
-    const BOOL isArrayBuffer = Js::ArrayBuffer::Is(val);
-
-    if (!isTypedArray && !isArrayBuffer)
-    {
-        *buffer = nullptr;
-        *byteLength = 0;
-        JavascriptError::ThrowTypeError(ctx, WASMERR_NeedBufferSource);
-    }
-
-    if (isTypedArray)
-    {
-        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(val);
-        *buffer = array->GetByteBuffer();
-        *byteLength = array->GetByteLength();
-    }
-    else
-    {
-        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(val);
-        *buffer = arrayBuffer->GetBuffer();
-        *byteLength = arrayBuffer->GetByteLength();
-    }
 }
 
 void

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -22,14 +22,12 @@
     <default>
       <files>atan.js</files>
       <baseline>atan.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>atan2.js</files>
       <baseline>atan2.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -60,21 +58,18 @@
     <default>
       <files>pow.js</files>
       <baseline>pow.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>min.js</files>
       <baseline>min.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>max.js</files>
       <baseline>max.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -86,14 +81,12 @@
   <test>
     <default>
       <files>round.js</files>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>ceilfloor.js</files>
       <baseline>ceilfloor.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -101,7 +94,6 @@
       <files>ceilfloor.js</files>
       <baseline>ceilfloor.baseline</baseline>
       <compile-flags>-sse:3</compile-flags>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>

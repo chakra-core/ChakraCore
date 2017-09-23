@@ -27,18 +27,18 @@ public:
     JsrtDebuggerObjectType GetType() { return type; }
     uint GetHandle() const { return handle; }
     JsrtDebuggerObjectsManager* GetDebuggerObjectsManager();
-    virtual Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext) = 0;
+    virtual Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext, bool forceSetValueProp) = 0;
     virtual Js::DynamicObject* GetChildren(Js::ScriptContext* scriptContext, uint fromCount, uint totalCount);
 
     template<class JsrtDebuggerObjectType, class PostFunction>
-    static void CreateDebuggerObject(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::ResolvedObject resolvedObject, Js::ScriptContext* scriptContext, PostFunction postFunction)
+    static void CreateDebuggerObject(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::ResolvedObject resolvedObject, Js::ScriptContext* scriptContext, bool forceSetValueProp, PostFunction postFunction)
     {
         AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef(resolvedObject.GetObjectDisplay());
         Js::IDiagObjectModelDisplay* objectDisplay = objectDisplayWeakRef->GetStrongReference();
         if (objectDisplay != nullptr)
         {
             JsrtDebuggerObjectBase* debuggerObject = JsrtDebuggerObjectType::Make(debuggerObjectsManager, objectDisplayWeakRef);
-            Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext);
+            Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext, forceSetValueProp);
             Assert(object != nullptr);
             Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, object);
             postFunction(marshaledObj);
@@ -58,13 +58,16 @@ private:
 class JsrtDebuggerObjectFunction : public JsrtDebuggerObjectBase
 {
 public:
-    static JsrtDebuggerObjectBase* Make(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::FunctionBody* functionBody);
-    Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext);
+    static JsrtDebuggerObjectBase* Make(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::JavascriptFunction* javascriptFunction);
+    Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext, bool forceSetValueProp);
+    Js::DynamicObject* GetChildren(Js::ScriptContext* scriptContext, uint fromCount, uint totalCount);
 
 private:
-    JsrtDebuggerObjectFunction(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::FunctionBody* functionBody);
+    JsrtDebuggerObjectFunction(JsrtDebuggerObjectsManager* debuggerObjectsManager, Js::JavascriptFunction* javascriptFunction);
     ~JsrtDebuggerObjectFunction();
-    Js::FunctionBody* functionBody;
+    Js::JavascriptFunction* javascriptFunction;
+    WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay;
+    WeakArenaReference<Js::IDiagObjectModelWalkerBase>* walkerRef;
 };
 
 class JsrtDebuggerObjectProperty : public JsrtDebuggerObjectBase
@@ -72,7 +75,7 @@ class JsrtDebuggerObjectProperty : public JsrtDebuggerObjectBase
 public:
     static JsrtDebuggerObjectBase* Make(JsrtDebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay);
 
-    Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext);
+    Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext, bool forceSetValueProp);
     Js::DynamicObject* GetChildren(Js::ScriptContext* scriptContext, uint fromCount, uint totalCount);
 
 private:
@@ -87,7 +90,7 @@ class JsrtDebuggerObjectGlobalsNode : public JsrtDebuggerObjectBase
 public:
     static JsrtDebuggerObjectBase* Make(JsrtDebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay);
 
-    Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext);
+    Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext, bool forceSetValueProp);
     Js::DynamicObject* GetChildren(Js::ScriptContext* scriptContext, uint fromCount, uint totalCount);
 
 private:
@@ -102,7 +105,7 @@ class JsrtDebuggerObjectScope : public JsrtDebuggerObjectBase
 public:
     static JsrtDebuggerObjectBase* Make(JsrtDebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay, uint index);
 
-    Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext);
+    Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext, bool forceSetValueProp);
     Js::DynamicObject* GetChildren(Js::ScriptContext* scriptContext, uint fromCount, uint totalCount);
 
 private:
@@ -120,7 +123,7 @@ public:
     ~JsrtDebuggerStackFrame();
     Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext);
     Js::DynamicObject* GetLocalsObject(Js::ScriptContext* scriptContext);
-    bool Evaluate(Js::ScriptContext* scriptContext, const char16 *source, int sourceLength, bool isLibraryCode, Js::DynamicObject** evalResult);
+    bool Evaluate(Js::ScriptContext* scriptContext, const char16 *source, int sourceLength, bool isLibraryCode, bool forceSetValueProp, Js::DynamicObject** evalResult);
     uint GetIndex() const { return this->frameIndex; }
 
 private:

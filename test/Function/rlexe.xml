@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -28,7 +28,6 @@
     <default>
       <files>arguments2.js</files>
       <baseline>arguments2.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -64,8 +63,9 @@
     <default>
       <files>argumentsLimits.js</files>
       <baseline>argumentsLimits.baseline</baseline>
-      <!-- this test takes a long time with dynapogo on chk build -->
-      <tags>exclude_chk</tags>
+      <!-- this test takes a long time with dynapogo on chk build-->
+      <!-- it's pretty slow on test builds too though-->
+      <tags>exclude_chk,Slow</tags>
     </default>
   </test>
   <test>
@@ -120,7 +120,6 @@
       <files>newsideeffect.js</files>
       <baseline>newsideeffect.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -140,7 +139,6 @@
       <files>defernested.js</files>
       <compile-flags>-Force:Deferparse -DeferNested</compile-flags>
       <baseline>defernested.baseline</baseline>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -148,7 +146,6 @@
       <files>jitLoopBody.js</files>
       <baseline>jitLoopBody.baseline</baseline>
       <compile-flags>-force:jitLoopBody</compile-flags>
-      <tags>exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -187,7 +184,13 @@
       <files>deferredBadContinue.js</files>
       <baseline>deferredBadContinue.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_ship,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>deferredStubOob.js</files>
+      <compile-flags>-force:deferparse -pageheap:2</compile-flags>
     </default>
   </test>
   <test>
@@ -228,21 +231,18 @@
     <default>
       <files>toString.js</files>
       <baseline>toString.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>funcExpr.js</files>
       <baseline>funcExpr5.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>moreFuncExpr.js</files>
       <baseline>moreFuncExpr3.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -250,21 +250,18 @@
       <files>moreFuncExpr.js</files>
       <baseline>moreFuncExpr3.baseline</baseline>
       <compile-flags>-forceundodefer</compile-flags>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>evenMoreFuncExpr3.js</files>
       <baseline>evenMoreFuncExpr3.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
     <default>
       <files>someMoreFuncExpr.js</files>
       <baseline>someMoreFuncExpr3.baseline</baseline>
-      <tags>fail_mutators</tags>
     </default>
   </test>
   <test>
@@ -316,7 +313,6 @@
   <test>
     <default>
       <files>FuncBody.bug236810.js</files>
-      <baseline>FuncBody.bug236810.baseline</baseline>
       <compile-flags>-off:deferparse</compile-flags>
     </default>
   </test>
@@ -331,7 +327,6 @@
   <test>
     <default>
       <files>bug_258259.js</files>
-      <baseline>bug_258259.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
     </default>
   </test>
@@ -381,7 +376,7 @@
     <default>
       <files>StackArgsWithFormals.js</files>
       <compile-flags>-mic:1 -off:simpleJit -trace:stackargformalsopt</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship,exclude_fre,exclude_nonative,require_backend,exclude_forceserialized</tags>
+      <tags>exclude_dynapogo,exclude_fre,exclude_nonative,require_backend,exclude_forceserialized</tags>
       <baseline>StackArgsWithFormals.baseline</baseline>
     </default>
   </test>
@@ -389,7 +384,7 @@
     <default>
       <files>StackArgs_MaxInterpret.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -404,7 +399,6 @@
     <default>
       <files>631838.js</files>
       <compile-flags>-nonative</compile-flags>
-      <baseline>631838.baseline</baseline>
       <!-- On ARM it would take TOO long (700s on Tegra 2 vs 20s on Intel Core i7) to run, as we need to use even bigger object -->
       <tags>exclude_dynapogo,exclude_arm,Slow</tags>
     </default>
@@ -441,6 +435,12 @@
     <default>
       <files>redefer-recursive-inlinees.js</files>
       <baseline>redefer-recursive-inlinees.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>redefer-f-i-b-eval.js</files>
+      <compile-flags>-force:deferparse -force:redeferral</compile-flags>
     </default>
   </test>
 </regress-exe>

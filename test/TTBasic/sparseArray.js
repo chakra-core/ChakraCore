@@ -77,4 +77,6 @@ function testFunction()
     telemetryLog(`${x[0xFFFFFFFF]} ${x.length}`, true);
     telemetryLog(`${x[0xFFFFFFFE]} ${x.length === 0xFFFFFFFF}`, true);
     telemetryLog(`${x[0xFFFFFFFD]} ${x.length === 0xFFFFFFFF}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

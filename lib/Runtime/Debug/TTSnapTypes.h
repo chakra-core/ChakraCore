@@ -30,10 +30,11 @@ namespace TTD
         const Js::PropertyRecord* InflatePropertyRecord_CreateNew(const SnapPropertyRecord* pRecord, ThreadContext* threadContext);
 
         //serialize the record data
+        void EmitPropertyRecordAsSnapPropertyRecord(const Js::PropertyRecord* pRecord, FileWriter* writer, NSTokens::Separator separator);
         void EmitSnapPropertyRecord(const SnapPropertyRecord* sRecord, FileWriter* writer, NSTokens::Separator separator);
 
         //de-serialize the data
-        void ParseSnapPropertyRecord(SnapPropertyRecord* sRecord, bool readSeperator, FileReader* reader, SlabAllocator& alloc);
+        void ParseSnapPropertyRecord(SnapPropertyRecord* sRecord, bool readSeparator, FileReader* reader, SlabAllocator& alloc);
 
         //////////////////
 
@@ -97,7 +98,7 @@ namespace TTD
         void EmitSnapHandler(const SnapHandler* snapHandler, FileWriter* writer, NSTokens::Separator separator);
 
         //de-serialize the data
-        void ParseSnapHandler(SnapHandler* snapHandler, bool readSeperator, FileReader* reader, SlabAllocator& alloc);
+        void ParseSnapHandler(SnapHandler* snapHandler, bool readSeparator, FileReader* reader, SlabAllocator& alloc);
 
 #if ENABLE_SNAPSHOT_COMPARE 
         int64 ComputeLocationTagForAssertCompare(const SnapHandlerPropertyEntry& handlerEntry);
@@ -132,7 +133,7 @@ namespace TTD
         void EmitSnapType(const SnapType* sType, FileWriter* writer, NSTokens::Separator separator);
 
         //de-serialize the data
-        void ParseSnapType(SnapType* sType, bool readSeperator, FileReader* reader, SlabAllocator& alloc, const TTDIdentifierDictionary<TTD_PTR_ID, SnapHandler*>& typeHandlerMap);
+        void ParseSnapType(SnapType* sType, bool readSeparator, FileReader* reader, SlabAllocator& alloc, const TTDIdentifierDictionary<TTD_PTR_ID, SnapHandler*>& typeHandlerMap);
 
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const SnapType* t1, const SnapType* t2, TTDCompareMap& compareMap);

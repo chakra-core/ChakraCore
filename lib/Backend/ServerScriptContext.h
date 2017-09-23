@@ -7,6 +7,7 @@
 
 class ServerScriptContext : public ScriptContextInfo
 {
+#if ENABLE_OOP_NATIVE_CODEGEN
 private:
     struct ThreadContextHolder
     {
@@ -46,15 +47,19 @@ public:
     virtual intptr_t GetNumberAllocatorAddr() const override;
     virtual intptr_t GetRecyclerAddr() const override;
     virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const override;
+#ifdef ENABLE_SIMDJS
     virtual bool IsSIMDEnabled() const override;
+#endif
     virtual bool IsPRNGSeeded() const override;
     virtual bool IsClosed() const override;
     virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     virtual intptr_t GetDebuggingFlagsAddr() const override;
     virtual intptr_t GetDebugStepTypeAddr() const override;
     virtual intptr_t GetDebugFrameAddressAddr() const override;
     virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
+#endif
 
     virtual intptr_t GetAddr() const override;
 
@@ -70,12 +75,13 @@ public:
     typedef JsUtil::BaseDictionary<uint, Js::ServerSourceTextModuleRecord*, Memory::HeapAllocator> ServerModuleRecords;
     ServerModuleRecords m_moduleRecords;
 
-    virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
+    virtual Field(Js::Var)* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
 
     void SetIsPRNGSeeded(bool value);
     void AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr);
     void UpdateGlobalObjectThisAddr(intptr_t globalThis);
-    EmitBufferManager<> * GetEmitBufferManager(bool asmJsManager);
+    OOPEmitBufferManager * GetEmitBufferManager(bool asmJsManager);
+    void DecommitEmitBufferManager(bool asmJsManager);
     Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
     ServerThreadContext* GetThreadContext() { return threadContextHolder.threadContextInfo; }
 
@@ -91,8 +97,8 @@ private:
 #endif
     ArenaAllocator m_sourceCodeArena;
 
-    EmitBufferManager<> * m_interpreterThunkBufferManager;
-    EmitBufferManager<> * m_asmJsInterpreterThunkBufferManager;
+    OOPEmitBufferManager m_interpreterThunkBufferManager;
+    OOPEmitBufferManager m_asmJsInterpreterThunkBufferManager;
 
     ScriptContextDataIDL m_contextData;
     intptr_t m_globalThisAddr;
@@ -101,4 +107,5 @@ private:
 
     bool m_isPRNGSeeded;
     bool m_isClosed;
+#endif
 };

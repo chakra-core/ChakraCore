@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     Var SIMDUint16x8Lib::EntryUint16x8(RecyclableObject* function, CallInfo callInfo, ...)
@@ -238,7 +238,26 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMDUtils::SIMD128TypedArrayLoad<JavascriptSIMDUint16x8>(args[1], args[2], 8 * INT16_SIZE, scriptContext);
+        Var tarray;
+        Var index;
+        if (args.Info.Count > 1)
+        {
+            tarray = args[1];
+        }
+        else
+        {
+            tarray = scriptContext->GetLibrary()->GetUndefined();
+        }
+        if (args.Info.Count > 2)
+        {
+            index = args[2];
+        }
+        else
+        {
+            index = scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        return SIMDUtils::SIMD128TypedArrayLoad<JavascriptSIMDUint16x8>(tarray, index, 8 * INT16_SIZE, scriptContext);
     }
 
     Var SIMDUint16x8Lib::EntryStore(RecyclableObject* function, CallInfo callInfo, ...)
@@ -932,3 +951,4 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, _u("select"));
     }
 }
+#endif

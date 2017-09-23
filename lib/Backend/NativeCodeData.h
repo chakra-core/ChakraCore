@@ -18,8 +18,6 @@
 
 #define FixupNativeDataPointer(field, chunkList) NativeCodeData::AddFixupEntry(this->field, &this->field, this, chunkList)
 
-class CodeGenAllocators;
-
 class NativeCodeData
 {
 
@@ -44,6 +42,7 @@ public:
 
     struct DataChunkNoFixup
     {
+        unsigned int len; // only used for memory management purposes.
         DataChunkNoFixup * next;
         char data[0];
     };

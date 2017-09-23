@@ -62,7 +62,7 @@ LIBRARY_FUNCTION(Math,          Tan,                1,    BIF_TypeSpecUnaryToFlo
 LIBRARY_FUNCTION(JavascriptArray,         Concat,             15,   BIF_UseSrc0 | BIF_VariableArgsNumber              , JavascriptArray::EntryInfo::Concat)
 LIBRARY_FUNCTION(JavascriptArray,         IndexOf,            2,    BIF_UseSrc0                                       , JavascriptArray::EntryInfo::IndexOf)
 LIBRARY_FUNCTION(JavascriptArray,         Includes,           2,    BIF_UseSrc0                                       , JavascriptArray::EntryInfo::Includes)
-LIBRARY_FUNCTION(JavascriptArray,         IsArray,            1,    BIF_VariableArgsNumber                            , JavascriptArray::EntryInfo::IsArray)
+LIBRARY_FUNCTION(JavascriptArray,         IsArray,            1,    BIF_None                                          , JavascriptArray::EntryInfo::IsArray)
 LIBRARY_FUNCTION(JavascriptArray,         Join,               2,    BIF_UseSrc0 | BIF_VariableArgsNumber              , JavascriptArray::EntryInfo::Join)
 LIBRARY_FUNCTION(JavascriptArray,         LastIndexOf,        3,    BIF_UseSrc0 | BIF_VariableArgsNumber              , JavascriptArray::EntryInfo::LastIndexOf)
 LIBRARY_FUNCTION(JavascriptArray,         Reverse,            1,    BIF_UseSrc0 | BIF_IgnoreDst                       , JavascriptArray::EntryInfo::Reverse)
@@ -78,6 +78,7 @@ LIBRARY_FUNCTION(JavascriptRegExp,        SymbolSearch,       2,    BIF_UseSrc0 
 LIBRARY_FUNCTION(Math,          Fround,             1,    BIF_TypeSpecUnaryToFloat                              , Math::EntryInfo::Fround)
 LIBRARY_FUNCTION(JavascriptString,        PadStart,           2,    BIF_UseSrc0 | BIF_VariableArgsNumber                  , JavascriptString::EntryInfo::PadStart)
 LIBRARY_FUNCTION(JavascriptString,        PadEnd,             2,    BIF_UseSrc0 | BIF_VariableArgsNumber                  , JavascriptString::EntryInfo::PadEnd)
+LIBRARY_FUNCTION(JavascriptObject,        HasOwnProperty,     2,    BIF_UseSrc0                                           , JavascriptObject::EntryInfo::HasOwnProperty)
 
 // Note: 1st column is currently used only for debug tracing.
 

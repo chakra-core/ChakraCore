@@ -76,12 +76,12 @@ namespace Js
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
     public:
-        //Field for tracking object allocation 
+        //Field for tracking object allocation
         TTD::DiagnosticOrigin TTDDiagOriginInfo;
 #endif
 
     private:
-        Var* auxSlots;
+        Field(Field(Var)*) auxSlots;
         // The objectArrayOrFlags field can store one of two things:
         //   a) a pointer to the object array holding numeric properties of this object, or
         //   b) a bitfield of flags.
@@ -95,11 +95,11 @@ namespace Js
 
         union
         {
-            ArrayObject * objectArray;          // Only if !IsAnyArray
+            Field(ArrayObject *) objectArray;          // Only if !IsAnyArray
             struct                                  // Only if IsAnyArray
             {
-                DynamicObjectFlags arrayFlags;
-                ProfileId arrayCallSiteIndex;
+                Field(DynamicObjectFlags) arrayFlags;
+                Field(ProfileId) arrayCallSiteIndex;
             };
         };
 
@@ -222,12 +222,12 @@ namespace Js
         virtual PropertyId GetPropertyId(PropertyIndex index) override;
         virtual PropertyId GetPropertyId(BigPropertyIndex index) override;
         PropertyIndex GetPropertyIndex(PropertyId propertyId) sealed;
-        virtual BOOL HasProperty(PropertyId propertyId) override;
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
         virtual BOOL HasOwnProperty(PropertyId propertyId) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetInternalProperty(Var instance, PropertyId internalPropertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetInternalProperty(PropertyId internalPropertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
@@ -237,11 +237,13 @@ namespace Js
         virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
+#if ENABLE_FIXED_FIELDS
         virtual BOOL IsFixedProperty(PropertyId propertyId) override;
-        virtual BOOL HasItem(uint32 index) override;
+#endif
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override;
         virtual BOOL HasOwnItem(uint32 index) override;
-        virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
-        virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override;
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
@@ -283,8 +285,8 @@ namespace Js
 
         void ChangeTypeIf(const Type* oldType);
 
-        BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, 
-            DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext) const;
+        BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes,
+            DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext, PropertyValueInfo * info);
 
         virtual BOOL HasDeferredTypeHandler() const sealed;
         static DWORD GetOffsetOfAuxSlots();
@@ -311,6 +313,7 @@ namespace Js
         void SetArrayCallSiteIndex(ProfileId profileId);
 
         static DynamicObject * BoxStackInstance(DynamicObject * instance);
+        
     private:
         ArrayObject* EnsureObjectArray();
         ArrayObject* GetObjectArrayOrFlagsAsArray() const { return objectArray; }
@@ -335,13 +338,23 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 
-        Js::Var* GetInlineSlots_TTD() const;
-        Js::Var* GetAuxSlots_TTD() const;
+        Js::Var const* GetInlineSlots_TTD() const;
+        Js::Var const* GetAuxSlots_TTD() const;
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
         void SetDiagOriginInfoAsNeeded();
 #endif
 
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            // This virtual function hinders linker to do ICF vtable of this class with other classes. 
+            // ICF vtable causes unexpected behavior in type check code. Objects uses vtable as identify should 
+            // override this function and return a unique value.
+            return VTableValue::VtableDynamicObject;
+        }
+
     };
 } // namespace Js

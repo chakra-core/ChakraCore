@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -117,6 +117,12 @@
   </test>
   <test>
     <default>
+      <files>replace-xsite.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>trim.js</files>
       <baseline>trim.baseline</baseline>
     </default>
@@ -177,7 +183,7 @@
       <files>CompoundString.js</files>
       <baseline>CompoundString.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -Intl-</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship,Slow</tags>
+      <tags>exclude_dynapogo,Slow</tags>
     </default>
   </test>
   <test>
@@ -240,6 +246,12 @@
       <files>unicode_toUpperCase_toLowerCase.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
       <tags>exclude_win7</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>repeatBug.js</files>
+      <tags>exclude_chk,Slow</tags>
     </default>
   </test>
 </regress-exe>

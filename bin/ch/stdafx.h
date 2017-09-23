@@ -17,21 +17,18 @@
 
 #define IfJsrtErrorFail(expr, ret) do { if ((expr) != JsNoError) return ret; } while (0)
 #define IfJsrtErrorHR(expr) do { if((expr) != JsNoError) { hr = E_FAIL; goto Error; } } while(0)
+#define IfJsrtErrorHRLabel(expr, label) do { if((expr) != JsNoError) { hr = E_FAIL; goto label; } } while(0)
 #define IfJsrtError(expr) do { if((expr) != JsNoError) { goto Error; } } while(0)
 #define IfJsrtErrorSetGo(expr) do { errorCode = (expr); if(errorCode != JsNoError) { hr = E_FAIL; goto Error; } } while(0)
+#define IfJsrtErrorSetGoLabel(expr, label) do { errorCode = (expr); if(errorCode != JsNoError) { hr = E_FAIL; goto label; } } while(0)
 #define IfFalseGo(expr) do { if(!(expr)) { hr = E_FAIL; goto Error; } } while(0)
-
-#define WIN32_LEAN_AND_MEAN 1
+#define IfFalseGoLabel(expr, label) do { if(!(expr)) { hr = E_FAIL; goto label; } } while(0)
 
 #include "CommonDefines.h"
 #include <map>
 #include <string>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
 #include <CommonPal.h>
-#endif // _WIN32
 
 #include <stdarg.h>
 #ifdef _MSC_VER
@@ -90,6 +87,8 @@ using utf8::NarrowStringToWideDynamic;
 using utf8::WideStringToNarrowDynamic;
 #include "Helpers.h"
 
+#include "PlatformAgnostic/SystemInfo.h"
+
 #define IfJsErrorFailLog(expr) \
 do { \
     JsErrorCode jsErrorCode = expr; \
@@ -97,6 +96,27 @@ do { \
         fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
         fflush(stderr); \
         goto Error; \
+    } \
+} while (0)
+
+#define IfJsErrorFailLogAndHR(expr) \
+do { \
+    JsErrorCode jsErrorCode = expr; \
+    if ((jsErrorCode) != JsNoError) { \
+        hr = E_FAIL; \
+        fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
+        fflush(stderr); \
+        goto Error; \
+    } \
+} while (0)
+
+#define IfJsErrorFailLogLabel(expr, label) \
+do { \
+    JsErrorCode jsErrorCode = expr; \
+    if ((jsErrorCode) != JsNoError) { \
+        fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
+        fflush(stderr); \
+        goto label; \
     } \
 } while (0)
 
@@ -140,6 +160,7 @@ do { \
 #include "ChakraRtInterface.h"
 #include "HostConfigFlags.h"
 #include "MessageQueue.h"
+#include "RuntimeThreadData.h"
 #include "WScriptJsrt.h"
 #include "Debugger.h"
 
@@ -179,18 +200,25 @@ public:
         {
             strValue = value;
         }
+        size_t length = 0;
         if (errorCode == JsNoError)
         {
-            size_t len = 0;
-            errorCode = ChakraRTInterface::JsCopyStringUtf8(strValue, nullptr, 0, &len);
+            errorCode = ChakraRTInterface::JsCopyString(strValue, nullptr, 0, &length);
             if (errorCode == JsNoError)
             {
-                data = (char*) malloc((len + 1) * sizeof(char));
-                uint8_t *udata = (uint8_t*)data;
-                ChakraRTInterface::JsCopyStringUtf8(strValue, udata, len + 1, &length);
-                AssertMsg(len == length, "If you see this message.. There is something seriously wrong. Good Luck!");
-                *(data + len) = char(0);
+                data = (char*)malloc((length + 1) * sizeof(char));
+                size_t writtenLength = 0;
+                errorCode = ChakraRTInterface::JsCopyString(strValue, data, length, &writtenLength);
+                if (errorCode == JsNoError)
+                {
+                    AssertMsg(length == writtenLength, "Inconsistent length in utf8 encoding");
+                }
             }
+        }
+        if (errorCode == JsNoError)
+        {
+            *(data + length) = char(0);
+            this->length = length;
         }
         return errorCode;
     }
@@ -256,5 +284,8 @@ public:
 
 inline JsErrorCode CreatePropertyIdFromString(const char* str, JsPropertyIdRef *Id)
 {
-    return ChakraRTInterface::JsCreatePropertyIdUtf8(str, strlen(str), Id);
+    return ChakraRTInterface::JsCreatePropertyId(str, strlen(str), Id);
 }
+
+void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char* filename);
+extern "C" HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks);

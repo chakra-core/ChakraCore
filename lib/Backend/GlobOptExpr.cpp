@@ -79,7 +79,6 @@ GlobOpt::GetHash(IR::Instr *instr, Value *src1Val, Value *src2Val, ExprAttribute
         // Copy-prop should handle these
         return false;
     case Js::OpCode::Add_I4:
-    case Js::OpCode::Add_Ptr:
         opcode = Js::OpCode::Add_A;
         break;
     case Js::OpCode::Sub_I4:
@@ -220,14 +219,14 @@ GlobOpt::CSEAddInstr(
             indirIndexVal = src1IndirIndexVal;
         }
 
-        src1Val = this->FindValue(block->globOptData.symToValueMap, arrayOpnd->GetBaseOpnd()->m_sym);
+        src1Val = block->globOptData.FindValue(arrayOpnd->GetBaseOpnd()->m_sym);
         if(indirIndexVal)
         {
             src2Val = indirIndexVal;
         }
         else if (arrayOpnd->GetIndexOpnd())
         {
-            src2Val = this->FindValue(block->globOptData.symToValueMap, arrayOpnd->GetIndexOpnd()->m_sym);
+            src2Val = block->globOptData.FindValue(arrayOpnd->GetIndexOpnd()->m_sym);
         }
         else
         {
@@ -257,9 +256,10 @@ GlobOpt::CSEAddInstr(
     case Js::OpCode::Neg_I4:
     case Js::OpCode::Add_I4:
     case Js::OpCode::Sub_I4:
+    case Js::OpCode::DivU_I4:
     case Js::OpCode::Div_I4:
+    case Js::OpCode::RemU_I4:
     case Js::OpCode::Rem_I4:
-    case Js::OpCode::Add_Ptr:
     case Js::OpCode::ShrU_I4:
     {
         // Can't CSE and Add where overflow doesn't matter (and no bailout) with one where it does matter... Record whether int
@@ -275,6 +275,10 @@ GlobOpt::CSEAddInstr(
         {
             return;
         }
+        break;
+
+    case Js::OpCode::Conv_Prim:
+        exprAttributes = ConvAttributes(instr->GetDst()->IsUnsigned(), instr->GetSrc1()->IsUnsigned());
         break;
     }
 
@@ -311,7 +315,7 @@ GlobOpt::CSEAddInstr(
         // with the int constant value.
         StackSym *const constStackSym = GetOrCreateTaggedIntConstantStackSym(intConstantValue);
         instr->HoistSrc1(Js::OpCode::Ld_A, RegNOREG, constStackSym);
-        SetValue(&blockData, dstVal, constStackSym);
+        currentBlock->globOptData.SetValue(dstVal, constStackSym);
     }
 
     // We have a candidate.  Add it to the exprToValueMap.
@@ -359,26 +363,24 @@ GlobOpt::CSEAddInstr(
 
 static void TransformIntoUnreachable(IntConstType errorCode, IR::Instr* instr)
 {
-    instr->m_opcode = Js::OpCode::Unreachable_Void;
+    instr->m_opcode = Js::OpCode::ThrowRuntimeError;
     instr->ReplaceSrc1(IR::IntConstOpnd::New(SCODE_CODE(errorCode), TyInt32, instr->m_func));
     instr->UnlinkDst();
 }
 
 void
-GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
+GlobOpt::OptimizeChecks(IR::Instr * const instr)
 {
-    int val = 0;
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+
     switch (instr->m_opcode)
     {
     case Js::OpCode::TrapIfZero:
-        if (instr->GetDst()->IsInt64())
+        if (src1 && src1->IsImmediateOpnd())
         {
-            return; //don't try to optimize i64 division since we are using helpers anyways for now
-        }
-
-        if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&val))
-        {
-            if (val)
+            int64 val = src1->GetImmediateValue(func);
+            if (val != 0)
             {
                 instr->m_opcode = Js::OpCode::Ld_I4;
             }
@@ -392,15 +394,12 @@ GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
         break;
     case Js::OpCode::TrapIfMinIntOverNegOne:
     {
-        if (instr->GetDst()->IsInt64())
-        {
-            return; //don't try to optimize i64 division since we are using helpers anyways for now
-        }
-
         int checksLeft = 2;
-        if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&val))
+        if (src1 && src1->IsImmediateOpnd())
         {
-            if (val != INT_MIN)
+            int64 val = src1->GetImmediateValue(func);
+            bool isMintInt = src1->GetSize() == 8 ? val == LONGLONG_MIN : (int32)val == INT_MIN;
+            if (!isMintInt)
             {
                 instr->m_opcode = Js::OpCode::Ld_I4;
             }
@@ -408,11 +407,12 @@ GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
             {
                 checksLeft--;
             }
-
         }
-        if (src2Val && src2Val->GetValueInfo()->TryGetIntConstantValue(&val))
+        if (src2 && src2->IsImmediateOpnd())
         {
-            if (val != -1)
+            int64 val = src2->GetImmediateValue(func);
+            bool isNegOne = src2->GetSize() == 8 ? val == -1 : (int32)val == -1;
+            if (!isNegOne)
             {
                 instr->m_opcode = Js::OpCode::Ld_I4;
             }
@@ -425,16 +425,19 @@ GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
         if (!checksLeft)
         {
             TransformIntoUnreachable(VBSERR_Overflow, instr);
-            instr->UnlinkSrc2();
+            instr->FreeSrc2();
             InsertByteCodeUses(instr);
             RemoveCodeAfterNoFallthroughInstr(instr); //remove dead code
+        }
+        else if (instr->m_opcode == Js::OpCode::Ld_I4)
+        {
+            instr->FreeSrc2();
         }
         break;
     }
     default:
         return;
     }
-
 }
 
 bool
@@ -468,14 +471,14 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
 
             IR::IndirOpnd *arrayOpnd = instr->GetSrc1()->AsIndirOpnd();
 
-            src1Val = this->FindValue(block->globOptData.symToValueMap, arrayOpnd->GetBaseOpnd()->m_sym);
+            src1Val = block->globOptData.FindValue(arrayOpnd->GetBaseOpnd()->m_sym);
             if(src1IndirIndexVal)
             {
                 src2Val = src1IndirIndexVal;
             }
             else if (arrayOpnd->GetIndexOpnd())
             {
-                src2Val = this->FindValue(block->globOptData.symToValueMap, arrayOpnd->GetIndexOpnd()->m_sym);
+                src2Val = block->globOptData.FindValue(arrayOpnd->GetIndexOpnd()->m_sym);
             }
             else
             {
@@ -506,6 +509,10 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
                 return false;
             }
             exprAttributes = IntMathExprAttributes(ignoredIntOverflowForCurrentInstr, ignoredNegativeZeroForCurrentInstr);
+            break;
+
+        case Js::OpCode::Conv_Prim:
+            exprAttributes = ConvAttributes(instr->GetDst()->IsUnsigned(), instr->GetSrc1()->IsUnsigned());
             break;
 
         default:
@@ -579,7 +586,7 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
         {
             return false;
         }
-        symStoreVal = this->FindValue(block->globOptData.symToValueMap, symStore);
+        symStoreVal = block->globOptData.FindValue(symStore);
 
         if (!symStoreVal || symStoreVal->GetValueNumber() != val->GetValueNumber())
         {
@@ -645,7 +652,7 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
         {
             StackSym *sym1 = src1->AsRegOpnd()->m_sym;
 
-            if (this->IsTypeSpecialized(sym1, block) || block->globOptData.liveInt32Syms->Test(sym1->m_id))
+            if (block->globOptData.IsTypeSpecialized(sym1) || block->globOptData.liveInt32Syms->Test(sym1->m_id))
             {
                 IR::Opnd *src2 = instr->GetSrc2();
 
@@ -656,7 +663,7 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
                 else if (src2->IsRegOpnd())
                 {
                     StackSym *sym2 = src2->AsRegOpnd()->m_sym;
-                    if (this->IsTypeSpecialized(sym2, block) || block->globOptData.liveInt32Syms->Test(sym2->m_id))
+                    if (block->globOptData.IsTypeSpecialized(sym2) || block->globOptData.liveInt32Syms->Test(sym2->m_id))
                     {
                         needsBailOnImplicitCall = false;
                     }
@@ -707,8 +714,8 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
     {
         // we don't want to CSE ExtendArgs, only the operation using them. To do that, we mimic CSE by transferring the symStore valueInfo to the dst.
         IR::Opnd *dst = instr->GetDst();
-        Value *dstVal = this->FindValue(symStore);
-        this->SetValue(&this->blockData, dstVal, dst);
+        Value *dstVal = this->currentBlock->globOptData.FindValue(symStore);
+        this->currentBlock->globOptData.SetValue(dstVal, dst);
         dst->AsRegOpnd()->m_sym->CopySymAttrs(symStore->AsStackSym());
         return false;
     }
@@ -800,7 +807,7 @@ GlobOpt::ProcessArrayValueKills(IR::Instr *instr)
     // These array helpers may change A.length (and A[i] could be A.length)...
     case Js::OpCode::InlineArrayPush:
     case Js::OpCode::InlineArrayPop:
-        this->blockData.liveArrayValues->ClearAll();
+        this->currentBlock->globOptData.liveArrayValues->ClearAll();
         break;
 
     case Js::OpCode::CallDirect:
@@ -812,21 +819,21 @@ GlobOpt::ProcessArrayValueKills(IR::Instr *instr)
             case IR::HelperArray_Shift:
             case IR::HelperArray_Unshift:
             case IR::HelperArray_Splice:
-                this->blockData.liveArrayValues->ClearAll();
+                this->currentBlock->globOptData.liveArrayValues->ClearAll();
                 break;
         }
         break;
     default:
         if (instr->UsesAllFields())
         {
-            this->blockData.liveArrayValues->ClearAll();
+            this->currentBlock->globOptData.liveArrayValues->ClearAll();
         }
         break;
     }
 }
 
 bool
-GlobOpt::NeedBailOnImplicitCallForCSE(BasicBlock *block, bool isForwardPass)
+GlobOpt::NeedBailOnImplicitCallForCSE(BasicBlock const *block, bool isForwardPass)
 {
     return isForwardPass && block->globOptData.hasCSECandidates;
 }

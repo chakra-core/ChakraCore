@@ -11,16 +11,16 @@ namespace Wasm
 class WasmDataSegment
 {
 public:
-    WasmDataSegment(ArenaAllocator * alloc, WasmNode initExpr, uint32 _source_size, const byte* _data);
-    uint32 getDestAddr(Js::WebAssemblyModule* module) const;
-    uint32 getSourceSize() const;
-    const byte* getData() const;
+    WasmDataSegment(ArenaAllocator* alloc, WasmNode initExpr, uint32 _source_size, const byte* _data);
+    WasmNode GetOffsetExpr() const { return m_initExpr; }
+    uint32 GetSourceSize() const;
+    const byte* GetData() const;
 
 private:
-    ArenaAllocator * m_alloc;
-    WasmNode initExpr;
-    uint32 source_size;
-    const byte* data;
+    ArenaAllocator* m_alloc;
+    WasmNode m_initExpr;
+    uint32 m_sourceSize;
+    const byte* m_data;
 };
 
 } // namespace Wasm

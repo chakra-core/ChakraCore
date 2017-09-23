@@ -11,9 +11,10 @@ namespace Js {
     //
     class ScopeInfo
     {
+        DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
+
         struct MapSymbolData
         {
-            ByteCodeGenerator* byteCodeGenerator;
             FuncInfo* func;
             int nonScopeSymbolCount;
         };
@@ -22,53 +23,40 @@ namespace Js {
         {
             union
             {
-                PropertyId propertyId;
-                PropertyRecord const* name;
+                Field(PropertyId) propertyId;
+                Field(PropertyRecord const*) name;
             };
-            SymbolType symbolType;
-            bool hasFuncAssignment;
-            bool isBlockVariable;
-            bool isFuncExpr;
-            bool isModuleExportStorage;
-            bool isModuleImport;
+            Field(SymbolType) symbolType;
+            Field(bool) hasFuncAssignment : 1;
+            Field(bool) isBlockVariable : 1;
+            Field(bool) isConst : 1;
+            Field(bool) isFuncExpr : 1;
+            Field(bool) isModuleExportStorage : 1;
+            Field(bool) isModuleImport : 1;
         };
 
     private:
-        FunctionInfo * const parent;    // link to parent function
-        ScopeInfo* funcExprScopeInfo;   // optional func expr scope info
-        ScopeInfo* paramScopeInfo;      // optional param scope info
+        Field(ScopeInfo *) parent;               // link to parent scope info (if any)
+        Field(FunctionInfo * const) functionInfo;// link to function owning this scope
 
-        BYTE isDynamic : 1;             // isDynamic bit affects how deferredChild access global ref
-        BYTE isObject : 1;              // isObject bit affects how deferredChild access closure symbols
-        BYTE mustInstantiate : 1;       // the scope must be instantiated as an object/array
-        BYTE isCached : 1;              // indicates that local vars and functions are cached across invocations
-        BYTE isGlobalEval : 1;
-        BYTE areNamesCached : 1;
-        BYTE canMergeWithBodyScope : 1;
-        BYTE hasLocalInClosure : 1;
-        BYTE parentOnly : 1;
+        Field(BYTE) isDynamic : 1;             // isDynamic bit affects how deferredChild access global ref
+        Field(BYTE) isObject : 1;              // isObject bit affects how deferredChild access closure symbols
+        Field(BYTE) mustInstantiate : 1;       // the scope must be instantiated as an object/array
+        Field(BYTE) isCached : 1;              // indicates that local vars and functions are cached across invocations
+        Field(BYTE) areNamesCached : 1;
+        Field(BYTE) canMergeWithBodyScope : 1;
+        Field(BYTE) hasLocalInClosure : 1;
 
-        Scope *scope;
-        int scopeId;
-        int symbolCount;                // symbol count in this scope
-        SymbolInfo symbols[];           // symbol PropertyIDs, index == sym.scopeSlot
+        FieldNoBarrier(Scope *) scope;
+        Field(::ScopeType) scopeType;
+        Field(int) scopeId;
+        Field(int) symbolCount;                // symbol count in this scope
+        Field(SymbolInfo) symbols[];           // symbol PropertyIDs, index == sym.scopeSlot
 
     private:
-        ScopeInfo(FunctionInfo * parent, int symbolCount)
-            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true), hasLocalInClosure(false), parentOnly(false)
+        ScopeInfo(FunctionInfo * function, int symbolCount)
+            : functionInfo(function), /*funcExprScopeInfo(nullptr), paramScopeInfo(nullptr),*/ symbolCount(symbolCount), parent(nullptr), scope(nullptr), areNamesCached(false), hasLocalInClosure(false)/*, parentOnly(false)*/
         {
-        }
-
-        bool IsParentInfoOnly() const { return parentOnly; }
-
-        void SetFuncExprScopeInfo(ScopeInfo* funcExprScopeInfo)
-        {
-            this->funcExprScopeInfo = funcExprScopeInfo;
-        }
-
-        void SetParamScopeInfo(ScopeInfo* paramScopeInfo)
-        {
-            this->paramScopeInfo = paramScopeInfo;
         }
 
         void SetSymbolId(int i, PropertyId propertyId)
@@ -97,6 +85,13 @@ namespace Js {
             Assert(!areNamesCached);
             Assert(i >= 0 && i < symbolCount);
             symbols[i].isBlockVariable = is;
+        }
+
+        void SetIsConst(int i, bool is)
+        {
+            Assert(!areNamesCached);
+            Assert(i >= 0 && i < symbolCount);
+            symbols[i].isConst = is;
         }
 
         void SetIsFuncExpr(int i, bool is)
@@ -164,6 +159,12 @@ namespace Js {
             return symbols[i].isBlockVariable;
         }
 
+        bool GetIsConst(int i)
+        {
+            Assert(i >= 0 && i < symbolCount);
+            return symbols[i].isConst;
+        }
+
         bool GetIsFuncExpr(int i)
         {
             Assert(i >= 0 && i < symbolCount);
@@ -179,40 +180,49 @@ namespace Js {
 
         void SaveSymbolInfo(Symbol* sym, MapSymbolData* mapSymbolData);
 
-        static ScopeInfo* FromParent(FunctionBody* parent);
-        static ScopeInfo* FromScope(ByteCodeGenerator* byteCodeGenerator, ParseableFunctionInfo* parent, Scope* scope, ScriptContext *scriptContext);
-        static void SaveParentScopeInfo(FuncInfo* parentFunc, FuncInfo* func);
-        static void SaveScopeInfo(ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func);
+        static ScopeInfo* SaveScopeInfo(Scope * scope, ScriptContext * scriptContext);
+        static ScopeInfo* SaveOneScopeInfo(Scope * scope, ScriptContext * scriptContext);
 
     public:
-        ParseableFunctionInfo * GetParent() const
+        FunctionInfo * GetFunctionInfo() const
         {
-            return parent ? parent->GetParseableFunctionInfo() : nullptr;
+            return functionInfo;
+        }
+
+        ParseableFunctionInfo * GetParseableFunctionInfo() const
+        {
+            return functionInfo ? functionInfo->GetParseableFunctionInfo() : nullptr;
         }
 
         ScopeInfo* GetParentScopeInfo() const
         {
-            return parent ? parent->GetParseableFunctionInfo()->GetScopeInfo() : nullptr;
+            return parent;//? parent->GetParseableFunctionInfo()->GetScopeInfo() : nullptr;
         }
 
-        ScopeInfo* GetFuncExprScopeInfo() const
+        void SetParentScopeInfo(ScopeInfo * parent)
         {
-            return funcExprScopeInfo;
-        }
-
-        ScopeInfo* GetParamScopeInfo() const
-        {
-            return paramScopeInfo;
-        }
-
-        void SetScope(Scope *scope)
-        {
-            this->scope = scope;
+            Assert(this->parent == nullptr);
+            this->parent = parent;
         }
 
         Scope * GetScope() const
         {
             return scope;
+        }
+
+        void SetScope(Scope * scope)
+        {
+            this->scope = scope;
+        }
+
+        ::ScopeType GetScopeType() const
+        {
+            return scopeType;
+        }
+
+        void SetScopeType(::ScopeType type)
+        {
+            this->scopeType = type;
         }
 
         void SetScopeId(int id)
@@ -230,14 +240,14 @@ namespace Js {
             return symbolCount;
         }
 
-        bool IsGlobalEval() const
+        bool IsObject() const
         {
-            return isGlobalEval;
+            return isObject;
         }
 
-        bool GetCanMergeWithBodyScope() const
+        bool IsCached() const
         {
-            return canMergeWithBodyScope;
+            return isCached;
         }
 
         void SetHasLocalInClosure(bool has)
@@ -250,11 +260,11 @@ namespace Js {
             return hasLocalInClosure;
         }
 
-        static void SaveScopeInfoForDeferParse(ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func);
+        static void SaveEnclosingScopeInfo(ByteCodeGenerator* byteCodeGenerator, /*FuncInfo* parentFunc,*/ FuncInfo* func);
 
         void EnsurePidTracking(ScriptContext* scriptContext);
 
-        void GetScopeInfo(Parser *parser, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Scope* scope);
+        void ExtractScopeInfo(Parser *parser, /*ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo,*/ Scope* scope);
 
         //
         // Turn on capturesAll for a Scope temporarily. Restore old capturesAll when this object

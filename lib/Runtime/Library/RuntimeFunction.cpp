@@ -31,13 +31,16 @@ namespace Js
         {
             if (TaggedInt::Is(this->functionNameId))
             {
-                if (this->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled() && this->GetTypeHandler()->IsDeferredTypeHandler())
+                if (scriptContext->GetConfig()->IsES6FunctionNameEnabled() && this->GetTypeHandler()->IsDeferredTypeHandler())
                 {
                     JavascriptString* functionName = nullptr;
                     DebugOnly(bool status = ) this->GetFunctionName(&functionName);
                     Assert(status);
                     this->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
                 }
+
+                // This has a side-effect where any other code (such as debugger) that uses functionNameId value will now get the value like "function foo() { native code }"
+                // instead of just "foo". Alternative ways will need to be devised; if it's not desirable to use this full display name value in those cases.
                 this->functionNameId = GetNativeFunctionDisplayString(scriptContext, scriptContext->GetPropertyString(TaggedInt::ToInt32(this->functionNameId)));
             }
         }
@@ -59,6 +62,11 @@ namespace Js
 #if ENABLE_TTD
     void RuntimeFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
+        if(this->functionNameId != nullptr)
+        {
+            extractor->MarkVisitVar(this->functionNameId);
+        }
+
         Var revokableProxy = nullptr;
         RuntimeFunction* function = const_cast<RuntimeFunction*>(this);
         if(function->GetInternalProperty(function, Js::InternalPropertyIds::RevocableProxy, &revokableProxy, nullptr, this->GetScriptContext()))

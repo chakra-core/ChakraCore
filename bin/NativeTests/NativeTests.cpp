@@ -5,7 +5,11 @@
 #include "stdafx.h"
 
 #define CATCH_CONFIG_RUNNER
+#pragma warning(push)
+// conversion from 'int' to 'char', possible loss of data
+#pragma warning(disable:4244)
 #include "catch.hpp"
+#pragma warning(pop)
 
 // Use nativetests.exe -? to get all command line options
 

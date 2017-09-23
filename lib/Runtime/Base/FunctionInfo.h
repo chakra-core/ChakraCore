@@ -38,10 +38,15 @@ namespace Js
             Async                          = 0x10000,
             Module                         = 0x20000, // The function is the function body wrapper for a module
             EnclosedByGlobalFunc           = 0x40000,
-            CanDefer                       = 0x80000
+            CanDefer                       = 0x80000,
+            AllowDirectSuper               = 0x100000,
+            BaseConstructorKind            = 0x200000
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
+        FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
+        FunctionInfo(FunctionInfo& that); // Todo: (leish)(swb) find a way to prevent non-static initializer calling this ctor
 
+        static bool Is(void *ptr);
         static DWORD GetFunctionBodyImplOffset() { return offsetof(FunctionInfo, functionBodyImpl); }
         static BYTE GetOffsetOfFunctionProxy()
         {
@@ -87,17 +92,17 @@ namespace Js
         ParseableFunctionInfo* GetParseableFunctionInfo() const
         {
             Assert(functionBodyImpl == nullptr || !IsDeferredDeserializeFunction());
-            return (ParseableFunctionInfo*)functionBodyImpl;
+            return (ParseableFunctionInfo*)GetFunctionProxy();
         }
-        ParseableFunctionInfo** GetParseableFunctionInfoRef() const
+        void SetParseableFunctionInfo(ParseableFunctionInfo* func)
         {
-            Assert(functionBodyImpl == NULL || !IsDeferredDeserializeFunction());
-            return (ParseableFunctionInfo**)&functionBodyImpl;
+            Assert(functionBodyImpl == nullptr || !IsDeferredDeserializeFunction());
+            SetFunctionProxy((FunctionProxy*)func);
         }
         DeferDeserializeFunctionInfo* GetDeferDeserializeFunctionInfo() const
         {
             Assert(functionBodyImpl == nullptr || IsDeferredDeserializeFunction());
-            return (DeferDeserializeFunctionInfo*)functionBodyImpl;
+            return (DeferDeserializeFunctionInfo*)PointerValue(functionBodyImpl);
         }
         FunctionBody * GetFunctionBody() const;
 
@@ -127,15 +132,17 @@ namespace Js
         bool GetCapturesThis() const { return (attributes & Attributes::CapturesThis) != 0; }
         void SetEnclosedByGlobalFunc() { attributes = (Attributes)(attributes | Attributes::EnclosedByGlobalFunc ); }
         bool GetEnclosedByGlobalFunc() const { return (attributes & Attributes::EnclosedByGlobalFunc) != 0; }
+        void SetAllowDirectSuper() { attributes = (Attributes)(attributes | Attributes::AllowDirectSuper); }
+        bool GetAllowDirectSuper() const { return (attributes & Attributes::AllowDirectSuper) != 0; }
+        void SetBaseConstructorKind() { attributes = (Attributes)(attributes | Attributes::BaseConstructorKind); }
+        bool GetBaseConstructorKind() const { return (attributes & Attributes::BaseConstructorKind) != 0; }
 
     protected:
-        JavascriptMethod originalEntryPoint;
-        // WriteBarrier-TODO: Fix this? This is used only by proxies to keep the deserialized version around
-        // However, proxies are not allocated as write barrier memory currently so its fine to not set the write barrier for this field
-        FunctionProxy * functionBodyImpl;     // Implementation of the function- null if the function doesn't have a body
-        LocalFunctionId functionId;        // Per host source context (source file) function Id
-        uint compileCount;
-        Attributes attributes;
+        FieldNoBarrier(JavascriptMethod) originalEntryPoint;
+        FieldWithBarrier(FunctionProxy *) functionBodyImpl;     // Implementation of the function- null if the function doesn't have a body
+        Field(LocalFunctionId) functionId;        // Per host source context (source file) function Id
+        Field(uint) compileCount;
+        Field(Attributes) attributes;
     };
 
     // Helper FunctionInfo for builtins that we don't want to profile (script profiler).
@@ -144,6 +151,10 @@ namespace Js
     public:
         NoProfileFunctionInfo(JavascriptMethod entryPoint)
             : FunctionInfo(entryPoint, Attributes::DoNotProfile)
+        {}
+
+        NoProfileFunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag)
+            : FunctionInfo(FORCE_NO_WRITE_BARRIER_TAG(entryPoint), Attributes::DoNotProfile)
         {}
     };
 };

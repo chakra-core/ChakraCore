@@ -10,7 +10,8 @@ namespace Js
     // TypePropertyCacheElement
     // -------------------------------------------------------------------------------------------------------------------------
 
-    TypePropertyCacheElement::TypePropertyCacheElement() : id(Constants::NoProperty), tag(1), index(0), prototypeObjectWithProperty(0)
+    TypePropertyCacheElement::TypePropertyCacheElement()
+        : id(Constants::NoProperty), tag(1), index(0), prototypeObjectWithProperty(nullptr)
     {
     }
 
@@ -58,7 +59,7 @@ namespace Js
         this->isInlineSlot = isInlineSlot;
         this->isSetPropertyAllowed = isSetPropertyAllowed;
         this->isMissing = false;
-        this->prototypeObjectWithProperty = 0;
+        this->prototypeObjectWithProperty = nullptr;
     }
 
     void TypePropertyCacheElement::Cache(
@@ -217,7 +218,9 @@ namespace Js
                     : DynamicObject::FromVar(propertyObject)->GetAuxSlot(propertyIndex);
             if(propertyObject->GetScriptContext() == requestContext)
             {
-                Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
+                DebugOnly(Var getPropertyValue = JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
+                Assert(*propertyValue == getPropertyValue ||
+                    (getPropertyValue == requestContext->GetLibrary()->GetNull() && requestContext->GetThreadContext()->IsDisableImplicitCall() && propertyObject->GetType()->IsExternal()));
 
                 CacheOperators::Cache<false, true, false>(
                     false,
@@ -348,7 +351,9 @@ namespace Js
         }
     #endif
 
+#if ENABLE_FIXED_FIELDS
         Assert(!object->IsFixedProperty(propertyId));
+#endif
         Assert(
             (
                 DynamicObject

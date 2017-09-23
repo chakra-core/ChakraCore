@@ -12,8 +12,15 @@ namespace Js
     typedef SList<ModuleRecordBase*> ExportModuleRecordList;
     struct ModuleNameRecord
     {
-        ModuleRecordBase* module;
-        PropertyId bindingName;
+        ModuleNameRecord(const ModuleNameRecord& other)
+            :module(other.module), bindingName(other.bindingName)
+        {}
+        ModuleNameRecord(ModuleRecordBase* module, PropertyId bindingName) 
+            :module(module), bindingName(bindingName) 
+        {}
+        ModuleNameRecord() {}
+        Field(ModuleRecordBase*) module;
+        Field(PropertyId) bindingName;
     };
     typedef SList<ModuleNameRecord> ResolveSet;
 
@@ -34,15 +41,15 @@ namespace Js
         virtual ExportedNames* GetExportedNames(ExportModuleRecordList* exportStarSet) = 0;
         // return false when "ambiguous".
         // otherwise nullptr means "null" where we have circular reference/cannot resolve.
-        virtual bool ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ExportModuleRecordList* exportStarSet, ModuleNameRecord** exportRecord) = 0;
+        virtual bool ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ModuleNameRecord** exportRecord) = 0;
         virtual void ModuleDeclarationInstantiation() = 0;
         virtual Var ModuleEvaluation() = 0;
         virtual bool IsSourceTextModuleRecord() { return false; }
 
     protected:
-        uint32 magicNumber;
-        ModuleNamespace* namespaceObject;
-        bool wasEvaluated;
-        JavascriptLibrary* javascriptLibrary;
+        Field(uint32) magicNumber;
+        Field(ModuleNamespace*) namespaceObject;
+        Field(bool) wasEvaluated;
+        Field(JavascriptLibrary*) javascriptLibrary;
     };
 }

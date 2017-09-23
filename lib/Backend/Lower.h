@@ -19,13 +19,6 @@ enum RoundMode : BYTE {
     RoundModeHalfToEven = 2
 };
 
-struct Int64RegPair
-{
-    IR::Opnd* high;
-    IR::Opnd* low;
-    Int64RegPair(): high(nullptr), low(nullptr) {}
-};
-
 #if defined(_M_IX86) || defined(_M_AMD64)
 #include "LowerMDShared.h"
 #elif defined(_M_ARM) || defined(_M_ARM64)
@@ -53,10 +46,16 @@ class Lowerer
 public:
     Lowerer(Func * func) : m_func(func), m_lowererMD(func), nextStackFunctionOpnd(nullptr), outerMostLoopLabel(nullptr),
         initializedTempSym(nullptr), addToLiveOnBackEdgeSyms(nullptr), currentRegion(nullptr)
-#ifndef _M_X64
-        , m_int64RegPairMap(nullptr)
-#endif
     {
+#ifdef RECYCLER_WRITE_BARRIER_JIT
+        m_func->m_lowerer = this;
+#endif
+    }
+    ~Lowerer()
+    {
+#ifdef RECYCLER_WRITE_BARRIER_JIT
+        m_func->m_lowerer = nullptr;
+#endif
     }
 
     void Lower();
@@ -66,6 +65,10 @@ public:
     void LowerGeneratorResumeJumpTable();
 
     void DoInterruptProbes();
+
+    static IR::Instr * TryShiftAdd(IR::Instr *instrAdd, IR::Opnd * opndFold, IR::Opnd * opndAdd);
+    static IR::Instr *PeepShiftAdd(IR::Instr *instr);
+
     IR::Instr *PreLowerPeepInstr(IR::Instr *instr, IR::Instr **pInstrPrev);
     IR::Instr *PeepShl(IR::Instr *instr);
     IR::Instr *PeepBrBool(IR::Instr *instr);
@@ -148,7 +151,9 @@ private:
     bool            GenerateAdjustBaseSlots(IR::Instr * instrStFld, IR::RegOpnd *baseOpnd, JITTypeHolder initialType, JITTypeHolder finalType);
     void            GeneratePrototypeCacheInvalidateCheck(IR::PropertySymOpnd *propertySymOpnd, IR::Instr *instrStFld);
     void            PinTypeRef(JITTypeHolder type, void* typeRef, IR::Instr* instr, Js::PropertyId propertyId);
-    IR::RegOpnd *   GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject = true, IR::LabelInstr *labelFastExternal = nullptr);
+    IR::RegOpnd *   GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject = true, IR::LabelInstr *labelFastExternal = nullptr, bool isInHelper = false);
+
+
 
     void            EnsureStackFunctionListStackSym();
     void            EnsureZeroLastStackFunctionNext();
@@ -172,6 +177,7 @@ private:
     IR::Instr *     LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet);
     IR::Instr *     LowerMemcopy(IR::Instr * instr, IR::RegOpnd * helperRet);
 
+    IR::Instr *     LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd);
     IR::Instr *     LowerLdArrViewElem(IR::Instr * instr);
     IR::Instr *     LowerStArrViewElem(IR::Instr * instr);
     IR::Instr *     LowerLdArrViewElemWasm(IR::Instr * instr);
@@ -199,6 +205,7 @@ private:
     IR::Instr *     LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg = nullptr);
     IR::Instr *     LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg = nullptr);
     IR::Instr *     LowerUnaryHelperMemWithFuncBody(IR::Instr *instr, IR::JnHelperMethod helperMethod);
+    IR::Instr *     LowerUnaryHelperMemWithFunctionInfo(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerBinaryHelperMemWithFuncBody(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerUnaryHelperMemWithTemp(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerUnaryHelperMemWithTemp2(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::JnHelperMethod helperMethodWithTemp);
@@ -238,6 +245,8 @@ private:
     IR::Instr *     LowerNewScIntArray(IR::Instr *arrInstr);
     IR::Instr *     LowerNewScFltArray(IR::Instr *arrInstr);
     IR::Instr *     LowerArraySegmentVars(IR::Instr *instr);
+    IR::Instr *     LowerEqualityBranch(IR::Instr* instr, IR::JnHelperMethod helper);
+    IR::Instr *     LowerEqualityCompare(IR::Instr* instr, IR::JnHelperMethod helper);
     template <typename ArrayType>
     BOOL            IsSmallObject(uint32 length);
 #ifdef ENABLE_DOM_FAST_PATH
@@ -262,11 +271,15 @@ private:
     bool            GenerateFastBrSrNeq(IR::Instr * instr, IR::Instr ** pInstrPrev);
     IR::BranchInstr* GenerateFastBrConst(IR::BranchInstr *branchInstr, IR::Opnd * constOpnd, bool isEqual);
     bool            GenerateFastCondBranch(IR::BranchInstr * instrBranch, bool *pIsHelper);
-    bool            GenerateFastEqBoolInt(IR::Instr * instr, bool *pIsHelper);
-    bool            GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedHelper);
-    bool            GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *src1, IR::Opnd *src2, IR::LabelInstr * labelHelper, IR::LabelInstr * labelEqualLikely, bool *pNeedHelper);
-    bool            GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper);
+    void            GenerateBooleanNegate(IR::Instr * instr, IR::Opnd * srcBool, IR::Opnd * dst);
+    bool            GenerateFastEqBoolInt(IR::Instr * instr, bool *pIsHelper, bool isInHelper);
+    bool            GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedHelper, bool isInHelper);
+    bool            GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *src1, IR::Opnd *src2, IR::LabelInstr * labelHelper, IR::LabelInstr * labelEqualLikely, bool *pNeedHelper, bool isInHelper);
+    bool            GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper, bool isInHelper);
     bool            GenerateFastBrBool(IR::BranchInstr *const instr);
+    bool            GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::RegOpnd *srcReg2, bool isEqual, bool isStrict, IR::LabelInstr *labelHelper, IR::LabelInstr *labelBranchSuccess, IR::LabelInstr *labelBranchFail);
+    bool            GenerateFastBrOrCmString(IR::Instr* instr);
+    void            GenerateDynamicLoadPolymorphicInlineCacheSlot(IR::Instr * instrInsert, IR::RegOpnd * inlineCacheOpnd, IR::Opnd * objectTypeOpnd);
     static IR::Instr *LoadFloatFromNonReg(IR::Opnd * opndOrig, IR::Opnd * regOpnd, IR::Instr * instrInsert);
     void            LoadInt32FromUntaggedVar(IR::Instr *const instrLoad);
     bool            GetValueFromIndirOpnd(IR::IndirOpnd *indirOpnd, IR::Opnd **pValueOpnd, IntConstType *pValue);
@@ -316,14 +329,10 @@ private:
     void            GenerateGetSingleCharString(IR::RegOpnd * charCodeOpnd, IR::Opnd * resultOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * doneLabel, IR::Instr * instr, bool isCodePoint);
     void            GenerateFastBrBReturn(IR::Instr * instr);
 
-#ifndef _M_X64
-    void            EnsureInt64RegPairMap();
-    Int64RegPair    FindOrCreateInt64Pair(IR::Opnd*);
-#endif
 public:
     static IR::LabelInstr *     InsertLabel(const bool isHelper, IR::Instr *const insertBeforeInstr);
 
-    static IR::Instr *          InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr, bool generateWriteBarrier = false);
+    static IR::Instr *          InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr, bool generateWriteBarrier = true);
     static IR::Instr *          InsertMoveWithBarrier(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
 #if _M_X64
     static IR::Instr *          InsertMoveBitCast(IR::Opnd *const dst, IR::Opnd *const src1, IR::Instr *const insertBeforeInstr);
@@ -331,8 +340,8 @@ public:
     static IR::BranchInstr *    InsertBranch(const Js::OpCode opCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::BranchInstr *    InsertBranch(const Js::OpCode opCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertCompare(IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
-    static IR::BranchInstr *    InsertCompareBranch(IR::Opnd *const compareSrc1, IR::Opnd *const compareSrc2, Js::OpCode branchOpCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
-    static IR::BranchInstr *    InsertCompareBranch(IR::Opnd *compareSrc1, IR::Opnd *compareSrc2, Js::OpCode branchOpCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
+           IR::BranchInstr *    InsertCompareBranch(IR::Opnd *const compareSrc1, IR::Opnd *const compareSrc2, Js::OpCode branchOpCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
+           IR::BranchInstr *    InsertCompareBranch(IR::Opnd *compareSrc1, IR::Opnd *compareSrc2, Js::OpCode branchOpCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr, const bool ignoreNaN = false);
     static IR::Instr *          InsertTest(IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
     static IR::BranchInstr *    InsertTestBranch(IR::Opnd *const testSrc1, IR::Opnd *const testSrc2, const Js::OpCode branchOpCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::BranchInstr *    InsertTestBranch(IR::Opnd *const testSrc1, IR::Opnd *const testSrc2, const Js::OpCode branchOpCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
@@ -369,8 +378,40 @@ public:
     }
 
 private:
-    IR::IndirOpnd * GenerateFastElemICommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelCantUseArray, IR::LabelInstr *labelFallthrough, bool * pIsTypedArrayElement, bool * pIsStringIndex, bool *emitBailoutRef, IR::LabelInstr **pLabelSegmentLengthIncreased = nullptr, bool checkArrayLengthOverflow = true, bool forceGenerateFastPath = false, bool returnLength = false, IR::LabelInstr *bailOutLabelInstr = nullptr);
-    IR::IndirOpnd * GenerateFastElemIIntIndexCommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelCantUseArray, IR::LabelInstr *labelFallthrough, bool * pIsTypedArrayElement, bool *emitBailoutRef, IR::LabelInstr **pLabelSegmentLengthIncreased, bool checkArrayLengthOverflow, bool forceGenerateFastPath = false, bool returnLength = false, IR::LabelInstr *bailOutLabelInstr = nullptr);
+    IR::IndirOpnd * GenerateFastElemICommon(
+        IR::Instr * ldElem,
+        bool isStore,
+        IR::IndirOpnd * indirOpnd,
+        IR::LabelInstr * labelHelper,
+        IR::LabelInstr * labelCantUseArray,
+        IR::LabelInstr *labelFallthrough,
+        bool * pIsTypedArrayElement,
+        bool * pIsStringIndex,
+        bool *emitBailoutRef,
+        IR::LabelInstr **pLabelSegmentLengthIncreased = nullptr,
+        bool checkArrayLengthOverflow = true,
+        bool forceGenerateFastPath = false,
+        bool returnLength = false,
+        IR::LabelInstr *bailOutLabelInstr = nullptr,
+        bool * indirOpndOverflowed = nullptr);
+
+    IR::IndirOpnd * GenerateFastElemIIntIndexCommon(
+        IR::Instr * ldElem,
+        bool isStore,
+        IR::IndirOpnd * indirOpnd,
+        IR::LabelInstr * labelHelper,
+        IR::LabelInstr * labelCantUseArray,
+        IR::LabelInstr *labelFallthrough,
+        bool * pIsTypedArrayElement,
+        bool *emitBailoutRef,
+        IR::LabelInstr **pLabelSegmentLengthIncreased,
+        bool checkArrayLengthOverflow,
+        bool forceGenerateFastPath = false,
+        bool returnLength = false,
+        IR::LabelInstr *bailOutLabelInstr = nullptr,
+        bool * indirOpndOverflowed = nullptr);
+
+    IR::IndirOpnd * GenerateFastElemIStringIndexCommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper);
     bool            GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastStElemI(IR::Instr *& StElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef);
@@ -380,6 +421,8 @@ private:
     void            GenerateFastInlineStringCodePointAt(IR::Instr* doneLabel, Func* func, IR::Opnd *strLength, IR::Opnd *srcIndex, IR::RegOpnd *lowerChar, IR::RegOpnd *strPtr);
     bool            GenerateFastInlineStringCharCodeAt(IR::Instr* instr, Js::BuiltinFunction index);
     bool            GenerateFastInlineStringReplace(IR::Instr* instr);
+    void            GenerateFastInlineIsArray(IR::Instr * instr);
+    void            GenerateFastInlineHasOwnProperty(IR::Instr * instr);
     void            GenerateFastInlineArrayPush(IR::Instr * instr);
     void            GenerateFastInlineArrayPop(IR::Instr * instr);
     void            GenerateFastInlineStringSplitMatch(IR::Instr * instr);
@@ -387,7 +430,6 @@ private:
     void            GenerateFastInlineMathClz(IR::Instr* instr);
     void            GenerateCtz(IR::Instr* instr);
     void            GeneratePopCnt(IR::Instr* instr);
-    void            GenerateThrowUnreachable(IR::Instr* instr);
     void            GenerateTruncWithCheck(IR::Instr* instr);
     void            GenerateFastInlineMathFround(IR::Instr* instr);
     void            GenerateFastInlineRegExpExec(IR::Instr * instr);
@@ -416,7 +458,8 @@ private:
     void            LowerBailOnNotString(IR::Instr *instr);
     IR::Instr *     LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper = false);
     IR::Instr *     LowerBailOnException(IR::Instr* instr);
-    IR::Instr *     LowerReinterpretPrimitive(IR::Instr* instr);
+    void            LowerReinterpretPrimitive(IR::Instr* instr);
+    IR::Instr *     LowerBailOnEarlyExit(IR::Instr* instr);
 
     void            LowerOneBailOutKind(IR::Instr *const instr, const IR::BailOutKind bailOutKindToLower, const bool isInHelperBlock, const bool preserveBailOutKindInInstr = false);
 
@@ -427,6 +470,8 @@ private:
     void            LowerBailOnInvalidatedArrayLength(IR::Instr *const instr, const bool isInHelperBlock);
     void            LowerBailOnCreatedMissingValue(IR::Instr *const instr, const bool isInHelperBlock);
     void            LowerBoundCheck(IR::Instr *const instr);
+    IR::Opnd*       GetFuncObjectOpnd(IR::Instr* insertBeforeInstr);
+    IR::Instr*      LoadFuncExpression(IR::Instr *instrFuncExpr);
 
     IR::Instr *     LowerBailTarget(IR::Instr * instr);
     IR::Instr *     SplitBailOnImplicitCall(IR::Instr *& instr);
@@ -441,14 +486,17 @@ private:
     void            GenerateObjectTestAndTypeLoad(IR::Instr *instrLdSt, IR::RegOpnd *opndBase, IR::RegOpnd *opndType, IR::LabelInstr *labelHelper);
     IR::LabelInstr *GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr = nullptr, IR::LabelInstr * labelBailOut = nullptr, IR::LabelInstr * collectRuntimeStatsLabel = nullptr);
     void            GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instrAfter);
-    void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr) const;
+    void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr);
+    void            LowerLdI4(IR::Instr * const instr);
     void            LowerDivI4(IR::Instr * const instr);
     void            LowerRemI4(IR::Instr * const instr);
+    void            LowerTrapIfZero(IR::Instr * const instr);
+    void            LowerTrapIfMinIntOverNegOne(IR::Instr * const instr);
     void            LowerDivI4Common(IR::Instr * const instr);
     void            LowerRemR8(IR::Instr * const instr);
     void            LowerRemR4(IR::Instr * const instr);
 
-    void            LowerInlineeStart(IR::Instr * instr);
+    IR::Instr*      LowerInlineeStart(IR::Instr * instr);
     void            LowerInlineeEnd(IR::Instr * instr);
 
     static
@@ -516,11 +564,16 @@ private:
     void            GenerateRecyclerAlloc(IR::JnHelperMethod allocHelper, size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, bool inOpHelper = false);
 
     template <typename ArrayType>
-    IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool isArrayObjCtor = false);
+    IR::RegOpnd *   GenerateArrayAllocHelper(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool isArrayObjCtor, bool isNoArgs);
+    template <typename ArrayType>
+    IR::RegOpnd *   GenerateArrayLiteralsAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed);
+    template <typename ArrayType>
+    IR::RegOpnd *   GenerateArrayObjectsAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool isNoArgs);
+
     template <typename ArrayType>
     IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, IR::Opnd * sizeOpnd, Js::ArrayCallSiteInfo * arrayInfo);
 
-    void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length, IR::LabelInstr* labelDone);
+    void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length, IR::LabelInstr* labelDone, bool isNoArgs);
 
     template <typename ArrayType>
     void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, IR::LabelInstr* helperLabel, IR::LabelInstr* labelDone, IR::Opnd* lengthOpnd, uint32 offsetOfCallSiteIndex, uint32 offsetOfWeakFuncRef);
@@ -546,6 +599,7 @@ private:
     IR::Instr *         LoadScriptContext(IR::Instr *instr);
     IR::Instr *         LoadFunctionBody(IR::Instr * instr);
     IR::Opnd *          LoadFunctionBodyOpnd(IR::Instr *instr);
+    IR::Opnd *          LoadFunctionInfoOpnd(IR::Instr *instr);
     IR::Opnd *          LoadScriptContextOpnd(IR::Instr *instr);
     IR::Opnd *          LoadScriptContextValueOpnd(IR::Instr * instr, ScriptContextValue valueType);
     IR::Opnd *          LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType);
@@ -640,9 +694,4 @@ private:
     BVSparse<JitArenaAllocator> * initializedTempSym;
     BVSparse<JitArenaAllocator> * addToLiveOnBackEdgeSyms;
     Region *        currentRegion;
-#ifndef _M_X64
-    struct Int64SymPair { StackSym* high; StackSym* low; };
-    typedef BaseDictionary<SymID, Int64SymPair, JitArenaAllocator> Int64RegPairMap;
-    Int64RegPairMap* m_int64RegPairMap;
-#endif
 };

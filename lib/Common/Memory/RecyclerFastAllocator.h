@@ -49,6 +49,9 @@ public:
 #endif
         size_t sizeCat = GetAlignedAllocSize();
         Assert(HeapInfo::IsSmallObject(sizeCat));
+
+        // TODO: SWB, currently RecyclerFastAllocator only used for number allocating, which is Leaf
+        // need to add WithBarrierBit if we have other usage with NonLeaf
         char * memBlock = allocator.template InlinedAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask)>(recycler, sizeCat);
 
         if (memBlock == nullptr)
@@ -72,8 +75,8 @@ public:
 #ifdef RECYCLER_MEMORY_VERIFY
         recycler->FillCheckPad(memBlock, sizeof(T), sizeCat);
 #endif
-#if DBG
-        recycler->VerifyPageHeapFillAfterAlloc<attributes>(memBlock, size);
+#ifdef RECYCLER_PAGE_HEAP
+        recycler->VerifyPageHeapFillAfterAlloc(memBlock, size, attributes);
 #endif
         return memBlock;
     };

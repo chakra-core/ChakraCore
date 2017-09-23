@@ -80,5 +80,27 @@ function test2() {
     y.__proto__ = obj;      // cached T2's inlineSlotCapacity doesn't match y's T1
 }
 
+function test3() {
+    // no switches needed
+    var proto = {};
+
+    function foo() {
+    }
+
+    var x = new foo();
+    var y = new foo();
+    y.__proto__ = proto; // empty type cached in map of proto object
+    y._a = 1; // evolve cached type created above
+    y._b = 1;
+    y._c = 1;
+    y._d = 1;
+    var z = new foo(); // this shrunk oldType's slotCapacity from 8 to 2.
+
+    // retrived the cached type which was evolved. 
+    // Realized that oldType's slotCapacity has shrunk, we shrink slot capacity of cachedType but it doesn't match because cachedType has evolved
+    z.__proto__ = proto;
+}
+
 test1();
 test2();
+test3();

@@ -14,6 +14,126 @@ FlowGraph::New(Func * func, JitArenaAllocator * alloc)
     return graph;
 }
 
+
+// When there is an early exit within an EH region,
+// Leave instructions are inserted in the bytecode to jump up the region tree one by one
+// We delete this Leave chain of instructions, and add an edge to Finally
+IR::LabelInstr * FlowGraph::DeleteLeaveChainBlocks(IR::BranchInstr *leaveInstr, IR::Instr * &instrPrev)
+{
+    // Cleanup Rest of the Leave chain
+    IR::LabelInstr * leaveTarget = leaveInstr->GetTarget();
+    Assert(leaveTarget->GetNextRealInstr()->IsBranchInstr());
+    IR::BranchInstr *leaveChain = leaveTarget->GetNextRealInstr()->AsBranchInstr();
+    IR::LabelInstr * curLabel = leaveTarget->AsLabelInstr();
+
+    while (leaveChain->m_opcode != Js::OpCode::Br)
+    {
+        Assert(leaveChain->m_opcode == Js::OpCode::Leave || leaveChain->m_opcode == Js::OpCode::BrOnException);
+        IR::LabelInstr * nextLabel = leaveChain->m_next->AsLabelInstr();
+        leaveChain = nextLabel->m_next->AsBranchInstr();
+        BasicBlock *curBlock = curLabel->GetBasicBlock();
+        this->RemoveBlock(curBlock);
+        curLabel = nextLabel;
+    }
+
+    instrPrev = leaveChain->m_next;
+    IR::LabelInstr * exitLabel = leaveChain->GetTarget();
+    BasicBlock * curBlock = curLabel->GetBasicBlock();
+    this->RemoveBlock(curBlock);
+    return exitLabel;
+}
+
+bool FlowGraph::Dominates(Region *region1, Region *region2)
+{
+    Assert(region1);
+    Assert(region2);
+    Region *startR1 = region1;
+    Region *startR2 = region2;
+    int region1Depth = 0;
+    while (startR1 != nullptr)
+    {
+        region1Depth++;
+        startR1 = startR1->GetParent();
+    }
+    int region2Depth = 0;
+    while (startR2 != nullptr)
+    {
+        region2Depth++;
+        startR2 = startR2->GetParent();
+    }
+    return region1Depth > region2Depth;
+}
+
+bool FlowGraph::DoesExitLabelDominate(IR::BranchInstr *leaveInstr)
+{
+    IR::LabelInstr * leaveTarget = leaveInstr->GetTarget();
+    Assert(leaveTarget->GetNextRealInstr()->IsBranchInstr());
+    IR::BranchInstr *leaveChain = leaveTarget->GetNextRealInstr()->AsBranchInstr();
+
+    while (leaveChain->m_opcode != Js::OpCode::Br)
+    {
+        Assert(leaveChain->m_opcode == Js::OpCode::Leave || leaveChain->m_opcode == Js::OpCode::BrOnException);
+        IR::LabelInstr * nextLabel = leaveChain->m_next->AsLabelInstr();
+        leaveChain = nextLabel->m_next->AsBranchInstr();
+    }
+    IR::LabelInstr * exitLabel = leaveChain->GetTarget();
+    return Dominates(exitLabel->GetRegion(), finallyLabelStack->Top()->GetRegion());
+}
+
+bool FlowGraph::CheckIfEarlyExitAndAddEdgeToFinally(IR::BranchInstr *leaveInstr, Region *currentRegion, Region *branchTargetRegion, IR::Instr * &instrPrev, IR::LabelInstr * &exitLabel)
+{
+    if (finallyLabelStack->Empty())
+    {
+        return false;
+    }
+
+    if (currentRegion->GetType() == RegionTypeTry)
+    {
+        if (currentRegion->GetMatchingCatchRegion() == nullptr)
+        {
+            // try of try-finally
+            bool isEarly =
+                (branchTargetRegion != currentRegion->GetMatchingFinallyRegion(false) &&
+                    branchTargetRegion != currentRegion->GetMatchingFinallyRegion(true));
+            if (!isEarly) return false;
+
+            if (DoesExitLabelDominate(leaveInstr)) return false;
+
+            // Cleanup Rest of the Leave chain
+            exitLabel = DeleteLeaveChainBlocks(leaveInstr, instrPrev);
+            return true;
+        }
+        // try of try-catch
+
+        IR::BranchInstr *leaveChain = leaveInstr;
+        IR::LabelInstr * leaveTarget = leaveChain->GetTarget();
+        IR::Instr *target = leaveTarget->GetNextRealInstr();
+        if (target->m_opcode == Js::OpCode::Br)
+        {
+            IR::BranchInstr *tryExit = target->AsBranchInstr();
+            instrPrev = tryExit;
+            return false;
+        }
+
+        if (DoesExitLabelDominate(leaveInstr)) return false;
+
+        // Cleanup Rest of the Leave chain
+        exitLabel = DeleteLeaveChainBlocks(leaveInstr, instrPrev);
+        return true;
+    }
+    if (currentRegion->GetType() == RegionTypeCatch)
+    {
+        // We don't care for early exits in catch blocks, because we bailout anyway
+        return false;
+    }
+    Assert(currentRegion->GetType() == RegionTypeFinally);
+    // All Leave's inside Finally region are early exits
+    // Since we execute non-excepting Finallys in JIT now, we should convert Leave to Br
+    if (DoesExitLabelDominate(leaveInstr)) return false;
+    exitLabel = DeleteLeaveChainBlocks(leaveInstr, instrPrev);
+    return true;
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// FlowGraph::Build
@@ -25,27 +145,30 @@ void
 FlowGraph::Build(void)
 {
     Func * func = this->func;
-
     BEGIN_CODEGEN_PHASE(func, Js::FGPeepsPhase);
     this->RunPeeps();
     END_CODEGEN_PHASE(func, Js::FGPeepsPhase);
 
     // We don't optimize fully with SimpleJit. But, when JIT loop body is enabled, we do support
     // bailing out from a simple jitted function to do a full jit of a loop body in the function
-    // (BailOnSimpleJitToFullJitLoopBody). For that purpose, we need the flow from try to catch.
-    if (this->func->HasTry() &&
-        (this->func->DoOptimizeTryCatch() ||
-            (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody())
-        )
-       )
+    // (BailOnSimpleJitToFullJitLoopBody). For that purpose, we need the flow from try to handler.
+    if (this->func->HasTry() && (this->func->DoOptimizeTry() ||
+            (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody())))
     {
         this->catchLabelStack = JitAnew(this->alloc, SList<IR::LabelInstr*>, this->alloc);
+    }
+    if (this->func->HasFinally() && (this->func->DoOptimizeTry() ||
+        (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody())))
+    {
+        this->finallyLabelStack = JitAnew(this->alloc, SList<IR::LabelInstr*>, this->alloc);
+        this->regToFinallyEndMap = JitAnew(this->alloc, RegionToFinallyEndMapType, this->alloc, 0);
     }
 
     IR::Instr * currLastInstr = nullptr;
     BasicBlock * currBlock = nullptr;
     BasicBlock * nextBlock = nullptr;
     bool hasCall = false;
+
     FOREACH_INSTR_IN_FUNC_BACKWARD_EDITING(instr, instrPrev, func)
     {
         if (currLastInstr == nullptr || instr->EndsBasicBlock())
@@ -65,16 +188,27 @@ FlowGraph::Build(void)
 
         if (instr->StartsBasicBlock())
         {
-            // Insert a BrOnException after the loop top if we are in a try-catch. This is required to
-            // model flow from the loop to the catch block for loops that don't have a break condition.
-            if (instr->IsLabelInstr() && instr->AsLabelInstr()->m_isLoopTop &&
-                this->catchLabelStack && !this->catchLabelStack->Empty() &&
-                instr->m_next->m_opcode != Js::OpCode::BrOnException)
+            // Insert a BrOnException after the loop top if we are in a try-catch/try-finally. This is required to
+            // model flow from the loop to the catch/finally block for loops that don't have a break condition.
+            if (instr->IsLabelInstr() && instr->AsLabelInstr()->m_isLoopTop && instr->m_next->m_opcode != Js::OpCode::BrOnException)
             {
-                IR::BranchInstr * brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, this->catchLabelStack->Top(), instr->m_func);
-                instr->InsertAfter(brOnException);
-                instrPrev = brOnException; // process BrOnException before adding a new block for loop top label.
-                continue;
+                IR::BranchInstr * brOnException = nullptr;
+                IR::Instr *instrNext = instr->m_next;
+                if (this->catchLabelStack && !this->catchLabelStack->Empty())
+                {
+                    brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, this->catchLabelStack->Top(), instr->m_func);
+                    instr->InsertAfter(brOnException);
+                }
+                if (this->finallyLabelStack && !this->finallyLabelStack->Empty())
+                {
+                    brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, this->finallyLabelStack->Top(), instr->m_func);
+                    instr->InsertAfter(brOnException);
+                }
+                if (brOnException)
+                {
+                    instrPrev = instrNext->m_prev;
+                    continue;
+                }
             }
 
             // Wrap up the current block and get ready to process a new one.
@@ -95,6 +229,67 @@ FlowGraph::Build(void)
             }
             break;
 
+        case Js::OpCode::Finally:
+        {
+            if (!this->finallyLabelStack)
+            {
+                break;
+            }
+
+            //To enable globopt on functions with try finallys we transform the flowgraph as below :
+            //          TryFinally L1
+            //          <try code>
+            //          Leave L2
+            //  L2 :    Br L3
+            //  L1 :    <finally code>
+            //          LeaveNull
+            //  L3 :    <code after try finally>
+            //
+            //to:
+            //
+            //          TryFinally L1
+            //          <try code>
+            //          BrOnException L1
+            //          Leave L1'
+            //  L1 :    BailOnException
+            //  L2 :    Finally
+            //          <finally code>
+            //          LeaveNull
+            //  L3:     <code after try finally>
+            //We generate 2 flow edges from the try - an exception path and a non exception path.
+            //This transformation enables us to optimize on the non-excepting finally path
+
+            Assert(instr->m_prev->IsLabelInstr());
+
+            IR::LabelInstr * finallyLabel = instr->m_prev->AsLabelInstr();
+
+            // Find leave label
+
+            Assert(finallyLabel->m_prev->m_opcode == Js::OpCode::Br && finallyLabel->m_prev->m_prev->m_opcode == Js::OpCode::Label);
+
+            IR::Instr * insertPoint = finallyLabel->m_prev;
+            IR::LabelInstr * leaveTarget = finallyLabel->m_prev->m_prev->AsLabelInstr();
+
+            leaveTarget->Unlink();
+            finallyLabel->InsertBefore(leaveTarget);
+            finallyLabel->Unlink();
+            insertPoint->InsertBefore(finallyLabel);
+
+            // Bailout from the opcode following Finally
+            IR::Instr * bailOnException = IR::BailOutInstr::New(Js::OpCode::BailOnException, IR::BailOutOnException, instr->m_next, instr->m_func);
+            insertPoint->InsertBefore(bailOnException);
+            insertPoint->Remove();
+
+            this->finallyLabelStack->Push(finallyLabel);
+
+            Assert(leaveTarget->labelRefs.HasOne());
+            IR::BranchInstr * brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, finallyLabel, instr->m_func);
+            leaveTarget->labelRefs.Head()->InsertBefore(brOnException);
+
+            instrPrev = instr->m_prev;
+        }
+        break;
+
         case Js::OpCode::TryCatch:
             if (this->catchLabelStack)
             {
@@ -102,6 +297,12 @@ FlowGraph::Build(void)
             }
             break;
 
+        case Js::OpCode::TryFinally:
+            if (this->finallyLabelStack)
+            {
+                this->finallyLabelStack->Pop();
+            }
+            break;
         case Js::OpCode::CloneBlockScope:
         case Js::OpCode::CloneInnerScopeSlots:
             // It would be nice to do this in IRBuilder, but doing so gives us
@@ -110,7 +311,6 @@ FlowGraph::Build(void)
             // here in FlowGraph.
             instr->SetDst(instr->GetSrc1());
             break;
-
         }
 
         if (OpCodeAttr::UseAllFields(instr->m_opcode))
@@ -162,6 +362,7 @@ FlowGraph::Build(void)
     NEXT_INSTR_IN_FUNC_BACKWARD_EDITING;
     this->func->isFlowGraphValid = true;
     Assert(!this->catchLabelStack || this->catchLabelStack->Empty());
+    Assert(!this->finallyLabelStack || this->finallyLabelStack->Empty());
 
     // We've been walking backward so that edge lists would be in the right order. Now walk the blocks
     // forward to number the blocks in lexical order.
@@ -174,17 +375,6 @@ FlowGraph::Build(void)
 
     this->RemoveUnreachableBlocks();
 
-    this->FindLoops();
-
-    bool breakBlocksRelocated = this->CanonicalizeLoops();
-
-#if DBG
-    this->VerifyLoopGraph();
-#endif
-
-    // Renumber the blocks. Break block remove code has likely inserted new basic blocks.
-    blockNum = 0;
-
     // Regions need to be assigned before Globopt because:
     //     1. FullJit: The Backward Pass will set the write-through symbols on the regions and the forward pass will
     //        use this information to insert ToVars for those symbols. Also, for a symbol determined as write-through
@@ -195,13 +385,10 @@ FlowGraph::Build(void)
     //        we have in Simple Jitted code right now is BailOnSimpleJitToFullJitLoopBody, installed in IRBuilder. So,
     //        for now, we can just check if the func has a bailout to assign regions pre globopt while running SimpleJit.
 
-    bool assignRegionsBeforeGlobopt = this->func->HasTry() &&
-                                (this->func->DoOptimizeTryCatch() || (this->func->IsSimpleJit() && this->func->hasBailout));
-    Region ** blockToRegion = nullptr;
-    if (assignRegionsBeforeGlobopt)
-    {
-        blockToRegion = JitAnewArrayZ(this->alloc, Region*, this->blockCount);
-    }
+    bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
+        (this->func->IsSimpleJit() && this->func->hasBailout));
+
+    blockNum = 0;
     FOREACH_BLOCK_ALL(block, this)
     {
         block->SetBlockNum(blockNum++);
@@ -211,20 +398,270 @@ FlowGraph::Build(void)
             {
                 continue;
             }
-            this->UpdateRegionForBlock(block, blockToRegion);
+            this->UpdateRegionForBlock(block);
         }
     } NEXT_BLOCK_ALL;
+    AssertMsg(blockNum == this->blockCount, "Block count is out of whack");
 
-    AssertMsg (blockNum == this->blockCount, "Block count is out of whack");
+#if DBG_DUMP
+    if (PHASE_DUMP(Js::FGBuildPhase, this->GetFunc()))
+    {
+        if (assignRegionsBeforeGlobopt)
+        {
+            Output::Print(_u("Before adding early exit edges\n"));
+            FOREACH_BLOCK_ALL(block, this)
+            {
+                block->DumpHeader(true);
+                Region *region = block->GetFirstInstr()->AsLabelInstr()->GetRegion();
+                if (region)
+                {
+                    const char16 * regMap[] = { _u("RegionTypeInvalid"),
+                        _u("RegionTypeRoot"),
+                        _u("RegionTypeTry"),
+                        _u("RegionTypeCatch"),
+                        _u("RegionTypeFinally") };
+                    Output::Print(_u("Region %p RegionParent %p RegionType %s\n"), region, region->GetParent(), regMap[region->GetType()]);
+                }
+            } NEXT_BLOCK_ALL;
+            this->func->Dump();
+        }
+    }
+#endif
+
+    if (this->finallyLabelStack)
+    {
+        Assert(this->finallyLabelStack->Empty());
+
+        // Add s0 definition at the beginning of the function
+        // We need this because - s0 symbol can get added to bytcodeUpwardExposed use when there are early returns,
+        // And globopt will complain that s0 is uninitialized, because we define it to undefined only at the end of the function
+        const auto addrOpnd = IR::AddrOpnd::New(this->func->GetScriptContextInfo()->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, this->func, true);
+        addrOpnd->SetValueType(ValueType::Undefined);
+        IR::RegOpnd *regOpnd = IR::RegOpnd::New(this->func->m_symTable->FindStackSym(0), TyVar, this->func);
+        IR::Instr *ldRet = IR::Instr::New(Js::OpCode::Ld_A, regOpnd, addrOpnd, this->func);
+        this->func->m_headInstr->GetNextRealInstr()->InsertBefore(ldRet);
+
+        IR::LabelInstr * currentLabel = nullptr;
+        // look for early exits from a try, and insert bailout
+        FOREACH_INSTR_IN_FUNC_EDITING(instr, instrNext, func)
+        {
+            if (instr->IsLabelInstr())
+            {
+                currentLabel = instr->AsLabelInstr();
+            }
+            else if (instr->m_opcode == Js::OpCode::TryFinally)
+            {
+                Assert(instr->AsBranchInstr()->GetTarget()->GetRegion()->GetType() == RegionTypeFinally);
+                this->finallyLabelStack->Push(instr->AsBranchInstr()->GetTarget());
+            }
+            else if (instr->m_opcode == Js::OpCode::Leave)
+            {
+                IR::LabelInstr *branchTarget = instr->AsBranchInstr()->GetTarget();
+                IR::LabelInstr *exitLabel = nullptr;
+                // An early exit (break, continue, return) from an EH region appears as Leave opcode
+                // When there is an early exit within a try finally, we have to execute finally code
+                // Currently we bailout on early exits
+                // For all such edges add edge from eh region -> finally and finally -> earlyexit
+                Assert(currentLabel != nullptr);
+                if (currentLabel && CheckIfEarlyExitAndAddEdgeToFinally(instr->AsBranchInstr(), currentLabel->GetRegion(), branchTarget->GetRegion(), instrNext, exitLabel))
+                {
+                    Assert(exitLabel);
+                    IR::Instr * bailOnEarlyExit = IR::BailOutInstr::New(Js::OpCode::BailOnEarlyExit, IR::BailOutOnEarlyExit, instr, instr->m_func); 
+                    instr->InsertBefore(bailOnEarlyExit);
+                    IR::LabelInstr *exceptFinallyLabel = this->finallyLabelStack->Top();
+                    IR::LabelInstr *nonExceptFinallyLabel = exceptFinallyLabel->m_next->m_next->AsLabelInstr();
+
+                    // It is possible for the finally region to have a non terminating loop, in which case the end of finally is eliminated
+                    // We can skip adding edge from finally to early exit in this case
+                    IR::Instr * leaveToFinally = IR::BranchInstr::New(Js::OpCode::Leave, exceptFinallyLabel, this->func);
+                    instr->InsertBefore(leaveToFinally);
+                    instr->Remove();
+                    this->AddEdge(currentLabel->GetBasicBlock(), exceptFinallyLabel->GetBasicBlock());
+
+                    if (this->regToFinallyEndMap->ContainsKey(nonExceptFinallyLabel->GetRegion()))
+                    {
+                        BasicBlock * finallyEndBlock = this->regToFinallyEndMap->Item(nonExceptFinallyLabel->GetRegion());
+                        Assert(finallyEndBlock);
+                        Assert(finallyEndBlock->GetFirstInstr()->AsLabelInstr()->GetRegion() == nonExceptFinallyLabel->GetRegion());
+                        InsertEdgeFromFinallyToEarlyExit(finallyEndBlock, exitLabel);
+                    }
+                }
+                else if (currentLabel && currentLabel->GetRegion()->GetType() == RegionTypeFinally)
+                {
+                    Assert(currentLabel->GetRegion()->GetMatchingTryRegion()->GetMatchingFinallyRegion(false) == currentLabel->GetRegion());
+                    // Convert Leave to Br because we execute non-excepting Finally in native code
+                    instr->m_opcode = Js::OpCode::Br;
+#if DBG
+                    instr->AsBranchInstr()->m_leaveConvToBr = true;
+#endif
+                }
+            }
+            else if (instr->m_opcode == Js::OpCode::Finally)
+            {
+                this->finallyLabelStack->Pop();
+            }
+        }
+        NEXT_INSTR_IN_FUNC_EDITING;
+
+        this->RemoveUnreachableBlocks();
+
+        blockNum = 0;
+        FOREACH_BLOCK_ALL(block, this)
+        {
+            block->SetBlockNum(blockNum++);
+        } NEXT_BLOCK_ALL;
+    }
+
+    this->FindLoops();
+
+#if DBG_DUMP
+    if (PHASE_DUMP(Js::FGBuildPhase, this->GetFunc()))
+    {
+        if (assignRegionsBeforeGlobopt)
+        {
+            Output::Print(_u("After adding early exit edges/Before CanonicalizeLoops\n"));
+            FOREACH_BLOCK_ALL(block, this)
+            {
+                block->DumpHeader(true);
+                Region *region = block->GetFirstInstr()->AsLabelInstr()->GetRegion();
+                if (region)
+                {
+                    const char16 * regMap[] = { _u("RegionTypeInvalid"),
+                        _u("RegionTypeRoot"),
+                        _u("RegionTypeTry"),
+                        _u("RegionTypeCatch"),
+                        _u("RegionTypeFinally") };
+                    Output::Print(_u("Region %p RegionParent %p RegionType %s\n"), region, region->GetParent(), regMap[region->GetType()]);
+                }
+            } NEXT_BLOCK_ALL;
+            this->func->Dump();
+        }
+    }
+#endif
+
+    bool breakBlocksRelocated = this->CanonicalizeLoops();
+
+    blockNum = 0;
+    FOREACH_BLOCK_ALL(block, this)
+    {
+        block->SetBlockNum(blockNum++);
+    } NEXT_BLOCK_ALL;
+
+#if DBG
+    FOREACH_BLOCK_ALL(block, this)
+    {
+        if (assignRegionsBeforeGlobopt)
+        {
+            if (block->GetFirstInstr()->AsLabelInstr()->GetRegion())
+            {
+                Assert(block->GetFirstInstr()->AsLabelInstr()->GetRegion()->ehBailoutData);
+            }
+        }
+    } NEXT_BLOCK_ALL;
+#endif
+
+#if DBG_DUMP
+    if (PHASE_DUMP(Js::FGBuildPhase, this->GetFunc()))
+    {
+        if (assignRegionsBeforeGlobopt)
+        {
+            Output::Print(_u("After CanonicalizeLoops\n"));
+            FOREACH_BLOCK_ALL(block, this)
+            {
+                block->DumpHeader(true);
+                Region *region = block->GetFirstInstr()->AsLabelInstr()->GetRegion();
+                if (region)
+                {
+                    const char16 * regMap[] = { _u("RegionTypeInvalid"),
+                    _u("RegionTypeRoot"),
+                    _u("RegionTypeTry"),
+                    _u("RegionTypeCatch"),
+                    _u("RegionTypeFinally") };
+                    Output::Print(_u("Region %p RegionParent %p RegionType %s\n"), region, region->GetParent(), regMap[region->GetType()]);
+                }
+            } NEXT_BLOCK_ALL;
+            this->func->Dump();
+        }
+    }
+#endif
 
     if (breakBlocksRelocated)
     {
         // Sort loop lists only if there is break block removal.
         SortLoopLists();
     }
+
+#if DBG
+    this->VerifyLoopGraph();
+#endif
+
 #if DBG_DUMP
     this->Dump(false, nullptr);
 #endif
+}
+
+void FlowGraph::InsertEdgeFromFinallyToEarlyExit(BasicBlock *finallyEndBlock, IR::LabelInstr *exitLabel)
+{
+    IR::Instr * lastInstr = finallyEndBlock->GetLastInstr();
+    IR::LabelInstr * lastLabel = finallyEndBlock->GetFirstInstr()->AsLabelInstr();
+
+    Assert(lastInstr->m_opcode == Js::OpCode::LeaveNull || lastInstr->m_opcode == Js::OpCode::Leave || lastInstr->m_opcode == Js::OpCode::BrOnException);
+    // Add a new block, add BrOnException to earlyexit, assign region
+    // Finally
+    // ...
+    // L1:
+    // LeaveNull
+    // to
+    // Finally
+    // ...
+    // L1:
+    // BrOnException earlyExitLabel
+    // L1':
+    // LeaveNull
+
+    BasicBlock *nextBB = finallyEndBlock->GetNext();
+
+    IR::LabelInstr *leaveLabel = IR::LabelInstr::New(Js::OpCode::Label, this->func);
+    lastInstr->InsertBefore(leaveLabel);
+
+    this->AddBlock(leaveLabel, lastInstr, nextBB, finallyEndBlock /*prevBlock*/);
+    leaveLabel->SetRegion(lastLabel->GetRegion());
+
+    this->AddEdge(finallyEndBlock, leaveLabel->GetBasicBlock());
+
+    // If the Leave/LeaveNull at the end of finally was not preceeded by a Label, we have to create a new block with BrOnException to early exit
+    if (!lastInstr->GetPrevRealInstrOrLabel()->IsLabelInstr())
+    {
+        IR::LabelInstr *brLabel = IR::LabelInstr::New(Js::OpCode::Label, this->func);
+        leaveLabel->InsertBefore(brLabel);
+
+        IR::BranchInstr *brToExit = IR::BranchInstr::New(Js::OpCode::BrOnException, exitLabel, this->func);
+        brToExit->m_brFinallyToEarlyExit = true;
+        brToExit->SetByteCodeOffset(lastInstr);
+        leaveLabel->InsertBefore(brToExit);
+
+        this->AddBlock(brLabel, brToExit, finallyEndBlock->GetNext(), finallyEndBlock /*prevBlock*/);
+        brLabel->SetRegion(lastLabel->GetRegion());
+
+        this->AddEdge(finallyEndBlock, brLabel->GetBasicBlock());
+    }
+    else
+    {
+        // If the Leave/LeaveNull at the end of finally was preceeded by a Label, we reuse the block inserting BrOnException to early exit in it
+        IR::BranchInstr *brToExit = IR::BranchInstr::New(Js::OpCode::BrOnException, exitLabel, this->func);
+        brToExit->SetByteCodeOffset(lastInstr);
+        brToExit->m_brFinallyToEarlyExit = true;
+        leaveLabel->InsertBefore(brToExit);
+        this->AddEdge(finallyEndBlock, exitLabel->GetBasicBlock());
+    }
+
+    // In case of throw/non-terminating loop, there maybe no edge to the next block
+    if (this->FindEdge(finallyEndBlock, nextBB))
+    {
+        finallyEndBlock->RemoveSucc(nextBB, this);
+    }
+
+    this->regToFinallyEndMap->Item(lastLabel->GetRegion(), leaveLabel->GetBasicBlock());
 }
 
 void
@@ -323,6 +760,7 @@ FlowGraph::RunPeeps()
         case Js::OpCode::BrFncCachedScopeNeq:
         case Js::OpCode::BrOnObject_A:
         case Js::OpCode::BrOnClassConstructor:
+        case Js::OpCode::BrOnBaseConstructorKind:
             if (tryUnsignedCmpPeep)
             {
                 this->UnsignedCmpPeep(instr);
@@ -440,7 +878,8 @@ Loop::InsertLandingPad(FlowGraph *fg)
     headInstr->InsertBefore(landingPadLabel);
 
     landingPadLabel->SetBasicBlock(landingPad);
-
+    landingPadLabel->SetRegion(headBlock->GetFirstInstr()->AsLabelInstr()->GetRegion());
+    landingPadLabel->m_hasNonBranchRef = headBlock->GetFirstInstr()->AsLabelInstr()->m_hasNonBranchRef;
     landingPad->SetBlockNum(fg->blockCount++);
     landingPad->SetFirstInstr(landingPadLabel);
     landingPad->SetLastInstr(landingPadLabel);
@@ -488,6 +927,11 @@ Loop::InsertLandingPad(FlowGraph *fg)
     } NEXT_PREDECESSOR_EDGE_EDITING;
 
     fg->AddEdge(landingPad, headBlock);
+
+    if (headBlock->GetFirstInstr()->AsLabelInstr()->GetRegion() && headBlock->GetFirstInstr()->AsLabelInstr()->GetRegion()->GetType() != RegionTypeRoot)
+    {
+        landingPadLabel->m_hasNonBranchRef = true;
+    }
 }
 
 bool
@@ -600,6 +1044,10 @@ FlowGraph::MoveBlocksBefore(BasicBlock *blockStart, BasicBlock *blockEnd, BasicB
     }
 
     IR::Instr *dstLastInstr = dstPredBlockLastInstr;
+
+    bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
+        (this->func->IsSimpleJit() && this->func->hasBailout));
+
     if (dstLastInstr->IsBranchInstr() && dstLastInstr->AsBranchInstr()->HasFallThrough())
     {
         //There is a fallthrough in the block after which break block is inserted.
@@ -608,6 +1056,14 @@ FlowGraph::MoveBlocksBefore(BasicBlock *blockStart, BasicBlock *blockEnd, BasicB
 
         BasicBlock *compensationBlock = this->InsertCompensationCodeForBlockMove(dstEdge, true /*insert compensation block to loop list*/, true /*At sink*/);
         Assert(compensationBlock);
+    }
+
+    // We have to update region info for blocks whose predecessors changed
+    if (assignRegionsBeforeGlobopt)
+    {
+        UpdateRegionForBlockFromEHPred(dstPredBlock, true);
+        UpdateRegionForBlockFromEHPred(blockStart, true);
+        UpdateRegionForBlockFromEHPred(srcNextBlock, true);
     }
 }
 
@@ -658,7 +1114,7 @@ FlowGraph::CanonicalizeLoops()
     for (Loop *loop = this->loopList; loop; loop = loop->next)
     {
         loop->InsertLandingPad(this);
-        if (!this->func->HasTry() || this->func->DoOptimizeTryCatch())
+        if (!this->func->HasTry() || this->func->DoOptimizeTry())
         {
             bool relocated = loop->RemoveBreakBlocks(this);
             if (!breakBlockRelocated && relocated)
@@ -910,7 +1366,8 @@ BasicBlock *
 FlowGraph::AddBlock(
     IR::Instr * firstInstr,
     IR::Instr * lastInstr,
-    BasicBlock * nextBlock)
+    BasicBlock * nextBlock,
+    BasicBlock *prevBlock)
 {
     BasicBlock * block;
     IR::LabelInstr * labelInstr;
@@ -1014,13 +1471,22 @@ FlowGraph::AddBlock(
     block->SetFirstInstr(firstInstr);
     block->SetLastInstr(lastInstr);
 
-    if (this->blockList)
+    if (!prevBlock)
     {
-        this->blockList->prev = block;
+        if (this->blockList)
+        {
+            this->blockList->prev = block;
+        }
+        block->next = this->blockList;
+        this->blockList = block;
     }
-    block->next = this->blockList;
-    this->blockList = block;
-
+    else
+    {
+        prevBlock->next = block;
+        block->prev = prevBlock;
+        block->next = nextBlock;
+        nextBlock->prev = block;
+    }
     return block;
 }
 
@@ -1075,10 +1541,8 @@ void
 FlowGraph::Destroy(void)
 {
     BOOL fHasTry = this->func->HasTry();
-    Region ** blockToRegion = nullptr;
     if (fHasTry)
     {
-        blockToRegion = JitAnewArrayZ(this->alloc, Region*, this->blockCount);
         // Do unreachable code removal up front to avoid problems
         // with unreachable back edges, etc.
         this->RemoveUnreachableBlocks();
@@ -1156,7 +1620,7 @@ FlowGraph::Destroy(void)
 
         if (fHasTry)
         {
-            this->UpdateRegionForBlock(block, blockToRegion);
+            this->UpdateRegionForBlock(block);
         }
 
         if (firstInstr->IsLabelInstr())
@@ -1201,11 +1665,11 @@ FlowGraph::Destroy(void)
         // block boundaries.
         FOREACH_BLOCK(block, this)
         {
-            Region * region = blockToRegion[block->GetBlockNum()];
+            Region * region = block->GetFirstInstr()->AsLabelInstr()->GetRegion();
             Region * predRegion = nullptr;
             FOREACH_PREDECESSOR_BLOCK(predBlock, block)
             {
-                predRegion = blockToRegion[predBlock->GetBlockNum()];
+                predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
                 if (predBlock->GetLastInstr() == nullptr)
                 {
                     AssertMsg(region == predRegion, "Bad region propagation through empty block");
@@ -1234,6 +1698,9 @@ FlowGraph::Destroy(void)
                         }
                         break;
                     case Js::OpCode::Leave:
+                        AssertMsg(region == predRegion->GetParent() || (predRegion->GetType() == RegionTypeTry && predRegion->GetMatchingFinallyRegion(false) == region) ||
+                            (region == predRegion && this->func->IsLoopBodyInTry()), "Bad region prop on leaving try-catch/finally");
+                        break;
                     case Js::OpCode::LeaveNull:
                         AssertMsg(region == predRegion->GetParent() || (region == predRegion && this->func->IsLoopBodyInTry()), "Bad region prop on leaving try-catch/finally");
                         break;
@@ -1245,33 +1712,37 @@ FlowGraph::Destroy(void)
                     // - FullJit: BrOnException is removed in the forward pass.
                     case Js::OpCode::BrOnException:
                         Assert(!this->func->DoGlobOpt());
+                        break;
                     case Js::OpCode::BrOnNoException:
-                        Assert(this->func->HasTry() &&
-                               ((!this->func->HasFinally() && !this->func->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this->func)) ||
-                               (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody()))); // should be relaxed as more bailouts are added in Simple Jit
-
-                        Assert(region->GetType() == RegionTypeTry || region->GetType() == RegionTypeCatch);
-                        if (region->GetType() == RegionTypeCatch)
-                        {
-                            Assert((predRegion->GetType() == RegionTypeTry) || (predRegion->GetType() == RegionTypeCatch));
-                        }
-                        else if (region->GetType() == RegionTypeTry)
-                        {
-                            Assert(region == predRegion);
-                        }
+                        Assert(region->GetType() == RegionTypeTry || region->GetType() == RegionTypeCatch || region->GetType() == RegionTypeFinally ||
+                            // A BrOnException from finally to early exit can be converted to BrOnNoException and Br
+                            // The Br block maybe a common successor block for early exit along with the BrOnNoException block
+                            // Region from Br block will be picked up from a predecessor which is not BrOnNoException due to early exit
+                            // See test0() in test/EH/tryfinallytests.js
+                            (predRegion->GetType() == RegionTypeFinally && predBlock->GetLastInstr()->AsBranchInstr()->m_brFinallyToEarlyExit));
                         break;
                     case Js::OpCode::Br:
-                        if (region->GetType() == RegionTypeCatch && region != predRegion)
+                        if (predBlock->GetLastInstr()->AsBranchInstr()->m_leaveConvToBr)
+                        {
+                            // Leave converted to Br in finally region
+                            AssertMsg(region == predRegion->GetParent(), "Bad region prop in finally");
+                        }
+                        else if (region->GetType() == RegionTypeCatch && region != predRegion)
                         {
                             AssertMsg(predRegion->GetType() == RegionTypeTry, "Bad region type for the try");
                         }
+                        else if (region->GetType() == RegionTypeFinally && region != predRegion)
+                        {
+                            // We may be left with edges from finally region to early exit
+                            AssertMsg(predRegion->IsNonExceptingFinally() || predRegion->GetType() == RegionTypeTry, "Bad region type for the try");
+                        }
                         else
                         {
-                            AssertMsg(region == predRegion, "Bad region propagation through interior block");
+                            // We may be left with edges from finally region to early exit
+                            AssertMsg(predRegion->IsNonExceptingFinally() || region == predRegion, "Bad region propagation through interior block");
                         }
                         break;
                     default:
-                        AssertMsg(region == predRegion, "Bad region propagation through interior block");
                         break;
                     }
                 }
@@ -1281,11 +1752,18 @@ FlowGraph::Destroy(void)
             switch (region->GetType())
             {
             case RegionTypeRoot:
-                Assert(!region->GetMatchingTryRegion() && !region->GetMatchingCatchRegion() && !region->GetMatchingFinallyRegion());
+                Assert(!region->GetMatchingTryRegion() && !region->GetMatchingCatchRegion() && !region->GetMatchingFinallyRegion(true) && !region->GetMatchingFinallyRegion(false));
                 break;
 
             case RegionTypeTry:
-                Assert(!(region->GetMatchingCatchRegion() && region->GetMatchingFinallyRegion()));
+                if ((this->func->IsSimpleJit() && this->func->hasBailout) || !this->func->DoOptimizeTry())
+                {
+                    Assert((region->GetMatchingCatchRegion() != nullptr) ^ (region->GetMatchingFinallyRegion(true) && !region->GetMatchingFinallyRegion(false)));
+                }
+                else
+                {
+                    Assert((region->GetMatchingCatchRegion() != nullptr) ^ (region->GetMatchingFinallyRegion(true) && region->GetMatchingFinallyRegion(false)));
+                }
                 break;
 
             case RegionTypeCatch:
@@ -1314,11 +1792,38 @@ FlowGraph::Destroy(void)
     this->func->isFlowGraphValid = false;
 }
 
+bool FlowGraph::IsEHTransitionInstr(IR::Instr *instr)
+{
+    Js::OpCode op = instr->m_opcode;
+    return (op == Js::OpCode::TryCatch || op == Js::OpCode::TryFinally || op == Js::OpCode::Leave || op == Js::OpCode::LeaveNull);
+}
+
+BasicBlock * FlowGraph::GetPredecessorForRegionPropagation(BasicBlock *block)
+{
+    BasicBlock *ehPred = nullptr;
+    FOREACH_PREDECESSOR_BLOCK(predBlock, block)
+    {
+        Region * predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
+        if (IsEHTransitionInstr(predBlock->GetLastInstr()) && predRegion)
+        {
+            // MGTODO : change this to return, once you know there can exist only one eh transitioning pred
+           Assert(ehPred == nullptr);
+           ehPred = predBlock;
+        }
+        AssertMsg(predBlock->GetBlockNum() < this->blockCount, "Misnumbered block at teardown time?");
+    }
+    NEXT_PREDECESSOR_BLOCK;
+    return ehPred;
+}
+
 // Propagate the region forward from the block's predecessor(s), tracking the effect
 // of the flow transition. Record the region in the block-to-region map provided
 // and on the label at the entry to the block (if any).
+
+// We need to know the end of finally for inserting edge at the end of finally to early exit
+// Store it in regToFinallyEndMap as we visit blocks instead of recomputing later while adding early exit edges
 void
-FlowGraph::UpdateRegionForBlock(BasicBlock * block, Region ** blockToRegion)
+FlowGraph::UpdateRegionForBlock(BasicBlock * block)
 {
     Region *region;
     Region * predRegion = nullptr;
@@ -1326,8 +1831,7 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block, Region ** blockToRegion)
     IR::Instr * firstInstr = block->GetFirstInstr();
     if (firstInstr->IsLabelInstr() && firstInstr->AsLabelInstr()->GetRegion())
     {
-        Assert(this->func->HasTry() && (this->func->DoOptimizeTryCatch() || (this->func->IsSimpleJit() && this->func->hasBailout)));
-        blockToRegion[block->GetBlockNum()] = firstInstr->AsLabelInstr()->GetRegion();
+        Assert(this->func->HasTry() && (this->func->DoOptimizeTry() || (this->func->IsSimpleJit() && this->func->hasBailout)));
         return;
     }
 
@@ -1339,12 +1843,11 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block, Region ** blockToRegion)
     else
     {
         // Propagate the region forward by finding a predecessor we've already processed.
-        // We require that there be one, since we've already removed unreachable blocks.
         region = nullptr;
         FOREACH_PREDECESSOR_BLOCK(predBlock, block)
         {
             AssertMsg(predBlock->GetBlockNum() < this->blockCount, "Misnumbered block at teardown time?");
-            predRegion = blockToRegion[predBlock->GetBlockNum()];
+            predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
             if (predRegion != nullptr)
             {
                 region = this->PropagateRegionFromPred(block, predBlock, predRegion, tryInstr);
@@ -1352,16 +1855,32 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block, Region ** blockToRegion)
             }
         }
         NEXT_PREDECESSOR_BLOCK;
+
+        if (block->GetLastInstr()->m_opcode == Js::OpCode::LeaveNull || block->GetLastInstr()->m_opcode == Js::OpCode::Leave)
+        {
+            if (this->regToFinallyEndMap && region->IsNonExceptingFinally())
+            {
+                BasicBlock *endOfFinally = regToFinallyEndMap->ContainsKey(region) ? regToFinallyEndMap->Item(region) : nullptr;
+                if (!endOfFinally)
+                {
+                    regToFinallyEndMap->Add(region, block);
+                }
+                else
+                {
+                    Assert(endOfFinally->GetLastInstr()->m_opcode != Js::OpCode::LeaveNull || block == endOfFinally);
+                    regToFinallyEndMap->Item(region, block);
+                }
+            }
+        }
     }
 
-    AnalysisAssertMsg(region != nullptr, "Failed to find region for block");
-    if (!region->ehBailoutData)
+    Assert(region || block->GetPredList()->Count() == 0);
+    if (region && !region->ehBailoutData)
     {
         region->AllocateEHBailoutData(this->func, tryInstr);
     }
 
-    // Record the region in the block-to-region map.
-    blockToRegion[block->GetBlockNum()] = region;
+    Assert(firstInstr->IsLabelInstr());
     if (firstInstr->IsLabelInstr())
     {
         // Record the region on the label and make sure it stays around as a region
@@ -1371,6 +1890,125 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block, Region ** blockToRegion)
         if (region != predRegion)
         {
             labelInstr->m_hasNonBranchRef = true;
+        }
+
+        // One of the pred blocks maybe an eh region, in that case it is important to mark this label's m_hasNonBranchRef
+        // If not later in codegen, this label can get deleted. And during SccLiveness, region is propagated to newly created labels in lowerer from the previous label's region
+        // We can end up assigning an eh region to a label in a non eh region. And if there is a bailout in such a region, bad things will happen in the interpreter :)
+        // See test2()/test3() in tryfinallytests.js
+        if (!labelInstr->m_hasNonBranchRef)
+        {
+            FOREACH_PREDECESSOR_BLOCK(predBlock, block)
+            {
+                AssertMsg(predBlock->GetBlockNum() < this->blockCount, "Misnumbered block at teardown time?");
+                predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
+                if (predRegion != region)
+                {
+                    labelInstr->m_hasNonBranchRef = true;
+                    break;
+                }
+            }
+            NEXT_PREDECESSOR_BLOCK;
+        }
+    }
+}
+
+void
+FlowGraph::UpdateRegionForBlockFromEHPred(BasicBlock * block, bool reassign)
+{
+    Region *region = nullptr;
+    Region * predRegion = nullptr;
+    IR::Instr * tryInstr = nullptr;
+    IR::Instr * firstInstr = block->GetFirstInstr();
+    if (!reassign && firstInstr->IsLabelInstr() && firstInstr->AsLabelInstr()->GetRegion())
+    {
+        Assert(this->func->HasTry() && (this->func->DoOptimizeTry() || (this->func->IsSimpleJit() && this->func->hasBailout)));
+        return;
+    }
+    if (block->isDead || block->isDeleted)
+    {
+        // We can end up calling this function with such blocks, return doing nothing
+        // See test5() in tryfinallytests.js
+        return;
+    }
+
+    if (block == this->blockList)
+    {
+        // Head of the graph: create the root region.
+        region = Region::New(RegionTypeRoot, nullptr, this->func);
+    }
+    else if (block->GetPredList()->Count() == 1)
+    {
+        BasicBlock *predBlock = block->GetPredList()->Head()->GetPred();
+        AssertMsg(predBlock->GetBlockNum() < this->blockCount, "Misnumbered block at teardown time?");
+        predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
+        Assert(predRegion);
+        region = this->PropagateRegionFromPred(block, predBlock, predRegion, tryInstr);
+    }
+    else
+    {
+        // Propagate the region forward by finding a predecessor we've already processed.
+        // Since we do break block remval after region propagation, we cannot pick the first predecessor which has an assigned region
+        // If there is a eh transitioning pred, we pick that
+        // There cannot be more than one eh transitioning pred (?)
+        BasicBlock *ehPred = this->GetPredecessorForRegionPropagation(block);
+        if (ehPred)
+        {
+            predRegion = ehPred->GetFirstInstr()->AsLabelInstr()->GetRegion();
+            Assert(predRegion != nullptr);
+            region = this->PropagateRegionFromPred(block, ehPred, predRegion, tryInstr);
+        }
+        else
+        {
+            FOREACH_PREDECESSOR_BLOCK(predBlock, block)
+            {
+                predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
+                if (predRegion != nullptr)
+                {
+                    if ((predBlock->GetLastInstr()->m_opcode == Js::OpCode::BrOnException || predBlock->GetLastInstr()->m_opcode == Js::OpCode::BrOnNoException) &&
+                        predBlock->GetLastInstr()->AsBranchInstr()->m_brFinallyToEarlyExit)
+                    {
+                        Assert(predRegion->IsNonExceptingFinally());
+                        // BrOnException from finally region to early exit
+                        // Skip this edge
+                        continue;
+                    }
+                    if (predBlock->GetLastInstr()->m_opcode == Js::OpCode::Br &&
+                        predBlock->GetLastInstr()->GetPrevRealInstr()->m_opcode == Js::OpCode::BrOnNoException)
+                    {
+                        Assert(predBlock->GetLastInstr()->GetPrevRealInstr()->AsBranchInstr()->m_brFinallyToEarlyExit);
+                        Assert(predRegion->IsNonExceptingFinally());
+                        // BrOnException from finally region to early exit changed to BrOnNoException and Br during break block removal
+                        continue;
+                    }
+                    region = this->PropagateRegionFromPred(block, predBlock, predRegion, tryInstr);
+                    break;
+                }
+            }
+            NEXT_PREDECESSOR_BLOCK;
+        }
+    }
+
+    Assert(region || block->GetPredList()->Count() == 0 || block->firstInstr->AsLabelInstr()->GetRegion());
+
+    if (region)
+    { 
+        if (!region->ehBailoutData)
+        {
+            region->AllocateEHBailoutData(this->func, tryInstr);
+        }
+
+        Assert(firstInstr->IsLabelInstr());
+        if (firstInstr->IsLabelInstr())
+        {
+            // Record the region on the label and make sure it stays around as a region
+            // marker if we're entering a region at this point.
+            IR::LabelInstr * labelInstr = firstInstr->AsLabelInstr();
+            labelInstr->SetRegion(region);
+            if (region != predRegion)
+            {
+                labelInstr->m_hasNonBranchRef = true;
+            }
         }
     }
 }
@@ -1424,10 +2062,11 @@ FlowGraph::PropagateRegionFromPred(BasicBlock * block, BasicBlock * predBlock, R
 
             if (firstInstr == predLastInstr->AsBranchInstr()->GetTarget())
             {
+                Assert(tryRegion && tryRegion->GetType() == RegionType::RegionTypeTry);
                 region = Region::New(RegionTypeFinally, predRegion, this->func);
-                Assert(tryRegion);
                 region->SetMatchingTryRegion(tryRegion);
-                tryRegion->SetMatchingFinallyRegion(region);
+                tryRegion->SetMatchingFinallyRegion(region, true);
+                tryInstr = predLastInstr;
             }
             else
             {
@@ -1437,6 +2076,28 @@ FlowGraph::PropagateRegionFromPred(BasicBlock * block, BasicBlock * predBlock, R
             break;
 
         case Js::OpCode::Leave:
+            if (firstInstr->m_next && firstInstr->m_next->m_opcode == Js::OpCode::Finally)
+            {
+                tryRegion = predRegion;
+                Assert(tryRegion->GetMatchingFinallyRegion(true) != nullptr);
+                region = Region::New(RegionTypeFinally, predRegion->GetParent(), this->func);
+                Assert(tryRegion && tryRegion->GetType() == RegionType::RegionTypeTry);
+                region->SetMatchingTryRegion(tryRegion);
+                tryRegion->SetMatchingFinallyRegion(region, false);
+                break;
+            }
+
+            // Exiting a try or handler. Retrieve the current region's parent.
+            region = predRegion->GetParent();
+            if (region == nullptr)
+            {
+                // We found a Leave in the root region- this can only happen when a jitted loop body
+                // in a try block has a return statement.
+                Assert(this->func->IsLoopBodyInTry());
+                predLastInstr->AsBranchInstr()->m_isOrphanedLeave = true;
+                region = predRegion;
+            }
+            break;
         case Js::OpCode::LeaveNull:
             // Exiting a try or handler. Retrieve the current region's parent.
             region = predRegion->GetParent();
@@ -1449,7 +2110,29 @@ FlowGraph::PropagateRegionFromPred(BasicBlock * block, BasicBlock * predBlock, R
                 region = predRegion;
             }
             break;
-
+        case Js::OpCode::BailOnException:
+            // Infinite loop, no edge to non excepting finally
+            if (firstInstr->m_next && firstInstr->m_next->m_opcode == Js::OpCode::Finally)
+            {
+                tryRegion = predRegion->GetMatchingTryRegion();
+                region = Region::New(RegionTypeFinally, predRegion->GetParent(), this->func);
+                Assert(tryRegion && tryRegion->GetType() == RegionType::RegionTypeTry);
+                region->SetMatchingTryRegion(tryRegion);
+                tryRegion->SetMatchingFinallyRegion(region, false);
+            }
+            break;
+        case Js::OpCode::BrOnException:
+            // Infinite loop inside another EH region within finally,
+            // We have added edges for all infinite loops inside a finally, identify that and transition to parent
+            if (predRegion->GetType() != RegionTypeFinally && firstInstr->GetNextRealInstr()->m_opcode == Js::OpCode::LeaveNull)
+            {
+                region = predRegion->GetParent();
+            }
+            else
+            {
+                region = predRegion;
+            }
+            break;
         default:
             // Normal (non-EH) transition: just propagate the region.
             region = predRegion;
@@ -1684,6 +2367,14 @@ FlowGraph::InsertCompensationCodeForBlockMove(FlowEdge * edge,  bool insertToLoo
             const bool replaced = sourceBr->AsMultiBrInstr()->ReplaceTarget(sinkLabel, compLabel);
             Assert(replaced);
         }
+    }
+
+    bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
+        (this->func->IsSimpleJit() && this->func->hasBailout));
+
+    if (assignRegionsBeforeGlobopt)
+    {
+        UpdateRegionForBlockFromEHPred(compBlock);
     }
 
     return compBlock;
@@ -2096,7 +2787,7 @@ FlowGraph::PeepCm(IR::Instr *instr)
     instrBr->SetSrc2(instr->UnlinkSrc2());
     instrBr->m_func = instr->m_func;
 
-    Js::OpCode newOpcode;
+    Js::OpCode newOpcode = Js::OpCode::InvalidOpCode;
 
     switch(instr->m_opcode)
     {
@@ -2221,6 +2912,10 @@ FlowGraph::PeepCm(IR::Instr *instr)
         StackSym *dstSym = instr->GetDst()->AsRegOpnd()->m_sym;
         instrBr->AsBranchInstr()->SetByteCodeReg(dstSym->GetByteCodeRegSlot());
     }
+
+    brSrc = brSrc->Copy(this->func);
+    // We need brSrc later, but instr->Remove() might delete it...
+    IR::AutoReuseOpnd brSrcAutoCopy(brSrc, this->func, true);
     instr->Remove();
 
     //
@@ -2595,7 +3290,7 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
         */
         Js::OpCode opcode = instr->m_opcode;
         if (opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt(this->func) &&
-            globOpt->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
+            globOpt->CurrentBlockData()->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
         {
             IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr);
             byteCodeUsesInstr->SetNonOpndSymbol(instr->m_func->GetScopeObjSym()->m_id);
@@ -2861,7 +3556,7 @@ Loop::CanDoFieldHoist()
 }
 
 bool
-Loop::CanHoistInvariants()
+Loop::CanHoistInvariants() const
 {
     Func * func = this->GetHeadBlock()->firstInstr->m_func->GetTopFunc();
 
@@ -3013,7 +3708,9 @@ bool FlowGraph::IsUnsignedOpnd(IR::Opnd *src, IR::Opnd **pShrSrc1)
         return false;
     }
 
-    *pShrSrc1 = shrUInstr->GetSrc1();
+    IR::Opnd *shrSrc = shrUInstr->GetSrc1();
+
+    *pShrSrc1 = shrSrc;
     return true;
 }
 
@@ -3033,7 +3730,8 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     //
     //  t1 = ShrU_A x, 0
     //  t2 = 10;
-    //  BrUnGt x, t2, L
+    //  t3 = Or_A x, 0
+    //  BrUnGt x, t3, L
     //       ByteCodeUse t1
     //
     // Hopefully dead-store can get rid of the ShrU
@@ -3068,6 +3766,10 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     case Js::OpCode::BrNeq_A:
     case Js::OpCode::BrSrEq_A:
     case Js::OpCode::BrSrNeq_A:
+    case Js::OpCode::CmEq_A:
+    case Js::OpCode::CmNeq_A:
+    case Js::OpCode::CmSrEq_A:
+    case Js::OpCode::CmSrNeq_A:
         break;
     case Js::OpCode::BrLe_A:
         cmpInstr->m_opcode = Js::OpCode::BrUnLe_A;
@@ -3107,10 +3809,16 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
         {
             bytecodeInstr->Set(cmpSrc1);
         }
-        cmpInstr->ReplaceSrc1(newSrc1);
+
+        IR::RegOpnd * unsignedSrc = IR::RegOpnd::New(newSrc1->GetType(), cmpInstr->m_func);
+        IR::Instr * orZero = IR::Instr::New(Js::OpCode::Or_A, unsignedSrc, newSrc1, IR::IntConstOpnd::New(0, TyMachReg, cmpInstr->m_func), cmpInstr->m_func);
+        orZero->SetByteCodeOffset(cmpInstr);
+        cmpInstr->InsertBefore(orZero);
+        cmpInstr->ReplaceSrc1(unsignedSrc);
         if (newSrc1->IsRegOpnd())
         {
             cmpInstr->GetSrc1()->AsRegOpnd()->SetIsJITOptimizedReg(true);
+            orZero->GetSrc1()->SetIsJITOptimizedReg(true);
         }
     }
     if (cmpSrc2 != newSrc2)
@@ -3119,10 +3827,16 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
         {
             bytecodeInstr->Set(cmpSrc2);
         }
-        cmpInstr->ReplaceSrc2(newSrc2);
+
+        IR::RegOpnd * unsignedSrc = IR::RegOpnd::New(newSrc2->GetType(), cmpInstr->m_func);
+        IR::Instr * orZero = IR::Instr::New(Js::OpCode::Or_A, unsignedSrc, newSrc2, IR::IntConstOpnd::New(0, TyMachReg, cmpInstr->m_func), cmpInstr->m_func);
+        orZero->SetByteCodeOffset(cmpInstr);
+        cmpInstr->InsertBefore(orZero);
+        cmpInstr->ReplaceSrc2(unsignedSrc);
         if (newSrc2->IsRegOpnd())
         {
             cmpInstr->GetSrc2()->AsRegOpnd()->SetIsJITOptimizedReg(true);
+            orZero->GetSrc1()->SetIsJITOptimizedReg(true);
         }
     }
 
@@ -3157,7 +3871,7 @@ FlowGraph::VerifyLoopGraph()
         if (!PHASE_OFF(Js::RemoveBreakBlockPhase, this->GetFunc()))
         {
             // Make sure all break blocks have been removed.
-            if (loop && !block->isLoopHeader && !(this->func->HasTry() && !this->func->DoOptimizeTryCatch()))
+            if (loop && !block->isLoopHeader && !(this->func->HasTry() && !this->func->DoOptimizeTry()))
             {
                 Assert(loop->IsDescendentOrSelf(block->GetPrev()->loop));
             }
@@ -3383,3 +4097,987 @@ ObjWriteGuardBucket::Dump() const
 }
 
 #endif
+
+void
+BasicBlock::CleanUpValueMaps()
+{
+    // Don't do cleanup if it's been done recently.
+    // Landing pad could get optimized twice...
+    // We want the same info out the first and second time. So always cleanup.
+    // Increasing the cleanup threshold count for asmjs to 500
+    uint cleanupCount = (!this->globOptData.globOpt->GetIsAsmJSFunc()) ? CONFIG_FLAG(GoptCleanupThreshold) : CONFIG_FLAG(AsmGoptCleanupThreshold);
+    if (!this->IsLandingPad() && this->globOptData.globOpt->instrCountSinceLastCleanUp < cleanupCount)
+    {
+        return;
+    }
+    this->globOptData.globOpt->instrCountSinceLastCleanUp = 0;
+
+    JitArenaAllocator* tempAlloc = this->globOptData.globOpt->tempAlloc;
+
+    GlobHashTable *thisTable = this->globOptData.symToValueMap;
+    BVSparse<JitArenaAllocator> deadSymsBv(tempAlloc);
+    BVSparse<JitArenaAllocator> keepAliveSymsBv(tempAlloc);
+    BVSparse<JitArenaAllocator> availableValueNumbers(tempAlloc);
+    availableValueNumbers.Copy(this->globOptData.globOpt->byteCodeConstantValueNumbersBv);
+    BVSparse<JitArenaAllocator> *upwardExposedUses = this->upwardExposedUses;
+    BVSparse<JitArenaAllocator> *upwardExposedFields = this->upwardExposedFields;
+    bool isInLoop = !!this->loop;
+
+    BVSparse<JitArenaAllocator> symsInCallSequence(tempAlloc);
+    SListBase<IR::Opnd *> * callSequence = this->globOptData.callSequence;
+    if (callSequence && !callSequence->Empty())
+    {
+        FOREACH_SLISTBASE_ENTRY(IR::Opnd *, opnd, callSequence)
+        {
+            StackSym * sym = opnd->GetStackSym();
+            symsInCallSequence.Set(sym->m_id);
+        }
+    }
+    NEXT_SLISTBASE_ENTRY;
+
+    for (uint i = 0; i < thisTable->tableSize; i++)
+    {
+        FOREACH_SLISTBASE_ENTRY_EDITING(GlobHashBucket, bucket, &thisTable->table[i], iter)
+        {
+            bool isSymUpwardExposed = upwardExposedUses->Test(bucket.value->m_id) || upwardExposedFields->Test(bucket.value->m_id);
+            if (!isSymUpwardExposed && symsInCallSequence.Test(bucket.value->m_id))
+            {
+                // Don't remove/shrink sym-value pair if the sym is referenced in callSequence even if the sym is dead according to backward data flow.
+                // This is possible in some edge cases that an infinite loop is involved when evaluating parameter for a function (between StartCall and Call),
+                // there is no backward data flow into the infinite loop block, but non empty callSequence still populates to it in this (forward) pass
+                // which causes error when looking up value for the syms in callSequence (cannot find the value).
+                // It would cause error to fill out the bailout information for the loop blocks.
+                // Remove dead syms from callSequence has some risk because there are various associated counters which need to be consistent.
+                continue;
+            }
+            // Make sure symbol was created before backward pass.
+            // If symbols isn't upward exposed, mark it as dead.
+            // If a symbol was copy-prop'd in a loop prepass, the upwardExposedUses info could be wrong.  So wait until we are out of the loop before clearing it.
+            if ((SymID)bucket.value->m_id <= this->globOptData.globOpt->maxInitialSymID && !isSymUpwardExposed
+                && (!isInLoop || !this->globOptData.globOpt->prePassCopyPropSym->Test(bucket.value->m_id)))
+            {
+                Value *val = bucket.element;
+                ValueInfo *valueInfo = val->GetValueInfo();
+
+                Sym * sym = bucket.value;
+                Sym *symStore = valueInfo->GetSymStore();
+
+                if (symStore && symStore == bucket.value)
+                {
+                    // Keep constants around, as we don't know if there will be further uses
+                    if (!bucket.element->GetValueInfo()->IsVarConstant() && !bucket.element->GetValueInfo()->HasIntConstantValue())
+                    {
+                        // Symbol may still be a copy-prop candidate.  Wait before deleting it.
+                        deadSymsBv.Set(bucket.value->m_id);
+
+                        // Make sure the type sym is added to the dead syms vector as well, because type syms are
+                        // created in backward pass and so their symIds > maxInitialSymID.
+                        if (sym->IsStackSym() && sym->AsStackSym()->HasObjectTypeSym())
+                        {
+                            deadSymsBv.Set(sym->AsStackSym()->GetObjectTypeSym()->m_id);
+                        }
+                    }
+                    availableValueNumbers.Set(val->GetValueNumber());
+                }
+                else
+                {
+                    // Make sure the type sym is added to the dead syms vector as well, because type syms are
+                    // created in backward pass and so their symIds > maxInitialSymID. Perhaps we could remove
+                    // it explicitly here, but would it work alright with the iterator?
+                    if (sym->IsStackSym() && sym->AsStackSym()->HasObjectTypeSym())
+                    {
+                        deadSymsBv.Set(sym->AsStackSym()->GetObjectTypeSym()->m_id);
+                    }
+
+                    // Not a copy-prop candidate; delete it right away.
+                    iter.RemoveCurrent(thisTable->alloc);
+                    this->globOptData.liveInt32Syms->Clear(sym->m_id);
+                    this->globOptData.liveLossyInt32Syms->Clear(sym->m_id);
+                    this->globOptData.liveFloat64Syms->Clear(sym->m_id);
+                }
+            }
+            else
+            {
+                Sym * sym = bucket.value;
+
+                if (sym->IsPropertySym() && !this->globOptData.liveFields->Test(sym->m_id))
+                {
+                    // Remove propertySyms which are not live anymore.
+                    iter.RemoveCurrent(thisTable->alloc);
+                    this->globOptData.liveInt32Syms->Clear(sym->m_id);
+                    this->globOptData.liveLossyInt32Syms->Clear(sym->m_id);
+                    this->globOptData.liveFloat64Syms->Clear(sym->m_id);
+                }
+                else
+                {
+                    // Look at the copy-prop candidate. We don't want to get rid of the data for a symbol which is
+                    // a copy-prop candidate.
+                    Value *val = bucket.element;
+                    ValueInfo *valueInfo = val->GetValueInfo();
+
+                    Sym *symStore = valueInfo->GetSymStore();
+
+                    if (symStore && symStore != bucket.value)
+                    {
+                        keepAliveSymsBv.Set(symStore->m_id);
+                        if (symStore->IsStackSym() && symStore->AsStackSym()->HasObjectTypeSym())
+                        {
+                            keepAliveSymsBv.Set(symStore->AsStackSym()->GetObjectTypeSym()->m_id);
+                        }
+                    }
+                    availableValueNumbers.Set(val->GetValueNumber());
+                }
+            }
+        } NEXT_SLISTBASE_ENTRY_EDITING;
+    }
+
+    deadSymsBv.Minus(&keepAliveSymsBv);
+
+    // Now cleanup exprToValueMap table
+    ExprHashTable *thisExprTable = this->globOptData.exprToValueMap;
+    bool oldHasCSECandidatesValue = this->globOptData.hasCSECandidates;  // Could be false if none need bailout.
+    this->globOptData.hasCSECandidates = false;
+
+    for (uint i = 0; i < thisExprTable->tableSize; i++)
+    {
+        FOREACH_SLISTBASE_ENTRY_EDITING(ExprHashBucket, bucket, &thisExprTable->table[i], iter)
+        {
+            ExprHash hash = bucket.value;
+            ValueNumber src1ValNum = hash.GetSrc1ValueNumber();
+            ValueNumber src2ValNum = hash.GetSrc2ValueNumber();
+
+            // If src1Val or src2Val are not available anymore, no point keeping this CSE candidate
+            bool removeCurrent = false;
+            if ((src1ValNum && !availableValueNumbers.Test(src1ValNum))
+                || (src2ValNum && !availableValueNumbers.Test(src2ValNum)))
+            {
+                removeCurrent = true;
+            }
+            else
+            {
+                // If we are keeping this value, make sure we also keep the symStore in the value table
+                removeCurrent = true; // Remove by default, unless it's set to false later below.
+                Value *val = bucket.element;
+                if (val)
+                {
+                    Sym *symStore = val->GetValueInfo()->GetSymStore();
+                    if (symStore)
+                    {
+                        Value *symStoreVal = this->globOptData.FindValue(symStore);
+
+                        if (symStoreVal && symStoreVal->GetValueNumber() == val->GetValueNumber())
+                        {
+                            removeCurrent = false;
+                            deadSymsBv.Clear(symStore->m_id);
+                            if (symStore->IsStackSym() && symStore->AsStackSym()->HasObjectTypeSym())
+                            {
+                                deadSymsBv.Clear(symStore->AsStackSym()->GetObjectTypeSym()->m_id);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if(removeCurrent)
+            {
+                iter.RemoveCurrent(thisExprTable->alloc);
+            }
+            else
+            {
+                this->globOptData.hasCSECandidates = oldHasCSECandidatesValue;
+            }
+        } NEXT_SLISTBASE_ENTRY_EDITING;
+    }
+
+    FOREACH_BITSET_IN_SPARSEBV(dead_id, &deadSymsBv)
+    {
+        thisTable->Clear(dead_id);
+    }
+    NEXT_BITSET_IN_SPARSEBV;
+
+    if (!deadSymsBv.IsEmpty())
+    {
+        if (this->func->IsJitInDebugMode())
+        {
+            // Do not remove non-temp local vars from liveVarSyms (i.e. do not let them become dead).
+            // We will need to restore all initialized/used so far non-temp local during bail out.
+            // (See BackwardPass::ProcessBailOutInfo)
+            Assert(this->func->m_nonTempLocalVars);
+            BVSparse<JitArenaAllocator> tempBv(tempAlloc);
+            tempBv.Minus(&deadSymsBv, this->func->m_nonTempLocalVars);
+            this->globOptData.liveVarSyms->Minus(&tempBv);
+#if DBG
+            tempBv.And(this->globOptData.liveInt32Syms, this->func->m_nonTempLocalVars);
+            AssertMsg(tempBv.IsEmpty(), "Type spec is disabled under debugger. How come did we get a non-temp local in liveInt32Syms?");
+            tempBv.And(this->globOptData.liveLossyInt32Syms, this->func->m_nonTempLocalVars);
+            AssertMsg(tempBv.IsEmpty(), "Type spec is disabled under debugger. How come did we get a non-temp local in liveLossyInt32Syms?");
+            tempBv.And(this->globOptData.liveFloat64Syms, this->func->m_nonTempLocalVars);
+            AssertMsg(tempBv.IsEmpty(), "Type spec is disabled under debugger. How come did we get a non-temp local in liveFloat64Syms?");
+#endif
+        }
+        else
+        {
+            this->globOptData.liveVarSyms->Minus(&deadSymsBv);
+        }
+
+        this->globOptData.liveInt32Syms->Minus(&deadSymsBv);
+        this->globOptData.liveLossyInt32Syms->Minus(&deadSymsBv);
+        this->globOptData.liveFloat64Syms->Minus(&deadSymsBv);
+    }
+
+    JitAdelete(this->globOptData.globOpt->alloc, upwardExposedUses);
+    this->upwardExposedUses = nullptr;
+    JitAdelete(this->globOptData.globOpt->alloc, upwardExposedFields);
+    this->upwardExposedFields = nullptr;
+    if (this->cloneStrCandidates)
+    {
+        JitAdelete(this->globOptData.globOpt->alloc, this->cloneStrCandidates);
+        this->cloneStrCandidates = nullptr;
+    }
+}
+
+void
+BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
+{
+    Assert(!globOpt->isCallHelper);
+    // We keep a local temporary copy for the merge
+    GlobOptBlockData blockData(this->globOptData.curFunc);
+
+    if (!globOpt->isRecursiveCallOnLandingPad)
+    {
+        blockData.NullOutBlockData(globOpt, globOpt->func);
+    }
+    else
+    {
+        // If we are going over the landing pad again after field PRE, just start again
+        // with the value table where we left off.
+        blockData.CopyBlockData(&this->globOptData);
+        return;
+    }
+
+    BVSparse<JitArenaAllocator> symsRequiringCompensation(globOpt->tempAlloc);
+    {
+        BVSparse<JitArenaAllocator> symsCreatedForMerge(globOpt->tempAlloc);
+        bool forceTypeSpecOnLoopHeader = true;
+        FOREACH_PREDECESSOR_BLOCK(pred, this)
+        {
+            if (pred->globOptData.callSequence && pred->globOptData.callSequence->Empty())
+            {
+                JitAdelete(globOpt->alloc, pred->globOptData.callSequence);
+                pred->globOptData.callSequence = nullptr;
+            }
+            if (this->isLoopHeader && globOpt->IsLoopPrePass() && globOpt->prePassLoop == this->loop && this->loop->IsDescendentOrSelf(pred->loop))
+            {
+                // Loop back-edge.
+                // First pass on loop runs optimistically, without doing transforms.
+                // Skip this edge for now.
+                continue;
+            }
+
+            PathDependentInfo *const pathDependentInfo = __edge->GetPathDependentInfo();
+            PathDependentInfoToRestore pathDependentInfoToRestore;
+            if (pathDependentInfo)
+            {
+                pathDependentInfoToRestore = globOpt->UpdatePathDependentInfo(pathDependentInfo);
+            }
+
+            Assert(pred->GetDataUseCount());
+
+            // First pred?
+            if (blockData.symToValueMap == nullptr)
+            {
+                // Only one edge?
+                if (pred->GetSuccList()->HasOne() && this->GetPredList()->HasOne() && this->loop == nullptr)
+                {
+                    blockData.ReuseBlockData(&pred->globOptData);
+
+                    // Don't need to restore the old value info
+                    pathDependentInfoToRestore.Clear();
+                }
+                else
+                {
+                    blockData.CloneBlockData(this, pred);
+                }
+            }
+            else
+            {
+                const bool isLoopPrePass = globOpt->IsLoopPrePass();
+                blockData.MergeBlockData(
+                    this,
+                    pred,
+                    isLoopPrePass ? nullptr : &symsRequiringCompensation,
+                    isLoopPrePass ? nullptr : &symsCreatedForMerge,
+                    forceTypeSpecOnLoopHeader);
+                forceTypeSpecOnLoopHeader = false; // can force type-spec on the loop header only for the first back edge.
+            }
+
+            // Restore the value for the next edge
+            if (pathDependentInfo)
+            {
+                globOpt->RestorePathDependentInfo(pathDependentInfo, pathDependentInfoToRestore);
+                __edge->ClearPathDependentInfo(globOpt->alloc);
+            }
+
+        } NEXT_PREDECESSOR_BLOCK;
+    }
+
+    // Consider: We can recreate values for hoisted field so it can copy prop out of the loop
+    if (blockData.symToValueMap == nullptr)
+    {
+        Assert(blockData.hoistableFields == nullptr);
+        blockData.InitBlockData(globOpt, globOpt->func);
+    }
+    else if (blockData.hoistableFields)
+    {
+        Assert(globOpt->TrackHoistableFields());
+        blockData.hoistableFields->And(this->globOptData.liveFields);
+    }
+
+    if (!globOpt->DoObjTypeSpec())
+    {
+        // Object type specialization is off, but if copy prop is on (e.g., /force:fieldhoist) we're not clearing liveFields,
+        // so we may be letting type syms slip through this block.
+        globOpt->KillAllObjectTypes(this->globOptData.liveFields);
+    }
+
+    this->globOptData.CopyBlockData(&blockData);
+
+    if (globOpt->IsLoopPrePass())
+    {
+        Assert(this->loop);
+
+        if(globOpt->DoBoundCheckHoist())
+        {
+            globOpt->SetInductionVariableValueNumbers(&blockData);
+        }
+
+        if (this->isLoopHeader && globOpt->rootLoopPrePass == this->loop)
+        {
+            // Capture bail out info in case we have optimization that needs it
+            Assert(this->loop->bailOutInfo == nullptr);
+            IR::Instr * firstInstr = this->GetFirstInstr();
+            this->loop->bailOutInfo = JitAnew(globOpt->func->m_alloc, BailOutInfo,
+                firstInstr->GetByteCodeOffset(), firstInstr->m_func);
+            globOpt->FillBailOutInfo(this, this->loop->bailOutInfo);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            this->loop->bailOutInfo->bailOutOpcode = Js::OpCode::LoopBodyStart;
+#endif
+        }
+
+        // If loop pre-pass, don't insert convert from type-spec to var
+        return;
+    }
+
+    this->CleanUpValueMaps();
+    Sym *symIV = nullptr;
+
+    // Clean up the syms requiring compensation by checking the final value in the merged block to see if the sym still requires
+    // compensation. All the while, create a mapping from sym to value info in the merged block. This dictionary helps avoid a
+    // value lookup in the merged block per predecessor.
+    SymToValueInfoMap symsRequiringCompensationToMergedValueInfoMap(globOpt->tempAlloc);
+    if(!symsRequiringCompensation.IsEmpty())
+    {
+        const SymTable *const symTable = func->m_symTable;
+        FOREACH_BITSET_IN_SPARSEBV(id, &symsRequiringCompensation)
+        {
+            Sym *const sym = symTable->Find(id);
+            Assert(sym);
+
+            Value *const value = blockData.FindValue(sym);
+            if(!value)
+            {
+                continue;
+            }
+
+            ValueInfo *const valueInfo = value->GetValueInfo();
+            if(!valueInfo->IsArrayValueInfo())
+            {
+                continue;
+            }
+
+            // At least one new sym was created while merging and associated with the merged value info, so those syms will
+            // require compensation in predecessors. For now, the dead store phase is relied upon to remove compensation that is
+            // dead due to no further uses of the new sym.
+            symsRequiringCompensationToMergedValueInfoMap.Add(sym, valueInfo);
+        } NEXT_BITSET_IN_SPARSEBV;
+        symsRequiringCompensation.ClearAll();
+    }
+
+    if (this->isLoopHeader)
+    {
+        BVSparse<JitArenaAllocator> * tempBv = globOpt->tempBv;
+        // Values on the back-edge in the prepass may be conservative for syms defined in the loop, and type specialization in
+        // the prepass is not reflective of the value, but rather, is used to determine whether the sym should be specialized
+        // around the loop. Additionally, some syms that are used before defined in the loop may be specialized in the loop
+        // header despite not being specialized in the landing pad. Now that the type specialization bit-vectors are merged,
+        // specialize the corresponding value infos in the loop header too.
+
+        Assert(tempBv->IsEmpty());
+        Loop *const loop = this->loop;
+        SymTable *const symTable = func->m_symTable;
+        JitArenaAllocator *const alloc = globOpt->alloc;
+
+        // Int-specialized syms
+        tempBv->Or(loop->likelyIntSymsUsedBeforeDefined, loop->symsDefInLoop);
+        tempBv->And(blockData.liveInt32Syms);
+        tempBv->Minus(blockData.liveLossyInt32Syms);
+        FOREACH_BITSET_IN_SPARSEBV(id, tempBv)
+        {
+            StackSym *const varSym = symTable->FindStackSym(id);
+            Assert(varSym);
+            Value *const value = blockData.FindValue(varSym);
+            Assert(value);
+            ValueInfo *const valueInfo = value->GetValueInfo();
+            if(!valueInfo->IsInt())
+            {
+                globOpt->ChangeValueInfo(nullptr, value, valueInfo->SpecializeToInt32(alloc));
+            }
+        } NEXT_BITSET_IN_SPARSEBV;
+
+        // Float-specialized syms
+        tempBv->Or(loop->likelyNumberSymsUsedBeforeDefined, loop->symsDefInLoop);
+        tempBv->Or(loop->forceFloat64SymsOnEntry);
+        tempBv->And(blockData.liveFloat64Syms);
+        GlobOptBlockData &landingPadBlockData = loop->landingPad->globOptData;
+        FOREACH_BITSET_IN_SPARSEBV(id, tempBv)
+        {
+            StackSym *const varSym = symTable->FindStackSym(id);
+            Assert(varSym);
+
+            // If the type-spec sym is null or if the sym is not float-specialized in the loop landing pad, the sym may have
+            // been merged to float on a loop back-edge when it was live as float on the back-edge, and live as int in the loop
+            // header. In this case, compensation inserted in the loop landing pad will use BailOutNumberOnly, and so it is
+            // guaranteed that the value will be float. Otherwise, if the type-spec sym exists, its field can be checked to see
+            // if it's prevented from being anything but a number.
+            StackSym *const typeSpecSym = varSym->GetFloat64EquivSym(nullptr);
+            if(!typeSpecSym ||
+                typeSpecSym->m_requiresBailOnNotNumber ||
+                !landingPadBlockData.IsFloat64TypeSpecialized(varSym))
+            {
+                Value *const value = blockData.FindValue(varSym);
+                if(value)
+                {
+                    ValueInfo *const valueInfo = value->GetValueInfo();
+                    if(!valueInfo->IsNumber())
+                    {
+                        globOpt->ChangeValueInfo(this, value, valueInfo->SpecializeToFloat64(alloc));
+                    }
+                }
+                else
+                {
+                    this->globOptData.SetValue(globOpt->NewGenericValue(ValueType::Float), varSym);
+                }
+            }
+        } NEXT_BITSET_IN_SPARSEBV;
+
+#ifdef ENABLE_SIMDJS
+        // SIMD_JS
+        // Simd128 type-spec syms
+        BVSparse<JitArenaAllocator> tempBv2(globOpt->tempAlloc);
+
+        // For syms we made alive in loop header because of hoisting, use-before-def, or def in Loop body, set their valueInfo to definite.
+        // Make live on header AND in one of forceSimd128* or likelySimd128* vectors.
+        tempBv->Or(loop->likelySimd128F4SymsUsedBeforeDefined, loop->symsDefInLoop);
+        tempBv->Or(loop->likelySimd128I4SymsUsedBeforeDefined);
+        tempBv->Or(loop->forceSimd128F4SymsOnEntry);
+        tempBv->Or(loop->forceSimd128I4SymsOnEntry);
+        tempBv2.Or(blockData.liveSimd128F4Syms, blockData.liveSimd128I4Syms);
+        tempBv->And(&tempBv2);
+
+        FOREACH_BITSET_IN_SPARSEBV(id, tempBv)
+        {
+            StackSym * typeSpecSym = nullptr;
+            StackSym *const varSym = symTable->FindStackSym(id);
+            Assert(varSym);
+
+            if (blockData.liveSimd128F4Syms->Test(id))
+            {
+                typeSpecSym = varSym->GetSimd128F4EquivSym(nullptr);
+
+
+                if (!typeSpecSym || !landingPadBlockData.IsSimd128F4TypeSpecialized(varSym))
+                {
+                    Value *const value = blockData.FindValue(varSym);
+                    if (value)
+                    {
+                        ValueInfo *const valueInfo = value->GetValueInfo();
+                        if (!valueInfo->IsSimd128Float32x4())
+                        {
+                            globOpt->ChangeValueInfo(this, value, valueInfo->SpecializeToSimd128F4(alloc));
+                        }
+                    }
+                    else
+                    {
+                        this->globOptData.SetValue(globOpt->NewGenericValue(ValueType::GetSimd128(ObjectType::Simd128Float32x4), varSym), varSym);
+                    }
+                }
+            }
+            else if (blockData.liveSimd128I4Syms->Test(id))
+            {
+
+                typeSpecSym = varSym->GetSimd128I4EquivSym(nullptr);
+                if (!typeSpecSym || !landingPadBlockData.IsSimd128I4TypeSpecialized(varSym))
+                {
+                    Value *const value = blockData.FindValue(varSym);
+                    if (value)
+                    {
+                        ValueInfo *const valueInfo = value->GetValueInfo();
+                        if (!valueInfo->IsSimd128Int32x4())
+                        {
+                            globOpt->ChangeValueInfo(this, value, valueInfo->SpecializeToSimd128I4(alloc));
+                        }
+                    }
+                    else
+                    {
+                        this->globOptData.SetValue(globOpt->NewGenericValue(ValueType::GetSimd128(ObjectType::Simd128Int32x4), varSym), varSym);
+                    }
+                }
+            }
+            else
+            {
+                Assert(UNREACHED);
+            }
+        } NEXT_BITSET_IN_SPARSEBV;
+#endif
+
+        tempBv->ClearAll();
+    }
+
+    // We need to handle the case where a symbol is type-spec'd coming from some predecessors,
+    // but not from others.
+    //
+    // We can do this by inserting the right conversion in the predecessor block, but we
+    // can only do this if we are the first successor of that block, since the previous successors
+    // would have already been processed.  Instead, we'll need to break the edge and insert a block
+    // (airlock block) to put in the conversion code.
+    Assert(globOpt->tempBv->IsEmpty());
+
+    BVSparse<JitArenaAllocator> tempBv2(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> tempBv3(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> tempBv4(globOpt->tempAlloc);
+
+#ifdef ENABLE_SIMDJS
+    // SIMD_JS
+    BVSparse<JitArenaAllocator> simd128F4SymsToUnbox(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> simd128I4SymsToUnbox(globOpt->tempAlloc);
+#endif
+
+    FOREACH_PREDECESSOR_EDGE_EDITING(edge, this, iter)
+    {
+        BasicBlock *pred = edge->GetPred();
+
+        if (pred->loop && pred->loop->GetHeadBlock() == this)
+        {
+            pred->DecrementDataUseCount();
+            // Skip loop back-edges. We will handle these when we get to the exit blocks.
+            continue;
+        }
+
+        BasicBlock *orgPred = nullptr;
+        if (pred->isAirLockCompensationBlock)
+        {
+            Assert(pred->GetPredList()->HasOne());
+            orgPred = pred;
+            pred = (pred->GetPredList()->Head())->GetPred();
+        }
+
+        // Lossy int in the merged block, and no int in the predecessor - need a lossy conversion to int
+        tempBv2.Minus(blockData.liveLossyInt32Syms, pred->globOptData.liveInt32Syms);
+
+        // Lossless int in the merged block, and no lossless int in the predecessor - need a lossless conversion to int
+        tempBv3.Minus(blockData.liveInt32Syms, this->globOptData.liveLossyInt32Syms);
+        globOpt->tempBv->Minus(pred->globOptData.liveInt32Syms, pred->globOptData.liveLossyInt32Syms);
+        tempBv3.Minus(globOpt->tempBv);
+
+        globOpt->tempBv->Minus(blockData.liveVarSyms, pred->globOptData.liveVarSyms);
+        tempBv4.Minus(blockData.liveFloat64Syms, pred->globOptData.liveFloat64Syms);
+
+        bool symIVNeedsSpecializing = (symIV && !pred->globOptData.liveInt32Syms->Test(symIV->m_id) && !tempBv3.Test(symIV->m_id));
+
+#ifdef ENABLE_SIMDJS
+        // SIMD_JS
+        simd128F4SymsToUnbox.Minus(blockData.liveSimd128F4Syms, pred->globOptData.liveSimd128F4Syms);
+        simd128I4SymsToUnbox.Minus(blockData.liveSimd128I4Syms, pred->globOptData.liveSimd128I4Syms);
+#endif
+
+        if (!globOpt->tempBv->IsEmpty() ||
+            !tempBv2.IsEmpty() ||
+            !tempBv3.IsEmpty() ||
+            !tempBv4.IsEmpty() ||
+#ifdef ENABLE_SIMDJS
+            !simd128F4SymsToUnbox.IsEmpty() ||
+            !simd128I4SymsToUnbox.IsEmpty() ||
+#endif
+            symIVNeedsSpecializing ||
+            symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
+        {
+            // We can't un-specialize a symbol in a predecessor if we've already processed
+            // a successor of that block. Instead, insert a new block on the flow edge
+            // (an airlock block) and do the un-specialization there.
+            //
+            // Alternatively, the current block could be an exit block out of this loop, and so the predecessor may exit the
+            // loop. In that case, if the predecessor may continue into the loop without exiting, then we need an airlock block
+            // to do the appropriate conversions only on the exit path (preferring not to do the conversions inside the loop).
+            // If, on the other hand, the predecessor always flows into the current block, then it always exits, so we don't need
+            // an airlock block and can just do the conversions in the predecessor.
+            if (pred->GetSuccList()->Head()->GetSucc() != this||
+                (pred->loop && pred->loop->parent == this->loop && pred->GetSuccList()->Count() > 1))
+            {
+                BasicBlock *airlockBlock = nullptr;
+                if (!orgPred)
+                {
+                    if (PHASE_TRACE(Js::GlobOptPhase, this->func) && !globOpt->IsLoopPrePass())
+                    {
+                        Output::Print(_u("TRACE: "));
+                        Output::Print(_u("Inserting airlock block to convert syms to var between block %d and %d\n"),
+                            pred->GetBlockNum(), this->GetBlockNum());
+                        Output::Flush();
+                    }
+                    airlockBlock = globOpt->func->m_fg->InsertAirlockBlock(edge);
+                }
+                else
+                {
+                    Assert(orgPred->isAirLockCompensationBlock);
+                    airlockBlock = orgPred;
+                    pred->DecrementDataUseCount();
+                    airlockBlock->isAirLockCompensationBlock = false; // This is airlock block now. So remove the attribute.
+                }
+                globOpt->CloneBlockData(airlockBlock, pred);
+
+                pred = airlockBlock;
+            }
+            if (!globOpt->tempBv->IsEmpty())
+            {
+                globOpt->ToVar(globOpt->tempBv, pred);
+            }
+            if (!tempBv2.IsEmpty())
+            {
+                globOpt->ToInt32(&tempBv2, pred, true /* lossy */);
+            }
+            if (!tempBv3.IsEmpty())
+            {
+                globOpt->ToInt32(&tempBv3, pred, false /* lossy */);
+            }
+            if (!tempBv4.IsEmpty())
+            {
+                globOpt->ToFloat64(&tempBv4, pred);
+            }
+            if (symIVNeedsSpecializing)
+            {
+                globOpt->tempBv->ClearAll();
+                globOpt->tempBv->Set(symIV->m_id);
+                globOpt->ToInt32(globOpt->tempBv, pred, false /* lossy */);
+            }
+            if(symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
+            {
+                globOpt->InsertValueCompensation(pred, symsRequiringCompensationToMergedValueInfoMap);
+            }
+
+#ifdef ENABLE_SIMDJS
+            // SIMD_JS
+            if (!simd128F4SymsToUnbox.IsEmpty())
+            {
+                globOpt->ToTypeSpec(&simd128F4SymsToUnbox, pred, TySimd128F4, IR::BailOutSimd128F4Only);
+            }
+
+            if (!simd128I4SymsToUnbox.IsEmpty())
+            {
+                globOpt->ToTypeSpec(&simd128I4SymsToUnbox, pred, TySimd128I4, IR::BailOutSimd128I4Only);
+            }
+#endif
+        }
+    } NEXT_PREDECESSOR_EDGE_EDITING;
+
+    FOREACH_PREDECESSOR_EDGE(edge, this)
+    {
+        // Peak Memory optimization:
+        // These are in an arena, but putting them on the free list greatly reduces
+        // the peak memory used by the global optimizer for complex flow graphs.
+        BasicBlock *pred = edge->GetPred();
+        if (!this->isLoopHeader || this->loop != pred->loop)
+        {
+            // Skip airlock compensation block as we are not going to walk this block.
+            if (pred->isAirLockCompensationBlock)
+            {
+                pred->DecrementDataUseCount();
+                Assert(pred->GetPredList()->HasOne());
+                pred = (pred->GetPredList()->Head())->GetPred();
+            }
+
+            if (pred->DecrementDataUseCount() == 0 && (!this->loop || this->loop->landingPad != pred))
+            {
+                if (!(pred->GetSuccList()->HasOne() && this->GetPredList()->HasOne() && this->loop == nullptr))
+                {
+                    pred->globOptData.DeleteBlockData();
+                }
+                else
+                {
+                    pred->globOptData.NullOutBlockData(globOpt, globOpt->func);
+                }
+            }
+        }
+    } NEXT_PREDECESSOR_EDGE;
+
+    globOpt->tempBv->ClearAll();
+    Assert(!globOpt->IsLoopPrePass());   // We already early return if we are in prepass
+
+    if (this->isLoopHeader)
+    {
+        Loop *const loop = this->loop;
+
+        // Save values live on loop entry, such that we can adjust the state of the
+        // values on the back-edge to match.
+        loop->varSymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->varSymsOnEntry->Copy(this->globOptData.liveVarSyms);
+
+        loop->int32SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->int32SymsOnEntry->Copy(this->globOptData.liveInt32Syms);
+
+        loop->lossyInt32SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->lossyInt32SymsOnEntry->Copy(this->globOptData.liveLossyInt32Syms);
+
+        loop->float64SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->float64SymsOnEntry->Copy(this->globOptData.liveFloat64Syms);
+
+#ifdef ENABLE_SIMDJS
+        // SIMD_JS
+        loop->simd128F4SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->simd128F4SymsOnEntry->Copy(this->globOptData.liveSimd128F4Syms);
+
+        loop->simd128I4SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->simd128I4SymsOnEntry->Copy(this->globOptData.liveSimd128I4Syms);
+#endif
+
+        loop->liveFieldsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
+        loop->liveFieldsOnEntry->Copy(this->globOptData.liveFields);
+
+        if(globOpt->DoBoundCheckHoist() && loop->inductionVariables)
+        {
+            globOpt->FinalizeInductionVariables(loop, &blockData);
+            if(globOpt->DoLoopCountBasedBoundCheckHoist())
+            {
+                globOpt->DetermineDominatingLoopCountableBlock(loop, this);
+            }
+        }
+    }
+    else if (!this->loop)
+    {
+        this->SetDataUseCount(this->GetSuccList()->Count());
+    }
+    else if(this == this->loop->dominatingLoopCountableBlock)
+    {
+        globOpt->DetermineLoopCount(this->loop);
+    }
+}
+
+void GlobOpt::CloneBlockData(BasicBlock *const toBlock, BasicBlock *const fromBlock)
+{
+    toBlock->globOptData.CloneBlockData(toBlock, fromBlock);
+}
+
+void
+GlobOpt::CloneValues(BasicBlock *const toBlock, GlobOptBlockData *toData, GlobOptBlockData *fromData)
+{
+    ValueSet *const valuesToKillOnCalls = JitAnew(this->alloc, ValueSet, this->alloc);
+    toData->valuesToKillOnCalls = valuesToKillOnCalls;
+
+    // Values are shared between symbols with the same ValueNumber.
+    // Use a dictionary to share the clone values.
+    ValueSetByValueNumber *const valuesCreatedForClone = this->valuesCreatedForClone;
+    Assert(valuesCreatedForClone);
+    Assert(valuesCreatedForClone->Count() == 0);
+    DebugOnly(ValueSetByValueNumber originalValues(tempAlloc, 64));
+
+    const uint tableSize = toData->symToValueMap->tableSize;
+    SListBase<GlobHashBucket> *const table = toData->symToValueMap->table;
+    for (uint i = 0; i < tableSize; i++)
+    {
+        FOREACH_SLISTBASE_ENTRY(GlobHashBucket, bucket, &table[i])
+        {
+            Value *value = bucket.element;
+            ValueNumber valueNum = value->GetValueNumber();
+#if DBG
+            // Ensure that the set of values in fromData contains only one value per value number. Byte-code constant values
+            // are reused in multiple blocks without cloning, so exclude those value numbers.
+            {
+                Value *const previouslyClonedOriginalValue = originalValues.Lookup(valueNum);
+                if (previouslyClonedOriginalValue)
+                {
+                    if (!byteCodeConstantValueNumbersBv->Test(valueNum))
+                    {
+                        Assert(value == previouslyClonedOriginalValue);
+                    }
+                }
+                else
+                {
+                    originalValues.Add(value);
+                }
+            }
+#endif
+
+            Value *newValue = valuesCreatedForClone->Lookup(valueNum);
+            if (!newValue)
+            {
+                newValue = CopyValue(value, valueNum);
+                TrackMergedValueForKills(newValue, toData, nullptr);
+                valuesCreatedForClone->Add(newValue);
+            }
+            bucket.element = newValue;
+        } NEXT_SLISTBASE_ENTRY;
+    }
+
+    valuesCreatedForClone->Clear();
+
+    ProcessValueKills(toBlock, toData);
+}
+
+PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitArenaAllocator *alloc)
+{
+    // Iterate over the value table looking for propertySyms which are candidates to
+    // pre-load in the landing pad for field PRE
+
+    GlobHashTable *valueTable = block->globOptData.symToValueMap;
+    Loop *loop = block->loop;
+    PRECandidatesList *candidates = nullptr;
+
+    for (uint i = 0; i < valueTable->tableSize; i++)
+    {
+        FOREACH_SLISTBASE_ENTRY(GlobHashBucket, bucket, &valueTable->table[i])
+        {
+            Sym *sym = bucket.value;
+
+            if (!sym->IsPropertySym())
+            {
+                continue;
+            }
+
+            PropertySym *propertySym = sym->AsPropertySym();
+
+            // Field should be live on the back-edge
+            if (!block->globOptData.liveFields->Test(propertySym->m_id))
+            {
+                continue;
+            }
+
+            // Field should be live in the landing pad as well
+            if (!loop->landingPad->globOptData.liveFields->Test(propertySym->m_id))
+            {
+                continue;
+            }
+
+            Value *value = bucket.element;
+            Sym *symStore = value->GetValueInfo()->GetSymStore();
+
+            if (!symStore || !symStore->IsStackSym())
+            {
+                continue;
+            }
+
+            // Check upwardExposed in case of:
+            //  s1 = 0;
+            // loop:
+            //        = o.x;
+            //        foo();
+            //    o.x = s1;
+            // Can't thrash s1 in loop top.
+            if (!symStore->AsStackSym()->IsSingleDef() || loop->GetHeadBlock()->upwardExposedUses->Test(symStore->m_id))
+            {
+                // If symStore isn't singleDef, we need to make sure it still has the same value.
+                // This usually fails if we are not aggressive at transferring values in the prepass.
+                Value **pSymStoreFromValue = valueTable->Get(symStore->m_id);
+
+                // Consider: We should be fine if symStore isn't live in landing pad...
+                if (!pSymStoreFromValue || (*pSymStoreFromValue)->GetValueNumber() != value->GetValueNumber())
+                {
+                    continue;
+                }
+            }
+
+            BasicBlock *landingPad = loop->landingPad;
+            Value *landingPadValue = landingPad->globOptData.FindValue(propertySym);
+
+            if (!landingPadValue)
+            {
+                // Value should be added as initial value or already be there.
+                return nullptr;
+            }
+
+            IR::Instr * ldInstr = this->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
+
+            if (!ldInstr)
+            {
+                continue;
+            }
+
+            if (!candidates)
+            {
+                candidates = Anew(alloc, PRECandidatesList, alloc);
+            }
+
+            candidates->Prepend(&bucket);
+
+        } NEXT_SLISTBASE_ENTRY;
+    }
+
+    return candidates;
+}
+
+void GlobOpt::InsertCloneStrs(BasicBlock *toBlock, GlobOptBlockData *toData, GlobOptBlockData *fromData)
+{
+    if (toBlock->isLoopHeader   // isLoopBackEdge
+        && toBlock->cloneStrCandidates
+        && !IsLoopPrePass())
+    {
+        Loop *loop = toBlock->loop;
+        BasicBlock *landingPad = loop->landingPad;
+        const SymTable *const symTable = func->m_symTable;
+        Assert(tempBv->IsEmpty());
+        tempBv->And(toBlock->cloneStrCandidates, fromData->isTempSrc);
+        FOREACH_BITSET_IN_SPARSEBV(id, tempBv)
+        {
+            StackSym *const sym = (StackSym *)symTable->Find(id);
+            Assert(sym);
+
+            if (!landingPad->globOptData.liveVarSyms->Test(id)
+                || !fromData->liveVarSyms->Test(id))
+            {
+                continue;
+            }
+
+            Value * landingPadValue = landingPad->globOptData.FindValue(sym);
+            if (landingPadValue == nullptr)
+            {
+                continue;
+            }
+
+            Value * loopValue = fromData->FindValue(sym);
+            if (loopValue == nullptr)
+            {
+                continue;
+            }
+
+            ValueInfo *landingPadValueInfo = landingPadValue->GetValueInfo();
+            ValueInfo *loopValueInfo = loopValue->GetValueInfo();
+
+            if (landingPadValueInfo->IsLikelyString()
+                && loopValueInfo->IsLikelyString())
+            {
+                IR::Instr *cloneStr = IR::Instr::New(Js::OpCode::CloneStr, this->func);
+                IR::RegOpnd *opnd = IR::RegOpnd::New(sym, IRType::TyVar, this->func);
+                cloneStr->SetDst(opnd);
+                cloneStr->SetSrc1(opnd);
+                if (loop->bailOutInfo->bailOutInstr)
+                {
+                    loop->bailOutInfo->bailOutInstr->InsertBefore(cloneStr);
+                }
+                else
+                {
+                    landingPad->InsertAfter(cloneStr);
+                }
+                toData->isTempSrc->Set(id);
+            }
+        }
+        NEXT_BITSET_IN_SPARSEBV;
+        tempBv->ClearAll();
+    }
+}

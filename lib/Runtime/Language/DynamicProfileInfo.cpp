@@ -111,7 +111,7 @@ namespace Js
         {
             if (batch[i].size > 0)
             {
-                BYTE** field = (BYTE**)(((BYTE*)info + batch[i].offset));
+                Field(BYTE*)* field = (Field(BYTE*)*)(((BYTE*)info + batch[i].offset));
                 *field = current;
                 current += batch[i].size;
             }
@@ -217,7 +217,11 @@ namespace Js
     bool DynamicProfileInfo::IsEnabled(const FunctionBody *const functionBody)
     {
         Assert(functionBody);
-        return IsEnabled_OptionalFunctionBody(functionBody, functionBody->GetScriptContext());
+        return (IsEnabled_OptionalFunctionBody(functionBody, functionBody->GetScriptContext())
+#ifdef ENABLE_WASM
+            && !(PHASE_TRACE1(Js::WasmInOutPhase) && functionBody->IsWasmFunction())
+#endif
+            );
     }
 
     bool DynamicProfileInfo::IsEnabled_OptionalFunctionBody(const FunctionBody *const functionBody, const ScriptContext *const scriptContext)
@@ -248,7 +252,11 @@ namespace Js
     bool DynamicProfileInfo::IsEnabled(const Js::Phase phase, const FunctionBody *const functionBody)
     {
         Assert(functionBody);
-        return IsEnabled_OptionalFunctionBody(phase, functionBody, functionBody->GetScriptContext());
+        return (IsEnabled_OptionalFunctionBody(phase, functionBody, functionBody->GetScriptContext())
+#ifdef ENABLE_WASM
+            && !(PHASE_TRACE1(Js::WasmInOutPhase) && functionBody->IsWasmFunction())
+#endif
+            );
     }
 
     bool DynamicProfileInfo::IsEnabled_OptionalFunctionBody(
@@ -342,7 +350,7 @@ namespace Js
             }
             else
             {
-                directEntryPoint = (JavascriptMethod)entryPoint->GetNativeAddress();
+                directEntryPoint = entryPoint->GetNativeEntrypoint();
             }
 
             entryPoint->jsMethod = directEntryPoint;
@@ -408,6 +416,94 @@ namespace Js
     {
         return callSiteInfo[callSiteId].isArgConstant;
     }
+
+#ifdef ASMJS_PLAT
+    void DynamicProfileInfo::RecordAsmJsCallSiteInfo(FunctionBody* callerBody, ProfileId callSiteId, FunctionBody* calleeBody)
+    {
+        if (!callerBody || !callerBody->GetIsAsmjsMode() || !calleeBody || !calleeBody->GetIsAsmjsMode())
+        {
+            AssertMsg(UNREACHED, "Call to RecordAsmJsCallSiteInfo without two asm.js/wasm FunctionBody");
+            return;
+        }
+        
+#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
+        // If we persistsAcrossScriptContext, the dynamic profile info may be referred to by multiple function body from
+        // different script context
+        Assert(!DynamicProfileInfo::NeedProfileInfoList() || this->persistsAcrossScriptContexts || this->functionBody == callerBody);
+#endif
+
+        bool doInline = true;
+        // This is a hard limit as we only use 4 bits to encode the actual count in the InlineeCallInfo
+        if (calleeBody->GetAsmJsFunctionInfo()->GetArgCount() > Js::InlineeCallInfo::MaxInlineeArgoutCount)
+        {
+            doInline = false;
+        }
+
+        // Mark the callsite bit where caller and callee is same function
+        if (calleeBody == callerBody && callSiteId < 32)
+        {
+            this->m_recursiveInlineInfo = this->m_recursiveInlineInfo | (1 << callSiteId);
+        }
+
+        // TODO: support polymorphic inlining in wasm
+        Assert(!callSiteInfo[callSiteId].isPolymorphic);
+        Js::SourceId oldSourceId = callSiteInfo[callSiteId].u.functionData.sourceId;
+        if (oldSourceId == InvalidSourceId)
+        {
+            return;
+        }
+
+        Js::LocalFunctionId oldFunctionId = callSiteInfo[callSiteId].u.functionData.functionId;
+
+        Js::SourceId sourceId = InvalidSourceId;
+        Js::LocalFunctionId functionId;
+        // We can only inline function that are from the same script context
+        if (callerBody->GetScriptContext() == calleeBody->GetScriptContext())
+        {
+            if (callerBody->GetSecondaryHostSourceContext() == calleeBody->GetSecondaryHostSourceContext())
+            {
+                if (callerBody->GetHostSourceContext() == calleeBody->GetHostSourceContext())
+                {
+                    sourceId = CurrentSourceId; // Caller and callee in same file
+                }
+                else
+                {
+                    sourceId = (Js::SourceId)calleeBody->GetHostSourceContext(); // Caller and callee in different files
+                }
+                functionId = calleeBody->GetLocalFunctionId();
+            }
+            else
+            {
+                // Pretend that we are cross context when call is crossing script file.
+                functionId = CallSiteCrossContext;
+            }
+        }
+        else
+        {
+            functionId = CallSiteCrossContext;
+        }
+
+        if (oldSourceId == NoSourceId)
+        {
+            callSiteInfo[callSiteId].u.functionData.sourceId = sourceId;
+            callSiteInfo[callSiteId].u.functionData.functionId = functionId;
+            this->currentInlinerVersion++; // we don't mind if this overflows
+        }
+        else if (oldSourceId != sourceId || oldFunctionId != functionId)
+        {
+            if (oldFunctionId != CallSiteMixed)
+            {
+                this->currentInlinerVersion++; // we don't mind if this overflows
+            }
+
+            callSiteInfo[callSiteId].u.functionData.functionId = CallSiteMixed;
+            doInline = false;
+        }
+        callSiteInfo[callSiteId].isConstructorCall = false;
+        callSiteInfo[callSiteId].dontInline = !doInline;
+        callSiteInfo[callSiteId].ldFldInlineCacheId = Js::Constants::NoInlineCacheIndex;
+    }
+#endif
 
     void DynamicProfileInfo::RecordCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo* calleeFunctionInfo, JavascriptFunction* calleeFunction, ArgSlot actualArgCount, bool isConstructorCall, InlineCacheIndex ldFldInlineCacheId)
     {
@@ -1496,7 +1592,7 @@ namespace Js
             {
                 DumpProfiledValuesGroupedByValue(
                     _u("Element load"),
-                    this->ldElemInfo,
+                    static_cast<LdElemInfo*>(this->ldElemInfo),
                     this->functionBody->GetProfiledLdElemCount(),
                     [](const LdElemInfo *const ldElemInfo, const uint i) -> ValueType
                 {
@@ -1505,7 +1601,7 @@ namespace Js
                     dynamicProfileInfoAllocator);
                 DumpProfiledValuesGroupedByValue(
                     _u("Fld"),
-                    this->fldInfo,
+                    static_cast<FldInfo *>(this->fldInfo),
                     functionBody->GetProfiledFldCount(),
                     [](const FldInfo *const fldInfos, const uint i) -> ValueType
                 {
@@ -1577,7 +1673,8 @@ namespace Js
                 _u(" disableObjTypeSpec_jitLoopBody : %s\n")
                 _u(" disablePowIntTypeSpec : %s\n")
                 _u(" disableStackArgOpt : %s\n")
-                _u(" disableTagCheck : %s\n"),
+                _u(" disableTagCheck : %s\n")
+                _u(" disableOptimizeTryFinally : %s\n"),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec_jitLoopBody),
                 IsTrueOrFalse(this->bits.disableAggressiveMulIntTypeSpec),
@@ -1613,16 +1710,18 @@ namespace Js
                 IsTrueOrFalse(this->bits.disableObjTypeSpec_jitLoopBody),
                 IsTrueOrFalse(this->bits.disablePowIntIntTypeSpec),
                 IsTrueOrFalse(this->bits.disableStackArgOpt),
-                IsTrueOrFalse(this->bits.disableTagCheck));
+                IsTrueOrFalse(this->bits.disableTagCheck),
+                IsTrueOrFalse(this->bits.disableOptimizeTryFinally));
         }
     }
 
-    void DynamicProfileInfo::DumpList(SListBase<DynamicProfileInfo *> * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator)
+    void DynamicProfileInfo::DumpList(
+        DynamicProfileInfoList * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator)
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(ExceptionType_DisableCheck);
         if (Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase))
         {
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 if (Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase, info->GetFunctionBody()->GetSourceContextId(), info->GetFunctionBody()->GetLocalFunctionId()))
                 {
@@ -1634,7 +1733,7 @@ namespace Js
 
         if (Configuration::Global.flags.Dump.IsEnabled(JITLoopBodyPhase) && !Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase))
         {
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 if (info->functionBody->GetLoopCount() > 0)
                 {
@@ -1655,7 +1754,7 @@ namespace Js
             uint elementAccessSaved = 0;
             uint fldAccessSaved = 0;
 
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 bool hasHotLoop = false;
                 if (info->functionBody->DoJITLoopBody())
@@ -1752,7 +1851,6 @@ namespace Js
 #if DBG_DUMP
         writer->Log(this);
 #endif
-
         FunctionBody * functionBody = this->GetFunctionBody();
         Js::ArgSlot paramInfoCount = functionBody->GetProfiledInParamsCount();
         if (!writer->Write(functionBody->GetLocalFunctionId())
@@ -1920,6 +2018,9 @@ namespace Js
 
             if (callSiteInfoCount != 0)
             {
+                // CallSiteInfo contains pointer "polymorphicCallSiteInfo", but
+                // we explicitly save that pointer in FunctionBody. Safe to
+                // allocate CallSiteInfo[] as Leaf here.
                 callSiteInfo = RecyclerNewArrayLeaf(recycler, CallSiteInfo, callSiteInfoCount);
                 if (!reader->ReadArray(callSiteInfo, callSiteInfoCount))
                 {
@@ -2058,8 +2159,8 @@ namespace Js
 
         // That means that the data will never go away, probably not a good policy if this is cached for web page in WININET.
 
-        SListBase<DynamicProfileInfo *> * profileInfoList = scriptContext->GetProfileInfoList();
-        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+        DynamicProfileInfoList * profileInfoList = scriptContext->GetProfileInfoList();
+        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
         {
             FunctionBody * functionBody = info->GetFunctionBody();
             SourceDynamicProfileManager * sourceDynamicProfileManager = functionBody->GetSourceContextInfo()->sourceDynamicProfileManager;
@@ -2073,13 +2174,13 @@ namespace Js
     CriticalSection DynamicProfileInfo::s_csOutput;
 
     template <typename T>
-    void DynamicProfileInfo::WriteData(T data, FILE * file)
+    void DynamicProfileInfo::WriteData(const T& data, FILE * file)
     {
         fwrite(&data, sizeof(T), 1, file);
     }
 
     template <>
-    void DynamicProfileInfo::WriteData<char16 const *>(char16 const * sz, FILE * file)
+    void DynamicProfileInfo::WriteData<char16 const *>(char16 const * const& sz, FILE * file)
     {
         if (sz)
         {
@@ -2107,8 +2208,14 @@ namespace Js
         }
     }
 
+    template <typename T>
+    void DynamicProfileInfo::WriteArray(uint count, WriteBarrierPtr<T> arr, FILE * file)
+    {
+        WriteArray(count, static_cast<T*>(arr), file);
+    }
+
     template <>
-    void DynamicProfileInfo::WriteData<FunctionBody *>(FunctionBody * functionBody, FILE * file)
+    void DynamicProfileInfo::WriteData<FunctionBody *>(FunctionBody * const& functionBody, FILE * file)
     {
         WriteData(functionBody->GetSourceContextInfo()->sourceContextId, file);
         WriteData(functionBody->GetLocalFunctionId(), file);
@@ -2143,7 +2250,7 @@ namespace Js
             });
         }
 
-        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, scriptContext->GetProfileInfoList())
+        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, scriptContext->GetProfileInfoList())
         {
             WriteData((byte)1, file);
             WriteData(info->functionBody, file);
@@ -2234,7 +2341,7 @@ IR::BailOutKind IR::EquivalentToMonoTypeCheckBailOutKind(IR::BailOutKind kind)
     }
 }
 
-#if ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_CONFIG_OPTIONS || defined(REJIT_STATS)
 const char *const BailOutKindNames[] =
 {
 #define BAIL_OUT_KIND_LAST(n)               "" STRINGIZE(n) ""
@@ -2242,6 +2349,7 @@ const char *const BailOutKindNames[] =
 #define BAIL_OUT_KIND_VALUE_LAST(n, v)      BAIL_OUT_KIND_LAST(n)
 #define BAIL_OUT_KIND_VALUE(n, v)           BAIL_OUT_KIND(n)
 #include "BailOutKind.h"
+#undef BAIL_OUT_KIND_LAST
 };
 
 IR::BailOutKind const BailOutKindValidBits[] =
@@ -2249,7 +2357,6 @@ IR::BailOutKind const BailOutKindValidBits[] =
 #define BAIL_OUT_KIND(n, bits)               (IR::BailOutKind)bits,
 #define BAIL_OUT_KIND_VALUE_LAST(n, v)
 #define BAIL_OUT_KIND_VALUE(n, v)
-#define BAIL_OUT_KIND_LAST(n)
 #include "BailOutKind.h"
 };
 

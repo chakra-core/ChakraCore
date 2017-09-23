@@ -13,11 +13,20 @@ namespace Js
     {
         union
         {
-            int retIntVal;
-            int64 retInt64Val;
-            float retFloatVal;
-            double retDoubleVal;
-            AsmJsSIMDValue retSimdVal;
+            byte xmm[sizeof(AsmJsSIMDValue)];
+            float f32;
+            double f64;
+            AsmJsSIMDValue simd;
+        };
+        union
+        {
+            int32 i32;
+            int64 i64;
+            struct
+            {
+                int32 low;
+                int32 high;
+            };
         };
     };
 
@@ -31,11 +40,11 @@ namespace Js
         static PropertyId const specialPropertyIds[];
 
         // Need a constructor cache on every function (script and native) to avoid extra checks on the fast path, if the function isn't fixed.
-        ConstructorCache* constructorCache;
+        Field(ConstructorCache*) constructorCache;
 
     protected:
 
-        FunctionInfo * functionInfo;  // Underlying function
+        Field(FunctionInfo *) functionInfo;  // Underlying function
 
 
         DEFINE_VTABLE_CTOR(JavascriptFunction, DynamicObject);
@@ -100,10 +109,11 @@ namespace Js
         static JavascriptFunction* FromVar(Var aValue);
         Var CallFunction(Arguments args);
         Var CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript);
-        Var CallRootFunctionInternal(Arguments args, ScriptContext * scriptContext, bool inScript);
+#ifdef ASMJS_PLAT
         template <typename T>
-        static T CallAsmJsFunction(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv);
-        static PossibleAsmJsReturnValues CallAsmJsFunctionX86Thunk(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv);
+        static T VECTORCALL CallAsmJsFunction(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg);
+        static PossibleAsmJsReturnValues CallAsmJsFunctionX86Thunk(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg);
+#endif
         template <bool isConstruct>
         static Var CalloutHelper(RecyclableObject* function, Var thisArg, Var overridingNewTarget, Var argArray, ScriptContext* scriptContext);
 
@@ -112,13 +122,15 @@ namespace Js
         static Var CallRootFunctionInScript(JavascriptFunction* func, Arguments args);
 
         static Var CallAsConstructor(Var v, Var overridingNewTarget, Arguments args, ScriptContext* scriptContext, const Js::AuxArray<uint32> *spreadIndices = nullptr);
-        static Var FinishConstructor(const Var constructorReturnValue, Var newObject, JavascriptFunction *const function);
+        static Var FinishConstructor(const Var constructorReturnValue, Var newObject, JavascriptFunction *const function, bool hasOverridingNewTarget = false);
 
 #if DBG
         static void CheckValidDebugThunk(ScriptContext* scriptContext, RecyclableObject *function);
 #endif
         template <bool doStackProbe>
         static Var CallFunction(RecyclableObject* obj, JavascriptMethod entryPoint, Arguments args);
+        static Var CallRootFunction(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript);
+        static Var CallRootFunctionInternal(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript);
         static Var CallSpreadFunction(RecyclableObject* obj, Arguments args, const Js::AuxArray<uint32> *spreadIndices);
         static uint32 GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static void SpreadArgs(const Arguments args, Arguments& destArgs, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
@@ -176,10 +188,10 @@ namespace Js
 
         virtual bool HasReadOnlyPropertiesInvisibleToTypeHandler() override { return true; }
 
-        virtual BOOL HasProperty(PropertyId propertyId) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override;
@@ -189,7 +201,7 @@ namespace Js
         virtual BOOL IsConfigurable(PropertyId propertyId) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL IsWritable(PropertyId propertyId) override;
-        virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) override;
+        virtual BOOL GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext) override;
         virtual uint GetSpecialPropertyCount() const override;
         virtual PropertyId const * GetSpecialPropertyIds() const override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
@@ -213,9 +225,6 @@ namespace Js
 #endif
         private:
             static int CallRootEventFilter(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo);
-#if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
-            static bool ResumeForOutOfBoundsArrayRefs(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo);
-#endif
     };
 #if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
     class ArrayAccessDecoder

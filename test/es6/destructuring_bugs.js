@@ -360,6 +360,140 @@ var tests = [
         assert.areEqual(nextCount, 1);
         assert.areEqual(returnCount, 1);
     }
+  },
+  {
+    name: "Destructuring pattern at param has nested blocks.",
+    body: function () {
+        assert.doesNotThrow(function () { eval("var e = 1;       ( {abcdef  = ((((({})) = (1))))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value and it's initializer both have extra parentheses.");
+
+        assert.doesNotThrow(function () { eval("var e = 1;       ( {ghijkl  = ((((({})) =  1 )))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value has extra parentheses.");
+
+        assert.doesNotThrow(function () { eval("var e = 1; ( {mnopqrs = (((  {}   = (1))))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value initializer has extra parentheses.");
+
+        assert.doesNotThrow(function () { eval("var e = 1; ( {tuvwxy  = (((  {}   =  1 )))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value and initializer are wrapped in extra parentheses.");
+
+        assert.doesNotThrow(function () { eval("var e = 1;       ( {abcdef  = (((((foo)) = (1))))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value and it's initializer both have extra parentheses.");
+
+        assert.doesNotThrow(function () { eval("var e = 1;       ( {ghijkl  = (((((foo)) =  1 )))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value has extra parentheses.");
+
+        assert.doesNotThrow(function () { eval("var e = 1; ( {mnopqrs = (((  foo   = (1))))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value initializer has extra parentheses.");
+
+        assert.doesNotThrow(function () { eval("var e = 1; ( {tuvwxy  = (((  foo   =  1 )))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value and initializer are wrapped in extra parentheses.");
+
+        assert.doesNotThrow(function () { eval("var a; ({ tyssjh = ((cspagh = 4) => a) } = 1) => { /*jjj*/ }; (function(a) { })()") }, "Should not throw when there is a nested lambda expression within destructured variable declaration.");
+
+        assert.doesNotThrow(function () { eval("var a; [a = class aClass {}] = [];") }, "Should not throw when class declaration exists in destructured variable initializer.");
+
+        assert.throws(function () { eval("function test5(){ var ggnzrk=function(){ }; ({ggnzrk, namespace: {}, w: [(inmgdv)]}) => { };};") }, SyntaxError, "Should throw if nested destructured declaration has a variable name in parenthesis.");
+
+        assert.throws(function () { eval("function test5(){ var ggnzrk=function(){ }; ({ggnzrk, namespace: {}, w: ([inmgdv])}) => { };};") }, SyntaxError, "Should throw if nested destructured declaration is wrapped in extra parenthesis.");
+
+        assert.throws(function () { eval("{ ([((iydvhw)), gpvpgk]) => { }; } var iydvhw=function(){return this};") }, SyntaxError, "Should throw if variable names in destructured declaration have extra parentheses.");
+
+        assert.throws(function () { eval("(nmlwii, [((yycokb) = (1))] = (nmlwii)) => { };") }, SyntaxError, "Should throw if one or more of the lambda parameters have destructured variable declaration with initializer capturing another parameter.");
+
+        assert.throws(function () { eval("({ggnzrk, w: (ggnzrk)}) => { };") }, SyntaxError, "Should throw if reused symbol in destructured variable declaration.");
+
+        assert.throws(function () { eval("([x, ...((yArgs))]) => {}") }, SyntaxError, "Should throw if rest parameter name in a declaration is enclosed in parenthesis.");
+
+        assert.throws(function () { eval("([x, ...(([yArgs, zArgs]))]) => {}") }, SyntaxError, "Should throw if rest parameter name in a declaration is enclosed in parenthesis.");
+
+        assert.doesNotThrow(function () { eval("( {abcdef  = ((((([...((abcdef))] = [1, 2, 3])) = (1))))} = (e)) => {  try{  } catch(abcdef) {}}") }, "Should not throw when rest parameter name is enclosed in extra parentheses.");
+
+        var a1 = 10;
+        var b1 = 20;
+        bar1 = ( {abcdef  = (((((a1)) = (30))))} = (b1 = 40) ) => { try { throw a1; } catch(a1) { } };
+        bar1();
+        assert.areEqual(a1, 30, "The default value initializer should have fired for parameter in destructuring pattern.");
+        assert.areEqual(b1, 40, "The default value block initializer should have fired for parameter in destructuring pattern.");
+
+        var a2 = 10;
+        var b2 = 20;
+        bar2 = ( {abcdef  = (((((a2)) = (30))))} = (b2 = 40) ) => { try { throw a2; } catch(a2) { } };
+        bar2({abcdef : 50});
+        assert.areEqual(a2, 10, "The default value initializer should NOT have fired for parameter in destructuring pattern.");
+        assert.areEqual(b2, 20, "The default value block initializer should NOT have fired for parameter in destructuring pattern.");
+
+        var a3 = 10;
+        var b3 = 20;
+        bar3 = ( {aa3 = a3, bb3 = b3, abcdef  = (((((a3)) = (30))))} = (b3 = 40) ) => 
+        { 
+            try 
+            {
+                assert.areEqual(a3, undefined, "The variable a3 in the current scope should not have been assigned yet.");
+                assert.areEqual(b3, undefined, "The variable b3 in the current scope should not have been assigned yet.");
+                assert.areEqual(aa3, 10, "The parameter aa3 should get initialized correctly.");
+                assert.areEqual(bb3, 20, "The parameter bb3 should get initialized correctly.");
+                var a3 = 60; 
+                var b3 = 70; 
+                throw a3; 
+            } catch(a3) { } 
+        };
+        bar3({abcdef : 50});
+        assert.areEqual(a3, 10, "The variable a3 in the enclosing scope should not have been changed.");
+        assert.areEqual(b3, 20, "The variable a3 in the enclosing scope should not have been changed.");
+
+        var a4 = 10;
+        var b4 = 15;
+        bar4 = ( { b4 = ((xyz = 4) => a4) } = 1) => { b4 = 35; return b4; }; 
+        var c4 = bar4();
+        var d4 = (function( { a4, b4 } = { a4 : 20, b4 : 25 }) { return a4;})();
+        assert.areEqual(a4, 10, "The variable in the enclosing scope should not have been changed.");
+        assert.areEqual(b4, 15, "The variable in the enclosing scope should not have been changed.");
+        assert.areEqual(c4, 35, "The variable in the enclosing scope should not have been changed.");
+        assert.areEqual(d4, 20, "The variable in the enclosing scope should not have been changed.");
+    }
+  },
+  {
+    name: "Destructuring pattern with rest parameter has nested blocks.",
+    body: function () {
+       [...((a5))] = [1, 2, 3];
+       assert.areEqual(a5, [1, 2, 3], "The rest parameter with extra parentheses gets assigned correctly.");
+
+       assert.doesNotThrow(function () { eval("[...((a))] = [1, 2, 3]") }, "Should not throw when rest parameter name is enclosed in extra parentheses.");
+    }
+  },
+  {
+    name: "Destructuring bug fix - a reference from a 'this' object should be valid statement",
+    body: function () {
+      assert.doesNotThrow(function () { [this.x] = []; }, "array destructuring - referencing x from this in pattern is a correct syntax" );
+      assert.doesNotThrow(function () { ({x:this.x} = {}); }, "object destructuring - referencing x from this in pattern is a correct syntax" );
+      (function () {
+          this.x = 1, this.y = 2;
+          [this.x, this.y] = [this.y, this.x];
+          assert.areEqual(this.x, 2);
+          assert.areEqual(this.y, 1);
+      })();
+      assert.doesNotThrow(function () { [...this.x] = [1]; }, "array destructuring rest - referencing x from this in pattern is a correct syntax" );
+    }
+  },
+  {
+    name: "array destructuring as catch parameter can yield properly",
+    body: function () {
+        function * gn() {
+          try {
+            throw [];
+          } catch ([c = (yield 2)]) {
+          }
+        };
+        var it = gn();
+        var k = it.next();
+        assert.areEqual(2, k.value, "next should invoke the yield in the generator and which yields 2");
+    }
+  },
+  {
+    name: "array destructuring nested as catch parameter can yield properly",
+    body: function () {
+        function * gn() {
+          try {
+            throw [{x:[]}];
+          } catch ([{x:[c = (yield 2)]}]) {
+          }
+        };
+        var it = gn();
+        var k = it.next();
+        assert.areEqual(2, k.value, "next should invoke the yield in the generator and which yields 2");
+    }
   }
 ];
 

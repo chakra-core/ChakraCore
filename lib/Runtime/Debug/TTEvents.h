@@ -6,9 +6,9 @@
 
 #if ENABLE_TTD
 
-//Ideally we want this to be a multiple of 8 when added to the tag sizes in the EventLogEntry struct.
-//It should also be of a size that allows us to inline the event data for the most common events without being too wasteful on other events.
-#define EVENT_INLINE_DATA_BYTE_COUNT 36
+#define TTD_EVENT_BASE_SIZE sizeof(TTD::NSLogEvents::EventLogEntry)
+#define TTD_EVENT_PLUS_DATA_SIZE_DIRECT(S) TTD_WORD_ALIGN_ALLOC_SIZE(TTD_EVENT_BASE_SIZE + S)
+#define TTD_EVENT_PLUS_DATA_SIZE(T) TTD_WORD_ALIGN_ALLOC_SIZE(TTD_EVENT_BASE_SIZE + sizeof(T))
 
 //The limit on event times used as the default value
 #define TTD_EVENT_MAXTIME INT64_MAX
@@ -77,120 +77,6 @@
 
 namespace TTD
 {
-    //An exception class for controlled aborts from the runtime to the toplevel TTD control loop
-    class TTDebuggerAbortException
-    {
-    private:
-        //An integer code to describe the reason for the abort -- 0 invalid, 1 end of log, 2 request etime move, 3 uncaught exception (propagate to top-level)
-        const uint32 m_abortCode;
-
-        //An optional target event time -- intent is interpreted based on the abort code
-        const int64 m_optEventTime;
-
-        //An optional move mode value -- should be built by host we just propagate it
-        const int64 m_optMoveMode;
-
-        //An optional -- and static string message to include
-        const char16* m_staticAbortMessage;
-
-        TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, int64 optMoveMode, const char16* staticAbortMessage);
-
-    public:
-        ~TTDebuggerAbortException();
-
-        static TTDebuggerAbortException CreateAbortEndOfLog(const char16* staticMessage);
-        static TTDebuggerAbortException CreateTopLevelAbortRequest(int64 targetEventTime, int64 moveMode, const char16* staticMessage);
-        static TTDebuggerAbortException CreateUncaughtExceptionAbortRequest(int64 targetEventTime, const char16* staticMessage);
-
-        bool IsEndOfLog() const;
-        bool IsEventTimeMove() const;
-        bool IsTopLevelException() const;
-
-        int64 GetTargetEventTime() const;
-        int64 GetMoveMode() const;
-
-        const char16* GetStaticAbortMessage() const;
-    };
-
-    //A struct for tracking time events in a single method
-    struct SingleCallCounter
-    {
-        Js::FunctionBody* Function;
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        const char16* Name; //only added for debugging can get rid of later.
-#endif
-
-        uint64 EventTime; //The event time when the function was called
-        uint64 FunctionTime; //The function time when the function was called
-        uint64 LoopTime; //The current loop taken time for the function
-
-        int32 LastStatementIndex; //The previously executed statement
-        uint64 LastStatementLoopTime; //The previously executed statement
-
-        int32 CurrentStatementIndex; //The currently executing statement
-        uint64 CurrentStatementLoopTime; //The currently executing statement
-
-        //bytecode range of the current stmt
-        uint32 CurrentStatementBytecodeMin;
-        uint32 CurrentStatementBytecodeMax;
-    };
-
-    //A class to represent a source location
-    class TTDebuggerSourceLocation
-    {
-    private:
-        //The time aware parts of this location
-        int64 m_etime;  //-1 indicates an INVALID location
-        int64 m_ftime;  //-1 indicates any ftime is OK
-        int64 m_ltime;  //-1 indicates any ltime is OK
-
-        //The document
-        char16* m_sourceFile; //temp use until we make docid stable
-        uint32 m_docid;
-
-        //The position of the function in the document
-        uint32 m_functionLine;
-        uint32 m_functionColumn;
-
-        //The location in the fnuction
-        uint32 m_line;
-        uint32 m_column;
-
-    public:
-        TTDebuggerSourceLocation();
-        TTDebuggerSourceLocation(int64 topLevelETime, const SingleCallCounter& callFrame);
-        TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other);
-        ~TTDebuggerSourceLocation();
-
-        TTDebuggerSourceLocation& operator= (const TTDebuggerSourceLocation& other);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        void PrintToConsole(bool newline) const;
-#endif
-
-        void Initialize();
-
-        bool HasValue() const;
-        void Clear();
-        void SetLocation(const TTDebuggerSourceLocation& other);
-        void SetLocation(int64 topLevelETime, const SingleCallCounter& callFrame);
-        void SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column);
-
-        int64 GetRootEventTime() const;
-        int64 GetFunctionTime() const;
-        int64 GetLoopTime() const;
-
-        Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx) const;
-        uint32 GetLine() const;
-        uint32 GetColumn() const;
-
-        //return true if this comes strictly before other in execution order
-        bool IsBefore(const TTDebuggerSourceLocation& other) const;
-    };
-
-    //////////////////
-
     namespace NSLogEvents
     {
         //An enumeration of the event kinds in the system
@@ -207,14 +93,15 @@ namespace TTD
             RandomSeedTag,
             PropertyEnumTag,
             SymbolCreationTag,
+            WeakCollectionContainsTag,
             ExternalCbRegisterCall,
             ExternalCallTag,
+            ExplicitLogWriteTag,
             //JsRTActionTag is a marker for where the JsRT actions begin
             JsRTActionTag,
 
             CreateScriptContextActionTag,
             SetActiveScriptContextActionTag,
-            DeadScriptContextActionTag,
 
 #if !INT32VAR
             CreateIntegerActionTag,
@@ -237,7 +124,8 @@ namespace TTD
             VarConvertToObjectActionTag,
 
             AddRootRefActionTag,
-            RemoveRootRefActionTag,
+            AddWeakRootRefActionTag,
+            //No remove weak root ref, this is handled when syncing at snapshot points
 
             AllocateObjectActionTag,
             AllocateExternalObjectActionTag,
@@ -247,6 +135,7 @@ namespace TTD
             AllocateFunctionActionTag,
 
             HostExitProcessTag,
+            GetAndClearExceptionWithMetadataActionTag,
             GetAndClearExceptionActionTag,
             SetExceptionActionTag,
 
@@ -277,9 +166,11 @@ namespace TTD
             RawBufferAsyncModifyComplete,
 
             ConstructCallActionTag,
-            CallbackOpActionTag,
             CodeParseActionTag,
             CallExistingFunctionActionTag,
+
+            HasOwnPropertyActionTag,
+            GetDataViewInfoActionTag,
 
             Count
         };
@@ -313,13 +204,14 @@ namespace TTD
             fPtr_EventLogEntryInfoUnload UnloadFP;
             fPtr_EventLogEntryInfoEmit EmitFP;
             fPtr_EventLogEntryInfoParse ParseFP;
+
+            size_t DataSize;
         };
 
-        //A base struct for our event log entries -- we will use the kind tags as v-table values 
+        //A base struct for our event log entries -- we will use the kind tags as v-table values
+        //Data is stored in buffer memory immediately following this struct
         struct EventLogEntry
         {
-            byte EventData[EVENT_INLINE_DATA_BYTE_COUNT];
-
             //The kind of the event
             EventKind EventKind;
 
@@ -335,25 +227,37 @@ namespace TTD
         template <typename T, EventKind tag>
         const T* GetInlineEventDataAs(const EventLogEntry* evt)
         {
-            static_assert(sizeof(T) < EVENT_INLINE_DATA_BYTE_COUNT, "Data is too large for inline representation!!!");
             TTDAssert(evt->EventKind == tag, "Bad tag match!");
 
-            return reinterpret_cast<const T*>(evt->EventData);
+            return reinterpret_cast<const T*>(((byte*)evt) + TTD_EVENT_BASE_SIZE);
         }
 
         template <typename T, EventKind tag>
         T* GetInlineEventDataAs(EventLogEntry* evt)
         {
-            static_assert(sizeof(T) < EVENT_INLINE_DATA_BYTE_COUNT, "Data is too large for inline representation!!!");
             TTDAssert(evt->EventKind == tag, "Bad tag match!");
 
-            return reinterpret_cast<T*>(evt->EventData);
+            return reinterpret_cast<T*>(((byte*)evt) + TTD_EVENT_BASE_SIZE);
+        }
+
+        template<EventKind tag>
+        void EventLogEntry_Initialize(EventLogEntry* evt, int64 etime)
+        {
+            evt->EventKind = tag;
+            evt->ResultStatus = -1;
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            static_assert(TTD_EVENT_BASE_SIZE % 4 == 0, "This should always be word aligned.");
+            AssertMsg(((uint64)evt) % 4 == 0, "We want this word aligned for performance so who messed it up.");
+
+            evt->EventTimeStamp = etime;
+#endif
         }
 
         //Helpers for initializing, emitting and parsing the basic event data
-        void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime);
         void EventLogEntry_Emit(const EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator);
-        void EventLogEntry_Parse(EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+        EventKind EventLogEntry_ParseHeader(bool readSeparator, FileReader* reader);
+        void EventLogEntry_ParseRest(EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         bool EventFailsWithRuntimeError(const EventLogEntry* evt);
         bool EventDoesNotReturn(const EventLogEntry* evt);
@@ -370,6 +274,14 @@ namespace TTD
 
             //The snapshot (we many persist this to disk and inflate back in later)
             SnapShot* Snap;
+
+            //The logids of live contexts
+            uint32 LiveContextCount;
+            TTD_LOG_PTR_ID* LiveContextIdArray;
+
+            //The logids of live roots (with non-zero weak references)
+            uint32 LongLivedRefRootsCount;
+            TTD_LOG_PTR_ID* LongLivedRefRootsIdArray;
         };
 
         void SnapshotEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
@@ -398,7 +310,7 @@ namespace TTD
         struct CodeLoadEventLogEntry
         {
             //The code counter id for the TopLevelFunctionBodyInfo
-            uint64 BodyCounterId;
+            uint32 BodyCounterId;
         };
 
         void CodeLoadEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
@@ -485,6 +397,17 @@ namespace TTD
 
         //////////////////
 
+        //A struct that tracks if a weak key value is in a weak collection
+        struct WeakCollectionContainsEventLogEntry
+        {
+            bool ContainsValue;
+        };
+
+        void WeakCollectionContainsEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
+        void WeakCollectionContainsEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //////////////////
+
         //A struct for logging the invocation of the host callback registration function
         struct ExternalCbRegisterCallEventLogEntry
         {
@@ -502,26 +425,6 @@ namespace TTD
 
         //////////////////
 
-
-        //A struct containing additional information on the external call
-        struct ExternalCallEventLogEntry_AdditionalInfo
-        {
-            //The wall clock times for this action
-            double BeginTime;
-            double EndTime;
-
-            //The last event time that is nested in this external call
-            int64 LastNestedEventTime;
-
-            //if we need to check exception information
-            bool CheckExceptionStatus;
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            //the function name for the function that is invoked
-            TTString FunctionName;
-#endif
-        };
-
         //A struct for logging calls from Chakra to an external function (e.g., record start of external execution and later any argument information)
         struct ExternalCallEventLogEntry
         {
@@ -535,7 +438,16 @@ namespace TTD
             //The return value of the external call
             TTDVar ReturnValue;
 
-            ExternalCallEventLogEntry_AdditionalInfo* AdditionalInfo;
+            //The last event time that is nested in this external call
+            int64 LastNestedEventTime;
+
+            //if we need to check exception information
+            bool CheckExceptionStatus;
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            //the function name for the function that is invoked
+            TTString FunctionName;
+#endif
         };
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -544,12 +456,23 @@ namespace TTD
 
         int64 ExternalCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt);
 
-        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool checkExceptions, double beginTime, UnlinkableSlabAllocator& alloc);
-        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, int64 lastNestedEvent, double endTime);
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool checkExceptions, UnlinkableSlabAllocator& alloc);
+        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, int64 lastNestedEvent);
 
         void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void ExternalCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //////////////////
+
+        //A struct for when we explicitly write a log entry -- currently empty placeholder
+        struct ExplicitLogWriteEventLogEntry
+        {
+            ;
+        };
+
+        void ExplicitLogWriteEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
+        void ExplicitLogWriteEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
     }
 }
 

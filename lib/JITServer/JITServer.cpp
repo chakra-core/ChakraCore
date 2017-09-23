@@ -58,6 +58,9 @@ HRESULT JsInitializeJITServer(
         return status;
     }
 
+    JITManager::GetJITManager()->SetIsJITServer();
+    PageAllocatorPool::Initialize();
+
     status = RpcEpRegister(
         ServerIChakraJIT_v0_0_s_ifspec,
         bindingVector,
@@ -74,9 +77,6 @@ HRESULT JsInitializeJITServer(
     {
         return status;
     }
-
-    JITManager::GetJITManager()->SetIsJITServer();
-    PageAllocatorPool::Initialize();
 
     status = RpcServerListen(1, RPC_C_LISTEN_MAX_CALLS_DEFAULT, FALSE);
 
@@ -99,40 +99,12 @@ ShutdownCommon()
     return status;
 }
 
-__declspec(dllexport)
-HRESULT
-JsShutdownJITServer()
-{
-    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-
-    if (JITManager::GetJITManager()->IsConnected())
-    {
-        // if client is hosting jit process directly, call to remotely shutdown
-        return JITManager::GetJITManager()->Shutdown();
-    }
-    else
-    {
-        return ShutdownCommon();
-    }
-}
-
 HRESULT
 ServerShutdown(
     /* [in] */ handle_t binding)
 {
     return ShutdownCommon();
 }
-
-HRESULT
-ServerCleanupProcess(
-    /* [in] */ handle_t binding,
-    /* [in] */ intptr_t processHandle)
-{
-    ServerContextManager::CleanUpForProcess((HANDLE)processHandle);
-    CloseHandle((HANDLE)processHandle);
-    return S_OK;
-}
-
 
 void
 __RPC_USER PTHREADCONTEXT_HANDLE_rundown(__RPC__in PTHREADCONTEXT_HANDLE phContext)
@@ -147,14 +119,86 @@ __RPC_USER PSCRIPTCONTEXT_HANDLE_rundown(__RPC__in PSCRIPTCONTEXT_HANDLE phConte
     ServerCleanupScriptContext(nullptr, &phContext);
 }
 
-#pragma warning(push)  
+HRESULT CheckModuleAddress(HANDLE process, LPCVOID remoteImageBase, LPCVOID localImageBase)
+{
+    byte remoteImageHeader[0x1000];
+    MEMORY_BASIC_INFORMATION remoteImageInfo;
+    SIZE_T resultBytes = VirtualQueryEx(process, (LPCVOID)remoteImageBase, &remoteImageInfo, sizeof(remoteImageInfo));
+    if (resultBytes != sizeof(remoteImageInfo))
+    {
+        return E_ACCESSDENIED;
+    }
+    if (remoteImageInfo.BaseAddress != (PVOID)remoteImageBase)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (remoteImageInfo.Type != MEM_IMAGE)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (remoteImageInfo.State != MEM_COMMIT)
+    {
+        return E_ACCESSDENIED;
+    }
+
+    if (remoteImageInfo.RegionSize < sizeof(remoteImageHeader))
+    {
+        return E_ACCESSDENIED;
+    }
+
+    if (!ReadProcessMemory(process, remoteImageBase, remoteImageHeader, sizeof(remoteImageHeader), &resultBytes))
+    {
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+    if (resultBytes < sizeof(remoteImageHeader))
+    {
+        return E_ACCESSDENIED;
+    }
+    PIMAGE_DOS_HEADER localDosHeader = (PIMAGE_DOS_HEADER)localImageBase;
+    PIMAGE_NT_HEADERS localNtHeader = (PIMAGE_NT_HEADERS)((BYTE*)localDosHeader + localDosHeader->e_lfanew);
+
+    PIMAGE_DOS_HEADER remoteDosHeader = (PIMAGE_DOS_HEADER)remoteImageHeader;
+    PIMAGE_NT_HEADERS remoteNtHeader = (PIMAGE_NT_HEADERS)((BYTE*)remoteDosHeader + remoteDosHeader->e_lfanew);
+
+    uintptr_t remoteHeaderMax = (uintptr_t)remoteImageHeader + sizeof(remoteImageHeader);
+    uintptr_t remoteMaxRead = (uintptr_t)remoteNtHeader + sizeof(IMAGE_NT_HEADERS);
+    if (remoteMaxRead >= remoteHeaderMax || remoteMaxRead < (uintptr_t)remoteImageHeader)
+    {
+        return E_ACCESSDENIED;
+    }
+
+    if (localNtHeader->FileHeader.NumberOfSections != remoteNtHeader->FileHeader.NumberOfSections)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (localNtHeader->FileHeader.NumberOfSymbols != remoteNtHeader->FileHeader.NumberOfSymbols)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (localNtHeader->OptionalHeader.CheckSum != remoteNtHeader->OptionalHeader.CheckSum)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (localNtHeader->OptionalHeader.SizeOfImage != remoteNtHeader->OptionalHeader.SizeOfImage)
+    {
+        return E_ACCESSDENIED;
+    }
+
+    return S_OK;
+}
+
+#pragma warning(push)
 #pragma warning(disable:6387 28196) // PREFast does not understand the out context can be null here
 HRESULT
 ServerInitializeThreadContext(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in ThreadContextDataIDL * threadContextData,
+#ifdef USE_RPC_HANDLE_MARSHALLING
+    /* [in] */ __RPC__in HANDLE processHandle,
+#endif
     /* [out] */ __RPC__deref_out_opt PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    /* [out] */ __RPC__out intptr_t *prereservedRegionAddr)
+    /* [out] */ __RPC__out intptr_t *prereservedRegionAddr,
+    /* [out] */ __RPC__out intptr_t *jitThunkAddr)
 {
     if (threadContextInfoAddress == nullptr || prereservedRegionAddr == nullptr)
     {
@@ -164,25 +208,71 @@ ServerInitializeThreadContext(
 
     *threadContextInfoAddress = nullptr;
     *prereservedRegionAddr = 0;
+    *jitThunkAddr = 0;
 
     ServerThreadContext * contextInfo = nullptr;
+
+    DWORD clientPid;
+    HRESULT hr = HRESULT_FROM_WIN32(I_RpcBindingInqLocalClientPID(binding, &clientPid));
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+#ifdef USE_RPC_HANDLE_MARSHALLING
+    HANDLE targetHandle;
+    if (!DuplicateHandle(GetCurrentProcess(), processHandle, GetCurrentProcess(), &targetHandle, 0, false, DUPLICATE_SAME_ACCESS))
+    {
+        return E_ACCESSDENIED;
+    }
+#else
+    HANDLE targetHandle = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_LIMITED_INFORMATION, false, clientPid);
+    if (!targetHandle)
+    {
+        return E_ACCESSDENIED;
+    }
+#endif
     try
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory));
-        contextInfo = (ServerThreadContext*)HeapNew(ServerThreadContext, threadContextData);
+        contextInfo = HeapNew(ServerThreadContext, threadContextData, targetHandle);
         ServerContextManager::RegisterThreadContext(contextInfo);
     }
     catch (Js::OutOfMemoryException)
     {
+        CloseHandle(targetHandle);
         return E_OUTOFMEMORY;
     }
 
     return ServerCallWrapper(contextInfo, [&]()->HRESULT
     {
-        *threadContextInfoAddress = (PTHREADCONTEXT_HANDLE)EncodePointer(contextInfo);
-        *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedVirtualAllocator()->EnsurePreReservedRegion();
+        if (clientPid != contextInfo->GetRuntimePid())
+        {
+            return E_ACCESSDENIED;
+        }
+        hr = CheckModuleAddress(targetHandle, (LPCVOID)contextInfo->GetRuntimeChakraBaseAddress(), (LPCVOID)AutoSystemInfo::Data.dllLoadAddress);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+        hr = CheckModuleAddress(targetHandle, (LPCVOID)contextInfo->GetRuntimeCRTBaseAddress(), (LPCVOID)contextInfo->GetJITCRTBaseAddress());
+        if (FAILED(hr))
+        {
+            return hr;
+        }
 
-        return S_OK;
+        *threadContextInfoAddress = (PTHREADCONTEXT_HANDLE)EncodePointer(contextInfo);
+
+#if defined(_CONTROL_FLOW_GUARD)
+        if (!PHASE_OFF1(Js::PreReservedHeapAllocPhase))
+        {
+            *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedSectionAllocator()->EnsurePreReservedRegion();
+        }
+#if _M_IX86 || _M_X64
+        *jitThunkAddr = (intptr_t)contextInfo->GetJITThunkEmitter()->EnsureInitialized();
+#endif
+#endif
+
+        return hr;
     });
 }
 
@@ -215,7 +305,7 @@ ServerInitializeScriptContext(
         return S_OK;
     });
 }
-#pragma warning(pop) 
+#pragma warning(pop)
 
 HRESULT
 ServerCleanupThreadContext(
@@ -250,7 +340,7 @@ HRESULT
 ServerUpdatePropertyRecordMap(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    /* [in] */ __RPC__in BVSparseNodeIDL * updatedPropsBVHead)
+    /* [in] */ __RPC__in_opt BVSparseNodeIDL * updatedPropsBVHead)
 {
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer(threadContextInfoAddress);
 
@@ -262,6 +352,7 @@ ServerUpdatePropertyRecordMap(
 
     return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
     {
+        typedef ServerThreadContext::BVSparseNode BVSparseNode;
         CompileAssert(sizeof(BVSparseNode) == sizeof(BVSparseNodeIDL));
         threadContextInfo->UpdateNumericPropertyBV((BVSparseNode*)updatedPropsBVHead);
 
@@ -353,11 +444,15 @@ ServerCleanupScriptContext(
         return RPC_S_INVALID_ARG;
     }
 
+    if (!scriptContextInfo->IsClosed())
+    {
+        scriptContextInfo->Close();
+        ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
+    }
     // This tells the run-time, when it is marshalling the out
     // parameters, that the context handle has been closed normally.
     *scriptContextInfoAddress = nullptr;
 
-    Assert(scriptContextInfo->IsClosed());
     HeapDelete(scriptContextInfo);
 
     return S_OK;
@@ -393,19 +488,34 @@ ServerCloseScriptContext(
 }
 
 HRESULT
-ServerNewInterpreterThunkBlock(
+ServerDecommitInterpreterBufferManager(
     /* [in] */ handle_t binding,
-    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfo,
-    /* [in] */ boolean asmJsThunk,
-    /* [out] */ __RPC__out InterpreterThunkInfoIDL * thunkInfo)
-{   
-    if (thunkInfo == nullptr)
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ boolean asmJsManager)
+{
+    ServerScriptContext * scriptContext = (ServerScriptContext *)DecodePointer((void*)scriptContextInfoAddress);
+
+    if (scriptContext == nullptr)
     {
         Assert(false);
         return RPC_S_INVALID_ARG;
     }
 
-    memset(thunkInfo, 0, sizeof(InterpreterThunkInfoIDL));
+    return ServerCallWrapper(scriptContext, [&]()->HRESULT
+    {
+        scriptContext->DecommitEmitBufferManager(asmJsManager != FALSE);
+        return S_OK;
+    });
+}
+
+HRESULT
+ServerNewInterpreterThunkBlock(
+    /* [in] */ handle_t binding,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfo,
+    /* [in] */ __RPC__in InterpreterThunkInputIDL * thunkInput,
+    /* [out] */ __RPC__out InterpreterThunkOutputIDL * thunkOutput)
+{
+    memset(thunkOutput, 0, sizeof(InterpreterThunkOutputIDL));
 
     ServerScriptContext * scriptContext = (ServerScriptContext *)DecodePointer(scriptContextInfo);
     if (scriptContext == nullptr)
@@ -416,27 +526,50 @@ ServerNewInterpreterThunkBlock(
 
     return ServerCallWrapper(scriptContext, [&]()->HRESULT
     {
-        const DWORD bufferSize = InterpreterThunkEmitter::BlockSize;
-        DWORD thunkCount = 0;
+        ServerThreadContext * threadContext = scriptContext->GetThreadContext();
+
+        class AutoLocalAlloc
+        {
+        public:
+            AutoLocalAlloc(ServerThreadContext * threadContext) : localAddress(nullptr), threadContext(threadContext) { }
+            ~AutoLocalAlloc()
+            {
+                if (localAddress)
+                {
+                    threadContext->GetCodePageAllocators()->FreeLocal(this->localAddress, this->segment);
+                }
+            }
+            char * localAddress;
+            void * segment;
+            ServerThreadContext * threadContext;
+        } localAlloc(threadContext);
+
+        OOPEmitBufferManager * emitBufferManager = scriptContext->GetEmitBufferManager(thunkInput->asmJsThunk != FALSE);
+
+        BYTE* runtimeAddress;
+        EmitBufferAllocation<SectionAllocWrapper, PreReservedSectionAllocWrapper> * alloc = emitBufferManager->AllocateBuffer(InterpreterThunkEmitter::BlockSize, &runtimeAddress);
+
+        CompileAssert(InterpreterThunkEmitter::BlockSize <= CustomHeap::Page::MaxAllocationSize);
+        localAlloc.segment = alloc->allocation->page->segment;
+
+        localAlloc.localAddress = threadContext->GetCodePageAllocators()->AllocLocal((char*)runtimeAddress, InterpreterThunkEmitter::BlockSize, localAlloc.segment);
+        if (!localAlloc.localAddress)
+        {
+            Js::Throw::OutOfMemory();
+        }
 
 #if PDATA_ENABLED
-        PRUNTIME_FUNCTION pdataStart;
-        intptr_t epilogEnd;
+        PRUNTIME_FUNCTION pdataStart = {0};
+        intptr_t epilogEnd = 0;
 #endif
-        ServerThreadContext * threadContext = scriptContext->GetThreadContext();
-        EmitBufferManager<> * emitBufferManager = scriptContext->GetEmitBufferManager(asmJsThunk != FALSE);
+        DWORD thunkCount = 0;
 
-        BYTE* remoteBuffer;
-        EmitBufferAllocation * allocation = emitBufferManager->AllocateBuffer(bufferSize, &remoteBuffer);
-
-        Assert(bufferSize <= 0x1000); // in case this is changed some day we might switch to use other allocator
-        BYTE  localBuffer[bufferSize];
         InterpreterThunkEmitter::FillBuffer(
             threadContext,
-            asmJsThunk != FALSE,
-            (intptr_t)remoteBuffer,
-            bufferSize,
-            localBuffer,
+            thunkInput->asmJsThunk != FALSE,
+            (intptr_t)runtimeAddress,
+            InterpreterThunkEmitter::BlockSize,
+            (BYTE*)localAlloc.localAddress,
 #if PDATA_ENABLED
             &pdataStart,
             &epilogEnd,
@@ -444,42 +577,59 @@ ServerNewInterpreterThunkBlock(
             &thunkCount
         );
 
-        if (!emitBufferManager->ProtectBufferWithExecuteReadWriteForInterpreter(allocation))
+        emitBufferManager->CommitBufferForInterpreter(alloc, runtimeAddress, InterpreterThunkEmitter::BlockSize);
+        // Call to set VALID flag for CFG check
+        if (CONFIG_FLAG(OOPCFGRegistration))
         {
-            MemoryOperationLastError::CheckProcessAndThrowFatalError(threadContext->GetProcessHandle());
+            threadContext->SetValidCallTargetForCFG(runtimeAddress);
         }
 
-        if (!WriteProcessMemory(threadContext->GetProcessHandle(), remoteBuffer, localBuffer, bufferSize, nullptr))
-        {
-            MemoryOperationLastError::CheckProcessAndThrowFatalError(threadContext->GetProcessHandle());
-        }
-
-        if (!emitBufferManager->CommitReadWriteBufferForInterpreter(allocation, remoteBuffer, bufferSize))
-        {
-            MemoryOperationLastError::CheckProcessAndThrowFatalError(threadContext->GetProcessHandle());
-        }
-
-        if(CONFIG_FLAG(OOPCFGRegistration))
-        {
-            threadContext->SetValidCallTargetForCFG(remoteBuffer);
-        }
-
-        thunkInfo->thunkBlockAddr = (intptr_t)remoteBuffer;
-        thunkInfo->thunkCount = thunkCount;
+        thunkOutput->thunkCount = thunkCount;
+        thunkOutput->mappedBaseAddr = (intptr_t)runtimeAddress;
 #if PDATA_ENABLED
-        thunkInfo->pdataTableStart = (intptr_t)pdataStart;
-        thunkInfo->epilogEndAddr = epilogEnd;
+        thunkOutput->pdataTableStart = (intptr_t)pdataStart;
+        thunkOutput->epilogEndAddr = epilogEnd;
 #endif
 
         return S_OK;
     });
 }
 
+#if DBG
+HRESULT
+ServerIsInterpreterThunkAddr(
+    /* [in] */ handle_t binding,
+    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ intptr_t address,
+    /* [in] */ boolean asmjsThunk,
+    /* [out] */ __RPC__out boolean * result)
+{
+    ServerScriptContext * context = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
+
+    if (context == nullptr)
+    {
+        *result = false;
+        return RPC_S_INVALID_ARG;
+    }
+    OOPEmitBufferManager * manager = context->GetEmitBufferManager(asmjsThunk != FALSE);
+    if (manager == nullptr)
+    {
+        *result = false;
+        return S_OK;
+    }
+
+    *result = manager->IsInHeap((void*)address);
+
+    return S_OK;
+}
+#endif
+
 HRESULT
 ServerFreeAllocation(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfo,
-    /* [in] */ intptr_t address)
+    /* [in] */ intptr_t codeAddress,
+    /* [in] */ intptr_t thunkAddress)
 {
     ServerThreadContext * context = (ServerThreadContext*)DecodePointer(threadContextInfo);
 
@@ -491,48 +641,20 @@ ServerFreeAllocation(
 
     return ServerCallWrapper(context, [&]()->HRESULT
     {
-        if (CONFIG_FLAG(OOPCFGRegistration))
+        if (CONFIG_FLAG(OOPCFGRegistration) && !thunkAddress)
         {
-            context->SetValidCallTargetForCFG((PVOID)address, false);
+            context->SetValidCallTargetForCFG((PVOID)codeAddress, false);
         }
-        context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
-        return S_OK;
-    });
-}
-
-#if DBG
-HRESULT
-ServerIsInterpreterThunkAddr(
-    /* [in] */ handle_t binding,
-    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-    /* [in] */ intptr_t address,
-    /* [in] */ boolean asmjsThunk,
-    /* [out] */ __RPC__out boolean * result)
-{
-    ServerScriptContext * context = (ServerScriptContext*)DecodePointer(scriptContextInfoAddress);
-
-    if (context == nullptr || result == nullptr)
-    {
-        Assert(false);
-        return RPC_S_INVALID_ARG;
-    }
-    *result = false;
-
-    return ServerCallWrapper(context, [&]()->HRESULT
-    {
-        EmitBufferManager<> * manager = context->GetEmitBufferManager(asmjsThunk != FALSE);
-        if (manager == nullptr)
+        context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)codeAddress);
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+        if (thunkAddress)
         {
-            *result = false;
-            return S_OK;
+            context->GetJITThunkEmitter()->FreeThunk(thunkAddress);
         }
-
-        *result = manager->IsInHeap((void*)address);
-
-        return S_OK;
-    });
-}
 #endif
+        return S_OK;
+    });
+}
 
 HRESULT
 ServerIsNativeAddr(
@@ -558,14 +680,14 @@ ServerIsNativeAddr(
 
     return ServerCallWrapper(context, [&]()->HRESULT
     {
-        PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = context->GetPreReservedVirtualAllocator();
-        if (preReservedVirtualAllocWrapper->IsInRange((void*)address))
+        PreReservedSectionAllocWrapper *preReservedAllocWrapper = context->GetPreReservedSectionAllocator();
+        if (preReservedAllocWrapper->IsInRange((void*)address))
         {
             *result = true;
         }
         else if (!context->IsAllJITCodeInPreReservedRegion())
         {
-            CustomHeap::CodePageAllocators::AutoLock autoLock(context->GetCodePageAllocators());
+            AutoCriticalSection autoLock(&context->GetCodePageAllocators()->cs);
             *result = context->GetCodePageAllocators()->IsInNonPreReservedPageAllocator((void*)address);
         }
         else
@@ -684,7 +806,6 @@ ServerRemoteCodeGen(
             profiler,
             true);
 
-
 #ifdef PROFILE_EXEC
         if (profiler && profiler->IsInitialized())
         {
@@ -713,6 +834,8 @@ ServerRemoteCodeGen(
             jitData->startTime = out_time.QuadPart;
         }
 
+        Assert(jitData->codeAddress);
+        Assert(jitData->codeSize);
         return S_OK;
     });
 }
@@ -749,42 +872,6 @@ void ServerContextManager::UnRegisterThreadContext(ServerThreadContext* threadCo
             iter.RemoveCurrent();
         }
         iter.MoveNext();
-    }
-}
-
-void ServerContextManager::CleanUpForProcess(HANDLE hProcess)
-{
-    // there might be multiple thread context(webworker)
-    AutoCriticalSection autoCS(&cs);
-
-    auto iterScriptCtx = scriptContexts.GetIteratorWithRemovalSupport();
-    while (iterScriptCtx.IsValid())
-    {
-        ServerScriptContext* scriptContext = iterScriptCtx.Current().Key();
-        if (scriptContext->GetThreadContext()->GetProcessHandle() == hProcess)
-        {
-            if (!scriptContext->IsClosed())
-            {
-                scriptContext->Close();
-            }
-            iterScriptCtx.RemoveCurrent();
-        }
-        iterScriptCtx.MoveNext();
-    }
-
-    auto iterThreadCtx = threadContexts.GetIteratorWithRemovalSupport();
-    while (iterThreadCtx.IsValid())
-    {
-        ServerThreadContext* threadContext = iterThreadCtx.Current().Key();
-        if (threadContext->GetProcessHandle() == hProcess)
-        {
-            if (!threadContext->IsClosed())
-            {
-                threadContext->Close();
-            }
-            iterThreadCtx.RemoveCurrent();
-        }
-        iterThreadCtx.MoveNext();
     }
 }
 
@@ -855,24 +942,15 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
     {
         hr = E_ABORT;
     }
-    catch (Js::InternalErrorException)
-    {
-        hr = E_FAIL;
-    }
     catch (...)
     {
-        AssertMsg(false, "Unknown exception caught in JIT server call.");
-        hr = E_FAIL;
+        AssertOrFailFastMsg(false, "Unknown exception caught in JIT server call.");
     }
 
-    if (hr == E_OUTOFMEMORY || hr == E_FAIL)
+    if (hr == S_OK)
     {
-        if (HRESULT_FROM_WIN32(MemoryOperationLastError::GetLastError()) != S_OK)
-        {
-            hr = HRESULT_FROM_WIN32(MemoryOperationLastError::GetLastError());
-        }
+        return MemoryOperationLastError::GetLastError();
     }
-
     return hr;
 }
 

@@ -1,6 +1,6 @@
 check1: Test0(); #undefined
 check2: Test0('hello'); #undefined
-check3: F_Test0(); @'F_Test0' is undefined
+check3: F_Test0(); @'F_Test0' is not defined
 function F_Test1()
 {
     write(F_Test1);
@@ -11,7 +11,7 @@ function F_Test1()
     write(F_Test1);
 }
 check5: Test1('hello'); #undefined
-check6: F_Test1(); @'F_Test1' is undefined
+check6: F_Test1(); @'F_Test1' is not defined
 function F_Test2()
 {
     write(F_Test2);
@@ -38,40 +38,40 @@ function F_Test2()
     write(F_Test2);
 }
 check8: Test2('hello'); #undefined
-check9: F_Test2(); @'F_Test2' is undefined
+check9: F_Test2(); @'F_Test2' is not defined
 Test3: undefined
 Test3: undefined
 check10: Test3(); #undefined
 Test3: undefined
 Test3: undefined
 check11: Test3('hello'); #undefined
-check12: F_Test3(); @'F_Test3' is undefined
+check12: F_Test3(); @'F_Test3' is not defined
 Test4: undefined
 Test4: 100
 check13: Test4(); #undefined
 Test4: undefined
 Test4: 100
 check14: Test4('hello'); #undefined
-check15: F_Test4(); @'F_Test4' is undefined
+check15: F_Test4(); @'F_Test4' is not defined
 Test5: undefined
 Test5: 100
 check16: Test5(); #undefined
 Test5: undefined
 Test5: 100
 check17: Test5('hello'); #undefined
-check18: F_Test5(); @'F_Test5' is undefined
+check18: F_Test5(); @'F_Test5' is not defined
 Test6: undefined
 check19: Test6(); #undefined
 Test6: hello
 check20: Test6('hello'); #undefined
-check21: F_Test6(); @'F_Test6' is undefined
+check21: F_Test6(); @'F_Test6' is not defined
 Test7: undefined
 Test7: 100
 check22: Test7(); #undefined
 Test7: hello
 Test7: 100
 check23: Test7('hello'); #undefined
-check24: F_Test7(); @'F_Test7' is undefined
+check24: F_Test7(); @'F_Test7' is not defined
 Test8: undefined
 Test8: 100
 Test8: undefined
@@ -80,7 +80,7 @@ Test8: hello
 Test8: 100
 Test8: 100
 check26: Test8('hello'); #undefined
-check27: F_Test8(); @'F_Test8' is undefined
+check27: F_Test8(); @'F_Test8' is not defined
 Test9: undefined
 Test9: undefined
 Test9: 100
@@ -89,10 +89,10 @@ Test9: hello
 Test9: 100
 Test9: 100
 check29: Test9('hello'); #undefined
-check30: F_Test9(); @'F_Test9' is undefined
+check30: F_Test9(); @'F_Test9' is not defined
 check31: Test10(); #undefined
 check32: Test10('hello'); #undefined
-check33: F_Test10(); @'F_Test10' is undefined
+check33: F_Test10(); @'F_Test10' is not defined
 Test11: function F_Test11()
 {
     eval('write("Test11: " + F_Test11)');
@@ -103,12 +103,12 @@ Test11: function F_Test11()
     eval('write("Test11: " + F_Test11)');
 }
 check35: Test11('hello'); #undefined
-check36: F_Test11(); @'F_Test11' is undefined
+check36: F_Test11(); @'F_Test11' is not defined
 Test12: function F_Test12(){eval('write("Test12: " + F_Test12)');}
 check37: Test12(); #undefined
 Test12: function F_Test12(){eval('write("Test12: " + F_Test12)');}
 check38: Test12('hello'); #undefined
-check39: F_Test12(); @'F_Test12' is undefined
+check39: F_Test12(); @'F_Test12' is not defined
 Test13: function F_Test13()
 {
     write("Test13: " + F_Test13);
@@ -135,7 +135,7 @@ Test13: function F_Test13()
     write("Test13: " + F_Test13);
 }
 check41: Test13('hello'); #undefined
-check42: F_Test13(); @'F_Test13' is undefined
+check42: F_Test13(); @'F_Test13' is not defined
 Test14: function F_Test14()
 {
     write("Test14: " + F_Test14);
@@ -152,7 +152,7 @@ Test14: function F_Test14()
 }
 Test14: 100
 check44: Test14('hello'); #undefined
-check45: F_Test14(); @'F_Test14' is undefined
+check45: F_Test14(); @'F_Test14' is not defined
 Test15: function F_Test15()
 {
     write("Test15: " + F_Test15);
@@ -175,19 +175,19 @@ Test15: function F_Test15()
 Test15: undefined
 Test15: 100
 check47: Test15('hello'); #undefined
-check48: F_Test15(); @'F_Test15' is undefined
+check48: F_Test15(); @'F_Test15' is not defined
 undefined
 check49: Test16(); #undefined
 hello
 check50: Test16('hello'); #undefined
-check51: F_Test16(); @'F_Test16' is undefined
+check51: F_Test16(); @'F_Test16' is not defined
 Test17: undefined
 Test17: 100
 check52: Test17(); #undefined
 Test17: hello
 Test17: 100
 check53: Test17('hello'); #undefined
-check54: F_Test17(); @'F_Test17' is undefined
+check54: F_Test17(); @'F_Test17' is not defined
 Test18: undefined
 Test18: 100
 Test18: undefined
@@ -196,7 +196,7 @@ Test18: hello
 Test18: 100
 Test18: 100
 check56: Test18('hello'); #undefined
-check57: F_Test18(); @'F_Test18' is undefined
+check57: F_Test18(); @'F_Test18' is not defined
 Test19: undefined
 Test19: undefined
 Test19: 100
@@ -205,7 +205,7 @@ Test19: hello
 Test19: 100
 Test19: 100
 check59: Test19('hello'); #undefined
-check60: F_Test19(); @'F_Test19' is undefined
+check60: F_Test19(); @'F_Test19' is not defined
 10
 function F_Test20()
 {
@@ -232,7 +232,7 @@ function F_Test20()
   return 0;
 }
 check62: Test20('hello'); #0
-check63: F_Test20(); @'F_Test20' is undefined
+check63: F_Test20(); @'F_Test20' is not defined
 function y() {
             var a = function b() {
                 eval("WScript.Echo(y)");
@@ -267,10 +267,10 @@ function y() {
             a();
         }
 check65: Test21('hello'); #undefined
-check66: F_Test21(); @'F_Test21' is undefined
-check67: Test22(); @'e' is undefined
-check68: Test22('hello'); @'e' is undefined
-check69: F_Test22(); @'F_Test22' is undefined
+check66: F_Test21(); @'F_Test21' is not defined
+check67: Test22(); @'e' is not defined
+check68: Test22('hello'); @'e' is not defined
+check69: F_Test22(); @'F_Test22' is not defined
 typeof g === function
 typeof F_Test23 === function
 typeof x === number
@@ -279,4 +279,7 @@ typeof g === function
 typeof F_Test23 === function
 typeof x === number
 check71: Test23('hello'); #undefined
-check72: F_Test23(); @'F_Test23' is undefined
+check72: F_Test23(); @'F_Test23' is not defined
+check73: Test24(); #undefined
+check74: Test24('hello'); #undefined
+check75: F_Test24(); @'F_Test24' is not defined

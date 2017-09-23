@@ -78,7 +78,7 @@ void HostConfigFlags::PrintUsage()
         pfnPrintUsage();
     }
 
-    wprintf(_u("\nFlag List : \n"));
+    wprintf(_u("\nHost Config Flags: \n\n"));
     HostConfigFlags::PrintUsageString();
     ChakraRTInterface::PrintConfigFlagsUsageString();
 }
@@ -140,7 +140,10 @@ void HostConfigFlags::HandleArgsFlag(int& argc, _Inout_updates_to_(argc, argc) L
     argIndex = argsStart - 1;
     for (i = argsEnd + 1; i < argc; i++)
     {
-        argv[argIndex++] = argv[i];
+        LPWSTR temp = argv[argIndex];
+        argv[argIndex] = argv[i];
+        argv[i] = temp;
+        argIndex++;
     }
     Assert(argIndex == argc - argsCount - 1 - (argsEnd < argc));
     argc = argIndex;

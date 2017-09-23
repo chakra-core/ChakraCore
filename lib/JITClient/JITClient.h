@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "../JITIDL/JITTypes.h"
 #include "ChakraJIT.h"
 
 #include "JITManager.h"

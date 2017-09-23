@@ -16,8 +16,8 @@ namespace Js
         DEFINE_VTABLE_CTOR(JavascriptProxy, DynamicObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptProxy);
     private:
-        RecyclableObject* handler;
-        RecyclableObject* target;
+        Field(RecyclableObject*) handler;
+        Field(RecyclableObject*) target;
 
         void RevokeObject();
     public:
@@ -66,23 +66,23 @@ namespace Js
         static Var FunctionCallTrap(RecyclableObject* function, CallInfo callInfo, ...);
         static JavascriptProxy* Create(ScriptContext* scriptContext, Arguments args);
 
-        static BOOL GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor* propertyDescriptor);
-        static BOOL DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext);
+        static BOOL GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* requestContext, PropertyDescriptor* propertyDescriptor);
+        static BOOL DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* requestContext);
 
         static DWORD GetOffsetOfTarget() { return offsetof(JavascriptProxy, target); }
 
-        virtual BOOL HasProperty(PropertyId propertyId) override;
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
         virtual BOOL HasOwnProperty(PropertyId propertyId) override;
         virtual BOOL HasOwnPropertyNoHostObject(PropertyId propertyId) override;
         virtual BOOL HasOwnPropertyCheckNoRedecl(PropertyId propertyId) override;
         virtual BOOL UseDynamicObjectForNoHostObjectAccess() override;
         virtual DescriptorFlags GetSetter(PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetInternalProperty(Var instance, PropertyId internalPropertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetAccessors(PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext) override;
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual BOOL GetAccessors(PropertyId propertyId, __out Var* getter, __out Var* setter, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetInternalProperty(PropertyId internalPropertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
@@ -94,11 +94,13 @@ namespace Js
         virtual BOOL InitFuncScoped(PropertyId propertyId, Var value) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
+#if ENABLE_FIXED_FIELDS
         virtual BOOL IsFixedProperty(PropertyId propertyId) override;
-        virtual BOOL HasItem(uint32 index) override;
+#endif
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override;
         virtual BOOL HasOwnItem(uint32 index) override;
-        virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
-        virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override;
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
@@ -111,7 +113,7 @@ namespace Js
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL IsExtensible() override;
         virtual BOOL PreventExtensions() override;
-        virtual void ThrowIfCannotDefineProperty(PropertyId propId, PropertyDescriptor descriptor) { }
+        virtual void ThrowIfCannotDefineProperty(PropertyId propId, const PropertyDescriptor& descriptor) { }
         virtual void ThrowIfCannotGetOwnPropertyDescriptor(PropertyId propId) {};
         virtual BOOL GetDefaultPropertyDescriptor(PropertyDescriptor& descriptor) override;
         virtual BOOL Seal() override;
@@ -122,7 +124,7 @@ namespace Js
         virtual BOOL SetConfigurable(PropertyId propertyId, BOOL value) override;
         virtual BOOL SetEnumerable(PropertyId propertyId, BOOL value) override;
         virtual BOOL SetAttributes(PropertyId propertyId, PropertyAttributes attributes) override;
-        virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) { return false; }
+        virtual BOOL GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext) { return false; }
         virtual uint GetSpecialPropertyCount() const { return 0; }
         virtual PropertyId const * GetSpecialPropertyIds() const { return nullptr; }
         virtual BOOL HasInstance(Var instance, ScriptContext* scriptContext, IsInstInlineCache* inlineCache = NULL) override;
@@ -140,7 +142,7 @@ namespace Js
         virtual void AddToPrototype(ScriptContext * requestContext) override;
         virtual void SetPrototype(RecyclableObject* newPrototype) override;
 
-        BOOL SetPrototypeTrap(RecyclableObject* newPrototype, bool showThrow);
+        BOOL SetPrototypeTrap(RecyclableObject* newPrototype, bool showThrow, ScriptContext * requestContext);
         Var ToString(Js::ScriptContext* scriptContext);
 
         // proxy does not support IDispatch stuff.
@@ -156,13 +158,13 @@ namespace Js
 
         void PropertyIdFromInt(uint32 index, PropertyRecord const** propertyRecord);
 
-        JavascriptArray* PropertyKeysTrap(KeysTrapKind keysTrapKind);
+        JavascriptArray* PropertyKeysTrap(KeysTrapKind keysTrapKind, ScriptContext* requestContext);
 
         template <class Fn>
         void GetOwnPropertyKeysHelper(ScriptContext* scriptContext, RecyclableObject* trapResultArray, uint32 len, JavascriptArray* trapResult,
             JsUtil::BaseDictionary<Js::PropertyId, bool, ArenaAllocator>& targetToTrapResultMap, Fn fn)
         {
-            Var element;
+            Var element = nullptr;
             const PropertyRecord* propertyRecord;
             uint32 trapResultIndex = 0;
             PropertyId propertyId;
@@ -185,11 +187,13 @@ namespace Js
                     {
                         targetToTrapResultMap.Add(propertyId, true);
                     }
+                }
 
-                    if (fn(propertyRecord))
-                    {
-                        trapResult->DirectSetItemAt(trapResultIndex++, element);
-                    }
+                // We explicitly allow duplicates in the results. A map is sufficient since the spec steps that remove entries
+                // remove ALL of them at the same time.
+                if (fn(propertyRecord))
+                {
+                    trapResult->DirectSetItemAt(trapResultIndex++, element);
                 }
             }
         }
@@ -204,8 +208,19 @@ namespace Js
 
     private:
         JavascriptFunction* GetMethodHelper(PropertyId methodId, ScriptContext* requestContext);
-        Var GetValueFromDescriptor(RecyclableObject* instance, PropertyDescriptor propertyDescriptor, ScriptContext* requestContext);
+        Var GetValueFromDescriptor(Var instance, PropertyDescriptor propertyDescriptor, ScriptContext* requestContext);
         static Var GetName(ScriptContext* requestContext, PropertyId propertyId);
+
+        RecyclableObject* MarshalHandler(ScriptContext* requestContext) const
+        {
+            return static_cast<RecyclableObject*>(
+                CrossSite::MarshalVar(requestContext, handler));
+        }
+        RecyclableObject* MarshalTarget(ScriptContext* requestContext) const
+        {
+            return static_cast<RecyclableObject*>(
+                CrossSite::MarshalVar(requestContext, target));
+        }
 
         static BOOL TestIntegrityLevel(IntegrityLevel integrityLevel, RecyclableObject* obj, ScriptContext* scriptContext);
         static BOOL SetIntegrityLevel(IntegrityLevel integrityLevel, RecyclableObject* obj, ScriptContext* scriptContext);

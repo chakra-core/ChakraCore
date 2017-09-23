@@ -29,12 +29,16 @@ private:
 #endif
 
 public:
-    bool markOnOOMRescan:1;
-#if DBG
-    bool isExplicitFreed:1;
-    bool isPageHeapFillVerified:1;
+    bool markOnOOMRescan : 1;
+#ifdef RECYCLER_WRITE_BARRIER
+    bool hasWriteBarrier : 1;
 #endif
-
+#ifdef RECYCLER_PAGE_HEAP
+    bool isObjectPageLocked : 1;
+#endif
+#if DBG
+    bool isExplicitFreed : 1;
+#endif
     UINT_PAD_64BIT(unused4);
 
     void *GetAddress();
@@ -87,9 +91,34 @@ public:
 
 class HeapInfo;
 
+#ifdef RECYCLER_PAGE_HEAP
+struct PageHeapData
+{
+    ~PageHeapData();
+    bool isLockedWithPageHeap;
+    bool isGuardPageDecommitted;
+    PageHeapMode pageHeapMode;
+
+    uint actualPageCount;
+    ushort paddingBytes;
+    ushort unusedBytes;
+    char* guardPageAddress;
+    char* objectAddress;
+    char* objectEndAddr;
+    char* objectPageAddr;    
+    const char* lastMarkedBy;
+#ifdef STACK_BACK_TRACE
+    StackBackTrace* pageHeapAllocStack;
+    StackBackTrace* pageHeapFreeStack;
+    const static StackBackTrace* s_StackTraceAllocFailed;
+#endif
+};
+#endif
+
 // CONSIDER: Templatizing this so that we don't have free list support if we don't need it
 class LargeHeapBlock sealed : public HeapBlock
 {
+    friend class HeapInfo;
 public:
     Recycler * GetRecycler() const;
 
@@ -98,12 +127,13 @@ public:
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override;
 
+    template <bool doSpecialMark>
     void Mark(void* objectAddress, MarkContext * markContext);
     virtual byte* GetRealAddressFromInterior(void* interiorAddress) override;
     bool TestObjectMarkedBit(void* objectAddress) override;
     void SetObjectMarkedBit(void* objectAddress) override;
     bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override;
-    virtual size_t GetObjectSize(void* object) override;
+    virtual size_t GetObjectSize(void* object) const override;
     bool FindImplicitRootObject(void* objectAddress, Recycler * recycler, RecyclerHeapObjectInfo& heapObject);
 
     size_t GetPageCount() const { return pageCount; }
@@ -128,9 +158,6 @@ public:
     void PartialTransferSweptObjects();
     void FinishPartialCollect(Recycler * recycler);
 #endif
-#ifdef RECYCLER_PAGE_HEAP
-    void VerifyPageHeapPattern();
-#endif
     void ReleasePages(Recycler * recycler);
     void ReleasePagesSweep(Recycler * recycler);
     void ReleasePagesShutdown(Recycler * recycler);
@@ -148,6 +175,9 @@ public:
     char* GetBeginAddress() const { return address; }
     char* GetEndAddress() const { return addressEnd; }
 
+    bool TryGetAttributes(void* objectAddress, unsigned char * pAttr);
+    bool TryGetAttributes(LargeObjectHeader *objectHeader, unsigned char * pAttr);
+
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attributes);
     char * TryAllocFromFreeList(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attributes);
 
@@ -164,7 +194,7 @@ public:
 #endif
 #ifdef RECYCLER_VERIFY_MARK
     void VerifyMark();
-    virtual void VerifyMark(void * objectAddress) override;
+    virtual bool VerifyMark(void * objectAddress, void * target) override;
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override;
@@ -181,9 +211,9 @@ private:
 
     LargeHeapBlock(__in char * address, DECLSPEC_GUARD_OVERFLOW size_t pageCount, Segment * segment, DECLSPEC_GUARD_OVERFLOW uint objectCount, LargeHeapBucket* bucket);
     static LargeObjectHeader * GetHeaderFromAddress(void * address);
-    LargeObjectHeader * GetHeader(void * address);
-    LargeObjectHeader ** HeaderList();
-    LargeObjectHeader * GetHeader(uint index)
+    LargeObjectHeader * GetHeader(void * address) const;
+    LargeObjectHeader ** HeaderList() const;
+    LargeObjectHeader * GetHeaderByIndex(uint index) const
     {
         Assert(index < this->allocCount);
         LargeObjectHeader * header = this->HeaderList()[index];
@@ -203,8 +233,9 @@ private:
     char * AllocFreeListEntry(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attributes, LargeHeapBlockFreeListEntry* entry);
 
 #if ENABLE_CONCURRENT_GC
-    bool RescanOnePage(Recycler * recycler, DWORD const writeWatchFlags);
-    size_t RescanMultiPage(Recycler * recycler, DWORD const writeWatchFlags);
+    bool IsPageDirty(char* page, RescanFlags flags, bool isWriteBarrier);
+    bool RescanOnePage(Recycler * recycler, RescanFlags flags);
+    size_t RescanMultiPage(Recycler * recycler, RescanFlags flags);
 #else
     bool RescanOnePage(Recycler * recycler);
     size_t RescanMultiPage(Recycler * recycler);
@@ -227,7 +258,6 @@ private:
     static const size_t PartialFreeBit = 0x1;
 #endif
     size_t pageCount;
-    size_t actualPageCount;
 
     // The number of allocations that have occurred from this heap block
     // This only increases, never decreases. Instead, we rely on the mark/weakRef/finalize counts
@@ -253,46 +283,50 @@ private:
     LargeObjectHeader * pendingDisposeObject;
 
     LargeHeapBucket* bucket;
+    HeapInfo * heapInfo;
     LargeHeapBlockFreeList freeList;
 
-    uint lastCollectAllocCount;
-    uint finalizeCount;
-
-    bool isInPendingDisposeList;
-
 #ifdef RECYCLER_PAGE_HEAP
-    PageHeapMode pageHeapMode;
-    char* guardPageAddress;
-#ifdef STACK_BACK_TRACE
-    StackBackTrace* pageHeapAllocStack;
-    StackBackTrace* pageHeapFreeStack;
-#endif
-    
+    PageHeapData* pageHeapData;
 public:
-    inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
+    void VerifyPageHeapPattern();
+    inline bool InPageHeapMode() const { return pageHeapData != nullptr && pageHeapData->pageHeapMode != PageHeapMode::PageHeapModeOff; }
+    PageHeapData* GetPageHeapData() { return pageHeapData; }
+    void PageHeapLockPages();
+    void PageHeapUnLockPages();
 
     void CapturePageHeapAllocStack();
     void CapturePageHeapFreeStack();
-#ifdef STACK_BACK_TRACE
-    const static StackBackTrace* s_StackTraceAllocFailed;
 #endif
-#endif
+
+    uint lastCollectAllocCount;
+    uint finalizeCount;
+    bool isInPendingDisposeList;
 
 #if DBG
     bool hasDisposeBeenCalled;
     bool hasPartialFreeObjects;
-    uint expectedSweepCount;
-
     // The following get set if an object is swept and we freed its pages
     bool hadTrimmed;
+    uint expectedSweepCount;
 #endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     friend class ::ScriptMemoryDumper;
 #endif
-    friend class HeapInfo;
-    HeapInfo * heapInfo;
 #ifdef PROFILE_RECYCLER_ALLOC
     void ** GetTrackerDataArray();
+#endif
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+private:
+    static CriticalSection wbVerifyBitsLock;
+    BVSparse<HeapAllocator> wbVerifyBits;
+public:
+    virtual void WBSetBit(char* addr) override;
+    virtual void WBSetBitRange(char* addr, uint count) override;
+    virtual void WBClearBit(char* addr) override;
+    virtual void WBVerifyBitIsSet(char* addr) override;
+    virtual void WBClearObject(char* addr) override;
 #endif
 };
 }

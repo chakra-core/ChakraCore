@@ -1,0 +1,225 @@
+
+WebAssembly.validate tests
+Test 0 passed. Expected Error: TypeError: Object expected
+Test 1 passed. Expected Error: TypeError: BufferSource expected
+Test 2 passed. Expected Error: TypeError: BufferSource expected
+Test 3 passed. Expected Error: TypeError: BufferSource expected
+Test 4 passed. Expected Error: TypeError: BufferSource expected
+Test 5 passed. Expected Error: TypeError: BufferSource expected
+Test 6 passed. Expected Error: TypeError: BufferSource expected
+Test 7 passed. Expected Error: Error: Buffer source is the right type, but doesn't validate
+Test 8 passed. Expected Error: Error: Buffer source is the right type, but doesn't validate
+Test 9 passed. Expected Error: TypeError: BufferSource expected
+WebAssembly.validate(new ArrayBuffer()) = false
+WebAssembly.validate(new Uint8Array(emptyBuffer)) = false
+api.wasm valid: true
+
+WebAssembly.compile tests
+Test 0 passed. Expected Error: TypeError: Object expected
+Test 1 passed. Expected Error: TypeError: BufferSource expected
+Test 2 passed. Expected Error: TypeError: BufferSource expected
+Test 3 passed. Expected Error: TypeError: BufferSource expected
+Test 4 passed. Expected Error: TypeError: BufferSource expected
+Test 5 passed. Expected Error: TypeError: BufferSource expected
+Test 6 passed. Expected Error: TypeError: BufferSource expected
+Test 7 passed. Expected Error: CompileError: Out of file: Needed: 4, Left: 0
+Test 8 passed. Expected Error: CompileError: Out of file: Needed: 1, Left: 0
+Test 9 passed. Expected Error: TypeError: BufferSource expected
+Testing module
+exports
+[{"kind":"function", "name":"fn"}, {"kind":"global", "name":"g1"}, {"kind":"function", "name":"f1"}, {"kind":"global", "name":"g2"}, {"kind":"table", "name":"table"}, {"kind":"function", "name":"fn2"}, {"kind":"function", "name":"call_i32"}, {"kind":"memory", "name":"mem"}, {"kind":"function", "name":"call_f32"}, {"kind":"global", "name":"g3"}, {"kind":"function", "name":"load"}]
+imports
+[{"kind":"function", "module":"test", "name":"fn"}, {"kind":"function", "module":"test", "name":"fn2"}, {"kind":"memory", "module":"test", "name":"memory"}, {"kind":"global", "module":"test", "name":"g1"}, {"kind":"global", "module":"test", "name":"g2"}, {"kind":"table", "module":"table", "name":""}]
+
+WebAssembly.instantiate tests
+Test 0 passed. Expected Error: TypeError: Object expected
+Test 1 passed. Expected Error: TypeError: BufferSource expected
+Test 2 passed. Expected Error: TypeError: BufferSource expected
+Test 3 passed. Expected Error: TypeError: BufferSource expected
+Test 4 passed. Expected Error: TypeError: BufferSource expected
+Test 5 passed. Expected Error: TypeError: BufferSource expected
+Test 6 passed. Expected Error: TypeError: BufferSource expected
+Test 7 passed. Expected Error: CompileError: Out of file: Needed: 4, Left: 0
+Test 8 passed. Expected Error: CompileError: Out of file: Needed: 1, Left: 0
+Test 9 passed. Expected Error: TypeError: BufferSource expected
+Test 10 passed. Expected Error: TypeError: Object expected
+Test 11 passed. Expected Error: TypeError: Object expected
+Test 12 passed. Expected Error: TypeError: Object expected
+Test 13 passed. Expected Error: TypeError: Import module 'test' is invalid
+Test 14 passed. Expected Error: TypeError: Import module 'test' is invalid
+Test 15 passed. Expected Error: TypeError: Object expected
+Test 16 passed. Expected Error: TypeError: Object expected
+Test 17 passed. Expected Error: TypeError: Object expected
+Test 18 passed. Expected Error: TypeError: Import module 'test' is invalid
+Test 19 passed. Expected Error: TypeError: Import module 'test' is invalid
+Testing module
+exports
+[{"kind":"function", "name":"fn"}, {"kind":"global", "name":"g1"}, {"kind":"function", "name":"f1"}, {"kind":"global", "name":"g2"}, {"kind":"table", "name":"table"}, {"kind":"function", "name":"fn2"}, {"kind":"function", "name":"call_i32"}, {"kind":"memory", "name":"mem"}, {"kind":"function", "name":"call_f32"}, {"kind":"global", "name":"g3"}, {"kind":"function", "name":"load"}]
+imports
+[{"kind":"function", "module":"test", "name":"fn"}, {"kind":"function", "module":"test", "name":"fn2"}, {"kind":"memory", "module":"test", "name":"memory"}, {"kind":"global", "module":"test", "name":"g1"}, {"kind":"global", "module":"test", "name":"g2"}, {"kind":"table", "module":"table", "name":""}]
+Testing instance
+f1: 5
+fn: 1
+fn2: 2.140000104904175
+g1: 45
+g2: -8
+g3: 45
+Testing module
+exports
+[{"kind":"function", "name":"fn"}, {"kind":"global", "name":"g1"}, {"kind":"function", "name":"f1"}, {"kind":"global", "name":"g2"}, {"kind":"table", "name":"table"}, {"kind":"function", "name":"fn2"}, {"kind":"function", "name":"call_i32"}, {"kind":"memory", "name":"mem"}, {"kind":"function", "name":"call_f32"}, {"kind":"global", "name":"g3"}, {"kind":"function", "name":"load"}]
+imports
+[{"kind":"function", "module":"test", "name":"fn"}, {"kind":"function", "module":"test", "name":"fn2"}, {"kind":"memory", "module":"test", "name":"memory"}, {"kind":"global", "module":"test", "name":"g1"}, {"kind":"global", "module":"test", "name":"g2"}, {"kind":"table", "module":"table", "name":""}]
+Testing instance
+f1: 5
+fn: 1
+fn2: 2.140000104904175
+g1: 45
+g2: -8
+g3: 45
+
+new WebAssembly.Module tests
+Test 0 passed. Expected Error: TypeError: WebAssembly.Module: cannot be called without the new keyword
+Test 1 passed. Expected Error: TypeError: WebAssembly.Module: cannot be called without the new keyword
+Test 2 passed. Expected Error: TypeError: Object expected
+Test 3 passed. Expected Error: TypeError: BufferSource expected
+Test 4 passed. Expected Error: TypeError: BufferSource expected
+Test 5 passed. Expected Error: TypeError: BufferSource expected
+Test 6 passed. Expected Error: TypeError: BufferSource expected
+Test 7 passed. Expected Error: TypeError: BufferSource expected
+Test 8 passed. Expected Error: TypeError: BufferSource expected
+Test 9 passed. Expected Error: CompileError: Out of file: Needed: 4, Left: 0
+Test 10 passed. Expected Error: CompileError: Out of file: Needed: 1, Left: 0
+Test 11 passed. Expected Error: TypeError: BufferSource expected
+Testing module
+exports
+[{"kind":"function", "name":"fn"}, {"kind":"global", "name":"g1"}, {"kind":"function", "name":"f1"}, {"kind":"global", "name":"g2"}, {"kind":"table", "name":"table"}, {"kind":"function", "name":"fn2"}, {"kind":"function", "name":"call_i32"}, {"kind":"memory", "name":"mem"}, {"kind":"function", "name":"call_f32"}, {"kind":"global", "name":"g3"}, {"kind":"function", "name":"load"}]
+imports
+[{"kind":"function", "module":"test", "name":"fn"}, {"kind":"function", "module":"test", "name":"fn2"}, {"kind":"memory", "module":"test", "name":"memory"}, {"kind":"global", "module":"test", "name":"g1"}, {"kind":"global", "module":"test", "name":"g2"}, {"kind":"table", "module":"table", "name":""}]
+
+WebAssembly.Module api tests
+
+WebAssembly.Module.exports invalid tests
+Test 0 passed. Expected Error: TypeError: WebAssembly.Module expected
+Test 1 passed. Expected Error: TypeError: WebAssembly.Module expected
+Test 2 passed. Expected Error: TypeError: WebAssembly.Module expected
+Test 3 passed. Expected Error: TypeError: WebAssembly.Module expected
+
+WebAssembly.Module.imports invalid tests
+Test 0 passed. Expected Error: TypeError: WebAssembly.Module expected
+Test 1 passed. Expected Error: TypeError: WebAssembly.Module expected
+Test 2 passed. Expected Error: TypeError: WebAssembly.Module expected
+Test 3 passed. Expected Error: TypeError: WebAssembly.Module expected
+
+WebAssembly.Module.customSections tests
+Test 0 passed. Expected Error: TypeError: WebAssembly.Module expected
+Test 1 passed. Expected Error: TypeError: WebAssembly.Module expected
+Test 2 passed. Expected Error: TypeError: WebAssembly.Module expected
+Test 3 passed. Expected Error: TypeError: WebAssembly.Module expected
+Test 4 passed. Expected Error: Error: Doesn't support toString
+Test 5 passed. Expected Error: TypeError: Object doesn't support property or method 'ToString'
+6/6 tests passed
+
+new WebAssembly.Instance tests
+Test 0 passed. Expected Error: TypeError: WebAssembly.Instance: cannot be called without the new keyword
+Test 1 passed. Expected Error: TypeError: WebAssembly.Instance: cannot be called without the new keyword
+Test 2 passed. Expected Error: TypeError: Object expected
+Test 3 passed. Expected Error: TypeError: Object expected
+Test 4 passed. Expected Error: TypeError: Object expected
+Test 5 passed. Expected Error: TypeError: Import module 'test' is invalid
+Test 6 passed. Expected Error: TypeError: Import module 'test' is invalid
+Test 7 passed. Expected Error: LinkError: Import 'test.fn' is invalid. Expected type Function
+Test 8 passed. Expected Error: LinkError: Cannot link import test.fn.Thunk[0]()->i32 to fn2()->f32 in link table due to a signature mismatch
+Test 9 passed. Expected Error: LinkError: Import 'test.memory' is invalid. Expected type WebAssembly.Memory
+Test 10 passed. Expected Error: LinkError: Import 'test.memory' is invalid. Expected type WebAssembly.Memory
+Test 11 passed. Expected Error: LinkError: Import 'test.memory' is invalid. Expected type WebAssembly.Memory
+Test 12 passed. Expected Error: LinkError: Import 'table.' is invalid. Expected type WebAssembly.Table
+Test 13 passed. Expected Error: LinkError: Import 'table.' is invalid. Expected type WebAssembly.Table
+Test 14 passed. Expected Error: LinkError: Import 'table.' is invalid. Expected type WebAssembly.Table
+Testing instance
+f1: 5
+fn: 1
+fn2: 2.140000104904175
+g1: 45
+g2: -8
+g3: 45
+
+WebAssembly.Memory tests
+Test 0 passed. Expected Error: TypeError: WebAssembly.Memory: cannot be called without the new keyword
+Test 1 passed. Expected Error: TypeError: 'memoryDescriptor' is null or not an object
+Test 2 passed. Expected Error: TypeError: 'memoryDescriptor' is null or not an object
+Test 3 passed. Expected Error: TypeError: 'memoryDescriptor' is null or not an object
+Test 4 passed. Expected Error: TypeError: WebAssembly.Memory object expected
+Test 5 passed. Expected Error: TypeError: WebAssembly.Memory object expected
+Test 6 passed. Expected Error: TypeError: WebAssembly.Memory object expected
+Test 7 passed. Expected Error: TypeError: WebAssembly.Memory object expected
+Test 8 passed. Expected Error: TypeError: WebAssembly.Memory object expected
+Test 9 passed. Expected Error: TypeError: WebAssembly.Memory object expected
+0x33323130 == "0123"
+0x37363534 == "4567"
+0x3938 == "89"
+heap32[0] = 45
+memory.buffer.byteLength = 65536 == 65536
+view32[16383] = 0x12345678
+view32[16384] = undefined
+heap[65532] = 0x12345678
+Correctly trap on heap access at 65533
+Correctly trap on heap access at 65534
+Correctly trap on heap access at 65535
+Correctly trap on heap access at 65536
+grow by 1 page
+memory.buffer.byteLength = 131072 == 2 * 65536
+view32[32767] = 0x-789abcdf
+view32[32768] = undefined
+heap[65532] = 0x12345678
+heap[131068] = 0x-789abcdf
+Correctly trap on heap access at 131069
+Correctly trap on heap access at 131070
+Correctly trap on heap access at 131071
+Correctly trap on heap access at 131072
+Correctly trap when growing past maximum
+
+WebAssembly.Table tests
+Test 0 passed. Expected Error: TypeError: WebAssembly.Table: cannot be called without the new keyword
+Test 1 passed. Expected Error: TypeError: 'tableDescriptor' is null or not an object
+Test 2 passed. Expected Error: TypeError: 'tableDescriptor' is null or not an object
+Test 3 passed. Expected Error: TypeError: 'tableDescriptor' is null or not an object
+Test 4 passed. Expected Error: TypeError: tableDescriptor.element is not AnyFunc
+Test 5 passed. Expected Error: TypeError: WebAssembly.Table object expected
+Test 6 passed. Expected Error: TypeError: WebAssembly.Table object expected
+Test 7 passed. Expected Error: TypeError: WebAssembly.Table object expected
+Test 8 passed. Expected Error: TypeError: WebAssembly.Table object expected
+Test 9 passed. Expected Error: TypeError: WebAssembly.Table object expected
+Test 10 passed. Expected Error: TypeError: WebAssembly.Table object expected
+Test 11 passed. Expected Error: TypeError: WebAssembly.Table object expected
+Test 12 passed. Expected Error: TypeError: WebAssembly.Table object expected
+Test 13 passed. Expected Error: TypeError: WebAssembly.Table object expected
+Test 14 passed. Expected Error: RangeError: argument out of range
+Test 15 passed. Expected Error: RangeError: argument out of range
+Test 16 passed. Expected Error: RangeError: argument out of range
+Test 17 passed. Expected Error: RangeError: argument out of range
+Test 0 passed. Expected Error: RangeError: argument out of range
+Test 1 passed. Expected Error: RangeError: argument out of range
+Test 2 passed. Expected Error: TypeError: WebAssembly exported function expected
+Test 3 passed. Expected Error: TypeError: WebAssembly exported function expected
+Test 4 passed. Expected Error: TypeError: WebAssembly exported function expected
+Test 5 passed. Expected Error: TypeError: WebAssembly exported function expected
+Test 6 passed. Expected Error: TypeError: WebAssembly exported function expected
+Test 7 passed. Expected Error: TypeError: WebAssembly exported function expected
+Test 8 passed. Expected Error: RuntimeError: WebAssembly exported function expected
+Test 9 passed. Expected Error: RuntimeError: WebAssembly exported function expected
+Test 10 passed. Expected Error: RuntimeError: WebAssembly exported function expected
+Test 11 passed. Expected Error: RuntimeError: Table index is out of range
+Test 12 passed. Expected Error: RuntimeError: Function called with invalid signature
+Test 13 passed. Expected Error: RuntimeError: Function called with invalid signature
+Current length: 30
+Length after attempt to modify : 30
+Is element in table the same as the one exported: true
+Unset element should be null: null
+call_i32(0): 123456
+call_i32(1): 1
+call_f32(2): NaN
+call_i32(0): 1
+call_i32(29): 123456
+call_i32(30): 123456
+table2[0](): 123456
+done

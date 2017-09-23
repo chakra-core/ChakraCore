@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-NativeCodeData::NativeCodeData(DataChunk * chunkList) 
+NativeCodeData::NativeCodeData(DataChunk * chunkList)
     : chunkList(chunkList)
 {
 #ifdef PERF_COUNTERS
@@ -54,13 +54,16 @@ NativeCodeData::AddFixupEntry(void* targetAddr, void* targetStartAddr, void* add
     Assert(targetChunk->len >= inDataOffset);
 
 #if DBG
-    bool foundTargetChunk = false;
-    while (chunkList)
+    if (CONFIG_FLAG(OOPJITFixupValidate))
     {
-        foundTargetChunk |= (chunkList == targetChunk);
-        chunkList = chunkList->next;
+        bool foundTargetChunk = false;
+        while (chunkList)
+        {
+            foundTargetChunk |= (chunkList == targetChunk);
+            chunkList = chunkList->next;
+        }
+        AssertMsg(foundTargetChunk, "current pointer is not allocated with NativeCodeData allocator?"); // change to valid check instead of assertion?
     }
-    AssertMsg(foundTargetChunk, "current pointer is not allocated with NativeCodeData allocator?"); // change to valid check instead of assertion?
 #endif
 
     DataChunk* chunk = NativeCodeData::GetDataChunk(startAddress);
@@ -169,7 +172,7 @@ NativeCodeData::VerifyExistFixupEntry(void* targetAddr, void* addrToFixup, void*
     {
         if (entry->addrOffset == offset)
         {
-            // The following assertions can be false positive in case a data field happen to 
+            // The following assertions can be false positive in case a data field happen to
             // have value fall into NativeCodeData memory range
             AssertMsg(entry->targetTotalOffset == targetChunk->offset, "Missing fixup");
             return;
@@ -188,12 +191,12 @@ NativeCodeData::DeleteChunkList(DataChunkT * chunkList)
     {
         DataChunkT * current = next;
         next = next->next;
-        delete current;
+        HeapDeletePlus(current->len, current);
     }
 }
 
-NativeCodeData::Allocator::Allocator() 
-    : chunkList(nullptr), 
+NativeCodeData::Allocator::Allocator()
+    : chunkList(nullptr),
     lastChunkList(nullptr),
     isOOPJIT(JITManager::GetJITManager()->IsJITServer())
 {
@@ -226,7 +229,7 @@ char *
 NativeCodeData::Allocator::Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestSize)
 {
     Assert(!finalized);
-    char * data = nullptr;    
+    char * data = nullptr;
     requestSize = Math::Align(requestSize, sizeof(void*));
 
     if (isOOPJIT)
@@ -237,9 +240,9 @@ NativeCodeData::Allocator::Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestSize)
         // positive while verifying missing fixup entries
         // Allocation without zeroing out, and with bool field in the structure
         // will increase the chance of false positive because of reusing memory
-        // without zeroing, and the bool field is set to false, makes the garbage 
-        // memory not changed, and the garbage memory might be just pointing to the 
-        // same range of NativeCodeData memory, the checking tool will report false 
+        // without zeroing, and the bool field is set to false, makes the garbage
+        // memory not changed, and the garbage memory might be just pointing to the
+        // same range of NativeCodeData memory, the checking tool will report false
         // poisitive, see NativeCodeData::VerifyExistFixupEntry for more
         DataChunk * newChunk = HeapNewStructPlusZ(requestSize, DataChunk);
 #else
@@ -272,6 +275,7 @@ NativeCodeData::Allocator::Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestSize)
     else
     {
         DataChunkNoFixup * newChunk = HeapNewStructPlus(requestSize, DataChunkNoFixup);
+        newChunk->len = (unsigned int)requestSize;
         newChunk->next = this->noFixupChunkList;
         this->noFixupChunkList = newChunk;
         data = newChunk->data;
@@ -301,7 +305,7 @@ NativeCodeData::Allocator::AllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestSize)
     // Allocated with HeapNewStructPlusZ for chk build
     memset(data, 0, requestSize);
 #else
-    if (!isOOPJIT) 
+    if (!isOOPJIT)
     {
         memset(data, 0, requestSize);
     }

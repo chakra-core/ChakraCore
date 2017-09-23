@@ -30,8 +30,8 @@ MACRO(ANDNPS,   Reg2,   None,          RNON,   f(MODRM),   o(ANDNPS),  DNO16|DOP
 
 MACRO(ANDPD,    Reg2,   None,          RNON,   f(MODRM),   o(ANDPD),   DNO16|DOPEQ|D66|DCOMMOP,     OLB_0F)
 MACRO(ANDPS,    Reg2,   None,          RNON,   f(MODRM),   o(ANDPS),   DNO16|DOPEQ|DCOMMOP,         OLB_0F)
-MACRO(BSF,      Reg2,   None,          RNON,   f(MODRM),   o(BSF),     DDST,                        OLB_0F)
-MACRO(BSR,      Reg2,   None,          RNON,   f(MODRM),   o(BSR),     DDST,                        OLB_0F)
+MACRO(BSF,      Reg2,   None,          RNON,   f(MODRM),   o(BSF),     DDST|DSETCC,                 OLB_0F)
+MACRO(BSR,      Reg2,   None,          RNON,   f(MODRM),   o(BSR),     DDST|DSETCC,                 OLB_0F)
 MACRO(BT,       Reg2,   OpSideEffect,  R100,   f(SPMOD),   o(BT),      DSETCC,                      OLB_0F)
 MACRO(BTR,      Reg2,   OpSideEffect,  R110,   f(SPMOD),   o(BTR),     DOPEQ|DSETCC,                OLB_0F)
 MACRO(BTS,      Reg2,   OpSideEffect,  R101,   f(SPMOD),   o(BTS),     DOPEQ|DSETCC,                OLB_0F)
@@ -73,7 +73,7 @@ MACRO(CVTDQ2PD, Reg2,   None,          RNON,   f(MODRM),   o(CVTDQ2PD),DDST|DNO1
 MACRO(CVTDQ2PS, Reg2,   None,          RNON,   f(MODRM),   o(CVTDQ2PS),DDST|DNO16,                  OLB_0F)
 
 MACRO(CVTSD2SI, Reg2,   None,          RNON,   f(MODRM),   o(CVTSD2SI),DDST|DNO16|DF2,              OLB_0F)
-MACRO(CVTSI2SD, Reg2,   None,          RNON,   f(MODRM),   o(CVTSI2SD),DDST|DNO16|DF2,              OLB_0F)
+MACRO(CVTSI2SD, Reg2,   None,          RNON,   f(MODRM),   o(CVTSI2SD),DDST|DNO16|DF2|DREXSRC,      OLB_0F)
 MACRO(CVTSI2SS, Reg2,   None,          RNON,   f(MODRM),   o(CVTSI2SS),DDST|DNO16|DF3|DREXSRC,      OLB_0F)
 MACRO(CVTPD2PS, Reg2,   None,          RNON,   f(MODRM),   o(CVTPD2PS),DDST|DNO16|D66,              OLB_0F)
 

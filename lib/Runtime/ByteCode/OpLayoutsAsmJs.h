@@ -87,7 +87,16 @@ namespace Js
         // force encode 4 bytes because it can be a value
         uint32                               SlotIndex;
         typename SizePolicy::RegSlotType     Value;
-        int8                                 ViewType;
+        Js::ArrayBufferView::ViewType        ViewType;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_WasmMemAccess
+    {
+        uint32                               Offset;
+        typename SizePolicy::RegSlotType     SlotIndex;
+        typename SizePolicy::RegSlotType     Value;
+        Js::ArrayBufferView::ViewType        ViewType;
     };
 
     template <typename SizePolicy>
@@ -509,7 +518,7 @@ namespace Js
         // force encode 4 bytes because it can be a value
         uint32                               SlotIndex;
         typename SizePolicy::RegSlotType     Value;
-        int8                                 ViewType;
+        ArrayBufferView::ViewType            ViewType;
         int8                                 DataWidth; // # of bytes to load/store
     };
 
@@ -518,6 +527,17 @@ namespace Js
     typedef OpLayoutT_##layout<LargeLayoutSizePolicy> OpLayout##layout##_Large; \
     typedef OpLayoutT_##layout<MediumLayoutSizePolicy> OpLayout##layout##_Medium; \
     typedef OpLayoutT_##layout<SmallLayoutSizePolicy> OpLayout##layout##_Small;
+
+    // Generate the profiled type defs
+#define LAYOUT_TYPE_PROFILED(layout) \
+    typedef OpLayoutDynamicProfile<OpLayout##layout> OpLayoutProfiled##layout;
+
+#define LAYOUT_TYPE_PROFILED_WMS(layout) \
+    LAYOUT_TYPE_WMS(layout) \
+    LAYOUT_TYPE_PROFILED(layout##_Large) \
+    LAYOUT_TYPE_PROFILED(layout##_Medium) \
+    LAYOUT_TYPE_PROFILED(layout##_Small)
+
 #include "LayoutTypesAsmJs.h"
 
 #pragma pack(pop)

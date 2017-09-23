@@ -12,7 +12,7 @@ namespace JsUtil
         static const int INVALID_HASH_VALUE = 0;
         hash_t hash;    // Lower 31 bits of hash code << 1 | 1, 0 if unused
         int next;        // Index of next entry, -1 if last
-        const RecyclerWeakReference<TKey>* key;      // Key of entry- this entry holds a weak reference to the key
+        Field(const RecyclerWeakReference<TKey>*) key;  // Key of entry- this entry holds a weak reference to the key
         TValue value;    // Value of entry
     };
 
@@ -21,30 +21,31 @@ namespace JsUtil
     template <class TKey, class TValue, class KeyComparer = DefaultComparer<const TKey*>, bool cleanOnInsert = true> class WeaklyReferencedKeyDictionary
     {
     public:
-        typedef WeakRefDictionaryEntry<TKey, TValue> EntryType;
+        typedef WeakRefDictionaryEntry<TKey, Field(TValue)> EntryType;
         typedef TKey KeyType;
         typedef TValue ValueType;
         typedef void (*EntryRemovalCallbackMethodType)(const EntryType& e, void* cookie);
 
         struct EntryRemovalCallback
         {
-            EntryRemovalCallbackMethodType fnCallback;
-            void* cookie;
+            FieldNoBarrier(EntryRemovalCallbackMethodType) fnCallback;
+            Field(void*) cookie;
         };
 
 
     private:
-        int size;
-        int* buckets;
-        EntryType * entries;
-        int count;
-        int version;
-        int freeList;
-        int freeCount;
-        Recycler* recycler;
-        EntryRemovalCallback entryRemovalCallback;
-        uint lastWeakReferenceCleanupId;
-        bool disableCleanup;
+        Field(int) size;
+        Field(int*) buckets;
+        Field(EntryType *) entries;
+        Field(int) count;
+        Field(int) version;
+        Field(int) freeList;
+        Field(int) freeCount;
+        FieldNoBarrier(Recycler*) recycler;
+        FieldNoBarrier(EntryRemovalCallback) entryRemovalCallback;
+        Field(uint) lastWeakReferenceCleanupId;
+        Field(bool) disableCleanup;
+        Field(int)  modFunctionIndex;
 
     public:
         // Allow WeaklyReferencedKeyDictionary field to be inlined in classes with DEFINE_VTABLE_CTOR_MEMBER_INIT
@@ -60,7 +61,8 @@ namespace JsUtil
             freeCount(0),
             recycler(recycler),
             lastWeakReferenceCleanupId(recycler->GetWeakReferenceCleanupId()),
-            disableCleanup(false)
+            disableCleanup(false),
+            modFunctionIndex(UNKNOWN_MOD_INDEX)
         {
             if (pEntryRemovalCallback != nullptr)
             {
@@ -121,7 +123,7 @@ namespace JsUtil
             if (buckets == nullptr) return false;
 
             hash_t hash = GetHashCode(key);
-            uint targetBucket = hash % size;
+            uint targetBucket = PrimePolicy::GetBucket(hash, size, modFunctionIndex);
             int last = -1;
             int i = 0;
 
@@ -230,10 +232,11 @@ namespace JsUtil
             if (count > 0)
             {
                 for (int i = 0; i < size; i++) buckets[i] = -1;
-                memset(entries, 0, sizeof(EntryType) * size);
+                ClearArray(entries, size);
                 freeList = -1;
                 count = 0;
                 freeCount = 0;
+                modFunctionIndex = UNKNOWN_MOD_INDEX;
             }
         }
 
@@ -258,7 +261,7 @@ namespace JsUtil
             if (buckets == nullptr) Initialize(0);
 
             int hash = GetHashCode(weakRef->FastGet());
-            uint bucket = (uint)hash % size;
+            uint bucket = PrimePolicy::GetBucket(hash, size, modFunctionIndex);
 
             Assert(FindEntry(weakRef->FastGet()) == -1);
             return Insert(weakRef, value, hash, bucket);
@@ -269,7 +272,7 @@ namespace JsUtil
             if (buckets == nullptr) Initialize(0);
 
             hash_t hash = GetHashCode(key);
-            uint bucket = hash % size;
+            uint bucket = PrimePolicy::GetBucket(hash, size, modFunctionIndex);
 
             if (checkForExisting)
             {
@@ -318,7 +321,7 @@ namespace JsUtil
                     else
                     {
                         Resize();
-                        bucket = (uint)hash % size;
+                        bucket = PrimePolicy::GetBucket(hash, size, modFunctionIndex);
                         index = count;
                         count++;
                     }
@@ -342,7 +345,7 @@ namespace JsUtil
 
         void Resize()
         {
-            int newSize = PrimePolicy::GetSize(count * 2);
+            int newSize = PrimePolicy::GetSize(count * 2, &modFunctionIndex);
 
             if (newSize <= count)
             {
@@ -353,11 +356,11 @@ namespace JsUtil
             int* newBuckets = RecyclerNewArrayLeaf(recycler, int, newSize);
             for (int i = 0; i < newSize; i++) newBuckets[i] = -1;
             EntryType* newEntries = RecyclerNewArray(recycler, EntryType, newSize);
-            js_memcpy_s(newEntries, sizeof(EntryType) * newSize, entries, sizeof(EntryType) * count);
+            CopyArray<EntryType, Field(const RecyclerWeakReference<TKey>*)>(newEntries, newSize, entries, count);
             AnalysisAssert(count < newSize);
             for (int i = 0; i < count; i++)
             {
-                uint bucket = (uint)newEntries[i].hash % newSize;
+                uint bucket = PrimePolicy::GetBucket(newEntries[i].hash, newSize, modFunctionIndex);
                 newEntries[i].next = newBuckets[bucket];
                 newBuckets[bucket] = i;
             }
@@ -378,7 +381,7 @@ namespace JsUtil
             if (buckets != nullptr)
             {
                 hash_t hash = GetHashCode(key);
-                uint bucket = (uint)hash % size;
+                uint bucket = PrimePolicy::GetBucket(hash, size, modFunctionIndex);
                 int previous = -1;
                 return FindEntry(key, hash, bucket, previous);
             }
@@ -434,7 +437,7 @@ namespace JsUtil
 
         void Initialize(int capacity)
         {
-            int size = PrimePolicy::GetSize(capacity);
+            int size = PrimePolicy::GetSize(capacity, &modFunctionIndex);
 
             int* buckets = RecyclerNewArrayLeaf(recycler, int, size);
             EntryType * entries = RecyclerNewArray(recycler, EntryType, size);

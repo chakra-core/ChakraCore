@@ -37,4 +37,6 @@ function testFunction()
 
     telemetryLog(`m.index: ${m.index}`, true); //6
     telemetryLog(`post update -- y.lastIndex: ${y.lastIndex}`, true); //4
+
+    emitTTDLog(ttdLogURI);
 }

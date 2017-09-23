@@ -203,7 +203,7 @@ namespace Js
 #endif
     }
 
-    bool InlineCache::PretendTryGetProperty(Type *const type, PropertyCacheOperationInfo * operationInfo)
+    bool InlineCache::PretendTryGetProperty(Type *const type, PropertyCacheOperationInfo * operationInfo) const
     {
         if (type == u.local.type)
         {
@@ -254,7 +254,7 @@ namespace Js
         return false;
     }
 
-    bool InlineCache::PretendTrySetProperty(Type *const type, Type *const oldType, PropertyCacheOperationInfo * operationInfo)
+    bool InlineCache::PretendTrySetProperty(Type *const type, Type *const oldType, PropertyCacheOperationInfo * operationInfo) const
     {
         if (oldType == u.local.typeWithoutProperty)
         {
@@ -383,12 +383,22 @@ namespace Js
 
     void InlineCache::Clear()
     {
-        // IsEmpty() is a quick check to see that the cache is not populated, it only checks u.local.type, which does not
-        // guarantee that the proto or flags cache would not hit. So Clear() must still clear everything.
+#if DBG
+        if (!IsAll((byte*)this, sizeof(InlineCache), 0))
+#endif
+        {
+            memset(this, 0, sizeof(InlineCache));
+        }
+    }
 
-        u.local.type = nullptr;
-        u.local.isLocal = true;
-        u.local.typeWithoutProperty = nullptr;
+    void InlineCache::RemoveFromInvalidationListAndClear(ThreadContext* threadContext)
+    {
+        if (this->RemoveFromInvalidationList())
+        {
+            threadContext->NotifyInlineCacheBatchUnregistered(1);
+        }
+
+        this->Clear();
     }
 
     InlineCache *InlineCache::Clone(Js::PropertyId propertyId, ScriptContext* scriptContext)
@@ -403,6 +413,7 @@ namespace Js
         return clone;
     }
 
+#if ENABLE_FIXED_FIELDS
     bool InlineCache::TryGetFixedMethodFromCache(Js::FunctionBody* functionBody, uint cacheId, Js::JavascriptFunction** pFixedMethod)
     {
         Assert(pFixedMethod);
@@ -431,7 +442,7 @@ namespace Js
 
         Assert(propertyOwnerType != nullptr);
 
-        if (Js::DynamicType::Is(propertyOwnerType->GetTypeId()))
+        if (Js::DynamicType::Is(propertyOwnerType))
         {
             Js::DynamicTypeHandler* propertyOwnerTypeHandler = ((Js::DynamicType*)propertyOwnerType)->GetTypeHandler();
             Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(cacheId);
@@ -454,6 +465,7 @@ namespace Js
 
         return false;
     }
+#endif
 
     void InlineCache::CopyTo(PropertyId propertyId, ScriptContext * scriptContext, InlineCache * const clone)
     {
@@ -474,7 +486,13 @@ namespace Js
             }
         }
 
-        clone->u = this->u;
+#if DBG
+        // inline cache pages might been locked after ZeroAll
+        if (memcmp(&clone->u, &this->u, sizeof(this->u)) != 0)
+#endif
+        {
+            clone->u = this->u;
+        }
 
         DebugOnly(VerifyRegistrationForInvalidation(clone, scriptContext, propertyId));
     }
@@ -594,29 +612,6 @@ namespace Js
     }
 
 #endif
-    PolymorphicInlineCache * PolymorphicInlineCache::New(uint16 size, FunctionBody * functionBody)
-    {
-        ScriptContext * scriptContext = functionBody->GetScriptContext();
-        InlineCache * inlineCaches = AllocatorNewArrayZ(InlineCacheAllocator, scriptContext->GetInlineCacheAllocator(), InlineCache, size);
-#ifdef POLY_INLINE_CACHE_SIZE_STATS
-        scriptContext->GetInlineCacheAllocator()->LogPolyCacheAlloc(size * sizeof(InlineCache));
-#endif
-        PolymorphicInlineCache * polymorphicInlineCache = RecyclerNewFinalizedLeaf(scriptContext->GetRecycler(), PolymorphicInlineCache, inlineCaches, size, functionBody);
-
-        // Insert the cache into finalization list.  We maintain this linked list of polymorphic caches because when we allocate
-        // a larger cache, the old one might still be used by some code on the stack.  Consequently, we can't release
-        // the inline cache array back to the arena allocator.  The list is leaf-allocated and so does not keep the
-        // old caches alive.  As soon as they are collectible, their finalizer releases the inline cache array to the arena.
-        polymorphicInlineCache->prev = nullptr;
-        polymorphicInlineCache->next = functionBody->GetPolymorphicInlineCachesHead();
-        if (polymorphicInlineCache->next)
-        {
-            polymorphicInlineCache->next->prev = polymorphicInlineCache;
-        }
-        functionBody->SetPolymorphicInlineCachesHead(polymorphicInlineCache);
-
-        return polymorphicInlineCache;
-    }
 
     template<bool isAccessor>
     bool PolymorphicInlineCache::HasDifferentType(
@@ -691,7 +686,7 @@ namespace Js
 #endif
             if (!PHASE_OFF1(Js::CloneCacheInCollisionPhase))
             {
-                if (!inlineCaches[inlineCacheIndex].IsEmpty() && !inlineCaches[inlineCacheIndex].NeedsToBeRegisteredForStoreFieldInvalidation())
+                if (!inlineCaches[inlineCacheIndex].IsEmpty() && !inlineCaches[inlineCacheIndex].NeedsToBeRegisteredForStoreFieldInvalidation() && GetSize() != 1)
                 {
                     if (inlineCaches[inlineCacheIndex].IsLocal())
                     {
@@ -765,7 +760,7 @@ namespace Js
 #endif
         if (!PHASE_OFF1(Js::CloneCacheInCollisionPhase))
         {
-            if (!inlineCaches[inlineCacheIndex].IsEmpty() && !inlineCaches[inlineCacheIndex].NeedsToBeRegisteredForStoreFieldInvalidation())
+            if (!inlineCaches[inlineCacheIndex].IsEmpty() && !inlineCaches[inlineCacheIndex].NeedsToBeRegisteredForStoreFieldInvalidation() && GetSize() != 1)
             {
                 if (inlineCaches[inlineCacheIndex].IsLocal())
                 {
@@ -816,7 +811,7 @@ namespace Js
 #endif
         if (!PHASE_OFF1(Js::CloneCacheInCollisionPhase))
         {
-            if (!inlineCaches[inlineCacheIndex].IsEmpty() && !inlineCaches[inlineCacheIndex].NeedsToBeRegisteredForStoreFieldInvalidation())
+            if (!inlineCaches[inlineCacheIndex].IsEmpty() && !inlineCaches[inlineCacheIndex].NeedsToBeRegisteredForStoreFieldInvalidation() && GetSize() != 1)
             {
                 if (inlineCaches[inlineCacheIndex].IsLocal())
                 {
@@ -885,7 +880,7 @@ namespace Js
                 // This might lead to collision in the new cache. We need to try to resolve that collision.
                 if (!PHASE_OFF1(Js::CloneCacheInCollisionPhase))
                 {
-                    if (!clone->inlineCaches[inlineCacheIndex].IsEmpty() && !clone->inlineCaches[inlineCacheIndex].NeedsToBeRegisteredForStoreFieldInvalidation())
+                    if (!clone->inlineCaches[inlineCacheIndex].IsEmpty() && !clone->inlineCaches[inlineCacheIndex].NeedsToBeRegisteredForStoreFieldInvalidation() && GetSize() != 1)
                     {
                         if (clone->inlineCaches[inlineCacheIndex].IsLocal())
                         {
@@ -922,228 +917,215 @@ namespace Js
         }
     }
 #endif
-#if ENABLE_NATIVE_CODEGEN
 
-    EquivalentTypeSet::EquivalentTypeSet(JITTypeHolder * types, uint16 count)
-        : types(types), count(count), sortedAndDuplicatesRemoved(false)
+    FunctionBodyPolymorphicInlineCache * FunctionBodyPolymorphicInlineCache::New(uint16 size, FunctionBody * functionBody)
     {
-    }
-
-    JITTypeHolder EquivalentTypeSet::GetType(uint16 index) const
-    {
-        Assert(this->types != nullptr && this->count > 0 && index < this->count);
-        return this->types[index];
-    }
-
-    JITTypeHolder EquivalentTypeSet::GetFirstType() const
-    {
-        return GetType(0);
-    }
-
-    JITTypeHolder * EquivalentTypeSet::GetTypes() const
-    {
-        return this->types;
-    }
-
-    bool EquivalentTypeSet::Contains(const JITTypeHolder type, uint16* pIndex)
-    {
-        if (!this->GetSortedAndDuplicatesRemoved())
-        {
-            this->SortAndRemoveDuplicates();
-        }
-        for (uint16 ti = 0; ti < this->count; ti++)
-        {
-            if (this->types[ti] == type)
-            {
-                if (pIndex)
-                {
-                    *pIndex = ti;
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool EquivalentTypeSet::AreIdentical(EquivalentTypeSet * left, EquivalentTypeSet * right)
-    {
-        if (!left->GetSortedAndDuplicatesRemoved())
-        {
-            left->SortAndRemoveDuplicates();
-        }
-        if (!right->GetSortedAndDuplicatesRemoved())
-        {
-            right->SortAndRemoveDuplicates();
-        }
-
-        Assert(left->GetSortedAndDuplicatesRemoved() && right->GetSortedAndDuplicatesRemoved());
-
-        if (left->count != right->count)
-        {
-            return false;
-        }
-
-        // TODO: OOP JIT, optimize this (previously we had memcmp)
-        for (uint i = 0; i < left->count; ++i)
-        {
-            if (left->types[i] != right->types[i])
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    bool EquivalentTypeSet::IsSubsetOf(EquivalentTypeSet * left, EquivalentTypeSet * right)
-    {
-        if (!left->GetSortedAndDuplicatesRemoved())
-        {
-            left->SortAndRemoveDuplicates();
-        }
-        if (!right->GetSortedAndDuplicatesRemoved())
-        {
-            right->SortAndRemoveDuplicates();
-        }
-
-        if (left->count > right->count)
-        {
-            return false;
-        }
-
-        // Try to find each left type in the right set.
-        int j = 0;
-        for (int i = 0; i < left->count; i++)
-        {
-            bool found = false;
-            for (; j < right->count; j++)
-            {
-                if (left->types[i] < right->types[j])
-                {
-                    // Didn't find the left type. Fail.
-                    return false;
-                }
-                if (left->types[i] == right->types[j])
-                {
-                    // Found the left type. Continue to the next left/right pair.
-                    found = true;
-                    j++;
-                    break;
-                }
-            }
-            Assert(j <= right->count);
-            if (j == right->count && !found)
-            {
-                // Exhausted the right set without finding the current left type.
-                return false;
-            }
-        }
-        return true;
-    }
-
-    void EquivalentTypeSet::SortAndRemoveDuplicates()
-    {
-        uint16 oldCount = this->count;
-        uint16 i;
-
-        // sorting
-        for (i = 1; i < oldCount; i++)
-        {
-            uint16 j = i;
-            while (j > 0 && (this->types[j - 1] > this->types[j]))
-            {
-                JITTypeHolder tmp = this->types[j];
-                this->types[j] = this->types[j - 1];
-                this->types[j - 1] = tmp;
-                j--;
-            }
-        }
-
-        // removing duplicate types from the sorted set
-        i = 0;
-        for (uint16 j = 1; j < oldCount; j++)
-        {
-            if (this->types[i] != this->types[j])
-            {
-                this->types[++i] = this->types[j];
-            }
-        }
-        this->count = ++i;
-        for (i; i < oldCount; i++)
-        {
-            this->types[i] = JITTypeHolder(nullptr);
-        }
-
-        this->sortedAndDuplicatesRemoved = true;
-    }
+        ScriptContext * scriptContext = functionBody->GetScriptContext();
+        InlineCache * inlineCaches = AllocatorNewArrayZ(InlineCacheAllocator, scriptContext->GetInlineCacheAllocator(), InlineCache, size);
+#ifdef POLY_INLINE_CACHE_SIZE_STATS
+        scriptContext->GetInlineCacheAllocator()->LogPolyCacheAlloc(size * sizeof(InlineCache));
 #endif
+        FunctionBodyPolymorphicInlineCache * polymorphicInlineCache = RecyclerNewFinalizedLeaf(scriptContext->GetRecycler(), FunctionBodyPolymorphicInlineCache, inlineCaches, size, functionBody);
 
-    ConstructorCache ConstructorCache::DefaultInstance;
-
-    ConstructorCache* ConstructorCache::EnsureValidInstance(ConstructorCache* currentCache, ScriptContext* scriptContext)
-    {
-        Assert(currentCache != nullptr);
-
-        ConstructorCache* newCache = currentCache;
-
-        // If the old cache has been invalidated, we need to create a new one to avoid incorrectly re-validating
-        // caches that may have been hard-coded in the JIT-ed code with different prototype and type.  However, if
-        // the cache is already polymorphic, it will not be hard-coded, and hence we don't need to allocate a new
-        // one - in case the prototype property changes frequently.
-        if (ConstructorCache::IsDefault(currentCache) || (currentCache->IsInvalidated() && !currentCache->IsPolymorphic()))
+        polymorphicInlineCache->prev = nullptr;
+        polymorphicInlineCache->next = polymorphicInlineCache->functionBody->GetPolymorphicInlineCachesHead();
+        if (polymorphicInlineCache->next)
         {
-            // Review (jedmiad): I don't think we need to zero the struct, since we initialize each field.
-            newCache = RecyclerNew(scriptContext->GetRecycler(), ConstructorCache);
-            // TODO: Consider marking the cache as polymorphic only if the prototype and type actually changed.  In fact,
-            // if they didn't change we could reuse the same cache and simply mark it as valid.  Not really true.  The cache
-            // might have been invalidated due to a property becoming read-only.  In that case we can't re-validate an old
-            // monomorphic cache.  We must allocate a new one.
-            newCache->content.isPolymorphic = currentCache->content.isPopulated && currentCache->content.hasPrototypeChanged;
+            polymorphicInlineCache->next->prev = polymorphicInlineCache;
         }
+        polymorphicInlineCache->functionBody->SetPolymorphicInlineCachesHead(polymorphicInlineCache);
 
-        // If we kept the old invalidated cache, it better be marked as polymorphic.
-        Assert(!newCache->IsInvalidated() || newCache->IsPolymorphic());
-
-        // If the cache was polymorphic, we shouldn't have allocated a new one.
-        Assert(!currentCache->IsPolymorphic() || newCache == currentCache);
-
-        return newCache;
+        return polymorphicInlineCache;
     }
 
-    void ConstructorCache::InvalidateOnPrototypeChange()
+    void FunctionBodyPolymorphicInlineCache::Finalize(bool isShutdown)
     {
-        if (IsDefault(this))
+        if (size == 0)
         {
-            Assert(this->guard.value == CtorCacheGuardValues::Invalid);
-            Assert(!this->content.isPopulated);
+            // Already finalized
+            Assert(!inlineCaches && !prev && !next);
+            return;
         }
-        else if (this->guard.value == CtorCacheGuardValues::Special && this->content.skipDefaultNewObject)
-        {
-            // Do nothing.  If we skip the default object, changes to the prototype property don't affect
-            // what we'll do during object allocation.
 
-            // Can't assert the following because we set the prototype property during library initialization.
-            // AssertMsg(false, "Overriding a prototype on a built-in constructor should be illegal.");
+        uint unregisteredInlineCacheCount = 0;
+
+        Assert(inlineCaches && size > 0);
+
+        // If we're not shutting down (as in closing the script context), we need to remove our inline caches from
+        // thread context's invalidation lists, and release memory back to the arena.  During script context shutdown,
+        // we leave everything in place, because the inline cache arena will stay alive until script context is destroyed
+        // (as in destructor has been called) and thus the invalidation lists are safe to keep references to caches from this
+        // script context.  We will, however, zero all inline caches so that we don't have to process them on subsequent
+        // collections, which may still happen from other script contexts.
+        if (isShutdown)
+        {
+#if DBG
+            for (int i = 0; i < size; i++)
+            {
+                inlineCaches[i].Clear();
+            }
+#else
+            memset(inlineCaches, 0, size * sizeof(InlineCache));
+#endif
         }
         else
         {
-            this->guard.value = CtorCacheGuardValues::Invalid;
-            this->content.hasPrototypeChanged = true;
-            // Make sure we don't leak the old type.
-            Assert(this->content.type == nullptr);
-            this->content.pendingType = nullptr;
-            Assert(this->content.pendingType == nullptr);
-            Assert(IsInvalidated());
+            for (int i = 0; i < size; i++)
+            {
+                if (inlineCaches[i].RemoveFromInvalidationList())
+                {
+                    unregisteredInlineCacheCount++;
+                }
+            }
+
+            AllocatorDeleteArray(InlineCacheAllocator, this->functionBody->GetScriptContext()->GetInlineCacheAllocator(), size, inlineCaches);
+#ifdef POLY_INLINE_CACHE_SIZE_STATS
+            this->functionBody->GetScriptContext()->GetInlineCacheAllocator()->LogPolyCacheFree(size * sizeof(InlineCache));
+#endif
         }
-        Assert(IsConsistent());
+
+        // Remove this PolymorphicInlineCache from the list
+        if (this == this->functionBody->GetPolymorphicInlineCachesHead())
+        {
+            Assert(!prev);
+            if (next)
+            {
+                Assert(next->prev == this);
+                next->prev = nullptr;
+            }
+            this->functionBody->SetPolymorphicInlineCachesHead(next);
+        }
+        else
+        {
+            if (prev)
+            {
+                Assert(prev->next == this);
+                prev->next = next;
+            }
+            if (next)
+            {
+                Assert(next->prev == this);
+                next->prev = prev;
+            }
+        }
+        prev = next = nullptr;
+        inlineCaches = nullptr;
+        size = 0;
+        if (unregisteredInlineCacheCount > 0)
+        {
+            this->functionBody->GetScriptContext()->GetThreadContext()->NotifyInlineCacheBatchUnregistered(unregisteredInlineCacheCount);
+        }
     }
 
-#if DBG_DUMP
-    void ConstructorCache::Dump() const
+    ScriptContextPolymorphicInlineCache * ScriptContextPolymorphicInlineCache::New(uint16 size, JavascriptLibrary* javascriptLibrary)
     {
-        Output::Print(_u("guard value or type = 0x%p, script context = 0x%p, pending type = 0x%p, slots = %d, inline slots = %d, populated = %d, polymorphic = %d, update cache = %d, update type = %d, skip default = %d, no return = %d"),
-            this->GetRawGuardValue(), this->GetScriptContext(), this->GetPendingType(), this->GetSlotCount(), this->GetInlineSlotCount(),
-            this->IsPopulated(), this->IsPolymorphic(), this->GetUpdateCacheAfterCtor(), this->GetTypeUpdatePending(),
-            this->GetSkipDefaultNewObject(), this->GetCtorHasNoExplicitReturnValue());
+        ScriptContext * scriptContext = javascriptLibrary->GetScriptContext();
+        InlineCache * inlineCaches = AllocatorNewArrayZ(InlineCacheAllocator, scriptContext->GetInlineCacheAllocator(), InlineCache, size);
+#ifdef POLY_INLINE_CACHE_SIZE_STATS
+        scriptContext->GetInlineCacheAllocator()->LogPolyCacheAlloc(size * sizeof(InlineCache));
+#endif
+        ScriptContextPolymorphicInlineCache * polymorphicInlineCache = RecyclerNewFinalized(scriptContext->GetRecycler(), ScriptContextPolymorphicInlineCache, inlineCaches, size, javascriptLibrary);
+
+        return polymorphicInlineCache;
+    }
+
+    void ScriptContextPolymorphicInlineCache::Finalize(bool isShutdown)
+    {
+        if (size == 0)
+        {
+            // Already finalized
+            Assert(!inlineCaches);
+            return;
+        }
+
+        uint unregisteredInlineCacheCount = 0;
+
+        Assert(inlineCaches && size > 0);
+
+        // If we're not shutting down (as in closing the script context), we need to remove our inline caches from
+        // thread context's invalidation lists, and release memory back to the arena.  During script context shutdown,
+        // we leave everything in place, because the inline cache arena will stay alive until script context is destroyed
+        // (as in destructor has been called) and thus the invalidation lists are safe to keep references to caches from this
+        // script context.  We will, however, zero all inline caches so that we don't have to process them on subsequent
+        // collections, which may still happen from other script contexts.
+        if (isShutdown)
+        {
+#if DBG
+            for (int i = 0; i < size; i++)
+            {
+                inlineCaches[i].Clear();
+            }
+#else
+            memset(inlineCaches, 0, size * sizeof(InlineCache));
+#endif
+        }
+        else
+        {
+            for (int i = 0; i < size; i++)
+            {
+                if (inlineCaches[i].RemoveFromInvalidationList())
+                {
+                    unregisteredInlineCacheCount++;
+                }
+            }
+            AllocatorDeleteArray(InlineCacheAllocator, this->javascriptLibrary->scriptContext->GetInlineCacheAllocator(), size, inlineCaches);
+#ifdef POLY_INLINE_CACHE_SIZE_STATS
+            this->javascriptLibrary->scriptContext->GetInlineCacheAllocator()->LogPolyCacheFree(size * sizeof(InlineCache));
+#endif
+        }
+
+        inlineCaches = nullptr;
+        size = 0;
+        if (unregisteredInlineCacheCount > 0)
+        {
+            this->javascriptLibrary->scriptContext->GetThreadContext()->NotifyInlineCacheBatchUnregistered(unregisteredInlineCacheCount);
+        }
+    }
+
+#ifdef INLINE_CACHE_STATS
+    void FunctionBodyPolymorphicInlineCache::PrintStats(InlineCacheData *data) const
+    {
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        wchar funcName[1024];
+        uint total = data->hits + data->misses;
+        char16 const *propName = this->functionBody->GetScriptContext()->GetThreadContext()->GetPropertyName(data->propertyId)->GetBuffer();
+        swprintf_s(funcName, _u("%s (%s)"), this->functionBody->GetExternalDisplayName(), this->functionBody->GetDebugNumberSet(debugStringBuffer));
+
+        Output::Print(_u("%s,%s,%s,%d,%d,%f,%d,%f,%d\n"),
+            funcName,
+            propName,
+            data->isGetCache ? _u("get") : _u("set"),
+            total,
+            data->misses,
+            static_cast<float>(data->misses) / total,
+            data->collisions,
+            static_cast<float>(data->collisions) / total,
+            GetSize()
+        );
+    }
+    ScriptContext* FunctionBodyPolymorphicInlineCache::GetScriptContext() const
+    {
+        return this->functionBody->GetScriptContext();
+    }
+
+    void ScriptContextPolymorphicInlineCache::PrintStats(InlineCacheData *data) const
+    {
+        uint total = data->hits + data->misses;
+
+        Output::Print(_u("ScriptContext,%s,%s,%d,%d,%f,%d,%f,%d\n"),
+            data->isGetCache ? _u("get") : _u("set"),
+            total,
+            data->misses,
+            static_cast<float>(data->misses) / total,
+            data->collisions,
+            static_cast<float>(data->collisions) / total,
+            GetSize()
+        );
+    }
+
+    ScriptContext* ScriptContextPolymorphicInlineCache::GetScriptContext() const
+    {
+        return this->javascriptLibrary->scriptContext;
     }
 #endif
 
@@ -1156,9 +1138,12 @@ namespace Js
 
     void IsInstInlineCache::Clear()
     {
-        this->type = NULL;
-        this->function = NULL;
-        this->result = NULL;
+#if DBG
+        if (!IsAll((byte*)this, sizeof(IsInstInlineCache), 0))
+#endif
+        {
+            memset(this, 0, sizeof(IsInstInlineCache));
+        }
     }
 
     void IsInstInlineCache::Unregister(ScriptContext * scriptContext)
@@ -1213,7 +1198,7 @@ namespace Js
             this->Set(instanceType, function, result);
         }
     }
-
+    
     /* static */
     uint32 IsInstInlineCache::OffsetOfFunction()
     {

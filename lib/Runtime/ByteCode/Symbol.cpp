@@ -82,11 +82,6 @@ bool Symbol::IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc)
     {
         return true;
     }
-    // If body and param scopes are not merged then an inner scope slot is used
-    if (this->scope->GetScopeType() == ScopeType_Parameter && !this->scope->GetCanMergeWithBodyScope())
-    {
-        return true;
-    }
 
     return this->GetHasNonLocalReference() && (ensureSlotAlloc || this->GetIsCommittedToSlot());
 }
@@ -200,7 +195,7 @@ Symbol * Symbol::GetFuncScopeVarSym() const
         Scope* paramScope = parentFuncInfo->GetParamScope();
         fncScopeSym = paramScope->FindLocalSymbol(this->GetName());
     }
-    Assert(fncScopeSym);
+
     // Parser should have added a fake var decl node for block scoped functions in non-strict mode
     // IsBlockVar() indicates a user let declared variable at function scope which
     // shadows the function's var binding, thus only emit the var binding init if

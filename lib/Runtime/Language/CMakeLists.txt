@@ -12,13 +12,14 @@ set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     AsmJsTypes.cpp
     AsmJsUtils.cpp
     WAsmjsUtils.cpp
+    WebAssemblySource.cpp
     CacheOperators.cpp
+    ConstructorCache.cpp
     CodeGenRecyclableData.cpp
     DynamicProfileInfo.cpp
     DynamicProfileMutator.cpp
     DynamicProfileStorage.cpp
     ExecutionMode.cpp
-    FunctionCodeGenJitTimeData.cpp
     FunctionCodeGenRuntimeData.cpp
     InlineCache.cpp
     InterpreterStackFrame.cpp
@@ -26,14 +27,11 @@ set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     JavascriptExceptionObject.cpp
     JavascriptExceptionOperators.cpp
     JavascriptMathOperators.cpp
-    JavascriptNativeOperators.cpp
     JavascriptOperators.cpp
     JavascriptStackWalker.cpp
     ModuleNamespace.cpp
     ModuleNamespaceEnumerator.cpp
-    ObjTypeSpecFldInfo.cpp
     ProfilingHelpers.cpp
-    #ReadOnlyDynamicProfileInfo.cpp
     RuntimeLanguagePch.cpp
     SimdBool16x8Operation.cpp
     SimdBool16x8OperationX86X64.cpp
@@ -76,6 +74,11 @@ elseif(CC_TARGETS_X86)
     set (CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
         i386/AsmJsJitTemplate.cpp
         i386/StackFrame.cpp
+    )
+elseif(CC_TARGETS_ARM)
+    set (CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
+        arm/StackFrame.cpp
+        arm/arm_Thunks.S
     )
 endif()
 

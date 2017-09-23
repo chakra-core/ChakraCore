@@ -434,16 +434,24 @@ namespace Js
             // Don't resize a polymorphic inline cache from full JIT because it currently doesn't rejit to use the new
             // polymorphic inline cache. Once resized, bailouts would populate only the new set of caches and full JIT would
             // continue to use to old set of caches.
-            Assert(!info->AllowResizingPolymorphicInlineCache() || info->GetFunctionBody());
+            Assert(!info->AllowResizingPolymorphicInlineCache() || info->GetFunctionBody() || info->GetPropertyString());
             if(((includeTypePropertyCache && !createTypePropertyCache) || info->AllowResizingPolymorphicInlineCache()) &&
                 polymorphicInlineCache->HasDifferentType<IsAccessor>(isProto, type, typeWithoutProperty))
             {
                 if(info->AllowResizingPolymorphicInlineCache() && polymorphicInlineCache->CanAllocateBigger())
                 {
-                    polymorphicInlineCache =
-                        info->GetFunctionBody()->CreateBiggerPolymorphicInlineCache(
-                            info->GetInlineCacheIndex(),
-                            propertyId);
+                    if (info->GetFunctionBody())
+                    {
+                        polymorphicInlineCache =
+                            info->GetFunctionBody()->CreateBiggerPolymorphicInlineCache(
+                                info->GetInlineCacheIndex(),
+                                propertyId);
+                    }
+                    else
+                    {
+                        Assert(!info->GetFunctionBody());
+                        polymorphicInlineCache = info->GetPropertyString()->CreateBiggerPolymorphicInlineCache(IsRead);
+                    }
                 }
                 if(includeTypePropertyCache)
                 {

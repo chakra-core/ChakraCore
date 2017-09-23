@@ -54,4 +54,39 @@ namespace Js
 #endif
         return this->GetType()->CanHaveInterceptors();
     }
+
+    inline BOOL RecyclableObject::HasItem(uint32 index)
+    {
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(HasItemQuery(index));
+    }
+
+    inline BOOL RecyclableObject::HasProperty(PropertyId propertyId)
+    {
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(HasPropertyQuery(propertyId));
+    }
+
+    inline BOOL RecyclableObject::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    {
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(GetPropertyQuery(originalInstance, propertyId, value, info, requestContext));
+    }
+
+    inline BOOL RecyclableObject::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    {
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext));
+    }
+
+    inline BOOL RecyclableObject::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    {
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(GetPropertyReferenceQuery(originalInstance, propertyId, value, info, requestContext));
+    }
+
+    inline BOOL RecyclableObject::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    {
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(GetItemQuery(originalInstance, index, value, requestContext));
+    }
+
+    inline BOOL RecyclableObject::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    {
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(GetItemReferenceQuery(originalInstance, index, value, requestContext));
+    }
 };

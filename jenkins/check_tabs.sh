@@ -20,11 +20,13 @@ rm -f $ERRFILE
 git diff --name-only `git merge-base origin/master HEAD` HEAD |
     xargs grep -P -l "\t" |
     grep -v -E '^pal/' |
+    grep -v -E '\Makefile$' |
     grep -v -E '\.sln$' |
     grep -v -E '\.js$' |
     grep -v -E '\.baseline$' |
     grep -v -E '\.wasm$' |
     grep -v -E '\.wast$' |
+    grep -v -E '^lib/wabt' |
     grep -v -E 'bin/External/.*$' |
     xargs -I % sh -c 'echo --- IN FILE % ---; git blame HEAD -- % | grep -P "(\t|--- IN FILE)"' > check_tabs.sh.err
 

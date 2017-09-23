@@ -217,3 +217,6 @@ a = b;
 Object.prototype.toUpperCase = String.prototype.toUpperCase;
 var f = obj.toUpperCase();
 WScript.Echo (a);
+
+// #3531
+"\u00DF".toLocaleUpperCase();
