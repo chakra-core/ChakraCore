@@ -149,7 +149,6 @@ private:
     void            GenerateDirectFieldStore(IR::Instr* instrStFld, IR::PropertySymOpnd* propertySymOpnd);
     void            GenerateAdjustSlots(IR::Instr * instrStFld, IR::PropertySymOpnd *propertySymOpnd, JITTypeHolder initialType, JITTypeHolder finalType);
     bool            GenerateAdjustBaseSlots(IR::Instr * instrStFld, IR::RegOpnd *baseOpnd, JITTypeHolder initialType, JITTypeHolder finalType);
-    void            GeneratePrototypeCacheInvalidateCheck(IR::PropertySymOpnd *propertySymOpnd, IR::Instr *instrStFld);
     void            PinTypeRef(JITTypeHolder type, void* typeRef, IR::Instr* instr, Js::PropertyId propertyId);
     IR::RegOpnd *   GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject = true, IR::LabelInstr *labelFastExternal = nullptr, bool isInHelper = false);
     void            GenerateIsDynamicObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool fContinueLabel = false);
@@ -180,9 +179,11 @@ private:
     IR::Instr *     LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet);
     IR::Instr *     LowerMemcopy(IR::Instr * instr, IR::RegOpnd * helperRet);
 
-    IR::Instr *     LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd);
+    IR::Instr *     LowerWasmArrayBoundsCheck(IR::Instr * instr, IR::Opnd *addrOpnd);
     IR::Instr *     LowerLdArrViewElem(IR::Instr * instr);
     IR::Instr *     LowerStArrViewElem(IR::Instr * instr);
+    IR::Instr *     LowerStAtomicsWasm(IR::Instr * instr);
+    IR::Instr *     LowerLdAtomicsWasm(IR::Instr * instr);
     IR::Instr *     LowerLdArrViewElemWasm(IR::Instr * instr);
     IR::Instr *     LowerArrayDetachedCheck(IR::Instr * instr);
     IR::Instr *     LowerDeleteElemI(IR::Instr *instr, bool strictMode);
@@ -197,7 +198,6 @@ private:
     void            LowerLdSlot(IR::Instr *instr);
     IR::Instr *     LowerChkUndecl(IR::Instr *instr);
     void            GenUndeclChk(IR::Instr *insertInsert, IR::Opnd *opnd);
-    IR::Instr *     LowerStLen(IR::Instr *instr);
     IR::Instr *     LoadPropertySymAsArgument(IR::Instr *instr, IR::Opnd *fieldSrc);
     IR::Instr *     LoadFunctionBodyAsArgument(IR::Instr *instr, IR::IntConstOpnd * functionBodySlotOpnd, IR::RegOpnd * envOpnd);
     IR::Instr *     LoadHelperTemp(IR::Instr * instr, IR::Instr * instrInsert);
@@ -498,6 +498,7 @@ private:
     void            LowerRemI4(IR::Instr * const instr);
     void            LowerTrapIfZero(IR::Instr * const instr);
     void            LowerTrapIfMinIntOverNegOne(IR::Instr * const instr);
+    IR::Instr*      LowerTrapIfUnalignedAccess(IR::Instr * const instr);
     void            LowerDivI4Common(IR::Instr * const instr);
     void            LowerRemR8(IR::Instr * const instr);
     void            LowerRemR4(IR::Instr * const instr);

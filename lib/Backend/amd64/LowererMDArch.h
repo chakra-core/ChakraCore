@@ -91,11 +91,12 @@ public:
     IR::Instr *         LowerStartCall(IR::Instr * instr);
     IR::Instr *         LowerAsmJsCallI(IR::Instr * callInstr);
     IR::Instr *         LowerAsmJsCallE(IR::Instr * callInstr);
-    IR::Instr *         LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd);
+    IR::Instr *         LowerWasmArrayBoundsCheck(IR::Instr * instr, IR::Opnd *addrOpnd);
+    void                LowerAtomicStore(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr);
+    void                LowerAtomicLoad(IR::Opnd* dst, IR::Opnd* src1, IR::Instr* insertBeforeInstr);
     IR::Instr *         LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad = false, bool checkEndOffset = false);
     IR::Instr *         LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore = false, bool checkEndOffset = false);
 
-    IR::Instr *         LoadInt64HelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
     IR::Instr *         LoadHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
     IR::Instr *         LoadDynamicArgument(IR::Instr * instr, uint argNumber);
     IR::Instr *         LoadDynamicArgumentUsingLength(IR::Instr *instr);

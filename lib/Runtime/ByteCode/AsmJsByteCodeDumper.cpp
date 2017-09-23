@@ -517,8 +517,36 @@ namespace Js
     {
         switch (type)
         {
-#define ARRAYBUFFER_VIEW(name, align, reg, mem, t1, t2) case ArrayBufferView::TYPE_##name: tag->heapTag = _u(#t1); tag->valueTag = _u(t2);  break;
-#include "Language/AsmJsArrayBufferViews.h"
+        case ArrayBufferView::TYPE_INT8:
+            tag->heapTag = _u("HEAP8"); tag->valueTag = 'I';  break;
+        case ArrayBufferView::TYPE_UINT8:
+            tag->heapTag = _u("HEAPU8"); tag->valueTag = 'U'; break;
+        case ArrayBufferView::TYPE_INT16:
+            tag->heapTag = _u("HEAP16"); tag->valueTag = 'I'; break;
+        case ArrayBufferView::TYPE_UINT16:
+            tag->heapTag = _u("HEAPU16"); tag->valueTag = 'U'; break;
+        case ArrayBufferView::TYPE_INT32:
+            tag->heapTag = _u("HEAP32"); tag->valueTag = 'I'; break;
+        case ArrayBufferView::TYPE_UINT32:
+            tag->heapTag = _u("HEAPU32"); tag->valueTag = 'U'; break;
+        case ArrayBufferView::TYPE_FLOAT32:
+            tag->heapTag = _u("HEAPF32"); tag->valueTag = 'F'; break;
+        case ArrayBufferView::TYPE_FLOAT64:
+            tag->heapTag = _u("HEAPF64"); tag->valueTag = 'D'; break;
+        case ArrayBufferView::TYPE_INT64:
+            tag->heapTag = _u("HEAPI64"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_INT8_TO_INT64:
+            tag->heapTag = _u("HEAP8"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_UINT8_TO_INT64:
+            tag->heapTag = _u("HEAPU8"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_INT16_TO_INT64:
+            tag->heapTag = _u("HEAP16"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_UINT16_TO_INT64:
+            tag->heapTag = _u("HEAPU16"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_INT32_TO_INT64:
+            tag->heapTag = _u("HEAP32"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_UINT32_TO_INT64:
+            tag->heapTag = _u("HEAPU32"); tag->valueTag = 'L'; break;
         default:
             Assume(UNREACHED);
         }

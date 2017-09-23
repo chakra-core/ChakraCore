@@ -67,6 +67,9 @@ MACRO(CMPLEPD,    Empty,    None,          RNON,   f(MODRM),   o(CMPPD),   D66|D
 MACRO(CMPEQPD,    Empty,    None,          RNON,   f(MODRM),   o(CMPPD),   D66|DSSE,                OLB_0F)
 MACRO(CMPNEQPD,   Empty,    None,          RNON,   f(MODRM),   o(CMPPD),   D66|DSSE,                OLB_0F)
 
+MACRO(CMPXCHG8B,  Reg1,     OpSideEffect,  R001,   f(SPMOD),   o(CMPXCHG8B), DNO16|DSETCC,          OLB_0F)
+MACRO(LOCKCMPXCHG8B, Reg1,  OpSideEffect,  R001,   f(SPMOD),   o(CMPXCHG8B), DNO16|DSETCC|DLOCK,    OLB_0F)
+
 MACRO(COMISD,   Empty,  OpSideEffect,  RNON,   f(MODRM),   o(COMISD),  DNO16|D66|DSETCC,            OLB_0F)
 MACRO(COMISS,   Empty,  OpSideEffect,  RNON,   f(MODRM),   o(COMISS),  DNO16|DSETCC,                OLB_0F)
 MACRO(CVTDQ2PD, Reg2,   None,          RNON,   f(MODRM),   o(CVTDQ2PD),DDST|DNO16|DF3,              OLB_0F)
@@ -123,6 +126,8 @@ MACRO(MAXPD,    Reg2,       None,           RNON,   f(MODRM),   o(MAXPD),   DNO1
 MACRO(MAXPS,    Reg2,       None,           RNON,   f(MODRM),   o(MAXPS),   DNO16|DOPEQ,            OLB_0F)
 MACRO(MINPD,    Reg2,       None,           RNON,   f(MODRM),   o(MINPD),   DNO16|DOPEQ|D66,        OLB_0F)
 MACRO(MINPS,    Reg2,       None,           RNON,   f(MODRM),   o(MINPS),   DNO16|DOPEQ,            OLB_0F)
+
+MACRO(LOCKOR,   Reg2,   OpSideEffect,  R001,   f(BINOP),   o(OR),      DOPEQ|DSETCC|DCOMMOP|DLOCK,  OLB_NONE)
 
 MACRO(LZCNT,    Reg2,   None,          RNON,   f(MODRM),   o(LZCNT),   DF3|DSETCC|DDST,             OLB_0F)
 
@@ -263,7 +268,7 @@ MACRO(TZCNT,    Reg2,   None,          RNON,   f(MODRM),   o(TZCNT),   DF3|DSETC
 
 MACRO(UCOMISD,  Empty,  None,          RNON,   f(MODRM),   o(UCOMISD), DNO16|D66|DSETCC,            OLB_0F)
 MACRO(UCOMISS,  Empty,  None,          RNON,   f(MODRM),   o(UCOMISS), DNO16|DSETCC,                OLB_0F)
-MACRO(XCHG,     Reg2,   None,          R000,   f(XCHG),    o(XCHG),    DOPEQ,                       OLB_NONE)
+MACRO(XCHG,     Reg2,   OpSideEffect,  R000,   f(XCHG),    o(XCHG),    DOPEQ,                       OLB_NONE)
 MACRO(XOR,      Reg2,   OpSideEffect,  R110,   f(BINOP),   o(XOR),     DOPEQ|DSETCC|DCOMMOP,        OLB_NONE)
 MACRO(XORPS,    Reg3,   None,          RNON,   f(MODRM),   o(XORPS),   DNO16|DOPEQ|DCOMMOP,         OLB_0F)
 MACRO(PINSRW,   Reg2,   None,          RNON,   f(MODRM),   o(PINSRW),  DDST|DNO16|DSSE|D66,         OLB_0F)

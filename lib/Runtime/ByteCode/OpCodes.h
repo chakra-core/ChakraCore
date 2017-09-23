@@ -428,6 +428,8 @@ MACRO_WMS_PROFILED(     StElemI_A_Strict,       ElementI,       OpSideEffect|OpH
 MACRO_BACKEND_ONLY(     StArrViewElem,          ElementI,       OpSideEffect        )       // Store into typed array view
 MACRO_BACKEND_ONLY(     LdArrViewElem,          ElementI,       OpCanCSE            )       // Load from typed array view
 MACRO_BACKEND_ONLY(     LdArrViewElemWasm,      ElementI,       OpSideEffect        )       // Load from wasm array
+MACRO_BACKEND_ONLY(     StAtomicWasm,           ElementI,       OpSideEffect        )       // Atomic store into typed array view
+MACRO_BACKEND_ONLY(     LdAtomicWasm,           ElementI,       OpSideEffect        )       // Atomic load from typed array view
 MACRO_BACKEND_ONLY(     Memset,                 ElementI,       OpSideEffect)
 MACRO_BACKEND_ONLY(     Memcopy,                ElementI,       OpSideEffect)
 MACRO_BACKEND_ONLY(     ArrayDetachedCheck,     Reg1,           None)   // ensures that an ArrayBuffer has not been detached
@@ -749,6 +751,7 @@ MACRO_BACKEND_ONLY(     Nearest_A,          Empty,          OpTempNumberSources|
 MACRO_BACKEND_ONLY(     ThrowRuntimeError,  Empty,          OpSideEffect)
 MACRO_BACKEND_ONLY(     TrapIfMinIntOverNegOne, Reg3,       OpSideEffect)
 MACRO_BACKEND_ONLY(     TrapIfZero,         Reg3,           OpSideEffect)
+MACRO_BACKEND_ONLY(     TrapIfUnalignedAccess, Reg3,        OpSideEffect)
 
 // All SIMD ops are backend only for non-asmjs.
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_BACKEND_ONLY(opcode, Empty, OpCodeAttr)

@@ -589,6 +589,8 @@ HELPERCALL(DirectMath_Int64Rol , (int64(*)(int64,int64)) Wasm::WasmMath::Rol<int
 HELPERCALL(DirectMath_Int64Ror , (int64(*)(int64,int64)) Wasm::WasmMath::Ror<int64>, 0)
 HELPERCALL(DirectMath_Int64Clz , (int64(*)(int64)) Wasm::WasmMath::Clz<int64>, 0)
 HELPERCALL(DirectMath_Int64Ctz , (int64(*)(int64)) Wasm::WasmMath::Ctz<int64>, 0)
+HELPERCALL(AtomicStore64, nullptr, 0)
+HELPERCALL(MemoryBarrier, nullptr, 0)
 #elif defined(_M_X64)
 // AMD64 regular CRT calls -- on AMD64 calling convention is already what we want -- args in XMM0, XMM1 rather than on stack which is slower.
 HELPERCALL(DirectMath_Acos, nullptr, 0)

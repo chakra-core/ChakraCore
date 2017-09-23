@@ -147,15 +147,15 @@ namespace Js
         virtual BOOL DirectSetItemNoDetachCheck(__in uint32 index, __in Js::Var value) = 0;
         virtual Var  DirectGetItemNoDetachCheck(__in uint32 index) = 0;
 
-        virtual Var TypedAdd(__in uint32 index, Var second) = 0;
-        virtual Var TypedAnd(__in uint32 index, Var second) = 0;
+        virtual Var TypedAdd(__in uint32 index, __in Var second) = 0;
+        virtual Var TypedAnd(__in uint32 index, __in Var second) = 0;
         virtual Var TypedLoad(__in uint32 index) = 0;
-        virtual Var TypedOr(__in uint32 index, Var second) = 0;
-        virtual Var TypedStore(__in uint32 index, Var second) = 0;
-        virtual Var TypedSub(__in uint32 index, Var second) = 0;
-        virtual Var TypedXor(__in uint32 index, Var second) = 0;
-        virtual Var TypedExchange(__in uint32 index, Var second) = 0;
-        virtual Var TypedCompareExchange(__in uint32 index, Var comparand, Var replacementValue) = 0;
+        virtual Var TypedOr(__in uint32 index, __in Var second) = 0;
+        virtual Var TypedStore(__in uint32 index, __in Var second) = 0;
+        virtual Var TypedSub(__in uint32 index, __in Var second) = 0;
+        virtual Var TypedXor(__in uint32 index, __in Var second) = 0;
+        virtual Var TypedExchange(__in uint32 index, __in Var second) = 0;
+        virtual Var TypedCompareExchange(__in uint32 index, __in Var comparand, __in Var replacementValue) = 0;
 
         uint32 GetByteLength() const { return length * BYTES_PER_ELEMENT; }
         uint32 GetByteOffset() const { return byteOffset; }
@@ -220,6 +220,7 @@ namespace Js
     class TypedArray : public TypedArrayBase
     {
     protected:
+        typedef TypeName TypedArrayType;
         DEFINE_VTABLE_CTOR(TypedArray, TypedArrayBase);
         virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext)
         {
@@ -481,15 +482,15 @@ namespace Js
         virtual Var  DirectGetItem(__in uint32 index) override sealed;
         virtual BOOL DirectSetItemNoDetachCheck(__in uint32 index, __in Js::Var value) override sealed;
         virtual Var  DirectGetItemNoDetachCheck(__in uint32 index) override sealed;
-        virtual Var TypedAdd(__in uint32 index, Var second) override;
-        virtual Var TypedAnd(__in uint32 index, Var second) override;
+        virtual Var TypedAdd(__in uint32 index, __in Var second) override;
+        virtual Var TypedAnd(__in uint32 index, __in Var second) override;
         virtual Var TypedLoad(__in uint32 index) override;
-        virtual Var TypedOr(__in uint32 index, Var second) override;
-        virtual Var TypedStore(__in uint32 index, Var second) override;
-        virtual Var TypedSub(__in uint32 index, Var second) override;
-        virtual Var TypedXor(__in uint32 index, Var second) override;
-        virtual Var TypedExchange(__in uint32 index, Var second) override;
-        virtual Var TypedCompareExchange(__in uint32 index, Var comparand, Var replacementValue) override;
+        virtual Var TypedOr(__in uint32 index, __in Var second) override;
+        virtual Var TypedStore(__in uint32 index, __in Var second) override;
+        virtual Var TypedSub(__in uint32 index, __in Var second) override;
+        virtual Var TypedXor(__in uint32 index, __in Var second) override;
+        virtual Var TypedExchange(__in uint32 index, __in Var second) override;
+        virtual Var TypedCompareExchange(__in uint32 index, __in Var comparand, __in Var replacementValue) override;
 
         static BOOL DirectSetItem(__in TypedArray* arr, __in uint32 index, __in Js::Var value)
         {
@@ -550,15 +551,15 @@ namespace Js
         virtual BOOL DirectSetItemNoDetachCheck(__in uint32 index, __in Js::Var value) override;
         virtual Var  DirectGetItemNoDetachCheck(__in uint32 index) override;
 
-        virtual Var TypedAdd(__in uint32 index, Var second) override;
-        virtual Var TypedAnd(__in uint32 index, Var second) override;
+        virtual Var TypedAdd(__in uint32 index, __in Var second) override;
+        virtual Var TypedAnd(__in uint32 index, __in Var second) override;
         virtual Var TypedLoad(__in uint32 index) override;
-        virtual Var TypedOr(__in uint32 index, Var second) override;
-        virtual Var TypedStore(__in uint32 index, Var second) override;
-        virtual Var TypedSub(__in uint32 index, Var second) override;
-        virtual Var TypedXor(__in uint32 index, Var second) override;
-        virtual Var TypedExchange(__in uint32 index, Var second) override;
-        virtual Var TypedCompareExchange(__in uint32 index, Var comparand, Var replacementValue) override;
+        virtual Var TypedOr(__in uint32 index, __in Var second) override;
+        virtual Var TypedStore(__in uint32 index, __in Var second) override;
+        virtual Var TypedSub(__in uint32 index, __in Var second) override;
+        virtual Var TypedXor(__in uint32 index, __in Var second) override;
+        virtual Var TypedExchange(__in uint32 index, __in Var second) override;
+        virtual Var TypedCompareExchange(__in uint32 index, __in Var comparand, __in Var replacementValue) override;
 
     protected:
         CompareElementsFunction GetCompareElementsFunction()

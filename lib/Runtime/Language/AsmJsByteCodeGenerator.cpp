@@ -2328,26 +2328,12 @@ namespace Js
                 }
                 switch (viewType)
                 {
-                case Js::ArrayBufferView::TYPE_INT8:
-                case Js::ArrayBufferView::TYPE_UINT8:
-                    val = 0;
-                    mask = (uint32)~0;
+#define ARRAYBUFFER_VIEW(name, align, RegType, MemType, irSuffix) \
+                case Js::ArrayBufferView::TYPE_##name:\
+                    val = align;\
+                    mask = ARRAYBUFFER_VIEW_MASK(align);\
                     break;
-                case Js::ArrayBufferView::TYPE_INT16:
-                case Js::ArrayBufferView::TYPE_UINT16:
-                    val = 1;
-                    mask = (uint32)~1;
-                    break;
-                case Js::ArrayBufferView::TYPE_INT32:
-                case Js::ArrayBufferView::TYPE_UINT32:
-                case Js::ArrayBufferView::TYPE_FLOAT32:
-                    val = 2;
-                    mask = (uint32)~3;
-                    break;
-                case Js::ArrayBufferView::TYPE_FLOAT64:
-                    val = 3;
-                    mask = (uint32)~7;
-                    break;
+                #include "AsmJsArrayBufferViews.h"
                 default:
                     Assume(UNREACHED);
                 }

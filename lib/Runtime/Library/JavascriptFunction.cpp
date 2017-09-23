@@ -2314,6 +2314,14 @@ LABEL1:
             {
                 return false;
             }
+
+            if (isWasmOnly)
+            {
+                // It is possible to have an A/V on other instructions then load/store (ie: xchg for atomics)
+                // Which we don't decode at this time
+                // We've confirmed the A/V occurred in the Virtual Memory, so just throw now
+                JavascriptError::ThrowWebAssemblyRuntimeError(func->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
+            }
         }
         else
         {
@@ -2351,11 +2359,6 @@ LABEL1:
         if (!instrData.bufferValue)
         {
             return false;
-        }
-
-        if (isWasmOnly)
-        {
-            JavascriptError::ThrowWebAssemblyRuntimeError(func->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
         }
 
         // SIMD loads/stores do bounds checks.

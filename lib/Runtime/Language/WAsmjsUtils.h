@@ -65,6 +65,8 @@ namespace WAsmJs
     const Types LastType = (Types)(LIMIT - 1);
     uint32 GetTypeByteSize(Types type);
     Types FromIRType(IRType irType);
+    template<typename T>
+    Types FromPrimitiveType();
 
     /// Register space for const, parameters, variables and tmp values
     ///     --------------------------------------------------------
@@ -237,7 +239,6 @@ namespace WAsmJs
             return false;
         }
 
-        template<typename T> static Types GetRegisterSpaceType();
 #if DBG_DUMP
         // Used for debugging
         Types mType;
