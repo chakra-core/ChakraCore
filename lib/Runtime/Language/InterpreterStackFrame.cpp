@@ -8249,14 +8249,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_SimdShuffleV8X16(const unaligned T* playout)
     {
-        const uint32 max_lanes = 16;
-        uint32 lanes[max_lanes];
-        for (uint32 i = 0; i < max_lanes; i++)
+        uint32 lanes[Wasm::Simd::MAX_LANES];
+        for (uint32 i = 0; i < Wasm::Simd::MAX_LANES; i++)
         {
-            Assert(playout->INDICES[i] < max_lanes * 2);
+            Assert(playout->INDICES[i] < Wasm::Simd::MAX_LANES * 2);
             lanes[i] = playout->INDICES[i];
         }
-        SetRegRawSimd(playout->R0, SIMDUtils::SIMD128InnerShuffle(GetRegRawSimd(playout->R1), GetRegRawSimd(playout->R2), max_lanes, lanes));
+        SetRegRawSimd(playout->R0, SIMDUtils::SIMD128InnerShuffle(GetRegRawSimd(playout->R1), GetRegRawSimd(playout->R2), Wasm::Simd::MAX_LANES, lanes));
     }
 
     template <class T>

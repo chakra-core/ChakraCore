@@ -6,6 +6,7 @@
 #include "Backend.h"
 #ifdef ASMJS_PLAT
 #include "ByteCode/OpCodeUtilAsmJs.h"
+#include "../../WasmReader/WasmParseTree.h"
 
 void
 IRBuilderAsmJs::Build()
@@ -3983,18 +3984,18 @@ IRBuilderAsmJs::BuildInt32x4_3(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_S
 void
 IRBuilderAsmJs::BuildInt32x4_4(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG4)
 {
-    ValueType valueType = GetSimdValueTypeFromIRType(TySimd128F4);
-    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128F4);
+    ValueType valueType = GetSimdValueTypeFromIRType(TySimd128I4);
+    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128I4);
     src1Opnd->SetValueType(valueType);
 
-    IR::RegOpnd * src2Opnd = BuildSrcOpnd(src2RegSlot, TySimd128F4);
+    IR::RegOpnd * src2Opnd = BuildSrcOpnd(src2RegSlot, TySimd128I4);
     src2Opnd->SetValueType(valueType);
 
-    IR::RegOpnd * mask = BuildSrcOpnd(src3RegSlot, TySimd128F4);
+    IR::RegOpnd * mask = BuildSrcOpnd(src3RegSlot, TySimd128I4);
     src2Opnd->SetValueType(valueType);
 
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128F4);
-    dstOpnd->SetValueType(GetSimdValueTypeFromIRType(TySimd128F4));
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128I4);
+    dstOpnd->SetValueType(GetSimdValueTypeFromIRType(TySimd128I4));
 
     Js::OpCode opcode;
 
@@ -5839,13 +5840,11 @@ IRBuilderAsmJs::BuildAsmShuffle(Js::OpCodeAsmJs newOpcode, uint32 offset)
     src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Uint8x16));
     src2Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Uint8x16));
 
-    uint const LANES = 16;
     IR::Instr * instr = nullptr;
-
     instr = AddExtendedArg(src1Opnd, nullptr, offset);
     instr = AddExtendedArg(src2Opnd, instr->GetDst()->AsRegOpnd(), offset);
 
-    for (uint i = 0; i < LANES; i++)
+    for (uint i = 0; i < Wasm::Simd::MAX_LANES; i++)
     {
         IR::RegOpnd* shuffleOpnd = (IR::RegOpnd*)IR::IntConstOpnd::New(layout->INDICES[i], TyInt32, this->m_func);
         instr = AddExtendedArg(shuffleOpnd, instr->GetDst()->AsRegOpnd(), offset);
