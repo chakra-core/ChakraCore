@@ -671,18 +671,17 @@ namespace Js
 
     PropertyQueryFlags TypedArrayBase::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        uint32 index = 0;
-        if (GetScriptContext()->IsNumericPropertyId(propertyId, &index))
+        const Js::PropertyRecord* propertyRecord = requestContext->GetPropertyName(propertyId);
+        if (propertyRecord->IsNumeric())
         {
-            *value = this->DirectGetItem(index);
+            *value = this->DirectGetItem(propertyRecord->GetNumericValue());
             if (JavascriptOperators::GetTypeId(*value) == Js::TypeIds_Undefined)
             {
                 return PropertyQueryFlags::Property_NotFound;
             }
             return PropertyQueryFlags::Property_Found;
         }
-
-        if (!requestContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, requestContext))
+        if (!propertyRecord->IsSymbol() && CanonicalNumericIndexString(propertyId, requestContext))
         {
             *value = requestContext->GetLibrary()->GetUndefined();
             return PropertyQueryFlags::Property_NotFound_NoProto;
@@ -734,16 +733,16 @@ namespace Js
 
     BOOL TypedArrayBase::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
-        uint32 index;
         ScriptContext *scriptContext = GetScriptContext();
 
-        if (GetScriptContext()->IsNumericPropertyId(propertyId, &index))
+        const PropertyRecord* propertyRecord = scriptContext->GetPropertyName(propertyId);
+        if (propertyRecord->IsNumeric())
         {
-            this->DirectSetItem(index, value);
+            this->DirectSetItem(propertyRecord->GetNumericValue(), value);
             return true;
         }
 
-        if (!scriptContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, scriptContext))
+        if (!propertyRecord->IsSymbol() && CanonicalNumericIndexString(propertyId, scriptContext))
         {
             return FALSE;
         }
@@ -947,15 +946,14 @@ namespace Js
     {
         ScriptContext* scriptContext = GetScriptContext();
 
-        uint32 index;
-
-        if (scriptContext->IsNumericPropertyId(propertyId, &index))
+        const PropertyRecord* propertyRecord = scriptContext->GetPropertyName(propertyId);
+        if (propertyRecord->IsNumeric())
         {
             VerifySetItemAttributes(propertyId, attributes);
-            return SetItem(index, value);
+            return SetItem(propertyRecord->GetNumericValue(), value);
         }
 
-        if (!scriptContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, scriptContext))
+        if (!propertyRecord->IsSymbol() && CanonicalNumericIndexString(propertyId, scriptContext))
         {
             return FALSE;
         }

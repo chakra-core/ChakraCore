@@ -304,7 +304,7 @@ namespace Js
             dynamicObject = RecyclableObject::FromVar(static_cast<Js::GlobalObject*>(dynamicObject)->ToThis());
         }
 
-        while (JavascriptOperators::GetTypeId(value) != TypeIds_Null)
+        while (!JavascriptOperators::IsNull(value))
         {
             value = JavascriptOperators::GetPrototype(value);
             if (dynamicObject == value)
@@ -376,12 +376,8 @@ namespace Js
         // 3. Let O be ToObject(this value).
         RecyclableObject *thisArgAsObject = RecyclableObject::FromVar(JavascriptOperators::ToObject(thisArg, scriptContext));
 
-        // 4. Let isArray be ? IsArray(O).
-        // There is an implicit check for a null proxy handler in IsArray, so use the operator.
-        BOOL isArray = JavascriptOperators::IsArray(thisArgAsObject);
-
         // 15. Let tag be ? Get(O, @@toStringTag).
-        Var tag = JavascriptOperators::GetProperty(thisArgAsObject, PropertyIds::_symbolToStringTag, scriptContext); // Let tag be the result of Get(O, @@toStringTag).
+        Var tag = JavascriptOperators::GetPropertyNoCache(thisArgAsObject, PropertyIds::_symbolToStringTag, scriptContext); // Let tag be the result of Get(O, @@toStringTag).
 
         // 17. Return the String that is the result of concatenating "[object ", tag, and "]".
         auto buildToString = [&scriptContext](Var tag) {
@@ -401,6 +397,10 @@ namespace Js
         {
             return buildToString(tag);
         }
+
+        // 4. Let isArray be ? IsArray(O).
+        // There is an implicit check for a null proxy handler in IsArray, so use the operator.
+        BOOL isArray = JavascriptOperators::IsArray(thisArgAsObject);
 
         // If we don't have a tag or it's not a string, use the 'built in tag'.
         if (isArray)
@@ -536,11 +536,8 @@ namespace Js
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
-        TypeId argType = JavascriptOperators::GetTypeId(args[0]);
-
         // throw a TypeError if TypeId is null or undefined, and apply ToObject to the 'this' value otherwise.
-
-        if ((argType == TypeIds_Null) || (argType == TypeIds_Undefined))
+        if (JavascriptOperators::IsUndefinedOrNull(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.valueOf"));
         }
@@ -1487,14 +1484,14 @@ namespace Js
             //          ii.ReturnIfAbrupt(from).
             //          iii.Let keys be from.[[OwnPropertyKeys]]().
             //          iv.ReturnIfAbrupt(keys).
-            if (JavascriptOperators::IsUndefinedOrNull(args[i]))
-            {
-                continue;
-            }
 
             RecyclableObject* from = nullptr;
             if (!JavascriptConversion::ToObject(args[i], scriptContext, &from))
             {
+                if (JavascriptOperators::IsUndefinedOrNull(args[i]))
+                {
+                    continue;
+                }
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.assign"));
             }
 
@@ -1695,7 +1692,7 @@ namespace Js
             }
             else
             {
-                propertyRecord = scriptContext->GetPropertyName(propId);
+                propertyRecord = ((PropertyString*)propertyName)->GetPropertyRecord();
             }
 
             if (descCount == descSize)
@@ -1712,7 +1709,7 @@ namespace Js
                 descriptors = temp;
             }
 
-            Var tempVar = JavascriptOperators::GetProperty(props, propId, scriptContext);
+            Var tempVar = JavascriptOperators::GetPropertyNoCache(props, propId, scriptContext);
 
             AnalysisAssert(descCount < descSize);
             if (!JavascriptOperators::ToPropertyDescriptor(tempVar, &descriptors[descCount].descriptor, scriptContext))

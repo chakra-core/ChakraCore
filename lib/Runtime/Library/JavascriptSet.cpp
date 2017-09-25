@@ -77,7 +77,7 @@ namespace Js
         if (JavascriptConversion::CheckObjectCoercible(iterable, scriptContext))
         {
             iter = JavascriptOperators::GetIterator(iterable, scriptContext);
-            Var adderVar = JavascriptOperators::GetProperty(setObject, PropertyIds::add, scriptContext);
+            Var adderVar = JavascriptOperators::GetPropertyNoCache(setObject, PropertyIds::add, scriptContext);
             if (!JavascriptConversion::IsCallable(adderVar))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
