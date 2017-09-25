@@ -157,7 +157,8 @@ public:
 
     template <bool doSpecialMark, typename Fn>
     bool UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn);
-    
+
+    static bool RescanObject(SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes> * block, __in_ecount(localObjectSize) char * objectAddress, uint localObjectSize, uint objectIndex, Recycler * recycler);
 
     SmallRecyclerVisitedHostHeapBlockT * GetNextBlock() const
     {

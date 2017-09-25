@@ -1573,6 +1573,7 @@ private:
     template <bool doSpecialMark>
     void ScanMemory(void ** obj, size_t byteCount) { if (byteCount != 0) { ScanMemoryInline<doSpecialMark>(obj, byteCount); } }
     bool AddMark(void * candidate, size_t byteCount);
+    bool AddPreciselyTracedMark(IRecyclerVisitedObject * candidate);
 
     // Sweep
 #if ENABLE_PARTIAL_GC

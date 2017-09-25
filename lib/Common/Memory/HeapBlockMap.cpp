@@ -658,22 +658,24 @@ HeapBlockMap32::RescanPage(void * dirtyPage, bool* anyObjectsMarkedOnPage, Recyc
 #endif
             return RescanHeapBlock<SmallNormalHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
         case HeapBlock::HeapBlockType::SmallFinalizableBlockType:
-        case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
         case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
 #endif
             return RescanHeapBlock<SmallFinalizableHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
+        case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
+            return RescanHeapBlock<SmallRecyclerVisitedHostHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
         case HeapBlock::HeapBlockType::MediumNormalBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
         case HeapBlock::HeapBlockType::MediumNormalBlockWithBarrierType:
 #endif
             return RescanHeapBlock<MediumNormalHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
         case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
-        case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
         case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
 #endif
             return RescanHeapBlock<MediumFinalizableHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
+        case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
+            return RescanHeapBlock<MediumRecyclerVisitedHostHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
         default:
             // Shouldn't be here -- leaf blocks aren't rescanned, and large blocks are handled separately
             Assert(false);
@@ -743,6 +745,20 @@ MediumFinalizableHeapBlock*
 HeapBlockMap32::GetHeapBlockForRescan(HeapBlockMap32::L2MapChunk* chunk, uint id2) const
 {
     return (MediumFinalizableHeapBlock*)chunk->map[id2];
+}
+
+template <>
+SmallRecyclerVisitedHostHeapBlock*
+HeapBlockMap32::GetHeapBlockForRescan(HeapBlockMap32::L2MapChunk* chunk, uint id2) const
+{
+    return (SmallRecyclerVisitedHostHeapBlock*) chunk->map[id2];
+}
+
+template <>
+MediumRecyclerVisitedHostHeapBlock*
+HeapBlockMap32::GetHeapBlockForRescan(HeapBlockMap32::L2MapChunk* chunk, uint id2) const
+{
+    return (MediumRecyclerVisitedHostHeapBlock*)chunk->map[id2];
 }
 
 void
@@ -1016,11 +1032,16 @@ HeapBlockMap32::OOMRescan(Recycler * recycler)
                                 break;
 
                             case HeapBlock::HeapBlockType::SmallFinalizableBlockType:
-                            case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
                             case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
 #endif
                                 if (!RescanHeapBlockOnOOM<SmallFinalizableHeapBlock>((SmallFinalizableHeapBlock*) heapBlock, pageAddress, blockType, chunk->blockInfo[id2].bucketIndex, chunk, recycler))
+                                {
+                                    return;
+                                }
+                                break;
+                            case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
+                                if (!RescanHeapBlockOnOOM<SmallRecyclerVisitedHostHeapBlock>((SmallRecyclerVisitedHostHeapBlock*) heapBlock, pageAddress, blockType, chunk->blockInfo[id2].bucketIndex, chunk, recycler))
                                 {
                                     return;
                                 }
@@ -1037,11 +1058,16 @@ HeapBlockMap32::OOMRescan(Recycler * recycler)
                                 break;
 
                             case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
-                            case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
                             case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
 #endif
                                 if (!RescanHeapBlockOnOOM<MediumFinalizableHeapBlock>((MediumFinalizableHeapBlock*) heapBlock, pageAddress, blockType, chunk->blockInfo[id2].bucketIndex, chunk, recycler))
+                                {
+                                    return;
+                                }
+                                break;
+                            case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
+                                if (!RescanHeapBlockOnOOM<MediumRecyclerVisitedHostHeapBlock>((MediumRecyclerVisitedHostHeapBlock*) heapBlock, pageAddress, blockType, chunk->blockInfo[id2].bucketIndex, chunk, recycler))
                                 {
                                     return;
                                 }

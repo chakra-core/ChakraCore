@@ -517,6 +517,13 @@ Recycler::AddMark(void * candidate, size_t byteCount) throw()
     return markContext.AddMarkedObject(candidate, byteCount);
 }
 
+inline bool
+Recycler::AddPreciselyTracedMark(IRecyclerVisitedObject * candidate) throw()
+{
+    // This is never called during parallel marking
+    Assert(this->collectionState != CollectionStateParallelMark);
+    return markContext.AddPreciselyTracedObject(candidate);
+}
 
 template <typename T>
 void
