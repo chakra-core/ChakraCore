@@ -428,7 +428,6 @@ namespace Js
 
     protected:
         DEFINE_VTABLE_CTOR(CompoundString, LiteralString);
-        DECLARE_CONCRETE_STRING_CLASS;
 
     private:
         PREVENT_COPY(CompoundString);
