@@ -69,6 +69,7 @@ namespace Wasm
             uint32 count; // current entry
             uint32 size;  // binary size of the function
         };
+        WasmOp ReadOpCode();
 
         void BlockNode();
         void CallNode();
