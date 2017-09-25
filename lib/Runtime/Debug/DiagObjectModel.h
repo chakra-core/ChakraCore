@@ -218,7 +218,7 @@ namespace Js
         bool IsPropertyValid(PropertyId propertyId, RegSlot location, bool *isPropertyInDebuggerScope, bool* isConst, bool* isInDeadZone) const;
 
     private:
-        static JavascriptString * ParseFunctionName(JavascriptString* displayName, ScriptContext* scriptContext);
+        static const char16 * ParseFunctionName(const char16* displayNameBuffer, const charcount_t displayNameBufferLength, ScriptContext* scriptContext);
     };
 
 

@@ -835,8 +835,6 @@ private:
         EventHandler disposeScriptByFaultInjectionEventHandler;
 #endif
 
-        JsUtil::BaseDictionary<uint, JavascriptString *, ArenaAllocator> integerStringMap;
-
         double lastNumberToStringRadix10;
         double lastUtcTimeFromStr;
 

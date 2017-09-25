@@ -172,11 +172,6 @@ namespace Js
         static JavascriptString* NewCopySz(__in_z const char16* content, ScriptContext* scriptContext);
         static JavascriptString* NewCopyBuffer(__in_ecount(charLength)  const char16* content, charcount_t charLength, ScriptContext* scriptContext);
 
-        static JavascriptString* NewWithArenaSz(__in_z const char16 * content, ScriptContext* scriptContext);
-        static JavascriptString* NewWithArenaBuffer(__in_ecount(charLength) const char16 * content, charcount_t charLength, ScriptContext * scriptContext);
-
-        static JavascriptString* NewCopySzFromArena(__in_z const char16* content, ScriptContext* scriptContext, ArenaAllocator *arena, charcount_t cchUseLength = 0);
-
         static __ecount(length+1) char16* AllocateLeafAndCopySz(__in Recycler* recycler, __in_ecount(length) const char16* content, charcount_t length);
         static __ecount(length+1) char16* AllocateAndCopySz(__in ArenaAllocator* arena, __in_ecount(length) const char16* content, charcount_t length);
         static void CopyHelper(__out_ecount(countNeeded) char16 *dst, __in_ecount(countNeeded) const char16 * str, charcount_t countNeeded);

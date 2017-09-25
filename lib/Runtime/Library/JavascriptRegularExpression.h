@@ -8,7 +8,7 @@ namespace Js
 {
     struct RegExpTestCache
     {
-        bool result;
+        Field(bool) result;
         Field(RecyclerWeakReference<JavascriptString> *) input;
     };
     class JavascriptRegExp : public DynamicObject
