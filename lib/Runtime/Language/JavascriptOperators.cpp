@@ -7532,6 +7532,10 @@ CommonNumber:
             Var varNull = OP_LdNull(scriptContext);
             return JavascriptOperators::OP_GetThis(varNull, functionBody->GetModuleID(), scriptContext);
         }
+        else if (propertyId == PropertyIds::_super)
+        {
+            JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference);
+        }
 
         // No one in the scope stack has the property, so get it from the default instance provided by the caller.
         Var value = JavascriptOperators::PatchGetRootValue<IsFromFullJit>(functionBody, inlineCache, inlineCacheIndex, DynamicObject::FromVar(defaultInstance), propertyId);

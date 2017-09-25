@@ -1336,6 +1336,10 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                 {
                     EmitPropStoreForSpecialSymbol(sym->GetLocation(), sym, sym->GetPid(), funcInfo, true);
                 }
+                if (ShouldTrackDebuggerMetadata() && !sym->IsInSlot(funcInfo))
+                {
+                    byteCodeFunction->InsertSymbolToRegSlotList(sym->GetName(), sym->GetLocation(), funcInfo->varRegsCount);
+                }
 
                 continue;
             }
