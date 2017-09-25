@@ -241,7 +241,7 @@ void MarkContext::ProcessMark()
 
         if (!preciseStack.IsEmpty())
         {
-            MarkContextWrapper<parallel, interior> markContextWrapper(this);
+            MarkContextWrapper<parallel> markContextWrapper(this);
             IRecyclerVisitedObject* tracedObject;
             while (preciseStack.Pop(&tracedObject))
             {
