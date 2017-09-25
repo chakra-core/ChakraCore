@@ -27,6 +27,7 @@ enum ErrorReason
     Fatal_JsReentrancy_Error = 19,
     Fatal_TTDAbort = 20,
     Fatal_Failed_API_Result = 21,
+    Fatal_RecyclerVisitedHost_LargeHeapBlock = 22,
 };
 
 extern "C" void ReportFatalException(
