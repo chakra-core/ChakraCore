@@ -17,6 +17,7 @@ using namespace Windows::Globalization;
 #endif
 #ifdef INTL_ICU
 #include <CommonPal.h>
+#include "PlatformAgnostic/IPlatformAgnosticResource.h"
 #endif
 
 #pragma warning(push)
@@ -1329,18 +1330,6 @@ namespace Js
 
         const char16 *strBuf = nullptr;
 
-        // REVIEW (doilij): should StringBufAutoPtr be refactored?
-        class StringBufAutoPtr
-        {
-            const char16 *strBuf;
-        public:
-            StringBufAutoPtr(const char16 *buffer) : strBuf(buffer) {}
-            ~StringBufAutoPtr()
-            {
-                delete[] strBuf;
-            }
-        };
-
         if (TaggedInt::Is(args.Values[1]))
         {
             int32 val = TaggedInt::ToInt32(args.Values[1]);
@@ -1352,7 +1341,7 @@ namespace Js
             strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val);
         }
 
-        StringBufAutoPtr guard(strBuf); // ensure strBuf is deleted no matter what
+        PlatformAgnostic::Resource::StringBufferAutoPtr<char16> guard(strBuf); // ensure strBuf is deleted no matter what
 #else
         DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
 
@@ -1373,8 +1362,15 @@ namespace Js
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*result, NULL);
 #endif
 
-        JavascriptStringObject *retVal = scriptContext->GetLibrary()->CreateStringObject(Js::JavascriptString::NewCopySz(strBuf, scriptContext));
-        return retVal;
+        if (strBuf == nullptr)
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+        else
+        {
+            JavascriptStringObject *retVal = scriptContext->GetLibrary()->CreateStringObject(Js::JavascriptString::NewCopySz(strBuf, scriptContext));
+            return retVal;
+        }
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_FormatDateTime(RecyclableObject* function, CallInfo callInfo, ...)

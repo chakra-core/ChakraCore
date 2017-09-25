@@ -28,29 +28,6 @@ namespace Intl
         {
         }
 
-        /*
-        // NOTE: cannot return non-pointer instance of a pure virtual class, so move ctor and move asgn will not be applicable.
-
-        // TODO (doilij): Remove if unused
-        // move ctor
-        PlatformAgnosticIntlObject(PlatformAgnosticIntlObject &&other) :
-        intlObject(nullptr)
-        {
-        this->move(other);
-        }
-
-        // TODO (doilij): Remove if unused
-        // move assignment
-        PlatformAgnosticIntlObject operator=(PlatformAgnosticIntlObject &&other);
-
-        void move(PlatformAgnosticIntlObject &&other)
-        {
-        // Take control of other's intlObject.
-        this->intlObject = other->intlObject;
-        other->intlObject = nullptr;
-        }
-        */
-
         T *GetInstance()
         {
             return intlObject;
@@ -62,7 +39,8 @@ namespace Intl
             intlObject = nullptr;
         }
 
-        // explicitly not overriding the default destructor, allow Cleanup() to cleanup
+        // Explicitly not overriding the default destructor; ensure that Cleanup() is used instead.
+        // Note: Cleanup() is called by, e.g., AutoIcuJsObject
     };
 
     bool IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch);
@@ -75,7 +53,6 @@ namespace Intl
 
     template <typename T>
     const char16 *FormatNumber(IPlatformAgnosticResource *numberFormatter, T val);
-
 } // namespace Intl
 } // namespace PlatformAgnostic
 

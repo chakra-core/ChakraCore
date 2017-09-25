@@ -16,6 +16,38 @@ namespace Resource
     public:
         virtual void Cleanup() = 0;
     };
+
+    template <typename T>
+    class PlatformAgnosticResourceAutoPtr
+    {
+    private:
+        const T *pointer;
+    public:
+        PlatformAgnosticResourceAutoPtr(const T *ptr) : pointer(ptr) {}
+        ~PlatformAgnosticResourceAutoPtr()
+        {
+            delete pointer;
+        }
+    };
+
+    template <typename T>
+    class StringBufferAutoPtr
+    {
+    private:
+        const T *strBuf;
+    public:
+        StringBufferAutoPtr(const T *buffer) : strBuf(buffer) {}
+        ~StringBufferAutoPtr()
+        {
+            delete[] strBuf;
+        }
+    };
+
+#ifndef _WIN32
+    typedef char16_t char16;
+#endif
+    template class StringBufferAutoPtr<char16>;
+    template class StringBufferAutoPtr<unsigned char>;
 } // namespace Intl
 } // namespace PlatformAgnostic
 

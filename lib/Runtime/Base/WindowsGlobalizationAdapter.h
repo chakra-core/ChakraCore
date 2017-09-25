@@ -197,8 +197,8 @@ namespace Js
         {
             if (!isShutdown)
             {
-                // REVIEW (doilij): here we use Cleanup() because we can't rely on delete (not dealing with virtual destructors)
-                // TODO (doilij): ^ therefore, maybe this as a template is too general since we can't rely on the destructor
+                // Here we use Cleanup() because we can't rely on delete (not dealing with virtual destructors)
+                // The template thus requires that the type implement the Cleanup function.
                 instance->Cleanup();
             }
         }
