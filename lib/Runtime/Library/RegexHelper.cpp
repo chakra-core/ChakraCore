@@ -678,7 +678,7 @@ namespace Js
         {
             cache = regularExpression->EnsureTestCache();
             cacheIndex = JavascriptRegExp::GetTestCacheIndex(input);
-            cachedInput = cache[cacheIndex].input;
+            cachedInput = cache[cacheIndex].input != nullptr ? cache[cacheIndex].input->Get() : nullptr;
             cacheHit = cachedInput == input;
         }
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -704,7 +704,7 @@ namespace Js
                 Assert(offset == 0);
                 Assert(!cacheHit || cachedInput == input);
                 Assert(!cacheHit || cachedResult == false);
-                cache[cacheIndex].input = input;
+                cache[cacheIndex].input = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
                 cache[cacheIndex].result = false;
             }
             return scriptContext->GetLibrary()->GetFalse();
@@ -723,7 +723,7 @@ namespace Js
             Assert(offset == 0);
             Assert(!cacheHit || cachedInput == input);
             Assert(!cacheHit || cachedResult == wasFound);
-            cache[cacheIndex].input = input;
+            cache[cacheIndex].input = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
             cache[cacheIndex].result = wasFound;
         }
         return JavascriptBoolean::ToVar(wasFound, scriptContext);
