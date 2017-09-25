@@ -337,7 +337,7 @@ public:
             mem = RecyclerAllocVisitedHostFinalizedZero(recyclerInstance, size);
             break;
         case AllocationType::Leaf:
-            mem = RecyclerAllocVisitedHostLeafZero(recyclerInstance, size);
+            mem = RecyclerAllocLeafZero(recyclerInstance, size);
             break;
 
         default:

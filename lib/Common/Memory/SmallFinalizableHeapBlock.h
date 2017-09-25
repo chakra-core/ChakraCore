@@ -144,7 +144,7 @@ class SmallRecyclerVisitedHostHeapBlockT : public SmallFinalizableHeapBlockT<TBl
 public:
     typedef TBlockAttributes HeapBlockAttributes;
 
-    static const ObjectInfoBits RequiredAttributes = (ObjectInfoBits)(RecyclerVisitedHostBit | LeafBit);
+    static const ObjectInfoBits RequiredAttributes = RecyclerVisitedHostBit;
     static const bool IsLeafOnly = true;
 
     static SmallRecyclerVisitedHostHeapBlockT * New(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT> * bucket);

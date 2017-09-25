@@ -185,7 +185,7 @@ struct InfoBitsWrapper{};
 #define RecyclerAllocVisitedHostTracedAndFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedFinalizableBits>(size)
 #define RecyclerAllocVisitedHostFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostFinalizableBits>(size)
 #define RecyclerAllocVisitedHostTracedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedBits>(size)
-#define RecyclerAllocVisitedHostLeafZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostLeafBits>(size)
+#define RecyclerAllocLeafZero(recycler,size) recycler->AllocVisitedHost<LeafBit>(size)
 
 #ifdef TRACE_OBJECT_LIFETIME
 #define RecyclerNewLeafTrace(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocLeafTrace, T, __VA_ARGS__)

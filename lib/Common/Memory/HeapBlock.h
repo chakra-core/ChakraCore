@@ -142,17 +142,15 @@ enum ObjectInfoBits : unsigned short
     //
     // RecyclerVisitedHostBit is implicit in the heap block type and thus isn't part of the StoredObjectInfoBitMask.
     // LeafBit is also set for any object that is not precisely traced.
-    RecyclerVisitedHostLeafBits = RecyclerVisitedHostBit | LeafBit,
     RecyclerVisitedHostTracedBits = RecyclerVisitedHostBit | TrackBit | NewTrackBit,
-    RecyclerVisitedHostFinalizableBits = RecyclerVisitedHostLeafBits | FinalizeBit | NewFinalizeBit,
+    RecyclerVisitedHostFinalizableBits = RecyclerVisitedHostBit | LeafBit | FinalizeBit | NewFinalizeBit,
     RecyclerVisitedHostTracedFinalizableBits = RecyclerVisitedHostTracedBits | FinalizeBit,
 
     // These set of bits describe the four possible types of blocktype bits for recycler visited host heap blocks.
     // These are the four combinations of the above bits, AND'd with GetBlockTypeBitMask.
     // In the end, these are treated the same in terms of which heap block/bucket type they end up using and
     // but are defined here for ease of use.
-    RecyclerVisitedHostLeafBlockTypeBits = RecyclerVisitedHostBit | LeafBit,
-    RecyclerVisitedHostFinalizableBlockTypeBits = RecyclerVisitedHostLeafBlockTypeBits | FinalizeBit,
+    RecyclerVisitedHostFinalizableBlockTypeBits = RecyclerVisitedHostBit | LeafBit | FinalizeBit,
     RecyclerVisitedHostTracedFinalizableBlockTypeBits = RecyclerVisitedHostBit | FinalizeBit,
 
 #ifdef RECYCLER_WRITE_BARRIER

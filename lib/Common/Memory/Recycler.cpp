@@ -8726,4 +8726,4 @@ template char* Recycler::AllocWithAttributesInlined<(Memory::ObjectInfoBits)32, 
 template char* Recycler::AllocZeroWithAttributesInlined<RecyclerVisitedHostTracedFinalizableBits, /* nothrow = */true>(size_t);
 template char* Recycler::AllocZeroWithAttributesInlined<RecyclerVisitedHostFinalizableBits, /* nothrow = */true>(size_t);
 template char* Recycler::AllocZeroWithAttributesInlined<RecyclerVisitedHostTracedBits, /* nothrow = */true>(size_t);
-template char* Recycler::AllocZeroWithAttributesInlined<RecyclerVisitedHostLeafBits, /* nothrow = */true>(size_t);
+template char* Recycler::AllocZeroWithAttributesInlined<LeafBit, /* nothrow = */true>(size_t);
