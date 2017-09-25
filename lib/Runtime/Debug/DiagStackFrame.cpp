@@ -165,37 +165,21 @@ namespace Js
         Assert(pOutResolvedObj);
 
         Js::ScriptContext* scriptContext = this->GetScriptContext();
-        Js::JavascriptFunction* scopeFunction = this->GetJavascriptFunction();
 
-        // Do fast path for 'this', fields on slot, TODO : literals (integer,string)
-
-        if (sourceLength == 4 && wcsncmp(source, _u("this"), 4) == 0)
+        Js::PropertyRecord const * propRecord;
+        scriptContext->FindPropertyRecord(source, sourceLength, &propRecord);
+        if (propRecord != nullptr)
         {
-            pOutResolvedObj->obj = this->GetThisFromFrame(&pOutResolvedObj->address);
-            if (pOutResolvedObj->obj == nullptr)
-            {
-                // TODO: Throw exception; this was not captured by the lambda
-                Assert(scopeFunction->IsLambda());
-                Assert(!scopeFunction->GetParseableFunctionInfo()->GetCapturesThis());
-            }
-        }
-        else
-        {
-            Js::PropertyRecord const * propRecord;
-            scriptContext->FindPropertyRecord(source, sourceLength, &propRecord);
-            if (propRecord != nullptr)
-            {
-                ArenaAllocator *arena = scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticArena()->Arena();
+            ArenaAllocator *arena = scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticArena()->Arena();
 
-                Js::IDiagObjectModelWalkerBase * localsWalker = Anew(arena, Js::LocalsWalker, this, Js::FrameWalkerFlags::FW_EnumWithScopeAlso);
+            Js::IDiagObjectModelWalkerBase * localsWalker = Anew(arena, Js::LocalsWalker, this, Js::FrameWalkerFlags::FW_EnumWithScopeAlso);
 
-                bool isConst = false;
-                pOutResolvedObj->address = localsWalker->FindPropertyAddress(propRecord->GetPropertyId(), isConst);
-                if (pOutResolvedObj->address != nullptr)
-                {
-                    pOutResolvedObj->obj = pOutResolvedObj->address->GetValue(FALSE);
-                    pOutResolvedObj->isConst = isConst;
-                }
+            bool isConst = false;
+            pOutResolvedObj->address = localsWalker->FindPropertyAddress(propRecord->GetPropertyId(), isConst);
+            if (pOutResolvedObj->address != nullptr)
+            {
+                pOutResolvedObj->obj = pOutResolvedObj->address->GetValue(FALSE);
+                pOutResolvedObj->isConst = isConst;
             }
         }
 
