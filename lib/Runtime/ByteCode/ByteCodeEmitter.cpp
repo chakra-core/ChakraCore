@@ -10328,17 +10328,20 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         }
         case knopDot:
         {
-            Emit(pexpr->sxBin.pnode1, byteCodeGenerator, funcInfo, false);
-            Js::PropertyId propertyId = pexpr->sxBin.pnode2->sxPid.PropertyIdFromNameNode();
-            funcInfo->ReleaseLoc(pexpr->sxBin.pnode1);
-            funcInfo->AcquireLoc(pnode);
-
             if (ByteCodeGenerator::IsSuper(pexpr->sxBin.pnode1))
             {
                 byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(JSERR_DeletePropertyWithSuper));
+
+                funcInfo->AcquireLoc(pnode);
+                byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, pnode->location);
             }
             else
             {
+                Emit(pexpr->sxBin.pnode1, byteCodeGenerator, funcInfo, false);
+
+                funcInfo->ReleaseLoc(pexpr->sxBin.pnode1);
+                Js::PropertyId propertyId = pexpr->sxBin.pnode2->sxPid.PropertyIdFromNameNode();
+                funcInfo->AcquireLoc(pnode);
                 byteCodeGenerator->Writer()->Property(Js::OpCode::DeleteFld, pnode->location, pexpr->sxBin.pnode1->location,
                     funcInfo->FindOrAddReferencedPropertyId(propertyId));
             }
