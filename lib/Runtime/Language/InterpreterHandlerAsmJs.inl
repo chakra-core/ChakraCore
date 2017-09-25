@@ -695,8 +695,7 @@ EXDEF2_WMS( SIMD_U16_2toB16_1 , Simd128_Gt_U16              , Js::SIMDUint8x16Op
 EXDEF2_WMS( SIMD_U4_1toU4_1     , Simd128_Neg_U4              , SIMDInt32x4Operation::OpNeg                     )
 EXDEF2_WMS( SIMD_U8_1toU8_1     , Simd128_Neg_U8              , SIMDInt16x8Operation::OpNeg                     )
 EXDEF2_WMS( SIMD_U16_1toU16_1   , Simd128_Neg_U16             , SIMDInt8x16Operation::OpNeg                     )
-
-EXDEF2_WMS( SIMD_V8X16_2I16toV8X16_1, Simd128_Shuffle_V8X16 , SIMDUtils::SIMD128InnerShuffle                    )
+EXDEF3_WMS( CUSTOM_ASMJS        , Simd128_Shuffle_V8X16       , OP_SimdShuffleV8X16           ,       AsmShuffle)
 
 #if 0
 EXDEF2_WMS(SIMD_D2toD2_1, Simd128_DoublesToD2, SIMDFloat64x2Operation::OpFloat64x2)

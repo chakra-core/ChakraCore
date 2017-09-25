@@ -2183,23 +2183,6 @@ if (switchProfileMode) \
     }
 #define PROCESS_SIMD_U16_1I16toU16_1(name, func) PROCESS_SIMD_U16_1I16toU16_1_COMMON(name, func,)
 
-// v8x16shuffle
-#define PROCESS_SIMD_V8X16_2I16toV8X16_1_COMMON(name, func, suffix) \
-   case OpCodeAsmJs::name: \
-   { \
-   PROCESS_READ_LAYOUT_ASMJS(name, AsmShuffle, suffix); \
-   const uint32 max_lanes = 16; \
-   uint32 lanes[max_lanes]; \
-   for (uint32 i = 0; i < max_lanes; i++) \
-   { \
-       Assert(playout->INDICES[i] < max_lanes * 2); \
-       lanes[i] = playout->INDICES[i]; \
-   } \
-   SetRegRawSimd(playout->R0, func(GetRegRawSimd(playout->R1), GetRegRawSimd(playout->R2), max_lanes, lanes));  \
-   break; \
-   }
-#define PROCESS_SIMD_V8X16_2I16toV8X16_1(name, func) PROCESS_SIMD_V8X16_2I16toV8X16_1_COMMON(name, func,)
-
 // u16shuffle
 #define PROCESS_SIMD_U16_2I16toU16_1_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \

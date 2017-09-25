@@ -1450,14 +1450,8 @@ void WasmBytecodeGenerator::CheckLaneIndex(Js::OpCodeAsmJs op)
 EmitInfo WasmBytecodeGenerator::EmitLaneIndex(Js::OpCodeAsmJs op)
 {
     CheckLaneIndex(op);
-    const uint offset = GetReader()->m_currentNode.lane.index;
-    return EnregisterIntConst(offset);
-}
-
-EmitInfo WasmBytecodeGenerator::EnregisterIntConst(uint constVal)
-{
     WasmConstLitNode dummy;
-    dummy.i32 = constVal;
+    dummy.i32 = GetReader()->m_currentNode.lane.index;
     return EmitConst(WasmTypes::I32, dummy);
 }
 
@@ -1481,9 +1475,9 @@ EmitInfo WasmBytecodeGenerator::EmitReplaceLaneExpr(Js::OpCodeAsmJs op, const Wa
 
 EmitInfo WasmBytecodeGenerator::EmitM128BitSelect()
 {
-    EmitInfo mask = PopEvalStack(WasmTypes::M128, _u("Argument should be of type M128"));
-    EmitInfo arg2Info = PopEvalStack(WasmTypes::M128, _u("Argument should be of type M128"));
-    EmitInfo arg1Info = PopEvalStack(WasmTypes::M128, _u("Argument should be of type M128"));
+    EmitInfo mask = PopEvalStack(WasmTypes::M128);
+    EmitInfo arg2Info = PopEvalStack(WasmTypes::M128);
+    EmitInfo arg1Info = PopEvalStack(WasmTypes::M128);
     Js::RegSlot resultReg = GetRegisterSpace(WasmTypes::M128)->AcquireTmpRegister();
     EmitInfo resultInfo(resultReg, WasmTypes::M128);
     m_writer->AsmReg4(Js::OpCodeAsmJs::Simd128_BitSelect_I4, resultReg, arg1Info.location, arg2Info.location, mask.location);
@@ -1492,8 +1486,8 @@ EmitInfo WasmBytecodeGenerator::EmitM128BitSelect()
 
 EmitInfo WasmBytecodeGenerator::EmitV8X16Shuffle()
 {
-    EmitInfo arg2Info = PopEvalStack(WasmTypes::M128, _u("Argument should be of type M128"));
-    EmitInfo arg1Info = PopEvalStack(WasmTypes::M128, _u("Argument should be of type M128"));
+    EmitInfo arg2Info = PopEvalStack(WasmTypes::M128);
+    EmitInfo arg1Info = PopEvalStack(WasmTypes::M128);
 
     Js::RegSlot resultReg = GetRegisterSpace(WasmTypes::M128)->AcquireTmpRegister();
     EmitInfo resultInfo(resultReg, WasmTypes::M128);
@@ -1507,7 +1501,7 @@ EmitInfo WasmBytecodeGenerator::EmitV8X16Shuffle()
         }
     }
 
-    m_writer->AsmShuffle(Js::OpCodeAsmJs::Simd128_Shuffle_V8X16, resultReg, arg1Info.location, arg2Info.location, GetReader()->m_currentNode.shuffle.indices);
+    m_writer->AsmShuffle(Js::OpCodeAsmJs::Simd128_Shuffle_V8X16, resultReg, arg1Info.location, arg2Info.location, indices);
     return resultInfo;
 }
 

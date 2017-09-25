@@ -5829,60 +5829,27 @@ template <typename SizePolicy>
 void
 IRBuilderAsmJs::BuildAsmShuffle(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
-    //TODO @nikolayk BuildAsmShuffle is very similar to BuildUint8x16_3Int16
-    //Unfortunately, the latter expects the shuffle indices to come from a constant table
-    //which we don't use for WebAssembly modules.
-    //See if there are opportunities for refactoring
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode) && newOpcode == Js::OpCodeAsmJs::Simd128_Shuffle_V8X16);
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmShuffle<SizePolicy>>();
 
     IR::RegOpnd * dstOpnd = BuildDstOpnd(GetRegSlotFromSimd128Reg(layout->R0), TySimd128U16);
     IR::RegOpnd * src1Opnd = BuildSrcOpnd(GetRegSlotFromSimd128Reg(layout->R1), TySimd128U16);
     IR::RegOpnd * src2Opnd = BuildSrcOpnd(GetRegSlotFromSimd128Reg(layout->R2), TySimd128U16);
-
-    IR::RegOpnd * src3Opnd =  (IR::RegOpnd*)IR::IntConstOpnd::New(layout->INDICES[0], TyInt32, this->m_func);
-    IR::RegOpnd * src4Opnd =  (IR::RegOpnd*)IR::IntConstOpnd::New(layout->INDICES[1], TyInt32, this->m_func);
-    IR::RegOpnd * src5Opnd =  (IR::RegOpnd*)IR::IntConstOpnd::New(layout->INDICES[2], TyInt32, this->m_func);
-    IR::RegOpnd * src6Opnd =  (IR::RegOpnd*)IR::IntConstOpnd::New(layout->INDICES[3], TyInt32, this->m_func);
-    IR::RegOpnd * src7Opnd =  (IR::RegOpnd*)IR::IntConstOpnd::New(layout->INDICES[4], TyInt32, this->m_func);
-    IR::RegOpnd * src8Opnd =  (IR::RegOpnd*)IR::IntConstOpnd::New(layout->INDICES[5], TyInt32, this->m_func);
-    IR::RegOpnd * src9Opnd =  (IR::RegOpnd*)IR::IntConstOpnd::New(layout->INDICES[6], TyInt32, this->m_func);
-    IR::RegOpnd * src10Opnd = (IR::RegOpnd*) IR::IntConstOpnd::New(layout->INDICES[7], TyInt32, this->m_func);
-    IR::RegOpnd * src11Opnd = (IR::RegOpnd*) IR::IntConstOpnd::New(layout->INDICES[8], TyInt32, this->m_func);
-    IR::RegOpnd * src12Opnd = (IR::RegOpnd*) IR::IntConstOpnd::New(layout->INDICES[9], TyInt32, this->m_func);
-    IR::RegOpnd * src13Opnd = (IR::RegOpnd*) IR::IntConstOpnd::New(layout->INDICES[10], TyInt32, this->m_func);
-    IR::RegOpnd * src14Opnd = (IR::RegOpnd*) IR::IntConstOpnd::New(layout->INDICES[11], TyInt32, this->m_func);
-    IR::RegOpnd * src15Opnd = (IR::RegOpnd*) IR::IntConstOpnd::New(layout->INDICES[12], TyInt32, this->m_func);
-    IR::RegOpnd * src16Opnd = (IR::RegOpnd*) IR::IntConstOpnd::New(layout->INDICES[13], TyInt32, this->m_func);
-    IR::RegOpnd * src17Opnd = (IR::RegOpnd*) IR::IntConstOpnd::New(layout->INDICES[14], TyInt32, this->m_func);
-    IR::RegOpnd * src18Opnd = (IR::RegOpnd*) IR::IntConstOpnd::New(layout->INDICES[15], TyInt32, this->m_func);
-
-    IR::Instr * instr = nullptr;
     dstOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Uint8x16));
     src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Uint8x16));
     src2Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Uint8x16));
 
+    uint const LANES = 16;
+    IR::Instr * instr = nullptr;
+
     instr = AddExtendedArg(src1Opnd, nullptr, offset);
     instr = AddExtendedArg(src2Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src3Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src4Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src5Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src6Opnd, instr->GetDst()->AsRegOpnd(), offset);
 
-    instr = AddExtendedArg(src7Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src8Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src9Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src10Opnd, instr->GetDst()->AsRegOpnd(), offset);
-
-    instr = AddExtendedArg(src11Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src12Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src13Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src14Opnd, instr->GetDst()->AsRegOpnd(), offset);
-
-    instr = AddExtendedArg(src15Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src16Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src17Opnd, instr->GetDst()->AsRegOpnd(), offset);
-    instr = AddExtendedArg(src18Opnd, instr->GetDst()->AsRegOpnd(), offset);
+    for (uint i = 0; i < LANES; i++)
+    {
+        IR::RegOpnd* shuffleOpnd = (IR::RegOpnd*)IR::IntConstOpnd::New(layout->INDICES[i], TyInt32, this->m_func);
+        instr = AddExtendedArg(shuffleOpnd, instr->GetDst()->AsRegOpnd(), offset);
+    }
     AddInstr(IR::Instr::New(Js::OpCode::Simd128_Shuffle_U16, dstOpnd, instr->GetDst(), m_func), offset);
 }
 

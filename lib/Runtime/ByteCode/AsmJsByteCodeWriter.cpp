@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeByteCodePch.h"
+#include "../../WasmReader/WasmParseTree.h"
 
 #if defined(ASMJS_PLAT) || defined(ENABLE_WASM)
 
@@ -253,11 +254,10 @@ namespace Js
     template <typename SizePolicy>
     bool AsmJsByteCodeWriter::TryWriteAsmShuffle(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, uint8 indices[])
     {
-        const uint32 MAX_LANES = 16;
         OpLayoutT_AsmShuffle<SizePolicy> layout;
         if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2))
         {
-            memcpy_s(layout.INDICES, MAX_LANES, indices, MAX_LANES);
+            memcpy_s(layout.INDICES, Wasm::Simd::MAX_LANES, indices, Wasm::Simd::MAX_LANES);
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
             return true;
         }
