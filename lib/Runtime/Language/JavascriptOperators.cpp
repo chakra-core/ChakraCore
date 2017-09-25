@@ -4772,64 +4772,45 @@ CommonNumber:
         return returnValue;
     }
 
+    template<typename T, T(*func)(Var, ScriptContext*)> bool MemsetConversion(Var value, ScriptContext* scriptContext, T* result)
+    {
+        ImplicitCallFlags flags = scriptContext->GetThreadContext()->TryWithDisabledImplicitCall([&]
+        {
+            *result = func(value, scriptContext);
+        });
+        return (flags & (~ImplicitCall_None)) == 0;
+    }
+
     BOOL JavascriptOperators::OP_Memset(Var instance, int32 start, Var value, int32 length, ScriptContext* scriptContext)
     {
         if (length <= 0)
         {
             return false;
         }
+
         TypeId instanceType = JavascriptOperators::GetTypeId(instance);
         BOOL  returnValue = false;
 
         // The typed array will deal with all possible values for the index
-#define MEMSET_TYPED_ARRAY(type, conversion) type ## ::FromVar(instance)->DirectSetItemAtRange(start, length, value, JavascriptConversion:: ## conversion)
+#define MEMSET_TYPED_ARRAY_CASE(type, conversion) \
+        case TypeIds_##type: \
+        { \
+            type## ::TypedArrayType typedValue = 0; \
+            if (!MemsetConversion<type## ::TypedArrayType, JavascriptConversion:: ##conversion>(value, scriptContext, &typedValue)) return false; \
+            returnValue = type## ::FromVar(instance)->DirectSetItemAtRange(start, length, typedValue); \
+            break; \
+        }
         switch (instanceType)
         {
-        case TypeIds_Int8Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Int8Array, ToInt8);
-            break;
-        }
-        case TypeIds_Uint8Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Uint8Array, ToUInt8);
-            break;
-        }
-        case TypeIds_Uint8ClampedArray:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Uint8ClampedArray, ToUInt8Clamped);
-            break;
-        }
-        case TypeIds_Int16Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Int16Array, ToInt16);
-            break;
-        }
-        case TypeIds_Uint16Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Uint16Array, ToUInt16);
-            break;
-        }
-        case TypeIds_Int32Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Int32Array, ToInt32);
-            break;
-        }
-        case TypeIds_Uint32Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Uint32Array, ToUInt32);
-            break;
-        }
-        case TypeIds_Float32Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Float32Array, ToFloat);
-            break;
-        }
-        case TypeIds_Float64Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Float64Array, ToNumber);
-            break;
-        }
+        MEMSET_TYPED_ARRAY_CASE(Int8Array, ToInt8)
+        MEMSET_TYPED_ARRAY_CASE(Uint8Array, ToUInt8)
+        MEMSET_TYPED_ARRAY_CASE(Uint8ClampedArray, ToUInt8Clamped)
+        MEMSET_TYPED_ARRAY_CASE(Int16Array, ToInt16)
+        MEMSET_TYPED_ARRAY_CASE(Uint16Array, ToUInt16)
+        MEMSET_TYPED_ARRAY_CASE(Int32Array, ToInt32)
+        MEMSET_TYPED_ARRAY_CASE(Uint32Array, ToUInt32)
+        MEMSET_TYPED_ARRAY_CASE(Float32Array, ToFloat)
+        MEMSET_TYPED_ARRAY_CASE(Float64Array, ToNumber)
         case TypeIds_NativeFloatArray:
         case TypeIds_NativeIntArray:
         case TypeIds_Array:
@@ -4858,7 +4839,11 @@ CommonNumber:
                     {
                         return false;
                     }
-                    int32 intValue = JavascriptConversion::ToInt32(value, scriptContext);
+                    int32 intValue = 0;
+                    if (!MemsetConversion<int32, JavascriptConversion::ToInt32>(value, scriptContext, &intValue))
+                    {
+                        return false;
+                    }
                     returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, intValue);
                 }
                 else
@@ -4869,7 +4854,11 @@ CommonNumber:
                         return false;
                     }
 
-                    double doubleValue = JavascriptConversion::ToNumber(value, scriptContext);
+                    double doubleValue = 0;
+                    if (!MemsetConversion<double, JavascriptConversion::ToNumber>(value, scriptContext, &doubleValue))
+                    {
+                        return false;
+                    }
                     // Special case for missing item
                     if (SparseArraySegment<double>::IsMissingItem(&doubleValue))
                     {

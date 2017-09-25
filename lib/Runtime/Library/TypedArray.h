@@ -244,6 +244,7 @@ namespace Js
         TypedArray(DynamicType *type): TypedArrayBase(nullptr, 0, 0, sizeof(TypeName), type) { buffer = nullptr; }
 
     public:
+        typedef TypeName TypedArrayType;
         class EntryInfo
         {
         public:
@@ -363,13 +364,12 @@ namespace Js
             return true;
         }
 
-        inline BOOL DirectSetItemAtRange(__in int32 start, __in uint32 length, __in Js::Var value, TypeName(*convFunc)(Var value, ScriptContext* scriptContext))
+        inline BOOL DirectSetItemAtRange(__in int32 start, __in uint32 length, __in TypeName typedValue)
         {
             if (CrossSite::IsCrossSiteObjectTyped(this))
             {
                 return false;
             }
-            TypeName typedValue = convFunc(value, GetScriptContext());
 
             if (this->IsDetachedBuffer()) // 9.4.5.9 IntegerIndexedElementSet
             {
