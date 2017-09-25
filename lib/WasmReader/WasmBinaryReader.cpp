@@ -602,11 +602,11 @@ void WasmBinaryReader::BrTableNode()
 
 void WasmBinaryReader::ShuffleNode()
 {
+    CheckBytesLeft(Simd::MAX_LANES);
     for (uint32 i = 0; i < Simd::MAX_LANES; i++)
     {
         m_currentNode.shuffle.indices[i] = ReadConst<uint8>();
     }
-    CheckBytesLeft(Simd::MAX_LANES);
     m_funcState.count += Simd::MAX_LANES;
 }
 
