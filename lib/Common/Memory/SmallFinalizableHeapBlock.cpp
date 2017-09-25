@@ -230,6 +230,50 @@ bool SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::UpdateAttributesOfMar
     return noOOMDuringMark;
 }
 
+// static
+template <class TBlockAttributes>
+bool
+SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::RescanObject(SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes> * block, __in_ecount(localObjectSize) char * objectAddress, uint localObjectSize,
+    uint objectIndex, Recycler * recycler)
+{
+    unsigned char const attributes = block->ObjectInfo(objectIndex);
+
+    if ((attributes & TrackBit) != 0)
+    {
+        Assert((attributes & LeafBit) == 0);
+        Assert(block->GetAddressIndex(objectAddress) != SmallHeapBlockT<TBlockAttributes>::InvalidAddressBit);
+
+        if (!recycler->AddPreciselyTracedMark(reinterpret_cast<IRecyclerVisitedObject*>(objectAddress)))
+        {
+            // Failed to add to the mark stack due to OOM.
+            return false;
+        }
+
+        // We have processed this object as tracked, we can clear the NewTrackBit
+        block->ObjectInfo(objectIndex) &= ~NewTrackBit;
+        RECYCLER_STATS_INC(recycler, trackCount);
+
+        RECYCLER_STATS_INC(recycler, markData.rescanObjectCount);
+        RECYCLER_STATS_ADD(recycler, markData.rescanObjectByteCount, localObjectSize);
+    }
+
+#ifdef RECYCLER_STATS
+    if (attributes & FinalizeBit)
+    {
+        // Concurrent thread mark the object before the attribute is set and missed the finalize count
+        // For finalized object, we will always write a dummy vtable before returning to the call,
+        // so the page will always need to be rescanned, and we can count those here.
+
+        // NewFinalizeBit is cleared if the background thread has already counted the object.
+        // So if it is still set here, we need to count it
+
+        RECYCLER_STATS_INC_IF(attributes & NewFinalizeBit, recycler, finalizeCount);
+        block->ObjectInfo(objectIndex) &= ~NewFinalizeBit;
+    }
+#endif
+
+    return true;
+}
 
 template <class TBlockAttributes>
 bool
