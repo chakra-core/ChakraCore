@@ -670,24 +670,31 @@ namespace Js
         const bool useCache = !isGlobal && !isSticky;
 
         RegExpTestCache* cache = nullptr;
-        JavascriptString * cachedValue = nullptr;
+        JavascriptString * cachedInput = nullptr;
         uint cacheIndex = 0;
+        bool cacheHit = false;
+        bool cachedResult = false;
         if (useCache)
         {
             cache = regularExpression->EnsureTestCache();
             cacheIndex = JavascriptRegExp::GetTestCacheIndex(input);
-            cachedValue = cache[cacheIndex].input;
+            cachedInput = cache[cacheIndex].input;
+            cacheHit = cachedInput == input;
         }
-
 #if ENABLE_REGEX_CONFIG_OPTIONS
         RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Test, regularExpression, input);
-        JavascriptRegExp::TraceTestCache(cachedValue == input, input, cachedValue, !useCache);
+        JavascriptRegExp::TraceTestCache(cacheHit, input, cachedInput, !useCache);
 #endif
 
-        if (useCache && cachedValue == input)
+        if (useCache && cacheHit)
         {
-            return JavascriptBoolean::ToVar(cache[cacheIndex].result, scriptContext);
+            cachedResult = cache[cacheIndex].result;
+            // for debug builds, let's still do the real test so we can validate values in the cache
+#if !DBG
+            return JavascriptBoolean::ToVar(cachedResult, scriptContext);
+#endif
         }
+
 
         CharCount offset;
         if (!GetInitialOffset(isGlobal, isSticky, regularExpression, inputLength, offset))
@@ -695,6 +702,8 @@ namespace Js
             if (useCache)
             {
                 Assert(offset == 0);
+                Assert(!cacheHit || cachedInput == input);
+                Assert(!cacheHit || cachedResult == false);
                 cache[cacheIndex].input = input;
                 cache[cacheIndex].result = false;
             }
@@ -712,6 +721,8 @@ namespace Js
         if (useCache)
         {
             Assert(offset == 0);
+            Assert(!cacheHit || cachedInput == input);
+            Assert(!cacheHit || cachedResult == wasFound);
             cache[cacheIndex].input = input;
             cache[cacheIndex].result = wasFound;
         }
