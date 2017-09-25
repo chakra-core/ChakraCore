@@ -7,7 +7,7 @@
 
 // Class used to wrap a MarkContext so that calls to MarkObjects during IRecyclerVisitedObject::Trace
 // can mark with the correct contextual template parameters
-template<bool parallel, bool interior>
+template<bool parallel>
 class MarkContextWrapper : public IRecyclerHeapMarkingContext
 {
 public:
@@ -19,9 +19,6 @@ public:
         {
             // We pass true for interior, since we expect a majority of the pointers being marked by
             // external objects to themselves be external (and thus candidates for interior pointers).
-            // EdgeGC-TODO: Review this logic and make sure everyone is on board. The implications of this
-            // not being the case are that we'd have to remove the alignment check from MarkContext::Mark
-            // and change HeapBlockMap.Mark to mod out the candidate pointer to force it to 16-byte alignment.
             markContext->Mark<parallel, /*interior*/true, /*doSpecialMark*/ false>(objects[i], parent);
         }
     }

@@ -217,7 +217,6 @@ private:
     template <>
     SmallRecyclerVisitedHostHeapBlock *& GetNewHeapBlockList<SmallRecyclerVisitedHostHeapBlock>(HeapBucketT<SmallRecyclerVisitedHostHeapBlock> * HeapBucket)
     {
-        // EdgeGC-TODO: Figure out what the above comment related to finalizable means for this function (same comment applies or do we have to do something else)
         return this->newRecyclerVisitedHostHeapBlockList;
     }
 
@@ -256,7 +255,6 @@ private:
     template <>
     MediumRecyclerVisitedHostHeapBlock *& GetNewHeapBlockList<MediumRecyclerVisitedHostHeapBlock>(HeapBucketT<MediumRecyclerVisitedHostHeapBlock> * HeapBucket)
     {
-        // EdgeGC-TODO: Figure out what the above comment related to finalizable means for this function (same comment applies or do we have to do something else)
         return this->newMediumRecyclerVisitedHostHeapBlockList;
     }
 
