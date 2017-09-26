@@ -338,6 +338,7 @@ public:
     void                Simd128InitOpcodeMap();
     IR::Instr*          Simd128Instruction(IR::Instr* instr);
     IR::Instr*          Simd128LoadConst(IR::Instr* instr);
+    IR::Instr*          LowerSimd128BitSelect(IR::Instr* instr);
     bool                Simd128TryLowerMappedInstruction(IR::Instr *instr);
     IR::Instr*          Simd128LowerUnMappedInstruction(IR::Instr *instr);
     IR::Instr*          Simd128LowerLdLane(IR::Instr *instr);

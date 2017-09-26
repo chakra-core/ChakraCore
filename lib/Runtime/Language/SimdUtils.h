@@ -282,6 +282,16 @@ namespace Js {
         static inline int16 SIMD128InnerExtractLaneI8(const SIMDValue src1, const uint32 lane) { Assert(lane < 8); return src1.i16[lane]; };
         static inline int8 SIMD128InnerExtractLaneI16(const SIMDValue src1, const uint32 lane) { Assert(lane < 16); return src1.i8[lane];  };
 
+        static inline SIMDValue SIMD128BitSelect(const SIMDValue src1, const SIMDValue src2, const SIMDValue mask)
+        {
+            SIMDValue res{ 0 };
+            res.i32[0] = (src1.i32[0] & mask.i32[0]) | (src2.i32[0] & ~mask.i32[0]);
+            res.i32[1] = (src1.i32[1] & mask.i32[1]) | (src2.i32[1] & ~mask.i32[1]);
+            res.i32[2] = (src1.i32[2] & mask.i32[2]) | (src2.i32[2] & ~mask.i32[2]);
+            res.i32[3] = (src1.i32[3] & mask.i32[3]) | (src2.i32[3] & ~mask.i32[3]);
+            return res;
+        }
+
         template<class SIMDType, uint32 laneCount, typename T>
         static inline T SIMD128ExtractLane(const Var src, const Var lane, ScriptContext* scriptContext)
         {

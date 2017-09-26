@@ -214,6 +214,7 @@ LAYOUT_TYPE_WMS_REG4  ( Float32x4_2Int1Float1            , Float32x4, Float32x4,
 // Int32x4_2
 LAYOUT_TYPE_WMS_REG2  ( Int32x4_2                        , Int32x4, Int32x4)
 LAYOUT_TYPE_WMS_REG3  ( Int32x4_3                        , Int32x4, Int32x4, Int32x4)
+LAYOUT_TYPE_WMS_REG4  ( Int32x4_4                        , Int32x4, Int32x4, Int32x4, Int32x4)
 LAYOUT_TYPE_WMS_REG3  ( Bool32x4_1Int32x4_2              , Bool32x4, Int32x4, Int32x4)
 LAYOUT_TYPE_WMS_REG4  ( Int32x4_1Bool32x4_1Int32x4_2     , Int32x4, Bool32x4, Int32x4, Int32x4)
 LAYOUT_TYPE_WMS_REG5  ( Int32x4_1Int4                    , Int32x4, Int, Int, Int, Int)
@@ -386,8 +387,8 @@ LAYOUT_TYPE_WMS_REG2  ( Bool8x16_2                       , Bool8x16, Bool8x16)
 LAYOUT_TYPE_WMS_REG3  ( Bool8x16_3                       , Bool8x16, Bool8x16, Bool8x16)
 LAYOUT_TYPE_WMS_REG2  ( Reg1Bool8x16_1                   , Reg, Bool8x16)
 
-
 LAYOUT_TYPE_WMS       ( AsmSimdTypedArr                  )
+LAYOUT_TYPE_WMS       ( AsmShuffle                       )
 #endif
 
 #undef LAYOUT_TYPE_DUP

@@ -735,7 +735,12 @@ void WasmBytecodeGenerator::EmitExpr(WasmOp op)
         SetUnreachableState(true);
         info.type = WasmTypes::Any;
         break;
-
+    case wbM128Bitselect:
+        info = EmitM128BitSelect();
+        break;
+    case wbV8X16Shuffle:
+        info = EmitV8X16Shuffle();
+        break;
 #define WASM_EXTRACTLANE_OPCODE(opname, opcode, sig, asmjsop, nyi) \
     case wb##opname: \
         info = EmitExtractLaneExpr(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
@@ -1445,9 +1450,8 @@ void WasmBytecodeGenerator::CheckLaneIndex(Js::OpCodeAsmJs op)
 EmitInfo WasmBytecodeGenerator::EmitLaneIndex(Js::OpCodeAsmJs op)
 {
     CheckLaneIndex(op);
-    const uint offset = GetReader()->m_currentNode.lane.index;
     WasmConstLitNode dummy;
-    dummy.i32 = offset;
+    dummy.i32 = GetReader()->m_currentNode.lane.index;
     return EmitConst(WasmTypes::I32, dummy);
 }
 
@@ -1467,6 +1471,38 @@ EmitInfo WasmBytecodeGenerator::EmitReplaceLaneExpr(Js::OpCodeAsmJs op, const Wa
     m_writer->AsmReg4(op, resultReg, simdArg.location, indexInfo.location, valueArg.location);
     ReleaseLocation(&indexInfo);
     return result;
+}
+
+EmitInfo WasmBytecodeGenerator::EmitM128BitSelect()
+{
+    EmitInfo mask = PopEvalStack(WasmTypes::M128);
+    EmitInfo arg2Info = PopEvalStack(WasmTypes::M128);
+    EmitInfo arg1Info = PopEvalStack(WasmTypes::M128);
+    Js::RegSlot resultReg = GetRegisterSpace(WasmTypes::M128)->AcquireTmpRegister();
+    EmitInfo resultInfo(resultReg, WasmTypes::M128);
+    m_writer->AsmReg4(Js::OpCodeAsmJs::Simd128_BitSelect_I4, resultReg, arg1Info.location, arg2Info.location, mask.location);
+    return resultInfo;
+}
+
+EmitInfo WasmBytecodeGenerator::EmitV8X16Shuffle()
+{
+    EmitInfo arg2Info = PopEvalStack(WasmTypes::M128);
+    EmitInfo arg1Info = PopEvalStack(WasmTypes::M128);
+
+    Js::RegSlot resultReg = GetRegisterSpace(WasmTypes::M128)->AcquireTmpRegister();
+    EmitInfo resultInfo(resultReg, WasmTypes::M128);
+
+    uint8* indices = GetReader()->m_currentNode.shuffle.indices;
+    for (uint i = 0; i < Simd::MAX_LANES; i++)
+    {
+        if (indices[i] >= Simd::MAX_LANES * 2)
+        {
+            throw WasmCompilationException(_u("%-th shuffle lane index is larger than 31"), i);
+        }
+    }
+
+    m_writer->AsmShuffle(Js::OpCodeAsmJs::Simd128_Shuffle_V8X16, resultReg, arg1Info.location, arg2Info.location, indices);
+    return resultInfo;
 }
 
 EmitInfo WasmBytecodeGenerator::EmitExtractLaneExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature)

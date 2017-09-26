@@ -6,6 +6,7 @@
 #include "Backend.h"
 #ifdef ASMJS_PLAT
 #include "ByteCode/OpCodeUtilAsmJs.h"
+#include "../../WasmReader/WasmParseTree.h"
 
 void
 IRBuilderAsmJs::Build()
@@ -3981,6 +3982,37 @@ IRBuilderAsmJs::BuildInt32x4_3(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_S
 }
 
 void
+IRBuilderAsmJs::BuildInt32x4_4(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG4)
+{
+    ValueType valueType = GetSimdValueTypeFromIRType(TySimd128I4);
+    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128I4);
+    src1Opnd->SetValueType(valueType);
+
+    IR::RegOpnd * src2Opnd = BuildSrcOpnd(src2RegSlot, TySimd128I4);
+    src2Opnd->SetValueType(valueType);
+
+    IR::RegOpnd * mask = BuildSrcOpnd(src3RegSlot, TySimd128I4);
+    src2Opnd->SetValueType(valueType);
+
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128I4);
+    dstOpnd->SetValueType(GetSimdValueTypeFromIRType(TySimd128I4));
+
+    Js::OpCode opcode;
+
+    opcode = GetSimdOpcode(newOpcode);
+
+    AssertMsg((uint32)opcode, "Invalid backend SIMD opcode");
+
+    IR::Instr* instr = nullptr;
+
+    instr = AddExtendedArg(src1Opnd, nullptr, offset);
+    instr = AddExtendedArg(src2Opnd, instr->GetDst()->AsRegOpnd(), offset);
+    instr = AddExtendedArg(mask, instr->GetDst()->AsRegOpnd(), offset);
+
+    AddInstr(IR::Instr::New(opcode, dstOpnd, instr->GetDst(), m_func), offset);
+}
+
+void
 IRBuilderAsmJs::BuildBool32x4_1Int32x4_2(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG3)
 {
     BuildSimd_3(newOpcode, offset, dstRegSlot, src1RegSlot, src2RegSlot, TySimd128B4, TySimd128I4);
@@ -5791,6 +5823,33 @@ void IRBuilderAsmJs::BuildUint8x16_2Int16(Js::OpCodeAsmJs newOpcode, uint32 offs
     Js::OpCode opcode = Js::OpCode::Simd128_Swizzle_U16;
 
     AddInstr(IR::Instr::New(opcode, dstOpnd, instr->GetDst(), m_func), offset);
+}
+
+
+template <typename SizePolicy>
+void
+IRBuilderAsmJs::BuildAsmShuffle(Js::OpCodeAsmJs newOpcode, uint32 offset)
+{
+    Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode) && newOpcode == Js::OpCodeAsmJs::Simd128_Shuffle_V8X16);
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmShuffle<SizePolicy>>();
+
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(GetRegSlotFromSimd128Reg(layout->R0), TySimd128U16);
+    IR::RegOpnd * src1Opnd = BuildSrcOpnd(GetRegSlotFromSimd128Reg(layout->R1), TySimd128U16);
+    IR::RegOpnd * src2Opnd = BuildSrcOpnd(GetRegSlotFromSimd128Reg(layout->R2), TySimd128U16);
+    dstOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Uint8x16));
+    src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Uint8x16));
+    src2Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Uint8x16));
+
+    IR::Instr * instr = nullptr;
+    instr = AddExtendedArg(src1Opnd, nullptr, offset);
+    instr = AddExtendedArg(src2Opnd, instr->GetDst()->AsRegOpnd(), offset);
+
+    for (uint i = 0; i < Wasm::Simd::MAX_LANES; i++)
+    {
+        IR::RegOpnd* shuffleOpnd = (IR::RegOpnd*)IR::IntConstOpnd::New(layout->INDICES[i], TyInt32, this->m_func);
+        instr = AddExtendedArg(shuffleOpnd, instr->GetDst()->AsRegOpnd(), offset);
+    }
+    AddInstr(IR::Instr::New(Js::OpCode::Simd128_Shuffle_U16, dstOpnd, instr->GetDst(), m_func), offset);
 }
 
 void IRBuilderAsmJs::BuildUint8x16_3Int16(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG19)

@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeByteCodePch.h"
+#include "../../WasmReader/WasmParseTree.h"
 
 #if defined(ASMJS_PLAT) || defined(ENABLE_WASM)
 
@@ -244,6 +245,19 @@ namespace Js
             SizePolicy::Assign(layout.R10, R10) && SizePolicy::Assign(layout.R11, R11) && SizePolicy::Assign(layout.R12, R12) && SizePolicy::Assign(layout.R13, R13) && SizePolicy::Assign(layout.R14, R14) &&
             SizePolicy::Assign(layout.R15, R15) && SizePolicy::Assign(layout.R16, R16) && SizePolicy::Assign(layout.R17, R17) && SizePolicy::Assign(layout.R18, R18))
         {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteAsmShuffle(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, uint8 indices[])
+    {
+        OpLayoutT_AsmShuffle<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2))
+        {
+            memcpy_s(layout.INDICES, Wasm::Simd::MAX_LANES, indices, Wasm::Simd::MAX_LANES);
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
             return true;
         }
@@ -515,6 +529,11 @@ namespace Js
         RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17)
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg18, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17);
+    }
+
+    void AsmJsByteCodeWriter::AsmShuffle(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, uint8 indices[])
+    {
+        MULTISIZE_LAYOUT_WRITE(AsmShuffle, op, R0, R1, R2, indices);
     }
 
     void AsmJsByteCodeWriter::AsmReg19(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,

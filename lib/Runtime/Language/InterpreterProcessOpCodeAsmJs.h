@@ -1597,6 +1597,15 @@ if (switchProfileMode) \
     }
 #define PROCESS_SIMD_F4_2toB4_1(name, func) PROCESS_SIMD_F4_2toB4_1_COMMON(name, func,)
 
+#define PROCESS_SIMD_I4_3toI4_1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Int32x4_4, suffix); \
+    SetRegRawSimd(playout->I4_0, func(GetRegRawSimd(playout->I4_1), GetRegRawSimd(playout->I4_2), GetRegRawSimd(playout->I4_3))); \
+    break; \
+    }
+#define PROCESS_SIMD_I4_3toI4_1(name, func) PROCESS_SIMD_I4_3toI4_1_COMMON(name, func,)
+
 #define PROCESS_SIMD_I4_2toI4_1_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
     { \

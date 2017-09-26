@@ -274,6 +274,15 @@ namespace Js
         typename SizePolicy::RegSlotType     R18;
     };
 
+    template <typename SizePolicy>
+    struct OpLayoutT_AsmShuffle
+    {
+        uint8                       INDICES[16];
+        typename SizePolicy::RegSlotType     R0;
+        typename SizePolicy::RegSlotType     R1;
+        typename SizePolicy::RegSlotType     R2;
+    };
+
 #define RegLayoutType typename SizePolicy::RegSlotType
 #define IntLayoutType typename SizePolicy::RegSlotType
 #define LongLayoutType typename SizePolicy::RegSlotType
