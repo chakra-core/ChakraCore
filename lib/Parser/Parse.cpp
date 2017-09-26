@@ -1652,6 +1652,32 @@ ParseNodePtr Parser::ParseBlock(ParseNodePtr pnodeLabel, LabelId* pLabelId)
     return pnodeBlock;
 }
 
+ParseNodePtr Parser::ReferenceSpecialName(IdentPtr pid, charcount_t ichMin, charcount_t ichLim, bool createNode)
+{
+    PidRefStack* ref = this->PushPidRef(pid);
+
+    if (!createNode)
+    {
+        return nullptr;
+    }
+
+    ParseNode* pnode = CreateSpecialNameNode(pid);
+    pnode->ichMin = ichMin;
+    pnode->ichLim = ichLim;
+    pnode->sxPid.SetSymRef(ref);
+
+    if (pid == wellKnownPropertyPids._this)
+    {
+        pnode->sxSpecialName.isThis = true;
+    }
+    else if (pid == wellKnownPropertyPids._super || pid == wellKnownPropertyPids._superConstructor)
+    {
+        pnode->sxSpecialName.isSuper = true;
+    }
+
+    return pnode;
+}
+
 void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal)
 {
     Assert(!(isGlobal && (this->m_grfscr & fscrEval)));
@@ -3686,18 +3712,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
                             pnode = CreateSuperCallNode(pnode, pnodeArgs);
                             Assert(pnode);
 
-                            PidRefStack* ref = this->PushPidRef(wellKnownPropertyPids._this);
-                            pnode->sxSuperCall.pnodeThis = CreateSpecialNameNode(wellKnownPropertyPids._this);
-                            pnode->sxSuperCall.pnodeThis->ichMin = pnode->ichMin;
-                            pnode->sxSuperCall.pnodeThis->ichLim = m_pscan->IchLimTok();
-                            pnode->sxSuperCall.pnodeThis->sxPid.SetSymRef(ref);
-                            pnode->sxSuperCall.pnodeThis->sxSpecialName.isThis = true;
-
-                            ref = this->PushPidRef(wellKnownPropertyPids._newTarget);
-                            pnode->sxSuperCall.pnodeNewTarget = CreateSpecialNameNode(wellKnownPropertyPids._newTarget);
-                            pnode->sxSuperCall.pnodeNewTarget->ichMin = pnode->ichMin;
-                            pnode->sxSuperCall.pnodeNewTarget->ichLim = m_pscan->IchLimTok();
-                            pnode->sxSuperCall.pnodeNewTarget->sxPid.SetSymRef(ref);
+                            pnode->sxSuperCall.pnodeThis = ReferenceSpecialName(wellKnownPropertyPids._this, pnode->ichMin, m_pscan->IchLimTok(), true);
+                            pnode->sxSuperCall.pnodeNewTarget = ReferenceSpecialName(wellKnownPropertyPids._newTarget, pnode->ichMin, m_pscan->IchLimTok(), true);
                         }
                         else
                         {
@@ -3715,10 +3731,10 @@ ParseNodePtr Parser::ParsePostfixOperators(
                             fCallIsEval = true;
 
                             // Eval may reference any of the special symbols so we need to push refs to them here.
-                            this->PushPidRef(wellKnownPropertyPids._this);
-                            this->PushPidRef(wellKnownPropertyPids._newTarget);
-                            this->PushPidRef(wellKnownPropertyPids._super);
-                            this->PushPidRef(wellKnownPropertyPids._superConstructor);
+                            ReferenceSpecialName(wellKnownPropertyPids._this);
+                            ReferenceSpecialName(wellKnownPropertyPids._newTarget);
+                            ReferenceSpecialName(wellKnownPropertyPids._super);
+                            ReferenceSpecialName(wellKnownPropertyPids._superConstructor);
                         }
 
                         pnode->sxCall.callOfConstants = callOfConstants;
@@ -3735,10 +3751,10 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         {
                             this->MarkEvalCaller();
 
-                            this->PushPidRef(wellKnownPropertyPids._this);
-                            this->PushPidRef(wellKnownPropertyPids._newTarget);
-                            this->PushPidRef(wellKnownPropertyPids._super);
-                            this->PushPidRef(wellKnownPropertyPids._superConstructor);
+                            ReferenceSpecialName(wellKnownPropertyPids._this);
+                            ReferenceSpecialName(wellKnownPropertyPids._newTarget);
+                            ReferenceSpecialName(wellKnownPropertyPids._super);
+                            ReferenceSpecialName(wellKnownPropertyPids._superConstructor);
                         }
                         pToken->tk = tkNone; // This is no longer an identifier
                     }
@@ -3776,13 +3792,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     if (pnode && pnode->isSpecialName && pnode->sxSpecialName.isSuper)
                     {
                         pnode = CreateSuperReferenceNode(knopIndex, pnode, pnodeExpr);
-
-                        PidRefStack* ref = this->PushPidRef(wellKnownPropertyPids._this);
-                        pnode->sxSuperReference.pnodeThis = CreateSpecialNameNode(wellKnownPropertyPids._this);
-                        pnode->sxSuperReference.pnodeThis->ichMin = pnode->ichMin;
-                        pnode->sxSuperReference.pnodeThis->ichLim = pnode->ichLim;
-                        pnode->sxSuperReference.pnodeThis->sxPid.SetSymRef(ref);
-                        pnode->sxSuperReference.pnodeThis->sxSpecialName.isThis = true;
+                        pnode->sxSuperReference.pnodeThis = ReferenceSpecialName(wellKnownPropertyPids._this, pnode->ichMin, pnode->ichLim, true);
                     }
                     else
                     {
@@ -3917,13 +3927,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 if (pnode && pnode->isSpecialName && pnode->sxSpecialName.isSuper)
                 {
                     pnode = CreateSuperReferenceNode(opCode, pnode, name);
-
-                    PidRefStack* ref = this->PushPidRef(wellKnownPropertyPids._this);
-                    pnode->sxSuperReference.pnodeThis = CreateSpecialNameNode(wellKnownPropertyPids._this);
-                    pnode->sxSuperReference.pnodeThis->ichMin = pnode->ichMin;
-                    pnode->sxSuperReference.pnodeThis->ichLim = pnode->ichLim;
-                    pnode->sxSuperReference.pnodeThis->sxPid.SetSymRef(ref);
-                    pnode->sxSuperReference.pnodeThis->sxSpecialName.isThis = true;
+                    pnode->sxSuperReference.pnodeThis = ReferenceSpecialName(wellKnownPropertyPids._this, pnode->ichMin, pnode->ichLim, true);
                 }
                 else
                 {
@@ -6907,30 +6911,12 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
             //                        ^^^^^^^^^^^^^^^
             Assert(argsId);
             ParseNodePtr spreadArg = CreateUniNode(knopEllipsis, argsId, pnodeFnc->ichMin, pnodeFnc->ichLim);
-
-            PidRefStack* ref = this->PushPidRef(wellKnownPropertyPids._superConstructor);
-            ParseNodePtr superRef = CreateSpecialNameNode(wellKnownPropertyPids._superConstructor);
-            superRef->ichMin = pnodeFnc->ichMin;
-            superRef->ichLim = pnodeFnc->ichLim;
-            superRef->sxPid.SetSymRef(ref);
-            superRef->sxSpecialName.isSuper = true;
-
+            ParseNodePtr superRef = ReferenceSpecialName(wellKnownPropertyPids._superConstructor, pnodeFnc->ichMin, pnodeFnc->ichLim, true);
             pnodeFnc->sxFnc.SetHasSuperReference(TRUE);
             ParseNodePtr callNode = CreateSuperCallNode(superRef, spreadArg);
 
-            ref = this->PushPidRef(wellKnownPropertyPids._this);
-            callNode->sxSuperCall.pnodeThis = CreateSpecialNameNode(wellKnownPropertyPids._this);
-            callNode->sxSuperCall.pnodeThis->ichMin = pnodeFnc->ichMin;
-            callNode->sxSuperCall.pnodeThis->ichLim = pnodeFnc->ichLim;
-            callNode->sxSuperCall.pnodeThis->sxPid.SetSymRef(ref);
-            callNode->sxSuperCall.pnodeThis->sxSpecialName.isThis = true;
-
-            ref = this->PushPidRef(wellKnownPropertyPids._newTarget);
-            callNode->sxSuperCall.pnodeNewTarget = CreateSpecialNameNode(wellKnownPropertyPids._newTarget);
-            callNode->sxSuperCall.pnodeNewTarget->ichMin = pnodeFnc->ichMin;
-            callNode->sxSuperCall.pnodeNewTarget->ichLim = pnodeFnc->ichLim;
-            callNode->sxSuperCall.pnodeNewTarget->sxPid.SetSymRef(ref);
-
+            callNode->sxSuperCall.pnodeThis = ReferenceSpecialName(wellKnownPropertyPids._this, pnodeFnc->ichMin, pnodeFnc->ichLim, true);
+            callNode->sxSuperCall.pnodeNewTarget = ReferenceSpecialName(wellKnownPropertyPids._newTarget, pnodeFnc->ichMin, pnodeFnc->ichLim, true);
             callNode->sxCall.spreadArgCount = 1;
             AddToNodeList(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, callNode);
         }
@@ -8080,6 +8066,14 @@ LPCOLESTR Parser::ConstructNameHint(ParseNodePtr pNode, uint32* fullNameHintLeng
     }
     else if (pNode->sxBin.pnode1->nop == knopName && !pNode->sxBin.pnode1->isSpecialName)
     {
+        // We need to skip special names like 'this' because those shouldn't be appended to the
+        // name hint in the debugger stack trace.
+        // function ctor() {
+        //   this.func = function() {
+        //     // If we break here, the stack should say we are in 'func' and not 'this.func'
+        //   }
+        // }
+
         leftNode = pNode->sxBin.pnode1->sxPid.pid->Psz();
         *fullNameHintLength = pNode->sxBin.pnode1->sxPid.pid->Cch();
         *pShortNameOffset = 0;
@@ -10480,7 +10474,7 @@ LGetJumpStatement:
         // This might require a reference to 'this'
         if (GetCurrentFunctionNode()->sxFnc.IsClassConstructor())
         {
-            this->PushPidRef(wellKnownPropertyPids._this);
+            ReferenceSpecialName(wellKnownPropertyPids._this);
         }
 
         if (buildAST)

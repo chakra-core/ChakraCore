@@ -759,6 +759,7 @@ private:
     void FinishParseFncExprScope(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncExprScope);
 
     void CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal);
+    ParseNodePtr ReferenceSpecialName(IdentPtr pid, charcount_t ichMin = 0, charcount_t ichLim = 0, bool createNode = false);
 
     template<const bool backgroundPidRefs>
     void BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId = (uint)-1);
