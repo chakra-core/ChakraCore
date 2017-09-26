@@ -237,6 +237,7 @@ namespace Wasm
         Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
         WasmRegisterSpace* GetRegisterSpace(WasmTypes::WasmType type);
 
+        EmitInfo PopEvalStackForYield();
         EmitInfo PopEvalStack(WasmTypes::WasmType expectedType = WasmTypes::Any, const char16* mismatchMessage = nullptr);
         void PushEvalStack(EmitInfo);
         EmitInfo EnsureYield(BlockInfo);

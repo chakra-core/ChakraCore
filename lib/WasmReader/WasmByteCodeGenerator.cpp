@@ -907,7 +907,7 @@ void WasmBytecodeGenerator::EmitBlockCommon(BlockInfo* blockInfo, bool* endOnEls
     DebugPrintOp(op);
     if (blockInfo && blockInfo->HasYield())
     {
-        EmitInfo info = PopEvalStack();
+        EmitInfo info = PopEvalStackForYield();
         YieldToBlock(*blockInfo, info);
         ReleaseLocation(&info);
     }
@@ -1243,15 +1243,7 @@ void WasmBytecodeGenerator::EmitBrTable()
     BlockInfo defaultBlockInfo = GetBlockInfo(defaultEntry);
     if (defaultBlockInfo.HasYield())
     {
-        // If the scrutinee is any then check the stack before popping
-        if (scrutineeInfo.type == WasmTypes::Any && m_evalStack.Peek().type == WasmTypes::Limit)
-        {
-            yieldValue = scrutineeInfo;
-        }
-        else
-        {
-            yieldValue = PopEvalStack();
-        }
+        yieldValue = PopEvalStackForYield();
     }
 
     // Compile cases
@@ -1447,7 +1439,7 @@ void WasmBytecodeGenerator::EmitBr()
     BlockInfo blockInfo = GetBlockInfo(depth);
     if (blockInfo.HasYield())
     {
-        EmitInfo info = PopEvalStack();
+        EmitInfo info = PopEvalStackForYield();
         YieldToBlock(blockInfo, info);
         ReleaseLocation(&info);
     }
@@ -1466,7 +1458,7 @@ EmitInfo WasmBytecodeGenerator::EmitBrIf()
     BlockInfo blockInfo = GetBlockInfo(depth);
     if (blockInfo.HasYield())
     {
-        info = PopEvalStack();
+        info = PopEvalStackForYield();
         YieldToBlock(blockInfo, info);
         if (info.type == WasmTypes::Any)
         {
@@ -1639,6 +1631,17 @@ WasmRegisterSpace* WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType t
     default:
         return nullptr;
     }
+}
+
+
+Wasm::EmitInfo WasmBytecodeGenerator::PopEvalStackForYield()
+{
+    // Check the stack before popping, it is valid to yield nothing if we are Unreachable
+    if (IsUnreachable() && m_evalStack.Peek().type == WasmTypes::Limit)
+    {
+        return EmitInfo(WasmTypes::Any);
+    }
+    return PopEvalStack();
 }
 
 EmitInfo WasmBytecodeGenerator::PopEvalStack(WasmTypes::WasmType expectedType, const char16* mismatchMessage)
