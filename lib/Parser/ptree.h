@@ -817,6 +817,7 @@ const int kcbPnInt            = kcbPnNone + sizeof(PnInt);
 const int kcbPnJump           = kcbPnNone + sizeof(PnJump);
 const int kcbPnLabel          = kcbPnNone + sizeof(PnLabel);
 const int kcbPnModule         = kcbPnNone + sizeof(PnModule);
+const int kcbPnParamPattern   = kcbPnNone + sizeof(PnParamPattern);
 const int kcbPnPid            = kcbPnNone + sizeof(PnPid);
 const int kcbPnProg           = kcbPnNone + sizeof(PnProg);
 const int kcbPnReturn         = kcbPnNone + sizeof(PnReturn);
@@ -835,7 +836,6 @@ const int kcbPnUniSlot        = kcbPnNone + sizeof(PnUniSlot);
 const int kcbPnVar            = kcbPnNone + sizeof(PnVar);
 const int kcbPnWhile          = kcbPnNone + sizeof(PnWhile);
 const int kcbPnWith           = kcbPnNone + sizeof(PnWith);
-const int kcbPnParamPattern   = kcbPnNone + sizeof(PnParamPattern);
 
 #define AssertNodeMem(pnode) AssertPvCb(pnode, kcbPnNone)
 #define AssertNodeMemN(pnode) AssertPvCbN(pnode, kcbPnNone)
