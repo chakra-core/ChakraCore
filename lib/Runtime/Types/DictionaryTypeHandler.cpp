@@ -1856,6 +1856,9 @@ namespace Js
             {
                 if (descriptor->IsAccessor && !(attributes & PropertyLetConstGlobal))
                 {
+#if DEBUG
+                    Var ctor = JavascriptOperators::GetProperty(instance, PropertyIds::constructor, scriptContext);
+#endif
                     AssertMsg(RootObjectBase::Is(instance) || JavascriptFunction::IsBuiltinProperty(instance, propertyId) ||
                         // ValidateAndApplyPropertyDescriptor says to preserve Configurable and Enumerable flags
 
@@ -1867,7 +1870,7 @@ namespace Js
                         // something else.  All we need to do is convert the descriptor to a data descriptor.
                         // Built-in Function.prototype properties 'length', 'arguments', and 'caller' are special cases.
 
-                        (JavascriptOperators::IsClassConstructor(JavascriptOperators::GetProperty(instance, PropertyIds::constructor, scriptContext)) &&
+                        ((JavascriptOperators::IsClassConstructor(ctor) || JavascriptOperators::IsClassMethod(ctor)) &&
                             (attributes & PropertyClassMemberDefaults) == PropertyClassMemberDefaults),
                         // 14.3.9: InitClassMember sets property descriptor to {writable:true, enumerable:false, configurable:true}
 

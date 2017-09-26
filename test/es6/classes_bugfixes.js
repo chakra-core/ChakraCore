@@ -474,6 +474,16 @@ var tests = [
       catch(e) {}
     }
   },
+  {
+    name: "OS: 12681861: SetPropertyWithAttributes assert does not cover static constructor case",
+    body: function () {
+      class tvawjo {
+        static constructor() { }
+        static get igwgep() { }
+        static igwgep() { }
+      };
+    }
+  }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
