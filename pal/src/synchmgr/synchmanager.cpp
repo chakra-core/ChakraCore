@@ -1286,7 +1286,7 @@ namespace CorUnix
             pthrTarget->synchronizationInfo.m_shridWaitAwakened);
         if(TWS_EARLYDEATH == VolatileLoad(pdwWaitState))
         {
-            ERROR("Thread %#x is about to be suspended for process shutdwon, "
+            ERROR("Thread %#x is about to be suspended for process shutdown, "
                   "can't queue an APC on it\n", pthrTarget->GetThreadId());
             palErr = ERROR_INVALID_PARAMETER;
             goto QUAPC_exit;

@@ -4,7 +4,7 @@
 //
 
 /***
-*   mbusafecrt.c - implementaion of support functions and data for MBUSafeCRT
+*   mbusafecrt.c - implementation of support functions and data for MBUSafeCRT
 *
 
 *

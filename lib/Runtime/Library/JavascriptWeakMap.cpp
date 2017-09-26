@@ -422,7 +422,7 @@ namespace Js
 
         this->Map([&](RecyclableObject* key, Js::Var value)
         {
-            AssertMsg(smi->MapSize + 1 < mapCountEst, "We are writting junk");
+            AssertMsg(smi->MapSize + 1 < mapCountEst, "We are writing junk");
 
             smi->MapKeyValueArray[smi->MapSize] = key;
             smi->MapKeyValueArray[smi->MapSize + 1] = value;

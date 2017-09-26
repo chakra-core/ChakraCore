@@ -124,7 +124,7 @@ DynamicProfileStorage::Load(char16 const * filename, Fn loadFn)
 #if DBG_DUMP
             if (DynamicProfileStorage::DoTrace())
             {
-                Output::Print(_u("TRACE: DynamicProfileStorage: Faile to load from cache dir for '%s'"), filename);
+                Output::Print(_u("TRACE: DynamicProfileStorage: Failed to load from cache dir for '%s'"), filename);
                 Output::Flush();
             }
 #endif

@@ -66,14 +66,14 @@ namespace TTD
 
     TTDMode TTModeStack::Peek() const
     {
-        TTDAssert(this->m_stackTop > 0, "Undeflow in stack pop.");
+        TTDAssert(this->m_stackTop > 0, "Underflow in stack pop.");
 
         return this->m_stackEntries[this->m_stackTop - 1];
     }
 
     void TTModeStack::Pop()
     {
-        TTDAssert(this->m_stackTop > 0, "Undeflow in stack pop.");
+        TTDAssert(this->m_stackTop > 0, "Underflow in stack pop.");
 
         this->m_stackTop--;
     }
