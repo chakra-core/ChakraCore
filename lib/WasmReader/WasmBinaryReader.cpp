@@ -380,10 +380,18 @@ bool WasmBinaryReader::IsCurrentFunctionCompleted() const
     return m_pc == m_curFuncEnd;
 }
 
-WasmOp WasmBinaryReader::ReadExpr()
+WasmOp WasmBinaryReader::ReadOpCode()
 {
+    CheckBytesLeft(1);
     WasmOp op = m_currentNode.op = (WasmOp)*m_pc++;
     ++m_funcState.count;
+
+    return op;
+}
+
+WasmOp WasmBinaryReader::ReadExpr()
+{
+    WasmOp op = ReadOpCode();
 
     if (EndOfFunc())
     {
