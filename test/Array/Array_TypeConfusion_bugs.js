@@ -477,7 +477,7 @@ var tests = [
             assert.areEqual(3, b.length);
             assert.areEqual([], b[0]);
             assert.areEqual("abc", b[1]);
-            assert.areEqual(1145324612, b[2]);
+            assert.areEqual(undefined, b[2]);
         }
     },
     {
@@ -618,6 +618,199 @@ var tests = [
             assert.isTrue(getterCalled);
             assert.areEqual(0, a.length, "Getter will splice the array to zero length");
             assert.areEqual(100 * 1024 + 2, b.length, "Validating that slice will return the full array even though splice is deleting the whole array");
+        }
+    },
+    {
+        name: "reverse : Mutating the array's length from prototype should not be reversed",
+        body: function ()
+        {
+            var getterCalled = false;
+            var a = [11, 22, 33];
+            a.length = 5;
+            var o = {};
+            Object.defineProperty(o, '4' , {
+                get: function () {
+                    getterCalled = true;
+                    a[5] = 55;
+                    a[6] = 66;
+                    a.length = 8; // Changing the length of the array while we are in the reverse call
+                    return 44 ;
+                }, set : function(ab) {}, configurable : true
+            });
+            
+            a.__proto__ = o;
+            var r = [].reverse.call(a);
+            a.__proto__ = Array.prototype;
+            assert.isTrue(getterCalled);
+            assert.areEqual(55, a[5], 'a[5] is added during the reverse call, so it should not be reversed');
+            assert.areEqual(66, a[6], 'a[6] is added during the reverse call, so it should not be reversed');
+            assert.areEqual(undefined, a[7], 'a[7] is undefined the reverse call, so it should remain undefined');
+        }
+    },
+    {
+        name: "reverse : Making current array an ES5Array from prototype should be part of reverse",
+        body: function ()
+        {
+            var getterCalled = false;
+            var a = [0, 1, 2, 3, 4];
+            a.length = 6;
+            var o = {};
+            Object.defineProperty(o, '5' , {
+                get: function () {
+                    Object.defineProperty(a, '1', {
+                        get : function() { getterCalled = true; return 11;},
+                        set : function(ab) { }, configurable : true });
+                    return 51 ;
+                }, set : function(ab) { }, configurable : true
+            });
+            a.__proto__ = o;
+
+            [].reverse.call(a);
+            a.__proto__ = Array.prototype;
+            assert.isTrue(getterCalled);
+            assert.areEqual([51,11,3,2,11,], a, 'getter on a[1] is called when introduced during prototype walk on reverse call');
+        }
+    },
+    {
+        name: "reverse : Proxy object in the prototype chain",
+        body: function ()
+        {
+            var getTrapCalled = false;
+            var arr = [11, 22, 33];
+            arr.length = 4;
+            var handler = {
+                has : function() {
+                    return true;
+                },
+                get : function(target, name) {
+                    if (name == "3") {
+                        getTrapCalled = true;
+                        arr[4] = 55;
+                        arr[5] = 66;
+                        arr.length = 6;
+                        return 44;
+                    }
+                }
+            };
+            var p = new Proxy({}, handler);
+            arr.__proto__ = p;
+            [].reverse.call(arr);
+            arr.__proto__ = Array.prototype;
+            assert.isTrue(getTrapCalled);
+            assert.areEqual([44,33,22,11,55,66], arr, 'Properties added in get trap should not part of the reverse logic (55 and 66 are remained on same position)');
+        }
+    },
+    {
+        name: "shift : Mutating the array's length from prototype should not be part of shift",
+        body: function ()
+        {
+            var getterCalled = false;
+            var a = [11, 22, 33];
+            a.length = 5;
+            var o = {};
+            
+            Object.defineProperty(o, '4' , {
+                get: function () {
+                    getterCalled = true;
+                    a[5] = 55;
+                    a[6] = 66;
+                    a.length = 8;
+                    return 44;
+                }, set : function(ab) {}, configurable : true
+            });
+            a.__proto__ = o;
+            var r = [].shift.call(a);
+            a.__proto__ = Array.prototype;
+            assert.isTrue(getterCalled);
+            assert.areEqual([22,33,,44], a, 'a[5] and a[6] is not part of the shift');
+            assert.areEqual(4, a.length, 'We started with length == 5 and shift will decrement by 1');
+        }
+    },
+    {
+        name: "unshift : Mutating the array's length from prototype should not be part of unshift",
+        body: function ()
+        {
+            var getterCalled = false;
+            var arr = [11, 22, 33];
+            var obj = {};
+            arr.length = 4;
+            Object.defineProperty(obj, "3", {get : function() { 
+                getterCalled = true;
+                arr[4] = 66;
+                arr[5] = 77;
+                return 55;
+                }, set : function(bb) {}, configurable: true});
+            arr.__proto__ = obj;
+            var obj1 = [].unshift.call(arr, 201, 202);
+            arr.__proto__ = Array.prototype;
+            
+            assert.isTrue(getterCalled);
+            assert.areEqual([201,202,11,,33,55], arr, '66 and 77 were added after length deduced so they are not part of unshift');
+            assert.areEqual(6, arr.length, 'we begin length == 4 and unshift adds 2 more');
+        }
+    },
+    {
+        name: "sort : Mutating the array's length from prototype should not be part of actual sort",
+        body: function ()
+        {
+            var getterCalled = false;
+            var arr = [33, 11, 22];
+            var obj = {};
+            arr.length = 4;
+            Object.defineProperty(obj, "3", {get : function() { 
+                getterCalled = true;
+                arr[4] = 77;
+                arr[5] = 16;
+                return 101;
+            }, set : function(bb) {}, configurable: true});
+            arr.__proto__ = obj;
+            var obj1 = [].sort.call(arr);
+            arr.__proto__ = Array.prototype;
+
+            assert.isTrue(getterCalled);
+            assert.areEqual([101,11,22,,77,16], arr, '77 and 16 are not part of the sort so they are not sorted');
+            assert.areEqual(6, arr.length);
+        }
+    },
+    {
+        name: "unshift : setter on the prototype will be called even though it is outside of current array's length",
+        body: function ()
+        {
+            var setterCalled = false;
+            var protoObj = {};
+            var arr = [1, 2];
+            // setter is put on the index outside of the current's array length (which is 2).
+            Object.defineProperty(protoObj, 3, {get : function() {  }, set : function(a) { setterCalled = true;} });
+            arr.__proto__ = protoObj;
+            Array.prototype.unshift.call(arr, 101, 104);
+            assert.isTrue(setterCalled);
+        }
+    },
+    {
+        name: "slice : the method slice should get property from prototype which is a proxy",
+        body: function ()
+        {
+            var arr = [];
+            arr.length = 100;
+            arr.__proto__ = new Proxy([16], {} );
+
+            arr.push(1);
+            var ret = arr.slice(0, 10);
+            assert.areEqual(16, ret[0]);
+        }
+    },
+    {
+        name: "splice : the method splice should get property from prototype which is a proxy",
+        body: function ()
+        {
+            var v1 = [];
+            v1.length = 20;
+            var hasCalled = 0;
+            v1.__proto__ = new Proxy([222], {has : function() { hasCalled++;} });
+            v1.push(1);
+            assert.areEqual(222, v1[0]);
+            var ret  = v1.splice(0, 10);
+            assert.areEqual(20, hasCalled);
         }
     },
 ];

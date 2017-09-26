@@ -140,7 +140,6 @@ public:
         loopList(nullptr),
         catchLabelStack(nullptr),
         finallyLabelStack(nullptr),
-        leaveNullLabelStack(nullptr),
         regToFinallyEndMap(nullptr),
         hasBackwardPassInfo(false),
         hasLoop(false),
@@ -170,7 +169,7 @@ public:
     void         SortLoopLists();
     FlowEdge *   FindEdge(BasicBlock *predBlock, BasicBlock *succBlock);
     IR::LabelInstr * DeleteLeaveChainBlocks(IR::BranchInstr *leaveInstr, IR::Instr * &instrPrev);
-    bool         IsEarlyExitFromFinally(IR::BranchInstr *leaveInstr, Region *currentRegion, Region *branchTargetRegion, IR::Instr *&instrPrev, IR::LabelInstr *&exitLabel);
+    bool         CheckIfEarlyExitAndAddEdgeToFinally(IR::BranchInstr *leaveInstr, Region *currentRegion, Region *branchTargetRegion, IR::Instr *&instrPrev, IR::LabelInstr *&exitLabel);
     bool         Dominates(Region *finallyRegion, Region *exitLabelRegion);
     bool         DoesExitLabelDominate(IR::BranchInstr *leaveInstr);
     void         InsertEdgeFromFinallyToEarlyExit(BasicBlock * finallyEndBlock, IR::LabelInstr * exitLabel);
@@ -188,6 +187,8 @@ public:
     SList<IR::LabelInstr*> *  leaveNullLabelStack;
     typedef JsUtil::BaseDictionary<Region *, BasicBlock *, JitArenaAllocator> RegionToFinallyEndMapType;
     RegionToFinallyEndMapType * regToFinallyEndMap;
+    typedef JsUtil::BaseDictionary<IR::LabelInstr *, IR::LabelInstr *, JitArenaAllocator> LeaveNullLabelToFinallyLabelMapType;
+    LeaveNullLabelToFinallyLabelMapType * leaveNullLabelToFinallyLabelMap;
     bool                      hasBackwardPassInfo;
     bool                      hasLoop;
     Js::ImplicitCallFlags     implicitCallFlags;
@@ -567,23 +568,24 @@ public:
     BVSparse<JitArenaAllocator> *lossyInt32SymsOnEntry; // see GlobOptData::liveLossyInt32Syms
     BVSparse<JitArenaAllocator> *float64SymsOnEntry;
     BVSparse<JitArenaAllocator> *liveFieldsOnEntry;
+
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     // live syms upon entering loop header (from pred merge + forced syms + used before defs in loop)
     BVSparse<JitArenaAllocator> *simd128F4SymsOnEntry;
     BVSparse<JitArenaAllocator> *simd128I4SymsOnEntry;
+    BVSparse<JitArenaAllocator> *likelySimd128F4SymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-Simd128F4 value, and used before they are defined in the loop
+    BVSparse<JitArenaAllocator> *likelySimd128I4SymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-Simd128I4 value, and used before they are defined in the loop
+    // syms need to be forced to certain type due to hoisting
+    BVSparse<JitArenaAllocator> *forceSimd128F4SymsOnEntry;
+    BVSparse<JitArenaAllocator> *forceSimd128I4SymsOnEntry;
+#endif
 
     BVSparse<JitArenaAllocator> *symsUsedBeforeDefined;                // stack syms that are live in the landing pad, and used before they are defined in the loop
     BVSparse<JitArenaAllocator> *likelyIntSymsUsedBeforeDefined;       // stack syms that are live in the landing pad with a likely-int value, and used before they are defined in the loop
     BVSparse<JitArenaAllocator> *likelyNumberSymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-number value, and used before they are defined in the loop
-    // SIMD_JS
-    BVSparse<JitArenaAllocator> *likelySimd128F4SymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-Simd128F4 value, and used before they are defined in the loop
-    BVSparse<JitArenaAllocator> *likelySimd128I4SymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-Simd128I4 value, and used before they are defined in the loop
 
     BVSparse<JitArenaAllocator> *forceFloat64SymsOnEntry;
-    // SIMD_JS
-    // syms need to be forced to certain type due to hoisting
-    BVSparse<JitArenaAllocator> *forceSimd128F4SymsOnEntry;
-    BVSparse<JitArenaAllocator> *forceSimd128I4SymsOnEntry;
 
     BVSparse<JitArenaAllocator> *symsDefInLoop;
     BailOutInfo *       bailOutInfo;
@@ -725,11 +727,13 @@ public:
         symsUsedBeforeDefined(nullptr),
         likelyIntSymsUsedBeforeDefined(nullptr),
         likelyNumberSymsUsedBeforeDefined(nullptr),
+#ifdef ENABLE_SIMDJS
         likelySimd128F4SymsUsedBeforeDefined(nullptr),
         likelySimd128I4SymsUsedBeforeDefined(nullptr),
-        forceFloat64SymsOnEntry(nullptr),
         forceSimd128F4SymsOnEntry(nullptr),
         forceSimd128I4SymsOnEntry(nullptr),
+#endif
+        forceFloat64SymsOnEntry(nullptr),
         symsDefInLoop(nullptr),
         fieldHoistCandidateTypes(nullptr),
         fieldHoistSymMap(alloc),

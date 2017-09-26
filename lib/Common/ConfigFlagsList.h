@@ -36,10 +36,10 @@ PHASE(All)
         PHASE(GatherCodeGenData)
     PHASE(Wasm)
         // Wasm frontend
-        PHASE(WasmBytecode)
-        PHASE(WasmReader)
-            PHASE(WasmSection)
-            PHASE(WasmLEB128)
+        PHASE(WasmBytecode) // Supports -off,-dump,-trace,-profile
+        PHASE(WasmReader) // Support -trace,-profile
+        PHASE(WasmSection) // Supports -trace
+        PHASE(WasmOpCodeDistribution) // Support -dump
         // Wasm features per functions
         PHASE(WasmDeferred)
         PHASE(WasmValidatePrejit)
@@ -191,6 +191,7 @@ PHASE(All)
                     PHASE(MarkTempNumber)
                     PHASE(MarkTempObject)
                     PHASE(MarkTempNumberOnTempObject)
+        PHASE(DumpGlobOptInstr) // Print the Globopt instr string in post lower dumps
         PHASE(Lowerer)
             PHASE(FastPath)
                 PHASE(LoopFastPath)
@@ -382,12 +383,16 @@ PHASE(All)
 #define DEFAULT_CONFIG_ASMJS                (true)
 #define DEFAULT_CONFIG_AsmJsEdge            (false)
 #define DEFAULT_CONFIG_AsmJsStopOnError     (false)
+
+#ifdef ENABLE_SIMDJS
 #ifdef COMPILE_DISABLE_Simdjs
     // If Simdjs needs to be disabled by compile flag, DEFAULT_CONFIG_SIMDJS should be false
     #define DEFAULT_CONFIG_SIMDJS               (false)
 #else
     #define DEFAULT_CONFIG_SIMDJS               (false)
 #endif
+#endif // #ifdef ENABLE_SIMDJS
+
 #define DEFAULT_CONFIG_Wasm               (true)
 #define DEFAULT_CONFIG_WasmI64            (false)
 #if ENABLE_FAST_ARRAYBUFFER
@@ -396,10 +401,12 @@ PHASE(All)
     #define DEFAULT_CONFIG_WasmFastArray    (false)
 #endif
 #define DEFAULT_CONFIG_WasmCheckVersion     (true)
+#define DEFAULT_CONFIG_WasmIgnoreLimits     (false)
 #define DEFAULT_CONFIG_WasmFold             (true)
 #define DEFAULT_CONFIG_WasmMathExFilter     (false)
 #define DEFAULT_CONFIG_WasmIgnoreResponse   (false)
 #define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
+#define DEFAULT_CONFIG_WasmSignExtends      (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo    (true)
@@ -427,6 +434,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ForceSerialized      (false)
 #define DEFAULT_CONFIG_ForceES5Array        (false)
 #define DEFAULT_CONFIG_ForceAsmJsLinkFail   (false)
+#define DEFAULT_CONFIG_StrongArraySort      (false)
 #define DEFAULT_CONFIG_DumpCommentsFromReferencedFiles (false)
 #define DEFAULT_CONFIG_ExtendedErrorStackForTestHost (false)
 #define DEFAULT_CONFIG_ForceSplitScope      (false)
@@ -440,6 +448,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_InlineThresholdAdjustCountInMediumSizedFunction  (6)
 #define DEFAULT_CONFIG_InlineThresholdAdjustCountInSmallFunction  (10)
 #define DEFAULT_CONFIG_ConstructorInlineThreshold (21)      //Monomorphic constructor threshold
+#define DEFAULT_CONFIG_AsmJsInlineAdjust (35)                // wasm functions are cheaper to inline, so worth being more aggressive
 #define DEFAULT_CONFIG_ConstructorCallsRequiredToFinalizeCachedType (2)
 #define DEFAULT_CONFIG_OutsideLoopInlineThreshold (16)      //Threshold to inline outside loops
 #define DEFAULT_CONFIG_LeafInlineThreshold  (60)            //Inlinee threshold for function which is leaf (irrespective of it has loops or not)
@@ -581,12 +590,6 @@ PHASE(All)
     #define DEFAULT_CONFIG_ES6RegExSymbols         (false)
 #endif
 #define DEFAULT_CONFIG_ES6HasInstance          (true)
-#ifdef COMPILE_DISABLE_ArrayBufferTransfer
-    // If ArrayBufferTransfer needs to be disabled by compile flag, DEFAULT_CONFIG_ArrayBufferTransfer should be false
-    #define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
-#else
-    #define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
-#endif
 #define DEFAULT_CONFIG_ES7AsyncAwait           (true)
 #define DEFAULT_CONFIG_ES7ExponentionOperator  (true)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
@@ -605,7 +608,8 @@ PHASE(All)
 #define DEFAULT_CONFIG_EnumerateSpecialPropertiesInDebugger (true)
 #endif
 
-#define DEFAULT_CONFIG_MaxJITFunctionBytecodeSize (120000)
+#define DEFAULT_CONFIG_MaxJITFunctionBytecodeByteLength (4800000)
+#define DEFAULT_CONFIG_MaxJITFunctionBytecodeCount (120000)
 
 #define DEFAULT_CONFIG_JitQueueThreshold      (6)
 
@@ -676,6 +680,8 @@ PHASE(All)
 #define DEFAULT_CONFIG_PerfHintLevel (1)
 #define DEFAULT_CONFIG_OOPJITMissingOpts (true)
 #define DEFAULT_CONFIG_OOPCFGRegistration (true)
+#define DEFAULT_CONFIG_ForceJITCFGCheck (false)
+#define DEFAULT_CONFIG_UseJITTrampoline (true)
 
 #define DEFAULT_CONFIG_FailFastIfDisconnectedDelegate    (false)
 
@@ -866,15 +872,20 @@ FLAGNR(Boolean, WasmI64               , "Enable Int64 testing for WebAssembly. A
 FLAGNR(Boolean, WasmFastArray         , "Enable fast array implementation for WebAssembly", DEFAULT_CONFIG_WasmFastArray)
 FLAGNR(Boolean, WasmMathExFilter      , "Enable Math exception filter for WebAssembly", DEFAULT_CONFIG_WasmMathExFilter)
 FLAGNR(Boolean, WasmCheckVersion      , "Check the binary version for WebAssembly", DEFAULT_CONFIG_WasmCheckVersion)
+FLAGNR(Boolean, WasmIgnoreLimits      , "Ignore the WebAssembly binary limits ", DEFAULT_CONFIG_WasmIgnoreLimits)
 FLAGNR(Boolean, WasmFold              , "Enable i32/i64 const folding", DEFAULT_CONFIG_WasmFold)
 FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
+FLAGNR(Boolean, WasmSignExtends       , "Use new WebAssembly sign extension operators", DEFAULT_CONFIG_WasmSignExtends)
 
+#ifdef ENABLE_SIMDJS
 #ifndef COMPILE_DISABLE_Simdjs
     #define COMPILE_DISABLE_Simdjs 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, Simdjs, "Enable Simdjs", DEFAULT_CONFIG_SIMDJS)
 FLAGR(Boolean, Simd128TypeSpec, "Enable type-specialization of Simd128 symbols", false)
+#endif // #ifdef ENABLE_SIMDJS
+
 FLAGNR(Boolean, AssertBreak           , "Debug break on assert", false)
 FLAGNR(Boolean, AssertPopUp           , "Pop up asserts (default: false)", false)
 FLAGNR(Boolean, AssertIgnore          , "Ignores asserts if set", false)
@@ -1049,12 +1060,6 @@ FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols        , "Enable ES6 RegExp symb
 
 FLAGPR           (Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstance)
 FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose trace"                                 , DEFAULT_CONFIG_ES6Verbose)
-
-#ifndef COMPILE_DISABLE_ArrayBufferTransfer
-    #define COMPILE_DISABLE_ArrayBufferTransfer 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ArrayBufferTransfer    , "Enable ArrayBuffer.transfer"                              , DEFAULT_CONFIG_ArrayBufferTransfer)
-
 FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Object.getOwnPropertyDescriptors"        , DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors)
 
 #ifndef COMPILE_DISABLE_ESSharedArrayBuffer
@@ -1083,6 +1088,7 @@ FLAGNR(Boolean, ForceLegacyEngine     , "Force a jscrip9 dll load", false)
 FLAGNR(Phases,  Force                 , "Force certain phase to run ignoring heuristics", )
 FLAGNR(Phases,  Stress                , "Stress certain phases by making them kick in even if they normally would not.", )
 FLAGNR(Boolean, ForceArrayBTree       , "Force enable creation of BTree for Arrays", false)
+FLAGNR(Boolean, StrongArraySort       , "Add secondary comparisons to the default array sort comparator to disambiguate sorts of equal-toString'd objects.", DEFAULT_CONFIG_StrongArraySort)
 FLAGNR(Boolean, ForceCleanPropertyOnCollect, "Force cleaning of property on collection", DEFAULT_CONFIG_ForceCleanPropertyOnCollect)
 FLAGNR(Boolean, ForceCleanCacheOnCollect, "Force cleaning of dynamic caches on collection", DEFAULT_CONFIG_ForceCleanCacheOnCollect)
 FLAGNR(Boolean, ForceGCAfterJSONParse, "Force GC to happen after JSON parsing", DEFAULT_CONFIG_ForceGCAfterJSONParse)
@@ -1155,6 +1161,7 @@ FLAGNR(Number,  AggressiveInlineThreshold, "Maximum size in bytecodes of an inli
 FLAGNR(Number,  InlineThresholdAdjustCountInLargeFunction       , "Adjustment in the maximum size in bytecodes of an inline candidate in a large function", DEFAULT_CONFIG_InlineThresholdAdjustCountInLargeFunction)
 FLAGNR(Number,  InlineThresholdAdjustCountInMediumSizedFunction , "Adjustment in the maximum size in bytecodes of an inline candidate in a medium sized function", DEFAULT_CONFIG_InlineThresholdAdjustCountInMediumSizedFunction)
 FLAGNR(Number,  InlineThresholdAdjustCountInSmallFunction       , "Adjustment in the maximum size in bytecodes of an inline candidate in a small function", DEFAULT_CONFIG_InlineThresholdAdjustCountInSmallFunction)
+FLAGNR(Number,  AsmJsInlineAdjust       , "Adjustment in the maximum size in bytecodes of an inline candidate for wasm function", DEFAULT_CONFIG_AsmJsInlineAdjust)
 FLAGNR(String,  Interpret             , "List of functions to interpret", nullptr)
 FLAGNR(Phases,  Instrument            , "Instrument the generated code from the given phase", )
 FLAGNR(Number,  JitQueueThreshold     , "Max number of work items/script context in the jit queue", DEFAULT_CONFIG_JitQueueThreshold)
@@ -1234,13 +1241,16 @@ FLAGR(Number,   MinDeferredFuncTokenCount, "Minimum length in tokens of defer-pa
 #if DBG
 FLAGNR(Number,  SkipFuncCountForBailOnNoProfile,  "Initial Number of functions in a func body to be skipped from forcibly inserting BailOnNoProfile.", DEFAULT_CONFIG_SkipFuncCountForBailOnNoProfile)
 #endif
-FLAGNR(Number,  MaxJITFunctionBytecodeSize, "The biggest function we'll JIT (bytecode size)", DEFAULT_CONFIG_MaxJITFunctionBytecodeSize)
+FLAGNR(Number, MaxJITFunctionBytecodeByteLength, "The biggest function we'll JIT (bytecode bytelength)", DEFAULT_CONFIG_MaxJITFunctionBytecodeByteLength)
+FLAGNR(Number, MaxJITFunctionBytecodeCount, "The biggest function we'll JIT (bytecode count)", DEFAULT_CONFIG_MaxJITFunctionBytecodeCount)
 FLAGNR(Number,  MaxLoopsPerFunction   , "Maximum number of loops in any function in the script", DEFAULT_CONFIG_MaxLoopsPerFunction)
 FLAGNR(Number,  FuncObjectInlineCacheThreshold  , "Maximum number of inline caches a function body may have to allow for inline caches to be allocated on the function object", DEFAULT_CONFIG_FuncObjectInlineCacheThreshold)
 FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)
 FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways", false)
 FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", DEFAULT_CONFIG_OOPJITMissingOpts)
 FLAGNR(Boolean, OOPCFGRegistration    , "Do CFG registration OOP (under OOP JIT)", DEFAULT_CONFIG_OOPCFGRegistration)
+FLAGNR(Boolean, ForceJITCFGCheck      , "Have JIT code always do CFG check even if range check succeeded", DEFAULT_CONFIG_ForceJITCFGCheck)
+FLAGNR(Boolean, UseJITTrampoline      , "Use trampoline for JIT entry points and emit range checks for it", DEFAULT_CONFIG_UseJITTrampoline)
 #ifdef _ARM64_
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else

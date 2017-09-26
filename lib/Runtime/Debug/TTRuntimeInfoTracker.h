@@ -150,9 +150,10 @@ namespace TTD
         JsUtil::List<TTDPendingAsyncBufferModification, HeapAllocator> m_ttdPendingAsyncModList;
 
         //The lists containing the top-level code that is loaded in this context
-        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelScriptLoad;
-        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelNewFunction;
-        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelEval;
+        JsUtil::BaseDictionary<TTD_PTR_ID, TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelScriptLoad;
+
+        JsUtil::BaseDictionary<TTD_PTR_ID, TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelNewFunction;
+        JsUtil::BaseDictionary<TTD_PTR_ID, TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelEval;
 
         //need to add back pin set for functionBody to make sure they don't get collected on us
         RecyclerRootPtr<TTD::FunctionBodyPinSet> m_ttdPinnedRootFunctionSet;
@@ -175,16 +176,20 @@ namespace TTD
         void ClearPendingAsyncModListForSnapRestore();
 
         //Get all of the root level sources evaluated in this script context (source text & root function returned)
-        void GetLoadedSources(JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval);
+        void GetLoadedSources(const JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>* onlyLiveTopLevelBodies, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval);
 
         //To support cases where we may get cached function bodies ('new Function' & eval) check if we already know of a top-level body
         bool IsBodyAlreadyLoadedAtTopLevel(Js::FunctionBody* body) const;
 
         //force parsing and load up the parent maps etc.
         void ProcessFunctionBodyOnLoad(Js::FunctionBody* body, Js::FunctionBody* parent);
+        void ProcessFunctionBodyOnUnLoad(Js::FunctionBody* body, Js::FunctionBody* parent);
+
         void RegisterLoadedScript(Js::FunctionBody* body, uint32 bodyCtrId);
         void RegisterNewScript(Js::FunctionBody* body, uint32 bodyCtrId);
         void RegisterEvalScript(Js::FunctionBody* body, uint32 bodyCtrId);
+
+        void CleanUnreachableTopLevelBodies(const JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>& liveTopLevelBodies);
 
         //Lookup the parent body for a function body (or null for global code)
         Js::FunctionBody* ResolveParentBody(Js::FunctionBody* body) const;

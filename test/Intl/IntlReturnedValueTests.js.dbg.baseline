@@ -1,0 +1,226 @@
+[
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[Intl.DateTimeFormat returned]": "Object {...}"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "undefined undefined",
+      "date2": "undefined undefined",
+      "stringDate1": "undefined undefined",
+      "numberFormat1": "undefined undefined",
+      "formattedNumber1": "undefined undefined",
+      "collator1": "undefined undefined",
+      "compare1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[get format returned]": "function <large string>",
+      "[Intl.DateTimeFormat.prototype.format returned]": "string ‎2‎/‎1‎/‎2000"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "undefined undefined",
+      "numberFormat1": "undefined undefined",
+      "formattedNumber1": "undefined undefined",
+      "collator1": "undefined undefined",
+      "compare1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[toLocaleString returned]": "string <large string>"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "string <large string>",
+      "numberFormat1": "undefined undefined",
+      "formattedNumber1": "undefined undefined",
+      "collator1": "undefined undefined",
+      "compare1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[Intl.DateTimeFormat.supportedLocalesOf returned]": "Array [en-US]"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "string <large string>",
+      "numberFormat1": "undefined undefined",
+      "formattedNumber1": "undefined undefined",
+      "collator1": "undefined undefined",
+      "compare1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[resolvedOptions returned]": "Object {...}"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "string <large string>",
+      "numberFormat1": "undefined undefined",
+      "formattedNumber1": "undefined undefined",
+      "collator1": "undefined undefined",
+      "compare1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[Intl.NumberFormat returned]": "Object {...}"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "string <large string>",
+      "numberFormat1": "Object {...}",
+      "formattedNumber1": "undefined undefined",
+      "collator1": "undefined undefined",
+      "compare1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[get format returned]": "function <large string>",
+      "[Intl.NumberFormat.prototype.format returned]": "string 123.456"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "string <large string>",
+      "numberFormat1": "Object {...}",
+      "formattedNumber1": "string 123.456",
+      "collator1": "undefined undefined",
+      "compare1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[Intl.NumberFormat.supportedLocalesOf returned]": "Array [en-US]"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "string <large string>",
+      "numberFormat1": "Object {...}",
+      "formattedNumber1": "string 123.456",
+      "collator1": "undefined undefined",
+      "compare1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[resolvedOptions returned]": "Object {...}"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "string <large string>",
+      "numberFormat1": "Object {...}",
+      "formattedNumber1": "string 123.456",
+      "collator1": "undefined undefined",
+      "compare1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[Intl.Collator returned]": "Object {...}"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "string <large string>",
+      "numberFormat1": "Object {...}",
+      "formattedNumber1": "string 123.456",
+      "collator1": "Object {...}",
+      "compare1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[get compare returned]": "function <large string>",
+      "[Intl.Collator.prototype.compare returned]": "number -1"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "string <large string>",
+      "numberFormat1": "Object {...}",
+      "formattedNumber1": "string 123.456",
+      "collator1": "Object {...}",
+      "compare1": "number -1"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[Intl.Collator.supportedLocalesOf returned]": "Array [en-US]"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "string <large string>",
+      "numberFormat1": "Object {...}",
+      "formattedNumber1": "string 123.456",
+      "collator1": "Object {...}",
+      "compare1": "number -1"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "functionCallsReturn": {
+      "[resolvedOptions returned]": "Object {...}"
+    },
+    "locals": {
+      "options": "Object {...}",
+      "dateFormat1": "Object {...}",
+      "date1": "Date <large string>",
+      "date2": "string ‎2‎/‎1‎/‎2000",
+      "stringDate1": "string <large string>",
+      "numberFormat1": "Object {...}",
+      "formattedNumber1": "string 123.456",
+      "collator1": "Object {...}",
+      "compare1": "number -1"
+    }
+  }
+]

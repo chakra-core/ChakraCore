@@ -47,6 +47,8 @@ public:
     static bool     FitsInDWord(size_t value) { return ((size_t)(signed int)(value & 0xFFFFFFFF) == value); }
     static bool     FitsInDWord(int64 value) { return ((int64)(signed int)(value & 0xFFFFFFFF) == value); }
 
+    static bool     FitsInWord(int32 value) { return ((int32)(int16)(value & 0xFFFF) == value); }
+
     static UINT_PTR Rand();
     static bool     IsPow2(int32 val) { return (val > 0 && ((val-1) & val) == 0); }
     static uint32   NextPowerOf2(uint32 n);
@@ -124,4 +126,54 @@ public:
         return AlignOverflowCheck(size, alignment, DefaultOverflowPolicy);
     }
 
+    // Postfix increment "val++", call overflowFn() first if overflow
+    template <typename T, class Func>
+    static T PostInc(T& val, const Func& overflowFn)
+    {
+        T tmp = val;
+        if (IncImpl(val, &tmp))
+        {
+            overflowFn();  // call before changing val
+        }
+
+        T old = val;
+        val = tmp;
+        return old;
+    }
+
+    // Postfix increment "val++", call DefaultOverflowPolicy() first if overflow
+    template <typename T>
+    static T PostInc(T& val)
+    {
+        return PostInc(val, DefaultOverflowPolicy);
+    }
+
+    template <typename T>
+    static bool IncImpl(T val, T *pResult)
+    {
+        CompileAssert(false);  // must implement template specialization on type T
+    }
+
+    template <typename T, class Func>
+    static T Add(T left, T right, const Func& overflowFn)
+    {
+        T result;
+        if (AddImpl(left, right, &result))
+        {
+            overflowFn();
+        }
+        return result;
+    }
+
+    template <typename T>
+    static T Add(T left, T right)
+    {
+        return Add(left, right, DefaultOverflowPolicy);
+    }
+
+    template <typename T>
+    static bool AddImpl(T left, T right, T *pResult)
+    {
+        CompileAssert(false);  // must implement template specialization on type T
+    }
 };

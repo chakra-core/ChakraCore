@@ -4,49 +4,75 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/chakra_i64.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i64.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <baseline>baselines/chakra_extends_i32.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -wasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/chakra_i64.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i64.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <baseline>baselines/chakra_extends_i32.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -nonative -wasmSignExtends</compile-flags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/chakra_i64.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i64.wast -endargs -wasmMathExFilter</compile-flags>
-      <tags>exclude_xplat</tags>
+      <baseline>baselines/chakra_extends_i64.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -wasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/chakra_i32.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i32.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines/chakra_i32.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i32.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <baseline>baselines/chakra_extends_i64.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -nonative -wasmSignExtends</compile-flags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_i32.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i32.wast -endargs -wasmMathExFilter</compile-flags>
-      <tags>exclude_xplat</tags>
+      <compile-flags>-wasm -args chakra/chakra_i32.wast -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_i32.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_i32.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_i32.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_i32.wast -endargs -wasmMathExFilter</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_i64.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_i64.wast -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_i64.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_i64.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_i64.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_i64.wast -endargs -wasmMathExFilter</compile-flags>
     </default>
   </test>
   <test>
@@ -54,7 +80,6 @@
       <files>spec.js</files>
       <baseline>baselines/address.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/address.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -62,7 +87,7 @@
       <files>spec.js</files>
       <baseline>baselines/address.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/address.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -70,7 +95,7 @@
       <files>spec.js</files>
       <baseline>baselines/address.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/address.wast -endargs -wasmfastarray-</compile-flags>
-      <tags>exclude_x86,exclude_xplat</tags>
+      <tags>exclude_x86</tags>
     </default>
   </test>
   <test>
@@ -93,7 +118,6 @@
       <files>spec.js</files>
       <baseline>baselines/binary.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/binary.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -101,7 +125,7 @@
       <files>spec.js</files>
       <baseline>baselines/binary.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/binary.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -184,7 +208,6 @@
       <files>spec.js</files>
       <baseline>baselines/call.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/call.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -192,7 +215,7 @@
       <files>spec.js</files>
       <baseline>baselines/call.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/call.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -200,7 +223,6 @@
       <files>spec.js</files>
       <baseline>baselines/call_indirect.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/call_indirect.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -208,7 +230,7 @@
       <files>spec.js</files>
       <baseline>baselines/call_indirect.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/call_indirect.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -231,7 +253,6 @@
       <files>spec.js</files>
       <baseline>baselines/conversions.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/conversions.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -239,7 +260,7 @@
       <files>spec.js</files>
       <baseline>baselines/conversions.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/conversions.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -254,6 +275,21 @@
       <files>spec.js</files>
       <baseline>baselines/custom_section.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/custom_section.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/elem.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/elem.wast -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/elem.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/elem.wast -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -382,7 +418,6 @@
       <files>spec.js</files>
       <baseline>baselines/fac.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/fac.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -390,7 +425,7 @@
       <files>spec.js</files>
       <baseline>baselines/fac.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/fac.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -398,7 +433,6 @@
       <files>spec.js</files>
       <baseline>baselines/float_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_exprs.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -406,7 +440,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_exprs.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -482,7 +516,6 @@
       <files>spec.js</files>
       <baseline>baselines/func.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/func.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -490,7 +523,7 @@
       <files>spec.js</files>
       <baseline>baselines/func.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/func.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -498,7 +531,6 @@
       <files>spec.js</files>
       <baseline>baselines/func_ptrs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/func_ptrs.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -506,7 +538,7 @@
       <files>spec.js</files>
       <baseline>baselines/func_ptrs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/func_ptrs.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -544,7 +576,6 @@
       <files>spec.js</files>
       <baseline>baselines/i32.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/i32.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -552,15 +583,14 @@
       <files>spec.js</files>
       <baseline>baselines/i32.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/i32.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/i32.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/i32.wast -endargs -wasmMathExFilter-</compile-flags>
-      <tags>exclude_xplat</tags>
+      <compile-flags>-wasm -args testsuite/core/i32.wast -endargs -wasmMathExFilter</compile-flags>
     </default>
   </test>
   <test>
@@ -568,7 +598,6 @@
       <files>spec.js</files>
       <baseline>baselines/i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/i64.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -576,7 +605,7 @@
       <files>spec.js</files>
       <baseline>baselines/i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/i64.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -584,7 +613,6 @@
       <files>spec.js</files>
       <baseline>baselines/i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/i64.wast -endargs -wasmMathExFilter</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -607,7 +635,6 @@
       <files>spec.js</files>
       <baseline>baselines/imports.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/imports.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -615,7 +642,7 @@
       <files>spec.js</files>
       <baseline>baselines/imports.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/imports.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -638,7 +665,6 @@
       <files>spec.js</files>
       <baseline>baselines/int_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/int_exprs.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -646,7 +672,7 @@
       <files>spec.js</files>
       <baseline>baselines/int_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/int_exprs.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -654,7 +680,6 @@
       <files>spec.js</files>
       <baseline>baselines/int_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/int_exprs.wast -endargs -wasmMathExFilter</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -692,7 +717,6 @@
       <files>spec.js</files>
       <baseline>baselines/left-to-right.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/left-to-right.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -700,7 +724,7 @@
       <files>spec.js</files>
       <baseline>baselines/left-to-right.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/left-to-right.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -708,7 +732,6 @@
       <files>spec.js</files>
       <baseline>baselines/linking.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/linking.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -716,7 +739,7 @@
       <files>spec.js</files>
       <baseline>baselines/linking.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/linking.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -777,7 +800,6 @@
       <files>spec.js</files>
       <baseline>baselines/memory_trap.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/memory_trap.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -785,7 +807,7 @@
       <files>spec.js</files>
       <baseline>baselines/memory_trap.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/memory_trap.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -793,23 +815,7 @@
       <files>spec.js</files>
       <baseline>baselines/memory_trap.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/memory_trap.wast -endargs -wasmfastarray-</compile-flags>
-      <tags>exclude_x86,exclude_xplat</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines/names.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/names.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines/names.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/names.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_x86</tags>
     </default>
   </test>
   <test>
@@ -832,7 +838,6 @@
       <files>spec.js</files>
       <baseline>baselines/resizing.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/resizing.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -840,7 +845,7 @@
       <files>spec.js</files>
       <baseline>baselines/resizing.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/resizing.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -848,7 +853,7 @@
       <files>spec.js</files>
       <baseline>baselines/resizing.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/resizing.wast -endargs -wasmfastarray-</compile-flags>
-      <tags>exclude_x86,exclude_xplat</tags>
+      <tags>exclude_x86</tags>
     </default>
   </test>
   <test>
@@ -871,7 +876,6 @@
       <files>spec.js</files>
       <baseline>baselines/select.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/select.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -879,7 +883,7 @@
       <files>spec.js</files>
       <baseline>baselines/select.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/select.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -902,7 +906,6 @@
       <files>spec.js</files>
       <baseline>baselines/skip-stack-guard-page.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/skip-stack-guard-page.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -910,7 +913,7 @@
       <files>spec.js</files>
       <baseline>baselines/skip-stack-guard-page.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/skip-stack-guard-page.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -933,7 +936,6 @@
       <files>spec.js</files>
       <baseline>baselines/start.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/start.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -941,7 +943,7 @@
       <files>spec.js</files>
       <baseline>baselines/start.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/start.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1009,7 +1011,6 @@
       <files>spec.js</files>
       <baseline>baselines/traps.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/traps.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -1017,7 +1018,7 @@
       <files>spec.js</files>
       <baseline>baselines/traps.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/traps.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1025,7 +1026,7 @@
       <files>spec.js</files>
       <baseline>baselines/traps.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/traps.wast -endargs -wasmfastarray-</compile-flags>
-      <tags>exclude_x86,exclude_xplat</tags>
+      <tags>exclude_x86</tags>
     </default>
   </test>
   <test>
@@ -1033,7 +1034,6 @@
       <files>spec.js</files>
       <baseline>baselines/traps.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/traps.wast -endargs -wasmMathExFilter</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -1071,7 +1071,6 @@
       <files>spec.js</files>
       <baseline>baselines/unreachable.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/unreachable.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -1079,7 +1078,7 @@
       <files>spec.js</files>
       <baseline>baselines/unreachable.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/unreachable.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1102,7 +1101,6 @@
       <files>spec.js</files>
       <baseline>baselines/unwind.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/unwind.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -1110,7 +1108,7 @@
       <files>spec.js</files>
       <baseline>baselines/unwind.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/unwind.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1170,6 +1168,36 @@
       <files>jsapi.js</files>
       <baseline>baselines/jsapi.baseline</baseline>
       <compile-flags>-wasm -args testsuite/js-api/jsapi.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/extends_i32.baseline</baseline>
+      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -wasmSignExtends</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/extends_i32.baseline</baseline>
+      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -nonative -wasmSignExtends</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/extends_i64.baseline</baseline>
+      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -wasmSignExtends</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/extends_i64.baseline</baseline>
+      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -nonative -wasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>

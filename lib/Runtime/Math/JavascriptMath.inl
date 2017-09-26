@@ -7,10 +7,6 @@
 
 namespace Js
 {
-#ifdef SSE2MATH
-    namespace SSE2
-    {
-#endif
         inline Var JavascriptMath::Increment(Var aRight, ScriptContext* scriptContext)
         {
             return Increment_Full(aRight, scriptContext);
@@ -207,16 +203,7 @@ namespace Js
             }
             else
             {
-#if defined(_M_IX86) && !defined(SSE2MATH)
-                if (AutoSystemInfo::Data.SSE2Available())
-                {
-                    return SSE2::JavascriptMath::Multiply_Full(aLeft, aRight, scriptContext);
-                }
-                else
-#endif
-                {
-                    return Multiply_Full(aLeft, aRight, scriptContext);
-                }
+                return Multiply_Full(aLeft, aRight, scriptContext);
             }
         }
 
@@ -238,17 +225,8 @@ namespace Js
 
         inline Var JavascriptMath::Divide(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
-#if defined(_M_IX86) && !defined(SSE2MATH)
-            if (AutoSystemInfo::Data.SSE2Available())
-            {
-                return SSE2::JavascriptMath::Divide_Full(aLeft, aRight, scriptContext);
-            }
-            else
-#endif
-            {
-                // The TaggedInt,TaggedInt case is handled within Divide_Full
-                return Divide_Full(aLeft, aRight, scriptContext);
-            }
+            // The TaggedInt,TaggedInt case is handled within Divide_Full
+            return Divide_Full(aLeft, aRight, scriptContext);
         }
 
         inline double JavascriptMath::Divide_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
@@ -371,7 +349,4 @@ namespace Js
                 TaggedInt::ToInt32(aValue) :
                 ToInt32_Full(aValue, scriptContext);
         }
-#ifdef SSE2MATH
-    }
-#endif
 }

@@ -29,6 +29,8 @@
       <!-- ======== sources.inc ======== -->
       <!-- generates SAL annotations for our interface -->
       <AdditionalOptions>%(AdditionalOptions) -sal_local</AdditionalOptions>
+      
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WINVER=$(Win32_WinNTVersion)</PreprocessorDefinitions>
     </Midl>
     <ClCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);NOMINMAX;USE_EDGEMODE_JSRT</PreprocessorDefinitions>
@@ -80,7 +82,7 @@
       <ProgramDataBaseFileName Condition="'$(ConfigurationType)'=='StaticLibrary'">$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <ProgramDataBaseFileName Condition="'$(ConfigurationType)'!='StaticLibrary'">$(IntDir)</ProgramDataBaseFileName>
 
-      <!-- ======== For Code Covearge ======== -->
+      <!-- ======== For Code Coverage ======== -->
       <PreprocessorDefinitions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">
         %(PreprocessorDefinitions);
         BYTECODE_TESTING=1
@@ -105,13 +107,14 @@
 
       <MinimumRequiredVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win7)'" >6.1</MinimumRequiredVersion>
       <MinimumRequiredVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win8)'" >6.2</MinimumRequiredVersion>
+      <MinimumRequiredVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_WinBlue)'" >6.3</MinimumRequiredVersion>
       <MinimumRequiredVersion Condition="'$(NtTargetVersion)'=='$(NtTargetVersion_Win10)'" >10.00</MinimumRequiredVersion>
 
       <!-- Always set the checksum -->
       <AdditionalOptions>%(AdditionalOptions) /release</AdditionalOptions>
       <!-- Ignore Linker warning: This object file does not define any previously undefined public symbols -->
       <AdditionalOptions>%(AdditionalOptions) /ignore:4221</AdditionalOptions>
-      <!-- ======== For Code Covearge ======== -->
+      <!-- ======== For Code Coverage ======== -->
       <AdditionalOptions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">%(AdditionalOptions) /DEBUGTYPE:CV,FIXUP</AdditionalOptions>
     </Link>
     <Lib>

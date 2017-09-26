@@ -7,20 +7,13 @@
 #ifdef ASMJS_PLAT
 namespace OpCodeAttrAsmJs
 {
-    // OpSideEffect:
-    //      Opcode has side effect not just to the dst/src on the instruction.
-    //      The opcode cannot be deadstored. (e.g. StFld, LdFld from DOM, call valueOf/toString/getter/setter)
-    //      Doesn't include all "exit" script (e.g. LdThis doesn't have side effect for HostDispatch for exiting script to getting the name space parent)
-    // OpHasImplicitCall:
-    //      Include all possible exit scripts, call valueOf/toString/getter/setter
-    // OpSerialized:
-    //      Op is a serialized (indirected) variant of another op code
     enum OpCodeAttrEnum
     {
         None = 0,
         OpNoFallThrough = 1 << 0, // Opcode doesn't fallthrough in flow  and its always jump to the return from this opcode.
         OpHasMultiSizeLayout = 1 << 1,
-
+        OpHasProfiled = 1 << 2,
+        OpProfiled = 1 << 3
     };
 
     static const int OpcodeAttributesAsmJs[] =
@@ -65,6 +58,14 @@ namespace OpCodeAttrAsmJs
         return CheckHasFlag( OpHasMultiSizeLayout );
     }
 
+    bool HasProfiledOp(Js::OpCodeAsmJs opcode)
+    {
+        return ((GetOpCodeAttributes(opcode) & OpHasProfiled) != 0);
+    }
+    bool IsProfiledOp(Js::OpCodeAsmJs opcode)
+    {
+        return ((GetOpCodeAttributes(opcode) & OpProfiled) != 0);
+    }
 
 }; // OpCodeAttrAsmJs
 #endif

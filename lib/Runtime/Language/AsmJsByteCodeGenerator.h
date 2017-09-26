@@ -79,6 +79,8 @@ namespace Js
             LoadTypedArray,
             StoreTypedArray,
         };
+        RegSlot EmitIndirectCallIndex(ParseNode* identifierNode, ParseNode* indexNode);
+
         EmitExpressionInfo EmitTypedArrayIndex(ParseNode* indexNode, OpCodeAsmJs &op, uint32 &indexSlot, ArrayBufferView::ViewType viewType, TypedArrayEmitType emitType);
         EmitExpressionInfo EmitAssignment( ParseNode * pnode );
         EmitExpressionInfo EmitReturn( ParseNode * pnode );
@@ -138,11 +140,12 @@ namespace Js
         {
             return mByteCodeGenerator;
         }
-
+#ifdef ENABLE_SIMDJS
         bool IsSimdjsEnabled()
         {
             return mFunction->GetFuncBody()->GetScriptContext()->GetConfig()->IsSimdjsEnabled();
         }
+#endif
         // try to reuse a tmp register or acquire a new one
         // also takes care of releasing tmp register
         template<typename T>

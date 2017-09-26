@@ -212,6 +212,75 @@ var tests = [
             assert.throws(function () { Intl.getCanonicalLocales(['en-us', {}]) }, RangeError, "Object whose toString is not a well-formed language tag.");
             assert.throws(function () { Intl.getCanonicalLocales([{ '0': 'en-us' }]) }, RangeError, "Array containing object where toString() produces an invalid tag.");
         }
+    },
+    {
+        name: "Array with holes",
+        body: function () {
+            let a = [];
+            a[1] = 'en';
+            assert.areEqual(Intl.getCanonicalLocales(a), ['en']);
+        }
+    },
+    {
+        name: "Array-like object (without holes)",
+        body: function () {
+            let locales = {
+                length: 2,
+                0: 'zh',
+                1: 'en'
+            };
+            assert.areEqual(Intl.getCanonicalLocales(locales), ['zh', 'en']);
+        }
+    },
+    {
+        name: "Array-like object (with holes)",
+        body: function () {
+            let locales = {
+                length: 2,
+                // 0: 'zh',
+                1: 'en'
+            };
+            assert.areEqual(Intl.getCanonicalLocales(locales), ['en']);
+        }
+    },
+    {
+        name: "Array-like class with numeric getters (without holes)",
+        body: function () {
+            class x {
+                get 0() { return 'zh'; }
+                get 1() { return 'en'; }
+                get length() { return 2; }
+            }
+            let locales = new x();
+            assert.areEqual(Intl.getCanonicalLocales(locales), ['zh', 'en']);
+        }
+    },
+    {
+        name: "Array-like class with numeric getters (with holes)",
+        body: function () {
+            class x {
+                // get 0() { return 'zh'; } // culture[0] is a hole
+                get 1() { return 'en'; }
+                get length() { return 2; }
+            }
+            let locales = new x();
+            assert.areEqual(Intl.getCanonicalLocales(locales), ['en']);
+        }
+    },
+    {
+        name: "Array-like class with numeric getters (with base class closing the hole)",
+        body: function () {
+            class base {
+                get 0() { return 'jp'; } // closes the hole in x
+            }
+            class x extends base {
+                // get 0() { return 'zh'; } // culture[0] has a hole
+                get 1() { return 'en'; }
+                get length() { return 2; } // try 2 with get 0 defined in base; try 2,3 with get 2 defined in base; try 3 with get 0, get 1 defined
+            }
+            let locales = new x();
+            assert.areEqual(Intl.getCanonicalLocales(locales), ['jp', 'en']);
+        }
     }
 ];
 

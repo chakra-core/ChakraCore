@@ -33,6 +33,7 @@ class SimpleHashTable
     uint size;
     uint freecount;
     bool disableResize;
+    int modFunctionIndex;
 #if PROFILE_DICTIONARY
     DictionaryStats *stats;
 #endif
@@ -40,18 +41,20 @@ public:
     SimpleHashTable(TAllocator *allocator) :
         allocator(allocator),
         count(0),
-        freecount(0)
+        freecount(0),
+        modFunctionIndex(UNKNOWN_MOD_INDEX)
     {
-        this->size = SizePolicy::GetSize(64);
+        this->size = SizePolicy::GetSize(64, &modFunctionIndex);
         Initialize();
     }
 
     SimpleHashTable(uint size, TAllocator* allocator) :
         allocator(allocator),
         count(0),
-        freecount(0)
+        freecount(0),
+        modFunctionIndex(UNKNOWN_MOD_INDEX)
     {
-        this->size = SizePolicy::GetSize(size);
+        this->size = SizePolicy::GetSize(size, &modFunctionIndex);
         Initialize();
     }
 
@@ -270,8 +273,8 @@ private:
 
     uint HashKeyToBucket(TKey hashKey, int size)
     {
-        uint hashCode = Comparer<TKey>::GetHashCode(hashKey);
-        return SizePolicy::GetBucket(hashCode, size);
+        hash_t hashCode = Comparer<TKey>::GetHashCode(hashKey);
+        return SizePolicy::GetBucket(hashCode, size, modFunctionIndex);
     }
 
     EntryType * FindEntry(TKey key)
@@ -338,7 +341,7 @@ private:
     {
         if(resize && !disableResize && IsDenserThan<MaxAverageChainLength>())
         {
-            Resize(SizePolicy::GetSize(size*2));
+            Resize(SizePolicy::GetSize(size*2, &modFunctionIndex));
             // After resize - we will need to recalculate the bucket
             targetBucket = HashKeyToBucket(key);
         }

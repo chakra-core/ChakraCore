@@ -31,19 +31,6 @@ enum
     fidKwdRsvd      = 0x0001,     // the keyword is a reserved word
     fidKwdFutRsvd   = 0x0002,     // a future reserved word, but only in strict mode
 
-    // Flags to identify tracked aliases of "eval"
-    fidEval         = 0x0008,
-    // Flags to identify tracked aliases of "let"
-    fidLetOrConst   = 0x0010,     // ID has previously been used in a block-scoped declaration
-
-    // This flag is used by the Parser CountDcls and FillDcls methods.
-    // CountDcls sets the bit as it walks through the var decls so that
-    // it can skip duplicates. FillDcls clears the bit as it walks through
-    // again to skip duplicates.
-    fidGlobalDcl    = 0x2000,
-
-    fidUsed         = 0x4000,  // name referenced by source code
-
     fidModuleExport = 0x8000    // name is module export
 };
 
@@ -314,14 +301,14 @@ public:
     Js::PropertyId GetPropertyId() const { return m_propertyId; }
     void SetPropertyId(Js::PropertyId id) { m_propertyId = id; }
 
-    void SetIsEval() { m_grfid |= fidEval; }
-    BOOL GetIsEval() const { return m_grfid & fidEval; }
-
-    void SetIsLetOrConst() { m_grfid |= fidLetOrConst; }
-    BOOL GetIsLetOrConst() const { return m_grfid & fidLetOrConst; }
-
     void SetIsModuleExport() { m_grfid |= fidModuleExport; }
     BOOL GetIsModuleExport() const { return m_grfid & fidModuleExport; }
+
+    static tokens TkFromNameLen(uint32 luHash, _In_reads_(cch) LPCOLESTR prgch, uint32 cch, bool isStrictMode, ushort * pgrfid, ushort * ptk);
+
+#if DBG
+    static tokens TkFromNameLen(_In_reads_(cch) LPCOLESTR prgch, uint32 cch, bool isStrictMode);
+#endif
 };
 
 
@@ -334,7 +321,7 @@ public:
 
     void Release(void)
     {
-        delete this;  // invokes overrided operator delete
+        delete this;  // invokes overridden operator delete
     }
 
 
@@ -389,11 +376,21 @@ public:
 #endif
         );
 
-    tokens TkFromNameLen(_In_reads_(cch) LPCOLESTR prgch, uint32 cch, bool isStrictMode);
     NoReleaseAllocator* GetAllocator() {return &m_noReleaseAllocator;}
 
     bool Contains(_In_reads_(cch) LPCOLESTR prgch, int32 cch);
-    void ClearPidRefStacks();
+
+    template<typename Fn>
+    void VisitPids(Fn fn)
+    {
+        for (uint i = 0; i <= m_luMask; i++)
+        {
+            for (IdentPtr pid = m_prgpidName[i]; pid; pid = pid->m_pidNext)
+            {
+                fn(pid);
+            }
+        }
+    }
 
 private:
     NoReleaseAllocator m_noReleaseAllocator;            // to allocate identifiers

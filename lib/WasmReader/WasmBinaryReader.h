@@ -35,6 +35,12 @@ namespace Wasm
         uint32 maximum;
     };
 
+    struct BinaryLocation
+    {
+        intptr_t offset;
+        intptr_t size;
+    };
+
     static const uint32 binaryVersion = 0x1;
 
     class WasmBinaryReader : public WasmReaderBase
@@ -53,13 +59,17 @@ namespace Wasm
 #if DBG_DUMP
         void PrintOps();
 #endif
-        intptr_t GetCurrentOffset() const { return m_pc - m_start; }
+        BinaryLocation GetCurrentLocation() const { return {m_pc - m_start, m_end - m_start}; }
     private:
         struct ReaderState
         {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            Js::FunctionBody* body = nullptr;
+#endif
             uint32 count; // current entry
-            size_t size;  // number of entries
+            uint32 size;  // binary size of the function
         };
+        WasmOp ReadOpCode();
 
         void BlockNode();
         void CallNode();
@@ -119,6 +129,9 @@ namespace Wasm
             READER_STATE_MODULE
         } m_readerState;
         Js::WebAssemblyModule* m_module;
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        Js::FunctionBody* GetFunctionBody() const;
+#endif
 #if DBG_DUMP
         typedef JsUtil::BaseHashSet<WasmOp, ArenaAllocator, PowerOf2SizePolicy> OpSet;
         OpSet* m_ops;

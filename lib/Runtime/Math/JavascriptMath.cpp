@@ -4,10 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 namespace Js
 {
-#ifdef SSE2MATH
-    namespace SSE2
-    {
-#endif
         Var JavascriptMath::Negate_Full(Var aRight, ScriptContext* scriptContext)
         {
             // Special case for zero. Must return -0
@@ -169,45 +165,38 @@ namespace Js
             Assert(aRight != nullptr);
             Assert(scriptContext != nullptr);
 
-            // If both sides are numbers, then we can do the addition directly, otherwise
-            // we need to call the helper.
-            if(JavascriptNumber::Is(aLeft))
+            Js::TypeId typeLeft = JavascriptOperators::GetTypeId(aLeft);
+            Js::TypeId typeRight = JavascriptOperators::GetTypeId(aRight);
+
+            if (typeRight == typeLeft)
             {
-                if(JavascriptNumber::Is(aRight))
+                // If both sides are numbers/string, then we can do the addition directly
+                if(typeLeft == TypeIds_Number)
                 {
                     double sum = JavascriptNumber::GetValue(aLeft) + JavascriptNumber::GetValue(aRight);
                     return JavascriptNumber::ToVarNoCheck(sum, scriptContext);
                 }
-                else if(TaggedInt::Is(aRight))
-                {
-                    double sum = TaggedInt::ToDouble(aRight) + JavascriptNumber::GetValue(aLeft);
-                    return JavascriptNumber::ToVarNoCheck(sum, scriptContext);
-                }
-            }
-            else if(JavascriptNumber::Is(aRight))
-            {
-                if(TaggedInt::Is(aLeft))
-                {
-                    double sum = TaggedInt::ToDouble(aLeft) + JavascriptNumber::GetValue(aRight);
-                    return JavascriptNumber::ToVarNoCheck(sum, scriptContext);
-                }
-            }
-            else if(TaggedInt::Is(aLeft))
-            {
-                if(TaggedInt::Is(aRight))
+                else if (typeLeft == TypeIds_Integer)
                 {
                     __int64 sum = TaggedInt::ToInt64(aLeft) + TaggedInt::ToInt64(aRight);
                     return JavascriptNumber::ToVar(sum, scriptContext);
                 }
+                else if (typeLeft == TypeIds_String)
+                {
+                    return JavascriptString::Concat(JavascriptString::FromVar(aLeft), JavascriptString::FromVar(aRight));
+                }
             }
-            else if (TaggedInt::Is(aRight))
+            else if(typeLeft == TypeIds_Number && typeRight == TypeIds_Integer)
             {
-                return Add_FullHelper_Wrapper(aLeft, aRight, scriptContext, nullptr, false);
+                double sum = JavascriptNumber::GetValue(aLeft) + TaggedInt::ToDouble(aRight);
+                return JavascriptNumber::ToVarNoCheck(sum, scriptContext);
             }
-            else if (RecyclableObject::FromVar(aLeft)->GetTypeId() == TypeIds_String && RecyclableObject::FromVar(aRight)->GetTypeId() == TypeIds_String)
+            else if(typeLeft == TypeIds_Integer && typeRight == TypeIds_Number)
             {
-                return JavascriptString::Concat(JavascriptString::FromVar(aLeft), JavascriptString::FromVar(aRight));
+                double sum = TaggedInt::ToDouble(aLeft) + JavascriptNumber::GetValue(aRight);
+                return JavascriptNumber::ToVarNoCheck(sum, scriptContext);
             }
+
             return Add_FullHelper_Wrapper(aLeft, aRight, scriptContext, nullptr, false);
          }
 #else
@@ -1160,7 +1149,4 @@ StringCommon:
 
             return JavascriptConversion::ToInt32_Full(aValue, scriptContext);
         }
-#ifdef SSE2MATH
-      }
-#endif
 }

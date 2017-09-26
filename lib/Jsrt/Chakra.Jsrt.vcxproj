@@ -24,6 +24,7 @@
         $(MSBuildThisFileDirectory);
         $(MSBuildThisFileDirectory)..\Runtime;
         $(ChakraJITIDLIntDir);
+        $(IcuIncludeDir)\common;
         $(MSBuildThisFileDirectory)..\JITClient;
         $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\Common;
@@ -61,6 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChakraCommon.h" />
+    <ClInclude Include="ChakraCommonWindows.h" />
     <ClInclude Include="ChakraCore.h" />
     <ClInclude Include="ChakraDebug.h" />
     <ClInclude Include="JsrtContext.h" />

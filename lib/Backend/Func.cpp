@@ -68,6 +68,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_canDoInlineArgsOpt(true),
     m_doFastPaths(false),
     hasBailout(false),
+    firstIRTemp(0),
     hasBailoutInEHRegion(false),
     hasInstrNumber(false),
     maintainByteCodeOffset(true),
@@ -78,7 +79,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     hasAnyStackNestedFunc(false),
     hasMarkTempObjects(false),
     postCallByteCodeOffset(postCallByteCodeOffset),
-    maxInlineeArgOutCount(0),
+    maxInlineeArgOutSize(0),
     returnValueRegSlot(returnValueRegSlot),
     firstActualStackOffset(-1),
     m_localVarSlotsOffset(Js::Constants::InvalidOffset),
@@ -95,7 +96,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     hasThrow(false),
     hasNonSimpleParams(false),
     hasUnoptimizedArgumentsAccess(false),
-    hasApplyTargetInlining(false),
+    applyTargetInliningRemovedArgumentsAccess(false),
     hasImplicitCalls(false),
     hasTempObjectProducingInstr(false),
     isInlinedConstructor(isInlinedConstructor),
@@ -143,12 +144,23 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , m_forInEnumeratorArrayOffset(-1)
     , argInsCount(0)
     , m_globalObjTypeSpecFldInfoArray(nullptr)
+#if LOWER_SPLIT_INT64
+    , m_int64SymPairMap(nullptr)
+#endif
 #ifdef RECYCLER_WRITE_BARRIER_JIT
     , m_lowerer(nullptr)
 #endif
 {
 
     Assert(this->IsInlined() == !!runtimeInfo);
+
+    AssertOrFailFast(!HasProfileInfo() || GetReadOnlyProfileInfo()->GetLoopCount() == GetJITFunctionBody()->GetLoopCount());
+    Js::RegSlot tmpResult;
+    AssertOrFailFast(!UInt32Math::Add(GetJITFunctionBody()->GetConstCount(), GetJITFunctionBody()->GetVarCount(), &tmpResult));
+    AssertOrFailFast(GetJITFunctionBody()->IsAsmJsMode() || GetJITFunctionBody()->GetFirstTmpReg() <= GetJITFunctionBody()->GetLocalsCount());
+    AssertOrFailFast(!IsLoopBody() || m_workItem->GetLoopNumber() < GetJITFunctionBody()->GetLoopCount());
+    AssertOrFailFast(CONFIG_FLAG(Prejit) || CONFIG_ISENABLED(Js::ForceNativeFlag) || GetJITFunctionBody()->GetByteCodeLength() < (uint)CONFIG_FLAG(MaxJITFunctionBytecodeByteLength));
+    GetJITFunctionBody()->EnsureConsistentConstCount();
 
     if (this->IsTopFunc())
     {
@@ -733,19 +745,27 @@ void Func::SetFirstArgOffset(IR::Instr* inlineeStart)
     int32 lastOffset;
 
     IR::Instr* arg = inlineeStart->GetNextArg();
-    const auto lastArgOutStackSym = arg->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
-    lastOffset = lastArgOutStackSym->m_offset;
-    Assert(lastArgOutStackSym->m_isSingleDef);
-    const auto secondLastArgOutOpnd = lastArgOutStackSym->m_instrDef->GetSrc2();
-    if (secondLastArgOutOpnd->IsSymOpnd())
+    if (arg)
     {
-        const auto secondLastOffset = secondLastArgOutOpnd->AsSymOpnd()->m_sym->AsStackSym()->m_offset;
-        if (secondLastOffset > lastOffset)
+        const auto lastArgOutStackSym = arg->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
+        lastOffset = lastArgOutStackSym->m_offset;
+        Assert(lastArgOutStackSym->m_isSingleDef);
+        const auto secondLastArgOutOpnd = lastArgOutStackSym->m_instrDef->GetSrc2();
+        if (secondLastArgOutOpnd->IsSymOpnd())
         {
-            lastOffset = secondLastOffset;
+            const auto secondLastOffset = secondLastArgOutOpnd->AsSymOpnd()->m_sym->AsStackSym()->m_offset;
+            if (secondLastOffset > lastOffset)
+            {
+                lastOffset = secondLastOffset;
+            }
         }
+        lastOffset += MachPtr;
     }
-    lastOffset += MachPtr;
+    else
+    {
+        Assert(this->GetTopFunc()->GetJITFunctionBody()->IsAsmJsMode());
+        lastOffset = MachPtr;
+    }
     int32 firstActualStackOffset = lastOffset - ((this->actualCount + Js::Constants::InlineeMetaArgCount) * MachPtr);
     Assert((this->firstActualStackOffset == -1) || (this->firstActualStackOffset == firstActualStackOffset));
     this->firstActualStackOffset = firstActualStackOffset;
@@ -856,6 +876,119 @@ Func::SetDoFastPaths()
     this->hasCalledSetDoFastPaths = true;
 #endif
 }
+
+#if LOWER_SPLIT_INT64
+Int64RegPair Func::FindOrCreateInt64Pair(IR::Opnd* opnd)
+{
+    if (!this->IsTopFunc())
+    {
+        return GetTopFunc()->FindOrCreateInt64Pair(opnd);
+    }
+    AssertMsg(currentPhases.Top() == Js::LowererPhase, "New Int64 sym map is only allowed during lower");
+    Int64RegPair pair;
+    IRType pairType = opnd->GetType();
+    if (opnd->IsInt64())
+    {
+        pairType = IRType_IsSignedInt(pairType) ? TyInt32 : TyUint32;
+    }
+    if (opnd->IsIndirOpnd())
+    {
+        IR::IndirOpnd* indir = opnd->AsIndirOpnd();
+        indir->SetType(pairType);
+        pair.low = indir;
+        pair.high = indir->Copy(this)->AsIndirOpnd();
+        pair.high->AsIndirOpnd()->SetOffset(indir->GetOffset() + 4);
+        return pair;
+    }
+
+    // Only indir opnd can have a type other than int64
+    Assert(opnd->IsInt64());
+
+    if (opnd->IsImmediateOpnd())
+    {
+        int64 value = opnd->GetImmediateValue(this);
+        pair.low = IR::IntConstOpnd::New((int32)value, pairType, this);
+        pair.high = IR::IntConstOpnd::New((int32)(value >> 32), pairType, this);
+        return pair;
+    }
+
+    Int64SymPair symPair;
+
+    if (!m_int64SymPairMap)
+    {
+        m_int64SymPairMap = Anew(m_alloc, Int64SymPairMap, m_alloc);
+    }
+    StackSym* stackSym = opnd->GetStackSym();
+    AssertOrFailFastMsg(stackSym, "Invalid int64 operand type");
+
+    SymID symId = stackSym->m_id;
+    if (!m_int64SymPairMap->TryGetValue(symId, &symPair))
+    {
+        if (stackSym->IsArgSlotSym() || stackSym->IsParamSlotSym())
+        {
+            const bool isArg = stackSym->IsArgSlotSym();
+            if (isArg)
+            {
+                Js::ArgSlot slotNumber = stackSym->GetArgSlotNum();
+                symPair.low = StackSym::NewArgSlotSym(slotNumber, this, pairType);
+                symPair.high = StackSym::NewArgSlotSym(slotNumber, this, pairType);
+            }
+            else
+            {
+                Js::ArgSlot slotNumber = stackSym->GetParamSlotNum();
+                symPair.low = StackSym::NewParamSlotSym(slotNumber, this, pairType);
+                symPair.high = StackSym::NewParamSlotSym(slotNumber + 1, this, pairType);
+            }
+            symPair.low->m_allocated = true;
+            symPair.low->m_offset = stackSym->m_offset;
+            symPair.high->m_allocated = true;
+            symPair.high->m_offset = stackSym->m_offset + 4;
+        }
+        else
+        {
+            symPair.low = StackSym::New(pairType, this);
+            symPair.high = StackSym::New(pairType, this);
+        }
+        m_int64SymPairMap->Add(symId, symPair);
+    }
+
+    if (opnd->IsSymOpnd())
+    {
+        pair.low = IR::SymOpnd::New(symPair.low, opnd->AsSymOpnd()->m_offset, pairType, this);
+        pair.high = IR::SymOpnd::New(symPair.high, opnd->AsSymOpnd()->m_offset, pairType, this);
+    }
+    else
+    {
+        pair.low = IR::RegOpnd::New(symPair.low, pairType, this);
+        pair.high = IR::RegOpnd::New(symPair.high, pairType, this);
+    }
+    return pair;
+}
+
+void Func::Int64SplitExtendLoopLifetime(Loop* loop)
+{
+    if (!this->IsTopFunc())
+    {
+        GetTopFunc()->Int64SplitExtendLoopLifetime(loop);
+        return;
+    }
+    if (m_int64SymPairMap)
+    {
+        BVSparse<JitArenaAllocator> *liveOnBackEdgeSyms = loop->regAlloc.liveOnBackEdgeSyms;
+        FOREACH_BITSET_IN_SPARSEBV(symId, liveOnBackEdgeSyms)
+        {
+            Int64SymPair pair;
+            if (m_int64SymPairMap->TryGetValue(symId, &pair))
+            {
+                // If we have replaced any sym that was live on the back edge for 2 other syms
+                // these 2 syms needs to be live on back edge as well.
+                liveOnBackEdgeSyms->Set(pair.low->m_id);
+                liveOnBackEdgeSyms->Set(pair.high->m_id);
+            }
+        } NEXT_BITSET_IN_SPARSEBV;
+    }
+}
+#endif
 
 #ifdef _M_ARM
 
@@ -1248,11 +1381,11 @@ Func::EnsureLoopParamSym()
 }
 
 void
-Func::UpdateMaxInlineeArgOutCount(uint inlineeArgOutCount)
+Func::UpdateMaxInlineeArgOutSize(uint inlineeArgOutSize)
 {
-    if (maxInlineeArgOutCount < inlineeArgOutCount)
+    if (this->maxInlineeArgOutSize < inlineeArgOutSize)
     {
-        maxInlineeArgOutCount = inlineeArgOutCount;
+        this->maxInlineeArgOutSize = inlineeArgOutSize;
     }
 }
 
@@ -1417,7 +1550,7 @@ Func::GetOrCreateSingleTypeGuard(intptr_t typeAddr)
 {
     EnsureSingleTypeGuards();
 
-    Js::JitTypePropertyGuard* guard;
+    Js::JitTypePropertyGuard* guard = nullptr;
     if (!this->singleTypeGuards->TryGetValue(typeAddr, &guard))
     {
         // Property guards are allocated by NativeCodeData::Allocator so that their lifetime extends as long as the EntryPointInfo is alive.

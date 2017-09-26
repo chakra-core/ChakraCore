@@ -37,14 +37,6 @@ private:
     const LPCWSTR _configFileName;
     CLANG_WNO_END
 
-    // NT version of CRT has the "backward compat" behavior that returns 0 instead of EOF
-    // for unicode version of fwscanf.
-#ifdef NTBUILD
-    static const int FINISHED = 0;
-#else
-    static const int FINISHED = EOF;
-#endif
-
     void ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser);
 
 public:

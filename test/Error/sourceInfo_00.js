@@ -11,5 +11,5 @@ function dummy() {
 }
 
 dummy();
-nosuchfunc(); //9,1
+nosuchfunc();
 dummy();

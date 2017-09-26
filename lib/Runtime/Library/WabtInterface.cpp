@@ -35,7 +35,7 @@ char16* NarrowStringToWide(Context* ctx, const char* src, const size_t* srcSize 
     return dst;
 }
 
-static PropertyId propertyMap[ChakraWabt::PropertyIds::COUNT] = {
+static PropertyId propertyMap[] = {
     Js::PropertyIds::as,
     Js::PropertyIds::action,
     Js::PropertyIds::args,
@@ -53,6 +53,7 @@ static PropertyId propertyMap[ChakraWabt::PropertyIds::COUNT] = {
 
 bool SetProperty(Js::Var obj, PropertyId id, Js::Var value, void* user_data)
 {
+    CompileAssert((sizeof(propertyMap)/sizeof(PropertyId)) == ChakraWabt::PropertyIds::COUNT);
     Context* ctx = (Context*)user_data;
     Assert(id < ChakraWabt::PropertyIds::COUNT);
     return !!JavascriptOperators::OP_SetProperty(obj, propertyMap[id], value, ctx->scriptContext);
@@ -92,19 +93,13 @@ Js::Var StringToVar(const char* src, uint length, void* user_data)
     return JavascriptString::NewCopyBuffer(buf, (charcount_t)bufSize, ctx->scriptContext);
 }
 
-Js::Var CreateBuffer(const char* buf, uint size, void* user_data)
+Js::Var CreateBuffer(const uint8* buf, uint size, void* user_data)
 {
     Context* ctx = (Context*)user_data;
     ArrayBuffer* arrayBuffer = ctx->scriptContext->GetLibrary()->CreateArrayBuffer(size);
     js_memcpy_s(arrayBuffer->GetBuffer(), arrayBuffer->GetByteLength(), buf, size);
     return arrayBuffer;
 }
-
-void* Allocate(uint size, void* user_data)
-{
-    Context* ctx = (Context*)user_data;
-    return (void*)AnewArrayZ(ctx->allocator, byte, size);
-};
 
 Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInfo callInfo, ...)
 {
@@ -151,8 +146,8 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
         ChakraWabt::SpecContext spec;
         ChakraWabt::Context wabtCtx;
         wabtCtx.user_data = &context;
-        wabtCtx.allocator = Allocate;
         wabtCtx.createBuffer = CreateBuffer;
+        wabtCtx.features.sign_extends = CONFIG_FLAG(WasmSignExtends);
         if (isSpecText)
         {
             wabtCtx.spec = &spec;

@@ -33,6 +33,7 @@ namespace Js
         DynamicProfileInfo * GetDynamicProfileInfo(FunctionBody * functionBody);
         Recycler* GetRecycler() { return recycler; }
         void UpdateDynamicProfileInfo(LocalFunctionId functionId, DynamicProfileInfo * dynamicProfileInfo);
+        void RemoveDynamicProfileInfo(LocalFunctionId functionId);
         void MarkAsExecuted(LocalFunctionId functionId);
         static SourceDynamicProfileManager * LoadFromDynamicProfileStorage(SourceContextInfo* info, ScriptContext* scriptContext, IActiveScriptDataCache* profileDataCache);
         void EnsureStartupFunctions(uint numberOfFunctions);

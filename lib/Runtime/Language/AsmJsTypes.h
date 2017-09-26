@@ -743,9 +743,9 @@ namespace Js
 
         FuncInfo*       mFuncInfo;
         FunctionBody*   mFuncBody;
-        int             mArgOutDepth;
         int             mMaxArgOutDepth;
         ULONG           mOrigParseFlags;
+        ProfileId       mCurrentProfileId;
         bool            mDeferred;
         bool            mDefined : 1; // true when compiled completely without any errors
     public:
@@ -753,7 +753,8 @@ namespace Js
 
         unsigned GetCompileTime() const { return mCompileTime; }
         void AccumulateCompileTime(unsigned ms) { mCompileTime += ms; }
-
+        ProfileId GetNextProfileId();
+        ProfileId GetProfileIdCount() const { return mCurrentProfileId; }
         inline ParseNode* GetFncNode() const{ return mFncNode; }
         inline void       SetFncNode(ParseNode* fncNode) { mFncNode = fncNode; }
         inline FuncInfo*  GetFuncInfo() const{ return mFuncInfo; }
@@ -787,15 +788,14 @@ namespace Js
         template<typename T> inline bool IsVarLocation        ( const EmitExpressionInfo* pnode ){return GetRegisterSpace<T>().IsVarLocation( pnode );}
         template<typename T> inline bool IsValidLocation      ( const EmitExpressionInfo* pnode ){return GetRegisterSpace<T>().IsValidLocation( pnode );}
         void ReleaseLocationGeneric( const EmitExpressionInfo* pnode );
+        RegSlot AcquireTmpRegisterGeneric(AsmJsRetType retType);
 
         // Search for a var in the varMap of the function, return nullptr if not found
         AsmJsVarBase* FindVar( const PropertyName name ) const;
         // Defines a new variable int the function, return nullptr if already exists or theres an error
         AsmJsVarBase* DefineVar(PropertyName name, bool isArg = false, bool isMutable = true);
         AsmJsSymbol* LookupIdentifier( const PropertyName name, AsmJsLookupSource::Source* lookupSource = nullptr ) const;
-        void SetArgOutDepth(int outParamsCount);
         void UpdateMaxArgOutDepth(int outParamsCount);
-        inline int GetArgOutDepth() const{ return mArgOutDepth; }
         inline int GetMaxArgOutDepth() const{ return mMaxArgOutDepth; }
         void CommitToFunctionInfo(Js::AsmJsFunctionInfo* funcInfo, FunctionBody* body) {mTypedRegisterAllocator.CommitToFunctionInfo(funcInfo, body);}
         void CommitToFunctionBody(FunctionBody* body) { mTypedRegisterAllocator.CommitToFunctionBody(body); }

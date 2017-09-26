@@ -1343,7 +1343,7 @@ function resetCallbackAPIAudioBuffer(APISampleRate, bufferAlloc) {
     }
     try {
       audioSource = audioContextHandle.createBufferSource();            //We need to create a false input to get the chain started.
-      audioSource.loop = false;  //Keep this alive forever (Event handler will know when to ouput.)
+      audioSource.loop = false;  //Keep this alive forever (Event handler will know when to output.)
       XAudioJSSampleRate = webAudioActualSampleRate = audioContextHandle.sampleRate;
       audioSource.buffer = audioContextHandle.createBuffer(1, 1, webAudioActualSampleRate);  //Create a zero'd input buffer for the input to be valid.
       audioNode = audioContextHandle.createJavaScriptNode(samplesPerCallback, 1, 2);      //Create 2 outputs and ignore the input buffer (Just copy buffer 1 over if mono)

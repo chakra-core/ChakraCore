@@ -14,7 +14,7 @@ public:
     template<typename T> static T Shl( T aLeft, T aRight );
     template<typename T> static T Shr( T aLeft, T aRight );
     template<typename T> static T ShrU( T aLeft, T aRight );
-    template<typename T> static T Copysign(T aLeft, T aRight);
+    template<typename T> static T VECTORCALL Copysign(T aLeft, T aRight);
     template<typename T> static T Trunc(T aLeft);
     template<typename T> static T Nearest(T aLeft);
     template<typename T> static T PopCnt(T value);
@@ -27,6 +27,8 @@ public:
     template <typename T> using CmpPtr = bool(*)(T a, T b);
     template <typename STYPE, typename UTYPE, UTYPE MAX, UTYPE NEG_ZERO, UTYPE NEG_ONE, CmpPtr<UTYPE> CMP1, CmpPtr<UTYPE> CMP2> static bool isInRange(STYPE srcVal);
     template <typename STYPE> static bool isNaN(STYPE src);
+
+    template<typename To, typename From> static To SignExtend(To value);
 };
 
 } //namespace Wasm

@@ -150,31 +150,29 @@ namespace JsUtil
     class QuickSortSwap
     {
     public:
+
         static inline void swap(T* a, T* b, size_t size)
         {
             if (a == b) return;
 
-            size_t tsize;
+            size_t mod;
             if (size >= 8)
             {
-                tsize = 8;
-                size_t nsize = size / tsize;
-                CC_QSORT_SWAP_LOOP(CC_QSORT_SWAP8, (CC_QSORT_SWAP8*) a, (CC_QSORT_SWAP8*) b, nsize)
+                mod = size & 7;
+                CC_QSORT_SWAP_LOOP(CC_QSORT_SWAP8, (CC_QSORT_SWAP8*) a, (CC_QSORT_SWAP8*) b, size / 8)
             }
             else if (size >= 4)
             {
-                tsize = 4;
-                size_t nsize = size / tsize;
-                CC_QSORT_SWAP_LOOP(CC_QSORT_SWAP4, (CC_QSORT_SWAP4*) a, (CC_QSORT_SWAP4*) b, nsize)
+                mod = size & 3;
+                CC_QSORT_SWAP_LOOP(CC_QSORT_SWAP4, (CC_QSORT_SWAP4*) a, (CC_QSORT_SWAP4*) b, size / 4)
             }
             else
             {
-                tsize = 2;
-                size_t nsize = size / tsize;
-                CC_QSORT_SWAP_LOOP(CC_QSORT_SWAP2, (CC_QSORT_SWAP2*) a, (CC_QSORT_SWAP2*) b, nsize)
+                mod = size & 1;
+                CC_QSORT_SWAP_LOOP(CC_QSORT_SWAP2, (CC_QSORT_SWAP2*) a, (CC_QSORT_SWAP2*) b, size / 2)
             }
 
-            CC_QSORT_SWAP_LOOP(char, (char*) a, (char*) b, size % tsize);
+            CC_QSORT_SWAP_LOOP(char, (char*) a, (char*) b, mod);
         }
     };
 

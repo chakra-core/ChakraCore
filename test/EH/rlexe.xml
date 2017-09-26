@@ -107,4 +107,21 @@
       <baseline>early2.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>tryfinallybug0.js</files>
+      <baseline>tryfinallybug0.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>tryfinallytests.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>tryfinallyldelembug.js</files>
+      <compile-flags> -off:arraycheckhoist </compile-flags>
+    </default>
+  </test>
 </regress-exe>

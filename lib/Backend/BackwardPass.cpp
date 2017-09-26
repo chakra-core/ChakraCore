@@ -1728,6 +1728,55 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
             */
             StackSym * stackSym = copyPropSyms.Key(); // assume that we'll use the original sym to restore
             SymID symId = stackSym->m_id;
+
+            // Prefer to restore from type-specialized versions of the sym, as that will reduce the need for potentially
+            // expensive ToVars that can more easily be eliminated due to being dead stores
+            StackSym * int32StackSym = nullptr;
+            StackSym * float64StackSym = nullptr;
+            StackSym * simd128StackSym = nullptr;
+
+            // If the sym is type specialized, we need to check for upward exposed uses of the specialized sym and not the equivalent var sym. If there are no 
+            // uses and we use the copy prop sym to restore, we'll need to find the type specialize sym for that sym as well.
+            StackSym * typeSpecSym = nullptr;
+            auto findTypeSpecSym = [&]()
+            {
+            if (bailOutInfo->liveLosslessInt32Syms->Test(symId))
+            {
+                // Var version of the sym is not live, use the int32 version
+                int32StackSym = stackSym->GetInt32EquivSym(nullptr);
+                    typeSpecSym = int32StackSym;
+                Assert(int32StackSym);
+            }
+            else if(bailOutInfo->liveFloat64Syms->Test(symId))
+            {
+                // Var/int32 version of the sym is not live, use the float64 version
+                float64StackSym = stackSym->GetFloat64EquivSym(nullptr);
+                    typeSpecSym = float64StackSym;
+                Assert(float64StackSym);
+            }
+#ifdef ENABLE_SIMDJS
+            // SIMD_JS
+            else if (bailOutInfo->liveSimd128F4Syms->Test(symId))
+            {
+                simd128StackSym = stackSym->GetSimd128F4EquivSym(nullptr);
+                    typeSpecSym = simd128StackSym;
+            }
+            else if (bailOutInfo->liveSimd128I4Syms->Test(symId))
+            {
+                simd128StackSym = stackSym->GetSimd128I4EquivSym(nullptr);
+                    typeSpecSym = simd128StackSym;
+            }
+#endif
+            else
+            {
+                Assert(bailOutInfo->liveVarSyms->Test(symId));
+                    typeSpecSym = stackSym;
+                }
+            };
+
+            findTypeSpecSym();
+            Assert(typeSpecSym != nullptr);
+
             IR::Instr *const instr = bailOutInfo->bailOutInstr;
             StackSym *const dstSym = IR::RegOpnd::TryGetStackSym(instr->GetDst());
             if(instr->GetBailOutKind() & IR::BailOutOnResultConditions &&
@@ -1749,7 +1798,7 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
                 // original sym will also be made upwards-exposed from here, so the aforementioned transferring store of the
                 // copy-prop sym to the original sym will not be a dead store.
             }
-            else if (block->upwardExposedUses->Test(stackSym->m_id) && !block->upwardExposedUses->Test(copyPropSyms.Value()->m_id))
+            else if (block->upwardExposedUses->Test(typeSpecSym->m_id) && !block->upwardExposedUses->Test(copyPropSyms.Value()->m_id))
             {
                 // Don't use the copy prop sym if it is not used and the orig sym still has uses.
                 // No point in extending the lifetime of the copy prop sym unnecessarily.
@@ -1759,37 +1808,10 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
                 // Need to use the copy-prop sym to restore
                 stackSym = copyPropSyms.Value();
                 symId = stackSym->m_id;
-            }
-
-            // Prefer to restore from type-specialized versions of the sym, as that will reduce the need for potentially
-            // expensive ToVars that can more easily be eliminated due to being dead stores
-            StackSym * int32StackSym = nullptr;
-            StackSym * float64StackSym = nullptr;
-            StackSym * simd128StackSym = nullptr;
-            if (bailOutInfo->liveLosslessInt32Syms->Test(symId))
-            {
-                // Var version of the sym is not live, use the int32 version
-                int32StackSym = stackSym->GetInt32EquivSym(nullptr);
-                Assert(int32StackSym);
-            }
-            else if(bailOutInfo->liveFloat64Syms->Test(symId))
-            {
-                // Var/int32 version of the sym is not live, use the float64 version
-                float64StackSym = stackSym->GetFloat64EquivSym(nullptr);
-                Assert(float64StackSym);
-            }
-            // SIMD_JS
-            else if (bailOutInfo->liveSimd128F4Syms->Test(symId))
-            {
-                simd128StackSym = stackSym->GetSimd128F4EquivSym(nullptr);
-            }
-            else if (bailOutInfo->liveSimd128I4Syms->Test(symId))
-            {
-                simd128StackSym = stackSym->GetSimd128I4EquivSym(nullptr);
-            }
-            else
-            {
-                Assert(bailOutInfo->liveVarSyms->Test(symId));
+                int32StackSym = nullptr;
+                float64StackSym = nullptr;
+                simd128StackSym = nullptr;
+                findTypeSpecSym();
             }
 
             // We did not end up using the copy prop sym. Let's make sure the use of the original sym by the bailout is captured.
@@ -2345,17 +2367,21 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
         // ToVars that can more easily be eliminated due to being dead stores.
 
 #if DBG
+#ifdef ENABLE_SIMDJS
         // SIMD_JS
         // Simd128 syms should be live in at most one form
         tempBv->And(bailOutInfo->liveSimd128F4Syms, bailOutInfo->liveSimd128I4Syms);
+#endif
         Assert(tempBv->IsEmpty());
 
         // Verify that all syms to restore are live in some fashion
         tempBv->Minus(byteCodeUpwardExposedUsed, bailOutInfo->liveVarSyms);
         tempBv->Minus(bailOutInfo->liveLosslessInt32Syms);
         tempBv->Minus(bailOutInfo->liveFloat64Syms);
+#ifdef ENABLE_SIMDJS
         tempBv->Minus(bailOutInfo->liveSimd128F4Syms);
         tempBv->Minus(bailOutInfo->liveSimd128I4Syms);
+#endif
         Assert(tempBv->IsEmpty());
 #endif
 
@@ -2426,6 +2452,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
             }
             NEXT_BITSET_IN_SPARSEBV;
 
+#ifdef ENABLE_SIMDJS
             // SIMD_JS
             tempBv->Or(bailOutInfo->liveSimd128F4Syms, bailOutInfo->liveSimd128I4Syms);
             tempBv->And(byteCodeUpwardExposedUsed);
@@ -2447,6 +2474,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
                 byteCodeUpwardExposedUsed->Set(simd128Sym->m_id);
             }
             NEXT_BITSET_IN_SPARSEBV;
+#endif
         }
         // Var
         // Any remaining syms to restore will be restored from their var versions
@@ -3054,8 +3082,12 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
                 {
                     instr->m_opcode = Js::OpCode::NewScFunc;
                     IR::Opnd * intConstOpnd = instr->UnlinkSrc2();
+                    Assert(intConstOpnd->IsIntConstOpnd());
 
-                    instr->ReplaceSrc1(intConstOpnd);
+                    uint nestedFuncIndex = instr->m_func->GetJITFunctionBody()->GetNestedFuncIndexForSlotIdInCachedScope(intConstOpnd->AsIntConstOpnd()->AsUint32());
+                    intConstOpnd->Free(instr->m_func);
+
+                    instr->ReplaceSrc1(IR::IntConstOpnd::New(nestedFuncIndex, TyUint32, instr->m_func));
                     instr->SetSrc2(IR::RegOpnd::New(currFunc->GetLocalFrameDisplaySym(), IRType::TyVar, currFunc));
                 }
                 break;
@@ -3276,7 +3308,7 @@ BackwardPass::ProcessNoImplicitCallUses(IR::Instr *const instr)
     {
         IR::Opnd *const src = srcs[i];
         IR::ArrayRegOpnd *arraySrc = nullptr;
-        Sym *sym;
+        Sym *sym = nullptr;
         switch(src->GetKind())
         {
             case IR::OpndKindReg:
@@ -3404,7 +3436,7 @@ BackwardPass::ProcessNoImplicitCallDef(IR::Instr *const instr)
         return;
     }
 
-    Sym *srcSym;
+    Sym *srcSym = nullptr;
     switch(src->GetKind())
     {
         case IR::OpndKindReg:
@@ -5522,7 +5554,7 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
             case Js::OpCode::Conv_Prim:
                 Assert(dstSym);
                 Assert(instr->GetSrc1());
-                Assert(!instr->GetSrc2());
+                Assert(!instr->GetSrc2() || instr->GetDst()->GetType() == instr->GetSrc1()->GetType());
 
                 if(instr->GetDst()->IsInt32())
                 {
@@ -6377,7 +6409,7 @@ BackwardPass::TrackFloatSymEquivalence(IR::Instr *const instr)
             return;
         }
 
-        FloatSymEquivalenceClass *dstEquivalenceClass, *srcEquivalenceClass;
+        FloatSymEquivalenceClass *dstEquivalenceClass = nullptr, *srcEquivalenceClass = nullptr;
         const bool dstHasEquivalenceClass = floatSymEquivalenceMap->TryGetValue(dst->m_id, &dstEquivalenceClass);
         const bool srcHasEquivalenceClass = floatSymEquivalenceMap->TryGetValue(src->m_id, &srcEquivalenceClass);
 
@@ -6438,7 +6470,7 @@ BackwardPass::TrackFloatSymEquivalence(IR::Instr *const instr)
     // kind on the instruction. Both are checked because in functions without loops, equivalence tracking is not done and only
     // the sym's non-number bailout bit will have the information, and in functions with loops, equivalence tracking is done
     // throughout the function and checking just the sym's non-number bailout bit is insufficient.
-    FloatSymEquivalenceClass *dstEquivalenceClass;
+    FloatSymEquivalenceClass *dstEquivalenceClass = nullptr;
     if(dst->m_requiresBailOnNotNumber ||
         (floatSymEquivalenceMap->TryGetValue(dst->m_id, &dstEquivalenceClass) && dstEquivalenceClass->RequiresBailOnNotNumber()))
     {
@@ -6498,8 +6530,6 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             if (propertySym->m_fieldKind == PropertyKindLocalSlots || propertySym->m_fieldKind == PropertyKindSlots)
             {
                 BOOLEAN isPropertySymUsed = !block->slotDeadStoreCandidates->TestAndSet(propertySym->m_id);
-                // we should not do any dead slots in asmjs loop body
-                Assert(!(this->func->GetJITFunctionBody()->IsAsmJsMode() && this->func->IsLoopBody() && !isPropertySymUsed));
                 Assert(isPropertySymUsed || !block->upwardExposedUses->Test(propertySym->m_id));
 
                 isUsed = isPropertySymUsed || block->upwardExposedUses->Test(propertySym->m_stackSym->m_id);
@@ -6852,10 +6882,7 @@ BackwardPass::TrackNoImplicitCallInlinees(IR::Instr *instr)
         || OpCodeAttr::CallInstr(instr->m_opcode)
         || instr->CallsAccessor()
         || GlobOpt::MayNeedBailOnImplicitCall(instr, nullptr, nullptr)
-        || instr->m_opcode == Js::OpCode::LdHeapArguments
-        || instr->m_opcode == Js::OpCode::LdLetHeapArguments
-        || instr->m_opcode == Js::OpCode::LdHeapArgsCached
-        || instr->m_opcode == Js::OpCode::LdLetHeapArgsCached
+        || instr->HasAnyLoadHeapArgsOpCode()
         || instr->m_opcode == Js::OpCode::LdFuncExpr)
     {
         // This func has instrs with bailouts or implicit calls

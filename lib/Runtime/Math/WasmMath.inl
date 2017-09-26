@@ -105,13 +105,18 @@ inline int WasmMath::Eqz(T value)
 template<>
 inline double WasmMath::Copysign(double aLeft, double aRight)
 {
-    return _copysign(aLeft, aRight);
+    uint64 aLeftI64 = *(uint64*)(&aLeft);
+    uint64 aRightI64 = *(uint64*)(&aRight);
+    uint64 res = ((aLeftI64 & 0x7fffffffffffffffull) | (aRightI64 & 0x8000000000000000ull));
+    return *(double*)(&res);
 }
 
 template<>
 inline float WasmMath::Copysign(float aLeft, float aRight)
 {
-    uint32 res = ((*(uint32*)(&aLeft) & 0x7fffffffu) | (*(uint32*)(&aRight) & 0x80000000u));
+    uint32 aLeftI32 = *(uint32*)(&aLeft);
+    uint32 aRightI32 = *(uint32*)(&aRight);
+    uint32 res = ((aLeftI32 & 0x7fffffffu) | (aRightI32 & 0x80000000u));
     return *(float*)(&res);
 }
 
@@ -216,6 +221,12 @@ template<>
 inline int64 WasmMath::Ror(int64 aLeft, int64 aRight)
 {
     return _rotr64(aLeft, (int)aRight);
+}
+
+template<typename To, typename From>
+To WasmMath::SignExtend(To value)
+{
+    return static_cast<To>(static_cast<From>(value));
 }
 
 }

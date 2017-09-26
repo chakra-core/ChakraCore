@@ -38,7 +38,7 @@ namespace Js
     {
         if (propertyId == PropertyIds::length)
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         // Skip JavascriptArray override

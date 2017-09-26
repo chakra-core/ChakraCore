@@ -14,6 +14,7 @@ set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     WAsmjsUtils.cpp
     WebAssemblySource.cpp
     CacheOperators.cpp
+    ConstructorCache.cpp
     CodeGenRecyclableData.cpp
     DynamicProfileInfo.cpp
     DynamicProfileMutator.cpp
@@ -26,7 +27,6 @@ set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     JavascriptExceptionObject.cpp
     JavascriptExceptionOperators.cpp
     JavascriptMathOperators.cpp
-    JavascriptNativeOperators.cpp
     JavascriptOperators.cpp
     JavascriptStackWalker.cpp
     ModuleNamespace.cpp

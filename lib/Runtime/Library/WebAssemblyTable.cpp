@@ -111,25 +111,24 @@ WebAssemblyTable::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedTableObject);
     }
     WebAssemblyTable * table = WebAssemblyTable::FromVar(args[0]);
-
-    Var deltaVar = scriptContext->GetLibrary()->GetUndefined();
-    if (args.Info.Count >= 2)
-    {
-        deltaVar = args[1];
-    }
-    uint32 delta = WebAssembly::ToNonWrappingUint32(deltaVar, scriptContext);
-    uint32 newLength = 0;
-    if (UInt32Math::Add(table->m_currentLength, delta, &newLength) || newLength > table->m_maxLength)
-    {
-        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
-    }
-
-    Field(Var) * newValues = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), newLength);
-    CopyArray(newValues, newLength, table->m_values, table->m_currentLength);
-
     uint32 oldLength = table->m_currentLength;
-    table->m_values = newValues;
-    table->m_currentLength = newLength;
+
+    Var deltaVar = args.Info.Count >= 2 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+    uint32 delta = WebAssembly::ToNonWrappingUint32(deltaVar, scriptContext);
+    if (delta > 0)
+    {
+        uint32 newLength = 0;
+        if (UInt32Math::Add(table->m_currentLength, delta, &newLength) || newLength > table->m_maxLength)
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
+        }
+
+        Field(Var) * newValues = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), newLength);
+        CopyArray(newValues, newLength, table->m_values, table->m_currentLength);
+
+        table->m_values = newValues;
+        table->m_currentLength = newLength;
+    }
 
     return JavascriptNumber::ToVar(oldLength, scriptContext);
 }
@@ -195,7 +194,7 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
     {
         value = nullptr;
     }
-    else if (!AsmJsScriptFunction::IsWasmScriptFunction(args[2]))
+    else if (!WasmScriptFunction::Is(args[2]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedWebAssemblyFunc);
     }
@@ -230,7 +229,7 @@ void
 WebAssemblyTable::DirectSetValue(uint index, Var val)
 {
     Assert(index < m_currentLength);
-    Assert(!val || AsmJsScriptFunction::Is(val));
+    Assert(!val || WasmScriptFunction::Is(val));
     m_values[index] = val;
 }
 
@@ -239,14 +238,8 @@ WebAssemblyTable::DirectGetValue(uint index) const
 {
     Assert(index < m_currentLength);
     Var val = m_values[index];
-    Assert(!val || AsmJsScriptFunction::Is(val));
+    Assert(!val || WasmScriptFunction::Is(val));
     return val;
-}
-
-Var *
-WebAssemblyTable::GetValues() const
-{
-    return (Var*)PointerValue(m_values);
 }
 
 uint32

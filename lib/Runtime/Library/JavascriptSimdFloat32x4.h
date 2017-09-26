@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-
+#ifdef ENABLE_SIMDJS
 class JavascriptSIMDInt32x4;
 class JavascriptSIMDFloat64x2;
 
@@ -56,3 +56,4 @@ namespace Js
         }
     };
 }
+#endif

@@ -13,6 +13,12 @@ class FlowGraph;
 #include "UnwindInfoManager.h"
 #endif
 
+struct Int64RegPair
+{
+    IR::Opnd* high = nullptr;
+    IR::Opnd* low = nullptr;
+};
+
 struct Cloner
 {
     Cloner(Lowerer *lowerer, JitArenaAllocator *alloc) :
@@ -344,10 +350,13 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
 #endif
 
+#ifdef ENABLE_SIMDJS
     bool IsSIMDEnabled() const
     {
         return GetScriptContextInfo()->IsSIMDEnabled();
     }
+#endif
+
     uint32 GetInstrCount();
     inline Js::ScriptContext* GetScriptContext() const
     {
@@ -516,12 +525,24 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     IR::SymOpnd *GetNextInlineeFrameArgCountSlotOpnd()
     {
         Assert(!this->m_hasInlineArgsOpt);
+        if (this->m_hasInlineArgsOpt)
+        {
+            // If the function has inlineArgsOpt turned on, jitted code will not write to stack slots for inlinee's function object
+            // and arguments, until needed. If we attempt to read from those slots, we may be reading uninitialized memory.
+            throw Js::OperationAbortedException();
+        }
         return GetInlineeOpndAtOffset((Js::Constants::InlineeMetaArgCount + actualCount) * MachPtr);
     }
 
     IR::SymOpnd *GetInlineeFunctionObjectSlotOpnd()
     {
         Assert(!this->m_hasInlineArgsOpt);
+        if (this->m_hasInlineArgsOpt)
+        {
+            // If the function has inlineArgsOpt turned on, jitted code will not write to stack slots for inlinee's function object
+            // and arguments, until needed. If we attempt to read from those slots, we may be reading uninitialized memory.
+            throw Js::OperationAbortedException();
+        }
         return GetInlineeOpndAtOffset(Js::Constants::InlineeMetaArgIndex_FunctionObject * MachPtr);
     }
 
@@ -533,6 +554,12 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     IR::SymOpnd *GetInlineeArgvSlotOpnd()
     {
         Assert(!this->m_hasInlineArgsOpt);
+        if (this->m_hasInlineArgsOpt)
+        {
+            // If the function has inlineArgsOpt turned on, jitted code will not write to stack slots for inlinee's function object
+            // and arguments, until needed. If we attempt to read from those slots, we may be reading uninitialized memory.
+            throw Js::OperationAbortedException();
+        }
         return GetInlineeOpndAtOffset(Js::Constants::InlineeMetaArgIndex_Argv * MachPtr);
     }
 
@@ -559,6 +586,11 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     JITTimePolymorphicInlineCache * GetRuntimePolymorphicInlineCache(const uint index) const;
     byte GetPolyCacheUtil(const uint index) const;
     byte GetPolyCacheUtilToInitialize(const uint index) const;
+
+#if LOWER_SPLIT_INT64
+    Int64RegPair FindOrCreateInt64Pair(IR::Opnd*);
+    void Int64SplitExtendLoopLifetime(Loop* loop);
+#endif
 
 #if defined(_M_ARM32_OR_ARM64)
     RegNum GetLocalsPointer() const;
@@ -655,6 +687,7 @@ public:
     uint32              inlineDepth;
     uint32              postCallByteCodeOffset;
     Js::RegSlot         returnValueRegSlot;
+    Js::RegSlot         firstIRTemp;
     Js::ArgSlot         actualCount;
     int32               firstActualStackOffset;
     uint32              tryCatchNestingLevel;
@@ -693,7 +726,7 @@ public:
     bool                hasThrow : 1;
     bool                hasUnoptimizedArgumentsAccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
     bool                m_canDoInlineArgsOpt : 1;
-    bool                hasApplyTargetInlining:1;
+    bool                applyTargetInliningRemovedArgumentsAccess :1;
     bool                isGetterSetter : 1;
     const bool          isInlinedConstructor: 1;
     bool                hasImplicitCalls: 1;
@@ -728,8 +761,8 @@ public:
     bool                DoMaintainByteCodeOffset() const { return this->HasByteCodeOffset() && this->GetTopFunc()->maintainByteCodeOffset; }
     void                StopMaintainByteCodeOffset() { this->GetTopFunc()->maintainByteCodeOffset = false; }
     Func *              GetParentFunc() const { return parentFunc; }
-    uint                GetMaxInlineeArgOutCount() const { return maxInlineeArgOutCount; }
-    void                UpdateMaxInlineeArgOutCount(uint inlineeArgOutCount);
+    uint                GetMaxInlineeArgOutSize() const { return this->maxInlineeArgOutSize; }
+    void                UpdateMaxInlineeArgOutSize(uint inlineeArgOutSize);
 #if DBG_DUMP
     ptrdiff_t           m_codeSize;
 #endif
@@ -805,8 +838,8 @@ public:
                         }
     }
 
-    bool                GetHasApplyTargetInlining() const { return this->hasApplyTargetInlining;}
-    void                SetHasApplyTargetInlining() { this->hasApplyTargetInlining = true;}
+    bool                GetApplyTargetInliningRemovedArgumentsAccess() const { return this->applyTargetInliningRemovedArgumentsAccess;}
+    void                SetApplyTargetInliningRemovedArgumentsAccess() { this->applyTargetInliningRemovedArgumentsAccess = true;}
 
     bool                GetHasMarkTempObjects() const { return this->hasMarkTempObjects; }
     void                SetHasMarkTempObjects() { this->hasMarkTempObjects = true; }
@@ -837,6 +870,19 @@ public:
         const auto top = this->GetTopFunc();
         return this->HasProfileInfo() && this->GetWeakFuncRef() && !(top->HasTry() && !top->DoOptimizeTry()) &&
             top->DoGlobOpt() && !PHASE_OFF(Js::LoopFastPathPhase, top);
+    }
+
+    static Js::OpCode GetLoadOpForType(IRType type)
+    {
+        if (type == TyVar || IRType_IsFloat(type))
+        {
+            return Js::OpCode::Ld_A;
+        }
+        else
+        {
+            Assert(IRType_IsNativeInt(type));
+            return Js::OpCode::Ld_I4;
+        }
     }
 
     static Js::BuiltinFunction GetBuiltInIndex(IR::Opnd* opnd)
@@ -951,10 +997,10 @@ public:
 #if defined(_M_ARM32_OR_ARM64)
     int32               GetInlineeArgumentStackSize()
     {
-        int32 count = this->GetMaxInlineeArgOutCount();
-        if (count)
+        int32 size = this->GetMaxInlineeArgOutSize();
+        if (size)
         {
-            return ((count + 1) * MachPtr); // +1 for the dedicated zero out argc slot
+            return size + MachPtr; // +1 for the dedicated zero out argc slot
         }
         return 0;
     }
@@ -982,7 +1028,7 @@ private:
 #endif
     Func * const        parentFunc;
     StackSym *          m_inlineeFrameStartSym;
-    uint                maxInlineeArgOutCount;
+    uint                maxInlineeArgOutSize;
     const bool          m_isBackgroundJIT;
     bool                hasInstrNumber;
     bool                maintainByteCodeOffset;
@@ -1017,6 +1063,12 @@ private:
     bool canHoistConstantAddressLoad;
 #if DBG
     VtableHashMap * vtableMap;
+#endif
+#if LOWER_SPLIT_INT64
+    struct Int64SymPair {StackSym* high = nullptr; StackSym* low = nullptr;};
+    // Key is an int64 symId, value is a pair of int32 StackSym
+    typedef JsUtil::BaseDictionary<SymID, Int64SymPair, JitArenaAllocator> Int64SymPairMap;
+    Int64SymPairMap* m_int64SymPairMap;
 #endif
 #ifdef RECYCLER_WRITE_BARRIER_JIT
 public:

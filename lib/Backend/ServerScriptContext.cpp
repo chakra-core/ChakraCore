@@ -226,11 +226,13 @@ ServerScriptContext::GetRecyclerAllowNativeCodeBumpAllocation() const
     return m_contextData.recyclerAllowNativeCodeBumpAllocation != 0;
 }
 
+#ifdef ENABLE_SIMDJS
 bool
 ServerScriptContext::IsSIMDEnabled() const
 {
     return m_contextData.isSIMDEnabled != 0;
 }
+#endif
 
 intptr_t
 ServerScriptContext::GetBuiltinFunctionsBaseAddr() const
@@ -269,6 +271,7 @@ ServerScriptContext::IsPRNGSeeded() const
     return m_isPRNGSeeded;
 }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
 intptr_t
 ServerScriptContext::GetDebuggingFlagsAddr() const
 {
@@ -292,6 +295,7 @@ ServerScriptContext::GetDebugScriptIdWhenSetAddr() const
 {
     return static_cast<intptr_t>(m_contextData.debugScriptIdWhenSetAddr);
 }
+#endif
 
 bool
 ServerScriptContext::IsClosed() const
@@ -333,13 +337,12 @@ ServerScriptContext::GetEmitBufferManager(bool asmJsManager)
 IR::JnHelperMethod
 ServerScriptContext::GetDOMFastPathHelper(intptr_t funcInfoAddr)
 {
-    IR::JnHelperMethod helper;
+    IR::JnHelperMethod helper = IR::HelperInvalid;
 
     m_domFastPathHelperMap->LockResize();
-    bool found = m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
+    m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
     m_domFastPathHelperMap->UnlockResize();
 
-    Assert(found);
     return helper;
 }
 

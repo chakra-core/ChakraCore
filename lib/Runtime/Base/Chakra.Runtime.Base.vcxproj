@@ -28,6 +28,7 @@
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\WasmReader;
         $(ChakraJITIDLIntDir);
+        $(IcuIncludeDir)\common;
         $(MSBuildThisFileDirectory)..\..\JITClient;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
@@ -51,11 +52,13 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionBody.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LeaveScriptObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)LineOffsetCache.cpp" />    
     <ClCompile Include="$(MSBuildThisFileDirectory)PerfHint.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecord.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ScriptContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ScriptContextProfiler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ScriptContextOptimizationOverrideInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SourceContextInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceHolder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ScriptMemoryDumper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)StackProber.cpp" />
@@ -97,6 +100,7 @@
     <ClInclude Include="FunctionInfo.h" />
     <ClInclude Include="JnDirectFields.h" />
     <ClInclude Include="LeaveScriptObject.h" />
+    <ClInclude Include="LineOffsetCache.h" />
     <ClInclude Include="PerfHint.h" />
     <ClInclude Include="PerfHintDescriptions.h" />
     <ClInclude Include="PropertyRecord.h" />
@@ -107,6 +111,7 @@
     <ClInclude Include="ScriptContextOptimizationOverrideInfo.h" />
     <ClInclude Include="ScriptContextProfiler.h" />
     <ClInclude Include="ScriptMemoryDumper.h" />
+    <ClInclude Include="SourceContextInfo.h" />
     <ClInclude Include="SourceHolder.h" />
     <ClInclude Include="StackProber.h" />
     <ClInclude Include="TempArenaAllocatorObject.h" />

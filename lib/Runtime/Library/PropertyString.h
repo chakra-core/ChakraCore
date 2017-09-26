@@ -15,7 +15,6 @@ namespace Js
         Field(const Js::PropertyRecord*) propertyRecord;
 
         DEFINE_VTABLE_CTOR(PropertyString, JavascriptString);
-        DECLARE_CONCRETE_STRING_CLASS;
 
         PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord);
     public:

@@ -113,15 +113,17 @@ class WeakReferenceHashTable
     uint count;
     uint size;
     RecyclerWeakReferenceBase* freeList;
+    int modFunctionIndex;
 
 public:
     WeakReferenceHashTable(uint size, HeapAllocator* allocator):
         count(0),
         size(0),
+        modFunctionIndex(UNKNOWN_MOD_INDEX),
         allocator(allocator),
         freeList(nullptr)
     {
-        this->size = SizePolicy::GetSize(size);
+        this->size = SizePolicy::GetSize(size, &modFunctionIndex);
         buckets = AllocatorNewArrayZ(HeapAllocator, allocator, RecyclerWeakReferenceBase*, this->size);
     }
 
@@ -284,8 +286,8 @@ private:
 
     uint HashKeyToBucket(char* strongReference, int size)
     {
-        uint hashCode = DefaultComparer<char*>::GetHashCode(strongReference);
-        return SizePolicy::GetBucket(hashCode, size);
+        hash_t hashCode = DefaultComparer<char*>::GetHashCode(strongReference);
+        return SizePolicy::GetBucket(hashCode, size, modFunctionIndex);
     }
 
     void AddEntry(RecyclerWeakReferenceBase* entry, RecyclerWeakReferenceBase** bucket)
@@ -337,7 +339,7 @@ private:
 #ifdef RECYCLER_TRACE_WEAKREF
             Output::Print(_u("Count is %d\n"), this->count);
 #endif
-            Resize(SizePolicy::GetSize(size*2));
+            Resize(SizePolicy::GetSize(size*2, &modFunctionIndex));
             // After resize - we will need to recalculate the bucket
             targetBucket = HashKeyToBucket(strongReference, size);
         }

@@ -19,7 +19,7 @@ namespace TTD
 
         if(this->m_marks.MarkAndTestAddr<MarkTableTag::TypeTag>(type))
         {
-            if(Js::DynamicType::Is(type->GetTypeId()))
+            if(Js::DynamicType::Is(type))
             {
                 Js::DynamicTypeHandler* handler = (static_cast<Js::DynamicType*>(type))->GetTypeHandler();
 
@@ -68,14 +68,12 @@ namespace TTD
     {
         if(this->m_marks.IsMarked(jstype))
         {
-            if(Js::DynamicType::Is(jstype->GetTypeId()))
+            NSSnapType::SnapHandler* sHandler = nullptr;
+
+            if(Js::DynamicType::Is(jstype))
             {
                 this->ExtractHandlerIfNeeded(static_cast<Js::DynamicType*>(jstype)->GetTypeHandler(), threadContext);
-            }
 
-            NSSnapType::SnapHandler* sHandler = nullptr;
-            if(Js::DynamicType::Is(jstype->GetTypeId()))
-            {
                 Js::DynamicTypeHandler* dhandler = static_cast<const Js::DynamicType*>(jstype)->GetTypeHandler();
 
                 TTD_PTR_ID handlerId = TTD_CONVERT_TYPEINFO_TO_PTR_ID(dhandler);
@@ -384,7 +382,7 @@ namespace TTD
         this->m_pendingSnap->MarkTime = (endTime - startTime) / 1000.0;
     }
 
-    void SnapshotExtractor::EvacuateMarkedIntoSnapshot(ThreadContext* threadContext)
+    void SnapshotExtractor::EvacuateMarkedIntoSnapshot(ThreadContext* threadContext, JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>& liveTopLevelBodies)
     {
         TTDTimer timer;
         double startTime = timer.Now();
@@ -396,53 +394,61 @@ namespace TTD
         JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator> objToLogIdMap(&HeapAllocator::Instance);
         threadContext->TTDContext->LoadInvertedRootMap(objToLogIdMap);
 
-        UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& snpCtxs = this->m_pendingSnap->GetContextList();
-        for(int32 i = 0; i < threadContext->TTDContext->GetTTDContexts().Count(); ++i)
-        {
-            NSSnapValues::SnapContext* snpCtx = snpCtxs.NextOpenEntry();
-            NSSnapValues::ExtractScriptContext(snpCtx, threadContext->TTDContext->GetTTDContexts().Item(i), objToLogIdMap, snap->GetSnapshotSlabAllocator());
-        }
-
-        //extract the thread context symbol map info
-        JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler>* tcSymbolRegistrationMap = threadContext->GetSymbolRegistrationMap_TTD();
-        UnorderedArrayList<Js::PropertyId, TTD_ARRAY_LIST_SIZE_XSMALL>& tcSymbolMapInfo = this->m_pendingSnap->GetTCSymbolMapInfoList();
-        for(auto iter = tcSymbolRegistrationMap->GetIterator(); iter.IsValid(); iter.MoveNext())
-        {
-            Js::PropertyId* tcpid = tcSymbolMapInfo.NextOpenEntry();
-            *tcpid = iter.CurrentValue()->GetPropertyId();
-        }
-
         //We extract all the global code function bodies with the context so clear their marks now
-        JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance);
-        JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance);
-        JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelEval(&HeapAllocator::Instance);
-
         for(int32 i = 0; i < threadContext->TTDContext->GetTTDContexts().Count(); ++i)
         {
-            topLevelScriptLoad.Clear();
-            topLevelNewFunction.Clear();
-            topLevelEval.Clear();
+            JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance);
+            JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance);
+            JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelEval(&HeapAllocator::Instance);
 
             Js::ScriptContext* ctx = threadContext->TTDContext->GetTTDContexts().Item(i);
-            ctx->TTDContextInfo->GetLoadedSources(topLevelScriptLoad, topLevelNewFunction, topLevelEval);
+            ctx->TTDContextInfo->GetLoadedSources(nullptr, topLevelScriptLoad, topLevelNewFunction, topLevelEval);
 
             for(int32 j = 0; j < topLevelScriptLoad.Count(); ++j)
             {
                 Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelScriptLoad.Item(j).ContextSpecificBodyPtrId);
-                this->m_marks.ClearMark(body);
+                if(this->m_marks.IsMarked(body))
+                {
+                    liveTopLevelBodies.Add(body);
+                    this->m_marks.ClearMark(body);
+                }
             }
 
             for(int32 j = 0; j < topLevelNewFunction.Count(); ++j)
             {
                 Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelNewFunction.Item(j).ContextSpecificBodyPtrId);
-                this->m_marks.ClearMark(body);
+                if(this->m_marks.IsMarked(body))
+                {
+                    liveTopLevelBodies.Add(body);
+                    this->m_marks.ClearMark(body);
+                }
             }
 
             for(int32 j = 0; j < topLevelEval.Count(); ++j)
             {
                 Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelEval.Item(j).ContextSpecificBodyPtrId);
-                this->m_marks.ClearMark(body);
+                if(this->m_marks.IsMarked(body))
+                {
+                    liveTopLevelBodies.Add(body);
+                    this->m_marks.ClearMark(body);
+                }
             }
+        }
+
+        UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& snpCtxs = this->m_pendingSnap->GetContextList();
+        for(int32 i = 0; i < threadContext->TTDContext->GetTTDContexts().Count(); ++i)
+        {
+            NSSnapValues::SnapContext* snpCtx = snpCtxs.NextOpenEntry();
+            NSSnapValues::ExtractScriptContext(snpCtx, threadContext->TTDContext->GetTTDContexts().Item(i), objToLogIdMap, liveTopLevelBodies, snap->GetSnapshotSlabAllocator());
+        }
+
+        //extract the thread context symbol map info
+        JsUtil::BaseDictionary<Js::HashedCharacterBuffer<char16>*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy, Js::PropertyRecordStringHashComparer>* tcSymbolRegistrationMap = threadContext->GetSymbolRegistrationMap_TTD();
+        UnorderedArrayList<Js::PropertyId, TTD_ARRAY_LIST_SIZE_XSMALL>& tcSymbolMapInfo = this->m_pendingSnap->GetTCSymbolMapInfoList();
+        for(auto iter = tcSymbolRegistrationMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::PropertyId* tcpid = tcSymbolMapInfo.NextOpenEntry();
+            *tcpid = iter.CurrentValue()->GetPropertyId();
         }
 
         this->m_idToHandlerMap.Initialize(this->m_marks.GetCountForTag<MarkTableTag::TypeHandlerTag>());

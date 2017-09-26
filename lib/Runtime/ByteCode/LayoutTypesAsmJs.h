@@ -19,6 +19,18 @@
     LAYOUT_TYPE(layout##_Large)
 #endif
 
+#ifndef LAYOUT_TYPE_PROFILED
+#define LAYOUT_TYPE_PROFILED(layout) \
+    LAYOUT_TYPE(layout) \
+    LAYOUT_TYPE(Profiled##layout)
+#endif
+
+#ifndef LAYOUT_TYPE_PROFILED_WMS
+#define LAYOUT_TYPE_PROFILED_WMS(layout) \
+    LAYOUT_TYPE_WMS(layout) \
+    LAYOUT_TYPE_WMS(Profiled##layout)
+#endif
+
 #ifndef LAYOUT_TYPE_WMS_REG2
 #define LAYOUT_TYPE_WMS_REG2(layout, t0, t1) LAYOUT_TYPE_WMS(layout)
 #endif
@@ -119,7 +131,7 @@ LAYOUT_TYPE_DUP       ( Empty         )
 
 LAYOUT_TYPE_WMS       ( AsmTypedArr   )
 LAYOUT_TYPE_WMS       ( WasmMemAccess )
-LAYOUT_TYPE_WMS       ( AsmCall       )
+LAYOUT_TYPE_PROFILED_WMS( AsmCall     )
 LAYOUT_TYPE           ( AsmBr         )
 LAYOUT_TYPE_WMS       ( AsmReg1       ) // Generic layout with 1 RegSlot
 LAYOUT_TYPE_WMS_FE    ( AsmReg2       ) // Generic layout with 2 RegSlot
@@ -386,6 +398,8 @@ LAYOUT_TYPE_WMS       ( AsmSimdTypedArr                  )
 #undef EXCLUDE_DUP_LAYOUT
 #undef LAYOUT_TYPE_WMS_FE
 #undef EXCLUDE_FRONTEND_LAYOUT
+#undef LAYOUT_TYPE_PROFILED_WMS
+#undef LAYOUT_TYPE_PROFILED
 
 #undef LAYOUT_PREFIX_Int
 #undef LAYOUT_PREFIX_IntConst

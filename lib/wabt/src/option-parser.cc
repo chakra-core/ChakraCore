@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "option-parser.h"
+#include "src/option-parser.h"
 
 #include <cstdarg>
 #include <cstdio>

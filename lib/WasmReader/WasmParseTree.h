@@ -18,6 +18,7 @@ namespace Wasm
             F32 = 3,
             F64 = 4,
             Limit,
+            Ptr,
             Any
         };
         bool IsLocalType(WasmTypes::WasmType type);
@@ -83,10 +84,6 @@ namespace Wasm
     struct WasmVarNode
     {
         uint32 num;
-        union
-        {
-            LPCUTF8 exportName;
-        };
     };
 
     struct WasmMemOpNode

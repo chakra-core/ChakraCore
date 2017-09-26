@@ -1,4 +1,11 @@
 {
+  "folders": [
+    "chakra",
+    "testsuite/core",
+    "testsuite/js-api",
+
+    "features/extends"
+  ],
   "features": [{
     "flags": ["-wasmfastarray-"],
     "rltags": ["exclude_x86"],
@@ -20,35 +27,20 @@
       "chakra_i64",
       "traps"
     ]
+  }, {
+    "required": true,
+    "flags": ["-WasmSignExtends"],
+    "folders": [
+      "features/extends"
+    ],
+    "files": [
+      "chakra_extends_i32",
+      "chakra_extends_i64"
+    ]
   }],
-  "excludes": [],
+  "excludes": [
+    "names"
+  ],
   "xplat-excludes": [
-    "address",
-    "binary",
-    "call",
-    "call_indirect",
-    "chakra_i32",
-    "chakra_i64",
-    "conversions",
-    "fac",
-    "float_exprs",
-    "func",
-    "func_ptrs",
-    "i32",
-    "i64",
-    "imports",
-    "int_exprs",
-    "left-to-right",
-    "linking",
-    "memory_trap",
-    "names",
-    "page",
-    "resizing",
-    "select",
-    "skip-stack-guard-page",
-    "start",
-    "traps",
-    "unreachable",
-    "unwind"
   ]
 }

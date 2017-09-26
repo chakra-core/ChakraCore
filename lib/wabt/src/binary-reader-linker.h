@@ -17,8 +17,8 @@
 #ifndef WABT_BINARY_READER_LINKER_H_
 #define WABT_BINARY_READER_LINKER_H_
 
-#include "common.h"
-#include "stream.h"
+#include "src/common.h"
+#include "src/stream.h"
 
 namespace wabt {
 
@@ -32,8 +32,7 @@ struct LinkOptions {
   Stream* log_stream;
 };
 
-Result read_binary_linker(LinkerInputBinary* input_info,
-                          LinkOptions* options);
+Result ReadBinaryLinker(LinkerInputBinary* input_info, LinkOptions* options);
 
 } // namespace link
 }  // namespace wabt

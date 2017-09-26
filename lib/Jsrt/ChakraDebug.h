@@ -20,8 +20,6 @@
 #ifndef _CHAKRADEBUG_H_
 #define _CHAKRADEBUG_H_
 
-#include "ChakraCommon.h"
-
 #ifdef _WIN32
 //Other platforms already include <stdint.h> and have this defined automatically
 typedef __int64 int64_t;
@@ -416,6 +414,7 @@ typedef unsigned __int32 uint32_t;
     ///         NONE = 0x1,
     ///         HAVE_CHILDRENS = 0x2,
     ///         READ_ONLY_VALUE = 0x4,
+    ///         IN_TDZ = 0x8,
     ///     </para>
     ///     <para>
     ///     {
@@ -741,7 +740,7 @@ typedef unsigned __int32 uint32_t;
     /// </summary>
     /// <param name="attributes">The attributes of the runtime to be created.</param>
     /// <param name="infoUri">The uri where the recorded Time-Travel data should be loaded from.</param>
-    /// <param name="enableDebugging">A flag to enable addtional debugging operation support during replay.</param>
+    /// <param name="enableDebugging">A flag to enable additional debugging operation support during replay.</param>
     /// <param name="openResourceStream">The <c>TTDOpenResourceStreamCallback</c> function for generating a JsTTDStreamHandle to read/write serialized data.</param>
     /// <param name="readBytesFromStream">The <c>JsTTDReadBytesFromStreamCallback</c> function for reading bytes from a JsTTDStreamHandle.</param>
     /// <param name="flushAndCloseStream">The <c>JsTTDFlushAndCloseStreamCallback</c> function for flushing and closing a JsTTDStreamHandle as needed.</param>
@@ -825,7 +824,7 @@ typedef unsigned __int32 uint32_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Notify the Js runtime we are at a safe yield point in the event loop (i.e. no locals on the stack and we can proccess as desired).
+    ///     Notify the Js runtime we are at a safe yield point in the event loop (i.e. no locals on the stack and we can process as desired).
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
@@ -905,7 +904,7 @@ typedef unsigned __int32 uint32_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     A check for unimplmented TTD actions in the host.
+    ///     A check for unimplemented TTD actions in the host.
     ///     This API is a TEMPORARY API while we complete the implementation of TTD support in the Node host and will be deleted once that is complete.
     /// </summary>
     /// <param name="msg">The message to print if we should be catching this as a TTD operation.</param>
@@ -965,7 +964,7 @@ typedef unsigned __int32 uint32_t;
     /// <summary>
     ///     TTD API -- may change in future versions:
     ///     During debug operations some additional information is populated during replay. This runs the code between the given
-    ///     snapshots to poulate this information which may be needed by the debugger to determine time-travel jump targets.
+    ///     snapshots to populate this information which may be needed by the debugger to determine time-travel jump targets.
     /// </summary>
     /// <param name="runtimeHandle">The runtime handle that the script is executing in.</param>
     ///<param name = "startSnapTime">The snapshot time that we will start executing from.< / param>

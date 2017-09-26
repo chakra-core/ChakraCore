@@ -1131,7 +1131,7 @@ PAL_wcscat(
 
     ret = PAL_wcsncat( strDestination, strSource, PAL_wcslen( strSource ) );
 
-    LOGEXIT("wcscat returnng char16_t %p (%S)\n", ret, ret);
+    LOGEXIT("wcscat returning char16_t %p (%S)\n", ret, ret);
     PERF_EXIT(wcscat);
     return ret;
 }
@@ -1179,7 +1179,7 @@ PAL_wcscpy(
     }
 
     /* add terminating null */
-    *strDestination = '\0';
+    *strDestination = char16_t(0);
 
     LOGEXIT("wcscpy returning char16_t %p (%S)\n", start, start);
     PERF_EXIT(wcscpy);
@@ -1282,6 +1282,8 @@ PAL_wcsncmp(
           string1?string1:W16_NULLSTRING,
           string1?string1:W16_NULLSTRING, string2?string2:W16_NULLSTRING, string2?string2:W16_NULLSTRING,
           (unsigned long) count);
+
+    if (string1 == string2) return diff;
 
     for (i = 0; i < count; i++)
     {
@@ -1491,16 +1493,22 @@ PAL_wcsstr(
         i = 0;
         while (1)
         {
-            if (*(string + i) == 0 || *(strCharSet + i) == 0)
+            if (*(strCharSet + i) == 0)
             {
                 ret = (char16_t *) string;
+                goto leave;
+            }
+            else if (*(string + i) == 0)
+            {
+                ret = NULL;
                 goto leave;
             }
             if (*(string + i) != *(strCharSet + i))
             {
                 break;
             }
-        i++;
+
+            i++;
         }
         string++;
     }
@@ -1827,7 +1835,7 @@ PAL_iswdigit( char16_t c )
     }
     else
     {
-        TRACE( "No corresonding unicode record for character %d.\n", c );
+        TRACE( "No corresponding unicode record for character %d.\n", c );
     }
 #endif  /* HAVE_COREFOUNDATION */
     LOGEXIT("PAL_iswdigit returning %d\n", nRetVal);

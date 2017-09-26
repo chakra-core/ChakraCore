@@ -165,7 +165,7 @@ namespace Js
         case PropertyIds::$7:
         case PropertyIds::$8:
         case PropertyIds::$9:
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         default:
             return JavascriptFunction::HasPropertyQuery(propertyId);
         }
@@ -394,7 +394,6 @@ namespace Js
         JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
         if (BuiltInPropertyRecords::input.Equals(propertyName)
             || BuiltInPropertyRecords::$_.Equals(propertyName)
-            || BuiltInPropertyRecords::length.Equals(propertyName)
             || BuiltInPropertyRecords::lastMatch.Equals(propertyName)
             || BuiltInPropertyRecords::$Ampersand.Equals(propertyName)
             || BuiltInPropertyRecords::lastParen.Equals(propertyName)

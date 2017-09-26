@@ -247,7 +247,7 @@ int __cdecl _vsnwprintf_s (
 * data
 *
 *Purpose:
-*       Counts the number of characters in the fotmatted data.
+*       Counts the number of characters in the formatted data.
 *
 *Entry:
 *       char16_t *format - format string, describes format of data

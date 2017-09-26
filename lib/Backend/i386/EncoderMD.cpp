@@ -609,7 +609,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
                 }
             }
         }
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
         if (instr->IsEntryInstr() && (
             Js::Configuration::Global.flags.DebugBreak.Contains(m_func->GetFunctionNumber()) ||
             PHASE_ON(Js::DebugBreakPhase, m_func)
@@ -1700,7 +1700,7 @@ bool EncoderMD::TryFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
         {
             IR::Instr *instrNext = instr->GetNextRealInstrOrLabel();
 
-            if (instrNext->IsBranchInstr() && instrNext->AsBranchInstr()->IsConditional() && !instrNext->AsBranchInstr()->m_areCmpRegisterFlagsUsedLater)
+            if (instrNext->IsBranchInstr() && instrNext->AsBranchInstr()->IsConditional())
             {
                 // Swap src and reverse branch
                 src2 = instr->UnlinkSrc1();

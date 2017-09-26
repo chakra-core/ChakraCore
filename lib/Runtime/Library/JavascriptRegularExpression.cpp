@@ -184,10 +184,9 @@ namespace Js
 
         if (JavascriptOperators::GetTypeId(var) == TypeIds_HostDispatch)
         {
-            TypeId remoteTypeId;
+            TypeId remoteTypeId = TypeIds_Limit;
             RecyclableObject* reclObj = RecyclableObject::FromVar(var);
-            reclObj->GetRemoteTypeId(&remoteTypeId);
-            if (remoteTypeId == TypeIds_RegEx)
+            if (reclObj->GetRemoteTypeId(&remoteTypeId) && remoteTypeId == TypeIds_RegEx)
             {
                 return static_cast<JavascriptRegExp *>(reclObj->GetRemoteObject());
             }
@@ -1089,12 +1088,12 @@ namespace Js
         const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
 
 #define HAS_PROPERTY(ownProperty) \
-        return (ownProperty ? Property_Found : DynamicObject::HasPropertyQuery(propertyId));
+        return (ownProperty ? PropertyQueryFlags::Property_Found : DynamicObject::HasPropertyQuery(propertyId));
 
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         case PropertyIds::global:
         case PropertyIds::multiline:
         case PropertyIds::ignoreCase:

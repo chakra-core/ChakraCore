@@ -396,7 +396,7 @@ class TestVariant(object):
             ln = min(len(lst_output), len(lst_expected))
             for i in range(0, ln):
                 if lst_output[i] != lst_expected[i]:
-                    self._print("Output: (at line " + str(i) + ")")
+                    self._print("Output: (at line " + str(i+1) + ")")
                     self._print("----------------------------")
                     self._print(lst_output[i])
                     self._print("----------------------------")

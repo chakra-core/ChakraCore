@@ -71,8 +71,6 @@ struct BackgroundParseItem;
 struct PnClass;
 class HashTbl;
 
-typedef void (*ParseErrorCallback)(void *data, charcount_t position, charcount_t length, HRESULT hr);
-
 struct PidRefStack;
 
 struct DeferredFunctionStub;
@@ -133,8 +131,13 @@ public:
     Js::ScriptContext* GetScriptContext() const { return m_scriptContext; }
     void ClearScriptContext() { m_scriptContext = nullptr; }
 
+#if ENABLE_BACKGROUND_PARSING
     bool IsBackgroundParser() const { return m_isInBackground; }
     bool IsDoingFastScan() const { return m_doingFastScan; }
+#else
+    bool IsBackgroundParser() const { return false; }
+    bool IsDoingFastScan() const { return false; }
+#endif
 
     static IdentPtr PidFromNode(ParseNodePtr pnode);
 
@@ -194,11 +197,11 @@ private:
     Js::LocalFunctionId * m_nextFunctionId;
     SourceContextInfo*    m_sourceContextInfo;
 
-    ParseErrorCallback  m_errorCallback;
-    void *              m_errorCallbackData;
-    BOOL                m_uncertainStructure;
+#if ENABLE_BACKGROUND_PARSING
     bool                m_hasParallelJob;
+    bool                m_isInBackground;
     bool                m_doingFastScan;
+#endif
     int                 m_nextBlockId;
 
     // RegexPattern objects created for literal regexes are recycler-allocated and need to be kept alive until the function body
@@ -268,8 +271,8 @@ public:
     ParseNodePtr CreateTempRef(ParseNode* tempNode);
 
     ParseNodePtr CreateNode(OpCode nop) { return CreateNode(nop, m_pscan? m_pscan->IchMinTok() : 0); }
-    ParseNodePtr CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl = true, bool *isRedecl = nullptr);
-    Symbol*      AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl, bool *isRedecl = nullptr);
+    ParseNodePtr CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl = true);
+    Symbol*      AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl);
     void         CheckRedeclarationErrorForBlockId(IdentPtr pid, int blockId);
     ParseNodePtr CreateNameNode(IdentPtr pid)
     {
@@ -308,9 +311,9 @@ public:
         charcount_t ichMin,charcount_t ichLim);
 
     void PrepareScanner(bool fromExternal);
+#if ENABLE_BACKGROUND_PARSING
     void PrepareForBackgroundParse();
     void AddFastScannedRegExpNode(ParseNodePtr const pnode);
-#if ENABLE_BACKGROUND_PARSING
     void AddBackgroundRegExpNode(ParseNodePtr const pnode);
     void AddBackgroundParseItem(BackgroundParseItem *const item);
     void FinishBackgroundRegExpNodes();
@@ -322,7 +325,7 @@ public:
     void CheckPidIsValid(IdentPtr pid, bool autoArgumentsObject = false);
     void AddVarDeclToBlock(ParseNode *pnode);
     // Add a var declaration. Only use while parsing. Assumes m_ppnodeVar is pointing to the right place already
-    ParseNodePtr CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool autoArgumentsObject = false, ParseNodePtr pnodeFnc = NULL, bool checkReDecl = true, bool *isRedecl = nullptr);
+    ParseNodePtr CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool autoArgumentsObject = false, ParseNodePtr pnodeFnc = NULL, bool checkReDecl = true);
     // Add a var declaration, during parse tree rewriting. Will setup m_ppnodeVar for the given pnodeFnc
     ParseNodePtr AddVarDeclNode(IdentPtr pid, ParseNodePtr pnodeFnc);
     // Add a 'const' or 'let' declaration.
@@ -373,9 +376,9 @@ private:
     ParseNodePtr * m_ppnodeScope;  // function list tail
     ParseNodePtr * m_ppnodeExprScope; // function expression list tail
     ParseNodePtr * m_ppnodeVar;  // variable list tail
-    bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node
-    bool m_isInBackground;
+    bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node  
     bool m_reparsingLambdaParams;
+    bool m_disallowImportExportStmt;
 
     // This bool is used for deferring the shorthand initializer error ( {x = 1}) - as it is allowed in the destructuring grammar.
     bool m_hasDeferredShorthandInitError;
@@ -413,7 +416,6 @@ private:
     charcount_t m_funcInArray;
     uint m_scopeCountNoAst;
 
-
     /*
      * Parsing states for super restriction
      */
@@ -423,10 +425,10 @@ private:
     uint m_parsingSuperRestrictionState;
     friend class AutoParsingSuperRestrictionStateRestorer;
 
-    // Used for issuing spread and rest errors when there is ambiguity with parameter list and parenthesized expressions
-    uint m_parenDepth;
+    // Used for issuing spread and rest errors when there is ambiguity with lambda parameter lists and parenthesized expressions
+    uint m_funcParenExprDepth;
     bool m_deferEllipsisError;
-    RestorePoint m_EllipsisErrLoc;
+    RestorePoint m_deferEllipsisErrorLoc;
 
     uint m_tryCatchOrFinallyDepth;  // Used to determine if parsing is currently in a try/catch/finally block in order to throw error on yield expressions inside them
 
@@ -762,7 +764,7 @@ private:
     template<bool buildAST> ParseNodePtr ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint);
     template<bool buildAST> ParseNodePtr ParseFncDecl(ushort flags, LPCOLESTR pNameHint = NULL, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
     template<bool buildAST> bool ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, ushort flags, ParseNodePtr **pLastNodeRef);
-    template<bool buildAST> void ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc, ushort flags);
+    template<bool buildAST> void ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc, ushort flags, bool isTopLevelDeferredFunc = false);
     template<bool buildAST> bool ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals = false);
     template<bool buildAST> void ParseExpressionLambdaBody(ParseNodePtr pnodeFnc);
     template<bool buildAST> void UpdateCurrentNodeFunc(ParseNodePtr pnodeFnc, bool fLambda);
@@ -853,12 +855,13 @@ private:
         _Out_opt_ BOOL* pfCanAssign = nullptr);
 
     bool IsImportOrExportStatementValidHere();
+    bool IsTopLevelModuleFunc();
 
     template<bool buildAST> ParseNodePtr ParseImport();
     template<bool buildAST> void ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma = false);
     template<bool buildAST> ParseNodePtr ParseImportCall();
 
-    template<bool buildAST> ParseNodePtr ParseExportDeclaration();
+    template<bool buildAST> ParseNodePtr ParseExportDeclaration(bool *needTerminator = nullptr);
     template<bool buildAST> ParseNodePtr ParseDefaultExportClause();
 
     template<bool buildAST> void ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* importOrExportEntryList, bool isExportClause);

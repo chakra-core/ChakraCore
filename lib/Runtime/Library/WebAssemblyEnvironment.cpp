@@ -41,7 +41,7 @@ WebAssemblyEnvironment::WebAssemblyEnvironment(WebAssemblyModule* module):
 }
 
 template<typename T>
-void Js::WebAssemblyEnvironment::CheckPtrIsValid(intptr_t ptr) const
+void WebAssemblyEnvironment::CheckPtrIsValid(intptr_t ptr) const
 {
     if (ptr < (intptr_t)PointerValue(start) || (intptr_t)(ptr + sizeof(T)) > (intptr_t)PointerValue(end))
     {
@@ -50,7 +50,7 @@ void Js::WebAssemblyEnvironment::CheckPtrIsValid(intptr_t ptr) const
 }
 
 template<typename T>
-T* Js::WebAssemblyEnvironment::GetVarElement(Field(Var)* ptr, uint32 index, uint32 maxCount) const
+T* WebAssemblyEnvironment::GetVarElement(Field(Var)* ptr, uint32 index, uint32 maxCount) const
 {
     if (index >= maxCount)
     {
@@ -72,7 +72,7 @@ T* Js::WebAssemblyEnvironment::GetVarElement(Field(Var)* ptr, uint32 index, uint
 }
 
 template<typename T>
-void Js::WebAssemblyEnvironment::SetVarElement(Field(Var)* ptr, T* val, uint32 index, uint32 maxCount)
+void WebAssemblyEnvironment::SetVarElement(Field(Var)* ptr, T* val, uint32 index, uint32 maxCount)
 {
     if (index >= maxCount ||
         !T::Is(val))
@@ -82,29 +82,28 @@ void Js::WebAssemblyEnvironment::SetVarElement(Field(Var)* ptr, T* val, uint32 i
 
     Field(Var)* dst = ptr + index;
     CheckPtrIsValid<Var>((intptr_t)dst);
-    AssertMsg(*(T**)dst == nullptr, "We shouln't overwrite anything on the environment once it is set");
+    AssertMsg(*(T**)dst == nullptr, "We shouldn't overwrite anything on the environment once it is set");
     *dst = val;
 }
 
-AsmJsScriptFunction* WebAssemblyEnvironment::GetWasmFunction(uint32 index) const
+WasmScriptFunction* WebAssemblyEnvironment::GetWasmFunction(uint32 index) const
 {
     if (!(module->GetFunctionIndexType(index) == Wasm::FunctionIndexTypes::Function ||
           module->GetFunctionIndexType(index) == Wasm::FunctionIndexTypes::ImportThunk))
     {
         Js::Throw::InternalError();
     }
-    return GetVarElement<AsmJsScriptFunction>(functions, index, module->GetWasmFunctionCount());
+    return GetVarElement<WasmScriptFunction>(functions, index, module->GetWasmFunctionCount());
 }
 
-void WebAssemblyEnvironment::SetWasmFunction(uint32 index, AsmJsScriptFunction* func)
+void WebAssemblyEnvironment::SetWasmFunction(uint32 index, WasmScriptFunction* func)
 {
     if (!(module->GetFunctionIndexType(index) == Wasm::FunctionIndexTypes::Function ||
-          module->GetFunctionIndexType(index) == Wasm::FunctionIndexTypes::ImportThunk) ||
-        !AsmJsScriptFunction::IsWasmScriptFunction(func))
+          module->GetFunctionIndexType(index) == Wasm::FunctionIndexTypes::ImportThunk))
     {
         Js::Throw::InternalError();
     }
-    SetVarElement<AsmJsScriptFunction>(functions, func, index, module->GetWasmFunctionCount());
+    SetVarElement<WasmScriptFunction>(functions, func, index, module->GetWasmFunctionCount());
 }
 
 void WebAssemblyEnvironment::SetImportedFunction(uint32 index, Var importedFunc)
@@ -145,7 +144,7 @@ void WebAssemblyEnvironment::SetGlobalInternal(uint32 offset, T val)
 {
     Field(T)* ptr = (Field(T)*)PointerValue(start) + offset;
     CheckPtrIsValid<T>((intptr_t)PointerValue(ptr));
-    AssertMsg(*ptr == 0, "We shouln't overwrite anything on the environment once it is set");
+    AssertMsg(*ptr == 0, "We shouldn't overwrite anything on the environment once it is set");
     *ptr = val;
 }
 

@@ -14,7 +14,7 @@ namespace Js
 
     Var WasmLibrary::WasmLazyTrapCallback(RecyclableObject *callee, CallInfo, ...)
     {
-        AsmJsScriptFunction* asmFunction = static_cast<AsmJsScriptFunction*>(callee);
+        WasmScriptFunction* asmFunction = static_cast<WasmScriptFunction*>(callee);
         Assert(asmFunction);
         ScriptContext * scriptContext = asmFunction->GetScriptContext();
         Assert(scriptContext);
@@ -24,7 +24,7 @@ namespace Js
 
     void WasmLibrary::SetWasmEntryPointToInterpreter(Js::ScriptFunction* func, bool deferParse)
     {
-        Assert(AsmJsScriptFunction::Is(func));
+        Assert(WasmScriptFunction::Is(func));
         FunctionEntryPointInfo* entrypointInfo = (FunctionEntryPointInfo*)func->GetEntryPointInfo();
         entrypointInfo->SetIsAsmJSFunction(true);
 
@@ -42,16 +42,12 @@ namespace Js
 
 #if _M_IX86
     __declspec(naked)
-        Var WasmLibrary::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    Var WasmLibrary::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        // Register functions
         __asm
         {
-            push ebp
-            mov ebp, esp
-            lea eax, [esp + 8]
-            push 0
-            push eax
+            push 0;
+            push [esp + 8];
             call WasmLibrary::WasmDeferredParseEntryPoint
 #ifdef _CONTROL_FLOW_GUARD
             // verify that the call target is valid
@@ -59,22 +55,18 @@ namespace Js
             call[__guard_check_icall_fptr]
             mov eax, ecx
 #endif
-            pop ebp
             // Although we don't restore ESP here on WinCE, this is fine because script profiler is not shipped for WinCE.
             jmp eax
         }
     }
 
-    __declspec(naked) Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    __declspec(naked)
+    Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        // Register functions
         __asm
         {
-            push ebp
-            mov ebp, esp
-            lea eax, [esp + 8]
-            push 1
-            push eax
+            push 1;
+            push [esp + 8];
             call WasmLibrary::WasmDeferredParseEntryPoint
 #ifdef _CONTROL_FLOW_GUARD
             // verify that the call target is valid
@@ -82,7 +74,6 @@ namespace Js
             call[__guard_check_icall_fptr]
             mov eax, ecx
 #endif
-            pop ebp
             // Although we don't restore ESP here on WinCE, this is fine because script profiler is not shipped for WinCE.
             jmp eax
         }
@@ -96,11 +87,9 @@ namespace Js
 
 #endif // ENABLE_WASM
 
-Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScriptFunction** funcPtr, int internalCall)
+Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScriptFunction* func, int internalCall)
 {
 #ifdef ENABLE_WASM
-    AsmJsScriptFunction* func = *funcPtr;
-
     FunctionBody* body = func->GetFunctionBody();
     AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
     ScriptContext* scriptContext = func->GetScriptContext();
@@ -109,7 +98,6 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
     Wasm::WasmReaderInfo* readerInfo = info->GetWasmReaderInfo();
     if (readerInfo)
     {
-        info->SetWasmReaderInfo(nullptr);
         try
         {
             Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
@@ -120,15 +108,13 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
         catch (Wasm::WasmCompilationException& ex)
         {
             char16* originalMessage = ex.ReleaseErrorMessage();
-            intptr_t offset = readerInfo->m_module->GetReader()->GetCurrentOffset();
-            intptr_t start = readerInfo->m_funcInfo->m_readerInfo.startOffset;
-            uint32 size = readerInfo->m_funcInfo->m_readerInfo.size;
+            Wasm::BinaryLocation location = readerInfo->m_module->GetReader()->GetCurrentLocation();
 
             Wasm::WasmCompilationException newEx(
-                _u("function %s at offset %d/%d: %s"),
+                _u("function %s at offset %u/%u (0x%x/0x%x): %s"),
                 body->GetDisplayName(),
-                offset - start,
-                size,
+                location.offset, location.size,
+                location.offset, location.size,
                 originalMessage
             );
             SysFreeString(originalMessage);
@@ -142,6 +128,7 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
             entrypointInfo->jsMethod = WasmLazyTrapCallback;
             info->SetLazyError(pError);
         }
+        info->SetWasmReaderInfo(nullptr);
     }
     else
     {

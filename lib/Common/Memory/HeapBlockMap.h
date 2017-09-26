@@ -98,9 +98,13 @@ private:
     }
 
 public:
+
+    static const uint L2CountPageSizePow2Modulo = (L2Count * PageSize) - 1;
     static uint GetLevel2Id(void * address)
     {
-        return ::Math::PointerCastToIntegralTruncate<uint>(address) % (L2Count * PageSize) / PageSize;
+        Assert((::Math::PointerCastToIntegralTruncate<uint>(address) & L2CountPageSizePow2Modulo) / PageSize
+              ==    (::Math::PointerCastToIntegralTruncate<uint>(address) % (L2Count * PageSize)) / PageSize); // see if L2Count * PageSize is no longer Pow2
+        return (::Math::PointerCastToIntegralTruncate<uint>(address) & L2CountPageSizePow2Modulo) / PageSize;
     }
 
 private:

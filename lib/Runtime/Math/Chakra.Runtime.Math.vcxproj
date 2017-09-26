@@ -29,6 +29,7 @@
         $(MSBuildThisFileDirectory)..\..\Backend;
         $(MSBuildThisFileDirectory)..\..\JITClient;
         $(ChakraJITIDLIntDir);
+        $(IcuIncludeDir)\common;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -44,9 +45,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsMath.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSSE2MathOperators.cpp">
-      <ExcludedFromBuild Condition="'$(Platform)'!='Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeMathPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -58,13 +56,11 @@
     <ClInclude Include="CrtSSE2Math.h" />
     <ClInclude Include="RuntimeMathPch.h" />
     <ClInclude Include="JavascriptMath.h" />
-    <ClInclude Include="JavascriptSSE2MathOperators.h" />
     <ClInclude Include="WasmMath.inl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="AsmJsMath.inl" />
     <None Include="JavascriptMath.inl" />
-    <None Include="JavascriptSSE2MathOperators.inl" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">

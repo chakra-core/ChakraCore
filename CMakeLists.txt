@@ -137,10 +137,15 @@ if(ICU_INCLUDE_PATH)
       if (NOT ICUDATA)
           set(ICUDATA "")
       endif()
+      find_library(ICUTOOLS icutools PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+      if (NOT ICUTOOLS)
+          set(ICUTOOLS "")
+      endif()
       set(ICULIB
         ${ICUUC}
         ${ICU18}
         ${ICUDATA}
+        ${ICUTOOLS}
         )
     endif()
 endif()
@@ -240,6 +245,7 @@ if(STATIC_LIBRARY)
 endif()
 
 if(CLR_CMAKE_PLATFORM_XPLAT)
+    add_definitions(-D_CHAKRACOREBUILD)
     add_definitions(-DFEATURE_PAL)
     add_definitions(-DPLATFORM_UNIX=1)
 
@@ -364,6 +370,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Test)
     add_definitions(
         -DENABLE_DEBUG_CONFIG_OPTIONS=1
     )
+    add_compile_options(-g)
 endif(CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -385,6 +392,12 @@ if(NO_JIT_SH)
     add_definitions(-DDISABLE_JIT=1)
 else()
     set(BuildJIT 1)
+endif()
+
+if(INTL_ICU_SH)
+    unset(INTL_ICU_SH CACHE)    # don't cache
+    add_definitions(-DINTL_ICU=1)
+    set(IntlICU 1)
 endif()
 
 if(WITHOUT_FEATURES_SH)

@@ -1,1 +1,2 @@
-sourceInfo_10.js(10, 3) JavaScript runtime error: Object doesn't support this property or method
+TypeError: Object doesn't support property or method 'nosuchfunc'
+	at Global code (sourceInfo_10.js:15:3)

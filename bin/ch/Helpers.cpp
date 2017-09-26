@@ -244,74 +244,58 @@ LPCWSTR Helpers::JsErrorCodeToString(JsErrorCode jsErrorCode)
 
     switch (jsErrorCode)
     {
-    case JsNoError:
-        return _u("JsNoError");
-        break;
-
-    case JsErrorInvalidArgument:
-        return _u("JsErrorInvalidArgument");
-        break;
-
-    case JsErrorNullArgument:
-        return _u("JsErrorNullArgument");
-        break;
-
-    case JsErrorNoCurrentContext:
-        return _u("JsErrorNoCurrentContext");
-        break;
-
-    case JsErrorInExceptionState:
-        return _u("JsErrorInExceptionState");
-        break;
-
-    case JsErrorNotImplemented:
-        return _u("JsErrorNotImplemented");
-        break;
-
-    case JsErrorWrongThread:
-        return _u("JsErrorWrongThread");
-        break;
-
-    case JsErrorRuntimeInUse:
-        return _u("JsErrorRuntimeInUse");
-        break;
-
-    case JsErrorBadSerializedScript:
-        return _u("JsErrorBadSerializedScript");
-        break;
-
-    case JsErrorInDisabledState:
-        return _u("JsErrorInDisabledState");
-        break;
-
-    case JsErrorCannotDisableExecution:
-        return _u("JsErrorCannotDisableExecution");
-        break;
-
-    case JsErrorHeapEnumInProgress:
-        return _u("JsErrorHeapEnumInProgress");
-        break;
-
-    case JsErrorOutOfMemory:
-        return _u("JsErrorOutOfMemory");
-        break;
-
-    case JsErrorScriptException:
-        return _u("JsErrorScriptException");
-        break;
-
-    case JsErrorScriptCompile:
-        return _u("JsErrorScriptCompile");
-        break;
-
-    case JsErrorScriptTerminated:
-        return _u("JsErrorScriptTerminated");
-        break;
-
-    case JsErrorFatal:
-        return _u("JsErrorFatal");
-        break;
-
+    case JsNoError:                            return _u("JsNoError");
+    // JsErrorCategoryUsage
+    case JsErrorCategoryUsage:                 return _u("JsErrorCategoryUsage");
+    case JsErrorInvalidArgument:               return _u("JsErrorInvalidArgument");
+    case JsErrorNullArgument:                  return _u("JsErrorNullArgument");
+    case JsErrorNoCurrentContext:              return _u("JsErrorNoCurrentContext");
+    case JsErrorInExceptionState:              return _u("JsErrorInExceptionState");
+    case JsErrorNotImplemented:                return _u("JsErrorNotImplemented");
+    case JsErrorWrongThread:                   return _u("JsErrorWrongThread");
+    case JsErrorRuntimeInUse:                  return _u("JsErrorRuntimeInUse");
+    case JsErrorBadSerializedScript:           return _u("JsErrorBadSerializedScript");
+    case JsErrorInDisabledState:               return _u("JsErrorInDisabledState");
+    case JsErrorCannotDisableExecution:        return _u("JsErrorCannotDisableExecution");
+    case JsErrorHeapEnumInProgress:            return _u("JsErrorHeapEnumInProgress");
+    case JsErrorArgumentNotObject:             return _u("JsErrorArgumentNotObject");
+    case JsErrorInProfileCallback:             return _u("JsErrorInProfileCallback");
+    case JsErrorInThreadServiceCallback:       return _u("JsErrorInThreadServiceCallback");
+    case JsErrorCannotSerializeDebugScript:    return _u("JsErrorCannotSerializeDebugScript");
+    case JsErrorAlreadyDebuggingContext:       return _u("JsErrorAlreadyDebuggingContext");
+    case JsErrorAlreadyProfilingContext:       return _u("JsErrorAlreadyProfilingContext");
+    case JsErrorIdleNotEnabled:                return _u("JsErrorIdleNotEnabled");
+    case JsCannotSetProjectionEnqueueCallback: return _u("JsCannotSetProjectionEnqueueCallback");
+    case JsErrorCannotStartProjection:         return _u("JsErrorCannotStartProjection");
+    case JsErrorInObjectBeforeCollectCallback: return _u("JsErrorInObjectBeforeCollectCallback");
+    case JsErrorObjectNotInspectable:          return _u("JsErrorObjectNotInspectable");
+    case JsErrorPropertyNotSymbol:             return _u("JsErrorPropertyNotSymbol");
+    case JsErrorPropertyNotString:             return _u("JsErrorPropertyNotString");
+    case JsErrorInvalidContext:                return _u("JsErrorInvalidContext");
+    case JsInvalidModuleHostInfoKind:          return _u("JsInvalidModuleHostInfoKind");
+    case JsErrorModuleParsed:                  return _u("JsErrorModuleParsed");
+    // JsErrorCategoryEngine
+    case JsErrorCategoryEngine:                return _u("JsErrorCategoryEngine");
+    case JsErrorOutOfMemory:                   return _u("JsErrorOutOfMemory");
+    case JsErrorBadFPUState:                   return _u("JsErrorBadFPUState");
+    // JsErrorCategoryScript
+    case JsErrorCategoryScript:                return _u("JsErrorCategoryScript");
+    case JsErrorScriptException:               return _u("JsErrorScriptException");
+    case JsErrorScriptCompile:                 return _u("JsErrorScriptCompile");
+    case JsErrorScriptTerminated:              return _u("JsErrorScriptTerminated");
+    case JsErrorScriptEvalDisabled:            return _u("JsErrorScriptEvalDisabled");
+    // JsErrorCategoryFatal
+    case JsErrorCategoryFatal:                 return _u("JsErrorCategoryFatal");
+    case JsErrorFatal:                         return _u("JsErrorFatal");
+    case JsErrorWrongRuntime:                  return _u("JsErrorWrongRuntime");
+    // JsErrorCategoryDiagError
+    case JsErrorCategoryDiagError:             return _u("JsErrorCategoryDiagError");
+    case JsErrorDiagAlreadyInDebugMode:        return _u("JsErrorDiagAlreadyInDebugMode");
+    case JsErrorDiagNotInDebugMode:            return _u("JsErrorDiagNotInDebugMode");
+    case JsErrorDiagNotAtBreak:                return _u("JsErrorDiagNotAtBreak");
+    case JsErrorDiagInvalidHandle:             return _u("JsErrorDiagInvalidHandle");
+    case JsErrorDiagObjectNotFound:            return _u("JsErrorDiagObjectNotFound");
+    case JsErrorDiagUnableToPerformAction:     return _u("JsErrorDiagUnableToPerformAction");
     default:
         return _u("<unknown>");
         break;
@@ -345,10 +329,10 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
     {
         if (printFileOpenError)
         {
+            fprintf(stderr, "Error in opening file '%s' ", filename);
 #ifdef _WIN32
             DWORD lastError = GetLastError();
             char16 wszBuff[512];
-            fprintf(stderr, "Error in opening file '%s' ", filename);
             wszBuff[0] = 0;
             if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
                 nullptr,
@@ -362,12 +346,8 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
             }
 #endif
             fprintf(stderr, "\n");
-            IfFailGo(E_FAIL);
         }
-        else
-        {
-            return E_FAIL;
-        }
+        return E_FAIL;        
     }
     // file will not be nullptr if _wfopen_s succeeds
     __analysis_assume(file != nullptr);
@@ -393,9 +373,9 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
         fwprintf(stderr, _u("Read error"));
         IfFailGo(E_FAIL);
     }
-    fclose(file);
 
 Error:
+    fclose(file);
     if (contents && FAILED(hr))
     {
         HeapFree(GetProcessHeap(), 0, (void*)contents);

@@ -16,7 +16,14 @@ namespace Js
 
     bool ScriptFunctionBase::Is(Var func)
     {
-        return ScriptFunction::Is(func) || JavascriptGeneratorFunction::Is(func) || JavascriptAsyncFunction::Is(func);
+        if (JavascriptFunction::Is(func))
+        {
+            JavascriptFunction *function = JavascriptFunction::FromVar(func);
+            return ScriptFunction::Test(function) || JavascriptGeneratorFunction::Test(function)
+                || JavascriptAsyncFunction::Test(function);
+        }
+
+        return false;
     }
 
     ScriptFunctionBase * ScriptFunctionBase::FromVar(Var func)
@@ -196,8 +203,6 @@ namespace Js
         Assert(this->GetTypeId() == TypeIds_Function);
 #if ENABLE_NATIVE_CODEGEN
         Assert(!IsCrossSiteObject() || entryPoint != (Js::JavascriptMethod)checkCodeGenThunk);
-#else
-        Assert(!IsCrossSiteObject());
 #endif
 
         Assert((entryPointInfo != nullptr && this->GetFunctionProxy() != nullptr));
@@ -227,8 +232,6 @@ namespace Js
             entryPointInfo->jsMethod = entryPoint;
         }
 
-        if (!isAsmJS)
-        {
             ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
             if (oldEntryPointInfo
                 && oldEntryPointInfo != entryPointInfo
@@ -240,7 +243,6 @@ namespace Js
 
                 threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
             }
-        }
 
         this->GetScriptFunctionType()->SetEntryPointInfo(entryPointInfo);
     }
@@ -642,25 +644,16 @@ namespace Js
 #endif
 
     AsmJsScriptFunction::AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
-        ScriptFunction(proxy, deferredPrototypeType), m_moduleMemory(nullptr)
+        ScriptFunction(proxy, deferredPrototypeType), m_moduleEnvironment(nullptr)
     {}
 
     AsmJsScriptFunction::AsmJsScriptFunction(DynamicType * type) :
-        ScriptFunction(type), m_moduleMemory(nullptr)
+        ScriptFunction(type), m_moduleEnvironment(nullptr)
     {}
 
     bool AsmJsScriptFunction::Is(Var func)
     {
-        return ScriptFunction::Is(func) &&
-            ScriptFunction::FromVar(func)->HasFunctionBody() &&
-            ScriptFunction::FromVar(func)->GetFunctionBody()->GetIsAsmJsFunction();
-    }
-
-    bool AsmJsScriptFunction::IsWasmScriptFunction(Var func)
-    {
-        return ScriptFunction::Is(func) &&
-            ScriptFunction::FromVar(func)->HasFunctionBody() &&
-            ScriptFunction::FromVar(func)->GetFunctionBody()->IsWasmFunction();
+        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->IsAsmJsFunction();
     }
 
     AsmJsScriptFunction* AsmJsScriptFunction::FromVar(Var func)
@@ -690,6 +683,42 @@ namespace Js
         return asmJsFunc;
     }
 
+    JavascriptArrayBuffer* AsmJsScriptFunction::GetAsmJsArrayBuffer() const
+    {
+#ifdef ASMJS_PLAT
+        return *(JavascriptArrayBuffer**)(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset);
+#else
+        Assert(UNREACHED);
+        return nullptr;
+#endif
+    }
+
+#ifdef ENABLE_WASM
+    WasmScriptFunction::WasmScriptFunction(DynamicType * type) :
+        AsmJsScriptFunction(type), m_signature(nullptr)
+    {}
+
+    WasmScriptFunction::WasmScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
+        AsmJsScriptFunction(proxy, deferredPrototypeType), m_signature(nullptr)
+    {}
+
+    bool WasmScriptFunction::Is(Var func)
+    {
+        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->IsWasmFunction();
+    }
+
+    WasmScriptFunction* WasmScriptFunction::FromVar(Var func)
+    {
+        Assert(WasmScriptFunction::Is(func));
+        return reinterpret_cast<WasmScriptFunction *>(func);
+    }
+
+    WebAssemblyMemory* WasmScriptFunction::GetWebAssemblyMemory() const
+    {
+        return *(WebAssemblyMemory**)(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset);
+    }
+#endif
+
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         ScriptFunction(proxy, deferredPrototypeType), hasOwnInlineCaches(false)
     {}
@@ -711,14 +740,29 @@ namespace Js
 
     InlineCache * ScriptFunctionWithInlineCache::GetInlineCache(uint index)
     {
-        Assert(this->m_inlineCaches != nullptr);
-        Assert(index < this->GetInlineCacheCount());
+        void** inlineCaches = this->GetInlineCaches();
+        Assert(inlineCaches != nullptr);
+        AssertOrFailFast(index < this->GetInlineCacheCount());
 #if DBG
         Assert(this->m_inlineCacheTypes[index] == InlineCacheTypeNone ||
             this->m_inlineCacheTypes[index] == InlineCacheTypeInlineCache);
         this->m_inlineCacheTypes[index] = InlineCacheTypeInlineCache;
 #endif
-        return reinterpret_cast<InlineCache *>(PointerValue(this->m_inlineCaches[index]));
+        return reinterpret_cast<InlineCache *>(PointerValue(inlineCaches[index]));
+    }
+
+    Field(void**) ScriptFunctionWithInlineCache::GetInlineCaches()
+    {
+        // If script function have inline caches pointing to function body and function body got reparsed we need to reset cache
+        if (this->GetHasInlineCaches() &&
+            !this->GetHasOwnInlineCaches() &&
+            this->m_inlineCaches != this->GetFunctionBody()->GetInlineCaches())
+        {
+            Assert(this->GetFunctionBody()->GetCompileCount() > 1);
+            this->SetInlineCachesFromFunctionBody();
+        }
+
+        return this->m_inlineCaches;
     }
 
     void ScriptFunctionWithInlineCache::SetInlineCachesFromFunctionBody()

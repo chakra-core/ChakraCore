@@ -278,6 +278,12 @@
   </test>
   <test>
     <default>
+      <files>With-defer-block-scope.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>withBug940841.js</files>
       <compile-flags>-MaxinterpretCount:1 -MaxSimpleJITRunCount:1</compile-flags>
     </default>
@@ -313,6 +319,11 @@
       <files>DeleteProperty1.js</files>
       <baseline>DeleteProperty1.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeleteAndReAddNonExtensible.js</files>
     </default>
   </test>
   <test>
@@ -370,25 +381,6 @@
       <baseline>with3.baseline</baseline>
     </default>
   </test>
-  <!--
-  Microsoft/ChakraCore#3009
-  <test>
-    <default>
-      <compile-flags>-hostType:2</compile-flags>
-      <files>Enumerator-deprecated.js</files>
-      <baseline>Enumerator-deprecated.baseline</baseline>
-    </default>
-  </test>
-  <test>
-    <default>
-      <compile-flags>-hostType:3</compile-flags>
-      <files>Enumerator-WebViewHost.js</files>
-      <baseline>Enumerator-WebViewHost.baseline</baseline>
-      TODO remove this tag, as it appears to be unused now
-      <tags>exclude_inprocdebug</tags>
-    </default>
-  </test>
-  -->
   <test>
     <default>
       <files>cross_site_accessor_main.js</files>

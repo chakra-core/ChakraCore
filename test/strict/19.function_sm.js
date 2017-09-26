@@ -90,19 +90,16 @@ function exceptToString(ee) {
 
 (function Test5() {
     "use strict";
-    var str = "arguments.caller and arguments.callee are equal/strictEqual to each other";
+    var str = "arguments.caller is not defined and arguments.callee getter and setter are equal/strictEqual to each other";
     
     // Properties on the arguments object. 
-    var argumentsCallerGet = Object.getOwnPropertyDescriptor(arguments, 'caller').get;
-    var argumentsCallerSet = Object.getOwnPropertyDescriptor(arguments, 'caller').set;
+    var argumentsCallerDescriptor = Object.getOwnPropertyDescriptor(arguments, 'caller');
     var argumentsCalleeGet = Object.getOwnPropertyDescriptor(arguments, 'callee').get;
     var argumentsCalleeSet = Object.getOwnPropertyDescriptor(arguments, 'callee').set;
     
     write("Return: " + 
-      (argumentsCallerGet == argumentsCalleeGet && argumentsCallerSet == argumentsCalleeSet && 
-       argumentsCallerGet == argumentsCallerSet).toString() + " " +
-      (argumentsCallerGet === argumentsCalleeGet && argumentsCallerSet === argumentsCalleeSet && 
-       argumentsCallerGet === argumentsCallerSet).toString() + ": " +
+      (argumentsCallerDescriptor === undefined).toString() + " " +
+      (argumentsCalleeGet === argumentsCalleeSet).toString() + ": " +
       str);
 })();
 

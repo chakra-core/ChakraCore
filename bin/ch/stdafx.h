@@ -24,17 +24,11 @@
 #define IfFalseGo(expr) do { if(!(expr)) { hr = E_FAIL; goto Error; } } while(0)
 #define IfFalseGoLabel(expr, label) do { if(!(expr)) { hr = E_FAIL; goto label; } } while(0)
 
-#define WIN32_LEAN_AND_MEAN 1
-
 #include "CommonDefines.h"
 #include <map>
 #include <string>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
 #include <CommonPal.h>
-#endif // _WIN32
 
 #include <stdarg.h>
 #ifdef _MSC_VER
@@ -206,17 +200,25 @@ public:
         {
             strValue = value;
         }
+        size_t length = 0;
         if (errorCode == JsNoError)
         {
-            size_t len = 0;
-            errorCode = ChakraRTInterface::JsCopyString(strValue, nullptr, 0, &len);
+            errorCode = ChakraRTInterface::JsCopyString(strValue, nullptr, 0, &length);
             if (errorCode == JsNoError)
             {
-                data = (char*) malloc((len + 1) * sizeof(char));
-                ChakraRTInterface::JsCopyString(strValue, data, len + 1, &length);
-                AssertMsg(len == length, "If you see this message.. There is something seriously wrong. Good Luck!");
-                *(data + len) = char(0);
+                data = (char*)malloc((length + 1) * sizeof(char));
+                size_t writtenLength = 0;
+                errorCode = ChakraRTInterface::JsCopyString(strValue, data, length, &writtenLength);
+                if (errorCode == JsNoError)
+                {
+                    AssertMsg(length == writtenLength, "Inconsistent length in utf8 encoding");
+                }
             }
+        }
+        if (errorCode == JsNoError)
+        {
+            *(data + length) = char(0);
+            this->length = length;
         }
         return errorCode;
     }

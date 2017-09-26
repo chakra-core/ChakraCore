@@ -27,7 +27,7 @@ namespace Js
         virtual void AsmReg1(OpCodeAsmJs op, RegSlot R0) override {}
         virtual void AsmReg2(OpCodeAsmJs op, RegSlot R0, RegSlot R1) override {}
         virtual void AsmReg3(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2) override {}
-        virtual void AsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, int32 slotId) override {}
+        virtual void AsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, uint32 slotId) override {}
         virtual void AsmBr(ByteCodeLabel labelID, OpCodeAsmJs op = OpCodeAsmJs::AsmBr) override {}
         virtual void AsmBrReg1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1) override {}
         virtual void AsmBrReg1Const1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1) override {}
@@ -35,7 +35,9 @@ namespace Js
         virtual uint32 EnterLoop(ByteCodeLabel loopEntrance) override {return 0;}
         virtual void ExitLoop(uint32 loopId) override {}
         virtual void AsmStartCall(OpCodeAsmJs op, ArgSlot ArgCount, bool isPatching = false) override {}
-        virtual void AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType) override {}
+        virtual void AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType, Js::ProfileId profileId) override {}
+
+        virtual void SetCallSiteCount(Js::ProfileId callSiteCount) override {}
     };
 }
 #endif

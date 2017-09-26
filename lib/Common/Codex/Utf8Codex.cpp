@@ -19,8 +19,6 @@
 #pragma warning(disable: 4127)  // constant expression for template parameter
 #endif
 
-extern void CodexAssert(bool condition);
-
 namespace utf8
 {
     const unsigned int mAlignmentMask = 0x3;
@@ -70,18 +68,26 @@ namespace utf8
         return ((0x5B >> (((prefix ^ 0xF0) >> 3) & 0x1E)) & 0x03) + 1;
     }
 
-    const char16 g_chUnknown = char16(UNICODE_UNKNOWN_CHAR_MARK);
     const char16 WCH_UTF16_HIGH_FIRST  =  char16(0xd800);
     const char16 WCH_UTF16_HIGH_LAST   =  char16(0xdbff);
     const char16 WCH_UTF16_LOW_FIRST   =  char16(0xdc00);
     const char16 WCH_UTF16_LOW_LAST    =  char16(0xdfff);
+
+    char16 GetUnknownCharacter(DecodeOptions options = doDefault)
+    {
+        if ((options & doThrowOnInvalidWCHARs) != 0)
+        {
+            throw InvalidWideCharException();
+        }
+        return char16(UNICODE_UNKNOWN_CHAR_MARK);
+    }
 
     inline BOOL InRange(const char16 ch, const char16 chMin, const char16 chMax)
     {
         return (unsigned)(ch - chMin) <= (unsigned)(chMax - chMin);
     }
 
-    inline BOOL IsValidWideChar(const char16 ch)
+    BOOL IsValidWideChar(char16 ch)
     {
         return (ch < 0xfdd0) || ((ch > 0xfdef) && (ch <= 0xffef)) || ((ch >= 0xfff9) && (ch <= 0xfffd));
     }
@@ -122,7 +128,7 @@ namespace utf8
             }
 
             // 10xxxxxx (trail byte appearing in a lead byte position
-            return g_chUnknown;
+            return GetUnknownCharacter(options);
 
         case 2:
             // Look for an overlong utf-8 sequence.
@@ -138,7 +144,7 @@ namespace utf8
                         *chunkEndsAtTruncatedSequence = true;
                     }
                 }
-                return g_chUnknown;
+                return GetUnknownCharacter(options);
             }
             c2 = *ptr++;
             // 110XXXXx 10xxxxxx
@@ -152,12 +158,14 @@ namespace utf8
                 ch |= WCHAR(c1 & 0x1f) << 6;     // 0x0080 - 0x07ff
                 ch |= WCHAR(c2 & 0x3f);
                 if (!IsValidWideChar(ch) && ((options & doAllowInvalidWCHARs) == 0))
-                    ch = g_chUnknown;
+                {
+                    ch = GetUnknownCharacter(options);
+                }
             }
             else
             {
                 ptr--;
-                ch = g_chUnknown;
+                ch = GetUnknownCharacter(options);
             }
             break;
 
@@ -177,7 +185,7 @@ namespace utf8
                     }
                 }
 
-                return g_chUnknown;
+                return GetUnknownCharacter(options);
             }
 
             //      UTF16       |   UTF8 1st byte  2nd byte 3rd byte
@@ -217,12 +225,14 @@ namespace utf8
                 ch |= WCHAR(c2 & 0x3f) << 6;     // 0x0080 - 0x07ff
                 ch |= WCHAR(c3 & 0x3f);
                 if (!IsValidWideChar(ch) && ((options & (doAllowThreeByteSurrogates | doAllowInvalidWCHARs)) == 0))
-                    ch = g_chUnknown;
+                {
+                    ch = GetUnknownCharacter(options);
+                }
                 ptr += 2;
             }
             else
             {
-                ch = g_chUnknown;
+                ch = GetUnknownCharacter(options);
                 // Windows OS 1713952. Only drop the illegal leading byte
                 // Retry next byte.
                 // ptr is already advanced.
@@ -246,7 +256,7 @@ LFourByte:
                     }
                 }
 
-                ch = g_chUnknown;
+                ch = GetUnknownCharacter(options);
                 break;
             }
 
@@ -281,7 +291,7 @@ LFourByte:
                 // Windows OS 1713952. Only drop the illegal leading byte.
                 // Retry next byte.
                 // ptr is already advanced 1.
-                ch = g_chUnknown;
+                ch = GetUnknownCharacter(options);
                 break;
             }
 
@@ -319,62 +329,6 @@ LFourByte:
         }
 
         return ch;
-    }
-
-    LPUTF8 EncodeFull(char16 ch, __out_ecount(3) LPUTF8 ptr)
-    {
-        if( ch < 0x0080 )
-        {
-            // One byte
-            *ptr++ = static_cast< utf8char_t >(ch);
-        }
-        else if( ch < 0x0800 )
-        {
-            // Two bytes   : 110yyyxx 10xxxxxx
-            *ptr++ = static_cast<utf8char_t>(ch >> 6) | 0xc0;
-            *ptr++ = static_cast<utf8char_t>(ch & 0x3F) | 0x80;
-        }
-        else
-        {
-            // Three bytes : 1110yyyy 10yyyyxx 10xxxxxx
-            *ptr++ = static_cast<utf8char_t>(ch >> 12) | 0xE0;
-            *ptr++ = static_cast<utf8char_t>((ch >> 6) & 0x3F) | 0x80;
-            *ptr++ = static_cast<utf8char_t>(ch & 0x3F) | 0x80;
-        }
-
-        return ptr;
-    }
-
-    _Use_decl_annotations_
-    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, LPUTF8 ptr)
-    {
-        // A unicode codepoint is encoded into a surrogate pair by doing the following:
-        //  subtract 0x10000 from the codepoint
-        //  Split the resulting value into the high-ten bits and low-ten bits
-        //  Add 0xD800 to the high ten bits, and 0xDC00 to the low ten bits
-        // Below, we want to decode the surrogate pair to its original codepoint
-        // So we do the above process in reverse
-        uint32 highTen = (surrogateHigh - 0xD800);
-        uint32 lowTen  = (surrogateLow - 0xDC00);
-        uint32 codepoint = 0x10000 + ((highTen << 10) | lowTen);
-
-        // This is the maximum valid unicode codepoint
-        // This should be ensured anyway since you can't encode a value higher
-        // than this as a surrogate pair, so we assert this here
-        CodexAssert(codepoint <= 0x10FFFF);
-
-        // Now we need to encode the code point into utf-8
-        // Codepoints in the range that gets encoded into a surrogate pair
-        // gets encoded into 4 bytes under utf8
-        // Since the codepoint can be represented by 21 bits, the encoding
-        // does the following: first 3 bits in the first byte, the next 6 in the
-        // second, the next six in the third, and the last six in the 4th byte
-        *ptr++ = static_cast<utf8char_t>(codepoint >> 18) | 0xF0;
-        *ptr++ = static_cast<utf8char_t>((codepoint >> 12) & 0x3F) | 0x80;
-        *ptr++ = static_cast<utf8char_t>((codepoint >> 6) & 0x3F) | 0x80;
-        *ptr++ = static_cast<utf8char_t>(codepoint & 0x3F) | 0x80;
-
-        return ptr;
     }
 
     LPCUTF8 NextCharFull(LPCUTF8 ptr)
@@ -477,12 +431,14 @@ LSlowPath:
         return true;
     }
 
-    template <bool cesu8Encoding>
+    template <bool cesu8Encoding, bool countBytesOnly>
     __range(0, cchIn * 3)
-    size_t EncodeIntoImpl(__out_ecount(cchIn * 3) LPUTF8 buffer, __in_ecount(cchIn) const char16 *source, charcount_t cchIn)
+    size_t EncodeIntoImpl(_When_(!countBytesOnly, __out_ecount(cchIn * 3)) LPUTF8 buffer, __in_ecount(cchIn) const char16 *source, charcount_t cchIn, const void* bufferEnd)
     {
         charcount_t cch = cchIn; // SAL analysis gets confused by EncodeTrueUtf8's dest buffer requirement unless we alias cchIn with a local
         LPUTF8 dest = buffer;
+
+        CodexAssertOrFailFast(dest <= bufferEnd);
 
         if (!ShouldFastPath(dest, source)) goto LSlowPath;
 
@@ -493,10 +449,16 @@ LFastPath:
             if ( (first & 0xFF80FF80) != 0) goto LSlowPath;
             uint32 second = ((const uint32 *)source)[1];
             if ( (second & 0xFF80FF80) != 0) goto LSlowPath;
-            *(uint32 *)dest = (first & 0x0000007F) | ((first & 0x007F0000) >> 8) | ((second & 0x0000007f) << 16) | ((second & 0x007F0000) << 8);
+
+            if (!countBytesOnly)
+            {
+                CodexAssertOrFailFast(dest + 4 <= bufferEnd);
+                *(uint32 *)dest = (first & 0x0000007F) | ((first & 0x007F0000) >> 8) | ((second & 0x0000007f) << 16) | ((second & 0x007F0000) << 8);
+            }
             dest += 4;
             source += 4;
             cch -= 4;
+
         }
 
 LSlowPath:
@@ -504,7 +466,7 @@ LSlowPath:
         {
             while (cch-- > 0)
             {
-                dest = Encode(*source++, dest);
+                dest = Encode<countBytesOnly>(*source++, dest, bufferEnd);
                 if (ShouldFastPath(dest, source)) goto LFastPath;
             }
         }
@@ -516,7 +478,7 @@ LSlowPath:
                 // If the code unit turns out to be the high surrogate in a surrogate pair, then
                 // EncodeTrueUtf8 will consume the low surrogate code unit too by decrementing cch
                 // and incrementing source
-                dest = EncodeTrueUtf8(*source++, &source, &cch, dest);
+                dest = EncodeTrueUtf8<countBytesOnly>(*source++, &source, &cch, dest, bufferEnd);
                 if (ShouldFastPath(dest, source)) goto LFastPath;
             }
         }
@@ -527,7 +489,7 @@ LSlowPath:
     __range(0, cch * 3)
         size_t EncodeInto(__out_ecount(cch * 3) LPUTF8 buffer, __in_ecount(cch) const char16 *source, charcount_t cch)
     {
-        return EncodeIntoImpl<true>(buffer, source, cch);
+        return EncodeIntoImpl<true, false>(buffer, source, cch, &buffer[cch*3]);
     }
 
     __range(0, cch * 3)
@@ -541,9 +503,22 @@ LSlowPath:
     __range(0, cch * 3)
         size_t EncodeTrueUtf8IntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch)
     {
-        size_t result = EncodeIntoImpl<false>(buffer, source, cch);
+        size_t result = EncodeIntoImpl<false, false>(buffer, source, cch, &buffer[3 * cch]);
         buffer[result] = 0;
         return result;
+    }
+
+    __range(0, cch * 3)
+        size_t EncodeTrueUtf8IntoBoundsChecked(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch, const void * bufferEnd)
+    {
+        size_t result = EncodeIntoImpl<false, false>(buffer, source, cch, bufferEnd);
+        return result;
+    }
+
+    __range(0, cch * 3)
+        size_t CountTrueUtf8(__in_ecount(cch) const char16 *source, charcount_t cch)
+    {
+        return EncodeIntoImpl<false, true>(nullptr, source, cch, nullptr);
     }
 
     // Convert the character index into a byte index.

@@ -26,7 +26,9 @@ namespace Js
         GlobalObject* globalObject = RecyclerNewPlus(scriptContext->GetRecycler(),
             sizeof(Var) * InlineSlotCapacity, GlobalObject, globalType, scriptContext);
 
+#if ENABLE_FIXED_FIELDS
         globalTypeHandler->SetSingletonInstanceIfNeeded(scriptContext->GetRecycler()->CreateWeakReferenceHandle<DynamicObject>(globalObject));
+#endif
 
         return globalObject;
     }
@@ -587,12 +589,14 @@ namespace Js
             return evalArg;
         }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         // It might happen that no script parsed on this context (scriptContext) till now,
         // so this Eval acts as the first source compile for scriptContext, transition to debugMode as needed
         scriptContext->TransitionToDebugModeIfFirstSource(/* utf8SourceInfo = */ nullptr);
+#endif
 
         JavascriptString *argString = JavascriptString::FromVar(evalArg);
-        ScriptFunction *pfuncScript;
+        ScriptFunction *pfuncScript = nullptr;
         char16 const * sourceString = argString->GetSz();
         charcount_t sourceLen = argString->GetLength();
         FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
@@ -684,18 +688,23 @@ namespace Js
             // The eval expression refers to "this"
             if (args.Info.Flags & CallFlags_ExtraArg)
             {
-                JavascriptFunction* pfuncCaller;
-                JavascriptStackWalker::GetCaller(&pfuncCaller, scriptContext);
+                JavascriptFunction* pfuncCaller = nullptr;
                 // If we are non-hidden call to eval then look for the "this" object in the frame display if the caller is a lambda else get "this" from the caller's frame.
 
+                bool successful = false;
+                if (JavascriptStackWalker::GetCaller(&pfuncCaller, scriptContext))
+                {
                 FunctionInfo* functionInfo = pfuncCaller->GetFunctionInfo();
                 if (functionInfo != nullptr && (functionInfo->IsLambda() || functionInfo->IsClassConstructor()))
                 {
                     Var defaultInstance = (moduleID == kmodGlobal) ? JavascriptOperators::OP_LdRoot(scriptContext)->ToThis() : (Var)JavascriptOperators::GetModuleRoot(moduleID, scriptContext);
                     varThis = JavascriptOperators::OP_GetThisScoped(environment, defaultInstance, scriptContext);
                     UpdateThisForEval(varThis, moduleID, scriptContext, strictMode);
+                        successful = true;
                 }
-                else
+                }
+
+                if (!successful)
                 {
                     JavascriptStackWalker::GetThis(&varThis, moduleID, scriptContext);
                     UpdateThisForEval(varThis, moduleID, scriptContext, strictMode);
@@ -792,7 +801,7 @@ namespace Js
             ArenaAllocator tempAlloc(_u("ValidateSyntaxArena"), scriptContext->GetThreadContext()->GetPageAllocator(), Throw::OutOfMemory);
 
             size_t cchSource = sourceLength;
-            size_t cbUtf8Buffer = (cchSource + 1) * 3;
+            size_t cbUtf8Buffer = UInt32Math::AddMul<1, 3>(sourceLength);
             LPUTF8 utf8Source = AnewArray(&tempAlloc, utf8char_t, cbUtf8Buffer);
             Assert(cchSource < MAXLONG);
             size_t cbSource = utf8::EncodeIntoAndNullTerminate(utf8Source, source, static_cast< charcount_t >(cchSource));
@@ -864,7 +873,7 @@ namespace Js
         BEGIN_TRANSLATE_EXCEPTION_TO_HRESULT
         {
             uint cchSource = sourceLength;
-            size_t cbUtf8Buffer = (cchSource + 1) * 3;
+            size_t cbUtf8Buffer = UInt32Math::AddMul<1, 3>(cchSource);
 
             ArenaAllocator tempArena(_u("EvalHelperArena"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory);
             LPUTF8 utf8Source = AnewArray(&tempArena, utf8char_t, cbUtf8Buffer);
@@ -884,7 +893,7 @@ namespace Js
             Parser parser(scriptContext, strictMode);
             bool forceNoNative = false;
 
-            ParseNodePtr parseTree;
+            ParseNodePtr parseTree = nullptr;
 
             SourceContextInfo * sourceContextInfo = pSrcInfo->sourceContextInfo;
             ULONG deferParseThreshold = Parser::GetDeferralThreshold(sourceContextInfo->IsSourceProfileLoaded());
@@ -970,7 +979,7 @@ namespace Js
             if ((grfscr & fscrIsLibraryCode) == 0)
             {
                 // For parented eval get the caller's utf8SourceInfo
-                JavascriptFunction* pfuncCaller;
+                JavascriptFunction* pfuncCaller = nullptr;
                 if (JavascriptStackWalker::GetCaller(&pfuncCaller, scriptContext) && pfuncCaller && pfuncCaller->IsScriptFunction())
                 {
                     FunctionBody* parentFuncBody = pfuncCaller->GetFunctionBody();
@@ -1024,7 +1033,7 @@ namespace Js
         BEGIN_TRANSLATE_EXCEPTION_TO_HRESULT
         {
             size_t cchSource = sourceLength;
-            size_t cbUtf8Buffer = (cchSource + 1) * 3;
+            size_t cbUtf8Buffer = UInt32Math::AddMul<1, 3>(sourceLength);
 
             ArenaAllocator tempArena(_u("EvalHelperArena"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory);
             LPUTF8 utf8Source = AnewArray(&tempArena, utf8char_t, cbUtf8Buffer);
@@ -1043,7 +1052,7 @@ namespace Js
             Parser parser(scriptContext, strictMode);
             bool forceNoNative = false;
 
-            ParseNodePtr parseTree;
+            ParseNodePtr parseTree = nullptr;
 
             SourceContextInfo * sourceContextInfo = pSrcInfo->sourceContextInfo;
 
@@ -1790,7 +1799,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags((this->directHostObject && JavascriptOperators::GetProperty(this->directHostObject, propertyId, value, requestContext, info)) ||
             (this->hostObject && JavascriptOperators::GetProperty(this->hostObject, propertyId, value, requestContext, info)));
@@ -1835,7 +1844,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyReferenceQuery(originalInstance, propertyId, value, info, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags((this->directHostObject && JavascriptOperators::GetPropertyReference(this->directHostObject, propertyId, value, requestContext, info)) ||
             (this->hostObject && JavascriptOperators::GetPropertyReference(this->hostObject, propertyId, value, requestContext, info)));
@@ -1859,6 +1868,14 @@ LHexError:
         // In ES5 they are enumerable.
 
         PropertyAttributes attributes = PropertyWritable | PropertyEnumerable | PropertyDeclaredGlobal;
+        flags = static_cast<PropertyOperationFlags>(flags | PropertyOperation_ThrowIfNotExtensible);
+        return DynamicObject::SetPropertyWithAttributes(propertyId, value, attributes, info, flags);
+    }
+
+    BOOL GlobalObject::InitPropertyInEval(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
+    {
+        // This is var/function declared inside the 'eval'
+        PropertyAttributes attributes = PropertyDynamicTypeDefaults | PropertyDeclaredGlobal;
         flags = static_cast<PropertyOperationFlags>(flags | PropertyOperation_ThrowIfNotExtensible);
         return DynamicObject::SetPropertyWithAttributes(propertyId, value, attributes, info, flags);
     }
@@ -2205,7 +2222,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemReferenceQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return JavascriptConversion::BooleanToPropertyQueryFlags(
             (this->directHostObject && JavascriptConversion::PropertyQueryFlagsToBoolean(this->directHostObject->GetItemReferenceQuery(originalInstance, index, value, requestContext))) ||
@@ -2222,7 +2239,7 @@ LHexError:
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         return JavascriptConversion::BooleanToPropertyQueryFlags((this->directHostObject && this->directHostObject->GetItem(originalInstance, index, value, requestContext)) ||

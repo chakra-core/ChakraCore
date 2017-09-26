@@ -787,7 +787,10 @@ ValueInfo::MergeLikelyIntValueInfo(JitArenaAllocator* alloc, Value *toDataVal, V
 
     if(newValueType.IsInt())
     {
-        int32 min1, max1, min2, max2;
+        int32 min1 = INT32_MIN;
+        int32 max1 = INT32_MAX;
+        int32 min2 = INT32_MIN;
+        int32 max2 = INT32_MAX;
         toDataValueInfo->GetIntValMinMax(&min1, &max1, false);
         fromDataValueInfo->GetIntValMinMax(&min2, &max2, false);
         return ValueInfo::NewIntRangeValueInfo(alloc, min(min1, min2), max(max1, max2), wasNegativeZeroPreventedByBailout);

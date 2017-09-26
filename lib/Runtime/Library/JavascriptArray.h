@@ -625,6 +625,10 @@ namespace Js
         template <typename Fn>
         static void ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArr, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, uint32 destIndex, Fn fn);
 
+        // This helper function is mainly used as a precheck before going to the FillFromPrototype code path.
+        // Proxy and CustomExternalObject in the prototype chain will be returned as if ES5Array is there.
+        static bool HasAnyES5ArrayInPrototypeChain(JavascriptArray *arr, bool forceCheckProtoChain = false);
+
         // NativeArrays may change it's content type, but not others
         template <typename T> static bool MayChangeType() { return false; }
 

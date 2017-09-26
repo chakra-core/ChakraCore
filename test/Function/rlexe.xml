@@ -189,6 +189,12 @@
   </test>
   <test>
     <default>
+      <files>deferredStubOob.js</files>
+      <compile-flags>-force:deferparse -pageheap:2</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>deferredWith.js</files>
       <compile-flags>-Force:Deferparse</compile-flags>
       <baseline>deferredWith.v4.baseline</baseline>

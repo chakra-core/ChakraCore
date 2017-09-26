@@ -1,3 +1,1 @@
-(53) testsuite/core/if.wast:248: assert_invalid module failed. Had a linking error, expected a compile error: TypeError: Object expected
-(55) testsuite/core/if.wast:260: assert_invalid module failed. Had a linking error, expected a compile error: TypeError: Object expected
-81/83 tests passed.
+83/83 tests passed.

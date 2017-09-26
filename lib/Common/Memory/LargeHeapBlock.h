@@ -96,7 +96,7 @@ struct PageHeapData
 {
     ~PageHeapData();
     bool isLockedWithPageHeap;
-    bool isGuardPageDecommited;
+    bool isGuardPageDecommitted;
     PageHeapMode pageHeapMode;
 
     uint actualPageCount;

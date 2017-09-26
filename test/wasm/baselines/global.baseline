@@ -8,8 +8,8 @@ impInit: 234
 
 Print all i64
 exported i64: undefined
-basic: 0x0000422000800040
-mutable: 0x0000000000000000
+basic: 0x422000800040
+mutable: 0x0
 
 Print all f32
 exported f32: -54.869998931884766
@@ -38,7 +38,7 @@ impInit: 234
 
 Print all i64
 exported i64: undefined
-basic: 0x0000422000800040
+basic: 0x422000800040
 mutable: 0xfff2d5f870000000
 
 Print all f32

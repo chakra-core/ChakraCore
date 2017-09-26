@@ -141,7 +141,9 @@ namespace Js
     BlockActivationObject* BlockActivationObject::Clone(ScriptContext *scriptContext)
     {
         DynamicType* type = this->GetDynamicType();
+#if ENABLE_FIXED_FIELDS
         type->GetTypeHandler()->ClearSingletonInstance(); //We are going to share the type.
+#endif
 
         BlockActivationObject* blockScopeClone = DynamicObject::NewObject<BlockActivationObject>(scriptContext->GetRecycler(), type);
         int slotCapacity = this->GetTypeHandler()->GetSlotCapacity();
@@ -262,9 +264,9 @@ namespace Js
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(__super::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext)))
         {
             GetPropertyCore(info, requestContext);
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     PropertyQueryFlags ActivationObjectEx::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var *value, PropertyValueInfo *info, ScriptContext *requestContext)
@@ -272,9 +274,9 @@ namespace Js
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(__super::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext)))
         {
             GetPropertyCore(info, requestContext);
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     void ActivationObjectEx::InvalidateCachedScope()

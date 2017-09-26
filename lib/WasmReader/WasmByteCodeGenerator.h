@@ -129,6 +129,18 @@ namespace Wasm
         Js::ByteCodeLabel label;
         bool DidYield() const { return HasYield() && yieldInfo->didYield; }
         bool HasYield() const { return yieldInfo != nullptr; }
+        bool IsEquivalent(const BlockInfo& other) const
+        {
+            if (HasYield() != other.HasYield())
+            {
+                return false;
+            }
+            if (HasYield() && yieldInfo->info.type != other.yieldInfo->info.type)
+            {
+                return false;
+            }
+            return true;
+        }
     };
 
     typedef JsUtil::BaseDictionary<uint32, LPCUTF8, ArenaAllocator> WasmExportDictionary;
@@ -161,8 +173,6 @@ namespace Wasm
         static const Js::RegSlot ModuleSlotRegister = 0;
         static const Js::RegSlot ReturnRegister = 0;
 
-        static const Js::RegSlot FunctionRegister = 0;
-        static const Js::RegSlot CallReturnRegister = 0;
         static const Js::RegSlot ModuleEnvRegister = 1;
         static const Js::RegSlot ArrayBufferRegister = 2;
         static const Js::RegSlot ArraySizeRegister = 3;
@@ -193,9 +203,15 @@ namespace Wasm
         EmitInfo EmitSetLocal(bool tee);
         void EmitReturnExpr(EmitInfo* explicitRetInfo = nullptr);
         EmitInfo EmitSelect();
+        template<typename WriteFn>
+        void WriteTypeStack(WriteFn fn) const;
+        uint32 WriteTypeStackToString(_Out_writes_(maxlen) char16* out, uint32 maxlen) const;
 #if DBG_DUMP
-        void PrintOpBegin(WasmOp op) const;
-        void PrintOpEnd() const;
+        uint32 opId = 0;
+        uint32 lastOpId = 1;
+        void PrintOpBegin(WasmOp op);
+        void PrintTypeStack() const;
+        void PrintOpEnd();
 #endif
         void EmitBr();
         EmitInfo EmitBrIf();
@@ -215,10 +231,7 @@ namespace Wasm
         EmitInfo PopLabel(Js::ByteCodeLabel labelValidation);
         BlockInfo PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo = true);
         void YieldToBlock(BlockInfo blockInfo, EmitInfo expr);
-        void YieldToBlock(uint32 relativeDepth, EmitInfo expr);
-        bool ShouldYieldToBlock(uint32 relativeDepth) const;
         BlockInfo GetBlockInfo(uint32 relativeDepth) const;
-        Js::ByteCodeLabel GetLabel(uint32 relativeDepth);
 
         Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
         Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
@@ -237,6 +250,7 @@ namespace Wasm
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
         WasmReaderBase* GetReader() const;
 
+        Js::ProfileId GetNextProfileId();
         bool IsValidating() const { return m_originalWriter == m_emptyWriter; }
 
         ArenaAllocator m_alloc;
@@ -256,6 +270,7 @@ namespace Wasm
 
         WAsmJs::TypedRegisterAllocator mTypedRegisterAllocator;
 
+        Js::ProfileId currentProfileId;
         JsUtil::Stack<BlockInfo> m_blockInfos;
         JsUtil::Stack<EmitInfo> m_evalStack;
     };

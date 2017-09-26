@@ -265,9 +265,9 @@ namespace TTD
         snapwriter->WriteRecordEnd();
     }
 
-    void SnapShot::SnapRootPinEntryParse(NSSnapValues::SnapRootInfoEntry* spe, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+    void SnapShot::SnapRootPinEntryParse(NSSnapValues::SnapRootInfoEntry* spe, bool readSeparator, FileReader* reader, SlabAllocator& alloc)
     {
-        reader->ReadRecordStart(readSeperator);
+        reader->ReadRecordStart(readSeparator);
         spe->LogId = reader->ReadLogTag(NSTokens::Key::logTag);
         spe->LogObject = reader->ReadAddr(NSTokens::Key::objectId, true);
         spe->MaybeLongLivedRoot = reader->ReadBool(NSTokens::Key::boolVal, true);
@@ -584,15 +584,16 @@ namespace TTD
         }
 
         //reset the threadContext symbol map
-        JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler>* tcSymbolRegistrationMap = tCtx->GetThreadContext()->GetSymbolRegistrationMap_TTD();
+        JsUtil::BaseDictionary<Js::HashedCharacterBuffer<char16>*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy, Js::PropertyRecordStringHashComparer>* tcSymbolRegistrationMap = tCtx->GetThreadContext()->GetSymbolRegistrationMap_TTD();
         tcSymbolRegistrationMap->Clear();
 
         for(auto iter = this->m_tcSymbolRegistrationMapContents.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             Js::PropertyId pid = *iter.Current();
             const Js::PropertyRecord* pRecord = tCtx->GetThreadContext()->GetPropertyName(pid);
+            Js::HashedCharacterBuffer<char16> * propertyName = RecyclerNew(tCtx->GetThreadContext()->GetRecycler(), Js::HashedCharacterBuffer<char16>, pRecord->GetBuffer(), pRecord->GetLength());
 
-            tcSymbolRegistrationMap->Add(pRecord->GetBuffer(), pRecord);
+            tcSymbolRegistrationMap->Add(propertyName, pRecord);
         }
     }
 

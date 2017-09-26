@@ -57,7 +57,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdUtils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TaggedInt.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeLanguagePch.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8Operation.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8OperationX86X64.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUInt32x4Operation.cpp" />
@@ -77,6 +76,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceTextModuleRecord.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespaceEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblySource.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ConstructorCache.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsmJs.h" />
@@ -125,7 +125,6 @@
     </ClInclude>
     <ClInclude Include="AsmJsTypes.h" />
     <ClInclude Include="AsmJsBuiltInNames.h" />
-    <ClInclude Include="JavascriptNativeOperators.h" />
     <ClInclude Include="JavascriptExceptionContext.h" />
     <ClInclude Include="JavascriptExceptionObject.h" />
     <ClInclude Include="SimdFloat32x4Operation.h" />
@@ -149,12 +148,16 @@
     <ClInclude Include="ModuleNamespace.h" />
     <ClInclude Include="ModuleNamespaceEnumerator.h" />
     <ClInclude Include="WebAssemblySource.h" />
+    <ClInclude Include="ConstructorCache.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\amd64_Thunks.asm">
       <Filter>amd64</Filter>
     </MASM>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\JavascriptOperatorsA.asm">
+      <Filter>amd64</Filter>
+    </MASM>
+    <MASM Include="$(MSBuildThisFileDirectory)amd64\JavascriptConversionA.asm">
       <Filter>amd64</Filter>
     </MASM>
   </ItemGroup>

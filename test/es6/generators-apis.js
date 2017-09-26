@@ -50,6 +50,54 @@ var tests = [
         }
     },
     {
+        // Regression Test GitHub Issue #3065: Generator length property is inconsistently configurable (+ assert failure in debug build) 
+        // https://github.com/Microsoft/ChakraCore/issues/3065
+        name: "Generator function length property is configurable correctly.",
+        body: function () {
+            function* gf(x, y) { }
+
+            checkAttributes("gf", gf, "length", { writable: false, enumerable: false, configurable: true });
+
+            assert.areEqual(2, gf.length, "Generator function object's 'length' property matches the number of parameters (2)");
+            gf.length = 3;
+            assert.areEqual(2, gf.length, "Generator function object's 'length' property should not be Writable");
+
+            var myLength = 4;
+            var getCalled = false;
+            var setCalled = false;
+            Object.defineProperty(gf, 'length', {
+                get: function() { getCalled = true; return myLength; },
+                set: function(value) { setCalled = true; myLength = value; }
+            });
+
+            assert.areEqual(4, gf.length, "Generator function object's 'length' property should return value from the accessor.");
+            assert.isTrue(getCalled, gf.length, "Generator function object's 'length' property should be returned from the accessor.");
+
+            getCalled = false;
+            gf.length = 5;
+            assert.areEqual(5, gf.length, "Generator function object's 'length' property should be set by the accessor.");
+            assert.isTrue(getCalled, gf.length, "Generator function object's 'length' property should be returned from the accessor.");
+                        
+            // Writable attribute should not be specified on this property now as it has accessors. 
+            checkAttributes("gf", gf, "length", { writable: undefined, enumerable: false, configurable: true });
+
+            getCalled = false;
+            setCalled = true;
+            var myName = "MyGeneratorFunction";
+            Object.defineProperty(gf, 'myName', {
+                get: function() { getCalled = true; return myName; },
+                set: function(value) { setCalled = true; myName = value; }
+            });
+            assert.areEqual("MyGeneratorFunction", gf.myName, "Generator function object's custom property should return proper value.");
+            assert.isTrue(getCalled, gf.myName, "Generator function object's custom property should be returned from the accessor.");
+
+            gf.myName = "MyGeneratorFunctionRenamed";
+            assert.areEqual("MyGeneratorFunctionRenamed", gf.myName, "Generator function object's custom property should be set by the accessor.");
+            assert.isTrue(setCalled, gf.myName, "Generator function object's custom property should be set using the accessor.");
+            checkAttributes("gf", gf, "myName", { writable: undefined, enumerable: false, configurable: false });
+        }
+    },
+    {
         name: "arguments and caller properties are absent regardless of strictness",
         body: function () {
             function* gf() { }

@@ -101,10 +101,7 @@ namespace Js {
         {
             // Register where module slots are loaded
             ModuleSlotRegister = 0,
-            ReturnRegister = 0,
 
-            FunctionRegister = 0,
-            CallReturnRegister = 0,
             // These are created from the const table which starts after the FirstRegSlot
             ModuleEnvRegister = FunctionBody::FirstRegSlot,
             ArrayBufferRegister,
@@ -320,7 +317,9 @@ namespace Js {
         bool AddStandardLibraryArrayName(PropertyId id, AsmJsTypedArrayFunction * func, AsmJSTypedArrayBuiltinFunction mathLibFunctionName);
         bool CheckByteLengthCall(ParseNode * node, ParseNode * newBufferDecl);
         bool ValidateSimdConstructor(ParseNode* pnode, AsmJsSIMDFunction* simdFunc, AsmJsSIMDValue& value);
+#ifdef ENABLE_SIMDJS
         bool IsSimdjsEnabled() { return GetScriptContext()->GetConfig()->IsSimdjsEnabled(); }
+#endif
     };
 
     struct AsmJsSlot
@@ -608,7 +607,7 @@ namespace Js {
         }
 
         static void EnsureHeapAttached(ScriptFunction * func);
-        static void * ConvertFrameForJavascript(void* asmJsMemory, ScriptFunction * func);
+        static void * ConvertFrameForJavascript(void* asmJsMemory, AsmJsScriptFunction * func);
     };
 };
 #endif

@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-
+#ifdef ENABLE_SIMDJS
 namespace Js
 {
     Var SIMDInt32x4Lib::EntryInt32x4(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1137,4 +1137,4 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Int32x4.store"));
     }
 }
-
+#endif

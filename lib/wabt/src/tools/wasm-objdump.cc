@@ -18,12 +18,12 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "common.h"
-#include "option-parser.h"
-#include "stream.h"
-#include "writer.h"
-#include "binary-reader.h"
-#include "binary-reader-objdump.h"
+#include "src/common.h"
+#include "src/feature.h"
+#include "src/option-parser.h"
+#include "src/stream.h"
+#include "src/binary-reader.h"
+#include "src/binary-reader-objdump.h"
 
 using namespace wabt;
 
@@ -35,12 +35,13 @@ examples:
 )";
 
 static ObjdumpOptions s_objdump_options;
+static Features s_features;
 
 static std::vector<const char*> s_infiles;
 
 static std::unique_ptr<FileStream> s_log_stream;
 
-static void parse_options(int argc, char** argv) {
+static void ParseOptions(int argc, char** argv) {
   OptionParser parser("wasm-objdump", s_description);
 
   parser.AddOption('h', "headers", "Print headers",
@@ -57,6 +58,7 @@ static void parse_options(int argc, char** argv) {
     s_log_stream = FileStream::CreateStdout();
     s_objdump_options.log_stream = s_log_stream.get();
   });
+  s_features.AddOptions(&parser);
   parser.AddOption('x', "details", "Show section details",
                    []() { s_objdump_options.details = true; });
   parser.AddOption('r', "reloc", "Show relocations inline with disassembly",
@@ -70,67 +72,56 @@ static void parse_options(int argc, char** argv) {
 }
 
 Result dump_file(const char* filename) {
-  char* char_data;
-  size_t size;
-  Result result = read_file(filename, &char_data, &size);
-  if (WABT_FAILED(result))
-    return result;
+  std::vector<uint8_t> file_data;
+  CHECK_RESULT(ReadFile(filename, &file_data));
 
-  uint8_t* data = reinterpret_cast<uint8_t*>(char_data);
+  uint8_t* data = DataOrNull(file_data);
+  size_t size = file_data.size();
 
   // Perform serveral passed over the binary in order to print out different
   // types of information.
   s_objdump_options.filename = filename;
+  s_objdump_options.features = s_features;
   printf("\n");
 
   ObjdumpState state;
 
   // Pass 0: Prepass
   s_objdump_options.mode = ObjdumpMode::Prepass;
-  result = read_binary_objdump(data, size, &s_objdump_options, &state);
-  if (WABT_FAILED(result))
-    goto done;
+  CHECK_RESULT(ReadBinaryObjdump(data, size, &s_objdump_options, &state));
   s_objdump_options.log_stream = nullptr;
 
   // Pass 1: Print the section headers
   if (s_objdump_options.headers) {
     s_objdump_options.mode = ObjdumpMode::Headers;
-    result = read_binary_objdump(data, size, &s_objdump_options, &state);
-    if (WABT_FAILED(result))
-      goto done;
+    CHECK_RESULT(ReadBinaryObjdump(data, size, &s_objdump_options, &state));
   }
 
   // Pass 2: Print extra information based on section type
   if (s_objdump_options.details) {
     s_objdump_options.mode = ObjdumpMode::Details;
-    result = read_binary_objdump(data, size, &s_objdump_options, &state);
-    if (WABT_FAILED(result))
-      goto done;
+    CHECK_RESULT(ReadBinaryObjdump(data, size, &s_objdump_options, &state));
   }
 
   // Pass 3: Disassemble code section
   if (s_objdump_options.disassemble) {
     s_objdump_options.mode = ObjdumpMode::Disassemble;
-    result = read_binary_objdump(data, size, &s_objdump_options, &state);
-    if (WABT_FAILED(result))
-      goto done;
+    CHECK_RESULT(ReadBinaryObjdump(data, size, &s_objdump_options, &state));
   }
 
   // Pass 4: Dump to raw contents of the sections
   if (s_objdump_options.raw) {
     s_objdump_options.mode = ObjdumpMode::RawData;
-    result = read_binary_objdump(data, size, &s_objdump_options, &state);
+    CHECK_RESULT(ReadBinaryObjdump(data, size, &s_objdump_options, &state));
   }
 
-done:
-  delete[] data;
-  return result;
+  return Result::Ok;
 }
 
 int ProgramMain(int argc, char** argv) {
-  init_stdio();
+  InitStdio();
 
-  parse_options(argc, argv);
+  ParseOptions(argc, argv);
   if (!s_objdump_options.headers && !s_objdump_options.details &&
       !s_objdump_options.disassemble && !s_objdump_options.raw) {
     fprintf(stderr, "At least one of the following switches must be given:\n");
@@ -142,7 +133,7 @@ int ProgramMain(int argc, char** argv) {
   }
 
   for (const char* filename: s_infiles) {
-    if (WABT_FAILED(dump_file(filename))) {
+    if (Failed(dump_file(filename))) {
       return 1;
     }
   }

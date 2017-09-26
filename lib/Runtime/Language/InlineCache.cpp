@@ -391,6 +391,16 @@ namespace Js
         }
     }
 
+    void InlineCache::RemoveFromInvalidationListAndClear(ThreadContext* threadContext)
+    {
+        if (this->RemoveFromInvalidationList())
+        {
+            threadContext->NotifyInlineCacheBatchUnregistered(1);
+        }
+
+        this->Clear();
+    }
+
     InlineCache *InlineCache::Clone(Js::PropertyId propertyId, ScriptContext* scriptContext)
     {
         Assert(scriptContext);
@@ -403,6 +413,7 @@ namespace Js
         return clone;
     }
 
+#if ENABLE_FIXED_FIELDS
     bool InlineCache::TryGetFixedMethodFromCache(Js::FunctionBody* functionBody, uint cacheId, Js::JavascriptFunction** pFixedMethod)
     {
         Assert(pFixedMethod);
@@ -431,7 +442,7 @@ namespace Js
 
         Assert(propertyOwnerType != nullptr);
 
-        if (Js::DynamicType::Is(propertyOwnerType->GetTypeId()))
+        if (Js::DynamicType::Is(propertyOwnerType))
         {
             Js::DynamicTypeHandler* propertyOwnerTypeHandler = ((Js::DynamicType*)propertyOwnerType)->GetTypeHandler();
             Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(cacheId);
@@ -454,6 +465,7 @@ namespace Js
 
         return false;
     }
+#endif
 
     void InlineCache::CopyTo(PropertyId propertyId, ScriptContext * scriptContext, InlineCache * const clone)
     {
@@ -1114,226 +1126,6 @@ namespace Js
     ScriptContext* ScriptContextPolymorphicInlineCache::GetScriptContext() const
     {
         return this->javascriptLibrary->scriptContext;
-    }
-#endif
-
-#if ENABLE_NATIVE_CODEGEN
-
-    EquivalentTypeSet::EquivalentTypeSet(RecyclerJITTypeHolder * types, uint16 count)
-        : types(types), count(count), sortedAndDuplicatesRemoved(false)
-    {
-    }
-
-    JITTypeHolder EquivalentTypeSet::GetType(uint16 index) const
-    {
-        Assert(this->types != nullptr && this->count > 0 && index < this->count);
-        return this->types[index];
-    }
-
-    JITTypeHolder EquivalentTypeSet::GetFirstType() const
-    {
-        return GetType(0);
-    }
-
-    bool EquivalentTypeSet::Contains(const JITTypeHolder type, uint16* pIndex)
-    {
-        if (!this->GetSortedAndDuplicatesRemoved())
-        {
-            this->SortAndRemoveDuplicates();
-        }
-        for (uint16 ti = 0; ti < this->count; ti++)
-        {
-            if (this->GetType(ti) == type)
-            {
-                if (pIndex)
-                {
-                    *pIndex = ti;
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool EquivalentTypeSet::AreIdentical(EquivalentTypeSet * left, EquivalentTypeSet * right)
-    {
-        if (!left->GetSortedAndDuplicatesRemoved())
-        {
-            left->SortAndRemoveDuplicates();
-        }
-        if (!right->GetSortedAndDuplicatesRemoved())
-        {
-            right->SortAndRemoveDuplicates();
-        }
-
-        Assert(left->GetSortedAndDuplicatesRemoved() && right->GetSortedAndDuplicatesRemoved());
-
-        if (left->count != right->count)
-        {
-            return false;
-        }
-
-        // TODO: OOP JIT, optimize this (previously we had memcmp)
-        for (uint i = 0; i < left->count; ++i)
-        {
-            if (left->types[i] != right->types[i])
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    bool EquivalentTypeSet::IsSubsetOf(EquivalentTypeSet * left, EquivalentTypeSet * right)
-    {
-        if (!left->GetSortedAndDuplicatesRemoved())
-        {
-            left->SortAndRemoveDuplicates();
-        }
-        if (!right->GetSortedAndDuplicatesRemoved())
-        {
-            right->SortAndRemoveDuplicates();
-        }
-
-        if (left->count > right->count)
-        {
-            return false;
-        }
-
-        // Try to find each left type in the right set.
-        int j = 0;
-        for (int i = 0; i < left->count; i++)
-        {
-            bool found = false;
-            for (; j < right->count; j++)
-            {
-                if (left->types[i] < right->types[j])
-                {
-                    // Didn't find the left type. Fail.
-                    return false;
-                }
-                if (left->types[i] == right->types[j])
-                {
-                    // Found the left type. Continue to the next left/right pair.
-                    found = true;
-                    j++;
-                    break;
-                }
-            }
-            Assert(j <= right->count);
-            if (j == right->count && !found)
-            {
-                // Exhausted the right set without finding the current left type.
-                return false;
-            }
-        }
-        return true;
-    }
-
-    void EquivalentTypeSet::SortAndRemoveDuplicates()
-    {
-        uint16 oldCount = this->count;
-        uint16 i;
-
-        // sorting
-        for (i = 1; i < oldCount; i++)
-        {
-            uint16 j = i;
-            while (j > 0 && (this->types[j - 1] > this->types[j]))
-            {
-                JITTypeHolder tmp = this->types[j];
-                this->types[j] = this->types[j - 1];
-                this->types[j - 1] = tmp;
-                j--;
-            }
-        }
-
-        // removing duplicate types from the sorted set
-        i = 0;
-        for (uint16 j = 1; j < oldCount; j++)
-        {
-            if (this->types[i] != this->types[j])
-            {
-                this->types[++i] = this->types[j];
-            }
-        }
-        this->count = ++i;
-        for (i; i < oldCount; i++)
-        {
-            this->types[i] = JITTypeHolder(nullptr);
-        }
-
-        this->sortedAndDuplicatesRemoved = true;
-    }
-#endif
-
-    ConstructorCache ConstructorCache::DefaultInstance;
-
-    ConstructorCache* ConstructorCache::EnsureValidInstance(ConstructorCache* currentCache, ScriptContext* scriptContext)
-    {
-        Assert(currentCache != nullptr);
-
-        ConstructorCache* newCache = currentCache;
-
-        // If the old cache has been invalidated, we need to create a new one to avoid incorrectly re-validating
-        // caches that may have been hard-coded in the JIT-ed code with different prototype and type.  However, if
-        // the cache is already polymorphic, it will not be hard-coded, and hence we don't need to allocate a new
-        // one - in case the prototype property changes frequently.
-        if (ConstructorCache::IsDefault(currentCache) || (currentCache->IsInvalidated() && !currentCache->IsPolymorphic()))
-        {
-            // Review (jedmiad): I don't think we need to zero the struct, since we initialize each field.
-            newCache = RecyclerNew(scriptContext->GetRecycler(), ConstructorCache);
-            // TODO: Consider marking the cache as polymorphic only if the prototype and type actually changed.  In fact,
-            // if they didn't change we could reuse the same cache and simply mark it as valid.  Not really true.  The cache
-            // might have been invalidated due to a property becoming read-only.  In that case we can't re-validate an old
-            // monomorphic cache.  We must allocate a new one.
-            newCache->content.isPolymorphic = currentCache->content.isPopulated && currentCache->content.hasPrototypeChanged;
-        }
-
-        // If we kept the old invalidated cache, it better be marked as polymorphic.
-        Assert(!newCache->IsInvalidated() || newCache->IsPolymorphic());
-
-        // If the cache was polymorphic, we shouldn't have allocated a new one.
-        Assert(!currentCache->IsPolymorphic() || newCache == currentCache);
-
-        return newCache;
-    }
-
-    void ConstructorCache::InvalidateOnPrototypeChange()
-    {
-        if (IsDefault(this))
-        {
-            Assert(this->guard.value == CtorCacheGuardValues::Invalid);
-            Assert(!this->content.isPopulated);
-        }
-        else if (this->guard.value == CtorCacheGuardValues::Special && this->content.skipDefaultNewObject)
-        {
-            // Do nothing.  If we skip the default object, changes to the prototype property don't affect
-            // what we'll do during object allocation.
-
-            // Can't assert the following because we set the prototype property during library initialization.
-            // AssertMsg(false, "Overriding a prototype on a built-in constructor should be illegal.");
-        }
-        else
-        {
-            this->guard.value = CtorCacheGuardValues::Invalid;
-            this->content.hasPrototypeChanged = true;
-            // Make sure we don't leak the old type.
-            Assert(this->content.type == nullptr);
-            this->content.pendingType = nullptr;
-            Assert(this->content.pendingType == nullptr);
-            Assert(IsInvalidated());
-        }
-        Assert(IsConsistent());
-    }
-
-#if DBG_DUMP
-    void ConstructorCache::Dump() const
-    {
-        Output::Print(_u("guard value or type = 0x%p, script context = 0x%p, pending type = 0x%p, slots = %d, inline slots = %d, populated = %d, polymorphic = %d, update cache = %d, update type = %d, skip default = %d, no return = %d"),
-            this->GetRawGuardValue(), this->GetScriptContext(), this->GetPendingType(), this->GetSlotCount(), this->GetInlineSlotCount(),
-            this->IsPopulated(), this->IsPolymorphic(), this->GetUpdateCacheAfterCtor(), this->GetTypeUpdatePending(),
-            this->GetSkipDefaultNewObject(), this->GetCtorHasNoExplicitReturnValue());
     }
 #endif
 

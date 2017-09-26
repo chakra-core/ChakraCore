@@ -127,7 +127,7 @@ namespace Js
                 srcInfo->moduleID = moduleId;
 
                 LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
-                    (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
+                    LoadScriptFlag_disableAsmJs | (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
 
                 Utf8SourceInfo* pResultSourceInfo = nullptr;
                 this->parseTree = scriptContext->ParseScript(parser, sourceText,
@@ -307,7 +307,7 @@ namespace Js
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded\n"));
             NotifyParentsAsNeeded();
 
-            if (this->promise != nullptr || (!WasDeclarationInitialized() && isRootModule))
+            if (!WasDeclarationInitialized() && isRootModule)
             {
                 // TODO: move this as a promise call? if parser is called from a different thread
                 // We'll need to call the bytecode gen in the main thread as we are accessing GC.
@@ -400,11 +400,16 @@ namespace Js
 
     ExportedNames* SourceTextModuleRecord::GetExportedNames(ExportModuleRecordList* exportStarSet)
     {
-        if (exportedNames != nullptr)
+        const bool isRootGetExportedNames = (exportStarSet == nullptr);
+
+        // this->exportedNames only caches root "GetExportedNames(nullptr)"
+        if (isRootGetExportedNames && exportedNames != nullptr)
         {
             return exportedNames;
         }
+
         ArenaAllocator* allocator = scriptContext->GeneralAllocator();
+
         if (exportStarSet == nullptr)
         {
             exportStarSet = Anew(allocator, ExportModuleRecordList, allocator);
@@ -414,6 +419,7 @@ namespace Js
             return nullptr;
         }
         exportStarSet->Prepend(this);
+
         ExportedNames* tempExportedNames = nullptr;
         if (this->localExportRecordList != nullptr)
         {
@@ -442,7 +448,7 @@ namespace Js
             }
             this->starExportRecordList->Map([=](ModuleImportOrExportEntry exportEntry) {
                 Assert(exportEntry.moduleRequest != nullptr);
-                SourceTextModuleRecord* moduleRecord;
+                SourceTextModuleRecord* moduleRecord = nullptr;
                 if (this->childrenModuleSet->TryGetValue(exportEntry.moduleRequest->Psz(), &moduleRecord))
                 {
                     Assert(moduleRecord->WasParsed());
@@ -468,7 +474,13 @@ namespace Js
 #endif
             });
         }
-        exportedNames = tempExportedNames;
+
+        // this->exportedNames only caches root "GetExportedNames(nullptr)"
+        if (isRootGetExportedNames)
+        {
+            exportedNames = tempExportedNames;
+        }
+
         return tempExportedNames;
     }
 
@@ -488,7 +500,7 @@ namespace Js
                 }
                 else
                 {
-                    childModule->ResolveExport(importName, nullptr, nullptr, importRecord);
+                    childModule->ResolveExport(importName, nullptr, importRecord);
                 }
                 return true;
             }
@@ -500,7 +512,7 @@ namespace Js
 
     // return false when "ambiguous".
     // otherwise nullptr means "null" where we have circular reference/cannot resolve.
-    bool SourceTextModuleRecord::ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ExportModuleRecordList* exportStarSet, ModuleNameRecord** exportRecord)
+    bool SourceTextModuleRecord::ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ModuleNameRecord** exportRecord)
     {
         ArenaAllocator* allocator = scriptContext->GeneralAllocator();
         if (resolvedExportMap == nullptr)
@@ -512,10 +524,6 @@ namespace Js
             return true;
         }
         // TODO: use per-call/loop allocator?
-        if (exportStarSet == nullptr)
-        {
-            exportStarSet = Anew(allocator, ExportModuleRecordList, allocator);
-        }
         if (resolveSet == nullptr)
         {
             resolveSet = Anew(allocator, ResolveSet, allocator);
@@ -589,7 +597,7 @@ namespace Js
                 }
                 else
                 {
-                    isAmbiguous = !childModuleRecord->ResolveExport(importNameId, resolveSet, exportStarSet, exportRecord);
+                    isAmbiguous = !childModuleRecord->ResolveExport(importNameId, resolveSet, exportRecord);
                     if (isAmbiguous)
                     {
                         // ambiguous; don't need to search further
@@ -624,13 +632,6 @@ namespace Js
             return false;
         }
 
-        if (exportStarSet->Has(this))
-        {
-            *exportRecord = nullptr;
-            return true;
-        }
-
-        exportStarSet->Prepend(this);
         bool ambiguousResolution = false;
         if (this->starExportRecordList != nullptr)
         {
@@ -647,8 +648,8 @@ namespace Js
                     JavascriptExceptionOperators::Throw(childModule->errorObject, GetScriptContext());
                 }
 
-                // if ambigious, return "ambigious"
-                if (!childModule->ResolveExport(exportName, resolveSet, exportStarSet, &currentResolution))
+                // if ambiguous, return "ambiguous"
+                if (!childModule->ResolveExport(exportName, resolveSet, &currentResolution))
                 {
                     ambiguousResolution = true;
                     return true;
@@ -796,6 +797,21 @@ namespace Js
             InitializeLocalImports();
 
             InitializeIndirectExports();
+
+            SetWasDeclarationInitialized();
+            if (childrenModuleSet != nullptr)
+            {
+                childrenModuleSet->Map([](LPCOLESTR specifier, SourceTextModuleRecord* moduleRecord)
+                {
+                    Assert(moduleRecord->WasParsed());
+                    moduleRecord->ModuleDeclarationInstantiation();
+                });
+            }
+
+            ENTER_SCRIPT_IF(scriptContext, true, false, false, !scriptContext->GetThreadContext()->IsScriptActive(),
+            {
+                ModuleNamespace::GetModuleNamespace(this);
+            });
         }
         catch (const JavascriptException& err)
         {
@@ -809,17 +825,6 @@ namespace Js
             return;
         }
 
-        SetWasDeclarationInitialized();
-        if (childrenModuleSet != nullptr)
-        {
-            childrenModuleSet->Map([](LPCOLESTR specifier, SourceTextModuleRecord* moduleRecord)
-            {
-                Assert(moduleRecord->WasParsed());
-                moduleRecord->ModuleDeclarationInstantiation();
-            });
-        }
-
-        ModuleNamespace::GetModuleNamespace(this);
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
         Assert(this == scriptContext->GetLibrary()->GetModuleRecord(this->pSourceInfo->GetSrcInfo()->moduleID));
         CompileScriptException se;
@@ -830,10 +835,12 @@ namespace Js
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded rootFunction == nullptr\n"));
             NotifyParentsAsNeeded();
         }
+#ifdef ENABLE_SCRIPT_DEBUGGING
         else
         {
             scriptContext->GetDebugContext()->RegisterFunction(this->rootFunction->GetFunctionBody(), nullptr);
         }
+#endif
     }
 
     Var SourceTextModuleRecord::ModuleEvaluation()
@@ -850,7 +857,7 @@ namespace Js
             });
         }
 #endif
-        if (!scriptContext->GetConfig()->IsES6ModuleEnabled())
+        if (!scriptContext->GetConfig()->IsES6ModuleEnabled() || WasEvaluated())
         {
             return nullptr;
         }
@@ -965,7 +972,7 @@ namespace Js
                 // We don't need to initialize anything for * import.
                 if (importName != Js::PropertyIds::star_)
                 {
-                    if (!childModule->ResolveExport(importName, nullptr, nullptr, &importRecord)
+                    if (!childModule->ResolveExport(importName, nullptr, &importRecord)
                         || importRecord == nullptr)
                     {
                         JavascriptError* errorObj = scriptContext->GetLibrary()->CreateSyntaxError();
@@ -1097,7 +1104,7 @@ namespace Js
                     this->errorObject = errorObj;
                     return;
                 }
-                if (!childModuleRecord->ResolveExport(propertyId, nullptr, nullptr, &exportRecord) ||
+                if (!childModuleRecord->ResolveExport(propertyId, nullptr, &exportRecord) ||
                     (exportRecord == nullptr))
                 {
                     JavascriptError* errorObj = scriptContext->GetLibrary()->CreateSyntaxError();

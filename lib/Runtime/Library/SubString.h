@@ -14,7 +14,6 @@ namespace Js
 
     protected:
         DEFINE_VTABLE_CTOR(SubString, JavascriptString);
-        DECLARE_CONCRETE_STRING_CLASS;
 
     public:
         static JavascriptString* New(JavascriptString* string, charcount_t start, charcount_t length);

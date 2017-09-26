@@ -111,10 +111,9 @@ Pass Delete Test
 
 starting Property[ 13 ]:  length
 Does Property exist:  true
-Is the Property configurable:  false
-PASS, Not Configurable and will not allow redefinition
+Is the Property configurable:  true
 PASS
-can you delete the property:  false did it actually delete? false
+can you delete the property:  true did it actually delete? true
 Pass Delete Test
 
 

@@ -375,10 +375,12 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
 #define ReadChar(file) fgetwc(file)
 #define UnreadChar(c, file) ungetwc(c, file)
 #define CharType wint_t
+#define EndChar WEOF
 #else
 #define ReadChar(file) fgetc(file)
 #define UnreadChar(c, file) ungetc(c, file)
 #define CharType int
+#define EndChar EOF
 #endif
 
     // We don't expect the token to overflow- if it does
@@ -390,9 +392,8 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
     while (index < MaxTokenSize)
     {
         CharType curChar = ReadChar(configFile);
-        const CharType end = static_cast<const CharType>(FINISHED);
 
-        if (curChar == end || isspace(curChar))
+        if (curChar == EndChar || isspace(curChar))
         {
             configBuffer[index] = 0;
             if ((err = parser.Parse(configBuffer)) != 0)
@@ -400,12 +401,12 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
                 break;
             }
 
-            while(curChar != end && isspace(curChar))
+            while(curChar != EndChar && isspace(curChar))
             {
                 curChar = ReadChar(configFile);
             }
 
-            if (curChar == end)
+            if (curChar == EndChar)
             {
                 break;
             }
@@ -428,6 +429,7 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
 #undef ReadChar
 #undef UnreadChar
 #undef CharType
+#undef EndChar
 
     fclose(configFile);
 

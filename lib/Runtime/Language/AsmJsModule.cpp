@@ -161,13 +161,13 @@ namespace Js
         asmInfo->SetAsmMathBuiltinUsed(mAsmMathBuiltinUsedBV);
         asmInfo->SetAsmArrayBuiltinUsed(mAsmArrayBuiltinUsedBV);
         asmInfo->SetMaxHeapAccess(mMaxHeapAccess);
-
+#ifdef ENABLE_SIMDJS
         if (IsSimdjsEnabled())
         {
             asmInfo->SetAsmSimdBuiltinUsed(mAsmSimdBuiltinUsedBV);
             asmInfo->SetSimdRegCount(mSimdVarSpace.GetTotalVarCount());
         }
-
+#endif
         int varCount = 3; // 3 possible arguments
 
         functionBody->SetInParamsCount(4); // Always set 4 inParams so the memory space is the same (globalEnv,stdlib,foreign,buffer)
@@ -225,10 +225,12 @@ namespace Js
                     {
                         modVar.initialiser.doubleInit = var->GetDoubleInitialiser();
                     }
+#ifdef ENABLE_SIMDJS
                     else if (IsSimdjsEnabled() && var->GetVarType().isSIMD())
                     {
                         modVar.initialiser.simdInit = var->GetSimdConstInitialiser();
                     }
+#endif
                     else
                     {
                         Assert(UNREACHED);
@@ -407,7 +409,7 @@ namespace Js
             if (pnode->sxCall.pnodeTarget->nop == knopName)
             {
                 AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(pnode->sxCall.pnodeTarget->name());
-                if (AsmJsMathFunction::IsFround(funcDecl))
+                if (AsmJsMathFunction::IsFround(funcDecl) && pnode->sxCall.argCount > 0)
                 {
                     switch (pnode->sxCall.pnodeArgs->nop)
                     {
@@ -428,6 +430,7 @@ namespace Js
                         }
                     }
                 }
+#ifdef ENABLE_SIMDJS
                 else if (IsSimdjsEnabled())
                 {
                     /*
@@ -461,7 +464,7 @@ namespace Js
                         }
                     }
                 }
-
+#endif // #ifdef ENABLE_SIMDJS
             }
             if (evalArgs)
             {
@@ -770,6 +773,7 @@ namespace Js
                     var->SetVarType(AsmJsVarType::Float);
                     var->SetLocation(func->AcquireRegister<float>());
                 }
+#ifdef ENABLE_SIMDJS
                 else if (IsSimdjsEnabled() && funcDecl->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
                 {
                     AsmJsSIMDFunction* simdFunc = funcDecl->Cast<AsmJsSIMDFunction>();
@@ -787,6 +791,7 @@ namespace Js
                     // This allows us to capture all SIMD constants from locals initializations, add them to the register space before we assign registers to args and locals.
                     func->GetSimdVarsList().Add(var);
                 }
+#endif
                 else
                 {
                     return Fail(rhs, _u("Wrong function used for argument definition"));
@@ -852,7 +857,10 @@ namespace Js
                 AsmJsSymbol * declSym = nullptr;
 
                 bool isFroundInit = false;
+
+#ifdef ENABLE_SIMDJS
                 AsmJsSIMDFunction* simdFunc = nullptr;
+#endif
 
                 if (!pnodeInit)
                 {
@@ -886,6 +894,7 @@ namespace Js
                         }
                         isFroundInit = true;
                     }
+#ifdef ENABLE_SIMDJS
                     else if (IsSimdjsEnabled() && funcDecl->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
                     {
                         // var x = f4(1.0, 2.0, 3.0, 4.0);
@@ -895,6 +904,7 @@ namespace Js
                             return Fail(varNode, _u("Invalid SIMD local declaration"));
                         }
                     }
+#endif
                     else
                     {
                         return Fail(varNode, _u("Unknown function call on var declaration"));
@@ -1015,6 +1025,7 @@ namespace Js
                             loc = func->GetConstRegister<float>(fVal);
                         }
                     }
+#ifdef ENABLE_SIMDJS
                     else if (IsSimdjsEnabled() && simdFunc)
                     {
                         // simd constructor call
@@ -1026,6 +1037,7 @@ namespace Js
                         // add to list. assign register after all constants.
                         func->GetSimdVarsList().Add(var);
                     }
+#endif
                     else
                     {
                         Assert(UNREACHED);
@@ -1047,6 +1059,7 @@ namespace Js
 
         varDeclEnd:
         // this code has to be on all exit-path from the function
+#ifdef ENABLE_SIMDJS
         if (IsSimdjsEnabled())
         {
             // Now, assign registers to all SIMD vars after all constants are en-registered.
@@ -1057,6 +1070,7 @@ namespace Js
             }
             func->GetSimdVarsList().Reset(); // list not needed anymore
         }
+#endif
         return true;
     }
 
@@ -1303,6 +1317,7 @@ namespace Js
                 return false;
             }
         }
+#ifdef ENABLE_SIMDJS
         // similar to math functions maps initialization.
         if (IsSimdjsEnabled())
         {
@@ -1311,6 +1326,7 @@ namespace Js
                 return false;
             }
         }
+#endif
         return true;
     }
 
@@ -2033,6 +2049,7 @@ namespace Js
             var->SetVarType( AsmJsVarType::Float );
             var->SetLocation(mFloatVarSpace.AcquireRegister());
             break;
+#ifdef ENABLE_SIMDJS
         case Js::AsmJS_Int32x4:
             if (IsSimdjsEnabled())
             {
@@ -2121,6 +2138,7 @@ namespace Js
                 break;
             }
             Assert(UNREACHED);
+#endif // #ifdef ENABLE_SIMDJS
         default:
             break;
         }
@@ -2277,7 +2295,7 @@ namespace Js
         mModuleMemory.mFloatOffset = mModuleMemory.mFuncPtrOffset + GetFuncPtrTableCount();
         mModuleMemory.mIntOffset = mModuleMemory.mFloatOffset + (int32)(mFloatVarSpace.GetTotalVarCount() * WAsmJs::FLOAT_SLOTS_SPACE + 0.5);
         mModuleMemory.mMemorySize    = mModuleMemory.mIntOffset + (int32)(mIntVarSpace.GetTotalVarCount() * WAsmJs::INT_SLOTS_SPACE + 0.5);
-
+#ifdef ENABLE_SIMDJS
         if (IsSimdjsEnabled())
         {
             // mSimdOffset is in SIMDValues, hence aligned
@@ -2289,6 +2307,7 @@ namespace Js
             }
         }
         else
+#endif
         {
             mModuleMemory.mSimdOffset = 0;  // initialize to avoid GC false reference
         }
@@ -2430,30 +2449,30 @@ namespace Js
 
     void AsmJsModuleInfo::EnsureHeapAttached(ScriptFunction * func)
     {
-        FrameDisplay* frame = func->GetEnvironment();
-        ArrayBuffer* moduleArrayBuffer = nullptr;
 #ifdef ENABLE_WASM
-        if (func->GetFunctionBody()->IsWasmFunction())
+        if (WasmScriptFunction::Is(func))
         {
-            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
-            if (wasmMem != nullptr)
+            WasmScriptFunction* wasmFunc = WasmScriptFunction::FromVar(func);
+            WebAssemblyMemory * wasmMem = wasmFunc->GetWebAssemblyMemory();
+            if (wasmMem && wasmMem->GetBuffer() && wasmMem->GetBuffer()->IsDetached())
             {
-                moduleArrayBuffer = wasmMem->GetBuffer();
+                Throw::OutOfMemory();
             }
         }
         else
 #endif
         {
-            moduleArrayBuffer = *(ArrayBuffer**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
+            AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(func);
+            ArrayBuffer* moduleArrayBuffer = asmFunc->GetAsmJsArrayBuffer();
+            if (moduleArrayBuffer && moduleArrayBuffer->IsDetached())
+            {
+                Throw::OutOfMemory();
+            }
         }
 
-        if (moduleArrayBuffer && moduleArrayBuffer->IsDetached())
-        {
-            Throw::OutOfMemory();
-        }
     }
 
-    void * AsmJsModuleInfo::ConvertFrameForJavascript(void * asmMemory, ScriptFunction* func)
+    void * AsmJsModuleInfo::ConvertFrameForJavascript(void* env, AsmJsScriptFunction* func)
     {
         FunctionBody * body = func->GetFunctionBody();
         AsmJsFunctionInfo * asmFuncInfo = body->GetAsmJsFunctionInfo();
@@ -2463,7 +2482,7 @@ namespace Js
 
         ScriptContext * scriptContext = func->GetScriptContext();
         // AsmJsModuleEnvironment is all laid out here
-        Var * asmJsEnvironment = static_cast<Var*>(func->GetEnvironment()->GetItem(0));
+        Var * asmJsEnvironment = static_cast<Var*>(env);
         Var * asmBufferPtr = asmJsEnvironment + asmModuleInfo->GetModuleMemory().mArrayBufferOffset;
         ArrayBuffer * asmBuffer = *asmBufferPtr ? ArrayBuffer::FromVar(*asmBufferPtr) : nullptr;
 
@@ -2478,8 +2497,9 @@ namespace Js
         int * asmIntVars = reinterpret_cast<int*>(asmJsEnvironment + asmModuleInfo->GetModuleMemory().mIntOffset);
         float * asmFloatVars = reinterpret_cast<float*>(asmJsEnvironment + asmModuleInfo->GetModuleMemory().mFloatOffset);
 
+#ifdef ENABLE_SIMDJS
         AsmJsSIMDValue * asmSIMDVars = reinterpret_cast<AsmJsSIMDValue*>(asmJsEnvironment + asmModuleInfo->GetModuleMemory().mSimdOffset);
-
+#endif
 
 #if DEBUG
         Field(Var) * slotArray = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), moduleBody->scopeSlotArraySize + ScopeSlots::FirstSlotIndex);
@@ -2503,7 +2523,7 @@ namespace Js
         uint slotsCount = moduleBody->scopeSlotArraySize;
         for (uint i = 0; i < slotsCount; ++i)
         {
-            AsmJsSlot * asmSlot;
+            AsmJsSlot * asmSlot = nullptr;
             bool found = asmSlotMap->TryGetValue(propertyIdArray[i], &asmSlot);
             // we should have everything we need in the map
             Assert(found);
@@ -2524,6 +2544,7 @@ namespace Js
                 case AsmJsVarType::Int:
                     value = JavascriptNumber::ToVar(asmIntVars[asmSlot->location], scriptContext);
                     break;
+#ifdef ENABLE_SIMDJS
                 case AsmJsVarType::Float32x4:
                     value = JavascriptSIMDFloat32x4::New(&asmSIMDVars[asmSlot->location], scriptContext);
                     break;
@@ -2557,6 +2578,7 @@ namespace Js
                 case AsmJsVarType::Bool8x16:
                     value = JavascriptSIMDBool8x16::New(&asmSIMDVars[asmSlot->location], scriptContext);
                     break;
+#endif // #ifdef ENABLE_SIMDJS
                 default:
                     Assume(UNREACHED);
                 }

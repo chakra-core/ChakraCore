@@ -52,44 +52,16 @@ namespace Js
 
         BOOL AllPropertiesAreEnumerable() { return typeHandler->AllPropertiesAreEnumerable(); }
 
-        bool LockType()
-        {
-            if (GetIsLocked())
-            {
-                Assert(this->GetTypeHandler()->IsLockable());
-                return true;
-            }
-            if (this->GetTypeHandler()->IsLockable())
-            {
-                this->GetTypeHandler()->LockTypeHandler();
-                this->isLocked = true;
-                return true;
-            }
-            return false;
-        }
-
-        bool ShareType()
-        {
-            if (this->GetIsShared())
-            {
-                Assert(this->GetTypeHandler()->IsSharable());
-                return true;
-            }
-            if (this->GetTypeHandler()->IsSharable())
-            {
-                LockType();
-                this->GetTypeHandler()->ShareTypeHandler(this->GetScriptContext());
-                this->isShared = true;
-                return true;
-            }
-            return false;
-        }
+        bool LockType();
+        bool ShareType();
+        bool LockTypeOnly();
 
         bool GetHasNoEnumerableProperties() const { return hasNoEnumerableProperties; }
         bool SetHasNoEnumerableProperties(bool value);
         bool PrepareForTypeSnapshotEnumeration();
 
         static bool Is(TypeId typeId);
+        static bool Is(const Type *type) { return DynamicType::Is(type->GetTypeId()); }
         static DynamicType * New(ScriptContext* scriptContext, TypeId typeId, RecyclableObject* prototype, JavascriptMethod entryPoint, DynamicTypeHandler * typeHandler, bool isLocked = false, bool isShared = false);
 
         static uint32 GetOffsetOfTypeHandler() { return offsetof(DynamicType, typeHandler); }

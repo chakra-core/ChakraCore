@@ -312,6 +312,7 @@ namespace Js
         instance->GetDynamicType()->SetPrototype(newPrototype);
     }
 
+#if ENABLE_FIXED_FIELDS
     bool DynamicTypeHandler::TryUseFixedProperty(PropertyRecord const* propertyRecord, Var * pProperty, FixedPropertyKind propertyType, ScriptContext * requestContext)
     {
         if (PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase) ||
@@ -452,6 +453,7 @@ namespace Js
             Output::Flush();
         }
     }
+#endif // ENABLE_FIXED_FIELDS
 
     BOOL DynamicTypeHandler::GetInternalProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value)
     {
@@ -819,6 +821,38 @@ namespace Js
     bool DynamicTypeHandler::IsResetableForTTD(uint32 snapMaxIndex) const
     {
         return false;
+    }
+#endif
+
+#if DBG_DUMP
+    void DynamicTypeHandler::Dump(unsigned indent) const {
+        const auto padding(_u(""));
+        const unsigned fieldIndent(indent + 2);
+
+        Output::Print(_u("%*sDynamicTypeHandler: 0x%p\n"), indent, padding, this);
+        Output::Print(_u("%*spropertyTypes: 0x%02x "), fieldIndent, padding, this->propertyTypes);
+        if (this->propertyTypes & PropertyTypesReserved) Output::Print(_u("PropertyTypesReserved "));
+        if (this->propertyTypes & PropertyTypesWritableDataOnly) Output::Print(_u("PropertyTypesWritableDataOnly "));
+        if (this->propertyTypes & PropertyTypesWritableDataOnlyDetection) Output::Print(_u("PropertyTypesWritableDataOnlyDetection "));
+        if (this->propertyTypes & PropertyTypesInlineSlotCapacityLocked) Output::Print(_u("PropertyTypesInlineSlotCapacityLocked "));
+        Output::Print(_u("\n"));
+
+        Output::Print(_u("%*sflags: 0x%02x "), fieldIndent, padding, this->flags);
+        if (this->flags & IsExtensibleFlag) Output::Print(_u("IsExtensibleFlag "));
+        if (this->flags & HasKnownSlot0Flag) Output::Print(_u("HasKnownSlot0Flag "));
+        if (this->flags & IsLockedFlag) Output::Print(_u("IsLockedFlag "));
+        if (this->flags & MayBecomeSharedFlag) Output::Print(_u("MayBecomeSharedFlag "));
+        if (this->flags & IsSharedFlag) Output::Print(_u("IsSharedFlag "));
+        if (this->flags & IsPrototypeFlag) Output::Print(_u("IsPrototypeFlag "));
+        if (this->flags & IsSealedOnceFlag) Output::Print(_u("IsSealedOnceFlag "));
+        if (this->flags & IsFrozenOnceFlag) Output::Print(_u("IsFrozenOnceFlag "));
+        Output::Print(_u("\n"));
+
+        Output::Print(_u("%*soffsetOfInlineSlots: %u\n"), fieldIndent, padding, this->offsetOfInlineSlots);
+        Output::Print(_u("%*sslotCapacity: %d\n"), fieldIndent, padding, this->slotCapacity);
+        Output::Print(_u("%*sunusedBytes: %u\n"), fieldIndent, padding, this->unusedBytes);
+        Output::Print(_u("%*sinlineSlotCapacty: %u\n"), fieldIndent, padding, this->inlineSlotCapacity);
+        Output::Print(_u("%*sisNotPathTypeHandlerOrHasUserDefinedCtor: %d\n"), fieldIndent, padding, static_cast<int>(this->isNotPathTypeHandlerOrHasUserDefinedCtor));
     }
 #endif
 }

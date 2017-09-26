@@ -8,6 +8,12 @@
     <BuildConfigPropsPath>$(MSBuildThisFileDirectory)</BuildConfigPropsPath>
 
     <ChakraBuildPathImported>true</ChakraBuildPathImported>
-
+  </PropertyGroup>
+  <PropertyGroup Label="ICU">
+    <!-- IcuLibDir can be set in environment or with "/p:IcuLibDir=..." -->
+    <IcuLibDir Condition="'$(IcuLibDir)'=='' AND '$(Configuration)'=='Debug'">$(ChakraCoreRootDirectory)\deps\static\icu-small\debug</IcuLibDir>
+    <IcuLibDir Condition="'$(IcuLibDir)'=='' AND ('$(Configuration)'=='Test' or '$(Configuration)'=='Release')">$(ChakraCoreRootDirectory)\deps\static\icu-small\release</IcuLibDir>
+    <!-- IcuIncludeDir can be set in environment or with "/p:IcuIncludeDir=..." -->
+    <IcuIncludeDir Condition="'$(IcuIncludeDir)'==''">$(ChakraCoreRootDirectory)\deps\icu-small\source</IcuIncludeDir>
   </PropertyGroup>
 </Project>

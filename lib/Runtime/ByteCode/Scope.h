@@ -41,7 +41,6 @@ private:
     BYTE canMergeWithBodyScope : 1;
     BYTE hasLocalInClosure : 1;
     BYTE isBlockInLoop : 1;
-    BYTE containsWith : 1;
 public:
 #if DBG
     BYTE isRestored : 1;
@@ -61,7 +60,6 @@ public:
         canMergeWithBodyScope(true),
         hasLocalInClosure(false),
         isBlockInLoop(false),
-        containsWith(false),
         location(Js::Constants::NoRegister),
         m_symList(nullptr),
         m_count(0),
@@ -263,9 +261,6 @@ public:
 
     void SetIsBlockInLoop(bool is = true) { isBlockInLoop = is; }
     bool IsBlockInLoop() const { return isBlockInLoop; }
-
-    void SetContainsWith(bool does = true) { containsWith = does; }
-    bool ContainsWith() const { return containsWith; }
 
     bool HasInnerScopeIndex() const { return innerScopeIndex != (uint)-1; }
     uint GetInnerScopeIndex() const { return innerScopeIndex; }

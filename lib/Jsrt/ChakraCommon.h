@@ -96,10 +96,6 @@ typedef unsigned short WCHAR;
 typedef unsigned short uint16_t;
 #endif
 
-#if !defined(NTBUILD) && !defined(CHAKRACOREBUILD_)
-#define CHAKRACOREBUILD_
-#endif
-
     /// <summary>
     ///     An error code returned from a Chakra hosting API.
     /// </summary>
@@ -215,21 +211,17 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsErrorPropertyNotString,
         /// <summary>
-        ///     Module evaulation is called in wrong context.
+        ///     Module evaluation is called in wrong context.
         /// </summary>
         JsErrorInvalidContext,
         /// <summary>
-        ///     Module evaulation is called in wrong context.
+        ///     Module evaluation is called in wrong context.
         /// </summary>
         JsInvalidModuleHostInfoKind,
         /// <summary>
         ///     Module was parsed already when JsParseModuleSource is called.
         /// </summary>
         JsErrorModuleParsed,
-        /// <summary>
-        ///     Module was evaluated already when JsModuleEvaluation is called.
-        /// </summary>
-        JsErrorModuleEvaluated,
         /// <summary>
         ///     Category of errors that relates to errors occurring within the engine itself.
         /// </summary>
@@ -303,7 +295,7 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsErrorDiagObjectNotFound,
         /// <summary>
-        ///     VM was unable to perfom the request action
+        ///     VM was unable to perform the request action
         /// </summary>
         JsErrorDiagUnableToPerformAction,
     } JsErrorCode;
@@ -2388,7 +2380,7 @@ typedef unsigned short uint16_t;
     /// </returns>
     CHAKRA_API
         JsSetPromiseContinuationCallback(
-            _In_ JsPromiseContinuationCallback promiseContinuationCallback,
+            _In_opt_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
 
 #ifdef _WIN32

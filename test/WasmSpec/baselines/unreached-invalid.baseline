@@ -1,3 +1,1 @@
-(79) testsuite/core/unreached-invalid.wast:472: assert_invalid module failed. Had a linking error, expected a compile error: TypeError: Object expected
-(80) testsuite/core/unreached-invalid.wast:484: assert_invalid module failed. Had a linking error, expected a compile error: TypeError: Object expected
-98/100 tests passed.
+102/102 tests passed.

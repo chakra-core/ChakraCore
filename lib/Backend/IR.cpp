@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
+#include "RuntimeMathPch.h"
 
 namespace IR
 {
@@ -82,6 +83,12 @@ bool
 Instr::HasEquivalentTypeCheckBailOut() const
 {
     return this->HasBailOutInfo() && IR::IsEquivalentTypeCheckBailOutKind(this->GetBailOutKind());
+}
+
+bool
+Instr::HasBailOnNoProfile() const
+{
+    return this->HasBailOutInfo() && this->GetBailOutKind() == IR::BailOutOnNoProfile;
 }
 
 void
@@ -352,7 +359,6 @@ Instr::Free()
                         return;
                     }
                     Assert(this->m_func->GetTopFunc()->allowRemoveBailOutArgInstr || !stackSym->m_isBailOutReferenced);
-                    stackSym->m_instrDef = nullptr;
                 }
                 else
                 {
@@ -366,6 +372,18 @@ Instr::Free()
                     || (stackSym->m_isEncodedConstant && stackSym->constantValue != 0));
             }
         }
+        this->FreeDst();
+    }
+    if (this->GetSrc1())
+    {
+        this->FreeSrc1();
+    }
+    if (this->GetSrc2())
+    {
+        // This pattern isn't so unusual:
+        //     src = instr->UnlinkSrc1();
+        //     instr->Remove();
+        this->FreeSrc2();
     }
 
     ClearBailOutInfo();
@@ -1138,7 +1156,7 @@ Instr::UnlinkBailOutInfo()
 bool
 Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
 {
-    BailOutInfo *oldBailOutInfo;
+    BailOutInfo *oldBailOutInfo = nullptr;
     bool deleteOld = false;
 
 #if DBG
@@ -1994,8 +2012,10 @@ Instr::New(Js::OpCode opcode, Opnd *dstOpnd, Func *func)
     Instr * instr;
 
     instr = Instr::New(opcode, func);
-    instr->SetDst(dstOpnd);
-
+    if (dstOpnd)
+    {
+        instr->SetDst(dstOpnd);
+    }
     return instr;
 }
 
@@ -2146,17 +2166,23 @@ Instr::UnlinkDst()
         }
     }
 
+    if (stackSym && stackSym->m_isSingleDef)
+    {
+        if (stackSym->m_instrDef == this)
+        {
+            stackSym->m_instrDef = nullptr;
+        }
+        else
+        {
+            Assert(oldDst->isFakeDst);
+        }
+    }
 #if DBG
     if (oldDst->isFakeDst)
     {
         oldDst->isFakeDst = false;
     }
 #endif
-    if (stackSym && stackSym->m_isSingleDef)
-    {
-        AssertMsg(stackSym->m_instrDef == this, "m_instrDef incorrectly set");
-        stackSym->m_instrDef = nullptr;
-    }
 
     oldDst->UnUse();
     this->m_dst = nullptr;
@@ -2208,7 +2234,7 @@ Instr::ReplaceDst(Opnd * newDst)
 Instr *
 Instr::SinkDst(Js::OpCode assignOpcode, RegNum regNum, IR::Instr *insertAfterInstr)
 {
-    return SinkDst(assignOpcode, StackSym::New(TyVar, m_func), regNum, insertAfterInstr);
+    return SinkDst(assignOpcode, StackSym::New(this->GetDst()->GetType(), m_func), regNum, insertAfterInstr);
 }
 
 Instr *
@@ -3453,15 +3479,54 @@ uint Instr::GetArgOutCount(bool getInterpreterArgOutCount)
     Assert(opcode == Js::OpCode::StartCall ||
            opcode == Js::OpCode::InlineeEnd || opcode == Js::OpCode::InlineBuiltInEnd|| opcode == Js::OpCode::InlineNonTrackingBuiltInEnd ||
            opcode == Js::OpCode::EndCallForPolymorphicInlinee || opcode == Js::OpCode::LoweredStartCall);
-    if (!getInterpreterArgOutCount)
-    {
-        return this->GetSrc1()->AsIntConstOpnd()->AsUint32();
-    }
 
-    Assert(opcode == Js::OpCode::StartCall);
-    IntConstType argOutCount = !this->GetSrc2() ? this->GetSrc1()->AsIntConstOpnd()->GetValue() : this->GetSrc2()->AsIntConstOpnd()->GetValue();
-    Assert(argOutCount >= 0 && argOutCount < UINT32_MAX);
+    Assert(!getInterpreterArgOutCount || opcode == Js::OpCode::StartCall);
+    uint argOutCount = !this->GetSrc2() || !getInterpreterArgOutCount || m_func->GetJITFunctionBody()->IsAsmJsMode()
+        ? this->GetSrc1()->AsIntConstOpnd()->AsUint32()
+        : this->GetSrc2()->AsIntConstOpnd()->AsUint32();
+
     return (uint)argOutCount;
+}
+
+uint Instr::GetAsmJsArgOutSize()
+{
+    switch (m_opcode)
+    {
+    case Js::OpCode::StartCall:
+    case Js::OpCode::LoweredStartCall:
+        return GetSrc2()->AsIntConstOpnd()->AsUint32();
+
+    case Js::OpCode::InlineeEnd:
+    {
+        // StartCall instr has the size, so walk back to it
+        IR::Instr *argInstr = this;
+        while(argInstr->m_opcode != Js::OpCode::StartCall && argInstr->m_opcode != Js::OpCode::LoweredStartCall)
+        {
+            argInstr = argInstr->GetSrc2()->GetStackSym()->GetInstrDef();
+        }
+        // add StartCall arg size with inlinee meta args for full size
+        uint size = UInt32Math::Add(argInstr->GetSrc2()->AsIntConstOpnd()->AsUint32(), Js::Constants::InlineeMetaArgCount * MachPtr);
+        return size;
+    }
+    default:
+        Assert(UNREACHED);
+        return 0;
+    }
+}
+
+uint Instr::GetArgOutSize(bool getInterpreterArgOutCount)
+{
+    Js::OpCode opcode = this->m_opcode;
+    Assert(opcode == Js::OpCode::StartCall ||
+        opcode == Js::OpCode::InlineeEnd || opcode == Js::OpCode::InlineBuiltInEnd || opcode == Js::OpCode::InlineNonTrackingBuiltInEnd ||
+        opcode == Js::OpCode::EndCallForPolymorphicInlinee || opcode == Js::OpCode::LoweredStartCall);
+
+    Assert(!getInterpreterArgOutCount || opcode == Js::OpCode::StartCall);
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode())
+    {
+        return GetAsmJsArgOutSize();
+    }
+    return UInt32Math::Mul<MachPtr>(GetArgOutCount(getInterpreterArgOutCount));
 }
 
 PropertySymOpnd *Instr::GetPropertySymOpnd() const
@@ -3625,7 +3690,7 @@ bool Instr::UsesAllFields()
 BranchInstr *
 Instr::ChangeCmCCToBranchInstr(LabelInstr *targetInstr)
 {
-    Js::OpCode newOpcode;
+    Js::OpCode newOpcode = Js::OpCode::InvalidOpCode;
     switch (this->m_opcode)
     {
     case Js::OpCode::CmEq_A:
@@ -4200,7 +4265,7 @@ Instr::DumpByteCodeOffset()
 void
 Instr::DumpGlobOptInstrString()
 {
-    if(this->globOptInstrString)
+    if(this->globOptInstrString && !PHASE_OFF(Js::DumpGlobOptInstrPhase, m_func))
     {
         Output::Print(_u("\n\n GLOBOPT INSTR: %s\n\n"), this->globOptInstrString);
     }
@@ -4550,7 +4615,7 @@ PragmaInstr::Dump(IRDumpFlags flags)
         {
             functionBody = ((Js::FunctionBody*)m_func->GetJITFunctionBody()->GetAddr());
         }
-        if (functionBody)
+        if (functionBody && !functionBody->GetUtf8SourceInfo()->GetIsLibraryCode())
         {
             functionBody->PrintStatementSourceLine(this->m_statementIndex);
         }

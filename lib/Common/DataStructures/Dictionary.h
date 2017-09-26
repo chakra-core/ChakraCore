@@ -45,6 +45,7 @@ namespace JsUtil
         FieldNoBarrier(EntryRemovalCallback) entryRemovalCallback;
         Field(uint) lastWeakReferenceCleanupId;
         Field(bool) disableCleanup;
+        Field(int)  modFunctionIndex;
 
     public:
         // Allow WeaklyReferencedKeyDictionary field to be inlined in classes with DEFINE_VTABLE_CTOR_MEMBER_INIT
@@ -60,7 +61,8 @@ namespace JsUtil
             freeCount(0),
             recycler(recycler),
             lastWeakReferenceCleanupId(recycler->GetWeakReferenceCleanupId()),
-            disableCleanup(false)
+            disableCleanup(false),
+            modFunctionIndex(UNKNOWN_MOD_INDEX)
         {
             if (pEntryRemovalCallback != nullptr)
             {
@@ -121,7 +123,7 @@ namespace JsUtil
             if (buckets == nullptr) return false;
 
             hash_t hash = GetHashCode(key);
-            uint targetBucket = hash % size;
+            uint targetBucket = PrimePolicy::GetBucket(hash, size, modFunctionIndex);
             int last = -1;
             int i = 0;
 
@@ -234,6 +236,7 @@ namespace JsUtil
                 freeList = -1;
                 count = 0;
                 freeCount = 0;
+                modFunctionIndex = UNKNOWN_MOD_INDEX;
             }
         }
 
@@ -258,7 +261,7 @@ namespace JsUtil
             if (buckets == nullptr) Initialize(0);
 
             int hash = GetHashCode(weakRef->FastGet());
-            uint bucket = (uint)hash % size;
+            uint bucket = PrimePolicy::GetBucket(hash, size, modFunctionIndex);
 
             Assert(FindEntry(weakRef->FastGet()) == -1);
             return Insert(weakRef, value, hash, bucket);
@@ -269,7 +272,7 @@ namespace JsUtil
             if (buckets == nullptr) Initialize(0);
 
             hash_t hash = GetHashCode(key);
-            uint bucket = hash % size;
+            uint bucket = PrimePolicy::GetBucket(hash, size, modFunctionIndex);
 
             if (checkForExisting)
             {
@@ -318,7 +321,7 @@ namespace JsUtil
                     else
                     {
                         Resize();
-                        bucket = (uint)hash % size;
+                        bucket = PrimePolicy::GetBucket(hash, size, modFunctionIndex);
                         index = count;
                         count++;
                     }
@@ -342,7 +345,7 @@ namespace JsUtil
 
         void Resize()
         {
-            int newSize = PrimePolicy::GetSize(count * 2);
+            int newSize = PrimePolicy::GetSize(count * 2, &modFunctionIndex);
 
             if (newSize <= count)
             {
@@ -357,7 +360,7 @@ namespace JsUtil
             AnalysisAssert(count < newSize);
             for (int i = 0; i < count; i++)
             {
-                uint bucket = (uint)newEntries[i].hash % newSize;
+                uint bucket = PrimePolicy::GetBucket(newEntries[i].hash, newSize, modFunctionIndex);
                 newEntries[i].next = newBuckets[bucket];
                 newBuckets[bucket] = i;
             }
@@ -378,7 +381,7 @@ namespace JsUtil
             if (buckets != nullptr)
             {
                 hash_t hash = GetHashCode(key);
-                uint bucket = (uint)hash % size;
+                uint bucket = PrimePolicy::GetBucket(hash, size, modFunctionIndex);
                 int previous = -1;
                 return FindEntry(key, hash, bucket, previous);
             }
@@ -434,7 +437,7 @@ namespace JsUtil
 
         void Initialize(int capacity)
         {
-            int size = PrimePolicy::GetSize(capacity);
+            int size = PrimePolicy::GetSize(capacity, &modFunctionIndex);
 
             int* buckets = RecyclerNewArrayLeaf(recycler, int, size);
             EntryType * entries = RecyclerNewArray(recycler, EntryType, size);

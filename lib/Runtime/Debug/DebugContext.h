@@ -47,24 +47,34 @@ namespace Js
         void Initialize();
         HRESULT RundownSourcesAndReparse(bool shouldPerformSourceRundown, bool shouldReparseFunctions);
         void RegisterFunction(Js::ParseableFunctionInfo * func, LPCWSTR title);
+        bool IsClosed() const { return this->isClosed; };
+        bool IsSelfOrScriptContextClosed() const;
         void Close();
         void SetHostDebugContext(HostDebugContext * hostDebugContext);
 
         void SetDebuggerMode(DebuggerMode mode);
+
         bool IsDebugContextInNonDebugMode() const { return this->debuggerMode == DebuggerMode::NotDebugging; }
         bool IsDebugContextInDebugMode() const { return this->debuggerMode == DebuggerMode::Debugging; }
         bool IsDebugContextInSourceRundownMode() const { return this->debuggerMode == DebuggerMode::SourceRundown; }
         bool IsDebugContextInSourceRundownOrDebugMode() const { return IsDebugContextInSourceRundownMode() || IsDebugContextInDebugMode(); }
 
-        ProbeContainer* GetProbeContainer() const { return this->diagProbesContainer; }
+        bool IsDebuggerRecording() const { return this->isDebuggerRecording; }
+        void SetIsDebuggerRecording(bool isDebuggerRecording) { this->isDebuggerRecording = isDebuggerRecording; }
 
-        HostDebugContext * GetHostDebugContext() const { return hostDebugContext; }
+        ProbeContainer* GetProbeContainer() const { return this->diagProbesContainer; }
+        HostDebugContext * GetHostDebugContext() const { return this->hostDebugContext; }
+
+        bool GetIsReparsingSource() const { return this->isReparsingSource; }
 
     private:
         ScriptContext * scriptContext;
         HostDebugContext* hostDebugContext;
-        DebuggerMode debuggerMode;
         ProbeContainer* diagProbesContainer;
+        DebuggerMode debuggerMode;
+        bool isClosed : 1;
+        bool isDebuggerRecording : 1;
+        bool isReparsingSource : 1;
 
         // Private Functions
         void WalkAndAddUtf8SourceInfo(Js::Utf8SourceInfo* sourceInfo, JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer> *utf8SourceInfoList);

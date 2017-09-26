@@ -23,14 +23,12 @@
 #include <memory>
 #include <vector>
 
-#include "binding-hash.h"
-#include "common.h"
-#include "opcode.h"
-#include "writer.h"
+#include "src/binding-hash.h"
+#include "src/common.h"
+#include "src/opcode.h"
+#include "src/stream.h"
 
 namespace wabt {
-
-class Stream;
 
 namespace interpreter {
 
@@ -93,18 +91,6 @@ static const IstreamOffset kInvalidIstreamOffset = ~0;
 #define WABT_TABLE_ENTRY_DROP_OFFSET sizeof(uint32_t)
 #define WABT_TABLE_ENTRY_KEEP_OFFSET (sizeof(IstreamOffset) + sizeof(uint32_t))
 
-enum class Opcode {
-/* push space on the value stack for N entries */
-#define WABT_OPCODE(rtype, type1, type2, mem_size, code, Name, text) \
-  Name = code,
-#include "interpreter-opcode.def"
-#undef WABT_OPCODE
-
-  First = static_cast<int>(::wabt::Opcode::First),
-  Last = DropKeep,
-};
-static const int kOpcodeCount = WABT_ENUM_COUNT(Opcode);
-
 struct FuncSignature {
   FuncSignature() = default;
   FuncSignature(Index param_count,
@@ -125,7 +111,7 @@ struct Table {
 };
 
 struct Memory {
-  Memory() { WABT_ZERO_MEMORY(page_limits); }
+  Memory() = default;
   explicit Memory(const Limits& limits)
       : page_limits(limits), data(limits.initial * WABT_PAGE_SIZE) {}
 
@@ -133,11 +119,26 @@ struct Memory {
   std::vector<char> data;
 };
 
+// ValueTypeRep converts from one type to its representation on the
+// stack. For example, float -> uint32_t. See Value below.
+template <typename T>
+struct ValueTypeRepT;
+
+template <> struct ValueTypeRepT<int32_t> { typedef uint32_t type; };
+template <> struct ValueTypeRepT<uint32_t> { typedef uint32_t type; };
+template <> struct ValueTypeRepT<int64_t> { typedef uint64_t type; };
+template <> struct ValueTypeRepT<uint64_t> { typedef uint64_t type; };
+template <> struct ValueTypeRepT<float> { typedef uint32_t type; };
+template <> struct ValueTypeRepT<double> { typedef uint64_t type; };
+
+template <typename T>
+using ValueTypeRep = typename ValueTypeRepT<T>::type;
+
 union Value {
   uint32_t i32;
   uint64_t i64;
-  uint32_t f32_bits;
-  uint64_t f64_bits;
+  ValueTypeRep<float> f32_bits;
+  ValueTypeRep<double> f64_bits;
 };
 
 struct TypedValue {
@@ -160,26 +161,54 @@ struct Global {
 };
 
 struct Import {
-  Import();
-  Import(Import&&);
-  Import& operator=(Import&&);
-  ~Import();
+  explicit Import(ExternalKind kind) : kind(kind) {}
+  Import(ExternalKind kind, string_view module_name, string_view field_name)
+      : kind(kind),
+        module_name(module_name.to_string()),
+        field_name(field_name.to_string()) {}
 
-  StringSlice module_name;
-  StringSlice field_name;
   ExternalKind kind;
-  union {
-    struct {
-      Index sig_index;
-    } func;
-    struct {
-      Limits limits;
-    } table, memory;
-    struct {
-      Type type;
-      bool mutable_;
-    } global;
-  };
+  std::string module_name;
+  std::string field_name;
+};
+
+struct FuncImport : Import {
+  FuncImport() : Import(ExternalKind::Func) {}
+  FuncImport(string_view module_name, string_view field_name)
+      : Import(ExternalKind::Func, module_name, field_name) {}
+
+  Index sig_index = kInvalidIndex;
+};
+
+struct TableImport : Import {
+  TableImport() : Import(ExternalKind::Table) {}
+  TableImport(string_view module_name, string_view field_name)
+      : Import(ExternalKind::Table, module_name, field_name) {}
+
+  Limits limits;
+};
+
+struct MemoryImport : Import {
+  MemoryImport() : Import(ExternalKind::Memory) {}
+  MemoryImport(string_view module_name, string_view field_name)
+      : Import(ExternalKind::Memory, module_name, field_name) {}
+
+  Limits limits;
+};
+
+struct GlobalImport : Import {
+  GlobalImport() : Import(ExternalKind::Global) {}
+  GlobalImport(string_view module_name, string_view field_name)
+      : Import(ExternalKind::Global, module_name, field_name) {}
+
+  Type type = Type::Void;
+  bool mutable_ = false;
+};
+
+struct ExceptImport : Import {
+  ExceptImport() : Import(ExternalKind::Except) {}
+  ExceptImport(string_view module_name, string_view field_name)
+      : Import(ExternalKind::Except, module_name, field_name) {}
 };
 
 struct Func;
@@ -198,9 +227,6 @@ struct Func {
       : sig_index(sig_index), is_host(is_host) {}
   virtual ~Func() {}
 
-  inline struct DefinedFunc* as_defined();
-  inline struct HostFunc* as_host();
-
   Index sig_index;
   bool is_host;
 };
@@ -212,6 +238,8 @@ struct DefinedFunc : Func {
         local_decl_count(0),
         local_count(0) {}
 
+  static bool classof(const Func* func) { return !func->is_host; }
+
   IstreamOffset offset;
   Index local_decl_count;
   Index local_count;
@@ -219,37 +247,24 @@ struct DefinedFunc : Func {
 };
 
 struct HostFunc : Func {
-  HostFunc(const StringSlice& module_name,
-           const StringSlice& field_name,
-           Index sig_index)
+  HostFunc(string_view module_name, string_view field_name, Index sig_index)
       : Func(sig_index, true),
-        module_name(module_name),
-        field_name(field_name) {}
+        module_name(module_name.to_string()),
+        field_name(field_name.to_string()) {}
 
-  StringSlice module_name;
-  StringSlice field_name;
+  static bool classof(const Func* func) { return func->is_host; }
+
+  std::string module_name;
+  std::string field_name;
   HostFuncCallback callback;
   void* user_data;
 };
 
-DefinedFunc* Func::as_defined() {
-  assert(!is_host);
-  return static_cast<DefinedFunc*>(this);
-}
-
-HostFunc* Func::as_host() {
-  assert(is_host);
-  return static_cast<HostFunc*>(this);
-}
-
 struct Export {
-  Export(const StringSlice& name, ExternalKind kind, Index index)
-      : name(name), kind(kind), index(index) {}
-  Export(Export&&);
-  Export& operator=(Export&&);
-  ~Export();
+  Export(string_view name, ExternalKind kind, Index index)
+      : name(name.to_string()), kind(kind), index(index) {}
 
-  StringSlice name;
+  std::string name;
   ExternalKind kind;
   Index index;
 };
@@ -259,27 +274,30 @@ class HostImportDelegate {
   typedef std::function<void(const char* msg)> ErrorCallback;
 
   virtual ~HostImportDelegate() {}
-  virtual wabt::Result ImportFunc(Import*,
+  virtual wabt::Result ImportFunc(FuncImport*,
                                   Func*,
                                   FuncSignature*,
                                   const ErrorCallback&) = 0;
-  virtual wabt::Result ImportTable(Import*, Table*, const ErrorCallback&) = 0;
-  virtual wabt::Result ImportMemory(Import*, Memory*, const ErrorCallback&) = 0;
-  virtual wabt::Result ImportGlobal(Import*, Global*, const ErrorCallback&) = 0;
+  virtual wabt::Result ImportTable(TableImport*,
+                                   Table*,
+                                   const ErrorCallback&) = 0;
+  virtual wabt::Result ImportMemory(MemoryImport*,
+                                    Memory*,
+                                    const ErrorCallback&) = 0;
+  virtual wabt::Result ImportGlobal(GlobalImport*,
+                                    Global*,
+                                    const ErrorCallback&) = 0;
 };
 
 struct Module {
   WABT_DISALLOW_COPY_AND_ASSIGN(Module);
   explicit Module(bool is_host);
-  Module(const StringSlice& name, bool is_host);
-  virtual ~Module();
+  Module(string_view name, bool is_host);
+  virtual ~Module() = default;
 
-  inline struct DefinedModule* as_defined();
-  inline struct HostModule* as_host();
+  Export* GetExport(string_view name);
 
-  Export* GetExport(StringSlice name);
-
-  StringSlice name;
+  std::string name;
   std::vector<Export> exports;
   BindingHash export_bindings;
   Index memory_index; /* kInvalidIndex if not defined */
@@ -289,28 +307,24 @@ struct Module {
 
 struct DefinedModule : Module {
   DefinedModule();
+  static bool classof(const Module* module) { return !module->is_host; }
 
-  std::vector<Import> imports;
+  std::vector<FuncImport> func_imports;
+  std::vector<TableImport> table_imports;
+  std::vector<MemoryImport> memory_imports;
+  std::vector<GlobalImport> global_imports;
+  std::vector<ExceptImport> except_imports;
   Index start_func_index; /* kInvalidIndex if not defined */
   IstreamOffset istream_start;
   IstreamOffset istream_end;
 };
 
 struct HostModule : Module {
-  explicit HostModule(const StringSlice& name);
+  explicit HostModule(string_view name);
+  static bool classof(const Module* module) { return module->is_host; }
 
   std::unique_ptr<HostImportDelegate> import_delegate;
 };
-
-DefinedModule* Module::as_defined() {
-  assert(!is_host);
-  return static_cast<DefinedModule*>(this);
-}
-
-HostModule* Module::as_host() {
-  assert(is_host);
-  return static_cast<HostModule*>(this);
-}
 
 class Environment {
  public:
@@ -343,7 +357,7 @@ class Environment {
   Index GetLastModuleIndex() const {
     return modules_.empty() ? kInvalidIndex : modules_.size() - 1;
   }
-  Index FindModuleIndex(StringSlice name) const;
+  Index FindModuleIndex(string_view name) const;
 
   FuncSignature* GetFuncSignature(Index index) { return &sigs_[index]; }
   Func* GetFunc(Index index) {
@@ -370,56 +384,56 @@ class Environment {
   Module* GetLastModule() {
     return modules_.empty() ? nullptr : modules_.back().get();
   }
-  Module* FindModule(StringSlice name);
-  Module* FindRegisteredModule(StringSlice name);
+  Module* FindModule(string_view name);
+  Module* FindRegisteredModule(string_view name);
 
   template <typename... Args>
   FuncSignature* EmplaceBackFuncSignature(Args&&... args) {
-    sigs_.emplace_back(args...);
+    sigs_.emplace_back(std::forward<Args>(args)...);
     return &sigs_.back();
   }
 
   template <typename... Args>
   Func* EmplaceBackFunc(Args&&... args) {
-    funcs_.emplace_back(args...);
+    funcs_.emplace_back(std::forward<Args>(args)...);
     return funcs_.back().get();
   }
 
   template <typename... Args>
   Global* EmplaceBackGlobal(Args&&... args) {
-    globals_.emplace_back(args...);
+    globals_.emplace_back(std::forward<Args>(args)...);
     return &globals_.back();
   }
 
   template <typename... Args>
   Table* EmplaceBackTable(Args&&... args) {
-    tables_.emplace_back(args...);
+    tables_.emplace_back(std::forward<Args>(args)...);
     return &tables_.back();
   }
 
   template <typename... Args>
   Memory* EmplaceBackMemory(Args&&... args) {
-    memories_.emplace_back(args...);
+    memories_.emplace_back(std::forward<Args>(args)...);
     return &memories_.back();
   }
 
   template <typename... Args>
   Module* EmplaceBackModule(Args&&... args) {
-    modules_.emplace_back(args...);
+    modules_.emplace_back(std::forward<Args>(args)...);
     return modules_.back().get();
   }
 
   template <typename... Args>
   void EmplaceModuleBinding(Args&&... args) {
-    module_bindings_.emplace(args...);
+    module_bindings_.emplace(std::forward<Args>(args)...);
   }
 
   template <typename... Args>
   void EmplaceRegisteredModuleBinding(Args&&... args) {
-    registered_module_bindings_.emplace(args...);
+    registered_module_bindings_.emplace(std::forward<Args>(args)...);
   }
 
-  HostModule* AppendHostModule(StringSlice name);
+  HostModule* AppendHostModule(string_view name);
 
   bool FuncSignaturesAreEqual(Index sig_index_0, Index sig_index_1) const;
 
@@ -472,12 +486,62 @@ class Thread {
                        std::vector<TypedValue>* out_results);
 
  private:
-  Result PushValue(Value);
+  const uint8_t* GetIstream() const { return env_->istream_->data.data(); }
+
   Result PushArgs(const FuncSignature*, const std::vector<TypedValue>& args);
   void CopyResults(const FuncSignature*, std::vector<TypedValue>* out_results);
 
   Result Run(int num_instructions, IstreamOffset* call_stack_return_top);
   void Trace(Stream*);
+
+  Memory* ReadMemory(const uint8_t** pc);
+
+  Value& Top();
+  Value& Pick(Index depth);
+
+  Result Push(Value) WABT_WARN_UNUSED;
+  Value Pop();
+
+  // Push/Pop values with conversions, e.g. Push<float> will convert to the
+  // ValueTypeRep (uint32_t) and push that. Similarly, Pop<float> will pop the
+  // value and convert to float.
+  template <typename T>
+  Result Push(T) WABT_WARN_UNUSED;
+  template <typename T>
+  T Pop();
+
+  // Push/Pop values without conversions, e.g. Push<float> will take a uint32_t
+  // argument which is the integer representation of that float value.
+  // Similarly, PopRep<float> will not convert the value to a float.
+  template <typename T>
+  Result PushRep(ValueTypeRep<T>) WABT_WARN_UNUSED;
+  template <typename T>
+  ValueTypeRep<T> PopRep();
+
+  void DropKeep(uint32_t drop_count, uint8_t keep_count);
+
+  Result PushCall(const uint8_t* pc) WABT_WARN_UNUSED;
+  IstreamOffset PopCall();
+
+  template <typename MemType, typename ResultType = MemType>
+  Result Load(const uint8_t** pc) WABT_WARN_UNUSED;
+  template <typename MemType, typename ResultType = MemType>
+  Result Store(const uint8_t** pc) WABT_WARN_UNUSED;
+
+  template <typename R, typename T> using UnopFunc      = R(T);
+  template <typename R, typename T> using UnopTrapFunc  = Result(T, R*);
+  template <typename R, typename T> using BinopFunc     = R(T, T);
+  template <typename R, typename T> using BinopTrapFunc = Result(T, T, R*);
+
+  template <typename R, typename T = R>
+  Result Unop(UnopFunc<R, T> func) WABT_WARN_UNUSED;
+  template <typename R, typename T = R>
+  Result UnopTrap(UnopTrapFunc<R, T> func) WABT_WARN_UNUSED;
+
+  template <typename R, typename T = R>
+  Result Binop(BinopFunc<R, T> func) WABT_WARN_UNUSED;
+  template <typename R, typename T = R>
+  Result BinopTrap(BinopTrapFunc<R, T> func) WABT_WARN_UNUSED;
 
   Result RunDefinedFunction(IstreamOffset);
   Result TraceDefinedFunction(IstreamOffset, Stream*);
@@ -494,10 +558,10 @@ class Thread {
   IstreamOffset pc_;
 };
 
-bool is_canonical_nan_f32(uint32_t f32_bits);
-bool is_canonical_nan_f64(uint64_t f64_bits);
-bool is_arithmetic_nan_f32(uint32_t f32_bits);
-bool is_arithmetic_nan_f64(uint64_t f64_bits);
+bool IsCanonicalNan(uint32_t f32_bits);
+bool IsCanonicalNan(uint64_t f64_bits);
+bool IsArithmeticNan(uint32_t f32_bits);
+bool IsArithmeticNan(uint64_t f64_bits);
 
 }  // namespace interpreter
 }  // namespace wabt

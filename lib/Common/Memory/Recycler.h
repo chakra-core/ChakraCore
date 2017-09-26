@@ -151,20 +151,20 @@ struct InfoBitsWrapper{};
 #endif
 
 #ifndef RECYCLER_WRITE_BARRIER
-#define RecyclerNewWithBarrier                          RecyclerNew                     
-#define RecyclerNewWithBarrierPlus                      RecyclerNewPlus                 
-#define RecyclerNewWithBarrierPlusZ                     RecyclerNewPlusZ                
-#define RecyclerNewWithBarrierZ                         RecyclerNewZ                    
-#define RecyclerNewWithBarrierStruct                    RecyclerNewStruct               
-#define RecyclerNewWithBarrierStructZ                   RecyclerNewStructZ              
-#define RecyclerNewWithBarrierStructPlus                RecyclerNewStructPlus           
-#define RecyclerNewWithBarrierArray                     RecyclerNewArray                
-#define RecyclerNewWithBarrierArrayZ                    RecyclerNewArrayZ               
-#define RecyclerNewWithBarrierFinalized                 RecyclerNewFinalized            
-#define RecyclerNewWithBarrierFinalizedPlus             RecyclerNewFinalizedPlus        
-#define RecyclerNewWithBarrierTracked                   RecyclerNewTracked              
-#define RecyclerNewWithBarrierEnumClass                 RecyclerNewEnumClass            
-#define RecyclerNewWithBarrierWithInfoBits              RecyclerNewWithInfoBits         
+#define RecyclerNewWithBarrier                          RecyclerNew
+#define RecyclerNewWithBarrierPlus                      RecyclerNewPlus
+#define RecyclerNewWithBarrierPlusZ                     RecyclerNewPlusZ
+#define RecyclerNewWithBarrierZ                         RecyclerNewZ
+#define RecyclerNewWithBarrierStruct                    RecyclerNewStruct
+#define RecyclerNewWithBarrierStructZ                   RecyclerNewStructZ
+#define RecyclerNewWithBarrierStructPlus                RecyclerNewStructPlus
+#define RecyclerNewWithBarrierArray                     RecyclerNewArray
+#define RecyclerNewWithBarrierArrayZ                    RecyclerNewArrayZ
+#define RecyclerNewWithBarrierFinalized                 RecyclerNewFinalized
+#define RecyclerNewWithBarrierFinalizedPlus             RecyclerNewFinalizedPlus
+#define RecyclerNewWithBarrierTracked                   RecyclerNewTracked
+#define RecyclerNewWithBarrierEnumClass                 RecyclerNewEnumClass
+#define RecyclerNewWithBarrierWithInfoBits              RecyclerNewWithInfoBits
 #define RecyclerNewWithBarrierFinalizedClientTracked    RecyclerNewFinalizedClientTracked
 #endif
 
@@ -302,7 +302,7 @@ enum CollectionFlags
     FinishConcurrentDefault         = CollectMode_Concurrent | CollectOverride_DisableIdleFinish | CollectOverride_BackgroundFinishMark,
     FinishConcurrentOnExitScript    = FinishConcurrentDefault,
     FinishConcurrentOnEnterScript   = FinishConcurrentDefault,
-    FinishConcurrentOnAllocation    = FinishConcurrentDefault, 
+    FinishConcurrentOnAllocation    = FinishConcurrentDefault,
     FinishDispose                   = CollectOverride_AllowDispose,
     FinishDisposeTimed              = CollectOverride_AllowDispose | CollectHeuristic_TimeIfScriptActive,
     ForceFinishCollection           = CollectOverride_ForceFinish | CollectOverride_ForceInThread,
@@ -693,7 +693,7 @@ private:
 public:
     template<typename Action>
     void ForEachPageAllocator(Action action)
-    {        
+    {
         action(&this->recyclerPageAllocator);
         action(&this->recyclerLargeBlockPageAllocator);
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
@@ -1202,9 +1202,12 @@ public:
 
     template <CollectionFlags flags>
     bool FinishDisposeObjectsNow();
-    BOOL ReportExternalMemoryAllocation(size_t size);
+    bool RequestExternalMemoryAllocation(size_t size);
     void ReportExternalMemoryFailure(size_t size);
     void ReportExternalMemoryFree(size_t size);
+    // ExternalAllocFunc returns true when allocation succeeds
+    template <typename ExternalAllocFunc>
+    bool DoExternalAllocation(size_t size, ExternalAllocFunc externalAllocFunc);
 
 #ifdef TRACE_OBJECT_LIFETIME
 #define DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributesFunc, attributes) \
@@ -1264,10 +1267,10 @@ public:
     DEFINE_RECYCLER_ALLOC(AllocTrackedWithBarrier, ClientTrackableObjectWithBarrierBits);
     DEFINE_RECYCLER_ALLOC(AllocFinalizedClientTrackedWithBarrier, ClientFinalizableObjectWithBarrierBits);
 #endif
-    
+
     DEFINE_RECYCLER_ALLOC(AllocLeaf, LeafBit);
     DEFINE_RECYCLER_ALLOC(AllocFinalizedLeaf, FinalizableLeafBits);
-    DEFINE_RECYCLER_ALLOC(AllocTrackedLeaf, ClientTrackableLeafBits);    
+    DEFINE_RECYCLER_ALLOC(AllocTrackedLeaf, ClientTrackableLeafBits);
     DEFINE_RECYCLER_ALLOC_ZERO(AllocLeafZero, LeafBit);
     DEFINE_RECYCLER_ALLOC_ZERO(AllocZeroTrackedLeaf, ClientTrackableLeafBits);
     DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocImplicitRootLeaf, ImplicitRootLeafBits);
@@ -1828,7 +1831,7 @@ private:
     typedef JsUtil::BaseDictionary<void *, TrackerData *, NoCheckHeapAllocator, PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, JsUtil::NoResizeLock> PointerToTrackerDataMap;
 
     TypeInfotoTrackerItemMap * trackerDictionary;
-    CRITICAL_SECTION trackerCriticalSection;
+    CriticalSection * trackerCriticalSection;
 #endif
     TrackAllocData nextAllocData;
 #endif
@@ -1975,6 +1978,7 @@ public:
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 private:
     static Recycler* recyclerList;
+    static CriticalSection recyclerListLock;
     Recycler* next;
 public:
     static void WBSetBitJIT(char* addr)
@@ -2384,7 +2388,7 @@ public:
 
 // Partial template specialization to allocate as non leaf
 template <typename T>
-class TypeAllocatorFunc<RecyclerNonLeafAllocator, T> : 
+class TypeAllocatorFunc<RecyclerNonLeafAllocator, T> :
 #if GLOBAL_ENABLE_WRITE_BARRIER
     public _RecyclerAllocatorFunc<_RecyclerWriteBarrierPolicy>
 #else
@@ -2462,7 +2466,7 @@ struct ForceLeafAllocator<RecyclerNonLeafAllocator>
 };
 
 // TODO: enable -profile for GC phases.
-// access the same profiler object from multiple GC threads which shares one recyler object,
+// access the same profiler object from multiple GC threads which shares one recycler object,
 // but profiler object is not thread safe
 #if defined(PROFILE_EXEC) && 0
 #define RECYCLER_PROFILE_EXEC_BEGIN(recycler, phase) if (recycler->profiler != nullptr) { recycler->profiler->Begin(phase); }
@@ -2508,7 +2512,7 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, Recycler * recycler, const
     AssertCanHandleOutOfMemory();
     Assert(byteSize != 0);
     void * buffer;
-    
+
     if (infoBits & EnumClass_1_Bit)
     {
         buffer = recycler->AllocEnumClass<infoBits>(byteSize);
@@ -2532,3 +2536,35 @@ extern bool IsLikelyRuntimeFalseReference(
 #else
 #define DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
 #endif
+
+template <typename ExternalAllocFunc>
+bool Recycler::DoExternalAllocation(size_t size, ExternalAllocFunc externalAllocFunc)
+{
+    // Request external memory allocation
+    if (!RequestExternalMemoryAllocation(size))
+    {
+        // Attempt to free some memory then try again
+        CollectNow<CollectOnTypedArrayAllocation>();
+        if (!RequestExternalMemoryAllocation(size))
+        {
+            return false;
+        }
+    }
+    struct AutoExternalAllocation
+    {
+        bool allocationSucceeded = false;
+        Recycler* recycler;
+        size_t size;
+        AutoExternalAllocation(Recycler* recycler, size_t size): recycler(recycler), size(size) {}
+        // In case the externalAllocFunc throws or fails, the destructor will report the failure
+        ~AutoExternalAllocation() { if (!allocationSucceeded) recycler->ReportExternalMemoryFailure(size); }
+    };
+    AutoExternalAllocation externalAllocation(this, size);
+    if (externalAllocFunc())
+    {
+        this->AddExternalMemoryUsage(size);
+        externalAllocation.allocationSucceeded = true;
+        return true;
+    }
+    return false;
+}

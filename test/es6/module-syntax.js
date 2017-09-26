@@ -38,6 +38,16 @@ var tests = [
         }
     },
     {
+        name: "Syntax error return in module top level",
+        body: function () {
+            testModuleScript('return;', 'Syntax error if in module\'s top-level', true);
+            testModuleScript('if (false) return;', 'Syntax error if in module\'s top-level', true);
+            testModuleScript('if (false) {} else return;', 'Syntax error if in module\'s top-level', true);
+            testModuleScript('while (false) return;', 'Syntax error if in module\'s top-level', true);
+            testModuleScript('do return while(false);', 'Syntax error if in module\'s top-level', true);
+        }
+    },
+    {
         name: "Valid default export statements",
         body: function () {
             testModuleScript('export default function () { };', 'Unnamed function expression default export');
@@ -53,6 +63,31 @@ var tests = [
             testModuleScript('function* g() { }; export default g', 'Named generator function statement default export');
             testModuleScript('class c { }; export default c', 'Named class statement default export');
             testModuleScript("var _ = { method: function() { return 'method_result'; }, method2: function() { return 'method2_result'; } }; export default _", 'Export object with methods - framework model');
+        }
+    },
+    {
+        name: "Valid export statements without semicolon",
+        body: function () {
+            testModuleScript('export var v0 if (true) { }', 'var declaration export');
+            testModuleScript('export let l0 if (true) { }', 'let declaration export');
+            testModuleScript('export const const0 = 0 if (true) { }', 'const declaration export');
+            testModuleScript('export function f() { } if (true) { }', 'function declaration export');
+            testModuleScript('export function *g() { } if (true) { }', 'function generator declaration export');
+            testModuleScript('export var c0 = class { } if (true) { }', 'var with unnamed class expression export');
+            testModuleScript('export class c1 { } if (true) { }', 'Named class expression export');
+            testModuleScript('export default function () { } if (true) { }', 'Unnamed function expression default export');
+            testModuleScript('export default function _fn2 () { } if (true) { }', 'Named function expression default export');
+            testModuleScript('export default function* () { } if (true) { }', 'Unnamed generator function expression default export');
+            testModuleScript('export default function* _gn2 () { } if (true) { }', 'Named generator function expression default export');
+            testModuleScript('export default class { } if (true) { }', 'Unnamed class expression default export');
+            testModuleScript('export default class _cl2 { } if (true) { }', 'Named class default expression export');
+            testModuleScript('export default 1 if (true) { }', 'Primitive type default export');
+            testModuleScript('var a; export default a = 10 if (true) { }', 'Variable in assignment expression default export');
+            testModuleScript('export default () => 3 if (true) { }', 'Simple default lambda expression export statement');
+            testModuleScript('function _default() { }; export default _default if (true) { }', 'Named function statement default export');
+            testModuleScript('function* g() { }; export default g if (true) { }', 'Named generator function statement default export');
+            testModuleScript('class c { }; export default c if (true) { }', 'Named class statement default export');
+            testModuleScript("var _ = { method: function() { return 'method_result'; }, method2: function() { return 'method2_result'; } }; export default _ if (true) { }", 'Export object with methods - framework model');
         }
     },
     {
@@ -74,6 +109,13 @@ var tests = [
             testModuleScript("export 'string_constant';", 'Syntax error if export is followed by string constant', true);
             testModuleScript('export ', 'Syntax error if export is followed by EOF', true);
             testModuleScript('function foo() { }; export { foo as 100 };', 'Syntax error in named export clause if trying to export as numeric constant', true);
+            testModuleScript('if (false) export default null;', 'Syntax error export in if', true);
+            testModuleScript('if (false) {} else export default null;', 'Syntax error export after else', true);
+            testModuleScript('for(var i=0; i<1; i++) export default null;', 'Syntax error export in for', true);
+            testModuleScript('while(false) export default null;', 'Syntax error export in while', true);
+            testModuleScript(`do export default null
+                                while (false);`, 'Syntax error export in while', true);
+            testModuleScript('function () { export default null; }', 'Syntax error export in function', true);
         }
     },
     {
@@ -114,6 +156,13 @@ var tests = [
             testModuleScript('import { foo bar } from "module";', 'Named import clause missing "as" token', true);
             testModuleScript('import { foo as switch } from "module";', 'Named import clause with non-identifier token after "as"', true);
             testModuleScript('import { foo, , } from "module";', 'Named import clause with too many trailing commas', true);
+            testModuleScript('if (false) import { default } from "module";', 'Syntax error export in if', true);
+            testModuleScript('if (false) {} import { default } from "module";', 'Syntax error export after else', true);
+            testModuleScript('for(var i=0; i<1; i++) import { default } from "module";', 'Syntax error export in for', true);
+            testModuleScript('while(false) import { default } from "module";', 'Syntax error export in while', true);
+            testModuleScript(`do import { default } from "module"
+                                while (false);`, 'Syntax error export in while', true);
+            testModuleScript('function () { import { default } from "module"; }', 'Syntax error export in function', true);
         }
     },
     {

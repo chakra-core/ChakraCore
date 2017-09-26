@@ -100,6 +100,7 @@ namespace JsUtil
         Field(int) count;
         Field(int) freeList;
         Field(int) freeCount;
+        Field(int) modFunctionIndex;
 
 #if PROFILE_DICTIONARY
         FieldNoBarrier(DictionaryStats*) stats;
@@ -127,7 +128,8 @@ namespace JsUtil
             entries(nullptr),
             count(0),
             freeCount(0),
-            alloc(allocator)
+            alloc(allocator),
+            modFunctionIndex(UNKNOWN_MOD_INDEX)
         {
             Assert(allocator);
 #if PROFILE_DICTIONARY
@@ -759,14 +761,14 @@ namespace JsUtil
             return GetHashCodeWithKey<TKey>(key);
         }
 
-        static uint GetBucket(hash_t hashCode, int bucketCount)
+        static uint GetBucket(hash_t hashCode, int bucketCount, int modFunctionIndex)
         {
-            return SizePolicy::GetBucket(UNTAGHASH(hashCode), bucketCount);
+            return SizePolicy::GetBucket(UNTAGHASH(hashCode), bucketCount, modFunctionIndex);
         }
 
         uint GetBucket(uint hashCode) const
         {
-            return GetBucket(hashCode, this->bucketCount);
+            return GetBucket(hashCode, this->bucketCount, modFunctionIndex);
         }
 
         static bool IsFreeEntry(const EntryType &entry)
@@ -873,7 +875,7 @@ namespace JsUtil
         {
             // minimum capacity is 4
             int initSize = max(capacity, 4);
-            uint initBucketCount = SizePolicy::GetBucketSize(initSize);
+            uint initBucketCount = SizePolicy::GetBucketSize(initSize, &modFunctionIndex);
             AssertMsg(initBucketCount > 0, "Size returned by policy should be greater than 0");
 
             int* newBuckets = nullptr;
@@ -1013,7 +1015,7 @@ namespace JsUtil
             AutoDoResize autoDoResize(*this);
 
             int newSize = SizePolicy::GetNextSize(count);
-            uint newBucketCount = SizePolicy::GetBucketSize(newSize);
+            uint newBucketCount = SizePolicy::GetBucketSize(newSize, &modFunctionIndex);
 
             __analysis_assume(newSize > count);
             int* newBuckets = nullptr;
@@ -1045,8 +1047,8 @@ namespace JsUtil
 
                 if (!IsFreeEntry(newEntries[i]))
                 {
-                    uint hashCode = newEntries[i].template GetHashCode<Comparer<TKey>>();
-                    int bucket = GetBucket(hashCode, newBucketCount);
+                    hash_t hashCode = newEntries[i].template GetHashCode<Comparer<TKey>>();
+                    int bucket = GetBucket(hashCode, newBucketCount, modFunctionIndex);
                     newEntries[i].next = newBuckets[bucket];
                     newBuckets[bucket] = i;
                 }

@@ -385,7 +385,7 @@ namespace TTD
         }
     }
 
-    SnapShot* EventLog::DoSnapshotExtract_Helper(double gcTime)
+    SnapShot* EventLog::DoSnapshotExtract_Helper(double gcTime, JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>& liveTopLevelBodies)
     {
         SnapShot* snap = nullptr;
 
@@ -397,7 +397,7 @@ namespace TTD
         //Phase 2: Evacuate marked objects
         //Allows for parallel execute and evacuate (in conjunction with later refactoring)
 
-        this->m_snapExtractor.EvacuateMarkedIntoSnapshot(this->m_threadContext);
+        this->m_snapExtractor.EvacuateMarkedIntoSnapshot(this->m_threadContext, liveTopLevelBodies);
 
         ///////////////////////////
         //Phase 3: Complete and return snapshot
@@ -429,7 +429,13 @@ namespace TTD
             this->SetSnapshotOrInflateInProgress(true);
             this->PushMode(TTDMode::ExcludedExecutionTTAction);
 
-            snap = this->DoSnapshotExtract_Helper(0.0);
+            JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator> liveTopLevelBodies(&HeapAllocator::Instance);
+            snap = this->DoSnapshotExtract_Helper(0.0, liveTopLevelBodies);
+
+            for(int32 i = 0; i < this->m_threadContext->TTDContext->GetTTDContexts().Count(); ++i)
+            {
+                this->m_threadContext->TTDContext->GetTTDContexts().Item(i)->TTDContextInfo->CleanUnreachableTopLevelBodies(liveTopLevelBodies);
+            }
 
             NSLogEvents::EventLogEntry* evt = this->m_currentReplayEventIterator.Current();
             NSLogEvents::SnapshotEventLogEntry_EnsureSnapshotDeserialized(evt, this->m_threadContext);
@@ -542,6 +548,7 @@ namespace TTD
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(SetExceptionActionTag, ContextAPINoScriptWrapper, JsRTSingleVarScalarArgumentAction, SetExceptionAction_Execute);
 
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(HasPropertyActionTag, ContextAPIWrapper, JsRTSingleVarScalarArgumentAction, HasPropertyAction_Execute);
+        TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(HasOwnPropertyActionTag, ContextAPIWrapper, JsRTSingleVarScalarArgumentAction, HasOwnPropertyAction_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(InstanceOfActionTag, ContextAPIWrapper, JsRTDoubleVarArgumentAction, InstanceOfAction_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(EqualsActionTag, ContextAPIWrapper, JsRTDoubleVarSingleScalarArgumentAction, EqualsAction_Execute);
 
@@ -561,6 +568,7 @@ namespace TTD
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(SetIndexActionTag, ContextAPIWrapper, JsRTTrippleVarArgumentAction, SetIndexAction_Execute);
 
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(GetTypedArrayInfoActionTag, None, JsRTSingleVarArgumentAction, GetTypedArrayInfoAction_Execute);
+        TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(GetDataViewInfoActionTag, None, JsRTSingleVarArgumentAction, GetDataViewInfoAction_Execute);
 
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY(RawBufferCopySync, ContextAPIWrapper, JsRTRawBufferCopyAction, NSLogEvents::RawBufferCopySync_Execute, nullptr, NSLogEvents::JsRTRawBufferCopyAction_Emit, NSLogEvents::JsRTRawBufferCopyAction_Parse);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY(RawBufferModifySync, ContextAPIWrapper, JsRTRawBufferModifyAction, NSLogEvents::RawBufferModifySync_Execute, NSLogEvents::JsRTRawBufferModifyAction_UnloadEventMemory<NSLogEvents::EventKind::RawBufferModifySync>, NSLogEvents::JsRTRawBufferModifyAction_Emit<NSLogEvents::EventKind::RawBufferModifySync>, NSLogEvents::JsRTRawBufferModifyAction_Parse<NSLogEvents::EventKind::RawBufferModifySync>);
@@ -1254,7 +1262,14 @@ namespace TTD
         //Create the event object and add it to the log
         NSLogEvents::SnapshotEventLogEntry* snapEvent = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::SnapshotEventLogEntry, NSLogEvents::EventKind::SnapshotTag>();
         snapEvent->RestoreTimestamp = this->GetLastEventTime();
-        snapEvent->Snap = this->DoSnapshotExtract_Helper((endTime - startTime) / 1000.0);
+
+        JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator> liveTopLevelBodies(&HeapAllocator::Instance);
+        snapEvent->Snap = this->DoSnapshotExtract_Helper((endTime - startTime) / 1000.0, liveTopLevelBodies);
+
+        for(int32 i = 0; i < this->m_threadContext->TTDContext->GetTTDContexts().Count(); ++i)
+        {
+            this->m_threadContext->TTDContext->GetTTDContexts().Item(i)->TTDContextInfo->CleanUnreachableTopLevelBodies(liveTopLevelBodies);
+        }
 
         //get info about live weak roots etc. we want to use in the replay from the snapshot into the event as well
         snapEvent->LiveContextCount = snapEvent->Snap->GetContextList().Count();
@@ -1321,7 +1336,8 @@ namespace TTD
             //Be careful to ensure that caller is actually doing this
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
 
-            rootCall->AdditionalReplayInfo->RtRSnap = this->DoSnapshotExtract_Helper(0.0);
+            JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator> liveTopLevelBodies(&HeapAllocator::Instance); //don't actually care about the result here
+            rootCall->AdditionalReplayInfo->RtRSnap = this->DoSnapshotExtract_Helper(0.0, liveTopLevelBodies);
         }
 
         this->PopMode(TTDMode::ExcludedExecutionTTAction);
@@ -1493,6 +1509,8 @@ namespace TTD
             dbgScopeCount += iter.Current()->TopLevelBase.ScopeChainInfo.ScopeCount;
         }
 
+        uint32 topFunctionCount = topLevelLoadScriptMap.Count() + topLevelNewScriptMap.Count() + topLevelEvalScriptMap.Count();
+
         ThreadContextTTD* threadCtx = this->m_threadContext->TTDContext;
         const UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& snpCtxs = snap->GetContextList();
 
@@ -1507,7 +1525,7 @@ namespace TTD
 
         if(reuseInflateMap)
         {
-            this->m_lastInflateMap->PrepForReInflate(snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), dbgScopeCount, snap->EnvCount(), snap->SlotArrayCount());
+            this->m_lastInflateMap->PrepForReInflate(snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount() + topFunctionCount, dbgScopeCount, snap->EnvCount(), snap->SlotArrayCount());
 
             //collect anything that is dead
             threadCtx->ClearRootsForSnapRestore();
@@ -1544,7 +1562,7 @@ namespace TTD
             }
 
             this->m_lastInflateMap = TT_HEAP_NEW(InflateMap);
-            this->m_lastInflateMap->PrepForInitialInflate(this->m_threadContext, snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), dbgScopeCount, snap->EnvCount(), snap->SlotArrayCount());
+            this->m_lastInflateMap->PrepForInitialInflate(this->m_threadContext, snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount() + topFunctionCount, dbgScopeCount, snap->EnvCount(), snap->SlotArrayCount());
             this->m_lastInflateSnapshotTime = etime;
 
             //collect anything that is dead
@@ -1742,13 +1760,13 @@ namespace TTD
             }
             catch(const Js::JavascriptException& err)
             {
-                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same exception here");
 
                 ctx->GetThreadContext()->SetRecordedException(err.GetAndClear());
             }
             catch(Js::ScriptAbortException)
             {
-                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same exception here");
 
                 Assert(ctx->GetThreadContext()->GetRecordedException() == nullptr);
                 ctx->GetThreadContext()->SetRecordedException(ctx->GetThreadContext()->GetPendingTerminatedErrorObject());
@@ -1781,14 +1799,14 @@ namespace TTD
             }
             catch(const Js::JavascriptException& err)
             {
-                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same exception here");
 
                 TTDAssert(false, "Should never get JavascriptExceptionObject for ContextAPINoScriptWrapper.");
                 ctx->GetThreadContext()->SetRecordedException(err.GetAndClear());
             }
             catch(Js::ScriptAbortException)
             {
-                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same exception here");
 
                 Assert(ctx->GetThreadContext()->GetRecordedException() == nullptr);
                 ctx->GetThreadContext()->SetRecordedException(ctx->GetThreadContext()->GetPendingTerminatedErrorObject());
@@ -2145,6 +2163,22 @@ namespace TTD
         actionPopper.InitializeWithEventAndEnter(evt);
     }
 
+    void EventLog::RecordJsRTHasOwnProperty(TTDJsRTActionResultAutoRecorder& actionPopper, const Js::PropertyRecord* pRecord, Js::Var var)
+    {
+        //The host may not have validated this yet (and will exit early if the check fails) so we check it here as well before getting the property id below
+        if(pRecord == nullptr || Js::IsInternalPropertyId(pRecord->GetPropertyId()))
+        {
+            return;
+        }
+
+        NSLogEvents::JsRTSingleVarScalarArgumentAction* gpAction = nullptr;
+        NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTSingleVarScalarArgumentAction, NSLogEvents::EventKind::HasOwnPropertyActionTag>(&gpAction);
+        NSLogEvents::SetVarItem_0(gpAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var));
+        NSLogEvents::SetPropertyIdItem(gpAction, pRecord->GetPropertyId());
+
+        actionPopper.InitializeWithEventAndEnter(evt);
+    }
+
     void EventLog::RecordJsRTInstanceOf(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var object, Js::Var constructor)
     {
         NSLogEvents::JsRTDoubleVarArgumentAction* gpAction = nullptr;
@@ -2322,7 +2356,16 @@ namespace TTD
         NSLogEvents::JsRTSingleVarArgumentAction* giAction = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::JsRTSingleVarArgumentAction, NSLogEvents::EventKind::GetTypedArrayInfoActionTag>();
         NSLogEvents::SetVarItem_0(giAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var));
 
-        //entry/exit status should be set to clead by initialization so don't need to do anything
+        // entry/exit status should be set to clear by initialization so don't need to do anything
+        giAction->Result = TTD_CONVERT_JSVAR_TO_TTDVAR(result);
+    }
+
+    void EventLog::RecordJsRTGetDataViewInfo(Js::Var var, Js::Var result)
+    {
+        NSLogEvents::JsRTSingleVarArgumentAction* giAction = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::JsRTSingleVarArgumentAction, NSLogEvents::EventKind::GetDataViewInfoActionTag>();
+        NSLogEvents::SetVarItem_0(giAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var));
+
+        // entry/exit status should be set to clear by initialization so don't need to do anything
         giAction->Result = TTD_CONVERT_JSVAR_TO_TTDVAR(result);
     }
 
@@ -2516,7 +2559,7 @@ namespace TTD
 
         writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
         writer.AdjustIndent(1);
-        writer.WriteSeperator(NSTokens::Separator::BigSpaceSeparator);
+        writer.WriteSeparator(NSTokens::Separator::BigSpaceSeparator);
         for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
         {
             const NSLogEvents::EventLogEntry* evt = iter.Current();
@@ -2552,7 +2595,7 @@ namespace TTD
                 {
                     writer.AdjustIndent(1);
 
-                    writer.WriteSeperator(NSTokens::Separator::BigSpaceSeparator);
+                    writer.WriteSeparator(NSTokens::Separator::BigSpaceSeparator);
                     firstElem = true;
                 }
             }
@@ -2564,7 +2607,7 @@ namespace TTD
                 if(!isJsRTCall & !isExternalCall & !isRegisterCall)
                 {
                     writer.AdjustIndent(-1);
-                    writer.WriteSeperator(NSTokens::Separator::BigSpaceSeparator);
+                    writer.WriteSeparator(NSTokens::Separator::BigSpaceSeparator);
                 }
                 writer.WriteSequenceEnd();
 
@@ -2685,9 +2728,9 @@ namespace TTD
         bool diagEnabled = reader.ReadBool(NSTokens::Key::diagEnabled, true);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        TTDAssert(diagEnabled, "Diag was enabled in record so it shoud be in replay as well!!!");
+        TTDAssert(diagEnabled, "Diag was enabled in record so it should be in replay as well!!!");
 #else
-        TTDAssert(!diagEnabled, "Diag was *not* enabled in record so it shoud *not* be in replay either!!!");
+        TTDAssert(!diagEnabled, "Diag was *not* enabled in record so it should *not* be in replay either!!!");
 #endif
 
         reader.ReadUInt64(NSTokens::Key::usedMemory, true);

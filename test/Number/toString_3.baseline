@@ -116,10 +116,10 @@ n.toPrecision(20):  0.0000000000000000000
 Test: 1e21
 n.toString():  1e+21
 n.toString(10):  1e+21
-n.toString(8):  1.5432711533427365(e+23)
-n.toString(2):  1.101100011010111001001101011011100010111011110101(e+69)
-n.toString(16):  3.635c9adc5dea(e+17)
-n.toString(25):  1.1l259oooooof(e+15)
+n.toString(8):  154327115334273650000000
+n.toString(2):  1101100011010111001001101011011100010111011110101000000000000000000000
+n.toString(16):  3635c9adc5dea00000
+n.toString(25):  11l259ooooooo5ie
 n.toFixed():  1e+21
 n.toFixed(0):  1e+21
 n.toFixed(2):  1e+21

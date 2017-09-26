@@ -369,9 +369,8 @@ NESTED_ENTRY _ZN2Js11WasmLibrary30WasmDeferredParseExternalThunkEPNS_16Recyclabl
         push r8
         push r9
 
-        lea rdi, [rbp + 10h]
         mov rsi, 0
-        call C_FUNC(_ZN2Js11WasmLibrary27WasmDeferredParseEntryPointEPPNS_19AsmJsScriptFunctionEi)
+        call C_FUNC(_ZN2Js11WasmLibrary27WasmDeferredParseEntryPointEPNS_19AsmJsScriptFunctionEi)
 
         pop r9
         pop r8
@@ -404,11 +403,8 @@ NESTED_ENTRY _ZN2Js11WasmLibrary30WasmDeferredParseInternalThunkEPNS_16Recyclabl
         push r8
         push r9
 
-
-        lea rdi, [rbp + 10h]
         mov rsi, 1
-        call C_FUNC(_ZN2Js11WasmLibrary27WasmDeferredParseEntryPointEPPNS_19AsmJsScriptFunctionEi)
-
+        call C_FUNC(_ZN2Js11WasmLibrary27WasmDeferredParseEntryPointEPNS_19AsmJsScriptFunctionEi)
 
         pop r9
         pop r8

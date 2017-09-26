@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "binary.h"
+#include "src/binary.h"
 
 namespace wabt {
 

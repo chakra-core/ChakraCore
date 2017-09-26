@@ -287,7 +287,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetDate, scriptContext, args, &result))
             {
                 return result;
@@ -314,7 +314,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetDay, scriptContext, args, &result))
             {
                 return result;
@@ -341,7 +341,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetFullYear, scriptContext, args, &result))
             {
                 return result;
@@ -368,7 +368,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetYear, scriptContext, args, &result))
             {
                 return result;
@@ -395,7 +395,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetHours, scriptContext, args, &result))
             {
                 return result;
@@ -422,7 +422,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetMilliseconds, scriptContext, args, &result))
             {
                 return result;
@@ -449,7 +449,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetMinutes, scriptContext, args, &result))
             {
                 return result;
@@ -476,7 +476,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetMonth, scriptContext, args, &result))
             {
                 return result;
@@ -503,7 +503,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetSeconds, scriptContext, args, &result))
             {
                 return result;
@@ -530,7 +530,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetTime, scriptContext, args, &result))
             {
                 return result;
@@ -553,7 +553,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetTimezoneOffset, scriptContext, args, &result))
             {
                 return result;
@@ -576,7 +576,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCDate, scriptContext, args, &result))
             {
                 return result;
@@ -599,7 +599,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCDay, scriptContext, args, &result))
             {
                 return result;
@@ -622,7 +622,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCFullYear, scriptContext, args, &result))
             {
                 return result;
@@ -645,7 +645,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCHours, scriptContext, args, &result))
             {
                 return result;
@@ -668,7 +668,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCMilliseconds, scriptContext, args, &result))
             {
                 return result;
@@ -691,7 +691,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCMinutes, scriptContext, args, &result))
             {
                 return result;
@@ -714,7 +714,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCMonth, scriptContext, args, &result))
             {
                 return result;
@@ -737,7 +737,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCSeconds, scriptContext, args, &result))
             {
                 return result;
@@ -760,7 +760,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryGetVarDate, scriptContext, args, &result))
             {
                 return result;
@@ -851,7 +851,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetDate, scriptContext, args, &result))
             {
                 return result;
@@ -874,7 +874,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetFullYear, scriptContext, args, &result))
             {
                 return result;
@@ -897,7 +897,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetYear, scriptContext, args, &result))
             {
                 return result;
@@ -920,7 +920,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetHours, scriptContext, args, &result))
             {
                 return result;
@@ -943,7 +943,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetMilliseconds, scriptContext, args, &result))
             {
                 return result;
@@ -966,7 +966,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetMinutes, scriptContext, args, &result))
             {
                 return result;
@@ -989,7 +989,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetMonth, scriptContext, args, &result))
             {
                 return result;
@@ -1012,7 +1012,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetSeconds, scriptContext, args, &result))
             {
                 return result;
@@ -1035,7 +1035,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetTime, scriptContext, args, &result))
             {
                 return result;
@@ -1075,7 +1075,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCDate, scriptContext, args, &result))
             {
                 return result;
@@ -1098,7 +1098,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCFullYear, scriptContext, args, &result))
             {
                 return result;
@@ -1121,7 +1121,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCHours, scriptContext, args, &result))
             {
                 return result;
@@ -1144,7 +1144,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCMilliseconds, scriptContext, args, &result))
             {
                 return result;
@@ -1167,7 +1167,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCMinutes, scriptContext, args, &result))
             {
                 return result;
@@ -1190,7 +1190,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCMonth, scriptContext, args, &result))
             {
                 return result;
@@ -1213,7 +1213,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCSeconds, scriptContext, args, &result))
             {
                 return result;
@@ -1236,7 +1236,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryToDateString, scriptContext, args, &result))
             {
                 return result;
@@ -1263,7 +1263,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryToISOString, scriptContext, args, &result))
             {
                 return result;
@@ -1295,7 +1295,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Date.prototype.toJSON"));
         }
 
-        Var result;
+        Var result = nullptr;
         if (TryInvokeRemotely(EntryToJSON, scriptContext, args, &result))
         {
             return result;
@@ -1328,7 +1328,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryToLocaleDateString, scriptContext, args, &result))
             {
                 return result;
@@ -1378,7 +1378,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryToLocaleString, scriptContext, args, &result))
             {
                 return result;
@@ -1438,7 +1438,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryToLocaleTimeString, scriptContext, args, &result))
             {
                 return result;
@@ -1487,7 +1487,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryToTimeString, scriptContext, args, &result))
             {
                 return result;
@@ -1503,16 +1503,6 @@ namespace Js
             DateImplementation::DateTimeFlag::NoDate);
     }
 
-    // CONSIDER: ToGMTString and ToUTCString is the same, but currently the profiler use the entry point address to identify
-    // the entry point. So we will have to make the function different. Consider using FunctionInfo to identify the function
-    Var JavascriptDate::EntryToGMTString(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        return JavascriptFunction::CallFunction<true>(function, JavascriptDate::EntryToUTCString, args);
-    }
-
     Var JavascriptDate::EntryToUTCString(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -1524,7 +1514,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryToUTCString, scriptContext, args, &result))
             {
                 return result;
@@ -1550,7 +1540,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryValueOf, scriptContext, args, &result))
             {
                 return result;
@@ -1575,7 +1565,7 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
-            Var result;
+            Var result = nullptr;
             if (TryInvokeRemotely(EntryToString, scriptContext, args, &result))
             {
                 return result;

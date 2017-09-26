@@ -3,9 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-// WinTH: Changed to use non-breaking space in some output
-var NON_BREAKING_SPACE = String.fromCharCode(0xA0);
-
 function testNumberFormatOptions(opts, number, expected, altExpected) {
     try{
         var options = { minimumFractionDigits: 0, maximumFractionDigits: 0, minimumIntegerDigits: 1, style: "decimal", useGrouping: false };
@@ -16,6 +13,23 @@ function testNumberFormatOptions(opts, number, expected, altExpected) {
         var actual = numberFormatter.format(number);
         if (actual !== expected && actual != altExpected) {
             WScript.Echo("ERROR: Formatting '" + number + "' with options '" + JSON.stringify(options) + "' resulted in '" + actual + "'; expected '" + expected + "'!");
+        }
+    }
+    catch (ex) {
+        WScript.Echo(ex.message);
+    }
+}
+
+function testNumberFormatOptionsRegex(opts, number, expectedRegex) {
+    try{
+        var options = { minimumFractionDigits: 0, maximumFractionDigits: 0, minimumIntegerDigits: 1, style: "decimal", useGrouping: false };
+        for (option in opts) {
+            options[option] = opts[option];
+        }
+        var numberFormatter = new Intl.NumberFormat("en-US", options);
+        var actual = numberFormatter.format(number);
+        if (!expectedRegex.test(actual)) {
+            WScript.Echo("ERROR: Formatting '" + number + "' with options '" + JSON.stringify(options) + "' resulted in '" + actual + "'; expectedRegex '" + expectedRegex + "'!");
         }
     }
     catch (ex) {
@@ -61,7 +75,7 @@ testNumberFormatOptions({ maximumSignificantDigits: 5 }, 125.125, "125.13");
 testNumberFormatOptions({ maximumSignificantDigits: 5 }, -125.125, "-125.13");
 testNumberFormatOptions({ useGrouping: true }, 12512, "12,512");
 testNumberFormatOptions({ useGrouping: false }, 12512, "12512");
-testNumberFormatOptions({ style: "percent" }, 1.5, "150 %", /*altExpected*/"150" + NON_BREAKING_SPACE + "%");
+testNumberFormatOptionsRegex({ style: "percent" }, 1.5, new RegExp("150[\x20\u00a0]?%"));
 testNumberFormatOptions({ currency: "USD", style: "currency", maximumFractionDigits: 2, minimumFractionDigits: 2 }, 1.5, "$1.50");
 
 testNumberFormatOptions({ minimumIntegerDigits: NaN }, undefined, undefined);

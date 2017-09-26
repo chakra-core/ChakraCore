@@ -67,7 +67,7 @@ namespace Js {
 
         Js::Utf8SourceInfo* sourceInfo = functionBody->GetUtf8SourceInfo();
         sourceInfo->EnsureLineOffsetCache();
-        JsUtil::LineOffsetCache<Recycler> *cache = sourceInfo->GetLineOffsetCache();
+        LineOffsetCache *cache = sourceInfo->GetLineOffsetCache();
 
         if (line >= cache->GetLineCount())
         {
@@ -143,7 +143,7 @@ namespace Js {
                 }
                 else
                 {
-                    AssertMsg(FALSE, "Line ending logic out of sync between Js::JavascriptExceptionMetadata and JsUtil::LineOffsetCache::GetCharacterOffsetForLine");
+                    AssertMsg(FALSE, "Line ending logic out of sync between Js::JavascriptExceptionMetadata and Js::LineOffsetCache::GetCharacterOffsetForLine");
                     return false;
                 }
             }

@@ -265,7 +265,7 @@ namespace TTD
         void UpdateComputedMode();
 
         //A helper for extracting snapshots
-        SnapShot* DoSnapshotExtract_Helper(double gcTime);
+        SnapShot* DoSnapshotExtract_Helper(double gcTime, JsUtil::BaseHashSet<Js::FunctionBody*, HeapAllocator>& liveTopLevelBodies);
 
         //Replay a snapshot event -- either just advance the event position or, if running diagnostics, take new snapshot and compare
         void ReplaySnapshotEvent();
@@ -276,7 +276,7 @@ namespace TTD
         template <typename T, NSLogEvents::EventKind tag>
         NSLogEvents::EventLogEntry* RecordGetInitializedEvent(T** extraData)
         {
-            AssertMsg(TTD_EVENT_PLUS_DATA_SIZE_DIRECT(sizeof(T)) == this->m_eventListVTable[(uint32)tag].DataSize, "Computed and extracted data sizes dont' match!!!");
+            AssertMsg(TTD_EVENT_PLUS_DATA_SIZE_DIRECT(sizeof(T)) == this->m_eventListVTable[(uint32)tag].DataSize, "Computed and extracted data sizes don't match!!!");
 
             NSLogEvents::EventLogEntry* res = this->m_eventList.GetNextAvailableEntry<T>();
             NSLogEvents::EventLogEntry_Initialize<tag>(res, this->GetCurrentEventTimeAndAdvance());
@@ -288,7 +288,7 @@ namespace TTD
         template <typename T, NSLogEvents::EventKind tag>
         T* RecordGetInitializedEvent_DataOnly()
         {
-            AssertMsg(TTD_EVENT_PLUS_DATA_SIZE_DIRECT(sizeof(T)) == this->m_eventListVTable[(uint32)tag].DataSize, "Computed and extracted data sizes dont' match!!!");
+            AssertMsg(TTD_EVENT_PLUS_DATA_SIZE_DIRECT(sizeof(T)) == this->m_eventListVTable[(uint32)tag].DataSize, "Computed and extracted data sizes don't match!!!");
 
             NSLogEvents::EventLogEntry* res = this->m_eventList.GetNextAvailableEntry<T>();
             NSLogEvents::EventLogEntry_Initialize<tag>(res, this->GetCurrentEventTimeAndAdvance());
@@ -557,6 +557,7 @@ namespace TTD
 
         //Record query operations
         void RecordJsRTHasProperty(TTDJsRTActionResultAutoRecorder& actionPopper, const Js::PropertyRecord* pRecord, Js::Var var);
+        void RecordJsRTHasOwnProperty(TTDJsRTActionResultAutoRecorder& actionPopper, const Js::PropertyRecord* pRecord, Js::Var var);
         void RecordJsRTInstanceOf(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var object, Js::Var constructor);
         void RecordJsRTEquals(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var1, Js::Var var2, bool doStrict);
 
@@ -580,6 +581,7 @@ namespace TTD
 
         //Record a get info from a typed array
         void RecordJsRTGetTypedArrayInfo(Js::Var var, Js::Var result);
+        void RecordJsRTGetDataViewInfo(Js::Var var, Js::Var result);
 
         //Record various raw byte* from ArrayBuffer manipulations
         void RecordJsRTRawBufferCopySync(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var dst, uint32 dstIndex, Js::Var src, uint32 srcIndex, uint32 length);

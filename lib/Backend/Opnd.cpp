@@ -104,7 +104,7 @@ Opnd::IsWriteBarrierTriggerableValue()
     }
 
     // If this operand is known address, then it doesn't need a write barrier, the address is either not a GC address or is pinned
-    if (this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar)
+    if (this->IsAddrOpnd() && this->AsAddrOpnd()->GetAddrOpndKind() == AddrOpndKindDynamicVar)
     {
         return false;
     }
@@ -202,6 +202,8 @@ Opnd::CloneUse(Func *func)
 
 void Opnd::Free(Func *func)
 {
+    AssertMsg(!IsInUse(), "Attempting to free in use operand.");
+
     switch (this->m_kind)
     {
     case OpndKindIntConst:
@@ -218,6 +220,10 @@ void Opnd::Free(Func *func)
 
     case OpndKindFloatConst:
         static_cast<FloatConstOpnd*>(this)->FreeInternal(func);
+        break;
+
+    case OpndKindFloat32Const:
+        static_cast<Float32ConstOpnd*>(this)->FreeInternal(func);
         break;
 
     case OpndKindHelperCall:
@@ -256,6 +262,7 @@ void Opnd::Free(Func *func)
     case OpndKindRegBV:
         static_cast<RegBVOpnd*>(this)->FreeInternal(func);
         break;
+
     default:
         Assert(UNREACHED);
         __assume(UNREACHED);
@@ -285,6 +292,8 @@ bool Opnd::IsEqual(Opnd *opnd)
 
     case OpndKindFloatConst:
         return static_cast<FloatConstOpnd*>(this)->IsEqualInternal(opnd);
+    case OpndKindFloat32Const:
+        return static_cast<Float32ConstOpnd*>(this)->IsEqualInternal(opnd);
 
     case OpndKindHelperCall:
         if ((*static_cast<HelperCallOpnd*>(this)).IsDiagHelperCallOpnd())
@@ -1084,9 +1093,15 @@ void RegOpnd::Initialize(StackSym *sym, RegNum reg, IRType type)
 ///----------------------------------------------------------------------------
 
 RegOpnd *
-    RegOpnd::New(IRType type, Func *func)
+RegOpnd::New(IRType type, Func *func)
 {
     return RegOpnd::New(StackSym::New(type, func), RegNOREG, type, func);
+}
+
+IR::RegOpnd *
+RegOpnd::New(RegNum reg, IRType type, Func *func)
+{
+    return RegOpnd::New(StackSym::New(type, func), reg, type, func);
 }
 
 RegOpnd *
@@ -1094,14 +1109,6 @@ RegOpnd::New(StackSym *sym, IRType type, Func *func)
 {
     return RegOpnd::New(sym, RegNOREG, type, func);
 }
-
-///----------------------------------------------------------------------------
-///
-/// RegOpnd::New
-///
-///     Creates a new RegOpnd.
-///
-///----------------------------------------------------------------------------
 
 RegOpnd *
 RegOpnd::New(StackSym *sym, RegNum reg, IRType type, Func *func)
@@ -1777,6 +1784,73 @@ FloatConstOpnd::FreeInternal(Func *func)
 
 ///----------------------------------------------------------------------------
 ///
+/// Float32ConstOpnd::New
+///
+///     Creates a new Float32ConstOpnd.
+///
+///----------------------------------------------------------------------------
+
+Float32ConstOpnd *
+Float32ConstOpnd::New(float value, IRType type, Func *func)
+{
+    Assert(type == IRType::TyFloat32); //TODO: should we even allow specifying a type here? It should always be TyFloat32
+    Float32ConstOpnd * Float32ConstOpnd;
+
+    Float32ConstOpnd = JitAnew(func->m_alloc, IR::Float32ConstOpnd);
+
+    Float32ConstOpnd->m_value = value;
+    Float32ConstOpnd->m_type = type;
+    Float32ConstOpnd->m_kind = OpndKindFloat32Const;
+
+    return Float32ConstOpnd;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Float32ConstOpnd::Copy
+///
+///     Returns a copy of this opnd.
+///
+///----------------------------------------------------------------------------
+
+Float32ConstOpnd *
+Float32ConstOpnd::CopyInternal(Func *func)
+{
+    Assert(m_kind == OpndKindFloat32Const);
+    Float32ConstOpnd * newOpnd;
+
+    newOpnd = Float32ConstOpnd::New(m_value, m_type, func);
+    newOpnd->m_valueType = m_valueType;
+
+    return newOpnd;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Float32ConstOpnd::IsEqual
+///
+///----------------------------------------------------------------------------
+bool
+Float32ConstOpnd::IsEqualInternal(Opnd *opnd)
+{
+    Assert(m_kind == OpndKindFloat32Const);
+    if (!opnd->IsFloat32ConstOpnd() || this->GetType() != opnd->GetType() /* TODO: could this be turned into an assert*/)
+    {
+        return false;
+    }
+
+    return m_value == opnd->AsFloat32ConstOpnd()->m_value;
+}
+
+void
+Float32ConstOpnd::FreeInternal(Func *func)
+{
+    Assert(m_kind == OpndKindFloat32Const);
+    JitAdelete(func->m_alloc, this);
+}
+
+///----------------------------------------------------------------------------
+///
 /// Simd128ConstOpnd::New
 ///
 ///     Creates a new FloatConstOpnd.
@@ -1868,6 +1942,7 @@ HelperCallOpnd::New(JnHelperMethod fnHelper, Func *func)
 void
 HelperCallOpnd::Init(JnHelperMethod fnHelper)
 {
+    Assert(fnHelper    != IR::HelperInvalid);
     this->m_fnHelper    = fnHelper;
     this->m_type        = TyMachPtr;
 
@@ -2337,10 +2412,12 @@ IndirOpnd::~IndirOpnd()
 {
     if (m_baseOpnd != nullptr)
     {
+        m_baseOpnd->UnUse();
         m_baseOpnd->Free(m_func);
     }
     if (m_indexOpnd != nullptr)
     {
+        m_indexOpnd->UnUse();
         m_indexOpnd->Free(m_func);
     }
 }
@@ -2806,8 +2883,7 @@ Opnd::IsArgumentsObject()
     // Since we need this information in the inliner where we don't track arguments object sym, going with single def is the best option.
     StackSym * sym = this->GetStackSym();
 
-    return sym && sym->IsSingleDef() &&
-        (sym->m_instrDef->m_opcode == Js::OpCode::LdHeapArguments || sym->m_instrDef->m_opcode == Js::OpCode::LdLetHeapArguments);
+    return sym && sym->IsSingleDef() && sym->GetInstrDef()->HasAnyLoadHeapArgsOpCode();
 }
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
@@ -3178,6 +3254,10 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
     case OpndKindFloatConst:
         floatValue = this->AsFloatConstOpnd()->m_value;
         Output::Print(_u("%G"), floatValue);
+        break;
+
+    case OpndKindFloat32Const:
+        Output::Print(_u("%G"), this->AsFloat32ConstOpnd()->m_value);
         break;
 
     case OpndKindAddr:

@@ -21,11 +21,11 @@ namespace Js
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         else if (this->hostObject && JavascriptOperators::HasProperty(this->hostObject, propertyId))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         return this->GetLibrary()->GetGlobalObject()->GlobalObject::HasPropertyQuery(propertyId);
     }
@@ -68,16 +68,18 @@ namespace Js
             if (info) // Avoid testing IsWritable if info not being queried
             {
                 PropertyValueInfo::Set(info, this, index, IsWritable(propertyId) ? PropertyWritable : PropertyNone);
+#if ENABLE_FIXED_FIELDS
                 if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
+#endif
             }
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (this->hostObject && JavascriptOperators::GetProperty(this->hostObject, propertyId, value, requestContext))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
 
         //
@@ -86,7 +88,7 @@ namespace Js
         //
 
         GlobalObject* globalObj = this->GetLibrary()->GetGlobalObject();
-        return JavascriptConversion::BooleanToPropertyQueryFlags(globalObj->GlobalObject::GetPropertyQuery(originalInstance, propertyId, value, NULL, requestContext));
+        return globalObj->GlobalObject::GetPropertyQuery(originalInstance, propertyId, value, NULL, requestContext);
     }
 
     BOOL ModuleRoot::GetRootProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -98,10 +100,12 @@ namespace Js
             if (info) // Avoid testing IsWritable if info not being queried
             {
                 PropertyValueInfo::Set(info, this, index, IsWritable(propertyId) ? PropertyWritable : PropertyNone);
+#if ENABLE_FIXED_FIELDS
                 if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
+#endif
             }
             return TRUE;
         }
@@ -152,16 +156,18 @@ namespace Js
             if (info) // Avoid testing IsWritable if info not being queried
             {
                 PropertyValueInfo::Set(info, this, index, IsWritable(propertyId) ? PropertyWritable : PropertyNone);
+#if ENABLE_FIXED_FIELDS
                 if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
+#endif
             }
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (this->hostObject && JavascriptOperators::GetPropertyReference(this->hostObject, propertyId, value, requestContext))
         {
-            return Property_NotFound;
+            return PropertyQueryFlags::Property_NotFound;
         }
 
         //
@@ -183,10 +189,12 @@ namespace Js
             if (info) // Avoid testing IsWritable if info not being queried
             {
                 PropertyValueInfo::Set(info, this, index, IsWritable(propertyId) ? PropertyWritable : PropertyNone);
+#if ENABLE_FIXED_FIELDS
                 if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
+#endif
             }
             return TRUE;
         }
@@ -213,24 +221,28 @@ namespace Js
             {
                 JavascriptError::ThrowCantAssignIfStrictMode(flags, this->GetScriptContext());
 
-                if (!this->IsFixedProperty(propertyId))
-                {
-                    PropertyValueInfo::Set(info, this, index, PropertyNone); // Try to cache property info even if not writable
-                }
-                else
+#if ENABLE_FIXED_FIELDS
+                if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::SetNoCache(info, this);
+                }
+                else
+#endif
+                {
+                    PropertyValueInfo::Set(info, this, index, PropertyNone); // Try to cache property info even if not writable
                 }
                 return FALSE;
             }
             this->SetSlot(SetSlotArguments(propertyId, index, value));
-            if (!this->IsFixedProperty(propertyId))
-            {
-                PropertyValueInfo::Set(info, this, index);
-            }
-            else
+#if ENABLE_FIXED_FIELDS
+            if (this->IsFixedProperty(propertyId))
             {
                 PropertyValueInfo::SetNoCache(info, this);
+            }
+            else
+#endif
+            {
+                PropertyValueInfo::Set(info, this, index);
             }
             return TRUE;
         }
@@ -272,25 +284,29 @@ namespace Js
             {
                 JavascriptError::ThrowCantAssignIfStrictMode(flags, this->GetScriptContext());
 
-                if (!this->IsFixedProperty(propertyId))
-                {
-                    PropertyValueInfo::Set(info, this, index, PropertyNone); // Try to cache property info even if not writable
-                }
-                else
+#if ENABLE_FIXED_FIELDS
+                if (this->IsFixedProperty(propertyId))
                 {
                     PropertyValueInfo::SetNoCache(info, this);
+                }
+                else
+#endif
+                {
+                    PropertyValueInfo::Set(info, this, index, PropertyNone); // Try to cache property info even if not writable
                 }
                 return FALSE;
             }
             this->SetSlot(SetSlotArgumentsRoot(propertyId, true, index, value));
-            if (!this->IsFixedProperty(propertyId))
-            {
-                PropertyValueInfo::Set(info, this, index);
-            }
-            else
+#if ENABLE_FIXED_FIELDS
+            if (this->IsFixedProperty(propertyId))
             {
                 PropertyValueInfo::SetNoCache(info, this);
             }
+            else
+#endif
+            {
+                PropertyValueInfo::Set(info, this, index);
+            }            
             return TRUE;
         }
         else if (this->hostObject && this->hostObject->HasProperty(propertyId))
@@ -421,14 +437,14 @@ namespace Js
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemReferenceQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (this->hostObject && JavascriptConversion::PropertyQueryFlagsToBoolean(this->hostObject->GetItemReferenceQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         *value = requestContext->GetMissingItemResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL ModuleRoot::SetItem(uint32 index, Var value, PropertyOperationFlags flags)
@@ -449,14 +465,14 @@ namespace Js
     {
         if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemQuery(originalInstance, index, value, requestContext)))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         if (this->hostObject && this->hostObject->GetItem(originalInstance, index, value, requestContext))
         {
-            return Property_Found;
+            return PropertyQueryFlags::Property_Found;
         }
         *value = requestContext->GetMissingItemResult();
-        return Property_NotFound;
+        return PropertyQueryFlags::Property_NotFound;
     }
 
     BOOL ModuleRoot::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
