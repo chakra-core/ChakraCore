@@ -251,7 +251,8 @@ var tests = [
             function* gf(a) { yield 1 + a + this.a; }
             assert.throws(function () { class A extends gf { } }, TypeError, "Class deriving from a generator function throws TypeError", "Function is not a constructor");
 
-            assert.throws(function () { class A extends (a) => a {} }, TypeError, "Class deriving from a lambda throws TypeError", "Function is not a constructor");
+            var lambda = (a) => a;
+            assert.throws(function () { class A extends lambda { } }, TypeError, "Class deriving from a lambda throws TypeError", "Function is not a constructor");
         }
     },
     {
