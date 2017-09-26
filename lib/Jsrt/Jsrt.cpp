@@ -4618,6 +4618,11 @@ CHAKRA_API JsCreateWeakReference(
     PARAM_NOT_NULL(weakRef);
     *weakRef = nullptr;
 
+    if (Js::TaggedNumber::Is(value))
+    {
+        return JsNoWeakRefRequired;
+    }
+
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
         if (threadContext == nullptr)
@@ -4629,6 +4634,13 @@ CHAKRA_API JsCreateWeakReference(
         if (recycler->IsInObjectBeforeCollectCallback())
         {
             return JsErrorInObjectBeforeCollectCallback;
+        }
+
+        RecyclerHeapObjectInfo dummyObjectInfo;
+        if (!recycler->FindHeapObject(value, Memory::FindHeapObjectFlags::FindHeapObjectFlags_NoFlags, dummyObjectInfo))
+        {
+            // value is not recyler-allocated
+            return JsErrorInvalidArgument;
         }
 
         recycler->FindOrCreateWeakReferenceHandle<char>(
