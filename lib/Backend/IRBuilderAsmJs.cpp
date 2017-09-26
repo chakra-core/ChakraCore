@@ -4657,9 +4657,6 @@ IRBuilderAsmJs::BuildInt64x2_2(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_S
 }
 
 /* Float64x2 */
-
-//IRBuilderAsmJs::BuildDouble1Float64x2_1Int1(enum Js::OpCodeAsmJs,unsigned int,unsigned int,unsigned int,unsigned int)
-
 void
 IRBuilderAsmJs::BuildDouble1Float64x2_1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG3)
 {

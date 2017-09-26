@@ -282,7 +282,7 @@ namespace Js {
             return val ? 1 : 0;
         };
 
-		static inline double SIMD128InnerExtractLaneD2(const SIMDValue src1, const uint32 lane) { Assert(lane < 2); return src1.f64[lane]; };
+        static inline double SIMD128InnerExtractLaneD2(const SIMDValue src1, const uint32 lane) { Assert(lane < 2); return src1.f64[lane]; };
         static inline float SIMD128InnerExtractLaneF4(const SIMDValue src1, const uint32 lane) { Assert(lane < 4); return src1.f32[lane]; };
         static inline int64 SIMD128InnerExtractLaneI2(const SIMDValue src1, const uint32 lane) { Assert(lane < 2); return src1.i64[lane]; };
         static inline int32 SIMD128InnerExtractLaneI4(const SIMDValue src1, const uint32 lane) { Assert(lane < 4); return src1.i32[lane]; };
