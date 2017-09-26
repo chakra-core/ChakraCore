@@ -758,7 +758,7 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
             isConstructorCall ||                                                     // If the function is constructor with loops, don't inline.
             PHASE_OFF(Js::InlineFunctionsWithLoopsPhase, this->topFunc))
         {
-            INLINE_TESTTRACE(_u("INLINING: Skip Inline: Has loops \tBytecode size: %d \tgetNumberOfInlineesWithLoop: %d\tloopCount: %d\thasNestedLoop: %B\tisConstructorCall:%B\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n"),
+            INLINE_TESTTRACE(_u("INLINING: Skip Inline: Has loops \tBytecode size: %d \tgetNumberOfInlineesWithLoop: %d\tloopCount: %d\thasNestedLoop: %d\tisConstructorCall:%d\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n"),
                 inlinee->GetByteCodeCount(),
                 GetNumberOfInlineesWithLoop(),
                 inlinee->GetLoopCount(),
