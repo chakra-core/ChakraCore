@@ -197,9 +197,11 @@ namespace Js
         {
             if (!isShutdown)
             {
-                // Here we use Cleanup() because we can't rely on delete (not dealing with virtual destructors)
+                // Here we use Cleanup() because we can't rely on delete (not dealing with virtual destructors).
                 // The template thus requires that the type implement the Cleanup function.
-                instance->Cleanup();
+                instance->Cleanup(); // e.g. deletes the object held in the IPlatformAgnosticResource
+                delete instance; // deletes the instance itself
+                instance = nullptr;
             }
         }
 

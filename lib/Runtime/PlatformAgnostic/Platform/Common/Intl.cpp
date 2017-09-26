@@ -40,12 +40,13 @@ typedef int64_t int64;
 #include "IPlatformAgnosticResource.h"
 
 #define U_STATIC_IMPLEMENTATION
-#define U_SHOW_CPLUSPLUS_API 0
+#define U_SHOW_CPLUSPLUS_API 1
 #pragma warning(push)
 #pragma warning(disable:4995) // deprecation warning
 #include <unicode/uloc.h>
 #include <unicode/numfmt.h>
-//#include <unicode/decimfmt.h>
+#include <unicode/enumset.h>
+#include <unicode/decimfmt.h>
 #pragma warning(pop)
 
 namespace PlatformAgnostic
@@ -68,7 +69,7 @@ namespace Intl
         // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
         const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
         unsigned char *inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
-        PlatformAgnostic::Resource::StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
+        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
 
         if (!inputLangTagUtf8)
         {
@@ -128,7 +129,7 @@ namespace Intl
         // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
         const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
         unsigned char *inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
-        PlatformAgnostic::Resource::StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
+        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
 
         if (!inputLangTagUtf8)
         {
@@ -187,7 +188,7 @@ namespace Intl
 
         // Note: The number of fractional digits specified for a currency is not locale-dependent.
         icu::NumberFormat *nf = icu::NumberFormat::createCurrencyInstance(error); // using default locale
-        PlatformAgnosticResourceAutoPtr<icu::NumberFormat> guard(nf); // ICU requires that the caller explicitly deletes pointers allocated by ICU (otherwise will leak)
+        AutoPtr<icu::NumberFormat> guard(nf); // ICU requires that the caller explicitly deletes pointers allocated by ICU (otherwise will leak)
 
         if (U_FAILURE(error))
         {
@@ -234,23 +235,179 @@ namespace Intl
         return minFracDigits;
     }
 
-    IPlatformAgnosticResource *CreateNumberFormat()
+    template <typename Func>
+    HRESULT CreateFormatter(Func function, _In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource)
     {
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
-        icu::NumberFormat *nf = icu::NumberFormat::createInstance(error);
-        IPlatformAgnosticResource *obj = new PlatformAgnosticIntlObject<icu::NumberFormat>(nf);
-        AssertMsg(U_SUCCESS(error), "Creating icu::NumberFormat failed");
-        return obj;
+
+        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
+        const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
+        unsigned char *inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
+        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
+
+        if (!inputLangTagUtf8)
+        {
+            AssertOrFailFastMsg(false, "OOM: failed to allocate inputLangTagUtf8.");
+            return E_OUTOFMEMORY;
+        }
+
+        // explicitly zero the allocated array
+        for (size_t index = 0; index < inputLangTagUtf8SizeAllocated; ++index)
+        {
+            inputLangTagUtf8[index] = 0;
+        }
+
+        utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
+
+        char *localeName = reinterpret_cast<char *>(inputLangTagUtf8);
+        auto locale = icu::Locale::createFromName(localeName);
+
+        icu::NumberFormat *nf = function(locale, error);
+
+        if (U_FAILURE(error))
+        {
+            AssertMsg(false, "Creating icu::NumberFormat failed");
+            return E_INVALIDARG;
+        }
+
+        auto *formatterResource = new PlatformAgnosticIntlObject<icu::NumberFormat>(nf);
+        if (!formatterResource)
+        {
+            return E_OUTOFMEMORY;
+        }
+
+        *resource = formatterResource;
+        return S_OK;
+    }
+
+    HRESULT CreateNumberFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource)
+    {
+        //return CreateFormatter(icu::NumberFormat::createInstance, languageTag, cch, resource);
+        return CreateFormatter(
+            [](icu::Locale &locale, UErrorCode &error) { return icu::NumberFormat::createInstance(locale, error); },
+            languageTag, cch, resource);
+    }
+
+    HRESULT CreatePercentFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource)
+    {
+        return CreateFormatter(
+            [](icu::Locale &locale, UErrorCode &error) { return icu::NumberFormat::createPercentInstance(locale, error); },
+            languageTag, cch, resource);
+    }
+
+    HRESULT CreateCurrencyFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
+        _In_z_ const char16 *currencyCode, _In_ const uint32 currencyDisplay, _Out_ IPlatformAgnosticResource **resource)
+    {
+        UErrorCode error = UErrorCode::U_ZERO_ERROR;
+
+        unsigned char *inputLangTagUtf8 = nullptr;
+
+        {
+            // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
+            const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
+            inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
+
+            if (!inputLangTagUtf8)
+            {
+                AssertOrFailFastMsg(false, "OOM: failed to allocate inputLangTagUtf8.");
+                return E_OUTOFMEMORY;
+            }
+
+            // explicitly zero the allocated array
+            for (size_t index = 0; index < inputLangTagUtf8SizeAllocated; ++index)
+            {
+                inputLangTagUtf8[index] = 0;
+            }
+        }
+
+        StringBufferAutoPtr<unsigned char> guardLangTag(inputLangTagUtf8);
+        utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
+
+        char *localeName = reinterpret_cast<char *>(inputLangTagUtf8);
+        auto locale = icu::Locale::createFromName(localeName);
+
+        icu::NumberFormat *nf = nullptr;
+        if (currencyDisplay == 0 || currencyDisplay >= 3)
+        {
+            // 0 (or default) => use symbol (e.g. $)
+            nf = icu::NumberFormat::createCurrencyInstance(locale, error);
+            if (U_FAILURE(error))
+            {
+                AssertMsg(false, "icu::NumberFormat::createCurrencyInstance failed");
+                return E_INVALIDARG;
+            }
+
+            nf->setCurrency(reinterpret_cast<const UChar *>(currencyCode), error);
+            if (U_FAILURE(error))
+            {
+                AssertMsg(false, "Failed to set currency on icu::NumberFormat");
+                return E_INVALIDARG;
+            }
+        }
+        else if (currencyDisplay == 1 || currencyDisplay == 2)
+        {
+            // 1 => use code (e.g. USD)
+            // 2 => use name (e.g. US dollars)
+
+            // In both cases we need to be able to format in decimal and add the code or name
+            // Note: decide later which we want and how to format it (based on currencyDisplay again)
+            // REVIEW (doilij): How do we handle which side of the number to put the code or name? Can ICU do this? It doesn't seem clear how.
+
+            nf = icu::NumberFormat::createInstance(locale, error);
+            if (U_FAILURE(error))
+            {
+                AssertMsg(false, "icu::NumberFormat::createInstance failed");
+                return E_INVALIDARG;
+            }
+        }
+
+        if (U_FAILURE(error))
+        {
+            AssertMsg(false, "Creating icu::NumberFormat failed");
+            return E_INVALIDARG;
+        }
+
+        auto *formatterResource = new PlatformAgnosticIntlObject<icu::NumberFormat>(nf);
+        if (!formatterResource)
+        {
+            return E_OUTOFMEMORY;
+        }
+
+        *resource = formatterResource;
+        return S_OK;
+    }
+
+    HRESULT SetNumberFormatSignificantDigits(IPlatformAgnosticResource *resource, const uint16 minSigDigits, const uint16 maxSigDigits)
+    {
+        auto *numFormatResource = reinterpret_cast<PlatformAgnosticIntlObject<icu::NumberFormat> *>(resource);
+        icu::NumberFormat *nf = numFormatResource->GetInstance();
+        // REVIEW (doilij): Without RTTI support, we can't do dynamic_cast,
+        // which is the preferred way to know whether it was indeed created as a DecimalFormat,
+        // which is not something the API will indicate to us directly (create returns a NumberFormat which may or may not be a DecimalFormat)
+        icu::DecimalFormat *df = reinterpret_cast<icu::DecimalFormat *>(nf);
+        df->setMinimumSignificantDigits(minSigDigits);
+        df->setMaximumSignificantDigits(maxSigDigits);
+        return S_OK;
+    }
+
+    HRESULT SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits)
+    {
+        auto *numFormatResource = reinterpret_cast<PlatformAgnosticIntlObject<icu::NumberFormat> *>(resource);
+        icu::NumberFormat *nf = numFormatResource->GetInstance();
+        nf->setMinimumIntegerDigits(minIntDigits);
+        nf->setMinimumFractionDigits(minFracDigits);
+        nf->setMaximumFractionDigits(maxFracDigits);
+        return S_OK;
     }
 
     // We explicitly declare these specializations of FormatNumber so the compiler creates them
     // because they will be used in another compilation unit,
     // at which time we cannot generate code for specializations of this template.
-    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, int32_t val);
-    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, double val);
+    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, int32_t val, uint16 formatterToUse, uint16 currencyDisplay);
+    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, double val, uint16 formatterToUse, uint16 currencyDisplay);
 
     template <typename T>
-    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, T val)
+    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, T val, uint16 formatterToUse, uint16 currencyDisplay)
     {
         icu::UnicodeString result;
 

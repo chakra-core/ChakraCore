@@ -49,10 +49,19 @@ namespace Intl
 
     int32_t GetCurrencyFractionDigits(_In_z_ const char16 * currencyCode);
 
-    IPlatformAgnosticResource *CreateNumberFormat();
+    template <typename Func>
+    HRESULT CreateFormatter(Func function, _In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource);
+    HRESULT CreateNumberFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource);
+    HRESULT CreatePercentFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource);
+    HRESULT CreateCurrencyFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
+        _In_z_ const char16 *currencyCode, _In_ const uint32 currencyDisplay, _Out_ IPlatformAgnosticResource **resource);
+
+    HRESULT SetNumberFormatSignificantDigits(IPlatformAgnosticResource *resource, const uint16 minSigDigits, const uint16 maxSigDigits);
+    HRESULT SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits);
 
     template <typename T>
-    const char16 *FormatNumber(IPlatformAgnosticResource *numberFormatter, T val);
+    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, T val, uint16 formatterToUse, uint16 currencyDisplay);
+
 } // namespace Intl
 } // namespace PlatformAgnostic
 

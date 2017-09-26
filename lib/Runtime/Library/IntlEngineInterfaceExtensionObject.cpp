@@ -814,15 +814,128 @@ namespace Js
 
         DynamicObject *options = DynamicObject::FromVar(args.Values[1]);
 
+        HRESULT hr = S_OK;
+        Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
+        JavascriptString *localeJSstr = nullptr;
+
 #if defined(INTL_ICU)
-        return IcuIntlAdapter::CacheNumberFormat(scriptContext, options);
+        // Verify locale is present
+        // REVIEW (doilij): Fix comparison of the unsigned value <= 0
+        if (!GetTypedPropertyBuiltInFrom(options, __locale, JavascriptString) || (localeJSstr = JavascriptString::FromVar(propertyValue))->GetLength() <= 0)
+        {
+            // REVIEW (doilij): We return undefined from all paths here, so should we throw instead to indicate to Intl.js that something went wrong?
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        // First we have to determine which formatter(number, percent, or currency) we will be using.
+        // Note some options might not be present.
+        PlatformAgnostic::Resource::IPlatformAgnosticResource *numberFormatter = nullptr;
+        const char16 *locale = localeJSstr->GetSz();
+        const charcount_t cch = localeJSstr->GetLength();
+
+        uint16 formatterToUseVal = 0; // 0 (default) is number, 1 is percent, 2 is currency
+        if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt) && (formatterToUseVal = TaggedInt::ToUInt16(propertyValue)) == 1)
+        {
+            // Use the percent formatter (1)
+            IfFailThrowHr(PlatformAgnostic::Intl::CreatePercentFormatter(locale, cch, &numberFormatter));
+        }
+        else if (formatterToUseVal == 2)
+        {
+            // Use the currency formatter (2)
+            if (!GetTypedPropertyBuiltInFrom(options, __currency, JavascriptString))
+            {
+                return scriptContext->GetLibrary()->GetUndefined();
+            }
+
+            JavascriptString *currencyCodeJsString = JavascriptString::FromVar(propertyValue);
+            const char16 *currencyCode = currencyCodeJsString->GetSz();
+
+            // __currencyDisplayToUse: 0 is symbol, 1 is code, 2 is name.
+            if (GetTypedPropertyBuiltInFrom(options, __currencyDisplayToUse, TaggedInt))
+            {
+                uint16 currencyDisplay = TaggedInt::ToUInt16(propertyValue);
+                IfFailThrowHr(PlatformAgnostic::Intl::CreateCurrencyFormatter(locale, cch, currencyCode, currencyDisplay, &numberFormatter));
+            }
+        }
+        else
+        {
+            // Use the number formatter (0 or default)
+            IfFailThrowHr(PlatformAgnostic::Intl::CreateNumberFormatter(locale, cch, &numberFormatter));
+        }
+
+        Assert(numberFormatter);
+        PlatformAgnostic::Resource::AutoPtr<PlatformAgnostic::Resource::IPlatformAgnosticResource> numberFormatterGuard(numberFormatter);
+
+        // TODO (doilij): Render signed zero.
+
+        bool isDecimalPointAlwaysDisplayed = false;
+        bool useGrouping = true;
+
+        if (GetTypedPropertyBuiltInFrom(options, __isDecimalPointAlwaysDisplayed, JavascriptBoolean))
+        {
+            isDecimalPointAlwaysDisplayed = JavascriptBoolean::FromVar(propertyValue)->GetValue();
+        }
+
+        if (GetTypedPropertyBuiltInFrom(options, __useGrouping, JavascriptBoolean))
+        {
+            useGrouping = JavascriptBoolean::FromVar(propertyValue)->GetValue();
+        }
+
+        // Numeral system is in the locale and is therefore already set on the icu::NumberFormat
+        // TODO (doilij): extract the numbering system from the locale name (JS-side) and use that to set the __numberingSystem with fallback
+        // TODO (doilij): determine the numbering system for the ICU locale (so that works even if it wasn't specified directly)
+
+        // REVIEW (doilij): assuming the resolved language has already been set in __locale
+        // TODO (doilij): find out whether numberFormat->getLocale() has relevant extension tags for things like numeral system (-nu-)
+
+        if (HasPropertyBuiltInOn(options, __minimumSignificantDigits) || HasPropertyBuiltInOn(options, __maximumSignificantDigits))
+        {
+            // Do significant digit rounding
+            uint16 minSignificantDigits = 1, maxSignificantDigits = 21;
+
+            if (GetTypedPropertyBuiltInFrom(options, __minimumSignificantDigits, TaggedInt))
+            {
+                minSignificantDigits = max<uint16>(min<uint16>(TaggedInt::ToUInt16(propertyValue), 21), 1);
+            }
+            if (GetTypedPropertyBuiltInFrom(options, __maximumSignificantDigits, TaggedInt))
+            {
+                maxSignificantDigits = max<uint16>(min<uint16>(TaggedInt::ToUInt16(propertyValue), 21), minSignificantDigits);
+            }
+
+            PlatformAgnostic::Intl::SetNumberFormatSignificantDigits(numberFormatter, minSignificantDigits, maxSignificantDigits);
+        }
+        else
+        {
+            // Do fraction/integer digit rounding
+            uint16 minFractionDigits = 0, maxFractionDigits = 3, minIntegerDigits = 1;
+
+            if (GetTypedPropertyBuiltInFrom(options, __minimumIntegerDigits, TaggedInt))
+            {
+                minIntegerDigits = max<uint16>(min<uint16>(TaggedInt::ToUInt16(propertyValue), 21), 1);
+            }
+            if (GetTypedPropertyBuiltInFrom(options, __minimumFractionDigits, TaggedInt))
+            {
+                minFractionDigits = min<uint16>(TaggedInt::ToUInt16(propertyValue), 20); // ToUInt16 will get rid of negatives by making them high
+            }
+            if (GetTypedPropertyBuiltInFrom(options, __maximumFractionDigits, TaggedInt))
+            {
+                maxFractionDigits = max(min<uint16>(TaggedInt::ToUInt16(propertyValue), 20), minFractionDigits); // ToUInt16 will get rid of negatives by making them high
+            }
+
+            PlatformAgnostic::Intl::SetNumberFormatIntFracDigits(numberFormatter, minFractionDigits, maxFractionDigits, minIntegerDigits);
+        }
+
+        // Set the object as a cache
+        auto *autoObject = AutoIcuJsObject<PlatformAgnostic::Resource::IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), numberFormatter);
+        options->SetInternalProperty(Js::InternalPropertyIds::HiddenObject, autoObject, Js::PropertyOperationFlags::PropertyOperation_None, NULL);
+
+        // clear the pointer so it is not freed when numberFormatterGuard goes out of scope
+        numberFormatterGuard.setPointer(nullptr);
+
+        return scriptContext->GetLibrary()->GetUndefined();
 #else
-        HRESULT hr;
         DelayLoadWindowsGlobalization* wgl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
-
-        Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
-        JavascriptString* localeJSstr = nullptr;
 
         // Verify locale is present
         // REVIEW (doilij): Fix comparison of the unsigned value <= 0
@@ -1319,26 +1432,38 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        DynamicObject *obj = DynamicObject::FromVar(args.Values[2]);
+        DynamicObject *options = DynamicObject::FromVar(args.Values[2]);
         Var hiddenObject = nullptr;
-        AssertOrFailFastMsg(obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
+        AssertOrFailFastMsg(options->GetInternalProperty(options, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
             "EntryIntl_FormatNumber: Could not retrieve hiddenObject.");
 
 #if defined(INTL_ICU)
-        // REVIEW (doilij): Assuming the logic doesn't allow us to get to this point and have this cast be invalid (otherwise, would throw earlier).
-        PlatformAgnostic::Resource::IPlatformAgnosticResource *numberFormatter = ((AutoIcuJsObject<PlatformAgnostic::Resource::IPlatformAgnosticResource> *)hiddenObject)->GetInstance();
-
+        // REVIEW (doilij): Assumes the logic doesn't allow us to get to this point such that this cast is invalid (otherwise, we would throw earlier).
+        auto *numberFormatter = reinterpret_cast<AutoIcuJsObject<PlatformAgnostic::Resource::IPlatformAgnosticResource> *>(hiddenObject)->GetInstance();
         const char16 *strBuf = nullptr;
+        Var propertyValue = nullptr;
+
+        uint16 formatterToUse = 0; // 0 (default) is number, 1 is percent, 2 is currency
+        uint16 currencyDisplay = 0; // __currencyDisplayToUse: 0 (default) is symbol, 1 is code, 2 is name
+
+        if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt))
+        {
+            formatterToUse = TaggedInt::ToUInt16(propertyValue);
+        }
+        if (GetTypedPropertyBuiltInFrom(options, __currencyDisplayToUse, TaggedInt))
+        {
+            currencyDisplay = TaggedInt::ToUInt16(propertyValue);
+        }
 
         if (TaggedInt::Is(args.Values[1]))
         {
             int32 val = TaggedInt::ToInt32(args.Values[1]);
-            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val);
+            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay);
         }
         else
         {
             double val = JavascriptNumber::GetValue(args.Values[1]);
-            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val);
+            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay);
         }
 
         PlatformAgnostic::Resource::StringBufferAutoPtr<char16> guard(strBuf); // ensure strBuf is deleted no matter what

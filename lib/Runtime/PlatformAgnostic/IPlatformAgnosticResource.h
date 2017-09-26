@@ -18,15 +18,20 @@ namespace Resource
     };
 
     template <typename T>
-    class PlatformAgnosticResourceAutoPtr
+    class AutoPtr
     {
     private:
         const T *pointer;
     public:
-        PlatformAgnosticResourceAutoPtr(const T *ptr) : pointer(ptr) {}
-        ~PlatformAgnosticResourceAutoPtr()
+        AutoPtr(const T *ptr) : pointer(ptr) {}
+        ~AutoPtr()
         {
             delete pointer;
+        }
+
+        void setPointer(const T *ptr)
+        {
+            pointer = ptr;
         }
     };
 
