@@ -686,8 +686,9 @@ namespace Js
         JavascriptRegExp::TraceTestCache(cacheHit, input, cachedInput, !useCache);
 #endif
 
-        if (useCache && cacheHit)
+        if (cacheHit)
         {
+            Assert(useCache);
             cachedResult = cache[cacheIndex].result;
             // for debug builds, let's still do the real test so we can validate values in the cache
 #if !DBG
