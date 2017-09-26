@@ -53,36 +53,7 @@ var tests = [
       assert.doesNotThrow(function () { function foo(...a) { eval('const a = 0;'); }; foo(); }, "Const redeclaration of a non-default parameter inside an eval does not throw with a non-simple parameter list");
 
       assert.doesNotThrow(function () { eval("function foo(a, ...args) { function args() { } }"); }, "Nested function redeclaration of a rest parameter does not throw");
-
-      // Deferred spread/rest errors in lambda formals
-      assert.doesNotThrow(function () { (a, b = [...[1,2,3]], ...rest) => {}; },     "Correct spread and rest usage");
-      assert.doesNotThrow(function () { (a, b = ([...[1,2,3]]), ...rest) => {}; },   "Correct spread and rest usage with added parens");
-      assert.doesNotThrow(function () { (a, b = (([...[1,2,3]])), ...rest) => {}; }, "Correct spread and rest usage with added parens");
-      assert.throws(function () { eval("(a = ...NaN, b = [...[1,2,3]], ...rest) => {};"); },
-                    SyntaxError,
-                    "Invalid spread with valid rest throws on the first invalid spread",
-                    "Unexpected ... operator");
-      assert.throws(function () { eval("(a = (...NaN), ...b = [...[1,2,3]], ...rest) => {};"); },
-                    SyntaxError,
-                    "Invalid spread in parens with invalid and valid rest throws on the first invalid spread",
-                    "Invalid use of the ... operator. Spread can only be used in call arguments or an array literal.");
-      assert.throws(function () { eval("(a = (...NaN), ...b = [...[1,2,3]], rest) => {};"); },
-                    SyntaxError,
-                    "Invalid spread in parens with invalid rest throws on the first invalid spread",
-                    "Invalid use of the ... operator. Spread can only be used in call arguments or an array literal.");
-      assert.throws(function () { eval("(a = [...NaN], ...b = [...[1,2,3]], rest) => {};"); },
-                    SyntaxError,
-                    "Invalid spread (runtime error) with invalid rest throws on the first invalid rest",
-                    "Unexpected ... operator");
-      assert.throws(function () { eval("(a, ...b, ...rest) => {};"); },
-                    SyntaxError,
-                    "Invalid rest with valid rest throws on the first invalid rest",
-                    "Unexpected ... operator");
-      assert.throws(function () { eval("(...rest = ...NaN) => {};"); },
-                    SyntaxError,
-                    "Invalid rest with invalid spread initializer throws on the invalid rest",
-                    "The rest parameter cannot have a default initializer.");
-
+      
       assert.throws(function () { eval("var x = { set setter(...x) {} }"); },
                     SyntaxError,
                     "Setter methods cannot have a rest parameter",

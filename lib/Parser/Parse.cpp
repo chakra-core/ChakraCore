@@ -96,7 +96,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_pCurrentAstSize = nullptr;
     m_arrayDepth = 0;
     m_funcInArrayDepth = 0;
-    m_parenDepth = 0;
+    m_funcParenExprDepth = 0;
     m_funcInArray = 0;
     m_tryCatchOrFinallyDepth = 0;
     m_UsesArgumentsAtGlobal = false;
@@ -3028,9 +3028,13 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         uint saveCurrBlockId = GetCurrentBlock()->sxBlock.blockId;
         GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
 
-        this->m_parenDepth++;
+        // Push the deferred error state for ellipsis errors. It is possible that another syntax error will occur before we undefer this one.
+        bool deferEllipsisErrorSave = m_deferEllipsisError;
+        RestorePoint ellipsisErrorLocSave = m_deferEllipsisErrorLoc;
+
+        this->m_funcParenExprDepth++;
         pnode = ParseExpr<buildAST>(koplNo, &fCanAssign, TRUE, FALSE, nullptr, nullptr /*nameLength*/, nullptr  /*pShortNameOffset*/, &term, true, nullptr, plastRParen);
-        this->m_parenDepth--;
+        this->m_funcParenExprDepth--;
 
         if (buildAST && plastRParen)
         {
@@ -3050,13 +3054,18 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         // Emit a deferred ... error if one was parsed.
         if (m_deferEllipsisError && m_token.tk != tkDArrow)
         {
-            m_pscan->SeekTo(m_EllipsisErrLoc);
+            m_pscan->SeekTo(m_deferEllipsisErrorLoc);
             Error(ERRInvalidSpreadUse);
         }
         else
         {
             m_deferEllipsisError = false;
         }
+
+        // We didn't error out, so restore the deferred error state.
+        m_deferEllipsisError = deferEllipsisErrorSave;
+        m_deferEllipsisErrorLoc = ellipsisErrorLocSave;
+
         break;
     }
 
@@ -5175,6 +5184,9 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         ppnodeExprScopeSave = m_ppnodeExprScope;
         m_ppnodeExprScope = nullptr;
 
+        uint parenExprDepthSave = m_funcParenExprDepth;
+        m_funcParenExprDepth = 0;
+
         if (!skipFormals)
         {
             bool fLambdaParamsSave = m_reparsingLambdaParams;
@@ -5293,6 +5305,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             });
         }
 
+        AssertMsg(m_funcParenExprDepth == 0, "Paren exprs should have been resolved by the time we finish function formals");
+
         if (isTopLevelDeferredFunc || (m_InAsmMode && m_deferAsmJs))
         {
 #ifdef ASMJS_PLAT
@@ -5400,6 +5414,9 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
                 this->ParseNestedDeferredFunc(pnodeFnc, fLambda, pNeedScanRCurly, &strictModeTurnedOn);
             }
         }
+
+        // Restore the paren count for any outer spread/rest error checking.
+        m_funcParenExprDepth = parenExprDepthSave;
 
         if (pnodeInnerBlock)
         {
@@ -8030,14 +8047,15 @@ LPCOLESTR Parser::AppendNameHints(LPCOLESTR left, LPCOLESTR right, uint32 *pName
  */
 void Parser::DeferOrEmitPotentialSpreadError(ParseNodePtr pnodeT)
 {
-    if (m_parenDepth > 0)
+    if (m_funcParenExprDepth > 0)
     {
         if (m_token.tk == tkRParen)
         {
            if (!m_deferEllipsisError)
             {
-                // Capture only the first error instance.
-                m_pscan->Capture(&m_EllipsisErrLoc);
+                // Capture only the first error instance. Because a lambda will cause a reparse in a formals context, we can assume
+                // that this will be a spread error. Nested paren exprs will have their own error instance.
+                m_pscan->Capture(&m_deferEllipsisErrorLoc);
                 m_deferEllipsisError = true;
             }
         }
