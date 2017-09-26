@@ -129,19 +129,23 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\LegalizeMD.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM'">true</ExcludedFromBuild>
+      <!-- Since there are more then one LegalizeMD.cpp, we need to set them output into different directory, even when they are ExcludedFromBuild -->
+      <ObjectFileName Condition="'$(Platform)'!='ARM'">$(IntDir)\arm</ObjectFileName>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\UnwindInfoManager.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\LowerMD.cpp">
-      <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
-      <!-- Since there are more then one LowerMD.cpp, we need to set them output into different directory, even when they are ExcludedFromBuild -->
-      <ObjectFileName Condition="'$(Platform)'!='ARM64'">$(IntDir)\Arm64</ObjectFileName>
+      <!-- Since there are more then one UnwindInfoManager.cpp, we need to set them output into different directory, even when they are ExcludedFromBuild -->
+      <ObjectFileName Condition="'$(Platform)'!='ARM'">$(IntDir)\arm</ObjectFileName>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)arm64\EncoderMD.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
       <!-- Since there are more then one EncoderMD.cpp, we need to set them output into different directory, even when they are ExcludedFromBuild -->
-      <ObjectFileName Condition="'$(Platform)'!='ARM64'">$(IntDir)\Arm64</ObjectFileName>
+      <ObjectFileName Condition="'$(Platform)'!='ARM64'">$(IntDir)\arm64</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\LowerMD.cpp">
+      <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
+      <!-- Since there are more then one LowerMD.cpp, we need to set them output into different directory, even when they are ExcludedFromBuild -->
+      <ObjectFileName Condition="'$(Platform)'!='ARM64'">$(IntDir)\arm64</ObjectFileName>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)IRBuilderAsmJs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BackendOpCodeAttrAsmJs.cpp" />
@@ -481,7 +485,7 @@
     <ClInclude Include="CRC.h">
       <FileType>CppCode</FileType>
     </ClInclude>
-  </ItemGroup>  
+  </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
