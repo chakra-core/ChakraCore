@@ -57,6 +57,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\EncoderMD.cpp">
       <Filter>arm</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\EncoderMD.cpp">
+      <Filter>arm64</Filter>
+    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)i386\EncoderMD.cpp">
       <Filter>i386</Filter>
     </ClCompile>
@@ -66,8 +69,14 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\LegalizeMD.cpp">
       <Filter>arm</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\LegalizeMD.cpp">
+      <Filter>arm64</Filter>
+    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\LinearScanMD.cpp">
       <Filter>arm</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\LinearScanMD.cpp">
+      <Filter>arm64</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)amd64\LinearScanMD.cpp">
       <Filter>amd64</Filter>
@@ -84,11 +93,11 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)amd64\LowererMDArch.cpp">
       <Filter>amd64</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\LowerMD.cpp">
-      <Filter>arm64</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\LowerMD.cpp">
       <Filter>arm</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\LowerMD.cpp">
+      <Filter>arm64</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)amd64\PeepsMD.cpp">
       <Filter>amd64</Filter>
@@ -99,15 +108,18 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\PeepsMD.cpp">
       <Filter>arm</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\PeepsMD.cpp">
+      <Filter>arm64</Filter>
+    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\UnwindInfoManager.cpp">
       <Filter>arm</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\UnwindInfoManager.cpp">
+      <Filter>arm64</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Inline.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptSimd128.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SwitchIRBuilder.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\EncoderMD.cpp">
-      <Filter>arm64</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)BackendApi.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITOutput.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeFunctionBody.cpp" />
@@ -195,8 +207,8 @@
     <ClInclude Include="arm\ARMEncode.h">
       <Filter>arm</Filter>
     </ClInclude>
-    <ClInclude Include="arm64\ARMEncode.h">
-      <Filter>arm</Filter>
+    <ClInclude Include="arm64\ARM64Encoder.h">
+      <Filter>arm64</Filter>
     </ClInclude>
     <ClInclude Include="arm\AssemblyStep.h">
       <Filter>arm</Filter>
@@ -216,6 +228,9 @@
     <ClInclude Include="arm\LegalizeMD.h">
       <Filter>arm</Filter>
     </ClInclude>
+    <ClInclude Include="arm64\LegalizeMD.h">
+      <Filter>arm64</Filter>
+    </ClInclude>
     <ClInclude Include="amd64\MdOpCodes.h">
       <Filter>amd64</Filter>
     </ClInclude>
@@ -224,6 +239,9 @@
     </ClInclude>
     <ClInclude Include="arm\RegList.h">
       <Filter>arm</Filter>
+    </ClInclude>
+    <ClInclude Include="arm64\RegList.h">
+      <Filter>arm64</Filter>
     </ClInclude>
     <ClInclude Include="i386\LinearScanMD.h">
       <Filter>i386</Filter>
@@ -237,6 +255,9 @@
     <ClInclude Include="arm\md.h">
       <Filter>arm</Filter>
     </ClInclude>
+    <ClInclude Include="arm64\md.h">
+      <Filter>arm64</Filter>
+    </ClInclude>
     <ClInclude Include="amd64\LinearScanMD.h">
       <Filter>amd64</Filter>
     </ClInclude>
@@ -246,7 +267,7 @@
     <ClInclude Include="arm\LinearScanMD.h">
       <Filter>arm</Filter>
     </ClInclude>
-    <ClInclude Include="arm64\LowerMD.h">
+    <ClInclude Include="arm64\LinearScanMD.h">
       <Filter>arm64</Filter>
     </ClInclude>
     <ClInclude Include="amd64\LowererMDArch.h">
@@ -258,11 +279,11 @@
     <ClInclude Include="arm\LowerMD.h">
       <Filter>arm</Filter>
     </ClInclude>
+    <ClInclude Include="arm64\LowerMD.h">
+      <Filter>arm64</Filter>
+    </ClInclude>
     <ClInclude Include="amd64\md.h">
       <Filter>amd64</Filter>
-    </ClInclude>
-    <ClInclude Include="arm64\md.h">
-      <Filter>arm64</Filter>
     </ClInclude>
     <ClInclude Include="i386\MdOpCodes.h">
       <Filter>i386</Filter>
@@ -288,17 +309,17 @@
     <ClInclude Include="arm\MdOpCodes.h">
       <Filter>arm</Filter>
     </ClInclude>
+    <ClInclude Include="arm64\MdOpCodes.h">
+      <Filter>arm</Filter>
+    </ClInclude>
     <ClInclude Include="arm\PeepsMD.h">
+      <Filter>arm</Filter>
+    </ClInclude>
+    <ClInclude Include="arm64\PeepsMD.h">
       <Filter>arm</Filter>
     </ClInclude>
     <ClInclude Include="amd64\PeepsMD.h">
       <Filter>amd64</Filter>
-    </ClInclude>
-    <ClInclude Include="arm64\PeepsMD.h">
-      <Filter>arm64</Filter>
-    </ClInclude>
-    <ClInclude Include="arm64\Reg.h">
-      <Filter>arm64</Filter>
     </ClInclude>
     <ClInclude Include="amd64\Reg.h">
       <Filter>amd64</Filter>
@@ -306,20 +327,20 @@
     <ClInclude Include="arm\Reg.h">
       <Filter>arm</Filter>
     </ClInclude>
-    <ClInclude Include="arm64\RegList.h">
-      <Filter>arm64</Filter>
-    </ClInclude>
-    <ClInclude Include="arm64\UnwindCodes.h">
-      <Filter>arm64</Filter>
+    <ClInclude Include="arm64\Reg.h">
+      <Filter>arm</Filter>
     </ClInclude>
     <ClInclude Include="arm\UnwindCodes.h">
       <Filter>arm</Filter>
     </ClInclude>
-    <ClInclude Include="arm64\UnwindInfoManager.h">
+    <ClInclude Include="arm64\UnwindCodes.h">
       <Filter>arm64</Filter>
     </ClInclude>
     <ClInclude Include="arm\UnwindInfoManager.h">
       <Filter>arm</Filter>
+    </ClInclude>
+    <ClInclude Include="arm64\UnwindInfoManager.h">
+      <Filter>arm64</Filter>
     </ClInclude>
     <ClInclude Include="IRBaseTypeList.h" />
     <ClInclude Include="SwitchIRBuilder.h" />
@@ -388,11 +409,14 @@
     <ARMASM Include="$(MSBuildThisFileDirectory)arm\LinearScanMdA.asm">
       <Filter>arm</Filter>
     </ARMASM>
+    <ARMASM Include="$(MSBuildThisFileDirectory)arm\Thunks.asm">
+      <Filter>arm</Filter>
+    </ARMASM>
     <ARMASM Include="$(MSBuildThisFileDirectory)arm64\Thunks.asm">
       <Filter>arm64</Filter>
     </ARMASM>
-    <ARMASM Include="$(MSBuildThisFileDirectory)arm\Thunks.asm">
-      <Filter>arm</Filter>
+    <ARMASM Include="$(MSBuildThisFileDirectory)arm64\LinearScanMdA.asm">
+      <Filter>arm64</Filter>
     </ARMASM>
   </ItemGroup>
 </Project>

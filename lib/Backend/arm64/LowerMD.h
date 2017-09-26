@@ -63,8 +63,9 @@ public:
             IR::Instr *     ChangeToHelperCall(IR::Instr * instr, IR::JnHelperMethod helperMethod, IR::LabelInstr *labelBailOut = NULL,
                             IR::Opnd *opndInstance = NULL, IR::PropertySymOpnd * propSymOpnd = nullptr, bool isHelperContinuation = false) { __debugbreak(); return 0; }
             IR::Instr *     ChangeToHelperCallMem(IR::Instr * instr, IR::JnHelperMethod helperMethod) { __debugbreak(); return 0; }
-    static  IR::Instr *     CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt) { __debugbreak(); return 0; }
+    static  IR::Instr *     CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, bool generateWriteBarrier = true) { __debugbreak(); return 0; }
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr) { __debugbreak(); return 0; }
+    static  IR::Instr *     ChangeToAssignNoBarrierCheck(IR::Instr * instr) { __debugbreak(); return nullptr; };
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type) { __debugbreak(); return 0; }
     static  IR::Instr *     ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false) { __debugbreak(); return 0; }
     static  IR::Instr *     ForceDstToReg(IR::Instr *instr) { __debugbreak(); return 0; }
@@ -84,7 +85,7 @@ public:
               IR::Instr *     LowerLdSuper(IR::Instr * instr, IR::JnHelperMethod helperOpCode) { __debugbreak(); return 0; }
               IR::Instr *     GenerateSmIntPairTest(IR::Instr * instrInsert, IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::LabelInstr * labelFail) { __debugbreak(); return 0; }
 #if DBG
-      static  void            GenerateDebugBreak(IR::Instr * insertInstr) { __debugbreak(); return 0; };
+      static  void            GenerateDebugBreak(IR::Instr * insertInstr) { __debugbreak(); };
 #endif
               void            GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * instrInsert, IR::LabelInstr * labelHelper = NULL) { __debugbreak(); }
               void            GenerateObjectPairTest(IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::Instr * insertInstr, IR::LabelInstr * labelTarget) { __debugbreak(); }
@@ -260,7 +261,7 @@ public:
               static void GenerateLdLocalFldFromFlagInlineCache(IR::Instr * instrLdFld, IR::RegOpnd * opndBase, IR::Opnd * opndDst, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot) { __debugbreak(); }
               static void GenerateStFldFromLocalInlineCache(IR::Instr * instrStFld, IR::RegOpnd * opndBase, IR::Opnd * opndSrc, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot) { __debugbreak(); }
 
-              static IR::Instr * ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func) { __debugbreak(); }
+              static IR::Instr * ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func) { __debugbreak(); return nullptr; }
 
               int                 GetHelperArgsCount() { __debugbreak(); return 0; }
               void                ResetHelperArgsCount() { __debugbreak(); }
