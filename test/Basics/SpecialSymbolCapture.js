@@ -218,13 +218,14 @@ var tests = [
     {
         name: "Global-scope `new.target` keyword is early syntax error",
         body: function () {
-            assert.throws(() => WScript.LoadScript(`new.target;`), SyntaxError, "'new.target' is invalid syntax at global scope", "Invalid use of the 'new.target' keyword");
-            assert.throws(() => WScript.LoadScript(`() => new.target`), SyntaxError, "'new.target' is invalid in arrow at global scope", "Invalid use of the 'new.target' keyword");
-            assert.throws(() => WScript.LoadScript(`() => () => new.target`), SyntaxError, "'new.target' is invalid in nested arrow at global scope", "Invalid use of the 'new.target' keyword");
-            assert.throws(() => WScript.LoadScript(`eval('new.target');`), SyntaxError, "'new.target' is invalid in eval at global scope", "Invalid use of the 'new.target' keyword");
-            assert.throws(() => WScript.LoadScript(`eval("eval('new.target');")`), SyntaxError, "'new.target' is invalid in nested eval at global scope", "Invalid use of the 'new.target' keyword");
-            assert.throws(() => WScript.LoadScript(`eval('() => new.target')`), SyntaxError, "'new.target' is invalid in arrow nested in eval at global scope", "Invalid use of the 'new.target' keyword");
-            assert.throws(() => WScript.LoadScript(`(() => eval('new.target'))()`), SyntaxError, "'new.target' is invalid in eval nested in arrow at global scope", "Invalid use of the 'new.target' keyword");
+            var syntaxError;
+            assert.throws(() => WScript.LoadScript(`syntaxError = SyntaxError; new.target;`), syntaxError, "'new.target' is invalid syntax at global scope", "Invalid use of the 'new.target' keyword");
+            assert.throws(() => WScript.LoadScript(`syntaxError = SyntaxError; () => new.target`), syntaxError, "'new.target' is invalid in arrow at global scope", "Invalid use of the 'new.target' keyword");
+            assert.throws(() => WScript.LoadScript(`syntaxError = SyntaxError; () => () => new.target`), syntaxError, "'new.target' is invalid in nested arrow at global scope", "Invalid use of the 'new.target' keyword");
+            assert.throws(() => WScript.LoadScript(`syntaxError = SyntaxError; eval('new.target');`), syntaxError, "'new.target' is invalid in eval at global scope", "Invalid use of the 'new.target' keyword");
+            assert.throws(() => WScript.LoadScript(`syntaxError = SyntaxError; eval("eval('new.target');")`), syntaxError, "'new.target' is invalid in nested eval at global scope", "Invalid use of the 'new.target' keyword");
+            assert.throws(() => WScript.LoadScript(`syntaxError = SyntaxError; eval('() => new.target')`), syntaxError, "'new.target' is invalid in arrow nested in eval at global scope", "Invalid use of the 'new.target' keyword");
+            assert.throws(() => WScript.LoadScript(`syntaxError = SyntaxError; (() => eval('new.target'))()`), syntaxError, "'new.target' is invalid in eval nested in arrow at global scope", "Invalid use of the 'new.target' keyword");
         }
     },
     {
@@ -497,9 +498,10 @@ var tests = [
     {
         name: "Base class super call is syntax error",
         body: function() {
-            assert.throws(() => WScript.LoadScript(`class Base { constructor() { super(); } }`), SyntaxError, "'super' call is invalid syntax in a base class", "Invalid use of the 'super' keyword");
-            assert.throws(() => WScript.LoadScript(`class Base { constructor() { eval("super();"); } }; new Base();`), SyntaxError, "'super' call is invalid syntax in a base class", "Invalid use of the 'super' keyword");
-            assert.throws(() => WScript.LoadScript(`class Base { constructor() { () => super(); } }`), SyntaxError, "'super' call is invalid syntax in a base class", "Invalid use of the 'super' keyword");
+            var syntaxError;
+            assert.throws(() => WScript.LoadScript(`syntaxError = SyntaxError; class Base { constructor() { super(); } }`), syntaxError, "'super' call is invalid syntax in a base class", "Invalid use of the 'super' keyword");
+            assert.throws(() => WScript.LoadScript(`syntaxError = SyntaxError; class Base { constructor() { eval("super();"); } }; new Base();`), syntaxError, "'super' call is invalid syntax in a base class", "Invalid use of the 'super' keyword");
+            assert.throws(() => WScript.LoadScript(`syntaxError = SyntaxError; class Base { constructor() { () => super(); } }`), syntaxError, "'super' call is invalid syntax in a base class", "Invalid use of the 'super' keyword");
         }
     },
     {
