@@ -419,7 +419,55 @@ namespace Intl
         }
 
         icu::NumberFormat *numberFormatter = formatterHolder->GetInstance();
-        numberFormatter->format(val, result);
+
+        // __formatterToUse: 0 (default) is number, 1 is percent, 2 is currency
+        if (formatterToUse == 0 || formatterToUse == 1)
+        {
+            numberFormatter->format(val, result);
+        }
+        else if (formatterToUse == 2)
+        {
+            UErrorCode error = UErrorCode::U_ZERO_ERROR;
+
+            const UChar *currencyCode = reinterpret_cast<const UChar *>(numberFormatter->getCurrency());
+            const char *localeName = numberFormatter->getLocale(ULocDataLocaleType::ULOC_ACTUAL_LOCALE, error).getName();
+
+            if (U_FAILURE(error))
+            {
+                AssertMsg(false, "numberFormatter->getLocale failed");
+            }
+
+            UBool isChoiceFormat = false;
+            int32_t currencyNameLen = 0;
+
+            // __currencyDisplayToUse: 0 (default) is symbol, 1 is code, 2 is name
+            if (currencyDisplay == 0) // symbol ($42.00)
+            {
+                // the formatter is set up to render the symbol by default
+                numberFormatter->format(val, result);
+            }
+            else if (currencyDisplay == 1) // code (USD 42.00)
+            {
+                result.append(currencyCode);
+                result.append("\u00a0"); // NON-BREAKING SPACE
+                numberFormatter->format(val, result);
+            }
+            else if (currencyDisplay == 2) // name (dollars)
+            {
+                const char *pluralCount = nullptr;
+                const UChar *currencyLongName = ucurr_getPluralName(currencyCode, localeName, &isChoiceFormat, pluralCount, &currencyNameLen, &error);
+
+                if (U_FAILURE(error))
+                {
+                    AssertMsg(false, "Failed to format");
+                }
+
+                numberFormatter->format(val, result);
+                result.append(" ");
+                result.append(currencyLongName);
+            }
+        }
+
         int32_t length = result.length();
         char16 *ret = new char16[length + 1];
         result.extract(0, length, reinterpret_cast<UChar *>(ret));

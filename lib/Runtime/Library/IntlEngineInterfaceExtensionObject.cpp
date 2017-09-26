@@ -1443,7 +1443,7 @@ namespace Js
         const char16 *strBuf = nullptr;
         Var propertyValue = nullptr;
 
-        uint16 formatterToUse = 0; // 0 (default) is number, 1 is percent, 2 is currency
+        uint16 formatterToUse = 0; // __formatterToUse: 0 (default) is number, 1 is percent, 2 is currency
         uint16 currencyDisplay = 0; // __currencyDisplayToUse: 0 (default) is symbol, 1 is code, 2 is name
 
         if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt))
