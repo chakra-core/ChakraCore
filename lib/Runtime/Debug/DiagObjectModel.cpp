@@ -270,8 +270,13 @@ namespace Js
             }
             else
             {
-                Js::JavascriptString *builtInName = ParseFunctionName(returnValue->calledFunction->GetDisplayName(), pResolvedObject->scriptContext);
-                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), builtInName->GetSz());
+                ENTER_PINNED_SCOPE(JavascriptString, displayName);
+                displayName = returnValue->calledFunction->GetDisplayName();
+
+                const char16 *builtInName = ParseFunctionName(displayName->GetString(), displayName->GetLength(), pResolvedObject->scriptContext);
+                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), builtInName);
+
+                LEAVE_PINNED_SCOPE();
             }
             pResolvedObject->obj = returnValue->returnedValue;
             defaultAttributes |= DBGPROP_ATTRIB_VALUE_READONLY;
@@ -289,24 +294,21 @@ namespace Js
     // The debugger uses the functionNameId field instead of the "name" property to get the name of the funtion. The functionNameId field is overloaded and may contain the display name if
     // toString() has been called on the function object. For built-in or external functions the display name can be something like "function Echo() { native code }". We will try to parse the
     // function name out of the display name so the user will see just the function name e.g. "Echo" instead of the full display name in debugger.
-    JavascriptString * VariableWalkerBase::ParseFunctionName(JavascriptString* displayName, ScriptContext* scriptContext)
+    const char16 * VariableWalkerBase::ParseFunctionName(const char16 * displayNameBuffer, const charcount_t displayNameBufferLength, ScriptContext* scriptContext)
     {
-        Assert(displayName);
-        const char16 * displayNameBuffer = displayName->GetString();
-        const charcount_t displayNameBufferLength = displayName->GetLength();
         const charcount_t funcStringLength = _countof(JS_DISPLAY_STRING_FUNCTION_HEADER) - 1; // discount the ending null character in string literal
         const charcount_t templateStringLength = funcStringLength + _countof(JS_DISPLAY_STRING_FUNCTION_BODY) - 1; // discount the ending null character in string literal
         // If the string doesn't meet our expected format; return the original string.
         if (displayNameBufferLength <= templateStringLength || (wmemcmp(displayNameBuffer, JS_DISPLAY_STRING_FUNCTION_HEADER, funcStringLength) != 0))
         {
-            return displayName;
+            return displayNameBuffer;
         }
 
         // Look for the left parenthesis, if we don't find one; return the original string.
         const char16* parenChar = wcschr(displayNameBuffer, '(');
         if (parenChar == nullptr)
         {
-            return displayName;
+            return displayNameBuffer;
         }
 
         charcount_t actualFunctionNameLength = displayNameBufferLength - templateStringLength;
@@ -314,17 +316,12 @@ namespace Js
         char16 * actualFunctionNameBuffer = AnewArray(GetArenaFromContext(scriptContext), char16, actualFunctionNameLength + 1); // The last character will be the null character.
         if (actualFunctionNameBuffer == nullptr)
         {
-            return displayName;
+            return displayNameBuffer;
         }
         js_memcpy_s(actualFunctionNameBuffer, byteLengthForCopy, displayNameBuffer + funcStringLength, byteLengthForCopy);
         actualFunctionNameBuffer[actualFunctionNameLength] = _u('\0');
 
-        JavascriptString * actualFunctionName = JavascriptString::NewWithArenaSz(actualFunctionNameBuffer, scriptContext);
-        if (actualFunctionName == nullptr)
-        {
-            return displayName;
-        }
-        return actualFunctionName;
+        return actualFunctionNameBuffer;
     }
 
     /*static*/

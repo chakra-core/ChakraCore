@@ -43,6 +43,7 @@ namespace Js
     typedef TwoLevelHashDictionary<FastEvalMapString, ScriptFunction*, EvalMapRecord, EvalCacheTopLevelDictionary, EvalMapString> EvalCacheDictionary;
 
     typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PrimeSizePolicy> BuiltInLibraryFunctionMap;
+    typedef JsUtil::BaseDictionary<uint, JavascriptString *, Recycler> StringMap;
 
     // valid if object!= NULL
     struct EnumeratedObjectCache
@@ -74,6 +75,7 @@ namespace Js
         Field(EvalCacheDictionary*) evalCacheDictionary;
         Field(EvalCacheDictionary*) indirectEvalCacheDictionary;
         Field(NewFunctionCache*) newFunctionCache;
+        Field(StringMap *) integerStringMap;
         Field(RegexPatternMruMap *) dynamicRegexMap;
         Field(SourceContextInfoMap*) sourceContextInfoMap;   // maps host provided context cookie to the URL of the script buffer passed.
         Field(DynamicSourceContextInfoMap*) dynamicSourceContextInfoMap;
@@ -649,6 +651,8 @@ namespace Js
         SCACHE_FUNCTION_PROXY(GetObjectNumberDisplayString)
         SCACHE_FUNCTION_PROXY(GetObjectRegExpDisplayString)
         SCACHE_FUNCTION_PROXY(GetObjectStringDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectNullDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectUndefinedDisplayString)
         SCACHE_FUNCTION_PROXY(GetUndefinedDisplayString)
         SCACHE_FUNCTION_PROXY(GetNaNDisplayString)
         SCACHE_FUNCTION_PROXY(GetNullDisplayString)

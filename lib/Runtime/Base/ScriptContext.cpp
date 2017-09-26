@@ -78,7 +78,6 @@ namespace Js
 #ifdef FAULT_INJECTION
         disposeScriptByFaultInjectionEventHandler(nullptr),
 #endif
-        integerStringMap(this->GeneralAllocator()),
         guestArena(nullptr),
 #ifdef ENABLE_SCRIPT_DEBUGGING
         diagnosticArena(nullptr),
@@ -1760,7 +1759,12 @@ namespace Js
 
 // TODO: (obastemur) Could this be dynamic instead of compile time?
 #ifndef CC_LOW_MEMORY_TARGET // we don't need this on a target with low memory
-        if (!this->integerStringMap.TryGetValue(value, &string))
+        if (this->Cache()->integerStringMap == nullptr)
+        {
+            this->Cache()->integerStringMap = RecyclerNew(GetRecycler(), StringMap, GetRecycler());
+        }
+        StringMap * integerStringMap = this->Cache()->integerStringMap;
+        if (!integerStringMap->TryGetValue(value, &string))
         {
             // Add the string to hash table cache
             // Don't add if table is getting too full.  We'll be holding on to
@@ -1770,7 +1774,7 @@ namespace Js
             //       a solution; count the number of times we couldn't use cache
             //       after cache is full. If it's bigger than X ?? the discard the
             //       previous cache?
-            if (this->integerStringMap.Count() > 512)
+            if (integerStringMap->Count() > 512)
             {
 #endif
                 // Use recycler memory
@@ -1783,9 +1787,8 @@ namespace Js
                 char16 stringBuffer[22];
 
                 int pos = TaggedInt::ToBuffer(value, stringBuffer, _countof(stringBuffer));
-                string = JavascriptString::NewCopySzFromArena(stringBuffer + pos,
-                    this, this->GeneralAllocator(), (_countof(stringBuffer) - 1) - pos);
-                this->integerStringMap.AddNew(value, string);
+                string = JavascriptString::NewCopyBuffer(stringBuffer + pos, (_countof(stringBuffer) - 1) - pos, this);
+                integerStringMap->AddNew(value, string);
             }
         }
 #endif

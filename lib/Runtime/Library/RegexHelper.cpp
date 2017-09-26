@@ -665,15 +665,51 @@ namespace Js
         CharCount inputLength = input->GetLength();
         UnifiedRegex::GroupInfo match; // initially undefined
 
-#if ENABLE_REGEX_CONFIG_OPTIONS
-        RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Test, regularExpression, input);
-#endif
         const bool isGlobal = pattern->IsGlobal();
         const bool isSticky = pattern->IsSticky();
+        const bool useCache = !isGlobal && !isSticky;
+
+        RegExpTestCache* cache = nullptr;
+        JavascriptString * cachedInput = nullptr;
+        uint cacheIndex = 0;
+        bool cacheHit = false;
+        bool cachedResult = false;
+        if (useCache)
+        {
+            cache = regularExpression->EnsureTestCache();
+            cacheIndex = JavascriptRegExp::GetTestCacheIndex(input);
+            cachedInput = cache[cacheIndex].input != nullptr ? cache[cacheIndex].input->Get() : nullptr;
+            cacheHit = cachedInput == input;
+        }
+#if ENABLE_REGEX_CONFIG_OPTIONS
+        RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Test, regularExpression, input);
+        JavascriptRegExp::TraceTestCache(cacheHit, input, cachedInput, !useCache);
+#endif
+
+        if (cacheHit)
+        {
+            Assert(useCache);
+            cachedResult = cache[cacheIndex].result;
+            // for debug builds, let's still do the real test so we can validate values in the cache
+#if !DBG
+            return JavascriptBoolean::ToVar(cachedResult, scriptContext);
+#endif
+        }
+
+
         CharCount offset;
         if (!GetInitialOffset(isGlobal, isSticky, regularExpression, inputLength, offset))
+        {
+            if (useCache)
+            {
+                Assert(offset == 0);
+                Assert(!cacheHit || cachedInput == input);
+                Assert(!cacheHit || cachedResult == false);
+                cache[cacheIndex].input = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
+                cache[cacheIndex].result = false;
+            }
             return scriptContext->GetLibrary()->GetFalse();
-
+        }
         if (offset <= inputLength)
         {
             match = SimpleMatch(scriptContext, pattern, inputStr, inputLength, offset);
@@ -681,8 +717,17 @@ namespace Js
 
         // else: match remains undefined
         PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, match, match, true, true);
+        bool wasFound = !match.IsUndefined();
 
-        return JavascriptBoolean::ToVar(!match.IsUndefined(), scriptContext);
+        if (useCache)
+        {
+            Assert(offset == 0);
+            Assert(!cacheHit || cachedInput == input);
+            Assert(!cacheHit || cachedResult == wasFound);
+            cache[cacheIndex].input = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
+            cache[cacheIndex].result = wasFound;
+        }
+        return JavascriptBoolean::ToVar(wasFound, scriptContext);
     }
 
     template<typename GroupFn>

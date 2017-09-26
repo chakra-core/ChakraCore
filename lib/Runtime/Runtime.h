@@ -122,7 +122,6 @@ namespace Js
     struct JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper;
     class JavascriptGenerator;
     class LiteralString;
-    class ArenaLiteralString;
     class JavascriptStringObject;
     struct PropertyDescriptor;
     class Type;

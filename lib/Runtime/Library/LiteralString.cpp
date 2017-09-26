@@ -41,36 +41,4 @@ namespace Js
         return RecyclerNew(type->GetScriptContext()->GetRecycler(), LiteralString, type, _u(""), 0);
     }
 
-
-    ArenaLiteralString::ArenaLiteralString(StaticType * type, const char16* content, charcount_t charLength) :
-      JavascriptString(type, charLength, content)
-    {
-#if defined(DBG) && defined(_M_IX86)
-        // Make sure content isn't on the stack by comparing to stack bounds in TIB
-        AssertMsg(!ThreadContext::IsOnStack((void*)content),
-            "ArenaLiteralString object created using stack buffer...");
-#endif
-
-        AssertMsg(!type->GetScriptContext()->GetRecycler()->IsValidObject((void *)content),
-            "ArenaLiteralString should not be used with GC strings");
-
-#ifdef PROFILE_STRINGS
-        StringProfiler::RecordNewString( type->GetScriptContext(), content, charLength );
-#endif
-    }
-
-    ArenaLiteralString* ArenaLiteralString::New(StaticType* type, const char16* content, charcount_t charLength, Recycler* recycler)
-    {
-        return RecyclerNew(recycler, ArenaLiteralString, type, content, charLength);
-    }
-
-    ArenaLiteralString* ArenaLiteralString::New(StaticType* type, const char16* content, charcount_t charLength, ArenaAllocator* arena)
-    {
-        return Anew(arena, ArenaLiteralString, type, content, charLength);
-    }
-
-    RecyclableObject * ArenaLiteralString::CloneToScriptContext(ScriptContext* requestContext)
-    {
-        return JavascriptString::NewCopyBuffer(this->GetSz(), this->GetLength(), requestContext);
-    }
 } // namespace Js
