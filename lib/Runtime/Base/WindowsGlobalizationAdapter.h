@@ -145,7 +145,7 @@ namespace Js
             return unicodeStatics;
         }
 #endif
-#ifdef ENABLE_INTL_OBJECT 
+#ifdef ENABLE_INTL_OBJECT
     private:
         HRESULT CreateTimeZoneOnCalendar(_In_ DelayLoadWindowsGlobalization *library, __out Windows::Globalization::ITimeZoneOnCalendar**  result);
         static HRESULT VerifyResult(HSTRING * result, HRESULT errCode);
@@ -200,8 +200,11 @@ namespace Js
                 // Here we use Cleanup() because we can't rely on delete (not dealing with virtual destructors).
                 // The template thus requires that the type implement the Cleanup function.
                 instance->Cleanup(); // e.g. deletes the object held in the IPlatformAgnosticResource
-                delete instance; // deletes the instance itself
-                instance = nullptr;
+
+                // REVIEW (doilij): Is cleanup in this way necessary or are the trivial destructors enough, assuming Cleanup() has been called?
+                // Note: delete here introduces a build break on Linux complaining of non-virtual dtor
+                // delete instance; // deletes the instance itself
+                // instance = nullptr;
             }
         }
 

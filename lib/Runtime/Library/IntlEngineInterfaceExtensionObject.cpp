@@ -864,7 +864,9 @@ namespace Js
         }
 
         Assert(numberFormatter);
-        PlatformAgnostic::Resource::AutoPtr<PlatformAgnostic::Resource::IPlatformAgnosticResource> numberFormatterGuard(numberFormatter);
+        // REVIEW (doilij): AutoPtr will call delete on IPlatformAgnosticResource and complain of non-virtual dtor. There are no IfFailThrowHr so is this still necessary?
+        // TODO (doilij): If necessary, introduce an PlatformAgnosticResourceAutoPtr that calls Cleanup() instead of delete on the pointer.
+        // PlatformAgnostic::Resource::AutoPtr<PlatformAgnostic::Resource::IPlatformAgnosticResource> numberFormatterGuard(numberFormatter);
 
         // TODO (doilij): Render signed zero.
 
@@ -930,7 +932,7 @@ namespace Js
         options->SetInternalProperty(Js::InternalPropertyIds::HiddenObject, autoObject, Js::PropertyOperationFlags::PropertyOperation_None, NULL);
 
         // clear the pointer so it is not freed when numberFormatterGuard goes out of scope
-        numberFormatterGuard.setPointer(nullptr);
+        // numberFormatterGuard.setPointer(nullptr);
 
         return scriptContext->GetLibrary()->GetUndefined();
 #else

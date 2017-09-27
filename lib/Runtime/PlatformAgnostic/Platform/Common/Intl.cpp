@@ -7,10 +7,15 @@
 
 #ifdef INTL_ICU
 
-// REVIEW (doilij): Where are these defined that is safe to include in PlatformAgnostic?
+#include <stdint.h>
+// REVIEW (doilij): Where are these (non-'_t' types) typedef'd that is safe to include in PlatformAgnostic?
 typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
+
 #include "Codex/Utf8Codex.h"
 
 #ifndef _WIN32

@@ -26,7 +26,11 @@ namespace Resource
         AutoPtr(const T *ptr) : pointer(ptr) {}
         ~AutoPtr()
         {
-            delete pointer;
+            if (pointer != nullptr)
+            {
+                delete pointer;
+                pointer = nullptr;
+            }
         }
 
         void setPointer(const T *ptr)
