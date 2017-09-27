@@ -232,6 +232,7 @@ namespace Js {
         };
         static inline SIMDValue SIMD128InnerReplaceLaneD2(SIMDValue simdVal, const uint32 lane, const double value)
         {
+            Assert(lane < 2);
             simdVal.f64[lane] = value;
             return simdVal;
         };
