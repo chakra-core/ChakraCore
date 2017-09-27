@@ -562,9 +562,6 @@ namespace Js
         static void OP_SetHomeObj(Var method, Var homeObj);
         static Var OP_LdHomeObj(Var scriptFunction, ScriptContext * scriptContext);
         static Var OP_LdFuncObj(Var scriptFunction, ScriptContext * scriptContext);
-        static Var OP_ScopedLdHomeObj(Var scriptFunction, ScriptContext * scriptContext);
-        static Var OP_ScopedLdFuncObj(Var scriptFunction, ScriptContext * scriptContext);
-        static Var ScopedLdHomeObjFuncObjHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext);
         static Var OP_LdHomeObjProto(Var aRight, ScriptContext* scriptContext);
         static Var OP_LdFuncObjProto(Var aRight, ScriptContext* scriptContext);
         static Var OP_ImportCall(__in JavascriptFunction *function, __in Var specifier, __in ScriptContext* scriptContext);

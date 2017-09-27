@@ -728,8 +728,6 @@ MACRO_EXTEND_WMS(       ObjectFreeze,       Reg1,           None)
 
 MACRO_EXTEND_WMS(       LdHomeObj,          Reg1,           OpSideEffect)
 MACRO_EXTEND_WMS(       LdFuncObj,          Reg1,           OpSideEffect)
-MACRO_EXTEND_WMS(       ScopedLdHomeObj,    Reg1,           OpSideEffect)
-MACRO_EXTEND_WMS(       ScopedLdFuncObj,    Reg1,           OpSideEffect)
 MACRO_EXTEND_WMS(       LdHomeObjProto,     Reg2,           OpSideEffect)
 MACRO_EXTEND_WMS(       LdFuncObjProto,     Reg2,           OpSideEffect)
 MACRO_EXTEND_WMS(       SetHomeObj,         Reg2,           OpSideEffect)

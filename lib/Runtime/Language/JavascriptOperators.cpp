@@ -1917,7 +1917,7 @@ CommonNumber:
         {
             Var value = nullptr;
             RecyclableObject *obj = RecyclableObject::FromVar(pScope->GetItem(i));
-            if (JavascriptOperators::GetProperty(obj, Js::PropertyIds::_lexicalThisSlotSymbol, &value, scriptContext))
+            if (JavascriptOperators::GetProperty(obj, Js::PropertyIds::_this, &value, scriptContext))
             {
                 return value;
             }
@@ -2806,11 +2806,6 @@ CommonNumber:
         // Set the property using a scope stack rather than an individual instance.
         // Walk the stack until we find an instance that has the property and store
         // the new value there.
-        //
-        // To propagate 'this' pointer, walk up the stack and update scopes
-        // where field '_lexicalThisSlotSymbol' exists and stop at the
-        // scope where field '_lexicalNewTargetSymbol' also exists, which
-        // indicates class constructor.
 
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
 
@@ -2821,7 +2816,7 @@ CommonNumber:
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
 
         bool allowUndecInConsoleScope = (propertyOperationFlags & PropertyOperation_AllowUndeclInConsoleScope) == PropertyOperation_AllowUndeclInConsoleScope;
-        bool isLexicalThisSlotSymbol = (propertyId == PropertyIds::_lexicalThisSlotSymbol);
+        bool isLexicalThisSlotSymbol = (propertyId == PropertyIds::_this);
 
         for (uint16 i = 0; i < length; i++)
         {
@@ -2833,11 +2828,6 @@ CommonNumber:
             if (CacheOperators::TrySetProperty<true, true, true, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
                     object, false, propertyId, newValue, scriptContext, propertyOperationFlags, nullptr, &info))
             {
-                if (isLexicalThisSlotSymbol && !JavascriptOperators::HasProperty(object, PropertyIds::_lexicalNewTargetSymbol))
-                {
-                    continue;
-                }
-
                 return;
             }
 
@@ -2929,11 +2919,6 @@ CommonNumber:
                 if (!JavascriptProxy::Is(object) && !allowUndecInConsoleScope)
                 {
                     CacheOperators::CachePropertyWrite(object, false, type, propertyId, &info2, scriptContext);
-                }
-
-                if (isLexicalThisSlotSymbol && !JavascriptOperators::HasProperty(object, PropertyIds::_lexicalNewTargetSymbol))
-                {
-                    continue;
                 }
 
                 return;
@@ -7533,12 +7518,23 @@ CommonNumber:
 #endif
             if (JavascriptOperators::GetProperty(object, propertyId, &value, scriptContext, &info))
             {
-                if (scriptContext->IsUndeclBlockVar(value) && propertyId != PropertyIds::_lexicalThisSlotSymbol)
+                if (scriptContext->IsUndeclBlockVar(value) && propertyId != PropertyIds::_this)
                 {
                     JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
                 }
                 return value;
             }
+        }
+
+        // There is no root decl for 'this', we should instead load the global 'this' value.
+        if (propertyId == PropertyIds::_this)
+        {
+            Var varNull = OP_LdNull(scriptContext);
+            return JavascriptOperators::OP_GetThis(varNull, functionBody->GetModuleID(), scriptContext);
+        }
+        else if (propertyId == PropertyIds::_super)
+        {
+            JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference);
         }
 
         // No one in the scope stack has the property, so get it from the default instance provided by the caller.
@@ -9648,59 +9644,6 @@ CommonNumber:
         }
 
         return moduleRecord->PostProcessDynamicModuleImport();
-    }
-
-    Var JavascriptOperators::ScopedLdHomeObjFuncObjHelper(Var scriptFunction, Js::PropertyId propertyId, ScriptContext * scriptContext)
-    {
-        ScriptFunction *instance = ScriptFunction::FromVar(scriptFunction);
-        Var superRef = nullptr;
-
-        FrameDisplay *frameDisplay = instance->GetEnvironment();
-
-        if (frameDisplay->GetLength() == 0)
-        {
-            // Globally scoped evals are a syntax error
-            JavascriptError::ThrowSyntaxError(scriptContext, ERRSuperInGlobalEval, _u("super"));
-        }
-
-        // Iterate over the scopes in the FrameDisplay, looking for the super property.
-        for (unsigned i = 0; i < frameDisplay->GetLength(); ++i)
-        {
-            void *currScope = frameDisplay->GetItem(i);
-            if (RecyclableObject::Is(currScope))
-            {
-                if (BlockActivationObject::Is(currScope))
-                {
-                    // We won't find super in a block scope.
-                    continue;
-                }
-
-                RecyclableObject *recyclableObject = RecyclableObject::FromVar(currScope);
-                if (GetProperty(recyclableObject, propertyId, &superRef, scriptContext))
-                {
-                    return superRef;
-                }
-
-                if (HasProperty(recyclableObject, Js::PropertyIds::_lexicalThisSlotSymbol))
-                {
-                    // If we reach 'this' and haven't found the super reference, we don't need to look any further.
-                    JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference, _u("super"));
-                }
-            }
-        }
-
-        // We didn't find a super reference. Emit a reference error.
-        JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference, _u("super"));
-    }
-
-    Var JavascriptOperators::OP_ScopedLdHomeObj(Var scriptFunction, ScriptContext * scriptContext)
-    {
-        return JavascriptOperators::ScopedLdHomeObjFuncObjHelper(scriptFunction, Js::PropertyIds::_superReferenceSymbol, scriptContext);
-    }
-
-    Var JavascriptOperators::OP_ScopedLdFuncObj(Var scriptFunction, ScriptContext * scriptContext)
-    {
-        return JavascriptOperators::ScopedLdHomeObjFuncObjHelper(scriptFunction, Js::PropertyIds::_superCtorReferenceSymbol, scriptContext);
     }
 
     Var JavascriptOperators::OP_ResumeYield(ResumeYieldData* yieldData, RecyclableObject* iterator)
