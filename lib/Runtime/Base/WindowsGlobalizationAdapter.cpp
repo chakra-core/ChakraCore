@@ -829,22 +829,12 @@ if (this->object) \
         return ResolveLocaleLookup(scriptContext, locale, resolved);
     }
 
-    int IcuIntlAdapter::GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLocaleName)
+    size_t IcuIntlAdapter::GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLangtag)
     {
-        // // XPLAT-TODO (doilij): implement GetUserDefaultLocaleName
-        // const auto locale = _u("en-US");
-        // const size_t len = 5;
-        // if (lpLocaleName)
-        // {
-        //     wcsncpy_s(lpLocaleName, LOCALE_NAME_MAX_LENGTH, locale, len);
-        // }
-
-        // // REVIEW (doilij): assuming the return value is the length of the output string in lpLocaleName
-        // return len;
         UErrorCode error = U_ZERO_ERROR;
-        char langtag[LOCALE_NAME_MAX_LENGTH];
+        char bcp47[ULOC_FULLNAME_CAPACITY];
 
-        int32_t written = uloc_toLanguageTag(nullptr, langtag, LOCALE_NAME_MAX_LENGTH, true, &error);
+        int32_t written = uloc_toLanguageTag("en_UK", bcp47, ULOC_FULLNAME_CAPACITY, true, &error);
 
         // REVIEW (jahorto): if getting the language tag for NULL (default) fails, is there any backup?
         if (!U_SUCCESS(error) || written <= 0)
@@ -853,9 +843,9 @@ if (this->object) \
             return 0;
         }
 
-        if (written < cchLocaleName)
+        if (written < cchLangtag)
         {
-            return utf8::DecodeUnitsIntoAndNullTerminate(langtag, reinterpret_cast<utf8char_t *>(langtag), reinterpret_cast<utf8char_t *>(langtag + written));
+            return utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(langtag, reinterpret_cast<const utf8char_t *>(bcp47), reinterpret_cast<utf8char_t *>(bcp47 + written));
         }
         else
         {
@@ -863,7 +853,6 @@ if (this->object) \
             return 0;
         }
     }
-
 #endif // ENABLE_INTL_OBJECT
 #endif // INTL_ICU
 } // namespace Js

@@ -723,9 +723,10 @@ namespace Js
 
         if (
 #if defined(INTL_WINGLOB)
+            // XPLAT-TODO (doilij): Implement this in PlatformAgnostic
             GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
 #else
-            IcuIntlAdapter::GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
+            IcuIntlAdapter::GetUserDefaultLanguageTag(defaultLocale, _countof(defaultLocale)) == 0
 #endif
             || defaultLocale[0] == '\0')
         {
