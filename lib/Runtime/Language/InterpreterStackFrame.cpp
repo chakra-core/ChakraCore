@@ -1918,7 +1918,7 @@ namespace Js
             // generator object.  The second argument is the ResumeYieldData which is only needed
             // when resuming a generator and so it only used here if a frame already exists on the
             // generator object.
-            AssertMsg(args.Info.Count == 2, "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
+            AssertOrFailFastMsg(args.Info.Count == 2 && ((args.Info.Flags & CallFlags_ExtraArg) == CallFlags_None), "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
             JavascriptGenerator* generator = JavascriptGenerator::FromVar(args[0]);
             newInstance = generator->GetFrame();
 

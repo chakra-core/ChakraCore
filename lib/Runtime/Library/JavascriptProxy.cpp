@@ -2102,6 +2102,7 @@ namespace Js
 
         BOOL hasOverridingNewTarget = callInfo.Flags & CallFlags_NewTarget;
         bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && args[0] != nullptr && RecyclableObject::Is(args[0]);
+        bool isNewCall = callInfo.Flags & CallFlags_New || callInfo.Flags & CallFlags_NewTarget;
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if (!JavascriptProxy::Is(function))
@@ -2168,7 +2169,16 @@ namespace Js
                 args.Values[0] = newThisObject;
             }
 
-            ushort newCount = (ushort)(args.Info.Count + 1);
+            ushort newCount = (ushort)args.Info.Count;
+            if (isNewCall)
+            {
+                newCount++;
+                if (!newCount)
+                {
+                    ::Math::DefaultOverflowPolicy();
+                }
+            }
+
             Var* newValues;
             const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
             Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
@@ -2181,14 +2191,21 @@ namespace Js
             {
                 newValues = stackArgs;
             }
-            CallInfo calleeInfo((CallFlags)(args.Info.Flags | CallFlags_ExtraArg | CallFlags_NewTarget), newCount);
+            CallInfo calleeInfo((CallFlags)(args.Info.Flags), newCount);
+            if (isNewCall)
+            {
+                calleeInfo.Flags = (CallFlags)(calleeInfo.Flags | CallFlags_ExtraArg | CallFlags_NewTarget);
+            }
 
             for (uint argCount = 0; argCount < args.Info.Count; argCount++)
             {
                 newValues[argCount] = args.Values[argCount];
             }
 #pragma prefast(suppress:6386)
-            newValues[args.Info.Count] = newTarget;
+            if (isNewCall)
+            {
+                newValues[args.Info.Count] = newTarget;
+            }
 
             Js::Arguments arguments(calleeInfo, newValues);
             Var aReturnValue = JavascriptFunction::CallFunction<true>(targetObj, targetObj->GetEntryPoint(), arguments);
