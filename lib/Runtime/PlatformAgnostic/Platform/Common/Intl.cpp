@@ -408,11 +408,11 @@ namespace Intl
     // We explicitly declare these specializations of FormatNumber so the compiler creates them
     // because they will be used in another compilation unit,
     // at which time we cannot generate code for specializations of this template.
-    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, int32_t val, uint16 formatterToUse, uint16 currencyDisplay);
-    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, double val, uint16 formatterToUse, uint16 currencyDisplay);
+    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const int32_t val, const uint16 formatterToUse, const uint16 currencyDisplay, const char16 *currencyCode);
+    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const double val, const uint16 formatterToUse, const uint16 currencyDisplay, const char16 *currencyCode);
 
     template <typename T>
-    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, T val, uint16 formatterToUse, uint16 currencyDisplay)
+    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const uint16 formatterToUse, const uint16 currencyDisplay, const char16 *currencyCode)
     {
         icu::UnicodeString result;
 
@@ -434,7 +434,8 @@ namespace Intl
         {
             UErrorCode error = UErrorCode::U_ZERO_ERROR;
 
-            const UChar *currencyCode = reinterpret_cast<const UChar *>(numberFormatter->getCurrency());
+            // const UChar *currencyCode = reinterpret_cast<const UChar *>(numberFormatter->getCurrency());
+            const UChar *uCurrencyCode = reinterpret_cast<const UChar *>(currencyCode);
             const char *localeName = numberFormatter->getLocale(ULocDataLocaleType::ULOC_ACTUAL_LOCALE, error).getName();
 
             if (U_FAILURE(error))
@@ -453,14 +454,14 @@ namespace Intl
             }
             else if (currencyDisplay == 1) // code (USD 42.00)
             {
-                result.append(currencyCode);
+                result.append(uCurrencyCode);
                 result.append("\u00a0"); // NON-BREAKING SPACE
                 numberFormatter->format(val, result);
             }
             else if (currencyDisplay == 2) // name (dollars)
             {
-                const char *pluralCount = nullptr;
-                const UChar *currencyLongName = ucurr_getPluralName(currencyCode, localeName, &isChoiceFormat, pluralCount, &currencyNameLen, &error);
+                const char *pluralCount = nullptr; // REVIEW (doilij): is this okay? It's not entirely clear from the documentation whether this is an optional parameter.
+                const UChar *currencyLongName = ucurr_getPluralName(uCurrencyCode, localeName, &isChoiceFormat, pluralCount, &currencyNameLen, &error);
 
                 if (U_FAILURE(error))
                 {

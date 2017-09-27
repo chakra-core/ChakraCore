@@ -1447,6 +1447,11 @@ namespace Js
 
         uint16 formatterToUse = 0; // __formatterToUse: 0 (default) is number, 1 is percent, 2 is currency
         uint16 currencyDisplay = 0; // __currencyDisplayToUse: 0 (default) is symbol, 1 is code, 2 is name
+        JavascriptString *currencyCodeJsString = nullptr;
+
+        // It is okay for currencyCode to be nullptr if we are NOT formatting a currency.
+        // If we are formatting a currency, the Intl.js logic will ensure __currency is set correctly or otherwise will throw so we don't reach here.
+        const char16 *currencyCode = nullptr;
 
         if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt))
         {
@@ -1456,16 +1461,21 @@ namespace Js
         {
             currencyDisplay = TaggedInt::ToUInt16(propertyValue);
         }
+        if (GetTypedPropertyBuiltInFrom(options, __currency, JavascriptString))
+        {
+            currencyCodeJsString = JavascriptString::FromVar(propertyValue);
+            currencyCode = currencyCodeJsString->GetSz();
+        }
 
         if (TaggedInt::Is(args.Values[1]))
         {
             int32 val = TaggedInt::ToInt32(args.Values[1]);
-            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay);
+            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay, currencyCode);
         }
         else
         {
             double val = JavascriptNumber::GetValue(args.Values[1]);
-            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay);
+            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay, currencyCode);
         }
 
         PlatformAgnostic::Resource::StringBufferAutoPtr<char16> guard(strBuf); // ensure strBuf is deleted no matter what

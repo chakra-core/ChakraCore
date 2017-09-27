@@ -60,7 +60,7 @@ namespace Intl
     HRESULT SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits);
 
     template <typename T>
-    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, T val, uint16 formatterToUse, uint16 currencyDisplay);
+    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const uint16 formatterToUse, const uint16 currencyDisplay, const char16 *currencyCode);
 
 } // namespace Intl
 } // namespace PlatformAgnostic
