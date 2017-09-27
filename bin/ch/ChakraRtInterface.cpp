@@ -173,6 +173,9 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
 /*static*/
 void ChakraRTInterface::UnloadChakraDll(HINSTANCE library)
 {
+    m_testHooks = { 0 };
+    m_testHooksSetup = false;
+    m_testHooksInitialized = false;
 #ifndef CHAKRA_STATIC_LIBRARY
     Assert(library != nullptr);
     FARPROC pDllCanUnloadNow = (FARPROC) GetChakraCoreSymbol(library, "DllCanUnloadNow");
