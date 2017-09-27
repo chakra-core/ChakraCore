@@ -171,6 +171,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\DetachedStateBase.h" />
     <ClInclude Include="..\InternalPropertyList.h" />
     <ClInclude Include="..\RuntimeCommon.h" />
     <ClInclude Include="..\SerializableFunctionFields.h" />

@@ -258,6 +258,7 @@
     <ClInclude Include="WabtInterface.h" />
     <ClInclude Include="CustomExternalIterator.h" />
     <ClInclude Include="JavascriptExceptionMetadata.h" />
+    <ClInclude Include="..\DetachedStateBase.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />
