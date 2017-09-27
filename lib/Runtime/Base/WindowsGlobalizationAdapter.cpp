@@ -834,7 +834,7 @@ if (this->object) \
         UErrorCode error = U_ZERO_ERROR;
         char bcp47[ULOC_FULLNAME_CAPACITY];
 
-        int32_t written = uloc_toLanguageTag("en_UK", bcp47, ULOC_FULLNAME_CAPACITY, true, &error);
+        int32_t written = uloc_toLanguageTag(uloc_getDefault(), bcp47, ULOC_FULLNAME_CAPACITY, true, &error);
 
         // REVIEW (jahorto): if getting the language tag for NULL (default) fails, is there any backup?
         if (!U_SUCCESS(error) || written <= 0)
