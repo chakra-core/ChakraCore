@@ -2847,14 +2847,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->GenerateLdFuncObjProto(instr);
             break;
 
-        case Js::OpCode::ScopedLdHomeObj:
-            instrPrev = m_lowererMD.LowerLdSuper(instr, IR::HelperScopedLdHomeObj);
-            break;
-
-        case Js::OpCode::ScopedLdFuncObj:
-            instrPrev = m_lowererMD.LowerLdSuper(instr, IR::HelperScopedLdFuncObj);
-            break;
-
         case Js::OpCode::SetHomeObj:
         {
             this->GenerateSetHomeObj(instr);

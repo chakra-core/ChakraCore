@@ -7657,16 +7657,6 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         return JavascriptOperators::OP_LdFuncObj(function, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_ScopedLdHomeObj(ScriptContext * scriptContext)
-    {
-        return JavascriptOperators::OP_ScopedLdHomeObj(function, scriptContext);
-    }
-
-    Var InterpreterStackFrame::OP_ScopedLdFuncObj(ScriptContext * scriptContext)
-    {
-        return JavascriptOperators::OP_ScopedLdFuncObj(function, scriptContext);
-    }
-
     Var InterpreterStackFrame::OP_ImportCall(Var specifier, ScriptContext *scriptContext)
     {
         return JavascriptOperators::OP_ImportCall(function, specifier, scriptContext);

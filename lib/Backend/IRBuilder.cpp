@@ -4599,7 +4599,7 @@ IRBuilder::BuildElementC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
                 fieldSymOpnd->AsPropertySymOpnd()->TryDisableRuntimePolymorphicCache();
             }
 
-            value2Opnd = this->BuildDstOpnd(value2Slot);
+            value2Opnd = this->BuildSrcOpnd(value2Slot);
             regOpnd = this->BuildDstOpnd(regSlot);
 
             instr = IR::ProfiledInstr::New(newOpcode, regOpnd, fieldSymOpnd, value2Opnd, m_func);

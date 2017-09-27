@@ -29,10 +29,6 @@ FuncInfo::FuncInfo(
     undefinedConstantRegister(Js::Constants::NoRegister),
     trueConstantRegister(Js::Constants::NoRegister),
     falseConstantRegister(Js::Constants::NoRegister),
-    thisPointerRegister(Js::Constants::NoRegister),
-    superRegister(Js::Constants::NoRegister),
-    superCtorRegister(Js::Constants::NoRegister),
-    newTargetRegister(Js::Constants::NoRegister),
     envRegister(Js::Constants::NoRegister),
     frameObjRegister(Js::Constants::NoRegister),
     frameSlotsRegister(Js::Constants::NoRegister),
@@ -71,14 +67,6 @@ FuncInfo::FuncInfo(
     inlineCacheMap(nullptr),
     slotProfileIdMap(alloc),
     argsPlaceHolderSlotCount(0),
-    thisScopeSlot(Js::Constants::NoProperty),
-    superScopeSlot(Js::Constants::NoProperty),
-    superCtorScopeSlot(Js::Constants::NoProperty),
-    newTargetScopeSlot(Js::Constants::NoProperty),
-    isThisLexicallyCaptured(false),
-    isSuperLexicallyCaptured(false),
-    isSuperCtorLexicallyCaptured(false),
-    isNewTargetLexicallyCaptured(false),
     inlineCacheCount(0),
     rootObjectLoadInlineCacheCount(0),
     rootObjectLoadMethodInlineCacheCount(0),
@@ -86,6 +74,10 @@ FuncInfo::FuncInfo(
     isInstInlineCacheCount(0),
     referencedPropertyIdCount(0),
     argumentsSymbol(nullptr),
+    thisSymbol(nullptr),
+    newTargetSymbol(nullptr),
+    superSymbol(nullptr),
+    superConstructorSymbol(nullptr),
     nonUserNonTempRegistersToInitialize(alloc),
     constantToRegister(alloc, 17),
     stringToRegister(alloc, 17),
@@ -148,51 +140,6 @@ BOOL FuncInfo::IsClassConstructor() const
 BOOL FuncInfo::IsBaseClassConstructor() const
 {
     return root->sxFnc.IsBaseClassConstructor();
-}
-
-void FuncInfo::EnsureThisScopeSlot()
-{
-    if (this->thisScopeSlot == Js::Constants::NoProperty)
-    {
-        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
-        Scope* scope = this->IsBodyAndParamScopeMerged() ? this->bodyScope : this->paramScope;
-        Scope* currentScope = scope->IsGlobalEvalBlockScope() ? this->GetGlobalEvalBlockScope() : scope;
-
-        this->thisScopeSlot = currentScope->AddScopeSlot();
-    }
-}
-
-void FuncInfo::EnsureSuperScopeSlot()
-{
-    if (this->superScopeSlot == Js::Constants::NoProperty)
-    {
-        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
-        Scope* scope = this->IsBodyAndParamScopeMerged() ? this->bodyScope : this->paramScope;
-
-        this->superScopeSlot = scope->AddScopeSlot();
-    }
-}
-
-void FuncInfo::EnsureSuperCtorScopeSlot()
-{
-    if (this->superCtorScopeSlot == Js::Constants::NoProperty)
-    {
-        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
-        Scope* scope = this->IsBodyAndParamScopeMerged() ? this->bodyScope : this->paramScope;
-
-        this->superCtorScopeSlot = scope->AddScopeSlot();
-    }
-}
-
-void FuncInfo::EnsureNewTargetScopeSlot()
-{
-    if (this->newTargetScopeSlot == Js::Constants::NoProperty)
-    {
-        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
-        Scope* scope = this->IsBodyAndParamScopeMerged() ? this->bodyScope : this->paramScope;
-
-        this->newTargetScopeSlot = scope->AddScopeSlot();
-    }
 }
 
 Scope *

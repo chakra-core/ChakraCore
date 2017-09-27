@@ -136,7 +136,7 @@ namespace Js
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableObjectDisplay, this);
         }
 
-        if (this->isConst || this->propId == Js::PropertyIds::_superReferenceSymbol || this->propId == Js::PropertyIds::_superCtorReferenceSymbol)
+        if (this->isConst || this->propId == Js::PropertyIds::_super || this->propId == Js::PropertyIds::_superConstructor)
         {
             pOMDisplay->SetDefaultTypeAttribute(DBGPROP_ATTRIB_VALUE_READONLY);
         }
@@ -414,7 +414,7 @@ namespace Js
             Assert(pResolvedObject->propId != Js::Constants::NoProperty);
             Assert(!Js::IsInternalPropertyId(pResolvedObject->propId));
 
-            if (pResolvedObject->propId == Js::PropertyIds::_superReferenceSymbol || pResolvedObject->propId == Js::PropertyIds::_superCtorReferenceSymbol)
+            if (pResolvedObject->propId == Js::PropertyIds::_super || pResolvedObject->propId == Js::PropertyIds::_superConstructor)
             {
                 pResolvedObject->name         = _u("super");
             }
@@ -522,13 +522,12 @@ namespace Js
         // Default to writable (for the case of vars and internal properties).
         *isConst = false;
 
-
-        if (!allowLexicalThis && (propertyId == Js::PropertyIds::_lexicalThisSlotSymbol || propertyId == Js::PropertyIds::_lexicalNewTargetSymbol))
+        if (!allowLexicalThis && (propertyId == Js::PropertyIds::_this || propertyId == Js::PropertyIds::_newTarget))
         {
             return false;
         }
 
-        if (!allowSuperReference && (propertyId == Js::PropertyIds::_superReferenceSymbol || propertyId == Js::PropertyIds::_superCtorReferenceSymbol))
+        if (!allowSuperReference && (propertyId == Js::PropertyIds::_super || propertyId == Js::PropertyIds::_superConstructor))
         {
             return false;
         }

@@ -3,6 +3,7 @@ HasFuncDecl: test3
 HasFuncAssignment: func3
 HasMaybeEscapedUse: func3
 HasMaybeEscapedNestedFunc (MaybeEscapedUse): test3 (function  (#1.2), #3)
+HasMaybeEscapedUse: *this*
 toString3
 test1
 toString3

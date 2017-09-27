@@ -167,8 +167,6 @@ public:
     Js::RegSlot AssignUndefinedConstRegister();
     Js::RegSlot AssignTrueConstRegister();
     Js::RegSlot AssignFalseConstRegister();
-    Js::RegSlot AssignThisRegister();
-    Js::RegSlot AssignNewTargetRegister();
     void SetNeedEnvRegister();
     void AssignFrameObjRegister();
     void AssignFrameSlotsRegister();
@@ -180,7 +178,6 @@ public:
     void InitScopeSlotArray(FuncInfo * funcInfo);
     void FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
     void SetClosureRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
-    void EnsureSpecialScopeSlots(FuncInfo* funcInfo, Scope* scope);
     void SetHasTry(bool has);
     void SetHasFinally(bool has);
     void SetNumberOfInArgs(Js::ArgSlot argCount);
@@ -280,14 +277,10 @@ public:
     void LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromParams = false);
     void EmitThis(FuncInfo *funcInfo, Js::RegSlot fromRegister);
     void LoadNewTargetObject(FuncInfo *funcInfo);
+    void LoadSuperObject(FuncInfo *funcInfo);
+    void LoadSuperConstructorObject(FuncInfo *funcInfo);
     void GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &scope, Js::PropertyId &envIndex);
-    void EmitInternalScopedSlotLoad(FuncInfo *funcInfo, Js::RegSlot slot, Js::RegSlot symbolRegister, bool chkUndecl = false);
-    void EmitInternalScopedSlotLoad(FuncInfo *funcInfo, Scope *scope, Js::PropertyId envIndex, Js::RegSlot slot, Js::RegSlot symbolRegister, bool chkUndecl = false);
-    void EmitInternalScopedSlotStore(FuncInfo *funcInfo, Js::RegSlot slot, Js::RegSlot symbolRegister);
-    void EmitInternalScopeObjInit(FuncInfo *funcInfo, Scope *scope, Js::RegSlot valueLocation, Js::PropertyId propertyId);
     void EmitSuperCall(FuncInfo* funcInfo, ParseNode* pnode, BOOL fReturnValue);
-    void EmitScopeSlotLoadThis(FuncInfo *funcInfo, Js::RegSlot regLoc, bool chkUndecl = true);
-    void EmitScopeSlotStoreThis(FuncInfo *funcInfo, Js::RegSlot regLoc, bool chkUndecl = false);
     void EmitClassConstructorEndCode(FuncInfo *funcInfo);
     void EmitBaseClassConstructorThisObject(FuncInfo *funcInfo);
 
@@ -304,11 +297,14 @@ public:
     void EmitOneFunction(ParseNode *pnode);
     void EmitGlobalFncDeclInit(Js::RegSlot rhsLocation, Js::PropertyId propertyId, FuncInfo * funcInfo);
     void EmitLocalPropInit(Js::RegSlot rhsLocation, Symbol *sym, FuncInfo *funcInfo);
-    void EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool isLet = false, bool isConst = false, bool isFncDeclVar = false);
-    void EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
+    void EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool isLet = false, bool isConst = false, bool isFncDeclVar = false, bool skipUseBeforeDeclarationCheck = false);
+    void EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool skipUseBeforeDeclarationCheck = false);
     void EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
     void EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
     void EmitTypeOfFld(FuncInfo * funcInfo, Js::PropertyId propertyId, Js::RegSlot value, Js::RegSlot instance, Js::OpCode op1);
+
+    void EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pnode, FuncInfo *funcInfo, bool chkUndecl);
+    void EmitPropStoreForSpecialSymbol(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool init);
 
     void EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot *pThisLocation, Js::RegSlot *pTargetLocation, FuncInfo *funcInfo);
     void EmitGlobalBody(FuncInfo *funcInfo);
@@ -364,6 +360,9 @@ public:
 
     static bool IsFalse(ParseNode* node);
 
+    static bool IsThis(ParseNode* pnode);
+    static bool IsSuper(ParseNode* pnode);
+
     void StartStatement(ParseNode* node);
     void EndStatement(ParseNode* node);
     void StartSubexpression(ParseNode* node);
@@ -390,11 +389,6 @@ public:
     void CheckDeferParseHasMaybeEscapedNestedFunc();
     bool NeedObjectAsFunctionScope(FuncInfo * funcInfo, ParseNode * pnodeFnc) const;
     bool HasInterleavingDynamicScope(Symbol * sym) const;
-
-    void MarkThisUsedInLambda();
-
-    void EmitInitCapturedThis(FuncInfo* funcInfo, Scope* scope);
-    void EmitInitCapturedNewTarget(FuncInfo* funcInfo, Scope* scope);
 
     Js::FunctionBody *EnsureFakeGlobalFuncForUndefer(ParseNode *pnode);
     Js::FunctionBody *MakeGlobalFunctionBody(ParseNode *pnode);
