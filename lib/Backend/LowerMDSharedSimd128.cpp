@@ -931,17 +931,14 @@ IR::Instr * LowererMD::SIMD128LowerReplaceLane_2(IR::Instr *instr)
         AssertMsg(AutoSystemInfo::Data.SSE2Available(), "SSE2 not supported");
         Assert(src3->IsFloat64());
         m_lowerer->InsertMove(dst, src1, instr);
-        if (lane)
+        if (lane) 
         {
-            //move lower to higher
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPD, dst, dst, IR::IntConstOpnd::New(0 | 0 << 2, TyInt8, m_func, true), m_func));
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPD, dst, src3, IR::IntConstOpnd::New(0, TyInt8, m_func, true), m_func));
         }
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVSD, dst, src3, m_func));
-        if (lane)
+        else 
         {
-            //swap lower and upper
-            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPD, dst, dst, IR::IntConstOpnd::New(1 | 0 << 2, TyInt8, m_func, true), m_func));
-        }
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVSD, dst, src3, m_func));
+        }    
         return removeInstr(instr);
     }
 
