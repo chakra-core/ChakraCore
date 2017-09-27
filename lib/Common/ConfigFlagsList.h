@@ -1116,7 +1116,7 @@ FLAGNR(Boolean, ForceStaticInterpreterThunk, "Force using static interpreter thu
 FLAGNR(Boolean, DumpCommentsFromReferencedFiles, "Allow printing comments of comment-table of the referenced file as well (use with -trace:CommentTable)", DEFAULT_CONFIG_DumpCommentsFromReferencedFiles)
 FLAGNR(Number,  DelayFullJITSmallFunc , "Scale Full JIT threshold for small functions which are going to be inlined soon. To provide fraction scale, the final scale is scale following this option divided by 10", DEFAULT_CONFIG_DelayFullJITSmallFunc)
 
-#ifdef _M_ARM
+#if defined(_M_ARM32_OR_ARM64)
 FLAGNR(Boolean, ForceLocalsPtr        , "Force use of alternative locals pointer (JIT only)", false)
 #endif
 FLAGNR(Boolean, DeferLoadingAvailableSource, "Treat available source code as a dummy defer-mappable object to go through that code path.", DEFAULT_CONFIG_DeferLoadingAvailableSource)

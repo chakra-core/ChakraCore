@@ -108,6 +108,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\PeepsMD.cpp">
       <Filter>arm</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\ARM64LogicalImmediates.cpp">
+      <Filter>arm64</Filter>
+    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)arm64\PeepsMD.cpp">
       <Filter>arm64</Filter>
     </ClCompile>
@@ -210,6 +213,12 @@
     <ClInclude Include="arm64\ARM64Encoder.h">
       <Filter>arm64</Filter>
     </ClInclude>
+    <ClInclude Include="arm64\ARM64LogicalImmediates.h">
+      <Filter>arm64</Filter>
+    </ClInclude>
+    <ClInclude Include="arm64\ARM64NeonEncoder.h">
+      <Filter>arm64</Filter>
+    </ClInclude>
     <ClInclude Include="arm\AssemblyStep.h">
       <Filter>arm</Filter>
     </ClInclude>
@@ -267,14 +276,8 @@
     <ClInclude Include="arm\LinearScanMD.h">
       <Filter>arm</Filter>
     </ClInclude>
-    <ClInclude Include="arm64\LinearScanMD.h">
-      <Filter>arm64</Filter>
-    </ClInclude>
     <ClInclude Include="amd64\LowererMDArch.h">
       <Filter>amd64</Filter>
-    </ClInclude>
-    <ClInclude Include="arm64\MdOpCodes.h">
-      <Filter>arm64</Filter>
     </ClInclude>
     <ClInclude Include="arm\LowerMD.h">
       <Filter>arm</Filter>
@@ -316,7 +319,7 @@
       <Filter>arm</Filter>
     </ClInclude>
     <ClInclude Include="arm64\PeepsMD.h">
-      <Filter>arm</Filter>
+      <Filter>arm64</Filter>
     </ClInclude>
     <ClInclude Include="amd64\PeepsMD.h">
       <Filter>amd64</Filter>
@@ -328,7 +331,7 @@
       <Filter>arm</Filter>
     </ClInclude>
     <ClInclude Include="arm64\Reg.h">
-      <Filter>arm</Filter>
+      <Filter>arm64</Filter>
     </ClInclude>
     <ClInclude Include="arm\UnwindCodes.h">
       <Filter>arm</Filter>
