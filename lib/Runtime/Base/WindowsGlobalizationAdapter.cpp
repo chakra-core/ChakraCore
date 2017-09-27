@@ -831,15 +831,26 @@ if (this->object) \
 
     size_t IcuIntlAdapter::GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLangtag)
     {
-        UErrorCode error = U_ZERO_ERROR;
+        UErrorCode error = UErrorCode::U_ZERO_ERROR;
         char bcp47[ULOC_FULLNAME_CAPACITY];
+        char defaultLocaleId[ULOC_FULLNAME_CAPACITY];
 
-        int32_t written = uloc_toLanguageTag(uloc_getDefault(), bcp47, ULOC_FULLNAME_CAPACITY, true, &error);
-
-        // REVIEW (jahorto): if getting the language tag for NULL (default) fails, is there any backup?
-        if (!U_SUCCESS(error) || written <= 0)
+        int32_t written = uloc_getName(nullptr, defaultLocaleId, ULOC_FULLNAME_CAPACITY, &error);
+        if (U_FAILURE(error) || written <= 0 || written >= ULOC_FULLNAME_CAPACITY)
         {
-            AssertMsg(false, "uloc_toLanguageTag: unexpected error getting default locale");
+            AssertMsg(false, "uloc_getName: unexpected error getting default localeId");
+            return 0;
+        }
+        else
+        {
+            defaultLocaleId[written] = 0;
+            error = UErrorCode::U_ZERO_ERROR;
+        }
+
+        written = uloc_toLanguageTag(defaultLocaleId, bcp47, ULOC_FULLNAME_CAPACITY, true, &error);
+        if (U_FAILURE(error) || written <= 0)
+        {
+            AssertMsg(false, "uloc_toLanguageTag: unexpected error getting default langtag");
             return 0;
         }
 
