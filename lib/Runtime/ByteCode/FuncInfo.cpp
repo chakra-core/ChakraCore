@@ -136,22 +136,21 @@ BOOL FuncInfo::HasDirectSuper() const
 
 BOOL FuncInfo::IsClassMember() const
 {
-    return root->sxFnc.IsClassMember();
+    return this->byteCodeFunction->IsClassMethod();
 }
 
-BOOL FuncInfo::IsLambda() const
-{
-    return root->sxFnc.IsLambda();
+BOOL FuncInfo::IsLambda() const {
+    return this->byteCodeFunction->IsLambda();
 }
 
 BOOL FuncInfo::IsClassConstructor() const
 {
-    return root->sxFnc.IsClassConstructor();
+    return this->byteCodeFunction->IsClassConstructor();
 }
 
 BOOL FuncInfo::IsBaseClassConstructor() const
 {
-    return root->sxFnc.IsBaseClassConstructor();
+    return this->byteCodeFunction->IsBaseClassConstructor();
 }
 
 BOOL FuncInfo::IsDerivedClassConstructor() const

@@ -217,7 +217,7 @@ enum FunctionFlags
     ffIsAnonymous                      = 0x100000,
     ffUsesArgumentsObject              = 0x200000,
     ffDoScopeObjectCreation            = 0x400000,
-    ffIsParamAndBodyScopeMerged        = 0x800000
+    ffIsParamAndBodyScopeMerged        = 0x800000,
 };
 
 // Kinds of constant
@@ -2043,10 +2043,11 @@ public:
                   | FunctionInfo::Attributes::CapturesThis
                   | FunctionInfo::Attributes::Generator
                   | FunctionInfo::Attributes::ClassConstructor
+                  | FunctionInfo::Attributes::BaseConstructorKind
                   | FunctionInfo::Attributes::ClassMethod
                   | FunctionInfo::Attributes::EnclosedByGlobalFunc
                   | FunctionInfo::Attributes::AllowDirectSuper)) == 0,
-                "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember|EnclosedByGlobalFunc|AllowDirectSuper attributes should be set on a serialized function");
+                "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|BaseConstructorKind|Async|ClassMember|EnclosedByGlobalFunc|AllowDirectSuper attributes should be set on a serialized function");
 
         PrependInt32(builder, _u("Offset Into Source"), sourceDiff);
         if (function->GetNestedCount() > 0)

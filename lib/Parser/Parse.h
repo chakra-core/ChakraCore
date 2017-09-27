@@ -765,7 +765,7 @@ private:
     void FinishParseBlock(ParseNode *pnodeBlock, bool needScanRCurly = true);
     void FinishParseFncExprScope(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncExprScope);
 
-    void CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal);
+    template<bool buildAST> void CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal);
     ParseNodePtr ReferenceSpecialName(IdentPtr pid, charcount_t ichMin = 0, charcount_t ichLim = 0, bool createNode = false);
     ParseNodePtr CreateSpecialVarDeclIfNeeded(ParseNodePtr pnodeFnc, IdentPtr pid, bool forceCreate = false);
 
@@ -809,8 +809,8 @@ private:
     template<bool buildAST> void ParseExpressionLambdaBody(ParseNodePtr pnodeFnc);
     template<bool buildAST> void UpdateCurrentNodeFunc(ParseNodePtr pnodeFnc, bool fLambda);
     bool FncDeclAllowedWithoutContext(ushort flags);
-    void FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef, bool skipCurlyBraces = false);
-    void ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint);
+    void FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef, bool fLambda, bool skipCurlyBraces = false);
+    void ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, bool fLambda, bool *pNeedScanRCurly = nullptr);
     void ParseNestedDeferredFunc(ParseNodePtr pnodeFnc, bool fLambda, bool *pNeedScanRCurly, bool *pStrictModeTurnedOn);
     void CheckStrictFormalParameters();
     ParseNodePtr AddArgumentsNodeToVars(ParseNodePtr pnodeFnc);
