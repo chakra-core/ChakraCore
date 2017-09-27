@@ -17,25 +17,27 @@
 const int MachChar = 1;
 const int MachShort = 2;
 const int MachInt = 4;
-const int MachRegInt = 8;
-__declspec(selectany) const int MachPtr = 8;
+const int MachRegInt = 4;
+__declspec(selectany) const int MachPtr = 4;
 const int MachDouble = 8;
 const int MachRegDouble = 8;
 const int MachArgsSlotOffset = MachPtr;
-const int MachStackAlignment = 16;
+const int MachStackAlignment = MachDouble;
 
 const int PAGESIZE = 0x1000;
 
-const IRType TyMachReg = TyInt64;
-const IRType TyMachPtr = TyUint64;
+const IRType TyMachReg = TyInt32;
+const IRType TyMachPtr = TyUint32;
 const IRType TyMachDouble = TyFloat64;
 
 const DWORD EMIT_BUFFER_ALIGNMENT = 16;
-const DWORD INSTR_ALIGNMENT = 4;
+const DWORD INSTR_ALIGNMENT = 2;
 
 #ifdef INSERT_NOPS
 const int CountNops = 10;
-const int MachMaxInstrSize = (CountNops + 1)*4;
+const int MachMaxInstrSize = (2 * CountNops + 1)*4;
 #else
 const int MachMaxInstrSize = 4;
 #endif
+
+#define SOFTWARE_FIXFOR_HARDWARE_BUGWIN8_502326

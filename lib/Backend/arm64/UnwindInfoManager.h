@@ -22,14 +22,17 @@ public:
         hasCalls(false),
         prologLabelId(0),
         epilogEndLabelId(0),
-        pdataArray(NULL),
-        xdataArray(NULL)
+        jitOutput(nullptr),
+        alloc(nullptr),
+        xdataTotal(0),
+        pdataIndex(0),
+        savedScratchReg(false)
     {
     }
 
-    void Init(Func * func) { this->func = func; }
-    void EmitUnwindInfo(PBYTE funcStart, DWORD size, CustomHeap::Allocation* allocation) { __debugbreak(); }
-    DWORD EmitLongUnwindInfoChunk(DWORD remainingLength) { __debugbreak(); }
+    void Init(Func * func);
+    void EmitUnwindInfo(JITOutput *jitOutput, CustomHeap::Allocation * alloc);
+    DWORD EmitLongUnwindInfoChunk(DWORD remainingLength);
 
     void SetFunc(Func *func)
     {
@@ -41,11 +44,11 @@ public:
         return this->func;
     }
 
-    void SetFragmentStart(PBYTE pStart)
+    void SetFragmentStart(size_t pStart)
     {
         this->fragmentStart = pStart;
     }
-    PBYTE GetFragmentStart() const
+    size_t GetFragmentStart() const
     {
         return this->fragmentStart;
     }
@@ -128,23 +131,29 @@ public:
         return this->epilogEndLabelId;
     }
 
-    bool GetHasChkStk() const { __debugbreak(); return 0; }
-    DWORD GetPDataCount(DWORD length) { __debugbreak(); return 0; }
-    void SetSavedReg(BYTE reg) { __debugbreak(); }
-    DWORD ClearSavedReg(DWORD mask, BYTE reg) const { __debugbreak(); return 0; }
+    bool GetHasChkStk() const;
+    DWORD GetPDataCount(DWORD length);
+    void SetSavedReg(BYTE reg);
+    DWORD ClearSavedReg(DWORD mask, BYTE reg) const;
 
-    void SetDoubleSavedRegList(DWORD doubleRegMask) { __debugbreak(); }
-    DWORD GetDoubleSavedRegList() const { __debugbreak(); return 0; }
+    void SetDoubleSavedRegList(DWORD doubleRegMask);
+    DWORD GetDoubleSavedRegList() const;
 
-    static BYTE GetLastSavedReg(DWORD mask) { __debugbreak(); return 0; }
-    static BYTE GetFirstSavedReg(DWORD mask) { __debugbreak(); return 0; }
+    static BYTE GetLastSavedReg(DWORD mask);
+    static BYTE GetFirstSavedReg(DWORD mask);
+
+    void SetSavedScratchReg(bool value) { savedScratchReg = value; }
+    bool GetSavedScratchReg() { return savedScratchReg; }
 
 private:
 
     Func * func;
-    PBYTE fragmentStart;
-    RUNTIME_FUNCTION* pdataArray;
-    BYTE* xdataArray;
+    size_t fragmentStart;
+    int pdataIndex;
+    int xdataTotal;
+    HANDLE processHandle;
+    JITOutput *jitOutput;
+    CustomHeap::Allocation * alloc;
     DWORD fragmentLength;
     DWORD prologOffset;
     DWORD prologLabelId;
@@ -157,6 +166,7 @@ private:
     bool hasCalls;
     bool fragmentHasProlog;
     bool fragmentHasEpilog;
+    bool savedScratchReg;
 
     void EmitPdata();
     bool CanEmitPackedPdata() const;
@@ -180,10 +190,10 @@ private:
     DWORD EmitXdataEnd(BYTE xData[], DWORD byte);
     DWORD EmitXdataEndPlus16(BYTE xData[], DWORD byte);
     DWORD EmitXdataLocalsPointer(BYTE xData[], DWORD byte, BYTE regEncode);
-
     DWORD RelativeRegEncoding(RegNum reg, RegNum baseReg) const;
     DWORD WriteXdataBytes(BYTE xdata[], DWORD byte, DWORD encoding, DWORD length);
 
+    void RecordPdataEntry(DWORD beginAddress, DWORD unwindData);
     // Constants defined in the ABI.
 
     static const DWORD MaxPackedPdataFuncLength = 0xFFE;

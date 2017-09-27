@@ -588,9 +588,14 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
 DWORD InterpreterThunkEmitter::EncodeMove(DWORD opCode, int reg, DWORD imm16)
 {
     DWORD encodedMove = reg << 24;
+#if _M_ARM
     DWORD encodedImm = 0;
     EncoderMD::EncodeImmediate16(imm16, &encodedImm);
     encodedMove |= encodedImm;
+#elif _M_ARM64
+    // ToDo (SaAgarwa) - From Aaron change. Validate for ARM64
+    encodedMove |= (imm16 & 0xFFFF) << 5;
+#endif
     AssertMsg((encodedMove & opCode) == 0, "Any bits getting overwritten?");
     encodedMove |= opCode;
     return encodedMove;
@@ -674,9 +679,14 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
 DWORD InterpreterThunkEmitter::EncodeMove(DWORD opCode, int reg, DWORD imm16)
 {
     DWORD encodedMove = reg << 0;
+#if _M_ARM
     DWORD encodedImm = 0;
     EncoderMD::EncodeImmediate16(imm16, &encodedImm);
     encodedMove |= encodedImm;
+#elif _M_ARM64
+    // ToDo (SaAgarwa) - From Aaron change. Validate for ARM64
+    encodedMove |= (imm16 & 0xFFFF) << 5;
+#endif
     AssertMsg((encodedMove & opCode) == 0, "Any bits getting overwritten?");
     encodedMove |= opCode;
     return encodedMove;
