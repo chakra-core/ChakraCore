@@ -82,11 +82,7 @@ namespace Intl
             goto LReturn;
         }
 
-        // explicitly zero the allocated array
-        for (size_t index = 0; index < inputLangTagUtf8SizeAllocated; ++index)
-        {
-            inputLangTagUtf8[index] = 0;
-        }
+        memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
 
         inputLangTagUtf8SizeActual = utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
 
@@ -142,11 +138,7 @@ namespace Intl
             goto LReturn;
         }
 
-        // explicitly zero the allocated array
-        for (size_t index = 0; index < inputLangTagUtf8SizeAllocated; ++index)
-        {
-            inputLangTagUtf8[index] = 0;
-        }
+        memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
 
         utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
 
@@ -256,11 +248,7 @@ namespace Intl
             return E_OUTOFMEMORY;
         }
 
-        // explicitly zero the allocated array
-        for (size_t index = 0; index < inputLangTagUtf8SizeAllocated; ++index)
-        {
-            inputLangTagUtf8[index] = 0;
-        }
+        memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
 
         utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
 
@@ -318,11 +306,7 @@ namespace Intl
                 return E_OUTOFMEMORY;
             }
 
-            // explicitly zero the allocated array
-            for (size_t index = 0; index < inputLangTagUtf8SizeAllocated; ++index)
-            {
-                inputLangTagUtf8[index] = 0;
-            }
+            memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
         }
 
         StringBufferAutoPtr<unsigned char> guardLangTag(inputLangTagUtf8);
