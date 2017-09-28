@@ -1600,7 +1600,7 @@ void WasmBytecodeGenerator::YieldToBlock(BlockInfo blockInfo, EmitInfo expr)
         if (!IsUnreachable())
         {
             blockInfo.yieldInfo->didYield = true;
-            m_writer->AsmReg2(GetLoadOp(expr.type), yieldInfo.location, expr.location);
+            m_writer->AsmReg2(GetReturnOp(expr.type), yieldInfo.location, expr.location);
         }
     }
 }
