@@ -5,7 +5,9 @@
 namespace Memory
 {
 template <class TBlockAttributes> class SmallFinalizableHeapBucketT;
+#ifdef RECYCLER_VISITED_HOST
 template <class TBlockAttributes> class SmallRecyclerVisitedHostHeapBlockT;
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
 template <class TBlockAttributes> class SmallFinalizableWithBarrierHeapBlockT;
 #endif
@@ -116,7 +118,9 @@ public:
     }
 protected:
     SmallFinalizableHeapBlockT(HeapBucketT<SmallFinalizableHeapBlockT>  * bucket, ushort objectSize, ushort objectCount);
+#ifdef RECYCLER_VISITED_HOST
     SmallFinalizableHeapBlockT(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>> * bucket, ushort objectSize, ushort objectCount, HeapBlockType blockType);
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
     SmallFinalizableHeapBlockT(HeapBucketT<SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>> * bucket, ushort objectSize, ushort objectCount, HeapBlockType blockType);
 #endif
@@ -136,6 +140,7 @@ protected:
 #endif
 };
 
+#ifdef RECYCLER_VISITED_HOST
 template <class TBlockAttributes>
 class SmallRecyclerVisitedHostHeapBlockT : public SmallFinalizableHeapBlockT<TBlockAttributes>
 {
@@ -176,6 +181,7 @@ protected:
     {
     }
 };
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
 template <class TBlockAttributes>
@@ -213,8 +219,10 @@ protected:
 typedef SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>  SmallFinalizableHeapBlock;
 typedef SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>    MediumFinalizableHeapBlock;
 
+#ifdef RECYCLER_VISITED_HOST
 typedef SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes> SmallRecyclerVisitedHostHeapBlock;
 typedef SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes> MediumRecyclerVisitedHostHeapBlock;
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
 typedef SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>   SmallFinalizableWithBarrierHeapBlock;

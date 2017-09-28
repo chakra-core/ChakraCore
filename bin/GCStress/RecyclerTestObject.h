@@ -311,6 +311,8 @@ private:
     FieldNoBarrier(RecyclerTestObject *) references[0];  // SWB-TODO: is this correct?
 };
 
+#ifdef RECYCLER_VISITED_HOST
+
 template <unsigned int minCount, unsigned int maxCount>
 class RecyclerVisitedObject : public RecyclerTestObject
 {
@@ -432,3 +434,4 @@ private:
     Field(unsigned int) count;
     FieldNoBarrier(RecyclerTestObject *) references[0];  // SWB-TODO: is this correct? (copied from TrackedObject)
 };
+#endif

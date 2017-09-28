@@ -90,7 +90,10 @@ enum ObjectInfoBits : unsigned short
 #ifdef RECYCLER_WRITE_BARRIER
     WithBarrierBit              = 0x0100,
 #endif
+
+#ifdef RECYCLER_VISITED_HOST
     RecyclerVisitedHostBit      = 0x0200,
+#endif
 
     // Mask for above bits
     InternalObjectInfoBitMask   = 0x03FF,
@@ -135,6 +138,7 @@ enum ObjectInfoBits : unsigned short
     // Pending dispose objects should have LeafBit set and no others
     PendingDisposeObjectBits    = PendingDisposeBit | LeafBit,
 
+#ifdef RECYCLER_VISITED_HOST
     // Bits for use with recycler visited host heap block.
     // Recycler visited host heap block will both mark and finalize based on IRecyclerVisitedHost v-table, as specified
     // by TrackBit and FinalizeBit. These objects are expected to be allocated by chakra, but implemented by
@@ -152,12 +156,16 @@ enum ObjectInfoBits : unsigned short
     // but are defined here for ease of use.
     RecyclerVisitedHostFinalizableBlockTypeBits = RecyclerVisitedHostBit | LeafBit | FinalizeBit,
     RecyclerVisitedHostTracedFinalizableBlockTypeBits = RecyclerVisitedHostBit | FinalizeBit,
-
-#ifdef RECYCLER_WRITE_BARRIER
-    GetBlockTypeBitMask = FinalizeBit | LeafBit | WithBarrierBit | RecyclerVisitedHostBit,
-#else
-    GetBlockTypeBitMask = FinalizeBit | LeafBit | RecyclerVisitedHostBit,
 #endif
+
+    GetBlockTypeBitMask = FinalizeBit | LeafBit 
+#ifdef RECYCLER_WRITE_BARRIER
+	| WithBarrierBit
+#endif
+#ifdef RECYCLER_VISITED_HOST
+	| RecyclerVisitedHostBit
+#endif
+	,
 
     CollectionBitMask           = LeafBit | FinalizeBit | TrackBit | NewTrackBit,  // Bits relevant to collection
 
@@ -206,36 +214,41 @@ enum FindHeapObjectFlags
 template <class TBlockAttributes> class SmallNormalHeapBlockT;
 template <class TBlockAttributes> class SmallLeafHeapBlockT;
 template <class TBlockAttributes> class SmallFinalizableHeapBlockT;
-template <class TBlockAttributes> class SmallRecyclerVisitedHostHeapBlockT;
+
 #ifdef RECYCLER_WRITE_BARRIER
 template <class TBlockAttributes> class SmallNormalWithBarrierHeapBlockT;
 template <class TBlockAttributes> class SmallFinalizableWithBarrierHeapBlockT;
 
-// EdgeGC-TODO: If we go for a #define for recycler visited block, tease out the permutations.
+#define INSTANTIATE_SWB_BLOCKTYPES(TemplateType) \
+    template class TemplateType<Memory::SmallNormalWithBarrierHeapBlock>; \
+	template class TemplateType<Memory::SmallFinalizableWithBarrierHeapBlock>; \
+	template class TemplateType<Memory::MediumNormalWithBarrierHeapBlock>; \
+    template class TemplateType<Memory::MediumFinalizableWithBarrierHeapBlock>; \
+
+
+#else
+#define INSTANTIATE_SWB_BLOCKTYPES(TemplateType)
+#endif
+
+#ifdef RECYCLER_VISITED_HOST
+template <class TBlockAttributes> class SmallRecyclerVisitedHostHeapBlockT;
+#define INSTANTIATE_RECYCLER_VISITED_BLOCKTYPES(TemplateType) \
+	template class TemplateType<Memory::SmallRecyclerVisitedHostHeapBlock>; \
+	template class TemplateType<Memory::MediumRecyclerVisitedHostHeapBlock>; \
+
+#else
+#define INSTANTIATE_RECYCLER_VISITED_BLOCKTYPES(TemplateType)
+#endif
+
 #define EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(TemplateType) \
     template class TemplateType<Memory::SmallNormalHeapBlock>;        \
     template class TemplateType<Memory::SmallLeafHeapBlock>; \
     template class TemplateType<Memory::SmallFinalizableHeapBlock>; \
-    template class TemplateType<Memory::SmallNormalWithBarrierHeapBlock>; \
-    template class TemplateType<Memory::SmallFinalizableWithBarrierHeapBlock>; \
-    template class TemplateType<Memory::SmallRecyclerVisitedHostHeapBlock>; \
     template class TemplateType<Memory::MediumNormalHeapBlock>; \
     template class TemplateType<Memory::MediumLeafHeapBlock>; \
     template class TemplateType<Memory::MediumFinalizableHeapBlock>; \
-    template class TemplateType<Memory::MediumNormalWithBarrierHeapBlock>; \
-    template class TemplateType<Memory::MediumFinalizableWithBarrierHeapBlock>; \
-    template class TemplateType<Memory::MediumRecyclerVisitedHostHeapBlock>; \
-
-#else
-#define EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(TemplateType) \
-    template class TemplateType<Memory::SmallNormalHeapBlock>; \
-    template class TemplateType<Memory::SmallLeafHeapBlock>; \
-    template class TemplateType<Memory::SmallFinalizableHeapBlock>; \
-    template class TemplateType<Memory::MediumNormalHeapBlock>;     \
-    template class TemplateType<Memory::MediumLeafHeapBlock>; \
-    template class TemplateType<Memory::MediumFinalizableHeapBlock>; \
-
-#endif
+	INSTANTIATE_SWB_BLOCKTYPES(TemplateType) \
+	INSTANTIATE_RECYCLER_VISITED_BLOCKTYPES(TemplateType) \
 
 class RecyclerHeapObjectInfo;
 class HeapBlock
@@ -244,35 +257,58 @@ public:
     enum HeapBlockType : byte
     {
         FreeBlockType = 0,                  // Only used in HeapBlockMap.  Actual HeapBlock structures should never have this.
-        SmallNormalBlockType = 1,
-        SmallLeafBlockType = 2,
-        SmallFinalizableBlockType = 3,
+        SmallNormalBlockType,
+        SmallLeafBlockType,
+        SmallFinalizableBlockType,
 #ifdef RECYCLER_WRITE_BARRIER
-        SmallNormalBlockWithBarrierType = 4,
-        SmallFinalizableBlockWithBarrierType = 5,
+        SmallNormalBlockWithBarrierType,
+        SmallFinalizableBlockWithBarrierType,
 #endif
-        SmallRecyclerVisitedHostBlockType = 6,
-        MediumNormalBlockType = 7,
-        MediumLeafBlockType = 8,
-        MediumFinalizableBlockType = 9,
+#ifdef RECYCLER_VISITED_HOST
+        SmallRecyclerVisitedHostBlockType,
+#endif
+        MediumNormalBlockType,
+        MediumLeafBlockType,
+        MediumFinalizableBlockType,
 #ifdef RECYCLER_WRITE_BARRIER
-        MediumNormalBlockWithBarrierType = 10,
-        MediumFinalizableBlockWithBarrierType = 11,
+        MediumNormalBlockWithBarrierType,
+        MediumFinalizableBlockWithBarrierType,
 #endif
-        MediumRecyclerVisitedHostBlockType = 12,
+#ifdef RECYCLER_VISITED_HOST
+        MediumRecyclerVisitedHostBlockType,
+#endif
+        LargeBlockType,
 
-        LargeBlockType = 13,
+#ifdef RECYCLER_VISITED_HOST
+		SmallAllocBlockTypeCount = 7, // Actual number of types for blocks containing small allocations
+#else
+		SmallAllocBlockTypeCount = 6,
+#endif
 
-        SmallAllocBlockTypeCount = 7,  // Actual number of types for blocks containing small allocations
-        MediumAllocBlockTypeCount = 6, // Actual number of types for blocks containing medium allocations
-        SmallBlockTypeCount = 13,      // Distinct block types independent of allocation size using SmallHeapBlockT
+#ifdef RECYCLER_VISITED_HOST
+		MediumAllocBlockTypeCount = 6, // Actual number of types for blocks containing medium allocations
+#else
+		MediumAllocBlockTypeCount = 5,
+#endif
 
-        BlockTypeCount = 14,
+        SmallBlockTypeCount = SmallAllocBlockTypeCount + MediumAllocBlockTypeCount,      // Distinct block types independent of allocation size using SmallHeapBlockT
+		LargeBlockTypeCount = 1, // There is only one LargeBlockType
+
+        BlockTypeCount = SmallBlockTypeCount + LargeBlockTypeCount,
     };
     bool IsNormalBlock() const { return this->GetHeapBlockType() == SmallNormalBlockType || this->GetHeapBlockType() == MediumNormalBlockType; }
     bool IsLeafBlock() const { return this->GetHeapBlockType() == SmallLeafBlockType || this->GetHeapBlockType() == MediumLeafBlockType; }
-    bool IsFinalizableBlock() const { return this->GetHeapBlockType() == SmallFinalizableBlockType || this->GetHeapBlockType() == MediumFinalizableBlockType || IsRecyclerVisitedHostBlock(); }
+	bool IsFinalizableBlock() const 
+	{
+		return this->GetHeapBlockType() == SmallFinalizableBlockType || this->GetHeapBlockType() == MediumFinalizableBlockType
+#ifdef RECYCLER_VISITED_HOST
+			|| IsRecyclerVisitedHostBlock()
+#endif
+			;
+	}
+#ifdef RECYCLER_VISITED_HOST
     bool IsRecyclerVisitedHostBlock() const { return this->GetHeapBlockType() == SmallRecyclerVisitedHostBlockType || this->GetHeapBlockType() == MediumRecyclerVisitedHostBlockType; }
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     bool IsAnyNormalBlock() const { return IsNormalBlock() || IsNormalWriteBarrierBlock(); }
@@ -297,8 +333,10 @@ public:
     template <typename TBlockAttributes>
     SmallFinalizableHeapBlockT<TBlockAttributes> * AsFinalizableBlock();
 
+#ifdef RECYCLER_VISITED_HOST
     template <typename TBlockAttributes>
     SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes> * AsRecyclerVisitedHostBlock();
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     template <typename TBlockAttributes>
@@ -326,6 +364,7 @@ public:
         heapBlockType(heapBlockType),
         needOOMRescan(false)
     {
+		static_assert(HeapBlockType::LargeBlockType == HeapBlockType::SmallBlockTypeCount, "LargeBlockType must come right after small+medium alloc block types");
         Assert(GetHeapBlockType() <= HeapBlock::HeapBlockType::BlockTypeCount);
     }
 

@@ -238,6 +238,8 @@
 #error "Background page zeroing can't be turned on if freeing pages in the background is disabled"
 #endif
 
+#define RECYCLER_VISITED_HOST
+
 // JIT features
 
 #if DISABLE_JIT

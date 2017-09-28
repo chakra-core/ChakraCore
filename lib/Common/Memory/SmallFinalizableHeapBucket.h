@@ -61,10 +61,12 @@ template <class TBlockAttributes>
 class SmallFinalizableHeapBucketT : public SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlockT<TBlockAttributes> >
 {
 };
+#ifdef RECYCLER_VISITED_HOST
 template <class TBlockAttributes> 
 class SmallRecyclerVisitedHostHeapBucketT : public SmallFinalizableHeapBucketBaseT<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes> >
 {
 };
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
 template <class TBlockAttributes> 
 class SmallFinalizableWithBarrierHeapBucketT : public SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes> >
@@ -74,8 +76,10 @@ class SmallFinalizableWithBarrierHeapBucketT : public SmallFinalizableHeapBucket
 
 typedef SmallFinalizableHeapBucketT<MediumAllocationBlockAttributes> MediumFinalizableHeapBucket;
 typedef SmallFinalizableHeapBucketT<SmallAllocationBlockAttributes> SmallFinalizableHeapBucket;
+#ifdef RECYCLER_VISITED_HOST
 typedef SmallRecyclerVisitedHostHeapBucketT<MediumAllocationBlockAttributes> MediumRecyclerVisitedHostHeapBucket;
 typedef SmallRecyclerVisitedHostHeapBucketT<SmallAllocationBlockAttributes> SmallRecyclerVisitedHostHeapBucket;
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
 typedef SmallFinalizableWithBarrierHeapBucketT<MediumAllocationBlockAttributes> MediumFinalizableWithBarrierHeapBucket;
 typedef SmallFinalizableWithBarrierHeapBucketT<SmallAllocationBlockAttributes> SmallFinalizableWithBarrierHeapBucket;
@@ -87,12 +91,17 @@ template <ObjectInfoBits attributes, class TBlockAttributes>
 class SmallHeapBlockType
 {
 public:
-    // attributes with RecyclerVisitedHostBit must use SmallRecyclerVisitedHostHeap{Bucket|Block}T
-    CompileAssert((attributes & FinalizeBit) != 0 && (attributes & RecyclerVisitedHostBit) == 0);
+   
+	CompileAssert((attributes & FinalizeBit) != 0);
+#ifdef RECYCLER_VISITED_HOST
+	// attributes with RecyclerVisitedHostBit must use SmallRecyclerVisitedHostHeap{Bucket|Block}T
+	CompileAssert((attributes & RecyclerVisitedHostBit) == 0);
+#endif
     typedef SmallFinalizableHeapBlockT<TBlockAttributes> BlockType;
     typedef SmallFinalizableHeapBucketT<TBlockAttributes> BucketType;
 };
 
+#ifdef RECYCLER_VISITED_HOST
 template <>
 class SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHostBit), SmallAllocationBlockAttributes>
 {
@@ -116,6 +125,7 @@ public:
     typedef SmallRecyclerVisitedHostHeapBlock BlockType;
     typedef SmallRecyclerVisitedHostHeapBucket BucketType;
 };
+#endif
 
 template <>
 class SmallHeapBlockType<LeafBit, SmallAllocationBlockAttributes>
@@ -168,6 +178,7 @@ public:
     typedef MediumFinalizableHeapBucket BucketType;
 };
 
+#ifdef RECYCLER_VISITED_HOST
 template <>
 class SmallHeapBlockType<(ObjectInfoBits)(RecyclerVisitedHostBit), MediumAllocationBlockAttributes>
 {
@@ -191,6 +202,7 @@ public:
     typedef MediumRecyclerVisitedHostHeapBlock BlockType;
     typedef MediumRecyclerVisitedHostHeapBucket BucketType;
 };
+#endif
 
 template <>
 class SmallHeapBlockType<LeafBit, MediumAllocationBlockAttributes>
@@ -284,6 +296,7 @@ class HeapBucketGroup
         }
     };
 
+#ifdef RECYCLER_VISITED_HOST
     template <>
     class BucketGetter<(ObjectInfoBits)(RecyclerVisitedHostBit)>
     {
@@ -316,6 +329,7 @@ class HeapBucketGroup
             return HeapBucketGroup->recyclerVisitedHostHeapBucket;
         }
     };
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     template <>
@@ -411,7 +425,9 @@ private:
     SmallNormalHeapBucketT<TBlockAttributes>       heapBucket;
     SmallLeafHeapBucketT<TBlockAttributes>         leafHeapBucket;
     SmallFinalizableHeapBucketT<TBlockAttributes>  finalizableHeapBucket;
+#ifdef RECYCLER_VISITED_HOST
     SmallRecyclerVisitedHostHeapBucketT<TBlockAttributes>  recyclerVisitedHostHeapBucket;
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
     SmallNormalWithBarrierHeapBucketT<TBlockAttributes> smallNormalWithBarrierHeapBucket;
     SmallFinalizableWithBarrierHeapBucketT<TBlockAttributes> smallFinalizableWithBarrierHeapBucket;

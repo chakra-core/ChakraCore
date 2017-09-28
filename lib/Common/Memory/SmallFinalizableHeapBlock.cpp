@@ -29,6 +29,7 @@ SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>::Delete(SmallFinalizable
 }
 #endif
 
+#ifdef RECYCLER_VISITED_HOST
 template <class TBlockAttributes>
 SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>*
 SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>> * bucket)
@@ -50,6 +51,7 @@ SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::Delete(SmallRecyclerVisite
 
     NoMemProtectHeapDeletePlusPrefix(Base::GetAllocPlusSize(heapBlock->objectCount), heapBlock);
 }
+#endif
 
 template <class TBlockAttributes>
 SmallFinalizableHeapBlockT<TBlockAttributes> *
@@ -96,6 +98,7 @@ SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::SmallFinalizableHea
     Assert(!this->isPendingDispose);
 }
 
+#ifdef RECYCLER_VISITED_HOST
 template <class TBlockAttributes>
 SmallFinalizableHeapBlockT<TBlockAttributes>::SmallFinalizableHeapBlockT(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>> * bucket, ushort objectSize, ushort objectCount, HeapBlockType blockType)
     : SmallNormalHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, blockType)
@@ -107,6 +110,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::SmallFinalizableHeapBlockT(HeapBuc
     Assert(this->disposedObjectListTail == nullptr);
     Assert(!this->isPendingDispose);
 }
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
 template <class TBlockAttributes>
@@ -137,6 +141,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsi
 #endif
 }
 
+#ifdef RECYCLER_VISITED_HOST
 template <class TBlockAttributes>
 void
 SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsigned char attributes)
@@ -274,6 +279,7 @@ SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::RescanObject(SmallRecycler
 
     return true;
 }
+#endif
 
 template <class TBlockAttributes>
 bool
@@ -648,12 +654,14 @@ namespace Memory
     template class SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>;
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
-    template class SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>;
+#ifdef RECYCLER_VISITED_HOST
+	template class SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>;
     template void SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);
     template void SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);
     template class SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>;
     template void SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
     template void SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;
