@@ -43,12 +43,21 @@ namespace Resource
     class StringBufferAutoPtr
     {
     private:
-        const T *strBuf;
+        const T *pointer;
     public:
-        StringBufferAutoPtr(const T *buffer) : strBuf(buffer) {}
+        StringBufferAutoPtr(const T *ptr) : pointer(ptr) {}
         ~StringBufferAutoPtr()
         {
-            delete[] strBuf;
+            if (pointer != nullptr)
+            {
+                delete[] pointer; // note we're using delete[] so we handle the whole buffer
+                pointer = nullptr;
+            }
+        }
+
+        void setPointer(const T *ptr)
+        {
+            pointer = ptr;
         }
     };
 
