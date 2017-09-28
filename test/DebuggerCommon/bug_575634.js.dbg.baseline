@@ -18,9 +18,9 @@
   {
     "callStack": [
       {
-        "line": 12,
+        "line": 11,
         "column": 4,
-        "sourceText": "return 0",
+        "sourceText": "this",
         "function": "o.bar"
       },
       {

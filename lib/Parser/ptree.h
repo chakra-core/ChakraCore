@@ -60,6 +60,8 @@ enum PNodeFlags : ushort
     fpnMemberReference                       = 0x2000, // The node is a member reference symbol
     fpnCapturesSyms                          = 0x4000, // The node is a statement (or contains a sub-statement)
                                                        // that captures symbols.
+
+    fpnSpecialSymbol                         = 0x8000,
 };
 
 /***************************************************************************
@@ -456,6 +458,7 @@ struct PnCall
     BYTE callOfConstants : 1;
     BYTE isApplyCall : 1;
     BYTE isEvalCall : 1;
+    BYTE isSuperCall : 1;
 };
 
 struct PnStmt
@@ -615,6 +618,23 @@ struct PnFinally : PnStmt
     ParseNodePtr pnodeBody;
 };
 
+struct PnSpecialName : PnPid
+{
+    bool isThis : 1;
+    bool isSuper : 1;
+};
+
+struct PnSuperReference : PnBin
+{
+    ParseNodePtr pnodeThis;
+};
+
+struct PnSuperCall : PnCall
+{
+    ParseNodePtr pnodeThis;
+    ParseNodePtr pnodeNewTarget;
+};
+
 struct ParseNode
 {
     OpCode nop;
@@ -627,47 +647,51 @@ struct ParseNode
     bool notEscapedUse;         // Use by byte code generator.  Currently, only used by child of knopComma
     bool isInList;
     bool isCallApplyTargetLoad;
+    bool isSpecialName;         // indicates a PnPid (knopName) is a special name like 'this' or 'super'
 #ifdef EDIT_AND_CONTINUE
     ParseNodePtr parent;
 #endif
 
     union
     {
-        PnArrLit        sxArrLit;       // Array literal
-        PnBin           sxBin;          // binary operators
-        PnBlock         sxBlock;        // block { }
-        PnCall          sxCall;         // function call
-        PnCase          sxCase;         // switch case
-        PnCatch         sxCatch;        // { catch(e : expr) {body} }
-        PnClass         sxClass;        // class declaration
-        PnFinally       sxFinally;      // finally
-        PnExportDefault sxExportDefault;// export default expr;
-        PnFlt           sxFlt;          // double constant
-        PnFnc           sxFnc;          // function declaration
-        PnFor           sxFor;          // for loop
-        PnForInOrForOf  sxForInOrForOf; // for-in loop
-        PnHelperCall2   sxHelperCall2;  // call to helper
-        PnIf            sxIf;           // if
-        PnInt           sxInt;          // integer constant
-        PnJump          sxJump;         // break and continue
-        PnLabel         sxLabel;        // label nodes
-        PnLoop          sxLoop;         // base for loop nodes
-        PnModule        sxModule;       // global module
-        PnPid           sxPid;          // identifier or string
-        PnProg          sxProg;         // global program
-        PnReturn        sxReturn;       // return [expr]
-        PnStmt          sxStmt;         // base for statement nodes
-        PnStrTemplate   sxStrTemplate;  // string template declaration
-        PnSwitch        sxSwitch;       // switch
-        PnTri           sxTri;          // ternary operator
-        PnTry           sxTry;          // try-catch
-        PnTryCatch      sxTryCatch;     // try-catch
-        PnTryFinally    sxTryFinally;   // try-catch-finally
-        PnUni           sxUni;          // unary operators
-        PnVar           sxVar;          // variable declaration
-        PnWhile         sxWhile;        // while and do-while loops
-        PnWith          sxWith;         // with
-        PnParamPattern  sxParamPattern; // Destructure pattern for function/catch parameter
+        PnArrLit         sxArrLit;         // Array literal
+        PnBin            sxBin;            // binary operators
+        PnBlock          sxBlock;          // block { }
+        PnCall           sxCall;           // function call
+        PnCase           sxCase;           // switch case
+        PnCatch          sxCatch;          // { catch(e : expr) {body} }
+        PnClass          sxClass;          // class declaration
+        PnExportDefault  sxExportDefault;  // export default expr;
+        PnFinally        sxFinally;        // finally
+        PnFlt            sxFlt;            // double constant
+        PnFnc            sxFnc;            // function declaration
+        PnFor            sxFor;            // for loop
+        PnForInOrForOf   sxForInOrForOf;   // for-in loop
+        PnHelperCall2    sxHelperCall2;    // call to helper
+        PnIf             sxIf;             // if
+        PnInt            sxInt;            // integer constant
+        PnJump           sxJump;           // break and continue
+        PnLabel          sxLabel;          // label nodes
+        PnLoop           sxLoop;           // base for loop nodes
+        PnModule         sxModule;         // global module
+        PnParamPattern   sxParamPattern;   // Destructure pattern for function/catch parameter
+        PnPid            sxPid;            // identifier or string
+        PnProg           sxProg;           // global program
+        PnReturn         sxReturn;         // return [expr]
+        PnSpecialName    sxSpecialName;    // special name like 'this'
+        PnStmt           sxStmt;           // base for statement nodes
+        PnStrTemplate    sxStrTemplate;    // string template declaration
+        PnSuperCall      sxSuperCall;      // call node with super target
+        PnSuperReference sxSuperReference; // binary operator with super reference
+        PnSwitch         sxSwitch;         // switch
+        PnTri            sxTri;            // ternary operator
+        PnTry            sxTry;            // try-catch
+        PnTryCatch       sxTryCatch;       // try-catch
+        PnTryFinally     sxTryFinally;     // try-catch-finally
+        PnUni            sxUni;            // unary operators
+        PnVar            sxVar;            // variable declaration
+        PnWhile          sxWhile;          // while and do-while loops
+        PnWith           sxWith;           // with
     };
 
     IdentPtr name()
@@ -738,6 +762,9 @@ struct ParseNode
     bool IsCallApplyTargetLoad() { return isCallApplyTargetLoad; }
     void SetIsCallApplyTargetLoad() { isCallApplyTargetLoad = true; }
 
+    bool IsSpecialName() { return isSpecialName; }
+    void SetIsSpecialName() { isSpecialName = true; }
+
     bool IsVarLetOrConst() const
     {
         return this->nop == knopVarDecl || this->nop == knopLetDecl || this->nop == knopConstDecl;
@@ -769,43 +796,46 @@ struct ParseNode
 #endif
 };
 
-const int kcbPnNone         = offsetof(ParseNode, sxUni);
-const int kcbPnArrLit       = kcbPnNone + sizeof(PnArrLit);
-const int kcbPnBin          = kcbPnNone + sizeof(PnBin);
-const int kcbPnBlock        = kcbPnNone + sizeof(PnBlock);
-const int kcbPnCall         = kcbPnNone + sizeof(PnCall);
-const int kcbPnCase         = kcbPnNone + sizeof(PnCase);
-const int kcbPnCatch        = kcbPnNone + sizeof(PnCatch);
-const int kcbPnClass        = kcbPnNone + sizeof(PnClass);
-const int kcbPnExportDefault= kcbPnNone + sizeof(PnExportDefault);
-const int kcbPnFinally      = kcbPnNone + sizeof(PnFinally);
-const int kcbPnFlt          = kcbPnNone + sizeof(PnFlt);
-const int kcbPnFnc          = kcbPnNone + sizeof(PnFnc);
-const int kcbPnFor          = kcbPnNone + sizeof(PnFor);
-const int kcbPnForIn        = kcbPnNone + sizeof(PnForInOrForOf);
-const int kcbPnForOf        = kcbPnNone + sizeof(PnForInOrForOf);
-const int kcbPnHelperCall3  = kcbPnNone + sizeof(PnHelperCall2);
-const int kcbPnIf           = kcbPnNone + sizeof(PnIf);
-const int kcbPnInt          = kcbPnNone + sizeof(PnInt);
-const int kcbPnJump         = kcbPnNone + sizeof(PnJump);
-const int kcbPnLabel        = kcbPnNone + sizeof(PnLabel);
-const int kcbPnModule       = kcbPnNone + sizeof(PnModule);
-const int kcbPnPid          = kcbPnNone + sizeof(PnPid);
-const int kcbPnProg         = kcbPnNone + sizeof(PnProg);
-const int kcbPnReturn       = kcbPnNone + sizeof(PnReturn);
-const int kcbPnSlot         = kcbPnNone + sizeof(PnSlot);
-const int kcbPnStrTemplate  = kcbPnNone + sizeof(PnStrTemplate);
-const int kcbPnSwitch       = kcbPnNone + sizeof(PnSwitch);
-const int kcbPnTri          = kcbPnNone + sizeof(PnTri);
-const int kcbPnTry          = kcbPnNone + sizeof(PnTry);
-const int kcbPnTryCatch     = kcbPnNone + sizeof(PnTryCatch);
-const int kcbPnTryFinally   = kcbPnNone + sizeof(PnTryFinally);
-const int kcbPnUni          = kcbPnNone + sizeof(PnUni);
-const int kcbPnUniSlot      = kcbPnNone + sizeof(PnUniSlot);
-const int kcbPnVar          = kcbPnNone + sizeof(PnVar);
-const int kcbPnWhile        = kcbPnNone + sizeof(PnWhile);
-const int kcbPnWith         = kcbPnNone + sizeof(PnWith);
-const int kcbPnParamPattern = kcbPnNone + sizeof(PnParamPattern);
+const int kcbPnNone           = offsetof(ParseNode, sxUni);
+const int kcbPnArrLit         = kcbPnNone + sizeof(PnArrLit);
+const int kcbPnBin            = kcbPnNone + sizeof(PnBin);
+const int kcbPnBlock          = kcbPnNone + sizeof(PnBlock);
+const int kcbPnCall           = kcbPnNone + sizeof(PnCall);
+const int kcbPnCase           = kcbPnNone + sizeof(PnCase);
+const int kcbPnCatch          = kcbPnNone + sizeof(PnCatch);
+const int kcbPnClass          = kcbPnNone + sizeof(PnClass);
+const int kcbPnExportDefault  = kcbPnNone + sizeof(PnExportDefault);
+const int kcbPnFinally        = kcbPnNone + sizeof(PnFinally);
+const int kcbPnFlt            = kcbPnNone + sizeof(PnFlt);
+const int kcbPnFnc            = kcbPnNone + sizeof(PnFnc);
+const int kcbPnFor            = kcbPnNone + sizeof(PnFor);
+const int kcbPnForIn          = kcbPnNone + sizeof(PnForInOrForOf);
+const int kcbPnForOf          = kcbPnNone + sizeof(PnForInOrForOf);
+const int kcbPnHelperCall3    = kcbPnNone + sizeof(PnHelperCall2);
+const int kcbPnIf             = kcbPnNone + sizeof(PnIf);
+const int kcbPnInt            = kcbPnNone + sizeof(PnInt);
+const int kcbPnJump           = kcbPnNone + sizeof(PnJump);
+const int kcbPnLabel          = kcbPnNone + sizeof(PnLabel);
+const int kcbPnModule         = kcbPnNone + sizeof(PnModule);
+const int kcbPnParamPattern   = kcbPnNone + sizeof(PnParamPattern);
+const int kcbPnPid            = kcbPnNone + sizeof(PnPid);
+const int kcbPnProg           = kcbPnNone + sizeof(PnProg);
+const int kcbPnReturn         = kcbPnNone + sizeof(PnReturn);
+const int kcbPnSlot           = kcbPnNone + sizeof(PnSlot);
+const int kcbPnSpecialName    = kcbPnNone + sizeof(PnSpecialName);
+const int kcbPnStrTemplate    = kcbPnNone + sizeof(PnStrTemplate);
+const int kcbPnSuperCall      = kcbPnNone + sizeof(PnSuperCall);
+const int kcbPnSuperReference = kcbPnNone + sizeof(PnSuperReference);
+const int kcbPnSwitch         = kcbPnNone + sizeof(PnSwitch);
+const int kcbPnTri            = kcbPnNone + sizeof(PnTri);
+const int kcbPnTry            = kcbPnNone + sizeof(PnTry);
+const int kcbPnTryCatch       = kcbPnNone + sizeof(PnTryCatch);
+const int kcbPnTryFinally     = kcbPnNone + sizeof(PnTryFinally);
+const int kcbPnUni            = kcbPnNone + sizeof(PnUni);
+const int kcbPnUniSlot        = kcbPnNone + sizeof(PnUniSlot);
+const int kcbPnVar            = kcbPnNone + sizeof(PnVar);
+const int kcbPnWhile          = kcbPnNone + sizeof(PnWhile);
+const int kcbPnWith           = kcbPnNone + sizeof(PnWith);
 
 #define AssertNodeMem(pnode) AssertPvCb(pnode, kcbPnNone)
 #define AssertNodeMemN(pnode) AssertPvCbN(pnode, kcbPnNone)
