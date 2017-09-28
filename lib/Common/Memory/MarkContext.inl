@@ -245,7 +245,7 @@ void MarkContext::ProcessMark()
             IRecyclerVisitedObject* tracedObject;
             while (preciseStack.Pop(&tracedObject))
             {
-                tracedObject
+                tracedObject->Trace(&markContextWrapper);
             }
         }
 
