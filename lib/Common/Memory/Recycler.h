@@ -182,10 +182,10 @@ struct InfoBitsWrapper{};
 #define RecyclerNewTrackedLeaf(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocTrackedLeafInlined, T, __VA_ARGS__)))
 #define RecyclerNewTrackedLeafPlusZ(recycler,size,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocZeroTrackedLeafInlined, size, T, __VA_ARGS__)))
 
-#define RecyclerAllocVisitedHostTracedAndFinalizedZero(recycler,size) AllocatorNewBase(Recycler, recycler,AllocRecyclerVisitedHostTracedAndFinalizedZeroInlined, char[size])
-#define RecyclerAllocVisitedHostFinalizedZero(recycler,size) AllocatorNewBase(Recycler, recycler, AllocRecyclerVisitedHostFinalizedZeroInlined, char[size])
-#define RecyclerAllocVisitedHostTracedZero(recycler,size) AllocatorNewBase(Recycler, recycler, AllocRecyclerVisitedHostTracedZeroInlined, char[size])
-#define RecyclerAllocVisitedHostLeafZero(recycler,size) AllocatorNewBase(Recycler, recycler, AllocRecyclerVisitedHostLeafZeroInlined, char[size])
+#define RecyclerAllocVisitedHostTracedAndFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedFinalizableBits>(size)
+#define RecyclerAllocVisitedHostFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostFinalizableBits>(size)
+#define RecyclerAllocVisitedHostTracedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedBits>(size)
+#define RecyclerAllocVisitedHostLeafZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostLeafBits>(size)
 
 #ifdef TRACE_OBJECT_LIFETIME
 #define RecyclerNewLeafTrace(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocLeafTrace, T, __VA_ARGS__)
@@ -1276,13 +1276,8 @@ public:
     DEFINE_RECYCLER_ALLOC(AllocTrackedLeaf, ClientTrackableLeafBits);
     DEFINE_RECYCLER_ALLOC_ZERO(AllocLeafZero, LeafBit);
     DEFINE_RECYCLER_ALLOC_ZERO(AllocZeroTrackedLeaf, ClientTrackableLeafBits);
-
-    DEFINE_RECYCLER_ALLOC_ZERO(AllocRecyclerVisitedHostTracedAndFinalizedZero, RecyclerVisitedHostTracedFinalizableBits);
-    DEFINE_RECYCLER_ALLOC_ZERO(AllocRecyclerVisitedHostTracedZero, RecyclerVisitedHostTracedBits);
-    DEFINE_RECYCLER_ALLOC_ZERO(AllocRecyclerVisitedHostFinalizedZero, RecyclerVisitedHostFinalizableBits);
-    DEFINE_RECYCLER_ALLOC_ZERO(AllocRecyclerVisitedHostLeafZero, RecyclerVisitedHostLeafBits);
-
     DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocImplicitRootLeaf, ImplicitRootLeafBits);
+
     DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocImplicitRoot, ImplicitRootBit);
 
     template <ObjectInfoBits enumClass>
@@ -1297,6 +1292,11 @@ public:
     char * AllocWithInfoBits(DECLSPEC_GUARD_OVERFLOW size_t size)
     {
         return AllocWithAttributes<infoBits, /* nothrow = */ false>(size);
+    }
+    template <ObjectInfoBits infoBits>
+    char * AllocVisitedHost(DECLSPEC_GUARD_OVERFLOW size_t size)
+    {
+        return AllocZeroWithAttributes<infoBits, /* nothrow = */ true>(size);
     }
 
     template<typename T>
