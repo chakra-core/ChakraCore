@@ -195,13 +195,13 @@ void MarkContext::ProcessMark()
     }
 #endif
 
-#if defined(_M_IX86) || defined(_M_X64)
     // Flip between processing the generic mark stack (conservatively traced with ScanMemory) and
     // the precise stack (precisely traced via IRecyclerVisitedObject::Trace). Each of those
     // operations on an object has the potential to add new marked objects to either or both
     // stacks so we must loop until they are both empty.
     while (!markStack.IsEmpty() || !preciseStack.IsEmpty())
     {
+#if defined(_M_IX86) || defined(_M_X64)
         MarkCandidate current, next;
 
         while (markStack.Pop(&current))
