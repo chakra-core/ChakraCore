@@ -22,9 +22,9 @@ public:
     PolymorphicInlineCache * GetStElemInlineCache() const;
     Js::PropertyRecord const * GetPropertyRecord() const { return this->propertyRecord; }
     PolymorphicInlineCache * CreateBiggerPolymorphicInlineCache(bool isLdElem);
-    void LogCacheMiss();
+    void RegisterCacheMiss();
     int GetHitRate() const { return this->hitRate; };
-    void LogCacheHit() { ++this->hitRate; };
+    void RegisterCacheHit() { ++this->hitRate; };
     bool ShouldUseCache() const;
 
     bool TrySetPropertyFromCache(
@@ -34,6 +34,8 @@ public:
         const PropertyOperationFlags propertyOperationFlags,
         PropertyValueInfo *const propertyValueInfo);
 
+
+    template <bool OwnPropertyOnly>
     bool TryGetPropertyFromCache(
         Var const instance,
         RecyclableObject *const object,
@@ -70,7 +72,6 @@ public:
     //Get the associated property id for this string if there is on (e.g. it is a propertystring otherwise return Js::PropertyIds::_none)
     virtual Js::PropertyId TryGetAssociatedPropertyId() const override { return this->propertyRecord->GetPropertyId(); }
 #endif
-
 public:
     virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
     {
@@ -78,13 +79,75 @@ public:
     }
 };
 
-
+// Templated so that the Is call dispatchs to different function depending
+// on if argument is already a RecyclableObject* or only known to be a Var
+//
+// In case it is known to be a RecyclableObject*, the Is call skips that check
 template <typename T> inline
 PropertyString * PropertyString::TryFromVar(T var)
 {
     return PropertyString::Is(var)
         ? reinterpret_cast<PropertyString*>(var)
         : nullptr;
+}
+
+template <bool OwnPropertyOnly> inline
+bool PropertyString::TryGetPropertyFromCache(
+    Var const instance,
+    RecyclableObject *const object,
+    Var *const propertyValue,
+    ScriptContext *const requestContext,
+    PropertyValueInfo *const propertyValueInfo)
+{
+    if (ShouldUseCache())
+    {
+        PropertyValueInfo::SetCacheInfo(propertyValueInfo, this, GetLdElemInlineCache(), true /* allowResizing */);
+
+        // Some caches will look at prototype, so GetOwnProperty lookups must not check these
+        bool found = CacheOperators::TryGetProperty<
+            true,               // CheckLocal
+            !OwnPropertyOnly,   // CheckProto
+            !OwnPropertyOnly,   // CheckAccessor
+            !OwnPropertyOnly,   // CheckMissing
+            true,               // CheckPolymorphicInlineCache
+            !OwnPropertyOnly,   // CheckTypePropertyCache
+            false,              // IsInlineCacheAvailable
+            true,               // IsPolymorphicInlineCacheAvailable
+            false>              // ReturnOperationInfo
+            (instance,
+                false, // isRoot
+                object,
+                this->propertyRecord->GetPropertyId(),
+                propertyValue,
+                requestContext,
+                nullptr, // operationInfo
+                propertyValueInfo);
+
+        if (found)
+        {
+            RegisterCacheHit();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+            if (PHASE_TRACE1(PropertyStringCachePhase))
+            {
+                Output::Print(_u("PropertyCache: GetElem cache hit for '%s': type %p\n"), GetString(), object->GetType());
+            }
+#endif
+            return true;
+        }
+    }
+
+    RegisterCacheMiss();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    if (PHASE_TRACE1(PropertyStringCachePhase))
+    {
+        Output::Print(_u("PropertyCache: GetElem cache miss for '%s': type %p, index %d\n"),
+            GetString(),
+            object->GetType(),
+            GetLdElemInlineCache()->GetInlineCacheIndexForType(object->GetType()));
+        DumpCache(true);
+    }
+#endif
+    return false;
 }
 
 } // namespace Js

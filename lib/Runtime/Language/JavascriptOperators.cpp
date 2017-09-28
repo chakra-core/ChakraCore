@@ -1233,6 +1233,12 @@ CommonNumber:
         {
             RecyclableObject* object = RecyclableObject::FromVar(instance);
             result = object && object->GetProperty(object, propertyId, value, propertyValueInfo, requestContext);
+
+            if (propertyValueInfo && result)
+            {
+                // We can only update the cache in case a property was found, because if it wasn't found, we don't know if it is missing or on a prototype
+                CacheOperators::CachePropertyRead(instance, object, false /* isRoot */, propertyId, false /* isMissing */, propertyValueInfo, requestContext);
+            }
         }
         return result;
     }
@@ -3713,7 +3719,7 @@ CommonNumber:
                 else
                 {
                     PropertyValueInfo info;
-                    if (propertyString->TryGetPropertyFromCache(instance, object, &value, scriptContext, &info))
+                    if (propertyString->TryGetPropertyFromCache<false /* OwnPropertyOnly */>(instance, object, &value, scriptContext, &info))
                     {
                         return value;
                     }

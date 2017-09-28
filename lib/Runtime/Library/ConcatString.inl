@@ -20,7 +20,11 @@ namespace Js
         convertedString->SetPropertyString(nullptr);
         return convertedString;
     }
-    
+
+    // Templated so that the Is call dispatchs to different function depending
+    // on if argument is already a RecyclableObject* or only known to be a Var
+    //
+    // In case it is known to be a RecyclableObject*, the Is call skips that check
     template <typename T>
     inline LiteralStringWithPropertyStringPtr * LiteralStringWithPropertyStringPtr::TryFromVar(T var)
     {

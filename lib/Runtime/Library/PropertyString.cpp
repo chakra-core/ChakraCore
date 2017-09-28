@@ -60,44 +60,6 @@ namespace Js
         return this->hitRate > (int)CONFIG_FLAG(StringCacheMissThreshold);
     }
 
-    bool PropertyString::TryGetPropertyFromCache(
-        Var const instance,
-        RecyclableObject *const object,
-        Var *const propertyValue,
-        ScriptContext *const requestContext,
-        PropertyValueInfo *const propertyValueInfo)
-    {
-        if (ShouldUseCache())
-        {
-            PropertyValueInfo::SetCacheInfo(propertyValueInfo, this, GetLdElemInlineCache(), true);
-            if (CacheOperators::TryGetProperty<true, true, true, true, true, true, false, true, false>(
-                instance, false, object, this->propertyRecord->GetPropertyId(), propertyValue, requestContext, nullptr, propertyValueInfo))
-            {
-                LogCacheHit();
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                if (PHASE_TRACE1(PropertyStringCachePhase))
-                {
-                    Output::Print(_u("PropertyCache: GetElem cache hit for '%s': type %p\n"), GetString(), object->GetType());
-                }
-#endif
-                return true;
-            }
-        }
-
-        LogCacheMiss();
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        if (PHASE_TRACE1(PropertyStringCachePhase))
-        {
-            Output::Print(_u("PropertyCache: GetElem cache miss for '%s': type %p, index %d\n"),
-                GetString(),
-                object->GetType(),
-                GetLdElemInlineCache()->GetInlineCacheIndexForType(object->GetType()));
-            DumpCache(true);
-        }
-#endif
-        return false;
-    }
-
     bool PropertyString::TrySetPropertyFromCache(
         RecyclableObject *const object,
         Var propertyValue,
@@ -107,16 +69,26 @@ namespace Js
     {
         if (ShouldUseCache())
         {
-            PropertyValueInfo::SetCacheInfo(propertyValueInfo, this, GetStElemInlineCache(), true);
-            if (CacheOperators::TrySetProperty<true, true, true, true, true, false, true, false>(
-                object,
-                false,
-                this->propertyRecord->GetPropertyId(),
-                propertyValue,
-                requestContext,
-                propertyOperationFlags,
-                nullptr,
-                propertyValueInfo))
+            PropertyValueInfo::SetCacheInfo(propertyValueInfo, this, GetStElemInlineCache(), true /* allowResizing */);
+            bool found = CacheOperators::TrySetProperty<
+                true,   // CheckLocal
+                true,   // CheckLocalTypeWithoutProperty
+                true,   // CheckAccessor
+                true,   // CheckPolymorphicInlineCache
+                true,   // CheckTypePropertyCache
+                false,  // IsInlineCacheAvailable
+                true,   // IsPolymorphicInlineCacheAvailable
+                false>  // ReturnOperationInfo
+                   (object,
+                    false, // isRoot
+                    this->propertyRecord->GetPropertyId(),
+                    propertyValue,
+                    requestContext,
+                    propertyOperationFlags,
+                    nullptr, // operationInfo
+                    propertyValueInfo);
+
+            if(found)
             {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
                 if (PHASE_TRACE1(PropertyStringCachePhase))
@@ -124,11 +96,11 @@ namespace Js
                     Output::Print(_u("PropertyCache: SetElem cache hit for '%s': type %p\n"), GetString(), object->GetType());
                 }
 #endif
-                LogCacheHit();
+                RegisterCacheHit();
                 return true;
             }
         }
-        LogCacheMiss();
+        RegisterCacheMiss();
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (PHASE_TRACE1(PropertyStringCachePhase))
         {
@@ -142,7 +114,7 @@ namespace Js
         return false;
     }
 
-    void PropertyString::LogCacheMiss()
+    void PropertyString::RegisterCacheMiss()
     {
         this->hitRate -= (int)CONFIG_FLAG(StringCacheMissPenalty);
         if (this->hitRate < (int)CONFIG_FLAG(StringCacheMissReset))

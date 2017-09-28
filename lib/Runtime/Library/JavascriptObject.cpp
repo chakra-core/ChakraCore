@@ -1520,7 +1520,7 @@ namespace Js
         JavascriptStaticEnumerator enumerator;
         if (!from->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EnumSymbols, scriptContext))
         {
-            //nothing to enumerate, continue with the nextSource.
+            // Nothing to enumerate, continue with the nextSource.
             return;
         }
 
@@ -1528,7 +1528,7 @@ namespace Js
         Var propValue = nullptr;
         JavascriptString * propertyName = nullptr;
 
-        //enumerate through each property of properties and fetch the property descriptor
+        // Enumerate through each property of properties and fetch the property descriptor
         while ((propertyName = enumerator.MoveAndGetNext(nextKey)) != NULL)
         {
             if (nextKey == Constants::NoProperty)
@@ -1540,21 +1540,22 @@ namespace Js
             }
             PropertyString * propertyString = PropertyString::TryFromVar(propertyName);
 
+
+            // If propertyName is a PropertyString* we can try getting the property from the inline cache to avoid having a full property lookup
+            //
+            // Whenever possible, our enumerator populates the cache, so we should generally get a cache hit here
             PropertyValueInfo getPropertyInfo;
-            if (!propertyString || !propertyString->TryGetPropertyFromCache(from, from, &propValue, scriptContext, &getPropertyInfo))
+            if (propertyString == nullptr || !propertyString->TryGetPropertyFromCache<true /* OwnPropertyOnly */>(from, from, &propValue, scriptContext, &getPropertyInfo))
             {
                 if (!JavascriptOperators::GetOwnProperty(from, nextKey, &propValue, scriptContext, &getPropertyInfo))
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
                 }
-                if (propertyString)
-                {
-                    CacheOperators::CachePropertyRead(from, from, false, nextKey, false, &getPropertyInfo, scriptContext);
-                }
             }
 
+            // Similarly, try to set the property using our cache to avoid having to do the full work of SetProperty
             PropertyValueInfo setPropertyInfo;
-            if (!propertyString || !propertyString->TrySetPropertyFromCache(to, propValue, scriptContext, PropertyOperation_ThrowIfNonWritable, &setPropertyInfo))
+            if (propertyString == nullptr || !propertyString->TrySetPropertyFromCache(to, propValue, scriptContext, PropertyOperation_ThrowIfNonWritable, &setPropertyInfo))
             {
                 if (!JavascriptOperators::SetProperty(to, to, nextKey, propValue, &setPropertyInfo, scriptContext, PropertyOperation_ThrowIfNonWritable))
                 {
