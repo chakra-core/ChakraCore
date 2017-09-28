@@ -832,19 +832,19 @@ if (this->object) \
     size_t IcuIntlAdapter::GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLangtag)
     {
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
-        char bcp47[ULOC_FULLNAME_CAPACITY];
-        char defaultLocaleId[ULOC_FULLNAME_CAPACITY];
+        char bcp47[ULOC_FULLNAME_CAPACITY] = { 0 };
+        char defaultLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
 
         int32_t written = uloc_getName(nullptr, defaultLocaleId, ULOC_FULLNAME_CAPACITY, &error);
-        if (U_FAILURE(error) || written <= 0 || written >= ULOC_FULLNAME_CAPACITY)
-        {
-            AssertMsg(false, "uloc_getName: unexpected error getting default localeId");
-            return 0;
-        }
-        else
+        if (U_SUCCESS(error) && written > 0 && written < ULOC_FULLNAME_CAPACITY)
         {
             defaultLocaleId[written] = 0;
             error = UErrorCode::U_ZERO_ERROR;
+        }
+        else
+        {
+            AssertMsg(false, "uloc_getName: unexpected error getting default localeId");
+            return 0;
         }
 
         written = uloc_toLanguageTag(defaultLocaleId, bcp47, ULOC_FULLNAME_CAPACITY, true, &error);
