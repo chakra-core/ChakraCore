@@ -16,7 +16,7 @@
   <test>
     <default>
       <files>OS_2977448.js</files>
-      <tags>exclude_winglob,BugFix</tags>
+      <tags>require_winglob,BugFix</tags>
     </default>
   </test>
   <test>
