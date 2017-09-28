@@ -46,6 +46,12 @@ var tests = [
         }
     }
   },
+  {
+    name: "Token left after parsing lambda result to the syntax error",
+    body: function () {
+        assert.throws(()=> { eval('function foo ([ [] = () => { } = {a2:z2}]) { };'); });
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
