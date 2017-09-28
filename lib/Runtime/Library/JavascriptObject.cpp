@@ -1622,7 +1622,7 @@ namespace Js
 
         // Find/create a DynamicType for the given prototype
         RecyclableObject* protoObj = RecyclableObject::FromVar(protoVar);
-        DynamicType* objectType = function->GetLibrary()->GetObjectCreateType(protoObj);
+        DynamicType* objectType = function->GetLibrary()->GetObjectType(protoObj);
 
         DynamicObject* object = DynamicObject::New(recycler, objectType);
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(object));

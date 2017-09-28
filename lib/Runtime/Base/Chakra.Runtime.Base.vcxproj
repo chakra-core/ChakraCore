@@ -52,7 +52,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionBody.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LeaveScriptObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)LineOffsetCache.cpp" />    
+    <ClCompile Include="$(MSBuildThisFileDirectory)LineOffsetCache.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PerfHint.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecord.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ScriptContext.cpp" />
@@ -77,12 +77,14 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ThreadContextInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)jitprofiling.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VTuneChakraProfile.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ObjectTypeCache.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CompactCounters.h" />
     <ClInclude Include="ittnotify_config.h" />
     <ClInclude Include="ittnotify_types.h" />
     <ClInclude Include="jitprofiling.h" />
+    <ClInclude Include="ObjectTypeCache.h" />
     <ClInclude Include="RuntimeBasePch.h" />
     <ClInclude Include="AuxPtrs.h" />
     <ClInclude Include="CallInfo.h" />

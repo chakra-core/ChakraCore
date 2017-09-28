@@ -13,6 +13,7 @@ add_library (Chakra.Runtime.Base OBJECT
     FunctionInfo.cpp
     LeaveScriptObject.cpp
     LineOffsetCache.cpp
+    ObjectTypeCache.cpp
     PerfHint.cpp
     PropertyRecord.cpp
     RuntimeBasePch.cpp
