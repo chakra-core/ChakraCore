@@ -27,7 +27,7 @@
 
 param (
     [Parameter(Mandatory=$True)]
-    [ValidateSet("x86", "x64", "arm")]
+    [ValidateSet("x86", "x64", "arm", "arm64")]
     [string]$arch,
     [Parameter(Mandatory=$True)]
     [ValidateSet("debug", "release", "test", "codecoverage")]
