@@ -204,5 +204,10 @@ namespace Js
         //We let the handler processing fall through -- the snap object extraction will take care of visiting/copying the info from this type into the object representation.
         //
 #endif
+
+#if DBG_DUMP
+    public:
+        void Dump(unsigned indent = 0) const override;
+#endif
     };
 }
