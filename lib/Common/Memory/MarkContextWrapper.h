@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#include "core/RecyclerHeapMarkingContext.h"
+#include "Core/RecyclerHeapMarkingContext.h"
 
 // Class used to wrap a MarkContext so that calls to MarkObjects during IRecyclerVisitedObject::Trace
 // can mark with the correct contextual template parameters
