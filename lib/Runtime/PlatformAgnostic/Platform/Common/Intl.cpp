@@ -74,14 +74,13 @@ namespace Intl
         // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
         const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
         unsigned char *inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
-        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
-
         if (!inputLangTagUtf8)
         {
             AssertOrFailFastMsg(false, "OOM: failed to allocate inputLangTagUtf8");
-            goto LReturn;
+            return false;
         }
 
+        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
         memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
 
         inputLangTagUtf8SizeActual = utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
@@ -93,7 +92,7 @@ namespace Intl
             U_SUCCESS(error) && ((size_t)parsedLength == inputLangTagUtf8SizeActual);
         if (!success)
         {
-            goto LReturn;
+            return false;
         }
 
         toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, TRUE, &error);
@@ -108,11 +107,8 @@ namespace Intl
             {
                 AssertMsg(false, "uloc_toLanguageTag: unexpected error (besides U_ILLEGAL_ARGUMENT_ERROR)");
             }
-
-            goto LReturn;
         }
 
-    LReturn:
         return success;
     }
 
@@ -130,14 +126,13 @@ namespace Intl
         // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
         const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
         unsigned char *inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
-        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
-
         if (!inputLangTagUtf8)
         {
             AssertOrFailFastMsg(false, "OOM: failed to allocate inputLangTagUtf8.");
-            goto LReturn;
+            return E_OUTOFMEMORY;
         }
 
+        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
         memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
 
         utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
@@ -148,7 +143,7 @@ namespace Intl
         if (!success)
         {
             AssertMsg(false, "uloc_forLanguageTag failed");
-            goto LReturn;
+            return E_INVALIDARG;
         }
 
         // Try to convert icuLocaleId (locale ID version of input locale string) to BCP47 language tag, using strict checks
@@ -165,14 +160,13 @@ namespace Intl
                 AssertMsg(false, "uloc_toLanguageTag: unexpected error (besides U_ILLEGAL_ARGUMENT_ERROR)");
             }
 
-            goto LReturn;
+            return E_INVALIDARG;
         }
 
         *normalizedLength = utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(normalized,
             reinterpret_cast<const utf8char_t *>(icuLangTag), reinterpret_cast<utf8char_t *>(icuLangTag + toLangTagResultLength), utf8::doDefault);
 
-    LReturn:
-        return success ? S_OK : E_INVALIDARG;
+        return S_OK;
     }
 
     int32_t GetCurrencyFractionDigits(_In_z_ const char16 * currencyCode)
@@ -240,20 +234,19 @@ namespace Intl
         // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
         const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
         unsigned char *inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
-        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
-
         if (!inputLangTagUtf8)
         {
             AssertOrFailFastMsg(false, "OOM: failed to allocate inputLangTagUtf8.");
             return E_OUTOFMEMORY;
         }
 
+        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
         memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
 
         utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
 
         char *localeName = reinterpret_cast<char *>(inputLangTagUtf8);
-        auto locale = icu::Locale::createFromName(localeName);
+        icu::Locale locale = icu::Locale::createFromName(localeName);
 
         icu::NumberFormat *nf = function(locale, error);
 
@@ -263,7 +256,7 @@ namespace Intl
             return E_INVALIDARG;
         }
 
-        auto *formatterResource = new PlatformAgnosticIntlObject<icu::NumberFormat>(nf);
+        IPlatformAgnosticResource *formatterResource = new PlatformAgnosticIntlObject<icu::NumberFormat>(nf);
         if (!formatterResource)
         {
             return E_OUTOFMEMORY;
@@ -292,28 +285,24 @@ namespace Intl
         _In_z_ const char16 *currencyCode, _In_ const uint32 currencyDisplay, _Out_ IPlatformAgnosticResource **resource)
     {
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
-
         unsigned char *inputLangTagUtf8 = nullptr;
 
+        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
+        const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
+        inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
+        if (!inputLangTagUtf8)
         {
-            // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
-            const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
-            inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
-
-            if (!inputLangTagUtf8)
-            {
-                AssertOrFailFastMsg(false, "OOM: failed to allocate inputLangTagUtf8.");
-                return E_OUTOFMEMORY;
-            }
-
-            memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
+            AssertOrFailFastMsg(false, "OOM: failed to allocate inputLangTagUtf8.");
+            return E_OUTOFMEMORY;
         }
 
-        StringBufferAutoPtr<unsigned char> guardLangTag(inputLangTagUtf8);
+        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
+        memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
+
         utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
 
         char *localeName = reinterpret_cast<char *>(inputLangTagUtf8);
-        auto locale = icu::Locale::createFromName(localeName);
+        icu::Locale locale = icu::Locale::createFromName(localeName);
 
         icu::NumberFormat *nf = nullptr;
         if (currencyDisplay == 0 || currencyDisplay >= 3)
@@ -356,7 +345,7 @@ namespace Intl
             return E_INVALIDARG;
         }
 
-        auto *formatterResource = new PlatformAgnosticIntlObject<icu::NumberFormat>(nf);
+        IPlatformAgnosticResource *formatterResource = new PlatformAgnosticIntlObject<icu::NumberFormat>(nf);
         if (!formatterResource)
         {
             return E_OUTOFMEMORY;
