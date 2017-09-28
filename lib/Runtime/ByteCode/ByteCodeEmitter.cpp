@@ -1929,7 +1929,10 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
         byteCodeFunction->MapAndSetEnvRegister(funcInfo->GetEnvRegister());
         if (funcInfo->GetIsTopLevelEventHandler())
         {
+            if (funcInfo->GetThisSymbol())
+            {
             byteCodeFunction->MapAndSetThisRegisterForEventHandler(funcInfo->GetThisSymbol()->GetLocation());
+            }
             // The environment is the namespace hierarchy starting with "this".
             Assert(!funcInfo->RegIsConst(funcInfo->GetEnvRegister()));
             thisLoadedFromParams = true;
