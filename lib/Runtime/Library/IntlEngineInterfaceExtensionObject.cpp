@@ -178,19 +178,19 @@ namespace Js
             return RecyclerNewFinalized(recycler, AutoCOMJSObject, object);
         }
 
-        void Finalize(bool isShutdown) override
+        void __stdcall Finalize(bool isShutdown) override
         {
 
         }
 
-        void Dispose(bool isShutdown) override
+        void __stdcall Dispose(bool isShutdown) override
         {
             if (!isShutdown)
             {
                 instance->Release();
             }
         }
-        void Mark(Recycler * recycler) override
+        void __stdcall Mark(Recycler * recycler) override
         {
 
         }
