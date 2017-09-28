@@ -15961,9 +15961,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                     if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
                     {
                         // Bail out if this conversion triggers implicit calls.
-                        toNumberInstr = toNumberInstr->ConvertToBailOutInstr(instr->GetBailOutInfo(), bailOutKind);
-                        IR::Instr * instrShare = instr->ShareBailOut();
-                        LowerBailTarget(instrShare);
+                        toNumberInstr = this->AddBailoutToHelperCallInstr(toNumberInstr, instr->GetBailOutInfo(), bailOutKind, instr);
                     }
 
                     LowerUnaryHelperMem(toNumberInstr, IR::HelperOp_ConvNumber_Full);
@@ -17220,12 +17218,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                     if (stElem->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(stElem->GetBailOutKind()))
                     {
                         // Bail out if this helper triggers implicit calls.
-                        instr = instr->ConvertToBailOutInstr(stElem->GetBailOutInfo(), stElem->GetBailOutKind());
-                        if (stElem->GetBailOutInfo()->bailOutInstr == stElem)
-                        {
-                            IR::Instr * instrShare = stElem->ShareBailOut();
-                            LowerBailTarget(instrShare);
-                        }
+                        instr = this->AddBailoutToHelperCallInstr(instr, stElem->GetBailOutInfo(), stElem->GetBailOutKind(), stElem);
                     }
 
                     m_lowererMD.LoadHelperArgument(instr, regSrc);
@@ -17347,12 +17340,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                     IR::BailOutKind bailOutKind = stElem->HasBailOutInfo() ? stElem->GetBailOutKind() : IR::BailOutInvalid;
                     if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
                     {
-                        instr = instr->ConvertToBailOutInstr(stElem->GetBailOutInfo(), bailOutKind);
-                        if (stElem->GetBailOutInfo()->bailOutInstr == stElem)
-                        {
-                            IR::Instr * instrShare = stElem->ShareBailOut();
-                            LowerBailTarget(instrShare);
-                        }
+                        instr = this->AddBailoutToHelperCallInstr(instr, stElem->GetBailOutInfo(), bailOutKind, stElem);
                     }
 
                     bool bailOutOnHelperCall = !!(bailOutKind & IR::BailOutOnArrayAccessHelperCall);
@@ -25555,6 +25543,18 @@ Lowerer::InsertLoopTopLabel(IR::Instr * insertBeforeInstr)
 
     insertBeforeInstr->InsertBefore(loopTopLabel);
     return loopTopLabel;
+}
+
+IR::Instr *
+Lowerer::AddBailoutToHelperCallInstr(IR::Instr * helperCallInstr, BailOutInfo * bailoutInfo, IR::BailOutKind  bailoutKind, IR::Instr * primaryBailoutInstr)
+{
+    helperCallInstr = helperCallInstr->ConvertToBailOutInstr(bailoutInfo, bailoutKind);
+    if (bailoutInfo->bailOutInstr == primaryBailoutInstr)
+    {
+        IR::Instr * instrShare = primaryBailoutInstr->ShareBailOut();
+        LowerBailTarget(instrShare);
+    }
+    return helperCallInstr;
 }
 
 #if DBG

@@ -666,6 +666,7 @@ private:
     void            GenerateHasObjectArrayCheck(IR::RegOpnd * objectOpnd, IR::RegOpnd * typeOpnd, IR::LabelInstr * hasObjectArray, IR::Instr * insertBeforeInstr);
 
     IR::LabelInstr* InsertLoopTopLabel(IR::Instr * insertBeforeInstr);
+    IR::Instr *     AddBailoutToHelperCallInstr(IR::Instr * helperCallInstr, BailOutInfo * bailoutInfo, IR::BailOutKind  bailoutKind, IR::Instr * primaryBailoutInstr);
 public:
     static IRType   GetImplicitCallFlagsType()
     {
