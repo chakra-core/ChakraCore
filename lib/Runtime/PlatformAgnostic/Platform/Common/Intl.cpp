@@ -407,7 +407,6 @@ namespace Intl
         {
             UErrorCode error = UErrorCode::U_ZERO_ERROR;
 
-            // const UChar *currencyCode = reinterpret_cast<const UChar *>(numberFormatter->getCurrency());
             const UChar *uCurrencyCode = reinterpret_cast<const UChar *>(currencyCode);
             const char *localeName = numberFormatter->getLocale(ULocDataLocaleType::ULOC_ACTUAL_LOCALE, error).getName();
 
