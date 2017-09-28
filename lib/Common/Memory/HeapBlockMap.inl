@@ -142,6 +142,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
 #endif
         ((SmallFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(candidate, markContext);
         break;
+#ifdef RECYCLER_VISITED_HOST
     case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
         {
             void * realCandidate = ((SmallFinalizableHeapBlock*)chunk->map[id2])->GetRealAddressFromInterior(candidate);
@@ -153,12 +154,14 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
             ((SmallRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
         }
         break;
+#endif
     case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
 #endif
         ((MediumFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(candidate, markContext);
         break;
+#ifdef RECYCLER_VISITED_HOST
     case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
         {
             void * realCandidate = ((MediumFinalizableHeapBlock*)chunk->map[id2])->GetRealAddressFromInterior(candidate);
@@ -170,6 +173,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
             ((MediumRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
         }
         break;
+#endif
     case HeapBlock::HeapBlockType::LargeBlockType:
         ((LargeHeapBlock*)chunk->map[id2])->Mark<doSpecialMark>(candidate, markContext);
         break;
@@ -388,6 +392,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
             ((MediumFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<false>(realCandidate, markContext);
         }
         break;
+#ifdef RECYCLER_VISITED_HOST
     case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
         {
             void * realCandidate = ((SmallFinalizableHeapBlock*)chunk->map[id2])->GetRealAddressFromInterior(candidate);
@@ -410,6 +415,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
             ((MediumRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<false>(realCandidate, markContext);
         }
         break;
+#endif
     case HeapBlock::HeapBlockType::LargeBlockType:
         {
             void * realCandidate = ((LargeHeapBlock*)chunk->map[id2])->GetRealAddressFromInterior(candidate);

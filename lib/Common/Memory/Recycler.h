@@ -182,10 +182,12 @@ struct InfoBitsWrapper{};
 #define RecyclerNewTrackedLeaf(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocTrackedLeafInlined, T, __VA_ARGS__)))
 #define RecyclerNewTrackedLeafPlusZ(recycler,size,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocZeroTrackedLeafInlined, size, T, __VA_ARGS__)))
 
+#ifdef RECYCLER_VISITED_HOST
 #define RecyclerAllocVisitedHostTracedAndFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedFinalizableBits>(size)
 #define RecyclerAllocVisitedHostFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostFinalizableBits>(size)
 #define RecyclerAllocVisitedHostTracedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedBits>(size)
 #define RecyclerAllocLeafZero(recycler,size) recycler->AllocVisitedHost<LeafBit>(size)
+#endif
 
 #ifdef TRACE_OBJECT_LIFETIME
 #define RecyclerNewLeafTrace(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocLeafTrace, T, __VA_ARGS__)
@@ -1726,7 +1728,9 @@ private:
     template <class TBlockAttributes> friend class SmallNormalHeapBlockT;
     template <class TBlockAttributes> friend class SmallLeafHeapBlockT;
     template <class TBlockAttributes> friend class SmallFinalizableHeapBlockT;
+#ifdef RECYCLER_VISITED_HOST
     template <class TBlockAttributes> friend class SmallRecyclerVisitedHostHeapBlockT;
+#endif
     friend class LargeHeapBlock;
     friend class HeapInfo;
     friend class LargeHeapBucket;

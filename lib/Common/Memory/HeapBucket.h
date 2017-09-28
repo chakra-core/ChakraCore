@@ -101,8 +101,10 @@ public:
     template <typename TBlockAttributes>
     friend class SmallFinalizableHeapBlockT;
 
+#ifdef RECYCLER_VISITED_HOST
     template <typename TBlockAttributes>
     friend class SmallRecyclerVisitedHostHeapBlockT;
+#endif
 
     friend class LargeHeapBlock;
 #ifdef RECYCLER_WRITE_BARRIER
@@ -168,7 +170,11 @@ public:
 protected:
     static bool const IsLeafBucket = TBlockType::RequiredAttributes == LeafBit;
     // Not all objects in the recycler visited host heap block are finalizable, but we still require finalizable semantics
-    static bool const IsFinalizableBucket = TBlockType::RequiredAttributes == FinalizeBit || ((TBlockType::RequiredAttributes & RecyclerVisitedHostBit) == (RecyclerVisitedHostBit));
+    static bool const IsFinalizableBucket = TBlockType::RequiredAttributes == FinalizeBit
+#ifdef RECYCLER_VISITED_HOST
+		|| ((TBlockType::RequiredAttributes & RecyclerVisitedHostBit) == (RecyclerVisitedHostBit))
+#endif
+	;
     static bool const IsNormalBucket = TBlockType::RequiredAttributes == NoBit;
 #ifdef RECYCLER_WRITE_BARRIER
     static bool const IsWriteBarrierBucket = TBlockType::RequiredAttributes == WithBarrierBit;
