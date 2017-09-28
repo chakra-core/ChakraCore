@@ -86,7 +86,9 @@ namespace Intl
         inputLangTagUtf8SizeActual = utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
 
         // Convert input language tag to a locale ID for use in uloc_toLanguageTag API.
-        forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<const char *>(inputLangTagUtf8),
+        // We used utf8 conversion to turn char16* into utf8char_t* (unsigned char *) but uloc_forLanguageTag takes char*
+        // LangTags must be 7-bit-ASCII to be valid and any of these chars being "negative" is irrelevant.
+        forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<char *>(inputLangTagUtf8),
             icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
         success = (forLangTagResultLength > 0) && (parsedLength > 0) &&
             U_SUCCESS(error) && ((size_t)parsedLength == inputLangTagUtf8SizeActual);
@@ -138,7 +140,10 @@ namespace Intl
         utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
 
         // Convert input language tag to a locale ID for use in uloc_toLanguageTag API.
-        forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<const char *>(inputLangTagUtf8), icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
+        // We used utf8 conversion to turn char16* into utf8char_t* (unsigned char *) but uloc_forLanguageTag takes char*
+        // LangTags must be 7-bit-ASCII to be valid and any of these chars being "negative" is irrelevant.
+        forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<char *>(inputLangTagUtf8),
+            icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
         success = forLangTagResultLength && parsedLength && U_SUCCESS(error);
         if (!success)
         {
@@ -164,7 +169,9 @@ namespace Intl
         }
 
         *normalizedLength = utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(normalized,
-            reinterpret_cast<const utf8char_t *>(icuLangTag), reinterpret_cast<utf8char_t *>(icuLangTag + toLangTagResultLength), utf8::doDefault);
+            reinterpret_cast<utf8char_t *>(icuLangTag),
+            reinterpret_cast<utf8char_t *>(icuLangTag + toLangTagResultLength),
+            utf8::doDefault);
 
         return S_OK;
     }
@@ -172,7 +179,17 @@ namespace Intl
     int32_t GetCurrencyFractionDigits(_In_z_ const char16 * currencyCode)
     {
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
-        const UChar *uCurrencyCode = reinterpret_cast<const UChar *>(currencyCode); // UChar, like char16, is guaranteed to be 2 bytes on all platforms.
+
+        // [[ Ctrl-F: UChar_cast_explainer ]]
+        // UChar, like char16, is guaranteed to be 2 bytes on all platforms.
+        // However, we cannot use static_cast because on Windows:
+        // - char16 => WCHAR => wchar_t (native type) -- see Core/CommonTypedefs.h or Codex/Utf8Codex.h
+        // - (wchar_t is a native 2-byte type on Windows, but native 4-byte elsewhere)
+        // On other platforms:
+        // - char16 => char16_t -- see pal/inc/pal_mstypes.h
+        // All platforms:
+        // - UChar -> char16_t (all platforms)
+        const UChar *uCurrencyCode = reinterpret_cast<const UChar *>(currencyCode);
 
         // REVIEW (doilij): What does the spec say to do if a currency is not supported? Does that affect this decision?
         int32_t minFracDigits = 2; // Picked a "reasonable" fallback value as a starting value here.
@@ -315,7 +332,7 @@ namespace Intl
                 return E_INVALIDARG;
             }
 
-            nf->setCurrency(reinterpret_cast<const UChar *>(currencyCode), error);
+            nf->setCurrency(reinterpret_cast<const UChar *>(currencyCode), error); // Ctrl-F: UChar_cast_explainer
             if (U_FAILURE(error))
             {
                 AssertMsg(false, "Failed to set currency on icu::NumberFormat");
@@ -357,6 +374,7 @@ namespace Intl
 
     HRESULT SetNumberFormatSignificantDigits(IPlatformAgnosticResource *resource, const uint16 minSigDigits, const uint16 maxSigDigits)
     {
+        // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
         auto *numFormatResource = reinterpret_cast<PlatformAgnosticIntlObject<icu::NumberFormat> *>(resource);
         icu::NumberFormat *nf = numFormatResource->GetInstance();
         // REVIEW (doilij): Without RTTI support, we can't do dynamic_cast,
@@ -370,6 +388,7 @@ namespace Intl
 
     HRESULT SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits)
     {
+        // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
         auto *numFormatResource = reinterpret_cast<PlatformAgnosticIntlObject<icu::NumberFormat> *>(resource);
         icu::NumberFormat *nf = numFormatResource->GetInstance();
         nf->setMinimumIntegerDigits(minIntDigits);
@@ -407,7 +426,7 @@ namespace Intl
         {
             UErrorCode error = UErrorCode::U_ZERO_ERROR;
 
-            const UChar *uCurrencyCode = reinterpret_cast<const UChar *>(currencyCode);
+            const UChar *uCurrencyCode = reinterpret_cast<const UChar *>(currencyCode); // Ctrl-F: UChar_cast_explainer
             const char *localeName = numberFormatter->getLocale(ULocDataLocaleType::ULOC_ACTUAL_LOCALE, error).getName();
 
             if (U_FAILURE(error))
@@ -448,7 +467,7 @@ namespace Intl
 
         int32_t length = result.length();
         char16 *ret = new char16[length + 1];
-        result.extract(0, length, reinterpret_cast<UChar *>(ret));
+        result.extract(0, length, reinterpret_cast<UChar *>(ret)); // Ctrl-F: UChar_cast_explainer
         ret[length] = 0;
         return ret;
     }
