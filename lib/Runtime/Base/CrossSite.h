@@ -17,6 +17,7 @@ namespace Js
         static Var DefaultThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var ProfileThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var CrossSiteProxyCallTrap(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var MarshalVar(ScriptContext* scriptContext, Var value, ScriptContext* objectScriptContext);
         static Var MarshalVar(ScriptContext* scriptContext, Var value, bool fRequestWrapper = false);
         static void MarshalDynamicObjectAndPrototype(ScriptContext * scriptContext, DynamicObject * object);
         static void ForceCrossSiteThunkOnPrototypeChain(RecyclableObject* object);
@@ -46,4 +47,3 @@ namespace Js
         static bool DoRequestWrapper(Js::RecyclableObject* object, bool fRequestWrapper);
     };
 };
-
