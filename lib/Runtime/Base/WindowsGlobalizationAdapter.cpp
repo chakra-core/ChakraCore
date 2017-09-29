@@ -702,60 +702,6 @@ if (this->object) \
 
 #endif // INTL_WINGLOB
 
-#ifdef INTL_ICU
-#ifdef ENABLE_INTL_OBJECT
-    bool IcuIntlAdapter::ResolveLocaleLookup(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved)
-    {
-        // TODO (doilij): implement ResolveLocaleLookup
-        resolved[0] = '\0';
-        return false;
-    }
-
-    bool IcuIntlAdapter::ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved)
-    {
-        // Note: the "best fit" matcher is implementation-defined, so it is okay to return the same result as ResolveLocaleLookup.
-        // TODO (doilij): implement a better "best fit" matcher
-        return ResolveLocaleLookup(scriptContext, locale, resolved);
-    }
-
-    size_t IcuIntlAdapter::GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLangtag)
-    {
-        UErrorCode error = UErrorCode::U_ZERO_ERROR;
-        char bcp47[ULOC_FULLNAME_CAPACITY] = { 0 };
-        char defaultLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
-
-        int32_t written = uloc_getName(nullptr, defaultLocaleId, ULOC_FULLNAME_CAPACITY, &error);
-        if (U_SUCCESS(error) && written > 0 && written < ULOC_FULLNAME_CAPACITY)
-        {
-            defaultLocaleId[written] = 0;
-            error = UErrorCode::U_ZERO_ERROR;
-        }
-        else
-        {
-            AssertMsg(false, "uloc_getName: unexpected error getting default localeId");
-            return 0;
-        }
-
-        written = uloc_toLanguageTag(defaultLocaleId, bcp47, ULOC_FULLNAME_CAPACITY, true, &error);
-        if (U_FAILURE(error) || written <= 0)
-        {
-            AssertMsg(false, "uloc_toLanguageTag: unexpected error getting default langtag");
-            return 0;
-        }
-
-        if (written < cchLangtag)
-        {
-            return utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(langtag, reinterpret_cast<const utf8char_t *>(bcp47), reinterpret_cast<utf8char_t *>(bcp47 + written));
-        }
-        else
-        {
-            AssertMsg(false, "User default language tag is larger than the provided buffer");
-            return 0;
-        }
-    }
-
-#endif // ENABLE_INTL_OBJECT
-#endif // INTL_ICU
 } // namespace Js
 
 #endif // defined(ENABLE_INTL_OBJECT) || defined(ENABLE_ES6_CHAR_CLASSIFIER)

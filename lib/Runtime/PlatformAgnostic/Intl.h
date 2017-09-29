@@ -79,6 +79,10 @@ namespace Intl
     template <typename T>
     const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const NumberFormatStyle formatterToUse, const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
 
+    bool ResolveLocaleLookup(_In_z_ const char16 *locale, _Out_ char16 *resolved);
+    bool ResolveLocaleBestFit(_In_z_ const char16 *locale, _Out_ char16 *resolved);
+    size_t GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLangtag);
+
 } // namespace Intl
 } // namespace PlatformAgnostic
 

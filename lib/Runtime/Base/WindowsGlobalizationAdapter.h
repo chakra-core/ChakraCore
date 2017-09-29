@@ -155,22 +155,6 @@ namespace Js
 
 #ifdef INTL_ICU
 #ifdef ENABLE_INTL_OBJECT
-    class IcuIntlAdapter
-    {
-    public:
-        static bool IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch);
-        static HRESULT NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
-            _Out_ char16 *normalized, _Out_ size_t *normalizedLength);
-
-        //static bool ResolveLocaleLookup(_In_ ScriptContext *scriptContext, _In_ JavascriptString *locale, _Out_ char16 *resolved);
-        static bool ResolveLocaleLookup(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved);
-        //static bool ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_ JavascriptString *locale, _Out_ char16 *resolved);
-        static bool ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved);
-        static size_t GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLangtag);
-
-        static Var CacheNumberFormat(_In_ ScriptContext * scriptContext, _In_ DynamicObject *options);
-    };
-
     template<typename T>
     class AutoIcuJsObject : public FinalizableObject
     {

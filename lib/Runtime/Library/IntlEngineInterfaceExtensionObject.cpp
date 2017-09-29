@@ -645,13 +645,13 @@ namespace Js
 
 #if defined(INTL_ICU)
         char16 resolvedLocaleName[ULOC_FULLNAME_CAPACITY] = { 0 };
-        if (IcuIntlAdapter::ResolveLocaleLookup(scriptContext, passedLocale, resolvedLocaleName))
+        if (ResolveLocaleLookup(passedLocale, resolvedLocaleName))
         {
             return JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
         }
 
 #ifdef INTL_ICU_DEBUG
-        Output::Print(_u("IcuIntlAdapter::ResolveLocaleLookup returned false: EntryIntl_ResolveLocaleLookup returning null to fallback to JS\n"));
+        Output::Print(_u("Intl::ResolveLocaleLookup returned false: EntryIntl_ResolveLocaleLookup returning null to fallback to JS\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull();
 #else
@@ -684,13 +684,13 @@ namespace Js
 
 #if defined(INTL_ICU)
         char16 resolvedLocaleName[ULOC_FULLNAME_CAPACITY] = { 0 };
-        if (IcuIntlAdapter::ResolveLocaleBestFit(scriptContext, passedLocale, resolvedLocaleName))
+        if (ResolveLocaleBestFit(passedLocale, resolvedLocaleName))
         {
             return JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
         }
 
 #ifdef INTL_ICU_DEBUG
-        Output::Print(_u("IcuIntlAdapter::ResolveLocaleBestFit returned false: EntryIntl_ResolveLocaleBestFit returning null to fallback to JS\n"));
+        Output::Print(_u("Intl::ResolveLocaleBestFit returned false: EntryIntl_ResolveLocaleBestFit returning null to fallback to JS\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull();
 #else
@@ -727,7 +727,7 @@ namespace Js
             // XPLAT-TODO (doilij): Implement this in PlatformAgnostic
             GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
 #else
-            IcuIntlAdapter::GetUserDefaultLanguageTag(defaultLocale, _countof(defaultLocale)) == 0
+            GetUserDefaultLanguageTag(defaultLocale, _countof(defaultLocale)) == 0
 #endif
             || defaultLocale[0] == '\0')
         {
@@ -1273,7 +1273,7 @@ namespace Js
             // XPLAT-TODO (doilij): Implement this in PlatformAgnostic
             GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
 #else
-            IcuIntlAdapter::GetUserDefaultLanguageTag(defaultLocale, _countof(defaultLocale)) == 0
+            GetUserDefaultLanguageTag(defaultLocale, _countof(defaultLocale)) == 0
 #endif
             )
         {
