@@ -2,6 +2,9 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+#pragma once
+
 class AllocSizeMath
 {
     static const size_t MaxMemory = static_cast<size_t>(-1);

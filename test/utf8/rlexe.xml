@@ -16,7 +16,7 @@
   <test>
     <default>
       <files>OS_2977448.js</files>
-      <tags>exclude_winglob,BugFix</tags>
+      <tags>require_winglob,BugFix</tags>
     </default>
   </test>
   <test>
@@ -39,6 +39,7 @@
     <default>
       <files>bugGH2656.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
+      <tags>require_winglob</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
     </default>
   </test>
 </regress-exe>

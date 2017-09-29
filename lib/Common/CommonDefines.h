@@ -103,6 +103,7 @@
 #if defined(_WIN32) || defined(INTL_ICU)
 #define ENABLE_INTL_OBJECT                          // Intl support
 #endif
+//#define INTL_ICU 1                    // NOTE: uncomment this to allow the IDE to see INTL_ICU blocks
 #ifdef INTL_ICU
 #ifdef DBG
 //#define INTL_ICU_DEBUG 1              // NOTE: uncomment this to display INTL_ICU-specific debug output

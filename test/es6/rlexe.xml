@@ -527,7 +527,7 @@
       <files>unicode_6_identifiers_utf8.js</files>
       <baseline>unicode_6_identifiers_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_win7</tags>
+      <tags>exclude_win7,require_winglob</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
     </default>
   </test>
   <test>
@@ -730,7 +730,7 @@
   </test>
   <test>
     <default>
-      <files>proxycall.js</files>
+      <files>ProxyCall.js</files>
     </default>
   </test>
   <test>

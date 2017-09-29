@@ -2,9 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
-#ifndef RUNTIME_PLATFORM_AGNOSTIC_COMMON_NUMBERS
-#define RUNTIME_PLATFORM_AGNOSTIC_COMMON_NUMBERS
+#pragma once
 
 namespace PlatformAgnostic
 {
@@ -51,5 +49,3 @@ namespace Numbers
     };
 } // namespace Numbers
 } // namespace PlatformAgnostic
-
-#endif // RUNTIME_PLATFORM_AGNOSTIC_COMMON_NUMBERS
