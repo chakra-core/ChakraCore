@@ -18,6 +18,8 @@ using namespace Windows::Globalization;
 #ifdef INTL_ICU
 #include <CommonPal.h>
 #include "PlatformAgnostic/IPlatformAgnosticResource.h"
+using namespace PlatformAgnostic::Intl;
+using namespace PlatformAgnostic::Resource;
 #endif
 
 #pragma warning(push)
@@ -584,7 +586,7 @@ namespace Js
         JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
 
 #if defined(INTL_ICU)
-        return TO_JSBOOL(scriptContext, PlatformAgnostic::Intl::IsWellFormedLanguageTag(argString->GetSz(), argString->GetLength()));
+        return TO_JSBOOL(scriptContext, IsWellFormedLanguageTag(argString->GetSz(), argString->GetLength()));
 #else
         return TO_JSBOOL(scriptContext, GetWindowsGlobalizationAdapter(scriptContext)->IsWellFormedLanguageTag(scriptContext, argString->GetSz()));
 #endif
@@ -611,7 +613,7 @@ namespace Js
         // Therefore the max length of that char* (ULOC_FULLNAME_CAPACITY) is big enough to hold the result (including null terminator)
         char16 normalized[ULOC_FULLNAME_CAPACITY] = { 0 };
         size_t normalizedLength = 0;
-        hr = PlatformAgnostic::Intl::NormalizeLanguageTag(argString->GetSz(), argString->GetLength(), normalized, &normalizedLength);
+        hr = NormalizeLanguageTag(argString->GetSz(), argString->GetLength(), normalized, &normalizedLength);
         retVal = Js::JavascriptString::NewCopyBuffer(normalized, static_cast<charcount_t>(normalizedLength), scriptContext);
 #else
         AutoHSTRING str;
@@ -829,17 +831,17 @@ namespace Js
 
         // First we have to determine which formatter(number, percent, or currency) we will be using.
         // Note some options might not be present.
-        PlatformAgnostic::Resource::IPlatformAgnosticResource *numberFormatter = nullptr;
+        IPlatformAgnosticResource *numberFormatter = nullptr;
         const char16 *locale = localeJSstr->GetSz();
         const charcount_t cch = localeJSstr->GetLength();
 
-        PlatformAgnostic::Intl::NumberFormatStyle formatterToUseVal = PlatformAgnostic::Intl::NumberFormatStyle::DEFAULT;
+        NumberFormatStyle formatterToUseVal = NumberFormatStyle::DEFAULT;
         if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt)
-            && (formatterToUseVal = static_cast<PlatformAgnostic::Intl::NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue))) == PlatformAgnostic::Intl::NumberFormatStyle::PERCENT)
+            && (formatterToUseVal = static_cast<NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue))) == NumberFormatStyle::PERCENT)
         {
-            IfFailThrowHr(PlatformAgnostic::Intl::CreatePercentFormatter(locale, cch, &numberFormatter));
+            IfFailThrowHr(CreatePercentFormatter(locale, cch, &numberFormatter));
         }
-        else if (formatterToUseVal == PlatformAgnostic::Intl::NumberFormatStyle::CURRENCY)
+        else if (formatterToUseVal == NumberFormatStyle::CURRENCY)
         {
             if (!GetTypedPropertyBuiltInFrom(options, __currency, JavascriptString))
             {
@@ -851,20 +853,20 @@ namespace Js
 
             if (GetTypedPropertyBuiltInFrom(options, __currencyDisplayToUse, TaggedInt))
             {
-                PlatformAgnostic::Intl::NumberFormatCurrencyDisplay currencyDisplay = static_cast<PlatformAgnostic::Intl::NumberFormatCurrencyDisplay>(TaggedInt::ToUInt16(propertyValue));
-                IfFailThrowHr(PlatformAgnostic::Intl::CreateCurrencyFormatter(locale, cch, currencyCode, currencyDisplay, &numberFormatter));
+                NumberFormatCurrencyDisplay currencyDisplay = static_cast<NumberFormatCurrencyDisplay>(TaggedInt::ToUInt16(propertyValue));
+                IfFailThrowHr(CreateCurrencyFormatter(locale, cch, currencyCode, currencyDisplay, &numberFormatter));
             }
         }
         else
         {
             // Use the number formatter (0 or default)
-            IfFailThrowHr(PlatformAgnostic::Intl::CreateNumberFormatter(locale, cch, &numberFormatter));
+            IfFailThrowHr(CreateNumberFormatter(locale, cch, &numberFormatter));
         }
 
         Assert(numberFormatter);
         // REVIEW (doilij): AutoPtr will call delete on IPlatformAgnosticResource and complain of non-virtual dtor. There are no IfFailThrowHr so is this still necessary?
         // TODO (doilij): If necessary, introduce an PlatformAgnosticResourceAutoPtr that calls Cleanup() instead of delete on the pointer.
-        // PlatformAgnostic::Resource::AutoPtr<PlatformAgnostic::Resource::IPlatformAgnosticResource> numberFormatterGuard(numberFormatter);
+        // AutoPtr<IPlatformAgnosticResource> numberFormatterGuard(numberFormatter);
 
         // TODO (doilij): Render signed zero.
 
@@ -902,7 +904,7 @@ namespace Js
                 maxSignificantDigits = max<uint16>(min<uint16>(TaggedInt::ToUInt16(propertyValue), 21), minSignificantDigits);
             }
 
-            PlatformAgnostic::Intl::SetNumberFormatSignificantDigits(numberFormatter, minSignificantDigits, maxSignificantDigits);
+            SetNumberFormatSignificantDigits(numberFormatter, minSignificantDigits, maxSignificantDigits);
         }
         else
         {
@@ -922,11 +924,11 @@ namespace Js
                 maxFractionDigits = max(min<uint16>(TaggedInt::ToUInt16(propertyValue), 20), minFractionDigits); // ToUInt16 will get rid of negatives by making them high
             }
 
-            PlatformAgnostic::Intl::SetNumberFormatIntFracDigits(numberFormatter, minFractionDigits, maxFractionDigits, minIntegerDigits);
+            SetNumberFormatIntFracDigits(numberFormatter, minFractionDigits, maxFractionDigits, minIntegerDigits);
         }
 
         // Set the object as a cache
-        auto *autoObject = AutoIcuJsObject<PlatformAgnostic::Resource::IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), numberFormatter);
+        auto *autoObject = AutoIcuJsObject<IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), numberFormatter);
         options->SetInternalProperty(Js::InternalPropertyIds::HiddenObject, autoObject, Js::PropertyOperationFlags::PropertyOperation_None, NULL);
 
         // clear the pointer so it is not freed when numberFormatterGuard goes out of scope
@@ -1350,7 +1352,7 @@ namespace Js
         const char16 *currencyCode = argString->GetSz();
 
 #if defined(INTL_ICU)
-        int32_t digits = PlatformAgnostic::Intl::GetCurrencyFractionDigits(currencyCode);
+        int32_t digits = GetCurrencyFractionDigits(currencyCode);
         return JavascriptNumber::ToVar(digits, scriptContext);
 #else
         HRESULT hr;
@@ -1439,12 +1441,12 @@ namespace Js
 
 #if defined(INTL_ICU)
         // REVIEW (doilij): Assumes the logic doesn't allow us to get to this point such that this cast is invalid (otherwise, we would throw earlier).
-        auto *numberFormatter = reinterpret_cast<AutoIcuJsObject<PlatformAgnostic::Resource::IPlatformAgnosticResource> *>(hiddenObject)->GetInstance();
+        auto *numberFormatter = reinterpret_cast<AutoIcuJsObject<IPlatformAgnosticResource> *>(hiddenObject)->GetInstance();
         const char16 *strBuf = nullptr;
         Var propertyValue = nullptr;
 
-        PlatformAgnostic::Intl::NumberFormatStyle formatterToUse = PlatformAgnostic::Intl::NumberFormatStyle::DEFAULT;
-        PlatformAgnostic::Intl::NumberFormatCurrencyDisplay currencyDisplay = PlatformAgnostic::Intl::NumberFormatCurrencyDisplay::DEFAULT;
+        NumberFormatStyle formatterToUse = NumberFormatStyle::DEFAULT;
+        NumberFormatCurrencyDisplay currencyDisplay = NumberFormatCurrencyDisplay::DEFAULT;
         JavascriptString *currencyCodeJsString = nullptr;
 
         // It is okay for currencyCode to be nullptr if we are NOT formatting a currency.
@@ -1453,11 +1455,11 @@ namespace Js
 
         if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt))
         {
-            formatterToUse = static_cast<PlatformAgnostic::Intl::NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue));
+            formatterToUse = static_cast<NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue));
         }
         if (GetTypedPropertyBuiltInFrom(options, __currencyDisplayToUse, TaggedInt))
         {
-            currencyDisplay = static_cast<PlatformAgnostic::Intl::NumberFormatCurrencyDisplay>(TaggedInt::ToUInt16(propertyValue));
+            currencyDisplay = static_cast<NumberFormatCurrencyDisplay>(TaggedInt::ToUInt16(propertyValue));
         }
         if (GetTypedPropertyBuiltInFrom(options, __currency, JavascriptString))
         {
@@ -1468,15 +1470,15 @@ namespace Js
         if (TaggedInt::Is(args.Values[1]))
         {
             int32 val = TaggedInt::ToInt32(args.Values[1]);
-            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay, currencyCode);
+            strBuf = FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay, currencyCode);
         }
         else
         {
             double val = JavascriptNumber::GetValue(args.Values[1]);
-            strBuf = PlatformAgnostic::Intl::FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay, currencyCode);
+            strBuf = FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay, currencyCode);
         }
 
-        PlatformAgnostic::Resource::StringBufferAutoPtr<char16> guard(strBuf); // ensure strBuf is deleted no matter what
+        StringBufferAutoPtr<char16> guard(strBuf); // ensure strBuf is deleted no matter what
 #else
         DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
 
