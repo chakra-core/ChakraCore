@@ -588,7 +588,6 @@ namespace CorUnix
 
         // static methods
         static PAL_ERROR Initialize();
-        static DWORD PALAPI WorkerThread(LPVOID pArg);
 
     protected:
         CPalSynchronizationManager();
@@ -602,7 +601,6 @@ namespace CorUnix
 
     private:
         static IPalSynchronizationManager * CreatePalSynchronizationManager();
-        static PAL_ERROR StartWorker(CPalThread * pthrCurrent);
         static PAL_ERROR PrepareForShutdown(void);
 
     public:
