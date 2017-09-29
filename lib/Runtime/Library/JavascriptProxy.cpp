@@ -1998,11 +1998,10 @@ namespace Js
 
     void JavascriptProxy::PropertyIdFromInt(uint32 index, PropertyRecord const** propertyRecord)
     {
-        char16 buffer[20];
+        char16 buffer[22];
+        int pos = TaggedInt::ToBuffer(index, buffer, _countof(buffer));
 
-        ::_i64tow_s(index, buffer, sizeof(buffer) / sizeof(char16), 10);
-
-        GetScriptContext()->GetOrAddPropertyRecord((LPCWSTR)buffer, static_cast<int>(wcslen(buffer)), propertyRecord);
+        GetScriptContext()->GetOrAddPropertyRecord((LPCWSTR)buffer + pos, (_countof(buffer) - 1) - pos, propertyRecord);
     }
 
     Var JavascriptProxy::GetName(ScriptContext* requestContext, PropertyId propertyId)
