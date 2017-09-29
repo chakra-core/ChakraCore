@@ -3,8 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#ifndef RUNTIME_PLATFORM_AGNOSTIC_COMMON_IFINALIZABLE
-#define RUNTIME_PLATFORM_AGNOSTIC_COMMON_IFINALIZABLE
+#pragma once
 
 namespace PlatformAgnostic
 {
@@ -68,5 +67,3 @@ namespace Resource
     template class StringBufferAutoPtr<unsigned char>;
 } // namespace Intl
 } // namespace PlatformAgnostic
-
-#endif /* RUNTIME_PLATFORM_AGNOSTIC_COMMON_IFINALIZABLE */

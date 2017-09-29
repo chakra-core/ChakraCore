@@ -3,8 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#ifndef RUNTIME_PLATFORM_AGNOSTIC_COMMON_INTL
-#define RUNTIME_PLATFORM_AGNOSTIC_COMMON_INTL
+#pragma once
 
 #ifdef INTL_ICU
 
@@ -84,5 +83,3 @@ namespace Intl
 } // namespace PlatformAgnostic
 
 #endif // INTL_ICU
-
-#endif /* RUNTIME_PLATFORM_AGNOSTIC_COMMON_INTL */
