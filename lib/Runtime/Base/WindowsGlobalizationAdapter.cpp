@@ -829,20 +829,41 @@ if (this->object) \
         return ResolveLocaleLookup(scriptContext, locale, resolved);
     }
 
-    int IcuIntlAdapter::GetUserDefaultLocaleName(_Out_ LPWSTR lpLocaleName, _In_ int cchLocaleName)
+    size_t IcuIntlAdapter::GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLangtag)
     {
-        // XPLAT-TODO (doilij): implement GetUserDefaultLocaleName
-        const auto locale = _u("en-US");
-        const size_t len = 5;
-        if (lpLocaleName)
+        UErrorCode error = UErrorCode::U_ZERO_ERROR;
+        char bcp47[ULOC_FULLNAME_CAPACITY] = { 0 };
+        char defaultLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
+
+        int32_t written = uloc_getName(nullptr, defaultLocaleId, ULOC_FULLNAME_CAPACITY, &error);
+        if (U_SUCCESS(error) && written > 0 && written < ULOC_FULLNAME_CAPACITY)
         {
-            wcsncpy_s(lpLocaleName, LOCALE_NAME_MAX_LENGTH, locale, len);
+            defaultLocaleId[written] = 0;
+            error = UErrorCode::U_ZERO_ERROR;
+        }
+        else
+        {
+            AssertMsg(false, "uloc_getName: unexpected error getting default localeId");
+            return 0;
         }
 
-        // REVIEW (doilij): assuming the return value is the length of the output string in lpLocaleName
-        return len;
-    }
+        written = uloc_toLanguageTag(defaultLocaleId, bcp47, ULOC_FULLNAME_CAPACITY, true, &error);
+        if (U_FAILURE(error) || written <= 0)
+        {
+            AssertMsg(false, "uloc_toLanguageTag: unexpected error getting default langtag");
+            return 0;
+        }
 
+        if (written < cchLangtag)
+        {
+            return utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(langtag, reinterpret_cast<const utf8char_t *>(bcp47), reinterpret_cast<utf8char_t *>(bcp47 + written));
+        }
+        else
+        {
+            AssertMsg(false, "User default language tag is larger than the provided buffer");
+            return 0;
+        }
+    }
 #endif // ENABLE_INTL_OBJECT
 #endif // INTL_ICU
 } // namespace Js
