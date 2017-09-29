@@ -833,15 +833,14 @@ namespace Js
         const char16 *locale = localeJSstr->GetSz();
         const charcount_t cch = localeJSstr->GetLength();
 
-        uint16 formatterToUseVal = 0; // 0 (default) is number, 1 is percent, 2 is currency
-        if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt) && (formatterToUseVal = TaggedInt::ToUInt16(propertyValue)) == 1)
+        PlatformAgnostic::Intl::NumberFormatStyle formatterToUseVal = PlatformAgnostic::Intl::NumberFormatStyle::DEFAULT;
+        if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt)
+            && (formatterToUseVal = static_cast<PlatformAgnostic::Intl::NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue))) == PlatformAgnostic::Intl::NumberFormatStyle::PERCENT)
         {
-            // Use the percent formatter (1)
             IfFailThrowHr(PlatformAgnostic::Intl::CreatePercentFormatter(locale, cch, &numberFormatter));
         }
-        else if (formatterToUseVal == 2)
+        else if (formatterToUseVal == PlatformAgnostic::Intl::NumberFormatStyle::CURRENCY)
         {
-            // Use the currency formatter (2)
             if (!GetTypedPropertyBuiltInFrom(options, __currency, JavascriptString))
             {
                 return scriptContext->GetLibrary()->GetUndefined();
@@ -850,10 +849,9 @@ namespace Js
             JavascriptString *currencyCodeJsString = JavascriptString::FromVar(propertyValue);
             const char16 *currencyCode = currencyCodeJsString->GetSz();
 
-            // __currencyDisplayToUse: 0 is symbol, 1 is code, 2 is name.
             if (GetTypedPropertyBuiltInFrom(options, __currencyDisplayToUse, TaggedInt))
             {
-                uint16 currencyDisplay = TaggedInt::ToUInt16(propertyValue);
+                PlatformAgnostic::Intl::NumberFormatCurrencyDisplay currencyDisplay = static_cast<PlatformAgnostic::Intl::NumberFormatCurrencyDisplay>(TaggedInt::ToUInt16(propertyValue));
                 IfFailThrowHr(PlatformAgnostic::Intl::CreateCurrencyFormatter(locale, cch, currencyCode, currencyDisplay, &numberFormatter));
             }
         }
@@ -1445,8 +1443,8 @@ namespace Js
         const char16 *strBuf = nullptr;
         Var propertyValue = nullptr;
 
-        uint16 formatterToUse = 0; // __formatterToUse: 0 (default) is number, 1 is percent, 2 is currency
-        uint16 currencyDisplay = 0; // __currencyDisplayToUse: 0 (default) is symbol, 1 is code, 2 is name
+        PlatformAgnostic::Intl::NumberFormatStyle formatterToUse = PlatformAgnostic::Intl::NumberFormatStyle::DEFAULT;
+        PlatformAgnostic::Intl::NumberFormatCurrencyDisplay currencyDisplay = PlatformAgnostic::Intl::NumberFormatCurrencyDisplay::DEFAULT;
         JavascriptString *currencyCodeJsString = nullptr;
 
         // It is okay for currencyCode to be nullptr if we are NOT formatting a currency.
@@ -1455,11 +1453,11 @@ namespace Js
 
         if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt))
         {
-            formatterToUse = TaggedInt::ToUInt16(propertyValue);
+            formatterToUse = static_cast<PlatformAgnostic::Intl::NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue));
         }
         if (GetTypedPropertyBuiltInFrom(options, __currencyDisplayToUse, TaggedInt))
         {
-            currencyDisplay = TaggedInt::ToUInt16(propertyValue);
+            currencyDisplay = static_cast<PlatformAgnostic::Intl::NumberFormatCurrencyDisplay>(TaggedInt::ToUInt16(propertyValue));
         }
         if (GetTypedPropertyBuiltInFrom(options, __currency, JavascriptString))
         {

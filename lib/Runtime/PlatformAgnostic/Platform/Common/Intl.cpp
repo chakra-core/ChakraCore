@@ -285,7 +285,6 @@ namespace Intl
 
     HRESULT CreateNumberFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource)
     {
-        //return CreateFormatter(icu::NumberFormat::createInstance, languageTag, cch, resource);
         return CreateFormatter(
             [](icu::Locale &locale, UErrorCode &error) { return icu::NumberFormat::createInstance(locale, error); },
             languageTag, cch, resource);
@@ -299,7 +298,7 @@ namespace Intl
     }
 
     HRESULT CreateCurrencyFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
-        _In_z_ const char16 *currencyCode, _In_ const uint32 currencyDisplay, _Out_ IPlatformAgnosticResource **resource)
+        _In_z_ const char16 *currencyCode, _In_ const NumberFormatCurrencyDisplay currencyDisplay, _Out_ IPlatformAgnosticResource **resource)
     {
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
         unsigned char *inputLangTagUtf8 = nullptr;
@@ -322,9 +321,9 @@ namespace Intl
         icu::Locale locale = icu::Locale::createFromName(localeName);
 
         icu::NumberFormat *nf = nullptr;
-        if (currencyDisplay == 0 || currencyDisplay >= 3)
+        if (currencyDisplay == NumberFormatCurrencyDisplay::SYMBOL || currencyDisplay >= NumberFormatCurrencyDisplay::MAX)
         {
-            // 0 (or default) => use symbol (e.g. $)
+            // 0 (or default) => use symbol (e.g. "$" or "US$")
             nf = icu::NumberFormat::createCurrencyInstance(locale, error);
             if (U_FAILURE(error))
             {
@@ -339,14 +338,12 @@ namespace Intl
                 return E_INVALIDARG;
             }
         }
-        else if (currencyDisplay == 1 || currencyDisplay == 2)
+        else if (currencyDisplay == NumberFormatCurrencyDisplay::CODE || currencyDisplay == NumberFormatCurrencyDisplay::NAME)
         {
-            // 1 => use code (e.g. USD)
-            // 2 => use name (e.g. US dollars)
-
-            // In both cases we need to be able to format in decimal and add the code or name
-            // Note: decide later which we want and how to format it (based on currencyDisplay again)
-            // REVIEW (doilij): How do we handle which side of the number to put the code or name? Can ICU do this? It doesn't seem clear how.
+            // CODE e.g. "USD 42.00"; NAME (e.g. "42.00 US dollars")
+            // In both cases we need to be able to format in decimal and add the code or name afterwards.
+            // We will decide how to do this when platform.formatNumber is invoked (based on currencyDisplay again).
+            // TODO (future) (doilij): How do we handle which side of the number to put the code or name? Can ICU do this? It doesn't seem clear how at the moment.
 
             nf = icu::NumberFormat::createInstance(locale, error);
             if (U_FAILURE(error))
@@ -400,11 +397,11 @@ namespace Intl
     // We explicitly declare these specializations of FormatNumber so the compiler creates them
     // because they will be used in another compilation unit,
     // at which time we cannot generate code for specializations of this template.
-    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const int32_t val, const uint16 formatterToUse, const uint16 currencyDisplay, const char16 *currencyCode);
-    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const double val, const uint16 formatterToUse, const uint16 currencyDisplay, const char16 *currencyCode);
+    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const int32_t val, const NumberFormatStyle formatterToUse, const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
+    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const double val, const NumberFormatStyle formatterToUse, const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
 
     template <typename T>
-    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const uint16 formatterToUse, const uint16 currencyDisplay, const char16 *currencyCode)
+    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const NumberFormatStyle formatterToUse, const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode)
     {
         icu::UnicodeString result;
 
@@ -417,12 +414,12 @@ namespace Intl
 
         icu::NumberFormat *numberFormatter = formatterHolder->GetInstance();
 
-        // __formatterToUse: 0 (default) is number, 1 is percent, 2 is currency
-        if (formatterToUse == 0 || formatterToUse == 1)
+        if (formatterToUse == NumberFormatStyle::DECIMAL || formatterToUse == NumberFormatStyle::PERCENT)
         {
+            // we already created the formatter to format things according to the above options, so nothing else to do
             numberFormatter->format(val, result);
         }
-        else if (formatterToUse == 2)
+        else if (formatterToUse == NumberFormatStyle::CURRENCY)
         {
             UErrorCode error = UErrorCode::U_ZERO_ERROR;
 
@@ -437,19 +434,18 @@ namespace Intl
             UBool isChoiceFormat = false;
             int32_t currencyNameLen = 0;
 
-            // __currencyDisplayToUse: 0 (default) is symbol, 1 is code, 2 is name
-            if (currencyDisplay == 0) // symbol ($42.00)
+            if (currencyDisplay == NumberFormatCurrencyDisplay::SYMBOL || currencyDisplay >= NumberFormatCurrencyDisplay::MAX) // (e.g. "$42.00")
             {
                 // the formatter is set up to render the symbol by default
                 numberFormatter->format(val, result);
             }
-            else if (currencyDisplay == 1) // code (USD 42.00)
+            else if (currencyDisplay == NumberFormatCurrencyDisplay::CODE) // (e.g. "USD 42.00")
             {
                 result.append(uCurrencyCode);
                 result.append("\u00a0"); // NON-BREAKING SPACE
                 numberFormatter->format(val, result);
             }
-            else if (currencyDisplay == 2) // name (dollars)
+            else if (currencyDisplay == NumberFormatCurrencyDisplay::NAME) // (e.g. "US dollars")
             {
                 const char *pluralCount = nullptr; // REVIEW (doilij): is this okay? It's not entirely clear from the documentation whether this is an optional parameter.
                 const UChar *currencyLongName = ucurr_getPluralName(uCurrencyCode, localeName, &isChoiceFormat, pluralCount, &currencyNameLen, &error);
@@ -463,6 +459,10 @@ namespace Intl
                 result.append(" ");
                 result.append(currencyLongName);
             }
+        }
+        else
+        {
+            AssertMsg(false, "No other value of NumberFormatStyle is allowed");
         }
 
         int32_t length = result.length();
