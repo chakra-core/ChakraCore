@@ -1251,7 +1251,9 @@ FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from
 FLAGNR(Boolean, OOPCFGRegistration    , "Do CFG registration OOP (under OOP JIT)", DEFAULT_CONFIG_OOPCFGRegistration)
 FLAGNR(Boolean, ForceJITCFGCheck      , "Have JIT code always do CFG check even if range check succeeded", DEFAULT_CONFIG_ForceJITCFGCheck)
 FLAGNR(Boolean, UseJITTrampoline      , "Use trampoline for JIT entry points and emit range checks for it", DEFAULT_CONFIG_UseJITTrampoline)
-#ifdef _ARM64_
+
+#if defined(_M_ARM64) && !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+// Disable JIT in ARM64 release build till it is stable. Enable in debug and test build for testing
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else
 FLAGR (Boolean, NoNative              , "Disable native codegen", false)
