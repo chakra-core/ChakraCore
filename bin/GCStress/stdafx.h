@@ -10,16 +10,10 @@
 #include <windows.h>
 #include <winbase.h>
 #include <oleauto.h>
-#else
-#include <CommonPal.h>
-#endif
 
-#ifdef _MSC_VER
 #pragma warning(disable:4985)
 #include <intrin.h>
-#endif
 
-#ifndef USING_PAL_STDLIB
 #include <wtypes.h>
 #include <stdio.h>
 #endif
@@ -29,11 +23,6 @@
 #define VerifyCondition(expr) (DoVerify((expr), #expr, __FILE__, __LINE__))
 
 void DoVerify(bool value, const char * expr, const char * file, int line);
-
-inline unsigned int GetRandomInteger(unsigned int limit)
-{
-    return rand() % limit;
-}
 
 #include "WeightedTable.h"
 
@@ -45,3 +34,7 @@ extern Recycler * recyclerInstance;
 #include "GCStress.h"
 #include "RecyclerTestObject.h"
 
+inline unsigned int GetRandomInteger(unsigned int limit)
+{
+    return rand() % limit;
+}
