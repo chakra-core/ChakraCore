@@ -17,7 +17,7 @@ namespace Js
         typedef Var (__stdcall *HostWrapperCreateFuncType)(Var var, ScriptContext * sourceScriptContext, ScriptContext * destScriptContext);
 
         JavascriptExceptionObject(Var object, ScriptContext * scriptContext, JavascriptExceptionContext* exceptionContextIn, bool isPendingExceptionObject = false) :
-            thrownObject(object), isPendingExceptionObject(isPendingExceptionObject),
+            isPendingExceptionObject(isPendingExceptionObject),
             scriptContext(scriptContext), tag(true), 
 #ifdef ENABLE_SCRIPT_DEBUGGING
             isDebuggerSkip(false), byteCodeOffsetAfterDebuggerSkip(Constants::InvalidByteCodeOffset), hasDebuggerLogged(false),
@@ -26,6 +26,12 @@ namespace Js
             hostWrapperCreateFunc(nullptr), isGeneratorReturnException(false),
             next(nullptr)
         {
+            if (object && RecyclableObject::Is(object) && CrossSite::NeedMarshalVar(object, scriptContext))
+            {
+                object = CrossSite::MarshalVar(scriptContext, object);
+            }
+            thrownObject = object;
+
             if (exceptionContextIn)
             {
                 exceptionContext = *exceptionContextIn;
@@ -139,7 +145,7 @@ namespace Js
         void ReplaceThrownObject(Var object)
         {
             AssertMsg(RecyclableObject::Is(object), "Why are we replacing a non recyclable thrown object?");
-            AssertMsg(this->GetScriptContext() != RecyclableObject::FromVar(object)->GetScriptContext(), "If replaced thrownObject is from same context what's the need to replace?");
+            AssertMsg(this->GetScriptContext() != RecyclableObject::FromVar(object)->GetScriptContext() || this->thrownObject != object, "If replaced thrownObject is from same context what's the need to replace?");
             this->thrownObject = object;
         }
 
