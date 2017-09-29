@@ -24,10 +24,7 @@
   </test>
   <test>
     <default>
-      <files>stringify-replacerfunc.js</files>
-      <baseline>stringify-replacerfunc.baseline</baseline>
-      <compile-flags>-recyclerstress</compile-flags>
-      <tags>exclude_fre,Slow</tags>
+      <files>replacerFunction.js</files>
       <timeout>300</timeout>
     </default>
   </test>
@@ -93,6 +90,11 @@
     <default>
       <files>syntaxError.js</files>
       <baseline>syntaxError.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>toJSON.js</files>
     </default>
   </test>
 </regress-exe>

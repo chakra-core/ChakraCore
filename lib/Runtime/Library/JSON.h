@@ -61,7 +61,7 @@ namespace JSON
         }
         void CompleteInit(Js::Var space, ArenaAllocator* alloc);
 
-        Js::Var Str(Js::JavascriptString* key, Js::PropertyId keyId, Js::Var holder);
+        Js::Var Str(Js::JavascriptString* key, Js::PropertyId keyId, Js::Var holder, Js::Var value = nullptr);
         Js::Var Str(uint32 index, Js::Var holder);
 
     private:
@@ -74,8 +74,10 @@ namespace JSON
         Js::JavascriptString* GetPropertySeparator();
         Js::JavascriptString* GetIndentString(uint count);
         Js::JavascriptString* GetMemberSeparator(Js::JavascriptString* indentString);
-        void StringifyMemberObject( Js::JavascriptString* propertyName, Js::PropertyId id, Js::Var value, Js::ConcatStringBuilder* result,
-            Js::JavascriptString* &indentString, Js::JavascriptString* &memberSeparator, bool &isFirstMember, bool &isEmpty );
+        void StringifyMemberObject(Js::JavascriptString* propertyName, Js::PropertyId id,
+          Js::Var value, Js::ConcatStringBuilder* result, Js::JavascriptString* &indentString,
+          Js::JavascriptString* &memberSeparator, bool &isFirstMember, bool &isEmpty,
+          Js::Var propertyValue = nullptr );
 
         uint32 GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptStaticEnumerator* enumerator);
         uint32 GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptStaticEnumerator* enumerator, bool* isPrecise);

@@ -174,7 +174,8 @@ namespace JSON
         Js::Var space = args.Info.Count > 3 ? args[3] : library->GetNull();
 
         Js::DynamicObject* remoteObject;
-        if (Js::JavascriptOperators::GetTypeId(value) == Js::TypeIds_HostDispatch)
+        Js::TypeId valueType = Js::JavascriptOperators::GetTypeId(value);
+        if (valueType == Js::TypeIds_HostDispatch)
         {
             remoteObject = Js::RecyclableObject::FromVar(value)->GetRemoteObject();
             if (remoteObject != nullptr)
@@ -190,9 +191,11 @@ namespace JSON
                 }
             }
         }
+
         Js::Var result = nullptr;
         StringifySession stringifySession(scriptContext);
-        StringifySession::StringTable* nameTable = nullptr;            //stringifySession will point to the memory allocated by nameTable, so make sure lifespans are linked.
+        //stringifySession will point to the memory allocated by nameTable, so make sure lifespans are linked.
+        StringifySession::StringTable* nameTable = nullptr;
 
         DECLARE_TEMP_GUEST_ALLOCATOR(nameTableAlloc);
 
@@ -322,7 +325,7 @@ namespace JSON
             JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(wrapper));
             Js::PropertyId propertyId = scriptContext->GetEmptyStringPropertyId();
             Js::JavascriptOperators::InitProperty(wrapper, propertyId, value);
-            result = stringifySession.Str(scriptContext->GetLibrary()->GetEmptyString(), propertyId, wrapper);
+            result = stringifySession.Str(scriptContext->GetLibrary()->GetEmptyString(), propertyId, wrapper, value);
         }
         END_TEMP_ALLOCATOR(tempAlloc, scriptContext);
 
@@ -424,31 +427,59 @@ namespace JSON
         return StrHelper(key, value, holder);
     }
 
-    Js::Var StringifySession::Str(Js::JavascriptString* key, Js::PropertyId keyId, Js::Var holder)
+    Js::Var StringifySession::Str(Js::JavascriptString* key, Js::PropertyId keyId, Js::Var holder, Js::Var value)
     {
-        Js::Var value = nullptr;
         // We should look only into object's own properties here. When an object is serialized, only the own properties are considered,
         // the prototype chain is not considered. However, the property names can be selected via an array replacer. In this case
         // ES5 spec doesn't say the property has to own property or even to be enumerable. So, properties from the prototype, or non enum properties,
         // can end up being serialized. Well, that is the ES5 spec word.
         //if(!Js::RecyclableObject::FromVar(holder)->GetType()->GetProperty(holder, keyId, &value))
 
-        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(key))
-        {
-            PropertyValueInfo info;
-            Js::PropertyString* propertyString = (Js::PropertyString*)key;
-            PropertyValueInfo::SetCacheInfo(&info, propertyString, propertyString->GetLdElemInlineCache(), false);
-            CacheOperators::TryGetProperty<true, false, true, false, true, false, false, true, false>(holder, false, Js::RecyclableObject::FromVar(holder), keyId, &value, scriptContext, nullptr, &info);
-        }
-
         if (value == nullptr)
         {
-            if (!Js::JavascriptOperators::GetProperty(Js::RecyclableObject::FromVar(holder), keyId, &value, scriptContext))
+            if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(key))
             {
-                return scriptContext->GetLibrary()->GetUndefined();
+                PropertyValueInfo info;
+                Js::PropertyString* propertyString = (Js::PropertyString*)key;
+                PropertyValueInfo::SetCacheInfo(&info, propertyString, propertyString->GetLdElemInlineCache(), false);
+                CacheOperators::TryGetProperty<true, false, true, false, true, false, false, true, false>(holder, false, Js::RecyclableObject::FromVar(holder), keyId, &value, scriptContext, nullptr, &info);
+            }
+
+            if (value == nullptr)
+            {
+                if (!Js::JavascriptOperators::GetProperty(Js::RecyclableObject::FromVar(holder), keyId, &value, scriptContext))
+                {
+                    return scriptContext->GetLibrary()->GetUndefined();
+                }
             }
         }
         return StrHelper(key, value, holder);
+    }
+
+    inline bool Get_ToJSON(ScriptContext* scriptContext, Js::JavascriptString* key, Js::Var* value, Js::TypeId typeId)
+    {
+        Js::Var toJSON = nullptr;
+        Js::RecyclableObject* object = Js::RecyclableObject::FromVar(*value);
+        while (typeId != Js::TypeIds_Null)
+        {
+            PropertyQueryFlags result = object->GetPropertyQuery(object, Js::PropertyIds::toJSON, &toJSON, nullptr, scriptContext);
+
+            if (result != PropertyQueryFlags::Property_NotFound && Js::JavascriptConversion::IsCallable(toJSON))
+            {
+                Js::Var values[2];
+                Js::Arguments args(2, values);
+                args.Values[0] = *value;
+                args.Values[1] = key;
+
+                Js::RecyclableObject* func = Js::RecyclableObject::FromVar(toJSON);
+                *value = Js::JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), args);
+                return true;
+            }
+
+            object = object->GetPrototype();
+            typeId = Js::JavascriptOperators::GetTypeId(object);
+        }
+        return false;
     }
 
     Js::Var StringifySession::StrHelper(Js::JavascriptString* key, Js::Var value, Js::Var holder)
@@ -456,29 +487,24 @@ namespace JSON
         PROBE_STACK(scriptContext, Js::Constants::MinStackDefault);
         AssertMsg(Js::RecyclableObject::Is(holder), "The holder argument in a JSON::Str function must be an object");
 
-        Js::Var values[3];
-        Js::Arguments args(0, values);
         Js::Var undefined = scriptContext->GetLibrary()->GetUndefined();
+        Js::TypeId id = Js::JavascriptOperators::GetTypeId(value);
 
         //check and apply 'toJSON' filter
         if (Js::JavascriptOperators::IsJsNativeObject(value) || (Js::JavascriptOperators::IsObject(value)))
         {
-            Js::Var tojson = nullptr;
-            if (Js::JavascriptOperators::GetProperty(Js::RecyclableObject::FromVar(value), Js::PropertyIds::toJSON, &tojson, scriptContext) &&
-                Js::JavascriptConversion::IsCallable(tojson))
+            if (Get_ToJSON(scriptContext, key, &value, id))
             {
-                args.Info.Count = 2;
-                args.Values[0] = value;
-                args.Values[1] = key;
-
-                Js::RecyclableObject* func = Js::RecyclableObject::FromVar(tojson);
-                value = Js::JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), args);
+                id = Js::JavascriptOperators::GetTypeId(value);
             }
         }
 
         //check and apply the user defined replacer filter
         if (ReplacerFunction == replacerType)
         {
+            Js::Var values[3];
+            Js::Arguments args(0, values);
+
             args.Info.Count = 3;
             args.Values[0] = holder;
             args.Values[1] = key;
@@ -486,23 +512,28 @@ namespace JSON
 
             Js::RecyclableObject* func = replacer.ReplacerFunction;
             value = Js::JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), args);
+            id = Js::JavascriptOperators::GetTypeId(value);
         }
 
-        Js::TypeId id = Js::JavascriptOperators::GetTypeId(value);
         if (Js::TypeIds_NumberObject == id)
         {
             value = Js::JavascriptNumber::ToVarNoCheck(Js::JavascriptConversion::ToNumber(value, scriptContext),scriptContext);
+            id = Js::JavascriptOperators::GetTypeId(value);
         }
         else if (Js::TypeIds_StringObject == id)
         {
             value = Js::JavascriptConversion::ToString(value, scriptContext);
+            id = Js::JavascriptOperators::GetTypeId(value);
         }
         else if (Js::TypeIds_BooleanObject == id)
         {
-            value = Js::JavascriptBooleanObject::FromVar(value)->GetValue() ? scriptContext->GetLibrary()->GetTrue() : scriptContext->GetLibrary()->GetFalse();
+            value = Js::JavascriptBooleanObject::FromVar(value)->GetValue() ?
+                scriptContext->GetLibrary()->GetTrue()
+            :
+                scriptContext->GetLibrary()->GetFalse();
+            id = Js::JavascriptOperators::GetTypeId(value);
         }
 
-        id = Js::JavascriptOperators::GetTypeId(value);
         switch (id)
         {
         case Js::TypeIds_Undefined:
@@ -647,42 +678,71 @@ namespace JSON
             }
             else
             {
-                uint32 precisePropertyCount = 0;
                 Js::JavascriptStaticEnumerator enumerator;
                 if (object->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EphemeralReference, scriptContext))
                 {
-                    bool isPrecise;
-                    uint32 propertyCount = GetPropertyCount(object, &enumerator, &isPrecise);
-                    if (isPrecise)
-                    {
-                        precisePropertyCount = propertyCount;
-                    }
+                      Js::DynamicObject * dynamicObject = ((Js::DynamicObject*)object);
+                      if (ReplacerFunction != replacerType || !dynamicObject->HasObjectArray())
+                      {
+                        uint32 propertyCount = dynamicObject->GetPropertyCount();
 
-                    if (ReplacerFunction != replacerType)
-                    {
-                        // Reserve initial slots for properties. +1 stands for extra property being pushed during the stringify
-                        result = Js::ConcatStringBuilder::New(this->scriptContext, propertyCount + 1);
+                        result = Js::ConcatStringBuilder::New(this->scriptContext, propertyCount);
+                        Js::DynamicTypeHandler * typeHandler = dynamicObject->GetTypeHandler();
                         enumerator.Reset();
-                        while ((propertyName = enumerator.MoveAndGetNext(id)) != NULL)
+                        Js::PropertyId previousId;
+                        // if object has an objectarray, (aka indexed properties)
+                        // we need to loop them first since they won't show up on the second loop below
+                        if (dynamicObject->HasObjectArray())
                         {
-                             if (id == Js::Constants::NoProperty)
+                            int totalNumPropertyCount = this->GetPropertyCount(object, &enumerator) - propertyCount;
+                            Assert(totalNumPropertyCount > 0);
+                            int index = 0;
+                            enumerator.Reset();
+                            while ((propertyName = enumerator.MoveAndGetNext(id)) != NULL && index < totalNumPropertyCount)
                             {
-                                //if unsuccessful get propertyId from the string
+                                // if unsuccessful get propertyId from the string
+                                scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);
+                                id = propRecord->GetPropertyId();
+                                StringifyMemberObject(propertyName, id, value, (Js::ConcatStringBuilder*)result, indentString, memberSeparator, isFirstMember, isEmpty);
+                                index++;
+                            }
+                        }
+
+                        // loop over the named properties
+                        for (uint32 i = 0; i < propertyCount; i++)
+                        {
+                            id = typeHandler->GetPropertyId(scriptContext, (Js::PropertyId)i);
+                            if (id == Js::Constants::NoProperty)
+                            {
+                                if ((propertyName = enumerator.MoveAndGetNext(previousId)) == NULL) break;
+
                                 scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);
                                 id = propRecord->GetPropertyId();
                             }
-                            StringifyMemberObject(propertyName, id, value, (Js::ConcatStringBuilder*)result, indentString, memberSeparator, isFirstMember, isEmpty);
+                            else
+                            {
+                                propRecord = scriptContext->GetPropertyName(id);
+                                propertyName = scriptContext->GetPropertyString(id);
+                            }
+
+                            previousId = id;
+                            if (!propRecord->IsSymbol())
+                            {
+                                Js::Var property = dynamicObject->GetSlot(i);
+
+                                StringifyMemberObject(propertyName, id, value,
+                                  (Js::ConcatStringBuilder*)result, indentString,
+                                  memberSeparator, isFirstMember, isEmpty, property);
+                            }
                         }
                     }
-                    else // case: ES5 && ReplacerFunction == replacerType.
+                    else // case: ES5 && ReplacerFunction == replacerType. && object->HasObjectArray
                     {
+                        // TODO: Optimize this? Store only the ObjectArray and loop over the params
                         Js::Var* nameTable = nullptr;
                         // ES5 requires that the new properties introduced by the replacer to not be stringified
                         // Get the actual count first.
-                        if (precisePropertyCount == 0)  // Check if it was updated in earlier step.
-                        {
-                            precisePropertyCount = this->GetPropertyCount(object, &enumerator);
-                        }
+                        uint precisePropertyCount = (uint) this->GetPropertyCount(object, &enumerator);
 
                         result = Js::ConcatStringBuilder::New(this->scriptContext, precisePropertyCount);    // Reserve initial slots for properties.
 
@@ -701,7 +761,7 @@ namespace JSON
                                 nameTable = AnewArray(nameTableAlloc, Js::Var, precisePropertyCount);
                             }
                             enumerator.Reset();
-                            uint32 index = 0;
+                            uint index = 0;
                             while ((propertyName = enumerator.MoveAndGetNext(id)) != NULL && index < precisePropertyCount)
                             {
                                 nameTable[index++] = propertyName;
@@ -714,7 +774,9 @@ namespace JSON
                                 propertyName = Js::JavascriptString::FromVar(nameTable[k]);
                                 scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);
                                 id = propRecord->GetPropertyId();
-                                StringifyMemberObject(propertyName, id, value, (Js::ConcatStringBuilder*)result, indentString, memberSeparator, isFirstMember, isEmpty);
+                                StringifyMemberObject(propertyName, id, value,
+                                  (Js::ConcatStringBuilder*)result, indentString,
+                                  memberSeparator, isFirstMember, isEmpty);
                             }
                         }
                         RELEASE_TEMP_GUEST_ALLOCATOR(nameTableAlloc, scriptContext);
@@ -898,9 +960,12 @@ namespace JSON
         }
     }
 
-    void StringifySession::StringifyMemberObject(Js::JavascriptString* propertyName, Js::PropertyId id, Js::Var value, Js::ConcatStringBuilder* result, Js::JavascriptString* &indentString, Js::JavascriptString* &memberSeparator, bool &isFirstMember, bool &isEmpty )
+    void StringifySession::StringifyMemberObject(Js::JavascriptString* propertyName,
+      Js::PropertyId id, Js::Var value, Js::ConcatStringBuilder* result,
+      Js::JavascriptString* &indentString, Js::JavascriptString* &memberSeparator,
+      bool &isFirstMember, bool &isEmpty, Js::Var propertyValue)
     {
-        Js::Var propertyObjectString = Str(propertyName, id, value);
+        Js::Var propertyObjectString = Str(propertyName, id, value, propertyValue);
         if(!Js::JavascriptOperators::IsUndefinedObject(propertyObjectString, scriptContext))
         {
             int slotIndex = 0;
