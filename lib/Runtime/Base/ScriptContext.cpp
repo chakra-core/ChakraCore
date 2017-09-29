@@ -201,8 +201,6 @@ namespace Js
         , bailOutOffsetBytes(0)
 #endif
         , emptyStringPropertyId(Js::PropertyIds::_none)
-        , debugContext(nullptr)
-        , jitFuncRangeCache(nullptr)
     {
 #ifdef ENABLE_SCRIPT_DEBUGGING
        // This may allocate memory and cause exception, but it is ok, as we all we have done so far
