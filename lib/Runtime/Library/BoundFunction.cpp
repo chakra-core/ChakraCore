@@ -275,7 +275,7 @@ namespace Js
         JavascriptString* displayName = GetLibrary()->GetEmptyString();
         if (targetFunction != nullptr)
         {
-            Var value = JavascriptOperators::GetProperty(targetFunction, PropertyIds::name, targetFunction->GetScriptContext());
+            Var value = JavascriptOperators::GetPropertyNoCache(targetFunction, PropertyIds::name, targetFunction->GetScriptContext());
             if (JavascriptString::Is(value))
             {
                 displayName = JavascriptString::FromVar(value);

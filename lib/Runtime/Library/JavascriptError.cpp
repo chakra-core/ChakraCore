@@ -186,7 +186,7 @@ namespace Js
         JavascriptString *outputStr, *message;
 
         // get error.name
-        BOOL hasName = JavascriptOperators::GetProperty(thisError, PropertyIds::name, &value, scriptContext, NULL) &&
+        BOOL hasName = JavascriptOperators::GetPropertyNoCache(thisError, PropertyIds::name, &value, scriptContext) &&
             JavascriptOperators::GetTypeId(value) != TypeIds_Undefined;
 
         if (hasName)
@@ -199,7 +199,7 @@ namespace Js
         }
 
         // get error.message
-        if (JavascriptOperators::GetProperty(thisError, PropertyIds::message, &value, scriptContext, NULL)
+        if (JavascriptOperators::GetPropertyNoCache(thisError, PropertyIds::message, &value, scriptContext)
             && JavascriptOperators::GetTypeId(value) != TypeIds_Undefined)
         {
             message = JavascriptConversion::ToString(value, scriptContext);
@@ -527,7 +527,7 @@ namespace Js
         // This version needs to be called in script.
         Assert(scriptContext->GetThreadContext()->IsScriptActive());
 
-        Var number = JavascriptOperators::GetProperty(errorObject, Js::PropertyIds::number, scriptContext, NULL);
+        Var number = JavascriptOperators::GetPropertyNoCache(errorObject, Js::PropertyIds::number, scriptContext);
         if (TaggedInt::Is(number))
         {
             hr = TaggedInt::ToInt32(number);

@@ -22,12 +22,7 @@ namespace Js
     // construct the message string before knowing whether or not the object is coercible.
     BOOL JavascriptConversion::CheckObjectCoercible(Var aValue, ScriptContext* scriptContext)
     {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        if (typeId == TypeIds_Null || typeId == TypeIds_Undefined)
-        {
-            return FALSE;
-        }
-        return TRUE;
+        return !JavascriptOperators::IsUndefinedOrNull(aValue);
     }
 
     //ES5 9.11  Undefined, Null, Boolean, Number, String - return false
@@ -63,15 +58,9 @@ namespace Js
         TypeId leftType = JavascriptOperators::GetTypeId(aLeft);
         TypeId rightType = JavascriptOperators::GetTypeId(aRight);
 
-        //Check for undefined and null type;
-        if (leftType == TypeIds_Undefined )
+        if (JavascriptOperators::IsUndefinedOrNullType(leftType))
         {
-            return rightType == TypeIds_Undefined;
-        }
-
-        if (leftType == TypeIds_Null)
-        {
-            return rightType == TypeIds_Null;
+            return leftType == rightType;
         }
 
         double dblLeft, dblRight;

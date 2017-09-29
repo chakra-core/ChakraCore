@@ -825,7 +825,7 @@ namespace Js
     void JavascriptArray::InternalFillFromPrototype(JavascriptArray *dstArray, uint32 dstIndex, JavascriptArray *srcArray, uint32 start, uint32 end, uint32 count)
     {
         RecyclableObject* prototype = srcArray->GetPrototype();
-        while (start + count != end && JavascriptOperators::GetTypeId(prototype) != TypeIds_Null)
+        while (start + count != end && !JavascriptOperators::IsNull(prototype))
         {
             ForEachOwnMissingArrayIndexOfObject(srcArray, dstArray, prototype, start, end, dstIndex, [&](uint32 index, Var value) {
                 uint32 n = dstIndex + (index - start);
@@ -4336,7 +4336,7 @@ namespace Js
     JavascriptString* JavascriptArray::JoinToString(Var value, ScriptContext* scriptContext)
     {
         TypeId typeId = JavascriptOperators::GetTypeId(value);
-        if (typeId == TypeIds_Null || typeId == TypeIds_Undefined)
+        if (typeId <= TypeIds_UndefinedOrNull)
         {
             return scriptContext->GetLibrary()->GetEmptyString();
         }
@@ -5334,8 +5334,7 @@ Case0:
         if (forceCheckProtoChain || arr->IsFillFromPrototypes())
         {
             RecyclableObject* prototype = arr->GetPrototype();
-
-            while (JavascriptOperators::GetTypeId(prototype) != TypeIds_Null)
+            while (!JavascriptOperators::IsNull(prototype))
             {
                 RecyclableObject* protoObj = prototype;
 
@@ -8018,7 +8017,7 @@ Case0:
         }
 
         // In ES5 we could be calling a user defined join, even on array. We must [[Get]] join at runtime.
-        JS_REENTRANT(jsReentLock, Var join = JavascriptOperators::GetProperty(obj, PropertyIds::join, scriptContext));
+        JS_REENTRANT(jsReentLock, Var join = JavascriptOperators::GetPropertyNoCache(obj, PropertyIds::join, scriptContext));
         if (JavascriptConversion::IsCallable(join))
         {
             RecyclableObject* func = RecyclableObject::FromVar(join);
@@ -10449,7 +10448,7 @@ Case0:
     JavascriptString* JavascriptArray::ToLocaleStringHelper(Var value, ScriptContext* scriptContext)
     {
         TypeId typeId = JavascriptOperators::GetTypeId(value);
-        if (typeId == TypeIds_Null || typeId == TypeIds_Undefined)
+        if (typeId <= TypeIds_UndefinedOrNull)
         {
             return scriptContext->GetLibrary()->GetEmptyString();
         }
@@ -10489,9 +10488,8 @@ Case0:
         }
 
         RecyclableObject* prototype = this->GetPrototype();
-
         // Fill all missing values by walking through prototype
-        while (JavascriptOperators::GetTypeId(prototype) != TypeIds_Null)
+        while (!JavascriptOperators::IsNull(prototype))
         {
             ForEachOwnMissingArrayIndexOfObject(this, nullptr, prototype, startIndex, limitIndex,0, [this](uint32 index, Var value) {
                 this->SetItem(index, value, PropertyOperation_None);

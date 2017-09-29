@@ -468,7 +468,7 @@ namespace Js
         {
             bool isArray = JavascriptArray::Is(argArray);
             TypeId typeId = JavascriptOperators::GetTypeId(argArray);
-            bool isNullOrUndefined = (typeId == TypeIds_Null || typeId == TypeIds_Undefined);
+            bool isNullOrUndefined = typeId <= TypeIds_UndefinedOrNull;
 
             if (!isNullOrUndefined && !JavascriptOperators::IsObject(argArray)) // ES5: throw if Type(argArray) is not Object
             {
@@ -3307,7 +3307,7 @@ LABEL1:
         }
         else
         {
-            funcPrototype = JavascriptOperators::GetProperty(this, PropertyIds::prototype, scriptContext, nullptr);
+            funcPrototype = JavascriptOperators::GetPropertyNoCache(this, PropertyIds::prototype, scriptContext);
         }
         funcPrototype = CrossSite::MarshalVar(scriptContext, funcPrototype);
         return JavascriptFunction::HasInstance(funcPrototype, instance, scriptContext, inlineCache, this);
@@ -3375,7 +3375,8 @@ LABEL1:
         // However, object o's type (even if it is of the same "shape" as before, and even if o is the very same object) will be different,
         // because the object types are permanently bound and unique to the script context from which they were created.
 
-        Var prototype = JavascriptOperators::GetPrototype(RecyclableObject::FromVar(instance));
+        RecyclableObject* instanceObject = RecyclableObject::FromVar(instance);
+        Var prototype = JavascriptOperators::GetPrototype(instanceObject);
 
         if (!JavascriptOperators::IsObject(funcPrototype))
         {
@@ -3384,7 +3385,7 @@ LABEL1:
 
         // Since we missed the cache, we must now walk the prototype chain of the object to check if the given function's prototype is somewhere in
         // that chain. If it is, we return true. Otherwise (i.e., we hit the end of the chain before finding the function's prototype) we return false.
-        while (JavascriptOperators::GetTypeId(prototype) != TypeIds_Null)
+        while (!JavascriptOperators::IsNull(prototype))
         {
             if (prototype == funcPrototype)
             {
