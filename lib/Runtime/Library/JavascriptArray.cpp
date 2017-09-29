@@ -4884,7 +4884,7 @@ Case0:
         }
         else
         {
-            element = CrossSite::MarshalVar(scriptContext, element);
+            element = CrossSite::MarshalVar(scriptContext, element, arr->GetScriptContext());
         }
         arr->SetLength(index); // SetLength will clear element at index
 

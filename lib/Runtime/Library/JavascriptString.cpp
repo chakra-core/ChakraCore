@@ -3053,7 +3053,9 @@ case_2:
 
             // a. Let s be the value of value's [[StringData]] internal slot.
             // b. If s is not undefined, then return s.
-            *pString = JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext, pStringObj->Unwrap()));
+            *pString = pStringObj->Unwrap();
+            *pString = JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext,
+              *pString, pStringObj->GetScriptContext()));
             return TRUE;
         }
 

@@ -369,22 +369,22 @@ CommonNumber:
         case TypeIds_StringObject:
             {
                 JavascriptStringObject * stringObject = JavascriptStringObject::FromVar(aValue);
-
-                if (stringObject->GetScriptContext()->optimizationOverrides.GetSideEffects() & (hint == JavascriptHint::HintString ? SideEffects_ToString : SideEffects_ValueOf))
+                ScriptContext * objectScriptContext = stringObject->GetScriptContext();
+                if (objectScriptContext->optimizationOverrides.GetSideEffects() & (hint == JavascriptHint::HintString ? SideEffects_ToString : SideEffects_ValueOf))
                 {
                     return MethodCallToPrimitive(aValue, hint, requestContext);
                 }
 
-                return CrossSite::MarshalVar(requestContext, stringObject->Unwrap());
+                return CrossSite::MarshalVar(requestContext, stringObject->Unwrap(), objectScriptContext);
             }
 
         case TypeIds_NumberObject:
             {
                 JavascriptNumberObject * numberObject = JavascriptNumberObject::FromVar(aValue);
-
+                ScriptContext * objectScriptContext = numberObject->GetScriptContext();
                 if (hint == JavascriptHint::HintString)
                 {
-                    if (numberObject->GetScriptContext()->optimizationOverrides.GetSideEffects() & SideEffects_ToString)
+                    if (objectScriptContext->optimizationOverrides.GetSideEffects() & SideEffects_ToString)
                     {
                         return MethodCallToPrimitive(aValue, hint, requestContext);
                     }
@@ -392,11 +392,12 @@ CommonNumber:
                 }
                 else
                 {
-                    if (numberObject->GetScriptContext()->optimizationOverrides.GetSideEffects() & SideEffects_ValueOf)
+                    if (objectScriptContext->optimizationOverrides.GetSideEffects() & SideEffects_ValueOf)
                     {
                         return MethodCallToPrimitive(aValue, hint, requestContext);
                     }
-                    return CrossSite::MarshalVar(requestContext, numberObject->Unwrap());
+
+                    return CrossSite::MarshalVar(requestContext, numberObject->Unwrap(), objectScriptContext);
                 }
             }
 
@@ -673,8 +674,11 @@ CommonNumber:
                 }
 
             case TypeIds_String:
-                return JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext, aValue));
-
+                {
+                    ScriptContext* aValueScriptContext = Js::RecyclableObject::FromVar(aValue)->GetScriptContext();
+                    return JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext,
+                      aValue, aValueScriptContext));
+                }
             case TypeIds_VariantDate:
                 return JavascriptVariantDate::FromVar(aValue)->GetValueString(scriptContext);
 

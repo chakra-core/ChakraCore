@@ -1017,7 +1017,8 @@ namespace Js
                                 // if (desc.enumerable) yield key;
                                 if (desc.IsEnumerable())
                                 {
-                                    return JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext, propertyName));
+                                    return JavascriptString::FromVar(CrossSite::MarshalVar(
+                                      scriptContext, propertyName, propertyName->GetScriptContext()));
                                 }
                             }
                         }
@@ -1933,9 +1934,10 @@ namespace Js
             JavascriptError::ThrowTypeError(requestContext, JSERR_NeedFunction, requestContext->GetPropertyName(methodId)->GetBuffer());
         }
 
-        varMethod = CrossSite::MarshalVar(requestContext, varMethod);
+        JavascriptFunction* function = JavascriptFunction::FromVar(varMethod);
 
-        return JavascriptFunction::FromVar(varMethod);
+        return JavascriptFunction::FromVar(CrossSite::MarshalVar(requestContext,
+          function, function->GetScriptContext()));
     }
 
     Var JavascriptProxy::GetValueFromDescriptor(Var instance, PropertyDescriptor propertyDescriptor, ScriptContext* requestContext)

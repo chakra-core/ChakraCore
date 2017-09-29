@@ -898,7 +898,7 @@ namespace Js
         else if (JavascriptNumberObject::Is(value))
         {
             JavascriptNumberObject* obj = JavascriptNumberObject::FromVar(value);
-            return CrossSite::MarshalVar(scriptContext, obj->Unwrap());
+            return CrossSite::MarshalVar(scriptContext, obj->Unwrap(), obj->GetScriptContext());
         }
         else if (Js::JavascriptOperators::GetTypeId(value) == TypeIds_Int64Number)
         {

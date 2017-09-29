@@ -285,20 +285,21 @@ namespace Js
         END_LEAVE_SCRIPT(scriptContext);
 #endif
 
-        if (result != nullptr && !Js::TaggedNumber::Is(result))
+        bool marshallingMayBeNeeded = false;
+        if (result != nullptr)
         {
-            if (!Js::RecyclableObject::Is(result))
+            marshallingMayBeNeeded = Js::RecyclableObject::Is(result);
+            if (marshallingMayBeNeeded)
             {
-                Js::Throw::InternalError();
-            }
+                Js::RecyclableObject * obj = Js::RecyclableObject::FromVar(result);
 
-            Js::RecyclableObject * obj = Js::RecyclableObject::FromVar(result);
-
-            // For JSRT, we could get result marshalled in different context.
-            bool isJSRT = scriptContext->GetThreadContext()->IsJSRT();
-            if (!isJSRT && obj->GetScriptContext() != scriptContext)
-            {
-                Js::Throw::InternalError();
+                // For JSRT, we could get result marshalled in different context.
+                bool isJSRT = scriptContext->GetThreadContext()->IsJSRT();
+                marshallingMayBeNeeded = obj->GetScriptContext() != scriptContext;
+                if (!isJSRT && marshallingMayBeNeeded)
+                {
+                    Js::Throw::InternalError();
+                }
             }
         }
 
@@ -324,7 +325,7 @@ namespace Js
         {
             result = scriptContext->GetLibrary()->GetUndefined();
         }
-        else
+        else if (marshallingMayBeNeeded)
         {
             result = CrossSite::MarshalVar(scriptContext, result);
         }

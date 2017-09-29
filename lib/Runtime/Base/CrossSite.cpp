@@ -122,7 +122,10 @@ namespace Js
             if (WithScopeObject::Is(value))
             {
                 // Here we are marshalling the wrappedObject and then ReWrapping th object in the new context.
-                value = JavascriptOperators::ToWithObject(CrossSite::MarshalVar(scriptContext, WithScopeObject::FromVar(value)->GetWrappedObject()), scriptContext);
+                RecyclableObject* wrappedObject = WithScopeObject::FromVar(value)->GetWrappedObject();
+                ScriptContext* wrappedObjectScriptContext = wrappedObject->GetScriptContext();
+                value = JavascriptOperators::ToWithObject(CrossSite::MarshalVar(scriptContext,
+                  wrappedObject, wrappedObjectScriptContext), scriptContext);
             }
             else
             {
@@ -132,6 +135,20 @@ namespace Js
         }
 
         return (Var)newDisplay;
+    }
+
+    // static
+    Var CrossSite::MarshalVar(ScriptContext* scriptContext, Var value, ScriptContext* objectScriptContext)
+    {
+        if (scriptContext != objectScriptContext)
+        {
+            if (value == nullptr || Js::TaggedNumber::Is(value))
+            {
+                return value;
+            }
+            return MarshalVarInner(scriptContext, RecyclableObject::FromVar(value), false);
+        }
+        return value;
     }
 
     // static

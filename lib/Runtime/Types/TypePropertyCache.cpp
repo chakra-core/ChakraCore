@@ -216,6 +216,7 @@ namespace Js
                 isInlineSlot
                     ? DynamicObject::FromVar(propertyObject)->GetInlineSlot(propertyIndex)
                     : DynamicObject::FromVar(propertyObject)->GetAuxSlot(propertyIndex);
+
             if(propertyObject->GetScriptContext() == requestContext)
             {
                 DebugOnly(Var getPropertyValue = JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
@@ -237,8 +238,10 @@ namespace Js
                     requestContext);
                 return true;
             }
-
+            else
+            {
             *propertyValue = CrossSite::MarshalVar(requestContext, *propertyValue);
+            }
             // Cannot use GetProperty and compare results since they may not compare equal when they're marshaled
 
             if(operationInfo)
@@ -298,8 +301,10 @@ namespace Js
                 requestContext);
             return true;
         }
-
+        else
+        {
         *propertyValue = CrossSite::MarshalVar(requestContext, *propertyValue);
+        }
         // Cannot use GetProperty and compare results since they may not compare equal when they're marshaled
 
         if(operationInfo)
@@ -366,10 +371,7 @@ namespace Js
         Assert(object->CanStorePropertyValueDirectly(propertyId, false));
 
         ScriptContext *const objectScriptContext = object->GetScriptContext();
-        if(objectScriptContext != requestContext)
-        {
-            propertyValue = CrossSite::MarshalVar(objectScriptContext, propertyValue);
-        }
+        propertyValue = CrossSite::MarshalVar(objectScriptContext, propertyValue, objectScriptContext);
 
         if(isInlineSlot)
         {

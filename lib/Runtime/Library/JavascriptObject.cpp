@@ -1040,6 +1040,7 @@ namespace Js
                 if (propertyDescriptor.IsEnumerable())
                 {
                     Var value = JavascriptOperators::GetProperty(object, propertyId, scriptContext);
+
                     if (!valuesToReturn)
                     {
                         // For Object.entries each entry is key, value pair
@@ -1168,7 +1169,7 @@ namespace Js
                 }
                 if (includeStringProperties)
                 {
-                    newArr->DirectSetItemAt(propertyIndex++, CrossSite::MarshalVar(scriptContext, propertyName));
+                    newArr->DirectSetItemAt(propertyIndex++, CrossSite::MarshalVar(scriptContext, propertyName, propertyName->GetScriptContext()));
                 }
             }
         }

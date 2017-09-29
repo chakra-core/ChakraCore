@@ -166,8 +166,8 @@ namespace Js
         static JavascriptArray*  GetOwnPropertyKeys(Var instance, ScriptContext *scriptContext);
 
 
-        static JavascriptArray*  GetOwnEnumerablePropertyNames(Var instance, ScriptContext *scriptContext);
-        static JavascriptArray*  GetOwnEnumerablePropertyNamesSymbols(Var instance, ScriptContext *scriptContext);
+        static JavascriptArray*  GetOwnEnumerablePropertyNames(RecyclableObject* instance, ScriptContext *scriptContext);
+        static JavascriptArray*  GetOwnEnumerablePropertyNamesSymbols(RecyclableObject* instance, ScriptContext *scriptContext);
 
         static BOOL GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor* propertyDescriptor);
         static BOOL GetOwnPropertyDescriptor(RecyclableObject* obj, JavascriptString* propertyKey, ScriptContext* scriptContext, PropertyDescriptor* propertyDescriptor);
