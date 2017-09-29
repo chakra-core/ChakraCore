@@ -218,6 +218,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 #if ENABLE_JS_REENTRANCY_CHECK
     , noJsReentrancy(false)
 #endif
+    , emptyStringPropertyRecord(nullptr)
 {
     pendingProjectionContextCloseList = JsUtil::List<IProjectionContext*, ArenaAllocator>::New(GetThreadAlloc());
     hostScriptContextStack = Anew(GetThreadAlloc(), JsUtil::Stack<HostScriptContext*>, GetThreadAlloc());
@@ -919,19 +920,23 @@ ThreadContext::IsNumericProperty(Js::PropertyId propertyId)
 const Js::PropertyRecord *
 ThreadContext::FindPropertyRecord(const char16 * propertyName, int propertyNameLength)
 {
-    Js::PropertyRecord const * propertyRecord = nullptr;
-
-    if (IsDirectPropertyName(propertyName, propertyNameLength))
+    // IsDirectPropertyName == 1 char properties && GetEmptyStringPropertyRecord == 0 length
+    if (propertyNameLength < 2)
     {
-        propertyRecord = propertyNamesDirect[propertyName[0]];
-        Assert(propertyRecord == propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength)));
-    }
-    else
-    {
-        propertyRecord = propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength));
+        if (propertyNameLength == 0)
+        {
+            return this->GetEmptyStringPropertyRecord();
+        }
+
+        if (IsDirectPropertyName(propertyName, propertyNameLength))
+        {
+            Js::PropertyRecord const * propertyRecord = propertyNamesDirect[propertyName[0]];
+            Assert(propertyRecord == propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength)));
+            return propertyRecord;
+        }
     }
 
-    return propertyRecord;
+    return propertyMap->LookupWithKey(Js::HashedCharacterBuffer<char16>(propertyName, propertyNameLength));
 }
 
 Js::PropertyRecord const *
@@ -1092,7 +1097,7 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
 #if DBG
     // Only Assert we can't find the property if we are not adding a symbol.
     // For a symbol, the propertyName is not used and may collide with something in the map already.
-    if (!propertyRecord->IsSymbol())
+    if (propertyNameLength > 0 && !propertyRecord->IsSymbol())
     {
         Assert(FindPropertyRecord(propertyName, propertyNameLength) == nullptr);
     }
@@ -1141,7 +1146,7 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
 #if DBG
     // Only Assert we can find the property if we are not adding a symbol.
     // For a symbol, the propertyName is not used and we won't be able to look the pid up via name.
-    if (!propertyRecord->IsSymbol())
+    if (propertyNameLength && !propertyRecord->IsSymbol())
     {
         Assert(FindPropertyRecord(propertyName, propertyNameLength) == propertyRecord);
     }

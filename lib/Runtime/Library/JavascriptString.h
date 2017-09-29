@@ -366,7 +366,7 @@ namespace Js
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetString(), str2->GetBuffer(), str1->GetLength()));
         }
 
-        inline static uint GetHashCode(JavascriptString * str)
+        inline static hash_t GetHashCode(JavascriptString * str)
         {
             return JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(str->GetString(), str->GetLength());
         }
@@ -394,7 +394,7 @@ struct DefaultComparer<Js::JavascriptString*>
         return Js::JavascriptString::Equals(x, y);
     }
 
-    inline static uint GetHashCode(Js::JavascriptString * pStr)
+    inline static hash_t GetHashCode(Js::JavascriptString * pStr)
     {
         return JsUtil::CharacterBuffer<char16>::StaticGetHashCode(pStr->GetString(), pStr->GetLength());
     }

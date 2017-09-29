@@ -201,6 +201,8 @@ namespace Js
         , bailOutOffsetBytes(0)
 #endif
         , emptyStringPropertyId(Js::PropertyIds::_none)
+        , debugContext(nullptr)
+        , jitFuncRangeCache(nullptr)
     {
 #ifdef ENABLE_SCRIPT_DEBUGGING
        // This may allocate memory and cause exception, but it is ok, as we all we have done so far
@@ -6254,7 +6256,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         {
             if (jitPageAddrToFuncRangeMap == nullptr)
             {
-                jitPageAddrToFuncRangeMap = HeapNew(JITPageAddrToFuncRangeMap, &HeapAllocator::Instance);
+                jitPageAddrToFuncRangeMap = HeapNew(JITPageAddrToFuncRangeMap, &HeapAllocator::Instance, 1027);
             }
 
             void * pageAddr = GetPageAddr(address);
@@ -6274,7 +6276,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         {
             if (largeJitFuncToSizeMap == nullptr)
             {
-                largeJitFuncToSizeMap = HeapNew(LargeJITFuncAddrToSizeMap, &HeapAllocator::Instance);
+                largeJitFuncToSizeMap = HeapNew(LargeJITFuncAddrToSizeMap, &HeapAllocator::Instance, 1027);
             }
 
             uint byteCount = 0;
