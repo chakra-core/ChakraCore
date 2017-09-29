@@ -249,7 +249,7 @@ namespace Js
     Var JavascriptExternalFunction::DefaultExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         TypeId typeId = function->GetTypeId();
-        rtErrors err = typeId == TypeIds_Undefined || typeId == TypeIds_Null ? JSERR_NeedObject : JSERR_NeedFunction;
+        rtErrors err = typeId <= TypeIds_UndefinedOrNull ? JSERR_NeedObject : JSERR_NeedFunction;
         JavascriptError::ThrowTypeError(function->GetScriptContext(), err);
     }
 

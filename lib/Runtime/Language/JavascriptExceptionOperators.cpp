@@ -1452,7 +1452,7 @@ namespace Js
             }
 
             Var var = nullptr;
-            if (JavascriptOperators::GetProperty(error, PropertyIds::stackTraceLimit, &var, scriptContext))
+            if (JavascriptOperators::GetPropertyNoCache(error, PropertyIds::stackTraceLimit, &var, scriptContext))
             {
                 // Only accept the value if it is a "Number". Avoid potential valueOf() call.
                 switch (JavascriptOperators::GetTypeId(var))

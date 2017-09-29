@@ -4021,7 +4021,7 @@ namespace Js
     {
         Var arrayIteratorPrototypeNext = nullptr;
         ImplicitCallFlags flags = scriptContext->GetThreadContext()->TryWithDisabledImplicitCall(
-            [&]() { arrayIteratorPrototypeNext = JavascriptOperators::GetProperty(scriptContext->GetLibrary()->GetArrayIteratorPrototype(), PropertyIds::next, scriptContext); });
+            [&]() { arrayIteratorPrototypeNext = JavascriptOperators::GetPropertyNoCache(scriptContext->GetLibrary()->GetArrayIteratorPrototype(), PropertyIds::next, scriptContext); });
 
         return (flags != ImplicitCall_None) || arrayIteratorPrototypeNext != scriptContext->GetLibrary()->GetArrayIteratorPrototypeBuiltinNextFunction();
     }

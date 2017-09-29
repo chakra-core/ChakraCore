@@ -997,22 +997,22 @@ namespace Js
     {
         TypeId typeId = JavascriptOperators::GetTypeId(aValue);
 
-        if (typeId == TypeIds_Null || typeId == TypeIds_Undefined)
+        if (typeId <= TypeIds_UndefinedOrNull)
         {
             return FALSE;
         }
 
-        if (TaggedInt::Is(aValue))
+        if (typeId == TypeIds_Integer)
         {
             *pDouble = TaggedInt::ToDouble(aValue);
             return TRUE;
         }
-        else if (Js::JavascriptOperators::GetTypeId(aValue) == TypeIds_Int64Number)
+        else if (typeId == TypeIds_Int64Number)
         {
             *pDouble = (double)JavascriptInt64Number::FromVar(aValue)->GetValue();
             return TRUE;
         }
-        else if (Js::JavascriptOperators::GetTypeId(aValue) == TypeIds_UInt64Number)
+        else if (typeId == TypeIds_UInt64Number)
         {
             *pDouble = (double)JavascriptUInt64Number::FromVar(aValue)->GetValue();
             return TRUE;
@@ -1022,7 +1022,7 @@ namespace Js
             *pDouble = JavascriptNumber::GetValue(aValue);
             return TRUE;
         }
-        else if (JavascriptNumberObject::Is(aValue))
+        else if (typeId == TypeIds_NumberObject)
         {
             JavascriptNumberObject* obj = JavascriptNumberObject::FromVar(aValue);
             *pDouble = obj->GetValue();

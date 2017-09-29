@@ -622,7 +622,7 @@ namespace Js
                 try
                 {
                     RecyclableObject* thenable = RecyclableObject::FromVar(resolution);
-                    Var then = JavascriptOperators::GetProperty(thenable, Js::PropertyIds::then, scriptContext);
+                    Var then = JavascriptOperators::GetPropertyNoCache(thenable, Js::PropertyIds::then, scriptContext);
 
                     if (JavascriptConversion::IsCallable(then))
                     {

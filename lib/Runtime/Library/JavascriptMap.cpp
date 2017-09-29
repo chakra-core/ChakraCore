@@ -80,7 +80,7 @@ namespace Js
         if (JavascriptConversion::CheckObjectCoercible(iterable, scriptContext))
         {
             iter = JavascriptOperators::GetIterator(iterable, scriptContext);
-            Var adderVar = JavascriptOperators::GetProperty(mapObject, PropertyIds::set, scriptContext);
+            Var adderVar = JavascriptOperators::GetPropertyNoCache(mapObject, PropertyIds::set, scriptContext);
             if (!JavascriptConversion::IsCallable(adderVar))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
