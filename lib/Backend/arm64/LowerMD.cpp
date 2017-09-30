@@ -1072,9 +1072,8 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         this->m_func->m_localStackHeight = Math::Align<int32>(this->m_func->m_localStackHeight, MachStackAlignment);
     }
 
-    if (this->m_func->GetMaxInlineeArgOutCount())
+    if (this->m_func->HasInlinee())
     {
-        Assert(this->m_func->HasInlinee());
         // Allocate the inlined arg out stack in the locals. Allocate an additional slot so that
         // we can unconditionally clear the first slot past the current frame.
         this->m_func->m_localStackHeight += this->m_func->GetInlineeArgumentStackSize();
@@ -1331,7 +1330,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     }
     Assert(fpOffsetSize >= 0);
 
-    if (this->m_func->GetMaxInlineeArgOutCount())
+    if (m_func->GetMaxInlineeArgOutSize() != 0)
     {
         // subtracting 2 for frame pointer & return address
         this->m_func->GetJITOutput()->SetFrameHeight(this->m_func->m_localStackHeight + this->m_func->m_ArgumentsOffset - 2 * MachRegInt);
@@ -1470,7 +1469,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     //As we have already allocated the stack here, we can safely zero out the inlinee argout slot.
 
     // Zero initialize the first inlinee frames argc.
-    if (this->m_func->GetMaxInlineeArgOutCount())
+    if (m_func->GetMaxInlineeArgOutSize() != 0)
     {
         // This is done post prolog. so we don't have to emit unwind data.
         if (r12Opnd == nullptr || isScratchRegisterThrashed)
@@ -1498,7 +1497,6 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     {
         GenerateStackProbe(insertInstr, true); //stack is already aligned in this case
     }
-
 #endif
 
     return entryInstr;

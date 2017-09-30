@@ -27,10 +27,7 @@ public:
     void        InsertOpHelperSpillAndRestores(SList<OpHelperBlock> *opHelperBlockList);
     void        EndOfHelperBlock(uint32 helperSpilledLiveranges);
 
-    uint        UnAllocatableRegCount(Func *func) const
-                {
-                    return func->GetLocalsPointer() != RegSP ? 5 : 4; //r11(Frame Pointer),r12,sp,pc
-                }
+    uint        UnAllocatableRegCount(Func *func) const { return 5; }
 
     StackSym   *EnsureSpillSymForVFPReg(RegNum reg, Func *func);
 
