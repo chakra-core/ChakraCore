@@ -486,7 +486,10 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     Assert(fn->GetFunctionBody() == fn);
     Assert(!fn->IsDeferred());
 
-#if !defined(_M_ARM64)
+#if defined(_M_ARM64) && !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+    // Disable JIT in ARM64 release build till it is stable. Enable in debug and test build for testing
+    return false;
+#endif
 
     if (fn->IsGeneratorAndJitIsDisabled())
     {
@@ -606,9 +609,6 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     Processor()->PrioritizeJobAndWait(this, entryPointInfo, function);
     CheckCodeGenDone(fn, entryPointInfo, function);
     return true;
-#else
-    return false;
-#endif
 }
 
 void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader * loopHeader, Js::EntryPointInfo* entryPoint, uint localCount, Js::Var localSlots[])
