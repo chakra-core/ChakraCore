@@ -740,6 +740,13 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType type)
 {
     Assert(!instr->HasBailOutInfo() || instr->GetBailOutKind() == IR::BailOutExpectingString);
 
+#if _M_IX86
+    if (IRType_IsInt64(type))
+    {
+        return LowererMDArch::ChangeToAssignInt64(instr);
+    }
+#endif
+
     instr->m_opcode = LowererMDArch::GetAssignOp(type);
     Legalize(instr);
 
@@ -8681,12 +8688,6 @@ void LowererMD::EmitReinterpretIntToFloat(IR::Opnd* dst, IR::Opnd* src, IR::Inst
     Assert(dst->IsFloat());
     Assert(src->IsInt32() || src->IsUInt32() || src->IsInt64());
     EmitReinterpretPrimitive(dst, src, insertBeforeInstr);
-}
-
-IR::Instr *
-LowererMD::LowerInt64Assign(IR::Instr * instr)
-{
-    return this->lowererMDArch.LowerInt64Assign(instr);
 }
 
 IR::Instr *
