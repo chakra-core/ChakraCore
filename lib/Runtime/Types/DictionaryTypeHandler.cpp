@@ -2017,7 +2017,7 @@ namespace Js
     template <typename T>
     Var DictionaryTypeHandlerBase<T>::CanonicalizeAccessor(Var accessor, /*const*/ JavascriptLibrary* library)
     {
-        if (accessor == nullptr || JavascriptOperators::IsUndefinedObject(accessor, library))
+        if (accessor == nullptr || JavascriptOperators::IsUndefinedObject(accessor))
         {
             accessor = library->GetDefaultAccessorFunction();
         }
