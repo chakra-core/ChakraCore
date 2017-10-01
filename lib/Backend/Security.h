@@ -22,7 +22,7 @@ public:
 
 private:
     bool            EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd);
-    uint            CalculateConstSize(IR::Opnd *opnd);
+    static uint     CalculateConstSize(IR::Opnd *opnd);
     IntConstType    EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue, _Out_ IR::RegOpnd ** pNewOpnd);
 #if TARGET_64
     size_t          EncodeAddress(IR::Instr *instr, IR::Opnd *opnd, size_t value, _Out_ IR::RegOpnd **pNewOpnd);
