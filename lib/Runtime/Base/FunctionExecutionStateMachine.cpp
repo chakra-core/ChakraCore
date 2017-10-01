@@ -142,7 +142,7 @@ namespace Js
         this->fullJitThreshold = fullJitThreshold - scale;
         SetInterpretedCount(0);
         SetExecutionMode(GetDefaultInterpreterExecutionMode());
-        SetFullJitThreshold(fullJitThreshold, owner);
+        SetFullJitThreshold(fullJitThreshold);
         TryTransitionToNextInterpreterExecutionMode();
     }
 
