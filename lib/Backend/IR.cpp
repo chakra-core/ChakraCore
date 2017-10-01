@@ -2858,78 +2858,58 @@ Instr::GetOrCreateContinueLabel(const bool isHelper)
     return label;
 }
 
-///----------------------------------------------------------------------------
-///
-/// Instr::FindRegUse
-///
-///     Search a reg use of the given sym.  Return the RegOpnd that uses it.
-///
-///----------------------------------------------------------------------------
 
-IR::RegOpnd *
-Instr::FindRegUse(StackSym *sym)
+IR::RegOpnd * Instr::FindRegUseSrc(StackSym *sym, IR::Opnd* src)
 {
-    IR::Opnd *src1 = this->GetSrc1();
-
-    // Check src1
-    if (src1)
+    if (!src)
     {
-        if (src1->IsRegOpnd())
-        {
-            RegOpnd *regOpnd = src1->AsRegOpnd();
+        return nullptr;
+    }
+    if (src->IsRegOpnd())
+    {
+        RegOpnd *regOpnd = src->AsRegOpnd();
 
-            if (regOpnd->m_sym == sym)
-            {
-                return regOpnd;
-            }
+        if (regOpnd->m_sym == sym)
+        {
+            return regOpnd;
         }
-        else if (src1->IsIndirOpnd())
+    }
+    else if (src->IsIndirOpnd())
+    {
+        IR::IndirOpnd *indirOpnd = src->AsIndirOpnd();
+        RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
+        if (baseOpnd != nullptr && baseOpnd->m_sym == sym)
         {
-            IndirOpnd * indirOpnd = src1->AsIndirOpnd();
-            RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
-            if (baseOpnd != nullptr && baseOpnd->m_sym == sym)
-            {
-                return baseOpnd;
-            }
-            else if (indirOpnd->GetIndexOpnd() && indirOpnd->GetIndexOpnd()->m_sym == sym)
-            {
-                return indirOpnd->GetIndexOpnd();
-            }
+            return baseOpnd;
         }
-        IR::Opnd *src2 = this->GetSrc2();
-
-        // Check src2
-        if (src2)
+        else if (indirOpnd->GetIndexOpnd() && indirOpnd->GetIndexOpnd()->m_sym == sym)
         {
-            if (src2->IsRegOpnd())
+            return indirOpnd->GetIndexOpnd();
+        }
+    }
+    else if (src->IsListOpnd())
+    {
+        IR::ListOpnd* list = src->AsListOpnd();
+        for (int i = 0; i < list->Count(); ++i)
+        {
+            IR::RegOpnd* reg = FindRegUseSrc(sym, list->Item(i));
+            if (reg)
             {
-                RegOpnd *regOpnd = src2->AsRegOpnd();
-
-                if (regOpnd->m_sym == sym)
-                {
-                    return regOpnd;
-                }
-            }
-            else if (src2->IsIndirOpnd())
-            {
-                IR::IndirOpnd *indirOpnd = src2->AsIndirOpnd();
-                RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
-                if (baseOpnd != nullptr && baseOpnd->m_sym == sym)
-                {
-                    return baseOpnd;
-                }
-                else if (indirOpnd->GetIndexOpnd() && indirOpnd->GetIndexOpnd()->m_sym == sym)
-                {
-                    return indirOpnd->GetIndexOpnd();
-                }
+                return reg;
             }
         }
     }
+    return nullptr;
+}
 
-    // Check uses in dst
-    IR::Opnd *dst = this->GetDst();
 
-    if (dst != nullptr && dst->IsIndirOpnd())
+IR::RegOpnd * Instr::FindRegUseDst(StackSym *sym, IR::Opnd* dst)
+{
+    if (!dst)
+    {
+        return nullptr;
+    }
+    if (dst->IsIndirOpnd())
     {
         IR::IndirOpnd *indirOpnd = dst->AsIndirOpnd();
         RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
@@ -2942,7 +2922,47 @@ Instr::FindRegUse(StackSym *sym)
             return indirOpnd->GetIndexOpnd();
         }
     }
+    else if (dst->IsListOpnd())
+    {
+        IR::ListOpnd* list = dst->AsListOpnd();
+        for (int i = 0; i < list->Count(); ++i)
+        {
+            IR::RegOpnd* reg = FindRegUseDst(sym, list->Item(i));
+            if (reg)
+            {
+                return reg;
+            }
+        }
+    }
+    return nullptr;
+}
 
+///----------------------------------------------------------------------------
+///
+/// Instr::FindRegUse
+///
+///     Search a reg use of the given sym.  Return the RegOpnd that uses it.
+///
+///----------------------------------------------------------------------------
+
+IR::RegOpnd *
+Instr::FindRegUse(StackSym *sym)
+{
+    IR::RegOpnd* reg = FindRegUseSrc(sym, this->GetSrc1());
+    if (reg)
+    {
+        return reg;
+    }
+    reg = FindRegUseSrc(sym, this->GetSrc2());
+    if (reg)
+    {
+        return reg;
+    }
+    reg = FindRegUseDst(sym, this->GetDst());
+    if (reg)
+    {
+        return reg;
+    }
     return nullptr;
 }
 
@@ -3357,6 +3377,16 @@ IR::Instr* Instr::GetArgOutSnapshot()
     return instr;
 }
 
+bool Instr::OpndHasAnyImplicitCalls(IR::Opnd* opnd, bool isSrc)
+{
+    return opnd && (
+        (opnd->IsSymOpnd() && opnd->AsSymOpnd()->m_sym->IsPropertySym()) ||
+        opnd->IsIndirOpnd() ||
+        (isSrc && !opnd->GetValueType().IsPrimitive()) ||
+        (opnd->IsListOpnd() && opnd->AsListOpnd()->Any([isSrc](IR::Opnd* lOpnd) { return OpndHasAnyImplicitCalls(lOpnd, isSrc); }))
+    );
+}
+
 bool Instr::HasAnyImplicitCalls() const
 {
     // there can be no implicit calls in asm.js
@@ -3370,40 +3400,11 @@ bool Instr::HasAnyImplicitCalls() const
     }
     if (OpCodeAttr::OpndHasImplicitCall(this->m_opcode))
     {
-        if (this->m_dst &&
-            ((this->m_dst->IsSymOpnd() && this->m_dst->AsSymOpnd()->m_sym->IsPropertySym()) ||
-             this->m_dst->IsIndirOpnd()))
-        {
-            return true;
-        }
-
-        IR::Opnd *src1 = this->GetSrc1();
-        if (src1)
-        {
-            if ((src1->IsSymOpnd() && src1->AsSymOpnd()->m_sym->IsPropertySym()) || src1->IsIndirOpnd())
-            {
-                return true;
-            }
-
-            if (!src1->GetValueType().IsPrimitive())
-            {
-                return true;
-            }
-
-            IR::Opnd *src2 = this->GetSrc2();
-            if (src2)
-            {
-                if ((src2->IsSymOpnd() && src2->AsSymOpnd()->m_sym->IsPropertySym()) || src2->IsIndirOpnd())
-                {
-                    return true;
-                }
-
-                if (!src2->GetValueType().IsPrimitive())
-                {
-                    return true;
-                }
-            }
-        }
+        return (
+            OpndHasAnyImplicitCalls(this->GetDst(), false) ||
+            OpndHasAnyImplicitCalls(this->GetSrc1(), true) ||
+            OpndHasAnyImplicitCalls(this->GetSrc2(), true)
+        );
     }
 
     return false;
