@@ -169,6 +169,7 @@ enum Forms : BYTE
 
 #define OPBYTE_CMPPD    {0xc2}                  // modrm
 #define OPBYTE_CMPPS    {0xc2}                  // modrm
+#define OPBYTE_CMPXCHG8B {0xC7,0xC7}            // special, modrm
 
 #define OPBYTE_COMISD   {0x2F}                   // modrm
 #define OPBYTE_COMISS   {0x2F}                   // modrm

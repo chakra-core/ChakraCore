@@ -162,11 +162,10 @@ enum Forms : BYTE
 #define OPBYTE_CMOVP    {0x4A}                  // modrm
 #define OPBYTE_CMOVS    {0x48}                  // modrm
 #define OPBYTE_CMP      {0x3c, 0x80, 0x38}      // binop, byte2=7
-#define OPBYTE_CMPXCHG8B {0xC7}                  // modrm
-
 
 #define OPBYTE_CMPPD    {0xc2}                  // modrm
 #define OPBYTE_CMPPS    {0xc2}                  // modrm
+#define OPBYTE_CMPXCHG8B {0xC7}                 // modrm
 
 #define OPBYTE_COMISD   {0x2F}                  // modrm
 #define OPBYTE_COMISS   {0x2F}                  // modrm

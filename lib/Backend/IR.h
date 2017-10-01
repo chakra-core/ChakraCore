@@ -211,6 +211,7 @@ public:
     bool            ShouldCheckForIntOverflow() const;
     bool            ShouldCheckFor32BitOverflow() const;
     bool            ShouldCheckForNon32BitOverflow() const;
+    static bool     OpndHasAnyImplicitCalls(IR::Opnd* opnd, bool isSrc);
     bool            HasAnyImplicitCalls() const;
     bool            HasAnySideEffects() const;
     bool            AreAllOpndInt64() const;
@@ -270,6 +271,8 @@ public:
     IR::Instr *     GetPrevRealInstrOrLabel() const;
     IR::Instr *     GetInsertBeforeByteCodeUsesInstr();
     IR::LabelInstr *GetOrCreateContinueLabel(const bool isHelper = false);
+    static RegOpnd *FindRegUseSrc(StackSym *sym, IR::Opnd*);
+    static RegOpnd *FindRegUseDst(StackSym *sym, IR::Opnd*);
     RegOpnd *       FindRegUse(StackSym *sym);
     static RegOpnd *FindRegUseInRange(StackSym *sym, Instr *instrBegin, Instr *instrEnd);
     RegOpnd *       FindRegDef(StackSym *sym);

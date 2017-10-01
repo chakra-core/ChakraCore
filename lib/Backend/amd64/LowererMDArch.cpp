@@ -3086,6 +3086,12 @@ LowererMDArch::FinalLower()
                 instr->FreeSrc2();
             }
             break;
+        case Js::OpCode::LOCKCMPXCHG8B:
+        case Js::OpCode::CMPXCHG8B:
+            // Get rid of the deps and srcs
+            instr->FreeDst();
+            instr->FreeSrc2();
+            break;
         }
     } NEXT_INSTR_BACKWARD_EDITING_IN_RANGE;
 }

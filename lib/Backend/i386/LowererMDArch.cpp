@@ -1029,8 +1029,10 @@ LowererMDArch::LowerAtomicLoad(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * inse
         Lowerer::InsertMove(eax, zero, insertBeforeInstr);
         Lowerer::InsertMove(edx, zero, insertBeforeInstr);
 
-        // Todo:: Make eax,edx a dst and eax,ebx,ecx,edx a src
-        insertBeforeInstr->InsertBefore(IR::Instr::New(Js::OpCode::LOCKCMPXCHG8B, nullptr, src1, func));
+        IR::ListOpnd* deps = IR::ListOpnd::New(func, eax, ebx, ecx, edx);
+        IR::ListOpnd* dsts = IR::ListOpnd::New(func, eax, edx);
+        IR::Instr* cmpxchg = IR::Instr::New(Js::OpCode::LOCKCMPXCHG8B, dsts, src1, deps, func);
+        insertBeforeInstr->InsertBefore(cmpxchg);
         Int64RegPair dstPair = func->FindOrCreateInt64Pair(dst);
         Lowerer::InsertMove(dstPair.low, eax, insertBeforeInstr);
         Lowerer::InsertMove(dstPair.high, edx, insertBeforeInstr);
@@ -4043,6 +4045,12 @@ LowererMDArch::FinalLower()
                 instr->SwapOpnds();
                 instr->FreeSrc2();
             }
+            break;
+        case Js::OpCode::LOCKCMPXCHG8B:
+        case Js::OpCode::CMPXCHG8B:
+            // Get rid of the deps and srcs
+            instr->FreeDst();
+            instr->FreeSrc2();
             break;
         }
     }
