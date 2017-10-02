@@ -512,7 +512,7 @@ RecyclerSweep::SetPendingMergeNewHeapBlockCount()
         + HeapBlockList::Count(finalizableData.pendingMergeNewHeapBlockList)
 #ifdef RECYCLER_VISITED_HOST
         + HeapBlockList::Count(recyclerVisitedHostData.pendingMergeNewHeapBlockList)
-		+ HeapBlockList::Count(mediumRecyclerVisitedHostData.pendingMergeNewHeapBlockList)
+        + HeapBlockList::Count(mediumRecyclerVisitedHostData.pendingMergeNewHeapBlockList)
 #endif
 #ifdef RECYCLER_WRITE_BARRIER
         + HeapBlockList::Count(withBarrierData.pendingMergeNewHeapBlockList)

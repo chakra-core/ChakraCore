@@ -1730,16 +1730,16 @@ template <class TBlockAttributes>
 uint
 HeapBucketGroup<TBlockAttributes>::Rescan(Recycler * recycler, RescanFlags flags)
 {
-	return heapBucket.Rescan(recycler, flags) +
-		leafHeapBucket.Rescan(recycler, flags) +
+    return heapBucket.Rescan(recycler, flags) +
+        leafHeapBucket.Rescan(recycler, flags) +
 #ifdef RECYCLER_WRITE_BARRIER
-		smallNormalWithBarrierHeapBucket.Rescan(recycler, flags) +
-		smallFinalizableWithBarrierHeapBucket.Rescan(recycler, flags) +
+        smallNormalWithBarrierHeapBucket.Rescan(recycler, flags) +
+        smallFinalizableWithBarrierHeapBucket.Rescan(recycler, flags) +
 #endif
 #ifdef RECYCLER_VISITED_HOST
-		recyclerVisitedHostHeapBucket.Rescan(recycler, flags) +
+        recyclerVisitedHostHeapBucket.Rescan(recycler, flags) +
 #endif
-		finalizableHeapBucket.Rescan(recycler, flags);
+        finalizableHeapBucket.Rescan(recycler, flags);
 }
 
 #if ENABLE_CONCURRENT_GC
@@ -1892,7 +1892,7 @@ HeapBucketGroup<TBlockAttributes>::Check()
 {
     return heapBucket.Check() + finalizableHeapBucket.Check() + leafHeapBucket.Check()
 #ifdef RECYCLER_VISITED_HOST
-		+ recyclerVisitedHostHeapBucket.Check()
+        + recyclerVisitedHostHeapBucket.Check()
 #endif
 #ifdef RECYCLER_WRITE_BARRIER
         + smallNormalWithBarrierHeapBucket.Check() + smallFinalizableWithBarrierHeapBucket.Check()

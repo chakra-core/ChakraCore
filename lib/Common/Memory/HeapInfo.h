@@ -494,7 +494,7 @@ private:
     friend class SmallFinalizableHeapBlockT;
 #ifdef RECYCLER_VISITED_HOST
     template <typename TBlockAttributes>
-	friend class SmallRecyclerVisitedHostHeapBlockT;
+    friend class SmallRecyclerVisitedHostHeapBlockT;
 #endif
     friend class LargeHeapBlock;
     friend class RecyclerSweep;

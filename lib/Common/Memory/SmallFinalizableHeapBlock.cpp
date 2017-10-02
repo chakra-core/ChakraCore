@@ -655,7 +655,7 @@ namespace Memory
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
 #ifdef RECYCLER_VISITED_HOST
-	template class SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>;
+    template class SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>;
     template void SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);
     template void SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);
     template class SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>;

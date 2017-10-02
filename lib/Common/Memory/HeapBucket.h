@@ -172,9 +172,9 @@ protected:
     // Not all objects in the recycler visited host heap block are finalizable, but we still require finalizable semantics
     static bool const IsFinalizableBucket = TBlockType::RequiredAttributes == FinalizeBit
 #ifdef RECYCLER_VISITED_HOST
-		|| ((TBlockType::RequiredAttributes & RecyclerVisitedHostBit) == (RecyclerVisitedHostBit))
+        || ((TBlockType::RequiredAttributes & RecyclerVisitedHostBit) == (RecyclerVisitedHostBit))
 #endif
-	;
+    ;
     static bool const IsNormalBucket = TBlockType::RequiredAttributes == NoBit;
 #ifdef RECYCLER_WRITE_BARRIER
     static bool const IsWriteBarrierBucket = TBlockType::RequiredAttributes == WithBarrierBit;

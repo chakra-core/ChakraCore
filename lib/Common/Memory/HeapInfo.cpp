@@ -553,8 +553,8 @@ HeapInfo::~HeapInfo()
     MediumFinalizableHeapBucket::DeleteHeapBlockList(this->newMediumFinalizableHeapBlockList, recycler);
 
 #ifdef RECYCLER_VISITED_HOST
-	SmallFinalizableHeapBucket::DeleteHeapBlockList(this->newRecyclerVisitedHostHeapBlockList, recycler);
-	MediumFinalizableHeapBucket::DeleteHeapBlockList(this->newMediumRecyclerVisitedHostHeapBlockList, recycler);
+    SmallFinalizableHeapBucket::DeleteHeapBlockList(this->newRecyclerVisitedHostHeapBlockList, recycler);
+    MediumFinalizableHeapBucket::DeleteHeapBlockList(this->newMediumRecyclerVisitedHostHeapBlockList, recycler);
 #endif
 
 #endif
@@ -1090,8 +1090,8 @@ HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
     recyclerSweep.MergePendingNewMediumHeapBlockList<MediumFinalizableWithBarrierHeapBlock>();
 #endif
 #ifdef RECYCLER_VISITED_HOST
-	recyclerSweep.MergePendingNewHeapBlockList<SmallRecyclerVisitedHostHeapBlock>();
-	recyclerSweep.MergePendingNewMediumHeapBlockList<MediumRecyclerVisitedHostHeapBlock>();
+    recyclerSweep.MergePendingNewHeapBlockList<SmallRecyclerVisitedHostHeapBlock>();
+    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumRecyclerVisitedHostHeapBlock>();
 #endif
 #endif
 
@@ -1600,7 +1600,7 @@ HeapInfo::GetSmallHeapBlockCount(bool checkCount) const
         + this->heapBlockCount[HeapBlock::HeapBlockType::SmallFinalizableBlockType]
 #ifdef RECYCLER_VISITED_HOST
         + this->heapBlockCount[HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType]
-		+ this->heapBlockCount[HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType]
+        + this->heapBlockCount[HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType]
 #endif
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumNormalBlockType]
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumLeafBlockType]
@@ -1674,10 +1674,10 @@ HeapInfo::Check()
     currentSmallHeapBlockCount += Check(true, false, this->newNormalWithBarrierHeapBlockList);
     currentSmallHeapBlockCount += Check(true, false, this->newFinalizableWithBarrierHeapBlockList);
 #endif
-	currentSmallHeapBlockCount += Check(true, false, this->newFinalizableHeapBlockList);
+    currentSmallHeapBlockCount += Check(true, false, this->newFinalizableHeapBlockList);
 #ifdef RECYCLER_VISITED_HOST
     currentSmallHeapBlockCount += Check(true, false, this->newRecyclerVisitedHostHeapBlockList);
-	currentSmallHeapBlockCount += Check(true, false, this->newMediumRecyclerVisitedHostHeapBlockList);
+    currentSmallHeapBlockCount += Check(true, false, this->newMediumRecyclerVisitedHostHeapBlockList);
 #endif
 #endif
 
@@ -1697,7 +1697,7 @@ HeapInfo::Check()
         + this->heapBlockCount[HeapBlock::HeapBlockType::SmallFinalizableBlockType]
 #ifdef RECYCLER_VISITED_HOST
         + this->heapBlockCount[HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType]
-		+ this->heapBlockCount[HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType]
+        + this->heapBlockCount[HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType]
 #endif
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumNormalBlockType]
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumLeafBlockType]
