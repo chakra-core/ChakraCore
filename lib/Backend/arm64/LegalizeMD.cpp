@@ -14,6 +14,20 @@ static const LegalInstrForms _InstrForms[] =
 };
 
 
+class LdImmOpcode
+{
+public:
+    void Set(Js::OpCode opcode, IntConstType immed, int shift)
+    {
+        m_opcode = opcode;
+        m_immed = immed << shift;
+    }
+
+    Js::OpCode m_opcode;
+    IntConstType m_immed;
+};
+
+
 static LegalForms LegalDstForms(IR::Instr * instr)
 {
     Assert(instr->IsLowered());
@@ -255,15 +269,9 @@ IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms 
 
 void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpnd, LegalForms forms, bool fPostRegAlloc)
 {
-    if (forms & (L_VIndirI11))
-    {
-        // Vfp doesn't support register indirect operation
-        LegalizeMD::LegalizeIndirOpndForVFP(instr, indirOpnd, fPostRegAlloc);
-        return;
-    }
-
     int32 offset = indirOpnd->GetOffset();
 
+    // Can't have both offset and index, so hoist the offset and try again.
     if (indirOpnd->GetIndexOpnd() != NULL && offset != 0)
     {
         IR::Instr *addInstr = instr->HoistIndirOffset(indirOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
@@ -271,23 +279,33 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
         return;
     }
 
-    if (forms & (L_IndirI8 | L_IndirU12I8))
+    // Determine scale factor for scaled offsets
+    int scale = (indirOpnd->GetType() == TyFloat64) ? 3 : 2;
+    int32 scaledOffset = offset >> scale;
+
+    // Either scaled unsigned 12-bit offset, or unscaled signed 9-bit offset
+    if (forms & L_IndirSU12I9)
     {
-        if (IS_CONST_INT8(offset))
+        if (offset == (scaledOffset << scale) && IS_CONST_UINT12(scaledOffset))
+        {
+            return;
+        }
+        if (IS_CONST_INT9(offset))
         {
             return;
         }
     }
 
-    if (forms & (L_IndirU12I8 | L_IndirU12))
+    // scaled signed 9-bit offset
+    if (forms & L_IndirSI7)
     {
-        if (IS_CONST_UINT12(offset))
+        if (IS_CONST_INT7(scaledOffset))
         {
             return;
         }
     }
 
-    // Offset is too large, so hoist it and replace it with an index, only valid for Thumb & Thumb2
+    // Offset is too large, so hoist it and replace it with an index
     IR::Instr *addInstr = instr->HoistIndirOffset(indirOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
     LegalizeMD::LegalizeInstr(addInstr, fPostRegAlloc);
 }
@@ -310,33 +328,30 @@ void LegalizeMD::LegalizeSymOffset(
 
     EncoderMD::BaseAndOffsetFromSym(symOpnd, &baseReg, &offset, instr->m_func->GetTopFunc());
 
-    if (forms & (L_SymU12I8 | L_SymU12))
+    // Determine scale factor for scaled offsets
+    int scale = (symOpnd->GetType() == TyFloat64) ? 3 : 2;
+    int32 scaledOffset = offset >> scale;
+    
+    // Either scaled unsigned 12-bit offset, or unscaled signed 9-bit offset
+    if (forms & L_SymSU12I9)
     {
-        if (IS_CONST_UINT12(offset))
+        if (offset == (scaledOffset << scale) && IS_CONST_UINT12(scaledOffset))
+        {
+            return;
+        }
+        if (IS_CONST_INT9(offset))
         {
             return;
         }
     }
 
-    if (forms & L_SymU12I8)
+    // scaled signed 9-bit offset
+    if (forms & L_SymSI7)
     {
-        if (IS_CONST_INT8(offset))
+        if (IS_CONST_INT7(scaledOffset))
         {
             return;
         }
-    }
-
-    if (forms & (L_VSymI11))
-    {
-        if (IS_CONST_UINT10((offset < 0? -offset: offset)))
-        {
-            return;
-        }
-
-        IR::RegOpnd *baseOpnd = IR::RegOpnd::New(NULL, baseReg, TyMachPtr, instr->m_func);
-        IR::Instr* instrAdd = instr->HoistSymOffsetAsAdd(symOpnd, baseOpnd, offset, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-        LegalizeMD::LegalizeInstr(instrAdd, fPostRegAlloc);
-        return;
     }
 
     IR::Instr * newInstr;
@@ -364,7 +379,8 @@ void LegalizeMD::LegalizeImmed(
     LegalForms forms,
     bool fPostRegAlloc)
 {
-    if (!(((forms & L_ImmLog12) && EncoderMD::CanEncodeLogicalConst(immed)) ||
+    // ARM64_WORKITEM: Fix me -- assuming a 32-bit opcode
+    if (!(((forms & L_ImmLog12) && EncoderMD::CanEncodeLogicalConst(immed, 4)) ||
           ((forms & L_ImmU6) && IS_CONST_UINT6(immed)) ||
           ((forms & L_ImmU12) && IS_CONST_UINT12(immed)) ||
           ((forms & L_ImmU16) && IS_CONST_UINT16(immed))))
@@ -420,52 +436,132 @@ IR::Instr * LegalizeMD::GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum sc
 
 void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
 {
-    // ARM64_WORKITEM
-    __debugbreak();
-#if 0
     // In case of inlined entry instruction, we don't know the offset till the encoding phase
     if (!instr->isInlineeEntryInstr)
     {
-        if (IS_CONST_UINT16(immed) || EncoderMD::CanEncodeLogicalConst(immed))
+        // Short-circuit simple 16-bit immediates
+        if ((immed & 0xffff) == immed || (immed & 0xffff0000) == immed || (immed & 0xffff00000000ll) == immed || (immed & 0xffff000000000000ll) == immed)
         {
-            instr->m_opcode = Js::OpCode::MOV;
+            instr->m_opcode = Js::OpCode::MOVZ;
             return;
         }
+
+        // Short-circuit simple inverted 16-bit immediates
+        IntConstType invImmed = ~immed;
+        if ((invImmed & 0xffff) == invImmed || (invImmed & 0xffff0000) == invImmed || (invImmed & 0xffff00000000ll) == invImmed || (invImmed & 0xffff000000000000ll) == invImmed)
+        {
+            IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(invImmed, TyInt64, instr->m_func);
+            instr->ReplaceSrc1(src1);
+            instr->m_opcode = Js::OpCode::MOVN64;
+            return;
+        }
+
+        // Short-circuit simple inverted 16-bit immediates that can be implicitly truncated to 32 bits
+        IntConstType invImmed32 = ~immed & 0xffffffffull;
+        if ((invImmed32 & 0xffff) == invImmed32 || (invImmed32 & 0xffff0000) == invImmed32)
+        {
+            IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(invImmed32, TyInt64, instr->m_func);
+            instr->ReplaceSrc1(src1);
+            instr->m_opcode = Js::OpCode::MOVN;
+            return;
+        }
+
+        // Short-circuit 32-bit logical constants
+        if (EncoderMD::CanEncodeLogicalConst(immed, 4))
+        {
+            instr->SetSrc2(instr->GetSrc1());
+            instr->SetSrc1(IR::RegOpnd::New(NULL, RegZR, TyMachPtr, instr->m_func));
+            instr->m_opcode = Js::OpCode::ORR;
+            return;
+        }
+
+        // Short-circuit 64-bit logical constants
+        if (EncoderMD::CanEncodeLogicalConst(immed, 8))
+        {
+            instr->SetSrc2(instr->GetSrc1());
+            instr->SetSrc1(IR::RegOpnd::New(NULL, RegZR, TyMachPtr, instr->m_func));
+            instr->m_opcode = Js::OpCode::ORR64;
+            return;
+        }
+
+        // Determine how many 16-bit chunks are all-0 versus all-1
+        int numZeros = 0;
+        int numOnes = 0;
+        for (int wordNum = 0; wordNum < 4; wordNum++)
+        {
+            ULONG curWord = (immed >> (16 * wordNum)) & 0xffff;
+            if (curWord == 0)
+            {
+                numZeros++;
+            }
+            else if (curWord == 0xffff)
+            {
+                numOnes++;
+            }
+        }
+
+        // Determine whether to obfuscate
         bool fDontEncode = Security::DontEncode(instr->GetSrc1());
 
-        IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(immed & 0x0000FFFF, TyInt16, instr->m_func);
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, instr->GetDst(), src1, instr->m_func);
-        instr->InsertBefore(instrMov);
+        // Determine whether the initial opcode will be a MOVZ or a MOVN
+        ULONG wordMask = (numOnes > numZeros) ? 0xffff : 0x0000;
+        ULONG wordXor = wordMask;
+        Js::OpCode curOpcode = (wordMask == 0xffff) ? Js::OpCode::MOVN64 : Js::OpCode::MOVZ;
 
-        src1 = IR::IntConstOpnd::New((immed & 0xFFFF0000)>>16, TyInt16, instr->m_func);
+        // Build a theoretical list of opcodes
+        LdImmOpcode opcodeList[4];
+        int opcodeListIndex = 0;
+        for (int wordNum = 0; wordNum < 4; wordNum++)
+        {
+            ULONG curWord = (immed >> (16 * wordNum)) & 0xffff;
+            if (curWord != wordMask)
+            {
+                opcodeList[opcodeListIndex++].Set(curOpcode, curWord ^ wordXor, 16 * wordNum);
+                curOpcode = Js::OpCode::MOVK64;
+                wordXor = 0;
+            }
+        }
+
+        // Insert extra opcodes as needed
+        for (int opNum = 0; opNum < opcodeListIndex - 1; opNum++)
+        {
+            IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(opcodeList[opNum].m_immed, TyInt64, instr->m_func);
+            IR::Instr * instrMov = IR::Instr::New(opcodeList[opNum].m_opcode, instr->GetDst(), src1, instr->m_func);
+            instr->InsertBefore(instrMov);
+        }
+
+        // Replace the LDIMM with the final opcode
+        IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(opcodeList[opcodeListIndex - 1].m_immed, TyInt64, instr->m_func);
         instr->ReplaceSrc1(src1);
-        instr->m_opcode = Js::OpCode::MOVT;
+        instr->m_opcode = opcodeList[opcodeListIndex - 1].m_opcode;
 
         if (!fDontEncode)
         {
-            LegalizeMD::ObfuscateLDIMM(instrMov, instr);
+            // ARM64_WORKITEM: Hook this up
+//            LegalizeMD::ObfuscateLDIMM(instrMov, instr);
         }
     }
     else
     {
+        // ARM64_WORKITEM: This needs to be understood better
         Assert(Security::DontEncode(instr->GetSrc1()));
-        IR::LabelInstr *label = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false);
+        Assert(false);
+/*      IR::LabelInstr *label = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false);
         instr->InsertBefore(label);
         Assert((immed & 0x0000000F) == immed);
         label->SetOffset(immed);
 
         IR::LabelOpnd *target = IR::LabelOpnd::New(label, instr->m_func);
 
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVW, instr->GetDst(), target, instr->m_func);
+        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, instr->GetDst(), target, instr->m_func);
         instr->InsertBefore(instrMov);
 
         instr->ReplaceSrc1(target);
-        instr->m_opcode = Js::OpCode::MOVT;
+        instr->m_opcode = Js::OpCode::MOVK64;
 
         label->isInlineeEntryInstr = true;
-        instr->isInlineeEntryInstr = false;
+        instr->isInlineeEntryInstr = false;*/
     }
-#endif
 }
 
 void LegalizeMD::ObfuscateLDIMM(IR::Instr * instrMov, IR::Instr * instrMovt)
@@ -532,11 +628,11 @@ void LegalizeMD::EmitRandomNopBefore(IR::Instr *insertInstr, UINT_PTR rand, RegN
         opnd2 = opnd1;
         break;
     case 1:
-        op = Js::OpCode::ORR;
+        op = Js::OpCode::ORR64;
         opnd2 = IR::IntConstOpnd::New(0, TyMachReg, insertInstr->m_func);
         break;
     case 2:
-        op = Js::OpCode::ADD;
+        op = Js::OpCode::ADD64;
         opnd2 = IR::IntConstOpnd::New(0, TyMachReg, insertInstr->m_func);
         break;
     case 3:

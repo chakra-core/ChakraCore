@@ -91,17 +91,22 @@ enum InstructionType {
 #define IS_CONST_000FFFFF(x) (((x) & ~0x000fffff) == 0)
 #define IS_CONST_007FFFFF(x) (((x) & ~0x007fffff) == 0)
 
+#define IS_CONST_NEG_7(x)    (((x) & ~0x0000003f) == ~0x0000003f)
 #define IS_CONST_NEG_8(x)    (((x) & ~0x0000007f) == ~0x0000007f)
+#define IS_CONST_NEG_9(x)    (((x) & ~0x000000ff) == ~0x000000ff)
 #define IS_CONST_NEG_12(x)   (((x) & ~0x000007ff) == ~0x000007ff)
 #define IS_CONST_NEG_21(x)   (((x) & ~0x000fffff) == ~0x000fffff)
 #define IS_CONST_NEG_24(x)   (((x) & ~0x007fffff) == ~0x007fffff)
 
+#define IS_CONST_INT7(x)     (IS_CONST_0000003F(x) || IS_CONST_NEG_7(x))
 #define IS_CONST_INT8(x)     (IS_CONST_0000007F(x) || IS_CONST_NEG_8(x))
+#define IS_CONST_INT9(x)     (IS_CONST_000000FF(x) || IS_CONST_NEG_9(x))
 #define IS_CONST_INT12(x)    (IS_CONST_00000FFF(x) || IS_CONST_NEG_12(x))
 #define IS_CONST_INT21(x)    (IS_CONST_000FFFFF(x) || IS_CONST_NEG_21(x))
 #define IS_CONST_INT24(x)    (IS_CONST_007FFFFF(x) || IS_CONST_NEG_24(x))
 
 #define IS_CONST_UINT6(x)    IS_CONST_0000003F(x)
+#define IS_CONST_UINT7(x)    IS_CONST_0000007F(x)
 #define IS_CONST_UINT8(x)    IS_CONST_000000FF(x)
 #define IS_CONST_UINT10(x)   IS_CONST_000003FF(x)
 #define IS_CONST_UINT12(x)   IS_CONST_00000FFF(x)
@@ -183,7 +188,7 @@ public:
     
     void            AddLabelReloc(BYTE* relocAddress);
 
-    static bool     CanEncodeLogicalConst(IntConstType constant);
+    static bool     CanEncodeLogicalConst(IntConstType constant, int size);
     // ToDo (SaAgarwa) Copied from ARM32 to compile. Validate is this correct
     static bool     CanEncodeLoadStoreOffset(int32 offset) { return IS_CONST_UINT12(offset); }
     static void     BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *pOffset, Func * func);
@@ -197,6 +202,7 @@ private:
     ULONG           GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size);
     bool            CanonicalizeInstr(IR::Instr *instr);
     void            CanonicalizeLea(IR::Instr * instr);
-
-    static bool     EncodeLogicalConst(IntConstType constant, DWORD * result);
+    bool            DecodeMemoryOpnd(IR::Opnd* opnd, ARM64_REGISTER &baseRegResult, ARM64_REGISTER &indexRegResult, BYTE &indexScale, int32 &offset);
+    
+    static bool     EncodeLogicalConst(IntConstType constant, DWORD * result, int size);
 };

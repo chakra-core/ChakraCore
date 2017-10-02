@@ -19,16 +19,15 @@ enum LegalForms
     L_Imm =         0x200,
     L_ImmMask =     (L_ImmLog12 | L_ImmU12 | L_ImmU12Lsl12 | L_ImmU6 | L_ImmU16 | L_Imm),
 
-    L_IndirI8 =    0x1000,
-    L_IndirU12I8 = 0x2000,
-    L_IndirU12 =   0x4000,
-    L_VIndirI11 =  0x8000,
-    L_IndirMask =  (L_IndirI8 | L_IndirU12I8 | L_IndirU12 | L_VIndirI11),
+    L_IndirSU12I9 = 0x1000,
+    L_IndirSI7 =    0x2000,
+    L_IndirU12 =    0x4000,
+    L_IndirMask =  (L_IndirSU12I9 | L_IndirSI7 | L_IndirU12),
 
-    L_SymU12I8 =   0x10000,
-    L_SymU12 =     0x20000,
-    L_VSymI11 =    0x40000,
-    L_SymMask =    (L_SymU12I8 | L_SymU12 | L_VSymI11),
+    L_SymSU12I9 =  0x10000,
+    L_SymSI7 =     0x20000,
+    L_SymU12 =     0x40000,
+    L_SymMask =    (L_SymSU12I9 | L_SymSI7 | L_SymU12),
 
     L_Lab20 =      0x100000,
 
@@ -55,19 +54,17 @@ struct LegalInstrForms
 #define LEGAL_CMN      { L_None,    { L_Reg,     (LegalForms)(L_Reg | L_ImmModC12) } }
 #define LEGAL_LDIMM    { L_Reg,     { L_Imm,     L_None } }
 #define LEGAL_LEA      { L_Reg,     { (LegalForms)(L_SymU12 | L_IndirU12),  L_None } }
-#define LEGAL_LOAD     { L_Reg,     { (LegalForms)(L_IndirU12I8 | L_SymU12I8), L_None } }
-#define LEGAL_LOADP    { L_Reg,     { (LegalForms)(L_IndirU12I8 | L_SymU12I8), L_Reg } }    // ARM64_WORKITEM: need to figure multiple destinations here
+#define LEGAL_LOAD     { L_Reg,     { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
+#define LEGAL_LOADP    { L_Reg,     { (LegalForms)(L_IndirSI7 | L_SymSI7), L_Reg } }    // ARM64_WORKITEM: need to figure multiple destinations here
 #define LEGAL_MOVIMM16 { L_Reg,     { L_ImmU16,  L_None } }
-#define LEGAL_PUSHPOP  { L_IndirI8, { L_RegBV,   L_None } }
 #define LEGAL_REG1     { L_Reg,     { L_None,    L_None } }
 #define LEGAL_REG2     { L_Reg,     { L_Reg,     L_None } }
 #define LEGAL_REG3     { L_Reg,     { L_Reg,     L_Reg  } }
-#define LEGAL_STORE    { (LegalForms)(L_IndirU12I8 | L_SymU12I8), { L_Reg, L_None } }
-#define LEGAL_STOREP   { (LegalForms)(L_IndirU12I8 | L_SymU12I8), { L_Reg, L_Reg } }
+#define LEGAL_STORE    { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), { L_Reg, L_None } }
+#define LEGAL_STOREP   { (LegalForms)(L_IndirSI7 | L_SymSI7), { L_Reg, L_Reg } }
 
-#define LEGAL_VSTORE   { (LegalForms)(L_VSymI11 | L_VIndirI11), { L_Reg, L_None } }
-#define LEGAL_VLOAD    { L_Reg,     { (LegalForms)(L_VSymI11 | L_VIndirI11), L_None } }
-#define LEGAL_VPUSHPOP  { L_IndirI8, { L_RegBV,   L_None } }
+#define LEGAL_VSTORE   { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), { L_Reg, L_None } }
+#define LEGAL_VLOAD    { L_Reg,     { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
 
 class LegalizeMD
 {
