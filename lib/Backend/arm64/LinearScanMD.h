@@ -27,7 +27,11 @@ public:
     void        InsertOpHelperSpillAndRestores(SList<OpHelperBlock> *opHelperBlockList);
     void        EndOfHelperBlock(uint32 helperSpilledLiveranges);
 
-    uint        UnAllocatableRegCount(Func *func) const { return 5; }
+    uint        UnAllocatableRegCount(Func *func) const
+    { 
+        // number of regs marked RA_DONTALLOCATE
+        return 5;
+    }
 
     StackSym   *EnsureSpillSymForVFPReg(RegNum reg, Func *func);
 
