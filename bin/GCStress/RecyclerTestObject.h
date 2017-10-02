@@ -338,12 +338,9 @@ public:
         case AllocationType::FinalizeLeaf:
             mem = RecyclerAllocVisitedHostFinalizedZero(recyclerInstance, size);
             break;
-        case AllocationType::Leaf:
-            mem = RecyclerAllocLeafZero(recyclerInstance, size);
-            break;
-
         default:
-            Assert(false);
+            Assert(allocType == AllocationType::Leaf);
+            mem = RecyclerAllocLeafZero(recyclerInstance, size);
         }
 
         // Construct the v-table, allocType, and count information for the new object.
