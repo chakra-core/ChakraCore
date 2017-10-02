@@ -769,7 +769,6 @@ namespace UnifiedRegex
                         last->head = revisedPrev;
                     nextList = nextList->tail;
                 }
-                AnalysisAssert(nextList != nullptr);
                 if (last == 0)
                     node = Anew(ctAllocator, AltNode, node, nextList);
                 else
