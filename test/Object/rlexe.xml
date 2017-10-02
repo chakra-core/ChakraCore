@@ -72,6 +72,7 @@
         <files>toLocaleStringBasics.js</files>
         <baseline>toLocaleStringBasics.baseline</baseline>
         <compile-flags>-args summary -endargs</compile-flags>
+        <tags>Intl</tags>
     </default>
   </test>
   <!-- Disabled until we can resolve failures on Windows Server 2012 R2 (Microsoft/ChakraCore#3030)

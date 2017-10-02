@@ -8,12 +8,7 @@
 
 #ifdef INTL_ICU
 #include <CommonPal.h>
-#define U_STATIC_IMPLEMENTATION
-#define U_SHOW_CPLUSPLUS_API 0
-#pragma warning(push)
-#pragma warning(disable:4995) // deprecation warning
-#include <unicode/uloc.h>
-#pragma warning(pop)
+#include "PlatformAgnostic/Intl.h"
 #endif // INTL_ICU
 
 #ifdef INTL_WINGLOB
@@ -150,7 +145,7 @@ namespace Js
             return unicodeStatics;
         }
 #endif
-#ifdef ENABLE_INTL_OBJECT 
+#ifdef ENABLE_INTL_OBJECT
     private:
         HRESULT CreateTimeZoneOnCalendar(_In_ DelayLoadWindowsGlobalization *library, __out Windows::Globalization::ITimeZoneOnCalendar**  result);
         static HRESULT VerifyResult(HSTRING * result, HRESULT errCode);
@@ -160,18 +155,51 @@ namespace Js
 
 #ifdef INTL_ICU
 #ifdef ENABLE_INTL_OBJECT
-    class IcuIntlAdapter
+    template<typename T>
+    class AutoIcuJsObject : public FinalizableObject
     {
-    public:
-        static bool IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch);
-        static HRESULT NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
-            _Out_ char16 *normalized, _Out_ size_t *normalizedLength);
+    private:
+        T *instance;
 
-        //static bool ResolveLocaleLookup(_In_ ScriptContext *scriptContext, _In_ JavascriptString *locale, _Out_ char16 *resolved);
-        static bool ResolveLocaleLookup(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved);
-        //static bool ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_ JavascriptString *locale, _Out_ char16 *resolved);
-        static bool ResolveLocaleBestFit(_In_ ScriptContext *scriptContext, _In_z_ const char16 *locale, _Out_ char16 *resolved);
-        static int GetUserDefaultLocaleName(_Out_ LPWSTR lpLocaleName, _In_ int cchLocaleName);
+    public:
+        DEFINE_VTABLE_CTOR_NOBASE(AutoIcuJsObject<T>);
+
+        AutoIcuJsObject(T *object)
+            : instance(object)
+        { }
+
+        static AutoIcuJsObject<T> * New(Recycler *recycler, T *object)
+        {
+            return RecyclerNewFinalized(recycler, AutoIcuJsObject<T>, object);
+        }
+
+        void Finalize(bool isShutdown) override
+        {
+        }
+
+        void Dispose(bool isShutdown) override
+        {
+            if (!isShutdown)
+            {
+                // Here we use Cleanup() because we can't rely on delete (not dealing with virtual destructors).
+                // The template thus requires that the type implement the Cleanup function.
+                instance->Cleanup(); // e.g. deletes the object held in the IPlatformAgnosticResource
+
+                // REVIEW (doilij): Is cleanup in this way necessary or are the trivial destructors enough, assuming Cleanup() has been called?
+                // Note: delete here introduces a build break on Linux complaining of non-virtual dtor
+                // delete instance; // deletes the instance itself
+                // instance = nullptr;
+            }
+        }
+
+        void Mark(Recycler *recycler) override
+        {
+        }
+
+        T * GetInstance()
+        {
+            return instance;
+        }
     };
 #endif // ENABLE_INTL_OBJECT
 #endif // INTL_ICU

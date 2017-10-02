@@ -63,6 +63,7 @@ test/benchmarks/*.dpl
 test/benchmarks/*.txt
 testout*
 packages.config
+lib/wabt/built/
 
 # CMake Files
 cmake_install.cmake

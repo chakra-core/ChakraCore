@@ -716,6 +716,7 @@ ENTRY(enqueueTask)
 ENTRY(Common)
 ENTRY(Promise)
 ENTRY(MissingProperty)
+ENTRY(winglob)
 
 // These are ES5/6/7+ builtins that are tracked for telemetry purposes, but currently not implemented by Chakra or are otherwise special.
 // IMPORTANT NOTE: See notes at top of this file regarding GenByteCode and test failures after changing this list.
