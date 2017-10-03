@@ -202,6 +202,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
             C_ASSERT(sizeof(WCHAR) == 2);
             if (bufferLength > 2)
             {
+                __analysis_assume(bufferLength > 2);
                 if ((pRawBytes[0] == 0xFE && pRawBytes[1] == 0xFF) ||
                     (pRawBytes[0] == 0xFF && pRawBytes[1] == 0xFE) ||
                     (bufferLength > 4 && pRawBytes[0] == 0x00 && pRawBytes[1] == 0x00 &&
