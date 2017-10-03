@@ -236,15 +236,15 @@ CreateBuildTask(true, 'x64', 'debug',
     'Windows_NT', 'ci_lite', '"/p:BuildLite=true"', '-winBlue -lite', false, null, null)
 // x64_debug Legacy
 CreateBuildTask(true, 'x64', 'debug',
-    'Windows 7', 'ci_dev12', 'msbuild12', '-win7 -includeSlow', false, null, null)
+    'Windows 7', 'ci_dev12', null, '-win7 -includeSlow', false, null, null)
 
 // -----------------
 // DAILY BUILD TASKS
 // -----------------
 
 if (!branch.endsWith('-ci')) {
-    // build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
-    CreateBuildTasks('Windows 7', 'daily_dev12', 'msbuild12', '-win7 -includeSlow', false,
+    // build and test on Windows 7 with VS 2015 (Dev14)
+    CreateBuildTasks('Windows 7', 'daily_dev12', null, '-win7 -includeSlow', false,
         /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
