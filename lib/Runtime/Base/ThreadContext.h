@@ -82,12 +82,6 @@ protected:
     bool isDisabled;
 };
 
-// This function is called before we step out of script (currently only for WinRT callout).
-// Debugger would put a breakpoint on this function if they want to detect the point at which we step
-// over the boundary.
-// It is intentionally left blank and the next operation should be the callout.
-extern "C" void* MarkerForExternalDebugStep();
-
 #define PROBE_STACK(scriptContext, size) ((scriptContext)->GetThreadContext()->ProbeStack(size, scriptContext))
 #define PROBE_STACK_NO_DISPOSE(scriptContext, size) ((scriptContext)->GetThreadContext()->ProbeStackNoDispose(size, scriptContext))
 #define PROBE_STACK_PARTIAL_INITIALIZED_INTERPRETER_FRAME(scriptContext, size) ((scriptContext)->GetThreadContext()->ProbeStack(size, scriptContext, _ReturnAddress()))
