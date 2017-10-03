@@ -55,17 +55,6 @@ void DefaultInitializeAdditionalProperties(ThreadContext *threadContext)
  */
 void (*InitializeAdditionalProperties)(ThreadContext *threadContext) = DefaultInitializeAdditionalProperties;
 
-// To make sure the marker function doesn't get inlined, optimized away, or merged with other functions we disable optimization.
-// If this method ends up causing a perf problem in the future, we should replace it with asm versions which should be lighter.
-#pragma optimize("g", off)
-_NOINLINE extern "C" void* MarkerForExternalDebugStep()
-{
-    // We need to return something here to prevent this function from being merged with other empty functions by the linker.
-    static int __dummy;
-    return &__dummy;
-}
-#pragma optimize("", on)
-
 CriticalSection ThreadContext::s_csThreadContext;
 size_t ThreadContext::processNativeCodeSize = 0;
 ThreadContext * ThreadContext::globalListFirst = nullptr;

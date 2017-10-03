@@ -194,6 +194,9 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
             C_ASSERT(sizeof(WCHAR) == 2);
             if (bufferLength > 2)
             {
+                __analysis_assume(bufferLength > 2);
+#pragma prefast(push)
+#pragma prefast(disable:6385, "PREfast incorrectly reports this as an out-of-bound access.");
                 if ((pRawBytes[0] == 0xFE && pRawBytes[1] == 0xFF) ||
                     (pRawBytes[0] == 0xFF && pRawBytes[1] == 0xFE) ||
                     (bufferLength > 4 && pRawBytes[0] == 0x00 && pRawBytes[1] == 0x00 &&
@@ -205,6 +208,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
                     fwprintf(stderr, _u("unsupported file encoding. Only ANSI and UTF8 supported"));
                     IfFailGo(E_UNEXPECTED);
                 }
+#pragma prefast(pop)
             }
         }
     }

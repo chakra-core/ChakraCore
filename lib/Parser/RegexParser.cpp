@@ -755,6 +755,9 @@ namespace UnifiedRegex
             else if (next->tag == Node::Alt)
             {
                 AltNode* nextList = (AltNode*)next;
+                // Since we just had to dereference next to get here, we know that nextList
+                // can't be nullptr in this case.
+                AnalysisAssert(nextList != nullptr);
                 // Append inner list to current list
                 revisedPrev = UnionNodes(last == 0 ? node : last->head, nextList->head);
                 if (revisedPrev != 0)
@@ -982,11 +985,17 @@ namespace UnifiedRegex
                     last->head = FinalTerm(last->head, &deferredLiteralNode);
                     last->tail = nextList;
                 }
+                // NextList can't be nullptr, since it was last set as next, which
+                // was dereferenced, or it was set on a path that already has this
+                // analysis assert.
+                AnalysisAssert(nextList != nullptr);
                 while (nextList->tail != 0)
                     nextList = nextList->tail;
                 last = nextList;
                 // No outstanding literals
                 Assert(deferredLiteralNode.length == 0);
+                // We just set this from nextList, which we know is not nullptr.
+                AnalysisAssert(last != nullptr);
                 if (last->head->LiteralLength() > 0)
                 {
                     // If the list ends with a literal, transfer it into deferredLiteralNode
