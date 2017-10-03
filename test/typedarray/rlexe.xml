@@ -198,7 +198,7 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   </test>
   <test>
     <default>
-      <files>floathelperaccess.js</files>
+      <files>FloatHelperAccess.js</files>
       <tags>typedarray</tags>
     </default>
   </test>

@@ -58,7 +58,12 @@
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug' AND '$(RuntimeLib)'=='static_library'">MultiThreadedDebug</RuntimeLibrary>
       <AdditionalIncludeDirectories>
         $(ChakraCoreRootDirectory)\lib\common\placeholder;
-        $(IntDir)..\CoreManifests\
+        $(IntDir)..\CoreManifests;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(IntlICU)'=='true'">
+        $(IcuIncludeDir)\common;
+        $(IcuIncludeDir)\i18n;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
     </ClCompile>

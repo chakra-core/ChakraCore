@@ -28,9 +28,9 @@
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\Backend;
         $(ChakraJITIDLIntDir);
-        $(IcuIncludeDir)\common;
         $(MSBuildThisFileDirectory)..\..\JITClient;
-        $(MSBuildThisFileDirectory)..;$(MSBuildThisFileDirectory);
+        $(MSBuildThisFileDirectory)..;
+        $(MSBuildThisFileDirectory);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -52,12 +52,19 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\EventTrace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\PerfTrace.cpp" />
   </ItemGroup>
+  <ItemGroup Condition="'$(IntlICU)'=='true'">
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\Intl.cpp" />
+  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChakraPlatform.h" />
     <ClInclude Include="EventTrace.h" />
     <ClInclude Include="PerfTrace.h" />
     <ClInclude Include="RuntimePlatformAgnosticPch.h" />
     <ClInclude Include="UnicodeText.h" />
+    <ClInclude Include="IPlatformAgnosticResource.h" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(IntlICU)'=='true'">
+    <ClInclude Include="Intl.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">

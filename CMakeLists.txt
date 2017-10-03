@@ -126,11 +126,24 @@ function(clr_unknown_arch)
     message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
 endfunction()
 
+if(INTL_ICU_SH)
+    unset(INTL_ICU_SH CACHE)    # don't cache
+    add_definitions(-DINTL_ICU=1)
+    set(ICU_INTL_ENABLED 1)
+endif()
+
 if(ICU_INCLUDE_PATH)
     add_definitions(-DHAS_REAL_ICU=1)
     set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
     find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+    if(ICU_INTL_ENABLED)
+        find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+        # icu header files are either located under the same folder or i18n is under a relative path
+        # TODO (unlikely): shall we add `--icu-intl` to build.sh ?
+        set(ICU_INCLUDE_PATH
+          "${ICU_INCLUDE_PATH}"
+          "${ICU_INCLUDE_PATH}/../i18n/")
+    endif()
     if(ICUUC)
       message("-- found ICU libs: ${ICU_CC_PATH}")
       find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
@@ -187,12 +200,17 @@ endif()
 
 if(CC_TARGET_OS_LINUX OR CC_TARGET_OS_ANDROID)
     if(NOT ICULIB)
-      if(NOT NO_ICU_PATH_GIVEN)
-        if(NOT CC_EMBED_ICU)
-          set(ICULIB "icuuc")
+        if(NOT NO_ICU_PATH_GIVEN)
+            if(NOT CC_EMBED_ICU)
+                set(ICULIB "icuuc")
+                if(ICU_INTL_ENABLED)
+                    set(ICULIB
+                      "${ICULIB}"
+                      "icui18n")
+                endif()
+            endif()
+            add_definitions(-DHAS_REAL_ICU=1)
         endif()
-        add_definitions(-DHAS_REAL_ICU=1)
-      endif()
     endif()
 
     set(CLR_CMAKE_PLATFORM_LINUX 1)
@@ -394,12 +412,6 @@ if(NO_JIT_SH)
     add_definitions(-DDISABLE_JIT=1)
 else()
     set(BuildJIT 1)
-endif()
-
-if(INTL_ICU_SH)
-    unset(INTL_ICU_SH CACHE)    # don't cache
-    add_definitions(-DINTL_ICU=1)
-    set(IntlICU 1)
 endif()
 
 if(WITHOUT_FEATURES_SH)

@@ -3,7 +3,7 @@
   <test>
     <default>
       <files>Basics.js</files>
-      <tags>Intl,exclude_winglob</tags>
+      <tags>Intl</tags>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
@@ -11,12 +11,33 @@
   <test>
     <default>
       <files>Collator.js</files>
-      <tags>Intl,exclude_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
     <default>
       <files>CollatorOptions.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>Intl,require_winglob</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>CollatorSupportedLocales.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>Intl</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>CollatorUnsupportedLocales.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>Intl,require_winglob</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DateTimeFormatInvalidOptions.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
       <tags>Intl</tags>
     </default>
@@ -25,14 +46,14 @@
     <default>
       <files>DateTimeFormatOptions.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
   <test>
     <default>
       <files>NumberFormat.js</files>
       <baseline>NumberFormat.baseline</baseline>
-      <tags>Intl,exclude_winglob,exclude_drt</tags>
+      <tags>Intl,require_winglob,exclude_drt</tags>
     </default>
   </test>
   <test>
@@ -47,55 +68,55 @@
     <default>
       <files>GetCanonicalLocales.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,exclude_winglob</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
   <test>
     <default>
       <files>SupportedLocalesOf.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,exclude_winglob</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
   <test>
     <default>
       <files>IntlHiddenInternals.js</files>
-      <tags>Intl,exclude_winglob</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
   <test>
     <default>
       <files>IntlTaintingTests.js</files>
       <baseline>IntlTaintingTests.baseline</baseline>
-      <tags>Intl,exclude_winglob</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
   <test>
     <default>
       <files>IntlTaintingPreInitTests.js</files>
       <baseline>IntlTaintingPreInitTests.baseline</baseline>
-      <tags>Intl,exclude_winglob,exclude_drt</tags>
+      <tags>Intl,require_winglob,exclude_drt</tags>
     </default>
   </test>
 
   <test>
     <default>
       <files>IntlBuiltIns.js</files>
-      <tags>Intl,exclude_winglob</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
   <test>
     <default>
       <files>IntlIdentities.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,exclude_winglob</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
   <test>
     <default>
       <compile-flags> -Intl -debugLaunch -dbgbaseline:IntlReturnedValueTests.js.dbg.baseline</compile-flags>
       <files>IntlReturnedValueTests.js</files>
-      <tags>Intl,exclude_winglob</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
 
@@ -105,7 +126,7 @@
       <files>IntlInternalsHiddenFromExceptionStackTest.js</files>
       <baseline>IntlInternalsHiddenFromExceptionStackTest.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
-      <tags>Intl,exclude_winglob</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
   <test>
@@ -114,7 +135,7 @@
       <files>IntlInternalsHiddenFromFirstChanceExceptionStackTest.js</files>
       <baseline>IntlInternalsHiddenFromFirstChanceExceptionStackTest.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
-      <tags>Intl,exclude_winglob</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
 
