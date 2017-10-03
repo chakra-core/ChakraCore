@@ -2201,17 +2201,9 @@ void ByteCodeGenerator::LoadSuperConstructorObject(FuncInfo *funcInfo)
 {
     Symbol* superConstructorSym = funcInfo->GetSuperConstructorSymbol();
     Assert(superConstructorSym);
+    Assert(!funcInfo->IsLambda());
 
-    if (funcInfo->IsClassMember())
-    {
-        Assert(!funcInfo->IsLambda());
-
-        m_writer.Reg1(Js::OpCode::LdFuncObj, superConstructorSym->GetLocation());
-    }
-    else
-    {
-        m_writer.Reg1(Js::OpCode::LdUndef, superConstructorSym->GetLocation());
-    }
+    m_writer.Reg1(Js::OpCode::LdFuncObj, superConstructorSym->GetLocation());
 }
 
 void ByteCodeGenerator::LoadSuperObject(FuncInfo *funcInfo)
@@ -4921,14 +4913,9 @@ void ByteCodeGenerator::EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pno
 {
     Symbol* sym = pnode->sxPid.sym;
 
-    if (funcInfo->IsLambda() && !sym && !(this->flags & fscrEval))
+    if (!(this->flags & fscrEval) && ((funcInfo->IsLambda() && !sym) || (funcInfo->IsGlobalFunction() && !funcInfo->GetThisSymbol())))
     {
         EmitThis(funcInfo, lhsLocation, funcInfo->nullConstantRegister);
-    }
-    else if (funcInfo->IsGlobalFunction() && !(this->flags & fscrEval))
-    {
-        Assert(funcInfo->GetThisSymbol());
-        this->Writer()->Reg2(Js::OpCode::Ld_A, lhsLocation, funcInfo->GetThisSymbol()->GetLocation());
     }
     else
     {

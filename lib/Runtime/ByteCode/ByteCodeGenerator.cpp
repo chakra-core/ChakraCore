@@ -5074,7 +5074,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             Assert(pnode->sxPid.pid->GetPropertyId() != Js::Constants::NoProperty);
 
             // Global lambda referring to 'this' needs to load 'this' root value via LdThis from null
-            if (byteCodeGenerator->TopFuncInfo()->IsLambda() && ByteCodeGenerator::IsThis(pnode))
+            if (ByteCodeGenerator::IsThis(pnode) && !byteCodeGenerator->TopFuncInfo()->GetThisSymbol())
             {
                 byteCodeGenerator->AssignNullConstRegister();
             }

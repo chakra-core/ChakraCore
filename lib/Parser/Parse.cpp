@@ -1688,6 +1688,8 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGloba
         return;
     }
     Assert(!(isGlobal && (this->m_grfscr & fscrEval)));
+    Assert(!isGlobal || (this->m_grfscr & fscrEvalCode));
+
     bool isTopLevelEventHandler = (this->m_grfscr & fscrImplicitThis || this->m_grfscr & fscrImplicitParents);
     // Create a 'this' symbol for indirect eval, non-lambda functions with references to 'this', and all class constructors.
     PidRefStack* ref = wellKnownPropertyPids._this->GetTopRef();
@@ -1726,8 +1728,9 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGloba
         superNode->sxPid.sym->SetIsSuper(true);
     }
 
+    // Create a 'super' (as the call target for super()) symbol only for class constructors.
     ref = wellKnownPropertyPids._superConstructor->GetTopRef();
-    if (ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId)
+    if ((ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId) && pnodeFnc->sxFnc.IsClassConstructor())
     {
         // Insert the decl for 'super (as the call target for super())'
         ParseNodePtr superNode = this->CreateSpecialVarDeclNode(pnodeFnc, wellKnownPropertyPids._superConstructor);
@@ -2252,6 +2255,14 @@ void Parser::EnsureStackAvailable()
 
 void Parser::ThrowNewTargetSyntaxErrForGlobalScope()
 {
+    // If we are parsing a previously deferred function, we can skip throwing the SyntaxError for `new.target` at global scope.
+    // If we are at global scope, we would have thrown a SyntaxError when we did the Upfront parse pass and we would not have
+    // deferred the function in order to come back now and reparse it.
+    if (m_parseType == ParseType_Deferred)
+    {
+        return;
+    }
+
     if (GetCurrentNonLambdaFunctionNode() != nullptr)
     {
         return;
@@ -11484,8 +11495,8 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     if (tkEOF != m_token.tk)
         Error(ERRsyntax);
 
-    // Direct eval doesn't need to have special symbols created
-    if (!(this->m_grfscr & fscrEval))
+    // We only need to create special symbol bindings for 'this' for indirect eval
+    if ((this->m_grfscr & fscrEvalCode) && !(this->m_grfscr & fscrEval))
     {
         CreateSpecialSymbolDeclarations(pnodeProg, true);
     }
