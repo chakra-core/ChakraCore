@@ -19,6 +19,7 @@ if(NOT LLVM_INCLUDE_DIR)
     PATHS
     /opt/local/bin
     /usr/lib/llvm-3.8/bin     # Ubuntu
+    /usr/lib/llvm-3.9/bin     # Ubuntu
     /usr/local/opt/llvm/bin   # OSX brew install path
   )
 
