@@ -277,7 +277,7 @@ public:
     void LoadUncachedHeapArguments(FuncInfo *funcInfo);
     void LoadCachedHeapArguments(FuncInfo *funcInfo);
     void LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromParams = false);
-    void EmitThis(FuncInfo *funcInfo, Js::RegSlot fromRegister);
+    void EmitThis(FuncInfo *funcInfo, Js::RegSlot lhsLocation, Js::RegSlot fromRegister);
     void LoadNewTargetObject(FuncInfo *funcInfo);
     void LoadSuperObject(FuncInfo *funcInfo);
     void LoadSuperConstructorObject(FuncInfo *funcInfo);

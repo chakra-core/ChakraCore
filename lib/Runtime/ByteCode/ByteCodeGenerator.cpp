@@ -2950,9 +2950,9 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         {
             byteCodeGenerator->AssignRegister(top->GetThisSymbol());
 
-            if (top->IsGlobalFunction() || top->IsLambda())
+            if (top->IsGlobalFunction())
             {
-                // Global function or lambda at global need to load this from null
+                // Global function needs to load this from null
                 byteCodeGenerator->AssignNullConstRegister();
             }
         }
@@ -5072,6 +5072,12 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         if (sym == nullptr)
         {
             Assert(pnode->sxPid.pid->GetPropertyId() != Js::Constants::NoProperty);
+
+            // Global lambda referring to 'this' needs to load 'this' root value via LdThis from null
+            if (byteCodeGenerator->TopFuncInfo()->IsLambda() && ByteCodeGenerator::IsThis(pnode))
+            {
+                byteCodeGenerator->AssignNullConstRegister();
+            }
         }
         else
         {

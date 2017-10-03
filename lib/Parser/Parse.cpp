@@ -1682,14 +1682,16 @@ ParseNodePtr Parser::ReferenceSpecialName(IdentPtr pid, charcount_t ichMin, char
 
 void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal)
 {
+    // Lambda function cannot have any special bindings.
+    if (pnodeFnc->sxFnc.IsLambda())
+    {
+        return;
+    }
     Assert(!(isGlobal && (this->m_grfscr & fscrEval)));
-
     bool isTopLevelEventHandler = (this->m_grfscr & fscrImplicitThis || this->m_grfscr & fscrImplicitParents);
-
-    // Create a 'this' symbol for global lambda, indirect eval, ordinary functions with references to 'this', and all class constructors.
+    // Create a 'this' symbol for indirect eval, non-lambda functions with references to 'this', and all class constructors.
     PidRefStack* ref = wellKnownPropertyPids._this->GetTopRef();
-    if (((pnodeFnc->sxFnc.IsLambda() && GetCurrentNonLambdaFunctionNode() == nullptr && !(this->m_grfscr & fscrEval)) || !pnodeFnc->sxFnc.IsLambda())
-        && ((ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId) || pnodeFnc->sxFnc.IsClassConstructor() || isTopLevelEventHandler))
+    if ((ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId) || pnodeFnc->sxFnc.IsClassConstructor() || isTopLevelEventHandler)
     {
         // Insert the decl for 'this'
         ParseNodePtr thisNode = this->CreateSpecialVarDeclNode(pnodeFnc, wellKnownPropertyPids._this);
@@ -1701,8 +1703,8 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGloba
         }
     }
 
-    // Global code and lambdas cannot have 'new.target' or 'super' bindings so don't bother
-    if (isGlobal || pnodeFnc->sxFnc.IsLambda())
+    // Global code cannot have 'new.target' or 'super' bindings so don't bother.
+    if (isGlobal)
     {
         return;
     }
@@ -5343,7 +5345,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         // These are heuristic conditions that prohibit upfront deferral but not redeferral.
         isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc && 
             (!isLikelyIIFE || !topLevelStmt || PHASE_FORCE_RAW(Js::DeferParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->sxFnc.functionId));
-;
+
         if (!fLambda &&
             !isDeferredFnc &&
             !isLikelyIIFE &&

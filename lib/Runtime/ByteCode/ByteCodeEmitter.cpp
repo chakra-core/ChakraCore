@@ -2124,6 +2124,7 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
 {
     Symbol* thisSym = funcInfo->GetThisSymbol();
     Assert(thisSym);
+    Assert(!funcInfo->IsLambda());
 
     if (this->scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled() && funcInfo->IsClassConstructor())
     {
@@ -2154,7 +2155,7 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
             this->Writer()->MarkLabel(skipLabel);
         }
     }
-    else if (!funcInfo->IsGlobalFunction() && !funcInfo->IsLambda())
+    else if (!funcInfo->IsGlobalFunction())
     {
         //
         // thisLoadedFromParams would be true for the event Handler case,
@@ -2165,13 +2166,13 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
             m_writer.ArgIn0(thisSym->GetLocation());
         }
 
-        EmitThis(funcInfo, thisSym->GetLocation());
+        EmitThis(funcInfo, thisSym->GetLocation(), thisSym->GetLocation());
     }
     else
     {
-        Assert(funcInfo->IsGlobalFunction() || funcInfo->IsLambda());
+        Assert(funcInfo->IsGlobalFunction());
         Js::RegSlot root = funcInfo->nullConstantRegister;
-        EmitThis(funcInfo, root);
+        EmitThis(funcInfo, thisSym->GetLocation(), root);
     }
 }
 
@@ -2375,15 +2376,15 @@ void ByteCodeGenerator::GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &
     }
 }
 
-void ByteCodeGenerator::EmitThis(FuncInfo *funcInfo, Js::RegSlot fromRegister)
+void ByteCodeGenerator::EmitThis(FuncInfo *funcInfo, Js::RegSlot lhsLocation, Js::RegSlot fromRegister)
 {
     if (funcInfo->byteCodeFunction->GetIsStrictMode() && !funcInfo->IsGlobalFunction() && !funcInfo->IsLambda())
     {
-        m_writer.Reg2(Js::OpCode::StrictLdThis, funcInfo->GetThisSymbol()->GetLocation(), fromRegister);
+        m_writer.Reg2(Js::OpCode::StrictLdThis, lhsLocation, fromRegister);
     }
     else
     {
-        m_writer.Reg2Int1(Js::OpCode::LdThis, funcInfo->GetThisSymbol()->GetLocation(), fromRegister, this->GetModuleID());
+        m_writer.Reg2Int1(Js::OpCode::LdThis, lhsLocation, fromRegister, this->GetModuleID());
     }
 }
 
@@ -4918,12 +4919,25 @@ ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
 
 void ByteCodeGenerator::EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pnode, FuncInfo *funcInfo, bool chkUndecl)
 {
-    this->EmitPropLoad(lhsLocation, pnode->sxPid.sym, pnode->sxPid.pid, funcInfo, true);
-
     Symbol* sym = pnode->sxPid.sym;
-    if ((!sym || sym->GetNeedDeclaration()) && chkUndecl)
+
+    if (funcInfo->IsLambda() && !sym && !(this->flags & fscrEval))
     {
-        this->Writer()->Reg1(Js::OpCode::ChkUndecl, lhsLocation);
+        EmitThis(funcInfo, lhsLocation, funcInfo->nullConstantRegister);
+    }
+    else if (funcInfo->IsGlobalFunction() && !(this->flags & fscrEval))
+    {
+        Assert(funcInfo->GetThisSymbol());
+        this->Writer()->Reg2(Js::OpCode::Ld_A, lhsLocation, funcInfo->GetThisSymbol()->GetLocation());
+    }
+    else
+    {
+        this->EmitPropLoad(lhsLocation, pnode->sxPid.sym, pnode->sxPid.pid, funcInfo, true);
+
+        if ((!sym || sym->GetNeedDeclaration()) && chkUndecl)
+        {
+            this->Writer()->Reg1(Js::OpCode::ChkUndecl, lhsLocation);
+        }
     }
 }
 
