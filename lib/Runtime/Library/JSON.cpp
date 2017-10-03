@@ -695,10 +695,11 @@ namespace JSON
                         if (dynamicObject->HasObjectArray())
                         {
                             int totalNumPropertyCount = this->GetPropertyCount(object, &enumerator) - propertyCount;
-                            Assert(totalNumPropertyCount > 0);
+                            Assert(totalNumPropertyCount >= 0);
+
                             int index = 0;
                             enumerator.Reset();
-                            while ((propertyName = enumerator.MoveAndGetNext(id)) != NULL && index < totalNumPropertyCount)
+                            while (index < totalNumPropertyCount && (propertyName = enumerator.MoveAndGetNext(id)) != NULL)
                             {
                                 // if unsuccessful get propertyId from the string
                                 scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);
