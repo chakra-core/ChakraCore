@@ -95,6 +95,7 @@
       <files>dataview.js</files>
       <baseline>dataview.baseline</baseline>
       <tags>typedarray</tags>
+      <timeout>300</timeout>
     </default>
   </test>
   <test>
@@ -136,6 +137,7 @@
       <files>samethread.js</files>
       <baseline>samethread.baseline</baseline>
       <tags>typedarray</tags>
+      <timeout>300</timeout>
     </default>
   </test>
   <!--
@@ -334,6 +336,7 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   <test>
     <default>
       <files>reentry1.js</files>
+      <timeout>300</timeout>
     </default>
   </test>
   <test>
