@@ -17,7 +17,7 @@ goto :main
 :: ============================================================================
 :printUsage
 
-  echo runnativetests.cmd -x86^|-x64 -debug^|-test
+  echo runnativetests.cmd -x86^|-x64 -debug^|-test [--help]
   echo.
   echo Required switches:
   echo.
@@ -30,6 +30,8 @@ goto :main
   echo.
   echo   -debug         Build type of binaries is debug
   echo   -test          Build type of binaries is test
+  echo.
+  echo   --help         Print help from nativetests (note, arch/type still required)
   echo.
   echo   Shorthand combinations can be used, e.g. -x64debug
   echo.
@@ -96,9 +98,10 @@ goto :main
   if /i "%1" == "-x86test"          set _BuildArch=x86&set _BuildType=test&                     goto :ArgOk
   if /i "%1" == "-x64test"          set _BuildArch=x64&set _BuildType=test&                     goto :ArgOk
 
-  if /i "%1" == "-binDir"           set _BinDirBase=%~f2&                                      goto :ArgOkShift2
+  if /i "%1" == "-binDir"           set _BinDirBase=%~f2&                                       goto :ArgOkShift2
 
-  if not "%1" == "" echo -- runnativetests.cmd ^>^> Unknown argument: %1 & set fShowGetHelp=1
+  rem Store unrecognized args in this var for when we later call the executable
+  if not "%1" == ""                 set _NativeTestArgs=%_NativeTestArgs%%1 &                  goto :ArgOk
 
   goto :eof
 
@@ -122,6 +125,7 @@ goto :main
   set _TestTempDir=
   set _BuildArch=
   set _BuildType=
+  set _NativeTestArgs=
 
   goto :eof
 
@@ -178,11 +182,13 @@ goto :main
 :: ============================================================================
 :runtest
   pushd %_TestTempDir%
-  call :do nativetests.exe
+  echo Calling %cd%\nativetests.exe with additional args: %_NativeTestArgs%
+  call :do nativetests.exe %_NativeTestArgs%
   if ERRORLEVEL 1 set _HadFailures=1
   popd
 
   goto :eof
+
 
 :: ============================================================================
 :: Clean up left over files
