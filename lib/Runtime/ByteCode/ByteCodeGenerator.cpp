@@ -3378,20 +3378,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
         {
             PreVisitCatch(pnodeScope, byteCodeGenerator);
 
-            if (pnodeScope->sxCatch.pnodeParam->nop == knopParamPattern)
-            {
-                Parser::MapBindIdentifier(pnodeScope->sxCatch.pnodeParam->sxParamPattern.pnode1, [byteCodeGenerator](ParseNodePtr pnode)
-                {
-                    Assert(pnode->nop == knopLetDecl);
-                    pnode->sxVar.sym->SetLocation(byteCodeGenerator->NextVarRegister());
-                });
-
-                if (pnodeScope->sxCatch.pnodeParam->sxParamPattern.location == Js::Constants::NoRegister)
-                {
-                    pnodeScope->sxCatch.pnodeParam->sxParamPattern.location = byteCodeGenerator->NextVarRegister();
-                }
-            }
-            else
+            if (pnodeScope->sxCatch.pnodeParam->nop != knopParamPattern)
             {
                 Visit(pnodeScope->sxCatch.pnodeParam, byteCodeGenerator, prefix, postfix);
             }
@@ -4902,7 +4889,8 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                 // as we are going assign to the original sym
                 CheckFuncAssignment(sym, pnode->sxVar.pnodeInit, byteCodeGenerator);
 
-                if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar() && !pnode->sxVar.isBlockScopeFncDeclVar))
+                // If this is a destructured param case then it is a let binding and we don't have to look for duplicate symbol in the body
+                if ((sym->GetIsCatch() && pnode->sxVar.sym->GetScope()->GetScopeType() != ScopeType_CatchParamPattern) || (pnode->nop == knopVarDecl && sym->GetIsBlockVar() && !pnode->sxVar.isBlockScopeFncDeclVar))
                 {
                     // The LHS of the var decl really binds to the local symbol, not the catch or let symbol.
                     // But the assignment will go to the catch or let symbol. Just assign a register to the local
@@ -4916,13 +4904,6 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 #endif
                     auto symName = sym->GetName();
                     sym = funcInfo->bodyScope->FindLocalSymbol(symName);
-
-                    if (sym == nullptr && nop == knopLetDecl && pnode->sxVar.sym->GetIsCatch())
-                    {
-                        // This should be  a scenario like try {} catch([x]) {} with no duplicate definition inside the catch block.
-                        // In non-destructured catch block param case, the created node will be a name node, not a var node.
-                        break;
-                    }
 
                     if (sym == nullptr)
                     {
