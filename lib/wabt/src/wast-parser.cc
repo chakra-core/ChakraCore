@@ -2011,7 +2011,12 @@ Result WastParser::ParseScriptModule(
       auto tsm = MakeUnique<TextScriptModule>();
       tsm->module.name = name;
       tsm->module.loc = loc;
-      CHECK_RESULT(ParseModuleFieldList(&tsm->module));
+      if (IsModuleField(PeekPair())) {
+        CHECK_RESULT(ParseModuleFieldList(&tsm->module));
+      } else if (!PeekMatch(TokenType::Rpar)) {
+        ConsumeIfLpar();
+        return ErrorExpected({"a module field"});
+      }
       *out_module = std::move(tsm);
       break;
     }

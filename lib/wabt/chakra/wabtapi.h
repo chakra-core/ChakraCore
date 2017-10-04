@@ -61,7 +61,7 @@ namespace ChakraWabt
     };
 
     typedef Js::Var(*CreateBufferFn)(const unsigned char* start, uint size, void* user_data);
-    struct Context
+    struct ChakraContext
     {
         CreateBufferFn createBuffer;
         SpecContext* spec;
@@ -74,5 +74,5 @@ namespace ChakraWabt
         } features;
     };
 
-    Js::Var ConvertWast2Wasm(Context& ctx, char* buffer, uint bufferSize, bool isSpecText);
+    Js::Var ConvertWast2Wasm(ChakraContext& chakraCtx, char* buffer, uint bufferSize, bool isSpecText);
 };

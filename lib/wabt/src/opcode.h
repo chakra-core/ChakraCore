@@ -74,6 +74,7 @@ struct Opcode {
   }
 
   bool IsEnabled(const Features& features) const;
+  bool IsInvalid() const { return enum_ >= Invalid; }
 
  private:
   static const uint32_t kMathPrefix = 0xfc;

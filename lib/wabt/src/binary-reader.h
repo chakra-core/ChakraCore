@@ -34,14 +34,17 @@ struct ReadBinaryOptions {
   ReadBinaryOptions() = default;
   ReadBinaryOptions(const Features& features,
                     Stream* log_stream,
-                    bool read_debug_names)
+                    bool read_debug_names,
+                    bool stop_on_first_error)
       : features(features),
         log_stream(log_stream),
-        read_debug_names(read_debug_names) {}
+        read_debug_names(read_debug_names),
+        stop_on_first_error(stop_on_first_error) {}
 
   Features features;
   Stream* log_stream = nullptr;
   bool read_debug_names = false;
+  bool stop_on_first_error = true;
 };
 
 class BinaryReaderDelegate {
