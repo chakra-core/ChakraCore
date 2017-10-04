@@ -5,7 +5,7 @@
 
 (module
     (import "dummy" "memory" (memory 1))
-    
+
         (func (export "i32x4_replace0") (param i32 i32) (local m128)
             (set_local 2 (i32x4.splat (get_local 0)))
             (set_local 2 (i32x4.replace_lane lane=0 (get_local 2) (get_local 1)))
@@ -195,6 +195,18 @@
         (func (export "f32x4_replace3") (param f32 f32) (local m128)
             (set_local 2 (f32x4.splat (get_local 0)))
             (set_local 2 (f32x4.replace_lane lane=3 (get_local 2) (get_local 1)))
+            (m128.store offset=0 align=4 (i32.const 0) (get_local 2))
+        )
+
+        (func (export "f64x2_replace0") (param f64 f64) (local m128)
+            (set_local 2 (f64x2.splat (get_local 0)))
+            (set_local 2 (f64x2.replace_lane lane=0 (get_local 2) (get_local 1)))
+            (m128.store offset=0 align=4 (i32.const 0) (get_local 2))
+        )
+
+        (func (export "f64x2_replace1") (param f64 f64) (local m128)
+            (set_local 2 (f64x2.splat (get_local 0)))
+            (set_local 2 (f64x2.replace_lane lane=1 (get_local 2) (get_local 1)))
             (m128.store offset=0 align=4 (i32.const 0) (get_local 2))
         )
 )

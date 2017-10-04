@@ -494,24 +494,18 @@ bool LowererMD::Simd128TryLowerMappedInstruction(IR::Instr *instr)
         Assert(opcode == Js::OpCode::ANDPS);
         instr->SetSrc2(IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetX86AbsMaskF4Addr(), instr->GetSrc1()->GetType(), m_func));
         break;
-#if 0
     case Js::OpCode::Simd128_Abs_D2:
         Assert(opcode == Js::OpCode::ANDPD);
         instr->SetSrc2(IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetX86AbsMaskD2Addr(), instr->GetSrc1()->GetType(), m_func));
         break;
-#endif // 0
-
     case Js::OpCode::Simd128_Neg_F4:
         Assert(opcode == Js::OpCode::XORPS);
         instr->SetSrc2(IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetX86NegMaskF4Addr(), instr->GetSrc1()->GetType(), m_func));
         break;
-#if 0
     case Js::OpCode::Simd128_Neg_D2:
         Assert(opcode == Js::OpCode::XORPS);
         instr->SetSrc2(IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetX86NegMaskD2Addr(), instr->GetSrc1()->GetType(), m_func));
         break;
-#endif // 0
-
     case Js::OpCode::Simd128_Not_I4:
     case Js::OpCode::Simd128_Not_I16:
     case Js::OpCode::Simd128_Not_I8:
@@ -525,9 +519,9 @@ bool LowererMD::Simd128TryLowerMappedInstruction(IR::Instr *instr)
         instr->SetSrc2(IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetX86AllNegOnesAddr(), instr->GetSrc1()->GetType(), m_func));
         break;
     case Js::OpCode::Simd128_Gt_F4:
-    //case Js::OpCode::Simd128_Gt_D2:
+    case Js::OpCode::Simd128_Gt_D2:
     case Js::OpCode::Simd128_GtEq_F4:
-    //case Js::OpCode::Simd128_GtEq_D2:
+    case Js::OpCode::Simd128_GtEq_D2:
     case Js::OpCode::Simd128_Lt_I4:
     case Js::OpCode::Simd128_Lt_I8:
     case Js::OpCode::Simd128_Lt_I16:
@@ -628,6 +622,7 @@ IR::Instr* LowererMD::Simd128LowerUnMappedInstruction(IR::Instr *instr)
         return Simd128LowerLdLane(instr);
 
     case Js::OpCode::Simd128_ReplaceLane_I2:
+    case Js::OpCode::Simd128_ReplaceLane_D2:
         return SIMD128LowerReplaceLane_2(instr);
     case Js::OpCode::Simd128_ReplaceLane_I4:
     case Js::OpCode::Simd128_ReplaceLane_F4:
@@ -648,7 +643,7 @@ IR::Instr* LowererMD::Simd128LowerUnMappedInstruction(IR::Instr *instr)
     case Js::OpCode::Simd128_Splat_F4:
     case Js::OpCode::Simd128_Splat_I4:
     case Js::OpCode::Simd128_Splat_I2:
-    //case Js::OpCode::Simd128_Splat_D2:
+    case Js::OpCode::Simd128_Splat_D2:
     case Js::OpCode::Simd128_Splat_I8:
     case Js::OpCode::Simd128_Splat_I16:
     case Js::OpCode::Simd128_Splat_U4:
@@ -931,6 +926,24 @@ IR::Instr * LowererMD::SIMD128LowerReplaceLane_2(IR::Instr *instr)
     int lane = src2->AsIntConstOpnd()->AsInt32();
     Assert(dst->IsSimd128() && src1->IsSimd128());
 
+    if (instr->m_opcode == Js::OpCode::Simd128_ReplaceLane_D2)
+    {
+        AssertMsg(AutoSystemInfo::Data.SSE2Available(), "SSE2 not supported");
+        Assert(src3->IsFloat64());
+        m_lowerer->InsertMove(dst, src1, instr);
+        if (lane) 
+        {
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPD, dst, src3, IR::IntConstOpnd::New(0, TyInt8, m_func, true), m_func));
+        }
+        else 
+        {
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVSD, dst, src3, m_func));
+        }    
+        return removeInstr(instr);
+    }
+
+    Assert(src3->IsInt64());
+
     if (AutoSystemInfo::Data.SSE4_1Available())
     {
         m_lowerer->InsertMove(dst, src1, instr);
@@ -1200,12 +1213,10 @@ IR::Instr* LowererMD::Simd128LowerSplat(IR::Instr *instr)
         shufOpCode = Js::OpCode::PSHUFD;
         movOpCode = Js::OpCode::MOVD;
         break;
-#if 0
     case Js::OpCode::Simd128_Splat_D2:
         shufOpCode = Js::OpCode::SHUFPD;
         movOpCode = Js::OpCode::MOVSD;
         break;
-#endif // 0
     case Js::OpCode::Simd128_Splat_I2:
     {
         EmitInsertInt64(src1, 0, instr);
@@ -3551,28 +3562,27 @@ void LowererMD::Simd128InitOpcodeMap()
     SET_SIMDOPCODE(Simd128_Neq_F4                , CMPNEQPS); // CMPNEQPS
     SET_SIMDOPCODE(Simd128_Gt_F4                 , CMPLTPS); // CMPLTPS (swap srcs)
     SET_SIMDOPCODE(Simd128_GtEq_F4               , CMPLEPS); // CMPLEPS (swap srcs)
-
+    SET_SIMDOPCODE(Simd128_Neg_D2                , XORPS);
+    SET_SIMDOPCODE(Simd128_Add_D2                , ADDPD);
+    SET_SIMDOPCODE(Simd128_Abs_D2                , ANDPD);
+    SET_SIMDOPCODE(Simd128_Sub_D2                , SUBPD);
+    SET_SIMDOPCODE(Simd128_Mul_D2                , MULPD);
+    SET_SIMDOPCODE(Simd128_Div_D2                , DIVPD);
+    SET_SIMDOPCODE(Simd128_Min_D2                , MINPD);
+    SET_SIMDOPCODE(Simd128_Max_D2                , MAXPD);
+    SET_SIMDOPCODE(Simd128_Sqrt_D2               , SQRTPD);
+    SET_SIMDOPCODE(Simd128_Lt_D2                 , CMPLTPD); // CMPLTPD
+    SET_SIMDOPCODE(Simd128_LtEq_D2               , CMPLEPD); // CMPLEPD
+    SET_SIMDOPCODE(Simd128_Eq_D2                 , CMPEQPD); // CMPEQPD
+    SET_SIMDOPCODE(Simd128_Neq_D2                , CMPNEQPD); // CMPNEQPD
+    SET_SIMDOPCODE(Simd128_Gt_D2                 , CMPLTPD); // CMPLTPD (swap srcs)
+    SET_SIMDOPCODE(Simd128_GtEq_D2               , CMPLEPD); // CMPLEPD (swap srcs)
 
 #if 0
     SET_SIMDOPCODE(Simd128_FromFloat32x4_D2, CVTPS2PD);
     SET_SIMDOPCODE(Simd128_FromFloat32x4Bits_D2, MOVAPS);
     SET_SIMDOPCODE(Simd128_FromInt32x4_D2, CVTDQ2PD);
     SET_SIMDOPCODE(Simd128_FromInt32x4Bits_D2, MOVAPS);
-    SET_SIMDOPCODE(Simd128_Neg_D2, XORPS);
-    SET_SIMDOPCODE(Simd128_Add_D2, ADDPD);
-    SET_SIMDOPCODE(Simd128_Abs_D2, ANDPD);
-    SET_SIMDOPCODE(Simd128_Sub_D2, SUBPD);
-    SET_SIMDOPCODE(Simd128_Mul_D2, MULPD);
-    SET_SIMDOPCODE(Simd128_Div_D2, DIVPD);
-    SET_SIMDOPCODE(Simd128_Min_D2, MINPD);
-    SET_SIMDOPCODE(Simd128_Max_D2, MAXPD);
-    SET_SIMDOPCODE(Simd128_Sqrt_D2, SQRTPD);
-    SET_SIMDOPCODE(Simd128_Lt_D2, CMPLTPD); // CMPLTPD
-    SET_SIMDOPCODE(Simd128_LtEq_D2, CMPLEPD); // CMPLEPD
-    SET_SIMDOPCODE(Simd128_Eq_D2, CMPEQPD); // CMPEQPD
-    SET_SIMDOPCODE(Simd128_Neq_D2, CMPNEQPD); // CMPNEQPD
-    SET_SIMDOPCODE(Simd128_Gt_D2, CMPLTPD); // CMPLTPD (swap srcs)
-    SET_SIMDOPCODE(Simd128_GtEq_D2, CMPLEPD); // CMPLEPD (swap srcs)
 #endif // 0
 
     SET_SIMDOPCODE(Simd128_And_I8               , PAND);

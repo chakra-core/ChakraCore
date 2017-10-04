@@ -19,7 +19,8 @@ const arrays = {
     "i32x4" : new Int32Array (memObj.buffer),
     "i16x8" : new Int16Array (memObj.buffer),
     "i8x16" : new Int8Array (memObj.buffer),
-    "f32x4" : new Float32Array (memObj.buffer)
+    "f32x4" : new Float32Array (memObj.buffer),
+    "f64x2" : new Float64Array (memObj.buffer)
 };
 
 function moveArgsIntoArray(args, offset, arr) {
@@ -60,7 +61,7 @@ let testMathOps = function (funcname, args1, args2, resultArr) {
     }
 
     for (let i = 0; i < resultArr.length; i++) {
-        if (type === "f32x4" && Number.isNaN(resultArr[i])) {
+        if ((type === "f32x4" || type === "f64x2") && Number.isNaN(resultArr[i])) {
             assertEquals(true, Number.isNaN(arr[i]));
         } else {
             assertEquals(resultArr[i], arr[i]);
@@ -227,6 +228,91 @@ testMathOps("func_f32x4_sqrt",
     [1 << 10, 0, 2.5 , Number.NaN]
 );
 
+//f64x2
+testMathOps("func_f64x2_add",
+    [1.34826985114673713038100984656E308, 2.7670146896890036224E19],
+    [1.34826985114673693079697889309E308, 1.288491622400006103515625E10],
+    [Number.POSITIVE_INFINITY           , 27670146909774954000]
+);
+
+testMathOps("func_f64x2_add",
+    [1.4E-45              , -1],
+    [1.4E-45              , Number.NaN],
+    [2.8e-45, Number.NaN]
+);
+
+testMathOps("func_f64x2_add",
+    [400000512, 400000256],
+    [400000505, 400000100],
+    [800001017, 800000356]
+);
+
+testMathOps("func_f64x2_sub",
+    [1.34826985114673713038100984656E308, 2.7670146896890036224E19],
+    [1.34826985114673693079697889309E308, 1.288491622400006103515625E10],
+    [1.99584030953472e+292              , 27670146884005120000]
+);
+
+testMathOps("func_f64x2_sub",
+    [2.802596928649634e-45, 1],
+    [1.4E-45              , Number.NaN],
+    [1.402596928649634e-45, Number.NaN]
+);
+
+testMathOps("func_f64x2_sub",
+    [800001024, 800000256],
+    [400000512, 400000128],
+    [400000512, 400000128]
+);
+
+testMathOps("func_f64x2_mul",
+    [1.34826985114673713038100984656E308, 2.7670146896890036224E19],
+    [1.34826985114673693079697889309E308, 1.288491622400006103515625E10],
+    [Number.POSITIVE_INFINITY           , 3.565275246722034e+29]
+);
+
+testMathOps("func_f64x2_mul",
+    [400000512         , 800000256         ],
+    [400000512         , 400000128         ],
+    [160000409600262140, 320000204800032800]
+);
+
+testMathOps("func_f64x2_div",
+    [-4.27214248753826131799357622933E-306, 1],
+    [3                                    , Number.NaN],
+    [-1.424047495846087e-306              , Number.NaN]
+);
+
+testMathOps("func_f64x2_div",
+    [400000512, 800000256],
+    [400000512, 400000128],
+    [1        , 2        ]
+);
+
+testMathOps("func_f64x2_abs",
+    [-800001024, -4.27214248753826131799357622933E-306],
+    null,
+    [800001024 , 4.27214248753826131799357622933E-306]
+);
+
+testMathOps("func_f64x2_abs",
+    [-Math.pow(120), -0],
+    null,
+    [Math.pow(120) , 0]
+);
+
+testMathOps("func_f64x2_sqrt",
+    [Math.pow(2, 40), 0],
+    null,
+    [Math.pow(2, 20), 0]
+);
+
+testMathOps("func_f64x2_sqrt",
+    [6.25, -1],
+    null,
+    [2.5 , Number.NaN]
+);
+
 //bitselect
 testMathOps("func_i32x4_bitselect",
     [0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
@@ -252,6 +338,7 @@ testMathOps("func_i32x4_bitselect",
     [-1,-1,-1,0]
 );
 
+//shuffle
 testMathOps("func_i8x16_shuffle_test1",
     [0  ,  1 , 2  , 3  , 4  , 5  , 6  , 7  , 8  , 9  , 10 , 11 , 12 , 13 , 14 , 15],
     [16 , 17 , 18 , 19 , 20 , 21 , 22 , 23 , 24 , 25 , 26 , 27 , 28 , 29 , 30 , 31],
@@ -263,7 +350,6 @@ testMathOps("func_i8x16_shuffle_test0",
     [16 , 17 , 18 , 19 , 20 , 21 , 22 , 23 , 24 , 25 , 26 , 27 , 28 , 29 , 30 , 31],
     [31 , 30 , 29 , 28 , 1  , 17 , 2  , 19 , 3  , 4  , 5  , 6  , 21 , 20 , 11 , 10]
 );
-
 
 testMathOps("func_i8x16_shuffle_test2",
     [0  ,  1 , 2  , 3  , 4  , 5  , 6  , 7  , 8  , 9  , 10 , 11 , 12 , 13 , 14 , 15],

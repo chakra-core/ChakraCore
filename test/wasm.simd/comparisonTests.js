@@ -28,7 +28,8 @@ const arrays = {
     "i32x4" : new Int32Array (memObj.buffer),
     "i16x8" : new Int16Array (memObj.buffer),
     "i8x16" : new Int8Array (memObj.buffer),
-    "f32x4" : new Float32Array (memObj.buffer)
+    "f32x4" : new Float32Array (memObj.buffer),
+    "f64x2" : new Float64Array (memObj.buffer)
 };
 
 function moveArgsIntoArray(args, offset, arr) {
@@ -43,7 +44,7 @@ let testCompOps = function (funcname, args1, args2, op, resultArr) {
     const arr = arrays[funcname.split('_')[1]];
 
     moveArgsIntoArray(args1, 0, arr);
-    moveArgsIntoArray(args2, len, arr);    
+    moveArgsIntoArray(args2, len, arr);
     instance[funcname](op);
     for (let i = 0; i < len; i++) {
         assertEquals(resultArr[i], Number.isNaN(arr[i]) || !!arr[i]);
@@ -580,6 +581,174 @@ testCompOps("func_f32x4_compare",
     [277,1234.5,-100,1234.5],
     OPS.GE,
     [1,0,1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [1234.5,0],
+    [1234.5,45],
+    OPS.EQ,
+    [1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [NaN,-567.25],
+    [202,-567.25],
+    OPS.EQ,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [277,1234.5],
+    [431,1234.5],
+    OPS.EQ,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [-100,1234.5],
+    [NaN,1234.5],
+    OPS.EQ,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [1234.5,0],
+    [1234.5,45],
+    OPS.NE,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [-100,-567.25],
+    [NaN,-567.25],
+    OPS.NE,
+    [1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [277,1234.5],
+    [431,1234.5],
+    OPS.NE,
+    [1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [-100,1234.5],
+    [NaN,1234.5],
+    OPS.NE,
+    [1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [-1,1440],
+    [1234.5,45],
+    OPS.LT,
+    [1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [2100,-567.25],
+    [202,4],
+    OPS.LT,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [431,-2147483646],
+    [277,1234.5],
+    OPS.LT,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [555,1234.1],
+    [-100,1234.5],
+    OPS.LT,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [1234.5,1440],
+    [1234.5,45],
+    OPS.LE,
+    [1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [2100,4],
+    [202,4],
+    OPS.LE,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [431,-2147483646],
+    [277,-2147483646],
+    OPS.LE,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [555,21474835],
+    [-100,21474836],
+    OPS.LE,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [-1,1440],
+    [1234.5,45],
+    OPS.GT,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [2100,-567.25],
+    [202,4],
+    OPS.GT,
+    [1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [431,-2147483646],
+    [277,1234.5],
+    OPS.GT,
+    [1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [555,1234.4],
+    [-100,1234.5],
+    OPS.GT,
+    [1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [-1,1440],
+    [1234.5,1440],
+    OPS.GE,
+    [0,1]
+);
+
+testCompOps("func_f64x2_compare",
+    [2100,-567.25],
+    [202,4],
+    OPS.GE,
+    [1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [-100,1234.4],
+    [-100,1234.5],
+    OPS.GE,
+    [1,0]
+);
+
+testCompOps("func_f64x2_compare",
+    [431,-2147483646],
+    [277,1234.5],
+    OPS.GE,
+    [1,0]
 );
 
 if (passed) {
