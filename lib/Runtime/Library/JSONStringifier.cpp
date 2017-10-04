@@ -221,30 +221,7 @@ JSONStringifier::Stringify(_In_ ScriptContext* scriptContext, _In_ Var value, _I
 _Ret_notnull_ const PropertyRecord*
 JSONStringifier::GetPropertyRecord(_In_ JavascriptString* key)
 {
-    PropertyString* propertyString = PropertyString::TryFromVar(key);
-    if (propertyString != nullptr)
-    {
-        return propertyString->GetPropertyRecord();
-    }
-
-    LiteralStringWithPropertyStringPtr* strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(key);
-    if (strWithPtr != nullptr)
-    {
-        propertyString = strWithPtr->GetPropertyString();
-        if (propertyString != nullptr)
-        {
-            return propertyString->GetPropertyRecord();
-        }
-        const PropertyRecord* propertyRecord;
-        this->scriptContext->GetOrAddPropertyRecord(key, &propertyRecord);
-        propertyString = this->scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
-        strWithPtr->SetPropertyString(propertyString);
-        return propertyRecord;
-    }
-
-    const PropertyRecord* propertyRecord;
-    this->scriptContext->GetOrAddPropertyRecord(key, &propertyRecord);
-    return propertyRecord;
+    return key->GetPropertyRecord();
 }
 
 

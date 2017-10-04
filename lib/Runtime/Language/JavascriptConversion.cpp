@@ -293,39 +293,7 @@ CommonNumber:
         {
             // For all other types, convert the key into a string and use that as the property name
             JavascriptString * propName = JavascriptConversion::ToString(key, scriptContext);
-
-            // Check if we have one of the JavascriptString types which allow us to directly read the PropertyRecord
-            propertyString = PropertyString::TryFromVar(propName);
-            if (propertyString != nullptr)
-            {
-                // If we have a PropertyString, we can simply read the PropertyRecord off of it
-                *propertyRecord = propertyString->GetPropertyRecord();
-            }
-            else
-            {
-                LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(propName);
-                if (strWithPtr != nullptr)
-                {
-                    propertyString = strWithPtr->GetPropertyString();
-                    if (propertyString != nullptr)
-                    {
-                        // If the PropertyString field is set, we can again simply read the propertyRecord
-                        *propertyRecord = propertyString->GetPropertyRecord();
-                    }
-                    else
-                    {
-                        // Otherwise, we need to do a lookup for the PropertyRecord
-                        scriptContext->GetOrAddPropertyRecord(propName, propertyRecord);
-                        // While we have the PropertyRecord available, let's find/create a PropertyString so future usage can be optimized
-                        strWithPtr->SetPropertyString(scriptContext->GetPropertyString((*propertyRecord)->GetPropertyId()));
-                    }
-                }
-                else
-                {
-                    // If we don't have any special JavascriptString, we need to do a lookup for the PropertyRecord
-                    scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
-                }
-            }
+            *propertyRecord = propName->GetPropertyRecord();
         }
 
         if (propString)

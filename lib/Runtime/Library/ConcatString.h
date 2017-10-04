@@ -9,10 +9,13 @@ namespace Js
     class LiteralStringWithPropertyStringPtr : public LiteralString
     {
     private:
-        PropertyString * propertyString;
+        Field(PropertyString*) propertyString;
 
     public:
+        virtual Js::PropertyRecord const * GetPropertyRecord(bool dontLookupFromDictionary = false) override;
+
         PropertyString * GetPropertyString() const;
+        PropertyString * GetOrAddPropertyString(); // Get if it's there, otherwise bring it in.
         void SetPropertyString(PropertyString * propStr);
 
         template <typename StringType> static LiteralStringWithPropertyStringPtr * ConvertString(StringType * originalString);
@@ -21,8 +24,19 @@ namespace Js
         static bool Is(Var var);
         static bool Is(RecyclableObject* var);
         template <typename T> static LiteralStringWithPropertyStringPtr* TryFromVar(T var);
+
+        static JavascriptString *
+        NewFromCString(const char * cString, const CharCount charCount, JavascriptLibrary *const library);
+
+        static JavascriptString *
+        NewFromWideString(const uint16_t * wString, const CharCount charCount, JavascriptLibrary *const library);
+
+        static JavascriptString * CreateEmptyString(JavascriptLibrary *const library);
+
     protected:
         LiteralStringWithPropertyStringPtr(StaticType* stringTypeStatic);
+        LiteralStringWithPropertyStringPtr(const char16 * wString, const CharCount stringLength, JavascriptLibrary *const library);
+
         DEFINE_VTABLE_CTOR(LiteralStringWithPropertyStringPtr, LiteralString);
 
     public:
