@@ -38,9 +38,9 @@ enum InstructionType {
 
 #define RETURN_DBL_REG      RegD0
 #define FIRST_CALLEE_SAVED_DBL_REG RegD16
-#define LAST_CALLEE_SAVED_DBL_REG  RegD31
+#define LAST_CALLEE_SAVED_DBL_REG  RegD29
 #define FIRST_CALLEE_SAVED_DBL_REG_NUM 16
-#define LAST_CALLEE_SAVED_DBL_REG_NUM 31
+#define LAST_CALLEE_SAVED_DBL_REG_NUM 29
 #define CALLEE_SAVED_DOUBLE_REG_COUNT 16
 
 // See comment in LowerEntryInstr: even in a global function, we'll home r0 and r1
