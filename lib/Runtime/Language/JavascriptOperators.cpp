@@ -1222,7 +1222,7 @@ CommonNumber:
         return JavascriptObject::CreateOwnEnumerableStringSymbolPropertiesHelper(object, scriptContext);
     }
 
-    BOOL JavascriptOperators::GetOwnProperty(Var instance, PropertyId propertyId, Var* value, ScriptContext* requestContext)
+    BOOL JavascriptOperators::GetOwnProperty(Var instance, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo * propertyValueInfo)
     {
         BOOL result;
         if (TaggedNumber::Is(instance))
@@ -1232,7 +1232,13 @@ CommonNumber:
         else
         {
             RecyclableObject* object = RecyclableObject::FromVar(instance);
-            result = object && object->GetProperty(object, propertyId, value, NULL, requestContext);
+            result = object && object->GetProperty(object, propertyId, value, propertyValueInfo, requestContext);
+
+            if (propertyValueInfo && result)
+            {
+                // We can only update the cache in case a property was found, because if it wasn't found, we don't know if it is missing or on a prototype
+                CacheOperators::CachePropertyRead(instance, object, false /* isRoot */, propertyId, false /* isMissing */, propertyValueInfo, requestContext);
+            }
         }
         return result;
     }
@@ -1261,7 +1267,7 @@ CommonNumber:
         if (false == JavascriptOperators::GetOwnAccessors(obj, propertyId, &getter, &setter, scriptContext))
         {
             Var value = nullptr;
-            if (false == JavascriptOperators::GetOwnProperty(obj, propertyId, &value, scriptContext))
+            if (false == JavascriptOperators::GetOwnProperty(obj, propertyId, &value, scriptContext, nullptr))
             {
                 return FALSE;
             }
@@ -3682,15 +3688,14 @@ CommonNumber:
             temp = JavascriptString::FromVar(index);
             Assert(temp->GetScriptContext() == scriptContext);
 
-            PropertyString * propertyString = nullptr;
-            if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(temp))
+            PropertyString * propertyString = PropertyString::TryFromVar(temp);
+            if (propertyString == nullptr)
             {
-                propertyString = (PropertyString*)temp;
-            }
-            else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(temp))
-            {
-                LiteralStringWithPropertyStringPtr * str = (LiteralStringWithPropertyStringPtr *)temp;
-                propertyString = str->GetPropertyString();
+                LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(temp);
+                if (strWithPtr)
+                {
+                    propertyString = strWithPtr->GetPropertyString();
+                }
             }
             if(propertyString != nullptr)
             {
@@ -3702,7 +3707,6 @@ CommonNumber:
                 }
 
                 PropertyRecord const * propertyRecord = propertyString->GetPropertyRecord();
-                const PropertyId propId = propertyRecord->GetPropertyId();
                 Var value;
 
                 if (propertyRecord->IsNumeric())
@@ -3715,33 +3719,10 @@ CommonNumber:
                 else
                 {
                     PropertyValueInfo info;
-                    if (propertyString->ShouldUseCache())
+                    if (propertyString->TryGetPropertyFromCache<false /* OwnPropertyOnly */>(instance, object, &value, scriptContext, &info))
                     {
-                        PropertyValueInfo::SetCacheInfo(&info, propertyString, propertyString->GetLdElemInlineCache(), true);
-                        if (CacheOperators::TryGetProperty<true, true, true, true, true, true, false, true, false>(
-                            instance, false, object, propId, &value, scriptContext, nullptr, &info))
-                        {
-                            propertyString->LogCacheHit();
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                            if (PHASE_TRACE1(PropertyStringCachePhase))
-                            {
-                                Output::Print(_u("PropertyCache: GetElem cache hit for '%s': type %p\n"), propertyString->GetString(), object->GetType());
-                            }
-#endif
-                            return value;
-                        }
+                        return value;
                     }
-                    propertyString->LogCacheMiss();
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                    if (PHASE_TRACE1(PropertyStringCachePhase))
-                    {
-                        Output::Print(_u("PropertyCache: GetElem cache miss for '%s': type %p, index %d\n"),
-                            propertyString->GetString(),
-                            object->GetType(),
-                            propertyString->GetLdElemInlineCache()->GetInlineCacheIndexForType(object->GetType()));
-                        propertyString->DumpCache(true);
-                    }
-#endif
                     if (JavascriptOperators::GetPropertyWPCache(instance, object, propertyRecord->GetPropertyId(), &value, scriptContext, &info))
                     {
                         return value;
@@ -4330,7 +4311,6 @@ CommonNumber:
 
     BOOL JavascriptOperators::SetElementIHelper(Var receiver, RecyclableObject* object, Var index, Var value, ScriptContext* scriptContext, PropertyOperationFlags flags)
     {
-        PropertyString * propertyString = nullptr;
         Js::IndexType indexType;
         uint32 indexVal = 0;
         PropertyRecord const * propertyRecord = nullptr;
@@ -4351,31 +4331,26 @@ CommonNumber:
         }
 
         // fastpath for PropertyStrings only if receiver == object
-        if (!TaggedInt::Is(index) && JavascriptString::Is(index) &&
-            (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(index) || VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(index)))
+        PropertyString * propertyString = PropertyString::TryFromVar(index);
+        if (propertyString == nullptr)
         {
-            if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(index))
+            LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(index);
+            if (strWithPtr != nullptr)
             {
-                LiteralStringWithPropertyStringPtr * str = (LiteralStringWithPropertyStringPtr *)index;
-                propertyString = str->GetPropertyString();
+                propertyString = strWithPtr->GetPropertyString();
                 if (propertyString == nullptr)
                 {
-                    scriptContext->GetOrAddPropertyRecord(str->GetString(), str->GetLength(), &propertyRecord);
+                    scriptContext->GetOrAddPropertyRecord(strWithPtr->GetString(), strWithPtr->GetLength(), &propertyRecord);
                     propertyString = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
-                    str->SetPropertyString(propertyString);
+                    strWithPtr->SetPropertyString(propertyString);
                 }
-                else
-                {
-                    propertyRecord = propertyString->GetPropertyRecord();
-                }
+            }
+        }
 
-            }
-            else
-            {
-                propertyString = (PropertyString*)index;
-                propertyRecord = propertyString->GetPropertyRecord();
-            }
+        if (propertyString != nullptr)
+        {
             Assert(propertyString->GetScriptContext() == scriptContext);
+            propertyRecord = propertyString->GetPropertyRecord();
 
             if (propertyRecord->IsNumeric())
             {
@@ -4386,47 +4361,13 @@ CommonNumber:
             {
                 if (receiver == object)
                 {
-                    if (propertyString->ShouldUseCache())
+                    if (propertyString->TrySetPropertyFromCache(object, value, scriptContext, flags, &propertyValueInfo))
                     {
-                        PropertyValueInfo::SetCacheInfo(&propertyValueInfo, propertyString, propertyString->GetStElemInlineCache(), true);
-                        if (CacheOperators::TrySetProperty<true, true, true, true, true, false, true, false>(
-                            object,
-                            false,
-                            propertyRecord->GetPropertyId(),
-                            value,
-                            scriptContext,
-                            flags,
-                            nullptr,
-                            &propertyValueInfo))
-                        {
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                            if (PHASE_TRACE1(PropertyStringCachePhase))
-                            {
-                                Output::Print(_u("PropertyCache: SetElem cache hit for '%s': type %p\n"), propertyString->GetString(), object->GetType());
-                            }
-#endif
-                            propertyString->LogCacheHit();
-                            return true;
-                        }
+                        return true;
                     }
-                    propertyString->LogCacheMiss();
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                    if (PHASE_TRACE1(PropertyStringCachePhase))
-                    {
-                        Output::Print(_u("PropertyCache: SetElem cache miss for '%s': type %p, index %d\n"),
-                            propertyString->GetString(),
-                            object->GetType(),
-                            propertyString->GetStElemInlineCache()->GetInlineCacheIndexForType(object->GetType()));
-                        propertyString->DumpCache(false);
-                    }
-#endif
                 }
                 indexType = IndexType_PropertyId;
             }
-
-#if DBG_DUMP
-            scriptContext->forinNoCache++;
-#endif
         }
         else
         {

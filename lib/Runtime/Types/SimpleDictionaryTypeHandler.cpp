@@ -57,9 +57,10 @@ namespace Js
     const PropertyRecord* TMapKey_ConvertKey(ScriptContext* scriptContext, JavascriptString* key)
     {
         PropertyRecord const * propertyRecord;
-        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(key))
+        PropertyString * propertyString = PropertyString::TryFromVar(key);
+        if (propertyString != nullptr)
         {
-            propertyRecord = ((PropertyString*)key)->GetPropertyRecord();
+            propertyRecord = propertyString->GetPropertyRecord();
         }
         else
         {
@@ -95,9 +96,10 @@ namespace Js
     const PropertyRecord* TMapKey_ConvertKey_TTD(ThreadContext* threadContext, JavascriptString* key)
     {
         PropertyRecord const * propertyRecord;
-        if(VirtualTableInfo<Js::PropertyString>::HasVirtualTable(key))
+        PropertyString * propertyString = PropertyString::TryFromVar(key);
+        if (propertyString != nullptr)
         {
-            propertyRecord = ((PropertyString*)key)->GetPropertyRecord();
+            propertyRecord = propertyString->GetPropertyRecord();
         }
         else
         {
@@ -110,7 +112,7 @@ namespace Js
     bool TPropertyKey_IsInternalPropertyId(JavascriptString* key)
     {
         // WARNING: This will return false for PropertyStrings that are actually InternalPropertyIds
-        Assert(!VirtualTableInfo<PropertyString>::HasVirtualTable(key) || !IsInternalPropertyId(((PropertyString*)key)->GetPropertyRecord()->GetPropertyId()));
+        Assert(!PropertyString::Is(key) || !IsInternalPropertyId(((PropertyString*)key)->GetPropertyRecord()->GetPropertyId()));
         return false;
     }
 

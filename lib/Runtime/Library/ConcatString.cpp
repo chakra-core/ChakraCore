@@ -27,6 +27,18 @@ namespace Js
         this->propertyString = propStr;
     }
 
+    /* static */
+    bool LiteralStringWithPropertyStringPtr::Is(RecyclableObject * obj)
+    {
+        return VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(obj);
+    }
+
+    /* static */
+    bool LiteralStringWithPropertyStringPtr::Is(Var var)
+    {
+        return RecyclableObject::Is(var) && LiteralStringWithPropertyStringPtr::Is(RecyclableObject::FromVar(var));
+    }
+
     /////////////////////// ConcatStringBase //////////////////////////
 
     ConcatStringBase::ConcatStringBase(StaticType* stringType) : LiteralString(stringType)

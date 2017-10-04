@@ -1520,7 +1520,7 @@ namespace Js
         JavascriptStaticEnumerator enumerator;
         if (!from->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EnumSymbols, scriptContext))
         {
-            //nothing to enumerate, continue with the nextSource.
+            // Nothing to enumerate, continue with the nextSource.
             return;
         }
 
@@ -1528,7 +1528,7 @@ namespace Js
         Var propValue = nullptr;
         JavascriptString * propertyName = nullptr;
 
-        //enumerate through each property of properties and fetch the property descriptor
+        // Enumerate through each property of properties and fetch the property descriptor
         while ((propertyName = enumerator.MoveAndGetNext(nextKey)) != NULL)
         {
             if (nextKey == Constants::NoProperty)
@@ -1538,15 +1538,29 @@ namespace Js
                 scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
                 nextKey = propertyRecord->GetPropertyId();
             }
+            PropertyString * propertyString = PropertyString::TryFromVar(propertyName);
 
-            if (!JavascriptOperators::GetOwnProperty(from, nextKey, &propValue, scriptContext))
+
+            // If propertyName is a PropertyString* we can try getting the property from the inline cache to avoid having a full property lookup
+            //
+            // Whenever possible, our enumerator populates the cache, so we should generally get a cache hit here
+            PropertyValueInfo getPropertyInfo;
+            if (propertyString == nullptr || !propertyString->TryGetPropertyFromCache<true /* OwnPropertyOnly */>(from, from, &propValue, scriptContext, &getPropertyInfo))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
+                if (!JavascriptOperators::GetOwnProperty(from, nextKey, &propValue, scriptContext, &getPropertyInfo))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
+                }
             }
 
-            if (!JavascriptOperators::SetProperty(to, to, nextKey, propValue, scriptContext, PropertyOperationFlags::PropertyOperation_ThrowIfNonWritable))
+            // Similarly, try to set the property using our cache to avoid having to do the full work of SetProperty
+            PropertyValueInfo setPropertyInfo;
+            if (propertyString == nullptr || !propertyString->TrySetPropertyFromCache(to, propValue, scriptContext, PropertyOperation_ThrowIfNonWritable, &setPropertyInfo))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
+                if (!JavascriptOperators::SetProperty(to, to, nextKey, propValue, &setPropertyInfo, scriptContext, PropertyOperation_ThrowIfNonWritable))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
+                }
             }
         }
     }
@@ -1581,7 +1595,7 @@ namespace Js
             {
                 if (propertyDescriptor.IsEnumerable())
                 {
-                    if (!JavascriptOperators::GetOwnProperty(from, propertyId, &propValue, scriptContext))
+                    if (!JavascriptOperators::GetOwnProperty(from, propertyId, &propValue, scriptContext, nullptr))
                     {
                         JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
                     }

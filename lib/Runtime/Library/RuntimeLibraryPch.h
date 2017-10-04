@@ -91,7 +91,6 @@
 #include "Types/TypePropertyCache.h"
 // .inl files
 #include "Library/JavascriptString.inl"
-#include "Library/ConcatString.inl"
 #include "Language/CacheOperators.inl"
 
 #ifdef INTL_ICU

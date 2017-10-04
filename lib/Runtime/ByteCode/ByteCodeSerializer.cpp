@@ -1474,7 +1474,7 @@ public:
         case TypeIds_String:
         {
             auto size = PrependByte(builder, _u("String Constant 16"), 
-                VirtualTableInfo<Js::PropertyString>::HasVirtualTable(var)? ctPropertyString16 : ctString16);
+                Js::PropertyString::Is(var)? ctPropertyString16 : ctString16);
             return size + PrependStringConstant(builder, var);
         }
 
