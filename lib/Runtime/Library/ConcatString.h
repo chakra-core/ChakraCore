@@ -32,6 +32,18 @@ namespace Js
         }
     };
 
+    // Templated so that the Is call dispatchs to different function depending
+    // on if argument is already a RecyclableObject* or only known to be a Var
+    //
+    // In case it is known to be a RecyclableObject*, the Is call skips that check
+    template <typename T>
+    inline LiteralStringWithPropertyStringPtr * LiteralStringWithPropertyStringPtr::TryFromVar(T var)
+    {
+        return LiteralStringWithPropertyStringPtr::Is(var)
+            ? reinterpret_cast<LiteralStringWithPropertyStringPtr*>(var)
+            : nullptr;
+    }
+
     // Base class for concat strings.
     // Concat string is a virtual string, or a non-leaf node in concat string tree.
     // It does not hold characters by itself but has one or more child nodes.

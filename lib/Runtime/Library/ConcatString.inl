@@ -21,19 +21,6 @@ namespace Js
         return convertedString;
     }
 
-    // Templated so that the Is call dispatchs to different function depending
-    // on if argument is already a RecyclableObject* or only known to be a Var
-    //
-    // In case it is known to be a RecyclableObject*, the Is call skips that check
-    template <typename T>
-    inline LiteralStringWithPropertyStringPtr * LiteralStringWithPropertyStringPtr::TryFromVar(T var)
-    {
-        return LiteralStringWithPropertyStringPtr::Is(var)
-            ? reinterpret_cast<LiteralStringWithPropertyStringPtr*>(var)
-            : nullptr;
-    }
-
-
     /////////////////////// ConcatStringBase //////////////////////////
     template <typename ConcatStringType>
     inline const char16* ConcatStringBase::GetSzImpl()
