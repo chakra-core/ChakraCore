@@ -106,7 +106,9 @@ private:
     Recycler * recycler;
     PagePool * pagePool;
     PageStack<MarkCandidate> markStack;
+#ifdef RECYCLER_VISITED_HOST
     PageStack<IRecyclerVisitedObject*> preciseStack;
+#endif
     PageStack<FinalizableObject *> trackStack;
 
 #ifdef RECYCLER_MARK_TRACK
