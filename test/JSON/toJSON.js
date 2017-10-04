@@ -15,6 +15,13 @@ fnc.prototype.toJSON = function() {
   return this.number.toString();
 }
 
+// test - hasObjectArray but no elements in it
+var obj = {"a":1};
+obj[0] = 2;
+TEST(JSON.stringify(obj), '{"0":2,"a":1}');
+delete obj[0];
+TEST(JSON.stringify(obj), '{"a":1}');
+
 // test - function prototype new instance
 TEST("\"1\"", JSON.stringify(new fnc(1)))
 
