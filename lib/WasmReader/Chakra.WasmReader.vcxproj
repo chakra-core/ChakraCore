@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -60,6 +60,7 @@
     <ClInclude Include="WasmLimits.h" />
     <ClInclude Include="WasmReader.h" />
     <ClInclude Include="WasmReaderBase.h" />
+    <ClInclude Include="WasmReaderInfo.h" />
     <ClInclude Include="WasmReaderPch.h" />
     <ClInclude Include="WasmParseTree.h" />
     <ClInclude Include="WasmSection.h" />

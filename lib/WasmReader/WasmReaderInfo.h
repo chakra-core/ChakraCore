@@ -4,17 +4,19 @@
 //-------------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifdef ENABLE_WASM
+
+namespace Js
+{
+class WebAssemblyModule;
+}
+
 namespace Wasm
 {
-    class WasmReaderBase
-    {
-    public:
-        virtual void SeekToFunctionBody(class WasmFunctionInfo* funcInfo) = 0;
-        virtual bool IsCurrentFunctionCompleted() const = 0;
-        virtual WasmOp ReadExpr() = 0;
-        virtual void FunctionEnd() = 0;
-        WasmNode m_currentNode;
-    };
-} // namespace Wasm
-#endif // ENABLE_WASM
+class WasmFunctionInfo;
+struct WasmReaderInfo
+{
+    Field(WasmFunctionInfo*) m_funcInfo;
+    Field(Js::WebAssemblyModule*) m_module;
+    Field(Js::Var) m_bufferSrc;
+};
+}
