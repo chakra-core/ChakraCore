@@ -124,4 +124,9 @@
       <compile-flags> -off:arraycheckhoist </compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>tryfinallybug1.js</files>
+    </default>
+  </test>
 </regress-exe>

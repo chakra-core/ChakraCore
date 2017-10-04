@@ -17662,7 +17662,8 @@ GlobOpt::ProcessExceptionHandlingEdges(IR::Instr* instr)
 void
 GlobOpt::InsertToVarAtDefInTryRegion(IR::Instr * instr, IR::Opnd * dstOpnd)
 {
-    if (this->currentRegion->GetType() == RegionTypeTry && dstOpnd->IsRegOpnd() && dstOpnd->AsRegOpnd()->m_sym->HasByteCodeRegSlot())
+    if ((this->currentRegion->GetType() == RegionTypeTry || this->currentRegion->GetType() == RegionTypeFinally) &&
+        dstOpnd->IsRegOpnd() && dstOpnd->AsRegOpnd()->m_sym->HasByteCodeRegSlot())
     {
         StackSym * sym = dstOpnd->AsRegOpnd()->m_sym;
         if (sym->IsVar())
@@ -17671,7 +17672,8 @@ GlobOpt::InsertToVarAtDefInTryRegion(IR::Instr * instr, IR::Opnd * dstOpnd)
         }
 
         StackSym * varSym = sym->GetVarEquivSym(nullptr);
-        if (this->currentRegion->writeThroughSymbolsSet->Test(varSym->m_id))
+        if ((this->currentRegion->GetType() == RegionTypeTry && this->currentRegion->writeThroughSymbolsSet->Test(varSym->m_id)) ||
+            ((this->currentRegion->GetType() == RegionTypeFinally && this->currentRegion->GetMatchingTryRegion()->writeThroughSymbolsSet->Test(varSym->m_id))))
         {
             IR::RegOpnd * regOpnd = IR::RegOpnd::New(varSym, IRType::TyVar, instr->m_func);
             this->ToVar(instr->m_next, regOpnd, this->currentBlock, NULL, false);
