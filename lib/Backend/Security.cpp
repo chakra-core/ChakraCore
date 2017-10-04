@@ -269,8 +269,12 @@ Security::InsertSmallNOP(IR::Instr * instr, DWORD nopSize)
     }
 
     instr->InsertBefore(nopInstr);
-#else
-    AssertMsg(false, "Unimplemented");
+#elif defined(_M_ARM64)
+
+    // All ARM64 instructions are 4 bytes.
+    IR::Instr *nopInstr = IR::Instr::New(Js::OpCode::NOP, instr->m_func);
+    instr->InsertBefore(nopInstr);
+
 #endif
 }
 

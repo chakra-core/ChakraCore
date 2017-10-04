@@ -28,9 +28,10 @@ public:
     void        EndOfHelperBlock(uint32 helperSpilledLiveranges);
 
     uint        UnAllocatableRegCount(Func *func) const
-                {
-                    return func->GetLocalsPointer() != RegSP ? 5 : 4; //r11(Frame Pointer),r12,sp,pc
-                }
+    { 
+        // number of regs marked RA_DONTALLOCATE
+        return 5;
+    }
 
     StackSym   *EnsureSpillSymForVFPReg(RegNum reg, Func *func);
 
