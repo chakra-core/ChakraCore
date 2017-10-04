@@ -88,6 +88,7 @@
     stp   x6, x7, [sp, #64]
 
     mov  x0, sp                   ; Pass the address of the function at the saved x0 in case it need to be boxed
+    add  x0, x0, #16              ; 16 is subtracted from the stack pointer when the a function is called, add it back here.
     bl   |?ProfileModeDeferredParse@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVScriptFunction@2@@Z| ; call ScriptContext::ProfileModeDeferredParse
     mov  x16, x0                  ; back up entryPoint in x16
 
