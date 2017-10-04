@@ -55,7 +55,7 @@ namespace Js
         void CommitExecutedIterations(uint16 &limit, const uint executedIterations);
 
         // This state machine should be a member of this owner FunctionBody
-        FunctionBody* owner;
+        FieldWithBarrier(FunctionBody*) owner;
 
         // Tracks the current execution mode. See ExecutionModes.h for more info.
         FieldWithBarrier(ExecutionMode) executionMode;
