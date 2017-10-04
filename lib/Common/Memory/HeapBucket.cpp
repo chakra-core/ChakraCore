@@ -1623,9 +1623,6 @@ HeapBucketGroup<TBlockAttributes>::ScanInitialImplicitRoots(Recycler * recycler)
     smallFinalizableWithBarrierHeapBucket.ScanInitialImplicitRoots(recycler);
 #endif
     finalizableHeapBucket.ScanInitialImplicitRoots(recycler);
-#ifdef RECYCLER_VISITED_HOST
-    recyclerVisitedHostHeapBucket.ScanInitialImplicitRoots(recycler);
-#endif
 }
 
 template <class TBlockAttributes>
@@ -1640,9 +1637,6 @@ HeapBucketGroup<TBlockAttributes>::ScanNewImplicitRoots(Recycler * recycler)
     smallFinalizableWithBarrierHeapBucket.ScanNewImplicitRoots(recycler);
 #endif
     finalizableHeapBucket.ScanNewImplicitRoots(recycler);
-#ifdef RECYCLER_VISITED_HOST
-    recyclerVisitedHostHeapBucket.ScanNewImplicitRoots(recycler);
-#endif
 }
 
 template <class TBlockAttributes>
