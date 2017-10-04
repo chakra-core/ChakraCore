@@ -713,7 +713,7 @@ LabelOpnd::SetLabel(LabelInstr * labelInstr)
     m_label = labelInstr;
 }
 
-inline BVUnit32
+inline BVUnit
 RegBVOpnd::GetValue() const
 {
     return m_value;
