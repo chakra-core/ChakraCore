@@ -37,6 +37,8 @@ class BinaryReaderObjdumpBase : public BinaryReaderNop {
                           ObjdumpOptions* options,
                           ObjdumpState* state);
 
+  bool OnError(const char* message) override;
+
   Result BeginModule(uint32_t version) override;
   Result BeginSection(BinarySection section_type, Offset size) override;
 
@@ -76,6 +78,13 @@ Result BinaryReaderObjdumpBase::BeginSection(BinarySection section_code,
                                              Offset size) {
   section_starts_[static_cast<size_t>(section_code)] = state->offset;
   return Result::Ok;
+}
+
+bool BinaryReaderObjdumpBase::OnError(const char* message) {
+  // Tell the BinaryReader that this error is "handled" for all passes other
+  // than the prepass. When the error is handled the default message will be
+  // suppressed.
+  return options_->mode != ObjdumpMode::Prepass;
 }
 
 Result BinaryReaderObjdumpBase::BeginModule(uint32_t version) {
@@ -1129,7 +1138,10 @@ Result ReadBinaryObjdump(const uint8_t* data,
                          ObjdumpState* state) {
   Features features;
   features.EnableAll();
-  ReadBinaryOptions read_options(features, options->log_stream, true);
+  const bool kReadDebugNames = true;
+  const bool kStopOnFirstError = false;
+  ReadBinaryOptions read_options(features, options->log_stream, kReadDebugNames,
+                                 kStopOnFirstError);
 
   switch (options->mode) {
     case ObjdumpMode::Prepass: {

@@ -13,6 +13,7 @@
 #include "src/error-handler.h"
 #include "src/ir.h"
 #include "src/cast.h"
+#include "src/validator.h"
 #pragma warning(pop)
 
 using namespace wabt;
@@ -50,6 +51,16 @@ public:
 
 };
 
+namespace ChakraWabt
+{
+    struct Context
+    {
+        ChakraContext* chakra;
+        WastLexer* lexer;
+        MyErrorHandler* errorHandler;
+    };
+}
+
 uint TruncSizeT(size_t value)
 {
     if (value > 0xffffffff)
@@ -61,7 +72,7 @@ uint TruncSizeT(size_t value)
 
 void set_property(Context* ctx, Js::Var obj, PropertyId id, Js::Var value, const char* messageIfFailed)
 {
-    bool success = ctx->spec->setProperty(obj, id, value, ctx->user_data);
+    bool success = ctx->chakra->spec->setProperty(obj, id, value, ctx->chakra->user_data);
     if (!success)
     {
         throw Error(messageIfFailed);
@@ -70,19 +81,19 @@ void set_property(Context* ctx, Js::Var obj, PropertyId id, Js::Var value, const
 
 void write_int32(Context* ctx, Js::Var obj, PropertyId id, int32 value)
 {
-    Js::Var line = ctx->spec->int32ToVar(value, ctx->user_data);
+    Js::Var line = ctx->chakra->spec->int32ToVar(value, ctx->chakra->user_data);
     set_property(ctx, obj, id, line, "Unable to write number");
 }
 
 void write_int64(Context* ctx, Js::Var obj, PropertyId id, int64 value)
 {
-    Js::Var line = ctx->spec->int64ToVar(value, ctx->user_data);
+    Js::Var line = ctx->chakra->spec->int64ToVar(value, ctx->chakra->user_data);
     set_property(ctx, obj, id, line, "Unable to write number");
 }
 
 void write_string(Context* ctx, Js::Var obj, PropertyId id, const char* src, size_t length = 0xFFFFFFFF)
 {
-    Js::Var str = ctx->spec->stringToVar(src, TruncSizeT(length == 0xFFFFFFFF ? strlen(src) : length), ctx->user_data);
+    Js::Var str = ctx->chakra->spec->stringToVar(src, TruncSizeT(length == 0xFFFFFFFF ? strlen(src) : length), ctx->chakra->user_data);
     set_property(ctx, obj, id, str, "Unable to write string");
 }
 
@@ -136,13 +147,13 @@ void write_command_type(Context* ctx, CommandType type, Js::Var cmdObj)
 
 Js::Var create_const_vector(Context* ctx, const ConstVector& consts)
 {
-    Js::Var constsArr = ctx->spec->createArray(ctx->user_data);
+    Js::Var constsArr = ctx->chakra->spec->createArray(ctx->chakra->user_data);
 
     size_t i;
     for (i = 0; i < consts.size(); ++i)
     {
-        Js::Var constDescriptor = ctx->spec->createObject(ctx->user_data);
-        ctx->spec->push(constsArr, constDescriptor, ctx->user_data);
+        Js::Var constDescriptor = ctx->chakra->spec->createObject(ctx->chakra->user_data);
+        ctx->chakra->spec->push(constsArr, constDescriptor, ctx->chakra->user_data);
 
         char buf[32];
         const Const& const_ = consts.at(i);
@@ -181,7 +192,7 @@ void write_const_vector(Context* ctx, Js::Var obj, PropertyId id, const ConstVec
 
 Js::Var create_type_object(Context* ctx, Type type)
 {
-    Js::Var typeObj = ctx->spec->createObject(ctx->user_data);
+    Js::Var typeObj = ctx->chakra->spec->createObject(ctx->chakra->user_data);
     write_string(ctx, typeObj, PropertyIds::type, GetTypeName(type));
     return typeObj;
 }
@@ -190,7 +201,7 @@ void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* 
 {
     const Module* module = script->GetModule(action->module_var);
     const Export* export_;
-    Js::Var resultArr = ctx->spec->createArray(ctx->user_data);
+    Js::Var resultArr = ctx->chakra->spec->createArray(ctx->chakra->user_data);
     set_property(ctx, obj, id, resultArr, "Unable to set action result type");
 
     switch (action->type())
@@ -205,7 +216,7 @@ void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* 
         for (i = 0; i < num_results; ++i)
         {
             Js::Var typeObj = create_type_object(ctx, func->GetResultType(i));
-            ctx->spec->push(resultArr, typeObj, ctx->user_data);
+            ctx->chakra->spec->push(resultArr, typeObj, ctx->chakra->user_data);
         }
         break;
     }
@@ -216,7 +227,7 @@ void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* 
         assert(export_->kind == ExternalKind::Global);
         const Global* global = module->GetGlobal(export_->var);
         Js::Var typeObj = create_type_object(ctx, global->type);
-        ctx->spec->push(resultArr, typeObj, ctx->user_data);
+        ctx->chakra->spec->push(resultArr, typeObj, ctx->chakra->user_data);
         break;
     }
     }
@@ -224,7 +235,7 @@ void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* 
 
 void write_action(Context* ctx, Js::Var obj, const ActionPtr& action)
 {
-    Js::Var actionObj = ctx->spec->createObject(ctx->user_data);
+    Js::Var actionObj = ctx->chakra->spec->createObject(ctx->chakra->user_data);
     set_property(ctx, obj, PropertyIds::action, actionObj, "Unable to set action");
 
     if (action->module_var.is_name())
@@ -246,11 +257,15 @@ void write_action(Context* ctx, Js::Var obj, const ActionPtr& action)
     }
 }
 
-Js::Var create_module(Context* ctx, const Module* module)
+Js::Var create_module(Context* ctx, const Module* module, bool validate = true)
 {
     if (!module)
     {
         throw Error("No module found");
+    }
+    if (validate)
+    {
+        ValidateModule(ctx->lexer, module, ctx->errorHandler);
     }
     MemoryStream stream;
     WriteBinaryOptions s_write_binary_options;
@@ -261,12 +276,12 @@ Js::Var create_module(Context* ctx, const Module* module)
     }
     const uint8_t* data = stream.output_buffer().data.data();
     const size_t size = stream.output_buffer().size();
-    return ctx->createBuffer(data, TruncSizeT(size), ctx->user_data);
+    return ctx->chakra->createBuffer(data, TruncSizeT(size), ctx->chakra->user_data);
 }
 
-void write_module(Context* ctx, Js::Var obj, const Module* module)
+void write_module(Context* ctx, Js::Var obj, const Module* module, bool validate = true)
 {
-    Js::Var buffer = create_module(ctx, module);
+    Js::Var buffer = create_module(ctx, module, validate);
     set_property(ctx, obj, PropertyIds::buffer, buffer, "Unable to set module");
 }
 
@@ -278,7 +293,7 @@ static void write_invalid_module(Context* ctx, Js::Var obj, const ScriptModule* 
     switch (module->type())
     {
     case ScriptModuleType::Text:
-        write_module(ctx, obj, &cast<TextScriptModule>(module)->module);
+        write_module(ctx, obj, &cast<TextScriptModule>(module)->module, false);
         break;
     case ScriptModuleType::Binary:
         data = &cast<BinaryScriptModule>(module)->data;
@@ -287,7 +302,7 @@ static void write_invalid_module(Context* ctx, Js::Var obj, const ScriptModule* 
         data = &cast<QuotedScriptModule>(module)->data;
     create_binary_module:
         {
-            Js::Var buffer = ctx->createBuffer(data->data(), TruncSizeT(data->size()), ctx->user_data);
+            Js::Var buffer = ctx->chakra->createBuffer(data->data(), TruncSizeT(data->size()), ctx->chakra->user_data);
             set_property(ctx, obj, PropertyIds::buffer, buffer, "Unable to set invalid module");
             break;
         }
@@ -299,16 +314,16 @@ static void write_invalid_module(Context* ctx, Js::Var obj, const ScriptModule* 
 Js::Var write_commands(Context* ctx, Script* script)
 {
 
-    Js::Var resultObj = ctx->spec->createObject(ctx->user_data);
-    Js::Var commandsArr = ctx->spec->createArray(ctx->user_data);
+    Js::Var resultObj = ctx->chakra->spec->createObject(ctx->chakra->user_data);
+    Js::Var commandsArr = ctx->chakra->spec->createArray(ctx->chakra->user_data);
     set_property(ctx, resultObj, PropertyIds::commands, commandsArr, "Unable to set commands");
     wabt::Index last_module_index = (wabt::Index) - 1;
     for (wabt::Index i = 0; i < script->commands.size(); ++i)
     {
         const Command* command = script->commands[i].get();
 
-        Js::Var cmdObj = ctx->spec->createObject(ctx->user_data);
-        ctx->spec->push(commandsArr, cmdObj, ctx->user_data);
+        Js::Var cmdObj = ctx->chakra->spec->createObject(ctx->chakra->user_data);
+        ctx->chakra->spec->push(commandsArr, cmdObj, ctx->chakra->user_data);
         write_command_type(ctx, command->type, cmdObj);
 
         switch (command->type)
@@ -425,7 +440,7 @@ Js::Var write_commands(Context* ctx, Script* script)
     return resultObj;
 }
 
-void Validate(const Context& ctx, bool isSpec)
+void Validate(const ChakraContext& ctx, bool isSpec)
 {
     if (!ctx.createBuffer) throw Error("Missing createBuffer");
     if (isSpec)
@@ -449,7 +464,7 @@ void CheckResult(Result result, const char* errorMessage)
     }
 }
 
-Features GetWabtFeatures(Context& ctx)
+Features GetWabtFeatures(ChakraContext& ctx)
 {
     Features features;
     if (ctx.features.sign_extends)
@@ -459,14 +474,19 @@ Features GetWabtFeatures(Context& ctx)
     return features;
 }
 
-Js::Var ChakraWabt::ConvertWast2Wasm(Context& ctx, char* buffer, uint bufferSize, bool isSpecText)
+Js::Var ChakraWabt::ConvertWast2Wasm(ChakraContext& chakraCtx, char* buffer, uint bufferSize, bool isSpecText)
 {
-    Validate(ctx, isSpecText);
+    Validate(chakraCtx, isSpecText);
 
     std::unique_ptr<WastLexer> lexer = WastLexer::CreateBufferLexer("", buffer, (size_t)bufferSize);
 
     MyErrorHandler s_error_handler;
-    WastParseOptions options(GetWabtFeatures(ctx));
+    WastParseOptions options(GetWabtFeatures(chakraCtx));
+    Context ctx;
+    ctx.chakra = &chakraCtx;
+    ctx.errorHandler = &s_error_handler;
+    ctx.lexer = lexer.get();
+
     if (isSpecText)
     {
         std::unique_ptr<Script> script;

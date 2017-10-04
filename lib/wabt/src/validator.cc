@@ -107,7 +107,8 @@ class Validator {
                                 Type actual,
                                 const char* desc);
   void CheckExprList(const Location* loc, const ExprList& exprs);
-  void CheckHasMemory(const Location* loc, Opcode opcode);
+  bool CheckHasMemory(const Location* loc, Opcode opcode);
+  void CheckHasSharedMemory(const Location* loc, Opcode opcode);
   void CheckBlockSig(const Location* loc,
                      Opcode opcode,
                      const BlockSignature* sig);
@@ -392,10 +393,22 @@ void Validator::CheckExprList(const Location* loc, const ExprList& exprs) {
     CheckExpr(&expr);
 }
 
-void Validator::CheckHasMemory(const Location* loc, Opcode opcode) {
+bool Validator::CheckHasMemory(const Location* loc, Opcode opcode) {
   if (current_module_->memories.size() == 0) {
     PrintError(loc, "%s requires an imported or defined memory.",
                opcode.GetName());
+    return false;
+  }
+
+  return true;
+}
+
+void Validator::CheckHasSharedMemory(const Location* loc, Opcode opcode) {
+  if (CheckHasMemory(loc, opcode)) {
+    Memory* memory = current_module_->memories[0];
+    if (!memory->page_limits.is_shared) {
+      PrintError(loc, "%s requires memory to be shared.", opcode.GetName());
+    }
   }
 }
 
@@ -415,7 +428,7 @@ void Validator::CheckExpr(const Expr* expr) {
   switch (expr->type()) {
     case ExprType::AtomicLoad: {
       auto load_expr = cast<AtomicLoadExpr>(expr);
-      CheckHasMemory(&load_expr->loc, load_expr->opcode);
+      CheckHasSharedMemory(&load_expr->loc, load_expr->opcode);
       CheckAtomicAlign(&load_expr->loc, load_expr->align,
                        get_opcode_natural_alignment(load_expr->opcode));
       typechecker_.OnAtomicLoad(load_expr->opcode);
@@ -424,7 +437,7 @@ void Validator::CheckExpr(const Expr* expr) {
 
     case ExprType::AtomicRmw: {
       auto rmw_expr = cast<AtomicRmwExpr>(expr);
-      CheckHasMemory(&rmw_expr->loc, rmw_expr->opcode);
+      CheckHasSharedMemory(&rmw_expr->loc, rmw_expr->opcode);
       CheckAtomicAlign(&rmw_expr->loc, rmw_expr->align,
                        get_opcode_natural_alignment(rmw_expr->opcode));
       typechecker_.OnAtomicRmw(rmw_expr->opcode);
@@ -433,7 +446,7 @@ void Validator::CheckExpr(const Expr* expr) {
 
     case ExprType::AtomicRmwCmpxchg: {
       auto cmpxchg_expr = cast<AtomicRmwCmpxchgExpr>(expr);
-      CheckHasMemory(&cmpxchg_expr->loc, cmpxchg_expr->opcode);
+      CheckHasSharedMemory(&cmpxchg_expr->loc, cmpxchg_expr->opcode);
       CheckAtomicAlign(&cmpxchg_expr->loc, cmpxchg_expr->align,
                        get_opcode_natural_alignment(cmpxchg_expr->opcode));
       typechecker_.OnAtomicRmwCmpxchg(cmpxchg_expr->opcode);
@@ -442,7 +455,7 @@ void Validator::CheckExpr(const Expr* expr) {
 
     case ExprType::AtomicStore: {
       auto store_expr = cast<AtomicStoreExpr>(expr);
-      CheckHasMemory(&store_expr->loc, store_expr->opcode);
+      CheckHasSharedMemory(&store_expr->loc, store_expr->opcode);
       CheckAtomicAlign(&store_expr->loc, store_expr->align,
                        get_opcode_natural_alignment(store_expr->opcode));
       typechecker_.OnAtomicStore(store_expr->opcode);
@@ -979,7 +992,7 @@ Result Validator::CheckModule(const Module* module) {
 }
 
 // Returns the result type of the invoked function, checked by the caller;
-// returning nullptr means that another error occurred first, so the result type
+// returning nullptr means that another error occured first, so the result type
 // should be ignored.
 const TypeVector* Validator::CheckInvoke(const InvokeAction* action) {
   const Module* module = script_->GetModule(action->module_var);
