@@ -713,7 +713,14 @@ namespace JSON
                         for (uint32 i = 0; i < propertyCount; i++)
                         {
                             id = typeHandler->GetPropertyId(scriptContext, (Js::PropertyId)i);
-                            if (id == Js::Constants::NoProperty)
+
+                            if (id < Js::InternalPropertyIds::Count)
+                            {
+                                // if the property ID is internal, we cannot assume dynamicObject->getSlot(i) is a var later
+                                previousId = id;
+                                continue;
+                            }
+                            else if (id == Js::Constants::NoProperty)
                             {
                                 if ((propertyName = enumerator.MoveAndGetNext(previousId)) == NULL) break;
 
