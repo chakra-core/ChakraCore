@@ -83,16 +83,19 @@ REGDAT(D26,     d26,      NEONREG_D26,   TyFloat64,  RA_CALLEESAVE)
 REGDAT(D27,     d27,      NEONREG_D27,   TyFloat64,  RA_CALLEESAVE)
 REGDAT(D28,     d28,      NEONREG_D28,   TyFloat64,  RA_CALLEESAVE)
 REGDAT(D29,     d29,      NEONREG_D29,   TyFloat64,  RA_CALLEESAVE)
-REGDAT(D30,     d30,      NEONREG_D30,   TyFloat64,  RA_CALLEESAVE)
-REGDAT(D31,     d31,      NEONREG_D31,   TyFloat64,  RA_CALLEESAVE)
+
+// Arm64 has 66 register definitions. Ignore 2 for now to avoid going past the 64 that will fit into a bitvector during register allocation.
+// TODO: Reorder registers instead to place DONT_ALLOCATE regs at the end. Requires some changes in LinearScan or for RegNumCount to be in the middle of the list.
+//REGDAT(D30,     d30,      NEONREG_D30,   TyFloat64,  RA_CALLEESAVE)
+//REGDAT(D31,     d31,      NEONREG_D31,   TyFloat64,  RA_CALLEESAVE)
 
 #define FIRST_DOUBLE_ARG_REG RegD0
-#define LAST_DOUBLE_REG RegD31
-#define LAST_DOUBLE_REG_NUM 31
-#define LAST_FLOAT_REG_NUM 31
+#define LAST_DOUBLE_REG RegD29
+#define LAST_DOUBLE_REG_NUM 29
+#define LAST_FLOAT_REG_NUM 29
 #define FIRST_DOUBLE_CALLEE_SAVED_REG_NUM 16
-#define LAST_DOUBLE_CALLEE_SAVED_REG_NUM 31
-#define VFP_REGCOUNT 32
+#define LAST_DOUBLE_CALLEE_SAVED_REG_NUM 29
+#define VFP_REGCOUNT 30
 
 #define REGNUM_ISVFPREG(r) ((r) >= RegD0 && (r) <= LAST_DOUBLE_REG)
 
