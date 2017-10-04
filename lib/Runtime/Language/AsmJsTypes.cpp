@@ -448,106 +448,24 @@ namespace Js
 
     }
 
-    template<>
-    AsmJsMathConst* Js::AsmJsSymbol::Cast()
+    AsmJsVarBase::AsmJsVarBase(PropertyName name, AsmJsSymbol::SymbolType type, bool isMutable /*= true*/) :
+        AsmJsSymbol(name, type)
+        , mType(AsmJsVarType::Double)
+        , mLocation(Js::Constants::NoRegister)
+        , mIsMutable(isMutable)
     {
-        Assert(mType == MathConstant);
-        return (AsmJsMathConst*)this;
+        Assert(AsmJsVarBase::Is(this));
     }
 
-    template<>
-    AsmJsVar* Js::AsmJsSymbol::Cast()
+    bool AsmJsVarBase::Is(AsmJsSymbol* sym)
     {
-        Assert(mType == Variable);
-        return (AsmJsVar*)this;
+        return AsmJsArgument::Is(sym) || AsmJsConstantImport::Is(sym) || AsmJsVar::Is(sym);
     }
 
-    template<>
-    AsmJsVarBase* Js::AsmJsSymbol::Cast()
-    {
-        Assert( mType == Argument || mType == Variable || mType == ConstantImport);
-        return ( AsmJsVarBase* )this;
-    }
-
-    template<>
-    AsmJsFunctionDeclaration* Js::AsmJsSymbol::Cast()
-    {
-        Assert(mType == ModuleFunction || mType == ImportFunction || mType == MathBuiltinFunction || mType == SIMDBuiltinFunction || mType == FuncPtrTable);
-        return (AsmJsFunctionDeclaration*)this;
-    }
-
-    template<>
-    AsmJsFunc* Js::AsmJsSymbol::Cast()
-    {
-        Assert(mType == ModuleFunction);
-        return (AsmJsFunc*)this;
-    }
-
-    template<>
-    AsmJsImportFunction* Js::AsmJsSymbol::Cast()
-    {
-        Assert(mType == ImportFunction);
-        return (AsmJsImportFunction*)this;
-    }
-
-    template<>
-    AsmJsMathFunction* Js::AsmJsSymbol::Cast()
-    {
-        Assert(mType == MathBuiltinFunction);
-        return (AsmJsMathFunction*)this;
-    }
-
-    template<>
-    AsmJsSIMDFunction* Js::AsmJsSymbol::Cast()
-    {
-        Assert(mType == SIMDBuiltinFunction);
-        return  (AsmJsSIMDFunction*) this;
-    }
-    template<>
-    AsmJsArrayView* Js::AsmJsSymbol::Cast()
-    {
-        Assert(mType == ArrayView);
-        return (AsmJsArrayView*)this;
-    }
-
-    template<>
-    AsmJsConstantImport* Js::AsmJsSymbol::Cast()
-    {
-        Assert(mType == ConstantImport);
-        return (AsmJsConstantImport*)this;
-    }
-
-    template<>
-    AsmJsFunctionTable* Js::AsmJsSymbol::Cast()
-    {
-        Assert(mType == FuncPtrTable);
-        return (AsmJsFunctionTable*)this;
-    }
-
-    template<>
-    AsmJsTypedArrayFunction* Js::AsmJsSymbol::Cast()
-    {
-        Assert(mType == TypedArrayBuiltinFunction);
-        return (AsmJsTypedArrayFunction*)this;
-    }
-
-    template<>
-    AsmJsModuleArg* Js::AsmJsSymbol::Cast()
-    {
-        Assert(mType == ModuleArgument);
-        return (AsmJsModuleArg*)this;
-    }
 
     Js::AsmJsType AsmJsModuleArg::GetType() const
     {
-        Assert(UNREACHED);
         return AsmJsType::Void;
-    }
-
-    bool AsmJsModuleArg::isMutable() const
-    {
-        Assert(UNREACHED);
-        return true;
     }
 
     Js::AsmJsType AsmJsMathConst::GetType() const
@@ -555,9 +473,29 @@ namespace Js
         return AsmJsType::Double;
     }
 
-    bool AsmJsMathConst::isMutable() const
+    AsmJsFunctionDeclaration::AsmJsFunctionDeclaration(PropertyName name, AsmJsSymbol::SymbolType type, ArenaAllocator* allocator) :
+        AsmJsSymbol(name, type)
+        , mAllocator(allocator)
+        , mReturnType(AsmJsRetType::Void)
+        , mArgCount(Constants::InvalidArgSlot)
+        , mLocation(0)
+        , mReturnTypeKnown(false)
+        , mArgumentsType(nullptr)
     {
-        return false;
+        Assert(AsmJsFunctionDeclaration::Is(this));
+    }
+
+    bool AsmJsFunctionDeclaration::Is(AsmJsSymbol* sym)
+    {
+        return (
+            AsmJsFunc::Is(sym) ||
+            AsmJsFunctionTable::Is(sym) ||
+            AsmJsImportFunction::Is(sym) ||
+            AsmJsMathFunction::Is(sym) ||
+            AsmJsSIMDFunction::Is(sym) ||
+            AsmJsTypedArrayFunction::Is(sym) ||
+            AsmJsClosureFunction::Is(sym)
+        );
     }
 
     bool AsmJsFunctionDeclaration::EnsureArgCount(ArgSlot count)
@@ -592,14 +530,15 @@ namespace Js
 
     bool AsmJsFunctionDeclaration::CheckAndSetReturnType(Js::AsmJsRetType val)
     {
-        Assert((val != AsmJsRetType::Fixnum && val != AsmJsRetType::Unsigned && val != AsmJsRetType::Floatish) ||
-               GetSymbolType() == AsmJsSymbol::MathBuiltinFunction ||
-               GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction);
+        const auto IsValid = [this](Js::AsmJsRetType val) {
+            return AsmJsMathFunction::Is(this) || AsmJsSIMDFunction::Is(this) || (
+                val != AsmJsRetType::Fixnum && val != AsmJsRetType::Unsigned && val != AsmJsRetType::Floatish
+            );
+        };
+        Assert(IsValid(val));
         if (mReturnTypeKnown)
         {
-            Assert((mReturnType != AsmJsRetType::Fixnum && mReturnType != AsmJsRetType::Unsigned && mReturnType != AsmJsRetType::Floatish) ||
-                   GetSymbolType() == AsmJsSymbol::MathBuiltinFunction ||
-                   GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction);
+            Assert(IsValid(mReturnType));
             return mReturnType.toType().isSubType(val.toType());
         }
         mReturnType = val;
@@ -612,10 +551,6 @@ namespace Js
         return mReturnType.toType();
     }
 
-    bool AsmJsFunctionDeclaration::isMutable() const
-    {
-        return false;
-    }
     bool AsmJsFunctionDeclaration::EnsureArgType(AsmJsVarBase* arg, ArgSlot index)
     {
         if (mArgumentsType[index].GetWhich() == -1)
@@ -681,7 +616,7 @@ namespace Js
     ArgSlot AsmJsFunctionDeclaration::GetArgByteSize(ArgSlot inArgCount) const
     {
         uint argSize = 0;
-        if (GetSymbolType() == AsmJsSymbol::ImportFunction)
+        if (AsmJsImportFunction::Is(this))
         {
             Assert(inArgCount != Constants::InvalidArgSlot);
             argSize = inArgCount * MachPtr;
@@ -740,7 +675,7 @@ namespace Js
     }
 
     AsmJsMathFunction::AsmJsMathFunction( PropertyName name, ArenaAllocator* allocator, ArgSlot argCount, AsmJSMathBuiltinFunction builtIn, OpCodeAsmJs op, AsmJsRetType retType, ... ) :
-        AsmJsFunctionDeclaration( name, AsmJsSymbol::MathBuiltinFunction, allocator )
+        AsmJsFunctionDeclaration( name, symbolType, allocator )
         , mBuiltIn( builtIn )
         , mOverload( nullptr )
         , mOpCode(op)
@@ -805,7 +740,7 @@ namespace Js
 
     bool AsmJsMathFunction::IsFround(AsmJsFunctionDeclaration* sym)
     {
-        return sym && sym->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction && sym->Cast<AsmJsMathFunction>()->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround;
+        return AsmJsMathFunction::Is(sym) && AsmJsMathFunction::FromSymbol(sym)->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround;
     }
 
     WAsmJs::RegisterSpace*
@@ -837,7 +772,7 @@ namespace Js
             allocator,
             AllocateRegisterSpace,
 #if TARGET_32
-            1 << WAsmJs::INT64 | 
+            1 << WAsmJs::INT64 |
 #endif
             // Exclude simd if not enabled
             (
@@ -1049,12 +984,6 @@ namespace Js
         return AsmJsType::Intish;
     }
 
-    bool AsmJsArrayView::isMutable() const
-    {
-        return false;
-    }
-
-
     bool AsmJsImportFunction::SupportsArgCall(ArgSlot argCount, AsmJsType* args, AsmJsRetType& retType )
     {
         for (ArgSlot i = 0; i < argCount ; i++)
@@ -1068,7 +997,7 @@ namespace Js
     }
 
     AsmJsImportFunction::AsmJsImportFunction(PropertyName name, PropertyName field, ArenaAllocator* allocator) :
-        AsmJsFunctionDeclaration(name, AsmJsSymbol::ImportFunction, allocator)
+        AsmJsFunctionDeclaration(name, symbolType, allocator)
         , mField(field)
     {
         CheckAndSetReturnType(AsmJsRetType::Void);
@@ -1112,7 +1041,7 @@ namespace Js
     }
 
     AsmJsSIMDFunction::AsmJsSIMDFunction(PropertyName name, ArenaAllocator* allocator, ArgSlot argCount, AsmJsSIMDBuiltinFunction builtIn, OpCodeAsmJs op, AsmJsRetType retType, ...) :
-        AsmJsFunctionDeclaration(name, AsmJsSymbol::SIMDBuiltinFunction, allocator)
+        AsmJsFunctionDeclaration(name, symbolType, allocator)
         , mBuiltIn(builtIn)
         , mOverload(nullptr)
         , mOpCode(op)
