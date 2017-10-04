@@ -806,15 +806,7 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
         // Mov each arg to it's argSlot
         src2 = argInstr->UnlinkSrc2();
 
-        IR::Opnd* dst = argInstr->GetDst();
-        if (dst && IRType_IsInt64(dst->GetType()))
-        {
-            argInstr = LowerInt64Assign(argInstr);
-        }
-        else
-        {
-            lowererMD->ChangeToAssign(argInstr);
-        }
+        LowererMD::ChangeToAssign(argInstr);
         ++argCount;
     }
 
@@ -1760,10 +1752,11 @@ LowererMDArch::LowerExitInstrCommon(IR::ExitInstr * exitInstr)
 }
 
 IR::Instr *
-LowererMDArch::LowerInt64Assign(IR::Instr * instr)
+LowererMDArch::ChangeToAssignInt64(IR::Instr * instr)
 {
     IR::Opnd* dst = instr->UnlinkDst();
     IR::Opnd* src1 = instr->UnlinkSrc1();
+    Func* m_func = instr->m_func;
     if (dst && (dst->IsRegOpnd() || dst->IsSymOpnd() || dst->IsIndirOpnd()) && src1)
     {
         int dstSize = dst->GetSize();
@@ -1773,8 +1766,7 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
 
         instr->SetSrc1(src1Pair.low);
         instr->SetDst(dstPair.low);
-        instr->m_opcode = Js::OpCode::Ld_I4;
-        lowererMD->ChangeToAssign(instr);
+        LowererMD::ChangeToAssign(instr);
         IR::Instr * insertBeforeInstr = instr->m_next;
 
         // Do not store to memory if we wanted less than 8 bytes
@@ -1785,9 +1777,7 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
             if (!isLoadFromWordMem)
             {
                 // Normal case, assign source's high bits to dst's high bits
-                IR::Instr* highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, src1Pair.high, m_func);
-                insertBeforeInstr->InsertBefore(highLoadInstr);
-                lowererMD->ChangeToAssign(highLoadInstr);
+                Lowerer::InsertMove(dstPair.high, src1Pair.high, insertBeforeInstr);
             }
             else
             {
@@ -1796,16 +1786,12 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
                 if (IRType_IsUnsignedInt(src1->GetType()))
                 {
                     // If this is an unsigned assign from memory, we can simply set the high bits to 0
-                    IR::Instr* highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, IR::IntConstOpnd::New(0, TyInt32, m_func), m_func);
-                    lowererMD->ChangeToAssign(highLoadInstr);
-                    insertBeforeInstr->InsertBefore(highLoadInstr);
+                    Lowerer::InsertMove(dstPair.high, IR::IntConstOpnd::New(0, TyInt32, m_func), insertBeforeInstr);
                 }
                 else
                 {
                     // If this is a signed assign from memory, we need to extend the sign
-                    IR::Instr* highExtendInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, dstPair.low, m_func);
-                    insertBeforeInstr->InsertBefore(highExtendInstr);
-                    lowererMD->ChangeToAssign(highExtendInstr);
+                    IR::Instr* highExtendInstr = Lowerer::InsertMove(dstPair.high, dstPair.low, insertBeforeInstr);
 
                     highExtendInstr = IR::Instr::New(Js::OpCode::SAR, dstPair.high, dstPair.high, IR::IntConstOpnd::New(31, TyInt32, m_func), m_func);
                     insertBeforeInstr->InsertBefore(highExtendInstr);
