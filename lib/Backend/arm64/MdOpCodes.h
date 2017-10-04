@@ -73,8 +73,9 @@ MACRO(LSL,     Reg2,       0,              0,  LEGAL_SHIFT,    INSTR_TYPE(Forms_
 MACRO(LSR,     Reg2,       0,              0,  LEGAL_SHIFT,    INSTR_TYPE(Forms_LSR), D___)
 
 MACRO(MOV,     Reg2,       0,              0,  LEGAL_ALU2,     INSTR_TYPE(Forms_MOV), DM__)
-MACRO(MOVK,    Reg2,       0,              0,  LEGAL_MOVIMM16, INSTR_TYPE(Forms_MOVIMM), DM__)
+MACRO(MOVK64,  Reg2,       0,              0,  LEGAL_MOVIMM16, INSTR_TYPE(Forms_MOVIMM), DM__)
 MACRO(MOVN,    Reg2,       0,              0,  LEGAL_MOVIMM16, INSTR_TYPE(Forms_MOVIMM), DM__)
+MACRO(MOVN64,  Reg2,       0,              0,  LEGAL_MOVIMM16, INSTR_TYPE(Forms_MOVIMM), DM__)
 MACRO(MOVZ,    Reg2,       0,              0,  LEGAL_MOVIMM16, INSTR_TYPE(Forms_MOVIMM), DM__)
 
 MACRO(MUL,     Reg3,       0,              0,  LEGAL_REG3,     INSTR_TYPE(Forms_MUL),  D___)
@@ -95,6 +96,7 @@ MACRO(MVN,     Reg2,       0,              0,  LEGAL_ALU2,     INSTR_TYPE(Forms_
 MACRO(NOP,     Empty,      0,              0,  LEGAL_NONE,     INSTR_TYPE(Forms_NOP),   D___)
 
 MACRO(ORR,     Reg3,       0,              0,  LEGAL_ALU3,     INSTR_TYPE(Forms_ORR),  D___)
+MACRO(ORR64,   Reg3,       0,              0,  LEGAL_ALU3,     INSTR_TYPE(Forms_ORR),  D___)
 
 MACRO(PLD,     Reg2,       0,              0,  LEGAL_LOAD,     INSTR_TYPE(Forms_PLD),  DL__)
 
@@ -152,8 +154,6 @@ MACRO(VMRSR,    Reg1,      OpSideEffect,   0,  LEGAL_NONE,      INSTR_TYPE(Forms
 MACRO(VMSR,     Reg1,      OpSideEffect,   0,  LEGAL_NONE,      INSTR_TYPE(Forms_VMSR),   D___)
 MACRO(VMULF64,  Reg3,      0,              0,  LEGAL_REG3,      INSTR_TYPE(Forms_VMULF64),   D___)
 MACRO(VNEGF64,  Reg2,      0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VNEGF64),   D___)
-MACRO(VPUSH,    Reg2,      OpSideEffect,   0,  LEGAL_VPUSHPOP,  INSTR_TYPE(Forms_VPUSH), DSUS)
-MACRO(VPOP,     Reg2,      OpSideEffect,   0,  LEGAL_VPUSHPOP,  INSTR_TYPE(Forms_VPOP), DLUP)
 MACRO(VSUBF64,  Reg3,      0,              0,  LEGAL_REG3,      INSTR_TYPE(Forms_VSUBF64),   D___)
 MACRO(VSQRT,    Reg2,      0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VSQRT),   D___)
 MACRO(VSTR,     Reg2,      0,              0,  LEGAL_VSTORE,    INSTR_TYPE(Forms_VSTR),   DS__)

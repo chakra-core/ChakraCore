@@ -3616,6 +3616,17 @@ EmitStrRegister64(
     return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, 2, 0xf8200800);
 }
 
+inline
+int
+EmitPrfmRegister(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Addr,
+    Arm64RegisterParam Index
+    )
+{
+    return EmitLdrStrRegisterCommon(Emitter, ARMREG_R0 /* PLDL1KEEP */, Addr, Index, 2, 0xf8a00800);
+}
+
 //
 // LDRB dest, [addr, #offset]
 // LDRSB dest, [addr, #offset]
@@ -3887,6 +3898,17 @@ EmitStrOffset64(
     )
 {
     return EmitLdrStrOffsetCommon(Emitter, Source, Addr, Offset, 3, 0xf9000000, 0xf8000000);
+}
+
+inline
+int
+EmitPrfmOffset(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Addr,
+    LONG Offset
+    )
+{
+    return EmitLdrStrOffsetCommon(Emitter, ARMREG_R0 /* PLDL1KEEP */, Addr, Offset, 2, 0xf9800000, 0xf8800000);
 }
 
 //
