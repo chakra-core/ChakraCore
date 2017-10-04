@@ -217,7 +217,7 @@
   <test>
     <default>
       <files>fabs1.js</files>
-      <tags>exclude_dynapogo,require_backend</tags>
+      <tags>exclude_dynapogo,require_backend,exclude_arm,exclude_arm64</tags>
       <compile-flags>-off:backend -asmjs -testtrace:asmjs</compile-flags>
       <baseline>fabs1.baseline</baseline>
     </default>
