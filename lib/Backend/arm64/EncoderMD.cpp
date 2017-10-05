@@ -160,7 +160,7 @@ EncoderMD::DecodeMemoryOpnd(IR::Opnd* opnd, ARM64_REGISTER &baseRegResult, ARM64
         IR::SymOpnd *symOpnd = opnd->AsSymOpnd();
 
         this->BaseAndOffsetFromSym(symOpnd, &baseReg, &offset, this->m_func);
-        baseRegResult = baseReg;
+        baseRegResult = this->GetRegEncode(baseReg);
         return false;
     }
     else
@@ -480,44 +480,44 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size)
 
     // ARM64_WORKITEM: Should legalizer change this to SUBS before the encoder?
     case Js::OpCode::CMP:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
         src1 = instr->GetSrc1();
-        if (src1->IsImmediateOpnd())
+        Assert(src1->IsRegOpnd());
+        src2 = instr->GetSrc2();
+        if (src2->IsImmediateOpnd())
         {
-            immediate = src1->GetImmediateValue(instr->m_func);
-            bytes = EmitSubsImmediate(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate));
+            immediate = src2->GetImmediateValue(instr->m_func);
+            bytes = EmitSubsImmediate(Emitter, ARMREG_ZR, this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
         }
         else
         {
-            Assert(src1->IsRegOpnd());
-            bytes = EmitSubsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()));
+            Assert(src2->IsRegOpnd());
+            bytes = EmitSubsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
         }
         break;
 
     // ARM64_WORKITEM: Should legalizer change this to ADDS before the encoder?
     case Js::OpCode::CMN:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
         src1 = instr->GetSrc1();
-        if (src1->IsImmediateOpnd())
+        Assert(src1->IsRegOpnd());
+        src2 = instr->GetSrc2();
+        if (src2->IsImmediateOpnd())
         {
-            immediate = src1->GetImmediateValue(instr->m_func);
-            bytes = EmitAddsImmediate(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate));
+            immediate = src2->GetImmediateValue(instr->m_func);
+            bytes = EmitAddsImmediate(Emitter, ARMREG_ZR, this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
         }
         else
         {
-            Assert(src1->IsRegOpnd());
-            bytes = EmitAddsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()));
+            Assert(src2->IsRegOpnd());
+            bytes = EmitAddsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
         }
         break;
 
     case Js::OpCode::CMP_ASR31:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
         src1 = instr->GetSrc1();
         Assert(src1->IsRegOpnd());
-        bytes = EmitSubsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src1->AsRegOpnd()), SHIFT_ASR, 31));
+        src2 = instr->GetSrc2();
+        Assert(src2->IsRegOpnd());
+        bytes = EmitSubsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), SHIFT_ASR, 31));
         break;
 
     case Js::OpCode::EOR:
@@ -983,18 +983,18 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size)
 
     // ARM64_WORKITEM: Should legalizer change this to ANDS before the encoder?
     case Js::OpCode::TST:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
         src1 = instr->GetSrc1();
-        if (src1->IsImmediateOpnd())
+        Assert(src1->IsRegOpnd());
+        src2 = instr->GetSrc2();
+        if (src2->IsImmediateOpnd())
         {
-            immediate = src1->GetImmediateValue(instr->m_func);
-            bytes = EmitAndsImmediate(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate));
+            immediate = src2->GetImmediateValue(instr->m_func);
+            bytes = EmitAndsImmediate(Emitter, ARMREG_ZR, this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
         }
         else
         {
-            Assert(src1->IsRegOpnd());
-            bytes = EmitAndsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()));
+            Assert(src2->IsRegOpnd());
+            bytes = EmitAndsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
         }
         break;
 
