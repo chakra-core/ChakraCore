@@ -521,6 +521,7 @@ Recycler::AddMark(void * candidate, size_t byteCount) throw()
     return markContext.AddMarkedObject(candidate, byteCount);
 }
 
+#ifdef RECYCLER_VISITED_HOST
 inline bool
 Recycler::AddPreciselyTracedMark(IRecyclerVisitedObject * candidate) throw()
 {
@@ -528,6 +529,7 @@ Recycler::AddPreciselyTracedMark(IRecyclerVisitedObject * candidate) throw()
     Assert((this->collectionState & Collection_Parallel) == 0);
     return markContext.AddPreciselyTracedObject(candidate);
 }
+#endif
 
 template <typename T>
 void

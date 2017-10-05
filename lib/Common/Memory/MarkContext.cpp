@@ -14,7 +14,9 @@ MarkContext::MarkContext(Recycler * recycler, PagePool * pagePool) :
     recycler(recycler),
     pagePool(pagePool),
     markStack(pagePool),
+#ifdef RECYCLER_VISITED_HOST
     preciseStack(pagePool),
+#endif
     trackStack(pagePool)
 {
 }
@@ -40,21 +42,27 @@ void MarkContext::OnObjectMarked(void* object, void* parent)
 void MarkContext::Init(uint reservedPageCount)
 {
     markStack.Init(reservedPageCount);
+#ifdef RECYCLER_VISITED_HOST
     preciseStack.Init();
+#endif
     trackStack.Init();
 }
 
 void MarkContext::Clear()
 {
     markStack.Clear();
+#ifdef RECYCLER_VISITED_HOST
     preciseStack.Clear();
+#endif
     trackStack.Clear();
 }
 
 void MarkContext::Abort()
 {
     markStack.Abort();
+#ifdef RECYCLER_VISITED_HOST
     preciseStack.Abort();
+#endif
     trackStack.Abort();
 
     pagePool->ReleaseFreePages();
@@ -64,7 +72,9 @@ void MarkContext::Abort()
 void MarkContext::Release()
 {
     markStack.Release();
+#ifdef RECYCLER_VISITED_HOST
     preciseStack.Release();
+#endif
     trackStack.Release();
 
     pagePool->ReleaseFreePages();
@@ -78,20 +88,28 @@ uint MarkContext::Split(uint targetCount, __in_ecount(targetCount) MarkContext *
     __analysis_assume(targetCount <= PageStack<IRecyclerVisitedObject*>::MaxSplitTargets);
 
     PageStack<MarkCandidate> * targetMarkStacks[PageStack<MarkCandidate>::MaxSplitTargets];
+#ifdef RECYCLER_VISITED_HOST
     PageStack<IRecyclerVisitedObject*> * targetPreciseStacks[PageStack<IRecyclerVisitedObject*>::MaxSplitTargets];
+#endif
 
     for (uint i = 0; i < targetCount; i++)
     {
         targetMarkStacks[i] = &targetContexts[i]->markStack;
+#ifdef RECYCLER_VISITED_HOST
         targetPreciseStacks[i] = &targetContexts[i]->preciseStack;
+#endif
     }
 
     // Return the max count of the two splits - since the stacks have more or less unrelated sizes, they
     // could yield different number of splits, but the caller wants to know the max parallelism it
     // should use on the results of the split.
     const uint markStackSplitCount = this->markStack.Split(targetCount, targetMarkStacks);
+#ifdef RECYCLER_VISITED_HOST
     const uint preciseStackSplitCount = this->preciseStack.Split(targetCount, targetPreciseStacks);
     return max(markStackSplitCount, preciseStackSplitCount);
+#else
+    return markStackSplitCount;
+#endif
 }
 
 

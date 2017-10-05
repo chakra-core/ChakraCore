@@ -31,7 +31,9 @@ public:
     Recycler * GetRecycler() { return this->recycler; }
 
     bool AddMarkedObject(void * obj, size_t byteCount);
+#ifdef RECYCLER_VISITED_HOST
     bool AddPreciselyTracedObject(IRecyclerVisitedObject *obj);
+#endif
 #if ENABLE_CONCURRENT_GC
     bool AddTrackedObject(FinalizableObject * obj);
 #endif
@@ -56,9 +58,17 @@ public:
     void Release();
 
     bool HasPendingMarkObjects() const { return !markStack.IsEmpty(); }
+#ifdef RECYCLER_VISITED_HOST
     bool HasPendingPreciselyTracedObjects() const { return !preciseStack.IsEmpty(); }
+#endif
     bool HasPendingTrackObjects() const { return !trackStack.IsEmpty(); }
-    bool HasPendingObjects() const { return HasPendingMarkObjects() || HasPendingPreciselyTracedObjects() || HasPendingTrackObjects(); }
+    bool HasPendingObjects() const { 
+        return HasPendingMarkObjects() 
+#ifdef RECYCLER_VISITED_HOST
+            || HasPendingPreciselyTracedObjects() 
+#endif
+            || HasPendingTrackObjects(); 
+    }
 
     PageAllocator * GetPageAllocator() { return this->pagePool->GetPageAllocator(); }
 
@@ -92,7 +102,13 @@ public:
 
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    void SetMaxPageCount(size_t maxPageCount) { markStack.SetMaxPageCount(maxPageCount); preciseStack.SetMaxPageCount(maxPageCount); trackStack.SetMaxPageCount(maxPageCount); }
+    void SetMaxPageCount(size_t maxPageCount) { 
+        markStack.SetMaxPageCount(maxPageCount); 
+#ifdef RECYCLER_VISITED_HOST
+        preciseStack.SetMaxPageCount(maxPageCount); 
+#endif
+        trackStack.SetMaxPageCount(maxPageCount); 
+    }
 #endif
 
 #ifdef RECYCLER_MARK_TRACK

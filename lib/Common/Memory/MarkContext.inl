@@ -34,12 +34,14 @@ bool MarkContext::AddMarkedObject(void * objectAddress, size_t objectSize)
     return markStack.Push(markCandidate);
 }
 
+#ifdef RECYCLER_VISITED_HOST
 inline bool MarkContext::AddPreciselyTracedObject(IRecyclerVisitedObject* obj)
 {
     FAULTINJECT_MEMORY_MARK_NOTHROW(_u("AddPreciselyTracedObject"), 0);
 
     return preciseStack.Push(obj);
 }
+#endif
 
 #if ENABLE_CONCURRENT_GC
 inline
@@ -195,11 +197,13 @@ void MarkContext::ProcessMark()
     }
 #endif
 
+#ifdef RECYCLER_VISITED_HOST
     // Flip between processing the generic mark stack (conservatively traced with ScanMemory) and
     // the precise stack (precisely traced via IRecyclerVisitedObject::Trace). Each of those
     // operations on an object has the potential to add new marked objects to either or both
     // stacks so we must loop until they are both empty.
     while (!markStack.IsEmpty() || !preciseStack.IsEmpty())
+#endif
     {
 #if defined(_M_IX86) || defined(_M_X64)
         MarkCandidate current, next;
@@ -239,6 +243,7 @@ void MarkContext::ProcessMark()
 
         Assert(markStack.IsEmpty());
 
+#ifdef RECYCLER_VISITED_HOST
         if (!preciseStack.IsEmpty())
         {
             MarkContextWrapper<parallel> markContextWrapper(this);
@@ -250,5 +255,6 @@ void MarkContext::ProcessMark()
         }
 
         Assert(preciseStack.IsEmpty());
+#endif
     }
 }
