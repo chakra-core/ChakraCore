@@ -974,7 +974,7 @@ namespace JSON
       bool &isFirstMember, bool &isEmpty, Js::Var propertyValue)
     {
         Js::Var propertyObjectString = Str(propertyName, id, value, propertyValue);
-        if(!Js::JavascriptOperators::IsUndefinedObject(propertyObjectString, scriptContext))
+        if(!Js::JavascriptOperators::IsUndefinedObject(propertyObjectString))
         {
             int slotIndex = 0;
             Js::ConcatStringN<4>* tempResult = Js::ConcatStringN<4>::New(this->scriptContext);   // We may use 3 or 4 slots.
