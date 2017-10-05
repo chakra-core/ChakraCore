@@ -524,8 +524,8 @@ Recycler::AddMark(void * candidate, size_t byteCount) throw()
 inline bool
 Recycler::AddPreciselyTracedMark(IRecyclerVisitedObject * candidate) throw()
 {
-    // This is never called during parallel marking
-    Assert(this->collectionState != CollectionStateParallelMark);
+    // This API cannot be used for parallel marking as we don't have enough information to determine which MarkingContext to use.
+    Assert((this->collectionState & Collection_Parallel) == 0);
     return markContext.AddPreciselyTracedObject(candidate);
 }
 
