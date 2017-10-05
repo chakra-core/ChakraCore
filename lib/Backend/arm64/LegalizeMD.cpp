@@ -52,23 +52,17 @@ void LegalizeMD::LegalizeInstr(IR::Instr * instr, bool fPostRegAlloc)
     switch (instr->m_opcode)
     {
     case Js::OpCode::CMP:
-        instr->SetSrc2(instr->GetSrc1());
-        instr->SetSrc1(instr->GetDst());
-        instr->ReplaceDst(IR::RegOpnd::New(NULL, RegZR, TyMachPtr, instr->m_func));
+        instr->SetDst(IR::RegOpnd::New(NULL, RegZR, instr->GetSrc1()->GetType() , instr->m_func));
         instr->m_opcode = Js::OpCode::SUBS;
         break;
 
     case Js::OpCode::CMN:
-        instr->SetSrc2(instr->GetSrc1());
-        instr->SetSrc1(instr->GetDst());
-        instr->ReplaceDst(IR::RegOpnd::New(NULL, RegZR, TyMachPtr, instr->m_func));
+        instr->SetDst(IR::RegOpnd::New(NULL, RegZR, instr->GetSrc1()->GetType(), instr->m_func));
         instr->m_opcode = Js::OpCode::ADDS;
         break;
 
     case Js::OpCode::TST:
-        instr->SetSrc2(instr->GetSrc1());
-        instr->SetSrc1(instr->GetDst());
-        instr->ReplaceDst(IR::RegOpnd::New(NULL, RegZR, TyMachPtr, instr->m_func));
+        instr->SetDst(IR::RegOpnd::New(NULL, RegZR, instr->GetSrc1()->GetType(), instr->m_func));
         instr->m_opcode = Js::OpCode::ANDS;
         break;
     }

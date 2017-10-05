@@ -186,19 +186,13 @@ EncoderMD::DecodeMemoryOpnd(IR::Opnd* opnd, ARM64_REGISTER &baseRegResult, ARM64
     }
 }
 
-int
-EncoderMD::GetOpndSize(IR::Opnd * opnd)
-{
-    return TySize[opnd->GetType()];
-}
-
 template<typename _RegFunc64> 
 int EncoderMD::EmitOp1Register64(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc64 reg64)
 {
     IR::Opnd* src1 = instr->GetSrc1();
     Assert(src1->IsRegOpnd());
 
-    int size = this->GetOpndSize(src1);
+    int size = src1->GetSize();
     Assert(size == 8);
 
     return reg64(Emitter, this->GetRegEncode(src1->AsRegOpnd()));
@@ -213,9 +207,9 @@ int EncoderMD::EmitOp2Register(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Reg
     Assert(dst->IsRegOpnd());
     Assert(src1->IsRegOpnd());
 
-    int size = this->GetOpndSize(dst);
+    int size = dst->GetSize();
     Assert(size == 4 || size == 8);
-    Assert(size == this->GetOpndSize(src1));
+    Assert(size == src1->GetSize());
 
     if (size == 8)
     {
@@ -238,10 +232,10 @@ int EncoderMD::EmitOp3Register(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Reg
     Assert(src1->IsRegOpnd());
     Assert(src2->IsRegOpnd());
 
-    int size = this->GetOpndSize(dst);
+    int size = dst->GetSize();
     Assert(size == 4 || size == 8);
-    Assert(size == this->GetOpndSize(src1));
-    Assert(size == this->GetOpndSize(src2));
+    Assert(size == src1->GetSize());
+    Assert(size == src2->GetSize());
 
     if (size == 8)
     {
@@ -264,9 +258,9 @@ int EncoderMD::EmitOp3Immediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Im
     Assert(src1->IsRegOpnd());
     Assert(src2->IsImmediateOpnd());
 
-    int size = this->GetOpndSize(dst);
+    int size = dst->GetSize();
     Assert(size == 4 || size == 8);
-    Assert(size == this->GetOpndSize(src1));
+    Assert(size == src1->GetSize());
 
     int64 immediate = src2->GetImmediateValue(instr->m_func);
     if (size == 8)
@@ -321,7 +315,7 @@ int EncoderMD::EmitLoadStore(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Op
     Assert(srcDstOpnd->IsRegOpnd());
     Assert(memOpnd->IsIndirOpnd() || memOpnd->IsSymOpnd());
 
-    int size = this->GetOpndSize(memOpnd);
+    int size = memOpnd->GetSize();
     Assert(size == 1 || size == 2 || size == 4 || size == 8);
 
     ARM64_REGISTER indexReg;
@@ -373,7 +367,7 @@ int EncoderMD::EmitLoadStorePair(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR
 {
     Assert(memOpnd->IsIndirOpnd() || memOpnd->IsSymOpnd());
 
-    int size = this->GetOpndSize(memOpnd);
+    int size = memOpnd->GetSize();
     Assert(size == 4 || size == 8);
 
     ARM64_REGISTER indexReg;
@@ -424,7 +418,7 @@ int EncoderMD::EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emi
     Assert(dst->IsRegOpnd());
     Assert(src1->IsImmediateOpnd());
 
-    int size = this->GetOpndSize(dst);
+    int size = dst->GetSize();
     Assert(size == 4 || size == 8);
 
     IntConstType immediate = src1->GetImmediateValue(instr->m_func);
@@ -588,9 +582,9 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(dst->IsRegOpnd());
         Assert(src1->IsRegOpnd());
 
-        size = this->GetOpndSize(dst);
+        size = dst->GetSize();
         Assert(size == 4 || size == 8);
-        Assert(size == this->GetOpndSize(src1));
+        Assert(size == src1->GetSize());
 
         if (size == 8)
         {
@@ -614,9 +608,9 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(src1->IsRegOpnd());
         Assert(src2->IsRegOpnd());
 
-        size = this->GetOpndSize(dst);
+        size = dst->GetSize();
         Assert(size == 4 || size == 8);
-        Assert(size == this->GetOpndSize(src1));
+        Assert(size == src1->GetSize());
 
         if (size == 8)
         {

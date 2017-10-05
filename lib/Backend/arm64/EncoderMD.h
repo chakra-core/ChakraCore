@@ -204,7 +204,6 @@ private:
     void            CanonicalizeLea(IR::Instr * instr);
     bool            DecodeMemoryOpnd(IR::Opnd* opnd, ARM64_REGISTER &baseRegResult, ARM64_REGISTER &indexRegResult, BYTE &indexScale, int32 &offset);
     
-    static int      GetOpndSize(IR::Opnd * opnd);
     static bool     EncodeLogicalConst(IntConstType constant, DWORD * result, int size);
 
     // General 1-operand instructions (BR, RET)

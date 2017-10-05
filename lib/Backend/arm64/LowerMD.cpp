@@ -1432,7 +1432,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (!usedDoubleRegs.IsEmpty())
     {
         // Generate VPUSH {d8-d15}
-        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STP64, this->m_func);
+        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STP, this->m_func);
         instrPush->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
         instrPush->SetSrc1(IR::RegBVOpnd::New(usedDoubleRegs, TyMachReg, this->m_func));
         insertInstr->InsertBefore(instrPush);
