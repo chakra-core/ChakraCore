@@ -771,13 +771,6 @@ HeapInfo::ResetMarks(ResetMarkFlags flags)
         });
 #endif
 
-#ifdef RECYCLER_VISITED_HOST
-        HeapBlockList::ForEach(newRecyclerVisitedHostHeapBlockList, [flags](SmallNormalHeapBlock * heapBlock)
-        {
-            heapBlock->MarkImplicitRoots();
-        });
-#endif
-
         HeapBlockList::ForEach(newFinalizableHeapBlockList, [flags](SmallNormalHeapBlock * heapBlock)
         {
             heapBlock->MarkImplicitRoots();
@@ -808,13 +801,6 @@ HeapInfo::ResetMarks(ResetMarkFlags flags)
         {
             heapBlock->MarkImplicitRoots();
         });
-
-#ifdef RECYCLER_VISITED_HOST
-        HeapBlockList::ForEach(newMediumRecyclerVisitedHostHeapBlockList, [flags](MediumNormalHeapBlock * heapBlock)
-        {
-            heapBlock->MarkImplicitRoots();
-        });
-#endif
     }
 #endif
 }
@@ -855,13 +841,6 @@ HeapInfo::ScanInitialImplicitRoots()
     });
 #endif
 
-#ifdef RECYCLER_VISITED_HOST
-    HeapBlockList::ForEach(newRecyclerVisitedHostHeapBlockList, [this](SmallNormalHeapBlock * heapBlock)
-    {
-        heapBlock->ScanInitialImplicitRoots(recycler);
-    });
-#endif
-
     HeapBlockList::ForEach(newFinalizableHeapBlockList, [this](SmallNormalHeapBlock * heapBlock)
     {
         heapBlock->ScanInitialImplicitRoots(recycler);
@@ -884,13 +863,6 @@ HeapInfo::ScanInitialImplicitRoots()
     });
 
     HeapBlockList::ForEach(newMediumFinalizableWithBarrierHeapBlockList, [this](MediumFinalizableWithBarrierHeapBlock * heapBlock)
-    {
-        heapBlock->ScanInitialImplicitRoots(recycler);
-    });
-#endif
-
-#ifdef RECYCLER_VISITED_HOST
-    HeapBlockList::ForEach(newMediumRecyclerVisitedHostHeapBlockList, [this](MediumNormalHeapBlock * heapBlock)
     {
         heapBlock->ScanInitialImplicitRoots(recycler);
     });
@@ -947,13 +919,6 @@ HeapInfo::ScanNewImplicitRoots()
     });
 #endif
 
-#ifdef RECYCLER_VISITED_HOST
-    HeapBlockList::ForEach(newRecyclerVisitedHostHeapBlockList, [this](SmallNormalHeapBlock * heapBlock)
-    {
-        heapBlock->ScanNewImplicitRoots(recycler);
-    });
-#endif
-
     HeapBlockList::ForEach(newFinalizableHeapBlockList, [this](SmallNormalHeapBlock * heapBlock)
     {
         heapBlock->ScanNewImplicitRoots(recycler);
@@ -977,12 +942,6 @@ HeapInfo::ScanNewImplicitRoots()
     });
 
     HeapBlockList::ForEach(newMediumFinalizableWithBarrierHeapBlockList, [this](MediumFinalizableWithBarrierHeapBlock * heapBlock)
-    {
-        heapBlock->ScanNewImplicitRoots(recycler);
-    });
-#endif
-#ifdef RECYCLER_VISITED_HOST
-    HeapBlockList::ForEach(newMediumRecyclerVisitedHostHeapBlockList, [this](MediumNormalHeapBlock * heapBlock)
     {
         heapBlock->ScanNewImplicitRoots(recycler);
     });
