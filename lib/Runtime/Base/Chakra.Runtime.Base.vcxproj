@@ -49,6 +49,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Exception.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ExpirableObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionBody.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionExecutionStateMachine.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LeaveScriptObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LineOffsetCache.cpp" />    
@@ -96,6 +97,7 @@
     <ClInclude Include="Exception.h" />
     <ClInclude Include="ExpirableObject.h" />
     <ClInclude Include="FunctionBody.h" />
+    <ClInclude Include="FunctionExecutionStateMachine.h" />
     <ClInclude Include="FunctionInfo.h" />
     <ClInclude Include="JnDirectFields.h" />
     <ClInclude Include="LeaveScriptObject.h" />
