@@ -3111,11 +3111,17 @@ LinearScan::ProcessEHRegionBoundary(IR::Instr * instr)
         return;
     }
 
-    // Spill everything upon entry to the try region and upon a Leave.
+    // Spill lifetimes allocated in callee saved registers upon entry to the try region and upon a Leave.
+    // The C++ OP_TryCatch and OP_TryFinally can thrash these registers
     IR::Instr* insertionInstr = instr->m_opcode != Js::OpCode::Leave ? instr : instr->m_prev;
     FOREACH_SLIST_ENTRY_EDITING(Lifetime *, lifetime, this->activeLiveranges, iter)
     {
+        if (IsCallerSaved(lifetime->reg))
+        {
+            continue;
+        }
         this->activeRegs.Clear(lifetime->reg);
+
         if (lifetime->IsInt())
         {
             this->intRegUsedCount--;
