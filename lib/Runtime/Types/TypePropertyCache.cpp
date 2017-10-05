@@ -371,7 +371,9 @@ namespace Js
         Assert(object->CanStorePropertyValueDirectly(propertyId, false));
 
         ScriptContext *const objectScriptContext = object->GetScriptContext();
-        propertyValue = CrossSite::MarshalVar(objectScriptContext, propertyValue, objectScriptContext);
+        // force check: propertyValue's context != object's context.
+        // TODO: investigate why?
+        propertyValue = CrossSite::MarshalVar(objectScriptContext, propertyValue);
 
         if(isInlineSlot)
         {

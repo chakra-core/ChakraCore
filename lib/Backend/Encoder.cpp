@@ -329,8 +329,11 @@ Encoder::Encode()
 #ifdef _M_X64
     pdataCount = 1;
     xdataSize = (ushort)m_func->m_prologEncoder.SizeOfUnwindInfo();
-#elif _M_ARM
+#elif defined(_M_ARM32_OR_ARM64)
+#pragma warning(push)
+#pragma warning(disable:4244) // warning C4244: 'argument': conversion from 'ptrdiff_t' to 'DWORD', possible loss of data
     pdataCount = (ushort)m_func->m_unwindInfo.GetPDataCount(codeSize);
+#pragma warning(pop)
     xdataSize = (UnwindInfoManager::MaxXdataBytes + 3) * pdataCount;
 #else
     xdataSize = 0;

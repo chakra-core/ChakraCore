@@ -491,6 +491,7 @@ private:
             case knopLetDecl:
             case knopFncDecl:
             case knopName:
+            case knopParamPattern:
                 return true;
 
             default:
@@ -925,6 +926,7 @@ private:
     BOOL IsConstantInArrayLiteral(ParseNodePtr pnode);
 
     ParseNodePtr CreateParamPatternNode(ParseNodePtr pnode1);
+    ParseNodePtr CreateDummyParamPatternNode(charcount_t ichMin);
 
     ParseNodePtr ConvertMemberToMemberPattern(ParseNodePtr pnodeMember);
     ParseNodePtr ConvertObjectToObjectPattern(ParseNodePtr pnodeMemberList);
