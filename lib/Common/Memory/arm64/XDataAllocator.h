@@ -56,8 +56,8 @@ public:
     bool CanAllocate();
     static DWORD GetAllocSize(ushort pdataCount, ushort xdataSize)
     {
-        __debugbreak();
-        return 0;
+        // ToDo (SaAgarwa): Copied from arm32, validate that this is correct for arm64
+        return sizeof(RUNTIME_FUNCTION) * pdataCount + xdataSize;
     }
 
     static void Register(XDataAllocation * xdataInfo, intptr_t functionStart, DWORD functionSize);

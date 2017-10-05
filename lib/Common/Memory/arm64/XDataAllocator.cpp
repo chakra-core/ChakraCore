@@ -11,49 +11,101 @@ CompileAssert(false)
 #include "XDataAllocator.h"
 #include "Core/DelayLoadLibrary.h"
 
+// ToDo (SaAgarwa): Everything here is copied from arm32. Validate that this is correct
+
 XDataAllocator::XDataAllocator(BYTE* address, uint size)
 {
-    __debugbreak();
+    Assert(size == 0);
 }
 
 
 void XDataAllocator::Delete()
 {
-    __debugbreak();
+    HeapDelete(this);
 }
 
 bool XDataAllocator::Initialize(void* segmentStart, void* segmentEnd)
 {
-    __debugbreak();
     return true;
 }
 
 bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation)
 {
-    __debugbreak();
-    return false;
+    XDataAllocation* xdata = static_cast<XDataAllocation*>(allocation);
+    Assert(pdataCount > 0);
+    Assert(xdataSize >= 0);
+    Assert(xdata);
+
+    DWORD size = GetAllocSize(pdataCount, xdataSize);
+    BYTE* alloc = HeapNewNoThrowArray(BYTE, size);
+    if (alloc != nullptr)
+    {
+        xdata->address = alloc;
+        xdata->xdataSize = xdataSize;
+        xdata->pdataCount = pdataCount;
+
+        return true; //success
+    }
+    return false; //fail;
 }
 
 
 void XDataAllocator::Release(const SecondaryAllocation& allocation)
 {
-    __debugbreak();
+    const XDataAllocation& xdata = static_cast<const XDataAllocation&>(allocation);
+    if (xdata.address != nullptr)
+    {
+        HeapDeleteArray(GetAllocSize(xdata.pdataCount, xdata.xdataSize), xdata.address);
+    }
 }
 
 /* static */
 void XDataAllocator::Register(XDataAllocation * xdataInfo, intptr_t functionStart, DWORD functionSize)
 {
-    __debugbreak();
+#ifdef _WIN32
+    RUNTIME_FUNCTION* pdataArray = xdataInfo->GetPdataArray();
+    for (ushort i = 0; i < xdataInfo->pdataCount; i++)
+    {
+        RUNTIME_FUNCTION* pdata = pdataArray + i;
+        Assert(pdata->UnwindData != 0);
+        Assert(pdata->BeginAddress != 0);
+        pdata->BeginAddress = pdata->BeginAddress - (DWORD)functionStart;
+        if (pdata->Flag != 1) // if it is not packed unwind data
+        {
+            pdata->UnwindData = pdata->UnwindData - (DWORD)functionStart;
+        }
+    }
+    Assert(xdataInfo->functionTable == nullptr);
+
+    // Since we do not expect many thunk functions to be created, we are using 1 table/function
+    // for now. This can be optimized further if needed.
+    DWORD status = NtdllLibrary::Instance->AddGrowableFunctionTable(&xdataInfo->functionTable,
+        pdataArray,
+        /*MaxEntryCount*/ xdataInfo->pdataCount,
+        /*Valid entry count*/ xdataInfo->pdataCount,
+        /*RangeBase*/ functionStart,
+        /*RangeEnd*/ functionStart + functionSize);
+
+    Js::Throw::CheckAndThrowOutOfMemory(NT_SUCCESS(status));
+
+#else  // !_WIN32
+    Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
+    __REGISTER_FRAME(xdataInfo->address);
+#endif
 }
 
 /* static */
 void XDataAllocator::Unregister(XDataAllocation * xdataInfo)
 {
-    __debugbreak();
+#ifdef _WIN32
+    NtdllLibrary::Instance->DeleteGrowableFunctionTable(xdataInfo->functionTable);
+#else  // !_WIN32
+    Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
+    __DEREGISTER_FRAME(xdataInfo->address);
+#endif
 }
 
 bool XDataAllocator::CanAllocate()
 {
-    __debugbreak();
     return true;
 }
