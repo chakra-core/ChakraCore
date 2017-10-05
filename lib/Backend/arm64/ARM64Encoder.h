@@ -1921,12 +1921,12 @@ EmitBitfieldCommon(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immr,
-    ULONG Imms,
+    ULONG64 Immr,
+    ULONG64 Imms,
     ULONG Opcode
     )
 {
-    return Emitter.EmitFourBytes(Opcode | (Immr << 16) | (Imms << 10) | (Src.RawRegister() << 5) | Dest.RawRegister());
+    return Emitter.EmitFourBytes(Opcode | (ULONG(Immr) << 16) | (ULONG(Imms) << 10) | (Src.RawRegister() << 5) | Dest.RawRegister());
 }
 
 inline
@@ -1935,8 +1935,8 @@ EmitBfm(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immr,
-    ULONG Imms
+    ULONG64 Immr,
+    ULONG64 Imms
     )
 {
     return EmitBitfieldCommon(Emitter, Dest, Src, Immr, Imms, 0x33000000);
@@ -1948,8 +1948,8 @@ EmitBfm64(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immr,
-    ULONG Imms
+    ULONG64 Immr,
+    ULONG64 Imms
     )
 {
     return EmitBitfieldCommon(Emitter, Dest, Src, Immr, Imms, 0xb3400000);
@@ -1961,8 +1961,8 @@ EmitSbfm(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immr,
-    ULONG Imms
+    ULONG64 Immr,
+    ULONG64 Imms
     )
 {
     return EmitBitfieldCommon(Emitter, Dest, Src, Immr, Imms, 0x13000000);
@@ -1974,8 +1974,8 @@ EmitSbfm64(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immr,
-    ULONG Imms
+    ULONG64 Immr,
+    ULONG64 Imms
     )
 {
     return EmitBitfieldCommon(Emitter, Dest, Src, Immr, Imms, 0x93400000);
@@ -1987,8 +1987,8 @@ EmitUbfm(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immr,
-    ULONG Imms
+    ULONG64 Immr,
+    ULONG64 Imms
     )
 {
     return EmitBitfieldCommon(Emitter, Dest, Src, Immr, Imms, 0x53000000);
@@ -2000,8 +2000,8 @@ EmitUbfm64(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immr,
-    ULONG Imms
+    ULONG64 Immr,
+    ULONG64 Imms
     )
 {
     return EmitBitfieldCommon(Emitter, Dest, Src, Immr, Imms, 0xd3400000);
@@ -2250,10 +2250,10 @@ EmitAsrImmediate(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immediate
+    ULONG64 Immediate
     )
 {
-    //NT_ASSERT(Immediate >= 0 && Immediate < 32);
+    NT_ASSERT(Immediate < 32);
     return EmitSbfm(Emitter, Dest, Src, Immediate, 31);
 }
 
@@ -2263,10 +2263,10 @@ EmitAsrImmediate64(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immediate
+    ULONG64 Immediate
     )
 {
-    //NT_ASSERT(Immediate >= 0 && Immediate < 64);
+    NT_ASSERT(Immediate < 64);
     return EmitSbfm64(Emitter, Dest, Src, Immediate, 63);
 }
 
@@ -2276,10 +2276,10 @@ EmitLslImmediate(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immediate
+    ULONG64 Immediate
     )
 {
-    //NT_ASSERT(Immediate >= 0 && Immediate < 32);
+    NT_ASSERT(Immediate < 32);
     return EmitUbfm(Emitter, Dest, Src, 32 - Immediate, 31 - Immediate);
 }
 
@@ -2289,10 +2289,10 @@ EmitLslImmediate64(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immediate
+    ULONG64 Immediate
     )
 {
-    //NT_ASSERT(Immediate >= 0 && Immediate < 64);
+    NT_ASSERT(Immediate < 64);
     return EmitUbfm64(Emitter, Dest, Src, 64 - Immediate, 63 - Immediate);
 }
 
@@ -2302,10 +2302,10 @@ EmitLsrImmediate(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immediate
+    ULONG64 Immediate
     )
 {
-    //NT_ASSERT(Immediate >= 0 && Immediate < 32);
+    NT_ASSERT(Immediate < 32);
     return EmitUbfm(Emitter, Dest, Src, Immediate, 31);
 }
 
@@ -2315,10 +2315,10 @@ EmitLsrImmediate64(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src,
-    ULONG Immediate
+    ULONG64 Immediate
     )
 {
-    //NT_ASSERT(Immediate >= 0 && Immediate < 64);
+    NT_ASSERT(Immediate < 64);
     return EmitUbfm64(Emitter, Dest, Src, Immediate, 63);
 }
 
