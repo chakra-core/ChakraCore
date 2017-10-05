@@ -1762,7 +1762,19 @@ CommonNumber:
                 Var property;
                 if (dynamicTypeHandler->CheckFixedProperty(requestContext->GetPropertyName(propertyId), &property, requestContext))
                 {
-                    Assert(value == nullptr || *value == property);
+                    bool skipAssert = false;
+                    if (value != nullptr && Js::RecyclableObject::Is(property))
+                    {
+                        Js::RecyclableObject* pObject = Js::RecyclableObject::FromVar(property);
+                        Js::RecyclableObject* pValue = Js::RecyclableObject::FromVar(*value);
+
+                        if (pValue->GetScriptContext() != pObject->GetScriptContext())
+                        {
+                            // value was marshaled. skip check
+                            skipAssert = true;
+                        }
+                    }
+                    Assert(skipAssert || value == nullptr || *value == property);
                 }
             }
 #endif
