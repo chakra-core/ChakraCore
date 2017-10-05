@@ -1226,7 +1226,7 @@ namespace Js
         const char16 *givenLocale = nullptr;
         defaultLocale[0] = '\0';
 
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[3], scriptContext))
+        if (!JavascriptOperators::IsUndefinedObject(args.Values[3]))
         {
             if (!JavascriptString::Is(args.Values[3]))
             {
@@ -1235,7 +1235,7 @@ namespace Js
             givenLocale = JavascriptString::FromVar(args.Values[3])->GetSz();
         }
 
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[4], scriptContext))
+        if (!JavascriptOperators::IsUndefinedObject(args.Values[4]))
         {
             if (!JavascriptString::Is(args.Values[4]))
             {
@@ -1248,7 +1248,7 @@ namespace Js
             compareFlags |= NORM_LINGUISTIC_CASING;
         }
 
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[5], scriptContext))
+        if (!JavascriptOperators::IsUndefinedObject(args.Values[5]))
         {
             if (!JavascriptBoolean::Is(args.Values[5]))
             {
@@ -1260,7 +1260,7 @@ namespace Js
             }
         }
 
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[6], scriptContext))
+        if (!JavascriptOperators::IsUndefinedObject(args.Values[6]))
         {
             if (!JavascriptBoolean::Is(args.Values[6]))
             {
