@@ -3902,8 +3902,18 @@ LinearScan::ProcessSecondChanceBoundaryHelper(IR::BranchInstr *branchInstr, IR::
                     nextInstr->m_opcode != Js::OpCode::BailOutStackRestore &&
                     this->currentBlock->HasData())
                 {
-                    // Clone with shallow copy
-                    branchLabel->m_loweredBasicBlock = this->currentBlock;
+                    IR::Instr* branchNextInstr = branchInstr->GetNextRealInstrOrLabel();
+                    if (branchNextInstr->IsLabelInstr())
+                    {
+                        // Clone with shallow copy
+                        branchLabel->m_loweredBasicBlock = this->currentBlock;
+                    }
+                    else
+                    {
+                        // Dead code after the unconditional branch causes the currentBlock data to be freed later on...  
+                        // Deep copy in this case.
+                        branchLabel->m_loweredBasicBlock = this->currentBlock->Clone(this->tempAlloc);
+                    }
                 }
             }
         }
