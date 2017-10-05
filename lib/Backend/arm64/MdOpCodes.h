@@ -48,8 +48,8 @@ MACRO(BVC,     BrReg2,     OpSideEffect,   0,  LEGAL_BLAB,     INSTR_TYPE(Forms_
 MACRO(DEBUGBREAK,  Reg1,   OpSideEffect,   0,  LEGAL_NONE,     INSTR_TYPE(Forms_DBGBRK), D___)
 
 MACRO(CLZ,     Reg2,       0,              0,  LEGAL_REG2,     INSTR_TYPE(Forms_CLZ),  D___)
-MACRO(CMP,     Reg1,       OpSideEffect,   0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_CMP),  D___)
-MACRO(CMN,     Reg1,       OpSideEffect,   0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_CMN),  D___)
+MACRO(CMP,     Reg1,       OpSideEffect,   0,  LEGAL_CMP,      INSTR_TYPE(Forms_CMP),  D___)
+MACRO(CMN,     Reg1,       OpSideEffect,   0,  LEGAL_CMP,      INSTR_TYPE(Forms_CMN),  D___)
 // CMP src1, src, ASR #31
 MACRO(CMP_ASR31,Reg1,      OpSideEffect,   0,  LEGAL_CMP_SH,   INSTR_TYPE(Forms_CMP_ASR31),D___)
 
