@@ -907,6 +907,12 @@
   </test>
   <test>
     <default>
+      <files>destructuring_params.js</files>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>destructuring_params_arguments_override.js</files>
     </default>
   </test>

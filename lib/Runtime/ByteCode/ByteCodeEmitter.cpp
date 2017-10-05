@@ -3480,6 +3480,8 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
     Assert(pnodeFnc->nop == knopFncDecl || pnodeFnc->nop == knopProg);
 
     FuncInfo *funcInfo = pnodeFnc->sxFnc.funcInfo;
+    Scope * const bodyScope = funcInfo->GetBodyScope();
+    Scope * const paramScope = funcInfo->GetParamScope();
 
     if (funcInfo->byteCodeFunction->IsFunctionParsed())
     {
@@ -3488,310 +3490,307 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             // Only set the environment depth if it's truly known (i.e., not in eval or event handler).
             funcInfo->GetParsedFunctionBody()->SetEnvDepth(this->envDepth);
         }
-    }
 
-    if (funcInfo->GetCallsEval())
-    {
-        funcInfo->byteCodeFunction->SetDontInline(true);
-    }
-
-    Scope * const funcExprScope = funcInfo->funcExprScope;
-    if (funcExprScope)
-    {
         if (funcInfo->GetCallsEval())
         {
-            Assert(funcExprScope->GetIsObject());
+            funcInfo->byteCodeFunction->SetDontInline(true);
         }
 
-        if (funcExprScope->GetIsObject())
+        Scope * const funcExprScope = funcInfo->funcExprScope;
+        if (funcExprScope)
         {
-            funcExprScope->SetCapturesAll(true);
-            funcExprScope->SetMustInstantiate(true);
-            PushScope(funcExprScope);
-        }
-        else
-        {
-            Symbol *sym = funcInfo->root->sxFnc.GetFuncSymbol();
-            if (funcInfo->IsBodyAndParamScopeMerged())
+            if (funcInfo->GetCallsEval())
             {
-                funcInfo->bodyScope->AddSymbol(sym);
+                Assert(funcExprScope->GetIsObject());
+            }
+
+            if (funcExprScope->GetIsObject())
+            {
+                funcExprScope->SetCapturesAll(true);
+                funcExprScope->SetMustInstantiate(true);
+                PushScope(funcExprScope);
             }
             else
             {
-                funcInfo->paramScope->AddSymbol(sym);
-            }
-            sym->EnsureScopeSlot(funcInfo);
-        }
-    }
-
-    Scope * const bodyScope = funcInfo->GetBodyScope();
-    Scope * const paramScope = funcInfo->GetParamScope();
-
-    if (pnodeFnc->nop != knopProg)
-    {
-        if (!bodyScope->GetIsObject() && NeedObjectAsFunctionScope(funcInfo, pnodeFnc))
-        {
-            Assert(bodyScope->GetIsObject());
-        }
-
-        if (bodyScope->GetIsObject())
-        {
-            bodyScope->SetLocation(funcInfo->frameObjRegister);
-        }
-        else
-        {
-            bodyScope->SetLocation(funcInfo->frameSlotsRegister);
-        }
-
-        if (!funcInfo->IsBodyAndParamScopeMerged())
-        {
-            if (paramScope->GetIsObject())
-            {
-                paramScope->SetLocation(funcInfo->frameObjRegister);
-            }
-            else
-            {
-                paramScope->SetLocation(funcInfo->frameSlotsRegister);
-            }
-        }
-
-        if (bodyScope->GetIsObject())
-        {
-            // Win8 908700: Disable under F12 debugger because there are too many cached scopes holding onto locals.
-            funcInfo->SetHasCachedScope(
-                !PHASE_OFF(Js::CachedScopePhase, funcInfo->byteCodeFunction) &&
-                !funcInfo->Escapes() &&
-                funcInfo->frameObjRegister != Js::Constants::NoRegister &&
-                !ApplyEnclosesArgs(pnodeFnc, this) &&
-                funcInfo->IsBodyAndParamScopeMerged() && // There is eval in the param scope
-                !pnodeFnc->sxFnc.HasDefaultArguments() &&
-                !pnodeFnc->sxFnc.HasDestructuredParams() &&
-                (PHASE_FORCE(Js::CachedScopePhase, funcInfo->byteCodeFunction) || !IsInDebugMode())
-#if ENABLE_TTD
-                && !funcInfo->GetParsedFunctionBody()->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode()
-#endif
-            );
-
-            if (funcInfo->GetHasCachedScope())
-            {
-                Assert(funcInfo->funcObjRegister == Js::Constants::NoRegister);
-                Symbol *funcSym = funcInfo->root->sxFnc.GetFuncSymbol();
-                if (funcSym && funcSym->GetIsFuncExpr())
+                Symbol *sym = funcInfo->root->sxFnc.GetFuncSymbol();
+                if (funcInfo->IsBodyAndParamScopeMerged())
                 {
-                    if (funcSym->GetLocation() == Js::Constants::NoRegister)
-                    {
-                        funcInfo->funcObjRegister = funcInfo->NextVarRegister();
-                    }
-                    else
-                    {
-                        funcInfo->funcObjRegister = funcSym->GetLocation();
-                    }
+                    funcInfo->bodyScope->AddSymbol(sym);
                 }
                 else
                 {
-                    funcInfo->funcObjRegister = funcInfo->NextVarRegister();
+                    funcInfo->paramScope->AddSymbol(sym);
                 }
-                Assert(funcInfo->funcObjRegister != Js::Constants::NoRegister);
+                sym->EnsureScopeSlot(funcInfo);
+            }
+        }
+
+        if (pnodeFnc->nop != knopProg)
+        {
+            if (!bodyScope->GetIsObject() && NeedObjectAsFunctionScope(funcInfo, pnodeFnc))
+            {
+                Assert(bodyScope->GetIsObject());
             }
 
-            ParseNode *pnode;
-            Symbol *sym;
-
-            if (funcInfo->GetHasArguments())
+            if (bodyScope->GetIsObject())
             {
-                // Process function's formal parameters
-                MapFormals(pnodeFnc, [&](ParseNode *pnode)
+                bodyScope->SetLocation(funcInfo->frameObjRegister);
+            }
+            else
+            {
+                bodyScope->SetLocation(funcInfo->frameSlotsRegister);
+            }
+
+            if (!funcInfo->IsBodyAndParamScopeMerged())
+            {
+                if (paramScope->GetIsObject())
                 {
-                    if (pnode->IsVarLetOrConst())
+                    paramScope->SetLocation(funcInfo->frameObjRegister);
+                }
+                else
+                {
+                    paramScope->SetLocation(funcInfo->frameSlotsRegister);
+                }
+            }
+
+            if (bodyScope->GetIsObject())
+            {
+                // Win8 908700: Disable under F12 debugger because there are too many cached scopes holding onto locals.
+                funcInfo->SetHasCachedScope(
+                    !PHASE_OFF(Js::CachedScopePhase, funcInfo->byteCodeFunction) &&
+                    !funcInfo->Escapes() &&
+                    funcInfo->frameObjRegister != Js::Constants::NoRegister &&
+                    !ApplyEnclosesArgs(pnodeFnc, this) &&
+                    funcInfo->IsBodyAndParamScopeMerged() && // There is eval in the param scope
+                    !pnodeFnc->sxFnc.HasDefaultArguments() &&
+                    !pnodeFnc->sxFnc.HasDestructuredParams() &&
+                    (PHASE_FORCE(Js::CachedScopePhase, funcInfo->byteCodeFunction) || !IsInDebugMode())
+#if ENABLE_TTD
+                    && !funcInfo->GetParsedFunctionBody()->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode()
+#endif
+                );
+
+                if (funcInfo->GetHasCachedScope())
+                {
+                    Assert(funcInfo->funcObjRegister == Js::Constants::NoRegister);
+                    Symbol *funcSym = funcInfo->root->sxFnc.GetFuncSymbol();
+                    if (funcSym && funcSym->GetIsFuncExpr())
                     {
-                        pnode->sxVar.sym->EnsureScopeSlot(funcInfo);
+                        if (funcSym->GetLocation() == Js::Constants::NoRegister)
+                        {
+                            funcInfo->funcObjRegister = funcInfo->NextVarRegister();
+                        }
+                        else
+                        {
+                            funcInfo->funcObjRegister = funcSym->GetLocation();
+                        }
                     }
-                });
-
-                MapFormalsFromPattern(pnodeFnc, [&](ParseNode *pnode) { pnode->sxVar.sym->EnsureScopeSlot(funcInfo); });
-
-                // Only allocate scope slot for "arguments" when really necessary. "hasDeferredChild"
-                // doesn't require scope slot for "arguments" because inner functions can't access
-                // outer function's arguments directly.
-                sym = funcInfo->GetArgumentsSymbol();
-                Assert(sym);
-                if (sym->NeedsSlotAlloc(funcInfo))
-                {
-                    sym->EnsureScopeSlot(funcInfo);
-                }
-            }
-
-            sym = funcInfo->root->sxFnc.GetFuncSymbol();
-
-            if (sym && sym->NeedsSlotAlloc(funcInfo))
-            {
-                if (funcInfo->funcExprScope && funcInfo->funcExprScope->GetIsObject())
-                {
-                    sym->SetScopeSlot(0);
-                }
-                else if (funcInfo->GetFuncExprNameReference())
-                {
-                    sym->EnsureScopeSlot(funcInfo);
-                }
-            }
-
-            if (!funcInfo->GetHasArguments())
-            {
-                Symbol *formal;
-                Js::ArgSlot pos = 1;
-                auto moveArgToReg = [&](ParseNode *pnode)
-                {
-                    if (pnode->IsVarLetOrConst())
+                    else
                     {
-                        formal = pnode->sxVar.sym;
-                        // Get the param from its argument position into its assigned register.
-                        // The position should match the location; otherwise, it has been shadowed by parameter with the same name.
-                        if (formal->GetLocation() + 1 == pos)
+                        funcInfo->funcObjRegister = funcInfo->NextVarRegister();
+                    }
+                    Assert(funcInfo->funcObjRegister != Js::Constants::NoRegister);
+                }
+
+                ParseNode *pnode;
+                Symbol *sym;
+
+                if (funcInfo->GetHasArguments())
+                {
+                    // Process function's formal parameters
+                    MapFormals(pnodeFnc, [&](ParseNode *pnode)
+                    {
+                        if (pnode->IsVarLetOrConst())
                         {
                             pnode->sxVar.sym->EnsureScopeSlot(funcInfo);
                         }
-                    }
-                    pos++;
-                };
-                MapFormals(pnodeFnc, moveArgToReg);
-                MapFormalsFromPattern(pnodeFnc, [&](ParseNode *pnode) { pnode->sxVar.sym->EnsureScopeSlot(funcInfo); });
-            }
+                    });
 
-            auto ensureFncDeclScopeSlots = [&](ParseNode *pnodeScope)
-            {
-                for (pnode = pnodeScope; pnode;)
-                {
-                    switch (pnode->nop)
-                    {
-                    case knopFncDecl:
-                        if (pnode->sxFnc.IsDeclaration())
-                        {
-                            EnsureFncDeclScopeSlot(pnode, funcInfo);
-                        }
-                        pnode = pnode->sxFnc.pnodeNext;
-                        break;
-                    case knopBlock:
-                        pnode = pnode->sxBlock.pnodeNext;
-                        break;
-                    case knopCatch:
-                        pnode = pnode->sxCatch.pnodeNext;
-                        break;
-                    case knopWith:
-                        pnode = pnode->sxWith.pnodeNext;
-                        break;
-                    }
-                }
-            };
-            pnodeFnc->sxFnc.MapContainerScopes(ensureFncDeclScopeSlots);
+                    MapFormalsFromPattern(pnodeFnc, [&](ParseNode *pnode) { pnode->sxVar.sym->EnsureScopeSlot(funcInfo); });
 
-            for (pnode = pnodeFnc->sxFnc.pnodeVars; pnode; pnode = pnode->sxVar.pnodeNext)
-            {
-                sym = pnode->sxVar.sym;
-                if (!(pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
-                {
-                    if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar()))
-                    {
-                        sym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
-                    }
-                    if (sym->GetSymbolType() == STVariable && !sym->IsArguments())
+                    // Only allocate scope slot for "arguments" when really necessary. "hasDeferredChild"
+                    // doesn't require scope slot for "arguments" because inner functions can't access
+                    // outer function's arguments directly.
+                    sym = funcInfo->GetArgumentsSymbol();
+                    Assert(sym);
+                    if (sym->NeedsSlotAlloc(funcInfo))
                     {
                         sym->EnsureScopeSlot(funcInfo);
                     }
                 }
+
+                sym = funcInfo->root->sxFnc.GetFuncSymbol();
+
+                if (sym && sym->NeedsSlotAlloc(funcInfo))
+                {
+                    if (funcInfo->funcExprScope && funcInfo->funcExprScope->GetIsObject())
+                    {
+                        sym->SetScopeSlot(0);
+                    }
+                    else if (funcInfo->GetFuncExprNameReference())
+                    {
+                        sym->EnsureScopeSlot(funcInfo);
+                    }
+                }
+
+                if (!funcInfo->GetHasArguments())
+                {
+                    Symbol *formal;
+                    Js::ArgSlot pos = 1;
+                    auto moveArgToReg = [&](ParseNode *pnode)
+                    {
+                        if (pnode->IsVarLetOrConst())
+                        {
+                            formal = pnode->sxVar.sym;
+                            // Get the param from its argument position into its assigned register.
+                            // The position should match the location; otherwise, it has been shadowed by parameter with the same name.
+                            if (formal->GetLocation() + 1 == pos)
+                            {
+                                pnode->sxVar.sym->EnsureScopeSlot(funcInfo);
+                            }
+                        }
+                        pos++;
+                    };
+                    MapFormals(pnodeFnc, moveArgToReg);
+                    MapFormalsFromPattern(pnodeFnc, [&](ParseNode *pnode) { pnode->sxVar.sym->EnsureScopeSlot(funcInfo); });
+                }
+
+                auto ensureFncDeclScopeSlots = [&](ParseNode *pnodeScope)
+                {
+                    for (pnode = pnodeScope; pnode;)
+                    {
+                        switch (pnode->nop)
+                        {
+                        case knopFncDecl:
+                            if (pnode->sxFnc.IsDeclaration())
+                            {
+                                EnsureFncDeclScopeSlot(pnode, funcInfo);
+                            }
+                            pnode = pnode->sxFnc.pnodeNext;
+                            break;
+                        case knopBlock:
+                            pnode = pnode->sxBlock.pnodeNext;
+                            break;
+                        case knopCatch:
+                            pnode = pnode->sxCatch.pnodeNext;
+                            break;
+                        case knopWith:
+                            pnode = pnode->sxWith.pnodeNext;
+                            break;
+                        }
+                    }
+                };
+                pnodeFnc->sxFnc.MapContainerScopes(ensureFncDeclScopeSlots);
+
+                for (pnode = pnodeFnc->sxFnc.pnodeVars; pnode; pnode = pnode->sxVar.pnodeNext)
+                {
+                    sym = pnode->sxVar.sym;
+                    if (!(pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
+                    {
+                        if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar()))
+                        {
+                            sym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
+                        }
+                        if (sym->GetSymbolType() == STVariable && !sym->IsArguments())
+                        {
+                            sym->EnsureScopeSlot(funcInfo);
+                        }
+                    }
+                }
+
+                if (pnodeFnc->sxFnc.pnodeBody)
+                {
+                    Assert(pnodeFnc->sxFnc.pnodeScopes->nop == knopBlock);
+                    this->EnsureLetConstScopeSlots(pnodeFnc->sxFnc.pnodeBodyScope, funcInfo);
+                }
+            }
+            else
+            {
+                ParseNode *pnode;
+                Symbol *sym;
+
+                pnodeFnc->sxFnc.MapContainerScopes([&](ParseNode *pnodeScope) { this->EnsureFncScopeSlots(pnodeScope, funcInfo); });
+
+                for (pnode = pnodeFnc->sxFnc.pnodeVars; pnode; pnode = pnode->sxVar.pnodeNext)
+                {
+                    sym = pnode->sxVar.sym;
+                    if (!(pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
+                    {
+                        if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar()))
+                        {
+                            sym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
+                        }
+                        if (sym->GetSymbolType() == STVariable && sym->NeedsSlotAlloc(funcInfo) && !sym->IsArguments())
+                        {
+                            sym->EnsureScopeSlot(funcInfo);
+                        }
+                    }
+                }
+
+                auto ensureScopeSlot = [&](ParseNode *pnode)
+                {
+                    if (pnode->IsVarLetOrConst())
+                    {
+                        sym = pnode->sxVar.sym;
+                        if (sym->GetSymbolType() == STFormal && sym->NeedsSlotAlloc(funcInfo))
+                        {
+                            sym->EnsureScopeSlot(funcInfo);
+                        }
+                    }
+                };
+                // Process function's formal parameters
+                MapFormals(pnodeFnc, ensureScopeSlot);
+                MapFormalsFromPattern(pnodeFnc, ensureScopeSlot);
+
+                if (funcInfo->GetHasArguments())
+                {
+                    sym = funcInfo->GetArgumentsSymbol();
+                    Assert(sym);
+
+                    // There is no eval so the arguments may be captured in a lambda.
+                    // But we cannot relay on slots getting allocated while the lambda is emitted as the function body may be reparsed.
+                    sym->EnsureScopeSlot(funcInfo);
+                }
+
+                if (pnodeFnc->sxFnc.pnodeBody)
+                {
+                    this->EnsureLetConstScopeSlots(pnodeFnc->sxFnc.pnodeScopes, funcInfo);
+                    this->EnsureLetConstScopeSlots(pnodeFnc->sxFnc.pnodeBodyScope, funcInfo);
+                }
             }
 
-            if (pnodeFnc->sxFnc.pnodeBody)
+            // When we have split scope and body scope does not have any scope slots allocated, we don't have to mark the body scope as mustinstantiate.
+            if (funcInfo->frameObjRegister != Js::Constants::NoRegister)
             {
-                Assert(pnodeFnc->sxFnc.pnodeScopes->nop == knopBlock);
-                this->EnsureLetConstScopeSlots(pnodeFnc->sxFnc.pnodeBodyScope, funcInfo);
+                bodyScope->SetMustInstantiate(true);
+            }
+            else if (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() || bodyScope->GetScopeSlotCount() != 0)
+            {
+                bodyScope->SetMustInstantiate(funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
+            }
+
+            if (!pnodeFnc->sxFnc.IsBodyAndParamScopeMerged())
+            {
+                if (funcInfo->frameObjRegister != Js::Constants::NoRegister)
+                {
+                    paramScope->SetMustInstantiate(true);
+                }
+                else
+                {
+                    // In the case of function expression being captured in the param scope the hasownlocalinclosure will be false for param scope,
+                    // as function expression symbol stays in the function expression scope. We don't have to set mustinstantiate for param scope in that case.
+                    paramScope->SetMustInstantiate(paramScope->GetHasOwnLocalInClosure());
+                }
             }
         }
         else
         {
-            ParseNode *pnode;
-            Symbol *sym;
+            bool newScopeForEval = (funcInfo->byteCodeFunction->GetIsStrictMode() && (this->GetFlags() & fscrEval));
 
-            pnodeFnc->sxFnc.MapContainerScopes([&](ParseNode *pnodeScope) { this->EnsureFncScopeSlots(pnodeScope, funcInfo); });
-
-            for (pnode = pnodeFnc->sxFnc.pnodeVars; pnode; pnode = pnode->sxVar.pnodeNext)
+            if (newScopeForEval)
             {
-                sym = pnode->sxVar.sym;
-                if (!(pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
-                {
-                    if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar()))
-                    {
-                        sym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
-                    }
-                    if (sym->GetSymbolType() == STVariable && sym->NeedsSlotAlloc(funcInfo) && !sym->IsArguments())
-                    {
-                        sym->EnsureScopeSlot(funcInfo);
-                    }
-                }
+                Assert(bodyScope->GetIsObject());
             }
-
-            auto ensureScopeSlot = [&](ParseNode *pnode)
-            {
-                if (pnode->IsVarLetOrConst())
-                {
-                    sym = pnode->sxVar.sym;
-                    if (sym->GetSymbolType() == STFormal && sym->NeedsSlotAlloc(funcInfo))
-                    {
-                        sym->EnsureScopeSlot(funcInfo);
-                    }
-                }
-            };
-            // Process function's formal parameters
-            MapFormals(pnodeFnc, ensureScopeSlot);
-            MapFormalsFromPattern(pnodeFnc, ensureScopeSlot);
-
-            if (funcInfo->GetHasArguments())
-            {
-                sym = funcInfo->GetArgumentsSymbol();
-                Assert(sym);
-
-                // There is no eval so the arguments may be captured in a lambda.
-                // But we cannot relay on slots getting allocated while the lambda is emitted as the function body may be reparsed.
-                sym->EnsureScopeSlot(funcInfo);
-            }
-
-            if (pnodeFnc->sxFnc.pnodeBody)
-            {
-                this->EnsureLetConstScopeSlots(pnodeFnc->sxFnc.pnodeScopes, funcInfo);
-                this->EnsureLetConstScopeSlots(pnodeFnc->sxFnc.pnodeBodyScope, funcInfo);
-            }
-        }
-
-        // When we have split scope and body scope does not have any scope slots allocated, we don't have to mark the body scope as mustinstantiate.
-        if (funcInfo->frameObjRegister != Js::Constants::NoRegister)
-        {
-            bodyScope->SetMustInstantiate(true);
-        }
-        else if (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() || bodyScope->GetScopeSlotCount() != 0)
-        {
-            bodyScope->SetMustInstantiate(funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
-        }
-
-        if (!pnodeFnc->sxFnc.IsBodyAndParamScopeMerged())
-        {
-            if (funcInfo->frameObjRegister != Js::Constants::NoRegister)
-            {
-                paramScope->SetMustInstantiate(true);
-            }
-            else
-            {
-                // In the case of function expression being captured in the param scope the hasownlocalinclosure will be false for param scope,
-                // as function expression symbol stays in the function expression scope. We don't have to set mustinstantiate for param scope in that case.
-                paramScope->SetMustInstantiate(paramScope->GetHasOwnLocalInClosure());
-            }
-        }
-    }
-    else
-    {
-        bool newScopeForEval = (funcInfo->byteCodeFunction->GetIsStrictMode() && (this->GetFlags() & fscrEval));
-
-        if (newScopeForEval)
-        {
-            Assert(bodyScope->GetIsObject());
         }
     }
 

@@ -6585,7 +6585,15 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                     Assert(ppNodeLex != nullptr);
 
                     ParseNodePtr paramPattern = nullptr;
-                    ParseNodePtr pnodePattern = ParseDestructuredLiteral<buildAST>(tkLET, true /*isDecl*/, false /*topLevel*/);
+                    ParseNodePtr pnodePattern = nullptr;
+                    if (isTopLevelDeferredFunc)
+                    {
+                        pnodePattern = ParseDestructuredLiteral<false>(tkLET, true /*isDecl*/, false /*topLevel*/);
+                    }
+                    else
+                    {
+                        pnodePattern = ParseDestructuredLiteral<buildAST>(tkLET, true /*isDecl*/, false /*topLevel*/);
+                    }
 
                     // Instead of passing the STFormal all the way on many methods, it seems it is better to change the symbol type afterward.
                     for (ParseNodePtr lexNode = *ppNodeLex; lexNode != nullptr; lexNode = lexNode->sxVar.pnodeNext)
@@ -6600,10 +6608,20 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                     }
 
                     m_ppnodeVar = ppnodeVarSave;
+
                     if (buildAST)
                     {
-                        paramPattern = CreateParamPatternNode(pnodePattern);
-
+                        if (isTopLevelDeferredFunc)
+                        {
+                            Assert(pnodePattern == nullptr);
+                            // Create a dummy pattern node as we need the node to be considered for the param count
+                            paramPattern = CreateDummyParamPatternNode(m_pscan->IchMinTok());
+                        }
+                        else
+                        {
+                            Assert(pnodePattern);
+                            paramPattern = CreateParamPatternNode(pnodePattern);
+                        }
                         // Linking the current formal parameter (which is pattern parameter) with other formals.
                         *m_ppnodeVar = paramPattern;
                         paramPattern->sxParamPattern.pnodeNext = nullptr;
@@ -12497,6 +12515,15 @@ ParseNodePtr Parser::CreateParamPatternNode(ParseNodePtr pnode1)
 {
     ParseNodePtr paramPatternNode = CreateNode(knopParamPattern, pnode1->ichMin, pnode1->ichLim);
     paramPatternNode->sxParamPattern.pnode1 = pnode1;
+    paramPatternNode->sxParamPattern.pnodeNext = nullptr;
+    paramPatternNode->sxParamPattern.location = Js::Constants::NoRegister;
+    return paramPatternNode;
+}
+
+ParseNodePtr Parser::CreateDummyParamPatternNode(charcount_t ichMin)
+{
+    ParseNodePtr paramPatternNode = CreateNode(knopParamPattern, ichMin);
+    paramPatternNode->sxParamPattern.pnode1 = nullptr;
     paramPatternNode->sxParamPattern.pnodeNext = nullptr;
     paramPatternNode->sxParamPattern.location = Js::Constants::NoRegister;
     return paramPatternNode;
