@@ -272,8 +272,8 @@ while [[ $# -gt 0 ]]; do
         _TARGET_OS=$1
         _TARGET_OS="${_TARGET_OS:9}"
         if [[ $_TARGET_OS =~ "android" ]]; then
-            OLD_PATH=$PATH
             if [[ -z "$TOOLCHAIN" ]]; then
+                OLD_PATH=$PATH
                 export TOOLCHAIN=$PWD/android-toolchain-arm
                 export PATH=$TOOLCHAIN/bin:$OLD_PATH
                 export AR=arm-linux-androideabi-ar
