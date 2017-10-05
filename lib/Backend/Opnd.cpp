@@ -1614,7 +1614,7 @@ void Int64ConstOpnd::FreeInternal(Func * func)
 ///----------------------------------------------------------------------------
 
 RegBVOpnd *
-RegBVOpnd::New(BVUnit32 value, IRType type, Func *func)
+RegBVOpnd::New(BVUnit value, IRType type, Func *func)
 {
     RegBVOpnd * regBVOpnd;
 

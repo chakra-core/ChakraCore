@@ -1607,16 +1607,16 @@ private:
 class RegBVOpnd: public Opnd
 {
 public:
-    static RegBVOpnd *      New(BVUnit32 value, IRType type, Func *func);
+    static RegBVOpnd *      New(BVUnit value, IRType type, Func *func);
 
 public:
     //Note: type: OpndKindRegBV
     RegBVOpnd *             CopyInternal(Func *func);
     bool                    IsEqualInternal(Opnd *opnd);
     void                    FreeInternal(Func * func);
-    BVUnit32                GetValue() const;
+    BVUnit                  GetValue() const;
 public:
-    BVUnit32                m_value;
+    BVUnit                  m_value;
 };
 
 class AutoReuseOpnd
