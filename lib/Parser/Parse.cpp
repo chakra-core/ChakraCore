@@ -7566,7 +7566,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
     if (m_token.tk == tkEXTENDS)
     {
         m_pscan->Scan();
-        pnodeExtends = ParseExpr<buildAST>();
+        pnodeExtends = ParseTerm<buildAST>();
         hasExtends = true;
     }
 

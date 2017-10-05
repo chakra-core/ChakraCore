@@ -483,6 +483,12 @@ var tests = [
         static igwgep() { }
       };
     }
+  },
+  {
+    name: "#3040 Class extends clause accepts LHS expressions only",
+    body: function() {
+      assert.throws(function () { eval("1,class extends[]/print(1){}"); }, SyntaxError, "Parsing extends expr should not go past a term", "Expected '{'");
+    }
   }
 ];
 
