@@ -1028,15 +1028,16 @@ IR::Instr *
 LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 {
 
-    //IR::Instr *insertInstr = entryInstr->m_next;
+    IR::Instr *insertInstr = entryInstr->m_next;
 
     // ARM64_WORKITEM
-    __debugbreak();
+    //__debugbreak();
 
-#if 0
+//#if 0
 
     BYTE regEncode;
     BOOL hasTry = this->m_func->HasTry();
+    AssertMsg(!hasTry, "ToDo (SaAgarwa): prolog not implemented for try");
 
     // Begin recording info for later pdata/xdata emission.
     UnwindInfoManager *unwindInfo = &this->m_func->m_unwindInfo;
@@ -1158,7 +1159,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         }
     }
 
-    BVUnit32 usedDoubleRegs;
+    BVUnit usedDoubleRegs;
     short doubleRegCount = 0;
 
     if (!hasTry)
@@ -1176,8 +1177,11 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
         if (doubleRegCount)
         {
+#pragma warning(push)
+#pragma warning(disable:4244) //  warning C4244: 'argument': conversion from 'UnitWord64' to 'DWORD', possible loss of data
             BYTE lastDoubleReg = UnwindInfoManager::GetLastSavedReg(usedDoubleRegs.GetWord());
             BYTE firstDoubleReg = UnwindInfoManager::GetFirstSavedReg(usedDoubleRegs.GetWord());
+#pragma warning(pop)
 
             // We do want to push all the double registers in a single VPUSH instructions
             // This might cause us to VPUSH some registers which are not used
@@ -1202,7 +1206,10 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
     if (doubleRegCount)
     {
+#pragma warning(push)
+#pragma warning(disable:4244) //  warning C4244: 'argument': conversion from 'UnitWord64' to 'DWORD', possible loss of data
         unwindInfo->SetDoubleSavedRegList(usedDoubleRegs.GetWord());
+#pragma warning(pop)
         fpOffsetSize += (doubleRegCount * MachRegDouble);
 
         //When there is try-catch we allocate registers even if there are no calls. For scenarios see Win8 487030.
@@ -1260,9 +1267,9 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         }
     }
 
-    bool useDynamicStackProbe =
+    bool useDynamicStackProbe = false;/*
         (m_func->GetJITFunctionBody()->DoInterruptProbe() || !m_func->GetThreadContextInfo()->IsThreadBound()) &&
-        !EncoderMD::CanEncodeModConst12(stackProbeStackHeight + Js::Constants::MinStackJIT);
+        !EncoderMD::CanEncodeModConst12(stackProbeStackHeight + Js::Constants::MinStackJIT);*/
 
     if (useDynamicStackProbe && !hasCalls)
     {
@@ -1344,16 +1351,26 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         GenerateStackProbe(insertInstr, false); //stack is already aligned in this case
     }
 
-    IR::RegOpnd * r12Opnd = nullptr;
+    IR::RegOpnd * r17Opnd = nullptr;
+
+    /*
+    Homed arguments (r0-r7)
+    Callee-Saved float Registers (d16-d29)
+    Callee-Saved Int Registers (r19-r28)
+    Local Variables
+    lr - link Register (r30)
+    fp - Frame Pointer (r29)
+    alloca area
+    */
 
     // Zero-initialize dedicated arguments slot
     if (hasCalls)
     {
-        //R12 acts a dummy zero register which we push to arguments slot
-        //mov r12, 0
-        Assert(r12Opnd == nullptr);
-        r12Opnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, r12Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
+        //R17 acts a dummy zero register which we push to arguments slot
+        //mov r17, 0
+        Assert(r17Opnd == nullptr);
+        r17Opnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
+        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, r17Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instrMov);
         IR::LabelInstr *prologStartLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
         insertInstr->InsertBefore(prologStartLabel);
@@ -1362,29 +1379,43 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
     if (!paramRegs.IsEmpty())
     {
+        for (int i = LAST_INT_ARG_REG; i >= FIRST_INT_ARG_REG; --i)
+        {
+            RegNum reg = (RegNum)(i);
+            if (paramRegs.Test(RegEncode[reg]))
+            {
+                IR::Instr * instrStore = IR::Instr::New(Js::OpCode::STR, this->m_func);
+                instrStore->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
+                instrStore->SetSrc1(IR::RegOpnd::New(reg, TyMachReg, this->m_func));
+                insertInstr->InsertBefore(instrStore);
+            }
+        }
+
+        /*
         // Generate PUSH {r0-r3}
-        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::PUSH, this->m_func);
+        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STP, this->m_func);
         instrPush->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
         instrPush->SetSrc1(IR::RegBVOpnd::New(paramRegs, TyMachReg, this->m_func));
         insertInstr->InsertBefore(instrPush);
+        */
     }
 
     // Setup Frame pointer
     if (hasCalls)
     {
         BVUnit frameRegs;
-        frameRegs.Set(RegEncode[RegR11]);
+        frameRegs.Set(RegEncode[RegFP]);
         frameRegs.Set(RegEncode[RegLR]);
 
         // Generate PUSH {r11,lr}
-        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::PUSH, this->m_func);
+        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STP, this->m_func);
         instrPush->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
         instrPush->SetSrc1(IR::RegBVOpnd::New(frameRegs, TyMachReg, this->m_func));
         insertInstr->InsertBefore(instrPush);
 
-        // Generate MOV r11,sp
+        // Generate MOV fp,sp
         IR::RegOpnd* spOpnd = IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func);
-        IR::RegOpnd* r11Opnd = IR::RegOpnd::New(nullptr, RegR11, TyMachReg, this->m_func);
+        IR::RegOpnd* r11Opnd = IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func);
         IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, r11Opnd, spOpnd, this->m_func);
         insertInstr->InsertBefore(instrMov);
     }
@@ -1392,7 +1423,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (!usedRegs.IsEmpty())
     {
         // Generate PUSH {r4-r10,r12}
-        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::PUSH, this->m_func);
+        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STP, this->m_func);
         instrPush->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
         instrPush->SetSrc1(IR::RegBVOpnd::New(usedRegs, TyMachReg, this->m_func));
         insertInstr->InsertBefore(instrPush);
@@ -1401,7 +1432,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (!usedDoubleRegs.IsEmpty())
     {
         // Generate VPUSH {d8-d15}
-        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::VPUSH, this->m_func);
+        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STP64, this->m_func);
         instrPush->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
         instrPush->SetSrc1(IR::RegBVOpnd::New(usedDoubleRegs, TyMachReg, this->m_func));
         insertInstr->InsertBefore(instrPush);
@@ -1451,7 +1482,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         ehReg.Set(RegEncode[EH_STACK_SAVE_REG]);
         IR::Instr * instrPush =
             IR::Instr::New(
-                Js::OpCode::PUSH,
+                Js::OpCode::STP,
                 IR::IndirOpnd::New(
                     IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func),
                 IR::RegBVOpnd::New(ehReg, TyMachReg, this->m_func),
@@ -1472,11 +1503,11 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (m_func->GetMaxInlineeArgOutSize() != 0)
     {
         // This is done post prolog. so we don't have to emit unwind data.
-        if (r12Opnd == nullptr || isScratchRegisterThrashed)
+        if (r17Opnd == nullptr || isScratchRegisterThrashed)
         {
-            r12Opnd = r12Opnd ? r12Opnd : IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
+            r17Opnd = r17Opnd ? r17Opnd : IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
             // mov r12, 0
-            IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, r12Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
+            IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, r17Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
             insertInstr->InsertBefore(instrMov);
         }
 
@@ -1487,7 +1518,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         IR::Opnd *dst           = IR::SymOpnd::New(sym, 0, TyMachReg, this->m_func);
         insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::STR,
                                                         dst,
-                                                        r12Opnd,
+                                                        r17Opnd,
                                                         this->m_func));
     }
 
@@ -1497,7 +1528,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     {
         GenerateStackProbe(insertInstr, true); //stack is already aligned in this case
     }
-#endif
+//#endif
 
     return entryInstr;
 }
@@ -1506,7 +1537,7 @@ IR::Instr *
 LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
 {
     // ARM64_WORKITEM
-    __debugbreak();
+    //__debugbreak();
 
 #if 0
 
@@ -1549,7 +1580,7 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
 
     // Record used callee-saved registers. This is in the form of a fixed bitfield.
 
-    BVUnit32 usedRegs;
+    BVUnit usedRegs;
     for (RegNum reg = FIRST_CALLEE_SAVED_GP_REG; reg <= LAST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg+1))
     {
         Assert(LinearScan::IsCalleeSaved(reg));
@@ -1616,7 +1647,7 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
     }
 
     // 2. Restore saved double registers. Generate vpop {d8-d15}
-    BVUnit32 savedDoubleRegs(this->m_func->m_unwindInfo.GetDoubleSavedRegList());
+    BVUnit savedDoubleRegs(this->m_func->m_unwindInfo.GetDoubleSavedRegList());
     if (!savedDoubleRegs.IsEmpty())
     {
         IR::Instr * instrVPop = IR::Instr::New(Js::OpCode::VPOP, this->m_func);
