@@ -150,7 +150,6 @@ public:
     typedef TBlockAttributes HeapBlockAttributes;
 
     static const ObjectInfoBits RequiredAttributes = RecyclerVisitedHostBit;
-    static const bool IsLeafOnly = true;
 
     static SmallRecyclerVisitedHostHeapBlockT * New(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT> * bucket);
     static void Delete(SmallRecyclerVisitedHostHeapBlockT * block);
@@ -193,7 +192,6 @@ public:
     typedef TBlockAttributes HeapBlockAttributes;
 
     static const ObjectInfoBits RequiredAttributes = FinalizableWithBarrierBit;
-    static const bool IsLeafOnly = false;
 
     static SmallFinalizableWithBarrierHeapBlockT * New(HeapBucketT<SmallFinalizableWithBarrierHeapBlockT> * bucket);
     static void Delete(SmallFinalizableWithBarrierHeapBlockT * block);
