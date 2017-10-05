@@ -244,6 +244,13 @@ enum SHIFT_EXTEND_TYPE
     EXTEND_SXTX = 15,
 };
 
+static const BYTE RegEncode[] =
+{
+#define REGDAT(Name, Listing, Encoding, ...) Encoding,
+#include "RegList.h"
+#undef REGDAT
+};
+
 //
 // Basic code emitter class
 //

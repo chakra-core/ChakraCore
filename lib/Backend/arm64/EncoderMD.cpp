@@ -52,7 +52,7 @@ EncoderMD::GetRegEncode(IR::RegOpnd *regOpnd)
 const BYTE
 EncoderMD::GetRegEncode(RegNum reg)
 {
-    return reg;
+    return RegEncode[reg];
 }
 
 const BYTE
@@ -670,6 +670,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size)
     case Js::OpCode::MOVK64:
         dst = instr->GetDst();
         Assert(dst->IsRegOpnd());
+        src1 = instr->GetSrc1();
         Assert(src1->IsImmediateOpnd());
         immediate = src1->GetImmediateValue(instr->m_func);
         shift = 0;
@@ -684,6 +685,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size)
     case Js::OpCode::MOVN:
         dst = instr->GetDst();
         Assert(dst->IsRegOpnd());
+        src1 = instr->GetSrc1();
         Assert(src1->IsImmediateOpnd());
         immediate = src1->GetImmediateValue(instr->m_func);
         shift = 0;
@@ -698,6 +700,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size)
     case Js::OpCode::MOVN64:
         dst = instr->GetDst();
         Assert(dst->IsRegOpnd());
+        src1 = instr->GetSrc1();
         Assert(src1->IsImmediateOpnd());
         immediate = src1->GetImmediateValue(instr->m_func);
         shift = 0;
@@ -712,6 +715,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size)
     case Js::OpCode::MOVZ:
         dst = instr->GetDst();
         Assert(dst->IsRegOpnd());
+        src1 = instr->GetSrc1();
         Assert(src1->IsImmediateOpnd());
         immediate = src1->GetImmediateValue(instr->m_func);
         shift = 0;
