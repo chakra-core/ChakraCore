@@ -25,12 +25,42 @@ namespace Js
     class ConfigFlagsTable
     {
     public:
-        int AutoProfilingInterpreter0Limit;
-        int AutoProfilingInterpreter1Limit;
-        int ProfilingInterpreter0Limit;
-        int ProfilingInterpreter1Limit;
-        int SimpleJitLimit;
-        int EnforceExecutionModeLimits;
+        uint16 AutoProfilingInterpreter0Limit;
+        uint16 AutoProfilingInterpreter1Limit;
+        uint16 ProfilingInterpreter0Limit;
+        uint16 ProfilingInterpreter1Limit;
+        uint16 SimpleJitLimit;
+        bool EnforceExecutionModeLimits;
+
+        void SetDefaults()
+        {
+            AutoProfilingInterpreter0Limit = 0xc;
+            ProfilingInterpreter0Limit = 0x4;
+            AutoProfilingInterpreter1Limit = 0x44;
+            ProfilingInterpreter1Limit = 0;
+            SimpleJitLimit = 0x15;
+            EnforceExecutionModeLimits = false;
+        }
+
+        void SetInterpretedValues()
+        {
+            AutoProfilingInterpreter0Limit = 0;
+            AutoProfilingInterpreter1Limit = 0;
+            ProfilingInterpreter0Limit = 1;
+            ProfilingInterpreter1Limit = 0;
+            SimpleJitLimit = 1;
+            EnforceExecutionModeLimits = true;
+        }
+
+        void SetDynaPogoValues()
+        {
+            AutoProfilingInterpreter0Limit = 0;
+            AutoProfilingInterpreter1Limit = 0;
+            ProfilingInterpreter0Limit = 0;
+            ProfilingInterpreter1Limit = 0;
+            SimpleJitLimit = 0;
+            EnforceExecutionModeLimits = true;
+        }
     };
 
     enum Phase
@@ -42,14 +72,15 @@ namespace Js
     {
         public:
             Configuration() {}
-            ConfigFlagsTable           flags;
-            static Configuration        Global;
+            ConfigFlagsTable flags;
+            static Configuration Global;
     };
     Configuration        Configuration::Global;
 
     class FunctionEntryPointInfo
     {
     public:
+        FunctionEntryPointInfo() : callsCount(0) {}
         int callsCount;
     };
 
@@ -57,22 +88,33 @@ namespace Js
     {
     public:
         static size_t Print(const char16 *form, ...) { UNREFERENCED_PARAMETER(form);  return 0; }
-
     };
 
     class FunctionBody
     {
     public:
-        bool DoInterpreterProfile() const { return false; }
-        bool DoInterpreterAutoProfile() const { return false; }
-        bool DoSimpleJit() const { return false; }
+        bool DoInterpreterProfile() const { return doInterpreterProfile; }
+        bool DoInterpreterAutoProfile() const { return doInterpreterAutoProfile; }
+        bool DoSimpleJit() const { return doSimpleJit; }
         uint GetByteCodeCount() const { return 0; }
         uint GetByteCodeInLoopCount() const { return 0; }
         uint GetByteCodeWithoutLDACount() const { return 0; }
-        FunctionEntryPointInfo* GetDefaultFunctionEntryPointInfo() const { return nullptr; }
-        FunctionEntryPointInfo *GetSimpleJitEntryPointInfo() const { return nullptr; }
-        void TraceExecutionMode(const char *const eventDescription = nullptr) const { UNREFERENCED_PARAMETER (eventDescription); }
+        FunctionEntryPointInfo* GetDefaultFunctionEntryPointInfo() { return &defaultInfo; }
+        FunctionEntryPointInfo *GetSimpleJitEntryPointInfo() { return &simpleInfo; }
+        void TraceExecutionMode(const char *const eventDescription = nullptr) const { UNREFERENCED_PARAMETER(eventDescription); }
+        
+        FunctionBody(bool interpreterProfile, bool interpreterAutoProfile, bool simpleJit):
+            doInterpreterProfile(interpreterProfile),
+            doInterpreterAutoProfile(interpreterAutoProfile),
+            doSimpleJit(simpleJit)
+        {}
 
+    private:
+        bool doInterpreterProfile;
+        bool doInterpreterAutoProfile;
+        bool doSimpleJit;
+        FunctionEntryPointInfo defaultInfo;
+        FunctionEntryPointInfo simpleInfo;
     };
 }
 

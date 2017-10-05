@@ -29,7 +29,9 @@ namespace Js
 
     void FunctionExecutionStateMachine::InitializeExecutionModeAndLimits(FunctionBody* functionBody)
     {
-        DebugOnly(initializedExecutionModeAndLimits = true);
+#if DBG
+        initializedExecutionModeAndLimits = true;
+#endif
         // Assert we're either uninitialized, or being reinitialized on the same FunctionBody
         Assert(owner == nullptr || owner == functionBody);
         owner = functionBody;
@@ -764,6 +766,8 @@ namespace Js
             Assert(false);
             __assume(false);
         }
+#else
+        UNREFERENCED_PARAMETER(executionMode);
 #endif
     }
 
