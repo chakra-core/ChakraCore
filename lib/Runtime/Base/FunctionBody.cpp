@@ -2145,7 +2145,12 @@ namespace Js
             case VBSERR_OutOfStack:
                 hrMapped = VBSERR_OutOfStack;
                 break;
+
+            case JSERR_AsmJsCompileError:
+                hrMapped = JSERR_AsmJsCompileError;
+                break;
             }
+
         }
 
         if (FAILED(hrMapped))
@@ -2338,7 +2343,8 @@ namespace Js
                         if (FAILED(hrParser))
                         {
                             hrParseCodeGen = MapDeferredReparseError(hrParser, se); // Map certain errors like OOM/SOE
-                            AssertMsg(FAILED(hrParseCodeGen) && SUCCEEDED(hrParser), "Syntax errors should never be detected on deferred re-parse");
+                            AssertMsg(hrParseCodeGen == JSERR_AsmJsCompileError // AsmJsCompileError is not a syntax error
+                                || (FAILED(hrParseCodeGen) && SUCCEEDED(hrParser)), "Syntax errors should never be detected on deferred re-parse");
                         }
                         else
                         {
