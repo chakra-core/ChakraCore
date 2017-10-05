@@ -1810,7 +1810,11 @@ CommonNumber:
 
             // Only cache missing property lookups for non-root field loads on objects that have PathTypeHandlers, because only these objects guarantee a type change when the property is added,
             // which obviates the need to explicitly invalidate missing property inline caches.
-            if (!PHASE_OFF1(MissingPropertyCachePhase) && !isRoot && DynamicObject::Is(instance) && ((DynamicObject*)instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler())
+            //
+            // ricobbe: we now invalidate prototype caches on missing properties for DictionaryTypeHandlerBase as well, so allow those too.  Eventually we'll want to go back and
+            // add support for all kinds of types here.
+            if (!PHASE_OFF1(MissingPropertyCachePhase) && !isRoot && DynamicObject::Is(instance) && 
+                (DynamicObject::FromVar(instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler() || DynamicObject::FromVar(instance)->GetDynamicType()->GetTypeHandler()->IsDictionaryTypeHandler()))
             {
 #ifdef MISSING_PROPERTY_STATS
                 if (PHASE_STATS1(MissingPropertyCachePhase))

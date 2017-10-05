@@ -228,6 +228,7 @@ namespace Js
         static DWORD GetBuiltinFunctionsOffset() { return offsetof(JavascriptLibrary, builtinFunctions); }
         static DWORD GetCharStringCacheOffset() { return offsetof(JavascriptLibrary, charStringCache); }
         static DWORD GetCharStringCacheAOffset() { return GetCharStringCacheOffset() + CharStringCache::GetCharStringCacheAOffset(); }
+        PolymorphicInlineCache *GetToStringTagCache() const { return toStringTagCache; }
         const  JavascriptLibraryBase* GetLibraryBase() const { return static_cast<const JavascriptLibraryBase*>(this); }
         void SetGlobalObject(GlobalObject* globalObject) {this->globalObject = globalObject; }
         static DWORD GetRandSeed0Offset() { return offsetof(JavascriptLibrary, randSeed0); }
@@ -470,6 +471,8 @@ namespace Js
         Field(int) regexUnicodeGetterSlotIndex;
 
         mutable Field(CharStringCache) charStringCache;
+
+        Field(ScriptContextPolymorphicInlineCache*) toStringTagCache;
 
         FieldNoBarrier(PromiseContinuationCallback) nativeHostPromiseContinuationFunction;
         Field(void *) nativeHostPromiseContinuationFunctionState;
