@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-
 namespace UnifiedRegex
 {
     template <typename C>
@@ -112,7 +111,6 @@ namespace UnifiedRegex
             return UTC(CTU(c) + n);
         }
     };
-
 
     template <>
     struct Chars<char16>
