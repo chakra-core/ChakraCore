@@ -635,9 +635,14 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         bytes = this->EmitLoadStore(Emitter, instr, instr->GetSrc1(), instr->GetDst(), EmitLdrsbRegister, EmitLdrshRegister, EmitLdrswRegister64, EmitLdrRegister64, EmitLdrsbOffset, EmitLdrshOffset, EmitLdrswOffset64, EmitLdrOffset64);
         break;
 
-        // Note: src2 is really the second destination
+    // Note: src2 is really the second destination register, due to limitations of IR::Instr
     case Js::OpCode::LDP:
         bytes = this->EmitLoadStorePair(Emitter, instr, instr->GetSrc1(), instr->GetDst(), instr->GetSrc2(), EmitLdpOffset, EmitLdpOffset64);
+        break;
+
+    // Note: src2 is really the second destination register, due to limitations of IR::Instr
+    case Js::OpCode::LDP_POST:
+        bytes = this->EmitLoadStorePair(Emitter, instr, instr->GetSrc1(), instr->GetDst(), instr->GetSrc2(), EmitLdpOffsetPostIndex, EmitLdpOffsetPostIndex64);
         break;
 
     // Legalizer should convert this to MOV/ADD before getting here
@@ -735,9 +740,12 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         bytes = this->EmitLoadStore(Emitter, instr, instr->GetDst(), instr->GetSrc1(), EmitStrbRegister, EmitStrhRegister, EmitStrRegister, EmitStrRegister64, EmitStrbOffset, EmitStrhOffset, EmitStrOffset, EmitStrOffset64);
         break;
 
-    // Note: src2 is really the second destination
     case Js::OpCode::STP:
         bytes = this->EmitLoadStorePair(Emitter, instr, instr->GetDst(), instr->GetSrc1(), instr->GetSrc2(), EmitStpOffset, EmitStpOffset64);
+        break;
+
+    case Js::OpCode::STP_PRE:
+        bytes = this->EmitLoadStorePair(Emitter, instr, instr->GetDst(), instr->GetSrc1(), instr->GetSrc2(), EmitStpOffsetPreIndex, EmitStpOffsetPreIndex64);
         break;
 
     case Js::OpCode::SUB:
