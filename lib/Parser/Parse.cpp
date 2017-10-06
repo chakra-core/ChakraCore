@@ -1682,10 +1682,12 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGloba
 {
     Assert(!(isGlobal && (this->m_grfscr & fscrEval)));
 
+    bool isTopLevelEventHandler = (this->m_grfscr & fscrImplicitThis || this->m_grfscr & fscrImplicitParents);
+
     // Create a 'this' symbol for global lambda, indirect eval, ordinary functions with references to 'this', and all class constructors.
     PidRefStack* ref = wellKnownPropertyPids._this->GetTopRef();
     if (((pnodeFnc->sxFnc.IsLambda() && GetCurrentNonLambdaFunctionNode() == nullptr && !(this->m_grfscr & fscrEval)) || !pnodeFnc->sxFnc.IsLambda())
-        && ((ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId) || pnodeFnc->sxFnc.IsClassConstructor()))
+        && ((ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId) || pnodeFnc->sxFnc.IsClassConstructor() || isTopLevelEventHandler))
     {
         // Insert the decl for 'this'
         ParseNodePtr thisNode = this->CreateSpecialVarDeclNode(pnodeFnc, wellKnownPropertyPids._this);
