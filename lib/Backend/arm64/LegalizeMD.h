@@ -40,31 +40,27 @@ struct LegalInstrForms
 };
 
 #define LEGAL_NONE     { L_None,    { L_None,    L_None } }
+
+// Used for opcodes that should be converted before legalizer kicks in
+#define LEGAL_PSEUDO   LEGAL_NONE
+
 #define LEGAL_ADDSUB   { L_Reg,     { L_Reg,     (LegalForms)(L_Reg | L_ImmU12 | L_ImmU12Lsl12) } }
-#define LEGAL_ADDSUBW  { L_Reg,     { L_Reg,     (LegalForms)(L_Reg | L_ImmU12 | L_ImmU12Lsl12) } }
 #define LEGAL_ALU2     { L_Reg,     { (LegalForms)(L_Reg | L_ImmLog12), L_None } }
 #define LEGAL_ALU3     { L_Reg,     { L_Reg,     (LegalForms)(L_Reg | L_ImmLog12) } }
 #define LEGAL_SHIFT    { L_Reg,     { L_Reg,     (LegalForms)(L_Reg | L_ImmU6) } }
 #define LEGAL_BLAB     LEGAL_NONE
-#define LEGAL_BREG     { L_None,    { L_Reg,     L_None } }
 #define LEGAL_CALL     { L_Reg,     { L_Lab20 ,  L_None } } // Not currently generated, offset check is missing
-#define LEGAL_CMP      { L_None,    { L_Reg,     (LegalForms)(L_Reg | L_ImmU12 | L_ImmU12Lsl12) } }
-#define LEGAL_CMP_SH   { L_None,    { L_Reg,     L_Reg } }
-#define LEGAL_CMP1     { L_None,    { L_Reg,     L_None } }
-#define LEGAL_CMN      { L_None,    { L_Reg,     (LegalForms)(L_Reg | L_ImmModC12) } }
 #define LEGAL_LDIMM    { L_Reg,     { L_Imm,     L_None } }
-#define LEGAL_LEA      { L_Reg,     { (LegalForms)(L_SymU12 | L_IndirU12),  L_None } }
 #define LEGAL_LOAD     { L_Reg,     { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
-#define LEGAL_LOADP    { L_Reg,     { (LegalForms)(L_IndirSI7 | L_SymSI7), L_Reg } }    // ARM64_WORKITEM: need to figure multiple destinations here
-#define LEGAL_MOVIMM16 { L_Reg,     { L_ImmU16,  L_None } }
+#define LEGAL_LOADP    { L_Reg,     { (LegalForms)(L_IndirSI7 | L_SymSI7), L_Reg } }
+#define LEGAL_PLD      { L_None,    { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
 #define LEGAL_REG1     { L_Reg,     { L_None,    L_None } }
 #define LEGAL_REG2     { L_Reg,     { L_Reg,     L_None } }
+#define LEGAL_REG2_ND  { L_None,    { L_Reg,     L_None } }
 #define LEGAL_REG3     { L_Reg,     { L_Reg,     L_Reg  } }
+#define LEGAL_REG3_ND  { L_None,    { L_Reg,     L_Reg } }
 #define LEGAL_STORE    { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), { L_Reg, L_None } }
 #define LEGAL_STOREP   { (LegalForms)(L_IndirSI7 | L_SymSI7), { L_Reg, L_Reg } }
-
-#define LEGAL_VSTORE   { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), { L_Reg, L_None } }
-#define LEGAL_VLOAD    { L_Reg,     { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
 
 class LegalizeMD
 {

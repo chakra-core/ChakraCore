@@ -12,8 +12,8 @@ const Js::OpCode LowererMD::MDOrOpcode = Js::OpCode::ORR;
 const Js::OpCode LowererMD::MDXorOpcode = Js::OpCode::EOR;
 const Js::OpCode LowererMD::MDOverflowBranchOpcode = Js::OpCode::BVS;
 const Js::OpCode LowererMD::MDNotOverflowBranchOpcode = Js::OpCode::BVC;
-const Js::OpCode LowererMD::MDConvertFloat32ToFloat64Opcode = Js::OpCode::FCVTF64F32;
-const Js::OpCode LowererMD::MDConvertFloat64ToFloat32Opcode = Js::OpCode::FCVTF32F64;
+const Js::OpCode LowererMD::MDConvertFloat32ToFloat64Opcode = Js::OpCode::FCVT;
+const Js::OpCode LowererMD::MDConvertFloat64ToFloat32Opcode = Js::OpCode::FCVT;
 const Js::OpCode LowererMD::MDCallOpcode = Js::OpCode::Call;
 const Js::OpCode LowererMD::MDImulOpcode = Js::OpCode::MUL;
 
@@ -149,11 +149,11 @@ LowererMD::MDConvertFloat64ToInt32Opcode(const RoundMode roundMode)
     switch (roundMode)
     {
     case RoundModeTowardZero:
-        return Js::OpCode::FCVTS32F64;
+        return Js::OpCode::FCVTZ;
     case RoundModeTowardInteger:
         return Js::OpCode::Nop;
     case RoundModeHalfToEven:
-        return Js::OpCode::FCVTRS32F64;
+        return Js::OpCode::FCVTN;
     default:
         AssertMsg(0, "RoundMode has no MD mapping.");
         return Js::OpCode::Nop;
@@ -5738,12 +5738,12 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
     {
         if (dst->GetType() == TyFloat32)
         {
-            // VCVT.F32.F64 regOpnd32.f32, regOpnd.f64    -- Convert regOpnd from f64 to f32
+            // FCVT.F32.F64 regOpnd32.f32, regOpnd.f64    -- Convert regOpnd from f64 to f32
             IR::RegOpnd *regOpnd32 = regFloatOpnd->UseWithNewType(TyFloat32, this->m_func)->AsRegOpnd();
-            instr = IR::Instr::New(Js::OpCode::FCVTF32F64, regOpnd32, regFloatOpnd, this->m_func);
+            instr = IR::Instr::New(Js::OpCode::FCVT, regOpnd32, regFloatOpnd, this->m_func);
             insertInstr->InsertBefore(instr);
 
-            // VSTR32 dst, regOpnd32
+            // FMOV dst, regOpnd32
             instr = IR::Instr::New(Js::OpCode::FMOV, dst, regOpnd32, this->m_func);
             insertInstr->InsertBefore(instr);
         }
@@ -5777,17 +5777,17 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
     if (dst->GetType() == TyFloat32)
     {
         IR::RegOpnd *reg2_32 = reg2->UseWithNewType(TyFloat32, this->m_func)->AsRegOpnd();
-        // VCVT.F32.F64 r2_32.f32, r2.f64    -- Convert regOpnd from f64 to f32
-        instr = IR::Instr::New(Js::OpCode::FCVTF32F64, reg2_32, reg2, this->m_func);
+        // FCVT.F32.F64 r2_32.f32, r2.f64    -- Convert regOpnd from f64 to f32
+        instr = IR::Instr::New(Js::OpCode::FCVT, reg2_32, reg2, this->m_func);
         insertInstr->InsertBefore(instr);
 
-        // VMOV dst, r2_32
+        // FMOV dst, r2_32
         instr = IR::Instr::New(Js::OpCode::FMOV, dst, reg2_32, this->m_func);
         insertInstr->InsertBefore(instr);
     }
     else
     {
-        // VMOV dst, r2
+        // FMOV dst, r2
         instr = IR::Instr::New(Js::OpCode::FMOV, dst, reg2, this->m_func);
         insertInstr->InsertBefore(instr);
     }
@@ -8401,16 +8401,12 @@ void
 LowererMD::EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 {
     IR::Instr *instr;
-    IR::RegOpnd *floatReg = IR::RegOpnd::New(TyFloat64, this->m_func);
 
     Assert(dst->IsRegOpnd() && dst->IsFloat64());
     Assert(src->IsRegOpnd() && src->IsInt32());
 
-    instr = IR::Instr::New(Js::OpCode::FMOV_GEN, floatReg, src, this->m_func);
-    instrInsert->InsertBefore(instr);
-
     // Convert to Float
-    instr = IR::Instr::New(Js::OpCode::FCVTF64S32, dst, floatReg, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::FCVT, dst, src, this->m_func);
     instrInsert->InsertBefore(instr);
 }
 
@@ -8418,16 +8414,12 @@ void
 LowererMD::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 {
     IR::Instr *instr;
-    IR::RegOpnd *floatReg = IR::RegOpnd::New(TyFloat64, this->m_func);
 
     Assert(dst->IsRegOpnd() && dst->IsFloat64());
-    Assert(src->IsRegOpnd() && src->IsInt32());
-
-    instr = IR::Instr::New(Js::OpCode::FMOV_GEN, floatReg, src, this->m_func);
-    instrInsert->InsertBefore(instr);
+    Assert(src->IsRegOpnd() && src->IsUInt32());
 
     // Convert to Float
-    instr = IR::Instr::New(Js::OpCode::FCVTF64U32, dst, floatReg, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::FCVT, dst, src, this->m_func);
     instrInsert->InsertBefore(instr);
 }
 
@@ -8436,15 +8428,10 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
     Assert(floatOpnd->IsFloat64());
     Assert(intOpnd->IsInt32());
 
-    IR::RegOpnd *floatReg = IR::RegOpnd::New(TyFloat32, this->m_func);
     // VCVTS32F64 dst.i32, src.f64
     // Convert to int
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::FCVTS32F64, floatReg, floatOpnd, this->m_func);
-    instrInsert->InsertBefore(instr);
-    Legalize(instr);
-
-    //Move to integer reg
-    instr = IR::Instr::New(Js::OpCode::FMOV_GEN, intOpnd, floatReg, this->m_func);
+    // ARM64_WORKITEM: On ARM32 this used the current rounding mode; here we are explicitly rounding toward zero -- is that ok?
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::FCVTZ, intOpnd, floatOpnd, this->m_func);
     instrInsert->InsertBefore(instr);
     Legalize(instr);
 
@@ -8696,26 +8683,6 @@ template <bool verify>
 void
 LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
 {
-    Func *const func = instr->m_func;
-
-    if(instr->m_opcode == Js::OpCode::FCVTS32F64 && instr->GetDst()->IsInt32())
-    {
-        if (verify)
-        {
-            AssertMsg(false, "Missing legalization");
-            return;
-        }
-
-        // This needs to be split into two steps
-        IR::RegOpnd *const float32Reg = IR::RegOpnd::New(TyFloat32, func);
-        const IR::AutoReuseOpnd autoReuseFloat32Reg(float32Reg, func);
-        IR::Instr *const newInstr = IR::Instr::New(Js::OpCode::FCVTS32F64, float32Reg, instr->GetSrc1(), func);
-        instr->InsertBefore(newInstr);
-        LegalizeMD::LegalizeInstr(newInstr, false);
-        instr->m_opcode = Js::OpCode::FMOV_GEN;
-        instr->ReplaceSrc1(float32Reg);
-    }
-
     if (verify)
     {
         // NYI for the rest of legalization
