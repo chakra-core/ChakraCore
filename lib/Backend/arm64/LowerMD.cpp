@@ -866,6 +866,7 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
         instr->SetSrc1(IR::RegOpnd::New(nullptr, GetRegStackPointer(), TyMachReg, this->m_func));
         instr->SetSrc2(scratchOpnd);
         insertInstr->InsertBefore(instr);
+        LegalizeMD::LegalizeInstr(instr, false);
 
         instr = IR::BranchInstr::New(Js::OpCode::BGT, doneLabelInstr, this->m_func);
         insertInstr->InsertBefore(instr);
@@ -2738,6 +2739,7 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
             instrPrev->SetSrc1(opndSrc1);
             instrPrev->SetSrc2(IR::IntConstOpnd::New(0, TyInt32, m_func));
             instr->InsertBefore(instrPrev);
+            LegalizeMD::LegalizeInstr(instrPrev, false);
 
             instr->m_opcode = Js::OpCode::BNE;
 
@@ -2751,6 +2753,7 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
             instrPrev->SetSrc1(opndSrc1);
             instrPrev->SetSrc2(IR::IntConstOpnd::New(0, TyInt32, m_func));
             instr->InsertBefore(instrPrev);
+            LegalizeMD::LegalizeInstr(instrPrev, false);
 
             instr->m_opcode = Js::OpCode::BEQ;
 
@@ -3555,6 +3558,7 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
     instr->SetSrc1(opndRegR12);
     instr->SetSrc2(opndReg1);
     instrMul->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     //      BNE $helper       -- bail if the result overflowed
     instr = IR::BranchInstr::New(Js::OpCode::BNE, labelHelper, this->m_func);
@@ -3946,6 +3950,7 @@ LowererMD::GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * insertInstr, 
     instr->SetSrc1(opndSrc);
     instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyInt32, this->m_func));
     insertInstr->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     // BEQ $helper
     if(labelHelper != nullptr)
@@ -4370,6 +4375,7 @@ LowererMD::GenerateLocalInlineCacheCheck(
     instr->SetSrc1(opndType);
     instr->SetSrc2(s3);
     instrLdSt->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     // BNE $next
     IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::BNE, labelNext, instrLdSt->m_func);
@@ -4444,6 +4450,7 @@ LowererMD::GenerateFlagInlineCacheCheck(
     instr->SetSrc1(opndType);
     instr->SetSrc2(s3);
     instrLdSt->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     // BNE $next
     IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::BNE, labelNext, instrLdSt->m_func);
@@ -4478,6 +4485,7 @@ LowererMD::GenerateProtoInlineCacheCheck(
     instr->SetSrc1(opndType);
     instr->SetSrc2(s3);
     instrLdSt->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     // BNE $next
     IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::BNE, labelNext, instrLdSt->m_func);
@@ -4926,6 +4934,7 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     instr->SetSrc1(opndReg1);
     instr->SetSrc2(IR::IntConstOpnd::New(0x1, TyInt8, this->m_func));
     instrScopedFld->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     // BNE $helper
     instr = IR::BranchInstr::New(Js::OpCode::BNE, labelHelper, this->m_func);
@@ -5465,6 +5474,8 @@ bool LowererMD::TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrP
         instr->SetSrc1(opndRegR12);
         instr->SetSrc2(s3);
         instrAdd->InsertBefore(instr);
+        LegalizeMD::LegalizeInstr(instr, false);
+
         instr = IR::BranchInstr::New(Js::OpCode::BNE, labelHelper, this->m_func);
         instrAdd->InsertBefore(instr);
 
@@ -6341,6 +6352,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
     instr->SetSrc1(psz);
     instr->SetSrc2(IR::IntConstOpnd::New(0, TyMachPtr, this->m_func));
     insertInstr->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     //      BEQ $helper
     instr = IR::BranchInstr::New(Js::OpCode::BEQ, labelHelper, this->m_func);
@@ -6395,6 +6407,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
         instr->SetSrc1(length);
         instr->SetSrc2(index32);
         insertInstr->InsertBefore(instr);
+        LegalizeMD::LegalizeInstr(instr, false);
 
         // Use unsigned compare, this should handle negative indexes as well (they become > INT_MAX)
         // BLS $helper
@@ -6527,8 +6540,9 @@ br1_Common:
         instr->InsertBefore(newInstr);
         newInstr->SetSrc1(src1);
         newInstr->SetSrc2(IR::IntConstOpnd::New(0, TyInt32, instr->m_func));
-        // We know this CMP is legal.
-        return;
+        // Let instr point to the CMP so we can legalize it.
+        instr = newInstr;
+        break;
 
     case Js::OpCode::BrEq_I4:
         instr->m_opcode = Js::OpCode::BEQ;
@@ -6796,6 +6810,7 @@ LowererMD::LowerInt4MulWithBailOut(
         insertInstr->SetSrc1(opndRegR12);
         insertInstr->SetSrc2(dst);
         insertBeforeInstr->InsertBefore(insertInstr);
+        LegalizeMD::LegalizeInstr(insertInstr, false);
 
         // BNE $bailOutLabel       -- bail if the result overflowed
         insertInstr = IR::BranchInstr::New(Js::OpCode::BNE, bailOutLabel, instr->m_func);
@@ -6810,6 +6825,8 @@ LowererMD::LowerInt4MulWithBailOut(
         insertInstr->SetSrc1(dst);
         insertInstr->SetSrc2(dst);
         insertBeforeInstr->InsertBefore(insertInstr);
+        LegalizeMD::LegalizeInstr(insertInstr, false);
+
         insertBeforeInstr->InsertBefore(IR::BranchInstr::New(Js::OpCode::BEQ, checkForNegativeZeroLabel, instr->m_func));
     }
 
@@ -6863,6 +6880,7 @@ LowererMD::LowerInt4RemWithBailOut(
         insertInstr->SetSrc1(dst);
         insertInstr->SetSrc2(dst);
         bailOutLabel->InsertBefore(insertInstr);
+        LegalizeMD::LegalizeInstr(insertInstr, false);
 
         IR::Instr *branchInstr = IR::BranchInstr::New(Js::OpCode::BNE, skipBailOutLabel, instr->m_func);
         bailOutLabel->InsertBefore(branchInstr);
@@ -6871,6 +6889,7 @@ LowererMD::LowerInt4RemWithBailOut(
         insertInstr->SetSrc1(src1);
         insertInstr->SetSrc2(src1);
         bailOutLabel->InsertBefore(insertInstr);
+        LegalizeMD::LegalizeInstr(insertInstr, false);
 
         branchInstr = IR::BranchInstr::New(Js::OpCode::BPL, skipBailOutLabel, instr->m_func);
         bailOutLabel->InsertBefore(branchInstr);
