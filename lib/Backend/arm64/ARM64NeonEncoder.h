@@ -3,14 +3,106 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-// TODO: ARM64: Scalar operations like FADD zero-extend!  FMOV is especially problematic for SIMD callers.
-
 //
 // This file contains low-level emitter functions, where each emitter encodes
 // exactly one VFP/Neon instruction.
 //
 
 #pragma once
+
+typedef UCHAR NEON_REGISTER;
+
+class NeonRegisterParam
+{
+    static const UCHAR REGISTER_SHIFT = 0;
+    static const UCHAR REGISTER_MASK = 0xff;
+    static const ULONG REGISTER_MASK_SHIFTED = REGISTER_MASK << REGISTER_SHIFT;
+
+    static const UCHAR SIZE_SHIFT = 8;
+    static const UCHAR SIZE_MASK = 0x07;
+    static const ULONG SIZE_MASK_SHIFTED = SIZE_MASK << SIZE_SHIFT;
+
+    NeonRegisterParam()
+    {
+    }
+
+public:
+
+    //
+    // N.B. Derived class must initialize m_Encoded.
+    //
+
+    NeonRegisterParam(
+        NEON_REGISTER Reg,
+        UCHAR Size = 8
+    )
+        : m_Encoded(((Reg & REGISTER_MASK) << REGISTER_SHIFT) |
+        (EncodeSize(Size) << SIZE_SHIFT))
+    {
+        AssertValidRegister(Reg);
+        AssertValidSize(Size);
+    }
+
+    NEON_REGISTER
+    Register() const
+    {
+        return (m_Encoded >> REGISTER_SHIFT) & REGISTER_MASK;
+    }
+
+    UCHAR
+    RawRegister() const
+    {
+        return UCHAR(Register() - NEONREG_FIRST);
+    }
+
+    UCHAR
+    SizeShift() const
+    {
+        return (m_Encoded >> SIZE_SHIFT) & SIZE_MASK;
+    }
+
+    UCHAR
+    Size() const
+    {
+        return 1 << SizeShift();
+    }
+
+protected:
+    static
+    ULONG
+    EncodeSize(
+        UCHAR Size
+        )
+    {
+        return (Size == 1) ? 0 :
+            (Size == 2) ? 1 :
+            (Size == 4) ? 2 :
+            (Size == 8) ? 3 :
+            4;
+    }
+
+    static
+    void
+    AssertValidRegister(
+        NEON_REGISTER Reg
+        )
+    {
+        UNREFERENCED_PARAMETER(Reg);
+        NT_ASSERT(Reg >= NEONREG_FIRST && Reg <= NEONREG_LAST);
+    }
+
+    static
+    void
+    AssertValidSize(
+        UCHAR Size
+        )
+    {
+        UNREFERENCED_PARAMETER(Size);
+        NT_ASSERT(Size == 4 || Size == 8 || Size == 16);
+    }
+
+    ULONG m_Encoded;
+};
 
 enum NEON_SIZE
 {
@@ -155,7 +247,7 @@ NeonElementSize(
 inline
 int
 EmitNeonBinaryCommon(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize,
@@ -176,7 +268,7 @@ EmitNeonBinaryCommon(
 inline
 int
 EmitNeonAbs(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -189,7 +281,7 @@ EmitNeonAbs(
 inline
 int
 EmitNeonAddp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -202,7 +294,7 @@ EmitNeonAddp(
 inline
 int
 EmitNeonAddv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -215,7 +307,7 @@ EmitNeonAddv(
 inline
 int
 EmitNeonCls(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -228,7 +320,7 @@ EmitNeonCls(
 inline
 int
 EmitNeonClz(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -241,7 +333,7 @@ EmitNeonClz(
 inline
 int
 EmitNeonCmeq0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -254,7 +346,7 @@ EmitNeonCmeq0(
 inline
 int
 EmitNeonCmge0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -267,7 +359,7 @@ EmitNeonCmge0(
 inline
 int
 EmitNeonCmgt0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -280,7 +372,7 @@ EmitNeonCmgt0(
 inline
 int
 EmitNeonCmle0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -293,7 +385,7 @@ EmitNeonCmle0(
 inline
 int
 EmitNeonCmlt0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -306,7 +398,7 @@ EmitNeonCmlt0(
 inline
 int
 EmitNeonCnt(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -319,7 +411,7 @@ EmitNeonCnt(
 inline
 int
 EmitNeonNeg(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -332,7 +424,7 @@ EmitNeonNeg(
 inline
 int
 EmitNeonNot(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -345,7 +437,7 @@ EmitNeonNot(
 inline
 int
 EmitNeonRbit(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -358,7 +450,7 @@ EmitNeonRbit(
 inline
 int
 EmitNeonRev16(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -371,7 +463,7 @@ EmitNeonRev16(
 inline
 int
 EmitNeonRev32(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -384,7 +476,7 @@ EmitNeonRev32(
 inline
 int
 EmitNeonRev64(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -397,7 +489,7 @@ EmitNeonRev64(
 inline
 int
 EmitNeonSadalp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -410,7 +502,7 @@ EmitNeonSadalp(
 inline
 int
 EmitNeonSaddlp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -423,7 +515,7 @@ EmitNeonSaddlp(
 inline
 int
 EmitNeonSaddlv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -436,7 +528,7 @@ EmitNeonSaddlv(
 inline
 int
 EmitNeonShll(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -449,7 +541,7 @@ EmitNeonShll(
 inline
 int
 EmitNeonShll2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -462,7 +554,7 @@ EmitNeonShll2(
 inline
 int
 EmitNeonSmaxv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -475,7 +567,7 @@ EmitNeonSmaxv(
 inline
 int
 EmitNeonSminv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -488,7 +580,7 @@ EmitNeonSminv(
 inline
 int
 EmitNeonSqabs(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -501,7 +593,7 @@ EmitNeonSqabs(
 inline
 int
 EmitNeonSqneg(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -514,7 +606,7 @@ EmitNeonSqneg(
 inline
 int
 EmitNeonSqxtn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -527,7 +619,7 @@ EmitNeonSqxtn(
 inline
 int
 EmitNeonSqxtn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -540,7 +632,7 @@ EmitNeonSqxtn2(
 inline
 int
 EmitNeonSqxtun(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -553,7 +645,7 @@ EmitNeonSqxtun(
 inline
 int
 EmitNeonSqxtun2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -566,7 +658,7 @@ EmitNeonSqxtun2(
 inline
 int
 EmitNeonSuqadd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -579,7 +671,7 @@ EmitNeonSuqadd(
 inline
 int
 EmitNeonUadalp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -592,7 +684,7 @@ EmitNeonUadalp(
 inline
 int
 EmitNeonUaddlp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -605,7 +697,7 @@ EmitNeonUaddlp(
 inline
 int
 EmitNeonUaddlv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -618,7 +710,7 @@ EmitNeonUaddlv(
 inline
 int
 EmitNeonUmaxv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -631,7 +723,7 @@ EmitNeonUmaxv(
 inline
 int
 EmitNeonUminv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -644,7 +736,7 @@ EmitNeonUminv(
 inline
 int
 EmitNeonUqxtn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -657,7 +749,7 @@ EmitNeonUqxtn(
 inline
 int
 EmitNeonUqxtn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -670,7 +762,7 @@ EmitNeonUqxtn2(
 inline
 int
 EmitNeonUrecpe(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -683,7 +775,7 @@ EmitNeonUrecpe(
 inline
 int
 EmitNeonUrsqrte(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -696,7 +788,7 @@ EmitNeonUrsqrte(
 inline
 int
 EmitNeonUsqadd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -709,7 +801,7 @@ EmitNeonUsqadd(
 inline
 int
 EmitNeonXtn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -722,7 +814,7 @@ EmitNeonXtn(
 inline
 int
 EmitNeonXtn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -739,7 +831,7 @@ EmitNeonXtn2(
 inline
 int
 EmitNeonFloatBinaryCommon(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize,
@@ -760,7 +852,7 @@ EmitNeonFloatBinaryCommon(
 inline
 int
 EmitNeonFabs(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -773,7 +865,7 @@ EmitNeonFabs(
 inline
 int
 EmitNeonFaddp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -786,7 +878,7 @@ EmitNeonFaddp(
 inline
 int
 EmitNeonFcmeq0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -799,7 +891,7 @@ EmitNeonFcmeq0(
 inline
 int
 EmitNeonFcmge0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -812,7 +904,7 @@ EmitNeonFcmge0(
 inline
 int
 EmitNeonFcmgt0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -825,7 +917,7 @@ EmitNeonFcmgt0(
 inline
 int
 EmitNeonFcmle0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -838,7 +930,7 @@ EmitNeonFcmle0(
 inline
 int
 EmitNeonFcmlt0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -851,7 +943,7 @@ EmitNeonFcmlt0(
 inline
 int
 EmitNeonFcvtas(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -864,7 +956,7 @@ EmitNeonFcvtas(
 inline
 int
 EmitNeonFcvtau(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -877,7 +969,7 @@ EmitNeonFcvtau(
 inline
 int
 EmitNeonFcvt(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NEON_SIZE DestSize,
     NeonRegisterParam Src,
@@ -893,7 +985,7 @@ EmitNeonFcvt(
 inline
 int
 EmitNeonFcvtl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -906,7 +998,7 @@ EmitNeonFcvtl(
 inline
 int
 EmitNeonFcvtl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -919,7 +1011,7 @@ EmitNeonFcvtl2(
 inline
 int
 EmitNeonFcvtms(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -932,7 +1024,7 @@ EmitNeonFcvtms(
 inline
 int
 EmitNeonFcvtmu(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -945,7 +1037,7 @@ EmitNeonFcvtmu(
 inline
 int
 EmitNeonFcvtn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -958,7 +1050,7 @@ EmitNeonFcvtn(
 inline
 int
 EmitNeonFcvtn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -971,7 +1063,7 @@ EmitNeonFcvtn2(
 inline
 int
 EmitNeonFcvtns(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -984,7 +1076,7 @@ EmitNeonFcvtns(
 inline
 int
 EmitNeonFcvtnu(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -997,7 +1089,7 @@ EmitNeonFcvtnu(
 inline
 int
 EmitNeonFcvtps(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1010,7 +1102,7 @@ EmitNeonFcvtps(
 inline
 int
 EmitNeonFcvtpu(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1023,7 +1115,7 @@ EmitNeonFcvtpu(
 inline
 int
 EmitNeonFcvtxn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1036,7 +1128,7 @@ EmitNeonFcvtxn(
 inline
 int
 EmitNeonFcvtxn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1049,7 +1141,7 @@ EmitNeonFcvtxn2(
 inline
 int
 EmitNeonFcvtzs(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1062,7 +1154,7 @@ EmitNeonFcvtzs(
 inline
 int
 EmitNeonFcvtzu(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1075,7 +1167,7 @@ EmitNeonFcvtzu(
 inline
 int
 EmitNeonFmaxnmp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1088,7 +1180,7 @@ EmitNeonFmaxnmp(
 inline
 int
 EmitNeonFmaxnmv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1101,7 +1193,7 @@ EmitNeonFmaxnmv(
 inline
 int
 EmitNeonFmaxp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1114,7 +1206,7 @@ EmitNeonFmaxp(
 inline
 int
 EmitNeonFmaxv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1127,7 +1219,7 @@ EmitNeonFmaxv(
 inline
 int
 EmitNeonFminnmp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1140,7 +1232,7 @@ EmitNeonFminnmp(
 inline
 int
 EmitNeonFminnmv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1153,7 +1245,7 @@ EmitNeonFminnmv(
 inline
 int
 EmitNeonFminp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1166,7 +1258,7 @@ EmitNeonFminp(
 inline
 int
 EmitNeonFminv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1179,7 +1271,7 @@ EmitNeonFminv(
 inline
 int
 EmitNeonFmov(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1192,7 +1284,7 @@ EmitNeonFmov(
 inline
 int
 EmitNeonFmovImmediate(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     UCHAR Immediate,
     NEON_SIZE DestSize
@@ -1205,7 +1297,7 @@ EmitNeonFmovImmediate(
 inline
 int
 EmitNeonFneg(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1218,7 +1310,7 @@ EmitNeonFneg(
 inline
 int
 EmitNeonFrecpe(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1231,7 +1323,7 @@ EmitNeonFrecpe(
 inline
 int
 EmitNeonFrecpx(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1244,7 +1336,7 @@ EmitNeonFrecpx(
 inline
 int
 EmitNeonFrinta(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1257,7 +1349,7 @@ EmitNeonFrinta(
 inline
 int
 EmitNeonFrinti(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1270,7 +1362,7 @@ EmitNeonFrinti(
 inline
 int
 EmitNeonFrintm(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1283,7 +1375,7 @@ EmitNeonFrintm(
 inline
 int
 EmitNeonFrintn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1296,7 +1388,7 @@ EmitNeonFrintn(
 inline
 int
 EmitNeonFrintp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1309,7 +1401,7 @@ EmitNeonFrintp(
 inline
 int
 EmitNeonFrintx(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1322,7 +1414,7 @@ EmitNeonFrintx(
 inline
 int
 EmitNeonFrintz(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1335,7 +1427,7 @@ EmitNeonFrintz(
 inline
 int
 EmitNeonFrsqrte(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1348,7 +1440,7 @@ EmitNeonFrsqrte(
 inline
 int
 EmitNeonFsqrt(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1361,7 +1453,7 @@ EmitNeonFsqrt(
 inline
 int
 EmitNeonScvtf(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1374,7 +1466,7 @@ EmitNeonScvtf(
 inline
 int
 EmitNeonUcvtf(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1391,7 +1483,7 @@ EmitNeonUcvtf(
 inline
 int
 EmitNeonTrinaryCommon(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1413,7 +1505,7 @@ EmitNeonTrinaryCommon(
 inline
 int
 EmitNeonAdd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1427,7 +1519,7 @@ EmitNeonAdd(
 inline
 int
 EmitNeonAddhn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1441,7 +1533,7 @@ EmitNeonAddhn(
 inline
 int
 EmitNeonAddhn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1455,7 +1547,7 @@ EmitNeonAddhn2(
 inline
 int
 EmitNeonAddp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1469,7 +1561,7 @@ EmitNeonAddp(
 inline
 int
 EmitNeonAnd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1483,7 +1575,7 @@ EmitNeonAnd(
 inline
 int
 EmitNeonBicRegister(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1497,7 +1589,7 @@ EmitNeonBicRegister(
 inline
 int
 EmitNeonBif(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1511,7 +1603,7 @@ EmitNeonBif(
 inline
 int
 EmitNeonBit(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1525,7 +1617,7 @@ EmitNeonBit(
 inline
 int
 EmitNeonBsl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1539,7 +1631,7 @@ EmitNeonBsl(
 inline
 int
 EmitNeonCmeq(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1553,7 +1645,7 @@ EmitNeonCmeq(
 inline
 int
 EmitNeonCmge(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1567,7 +1659,7 @@ EmitNeonCmge(
 inline
 int
 EmitNeonCmgt(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1581,7 +1673,7 @@ EmitNeonCmgt(
 inline
 int
 EmitNeonCmhi(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1595,7 +1687,7 @@ EmitNeonCmhi(
 inline
 int
 EmitNeonCmhs(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1609,7 +1701,7 @@ EmitNeonCmhs(
 inline
 int
 EmitNeonCmtst(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1623,7 +1715,7 @@ EmitNeonCmtst(
 inline
 int
 EmitNeonEor(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1637,7 +1729,7 @@ EmitNeonEor(
 inline
 int
 EmitNeonMla(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1651,7 +1743,7 @@ EmitNeonMla(
 inline
 int
 EmitNeonMls(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1665,7 +1757,7 @@ EmitNeonMls(
 inline
 int
 EmitNeonMov(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -1678,7 +1770,7 @@ EmitNeonMov(
 inline
 int
 EmitNeonMul(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1692,7 +1784,7 @@ EmitNeonMul(
 inline
 int
 EmitNeonOrn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1706,7 +1798,7 @@ EmitNeonOrn(
 inline
 int
 EmitNeonOrrRegister(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1720,7 +1812,7 @@ EmitNeonOrrRegister(
 inline
 int
 EmitNeonPmul(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1734,7 +1826,7 @@ EmitNeonPmul(
 inline
 int
 EmitNeonPmull(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1748,7 +1840,7 @@ EmitNeonPmull(
 inline
 int
 EmitNeonPmull2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1762,7 +1854,7 @@ EmitNeonPmull2(
 inline
 int
 EmitNeonRaddhn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1776,7 +1868,7 @@ EmitNeonRaddhn(
 inline
 int
 EmitNeonRaddhn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1790,7 +1882,7 @@ EmitNeonRaddhn2(
 inline
 int
 EmitNeonRsubhn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1804,7 +1896,7 @@ EmitNeonRsubhn(
 inline
 int
 EmitNeonRsubhn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1818,7 +1910,7 @@ EmitNeonRsubhn2(
 inline
 int
 EmitNeonSaba(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1832,7 +1924,7 @@ EmitNeonSaba(
 inline
 int
 EmitNeonSabal(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1846,7 +1938,7 @@ EmitNeonSabal(
 inline
 int
 EmitNeonSabal2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1860,7 +1952,7 @@ EmitNeonSabal2(
 inline
 int
 EmitNeonSabd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1874,7 +1966,7 @@ EmitNeonSabd(
 inline
 int
 EmitNeonSabdl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1888,7 +1980,7 @@ EmitNeonSabdl(
 inline
 int
 EmitNeonSabdl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1902,7 +1994,7 @@ EmitNeonSabdl2(
 inline
 int
 EmitNeonSaddl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1916,7 +2008,7 @@ EmitNeonSaddl(
 inline
 int
 EmitNeonSaddl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1930,7 +2022,7 @@ EmitNeonSaddl2(
 inline
 int
 EmitNeonSaddw(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1944,7 +2036,7 @@ EmitNeonSaddw(
 inline
 int
 EmitNeonSaddw2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1958,7 +2050,7 @@ EmitNeonSaddw2(
 inline
 int
 EmitNeonShadd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1972,7 +2064,7 @@ EmitNeonShadd(
 inline
 int
 EmitNeonShsub(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -1986,7 +2078,7 @@ EmitNeonShsub(
 inline
 int
 EmitNeonSmax(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2000,7 +2092,7 @@ EmitNeonSmax(
 inline
 int
 EmitNeonSmaxp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2014,7 +2106,7 @@ EmitNeonSmaxp(
 inline
 int
 EmitNeonSmin(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2028,7 +2120,7 @@ EmitNeonSmin(
 inline
 int
 EmitNeonSminp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2042,7 +2134,7 @@ EmitNeonSminp(
 inline
 int
 EmitNeonSmlal(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2056,7 +2148,7 @@ EmitNeonSmlal(
 inline
 int
 EmitNeonSmlal2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2070,7 +2162,7 @@ EmitNeonSmlal2(
 inline
 int
 EmitNeonSmlsl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2084,7 +2176,7 @@ EmitNeonSmlsl(
 inline
 int
 EmitNeonSmlsl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2098,7 +2190,7 @@ EmitNeonSmlsl2(
 inline
 int
 EmitNeonSmull(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2112,7 +2204,7 @@ EmitNeonSmull(
 inline
 int
 EmitNeonSmull2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2126,7 +2218,7 @@ EmitNeonSmull2(
 inline
 int
 EmitNeonSqadd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2140,7 +2232,7 @@ EmitNeonSqadd(
 inline
 int
 EmitNeonSqdmlal(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2154,7 +2246,7 @@ EmitNeonSqdmlal(
 inline
 int
 EmitNeonSqdmlal2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2168,7 +2260,7 @@ EmitNeonSqdmlal2(
 inline
 int
 EmitNeonSqdmlsl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2182,7 +2274,7 @@ EmitNeonSqdmlsl(
 inline
 int
 EmitNeonSqdmlsl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2196,7 +2288,7 @@ EmitNeonSqdmlsl2(
 inline
 int
 EmitNeonSqdmulh(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2210,7 +2302,7 @@ EmitNeonSqdmulh(
 inline
 int
 EmitNeonSqdmull(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2224,7 +2316,7 @@ EmitNeonSqdmull(
 inline
 int
 EmitNeonSqdmull2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2238,7 +2330,7 @@ EmitNeonSqdmull2(
 inline
 int
 EmitNeonSqrdmulh(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2252,7 +2344,7 @@ EmitNeonSqrdmulh(
 inline
 int
 EmitNeonSqrshl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2266,7 +2358,7 @@ EmitNeonSqrshl(
 inline
 int
 EmitNeonSqshl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2280,7 +2372,7 @@ EmitNeonSqshl(
 inline
 int
 EmitNeonSqsub(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2294,7 +2386,7 @@ EmitNeonSqsub(
 inline
 int
 EmitNeonSrhadd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2308,7 +2400,7 @@ EmitNeonSrhadd(
 inline
 int
 EmitNeonSrshl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2322,7 +2414,7 @@ EmitNeonSrshl(
 inline
 int
 EmitNeonSshl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2336,7 +2428,7 @@ EmitNeonSshl(
 inline
 int
 EmitNeonSsubl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2350,7 +2442,7 @@ EmitNeonSsubl(
 inline
 int
 EmitNeonSsubl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2364,7 +2456,7 @@ EmitNeonSsubl2(
 inline
 int
 EmitNeonSsubw(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2378,7 +2470,7 @@ EmitNeonSsubw(
 inline
 int
 EmitNeonSsubw2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2392,7 +2484,7 @@ EmitNeonSsubw2(
 inline
 int
 EmitNeonSub(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2406,7 +2498,7 @@ EmitNeonSub(
 inline
 int
 EmitNeonSubhn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2420,7 +2512,7 @@ EmitNeonSubhn(
 inline
 int
 EmitNeonSubhn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2434,7 +2526,7 @@ EmitNeonSubhn2(
 inline
 int
 EmitNeonTrn1(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2448,7 +2540,7 @@ EmitNeonTrn1(
 inline
 int
 EmitNeonTrn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2462,7 +2554,7 @@ EmitNeonTrn2(
 inline
 int
 EmitNeonUaba(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2476,7 +2568,7 @@ EmitNeonUaba(
 inline
 int
 EmitNeonUabal(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2490,7 +2582,7 @@ EmitNeonUabal(
 inline
 int
 EmitNeonUabal2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2504,7 +2596,7 @@ EmitNeonUabal2(
 inline
 int
 EmitNeonUabd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2518,7 +2610,7 @@ EmitNeonUabd(
 inline
 int
 EmitNeonUabdl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2532,7 +2624,7 @@ EmitNeonUabdl(
 inline
 int
 EmitNeonUabdl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2546,7 +2638,7 @@ EmitNeonUabdl2(
 inline
 int
 EmitNeonUaddl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2560,7 +2652,7 @@ EmitNeonUaddl(
 inline
 int
 EmitNeonUaddl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2574,7 +2666,7 @@ EmitNeonUaddl2(
 inline
 int
 EmitNeonUaddw(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2588,7 +2680,7 @@ EmitNeonUaddw(
 inline
 int
 EmitNeonUaddw2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2602,7 +2694,7 @@ EmitNeonUaddw2(
 inline
 int
 EmitNeonUhadd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2616,7 +2708,7 @@ EmitNeonUhadd(
 inline
 int
 EmitNeonUhsub(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2630,7 +2722,7 @@ EmitNeonUhsub(
 inline
 int
 EmitNeonUmax(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2644,7 +2736,7 @@ EmitNeonUmax(
 inline
 int
 EmitNeonUmaxp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2658,7 +2750,7 @@ EmitNeonUmaxp(
 inline
 int
 EmitNeonUmin(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2672,7 +2764,7 @@ EmitNeonUmin(
 inline
 int
 EmitNeonUminp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2686,7 +2778,7 @@ EmitNeonUminp(
 inline
 int
 EmitNeonUmlal(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2700,7 +2792,7 @@ EmitNeonUmlal(
 inline
 int
 EmitNeonUmlal2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2714,7 +2806,7 @@ EmitNeonUmlal2(
 inline
 int
 EmitNeonUmlsl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2728,7 +2820,7 @@ EmitNeonUmlsl(
 inline
 int
 EmitNeonUmlsl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2742,7 +2834,7 @@ EmitNeonUmlsl2(
 inline
 int
 EmitNeonUmull(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2756,7 +2848,7 @@ EmitNeonUmull(
 inline
 int
 EmitNeonUmull2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2770,7 +2862,7 @@ EmitNeonUmull2(
 inline
 int
 EmitNeonUqadd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2784,7 +2876,7 @@ EmitNeonUqadd(
 inline
 int
 EmitNeonUqrshl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2798,7 +2890,7 @@ EmitNeonUqrshl(
 inline
 int
 EmitNeonUqshl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2812,7 +2904,7 @@ EmitNeonUqshl(
 inline
 int
 EmitNeonUqsub(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2826,7 +2918,7 @@ EmitNeonUqsub(
 inline
 int
 EmitNeonUrhadd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2840,7 +2932,7 @@ EmitNeonUrhadd(
 inline
 int
 EmitNeonUrshl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2854,7 +2946,7 @@ EmitNeonUrshl(
 inline
 int
 EmitNeonUshl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2868,7 +2960,7 @@ EmitNeonUshl(
 inline
 int
 EmitNeonUsubl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2882,7 +2974,7 @@ EmitNeonUsubl(
 inline
 int
 EmitNeonUsubl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2896,7 +2988,7 @@ EmitNeonUsubl2(
 inline
 int
 EmitNeonUsubw(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2910,7 +3002,7 @@ EmitNeonUsubw(
 inline
 int
 EmitNeonUsubw2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2924,7 +3016,7 @@ EmitNeonUsubw2(
 inline
 int
 EmitNeonUzp1(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2938,7 +3030,7 @@ EmitNeonUzp1(
 inline
 int
 EmitNeonUzp2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2952,7 +3044,7 @@ EmitNeonUzp2(
 inline
 int
 EmitNeonZip1(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2966,7 +3058,7 @@ EmitNeonZip1(
 inline
 int
 EmitNeonZip2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -2984,7 +3076,7 @@ EmitNeonZip2(
 inline
 int
 EmitNeonFloatTrinaryCommon(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3006,7 +3098,7 @@ EmitNeonFloatTrinaryCommon(
 inline
 int
 EmitNeonFabd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3020,7 +3112,7 @@ EmitNeonFabd(
 inline
 int
 EmitNeonFacge(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3034,7 +3126,7 @@ EmitNeonFacge(
 inline
 int
 EmitNeonFacgt(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3048,7 +3140,7 @@ EmitNeonFacgt(
 inline
 int
 EmitNeonFadd(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3062,7 +3154,7 @@ EmitNeonFadd(
 inline
 int
 EmitNeonFaddp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3076,7 +3168,7 @@ EmitNeonFaddp(
 inline
 int
 EmitNeonFcmeq(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3094,7 +3186,7 @@ EmitNeonFcmeq(
 inline
 int
 EmitNeonFcmge(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3108,7 +3200,7 @@ EmitNeonFcmge(
 inline
 int
 EmitNeonFcmgt(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3122,7 +3214,7 @@ EmitNeonFcmgt(
 inline
 int
 EmitNeonFcmp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
     NEON_SIZE SrcSize
@@ -3135,7 +3227,7 @@ EmitNeonFcmp(
 inline
 int
 EmitNeonFcmp0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Src1,
     NEON_SIZE SrcSize
     )
@@ -3147,7 +3239,7 @@ EmitNeonFcmp0(
 inline
 int
 EmitNeonFcmpe(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
     NEON_SIZE SrcSize
@@ -3160,7 +3252,7 @@ EmitNeonFcmpe(
 inline
 int
 EmitNeonFcmpe0(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Src1,
     NEON_SIZE SrcSize
     )
@@ -3172,7 +3264,7 @@ EmitNeonFcmpe0(
 inline
 int
 EmitNeonFdiv(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3186,7 +3278,7 @@ EmitNeonFdiv(
 inline
 int
 EmitNeonFmax(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3200,7 +3292,7 @@ EmitNeonFmax(
 inline
 int
 EmitNeonFmaxnm(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3214,7 +3306,7 @@ EmitNeonFmaxnm(
 inline
 int
 EmitNeonFmaxnmp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3228,7 +3320,7 @@ EmitNeonFmaxnmp(
 inline
 int
 EmitNeonFmaxp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3242,7 +3334,7 @@ EmitNeonFmaxp(
 inline
 int
 EmitNeonFmin(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3256,7 +3348,7 @@ EmitNeonFmin(
 inline
 int
 EmitNeonFminnm(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3270,7 +3362,7 @@ EmitNeonFminnm(
 inline
 int
 EmitNeonFminnmp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3284,7 +3376,7 @@ EmitNeonFminnmp(
 inline
 int
 EmitNeonFminp(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3298,7 +3390,7 @@ EmitNeonFminp(
 inline
 int
 EmitNeonFmla(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3312,7 +3404,7 @@ EmitNeonFmla(
 inline
 int
 EmitNeonFmls(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3326,7 +3418,7 @@ EmitNeonFmls(
 inline
 int
 EmitNeonFmul(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3340,7 +3432,7 @@ EmitNeonFmul(
 inline
 int
 EmitNeonFmulx(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3354,7 +3446,7 @@ EmitNeonFmulx(
 inline
 int
 EmitNeonFnmul(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3368,7 +3460,7 @@ EmitNeonFnmul(
 inline
 int
 EmitNeonFrecps(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3382,7 +3474,7 @@ EmitNeonFrecps(
 inline
 int
 EmitNeonFrsqrts(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3396,7 +3488,7 @@ EmitNeonFrsqrts(
 inline
 int
 EmitNeonFsub(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -3414,7 +3506,7 @@ EmitNeonFsub(
 inline
 int
 EmitNeonShiftLeftImmediateCommon(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3440,7 +3532,7 @@ EmitNeonShiftLeftImmediateCommon(
 inline
 int
 EmitNeonShiftRightImmediateCommon(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3450,7 +3542,7 @@ EmitNeonShiftRightImmediateCommon(
     )
 {
     ULONG Size = SrcSize & 3;
-    NT_ASSERT(Immediate >= 0 && Immediate <= (8U << Size));
+    NT_ASSERT(Immediate <= (8U << Size));
 
     ULONG EffShift = (16 << Size) - Immediate;
 
@@ -3466,7 +3558,7 @@ EmitNeonShiftRightImmediateCommon(
 inline
 int
 EmitNeonRshrn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3480,7 +3572,7 @@ EmitNeonRshrn(
 inline
 int
 EmitNeonRshrn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3494,7 +3586,7 @@ EmitNeonRshrn2(
 inline
 int
 EmitNeonShl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3508,7 +3600,7 @@ EmitNeonShl(
 inline
 int
 EmitNeonShrn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3522,7 +3614,7 @@ EmitNeonShrn(
 inline
 int
 EmitNeonShrn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3536,7 +3628,7 @@ EmitNeonShrn2(
 inline
 int
 EmitNeonSli(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3550,7 +3642,7 @@ EmitNeonSli(
 inline
 int
 EmitNeonSqrshrn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3564,7 +3656,7 @@ EmitNeonSqrshrn(
 inline
 int
 EmitNeonSqrshrn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3578,7 +3670,7 @@ EmitNeonSqrshrn2(
 inline
 int
 EmitNeonSqrshrun(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3592,7 +3684,7 @@ EmitNeonSqrshrun(
 inline
 int
 EmitNeonSqrshrun2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3606,7 +3698,7 @@ EmitNeonSqrshrun2(
 inline
 int
 EmitNeonSqshl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3620,7 +3712,7 @@ EmitNeonSqshl(
 inline
 int
 EmitNeonSqshlu(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3634,7 +3726,7 @@ EmitNeonSqshlu(
 inline
 int
 EmitNeonSqshrn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3648,7 +3740,7 @@ EmitNeonSqshrn(
 inline
 int
 EmitNeonSqshrn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3662,7 +3754,7 @@ EmitNeonSqshrn2(
 inline
 int
 EmitNeonSri(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3676,7 +3768,7 @@ EmitNeonSri(
 inline
 int
 EmitNeonSrshr(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3690,7 +3782,7 @@ EmitNeonSrshr(
 inline
 int
 EmitNeonSrsra(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3704,7 +3796,7 @@ EmitNeonSrsra(
 inline
 int
 EmitNeonSshll(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3718,7 +3810,7 @@ EmitNeonSshll(
 inline
 int
 EmitNeonSshll2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3732,7 +3824,7 @@ EmitNeonSshll2(
 inline
 int
 EmitNeonSshr(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3746,7 +3838,7 @@ EmitNeonSshr(
 inline
 int
 EmitNeonSsra(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3760,7 +3852,7 @@ EmitNeonSsra(
 inline
 int
 EmitNeonSxtl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -3773,7 +3865,7 @@ EmitNeonSxtl(
 inline
 int
 EmitNeonSxtl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -3786,7 +3878,7 @@ EmitNeonSxtl2(
 inline
 int
 EmitNeonUqrshrn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3800,7 +3892,7 @@ EmitNeonUqrshrn(
 inline
 int
 EmitNeonUqrshrn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3814,7 +3906,7 @@ EmitNeonUqrshrn2(
 inline
 int
 EmitNeonUqshl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3828,7 +3920,7 @@ EmitNeonUqshl(
 inline
 int
 EmitNeonUqshrn(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3842,7 +3934,7 @@ EmitNeonUqshrn(
 inline
 int
 EmitNeonUqshrn2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3856,7 +3948,7 @@ EmitNeonUqshrn2(
 inline
 int
 EmitNeonUrshr(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3870,7 +3962,7 @@ EmitNeonUrshr(
 inline
 int
 EmitNeonUrsra(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3884,7 +3976,7 @@ EmitNeonUrsra(
 inline
 int
 EmitNeonUshll(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3898,7 +3990,7 @@ EmitNeonUshll(
 inline
 int
 EmitNeonUshll2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3912,7 +4004,7 @@ EmitNeonUshll2(
 inline
 int
 EmitNeonUshr(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3926,7 +4018,7 @@ EmitNeonUshr(
 inline
 int
 EmitNeonUsra(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG Immediate,
@@ -3940,7 +4032,7 @@ EmitNeonUsra(
 inline
 int
 EmitNeonUxtl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -3953,7 +4045,7 @@ EmitNeonUxtl(
 inline
 int
 EmitNeonUxtl2(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -3970,8 +4062,8 @@ EmitNeonUxtl2(
 inline
 int
 EmitNeonConvertScalarCommon(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize,
     ULONG Opcode
@@ -3983,8 +4075,8 @@ EmitNeonConvertScalarCommon(
 inline
 int
 EmitNeonFcvtzs(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
     )
@@ -3996,8 +4088,8 @@ EmitNeonFcvtzs(
 inline
 int
 EmitNeonFcvtzs64(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
     )
@@ -4009,8 +4101,8 @@ EmitNeonFcvtzs64(
 inline
 int
 EmitNeonFcvtzu(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
     )
@@ -4022,8 +4114,8 @@ EmitNeonFcvtzu(
 inline
 int
 EmitNeonFcvtzu64(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
     )
@@ -4035,8 +4127,8 @@ EmitNeonFcvtzu64(
 inline
 int
 EmitNeonFmovToGeneral(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
     )
@@ -4053,8 +4145,8 @@ EmitNeonFmovToGeneral(
 inline
 int
 EmitNeonFmovToGeneral64(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
     )
@@ -4071,8 +4163,8 @@ EmitNeonFmovToGeneral64(
 inline
 int
 EmitNeonFmovToGeneralHigh64(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
     )
@@ -4089,9 +4181,9 @@ EmitNeonFmovToGeneralHigh64(
 inline
 int
 EmitNeonConvertScalarCommon(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
-    ArmSimpleRegisterParam Src,
+    Arm64SimpleRegisterParam Src,
     NEON_SIZE DstSize,
     ULONG Opcode
     )
@@ -4102,9 +4194,9 @@ EmitNeonConvertScalarCommon(
 inline
 int
 EmitNeonFmovFromGeneral(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
-    ArmSimpleRegisterParam Src,
+    Arm64SimpleRegisterParam Src,
     NEON_SIZE DestSize
     )
 {
@@ -4120,9 +4212,9 @@ EmitNeonFmovFromGeneral(
 inline
 int
 EmitNeonFmovFromGeneral64(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
-    ArmSimpleRegisterParam Src,
+    Arm64SimpleRegisterParam Src,
     NEON_SIZE DestSize
     )
 {
@@ -4138,9 +4230,9 @@ EmitNeonFmovFromGeneral64(
 inline
 int
 EmitNeonFmovFromGeneralHigh64(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
-    ArmSimpleRegisterParam Src,
+    Arm64SimpleRegisterParam Src,
     NEON_SIZE DestSize
     )
 {
@@ -4152,9 +4244,9 @@ EmitNeonFmovFromGeneralHigh64(
 inline
 int
 EmitNeonScvtf(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
-    ArmSimpleRegisterParam Src,
+    Arm64SimpleRegisterParam Src,
     NEON_SIZE DstSize
     )
 {
@@ -4165,9 +4257,9 @@ EmitNeonScvtf(
 inline
 int
 EmitNeonScvtf64(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
-    ArmSimpleRegisterParam Src,
+    Arm64SimpleRegisterParam Src,
     NEON_SIZE DstSize
     )
 {
@@ -4178,9 +4270,9 @@ EmitNeonScvtf64(
 inline
 int
 EmitNeonUcvtf(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
-    ArmSimpleRegisterParam Src,
+    Arm64SimpleRegisterParam Src,
     NEON_SIZE DstSize
     )
 {
@@ -4191,9 +4283,9 @@ EmitNeonUcvtf(
 inline
 int
 EmitNeonUcvtf64(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
-    ArmSimpleRegisterParam Src,
+    Arm64SimpleRegisterParam Src,
     NEON_SIZE DstSize
     )
 {
@@ -4208,7 +4300,7 @@ EmitNeonUcvtf64(
 inline
 int
 EmitNeonMovElementCommon(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG SrcIndex,
@@ -4227,7 +4319,7 @@ EmitNeonMovElementCommon(
 inline
 int
 EmitNeonDupElement(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG SrcIndex,
@@ -4241,9 +4333,9 @@ EmitNeonDupElement(
 inline
 int
 EmitNeonDup(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
-    ArmSimpleRegisterParam Src,
+    Arm64SimpleRegisterParam Src,
     NEON_SIZE DestSize
     )
 {
@@ -4254,10 +4346,10 @@ EmitNeonDup(
 inline
 int
 EmitNeonIns(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     ULONG DestIndex,
-    ArmSimpleRegisterParam Src,
+    Arm64SimpleRegisterParam Src,
     NEON_SIZE DestSize
     )
 {
@@ -4268,8 +4360,8 @@ EmitNeonIns(
 inline
 int
 EmitNeonSmov(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG SrcIndex,
     NEON_SIZE SrcSize
@@ -4282,8 +4374,8 @@ EmitNeonSmov(
 inline
 int
 EmitNeonSmov64(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG SrcIndex,
     NEON_SIZE SrcSize
@@ -4296,8 +4388,8 @@ EmitNeonSmov64(
 inline
 int
 EmitNeonUmov(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG SrcIndex,
     NEON_SIZE SrcSize
@@ -4310,8 +4402,8 @@ EmitNeonUmov(
 inline
 int
 EmitNeonUmov64(
-    VPCCompilerCodeEmitter &Emitter,
-    ArmSimpleRegisterParam Dest,
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     ULONG SrcIndex,
     NEON_SIZE SrcSize
@@ -4328,7 +4420,7 @@ EmitNeonUmov64(
 inline
 int
 EmitNeonInsElement(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     ULONG DestIndex,
     NeonRegisterParam Src,
@@ -4355,7 +4447,7 @@ EmitNeonInsElement(
 inline
 int
 EmitNeonFcsel(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -4462,7 +4554,7 @@ ComputeNeonImmediate(
 inline
 int
 EmitNeonMovi(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     ULONG64 Immediate,
     NEON_SIZE DestSize
@@ -4492,7 +4584,7 @@ EmitNeonMovi(
 inline
 int
 EmitNeonTbl(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NeonRegisterParam Indices,
@@ -4518,7 +4610,7 @@ EmitNeonTbl(
 inline
 int
 EmitNeonExt(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src1,
     NeonRegisterParam Src2,
@@ -4540,10 +4632,10 @@ EmitNeonExt(
 inline
 int
 EmitNeonLdrStrOffsetCommon(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam SrcDest,
     NEON_SIZE SrcDestSize,
-    ArmSimpleRegisterParam Addr,
+    Arm64SimpleRegisterParam Addr,
     LONG Offset,
     ULONG Opcode,
     ULONG OpcodeUnscaled
@@ -4570,10 +4662,10 @@ EmitNeonLdrStrOffsetCommon(
 inline
 int
 EmitNeonLdrOffset(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NEON_SIZE DestSize,
-    ArmSimpleRegisterParam Addr,
+    Arm64SimpleRegisterParam Addr,
     LONG Offset
     )
 {
@@ -4583,10 +4675,10 @@ EmitNeonLdrOffset(
 inline
 int
 EmitNeonStrOffset(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Source,
     NEON_SIZE SourceSize,
-    ArmSimpleRegisterParam Addr,
+    Arm64SimpleRegisterParam Addr,
     LONG Offset
     )
 {
@@ -4600,11 +4692,11 @@ EmitNeonStrOffset(
 inline
 int
 EmitNeonLdpStpOffsetCommon(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam SrcDest1,
     NeonRegisterParam SrcDest2,
     NEON_SIZE SrcDestSize,
-    ArmSimpleRegisterParam Addr,
+    Arm64SimpleRegisterParam Addr,
     LONG Offset,
     ULONG Opcode
     )
@@ -4624,11 +4716,11 @@ EmitNeonLdpStpOffsetCommon(
 inline
 int
 EmitNeonLdpOffset(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest1,
     NeonRegisterParam Dest2,
     NEON_SIZE DestSize,
-    ArmSimpleRegisterParam Addr,
+    Arm64SimpleRegisterParam Addr,
     LONG Offset
     )
 {
@@ -4638,11 +4730,11 @@ EmitNeonLdpOffset(
 inline
 int
 EmitNeonStpOffset(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Source1,
     NeonRegisterParam Source2,
     NEON_SIZE SourceSize,
-    ArmSimpleRegisterParam Addr,
+    Arm64SimpleRegisterParam Addr,
     LONG Offset
     )
 {
@@ -4656,10 +4748,10 @@ EmitNeonStpOffset(
 inline
 int
 EmitNeonLd1St1Common(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam SrcDest,
     LONG Index,
-    ArmSimpleRegisterParam Addr,
+    Arm64SimpleRegisterParam Addr,
     NEON_SIZE SrcDestSize,
     ULONG Opcode
     )
@@ -4678,10 +4770,10 @@ EmitNeonLd1St1Common(
 inline
 int
 EmitNeonLd1(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam SrcDest,
     LONG Index,
-    ArmSimpleRegisterParam Addr,
+    Arm64SimpleRegisterParam Addr,
     NEON_SIZE SrcDestSize
     )
 {
@@ -4691,10 +4783,10 @@ EmitNeonLd1(
 inline
 int
 EmitNeonSt1(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam SrcDest,
     LONG Index,
-    ArmSimpleRegisterParam Addr,
+    Arm64SimpleRegisterParam Addr,
     NEON_SIZE SrcDestSize
     )
 {
@@ -4708,7 +4800,7 @@ EmitNeonSt1(
 inline
 int
 EmitNeonAesD(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -4725,7 +4817,7 @@ EmitNeonAesD(
 inline
 int
 EmitNeonAesE(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -4742,7 +4834,7 @@ EmitNeonAesE(
 inline
 int
 EmitNeonAesImc(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
@@ -4759,7 +4851,7 @@ EmitNeonAesImc(
 inline
 int
 EmitNeonAesMc(
-    VPCCompilerCodeEmitter &Emitter,
+    Arm64CodeEmitter &Emitter,
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize

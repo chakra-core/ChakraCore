@@ -242,9 +242,9 @@ public:
             static RegNum       GetRegReturn(IRType type) { return IRType_IsFloat(type) ? RegNOREG : RegR0; }
             static RegNum       GetRegArgI4(int32 argNum) { return RegNOREG; }
             static RegNum       GetRegArgR8(int32 argNum) { return RegNOREG; }
-            static Js::OpCode   GetLoadOp(IRType type) { return type == TyFloat64? Js::OpCode::VLDR : ((type == TyFloat32)? Js::OpCode::VLDR32 : Js::OpCode::LDR); }
-            static Js::OpCode   GetStoreOp(IRType type) { return type == TyFloat64? Js::OpCode::VSTR : ((type == TyFloat32)? Js::OpCode::VSTR32 : Js::OpCode::STR); }
-            static Js::OpCode   GetMoveOp(IRType type) { return IRType_IsFloat(type) ? Js::OpCode::VMOV : Js::OpCode::MOV; }
+            static Js::OpCode   GetLoadOp(IRType type) { return IRType_IsFloat(type) ? Js::OpCode::FLDR : Js::OpCode::LDR; }
+            static Js::OpCode   GetStoreOp(IRType type) { return IRType_IsFloat(type) ? Js::OpCode::FSTR : Js::OpCode::STR; }
+            static Js::OpCode   GetMoveOp(IRType type) { return IRType_IsFloat(type) ? Js::OpCode::FMOV : Js::OpCode::MOV; }
 
             static BYTE         GetDefaultIndirScale()
             {

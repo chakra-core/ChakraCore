@@ -12,8 +12,8 @@ const Js::OpCode LowererMD::MDOrOpcode = Js::OpCode::ORR;
 const Js::OpCode LowererMD::MDXorOpcode = Js::OpCode::EOR;
 const Js::OpCode LowererMD::MDOverflowBranchOpcode = Js::OpCode::BVS;
 const Js::OpCode LowererMD::MDNotOverflowBranchOpcode = Js::OpCode::BVC;
-const Js::OpCode LowererMD::MDConvertFloat32ToFloat64Opcode = Js::OpCode::VCVTF64F32;
-const Js::OpCode LowererMD::MDConvertFloat64ToFloat32Opcode = Js::OpCode::VCVTF32F64;
+const Js::OpCode LowererMD::MDConvertFloat32ToFloat64Opcode = Js::OpCode::FCVTF64F32;
+const Js::OpCode LowererMD::MDConvertFloat64ToFloat32Opcode = Js::OpCode::FCVTF32F64;
 const Js::OpCode LowererMD::MDCallOpcode = Js::OpCode::Call;
 const Js::OpCode LowererMD::MDImulOpcode = Js::OpCode::MUL;
 
@@ -31,14 +31,12 @@ bool
 LowererMD::IsAssign(const IR::Instr *instr)
 {
     return (instr->m_opcode == Js::OpCode::MOV ||
-            instr->m_opcode == Js::OpCode::VMOV ||
+            instr->m_opcode == Js::OpCode::FMOV ||
             instr->m_opcode == Js::OpCode::LDIMM ||
             instr->m_opcode == Js::OpCode::LDR ||
-            instr->m_opcode == Js::OpCode::VLDR ||
-            instr->m_opcode == Js::OpCode::VLDR32 ||
+            instr->m_opcode == Js::OpCode::FLDR ||
             instr->m_opcode == Js::OpCode::STR ||
-            instr->m_opcode == Js::OpCode::VSTR ||
-            instr->m_opcode == Js::OpCode::VSTR32);
+            instr->m_opcode == Js::OpCode::FSTR);
 }
 
 ///----------------------------------------------------------------------------
@@ -151,11 +149,11 @@ LowererMD::MDConvertFloat64ToInt32Opcode(const RoundMode roundMode)
     switch (roundMode)
     {
     case RoundModeTowardZero:
-        return Js::OpCode::VCVTS32F64;
+        return Js::OpCode::FCVTS32F64;
     case RoundModeTowardInteger:
         return Js::OpCode::Nop;
     case RoundModeHalfToEven:
-        return Js::OpCode::VCVTRS32F64;
+        return Js::OpCode::FCVTRS32F64;
     default:
         AssertMsg(0, "RoundMode has no MD mapping.");
         return Js::OpCode::Nop;
@@ -279,7 +277,7 @@ LowererMD::LowerCall(IR::Instr * callInstr, Js::ArgSlot argCount)
         IR::Instr * movInstr;
         if(dstOpnd->IsFloat64())
         {
-            movInstr = callInstr->SinkDst(Js::OpCode::VMOV);
+            movInstr = callInstr->SinkDst(Js::OpCode::FMOV);
 
             callInstr->GetDst()->AsRegOpnd()->SetReg(RETURN_DBL_REG);
             movInstr->GetSrc1()->AsRegOpnd()->SetReg(RETURN_DBL_REG);
@@ -2383,7 +2381,7 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType type)
     else if(type == TyFloat32 && instr->GetDst()->IsRegOpnd())
     {
         Assert(instr->GetSrc1()->IsFloat32());
-        instr->m_opcode = Js::OpCode::VLDR32;
+        instr->m_opcode = Js::OpCode::FLDR;
 
         // Note that we allocate double register for single precision floats as well, as the register allocator currently
         // does not support 32-bit float registers
@@ -2615,7 +2613,7 @@ void LowererMD::ChangeToAdd(IR::Instr *const instr, const bool needFlags)
         Assert(instr->GetSrc1()->IsFloat64());
         Assert(instr->GetSrc2()->IsFloat64());
         Assert(!needFlags);
-        instr->m_opcode = Js::OpCode::VADDF64;
+        instr->m_opcode = Js::OpCode::FADD;
         return;
     }
 
@@ -2634,7 +2632,7 @@ void LowererMD::ChangeToSub(IR::Instr *const instr, const bool needFlags)
         Assert(instr->GetSrc1()->IsFloat64());
         Assert(instr->GetSrc2()->IsFloat64());
         Assert(!needFlags);
-        instr->m_opcode = Js::OpCode::VSUBF64;
+        instr->m_opcode = Js::OpCode::FSUB;
         return;
     }
 
@@ -2770,15 +2768,11 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
                 Assert(opndSrc2->IsFloat64());
                 Assert(opndSrc2->IsRegOpnd() && opndSrc1->IsRegOpnd());
                 //This comparison updates the FPSCR - floating point status control register
-                instrPrev = IR::Instr::New(Js::OpCode::VCMPF64, this->m_func);
+                instrPrev = IR::Instr::New(Js::OpCode::FCMP, this->m_func);
                 instrPrev->SetSrc1(opndSrc1);
                 instrPrev->SetSrc2(opndSrc2);
                 instr->InsertBefore(instrPrev);
                 LegalizeMD::LegalizeInstr(instrPrev, false);
-
-                //Transfer the result to ARM status register control register.
-                instrPrev = IR::Instr::New(Js::OpCode::VMRS, this->m_func);
-                instr->InsertBefore(instrPrev);
 
                 instr->m_opcode = LowererMD::MDBranchOpcode(instr->m_opcode);
             }
@@ -5704,7 +5698,7 @@ LowererMD::EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *inse
         Assert(dst->IsRegOpnd());
 
         // VLDR dst, [pResult].f64
-        instr = IR::Instr::New(Js::OpCode::VLDR, dst, tempSymOpnd, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::FLDR, dst, tempSymOpnd, this->m_func);
         insertInstr->InsertBefore(instr);
         LegalizeMD::LegalizeInstr(instr, false);
     }
@@ -5728,7 +5722,7 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
         Js::Var value = regOpnd->m_sym->GetFloatConstValueAsVar_PostGlobOpt();
         IR::MemRefOpnd *memRef = IR::MemRefOpnd::New((BYTE*)value + Js::JavascriptNumber::GetValueOffset(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
         regFloatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::VLDR, regFloatOpnd, memRef, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::FLDR, regFloatOpnd, memRef, this->m_func);
         insertInstr->InsertBefore(instr);
         LegalizeMD::LegalizeInstr(instr, false);
         isFloatConst = true;
@@ -5746,16 +5740,16 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
         {
             // VCVT.F32.F64 regOpnd32.f32, regOpnd.f64    -- Convert regOpnd from f64 to f32
             IR::RegOpnd *regOpnd32 = regFloatOpnd->UseWithNewType(TyFloat32, this->m_func)->AsRegOpnd();
-            instr = IR::Instr::New(Js::OpCode::VCVTF32F64, regOpnd32, regFloatOpnd, this->m_func);
+            instr = IR::Instr::New(Js::OpCode::FCVTF32F64, regOpnd32, regFloatOpnd, this->m_func);
             insertInstr->InsertBefore(instr);
 
             // VSTR32 dst, regOpnd32
-            instr = IR::Instr::New(Js::OpCode::VMOV, dst, regOpnd32, this->m_func);
+            instr = IR::Instr::New(Js::OpCode::FMOV, dst, regOpnd32, this->m_func);
             insertInstr->InsertBefore(instr);
         }
         else
         {
-            instr = IR::Instr::New(Js::OpCode::VMOV, dst, regFloatOpnd, this->m_func);
+            instr = IR::Instr::New(Js::OpCode::FMOV, dst, regFloatOpnd, this->m_func);
             insertInstr->InsertBefore(instr);
         }
         LegalizeMD::LegalizeInstr(instr, false);
@@ -5784,17 +5778,17 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
     {
         IR::RegOpnd *reg2_32 = reg2->UseWithNewType(TyFloat32, this->m_func)->AsRegOpnd();
         // VCVT.F32.F64 r2_32.f32, r2.f64    -- Convert regOpnd from f64 to f32
-        instr = IR::Instr::New(Js::OpCode::VCVTF32F64, reg2_32, reg2, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::FCVTF32F64, reg2_32, reg2, this->m_func);
         insertInstr->InsertBefore(instr);
 
         // VMOV dst, r2_32
-        instr = IR::Instr::New(Js::OpCode::VMOV, dst, reg2_32, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::FMOV, dst, reg2_32, this->m_func);
         insertInstr->InsertBefore(instr);
     }
     else
     {
         // VMOV dst, r2
-        instr = IR::Instr::New(Js::OpCode::VMOV, dst, reg2, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::FMOV, dst, reg2, this->m_func);
         insertInstr->InsertBefore(instr);
     }
     LegalizeMD::LegalizeInstr(instr, false);
@@ -5900,8 +5894,7 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, I
 
     if (dst->IsRegOpnd())
     {
-        Js::OpCode opcode = (dst->GetType() == TyFloat32)? Js::OpCode::VLDR32: Js::OpCode::VLDR;
-        instr = IR::Instr::New(opcode, dst , memAddress, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::FLDR, dst , memAddress, this->m_func);
         insertInstr->InsertBefore(instr);
         LegalizeMD::LegalizeInstr(instr, false);
     }
@@ -6102,7 +6095,7 @@ LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::In
     }
 
     // VSTR dst->value, opndFloat   ; copy the float result to the temp JavascriptNumber
-    newInstr = IR::Instr::New(Js::OpCode::VSTR, symDblDst, opndFloat, this->m_func);
+    newInstr = IR::Instr::New(Js::OpCode::FSTR, symDblDst, opndFloat, this->m_func);
     instrInsert->InsertBefore(newInstr);
     LegalizeMD::LegalizeInstr(newInstr, false);
 
@@ -6262,12 +6255,12 @@ LowererMD::GenerateFastAbs(IR::Opnd *dst, IR::Opnd *src, IR::Instr *callInstr, I
         // VLDR dx, [src + offsetof(value)]
         opnd = IR::IndirOpnd::New(src->AsRegOpnd(), Js::JavascriptNumber::GetValueOffset(), TyMachDouble, this->m_func);
         IR::RegOpnd *regOpnd = IR::RegOpnd::New(TyMachDouble, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::VLDR, regOpnd, opnd, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::FLDR, regOpnd, opnd, this->m_func);
         insertInstr->InsertBefore(instr);
 
         // VABS.f64 dy, dx
         IR::RegOpnd *resultRegOpnd = IR::RegOpnd::New(TyMachDouble, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::VABS, resultRegOpnd, regOpnd, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::FABS, resultRegOpnd, regOpnd, this->m_func);
         insertInstr->InsertBefore(instr);
 
          // dst = DoubleToVar(dy)
@@ -7718,7 +7711,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
         //       dst = VSQRT src1
         Assert(helperMethod == (IR::JnHelperMethod)0);
         Assert(instr->GetSrc2() == nullptr);
-        instr->m_opcode = Js::OpCode::VSQRT;
+        instr->m_opcode = Js::OpCode::FSQRT;
         LegalizeMD::LegalizeInstr(instr, /* fPostRegAlloc = */ false);
         break;
 
@@ -7930,7 +7923,7 @@ LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr *inlineInstr)
     else if (srcType == IRType::TyFloat64)
     {
         // VABS dst, src
-        tmpInstr = IR::Instr::New(Js::OpCode::VABS, dst, src, this->m_func);
+        tmpInstr = IR::Instr::New(Js::OpCode::FABS, dst, src, this->m_func);
         nextInstr->InsertBefore(tmpInstr);
     }
     else
@@ -7942,6 +7935,9 @@ LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr *inlineInstr)
 void
 LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
 {
+    Assert(false);
+    // ARM64_WORKITEM: This is FRINTM -- implement me
+/*
     Assert(instr->GetDst()->IsInt32());
 
     IR::LabelInstr * checkNegZeroLabelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
@@ -7953,19 +7949,17 @@ LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
     IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
     this->m_lowerer->InsertMove(floatOpnd, src, instr);
 
-    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);;
+    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);;
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
     
     // NaN check
-    IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::VCMPF64, this->m_func);
+    IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::FCMP, this->m_func);
     instrCmp->SetSrc1(floatOpnd);
     instrCmp->SetSrc2(floatOpnd);
     instr->InsertBefore(instrCmp);
     LegalizeMD::LegalizeInstr(instrCmp, false);
 
-    // VMRS APSR, FPSCR
     // BVS  $bailoutLabel
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::VMRS, this->m_func));
     instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::BVS, bailoutLabel, this->m_func));
 
     IR::Opnd * zeroReg = IR::RegOpnd::New(TyFloat64, this->m_func);
@@ -8035,11 +8029,15 @@ LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
     doneLabel->InsertAfter(movInstr);
+    */
 }
 
 void
 LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
 {
+    Assert(false);
+    // ARM64_WORKITEM: This is FRINTP -- implement me
+/*
     Assert(instr->GetDst()->IsInt32());
 
     IR::LabelInstr * checkNegZeroLabelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
@@ -8051,7 +8049,7 @@ LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
     IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
     this->m_lowerer->InsertMove(floatOpnd, src, instr);
 
-    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);;
+    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);;
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
 
     // NaN check
@@ -8137,12 +8135,15 @@ LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
 
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
-    doneLabel->InsertAfter(movInstr);
+    doneLabel->InsertAfter(movInstr);*/
 }
 
 void
 LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
 {
+    Assert(false);
+    // ARM64_WORKITEM: This is add 0.5 then FRINTM
+/*
     Assert(instr->GetDst()->IsInt32());
 
     IR::LabelInstr * checkNegZeroLabelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
@@ -8154,7 +8155,7 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
     this->m_lowerer->InsertMove(floatOpnd, src, instr);
 
-    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);;
+    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);;
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
     
     // NaN check
@@ -8245,6 +8246,7 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
     doneLabel->InsertAfter(movInstr);
+*/
 }
 
 IR::Opnd* LowererMD::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)
@@ -8265,23 +8267,23 @@ LowererMD::LowerToFloat(IR::Instr *instr)
     switch (instr->m_opcode)
     {
     case Js::OpCode::Add_A:
-        instr->m_opcode = Js::OpCode::VADDF64;
+        instr->m_opcode = Js::OpCode::FADD;
         break;
 
     case Js::OpCode::Sub_A:
-        instr->m_opcode = Js::OpCode::VSUBF64;
+        instr->m_opcode = Js::OpCode::FSUB;
         break;
 
     case Js::OpCode::Mul_A:
-        instr->m_opcode = Js::OpCode::VMULF64;
+        instr->m_opcode = Js::OpCode::FMUL;
         break;
 
     case Js::OpCode::Div_A:
-        instr->m_opcode = Js::OpCode::VDIVF64;
+        instr->m_opcode = Js::OpCode::FDIV;
         break;
 
     case Js::OpCode::Neg_A:
-        instr->m_opcode = Js::OpCode::VNEGF64;
+        instr->m_opcode = Js::OpCode::FNEG;
         break;
 
     case Js::OpCode::BrEq_A:
@@ -8321,13 +8323,11 @@ LowererMD::LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNaN)
     IR::Opnd *src1 = instrBranch->UnlinkSrc1();
     IR::Opnd *src2 = instrBranch->UnlinkSrc2();
 
-    IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::VCMPF64, func);
+    IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::FCMP, func);
     instrCmp->SetSrc1(src1);
     instrCmp->SetSrc2(src2);
     instrBranch->InsertBefore(instrCmp);
     LegalizeMD::LegalizeInstr(instrCmp, false);
-
-    instrBranch->InsertBefore(IR::Instr::New(Js::OpCode::VMRS, func));
 
     switch (instrBranch->m_opcode)
     {
@@ -8406,11 +8406,11 @@ LowererMD::EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
     Assert(dst->IsRegOpnd() && dst->IsFloat64());
     Assert(src->IsRegOpnd() && src->IsInt32());
 
-    instr = IR::Instr::New(Js::OpCode::VMOVARMVFP, floatReg, src, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::FMOV_GEN, floatReg, src, this->m_func);
     instrInsert->InsertBefore(instr);
 
     // Convert to Float
-    instr = IR::Instr::New(Js::OpCode::VCVTF64S32, dst, floatReg, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::FCVTF64S32, dst, floatReg, this->m_func);
     instrInsert->InsertBefore(instr);
 }
 
@@ -8423,11 +8423,11 @@ LowererMD::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
     Assert(dst->IsRegOpnd() && dst->IsFloat64());
     Assert(src->IsRegOpnd() && src->IsInt32());
 
-    instr = IR::Instr::New(Js::OpCode::VMOVARMVFP, floatReg, src, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::FMOV_GEN, floatReg, src, this->m_func);
     instrInsert->InsertBefore(instr);
 
     // Convert to Float
-    instr = IR::Instr::New(Js::OpCode::VCVTF64U32, dst, floatReg, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::FCVTF64U32, dst, floatReg, this->m_func);
     instrInsert->InsertBefore(instr);
 }
 
@@ -8439,12 +8439,12 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
     IR::RegOpnd *floatReg = IR::RegOpnd::New(TyFloat32, this->m_func);
     // VCVTS32F64 dst.i32, src.f64
     // Convert to int
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::VCVTS32F64, floatReg, floatOpnd, this->m_func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::FCVTS32F64, floatReg, floatOpnd, this->m_func);
     instrInsert->InsertBefore(instr);
     Legalize(instr);
 
     //Move to integer reg
-    instr = IR::Instr::New(Js::OpCode::VMOVARMVFP, intOpnd, floatReg, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::FMOV_GEN, intOpnd, floatReg, this->m_func);
     instrInsert->InsertBefore(instr);
     Legalize(instr);
 
@@ -8570,6 +8570,7 @@ LowererMD::InsertConvertFloat64ToInt32(const RoundMode roundMode, IR::Opnd *cons
     switch (roundMode)
     {
         case RoundModeTowardInteger:
+        case RoundModeHalfToEven:
         {
             // Conversion with rounding towards nearest integer is not supported by the architecture. Add 0.5 and do a
             // round-toward-zero conversion instead.
@@ -8588,44 +8589,6 @@ LowererMD::InsertConvertFloat64ToInt32(const RoundMode roundMode, IR::Opnd *cons
             insertBeforeInstr->InsertBefore(instr);
             LowererMD::Legalize(instr);
             return instr;
-        }
-        case RoundModeHalfToEven:
-        {
-            // On ARM we need to set the rounding mode bits of the FPSCR.
-            // These are bits 22 and 23 and we need them to be off for "Round to Nearest (RN) mode"
-            // After doing the convert (via VCVTRS32F64) we need to restore the original FPSCR state.
-
-            // VMRS  Rorig, FPSCR
-            // VMRS  Rt, FPSCR
-            // BIC   Rt, Rt, 0xC00000
-            // VMSR  FPSCR, Rt
-            IR::Opnd* regOrig = IR::RegOpnd::New(TyInt32, func);
-            IR::Opnd* reg = IR::RegOpnd::New(TyInt32, func);
-            insertBeforeInstr->InsertBefore(
-                IR::Instr::New(Js::OpCode::VMRSR, regOrig, func));
-            insertBeforeInstr->InsertBefore(
-                IR::Instr::New(Js::OpCode::VMRSR, reg, func));
-            insertBeforeInstr->InsertBefore(
-                IR::Instr::New(Js::OpCode::BIC, reg, reg, IR::IntConstOpnd::New(0xC00000, IRType::TyInt32, func), func));
-
-            IR::Instr* setFPSCRInstr = IR::Instr::New(Js::OpCode::VMSR, func);
-            setFPSCRInstr->SetSrc1(reg);
-            insertBeforeInstr->InsertBefore(setFPSCRInstr);
-
-            // VCVTRS32F64 floatreg, regSrc
-            IR::RegOpnd *floatReg = IR::RegOpnd::New(TyFloat32, func);
-            insertBeforeInstr->InsertBefore(
-                IR::Instr::New(LowererMD::MDConvertFloat64ToInt32Opcode(RoundModeHalfToEven), floatReg, src, func));
-
-            // VMOVARMVFP regOpnd, floatReg
-            insertBeforeInstr->InsertBefore(IR::Instr::New(Js::OpCode::VMOVARMVFP, dst, floatReg, func));
-
-            // VMSR FPSCR, Rorig
-            IR::Instr* restoreFPSCRInstr = IR::Instr::New(Js::OpCode::VMSR, func);
-            restoreFPSCRInstr->SetSrc1(regOrig);
-            insertBeforeInstr->InsertBefore(restoreFPSCRInstr);
-
-            return restoreFPSCRInstr;
         }
         default:
             AssertMsg(0, "RoundMode not supported.");
@@ -8672,7 +8635,7 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
     {
         opnd = IR::MemRefOpnd::New((void*)pValue, TyMachDouble, instrInsert->m_func);
     }
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::VLDR, opndDst, opnd, instrInsert->m_func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::FLDR, opndDst, opnd, instrInsert->m_func);
     instrInsert->InsertBefore(instr);
     LegalizeMD::LegalizeInstr(instr,false);
     return instr;
@@ -8725,7 +8688,7 @@ void LowererMD::LoadFloatValue(IR::RegOpnd * javascriptNumber, IR::RegOpnd * opn
 
     // VLDR opndFloat, [number + offsetof(value)]
     opnd = IR::IndirOpnd::New(javascriptNumber, Js::JavascriptNumber::GetValueOffset(), TyMachDouble, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::VLDR, opndFloat, opnd, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::FLDR, opndFloat, opnd, this->m_func);
     instrInsert->InsertBefore(instr);
 }
 
@@ -8735,7 +8698,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
 {
     Func *const func = instr->m_func;
 
-    if(instr->m_opcode == Js::OpCode::VCVTS32F64 && instr->GetDst()->IsInt32())
+    if(instr->m_opcode == Js::OpCode::FCVTS32F64 && instr->GetDst()->IsInt32())
     {
         if (verify)
         {
@@ -8746,10 +8709,10 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         // This needs to be split into two steps
         IR::RegOpnd *const float32Reg = IR::RegOpnd::New(TyFloat32, func);
         const IR::AutoReuseOpnd autoReuseFloat32Reg(float32Reg, func);
-        IR::Instr *const newInstr = IR::Instr::New(Js::OpCode::VCVTS32F64, float32Reg, instr->GetSrc1(), func);
+        IR::Instr *const newInstr = IR::Instr::New(Js::OpCode::FCVTS32F64, float32Reg, instr->GetSrc1(), func);
         instr->InsertBefore(newInstr);
         LegalizeMD::LegalizeInstr(newInstr, false);
-        instr->m_opcode = Js::OpCode::VMOVARMVFP;
+        instr->m_opcode = Js::OpCode::FMOV_GEN;
         instr->ReplaceSrc1(float32Reg);
     }
 
@@ -8882,7 +8845,7 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
             LegalizeMD::LegalizeSrc(instr, instr->GetSrc1(), 1, true);
             return true;
         }
-        instr->m_opcode = (instr->GetSrc1()->GetType() == TyMachDouble) ? Js::OpCode::VMOV : Js::OpCode::MOV;
+        instr->m_opcode = (instr->GetSrc1()->GetType() == TyMachDouble) ? Js::OpCode::FMOV : Js::OpCode::MOV;
     }
     else if (EncoderMD::IsStore(instr))
     {
@@ -8892,7 +8855,7 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
             LegalizeMD::LegalizeDst(instr, true);
             return true;
         }
-        instr->m_opcode = (instr->GetDst()->GetType() == TyMachDouble) ? Js::OpCode::VMOV : Js::OpCode::MOV;
+        instr->m_opcode = (instr->GetDst()->GetType() == TyMachDouble) ? Js::OpCode::FMOV : Js::OpCode::MOV;
     }
     else if (instr->m_opcode == Js::OpCode::LDARGOUTSZ)
     {

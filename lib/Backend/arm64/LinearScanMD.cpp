@@ -113,12 +113,12 @@ LinearScanMD::InsertOpHelperSpillsAndRestores(const OpHelperBlock& opHelperBlock
             {
                 sym = EnsureSpillSymForVFPReg(regOpnd->GetReg(), this->func);
             }
-            IR::Instr * pushInstr = IR::Instr::New(Js::OpCode::VSTR, IR::SymOpnd::New(sym, TyMachDouble, this->func), regOpnd, this->func);
+            IR::Instr * pushInstr = IR::Instr::New(Js::OpCode::FSTR, IR::SymOpnd::New(sym, TyMachDouble, this->func), regOpnd, this->func);
             opHelperBlock.opHelperLabel->InsertAfter(pushInstr);
             pushInstr->CopyNumber(opHelperBlock.opHelperLabel);
             if (opHelperSpilledLifetime.reload)
             {
-                IR::Instr * popInstr = IR::Instr::New(Js::OpCode::VLDR, regOpnd, IR::SymOpnd::New(sym, TyMachDouble, this->func), this->func);
+                IR::Instr * popInstr = IR::Instr::New(Js::OpCode::FLDR, regOpnd, IR::SymOpnd::New(sym, TyMachDouble, this->func), this->func);
                 opHelperBlock.opHelperEndInstr->InsertBefore(popInstr);
                 popInstr->CopyNumber(opHelperBlock.opHelperEndInstr);
             }

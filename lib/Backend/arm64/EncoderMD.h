@@ -229,4 +229,10 @@ private:
 
     // Misc operations
     template<typename _Emitter, typename _Emitter64> int EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter, _Emitter64 emitter64);
+
+    // Floating point instructions
+    template<typename _Emitter> int EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter);
+    template<typename _Emitter> int EmitOp3FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter);
+    template<typename _LoadStoreFunc> int EmitLoadStoreFp(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd, IR::Opnd* srcDstOpnd, _LoadStoreFunc loadStore);
+    template<typename _LoadStoreFunc> int EmitLoadStoreFpPair(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd, IR::Opnd* srcDst1Opnd, IR::Opnd* srcDst2Opnd, _LoadStoreFunc loadStore);
 };
