@@ -422,6 +422,7 @@ LowererMD::GenerateFunctionObjectTest(IR::Instr * callInstr, IR::RegOpnd  *funct
             instr->SetSrc1(functionObjOpnd);
             instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func));
             callInstr->InsertBefore(instr);
+            LegalizeMD::LegalizeInstr(instr, false);
 
             // BNE $helper
             // B $callLabel
@@ -3569,6 +3570,7 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
     instr->SetSrc1(opndReg1);
     instr->SetSrc2(opndReg1);
     instrMul->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     //      BNE $result       -- TODO: consider converting 2 instructions into one: CBZ s1, $zero
     instr = IR::BranchInstr::New(Js::OpCode::BNE, labelResult, this->m_func);
@@ -3691,6 +3693,7 @@ LowererMD::GenerateFastAnd(IR::Instr * instrAnd)
     instr->SetSrc1(dst);
     instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func));
     instrAnd->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     if (dst == instrAnd->GetDst())
@@ -3896,6 +3899,7 @@ LowererMD::GenerateFastNot(IR::Instr * instrNot)
         instr->SetSrc1(src);
         instr->SetSrc2(IR::IntConstOpnd::New(1, TyMachReg, this->m_func));
         instrNot->InsertBefore(instr);
+        LegalizeMD::LegalizeInstr(instr, false);
 
         //     BEQ $helper
         labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
@@ -4251,6 +4255,7 @@ LowererMD::GenerateSmIntPairTest(
         instr->SetSrc1(opndSrc1);
         instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyVar, this->m_func));
         instrInsert->InsertBefore(instr);
+        LegalizeMD::LegalizeInstr(instr, false);
     }
     else
     {
@@ -4272,6 +4277,7 @@ LowererMD::GenerateSmIntPairTest(
         instr->SetSrc1(opndReg);
         instr->SetSrc2(opndSrc2);
         instrInsert->InsertBefore(instr);
+        LegalizeMD::LegalizeInstr(instr, false);
     }
 
     //      BEQ $fail
@@ -4295,6 +4301,7 @@ void LowererMD::GenerateObjectPairTest(IR::Opnd * opndSrc1, IR::Opnd * opndSrc2,
     instr->SetSrc1(opndOr);
     instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag_IntPtr, TyMachReg, this->m_func));
     insertInstr->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     instr = IR::BranchInstr::New(Js::OpCode::BNE, labelTarget, this->m_func);
     insertInstr->InsertBefore(instr);
@@ -4320,6 +4327,7 @@ bool LowererMD::GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, 
     instr->SetSrc1(opndSrc);
     instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag_IntPtr, TyMachReg, this->m_func));
     insertInstr->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     if (fContinueLabel)
     {
@@ -5127,6 +5135,7 @@ void LowererMD::GenerateSmIntTest(IR::Opnd *opndSrc, IR::Instr *insertInstr, IR:
     instr->SetSrc1(opndSrc);
     instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyInt32, this->m_func));
     insertInstr->InsertBefore(instr);
+    LegalizeMD::LegalizeInstr(instr, false);
 
     if(fContinueLabel)
     {
@@ -5671,6 +5680,7 @@ LowererMD::EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *inse
         instr->SetSrc1(regBoolResult);
         instr->SetSrc2(regBoolResult);
         insertInstr->InsertBefore(instr);
+        LegalizeMD::LegalizeInstr(instr, false);
 
         // BNE $noBailOut
         labelNoBailOut = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
