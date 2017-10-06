@@ -71,6 +71,7 @@ namespace Js
         Field(PropertyStringMap*) propertyStrings[80];
         Field(JavascriptString *) lastNumberToStringRadix10String;
         Field(EnumeratedObjectCache) enumObjCache;
+        Field(ObjectTypeCache) objectTypeCache[ObjectTypeCache::MaxCachedTypes];
         Field(JavascriptString *) lastUtcTimeFromStrString;
         Field(EvalCacheDictionary*) evalCacheDictionary;
         Field(EvalCacheDictionary*) indirectEvalCacheDictionary;
@@ -360,6 +361,7 @@ namespace Js
         Field(DynamicType *) numberTypeDynamic;
         Field(DynamicType *) objectTypes[PreInitializedObjectTypeCount];
         Field(DynamicType *) objectHeaderInlinedTypes[PreInitializedObjectTypeCount];
+        Field(DynamicType *) nullPrototypeObjectType;
         Field(DynamicType *) regexPrototypeType;
         Field(DynamicType *) regexType;
         Field(DynamicType *) regexResultType;
@@ -813,6 +815,7 @@ namespace Js
         DynamicType * GetObjectLiteralType(uint16 requestedInlineSlotCapacity);
         DynamicType * GetObjectHeaderInlinedLiteralType(uint16 requestedInlineSlotCapacity);
         DynamicType * GetObjectType() const { return objectTypes[0]; }
+        DynamicType * GetNullPrototypeObjectType() const { return nullPrototypeObjectType; }
         DynamicType * GetObjectHeaderInlinedType() const { return objectHeaderInlinedTypes[0]; }
         StaticType  * GetSymbolTypeStatic() const { return symbolTypeStatic; }
         DynamicType * GetSymbolTypeDynamic() const { return symbolTypeDynamic; }
@@ -1077,6 +1080,9 @@ namespace Js
         DynamicType* CreateObjectTypeNoCache(RecyclableObject* prototype, Js::TypeId typeId);
         DynamicType* CreateObjectType(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity);
         DynamicObject* CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity = 0);
+
+        // Finds or creates a shareable DynamicType with a given prototype object
+        DynamicType * GetObjectType(_In_ RecyclableObject* prototype);
 
         typedef JavascriptString* LibStringType; // used by diagnostics template
         template< size_t N > JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[N]) const;

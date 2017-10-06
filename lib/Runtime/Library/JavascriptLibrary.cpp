@@ -653,6 +653,9 @@ namespace Js
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr, typeHandler, true, true);
         }
 
+        SimplePathTypeHandler * typeHandler = SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true);
+        nullPrototypeObjectType = DynamicType::New(scriptContext, TypeIds_Object, nullValue, nullptr, typeHandler, true, true);
+
         // Initialize regex types
         TypePath *const regexResultPath = TypePath::New(recycler);
         regexResultPath->Add(BuiltInPropertyRecords::input);
@@ -7271,6 +7274,24 @@ namespace Js
         return BuiltinFunction::None;
     }
 #endif
+
+    DynamicType* JavascriptLibrary::GetObjectType(_In_ RecyclableObject* prototype)
+    {
+        // If prototype is Object.prototype, use our normal Object Type
+        if (this->GetObjectPrototype() == prototype)
+        {
+            return GetObjectType();
+        }
+
+        // Object.create(null) is a common case, so we keep a Type especially for this
+        if (JavascriptOperators::IsNull(prototype))
+        {
+            return this->GetNullPrototypeObjectType();
+        }
+
+        // If prototype is some other object, find/add one to the cache
+        return this->cache.objectTypeCache->FindOrCreateType(prototype);
+    }
 
     // Parses given flags and arg kind (dst or src1, or src2) returns the type the arg must be type-specialized to.
     // static
