@@ -199,10 +199,34 @@ private:
     BYTE *          m_pc;
     EncodeReloc *   m_relocList;
 private:
-    ULONG           GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size);
+    ULONG           GenerateEncoding(IR::Instr* instr, BYTE *pc);
     bool            CanonicalizeInstr(IR::Instr *instr);
     void            CanonicalizeLea(IR::Instr * instr);
     bool            DecodeMemoryOpnd(IR::Opnd* opnd, ARM64_REGISTER &baseRegResult, ARM64_REGISTER &indexRegResult, BYTE &indexScale, int32 &offset);
     
     static bool     EncodeLogicalConst(IntConstType constant, DWORD * result, int size);
+
+    // General 1-operand instructions (BR, RET)
+    template<typename _RegFunc64> int EmitOp1Register64(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc64 reg64);
+
+    // General 2-operand instructions (CLZ, MOV)
+    template<typename _RegFunc32, typename _RegFunc64> int EmitOp2Register(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64);
+
+    // General 3-operand instructions (ADD, AND, SUB, etc) follow a very standard pattern
+    template<typename _RegFunc32, typename _RegFunc64> int EmitOp3Register(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64);
+    template<typename _ImmFunc32, typename _ImmFunc64> int EmitOp3Immediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _ImmFunc32 imm32, _ImmFunc64 imm64);
+    template<typename _RegFunc32, typename _RegFunc64, typename _ImmFunc32, typename _ImmFunc64> int EmitOp3RegisterOrImmediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64);
+
+    // Load/store operations
+    int EmitPrefetch(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd);
+    template<typename _RegFunc8, typename _RegFunc16, typename _RegFunc32, typename _RegFunc64, typename _OffFunc8, typename _OffFunc16, typename _OffFunc32, typename _OffFunc64>
+        int EmitLoadStore(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd, IR::Opnd* srcDstOpnd, _RegFunc8 reg8, _RegFunc16 reg16, _RegFunc32 reg32, _RegFunc64 reg64, _OffFunc8 off8, _OffFunc16 off16, _OffFunc32 off32, _OffFunc64 off64);
+    template<typename _OffFunc32, typename _OffFunc64> int EmitLoadStorePair(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd, IR::Opnd* srcDst1Opnd, IR::Opnd* srcDst2Opnd, _OffFunc32 off32, _OffFunc64 off64);
+
+    // Branch operations
+    template<typename _Emitter> int EmitUnconditionalBranch(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter);
+    int             EmitConditionalBranch(Arm64CodeEmitter &Emitter, IR::Instr* instr, int condition);
+
+    // Misc operations
+    template<typename _Emitter, typename _Emitter64> int EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter, _Emitter64 emitter64);
 };

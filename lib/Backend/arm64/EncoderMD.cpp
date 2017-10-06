@@ -186,6 +186,261 @@ EncoderMD::DecodeMemoryOpnd(IR::Opnd* opnd, ARM64_REGISTER &baseRegResult, ARM64
     }
 }
 
+template<typename _RegFunc64> 
+int EncoderMD::EmitOp1Register64(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc64 reg64)
+{
+    IR::Opnd* src1 = instr->GetSrc1();
+    Assert(src1->IsRegOpnd());
+
+    int size = src1->GetSize();
+    Assert(size == 8);
+
+    return reg64(Emitter, this->GetRegEncode(src1->AsRegOpnd()));
+}
+
+template<typename _RegFunc32, typename _RegFunc64>
+int EncoderMD::EmitOp2Register(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+
+    Assert(dst->IsRegOpnd());
+    Assert(src1->IsRegOpnd());
+
+    int size = dst->GetSize();
+    Assert(size == 4 || size == 8);
+    Assert(size == src1->GetSize());
+
+    if (size == 8)
+    {
+        return reg64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()));
+    }
+    else
+    {
+        return reg32(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()));
+    }
+}
+
+template<typename _RegFunc32, typename _RegFunc64>
+int EncoderMD::EmitOp3Register(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+
+    Assert(dst->IsRegOpnd());
+    Assert(src1->IsRegOpnd());
+    Assert(src2->IsRegOpnd());
+
+    int size = dst->GetSize();
+    Assert(size == 4 || size == 8);
+    Assert(size == src1->GetSize());
+    Assert(size == src2->GetSize());
+
+    if (size == 8)
+    {
+        return reg64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
+    }
+    else
+    {
+        return reg32(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
+    }
+}
+
+template<typename _ImmFunc32, typename _ImmFunc64>
+int EncoderMD::EmitOp3Immediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _ImmFunc32 imm32, _ImmFunc64 imm64)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+
+    Assert(dst->IsRegOpnd());
+    Assert(src1->IsRegOpnd());
+    Assert(src2->IsImmediateOpnd());
+
+    int size = dst->GetSize();
+    Assert(size == 4 || size == 8);
+    Assert(size == src1->GetSize());
+
+    int64 immediate = src2->GetImmediateValue(instr->m_func);
+    if (size == 8)
+    {
+        return imm64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG64(immediate));
+    }
+    else
+    {
+        return imm32(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
+    }
+}
+
+template<typename _RegFunc32, typename _RegFunc64, typename _ImmFunc32, typename _ImmFunc64>
+int EncoderMD::EmitOp3RegisterOrImmediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32,  _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64)
+{
+    if (instr->GetSrc2()->IsImmediateOpnd())
+    {
+        return this->EmitOp3Immediate(Emitter, instr, imm32, imm64);
+    }
+    else if (instr->GetSrc2()->IsRegOpnd())
+    {
+        return this->EmitOp3Register(Emitter, instr, reg32, reg64);
+    }
+    else
+    {
+        Assert(false);
+        return 0;
+    }
+}
+
+int EncoderMD::EmitPrefetch(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd)
+{
+    Assert(memOpnd->IsIndirOpnd() || memOpnd->IsSymOpnd());
+
+    ARM64_REGISTER indexReg;
+    ARM64_REGISTER baseReg;
+    BYTE indexScale;
+    int32 offset;
+    if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
+    {
+        return EmitPrfmRegister(Emitter, baseReg, Arm64RegisterParam(indexReg, SHIFT_LSL, indexScale));
+    }
+    else
+    {
+        return EmitPrfmOffset(Emitter, baseReg, offset);
+    }
+}
+
+template<typename _RegFunc8, typename _RegFunc16, typename _RegFunc32, typename _RegFunc64, typename _OffFunc8, typename _OffFunc16, typename _OffFunc32, typename _OffFunc64>
+int EncoderMD::EmitLoadStore(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd,  IR::Opnd* srcDstOpnd, _RegFunc8 reg8, _RegFunc16 reg16, _RegFunc32 reg32, _RegFunc64 reg64, _OffFunc8 off8, _OffFunc16 off16, _OffFunc32 off32, _OffFunc64 off64)
+{
+    Assert(srcDstOpnd->IsRegOpnd());
+    Assert(memOpnd->IsIndirOpnd() || memOpnd->IsSymOpnd());
+
+    int size = memOpnd->GetSize();
+    Assert(size == 1 || size == 2 || size == 4 || size == 8);
+
+    ARM64_REGISTER indexReg;
+    ARM64_REGISTER baseReg;
+    BYTE indexScale;
+    int32 offset;
+    if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
+    {
+        if (size == 8)
+        {
+            return reg64(Emitter, this->GetRegEncode(srcDstOpnd->AsRegOpnd()), baseReg, Arm64RegisterParam(indexReg, SHIFT_LSL, indexScale));
+        }
+        else if (size == 4)
+        {
+            return reg32(Emitter, this->GetRegEncode(srcDstOpnd->AsRegOpnd()), baseReg, Arm64RegisterParam(indexReg, SHIFT_LSL, indexScale));
+        }
+        else if (size == 2)
+        {
+            return reg16(Emitter, this->GetRegEncode(srcDstOpnd->AsRegOpnd()), baseReg, Arm64RegisterParam(indexReg, SHIFT_LSL, indexScale));
+        }
+        else
+        {
+            return reg8(Emitter, this->GetRegEncode(srcDstOpnd->AsRegOpnd()), baseReg, Arm64RegisterParam(indexReg, SHIFT_LSL, indexScale));
+        }
+    }
+    else
+    {
+        if (size == 8)
+        {
+            return off64(Emitter, this->GetRegEncode(srcDstOpnd->AsRegOpnd()), baseReg, offset);
+        }
+        else if (size == 4)
+        {
+            return off32(Emitter, this->GetRegEncode(srcDstOpnd->AsRegOpnd()), baseReg, offset);
+        }
+        else if (size == 2)
+        {
+            return off16(Emitter, this->GetRegEncode(srcDstOpnd->AsRegOpnd()), baseReg, offset);
+        }
+        else
+        {
+            return off8(Emitter, this->GetRegEncode(srcDstOpnd->AsRegOpnd()), baseReg, offset);
+        }
+    }
+}
+
+template<typename _OffFunc32, typename _OffFunc64>
+int EncoderMD::EmitLoadStorePair(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd, IR::Opnd* srcDst1Opnd, IR::Opnd* srcDst2Opnd, _OffFunc32 off32, _OffFunc64 off64)
+{
+    Assert(memOpnd->IsIndirOpnd() || memOpnd->IsSymOpnd());
+
+    int size = memOpnd->GetSize();
+    Assert(size == 4 || size == 8);
+
+    ARM64_REGISTER indexReg;
+    ARM64_REGISTER baseReg;
+    BYTE indexScale;
+    int32 offset;
+    if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
+    {
+        // Should never get here
+        Assert(false);
+        return 0;
+    }
+    else
+    {
+        if (size == 8)
+        {
+            return off64(Emitter, this->GetRegEncode(srcDst1Opnd->AsRegOpnd()),  this->GetRegEncode(srcDst2Opnd->AsRegOpnd()), baseReg, offset);
+        }
+        else
+        {
+            return off32(Emitter, this->GetRegEncode(srcDst1Opnd->AsRegOpnd()),  this->GetRegEncode(srcDst2Opnd->AsRegOpnd()), baseReg, offset);
+        }
+    }
+}
+
+template<typename _Emitter>
+int EncoderMD::EmitUnconditionalBranch(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter)
+{
+    ArmBranchLinker Linker;
+    EncodeReloc::New(&m_relocList, RelocTypeBranch26, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
+    Linker.SetTarget(Emitter);
+    return emitter(Emitter, Linker);
+}
+
+int EncoderMD::EmitConditionalBranch(Arm64CodeEmitter &Emitter, IR::Instr* instr, int condition)
+{
+    ArmBranchLinker Linker;
+    EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
+    Linker.SetTarget(Emitter);
+    return EmitBranch(Emitter, Linker, condition);
+}
+
+template<typename _Emitter, typename _Emitter64>
+int EncoderMD::EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter, _Emitter64 emitter64)
+{
+    IR::Opnd*dst = instr->GetDst();
+    IR::Opnd*src1 = instr->GetSrc1();
+    Assert(dst->IsRegOpnd());
+    Assert(src1->IsImmediateOpnd());
+
+    int size = dst->GetSize();
+    Assert(size == 4 || size == 8);
+
+    IntConstType immediate = src1->GetImmediateValue(instr->m_func);
+    int shift = 0;
+    while ((immediate & 0xFFFF) != immediate)
+    {
+        immediate = ULONG64(immediate) >> 16;
+        shift += 16;
+    }
+    Assert(shift < 32 || size == 8);
+
+    if (size == 8)
+    {
+        return emitter64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate), shift);
+    }
+    else
+    {
+        return emitter(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate), shift);
+    }
+}
+
+
 //---------------------------------------------------------------------------
 //
 // GenerateEncoding()
@@ -195,275 +450,112 @@ EncoderMD::DecodeMemoryOpnd(IR::Opnd* opnd, ARM64_REGISTER &baseRegResult, ARM64
 //
 //---------------------------------------------------------------------------
 ULONG
-EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size)
+EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 {
-/*
-    dst  = instr->GetDst();
-
-    if(opcode == Js::OpCode::MLS)
-    {
-        Assert(instr->m_prev->GetDst()->IsRegOpnd() && (instr->m_prev->GetDst()->AsRegOpnd()->GetReg() == RegR12));
-    }
-
-    if (dst == nullptr || LowererMD::IsCall(instr))
-    {
-        opn = instr->GetSrc1();
-        reg = opn;
-    }
-    else if (opcode == Js::OpCode::POP || opcode == Js::OpCode::VPOP)
-    {
-        opn = instr->GetSrc1();
-        reg = dst;
-    }
-    else
-    {
-        opn = dst;
-        reg = opn;
-    }
-*/
-
-
-
     Arm64LocalCodeEmitter<1> Emitter;
-    ARM64_REGISTER indexReg;
-    ARM64_REGISTER baseReg;
-    ArmBranchLinker Linker;
     IR::Opnd* dst = 0;
     IR::Opnd* src1 = 0;
     IR::Opnd* src2 = 0;
-    BYTE indexScale;
-    int64 immediate;
-    int32 offset;
-    int shift;
     int bytes;
+    int size;
 
     switch (instr->m_opcode)
     {
     case Js::OpCode::ADD:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitAddImmediate(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitAddRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
-        break;
-
-    case Js::OpCode::ADD64:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitAddImmediate64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), immediate);
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitAddRegister64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
+        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitAddRegister, EmitAddRegister64, EmitAddImmediate, EmitAddImmediate64);
         break;
 
     case Js::OpCode::ADDS:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitAddsImmediate(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitAddsRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
-        break;
-
-    case Js::OpCode::ADDS64:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitAddsImmediate64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), immediate);
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitAddsRegister64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
+        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitAddsRegister, EmitAddsRegister64, EmitAddsImmediate, EmitAddsImmediate64);
         break;
 
     case Js::OpCode::AND:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitAndImmediate(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitAndRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
+        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitAndRegister, EmitAndRegister64, EmitAndImmediate, EmitAndImmediate64);
+        break;
+
+    case Js::OpCode::ANDS:
+        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitAndsRegister, EmitAndsRegister64, EmitAndsImmediate, EmitAndsImmediate64);
         break;
 
     case Js::OpCode::ASR:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitAsrImmediate(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitAsrRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
+        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitAsrRegister, EmitAsrRegister64, EmitAsrImmediate, EmitAsrImmediate64);
         break;
     
     case Js::OpCode::B:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch26, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_AL);
         break;
     
     case Js::OpCode::BL:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch26, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBl(Emitter, Linker);
+        bytes = this->EmitUnconditionalBranch(Emitter, instr, EmitBl);
         break;
     
     case Js::OpCode::BR:
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        bytes = EmitBr(Emitter, this->GetRegEncode(src1->AsRegOpnd()));
+        bytes = this->EmitOp1Register64(Emitter, instr, EmitBr);
         break;
     
     case Js::OpCode::BLR:
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        bytes = EmitBlr(Emitter, this->GetRegEncode(src1->AsRegOpnd()));
+        bytes = this->EmitOp1Register64(Emitter, instr, EmitBlr);
         break;
     
     // ARM64_WORKITEM: Legalizer needs to convert BIC with immediate to AND with inverted immediate
     case Js::OpCode::BIC:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        Assert(src2->IsRegOpnd());
-        bytes = EmitBicRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
+        bytes = this->EmitOp3Register(Emitter, instr, EmitBicRegister, EmitBicRegister64);
         break;
     
     case Js::OpCode::BEQ:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_EQ);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_EQ);
         break;
     
     case Js::OpCode::BNE:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_NE);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_NE);
         break;
     
     case Js::OpCode::BLT:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_LT);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_LT);
         break;
     
     case Js::OpCode::BLE:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_LE);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_LE);
         break;
-    
+
     case Js::OpCode::BGT:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_GT);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_GT);
         break;
     
     case Js::OpCode::BGE:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_GE);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_GE);
         break;
 
     case Js::OpCode::BCS:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_CS);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_CS);
         break;
     
     case Js::OpCode::BCC:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_CC);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_CC);
         break;
     
     case Js::OpCode::BHI:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_HI);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_HI);
         break;
     
     case Js::OpCode::BLS:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_LS);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_LS);
         break;
     
     case Js::OpCode::BMI:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_MI);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_MI);
         break;
     
     case Js::OpCode::BPL:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_PL);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_PL);
         break;
 
     case Js::OpCode::BVS:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_VS);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_VS);
         break;
     
     case Js::OpCode::BVC:
-        EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
-        Linker.SetTarget(Emitter);
-        bytes = EmitBranch(Emitter, Linker, COND_VC);
+        bytes = this->EmitConditionalBranch(Emitter, instr, COND_VC);
         break;
     
     case Js::OpCode::DEBUGBREAK:
@@ -471,81 +563,63 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size)
         break;
 
     case Js::OpCode::CLZ:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        bytes = EmitClz(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()));
+        bytes = this->EmitOp2Register(Emitter, instr, EmitClz, EmitClz64);
         break;
 
-    // ARM64_WORKITEM: Should legalizer change this to SUBS before the encoder?
+    // Legalizer should convert this to SUBS before getting here
     case Js::OpCode::CMP:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        if (src1->IsImmediateOpnd())
-        {
-            immediate = src1->GetImmediateValue(instr->m_func);
-            bytes = EmitSubsImmediate(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src1->IsRegOpnd());
-            bytes = EmitSubsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()));
-        }
+        Assert(false);
         break;
 
-    // ARM64_WORKITEM: Should legalizer change this to ADDS before the encoder?
+    // Legalizer should convert this to ADDS before getting here
     case Js::OpCode::CMN:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        if (src1->IsImmediateOpnd())
-        {
-            immediate = src1->GetImmediateValue(instr->m_func);
-            bytes = EmitAddsImmediate(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src1->IsRegOpnd());
-            bytes = EmitAddsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()));
-        }
+        Assert(false);
         break;
 
     case Js::OpCode::CMP_ASR31:
         dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
         src1 = instr->GetSrc1();
+        Assert(dst->IsRegOpnd());
         Assert(src1->IsRegOpnd());
-        bytes = EmitSubsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src1->AsRegOpnd()), SHIFT_ASR, 31));
-        break;
 
-    case Js::OpCode::EOR:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
+        size = dst->GetSize();
+        Assert(size == 4 || size == 8);
+        Assert(size == src1->GetSize());
+
+        if (size == 8)
         {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitEorImmediate(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
+            bytes = EmitSubsRegister64(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src1->AsRegOpnd()), SHIFT_ASR, 63));
         }
         else
         {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitEorRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
+            bytes = EmitSubsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src1->AsRegOpnd()), SHIFT_ASR, 31));
         }
+        break;
+
+    case Js::OpCode::EOR:
+        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitEorRegister, EmitEorRegister64, EmitEorImmediate, EmitEorImmediate64);
         break;
 
     case Js::OpCode::EOR_ASR31:
         dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
         src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
         src2 = instr->GetSrc2();
+        Assert(dst->IsRegOpnd());
+        Assert(src1->IsRegOpnd());
         Assert(src2->IsRegOpnd());
-        bytes = EmitEorRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), SHIFT_ASR, 31));
+
+        size = dst->GetSize();
+        Assert(size == 4 || size == 8);
+        Assert(size == src1->GetSize());
+
+        if (size == 8)
+        {
+            bytes = EmitEorRegister64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), SHIFT_ASR, 63));
+        }
+        else
+        {
+            bytes = EmitEorRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), SHIFT_ASR, 31));
+        }
         break;
 
     // Legalizer should convert these into MOVZ/MOVN/MOVK
@@ -554,187 +628,49 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size)
         break;
 
     case Js::OpCode::LDR:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsIndirOpnd() || src1->IsSymOpnd());
-        if (DecodeMemoryOpnd(src1, baseReg, indexReg, indexScale, offset))
-        {
-            bytes = EmitLdrRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), baseReg, Arm64RegisterParam(indexReg, SHIFT_LSL, indexScale));
-        }
-        else
-        {
-            bytes = EmitLdrOffset(Emitter, this->GetRegEncode(dst->AsRegOpnd()), baseReg, offset);
-        }
+        bytes = this->EmitLoadStore(Emitter, instr, instr->GetSrc1(), instr->GetDst(), EmitLdrbRegister, EmitLdrhRegister, EmitLdrRegister, EmitLdrRegister64, EmitLdrbOffset, EmitLdrhOffset, EmitLdrOffset, EmitLdrOffset64);
         break;
 
-    case Js::OpCode::LDR64:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsIndirOpnd() || src1->IsSymOpnd());
-        if (DecodeMemoryOpnd(src1, baseReg, indexReg, indexScale, offset))
-        {
-            bytes = EmitLdrRegister64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), baseReg, Arm64RegisterParam(indexReg, SHIFT_LSL, indexScale));
-        }
-        else
-        {
-            bytes = EmitLdrOffset64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), baseReg, offset);
-        }
+    case Js::OpCode::LDRS:
+        bytes = this->EmitLoadStore(Emitter, instr, instr->GetSrc1(), instr->GetDst(), EmitLdrsbRegister, EmitLdrshRegister, EmitLdrswRegister64, EmitLdrRegister64, EmitLdrsbOffset, EmitLdrshOffset, EmitLdrswOffset64, EmitLdrOffset64);
         break;
 
-    // Note: src2 is really the second destination
+        // Note: src2 is really the second destination
     case Js::OpCode::LDP:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        Assert(src2->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsIndirOpnd() || src1->IsSymOpnd());
-        if (DecodeMemoryOpnd(src1, baseReg, indexReg, indexScale, offset))
-        {
-            bytes = 0;
-        }
-        else
-        {
-            bytes = EmitLdpOffset(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()), baseReg, offset);
-        }
+        bytes = this->EmitLoadStorePair(Emitter, instr, instr->GetSrc1(), instr->GetDst(), instr->GetSrc2(), EmitLdpOffset, EmitLdpOffset64);
         break;
 
-    case Js::OpCode::LDP64:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        Assert(src2->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsIndirOpnd() || src1->IsSymOpnd());
-        if (DecodeMemoryOpnd(src1, baseReg, indexReg, indexScale, offset))
-        {
-            bytes = 0;
-        }
-        else
-        {
-            bytes = EmitLdpOffset64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()), baseReg, offset);
-        }
-        break;
-
-    // Legalizer should convert these into MOV/ADD
+    // Legalizer should convert this to MOV/ADD before getting here
     case Js::OpCode::LEA:
         Assert(false);
         break;
     
     case Js::OpCode::LSL:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitLslImmediate(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitLslRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
+        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitLslRegister, EmitLslRegister64, EmitLslImmediate, EmitLslImmediate64);
         break;
         
     case Js::OpCode::LSR:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitLsrImmediate(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitLsrRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
+        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitLsrRegister, EmitLsrRegister64, EmitLsrImmediate, EmitLsrImmediate64);
         break;
 
     case Js::OpCode::MOV:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        bytes = EmitMovRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()));
+        bytes = this->EmitOp2Register(Emitter, instr, EmitMovRegister, EmitMovRegister64);
         break;
 
-    case Js::OpCode::MOVK64:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsImmediateOpnd());
-        immediate = src1->GetImmediateValue(instr->m_func);
-        shift = 0;
-        while ((immediate & 0xFFFF) != immediate)
-        {
-            immediate = ULONG64(immediate) >> 16;
-            shift += 16;
-        }
-        bytes = EmitMovk64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate), shift);
+    case Js::OpCode::MOVK:
+        this->EmitMovConstant(Emitter, instr, EmitMovk, EmitMovk64);
         break;
     
     case Js::OpCode::MOVN:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsImmediateOpnd());
-        immediate = src1->GetImmediateValue(instr->m_func);
-        shift = 0;
-        while ((immediate & 0xFFFF) != immediate)
-        {
-            immediate = ULONG64(immediate) >> 16;
-            shift += 16;
-        }
-        bytes = EmitMovn(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate), shift);
-        break;
-
-    case Js::OpCode::MOVN64:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsImmediateOpnd());
-        immediate = src1->GetImmediateValue(instr->m_func);
-        shift = 0;
-        while ((immediate & 0xFFFF) != immediate)
-        {
-            immediate = ULONG64(immediate) >> 16;
-            shift += 16;
-        }
-        bytes = EmitMovn64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate), shift);
+        this->EmitMovConstant(Emitter, instr, EmitMovn, EmitMovn64);
         break;
 
     case Js::OpCode::MOVZ:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsImmediateOpnd());
-        immediate = src1->GetImmediateValue(instr->m_func);
-        shift = 0;
-        while ((immediate & 0xFFFF) != immediate)
-        {
-            immediate = ULONG64(immediate) >> 16;
-            shift += 16;
-        }
-        bytes = EmitMovz(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate), shift);
+        this->EmitMovConstant(Emitter, instr, EmitMovz, EmitMovz64);
         break;
     
     case Js::OpCode::MUL:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        Assert(src2->IsRegOpnd());
-        bytes = EmitMul(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
+        bytes = this->EmitOp3Register(Emitter, instr, EmitMul, EmitMul64);
         break;
 
     // SMULL dst, src1, src2. src1 and src2 are 32-bit. dst is 64-bit.
@@ -775,227 +711,46 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc, int32 size)
         break;
 
     case Js::OpCode::ORR:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitOrrImmediate(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitOrrRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
-        break;
-
-    case Js::OpCode::ORR64:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitOrrImmediate64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitOrrRegister64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
+        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitOrrRegister, EmitOrrRegister64, EmitOrrImmediate, EmitOrrImmediate64);
         break;
 
     case Js::OpCode::PLD:
-        src1 = instr->GetSrc1();
-        Assert(src1->IsIndirOpnd() || src1->IsSymOpnd());
-        if (DecodeMemoryOpnd(src1, baseReg, indexReg, indexScale, offset))
-        {
-            bytes = EmitPrfmRegister(Emitter, baseReg, Arm64RegisterParam(indexReg, SHIFT_LSL, indexScale));
-        }
-        else
-        {
-            bytes = EmitPrfmOffset(Emitter, baseReg, offset);
-        }
+        bytes = this->EmitPrefetch(Emitter, instr, instr->GetSrc1());
         break;
 
     case Js::OpCode::RET:
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        bytes = EmitRet(Emitter, this->GetRegEncode(src1->AsRegOpnd()));
+        bytes = this->EmitOp1Register64(Emitter, instr, EmitRet);
         break;
 
-    // Legalizer should convert these into SDIV/MSUB
+    // Legalizer should convert this to SDIV/MSUB before getting here
     case Js::OpCode::REM:
         Assert(false);
         break;
 
     case Js::OpCode::SDIV:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        Assert(src2->IsRegOpnd());
-        bytes = EmitSdiv(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
+        bytes = this->EmitOp3Register(Emitter, instr, EmitSdiv, EmitSdiv64);
         break;
 
     case Js::OpCode::STR:
-        dst = instr->GetDst();
-        Assert(dst->IsIndirOpnd() || dst->IsSymOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        if (DecodeMemoryOpnd(dst, baseReg, indexReg, indexScale, offset))
-        {
-            bytes = EmitStrRegister(Emitter, this->GetRegEncode(src1->AsRegOpnd()), baseReg, Arm64RegisterParam(indexReg, SHIFT_LSL, indexScale));
-        }
-        else
-        {
-            bytes = EmitStrOffset(Emitter, this->GetRegEncode(src1->AsRegOpnd()), baseReg, offset);
-        }
-        break;
-
-    case Js::OpCode::STR64:
-        dst = instr->GetDst();
-        Assert(dst->IsIndirOpnd() || dst->IsSymOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        if (DecodeMemoryOpnd(dst, baseReg, indexReg, indexScale, offset))
-        {
-            bytes = EmitStrRegister64(Emitter, this->GetRegEncode(src1->AsRegOpnd()), baseReg, Arm64RegisterParam(indexReg, SHIFT_LSL, indexScale));
-        }
-        else
-        {
-            bytes = EmitStrOffset64(Emitter, this->GetRegEncode(src1->AsRegOpnd()), baseReg, offset);
-        }
+        bytes = this->EmitLoadStore(Emitter, instr, instr->GetDst(), instr->GetSrc1(), EmitStrbRegister, EmitStrhRegister, EmitStrRegister, EmitStrRegister64, EmitStrbOffset, EmitStrhOffset, EmitStrOffset, EmitStrOffset64);
         break;
 
     // Note: src2 is really the second destination
     case Js::OpCode::STP:
-        dst = instr->GetDst();
-        Assert(dst->IsIndirOpnd() || dst->IsSymOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        Assert(src2->IsRegOpnd());
-        if (DecodeMemoryOpnd(dst, baseReg, indexReg, indexScale, offset))
-        {
-            bytes = 0;
-        }
-        else
-        {
-            bytes = EmitStpOffset(Emitter, this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()), baseReg, offset);
-        }
-        break;
-
-    case Js::OpCode::STP64:
-        dst = instr->GetDst();
-        Assert(dst->IsIndirOpnd() || dst->IsSymOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        Assert(src2->IsRegOpnd());
-        if (DecodeMemoryOpnd(dst, baseReg, indexReg, indexScale, offset))
-        {
-            bytes = 0;
-        }
-        else
-        {
-            bytes = EmitStpOffset64(Emitter, this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()), baseReg, offset);
-        }
+        bytes = this->EmitLoadStorePair(Emitter, instr, instr->GetDst(), instr->GetSrc1(), instr->GetSrc2(), EmitStpOffset, EmitStpOffset64);
         break;
 
     case Js::OpCode::SUB:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitSubImmediate(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitSubRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
-        break;
-
-    case Js::OpCode::SUB64:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitSubImmediate64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), immediate);
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitSubRegister64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
+        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitSubRegister, EmitSubRegister64, EmitSubImmediate, EmitSubImmediate64);
         break;
 
     case Js::OpCode::SUBS:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitSubsImmediate(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitSubsRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
+        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitSubsRegister, EmitSubsRegister64, EmitSubsImmediate, EmitSubsImmediate64);
         break;
 
-    case Js::OpCode::SUBS64:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
-        src2 = instr->GetSrc2();
-        if (src2->IsImmediateOpnd())
-        {
-            immediate = src2->GetImmediateValue(instr->m_func);
-            bytes = EmitSubsImmediate64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), immediate);
-        }
-        else
-        {
-            Assert(src2->IsRegOpnd());
-            bytes = EmitSubsRegister64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
-        }
-        break;
-
-    // ARM64_WORKITEM: Should legalizer change this to ANDS before the encoder?
+    // Legalizer should convert this to ANDS before getting here
     case Js::OpCode::TST:
-        dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
-        src1 = instr->GetSrc1();
-        if (src1->IsImmediateOpnd())
-        {
-            immediate = src1->GetImmediateValue(instr->m_func);
-            bytes = EmitAndsImmediate(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate));
-        }
-        else
-        {
-            Assert(src1->IsRegOpnd());
-            bytes = EmitAndsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()));
-        }
+        Assert(false);
         break;
 
     }
@@ -1104,7 +859,6 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
     m_pc = pc;
 
     DWORD  outInstr;
-    int    size = 0;
 
     // Instructions must be lowered, we don't handle non-MD opcodes here.
     Assert(instr != nullptr);
@@ -1150,9 +904,8 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
     }
 
     this->CanonicalizeInstr(instr);
-    size = 4;
 
-    outInstr = GenerateEncoding(instr, m_pc, size);
+    outInstr = GenerateEncoding(instr, m_pc);
 
     if (outInstr == 0)
     {

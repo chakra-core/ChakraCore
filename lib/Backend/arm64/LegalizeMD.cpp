@@ -48,6 +48,25 @@ void LegalizeMD::LegalizeInstr(IR::Instr * instr, bool fPostRegAlloc)
         return;
     }
 
+    // Convert CMP/CMN/TST opcodes into more primitive forms
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::CMP:
+        instr->SetDst(IR::RegOpnd::New(NULL, RegZR, instr->GetSrc1()->GetType() , instr->m_func));
+        instr->m_opcode = Js::OpCode::SUBS;
+        break;
+
+    case Js::OpCode::CMN:
+        instr->SetDst(IR::RegOpnd::New(NULL, RegZR, instr->GetSrc1()->GetType(), instr->m_func));
+        instr->m_opcode = Js::OpCode::ADDS;
+        break;
+
+    case Js::OpCode::TST:
+        instr->SetDst(IR::RegOpnd::New(NULL, RegZR, instr->GetSrc1()->GetType(), instr->m_func));
+        instr->m_opcode = Js::OpCode::ANDS;
+        break;
+    }
+
     LegalizeDst(instr, fPostRegAlloc);
     LegalizeSrc(instr, instr->GetSrc1(), 1, fPostRegAlloc);
     LegalizeSrc(instr, instr->GetSrc2(), 2, fPostRegAlloc);
@@ -450,9 +469,8 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         IntConstType invImmed = ~immed;
         if ((invImmed & 0xffff) == invImmed || (invImmed & 0xffff0000) == invImmed || (invImmed & 0xffff00000000ll) == invImmed || (invImmed & 0xffff000000000000ll) == invImmed)
         {
-            IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(invImmed, TyInt64, instr->m_func);
-            instr->ReplaceSrc1(src1);
-            instr->m_opcode = Js::OpCode::MOVN64;
+            instr->ReplaceSrc1(IR::IntConstOpnd::New(invImmed, TyInt64, instr->m_func));
+            instr->m_opcode = Js::OpCode::MOVN;
             return;
         }
 
@@ -460,6 +478,7 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         IntConstType invImmed32 = ~immed & 0xffffffffull;
         if ((invImmed32 & 0xffff) == invImmed32 || (invImmed32 & 0xffff0000) == invImmed32)
         {
+            instr->GetDst()->SetType(TyInt32);
             IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(invImmed32, TyInt64, instr->m_func);
             instr->ReplaceSrc1(src1);
             instr->m_opcode = Js::OpCode::MOVN;
@@ -469,8 +488,9 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         // Short-circuit 32-bit logical constants
         if (EncoderMD::CanEncodeLogicalConst(immed, 4))
         {
+            instr->GetDst()->SetType(TyInt32);
             instr->SetSrc2(instr->GetSrc1());
-            instr->SetSrc1(IR::RegOpnd::New(NULL, RegZR, TyMachPtr, instr->m_func));
+            instr->ReplaceSrc1(IR::RegOpnd::New(NULL, RegZR, TyInt32, instr->m_func));
             instr->m_opcode = Js::OpCode::ORR;
             return;
         }
@@ -479,8 +499,8 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         if (EncoderMD::CanEncodeLogicalConst(immed, 8))
         {
             instr->SetSrc2(instr->GetSrc1());
-            instr->SetSrc1(IR::RegOpnd::New(NULL, RegZR, TyMachPtr, instr->m_func));
-            instr->m_opcode = Js::OpCode::ORR64;
+            instr->ReplaceSrc1(IR::RegOpnd::New(NULL, RegZR, TyInt64, instr->m_func));
+            instr->m_opcode = Js::OpCode::ORR;
             return;
         }
 
@@ -506,7 +526,7 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         // Determine whether the initial opcode will be a MOVZ or a MOVN
         ULONG wordMask = (numOnes > numZeros) ? 0xffff : 0x0000;
         ULONG wordXor = wordMask;
-        Js::OpCode curOpcode = (wordMask == 0xffff) ? Js::OpCode::MOVN64 : Js::OpCode::MOVZ;
+        Js::OpCode curOpcode = (wordMask == 0xffff) ? Js::OpCode::MOVN : Js::OpCode::MOVZ;
 
         // Build a theoretical list of opcodes
         LdImmOpcode opcodeList[4];
@@ -517,7 +537,7 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
             if (curWord != wordMask)
             {
                 opcodeList[opcodeListIndex++].Set(curOpcode, curWord ^ wordXor, 16 * wordNum);
-                curOpcode = Js::OpCode::MOVK64;
+                curOpcode = Js::OpCode::MOVK;
                 wordXor = 0;
             }
         }
@@ -628,11 +648,11 @@ void LegalizeMD::EmitRandomNopBefore(IR::Instr *insertInstr, UINT_PTR rand, RegN
         opnd2 = opnd1;
         break;
     case 1:
-        op = Js::OpCode::ORR64;
+        op = Js::OpCode::ORR;
         opnd2 = IR::IntConstOpnd::New(0, TyMachReg, insertInstr->m_func);
         break;
     case 2:
-        op = Js::OpCode::ADD64;
+        op = Js::OpCode::ADD;
         opnd2 = IR::IntConstOpnd::New(0, TyMachReg, insertInstr->m_func);
         break;
     case 3:

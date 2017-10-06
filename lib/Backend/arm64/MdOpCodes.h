@@ -16,10 +16,9 @@
 //     /          /         /                   /         /          /                  /
 
 MACRO(ADD,     Reg3,       0,              0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_ADD),  D___)
-MACRO(ADD64,   Reg3,       0,              0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_ADD),  D___)
 MACRO(ADDS,    Reg3,       OpSideEffect,   0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_ADD),  D__S)
-MACRO(ADDS64,  Reg3,       OpSideEffect,   0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_ADD),  D__S)
 MACRO(AND,     Reg3,       0,              0,  LEGAL_ALU3,     INSTR_TYPE(Forms_AND),  D___)
+MACRO(ANDS,    Reg3,       0,              0,  LEGAL_ALU3,     INSTR_TYPE(Forms_AND),  D___)
 MACRO(ASR,     Reg3,       0,              0,  LEGAL_SHIFT,    INSTR_TYPE(Forms_ASR),  D___)
 
 MACRO(B,       Br,         OpSideEffect,   0,  LEGAL_BLAB,     INSTR_TYPE(Forms_B),    D___)
@@ -50,7 +49,7 @@ MACRO(DEBUGBREAK,  Reg1,   OpSideEffect,   0,  LEGAL_NONE,     INSTR_TYPE(Forms_
 MACRO(CLZ,     Reg2,       0,              0,  LEGAL_REG2,     INSTR_TYPE(Forms_CLZ),  D___)
 MACRO(CMP,     Reg1,       OpSideEffect,   0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_CMP),  D___)
 MACRO(CMN,     Reg1,       OpSideEffect,   0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_CMN),  D___)
-// CMP src1, src, ASR #31
+// CMP src1, src, ASR #31/63
 MACRO(CMP_ASR31,Reg1,      OpSideEffect,   0,  LEGAL_CMP_SH,   INSTR_TYPE(Forms_CMP_ASR31),D___)
 
 MACRO(EOR,     Reg3,       0,              0,  LEGAL_ALU3,     INSTR_TYPE(Forms_EOR),  D___)
@@ -61,9 +60,8 @@ MACRO(LDIMM,   Reg2,       0,              0,  LEGAL_LDIMM,    INSTR_TYPE(Forms_
 
 // LDR: Load register from memory
 MACRO(LDR,     Reg2,       0,              0,  LEGAL_LOAD,     INSTR_TYPE(Forms_LDRN), DL__)
-MACRO(LDR64,   Reg2,       0,              0,  LEGAL_LOAD,     INSTR_TYPE(Forms_LDRN), DL__)
+MACRO(LDRS,    Reg2,       0,              0,  LEGAL_LOAD,     INSTR_TYPE(Forms_LDRN), DL__)
 MACRO(LDP,     Reg3,       0,              0,  LEGAL_LOADP,    INSTR_TYPE(Forms_LDP),  DL__)
-MACRO(LDP64,   Reg3,       0,              0,  LEGAL_LOADP,    INSTR_TYPE(Forms_LDP),  DL__)
 
 // LEA: Load Effective Address
 MACRO(LEA,     Reg3,       0,              0,  LEGAL_LEA,      INSTR_TYPE(Forms_LEA),  D___)
@@ -73,9 +71,8 @@ MACRO(LSL,     Reg2,       0,              0,  LEGAL_SHIFT,    INSTR_TYPE(Forms_
 MACRO(LSR,     Reg2,       0,              0,  LEGAL_SHIFT,    INSTR_TYPE(Forms_LSR), D___)
 
 MACRO(MOV,     Reg2,       0,              0,  LEGAL_ALU2,     INSTR_TYPE(Forms_MOV), DM__)
-MACRO(MOVK64,  Reg2,       0,              0,  LEGAL_MOVIMM16, INSTR_TYPE(Forms_MOVIMM), DM__)
+MACRO(MOVK,    Reg2,       0,              0,  LEGAL_MOVIMM16, INSTR_TYPE(Forms_MOVIMM), DM__)
 MACRO(MOVN,    Reg2,       0,              0,  LEGAL_MOVIMM16, INSTR_TYPE(Forms_MOVIMM), DM__)
-MACRO(MOVN64,  Reg2,       0,              0,  LEGAL_MOVIMM16, INSTR_TYPE(Forms_MOVIMM), DM__)
 MACRO(MOVZ,    Reg2,       0,              0,  LEGAL_MOVIMM16, INSTR_TYPE(Forms_MOVIMM), DM__)
 
 MACRO(MUL,     Reg3,       0,              0,  LEGAL_REG3,     INSTR_TYPE(Forms_MUL),  D___)
@@ -96,7 +93,6 @@ MACRO(MVN,     Reg2,       0,              0,  LEGAL_ALU2,     INSTR_TYPE(Forms_
 MACRO(NOP,     Empty,      0,              0,  LEGAL_NONE,     INSTR_TYPE(Forms_NOP),   D___)
 
 MACRO(ORR,     Reg3,       0,              0,  LEGAL_ALU3,     INSTR_TYPE(Forms_ORR),  D___)
-MACRO(ORR64,   Reg3,       0,              0,  LEGAL_ALU3,     INSTR_TYPE(Forms_ORR),  D___)
 
 MACRO(PLD,     Reg2,       0,              0,  LEGAL_LOAD,     INSTR_TYPE(Forms_PLD),  DL__)
 
@@ -111,14 +107,10 @@ MACRO(SDIV,    Reg3,       0,              0,  LEGAL_REG3,     INSTR_TYPE(Forms_
 
 // STR: Store register to memory
 MACRO(STR,     Reg2,       0,              0,  LEGAL_STORE,    INSTR_TYPE(Forms_STRN), DS__)
-MACRO(STR64,   Reg2,       0,              0,  LEGAL_STORE,    INSTR_TYPE(Forms_STRN), DS__)
 MACRO(STP,     Reg3,       0,              0,  LEGAL_STOREP,   INSTR_TYPE(Forms_STP),  DL__)
-MACRO(STP64,   Reg3,       0,              0,  LEGAL_STOREP,   INSTR_TYPE(Forms_STP),  DL__)
 
 MACRO(SUB,     Reg3,       0,              0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_SUB), D___)
-MACRO(SUB64,   Reg3,       0,              0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_SUB), D___)
 MACRO(SUBS,    Reg3,       OpSideEffect,   0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_SUB), D__S)
-MACRO(SUBS64,  Reg3,       OpSideEffect,   0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_SUB), D__S)
 
 MACRO(TIOFLW,  Reg1,       OpSideEffect,   0,  LEGAL_CMP1,     INSTR_TYPE(Forms_TIOFLW), D___)
 MACRO(TST,     Reg2,       OpSideEffect,   0,  LEGAL_CMP,      INSTR_TYPE(Forms_TST),  D___)
