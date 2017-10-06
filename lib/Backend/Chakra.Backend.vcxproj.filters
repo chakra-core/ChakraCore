@@ -312,9 +312,6 @@
     <ClInclude Include="arm\MdOpCodes.h">
       <Filter>arm</Filter>
     </ClInclude>
-    <ClInclude Include="arm64\MdOpCodes.h">
-      <Filter>arm</Filter>
-    </ClInclude>
     <ClInclude Include="arm\PeepsMD.h">
       <Filter>arm</Filter>
     </ClInclude>
@@ -374,6 +371,9 @@
     <ClInclude Include="PropertyGuard.h" />
     <ClInclude Include="JavascriptNativeOperators.h" />
     <ClInclude Include="EquivalentTypeSet.h" />
+    <ClInclude Include="arm64\MdOpCodes.h">
+      <Filter>arm64</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">
