@@ -62,6 +62,7 @@ MACRO(LDIMM,   Reg2,       0,              0,  LEGAL_LDIMM,    INSTR_TYPE(Forms_
 MACRO(LDR,     Reg2,       0,              0,  LEGAL_LOAD,     INSTR_TYPE(Forms_LDRN), DL__)
 MACRO(LDRS,    Reg2,       0,              0,  LEGAL_LOAD,     INSTR_TYPE(Forms_LDRN), DL__)
 MACRO(LDP,     Reg3,       0,              0,  LEGAL_LOADP,    INSTR_TYPE(Forms_LDP),  DL__)
+MACRO(LDP_POST,Reg3,       0,              0,  LEGAL_LOADP,    INSTR_TYPE(Forms_LDP),  DL__)
 
 // LEA: Load Effective Address
 MACRO(LEA,     Reg3,       0,              0,  LEGAL_LEA,      INSTR_TYPE(Forms_LEA),  D___)
@@ -108,6 +109,7 @@ MACRO(SDIV,    Reg3,       0,              0,  LEGAL_REG3,     INSTR_TYPE(Forms_
 // STR: Store register to memory
 MACRO(STR,     Reg2,       0,              0,  LEGAL_STORE,    INSTR_TYPE(Forms_STRN), DS__)
 MACRO(STP,     Reg3,       0,              0,  LEGAL_STOREP,   INSTR_TYPE(Forms_STP),  DL__)
+MACRO(STP_PRE, Reg3,       0,              0,  LEGAL_STOREP,   INSTR_TYPE(Forms_STP),  DL__)
 
 MACRO(SUB,     Reg3,       0,              0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_SUB), D___)
 MACRO(SUBS,    Reg3,       OpSideEffect,   0,  LEGAL_ADDSUB,   INSTR_TYPE(Forms_SUB), D__S)

@@ -3978,12 +3978,29 @@ EmitLdpOffsetPostIndex(
     Arm64SimpleRegisterParam Dest2,
     Arm64SimpleRegisterParam Addr,
     LONG Offset
-    )
+)
 {
     if (Offset == 0) {
         return EmitLdpOffset(Emitter, Dest1, Dest2, Addr, 0);
     } else {
         return EmitLdpStpOffsetCommon(Emitter, Dest1, Dest2, Addr, Offset, 2, 0x28c00000);
+    }
+}
+
+inline
+int
+EmitLdpOffsetPostIndex64(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest1,
+    Arm64SimpleRegisterParam Dest2,
+    Arm64SimpleRegisterParam Addr,
+    LONG Offset
+)
+{
+    if (Offset == 0) {
+        return EmitLdpOffset64(Emitter, Dest1, Dest2, Addr, 0);
+    } else {
+        return EmitLdpStpOffsetCommon(Emitter, Dest1, Dest2, Addr, Offset, 3, 0xa8c00000);
     }
 }
 
@@ -4021,12 +4038,29 @@ EmitStpOffsetPreIndex(
     Arm64SimpleRegisterParam Source2,
     Arm64SimpleRegisterParam Addr,
     LONG Offset
-    )
+)
 {
     if (Offset == 0) {
         return EmitStpOffset(Emitter, Source1, Source2, Addr, 0);
     } else {
         return EmitLdpStpOffsetCommon(Emitter, Source1, Source2, Addr, Offset, 2, 0x29800000);
+    }
+}
+
+inline
+int
+EmitStpOffsetPreIndex64(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Source1,
+    Arm64SimpleRegisterParam Source2,
+    Arm64SimpleRegisterParam Addr,
+    LONG Offset
+)
+{
+    if (Offset == 0) {
+        return EmitStpOffset64(Emitter, Source1, Source2, Addr, 0);
+    } else {
+        return EmitLdpStpOffsetCommon(Emitter, Source1, Source2, Addr, Offset, 3, 0xa9800000);
     }
 }
 
