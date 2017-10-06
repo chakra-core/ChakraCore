@@ -839,7 +839,7 @@ namespace Js
 
     void ScriptContext::GetOrAddPropertyRecord(Js::JavascriptString * propertyString, PropertyRecord const** propertyRecord)
     {
-        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(propertyString))
+        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(propertyString) && propertyString->GetScriptContext() == this)
         {
             *propertyRecord = ((Js::PropertyString*)propertyString)->GetPropertyRecord();
         }
