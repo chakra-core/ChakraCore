@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 #include "ARM64Encoder.h"
+#include "ARM64NeonEncoder.h"
 #include "Language/JavascriptFunctionArgIndex.h"
 
 static const uint32 Opdope[] =
@@ -440,6 +441,93 @@ int EncoderMD::EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emi
     }
 }
 
+template<typename _Emitter>
+int EncoderMD::EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+
+    Assert(dst->IsRegOpnd());
+    Assert(src1->IsRegOpnd());
+
+    int size = dst->GetSize();
+    Assert(size == 4 || size == 8);
+    Assert(size == src1->GetSize());
+
+    NEON_SIZE neonSize = (size == 8) ? SIZE_1D : SIZE_1S;
+
+    return emitter(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), neonSize);
+}
+
+template<typename _Emitter>
+int EncoderMD::EmitOp3FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+
+    Assert(dst->IsRegOpnd());
+    Assert(src1->IsRegOpnd());
+    Assert(src2->IsRegOpnd());
+
+    int size = dst->GetSize();
+    Assert(size == 4 || size == 8);
+    Assert(size == src1->GetSize());
+    Assert(size == src2->GetSize());
+
+    NEON_SIZE neonSize = (size == 8) ? SIZE_1D : SIZE_1S;
+
+    return emitter(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()), neonSize);
+}
+
+template<typename _LoadStoreFunc>
+int EncoderMD::EmitLoadStoreFp(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd, IR::Opnd* srcDstOpnd, _LoadStoreFunc loadStore)
+{
+    Assert(srcDstOpnd->IsRegOpnd());
+    Assert(memOpnd->IsIndirOpnd() || memOpnd->IsSymOpnd());
+
+    int size = memOpnd->GetSize();
+    Assert(size == 4 || size == 8);
+
+    ARM64_REGISTER indexReg;
+    ARM64_REGISTER baseReg;
+    BYTE indexScale;
+    int32 offset;
+    if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
+    {
+        // Should never get here
+        Assert(false);
+        return 0;
+    }
+    else
+    {
+        return loadStore(Emitter, this->GetFloatRegEncode(srcDstOpnd->AsRegOpnd()), (size == 8) ? SIZE_1D : SIZE_1S, baseReg, offset);
+    }
+}
+
+template<typename _LoadStoreFunc>
+int EncoderMD::EmitLoadStoreFpPair(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd, IR::Opnd* srcDst1Opnd, IR::Opnd* srcDst2Opnd, _LoadStoreFunc loadStore)
+{
+    Assert(memOpnd->IsIndirOpnd() || memOpnd->IsSymOpnd());
+
+    int size = memOpnd->GetSize();
+    Assert(size == 4 || size == 8);
+
+    ARM64_REGISTER indexReg;
+    ARM64_REGISTER baseReg;
+    BYTE indexScale;
+    int32 offset;
+    if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
+    {
+        // Should never get here
+        Assert(false);
+        return 0;
+    }
+    else
+    {
+        return loadStore(Emitter, this->GetFloatRegEncode(srcDst1Opnd->AsRegOpnd()), this->GetFloatRegEncode(srcDst2Opnd->AsRegOpnd()), (size == 8) ? SIZE_1D : SIZE_1S, baseReg, offset);
+    }
+}
 
 //---------------------------------------------------------------------------
 //
@@ -761,6 +849,99 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(false);
         break;
 
+    case Js::OpCode::FABS:
+        bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFabs);
+        break;
+
+    case Js::OpCode::FADD:
+        bytes = this->EmitOp3FpRegister(Emitter, instr, EmitNeonFadd);
+        break;
+
+    case Js::OpCode::FCMP:
+        bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFcmp);
+        break;
+
+//MACRO(VCVTF64F32, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF64F32),   D___)
+//MACRO(VCVTF32F64, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF32F64),   D___)
+//MACRO(VCVTF64S32, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF64S32),   D___)
+//MACRO(VCVTF64U32, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF64U32),   D___)
+//MACRO(VCVTS32F64, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTS32F64),   D___)
+//MACRO(VCVTRS32F64, Reg2,   0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTRS32F64),   D___)
+
+    case Js::OpCode::FDIV:
+        bytes = this->EmitOp3FpRegister(Emitter, instr, EmitNeonFdiv);
+        break;
+
+    case Js::OpCode::FLDR:
+        bytes = this->EmitLoadStoreFp(Emitter, instr, instr->GetSrc1(), instr->GetDst(), EmitNeonLdrOffset);
+        break;
+
+    // Note: src2 is really the second destination register, due to limitations of IR::Instr
+    case Js::OpCode::FLDP:
+        bytes = this->EmitLoadStoreFpPair(Emitter, instr, instr->GetSrc1(), instr->GetDst(), instr->GetSrc2(), EmitNeonLdpOffset);
+        break;
+
+    case Js::OpCode::FMOV:
+        bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFmov);
+        break;
+
+    case Js::OpCode::FMOV_GEN:
+        dst = instr->GetDst();
+        src1 = instr->GetSrc1();
+        Assert(dst->IsRegOpnd());
+        Assert(src1->IsRegOpnd());
+
+        size = dst->GetSize();
+        Assert(size == 4 || size == 8);
+        Assert(size == src1->GetSize());
+
+        Assert(dst->IsFloat() != src1->IsFloat());
+        if (dst->IsFloat())
+        {
+            EmitNeonIns(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), 0, this->GetRegEncode(src1->AsRegOpnd()), (size == 8) ? SIZE_1D : SIZE_1S);
+        }
+        else
+        {
+            if (size == 8)
+            { 
+                EmitNeonUmov64(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), 0, (size == 8) ? SIZE_1D : SIZE_1S);
+            }
+            else
+            {
+                EmitNeonUmov(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), 0, (size == 8) ? SIZE_1D : SIZE_1S);
+            }
+        }
+        break;
+
+    case Js::OpCode::FMUL:
+        bytes = this->EmitOp3FpRegister(Emitter, instr, EmitNeonFmul);
+        break;
+
+    case Js::OpCode::FNEG:
+        bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFneg);
+        break;
+
+    case Js::OpCode::FSUB:
+        bytes = this->EmitOp3FpRegister(Emitter, instr, EmitNeonFsub);
+        break;
+
+    case Js::OpCode::FSQRT:
+        bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFsqrt);
+        break;
+
+    case Js::OpCode::FSTR:
+        bytes = this->EmitLoadStoreFp(Emitter, instr, instr->GetDst(), instr->GetSrc1(), EmitNeonStrOffset);
+        break;
+
+    case Js::OpCode::FSTP:
+        bytes = this->EmitLoadStoreFpPair(Emitter, instr, instr->GetDst(), instr->GetSrc1(), instr->GetSrc2(), EmitNeonStpOffset);
+        break;
+
+    // Opcode not yet implemented
+    default:
+        Assert(false);
+        break;
+
     }
 
 /*
@@ -779,31 +960,6 @@ MACRO(SBCMPLNT, Reg3,      0,              0,  LEGAL_REG3,     INSTR_TYPE(Forms_
 
 
 //VFP instructions:
-MACRO(VABS,     Reg2,      0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VABS),   D___)
-MACRO(VADDF64,  Reg3,      0,              0,  LEGAL_REG3,      INSTR_TYPE(Forms_VADDF64),   D___)
-MACRO(VCMPF64,  Reg1,      OpSideEffect,   0,  LEGAL_CMP_SH,    INSTR_TYPE(Forms_VCMPF64),   D___)
-MACRO(VCVTF64F32, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF64F32),   D___)
-MACRO(VCVTF32F64, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF32F64),   D___)
-MACRO(VCVTF64S32, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF64S32),   D___)
-MACRO(VCVTF64U32, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF64U32),   D___)
-MACRO(VCVTS32F64, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTS32F64),   D___)
-MACRO(VCVTRS32F64, Reg2,   0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTRS32F64),   D___)
-MACRO(VDIVF64,  Reg3,      0,              0,  LEGAL_REG3,      INSTR_TYPE(Forms_VDIVF64),   D___)
-MACRO(VLDR,     Reg2,      0,              0,  LEGAL_VLOAD,     INSTR_TYPE(Forms_VLDR),   DL__)
-MACRO(VLDR32,   Reg2,      0,              0,  LEGAL_VLOAD,     INSTR_TYPE(Forms_VLDR32), DL__) //single precision float load
-MACRO(VMOV,     Reg2,      0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VMOV),   DM__)
-MACRO(VMOVARMVFP, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VMOVARMVFP),   DM__)
-MACRO(VMRS,     Empty,     OpSideEffect,   0,  LEGAL_NONE,      INSTR_TYPE(Forms_VMRS),   D___)
-MACRO(VMRSR,    Reg1,      OpSideEffect,   0,  LEGAL_NONE,      INSTR_TYPE(Forms_VMRSR),   D___)
-MACRO(VMSR,     Reg1,      OpSideEffect,   0,  LEGAL_NONE,      INSTR_TYPE(Forms_VMSR),   D___)
-MACRO(VMULF64,  Reg3,      0,              0,  LEGAL_REG3,      INSTR_TYPE(Forms_VMULF64),   D___)
-MACRO(VNEGF64,  Reg2,      0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VNEGF64),   D___)
-MACRO(VPUSH,    Reg2,      OpSideEffect,   0,  LEGAL_VPUSHPOP,  INSTR_TYPE(Forms_VPUSH), DSUS)
-MACRO(VPOP,     Reg2,      OpSideEffect,   0,  LEGAL_VPUSHPOP,  INSTR_TYPE(Forms_VPOP), DLUP)
-MACRO(VSUBF64,  Reg3,      0,              0,  LEGAL_REG3,      INSTR_TYPE(Forms_VSUBF64),   D___)
-MACRO(VSQRT,    Reg2,      0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VSQRT),   D___)
-MACRO(VSTR,     Reg2,      0,              0,  LEGAL_VSTORE,    INSTR_TYPE(Forms_VSTR),   DS__)
-MACRO(VSTR32,   Reg2,      0,              0,  LEGAL_VSTORE,    INSTR_TYPE(Forms_VSTR32), DS__) //single precision float store
     }
 
 */
