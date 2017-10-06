@@ -63,7 +63,7 @@ namespace Js
         }
         else
         {
-            scriptContext->GetOrAddPropertyRecord(key->GetString(), key->GetLength(), &propertyRecord);
+            scriptContext->GetOrAddPropertyRecord(key, &propertyRecord);
         }
         return propertyRecord;
     }
@@ -1229,7 +1229,7 @@ namespace Js
         // or we have to add it to the dictionary, in which case we need to get or create a PropertyRecord.
         // Thus, just get or create one and call the PropertyId overload of SetProperty.
         PropertyRecord const * propertyRecord;
-        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SetProperty(instance, propertyRecord->GetPropertyId(), value, flags, info);
     }
 

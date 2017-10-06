@@ -194,7 +194,7 @@ namespace Js
                     else
                     {
                         ScriptContext* scriptContext = currentIndex->GetScriptContext();
-                        scriptContext->GetOrAddPropertyRecord(currentIndex->GetString(), currentIndex->GetLength(), &propRecord);
+                        scriptContext->GetOrAddPropertyRecord(currentIndex, &propRecord);
                         propertyId = propRecord->GetPropertyId();
 
                         // We keep the track of what is enumerated using a bit vector of propertyID.
