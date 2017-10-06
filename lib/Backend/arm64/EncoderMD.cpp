@@ -160,7 +160,7 @@ EncoderMD::DecodeMemoryOpnd(IR::Opnd* opnd, ARM64_REGISTER &baseRegResult, ARM64
         IR::SymOpnd *symOpnd = opnd->AsSymOpnd();
 
         this->BaseAndOffsetFromSym(symOpnd, &baseReg, &offset, this->m_func);
-        baseRegResult = baseReg;
+        baseRegResult = this->GetRegEncode(baseReg);
         return false;
     }
     else
