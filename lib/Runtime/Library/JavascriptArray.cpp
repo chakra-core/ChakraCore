@@ -2907,7 +2907,7 @@ namespace Js
     Var JavascriptArray::DirectGetItem(JavascriptString *propName, ScriptContext* scriptContext)
     {
         PropertyRecord const * propertyRecord;
-        scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), &propertyRecord);
+        scriptContext->GetOrAddPropertyRecord(propName, &propertyRecord);
         return JavascriptOperators::GetProperty(this, propertyRecord->GetPropertyId(), scriptContext, NULL);
     }
 

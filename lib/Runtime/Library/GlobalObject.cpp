@@ -1804,7 +1804,7 @@ LHexError:
     PropertyQueryFlags GlobalObject::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyRecord const* propertyRecord;
-        this->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        this->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return GlobalObject::GetPropertyQuery(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext);
     }
 
@@ -2016,7 +2016,7 @@ LHexError:
     BOOL GlobalObject::SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         PropertyRecord const * propertyRecord;
-        this->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        this->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return GlobalObject::SetProperty(propertyRecord->GetPropertyId(), value, flags, info);
     }
 
@@ -2101,7 +2101,7 @@ LHexError:
     DescriptorFlags GlobalObject::GetSetter(JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyRecord const* propertyRecord;
-        this->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        this->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return GlobalObject::GetSetter(propertyRecord->GetPropertyId(), setterValue, info, requestContext);
     }
 

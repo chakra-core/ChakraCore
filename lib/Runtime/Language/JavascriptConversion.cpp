@@ -304,14 +304,14 @@ CommonNumber:
                 }
                 else
                 {
-                    scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
+                    scriptContext->GetOrAddPropertyRecord(propName, propertyRecord);
                     PropertyString * propStr = scriptContext->GetPropertyString((*propertyRecord)->GetPropertyId());
                     str->SetPropertyString(propStr);
                 }
             }
             else
             {
-                scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
+                scriptContext->GetOrAddPropertyRecord(propName, propertyRecord);
             }
         }
     }

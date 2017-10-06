@@ -740,7 +740,7 @@ namespace Js
         PropertyRecord const *propertyRecord = nullptr;
         if (!JavascriptOperators::CanShortcutOnUnknownPropertyName(instance))
         {
-            instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+            instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         }
         else
         {

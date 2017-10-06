@@ -564,7 +564,7 @@ namespace Js
         };
         auto getPropertyId = [&]()->PropertyId{
             const PropertyRecord* propertyRecord;
-            requestContext->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+            requestContext->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
             return propertyRecord->GetPropertyId();
         };
         PropertyDescriptor result;
@@ -705,7 +705,7 @@ namespace Js
     BOOL JavascriptProxy::SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         const PropertyRecord* propertyRecord;
-        GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return SetProperty(propertyRecord->GetPropertyId(), value, flags, info);
     }
 
@@ -1814,7 +1814,7 @@ namespace Js
     BOOL JavascriptProxy::SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, Js::JavascriptString * propertyNameString, Var newValue, ScriptContext* requestContext)
     {
         const PropertyRecord* propertyRecord;
-        requestContext->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        requestContext->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return SetPropertyTrap(receiver, setPropertyTrapKind, propertyRecord->GetPropertyId(), newValue, requestContext);
 
     }

@@ -137,7 +137,7 @@ namespace JSON
             Js::JavascriptString *propertyName = Js::JavascriptString::FromVar(value);
             nameTable[tableLen].propName = propertyName;
             Js::PropertyRecord const * propertyRecord;
-            scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
+            scriptContext->GetOrAddPropertyRecord(propertyName, &propertyRecord);
             nameTable[tableLen].propRecord = propertyRecord;        // Keep the property id alive.
             tableLen++;
         }
@@ -453,6 +453,7 @@ namespace JSON
                 }
             }
         }
+
         return StrHelper(key, value, holder);
     }
 
@@ -688,24 +689,19 @@ namespace JSON
 
                         result = Js::ConcatStringBuilder::New(this->scriptContext, propertyCount);
                         Js::DynamicTypeHandler * typeHandler = dynamicObject->GetTypeHandler();
-                        enumerator.Reset();
-                        Js::PropertyId previousId;
+
                         // if object has an objectarray, (aka indexed properties)
                         // we need to loop them first since they won't show up on the second loop below
                         if (dynamicObject->HasObjectArray())
                         {
-                            int totalNumPropertyCount = this->GetPropertyCount(object, &enumerator) - propertyCount;
-                            Assert(totalNumPropertyCount >= 0);
-
-                            int index = 0;
                             enumerator.Reset();
-                            while (index < totalNumPropertyCount && (propertyName = enumerator.MoveAndGetNext(id)) != NULL)
+                            while ((propertyName = enumerator.MoveAndGetNext(id)) != NULL)
                             {
                                 // if unsuccessful get propertyId from the string
-                                scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);
+                                scriptContext->GetOrAddPropertyRecord(propertyName, &propRecord);
+                                if (!propRecord->IsNumeric()) break;
                                 id = propRecord->GetPropertyId();
                                 StringifyMemberObject(propertyName, id, value, (Js::ConcatStringBuilder*)result, indentString, memberSeparator, isFirstMember, isEmpty);
-                                index++;
                             }
                         }
 
@@ -713,30 +709,25 @@ namespace JSON
                         for (uint32 i = 0; i < propertyCount; i++)
                         {
                             id = typeHandler->GetPropertyId(scriptContext, (Js::PropertyId)i);
-
-                            if (id < Js::InternalPropertyIds::Count)
+                            if (id == Js::Constants::NoProperty)
                             {
-                                // if the property ID is internal, we cannot assume dynamicObject->getSlot(i) is a var later
-                                previousId = id;
                                 continue;
-                            }
-                            else if (id == Js::Constants::NoProperty)
-                            {
-                                if ((propertyName = enumerator.MoveAndGetNext(previousId)) == NULL) break;
-
-                                scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);
-                                id = propRecord->GetPropertyId();
                             }
                             else
                             {
-                                propRecord = scriptContext->GetPropertyName(id);
-                                propertyName = scriptContext->GetPropertyString(id);
+                                if (!object->IsEnumerable(id)) continue;
+                                Js::PropertyString * propertyString = scriptContext->GetPropertyString(id);
+                                propRecord = propertyString->GetPropertyRecord();
+                                propertyName = (Js::JavascriptString*) propertyString;
                             }
 
-                            previousId = id;
                             if (!propRecord->IsSymbol())
                             {
-                                Js::Var property = dynamicObject->GetSlot(i);
+                                PropertyIndex index = typeHandler->GetPropertyIndex(propRecord);
+                                Js::Var property = index != Constants::NoSlot ?
+                                    dynamicObject->GetSlot(index)
+                                :
+                                    nullptr; // slow case. isCaller?
 
                                 StringifyMemberObject(propertyName, id, value,
                                   (Js::ConcatStringBuilder*)result, indentString,
@@ -780,7 +771,7 @@ namespace JSON
                             for (uint k = 0; k < index; k++)
                             {
                                 propertyName = Js::JavascriptString::FromVar(nameTable[k]);
-                                scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);
+                                scriptContext->GetOrAddPropertyRecord(propertyName, &propRecord);
                                 id = propRecord->GetPropertyId();
                                 StringifyMemberObject(propertyName, id, value,
                                   (Js::ConcatStringBuilder*)result, indentString,
