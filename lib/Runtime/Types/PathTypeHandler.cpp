@@ -203,7 +203,7 @@ namespace Js
     {
         // Consider: Implement actual string hash lookup
         PropertyRecord const* propertyRecord;
-        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return PathTypeHandlerBase::HasProperty(instance, propertyRecord->GetPropertyId());
     }
 
@@ -265,7 +265,7 @@ namespace Js
     {
         // Consider: Implement actual string hash lookup
         PropertyRecord const* propertyRecord;
-        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return PathTypeHandlerBase::SetProperty(instance, propertyRecord->GetPropertyId(), value, flags, info);
     }
 

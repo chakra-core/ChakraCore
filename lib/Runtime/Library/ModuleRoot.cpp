@@ -122,7 +122,7 @@ namespace Js
     PropertyQueryFlags ModuleRoot::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyRecord const * propertyRecord;
-        this->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        this->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return ModuleRoot::GetPropertyQuery(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext);
     }
 
@@ -325,7 +325,7 @@ namespace Js
     BOOL ModuleRoot::SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         PropertyRecord const * propertyRecord;
-        this->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        this->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return ModuleRoot::SetProperty(propertyRecord->GetPropertyId(), value, (PropertyOperationFlags)(flags | PropertyOperation_NonFixedValue), info);
     }
 

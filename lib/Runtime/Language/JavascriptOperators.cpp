@@ -486,7 +486,7 @@ namespace Js
 #if DBG
                     JavascriptString* indexStr = JavascriptConversion::ToString(index, scriptContext);
                     PropertyRecord const * debugPropertyRecord;
-                    scriptContext->GetOrAddPropertyRecord(indexStr->GetString(), indexStr->GetLength(), &debugPropertyRecord);
+                    scriptContext->GetOrAddPropertyRecord(indexStr, &debugPropertyRecord);
                     AssertMsg(!JavascriptOperators::GetProperty(instance, object, debugPropertyRecord->GetPropertyId(), &member, scriptContext), "how did this property come? See OS Bug 2727708 if you see this come from the web");
 #endif
 
@@ -2754,7 +2754,7 @@ CommonNumber:
         PropertyRecord const *propertyRecord = nullptr;
         if (!JavascriptOperators::CanShortcutOnUnknownPropertyName(instance))
         {
-            instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+            instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         }
         else
         {
@@ -3264,7 +3264,7 @@ CommonNumber:
 #if DBG
                 JavascriptString* indexStr = JavascriptConversion::ToString(index, scriptContext);
                 PropertyRecord const * debugPropertyRecord;
-                scriptContext->GetOrAddPropertyRecord(indexStr->GetString(), indexStr->GetLength(), &debugPropertyRecord);
+                scriptContext->GetOrAddPropertyRecord(indexStr, &debugPropertyRecord);
                 AssertMsg(!JavascriptOperators::HasProperty(object, debugPropertyRecord->GetPropertyId()), "how did this property come? See OS Bug 2727708 if you see this come from the web");
 #endif
 
@@ -3891,7 +3891,7 @@ CommonNumber:
             {
                 JavascriptString* indexStr = JavascriptConversion::ToString(index, scriptContext);
                 PropertyRecord const * debugPropertyRecord;
-                scriptContext->GetOrAddPropertyRecord(indexStr->GetString(), indexStr->GetLength(), &debugPropertyRecord);
+                scriptContext->GetOrAddPropertyRecord(indexStr, &debugPropertyRecord);
                 AssertMsg(!JavascriptOperators::GetProperty(receiver, object, debugPropertyRecord->GetPropertyId(), &value, scriptContext), "how did this property come? See OS Bug 2727708 if you see this come from the web");
             }
 #endif
@@ -4103,7 +4103,7 @@ CommonNumber:
             {
                 JavascriptString* indexStr = JavascriptConversion::ToString(index, scriptContext);
                 PropertyRecord const * debugPropertyRecord;
-                scriptContext->GetOrAddPropertyRecord(indexStr->GetString(), indexStr->GetLength(), &debugPropertyRecord);
+                scriptContext->GetOrAddPropertyRecord(indexStr, &debugPropertyRecord);
                 AssertMsg(!JavascriptOperators::GetPropertyReference(instance, object, debugPropertyRecord->GetPropertyId(), &value, scriptContext, NULL),
                           "how did this property come? See OS Bug 2727708 if you see this come from the web");
             }
@@ -4428,7 +4428,7 @@ CommonNumber:
                 propertyString = str->GetPropertyString();
                 if (propertyString == nullptr)
                 {
-                    scriptContext->GetOrAddPropertyRecord(str->GetString(), str->GetLength(), &propertyRecord);
+                    scriptContext->GetOrAddPropertyRecord(str, &propertyRecord);
                     propertyString = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
                     str->SetPropertyString(propertyString);
                 }
@@ -4962,7 +4962,7 @@ CommonNumber:
             {
                 JavascriptString* indexStr = JavascriptConversion::ToString(index, scriptContext);
                 PropertyRecord const * debugPropertyRecord;
-                scriptContext->GetOrAddPropertyRecord(indexStr->GetString(), indexStr->GetLength(), &debugPropertyRecord);
+                scriptContext->GetOrAddPropertyRecord(indexStr, &debugPropertyRecord);
                 AssertMsg(JavascriptOperators::DeleteProperty(object, debugPropertyRecord->GetPropertyId(), propertyOperationFlags), "delete should have been true. See OS Bug 2727708 if you see this come from the web");
             }
 #endif
@@ -6631,7 +6631,7 @@ CommonNumber:
         else
         {
             JavascriptString * indexStr = JavascriptConversion::ToString(propertyName, scriptContext);
-            scriptContext->GetOrAddPropertyRecord(indexStr->GetString(), indexStr->GetLength(), &propertyRecord);
+            scriptContext->GetOrAddPropertyRecord(indexStr, &propertyRecord);
         }
 
         return propertyRecord->GetPropertyId();
