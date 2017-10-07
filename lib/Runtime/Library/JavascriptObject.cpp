@@ -1535,7 +1535,7 @@ namespace Js
             {
                 PropertyRecord const * propertyRecord = nullptr;
 
-                scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
+                scriptContext->GetOrAddPropertyRecord(propertyName, &propertyRecord);
                 nextKey = propertyRecord->GetPropertyId();
             }
             PropertyString * propertyString = PropertyString::TryFromVar(propertyName);
@@ -1701,7 +1701,7 @@ namespace Js
         {
             if (propId == Constants::NoProperty) //try current property id query first
             {
-                scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
+                scriptContext->GetOrAddPropertyRecord(propertyName, &propertyRecord);
                 propId = propertyRecord->GetPropertyId();
             }
             else

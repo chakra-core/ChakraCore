@@ -311,7 +311,7 @@ CommonNumber:
                     else
                     {
                         // Otherwise, we need to do a lookup for the PropertyRecord
-                        scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
+                        scriptContext->GetOrAddPropertyRecord(propName, propertyRecord);
                         // While we have the PropertyRecord available, let's find/create a PropertyString so future usage can be optimized
                         strWithPtr->SetPropertyString(scriptContext->GetPropertyString((*propertyRecord)->GetPropertyId()));
                     }

@@ -2481,7 +2481,7 @@ namespace Js
                                         else
                                         {
                                             const PropertyRecord* propertyRecord;
-                                            objectContext->GetOrAddPropertyRecord(obj->GetSz(), obj->GetLength(), &propertyRecord);
+                                            objectContext->GetOrAddPropertyRecord(obj, &propertyRecord);
                                             propertyId = propertyRecord->GetPropertyId();
                                         }
                                     }

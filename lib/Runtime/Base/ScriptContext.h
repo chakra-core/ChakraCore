@@ -1211,6 +1211,7 @@ private:
         {
             GetOrAddPropertyRecord(propertyName, N - 1, propertyRecord);
         }
+        void GetOrAddPropertyRecord(Js::JavascriptString * propertyString, PropertyRecord const** propertyRecord);
         PropertyId GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName);
         template <size_t N> PropertyId GetOrAddPropertyIdTracked(const char16(&propertyName)[N])
         {
