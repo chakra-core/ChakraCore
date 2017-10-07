@@ -4352,7 +4352,7 @@ CommonNumber:
                 propertyString = strWithPtr->GetPropertyString();
                 if (propertyString == nullptr)
                 {
-                    scriptContext->GetOrAddPropertyRecord(str, &propertyRecord);
+                    scriptContext->GetOrAddPropertyRecord(strWithPtr, &propertyRecord);
                     propertyString = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
                     strWithPtr->SetPropertyString(propertyString);
                 }
