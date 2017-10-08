@@ -998,7 +998,7 @@ EmitBlr(
     Arm64SimpleRegisterParam Reg
     )
 {
-    return Emitter.EmitFourBytes(0xd65f0000 | (Reg.RawRegister() << 5));
+    return Emitter.EmitFourBytes(0xd63f0000 | (Reg.RawRegister() << 5));
 }
 
 inline
@@ -1008,7 +1008,7 @@ EmitRet(
     Arm64SimpleRegisterParam Reg
     )
 {
-    return Emitter.EmitFourBytes(0xd63f0000 | (Reg.RawRegister() << 5));
+    return Emitter.EmitFourBytes(0xd65f0000 | (Reg.RawRegister() << 5));
 }
 
 //
