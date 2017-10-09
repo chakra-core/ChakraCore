@@ -4,16 +4,15 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
+// Build static array of legal instruction forms
 #undef MACRO
-
 #define MACRO(name, jnLayout, attrib, byte2, legalforms, opbyte, ...) legalforms,
-
 static const LegalInstrForms _InstrForms[] =
 {
 #include "MdOpCodes.h"
 };
 
-
+// Local class for tracking the opcodes used by an expanded LDIMM
 class LdImmOpcode
 {
 public:
@@ -299,13 +298,13 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
     }
 
     // Determine scale factor for scaled offsets
-    int scale = (indirOpnd->GetType() == TyFloat64) ? 3 : 2;
-    int32 scaledOffset = offset >> scale;
+    int size = indirOpnd->GetSize();
+    int32 scaledOffset = offset / size;
 
     // Either scaled unsigned 12-bit offset, or unscaled signed 9-bit offset
     if (forms & L_IndirSU12I9)
     {
-        if (offset == (scaledOffset << scale) && IS_CONST_UINT12(scaledOffset))
+        if (offset == (scaledOffset * size) && IS_CONST_UINT12(scaledOffset))
         {
             return;
         }
