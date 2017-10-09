@@ -867,7 +867,23 @@ var tests = [
             }
             foo('arguments');
         }
-    }
+    },
+    {
+        name: "Global 'this' binding captured by strict-mode arrow",
+        body: function() {
+            WScript.LoadScript(`"use strict";
+                assert.areEqual(this, (() => this)(), "Lambda should load the global 'this' value itself via LdThis (not StrictLdThis)");
+            `);
+            
+            WScript.LoadScript(`
+                assert.areEqual(this, (() => { "use strict"; return this; })(), "Lambda which has a 'use strict' clause inside");
+            `);
+            
+            WScript.LoadScript(`"use strict";
+                assert.areEqual('object', typeof (() => this)(), "Verify lambda can load global 'this' value even if the global body itself does not have a 'this' binding");
+            `);
+        }
+    },
 ]
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
