@@ -248,6 +248,32 @@ int EncoderMD::EmitOp3Register(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Reg
     }
 }
 
+template<typename _RegFunc32, typename _RegFunc64>
+int EncoderMD::EmitOp3RegisterShifted(Arm64CodeEmitter &Emitter, IR::Instr* instr, SHIFT_EXTEND_TYPE shiftType, int shiftAmount, _RegFunc32 reg32, _RegFunc64 reg64)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+
+    Assert(dst->IsRegOpnd());
+    Assert(src1->IsRegOpnd());
+    Assert(src2->IsRegOpnd());
+
+    int size = dst->GetSize();
+    Assert(size == 4 || size == 8);
+    Assert(size == src1->GetSize());
+    Assert(size == src2->GetSize());
+
+    if (size == 8)
+    {
+        return reg64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), shiftType, shiftAmount & 63));
+    }
+    else
+    {
+        return reg32(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), shiftType, shiftAmount & 31));
+    }
+}
+
 template<typename _ImmFunc32, typename _ImmFunc64>
 int EncoderMD::EmitOp3Immediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _ImmFunc32 imm32, _ImmFunc64 imm64)
 {
@@ -726,25 +752,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::EOR_ASR31:
-        dst = instr->GetDst();
-        src1 = instr->GetSrc1();
-        src2 = instr->GetSrc2();
-        Assert(dst->IsRegOpnd());
-        Assert(src1->IsRegOpnd());
-        Assert(src2->IsRegOpnd());
-
-        size = dst->GetSize();
-        Assert(size == 4 || size == 8);
-        Assert(size == src1->GetSize());
-
-        if (size == 8)
-        {
-            bytes = EmitEorRegister64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), SHIFT_ASR, 63));
-        }
-        else
-        {
-            bytes = EmitEorRegister(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), SHIFT_ASR, 31));
-        }
+        bytes = this->EmitOp3RegisterShifted(Emitter, instr, SHIFT_ASR, 63, EmitEorRegister, EmitEorRegister64);
         break;
 
     // Legalizer should convert these into MOVZ/MOVN/MOVK
@@ -879,6 +887,10 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 
     case Js::OpCode::SUBS:
         bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitSubsRegister, EmitSubsRegister64, EmitSubsImmediate, EmitSubsImmediate64);
+        break;
+
+    case Js::OpCode::SUB_LSL4:
+        bytes = this->EmitOp3RegisterShifted(Emitter, instr, SHIFT_LSL, 4, EmitSubRegister, EmitSubRegister64);
         break;
 
     // Legalizer should convert this to ANDS before getting here
