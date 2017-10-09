@@ -6,9 +6,19 @@
 #include "RuntimePlatformAgnosticPch.h"
 #include "UnicodeText.h"
 #ifdef HAS_REAL_ICU
+
+// pal/inc/rt/sal.h defines __out, which is used as a variable in libstdc++,
+// which gets included by ICU
+#ifdef __out
+#undef __out
+#endif
+
 #include <unicode/uchar.h>
 #include <unicode/ustring.h>
 #include <unicode/normalizer2.h>
+
+#define __out
+
 #else
 #include <cctype>
 #define UErrorCode int

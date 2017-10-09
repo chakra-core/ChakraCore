@@ -7,7 +7,7 @@
 #ifdef _WIN32
 #include "CommonMin.h"
 #else
-#include "pal.h"
+#include "CommonPal.h"
 #endif
 
 #ifdef _MSC_VER

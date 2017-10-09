@@ -77,7 +77,8 @@ namespace Intl
     HRESULT SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits);
 
     template <typename T>
-    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const NumberFormatStyle formatterToUse, const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
+    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const NumberFormatStyle formatterToUse,
+        const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
 
     bool ResolveLocaleLookup(_In_z_ const char16 *locale, _Out_ char16 *resolved);
     bool ResolveLocaleBestFit(_In_z_ const char16 *locale, _Out_ char16 *resolved);

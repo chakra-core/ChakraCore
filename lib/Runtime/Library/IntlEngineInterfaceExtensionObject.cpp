@@ -566,7 +566,7 @@ namespace Js
         }
 
 #if DEBUG
-#ifdef INTL_ICU_DEBUG
+#if INTL_ICU_DEBUG
         Output::Print(_u("EntryIntl_RaiseAssert\n"));
 #endif
         JavascriptExceptionOperators::Throw(JavascriptError::FromVar(args.Values[1]), scriptContext);
@@ -654,7 +654,7 @@ namespace Js
             return JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
         }
 
-#ifdef INTL_ICU_DEBUG
+#if INTL_ICU_DEBUG
         Output::Print(_u("Intl::ResolveLocaleLookup returned false: EntryIntl_ResolveLocaleLookup returning null to fallback to JS\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull();
@@ -693,7 +693,7 @@ namespace Js
             return JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
         }
 
-#ifdef INTL_ICU_DEBUG
+#if INTL_ICU_DEBUG
         Output::Print(_u("Intl::ResolveLocaleBestFit returned false: EntryIntl_ResolveLocaleBestFit returning null to fallback to JS\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull();
@@ -798,7 +798,7 @@ namespace Js
         return toReturn;
 #else
         // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
+#if INTL_ICU_DEBUG
         Output::Print(_u("EntryIntl_GetExtensions > returning null: fallback to JS function getExtensionSubtags\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull(); // fallback to Intl.js
@@ -1173,7 +1173,7 @@ namespace Js
         return scriptContext->GetLibrary()->GetUndefined();
 #else
         // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
+#if INTL_ICU_DEBUG
         Output::Print(_u("EntryIntl_CreateDateTimeFormat > returning null, fallback to JS\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull();
@@ -1574,7 +1574,7 @@ namespace Js
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
 #else
         // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
+#if INTL_ICU_DEBUG
         Output::Print(_u("EntryIntl_FormatDateTime > returning null, fallback to JS\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull();
@@ -1614,7 +1614,7 @@ namespace Js
         }
 #else
         // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
+#if INTL_ICU_DEBUG
         Output::Print(_u("EntryIntl_ValidateAndCanonicalizeTimeZone > returning null, fallback to JS\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull();
@@ -1646,7 +1646,7 @@ namespace Js
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
 #else
         // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
+#if INTL_ICU_DEBUG
         Output::Print(_u("EntryIntl_GetDefaultTimeZone > returning null, fallback to JS\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull();
