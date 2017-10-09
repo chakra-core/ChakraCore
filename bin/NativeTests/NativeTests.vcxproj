@@ -21,12 +21,13 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>
-          $(ChakraCoreRootDirectory)Lib\Jsrt;
-          $(MSBuildThisFileDirectory);
-          $(ChakraCoreRootDirectory)Lib\Common;
-          $(ChakraCoreRootDirectory)bin\External;
-          %(AdditionalIncludeDirectories)
+        $(ChakraCoreRootDirectory)Lib\Jsrt;
+        $(MSBuildThisFileDirectory);
+        $(ChakraCoreRootDirectory)Lib\Common;
+        $(ChakraCoreRootDirectory)bin\External;
+        %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
+
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <MinimalRebuild>false</MinimalRebuild>
@@ -42,9 +43,10 @@
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CodexAssert.cpp" />
     <ClCompile Include="CodexTests.cpp" />
     <ClCompile Include="FileLoadHelpers.cpp" />
-    <ClCompile Include="CodexAssert.cpp" />
+    <ClCompile Include="FunctionExecutionTest.cpp" />
     <ClCompile Include="JsRTApiTest.cpp" />
     <ClCompile Include="MemoryPolicyTest.cpp" />
     <ClCompile Include="NativeTests.cpp" />

@@ -9,6 +9,7 @@
 //========================
 // Parser includes
 //========================
+#include "Parser.h"
 #include "ParserCommon.h"
 #include "ParseFlags.h"
 #include "rterror.h"
