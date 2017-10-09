@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Types/NullTypeHandler.h"
 
 namespace Js
 {
@@ -1615,7 +1614,6 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        Recycler *recycler = scriptContext->GetRecycler();
 
 
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_create)
@@ -1627,18 +1625,15 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NotObjectOrNull, _u("Object.create"));
         }
 
-        TypeId typeId = JavascriptOperators::GetTypeId(args[1]);
-        if (typeId != TypeIds_Null && !JavascriptOperators::IsObjectType(typeId))
+        Var protoVar = args[1];
+        if (!JavascriptOperators::IsObjectOrNull(protoVar))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NotObjectOrNull, _u("Object.create"));
         }
 
-        //Create a new DynamicType with first argument as prototype and non shared type
-        RecyclableObject *prototype = RecyclableObject::FromVar(args[1]);
-        DynamicType *objectType = DynamicType::New(scriptContext, TypeIds_Object, prototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), false);
+        RecyclableObject* protoObj = RecyclableObject::FromVar(protoVar);
+        DynamicObject* object = function->GetLibrary()->CreateObject(protoObj);
 
-        //Create a new Object using this type.
-        DynamicObject* object = DynamicObject::New(recycler, objectType);
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(object));
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
