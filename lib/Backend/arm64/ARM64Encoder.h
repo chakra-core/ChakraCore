@@ -568,7 +568,7 @@ public:
     
     void
     SetTarget(
-        ULONG OffsetFromEmitterBase
+        INT32 OffsetFromEmitterBase
         )
     {
         NT_ASSERT(OffsetFromEmitterBase % 4 == 0);
@@ -592,7 +592,7 @@ public:
     {
         ULONG_PTR Delta = ULONG_PTR(Target) - ULONG_PTR(Emitter.GetEmitAreaBase());
         NT_ASSERT(INT32(Delta) == Delta);
-        SetTarget(ULONG(Delta));
+        SetTarget(INT32(Delta));
         Resolve(Emitter);
     }
 
@@ -658,7 +658,7 @@ public:
         Arm64CodeEmitter Emitter(ExistingInstruction, 4);
         ArmBranchLinker Linker;
         Linker.SetInstructionAddressAndClass(Emitter, Class);
-        Linker.SetTarget(ULONG(4 * (TargetInstruction - ExistingInstruction)));
+        Linker.SetTarget(INT32(4 * (TargetInstruction - ExistingInstruction)));
         Linker.Resolve(Emitter);
     }
     
@@ -696,7 +696,7 @@ private:
     }
 
     ULONG m_InstructionOffset;
-    ULONG m_TargetOffset;
+    INT32 m_TargetOffset;
     BRANCH_CLASS m_BranchClass;
     bool m_Resolved;
 };
