@@ -238,7 +238,7 @@ public:
             void                GenerateFastInlineBuiltInMathCeil(IR::Instr *callInstr);
             void                GenerateFastInlineBuiltInMathRound(IR::Instr *callInstr);
             static RegNum       GetRegStackPointer() { return RegSP; }
-            static RegNum       GetRegFramePointer() { return RegR11; }
+            static RegNum       GetRegFramePointer() { return RegFP; }
             static RegNum       GetRegReturn(IRType type) { return IRType_IsFloat(type) ? RegNOREG : RegR0; }
             static RegNum       GetRegArgI4(int32 argNum) { return RegNOREG; }
             static RegNum       GetRegArgR8(int32 argNum) { return RegNOREG; }
