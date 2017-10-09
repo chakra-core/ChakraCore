@@ -2376,7 +2376,7 @@ void ByteCodeGenerator::GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &
 
 void ByteCodeGenerator::EmitThis(FuncInfo *funcInfo, Js::RegSlot fromRegister)
 {
-    if (funcInfo->byteCodeFunction->GetIsStrictMode() && !funcInfo->IsGlobalFunction())
+    if (funcInfo->byteCodeFunction->GetIsStrictMode() && !funcInfo->IsGlobalFunction() && !funcInfo->IsLambda())
     {
         m_writer.Reg2(Js::OpCode::StrictLdThis, funcInfo->GetThisSymbol()->GetLocation(), fromRegister);
     }
