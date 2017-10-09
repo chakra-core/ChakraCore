@@ -113,6 +113,9 @@ MACRO(STP_PRE,    Reg3,       0,              UNUSED,   LEGAL_STOREP,   UNUSED, 
 MACRO(SUB,        Reg3,       0,              UNUSED,   LEGAL_ADDSUB,   UNUSED,   D___)
 MACRO(SUBS,       Reg3,       OpSideEffect,   UNUSED,   LEGAL_ADDSUB,   UNUSED,   D__S)
 
+// SUB dst, src1, src2 LSL #4 -- used in prologs with _chkstk calls
+MACRO(SUB_LSL4,   Reg3,       0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
+
 MACRO(TIOFLW,     Reg1,       OpSideEffect,   UNUSED,   LEGAL_REG2_ND,  UNUSED,   D___)
 MACRO(TST,        Reg2,       OpSideEffect,   UNUSED,   LEGAL_PSEUDO,   UNUSED,   D__S)
 
