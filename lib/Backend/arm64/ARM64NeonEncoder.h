@@ -947,7 +947,7 @@ EmitNeonFcvtas(
     NeonRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
-    )
+)
 {
     NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e21c800, 0x5e21c800);
@@ -4074,12 +4074,64 @@ EmitNeonConvertScalarCommon(
 
 inline
 int
-EmitNeonFcvtzs(
+EmitNeonFcvtnsGen(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
-    )
+)
+{
+    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e200000);
+}
+
+inline
+int
+EmitNeonFcvtnsGen64(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    NeonRegisterParam Src,
+    NEON_SIZE SrcSize
+)
+{
+    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e200000);
+}
+
+inline
+int
+EmitNeonFcvtnuGen(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    NeonRegisterParam Src,
+    NEON_SIZE SrcSize
+)
+{
+    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e210000);
+}
+
+inline
+int
+EmitNeonFcvtnuGen64(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    NeonRegisterParam Src,
+    NEON_SIZE SrcSize
+)
+{
+    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e210000);
+}
+
+inline
+int
+EmitNeonFcvtzsGen(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    NeonRegisterParam Src,
+    NEON_SIZE SrcSize
+)
 {
     NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e380000);
@@ -4087,12 +4139,12 @@ EmitNeonFcvtzs(
 
 inline
 int
-EmitNeonFcvtzs64(
+EmitNeonFcvtzsGen64(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
-    )
+)
 {
     NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e380000);
@@ -4100,12 +4152,12 @@ EmitNeonFcvtzs64(
 
 inline
 int
-EmitNeonFcvtzu(
+EmitNeonFcvtzuGen(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
-    )
+)
 {
     NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e390000);
@@ -4113,12 +4165,12 @@ EmitNeonFcvtzu(
 
 inline
 int
-EmitNeonFcvtzu64(
+EmitNeonFcvtzuGen64(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     NeonRegisterParam Src,
     NEON_SIZE SrcSize
-    )
+)
 {
     NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e390000);

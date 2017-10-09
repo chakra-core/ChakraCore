@@ -456,7 +456,7 @@ int EncoderMD::EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _E
 
     NEON_SIZE neonSize = (size == 8) ? SIZE_1D : SIZE_1S;
 
-    return emitter(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), neonSize);
+    return emitter(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetFloatRegEncode(src1->AsRegOpnd()), neonSize);
 }
 
 template<typename _Emitter>
@@ -477,7 +477,7 @@ int EncoderMD::EmitOp3FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _E
 
     NEON_SIZE neonSize = (size == 8) ? SIZE_1D : SIZE_1S;
 
-    return emitter(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()), neonSize);
+    return emitter(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetFloatRegEncode(src1->AsRegOpnd()), this->GetFloatRegEncode(src2->AsRegOpnd()), neonSize);
 }
 
 template<typename _LoadStoreFunc>
@@ -527,6 +527,43 @@ int EncoderMD::EmitLoadStoreFpPair(Arm64CodeEmitter &Emitter, IR::Instr* instr, 
     {
         return loadStore(Emitter, this->GetFloatRegEncode(srcDst1Opnd->AsRegOpnd()), this->GetFloatRegEncode(srcDst2Opnd->AsRegOpnd()), (size == 8) ? SIZE_1D : SIZE_1S, baseReg, offset);
     }
+}
+
+template<typename _Int32Func, typename _Uint32Func, typename _Int64Func, typename _Uint64Func>
+int EncoderMD::EmitConvertToInt(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Int32Func toInt32, _Uint32Func toUint32, _Int64Func toInt64, _Uint64Func toUint64)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    Assert(dst->IsRegOpnd());
+    Assert(!dst->IsFloat());
+    Assert(src1->IsRegOpnd());
+    Assert(src1->IsFloat());
+
+    int size = dst->GetSize();
+    Assert(size == 4 || size == 8);
+    int srcSize = src1->GetSize();
+    Assert(srcSize == 4 || srcSize == 8);
+
+    if (dst->GetType() == TyInt32)
+    {
+        return toInt32(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetFloatRegEncode(src1->AsRegOpnd()), (srcSize == 8) ? SIZE_1D : SIZE_1S);
+    }
+    else if (dst->GetType() == TyUint32)
+    {
+        return toUint32(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetFloatRegEncode(src1->AsRegOpnd()), (srcSize == 8) ? SIZE_1D : SIZE_1S);
+    }
+    else if (dst->GetType() == TyInt64)
+    {
+        return toInt64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetFloatRegEncode(src1->AsRegOpnd()), (srcSize == 8) ? SIZE_1D : SIZE_1S);
+    }
+    else if (dst->GetType() == TyUint64)
+    {
+        return toUint64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetFloatRegEncode(src1->AsRegOpnd()), (srcSize == 8) ? SIZE_1D : SIZE_1S);
+    }
+    
+    // Shouldn't get here
+    Assert(false);
+    return 0;
 }
 
 //---------------------------------------------------------------------------
@@ -861,12 +898,45 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFcmp);
         break;
 
-//MACRO(VCVTF64F32, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF64F32),   D___)
-//MACRO(VCVTF32F64, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF32F64),   D___)
-//MACRO(VCVTF64S32, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF64S32),   D___)
-//MACRO(VCVTF64U32, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTF64U32),   D___)
-//MACRO(VCVTS32F64, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTS32F64),   D___)
-//MACRO(VCVTRS32F64, Reg2,   0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VCVTRS32F64),   D___)
+    case Js::OpCode::FCVT:
+        dst = instr->GetDst();
+        src1 = instr->GetSrc1();
+        Assert(dst->IsRegOpnd());
+        Assert(src1->IsRegOpnd());
+        Assert(dst->IsFloat());
+
+        size = dst->GetSize();
+        Assert(size == 4 || size == 8);
+
+        if (src1->IsFloat())
+        {
+            bytes = EmitNeonFcvt(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), (size == 8) ? SIZE_1D : SIZE_1S, this->GetFloatRegEncode(src1->AsRegOpnd()), (src1->GetSize() == 8) ? SIZE_1D : SIZE_1S);
+        }
+        else if (src1->GetType() == TyInt32)
+        {
+            bytes = EmitNeonScvtf(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), Arm64SimpleRegisterParam(this->GetRegEncode(src1->AsRegOpnd())), (size == 8) ? SIZE_1D : SIZE_1S);
+        }
+        else if (src1->GetType() == TyUint32)
+        {
+            bytes = EmitNeonUcvtf(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), Arm64SimpleRegisterParam(this->GetRegEncode(src1->AsRegOpnd())), (size == 8) ? SIZE_1D : SIZE_1S);
+        }
+        else if (src1->GetType() == TyInt64)
+        {
+            bytes = EmitNeonScvtf64(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), Arm64SimpleRegisterParam(this->GetRegEncode(src1->AsRegOpnd())), (size == 8) ? SIZE_1D : SIZE_1S);
+        }
+        else if (src1->GetType() == TyUint64)
+        {
+            bytes = EmitNeonUcvtf64(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), Arm64SimpleRegisterParam(this->GetRegEncode(src1->AsRegOpnd())), (size == 8) ? SIZE_1D : SIZE_1S);
+        }
+        break;
+
+    case Js::OpCode::FCVTN:
+        bytes = this->EmitConvertToInt(Emitter, instr, EmitNeonFcvtnsGen, EmitNeonFcvtnuGen, EmitNeonFcvtnsGen64, EmitNeonFcvtnuGen64);
+        break;
+
+    case Js::OpCode::FCVTZ:
+        bytes = this->EmitConvertToInt(Emitter, instr, EmitNeonFcvtzsGen, EmitNeonFcvtzuGen, EmitNeonFcvtzsGen64, EmitNeonFcvtzuGen64);
+        break;
 
     case Js::OpCode::FDIV:
         bytes = this->EmitOp3FpRegister(Emitter, instr, EmitNeonFdiv);
@@ -919,6 +989,14 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 
     case Js::OpCode::FNEG:
         bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFneg);
+        break;
+
+    case Js::OpCode::FRINTM:
+        bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFrintm);
+        break;
+
+    case Js::OpCode::FRINTP:
+        bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFrintp);
         break;
 
     case Js::OpCode::FSUB:
