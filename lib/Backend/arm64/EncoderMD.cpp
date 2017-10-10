@@ -1277,116 +1277,13 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
 void
 EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCRC, BOOL isBrShorteningSucceeded, bool isFinalBufferValidation)
 {
-#if 0
-
-    // ARM64_WORKITEM
-
     for (EncodeReloc *reloc = m_relocList; reloc; reloc = reloc->m_next)
     {
         BYTE * relocAddress = reloc->m_consumerOffset;
-        int64 pcrel;
-        DWORD encode = *(DWORD*)relocAddress;
-        switch (reloc->m_relocType)
-        {
-        case RelocTypeBranch20:
-            {
-                IR::LabelInstr * labelInstr = reloc->m_relocInstr->AsLabelInstr();
-                Assert(!labelInstr->isInlineeEntryInstr);
-                AssertMsg(labelInstr->GetPC() != nullptr, "Branch to unemitted label?");
-                pcrel = (uint32)(labelInstr->GetPC() - reloc->m_consumerOffset);
-                encode |= BranchOffset_T2_20(pcrel);
-                *(uint32 *)relocAddress = encode;
-                break;
-            }
+        IR::LabelInstr * labelInstr = reloc->m_relocInstr->AsLabelInstr();
 
-        case RelocTypeBranch24:
-            {
-                IR::LabelInstr * labelInstr = reloc->m_relocInstr->AsLabelInstr();
-                Assert(!labelInstr->isInlineeEntryInstr);
-                AssertMsg(labelInstr->GetPC() != nullptr, "Branch to unemitted label?");
-                pcrel = (uint32)(labelInstr->GetPC() - reloc->m_consumerOffset);
-                encode |= BranchOffset_T2_24(pcrel);
-                *(DWORD *)relocAddress = encode;
-                break;
-            }
-
-        case RelocTypeDataLabelLow:
-            {
-                IR::LabelInstr * labelInstr = reloc->m_relocInstr->AsLabelInstr();
-                Assert(!labelInstr->isInlineeEntryInstr && labelInstr->m_isDataLabel);
-
-                AssertMsg(labelInstr->GetPC() != nullptr, "Branch to unemitted label?");
-
-                pcrel = ((labelInstr->GetPC() - m_encoder->m_encodeBuffer + codeBufferAddress) & 0xFFFF);
-
-                if (!EncodeImmediate16(pcrel, (DWORD*) &encode))
-                {
-                    Assert(UNREACHED);
-                }
-                *(DWORD *) relocAddress = encode;
-                break;
-            }
-
-        case RelocTypeLabelLow:
-            {
-                // Absolute (not relative) label address (lower 16 bits)
-                IR::LabelInstr * labelInstr = reloc->m_relocInstr->AsLabelInstr();
-                if (!labelInstr->isInlineeEntryInstr)
-                {
-                    AssertMsg(labelInstr->GetPC() != nullptr, "Branch to unemitted label?");
-                    // Note that the bottom bit must be set, since this is a Thumb code address.
-                    pcrel = ((labelInstr->GetPC() - m_encoder->m_encodeBuffer + codeBufferAddress) & 0xFFFF) | 1;
-                }
-                else
-                {
-                    //This is a encoded low 16 bits.
-                    pcrel = labelInstr->GetOffset() & 0xFFFF;
-                }
-                if (!EncodeImmediate16(pcrel, (DWORD*) &encode))
-                {
-                    Assert(UNREACHED);
-                }
-                *(DWORD *) relocAddress = encode;
-                break;
-            }
-
-        case RelocTypeLabelHigh:
-            {
-                // Absolute (not relative) label address (upper 16 bits)
-                IR::LabelInstr * labelInstr = reloc->m_relocInstr->AsLabelInstr();
-                if (!labelInstr->isInlineeEntryInstr)
-                {
-                    AssertMsg(labelInstr->GetPC() != nullptr, "Branch to unemitted label?");
-                    pcrel = (labelInstr->GetPC() - m_encoder->m_encodeBuffer + codeBufferAddress) >> 16;
-                    // We only record the relocation on the low byte of the pair
-                }
-                else
-                {
-                    //This is a encoded high 16 bits.
-                    pcrel = labelInstr->GetOffset() >> 16;
-                }
-                if (!EncodeImmediate16(pcrel, (DWORD*) &encode))
-                {
-                    Assert(UNREACHED);
-                }
-                *(DWORD *) relocAddress = encode;
-                break;
-            }
-
-        case RelocTypeLabel:
-            {
-                IR::LabelInstr * labelInstr = reloc->m_relocInstr->AsLabelInstr();
-                AssertMsg(labelInstr->GetPC() != nullptr, "Branch to unemitted label?");
-                /* For Thumb instruction set -> OR 1 with the address*/
-                *(uint32 *)relocAddress = (uint32)(labelInstr->GetPC() - m_encoder->m_encodeBuffer + codeBufferAddress)  | 1;
-                break;
-            }
-        default:
-            AssertMsg(UNREACHED, "Unknown reloc type");
-        }
+        ArmBranchLinker::LinkRaw((PULONG)relocAddress, (PULONG)labelInstr->GetPC());
     }
-
-#endif
 }
 
 void
