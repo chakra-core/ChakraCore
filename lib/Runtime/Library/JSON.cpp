@@ -397,23 +397,22 @@ namespace JSON
         objectStack = Anew(tempAlloc, JSONStack, tempAlloc, scriptContext);
     }
 
-    Js::Var StringifySession::Str(uint32 index, Js::Var holder)
+    Js::Var StringifySession::Str(uint32 index, Js::RecyclableObject * holder)
     {
         Js::Var value = nullptr;
         Js::RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
 
-        if (Js::JavascriptArray::Is(holder) && !Js::JavascriptArray::FromVar(holder)->IsCrossSiteObject())
+        if (Js::JavascriptArray::Is(holder->GetTypeId()) && !Js::JavascriptArray::FromAnyArray(holder)->IsCrossSiteObject())
         {
-            if (Js::JavascriptOperators::IsUndefinedObject(value = Js::JavascriptArray::FromVar(holder)->DirectGetItem(index), undefined))
+            value = Js::JavascriptArray::FromAnyArray(holder)->DirectGetItem(index);
+            if (Js::JavascriptOperators::IsUndefinedObject(value, undefined))
             {
                 return value;
             }
         }
         else
         {
-            Assert(Js::JavascriptOperators::IsArray(holder));
-            Js::RecyclableObject *arr = RecyclableObject::FromVar(holder);
-            if (!Js::JavascriptOperators::GetItem(arr, index, &value, scriptContext))
+            if (!Js::JavascriptOperators::GetItem(holder, index, &value, scriptContext))
             {
                 return undefined;
             }
@@ -585,7 +584,7 @@ namespace JSON
 
         default:
             Js::Var ret = undefined;
-            if(Js::JavascriptOperators::IsJsNativeObject(value))
+            if (Js::JavascriptOperators::IsJsNativeObject(value))
             {
                 if (!Js::JavascriptConversion::IsCallable(value))
                 {
@@ -595,9 +594,9 @@ namespace JSON
                     }
                     objectStack->Push(value);
 
-                    if(Js::JavascriptOperators::IsArray(value))
+                    if (Js::JavascriptOperators::IsArray(value))
                     {
-                        ret = StringifyArray(value);
+                        ret = StringifyArray(Js::RecyclableObject::FromVar(value));
                     }
                     else
                     {
@@ -682,56 +681,89 @@ namespace JSON
                 Js::JavascriptStaticEnumerator enumerator;
                 if (object->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EphemeralReference, scriptContext))
                 {
-                    Js::DynamicObject * dynamicObject = ((Js::DynamicObject*)object);
-                    if (ReplacerFunction != replacerType || !dynamicObject->HasObjectArray())
+                    bool isDynamicObject = Js::DynamicObject::Is(object);
+                    Js::DynamicObject * dynamicObject = nullptr;
+                    bool hasObjectArray = false;
+                    if (isDynamicObject)
                     {
-                        uint32 propertyCount = dynamicObject->GetPropertyCount();
+                        dynamicObject = Js::DynamicObject::FromVar(object);
+                        hasObjectArray = dynamicObject->HasObjectArray();
+                    }
 
-                        result = Js::ConcatStringBuilder::New(this->scriptContext, propertyCount);
-                        Js::DynamicTypeHandler * typeHandler = dynamicObject->GetTypeHandler();
+                    bool repFunctionIsReplacerType = ReplacerFunction == replacerType;
+                    bool requiresStoringNames = repFunctionIsReplacerType && (!isDynamicObject || hasObjectArray);
+                    if (!requiresStoringNames)
+                    {
+                        uint32 propertyCount;
 
-                        // if object has an objectarray, (aka indexed properties)
+                        // if object has an objectArray, (aka indexed properties)
                         // we need to loop them first since they won't show up on the second loop below
-                        if (dynamicObject->HasObjectArray())
+                        // besides, we might be talking to a non dynamicObject
+                        // in that case, we will also take the enumerator path
+                        if (!isDynamicObject || hasObjectArray)
                         {
+                            // get the precise count because resizing ConcatString will be expensive!
+                            propertyCount = this->GetPropertyCount(object, &enumerator);
+                            result = Js::ConcatStringBuilder::New(this->scriptContext, propertyCount);
+
                             enumerator.Reset();
-                            while ((propertyName = enumerator.MoveAndGetNext(id)) != NULL)
+                            while (propertyCount > 0 && (propertyName = enumerator.MoveAndGetNext(id)) != NULL)
                             {
                                 // if unsuccessful get propertyId from the string
                                 scriptContext->GetOrAddPropertyRecord(propertyName, &propRecord);
-                                if (!propRecord->IsNumeric()) break;
+                                if (isDynamicObject && !propRecord->IsNumeric())
+                                {
+                                    break;
+                                }
+
                                 id = propRecord->GetPropertyId();
-                                StringifyMemberObject(propertyName, id, value, (Js::ConcatStringBuilder*)result, indentString, memberSeparator, isFirstMember, isEmpty);
+                                StringifyMemberObject(propertyName, id, value,
+                                    (Js::ConcatStringBuilder*)result, indentString,
+                                    memberSeparator, isFirstMember, isEmpty);
+                                propertyCount--;
                             }
                         }
 
-                        // loop over the named properties
-                        for (uint32 i = 0; i < propertyCount; i++)
+                        if (isDynamicObject)
                         {
-                            id = typeHandler->GetPropertyId(scriptContext, (Js::PropertyId)i);
-                            if (id == Js::Constants::NoProperty)
+                            Js::DynamicTypeHandler * typeHandler = dynamicObject->GetTypeHandler();
+                            propertyCount = dynamicObject->GetPropertyCount(); // logic below assumes the whole unfiltered count
+
+                            if (result == NULL)
                             {
-                                continue;
+                                result = Js::ConcatStringBuilder::New(this->scriptContext, propertyCount);
                             }
-                            else
+
+                            // loop over the named properties
+                            for (uint32 i = 0; i < propertyCount; i++)
                             {
-                                if (!object->IsEnumerable(id)) continue;
+                                id = typeHandler->GetPropertyId(scriptContext, (Js::PropertyId)i);
+                                if (id == Js::Constants::NoProperty)
+                                {
+                                    continue;
+                                }
+
+                                if (!dynamicObject->IsEnumerable(id))
+                                {
+                                    continue;
+                                }
+
                                 Js::PropertyString * propertyString = scriptContext->GetPropertyString(id);
                                 propRecord = propertyString->GetPropertyRecord();
                                 propertyName = (Js::JavascriptString*) propertyString;
-                            }
 
-                            if (!propRecord->IsSymbol())
-                            {
-                                PropertyIndex index = typeHandler->GetPropertyIndex(propRecord);
-                                Js::Var property = index != Constants::NoSlot ?
-                                    dynamicObject->GetSlot(index)
-                                :
-                                    nullptr; // slow case. isCaller?
+                                if (!propRecord->IsSymbol())
+                                {
+                                    PropertyIndex index = typeHandler->GetPropertyIndex(propRecord);
+                                    Js::Var property = index != Constants::NoSlot ?
+                                        dynamicObject->GetSlot(index)
+                                    :
+                                        nullptr; // slow case. isCaller?
 
-                                StringifyMemberObject(propertyName, id, value,
-                                  (Js::ConcatStringBuilder*)result, indentString,
-                                  memberSeparator, isFirstMember, isEmpty, property);
+                                    StringifyMemberObject(propertyName, id, value,
+                                      (Js::ConcatStringBuilder*)result, indentString,
+                                      memberSeparator, isFirstMember, isEmpty, property);
+                                }
                             }
                         }
                     }
@@ -819,11 +851,11 @@ namespace JSON
         return result;
     }
 
-    Js::JavascriptString* StringifySession::GetArrayElementString(uint32 index, Js::Var arrayVar)
+    Js::JavascriptString* StringifySession::GetArrayElementString(uint32 index, Js::RecyclableObject * arrayValue)
     {
         Js::RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
 
-        Js::Var arrayElement = Str(index, arrayVar);
+        Js::Var arrayElement = Str(index, arrayValue);
         if (Js::JavascriptOperators::IsUndefinedObject(arrayElement, undefined))
         {
             return scriptContext->GetLibrary()->GetNullDisplayString();
@@ -831,15 +863,14 @@ namespace JSON
         return Js::JavascriptString::FromVar(arrayElement);
     }
 
-    Js::Var StringifySession::StringifyArray(Js::Var value)
+    Js::Var StringifySession::StringifyArray(Js::RecyclableObject * value)
     {
         uint stepBackIndent = this->indent++;
         Js::JavascriptString* memberSeparator = NULL;       // comma  or comma+linefeed+indent
         Js::JavascriptString* indentString = NULL;          // gap*indent
 
         uint32 length;
-
-        if (Js::JavascriptArray::Is(value))
+        if (Js::JavascriptArray::Is(value->GetTypeId()))
         {
             length = Js::JavascriptArray::FromAnyArray(value)->GetLength();
         }
