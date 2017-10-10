@@ -814,10 +814,10 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
     // SMULL dst, src1, src2. src1 and src2 are 32-bit. dst is 64-bit.
     case Js::OpCode::SMULL:
         dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
         src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
         src2 = instr->GetSrc2();
+        Assert(dst->IsRegOpnd());
+        Assert(src1->IsRegOpnd());
         Assert(src2->IsRegOpnd());
         bytes = EmitSmull(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
         break;
@@ -825,10 +825,10 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
     // SMADDL (SMLAL from ARM32) dst, dst, src1, src2. src1 and src2 are 32-bit. dst is 64-bit.
     case Js::OpCode::SMADDL:
         dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
         src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
         src2 = instr->GetSrc2();
+        Assert(dst->IsRegOpnd());
+        Assert(src1->IsRegOpnd());
         Assert(src2->IsRegOpnd());
         bytes = EmitSmaddl(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
         break;
@@ -836,12 +836,12 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
     // MSUB (MLS from ARM32) dst, src1, src2: Multiply and Subtract. We use 3 registers: dst = src1 - src2 * dst
     case Js::OpCode::MSUB:
         dst = instr->GetDst();
-        Assert(dst->IsRegOpnd());
         src1 = instr->GetSrc1();
-        Assert(src1->IsRegOpnd());
         src2 = instr->GetSrc2();
+        Assert(dst->IsRegOpnd());
+        Assert(src1->IsRegOpnd());
         Assert(src2->IsRegOpnd());
-        bytes = EmitMsub(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()), this->GetRegEncode(dst->AsRegOpnd()));
+        bytes = EmitMsub(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()), this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()));
         break;
 
     case Js::OpCode::NOP:
