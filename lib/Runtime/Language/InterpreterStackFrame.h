@@ -213,6 +213,7 @@ namespace Js
         FrameDisplay * GetFrameDisplayForNestedFunc() const;
         Var InnerScopeFromRegSlot(RegSlot reg) const;
         void SetClosureInitDone(bool done) { closureInitDone = done; }
+        bool IsClosureInitDone() const { return closureInitDone; }
 
         void ValidateRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         int OP_GetMemorySize();
@@ -465,6 +466,7 @@ namespace Js
         template <class T> void OP_CallPutCommonI(const unaligned T *playout, RecyclableObject * aFunc);
 
         template <class T> void OP_AsmCall(const unaligned T* playout);
+        template <class T> void OP_EnsureHeapAttached(const unaligned T* playout);
 
         template <class T> void OP_CallI(const unaligned T* playout, unsigned flags) { OP_CallCommon(playout, OP_CallGetFunc(GetRegAllowStackVar(playout->Function)), flags); }
         template <class T> void OP_CallIExtended(const unaligned T* playout, unsigned flags) { OP_CallCommon(playout, OP_CallGetFunc(GetRegAllowStackVar(playout->Function)), flags, (playout->Options & CallIExtended_SpreadArgs) ? m_reader.ReadAuxArray<uint32>(playout->SpreadAuxOffset, this->GetFunctionBody()) : nullptr); }

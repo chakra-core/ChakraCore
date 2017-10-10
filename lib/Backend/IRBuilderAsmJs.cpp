@@ -1027,6 +1027,11 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
     Js::RegSlot retSlot;
     switch (newOpcode)
     {
+    case Js::OpCodeAsmJs::CheckHeap:
+        instr = IR::Instr::New(Js::OpCode::ArrayDetachedCheck, m_func);
+        instr->SetSrc1(IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetIsDetachedOffset(), TyInt8, m_func));
+        AddInstr(instr, offset);
+        break;
     case Js::OpCodeAsmJs::Unreachable_Void:
         instr = IR::Instr::New(Js::OpCode::ThrowRuntimeError, m_func);
         instr->SetSrc1(IR::IntConstOpnd::New(SCODE_CODE(WASMERR_Unreachable), TyInt32, instr->m_func));
@@ -1775,23 +1780,13 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
     {
         m_func->m_argSlotsForFunctionsCalled = argCount;
     }
-    if (m_asmFuncInfo->UsesHeapBuffer())
-    {
-        // heap buffer can change for wasm
 #ifdef ENABLE_WASM
-        if (m_func->GetJITFunctionBody()->IsWasmFunction())
-        {
-            BuildHeapBufferReload(offset);
-        }
-#endif
-        // after foreign function call, we need to make sure that the heap hasn't been detached
-        if (newOpcode == Js::OpCodeAsmJs::Call)
-        {
-            IR::Instr * instrArrayDetachedCheck = IR::Instr::New(Js::OpCode::ArrayDetachedCheck, m_func);
-            instrArrayDetachedCheck->SetSrc1(IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetIsDetachedOffset(), TyInt8, m_func));
-            AddInstr(instrArrayDetachedCheck, offset);
-        }
+    // heap buffer can change for wasm
+    if (m_asmFuncInfo->UsesHeapBuffer() && m_func->GetJITFunctionBody()->IsWasmFunction())
+    {
+        BuildHeapBufferReload(offset);
     }
+#endif
 }
 
 void

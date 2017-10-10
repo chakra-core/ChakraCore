@@ -62,6 +62,16 @@ LowererMD::GenerateMemRef(intptr_t addr, IRType type, IR::Instr *instr, bool don
     return IR::MemRefOpnd::New(addr, type, this->m_func);
 }
 
+void
+LowererMD::GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed)
+{
+#if _M_X64
+    lowererMDArch.GenerateMemInit(opnd, offset, value, insertBeforeInstr, isZeroed);
+#else
+    m_lowerer->GenerateMemInit(opnd, offset, (uint32)value, insertBeforeInstr, isZeroed);
+#endif
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// LowererMD::InvertBranch

@@ -1251,6 +1251,7 @@ namespace Js
                     uint16 envDepth = this->executeFunction->GetEnvDepth();
                     Assert(envDepth != (uint16)-1);
                     newInstance->localFrameDisplay = (FrameDisplay*)nextAllocBytes;
+                    newInstance->localFrameDisplay->SetLength(0); // Start with no scopes. It will get set in NewFrameDisplay
                     nextAllocBytes += sizeof(FrameDisplay) + (envDepth + 1) * sizeof(Var);
                 }
 
@@ -1258,7 +1259,7 @@ namespace Js
                 {
                     uint32 scopeSlots = this->executeFunction->scopeSlotArraySize;
                     Assert(scopeSlots != 0);
-                    ScopeSlots((Var*)nextAllocBytes).SetCount(scopeSlots);
+                    ScopeSlots((Var*)nextAllocBytes).SetCount(0); // Start with count as 0. It will get set in NewScopeSlots
                     newInstance->localClosure = nextAllocBytes;
                     nextAllocBytes += (scopeSlots + ScopeSlots::FirstSlotIndex) * sizeof(Var);
                 }
@@ -1917,7 +1918,7 @@ namespace Js
             // generator object.  The second argument is the ResumeYieldData which is only needed
             // when resuming a generator and so it only used here if a frame already exists on the
             // generator object.
-            AssertMsg(args.Info.Count == 2, "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
+            AssertOrFailFastMsg(args.Info.Count == 2 && ((args.Info.Flags & CallFlags_ExtraArg) == CallFlags_None), "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
             JavascriptGenerator* generator = JavascriptGenerator::FromVar(args[0]);
             newInstance = generator->GetFrame();
 
@@ -3860,7 +3861,11 @@ namespace Js
     void InterpreterStackFrame::OP_AsmCall(const unaligned T* playout)
     {
         OP_CallCommon(playout, OP_CallGetFunc(GetRegAllowStackVar(playout->Function)), CallFlags_None);
+    }
 
+    template <class T>
+    void InterpreterStackFrame::OP_EnsureHeapAttached(const unaligned T* playout)
+    {
         AsmJsModuleInfo::EnsureHeapAttached(this->function);
     }
 
@@ -7341,6 +7346,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     FrameDisplay* InterpreterStackFrame::GetLocalFrameDisplay() const
     {
+        Assert(this->localFrameDisplay == nullptr || this->IsClosureInitDone() || this->localFrameDisplay->GetLength() == 0);
         return this->localFrameDisplay;
     }
 

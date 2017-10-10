@@ -11991,7 +11991,14 @@ Case0:
         Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(length, scriptContext) };
         Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
 
-        return RecyclableObject::FromVar(JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext));
+        AssertOrFailFast(Js::RecyclableObject::Is(constructor));
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        Var scObject = threadContext->ExecuteImplicitCall((RecyclableObject*)constructor, ImplicitCall_Accessor, [&]()->Js::Var
+        {
+            return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+        });
+
+        return RecyclableObject::FromVar(scObject);
     }
     /*static*/
     PropertyId const JavascriptArray::specialPropertyIds[] =

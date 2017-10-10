@@ -209,7 +209,7 @@ namespace Js
 
                     Assert(StackScriptFunction::GetCurrentFunctionObject(interpreterFrame->GetJavascriptFunction()) == caller);
 
-                    if (callerFunctionBody->DoStackFrameDisplay())
+                    if (callerFunctionBody->DoStackFrameDisplay() && interpreterFrame->IsClosureInitDone())
                     {
                         Js::FrameDisplay *stackFrameDisplay = interpreterFrame->GetLocalFrameDisplay();
                         // Local frame display may be null if bailout didn't restore it, which means we don't need it.
@@ -219,13 +219,13 @@ namespace Js
                             interpreterFrame->SetLocalFrameDisplay(boxedFrameDisplay);
                         }
                     }
-                    if (callerFunctionBody->DoStackScopeSlots())
+                    if (callerFunctionBody->DoStackScopeSlots() && interpreterFrame->IsClosureInitDone())
                     {
                         Var* stackScopeSlots = (Var*)interpreterFrame->GetLocalClosure();
                         if (stackScopeSlots)
                         {
                             // Scope slot pointer may be null if bailout didn't restore it, which means we don't need it.
-                            Var* boxedScopeSlots = this->BoxScopeSlots(stackScopeSlots, ScopeSlots(stackScopeSlots).GetCount());
+                            Var* boxedScopeSlots = this->BoxScopeSlots(stackScopeSlots, static_cast<uint>(ScopeSlots(stackScopeSlots).GetCount()));
                             interpreterFrame->SetLocalClosure((Var)boxedScopeSlots);
                         }
                     }
@@ -300,7 +300,7 @@ namespace Js
                             if (stackScopeSlots)
                             {
                                 // Scope slot pointer may be null if bailout didn't restore it, which means we don't need it.
-                                this->BoxScopeSlots(stackScopeSlots, ScopeSlots(stackScopeSlots).GetCount());
+                                this->BoxScopeSlots(stackScopeSlots, static_cast<uint>(ScopeSlots(stackScopeSlots).GetCount()));
                             }
                         }
 
@@ -327,9 +327,12 @@ namespace Js
                 // Everything from that point outward must be boxed.
                 FrameDisplay *frameDisplay;
                 InterpreterStackFrame *interpreterFrame = walker.GetCurrentInterpreterFrame();
+                bool closureInitDone = true; // Set to true as for native frame bailout will always restore the frameDisplay but for interpreter frame if PROBE_STACK fails closureInitDone won't have completed.
+
                 if (interpreterFrame)
                 {
                     frameDisplay = interpreterFrame->GetLocalFrameDisplay();
+                    closureInitDone = interpreterFrame->IsClosureInitDone();
                 }
                 else
                 {
@@ -340,7 +343,7 @@ namespace Js
 #endif
                         JavascriptFunctionArgIndex_StackFrameDisplay];
                 }
-                if (ThreadContext::IsOnStack(frameDisplay))
+                if (ThreadContext::IsOnStack(frameDisplay) && closureInitDone)
                 {
                     int i;
                     for (i = 0; i < frameDisplay->GetLength(); i++)
@@ -358,11 +361,10 @@ namespace Js
                     }
                     for (; i < frameDisplay->GetLength(); i++)
                     {
-                        Var *scopeSlots = (Var*)frameDisplay->GetItem(i);
-                        size_t count = ScopeSlots(scopeSlots).GetCount();
-                        if (count < ScopeSlots::MaxEncodedSlotCount)
+                        Var *pScope = (Var*)frameDisplay->GetItem(i);
+                        if (ScopeSlots::Is(pScope))
                         {
-                            Var *boxedSlots = this->BoxScopeSlots(scopeSlots, static_cast<uint>(count));
+                            Var *boxedSlots = this->BoxScopeSlots(pScope, static_cast<uint>(ScopeSlots(pScope).GetCount()));
                             frameDisplay->SetItem(i, boxedSlots);
                         }
                     }
@@ -638,15 +640,14 @@ namespace Js
         for (uint16 i = 0; i < length; i++)
         {
             // TODO: Once we allocate the slots on the stack, we can only look those slots
-            Var * scopeSlots = (Var *)frameDisplay->GetItem(i);
-            size_t scopeSlotcount = ScopeSlots(scopeSlots).GetCount(); // (size_t)scopeSlots[Js::ScopeSlots::EncodedSlotCountSlotIndex];
+            Var * pScope = (Var *)frameDisplay->GetItem(i);
             // We don't do stack slots if we exceed max encoded slot count
-            if (scopeSlotcount < ScopeSlots::MaxEncodedSlotCount)
+            if (ScopeSlots::Is(pScope))
             {
-                scopeSlots = BoxScopeSlots(scopeSlots, static_cast<uint>(scopeSlotcount));
+                pScope = BoxScopeSlots(pScope, static_cast<uint>(ScopeSlots(pScope).GetCount()));
             }
-            boxedFrameDisplay->SetItem(i, scopeSlots);
-            frameDisplay->SetItem(i, scopeSlots);
+            boxedFrameDisplay->SetItem(i, pScope);
+            frameDisplay->SetItem(i, pScope);
         }
         return boxedFrameDisplay;
     }

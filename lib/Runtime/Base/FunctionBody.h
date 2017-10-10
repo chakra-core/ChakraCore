@@ -3792,9 +3792,9 @@ namespace Js
             slotArray[ScopeMetadataSlotIndex] = scopeMetadataObj;
         }
 
-        uint GetCount() const
+        size_t GetCount() const
         {
-            return ::Math::PointerCastToIntegralTruncate<uint>(slotArray[EncodedSlotCountSlotIndex]);
+            return ::Math::PointerCastToIntegralTruncate<size_t>(slotArray[EncodedSlotCountSlotIndex]);
         }
 
         void SetCount(uint count)
