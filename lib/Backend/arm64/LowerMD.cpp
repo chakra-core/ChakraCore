@@ -750,11 +750,6 @@ LowererMD::LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg)
 void
 LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
 {
-    // ARM64_WORKITEM
-    __debugbreak();
-
-#if 0
-
     //
     // Generate a stack overflow check. This can be as simple as a cmp esp, const
     // because this function is guaranteed to be called on its base thread only.
@@ -803,11 +798,11 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
             this->CreateAssign(scratchOpnd, IR::IndirOpnd::New(scratchOpnd, 0, TyMachReg, this->m_func), insertInstr);
         }
 
-        if (EncoderMD::CanEncodeModConst12(frameSize))
+        if (IS_CONST_00000FFF(frameSize))
         {
             // If the frame size is small enough, just add the constant.
             // Does this ever happen with the size of the MinStackJIT constant?
-            instr = IR::Instr::New(Js::OpCode::ADDS, scratchOpnd, scratchOpnd,
+            instr = IR::Instr::New(Js::OpCode::ADD, scratchOpnd, scratchOpnd,
                                    IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func), this->m_func);
             insertInstr->InsertBefore(instr);
         }
@@ -823,11 +818,16 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
             if (!afterProlog)
             {
                 opnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func);
-                instr = IR::Instr::New(Js::OpCode::PUSH, opnd, this->m_func);
+                instr = IR::Instr::New(Js::OpCode::STR, opnd, this->m_func);
                 scratchBit.Set(RegEncode[SP_ALLOC_SCRATCH_REG]);
                 opnd = IR::RegBVOpnd::New(scratchBit, TyMachReg, this->m_func);
                 instr->SetSrc1(opnd);
                 insertInstr->InsertBefore(instr);
+
+                IR::RegOpnd* regSpOpnd = IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func);
+                IR::Instr * instrSub = IR::Instr::New(Js::OpCode::SUB, regSpOpnd, regSpOpnd, IR::IntConstOpnd::New(MachRegInt, TyMachReg, this->m_func), this->m_func);
+                insertInstr->InsertBefore(instrSub);
+
             }
 
             IR::Opnd *scratchOpnd2 = IR::RegOpnd::New(nullptr, SP_ALLOC_SCRATCH_REG, TyMachReg, this->m_func);
@@ -840,10 +840,14 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
             {
                 Assert(scratchBit.Test(RegEncode[SP_ALLOC_SCRATCH_REG]));
                 opnd = IR::RegBVOpnd::New(scratchBit, TyMachReg, this->m_func);
-                instr = IR::Instr::New(Js::OpCode::POP, opnd, this->m_func);
+                instr = IR::Instr::New(Js::OpCode::LDR, opnd, this->m_func);
                 opnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func);
                 instr->SetSrc1(opnd);
                 insertInstr->InsertBefore(instr);
+
+                IR::RegOpnd* regSpOpnd = IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func);
+                IR::Instr * instrSub = IR::Instr::New(Js::OpCode::ADD, regSpOpnd, regSpOpnd, IR::IntConstOpnd::New(MachRegInt, TyMachReg, this->m_func), this->m_func);
+                insertInstr->InsertBefore(instrSub);
             }
         }
 
@@ -896,8 +900,6 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
 
     insertInstr->InsertBefore(doneLabelInstr);
     Security::InsertRandomFunctionPad(doneLabelInstr);
-
-#endif
 }
 
 //
@@ -1027,17 +1029,9 @@ LowererMD::GenerateStackDeallocation(IR::Instr *instr, uint32 allocSize)
 IR::Instr *
 LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 {
-
     IR::Instr *insertInstr = entryInstr->m_next;
-
-    // ARM64_WORKITEM
-    //__debugbreak();
-
-//#if 0
-
     BYTE regEncode;
     BOOL hasTry = this->m_func->HasTry();
-    AssertMsg(!hasTry, "ToDo (SaAgarwa): prolog not implemented for try");
 
     // Begin recording info for later pdata/xdata emission.
     UnwindInfoManager *unwindInfo = &this->m_func->m_unwindInfo;
@@ -1051,16 +1045,16 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     //   then restore R0-R3, R11, LR from the stack.
     // - But since on ARM currently the helper doesn't do anything, let's just comment this code out.
     // - On x86 there is no LR and all args go to stack, that's why similar code works fine.
-//#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-//    if (Js::Configuration::Global.flags.IsEnabled(Js::CheckAlignmentFlag))
-//    {
-//        IR::Instr * callInstr = IR::Instr::New(Js::OpCode::Call, this->m_func);
-//        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperScrFunc_CheckAlignment, this->m_func));
-//        insertInstr->InsertBefore(callInstr);
-//
-//        this->LowerCall(callInstr, 0);
-//    }
-//#endif
+    //#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    //    if (Js::Configuration::Global.flags.IsEnabled(Js::CheckAlignmentFlag))
+    //    {
+    //        IR::Instr * callInstr = IR::Instr::New(Js::OpCode::Call, this->m_func);
+    //        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperScrFunc_CheckAlignment, this->m_func));
+    //        insertInstr->InsertBefore(callInstr);
+    //
+    //        this->LowerCall(callInstr, 0);
+    //    }
+    //#endif
 
 
     //First calculate the local stack
@@ -1159,7 +1153,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         }
     }
 
-    BVUnit usedDoubleRegs;
+    BVUnit32 usedDoubleRegs;
     short doubleRegCount = 0;
 
     if (!hasTry)
@@ -1177,11 +1171,8 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
         if (doubleRegCount)
         {
-#pragma warning(push)
-#pragma warning(disable:4244) //  warning C4244: 'argument': conversion from 'UnitWord64' to 'DWORD', possible loss of data
             BYTE lastDoubleReg = UnwindInfoManager::GetLastSavedReg(usedDoubleRegs.GetWord());
             BYTE firstDoubleReg = UnwindInfoManager::GetFirstSavedReg(usedDoubleRegs.GetWord());
-#pragma warning(pop)
 
             // We do want to push all the double registers in a single VPUSH instructions
             // This might cause us to VPUSH some registers which are not used
@@ -1200,16 +1191,13 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     else
     {
         // Set for all the callee saved double registers
-        usedDoubleRegs.SetRange(RegD8-RegD0, CALLEE_SAVED_DOUBLE_REG_COUNT);
+        usedDoubleRegs.SetRange(LAST_CALLEE_SAVED_DBL_REG - FIRST_CALLEE_SAVED_DBL_REG, CALLEE_SAVED_DOUBLE_REG_COUNT);
         doubleRegCount = CALLEE_SAVED_DOUBLE_REG_COUNT;
     }
 
     if (doubleRegCount)
     {
-#pragma warning(push)
-#pragma warning(disable:4244) //  warning C4244: 'argument': conversion from 'UnitWord64' to 'DWORD', possible loss of data
         unwindInfo->SetDoubleSavedRegList(usedDoubleRegs.GetWord());
-#pragma warning(pop)
         fpOffsetSize += (doubleRegCount * MachRegDouble);
 
         //When there is try-catch we allocate registers even if there are no calls. For scenarios see Win8 487030.
@@ -1267,9 +1255,10 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         }
     }
 
-    bool useDynamicStackProbe = false;/*
+    // ToDo (SaAgarwa): MinStackJIT 7056 is not 12 bit so IS_CONST_00000FFF is always false
+    bool useDynamicStackProbe = 
         (m_func->GetJITFunctionBody()->DoInterruptProbe() || !m_func->GetThreadContextInfo()->IsThreadBound()) &&
-        !EncoderMD::CanEncodeModConst12(stackProbeStackHeight + Js::Constants::MinStackJIT);*/
+        !IS_CONST_00000FFF(stackProbeStackHeight + Js::Constants::MinStackJIT);
 
     if (useDynamicStackProbe && !hasCalls)
     {
@@ -1279,25 +1268,25 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
     if (hasCalls)
     {
-        //If we need a dedicated arguments slot we mark R12 as the save register.
+        //If we need a dedicated arguments slot we mark R17 as the save register.
         //This is to imitate PUSH 0 to arguments slot.
         regEncode = RegEncode[SCRATCH_REG];
         usedRegs.Set(regEncode);
         unwindInfo->SetSavedReg(regEncode);
 
         //Update register save area and offset to actual in params
-        //account for r12 push - MachRegInt
-        //account for frame register setup push {r11,lr} - 2 * MachRegInt
+        //account for r17 push - MachRegInt
+        //account for frame register setup push {fp,lr} - 2 * MachRegInt
         regSaveArea += 3 * MachRegInt;
         this->m_func->m_ArgumentsOffset += 3 * MachRegInt;
 
-        //Note: Separate push instruction is generated for r11 & lr push and hence usedRegs mask is not updated with
+        //Note: Separate push instruction is generated for fp & lr push and hence usedRegs mask is not updated with
         //bit mask for these registers.
 
         if (!IsSmallStack(stackAdjust) || useDynamicStackProbe)
         {
             unwindInfo->SetSavedScratchReg(true);
-            if (!usedRegs.Test(RegEncode[SP_ALLOC_SCRATCH_REG])) //If its a large stack and RegR4 is not already saved.
+            if (!usedRegs.Test(RegEncode[SP_ALLOC_SCRATCH_REG])) //If its a large stack and RegR19 is not already saved.
             {
                 // If it is not a small stack we have to call __chkstk.
                 // __chkstk has special calling convention and trashes R4
@@ -1314,7 +1303,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
                 unwindInfo->SetSavedReg(RegEncode[SP_ALLOC_SCRATCH_REG]);
             }
         }
-        // Frame size is local var area plus stack arg area, 8-byte-aligned (if we're in a non-leaf).
+        // Frame size is local var area plus stack arg area, 16-byte-aligned (if we're in a non-leaf).
         int32 bytesOnStack = stackAdjust + regSaveArea;
         int32 alignPad = Math::Align<int32>(bytesOnStack, MachStackAlignment) - bytesOnStack;
         if (alignPad)
@@ -1353,16 +1342,6 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
     IR::RegOpnd * r17Opnd = nullptr;
 
-    /*
-    Homed arguments (r0-r7)
-    Callee-Saved float Registers (d16-d29)
-    Callee-Saved Int Registers (r19-r28)
-    Local Variables
-    lr - link Register (r30)
-    fp - Frame Pointer (r29)
-    alloca area
-    */
-
     // Zero-initialize dedicated arguments slot
     if (hasCalls)
     {
@@ -1370,72 +1349,90 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         //mov r17, 0
         Assert(r17Opnd == nullptr);
         r17Opnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, r17Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
+        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, r17Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instrMov);
         IR::LabelInstr *prologStartLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
         insertInstr->InsertBefore(prologStartLabel);
         this->m_func->m_unwindInfo.SetPrologStartLabel(prologStartLabel->m_id);
     }
 
+    int32 regPushedSize = 0;
+
     if (!paramRegs.IsEmpty())
     {
+        // ToDo (SaAgarwa): Change STR to STP
         for (int i = LAST_INT_ARG_REG; i >= FIRST_INT_ARG_REG; --i)
         {
             RegNum reg = (RegNum)(i);
             if (paramRegs.Test(RegEncode[reg]))
             {
+                regPushedSize += MachRegInt;
                 IR::Instr * instrStore = IR::Instr::New(Js::OpCode::STR, this->m_func);
-                instrStore->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
+                instrStore->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), -regPushedSize, TyMachReg, this->m_func));
                 instrStore->SetSrc1(IR::RegOpnd::New(reg, TyMachReg, this->m_func));
                 insertInstr->InsertBefore(instrStore);
             }
         }
-
-        /*
-        // Generate PUSH {r0-r3}
-        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STP, this->m_func);
-        instrPush->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
-        instrPush->SetSrc1(IR::RegBVOpnd::New(paramRegs, TyMachReg, this->m_func));
-        insertInstr->InsertBefore(instrPush);
-        */
     }
 
     // Setup Frame pointer
     if (hasCalls)
     {
-        BVUnit frameRegs;
-        frameRegs.Set(RegEncode[RegFP]);
-        frameRegs.Set(RegEncode[RegLR]);
-
-        // Generate PUSH {r11,lr}
-        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STP, this->m_func);
-        instrPush->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
-        instrPush->SetSrc1(IR::RegBVOpnd::New(frameRegs, TyMachReg, this->m_func));
-        insertInstr->InsertBefore(instrPush);
+        // Generate STP {fp,lr}
+        AssertMsg(regPushedSize + (2 * MachRegInt) < 512, "limit of pre-indexed STP is -512");
+        IR::Instr * instrStp = IR::Instr::New(Js::OpCode::STP_PRE, this->m_func);
+        instrStp->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), -(regPushedSize + (2 * MachRegInt)), TyMachReg, this->m_func));
+        instrStp->SetSrc1(IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func));
+        instrStp->SetSrc2(IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func));
+        insertInstr->InsertBefore(instrStp);
 
         // Generate MOV fp,sp
-        IR::RegOpnd* spOpnd = IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func);
-        IR::RegOpnd* r11Opnd = IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func);
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, r11Opnd, spOpnd, this->m_func);
+        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::ADD,
+            IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func),
+            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
+            IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instrMov);
+
+        regPushedSize = 0; // STP_PRE Advanced the SP
     }
 
     if (!usedRegs.IsEmpty())
     {
-        // Generate PUSH {r4-r10,r12}
-        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STP, this->m_func);
-        instrPush->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
-        instrPush->SetSrc1(IR::RegBVOpnd::New(usedRegs, TyMachReg, this->m_func));
-        insertInstr->InsertBefore(instrPush);
+        for (RegNum reg = LAST_CALLEE_SAVED_GP_REG; reg > LAST_INT_ARG_REG; reg = (RegNum)(reg - 1))
+        {
+            if (usedRegs.Test(RegEncode[reg]))
+            {
+                regPushedSize += MachRegInt;
+                IR::Instr * instrStore = IR::Instr::New(Js::OpCode::STR, this->m_func);
+                instrStore->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), -regPushedSize, TyMachReg, this->m_func));
+                instrStore->SetSrc1(IR::RegOpnd::New(reg, TyMachReg, this->m_func));
+                insertInstr->InsertBefore(instrStore);
+            }
+        }
     }
 
     if (!usedDoubleRegs.IsEmpty())
     {
-        // Generate VPUSH {d8-d15}
-        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STP, this->m_func);
-        instrPush->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
-        instrPush->SetSrc1(IR::RegBVOpnd::New(usedDoubleRegs, TyMachReg, this->m_func));
-        insertInstr->InsertBefore(instrPush);
+        for (RegNum reg = LAST_CALLEE_SAVED_DBL_REG; reg >= FIRST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg - 1))
+        {
+            Assert(LinearScan::IsCalleeSaved(reg));
+            if (usedDoubleRegs.Test(RegEncode[reg]))
+            {
+                regPushedSize += MachRegDouble;
+                IR::Instr * instrStore = IR::Instr::New(Js::OpCode::FSTR, this->m_func);
+                instrStore->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), -regPushedSize, TyMachReg, this->m_func));
+                instrStore->SetSrc1(IR::RegOpnd::New(reg, TyMachReg, this->m_func));
+                insertInstr->InsertBefore(instrStore);
+            }
+        }
+    }
+
+    if (regPushedSize > 0)
+    {
+        // HOW TO MAKE SURE ITS 16 BYTE ALIGNED
+        IR::RegOpnd* regSpOpnd = IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func);
+        IR::Instr * instrSub = IR::Instr::New(Js::OpCode::SUB, regSpOpnd, regSpOpnd, IR::IntConstOpnd::New(regPushedSize, TyMachReg, this->m_func), this->m_func);
+        insertInstr->InsertBefore(instrSub);
     }
 
     if (hasTry)
@@ -1478,15 +1475,10 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (hasTry)
     {
         // Now push the reg we used above to save the address of the top of the locals area.
-        BVUnit ehReg;
-        ehReg.Set(RegEncode[EH_STACK_SAVE_REG]);
-        IR::Instr * instrPush =
-            IR::Instr::New(
-                Js::OpCode::STP,
-                IR::IndirOpnd::New(
-                    IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func),
-                IR::RegBVOpnd::New(ehReg, TyMachReg, this->m_func),
-                this->m_func);
+        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STR,
+            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func),
+            IR::RegOpnd::New(EH_STACK_SAVE_REG, TyMachReg, this->m_func),
+            this->m_func);
         insertInstr->InsertBefore(instrPush);
     }
 
@@ -1506,29 +1498,28 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         if (r17Opnd == nullptr || isScratchRegisterThrashed)
         {
             r17Opnd = r17Opnd ? r17Opnd : IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
-            // mov r12, 0
-            IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, r17Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
+            // mov r17, 0
+            IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, r17Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
             insertInstr->InsertBefore(instrMov);
         }
 
         // STR argc, r12
-        StackSym *sym           = this->m_func->m_symTable->GetArgSlotSym((Js::ArgSlot)-1);
+        StackSym *sym = this->m_func->m_symTable->GetArgSlotSym((Js::ArgSlot) - 1);
         sym->m_isInlinedArgSlot = true;
-        sym->m_offset           = 0;
-        IR::Opnd *dst           = IR::SymOpnd::New(sym, 0, TyMachReg, this->m_func);
+        sym->m_offset = 0;
+        IR::Opnd *dst = IR::SymOpnd::New(sym, 0, TyMachReg, this->m_func);
         insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::STR,
-                                                        dst,
-                                                        r17Opnd,
-                                                        this->m_func));
+            dst,
+            r17Opnd,
+            this->m_func));
     }
 
     // Now do the stack probe for small stacks
     // hasCalls catches the recursion case
     if ((stackAdjust != 0 || hasCalls) && fStackProbeAfterProlog)
     {
-        GenerateStackProbe(insertInstr, true); //stack is already aligned in this case
+        //GenerateStackProbe(insertInstr, true); //stack is already aligned in this case
     }
-//#endif
 
     return entryInstr;
 }
@@ -1536,10 +1527,6 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 IR::Instr *
 LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
 {
-    // ARM64_WORKITEM
-    //__debugbreak();
-
-#if 0
 
     // add  sp, sp, #local stack space
     // vpop {d8-d15}          //restore callee saved double registers.
@@ -1633,7 +1620,7 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
         BVUnit ehReg;
         ehReg.Set(RegEncode[EH_STACK_SAVE_REG]);
         IR::Instr * instrPop = IR::Instr::New(
-            Js::OpCode::POP,
+            Js::OpCode::LDR,
             IR::RegBVOpnd::New(ehReg, TyMachReg, this->m_func),
             IR::IndirOpnd::New(
                 IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func),
@@ -1646,81 +1633,68 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
             exitInstr);
     }
 
+    int32 regPopedSize = 0;
+
     // 2. Restore saved double registers. Generate vpop {d8-d15}
     BVUnit savedDoubleRegs(this->m_func->m_unwindInfo.GetDoubleSavedRegList());
     if (!savedDoubleRegs.IsEmpty())
     {
-        IR::Instr * instrVPop = IR::Instr::New(Js::OpCode::VPOP, this->m_func);
-        instrVPop->SetDst(IR::RegBVOpnd::New(savedDoubleRegs, TyMachReg, this->m_func));
-        instrVPop->SetSrc1(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP,TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
-        exitInstr->InsertBefore(instrVPop);
+        // ToDo (SaAgarwa): All LDR/STR should be converted to LDP/STP
+        for (RegNum reg = FIRST_CALLEE_SAVED_DBL_REG; reg <= LAST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg + 1))
+        {
+            Assert(LinearScan::IsCalleeSaved(reg));
+            Assert(reg != RegLR);
+            if (savedDoubleRegs.Test(RegEncode[reg]))
+            {
+                regPopedSize += MachRegDouble;
+                IR::Instr * instrStore = IR::Instr::New(Js::OpCode::FLDR, this->m_func);
+                instrStore->SetSrc1(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), regPopedSize, TyMachReg, this->m_func));
+                instrStore->SetDst(IR::RegOpnd::New(reg, TyMachReg, this->m_func));
+                exitInstr->InsertBefore(instrStore);
+            }
+        }
     }
 
     // 3. Restore saved registers. Generate pop {r4-r10,r12}
     if (!usedRegs.IsEmpty())
     {
-        IR::Instr * instrPop = IR::Instr::New(Js::OpCode::POP, this->m_func);
-        instrPop->SetDst(IR::RegBVOpnd::New(usedRegs, TyMachReg, this->m_func));
-        instrPop->SetSrc1(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP,TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
-        exitInstr->InsertBefore(instrPop);
-    }
-
-    if (!hasCalls)
-    {
-        if (!usedRegs.IsEmpty())
+        for (RegNum reg = RegR8; reg <= LAST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg + 1))
         {
-            // We do need to deallocate the area allocated when we homed the params (since we weren't able to fold
-            // it into the first stack deallocation).
-            // TODO: Consider folding this into the LDM instruction above by having it restore dummy registers.
-
-            IR::RegOpnd * spOpnd = IR::RegOpnd::New(nullptr, this->GetRegStackPointer(), TyMachReg, this->m_func);
-            IR::IntConstOpnd * adjustOpnd = IR::IntConstOpnd::New(homedParams * MachRegInt, TyMachReg, this->m_func, true);
-            IR::Instr * spAdjustInstr = IR::Instr::New(Js::OpCode::ADD, spOpnd, spOpnd, adjustOpnd, this->m_func);
-            exitInstr->InsertBefore(spAdjustInstr);
+            if (usedRegs.Test(RegEncode[reg]))
+            {
+                regPopedSize += MachRegInt;
+                IR::Instr * instrStore = IR::Instr::New(Js::OpCode::LDR, this->m_func);
+                instrStore->SetSrc1(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), regPopedSize, TyMachReg, this->m_func));
+                instrStore->SetDst(IR::RegOpnd::New(reg, TyMachReg, this->m_func));
+                exitInstr->InsertBefore(instrStore);
+            }
         }
-
-        // LR is still valid, so return by branching to it.
-        IR::Instr *  instrRet = IR::Instr::New(
-            Js::OpCode::RET,
-            IR::RegOpnd::New(nullptr, RegPC, TyMachReg, this->m_func),
-            IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func),
-            this->m_func);
-        exitInstr->InsertBefore(instrRet);
     }
-    else
+
+    if (regPopedSize > 0)
     {
-        // 3. Set up original frame pointer - pop r11
-        usedRegs.ClearAll();
-        usedRegs.Set(RegEncode[RegR11]);
-        IR::Instr * instrPop = IR::Instr::New(Js::OpCode::POP, this->m_func);
-        instrPop->SetDst(IR::RegBVOpnd::New(usedRegs, TyMachReg, this->m_func));
-        instrPop->SetSrc1(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP,TyMachReg, this->m_func), (int32)0, TyMachReg, this->m_func));
-        exitInstr->InsertBefore(instrPop);
-
-        // 4. Deallocate homed param area (if necessary) and return.
-
-        // SP now points to the location where we saved LR.
-        // So return by doing a LDR pc,[sp],#n, where the postincrement of SP deallocates what remains of the stack.
-        // Note: the offset on this indir indicates the postincrement, which is the homed param area plus the size
-        // of LR itself.
-        IR::IndirOpnd * spIndir = IR::IndirOpnd::New(
-            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
-             (homedParams + 1) * MachRegInt,
-            TyMachPtr, this->m_func);
-
-        IR::Instr *  instrRet = IR::Instr::New(
-            Js::OpCode::LDRRET,
-            IR::RegOpnd::New(nullptr, RegPC, TyMachReg, this->m_func),
-            spIndir,
-            this->m_func);
-        exitInstr->InsertBefore(instrRet);
+        GenerateStackDeallocation(exitInstr, regPopedSize);
     }
+
+    // Generate LDP {fp,lr}
+    IR::Instr * instrStp = IR::Instr::New(Js::OpCode::LDP_POST, this->m_func);
+    instrStp->SetSrc1(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), (2 * MachRegInt), TyMachReg, this->m_func));
+    instrStp->SetDst(IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func));
+    instrStp->SetSrc2(IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func));
+    exitInstr->InsertBefore(instrStp);
+    
+    GenerateStackDeallocation(exitInstr, homedParams * MachRegInt);
+
+    IR::Instr *  instrRet = IR::Instr::New(
+        Js::OpCode::RET,
+        nullptr,
+        IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func),
+        this->m_func);
+    exitInstr->InsertBefore(instrRet);
 
     IR::LabelInstr *epilogEndLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     exitInstr->InsertBefore(epilogEndLabel);
     this->m_func->m_unwindInfo.SetEpilogEndLabel(epilogEndLabel->m_id);
-
-#endif
 
     return exitInstr;
 }

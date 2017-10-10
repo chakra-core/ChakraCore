@@ -33,7 +33,7 @@ enum InstructionType {
 #define SCRATCH_REG         RegR17
 #define ALT_LOCALS_PTR      RegR21
 #define EH_STACK_SAVE_REG   RegR20
-#define SP_ALLOC_SCRATCH_REG RegR18
+#define SP_ALLOC_SCRATCH_REG RegR16
 #define CATCH_OBJ_REG       RegR1
 
 #define RETURN_DBL_REG      RegD0
@@ -41,7 +41,8 @@ enum InstructionType {
 #define LAST_CALLEE_SAVED_DBL_REG  RegD29
 #define FIRST_CALLEE_SAVED_DBL_REG_NUM 16
 #define LAST_CALLEE_SAVED_DBL_REG_NUM 29
-#define CALLEE_SAVED_DOUBLE_REG_COUNT 16
+#define CALLEE_SAVED_DOUBLE_REG_COUNT\
+    ((LAST_CALLEE_SAVED_DBL_REG - FIRST_CALLEE_SAVED_DBL_REG) + 1)
 
 // See comment in LowerEntryInstr: even in a global function, we'll home r0 and r1
 #define MIN_HOMED_PARAM_REGS 2
@@ -203,7 +204,6 @@ private:
     bool            CanonicalizeInstr(IR::Instr *instr);
     void            CanonicalizeLea(IR::Instr * instr);
     bool            DecodeMemoryOpnd(IR::Opnd* opnd, ARM64_REGISTER &baseRegResult, ARM64_REGISTER &indexRegResult, BYTE &indexScale, int32 &offset);
-    
     static bool     EncodeLogicalConst(IntConstType constant, DWORD * result, int size);
 
     // General 1-operand instructions (BR, RET)
