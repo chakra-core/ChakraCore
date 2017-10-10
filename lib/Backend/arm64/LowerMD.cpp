@@ -5101,7 +5101,7 @@ void LowererMD::GenerateSmIntTest(IR::Opnd *opndSrc, IR::Instr *insertInstr, IR:
     //      TEST src1, AtomTag
     IR::Instr* instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
     instr->SetSrc1(opndSrc);
-    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyInt32, this->m_func));
+    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag_IntPtr, TyMachReg, this->m_func));
     insertInstr->InsertBefore(instr);
     LegalizeMD::LegalizeInstr(instr, false);
 
@@ -5123,14 +5123,12 @@ void LowererMD::GenerateSmIntTest(IR::Opnd *opndSrc, IR::Instr *insertInstr, IR:
 void LowererMD::GenerateInt32ToVarConversion(IR::Opnd * opndSrc, IR::Instr * insertInstr )
 {
     AssertMsg(opndSrc->IsRegOpnd(), "NYI for other types");
-    // Shift left & tag.
-    // For now this is used only for actual arguments count can only be 24 bits long and non need to check for overflow
-    IR:: Instr* instr = IR::Instr::New(Js::OpCode::LSL, opndSrc, opndSrc, IR::IntConstOpnd::New(Js::VarTag_Shift, TyInt8, this->m_func), this->m_func);
+
+    IR::RegOpnd * tagOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    IR::Instr* instr = IR::Instr::New(Js::OpCode::LDIMM, tagOpnd, IR::IntConstOpnd::New(Js::AtomTag_IntPtr, TyMachReg, this->m_func), this->m_func);
     insertInstr->InsertBefore(instr);
 
-    instr = IR::Instr::New(Js::OpCode::ADD, opndSrc, opndSrc,
-                        IR::IntConstOpnd::New(Js::VarTag_Shift, TyMachReg, this->m_func),
-                        this->m_func);
+    instr = IR::Instr::New(Js::OpCode::ADD, opndSrc, opndSrc, tagOpnd, this->m_func);
     insertInstr->InsertBefore(instr);
 }
 
@@ -6421,14 +6419,13 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
         {
             this->m_lowerer->GenerateFastInlineStringCodePointAt(insertInstr, this->m_func, length, srcIndex, charResult, psz);
         }
-        // result = LSL result, VarShift
-        instr = IR::Instr::New(Js::OpCode::LSL, charResult, charResult, IR::IntConstOpnd::New(Js::VarTag_Shift, TyInt8, this->m_func), this->m_func);
+
+        IR::RegOpnd * tagOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::LDIMM, tagOpnd, IR::IntConstOpnd::New(Js::AtomTag_IntPtr, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instr);
 
-        // dst = ADD result, AtomTag
-        instr = IR::Instr::New(Js::OpCode::ADD, dst, charResult, IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func), this->m_func);
+        instr = IR::Instr::New(Js::OpCode::ADD, dst, charResult, tagOpnd, this->m_func);
         insertInstr->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
     }
 
     return true;
@@ -6904,9 +6901,7 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
 
     if (!isNotInt)
     {
-        IR::Opnd * opnd32src1 = src1->UseWithNewType(TyMachReg, this->m_func);
-        IR::RegOpnd * opndReg2 = IR::RegOpnd::New(TyMachReg, this->m_func);
-        IR::Opnd * opnd32Reg2 = opndReg2->UseWithNewType(TyMachReg, this->m_func);
+        IR::Opnd * opndSrc1 = src1->UseWithNewType(TyMachReg, this->m_func);
 
         if (!isInt)
         {
@@ -6917,7 +6912,7 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
                 // XOR the src with itself shifted left one. If there's no overflow,
                 // the result should be positive (top bit clear).
                 instr = IR::Instr::New(Js::OpCode::TIOFLW, this->m_func);
-                instr->SetSrc1(opnd32src1);
+                instr->SetSrc1(opndSrc1);
                 instrLoad->InsertBefore(instr);
 
                 // BMI $ToVar
@@ -6929,7 +6924,7 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
             {
                 //TST src1, 0xC0000000 -- test for length that is negative or overflows tagged int
                 instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
-                instr->SetSrc1(opnd32src1);
+                instr->SetSrc1(opndSrc1);
                 instr->SetSrc2(IR::IntConstOpnd::New((int64)0x8000000000000000 >> Js::VarTag_Shift, TyMachReg, this->m_func));
                 instrLoad->InsertBefore(instr);
                 LegalizeMD::LegalizeInstr(instr, false);
@@ -6941,16 +6936,13 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
 
         }
 
-        // s2 = LSL s1, Js::VarTag_Shift  -- restore the var tag on the result
+        // dst = ADD s1 tag
 
-        instr = IR::Instr::New(Js::OpCode::LSL, opnd32Reg2, opnd32src1,
-            IR::IntConstOpnd::New(Js::VarTag_Shift, TyInt8, this->m_func),
-            this->m_func);
+        IR::RegOpnd * tagOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::LDIMM, tagOpnd, IR::IntConstOpnd::New(Js::AtomTag_IntPtr, TyMachReg, this->m_func), this->m_func);
         instrLoad->InsertBefore(instr);
 
-        // dst = ADD s2, 1
-
-        instr = IR::Instr::New(Js::OpCode::ADD, instrLoad->GetDst(), opndReg2, IR::IntConstOpnd::New(1, TyMachReg, this->m_func), this->m_func);
+        instr = IR::Instr::New(Js::OpCode::ADD, instrLoad->GetDst(), opndSrc1, tagOpnd, this->m_func);
         instrLoad->InsertBefore(instr);
 
         if (!isInt)
@@ -6997,15 +6989,8 @@ LowererMD::EmitLoadVarNoCheck(IR::RegOpnd * dst, IR::RegOpnd * src, IR::Instr *i
     this->SaveDoubleToVar(dst, floatReg, instrLoad, instrLoad, isHelper);
 }
 
-#ifdef NTBUILD
-#include <VerifyGlobalMSRCSettings.inl>
-#endif
 bool
-#if defined(PRERELEASE_REL1703_MSRC36749_BUG10286862) || defined(_CHAKRACOREBUILD)
 LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed, bool bailOutOnHelper, IR::LabelInstr * labelBailOut)
-#else
-LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
-#endif
 {
     // isInt:
     //   dst = ASR r1, AtomTag
@@ -7026,7 +7011,7 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
     IR::LabelInstr *labelDone = nullptr;
     IR::LabelInstr *labelFloat = nullptr;
     IR::LabelInstr *labelHelper = nullptr;
-//    IR::Instr *instr;
+    IR::Instr *instr;
 
     if (src1->IsTaggedInt())
     {
@@ -7039,8 +7024,7 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
 
     if (isInt)
     {
-        instrLoad->m_opcode = Js::OpCode::ASR;
-        instrLoad->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func));
+        instrLoad->Remove();
     }
     else
     {
@@ -7051,55 +7035,46 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
 
         if (isNotInt)
         {
-#if defined(PRERELEASE_REL1703_MSRC36749_BUG10286862) || defined(_CHAKRACOREBUILD)
             // Known to be non-integer. If we are required to bail out on helper call, just re-jit.
             if (!doFloatToIntFastPath && bailOutOnHelper)
             {
-                if(!GlobOpt::DoAggressiveIntTypeSpec(this->m_func))
+                if(!GlobOpt::DoEliminateArrayAccessHelperCall(this->m_func))
                 {
-                    // Aggressive int type specialization is already off for some reason. Prevent trying to rejit again
+                    // Array access helper call removal is already off for some reason. Prevent trying to rejit again
                     // because it won't help and the same thing will happen again. Just abort jitting this function.
                     if(PHASE_TRACE(Js::BailOutPhase, this->m_func))
                     {
-                        Output::Print(_u("    Aborting JIT because AggressiveIntTypeSpec is already off\n"));
+                        Output::Print(_u("    Aborting JIT because EliminateArrayAccessHelperCall is already off\n"));
                         Output::Flush();
                     }
                     throw Js::OperationAbortedException();
                 }
 
-                throw Js::RejitException(RejitReason::AggressiveIntTypeSpecDisabled);
+                throw Js::RejitException(RejitReason::ArrayAccessHelperCallEliminationDisabled);
             }
-#endif
         }
         else
         {
-            // ARM64_WORKITEM
-            __debugbreak();
-
-#if 0
-            // Could be an integer in this case.
-            if (!isInt)
+            if(doFloatToIntFastPath)
             {
-                if(doFloatToIntFastPath)
-                {
-                    labelFloat = IR::LabelInstr::New(Js::OpCode::Label, instrLoad->m_func, false);
-                }
-                else
-                {
-                    labelHelper = IR::LabelInstr::New(Js::OpCode::Label, instrLoad->m_func, true);
-                }
-
-                this->GenerateSmIntTest(src1, instrLoad, labelFloat ? labelFloat : labelHelper);
+                labelFloat = IR::LabelInstr::New(Js::OpCode::Label, instrLoad->m_func, false);
+            }
+            else
+            {
+                labelHelper = IR::LabelInstr::New(Js::OpCode::Label, instrLoad->m_func, true);
             }
 
-            instr = IR::Instr::New(
-                Js::OpCode::ASRS, instrLoad->GetDst(), src1, IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func), this->m_func);
-            instrLoad->InsertBefore(instr);
+            this->GenerateSmIntTest(src1, instrLoad, labelFloat ? labelFloat : labelHelper);
+
+            instrLoad->InsertBefore(IR::Instr::New(Js::OpCode::AND, 
+                instrLoad->GetDst()->UseWithNewType(TyMachReg, instrLoad->m_func),
+                src1, 
+                IR::IntConstOpnd::New(~Js::AtomTag_IntPtr, TyMachReg, instrLoad->m_func),
+                instrLoad->m_func));
 
             labelDone = instrLoad->GetOrCreateContinueLabel();
-            instr = IR::BranchInstr::New(Js::OpCode::BCS, labelDone, this->m_func);
+            instr = IR::BranchInstr::New(Js::OpCode::B, labelDone, instrLoad->m_func);
             instrLoad->InsertBefore(instr);
-#endif
         }
 
         if(doFloatToIntFastPath)
@@ -7108,10 +7083,12 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
             {
                 instrLoad->InsertBefore(labelFloat);
             }
+
             if(!labelHelper)
             {
                 labelHelper = IR::LabelInstr::New(Js::OpCode::Label, instrLoad->m_func, true);
             }
+
             if(!labelDone)
             {
                 labelDone = instrLoad->GetOrCreateContinueLabel();
@@ -7126,6 +7103,7 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
         {
             instrLoad->InsertBefore(labelHelper);
         }
+
         if(instrLoad->HasBailOutInfo() && (instrLoad->GetBailOutKind() == IR::BailOutIntOnly || instrLoad->GetBailOutKind() == IR::BailOutExpectingInteger))
         {
             // Avoid bailout if we have a JavascriptNumber whose value is a signed 32-bit integer
@@ -7135,16 +7113,13 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
             return true;
         }
 
-#if defined(PRERELEASE_REL1703_MSRC36749_BUG10286862) || defined(_CHAKRACOREBUILD)
         if (bailOutOnHelper)
         {
             Assert(labelBailOut);
             this->m_lowerer->InsertBranch(Js::OpCode::Br, labelBailOut, instrLoad);
             instrLoad->Remove();
         }
-        else 
-#endif
-        if (conversionFromObjectAllowed)
+        else if (conversionFromObjectAllowed)
         {
             this->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
         }
