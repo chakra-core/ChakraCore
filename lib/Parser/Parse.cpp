@@ -92,6 +92,8 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_hasParallelJob = false;
     m_doingFastScan = false;
 #endif
+    m_isInParsingArgList = false;
+    m_hasDestructuringPattern = false;
     m_scriptContext = scriptContext;
     m_pCurrentAstSize = nullptr;
     m_arrayDepth = 0;
@@ -1242,7 +1244,7 @@ Parser::CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2,char
     pnode->sxCall.isApplyCall = false;
     pnode->sxCall.isEvalCall = false;
     pnode->sxCall.isSuperCall = false;
-
+    pnode->sxCall.hasDestructuring = false;
     pnode->ichMin = ichMin;
     pnode->ichLim = ichLim;
 
@@ -3662,6 +3664,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
         {
         case tkLParen:
             {
+                AutoMarkInParsingArgs autoMarkInParsingArgs(this);
                 if (fInNew)
                 {
                     ParseNodePtr pnodeArgs = ParseArgList<buildAST>(&callOfConstants, &spreadArgCount, &count);
@@ -3674,6 +3677,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         pnode->sxCall.isApplyCall = false;
                         pnode->sxCall.isEvalCall = false;
                         pnode->sxCall.isSuperCall = false;
+                        pnode->sxCall.hasDestructuring = m_hasDestructuringPattern;
+                        Assert(!m_hasDestructuringPattern || count > 0);
                         pnode->sxCall.argCount = count;
                         pnode->sxCall.spreadArgCount = spreadArgCount;
                         pnode->ichLim = m_pscan->IchLimTok();
@@ -3745,6 +3750,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         pnode->sxCall.spreadArgCount = spreadArgCount;
                         pnode->sxCall.isApplyCall = false;
                         pnode->sxCall.isEvalCall = fCallIsEval;
+                        pnode->sxCall.hasDestructuring = m_hasDestructuringPattern;
+                        Assert(!m_hasDestructuringPattern || count > 0);
                         pnode->sxCall.argCount = count;
                         pnode->ichLim = m_pscan->IchLimTok();
                     }
@@ -8672,6 +8679,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
             if (buildAST)
             {
+                this->SetHasDestructuringPattern(true);
                 pnode = ConvertToPattern(pnode);
             }
 

@@ -139,6 +139,12 @@ public:
     bool IsDoingFastScan() const { return false; }
 #endif
 
+    bool GetIsInParsingArgList() const { return m_isInParsingArgList; }
+    void SetIsInParsingArgList(bool set) { m_isInParsingArgList = set; }
+
+    bool GetHasDestructuringPattern() const { return m_hasDestructuringPattern; }
+    void SetHasDestructuringPattern(bool set) { m_hasDestructuringPattern = set; }
+
     static IdentPtr PidFromNode(ParseNodePtr pnode);
 
     ParseNode* CopyPnode(ParseNode* pnode);
@@ -397,7 +403,8 @@ private:
     bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node  
     bool m_reparsingLambdaParams;
     bool m_disallowImportExportStmt;
-
+    bool m_isInParsingArgList;
+    bool m_hasDestructuringPattern;
     // This bool is used for deferring the shorthand initializer error ( {x = 1}) - as it is allowed in the destructuring grammar.
     bool m_hasDeferredShorthandInitError;
     uint * m_pnestedCount; // count of functions nested at one level below the current node
@@ -1111,6 +1118,30 @@ private:
                 m_scanner->SetDeferredParseFlags(m_oldScannerDeferredParseFlags);
             }
         }
+    };
+
+    class AutoMarkInParsingArgs
+    {
+    public:
+        AutoMarkInParsingArgs(Parser * parser)
+            : m_parser(parser)
+        {
+            m_prevState = m_parser->GetIsInParsingArgList();
+            m_parser->SetHasDestructuringPattern(false);
+            m_parser->SetIsInParsingArgList(true);
+        }
+        ~AutoMarkInParsingArgs()
+        {
+            m_parser->SetIsInParsingArgList(m_prevState);
+            if (!m_prevState)
+            {
+                m_parser->SetHasDestructuringPattern(false);
+            }
+        }
+
+    private:
+        Parser *m_parser;
+        bool m_prevState;
     };
 
 public:

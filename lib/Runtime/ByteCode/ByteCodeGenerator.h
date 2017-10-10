@@ -26,6 +26,8 @@ private:
     // pointer to the root function wrapper that will be invoked by the caller
     Js::ParseableFunctionInfo * pRootFunc;
 
+    SList<FuncInfo*> * funcInfosToFinalize;
+
     int32 maxAstSize;
     uint16 envDepth;
     uint sourceIndex;
@@ -394,6 +396,9 @@ public:
     Js::FunctionBody *MakeGlobalFunctionBody(ParseNode *pnode);
 
     static bool NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNode *pnodeFnc);
+
+    void AddFuncInfoToFinalizationSet(FuncInfo *funcInfo);
+    void FinalizeFuncInfos();
 
     Js::OpCode GetStSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, bool chkBlockVar, FuncInfo *funcInfo);
     Js::OpCode GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, FuncInfo *funcInfo);

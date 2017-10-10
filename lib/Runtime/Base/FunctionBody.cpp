@@ -1890,8 +1890,9 @@ namespace Js
     {
         Assert(pnodeFnc->nop == knopFncDecl);
 
-        Recycler *recycler = GetScriptContext()->GetRecycler();
-        this->SetDeferredStubs(BuildDeferredStubTree(pnodeFnc, recycler));
+        // TODO: Disabling the creation of deferred stubs for now. We need to rethink the design again as the current behavior
+        // is not usable with precise capturing.
+        this->SetDeferredStubs(nullptr);
     }
 
     FunctionInfoArray ParseableFunctionInfo::GetNestedFuncArray()

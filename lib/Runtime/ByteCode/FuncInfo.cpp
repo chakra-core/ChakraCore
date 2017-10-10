@@ -7,6 +7,7 @@
 FuncInfo::FuncInfo(
     const char16 *name,
     ArenaAllocator *alloc,
+    ByteCodeGenerator *byteCodeGenerator,
     Scope *paramScope,
     Scope *bodyScope,
     ParseNode *pnode,
@@ -85,7 +86,8 @@ FuncInfo::FuncInfo(
     stringTemplateCallsiteRegisterMap(alloc, 17),
     targetStatements(alloc),
     nextForInLoopLevel(0),
-    maxForInLoopLevel(0)
+    maxForInLoopLevel(0),
+    originalAttributes(Js::FunctionInfo::Attributes::None)
 {
     this->byteCodeFunction = byteCodeFunction;
     if (bodyScope != nullptr)
@@ -99,6 +101,15 @@ FuncInfo::FuncInfo(
     if (pnode && pnode->sxFnc.NestedFuncEscapes())
     {
         this->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("Child")));
+    }
+
+    if (byteCodeFunction && !byteCodeFunction->IsDeferred() && byteCodeFunction->CanBeDeferred())
+    {
+        // Disable (re-)deferral of this function temporarily. Add it to the list of FuncInfo's to be processed when 
+        // byte code gen is done.
+        this->originalAttributes = byteCodeFunction->GetAttributes();
+        byteCodeGenerator->AddFuncInfoToFinalizationSet(this);
+        byteCodeFunction->SetAttributes((Js::FunctionInfo::Attributes)(this->originalAttributes & ~Js::FunctionInfo::Attributes::CanDefer));
     }
 }
 

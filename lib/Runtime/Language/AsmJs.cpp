@@ -403,6 +403,8 @@ namespace Js
     bool AsmJSCompiler::CheckNewArrayView( AsmJsModuleCompiler &m, PropertyName varName, ParseNode *newExpr )
     {
         Assert( newExpr->nop == knopNew );
+        m.SetUsesHeapBuffer(true);
+
         ParseNode *ctorExpr = newExpr->sxCall.pnodeTarget;
         ArrayBufferView::ViewType type;
         if( ParserWrapper::IsDotMember(ctorExpr) )

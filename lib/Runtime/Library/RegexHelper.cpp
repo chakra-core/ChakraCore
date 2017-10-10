@@ -1304,9 +1304,16 @@ namespace Js
 
             // WARNING: We go off into script land here, which way in turn invoke a regex operation, even on the
             //          same regex.
-            JavascriptString* replace = JavascriptConversion::ToString(replacefn->CallFunction(Arguments(CallInfo((ushort)(numGroups + 3)), replaceArgs)), scriptContext);
+
+            ThreadContext* threadContext = scriptContext->GetThreadContext();
+            Var replaceVar = threadContext->ExecuteImplicitCall(replacefn, ImplicitCall_Accessor, [=]()->Js::Var
+            {
+                return replacefn->CallFunction(Arguments(CallInfo((ushort)(numGroups + 3)), replaceArgs));
+            });
+            JavascriptString* replace = JavascriptConversion::ToString(replaceVar, scriptContext);
             concatenated.Append(input, offset, lastActualMatch.offset - offset);
             concatenated.Append(replace);
+
             if (lastActualMatch.length == 0)
             {
                 if (lastActualMatch.offset < inputLength)
@@ -1442,8 +1449,12 @@ namespace Js
 
         if (indexMatched != CharCountFlag)
         {
+            ThreadContext* threadContext = scriptContext->GetThreadContext();
+            Var replaceVar = threadContext->ExecuteImplicitCall(replacefn, ImplicitCall_Accessor, [=]()->Js::Var
+            {
             Var pThis = scriptContext->GetLibrary()->GetUndefined();
-            Var replaceVar = CALL_FUNCTION(scriptContext->GetThreadContext(), replacefn, CallInfo(4), pThis, match, JavascriptNumber::ToVar((int)indexMatched, scriptContext), input);
+                return CALL_FUNCTION(threadContext, replacefn, CallInfo(4), pThis, match, JavascriptNumber::ToVar((int)indexMatched, scriptContext), input);
+            });
             JavascriptString* replace = JavascriptConversion::ToString(replaceVar, scriptContext);
             const char16* inputStr = input->GetString();
             const char16* prefixStr = inputStr;

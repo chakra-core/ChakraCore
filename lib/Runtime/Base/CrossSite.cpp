@@ -438,6 +438,10 @@ namespace Js
     Var CrossSite::CommonThunk(RecyclableObject* recyclableObject, JavascriptMethod entryPoint, Arguments args)
     {
         DynamicObject* function = DynamicObject::FromVar(recyclableObject);
+
+        FunctionInfo * functionInfo = (JavascriptFunction::Is(function) ? JavascriptFunction::FromVar(function)->GetFunctionInfo() : nullptr);
+        AutoDisableRedeferral autoDisableRedeferral(functionInfo);
+
         ScriptContext* targetScriptContext = function->GetScriptContext();
         Assert(!targetScriptContext->IsClosed());
         Assert(function->IsExternal() || function->IsCrossSiteObject());

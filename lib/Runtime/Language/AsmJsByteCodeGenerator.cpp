@@ -1285,6 +1285,13 @@ namespace Js
             info.location = mFunction->AcquireTmpRegisterGeneric(expectedType);
             mWriter.AsmCall(OpCodeAsmJs::I_Call, info.location, funcReg, runtimeArg, expectedType, profileId);
         }
+
+        // after foreign function call, we need to make sure that the heap hasn't been detached
+        if (isFFI && mCompiler->UsesHeapBuffer())
+        {
+            mWriter.EmptyAsm(OpCodeAsmJs::CheckHeap);
+            mCompiler->SetUsesHeapBuffer(true);
+        }
         EndStatement(pnode);
 
         return info;

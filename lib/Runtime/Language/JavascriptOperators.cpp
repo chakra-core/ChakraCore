@@ -6912,7 +6912,7 @@ CommonNumber:
     Field(Var)* JavascriptOperators::OP_CloneScopeSlots(Field(Var) *slotArray, ScriptContext *scriptContext)
     {
         ScopeSlots slots((Js::Var*)slotArray);
-        uint size = ScopeSlots::FirstSlotIndex + slots.GetCount();
+        uint size = ScopeSlots::FirstSlotIndex + static_cast<uint>(slots.GetCount());
 
         Field(Var)* slotArrayClone = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), size);
         CopyArray(slotArrayClone, size, slotArray, size);
