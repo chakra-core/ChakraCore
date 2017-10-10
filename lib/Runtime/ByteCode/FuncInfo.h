@@ -468,6 +468,7 @@ public:
     BOOL IsLambda() const;
     BOOL IsClassConstructor() const;
     BOOL IsBaseClassConstructor() const;
+    BOOL IsDerivedClassConstructor() const;
 
     void RemoveTargetStmt(ParseNode* pnodeStmt) {
         targetStatements.Remove(pnodeStmt);

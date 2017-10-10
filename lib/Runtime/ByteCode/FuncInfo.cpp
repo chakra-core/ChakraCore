@@ -153,6 +153,11 @@ BOOL FuncInfo::IsBaseClassConstructor() const
     return root->sxFnc.IsBaseClassConstructor();
 }
 
+BOOL FuncInfo::IsDerivedClassConstructor() const
+{
+    return root->sxFnc.IsDerivedClassConstructor();
+}
+
 Scope *
 FuncInfo::GetGlobalBlockScope() const
 {

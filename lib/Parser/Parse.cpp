@@ -1680,6 +1680,21 @@ ParseNodePtr Parser::ReferenceSpecialName(IdentPtr pid, charcount_t ichMin, char
     return pnode;
 }
 
+ParseNodePtr Parser::CreateSpecialVarDeclIfNeeded(ParseNodePtr pnodeFnc, IdentPtr pid, bool forceCreate)
+{
+    Assert(pid != nullptr);
+
+    PidRefStack* ref = pid->GetTopRef();
+
+    // If the function has a reference to pid or we set forceCreate, make a special var decl
+    if (forceCreate || (ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId))
+    {
+        return this->CreateSpecialVarDeclNode(pnodeFnc, pid);
+    }
+
+    return nullptr;
+}
+
 void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal)
 {
     // Lambda function cannot have any special bindings.
@@ -1691,50 +1706,48 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGloba
     Assert(!isGlobal || (this->m_grfscr & fscrEvalCode));
 
     bool isTopLevelEventHandler = (this->m_grfscr & fscrImplicitThis || this->m_grfscr & fscrImplicitParents);
-    // Create a 'this' symbol for indirect eval, non-lambda functions with references to 'this', and all class constructors.
-    PidRefStack* ref = wellKnownPropertyPids._this->GetTopRef();
-    if ((ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId) || pnodeFnc->sxFnc.IsClassConstructor() || isTopLevelEventHandler)
-    {
-        // Insert the decl for 'this'
-        ParseNodePtr thisNode = this->CreateSpecialVarDeclNode(pnodeFnc, wellKnownPropertyPids._this);
-        thisNode->sxPid.sym->SetIsThis(true);
 
-        if (pnodeFnc->sxFnc.IsClassConstructor() && !pnodeFnc->sxFnc.IsBaseClassConstructor())
+    // Create a 'this' symbol for indirect eval, non-lambda functions with references to 'this', and all class constructors and top level event hanlders.
+    ParseNodePtr varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._this, pnodeFnc->sxFnc.IsClassConstructor() || isTopLevelEventHandler);
+    if (varDeclNode)
+    {
+        varDeclNode->sxPid.sym->SetIsThis(true);
+
+        if (pnodeFnc->sxFnc.IsDerivedClassConstructor())
         {
-            thisNode->sxPid.sym->SetNeedDeclaration(true);
+            varDeclNode->sxPid.sym->SetNeedDeclaration(true);
         }
     }
 
-    // Global code cannot have 'new.target' or 'super' bindings so don't bother.
+    // Global code cannot have 'new.target' or 'super' bindings.
     if (isGlobal)
     {
         return;
     }
 
     // Create a 'new.target' symbol for any ordinary function with a reference and all class constructors.
-    ref = wellKnownPropertyPids._newTarget->GetTopRef();
-    if ((ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId) || pnodeFnc->sxFnc.IsClassConstructor())
+    varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._newTarget, pnodeFnc->sxFnc.IsClassConstructor());
+    if (varDeclNode)
     {
-        // Insert the decl for 'new.target'
-        ParseNodePtr newTargetNode = this->CreateSpecialVarDeclNode(pnodeFnc, wellKnownPropertyPids._newTarget);
-        newTargetNode->sxPid.sym->SetIsNewTarget(true);
+        varDeclNode->sxPid.sym->SetIsNewTarget(true);
     }
 
-    ref = wellKnownPropertyPids._super->GetTopRef();
-    if (ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId)
+    // Create a 'super' (as a reference) symbol.
+    varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._super);
+    if (varDeclNode)
     {
-        // Insert the decl for 'super (as a reference)'
-        ParseNodePtr superNode = this->CreateSpecialVarDeclNode(pnodeFnc, wellKnownPropertyPids._super);
-        superNode->sxPid.sym->SetIsSuper(true);
+        varDeclNode->sxPid.sym->SetIsSuper(true);
     }
 
-    // Create a 'super' (as the call target for super()) symbol only for class constructors.
-    ref = wellKnownPropertyPids._superConstructor->GetTopRef();
-    if ((ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId) && pnodeFnc->sxFnc.IsClassConstructor())
+    // Create a 'super' (as the call target for super()) symbol only for derived class constructors.
+    if (pnodeFnc->sxFnc.IsDerivedClassConstructor())
     {
-        // Insert the decl for 'super (as the call target for super())'
-        ParseNodePtr superNode = this->CreateSpecialVarDeclNode(pnodeFnc, wellKnownPropertyPids._superConstructor);
-        superNode->sxPid.sym->SetIsSuperConstructor(true);
+        varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._superConstructor);
+
+        if (varDeclNode)
+        {
+            varDeclNode->sxPid.sym->SetIsSuperConstructor(true);
+        }
     }
 }
 
