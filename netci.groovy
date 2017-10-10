@@ -18,7 +18,6 @@ def msbuildTypeMap = [
 
 // convert `machine` parameter to OS component of PR task name
 def machineTypeToOSTagMap = [
-    'Windows 7': 'Windows 7',       // Windows Server 2008 R2, equivalent to Windows 7
     'Windows_NT': 'Windows',        // Windows Server 2012 R2, equivalent to Windows 8.1 (aka Blue)
     'Ubuntu16.04': 'Ubuntu',
     'OSX': 'OSX'
@@ -234,23 +233,12 @@ CreateBuildTask(true, 'x64', 'debug',
 // x64_debug Lite
 CreateBuildTask(true, 'x64', 'debug',
     'Windows_NT', 'ci_lite', '"/p:BuildLite=true"', '-winBlue -lite', false, null, null)
-// x64_debug Legacy
-CreateBuildTask(true, 'x64', 'debug',
-    'Windows 7', 'ci_dev12', 'msbuild12', '-win7 -includeSlow', false, null, null)
 
 // -----------------
 // DAILY BUILD TASKS
 // -----------------
 
 if (!branch.endsWith('-ci')) {
-    // build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
-    CreateBuildTasks('Windows 7', 'daily_dev12', 'msbuild12', '-win7 -includeSlow', false,
-        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
-        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
-            DailyBuildTaskSetup(newJob, isPR,
-                "Windows 7 ${config}",
-                '(dev12|legacy)\\s+tests')})
-
     // build and test on the usual configuration (VS 2015) with -includeSlow
     CreateBuildTasks('Windows_NT', 'daily_slow', null, '-winBlue -includeSlow', false,
         /* excludeConfigIf */ null,
