@@ -276,10 +276,14 @@ CommonNumber:
     // ToPropertyKey() takes a value and converts it to a property key
     // Implementation of ES6 7.1.14
     //----------------------------------------------------------------------------
-    void JavascriptConversion::ToPropertyKey(Var argument, ScriptContext* scriptContext, const PropertyRecord** propertyRecord)
+    void JavascriptConversion::ToPropertyKey(
+        Var argument,
+        _In_ ScriptContext* scriptContext,
+        _Out_ const PropertyRecord** propertyRecord,
+        _Out_opt_ PropertyString** propString)
     {
         Var key = JavascriptConversion::ToPrimitive(argument, JavascriptHint::HintString, scriptContext);
-
+        PropertyString * propertyString = nullptr;
         if (JavascriptSymbol::Is(key))
         {
             // If we are looking up a property keyed by a symbol, we already have the PropertyId in the symbol
@@ -291,7 +295,7 @@ CommonNumber:
             JavascriptString * propName = JavascriptConversion::ToString(key, scriptContext);
 
             // Check if we have one of the JavascriptString types which allow us to directly read the PropertyRecord
-            PropertyString * propertyString = PropertyString::TryFromVar(propName);
+            propertyString = PropertyString::TryFromVar(propName);
             if (propertyString != nullptr)
             {
                 // If we have a PropertyString, we can simply read the PropertyRecord off of it
@@ -322,6 +326,11 @@ CommonNumber:
                     scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
                 }
             }
+        }
+
+        if (propString)
+        {
+            *propString = propertyString;
         }
     }
 

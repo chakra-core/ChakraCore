@@ -666,7 +666,7 @@ namespace JSON
                     propertyName = JavascriptString::FromVar(element);
 
                     PropertyDescriptor propertyDescriptor;
-                    JavascriptConversion::ToPropertyKey(propertyName, scriptContext, &propRecord);
+                    JavascriptConversion::ToPropertyKey(propertyName, scriptContext, &propRecord, nullptr);
                     id = propRecord->GetPropertyId();
                     if (JavascriptOperators::GetOwnPropertyDescriptor(RecyclableObject::FromVar(proxyObject), id, scriptContext, &propertyDescriptor))
                     {
@@ -718,7 +718,7 @@ namespace JSON
                                 if (!object->IsEnumerable(id)) continue;
                                 Js::PropertyString * propertyString = scriptContext->GetPropertyString(id);
                                 propRecord = propertyString->GetPropertyRecord();
-                                propertyName = (Js::JavascriptString*) propertyString;
+                                propertyName = propertyString;
                             }
 
                             if (!propRecord->IsSymbol())

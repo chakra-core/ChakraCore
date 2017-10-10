@@ -97,9 +97,10 @@ namespace Js
         }
 
         const PropertyRecord* propertyRecord;
-        JavascriptConversion::ToPropertyKey(args[1], scriptContext, &propertyRecord);
+        PropertyString* propertyString;
+        JavascriptConversion::ToPropertyKey(args[1], scriptContext, &propertyRecord, &propertyString);
 
-        if (JavascriptOperators::HasOwnProperty(dynamicObject, propertyRecord->GetPropertyId(), scriptContext))
+        if (JavascriptOperators::HasOwnProperty(dynamicObject, propertyRecord->GetPropertyId(), scriptContext, propertyString))
         {
             return scriptContext->GetLibrary()->GetTrue();
         }
@@ -127,7 +128,7 @@ namespace Js
         if (args.Info.Count >= 2)
         {
             const PropertyRecord* propertyRecord;
-            JavascriptConversion::ToPropertyKey(args[1], scriptContext, &propertyRecord);
+            JavascriptConversion::ToPropertyKey(args[1], scriptContext, &propertyRecord, nullptr);
             PropertyId propertyId = propertyRecord->GetPropertyId();
 
             PropertyDescriptor currentDescriptor;
@@ -584,7 +585,7 @@ namespace Js
     Var JavascriptObject::GetOwnPropertyDescriptorHelper(RecyclableObject* obj, Var propertyKey, ScriptContext* scriptContext)
     {
         const PropertyRecord* propertyRecord;
-        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
+        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord, nullptr);
         PropertyId propertyId = propertyRecord->GetPropertyId();
 
         obj->ThrowIfCannotGetOwnPropertyDescriptor(propertyId);
@@ -664,7 +665,7 @@ namespace Js
             }
 
             PropertyRecord const * propertyRecord;
-            JavascriptConversion::ToPropertyKey(propKey, scriptContext, &propertyRecord);
+            JavascriptConversion::ToPropertyKey(propKey, scriptContext, &propertyRecord, nullptr);
 
             Var newDescriptor = JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propKey, scriptContext);
             if (!JavascriptOperators::IsUndefined(newDescriptor))
@@ -1027,7 +1028,7 @@ namespace Js
 
             PropertyDescriptor propertyDescriptor;
 
-            JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord);
+            JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord, nullptr);
             propertyId = propertyRecord->GetPropertyId();
             Assert(propertyId != Constants::NoProperty);
 
@@ -1224,7 +1225,7 @@ namespace Js
 
         Var propertyKey = args.Info.Count > 2 ? args[2] : obj->GetLibrary()->GetUndefined();
         PropertyRecord const * propertyRecord;
-        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
+        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord, nullptr);
 
         Var descVar = args.Info.Count > 3 ? args[3] : obj->GetLibrary()->GetUndefined();
         PropertyDescriptor propertyDescriptor;
@@ -1315,7 +1316,7 @@ namespace Js
 
         Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
         const PropertyRecord* propertyRecord;
-        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
+        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord, nullptr);
 
         PropertyDescriptor propertyDescriptor;
         propertyDescriptor.SetEnumerable(true);
@@ -1356,7 +1357,7 @@ namespace Js
 
         Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
         const PropertyRecord* propertyRecord;
-        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
+        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord, nullptr);
 
         PropertyDescriptor propertyDescriptor;
         propertyDescriptor.SetEnumerable(true);
@@ -1386,7 +1387,7 @@ namespace Js
 
         Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
         const PropertyRecord* propertyRecord;
-        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
+        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord, nullptr);
 
         Var getter = nullptr;
         Var unused = nullptr;
@@ -1419,7 +1420,7 @@ namespace Js
 
         Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
         const PropertyRecord* propertyRecord;
-        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
+        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord, nullptr);
 
         Var unused = nullptr;
         Var setter = nullptr;
@@ -1587,7 +1588,7 @@ namespace Js
             nextKey = keys->DirectGetItem(j);
             AssertMsg(JavascriptSymbol::Is(nextKey) || JavascriptString::Is(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
             // Spec doesn't strictly call for us to use ToPropertyKey but since we know nextKey is already a symbol or string primitive, ToPropertyKey will be a nop and return us the propertyRecord
-            JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord);
+            JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord, nullptr);
             propertyId = propertyRecord->GetPropertyId();
             AssertMsg(propertyId != Constants::NoProperty, "AssignForProxyObjects - OwnPropertyKeys returned a propertyId with value NoProperty.");
             if (JavascriptOperators::GetOwnPropertyDescriptor(from, propertyRecord->GetPropertyId(), scriptContext, &propertyDescriptor))
@@ -1792,7 +1793,7 @@ namespace Js
             PropertyDescriptor propertyDescriptor;
             nextKey = keys->DirectGetItem(j);
             AssertMsg(JavascriptSymbol::Is(nextKey) || JavascriptString::Is(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
-            JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord);
+            JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord, nullptr);
             propertyId = propertyRecord->GetPropertyId();
             AssertMsg(propertyId != Constants::NoProperty, "DefinePropertiesHelper - OwnPropertyKeys returned a propertyId with value NoProperty.");
 
