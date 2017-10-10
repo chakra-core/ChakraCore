@@ -7,6 +7,14 @@
 
 namespace Wasm
 {
+    class WasmReaderBase;
+
+    struct FunctionBodyReaderInfo
+    {
+        Field(uint32) size;
+        Field(intptr_t) startOffset;
+    };
+
     class WasmFunctionInfo
     {
     public:

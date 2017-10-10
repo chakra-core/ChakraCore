@@ -5,67 +5,13 @@
 
 #pragma once
 
-#include "Common.h"
 
-#include "Runtime.h"
-#include "Language/WAsmjsUtils.h"
 #ifdef ENABLE_WASM
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-#define TRACE_WASM(condition, ...) \
-    if (condition)\
-    {\
-        Output::Print(__VA_ARGS__); \
-        Output::Print(_u("\n")); \
-        Output::Flush(); \
-    }
 
-// Level of tracing
-#define WASM_TRACE_BODY_CHECK(phase) (GetFunctionBody() ? PHASE_TRACE(phase, GetFunctionBody()) : PHASE_TRACE1(phase))
-#define DO_WASM_TRACE_BYTECODE WASM_TRACE_BODY_CHECK(Js::WasmBytecodePhase)
-#define DO_WASM_TRACE_DECODER  WASM_TRACE_BODY_CHECK(Js::WasmReaderPhase)
-#define DO_WASM_TRACE_SECTION  WASM_TRACE_BODY_CHECK(Js::WasmSectionPhase)
-#else
-#define TRACE_WASM(...)
-#define DO_WASM_TRACE_BYTECODE (false)
-#define DO_WASM_TRACE_DECODER (false)
-#define DO_WASM_TRACE_SECTION (false)
-#endif
-#define TRACE_WASM_BYTECODE(...) TRACE_WASM(DO_WASM_TRACE_BYTECODE, __VA_ARGS__)
-#define TRACE_WASM_DECODER(...) TRACE_WASM(DO_WASM_TRACE_DECODER, __VA_ARGS__)
-#define TRACE_WASM_SECTION(...) TRACE_WASM(DO_WASM_TRACE_SECTION, __VA_ARGS__)
-
-namespace Wasm
-{
-    // forward declarations
-    struct WasmNode;
-    struct SExprParseContext;
-    class WasmFunctionInfo;
-}
-
+// These are the WasmReader related structures that are needed outside of Chakra.WasmReader lib
 #include "WasmParseTree.h"
-
-namespace Wasm
-{
-    typedef WasmTypes::WasmType Local;
-}
-
-#include "WasmReaderBase.h"
 #include "WasmSignature.h"
-#include "WasmDataSegment.h"
-#include "WasmElementSegment.h"
 #include "WasmFunctionInfo.h"
-
-#include "WasmSection.h"
-
-#include "WasmBinaryReader.h"
-#include "WasmCustomReader.h"
-#include "WasmByteCodeGenerator.h"
-
-#include "WasmGlobal.h"
-
-// TODO (michhol): cleanup includes
-#include "ByteCode/ByteCodeDumper.h"
-#include "ByteCode/AsmJsByteCodeDumper.h"
-#include "Language/AsmJsTypes.h"
+#include "WasmReaderInfo.h"
 
 #endif // ENABLE_WASM

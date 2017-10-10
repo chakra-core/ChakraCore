@@ -9,6 +9,8 @@
 #include "Language/WebAssemblySource.h"
 #include "ByteCode/WasmByteCodeWriter.h"
 #include "EmptyWasmByteCodeWriter.h"
+#include "ByteCode/ByteCodeDumper.h"
+#include "AsmJsByteCodeDumper.h"
 
 #if DBG_DUMP
 #define DebugPrintOp(op) if (DO_WASM_TRACE_BYTECODE) { PrintOpBegin(op); }
@@ -907,7 +909,7 @@ void WasmBytecodeGenerator::EmitBlockCommon(BlockInfo* blockInfo, bool* endOnEls
     DebugPrintOp(op);
     if (blockInfo && blockInfo->HasYield())
     {
-        EmitInfo info = PopEvalStack();
+        EmitInfo info = PopStackPolymorphic();
         YieldToBlock(*blockInfo, info);
         ReleaseLocation(&info);
     }
@@ -1236,22 +1238,14 @@ void WasmBytecodeGenerator::EmitBrTable()
     const uint32 defaultEntry = GetReader()->m_currentNode.brTable.defaultTarget;
 
     // Compile scrutinee
-    EmitInfo scrutineeInfo = PopEvalStack(WasmTypes::I32, _u("br_table expression must be of type i32"));
+    EmitInfo scrutineeInfo = PopStackPolymorphic(WasmTypes::I32, _u("br_table expression must be of type i32"));
 
     m_writer->AsmReg2(Js::OpCodeAsmJs::BeginSwitch_Int, scrutineeInfo.location, scrutineeInfo.location);
     EmitInfo yieldValue;
     BlockInfo defaultBlockInfo = GetBlockInfo(defaultEntry);
     if (defaultBlockInfo.HasYield())
     {
-        // If the scrutinee is any then check the stack before popping
-        if (scrutineeInfo.type == WasmTypes::Any && m_evalStack.Peek().type == WasmTypes::Limit)
-        {
-            yieldValue = scrutineeInfo;
-        }
-        else
-        {
-            yieldValue = PopEvalStack();
-        }
+        yieldValue = PopStackPolymorphic();
     }
 
     // Compile cases
@@ -1289,7 +1283,7 @@ EmitInfo WasmBytecodeGenerator::EmitGrowMemory()
 
 EmitInfo WasmBytecodeGenerator::EmitDrop()
 {
-    EmitInfo info = PopEvalStack();
+    EmitInfo info = PopValuePolymorphic();
     ReleaseLocation(&info);
     return EmitInfo();
 }
@@ -1381,7 +1375,7 @@ void WasmBytecodeGenerator::EmitReturnExpr(EmitInfo* explicitRetInfo)
 {
     if (m_funcInfo->GetResultType() != WasmTypes::Void)
     {
-        EmitInfo retExprInfo = explicitRetInfo ? *explicitRetInfo : PopEvalStack();
+        EmitInfo retExprInfo = explicitRetInfo ? *explicitRetInfo : PopStackPolymorphic();
         if (retExprInfo.type != WasmTypes::Any && m_funcInfo->GetResultType() != retExprInfo.type)
         {
             throw WasmCompilationException(_u("Result type must match return type"));
@@ -1399,7 +1393,7 @@ void WasmBytecodeGenerator::EmitReturnExpr(EmitInfo* explicitRetInfo)
 EmitInfo WasmBytecodeGenerator::EmitSelect()
 {
     EmitInfo conditionInfo = PopEvalStack(WasmTypes::I32, _u("select condition must have i32 type"));
-    EmitInfo falseInfo = PopEvalStack();
+    EmitInfo falseInfo = PopValuePolymorphic();
     EmitInfo trueInfo = PopEvalStack(falseInfo.type, _u("select operands must both have same type"));
     ReleaseLocation(&conditionInfo);
     ReleaseLocation(&falseInfo);
@@ -1447,7 +1441,7 @@ void WasmBytecodeGenerator::EmitBr()
     BlockInfo blockInfo = GetBlockInfo(depth);
     if (blockInfo.HasYield())
     {
-        EmitInfo info = PopEvalStack();
+        EmitInfo info = PopStackPolymorphic();
         YieldToBlock(blockInfo, info);
         ReleaseLocation(&info);
     }
@@ -1466,7 +1460,7 @@ EmitInfo WasmBytecodeGenerator::EmitBrIf()
     BlockInfo blockInfo = GetBlockInfo(depth);
     if (blockInfo.HasYield())
     {
-        info = PopEvalStack();
+        info = PopStackPolymorphic();
         YieldToBlock(blockInfo, info);
         if (info.type == WasmTypes::Any)
         {
@@ -1639,6 +1633,17 @@ WasmRegisterSpace* WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType t
     default:
         return nullptr;
     }
+}
+
+
+Wasm::EmitInfo WasmBytecodeGenerator::PopStackPolymorphic(WasmTypes::WasmType expectedType, const char16* mismatchMessage)
+{
+    // Check the stack before popping, it is valid to yield nothing if we are Unreachable
+    if (IsUnreachable() && m_evalStack.Peek().type == WasmTypes::Limit)
+    {
+        return EmitInfo(WasmTypes::Any);
+    }
+    return PopEvalStack(expectedType, mismatchMessage);
 }
 
 EmitInfo WasmBytecodeGenerator::PopEvalStack(WasmTypes::WasmType expectedType, const char16* mismatchMessage)

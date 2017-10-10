@@ -25,6 +25,7 @@ namespace Wasm
         uint32 GetTypeByteSize(WasmType type);
         const char16* GetTypeName(WasmType type);
     }
+    typedef WasmTypes::WasmType Local;
 
     namespace ExternalKinds
     {
