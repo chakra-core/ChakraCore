@@ -8774,7 +8774,7 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
     {
         LegalizeMD::LegalizeInstr(instr, true);
 
-        // LDIMM can expand into MOV/MOVT when the immediate is more than 16 bytes,
+        // LDIMM can expand into up to 4 instructions when the immediate is more than 16 bytes,
         // it can also expand into multiple different no-op (normally MOV) instrs when we obfuscate it, which is randomly.
         return true;
     }
@@ -8786,7 +8786,7 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
             LegalizeMD::LegalizeSrc(instr, instr->GetSrc1(), 1, true);
             return true;
         }
-        instr->m_opcode = (instr->GetSrc1()->GetType() == TyMachDouble) ? Js::OpCode::FMOV : Js::OpCode::MOV;
+        instr->m_opcode = instr->GetSrc1()->IsFloat() ? Js::OpCode::FMOV : Js::OpCode::MOV;
     }
     else if (EncoderMD::IsStore(instr))
     {
@@ -8796,7 +8796,7 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
             LegalizeMD::LegalizeDst(instr, true);
             return true;
         }
-        instr->m_opcode = (instr->GetDst()->GetType() == TyMachDouble) ? Js::OpCode::FMOV : Js::OpCode::MOV;
+        instr->m_opcode = instr->GetDst()->IsFloat() ? Js::OpCode::FMOV : Js::OpCode::MOV;
     }
     else if (instr->m_opcode == Js::OpCode::LDARGOUTSZ)
     {
@@ -8818,22 +8818,17 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
         IR::Opnd* src1 = instr->GetSrc1();
         IR::Opnd* src2 = instr->GetSrc2();
 
-        // ARM64_WORKITEM: This needs to be fixed up to remove R12 dependency
-        __debugbreak();
+        Assert(src1->IsRegOpnd());
+        Assert(src2->IsRegOpnd());
+        Assert(dst->AsRegOpnd()->GetReg() != src1->AsRegOpnd()->GetReg());
+        Assert(dst->AsRegOpnd()->GetReg() != src2->AsRegOpnd()->GetReg());
 
-        Assert(src1->IsRegOpnd() && src1->AsRegOpnd()->GetReg() != RegR12);
-        Assert(src2->IsRegOpnd() && src2->AsRegOpnd()->GetReg() != RegR12);
+        // dst = SDIV src1, src2
+        IR::Instr *divInstr = IR::Instr::New(Js::OpCode::SDIV, dst, src1, src2, instr->m_func);
+        instr->InsertBefore(divInstr);
 
-        //r12 = SDIV src1, src2
-        IR::RegOpnd *regR12 = IR::RegOpnd::New(nullptr, RegR12, TyMachReg, instr->m_func);
-        IR::Instr *insertInstr = IR::Instr::New(Js::OpCode::SDIV, regR12, src1, src2, instr->m_func);
-        instr->InsertBefore(insertInstr);
-
-        // dst = MSUB (r12,) src2, src1
-        insertInstr = IR::Instr::New(Js::OpCode::MSUB, dst, src2, src1, instr->m_func);
-        instr->InsertBefore(insertInstr);
-
-        instr->Remove();
+        // dst = MSUB src1, src2, dst (dst = src1 - src2 * dst)
+        instr->m_opcode = Js::OpCode::MSUB;
         return true;
     }
 
