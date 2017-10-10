@@ -52,7 +52,7 @@ namespace Js
             }
             return arrayAddress;
         }
-        template<size_t MaxVirtualSize = MAX_ASMJS_ARRAYBUFFER_LENGTH>
+        template<size_t MaxVirtualSize>
         static void* __cdecl AllocWrapper(DECLSPEC_GUARD_OVERFLOW size_t length)
         {
             return AllocWrapper(length, MaxVirtualSize);
@@ -286,6 +286,9 @@ namespace Js
     public:
         static WebAssemblyArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
         WebAssemblyArrayBuffer* GrowMemory(uint32 newBufferLength);
+
+        static bool Is(Var aValue);
+        static WebAssemblyArrayBuffer* FromVar(Var aValue);
 
         virtual bool IsValidVirtualBufferLength(uint length) const override;
         virtual bool IsWebAssemblyArrayBuffer() override { return true; }

@@ -2807,6 +2807,7 @@ namespace Js
         type *buffer = (type*)this->buffer + accessIndex;
 
 #define TypedArrayStore(TypedArrayName, fnName, convertFn) \
+    template<>\
     Var TypedArrayName##::Typed##fnName(__in uint32 accessIndex, __in Var value) \
     { \
         TypedArrayBeginStub(TypedArrayName); \
@@ -2816,6 +2817,7 @@ namespace Js
     }
 
 #define TypedArrayOp1(TypedArrayName, fnName, convertFn) \
+    template<>\
     Var TypedArrayName##::Typed##fnName(__in uint32 accessIndex) \
     { \
         TypedArrayBeginStub(TypedArrayName); \
@@ -2824,6 +2826,7 @@ namespace Js
     }
 
 #define TypedArrayOp2(TypedArrayName, fnName, convertFn) \
+    template<>\
     Var TypedArrayName##::Typed##fnName(__in uint32 accessIndex, __in Var value) \
     { \
         TypedArrayBeginStub(TypedArrayName); \
@@ -2832,6 +2835,7 @@ namespace Js
     }
 
 #define TypedArrayOp3(TypedArrayName, fnName, convertFn) \
+    template<>\
     Var TypedArrayName##::Typed##fnName(__in uint32 accessIndex, __in Var first, __in Var value) \
     { \
         TypedArrayBeginStub(TypedArrayName); \
@@ -2840,18 +2844,21 @@ namespace Js
     }
 
 #define GenerateNotSupportedStub1(TypedArrayName, fnName) \
+    template<>\
     Var TypedArrayName##::Typed##fnName(__in uint32 accessIndex) \
     { \
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray); \
     }
 
 #define GenerateNotSupportedStub2(TypedArrayName, fnName) \
+    template<>\
     Var TypedArrayName##::Typed##fnName(__in uint32 accessIndex, __in Var value) \
     { \
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray); \
     }
 
 #define GenerateNotSupportedStub3(TypedArrayName, fnName) \
+    template<>\
     Var TypedArrayName##::Typed##fnName(__in uint32 accessIndex, __in Var first, __in Var value) \
     { \
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray); \
@@ -3479,22 +3486,22 @@ namespace Js
         return DirectGetItem(index);
     }
 
-    Var CharArray::TypedAdd(__in uint32 index, Var second)
+    Var CharArray::TypedAdd(__in uint32 index, __in Var second)
     {
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray);
     }
 
-    Var CharArray::TypedAnd(__in uint32 index, Var second)
+    Var CharArray::TypedAnd(__in uint32 index, __in Var second)
     {
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray);
     }
 
-    Var CharArray::TypedCompareExchange(__in uint32 index, Var comparand, Var replacementValue)
+    Var CharArray::TypedCompareExchange(__in uint32 index, __in Var comparand, __in Var replacementValue)
     {
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray);
     }
 
-    Var CharArray::TypedExchange(__in uint32 index, Var second)
+    Var CharArray::TypedExchange(__in uint32 index, __in Var second)
     {
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray);
     }
@@ -3504,22 +3511,22 @@ namespace Js
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray);
     }
 
-    Var CharArray::TypedOr(__in uint32 index, Var second)
+    Var CharArray::TypedOr(__in uint32 index, __in Var second)
     {
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray);
     }
 
-    Var CharArray::TypedStore(__in uint32 index, Var second)
+    Var CharArray::TypedStore(__in uint32 index, __in Var second)
     {
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray);
     }
 
-    Var CharArray::TypedSub(__in uint32 index, Var second)
+    Var CharArray::TypedSub(__in uint32 index, __in Var second)
     {
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray);
     }
 
-    Var CharArray::TypedXor(__in uint32 index, Var second)
+    Var CharArray::TypedXor(__in uint32 index, __in Var second)
     {
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidOperationOnTypedArray);
     }

@@ -403,7 +403,7 @@ WasmOp WasmBinaryReader::ReadOpCode()
 #define WASM_PREFIX(name, value, imp, errorMsg) \
     case prefix##name: \
         return ReadPrefixedOpCode(op, imp, _u(errorMsg));
-#include "WasmBinaryOpcodes.h"
+#include "WasmBinaryOpCodes.h"
     }
 
     return op;

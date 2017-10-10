@@ -2327,7 +2327,7 @@ ListOpnd::~ListOpnd()
     JitAdeleteArray(func->m_alloc, count, opnds);
 }
 
-ListOpnd::ListOpnd(Func* func, __in_ecount(count) ListOpndType** _opnds, int _count):
+ListOpnd::ListOpnd(Func* func, __in_ecount(_count) ListOpndType** _opnds, int _count):
     Opnd(), m_func(func), count(_count)
 {
     AssertOrFailFast(count > 0);

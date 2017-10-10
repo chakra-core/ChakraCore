@@ -61,7 +61,7 @@ MakeInterlockTemplate(CompareExchange, 2)
 
 namespace Js
 {
-template<typename T> static T AtomicsOperations::Load(T* buffer)
+template<typename T> T AtomicsOperations::Load(T* buffer)
 {
     // MemoryBarrier only works when the memory size is not greater than the register size
     CompileAssert(sizeof(T) <= sizeof(size_t));
@@ -71,7 +71,7 @@ template<typename T> static T AtomicsOperations::Load(T* buffer)
 }
 
 #if TARGET_32
-template<> static int64 AtomicsOperations::Load(int64* buffer)
+template<> int64 AtomicsOperations::Load(int64* buffer)
 {
     CompileAssert(sizeof(size_t) == 4);
     // Implement 64bits atomic load on 32bits platform with a CompareExchange
@@ -80,58 +80,58 @@ template<> static int64 AtomicsOperations::Load(int64* buffer)
 }
 #endif
 
-template<typename T> static T AtomicsOperations::Store(T* buffer, T value)
+template<typename T> T AtomicsOperations::Store(T* buffer, T value)
 {
-    typedef ConvertType<T>::_t convertType;
+    typedef typename ConvertType<T>::_t convertType;
     InterlockedExchange_t<convertType>((convertType*)buffer, (convertType)value);
     return value;
 }
 
-template<typename T> static T AtomicsOperations::Add(T* buffer, T value)
+template<typename T> T AtomicsOperations::Add(T* buffer, T value)
 {
-    typedef ConvertType<T>::_t convertType;
+    typedef typename ConvertType<T>::_t convertType;
     T result = (T)InterlockedExchangeAdd_t<convertType>((convertType*)buffer, (convertType)value);
     return result;
 }
 
-template<typename T> static T AtomicsOperations::And(T* buffer, T value)
+template<typename T> T AtomicsOperations::And(T* buffer, T value)
 {
-    typedef ConvertType<T>::_t convertType;
+    typedef typename ConvertType<T>::_t convertType;
     T result = (T)InterlockedAnd_t<convertType>((convertType*)buffer, (convertType)value);
     return result;
 }
 
-template<typename T> static T AtomicsOperations::CompareExchange(T* buffer, T comparand, T replacementValue)
+template<typename T> T AtomicsOperations::CompareExchange(T* buffer, T comparand, T replacementValue)
 {
-    typedef ConvertType<T>::_t convertType;
+    typedef typename ConvertType<T>::_t convertType;
     T result = (T)InterlockedCompareExchange_t<convertType>((convertType*)buffer, (convertType)replacementValue, (convertType)comparand);
     return result;
 }
 
-template<typename T> static T AtomicsOperations::Exchange(T* buffer, T value)
+template<typename T> T AtomicsOperations::Exchange(T* buffer, T value)
 {
-    typedef ConvertType<T>::_t convertType;
+    typedef typename ConvertType<T>::_t convertType;
     T result = (T)InterlockedExchange_t<convertType>((convertType*)buffer, (convertType)value);
     return result;
 }
 
-template<typename T> static T AtomicsOperations::Or(T* buffer, T value)
+template<typename T> T AtomicsOperations::Or(T* buffer, T value)
 {
-    typedef ConvertType<T>::_t convertType;
+    typedef typename ConvertType<T>::_t convertType;
     T result = (T)InterlockedOr_t<convertType>((convertType*)buffer, (convertType)value);
     return result;
 }
 
-template<typename T> static T AtomicsOperations::Sub(T* buffer, T value)
+template<typename T> T AtomicsOperations::Sub(T* buffer, T value)
 {
-    typedef ConvertType<T>::_t convertType;
+    typedef typename ConvertType<T>::_t convertType;
     T result = (T)InterlockedExchangeAdd_t<convertType>((convertType*)buffer, -(convertType)value);
     return result;
 }
 
-template<typename T> static T AtomicsOperations::Xor(T* buffer, T value)
+template<typename T> T AtomicsOperations::Xor(T* buffer, T value)
 {
-    typedef ConvertType<T>::_t convertType;
+    typedef typename ConvertType<T>::_t convertType;
     T result = (T)InterlockedXor_t<convertType>((convertType*)buffer, (convertType)value);
     return result;
 }

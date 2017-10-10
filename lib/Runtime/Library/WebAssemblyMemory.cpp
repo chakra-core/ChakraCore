@@ -93,14 +93,17 @@ WebAssemblyMemory::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     }
 
     bool isShared = false;
-    if (CONFIG_FLAG(WasmThreads) && JavascriptOperators::OP_HasProperty(memoryDescriptor, PropertyIds::shared, scriptContext))
+    if (CONFIG_FLAG(WasmThreads))
     {
-        if (!hasMaximum)
+        if (JavascriptOperators::OP_HasProperty(memoryDescriptor, PropertyIds::shared, scriptContext))
         {
-            JavascriptError::ThrowTypeError(scriptContext, WASMERR_SharedNoMaximum);
+            if (!hasMaximum)
+            {
+                JavascriptError::ThrowTypeError(scriptContext, WASMERR_SharedNoMaximum);
+            }
+            Var sharedVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::shared, scriptContext);
+            isShared = JavascriptConversion::ToBool(sharedVar, scriptContext);
         }
-        Var sharedVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::shared, scriptContext);
-        isShared = JavascriptConversion::ToBool(sharedVar, scriptContext);
     }
 
     return CreateMemoryObject(initial, maximum, isShared, scriptContext);
@@ -178,7 +181,7 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
     if (m_buffer->IsSharedArrayBuffer())
     {
         AssertOrFailFast(CONFIG_FLAG(WasmThreads));
-        if (!((WebAssemblySharedArrayBuffer*)m_buffer)->GrowMemory(newBytes))
+        if (!WebAssemblySharedArrayBuffer::FromVar(m_buffer)->GrowMemory(newBytes))
         {
             return -1;
         }
@@ -188,7 +191,7 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
         JavascriptExceptionObject* caughtExceptionObject = nullptr;
         try
         {
-            WebAssemblyArrayBuffer* newBuffer = ((WebAssemblyArrayBuffer*)m_buffer)->GrowMemory(newBytes);
+            WebAssemblyArrayBuffer* newBuffer = WebAssemblyArrayBuffer::FromVar(m_buffer)->GrowMemory(newBytes);
             if (newBuffer == nullptr)
             {
                 return -1;

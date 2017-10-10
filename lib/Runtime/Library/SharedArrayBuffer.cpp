@@ -495,7 +495,7 @@ namespace Js
 
     void WebAssemblySharedArrayBuffer::ValidateBuffer()
     {
-#if DBG
+#if DBG && defined(_WIN32)
         MEMORY_BASIC_INFORMATION info = { 0 };
         size_t size = 0;
         size_t allocationSize = 0;
@@ -557,7 +557,7 @@ namespace Js
         return (WebAssemblySharedArrayBuffer*)aValue;
     }
 
-    bool WebAssemblySharedArrayBuffer::GrowMemory(uint32 newBufferLength)
+    __checkReturn bool WebAssemblySharedArrayBuffer::GrowMemory(uint32 newBufferLength)
     {
         uint32 bufferLength = sharedContents->bufferLength;
         BYTE* buffer = sharedContents->buffer;

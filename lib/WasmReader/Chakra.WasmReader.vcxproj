@@ -68,7 +68,7 @@
     <ClInclude Include="WasmSections.h" />
     <ClInclude Include="WasmSignature.h" />
     <ClInclude Include="WasmBinaryReader.h" />
-    <ClInclude Include="WasmBinaryOpcodes.h" />
+    <ClInclude Include="WasmBinaryOpCodes.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JITIDL\Chakra.JITIDL.vcxproj">
