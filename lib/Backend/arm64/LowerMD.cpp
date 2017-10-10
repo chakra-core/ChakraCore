@@ -3297,7 +3297,7 @@ LowererMD::GenerateFastAdd(IR::Instr * instrAdd)
     }
 
     // s1  = SUB src1, 1     -- get rid of one of the tag
-    opndReg = IR::RegOpnd::New(TyInt32, this->m_func);
+    opndReg = IR::RegOpnd::New(TyMachReg, this->m_func);
     instr = IR::Instr::New(Js::OpCode::SUB, opndReg, opndSrc1, IR::IntConstOpnd::New(1, TyMachReg, this->m_func), this->m_func);
     instrAdd->InsertBefore(instr);
 
@@ -3395,7 +3395,7 @@ LowererMD::GenerateFastSub(IR::Instr * instrSub)
     }
 
     // s1 = SUBS src1, src2   -- try an inline sub
-    opndReg = IR::RegOpnd::New(TyInt32, this->m_func);
+    opndReg = IR::RegOpnd::New(TyMachReg, this->m_func);
     instr = IR::Instr::New(Js::OpCode::SUBS, opndReg, opndSrc1, opndSrc2, this->m_func);
     instrSub->InsertBefore(instr);
 
@@ -3503,12 +3503,12 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
     }
 
     // s1 = SUB src1, AtomTag -- clear the var tag from the value to be multiplied
-    opndReg1 = IR::RegOpnd::New(TyInt32, this->m_func);
+    opndReg1 = IR::RegOpnd::New(TyMachReg, this->m_func);
     instr = IR::Instr::New(Js::OpCode::SUB, opndReg1, opndSrc1, IR::IntConstOpnd::New(Js::AtomTag, TyVar, this->m_func), this->m_func); // TODO: TyVar or TyMachReg?
     instrMul->InsertBefore(instr);
 
     // s2 = ASR src2, Js::VarTag_Shift  -- extract the real src2 amount from the var
-    opndReg2 = IR::RegOpnd::New(TyInt32, this->m_func);
+    opndReg2 = IR::RegOpnd::New(TyMachReg, this->m_func);
     instr = IR::Instr::New(Js::OpCode::ASR, opndReg2, opndSrc2,
         IR::IntConstOpnd::New(Js::VarTag_Shift, TyInt8, this->m_func), this->m_func);
     instrMul->InsertBefore(instr);
@@ -3920,7 +3920,7 @@ LowererMD::GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * insertInstr, 
     // CMP src1, AtomTag
     IR::Instr* instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     instr->SetSrc1(opndSrc);
-    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyInt32, this->m_func));
+    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func));
     insertInstr->InsertBefore(instr);
     LegalizeMD::LegalizeInstr(instr, false);
 
@@ -4023,7 +4023,7 @@ LowererMD::GenerateFastNeg(IR::Instr * instrNeg)
 
     // dst = ADD dst, 2
 
-    instr = IR::Instr::New(Js::OpCode::ADDS, opndDst, opndDst, IR::IntConstOpnd::New(2, TyInt32, this->m_func), this->m_func);
+    instr = IR::Instr::New(Js::OpCode::ADDS, opndDst, opndDst, IR::IntConstOpnd::New(2, TyMachReg, this->m_func), this->m_func);
     instrNeg->InsertBefore(instr);
 
     // BVS $helper
@@ -6397,7 +6397,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
     }
 
     // char = LDRH [regSrc + index32, LSL #1]
-    IR::RegOpnd *charResult = IR::RegOpnd::New(TyUint32, this->m_func);
+    IR::RegOpnd *charResult = IR::RegOpnd::New(TyMachReg, this->m_func);
     LowererMD::CreateAssign(charResult, indirOpnd, insertInstr);
 
     if (index == Js::BuiltinFunction::JavascriptString_CharAt)
@@ -6904,9 +6904,9 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
 
     if (!isNotInt)
     {
-        IR::Opnd * opnd32src1 = src1->UseWithNewType(TyInt32, this->m_func);
+        IR::Opnd * opnd32src1 = src1->UseWithNewType(TyMachReg, this->m_func);
         IR::RegOpnd * opndReg2 = IR::RegOpnd::New(TyMachReg, this->m_func);
-        IR::Opnd * opnd32Reg2 = opndReg2->UseWithNewType(TyInt32, this->m_func);
+        IR::Opnd * opnd32Reg2 = opndReg2->UseWithNewType(TyMachReg, this->m_func);
 
         if (!isInt)
         {
@@ -6930,7 +6930,7 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
                 //TST src1, 0xC0000000 -- test for length that is negative or overflows tagged int
                 instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
                 instr->SetSrc1(opnd32src1);
-                instr->SetSrc2(IR::IntConstOpnd::New((int64)0x8000000000000000 >> Js::VarTag_Shift, TyInt32, this->m_func));
+                instr->SetSrc2(IR::IntConstOpnd::New((int64)0x8000000000000000 >> Js::VarTag_Shift, TyMachReg, this->m_func));
                 instrLoad->InsertBefore(instr);
                 LegalizeMD::LegalizeInstr(instr, false);
 
@@ -7441,7 +7441,7 @@ void LowererMD::GenerateIsRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *inse
 
     // SUB r1, -(~TypeIds_LastJavascriptPrimitiveType)
     {
-        IR::Instr * add = IR::Instr::New(Js::OpCode::SUB, r1, r1, IR::IntConstOpnd::New(-(~Js::TypeIds_LastJavascriptPrimitiveType), TyInt32, this->m_func, true), this->m_func);
+        IR::Instr * add = IR::Instr::New(Js::OpCode::SUB, r1, r1, IR::IntConstOpnd::New(-(~Js::TypeIds_LastJavascriptPrimitiveType), TyMachReg, this->m_func, true), this->m_func);
         insertInstr->InsertBefore(add);
         LegalizeMD::LegalizeInstr(add, false);
     }
@@ -7450,7 +7450,7 @@ void LowererMD::GenerateIsRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *inse
     {
         IR::Instr * cmp = IR::Instr::New(Js::OpCode::CMP, this->m_func);
         cmp->SetSrc1(r1);
-        cmp->SetSrc2(IR::IntConstOpnd::New(Js::TypeIds_LastTrueJavascriptObjectType - Js::TypeIds_LastJavascriptPrimitiveType - 1, TyInt32, this->m_func));
+        cmp->SetSrc2(IR::IntConstOpnd::New(Js::TypeIds_LastTrueJavascriptObjectType - Js::TypeIds_LastJavascriptPrimitiveType - 1, TyMachReg, this->m_func));
         insertInstr->InsertBefore(cmp);
         LegalizeMD::LegalizeInstr(cmp, false);
     }
