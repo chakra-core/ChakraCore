@@ -81,7 +81,7 @@ AsmJsJITInfo::GetWasmSignatureAddr(uint index) const
 
 bool AsmJsJITInfo::IsSharedMemory() const
 {
-    return !!m_data.wasmIsSharedMemory;
+    return m_data.wasmIsSharedMemory != FALSE;
 }
 
 #endif
