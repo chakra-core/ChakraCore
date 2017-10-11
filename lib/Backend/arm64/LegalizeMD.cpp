@@ -397,11 +397,13 @@ void LegalizeMD::LegalizeImmed(
     LegalForms forms,
     bool fPostRegAlloc)
 {
-    // ARM64_WORKITEM: Fix me -- assuming a 32-bit opcode
-    if (!(((forms & L_ImmLog12) && EncoderMD::CanEncodeLogicalConst(immed, 4)) ||
-          ((forms & L_ImmU6) && IS_CONST_UINT6(immed)) ||
-          ((forms & L_ImmU12) && IS_CONST_UINT12(immed)) ||
-          ((forms & L_ImmU16) && IS_CONST_UINT16(immed))))
+    int size = instr->GetDst()->GetSize();
+    if (!(((forms & L_ImmLog12) && EncoderMD::CanEncodeLogicalConst(immed, size)) ||
+         ((forms & L_ImmU12) && IS_CONST_UINT12(immed)) ||
+         ((forms & L_ImmU12Lsl12) && IS_CONST_UINT12LSL12(immed)) ||
+         ((forms & L_ImmU6) && IS_CONST_UINT6(immed)) ||
+         ((forms & L_ImmU16) && IS_CONST_UINT16(immed)) ||
+         ((forms & L_ImmU6U6) && IS_CONST_UINT6UINT6(immed))))
     {
         if (instr->m_opcode != Js::OpCode::LDIMM)
         {
