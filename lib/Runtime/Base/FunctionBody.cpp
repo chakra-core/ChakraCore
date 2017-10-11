@@ -6619,9 +6619,14 @@ namespace Js
         return executionState.IncreaseInterpretedCount();
     }
 
-    ExecutionMode FunctionBody::GetDefaultInterpreterExecutionMode() const
+    void FunctionBody::SetAsmJsExecutionMode()
     {
-        return executionState.GetDefaultInterpreterExecutionMode();
+        executionState.SetAsmJsExecutionMode();
+    }
+
+    void FunctionBody::SetDefaultInterpreterExecutionMode()
+    {
+        executionState.SetDefaultInterpreterExecutionMode();
     }
 
     ExecutionMode FunctionBody::GetExecutionMode() const
@@ -6632,11 +6637,6 @@ namespace Js
     ExecutionMode FunctionBody::GetInterpreterExecutionMode(const bool isPostBailout)
     {
         return executionState.GetInterpreterExecutionMode(isPostBailout);
-    }
-
-    void FunctionBody::SetExecutionMode(const ExecutionMode executionMode)
-    {
-        executionState.SetExecutionMode(executionMode);
     }
 
     bool FunctionBody::IsInterpreterExecutionMode() const
@@ -6651,10 +6651,7 @@ namespace Js
 
     void FunctionBody::TryTransitionToNextInterpreterExecutionMode()
     {
-        Assert(IsInterpreterExecutionMode());
-
-        TryTransitionToNextExecutionMode();
-        SetExecutionMode(GetInterpreterExecutionMode(false));
+        executionState.TryTransitionToNextInterpreterExecutionMode();
     }
 
     void FunctionBody::SetIsSpeculativeJitCandidate()
@@ -9256,7 +9253,6 @@ namespace Js
                 {
                     newEntryPoint = simpleJitEntryPointInfo;
                     functionBody->SetDefaultFunctionEntryPointInfo(simpleJitEntryPointInfo, newEntryPoint->GetNativeEntrypoint());
-                    functionBody->SetExecutionMode(ExecutionMode::SimpleJit);
                     functionBody->ResetSimpleJitLimitAndCallCount();
                 }
 #ifdef ASMJS_PLAT
@@ -9267,14 +9263,14 @@ namespace Js
                     newEntryPoint->SetIsAsmJSFunction(true);
                     newEntryPoint->jsMethod = AsmJsDefaultEntryThunk;
                     functionBody->SetIsAsmJsFullJitScheduled(false);
-                    functionBody->SetExecutionMode(functionBody->GetDefaultInterpreterExecutionMode());
+                    functionBody->SetDefaultInterpreterExecutionMode();
                     this->functionProxy->SetOriginalEntryPoint(AsmJsDefaultEntryThunk);
                 }
 #endif
                 else
                 {
                     newEntryPoint = functionBody->CreateNewDefaultEntryPoint();
-                    functionBody->SetExecutionMode(functionBody->GetDefaultInterpreterExecutionMode());
+                    functionBody->SetDefaultInterpreterExecutionMode();
                 }
                 functionBody->TraceExecutionMode("JitCodeExpired");
             }

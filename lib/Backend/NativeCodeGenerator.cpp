@@ -1871,7 +1871,7 @@ NativeCodeGenerator::Prioritize(JsUtil::Job *const job, const bool forceAddJobTo
     if (functionBody->GetIsAsmjsMode())
     {
         jitMode = ExecutionMode::FullJit;
-        functionBody->SetExecutionMode(ExecutionMode::FullJit);
+        functionBody->SetAsmJsExecutionMode();
     }
     else
     {

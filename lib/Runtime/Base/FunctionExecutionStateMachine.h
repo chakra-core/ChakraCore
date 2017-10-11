@@ -15,12 +15,13 @@ namespace Js
 
         // Public Getters and Setters
         ExecutionMode GetExecutionMode() const;
-        void SetExecutionMode(ExecutionMode mode); // This should eventually become private
-        ExecutionMode GetDefaultInterpreterExecutionMode() const;
+        void SetDefaultInterpreterExecutionMode();
+        void SetAsmJsExecutionMode();
+
+        // Interpreter-related functions
         ExecutionMode GetInterpreterExecutionMode(const bool isPostBailout);
         bool IsInterpreterExecutionMode() const;
         uint16 GetProfiledIterations() const;
-
         uint32 GetInterpretedCount() const { return interpretedCount; }
         uint32 SetInterpretedCount(uint32 val) { return interpretedCount = val; }
         uint32 IncreaseInterpretedCount() { return interpretedCount++; }
@@ -28,14 +29,15 @@ namespace Js
         void CollectInterpretedCounts();
         void CommitExecutedIterations();
 
+        // JIT-relatedfunctions
         void SetIsSpeculativeJitCandidate();
         uint16 GetSimpleJitLimit() const { return simpleJitLimit; }
         void ResetSimpleJitLimit();
         uint16 GetSimpleJitExecutedIterations() const;
+        void SetSimpleJitCallCount(const uint16 simpleJitLimit) const;
         void SetFullJitThreshold(const uint16 newFullJitThreshold, const bool skipSimpleJit = false);
         uint16 GetFullJitThreshold() const { return fullJitThreshold; }
         void SetFullJitRequeueThreshold(const uint16 newFullJitRequeueThreshold);
-        void SetSimpleJitCallCount(const uint16 simpleJitLimit) const;
 
         // Transition functions
         bool TryTransitionToNextExecutionMode();
@@ -43,22 +45,46 @@ namespace Js
         bool TryTransitionToJitExecutionMode();
         void TransitionToSimpleJitExecutionMode();
         void TransitionToFullJitExecutionMode();
-
+        
+        // Debug functions
         void PrintLimits() const;
         void AssertIsInitialized() const;
 
-
     private:
+        // This enum creates a linear view of the progression of ExecutionModes, as
+        // described in the banner comment for TryTransitionToNextExecutionMode. Each
+        // state has an associated member variable for the state's limit.
+        // For more information about ExecutionModes, see ExecutionModes.h.
+        enum class ExecutionState : uint8
+        {
+            Interpreter,
+            AutoProfilingInterpreter0,
+            ProfilingInterpreter0,
+            AutoProfilingInterpreter1,
+            SimpleJit,
+            ProfilingInterpreter1,
+            FullJit
+        };
+
+
+        ExecutionState ModeToState(ExecutionMode mode)   const;
+        ExecutionMode  StateToMode(ExecutionState state) const;
+
+        uint16& GetStateLimit(ExecutionState state);
+        bool IsTerminalState(ExecutionState state);
+        void SetExecutionState(ExecutionState state);
+        ExecutionState GetDefaultInterpreterExecutionState() const;
+
+        void CommitExecutedIterations(uint16 &limit, const uint executedIterations);
+        
         void VerifyExecutionMode(const ExecutionMode executionMode) const;
         void VerifyExecutionModeLimits() const;
         
-        void CommitExecutedIterations(uint16 &limit, const uint executedIterations);
-
         // This state machine should be a member of this owner FunctionBody
         FieldWithBarrier(FunctionBody*) owner;
 
-        // Tracks the current execution mode. See ExecutionModes.h for more info.
-        FieldWithBarrier(ExecutionMode) executionMode;
+        // Tracks the current execution state. See ExecutionModes.h for more info.
+        FieldWithBarrier(ExecutionState) executionState;
 
         // Each of the following limits below is decremented when transitioning from its related mode:
         // Number of times to run interpreter (no profiling) before advancing to next mode
@@ -86,7 +112,7 @@ namespace Js
         FieldWithBarrier(uint32) lastInterpretedCount;
 
 #if DBG
-        FieldWithBarrier(bool) initializedExecutionModeAndLimits : 1;
+        FieldWithBarrier(bool) initializedExecutionModeAndLimits;
 #endif
     };
 };
