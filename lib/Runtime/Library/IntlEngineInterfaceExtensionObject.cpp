@@ -18,6 +18,7 @@ using namespace Windows::Globalization;
 #ifdef INTL_ICU
 #include <CommonPal.h>
 #include "PlatformAgnostic/IPlatformAgnosticResource.h"
+#include "PlatformAgnostic/Intl.h"
 using namespace PlatformAgnostic::Intl;
 using namespace PlatformAgnostic::Resource;
 #endif
@@ -164,7 +165,10 @@ namespace Js
             }
         }
     };
+#endif
 
+// Defining Finalizable wrappers for Intl data
+#if defined(INTL_WINGLOB)
     class AutoCOMJSObject : public FinalizableObject
     {
         IInspectable *instance;
@@ -199,6 +203,55 @@ namespace Js
         }
 
         IInspectable *GetInstance()
+        {
+            return instance;
+        }
+    };
+
+#elif defined(INTL_ICU)
+
+    template<typename T>
+    class AutoIcuJsObject : public FinalizableObject
+    {
+    private:
+        T *instance;
+
+    public:
+        DEFINE_VTABLE_CTOR_NOBASE(AutoIcuJsObject<T>);
+
+        AutoIcuJsObject(T *object)
+            : instance(object)
+        { }
+
+        static AutoIcuJsObject<T> * New(Recycler *recycler, T *object)
+        {
+            return RecyclerNewFinalized(recycler, AutoIcuJsObject<T>, object);
+        }
+
+        void Finalize(bool isShutdown) override
+        {
+        }
+
+        void Dispose(bool isShutdown) override
+        {
+            if (!isShutdown)
+            {
+                // Here we use Cleanup() because we can't rely on delete (not dealing with virtual destructors).
+                // The template thus requires that the type implement the Cleanup function.
+                instance->Cleanup(); // e.g. deletes the object held in the IPlatformAgnosticResource
+
+                // REVIEW (doilij): Is cleanup in this way necessary or are the trivial destructors enough, assuming Cleanup() has been called?
+                // Note: delete here introduces a build break on Linux complaining of non-virtual dtor
+                // delete instance; // deletes the instance itself
+                // instance = nullptr;
+            }
+        }
+
+        void Mark(Recycler *recycler) override
+        {
+        }
+
+        T * GetInstance()
         {
             return instance;
         }
@@ -866,15 +919,10 @@ namespace Js
         }
 
         Assert(numberFormatter);
-        // REVIEW (doilij): AutoPtr will call delete on IPlatformAgnosticResource and complain of non-virtual dtor. There are no IfFailThrowHr so is this still necessary?
-        // TODO (doilij): If necessary, introduce an PlatformAgnosticResourceAutoPtr that calls Cleanup() instead of delete on the pointer.
-        // AutoPtr<IPlatformAgnosticResource> numberFormatterGuard(numberFormatter);
 
         // TODO (doilij): Render signed zero.
-
+        // TODO(jahorto): isDecimalPointAlwaysDisplayed seems like a Windows-only construct
         bool isDecimalPointAlwaysDisplayed = false;
-        bool useGrouping = true;
-
         if (GetTypedPropertyBuiltInFrom(options, __isDecimalPointAlwaysDisplayed, JavascriptBoolean))
         {
             isDecimalPointAlwaysDisplayed = JavascriptBoolean::FromVar(propertyValue)->GetValue();
@@ -882,7 +930,8 @@ namespace Js
 
         if (GetTypedPropertyBuiltInFrom(options, __useGrouping, JavascriptBoolean))
         {
-            useGrouping = JavascriptBoolean::FromVar(propertyValue)->GetValue();
+            bool useGrouping = JavascriptBoolean::FromVar(propertyValue)->GetValue();
+            SetGroupingUsed(numberFormatter, useGrouping);
         }
 
         // Numeral system is in the locale and is therefore already set on the icu::NumberFormat
@@ -932,9 +981,6 @@ namespace Js
         // Set the object as a cache
         auto *autoObject = AutoIcuJsObject<IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), numberFormatter);
         options->SetInternalProperty(Js::InternalPropertyIds::HiddenObject, autoObject, Js::PropertyOperationFlags::PropertyOperation_None, NULL);
-
-        // clear the pointer so it is not freed when numberFormatterGuard goes out of scope
-        // numberFormatterGuard.setPointer(nullptr);
 
         return scriptContext->GetLibrary()->GetUndefined();
 #else

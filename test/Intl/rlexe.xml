@@ -68,7 +68,7 @@
     <default>
       <files>GetCanonicalLocales.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
@@ -81,35 +81,35 @@
   <test>
     <default>
       <files>IntlHiddenInternals.js</files>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
     <default>
       <files>IntlTaintingTests.js</files>
       <baseline>IntlTaintingTests.baseline</baseline>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
     <default>
       <files>IntlTaintingPreInitTests.js</files>
       <baseline>IntlTaintingPreInitTests.baseline</baseline>
-      <tags>Intl,require_winglob,exclude_drt</tags>
+      <tags>Intl,exclude_drt</tags>
     </default>
   </test>
 
   <test>
     <default>
       <files>IntlBuiltIns.js</files>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
     <default>
       <files>IntlIdentities.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
@@ -126,7 +126,7 @@
       <files>IntlInternalsHiddenFromExceptionStackTest.js</files>
       <baseline>IntlInternalsHiddenFromExceptionStackTest.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
@@ -135,7 +135,7 @@
       <files>IntlInternalsHiddenFromFirstChanceExceptionStackTest.js</files>
       <baseline>IntlInternalsHiddenFromFirstChanceExceptionStackTest.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost-</compile-flags>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
 

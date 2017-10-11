@@ -82,18 +82,20 @@ var tests = [
         name: "Test Valid Options - Formatting Currency with Significant Digits",
         body: function () {
             const usdBaseOptions = { minimumSignificantDigits: 3, maximumSignificantDigits: 3, style: "currency", currency: "USD" };
-            var expectedRegex1 = new RegExp("\\$[\x20\u00a0]?123");
-            var expectedRegex2 = new RegExp("USD[\x20\u00a0]?123");
+            const symbolFormat = /\$[\x20\u00a0]?123/;
+            const codeFormat = /USD[\x20\u00a0]?123/;
+            const nameFormat = /(?:USD[\x20\u00a0]?123|123 US dollars)/; // ICU has a "long" format, WinGlob falls back to currency
+            const n = 123.1;
 
-            var actual1 = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, {})).format(123.1);
-            assert.isTrue(expectedRegex1.test(actual1), "currency: USD (default display) actual: '" + actual1 + "' expected(Regex): '" + expectedRegex1 + "'");
-            var actual2 = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, { currencyDisplay: "code" })).format(123.1);
-            assert.isTrue(expectedRegex2.test(actual2), "currency code: USD actual: '" + actual2 + "' expected(Regex): '" + expectedRegex2 + "'");
+            const defaultActual = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, {})).format(n);
+            assert.isTrue(symbolFormat.test(defaultActual), `USD (default) actual: '${defaultActual}', which did not match ${symbolFormat.source}`);
+            const codeActual = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, { currencyDisplay: "code" })).format(n);
+            assert.isTrue(codeFormat.test(codeActual), `USD (code) actual: '${codeActual}', which did not match ${codeFormat.source}`);
 
-            var actual3 = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, { currencyDisplay: "symbol" })).format(123.1);
-            assert.isTrue(expectedRegex1.test(actual3), "currency symbol: USD ($) actual: '" + actual3 + "' expected(Regex): '" + expectedRegex1 + "'");
-            var actual4 = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, { currencyDisplay: "name" })).format(123.1);
-            assert.isTrue(expectedRegex2.test(actual4), "currency name: USD actual: '" + actual4 + "' expected(Regex): '" + expectedRegex2 + "'");
+            const symbolActual = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, { currencyDisplay: "symbol" })).format(n);
+            assert.isTrue(symbolFormat.test(symbolActual), `USD (symbol) actual: '${symbolActual}', which did not match ${symbolFormat.source}`);
+            const nameActual = new Intl.NumberFormat("en-US", extendOptions(usdBaseOptions, { currencyDisplay: "name" })).format(n);
+            assert.isTrue(nameFormat.test(nameActual), `USD (name) actual: '${nameActual}', which did not match ${nameFormat.source}`);
         }
     },
     {

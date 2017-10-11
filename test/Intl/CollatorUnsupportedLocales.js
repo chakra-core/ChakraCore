@@ -3,35 +3,28 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-var passed = true;
+WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-function arrayEqual(arr1, arr2) {
-    if (arr1.length !== arr2.length) return false;
-    for (var i = 0; i < arr1.length; i++) {
-        if (arr1[i] !== arr2[i]) return false;
-    }
-    return true;
+function testSupportedLocales(locales, expected, localeMatcher) {
+    return function body() {
+        const actual = Intl.Collator.supportedLocalesOf(locales, { localeMatcher });
+        assert.areEqual(
+            actual,
+            expected,
+            `supportedLocalesOf(${JSON.stringify(locales)}, { localeMatcher: ${localeMatcher}}) returned ${JSON.stringify(actual)}, which does not equal expected value ${JSON.stringify(expected)}.`
+        );
+    };
 }
 
-function testSupportedLocales(locales, expectedResult) {
-    try {
-        var actual = Intl.Collator.supportedLocalesOf(locales, { localeMatcher: "best fit" });
-        if (!arrayEqual(actual, expectedResult)) {
-            throw new Error("Calling SupportedLocalesOf on '[" + locales.join(",") + "]' doesn't match expected result '[" + expectedResult.join(",") + "]' when using best fit. Actual:[" + actual.join(",") + "]");
-        }
-        actual = Intl.Collator.supportedLocalesOf(locales, { localeMatcher: "best fit" });
-        if (!arrayEqual(actual, expectedResult)) {
-            throw new Error("Calling SupportedLocalesOf on '[" + locales.join(",") + "]' doesn't match expected result '[" + expectedResult.join(",") + "]' when using lookup. Actual: [" + actual.join(",") + "]");
-        }
+const tests = [
+    {
+        name: "Unsupported locale with best fit matcher",
+        body: testSupportedLocales(["xxx"], [], "best fit")
+    },
+    {
+        name: "Unsupported locale with lookup matcher",
+        body: testSupportedLocales(["xxx"], [], "lookup")
     }
-    catch (ex) {
-        passed = false;
-        WScript.Echo("Error testSupportedLocales: " + ex.message);
-    }
-}
+];
 
-testSupportedLocales(["xxx"], []);
-
-if (passed === true) {
-    WScript.Echo("Pass");
-}
+testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

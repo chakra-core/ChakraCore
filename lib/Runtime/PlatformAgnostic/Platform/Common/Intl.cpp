@@ -394,6 +394,13 @@ namespace Intl
         return S_OK;
     }
 
+    void SetGroupingUsed(IPlatformAgnosticResource *resource, const bool isGroupingUsed)
+    {
+        icu::NumberFormat *nf = reinterpret_cast<PlatformAgnosticIntlObject<icu::NumberFormat> *>(resource)->GetInstance();
+        nf->setGroupingUsed(isGroupingUsed);
+        return;
+    }
+
     // We explicitly declare these specializations of FormatNumber so the compiler creates them
     // because they will be used in another compilation unit,
     // at which time we cannot generate code for specializations of this template.
