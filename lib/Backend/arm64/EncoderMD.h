@@ -26,26 +26,30 @@ enum InstructionType {
     A64     = 4,
 };
 
-#define RETURN_REG          RegR0
-#define FIRST_INT_ARG_REG   RegR0
-#define LAST_INT_ARG_REG    RegR7
+#define RETURN_REG                  RegR0
+#define FIRST_INT_ARG_REG           RegR0
+#define LAST_INT_ARG_REG            RegR7
 #define NUM_INT_ARG_REGS\
     ((LAST_INT_ARG_REG - FIRST_INT_ARG_REG) + 1)
-#define FIRST_CALLEE_SAVED_GP_REG RegR19
-#define LAST_CALLEE_SAVED_GP_REG  RegR28
-#define SCRATCH_REG         RegR17
-#define ALT_LOCALS_PTR      RegR21
-#define EH_STACK_SAVE_REG   RegR20
-#define SP_ALLOC_SCRATCH_REG RegR16
-#define CATCH_OBJ_REG       RegR1
 
-#define RETURN_DBL_REG      RegD0
-#define FIRST_CALLEE_SAVED_DBL_REG RegD16
-#define LAST_CALLEE_SAVED_DBL_REG  RegD29
-#define FIRST_CALLEE_SAVED_DBL_REG_NUM 16
-#define LAST_CALLEE_SAVED_DBL_REG_NUM 29
+#define FIRST_CALLEE_SAVED_GP_REG   RegR19
+#define LAST_CALLEE_SAVED_GP_REG    RegR28
+
+#define UNUSED_REG_FOR_STACK_ALIGN  RegR11
+#define SCRATCH_REG                 RegR12
+#define ALT_LOCALS_PTR              RegR13
+#define EH_STACK_SAVE_REG           RegR14
+#define SP_ALLOC_SCRATCH_REG        RegR15
+#define CATCH_OBJ_REG               RegR1
+
+#define RETURN_DBL_REG              RegD0
+#define FIRST_CALLEE_SAVED_DBL_REG  RegD16
+#define LAST_CALLEE_SAVED_DBL_REG   RegD29
 #define CALLEE_SAVED_DOUBLE_REG_COUNT\
     ((LAST_CALLEE_SAVED_DBL_REG - FIRST_CALLEE_SAVED_DBL_REG) + 1)
+#define FIRST_CALLEE_SAVED_DBL_REG_NUM  16
+#define LAST_CALLEE_SAVED_DBL_REG_NUM   29
+
 
 // See comment in LowerEntryInstr: even in a global function, we'll home r0 and r1
 #define MIN_HOMED_PARAM_REGS 2
