@@ -237,6 +237,7 @@ private:
     // Misc operations
     template<typename _Emitter, typename _Emitter64> int EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter, _Emitter64 emitter64);
     template<typename _Emitter, typename _Emitter64> int EmitBitfield(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter, _Emitter64 emitter64);
+    template<typename _Emitter, typename _Emitter64> int EmitConditionalSelect(Arm64CodeEmitter &Emitter, IR::Instr *instr, int condition, _Emitter emitter, _Emitter64 emitter64);
 
     // Floating point instructions
     template<typename _Emitter> int EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter);

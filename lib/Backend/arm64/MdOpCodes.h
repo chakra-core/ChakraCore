@@ -52,6 +52,7 @@ MACRO(CMP,        Reg1,       OpSideEffect,   UNUSED,   LEGAL_PSEUDO,   UNUSED, 
 MACRO(CMN,        Reg1,       OpSideEffect,   UNUSED,   LEGAL_PSEUDO,   UNUSED,   D__S)
 // CMP src1, src, ASR #31/63
 MACRO(CMP_ASR31,  Reg1,       OpSideEffect,   UNUSED,   LEGAL_REG3_ND,  UNUSED,   D__S)
+MACRO(CSELLT,     Reg3,       0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 MACRO(CSNEGPL,    Reg3,       0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 
 MACRO(DEBUGBREAK, Reg1,       OpSideEffect,   UNUSED,   LEGAL_NONE,     UNUSED,   D___)
@@ -79,6 +80,12 @@ MACRO(MOV,        Reg2,       0,              UNUSED,   LEGAL_REG2,     UNUSED, 
 MACRO(MOVK,       Reg2,       0,              UNUSED,   LEGAL_LDIMM,    UNUSED,   DM__)
 MACRO(MOVN,       Reg2,       0,              UNUSED,   LEGAL_LDIMM,    UNUSED,   DM__)
 MACRO(MOVZ,       Reg2,       0,              UNUSED,   LEGAL_LDIMM,    UNUSED,   DM__)
+
+MACRO(MRS_FPCR,   Reg1,       0,              UNUSED,   LEGAL_REG1,     UNUSED,   D___)
+MACRO(MRS_FPSR,   Reg1,       0,              UNUSED,   LEGAL_REG1,     UNUSED,   D___)
+
+MACRO(MSR_FPCR,   Reg2,       0,              UNUSED,   LEGAL_REG2_ND,  UNUSED,   D___)
+MACRO(MSR_FPSR,   Reg2,       0,              UNUSED,   LEGAL_REG2_ND,  UNUSED,   D___)
 
 MACRO(MUL,        Reg3,       0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 
@@ -148,6 +155,7 @@ MACRO(FCMP,        Reg1,      OpSideEffect,   UNUSED,   LEGAL_REG3_ND,  UNUSED, 
 MACRO(FCVT,        Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
 MACRO(FCVTM,       Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
 MACRO(FCVTN,       Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
+MACRO(FCVTP,       Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
 MACRO(FCVTZ,       Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
 MACRO(FDIV,        Reg3,      0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 MACRO(FLDR,        Reg2,      0,              UNUSED,   LEGAL_LOAD,     UNUSED,   DL__)

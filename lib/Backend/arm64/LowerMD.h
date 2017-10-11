@@ -234,9 +234,7 @@ public:
 
             IR::Opnd*           IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr);
             void                GenerateFastInlineBuiltInMathAbs(IR::Instr *callInstr);
-            void                GenerateFastInlineBuiltInMathFloor(IR::Instr *callInstr);
-            void                GenerateFastInlineBuiltInMathCeil(IR::Instr *callInstr);
-            void                GenerateFastInlineBuiltInMathRound(IR::Instr *callInstr);
+            void                GenerateFastInlineBuiltInMathFloorCeilRound(IR::Instr *callInstr);
             static RegNum       GetRegStackPointer() { return RegSP; }
             static RegNum       GetRegFramePointer() { return RegFP; }
             static RegNum       GetRegReturn(IRType type) { return IRType_IsFloat(type) ? RegNOREG : RegR0; }

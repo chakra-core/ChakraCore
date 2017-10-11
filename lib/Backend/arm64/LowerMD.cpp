@@ -7656,8 +7656,8 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
         // Before:
         //      dst = InlineMathSqrt src1
         // After:
-        //       <potential VSTR by legalizer if src1 is not a register>
-        //       dst = VSQRT src1
+        //       <potential FSTR by legalizer if src1 is not a register>
+        //       dst = FSQRT src1
         Assert(helperMethod == (IR::JnHelperMethod)0);
         Assert(instr->GetSrc2() == nullptr);
         instr->m_opcode = Js::OpCode::FSQRT;
@@ -7670,15 +7670,15 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
     case Js::OpCode::InlineMathFloor:
         Assert(helperMethod == (IR::JnHelperMethod)0);
-        return GenerateFastInlineBuiltInMathFloor(instr);
+        return GenerateFastInlineBuiltInMathFloorCeilRound(instr);
 
     case Js::OpCode::InlineMathCeil:
         Assert(helperMethod == (IR::JnHelperMethod)0);
-        return GenerateFastInlineBuiltInMathCeil(instr);
+        return GenerateFastInlineBuiltInMathFloorCeilRound(instr);
 
     case Js::OpCode::InlineMathRound:
         Assert(helperMethod == (IR::JnHelperMethod)0);
-        return GenerateFastInlineBuiltInMathRound(instr);
+        return GenerateFastInlineBuiltInMathFloorCeilRound(instr);
 
     case Js::OpCode::InlineMathMin:
     case Js::OpCode::InlineMathMax:
@@ -7873,87 +7873,72 @@ LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr *inlineInstr)
 }
 
 void
-LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
+LowererMD::GenerateFastInlineBuiltInMathFloorCeilRound(IR::Instr* instr)
 {
-    Assert(false);
-    // ARM64_WORKITEM: This is FRINTM -- implement me
-/*
     Assert(instr->GetDst()->IsInt32());
 
-    IR::LabelInstr * checkNegZeroLabelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    IR::LabelInstr * checkOverflowLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     IR::LabelInstr * doneLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
 
-    // VMOV floatOpnd, src
+    // Allocate an integer register for negative zero checks if needed
+    IR::Opnd * negZeroReg = nullptr;
+    if (instr->ShouldCheckForNegativeZero())
+    {
+        negZeroReg = IR::RegOpnd::New(TyInt64, this->m_func);
+    }
+
+    // FMOV floatOpnd, src
     IR::Opnd * src = instr->UnlinkSrc1();
     IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
     this->m_lowerer->InsertMove(floatOpnd, src, instr);
 
     IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);;
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
-    
-    // NaN check
-    IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::FCMP, this->m_func);
-    instrCmp->SetSrc1(floatOpnd);
-    instrCmp->SetSrc2(floatOpnd);
-    instr->InsertBefore(instrCmp);
-    LegalizeMD::LegalizeInstr(instrCmp, false);
 
-    // BVS  $bailoutLabel
-    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::BVS, bailoutLabel, this->m_func));
+    // MSR FPSR, xzr
+    IR::Instr* setFPSRInstr = IR::Instr::New(Js::OpCode::MSR_FPSR, instr->m_func);
+    setFPSRInstr->SetSrc1(IR::RegOpnd::New(nullptr, RegZR, TyMachReg, instr->m_func));
+    instr->InsertBefore(setFPSRInstr);
 
-    IR::Opnd * zeroReg = IR::RegOpnd::New(TyFloat64, this->m_func);
-    this->LoadFloatZero(zeroReg, instr);
-
-    // VMRS  Rorig, FPSCR
-    // VMRS  Rt, FPSCR
-    // BIC   Rt, Rt, 0x400000
-    // ORR   Rt, Rt, 0x800000
-    // VMSR  FPSCR, Rt
-    IR::Opnd* regOrig = IR::RegOpnd::New(TyInt32, this->m_func);
-    IR::Opnd* reg = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::VMRSR, regOrig, instr->m_func));
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::VMRSR, reg, instr->m_func));
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::BIC, reg, reg, IR::IntConstOpnd::New(0x400000, IRType::TyInt32, this->m_func), instr->m_func));
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::ORR, reg, reg, IR::IntConstOpnd::New(0x800000, IRType::TyInt32, this->m_func), instr->m_func));
-
-    IR::Instr* setFPSCRInstr = IR::Instr::New(Js::OpCode::VMSR, instr->m_func);
-    setFPSCRInstr->SetSrc1(reg);
-    instr->InsertBefore(setFPSCRInstr);
-
-    // VCVTRS32F64 floatreg, floatOpnd
-    IR::RegOpnd *floatReg = IR::RegOpnd::New(TyFloat32, this->m_func);
-    IR::Opnd * intOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::VCVTRS32F64, floatReg, floatOpnd, instr->m_func));
-
-    // VMOVARMVFP intOpnd, floatReg
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::VMOVARMVFP, intOpnd, floatReg, this->m_func));
-
-    // VMSR FPSCR, Rorig
-    IR::Instr* restoreFPSCRInstr = IR::Instr::New(Js::OpCode::VMSR, instr->m_func);
-    restoreFPSCRInstr->SetSrc1(regOrig);
-    instr->InsertBefore(restoreFPSCRInstr);
-
-    //negZero bailout
-    // TST intOpnd, intOpnd
-    // BNE checkOverflowLabel
-    this->m_lowerer->InsertTestBranch(intOpnd, intOpnd, Js::OpCode::BNE, checkOverflowLabel, instr);
-    instr->InsertBefore(checkNegZeroLabelHelper);
-    if(instr->ShouldCheckForNegativeZero())
+    // FMOV_GEN negZeroReg, floatOpnd (note this is done before the 0.5 add below)
+    if (negZeroReg)
     {
-        IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
-        isNegZero = this->IsOpndNegZero(src, instr);
-        this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrNeq_A, bailoutLabel, instr);
-        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, doneLabel, instr->m_func));
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::FMOV_GEN, negZeroReg, floatOpnd, instr->m_func));
     }
 
-    instr->InsertBefore(checkOverflowLabel);
-    CheckOverflowOnFloatToInt32(instr, intOpnd, bailoutLabel, doneLabel);
+    // Add 0.5 if rounding
+    if (instr->m_opcode == Js::OpCode::InlineMathRound)
+    {
+        IR::Opnd * pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoublePointFiveAddr(), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+        this->m_lowerer->InsertAdd(false, floatOpnd, floatOpnd, pointFive, instr);
+    }
+
+    // FCVTM/FCVTP intOpnd, floatOpnd
+    IR::Opnd * intOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
+    instr->InsertBefore(IR::Instr::New((instr->m_opcode == Js::OpCode::InlineMathCeil) ? Js::OpCode::FCVTP : Js::OpCode::FCVTM, intOpnd, floatOpnd, instr->m_func));
+
+    // EOR negZeroReg, #0x8000000000000000
+    if (negZeroReg)
+    {
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::EOR, negZeroReg, negZeroReg, IR::IntConstOpnd::New(0x8000000000000000ULL, IRType::TyInt64, this->m_func), instr->m_func));
+    }
+
+    // MRS exceptReg, FPSR
+    IR::Opnd * exceptReg = IR::RegOpnd::New(TyMachReg, this->m_func);
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::MRS_FPSR, exceptReg, instr->m_func));
+
+    // CBZ negZeroReg, bailout
+    if (negZeroReg)
+    {
+        IR::BranchInstr * cbzInstr = IR::BranchInstr::New(Js::OpCode::CBZ, bailoutLabel, instr->m_func);
+        cbzInstr->SetSrc1(negZeroReg);
+        instr->InsertBefore(cbzInstr);
+    }
+
+    // TBZ exceptReg, #0, done
+    IR::BranchInstr * tbzInstr = IR::BranchInstr::New(Js::OpCode::TBZ, doneLabel, instr->m_func);
+    tbzInstr->SetSrc1(exceptReg);
+    tbzInstr->SetSrc2(IR::IntConstOpnd::New(0, TyMachReg, instr->m_func));
+    instr->InsertBefore(tbzInstr);
 
     IR::Opnd * dst = instr->UnlinkDst();
     instr->InsertAfter(doneLabel);
@@ -7969,224 +7954,6 @@ LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
     doneLabel->InsertAfter(movInstr);
-    */
-}
-
-void
-LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
-{
-    Assert(false);
-    // ARM64_WORKITEM: This is FRINTP -- implement me
-/*
-    Assert(instr->GetDst()->IsInt32());
-
-    IR::LabelInstr * checkNegZeroLabelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    IR::LabelInstr * checkOverflowLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    IR::LabelInstr * doneLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-
-    // VMOV floatOpnd, src
-    IR::Opnd * src = instr->UnlinkSrc1();
-    IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
-    this->m_lowerer->InsertMove(floatOpnd, src, instr);
-
-    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);;
-    bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
-
-    // NaN check
-    IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::VCMPF64, this->m_func);
-    instrCmp->SetSrc1(floatOpnd);
-    instrCmp->SetSrc2(floatOpnd);
-    instr->InsertBefore(instrCmp);
-    LegalizeMD::LegalizeInstr(instrCmp, false);
-
-    // VMRS APSR, FPSCR
-    // BVS  $bailoutLabel
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::VMRS, this->m_func));
-    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::BVS, bailoutLabel, this->m_func));
-
-    IR::Opnd * zeroReg = IR::RegOpnd::New(TyFloat64, this->m_func);
-    this->LoadFloatZero(zeroReg, instr);
-
-    // VMRS  Rorig, FPSCR
-    // VMRS  Rt, FPSCR
-    // BIC   Rt, Rt, 0x800000
-    // ORR   Rt, Rt, 0x400000
-    // VMSR  FPSCR, Rt
-    IR::Opnd* regOrig = IR::RegOpnd::New(TyInt32, this->m_func);
-    IR::Opnd* reg = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::VMRSR, regOrig, instr->m_func));
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::VMRSR, reg, instr->m_func));
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::BIC, reg, reg, IR::IntConstOpnd::New(0x800000, IRType::TyInt32, this->m_func), instr->m_func));
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::ORR, reg, reg, IR::IntConstOpnd::New(0x400000, IRType::TyInt32, this->m_func), instr->m_func));
-
-    IR::Instr* setFPSCRInstr = IR::Instr::New(Js::OpCode::VMSR, instr->m_func);
-    setFPSCRInstr->SetSrc1(reg);
-    instr->InsertBefore(setFPSCRInstr);
-
-    // VCVTRS32F64 floatreg, floatOpnd
-    IR::RegOpnd *floatReg = IR::RegOpnd::New(TyFloat32, this->m_func);
-    IR::Opnd * intOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::VCVTRS32F64, floatReg, floatOpnd, instr->m_func));
-
-    // VMOVARMVFP intOpnd, floatReg
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::VMOVARMVFP, intOpnd, floatReg, this->m_func));
-
-    // VMSR FPSCR, Rorig
-    IR::Instr* restoreFPSCRInstr = IR::Instr::New(Js::OpCode::VMSR, instr->m_func);
-    restoreFPSCRInstr->SetSrc1(regOrig);
-    instr->InsertBefore(restoreFPSCRInstr);
-
-    //negZero bailout
-    // TST intOpnd, intOpnd
-    // BNE checkOverflowLabel
-    this->m_lowerer->InsertTestBranch(intOpnd, intOpnd, Js::OpCode::BNE, checkOverflowLabel, instr);
-    instr->InsertBefore(checkNegZeroLabelHelper);
-    if(instr->ShouldCheckForNegativeZero())
-    {
-        IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
-        IR::Opnd * negOne = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleNegOneAddr(), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
-        this->m_lowerer->InsertCompareBranch(floatOpnd, negOne, Js::OpCode::BrNotGe_A, doneLabel, instr);
-        this->m_lowerer->InsertCompareBranch(floatOpnd, zeroReg, Js::OpCode::BrNotGe_A, bailoutLabel, instr);
-
-        isNegZero = this->IsOpndNegZero(src, instr);
-
-        this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrNeq_A, bailoutLabel, instr);
-        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, doneLabel, instr->m_func));
-    }
-
-    instr->InsertBefore(checkOverflowLabel);
-    CheckOverflowOnFloatToInt32(instr, intOpnd, bailoutLabel, doneLabel);
-
-    IR::Opnd * dst = instr->UnlinkDst();
-    instr->InsertAfter(doneLabel);
-    if(!sharedBailout)
-    {
-        instr->InsertBefore(bailoutLabel);
-    }
-
-    // In case of a shared bailout, we should jump to the code that sets some data on the bailout record which is specific
-    // to this bailout. Pass the bailoutLabel to GenerateFunction so that it may use the label as the collectRuntimeStatsLabel.
-    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
-
-    // MOV dst, intOpnd
-    IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
-    doneLabel->InsertAfter(movInstr);*/
-}
-
-void
-LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
-{
-    Assert(false);
-    // ARM64_WORKITEM: This is add 0.5 then FRINTM
-/*
-    Assert(instr->GetDst()->IsInt32());
-
-    IR::LabelInstr * checkNegZeroLabelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    IR::LabelInstr * checkOverflowLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    IR::LabelInstr * doneLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-
-    // VMOV floatOpnd, src
-    IR::Opnd * src = instr->UnlinkSrc1();
-    IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
-    this->m_lowerer->InsertMove(floatOpnd, src, instr);
-
-    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);;
-    bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
-    
-    // NaN check
-    IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::VCMPF64, this->m_func);
-    instrCmp->SetSrc1(floatOpnd);
-    instrCmp->SetSrc2(floatOpnd);
-    instr->InsertBefore(instrCmp);
-    LegalizeMD::LegalizeInstr(instrCmp, false);
-
-    // VMRS APSR, FPSCR
-    // BVS  $bailoutLabel
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::VMRS, this->m_func));
-    instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::BVS, bailoutLabel, this->m_func));
-
-    IR::Opnd * zeroReg = IR::RegOpnd::New(TyFloat64, this->m_func);
-    this->LoadFloatZero(zeroReg, instr);
-
-    // Add 0.5
-    IR::Opnd * pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoublePointFiveAddr(), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
-    this->m_lowerer->InsertAdd(false, floatOpnd, floatOpnd, pointFive, instr);
-
-    // VMRS  Rorig, FPSCR
-    // VMRS  Rt, FPSCR
-    // BIC   Rt, Rt, 0x400000
-    // ORR   Rt, Rt, 0x800000
-    // VMSR  FPSCR, Rt
-    IR::Opnd* regOrig = IR::RegOpnd::New(TyInt32, this->m_func);
-    IR::Opnd* reg = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::VMRSR, regOrig, instr->m_func));
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::VMRSR, reg, instr->m_func));
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::BIC, reg, reg, IR::IntConstOpnd::New(0x400000, IRType::TyInt32, this->m_func), instr->m_func));
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::ORR, reg, reg, IR::IntConstOpnd::New(0x800000, IRType::TyInt32, this->m_func), instr->m_func));
-
-    IR::Instr* setFPSCRInstr = IR::Instr::New(Js::OpCode::VMSR, instr->m_func);
-    setFPSCRInstr->SetSrc1(reg);
-    instr->InsertBefore(setFPSCRInstr);
-
-    // VCVTRS32F64 floatreg, floatOpnd
-    IR::RegOpnd *floatReg = IR::RegOpnd::New(TyFloat32, this->m_func);
-    IR::Opnd * intOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr->InsertBefore(
-                IR::Instr::New(Js::OpCode::VCVTRS32F64, floatReg, floatOpnd, instr->m_func));
-
-    // VMOVARMVFP intOpnd, floatReg
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::VMOVARMVFP, intOpnd, floatReg, this->m_func));
-
-    // VMSR FPSCR, Rorig
-    IR::Instr* restoreFPSCRInstr = IR::Instr::New(Js::OpCode::VMSR, instr->m_func);
-    restoreFPSCRInstr->SetSrc1(regOrig);
-    instr->InsertBefore(restoreFPSCRInstr);
-
-    //negZero bailout
-    // TST intOpnd, intOpnd
-    // BNE checkOverflowLabel
-    this->m_lowerer->InsertTestBranch(intOpnd, intOpnd, Js::OpCode::BNE, checkOverflowLabel, instr);
-    instr->InsertBefore(checkNegZeroLabelHelper);
-    if(instr->ShouldCheckForNegativeZero())
-    {
-        IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
-        IR::Opnd * negPointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleNegPointFiveAddr(), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
-        this->m_lowerer->InsertCompareBranch(src, negPointFive, Js::OpCode::BrNotGe_A, doneLabel, instr);
-        this->m_lowerer->InsertCompareBranch(src, zeroReg, Js::OpCode::BrNotGe_A, bailoutLabel, instr);
-
-        isNegZero = this->IsOpndNegZero(src, instr);
-
-        this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrNeq_A, bailoutLabel, instr);
-        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, doneLabel, instr->m_func));
-    }
-
-    instr->InsertBefore(checkOverflowLabel);
-    CheckOverflowOnFloatToInt32(instr, intOpnd, bailoutLabel, doneLabel);
-
-    IR::Opnd * dst = instr->UnlinkDst();
-    instr->InsertAfter(doneLabel);
-    if(!sharedBailout)
-    {
-        instr->InsertBefore(bailoutLabel);
-    }
-
-    // In case of a shared bailout, we should jump to the code that sets some data on the bailout record which is specific
-    // to this bailout. Pass the bailoutLabel to GenerateFunction so that it may use the label as the collectRuntimeStatsLabel.
-    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
-
-    // MOV dst, intOpnd
-    IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
-    doneLabel->InsertAfter(movInstr);
-*/
 }
 
 IR::Opnd* LowererMD::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)
