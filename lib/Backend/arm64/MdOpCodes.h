@@ -22,6 +22,8 @@ MACRO(ANDS,       Reg3,       0,              UNUSED,   LEGAL_ALU3,     UNUSED, 
 MACRO(ASR,        Reg3,       0,              UNUSED,   LEGAL_SHIFT,    UNUSED,   D___)
 
 MACRO(B,          Br,         OpSideEffect,   UNUSED,   LEGAL_BLAB,     UNUSED,   D___)
+MACRO(BFI,        Reg3,       0,              UNUSED,   LEGAL_BITFIELD, UNUSED,   D___)
+MACRO(BFXIL,      Reg3,       0,              UNUSED,   LEGAL_BITFIELD, UNUSED,   D___)
 MACRO(BIC,        Reg3,       OpSideEffect,   UNUSED,   LEGAL_ALU3,     UNUSED,   D___)
 MACRO(BL,         CallI,      OpSideEffect,   UNUSED,   LEGAL_CALL,     UNUSED,   D___)
 MACRO(BR,         Br,         OpSideEffect,   UNUSED,   LEGAL_REG2_ND,  UNUSED,   D___)
@@ -43,11 +45,14 @@ MACRO(BPL,        BrReg2,     OpSideEffect,   UNUSED,   LEGAL_BLAB,     UNUSED, 
 MACRO(BVS,        BrReg2,     OpSideEffect,   UNUSED,   LEGAL_BLAB,     UNUSED,   D___)
 MACRO(BVC,        BrReg2,     OpSideEffect,   UNUSED,   LEGAL_BLAB,     UNUSED,   D___)
 
+MACRO(CBZ,        BrReg2,     OpSideEffect,   UNUSED,   LEGAL_CBZ,      UNUSED,   D___)
+MACRO(CBNZ,       BrReg2,     OpSideEffect,   UNUSED,   LEGAL_CBZ,      UNUSED,   D___)
 MACRO(CLZ,        Reg2,       0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
 MACRO(CMP,        Reg1,       OpSideEffect,   UNUSED,   LEGAL_PSEUDO,   UNUSED,   D__S)
 MACRO(CMN,        Reg1,       OpSideEffect,   UNUSED,   LEGAL_PSEUDO,   UNUSED,   D__S)
 // CMP src1, src, ASR #31/63
 MACRO(CMP_ASR31,  Reg1,       OpSideEffect,   UNUSED,   LEGAL_REG3_ND,  UNUSED,   D__S)
+MACRO(CSNEGPL,    Reg3,       0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 
 MACRO(DEBUGBREAK, Reg1,       OpSideEffect,   UNUSED,   LEGAL_NONE,     UNUSED,   D___)
 
@@ -102,6 +107,8 @@ MACRO(RET,        Reg2,       OpSideEffect,   UNUSED,   LEGAL_REG2_ND,  UNUSED, 
 // REM: pseudo-op
 MACRO(REM,        Reg3,       OpSideEffect,   UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 
+MACRO(SBFX,       Reg3,       0,              UNUSED,   LEGAL_BITFIELD, UNUSED,   D___)
+
 // SDIV: Signed divide
 MACRO(SDIV,       Reg3,       0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 
@@ -116,8 +123,12 @@ MACRO(SUBS,       Reg3,       OpSideEffect,   UNUSED,   LEGAL_ADDSUB,   UNUSED, 
 // SUB dst, src1, src2 LSL #4 -- used in prologs with _chkstk calls
 MACRO(SUB_LSL4,   Reg3,       0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 
+MACRO(TBZ,        BrReg2,     OpSideEffect,   UNUSED,   LEGAL_TBZ,      UNUSED,   D___)
+MACRO(TBNZ,       BrReg2,     OpSideEffect,   UNUSED,   LEGAL_TBZ,      UNUSED,   D___)
 MACRO(TIOFLW,     Reg1,       OpSideEffect,   UNUSED,   LEGAL_REG2_ND,  UNUSED,   D___)
 MACRO(TST,        Reg2,       OpSideEffect,   UNUSED,   LEGAL_PSEUDO,   UNUSED,   D__S)
+
+MACRO(UBFX,       Reg3,       0,              UNUSED,   LEGAL_BITFIELD, UNUSED,   D___)
 
 // Pseudo-op that loads the size of the arg out area. A special op with no src is used so that the
 // actual arg out size can be fixed up by the encoder.
@@ -135,6 +146,7 @@ MACRO(FABS,        Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED, 
 MACRO(FADD,        Reg3,      0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 MACRO(FCMP,        Reg1,      OpSideEffect,   UNUSED,   LEGAL_REG3_ND,  UNUSED,   D___)
 MACRO(FCVT,        Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
+MACRO(FCVTM,       Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
 MACRO(FCVTN,       Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
 MACRO(FCVTZ,       Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
 MACRO(FDIV,        Reg3,      0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)

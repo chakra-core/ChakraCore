@@ -438,10 +438,50 @@ int EncoderMD::EmitConditionalBranch(Arm64CodeEmitter &Emitter, IR::Instr* instr
 }
 
 template<typename _Emitter, typename _Emitter64>
+int EncoderMD::EmitCompareAndBranch(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter, _Emitter64 emitter64)
+{
+    IR::Opnd* src1 = instr->GetSrc1();
+    Assert(src1->IsRegOpnd());
+
+    int size = src1->GetSize();
+    Assert(size == 4 || size == 8);
+
+    ArmBranchLinker Linker;
+    EncodeReloc::New(&m_relocList, RelocTypeBranch19, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
+    Linker.SetTarget(Emitter);
+
+    if (size == 8)
+    {
+        return emitter64(Emitter, this->GetRegEncode(src1->AsRegOpnd()), Linker);
+    }
+    else
+    {
+        return emitter(Emitter, this->GetRegEncode(src1->AsRegOpnd()), Linker);
+    }
+}
+
+template<typename _Emitter>
+int EncoderMD::EmitTestAndBranch(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter)
+{
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+    Assert(src1->IsRegOpnd());
+    Assert(src2->IsImmediateOpnd());
+
+    ArmBranchLinker Linker;
+    EncodeReloc::New(&m_relocList, RelocTypeBranch14, m_pc, instr->AsBranchInstr()->GetTarget(), m_encoder->m_tempAlloc);
+    Linker.SetTarget(Emitter);
+
+    int64 immediate = src2->GetImmediateValue(instr->m_func);
+    Assert(immediate >= 0 && immediate < 64);
+    return emitter(Emitter, this->GetRegEncode(src1->AsRegOpnd()), ULONG(immediate), Linker);
+}
+
+template<typename _Emitter, typename _Emitter64>
 int EncoderMD::EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter, _Emitter64 emitter64)
 {
-    IR::Opnd*dst = instr->GetDst();
-    IR::Opnd*src1 = instr->GetSrc1();
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
     Assert(dst->IsRegOpnd());
     Assert(src1->IsImmediateOpnd());
 
@@ -464,6 +504,36 @@ int EncoderMD::EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emi
     else
     {
         return emitter(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate), shift);
+    }
+}
+
+template<typename _Emitter, typename _Emitter64>
+int EncoderMD::EmitBitfield(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter, _Emitter64 emitter64)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+    Assert(dst->IsRegOpnd());
+    Assert(src1->IsRegOpnd());
+    Assert(src2->IsImmediateOpnd());
+
+    int size = dst->GetSize();
+    Assert(size == 4 || size == 8);
+    Assert(size == src1->GetSize());
+
+    IntConstType immediate = src1->GetImmediateValue(instr->m_func);
+    int start = immediate & 0x3f;
+    int length = (immediate >> 16) & 0x3f;
+    Assert(start >= 0 && start < 8 * size);
+    Assert(length >= 0 && length < 8 * size);
+
+    if (size == 8)
+    {
+        return emitter64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), start, length);
+    }
+    else
+    {
+        return emitter(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), start, length);
     }
 }
 
@@ -635,7 +705,20 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
     case Js::OpCode::B:
         bytes = this->EmitConditionalBranch(Emitter, instr, COND_AL);
         break;
-    
+
+    case Js::OpCode::BFI:
+        bytes = this->EmitBitfield(Emitter, instr, EmitBfi, EmitBfi64);
+        break;
+
+    case Js::OpCode::BFXIL:
+        bytes = this->EmitBitfield(Emitter, instr, EmitBfxil, EmitBfxil64);
+        break;
+
+    // ARM64_WORKITEM: Legalizer needs to convert BIC with immediate to AND with inverted immediate
+    case Js::OpCode::BIC:
+        bytes = this->EmitOp3Register(Emitter, instr, EmitBicRegister, EmitBicRegister64);
+        break;
+
     case Js::OpCode::BL:
         bytes = this->EmitUnconditionalBranch(Emitter, instr, EmitBl);
         break;
@@ -646,11 +729,6 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
     
     case Js::OpCode::BLR:
         bytes = this->EmitOp1Register64(Emitter, instr, EmitBlr);
-        break;
-    
-    // ARM64_WORKITEM: Legalizer needs to convert BIC with immediate to AND with inverted immediate
-    case Js::OpCode::BIC:
-        bytes = this->EmitOp3Register(Emitter, instr, EmitBicRegister, EmitBicRegister64);
         break;
     
     case Js::OpCode::BEQ:
@@ -709,8 +787,12 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         bytes = this->EmitConditionalBranch(Emitter, instr, COND_VC);
         break;
     
-    case Js::OpCode::DEBUGBREAK:
-        bytes = EmitDebugBreak(Emitter);
+    case Js::OpCode::CBZ:
+        bytes = this->EmitCompareAndBranch(Emitter, instr, EmitCbz, EmitCbz64);
+        break;
+
+    case Js::OpCode::CBNZ:
+        bytes = this->EmitCompareAndBranch(Emitter, instr, EmitCbnz, EmitCbnz64);
         break;
 
     case Js::OpCode::CLZ:
@@ -725,6 +807,27 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
     // Legalizer should convert this to ADDS before getting here
     case Js::OpCode::CMN:
         Assert(false);
+        break;
+
+    case Js::OpCode::CSNEGPL:
+        dst = instr->GetDst();
+        src1 = instr->GetSrc1();
+        src2 = instr->GetSrc2();
+        Assert(dst->IsRegOpnd());
+        Assert(src1->IsRegOpnd());
+        Assert(src2->IsRegOpnd());
+
+        size = dst->GetSize();
+        Assert(size == 4 || size == 8);
+
+        if (size == 8)
+        {
+            bytes = EmitCsneg64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), COND_PL);
+        }
+        else
+        {
+            bytes = EmitCsneg(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), COND_PL);
+        }
         break;
 
     case Js::OpCode::CMP_ASR31:
@@ -745,6 +848,10 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         {
             bytes = EmitSubsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src1->AsRegOpnd()), SHIFT_ASR, 31));
         }
+        break;
+
+    case Js::OpCode::DEBUGBREAK:
+        bytes = EmitDebugBreak(Emitter);
         break;
 
     case Js::OpCode::EOR:
@@ -865,6 +972,10 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(false);
         break;
 
+    case Js::OpCode::SBFX:
+        bytes = this->EmitBitfield(Emitter, instr, EmitSbfx, EmitSbfx64);
+        break;
+
     case Js::OpCode::SDIV:
         bytes = this->EmitOp3Register(Emitter, instr, EmitSdiv, EmitSdiv64);
         break;
@@ -893,9 +1004,21 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         bytes = this->EmitOp3RegisterShifted(Emitter, instr, SHIFT_LSL, 4, EmitSubRegister, EmitSubRegister64);
         break;
 
+    case Js::OpCode::TBZ:
+        bytes = this->EmitTestAndBranch(Emitter, instr, EmitTbz);
+        break;
+
+    case Js::OpCode::TBNZ:
+        bytes = this->EmitTestAndBranch(Emitter, instr, EmitTbnz);
+        break;
+
     // Legalizer should convert this to ANDS before getting here
     case Js::OpCode::TST:
         Assert(false);
+        break;
+
+    case Js::OpCode::UBFX:
+        bytes = this->EmitBitfield(Emitter, instr, EmitUbfx, EmitUbfx64);
         break;
 
     case Js::OpCode::FABS:
@@ -940,6 +1063,10 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         {
             bytes = EmitNeonUcvtf64(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), Arm64SimpleRegisterParam(this->GetRegEncode(src1->AsRegOpnd())), (size == 8) ? SIZE_1D : SIZE_1S);
         }
+        break;
+
+    case Js::OpCode::FCVTM:
+        bytes = this->EmitConvertToInt(Emitter, instr, EmitNeonFcvtmsGen, EmitNeonFcvtmuGen, EmitNeonFcvtmsGen64, EmitNeonFcvtmuGen64);
         break;
 
     case Js::OpCode::FCVTN:
@@ -1029,7 +1156,9 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 
     // Opcode not yet implemented
     default:
-        Assert(false);
+        instr->Dump();
+        Output::Flush();
+        AssertMsg(UNREACHED, "Unsupported Instruction Form");
         break;
 
     }
@@ -1054,17 +1183,6 @@ MACRO(SBCMPLNT, Reg3,      0,              0,  LEGAL_REG3,     INSTR_TYPE(Forms_
 
 */
 
-// ToDo (SaAgarwa) - Commented to compile debug build
-/*
-#if DBG
-    if (!done)
-    {
-        instr->Dump();
-        Output::Flush();
-        AssertMsg(UNREACHED, "Unsupported Instruction Form");
-    }
-#endif
-*/
     return Emitter.Opcode();
 }
 

@@ -91,6 +91,8 @@ enum InstructionType {
 #define IS_CONST_0000FFFF(x) (((x) & ~0x0000ffff) == 0)
 #define IS_CONST_000FFFFF(x) (((x) & ~0x000fffff) == 0)
 #define IS_CONST_007FFFFF(x) (((x) & ~0x007fffff) == 0)
+#define IS_CONST_00FFF000(x) (((x) & ~0x00fff000) == 0)
+#define IS_CONST_003F003F(x) (((x) & ~0x003f003f) == 0)
 
 #define IS_CONST_NEG_7(x)    (((x) & ~0x0000003f) == ~0x0000003f)
 #define IS_CONST_NEG_8(x)    (((x) & ~0x0000007f) == ~0x0000007f)
@@ -112,6 +114,8 @@ enum InstructionType {
 #define IS_CONST_UINT10(x)   IS_CONST_000003FF(x)
 #define IS_CONST_UINT12(x)   IS_CONST_00000FFF(x)
 #define IS_CONST_UINT16(x)   IS_CONST_0000FFFF(x)
+#define IS_CONST_UINT12LSL12(x) IS_CONST_00FFF000(x)
+#define IS_CONST_UINT6UINT6(x) IS_CONST_003F003F(x)
 
 
 ///---------------------------------------------------------------------------
@@ -227,9 +231,12 @@ private:
     // Branch operations
     template<typename _Emitter> int EmitUnconditionalBranch(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter);
     int             EmitConditionalBranch(Arm64CodeEmitter &Emitter, IR::Instr* instr, int condition);
+    template<typename _Emitter, typename _Emitter64> int EmitCompareAndBranch(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter, _Emitter64 emitter64);
+    template<typename _Emitter> int EmitTestAndBranch(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter);
 
     // Misc operations
     template<typename _Emitter, typename _Emitter64> int EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter, _Emitter64 emitter64);
+    template<typename _Emitter, typename _Emitter64> int EmitBitfield(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter, _Emitter64 emitter64);
 
     // Floating point instructions
     template<typename _Emitter> int EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter);

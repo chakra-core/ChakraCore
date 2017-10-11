@@ -7848,30 +7848,21 @@ LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr *inlineInstr)
     if (srcType == IRType::TyInt32)
     {
         // Note: if execution gets so far, we always get (untagged) int32 here.
-        // Since -x = ~x + 1, abs(x) = x, abs(-x) = -x, sign-extend(x) = 0, sign_extend(-x) = -1, where 0 <= x.
-        // Then: abs(x) = sign-extend(x) XOR x - sign-extend(x)
-
-        // Expected input (otherwise bailout):
-        // - src1 is (untagged) int, not equal to int_min (abs(int_min) would produce overflow, as there's no corresponding positive int).
-
         Assert(src->IsRegOpnd());
-        // tmpDst = EOR src, src ASR #31
-        IR::RegOpnd *tmpDst = IR::RegOpnd::New(TyMachReg, this->m_func);
-        tmpInstr = IR::Instr::New(Js::OpCode::CLRSIGN, tmpDst, src, this->m_func);
+
+        // CMP src, #0
+        tmpInstr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
+        tmpInstr->SetSrc1(src);
+        tmpInstr->SetSrc2(IR::IntConstOpnd::New(0, IRType::TyInt32, this->m_func));
         nextInstr->InsertBefore(tmpInstr);
 
-        // tmpDst = SUB tmpDst, src ASR #31
-        tmpInstr = IR::Instr::New(Js::OpCode::SBCMPLNT, tmpDst, tmpDst, src, this->m_func);
+        // dst = CSNEGPL dst, src, src
+        tmpInstr = IR::Instr::New(Js::OpCode::CSNEGPL, dst, src, src, this->m_func);
         nextInstr->InsertBefore(tmpInstr);
-
-        // MOV dst, tmpDst
-        tmpInstr = IR::Instr::New(Js::OpCode::MOV, dst, tmpDst, this->m_func);
-        nextInstr->InsertBefore(tmpInstr);
-
     }
     else if (srcType == IRType::TyFloat64)
     {
-        // VABS dst, src
+        // FABS dst, src
         tmpInstr = IR::Instr::New(Js::OpCode::FABS, dst, src, this->m_func);
         nextInstr->InsertBefore(tmpInstr);
     }
