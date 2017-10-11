@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 
-#include "core/RecyclerHeapMarkingContext.h"
+#include "Core/RecyclerHeapMarkingContext.h"
 
 class RecyclerTestObject : public IRecyclerVisitedObject
 {
