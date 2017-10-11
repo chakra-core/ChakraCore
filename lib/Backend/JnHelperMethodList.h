@@ -355,10 +355,10 @@ HELPERCALL(Simd128ShRtByScalarU2, Js::SIMDInt64x2Operation::OpShiftRightByScalar
 HELPERCALL(Simd128ShRtByScalarI2, Js::SIMDInt64x2Operation::OpShiftRightByScalar, 0)
 HELPERCALL(Simd128ShLtByScalarI2, Js::SIMDInt64x2Operation::OpShiftLeftByScalar, 0)
 HELPERCALL(Simd128ReplaceLaneI2, Js::SIMDInt64x2Operation::OpReplaceLane, 0)
-HELPERCALL(Simd128TruncateI2, (void(*)(struct SIMDValue*, struct SIMDValue*))&Js::SIMDInt64x2Operation::OpTrunc<int64>, AttrCanThrow)
-HELPERCALL(Simd128TruncateU2, (void(*)(struct SIMDValue*, struct SIMDValue*))&Js::SIMDInt64x2Operation::OpTrunc<uint64>, AttrCanThrow)
-HELPERCALL(Simd128ConvertSD2, (void(*)(struct SIMDValue*, struct SIMDValue*))&Js::SIMDFloat64x2Operation::OpConv<int64>, 0)
-HELPERCALL(Simd128ConvertUD2, (void(*)(struct SIMDValue*, struct SIMDValue*))&Js::SIMDFloat64x2Operation::OpConv<uint64>, 0)
+HELPERCALL(Simd128TruncateI2, (void(*)(SIMDValue*, SIMDValue*))&Js::SIMDInt64x2Operation::OpTrunc<int64>, AttrCanThrow)
+HELPERCALL(Simd128TruncateU2, (void(*)(SIMDValue*, SIMDValue*))&Js::SIMDInt64x2Operation::OpTrunc<uint64>, AttrCanThrow)
+HELPERCALL(Simd128ConvertSD2, (void(*)(SIMDValue*, SIMDValue*))&Js::SIMDFloat64x2Operation::OpConv<int64>, 0)
+HELPERCALL(Simd128ConvertUD2, (void(*)(SIMDValue*, SIMDValue*))&Js::SIMDFloat64x2Operation::OpConv<uint64>, 0)
 #endif
 
 HELPERCALL(Op_TryCatch, nullptr, 0)
