@@ -97,4 +97,9 @@
       <files>toJSON.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>stackoverflow.js</files>
+    </default>
+  </test>
 </regress-exe>
