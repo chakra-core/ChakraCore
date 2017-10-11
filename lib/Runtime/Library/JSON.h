@@ -62,15 +62,15 @@ namespace JSON
         void CompleteInit(Js::Var space, ArenaAllocator* alloc);
 
         Js::Var Str(Js::JavascriptString* key, Js::PropertyId keyId, Js::Var holder, Js::Var value = nullptr);
-        Js::Var Str(uint32 index, Js::Var holder);
+        Js::Var Str(uint32 index, Js::RecyclableObject * holder);
 
     private:
         Js::JavascriptString* Quote(Js::JavascriptString* value);
 
         Js::Var StringifyObject(Js::Var value);
 
-        Js::Var StringifyArray(Js::Var value);
-        Js::JavascriptString* GetArrayElementString(uint32 index, Js::Var arrayVar);
+        Js::Var StringifyArray(Js::RecyclableObject * arrayValue);
+        Js::JavascriptString* GetArrayElementString(uint32 index, Js::RecyclableObject * arrayValue);
         Js::JavascriptString* GetPropertySeparator();
         Js::JavascriptString* GetIndentString(uint count);
         Js::JavascriptString* GetMemberSeparator(Js::JavascriptString* indentString);
