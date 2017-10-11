@@ -884,6 +884,13 @@ var tests = [
             `);
         }
     },
+    {
+        name: "PidRefStack might be out-of-order when we try to add special symbol var decl",
+        body: function() {
+            // Failure causes an assert to fire
+            WScript.LoadScript(`(a = function() { this }, b = (this)) => {}`);
+        }
+    }
 ]
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
