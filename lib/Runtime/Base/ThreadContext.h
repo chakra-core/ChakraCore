@@ -678,7 +678,7 @@ private:
     ThreadServiceWrapper* threadServiceWrapper;
     uint functionCount;
     uint sourceInfoCount;
-
+    void * tryCatchFrameAddr;
     enum RedeferralState
     {
         InitialRedeferralState,
@@ -1252,6 +1252,9 @@ public:
     void PopEntryExitRecord(Js::ScriptEntryExitRecord *);
     uint EnterScriptStart(Js::ScriptEntryExitRecord *, bool doCleanup);
     void EnterScriptEnd(Js::ScriptEntryExitRecord *, bool doCleanup);
+
+    void * GetTryCatchFrameAddr() { return this->tryCatchFrameAddr; }
+    void SetTryCatchFrameAddr(void * frameAddr) { this->tryCatchFrameAddr = frameAddr; }
 
     template <bool leaveForHost>
     void LeaveScriptStart(void *);

@@ -19995,7 +19995,13 @@ Lowerer::EHBailoutPatchUp()
                 this->InsertReturnThunkForRegion(this->currentRegion, restoreReturnValueFromBailoutLabel);
                 if (instr->HasBailOutInfo())
                 {
-                    this->SetHasBailedOut(instr);
+                    if (instr->GetBailOutInfo()->bailOutFunc == this->m_func)
+                    {
+                        // We dont set this bit for inlined code, if there was a bailout in the inlined code,
+                        // and an exception was thrown, we want the caller's handler to handle the exception accordingly.
+                        // TODO : Revisit when we start inlining functions with try-catch/try-finally
+                        this->SetHasBailedOut(instr);
+                    }
                     tmpInstr = this->EmitEHBailoutStackRestore(instr);
                     this->EmitSaveEHBailoutReturnValueAndJumpToRetThunk(tmpInstr);
                     if (!restoreReturnFromBailoutEmitted)

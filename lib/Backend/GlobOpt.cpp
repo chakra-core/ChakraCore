@@ -3674,6 +3674,18 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
 
     ValueInfo *valueInfo = val->GetValueInfo();
 
+
+    if (this->func->HasFinally())
+    {
+        // s0 = undefined was added on functions with early exit in try-finally functions, that can get copy-proped and case incorrect results
+        if (instr->m_opcode == Js::OpCode::ArgOut_A_Inline && valueInfo->GetSymStore() &&
+            valueInfo->GetSymStore()->m_id == 0)
+        {
+            // We don't want to copy-prop s0 (return symbol) into inlinee code
+            return opnd;
+        }
+    }
+
     // Constant prop?
     int32 intConstantValue;
     int64 int64ConstantValue;

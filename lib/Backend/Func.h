@@ -208,7 +208,7 @@ public:
 
     bool DoInline() const
     {
-        return DoGlobOpt() && !GetTopFunc()->HasTry();
+        return DoGlobOpt();
     }
 
     bool DoOptimizeTry() const

@@ -1399,8 +1399,6 @@ bool
 Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeInfo, bool isPolymorphic, bool isBuiltIn, bool isCtor, bool isInlined, bool &safeThis,
                                             bool dontOptimizeJustCheck, uint i /*i-th inlinee at a polymorphic call site*/)
 {
-    Assert(!callInstr->m_func->GetJITFunctionBody()->HasTry());
-
     if (PHASE_OFF(Js::FixedMethodsPhase, callInstr->m_func))
     {
         return false;

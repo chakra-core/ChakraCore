@@ -24,17 +24,6 @@ bool InliningDecider::InlineIntoTopFunc() const
         return false;
     }
 
-    if (this->topFunc->GetHasTry())
-    {
-#if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-#endif
-        INLINE_TESTTRACE(_u("INLINING: Skip Inline: Has try\tCaller: %s (%s)\n"), this->topFunc->GetDisplayName(),
-            this->topFunc->GetDebugNumberSet(debugStringBuffer));
-        // Glob opt doesn't run on function with try, so we can't generate bailout for it
-        return false;
-    }
-
     return InlineIntoInliner(topFunc);
 }
 
@@ -213,14 +202,6 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
         {
             // DeferredParse...
             INLINE_TESTTRACE(_u("INLINING: Skip Inline: No bytecode\tInlinee: %s (%s)\tCaller: %s (%s)\n"),
-                inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inliner->GetDisplayName(),
-                inliner->GetDebugNumberSet(debugStringBuffer2));
-            return nullptr;
-        }
-
-        if (inlinee->GetHasTry())
-        {
-            INLINE_TESTTRACE(_u("INLINING: Skip Inline: Has try\tInlinee: %s (%s)\tCaller: %s (%s)\n"),
                 inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inliner->GetDisplayName(),
                 inliner->GetDebugNumberSet(debugStringBuffer2));
             return nullptr;

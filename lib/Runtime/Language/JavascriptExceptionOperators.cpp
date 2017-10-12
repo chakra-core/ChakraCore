@@ -60,6 +60,18 @@ namespace Js
         m_threadContext->SetIsUserCode(m_previousCatchHandlerToUserCodeStatus);
     }
 
+    JavascriptExceptionOperators::TryCatchFrameAddrStack::TryCatchFrameAddrStack(ScriptContext* scriptContext, void *frameAddr)
+    {
+        m_threadContext = scriptContext->GetThreadContext();
+        m_prevTryCatchFrameAddr = m_threadContext->GetTryCatchFrameAddr();
+        scriptContext->GetThreadContext()->SetTryCatchFrameAddr(frameAddr);
+    }
+
+    JavascriptExceptionOperators::TryCatchFrameAddrStack::~TryCatchFrameAddrStack()
+    {
+        m_threadContext->SetTryCatchFrameAddr(m_prevTryCatchFrameAddr);
+    }
+
     bool JavascriptExceptionOperators::CrawlStackForWER(Js::ScriptContext& scriptContext)
     {
         return Js::Configuration::Global.flags.WERExceptionSupport && !scriptContext.GetThreadContext()->HasCatchHandler();
@@ -87,6 +99,7 @@ namespace Js
         try
         {
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, frame);
             continuation = amd64_CallWithFakeFrame(tryAddr, frame, spillSize, argsSize);
         }
         catch (const Js::JavascriptException& err)
@@ -215,6 +228,7 @@ namespace Js
         try
         {
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
 #if defined(_M_ARM)
             continuation = arm_CallEhFrame(tryAddr, framePtr, localsPtr, argsSize);
 #elif defined(_M_ARM64)
@@ -365,6 +379,7 @@ namespace Js
         try
         {
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
 
             // Adjust the frame pointer and call into the try.
             // If the try completes without raising an exception, it will pass back the continuation address.
@@ -875,7 +890,16 @@ namespace Js
 
         JavascriptExceptionOperators::ThrowExceptionObject(exceptionObject, scriptContext, /*considerPassingToDebugger=*/ true, /*returnAddress=*/ nullptr, resetStack);
     }
+#if ENABLE_NATIVE_CODEGEN
+    void JavascriptExceptionOperators::WalkStackForCleaningUpInlineeInfo(ScriptContext *scriptContext, PVOID returnAddress)
+    {
+        JavascriptStackWalker walker(scriptContext, /*useEERContext*/ true, returnAddress);
 
+        // We have to walk the inlinee frames and clear callinfo count on them on an exception
+        // At this point inlinedFrameWalker is closed, so we should build it again by calling InlinedFrameWalker::FromPhysicalFrame
+        walker.WalkAndClearInlineeFrameCallInfoOnException();
+    }
+#endif
     void
         JavascriptExceptionOperators::WalkStackForExceptionContext(ScriptContext& scriptContext, JavascriptExceptionContext& exceptionContext, Var thrownObject, uint64 stackCrawlLimit, PVOID returnAddress, bool isThrownException, bool resetSatck)
     {
@@ -1090,6 +1114,20 @@ namespace Js
                 WalkStackForExceptionContext(*scriptContext, exceptionContext, thrownObject, StackCrawlLimitOnThrow(thrownObject, *scriptContext), returnAddress, /*isThrownException=*/ true, resetStack);
                 exceptionObject->FillError(exceptionContext, scriptContext);
                 AddStackTraceToObject(thrownObject, exceptionContext.GetStackTrace(), *scriptContext, /*isThrownException=*/ true, resetStack);
+
+                // We need to clear callinfo on inlinee virtual frames on an exception.
+                // We now allow inlining of functions into callers that have try-catch/try-finally.
+                // When there is an exception inside the inlinee with caller having a try-catch, clear the inlinee callinfo by walking the stack.
+                // If not, we might have the try-catch inside a loop, and when we execute the loop next time in the interpreter on BailOnException,
+                // we will see inlined frames as being present even though they are not, because we depend on FrameInfo's callinfo to tell if an inlinee is on the stack,
+                // and we haven't cleared those bits due to the exception
+
+#if ENABLE_NATIVE_CODEGEN
+                if (scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr)
+                {
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, returnAddress);
+                }
+#endif
             }
             Assert(!scriptContext ||
                    // If we disabled implicit calls and we did record an implicit call, do not throw.
