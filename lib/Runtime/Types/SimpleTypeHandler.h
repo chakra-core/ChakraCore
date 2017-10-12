@@ -69,6 +69,8 @@ namespace Js
 
         virtual void SetIsPrototype(DynamicObject* instance) override;
 
+        BOOL IsSimpleTypeHandler() const override { return TRUE; }
+
 #if DBG
         virtual bool SupportsPrototypeInstances() const { return !ChangeTypeOnProto() && !(GetIsOrMayBecomeShared() && IsolatePrototypes()); }
         virtual bool CanStorePropertyValueDirectly(const DynamicObject* instance, PropertyId propertyId, bool allowLetConst) override;
