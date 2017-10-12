@@ -1737,12 +1737,19 @@ CommonNumber:
                 Output::Print(_u("MissingPropertyCaching: Missing property %d on slow path.\n"), propertyId);
             }
 
-            // Only cache missing property lookups for non-root field loads on objects that have PathTypeHandlers and DictionaryTypeHandlers, because only these types have the right behavior
-            // when the missing property is later added: path types guarantee a type change, and DictionaryTypeHandlerBase::AddProperty explicitly invalidates all prototype caches for the
-            // property.  (We don't support other types only because we haven't needed to yet; we do not anticipate any difficulties in adding the cache-invalidation logic there if that changes.)
-            if (!PHASE_OFF1(MissingPropertyCachePhase) && !isRoot && DynamicObject::Is(instance) &&
-                (DynamicObject::FromVar(instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler() || DynamicObject::FromVar(instance)->GetDynamicType()->GetTypeHandler()->IsDictionaryTypeHandler()))
+            // Only cache missing property lookups for non-root field loads on objects.
+            if (!PHASE_OFF1(MissingPropertyCachePhase) && !isRoot && DynamicObject::Is(instance))
             {
+#if DBG
+                {
+                    // Adding a type to a missing-property cache requires special handling to ensure that the
+                    // cache is correctly invalidated if we later add the missing property to that type.  Ensure that
+                    // the type we're adding is a TypeHandler that either creates a new type on adding a property
+                    // (like PathTypeHandler) or invalidates prototype caches.
+                    DynamicTypeHandler *typeHandler = DynamicObject::FromVar(instance)->GetDynamicType()->GetTypeHandler();
+                    Assert(typeHandler->IsPathTypeHandler() || typeHandler->IsDictionaryTypeHandler() || typeHandler->IsSimpleDictionaryTypeHandler() || typeHandler->IsSimpleTypeHandler());
+                }
+#endif
 #ifdef MISSING_PROPERTY_STATS
                 if (PHASE_STATS1(MissingPropertyCachePhase))
                 {

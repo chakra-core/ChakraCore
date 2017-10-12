@@ -540,6 +540,7 @@ namespace Js
         virtual BOOL IsPathTypeHandler() const { return FALSE; }
         virtual BOOL IsSimpleDictionaryTypeHandler() const {return FALSE; }
         virtual BOOL IsDictionaryTypeHandler() const {return FALSE;}
+        virtual BOOL IsSimpleTypeHandler() const { return FALSE; }
 
         static bool IsolatePrototypes() { return CONFIG_FLAG(IsolatePrototypes); }
         static bool ChangeTypeOnProto() { return CONFIG_FLAG(ChangeTypeOnProto); }

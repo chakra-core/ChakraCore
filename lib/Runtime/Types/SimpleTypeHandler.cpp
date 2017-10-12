@@ -1006,11 +1006,9 @@ namespace Js
         PropertyValueInfo::Set(info, instance, static_cast<PropertyIndex>(propertyCount), attributes);
         propertyCount++;
 
-        if ((this->GetFlags() && IsPrototypeFlag)
-            || JavascriptOperators::HasProxyOrPrototypeInlineCacheProperty(instance, propertyId))
-        {
-            scriptContext->InvalidateProtoCaches(propertyId);
-        }
+        // Always invalidate prototype caches when adding a property to this type, in case the new property is in a
+        // missing-property cache on this type.
+        scriptContext->InvalidateProtoCaches(propertyId);
         SetPropertyUpdateSideEffect(instance, propertyId, value, possibleSideEffects);
         return true;
     }
