@@ -94,7 +94,7 @@ If you believe you have found a security issue in ChakraCore, please share it wi
 
 ## [Building ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Building-ChakraCore)
 
-You can build ChakraCore on Windows 7 SP1 or above, and Windows Server 2008 R2 or above, with either Visual Studio 2013 or 2015 with C++ support installed.  Once you have Visual Studio installed:
+You can build ChakraCore on Windows 7 SP1 or above, and Windows Server 2008 R2 or above, with either Visual Studio 2015 or 2017 with C++ support installed.  Once you have Visual Studio installed:
 
 * Clone ChakraCore through ```git clone https://github.com/Microsoft/ChakraCore.git```
 * Open `Build\Chakra.Core.sln` in Visual Studio
