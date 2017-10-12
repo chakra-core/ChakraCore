@@ -756,7 +756,7 @@ namespace JSON
                                 {
                                     PropertyIndex index = typeHandler->GetPropertyIndex(propRecord);
                                     Js::Var property = index != Constants::NoSlot ?
-                                        dynamicObject->GetSlot(index)
+                                        Js::CrossSite::MarshalVar(scriptContext, dynamicObject->GetSlot(index))
                                     :
                                         nullptr; // slow case. isCaller?
 
