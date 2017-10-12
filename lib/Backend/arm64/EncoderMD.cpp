@@ -537,6 +537,31 @@ int EncoderMD::EmitBitfield(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitte
     }
 }
 
+template<typename _Emitter, typename _Emitter64>
+int EncoderMD::EmitConditionalSelect(Arm64CodeEmitter &Emitter, IR::Instr *instr, int condition, _Emitter emitter, _Emitter64 emitter64)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
+    Assert(dst->IsRegOpnd());
+    Assert(src1->IsRegOpnd());
+    Assert(src2->IsRegOpnd());
+
+    int size = dst->GetSize();
+    Assert(size == 4 || size == 8);
+    Assert(size == src1->GetSize());
+    Assert(size == src2->GetSize());
+
+    if (size == 8)
+    {
+        return emitter64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()), condition);
+    }
+    else
+    {
+        return emitter(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()), condition);
+    }
+}
+
 template<typename _Emitter>
 int EncoderMD::EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter)
 {
@@ -809,25 +834,12 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(false);
         break;
 
+    case Js::OpCode::CSELLT:
+        bytes = this->EmitConditionalSelect(Emitter, instr, COND_LT, EmitCsel, EmitCsel64);
+        break;
+
     case Js::OpCode::CSNEGPL:
-        dst = instr->GetDst();
-        src1 = instr->GetSrc1();
-        src2 = instr->GetSrc2();
-        Assert(dst->IsRegOpnd());
-        Assert(src1->IsRegOpnd());
-        Assert(src2->IsRegOpnd());
-
-        size = dst->GetSize();
-        Assert(size == 4 || size == 8);
-
-        if (size == 8)
-        {
-            bytes = EmitCsneg64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), COND_PL);
-        }
-        else
-        {
-            bytes = EmitCsneg(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), COND_PL);
-        }
+        bytes = this->EmitConditionalSelect(Emitter, instr, COND_PL, EmitCsneg, EmitCsneg64);
         break;
 
     case Js::OpCode::CMP_ASR31:
@@ -913,7 +925,35 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
     case Js::OpCode::MOVZ:
         this->EmitMovConstant(Emitter, instr, EmitMovz, EmitMovz64);
         break;
-    
+
+    case Js::OpCode::MRS_FPCR:
+        dst = instr->GetDst();
+        Assert(dst->IsRegOpnd());
+        Assert(dst->GetSize() == 4);
+        bytes = EmitMrs(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ARM64_FPCR);
+        break;
+
+    case Js::OpCode::MRS_FPSR:
+        dst = instr->GetDst();
+        Assert(dst->IsRegOpnd());
+        Assert(dst->GetSize() == 4);
+        bytes = EmitMrs(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ARM64_FPSR);
+        break;
+
+    case Js::OpCode::MSR_FPCR:
+        src1 = instr->GetSrc1();
+        Assert(src1->IsRegOpnd());
+        Assert(src1->GetSize() == 4);
+        bytes = EmitMsr(Emitter, this->GetRegEncode(src1->AsRegOpnd()), ARM64_FPCR);
+        break;
+
+    case Js::OpCode::MSR_FPSR:
+        src1 = instr->GetSrc1();
+        Assert(src1->IsRegOpnd());
+        Assert(src1->GetSize() == 4);
+        bytes = EmitMsr(Emitter, this->GetRegEncode(src1->AsRegOpnd()), ARM64_FPSR);
+        break;
+
     case Js::OpCode::MUL:
         bytes = this->EmitOp3Register(Emitter, instr, EmitMul, EmitMul64);
         break;
@@ -1071,6 +1111,10 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 
     case Js::OpCode::FCVTN:
         bytes = this->EmitConvertToInt(Emitter, instr, EmitNeonFcvtnsGen, EmitNeonFcvtnuGen, EmitNeonFcvtnsGen64, EmitNeonFcvtnuGen64);
+        break;
+
+    case Js::OpCode::FCVTP:
+        bytes = this->EmitConvertToInt(Emitter, instr, EmitNeonFcvtpsGen, EmitNeonFcvtpuGen, EmitNeonFcvtpsGen64, EmitNeonFcvtpuGen64);
         break;
 
     case Js::OpCode::FCVTZ:
