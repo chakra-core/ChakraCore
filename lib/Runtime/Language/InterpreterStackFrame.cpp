@@ -1101,7 +1101,7 @@ namespace Js
     }
 
     InterpreterStackFrame *
-    InterpreterStackFrame::Setup::InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, Var loopHeaderArray, DWORD_PTR stackAddr
+    InterpreterStackFrame::Setup::InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr
 #if DBG
     , Var invalidStackVar
 #endif
@@ -1875,7 +1875,7 @@ namespace Js
                 size_t varAllocCount = setup.GetAllocationVarCount();
                 size_t varSizeInBytes = varAllocCount * sizeof(Var);
                 DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // as mentioned above, use any stack address from this frame to ensure correct debugging functionality
-                Var loopHeaderArray = executeFunction->GetHasAllocatedLoopHeaders() ? executeFunction->GetLoopHeaderArrayPtr() : nullptr;
+                LoopHeader* loopHeaderArray = executeFunction->GetHasAllocatedLoopHeaders() ? executeFunction->GetLoopHeaderArrayPtr() : nullptr;
 
                 allocation = RecyclerNewPlus(functionScriptContext->GetRecycler(), varSizeInBytes, Var);
                 AnalysisAssert(allocation);
@@ -1934,7 +1934,7 @@ namespace Js
             * it's cheaper to just copy them all into the recycler array rather than just the ones that
             * have been jitted.
             */
-            Var loopHeaderArray = nullptr;
+            LoopHeader* loopHeaderArray = nullptr;
 
             if (executeFunction->GetHasAllocatedLoopHeaders())
             {

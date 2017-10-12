@@ -51,9 +51,9 @@ namespace Js
             InterpreterStackFrame * AllocateAndInitialize(bool doProfile, bool * releaseAlloc);
 
 #if DBG
-            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, Var loopHeaderArray, DWORD_PTR stackAddr, Var invalidStackVar);
+            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr, Var invalidStackVar);
 #else
-            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, Var loopHeaderArray, DWORD_PTR stackAddr);
+            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr);
 #endif
             uint GetLocalCount() const { return localCount; }
 
@@ -118,7 +118,7 @@ namespace Js
         void * returnAddress;
         void * addressOfReturnAddress;  // Tag this frame with stack position, used by (remote) stack walker to test partially initialized interpreter stack frame.
         InterpreterStackFrame *previousInterpreterFrame;
-        Var  loopHeaderArray;          // Keeps alive any JITted loop bodies while the function is being interpreted
+        LoopHeader*  loopHeaderArray;          // Keeps alive any JITted loop bodies while the function is being interpreted
 
         // 'stack address' of the frame, used for recursion detection during stepping.
         // For frames created via interpreter path, we use 'this', for frames created by bailout we use stack addr of actual jitted frame

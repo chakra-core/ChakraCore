@@ -2538,7 +2538,7 @@ namespace Js
         void ReleaseLoopHeaders();
         Js::LoopHeader * GetLoopHeader(uint index) const;
         Js::LoopHeader * GetLoopHeaderWithLock(uint index) const;
-        Js::Var GetLoopHeaderArrayPtr() const
+        Js::LoopHeader * GetLoopHeaderArrayPtr() const
         {
             Assert(this->GetLoopHeaderArray() != nullptr);
             return this->GetLoopHeaderArray();
