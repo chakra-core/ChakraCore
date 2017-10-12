@@ -243,7 +243,11 @@ public:
         return prevRef;
     }
 
-    PidRefStack * FindOrAddPidRef(ArenaAllocator *alloc, int scopeId, Js::LocalFunctionId funcId)
+    PidRefStack * FindOrAddPidRef(ArenaAllocator *alloc, int scopeId, Js::LocalFunctionId funcId
+#if DBG
+        , bool isReparseLambdaParams = false
+#endif
+    )
     {
         // If the stack is empty, or we are pushing to the innermost scope already,
         // we can go ahead and push a new PidRef on the stack.
@@ -305,7 +309,7 @@ public:
                 return newRef;
             }
 
-            Assert(ref->prev->id <= ref->id);
+            Assert(ref->prev->id <= ref->id || isReparseLambdaParams);
             prevRef = ref;
             ref = ref->prev;
         }

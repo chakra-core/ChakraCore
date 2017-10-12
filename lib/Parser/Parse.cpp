@@ -9032,7 +9032,11 @@ PidRefStack* Parser::PushPidRef(IdentPtr pid)
         // NOTE: the phase check is here to protect perf. See OSG 1020424.
         // In some LS AST-rewrite cases we lose a lot of perf searching the PID ref stack rather
         // than just pushing on the top. This hasn't shown up as a perf issue in non-LS benchmarks.
-        return pid->FindOrAddPidRef(&m_nodeAllocator, GetCurrentBlock()->sxBlock.blockId, GetCurrentFunctionNode()->sxFnc.functionId);
+        return pid->FindOrAddPidRef(&m_nodeAllocator, GetCurrentBlock()->sxBlock.blockId, GetCurrentFunctionNode()->sxFnc.functionId
+#if DBG
+            , this->m_reparsingLambdaParams
+#endif
+        );
     }
 
     Assert(GetCurrentBlock() != nullptr);
@@ -9063,7 +9067,11 @@ PidRefStack* Parser::PushPidRef(IdentPtr pid)
 
 PidRefStack* Parser::FindOrAddPidRef(IdentPtr pid, int scopeId, Js::LocalFunctionId funcId)
 {
-    PidRefStack *ref = pid->FindOrAddPidRef(&m_nodeAllocator, scopeId, funcId);
+    PidRefStack *ref = pid->FindOrAddPidRef(&m_nodeAllocator, scopeId, funcId
+#if DBG
+        , this->m_reparsingLambdaParams
+#endif
+    );
     if (ref == NULL)
     {
         Error(ERRnoMemory);
