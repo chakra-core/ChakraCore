@@ -7605,10 +7605,26 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
             break;
         }
 
-        bool isStatic = m_token.tk == tkSTATIC;
-        if (isStatic)
+        bool isStatic = false;
+        if (m_token.tk == tkSTATIC)
         {
+            // 'static' can be used as an IdentifierName here, even in strict mode code. We need to see the next token before we know
+            // if this is being used as a keyword. This is similar to the way we treat 'let' in some cases.
+            // See https://tc39.github.io/ecma262/#sec-keywords for more info.
+
+            RestorePoint beginStatic;
+            m_pscan->Capture(&beginStatic);
+
             m_pscan->ScanForcingPid();
+
+            if (m_token.tk == tkLParen)
+            {
+                m_pscan->SeekTo(beginStatic);
+            }
+            else
+            {
+                isStatic = true;
+            }
         }
 
         ushort fncDeclFlags = fFncNoName | fFncMethod | fFncClassMember;
