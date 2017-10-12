@@ -1134,6 +1134,14 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         bytes = this->EmitLoadStoreFpPair(Emitter, instr, instr->GetSrc1(), instr->GetDst(), instr->GetSrc2(), EmitNeonLdpOffset);
         break;
 
+    case Js::OpCode::FMIN:
+        bytes = this->EmitOp3FpRegister(Emitter, instr, EmitNeonFmin);
+        break;
+
+    case Js::OpCode::FMAX:
+        bytes = this->EmitOp3FpRegister(Emitter, instr, EmitNeonFmax);
+        break;
+
     case Js::OpCode::FMOV:
         bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFmov);
         break;
