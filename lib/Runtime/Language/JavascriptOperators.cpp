@@ -1808,9 +1808,11 @@ CommonNumber:
                 Output::Print(_u("MissingPropertyCaching: Missing property %d on slow path.\n"), propertyId);
             }
 
-            // Only cache missing property lookups for non-root field loads on objects that have PathTypeHandlers, because only these objects guarantee a type change when the property is added,
-            // which obviates the need to explicitly invalidate missing property inline caches.
-            if (!PHASE_OFF1(MissingPropertyCachePhase) && !isRoot && DynamicObject::Is(instance) && ((DynamicObject*)instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler())
+            // Only cache missing property lookups for non-root field loads on objects that have PathTypeHandlers and DictionaryTypeHandlers, because only these types have the right behavior
+            // when the missing property is later added: path types guarantee a type change, and DictionaryTypeHandlerBase::AddProperty explicitly invalidates all prototype caches for the
+            // property.  (We don't support other types only because we haven't needed to yet; we do not anticipate any difficulties in adding the cache-invalidation logic there if that changes.)
+            if (!PHASE_OFF1(MissingPropertyCachePhase) && !isRoot && DynamicObject::Is(instance) &&
+                (DynamicObject::FromVar(instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler() || DynamicObject::FromVar(instance)->GetDynamicType()->GetTypeHandler()->IsDictionaryTypeHandler()))
             {
 #ifdef MISSING_PROPERTY_STATS
                 if (PHASE_STATS1(MissingPropertyCachePhase))

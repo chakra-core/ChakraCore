@@ -2201,14 +2201,12 @@ namespace Js
             SetPropertyValueInfo(info, instance, index, attributes);
         }
 
-        if (!IsInternalPropertyId(propertyRecord->GetPropertyId()) && ((this->GetFlags() & IsPrototypeFlag)
-            || JavascriptOperators::HasProxyOrPrototypeInlineCacheProperty(instance, propertyRecord->GetPropertyId())))
-        {
-            // We don't evolve dictionary types when adding a field, so we need to invalidate prototype caches.
-            // We only have to do this though if the current type is used as a prototype, or the current property
-            // is found on the prototype chain.
-            scriptContext->InvalidateProtoCaches(propertyRecord->GetPropertyId());
-        }
+        // Always invalidate prototype caches when we add a property.  Previously, we only did this if the current
+        // type is used as a prototype, or if the new property is also found on the prototype chain (because
+        // adding a new field doesn't create a new dictionary type).  However, if the new property is already in
+        // the cache as a missing property, we have to invalidate the prototype caches.
+        scriptContext->InvalidateProtoCaches(propertyRecord->GetPropertyId());
+
         SetPropertyUpdateSideEffect(instance, propertyRecord->GetPropertyId(), value, possibleSideEffects);
         return true;
     }

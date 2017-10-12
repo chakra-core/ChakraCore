@@ -83,11 +83,13 @@ namespace Js
         Field(SRCINFO*) noContextGlobalSourceInfo;
         Field(Field(SRCINFO const *)*) moduleSrcInfo;
         Field(BuiltInLibraryFunctionMap*) builtInLibraryFunctions;
+        Field(ScriptContextPolymorphicInlineCache*) toStringTagCache;
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         Field(DynamicProfileInfoList*) profileInfoList;
 #endif
 #endif
+        Cache() : toStringTagCache(nullptr) { }
     };
 
     class MissingPropertyTypeHandler;
@@ -228,6 +230,7 @@ namespace Js
         static DWORD GetBuiltinFunctionsOffset() { return offsetof(JavascriptLibrary, builtinFunctions); }
         static DWORD GetCharStringCacheOffset() { return offsetof(JavascriptLibrary, charStringCache); }
         static DWORD GetCharStringCacheAOffset() { return GetCharStringCacheOffset() + CharStringCache::GetCharStringCacheAOffset(); }
+        PolymorphicInlineCache *GetToStringTagCache() const { return cache.toStringTagCache; }
         const  JavascriptLibraryBase* GetLibraryBase() const { return static_cast<const JavascriptLibraryBase*>(this); }
         void SetGlobalObject(GlobalObject* globalObject) {this->globalObject = globalObject; }
         static DWORD GetRandSeed0Offset() { return offsetof(JavascriptLibrary, randSeed0); }
@@ -584,6 +587,7 @@ namespace Js
             bindRefChunkCurrent(nullptr),
             bindRefChunkEnd(nullptr),
             dynamicFunctionReference(nullptr)
+
         {
             this->globalObject = globalObject;
         }

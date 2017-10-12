@@ -357,6 +357,41 @@ namespace Js
         return ToStringHelper(args[0], scriptContext);
     }
 
+    Var JavascriptObject::GetToStringTagValue(RecyclableObject *thisArg, ScriptContext *scriptContext)
+    {
+        const PropertyId toStringTagId(PropertyIds::_symbolToStringTag);
+        PolymorphicInlineCache *cache = scriptContext->GetLibrary()->GetToStringTagCache();
+        PropertyValueInfo info;
+        // We don't allow cache resizing, at least for the moment: it's more work, and since there's only one
+        // cache per script context, we can afford to create each cache with the maximum size.
+        PropertyValueInfo::SetCacheInfo(&info, nullptr, cache, false);
+        Var value;
+        if (CacheOperators::TryGetProperty<
+            true,                                       // CheckLocal
+            true,                                       // CheckProto
+            true,                                       // CheckAccessor
+            true,                                       // CheckMissing
+            true,                                       // CheckPolymorphicInlineCache
+            true,                                       // CheckTypePropertyCache
+            !PolymorphicInlineCache::IsPolymorphic,     // IsInlineCacheAvailable
+            PolymorphicInlineCache::IsPolymorphic,      // IsPolymorphicInlineCacheAvailable
+            false>                                      // ReturnOperationInfo
+            (thisArg, false, thisArg, toStringTagId, &value, scriptContext, nullptr, &info))
+        {
+            return value;
+        }
+        else
+        {
+#if DBG_DUMP
+            if (PHASE_VERBOSE_TRACE1(Js::InlineCachePhase))
+            {
+                CacheOperators::TraceCache(cache, _u("PatchGetValue"), toStringTagId, scriptContext, thisArg);
+            }
+#endif
+            return JavascriptOperators::GetProperty(thisArg, thisArg, toStringTagId, scriptContext, &info);
+        }
+    }
+
     // ES2017 19.1.3.6 Object.prototype.toString()
     JavascriptString* JavascriptObject::ToStringTagHelper(Var thisArg, ScriptContext *scriptContext, TypeId type)
     {
@@ -377,7 +412,7 @@ namespace Js
         RecyclableObject *thisArgAsObject = RecyclableObject::FromVar(JavascriptOperators::ToObject(thisArg, scriptContext));
 
         // 15. Let tag be ? Get(O, @@toStringTag).
-        Var tag = JavascriptOperators::GetPropertyNoCache(thisArgAsObject, PropertyIds::_symbolToStringTag, scriptContext); // Let tag be the result of Get(O, @@toStringTag).
+        Var tag = JavascriptObject::GetToStringTagValue(thisArgAsObject, scriptContext);
 
         // 17. Return the String that is the result of concatenating "[object ", tag, and "]".
         auto buildToString = [&scriptContext](Var tag) {

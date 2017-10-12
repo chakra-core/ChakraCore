@@ -87,6 +87,8 @@ namespace Js
         InitializeStaticValues();
         PrecalculateArrayAllocationBuckets();
 
+        this->cache.toStringTagCache = ScriptContextPolymorphicInlineCache::New(32, this);
+
 #if ENABLE_COPYONACCESS_ARRAY
         if (!PHASE_OFF1(CopyOnAccessArrayPhase))
         {
