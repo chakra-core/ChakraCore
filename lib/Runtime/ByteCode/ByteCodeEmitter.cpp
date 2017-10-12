@@ -2975,9 +2975,12 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             {
                 for (ParseNodePtr pnodeVar = pnode->sxFnc.pnodeVars; pnodeVar; pnodeVar = pnodeVar->sxVar.pnodeNext)
                 {
+#if DBG
+                    bool reachedEndOfSpecialSymbols = false;
+#endif
                     Symbol* sym = pnodeVar->sxVar.sym;
 
-                    if (sym != nullptr && !(pnodeVar->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar()) && sym->IsSpecialSymbol())
+                    if (sym != nullptr && sym->IsSpecialSymbol())
                     {
                         EmitPropStoreForSpecialSymbol(sym->GetLocation(), sym, sym->GetPid(), funcInfo, true);
                         if (ShouldTrackDebuggerMetadata() && !sym->IsInSlot(funcInfo))
@@ -2987,10 +2990,21 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
                     }
                     else
                     {
-                        // All of the special symbols exist at the beginning of the var list (parser guarantees this) so we can quit walking 
-                        // at the first non-special one we see.
+#if DBG
+                        reachedEndOfSpecialSymbols = true;
+#else
+                        // All of the special symbols exist at the beginning of the var list (parser guarantees this and debug build asserts this)
+                        // so we can quit walking at the first non-special one we see.
                         break;
+#endif
                     }
+
+#if DBG
+                    if (reachedEndOfSpecialSymbols)
+                    {
+                        Assert(sym == nullptr || !sym->IsSpecialSymbol());
+                    }
+#endif
                 }
             }
             else
