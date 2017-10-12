@@ -157,6 +157,8 @@ template <bool doSpecialMark, typename Fn>
 bool
 HeapBlock::UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn)
 {
+    Assert(GetHeapBlockType() != HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType && GetHeapBlockType() != HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType);
+
     bool noOOMDuringMark = true;
 
     if (attributes & TrackBit)
