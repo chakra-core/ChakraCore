@@ -375,7 +375,7 @@ namespace UnifiedRegex
     }
 
     template <typename T>
-    void Inst::PrintBytes(DebugWriter *w, Inst *inst, T *that, char16 *annotation) const
+    void Inst::PrintBytes(DebugWriter *w, Inst *inst, T *that, const char16 *annotation) const
     {
         T *start = (T*)that;
         byte *startByte = (byte *)start;
@@ -404,7 +404,7 @@ namespace UnifiedRegex
     }
 
     template <>
-    void Inst::PrintBytes(DebugWriter *w, Inst *inst, Inst *that, char16 *annotation) const
+    void Inst::PrintBytes(DebugWriter *w, Inst *inst, Inst *that, const char16 *annotation) const
     {
         Inst *start = (Inst *)that;
 
@@ -434,10 +434,10 @@ namespace UnifiedRegex
     Inst::PrintBytes<InstType>(w, (Inst *)this, (InstType *)this, (Annotation))
 
 #define PRINT_MIXIN(Mixin) \
-    Mixin::Print(w, litbuf)
+    ((Mixin *)this)->Print(w, litbuf)
 
 #define PRINT_MIXIN_ARGS(Mixin, ...) \
-    Mixin::Print(w, litbuf, __VA_ARGS__)
+    ((Mixin *)this)->Print(w, litbuf, __VA_ARGS__)
 
 #define PRINT_MIXIN_COMMA(Mixin) \
     PRINT_MIXIN(Mixin); \
@@ -1750,13 +1750,14 @@ namespace UnifiedRegex
         if (IsNegation)
         {
             PRINT_RE_BYTECODE_BEGIN("MatchNegatedSet");
+            PRINT_MIXIN(SetMixin<true>);
         }
         else
         {
             PRINT_RE_BYTECODE_BEGIN("MatchSet");
+            PRINT_MIXIN(SetMixin<false>);
         }
 
-        PRINT_MIXIN(SetMixin);
         PRINT_RE_BYTECODE_MID();
         IsNegation ? PRINT_BYTES(SetMixin<true>) : PRINT_BYTES(SetMixin<false>);
         PRINT_RE_BYTECODE_END();
@@ -2069,13 +2070,14 @@ namespace UnifiedRegex
         if (IsNegation)
         {
             PRINT_RE_BYTECODE_BEGIN("SyncToSetAndContinue");
+            PRINT_MIXIN(SetMixin<true>);
         }
         else
         {
             PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndContinue");
+            PRINT_MIXIN(SetMixin<false>);
         }
 
-        PRINT_MIXIN(SetMixin);
         PRINT_RE_BYTECODE_MID();
         IsNegation ? PRINT_BYTES(SetMixin<true>) : PRINT_BYTES(SetMixin<false>);
         PRINT_RE_BYTECODE_END();
@@ -2281,13 +2283,14 @@ namespace UnifiedRegex
         if (IsNegation)
         {
             PRINT_RE_BYTECODE_BEGIN("SyncToSetAndConsume");
+            PRINT_MIXIN(SetMixin<true>);
         }
         else
         {
             PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndConsume");
+            PRINT_MIXIN(SetMixin<false>);
         }
 
-        PRINT_MIXIN(SetMixin);
         PRINT_RE_BYTECODE_MID();
         IsNegation ? PRINT_BYTES(SetMixin<true>) : PRINT_BYTES(SetMixin<false>);
         PRINT_RE_BYTECODE_END();
@@ -2512,13 +2515,14 @@ namespace UnifiedRegex
         if (IsNegation)
         {
             PRINT_RE_BYTECODE_BEGIN("SyncToSetAndBackup");
+            PRINT_MIXIN_COMMA(SetMixin<true>);
         }
         else
         {
             PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndBackup");
+            PRINT_MIXIN_COMMA(SetMixin<false>);
         }
 
-        PRINT_MIXIN_COMMA(SetMixin);
         PRINT_MIXIN(BackupMixin);
         PRINT_RE_BYTECODE_MID();
         IsNegation ? PRINT_BYTES(SetMixin<true>) : PRINT_BYTES(SetMixin<false>);
@@ -3288,11 +3292,11 @@ namespace UnifiedRegex
     int BeginLoopIfSetInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
         PRINT_RE_BYTECODE_BEGIN("BeginLoopIfSet");
-        PRINT_MIXIN_COMMA(SetMixin);
+        PRINT_MIXIN_COMMA(SetMixin<false>);
         PRINT_MIXIN_COMMA(BeginLoopMixin);
         PRINT_MIXIN(BodyGroupsMixin);
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(SetMixin);
+        PRINT_BYTES(SetMixin<false>);
         PRINT_BYTES(BeginLoopMixin);
         PRINT_BYTES(BodyGroupsMixin);
         PRINT_RE_BYTECODE_END();
@@ -3619,7 +3623,7 @@ namespace UnifiedRegex
         PRINT_MIXIN_COMMA(SetMixin<false>);
         PRINT_MIXIN(BeginLoopBasicsMixin);
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(SetMixin);
+        PRINT_BYTES(SetMixin<false>);
         PRINT_BYTES(BeginLoopBasicsMixin);
         PRINT_RE_BYTECODE_END();
     }
@@ -3700,7 +3704,7 @@ namespace UnifiedRegex
         PRINT_MIXIN_COMMA(BeginLoopBasicsMixin);
         PRINT_MIXIN(FollowFirstMixin);
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(SetMixin);
+        PRINT_BYTES(SetMixin<false>);
         PRINT_BYTES(BeginLoopBasicsMixin);
         PRINT_MIXIN(FollowFirstMixin);
         PRINT_RE_BYTECODE_END();
@@ -4028,9 +4032,9 @@ namespace UnifiedRegex
             PRINT_RE_BYTECODE_BEGIN("ChompSet<Plus>");
         }
 
-        PRINT_MIXIN(SetMixin);
+        PRINT_MIXIN(SetMixin<false>);
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(SetMixin);
+        PRINT_BYTES(SetMixin<false>);
         PRINT_RE_BYTECODE_END();
     }
 #endif
@@ -4184,11 +4188,11 @@ namespace UnifiedRegex
             PRINT_RE_BYTECODE_BEGIN("ChompSetGroup<Plus>");
         }
 
-        PRINT_MIXIN_COMMA(SetMixin);
+        PRINT_MIXIN_COMMA(SetMixin<false>);
         PRINT_MIXIN_COMMA(GroupMixin);
         PRINT_MIXIN(NoNeedToSaveMixin);
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(SetMixin);
+        PRINT_BYTES(SetMixin<false>);
         PRINT_BYTES(GroupMixin);
         PRINT_BYTES(NoNeedToSaveMixin);
         PRINT_RE_BYTECODE_END();
@@ -4278,10 +4282,10 @@ namespace UnifiedRegex
     int ChompSetBoundedInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
         PRINT_RE_BYTECODE_BEGIN("ChompSetBounded");
-        PRINT_MIXIN_COMMA(SetMixin);
+        PRINT_MIXIN_COMMA(SetMixin<false>);
         PRINT_MIXIN(ChompBoundedMixin);
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(SetMixin);
+        PRINT_BYTES(SetMixin<false>);
         PRINT_BYTES(ChompBoundedMixin);
         PRINT_RE_BYTECODE_END();
     }
@@ -4949,7 +4953,7 @@ namespace UnifiedRegex
             else
             {
                 // Backtrack to the previous offset where we matched the LoopSet's followFirst
-                // We will be doing one unnecessary match. But, if we wanted to avoid it, we'd have 
+                // We will be doing one unnecessary match. But, if we wanted to avoid it, we'd have
                 // to propagate to the next Inst, that the first character is already matched.
                 // Seems like an overkill to avoid one match.
                 loopInfo->number = loopInfo->offsetsOfFollowFirst->RemoveAtEnd();
