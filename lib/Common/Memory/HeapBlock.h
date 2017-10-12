@@ -73,7 +73,7 @@ enum ObjectInfoBits : unsigned short
     FinalizeBit                 = 0x80,    // Indicates that the object has a finalizer
     PendingDisposeBit           = 0x40,    // Indicates that the object is pending dispose
     LeafBit                     = 0x20,    // Indicates that the object is a leaf-object (objects without this bit need to be scanned)
-    TrackBit                    = 0x10,    // Indicates that the object is a TrackableObject
+    TrackBit                    = 0x10,    // Indicates that the object is a TrackableObject, but has also been overloaded to mean traced for RecyclerVisitedHostHeap objects
     ImplicitRootBit             = 0x08,
     NewTrackBit                 = 0x04,    // Tracked object is newly allocated and hasn't been process by concurrent GC
     MemoryProfilerOldObjectBit  = 0x02,
