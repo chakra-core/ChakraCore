@@ -586,7 +586,9 @@ namespace Js
             bindRefChunkBegin(nullptr),
             bindRefChunkCurrent(nullptr),
             bindRefChunkEnd(nullptr),
-            dynamicFunctionReference(nullptr)
+            dynamicFunctionReference(nullptr),
+            toStringTagCache(nullptr)
+
         {
             this->globalObject = globalObject;
         }
