@@ -581,7 +581,20 @@ END {
 
         static constexpr bool isTransformEntryValid(int offset)
         {
-            return offset >= numTransforms || ((transforms[offset].delta0 != transforms[offset].delta1 || transforms[offset].delta0 != transforms[offset].delta2 || transforms[offset].delta0 != transforms[offset].delta3) && isTransformEntryValid(offset + 1));
+            return
+                // If we've made it to the end of the table, return true. (base case)
+                offset >= numTransforms ||
+                // Otherwise, the transformation table is valid if
+                (
+                    // there is at least one delta that differs from delta0 in the transform entry that we're currently looking at
+                    (transforms[offset].delta0 != transforms[offset].delta1 || transforms[offset].delta0 != transforms[offset].delta2 || transforms[offset].delta0 != transforms[offset].delta3)
+                    // and the transformation range is ordered properly
+                    && (transforms[offset].lo <= transforms[offset].hi)
+                    // and the length of the range (inclusive of ends) is a multiple is the skipcount
+                    && ( ((1 + transforms[offset].hi - transforms[offset].lo) % transforms[offset].skipCountOfRange) == 0)
+                    // and the rest of the transformation table is valid. (compile-time recursive call)
+                    && isTransformEntryValid(offset + 1)
+                );
         }
 
         template <typename Char, typename Fn>
@@ -590,6 +603,10 @@ END {
             // Note: There's a few places where we assume that there's no equivalence set
             // with only one actual member. If you fail this check, double-check the data
             // in the table above - one line likely has the same value for all deltas.
+            // 
+            // The 0 parameter here indicates that we're starting from the first entry in
+            // the transformation table. This function recursively checks (during compile
+            // time) the entry at the index passed as well as all after it.
             static_assert(isTransformEntryValid(0), "Invalid Transform code - check for 4 identical deltas!");
             Assert(l <= h);
 

@@ -1281,7 +1281,7 @@ namespace UnifiedRegex
         {
             Char uniqueEquivs[CaseInsensitive::EquivClassSize];
             CharCount uniqueEquivCount = FindUniqueEquivs(cs, uniqueEquivs);
-            Assert(uniqueEquivCount >= 2);
+            AssertOrFailFastMsg(uniqueEquivCount >= 2, "Equivalence classes should have at least two entries!");
             switch (uniqueEquivCount)
             {
             case 2:
