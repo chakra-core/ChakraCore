@@ -687,7 +687,7 @@
 #endif
 
 #ifndef FLOATVAR
-#if defined(_M_X64)
+#if defined(_M_X64_OR_ARM64)
 #define FLOATVAR 1
 #else
 #define FLOATVAR 0
