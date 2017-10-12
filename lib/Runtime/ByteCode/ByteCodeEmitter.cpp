@@ -4884,14 +4884,20 @@ ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
 
 bool ByteCodeGenerator::ShouldLoadConstThis(FuncInfo* funcInfo)
 {
-    // Load a const 'this' binding if the following holds
+#if DBG
+    // We should load a const 'this' binding if the following holds
     // - The function has a 'this' name node
     // - We are in a global or global lambda function
     // - The function has no 'this' symbol (an indirect eval would have this symbol)
-    return funcInfo->thisConstantRegister != Js::Constants::NoRegister
-        && (funcInfo->IsLambda() || funcInfo->IsGlobalFunction())
-        && !funcInfo->GetThisSymbol()
-        && !(this->flags & fscrEval);
+    if (funcInfo->thisConstantRegister != Js::Constants::NoRegister)
+    {
+        Assert((funcInfo->IsLambda() || funcInfo->IsGlobalFunction())
+            && !funcInfo->GetThisSymbol()
+            && !(this->flags & fscrEval));
+    }
+#endif
+
+    return funcInfo->thisConstantRegister != Js::Constants::NoRegister;
 }
 
 void ByteCodeGenerator::EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pnode, FuncInfo *funcInfo, bool chkUndecl)

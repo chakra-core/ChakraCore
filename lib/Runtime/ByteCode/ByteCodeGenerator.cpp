@@ -5080,7 +5080,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             Assert(pnode->sxPid.pid->GetPropertyId() != Js::Constants::NoProperty);
 
             // Referring to 'this' with no var decl needs to load 'this' root value via LdThis from null
-            if (ByteCodeGenerator::IsThis(pnode) && !byteCodeGenerator->TopFuncInfo()->GetThisSymbol())
+            if (ByteCodeGenerator::IsThis(pnode) && !byteCodeGenerator->TopFuncInfo()->GetThisSymbol() && !(byteCodeGenerator->GetFlags() & fscrEval))
             {
                 byteCodeGenerator->AssignNullConstRegister();
                 byteCodeGenerator->AssignThisConstRegister();
