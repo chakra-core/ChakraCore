@@ -366,8 +366,17 @@ namespace Js
         // cache per script context, we can afford to create each cache with the maximum size.
         PropertyValueInfo::SetCacheInfo(&info, nullptr, cache, false);
         Var value;
-        if (CacheOperators::TryGetProperty<true, true, true, true, true, true, !PolymorphicInlineCache::IsPolymorphic, PolymorphicInlineCache::IsPolymorphic, false>(
-                thisArg, false, thisArg, toStringTagId, &value, scriptContext, nullptr, &info))
+        if (CacheOperators::TryGetProperty<
+            true,                                       // CheckLocal
+            true,                                       // CheckProto
+            true,                                       // CheckAccessor
+            true,                                       // CheckMissing
+            true,                                       // CheckPolymorphicInlineCache
+            true,                                       // CheckTypePropertyCache
+            !PolymorphicInlineCache::IsPolymorphic,     // IsInlineCacheAvailable
+            PolymorphicInlineCache::IsPolymorphic,      // IsPolymorphicInlineCacheAvailable
+            false>                                      // ReturnOperationInfo
+            (thisArg, false, thisArg, toStringTagId, &value, scriptContext, nullptr, &info))
         {
             return value;
         }
