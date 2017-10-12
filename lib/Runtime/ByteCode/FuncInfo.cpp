@@ -26,6 +26,7 @@ FuncInfo::FuncInfo(
     outArgsDepth(0),
 #endif
     name(name),
+    thisConstantRegister(Js::Constants::NoRegister),
     nullConstantRegister(Js::Constants::NoRegister),
     undefinedConstantRegister(Js::Constants::NoRegister),
     trueConstantRegister(Js::Constants::NoRegister),

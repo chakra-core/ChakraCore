@@ -417,24 +417,17 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
 
             case Js::OpCode::LdThis:
                 Assert(instr->GetDst() && instr->GetDst()->IsRegOpnd());
+                Assert(symThis == nullptr);
 
-                // It is possible for us to have multiple LdThis opcodes in a function if we are in a function
-                // which does not have a 'this' binding such as a lambda at global scope. In those cases, the
-                // value we load for 'this' should be exactly the same every time.
-                if (symThis == nullptr)
-                {
-                    symThis = instr->GetDst()->AsRegOpnd()->m_sym;
-                }
+                symThis = instr->GetDst()->AsRegOpnd()->m_sym;
                 break;
 
             case Js::OpCode::CheckThis:
                 // Is this possible? Can we be walking an inlinee here? Doesn't hurt to support this case...
                 Assert(instr->GetSrc1() && instr->GetSrc1()->IsRegOpnd());
+                Assert(symThis == nullptr);
 
-                if (symThis == nullptr)
-                {
-                    symThis = instr->GetSrc1()->AsRegOpnd()->m_sym;
-                }
+                symThis = instr->GetSrc1()->AsRegOpnd()->m_sym;
                 break;
 
             default:

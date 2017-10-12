@@ -2021,6 +2021,10 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
     {
         this->LoadThisObject(funcInfo, thisLoadedFromParams);
     }
+    else if (ShouldLoadConstThis(funcInfo))
+    {
+        this->EmitThis(funcInfo, funcInfo->thisConstantRegister, funcInfo->nullConstantRegister);
+    }
 
     if (funcInfo->GetSuperSymbol())
     {
@@ -2335,38 +2339,6 @@ void ByteCodeGenerator::EmitClassConstructorEndCode(FuncInfo *funcInfo)
 void ByteCodeGenerator::EmitBaseClassConstructorThisObject(FuncInfo *funcInfo)
 {
     this->Writer()->Reg2(Js::OpCode::NewScObjectNoCtorFull, funcInfo->GetThisSymbol()->GetLocation(), funcInfo->GetNewTargetSymbol()->GetLocation());
-}
-
-void ByteCodeGenerator::GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &scope, Js::PropertyId &envIndex)
-{
-    Assert(funcInfo->IsLambda());
-    envIndex = -1;
-    for (scope = GetCurrentScope(); scope; scope = scope->GetEnclosingScope())
-    {
-        FuncInfo* scopeFuncInfo = scope->GetFunc();
-        if (scope->GetMustInstantiate() && scopeFuncInfo != funcInfo)
-        {
-            envIndex++;
-        }
-        if (scope->IsGlobalEvalBlockScope())
-        {
-            break;
-        }
-        else if (!scopeFuncInfo->IsLambda())
-        {
-            // This method is used only for working with the special scope slots like this, super or new.target captured
-            // from the parent function. In case of split scope all these symbols should be loaded from the param scope.
-            if (scope == scopeFuncInfo->GetParamScope())
-            {
-                Assert(!scopeFuncInfo->IsBodyAndParamScopeMerged());
-                break;
-            }
-            else if (scope == scopeFuncInfo->GetBodyScope() && scopeFuncInfo->IsBodyAndParamScopeMerged())
-            {
-                break;
-            }
-        }
-    }
 }
 
 void ByteCodeGenerator::EmitThis(FuncInfo *funcInfo, Js::RegSlot lhsLocation, Js::RegSlot fromRegister)
@@ -4910,13 +4882,25 @@ ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
     return op;
 }
 
+bool ByteCodeGenerator::ShouldLoadConstThis(FuncInfo* funcInfo)
+{
+    // Load a const 'this' binding if the following holds
+    // - The function has a 'this' name node
+    // - We are in a global or global lambda function
+    // - The function has no 'this' symbol (an indirect eval would have this symbol)
+    return funcInfo->thisConstantRegister != Js::Constants::NoRegister
+        && (funcInfo->IsLambda() || funcInfo->IsGlobalFunction())
+        && !funcInfo->GetThisSymbol()
+        && !(this->flags & fscrEval);
+}
+
 void ByteCodeGenerator::EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pnode, FuncInfo *funcInfo, bool chkUndecl)
 {
     Symbol* sym = pnode->sxPid.sym;
 
-    if (!(this->flags & fscrEval) && ((funcInfo->IsLambda() && !sym) || (funcInfo->IsGlobalFunction() && !funcInfo->GetThisSymbol())))
+    if (!sym && this->ShouldLoadConstThis(funcInfo))
     {
-        EmitThis(funcInfo, lhsLocation, funcInfo->nullConstantRegister);
+        this->Writer()->Reg2(Js::OpCode::Ld_A, lhsLocation, funcInfo->thisConstantRegister);
     }
     else
     {

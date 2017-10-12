@@ -1743,7 +1743,6 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGloba
     if (pnodeFnc->sxFnc.IsDerivedClassConstructor())
     {
         varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._superConstructor);
-
         if (varDeclNode)
         {
             varDeclNode->sxPid.sym->SetIsSuperConstructor(true);
