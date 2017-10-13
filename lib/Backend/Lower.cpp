@@ -16469,6 +16469,8 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
 
 #if FLOATVAR
                 // For NaNs, go to the helper to guarantee we don't have an illegal NaN
+                // TODO(magardn): move this to MD code.
+#if _M_X64
                 // UCOMISD reg, reg
                 {
                     IR::Instr *const instr = IR::Instr::New(Js::OpCode::UCOMISD, this->m_func);
@@ -16482,6 +16484,21 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
                     IR::Instr *const instr = IR::BranchInstr::New(Js::OpCode::JP, labelHelper, this->m_func);
                     ldElem->InsertBefore(instr);
                 }
+#elif _M_ARM64
+                // FCMP reg, reg
+                {
+                    IR::Instr *const instr = IR::Instr::New(Js::OpCode::FCMP, this->m_func);
+                    instr->SetSrc1(reg);
+                    instr->SetSrc2(reg);
+                    ldElem->InsertBefore(instr);
+                }
+
+                // BVS $helper
+                {
+                    IR::Instr *const instr = IR::BranchInstr::New(Js::OpCode::BVS, labelHelper, this->m_func);
+                    ldElem->InsertBefore(instr);
+                }
+#endif
 #endif
 
                 if(dstType == TyFloat64)
