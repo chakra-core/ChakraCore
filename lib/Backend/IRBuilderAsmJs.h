@@ -132,7 +132,7 @@ private:
     uint                    AddStatementBoundary(uint statementIndex, uint offset);
     BranchReloc *           AddBranchInstr(IR::BranchInstr *instr, uint32 offset, uint32 targetOffset);
     BranchReloc *           CreateRelocRecord(IR::BranchInstr * branchInstr, uint32 offset, uint32 targetOffset);
-    void                    BuildHeapBufferReload(uint32 offset);
+    void                    BuildHeapBufferReload(uint32 offset, bool isFirstLoad = false);
     template<typename T, typename ConstOpnd, typename F>
     void                    CreateLoadConstInstrForType(byte* table, Js::RegSlot& regAllocated, uint32 constCount, uint32 offset, IRType irType, ValueType valueType, Js::OpCode opcode, F extraProcess);
     void                    BuildConstantLoads();

@@ -598,6 +598,32 @@ JITTimeFunctionBody::IsWasmFunction() const
     return m_bodyData.isWasmFunction != FALSE;
 }
 
+bool JITTimeFunctionBody::UsesWAsmJsFastVirtualBuffer() const
+{
+    // Using Fast Virtual Buffer means that bounds checks can be omitted
+#if ENABLE_FAST_ARRAYBUFFER
+#ifdef ENABLE_WASM
+    if (IsWasmFunction())
+    {
+        if (CONFIG_FLAG(WasmFastArray))
+        {
+            return true;
+        }
+#ifdef _WIN32
+        if (GetAsmJsInfo()->IsSharedMemory() && CONFIG_FLAG(WasmSharedArrayVirtualBuffer))
+        {
+            return true;
+        }
+#endif
+        return false;
+    }
+#endif
+    return true;
+#else
+    return false;
+#endif
+}
+
 bool
 JITTimeFunctionBody::IsStrictMode() const
 {

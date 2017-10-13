@@ -9248,13 +9248,12 @@ Lowerer::LowerLdArrViewElemWasm(IR::Instr * instr)
     IR::Instr * done = LowerWasmArrayBoundsCheck(instr, src1);
     IR::Instr* newMove = InsertMove(dst, src1, done);
 
-#if ENABLE_FAST_ARRAYBUFFER
-    // We need to have an AV when accessing out of bounds memory even if the dst is not used
-    // Make sure LinearScan doesn't dead store this instruction
-    newMove->hasSideEffects = true;
-#else
-    Unused(newMove);
-#endif
+    if (m_func->GetJITFunctionBody()->UsesWAsmJsFastVirtualBuffer())
+    {
+        // We need to have an AV when accessing out of bounds memory even if the dst is not used
+        // Make sure LinearScan doesn't dead store this instruction
+        newMove->hasSideEffects = true;
+    }
 
     instr->Remove();
     return instrPrev;
@@ -25578,8 +25577,9 @@ Lowerer::LowerTrapIfZero(IR::Instr * const instr)
 IR::Instr*
 Lowerer::LowerTrapIfUnalignedAccess(IR::Instr * const instr)
 {
-    IR::Opnd* src1 = instr->GetSrc1();
-    IR::Opnd* src2 = instr->UnlinkSrc2();
+    IR::Opnd* dst = instr->UnlinkDst();
+    IR::Opnd* src1 = instr->UnlinkSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::TrapIfUnalignedAccess);
     Assert(src1 && !src1->IsVar());
@@ -25588,23 +25588,24 @@ Lowerer::LowerTrapIfUnalignedAccess(IR::Instr * const instr)
 
     uint32 mask = src2->GetSize() - 1;
     uint32 cmpValue = (uint32)src2->GetImmediateValue(m_func);
-    src2->Free(m_func);
 
+    InsertMove(dst, src1, instr);
     IR::IntConstOpnd* maskOpnd = IR::IntConstOpnd::New(mask, src1->GetType(), m_func);
     IR::RegOpnd* maskedOpnd = IR::RegOpnd::New(src1->GetType(), m_func);
-    IR::Instr* newInstr = IR::Instr::New(Js::OpCode::And_I4, maskedOpnd, src1, maskOpnd, m_func);
-    instr->InsertBefore(newInstr);
+    IR::Instr* maskInstr = IR::Instr::New(Js::OpCode::And_I4, maskedOpnd, src1, maskOpnd, m_func);
+    instr->InsertBefore(maskInstr);
 
     IR::IntConstOpnd* cmpOpnd = IR::IntConstOpnd::New(cmpValue, maskedOpnd->GetType(), m_func, true);
     IR::LabelInstr* alignedLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-    newInstr = IR::BranchInstr::New(Js::OpCode::BrEq_I4, alignedLabel, maskedOpnd, cmpOpnd, m_func);
-    instr->InsertBefore(newInstr);
+    IR::Instr* branch = IR::BranchInstr::New(Js::OpCode::BrEq_I4, alignedLabel, maskedOpnd, cmpOpnd, m_func);
+    instr->InsertBefore(branch);
     InsertLabel(true, instr);
     GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_UnalignedAtomicAccess), TyInt32, m_func), instr);
     instr->InsertBefore(alignedLabel);
 
-    instr->m_opcode = Js::OpCode::Ld_I4;
-    return instr;
+    instr->Remove();
+    // The check and branch are not fully lowered yet, let them go in the lower loop.
+    return branch;
 }
 
 void

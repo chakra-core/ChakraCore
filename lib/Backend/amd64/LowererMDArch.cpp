@@ -1093,12 +1093,10 @@ LowererMDArch::LowerWasmArrayBoundsCheck(IR::Instr * instr, IR::Opnd *addrOpnd)
         lowererMD->m_lowerer->GenerateThrow(IR::IntConstOpnd::New(WASMERR_ArrayIndexOutOfRange, TyInt32, m_func), instr);
         return instr;
     }
-#if ENABLE_FAST_ARRAYBUFFER
-    if (CONFIG_FLAG(WasmFastArray))
+    if (m_func->GetJITFunctionBody()->UsesWAsmJsFastVirtualBuffer())
     {
         return instr;
     }
-#endif
 
     Assert(instr->GetSrc2());
     IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
@@ -1146,11 +1144,12 @@ LowererMDArch::LowerAtomicLoad(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * inse
     Assert(IRType_IsNativeInt(src1->GetType()));
     IR::Instr* newMove = Lowerer::InsertMove(dst, src1, insertBeforeInstr);
 
-#if ENABLE_FAST_ARRAYBUFFER
-    // We need to have an AV when accessing out of bounds memory even if the dst is not used
-    // Make sure LinearScan doesn't dead store this instruction
-    newMove->hasSideEffects = true;
-#endif
+    if (m_func->GetJITFunctionBody()->UsesWAsmJsFastVirtualBuffer())
+    {
+        // We need to have an AV when accessing out of bounds memory even if the dst is not used
+        // Make sure LinearScan doesn't dead store this instruction
+        newMove->hasSideEffects = true;
+    }
 
     // Need to add Memory Barrier before the load
     // MemoryBarrier is implemented with `lock or [rsp], 0` on x64

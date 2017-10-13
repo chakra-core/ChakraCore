@@ -1351,11 +1351,7 @@ PolymorphicEmitInfo WasmBytecodeGenerator::EmitCall()
     }
     AdeleteArray(&m_alloc, nArgs, argsList);
 
-    if (isImportCall && (m_module->HasMemory() || m_module->HasMemoryImport()))
-    {
-        m_writer->EmptyAsm(Js::OpCodeAsmJs::CheckHeap);
-        SetUsesMemory(0);
-    }
+    // WebAssemblyArrayBuffer is not detachable, no need to check for detached state here
 
     // track stack requirements for out params
 
