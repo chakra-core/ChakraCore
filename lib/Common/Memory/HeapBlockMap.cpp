@@ -662,6 +662,10 @@ HeapBlockMap32::RescanPage(void * dirtyPage, bool* anyObjectsMarkedOnPage, Recyc
         case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
 #endif
             return RescanHeapBlock<SmallFinalizableHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
+#ifdef RECYCLER_VISITED_HOST
+        case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
+            return RescanHeapBlock<SmallRecyclerVisitedHostHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
+#endif
         case HeapBlock::HeapBlockType::MediumNormalBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
         case HeapBlock::HeapBlockType::MediumNormalBlockWithBarrierType:
@@ -672,6 +676,10 @@ HeapBlockMap32::RescanPage(void * dirtyPage, bool* anyObjectsMarkedOnPage, Recyc
         case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
 #endif
             return RescanHeapBlock<MediumFinalizableHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
+#ifdef RECYCLER_VISITED_HOST
+        case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
+            return RescanHeapBlock<MediumRecyclerVisitedHostHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
+#endif
         default:
             // Shouldn't be here -- leaf blocks aren't rescanned, and large blocks are handled separately
             Assert(false);
@@ -742,6 +750,24 @@ HeapBlockMap32::GetHeapBlockForRescan(HeapBlockMap32::L2MapChunk* chunk, uint id
 {
     return (MediumFinalizableHeapBlock*)chunk->map[id2];
 }
+
+#ifdef RECYCLER_VISITED_HOST
+template <>
+SmallRecyclerVisitedHostHeapBlock*
+HeapBlockMap32::GetHeapBlockForRescan(HeapBlockMap32::L2MapChunk* chunk, uint id2) const
+{
+    return (SmallRecyclerVisitedHostHeapBlock*) chunk->map[id2];
+}
+#endif
+
+#ifdef RECYCLER_VISITED_HOST
+template <>
+MediumRecyclerVisitedHostHeapBlock*
+HeapBlockMap32::GetHeapBlockForRescan(HeapBlockMap32::L2MapChunk* chunk, uint id2) const
+{
+    return (MediumRecyclerVisitedHostHeapBlock*)chunk->map[id2];
+}
+#endif
 
 void
 HeapBlockMap32::MakeAllPagesReadOnly(Recycler* recycler)
@@ -1022,6 +1048,14 @@ HeapBlockMap32::OOMRescan(Recycler * recycler)
                                     return;
                                 }
                                 break;
+#ifdef RECYCLER_VISITED_HOST
+                            case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
+                                if (!RescanHeapBlockOnOOM<SmallRecyclerVisitedHostHeapBlock>((SmallRecyclerVisitedHostHeapBlock*) heapBlock, pageAddress, blockType, chunk->blockInfo[id2].bucketIndex, chunk, recycler))
+                                {
+                                    return;
+                                }
+                                break;
+#endif
 
                             case HeapBlock::HeapBlockType::MediumNormalBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
@@ -1042,6 +1076,14 @@ HeapBlockMap32::OOMRescan(Recycler * recycler)
                                     return;
                                 }
                                 break;
+#ifdef RECYCLER_VISITED_HOST
+                            case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
+                                if (!RescanHeapBlockOnOOM<MediumRecyclerVisitedHostHeapBlock>((MediumRecyclerVisitedHostHeapBlock*) heapBlock, pageAddress, blockType, chunk->blockInfo[id2].bucketIndex, chunk, recycler))
+                                {
+                                    return;
+                                }
+                                break;
+#endif
 
                             default:
                                 // Shouldn't be here -- leaf blocks aren't rescanned, and large blocks are handled separately

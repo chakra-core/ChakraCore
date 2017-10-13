@@ -191,6 +191,9 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
         // wrongly classified as ANSI
         //
         {
+#pragma warning(push)
+// suppressing prefast warning that "readable size is bufferLength bytes but 2 may be read" as bufferLength is clearly > 2 in the code that follows
+#pragma warning(disable:6385)
             C_ASSERT(sizeof(WCHAR) == 2);
             if (bufferLength > 2)
             {
@@ -211,6 +214,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
 #pragma prefast(pop)
             }
         }
+#pragma warning(pop)
     }
 
     contents = reinterpret_cast<LPCSTR>(pRawBytes);

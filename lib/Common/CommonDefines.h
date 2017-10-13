@@ -239,6 +239,10 @@
 #error "Background page zeroing can't be turned on if freeing pages in the background is disabled"
 #endif
 
+#ifdef _WIN32
+#define RECYCLER_VISITED_HOST
+#endif
+
 // JIT features
 
 #if DISABLE_JIT

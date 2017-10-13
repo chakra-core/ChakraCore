@@ -182,7 +182,12 @@ struct InfoBitsWrapper{};
 #define RecyclerNewTrackedLeaf(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocTrackedLeafInlined, T, __VA_ARGS__)))
 #define RecyclerNewTrackedLeafPlusZ(recycler,size,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocZeroTrackedLeafInlined, size, T, __VA_ARGS__)))
 
-
+#ifdef RECYCLER_VISITED_HOST
+#define RecyclerAllocVisitedHostTracedAndFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedFinalizableBits>(size)
+#define RecyclerAllocVisitedHostFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostFinalizableBits>(size)
+#define RecyclerAllocVisitedHostTracedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedBits>(size)
+#define RecyclerAllocLeafZero(recycler,size) recycler->AllocVisitedHost<LeafBit>(size)
+#endif
 
 #ifdef TRACE_OBJECT_LIFETIME
 #define RecyclerNewLeafTrace(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocLeafTrace, T, __VA_ARGS__)
@@ -1290,6 +1295,11 @@ public:
     {
         return AllocWithAttributes<infoBits, /* nothrow = */ false>(size);
     }
+    template <ObjectInfoBits infoBits>
+    char * AllocVisitedHost(DECLSPEC_GUARD_OVERFLOW size_t size)
+    {
+        return AllocZeroWithAttributes<infoBits, /* nothrow = */ true>(size);
+    }
 
     template<typename T>
     RecyclerWeakReference<T>* CreateWeakReferenceHandle(T* pStrongReference);
@@ -1565,6 +1575,9 @@ private:
     template <bool doSpecialMark>
     void ScanMemory(void ** obj, size_t byteCount) { if (byteCount != 0) { ScanMemoryInline<doSpecialMark>(obj, byteCount); } }
     bool AddMark(void * candidate, size_t byteCount);
+#ifdef RECYCLER_VISITED_HOST
+    bool AddPreciselyTracedMark(IRecyclerVisitedObject * candidate);
+#endif
 
     // Sweep
 #if ENABLE_PARTIAL_GC
@@ -1717,6 +1730,9 @@ private:
     template <class TBlockAttributes> friend class SmallNormalHeapBlockT;
     template <class TBlockAttributes> friend class SmallLeafHeapBlockT;
     template <class TBlockAttributes> friend class SmallFinalizableHeapBlockT;
+#ifdef RECYCLER_VISITED_HOST
+    template <class TBlockAttributes> friend class SmallRecyclerVisitedHostHeapBlockT;
+#endif
     friend class LargeHeapBlock;
     friend class HeapInfo;
     friend class LargeHeapBucket;

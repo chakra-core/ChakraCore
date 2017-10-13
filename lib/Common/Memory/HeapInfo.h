@@ -214,6 +214,13 @@ private:
         // so new block can't go into heapBlockList
         return this->newFinalizableHeapBlockList;
     }
+#ifdef RECYCLER_VISITED_HOST
+    template <>
+    SmallRecyclerVisitedHostHeapBlock *& GetNewHeapBlockList<SmallRecyclerVisitedHostHeapBlock>(HeapBucketT<SmallRecyclerVisitedHostHeapBlock> * HeapBucket)
+    {
+        return this->newRecyclerVisitedHostHeapBlockList;
+    }
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     template <>
@@ -247,6 +254,14 @@ private:
         // so new block can't go into heapBlockList
         return this->newMediumFinalizableHeapBlockList;
     }
+
+#ifdef RECYCLER_VISITED_HOST
+    template <>
+    MediumRecyclerVisitedHostHeapBlock *& GetNewHeapBlockList<MediumRecyclerVisitedHostHeapBlock>(HeapBucketT<MediumRecyclerVisitedHostHeapBlock> * HeapBucket)
+    {
+        return this->newMediumRecyclerVisitedHostHeapBlockList;
+    }
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     template <>
@@ -401,6 +416,9 @@ private:
     SmallLeafHeapBlock * newLeafHeapBlockList;
     SmallNormalHeapBlock * newNormalHeapBlockList;
     SmallFinalizableHeapBlock * newFinalizableHeapBlockList;
+#ifdef RECYCLER_VISITED_HOST
+    SmallRecyclerVisitedHostHeapBlock * newRecyclerVisitedHostHeapBlockList;
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     SmallNormalWithBarrierHeapBlock * newNormalWithBarrierHeapBlockList;
@@ -412,6 +430,9 @@ private:
     MediumLeafHeapBlock * newMediumLeafHeapBlockList;
     MediumNormalHeapBlock * newMediumNormalHeapBlockList;
     MediumFinalizableHeapBlock * newMediumFinalizableHeapBlockList;
+#ifdef RECYCLER_VISITED_HOST
+    MediumRecyclerVisitedHostHeapBlock* newMediumRecyclerVisitedHostHeapBlockList;
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     MediumNormalWithBarrierHeapBlock * newMediumNormalWithBarrierHeapBlockList;
@@ -471,6 +492,10 @@ private:
     friend class SmallLeafHeapBlockT;
     template <typename TBlockAttributes>
     friend class SmallFinalizableHeapBlockT;
+#ifdef RECYCLER_VISITED_HOST
+    template <typename TBlockAttributes>
+    friend class SmallRecyclerVisitedHostHeapBlockT;
+#endif
     friend class LargeHeapBlock;
     friend class RecyclerSweep;
 };

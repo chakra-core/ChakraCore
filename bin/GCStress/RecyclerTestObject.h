@@ -4,7 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 
-class RecyclerTestObject : public FinalizableObject
+#include "Core/RecyclerHeapMarkingContext.h"
+
+class RecyclerTestObject : public IRecyclerVisitedObject
 {
 protected:
     RecyclerTestObject()
@@ -13,10 +15,16 @@ protected:
     }
 
 public:
-    // FinalizableObject implementation
+    // IRecyclerVisitedObject implementation. We don't use FinalizableObject here as
+    // RecyclerVisitedObjects need to have Trace called on them, which is not allowed for
+    // FinalizableObject.
     virtual void Finalize(bool isShutdown) override { VerifyCondition(false); };
     virtual void Dispose(bool isShutdown) override { VerifyCondition(false); };
-    virtual void Mark(Recycler * recycler) override { VerifyCondition(false); };
+    virtual void OnMark() override {}
+    virtual void Mark(RecyclerHeapHandle recycler) override { Mark(static_cast<Recycler*>(recycler)); };
+    virtual void Trace(IRecyclerHeapMarkingContext* markContext) override { VerifyCondition(false); };
+
+    virtual void Mark(Recycler * recycler) { VerifyCondition(false); };
 
 public:
     static void BeginWalk()
@@ -27,6 +35,7 @@ public:
         walkScannedByteCount = 0;
         walkBarrierByteCount = 0;
         walkTrackedByteCount = 0;
+        walkRecyclerVisitedByteCount = 0;
         walkLeafByteCount = 0;
         maxWalkDepth = 0;
 
@@ -66,13 +75,14 @@ public:
         VerifyCondition(currentWalkDepth == 0);
 
         wprintf(_u("Full heap walk finished\n"));
-        wprintf(_u("Object Count:   %12llu\n"), (unsigned long long) walkObjectCount);
-        wprintf(_u("Scanned Bytes:  %12llu\n"), (unsigned long long) walkScannedByteCount);
-        wprintf(_u("Barrier Bytes:  %12llu\n"), (unsigned long long) walkBarrierByteCount);
-        wprintf(_u("Tracked Bytes:  %12llu\n"), (unsigned long long) walkTrackedByteCount);
-        wprintf(_u("Leaf Bytes:     %12llu\n"), (unsigned long long) walkLeafByteCount);
-        wprintf(_u("Total Bytes:    %12llu\n"), (unsigned long long) (walkScannedByteCount + walkBarrierByteCount + walkTrackedByteCount + walkLeafByteCount));
-        wprintf(_u("Max Depth:      %12llu\n"), (unsigned long long) maxWalkDepth);
+        wprintf(_u("Object Count:           %12llu\n"), (unsigned long long) walkObjectCount);
+        wprintf(_u("Scanned Bytes:          %12llu\n"), (unsigned long long) walkScannedByteCount);
+        wprintf(_u("Barrier Bytes:          %12llu\n"), (unsigned long long) walkBarrierByteCount);
+        wprintf(_u("Tracked Bytes:          %12llu\n"), (unsigned long long) walkTrackedByteCount);
+        wprintf(_u("RecyclerVisited Bytes:  %12llu\n"), (unsigned long long) walkRecyclerVisitedByteCount);
+        wprintf(_u("Leaf Bytes:             %12llu\n"), (unsigned long long) walkLeafByteCount);
+        wprintf(_u("Total Bytes:            %12llu\n"), (unsigned long long) (walkScannedByteCount + walkBarrierByteCount + walkTrackedByteCount + walkLeafByteCount + walkRecyclerVisitedByteCount));
+        wprintf(_u("Max Depth:              %12llu\n"), (unsigned long long) maxWalkDepth);
     }
 
     // Virtual methods
@@ -100,6 +110,7 @@ protected:
     static size_t walkLeafByteCount;
     static size_t walkBarrierByteCount;
     static size_t walkTrackedByteCount;
+    static size_t walkRecyclerVisitedByteCount;
     static size_t currentWalkDepth;
     static size_t maxWalkDepth;
 
@@ -232,8 +243,13 @@ private:
     FieldNoBarrier(RecyclerTestObject *) references[0];  // SWB-TODO: is this correct?
 };
 
+// TrackedObject must be a FinalizableObject (in order to be 'new'ed with RecyclerNewTrackedLeafPlusZ)
+// but it also must be a RecyclerTestObject to participate in GCStress. It must inherit from RecyclerTestObject
+// first so that the algined pointer is returned from New.
+// Fortunately, the v-tables for RecyclerTestObject and FinalizableObject line up, so the 
+// IRecyclerVisitedObject/FinalizableObject calls end up in the right place.
 template <unsigned int minCount, unsigned int maxCount>
-class TrackedObject : public RecyclerTestObject
+class TrackedObject : public RecyclerTestObject, public FinalizableObject
 {
 private:
     TrackedObject(unsigned int count) :
@@ -295,4 +311,124 @@ private:
     FieldNoBarrier(RecyclerTestObject *) references[0];  // SWB-TODO: is this correct?
 };
 
+#ifdef RECYCLER_VISITED_HOST
 
+template <unsigned int minCount, unsigned int maxCount>
+class RecyclerVisitedObject : public RecyclerTestObject
+{
+public:
+    static RecyclerTestObject * New()
+    {
+        // Determine a random amount of RecyclerTestObject* references to influence the size of this object.
+        const unsigned int count = minCount + GetRandomInteger(maxCount - minCount + 1);
+
+        void* mem = nullptr;
+        const size_t size = sizeof(RecyclerVisitedObject) + (sizeof(RecyclerTestObject*) * count);
+
+        // Randomly select the type of object to create
+        AllocationType allocType = static_cast<AllocationType>(GetRandomInteger(static_cast<unsigned int>(AllocationType::Count)));
+        switch (allocType)
+        {
+        case AllocationType::TraceAndFinalized:
+            mem = RecyclerAllocVisitedHostTracedAndFinalizedZero(recyclerInstance, size);
+            break;
+        case AllocationType::TraceOnly:
+            mem = RecyclerAllocVisitedHostTracedZero(recyclerInstance, size);
+            break;
+        case AllocationType::FinalizeLeaf:
+            mem = RecyclerAllocVisitedHostFinalizedZero(recyclerInstance, size);
+            break;
+        default:
+            Assert(allocType == AllocationType::Leaf);
+            mem = RecyclerAllocLeafZero(recyclerInstance, size);
+        }
+
+        // Construct the v-table, allocType, and count information for the new object.
+        RecyclerVisitedObject* obj = new (mem) RecyclerVisitedObject(allocType, count);
+        return obj;
+    }
+
+    virtual bool TryGetRandomLocation(Location * location) override
+    {
+        // Leaf types should not return a location
+        if (type == AllocationType::Leaf || type == AllocationType::FinalizeLeaf)
+        {
+            return false;
+        }
+
+        // Get a random slot and construct a Location for it
+        // Make this a Tagged location so that we won't inadvertently keep objects alive
+        // in the case where this object gets put on the wrong mark stack.
+        *location = Location::Tagged(&references[GetRandomInteger(count)]);
+
+        return true;
+    }
+
+    virtual void Trace(IRecyclerHeapMarkingContext* markContext) override
+    {
+        VerifyCondition(type == AllocationType::TraceAndFinalized || type == AllocationType::TraceOnly);
+        // Note that the pointers in the references arrary are technically tagged. However, this is ok
+        // as the Mark that we're performing is an interior mark, which gets us to the right object(s).
+        markContext->MarkObjects(reinterpret_cast<void**>(&references[0]), count, this);
+    }
+
+    virtual void Finalize(bool isShutdown) override
+    {
+        // Only types that request finalization should have Finalize called
+        VerifyCondition(IsFinalizable());
+    }
+    virtual void Dispose(bool isShutdown) override
+    { 
+        // Only types that request finalization should have Finalize called
+        VerifyCondition(IsFinalizable());
+        VerifyCondition(unmanagedResource != nullptr);
+        BOOL success = ::HeapFree(GetProcessHeap(), 0, unmanagedResource);
+        VerifyCondition(success != FALSE);
+        unmanagedResource = nullptr;
+    }
+
+
+protected:
+    virtual void DoWalkObject() override
+    {
+        walkRecyclerVisitedByteCount += sizeof(RecyclerVisitedObject) + count * sizeof(RecyclerTestObject *);
+
+        for (unsigned int i = 0; i < count; i++)
+        {
+            RecyclerTestObject::WalkReference(Location::Untag(references[i]));
+        }
+    }
+
+private:
+    enum class AllocationType : unsigned int
+    {
+        TraceAndFinalized = 0,
+        TraceOnly,
+        FinalizeLeaf,
+        Leaf,
+        Count,
+    };
+
+    bool IsFinalizable() const { return type == AllocationType::TraceAndFinalized || type == AllocationType::FinalizeLeaf; }
+    RecyclerVisitedObject(AllocationType allocType, unsigned int count) :
+        count(count),
+        type(allocType)
+    {
+        for (unsigned int i = 0; i < count; i++)
+        {
+            references[i] = nullptr;
+        }
+        if (IsFinalizable())
+        {
+            unmanagedResource = ::HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, GetRandomInteger(1024));
+            VerifyCondition(unmanagedResource != nullptr);
+        }
+    }
+
+
+    Field(AllocationType) type;
+    Field(void*) unmanagedResource;
+    Field(unsigned int) count;
+    FieldNoBarrier(RecyclerTestObject *) references[0];  // SWB-TODO: is this correct? (copied from TrackedObject)
+};
+#endif
