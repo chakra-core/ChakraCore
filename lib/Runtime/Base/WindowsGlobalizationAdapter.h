@@ -6,11 +6,6 @@
 
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_ES6_CHAR_CLASSIFIER)
 
-#ifdef INTL_ICU
-#include <CommonPal.h>
-#include "PlatformAgnostic/Intl.h"
-#endif // INTL_ICU
-
 #ifdef INTL_WINGLOB
 #include "Windows.Globalization.h"
 #ifndef NTBUILD
@@ -152,56 +147,5 @@ namespace Js
 #endif
     };
 #endif // INTL_WINGLOB
-
-#ifdef INTL_ICU
-#ifdef ENABLE_INTL_OBJECT
-    template<typename T>
-    class AutoIcuJsObject : public FinalizableObject
-    {
-    private:
-        T *instance;
-
-    public:
-        DEFINE_VTABLE_CTOR_NOBASE(AutoIcuJsObject<T>);
-
-        AutoIcuJsObject(T *object)
-            : instance(object)
-        { }
-
-        static AutoIcuJsObject<T> * New(Recycler *recycler, T *object)
-        {
-            return RecyclerNewFinalized(recycler, AutoIcuJsObject<T>, object);
-        }
-
-        void Finalize(bool isShutdown) override
-        {
-        }
-
-        void Dispose(bool isShutdown) override
-        {
-            if (!isShutdown)
-            {
-                // Here we use Cleanup() because we can't rely on delete (not dealing with virtual destructors).
-                // The template thus requires that the type implement the Cleanup function.
-                instance->Cleanup(); // e.g. deletes the object held in the IPlatformAgnosticResource
-
-                // REVIEW (doilij): Is cleanup in this way necessary or are the trivial destructors enough, assuming Cleanup() has been called?
-                // Note: delete here introduces a build break on Linux complaining of non-virtual dtor
-                // delete instance; // deletes the instance itself
-                // instance = nullptr;
-            }
-        }
-
-        void Mark(Recycler *recycler) override
-        {
-        }
-
-        T * GetInstance()
-        {
-            return instance;
-        }
-    };
-#endif // ENABLE_INTL_OBJECT
-#endif // INTL_ICU
 }
 #endif // defined(ENABLE_INTL_OBJECT) || defined(ENABLE_ES6_CHAR_CLASSIFIER)
