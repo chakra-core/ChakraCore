@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimePlatformAgnosticPch.h"
-#include "CommonPal.h"
 
 namespace PlatformAgnostic
 {
