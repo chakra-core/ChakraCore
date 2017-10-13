@@ -25,141 +25,13 @@
 #include "src/lexer-source-line-finder.h"
 #include "src/literal.h"
 #include "src/opcode.h"
+#include "src/token.h"
 
 namespace wabt {
 
 class ErrorHandler;
 class LexerSource;
 class WastParser;
-
-struct StringTerminal {
-  StringTerminal() = default;
-  StringTerminal(const char* data, size_t size) : data(data), size(size) {}
-
-  const char* data;
-  size_t size;
-
-  // Helper functions.
-  std::string to_string() const { return std::string(data, size); }
-  string_view to_string_view() const { return string_view(data, size); }
-};
-
-struct LiteralTerminal {
-  LiteralTerminal() = default;
-  LiteralTerminal(LiteralType type, StringTerminal text)
-      : type(type), text(text) {}
-
-  LiteralType type;
-  StringTerminal text;
-};
-
-enum class TokenType {
-  Invalid,
-  Reserved,
-  Eof,
-  Lpar,
-  Rpar,
-  Nat,
-  Int,
-  Float,
-  Text,
-  Var,
-  ValueType,
-  Anyfunc,
-  Mut,
-  Nop,
-  Drop,
-  Block,
-  End,
-  If,
-  Then,
-  Else,
-  Loop,
-  Br,
-  BrIf,
-  BrTable,
-  Try,
-  Catch,
-  CatchAll,
-  Throw,
-  Rethrow,
-  Call,
-  CallIndirect,
-  Return,
-  GetLocal,
-  SetLocal,
-  TeeLocal,
-  GetGlobal,
-  SetGlobal,
-  Load,
-  Store,
-  OffsetEqNat,
-  AlignEqNat,
-  Const,
-  Unary,
-  Binary,
-  Compare,
-  Convert,
-  Select,
-  Unreachable,
-  CurrentMemory,
-  GrowMemory,
-  Func,
-  Start,
-  Type,
-  Param,
-  Result,
-  Local,
-  Global,
-  Table,
-  Elem,
-  Memory,
-  Data,
-  Offset,
-  Import,
-  Export,
-  Except,
-  Module,
-  Bin,
-  Quote,
-  Register,
-  Invoke,
-  Get,
-  AssertMalformed,
-  AssertInvalid,
-  AssertUnlinkable,
-  AssertReturn,
-  AssertReturnCanonicalNan,
-  AssertReturnArithmeticNan,
-  AssertTrap,
-  AssertExhaustion,
-
-  First = Invalid,
-  Last = AssertExhaustion,
-};
-
-const char* GetTokenTypeName(TokenType);
-
-struct Token {
-  Token() : token_type(TokenType::Invalid) {}
-  Token(Location, TokenType);
-  Token(Location, TokenType, Type);
-  Token(Location, TokenType, StringTerminal);
-  Token(Location, TokenType, Opcode);
-  Token(Location, TokenType, LiteralTerminal);
-
-  Location loc;
-  TokenType token_type;
-
-  union {
-    StringTerminal text;
-    Type type;
-    Opcode opcode;
-    LiteralTerminal literal;
-  };
-
-  std::string to_string() const;
-};
 
 class WastLexer {
  public:
@@ -182,8 +54,8 @@ class WastLexer {
 
  private:
   Location GetLocation();
-  LiteralTerminal MakeLiteral(LiteralType);
-  StringTerminal GetText(size_t at = 0);
+  Literal MakeLiteral(LiteralType);
+  std::string GetText(size_t at = 0);
 
   std::unique_ptr<LexerSource> source_;
   LexerSourceLineFinder line_finder_;

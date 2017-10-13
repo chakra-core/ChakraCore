@@ -52,7 +52,7 @@ function removePossiblyEmptyFolder(folder) {
 }
 
 function generateChakraTests() {
-  const chakraTestsDestination = path.join(rlRoot, "chakra");
+  const chakraTestsDestination = path.join(rlRoot, "chakra_generated");
 
   const chakraTests = require("./generateTests");
   return removePossiblyEmptyFolder(chakraTestsDestination)

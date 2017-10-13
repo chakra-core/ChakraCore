@@ -262,9 +262,9 @@ void WasmBinaryReader::PrintOps()
     {
         switch (ops[i])
         {
-#define WASM_OPCODE(opname, opcode, sig, nyi) \
+#define WASM_OPCODE(opname, opcode, sig, imp, wat) \
     case opcode: \
-        Output::Print(_u("%s\r\n"), _u(#opname)); \
+        Output::Print(_u("%s: %s\r\n"), _u(#opname), _u(wat)); \
         break;
 #include "WasmBinaryOpCodes.h"
         }
@@ -380,18 +380,38 @@ bool WasmBinaryReader::IsCurrentFunctionCompleted() const
     return m_pc == m_curFuncEnd;
 }
 
+WasmOp WasmBinaryReader::ReadPrefixedOpCode(WasmOp prefix, bool isSupported, const char16* notSupportedMsg)
+{
+    CompileAssert(sizeof(WasmOp) >= 2);
+    if (!isSupported)
+    {
+        ThrowDecodingError(notSupportedMsg);
+    }
+    CheckBytesLeft(1);
+    ++m_funcState.count;
+    return (WasmOp)((prefix << 8) | (*m_pc++));
+}
+
 WasmOp WasmBinaryReader::ReadOpCode()
 {
     CheckBytesLeft(1);
-    WasmOp op = m_currentNode.op = (WasmOp)*m_pc++;
+    WasmOp op = (WasmOp)*m_pc++;
     ++m_funcState.count;
+
+    switch (op)
+    {
+#define WASM_PREFIX(name, value, imp, errorMsg) \
+    case prefix##name: \
+        return ReadPrefixedOpCode(op, imp, _u(errorMsg));
+#include "WasmBinaryOpCodes.h"
+    }
 
     return op;
 }
 
 WasmOp WasmBinaryReader::ReadExpr()
 {
-    WasmOp op = ReadOpCode();
+    WasmOp op = m_currentNode.op = ReadOpCode();
 
     if (EndOfFunc())
     {
@@ -467,7 +487,7 @@ WasmOp WasmBinaryReader::ReadExpr()
         }
         break;
     }
-#define WASM_MEM_OPCODE(opname, opcode, sig, nyi) \
+#define WASM_MEM_OPCODE(opname, ...) \
     case wb##opname: \
         MemNode(); \
     break;
@@ -662,8 +682,12 @@ void WasmBinaryReader::ReadMemorySection(bool isImportSection)
 
     if (count == 1)
     {
-        SectionLimits limits = ReadSectionLimits(Limits::GetMaxMemoryInitialPages(), Limits::GetMaxMemoryMaximumPages(), _u("memory size too big"));
-        m_module->InitializeMemory(limits.initial, limits.maximum);
+        MemorySectionLimits limits = ReadSectionLimitsBase<MemorySectionLimits>(Limits::GetMaxMemoryInitialPages(), Limits::GetMaxMemoryMaximumPages(), _u("memory size too big"));
+        if (CONFIG_FLAG(WasmThreads) && limits.IsShared() && !limits.HasMaximum())
+        {
+            ThrowDecodingError(_u("Shared memory must have a maximum size"));
+        }
+        m_module->InitializeMemory(&limits);
     }
 }
 
@@ -870,8 +894,8 @@ void WasmBinaryReader::ReadTableSection(bool isImportSection)
         {
             ThrowDecodingError(_u("Only anyfunc type is supported. Unknown type %d"), elementType);
         }
-        SectionLimits limits = ReadSectionLimits(Limits::GetMaxTableSize(), Limits::GetMaxTableSize(), _u("table too big"));
-        m_module->InitializeTable(limits.initial, limits.maximum);
+        TableSectionLimits limits = ReadSectionLimitsBase<TableSectionLimits>(Limits::GetMaxTableSize(), Limits::GetMaxTableSize(), _u("table too big"));
+        m_module->InitializeTable(&limits);
         TRACE_WASM_DECODER(_u("Indirect table: %u to %u entries"), limits.initial, limits.maximum);
     }
 }
@@ -1264,14 +1288,15 @@ WasmNode WasmBinaryReader::ReadInitExpr(bool isOffset)
     return node;
 }
 
-SectionLimits WasmBinaryReader::ReadSectionLimits(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg)
+template<typename SectionLimitType>
+SectionLimitType WasmBinaryReader::ReadSectionLimitsBase(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg)
 {
-    SectionLimits limits;
+    SectionLimitType limits;
     uint32 length = 0;
-    uint32 flags = LEB128(length);
+    limits.flags = (SectionLimits::Flags)LEB128(length);
     limits.initial = LEB128(length);
     limits.maximum = maxMaximum;
-    if (flags & 0x1)
+    if (limits.HasMaximum())
     {
         limits.maximum = LEB128(length);
         if (limits.maximum > maxMaximum)

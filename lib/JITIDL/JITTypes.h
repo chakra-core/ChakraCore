@@ -431,7 +431,7 @@ typedef struct TypedSlotInfo
 typedef struct AsmJsDataIDL
 {
     boolean usesHeapBuffer;
-    IDL_PAD1(0)
+    boolean wasmIsSharedMemory;
     unsigned short argByteSize;
     unsigned short argCount;
     IDL_PAD2(1)

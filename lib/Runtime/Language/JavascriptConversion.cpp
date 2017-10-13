@@ -1526,7 +1526,7 @@ CommonNumber:
         }
     }
 
-    inline uint16 JavascriptConversion::ToUInt16(double T1)
+    uint16 JavascriptConversion::ToUInt16(double T1)
     {
         //
         // VC does the right thing here, if we first convert to uint32 and then to uint16
@@ -1545,6 +1545,22 @@ CommonNumber:
 #endif
         return (uint16) result;
     }
+
+    int16 JavascriptConversion::ToInt16(double aValue)
+    {
+        return (int16)ToInt32(aValue);
+    }
+
+    int8 JavascriptConversion::ToInt8(double aValue)
+    {
+        return (int8)ToInt32(aValue);
+    }
+
+    uint8 JavascriptConversion::ToUInt8(double aValue)
+    {
+        return (uint8)ToUInt32(aValue);
+    }
+
 
     JavascriptString * JavascriptConversion::ToPrimitiveString(Var aValue, ScriptContext * scriptContext)
     {

@@ -987,6 +987,17 @@ namespace Js
         }
     }
 
+    bool WebAssemblyArrayBuffer::Is(Var aValue)
+    {
+        return JavascriptArrayBuffer::Is(aValue) && JavascriptArrayBuffer::FromVar(aValue)->IsWebAssemblyArrayBuffer();
+    }
+
+    WebAssemblyArrayBuffer* WebAssemblyArrayBuffer::FromVar(Var aValue)
+    {
+        AssertOrFailFast(WebAssemblyArrayBuffer::Is(aValue));
+        return (WebAssemblyArrayBuffer*)aValue;
+    }
+
     ProjectionArrayBuffer::ProjectionArrayBuffer(uint32 length, DynamicType * type) :
         ArrayBuffer(length, type, CoTaskMemAlloc)
     {

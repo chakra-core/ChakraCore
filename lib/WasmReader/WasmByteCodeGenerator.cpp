@@ -59,7 +59,7 @@ uint32 WasmBytecodeGenerator::WriteTypeStackToString(_Out_writes_(maxlen) char16
     });
     if (numwritten >= maxlen - 5)
     {
-        // null out the last 5 characters so we can properly end it 
+        // null out the last 5 characters so we can properly end it
         for (int i = 1; i <= 5; i++)
         {
             *(out + maxlen - i) = 0;
@@ -87,7 +87,7 @@ void WasmBytecodeGenerator::PrintOpBegin(WasmOp op)
     }
     switch (op)
     {
-#define WASM_OPCODE(opname, opcode, sig, nyi) \
+#define WASM_OPCODE(opname, ...) \
 case wb##opname: \
     Output::Print(_u(#opname)); \
     break;
@@ -148,7 +148,7 @@ case wb##opname: \
     case wbI64Const: Output::Print(_u(" (%lld, 0x%llx)"), GetReader()->m_currentNode.cnst.i64, GetReader()->m_currentNode.cnst.i64); break;
     case wbF32Const: Output::Print(_u(" (%.4f)"), GetReader()->m_currentNode.cnst.f32); break;
     case wbF64Const: Output::Print(_u(" (%.4f)"), GetReader()->m_currentNode.cnst.f64); break;
-#define WASM_MEM_OPCODE(opname, opcode, sig, nyi) case wb##opname: // FallThrough
+#define WASM_MEM_OPCODE(opname, ...) case wb##opname: // FallThrough
 #include "WasmBinaryOpCodes.h"
     {
         const uint8 alignment = GetReader()->m_currentNode.mem.alignment;
@@ -604,9 +604,9 @@ void WasmBytecodeGenerator::EmitExpr(WasmOp op)
     DebugPrintOp(op);
     switch (op)
     {
-#define WASM_OPCODE(opname, opcode, sig, nyi) \
+#define WASM_OPCODE(opname, opcode, sig, imp, wat) \
     case opcode: \
-        if (nyi) throw WasmCompilationException(_u("Operator %s NYI"), _u(#opname)); break;
+        if (!imp) throw WasmCompilationException(_u("Operator %s is Not Yet Implemented"), _u(wat)); break;
 #include "WasmBinaryOpCodes.h"
     default:
         break;
@@ -702,27 +702,37 @@ void WasmBytecodeGenerator::EmitExpr(WasmOp op)
         SetUnreachableState(true);
         info.type = WasmTypes::Any;
         break;
-#define WASM_MEMREAD_OPCODE(opname, opcode, sig, nyi, viewtype) \
+#define WASM_MEMREAD_OPCODE(opname, opcode, sig, imp, viewtype, wat) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig > 0);\
-        info = EmitMemAccess(wb##opname, WasmOpCodeSignatures::sig, viewtype, false); \
+        info = EmitMemAccess<false, false>(wb##opname, WasmOpCodeSignatures::sig, viewtype); \
         break;
-#define WASM_MEMSTORE_OPCODE(opname, opcode, sig, nyi, viewtype) \
+#define WASM_ATOMICREAD_OPCODE(opname, opcode, sig, imp, viewtype, wat) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig > 0);\
-        info = EmitMemAccess(wb##opname, WasmOpCodeSignatures::sig, viewtype, true); \
+        info = EmitMemAccess<false, true>(wb##opname, WasmOpCodeSignatures::sig, viewtype); \
         break;
-#define WASM_BINARY_OPCODE(opname, opcode, sig, asmjsop, nyi) \
+#define WASM_MEMSTORE_OPCODE(opname, opcode, sig, imp, viewtype, wat) \
+    case wb##opname: \
+        Assert(WasmOpCodeSignatures::n##sig > 0);\
+        info = EmitMemAccess<true, false>(wb##opname, WasmOpCodeSignatures::sig, viewtype); \
+        break;
+#define WASM_ATOMICSTORE_OPCODE(opname, opcode, sig, imp, viewtype, wat) \
+    case wb##opname: \
+        Assert(WasmOpCodeSignatures::n##sig > 0);\
+        info = EmitMemAccess<true, true>(wb##opname, WasmOpCodeSignatures::sig, viewtype); \
+        break;
+#define WASM_BINARY_OPCODE(opname, opcode, sig, asmjsop, imp, wat) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig == 3);\
         info = EmitBinExpr(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
         break;
-#define WASM_UNARY__OPCODE(opname, opcode, sig, asmjsop, nyi) \
+#define WASM_UNARY__OPCODE(opname, opcode, sig, asmjsop, imp, wat) \
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig == 2);\
         info = EmitUnaryExpr(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
         break;
-#define WASM_EMPTY__OPCODE(opname, opcode, asmjsop, nyi) \
+#define WASM_EMPTY__OPCODE(opname, opcode, asmjsop, imp, wat) \
     case wb##opname: \
         m_writer->EmptyAsm(Js::OpCodeAsmJs::##asmjsop);\
         break;
@@ -1334,47 +1344,47 @@ EmitInfo WasmBytecodeGenerator::EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmType
     return EmitInfo(resultReg, resultType);
 }
 
-EmitInfo WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore)
+template<bool isStore, bool isAtomic>
+EmitInfo WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType)
 {
+    Assert(!isAtomic || CONFIG_FLAG(WasmThreads));
     WasmTypes::WasmType type = signature[0];
     SetUsesMemory(0);
 
-    const uint32 mask = Js::ArrayBufferView::ViewMask[viewType];
+    const uint32 naturalAlignment = Js::ArrayBufferView::NaturalAlignment[viewType];
     const uint32 alignment = GetReader()->m_currentNode.mem.alignment;
     const uint32 offset = GetReader()->m_currentNode.mem.offset;
 
-    if ((mask << 1) & (1 << alignment))
+    if (alignment > naturalAlignment)
     {
         throw WasmCompilationException(_u("alignment must not be larger than natural"));
     }
+    if (isAtomic && alignment != naturalAlignment)
+    {
+        throw WasmCompilationException(_u("invalid alignment for atomic RW. Expected %u, got %u"), naturalAlignment, alignment);
+    }
 
-    EmitInfo rhsInfo;
+    // Stores
     if (isStore)
     {
-        rhsInfo = PopEvalStack(type, _u("Invalid type for store op"));
-    }
-    EmitInfo exprInfo = PopEvalStack(WasmTypes::I32, _u("Index expression must be of type i32"));
-
-    if (isStore) // Stores
-    {
-        m_writer->WasmMemAccess(Js::OpCodeAsmJs::StArrWasm, rhsInfo.location, exprInfo.location, offset, viewType);
+        EmitInfo rhsInfo = PopEvalStack(type, _u("Invalid type for store op"));
+        EmitInfo exprInfo = PopEvalStack(WasmTypes::I32, _u("Index expression must be of type i32"));
+        Js::OpCodeAsmJs op = isAtomic ? Js::OpCodeAsmJs::StArrAtomic : Js::OpCodeAsmJs::StArrWasm;
+        m_writer->WasmMemAccess(op, rhsInfo.location, exprInfo.location, offset, viewType);
         ReleaseLocation(&rhsInfo);
         ReleaseLocation(&exprInfo);
 
         return EmitInfo();
     }
 
+    // Loads
+    EmitInfo exprInfo = PopEvalStack(WasmTypes::I32, _u("Index expression must be of type i32"));
     ReleaseLocation(&exprInfo);
-    Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();   
-    m_writer->WasmMemAccess(Js::OpCodeAsmJs::LdArrWasm, resultReg, exprInfo.location, offset, viewType);
+    Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
+    Js::OpCodeAsmJs op = isAtomic ? Js::OpCodeAsmJs::LdArrAtomic : Js::OpCodeAsmJs::LdArrWasm;
+    m_writer->WasmMemAccess(op, resultReg, exprInfo.location, offset, viewType);
 
-    EmitInfo yieldInfo;
-    if (!isStore)
-    {
-        // Yield only on load
-        yieldInfo = EmitInfo(resultReg, type);
-    }
-    return yieldInfo;
+    return EmitInfo(resultReg, type);
 }
 
 void WasmBytecodeGenerator::EmitReturnExpr(EmitInfo* explicitRetInfo)
@@ -1691,7 +1701,7 @@ void WasmBytecodeGenerator::ExitEvalStackScope()
     Assert(!m_evalStack.Empty());
     EmitInfo info = m_evalStack.Pop();
     // It is possible to have unconsumed Any type left on the stack, simply remove them
-    while (info.type == WasmTypes::Any) 
+    while (info.type == WasmTypes::Any)
     {
         Assert(!m_evalStack.Empty());
         info = m_evalStack.Pop();

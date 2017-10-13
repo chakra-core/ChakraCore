@@ -211,7 +211,7 @@ void WebAssemblyEnvironment::CalculateOffsets(WebAssemblyTable* table, WebAssemb
         this->elementSegmentOffsets[elementsIndex] = offset;
     }
 
-    ArrayBuffer * buffer = memory->GetBuffer();
+    ArrayBufferBase* buffer = memory->GetBuffer();
     Assert(!buffer->IsDetached());
     hCode = WASMERR_DataSegOutOfRange;
     for (uint32 iSeg = 0; iSeg < module->GetDataSegCount(); ++iSeg)

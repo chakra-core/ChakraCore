@@ -302,6 +302,11 @@ Security::DontEncode(IR::Opnd *opnd)
         IR::IndirOpnd *indirOpnd = opnd->AsIndirOpnd();
         return indirOpnd->m_dontEncode || indirOpnd->GetOffset() == 0;
     }
+    case IR::OpndKindList:
+    {
+        // We should only have RegOpnd in the ListOpnd therefor, we don't need to encode anything
+        Assert(opnd->AsListOpnd()->All([](IR::ListOpndType* opnd) { return DontEncode(opnd); }));
+    }
     default:
         return true;
     }

@@ -435,6 +435,28 @@ GlobOpt::OptimizeChecks(IR::Instr * const instr)
         }
         break;
     }
+    case Js::OpCode::TrapIfUnalignedAccess:
+        if (src1 && src1->IsImmediateOpnd())
+        {
+            int64 val = src1->GetImmediateValue(func);
+            Assert(src2->IsImmediateOpnd());
+            uint32 cmpValue = (uint32)src2->GetImmediateValue(func);
+            uint32 mask = src2->GetSize() - 1;
+            Assert((cmpValue & ~mask) == 0);
+
+            if (((uint32)val & mask) == cmpValue)
+            {
+                instr->FreeSrc2();
+                instr->m_opcode = Js::OpCode::Ld_I4;
+            }
+            else
+            {
+                TransformIntoUnreachable(WASMERR_UnalignedAtomicAccess, instr);
+                InsertByteCodeUses(instr);
+                RemoveCodeAfterNoFallthroughInstr(instr); //remove dead code
+            }
+        }
+        break;
     default:
         return;
     }

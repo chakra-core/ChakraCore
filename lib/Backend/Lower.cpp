@@ -1129,6 +1129,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::TrapIfZero:
             LowerTrapIfZero(instr);
             break;
+        case Js::OpCode::TrapIfUnalignedAccess:
+            instrPrev = LowerTrapIfUnalignedAccess(instr);
+            break;
         case Js::OpCode::DivU_I4:
         case Js::OpCode::Div_I4:
             this->LowerDivI4(instr);
@@ -1542,8 +1545,16 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = LowerLdArrViewElem(instr);
             break;
 
+        case Js::OpCode::StAtomicWasm:
+            instrPrev = LowerStAtomicsWasm(instr);
+            break;
+
         case Js::OpCode::StArrViewElem:
             instrPrev = LowerStArrViewElem(instr);
+            break;
+
+        case Js::OpCode::LdAtomicWasm:
+            instrPrev = LowerLdAtomicsWasm(instr);
             break;
 
         case Js::OpCode::LdArrViewElemWasm:
@@ -8925,7 +8936,7 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
 }
 
 IR::Instr *
-Lowerer::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
+Lowerer::LowerWasmArrayBoundsCheck(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
     uint32 offset = addrOpnd->AsIndirOpnd()->GetOffset();
 
@@ -8941,7 +8952,7 @@ Lowerer::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
     }
     else
     {
-        return m_lowererMD.LowerWasmMemOp(instr, addrOpnd);
+        return m_lowererMD.LowerWasmArrayBoundsCheck(instr, addrOpnd);
     }
 }
 
@@ -8961,7 +8972,7 @@ Lowerer::LowerLdArrViewElemWasm(IR::Instr * instr)
     Assert(!dst->IsFloat32() || src1->IsFloat32());
     Assert(!dst->IsFloat64() || src1->IsFloat64());
 
-    IR::Instr * done = LowerWasmMemOp(instr, src1);
+    IR::Instr * done = LowerWasmArrayBoundsCheck(instr, src1);
     IR::Instr* newMove = InsertMove(dst, src1, done);
 
 #if ENABLE_FAST_ARRAYBUFFER
@@ -8971,6 +8982,7 @@ Lowerer::LowerLdArrViewElemWasm(IR::Instr * instr)
 #else
     Unused(newMove);
 #endif
+
     instr->Remove();
     return instrPrev;
 #else
@@ -9132,6 +9144,57 @@ Lowerer::LowerMemOp(IR::Instr * instr)
     return instrPrev;
 }
 
+IR::Instr*
+Lowerer::LowerStAtomicsWasm(IR::Instr* instr)
+{
+#ifdef ENABLE_WASM
+    Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
+    Assert(instr);
+    Assert(instr->m_opcode == Js::OpCode::StAtomicWasm);
+
+    IR::Instr * instrPrev = instr->m_prev;
+
+    IR::Opnd * dst = instr->GetDst();
+    IR::Opnd * src1 = instr->GetSrc1();
+
+    Assert(IRType_IsNativeInt(dst->GetType()));
+
+    IR::Instr * done = LowerWasmArrayBoundsCheck(instr, dst);
+    m_lowererMD.LowerAtomicStore(dst, src1, done);
+
+    instr->Remove();
+    return instrPrev;
+#else
+    Assert(UNREACHED);
+    return instr;
+#endif
+}
+
+IR::Instr * Lowerer::LowerLdAtomicsWasm(IR::Instr * instr)
+{
+#ifdef ENABLE_WASM
+    Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
+    Assert(instr);
+    Assert(instr->m_opcode == Js::OpCode::LdAtomicWasm);
+
+    IR::Instr * instrPrev = instr->m_prev;
+
+    IR::Opnd * dst = instr->GetDst();
+    IR::Opnd * src1 = instr->GetSrc1();
+
+    Assert(IRType_IsNativeInt(dst->GetType()));
+
+    IR::Instr * done = LowerWasmArrayBoundsCheck(instr, src1);
+    m_lowererMD.LowerAtomicLoad(dst, src1, done);
+
+    instr->Remove();
+    return instrPrev;
+#else
+    Assert(UNREACHED);
+    return instr;
+#endif
+}
+
 IR::Instr *
 Lowerer::LowerStArrViewElem(IR::Instr * instr)
 {
@@ -9158,7 +9221,7 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
 
     if (m_func->GetJITFunctionBody()->IsWasmFunction())
     {
-        done = LowerWasmMemOp(instr, dst);
+        done = LowerWasmArrayBoundsCheck(instr, dst);
     }
     else if (offset < 0)
     {
@@ -23977,6 +24040,38 @@ Lowerer::LowerTrapIfZero(IR::Instr * const instr)
         GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), doneLabel);
     }
     LowererMD::ChangeToAssign(instr);
+}
+
+IR::Instr*
+Lowerer::LowerTrapIfUnalignedAccess(IR::Instr * const instr)
+{
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->UnlinkSrc2();
+    Assert(instr);
+    Assert(instr->m_opcode == Js::OpCode::TrapIfUnalignedAccess);
+    Assert(src1 && !src1->IsVar());
+    Assert(src2 && src2->IsImmediateOpnd());
+    Assert(src2->GetSize() > 1);
+
+    uint32 mask = src2->GetSize() - 1;
+    uint32 cmpValue = (uint32)src2->GetImmediateValue(m_func);
+    src2->Free(m_func);
+
+    IR::IntConstOpnd* maskOpnd = IR::IntConstOpnd::New(mask, src1->GetType(), m_func);
+    IR::RegOpnd* maskedOpnd = IR::RegOpnd::New(src1->GetType(), m_func);
+    IR::Instr* newInstr = IR::Instr::New(Js::OpCode::And_I4, maskedOpnd, src1, maskOpnd, m_func);
+    instr->InsertBefore(newInstr);
+
+    IR::IntConstOpnd* cmpOpnd = IR::IntConstOpnd::New(cmpValue, maskedOpnd->GetType(), m_func, true);
+    IR::LabelInstr* alignedLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    newInstr = IR::BranchInstr::New(Js::OpCode::BrEq_I4, alignedLabel, maskedOpnd, cmpOpnd, m_func);
+    instr->InsertBefore(newInstr);
+    InsertLabel(true, instr);
+    GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_UnalignedAtomicAccess), TyInt32, m_func), instr);
+    instr->InsertBefore(alignedLabel);
+
+    instr->m_opcode = Js::OpCode::Ld_I4;
+    return instr;
 }
 
 void

@@ -77,6 +77,9 @@ class Validator {
   void CheckAlign(const Location* loc,
                   Address alignment,
                   Address natural_alignment);
+  void CheckAtomicAlign(const Location* loc,
+                        Address alignment,
+                        Address natural_alignment);
   void CheckType(const Location* loc,
                  Type actual,
                  Type expected,
@@ -104,7 +107,8 @@ class Validator {
                                 Type actual,
                                 const char* desc);
   void CheckExprList(const Location* loc, const ExprList& exprs);
-  void CheckHasMemory(const Location* loc, Opcode opcode);
+  bool CheckHasMemory(const Location* loc, Opcode opcode);
+  void CheckHasSharedMemory(const Location* loc, Opcode opcode);
   void CheckBlockSig(const Location* loc,
                      Opcode opcode,
                      const BlockSignature* sig);
@@ -117,10 +121,9 @@ class Validator {
                           Type expected_type,
                           const char* desc);
   void CheckGlobal(const Location* loc, const Global* global);
-  void CheckLimits(const Location* loc,
-                   const Limits* limits,
-                   uint64_t absolute_max,
-                   const char* desc);
+  void CheckLimits(const Location* loc, const Limits* limits,
+                   uint64_t absolute_max, const char* desc,
+                   LimitsShareable sharing);
   void CheckTable(const Location* loc, const Table* table);
   void CheckElemSegments(const Module* module);
   void CheckMemory(const Location* loc, const Memory* memory);
@@ -299,6 +302,19 @@ void Validator::CheckAlign(const Location* loc,
   }
 }
 
+void Validator::CheckAtomicAlign(const Location* loc,
+                                 Address alignment,
+                                 Address natural_alignment) {
+  if (alignment != WABT_USE_NATURAL_ALIGNMENT) {
+    if (!is_power_of_two(alignment))
+      PrintError(loc, "alignment must be power-of-two");
+    if (alignment != natural_alignment) {
+      PrintError(loc, "alignment must be equal to natural alignment (%u)",
+                 natural_alignment);
+    }
+  }
+}
+
 void Validator::CheckType(const Location* loc,
                           Type actual,
                           Type expected,
@@ -377,10 +393,22 @@ void Validator::CheckExprList(const Location* loc, const ExprList& exprs) {
     CheckExpr(&expr);
 }
 
-void Validator::CheckHasMemory(const Location* loc, Opcode opcode) {
+bool Validator::CheckHasMemory(const Location* loc, Opcode opcode) {
   if (current_module_->memories.size() == 0) {
     PrintError(loc, "%s requires an imported or defined memory.",
                opcode.GetName());
+    return false;
+  }
+
+  return true;
+}
+
+void Validator::CheckHasSharedMemory(const Location* loc, Opcode opcode) {
+  if (CheckHasMemory(loc, opcode)) {
+    Memory* memory = current_module_->memories[0];
+    if (!memory->page_limits.is_shared) {
+      PrintError(loc, "%s requires memory to be shared.", opcode.GetName());
+    }
   }
 }
 
@@ -398,6 +426,42 @@ void Validator::CheckExpr(const Expr* expr) {
   expr_loc_ = &expr->loc;
 
   switch (expr->type()) {
+    case ExprType::AtomicLoad: {
+      auto load_expr = cast<AtomicLoadExpr>(expr);
+      CheckHasSharedMemory(&load_expr->loc, load_expr->opcode);
+      CheckAtomicAlign(&load_expr->loc, load_expr->align,
+                       get_opcode_natural_alignment(load_expr->opcode));
+      typechecker_.OnAtomicLoad(load_expr->opcode);
+      break;
+    }
+
+    case ExprType::AtomicRmw: {
+      auto rmw_expr = cast<AtomicRmwExpr>(expr);
+      CheckHasSharedMemory(&rmw_expr->loc, rmw_expr->opcode);
+      CheckAtomicAlign(&rmw_expr->loc, rmw_expr->align,
+                       get_opcode_natural_alignment(rmw_expr->opcode));
+      typechecker_.OnAtomicRmw(rmw_expr->opcode);
+      break;
+    }
+
+    case ExprType::AtomicRmwCmpxchg: {
+      auto cmpxchg_expr = cast<AtomicRmwCmpxchgExpr>(expr);
+      CheckHasSharedMemory(&cmpxchg_expr->loc, cmpxchg_expr->opcode);
+      CheckAtomicAlign(&cmpxchg_expr->loc, cmpxchg_expr->align,
+                       get_opcode_natural_alignment(cmpxchg_expr->opcode));
+      typechecker_.OnAtomicRmwCmpxchg(cmpxchg_expr->opcode);
+      break;
+    }
+
+    case ExprType::AtomicStore: {
+      auto store_expr = cast<AtomicStoreExpr>(expr);
+      CheckHasSharedMemory(&store_expr->loc, store_expr->opcode);
+      CheckAtomicAlign(&store_expr->loc, store_expr->align,
+                       get_opcode_natural_alignment(store_expr->opcode));
+      typechecker_.OnAtomicStore(store_expr->opcode);
+      break;
+    }
+
     case ExprType::Binary:
       typechecker_.OnBinary(cast<BinaryExpr>(expr)->opcode);
       break;
@@ -693,10 +757,9 @@ void Validator::CheckGlobal(const Location* loc, const Global* global) {
                      "global initializer expression");
 }
 
-void Validator::CheckLimits(const Location* loc,
-                            const Limits* limits,
-                            uint64_t absolute_max,
-                            const char* desc) {
+void Validator::CheckLimits(const Location* loc, const Limits* limits,
+                            uint64_t absolute_max, const char* desc,
+                            LimitsShareable sharing) {
   if (limits->initial > absolute_max) {
     PrintError(loc, "initial %s (%" PRIu64 ") must be <= (%" PRIu64 ")", desc,
                limits->initial, absolute_max);
@@ -714,12 +777,22 @@ void Validator::CheckLimits(const Location* loc,
                  desc, limits->max, desc, limits->initial);
     }
   }
+  if (limits->is_shared) {
+    if (sharing == LimitsShareable::NotAllowed) {
+      PrintError(loc, "tables may not be shared");
+      return;
+    }
+    if (!limits->has_max) {
+      PrintError(loc, "shared memories must have max sizes");
+    }
+  }
 }
 
 void Validator::CheckTable(const Location* loc, const Table* table) {
   if (current_table_index_ == 1)
     PrintError(loc, "only one table allowed");
-  CheckLimits(loc, &table->elem_limits, UINT32_MAX, "elems");
+  CheckLimits(loc, &table->elem_limits, UINT32_MAX, "elems",
+              LimitsShareable::NotAllowed);
 }
 
 void Validator::CheckElemSegments(const Module* module) {
@@ -743,7 +816,8 @@ void Validator::CheckElemSegments(const Module* module) {
 void Validator::CheckMemory(const Location* loc, const Memory* memory) {
   if (current_memory_index_ == 1)
     PrintError(loc, "only one memory block allowed");
-  CheckLimits(loc, &memory->page_limits, WABT_MAX_PAGES, "pages");
+  CheckLimits(loc, &memory->page_limits, WABT_MAX_PAGES, "pages",
+              LimitsShareable::Allowed);
 }
 
 void Validator::CheckDataSegments(const Module* module) {
@@ -918,7 +992,7 @@ Result Validator::CheckModule(const Module* module) {
 }
 
 // Returns the result type of the invoked function, checked by the caller;
-// returning nullptr means that another error occurred first, so the result type
+// returning nullptr means that another error occured first, so the result type
 // should be ignored.
 const TypeVector* Validator::CheckInvoke(const InvokeAction* action) {
   const Module* module = script_->GetModule(action->module_var);

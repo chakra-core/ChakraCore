@@ -1117,6 +1117,16 @@ LinearScan::SetUses(IR::Instr *instr, IR::Opnd *opnd)
             }
         }
         break;
+
+    case IR::OpndKindList:
+    {
+        opnd->AsListOpnd()->Map([&](int i, IR::Opnd* opnd)
+        {
+            this->SetUses(instr, opnd);
+        });
+    }
+    break;
+
     case IR::OpndKindIntConst:
     case IR::OpndKindAddr:
         this->linearScanMD.LegalizeConstantUse(instr, opnd);

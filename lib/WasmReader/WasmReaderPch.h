@@ -43,5 +43,6 @@
 #include "WasmDataSegment.h"
 #include "WasmElementSegment.h"
 #include "WasmByteCodeGenerator.h"
+#include "WasmSectionLimits.h"
 
 #endif

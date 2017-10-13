@@ -29,12 +29,6 @@ namespace Wasm
         const char16* name;
     };
 
-    struct SectionLimits
-    {
-        uint32 initial;
-        uint32 maximum;
-    };
-
     struct BinaryLocation
     {
         intptr_t offset;
@@ -69,6 +63,7 @@ namespace Wasm
             uint32 count; // current entry
             uint32 size;  // binary size of the function
         };
+        WasmOp ReadPrefixedOpCode(WasmOp prefix, bool isSupported, const char16* notSupportedMsg);
         WasmOp ReadOpCode();
 
         void BlockNode();
@@ -107,7 +102,8 @@ namespace Wasm
         template<typename MaxAllowedType = int32>
         MaxAllowedType SLEB128(uint32 &length);
         WasmNode ReadInitExpr(bool isOffset = false);
-        SectionLimits ReadSectionLimits(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg);
+        template<typename SectionLimitType>
+        SectionLimitType ReadSectionLimitsBase(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg);
 
         void CheckBytesLeft(uint32 bytesNeeded);
         bool EndOfFunc();

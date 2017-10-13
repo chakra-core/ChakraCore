@@ -116,6 +116,18 @@ class BinaryReaderIR : public BinaryReaderNop {
   Result BeginFunctionBody(Index index) override;
   Result OnLocalDecl(Index decl_index, Index count, Type type) override;
 
+  Result OnAtomicLoadExpr(Opcode opcode,
+                          uint32_t alignment_log2,
+                          Address offset) override;
+  Result OnAtomicStoreExpr(Opcode opcode,
+                           uint32_t alignment_log2,
+                           Address offset) override;
+  Result OnAtomicRmwExpr(Opcode opcode,
+                         uint32_t alignment_log2,
+                         Address offset) override;
+  Result OnAtomicRmwCmpxchgExpr(Opcode opcode,
+                                uint32_t alignment_log2,
+                                Address offset) override;
   Result OnBinaryExpr(Opcode opcode) override;
   Result OnBlockExpr(Index num_types, Type* sig_types) override;
   Result OnBrExpr(Index depth) override;
@@ -507,6 +519,34 @@ Result BinaryReaderIR::OnLocalDecl(Index decl_index, Index count, Type type) {
   for (size_t i = 0; i < count; ++i)
     types.push_back(type);
   return Result::Ok;
+}
+
+Result BinaryReaderIR::OnAtomicLoadExpr(Opcode opcode,
+                                        uint32_t alignment_log2,
+                                        Address offset) {
+  return AppendExpr(
+      MakeUnique<AtomicLoadExpr>(opcode, 1 << alignment_log2, offset));
+}
+
+Result BinaryReaderIR::OnAtomicStoreExpr(Opcode opcode,
+                                         uint32_t alignment_log2,
+                                         Address offset) {
+  return AppendExpr(
+      MakeUnique<AtomicStoreExpr>(opcode, 1 << alignment_log2, offset));
+}
+
+Result BinaryReaderIR::OnAtomicRmwExpr(Opcode opcode,
+                                       uint32_t alignment_log2,
+                                       Address offset) {
+  return AppendExpr(
+      MakeUnique<AtomicRmwExpr>(opcode, 1 << alignment_log2, offset));
+}
+
+Result BinaryReaderIR::OnAtomicRmwCmpxchgExpr(Opcode opcode,
+                                              uint32_t alignment_log2,
+                                              Address offset) {
+  return AppendExpr(
+      MakeUnique<AtomicRmwCmpxchgExpr>(opcode, 1 << alignment_log2, offset));
 }
 
 Result BinaryReaderIR::OnBinaryExpr(Opcode opcode) {

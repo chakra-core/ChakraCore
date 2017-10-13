@@ -354,4 +354,10 @@
     <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>atomics_test.js</files>
+    <compile-flags>-wasmthreads -args summary -endargs</compile-flags>
+  </default>
+</test>
 </regress-exe>

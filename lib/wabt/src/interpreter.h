@@ -38,6 +38,8 @@ namespace interpreter {
   V(Returned, "returned")                                                   \
   /* memory access is out of bounds */                                      \
   V(TrapMemoryAccessOutOfBounds, "out of bounds memory access")             \
+  /* atomic memory access is unaligned  */                                  \
+  V(TrapAtomicMemoryAccessUnaligned, "atomic memory access is unaligned")   \
   /* converting from float -> int would overflow int */                     \
   V(TrapIntegerOverflow, "integer overflow")                                \
   /* dividend is zero in integer divide */                                  \
@@ -149,6 +151,8 @@ struct TypedValue {
   Type type;
   Value value;
 };
+
+typedef std::vector<TypedValue> TypedValues;
 
 struct Global {
   Global() : mutable_(false), import_index(kInvalidIndex) {}
@@ -465,11 +469,13 @@ class Thread {
 
     explicit Options(uint32_t value_stack_size = kDefaultValueStackSize,
                      uint32_t call_stack_size = kDefaultCallStackSize,
-                     IstreamOffset pc = kInvalidIstreamOffset);
+                     IstreamOffset pc = kInvalidIstreamOffset,
+                     Stream* trace_stream = nullptr);
 
     uint32_t value_stack_size;
     uint32_t call_stack_size;
     IstreamOffset pc;
+    Stream* trace_stream;
   };
 
   explicit Thread(Environment*, const Options& = Options());
@@ -477,24 +483,31 @@ class Thread {
   Environment* env() { return env_; }
 
   Result RunFunction(Index func_index,
-                     const std::vector<TypedValue>& args,
-                     std::vector<TypedValue>* out_results);
-
-  Result TraceFunction(Index func_index,
-                       Stream*,
-                       const std::vector<TypedValue>& args,
-                       std::vector<TypedValue>* out_results);
+                     const TypedValues& args,
+                     TypedValues* out_results);
+  Result RunStartFunction(DefinedModule* module);
+  Result RunExport(const Export*,
+                   const TypedValues& args,
+                   TypedValues* out_results);
+  Result RunExportByName(Module* module,
+                         string_view name,
+                         const TypedValues& args,
+                         TypedValues* out_results);
 
  private:
   const uint8_t* GetIstream() const { return env_->istream_->data.data(); }
 
-  Result PushArgs(const FuncSignature*, const std::vector<TypedValue>& args);
-  void CopyResults(const FuncSignature*, std::vector<TypedValue>* out_results);
+  Result PushArgs(const FuncSignature*, const TypedValues& args);
+  void CopyResults(const FuncSignature*, TypedValues* out_results);
 
   Result Run(int num_instructions, IstreamOffset* call_stack_return_top);
   void Trace(Stream*);
 
   Memory* ReadMemory(const uint8_t** pc);
+  template <typename MemType>
+  Result GetAccessAddress(const uint8_t** pc, void** out_address);
+  template <typename MemType>
+  Result GetAtomicAccessAddress(const uint8_t** pc, void** out_address);
 
   Value& Top();
   Value& Pick(Index depth);
@@ -523,15 +536,24 @@ class Thread {
   Result PushCall(const uint8_t* pc) WABT_WARN_UNUSED;
   IstreamOffset PopCall();
 
-  template <typename MemType, typename ResultType = MemType>
-  Result Load(const uint8_t** pc) WABT_WARN_UNUSED;
-  template <typename MemType, typename ResultType = MemType>
-  Result Store(const uint8_t** pc) WABT_WARN_UNUSED;
-
   template <typename R, typename T> using UnopFunc      = R(T);
   template <typename R, typename T> using UnopTrapFunc  = Result(T, R*);
   template <typename R, typename T> using BinopFunc     = R(T, T);
   template <typename R, typename T> using BinopTrapFunc = Result(T, T, R*);
+
+  template <typename MemType, typename ResultType = MemType>
+  Result Load(const uint8_t** pc) WABT_WARN_UNUSED;
+  template <typename MemType, typename ResultType = MemType>
+  Result Store(const uint8_t** pc) WABT_WARN_UNUSED;
+  template <typename MemType, typename ResultType = MemType>
+  Result AtomicLoad(const uint8_t** pc) WABT_WARN_UNUSED;
+  template <typename MemType, typename ResultType = MemType>
+  Result AtomicStore(const uint8_t** pc) WABT_WARN_UNUSED;
+  template <typename MemType, typename ResultType = MemType>
+  Result AtomicRmw(BinopFunc<ResultType, ResultType>,
+                   const uint8_t** pc) WABT_WARN_UNUSED;
+  template <typename MemType, typename ResultType = MemType>
+  Result AtomicRmwCmpxchg(const uint8_t** pc) WABT_WARN_UNUSED;
 
   template <typename R, typename T = R>
   Result Unop(UnopFunc<R, T> func) WABT_WARN_UNUSED;
@@ -544,7 +566,6 @@ class Thread {
   Result BinopTrap(BinopTrapFunc<R, T> func) WABT_WARN_UNUSED;
 
   Result RunDefinedFunction(IstreamOffset);
-  Result TraceDefinedFunction(IstreamOffset, Stream*);
 
   Result CallHost(HostFunc*);
 
@@ -556,12 +577,26 @@ class Thread {
   IstreamOffset* call_stack_top_;
   IstreamOffset* call_stack_end_;
   IstreamOffset pc_;
+  Stream* trace_stream_;
 };
 
 bool IsCanonicalNan(uint32_t f32_bits);
 bool IsCanonicalNan(uint64_t f64_bits);
 bool IsArithmeticNan(uint32_t f32_bits);
 bool IsArithmeticNan(uint64_t f64_bits);
+
+std::string TypedValueToString(const TypedValue&);
+const char* ResultToString(Result);
+
+void WriteTypedValue(Stream* stream, const TypedValue&);
+void WriteTypedValues(Stream* stream, const TypedValues&);
+void WriteResult(Stream* stream, const char* desc, Result);
+void WriteCall(Stream* stream,
+               string_view module_name,
+               string_view func_name,
+               const TypedValues& args,
+               const TypedValues& results,
+               Result);
 
 }  // namespace interpreter
 }  // namespace wabt

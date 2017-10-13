@@ -136,6 +136,18 @@ class BinaryReaderInterpreter : public BinaryReaderNop {
   wabt::Result OnLocalDeclCount(Index count) override;
   wabt::Result OnLocalDecl(Index decl_index, Index count, Type type) override;
 
+  wabt::Result OnAtomicLoadExpr(Opcode opcode,
+                                uint32_t alignment_log2,
+                                Address offset) override;
+  wabt::Result OnAtomicStoreExpr(Opcode opcode,
+                                 uint32_t alignment_log2,
+                                 Address offset) override;
+  wabt::Result OnAtomicRmwExpr(Opcode opcode,
+                               uint32_t alignment_log2,
+                               Address offset) override;
+  wabt::Result OnAtomicRmwCmpxchgExpr(Opcode opcode,
+                                      uint32_t alignment_log2,
+                                      Address offset) override;
   wabt::Result OnBinaryExpr(wabt::Opcode opcode) override;
   wabt::Result OnBlockExpr(Index num_types, Type* sig_types) override;
   wabt::Result OnBrExpr(Index depth) override;
@@ -243,6 +255,8 @@ class BinaryReaderInterpreter : public BinaryReaderNop {
                                  const Limits* actual_limits);
   wabt::Result CheckHasMemory(wabt::Opcode opcode);
   wabt::Result CheckAlign(uint32_t alignment_log2, Address natural_alignment);
+  wabt::Result CheckAtomicAlign(uint32_t alignment_log2,
+                                Address natural_alignment);
 
   wabt::Result AppendExport(Module* module,
                             ExternalKind kind,
@@ -1121,9 +1135,69 @@ wabt::Result BinaryReaderInterpreter::CheckAlign(uint32_t alignment_log2,
   return wabt::Result::Ok;
 }
 
+wabt::Result BinaryReaderInterpreter::CheckAtomicAlign(
+    uint32_t alignment_log2,
+    Address natural_alignment) {
+  if (alignment_log2 >= 32 || (1U << alignment_log2) != natural_alignment) {
+    PrintError("alignment must be equal to natural alignment (%u)",
+               natural_alignment);
+    return wabt::Result::Error;
+  }
+  return wabt::Result::Ok;
+}
+
 wabt::Result BinaryReaderInterpreter::OnUnaryExpr(wabt::Opcode opcode) {
   CHECK_RESULT(typechecker_.OnUnary(opcode));
   CHECK_RESULT(EmitOpcode(opcode));
+  return wabt::Result::Ok;
+}
+
+wabt::Result BinaryReaderInterpreter::OnAtomicLoadExpr(Opcode opcode,
+                                                       uint32_t alignment_log2,
+                                                       Address offset) {
+  CHECK_RESULT(CheckHasMemory(opcode));
+  CHECK_RESULT(CheckAtomicAlign(alignment_log2, opcode.GetMemorySize()));
+  CHECK_RESULT(typechecker_.OnAtomicLoad(opcode));
+  CHECK_RESULT(EmitOpcode(opcode));
+  CHECK_RESULT(EmitI32(module_->memory_index));
+  CHECK_RESULT(EmitI32(offset));
+  return wabt::Result::Ok;
+}
+
+wabt::Result BinaryReaderInterpreter::OnAtomicStoreExpr(Opcode opcode,
+                                                        uint32_t alignment_log2,
+                                                        Address offset) {
+  CHECK_RESULT(CheckHasMemory(opcode));
+  CHECK_RESULT(CheckAtomicAlign(alignment_log2, opcode.GetMemorySize()));
+  CHECK_RESULT(typechecker_.OnAtomicStore(opcode));
+  CHECK_RESULT(EmitOpcode(opcode));
+  CHECK_RESULT(EmitI32(module_->memory_index));
+  CHECK_RESULT(EmitI32(offset));
+  return wabt::Result::Ok;
+}
+
+wabt::Result BinaryReaderInterpreter::OnAtomicRmwExpr(Opcode opcode,
+                                                      uint32_t alignment_log2,
+                                                      Address offset) {
+  CHECK_RESULT(CheckHasMemory(opcode));
+  CHECK_RESULT(CheckAtomicAlign(alignment_log2, opcode.GetMemorySize()));
+  CHECK_RESULT(typechecker_.OnAtomicRmw(opcode));
+  CHECK_RESULT(EmitOpcode(opcode));
+  CHECK_RESULT(EmitI32(module_->memory_index));
+  CHECK_RESULT(EmitI32(offset));
+  return wabt::Result::Ok;
+}
+
+wabt::Result BinaryReaderInterpreter::OnAtomicRmwCmpxchgExpr(
+    Opcode opcode,
+    uint32_t alignment_log2,
+    Address offset) {
+  CHECK_RESULT(CheckHasMemory(opcode));
+  CHECK_RESULT(CheckAtomicAlign(alignment_log2, opcode.GetMemorySize()));
+  CHECK_RESULT(typechecker_.OnAtomicRmwCmpxchg(opcode));
+  CHECK_RESULT(EmitOpcode(opcode));
+  CHECK_RESULT(EmitI32(module_->memory_index));
+  CHECK_RESULT(EmitI32(offset));
   return wabt::Result::Ok;
 }
 

@@ -49,9 +49,12 @@ namespace Js {
         static int32 ToInt32_Full(Var aValue, ScriptContext* scriptContext);
 
         static int8 ToInt8(Var aValue, ScriptContext* scriptContext);
+        static int8 ToInt8(double aValue);
         static uint8 ToUInt8(Var aValue, ScriptContext* scriptContext);
+        static uint8 ToUInt8(double aValue);
         static uint8 ToUInt8Clamped(Var aValue, ScriptContext* scriptContext);
         static int16 ToInt16(Var aValue, ScriptContext* scriptContext);
+        static int16 ToInt16(double aValue);
         static float ToFloat(Var aValue, ScriptContext* scriptContext);
 
         static uint32 ToUInt32(Var aValue, ScriptContext* scriptContext);

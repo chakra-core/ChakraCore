@@ -7,7 +7,7 @@
     <ClInclude Include="WasmReaderPch.h" />
     <ClInclude Include="WasmBytecodeGenerator.h" />
     <ClInclude Include="WasmBinaryReader.h" />
-    <ClInclude Include="WasmBinaryOpcodes.h" />
+    <ClInclude Include="WasmBinaryOpCodes.h" />
     <ClInclude Include="WasmSignature.h" />
     <ClInclude Include="WasmSections.h" />
     <ClInclude Include="WasmSection.h" />
@@ -19,6 +19,7 @@
     <ClInclude Include="EmptyWasmByteCodeWriter.h" />
     <ClInclude Include="WasmLimits.h" />
     <ClInclude Include="WasmReaderInfo.h" />
+    <ClInclude Include="WasmSectionLimits.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmBytecodeGenerator.cpp" />

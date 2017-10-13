@@ -30,12 +30,15 @@ namespace Js
         static bool Is(Var aValue);
         static WebAssemblyMemory * FromVar(Var aValue);
 
-        static WebAssemblyMemory * CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext);
+        static WebAssemblyMemory * CreateMemoryObject(uint32 initial, uint32 maximum, bool isShared, ScriptContext * scriptContext);
+        static WebAssemblyMemory * CreateForExistingBuffer(uint32 initial, uint32 maximum, uint32 currentByteLength, ScriptContext * scriptContext);
+        static WebAssemblyMemory * CreateFromSharedContents(uint32 initial, uint32 maximum, SharedContents* sharedContents, ScriptContext * scriptContext);
 
-        WebAssemblyArrayBuffer * GetBuffer() const;
+        ArrayBufferBase * GetBuffer() const;
         uint GetInitialLength() const;
         uint GetMaximumLength() const;
         uint GetCurrentMemoryPages() const;
+        bool IsSharedMemory() const;
 
         int32 GrowInternal(uint32 deltaPages);
         static int32 GrowHelper(Js::WebAssemblyMemory * memory, uint32 deltaPages);
@@ -45,9 +48,12 @@ namespace Js
         static void TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint32 offset, Js::ArrayBufferView::ViewType viewType, uint32 bytecodeOffset, ScriptContext* context);
 #endif
     private:
-        WebAssemblyMemory(WebAssemblyArrayBuffer * buffer, uint32 initial, uint32 maximum, DynamicType * type);
+        WebAssemblyMemory(ArrayBufferBase* buffer, uint32 initial, uint32 maximum, DynamicType * type);
+        static __checkReturn bool AreLimitsValid(uint32 initial, uint32 maximum);
+        static __checkReturn bool AreLimitsValid(uint32 initial, uint32 maximum, uint32 bufferLength);
 
-        Field(WebAssemblyArrayBuffer *) m_buffer;
+
+        Field(ArrayBufferBase*) m_buffer;
 
         Field(uint) m_initial;
         Field(uint) m_maximum;

@@ -2260,7 +2260,7 @@ LABEL1:
                 return false;
             }
 
-            ArrayBuffer* arrayBuffer = nullptr;
+            ArrayBufferBase* arrayBuffer = nullptr;
             size_t reservationSize = 0;
 #ifdef ENABLE_WASM
             if (isWasmOnly)
@@ -2285,7 +2285,7 @@ LABEL1:
 
             uint bufferLength = arrayBuffer->GetByteLength();
 
-            if (!isWasmOnly && !arrayBuffer->IsValidAsmJsBufferLength(bufferLength))
+            if (!isWasmOnly && !((ArrayBuffer*)arrayBuffer)->IsValidAsmJsBufferLength(bufferLength))
             {
                 return false;
             }
@@ -2296,6 +2296,14 @@ LABEL1:
             if (faultingAddr >= bufferAddr + reservationSize)
             {
                 return false;
+            }
+
+            if (isWasmOnly)
+            {
+                // It is possible to have an A/V on other instructions then load/store (ie: xchg for atomics)
+                // Which we don't decode at this time
+                // We've confirmed the A/V occurred in the Virtual Memory, so just throw now
+                JavascriptError::ThrowWebAssemblyRuntimeError(func->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
             }
         }
         else
@@ -2334,11 +2342,6 @@ LABEL1:
         if (!instrData.bufferValue)
         {
             return false;
-        }
-
-        if (isWasmOnly)
-        {
-            JavascriptError::ThrowWebAssemblyRuntimeError(func->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
         }
 
         // SIMD loads/stores do bounds checks.
