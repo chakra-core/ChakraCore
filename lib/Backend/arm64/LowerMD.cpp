@@ -8039,7 +8039,7 @@ LowererMD::CheckOverflowOnFloatToInt32(IR::Instr* instrInsert, IR::Opnd* intOpnd
     // CMP intOpnd, 0x80000000     -- Check for overflow
     IR::Instr* instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     instr->SetSrc1(intOpnd);
-    instr->SetSrc2(IR::IntConstOpnd::New(0x80000000, TyInt32, this->m_func, true));
+    instr->SetSrc2(IR::IntConstOpnd::New(0x80000000, TyUint32, this->m_func, true));
     instrInsert->InsertBefore(instr);
     LegalizeMD::LegalizeInstr(instr, false);
 
@@ -8049,12 +8049,9 @@ LowererMD::CheckOverflowOnFloatToInt32(IR::Instr* instrInsert, IR::Opnd* intOpnd
 
     // CMP intOpnd, 0x7fffffff     -- Check for overflow
 
-    IR::RegOpnd *regOpnd= IR::RegOpnd::New(TyMachReg, this->m_func);
+    IR::RegOpnd *regOpnd= IR::RegOpnd::New(TyUint32, this->m_func);
 
-    instr = IR::Instr::New(Js::OpCode::MVN,
-        regOpnd,
-        IR::IntConstOpnd::New(0x80000000, TyInt32, this->m_func, true),
-        this->m_func);
+    instr = IR::Instr::New(Js::OpCode::MOVN, regOpnd, IR::IntConstOpnd::New(0x80000000, TyUint32, this->m_func, true), this->m_func);
     instrInsert->InsertBefore(instr);
     LegalizeMD::LegalizeInstr(instr, false);
 

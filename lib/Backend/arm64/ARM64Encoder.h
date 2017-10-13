@@ -150,6 +150,8 @@ enum
     NEONREG_INVALID = 99,
 };
 
+#define LAST_FLOAT_REG_ENCODE NEONREG_D31
+
 //
 // Condition code types.
 //
