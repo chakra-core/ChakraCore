@@ -146,6 +146,7 @@ namespace Js
         va_list arglist;
         va_start( arglist, _msg );
         vswprintf_s( msg_, _msg, arglist );
+        va_end( arglist );
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS

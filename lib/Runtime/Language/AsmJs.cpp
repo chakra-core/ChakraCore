@@ -1235,6 +1235,7 @@ AsmJsCompilationError:
         va_list argptr;
         va_start(argptr, message);
         VOutputMessage(scriptContext, DEIT_ASMJS_FAILED, message, argptr);
+        va_end(argptr);
     }
 
     void AsmJSCompiler::OutputMessage(ScriptContext * scriptContext, const DEBUG_EVENT_INFO_TYPE messageType, const wchar * message, ...)
@@ -1242,6 +1243,7 @@ AsmJsCompilationError:
         va_list argptr;
         va_start(argptr, message);
         VOutputMessage(scriptContext, messageType, message, argptr);
+        va_end(argptr);
     }
 
     void AsmJSCompiler::VOutputMessage(ScriptContext * scriptContext, const DEBUG_EVENT_INFO_TYPE messageType, const wchar * message, va_list argptr)
