@@ -1114,9 +1114,11 @@ LowererMDArch::LowerWasmArrayBoundsCheck(IR::Instr * instr, IR::Opnd *addrOpnd)
 void
 LowererMDArch::LowerAtomicStore(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr)
 {
-    src1->SetType(dst->GetType());
+    IR::RegOpnd* tmpSrc = IR::RegOpnd::New(dst->GetType(), m_func);
+    Lowerer::InsertMove(tmpSrc, src1, insertBeforeInstr);
+
     // Put src1 as dst to make sure we know that register is modified
-    IR::Instr* xchgInstr = IR::Instr::New(Js::OpCode::XCHG, src1, src1, dst, insertBeforeInstr->m_func);
+    IR::Instr* xchgInstr = IR::Instr::New(Js::OpCode::XCHG, tmpSrc, tmpSrc, dst, insertBeforeInstr->m_func);
     insertBeforeInstr->InsertBefore(xchgInstr);
 }
 

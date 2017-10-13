@@ -261,7 +261,7 @@ MACRO(TZCNT,    Reg2,   None,          RNON,   f(MODRM),   o(TZCNT),   DF3|DSETC
 
 MACRO(UCOMISD,  Empty,  None,          RNON,   f(MODRM),   o(UCOMISD), DNO16|D66|DSETCC,            OLB_0F)
 MACRO(UCOMISS,  Empty,  None,          RNON,   f(MODRM),   o(UCOMISS), DNO16|DSETCC,                OLB_0F)
-MACRO(XCHG,     Reg2,   None,          R000,   f(XCHG),    o(XCHG),    DOPEQ,                       OLB_NONE)
+MACRO(XCHG,     Reg2,   OpSideEffect,  R000,   f(XCHG),    o(XCHG),    DOPEQ,                       OLB_NONE)
 MACRO(XOR,      Reg2,   OpSideEffect,  R110,   f(BINOP),   o(XOR),     DOPEQ|DSETCC|DCOMMOP,        OLB_NONE)
 MACRO(XORPS,    Reg3,   None,          RNON,   f(MODRM),   o(XORPS),   DNO16|DOPEQ|DCOMMOP,         OLB_0F)
 MACRO(PINSRW,   Reg2,   None,          RNON,   f(MODRM),   o(PINSRW),  DDST|DNO16|DSSE|D66,         OLB_0F)
