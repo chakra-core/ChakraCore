@@ -420,4 +420,11 @@
     <compile-flags>-wasmthreads -ESSharedArrayBuffer -args summary -endargs</compile-flags>
   </default>
 </test>
+<test>
+  <default>
+    <files>reload.js</files>
+    <compile-flags>-wasmthreads -ESSharedArrayBuffer</compile-flags>
+    <tags>exclude_jshost</tags>
+  </default>
+</test>
 </regress-exe>

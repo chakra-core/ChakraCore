@@ -700,69 +700,69 @@ IRBuilderAsmJs::CreateRelocRecord(IR::BranchInstr * branchInstr, uint32 offset, 
 }
 
 void
-IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset)
+IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset, bool isFirstLoad)
 {
-    IR::RegOpnd* bufferInfoSrc = nullptr;
-    int bufferOffset = 0;
-    int bufferLengthOffset = 0;
+    enum ShouldReload
+    {
+        DoReload,
+        DontReload
+    };
+    const auto AddLoadField = [&](AsmJsRegSlots::ConstSlots dst, AsmJsRegSlots::ConstSlots src, int32 fieldOffset, ShouldReload shouldReload)
+    {
+        if (isFirstLoad || shouldReload == DoReload)
+        {
+            IR::RegOpnd * dstOpnd = BuildDstOpnd(dst, TyVar);
+            IR::Opnd * srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(src, TyVar), fieldOffset, TyVar, m_func);
+            IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
+            AddInstr(instr, offset);
+        }
+    };
 
 #ifdef ENABLE_WASM
-    if(m_func->GetJITFunctionBody()->IsWasmFunction())
+    const bool isWasm = m_func->GetJITFunctionBody()->IsWasmFunction();
+    const bool isSharedMem = m_func->GetJITFunctionBody()->GetAsmJsInfo()->IsSharedMemory();
+
+    if(isWasm)
     {
-        // WebAssembly.Memory
-        IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::WasmMemoryReg, TyVar);
-        IR::Opnd * srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ModuleMemReg, TyVar), (int32)Js::WebAssemblyModule::GetMemoryOffset(), TyVar, m_func);
-        IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
-        AddInstr(instr, offset);
+        // WebAssembly.Memory only needs to be loaded once as it can't change over the course of the function
+        AddLoadField(AsmJsRegSlots::WasmMemoryReg, AsmJsRegSlots::ModuleMemReg, (int32)Js::WebAssemblyModule::GetMemoryOffset(), DontReload);
 
-        // ArrayBuffer
-        dstOpnd = BuildDstOpnd(AsmJsRegSlots::ArrayReg, TyVar);
-        srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::WasmMemoryReg, TyVar), Js::WebAssemblyMemory::GetOffsetOfArrayBuffer(), TyVar, m_func);
-        instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
-        AddInstr(instr, offset);
-
-#ifdef ENABLE_WASM_THREADS
-        if (m_func->GetJITFunctionBody()->GetAsmJsInfo()->IsSharedMemory())
+        if (!isSharedMem)
         {
-            // SharedContents
-            dstOpnd = BuildDstOpnd(AsmJsRegSlots::SharedContents, TyVar);
-            srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::SharedArrayBuffer::GetSharedContentsOffset(), TyVar, m_func);
-            instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
-            AddInstr(instr, offset);
-
-            bufferInfoSrc = BuildSrcOpnd(AsmJsRegSlots::SharedContents, TyVar);
-            bufferOffset = Js::SharedContents::GetBufferOffset();
-            bufferLengthOffset = Js::SharedContents::GetBufferLengthOffset();
+            // ArrayBuffer
+            // GrowMemory can change the ArrayBuffer, we have to reload it
+            AddLoadField(AsmJsRegSlots::ArrayReg, AsmJsRegSlots::WasmMemoryReg, Js::WebAssemblyMemory::GetOffsetOfArrayBuffer(), DoReload);
+            // ArrayBuffer.buffer
+            // The buffer doesn't change when using Fast Virtual buffer even if we grow the memory
+            ShouldReload shouldReloadBufferPointer = m_func->GetJITFunctionBody()->UsesWAsmJsFastVirtualBuffer() ? DontReload : DoReload;
+            AddLoadField(AsmJsRegSlots::BufferReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetBufferOffset(), shouldReloadBufferPointer);
+            // ArrayBuffer.length
+            AddLoadField(AsmJsRegSlots::LengthReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetByteLengthOffset(), DoReload);
         }
-#endif
+        else
+        {
+            // SharedArrayBuffer
+            // SharedArrayBuffer cannot be detached and the buffer cannot change, no need to reload
+            AddLoadField(AsmJsRegSlots::ArrayReg, AsmJsRegSlots::WasmMemoryReg, Js::WebAssemblyMemory::GetOffsetOfArrayBuffer(), DontReload);
+            // SharedArrayBuffer.SharedContents
+            AddLoadField(AsmJsRegSlots::SharedContents, AsmJsRegSlots::ArrayReg, Js::SharedArrayBuffer::GetSharedContentsOffset(), DontReload);
+            // SharedContents.buffer
+            AddLoadField(AsmJsRegSlots::BufferReg, AsmJsRegSlots::SharedContents, Js::SharedContents::GetBufferOffset(), DontReload);
+            // SharedContents.length
+            AddLoadField(AsmJsRegSlots::LengthReg, AsmJsRegSlots::SharedContents, Js::SharedContents::GetBufferLengthOffset(), DoReload);
+        }
     }
     else
 #endif
     {
         // ArrayBuffer
-        IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::ArrayReg, TyVar);
-        IR::Opnd * srcOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ModuleMemReg, TyVar), (int32)Js::AsmJsModuleMemory::MemoryTableBeginOffset, TyVar, m_func);
-        IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
-        AddInstr(instr, offset);
+        // The ArrayBuffer can be changed on the environment, if it is detached, we'll throw
+        AddLoadField(AsmJsRegSlots::ArrayReg, AsmJsRegSlots::ModuleMemReg, (int32)Js::AsmJsModuleMemory::MemoryTableBeginOffset, DontReload);
+        // ArrayBuffer.buffer
+        AddLoadField(AsmJsRegSlots::BufferReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetBufferOffset(), DontReload);
+        // ArrayBuffer.length
+        AddLoadField(AsmJsRegSlots::LengthReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetByteLengthOffset(), DontReload);
     }
-
-    if (!bufferInfoSrc)
-    {
-        bufferInfoSrc = BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar);
-        bufferOffset = Js::ArrayBuffer::GetBufferOffset();
-        bufferLengthOffset = Js::ArrayBuffer::GetByteLengthOffset();
-    }
-    // ArrayBuffer buffer
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::BufferReg, TyVar);
-    IR::Opnd * srcOpnd = IR::IndirOpnd::New(bufferInfoSrc, bufferOffset, TyVar, m_func);
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
-    AddInstr(instr, offset);
-
-    // ArrayBuffer length
-    dstOpnd = BuildDstOpnd(AsmJsRegSlots::LengthReg, TyUint32);
-    srcOpnd = IR::IndirOpnd::New(bufferInfoSrc, bufferLengthOffset, TyUint32, m_func);
-    instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
-    AddInstr(instr, offset);
 }
 
 template<typename T, typename ConstOpnd, typename F>
@@ -811,7 +811,7 @@ IRBuilderAsmJs::BuildConstantLoads()
     // Load heap buffer
     if (m_asmFuncInfo->UsesHeapBuffer())
     {
-        BuildHeapBufferReload(Js::Constants::NoByteCodeOffset);
+        BuildHeapBufferReload(Js::Constants::NoByteCodeOffset, true);
     }
     if (!constTable)
     {
@@ -1542,9 +1542,7 @@ IRBuilderAsmJs::BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset, uin
         instr = IR::Instr::New(op, indirOpnd, regOpnd, m_func);
     }
 
-#if ENABLE_FAST_ARRAYBUFFER
-    if (!CONFIG_FLAG(WasmFastArray))
-#endif
+    if (!m_func->GetJITFunctionBody()->UsesWAsmJsFastVirtualBuffer())
     {
         instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
     }
@@ -1657,9 +1655,10 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
         instr = IR::Instr::New(op, indirOpnd, regOpnd, m_func);
     }
 
-#if !ENABLE_FAST_ARRAYBUFFER
-    instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
-#endif
+    if (!m_func->GetJITFunctionBody()->UsesWAsmJsFastVirtualBuffer())
+    {
+        instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
+    }
     AddInstr(instr, offset);
 }
 

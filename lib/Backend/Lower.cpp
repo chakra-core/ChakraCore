@@ -9248,13 +9248,12 @@ Lowerer::LowerLdArrViewElemWasm(IR::Instr * instr)
     IR::Instr * done = LowerWasmArrayBoundsCheck(instr, src1);
     IR::Instr* newMove = InsertMove(dst, src1, done);
 
-#if ENABLE_FAST_ARRAYBUFFER
-    // We need to have an AV when accessing out of bounds memory even if the dst is not used
-    // Make sure LinearScan doesn't dead store this instruction
-    newMove->hasSideEffects = true;
-#else
-    Unused(newMove);
-#endif
+    if (m_func->GetJITFunctionBody()->UsesWAsmJsFastVirtualBuffer())
+    {
+        // We need to have an AV when accessing out of bounds memory even if the dst is not used
+        // Make sure LinearScan doesn't dead store this instruction
+        newMove->hasSideEffects = true;
+    }
 
     instr->Remove();
     return instrPrev;
