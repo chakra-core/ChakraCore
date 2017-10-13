@@ -136,6 +136,18 @@ LowererMD::InvertBranch(IR::BranchInstr *branchInstr)
     case Js::OpCode::BHI:
         branchInstr->m_opcode = Js::OpCode::BLS;
         break;
+    case Js::OpCode::CBZ:
+        branchInstr->m_opcode = Js::OpCode::CBNZ;
+        break;
+    case Js::OpCode::CBNZ:
+        branchInstr->m_opcode = Js::OpCode::CBZ;
+        break;
+    case Js::OpCode::TBZ:
+        branchInstr->m_opcode = Js::OpCode::TBNZ;
+        break;
+    case Js::OpCode::TBNZ:
+        branchInstr->m_opcode = Js::OpCode::TBZ;
+        break;
 
     default:
         AssertMsg(UNREACHED, "B missing in InvertBranch()");
