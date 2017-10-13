@@ -223,6 +223,45 @@ var tests = [
 
             assert.areEqual("[object before\0after]", o.toString(), "ToString implementation handles embedded null characters in @@toStringTag property value");
         }
+    },
+    {
+        name: "Adding @@toStringTag dynamically correctly invalidates cache",
+        body: function () {
+            // Define some setters to force both objects to have DictionaryTypeHandlerBases
+            var p = { x: 3, set x(newVal) { } };
+            var o = Object.create(p);
+            Object.defineProperty(o, 'y', { get: function() { return 4; }, set: function (newVal) { } });
+            // next assert is here just to get o[Symbol.toStringTag] into missing-property cache
+            assert.areEqual("[object Object]", o.toString(), "initial call to toString fails to find @@toStringTag");
+            o[Symbol.toStringTag] = "customTag";
+            assert.areEqual("[object customTag]", o.toString(), "second call to toString picks up changed @@toStringTag");
+        }
+    },
+    {
+        name: "Adding getter method for @@toStringTag correctly invalidates cache",
+        body: function () {
+            // force use of DictionaryTypeHandlerBase
+            var o = { x: 3, set x(newVal) { } };
+            // load o[Symbol.toStringTag] into missing-property cache
+            assert.areEqual("[object Object]", o.toString(), "initial call to toString fails to find @@toStringTag");
+            Object.defineProperty(o, Symbol.toStringTag, {
+                get: function () { return "customTag"; }
+            });
+            assert.areEqual("[object customTag]", o.toString(), "second call to toString picks up getter for @@toStringTag");
+        }
+    },
+    {
+        name: "Dyanmically adding @@toStringTag to prototype correctly invalidates cache",
+        body: function () {
+            // force use of DictionaryTypeHandlerBase
+            var p = { x: 3, set x(newVal) { } };
+            var o = Object.create(p);
+            Object.defineProperty(o, 'y', { get: function() { return 4; }, set: function(newVal) { } });
+            // load o[Symbol.toStringTag] into missing-property cache
+            assert.areEqual("[object Object]", o.toString(), "initial call to toString fails to find @@toStringTag");
+            p[Symbol.toStringTag] = "prototypeTag";
+            assert.areEqual("[object prototypeTag]", o.toString(), "second call to toString picks up @@toStringTag in prototype");
+        }
     }
 ];
 
