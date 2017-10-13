@@ -6,6 +6,6 @@
 
 interface IRecyclerHeapMarkingContext
 {
-    STDMETHOD_(void, MarkObjects)(void** objects, size_t count, void* parent) = 0;
+    virtual void MarkObjects(void** objects, size_t count, void* parent) = 0;
 };
 

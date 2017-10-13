@@ -13,7 +13,7 @@ class MarkContextWrapper : public IRecyclerHeapMarkingContext
 public:
     MarkContextWrapper(MarkContext* context) : markContext(context) {}
 
-    void __stdcall MarkObjects(void** objects, size_t count, void* parent) override
+    void MarkObjects(void** objects, size_t count, void* parent) override
     {
         for (size_t i = 0; i < count; i++)
         {

@@ -364,7 +364,7 @@ public:
         return true;
     }
 
-    virtual void __stdcall Trace(IRecyclerHeapMarkingContext* markContext) override
+    virtual void Trace(IRecyclerHeapMarkingContext* markContext) override
     {
         VerifyCondition(type == AllocationType::TraceAndFinalized || type == AllocationType::TraceOnly);
         // Note that the pointers in the references arrary are technically tagged. However, this is ok
@@ -372,12 +372,12 @@ public:
         markContext->MarkObjects(reinterpret_cast<void**>(&references[0]), count, this);
     }
 
-    virtual void __stdcall Finalize(bool isShutdown) override
+    virtual void Finalize(bool isShutdown) override
     {
         // Only types that request finalization should have Finalize called
         VerifyCondition(IsFinalizable());
     }
-    virtual void __stdcall Dispose(bool isShutdown) override
+    virtual void Dispose(bool isShutdown) override
     { 
         // Only types that request finalization should have Finalize called
         VerifyCondition(IsFinalizable());
