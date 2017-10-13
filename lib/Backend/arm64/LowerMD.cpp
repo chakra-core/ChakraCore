@@ -5982,7 +5982,7 @@ LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::In
 
         IR::RegOpnd* tmp = IR::RegOpnd::New(TyMachReg, m_func);
 
-        IR::Instr* newInstr = IR::Instr::New(Js::OpCode::UBFX, tmp, s1, IR::IntConstOpnd::New(((52<<16)|11), TyMachReg, m_func, true), m_func);
+        IR::Instr* newInstr = IR::Instr::New(Js::OpCode::UBFX, tmp, s1, IR::IntConstOpnd::New(BITFIELD(52, 11), TyMachReg, m_func, true), m_func);
         instrInsert->InsertBefore(newInstr);
         LowererMD::Legalize(newInstr);
 
@@ -6000,7 +6000,7 @@ LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::In
 
         IR::RegOpnd* tmp2 = IR::RegOpnd::New(TyMachReg, m_func);
 
-        newInstr = IR::Instr::New(Js::OpCode::UBFX, tmp2, s1, IR::IntConstOpnd::New(((0<<16)|52), TyMachReg, m_func, true), m_func);
+        newInstr = IR::Instr::New(Js::OpCode::UBFX, tmp2, s1, IR::IntConstOpnd::New(BITFIELD(0,52), TyMachReg, m_func, true), m_func);
         done->InsertBefore(newInstr);
         LowererMD::Legalize(newInstr);
 
@@ -8250,7 +8250,7 @@ IR::RegOpnd* LowererMD::CheckFloatAndUntag(IR::RegOpnd * opndSrc, IR::Instr * in
     }
 
     IR::RegOpnd* untaggedFloat = IR::RegOpnd::New(TyMachReg, this->m_func);
-    IR::Instr* instr = IR::Instr::New(Js::OpCode::EOR, untaggedFloat, floatTag, opndSrc, this->m_func);
+    IR::Instr* instr = IR::Instr::New(Js::OpCode::EOR, untaggedFloat, opndSrc, floatTag, this->m_func);
     insertInstr->InsertBefore(instr);
 
     IR::RegOpnd *floatReg = IR::RegOpnd::New(TyMachDouble, this->m_func);
