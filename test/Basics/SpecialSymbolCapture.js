@@ -902,7 +902,14 @@ var tests = [
             }
             foo.call(_this)
         }
-    }
+    },
+    {
+        name: "Loading 'this' binding as a call target",
+        body: function() {
+            assert.throws(() => WScript.LoadScript(`with({}) { this() }`), TypeError, "Loading global 'this' binding as a call target should always throw - 'this' is an object", "Function expected");
+            assert.throws(() => this(), TypeError, "Capturing function 'this' binding and emitting as a call target should throw if 'this' is not a function", "Function expected");
+        }
+    },
 ]
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

@@ -169,6 +169,7 @@ public:
     Js::RegSlot AssignUndefinedConstRegister();
     Js::RegSlot AssignTrueConstRegister();
     Js::RegSlot AssignFalseConstRegister();
+    Js::RegSlot AssignThisConstRegister();
     void SetNeedEnvRegister();
     void AssignFrameObjRegister();
     void AssignFrameSlotsRegister();
@@ -277,11 +278,10 @@ public:
     void LoadUncachedHeapArguments(FuncInfo *funcInfo);
     void LoadCachedHeapArguments(FuncInfo *funcInfo);
     void LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromParams = false);
-    void EmitThis(FuncInfo *funcInfo, Js::RegSlot fromRegister);
+    void EmitThis(FuncInfo *funcInfo, Js::RegSlot lhsLocation, Js::RegSlot fromRegister);
     void LoadNewTargetObject(FuncInfo *funcInfo);
     void LoadSuperObject(FuncInfo *funcInfo);
     void LoadSuperConstructorObject(FuncInfo *funcInfo);
-    void GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &scope, Js::PropertyId &envIndex);
     void EmitSuperCall(FuncInfo* funcInfo, ParseNode* pnode, BOOL fReturnValue);
     void EmitClassConstructorEndCode(FuncInfo *funcInfo);
     void EmitBaseClassConstructorThisObject(FuncInfo *funcInfo);
@@ -304,6 +304,8 @@ public:
     void EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
     void EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
     void EmitTypeOfFld(FuncInfo * funcInfo, Js::PropertyId propertyId, Js::RegSlot value, Js::RegSlot instance, Js::OpCode op1);
+
+    bool ShouldLoadConstThis(FuncInfo* funcInfo);
 
     void EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pnode, FuncInfo *funcInfo, bool chkUndecl);
     void EmitPropStoreForSpecialSymbol(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool init);

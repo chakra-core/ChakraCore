@@ -26,6 +26,7 @@ FuncInfo::FuncInfo(
     outArgsDepth(0),
 #endif
     name(name),
+    thisConstantRegister(Js::Constants::NoRegister),
     nullConstantRegister(Js::Constants::NoRegister),
     undefinedConstantRegister(Js::Constants::NoRegister),
     trueConstantRegister(Js::Constants::NoRegister),
@@ -151,6 +152,11 @@ BOOL FuncInfo::IsClassConstructor() const
 BOOL FuncInfo::IsBaseClassConstructor() const
 {
     return root->sxFnc.IsBaseClassConstructor();
+}
+
+BOOL FuncInfo::IsDerivedClassConstructor() const
+{
+    return root->sxFnc.IsDerivedClassConstructor();
 }
 
 Scope *

@@ -1680,56 +1680,73 @@ ParseNodePtr Parser::ReferenceSpecialName(IdentPtr pid, charcount_t ichMin, char
     return pnode;
 }
 
+ParseNodePtr Parser::CreateSpecialVarDeclIfNeeded(ParseNodePtr pnodeFnc, IdentPtr pid, bool forceCreate)
+{
+    Assert(pid != nullptr);
+
+    PidRefStack* ref = pid->GetTopRef();
+
+    // If the function has a reference to pid or we set forceCreate, make a special var decl
+    if (forceCreate || (ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId))
+    {
+        return this->CreateSpecialVarDeclNode(pnodeFnc, pid);
+    }
+
+    return nullptr;
+}
+
 void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal)
 {
-    Assert(!(isGlobal && (this->m_grfscr & fscrEval)));
-
-    bool isTopLevelEventHandler = (this->m_grfscr & fscrImplicitThis || this->m_grfscr & fscrImplicitParents);
-
-    // Create a 'this' symbol for global lambda, indirect eval, ordinary functions with references to 'this', and all class constructors.
-    PidRefStack* ref = wellKnownPropertyPids._this->GetTopRef();
-    if (((pnodeFnc->sxFnc.IsLambda() && GetCurrentNonLambdaFunctionNode() == nullptr && !(this->m_grfscr & fscrEval)) || !pnodeFnc->sxFnc.IsLambda())
-        && ((ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId) || pnodeFnc->sxFnc.IsClassConstructor() || isTopLevelEventHandler))
+    // Lambda function cannot have any special bindings.
+    if (pnodeFnc->sxFnc.IsLambda())
     {
-        // Insert the decl for 'this'
-        ParseNodePtr thisNode = this->CreateSpecialVarDeclNode(pnodeFnc, wellKnownPropertyPids._this);
-        thisNode->sxPid.sym->SetIsThis(true);
+        return;
+    }
+    Assert(!(isGlobal && (this->m_grfscr & fscrEval)));
+    Assert(!isGlobal || (this->m_grfscr & fscrEvalCode));
 
-        if (pnodeFnc->sxFnc.IsClassConstructor() && !pnodeFnc->sxFnc.IsBaseClassConstructor())
+    bool isTopLevelEventHandler = (this->m_grfscr & fscrImplicitThis || this->m_grfscr & fscrImplicitParents) && !pnodeFnc->sxFnc.IsNested();
+
+    // Create a 'this' symbol for indirect eval, non-lambda functions with references to 'this', and all class constructors and top level event hanlders.
+    ParseNodePtr varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._this, pnodeFnc->sxFnc.IsClassConstructor() || isTopLevelEventHandler);
+    if (varDeclNode)
+    {
+        varDeclNode->sxPid.sym->SetIsThis(true);
+
+        if (pnodeFnc->sxFnc.IsDerivedClassConstructor())
         {
-            thisNode->sxPid.sym->SetNeedDeclaration(true);
+            varDeclNode->sxPid.sym->SetNeedDeclaration(true);
         }
     }
 
-    // Global code and lambdas cannot have 'new.target' or 'super' bindings so don't bother
-    if (isGlobal || pnodeFnc->sxFnc.IsLambda())
+    // Global code cannot have 'new.target' or 'super' bindings.
+    if (isGlobal)
     {
         return;
     }
 
     // Create a 'new.target' symbol for any ordinary function with a reference and all class constructors.
-    ref = wellKnownPropertyPids._newTarget->GetTopRef();
-    if ((ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId) || pnodeFnc->sxFnc.IsClassConstructor())
+    varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._newTarget, pnodeFnc->sxFnc.IsClassConstructor());
+    if (varDeclNode)
     {
-        // Insert the decl for 'new.target'
-        ParseNodePtr newTargetNode = this->CreateSpecialVarDeclNode(pnodeFnc, wellKnownPropertyPids._newTarget);
-        newTargetNode->sxPid.sym->SetIsNewTarget(true);
+        varDeclNode->sxPid.sym->SetIsNewTarget(true);
     }
 
-    ref = wellKnownPropertyPids._super->GetTopRef();
-    if (ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId)
+    // Create a 'super' (as a reference) symbol.
+    varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._super);
+    if (varDeclNode)
     {
-        // Insert the decl for 'super (as a reference)'
-        ParseNodePtr superNode = this->CreateSpecialVarDeclNode(pnodeFnc, wellKnownPropertyPids._super);
-        superNode->sxPid.sym->SetIsSuper(true);
+        varDeclNode->sxPid.sym->SetIsSuper(true);
     }
 
-    ref = wellKnownPropertyPids._superConstructor->GetTopRef();
-    if (ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->sxBlock.blockId)
+    // Create a 'super' (as the call target for super()) symbol only for derived class constructors.
+    if (pnodeFnc->sxFnc.IsDerivedClassConstructor())
     {
-        // Insert the decl for 'super (as the call target for super())'
-        ParseNodePtr superNode = this->CreateSpecialVarDeclNode(pnodeFnc, wellKnownPropertyPids._superConstructor);
-        superNode->sxPid.sym->SetIsSuperConstructor(true);
+        varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._superConstructor);
+        if (varDeclNode)
+        {
+            varDeclNode->sxPid.sym->SetIsSuperConstructor(true);
+        }
     }
 }
 
@@ -2250,6 +2267,14 @@ void Parser::EnsureStackAvailable()
 
 void Parser::ThrowNewTargetSyntaxErrForGlobalScope()
 {
+    // If we are parsing a previously deferred function, we can skip throwing the SyntaxError for `new.target` at global scope.
+    // If we are at global scope, we would have thrown a SyntaxError when we did the Upfront parse pass and we would not have
+    // deferred the function in order to come back now and reparse it.
+    if (m_parseType == ParseType_Deferred)
+    {
+        return;
+    }
+
     if (GetCurrentNonLambdaFunctionNode() != nullptr)
     {
         return;
@@ -5343,7 +5368,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         // These are heuristic conditions that prohibit upfront deferral but not redeferral.
         isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc && 
             (!isLikelyIIFE || !topLevelStmt || PHASE_FORCE_RAW(Js::DeferParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->sxFnc.functionId));
-;
+
         if (!fLambda &&
             !isDeferredFnc &&
             !isLikelyIIFE &&
@@ -11482,8 +11507,8 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     if (tkEOF != m_token.tk)
         Error(ERRsyntax);
 
-    // Direct eval doesn't need to have special symbols created
-    if (!(this->m_grfscr & fscrEval))
+    // We only need to create special symbol bindings for 'this' for indirect eval
+    if ((this->m_grfscr & fscrEvalCode) && !(this->m_grfscr & fscrEval))
     {
         CreateSpecialSymbolDeclarations(pnodeProg, true);
     }
