@@ -890,6 +890,18 @@ var tests = [
             // Failure causes an assert to fire
             WScript.LoadScript(`(a = function() { this }, b = (this)) => {}`);
         }
+    },
+    {
+        name: "Non-split scope with default arguments referencing special names",
+        body: function() {
+            var _this = {}
+            function foo(a = this) {
+                eval('');
+                assert.areEqual(_this, a, "Correct default value was assigned");
+                assert.areEqual(_this, this, "Regular 'this' binding is correct");
+            }
+            foo.call(_this)
+        }
     }
 ]
 
