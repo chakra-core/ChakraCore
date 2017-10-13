@@ -361,6 +361,17 @@ namespace UnifiedRegex
 #endif
     };
 
+    struct TrieMixin
+    {
+        RuntimeCharTrie trie;
+
+        // Trie must always be cloned
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+        void Print(DebugWriter* w, const char16* litbuf) const;
+#endif
+    };
+
     struct Char2LiteralScannerMixin : Char2Mixin
     {
         // scanner must be setup
@@ -504,17 +515,29 @@ namespace UnifiedRegex
 #endif
     };
 
-    struct BeginLoopMixin
+    struct BeginLoopBasicsMixin
     {
         int loopId;
         const CountDomain repeats;
         bool hasOuterLoops;
+
+        inline BeginLoopBasicsMixin(int loopId, const CountDomain& repeats, bool hasOuterLoops)
+            : loopId(loopId), repeats(repeats), hasOuterLoops(hasOuterLoops)
+        {}
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+        void Print(DebugWriter* w, const char16* litbuf) const;
+#endif
+    };
+
+    struct BeginLoopMixin : BeginLoopBasicsMixin
+    {
         bool hasInnerNondet;
         Label exitLabel;
 
         // exitLabel must always be fixed up
         inline BeginLoopMixin(int loopId, const CountDomain& repeats, bool hasOuterLoops, bool hasInnerNondet)
-            : loopId(loopId), repeats(repeats), hasOuterLoops(hasOuterLoops), hasInnerNondet(hasInnerNondet)
+            : BeginLoopBasicsMixin(loopId, repeats, hasOuterLoops), hasInnerNondet(hasInnerNondet)
         {
 #if DBG
             exitLabel = (Label)-1;
@@ -526,11 +549,34 @@ namespace UnifiedRegex
 #endif
     };
 
+    struct GreedyMixin
+    {
+        bool isGreedy;
+        inline GreedyMixin(bool isGreedy) : isGreedy(isGreedy) {}
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+        void Print(DebugWriter* w, const char16* litbuf) const;
+#endif
+    };
+
     struct RepeatLoopMixin
     {
         Label beginLabel;  // label of the BeginLoopX instruction
 
         inline RepeatLoopMixin(Label beginLabel) : beginLabel(beginLabel) {}
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+        void Print(DebugWriter* w, const char16* litbuf) const;
+#endif
+    };
+
+    struct GreedyLoopNoBacktrackMixin
+    {
+        int loopId;
+        Label exitLabel;
+
+        // exitLabel must always be fixed up
+        inline GreedyLoopNoBacktrackMixin(int loopId) : loopId(loopId) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
         void Print(DebugWriter* w, const char16* litbuf) const;
@@ -554,11 +600,50 @@ namespace UnifiedRegex
 #endif
     };
 
+    struct NegationMixin
+    {
+        bool isNegation;
+
+        inline NegationMixin(bool isNegation) : isNegation(isNegation) {}
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+        void Print(DebugWriter* w, const char16* litbuf) const;
+#endif
+    };
+
+    struct NextLabelMixin
+    {
+        Label nextLabel;
+
+        // nextLabel must always be fixed up
+        inline NextLabelMixin()
+        {
+#if DBG
+            nextLabel = (Label)-1;
+#endif
+        }
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+        void Print(DebugWriter* w, const char16* litbuf) const;
+#endif
+    };
+
     struct FixedLengthMixin
     {
         CharCount length;
 
         inline FixedLengthMixin(CharCount length) : length(length) {}
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+        void Print(DebugWriter* w, const char16* litbuf) const;
+#endif
+    };
+
+    struct FollowFirstMixin : private Chars<char16>
+    {
+        Char followFirst;
+
+        inline FollowFirstMixin(Char followFirst) : followFirst(followFirst) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
         void Print(DebugWriter* w, const char16* litbuf) const;
@@ -639,6 +724,8 @@ namespace UnifiedRegex
         static bool IsBaselineMode();
         static Label GetPrintLabel(Label label);
         virtual int Print(DebugWriter*w, Label label, const Char* litbuf) const = 0;
+        template <typename T>
+        void PrintBytes(DebugWriter *w, Inst *inst, T *that, const char16 *annotation) const;
 #endif
     };
 
@@ -662,6 +749,13 @@ namespace UnifiedRegex
     //
     // Control flow
     //
+
+    struct NopInst : Inst
+    {
+        inline NopInst() : Inst(Nop) {}
+
+        INST_BODY
+    };
 
     struct FailInst : Inst
     {
@@ -851,10 +945,8 @@ namespace UnifiedRegex
         INST_BODY
     };
 
-    struct MatchTrieInst : Inst
+    struct MatchTrieInst : Inst, TrieMixin
     {
-        RuntimeCharTrie trie;
-
         // Trie must always be cloned
         inline MatchTrieInst() : Inst(MatchTrie) {}
         void FreeBody(ArenaAllocator* rtAllocator);
@@ -1152,13 +1244,11 @@ namespace UnifiedRegex
     // Loops
     //
 
-    struct BeginLoopInst : Inst, BeginLoopMixin, BodyGroupsMixin
+    struct BeginLoopInst : Inst, BeginLoopMixin, BodyGroupsMixin, GreedyMixin
     {
-        bool isGreedy;
-
         // exitLabel must always be fixed up
         inline BeginLoopInst(int loopId, const CountDomain& repeats, bool hasOuterLoops, bool hasInnerNondet, int minBodyGroupId, int maxBodyGroupId, bool isGreedy)
-            : Inst(BeginLoop), BeginLoopMixin(loopId, repeats, hasOuterLoops, hasInnerNondet), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId), isGreedy(isGreedy)
+            : Inst(BeginLoop), BeginLoopMixin(loopId, repeats, hasOuterLoops, hasInnerNondet), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId), GreedyMixin(isGreedy)
         {}
 
         INST_BODY
@@ -1223,30 +1313,24 @@ namespace UnifiedRegex
     };
 
     // Loop is greedy, contains a MatchSet only
-    struct LoopSetInst : Inst, SetMixin<false>
+    struct LoopSetInst : Inst, SetMixin<false>, BeginLoopBasicsMixin
     {
-        int loopId;
-        const CountDomain repeats;
-        bool hasOuterLoops;
-
         // set must always be cloned from source
         inline LoopSetInst(int loopId, const CountDomain& repeats, bool hasOuterLoops)
-            : Inst(LoopSet), loopId(loopId), repeats(repeats), hasOuterLoops(hasOuterLoops) {}
+            : Inst(LoopSet), BeginLoopBasicsMixin(loopId, repeats, hasOuterLoops) {}
 
         inline LoopSetInst(InstTag tag, int loopId, const CountDomain& repeats, bool hasOuterLoops)
-            : Inst(tag), loopId(loopId), repeats(repeats), hasOuterLoops(hasOuterLoops) {}
+            : Inst(tag), BeginLoopBasicsMixin(loopId, repeats, hasOuterLoops) {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin)
     };
 
     // Loop is greedy, contains a MatchSet only, first character in its follow set is known
-    struct LoopSetWithFollowFirstInst : LoopSetInst
+    struct LoopSetWithFollowFirstInst : LoopSetInst, FollowFirstMixin
     {
-        Char followFirst;
-
         inline LoopSetWithFollowFirstInst(int loopId, const CountDomain& repeats, bool hasOuterLoops, Char followFirst)
-            : LoopSetInst(InstTag::LoopSetWithFollowFirst, loopId, repeats, hasOuterLoops), followFirst(followFirst) {}
+            : LoopSetInst(InstTag::LoopSetWithFollowFirst, loopId, repeats, hasOuterLoops), FollowFirstMixin(followFirst) {}
 
         INST_BODY
     };
@@ -1269,13 +1353,10 @@ namespace UnifiedRegex
     };
 
     // Loop is greedy, deterministic body, lower == 0, upper == inf, follow is irrefutable, no inner groups
-    struct BeginGreedyLoopNoBacktrackInst : Inst
+    struct BeginGreedyLoopNoBacktrackInst : Inst, GreedyLoopNoBacktrackMixin
     {
-        int loopId;
-        Label exitLabel;
-
         // exitLabel must always be fixed up
-        inline BeginGreedyLoopNoBacktrackInst(int loopId) : Inst(BeginGreedyLoopNoBacktrack), loopId(loopId) {}
+        inline BeginGreedyLoopNoBacktrackInst(int loopId) : Inst(BeginGreedyLoopNoBacktrack), GreedyLoopNoBacktrackMixin(loopId) {}
 
         INST_BODY
     };
@@ -1411,18 +1492,12 @@ namespace UnifiedRegex
     // User-defined assertions
     //
 
-    struct BeginAssertionInst : Inst, BodyGroupsMixin
+    struct BeginAssertionInst : Inst, BodyGroupsMixin, NegationMixin, NextLabelMixin
     {
-        bool isNegation;
-        Label nextLabel;
-
         // nextLabel must always be fixed up
-        inline BeginAssertionInst(bool isNegation, int minBodyGroupId, int maxBodyGroupId) : Inst(BeginAssertion), isNegation(isNegation), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId)
-        {
-#if DBG
-            nextLabel = (Label)-1;
-#endif
-        }
+        inline BeginAssertionInst(bool isNegation, int minBodyGroupId, int maxBodyGroupId)
+            : Inst(BeginAssertion), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId), NegationMixin(isNegation), NextLabelMixin()
+        {}
 
         INST_BODY
     };

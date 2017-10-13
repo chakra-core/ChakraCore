@@ -14,7 +14,9 @@ namespace UnifiedRegex
     void CountDomain::Print(DebugWriter* w) const
     {
         if (upper != CharCountFlag && lower == (CharCount)upper)
+        {
             w->Print(_u("[%u]"), lower);
+        }
         else
         {
             w->Print(_u("[%u-"), lower);
@@ -80,7 +82,9 @@ namespace UnifiedRegex
     void Matcher::PopStats(ContStack& contStack, const Char* const input) const
     {
         if (stats != 0)
+        {
             stats->numPops++;
+        }
         if (w != 0)
         {
             const Cont* top = contStack.Top();
@@ -97,7 +101,9 @@ namespace UnifiedRegex
     void Matcher::UnPopStats(ContStack& contStack, const Char* const input) const
     {
         if (stats != 0)
+        {
             stats->numPops--;
+        }
         if (w != 0)
         {
             const Cont* top = contStack.Top();
@@ -114,13 +120,17 @@ namespace UnifiedRegex
     void Matcher::CompStats() const
     {
         if (stats != 0)
+        {
             stats->numCompares++;
+        }
     }
 
     void Matcher::InstStats() const
     {
         if (stats != 0)
+        {
             stats->numInsts++;
+        }
     }
 #endif
 
@@ -132,15 +142,19 @@ namespace UnifiedRegex
         Assert(!(TicksPerQcTimeCheck & TicksPerQcTimeCheck - 1)); // must be a power of 2
         Assert(TicksPerQcTimeCheck < TicksPerQc);
 
-        if(PHASE_OFF1(Js::RegexQcPhase))
+        if (PHASE_OFF1(Js::RegexQcPhase))
+        {
             return;
-        if(++qcTicks & TicksPerQcTimeCheck - 1)
+        }
+        if (++qcTicks & TicksPerQcTimeCheck - 1)
+        {
             return;
+        }
         DoQueryContinue(qcTicks);
     }
 
-    inline bool Matcher::HardFail
-        ( const Char* const input
+    inline bool Matcher::HardFail(
+        const Char* const input
         , const CharCount inputLength
         , CharCount &matchStart
         , CharCount &inputOffset
@@ -148,7 +162,7 @@ namespace UnifiedRegex
         , ContStack &contStack
         , AssertionStack &assertionStack
         , uint &qcTicks
-        , HardFailMode mode )
+        , HardFailMode mode)
     {
         switch (mode)
         {
@@ -162,11 +176,15 @@ namespace UnifiedRegex
                 return true; // STOP EXECUTING
             }
             else
+            {
                 return false;
+            }
         case LaterOnly:
 #if ENABLE_REGEX_CONFIG_OPTIONS
             if (w != 0)
+            {
                 w->PrintEOL(_u("CLEAR"));
+            }
 #endif
             contStack.Clear();
             assertionStack.Clear();
@@ -178,6 +196,7 @@ namespace UnifiedRegex
         default:
             Assume(false);
         }
+
         return true;
     }
 
@@ -192,7 +211,9 @@ namespace UnifiedRegex
         // NOTE: We don't include the effective pops in the stats
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (w != 0)
+        {
             w->PrintEOL(_u("POP TO %llu"), (unsigned long long)info->contStackPosition);
+        }
 #endif
         contStack.PopTo(info->contStackPosition);
 
@@ -204,7 +225,9 @@ namespace UnifiedRegex
         // true       true        Fail into outer continuations (inner group binding MUST BE CLEARED)
 
         if (succeeded && begin->isNegation)
+        {
             ResetInnerGroups(begin->minBodyGroupId, begin->maxBodyGroupId);
+        }
 
         if (succeeded == begin->isNegation)
         {
@@ -228,8 +251,10 @@ namespace UnifiedRegex
         const Char *const input,
         ContStack &contStack)
     {
-        if(toGroupId >= 0)
+        if (toGroupId >= 0)
+        {
             DoSaveInnerGroups(fromGroupId, toGroupId, reset, input, contStack);
+        }
     }
 
     void Matcher::DoSaveInnerGroups(
@@ -248,14 +273,16 @@ namespace UnifiedRegex
         do
         {
             GroupInfo *const groupInfo = GroupIdToGroupInfo(groupId);
-            if(groupInfo->IsUndefined())
+            if (groupInfo->IsUndefined())
             {
-                if(undefinedRangeFromId < 0)
+                if (undefinedRangeFromId < 0)
+                {
                     undefinedRangeFromId = groupId;
+                }
                 continue;
             }
 
-            if(undefinedRangeFromId >= 0)
+            if (undefinedRangeFromId >= 0)
             {
                 Assert(groupId > 0);
                 DoSaveInnerGroups_AllUndefined(undefinedRangeFromId, groupId - 1, input, contStack);
@@ -267,10 +294,12 @@ namespace UnifiedRegex
             PushStats(contStack, input);
 #endif
 
-            if(reset)
+            if (reset)
+            {
                 groupInfo->Reset();
-        } while(++groupId <= toGroupId);
-        if(undefinedRangeFromId >= 0)
+            }
+        } while (++groupId <= toGroupId);
+        if (undefinedRangeFromId >= 0)
         {
             Assert(toGroupId >= 0);
             DoSaveInnerGroups_AllUndefined(undefinedRangeFromId, toGroupId, input, contStack);
@@ -283,8 +312,10 @@ namespace UnifiedRegex
         const Char *const input,
         ContStack &contStack)
     {
-        if(toGroupId >= 0)
+        if (toGroupId >= 0)
+        {
             DoSaveInnerGroups_AllUndefined(fromGroupId, toGroupId, input, contStack);
+        }
     }
 
     void Matcher::DoSaveInnerGroups_AllUndefined(
@@ -298,16 +329,21 @@ namespace UnifiedRegex
         Assert(fromGroupId <= toGroupId);
 
 #if DBG
-        for(int groupId = fromGroupId; groupId <= toGroupId; ++groupId)
+        for (int groupId = fromGroupId; groupId <= toGroupId; ++groupId)
         {
             Assert(GroupIdToGroupInfo(groupId)->IsUndefined());
         }
 #endif
 
-        if(fromGroupId == toGroupId)
+        if (fromGroupId == toGroupId)
+        {
             PUSH(contStack, ResetGroupCont, fromGroupId);
+        }
         else
+        {
             PUSH(contStack, ResetGroupRangeCont, fromGroupId, toGroupId);
+        }
+
 #if ENABLE_REGEX_CONFIG_OPTIONS
         PushStats(contStack, input);
 #endif
@@ -322,7 +358,9 @@ namespace UnifiedRegex
     inline void Matcher::ResetInnerGroups(int minGroupId, int maxGroupId)
     {
         for (int i = minGroupId; i <= maxGroupId; i++)
+        {
             ResetGroup(i);
+        }
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -335,6 +373,97 @@ namespace UnifiedRegex
     {
         return IsBaselineMode() ? (Label)0xFFFF : label;
     }
+
+    template <typename T>
+    void Inst::PrintBytes(DebugWriter *w, Inst *inst, T *that, const char16 *annotation) const
+    {
+        T *start = (T*)that;
+        byte *startByte = (byte *)start;
+        byte *baseByte = (byte *)inst;
+        ptrdiff_t offset = startByte - baseByte;
+        size_t size = sizeof(*((T *)that));
+        byte *endByte = startByte + size;
+        byte *currentByte = startByte;
+        w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offset, size, annotation);
+
+        if ((T *)this == that)
+        {
+            w->PrintEOL(_u(" (no unique data -- skipping)"));
+            return;
+        }
+
+        for (; currentByte < endByte; ++currentByte)
+        {
+            if ((currentByte - endByte) % 4 == 0)
+            {
+                w->Print(_u(" "), *currentByte);
+            }
+            w->Print(_u("%02x"), *currentByte);
+        }
+        w->PrintEOL(_u(""));
+    }
+
+    template <>
+    void Inst::PrintBytes(DebugWriter *w, Inst *inst, Inst *that, const char16 *annotation) const
+    {
+        Inst *start = (Inst *)that;
+
+        size_t baseSize = sizeof(*(Inst *)that);
+        ptrdiff_t offsetToData = (byte *)&(start->tag) - ((byte *)start);
+        size_t size = baseSize - offsetToData;
+
+        byte *startByte = (byte *)(&(start->tag)); // skip over the vtable pointer
+        byte *endByte = startByte + size;
+        byte *currentByte = startByte;
+        w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offsetToData, size, annotation);
+        for (; currentByte < endByte; ++currentByte)
+        {
+            if ((currentByte - endByte) % 4 == 0)
+            {
+                w->Print(_u(" "), *currentByte);
+            }
+            w->Print(_u("%02x"), *currentByte);
+        }
+        w->PrintEOL(_u(""));
+    }
+
+#define PRINT_BYTES(InstType) \
+    Inst::PrintBytes<InstType>(w, (Inst *)this, (InstType *)this, _u(#InstType))
+
+#define PRINT_BYTES_ANNOTATED(InstType, Annotation) \
+    Inst::PrintBytes<InstType>(w, (Inst *)this, (InstType *)this, (Annotation))
+
+#define PRINT_MIXIN(Mixin) \
+    ((Mixin *)this)->Print(w, litbuf)
+
+#define PRINT_MIXIN_ARGS(Mixin, ...) \
+    ((Mixin *)this)->Print(w, litbuf, __VA_ARGS__)
+
+#define PRINT_MIXIN_COMMA(Mixin) \
+    PRINT_MIXIN(Mixin); \
+    w->Print(_u(", "));
+
+#define PRINT_RE_BYTECODE_BEGIN(Name) \
+    w->Print(_u("L%04x: "), label); \
+    if (REGEX_CONFIG_FLAG(RegexBytecodeDebug)) \
+    { \
+        w->Print(_u("(0x%03x bytes) "), sizeof(*this)); \
+    } \
+    w->Print(_u(Name)); \
+    w->Print(_u("("));
+
+#define PRINT_RE_BYTECODE_MID() \
+    w->PrintEOL(_u(")")); \
+    if (REGEX_CONFIG_FLAG(RegexBytecodeDebug)) \
+    { \
+        w->Indent(); \
+        PRINT_BYTES(Inst);
+
+#define PRINT_RE_BYTECODE_END() \
+        w->Unindent(); \
+    } \
+    return sizeof(*this);
+
 #endif
 
     // ----------------------------------------------------------------------
@@ -402,10 +531,14 @@ namespace UnifiedRegex
             for (int i = 0; i < CaseInsensitive::EquivClassSize; i++)
             {
                 if (i > 0)
+                {
                     w->Print(_u(", "));
+                }
                 w->Print(_u("\""));
                 for (CharCount j = 0; j < length; j++)
+                {
                     w->PrintEscapedChar(litbuf[offset + j * CaseInsensitive::EquivClassSize + i]);
+                }
                 w->Print(_u("\""));
             }
         }
@@ -524,8 +657,8 @@ namespace UnifiedRegex
     ScannerMixinT<ScannerT>::Match(Matcher& matcher, const char16 * const input, const CharCount inputLength, CharCount& inputOffset) const
     {
         Assert(length <= matcher.program->rep.insts.litbufLen - offset);
-        return scanner.template Match<1>
-            ( input
+        return scanner.template Match<1>(
+            input
             , inputLength
             , inputOffset
             , matcher.program->rep.insts.litbuf + offset
@@ -558,8 +691,8 @@ namespace UnifiedRegex
     {
         Assert(length * CaseInsensitive::EquivClassSize <= matcher.program->rep.insts.litbufLen - offset);
         CompileAssert(lastPatCharEquivClassSize >= 1 && lastPatCharEquivClassSize <= CaseInsensitive::EquivClassSize);
-        return scanner.Match<CaseInsensitive::EquivClassSize, lastPatCharEquivClassSize>
-            ( input
+        return scanner.Match<CaseInsensitive::EquivClassSize, lastPatCharEquivClassSize>(
+            input
             , inputLength
             , inputOffset
             , matcher.program->rep.insts.litbuf + offset
@@ -620,7 +753,9 @@ namespace UnifiedRegex
         for (int i = 0; i < numLiterals; i++)
         {
             if (i > 0)
+            {
                 w->Print(_u(", "));
+            }
             infos[i]->Print(w, litbuf);
         }
         w->Print(_u("}"));
@@ -639,8 +774,17 @@ namespace UnifiedRegex
     {
         w->Print(_u("set: "));
         if (IsNegation)
+        {
             w->Print(_u("not "));
+        }
         set.Print(w);
+    }
+#endif
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+    void TrieMixin::Print(DebugWriter* w, const char16* litbuf) const
+    {
+        trie.Print(w);
     }
 #endif
 
@@ -681,12 +825,27 @@ namespace UnifiedRegex
 #endif
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-    void BeginLoopMixin::Print(DebugWriter* w, const char16* litbuf) const
+    void BeginLoopBasicsMixin::Print(DebugWriter* w, const char16* litbuf) const
     {
         w->Print(_u("loopId: %d, repeats: "), loopId);
         repeats.Print(w);
-        w->Print(_u(", exitLabel: L%04x, hasOuterLoops: %s, hasInnerNondet: %s"),
-            Inst::GetPrintLabel(exitLabel), hasOuterLoops ? _u("true") : _u("false"), hasInnerNondet ? _u("true") : _u("false"));
+        w->Print(_u(", hasOuterLoops: %s"), hasOuterLoops ? _u("true") : _u("false"));
+    }
+#endif
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+    void BeginLoopMixin::Print(DebugWriter* w, const char16* litbuf) const
+    {
+        BeginLoopBasicsMixin::Print(w, litbuf);
+        w->Print(_u(", hasInnerNondet: %s, exitLabel: L%04x, "),
+            hasInnerNondet ? _u("true") : _u("false"), Inst::GetPrintLabel(exitLabel));
+    }
+#endif
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+    void GreedyMixin::Print(DebugWriter* w, const char16* litbuf) const
+    {
+        w->Print(_u("greedy: %s"), isGreedy ? _u("true") : _u("false"));
     }
 #endif
 
@@ -698,6 +857,13 @@ namespace UnifiedRegex
 #endif
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
+    void GreedyLoopNoBacktrackMixin::Print(DebugWriter* w, const char16* litbuf) const
+    {
+        w->Print(_u("loopId: %d, exitLabel: L%04x"), loopId, exitLabel);
+    }
+#endif
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
     void TryMixin::Print(DebugWriter* w, const char16* litbuf) const
     {
         w->Print(_u("failLabel: L%04x"), Inst::GetPrintLabel(failLabel));
@@ -705,9 +871,30 @@ namespace UnifiedRegex
 #endif
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
+    void NegationMixin::Print(DebugWriter* w, const char16* litbuf) const
+    {
+        w->Print(_u("isNegation: %s"), isNegation ? _u("true") : _u("false"));
+    }
+#endif
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+    void NextLabelMixin::Print(DebugWriter* w, const char16* litbuf) const
+    {
+        w->Print(_u("nextLabel: L%04x"), Inst::GetPrintLabel(nextLabel));
+    }
+#endif
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
     void FixedLengthMixin::Print(DebugWriter* w, const char16* litbuf) const
     {
         w->Print(_u("length: %u"), length);
+    }
+#endif
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+    void FollowFirstMixin::Print(DebugWriter* w, const char16* litbuf) const
+    {
+        w->Print(_u("followFirst: %c"), followFirst);
     }
 #endif
 
@@ -737,11 +924,15 @@ namespace UnifiedRegex
         {
             Assert(cases[i].c != c);
             if (cases[i].c > c)
+            {
                 break;
+            }
         }
         __analysis_assume(numCases < MaxCases);
         for (int j = numCases; j > i; j--)
+        {
             cases[j] = cases[j - 1];
+        }
         cases[i].c = c;
         cases[i].targetLabel = targetLabel;
         numCases++;
@@ -772,8 +963,29 @@ namespace UnifiedRegex
         w->EOL();
         w->Indent();
         for (int i = 0; i < numCases; i++)
+        {
             cases[i].Print(w);
+        }
         w->Unindent();
+    }
+#endif
+
+    // ----------------------------------------------------------------------
+    // NopInst
+    // ----------------------------------------------------------------------
+
+    inline bool NopInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
+    {
+        return false; // don't stop execution
+    }
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+    int NopInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        PRINT_RE_BYTECODE_BEGIN("Nop");
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(NopInst);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -789,8 +1001,10 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int FailInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->PrintEOL(_u("L%04x: Fail()"), label);
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("Fail");
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(NopInst);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -809,8 +1023,10 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int SuccInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->PrintEOL(_u("L%04x: Succ()"), label);
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("Succ");
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(NopInst);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -827,10 +1043,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int JumpInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: Jump("), label);
-        JumpMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("Jump");
+        PRINT_MIXIN(JumpMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(JumpMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -844,21 +1061,26 @@ namespace UnifiedRegex
         matcher.CompStats();
 #endif
         if (inputOffset < inputLength && input[inputOffset] == c)
+        {
             instPointer += sizeof(*this);
+        }
         else
+        {
             instPointer = matcher.LabelToInstPointer(targetLabel);
+        }
         return false;
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int JumpIfNotCharInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: JumpIfNotChar("), label);
-        CharMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        JumpMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("JumpIfNotChar");
+        PRINT_MIXIN_COMMA(CharMixin);
+        PRINT_MIXIN(JumpMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_BYTES(JumpMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -877,22 +1099,24 @@ namespace UnifiedRegex
             instPointer += sizeof(*this);
         }
         else
+        {
             instPointer = matcher.LabelToInstPointer(targetLabel);
+        }
         return false;
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int MatchCharOrJumpInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: MatchCharOrJump("), label);
-        CharMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        JumpMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("MatchCharOrJump");
+        PRINT_MIXIN_COMMA(CharMixin);
+        PRINT_MIXIN(JumpMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_BYTES(JumpMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
-
 
     // ----------------------------------------------------------------------
     // JumpIfNotSetInst (optimized instruction)
@@ -904,21 +1128,26 @@ namespace UnifiedRegex
         matcher.CompStats();
 #endif
         if (inputOffset < inputLength && set.Get(input[inputOffset]))
+        {
             instPointer += sizeof(*this);
+        }
         else
+        {
             instPointer = matcher.LabelToInstPointer(targetLabel);
+        }
         return false;
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int JumpIfNotSetInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: JumpIfNotSet("), label);
-        SetMixin::Print(w, litbuf);
-        w->Print(_u(",  "));
-        JumpMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("JumpIfNotSet");
+        PRINT_MIXIN_COMMA(SetMixin<false>);
+        PRINT_MIXIN(JumpMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_BYTES(JumpMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -937,19 +1166,22 @@ namespace UnifiedRegex
             instPointer += sizeof(*this);
         }
         else
+        {
             instPointer = matcher.LabelToInstPointer(targetLabel);
+        }
         return false;
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int MatchSetOrJumpInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: MatchSetOrJump("), label);
-        SetMixin::Print(w, litbuf);
-        w->Print(_u(",  "));
-        JumpMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("MatchSetOrJump");
+        PRINT_MIXIN_COMMA(SetMixin<false>);
+        PRINT_MIXIN(JumpMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_BYTES(JumpMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -960,7 +1192,9 @@ namespace UnifiedRegex
     inline bool Switch10Inst::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (inputOffset >= inputLength)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 #if 0
         int l = 0;
         int h = numCases - 1;
@@ -976,9 +1210,13 @@ namespace UnifiedRegex
                 return false;
             }
             else if (cases[m].c < input[inputOffset])
+            {
                 l = m + 1;
+            }
             else
+            {
                 h = m - 1;
+            }
         }
 #else
         const int localNumCases = numCases;
@@ -993,7 +1231,9 @@ namespace UnifiedRegex
                 return false;
             }
             else if (cases[i].c > input[inputOffset])
+            {
                 break;
+            }
         }
 #endif
 
@@ -1004,10 +1244,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int Switch10Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: Switch10("), label);
-        SwitchMixin<MaxCases>::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("Switch10");
+        PRINT_MIXIN(SwitchMixin<10>);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SwitchMixin<10>);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1034,9 +1275,13 @@ namespace UnifiedRegex
                 return false;
             }
             else if (cases[m].c < input[inputOffset])
+            {
                 l = m + 1;
+            }
             else
+            {
                 h = m - 1;
+            }
         }
 #else
         const int localNumCases = numCases;
@@ -1051,7 +1296,9 @@ namespace UnifiedRegex
                 return false;
             }
             else if (cases[i].c > input[inputOffset])
+            {
                 break;
+            }
         }
 #endif
 
@@ -1062,10 +1309,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int Switch20Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: Switch20("), label);
-        SwitchMixin<MaxCases>::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("Switch20");
+        PRINT_MIXIN(SwitchMixin<20>);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SwitchMixin<20>);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1093,9 +1341,13 @@ namespace UnifiedRegex
                 return false;
             }
             else if (cases[m].c < input[inputOffset])
+            {
                 l = m + 1;
+            }
             else
+            {
                 h = m - 1;
+            }
         }
 #else
         const int localNumCases = numCases;
@@ -1111,7 +1363,9 @@ namespace UnifiedRegex
                 return false;
             }
             else if (cases[i].c > input[inputOffset])
+            {
                 break;
+            }
         }
 #endif
 
@@ -1122,10 +1376,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int SwitchAndConsume10Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: SwitchAndConsume10("), label);
-        SwitchMixin<MaxCases>::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("SwitchAndConsume10");
+        PRINT_MIXIN(SwitchMixin<10>);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SwitchMixin<10>);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1153,9 +1408,13 @@ namespace UnifiedRegex
                 return false;
             }
             else if (cases[m].c < input[inputOffset])
+            {
                 l = m + 1;
+            }
             else
+            {
                 h = m - 1;
+            }
         }
 #else
         const int localNumCases = numCases;
@@ -1171,7 +1430,9 @@ namespace UnifiedRegex
                 return false;
             }
             else if (cases[i].c > input[inputOffset])
+            {
                 break;
+            }
         }
 #endif
 
@@ -1182,10 +1443,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int SwitchAndConsume20Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: SwitchAndConsume20("), label);
-        SwitchMixin<MaxCases>::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("SwitchAndConsume20");
+        PRINT_MIXIN(SwitchMixin<20>);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SwitchMixin<20>);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1198,10 +1460,14 @@ namespace UnifiedRegex
         if (inputOffset > 0)
         {
             if (canHardFail)
+            {
                 // Clearly trying to start from later in the input won't help, and we know backtracking can't take us earlier in the input
                 return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            }
             else
+            {
                 return matcher.Fail(FAIL_PARAMETERS);
+            }
         }
         instPointer += sizeof(*this);
         return false;
@@ -1210,10 +1476,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int BOITestInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: BOITest("), label);
-        HardFailMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("BOITest");
+        PRINT_MIXIN(HardFailMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(HardFailMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1226,10 +1493,14 @@ namespace UnifiedRegex
         if (inputOffset < inputLength)
         {
             if (canHardFail)
+            {
                 // We know backtracking can never take us later in the input, but starting from later in the input could help
                 return matcher.HardFail(HARDFAIL_PARAMETERS(LaterOnly));
+            }
             else
+            {
                 return matcher.Fail(FAIL_PARAMETERS);
+            }
         }
         instPointer += sizeof(*this);
         return false;
@@ -1238,10 +1509,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int EOITestInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: EOITest("), label);
-        HardFailMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("EOITest");
+        PRINT_MIXIN(HardFailMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(HardFailMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1255,7 +1527,9 @@ namespace UnifiedRegex
         matcher.CompStats();
 #endif
         if (inputOffset > 0 && !matcher.standardChars->IsNewline(input[inputOffset - 1]))
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         instPointer += sizeof(*this);
         return false;
@@ -1264,8 +1538,10 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int BOLTestInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->PrintEOL(_u("L%04x: BOLTest()"), label);
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("BOLTest");
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(BOLTestInst);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1279,7 +1555,9 @@ namespace UnifiedRegex
         matcher.CompStats();
 #endif
         if (inputOffset < inputLength && !matcher.standardChars->IsNewline(input[inputOffset]))
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         instPointer += sizeof(*this);
         return false;
@@ -1288,8 +1566,10 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int EOLTestInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->PrintEOL(_u("L%04x: EOLTest()"), label);
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("EOLTest");
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(EOLTestInst);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1305,7 +1585,9 @@ namespace UnifiedRegex
         const bool prev = inputOffset > 0 && matcher.standardChars->IsWord(input[inputOffset - 1]);
         const bool curr = inputOffset < inputLength && matcher.standardChars->IsWord(input[inputOffset]);
         if (isNegation == (prev != curr))
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         instPointer += sizeof(*this);
         return false;
@@ -1314,8 +1596,10 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int WordBoundaryTestInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->PrintEOL(_u("L%04x: WordBoundaryTest(isNegation: %s)"), label, isNegation ? _u("true") : _u("false"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("WordBoundaryTest");
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(WordBoundaryTestInst);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1329,7 +1613,9 @@ namespace UnifiedRegex
         matcher.CompStats();
 #endif
         if (inputOffset >= inputLength || input[inputOffset] != c)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         inputOffset++;
         instPointer += sizeof(*this);
@@ -1339,10 +1625,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int MatchCharInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: MatchChar("), label);
-        CharMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("MatchChar");
+        PRINT_MIXIN(CharMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1356,7 +1643,9 @@ namespace UnifiedRegex
         matcher.CompStats();
 #endif
         if (inputOffset >= inputLength || (input[inputOffset] != cs[0] && input[inputOffset] != cs[1]))
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         inputOffset++;
         instPointer += sizeof(*this);
@@ -1366,10 +1655,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int MatchChar2Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: MatchChar2("), label);
-        Char2Mixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("MatchChar2");
+        PRINT_MIXIN(Char2Mixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(Char2Mixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1383,7 +1673,9 @@ namespace UnifiedRegex
         matcher.CompStats();
 #endif
         if (inputOffset >= inputLength || (input[inputOffset] != cs[0] && input[inputOffset] != cs[1] && input[inputOffset] != cs[2]))
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         inputOffset++;
         instPointer += sizeof(*this);
@@ -1393,10 +1685,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int MatchChar3Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: MatchChar3("), label);
-        Char3Mixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("MatchChar3");
+        PRINT_MIXIN(Char3Mixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(Char3Mixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1410,7 +1703,9 @@ namespace UnifiedRegex
         matcher.CompStats();
 #endif
         if (inputOffset >= inputLength || (input[inputOffset] != cs[0] && input[inputOffset] != cs[1] && input[inputOffset] != cs[2] && input[inputOffset] != cs[3]))
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         inputOffset++;
         instPointer += sizeof(*this);
@@ -1420,10 +1715,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int MatchChar4Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: MatchChar4("), label);
-        Char4Mixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("MatchChar4");
+        PRINT_MIXIN(Char4Mixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(Char4Mixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1438,7 +1734,9 @@ namespace UnifiedRegex
         matcher.CompStats();
 #endif
         if (inputOffset >= inputLength || this->set.Get(input[inputOffset]) == IsNegation)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         inputOffset++;
         instPointer += sizeof(*this);
@@ -1449,10 +1747,20 @@ namespace UnifiedRegex
     template<bool IsNegation>
     int MatchSetInst<IsNegation>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: MatchSet("), label);
-        SetMixin<IsNegation>::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        if (IsNegation)
+        {
+            PRINT_RE_BYTECODE_BEGIN("MatchNegatedSet");
+            PRINT_MIXIN(SetMixin<true>);
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("MatchSet");
+            PRINT_MIXIN(SetMixin<false>);
+        }
+
+        PRINT_RE_BYTECODE_MID();
+        IsNegation ? PRINT_BYTES(SetMixin<true>) : PRINT_BYTES(SetMixin<false>);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1465,7 +1773,9 @@ namespace UnifiedRegex
         Assert(length <= matcher.program->rep.insts.litbufLen - offset);
 
         if (length > inputLength - inputOffset)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         const Char *const literalBuffer = matcher.program->rep.insts.litbuf;
         const Char * literalCurr = literalBuffer + offset;
@@ -1505,10 +1815,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int MatchLiteralInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: MatchLiteral("), label);
-        LiteralMixin::Print(w, litbuf, false);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("MatchLiteral");
+        PRINT_MIXIN_ARGS(LiteralMixin, false);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(LiteralMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1519,7 +1830,9 @@ namespace UnifiedRegex
     inline bool MatchLiteralEquivInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (length > inputLength - inputOffset)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         const Char *const literalBuffer = matcher.program->rep.insts.litbuf;
         CharCount literalOffset = offset;
@@ -1552,10 +1865,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int MatchLiteralEquivInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: MatchLiteralEquiv("), label);
-        LiteralMixin::Print(w, litbuf, true);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("MatchLiteralEquiv");
+        PRINT_MIXIN_ARGS(LiteralMixin, true);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(LiteralMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1565,15 +1879,17 @@ namespace UnifiedRegex
 
     inline bool MatchTrieInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
-        if (!trie.Match
-            ( input
+        if (!trie.Match(
+            input
             , inputLength
             , inputOffset
 #if ENABLE_REGEX_CONFIG_OPTIONS
             , matcher.stats
 #endif
-            ))
+        ))
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         instPointer += sizeof(*this);
         return false;
@@ -1587,10 +1903,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int MatchTrieInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->PrintEOL(_u("L%04x: MatchTrie("), label);
-        trie.Print(w);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("MatchTrie");
+        PRINT_MIXIN(TrieMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(TrieMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1604,7 +1921,9 @@ namespace UnifiedRegex
         matcher.CompStats();
 #endif
         if (inputOffset < inputLength && input[inputOffset] == c)
+        {
             inputOffset++;
+        }
 
         instPointer += sizeof(*this);
         return false;
@@ -1613,10 +1932,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int OptMatchCharInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: OptMatchChar("), label);
-        CharMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("OptMatchChar");
+        PRINT_MIXIN(CharMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1630,7 +1950,9 @@ namespace UnifiedRegex
         matcher.CompStats();
 #endif
         if (inputOffset < inputLength && set.Get(input[inputOffset]))
+        {
             inputOffset++;
+        }
 
         instPointer += sizeof(*this);
         return false;
@@ -1639,10 +1961,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int OptMatchSetInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: OptMatchSet("), label);
-        SetMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("OptMatchSet");
+        PRINT_MIXIN(SetMixin<false>);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1672,10 +1995,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int SyncToCharAndContinueInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: SyncToCharAndContinue("), label);
-        CharMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("SyncToCharAndContinue");
+        PRINT_MIXIN(CharMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1706,13 +2030,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int SyncToChar2SetAndContinueInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: SyncToChar2SetAndContinue("), label);
-        Char2Mixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("SyncToChar2SetAndContinue");
+        PRINT_MIXIN(Char2Mixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(Char2Mixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
-
 
     // ----------------------------------------------------------------------
     // SyncToSetAndContinueInst (optimized instruction)
@@ -1743,10 +2067,20 @@ namespace UnifiedRegex
     template<bool IsNegation>
     int SyncToSetAndContinueInst<IsNegation>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: SyncToSetAndContinue("), label);
-        SetMixin<IsNegation>::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        if (IsNegation)
+        {
+            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndContinue");
+            PRINT_MIXIN(SetMixin<true>);
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndContinue");
+            PRINT_MIXIN(SetMixin<false>);
+        }
+
+        PRINT_RE_BYTECODE_MID();
+        IsNegation ? PRINT_BYTES(SetMixin<true>) : PRINT_BYTES(SetMixin<false>);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1758,7 +2092,9 @@ namespace UnifiedRegex
     inline bool SyncToLiteralAndContinueInstT<ScannerT>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (!this->Match(matcher, input, inputLength, inputOffset))
+        {
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
         matchStart = inputOffset;
         instPointer += sizeof(*this);
@@ -1766,21 +2102,70 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-    template <typename ScannerT>
-    int SyncToLiteralAndContinueInstT<ScannerT>::Print(DebugWriter* w, Label label, const Char* litbuf) const
-    {
-        w->Print(_u("L%04x: SyncToLiteralAndContinue("), label);
-        ScannerT::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
-    }
-
     // explicit instantiation
     template struct SyncToLiteralAndContinueInstT<Char2LiteralScannerMixin>;
     template struct SyncToLiteralAndContinueInstT<ScannerMixin>;
     template struct SyncToLiteralAndContinueInstT<ScannerMixin_WithLinearCharMap>;
     template struct SyncToLiteralAndContinueInstT<EquivScannerMixin>;
     template struct SyncToLiteralAndContinueInstT<EquivTrivialLastPatCharScannerMixin>;
+
+    // Explicitly define each of these 5 Print functions so that the output will show the actual template param mixin and
+    // actual opcode name, even though the logic is basically the same in each definition. See notes below.
+
+    template <>
+    int SyncToLiteralAndContinueInstT<Char2LiteralScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndContinueInstT<Char2LiteralScannerMixin> aka SyncToChar2LiteralAndContinue");
+        PRINT_MIXIN(Char2LiteralScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(Char2LiteralScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndContinueInstT<ScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndContinueInstT<ScannerMixin> aka SyncToLiteralAndContinue");
+        PRINT_MIXIN(ScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(ScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndContinueInstT<ScannerMixin_WithLinearCharMap>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndContinueInstT<ScannerMixin_WithLinearCharMap> aka SyncToLinearLiteralAndContinue");
+        PRINT_MIXIN(ScannerMixin_WithLinearCharMap); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(ScannerMixin_WithLinearCharMap); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndContinueInstT<EquivScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndContinueInstT<EquivScannerMixin> aka SyncToLiteralEquivAndContinue");
+        PRINT_MIXIN(EquivScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(EquivScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndContinueInstT<EquivTrivialLastPatCharScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndContinueInstT<EquivTrivialLastPatCharScannerMixin> aka SyncToLiteralEquivTrivialLastPatCharAndContinue");
+        PRINT_MIXIN(EquivTrivialLastPatCharScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(EquivTrivialLastPatCharScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_RE_BYTECODE_END();
+    }
 #endif
 
     // ----------------------------------------------------------------------
@@ -1802,7 +2187,9 @@ namespace UnifiedRegex
         }
 
         if (inputOffset >= inputLength)
+        {
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
         matchStart = inputOffset++;
         instPointer += sizeof(*this);
@@ -1812,10 +2199,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int SyncToCharAndConsumeInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: SyncToCharAndConsume("), label);
-        CharMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("SyncToCharAndConsume");
+        PRINT_MIXIN(CharMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1839,7 +2227,9 @@ namespace UnifiedRegex
         }
 
         if (inputOffset >= inputLength)
+        {
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
         matchStart = inputOffset++;
         instPointer += sizeof(*this);
@@ -1849,10 +2239,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int SyncToChar2SetAndConsumeInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: SyncToChar2SetAndConsume("), label);
-        Char2Mixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("SyncToChar2SetAndConsume");
+        PRINT_MIXIN(Char2Mixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(Char2Mixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1876,7 +2267,9 @@ namespace UnifiedRegex
         }
 
         if (inputOffset >= inputLength)
+        {
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
         matchStart = inputOffset++;
         instPointer += sizeof(*this);
@@ -1887,10 +2280,20 @@ namespace UnifiedRegex
     template<bool IsNegation>
     int SyncToSetAndConsumeInst<IsNegation>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: SyncToSetAndConsume("), label);
-        SetMixin<IsNegation>::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        if (IsNegation)
+        {
+            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndConsume");
+            PRINT_MIXIN(SetMixin<true>);
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndConsume");
+            PRINT_MIXIN(SetMixin<false>);
+        }
+
+        PRINT_RE_BYTECODE_MID();
+        IsNegation ? PRINT_BYTES(SetMixin<true>) : PRINT_BYTES(SetMixin<false>);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1902,7 +2305,9 @@ namespace UnifiedRegex
     inline bool SyncToLiteralAndConsumeInstT<ScannerT>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (!this->Match(matcher, input, inputLength, inputOffset))
+        {
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
         matchStart = inputOffset;
         inputOffset += ScannerT::GetLiteralLength();
@@ -1911,21 +2316,70 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-    template <typename ScannerT>
-    int SyncToLiteralAndConsumeInstT<ScannerT>::Print(DebugWriter* w, Label label, const Char* litbuf) const
-    {
-        w->Print(_u("L%04x: SyncToLiteralAndConsume("), label);
-        ScannerT::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
-    }
-
     // explicit instantiation
     template struct SyncToLiteralAndConsumeInstT<Char2LiteralScannerMixin>;
     template struct SyncToLiteralAndConsumeInstT<ScannerMixin>;
     template struct SyncToLiteralAndConsumeInstT<ScannerMixin_WithLinearCharMap>;
     template struct SyncToLiteralAndConsumeInstT<EquivScannerMixin>;
     template struct SyncToLiteralAndConsumeInstT<EquivTrivialLastPatCharScannerMixin>;
+
+    // Explicitly define each of these 5 Print functions so that the output will show the actual template param mixin and
+    // actual opcode name, even though the logic is basically the same in each definition. See notes below.
+
+    template <>
+    int SyncToLiteralAndConsumeInstT<Char2LiteralScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndConsumeInstT<Char2LiteralScannerMixin> aka SyncToChar2LiteralAndConsume");
+        PRINT_MIXIN(Char2LiteralScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(Char2LiteralScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndConsumeInstT<ScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndConsumeInstT<ScannerMixin> aka SyncToLiteralAndConsume");
+        PRINT_MIXIN(ScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(ScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndConsumeInstT<ScannerMixin_WithLinearCharMap>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndConsumeInstT<ScannerMixin_WithLinearCharMap> aka SyncToLinearLiteralAndConsume");
+        PRINT_MIXIN(ScannerMixin_WithLinearCharMap); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(ScannerMixin_WithLinearCharMap); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndConsumeInstT<EquivScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndConsumeInstT<EquivScannerMixin> aka SyncToLiteralEquivAndConsume");
+        PRINT_MIXIN(EquivScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(EquivScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndConsumeInstT<EquivTrivialLastPatCharScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndConsumeInstT<EquivTrivialLastPatCharScannerMixin> aka SyncToLiteralEquivTrivialLastPatCharAndConsume");
+        PRINT_MIXIN(EquivTrivialLastPatCharScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(EquivTrivialLastPatCharScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_RE_BYTECODE_END();
+    }
 #endif
 
     // ----------------------------------------------------------------------
@@ -1935,10 +2389,12 @@ namespace UnifiedRegex
     inline bool SyncToCharAndBackupInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (backup.lower > inputLength - matchStart)
+        {
             // Even match at very end doesn't allow for minimum backup
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
-        if(inputOffset < nextSyncInputOffset)
+        if (inputOffset < nextSyncInputOffset)
         {
             // We have not yet reached the offset in the input we last synced to before backing up, so it's unnecessary to sync
             // again since we'll sync to the same point in the input and back up to the same place we are at now
@@ -1947,8 +2403,10 @@ namespace UnifiedRegex
         }
 
         if (backup.lower > inputOffset - matchStart)
+        {
             // No use looking for match until minimum backup is possible
             inputOffset = matchStart + backup.lower;
+        }
 
         const Char matchC = c;
         while (inputOffset < inputLength && input[inputOffset] != matchC)
@@ -1960,7 +2418,9 @@ namespace UnifiedRegex
         }
 
         if (inputOffset >= inputLength)
+        {
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
         nextSyncInputOffset = inputOffset + 1;
 
@@ -1981,12 +2441,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int SyncToCharAndBackupInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: SyncToCharAndBackup("), label);
-        CharMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        BackupMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("SyncToCharAndBackup");
+        PRINT_MIXIN_COMMA(CharMixin);
+        PRINT_MIXIN(BackupMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_BYTES(BackupMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -1998,10 +2459,12 @@ namespace UnifiedRegex
     inline bool SyncToSetAndBackupInst<IsNegation>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (backup.lower > inputLength - matchStart)
+        {
             // Even match at very end doesn't allow for minimum backup
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
-        if(inputOffset < nextSyncInputOffset)
+        if (inputOffset < nextSyncInputOffset)
         {
             // We have not yet reached the offset in the input we last synced to before backing up, so it's unnecessary to sync
             // again since we'll sync to the same point in the input and back up to the same place we are at now
@@ -2010,8 +2473,10 @@ namespace UnifiedRegex
         }
 
         if (backup.lower > inputOffset - matchStart)
+        {
             // No use looking for match until minimum backup is possible
             inputOffset = matchStart + backup.lower;
+        }
 
         const RuntimeCharSet<Char>& matchSet = this->set;
         while (inputOffset < inputLength && matchSet.Get(input[inputOffset]) == IsNegation)
@@ -2023,7 +2488,9 @@ namespace UnifiedRegex
         }
 
         if (inputOffset >= inputLength)
+        {
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
         nextSyncInputOffset = inputOffset + 1;
 
@@ -2045,12 +2512,22 @@ namespace UnifiedRegex
     template<bool IsNegation>
     int SyncToSetAndBackupInst<IsNegation>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: SyncToSetAndBackup("), label);
-        SetMixin<IsNegation>::Print(w, litbuf);
-        w->Print(_u(", "));
-        BackupMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        if (IsNegation)
+        {
+            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndBackup");
+            PRINT_MIXIN_COMMA(SetMixin<true>);
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndBackup");
+            PRINT_MIXIN_COMMA(SetMixin<false>);
+        }
+
+        PRINT_MIXIN(BackupMixin);
+        PRINT_RE_BYTECODE_MID();
+        IsNegation ? PRINT_BYTES(SetMixin<true>) : PRINT_BYTES(SetMixin<false>);
+        PRINT_BYTES(BackupMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2061,8 +2538,10 @@ namespace UnifiedRegex
     inline bool SyncToLiteralAndBackupInstT<ScannerT>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (backup.lower > inputLength - matchStart)
+        {
             // Even match at very end doesn't allow for minimum backup
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
         if(inputOffset < nextSyncInputOffset)
         {
@@ -2073,11 +2552,15 @@ namespace UnifiedRegex
         }
 
         if (backup.lower > inputOffset - matchStart)
+        {
             // No use looking for match until minimum backup is possible
             inputOffset = matchStart + backup.lower;
+        }
 
         if (!this->Match(matcher, input, inputLength, inputOffset))
+        {
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
         nextSyncInputOffset = inputOffset + 1;
 
@@ -2097,23 +2580,80 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-    template <typename ScannerT>
-    int SyncToLiteralAndBackupInstT<ScannerT>::Print(DebugWriter* w, Label label, const Char* litbuf) const
-    {
-        w->Print(_u("L%04x: SyncToLiteralAndBackup("), label);
-        ScannerT::Print(w, litbuf);
-        w->Print(_u(", "));
-        BackupMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
-    }
-
     // explicit instantiation
     template struct SyncToLiteralAndBackupInstT<Char2LiteralScannerMixin>;
     template struct SyncToLiteralAndBackupInstT<ScannerMixin>;
     template struct SyncToLiteralAndBackupInstT<ScannerMixin_WithLinearCharMap>;
     template struct SyncToLiteralAndBackupInstT<EquivScannerMixin>;
     template struct SyncToLiteralAndBackupInstT<EquivTrivialLastPatCharScannerMixin>;
+
+    // Explicitly define each of these 5 Print functions so that the output will show the actual template param mixin and
+    // actual opcode name, even though the logic is basically the same in each definition. See notes below.
+
+    template <>
+    int SyncToLiteralAndBackupInstT<Char2LiteralScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndBackupInstT<Char2LiteralScannerMixin> aka SyncToChar2LiteralAndBackup");
+        PRINT_MIXIN_COMMA(Char2LiteralScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_MIXIN(BackupMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(Char2LiteralScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_BYTES(BackupMixin);
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndBackupInstT<ScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndBackupInstT<ScannerMixin> aka SyncToLiteralAndBackup");
+        PRINT_MIXIN_COMMA(ScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_MIXIN(BackupMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(ScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_BYTES(BackupMixin);
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndBackupInstT<ScannerMixin_WithLinearCharMap>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndBackupInstT<ScannerMixin_WithLinearCharMap> aka SyncToLinearLiteralAndBackup");
+        PRINT_MIXIN_COMMA(ScannerMixin_WithLinearCharMap); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_MIXIN(BackupMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(ScannerMixin_WithLinearCharMap); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_BYTES(BackupMixin);
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndBackupInstT<EquivScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndBackupInstT<EquivScannerMixin> aka SyncToLiteralEquivAndBackup");
+        PRINT_MIXIN_COMMA(EquivScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_MIXIN(BackupMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(EquivScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_BYTES(BackupMixin);
+        PRINT_RE_BYTECODE_END();
+    }
+
+    template <>
+    int SyncToLiteralAndBackupInstT<EquivTrivialLastPatCharScannerMixin>::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        // NOTE: this text is unique to this instantiation
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralAndBackupInstT<EquivTrivialLastPatCharScannerMixin> aka SyncToLiteralEquivTrivialLastPatCharAndBackup");
+        PRINT_MIXIN_COMMA(EquivTrivialLastPatCharScannerMixin); // NOTE: would work with template <typename ScannerT> ScannerT::Print
+        PRINT_MIXIN(BackupMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(EquivTrivialLastPatCharScannerMixin); // NOTE: unique because macro expansion and _u(#InstType) happen before template is evaluated (so text would be ScannerT)
+        PRINT_BYTES(BackupMixin);
+        PRINT_RE_BYTECODE_END();
+    }
 #endif
 
     // ----------------------------------------------------------------------
@@ -2123,10 +2663,12 @@ namespace UnifiedRegex
     inline bool SyncToLiteralsAndBackupInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (backup.lower > inputLength - matchStart)
+        {
             // Even match at very end doesn't allow for minimum backup
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
-        if(inputOffset < nextSyncInputOffset)
+        if (inputOffset < nextSyncInputOffset)
         {
             // We have not yet reached the offset in the input we last synced to before backing up, so it's unnecessary to sync
             // again since we'll sync to the same point in the input and back up to the same place we are at now
@@ -2135,8 +2677,10 @@ namespace UnifiedRegex
         }
 
         if (backup.lower > inputOffset - matchStart)
+        {
             // No use looking for match until minimum backup is possible
             inputOffset = matchStart + backup.lower;
+        }
 
         int besti = -1;
         CharCount bestMatchOffset = 0;
@@ -2165,9 +2709,9 @@ namespace UnifiedRegex
                 thisMatchOffset = inputOffset;
             }
 
-            if (infos[i]->isEquivClass ?
-                    (infos[i]->scanner.Match<CaseInsensitive::EquivClassSize>
-                    ( input
+            if (infos[i]->isEquivClass
+                ? (infos[i]->scanner.Match<CaseInsensitive::EquivClassSize>(
+                    input
                     , inputLength
                     , thisMatchOffset
                     , matcher.program->rep.insts.litbuf + infos[i]->offset
@@ -2175,9 +2719,9 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
                     , matcher.stats
 #endif
-                    )) :
-                    (infos[i]->scanner.Match<1>
-                    ( input
+                    ))
+                : (infos[i]->scanner.Match<1>(
+                    input
                     , inputLength
                     , thisMatchOffset
                     , matcher.program->rep.insts.litbuf + infos[i]->offset
@@ -2202,8 +2746,10 @@ namespace UnifiedRegex
         }
 
         if (besti < 0)
+        {
             // No literals matched
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+        }
 
         nextSyncInputOffset = bestMatchOffset + 1;
 
@@ -2224,12 +2770,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int SyncToLiteralsAndBackupInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: SyncToLiteralsAndBackup("), label);
-        ScannersMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        BackupMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("SyncToLiteralsAndBackup");
+        PRINT_MIXIN_COMMA(ScannersMixin);
+        PRINT_MIXIN(BackupMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(ScannersMixin);
+        PRINT_BYTES(BackupMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2243,7 +2790,9 @@ namespace UnifiedRegex
         if (!info->IsUndefined() && info->length > 0)
         {
             if (info->length > inputLength - inputOffset)
+            {
                 return matcher.Fail(FAIL_PARAMETERS);
+            }
 
             CharCount groupOffset = info->offset;
             const CharCount groupEndOffset = groupOffset + info->length;
@@ -2338,6 +2887,7 @@ namespace UnifiedRegex
                     auto toCanonical = [&](CharCount &offset) {
                         return matcher.standardChars->ToCanonical(CaseInsensitive::MappingSource::UnicodeData, input[offset++]);
                     };
+
                     if (toCanonical(groupOffset) != toCanonical(inputOffset))
                     {
                         return matcher.Fail(FAIL_PARAMETERS);
@@ -2353,7 +2903,9 @@ namespace UnifiedRegex
                     matcher.CompStats();
 #endif
                     if (input[groupOffset++] != input[inputOffset++])
+                    {
                         return matcher.Fail(FAIL_PARAMETERS);
+                    }
                 }
                 while (groupOffset < groupEndOffset);
             }
@@ -2367,10 +2919,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int MatchGroupInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: MatchGroup("), label);
-        GroupMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("MatchGroup");
+        PRINT_MIXIN(GroupMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(GroupMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2392,10 +2945,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int BeginDefineGroupInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: BeginDefineGroup("), label);
-        GroupMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("BeginDefineGroup");
+        PRINT_MIXIN(GroupMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(GroupMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2426,12 +2980,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int EndDefineGroupInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: EndDefineGroup("), label);
-        GroupMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        NoNeedToSaveMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("EndDefineGroup");
+        PRINT_MIXIN_COMMA(GroupMixin);
+        PRINT_MIXIN(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(GroupMixin);
+        PRINT_BYTES(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2462,14 +3017,15 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int DefineGroupFixedInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: DefineGroupFixed("), label);
-        GroupMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        FixedLengthMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        NoNeedToSaveMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("DefineGroupFixed");
+        PRINT_MIXIN_COMMA(GroupMixin);
+        PRINT_MIXIN_COMMA(FixedLengthMixin);
+        PRINT_MIXIN(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(GroupMixin);
+        PRINT_BYTES(FixedLengthMixin);
+        PRINT_BYTES(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2544,12 +3100,15 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int BeginLoopInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: BeginLoop("), label);
-        BeginLoopMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        BodyGroupsMixin::Print(w, litbuf);
-        w->PrintEOL(_u(", greedy: %s)"), isGreedy ? _u("true") : _u("false"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("BeginLoop");
+        PRINT_MIXIN_COMMA(BeginLoopMixin);
+        PRINT_MIXIN_COMMA(BodyGroupsMixin);
+        PRINT_MIXIN(GreedyMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(BeginLoopMixin);
+        PRINT_BYTES(BodyGroupsMixin);
+        PRINT_BYTES(GreedyMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2634,10 +3193,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int RepeatLoopInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: RepeatLoop("), label);
-        RepeatLoopMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("RepeatLoop");
+        PRINT_MIXIN(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2668,7 +3228,9 @@ namespace UnifiedRegex
         }
 
         if (repeats.lower > 0)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         instPointer = matcher.LabelToInstPointer(exitLabel);
         return false;
@@ -2677,14 +3239,15 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int BeginLoopIfCharInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: BeginLoopIfChar("), label);
-        CharMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        BeginLoopMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        BodyGroupsMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("BeginLoopIfChar");
+        PRINT_MIXIN_COMMA(CharMixin);
+        PRINT_MIXIN_COMMA(BeginLoopMixin);
+        PRINT_MIXIN(BodyGroupsMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_BYTES(BeginLoopMixin);
+        PRINT_BYTES(BodyGroupsMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2717,7 +3280,9 @@ namespace UnifiedRegex
         }
 
         if (repeats.lower > 0)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         instPointer = matcher.LabelToInstPointer(exitLabel);
         return false;
@@ -2726,14 +3291,15 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int BeginLoopIfSetInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: BeginLoopIfSet("), label);
-        SetMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        BeginLoopMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        BodyGroupsMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("BeginLoopIfSet");
+        PRINT_MIXIN_COMMA(SetMixin<false>);
+        PRINT_MIXIN_COMMA(BeginLoopMixin);
+        PRINT_MIXIN(BodyGroupsMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_BYTES(BeginLoopMixin);
+        PRINT_BYTES(BodyGroupsMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2787,7 +3353,9 @@ namespace UnifiedRegex
         }
 
         if (loopInfo->number < begin->repeats.lower)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         // Proceed to exit
         instPointer = matcher.LabelToInstPointer(begin->exitLabel);
@@ -2797,10 +3365,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int RepeatLoopIfCharInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: RepeatLoopIfChar(%d, "), label);
-        RepeatLoopMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("RepeatLoopIfChar");
+        PRINT_MIXIN(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2837,7 +3406,7 @@ namespace UnifiedRegex
             }
 
             // Commit to one more iteration
-            if(begin->hasInnerNondet)
+            if (begin->hasInnerNondet)
             {
                 // If it backtracks into the loop body of an earlier iteration, it must restore inner groups for that iteration.
                 // Save the inner groups and reset them for the next iteration.
@@ -2854,7 +3423,9 @@ namespace UnifiedRegex
         }
 
         if (loopInfo->number < begin->repeats.lower)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         // Proceed to exit
         instPointer = matcher.LabelToInstPointer(begin->exitLabel);
@@ -2864,10 +3435,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int RepeatLoopIfSetInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: RepeatLoopIfSet("), label);
-        RepeatLoopMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("RepeatLoopIfSet");
+        PRINT_MIXIN(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2912,12 +3484,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int BeginLoopFixedInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: BeginLoopFixed("), label);
-        BeginLoopMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        FixedLengthMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("BeginLoopFixed");
+        PRINT_MIXIN_COMMA(BeginLoopMixin);
+        PRINT_MIXIN(FixedLengthMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(BeginLoopMixin);
+        PRINT_BYTES(FixedLengthMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -2973,10 +3546,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int RepeatLoopFixedInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: RepeatLoopFixed("), label);
-        RepeatLoopMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("RepeatLoopFixed");
+        PRINT_MIXIN(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3023,8 +3597,10 @@ namespace UnifiedRegex
 
         loopInfo->number = inputOffset - loopMatchStart;
         if (loopInfo->number < repeats.lower)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
-        if (loopInfo->number > repeats.lower)
+        }
+        else if (loopInfo->number > repeats.lower)
         {
             // CHOICEPOINT: If follow fails, try consuming one fewer characters
             Assert(instPointer == (uint8*)this);
@@ -3043,12 +3619,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int LoopSetInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: LoopSet(loopId: %d, "), label, loopId);
-        repeats.Print(w);
-        w->Print(_u(", hasOuterLoops: %s, "), hasOuterLoops ? _u("true") : _u("false"));
-        SetMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("LoopSetInst");
+        PRINT_MIXIN_COMMA(SetMixin<false>);
+        PRINT_MIXIN(BeginLoopBasicsMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_BYTES(BeginLoopBasicsMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3100,8 +3677,10 @@ namespace UnifiedRegex
 
         loopInfo->number = inputOffset - loopMatchStart;
         if (loopInfo->number < repeats.lower)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
-        if (loopInfo->number > repeats.lower)
+        }
+        else if (loopInfo->number > repeats.lower)
         {
             // CHOICEPOINT: If follow fails, try consuming one fewer characters
             Assert(instPointer == (uint8*)this);
@@ -3120,12 +3699,15 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int LoopSetWithFollowFirstInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: LoopSet(loopId: %d, followFirst: %c, "), label, loopId, followFirst);
-        repeats.Print(w);
-        w->Print(_u(", hasOuterLoops: %s, "), hasOuterLoops ? _u("true") : _u("false"));
-        SetMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("LoopSetWithFollowFirstInst");
+        PRINT_MIXIN_COMMA(SetMixin<false>);
+        PRINT_MIXIN_COMMA(BeginLoopBasicsMixin);
+        PRINT_MIXIN(FollowFirstMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_BYTES(BeginLoopBasicsMixin);
+        PRINT_MIXIN(FollowFirstMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3181,16 +3763,17 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int BeginLoopFixedGroupLastIterationInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: BeginLoopFixedGroupLastIteration("), label);
-        BeginLoopMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        FixedLengthMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        GroupMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        NoNeedToSaveMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("BeginLoopFixedGroupLastIteration");
+        PRINT_MIXIN_COMMA(BeginLoopMixin);
+        PRINT_MIXIN_COMMA(FixedLengthMixin);
+        PRINT_MIXIN_COMMA(GroupMixin);
+        PRINT_MIXIN(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(BeginLoopMixin);
+        PRINT_BYTES(FixedLengthMixin);
+        PRINT_BYTES(GroupMixin);
+        PRINT_BYTES(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3252,13 +3835,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int RepeatLoopFixedGroupLastIterationInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: RepeatLoopFixedGroupLastIteration("), label);
-        RepeatLoopMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("RepeatLoopFixedGroupLastIteration");
+        PRINT_MIXIN(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
-
 
     // ----------------------------------------------------------------------
     // BeginGreedyLoopNoBacktrackInst
@@ -3284,8 +3867,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int BeginGreedyLoopNoBacktrackInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->PrintEOL(_u("L%04x: BeginGreedyLoopNoBacktrack(loopId: %d)"), label, loopId);
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("BeginGreedyLoopNoBacktrack");
+        PRINT_MIXIN(GreedyLoopNoBacktrackMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(GreedyLoopNoBacktrackMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3325,10 +3911,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int RepeatGreedyLoopNoBacktrackInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: RepeatGreedyLoopNoBacktrack("), label);
-        RepeatLoopMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("RepeatGreedyLoopNoBacktrack");
+        PRINT_MIXIN(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(RepeatLoopMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3343,19 +3930,23 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         matcher.CompStats();
 #endif
-        if(Mode == ChompMode::Star || (inputOffset < inputLength && input[inputOffset] == matchC))
+        if (Mode == ChompMode::Star || (inputOffset < inputLength && input[inputOffset] == matchC))
         {
-            while(true)
+            while (true)
             {
-                if(Mode != ChompMode::Star)
+                if (Mode != ChompMode::Star)
+                {
                     ++inputOffset;
+                }
 #if ENABLE_REGEX_CONFIG_OPTIONS
                 matcher.CompStats();
 #endif
-                if(inputOffset < inputLength && input[inputOffset] == matchC)
+                if (inputOffset < inputLength && input[inputOffset] == matchC)
                 {
-                    if(Mode == ChompMode::Star)
+                    if (Mode == ChompMode::Star)
+                    {
                         ++inputOffset;
+                    }
                     continue;
                 }
                 break;
@@ -3372,10 +3963,19 @@ namespace UnifiedRegex
     template<ChompMode Mode>
     int ChompCharInst<Mode>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: ChompChar<%S>("), label, Mode == ChompMode::Star ? "Star" : "Plus");
-        CharMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        if (Mode == ChompMode::Star)
+        {
+            PRINT_RE_BYTECODE_BEGIN("ChompChar<Star>");
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("ChompChar<Plus>");
+        }
+
+        PRINT_MIXIN(CharMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3394,15 +3994,19 @@ namespace UnifiedRegex
         {
             while(true)
             {
-                if(Mode != ChompMode::Star)
+                if (Mode != ChompMode::Star)
+                {
                     ++inputOffset;
+                }
 #if ENABLE_REGEX_CONFIG_OPTIONS
                 matcher.CompStats();
 #endif
-                if(inputOffset < inputLength && matchSet.Get(input[inputOffset]))
+                if (inputOffset < inputLength && matchSet.Get(input[inputOffset]))
                 {
-                    if(Mode == ChompMode::Star)
+                    if (Mode == ChompMode::Star)
+                    {
                         ++inputOffset;
+                    }
                     continue;
                 }
                 break;
@@ -3419,10 +4023,19 @@ namespace UnifiedRegex
     template<ChompMode Mode>
     int ChompSetInst<Mode>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: ChompSet<%S>("), label, Mode == ChompMode::Star ? "Star" : "Plus");
-        SetMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        if (Mode == ChompMode::Star)
+        {
+            PRINT_RE_BYTECODE_BEGIN("ChompSet<Star>");
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("ChompSet<Plus>");
+        }
+
+        PRINT_MIXIN(SetMixin<false>);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3442,23 +4055,27 @@ namespace UnifiedRegex
 #endif
         if(Mode == ChompMode::Star || (inputOffset < inputLength && input[inputOffset] == matchC))
         {
-            while(true)
+            while (true)
             {
-                if(Mode != ChompMode::Star)
+                if (Mode != ChompMode::Star)
+                {
                     ++inputOffset;
+                }
 #if ENABLE_REGEX_CONFIG_OPTIONS
                 matcher.CompStats();
 #endif
-                if(inputOffset < inputLength && input[inputOffset] == matchC)
+                if (inputOffset < inputLength && input[inputOffset] == matchC)
                 {
-                    if(Mode == ChompMode::Star)
+                    if (Mode == ChompMode::Star)
+                    {
                         ++inputOffset;
+                    }
                     continue;
                 }
                 break;
             }
 
-            if(!noNeedToSave)
+            if (!noNeedToSave)
             {
                 // UNDO ACTION: Restore group on backtrack
                 PUSH(contStack, ResetGroupCont, groupId);
@@ -3482,14 +4099,23 @@ namespace UnifiedRegex
     template<ChompMode Mode>
     int ChompCharGroupInst<Mode>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: ChompCharGroup<%S>("), label, Mode == ChompMode::Star ? "Star" : "Plus");
-        CharMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        GroupMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        NoNeedToSaveMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        if (Mode == ChompMode::Star)
+        {
+            PRINT_RE_BYTECODE_BEGIN("ChompCharGroup<Star>");
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("ChompCharGroup<Plus>");
+        }
+
+        PRINT_MIXIN_COMMA(CharMixin);
+        PRINT_MIXIN_COMMA(GroupMixin);
+        PRINT_MIXIN(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_BYTES(GroupMixin);
+        PRINT_BYTES(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3507,25 +4133,29 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         matcher.CompStats();
 #endif
-        if(Mode == ChompMode::Star || (inputOffset < inputLength && matchSet.Get(input[inputOffset])))
+        if (Mode == ChompMode::Star || (inputOffset < inputLength && matchSet.Get(input[inputOffset])))
         {
-            while(true)
+            while (true)
             {
-                if(Mode != ChompMode::Star)
+                if (Mode != ChompMode::Star)
+                {
                     ++inputOffset;
+                }
 #if ENABLE_REGEX_CONFIG_OPTIONS
                 matcher.CompStats();
 #endif
-                if(inputOffset < inputLength && matchSet.Get(input[inputOffset]))
+                if (inputOffset < inputLength && matchSet.Get(input[inputOffset]))
                 {
-                    if(Mode == ChompMode::Star)
+                    if (Mode == ChompMode::Star)
+                    {
                         ++inputOffset;
+                    }
                     continue;
                 }
                 break;
             }
 
-            if(!noNeedToSave)
+            if (!noNeedToSave)
             {
                 // UNDO ACTION: Restore group on backtrack
                 PUSH(contStack, ResetGroupCont, groupId);
@@ -3549,14 +4179,23 @@ namespace UnifiedRegex
     template<ChompMode Mode>
     int ChompSetGroupInst<Mode>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: ChompSetGroup<%S>("), label, Mode == ChompMode::Star ? "Star" : "Plus");
-        SetMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        GroupMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        NoNeedToSaveMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        if (Mode == ChompMode::Star)
+        {
+            PRINT_RE_BYTECODE_BEGIN("ChompSetGroup<Star>");
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("ChompSetGroup<Plus>");
+        }
+
+        PRINT_MIXIN_COMMA(SetMixin<false>);
+        PRINT_MIXIN_COMMA(GroupMixin);
+        PRINT_MIXIN(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_BYTES(GroupMixin);
+        PRINT_BYTES(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3585,7 +4224,9 @@ namespace UnifiedRegex
         }
 
         if (inputOffset - loopMatchStart < repeats.lower)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         instPointer += sizeof(*this);
         return false;
@@ -3594,12 +4235,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int ChompCharBoundedInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: ChompCharBounded("), label);
-        CharMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        ChompBoundedMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("ChompCharBounded");
+        PRINT_MIXIN_COMMA(CharMixin);
+        PRINT_MIXIN(ChompBoundedMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_BYTES(ChompBoundedMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3628,7 +4270,9 @@ namespace UnifiedRegex
         }
 
         if (inputOffset - loopMatchStart < repeats.lower)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         instPointer += sizeof(*this);
         return false;
@@ -3637,12 +4281,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int ChompSetBoundedInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: ChompSetBounded("), label);
-        SetMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        ChompBoundedMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("ChompSetBounded");
+        PRINT_MIXIN_COMMA(SetMixin<false>);
+        PRINT_MIXIN(ChompBoundedMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_BYTES(ChompBoundedMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3673,7 +4318,9 @@ namespace UnifiedRegex
         }
 
         if (inputOffset - loopMatchStart < repeats.lower)
+        {
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         if (inputOffset > loopMatchStart)
         {
@@ -3697,16 +4344,17 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int ChompSetBoundedGroupLastCharInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: ChompSetBoundedGroupLastChar("), label);
-        SetMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        ChompBoundedMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        GroupMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        NoNeedToSaveMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("ChompSetBoundedGroupLastChar");
+        PRINT_MIXIN_COMMA(SetMixin<false>);
+        PRINT_MIXIN_COMMA(ChompBoundedMixin);
+        PRINT_MIXIN_COMMA(GroupMixin);
+        PRINT_MIXIN(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_BYTES(ChompBoundedMixin);
+        PRINT_BYTES(GroupMixin);
+        PRINT_BYTES(NoNeedToSaveMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3729,10 +4377,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int TryInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: Try("), label);
-        TryMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("Try");
+        PRINT_MIXIN(TryMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(TryMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3764,12 +4413,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int TryIfCharInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: TryIfChar("), label);
-        CharMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        TryMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("TryIfChar");
+        PRINT_MIXIN_COMMA(CharMixin);
+        PRINT_MIXIN(TryMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_BYTES(TryMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3802,12 +4452,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int TryMatchCharInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: TryMatchChar("), label);
-        CharMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        TryMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("TryMatchChar");
+        PRINT_MIXIN_COMMA(CharMixin);
+        PRINT_MIXIN(TryMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(CharMixin);
+        PRINT_BYTES(TryMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3839,12 +4490,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int TryIfSetInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: TryIfSet("), label);
-        SetMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        TryMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("TryIfSet");
+        PRINT_MIXIN_COMMA(SetMixin<false>);
+        PRINT_MIXIN(TryMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_BYTES(TryMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3877,12 +4529,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int TryMatchSetInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: TryMatchSet("), label);
-        SetMixin::Print(w, litbuf);
-        w->Print(_u(", "));
-        TryMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("TryMatchSet");
+        PRINT_MIXIN_COMMA(SetMixin<false>);
+        PRINT_MIXIN(TryMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(SetMixin<false>);
+        PRINT_BYTES(TryMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3915,11 +4568,15 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int BeginAssertionInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: BeginAssertion(isNegation: %s, nextLabel: L%04x, "),
-            label, isNegation ? _u("true") : _u("false"), GetPrintLabel(nextLabel));
-        BodyGroupsMixin::Print(w, litbuf);
-        w->PrintEOL(_u(")"));
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("BeginAssertion");
+        PRINT_MIXIN_COMMA(BodyGroupsMixin);
+        PRINT_MIXIN_COMMA(NegationMixin);
+        PRINT_MIXIN(NextLabelMixin);
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(BodyGroupsMixin);
+        PRINT_BYTES(NegationMixin);
+        PRINT_BYTES(NextLabelMixin);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3930,8 +4587,10 @@ namespace UnifiedRegex
     inline bool EndAssertionInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (!matcher.PopAssertion(inputOffset, instPointer, contStack, assertionStack, true))
+        {
             // Body of negative assertion succeeded, so backtrack
             return matcher.Fail(FAIL_PARAMETERS);
+        }
 
         // else: body of positive assertion succeeded, instruction pointer already at next instruction
         return false;
@@ -3940,8 +4599,10 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int EndAssertionInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->PrintEOL(_u("L%04x: EndAssertion()"), label);
-        return sizeof(*this);
+        PRINT_RE_BYTECODE_BEGIN("EndAssertion");
+        PRINT_RE_BYTECODE_MID();
+        PRINT_BYTES(EndAssertionInst);
+        PRINT_RE_BYTECODE_END();
     }
 #endif
 
@@ -3968,7 +4629,9 @@ namespace UnifiedRegex
     void GroupInfo::Print(DebugWriter* w, const Char* const input) const
     {
         if (IsUndefined())
+        {
             w->Print(_u("<undefined> (%u)"), offset);
+        }
         else
         {
             w->PrintQuotedString(input + offset, (CharCount)length);
@@ -4138,11 +4801,15 @@ namespace UnifiedRegex
     {
         Assert(!assertionStack.IsEmpty());
         if (matcher.PopAssertion(inputOffset, instPointer, contStack, assertionStack, false))
+        {
             // Body of negative assertion failed
             return true; // STOP BACKTRACKING
+        }
         else
+        {
             // Body of positive assertion failed
             return false; // CONTINUE BACKTRACKING
+        }
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -4286,7 +4953,7 @@ namespace UnifiedRegex
             else
             {
                 // Backtrack to the previous offset where we matched the LoopSet's followFirst
-                // We will be doing one unnecessary match. But, if we wanted to avoid it, we'd have 
+                // We will be doing one unnecessary match. But, if we wanted to avoid it, we'd have
                 // to propagate to the next Inst, that the first character is already matched.
                 // Seems like an overkill to avoid one match.
                 loopInfo->number = loopInfo->offsetsOfFollowFirst->RemoveAtEnd();
@@ -4358,7 +5025,9 @@ namespace UnifiedRegex
             groupInfo->length = begin->length;
         }
         else
+        {
             groupInfo->Reset();
+        }
 
         if (loopInfo->number > begin->repeats.lower)
         {
@@ -4389,7 +5058,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void ContStack::Print(DebugWriter* w, const Char* const input) const
     {
-        for(Iterator it(*this); it; ++it)
+        for (Iterator it(*this); it; ++it)
         {
             w->Print(_u("%4llu: "), static_cast<unsigned long long>(it.Position()));
             it->Print(w, input);
@@ -4400,7 +5069,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void AssertionStack::Print(DebugWriter* w, const Matcher* matcher) const
     {
-        for(Iterator it(*this); it; ++it)
+        for (Iterator it(*this); it; ++it)
         {
             it->Print(w);
         }
@@ -4469,8 +5138,10 @@ namespace UnifiedRegex
 
         const uint before = previousQcTime;
         const uint now = GetTickCount();
-        if((!before || now - before < TimePerQc) && qcTicks & TicksPerQc - 1)
+        if ((!before || now - before < TimePerQc) && qcTicks & TicksPerQc - 1)
+        {
             return;
+        }
 
         previousQcTime = now;
         TraceQueryContinue(now);
@@ -4511,8 +5182,10 @@ namespace UnifiedRegex
 
     void Matcher::TraceQueryContinue(const uint now)
     {
-        if(!PHASE_TRACE1(Js::RegexQcPhase))
+        if (!PHASE_TRACE1(Js::RegexQcPhase))
+        {
             return;
+        }
 
         Output::Print(_u("Regex QC"));
 
@@ -4520,10 +5193,14 @@ namespace UnifiedRegex
         static uint firstQcTime = 0;
 
         ++n;
-        if(firstQcTime)
+        if (firstQcTime)
+        {
             Output::Print(_u(" - frequency: %0.1f"), static_cast<double>(n * 1000) / (now - firstQcTime));
+        }
         else
+        {
             firstQcTime = now;
+        }
 
         Output::Print(_u("\n"));
         Output::Flush();
@@ -4553,7 +5230,9 @@ namespace UnifiedRegex
 #endif
             Cont* cont = contStack.Pop();
             if (cont == 0)
+            {
                 break;
+            }
 
             Assert(cont->tag >= minContTag && cont->tag <= maxContTag);
             // All these cases RESUME EXECUTION if backtracking finds a stop point
@@ -4597,7 +5276,9 @@ namespace UnifiedRegex
             Assert(((Inst*)instPointer)->tag >= minInstTag && ((Inst*)instPointer)->tag <= maxInstTag);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             if (w != 0)
+            {
                 Print(w, input, inputLength, inputOffset, instPointer, contStack, assertionStack);
+            }
             InstStats();
 #endif
             const Inst *inst = (const Inst*)instPointer;
@@ -4606,8 +5287,7 @@ namespace UnifiedRegex
             {
 #define MBase(TagName, ClassName) \
                 case Inst::TagName: \
-                    if (((const ClassName *)inst)->Exec(*this, input, inputLength, matchStart, inputOffset, nextSyncInputOffset, instPointer, contStack, assertionStack, qcTicks, firstIteration)) \
-                        return; \
+                    if (((const ClassName *)inst)->Exec(*this, input, inputLength, matchStart, inputOffset, nextSyncInputOffset, instPointer, contStack, assertionStack, qcTicks, firstIteration)) { return; } \
                     break;
 #define M(TagName) MBase(TagName, TagName##Inst)
 #define MTemplate(TagName, TemplateDeclaration, GenericClassName, SpecializedClassName) MBase(TagName, SpecializedClassName)
@@ -4626,7 +5306,9 @@ namespace UnifiedRegex
     void Matcher::ResetLoopInfos()
     {
         for (int i = 0; i < program->numLoops; i++)
+        {
             loopInfos[i].Reset();
+        }
     }
 #endif
 
@@ -4788,7 +5470,9 @@ namespace UnifiedRegex
                     CompStats();
 #endif
                     if (!stdchrs.IsWord(input[offset]))
+                    {
                         break;
+                    }
                 }
             }
 
@@ -4805,7 +5489,9 @@ namespace UnifiedRegex
                 CompStats();
 #endif
                 if (stdchrs.IsWord(input[offset]))
+                {
                     break;
+                }
             }
         }
 
@@ -5047,14 +5733,20 @@ namespace UnifiedRegex
         w->EOL();
         w->Print(_u("inputPointer: "));
         if (inputLength == 0)
+        {
             w->PrintEOL(_u("<empty input>"));
+        }
         else if (inputLength > 1024)
+        {
             w->PrintEOL(_u("<string too large>"));
+        }
         else
         {
             w->PrintEscapedString(input, inputOffset);
             if (inputOffset >= inputLength)
+            {
                 w->Print(_u("<<<>>>"));
+            }
             else
             {
                 w->Print(_u("<<<"));
@@ -5157,8 +5849,10 @@ namespace UnifiedRegex
 
     void Program::FreeBody(ArenaAllocator* rtAllocator)
     {
-        if(tag != InstructionsTag || !rep.insts.insts)
+        if (tag != InstructionsTag || !rep.insts.insts)
+        {
             return;
+        }
 
         Inst *inst = reinterpret_cast<Inst *>(PointerValue(rep.insts.insts));
         const auto instEnd = reinterpret_cast<Inst *>(reinterpret_cast<uint8 *>(inst) + rep.insts.instsLen);
@@ -5225,7 +5919,9 @@ namespace UnifiedRegex
                 uint8* curr = rep.insts.insts;
                 int i = 0;
                 while (curr != instsLim)
+                {
                     curr += ((Inst*)curr)->Print(w, (Label)(isBaselineMode ? i++ : curr - rep.insts.insts), rep.insts.litbuf);
+                }
                 w->Unindent();
                 w->PrintEOL(_u("}"));
             }

@@ -4634,7 +4634,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (w != 0)
         {
-            w->PrintEOL(_u("REGEX PROGRAM /%s/ "), PointerValue(program->source));
+            w->PrintEOL(_u("REGEX PROGRAM /%s/"), PointerValue(program->source));
             program->Print(w);
             w->Flush();
         }
