@@ -1761,6 +1761,7 @@ WasmCompilationException::WasmCompilationException(const char16* _msg, ...) : er
     va_list arglist;
     va_start(arglist, _msg);
     FormatError(_msg, arglist);
+    va_end(arglist);
 }
 
 WasmCompilationException::WasmCompilationException(const char16* _msg, va_list arglist) : errorMsg(nullptr)
