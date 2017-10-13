@@ -121,6 +121,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WabtInterface.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
+    <ClCompile Include="LazyJSONString.cpp" />
+    <ClCompile Include="JSONStringifier.cpp" />
+    <ClCompile Include="JSONStringBuilder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -259,6 +262,9 @@
     <ClInclude Include="CustomExternalIterator.h" />
     <ClInclude Include="JavascriptExceptionMetadata.h" />
     <ClInclude Include="..\DetachedStateBase.h" />
+    <ClInclude Include="LazyJSONString.h" />
+    <ClInclude Include="JSONStringifier.h" />
+    <ClInclude Include="JSONStringBuilder.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />

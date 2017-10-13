@@ -594,6 +594,17 @@ public:
     }  \
 }
 
+#define FOREACH_DLISTCOUNTED_ENTRY(T, alloc, data, list) \
+{ \
+    DListCounted<T, alloc>::Iterator __iter(list); \
+    while (__iter.Next()) \
+    { \
+        T& data = __iter.Data();
+
+#define NEXT_DLISTCOUNTED_ENTRY \
+    }  \
+}
+
 #define FOREACH_DLIST_ENTRY_EDITING(T, alloc, data, list, iter) \
     DList<T, alloc>::EditingIterator iter(list); \
     while (iter.Next()) \

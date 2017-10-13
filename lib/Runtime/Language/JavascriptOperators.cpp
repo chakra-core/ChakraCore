@@ -1325,30 +1325,34 @@ CommonNumber:
         return type->GetPrototype();
     }
 
-    BOOL JavascriptOperators::IsArray(Var instanceVar)
+    BOOL JavascriptOperators::IsArray(_In_ RecyclableObject* instance)
     {
-        if (!RecyclableObject::Is(instanceVar))
-        {
-            return FALSE;
-        }
-        RecyclableObject* instance = RecyclableObject::UnsafeFromVar(instanceVar);
         if (DynamicObject::IsAnyArray(instance))
         {
             return TRUE;
         }
 
-        JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instanceVar);
+        JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
         if (proxy)
         {
             return IsArray(proxy->GetTarget());
         }
         TypeId remoteTypeId = TypeIds_Limit;
-        if (JavascriptOperators::GetRemoteTypeId(instanceVar, &remoteTypeId) &&
+        if (JavascriptOperators::GetRemoteTypeId(instance, &remoteTypeId) &&
             DynamicObject::IsAnyArrayTypeId(remoteTypeId))
         {
             return TRUE;
         }
         return FALSE;
+    }
+
+    BOOL JavascriptOperators::IsArray(_In_ Var instanceVar)
+    {
+        if (!RecyclableObject::Is(instanceVar))
+        {
+            return FALSE;
+        }
+        return IsArray(RecyclableObject::FromVar(instanceVar));
     }
 
     BOOL JavascriptOperators::IsConstructor(Var instanceVar)
@@ -10045,9 +10049,14 @@ CommonNumber:
         return JavascriptNumber::ToVarNoCheck(JavascriptConversion::ToNumber_Full(aRight, scriptContext), scriptContext);
     }
 
-    BOOL JavascriptOperators::IsObject(Var aValue)
+    BOOL JavascriptOperators::IsObject(_In_ RecyclableObject* instance)
     {
-        return GetTypeId(aValue) > TypeIds_LastJavascriptPrimitiveType;
+        return GetTypeId(instance) > TypeIds_LastJavascriptPrimitiveType;
+    }
+
+    BOOL JavascriptOperators::IsObject(_In_ Var instance)
+    {
+        return GetTypeId(instance) > TypeIds_LastJavascriptPrimitiveType;
     }
 
     BOOL JavascriptOperators::IsObjectType(TypeId typeId)
@@ -10064,6 +10073,11 @@ CommonNumber:
     {
         TypeId typeId = GetTypeId(instance);
         return IsObjectType(typeId) || typeId == TypeIds_Null;
+    }
+
+    BOOL JavascriptOperators::IsUndefined(_In_ RecyclableObject* instance)
+    {
+        return JavascriptOperators::GetTypeId(instance) == TypeIds_Undefined;
     }
 
     BOOL JavascriptOperators::IsUndefined(Var instance)
@@ -10408,6 +10422,11 @@ CommonNumber:
 
     BOOL JavascriptOperators::GetItem(RecyclableObject* instance, uint64 index, Var* value, ScriptContext* requestContext)
     {
+        if (index < JavascriptArray::InvalidIndex)
+        {
+            // In case index fits in uint32, we can avoid the (slower) big-index path
+            return GetItem(instance, static_cast<uint32>(index), value, requestContext);
+        }
         PropertyRecord const * propertyRecord = nullptr;
         JavascriptOperators::GetPropertyIdForInt(index, requestContext, &propertyRecord);
         return JavascriptOperators::GetProperty(instance, propertyRecord->GetPropertyId(), value, requestContext);

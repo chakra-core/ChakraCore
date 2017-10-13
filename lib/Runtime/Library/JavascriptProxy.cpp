@@ -7,7 +7,12 @@
 
 namespace Js
 {
-    BOOL JavascriptProxy::Is(Var obj)
+    BOOL JavascriptProxy::Is(_In_ RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Proxy;
+    }
+
+    BOOL JavascriptProxy::Is(_In_ Var obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Proxy;
     }
