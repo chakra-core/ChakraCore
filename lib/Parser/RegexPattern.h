@@ -42,9 +42,9 @@ namespace UnifiedRegex
 
         static RegexPattern *New(Js::ScriptContext *scriptContext, Program* program, bool isLiteral);
 
-        virtual void Finalize(bool isShutdown) override;
-        virtual void Dispose(bool isShutdown) override;
-        virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
+        virtual void __stdcall Finalize(bool isShutdown) override;
+        virtual void __stdcall Dispose(bool isShutdown) override;
+        virtual void __stdcall Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
         Js::ScriptContext *GetScriptContext() const;
 

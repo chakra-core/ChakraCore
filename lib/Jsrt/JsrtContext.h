@@ -21,7 +21,7 @@ public:
     static bool TrySetCurrent(JsrtContext * context);
     static bool Is(void * ref);
 
-    virtual void Mark(Recycler * recycler) override sealed;
+    virtual void __stdcall Mark(Recycler * recycler) override sealed;
 
 #if ENABLE_TTD
     void OnScriptLoad_TTDCallback(Js::FunctionBody* body, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException, bool notify);

@@ -504,6 +504,13 @@ LargeHeapBlock::AllocFreeListEntry(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectIn
     Assert(entry->headerIndex < this->objectCount);
     Assert(this->HeaderList()[entry->headerIndex] == nullptr);
 
+#ifdef RECYCLER_VISITED_HOST
+    if (attributes & RecyclerVisitedHostBit)
+    {
+        ReportFatalException(NULL, E_FAIL, Fatal_RecyclerVisitedHost_LargeHeapBlock, 1);
+    }
+#endif
+
     uint headerIndex = entry->headerIndex;
     size_t originalSize = entry->objectSize;
 
@@ -571,6 +578,12 @@ LargeHeapBlock::Alloc(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attrib
     Assert(HeapInfo::IsAlignedSize(size) || InPageHeapMode());
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
     AssertMsg((attributes & TrackBit) == 0, "Large tracked object collection not implemented");
+#ifdef RECYCLER_VISITED_HOST
+    if (attributes & RecyclerVisitedHostBit)
+    {
+        ReportFatalException(NULL, E_FAIL, Fatal_RecyclerVisitedHost_LargeHeapBlock, 2);
+    }
+#endif
 
     LargeObjectHeader * header = (LargeObjectHeader *)allocAddressEnd;
 #if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC

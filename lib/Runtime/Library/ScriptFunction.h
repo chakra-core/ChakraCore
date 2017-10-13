@@ -216,6 +216,6 @@ namespace Js
         static uint32 GetOffsetOfInlineCaches() { return offsetof(ScriptFunctionWithInlineCache, m_inlineCaches); };
         template<bool isShutdown>
         void FreeOwnInlineCaches();
-        virtual void Finalize(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
     };
 } // namespace Js

@@ -377,17 +377,17 @@ namespace Js {
 
         // If dtor is called, that means that OOM happened (mostly), then the vtable might not be initialized
         // to the base class', so we can't assert.
-        virtual void Finalize(bool isShutdown) override {
+        virtual void __stdcall Finalize(bool isShutdown) override {
 #ifdef DBG_EXTRAFIELD
             AssertMsg(dtorCalled, "Can't allocate a finalizable object without implementing Finalize");
 #endif
         }
-        virtual void Dispose(bool isShutdown) override {
+        virtual void __stdcall Dispose(bool isShutdown) override {
 #ifdef DBG_EXTRAFIELD
             AssertMsg(dtorCalled, "Can't allocate a finalizable object without implementing Dispose");
 #endif
         }
-        virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
+        virtual void __stdcall Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
         static uint32 GetOffsetOfType() { return offsetof(RecyclableObject, type); }
 

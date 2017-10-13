@@ -105,9 +105,9 @@ namespace Js
         static const char16 * GetMutationTypeForConditionalEval(MutationType mutationType);
 
         /* Override methods - FinalizableObject */
-        virtual void Finalize(bool isShutdown);
-        virtual void Dispose(bool isShutdown);
-        virtual void Mark(Recycler * recycler);
+        virtual void __stdcall Finalize(bool isShutdown);
+        virtual void __stdcall Dispose(bool isShutdown);
+        virtual void __stdcall Mark(Recycler * recycler);
     };
 }
 #endif

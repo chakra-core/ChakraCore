@@ -420,8 +420,8 @@ namespace Js
         bool IsFull();
         void Clear(Type * type);
 
-        virtual void Dispose(bool isShutdown) override { };
-        virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
+        virtual void __stdcall Dispose(bool isShutdown) override { };
+        virtual void __stdcall Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
         void CacheLocal(
             Type *const type,
@@ -567,7 +567,7 @@ namespace Js
         virtual ScriptContext* GetScriptContext() const override;
 #endif
 
-        virtual void Finalize(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
     };
 
     class ScriptContextPolymorphicInlineCache sealed : public PolymorphicInlineCache
@@ -590,7 +590,7 @@ namespace Js
         virtual ScriptContext* GetScriptContext() const override;
 #endif
 
-        virtual void Finalize(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
     };
 
     // Caches the result of an instanceof operator over a type and a function

@@ -15,7 +15,7 @@ namespace Js {
 
     public:
         static JsrtExternalArrayBuffer* New(byte *buffer, uint32 length, JsFinalizeCallback finalizeCallback, void *callbackState, DynamicType *type);
-        void Finalize(bool isShutdown) override;
+        void __stdcall Finalize(bool isShutdown) override;
 
     private:
         FieldNoBarrier(JsFinalizeCallback) finalizeCallback;

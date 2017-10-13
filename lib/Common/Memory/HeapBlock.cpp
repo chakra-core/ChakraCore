@@ -31,6 +31,16 @@ HeapBlock::AsFinalizableBlock()
     return static_cast<SmallFinalizableHeapBlockT<TBlockAttributes> *>(this);
 }
 
+#ifdef RECYCLER_VISITED_HOST
+template <typename TBlockAttributes>
+SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes> *
+HeapBlock::AsRecyclerVisitedHostBlock()
+{
+    Assert(IsRecyclerVisitedHostBlock());
+    return static_cast<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes> *>(this);
+}
+#endif
+
 #ifdef RECYCLER_WRITE_BARRIER
 template <typename TBlockAttributes>
 SmallNormalWithBarrierHeapBlockT<TBlockAttributes> *

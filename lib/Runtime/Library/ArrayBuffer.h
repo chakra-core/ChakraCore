@@ -246,8 +246,8 @@ namespace Js
     public:
         static JavascriptArrayBuffer* Create(DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
         static JavascriptArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
-        virtual void Dispose(bool isShutdown) override;
-        virtual void Finalize(bool isShutdown) override;
+        virtual void __stdcall Dispose(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
 
         static bool IsValidAsmJsBufferLengthAlgo(uint length, bool forceCheck);
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) override;
@@ -307,8 +307,8 @@ namespace Js
         static ProjectionArrayBuffer* Create(DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
         // take over ownership. a CoTaskMemAlloc'ed buffer passed in via projection.
         static ProjectionArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
-        virtual void Dispose(bool isShutdown) override;
-        virtual void Finalize(bool isShutdown) override {};
+        virtual void __stdcall Dispose(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override {};
     private:
         ProjectionArrayBuffer(uint32 length, DynamicType * type);
         ProjectionArrayBuffer(byte* buffer, uint32 length, DynamicType * type);

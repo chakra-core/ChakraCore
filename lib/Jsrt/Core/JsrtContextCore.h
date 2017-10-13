@@ -11,8 +11,8 @@ class JsrtContextCore sealed : public JsrtContext
 {
 public:
     static JsrtContextCore *New(JsrtRuntime * runtime);
-    virtual void Finalize(bool isShutdown) override;
-    virtual void Dispose(bool isShutdown) override;
+    virtual void __stdcall Finalize(bool isShutdown) override;
+    virtual void __stdcall Dispose(bool isShutdown) override;
     ChakraCoreHostScriptContext* GetHostScriptContext() const { return hostContext; }
 
     void OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);

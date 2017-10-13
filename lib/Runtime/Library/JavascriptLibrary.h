@@ -1357,7 +1357,7 @@ namespace Js
 #endif
 
     public:
-        virtual void Finalize(bool isShutdown) override;
+        virtual void __stdcall Finalize(bool isShutdown) override;
 
 #if DBG
         void DumpLibraryByteCode();

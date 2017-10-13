@@ -36,9 +36,9 @@ namespace Memory
 class DummyVTableObject : public FinalizableObject
 {
 public:
-    virtual void Finalize(bool isShutdown) {}
-    virtual void Dispose(bool isShutdown) {}
-    virtual void Mark(Recycler * recycler) {}
+    virtual void __stdcall Finalize(bool isShutdown) {}
+    virtual void __stdcall Dispose(bool isShutdown) {}
+    virtual void __stdcall Mark(Recycler * recycler) {}
 };
 }
 
@@ -46,8 +46,12 @@ template <ObjectInfoBits attributes, bool nothrow>
 inline char *
 Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 {
-    // All tracked objects are client tracked objects
+    // All tracked objects are client tracked or recycler host visited objects
+#ifndef RECYCLER_VISITED_HOST
     CompileAssert((attributes & TrackBit) == 0 || (attributes & ClientTrackedBit) != 0);
+#else
+	CompileAssert((attributes & TrackBit) == 0 || (attributes & ClientTrackedBit) != 0 || (attributes & RecyclerVisitedHostBit) != 0);
+#endif
     Assert(this->enableScanImplicitRoots || (attributes & ImplicitRootBit) == 0);
     AssertMsg(this->disableThreadAccessCheck || this->mainThreadId == GetCurrentThreadContextId(),
         "Allocating from the recycler can only be done on the main thread");
@@ -517,6 +521,13 @@ Recycler::AddMark(void * candidate, size_t byteCount) throw()
     return markContext.AddMarkedObject(candidate, byteCount);
 }
 
+inline bool
+Recycler::AddPreciselyTracedMark(IRecyclerVisitedObject * candidate) throw()
+{
+    // This is never called during parallel marking
+    Assert(this->collectionState != CollectionStateParallelMark);
+    return markContext.AddPreciselyTracedObject(candidate);
+}
 
 template <typename T>
 void
