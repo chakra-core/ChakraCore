@@ -16485,6 +16485,7 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
                     ldElem->InsertBefore(instr);
                 }
 #elif _M_ARM64
+                // FCMP reg, reg
                 {
                     IR::Instr *const instr = IR::Instr::New(Js::OpCode::FCMP, this->m_func);
                     instr->SetSrc1(reg);
@@ -16492,7 +16493,7 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
                     ldElem->InsertBefore(instr);
                 }
 
-                // JP $helper
+                // BVS $helper
                 {
                     IR::Instr *const instr = IR::BranchInstr::New(Js::OpCode::BVS, labelHelper, this->m_func);
                     ldElem->InsertBefore(instr);

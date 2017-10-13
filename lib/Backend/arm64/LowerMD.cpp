@@ -5964,33 +5964,34 @@ LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::In
 
     // s1 = MOV opndFloat
     IR::RegOpnd *s1 = IR::RegOpnd::New(TyMachReg, m_func);
-    IR::Instr *mov = IR::Instr::New(Js::OpCode::FMOV, s1, opndFloat, m_func);
+    IR::Instr *mov = IR::Instr::New(Js::OpCode::FMOV_GEN, s1, opndFloat, m_func);
     instrInsert->InsertBefore(mov);
 
     if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
-        // s1 = FMOV src
-        // tmp = NOT s1
-        // tmp = AND tmp, 0x7FF0000000000000ull
-        // cbz tmp, helper
-        // jmp done
+        // s1 = FMOV_GEN src
+        // tmp = UBFX s1, #52, #11 ; extract exponent, bits 52-62
+        // cmp = tmp, 0x7FF
+        // beq tmp, helper
+        // b done
         // helper:
-        // tmp2 = AND s1, 0x000FFFFFFFFFFFFFull
+        // tmp2 = tmp2 = UBFX s1, #0, #52 ; extract mantissa, bits 0-51
         // cbz tmp2, done
         // s1 = JavascriptNumber::k_Nan
         // done:
 
         IR::RegOpnd* tmp = IR::RegOpnd::New(TyMachReg, m_func);
-        IR::Instr* newInstr = IR::Instr::New(Js::OpCode::MVN, tmp, s1, m_func);
+
+        IR::Instr* newInstr = IR::Instr::New(Js::OpCode::UBFX, tmp, s1, IR::IntConstOpnd::New(((52<<16)|11), TyMachReg, m_func, true), m_func);
         instrInsert->InsertBefore(newInstr);
         LowererMD::Legalize(newInstr);
 
-        newInstr = IR::Instr::New(Js::OpCode::AND, tmp, tmp, IR::AddrOpnd::New((Js::Var)0x7FF0000000000000, IR::AddrOpndKindConstantVar, m_func, true), m_func);
+        newInstr = IR::Instr::New(Js::OpCode::CMP, tmp, IR::IntConstOpnd::New(0x7FF, TyMachReg, m_func, true), m_func);
         instrInsert->InsertBefore(newInstr);
+        LowererMD::Legalize(newInstr);
 
         IR::LabelInstr* helper = Lowerer::InsertLabel(true, instrInsert);
-        IR::Instr* branch = IR::BranchInstr::New(Js::OpCode::CBZ, helper, m_func);
-        branch->SetSrc1(tmp);
+        IR::Instr* branch = IR::BranchInstr::New(Js::OpCode::BEQ, helper, m_func);
         helper->InsertBefore(branch);
 
         IR::LabelInstr* done = Lowerer::InsertLabel(isHelper, instrInsert);
@@ -5999,7 +6000,7 @@ LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::In
 
         IR::RegOpnd* tmp2 = IR::RegOpnd::New(TyMachReg, m_func);
 
-        newInstr = IR::Instr::New(Js::OpCode::AND, tmp2, s1, IR::AddrOpnd::New((Js::Var)0x000FFFFFFFFFFFFFull, IR::AddrOpndKindConstantVar, m_func, true), m_func);
+        newInstr = IR::Instr::New(Js::OpCode::UBFX, tmp2, s1, IR::IntConstOpnd::New(((0<<16)|52), TyMachReg, m_func, true), m_func);
         done->InsertBefore(newInstr);
         LowererMD::Legalize(newInstr);
 
@@ -8231,19 +8232,15 @@ void LowererMD::GenerateFloatTest(IR::RegOpnd * opndSrc, IR::Instr * insertInstr
 
 IR::RegOpnd* LowererMD::CheckFloatAndUntag(IR::RegOpnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr* labelHelper)
 {
-    IR::Opnd* floatTag = IR::AddrOpnd::New((Js::Var)Js::FloatTag_Value, IR::AddrOpndKindConstantVar, this->m_func, /* dontEncode = */ true);
-    IR::RegOpnd* regOpndFloatTag = IR::RegOpnd::New(TyUint64, this->m_func);
+    IR::Opnd* floatTag = IR::IntConstOpnd::New(Js::FloatTag_Value, TyMachReg, this->m_func, /* dontEncode = */ true);
 
     // MOV floatTagReg, FloatTag_Value
-    IR::Instr* instr = IR::Instr::New(Js::OpCode::MOV, regOpndFloatTag, floatTag, this->m_func);
-    insertInstr->InsertBefore(instr);
-
     if (!opndSrc->GetValueType().IsFloat())
     {
         // TST s1, floatTagReg
-        instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
+        IR::Instr* instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
         instr->SetSrc1(opndSrc);
-        instr->SetSrc2(regOpndFloatTag);
+        instr->SetSrc2(floatTag);
         insertInstr->InsertBefore(instr);
         LegalizeMD::LegalizeInstr(instr, false);
 
@@ -8252,13 +8249,12 @@ IR::RegOpnd* LowererMD::CheckFloatAndUntag(IR::RegOpnd * opndSrc, IR::Instr * in
         insertInstr->InsertBefore(instr);
     }
 
-    // untaggedFloat = EOR floatTagReg, s1 // where untaggedFloat == floatTagReg; use floatTagReg temporarily for the untagged float
-    IR::RegOpnd* untaggedFloat = regOpndFloatTag;
-    instr = IR::Instr::New(Js::OpCode::EOR, untaggedFloat, regOpndFloatTag, opndSrc, this->m_func);
+    IR::RegOpnd* untaggedFloat = IR::RegOpnd::New(TyMachReg, this->m_func);
+    IR::Instr* instr = IR::Instr::New(Js::OpCode::EOR, untaggedFloat, floatTag, opndSrc, this->m_func);
     insertInstr->InsertBefore(instr);
 
     IR::RegOpnd *floatReg = IR::RegOpnd::New(TyMachDouble, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::FMOV, floatReg, untaggedFloat, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::FMOV_GEN, floatReg, untaggedFloat, this->m_func);
     insertInstr->InsertBefore(instr);
     return floatReg;
 }
