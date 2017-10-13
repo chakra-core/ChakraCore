@@ -6465,11 +6465,11 @@ LowererMD::EmitInt4Instr(IR::Instr *instr)
         break;
 
     case Js::OpCode::Add_I4:
-        ChangeToAdd(instr, false /* needFlags */);
+        instr->m_opcode = Js::OpCode::ADD;
         break;
 
     case Js::OpCode::Sub_I4:
-        ChangeToSub(instr, false /* needFlags */);
+        instr->m_opcode = Js::OpCode::SUB;
         break;
 
     case Js::OpCode::Mul_I4:
@@ -6503,19 +6503,11 @@ LowererMD::EmitInt4Instr(IR::Instr *instr)
         break;
 
     case Js::OpCode::BrTrue_I4:
-        instr->m_opcode = Js::OpCode::BNE;
-        goto br1_Common;
+        instr->m_opcode = Js::OpCode::CBNZ;
+        break;
 
     case Js::OpCode::BrFalse_I4:
-        instr->m_opcode = Js::OpCode::BEQ;
-br1_Common:
-        src1 = instr->UnlinkSrc1();
-        newInstr = IR::Instr::New(Js::OpCode::CMP, instr->m_func);
-        instr->InsertBefore(newInstr);
-        newInstr->SetSrc1(src1);
-        newInstr->SetSrc2(IR::IntConstOpnd::New(0, TyInt32, instr->m_func));
-        // Let instr point to the CMP so we can legalize it.
-        instr = newInstr;
+        instr->m_opcode = Js::OpCode::CBZ;
         break;
 
     case Js::OpCode::BrEq_I4:
@@ -7669,127 +7661,15 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
         return GenerateFastInlineBuiltInMathAbs(instr);
 
     case Js::OpCode::InlineMathFloor:
-        Assert(helperMethod == (IR::JnHelperMethod)0);
-        return GenerateFastInlineBuiltInMathFloorCeilRound(instr);
-
     case Js::OpCode::InlineMathCeil:
-        Assert(helperMethod == (IR::JnHelperMethod)0);
-        return GenerateFastInlineBuiltInMathFloorCeilRound(instr);
-
     case Js::OpCode::InlineMathRound:
         Assert(helperMethod == (IR::JnHelperMethod)0);
         return GenerateFastInlineBuiltInMathFloorCeilRound(instr);
 
     case Js::OpCode::InlineMathMin:
     case Js::OpCode::InlineMathMax:
-        {
-            IR::Opnd* src1 = instr->GetSrc1();
-            IR::Opnd* src2 = instr->GetSrc2();
-            IR::Opnd* dst = instr->GetDst();
-            IR::LabelInstr* doneLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-            IR::LabelInstr* labelNaNHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-            IR::LabelInstr* labelNegZeroCheckHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-            IR::Instr* branchInstr;
-
-            bool min = instr->m_opcode == Js::OpCode::InlineMathMin ? true : false;
-
-            //(V)MOV dst, src1;
-            Assert(!dst->IsEqual(src1));
-            this->m_lowerer->InsertMove(dst, src1, instr);
-
-            if(dst->IsInt32())
-            {
-                // CMP src1, src2
-                if(min)
-                {
-                    // BLT $continueLabel
-                    branchInstr = IR::BranchInstr::New(Js::OpCode::BrLt_I4, doneLabel, src1, src2, instr->m_func);
-                    instr->InsertBefore(branchInstr);
-                    this->EmitInt4Instr(branchInstr);
-                }
-                else
-                {
-                    // BGT $continueLabel
-                    branchInstr = IR::BranchInstr::New(Js::OpCode::BrGt_I4, doneLabel, src1, src2, instr->m_func);
-                    instr->InsertBefore(branchInstr);
-                    this->EmitInt4Instr(branchInstr);
-                }
-
-                // MOV dst, src2
-                this->m_lowerer->InsertMove(dst, src2, instr);
-            }
-
-            else if(dst->IsFloat64())
-            {
-                //      VCMPF64 src1, src2
-                //      BCC (min)/ BGT (max) $doneLabel
-                //      BVS     $labelNaNHelper
-                //      BEQ     $labelNegZeroCheckHelper
-                //      VMOV    dst, src2
-                //      B       $doneLabel
-                //
-                // $labelNegZeroCheckHelper
-                //      if(min)
-                //      {
-                //          if(src2 == -0.0)
-                //              VMOV dst, src2
-                //      }
-                //      else
-                //      {
-                //          if(src1 == -0.0)
-                //              VMOV dst, src2
-                //      }
-                //      B $doneLabel
-                //
-                // $labelNaNHelper
-                //      VMOV dst, NaN
-                //
-                // $doneLabel
-
-                if(min)
-                {
-                    this->m_lowerer->InsertCompareBranch(src1, src2, Js::OpCode::BrLt_A, doneLabel, instr); // Lowering of BrLt_A for floats is done to JA with operands swapped
-                }
-                else
-                {
-                    this->m_lowerer->InsertCompareBranch(src1, src2, Js::OpCode::BrGt_A, doneLabel, instr);
-                }
-
-                instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::BVS, labelNaNHelper, instr->m_func));
-
-                instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::BEQ, labelNegZeroCheckHelper, instr->m_func));
-
-                this->m_lowerer->InsertMove(dst, src2, instr);
-                instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, doneLabel, instr->m_func));
-
-                instr->InsertBefore(labelNegZeroCheckHelper);
-
-                IR::Opnd* isNegZero;
-                if(min)
-                {
-                    isNegZero =  IsOpndNegZero(src2, instr);
-                }
-                else
-                {
-                    isNegZero =  IsOpndNegZero(src1, instr);
-                }
-
-                this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrEq_A, doneLabel, instr);
-
-                this->m_lowerer->InsertMove(dst, src2, instr);
-                instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, doneLabel, instr->m_func));
-
-                instr->InsertBefore(labelNaNHelper);
-                IR::Opnd * opndNaN = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleNaNAddr(), IRType::TyFloat64, this->m_func,
-                    IR::AddrOpndKindDynamicDoubleRef);
-                this->m_lowerer->InsertMove(dst, opndNaN, instr);
-            }
-
-            instr->InsertBefore(doneLabel);
-
-            instr->Remove();
-            break;
-        }
+        Assert(helperMethod == (IR::JnHelperMethod)0);
+        return GenerateFastInlineBuiltInMathMinMax(instr);
 
     default:
         // Before:
@@ -7954,6 +7834,39 @@ LowererMD::GenerateFastInlineBuiltInMathFloorCeilRound(IR::Instr* instr)
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
     doneLabel->InsertAfter(movInstr);
+}
+
+void
+LowererMD::GenerateFastInlineBuiltInMathMinMax(IR::Instr* instr)
+{
+    IR::Opnd* dst = instr->GetDst();
+
+    if (dst->IsInt32())
+    {
+        IR::Opnd* src1 = instr->GetSrc1();
+        IR::Opnd* src2 = instr->GetSrc2();
+
+        // CMP src1, src2
+        IR::Instr* cmpInstr = IR::Instr::New(Js::OpCode::CMP, instr->m_func);
+        cmpInstr->SetSrc1(src1);
+        cmpInstr->SetSrc2(src2);
+        instr->InsertBefore(cmpInstr);
+
+        // (min) CSELLT dst, src1, src2
+        // (max) CSELLT dst, src2, src1
+        IR::Opnd* op1 = (instr->m_opcode == Js::OpCode::InlineMathMin) ? src1 : src2;
+        IR::Opnd* op2 = (instr->m_opcode == Js::OpCode::InlineMathMin) ? src2 : src1;
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::CSELLT, dst, op1, op2, instr->m_func));
+
+        instr->Remove();
+    }
+
+    else if (dst->IsFloat64())
+    {
+        // (min) FMIN dst, src1, src2
+        // (max) FMAX dst, src1, src2
+        instr->m_opcode = (instr->m_opcode == Js::OpCode::InlineMathMin) ? Js::OpCode::FMIN : Js::OpCode::FMAX;
+    }
 }
 
 IR::Opnd* LowererMD::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)

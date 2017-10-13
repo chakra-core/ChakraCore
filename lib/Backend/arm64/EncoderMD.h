@@ -7,6 +7,9 @@
 
 class Encoder;
 
+// use this to encode the immediate field for a bitfield instruction
+#define BITFIELD(lsb, width)    ((lsb) | ((width) << 16))
+
 enum RelocType {
     RelocTypeBranch14,
     RelocTypeBranch19,
@@ -116,7 +119,6 @@ enum InstructionType {
 #define IS_CONST_UINT16(x)   IS_CONST_0000FFFF(x)
 #define IS_CONST_UINT12LSL12(x) IS_CONST_00FFF000(x)
 #define IS_CONST_UINT6UINT6(x) IS_CONST_003F003F(x)
-
 
 ///---------------------------------------------------------------------------
 ///

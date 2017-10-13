@@ -160,6 +160,8 @@ MACRO(FCVTZ,       Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED, 
 MACRO(FDIV,        Reg3,      0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 MACRO(FLDR,        Reg2,      0,              UNUSED,   LEGAL_LOAD,     UNUSED,   DL__)
 MACRO(FLDP,        Reg2,      0,              UNUSED,   LEGAL_LOADP,    UNUSED,   DL__)
+MACRO(FMIN,        Reg2,      0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
+MACRO(FMAX,        Reg2,      0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 MACRO(FMOV,        Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   DM__)
 MACRO(FMOV_GEN,    Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   DM__)
 MACRO(FMUL,        Reg3,      0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
