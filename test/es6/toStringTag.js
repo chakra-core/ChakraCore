@@ -262,6 +262,25 @@ var tests = [
             p[Symbol.toStringTag] = "prototypeTag";
             assert.areEqual("[object prototypeTag]", o.toString(), "second call to toString picks up @@toStringTag in prototype");
         }
+    },
+    {
+        name: "'Defining' @@toStringTag in a proxy works, including correct caching",
+        body: function () {
+            // force use of DictionaryTypeHandlerBase
+            var o = { x: 3, set x(newVal) { } };
+            // load o[Symbol.toStringTag] into missing-property cache
+            assert.areEqual("[object Object]", o.toString(), "initial call to toString fails to find @@toStringTag");
+
+            var handler = {
+                get: function(target, name) {
+                    return name === Symbol.toStringTag ? "TEST" : target[name];
+                }
+            };
+            var proxy = new Proxy(o, handler);
+
+            assert.areEqual("[object TEST]", proxy.toString(), "pick up proxy override of @@toStringTag");
+            assert.areEqual("[object Object]", o.toString(), "behavior of original object is unchanged");
+        }
     }
 ];
 
