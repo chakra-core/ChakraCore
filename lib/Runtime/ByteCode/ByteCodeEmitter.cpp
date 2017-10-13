@@ -1329,10 +1329,11 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
             if (sym->IsSpecialSymbol())
             {
                 // Special symbols have already had their initial values stored into their registers.
-                // In split-scope case we've stored those values into their slot locations, as well.
+                // In default-argument case we've stored those values into their slot locations, as well.
                 // We must do that because a default parameter may access a special symbol through a scope slot.
-                // In the non-split-scope case, though, we didn't yet store the values into the slots so let's do that now.
-                if (funcInfo->IsBodyAndParamScopeMerged())
+                // In the non-default-argument case, though, we didn't yet store the values into the
+                // slots so let's do that now.
+                if (!funcInfo->root->sxFnc.HasNonSimpleParameterList())
                 {
                     EmitPropStoreForSpecialSymbol(sym->GetLocation(), sym, sym->GetPid(), funcInfo, true);
                 }
@@ -2964,11 +2965,49 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         DefineLabels(funcInfo);
 
-        if (pnode->sxFnc.HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
+        // We need to emit the storage for special symbols before we emit the default arguments in case the default
+        // argument expressions reference those special names.
+        if (pnode->sxFnc.HasNonSimpleParameterList())
         {
-            Assert(pnode->sxFnc.HasNonSimpleParameterList() || CONFIG_FLAG(ForceSplitScope));
+            // If the param and body scope are merged, the special symbol vars are located in the body scope so we
+            // need to walk over the var list.
+            if (funcInfo->IsBodyAndParamScopeMerged())
+            {
+                for (ParseNodePtr pnodeVar = pnode->sxFnc.pnodeVars; pnodeVar; pnodeVar = pnodeVar->sxVar.pnodeNext)
+                {
+#if DBG
+                    bool reachedEndOfSpecialSymbols = false;
+#endif
+                    Symbol* sym = pnodeVar->sxVar.sym;
 
-            if (paramScope)
+                    if (sym != nullptr && sym->IsSpecialSymbol())
+                    {
+                        EmitPropStoreForSpecialSymbol(sym->GetLocation(), sym, sym->GetPid(), funcInfo, true);
+                        if (ShouldTrackDebuggerMetadata() && !sym->IsInSlot(funcInfo))
+                        {
+                            byteCodeFunction->InsertSymbolToRegSlotList(sym->GetName(), sym->GetLocation(), funcInfo->varRegsCount);
+                        }
+                    }
+                    else
+                    {
+#if DBG
+                        reachedEndOfSpecialSymbols = true;
+#else
+                        // All of the special symbols exist at the beginning of the var list (parser guarantees this and debug build asserts this)
+                        // so we can quit walking at the first non-special one we see.
+                        break;
+#endif
+                    }
+
+#if DBG
+                    if (reachedEndOfSpecialSymbols)
+                    {
+                        Assert(sym == nullptr || !sym->IsSpecialSymbol());
+                    }
+#endif
+                }
+            }
+            else
             {
                 paramScope->ForEachSymbol([&](Symbol* sym) {
                     if (sym && sym->IsSpecialSymbol())
@@ -2977,6 +3016,11 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
                     }
                 });
             }
+        }
+
+        if (pnode->sxFnc.HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
+        {
+            Assert(pnode->sxFnc.HasNonSimpleParameterList() || CONFIG_FLAG(ForceSplitScope));
 
             this->InitBlockScopedNonTemps(funcInfo->root->sxFnc.pnodeScopes, funcInfo);
 
