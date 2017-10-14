@@ -159,7 +159,7 @@ namespace Js
 
         for (uint i = 0; i <= MaxEngineInterfaceExtensionKind; i++)
         {
-            if (engineExtensions[i] != nullptr)
+            if (engineExtensions[i] != nullptr && engineExtensions[i]->GetNeedsInit())
             {
                 engineExtensions[i]->Initialize();
             }

@@ -22,12 +22,17 @@ namespace Js
     public:
         EngineExtensionObjectBase(EngineInterfaceExtensionKind kind, Js::ScriptContext * context) :
             extensionKind(kind),
-            scriptContext(context)
+            scriptContext(context),
+            needsInit(false)
         {
         }
 
         EngineInterfaceExtensionKind GetExtensionKind() const { return extensionKind; }
         ScriptContext* GetScriptContext() const { return scriptContext; }
+        bool GetNeedsInit() const {return needsInit;}
+
+        void SetNeedsInit(bool init) { needsInit = init;  }
+
         virtual void Initialize() = 0;
 #if DBG
         virtual void DumpByteCode() = 0;
@@ -36,6 +41,7 @@ namespace Js
     protected:
         Field(EngineInterfaceExtensionKind) extensionKind;
         Field(ScriptContext*) scriptContext;
+        Field(bool) needsInit;
     };
 
 #define EngineInterfaceObject_CommonFunctionProlog(function, callInfo) \
