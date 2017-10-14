@@ -878,6 +878,12 @@ void ByteCodeGenerator::AddTargetStmt(ParseNode *pnodeStmt)
     top->AddTargetStmt(pnodeStmt);
 }
 
+Js::RegSlot ByteCodeGenerator::AssignThisConstRegister()
+{
+    FuncInfo *top = funcInfoStack->Top();
+    return top->AssignThisConstRegister();
+}
+
 Js::RegSlot ByteCodeGenerator::AssignNullConstRegister()
 {
     FuncInfo *top = funcInfoStack->Top();
@@ -2892,9 +2898,9 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         {
             byteCodeGenerator->AssignRegister(top->GetThisSymbol());
 
-            if (top->IsGlobalFunction() || top->IsLambda())
+            // Indirect eval has a 'this' binding and needs to load from null
+            if (top->IsGlobalFunction())
             {
-                // Global function or lambda at global need to load this from null
                 byteCodeGenerator->AssignNullConstRegister();
             }
         }
@@ -4995,6 +5001,13 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         if (sym == nullptr)
         {
             Assert(pnode->sxPid.pid->GetPropertyId() != Js::Constants::NoProperty);
+
+            // Referring to 'this' with no var decl needs to load 'this' root value via LdThis from null
+            if (ByteCodeGenerator::IsThis(pnode) && !byteCodeGenerator->TopFuncInfo()->GetThisSymbol() && !(byteCodeGenerator->GetFlags() & fscrEval))
+            {
+                byteCodeGenerator->AssignNullConstRegister();
+                byteCodeGenerator->AssignThisConstRegister();
+            }
         }
         else
         {

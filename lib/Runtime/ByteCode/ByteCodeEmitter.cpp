@@ -2021,6 +2021,10 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
     {
         this->LoadThisObject(funcInfo, thisLoadedFromParams);
     }
+    else if (ShouldLoadConstThis(funcInfo))
+    {
+        this->EmitThis(funcInfo, funcInfo->thisConstantRegister, funcInfo->nullConstantRegister);
+    }
 
     if (funcInfo->GetSuperSymbol())
     {
@@ -2124,6 +2128,7 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
 {
     Symbol* thisSym = funcInfo->GetThisSymbol();
     Assert(thisSym);
+    Assert(!funcInfo->IsLambda());
 
     if (this->scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled() && funcInfo->IsClassConstructor())
     {
@@ -2154,7 +2159,7 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
             this->Writer()->MarkLabel(skipLabel);
         }
     }
-    else if (!funcInfo->IsGlobalFunction() && !funcInfo->IsLambda())
+    else if (!funcInfo->IsGlobalFunction())
     {
         //
         // thisLoadedFromParams would be true for the event Handler case,
@@ -2165,13 +2170,13 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
             m_writer.ArgIn0(thisSym->GetLocation());
         }
 
-        EmitThis(funcInfo, thisSym->GetLocation());
+        EmitThis(funcInfo, thisSym->GetLocation(), thisSym->GetLocation());
     }
     else
     {
-        Assert(funcInfo->IsGlobalFunction() || funcInfo->IsLambda());
+        Assert(funcInfo->IsGlobalFunction());
         Js::RegSlot root = funcInfo->nullConstantRegister;
-        EmitThis(funcInfo, root);
+        EmitThis(funcInfo, thisSym->GetLocation(), root);
     }
 }
 
@@ -2200,18 +2205,11 @@ void ByteCodeGenerator::LoadSuperConstructorObject(FuncInfo *funcInfo)
 {
     Symbol* superConstructorSym = funcInfo->GetSuperConstructorSymbol();
     Assert(superConstructorSym);
-
-    if (funcInfo->IsClassMember())
-    {
         Assert(!funcInfo->IsLambda());
+    Assert(funcInfo->IsDerivedClassConstructor());
 
         m_writer.Reg1(Js::OpCode::LdFuncObj, superConstructorSym->GetLocation());
     }
-    else
-    {
-        m_writer.Reg1(Js::OpCode::LdUndef, superConstructorSym->GetLocation());
-    }
-}
 
 void ByteCodeGenerator::LoadSuperObject(FuncInfo *funcInfo)
 {
@@ -2343,47 +2341,15 @@ void ByteCodeGenerator::EmitBaseClassConstructorThisObject(FuncInfo *funcInfo)
     this->Writer()->Reg2(Js::OpCode::NewScObjectNoCtorFull, funcInfo->GetThisSymbol()->GetLocation(), funcInfo->GetNewTargetSymbol()->GetLocation());
 }
 
-void ByteCodeGenerator::GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &scope, Js::PropertyId &envIndex)
-{
-    Assert(funcInfo->IsLambda());
-    envIndex = -1;
-    for (scope = GetCurrentScope(); scope; scope = scope->GetEnclosingScope())
-    {
-        FuncInfo* scopeFuncInfo = scope->GetFunc();
-        if (scope->GetMustInstantiate() && scopeFuncInfo != funcInfo)
-        {
-            envIndex++;
-        }
-        if (scope->IsGlobalEvalBlockScope())
-        {
-            break;
-        }
-        else if (!scopeFuncInfo->IsLambda())
-        {
-            // This method is used only for working with the special scope slots like this, super or new.target captured
-            // from the parent function. In case of split scope all these symbols should be loaded from the param scope.
-            if (scope == scopeFuncInfo->GetParamScope())
-            {
-                Assert(!scopeFuncInfo->IsBodyAndParamScopeMerged());
-                break;
-            }
-            else if (scope == scopeFuncInfo->GetBodyScope() && scopeFuncInfo->IsBodyAndParamScopeMerged())
-            {
-                break;
-            }
-        }
-    }
-}
-
-void ByteCodeGenerator::EmitThis(FuncInfo *funcInfo, Js::RegSlot fromRegister)
+void ByteCodeGenerator::EmitThis(FuncInfo *funcInfo, Js::RegSlot lhsLocation, Js::RegSlot fromRegister)
 {
     if (funcInfo->byteCodeFunction->GetIsStrictMode() && !funcInfo->IsGlobalFunction() && !funcInfo->IsLambda())
     {
-        m_writer.Reg2(Js::OpCode::StrictLdThis, funcInfo->GetThisSymbol()->GetLocation(), fromRegister);
+        m_writer.Reg2(Js::OpCode::StrictLdThis, lhsLocation, fromRegister);
     }
     else
     {
-        m_writer.Reg2Int1(Js::OpCode::LdThis, funcInfo->GetThisSymbol()->GetLocation(), fromRegister, this->GetModuleID());
+        m_writer.Reg2Int1(Js::OpCode::LdThis, lhsLocation, fromRegister, this->GetModuleID());
     }
 }
 
@@ -4915,15 +4881,41 @@ ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
     return op;
 }
 
+bool ByteCodeGenerator::ShouldLoadConstThis(FuncInfo* funcInfo)
+{
+#if DBG
+    // We should load a const 'this' binding if the following holds
+    // - The function has a 'this' name node
+    // - We are in a global or global lambda function
+    // - The function has no 'this' symbol (an indirect eval would have this symbol)
+    if (funcInfo->thisConstantRegister != Js::Constants::NoRegister)
+    {
+        Assert((funcInfo->IsLambda() || funcInfo->IsGlobalFunction())
+            && !funcInfo->GetThisSymbol()
+            && !(this->flags & fscrEval));
+    }
+#endif
+
+    return funcInfo->thisConstantRegister != Js::Constants::NoRegister;
+}
+
 void ByteCodeGenerator::EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pnode, FuncInfo *funcInfo, bool chkUndecl)
 {
+    Symbol* sym = pnode->sxPid.sym;
+
+    if (!sym && this->ShouldLoadConstThis(funcInfo))
+    {
+        this->Writer()->Reg2(Js::OpCode::Ld_A, lhsLocation, funcInfo->thisConstantRegister);
+    }
+    else
+    {
     this->EmitPropLoad(lhsLocation, pnode->sxPid.sym, pnode->sxPid.pid, funcInfo, true);
 
-    Symbol* sym = pnode->sxPid.sym;
     if ((!sym || sym->GetNeedDeclaration()) && chkUndecl)
     {
         this->Writer()->Reg1(Js::OpCode::ChkUndecl, lhsLocation);
     }
+}
 }
 
 void ByteCodeGenerator::EmitPropStoreForSpecialSymbol(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool init)
@@ -7670,6 +7662,8 @@ void EmitCallTarget(
 
     case knopName:
     {
+        if (!pnodeTarget->IsSpecialName())
+        {
         funcInfo->AcquireLoc(pnodeTarget);
         // Assign the call target operand(s), putting them into expression temps if necessary to protect
         // them from side-effects.
@@ -7684,6 +7678,7 @@ void EmitCallTarget(
             Js::PropertyId propertyId = pnodeTarget->sxPid.PropertyIdFromNameNode();
             EmitMethodFld(pnodeTarget, *callObjLocation, propertyId, byteCodeGenerator, funcInfo);
             break;
+        }
         }
 
         // FALL THROUGH to evaluate call target.
