@@ -384,7 +384,7 @@ namespace UnifiedRegex
         size_t size = sizeof(*((T *)that));
         byte *endByte = startByte + size;
         byte *currentByte = startByte;
-        w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offset, size, annotation);
+        w->Print(_u("0x%p[+0x%03x](0x%03x)(sizeof:0x%03x)(alignof:0x%03x) [%s]:"), startByte, offset, size, sizeof(T), alignof(T), annotation);
 
         for (; currentByte < endByte; ++currentByte)
         {
@@ -779,13 +779,6 @@ namespace UnifiedRegex
     void TrieMixin::Print(DebugWriter* w, const char16* litbuf) const
     {
         trie.Print(w);
-    }
-#endif
-
-#if ENABLE_REGEX_CONFIG_OPTIONS
-    void HardFailMixin::Print(DebugWriter* w, const char16* litbuf) const
-    {
-        w->Print(_u("hardFail: %s"), canHardFail ? _u("true") : _u("false"));
     }
 #endif
 
@@ -1449,7 +1442,13 @@ namespace UnifiedRegex
     // BOITestInst
     // ----------------------------------------------------------------------
 
-    inline bool BOITestInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
+    template <>
+    inline BOITestInst<true>::BOITestInst() : Inst(BOIHardFailTest) {}
+    template <>
+    inline BOITestInst<false>::BOITestInst() : Inst(BOITest) {}
+
+    template <bool canHardFail>
+    inline bool BOITestInst<canHardFail>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (inputOffset > 0)
         {
@@ -1468,12 +1467,21 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-    int BOITestInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    template <bool canHardFail>
+    int BOITestInst<canHardFail>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        PRINT_RE_BYTECODE_BEGIN("BOITest");
-        PRINT_MIXIN(HardFailMixin);
+        if (canHardFail)
+        {
+            PRINT_RE_BYTECODE_BEGIN("BOIHardFailTest");
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("BOITest");
+        }
+
+        w->Print(_u("<hardFail>: %s"), canHardFail ? _u("true") : _u("false"));
+
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(HardFailMixin);
         PRINT_RE_BYTECODE_END();
     }
 #endif
@@ -1482,7 +1490,13 @@ namespace UnifiedRegex
     // EOITestInst
     // ----------------------------------------------------------------------
 
-    inline bool EOITestInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
+    template <>
+    inline EOITestInst<true>::EOITestInst() : Inst(EOIHardFailTest) {}
+    template <>
+    inline EOITestInst<false>::EOITestInst() : Inst(EOITest) {}
+
+    template <bool canHardFail>
+    inline bool EOITestInst<canHardFail>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (inputOffset < inputLength)
         {
@@ -1501,12 +1515,21 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-    int EOITestInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    template <bool canHardFail>
+    int EOITestInst<canHardFail>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        PRINT_RE_BYTECODE_BEGIN("EOITest");
-        PRINT_MIXIN(HardFailMixin);
+        if (canHardFail)
+        {
+            PRINT_RE_BYTECODE_BEGIN("EOIHardFailTest");
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("EOITest");
+        }
+
+        w->Print(_u("<hardFail>: %s"), canHardFail ? _u("true") : _u("false"));
+
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(HardFailMixin);
         PRINT_RE_BYTECODE_END();
     }
 #endif

@@ -453,17 +453,6 @@ namespace UnifiedRegex
 #endif
     };
 
-    struct HardFailMixin
-    {
-        bool canHardFail;
-
-        inline HardFailMixin(bool canHardFail) : canHardFail(canHardFail) {}
-
-#if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const char16* litbuf) const;
-#endif
-    };
-
     struct GroupMixin
     {
         const int groupId;
@@ -851,20 +840,25 @@ namespace UnifiedRegex
     // Built-in assertions
     //
 
-    struct BOITestInst : Inst, HardFailMixin
+    // BOI = Beginning of Input
+    template <bool canHardFail>
+    struct BOITestInst : Inst
     {
-        inline BOITestInst(bool canHardFail) : Inst(BOITest), HardFailMixin(canHardFail) {}
+        inline BOITestInst();
 
         INST_BODY
     };
 
-    struct EOITestInst : Inst, HardFailMixin
+    // EOI = End of Input
+    template <bool canHardFail>
+    struct EOITestInst : Inst
     {
-        inline EOITestInst(bool canHardFail) : Inst(EOITest), HardFailMixin(canHardFail) {}
+        inline EOITestInst();
 
         INST_BODY
     };
 
+    // BOL = Beginning of Line (/^.../)
     struct BOLTestInst : Inst
     {
         inline BOLTestInst() : Inst(BOLTest) {}
@@ -872,6 +866,7 @@ namespace UnifiedRegex
         INST_BODY
     };
 
+    // EOL = End of Line (/...$/)
     struct EOLTestInst : Inst
     {
         inline EOLTestInst() : Inst(EOLTest) {}
