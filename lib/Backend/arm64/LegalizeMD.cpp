@@ -71,6 +71,26 @@ void LegalizeMD::LegalizeInstr(IR::Instr * instr, bool fPostRegAlloc)
     LegalizeSrc(instr, instr->GetSrc2(), 2, fPostRegAlloc);
 }
 
+void LegalizeMD::LegalizeRegOpnd(IR::Instr* instr, IR::Opnd* opnd)
+{
+    // Arm64 does not support 1 byte register usage, so expand anything smaller than 1 byte up to 4 bytes.
+    // UseWithNewType will make a copy if the register is already in use. We know it is in use because it is used in this instruction, and we want to reuse this operand rather than making a copy 
+    // so unuse it before calling UseWithNewType. 
+    if (opnd->GetSize() < 4)
+    {
+        if (IRType_IsSignedInt(opnd->GetType()))
+        {
+            opnd->UnUse();
+            opnd->UseWithNewType(TyInt32, instr->m_func);
+        }
+        else
+        {
+            opnd->UnUse();
+            opnd->UseWithNewType(TyUint32, instr->m_func);
+        }
+    }
+}
+
 void LegalizeMD::LegalizeDst(IR::Instr * instr, bool fPostRegAlloc)
 {
     LegalForms forms = LegalDstForms(instr);
@@ -98,6 +118,7 @@ void LegalizeMD::LegalizeDst(IR::Instr * instr, bool fPostRegAlloc)
             IllegalInstr(instr, _u("Unexpected reg dst"));
         }
 #endif
+        LegalizeRegOpnd(instr, opnd);
         break;
 
     case IR::OpndKindMemRef:
@@ -193,6 +214,7 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
             IllegalInstr(instr, _u("Unexpected reg as src%d opnd"), opndNum);
         }
 #endif
+        LegalizeRegOpnd(instr, opnd);
         break;
 
     case IR::OpndKindAddr:
@@ -262,6 +284,7 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
 
 IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms forms, bool fPostRegAlloc)
 {
+    IR::Instr* legalized = instr;
     if (LowererMD::IsAssign(instr) && instr->GetDst()->IsRegOpnd())
     {
         // We can just change this to a load in place.
@@ -273,16 +296,18 @@ IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms 
         if (opndNum == 1)
         {
             AssertMsg(!fPostRegAlloc || instr->GetSrc1()->GetType() == TyMachReg, "Post RegAlloc other types disallowed");
-            instr = instr->HoistSrc1(LowererMD::GetLoadOp(instr->GetSrc1()->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+            legalized = instr->HoistSrc1(LowererMD::GetLoadOp(instr->GetSrc1()->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+            LegalizeRegOpnd(instr, instr->GetSrc1());
         }
         else
         {
             AssertMsg(!fPostRegAlloc || instr->GetSrc2()->GetType() == TyMachReg, "Post RegAlloc other types disallowed");
-            instr = instr->HoistSrc2(LowererMD::GetLoadOp(instr->GetSrc2()->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+            legalized = instr->HoistSrc2(LowererMD::GetLoadOp(instr->GetSrc2()->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+            LegalizeRegOpnd(instr, instr->GetSrc2());
         }
     }
 
-    return instr;
+    return legalized;
 }
 
 void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpnd, LegalForms forms, bool fPostRegAlloc)
