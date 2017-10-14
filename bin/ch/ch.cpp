@@ -104,27 +104,31 @@ void __stdcall PrintChVersion()
 #ifdef _WIN32
 void __stdcall PrintChakraCoreVersion()
 {
-    char filename[_MAX_PATH];
-    char drive[_MAX_DRIVE];
-    char dir[_MAX_DIR];
+    char16 filename[_MAX_PATH];
+    char16 drive[_MAX_DRIVE];
+    char16 dir[_MAX_DIR];
 
-    LPCSTR chakraDllName = GetChakraDllName();
+    LPCWSTR chakraDllName = GetChakraDllNameW();
 
-    char modulename[_MAX_PATH];
-    GetModuleFileNameA(NULL, modulename, _MAX_PATH);
-    _splitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
-    _makepath_s(filename, drive, dir, chakraDllName, nullptr);
+    char16 modulename[_MAX_PATH];
+    if (!GetModuleFileNameW(NULL, modulename, _MAX_PATH))
+    {
+        return;
+    }
+
+    _wsplitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
+    _wmakepath_s(filename, drive, dir, chakraDllName, nullptr);
 
     UINT size = 0;
     LPBYTE lpBuffer = NULL;
-    DWORD verSize = GetFileVersionInfoSizeA(filename, NULL);
+    DWORD verSize = GetFileVersionInfoSizeW(filename, NULL);
 
     if (verSize != NULL)
     {
         LPSTR verData = new char[verSize];
 
-        if (GetFileVersionInfoA(filename, NULL, verSize, verData) &&
-            VerQueryValue(verData, _u("\\"), (VOID FAR * FAR *)&lpBuffer, &size) &&
+        if (GetFileVersionInfoW(filename, NULL, verSize, verData) &&
+            VerQueryValueW(verData, _u("\\"), (VOID FAR * FAR *)&lpBuffer, &size) &&
             (size != 0))
         {
             VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
@@ -133,7 +137,7 @@ void __stdcall PrintChakraCoreVersion()
                 // Doesn't matter if you are on 32 bit or 64 bit,
                 // DWORD is always 32 bits, so first two revision numbers
                 // come from dwFileVersionMS, last two come from dwFileVersionLS
-                printf("%s version %d.%d.%d.%d\n",
+                wprintf(_u("%s version %d.%d.%d.%d\n"),
                     chakraDllName,
                     (verInfo->dwFileVersionMS >> 16) & 0xffff,
                     (verInfo->dwFileVersionMS >> 0) & 0xffff,
